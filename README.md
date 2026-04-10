@@ -1,6 +1,6 @@
 # RoslynMcpServer
 
-[🇷🇺 Читать на русском (Russian Version)](#-russian-version)
+[🇷🇺 Читать на русском (Russian Version)](#russian-version)
 
 **Why use this over standard FileSystem MCPs?**
 Unlike basic file-reading servers, this Model Context Protocol (MCP) server leverages **Roslyn**. Your AI agent (Cursor, Cline, etc.) doesn't just read plain text—it sees C# code through the eyes of the compiler. It can get precise diagnostics without a full rebuild, find symbol references, and perform safe semantic refactoring, drastically reducing LLM hallucinations.
@@ -286,7 +286,8 @@ There are **23** registered tools (see list below) and **1** MCP prompt (`Refact
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 ---
 
-## <a name="russian-version"></a> 🇷🇺 Описание на русском
+## <a name="russian-version"></a>
+ 🇷🇺 Описание на русском
 
 [🇬🇧 Back to English (Main)](#roslynmcpserver)
 
