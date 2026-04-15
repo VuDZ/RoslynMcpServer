@@ -27,6 +27,7 @@
 
   <!-- Include additional files for browsing the MCP server. -->
   <ItemGroup>
+    <None Include=".mcp\server.json" Pack="true" PackagePath="/.mcp/" />
     <None Include="LICENSE" Pack="true" PackagePath="/" />
     <None Include="README.md" Pack="true" PackagePath="/" />
   </ItemGroup>
@@ -39,6 +40,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="ICSharpCode.Decompiler" Version="10.0.0.8330" />
     <PackageReference Include="Microsoft.Build.Locator" Version="1.11.2" />
     <PackageReference Include="Microsoft.Build.Framework" Version="18.4.0" PrivateAssets="all" ExcludeAssets="runtime" />
     <PackageReference Include="Microsoft.Build.Utilities.Core" Version="18.4.0" PrivateAssets="all" ExcludeAssets="runtime" />

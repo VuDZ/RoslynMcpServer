@@ -80,6 +80,7 @@ builder.Services
     .WithTools<RoslynTools>()
     .WithTools<WorkspaceTools>()
     .WithTools<CodeAnalysisTools>()
+    .WithTools<CodeSkeletonTools>()
     .WithTools<NavigationTools>()
     .WithTools<EditingTools>()
     .WithTools<BuildTools>()

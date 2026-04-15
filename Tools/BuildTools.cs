@@ -75,7 +75,11 @@ public sealed class BuildTools
             var stderrTask = process.StandardError.ReadToEndAsync(cancellationToken);
             await process.WaitForExitAsync(cancellationToken);
 
-            var combined = (await stdoutTask).TrimEnd() + Environment.NewLine + (await stderrTask).TrimEnd();
+            var stdout = (await stdoutTask).TrimEnd();
+            var stderr = (await stderrTask).TrimEnd();
+            var combined = string.Join(
+                Environment.NewLine,
+                new[] { stdout, stderr }.Where(s => !string.IsNullOrEmpty(s)));
             var diagnostics = ParseMsBuildDiagnostics(combined);
             var errorEntries = diagnostics
                 .Where(d => string.Equals(d.Severity, "error", StringComparison.OrdinalIgnoreCase))
@@ -125,7 +129,12 @@ public sealed class BuildTools
                 var sb = new StringBuilder();
                 sb.AppendLine("## Build failed");
                 sb.AppendLine();
-                sb.AppendLine($"Exit code: `{process.ExitCode}`. No lines matched the standard MSBuild diagnostic pattern `path(line,col): error|warning CODE: message`.");
+                sb.AppendLine(
+                    $"Exit code: `{process.ExitCode}`. No lines matched the standard MSBuild diagnostic pattern `path(line,col): error|warning CODE: message`.");
+                TruncatedProcessLog.AppendLastCharacters(
+                    sb,
+                    TruncatedProcessLog.BuildPreambleBuildConsoleTail(process.ExitCode),
+                    combined);
                 return ToolTelemetry.TraceAndReturn(nameof(RunDotNetBuild), sb.ToString().TrimEnd());
             }
 

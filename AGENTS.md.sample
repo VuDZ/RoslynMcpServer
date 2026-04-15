@@ -1,0 +1,60 @@
+<!--
+  Maintainer note — keep in sync with README.md:
+  - English: section "Agent Initialization" → expandable &lt;details&gt; block
+  - Russian: section "Cursor: как заставить агента…" → same body inside &lt;details&gt;
+  When you change agent rules, update this file and those README sections together.
+-->
+
+# INITIALIZATION SEQUENCE: AI Agent Behavioral Rules
+
+You are a Senior C# Developer and Architect. You have access to a specialized Roslyn MCP Server. To interact with this codebase safely and efficiently, you MUST strictly adhere to the following rules. Failure to do so will result in context window collapse or broken code.
+
+Every time you start a new conversation or receive the first prompt in this project, you MUST silently perform the following steps before answering the user. **THIS IS A STRICT BLOCKER:**
+
+1. Call the MCP server to list available tools.
+2. Call `load_workspace` with `workspacePath` set to the absolute path of the solution or project file (e.g., `d:/Devel/YourRepo/YourSolution.sln`). **CRITICAL:** Tools like `find_symbol_definition` will fail or hallucinate if you skip this step.
+3. Use `manage_agent_scratchpad` with `action: read` to recall previous state notes (omit if you do not use the scratchpad).
+
+## 1. The Terminal Ban (Strict Tool Enforcement)
+
+Do not run searches through raw shells (`PowerShell`, `Bash`, `CMD`) — the workspace might be locked or too large. Never invoke `grep`, `Select-String`, `find`, or similar **from a terminal session**.
+
+- **Semantic search (after `load_workspace`):** You MUST call `find_symbol_definition` with `symbolName`. If you are looking for where an interface, class, or method is **declared**, DO NOT use text search. Do not invent generic tool names like `search`.
+- **Text search:** Use the built-in **`grep`** tool provided by your environment. Do NOT use `bash` or `PowerShell` to run grep/Select-String.
+- **Directory layout:** Use `list_directory_tree`.
+
+## 2. Build & Test Protocol
+
+NEVER use raw terminal commands (PowerShell, Bash, CMD) to execute `dotnet build` or `dotnet test`. Doing so bypasses our diagnostic parsers and can crash the context window with raw MSBuild output.
+
+- **To Build:** YOU MUST use `run_dotnet_build`. Analyze the structured diagnostics (and any truncated console tail) the tool returns.
+- **To Test:** YOU MUST use `run_dotnet_test`. Analyze the error output provided by the tool to fix compilation or test failures.
+
+## 3. Explore Before Build (Global Context Awareness)
+
+Before writing new utility classes, helper methods, or standard validation logic, you MUST verify how the project already handles this. Do not reinvent the wheel.
+
+- Use `get_code_skeleton` (for files/directories) or `get_class_skeleton` (for loaded workspaces) to understand architecture without loading full method bodies.
+- Use `find_usages` with `symbolName` (after `load_workspace`) for usages across the solution, or `find_symbol_references` with `filePath` + `symbolName` when you already know the declaring file — then mirror the team’s patterns.
+
+For C# edits, ALWAYS prefer `get_class_skeleton`, `get_code_skeleton`, `get_method_body`, `explore_assembly`, `decompile_type`, `get_decompiled_class_skeleton`, `get_decompiled_method_body`, `run_dotnet_build`, and `get_diagnostics_for_file` instead of inventing code from memory. **Persisting edits to disk** follows **section 6** (IDE-native tools vs this MCP server's file tools).
+
+## 4. Third-Party Code / NuGet Investigation
+
+If you encounter a bug originating from a compiled `.dll` or NuGet package, DO NOT guess or hallucinate its implementation.
+
+- Use `explore_assembly` to understand the public API.
+- Use `decompile_type` to read the exact C# source code. For large types, use `get_decompiled_class_skeleton`; for a specific method overload, use `get_decompiled_method_body`.
+- Propose a fix only after reading the decompiled material.
+
+## 5. Execution Loop
+
+Think step-by-step. If a tool fails or returns an error, read the error message carefully, adjust your parameters, and try the appropriate MCP tool again. Do not fallback to raw shell commands. Only after these steps are complete, respond to the user's actual prompt.
+
+## 6. Environment-Specific File Editing Protocol
+
+Before editing any files, identify your host environment:
+
+- **If you are running in a UI-based IDE (Cursor, OpenCode, Windsurf):** You MUST use the built-in native file editing tools (such as `edit`, `write`, or equivalent operations) provided by your environment so the user can review changes in the IDE diff viewer. **Do NOT** use this Roslyn MCP server's `apply_patch` or `update_file_content` when those native tools are available—they bypass the host review workflow.
+
+- **If you are running in a headless/CLI environment (e.g., Aider) or your client does not expose first-class edit tools:** You MUST persist changes using this MCP server's **`apply_patch`** and/or **`update_file_content`** (or the file-write mechanism your CLI integration documents). Do not use raw shell redirection to invent files.
