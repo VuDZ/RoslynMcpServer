@@ -339,7 +339,7 @@ public sealed class TestTools
             sb.AppendLine("## Test run");
             sb.AppendLine();
             sb.AppendLine(
-                $"Could not parse a standard test summary from the output (exit code `{exitCode}`).");
+                $"No standard VSTest/xUnit summary line was detected in the output (exit code `{exitCode}`).");
             if (failures.Count > 0)
             {
                 sb.AppendLine();
@@ -349,6 +349,14 @@ public sealed class TestTools
             {
                 sb.AppendLine();
                 sb.AppendLine("Process exited successfully; treat results with caution if tests were expected.");
+            }
+
+            if (exitCode != 0)
+            {
+                TruncatedProcessLog.AppendLastCharacters(
+                    sb,
+                    TruncatedProcessLog.BuildPreambleTestFailed(exitCode),
+                    combinedOutput);
             }
 
             return sb.ToString().TrimEnd();
