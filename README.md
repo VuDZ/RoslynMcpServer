@@ -134,6 +134,7 @@ Before editing any files, identify your host environment:
 - **If you are running in a UI-based IDE (Cursor, OpenCode, Windsurf):** You MUST use the built-in native file editing tools (such as `edit`, `write`, or equivalent operations) provided by your environment so the user can review changes in the IDE diff viewer. **Do NOT** use this Roslyn MCP server's `apply_patch` or `update_file_content` when those native tools are available—they bypass the host review workflow.
 
 - **If you are running in a headless/CLI environment (e.g., Aider) or your client does not expose first-class edit tools:** You MUST persist changes using this MCP server's **`apply_patch`** and/or **`update_file_content`** (or the file-write mechanism your CLI integration documents). Do not use raw shell redirection to invent files.
+- **For C# insertions (usings, methods):** prefer **`add_using`** and **`add_method_to_class`** over `apply_patch` — Roslyn AST insertion avoids whitespace/formatting mismatches.
 
 
 </details>
@@ -156,7 +157,7 @@ Before editing any files, identify your host environment:
 - `fixIndex` — 0-based index from `get_code_fixes` for `apply_code_fix`.
 - `path` — `.cs` file or directory for `get_code_skeleton` (absolute path; disk-based, no workspace required).
 
-There are **38** registered tools (see list below) and **1** MCP prompt (`RefactoringAssistantPrompt`).
+There are **40** registered tools (see list below) and **1** MCP prompt (`RefactoringAssistantPrompt`).
 
 ### Workspace / Roslyn
 
@@ -324,6 +325,29 @@ There are **38** registered tools (see list below) and **1** MCP prompt (`Refact
 **Parameters:**
 - `filePath: string`
 - `content: string`
+</details>
+
+<details>
+<summary><code>add_using</code> — Add a using directive via Roslyn AST.</summary>
+
+**Parameters:**
+- `filePath: string`
+- `namespaceName: string` — e.g. `System.Linq`
+
+Inserts and formats the directive. Requires `load_workspace`. Prefer over `apply_patch` for imports.
+
+</details>
+
+<details>
+<summary><code>add_method_to_class</code> — Insert a method into a class via Roslyn AST.</summary>
+
+**Parameters:**
+- `filePath: string`
+- `className: string` — top-level class name
+- `methodSource: string` — full method declaration (modifiers, signature, body)
+
+Parses C# syntax, inserts with DocumentEditor, formats the file. Prefer over `apply_patch` for new methods.
+
 </details>
 
 <details>
@@ -675,6 +699,7 @@ Before editing any files, identify your host environment:
 - **If you are running in a UI-based IDE (Cursor, OpenCode, Windsurf):** You MUST use the built-in native file editing tools (such as `edit`, `write`, or equivalent operations) provided by your environment so the user can review changes in the IDE diff viewer. **Do NOT** use this Roslyn MCP server's `apply_patch` or `update_file_content` when those native tools are available—they bypass the host review workflow.
 
 - **If you are running in a headless/CLI environment (e.g., Aider) or your client does not expose first-class edit tools:** You MUST persist changes using this MCP server's **`apply_patch`** and/or **`update_file_content`** (or the file-write mechanism your CLI integration documents). Do not use raw shell redirection to invent files.
+- **For C# insertions (usings, methods):** prefer **`add_using`** and **`add_method_to_class`** over `apply_patch` — Roslyn AST insertion avoids whitespace/formatting mismatches.
 
 
 </details>
@@ -697,7 +722,7 @@ Before editing any files, identify your host environment:
 - `fixIndex` — индекс (0-based) из `get_code_fixes` для `apply_code_fix`.
 - `path` — файл `.cs` или каталог для `get_code_skeleton` (абсолютный путь; с диска, workspace не обязателен).
 
-Зарегистрировано **38** инструмента (список ниже) и **1** MCP-промпт (`RefactoringAssistantPrompt`).
+Зарегистрировано **40** инструмента (список ниже) и **1** MCP-промпт (`RefactoringAssistantPrompt`).
 
 ### Workspace / Roslyn
 
@@ -865,6 +890,29 @@ Before editing any files, identify your host environment:
 **Параметры:**
 - `filePath: string`
 - `content: string`
+</details>
+
+<details>
+<summary><code>add_using</code> — Добавить using через Roslyn AST.</summary>
+
+**Параметры:**
+- `filePath: string`
+- `namespaceName: string` — например `System.Linq`
+
+Требует `load_workspace`. Для импортов — вместо `apply_patch`.
+
+</details>
+
+<details>
+<summary><code>add_method_to_class</code> — Вставить метод в класс через Roslyn AST.</summary>
+
+**Параметры:**
+- `filePath: string`
+- `className: string` — top-level класс
+- `methodSource: string` — объявление метода (модификаторы, сигнатура, тело)
+
+Парсит C#, вставляет через DocumentEditor, форматирует. Для новых методов — вместо `apply_patch`.
+
 </details>
 
 <details>

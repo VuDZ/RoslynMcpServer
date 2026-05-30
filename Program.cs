@@ -87,6 +87,7 @@ builder.Services
     .WithTools<CodeSkeletonTools>()
     .WithTools<NavigationTools>()
     .WithTools<RefactoringTools>()
+    .WithTools<AstTools>()
     .WithTools<EditingTools>()
     .WithTools<BuildTools>()
     .WithTools<TestTools>()
