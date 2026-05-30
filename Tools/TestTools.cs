@@ -110,6 +110,68 @@ public sealed class TestTools
         }
     }
 
+    [McpServerTool(Name = "get_test_list", Title = "List tests in workspace")]
+    [Description("Returns JSON list of test methods (Fact/Theory/TestMethod/etc.) from the loaded solution.")]
+    public async Task<string> GetTestList(
+        [Description("Maximum tests to return (default 200).")] int maxResults = 200,
+        CancellationToken cancellationToken = default)
+    {
+        const string toolName = nameof(GetTestList);
+        try
+        {
+            var solution = _solutionManager.GetCurrentSolution();
+            if (solution is null)
+            {
+                return ToolTelemetry.TraceAndReturn(toolName, "No workspace loaded. Call `load_workspace` first.");
+            }
+
+            var json = await TestDiscoveryHelper.ListTestsJsonAsync(solution, maxResults, cancellationToken)
+                .ConfigureAwait(false);
+            return ToolTelemetry.TraceAndReturn(toolName, "```json\n" + json + "\n```");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "GetTestList failed");
+            return ToolTelemetry.TraceAndReturn(toolName, $"Failed: {ex.Message}");
+        }
+    }
+
+    [McpServerTool(Name = "generate_test_method_stub", Title = "Generate test method stub")]
+    [Description("Inserts a test method stub ([Fact]/[Test]/[TestMethod]) into a test class via Roslyn AST.")]
+    public async Task<string> GenerateTestMethodStub(
+        string filePath,
+        string className,
+        string methodName,
+        [Description("xunit (default), nunit, or mstest.")] string? testFramework = null,
+        CancellationToken cancellationToken = default)
+    {
+        const string toolName = nameof(GenerateTestMethodStub);
+        try
+        {
+            var fullPath = Path.GetFullPath(filePath);
+            var document = await _solutionManager.FindDocumentAsync(fullPath, cancellationToken).ConfigureAwait(false);
+            if (document is null)
+            {
+                return ToolTelemetry.TraceAndReturn(toolName, $"Document not in workspace: `{fullPath}`.");
+            }
+
+            var baseSolution = document.Project.Solution;
+            var newDocument = await TestDiscoveryHelper.GenerateTestMethodStubAsync(
+                document, className, methodName, testFramework, cancellationToken).ConfigureAwait(false);
+            var written = await _solutionManager.ApplySolutionChangesToDiskAsync(
+                baseSolution, newDocument.Project.Solution, cancellationToken).ConfigureAwait(false);
+
+            return ToolTelemetry.TraceAndReturn(
+                toolName,
+                $"Added test stub `{methodName}` to `{className}`. Files touched: {written.Count}.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "GenerateTestMethodStub failed");
+            return ToolTelemetry.TraceAndReturn(toolName, $"Failed: {ex.Message}");
+        }
+    }
+
     private async Task<string> ExecuteDotnetTestAsync(
         string toolName,
         string workspacePath,

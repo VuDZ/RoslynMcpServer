@@ -8,6 +8,7 @@ using Microsoft.CodeAnalysis.FindSymbols;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Server;
 using RoslynMcpServer.Diagnostics;
+using RoslynMcpServer.Services;
 
 namespace RoslynMcpServer.Tools;
 
@@ -728,5 +729,44 @@ public sealed class NavigationTools
         return node.NormalizeWhitespace(eol: " ", indentation: string.Empty)
             .ToFullString()
             .Trim();
+    }
+
+    [McpServerTool(Name = "get_call_graph", Title = "Get method call graph")]
+    [Description(
+        "Builds callers and callees for a method in the loaded workspace. Use for bug investigation instead of loading many method bodies.")]
+    public async Task<string> GetCallGraph(
+        [Description("Path to the .cs file containing the method.")] string filePath,
+        [Description("Class name containing the method.")] string className,
+        [Description("Method name.")] string methodName,
+        [Description("Max nodes per callers/callees list (default 25).")] int maxNodes = 25,
+        [Description("When true, includes callees outside the loaded solution (e.g. BCL).")] bool includeExternalCallees = false,
+        CancellationToken cancellationToken = default)
+    {
+        const string toolName = nameof(GetCallGraph);
+        try
+        {
+            var fullPath = Path.GetFullPath(filePath);
+            var document = await _solutionManager.FindDocumentAsync(fullPath, cancellationToken).ConfigureAwait(false);
+            if (document is null)
+            {
+                return ToolTelemetry.TraceAndReturn(toolName, $"Document not in workspace: `{fullPath}`. Call `load_workspace` first.");
+            }
+
+            var solution = document.Project.Solution;
+            var graph = await CallGraphHelper.BuildCallGraphAsync(
+                solution, document, className, methodName, maxNodes, includeExternalCallees, cancellationToken)
+                .ConfigureAwait(false);
+
+            return ToolTelemetry.TraceAndReturn(toolName, CallGraphHelper.FormatMarkdown(graph));
+        }
+        catch (OperationCanceledException)
+        {
+            return ToolTelemetry.TraceAndReturn(toolName, "`get_call_graph` was cancelled.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "GetCallGraph failed for {ClassName}.{MethodName}", className, methodName);
+            return ToolTelemetry.TraceAndReturn(toolName, $"Failed: {ex.Message}");
+        }
     }
 }

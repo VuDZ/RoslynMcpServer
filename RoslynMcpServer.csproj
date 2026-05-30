@@ -35,6 +35,7 @@
   <ItemGroup>
     <None Include="install2opencode.ps1" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <None Include="AGENTS.md.sample" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <None Include="publish-and-verify.ps1" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
   <!-- Keep Roslyn MEF parts when trimming self-contained builds -->
