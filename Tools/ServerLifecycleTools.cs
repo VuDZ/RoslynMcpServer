@@ -3,18 +3,33 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Server;
 using RoslynMcpServer.Diagnostics;
+using RoslynMcpServer.Services;
 
 namespace RoslynMcpServer.Tools;
 
 public sealed class ServerLifecycleTools
 {
     private readonly IHostApplicationLifetime _lifetime;
+    private readonly SolutionManager _solutionManager;
     private readonly ILogger<ServerLifecycleTools> _logger;
 
-    public ServerLifecycleTools(IHostApplicationLifetime lifetime, ILogger<ServerLifecycleTools> logger)
+    public ServerLifecycleTools(
+        IHostApplicationLifetime lifetime,
+        SolutionManager solutionManager,
+        ILogger<ServerLifecycleTools> logger)
     {
         _lifetime = lifetime;
+        _solutionManager = solutionManager;
         _logger = logger;
+    }
+
+    [McpServerTool(Name = "get_mcp_server_info", Title = "Get MCP server info")]
+    [Description("Returns binary path, tool count, log location, and workspace state — use to verify publish/reload.")]
+    public Task<string> GetMcpServerInfo(CancellationToken cancellationToken = default)
+    {
+        _ = cancellationToken;
+        var info = McpServerInfoHelper.BuildInfoMarkdown(_solutionManager.GetCurrentSolution());
+        return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(GetMcpServerInfo), info));
     }
 
     [McpServerTool(Name = "stop_mcp_server", Title = "Stop MCP server")]

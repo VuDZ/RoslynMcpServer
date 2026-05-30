@@ -32,6 +32,8 @@ public sealed class NuGetTools
         bool includeTransitive = true,
         [Description("When true, adds `--outdated` to highlight packages with newer versions on configured feeds.")]
         bool includeOutdated = false,
+        [Description("When true, adds `--vulnerable` to list packages with known vulnerabilities.")]
+        bool includeVulnerable = false,
         CancellationToken cancellationToken = default)
     {
         const string toolName = nameof(ListNuGetPackages);
@@ -60,6 +62,11 @@ public sealed class NuGetTools
             if (includeOutdated)
             {
                 args.Append(" --outdated");
+            }
+
+            if (includeVulnerable)
+            {
+                args.Append(" --vulnerable");
             }
 
             var workingDirectory = Directory.Exists(fullPath)
@@ -93,6 +100,7 @@ public sealed class NuGetTools
             header.AppendLine($"- **Projects:** {projectCount}");
             header.AppendLine($"- **Include transitive:** {includeTransitive}");
             header.AppendLine($"- **Include outdated:** {includeOutdated}");
+            header.AppendLine($"- **Include vulnerable:** {includeVulnerable}");
             header.AppendLine();
             header.AppendLine("```json");
             header.AppendLine(prettyJson);

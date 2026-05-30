@@ -18,78 +18,107 @@ public sealed class AstTools
     }
 
     [McpServerTool(Name = "add_using", Title = "Add using directive")]
-    [Description(
-        "Adds a `using` directive to a C# file via Roslyn AST insertion and formatting. " +
-        "Use instead of `apply_patch` when adding imports — whitespace/formatting differences will not break the edit.")]
-    public async Task<string> AddUsing(
-        [Description("Path to the .cs file to modify.")] string filePath,
-        [Description("Namespace to import, e.g. `System.Linq` or `using System.Collections.Generic;`.")]
-        string namespaceName,
-        CancellationToken cancellationToken = default)
-    {
-        const string toolName = nameof(AddUsing);
+    [Description("Adds a `using` directive via Roslyn AST. Prefer over `apply_patch` for imports.")]
+    public Task<string> AddUsing(string filePath, string namespaceName, CancellationToken cancellationToken = default) =>
+        ApplyAsync(nameof(AddUsing), filePath,
+            doc => AstModificationHelper.AddUsingAsync(doc, namespaceName, cancellationToken),
+            $"Added using `{AstModificationHelper.NormalizeNamespaceForDisplay(namespaceName)}`.",
+            cancellationToken);
 
-        try
-        {
-            var (document, baseSolution) = await ResolveDocumentAsync(filePath, cancellationToken);
-            var newDocument = await AstModificationHelper.AddUsingAsync(document, namespaceName, cancellationToken)
-                .ConfigureAwait(false);
-            var newSolution = newDocument.Project.Solution;
-            var writtenPaths = await _solutionManager.ApplySolutionChangesToDiskAsync(
-                baseSolution, newSolution, cancellationToken).ConfigureAwait(false);
+    [McpServerTool(Name = "remove_using", Title = "Remove using directive")]
+    [Description("Removes a `using` directive from a C# file via Roslyn AST.")]
+    public Task<string> RemoveUsing(string filePath, string namespaceName, CancellationToken cancellationToken = default) =>
+        ApplyAsync(nameof(RemoveUsing), filePath,
+            doc => AstModificationHelper.RemoveUsingAsync(doc, namespaceName, cancellationToken),
+            $"Removed using `{AstModificationHelper.NormalizeNamespaceForDisplay(namespaceName)}`.",
+            cancellationToken);
 
-            return ToolTelemetry.TraceAndReturn(
-                toolName,
-                $"Added using `{AstModificationHelper.NormalizeNamespaceForDisplay(namespaceName)}` to `{Path.GetFullPath(filePath)}`. " +
-                $"Files touched: {writtenPaths.Count}.");
-        }
-        catch (OperationCanceledException)
-        {
-            return ToolTelemetry.TraceAndReturn(toolName, "`add_using` was cancelled.");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "AddUsing failed for {Namespace} in {FilePath}", namespaceName, filePath);
-            return ToolTelemetry.TraceAndReturn(toolName, $"Failed to add using: {ex.Message}");
-        }
-    }
+    [McpServerTool(Name = "organize_usings", Title = "Organize usings")]
+    [Description("Sorts using directives and optionally removes unused usings via semantic analysis.")]
+    public Task<string> OrganizeUsings(
+        string filePath,
+        [Description("When true (default), removes usings with no referenced symbols in the file.")]
+        bool removeUnused = true,
+        CancellationToken cancellationToken = default) =>
+        ApplyAsync(nameof(OrganizeUsings), filePath,
+            doc => AstModificationHelper.OrganizeUsingsAsync(doc, removeUnused, cancellationToken),
+            "Organized usings.",
+            cancellationToken);
 
     [McpServerTool(Name = "add_method_to_class", Title = "Add method to class")]
-    [Description(
-        "Parses a C# method declaration and inserts it into a class via Roslyn AST (DocumentEditor), then formats the file. " +
-        "Use instead of `apply_patch` when adding methods — avoids brittle oldString matching on braces and indentation.")]
-    public async Task<string> AddMethodToClass(
-        [Description("Path to the .cs file containing the class.")] string filePath,
-        [Description("Top-level class name, e.g. `OrderService`.")] string className,
-        [Description("Method declaration source (modifiers, signature, body). Example: `public async Task<int> GetCountAsync(CancellationToken ct) { return 0; }`")]
-        string methodSource,
-        CancellationToken cancellationToken = default)
-    {
-        const string toolName = nameof(AddMethodToClass);
+    [Description("Inserts a parsed method declaration into a class via DocumentEditor.")]
+    public Task<string> AddMethodToClass(string filePath, string className, string methodSource, CancellationToken cancellationToken = default) =>
+        ApplyAsync(nameof(AddMethodToClass), filePath,
+            doc => AstModificationHelper.AddMethodToClassAsync(doc, className, methodSource, cancellationToken),
+            $"Added method to class `{className}`.",
+            cancellationToken);
 
+    [McpServerTool(Name = "add_property_to_class", Title = "Add property to class")]
+    [Description("Inserts a parsed property declaration into a class via Roslyn AST.")]
+    public Task<string> AddPropertyToClass(string filePath, string className, string propertySource, CancellationToken cancellationToken = default) =>
+        ApplyAsync(nameof(AddPropertyToClass), filePath,
+            doc => AstModificationHelper.AddPropertyToClassAsync(doc, className, propertySource, cancellationToken),
+            $"Added property to class `{className}`.",
+            cancellationToken);
+
+    [McpServerTool(Name = "add_field_to_class", Title = "Add field to class")]
+    [Description("Inserts a parsed field declaration into a class via Roslyn AST.")]
+    public Task<string> AddFieldToClass(string filePath, string className, string fieldSource, CancellationToken cancellationToken = default) =>
+        ApplyAsync(nameof(AddFieldToClass), filePath,
+            doc => AstModificationHelper.AddFieldToClassAsync(doc, className, fieldSource, cancellationToken),
+            $"Added field to class `{className}`.",
+            cancellationToken);
+
+    [McpServerTool(Name = "remove_member", Title = "Remove class member")]
+    [Description("Removes a method, property, field, or event member from a class by name.")]
+    public Task<string> RemoveMember(string filePath, string className, string memberName, CancellationToken cancellationToken = default) =>
+        ApplyAsync(nameof(RemoveMember), filePath,
+            doc => AstModificationHelper.RemoveMemberAsync(doc, className, memberName, cancellationToken),
+            $"Removed member `{memberName}` from class `{className}`.",
+            cancellationToken);
+
+    [McpServerTool(Name = "add_type_to_class_bases", Title = "Add base type or interface")]
+    [Description("Adds a base class or interface to a class base list via Roslyn AST.")]
+    public Task<string> AddTypeToClassBases(string filePath, string className, string typeName, CancellationToken cancellationToken = default) =>
+        ApplyAsync(nameof(AddTypeToClassBases), filePath,
+            doc => InterfaceImplementationHelper.AddTypeToClassBasesAsync(doc, className, typeName, cancellationToken),
+            $"Added `{typeName}` to base list of `{className}`.",
+            cancellationToken);
+
+    [McpServerTool(Name = "implement_interface", Title = "Implement interface stubs")]
+    [Description("Adds interface to class base list and generates NotImplemented stubs for missing members.")]
+    public Task<string> ImplementInterface(string filePath, string className, string interfaceName, CancellationToken cancellationToken = default) =>
+        ApplyAsync(nameof(ImplementInterface), filePath,
+            doc => InterfaceImplementationHelper.ImplementInterfaceAsync(doc, className, interfaceName, cancellationToken),
+            $"Implemented interface `{interfaceName}` on class `{className}`.",
+            cancellationToken);
+
+    private async Task<string> ApplyAsync(
+        string toolName,
+        string filePath,
+        Func<Microsoft.CodeAnalysis.Document, Task<Microsoft.CodeAnalysis.Document>> mutate,
+        string successMessage,
+        CancellationToken cancellationToken)
+    {
         try
         {
             var (document, baseSolution) = await ResolveDocumentAsync(filePath, cancellationToken);
-            var newDocument = await AstModificationHelper.AddMethodToClassAsync(
-                document, className, methodSource, cancellationToken).ConfigureAwait(false);
-            var newSolution = newDocument.Project.Solution;
+            var newDocument = await mutate(document).ConfigureAwait(false);
             var writtenPaths = await _solutionManager.ApplySolutionChangesToDiskAsync(
-                baseSolution, newSolution, cancellationToken).ConfigureAwait(false);
+                baseSolution, newDocument.Project.Solution, cancellationToken).ConfigureAwait(false);
 
-            var methodName = TryExtractMethodName(methodSource);
             return ToolTelemetry.TraceAndReturn(
                 toolName,
-                $"Added method `{methodName}` to class `{className}` in `{Path.GetFullPath(filePath)}`. " +
-                $"Files touched: {writtenPaths.Count}.");
+                $"{successMessage} File: `{Path.GetFullPath(filePath)}`. Files touched: {writtenPaths.Count}.");
         }
         catch (OperationCanceledException)
         {
-            return ToolTelemetry.TraceAndReturn(toolName, "`add_method_to_class` was cancelled.");
+            return ToolTelemetry.TraceAndReturn(toolName, $"`{toolName}` was cancelled.");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "AddMethodToClass failed for {ClassName} in {FilePath}", className, filePath);
-            return ToolTelemetry.TraceAndReturn(toolName, $"Failed to add method: {ex.Message}");
+            _logger.LogError(ex, "{ToolName} failed for {FilePath}", toolName, filePath);
+            return ToolTelemetry.TraceAndReturn(toolName, $"Failed: {ex.Message}");
         }
     }
 
@@ -112,27 +141,9 @@ public sealed class AstTools
         if (document is null)
         {
             throw new InvalidOperationException(
-                $"Document was not found in the active workspace: `{fullPath}`. Call `load_workspace` first.");
+                $"Document not found in workspace: `{fullPath}`. Call `load_workspace` first.");
         }
 
         return (document, document.Project.Solution);
-    }
-
-    private static string TryExtractMethodName(string methodSource)
-    {
-        try
-        {
-            var member = Microsoft.CodeAnalysis.CSharp.SyntaxFactory.ParseMemberDeclaration(methodSource);
-            if (member is Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax method)
-            {
-                return method.Identifier.Text;
-            }
-        }
-        catch
-        {
-            // best-effort for success message only
-        }
-
-        return "(method)";
     }
 }

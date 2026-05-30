@@ -92,6 +92,7 @@ builder.Services
     .WithTools<BuildTools>()
     .WithTools<TestTools>()
     .WithTools<NuGetTools>()
+    .WithTools<ProjectTools>()
     .WithTools<UtilityTools>()
     .WithTools<ServerLifecycleTools>()
     .WithPrompts<BasicPrompts>();

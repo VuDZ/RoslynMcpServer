@@ -134,7 +134,10 @@ Before editing any files, identify your host environment:
 - **If you are running in a UI-based IDE (Cursor, OpenCode, Windsurf):** You MUST use the built-in native file editing tools (such as `edit`, `write`, or equivalent operations) provided by your environment so the user can review changes in the IDE diff viewer. **Do NOT** use this Roslyn MCP server's `apply_patch` or `update_file_content` when those native tools are available—they bypass the host review workflow.
 
 - **If you are running in a headless/CLI environment (e.g., Aider) or your client does not expose first-class edit tools:** You MUST persist changes using this MCP server's **`apply_patch`** and/or **`update_file_content`** (or the file-write mechanism your CLI integration documents). Do not use raw shell redirection to invent files.
-- **For C# insertions (usings, methods):** prefer **`add_using`** and **`add_method_to_class`** over `apply_patch` — Roslyn AST insertion avoids whitespace/formatting mismatches.
+- **For C# insertions (usings, methods, properties, fields):** prefer **`add_using`**, **`add_method_to_class`**, **`add_property_to_class`**, **`add_field_to_class`**, **`organize_usings`** over `apply_patch`.
+- **Bug investigation:** use **`get_call_graph`** to see callers/callees before loading many method bodies.
+- **Packages:** use **`search_nuget_registry`** + **`add_package_reference`** — not hand-edited versions in csproj.
+- **After server rebuild:** call **`get_mcp_server_info`**; run `publish-and-verify.ps1`.
 
 
 </details>
@@ -157,7 +160,7 @@ Before editing any files, identify your host environment:
 - `fixIndex` — 0-based index from `get_code_fixes` for `apply_code_fix`.
 - `path` — `.cs` file or directory for `get_code_skeleton` (absolute path; disk-based, no workspace required).
 
-There are **40** registered tools (see list below) and **1** MCP prompt (`RefactoringAssistantPrompt`).
+There are **54** registered tools (see list below) and **1** MCP prompt (`RefactoringAssistantPrompt`).
 
 ### Workspace / Roslyn
 
@@ -317,6 +320,20 @@ There are **40** registered tools (see list below) and **1** MCP prompt (`Refact
 **Model guidance:** after `load_workspace`, use this instead of grep or analyzing usages when you need the OOP hierarchy.
 </details>
 
+<details>
+<summary><code>get_call_graph</code> — Callers and callees for a method.</summary>
+
+**Parameters:**
+- `filePath: string` — `.cs` file containing the method
+- `className: string`
+- `methodName: string`
+- `maxNodes: int = 25` — cap per callers/callees list
+- `includeExternalCallees: bool = false` — include BCL / external calls
+
+**Behavior:** Requires `load_workspace`. Uses `SymbolFinder.FindCallersAsync` and invocation analysis inside the method body. Use for bug investigation instead of loading many bodies via `get_method_body`.
+
+</details>
+
 ### File Editing
 
 <details>
@@ -347,6 +364,55 @@ Inserts and formats the directive. Requires `load_workspace`. Prefer over `apply
 - `methodSource: string` — full method declaration (modifiers, signature, body)
 
 Parses C# syntax, inserts with DocumentEditor, formats the file. Prefer over `apply_patch` for new methods.
+
+</details>
+
+<details>
+<summary><code>remove_using</code> — Remove a using directive via Roslyn AST.</summary>
+
+**Parameters:** `filePath`, `namespaceName`
+
+</details>
+
+<details>
+<summary><code>organize_usings</code> — Sort and optionally remove unused usings.</summary>
+
+**Parameters:** `filePath`, `removeUnused: bool = true`
+
+</details>
+
+<details>
+<summary><code>add_property_to_class</code> — Insert a property declaration via Roslyn AST.</summary>
+
+**Parameters:** `filePath`, `className`, `propertySource`
+
+</details>
+
+<details>
+<summary><code>add_field_to_class</code> — Insert a field declaration via Roslyn AST.</summary>
+
+**Parameters:** `filePath`, `className`, `fieldSource`
+
+</details>
+
+<details>
+<summary><code>remove_member</code> — Remove a class member by name.</summary>
+
+**Parameters:** `filePath`, `className`, `memberName`
+
+</details>
+
+<details>
+<summary><code>add_type_to_class_bases</code> — Add base class or interface to class base list.</summary>
+
+**Parameters:** `filePath`, `className`, `typeName`
+
+</details>
+
+<details>
+<summary><code>implement_interface</code> — Add interface to class and generate NotImplemented stubs.</summary>
+
+**Parameters:** `filePath`, `className`, `interfaceName`
 
 </details>
 
@@ -397,14 +463,54 @@ At least one of `className` or `methodName` is required. The tool builds `--filt
 </details>
 
 <details>
+<summary><code>get_test_list</code> — List test methods in loaded solution (JSON).</summary>
+
+**Parameters:** `maxResults: int = 200`
+
+Detects Fact/Theory/TestMethod/etc. Requires `load_workspace`.
+
+</details>
+
+<details>
+<summary><code>generate_test_method_stub</code> — Insert a test method stub into a test class.</summary>
+
+**Parameters:** `filePath`, `className`, `methodName`, `testFramework: string?` — `xunit` (default), `nunit`, `mstest`
+
+</details>
+
+<details>
 <summary><code>list_nuget_packages</code> — Installed NuGet packages as JSON per project.</summary>
 
 **Parameters:**
 - `workspacePath: string` — `.sln`, `.csproj`, or directory
 - `includeTransitive: bool` — default `true`
 - `includeOutdated: bool` — default `false` (adds `--outdated`)
+- `includeVulnerable: bool` — default `false` (adds `--vulnerable`)
 
 **Model guidance:** inspect dependency tree before editing `.csproj`; do not use `execute_dotnet_command` for package listing.
+
+</details>
+
+<details>
+<summary><code>list_outdated_packages</code> — Outdated NuGet packages as JSON.</summary>
+
+**Parameters:** `workspacePath: string` — shortcut for `list_nuget_packages` with `includeOutdated=true`, no transitive.
+
+</details>
+
+<details>
+<summary><code>add_package_reference</code> — Add PackageReference to .csproj.</summary>
+
+**Parameters:** `projectPath: string`, `packageId: string`, `version: string?`
+
+Verify id/version with `search_nuget_registry` first. Clears workspace cache — call `load_workspace` after.
+
+</details>
+
+<details>
+<summary><code>remove_package_reference</code> — Remove PackageReference from .csproj.</summary>
+
+**Parameters:** `projectPath: string`, `packageId: string`
 
 </details>
 
@@ -544,6 +650,15 @@ At least one of `className` or `methodName` is required. The tool builds `--filt
 </details>
 
 ### Server lifecycle
+
+<details>
+<summary><code>get_mcp_server_info</code> — Binary path, tool count, logs, workspace state.</summary>
+
+**Parameters:** *(none)*
+
+Use after `dotnet publish` to verify the MCP host picked up the new binary (expect **54** tools).
+
+</details>
 
 <details>
 <summary><code>stop_mcp_server</code> — Stops this MCP host process after returning (for rebuilding the server binary; restart MCP in the IDE).</summary>
@@ -699,7 +814,10 @@ Before editing any files, identify your host environment:
 - **If you are running in a UI-based IDE (Cursor, OpenCode, Windsurf):** You MUST use the built-in native file editing tools (such as `edit`, `write`, or equivalent operations) provided by your environment so the user can review changes in the IDE diff viewer. **Do NOT** use this Roslyn MCP server's `apply_patch` or `update_file_content` when those native tools are available—they bypass the host review workflow.
 
 - **If you are running in a headless/CLI environment (e.g., Aider) or your client does not expose first-class edit tools:** You MUST persist changes using this MCP server's **`apply_patch`** and/or **`update_file_content`** (or the file-write mechanism your CLI integration documents). Do not use raw shell redirection to invent files.
-- **For C# insertions (usings, methods):** prefer **`add_using`** and **`add_method_to_class`** over `apply_patch` — Roslyn AST insertion avoids whitespace/formatting mismatches.
+- **For C# insertions (usings, methods, properties, fields):** prefer **`add_using`**, **`add_method_to_class`**, **`add_property_to_class`**, **`add_field_to_class`**, **`organize_usings`** over `apply_patch`.
+- **Bug investigation:** use **`get_call_graph`** to see callers/callees before loading many method bodies.
+- **Packages:** use **`search_nuget_registry`** + **`add_package_reference`** — not hand-edited versions in csproj.
+- **After server rebuild:** call **`get_mcp_server_info`**; run `publish-and-verify.ps1`.
 
 
 </details>
@@ -722,7 +840,7 @@ Before editing any files, identify your host environment:
 - `fixIndex` — индекс (0-based) из `get_code_fixes` для `apply_code_fix`.
 - `path` — файл `.cs` или каталог для `get_code_skeleton` (абсолютный путь; с диска, workspace не обязателен).
 
-Зарегистрировано **40** инструмента (список ниже) и **1** MCP-промпт (`RefactoringAssistantPrompt`).
+Зарегистрировано **54** инструмента (список ниже) и **1** MCP-промпт (`RefactoringAssistantPrompt`).
 
 ### Workspace / Roslyn
 
@@ -882,6 +1000,15 @@ Before editing any files, identify your host environment:
 **Для модели:** после `load_workspace` — вместо grep или анализа usages, когда нужна OOP-иерархия.
 </details>
 
+<details>
+<summary><code>get_call_graph</code> — Кто вызывает метод и что вызывает он (call graph).</summary>
+
+**Параметры:** `filePath`, `className`, `methodName`, `maxNodes: int = 25`, `includeExternalCallees: bool = false`
+
+Нужен `load_workspace`. Для расследования багов — вместо массовой загрузки тел через `get_method_body`.
+
+</details>
+
 ### File Editing
 
 <details>
@@ -912,6 +1039,55 @@ Before editing any files, identify your host environment:
 - `methodSource: string` — объявление метода (модификаторы, сигнатура, тело)
 
 Парсит C#, вставляет через DocumentEditor, форматирует. Для новых методов — вместо `apply_patch`.
+
+</details>
+
+<details>
+<summary><code>remove_using</code> — Удалить using через Roslyn AST.</summary>
+
+**Параметры:** `filePath`, `namespaceName`
+
+</details>
+
+<details>
+<summary><code>organize_usings</code> — Сортировка и удаление неиспользуемых using.</summary>
+
+**Параметры:** `filePath`, `removeUnused: bool = true`
+
+</details>
+
+<details>
+<summary><code>add_property_to_class</code> — Вставить property через Roslyn AST.</summary>
+
+**Параметры:** `filePath`, `className`, `propertySource`
+
+</details>
+
+<details>
+<summary><code>add_field_to_class</code> — Вставить field через Roslyn AST.</summary>
+
+**Параметры:** `filePath`, `className`, `fieldSource`
+
+</details>
+
+<details>
+<summary><code>remove_member</code> — Удалить член класса по имени.</summary>
+
+**Параметры:** `filePath`, `className`, `memberName`
+
+</details>
+
+<details>
+<summary><code>add_type_to_class_bases</code> — Добавить базовый класс или интерфейс в base list.</summary>
+
+**Параметры:** `filePath`, `className`, `typeName`
+
+</details>
+
+<details>
+<summary><code>implement_interface</code> — Реализовать интерфейс (stubs NotImplemented).</summary>
+
+**Параметры:** `filePath`, `className`, `interfaceName`
 
 </details>
 
@@ -962,14 +1138,50 @@ Before editing any files, identify your host environment:
 </details>
 
 <details>
+<summary><code>get_test_list</code> — Список тестов в solution (JSON).</summary>
+
+**Параметры:** `maxResults: int = 200`. Нужен `load_workspace`.
+
+</details>
+
+<details>
+<summary><code>generate_test_method_stub</code> — Вставить заглушку тестового метода.</summary>
+
+**Параметры:** `filePath`, `className`, `methodName`, `testFramework: string?` — `xunit` / `nunit` / `mstest`
+
+</details>
+
+<details>
 <summary><code>list_nuget_packages</code> — Установленные NuGet-пакеты (JSON по проектам).</summary>
 
 **Параметры:**
 - `workspacePath: string` — `.sln`, `.csproj` или каталог
 - `includeTransitive: bool` — по умолчанию `true`
 - `includeOutdated: bool` — по умолчанию `false` (`--outdated`)
+- `includeVulnerable: bool` — по умолчанию `false` (`--vulnerable`)
 
 **Для модели:** смотреть дерево зависимостей до правок `.csproj`; не `execute_dotnet_command` для списка пакетов.
+
+</details>
+
+<details>
+<summary><code>list_outdated_packages</code> — Устаревшие NuGet-пакеты (JSON).</summary>
+
+**Параметры:** `workspacePath` — shortcut для `list_nuget_packages` с `includeOutdated=true`.
+
+</details>
+
+<details>
+<summary><code>add_package_reference</code> — Добавить PackageReference в .csproj.</summary>
+
+**Параметры:** `projectPath`, `packageId`, `version?`. Сначала `search_nuget_registry`. После — `load_workspace`.
+
+</details>
+
+<details>
+<summary><code>remove_package_reference</code> — Удалить PackageReference из .csproj.</summary>
+
+**Параметры:** `projectPath`, `packageId`
 
 </details>
 
@@ -1109,6 +1321,15 @@ Before editing any files, identify your host environment:
 </details>
 
 ### Жизненный цикл сервера
+
+<details>
+<summary><code>get_mcp_server_info</code> — Путь к exe, число tools, логи, состояние workspace.</summary>
+
+**Параметры:** *(нет)*
+
+После `dotnet publish` — проверка, что MCP подхватил новый бинарник (ожидай **54** tools).
+
+</details>
 
 <details>
 <summary><code>stop_mcp_server</code> — Завершает процесс MCP после ответа (чтобы пересобрать бинарник сервера; затем перезапуск MCP в IDE).</summary>
