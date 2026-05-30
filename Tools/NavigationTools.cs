@@ -18,6 +18,7 @@ public sealed class NavigationTools
     private const int MaxFindUsagesReferences = 30;
     private const int MaxFindUsagesSourceLineChars = 400;
     private const int MaxAmbiguousCandidatesListed = 10;
+    private const int MaxImplementations = 50;
 
     private readonly SolutionManager _solutionManager;
     private readonly ILogger<NavigationTools> _logger;
@@ -402,6 +403,203 @@ public sealed class NavigationTools
             return ToolTelemetry.TraceAndReturn(toolName, $"Failed to find usages for `{symbolName}`: {ex.Message}");
         }
     }
+
+    [McpServerTool(Name = "find_implementations", Title = "Find interface implementations or derived types")]
+    [Description(
+        "Semantically finds all types that **implement** an interface or **derive from** a base class/struct in the loaded solution. "
+        + "Use for questions like \"which classes implement `IRepository`?\" or \"what inherits from `BaseController`?\". "
+        + "Do not use text search or `find_usages` for this — they miss indirect hierarchies and match unrelated identifiers. "
+        + "Call `load_workspace` first. For interface symbols uses Roslyn FindImplementations; for classes/structs uses FindDerivedClasses. "
+        + "Output is capped at 50 types.")]
+    public async Task<string> FindImplementations(
+        [Description("Name of the interface or base class (e.g. `IRepository`, `BaseController`). Case-insensitive.")]
+        string symbolName,
+        [Description("When true (default), includes indirect implementations / derived types (transitive hierarchy).")]
+        bool transitive = true,
+        CancellationToken cancellationToken = default)
+    {
+        const string toolName = nameof(FindImplementations);
+
+        try
+        {
+            if (string.IsNullOrWhiteSpace(symbolName))
+            {
+                return ToolTelemetry.TraceAndReturn(toolName, "Error: `symbolName` is empty.");
+            }
+
+            var solution = _solutionManager.GetCurrentSolution();
+            if (solution is null)
+            {
+                return ToolTelemetry.TraceAndReturn(
+                    toolName,
+                    "Error: No active workspace. Call `load_workspace` with your .sln or .csproj first.");
+            }
+
+            var trimmedName = symbolName.Trim();
+            var typeSymbols = await FindNamedTypeDeclarationsAsync(solution, trimmedName, cancellationToken);
+            if (typeSymbols.Count == 0)
+            {
+                return ToolTelemetry.TraceAndReturn(
+                    toolName,
+                    $"No type declaration named `{trimmedName}` was found in the current solution.");
+            }
+
+            var targetType = PickPrimaryTypeSymbol(typeSymbols);
+            var kindLabel = GetTypeKindLabel(targetType);
+            var chosenDisplay = targetType.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
+            var chosenFqn = targetType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+
+            IEnumerable<INamedTypeSymbol> relatedTypes;
+            string searchMode;
+            switch (targetType.TypeKind)
+            {
+                case TypeKind.Interface:
+                    relatedTypes = await SymbolFinder.FindImplementationsAsync(
+                        targetType, solution, transitive, projects: null, cancellationToken).ConfigureAwait(false);
+                    searchMode = transitive ? "implementations (transitive)" : "direct implementations";
+                    break;
+                case TypeKind.Class:
+                case TypeKind.Struct:
+                    relatedTypes = await SymbolFinder.FindDerivedClassesAsync(
+                        targetType, solution, transitive, projects: null, cancellationToken).ConfigureAwait(false);
+                    searchMode = transitive ? "derived types (transitive)" : "direct derived types";
+                    break;
+                default:
+                    return ToolTelemetry.TraceAndReturn(
+                        toolName,
+                        $"Symbol `{trimmedName}` is a {targetType.TypeKind}; only interfaces, classes, and structs are supported.");
+            }
+
+            var results = relatedTypes
+                .Distinct(SymbolEqualityComparer.Default)
+                .Cast<INamedTypeSymbol>()
+                .OrderBy(t => t.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat), StringComparer.Ordinal)
+                .ToList();
+
+            var sb = new StringBuilder();
+            sb.AppendLine($"## {searchMode} for `{trimmedName}`");
+            sb.AppendLine();
+            sb.AppendLine($"**Base symbol:** `{chosenDisplay}` ({kindLabel})");
+            sb.AppendLine($"`{chosenFqn}`");
+            sb.AppendLine();
+
+            if (typeSymbols.Count > 1)
+            {
+                sb.AppendLine(
+                    $"[!] {typeSymbols.Count} type declarations match this name; results are for the primary symbol above. Other candidates:");
+                foreach (var candidate in typeSymbols
+                             .Where(t => !SymbolEqualityComparer.Default.Equals(t, targetType))
+                             .OrderBy(t => t.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat), StringComparer.Ordinal)
+                             .Take(MaxAmbiguousCandidatesListed))
+                {
+                    sb.AppendLine($"  - {candidate.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)}");
+                }
+
+                if (typeSymbols.Count - 1 > MaxAmbiguousCandidatesListed)
+                {
+                    sb.AppendLine($"  … and {typeSymbols.Count - 1 - MaxAmbiguousCandidatesListed} more.");
+                }
+
+                sb.AppendLine();
+            }
+
+            if (results.Count == 0)
+            {
+                sb.AppendLine($"No {searchMode} were found in the solution.");
+                return ToolTelemetry.TraceAndReturn(toolName, sb.ToString().TrimEnd());
+            }
+
+            var truncated = results.Count > MaxImplementations;
+            var limited = results.Take(MaxImplementations).ToList();
+
+            sb.AppendLine($"Found **{results.Count}** type(s)" + (truncated ? $" (showing first {MaxImplementations}):" : ":"));
+            sb.AppendLine();
+
+            var index = 1;
+            foreach (var type in limited)
+            {
+                var display = type.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
+                var location = type.Locations.FirstOrDefault(l => l.IsInSource && l.SourceTree?.FilePath is not null);
+                if (location is null)
+                {
+                    sb.AppendLine($"{index}. `{display}` — (no in-source location)");
+                }
+                else
+                {
+                    var path = location.SourceTree!.FilePath!;
+                    var line = location.GetLineSpan().StartLinePosition.Line + 1;
+                    sb.AppendLine($"{index}. `{display}` — `{path}:{line}`");
+                }
+
+                index++;
+            }
+
+            if (truncated)
+            {
+                sb.AppendLine();
+                sb.AppendLine($"[!] Truncated to {MaxImplementations} types. Narrow `symbolName` or use `find_symbol_definition` to disambiguate.");
+            }
+
+            return ToolTelemetry.TraceAndReturn(toolName, sb.ToString().TrimEnd());
+        }
+        catch (OperationCanceledException)
+        {
+            return ToolTelemetry.TraceAndReturn(toolName, "`find_implementations` was cancelled.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "FindImplementations failed for {SymbolName}", symbolName);
+            return ToolTelemetry.TraceAndReturn(toolName, $"Failed to find implementations for `{symbolName}`: {ex.Message}");
+        }
+    }
+
+    private static async Task<List<INamedTypeSymbol>> FindNamedTypeDeclarationsAsync(
+        Solution solution,
+        string trimmedName,
+        CancellationToken cancellationToken)
+    {
+        var declarations = new List<ISymbol>();
+        foreach (var projectId in solution.ProjectIds)
+        {
+            var project = solution.GetProject(projectId);
+            if (project is null)
+            {
+                continue;
+            }
+
+            var found = await SymbolFinder.FindDeclarationsAsync(
+                project,
+                trimmedName,
+                ignoreCase: true,
+                SymbolFilter.Type,
+                cancellationToken).ConfigureAwait(false);
+            declarations.AddRange(found);
+        }
+
+        return declarations
+            .OfType<INamedTypeSymbol>()
+            .Distinct(SymbolEqualityComparer.Default)
+            .Cast<INamedTypeSymbol>()
+            .ToList();
+    }
+
+    private static INamedTypeSymbol PickPrimaryTypeSymbol(IReadOnlyList<INamedTypeSymbol> types)
+    {
+        return types
+            .OrderByDescending(t => t.TypeKind == TypeKind.Interface ? 300 : t.TypeKind == TypeKind.Class ? 200 : 100)
+            .ThenBy(t => t.IsAbstract ? 0 : 1)
+            .ThenBy(t => t.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat), StringComparer.Ordinal)
+            .First();
+    }
+
+    private static string GetTypeKindLabel(INamedTypeSymbol type) => type.TypeKind switch
+    {
+        TypeKind.Interface => "interface",
+        TypeKind.Struct => "struct",
+        TypeKind.Class when type.IsRecord => "record",
+        TypeKind.Class => type.IsAbstract ? "abstract class" : "class",
+        _ => type.TypeKind.ToString().ToLowerInvariant()
+    };
 
     private static ISymbol PickPrimarySymbol(IReadOnlyList<ISymbol> symbols)
     {

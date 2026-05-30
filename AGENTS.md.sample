@@ -36,6 +36,7 @@ Before writing new utility classes, helper methods, or standard validation logic
 
 - Use `get_code_skeleton` (for files/directories) or `get_class_skeleton` (for loaded workspaces) to understand architecture without loading full method bodies.
 - Use `find_usages` with `symbolName` (after `load_workspace`) for usages across the solution, or `find_symbol_references` with `filePath` + `symbolName` when you already know the declaring file — then mirror the team’s patterns.
+- Use `find_implementations` with `symbolName` to list classes that **implement an interface** or **derive from a base class** — do not use text search or `find_usages` for this.
 
 For C# edits, ALWAYS prefer `get_class_skeleton`, `get_code_skeleton`, `get_method_body`, `explore_assembly`, `decompile_type`, `get_decompiled_class_skeleton`, `get_decompiled_method_body`, `run_dotnet_build`, and `get_diagnostics_for_file` instead of inventing code from memory. When fixing compiler/analyzer errors, call `get_code_fixes` and `apply_code_fix` **before** guessing a manual patch—Roslyn already knows the correct fix for most standard diagnostics. **Persisting edits to disk** follows **section 6** (IDE-native tools vs this MCP server's file tools).
 

@@ -109,6 +109,7 @@ Before writing new utility classes, helper methods, or standard validation logic
 
 - Use `get_code_skeleton` (for files/directories) or `get_class_skeleton` (for loaded workspaces) to understand architecture without loading full method bodies.
 - Use `find_usages` with `symbolName` (after `load_workspace`) for usages across the solution, or `find_symbol_references` with `filePath` + `symbolName` when you already know the declaring file — then mirror the team’s patterns.
+- Use `find_implementations` with `symbolName` to list classes that **implement an interface** or **derive from a base class** — do not use text search or `find_usages` for this.
 
 For C# edits, ALWAYS prefer `get_class_skeleton`, `get_code_skeleton`, `get_method_body`, `explore_assembly`, `decompile_type`, `get_decompiled_class_skeleton`, `get_decompiled_method_body`, `run_dotnet_build`, and `get_diagnostics_for_file` instead of inventing code from memory. When fixing compiler/analyzer errors, call `get_code_fixes` and `apply_code_fix` **before** guessing a manual patch—Roslyn already knows the correct fix for most standard diagnostics. **Persisting edits to disk** follows **section 6** (IDE-native tools vs this MCP server's file tools).
 
@@ -148,12 +149,12 @@ Before editing any files, identify your host environment:
 - `filePath` — a single file (read/edit/diagnostics/logs).
 - `directoryPath` — root folder (`list_directory_tree`, optional root for `search_code`).
 - `workspacePath` — `.sln` / `.csproj` (and sometimes a directory): `load_workspace`, `run_dotnet_test`, `run_format`, optional reload for `list_projects` / `get_project_graph`. **`run_dotnet_build` accepts only a `.csproj` or `.sln` file path, not a directory.**
-- `symbolName` — C# identifier for `find_symbol_definition`, `find_symbol_references`, and `find_usages` (exact name; `find_symbol_definition` / `find_usages` matching is case-insensitive).
+- `symbolName` — C# identifier for `find_symbol_definition`, `find_symbol_references`, `find_usages`, and `find_implementations` (exact name; matching is case-insensitive for definition/usages/implementations).
 - `diagnosticId` — compiler/analyzer id from `get_diagnostics_for_file` (e.g. `CS0246`) for `get_code_fixes` / `apply_code_fix`.
 - `fixIndex` — 0-based index from `get_code_fixes` for `apply_code_fix`.
 - `path` — `.cs` file or directory for `get_code_skeleton` (absolute path; disk-based, no workspace required).
 
-There are **32** registered tools (see list below) and **1** MCP prompt (`RefactoringAssistantPrompt`).
+There are **33** registered tools (see list below) and **1** MCP prompt (`RefactoringAssistantPrompt`).
 
 ### Workspace / Roslyn
 
@@ -299,6 +300,18 @@ There are **32** registered tools (see list below) and **1** MCP prompt (`Refact
 - `symbolName: string` — declared name of the type or member (e.g. `Guard`, `Format`).
 
 **Behavior:** Requires `load_workspace`. Resolves declarations via Roslyn; if several symbols share the name, one primary symbol is chosen (types preferred over methods, then stable ordering). When you already know the declaring file, `find_symbol_references` may be more precise.
+</details>
+
+<details>
+<summary><code>find_implementations</code> — Find classes implementing an interface or derived from a base type.</summary>
+
+**Parameters:**
+- `symbolName: string` — interface or base class name (e.g. `IRepository`, `BaseController`)
+- `transitive: bool = true` — when `true`, includes indirect implementations / derived types in the hierarchy
+
+**Behavior:** Requires `load_workspace`. For **interfaces**, uses Roslyn `FindImplementationsAsync`; for **classes/structs**, uses `FindDerivedClassesAsync`. Returns each matching type with file path and line (capped at 50). Do not use text search or `find_usages` for “who implements X?” / “what inherits from Y?”.
+
+**Model guidance:** after `load_workspace`, use this instead of grep or analyzing usages when you need the OOP hierarchy.
 </details>
 
 ### File Editing
@@ -573,6 +586,7 @@ Before writing new utility classes, helper methods, or standard validation logic
 
 - Use `get_code_skeleton` (for files/directories) or `get_class_skeleton` (for loaded workspaces) to understand architecture without loading full method bodies.
 - Use `find_usages` with `symbolName` (after `load_workspace`) for usages across the solution, or `find_symbol_references` with `filePath` + `symbolName` when you already know the declaring file — then mirror the team’s patterns.
+- Use `find_implementations` with `symbolName` to list classes that **implement an interface** or **derive from a base class** — do not use text search or `find_usages` for this.
 
 For C# edits, ALWAYS prefer `get_class_skeleton`, `get_code_skeleton`, `get_method_body`, `explore_assembly`, `decompile_type`, `get_decompiled_class_skeleton`, `get_decompiled_method_body`, `run_dotnet_build`, and `get_diagnostics_for_file` instead of inventing code from memory. When fixing compiler/analyzer errors, call `get_code_fixes` and `apply_code_fix` **before** guessing a manual patch—Roslyn already knows the correct fix for most standard diagnostics. **Persisting edits to disk** follows **section 6** (IDE-native tools vs this MCP server's file tools).
 
@@ -612,12 +626,12 @@ Before editing any files, identify your host environment:
 - `filePath` — один файл (чтение/правка/диагностика/логи).
 - `directoryPath` — корневая папка (`list_directory_tree`, опционально корень для `search_code`).
 - `workspacePath` — `.sln` / `.csproj` (и иногда каталог): `load_workspace`, `run_dotnet_test`, `run_format`, опциональная перезагрузка в `list_projects` / `get_project_graph`. **`run_dotnet_build` принимает только путь к файлу `.csproj` или `.sln`, не каталог.**
-- `symbolName` — идентификатор C# для `find_symbol_definition`, `find_symbol_references` и `find_usages` (точное имя; в `find_symbol_definition` / `find_usages` регистр не важен).
+- `symbolName` — идентификатор C# для `find_symbol_definition`, `find_symbol_references`, `find_usages` и `find_implementations` (точное имя; регистр не важен для definition/usages/implementations).
 - `diagnosticId` — id компилятора/анализатора из `get_diagnostics_for_file` (например `CS0246`) для `get_code_fixes` / `apply_code_fix`.
 - `fixIndex` — индекс (0-based) из `get_code_fixes` для `apply_code_fix`.
 - `path` — файл `.cs` или каталог для `get_code_skeleton` (абсолютный путь; с диска, workspace не обязателен).
 
-Зарегистрировано **32** инструмента (список ниже) и **1** MCP-промпт (`RefactoringAssistantPrompt`).
+Зарегистрировано **33** инструмента (список ниже) и **1** MCP-промпт (`RefactoringAssistantPrompt`).
 
 ### Workspace / Roslyn
 
@@ -763,6 +777,18 @@ Before editing any files, identify your host environment:
 - `symbolName: string` — объявленное имя типа или члена (например `Guard`, `Format`).
 
 **Поведение:** нужен `load_workspace`. Поиск объявлений через Roslyn; при нескольких символах с одним именем выбирается один «основной» (типы предпочтительнее методов). Если известен файл объявления, точнее может быть `find_symbol_references`.
+</details>
+
+<details>
+<summary><code>find_implementations</code> — Классы, реализующие интерфейс, или наследники базового типа.</summary>
+
+**Параметры:**
+- `symbolName: string` — имя интерфейса или базового класса (например `IRepository`, `BaseController`)
+- `transitive: bool = true` — при `true` включает косвенные реализации / наследников по иерархии
+
+**Поведение:** нужен `load_workspace`. Для **интерфейсов** — Roslyn `FindImplementationsAsync`; для **классов/struct** — `FindDerivedClassesAsync`. Каждый тип с путём к файлу и строкой (не более 50). Не используйте текстовый поиск или `find_usages` для «кто реализует X?» / «кто наследует Y?».
+
+**Для модели:** после `load_workspace` — вместо grep или анализа usages, когда нужна OOP-иерархия.
 </details>
 
 ### File Editing
