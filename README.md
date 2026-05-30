@@ -117,6 +117,8 @@ For C# edits, ALWAYS prefer `get_class_skeleton`, `get_code_skeleton`, `get_meth
 
 If you encounter a bug originating from a compiled `.dll` or NuGet package, DO NOT guess or hallucinate its implementation.
 
+- Before adding or upgrading packages, use `search_nuget_registry` to verify the package id and latest stable version — never invent library names or versions.
+- Use `list_nuget_packages` to inspect installed and transitive dependencies across projects (JSON) before changing `.csproj` files.
 - Use `explore_assembly` to understand the public API.
 - Use `decompile_type` to read the exact C# source code. For large types, use `get_decompiled_class_skeleton`; for a specific method overload, use `get_decompiled_method_body`.
 - Propose a fix only after reading the decompiled material.
@@ -154,7 +156,7 @@ Before editing any files, identify your host environment:
 - `fixIndex` — 0-based index from `get_code_fixes` for `apply_code_fix`.
 - `path` — `.cs` file or directory for `get_code_skeleton` (absolute path; disk-based, no workspace required).
 
-There are **36** registered tools (see list below) and **1** MCP prompt (`RefactoringAssistantPrompt`).
+There are **38** registered tools (see list below) and **1** MCP prompt (`RefactoringAssistantPrompt`).
 
 ### Workspace / Roslyn
 
@@ -367,6 +369,30 @@ There are **36** registered tools (see list below) and **1** MCP prompt (`Refact
 At least one of `className` or `methodName` is required. The tool builds `--filter` internally. After `load_workspace`, Roslyn resolves exact fully qualified names when possible.
 
 **Model guidance:** use this for TDD red/green loops — do not run the full suite and do not craft VSTest filter strings manually.
+
+</details>
+
+<details>
+<summary><code>list_nuget_packages</code> — Installed NuGet packages as JSON per project.</summary>
+
+**Parameters:**
+- `workspacePath: string` — `.sln`, `.csproj`, or directory
+- `includeTransitive: bool` — default `true`
+- `includeOutdated: bool` — default `false` (adds `--outdated`)
+
+**Model guidance:** inspect dependency tree before editing `.csproj`; do not use `execute_dotnet_command` for package listing.
+
+</details>
+
+<details>
+<summary><code>search_nuget_registry</code> — Search NuGet feeds for package id and latest stable version.</summary>
+
+**Parameters:**
+- `query: string` — package id or search term
+- `exactMatch: bool` — default `true` (exact id lookup)
+- `maxResults: int` — when `exactMatch=false`, default 10
+
+**Model guidance:** verify package exists before `dotnet add package`; never hallucinate package names or versions.
 
 </details>
 
@@ -632,6 +658,8 @@ For C# edits, ALWAYS prefer `get_class_skeleton`, `get_code_skeleton`, `get_meth
 
 If you encounter a bug originating from a compiled `.dll` or NuGet package, DO NOT guess or hallucinate its implementation.
 
+- Before adding or upgrading packages, use `search_nuget_registry` to verify the package id and latest stable version — never invent library names or versions.
+- Use `list_nuget_packages` to inspect installed and transitive dependencies across projects (JSON) before changing `.csproj` files.
 - Use `explore_assembly` to understand the public API.
 - Use `decompile_type` to read the exact C# source code. For large types, use `get_decompiled_class_skeleton`; for a specific method overload, use `get_decompiled_method_body`.
 - Propose a fix only after reading the decompiled material.
@@ -669,7 +697,7 @@ Before editing any files, identify your host environment:
 - `fixIndex` — индекс (0-based) из `get_code_fixes` для `apply_code_fix`.
 - `path` — файл `.cs` или каталог для `get_code_skeleton` (абсолютный путь; с диска, workspace не обязателен).
 
-Зарегистрировано **36** инструмента (список ниже) и **1** MCP-промпт (`RefactoringAssistantPrompt`).
+Зарегистрировано **38** инструмента (список ниже) и **1** MCP-промпт (`RefactoringAssistantPrompt`).
 
 ### Workspace / Roslyn
 
@@ -882,6 +910,30 @@ Before editing any files, identify your host environment:
 Нужен хотя бы один из `className` / `methodName`. `--filter` формируется автоматически. После `load_workspace` Roslyn по возможности резолвит точный FQN.
 
 **Для модели:** TDD/фикс бага — этот tool, не полный suite и не ручной VSTest filter.
+
+</details>
+
+<details>
+<summary><code>list_nuget_packages</code> — Установленные NuGet-пакеты (JSON по проектам).</summary>
+
+**Параметры:**
+- `workspacePath: string` — `.sln`, `.csproj` или каталог
+- `includeTransitive: bool` — по умолчанию `true`
+- `includeOutdated: bool` — по умолчанию `false` (`--outdated`)
+
+**Для модели:** смотреть дерево зависимостей до правок `.csproj`; не `execute_dotnet_command` для списка пакетов.
+
+</details>
+
+<details>
+<summary><code>search_nuget_registry</code> — Поиск пакета и последней стабильной версии на NuGet.</summary>
+
+**Параметры:**
+- `query: string` — id или поисковый термин
+- `exactMatch: bool` — по умолчанию `true`
+- `maxResults: int` — при `exactMatch=false`, по умолчанию 10
+
+**Для модели:** проверять id/версию перед `dotnet add package`; не выдумывать названия пакетов.
 
 </details>
 
