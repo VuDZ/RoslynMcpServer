@@ -3,7 +3,7 @@
 [🇷🇺 Читать на русском (Russian Version)](#russian-version)
 
 **Why use this over standard FileSystem MCPs?**
-Unlike basic file-reading servers, this Model Context Protocol (MCP) server leverages **Roslyn**. Your AI agent (Cursor, Cline, etc.) doesn't just read plain text—it sees C# code through the eyes of the compiler. It can get precise diagnostics without a full rebuild, find symbol references, and perform safe semantic refactoring, drastically reducing LLM hallucinations.
+Unlike basic file-reading servers, this Model Context Protocol (MCP) server leverages **Roslyn**. Your AI agent (Cursor, Cline, etc.) doesn't just read plain text—it sees C# code through the eyes of the compiler. It can get precise diagnostics without a full rebuild, **apply built-in Roslyn code fixes** (add using, implement interface, fix typos), find symbol references, and perform safe semantic refactoring, drastically reducing LLM hallucinations.
 
 It is designed for AI-driven C# development (with secondary Python support), focusing on:
 - Parsing and analyzing `*.sln`/`*.csproj` via Roslyn.
@@ -16,7 +16,7 @@ This server grants the AI agent read, write, and execution privileges (via the `
 
 ## Prerequisites
 - Strictly **.NET 10 SDK** installed on your machine. *(Earlier SDK versions are not supported and will fail to build).*
-- An MCP-compatible IDE or client (e.g., Cursor, VS Code with Cline).
+- An MCP-compatible IDE or client (e.g., Cursor, OpenCode, VS Code with Cline).
 
 ## Setup & Connection (Local)
 
@@ -44,9 +44,34 @@ Your compiled binary will be at:
 Add the absolute path to your configuration file (see the provided `mcp.json` and `.cursor/mcp.json` examples in the repo).
 *Optional:* You can pass `env` with `ROSLYN_MCP_WORKSPACE` to set a default root path for tools.
 
+**Option C: OpenCode (`install2opencode.ps1`)**
+
+After `dotnet publish`, the publish folder contains [`install2opencode.ps1`](install2opencode.ps1) and [`AGENTS.md.sample`](AGENTS.md.sample) next to `RoslynMcpServer.exe`.
+
+From the root of the **project you want to configure** (your application repo):
+
+```powershell
+cd D:\Devel\YourApp
+& "D:\Devel\RoslynMcpServer\bin\Release\net10.0\win-x64\publish\install2opencode.ps1"
+```
+
+The script:
+
+- Creates or updates **`opencode.json`** in the target directory, registering `RoslynMcpServer` as a local MCP server (`type: local`, `enabled: true`).
+- Creates or updates **`AGENTS.md`**: if Roslyn MCP behavioral rules are not already present, merges content from the bundled `AGENTS.md.sample` (creates a new file or appends to an existing one).
+
+| Parameter | Description |
+| --- | --- |
+| `-BinaryPath` | Optional. Absolute path to `RoslynMcpServer.exe`. When omitted, the script uses the binary next to itself. |
+| `-ProjectPath` | Optional. Target project root. Defaults to the current working directory. |
+
+Restart OpenCode or reload MCP servers after running the script.
+
 ## Agent Initialization (How to force tool usage)
 
 Even if the MCP is active, AI clients don't always load the tools into the current chat context. To ensure the agent utilizes `RoslynMcpServer` reliably, add the following instructions to your project rules (e.g., `.cursor/rules/mcp.mdc` or `AGENTS.md`).
+
+**OpenCode users:** `install2opencode.ps1` (see **Option C** above) writes or merges these rules into `AGENTS.md` automatically.
 
 **Canonical copy-paste file:** this repo ships [`AGENTS.md.sample`](AGENTS.md.sample) with the same rules—copy it into your **application** repository as `AGENTS.md` or merge fragments into Cursor rules. **When changing these instructions, update `AGENTS.md.sample` and the two collapsible **AI Agent Behavioral Rules** blocks below (English + Russian) together** so they stay identical.
 
@@ -85,7 +110,7 @@ Before writing new utility classes, helper methods, or standard validation logic
 - Use `get_code_skeleton` (for files/directories) or `get_class_skeleton` (for loaded workspaces) to understand architecture without loading full method bodies.
 - Use `find_usages` with `symbolName` (after `load_workspace`) for usages across the solution, or `find_symbol_references` with `filePath` + `symbolName` when you already know the declaring file — then mirror the team’s patterns.
 
-For C# edits, ALWAYS prefer `get_class_skeleton`, `get_code_skeleton`, `get_method_body`, `explore_assembly`, `decompile_type`, `get_decompiled_class_skeleton`, `get_decompiled_method_body`, `run_dotnet_build`, and `get_diagnostics_for_file` instead of inventing code from memory. **Persisting edits to disk** follows **section 6** (IDE-native tools vs this MCP server's file tools).
+For C# edits, ALWAYS prefer `get_class_skeleton`, `get_code_skeleton`, `get_method_body`, `explore_assembly`, `decompile_type`, `get_decompiled_class_skeleton`, `get_decompiled_method_body`, `run_dotnet_build`, and `get_diagnostics_for_file` instead of inventing code from memory. When fixing compiler/analyzer errors, call `get_code_fixes` and `apply_code_fix` **before** guessing a manual patch—Roslyn already knows the correct fix for most standard diagnostics. **Persisting edits to disk** follows **section 6** (IDE-native tools vs this MCP server's file tools).
 
 ## 4. Third-Party Code / NuGet Investigation
 
@@ -124,9 +149,11 @@ Before editing any files, identify your host environment:
 - `directoryPath` — root folder (`list_directory_tree`, optional root for `search_code`).
 - `workspacePath` — `.sln` / `.csproj` (and sometimes a directory): `load_workspace`, `run_dotnet_test`, `run_format`, optional reload for `list_projects` / `get_project_graph`. **`run_dotnet_build` accepts only a `.csproj` or `.sln` file path, not a directory.**
 - `symbolName` — C# identifier for `find_symbol_definition`, `find_symbol_references`, and `find_usages` (exact name; `find_symbol_definition` / `find_usages` matching is case-insensitive).
+- `diagnosticId` — compiler/analyzer id from `get_diagnostics_for_file` (e.g. `CS0246`) for `get_code_fixes` / `apply_code_fix`.
+- `fixIndex` — 0-based index from `get_code_fixes` for `apply_code_fix`.
 - `path` — `.cs` file or directory for `get_code_skeleton` (absolute path; disk-based, no workspace required).
 
-There are **30** registered tools (see list below) and **1** MCP prompt (`RefactoringAssistantPrompt`).
+There are **32** registered tools (see list below) and **1** MCP prompt (`RefactoringAssistantPrompt`).
 
 ### Workspace / Roslyn
 
@@ -176,10 +203,42 @@ There are **30** registered tools (see list below) and **1** MCP prompt (`Refact
 </details>
 
 <details>
-<summary><code>get_diagnostics_for_file</code> — Returns Roslyn compiler diagnostics for a single file.</summary>
+<summary><code>get_diagnostics_for_file</code> — Returns Roslyn compiler diagnostics for a single file (Warning and Error only).</summary>
 
 **Parameters:**
 - `filePath: string`
+
+**Output:** each line includes severity, **line**, **column**, diagnostic id (e.g. `CS0246`, `IDE0001`), and message. Use these values with `get_code_fixes`.
+</details>
+
+<details>
+<summary><code>get_code_fixes</code> — Lists Roslyn CodeAction fixes available for a diagnostic at a specific location.</summary>
+
+**Parameters:**
+- `filePath: string`
+- `diagnosticId: string` — from `get_diagnostics_for_file` (e.g. `CS0246`)
+- `line: int` — 1-based line where the diagnostic starts
+- `column: int = 1` — 1-based column (from diagnostics output)
+
+**Returns:** numbered fixes (`fixIndex` 0-based) with titles such as “Add using …”, “Implement interface”, etc. Up to 20 fixes per call.
+
+**Workflow:** `get_diagnostics_for_file` → `get_code_fixes` → `apply_code_fix`. Do not invent fix code when Roslyn provides a fix.
+</details>
+
+<details>
+<summary><code>apply_code_fix</code> — Applies a Roslyn CodeAction selected from <code>get_code_fixes</code>.</summary>
+
+**Parameters:**
+- `filePath: string`
+- `diagnosticId: string`
+- `fixIndex: int` — index from `get_code_fixes` (0-based)
+- `line: int` — same as in `get_code_fixes`
+- `column: int = 1`
+- `previewOnly: bool = false` — when `true`, returns a diff preview without writing files
+
+**Behavior:** writes changed files to disk and updates the in-memory workspace. Re-run `get_diagnostics_for_file` to verify remaining issues.
+
+**Note:** `fixIndex` is valid only for the same `filePath` / `diagnosticId` / `line` / `column` pair in the same session (file must not change between `get_code_fixes` and `apply_code_fix`).
 </details>
 
 <details>
@@ -411,7 +470,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 [🇬🇧 Back to English (Main)](#roslynmcpserver)
 
 **Почему это лучше стандартных файловых MCP?**
-В отличие от базовых серверов, которые умеют только читать и писать файлы, этот сервер использует **Roslyn**. Ваш ИИ-агент (в Cursor, Cline и др.) не просто читает текст, он видит C#-код глазами компилятора. Он может получать точечную диагностику без полной пересборки, искать ссылки на символы и делать безопасный семантический рефакторинг, что кардинально снижает риск галлюцинаций.
+В отличие от базовых серверов, которые умеют только читать и писать файлы, этот сервер использует **Roslyn**. Ваш ИИ-агент (в Cursor, Cline и др.) не просто читает текст, он видит C#-код глазами компилятора. Он может получать точечную диагностику без полной пересборки, **применять встроенные Roslyn code fixes** (add using, implement interface, опечатки), искать ссылки на символы и делать безопасный семантический рефакторинг, что кардинально снижает риск галлюцинаций.
 
 Сервер работает по `stdio` и регистрирует инструменты через MCP C# SDK, фокусируясь на:
 - работе с `*.sln`/`*.csproj` через Roslyn;
@@ -424,7 +483,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Требования
 - Строго **.NET 10 SDK**. *(Сборка более старыми версиями SDK не поддерживается и завершится ошибкой).*
-- IDE с поддержкой MCP (Cursor, VS Code + Cline).
+- IDE с поддержкой MCP (Cursor, OpenCode, VS Code + Cline).
 
 ## Подключение к Cursor / VS Code (локально)
 
@@ -451,9 +510,34 @@ dotnet publish RoslynMcpServer.csproj -c Release -r win-x64
 Укажите абсолютный путь (примеры лежат в `mcp.json` и `.cursor/mcp.json`).
 Опционально добавьте `env` с `ROSLYN_MCP_WORKSPACE`, если нужен фиксированный корень по умолчанию.
 
+**OpenCode (`install2opencode.ps1`):**
+
+После `dotnet publish` в каталоге publish лежат [`install2opencode.ps1`](install2opencode.ps1) и [`AGENTS.md.sample`](AGENTS.md.sample) рядом с `RoslynMcpServer.exe`.
+
+Из корня **целевого проекта** (вашего приложения, не этого репозитория):
+
+```powershell
+cd D:\Devel\YourApp
+& "D:\Devel\RoslynMcpServer\bin\Release\net10.0\win-x64\publish\install2opencode.ps1"
+```
+
+Скрипт:
+
+- создаёт или обновляет **`opencode.json`**, регистрируя `RoslynMcpServer` как локальный MCP-сервер (`type: local`, `enabled: true`);
+- создаёт или дополняет **`AGENTS.md`**: если правил Roslyn MCP ещё нет, подмешивает текст из `AGENTS.md.sample` (новый файл или append к существующему).
+
+| Параметр | Описание |
+| --- | --- |
+| `-BinaryPath` | Необязательный абсолютный путь к `RoslynMcpServer.exe`. Если не указан — берётся бинарь рядом со скриптом. |
+| `-ProjectPath` | Необязательный корень проекта. По умолчанию — текущая рабочая директория. |
+
+После установки перезапустите OpenCode или перезагрузите MCP-серверы.
+
 ## Cursor: как заставить агента реально вызывать tools
 
 Добавьте этот блок инструкций в правила вашего проекта (`.cursor/rules/mcp.mdc` или `AGENTS.md`). Полный текст в [`AGENTS.md.sample`](AGENTS.md.sample). **При правках обновляйте вместе `AGENTS.md.sample` и два раскрывающихся блока ниже (англ. + рус. секция).**
+
+**Для OpenCode:** `install2opencode.ps1` (см. блок **OpenCode** выше) автоматически создаёт или дополняет `AGENTS.md`.
 
 <details>
 <summary><strong>Правила агента (текст на EN)</strong> — развернуть; совпадает с <a href="AGENTS.md.sample"><code>AGENTS.md.sample</code></a></summary>
@@ -490,7 +574,7 @@ Before writing new utility classes, helper methods, or standard validation logic
 - Use `get_code_skeleton` (for files/directories) or `get_class_skeleton` (for loaded workspaces) to understand architecture without loading full method bodies.
 - Use `find_usages` with `symbolName` (after `load_workspace`) for usages across the solution, or `find_symbol_references` with `filePath` + `symbolName` when you already know the declaring file — then mirror the team’s patterns.
 
-For C# edits, ALWAYS prefer `get_class_skeleton`, `get_code_skeleton`, `get_method_body`, `explore_assembly`, `decompile_type`, `get_decompiled_class_skeleton`, `get_decompiled_method_body`, `run_dotnet_build`, and `get_diagnostics_for_file` instead of inventing code from memory. **Persisting edits to disk** follows **section 6** (IDE-native tools vs this MCP server's file tools).
+For C# edits, ALWAYS prefer `get_class_skeleton`, `get_code_skeleton`, `get_method_body`, `explore_assembly`, `decompile_type`, `get_decompiled_class_skeleton`, `get_decompiled_method_body`, `run_dotnet_build`, and `get_diagnostics_for_file` instead of inventing code from memory. When fixing compiler/analyzer errors, call `get_code_fixes` and `apply_code_fix` **before** guessing a manual patch—Roslyn already knows the correct fix for most standard diagnostics. **Persisting edits to disk** follows **section 6** (IDE-native tools vs this MCP server's file tools).
 
 ## 4. Third-Party Code / NuGet Investigation
 
@@ -529,9 +613,11 @@ Before editing any files, identify your host environment:
 - `directoryPath` — корневая папка (`list_directory_tree`, опционально корень для `search_code`).
 - `workspacePath` — `.sln` / `.csproj` (и иногда каталог): `load_workspace`, `run_dotnet_test`, `run_format`, опциональная перезагрузка в `list_projects` / `get_project_graph`. **`run_dotnet_build` принимает только путь к файлу `.csproj` или `.sln`, не каталог.**
 - `symbolName` — идентификатор C# для `find_symbol_definition`, `find_symbol_references` и `find_usages` (точное имя; в `find_symbol_definition` / `find_usages` регистр не важен).
+- `diagnosticId` — id компилятора/анализатора из `get_diagnostics_for_file` (например `CS0246`) для `get_code_fixes` / `apply_code_fix`.
+- `fixIndex` — индекс (0-based) из `get_code_fixes` для `apply_code_fix`.
 - `path` — файл `.cs` или каталог для `get_code_skeleton` (абсолютный путь; с диска, workspace не обязателен).
 
-Зарегистрировано **30** инструментов (список ниже) и **1** MCP-промпт (`RefactoringAssistantPrompt`).
+Зарегистрировано **32** инструмента (список ниже) и **1** MCP-промпт (`RefactoringAssistantPrompt`).
 
 ### Workspace / Roslyn
 
@@ -581,10 +667,42 @@ Before editing any files, identify your host environment:
 </details>
 
 <details>
-<summary><code>get_diagnostics_for_file</code> — Возвращает Roslyn-диагностику для одного C# файла (Warning и Error).</summary>
+<summary><code>get_diagnostics_for_file</code> — Возвращает Roslyn-диагностику для одного C# файла (только Warning и Error).</summary>
 
 **Параметры:**
 - `filePath: string`
+
+**Вывод:** для каждой диагностики — severity, **строка**, **колонка**, id (например `CS0246`, `IDE0001`) и сообщение. Эти значения нужны для `get_code_fixes`.
+</details>
+
+<details>
+<summary><code>get_code_fixes</code> — Список доступных Roslyn CodeAction для диагностики в указанной позиции.</summary>
+
+**Параметры:**
+- `filePath: string`
+- `diagnosticId: string` — из `get_diagnostics_for_file` (например `CS0246`)
+- `line: int` — номер строки (1-based), где начинается диагностика
+- `column: int = 1` — колонка (1-based, из вывода diagnostics)
+
+**Результат:** пронумерованные фиксы (`fixIndex`, с 0) с заголовками вроде «Add using …», «Implement interface» и т.д. Не более 20 фиксов за вызов.
+
+**Workflow:** `get_diagnostics_for_file` → `get_code_fixes` → `apply_code_fix`. Не придумывайте правку вручную, если Roslyn уже предлагает fix.
+</details>
+
+<details>
+<summary><code>apply_code_fix</code> — Применяет CodeAction, выбранный из <code>get_code_fixes</code>.</summary>
+
+**Параметры:**
+- `filePath: string`
+- `diagnosticId: string`
+- `fixIndex: int` — индекс из `get_code_fixes` (0-based)
+- `line: int` — те же значения, что в `get_code_fixes`
+- `column: int = 1`
+- `previewOnly: bool = false` — при `true` только diff-превью без записи на диск
+
+**Поведение:** записывает изменённые файлы на диск и обновляет in-memory workspace. После применения вызовите `get_diagnostics_for_file` для проверки.
+
+**Заметка:** `fixIndex` действителен только для той же пары `filePath` / `diagnosticId` / `line` / `column` в рамках сессии (файл не должен меняться между `get_code_fixes` и `apply_code_fix`).
 </details>
 
 <details>

@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using RoslynMcpServer.Diagnostics;
 using RoslynMcpServer.Tools;
 using Serilog;
+using System.Reflection;
 
 // --- MSBuild Locator (explicit VS 17+ preference) ---
 var instances = MSBuildLocator.QueryVisualStudioInstances().ToList();
@@ -44,6 +45,8 @@ try
     // CSharp.Workspaces + Microsoft.CodeAnalysis.CSharp (LanguageNames lives in Workspaces, not CSharp.*)
     _ = typeof(CSharpFormattingOptions).Assembly;
     _ = typeof(SyntaxFactory).Assembly;
+    _ = Assembly.Load(new AssemblyName("Microsoft.CodeAnalysis.Features"));
+    _ = Assembly.Load(new AssemblyName("Microsoft.CodeAnalysis.CSharp.Features"));
 }
 catch (Exception ex)
 {
@@ -80,6 +83,7 @@ builder.Services
     .WithTools<RoslynTools>()
     .WithTools<WorkspaceTools>()
     .WithTools<CodeAnalysisTools>()
+    .WithTools<CodeFixTools>()
     .WithTools<CodeSkeletonTools>()
     .WithTools<NavigationTools>()
     .WithTools<EditingTools>()
