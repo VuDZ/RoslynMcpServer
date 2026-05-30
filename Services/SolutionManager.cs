@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Reflection;
 using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Formatting;
@@ -21,12 +22,16 @@ public sealed class SolutionManager
     /// (fixes "language 'C#' is not supported" when using parameterless MSBuildWorkspace.Create()).
     /// </summary>
     private static readonly HostServices MsBuildHostServices = MefHostServices.Create(
-        new[]
-        {
-            typeof(Workspace).Assembly,
-            typeof(CSharpFormattingOptions).Assembly,
-            typeof(MSBuildWorkspace).Assembly
-        });
+        LoadMefAssemblies());
+
+    private static IEnumerable<Assembly> LoadMefAssemblies()
+    {
+        yield return typeof(Workspace).Assembly;
+        yield return typeof(CSharpFormattingOptions).Assembly;
+        yield return typeof(MSBuildWorkspace).Assembly;
+        yield return Assembly.Load(new AssemblyName("Microsoft.CodeAnalysis.Features"));
+        yield return Assembly.Load(new AssemblyName("Microsoft.CodeAnalysis.CSharp.Features"));
+    }
 
     private readonly ILogger<SolutionManager> _logger;
     private readonly SemaphoreSlim _workspaceLock = new(1, 1);
@@ -161,6 +166,103 @@ public sealed class SolutionManager
     public Solution? GetCurrentSolution()
     {
         return _workspace?.CurrentSolution ?? _solution;
+    }
+
+    /// <summary>
+    /// Persists solution document changes to disk and updates the in-memory workspace.
+    /// Caller must not hold <see cref="_workspaceLock"/> (this method acquires it).
+    /// </summary>
+    public async Task<IReadOnlyList<string>> ApplySolutionChangesToDiskAsync(
+        Solution oldSolution,
+        Solution newSolution,
+        CancellationToken cancellationToken = default)
+    {
+        var changedPaths = new List<string>();
+        foreach (var project in newSolution.Projects)
+        {
+            foreach (var newDoc in project.Documents)
+            {
+                if (newDoc.FilePath is null)
+                {
+                    continue;
+                }
+
+                var oldDoc = oldSolution.GetDocument(newDoc.Id);
+                if (oldDoc is null)
+                {
+                    continue;
+                }
+
+                var oldText = await oldDoc.GetTextAsync(cancellationToken);
+                var newText = await newDoc.GetTextAsync(cancellationToken);
+                if (string.Equals(oldText.ToString(), newText.ToString(), StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                var text = newText.ToString();
+                await File.WriteAllTextAsync(newDoc.FilePath, text, cancellationToken);
+                changedPaths.Add(newDoc.FilePath);
+            }
+        }
+
+        await _workspaceLock.WaitAsync(cancellationToken);
+        try
+        {
+            var workspace = _workspace;
+            if (workspace is not null && workspace.TryApplyChanges(newSolution))
+            {
+                _solution = workspace.CurrentSolution;
+            }
+            else
+            {
+                foreach (var path in changedPaths)
+                {
+                    var doc = newSolution.Projects
+                        .SelectMany(p => p.Documents)
+                        .FirstOrDefault(d => string.Equals(Path.GetFullPath(d.FilePath ?? string.Empty), Path.GetFullPath(path), _pathComparison));
+                    if (doc is not null)
+                    {
+                        var text = (await doc.GetTextAsync(cancellationToken)).ToString();
+                        await UpdateDocumentInMemoryUnderLockAsync(path, text);
+                    }
+                }
+            }
+        }
+        finally
+        {
+            _workspaceLock.Release();
+        }
+
+        return changedPaths;
+    }
+
+    /// <summary>
+    /// Must be called with <see cref="_workspaceLock"/> held.
+    /// </summary>
+    private async Task UpdateDocumentInMemoryUnderLockAsync(string filePath, string newText)
+    {
+        var workspace = _workspace;
+        if (workspace is null)
+        {
+            return;
+        }
+
+        var fullPath = Path.GetFullPath(filePath);
+        var documentId = FindDocumentIdForPath(workspace.CurrentSolution, fullPath, _pathComparison);
+        if (documentId is null)
+        {
+            return;
+        }
+
+        var newSolution = workspace.CurrentSolution.WithDocumentText(
+            documentId,
+            SourceText.From(newText, Encoding.UTF8));
+
+        if (workspace.TryApplyChanges(newSolution))
+        {
+            _solution = workspace.CurrentSolution;
+        }
     }
 
     /// <summary>

@@ -112,12 +112,15 @@ public sealed class CodeAnalysisTools
             var lines = diagnostics
                 .Select(d =>
                 {
-                    var line = d.Location.GetLineSpan().StartLinePosition.Line + 1;
-                    return $"[{d.Severity}] Line {line}: ({d.Id}) {d.GetMessage()}";
+                    var start = d.Location.GetLineSpan().StartLinePosition;
+                    return $"[{d.Severity}] Line {start.Line + 1}, Col {start.Character + 1}: ({d.Id}) {d.GetMessage()}";
                 })
                 .ToList();
 
-            return ToolTelemetry.TraceAndReturn(nameof(GetDiagnosticsForFile), string.Join(Environment.NewLine, lines));
+            var header = $"Diagnostics for `{fullPath}` ({diagnostics.Count}). Use get_code_fixes with diagnosticId, line, and column.";
+            return ToolTelemetry.TraceAndReturn(
+                nameof(GetDiagnosticsForFile),
+                header + Environment.NewLine + string.Join(Environment.NewLine, lines));
         }
         catch (Exception ex)
         {
