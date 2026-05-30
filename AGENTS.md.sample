@@ -44,6 +44,8 @@ For C# edits, ALWAYS prefer `get_class_skeleton`, `get_code_skeleton`, `get_meth
 
 If you encounter a bug originating from a compiled `.dll` or NuGet package, DO NOT guess or hallucinate its implementation.
 
+- Before adding or upgrading packages, use `search_nuget_registry` to verify the package id and latest stable version — never invent library names or versions.
+- Use `list_nuget_packages` to inspect installed and transitive dependencies across projects (JSON) before changing `.csproj` files.
 - Use `explore_assembly` to understand the public API.
 - Use `decompile_type` to read the exact C# source code. For large types, use `get_decompiled_class_skeleton`; for a specific method overload, use `get_decompiled_method_body`.
 - Propose a fix only after reading the decompiled material.
