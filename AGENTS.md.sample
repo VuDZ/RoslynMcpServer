@@ -62,6 +62,7 @@ Before editing any files, identify your host environment:
 
 - **If you are running in a headless/CLI environment (e.g., Aider) or your client does not expose first-class edit tools:** You MUST persist changes using this MCP server's **`apply_patch`** and/or **`update_file_content`** (or the file-write mechanism your CLI integration documents). Do not use raw shell redirection to invent files.
 - **For C# insertions (usings, methods, properties, fields):** prefer **`add_using`**, **`add_method_to_class`**, **`add_property_to_class`**, **`add_field_to_class`**, **`organize_usings`** over `apply_patch`.
+- **For method body edits:** read with **`get_method_body`**, write with **`update_method_body`** — not `apply_patch`.
 - **Bug investigation:** use **`get_call_graph`** to see callers/callees before loading many method bodies.
 - **Packages:** use **`search_nuget_registry`** + **`add_package_reference`** — not hand-edited versions in csproj.
 - **After server rebuild:** call **`get_mcp_server_info`** to verify binary date and tool count; run `publish-and-verify.ps1`.
