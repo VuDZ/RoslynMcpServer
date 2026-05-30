@@ -154,7 +154,7 @@ Before editing any files, identify your host environment:
 - `fixIndex` — 0-based index from `get_code_fixes` for `apply_code_fix`.
 - `path` — `.cs` file or directory for `get_code_skeleton` (absolute path; disk-based, no workspace required).
 
-There are **33** registered tools (see list below) and **1** MCP prompt (`RefactoringAssistantPrompt`).
+There are **35** registered tools (see list below) and **1** MCP prompt (`RefactoringAssistantPrompt`).
 
 ### Workspace / Roslyn
 
@@ -442,6 +442,30 @@ There are **33** registered tools (see list below) and **1** MCP prompt (`Refact
 </details>
 
 <details>
+<summary><code>extract_interface</code> — Extract a public interface from a class.</summary>
+
+**Parameters:**
+- `filePath: string`
+- `className: string`
+- `interfaceName: string?` — default `I` + className
+- `createNewFile: bool = true` — write `{InterfaceName}.cs` in the same folder
+- `previewOnly: bool = false`
+
+**Behavior:** Collects public instance methods, properties, and events declared on the class; generates interface signatures; adds `: IInterface` to the class. Supports block and file-scoped namespaces. Partial classes are rejected.
+</details>
+
+<details>
+<summary><code>move_type_to_new_file</code> — Split top-level types into one-type-per-file.</summary>
+
+**Parameters:**
+- `filePath: string`
+- `typeName: string?` — omit to move all types whose name does not match the file name
+- `previewOnly: bool = false`
+
+**Behavior:** Creates `{TypeName}.cs` next to the source file (SDK-style projects pick up new files automatically), copies usings/namespace, removes the type from the original file. Partial types are rejected.
+</details>
+
+<details>
 <summary><code>list_projects</code> — Shows projects in the workspace (Name, TFM, Output, Refs).</summary>
 
 **Parameters:**
@@ -631,7 +655,7 @@ Before editing any files, identify your host environment:
 - `fixIndex` — индекс (0-based) из `get_code_fixes` для `apply_code_fix`.
 - `path` — файл `.cs` или каталог для `get_code_skeleton` (абсолютный путь; с диска, workspace не обязателен).
 
-Зарегистрировано **33** инструмента (список ниже) и **1** MCP-промпт (`RefactoringAssistantPrompt`).
+Зарегистрировано **35** инструмента (список ниже) и **1** MCP-промпт (`RefactoringAssistantPrompt`).
 
 ### Workspace / Roslyn
 
@@ -916,6 +940,30 @@ Before editing any files, identify your host environment:
 - `newName: string`
 - `scope: string = "project"` — допустимо: `project` | `solution`
 - `previewOnly: bool = true`
+</details>
+
+<details>
+<summary><code>extract_interface</code> — Выделить public-интерфейс из класса.</summary>
+
+**Параметры:**
+- `filePath: string`
+- `className: string`
+- `interfaceName: string?` — по умолчанию `I` + className
+- `createNewFile: bool = true` — записать `{InterfaceName}.cs` в ту же папку
+- `previewOnly: bool = false`
+
+**Поведение:** собирает public instance methods/properties/events класса, генерирует сигнатуры интерфейса, добавляет `: IInterface` к классу. Block/file-scoped namespace. Partial class не поддерживаются.
+</details>
+
+<details>
+<summary><code>move_type_to_new_file</code> — Разнести top-level типы по файлам (one type per file).</summary>
+
+**Параметры:**
+- `filePath: string`
+- `typeName: string?` — если не указан, переносит все типы, имя которых не совпадает с именем файла
+- `previewOnly: bool = false`
+
+**Поведение:** создаёт `{TypeName}.cs` рядом с исходником, копирует usings/namespace, удаляет тип из исходного файла. Partial types не поддерживаются.
 </details>
 
 <details>

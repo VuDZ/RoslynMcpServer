@@ -188,19 +188,28 @@ public sealed class SolutionManager
                 }
 
                 var oldDoc = oldSolution.GetDocument(newDoc.Id);
+                var newText = await newDoc.GetTextAsync(cancellationToken);
+                var text = newText.ToString();
+
                 if (oldDoc is null)
                 {
+                    var directory = Path.GetDirectoryName(newDoc.FilePath);
+                    if (!string.IsNullOrWhiteSpace(directory))
+                    {
+                        Directory.CreateDirectory(directory);
+                    }
+
+                    await File.WriteAllTextAsync(newDoc.FilePath, text, cancellationToken);
+                    changedPaths.Add(newDoc.FilePath);
                     continue;
                 }
 
                 var oldText = await oldDoc.GetTextAsync(cancellationToken);
-                var newText = await newDoc.GetTextAsync(cancellationToken);
-                if (string.Equals(oldText.ToString(), newText.ToString(), StringComparison.Ordinal))
+                if (string.Equals(oldText.ToString(), text, StringComparison.Ordinal))
                 {
                     continue;
                 }
 
-                var text = newText.ToString();
                 await File.WriteAllTextAsync(newDoc.FilePath, text, cancellationToken);
                 changedPaths.Add(newDoc.FilePath);
             }
