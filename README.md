@@ -135,6 +135,7 @@ Before editing any files, identify your host environment:
 
 - **If you are running in a headless/CLI environment (e.g., Aider) or your client does not expose first-class edit tools:** You MUST persist changes using this MCP server's **`apply_patch`** and/or **`update_file_content`** (or the file-write mechanism your CLI integration documents). Do not use raw shell redirection to invent files.
 - **For C# insertions (usings, methods, properties, fields):** prefer **`add_using`**, **`add_method_to_class`**, **`add_property_to_class`**, **`add_field_to_class`**, **`organize_usings`** over `apply_patch`.
+- **For method body edits:** read with **`get_method_body`**, write with **`update_method_body`** — not `apply_patch`.
 - **Bug investigation:** use **`get_call_graph`** to see callers/callees before loading many method bodies.
 - **Packages:** use **`search_nuget_registry`** + **`add_package_reference`** — not hand-edited versions in csproj.
 - **After server rebuild:** call **`get_mcp_server_info`**; run `publish-and-verify.ps1`.
@@ -160,7 +161,7 @@ Before editing any files, identify your host environment:
 - `fixIndex` — 0-based index from `get_code_fixes` for `apply_code_fix`.
 - `path` — `.cs` file or directory for `get_code_skeleton` (absolute path; disk-based, no workspace required).
 
-There are **54** registered tools (see list below) and **1** MCP prompt (`RefactoringAssistantPrompt`).
+There are **55** registered tools (see list below) and **1** MCP prompt (`RefactoringAssistantPrompt`).
 
 ### Workspace / Roslyn
 
@@ -364,6 +365,20 @@ Inserts and formats the directive. Requires `load_workspace`. Prefer over `apply
 - `methodSource: string` — full method declaration (modifiers, signature, body)
 
 Parses C# syntax, inserts with DocumentEditor, formats the file. Prefer over `apply_patch` for new methods.
+
+</details>
+
+<details>
+<summary><code>update_method_body</code> — Replace a method body via Roslyn AST.</summary>
+
+**Parameters:**
+- `filePath: string` — absolute path to `.cs` file
+- `className: string` — class containing the method (top-level or nested)
+- `methodName: string`
+- `newBody: string` — statements only, or a full `{ ... }` block
+- `parameterTypes: string[]?` — e.g. `["string", "int"]` to disambiguate overloads; **required** when multiple overloads exist
+
+**Behavior:** Finds `MethodDeclarationSyntax`, parses `newBody` into a `BlockSyntax`, replaces block or expression-bodied body, validates syntax errors before write, formats the file. Use with `get_method_body` — prefer over `apply_patch` for body-only edits.
 
 </details>
 
@@ -656,7 +671,7 @@ Verify id/version with `search_nuget_registry` first. Clears workspace cache —
 
 **Parameters:** *(none)*
 
-Use after `dotnet publish` to verify the MCP host picked up the new binary (expect **54** tools).
+Use after `dotnet publish` to verify the MCP host picked up the new binary (expect **55** tools).
 
 </details>
 
@@ -815,6 +830,7 @@ Before editing any files, identify your host environment:
 
 - **If you are running in a headless/CLI environment (e.g., Aider) or your client does not expose first-class edit tools:** You MUST persist changes using this MCP server's **`apply_patch`** and/or **`update_file_content`** (or the file-write mechanism your CLI integration documents). Do not use raw shell redirection to invent files.
 - **For C# insertions (usings, methods, properties, fields):** prefer **`add_using`**, **`add_method_to_class`**, **`add_property_to_class`**, **`add_field_to_class`**, **`organize_usings`** over `apply_patch`.
+- **For method body edits:** read with **`get_method_body`**, write with **`update_method_body`** — not `apply_patch`.
 - **Bug investigation:** use **`get_call_graph`** to see callers/callees before loading many method bodies.
 - **Packages:** use **`search_nuget_registry`** + **`add_package_reference`** — not hand-edited versions in csproj.
 - **After server rebuild:** call **`get_mcp_server_info`**; run `publish-and-verify.ps1`.
@@ -840,7 +856,7 @@ Before editing any files, identify your host environment:
 - `fixIndex` — индекс (0-based) из `get_code_fixes` для `apply_code_fix`.
 - `path` — файл `.cs` или каталог для `get_code_skeleton` (абсолютный путь; с диска, workspace не обязателен).
 
-Зарегистрировано **54** инструмента (список ниже) и **1** MCP-промпт (`RefactoringAssistantPrompt`).
+Зарегистрировано **55** инструментов (список ниже) и **1** MCP-промпт (`RefactoringAssistantPrompt`).
 
 ### Workspace / Roslyn
 
@@ -1039,6 +1055,20 @@ Before editing any files, identify your host environment:
 - `methodSource: string` — объявление метода (модификаторы, сигнатура, тело)
 
 Парсит C#, вставляет через DocumentEditor, форматирует. Для новых методов — вместо `apply_patch`.
+
+</details>
+
+<details>
+<summary><code>update_method_body</code> — Заменить тело метода через Roslyn AST.</summary>
+
+**Параметры:**
+- `filePath: string` — абсолютный путь к `.cs`
+- `className: string` — класс (top-level или вложенный)
+- `methodName: string`
+- `newBody: string` — только statements или блок `{ ... }`
+- `parameterTypes: string[]?` — например `["string", "int"]` для перегрузок; **обязателен** при нескольких overload
+
+**Поведение:** находит метод, парсит тело в `BlockSyntax`, заменяет block/expression body, проверяет syntax errors до записи, форматирует. Пара с `get_method_body` — вместо `apply_patch` для правок только тела.
 
 </details>
 
@@ -1327,7 +1357,7 @@ Before editing any files, identify your host environment:
 
 **Параметры:** *(нет)*
 
-После `dotnet publish` — проверка, что MCP подхватил новый бинарник (ожидай **54** tools).
+После `dotnet publish` — проверка, что MCP подхватил новый бинарник (ожидай **55** tools).
 
 </details>
 

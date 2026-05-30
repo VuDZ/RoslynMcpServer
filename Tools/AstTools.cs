@@ -53,6 +53,23 @@ public sealed class AstTools
             $"Added method to class `{className}`.",
             cancellationToken);
 
+    [McpServerTool(Name = "update_method_body", Title = "Update method body")]
+    [Description("Replaces a method body via Roslyn AST with syntax validation before write. Prefer over apply_patch for body-only edits. Pair with get_method_body.")]
+    public Task<string> UpdateMethodBody(
+        string filePath,
+        string className,
+        string methodName,
+        [Description("New method body: statements only, or a full `{ ... }` block.")]
+        string newBody,
+        [Description("Parameter type names to disambiguate overloads, e.g. [\"string\", \"int\"]. Required when overloads exist.")]
+        string[]? parameterTypes = null,
+        CancellationToken cancellationToken = default) =>
+        ApplyAsync(nameof(UpdateMethodBody), filePath,
+            doc => AstModificationHelper.UpdateMethodBodyAsync(
+                doc, className, methodName, newBody, parameterTypes, cancellationToken),
+            $"Updated body of `{className}.{methodName}`.",
+            cancellationToken);
+
     [McpServerTool(Name = "add_property_to_class", Title = "Add property to class")]
     [Description("Inserts a parsed property declaration into a class via Roslyn AST.")]
     public Task<string> AddPropertyToClass(string filePath, string className, string propertySource, CancellationToken cancellationToken = default) =>

@@ -77,6 +77,33 @@ public static class AstModificationHelper
     public static Task<Document> AddMethodToClassAsync(Document document, string className, string methodSource, CancellationToken cancellationToken) =>
         AddMemberAsync(document, className, methodSource, m => m is MethodDeclarationSyntax, "method", cancellationToken);
 
+    public static Task<Document> UpdateMethodBodyAsync(
+        Document document,
+        string className,
+        string methodName,
+        string newBody,
+        IReadOnlyList<string>? parameterTypes,
+        CancellationToken cancellationToken) =>
+        MutateAsync(document, async (doc, root, ct) =>
+        {
+            var classDecl = TypeSyntaxHelper.FindClassDeclaration(root, className.Trim())
+                ?? throw new InvalidOperationException($"Class `{className}` not found in file.");
+
+            var model = await doc.GetSemanticModelAsync(ct).ConfigureAwait(false);
+            var method = MethodSyntaxHelper.FindMethod(classDecl, methodName.Trim(), parameterTypes, model);
+            var newBlock = MethodSyntaxHelper.ParseNewMethodBody(newBody);
+
+            var updatedMethod = method
+                .WithBody(newBlock)
+                .WithExpressionBody(null)
+                .WithSemicolonToken(default);
+
+            MethodSyntaxHelper.ThrowIfSyntaxErrors(updatedMethod, "Updated method body");
+
+            var newRoot = root.ReplaceNode(method, updatedMethod);
+            return doc.WithSyntaxRoot(newRoot);
+        }, cancellationToken);
+
     public static Task<Document> AddPropertyToClassAsync(Document document, string className, string propertySource, CancellationToken cancellationToken) =>
         AddMemberAsync(document, className, propertySource, m => m is PropertyDeclarationSyntax, "property", cancellationToken);
 
