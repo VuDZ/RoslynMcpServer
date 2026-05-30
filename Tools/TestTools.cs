@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Server;
 using RoslynMcpServer.Diagnostics;
+using RoslynMcpServer.Services;
 
 namespace RoslynMcpServer.Tools;
 
@@ -45,23 +46,77 @@ public sealed class TestTools
         pattern: @"^\s*Failed:\s*(?<n>\d+)\s*$",
         options: RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
+    private readonly SolutionManager _solutionManager;
     private readonly ILogger<TestTools> _logger;
 
-    public TestTools(ILogger<TestTools> logger)
+    public TestTools(SolutionManager solutionManager, ILogger<TestTools> logger)
     {
+        _solutionManager = solutionManager;
         _logger = logger;
     }
 
     [McpServerTool(Name = "run_dotnet_test", Title = "Run dotnet test")]
     [Description(
         "Runs `dotnet test` on the specified project or solution. Use this to verify behavior after writing tests or refactoring. Returns a clean summary of passed/failed tests.")]
-    public async Task<string> RunDotNetTest(
+    public Task<string> RunDotNetTest(
         [Description("Path to .csproj, .sln, or test project directory (same parameter name as load_workspace / run_dotnet_build).")]
         string workspacePath,
         CancellationToken cancellationToken = default)
     {
-        const string toolName = nameof(RunDotNetTest);
+        return ExecuteDotnetTestAsync(nameof(RunDotNetTest), workspacePath, filter: null, filterDescription: null, cancellationToken);
+    }
 
+    [McpServerTool(Name = "run_specific_test", Title = "Run a filtered dotnet test")]
+    [Description(
+        "Runs `dotnet test` filtered to a single test class and/or method. Builds the VSTest `--filter` expression internally — " +
+        "do not use `execute_dotnet_command` or hand-written FullyQualifiedName filters. " +
+        "When the Roslyn workspace is loaded, resolves the exact fully qualified test name for precise filtering. " +
+        "Use for TDD and bug fixes instead of running the full suite.")]
+    public async Task<string> RunSpecificTest(
+        [Description("Path to .csproj, .sln, or test project directory (same as run_dotnet_test).")]
+        string workspacePath,
+        [Description("Test class name (simple or fully qualified), e.g. `UserServiceTests`.")]
+        string? className = null,
+        [Description("Test method name, e.g. `CreateUser_WhenValid_ReturnsOk`.")]
+        string? methodName = null,
+        CancellationToken cancellationToken = default)
+    {
+        const string toolName = nameof(RunSpecificTest);
+
+        try
+        {
+            if (string.IsNullOrWhiteSpace(className) && string.IsNullOrWhiteSpace(methodName))
+            {
+                return ToolTelemetry.TraceAndReturn(
+                    toolName,
+                    "Error: provide at least one of `className` or `methodName`.");
+            }
+
+            var solution = _solutionManager.GetCurrentSolution();
+            var (filter, description) = await TestFilterHelper.BuildFilterAsync(
+                solution, className, methodName, cancellationToken).ConfigureAwait(false);
+
+            return await ExecuteDotnetTestAsync(toolName, workspacePath, filter, description, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            return ToolTelemetry.TraceAndReturn(toolName, "`run_specific_test` was cancelled.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "RunSpecificTest failed for {WorkspacePath}", workspacePath);
+            return ToolTelemetry.TraceAndReturn(toolName, $"Failed to run specific test: {ex.Message}");
+        }
+    }
+
+    private async Task<string> ExecuteDotnetTestAsync(
+        string toolName,
+        string workspacePath,
+        string? filter,
+        string? filterDescription,
+        CancellationToken cancellationToken)
+    {
         try
         {
             if (string.IsNullOrWhiteSpace(workspacePath))
@@ -91,10 +146,14 @@ public sealed class TestTools
                 ? Path.GetDirectoryName(fullPath) ?? Environment.CurrentDirectory
                 : fullPath;
 
+            var filterArg = string.IsNullOrWhiteSpace(filter)
+                ? string.Empty
+                : $" --filter \"{filter.Replace("\"", "\\\"", StringComparison.Ordinal)}\"";
+
             var psi = new ProcessStartInfo
             {
                 FileName = "dotnet",
-                Arguments = $"test \"{fullPath}\" --verbosity normal",
+                Arguments = $"test \"{fullPath}\" --verbosity normal{filterArg}",
                 UseShellExecute = false,
                 CreateNoWindow = true,
                 RedirectStandardOutput = true,
@@ -125,7 +184,7 @@ public sealed class TestTools
             var summary = TryParseTestSummary(combined);
             var failures = ParseFailedTestBlocks(combined, MaxFailedTestDetails);
 
-            var markdown = BuildMarkdownSummary(summary, failures, process.ExitCode, combined);
+            var markdown = BuildMarkdownSummary(summary, failures, process.ExitCode, combined, filter, filterDescription);
             return ToolTelemetry.TraceAndReturn(toolName, markdown);
         }
         catch (OperationCanceledException)
@@ -134,7 +193,7 @@ public sealed class TestTools
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "RunDotNetTest failed for {WorkspacePath}", workspacePath);
+            _logger.LogError(ex, "{ToolName} failed for {WorkspacePath}", toolName, workspacePath);
             return ToolTelemetry.TraceAndReturn(
                 toolName,
                 $"Failed to run `dotnet test`: {ex.Message}");
@@ -148,7 +207,6 @@ public sealed class TestTools
             return null;
         }
 
-        // Prefer the last xUnit/VSTest-style one-line summary (most reliable totals).
         Match? lastEnd = null;
         foreach (Match m in RxEndSummaryLine.Matches(text))
         {
@@ -164,7 +222,6 @@ public sealed class TestTools
             return new TestSummary(total, passed, failed, skipped);
         }
 
-        // VSTest multi-line block: "Total tests: N" then "Passed:" / "Failed:" (order may vary).
         var lines = text.Split(['\r', '\n'], StringSplitOptions.None);
         for (var i = lines.Length - 1; i >= 0; i--)
         {
@@ -265,7 +322,6 @@ public sealed class TestTools
         }
         else if (stIdx > 0)
         {
-            // xUnit: lines between header and "Stack Trace:" without an explicit label.
             var firstNl = block.IndexOf('\n');
             if (firstNl >= 0 && firstNl + 1 < stIdx)
             {
@@ -330,13 +386,28 @@ public sealed class TestTools
         TestSummary? summary,
         IReadOnlyList<FailedTestDetail> failures,
         int exitCode,
-        string combinedOutput)
+        string combinedOutput,
+        string? filter,
+        string? filterDescription)
     {
         var sb = new StringBuilder();
 
+        if (!string.IsNullOrWhiteSpace(filter))
+        {
+            sb.AppendLine("## Filtered test run");
+            sb.AppendLine();
+            sb.AppendLine($"**Filter:** `{EscapeMdBackticks(filter)}`");
+            if (!string.IsNullOrWhiteSpace(filterDescription))
+            {
+                sb.AppendLine($"**Match:** {filterDescription}");
+            }
+
+            sb.AppendLine();
+        }
+
         if (summary is null)
         {
-            sb.AppendLine("## Test run");
+            sb.AppendLine(string.IsNullOrWhiteSpace(filter) ? "## Test run" : "## Filtered test run");
             sb.AppendLine();
             sb.AppendLine(
                 $"No standard VSTest/xUnit summary line was detected in the output (exit code `{exitCode}`).");
@@ -366,13 +437,15 @@ public sealed class TestTools
 
         if (failed == 0)
         {
-            sb.AppendLine("## All tests passed successfully!");
+            sb.AppendLine(string.IsNullOrWhiteSpace(filter) ? "## All tests passed successfully!" : "## Filtered tests passed");
             sb.AppendLine();
             sb.AppendLine(
                 $"Total: **{total}** · Passed: **{passed}** · Failed: **{failed}**" +
                 (skipped > 0 ? $" · Skipped: **{skipped}**" : string.Empty));
             sb.AppendLine();
-            sb.AppendLine("Green run — great time to refactor or add coverage.");
+            sb.AppendLine(string.IsNullOrWhiteSpace(filter)
+                ? "Green run — great time to refactor or add coverage."
+                : "Filtered run succeeded.");
             return sb.ToString().TrimEnd();
         }
 

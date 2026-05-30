@@ -101,7 +101,7 @@ Do not run searches through raw shells (`PowerShell`, `Bash`, `CMD`) — the wor
 NEVER use raw terminal commands (PowerShell, Bash, CMD) to execute `dotnet build` or `dotnet test`. Doing so bypasses our diagnostic parsers and can crash the context window with raw MSBuild output.
 
 - **To Build:** YOU MUST use `run_dotnet_build`. Analyze the structured diagnostics (and any truncated console excerpt — head + tail when output is long) the tool returns.
-- **To Test:** YOU MUST use `run_dotnet_test`. Analyze the error output provided by the tool to fix compilation or test failures.
+- **To Test:** YOU MUST use `run_dotnet_test` for full suites. For a single test class or method during TDD/bug fixes, use `run_specific_test` — never hand-write VSTest `--filter` via `execute_dotnet_command`.
 
 ## 3. Explore Before Build (Global Context Awareness)
 
@@ -148,13 +148,13 @@ Before editing any files, identify your host environment:
 **Parameter Naming Rules:**
 - `filePath` — a single file (read/edit/diagnostics/logs).
 - `directoryPath` — root folder (`list_directory_tree`, optional root for `search_code`).
-- `workspacePath` — `.sln` / `.csproj` (and sometimes a directory): `load_workspace`, `run_dotnet_test`, `run_format`, optional reload for `list_projects` / `get_project_graph`. **`run_dotnet_build` accepts only a `.csproj` or `.sln` file path, not a directory.**
+- `workspacePath` — `.sln` / `.csproj` (and sometimes a directory): `load_workspace`, `run_dotnet_test`, `run_specific_test`, `run_format`, optional reload for `list_projects` / `get_project_graph`. **`run_dotnet_build` accepts only a `.csproj` or `.sln` file path, not a directory.**
 - `symbolName` — C# identifier for `find_symbol_definition`, `find_symbol_references`, `find_usages`, and `find_implementations` (exact name; matching is case-insensitive for definition/usages/implementations).
 - `diagnosticId` — compiler/analyzer id from `get_diagnostics_for_file` (e.g. `CS0246`) for `get_code_fixes` / `apply_code_fix`.
 - `fixIndex` — 0-based index from `get_code_fixes` for `apply_code_fix`.
 - `path` — `.cs` file or directory for `get_code_skeleton` (absolute path; disk-based, no workspace required).
 
-There are **35** registered tools (see list below) and **1** MCP prompt (`RefactoringAssistantPrompt`).
+There are **36** registered tools (see list below) and **1** MCP prompt (`RefactoringAssistantPrompt`).
 
 ### Workspace / Roslyn
 
@@ -353,6 +353,20 @@ There are **35** registered tools (see list below) and **1** MCP prompt (`Refact
 - `workspacePath: string`
 
 **Behavior:** stdout and stderr are merged. When a normal VSTest/xUnit totals line is present, the tool summarizes pass/fail counts and up to five failed tests. If the process exits with a non-zero code and **no** standard summary was found (common when tests **fail to compile**), the response includes the same **head+tail truncation** as `run_dotnet_build` (full output if ≤3000 chars; else first 1000 + last 1500 chars with a middle marker) so MSBuild/compiler errors near the start are not lost.
+
+</details>
+
+<details>
+<summary><code>run_specific_test</code> — Run dotnet test filtered to one class and/or method.</summary>
+
+**Parameters:**
+- `workspacePath: string`
+- `className: string?` — e.g. `UserServiceTests` (simple or fully qualified)
+- `methodName: string?` — e.g. `CreateUser_WhenValid_ReturnsOk`
+
+At least one of `className` or `methodName` is required. The tool builds `--filter` internally. After `load_workspace`, Roslyn resolves exact fully qualified names when possible.
+
+**Model guidance:** use this for TDD red/green loops — do not run the full suite and do not craft VSTest filter strings manually.
 
 </details>
 
@@ -602,7 +616,7 @@ Do not run searches through raw shells (`PowerShell`, `Bash`, `CMD`) — the wor
 NEVER use raw terminal commands (PowerShell, Bash, CMD) to execute `dotnet build` or `dotnet test`. Doing so bypasses our diagnostic parsers and can crash the context window with raw MSBuild output.
 
 - **To Build:** YOU MUST use `run_dotnet_build`. Analyze the structured diagnostics (and any truncated console excerpt — head + tail when output is long) the tool returns.
-- **To Test:** YOU MUST use `run_dotnet_test`. Analyze the error output provided by the tool to fix compilation or test failures.
+- **To Test:** YOU MUST use `run_dotnet_test` for full suites. For a single test class or method during TDD/bug fixes, use `run_specific_test` — never hand-write VSTest `--filter` via `execute_dotnet_command`.
 
 ## 3. Explore Before Build (Global Context Awareness)
 
@@ -649,13 +663,13 @@ Before editing any files, identify your host environment:
 **Имена параметров в JSON:**
 - `filePath` — один файл (чтение/правка/диагностика/логи).
 - `directoryPath` — корневая папка (`list_directory_tree`, опционально корень для `search_code`).
-- `workspacePath` — `.sln` / `.csproj` (и иногда каталог): `load_workspace`, `run_dotnet_test`, `run_format`, опциональная перезагрузка в `list_projects` / `get_project_graph`. **`run_dotnet_build` принимает только путь к файлу `.csproj` или `.sln`, не каталог.**
+- `workspacePath` — `.sln` / `.csproj` (и иногда каталог): `load_workspace`, `run_dotnet_test`, `run_specific_test`, `run_format`, опциональная перезагрузка в `list_projects` / `get_project_graph`. **`run_dotnet_build` принимает только путь к файлу `.csproj` или `.sln`, не каталог.**
 - `symbolName` — идентификатор C# для `find_symbol_definition`, `find_symbol_references`, `find_usages` и `find_implementations` (точное имя; регистр не важен для definition/usages/implementations).
 - `diagnosticId` — id компилятора/анализатора из `get_diagnostics_for_file` (например `CS0246`) для `get_code_fixes` / `apply_code_fix`.
 - `fixIndex` — индекс (0-based) из `get_code_fixes` для `apply_code_fix`.
 - `path` — файл `.cs` или каталог для `get_code_skeleton` (абсолютный путь; с диска, workspace не обязателен).
 
-Зарегистрировано **35** инструмента (список ниже) и **1** MCP-промпт (`RefactoringAssistantPrompt`).
+Зарегистрировано **36** инструмента (список ниже) и **1** MCP-промпт (`RefactoringAssistantPrompt`).
 
 ### Workspace / Roslyn
 
@@ -854,6 +868,20 @@ Before editing any files, identify your host environment:
 - `workspacePath: string`
 
 **Поведение:** объединяются stdout и stderr. При наличии стандартной строки итогов VSTest/xUnit выводится сводка и до пяти упавших тестов. Если код выхода ненулевой и **нет** распознанной строки сводки (часто при **ошибке компиляции** тестов), в ответ добавляется такое же **усечение начало+конец**, как у `run_dotnet_build` (см. выше), чтобы не терять ранние сообщения MSBuild/компилятора.
+
+</details>
+
+<details>
+<summary><code>run_specific_test</code> — dotnet test с фильтром по классу и/или методу.</summary>
+
+**Параметры:**
+- `workspacePath: string`
+- `className: string?` — например `UserServiceTests`
+- `methodName: string?` — например `CreateUser_WhenValid_ReturnsOk`
+
+Нужен хотя бы один из `className` / `methodName`. `--filter` формируется автоматически. После `load_workspace` Roslyn по возможности резолвит точный FQN.
+
+**Для модели:** TDD/фикс бага — этот tool, не полный suite и не ручной VSTest filter.
 
 </details>
 
