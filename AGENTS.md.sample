@@ -28,7 +28,7 @@ Do not run searches through raw shells (`PowerShell`, `Bash`, `CMD`) — the wor
 NEVER use raw terminal commands (PowerShell, Bash, CMD) to execute `dotnet build` or `dotnet test`. Doing so bypasses our diagnostic parsers and can crash the context window with raw MSBuild output.
 
 - **To Build:** YOU MUST use `run_dotnet_build`. Analyze the structured diagnostics (and any truncated console tail) the tool returns.
-- **To Test:** YOU MUST use `run_dotnet_test`. Analyze the error output provided by the tool to fix compilation or test failures.
+- **To Test:** YOU MUST use `run_dotnet_test` for full suites. For a single test class or method during TDD/bug fixes, use `run_specific_test` — never hand-write VSTest `--filter` via `execute_dotnet_command`.
 
 ## 3. Explore Before Build (Global Context Awareness)
 
