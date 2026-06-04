@@ -9,13 +9,11 @@ namespace RoslynMcpServer.Tools;
 public sealed class ProjectTools
 {
     private readonly SolutionManager _solutionManager;
-    private readonly NuGetTools _nuGetTools;
     private readonly ILogger<ProjectTools> _logger;
 
-    public ProjectTools(SolutionManager solutionManager, NuGetTools nuGetTools, ILogger<ProjectTools> logger)
+    public ProjectTools(SolutionManager solutionManager, ILogger<ProjectTools> logger)
     {
         _solutionManager = solutionManager;
-        _nuGetTools = nuGetTools;
         _logger = logger;
     }
 
@@ -64,8 +62,4 @@ public sealed class ProjectTools
         }
     }
 
-    [McpServerTool(Name = "list_outdated_packages", Title = "List outdated NuGet packages")]
-    [Description("Runs dotnet list package --outdated --format json.")]
-    public Task<string> ListOutdatedPackages(string workspacePath, CancellationToken cancellationToken = default) =>
-        _nuGetTools.ListNuGetPackages(workspacePath, includeTransitive: false, includeOutdated: true, includeVulnerable: false, cancellationToken);
 }

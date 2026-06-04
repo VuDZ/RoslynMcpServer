@@ -5,7 +5,18 @@ namespace RoslynMcpServer.Services;
 
 public static class DotNetCliRunner
 {
+    public sealed record RunResult(int ExitCode, string CombinedOutput, string RunMetadata);
+
     public static async Task<(int ExitCode, string CombinedOutput)> RunAsync(
+        string arguments,
+        string? workingDirectory,
+        CancellationToken cancellationToken)
+    {
+        var result = await RunWithMetadataAsync(arguments, workingDirectory, cancellationToken).ConfigureAwait(false);
+        return (result.ExitCode, result.CombinedOutput);
+    }
+
+    public static async Task<RunResult> RunWithMetadataAsync(
         string arguments,
         string? workingDirectory,
         CancellationToken cancellationToken)
@@ -14,9 +25,10 @@ public static class DotNetCliRunner
             ? Environment.CurrentDirectory
             : Path.GetFullPath(workingDirectory);
 
+        var dotnet = DotNetHostResolver.ResolveDotNetExecutable();
         var psi = new ProcessStartInfo
         {
-            FileName = "dotnet",
+            FileName = dotnet,
             Arguments = arguments,
             WorkingDirectory = workDir,
             UseShellExecute = false,
@@ -30,7 +42,8 @@ public static class DotNetCliRunner
         using var process = new Process { StartInfo = psi };
         if (!process.Start())
         {
-            throw new InvalidOperationException("Failed to start `dotnet` process. Ensure .NET SDK is on PATH.");
+            throw new InvalidOperationException(
+                $"Failed to start `{dotnet}`. Ensure a 64-bit .NET SDK is installed under Program Files\\dotnet.");
         }
 
         var stdoutTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
@@ -56,6 +69,62 @@ public static class DotNetCliRunner
             combined.Append(stderr);
         }
 
-        return (process.ExitCode, combined.ToString());
+        var sdkVersion = await TryGetDotNetSdkVersionAsync(dotnet, workDir, cancellationToken).ConfigureAwait(false);
+        var globalJson = GlobalJsonSdkReader.FindGlobalJsonPath(workDir);
+        var metadata = new StringBuilder();
+        metadata.AppendLine($"- **dotnet host:** `{dotnet}` ({(Environment.Is64BitProcess ? "64-bit" : "32-bit")} MCP process)");
+        if (!string.IsNullOrEmpty(sdkVersion))
+        {
+            metadata.AppendLine($"- **dotnet --version:** `{sdkVersion}` (from working directory)");
+        }
+
+        if (globalJson is not null)
+        {
+            metadata.AppendLine($"- **global.json:** `{globalJson}`");
+            var pinned = GlobalJsonSdkReader.TryGetPinnedSdkVersion(workDir);
+            if (!string.IsNullOrEmpty(pinned))
+            {
+                metadata.AppendLine($"- **Pinned SDK:** `{pinned}`");
+            }
+        }
+
+        metadata.AppendLine($"- **WorkingDirectory:** `{workDir}`");
+
+        return new RunResult(process.ExitCode, combined.ToString(), metadata.ToString().TrimEnd());
+    }
+
+    private static async Task<string?> TryGetDotNetSdkVersionAsync(
+        string dotnetPath,
+        string workingDirectory,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var psi = new ProcessStartInfo
+            {
+                FileName = dotnetPath,
+                Arguments = "--version",
+                WorkingDirectory = workingDirectory,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                StandardOutputEncoding = Encoding.UTF8
+            };
+
+            using var process = Process.Start(psi);
+            if (process is null)
+            {
+                return null;
+            }
+
+            var output = (await process.StandardOutput.ReadToEndAsync(cancellationToken).ConfigureAwait(false)).Trim();
+            await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+            return string.IsNullOrEmpty(output) ? null : output;
+        }
+        catch (Exception)
+        {
+            return null;
+        }
     }
 }

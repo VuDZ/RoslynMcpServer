@@ -67,6 +67,17 @@ public sealed class WorkspaceTools
             {
                 sb.AppendLine($"- {diagnostic}");
             }
+
+            if (diagnostics.Any(static d =>
+                    d.Contains("do not have a version specified", StringComparison.OrdinalIgnoreCase)))
+            {
+                sb.AppendLine();
+                sb.AppendLine(
+                    "> **Note:** Design-time MSBuild can report missing `PackageReference` versions before `dotnet restore`, "
+                    + "even when `Version=` is present in the `.csproj` on disk. Run `dotnet restore` at the solution root, "
+                    + "then `reset_workspace` and `load_workspace`. Set MCP env `ROSLYN_MCP_WORKSPACE` to the repo root "
+                    + "(where `global.json` lives) so MSBuild.Locator pins the same SDK as `run_dotnet_build`.");
+            }
         }
 
         return ToolTelemetry.TraceAndReturn(nameof(LoadWorkspace), sb.ToString());

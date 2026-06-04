@@ -1,10 +1,10 @@
 using System.ComponentModel;
-using System.Diagnostics;
 using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Server;
 using RoslynMcpServer.Diagnostics;
+using RoslynMcpServer.Services;
 
 namespace RoslynMcpServer.Tools;
 
@@ -50,36 +50,13 @@ public sealed class BuildTools
                 return ToolTelemetry.TraceAndReturn(nameof(RunDotNetBuild), $"Path must be a .csproj or .sln file: `{fullPath}`");
             }
 
-            var psi = new ProcessStartInfo
-            {
-                FileName = "dotnet",
-                Arguments = $"build \"{fullPath}\" --no-restore",
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                StandardOutputEncoding = Encoding.UTF8,
-                StandardErrorEncoding = Encoding.UTF8,
-                WorkingDirectory = Path.GetDirectoryName(fullPath) ?? Environment.CurrentDirectory
-            };
-
-            using var process = new Process { StartInfo = psi };
-            if (!process.Start())
-            {
-                return ToolTelemetry.TraceAndReturn(
-                    nameof(RunDotNetBuild),
-                    "Failed to start `dotnet` process. Ensure the .NET SDK is on PATH.");
-            }
-
-            var stdoutTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
-            var stderrTask = process.StandardError.ReadToEndAsync(cancellationToken);
-            await process.WaitForExitAsync(cancellationToken);
-
-            var stdout = (await stdoutTask).TrimEnd();
-            var stderr = (await stderrTask).TrimEnd();
-            var combined = string.Join(
-                Environment.NewLine,
-                new[] { stdout, stderr }.Where(s => !string.IsNullOrEmpty(s)));
+            var workDir = WorkspaceRootResolver.ResolveDotNetWorkingDirectory(fullPath);
+            var run = await DotNetCliRunner.RunWithMetadataAsync(
+                $"build \"{fullPath}\"",
+                workDir,
+                cancellationToken).ConfigureAwait(false);
+            var combined = run.CombinedOutput;
+            var processExitCode = run.ExitCode;
             var diagnostics = ParseMsBuildDiagnostics(combined);
             var errorEntries = diagnostics
                 .Where(d => string.Equals(d.Severity, "error", StringComparison.OrdinalIgnoreCase))
@@ -99,11 +76,12 @@ public sealed class BuildTools
             var totalMatched = errorEntries.Count + warningEntries.Count;
             var truncated = totalMatched > MaxDiagnostics;
 
-            if (errorEntries.Count == 0 && process.ExitCode == 0)
+            if (errorEntries.Count == 0 && processExitCode == 0)
             {
                 var sb = new StringBuilder();
                 sb.AppendLine("## Build succeeded");
                 sb.AppendLine();
+                AppendRunMetadata(sb, run.RunMetadata);
                 sb.AppendLine("No compiler **errors** reported (MSBuild `file(line,col): error ...` pattern).");
                 if (warningEntries.Count > 0)
                 {
@@ -124,16 +102,17 @@ public sealed class BuildTools
                 return ToolTelemetry.TraceAndReturn(nameof(RunDotNetBuild), sb.ToString().TrimEnd());
             }
 
-            if (errorEntries.Count == 0 && process.ExitCode != 0)
+            if (errorEntries.Count == 0 && processExitCode != 0)
             {
                 var sb = new StringBuilder();
                 sb.AppendLine("## Build failed");
                 sb.AppendLine();
+                AppendRunMetadata(sb, run.RunMetadata);
                 sb.AppendLine(
-                    $"Exit code: `{process.ExitCode}`. No lines matched the standard MSBuild diagnostic pattern `path(line,col): error|warning CODE: message`.");
+                    $"Exit code: `{processExitCode}`. No lines matched the standard MSBuild diagnostic pattern `path(line,col): error|warning CODE: message`.");
                 TruncatedProcessLog.AppendLastCharacters(
                     sb,
-                    TruncatedProcessLog.BuildPreambleBuildConsoleTail(process.ExitCode),
+                    TruncatedProcessLog.BuildPreambleBuildConsoleTail(processExitCode),
                     combined);
                 return ToolTelemetry.TraceAndReturn(nameof(RunDotNetBuild), sb.ToString().TrimEnd());
             }
@@ -141,6 +120,7 @@ public sealed class BuildTools
             var errSb = new StringBuilder();
             errSb.AppendLine("## Build failed");
             errSb.AppendLine();
+            AppendRunMetadata(errSb, run.RunMetadata);
             errSb.AppendLine("Diagnostics:");
             foreach (var d in display)
             {
@@ -164,8 +144,19 @@ public sealed class BuildTools
             _logger.LogError(ex, "RunDotNetBuild failed for {WorkspacePath}", workspacePath);
             return ToolTelemetry.TraceAndReturn(
                 nameof(RunDotNetBuild),
-                $"Failed to run `dotnet build`: {ex.Message}");
+                $"Failed to run `dotnet build`: {ex.GetType().Name}: {ex.Message}");
         }
+    }
+
+    private static void AppendRunMetadata(StringBuilder sb, string runMetadata)
+    {
+        sb.AppendLine("### dotnet run");
+        foreach (var line in runMetadata.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries))
+        {
+            sb.AppendLine(line);
+        }
+
+        sb.AppendLine();
     }
 
     private static List<DiagnosticEntry> ParseMsBuildDiagnostics(string combinedOutput)

@@ -119,6 +119,14 @@ public sealed class NuGetTools
         }
     }
 
+    [McpServerTool(Name = "list_outdated_packages", Title = "List outdated NuGet packages")]
+    [Description("Runs dotnet list package --outdated --format json.")]
+    public Task<string> ListOutdatedPackages(
+        [Description("Path to .sln, .csproj, or directory containing them.")]
+        string workspacePath,
+        CancellationToken cancellationToken = default) =>
+        ListNuGetPackages(workspacePath, includeTransitive: false, includeOutdated: true, includeVulnerable: false, cancellationToken);
+
     [McpServerTool(Name = "search_nuget_registry", Title = "Search NuGet registry")]
     [Description(
         "Searches nuget.org (and other configured feeds) for package names and latest stable versions. " +

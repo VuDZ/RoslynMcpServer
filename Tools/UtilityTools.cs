@@ -10,6 +10,7 @@ using Microsoft.CodeAnalysis.Rename;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Server;
 using RoslynMcpServer.Diagnostics;
+using RoslynMcpServer.Services;
 
 namespace RoslynMcpServer.Tools;
 
@@ -61,7 +62,7 @@ public sealed class UtilityTools
 
             var psi = new ProcessStartInfo
             {
-                FileName = "dotnet",
+                FileName = DotNetHostResolver.ResolveDotNetExecutable(),
                 Arguments = command,
                 WorkingDirectory = fullWorkingDirectory,
                 UseShellExecute = false,
@@ -231,7 +232,7 @@ public sealed class UtilityTools
 
     [McpServerTool(Name = "read_log_tail", Title = "ReadLogTail")]
     [Description("Reads the tail of a log file for LLM-safe diagnostics. Optionally filters lines by keyword (case-insensitive) and returns only the last N matching lines to avoid context overflow.")]
-    public Task<string> ReadLogTail(
+    public async Task<string> ReadLogTail(
         [Description("Absolute or relative path to the log file (same parameter name as get_file_content).")] string filePath,
         [Description("How many lines from the end of the result to return. Default is 200.")] int lastNLines = 200,
         [Description("Optional case-insensitive keyword to filter lines before taking the tail. Pass null or empty string to disable filtering.")] string? filterKeyword = null,
@@ -241,58 +242,40 @@ public sealed class UtilityTools
         {
             if (string.IsNullOrWhiteSpace(filePath))
             {
-                return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(ReadLogTail), "Error: `filePath` is empty."));
+                return ToolTelemetry.TraceAndReturn(nameof(ReadLogTail), "Error: `filePath` is empty.");
             }
 
             if (lastNLines <= 0)
             {
-                return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(ReadLogTail), "`lastNLines` must be greater than 0."));
+                return ToolTelemetry.TraceAndReturn(nameof(ReadLogTail), "`lastNLines` must be greater than 0.");
             }
 
             var fullPath = Path.GetFullPath(filePath);
             if (!File.Exists(fullPath))
             {
-                return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(ReadLogTail), $"File not found: `{fullPath}`"));
+                return ToolTelemetry.TraceAndReturn(nameof(ReadLogTail), $"File not found: `{fullPath}`");
             }
 
-            var hasFilter = !string.IsNullOrWhiteSpace(filterKeyword);
-            var keyword = filterKeyword ?? string.Empty;
-            var tail = new Queue<string>(lastNLines);
-
-            foreach (var line in File.ReadLines(fullPath))
+            var result = LogTailReader.ReadTail(fullPath, lastNLines, filterKeyword, cancellationToken);
+            if (string.IsNullOrEmpty(result))
             {
-                cancellationToken.ThrowIfCancellationRequested();
-
-                if (hasFilter && line.IndexOf(keyword, StringComparison.OrdinalIgnoreCase) < 0)
-                {
-                    continue;
-                }
-
-                if (tail.Count == lastNLines)
-                {
-                    _ = tail.Dequeue();
-                }
-
-                tail.Enqueue(line);
+                var hasFilter = !string.IsNullOrWhiteSpace(filterKeyword);
+                var filterInfo = hasFilter ? $" for filter `{filterKeyword}`" : string.Empty;
+                return ToolTelemetry.TraceAndReturn(nameof(ReadLogTail), $"No lines found{filterInfo} in `{fullPath}`.");
             }
 
-            if (tail.Count == 0)
-            {
-                var filterInfo = hasFilter ? $" for filter `{keyword}`" : string.Empty;
-                return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(ReadLogTail), $"No lines found{filterInfo} in `{fullPath}`."));
-            }
-
-            var result = string.Join(Environment.NewLine, tail);
-            return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(ReadLogTail), result));
+            return ToolTelemetry.TraceAndReturn(nameof(ReadLogTail), result);
         }
         catch (OperationCanceledException)
         {
-            return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(ReadLogTail), "Log tail read was cancelled."));
+            return ToolTelemetry.TraceAndReturn(nameof(ReadLogTail), "Log tail read was cancelled.");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "ReadLogTail failed for {FilePath}", filePath);
-            return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(ReadLogTail), $"Error: {ex.Message}"));
+            return ToolTelemetry.TraceAndReturn(
+                nameof(ReadLogTail),
+                $"Error ({ex.GetType().Name}): {ex.Message}");
         }
     }
 
@@ -643,8 +626,9 @@ public sealed class UtilityTools
 
             var fullPath = Path.GetFullPath(workspacePath);
             var workingDirectory = Directory.Exists(fullPath)
-                ? fullPath
-                : Path.GetDirectoryName(fullPath) ?? Environment.CurrentDirectory;
+                ? WorkspaceRootResolver.ResolveDotNetWorkingDirectory(
+                    WorkspaceRootResolver.FindSolutionOrProjectInDirectory(fullPath) ?? fullPath)
+                : WorkspaceRootResolver.ResolveDotNetWorkingDirectory(fullPath);
 
             if (!Directory.Exists(workingDirectory))
             {
@@ -658,41 +642,20 @@ public sealed class UtilityTools
                 args.Append(" --verify-no-changes");
             }
 
-            var psi = new ProcessStartInfo
-            {
-                FileName = "dotnet",
-                Arguments = args.ToString(),
-                WorkingDirectory = workingDirectory,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                StandardOutputEncoding = Encoding.UTF8,
-                StandardErrorEncoding = Encoding.UTF8
-            };
+            var run = await DotNetCliRunner.RunWithMetadataAsync(
+                args.ToString(),
+                workingDirectory,
+                cancellationToken).ConfigureAwait(false);
 
-            using var process = new Process { StartInfo = psi };
-            if (!process.Start())
-            {
-                return ToolTelemetry.TraceAndReturn(nameof(RunFormat), "Error: Failed to start `dotnet format`.");
-            }
-
-            var stdoutTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
-            var stderrTask = process.StandardError.ReadToEndAsync(cancellationToken);
-            await process.WaitForExitAsync(cancellationToken);
-
-            var stdout = (await stdoutTask).TrimEnd();
-            var stderr = (await stderrTask).TrimEnd();
+            var stdout = run.CombinedOutput;
+            var processExitCode = run.ExitCode;
             var result = new StringBuilder();
-            result.AppendLine($"ExitCode: {process.ExitCode}");
+            result.AppendLine(run.RunMetadata);
+            result.AppendLine($"ExitCode: {processExitCode}");
             result.AppendLine($"Mode: {(verifyOnly ? "verify-only" : "apply")}");
             if (!string.IsNullOrWhiteSpace(stdout))
             {
-                result.AppendLine().AppendLine("StdOut:").AppendLine(stdout);
-            }
-            if (!string.IsNullOrWhiteSpace(stderr))
-            {
-                result.AppendLine().AppendLine("StdErr:").AppendLine(stderr);
+                result.AppendLine().AppendLine("Output:").AppendLine(stdout);
             }
 
             return ToolTelemetry.TraceAndReturn(nameof(RunFormat), result.ToString().TrimEnd());
@@ -980,7 +943,7 @@ public sealed class UtilityTools
 
     [McpServerTool(Name = "tail_tool_log", Title = "TailToolLog")]
     [Description("Reads the latest MCP tool/server log file under `logs/mcp-*.log` as a shortcut over ReadLogTail.")]
-    public Task<string> TailToolLog(
+    public async Task<string> TailToolLog(
         [Description("Number of lines to return from the end of the latest log file. Default is 200.")] int lastNLines = 200,
         [Description("Optional case-insensitive keyword filter applied before taking the tail.")] string? filterKeyword = null,
         CancellationToken cancellationToken = default)
@@ -990,7 +953,7 @@ public sealed class UtilityTools
             var logsDirectory = Path.Combine(AppContext.BaseDirectory, "logs");
             if (!Directory.Exists(logsDirectory))
             {
-                return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(TailToolLog), $"Error: Logs directory not found: `{logsDirectory}`"));
+                return ToolTelemetry.TraceAndReturn(nameof(TailToolLog), $"Error: Logs directory not found: `{logsDirectory}`");
             }
 
             var latestLog = Directory.EnumerateFiles(logsDirectory, "mcp-*.log", SearchOption.TopDirectoryOnly)
@@ -1000,15 +963,16 @@ public sealed class UtilityTools
 
             if (latestLog is null)
             {
-                return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(TailToolLog), "No `mcp-*.log` files found."));
+                return ToolTelemetry.TraceAndReturn(nameof(TailToolLog), "No `mcp-*.log` files found.");
             }
 
-            return ReadLogTail(latestLog.FullName, lastNLines, filterKeyword, cancellationToken);
+            return await ReadLogTail(latestLog.FullName, lastNLines, filterKeyword, cancellationToken)
+                .ConfigureAwait(false);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "TailToolLog failed");
-            return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(TailToolLog), $"Error: {ex.Message}"));
+            return ToolTelemetry.TraceAndReturn(nameof(TailToolLog), $"Error ({ex.GetType().Name}): {ex.Message}");
         }
     }
 
