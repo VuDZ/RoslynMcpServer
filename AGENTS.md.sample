@@ -3,7 +3,7 @@
   - English: section "Agent Initialization" → expandable &lt;details&gt; block
   - Russian: section "Cursor: как заставить агента…" → same body inside &lt;details&gt;
   When you change agent rules, update this file and those README sections together.
-  Tool history: CHANGELOG_AGENT_TOOLS.md in RoslynMcpServer repo.
+  Tool history: README «Agent tools by version» in RoslynMcpServer repo.
   Copy into application repos as AGENTS.md — no machine-specific paths.
 -->
 
@@ -121,4 +121,4 @@ Generic `AGENTS.md` stays portable; without project README/rules, agents lack ru
 | Smoke console | `run_dotnet_run` + README sample args → tail stderr + short stdout excerpt |
 | Commit scope | `get_changed_files` + `git diff` when allowed |
 
-See **CHANGELOG_AGENT_TOOLS.md** in the RoslynMcpServer repo for implemented tools by version.
+See **README** «Agent tools by version» in the RoslynMcpServer repo for implemented tools by release.
