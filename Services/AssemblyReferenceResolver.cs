@@ -9,7 +9,7 @@ public static class AssemblyReferenceResolver
 
     /// <summary>
     /// Uses <paramref name="assemblyPath"/> when set; otherwise resolves <paramref name="assemblyName"/>
-    /// against the loaded workspace metadata references.
+    /// against the loaded workspace metadata references, then <c>deps.json</c>, then NuGet cache (exact file name only).
     /// </summary>
     public static ResolveResult Resolve(Solution? solution, string? assemblyName, string? assemblyPath)
     {
@@ -41,13 +41,16 @@ public static class AssemblyReferenceResolver
         }
 
         var targetAssemblyName = Path.GetFileNameWithoutExtension(assemblyName.Trim());
-        var dllPath = ResolveFromSolution(solution, targetAssemblyName);
+        var dllPath = ResolveFromSolution(solution, targetAssemblyName)
+            ?? DepsJsonAssemblyPathResolver.TryResolveFromSolution(solution, targetAssemblyName)
+            ?? NuGetFallbackAssemblyResolver.TryFindAssemblyDll(targetAssemblyName);
+
         if (string.IsNullOrWhiteSpace(dllPath))
         {
             return new ResolveResult(
                 false,
                 null,
-                $"Assembly `{targetAssemblyName}` was not found in metadata references of the loaded workspace.");
+                $"Assembly `{targetAssemblyName}` was not found in workspace metadata references, project deps.json, or NuGet cache (exact `{targetAssemblyName}.dll` only).");
         }
 
         if (!File.Exists(dllPath))
@@ -72,10 +75,6 @@ public static class AssemblyReferenceResolver
             .ToList();
 
         return referencePaths.FirstOrDefault(path =>
-        {
-            var fileName = Path.GetFileNameWithoutExtension(path);
-            return string.Equals(fileName, targetAssemblyName, StringComparison.OrdinalIgnoreCase);
-        }) ?? referencePaths.FirstOrDefault(path =>
-            Path.GetFileName(path).Contains(targetAssemblyName, StringComparison.OrdinalIgnoreCase));
+            string.Equals(Path.GetFileNameWithoutExtension(path), targetAssemblyName, StringComparison.OrdinalIgnoreCase));
     }
 }
