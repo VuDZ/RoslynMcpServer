@@ -42,6 +42,11 @@ public static class ToolLogAnalyzer
             return "status=ok | build";
         }
 
+        if (text.Contains("**Status:** partial", StringComparison.OrdinalIgnoreCase))
+        {
+            return "status=partial | tests";
+        }
+
         if (text.StartsWith("Error", StringComparison.OrdinalIgnoreCase)
             || text.Contains("Failed:", StringComparison.OrdinalIgnoreCase))
         {
