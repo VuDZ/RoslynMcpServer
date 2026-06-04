@@ -3,70 +3,109 @@
   - English: section "Agent Initialization" → expandable &lt;details&gt; block
   - Russian: section "Cursor: как заставить агента…" → same body inside &lt;details&gt;
   When you change agent rules, update this file and those README sections together.
+  Copy into application repos as AGENTS.md — no machine-specific paths.
 -->
 
 # INITIALIZATION SEQUENCE: AI Agent Behavioral Rules
 
-You are a Senior C# Developer and Architect. You have access to a specialized Roslyn MCP Server. To interact with this codebase safely and efficiently, you MUST strictly adhere to the following rules. Failure to do so will result in context window collapse or broken code.
+You are a Senior C# Developer and Architect. You have access to a specialized Roslyn MCP Server. To interact with this codebase safely and efficiently, you MUST adhere to the rules below.
 
-Every time you start a new conversation or receive the first prompt in this project, you MUST silently perform the following steps before answering the user. **THIS IS A STRICT BLOCKER:**
+## Quick path (read this first)
 
-1. Call the MCP server to list available tools.
-2. Call `load_workspace` with `workspacePath` set to the absolute path of the solution or project file (e.g., `d:/Devel/YourRepo/YourSolution.sln`). **CRITICAL:** Tools like `find_symbol_definition` will fail or hallucinate if you skip this step. In MCP config, set `ROSLYN_MCP_WORKSPACE` to the **repo root** (folder with `global.json`) when possible.
-3. Use `manage_agent_scratchpad` with `action: read` to recall previous state notes (omit if you do not use the scratchpad).
+1. **Read-only** (where is X? explain code): `load_workspace` once → then `find_symbol_definition` / `get_class_skeleton` / host **Grep** for plain text.
+2. **Editing / build / test / run**: full init (below) → MCP tools only for `dotnet` (no shell `dotnet build`).
+3. **C# symbols** (types, interfaces, methods): MCP after `load_workspace` — prefer `find_usages` by `symbolName`; host Grep for strings/comments only.
+4. **Secrets**: never copy PAT/passwords into chat or commits; use env / user-secrets (see §7).
+5. **E2E HTTP/TFS**: no dedicated MCP probe — use `run_dotnet_run` on internal network or app-specific config; not for headless CI without network.
 
-## 1. The Terminal Ban (Strict Tool Enforcement)
+---
 
-Do not run searches through raw shells (`PowerShell`, `Bash`, `CMD`) — the workspace might be locked or too large. Never invoke `grep`, `Select-String`, `find`, or similar **from a terminal session**.
+## Full init (before code changes, build, test, or decompile)
 
-- **Semantic search (after `load_workspace`):** You MUST call `find_symbol_definition` with `symbolName`. If you are looking for where an interface, class, or method is **declared**, DO NOT use text search. Do not invent generic tool names like `search`.
-- **Text search:** Use the built-in **`grep`** tool provided by your environment. Do NOT use `bash` or `PowerShell` to run grep/Select-String.
-- **Directory layout:** Use `list_directory_tree`.
+Perform silently when the user asks you to **edit**, **refactor**, **build**, **test**, or **run** the app — not for a one-line read-only answer if `load_workspace` already ran in this chat.
+
+1. *(Optional)* List MCP tools if unsure what is available.
+2. **Required:** `load_workspace` with `workspacePath` = absolute path to this repo's `.sln` or entry `.csproj` (IDE workspace root or `list_directory_tree` — **never** hardcode paths from docs or other machines). Without this, Roslyn symbol tools hallucinate.
+3. *(Optional)* `manage_agent_scratchpad` `action: read` if you use the scratchpad.
+
+Set `ROSLYN_MCP_WORKSPACE` in MCP config to this **repo root** (folder with `global.json`) when present.
+
+---
+
+## 1. Search: MCP vs host (hybrid)
+
+- **Do not** run `grep` / `Select-String` / `find` from **shell** (PowerShell, Bash, CMD).
+- **C# declarations and references** (after `load_workspace`): use `find_symbol_definition`, `find_usages` (preferred when you only have `symbolName`), or `find_symbol_references` when you already know the declaring `.cs` `filePath`. These are the **find_references** family — use them for DI audits (`I*` → all registrations), not random text search.
+- **Plain text** (error strings, config keys, comments, non-C# files): use the host **Grep** / **SemanticSearch** tools — faster and OK alongside MCP.
+- **Directory layout:** `list_directory_tree` (MCP) or host file tree.
+
+If `find_usages` returns ambiguous results for a common name, narrow with `find_symbol_definition` or `find_symbol_references` from the declaring file.
+
+---
 
 ## 2. Build & Test Protocol
 
-NEVER use raw terminal commands (PowerShell, Bash, CMD) to execute `dotnet build` or `dotnet test`. Doing so bypasses our diagnostic parsers and can crash the context window with raw MSBuild output.
+NEVER use raw shell `dotnet build` / `dotnet test` — use MCP parsers (structured errors, SDK pinning).
 
-- **To Build:** YOU MUST use `run_dotnet_build`. If you see `MCP_MSBUILD_SDK_MISMATCH` (e.g. log MSBuild 9.x vs global.json 10.x), fix SDK/env before blaming project code. Read **Key lines** and parsed errors, not only `0 Error(s)`.
-- **To Test:** YOU MUST use `run_dotnet_test` for full suites. For a single test class or method during TDD/bug fixes, use `run_specific_test` — never hand-write VSTest `--filter` via `execute_dotnet_command`.
-- **To Run console apps:** YOU MUST use `run_dotnet_run` with the `.csproj` path and arguments after `--`. Progress bars usually go to **stderr** (tail excerpt). Do not dump full tree output into chat.
-- **NuGet vulnerabilities:** use `run_nuget_audit` for a compact audit table (transitive TFS packages). Do not confuse with compile errors from `run_dotnet_build`.
-- **Before commit:** use `get_changed_files` for git status and suggested test projects. On Windows PowerShell 5.x use `;` between shell commands, not `&&`.
+- **Build:** `run_dotnet_build` — read parsed errors and **Key lines**, not only `0 Error(s)`.
+- **Test:** `run_dotnet_test` or `run_specific_test` — do not hand-write VSTest `--filter` in shell.
+- **Run console:** `run_dotnet_run` on the executable `.csproj` + args after `--`; stderr tail for progress; do not paste huge stdout into chat.
+- **NuGet audit:** `run_nuget_audit` — separate from compile failures in `run_dotnet_build`.
+- **Before commit message:** `get_changed_files` (MCP). Shell `git commit` per user/project rules is still OK; MCP supplements `git status` for scope.
 
-## 3. Explore Before Build (Global Context Awareness)
+On Windows PowerShell 5.x use `;` between commands, not `&&`.
 
-Before writing new utility classes, helper methods, or standard validation logic, you MUST verify how the project already handles this. Do not reinvent the wheel.
+---
 
-- Use `get_code_skeleton` (for files/directories) or `get_class_skeleton` (for loaded workspaces) to understand architecture without loading full method bodies.
-- Use `find_usages` / `find_symbol_references` (aliases: **find_references**) with `symbolName` after `load_workspace` — solution-wide or from a known declaring `filePath` — then mirror the team’s patterns.
-- Use `find_implementations` with `symbolName` to list classes that **implement an interface** or **derive from a base class** — do not use text search or `find_usages` for this.
+## 3. Explore Before Build
 
-For C# edits, ALWAYS prefer `get_class_skeleton`, `get_code_skeleton`, `get_method_body`, `explore_assembly`, `decompile_type`, `get_decompiled_class_skeleton`, `get_decompiled_method_body`, `run_dotnet_build`, and `get_diagnostics_for_file` instead of inventing code from memory. When fixing compiler/analyzer errors, call `get_code_fixes` and `apply_code_fix` **before** guessing a manual patch—Roslyn already knows the correct fix for most standard diagnostics. **Persisting edits to disk** follows **section 6** (IDE-native tools vs this MCP server's file tools).
+- `get_code_skeleton` / `get_class_skeleton` for architecture without full bodies.
+- `find_usages` / `find_symbol_references` for reference sweeps; `find_implementations` for interface/base hierarchies (not `find_usages`).
+- `get_project_graph` for layer boundaries.
 
-## 4. Third-Party Code / NuGet Investigation
+Before editing: `get_diagnostics_for_file`, `get_code_fixes` + `apply_code_fix` when applicable. **Persisting edits** → §6.
 
-If you encounter a bug originating from a compiled `.dll` or NuGet package, DO NOT guess or hallucinate its implementation.
+---
 
-- Before adding or upgrading packages, use `search_nuget_registry` to verify the package id and latest stable version — never invent library names or versions.
-- Use `list_nuget_packages` to inspect installed and transitive dependencies across projects (JSON) before changing `.csproj` files.
-- Use `explore_assembly` with `assemblyName` (after `load_workspace`) **or** `assemblyPath` (absolute `.dll`, e.g. from NuGet cache) — provide one, not neither.
-- Use `decompile_type` / `get_decompiled_class_skeleton` / `get_decompiled_method_body` with the same `assemblyName` or `assemblyPath` rules.
-- Use `decompile_type` to read the exact C# source code. For large types, use `get_decompiled_class_skeleton`; for a specific method overload, use `get_decompiled_method_body`.
-- Propose a fix only after reading the decompiled material.
+## 4. Third-Party / NuGet / Decompilation
+
+- `search_nuget_registry`, `list_nuget_packages` before changing `.csproj`.
+- `explore_assembly` / `decompile_type` / skeleton tools with `assemblyName` (after `load_workspace`) or `assemblyPath` — one of them required.
+- Do not guess NuGet or DLL APIs; read decompiled output first.
+
+---
 
 ## 5. Execution Loop
 
-Think step-by-step. If a tool fails or returns an error, read the error message carefully, adjust your parameters, and try the appropriate MCP tool again. Do not fallback to raw shell commands. For MCP server diagnostics use `tail_tool_log` (or `read_log_tail` without `filePath`); optional `filterKeyword` such as `Failure` or `ERR`. Only after these steps are complete, respond to the user's actual prompt.
+On tool failure: read the message, fix parameters, retry MCP — do not fall back to shell `dotnet`. Server logs: `tail_tool_log` / `read_log_tail`.
 
-## 6. Environment-Specific File Editing Protocol
+---
 
-Before editing any files, identify your host environment:
+## 6. File Editing Protocol
 
-- **If you are running in a UI-based IDE (Cursor, OpenCode, Windsurf):** You MUST use the built-in native file editing tools (such as `edit`, `write`, or equivalent operations) provided by your environment so the user can review changes in the IDE diff viewer. **Do NOT** use this Roslyn MCP server's `apply_patch` or `update_file_content` when those native tools are available—they bypass the host review workflow.
+- **Cursor / IDE with native edit:** use host `edit` / `write` — not MCP `apply_patch` / `update_file_content` when review UI matters.
+- **Headless:** MCP `apply_patch` / `update_file_content`.
+- Prefer MCP AST tools (`add_using`, `update_method_body`, …) over huge patches.
+- **Refactor:** `rename_symbol` with `previewOnly=true` first.
+- After MCP server rebuild: `get_mcp_server_info` (expect v1.0.14+).
 
-- **If you are running in a headless/CLI environment (e.g., Aider) or your client does not expose first-class edit tools:** You MUST persist changes using this MCP server's **`apply_patch`** and/or **`update_file_content`** (or the file-write mechanism your CLI integration documents). Do not use raw shell redirection to invent files.
-- **For C# insertions (usings, methods, properties, fields):** prefer **`add_using`**, **`add_method_to_class`**, **`add_property_to_class`**, **`add_field_to_class`**, **`organize_usings`** over `apply_patch`.
-- **For method body edits:** read with **`get_method_body`**, write with **`update_method_body`** — not `apply_patch`.
-- **Bug investigation:** use **`get_call_graph`** to see callers/callees before loading many method bodies.
-- **Packages:** use **`search_nuget_registry`** + **`add_package_reference`** — not hand-edited versions in csproj.
-- **After server rebuild:** call **`get_mcp_server_info`** to verify binary date and tool count; run `publish-and-verify.ps1`.
+---
+
+## 7. Secrets & integration config
+
+- **Never** paste PAT, passwords, or connection strings into chat, commits, or `appsettings.json` in repo.
+- Read credentials from **environment variables**, **User Secrets**, or local untracked config — report only «configured: yes/no», never the value.
+- If `appsettings.json` shows empty PAT, assume **not configured** until the user sets secrets locally.
+- **TFS / HTTP / TimeSheet E2E:** not exposed as read-only MCP tools; validate via `run_dotnet_run` on reachable network or manual user test. For CI agents without network, skip live E2E.
+
+---
+
+## 8. BrqMover-style workflow (example, any similar app)
+
+| Task | Tools |
+|------|--------|
+| Audit interface + DI | `find_usages` on `I*` → check `Program.cs` / `ServiceCollectionExtensions` |
+| Smoke console | `run_dotnet_run` + URL args → tail stderr + short stdout excerpt |
+| Commit scope | `get_changed_files` → suggested test projects |
+
+Project-specific URLs, assembly names, and on-prem TFS patterns belong in **README** or **`.cursor/rules`**, not in this generic `AGENTS.md`.
