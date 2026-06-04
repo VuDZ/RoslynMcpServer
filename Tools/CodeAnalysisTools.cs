@@ -9,6 +9,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Server;
 using RoslynMcpServer.Diagnostics;
+using RoslynMcpServer.Services;
 using DecompilerAccessibility = ICSharpCode.Decompiler.TypeSystem.Accessibility;
 using DecompilerTypeKind = ICSharpCode.Decompiler.TypeSystem.TypeKind;
 
@@ -131,45 +132,24 @@ public sealed class CodeAnalysisTools
 
     [McpServerTool(Name = "explore_assembly", Title = "Explore referenced assembly")]
     [Description(
-        "Searches the currently loaded Roslyn workspace references for an external assembly (NuGet or other DLL), opens it with ILSpy (ICSharpCode.Decompiler), and returns a structural overview grouped by namespace. The output includes visible top-level class/interface types (public/protected variants) to help LLMs understand third-party APIs. Call load_workspace first. Pass `assemblyName` without the `.dll` extension (example: `Microsoft.AspNetCore.Mvc.Core`).")]
+        "Opens an external assembly (NuGet or other DLL) with ILSpy and returns namespaces with visible top-level types. "
+        + "Provide `assemblyName` (no `.dll`, resolved via loaded workspace) or `assemblyPath` (absolute path to `.dll`). "
+        + "Call `load_workspace` when using `assemblyName` only.")]
     public Task<string> ExploreAssembly(
-        [Description("Assembly name without `.dll` (for example: `Microsoft.AspNetCore.Mvc.Core`).")] string assemblyName,
+        [Description("Assembly simple name without `.dll` (e.g. `Microsoft.TeamFoundation.Client`). Resolved via workspace references.")] string? assemblyName = null,
+        [Description("Absolute path to a `.dll` file. Use when you already know the path (NuGet package folder, etc.).")] string? assemblyPath = null,
         CancellationToken cancellationToken = default)
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(assemblyName))
-            {
-                return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(ExploreAssembly), "Error: `assemblyName` is empty."));
-            }
-
             var solution = _solutionManager.GetCurrentSolution();
-            if (solution is null)
+            var resolved = AssemblyReferenceResolver.Resolve(solution, assemblyName, assemblyPath);
+            if (!resolved.Success)
             {
-                return Task.FromResult(
-                    ToolTelemetry.TraceAndReturn(
-                        nameof(ExploreAssembly),
-                        "Error: No active workspace. Call `load_workspace` with your .sln or .csproj first."));
+                return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(ExploreAssembly), resolved.ErrorMessage!));
             }
 
-            var targetAssemblyName = Path.GetFileNameWithoutExtension(assemblyName.Trim());
-            var dllPath = ResolveAssemblyPath(solution, targetAssemblyName);
-            if (string.IsNullOrWhiteSpace(dllPath))
-            {
-                return Task.FromResult(
-                    ToolTelemetry.TraceAndReturn(
-                        nameof(ExploreAssembly),
-                        $"Assembly `{targetAssemblyName}` was not found in metadata references of the loaded workspace."));
-            }
-
-            if (!File.Exists(dllPath))
-            {
-                return Task.FromResult(
-                    ToolTelemetry.TraceAndReturn(
-                        nameof(ExploreAssembly),
-                        $"Assembly reference was resolved but file does not exist on disk: `{dllPath}`"));
-            }
-
+            var dllPath = resolved.DllPath!;
             cancellationToken.ThrowIfCancellationRequested();
             var decompiler = new CSharpDecompiler(dllPath, new DecompilerSettings());
 
@@ -219,11 +199,11 @@ public sealed class CodeAnalysisTools
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "ExploreAssembly failed for {AssemblyName}", assemblyName);
+            _logger.LogError(ex, "ExploreAssembly failed for {AssemblyName} {AssemblyPath}", assemblyName, assemblyPath);
             return Task.FromResult(
                 ToolTelemetry.TraceAndReturn(
                     nameof(ExploreAssembly),
-                    $"Failed to explore assembly `{assemblyName}`: {ex.Message}"));
+                    $"Failed to explore assembly: {ex.Message}"));
         }
     }
 
@@ -231,18 +211,14 @@ public sealed class CodeAnalysisTools
     [Description(
         "Decompiles a specific type from a referenced external assembly (NuGet or other DLL) into C# source code using ILSpy. The tool first searches the currently loaded Roslyn workspace MetadataReferences for `assemblyName` (without `.dll`), resolves the physical DLL path, then finds `fullTypeName` in that assembly and returns decompiled source for that exact type. Call `load_workspace` first. This is intended for deep-dive inspection of third-party APIs.")]
     public Task<string> DecompileType(
-        [Description("Assembly name without `.dll` (for example: `Microsoft.AspNetCore.Mvc.Core`).")] string assemblyName,
-        [Description("Full type name with namespace (for example: `Microsoft.AspNetCore.Mvc.ControllerBase`).")] string fullTypeName,
+        [Description("Assembly simple name without `.dll`, or omit when `assemblyPath` is set.")] string? assemblyName = null,
+        [Description("Absolute path to a `.dll` file.")] string? assemblyPath = null,
+        [Description("Full type name with namespace (for example: `Microsoft.AspNetCore.Mvc.ControllerBase`).")] string fullTypeName = "",
         CancellationToken cancellationToken = default)
     {
         try
         {
             const int maxAllowedLines = 500;
-
-            if (string.IsNullOrWhiteSpace(assemblyName))
-            {
-                return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(DecompileType), "Error: `assemblyName` is empty."));
-            }
 
             if (string.IsNullOrWhiteSpace(fullTypeName))
             {
@@ -250,32 +226,13 @@ public sealed class CodeAnalysisTools
             }
 
             var solution = _solutionManager.GetCurrentSolution();
-            if (solution is null)
+            var resolved = AssemblyReferenceResolver.Resolve(solution, assemblyName, assemblyPath);
+            if (!resolved.Success)
             {
-                return Task.FromResult(
-                    ToolTelemetry.TraceAndReturn(
-                        nameof(DecompileType),
-                        "Error: No active workspace. Call `load_workspace` with your .sln or .csproj first."));
+                return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(DecompileType), resolved.ErrorMessage!));
             }
 
-            var targetAssemblyName = Path.GetFileNameWithoutExtension(assemblyName.Trim());
-            var dllPath = ResolveAssemblyPath(solution, targetAssemblyName);
-            if (string.IsNullOrWhiteSpace(dllPath))
-            {
-                return Task.FromResult(
-                    ToolTelemetry.TraceAndReturn(
-                        nameof(DecompileType),
-                        $"Assembly `{targetAssemblyName}` was not found in metadata references of the loaded workspace."));
-            }
-
-            if (!File.Exists(dllPath))
-            {
-                return Task.FromResult(
-                    ToolTelemetry.TraceAndReturn(
-                        nameof(DecompileType),
-                        $"Assembly reference was resolved but file does not exist on disk: `{dllPath}`"));
-            }
-
+            var dllPath = resolved.DllPath!;
             cancellationToken.ThrowIfCancellationRequested();
             var decompiler = new CSharpDecompiler(dllPath, new DecompilerSettings());
             var typeInfo = decompiler.TypeSystem.MainModule.Compilation.FindType(new FullTypeName(fullTypeName));
@@ -335,49 +292,26 @@ public sealed class CodeAnalysisTools
     [Description(
         "Builds a signatures-only C# skeleton for a specific type from a referenced external assembly (NuGet or other DLL) without decompiling full method bodies. The tool resolves `assemblyName` from the loaded Roslyn workspace MetadataReferences, locates `fullTypeName` in ILSpy TypeSystem, and returns public/protected fields, properties, and methods as a compact API overview for LLM context efficiency.")]
     public Task<string> GetDecompiledClassSkeleton(
-        [Description("Assembly name without `.dll` (for example: `Microsoft.AspNetCore.Mvc.Core`).")] string assemblyName,
-        [Description("Full type name with namespace (for example: `Microsoft.AspNetCore.Mvc.ControllerBase`).")] string fullTypeName,
+        [Description("Assembly simple name without `.dll`, or omit when `assemblyPath` is set.")] string? assemblyName = null,
+        [Description("Absolute path to a `.dll` file.")] string? assemblyPath = null,
+        [Description("Full type name with namespace (for example: `Microsoft.AspNetCore.Mvc.ControllerBase`).")] string fullTypeName = "",
         CancellationToken cancellationToken = default)
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(assemblyName))
-            {
-                return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(GetDecompiledClassSkeleton), "Error: `assemblyName` is empty."));
-            }
-
             if (string.IsNullOrWhiteSpace(fullTypeName))
             {
                 return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(GetDecompiledClassSkeleton), "Error: `fullTypeName` is empty."));
             }
 
             var solution = _solutionManager.GetCurrentSolution();
-            if (solution is null)
+            var resolved = AssemblyReferenceResolver.Resolve(solution, assemblyName, assemblyPath);
+            if (!resolved.Success)
             {
-                return Task.FromResult(
-                    ToolTelemetry.TraceAndReturn(
-                        nameof(GetDecompiledClassSkeleton),
-                        "Error: No active workspace. Call `load_workspace` with your .sln or .csproj first."));
+                return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(GetDecompiledClassSkeleton), resolved.ErrorMessage!));
             }
 
-            var targetAssemblyName = Path.GetFileNameWithoutExtension(assemblyName.Trim());
-            var dllPath = ResolveAssemblyPath(solution, targetAssemblyName);
-            if (string.IsNullOrWhiteSpace(dllPath))
-            {
-                return Task.FromResult(
-                    ToolTelemetry.TraceAndReturn(
-                        nameof(GetDecompiledClassSkeleton),
-                        $"Assembly `{targetAssemblyName}` was not found in metadata references of the loaded workspace."));
-            }
-
-            if (!File.Exists(dllPath))
-            {
-                return Task.FromResult(
-                    ToolTelemetry.TraceAndReturn(
-                        nameof(GetDecompiledClassSkeleton),
-                        $"Assembly reference was resolved but file does not exist on disk: `{dllPath}`"));
-            }
-
+            var dllPath = resolved.DllPath!;
             cancellationToken.ThrowIfCancellationRequested();
             var decompiler = new CSharpDecompiler(dllPath, new DecompilerSettings());
             var typeInfo = decompiler.TypeSystem.MainModule.Compilation.FindType(new FullTypeName(fullTypeName));
@@ -504,18 +438,14 @@ public sealed class CodeAnalysisTools
     [Description(
         "Decompiles only method member(s) from a specific type in a referenced external assembly (NuGet or other DLL). The tool resolves `assemblyName` from loaded Roslyn MetadataReferences, finds `fullTypeName` via ILSpy TypeSystem, matches all overloads by `methodName`, and decompiles each matched method entity by metadata token. Useful for deep inspection without decompiling the entire type.")]
     public Task<string> GetDecompiledMethodBody(
-        [Description("Assembly name without `.dll` (for example: `Microsoft.AspNetCore.Mvc.Core`).")] string assemblyName,
-        [Description("Full type name with namespace (for example: `Microsoft.AspNetCore.Mvc.ControllerBase`).")] string fullTypeName,
-        [Description("Method name to decompile. All overloads with this name are returned.")] string methodName,
+        [Description("Assembly simple name without `.dll`, or omit when `assemblyPath` is set.")] string? assemblyName = null,
+        [Description("Absolute path to a `.dll` file.")] string? assemblyPath = null,
+        [Description("Full type name with namespace (for example: `Microsoft.AspNetCore.Mvc.ControllerBase`).")] string fullTypeName = "",
+        [Description("Method name to decompile. All overloads with this name are returned.")] string methodName = "",
         CancellationToken cancellationToken = default)
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(assemblyName))
-            {
-                return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(GetDecompiledMethodBody), "Error: `assemblyName` is empty."));
-            }
-
             if (string.IsNullOrWhiteSpace(fullTypeName))
             {
                 return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(GetDecompiledMethodBody), "Error: `fullTypeName` is empty."));
@@ -527,32 +457,13 @@ public sealed class CodeAnalysisTools
             }
 
             var solution = _solutionManager.GetCurrentSolution();
-            if (solution is null)
+            var resolved = AssemblyReferenceResolver.Resolve(solution, assemblyName, assemblyPath);
+            if (!resolved.Success)
             {
-                return Task.FromResult(
-                    ToolTelemetry.TraceAndReturn(
-                        nameof(GetDecompiledMethodBody),
-                        "Error: No active workspace. Call `load_workspace` with your .sln or .csproj first."));
+                return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(GetDecompiledMethodBody), resolved.ErrorMessage!));
             }
 
-            var targetAssemblyName = Path.GetFileNameWithoutExtension(assemblyName.Trim());
-            var dllPath = ResolveAssemblyPath(solution, targetAssemblyName);
-            if (string.IsNullOrWhiteSpace(dllPath))
-            {
-                return Task.FromResult(
-                    ToolTelemetry.TraceAndReturn(
-                        nameof(GetDecompiledMethodBody),
-                        $"Assembly `{targetAssemblyName}` was not found in metadata references of the loaded workspace."));
-            }
-
-            if (!File.Exists(dllPath))
-            {
-                return Task.FromResult(
-                    ToolTelemetry.TraceAndReturn(
-                        nameof(GetDecompiledMethodBody),
-                        $"Assembly reference was resolved but file does not exist on disk: `{dllPath}`"));
-            }
-
+            var dllPath = resolved.DllPath!;
             cancellationToken.ThrowIfCancellationRequested();
             var decompiler = new CSharpDecompiler(dllPath, new DecompilerSettings());
             var typeInfo = decompiler.TypeSystem.MainModule.Compilation.FindType(new FullTypeName(fullTypeName));
@@ -617,24 +528,6 @@ public sealed class CodeAnalysisTools
                     nameof(GetDecompiledMethodBody),
                     $"Failed to decompile method `{methodName}` from `{fullTypeName}` (`{assemblyName}`): {ex.Message}"));
         }
-    }
-
-    private static string? ResolveAssemblyPath(Solution solution, string targetAssemblyName)
-    {
-        var referencePaths = solution.Projects
-            .SelectMany(project => project.MetadataReferences.OfType<PortableExecutableReference>())
-            .Select(reference => reference.FilePath ?? reference.Display)
-            .Where(path => !string.IsNullOrWhiteSpace(path))
-            .Select(path => path!)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList();
-
-        return referencePaths.FirstOrDefault(path =>
-        {
-            var fileName = Path.GetFileNameWithoutExtension(path);
-            return string.Equals(fileName, targetAssemblyName, StringComparison.OrdinalIgnoreCase);
-        }) ?? referencePaths.FirstOrDefault(path =>
-            Path.GetFileName(path).Contains(targetAssemblyName, StringComparison.OrdinalIgnoreCase));
     }
 
     private static bool IsCompilerGeneratedName(string value)

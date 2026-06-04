@@ -1,17 +1,16 @@
 using Serilog;
+using Serilog.Events;
 
 namespace RoslynMcpServer.Diagnostics;
 
 /// <summary>
-/// Logs MCP tool response size and a bounded preview for context-audit (Serilog file sink).
+/// Logs compact MCP tool outcomes to the file sink (not a dump of the full tool response).
+/// Set <c>ROSLYN_MCP_LOG_TOOL_OUTPUT=full</c> to log entire responses at Information.
 /// </summary>
 public static class ToolTelemetry
 {
-    private const int TruncatedHeadChars = 250;
-    private const int TruncatedTailChars = 250;
-
     /// <summary>
-    /// Logs output metrics at Information level, then returns <paramref name="result"/> unchanged.
+    /// Logs output metrics, then returns <paramref name="result"/> unchanged.
     /// </summary>
     public static string TraceAndReturn(string toolName, string result)
     {
@@ -23,27 +22,36 @@ public static class ToolTelemetry
     {
         var text = result ?? string.Empty;
         var length = text.Length;
-        var estimatedTokens = length / 4;
-
-        string preview;
-        if (length < 500)
-        {
-            preview = text;
-        }
-        else
-        {
-            var headLen = Math.Min(TruncatedHeadChars, length);
-            var tailLen = Math.Min(TruncatedTailChars, length);
-            var head = text[..headLen];
-            var tail = tailLen > 0 ? text[^tailLen..] : string.Empty;
-            preview = $"{head}\n...[TRUNCATED]...\n{tail}";
-        }
+        var estimatedTokens = (length + 3) / 4;
+        var summary = ToolLogAnalyzer.BuildSummaryLine(text);
 
         Log.Information(
-            "MCP tool {ToolName}: OutputLengthChars={OutputLengthChars}, EstimatedTokens={EstimatedTokens}\n{Preview}",
+            "MCP tool {ToolName} | {Summary} | chars={OutputLengthChars} tokens~={EstimatedTokens}",
             toolName,
+            summary,
             length,
-            estimatedTokens,
-            preview);
+            estimatedTokens);
+
+        if (ToolLogAnalyzer.ShouldLogFullOutput())
+        {
+            if (length > 0)
+            {
+                Log.Information("MCP tool {ToolName} full output:\n{Body}", toolName, text);
+            }
+
+            return;
+        }
+
+        foreach (var line in ToolLogAnalyzer.ExtractHighlightLines(text))
+        {
+            var level = line.Contains("error", StringComparison.OrdinalIgnoreCase)
+                        || line.Contains("Failure", StringComparison.OrdinalIgnoreCase)
+                        || line.Contains("Failed", StringComparison.OrdinalIgnoreCase)
+                        || line.Contains("Exception", StringComparison.OrdinalIgnoreCase)
+                ? LogEventLevel.Warning
+                : LogEventLevel.Information;
+
+            Log.Write(level, "MCP tool {ToolName} | {Highlight}", toolName, line);
+        }
     }
 }

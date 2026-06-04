@@ -231,9 +231,11 @@ public sealed class UtilityTools
     }
 
     [McpServerTool(Name = "read_log_tail", Title = "ReadLogTail")]
-    [Description("Reads the tail of a log file for LLM-safe diagnostics. Optionally filters lines by keyword (case-insensitive) and returns only the last N matching lines to avoid context overflow.")]
+    [Description(
+        "Reads the tail of a log file for LLM-safe diagnostics. Optionally filters lines by keyword (case-insensitive). "
+        + "When `filePath` is omitted, reads the latest MCP server log (`logs/mcp-*.log`) — same as `tail_tool_log`.")]
     public async Task<string> ReadLogTail(
-        [Description("Absolute or relative path to the log file (same parameter name as get_file_content).")] string filePath,
+        [Description("Absolute or relative path to the log file. Omit to read the latest MCP server log (logs/mcp-*.log).")] string? filePath = null,
         [Description("How many lines from the end of the result to return. Default is 200.")] int lastNLines = 200,
         [Description("Optional case-insensitive keyword to filter lines before taking the tail. Pass null or empty string to disable filtering.")] string? filterKeyword = null,
         CancellationToken cancellationToken = default)
@@ -242,7 +244,7 @@ public sealed class UtilityTools
         {
             if (string.IsNullOrWhiteSpace(filePath))
             {
-                return ToolTelemetry.TraceAndReturn(nameof(ReadLogTail), "Error: `filePath` is empty.");
+                return await TailToolLog(lastNLines, filterKeyword, cancellationToken).ConfigureAwait(false);
             }
 
             if (lastNLines <= 0)
