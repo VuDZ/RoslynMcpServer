@@ -39,11 +39,11 @@ public sealed class WorkspaceTools
         var projects = solution.Projects.ToList();
         var projectCount = projects.Count;
         var diagnostics = _solutionManager.LastDiagnostics
-            .Select(d => $"{d.Kind}: {d.Message}")
+            .Select(d => WorkspaceDiagnosticFormatter.Format(d.Kind.ToString(), d.Message))
             .Distinct(StringComparer.Ordinal)
             .ToList();
 
-        if (projectCount == 0 || diagnostics.Any(static d => d.Contains("error", StringComparison.OrdinalIgnoreCase)))
+        if (projectCount == 0 || diagnostics.Any(WorkspaceDiagnosticFormatter.IsBlockingLoadFailure))
         {
             return ToolTelemetry.TraceAndReturn(
                 nameof(LoadWorkspace),
@@ -77,6 +77,14 @@ public sealed class WorkspaceTools
                     + "even when `Version=` is present in the `.csproj` on disk. Run `dotnet restore` at the solution root, "
                     + "then `reset_workspace` and `load_workspace`. Set MCP env `ROSLYN_MCP_WORKSPACE` to the repo root "
                     + "(where `global.json` lives) so MSBuild.Locator pins the same SDK as `run_dotnet_build`.");
+            }
+
+            if (diagnostics.Any(static d =>
+                    d.Contains("NuGet audit", StringComparison.OrdinalIgnoreCase)))
+            {
+                sb.AppendLine();
+                sb.AppendLine(
+                    "> **Note:** NuGet audit advisories (GHSA / NU1903) are shown as warnings here; `dotnet build` may still fail with `NU1904` if audit is treated as error. Use `run_dotnet_build` for the exact NU lines.");
             }
         }
 

@@ -5,7 +5,12 @@ namespace RoslynMcpServer.Services;
 
 public static class DotNetCliRunner
 {
-    public sealed record RunResult(int ExitCode, string CombinedOutput, string RunMetadata);
+    public sealed record RunResult(
+        int ExitCode,
+        string CombinedOutput,
+        string RunMetadata,
+        int StdOutLength,
+        int StdErrLength);
 
     public static async Task<(int ExitCode, string CombinedOutput)> RunAsync(
         string arguments,
@@ -39,6 +44,8 @@ public static class DotNetCliRunner
             StandardErrorEncoding = Encoding.UTF8
         };
 
+        DotNetSdkEnvironment.ApplyPinnedSdk(psi, workDir);
+
         using var process = new Process { StartInfo = psi };
         if (!process.Start())
         {
@@ -48,7 +55,7 @@ public static class DotNetCliRunner
 
         var stdoutTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
         var stderrTask = process.StandardError.ReadToEndAsync(cancellationToken);
-        await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+        await Task.WhenAll(stdoutTask, stderrTask, process.WaitForExitAsync(cancellationToken)).ConfigureAwait(false);
 
         var stdout = (await stdoutTask.ConfigureAwait(false)).TrimEnd();
         var stderr = (await stderrTask.ConfigureAwait(false)).TrimEnd();
@@ -69,10 +76,38 @@ public static class DotNetCliRunner
             combined.Append(stderr);
         }
 
-        var sdkVersion = await TryGetDotNetSdkVersionAsync(dotnet, workDir, cancellationToken).ConfigureAwait(false);
+        var combinedText = combined.ToString();
+        var metadata = await CreateRunMetadataAsync(workDir, combinedText, cancellationToken).ConfigureAwait(false);
+
+        return new RunResult(
+            process.ExitCode,
+            combinedText,
+            metadata,
+            stdout.Length,
+            stderr.Length);
+    }
+
+    public static async Task<string> CreateRunMetadataAsync(
+        string workingDirectory,
+        string combinedOutput,
+        CancellationToken cancellationToken)
+    {
+        var dotnet = DotNetHostResolver.ResolveDotNetExecutable();
+        var sdkVersion = await TryGetDotNetSdkVersionAsync(dotnet, workingDirectory, cancellationToken)
+            .ConfigureAwait(false);
+        return BuildRunMetadata(dotnet, workingDirectory, combinedOutput, sdkVersion);
+    }
+
+    private static string BuildRunMetadata(
+        string dotnetPath,
+        string workDir,
+        string combinedOutput,
+        string? sdkVersion)
+    {
         var globalJson = GlobalJsonSdkReader.FindGlobalJsonPath(workDir);
+        var pin = DotNetSdkEnvironment.TryGetPin(workDir);
         var metadata = new StringBuilder();
-        metadata.AppendLine($"- **dotnet host:** `{dotnet}` ({(Environment.Is64BitProcess ? "64-bit" : "32-bit")} MCP process)");
+        metadata.AppendLine($"- **dotnet host:** `{dotnetPath}` ({(Environment.Is64BitProcess ? "64-bit" : "32-bit")} MCP process)");
         if (!string.IsNullOrEmpty(sdkVersion))
         {
             metadata.AppendLine($"- **dotnet --version:** `{sdkVersion}` (from working directory)");
@@ -81,16 +116,37 @@ public static class DotNetCliRunner
         if (globalJson is not null)
         {
             metadata.AppendLine($"- **global.json:** `{globalJson}`");
-            var pinned = GlobalJsonSdkReader.TryGetPinnedSdkVersion(workDir);
-            if (!string.IsNullOrEmpty(pinned))
-            {
-                metadata.AppendLine($"- **Pinned SDK:** `{pinned}`");
-            }
+        }
+
+        if (!string.IsNullOrEmpty(pin?.PinnedVersion))
+        {
+            metadata.AppendLine($"- **Pinned SDK:** `{pin.PinnedVersion}`");
+        }
+
+        if (!string.IsNullOrEmpty(pin?.SdkDirectory))
+        {
+            metadata.AppendLine($"- **Resolved SDK directory:** `{pin.SdkDirectory}`");
+            metadata.AppendLine($"- **Expected MSBuild:** `{pin.MsBuildDllPath}`");
+        }
+        else if (!string.IsNullOrEmpty(pin?.PinnedVersion))
+        {
+            metadata.AppendLine(
+                $"- **WARNING:** Pinned SDK `{pin.PinnedVersion}` was not found under Program Files\\dotnet\\sdk. Install it or fix rollForward.");
+        }
+
+        if (!string.IsNullOrEmpty(pin?.SdksDirectory))
+        {
+            metadata.AppendLine($"- **MSBuildSDKsPath / SDKS_DIR:** `{pin.SdksDirectory}`");
+        }
+
+        var logMsbuild = Diagnostics.MsBuildLogHighlighter.TryGetMsBuildExecutablePath(combinedOutput);
+        if (!string.IsNullOrEmpty(logMsbuild))
+        {
+            metadata.AppendLine($"- **MSBuild from log:** `{logMsbuild}`");
         }
 
         metadata.AppendLine($"- **WorkingDirectory:** `{workDir}`");
-
-        return new RunResult(process.ExitCode, combined.ToString(), metadata.ToString().TrimEnd());
+        return metadata.ToString().TrimEnd();
     }
 
     private static async Task<string?> TryGetDotNetSdkVersionAsync(
@@ -111,6 +167,8 @@ public static class DotNetCliRunner
                 RedirectStandardError = true,
                 StandardOutputEncoding = Encoding.UTF8
             };
+
+            DotNetSdkEnvironment.ApplyPinnedSdk(psi, workingDirectory);
 
             using var process = Process.Start(psi);
             if (process is null)

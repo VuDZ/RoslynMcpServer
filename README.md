@@ -454,7 +454,7 @@ Parses C# syntax, inserts with DocumentEditor, formats the file. Prefer over `ap
 **Parameters:**
 - `workspacePath: string` — must be an existing **`.csproj` or `.sln` file** (not a directory).
 
-**Behavior:** Uses 64-bit `dotnet` (Windows: `Program Files\dotnet`). **Working directory** is the nearest ancestor of the `.sln`/`.csproj` that contains `global.json`, so the pinned SDK matches the repo. The response includes a **`### dotnet run`** block (host path, `dotnet --version`, `global.json`). Stdout and stderr are merged; up to 20 lines matching MSBuild `path(line,col): error|warning CODE: message`. On non-zero exit without matches, a **truncated** console excerpt is included (full if ≤3000 chars; else first 1000 + last 1500 with a middle marker).
+**Behavior:** Inherits full process env, then pins SDK via `MSBUILD_EXE_PATH`, `MSBuildSDKsPath`, `DOTNET_MSBUILD_SDK_RESOLVER_SDKS_DIR` / `SDKS_VER` / `CLI_DIR`, `DOTNET_ROOT`. On MSBuild path mismatch → **`error MCP_MSBUILD_SDK_MISMATCH`** and `dotnet exec …/10.x/MSBuild.dll /restore`. Escalation: minimal build → pinned restore → restore (detailed if empty) → build normal → build detailed. **Key lines** include task `-- FAILED` with project context.
 
 </details>
 
@@ -464,7 +464,7 @@ Parses C# syntax, inserts with DocumentEditor, formats the file. Prefer over `ap
 **Parameters:**
 - `workspacePath: string`
 
-**Behavior:** stdout and stderr are merged. When a normal VSTest/xUnit totals line is present, the tool summarizes pass/fail counts and up to five failed tests. If the process exits with a non-zero code and **no** standard summary was found (common when tests **fail to compile**), the response includes the same **head+tail truncation** as `run_dotnet_build` (full output if ≤3000 chars; else first 1000 + last 1500 chars with a middle marker) so MSBuild/compiler errors near the start are not lost.
+**Behavior:** `--logger "console;verbosity=normal"`. Summary from `Passed!`, `Test Run Successful` + `Total tests`/`Passed:` (Failed defaults to 0), or per-test `  Passed FQN [ms]`. MSBuild/prune noise ignored; duplicate NU audit lines deduped. Exit 0 without any summary marker → **`Status: partial`** + last 2KB. `run_specific_test` checks filter matched a test FQN.
 
 </details>
 
@@ -1150,7 +1150,7 @@ Before editing any files, identify your host environment:
 **Параметры:**
 - `workspacePath: string` — только существующий **файл** `.csproj` или `.sln` (не каталог).
 
-**Поведение:** 64-bit `dotnet` (Windows: `Program Files\dotnet`). **Working directory** — ближайший предок `.sln`/`.csproj` с `global.json`. В ответе блок **`### dotnet run`** (host, `dotnet --version`, `global.json`). До 20 строк MSBuild `path(line,col): error|warning CODE: message`; при ненулевом коде без совпадений — усечённый вывод (≤3000 целиком, иначе первые 1000 + последние 1500).
+**Поведение:** наследование env + pinning (`MSBUILD_EXE_PATH`, `DOTNET_MSBUILD_SDK_RESOLVER_SDKS_*`). Mismatch → **error `MCP_MSBUILD_SDK_MISMATCH`** + pinned `dotnet exec …/MSBuild.dll /restore`. Цепочка minimal → pinned restore → restore/build detailed. **Key lines** с проектом у `-- FAILED`.
 
 </details>
 
@@ -1160,7 +1160,7 @@ Before editing any files, identify your host environment:
 **Параметры:**
 - `workspacePath: string`
 
-**Поведение:** объединяются stdout и stderr. При наличии стандартной строки итогов VSTest/xUnit выводится сводка и до пяти упавших тестов. Если код выхода ненулевой и **нет** распознанной строки сводки (часто при **ошибке компиляции** тестов), в ответ добавляется такое же **усечение начало+конец**, как у `run_dotnet_build` (см. выше), чтобы не терять ранние сообщения MSBuild/компилятора.
+**Поведение:** сводка из `Passed!`, `Test Run Successful` + `Total tests`/`Passed:` (Failed=0 если нет строки), FQN-строки тестов; дедуп NU audit. Без маркеров сводки при exit 0 → **partial** + 2KB лога.
 
 </details>
 
