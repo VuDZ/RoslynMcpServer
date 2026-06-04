@@ -41,6 +41,7 @@ public static class RoslynMcpServiceCollectionExtensions
             .WithTools<AstTools>()
             .WithTools<EditingTools>()
             .WithTools<BuildTools>()
+            .WithTools<RunTools>()
             .WithTools<TestTools>()
             .WithTools<NuGetTools>()
             .WithTools<ProjectTools>()

@@ -1,7 +1,6 @@
 using System.Reflection;
 using System.Text;
 using Microsoft.CodeAnalysis;
-using ModelContextProtocol.Server;
 
 namespace RoslynMcpServer.Services;
 
@@ -17,7 +16,7 @@ public static class McpServerInfoHelper
             ? Directory.EnumerateFiles(logDir, "mcp-*.log").OrderByDescending(File.GetLastWriteTimeUtc).FirstOrDefault()
             : null;
 
-        var toolCount = CountRegisteredTools();
+        var toolCount = WorkspaceHealthReporter.CountRegisteredTools();
         var sb = new StringBuilder();
         sb.AppendLine("## Roslyn MCP server info");
         sb.AppendLine();
@@ -37,11 +36,4 @@ public static class McpServerInfoHelper
         return sb.ToString().TrimEnd();
     }
 
-    private static int CountRegisteredTools()
-    {
-        return typeof(McpServerInfoHelper).Assembly
-            .GetTypes()
-            .SelectMany(t => t.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly))
-            .Count(m => m.GetCustomAttribute<McpServerToolAttribute>() is not null);
-    }
 }

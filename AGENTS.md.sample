@@ -29,13 +29,16 @@ NEVER use raw terminal commands (PowerShell, Bash, CMD) to execute `dotnet build
 
 - **To Build:** YOU MUST use `run_dotnet_build`. If you see `MCP_MSBUILD_SDK_MISMATCH` (e.g. log MSBuild 9.x vs global.json 10.x), fix SDK/env before blaming project code. Read **Key lines** and parsed errors, not only `0 Error(s)`.
 - **To Test:** YOU MUST use `run_dotnet_test` for full suites. For a single test class or method during TDD/bug fixes, use `run_specific_test` — never hand-write VSTest `--filter` via `execute_dotnet_command`.
+- **To Run console apps:** YOU MUST use `run_dotnet_run` with the `.csproj` path and arguments after `--`. Progress bars usually go to **stderr** (tail excerpt). Do not dump full tree output into chat.
+- **NuGet vulnerabilities:** use `run_nuget_audit` for a compact audit table (transitive TFS packages). Do not confuse with compile errors from `run_dotnet_build`.
+- **Before commit:** use `get_changed_files` for git status and suggested test projects. On Windows PowerShell 5.x use `;` between shell commands, not `&&`.
 
 ## 3. Explore Before Build (Global Context Awareness)
 
 Before writing new utility classes, helper methods, or standard validation logic, you MUST verify how the project already handles this. Do not reinvent the wheel.
 
 - Use `get_code_skeleton` (for files/directories) or `get_class_skeleton` (for loaded workspaces) to understand architecture without loading full method bodies.
-- Use `find_usages` with `symbolName` (after `load_workspace`) for usages across the solution, or `find_symbol_references` with `filePath` + `symbolName` when you already know the declaring file — then mirror the team’s patterns.
+- Use `find_usages` / `find_symbol_references` (aliases: **find_references**) with `symbolName` after `load_workspace` — solution-wide or from a known declaring `filePath` — then mirror the team’s patterns.
 - Use `find_implementations` with `symbolName` to list classes that **implement an interface** or **derive from a base class** — do not use text search or `find_usages` for this.
 
 For C# edits, ALWAYS prefer `get_class_skeleton`, `get_code_skeleton`, `get_method_body`, `explore_assembly`, `decompile_type`, `get_decompiled_class_skeleton`, `get_decompiled_method_body`, `run_dotnet_build`, and `get_diagnostics_for_file` instead of inventing code from memory. When fixing compiler/analyzer errors, call `get_code_fixes` and `apply_code_fix` **before** guessing a manual patch—Roslyn already knows the correct fix for most standard diagnostics. **Persisting edits to disk** follows **section 6** (IDE-native tools vs this MCP server's file tools).
