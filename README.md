@@ -67,6 +67,41 @@ The script:
 
 Restart OpenCode or reload MCP servers after running the script.
 
+## Agent tools by version
+
+Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
+
+### v1.0.14
+
+| Tool / behavior | Notes |
+|-----------------|--------|
+| `run_dotnet_run` | SDK-pinned `dotnet run`, separate stdout/stderr, timeout, truncated output (stderr tail for progress) |
+| `run_nuget_audit` | Structured vulnerability table from `dotnet list package --vulnerable` |
+| `get_changed_files` | Git porcelain status + suggested test projects (no diff body) |
+| `load_workspace` | **Workspace health** block: SDK/global.json, restore assets, tool count |
+| `execute_dotnet_command` | SDK pinning + truncated stdout/stderr |
+| `find_usages` / `find_symbol_references` | **find_references** family; prefer `find_usages` when only `symbolName` is known |
+| `get_project_graph` / `list_projects` | Project dependency graph |
+| `rename_symbol` | `previewOnly=true` default workflow |
+| `run_format` | `dotnet format` wrapper |
+
+### v1.0.13
+
+| Tool / behavior | Notes |
+|-----------------|--------|
+| `AssemblyReferenceResolver` | Exact `{name}.dll`; deps.json + NuGet fallback |
+| `DecompilerHost` | NuGet / BCL / runtime pack resolver for ILSpy tools |
+
+### v1.0.10–v1.0.12
+
+Build/test SDK pinning, VSTest parser, decompiler `assemblyPath`, `MCP_MSBUILD_SDK_MISMATCH` — see git history.
+
+### Not implemented (see AGENTS.md §7)
+
+- Read-only TFS / HTTP probe MCP tools
+- MCP «secret configured: yes/no» without reading values
+- Unified diff in `get_changed_files` (use host/shell `git diff` when allowed)
+
 ## Agent Initialization (How to force tool usage)
 
 Even if the MCP is active, AI clients don't always load the tools into the current chat context. To ensure the agent utilizes `RoslynMcpServer` reliably, add the following instructions to your project rules (e.g., `.cursor/rules/mcp.mdc` or `AGENTS.md`).
@@ -770,6 +805,10 @@ cd D:\Devel\YourApp
 | `-ProjectPath` | Необязательный корень проекта. По умолчанию — текущая рабочая директория. |
 
 После установки перезапустите OpenCode или перезагрузите MCP-серверы.
+
+## История agent-tools по версиям
+
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (таблицы v1.0.13–v1.0.14). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 
