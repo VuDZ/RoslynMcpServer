@@ -42,7 +42,7 @@ Your compiled binary will be at:
 
 **Option B: Via `mcp.json`**
 Add the absolute path to your configuration file (see the provided `mcp.json` and `.cursor/mcp.json` examples in the repo).
-*Optional:* You can pass `env` with `ROSLYN_MCP_WORKSPACE` to set a default root path for tools.
+*Optional:* Pass `env` with `ROSLYN_MCP_WORKSPACE` set to the **repository root** (folder containing `global.json`) so MSBuild.Locator and `run_dotnet_build` use the same SDK as your solution.
 
 **Option C: OpenCode (`install2opencode.ps1`)**
 
@@ -85,7 +85,7 @@ You are a Senior C# Developer and Architect. You have access to a specialized Ro
 Every time you start a new conversation or receive the first prompt in this project, you MUST silently perform the following steps before answering the user. **THIS IS A STRICT BLOCKER:**
 
 1. Call the MCP server to list available tools.
-2. Call `load_workspace` with `workspacePath` set to the absolute path of the solution or project file (e.g., `d:/Devel/YourRepo/YourSolution.sln`). **CRITICAL:** Tools like `find_symbol_definition` will fail or hallucinate if you skip this step.
+2. Call `load_workspace` with `workspacePath` set to the absolute path of the solution or project file (e.g., `d:/Devel/YourRepo/YourSolution.sln`). **CRITICAL:** Tools like `find_symbol_definition` will fail or hallucinate if you skip this step. In MCP config, set `ROSLYN_MCP_WORKSPACE` to the **repo root** (folder with `global.json`) when possible.
 3. Use `manage_agent_scratchpad` with `action: read` to recall previous state notes (omit if you do not use the scratchpad).
 
 ## 1. The Terminal Ban (Strict Tool Enforcement)
@@ -119,13 +119,14 @@ If you encounter a bug originating from a compiled `.dll` or NuGet package, DO N
 
 - Before adding or upgrading packages, use `search_nuget_registry` to verify the package id and latest stable version — never invent library names or versions.
 - Use `list_nuget_packages` to inspect installed and transitive dependencies across projects (JSON) before changing `.csproj` files.
-- Use `explore_assembly` to understand the public API.
+- Use `explore_assembly` with `assemblyName` (after `load_workspace`) **or** `assemblyPath` (absolute `.dll`, e.g. from NuGet cache) — provide one, not neither.
+- Use `decompile_type` / `get_decompiled_class_skeleton` / `get_decompiled_method_body` with the same `assemblyName` or `assemblyPath` rules.
 - Use `decompile_type` to read the exact C# source code. For large types, use `get_decompiled_class_skeleton`; for a specific method overload, use `get_decompiled_method_body`.
 - Propose a fix only after reading the decompiled material.
 
 ## 5. Execution Loop
 
-Think step-by-step. If a tool fails or returns an error, read the error message carefully, adjust your parameters, and try the appropriate MCP tool again. Do not fallback to raw shell commands. Only after these steps are complete, respond to the user's actual prompt.
+Think step-by-step. If a tool fails or returns an error, read the error message carefully, adjust your parameters, and try the appropriate MCP tool again. Do not fallback to raw shell commands. For MCP server diagnostics use `tail_tool_log` (or `read_log_tail` without `filePath`); optional `filterKeyword` such as `Failure` or `ERR`. Only after these steps are complete, respond to the user's actual prompt.
 
 ## 6. Environment-Specific File Editing Protocol
 
@@ -146,7 +147,10 @@ Before editing any files, identify your host environment:
 ## Logs
 - **Main log:** `logs/mcp-*.log` (relative to `AppContext.BaseDirectory`).
 - Global incoming JSON-RPC logging is enabled by default.
+- **Tool output:** logged as a one-line summary plus separate warning/error lines (not a duplicated full MCP response). Set `ROSLYN_MCP_LOG_TOOL_OUTPUT=full` to log entire tool responses at Information level.
 - Environment Variables:
+  - `ROSLYN_MCP_WORKSPACE` — repo root for MSBuild/SDK discovery at startup (see MCP config above).
+  - `ROSLYN_MCP_LOG_TOOL_OUTPUT=full` — verbose tool response logging.
   - `MCP_LOG_INCOMING_RPC=0` (disable incoming RPC logging).
   - `MCP_LOG_INCOMING_RPC_MAX_CHARS=<N>` (limit payload log length, `0` = unlimited).
 
@@ -253,14 +257,15 @@ There are **55** registered tools (see list below) and **1** MCP prompt (`Refact
 <summary><code>explore_assembly</code> — Decompiles a referenced external assembly (NuGet/third-party DLL) via ILSpy and returns namespaces with visible top-level classes/interfaces.</summary>
 
 **Parameters:**
-- `assemblyName: string` (without `.dll`, e.g. `Microsoft.AspNetCore.Mvc.Core`)
+- `assemblyName: string?` — simple name without `.dll` (resolved via loaded workspace; call `load_workspace` first).
+- `assemblyPath: string?` — absolute path to a `.dll` (e.g. NuGet cache). Provide **one** of the two.
 </details>
 
 <details>
 <summary><code>decompile_type</code> — Decompiles one specific type from a referenced assembly and returns C# source code (circuit breaker: max 500 lines).</summary>
 
 **Parameters:**
-- `assemblyName: string` (without `.dll`, e.g. `Microsoft.AspNetCore.Mvc.Core`)
+- `assemblyName: string?` / `assemblyPath: string?` — same as `explore_assembly` (one required).
 - `fullTypeName: string` (e.g. `Microsoft.AspNetCore.Mvc.ControllerBase`)
 
 **Behavior note:** if decompiled output exceeds 500 lines, the tool returns an error message instructing to use `get_decompiled_class_skeleton` and `get_decompiled_method_body`.
@@ -270,7 +275,7 @@ There are **55** registered tools (see list below) and **1** MCP prompt (`Refact
 <summary><code>get_decompiled_class_skeleton</code> — Returns a signatures-only skeleton (public/protected fields/properties/methods) for one type from a referenced assembly.</summary>
 
 **Parameters:**
-- `assemblyName: string` (without `.dll`, e.g. `Microsoft.AspNetCore.Mvc.Core`)
+- `assemblyName: string?` / `assemblyPath: string?` — same as `explore_assembly` (one required).
 - `fullTypeName: string` (e.g. `Microsoft.AspNetCore.Mvc.ControllerBase`)
 </details>
 
@@ -278,7 +283,7 @@ There are **55** registered tools (see list below) and **1** MCP prompt (`Refact
 <summary><code>get_decompiled_method_body</code> — Decompiles only matching method overload(s) from one type in a referenced assembly.</summary>
 
 **Parameters:**
-- `assemblyName: string` (without `.dll`, e.g. `Microsoft.AspNetCore.Mvc.Core`)
+- `assemblyName: string?` / `assemblyPath: string?` — same as `explore_assembly` (one required).
 - `fullTypeName: string` (e.g. `Microsoft.AspNetCore.Mvc.ControllerBase`)
 - `methodName: string`
 </details>
@@ -449,7 +454,7 @@ Parses C# syntax, inserts with DocumentEditor, formats the file. Prefer over `ap
 **Parameters:**
 - `workspacePath: string` — must be an existing **`.csproj` or `.sln` file** (not a directory).
 
-**Behavior:** stdout and stderr are merged. The tool extracts up to 20 lines matching MSBuild `path(line,col): error|warning CODE: message`. If the process exits with a non-zero code but **no** such lines match (SDK restore messages, odd formats, etc.), the response still includes a **truncated excerpt** of combined console output: the **full** log if it is ≤3000 characters; otherwise the **first 1000** and **last 1500** characters with a middle marker so early compiler errors and final lines both appear.
+**Behavior:** Uses 64-bit `dotnet` (Windows: `Program Files\dotnet`). **Working directory** is the nearest ancestor of the `.sln`/`.csproj` that contains `global.json`, so the pinned SDK matches the repo. The response includes a **`### dotnet run`** block (host path, `dotnet --version`, `global.json`). Stdout and stderr are merged; up to 20 lines matching MSBuild `path(line,col): error|warning CODE: message`. On non-zero exit without matches, a **truncated** console excerpt is included (full if ≤3000 chars; else first 1000 + last 1500 with a middle marker).
 
 </details>
 
@@ -592,13 +597,15 @@ Verify id/version with `search_nuget_registry` first. Clears workspace cache —
 <summary><code>read_log_tail</code> — Context-safe log reader with optional keyword filtering.</summary>
 
 **Parameters:**
-- `filePath: string`
+- `filePath: string? = null` — omit to read the latest MCP server log (`logs/mcp-*.log`, same as `tail_tool_log`).
 - `lastNLines: int = 200`
-- `filterKeyword: string? = null`
+- `filterKeyword: string? = null` — e.g. `Failure`, `ERR`, `NU1903`.
+
+**Tip:** Prefer `tail_tool_log` for MCP diagnostics; use `filterKeyword` to avoid dumping entire logs.
 </details>
 
 <details>
-<summary><code>tail_tool_log</code> — Shortcut over read_log_tail pointing to the server's own mcp-*.log.</summary>
+<summary><code>tail_tool_log</code> — Reads the latest server log `logs/mcp-*.log`.</summary>
 
 **Parameters:**
 - `lastNLines: int = 200`
@@ -739,7 +746,7 @@ dotnet publish RoslynMcpServer.csproj -c Release -r win-x64
 
 **Через файл конфига:**
 Укажите абсолютный путь (примеры лежат в `mcp.json` и `.cursor/mcp.json`).
-Опционально добавьте `env` с `ROSLYN_MCP_WORKSPACE`, если нужен фиксированный корень по умолчанию.
+Опционально добавьте `env` с `ROSLYN_MCP_WORKSPACE` — **корень репозитория** (каталог с `global.json`), чтобы MSBuild.Locator и `run_dotnet_build` использовали тот же SDK, что и решение.
 
 **OpenCode (`install2opencode.ps1`):**
 
@@ -780,7 +787,7 @@ You are a Senior C# Developer and Architect. You have access to a specialized Ro
 Every time you start a new conversation or receive the first prompt in this project, you MUST silently perform the following steps before answering the user. **THIS IS A STRICT BLOCKER:**
 
 1. Call the MCP server to list available tools.
-2. Call `load_workspace` with `workspacePath` set to the absolute path of the solution or project file (e.g., `d:/Devel/YourRepo/YourSolution.sln`). **CRITICAL:** Tools like `find_symbol_definition` will fail or hallucinate if you skip this step.
+2. Call `load_workspace` with `workspacePath` set to the absolute path of the solution or project file (e.g., `d:/Devel/YourRepo/YourSolution.sln`). **CRITICAL:** Tools like `find_symbol_definition` will fail or hallucinate if you skip this step. In MCP config, set `ROSLYN_MCP_WORKSPACE` to the **repo root** (folder with `global.json`) when possible.
 3. Use `manage_agent_scratchpad` with `action: read` to recall previous state notes (omit if you do not use the scratchpad).
 
 ## 1. The Terminal Ban (Strict Tool Enforcement)
@@ -814,13 +821,14 @@ If you encounter a bug originating from a compiled `.dll` or NuGet package, DO N
 
 - Before adding or upgrading packages, use `search_nuget_registry` to verify the package id and latest stable version — never invent library names or versions.
 - Use `list_nuget_packages` to inspect installed and transitive dependencies across projects (JSON) before changing `.csproj` files.
-- Use `explore_assembly` to understand the public API.
+- Use `explore_assembly` with `assemblyName` (after `load_workspace`) **or** `assemblyPath` (absolute `.dll`, e.g. from NuGet cache) — provide one, not neither.
+- Use `decompile_type` / `get_decompiled_class_skeleton` / `get_decompiled_method_body` with the same `assemblyName` or `assemblyPath` rules.
 - Use `decompile_type` to read the exact C# source code. For large types, use `get_decompiled_class_skeleton`; for a specific method overload, use `get_decompiled_method_body`.
 - Propose a fix only after reading the decompiled material.
 
 ## 5. Execution Loop
 
-Think step-by-step. If a tool fails or returns an error, read the error message carefully, adjust your parameters, and try the appropriate MCP tool again. Do not fallback to raw shell commands. Only after these steps are complete, respond to the user's actual prompt.
+Think step-by-step. If a tool fails or returns an error, read the error message carefully, adjust your parameters, and try the appropriate MCP tool again. Do not fallback to raw shell commands. For MCP server diagnostics use `tail_tool_log` (or `read_log_tail` without `filePath`); optional `filterKeyword` such as `Failure` or `ERR`. Only after these steps are complete, respond to the user's actual prompt.
 
 ## 6. Environment-Specific File Editing Protocol
 
@@ -843,7 +851,9 @@ Before editing any files, identify your host environment:
 
 ## Логи
 - Основной лог: `logs/mcp-*.log` (относительно `AppContext.BaseDirectory`).
-- Включено логирование входящих JSON-RPC сообщений. Управляется переменными `MCP_LOG_INCOMING_RPC` и `MCP_LOG_INCOMING_RPC_MAX_CHARS`.
+- Включено логирование входящих JSON-RPC сообщений (`MCP_LOG_INCOMING_RPC`, `MCP_LOG_INCOMING_RPC_MAX_CHARS`).
+- **Ответы tools:** в лог пишется однострочная сводка и отдельные строки warning/error (без полного дублирования ответа MCP). `ROSLYN_MCP_LOG_TOOL_OUTPUT=full` — полный текст ответов tools.
+- Переменные: `ROSLYN_MCP_WORKSPACE` (корень репо для MSBuild/SDK), `ROSLYN_MCP_LOG_TOOL_OUTPUT=full`.
 
 ## Reference: MCP Tools
 
@@ -948,14 +958,15 @@ Before editing any files, identify your host environment:
 <summary><code>explore_assembly</code> — Декомпилирует подключенную внешнюю сборку (NuGet/сторонний DLL) через ILSpy и возвращает структуру namespaces с видимыми top-level class/interface.</summary>
 
 **Параметры:**
-- `assemblyName: string` (без `.dll`, например `Microsoft.AspNetCore.Mvc.Core`)
+- `assemblyName: string?` — имя без `.dll` (через workspace после `load_workspace`).
+- `assemblyPath: string?` — абсолютный путь к `.dll` (например кэш NuGet). Нужен **один** из параметров.
 </details>
 
 <details>
 <summary><code>decompile_type</code> — Декомпилирует один конкретный тип из подключенной сборки и возвращает C# исходник (circuit breaker: максимум 500 строк).</summary>
 
 **Параметры:**
-- `assemblyName: string` (без `.dll`, например `Microsoft.AspNetCore.Mvc.Core`)
+- `assemblyName: string?` / `assemblyPath: string?` — как у `explore_assembly` (один обязателен).
 - `fullTypeName: string` (например `Microsoft.AspNetCore.Mvc.ControllerBase`)
 
 **Поведение:** если результат декомпиляции больше 500 строк, tool возвращает ошибку с рекомендацией использовать `get_decompiled_class_skeleton` и `get_decompiled_method_body`.
@@ -965,7 +976,7 @@ Before editing any files, identify your host environment:
 <summary><code>get_decompiled_class_skeleton</code> — Возвращает только сигнатуры (public/protected fields/properties/methods) для одного типа из подключенной сборки.</summary>
 
 **Параметры:**
-- `assemblyName: string` (без `.dll`, например `Microsoft.AspNetCore.Mvc.Core`)
+- `assemblyName: string?` / `assemblyPath: string?` — как у `explore_assembly` (один обязателен).
 - `fullTypeName: string` (например `Microsoft.AspNetCore.Mvc.ControllerBase`)
 </details>
 
@@ -973,7 +984,7 @@ Before editing any files, identify your host environment:
 <summary><code>get_decompiled_method_body</code> — Декомпилирует только нужный метод (все совпавшие перегрузки) из одного типа в подключенной сборке.</summary>
 
 **Параметры:**
-- `assemblyName: string` (без `.dll`, например `Microsoft.AspNetCore.Mvc.Core`)
+- `assemblyName: string?` / `assemblyPath: string?` — как у `explore_assembly` (один обязателен).
 - `fullTypeName: string` (например `Microsoft.AspNetCore.Mvc.ControllerBase`)
 - `methodName: string`
 </details>
@@ -1139,7 +1150,7 @@ Before editing any files, identify your host environment:
 **Параметры:**
 - `workspacePath: string` — только существующий **файл** `.csproj` или `.sln` (не каталог).
 
-**Поведение:** объединяются stdout и stderr. Парсятся до 20 строк в формате MSBuild `path(line,col): error|warning CODE: message`. Если процесс завершился с ненулевым кодом, но **ни одна** строка не подошла под шаблон (restore/SDK, нестандартный вывод), в ответ попадает **усечённый фрагмент** вывода: целиком, если ≤3000 символов; иначе **первые 1000** и **последние 1500** с маркером пропуска середины (видны и ранние ошибки компилятора, и финальные строки).
+**Поведение:** 64-bit `dotnet` (Windows: `Program Files\dotnet`). **Working directory** — ближайший предок `.sln`/`.csproj` с `global.json`. В ответе блок **`### dotnet run`** (host, `dotnet --version`, `global.json`). До 20 строк MSBuild `path(line,col): error|warning CODE: message`; при ненулевом коде без совпадений — усечённый вывод (≤3000 целиком, иначе первые 1000 + последние 1500).
 
 </details>
 
@@ -1278,13 +1289,15 @@ Before editing any files, identify your host environment:
 <summary><code>read_log_tail</code> — Читает конец лог-файла с опциональной фильтрацией по ключевому слову.</summary>
 
 **Параметры:**
-- `filePath: string`
+- `filePath: string? = null` — не указывайте, чтобы читать последний лог MCP (`logs/mcp-*.log`, как `tail_tool_log`).
 - `lastNLines: int = 200`
-- `filterKeyword: string? = null`
+- `filterKeyword: string? = null` — например `Failure`, `ERR`, `NU1903`.
+
+**Совет:** для диагностики MCP удобнее `tail_tool_log` и `filterKeyword`.
 </details>
 
 <details>
-<summary><code>tail_tool_log</code> — Shortcut над read_log_tail для чтения собственных логов сервера (mcp-*.log).</summary>
+<summary><code>tail_tool_log</code> — Читает последний лог сервера `logs/mcp-*.log`.</summary>
 
 **Параметры:**
 - `lastNLines: int = 200`
