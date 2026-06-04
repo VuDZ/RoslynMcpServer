@@ -19,6 +19,10 @@ public static class MsBuildEnvironmentInfo
 
     public static string? RegisteredVisualStudioRootPath { get; set; }
 
+    public static string? ProcessDescription { get; set; }
+
+    public static string? RegistrationSummary { get; set; }
+
     /// <summary>
     /// Reads whichever "registered instance" property exists on <see cref="MSBuildLocator"/> for this package version.
     /// </summary>
@@ -59,7 +63,10 @@ public static class MsBuildEnvironmentInfo
         sb.AppendLine();
         sb.AppendLine("### MSBuild environment (Locator)");
         sb.AppendLine();
-        sb.AppendLine("**Queried instances (before RegisterDefaults):**");
+        sb.AppendLine($"- **MCP process:** `{ProcessDescription ?? "(unknown)"}`");
+        sb.AppendLine($"- **Registration:** `{RegistrationSummary ?? "(not recorded)"}`");
+        sb.AppendLine();
+        sb.AppendLine("**Queried instances (at startup):**");
         if (QueriedInstanceLines.Count == 0)
         {
             sb.AppendLine("- (none reported)");
@@ -73,7 +80,7 @@ public static class MsBuildEnvironmentInfo
         }
 
         sb.AppendLine();
-        sb.AppendLine("**Registered instance (after RegisterDefaults):**");
+        sb.AppendLine("**Registered instance (Locator API):**");
         if (RegisteredInstanceName is null && RegisteredMsBuildPath is null)
         {
             sb.AppendLine("- (not reported by this MSBuild.Locator version — see stderr `[DEBUG]` lines at startup)");

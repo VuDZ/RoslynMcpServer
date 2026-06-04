@@ -205,48 +205,27 @@ public sealed class TestTools
             }
 
             var workDir = File.Exists(fullPath)
-                ? Path.GetDirectoryName(fullPath) ?? Environment.CurrentDirectory
-                : fullPath;
+                ? WorkspaceRootResolver.ResolveDotNetWorkingDirectory(fullPath)
+                : WorkspaceRootResolver.FindDirectoryContainingGlobalJson(fullPath) ?? fullPath;
 
             var filterArg = string.IsNullOrWhiteSpace(filter)
                 ? string.Empty
                 : $" --filter \"{filter.Replace("\"", "\\\"", StringComparison.Ordinal)}\"";
 
-            var psi = new ProcessStartInfo
-            {
-                FileName = "dotnet",
-                Arguments = $"test \"{fullPath}\" --verbosity normal{filterArg}",
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                StandardOutputEncoding = Encoding.UTF8,
-                StandardErrorEncoding = Encoding.UTF8,
-                WorkingDirectory = workDir
-            };
-
-            using var process = new Process { StartInfo = psi };
-            if (!process.Start())
-            {
-                return ToolTelemetry.TraceAndReturn(
-                    toolName,
-                    "Failed to start `dotnet` process. Ensure the .NET SDK is on PATH.");
-            }
-
-            var stdoutTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
-            var stderrTask = process.StandardError.ReadToEndAsync(cancellationToken);
-            await process.WaitForExitAsync(cancellationToken);
-
-            var stdout = (await stdoutTask).TrimEnd();
-            var stderr = (await stderrTask).TrimEnd();
-            var combined = string.Join(
-                Environment.NewLine,
-                new[] { stdout, stderr }.Where(s => !string.IsNullOrEmpty(s)));
+            var targetPath = File.Exists(fullPath)
+                ? fullPath
+                : WorkspaceRootResolver.FindSolutionOrProjectInDirectory(fullPath) ?? fullPath;
+            var run = await DotNetCliRunner.RunWithMetadataAsync(
+                $"test \"{targetPath}\" --verbosity normal{filterArg}",
+                workDir,
+                cancellationToken).ConfigureAwait(false);
+            var combined = run.CombinedOutput;
+            var processExitCode = run.ExitCode;
 
             var summary = TryParseTestSummary(combined);
             var failures = ParseFailedTestBlocks(combined, MaxFailedTestDetails);
 
-            var markdown = BuildMarkdownSummary(summary, failures, process.ExitCode, combined, filter, filterDescription);
+            var markdown = BuildMarkdownSummary(summary, failures, processExitCode, combined, filter, filterDescription);
             return ToolTelemetry.TraceAndReturn(toolName, markdown);
         }
         catch (OperationCanceledException)

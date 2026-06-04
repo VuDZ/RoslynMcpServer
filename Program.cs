@@ -1,4 +1,3 @@
-using Microsoft.Build.Locator;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Formatting;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -6,38 +5,13 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using RoslynMcpServer.Diagnostics;
+using RoslynMcpServer.Hosting;
 using RoslynMcpServer.Tools;
 using Serilog;
 using System.Reflection;
 
-// --- MSBuild Locator (explicit VS 17+ preference) ---
-var instances = MSBuildLocator.QueryVisualStudioInstances().ToList();
-
-var queriedLines = new List<string>();
-foreach (var i in instances)
-{
-    var detail =
-        $"{i.Name} ({i.Version}) at {i.MSBuildPath}, VisualStudioRootPath={i.VisualStudioRootPath}";
-    Console.Error.WriteLine($"[DEBUG] Found MSBuild: {detail}");
-    queriedLines.Add(detail);
-}
-
-MsBuildEnvironmentInfo.QueriedInstanceLines = queriedLines;
-
-var instance = instances.FirstOrDefault(i => i.Version.Major >= 17) ?? instances.FirstOrDefault();
-
-if (instance is not null)
-{
-    MSBuildLocator.RegisterInstance(instance);
-    Console.Error.WriteLine($"[DEBUG] Using MSBuild from: {instance.MSBuildPath}");
-}
-else
-{
-    Console.Error.WriteLine("[WARN] No MSBuild instance from QueryVisualStudioInstances; falling back to RegisterDefaults.");
-    MSBuildLocator.RegisterDefaults();
-}
-
-MsBuildEnvironmentInfo.RefreshRegisteredInstance();
+// MSBuild path must match process bitness (64-bit MCP + x86 SDK → BadImageFormatException).
+MsBuildBootstrapper.Register();
 
 // Force-load C# language / workspace assemblies before any Roslyn workspace use
 try
@@ -75,30 +49,10 @@ builder.Services.AddSerilog((_, configuration) =>
             shared: true);
 });
 
-// Add the MCP services: the transport to use (stdio) and the tools to register.
-// Inbound JSON-RPC logging: see McpInboundProtocolLogger (env MCP_LOG_INCOMING_RPC=0 to disable).
+// MCP stdio transport + tools (see RoslynMcpServiceCollectionExtensions).
 builder.Services
-    .AddMcpServer(o => McpInboundProtocolLogger.Register(o))
-    .WithStdioServerTransport()
-    .WithTools<RoslynTools>()
-    .WithTools<WorkspaceTools>()
-    .WithTools<CodeAnalysisTools>()
-    .WithTools<CodeFixTools>()
-    .WithTools<CodeSkeletonTools>()
-    .WithTools<NavigationTools>()
-    .WithTools<RefactoringTools>()
-    .WithTools<AstTools>()
-    .WithTools<EditingTools>()
-    .WithTools<BuildTools>()
-    .WithTools<TestTools>()
-    .WithTools<NuGetTools>()
-    .WithTools<ProjectTools>()
-    .WithTools<UtilityTools>()
-    .WithTools<ServerLifecycleTools>()
+    .AddRoslynMcpServerTools()
     .WithPrompts<BasicPrompts>();
-
-// Single long-lived Roslyn workspace + solution cache for the MCP process.
-builder.Services.AddSingleton<SolutionManager>();
 
 await builder.Build().RunAsync();
 
