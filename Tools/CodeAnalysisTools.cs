@@ -151,7 +151,7 @@ public sealed class CodeAnalysisTools
 
             var dllPath = resolved.DllPath!;
             cancellationToken.ThrowIfCancellationRequested();
-            var decompiler = new CSharpDecompiler(dllPath, new DecompilerSettings());
+            var decompiler = DecompilerHost.Create(dllPath);
 
             var visibleTopLevelTypes = decompiler.TypeSystem.MainModule.TopLevelTypeDefinitions
                 .Where(static typeDef => IsVisibleClassOrInterface(typeDef))
@@ -203,7 +203,7 @@ public sealed class CodeAnalysisTools
             return Task.FromResult(
                 ToolTelemetry.TraceAndReturn(
                     nameof(ExploreAssembly),
-                    $"Failed to explore assembly: {ex.Message}"));
+                    FormatDecompilerToolError(assemblyName, assemblyPath, "Failed to explore assembly", ex)));
         }
     }
 
@@ -234,7 +234,7 @@ public sealed class CodeAnalysisTools
 
             var dllPath = resolved.DllPath!;
             cancellationToken.ThrowIfCancellationRequested();
-            var decompiler = new CSharpDecompiler(dllPath, new DecompilerSettings());
+            var decompiler = DecompilerHost.Create(dllPath);
             var typeInfo = decompiler.TypeSystem.MainModule.Compilation.FindType(new FullTypeName(fullTypeName));
             var typeDefinition = typeInfo?.GetDefinition();
             if (typeDefinition is null)
@@ -284,7 +284,7 @@ public sealed class CodeAnalysisTools
             return Task.FromResult(
                 ToolTelemetry.TraceAndReturn(
                     nameof(DecompileType),
-                    $"Failed to decompile type `{fullTypeName}` from `{assemblyName}`: {ex.Message}"));
+                    FormatDecompilerToolError(assemblyName, assemblyPath, $"Failed to decompile type `{fullTypeName}`", ex)));
         }
     }
 
@@ -313,7 +313,7 @@ public sealed class CodeAnalysisTools
 
             var dllPath = resolved.DllPath!;
             cancellationToken.ThrowIfCancellationRequested();
-            var decompiler = new CSharpDecompiler(dllPath, new DecompilerSettings());
+            var decompiler = DecompilerHost.Create(dllPath);
             var typeInfo = decompiler.TypeSystem.MainModule.Compilation.FindType(new FullTypeName(fullTypeName));
             var typeDefinition = typeInfo?.GetDefinition();
             if (typeDefinition is null)
@@ -430,7 +430,7 @@ public sealed class CodeAnalysisTools
             return Task.FromResult(
                 ToolTelemetry.TraceAndReturn(
                     nameof(GetDecompiledClassSkeleton),
-                    $"Failed to build skeleton for `{fullTypeName}` from `{assemblyName}`: {ex.Message}"));
+                    FormatDecompilerToolError(assemblyName, assemblyPath, $"Failed to build skeleton for `{fullTypeName}`", ex)));
         }
     }
 
@@ -465,7 +465,7 @@ public sealed class CodeAnalysisTools
 
             var dllPath = resolved.DllPath!;
             cancellationToken.ThrowIfCancellationRequested();
-            var decompiler = new CSharpDecompiler(dllPath, new DecompilerSettings());
+            var decompiler = DecompilerHost.Create(dllPath);
             var typeInfo = decompiler.TypeSystem.MainModule.Compilation.FindType(new FullTypeName(fullTypeName));
             var typeDefinition = typeInfo?.GetDefinition();
             if (typeDefinition is null)
@@ -526,8 +526,27 @@ public sealed class CodeAnalysisTools
             return Task.FromResult(
                 ToolTelemetry.TraceAndReturn(
                     nameof(GetDecompiledMethodBody),
-                    $"Failed to decompile method `{methodName}` from `{fullTypeName}` (`{assemblyName}`): {ex.Message}"));
+                    FormatDecompilerToolError(
+                        assemblyName,
+                        assemblyPath,
+                        $"Failed to decompile method `{methodName}` from `{fullTypeName}`",
+                        ex)));
         }
+    }
+
+    private static string FormatDecompilerToolError(
+        string? assemblyName,
+        string? assemblyPath,
+        string preamble,
+        Exception ex)
+    {
+        var dllHint = !string.IsNullOrWhiteSpace(assemblyPath)
+            ? Path.GetFullPath(assemblyPath.Trim())
+            : assemblyName;
+        var detail = !string.IsNullOrWhiteSpace(assemblyPath)
+            ? DecompilerHost.FormatResolveError(ex, Path.GetFullPath(assemblyPath.Trim()), null)
+            : ex.Message;
+        return $"{preamble} from `{dllHint}`: {detail}";
     }
 
     private static bool IsCompilerGeneratedName(string value)

@@ -34,4 +34,5 @@ public sealed class AssemblyReferenceResolverTests
         Assert.False(result.Success);
         Assert.Contains("assemblyName", result.ErrorMessage!, StringComparison.Ordinal);
     }
+
 }
