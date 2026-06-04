@@ -3,6 +3,7 @@
   - English: section "Agent Initialization" → expandable &lt;details&gt; block
   - Russian: section "Cursor: как заставить агента…" → same body inside &lt;details&gt;
   When you change agent rules, update this file and those README sections together.
+  Tool history: CHANGELOG_AGENT_TOOLS.md in RoslynMcpServer repo.
   Copy into application repos as AGENTS.md — no machine-specific paths.
 -->
 
@@ -12,7 +13,7 @@ You are a Senior C# Developer and Architect. You have access to a specialized Ro
 
 ## Quick path (read this first)
 
-1. **Read-only** (where is X? explain code): `load_workspace` once → then `find_symbol_definition` / `get_class_skeleton` / host **Grep** for plain text.
+1. **Read-only** (where is X? explain code): `load_workspace` → then `find_symbol_definition` / `get_class_skeleton` / host **Grep** for plain text. If unsure whether the workspace is loaded in this chat, call `load_workspace` anyway (idempotent).
 2. **Editing / build / test / run**: full init (below) → MCP tools only for `dotnet` (no shell `dotnet build`).
 3. **C# symbols** (types, interfaces, methods): MCP after `load_workspace` — prefer `find_usages` by `symbolName`; host Grep for strings/comments only.
 4. **Secrets**: never copy PAT/passwords into chat or commits; use env / user-secrets (see §7).
@@ -22,13 +23,13 @@ You are a Senior C# Developer and Architect. You have access to a specialized Ro
 
 ## Full init (before code changes, build, test, or decompile)
 
-Perform silently when the user asks you to **edit**, **refactor**, **build**, **test**, or **run** the app — not for a one-line read-only answer if `load_workspace` already ran in this chat.
+Perform silently when the user asks you to **edit**, **refactor**, **build**, **test**, or **run** the app — not for a one-line read-only answer if `load_workspace` already succeeded in this chat.
 
 1. *(Optional)* List MCP tools if unsure what is available.
-2. **Required:** `load_workspace` with `workspacePath` = absolute path to this repo's `.sln` or entry `.csproj` (IDE workspace root or `list_directory_tree` — **never** hardcode paths from docs or other machines). Without this, Roslyn symbol tools hallucinate.
+2. **Required:** `load_workspace` with `workspacePath` = absolute path to this repo's `.sln` or entry `.csproj` (IDE workspace root or `list_directory_tree` — **never** hardcode paths from docs or other machines). Without this, Roslyn symbol tools hallucinate. Safe to call again if unsure (idempotent).
 3. *(Optional)* `manage_agent_scratchpad` `action: read` if you use the scratchpad.
 
-Set `ROSLYN_MCP_WORKSPACE` in MCP config to this **repo root** (folder with `global.json`) when present.
+The `load_workspace` response includes a **workspace health** summary (SDK pin, restore assets, tool count). Set `ROSLYN_MCP_WORKSPACE` in MCP config to this **repo root** (folder with `global.json`) when present.
 
 ---
 
@@ -47,11 +48,11 @@ If `find_usages` returns ambiguous results for a common name, narrow with `find_
 
 NEVER use raw shell `dotnet build` / `dotnet test` — use MCP parsers (structured errors, SDK pinning).
 
-- **Build:** `run_dotnet_build` — read parsed errors and **Key lines**, not only `0 Error(s)`.
+- **Build:** `run_dotnet_build` — read parsed errors and **Key lines**, not only `0 Error(s)`. If you see **`MCP_MSBUILD_SDK_MISMATCH`** or MSBuild/SDK version in the log disagrees with `global.json`, fix the **environment** (SDK install, `ROSLYN_MCP_WORKSPACE`, 64-bit dotnet) before changing application code.
 - **Test:** `run_dotnet_test` or `run_specific_test` — do not hand-write VSTest `--filter` in shell.
-- **Run console:** `run_dotnet_run` on the executable `.csproj` + args after `--`; stderr tail for progress; do not paste huge stdout into chat.
+- **Run console:** `run_dotnet_run` on the executable `.csproj` + args after `--` (see project README for which project and sample args); stderr tail for progress; do not paste huge stdout into chat.
 - **NuGet audit:** `run_nuget_audit` — separate from compile failures in `run_dotnet_build`.
-- **Before commit message:** `get_changed_files` (MCP). Shell `git commit` per user/project rules is still OK; MCP supplements `git status` for scope.
+- **Before commit message:** `get_changed_files` (MCP) for changed paths and suggested test projects; use host or shell **`git diff`** for commit body when user rules allow shell git. MCP does not return a full diff.
 
 On Windows PowerShell 5.x use `;` between commands, not `&&`.
 
@@ -72,6 +73,7 @@ Before editing: `get_diagnostics_for_file`, `get_code_fixes` + `apply_code_fix` 
 - `search_nuget_registry`, `list_nuget_packages` before changing `.csproj`.
 - `explore_assembly` / `decompile_type` / skeleton tools with `assemblyName` (after `load_workspace`) or `assemblyPath` — one of them required.
 - Do not guess NuGet or DLL APIs; read decompiled output first.
+- For **`Microsoft.TeamFoundation.*`** / **`VssConnection`**: decompile **`Microsoft.VisualStudio.Services.WebApi`** (or the assembly named in the project graph) and do **not** assume cloud **`CreateAsync(organization)`** — on-prem uses the **collection URI** and Windows or PAT credentials. Pattern only; no hardcoded paths.
 
 ---
 
@@ -100,12 +102,23 @@ On tool failure: read the message, fix parameters, retry MCP — do not fall bac
 
 ---
 
-## 8. BrqMover-style workflow (example, any similar app)
+## 8. Application repo obligations (per project)
+
+Each application repository that uses this MCP server **should** ship:
+
+| Where | Content |
+|-------|---------|
+| **README** «Agent» section (or dedicated doc) | Executable `.csproj` for `run_dotnet_run`, sample CLI args, `global.json` SDK pin if any |
+| **`.cursor/rules`** (optional) | Integration notes: TFS on-prem vs Azure DevOps, HTTP base URLs, secrets env var **names** (not values) |
+
+Generic `AGENTS.md` stays portable; without project README/rules, agents lack run targets and integration context.
+
+### Example workflow (any app with similar layout)
 
 | Task | Tools |
 |------|--------|
 | Audit interface + DI | `find_usages` on `I*` → check `Program.cs` / `ServiceCollectionExtensions` |
-| Smoke console | `run_dotnet_run` + URL args → tail stderr + short stdout excerpt |
-| Commit scope | `get_changed_files` → suggested test projects |
+| Smoke console | `run_dotnet_run` + README sample args → tail stderr + short stdout excerpt |
+| Commit scope | `get_changed_files` + `git diff` when allowed |
 
-Project-specific URLs, assembly names, and on-prem TFS patterns belong in **README** or **`.cursor/rules`**, not in this generic `AGENTS.md`.
+See **CHANGELOG_AGENT_TOOLS.md** in the RoslynMcpServer repo for implemented tools by version.
