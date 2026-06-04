@@ -17,6 +17,7 @@ public static class McpToolRegistry
         typeof(AstTools),
         typeof(EditingTools),
         typeof(BuildTools),
+        typeof(RunTools),
         typeof(TestTools),
         typeof(NuGetTools),
         typeof(ProjectTools),

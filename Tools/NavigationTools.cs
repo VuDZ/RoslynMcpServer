@@ -31,7 +31,9 @@ public sealed class NavigationTools
     }
 
     [McpServerTool(Name = "find_symbol_references", Title = "Find symbol references")]
-    [Description("Finds all usages of a class, interface, or method across the entire solution. CRITICAL for safe refactoring.")]
+    [Description(
+        "Alias for find_references: finds all usages of a class, interface, or method when you know the declaring `.cs` file. "
+        + "For solution-wide search by simple name use `find_usages`. CRITICAL for safe refactoring and DI registration audits.")]
     public async Task<string> FindSymbolReferences(
         [Description("Path to a .cs file (same JSON key `filePath` as get_file_content / get_diagnostics_for_file).")]
         string filePath,
@@ -255,7 +257,7 @@ public sealed class NavigationTools
 
     [McpServerTool(Name = "find_usages", Title = "Find symbol usages across solution")]
     [Description(
-        "Semantically searches the **entire loaded Roslyn solution** for references and invocations of a symbol whose declared name matches `symbolName` (case-insensitive). "
+        "Alias for find_references (solution-wide): semantically searches the **entire loaded Roslyn solution** for references and invocations of a symbol whose declared name matches `symbolName` (case-insensitive). "
         + "Returns grouped **file paths**, **1-based line numbers**, and the **actual source line text** at each reference so you can see how project utilities, types, or members are used in context. "
         + "Use this to learn usage patterns for classes, methods, properties, etc. Call `load_workspace` first. "
         + "If several declarations share the same simple name, the tool picks a single primary symbol (types preferred over methods/properties, then stable ordering by fully-qualified name); narrow `symbolName` or use `find_symbol_definition` / `find_symbol_references` with a known file when needed. "

@@ -4,6 +4,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Server;
 using RoslynMcpServer.Diagnostics;
+using RoslynMcpServer.Services;
 
 namespace RoslynMcpServer.Tools;
 
@@ -53,6 +54,8 @@ public sealed class WorkspaceTools
         }
 
         var sb = new StringBuilder();
+        sb.AppendLine(WorkspaceHealthReporter.BuildHealthSection(workspacePath, solution));
+        sb.AppendLine();
         sb.AppendLine($"Successfully loaded workspace. Found {projectCount} projects:");
         foreach (var project in projects.OrderBy(p => p.Name, StringComparer.OrdinalIgnoreCase))
         {

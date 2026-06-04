@@ -12,6 +12,14 @@ public static class DotNetCliRunner
         int StdOutLength,
         int StdErrLength);
 
+    public sealed record SeparatedRunResult(
+        int ExitCode,
+        string StdOut,
+        string StdErr,
+        string RunMetadata,
+        bool TimedOut,
+        string? ExceptionType);
+
     public static async Task<(int ExitCode, string CombinedOutput)> RunAsync(
         string arguments,
         string? workingDirectory,
@@ -19,6 +27,122 @@ public static class DotNetCliRunner
     {
         var result = await RunWithMetadataAsync(arguments, workingDirectory, cancellationToken).ConfigureAwait(false);
         return (result.ExitCode, result.CombinedOutput);
+    }
+
+    public static async Task<SeparatedRunResult> RunSeparatedAsync(
+        string arguments,
+        string? workingDirectory,
+        TimeSpan? timeout = null,
+        CancellationToken cancellationToken = default)
+    {
+        var workDir = string.IsNullOrWhiteSpace(workingDirectory)
+            ? Environment.CurrentDirectory
+            : Path.GetFullPath(workingDirectory);
+
+        var dotnet = DotNetHostResolver.ResolveDotNetExecutable();
+        var psi = new ProcessStartInfo
+        {
+            FileName = dotnet,
+            Arguments = arguments,
+            WorkingDirectory = workDir,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            StandardOutputEncoding = Encoding.UTF8,
+            StandardErrorEncoding = Encoding.UTF8
+        };
+
+        DotNetSdkEnvironment.ApplyPinnedSdk(psi, workDir);
+
+        using var process = new Process { StartInfo = psi };
+        if (!process.Start())
+        {
+            throw new InvalidOperationException(
+                $"Failed to start `{dotnet}`. Ensure a 64-bit .NET SDK is installed under Program Files\\dotnet.");
+        }
+
+        CancellationTokenSource? timeoutCts = null;
+        if (timeout.HasValue && timeout.Value > TimeSpan.Zero)
+        {
+            timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(timeout.Value);
+        }
+
+        using (timeoutCts)
+        {
+            var token = timeoutCts?.Token ?? cancellationToken;
+            var timedOut = false;
+            string? exceptionType = null;
+
+            try
+            {
+                var stdoutTask = process.StandardOutput.ReadToEndAsync(token);
+                var stderrTask = process.StandardError.ReadToEndAsync(token);
+                await process.WaitForExitAsync(token).ConfigureAwait(false);
+                var stdout = (await stdoutTask.ConfigureAwait(false)).TrimEnd();
+                var stderr = (await stderrTask.ConfigureAwait(false)).TrimEnd();
+                var metadata = await CreateRunMetadataAsync(workDir, string.Join('\n', stdout, stderr), token)
+                    .ConfigureAwait(false);
+
+                return new SeparatedRunResult(process.ExitCode, stdout, stderr, metadata, false, null);
+            }
+            catch (OperationCanceledException) when (timeoutCts is not null && timeoutCts.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
+            {
+                timedOut = true;
+                try
+                {
+                    if (!process.HasExited)
+                    {
+                        process.Kill(entireProcessTree: true);
+                    }
+                }
+                catch
+                {
+                    // best effort
+                }
+            }
+            catch (Exception ex)
+            {
+                exceptionType = ex.GetType().Name;
+                try
+                {
+                    if (!process.HasExited)
+                    {
+                        process.Kill(entireProcessTree: true);
+                    }
+                }
+                catch
+                {
+                    // best effort
+                }
+            }
+
+            string partialStdout = string.Empty;
+            string partialStderr = string.Empty;
+            try
+            {
+                partialStdout = await process.StandardOutput.ReadToEndAsync(CancellationToken.None).ConfigureAwait(false);
+                partialStderr = await process.StandardError.ReadToEndAsync(CancellationToken.None).ConfigureAwait(false);
+            }
+            catch
+            {
+                // ignore
+            }
+
+            partialStdout = partialStdout.TrimEnd();
+            partialStderr = partialStderr.TrimEnd();
+            var meta = await CreateRunMetadataAsync(workDir, string.Join('\n', partialStdout, partialStderr), CancellationToken.None)
+                .ConfigureAwait(false);
+
+            return new SeparatedRunResult(
+                process.HasExited ? process.ExitCode : -1,
+                partialStdout,
+                partialStderr,
+                meta,
+                timedOut,
+                exceptionType);
+        }
     }
 
     public static async Task<RunResult> RunWithMetadataAsync(

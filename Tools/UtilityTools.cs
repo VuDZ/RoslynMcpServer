@@ -37,7 +37,9 @@ public sealed class UtilityTools
     }
 
     [McpServerTool(Name = "execute_dotnet_command", Title = "ExecuteDotNetCommand")]
-    [Description("Executes `dotnet {command}` in the target directory, waits for process completion, and returns formatted combined output from standard output and standard error.")]
+    [Description(
+        "Executes `dotnet {command}` with pinned SDK (global.json). Prefer `run_dotnet_build`, `run_dotnet_test`, or `run_dotnet_run` when applicable. "
+        + "On Windows PowerShell 5.x use `;` between commands, not `&&`.")]
     public async Task<string> ExecuteDotNetCommand(
         [Description("Arguments passed after `dotnet`, for example: `test`, `build`, or `add package Moq`.")] string command,
         [Description("Optional working directory for the command. If omitted or empty, `Environment.CurrentDirectory` is used.")] string? workingDirectory = null,
@@ -60,60 +62,29 @@ public sealed class UtilityTools
                     $"Working directory not found: `{fullWorkingDirectory}`");
             }
 
-            var psi = new ProcessStartInfo
-            {
-                FileName = DotNetHostResolver.ResolveDotNetExecutable(),
-                Arguments = command,
-                WorkingDirectory = fullWorkingDirectory,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                StandardOutputEncoding = Encoding.UTF8,
-                StandardErrorEncoding = Encoding.UTF8
-            };
+            var workDir = WorkspaceRootResolver.ResolveDotNetWorkingDirectory(fullWorkingDirectory);
+            var run = await DotNetCliRunner.RunSeparatedAsync(command.Trim(), workDir, timeout: null, cancellationToken)
+                .ConfigureAwait(false);
 
-            using var process = new Process { StartInfo = psi };
-            if (!process.Start())
-            {
-                return ToolTelemetry.TraceAndReturn(
-                    nameof(ExecuteDotNetCommand),
-                    "Failed to start `dotnet` process. Ensure .NET SDK is on PATH.");
-            }
-
-            var stdoutTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
-            var stderrTask = process.StandardError.ReadToEndAsync(cancellationToken);
-            await process.WaitForExitAsync(cancellationToken);
-
-            var stdout = (await stdoutTask).TrimEnd();
-            var stderr = (await stderrTask).TrimEnd();
+            var stdoutExcerpt = ProcessOutputExcerpt.BuildStdoutExcerpt(run.StdOut, 6000);
+            var stderrExcerpt = ProcessOutputExcerpt.BuildStderrExcerpt(run.StdErr, 2000);
 
             var sb = new StringBuilder();
-            sb.AppendLine($"Command: `dotnet {command}`");
-            sb.AppendLine($"WorkingDirectory: `{fullWorkingDirectory}`");
-            sb.AppendLine($"ExitCode: `{process.ExitCode}`");
-            sb.AppendLine(process.ExitCode == 0
-                ? "Status: SUCCESS"
-                : "Status: FAILED (non-zero exit code)");
-            if (!string.IsNullOrWhiteSpace(stdout))
+            sb.AppendLine("## dotnet command");
+            sb.AppendLine();
+            foreach (var line in run.RunMetadata.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries))
             {
-                sb.AppendLine();
-                sb.AppendLine("StdOut:");
-                sb.AppendLine(stdout);
+                sb.AppendLine(line);
             }
 
-            if (!string.IsNullOrWhiteSpace(stderr))
-            {
-                sb.AppendLine();
-                sb.AppendLine("StdErr:");
-                sb.AppendLine(stderr);
-            }
-
-            if (process.ExitCode != 0 && string.IsNullOrWhiteSpace(stderr))
-            {
-                sb.AppendLine();
-                sb.AppendLine("StdErr: (empty)");
-            }
+            sb.AppendLine($"- **Command:** `dotnet {command.Trim()}`");
+            sb.AppendLine($"- **Exit code:** `{run.ExitCode}`");
+            sb.AppendLine();
+            sb.AppendLine("### StdOut");
+            sb.AppendLine(string.IsNullOrEmpty(stdoutExcerpt) ? "(empty)" : "```text\n" + stdoutExcerpt + "\n```");
+            sb.AppendLine();
+            sb.AppendLine("### StdErr");
+            sb.AppendLine(string.IsNullOrEmpty(stderrExcerpt) ? "(empty)" : "```text\n" + stderrExcerpt + "\n```");
 
             return ToolTelemetry.TraceAndReturn(nameof(ExecuteDotNetCommand), sb.ToString().TrimEnd());
         }
@@ -126,6 +97,107 @@ public sealed class UtilityTools
             _logger.LogError(ex, "ExecuteDotNetCommand failed for command {Command} in {WorkingDirectory}", command, workingDirectory);
             return ToolTelemetry.TraceAndReturn(nameof(ExecuteDotNetCommand), $"Failed to run `dotnet {command}`: {ex.Message}");
         }
+    }
+
+    [McpServerTool(Name = "get_changed_files", Title = "Get changed files (git)")]
+    [Description(
+        "Lists git changed/untracked files under the repository root (for commit messages and scoped testing). "
+        + "Suggests test projects when a workspace is loaded. Does not return file diffs — use the host git tools for patches.")]
+    public async Task<string> GetChangedFiles(
+        [Description("Optional path to .sln/.csproj or repo directory. When omitted, uses loaded workspace or current directory.")]
+        string? workspacePath = null,
+        CancellationToken cancellationToken = default)
+    {
+        const string toolName = nameof(GetChangedFiles);
+
+        try
+        {
+            var anchor = ResolveGitAnchorPath(workspacePath);
+            var repoRoot = GitChangedFilesHelper.FindRepositoryRoot(anchor);
+            if (repoRoot is null)
+            {
+                return ToolTelemetry.TraceAndReturn(toolName, $"Error: No git repository found from `{anchor}`.");
+            }
+
+            var status = await GitChangedFilesHelper.RunGitAsync(repoRoot, "status --porcelain", cancellationToken)
+                .ConfigureAwait(false);
+            if (!status.Success)
+            {
+                return ToolTelemetry.TraceAndReturn(toolName, $"git status failed: {status.Error}");
+            }
+
+            var changed = GitChangedFilesHelper.ParsePorcelainStatus(status.Output);
+            var solution = _solutionManager.GetCurrentSolution();
+            var relativePaths = changed.Select(c => c.Path).ToList();
+            var testSuggestions = GitChangedFilesHelper.SuggestTestProjects(solution, relativePaths);
+
+            var sb = new StringBuilder();
+            sb.AppendLine("## Git changed files");
+            sb.AppendLine();
+            sb.AppendLine($"- **Repository:** `{repoRoot}`");
+            sb.AppendLine($"- **Changed/untracked:** {changed.Count}");
+            sb.AppendLine();
+
+            if (changed.Count == 0)
+            {
+                sb.AppendLine("Working tree clean (no porcelain entries).");
+            }
+            else
+            {
+                sb.AppendLine("| Status | Path |");
+                sb.AppendLine("| --- | --- |");
+                foreach (var file in changed.Take(80))
+                {
+                    sb.AppendLine($"| {file.Status} | `{file.Path}` |");
+                }
+
+                if (changed.Count > 80)
+                {
+                    sb.AppendLine();
+                    sb.AppendLine($"[!] Showing first 80 of {changed.Count} paths.");
+                }
+            }
+
+            if (testSuggestions.Count > 0)
+            {
+                sb.AppendLine();
+                sb.AppendLine("### Suggested test projects (heuristic)");
+                foreach (var testProj in testSuggestions)
+                {
+                    sb.AppendLine($"- `{testProj}`");
+                }
+            }
+
+            sb.AppendLine();
+            sb.AppendLine("> On Windows PowerShell 5.x chain commands with `;`, not `&&`.");
+            return ToolTelemetry.TraceAndReturn(toolName, sb.ToString().TrimEnd());
+        }
+        catch (OperationCanceledException)
+        {
+            return ToolTelemetry.TraceAndReturn(toolName, "`get_changed_files` was cancelled.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "GetChangedFiles failed");
+            return ToolTelemetry.TraceAndReturn(toolName, $"Error: {ex.Message}");
+        }
+    }
+
+    private string ResolveGitAnchorPath(string? workspacePath)
+    {
+        if (!string.IsNullOrWhiteSpace(workspacePath))
+        {
+            return Path.GetFullPath(workspacePath.Trim());
+        }
+
+        var solution = _solutionManager.GetCurrentSolution();
+        var firstProject = solution?.Projects.FirstOrDefault(p => !string.IsNullOrWhiteSpace(p.FilePath));
+        if (firstProject?.FilePath is not null)
+        {
+            return firstProject.FilePath;
+        }
+
+        return Environment.CurrentDirectory;
     }
 
     [McpServerTool(Name = "list_directory_tree", Title = "ListDirectoryTree")]

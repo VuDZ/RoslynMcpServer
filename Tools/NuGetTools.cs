@@ -119,6 +119,74 @@ public sealed class NuGetTools
         }
     }
 
+    [McpServerTool(Name = "run_nuget_audit", Title = "Run NuGet vulnerability audit")]
+    [Description(
+        "Runs `dotnet list package --vulnerable --include-transitive` and returns a compact table "
+        + "(severity, package, version, project, GHSA/advisory URL). Separate from compile errors in `run_dotnet_build`.")]
+    public async Task<string> RunNuGetAudit(
+        [Description("Path to .sln, .csproj, or directory (same as run_dotnet_build / load_workspace).")]
+        string workspacePath,
+        [Description("Maximum vulnerable entries in the table. Default 40.")]
+        int maxEntries = 40,
+        CancellationToken cancellationToken = default)
+    {
+        const string toolName = nameof(RunNuGetAudit);
+
+        try
+        {
+            if (string.IsNullOrWhiteSpace(workspacePath))
+            {
+                return ToolTelemetry.TraceAndReturn(toolName, "Error: `workspacePath` is empty.");
+            }
+
+            var fullPath = Path.GetFullPath(workspacePath);
+            if (!File.Exists(fullPath) && !Directory.Exists(fullPath))
+            {
+                return ToolTelemetry.TraceAndReturn(toolName, $"Error: Path not found: `{fullPath}`");
+            }
+
+            var args = new StringBuilder("list \"");
+            args.Append(fullPath);
+            args.Append("\" package --vulnerable --include-transitive --format json");
+
+            var workingDirectory = Directory.Exists(fullPath)
+                ? fullPath
+                : WorkspaceRootResolver.ResolveDotNetWorkingDirectory(fullPath);
+
+            var (exitCode, output) = await DotNetCliRunner.RunAsync(
+                args.ToString(),
+                workingDirectory,
+                cancellationToken).ConfigureAwait(false);
+
+            if (exitCode != 0)
+            {
+                return ToolTelemetry.TraceAndReturn(
+                    toolName,
+                    $"`dotnet list package --vulnerable` failed (exit code {exitCode}).\n\n{output}");
+            }
+
+            if (!TryPrettyPrintJson(output, out _))
+            {
+                return ToolTelemetry.TraceAndReturn(
+                    toolName,
+                    $"Unexpected output (not JSON).\n\n{output}");
+            }
+
+            var entries = NuGetAuditReportParser.Parse(output);
+            var report = NuGetAuditReportParser.FormatMarkdownReport(fullPath, entries, maxEntries);
+            return ToolTelemetry.TraceAndReturn(toolName, report);
+        }
+        catch (OperationCanceledException)
+        {
+            return ToolTelemetry.TraceAndReturn(toolName, "`run_nuget_audit` was cancelled.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "RunNuGetAudit failed for {WorkspacePath}", workspacePath);
+            return ToolTelemetry.TraceAndReturn(toolName, $"Failed NuGet audit: {ex.Message}");
+        }
+    }
+
     [McpServerTool(Name = "list_outdated_packages", Title = "List outdated NuGet packages")]
     [Description("Runs dotnet list package --outdated --format json.")]
     public Task<string> ListOutdatedPackages(
