@@ -241,6 +241,7 @@ There are **55** registered tools (see list below) and **1** MCP prompt (`Refact
 - `path: string` — absolute path to one `.cs` file or a folder to scan recursively.
 
 **Note:** Does not require `load_workspace`. For a file already in the loaded solution, `get_class_skeleton` may still be preferable (workspace-consistent view).
+**Important:** This tool is file/folder-only (`path`). Do **not** pass `assemblyName` / `typeName`; for external/NuGet assemblies use `decompile_type` / `get_decompiled_class_skeleton`.
 </details>
 
 <details>
@@ -951,6 +952,7 @@ Before editing any files, identify your host environment:
 - `path: string` — абсолютный путь к одному файлу `.cs` или к папке для рекурсивного обхода.
 
 **Заметка:** `load_workspace` не требуется. Для файла из уже загруженного solution по-прежнему уместен `get_class_skeleton`.
+**Важно:** этот tool работает только с путём к файлу/папке (`path`). Не передавайте сюда `assemblyName` / `typeName`; для внешних/NuGet-сборок используйте `decompile_type` / `get_decompiled_class_skeleton`.
 </details>
 
 <details>

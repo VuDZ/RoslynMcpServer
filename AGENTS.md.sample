@@ -73,6 +73,10 @@ Before editing: `get_diagnostics_for_file`, `get_code_fixes` + `apply_code_fix` 
 ## 4. Third-Party / NuGet / Decompilation
 
 - `search_nuget_registry`, `list_nuget_packages` before changing `.csproj`.
+- Tool mapping (avoid argument mixups):
+  - `get_code_skeleton(path=...)` → local `.cs` file/folder on disk.
+  - `decompile_type(assemblyName|assemblyPath, fullTypeName)` → external/NuGet assemblies.
+  - `get_decompiled_class_skeleton(...)` → signatures-only view for external assemblies.
 - `explore_assembly` / `decompile_type` / skeleton tools with `assemblyName` (after `load_workspace`) or `assemblyPath` — one of them required.
 - Do not guess NuGet or DLL APIs; read decompiled output first.
 - For **`Microsoft.TeamFoundation.*`** / **`VssConnection`**: decompile **`Microsoft.VisualStudio.Services.WebApi`** (or the assembly named in the project graph) and do **not** assume cloud **`CreateAsync(organization)`** — on-prem uses the **collection URI** and Windows or PAT credentials. Pattern only; no hardcoded paths.

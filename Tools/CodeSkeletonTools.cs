@@ -33,10 +33,11 @@ public sealed class CodeSkeletonTools
         "Parses C# source from disk (no workspace required) and returns only a **structural skeleton**: namespaces, types, fields, properties, and method/constructor **signatures**. "
         + "Method and constructor bodies are replaced with empty blocks `{ }`; expression-bodied members become block-bodied stubs; property accessors with implementations are reduced to auto-style `get;` / `set;` / `init;`. "
         + "Use this to grasp what a large `.cs` file or folder contains **without** loading full method bodies into the LLM context. "
-        + "Pass a single `.cs` file path, or a directory (recursive `.cs` discovery, skipping `bin`, `obj`, `Test`, and `Tests` segments; at most 20 files).")]
+        + "Pass a single `.cs` file path, or a directory (recursive `.cs` discovery, skipping `bin`, `obj`, `Test`, and `Tests` segments; at most 20 files). "
+        + "This tool does **not** accept `assemblyName` / `typeName`; for NuGet/third-party DLLs use `decompile_type` or `get_decompiled_class_skeleton`.")]
     public async Task<string> GetCodeSkeleton(
-        [Description("Absolute path to a `.cs` file or a directory to scan for `.cs` files.")]
-        string path,
+        [Description("Absolute path to a `.cs` file or a directory to scan for `.cs` files. Required; missing value returns a usage hint.")]
+        string? path = null,
         CancellationToken cancellationToken = default)
     {
         const string toolName = nameof(GetCodeSkeleton);
@@ -45,7 +46,10 @@ public sealed class CodeSkeletonTools
         {
             if (string.IsNullOrWhiteSpace(path))
             {
-                return ToolTelemetry.TraceAndReturn(toolName, "Error: `path` is empty.");
+                return ToolTelemetry.TraceAndReturn(
+                    toolName,
+                    "Error: `path` is required for `get_code_skeleton` (file or directory). "
+                    + "For assembly-based inspection use `decompile_type` / `get_decompiled_class_skeleton` with `assemblyName` or `assemblyPath`.");
             }
 
             var fullPath = Path.GetFullPath(path.Trim());
