@@ -140,7 +140,7 @@ public sealed class SolutionManager
             return null;
         }
 
-        var fullFilePath = Path.GetFullPath(filePath);
+        var fullFilePath = ResolvePathAgainstWorkspace(filePath);
         await _workspaceLock.WaitAsync(cancellationToken);
         try
         {
@@ -161,6 +161,36 @@ public sealed class SolutionManager
         {
             _workspaceLock.Release();
         }
+    }
+
+    /// <summary>
+    /// Resolves file paths against loaded workspace root when available.
+    /// Absolute paths are normalized and returned as-is.
+    /// </summary>
+    public string ResolvePathAgainstWorkspace(string filePath)
+    {
+        if (string.IsNullOrWhiteSpace(filePath))
+        {
+            return Path.GetFullPath(filePath ?? string.Empty);
+        }
+
+        var trimmed = filePath.Trim();
+        if (Path.IsPathRooted(trimmed))
+        {
+            return Path.GetFullPath(trimmed);
+        }
+
+        var loadedPath = _loadedPath;
+        if (!string.IsNullOrWhiteSpace(loadedPath))
+        {
+            var workspaceBaseDirectory = Path.GetDirectoryName(Path.GetFullPath(loadedPath));
+            if (!string.IsNullOrWhiteSpace(workspaceBaseDirectory))
+            {
+                return Path.GetFullPath(Path.Combine(workspaceBaseDirectory, trimmed));
+            }
+        }
+
+        return Path.GetFullPath(trimmed);
     }
 
     public Solution? GetCurrentSolution()

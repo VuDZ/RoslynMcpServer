@@ -101,7 +101,7 @@ public sealed class TestTools
     [McpServerTool(Name = "generate_test_method_stub", Title = "Generate test method stub")]
     [Description("Inserts a test method stub ([Fact]/[Test]/[TestMethod]) into a test class via Roslyn AST.")]
     public async Task<string> GenerateTestMethodStub(
-        string filePath,
+        [Description("Absolute or workspace-relative path to the test .cs file.")] string filePath,
         string className,
         string methodName,
         [Description("xunit (default), nunit, or mstest.")] string? testFramework = null,
@@ -110,7 +110,7 @@ public sealed class TestTools
         const string toolName = nameof(GenerateTestMethodStub);
         try
         {
-            var fullPath = Path.GetFullPath(filePath);
+            var fullPath = _solutionManager.ResolvePathAgainstWorkspace(filePath);
             var document = await _solutionManager.FindDocumentAsync(fullPath, cancellationToken).ConfigureAwait(false);
             if (document is null)
             {

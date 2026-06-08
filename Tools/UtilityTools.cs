@@ -239,7 +239,7 @@ public sealed class UtilityTools
     [McpServerTool(Name = "get_method_body", Title = "GetMethodBody")]
     [Description("Returns the source of one method in a named class (disambiguates overloads and duplicate names across types). Prefer this over reading the whole file for large sources.")]
     public async Task<string> GetMethodBody(
-        [Description("Absolute or relative path to the C# source file (same parameter name as get_file_content / read_file_range).")] string filePath,
+        [Description("Absolute path or workspace-relative path to the C# source file (same parameter name as get_file_content / read_file_range).")] string filePath,
         [Description("Class name containing the method")] string className,
         [Description("Method name to extract")] string methodName,
         CancellationToken cancellationToken = default)
@@ -261,7 +261,7 @@ public sealed class UtilityTools
                 return ToolTelemetry.TraceAndReturn(nameof(GetMethodBody), "Method name is empty.");
             }
 
-            var fullPath = Path.GetFullPath(filePath);
+            var fullPath = _solutionManager.ResolvePathAgainstWorkspace(filePath);
             if (!File.Exists(fullPath))
             {
                 return ToolTelemetry.TraceAndReturn(nameof(GetMethodBody), $"File not found: `{fullPath}`");
@@ -307,7 +307,7 @@ public sealed class UtilityTools
         "Reads the tail of a log file for LLM-safe diagnostics. Optionally filters lines by keyword (case-insensitive). "
         + "When `filePath` is omitted, reads the latest MCP server log (`logs/mcp-*.log`) — same as `tail_tool_log`.")]
     public async Task<string> ReadLogTail(
-        [Description("Absolute or relative path to the log file. Omit to read the latest MCP server log (logs/mcp-*.log).")] string? filePath = null,
+        [Description("Absolute path or workspace-relative path to the log file. Omit to read the latest MCP server log (logs/mcp-*.log).")] string? filePath = null,
         [Description("How many lines from the end of the result to return. Default is 200.")] int lastNLines = 200,
         [Description("Optional case-insensitive keyword to filter lines before taking the tail. Pass null or empty string to disable filtering.")] string? filterKeyword = null,
         CancellationToken cancellationToken = default)
@@ -324,7 +324,7 @@ public sealed class UtilityTools
                 return ToolTelemetry.TraceAndReturn(nameof(ReadLogTail), "`lastNLines` must be greater than 0.");
             }
 
-            var fullPath = Path.GetFullPath(filePath);
+            var fullPath = _solutionManager.ResolvePathAgainstWorkspace(filePath);
             if (!File.Exists(fullPath))
             {
                 return ToolTelemetry.TraceAndReturn(nameof(ReadLogTail), $"File not found: `{fullPath}`");
@@ -356,7 +356,7 @@ public sealed class UtilityTools
     [McpServerTool(Name = "read_file_range", Title = "ReadFileRange")]
     [Description("Reads a specific chunk of a text file to reduce LLM context usage. Returns up to `lineCount` lines starting from the 1-based `startLine`, with original line numbers included in the output.")]
     public Task<string> ReadFileRange(
-        [Description("Absolute or relative path to the target file (same parameter name as get_file_content).")] string filePath,
+        [Description("Absolute path or workspace-relative path to the target file (same parameter name as get_file_content).")] string filePath,
         [Description("1-based line number where reading should start (first line is 1).")] int startLine,
         [Description("Number of lines to read from the starting line. Must be greater than 0.")] int lineCount,
         CancellationToken cancellationToken = default)
@@ -378,7 +378,7 @@ public sealed class UtilityTools
                 return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(ReadFileRange), "Error: `lineCount` must be > 0."));
             }
 
-            var fullPath = Path.GetFullPath(filePath);
+            var fullPath = _solutionManager.ResolvePathAgainstWorkspace(filePath);
             if (!File.Exists(fullPath))
             {
                 return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(ReadFileRange), $"Error: File not found: `{fullPath}`"));
@@ -599,7 +599,7 @@ public sealed class UtilityTools
     [Description(
         "Replaces `oldString` with `newString` in a file (the only search-and-replace tool; use `replaceAll=false` for a single occurrence, `replaceAll=true` for all matches). Line endings are normalized for matching (`\\r\\n` → `\\n`); output preserves CRLF when the file used it. Tries exact match on normalized text first, then whitespace-tolerant token matching (string literals with internal spaces may not match).")]
     public async Task<string> ApplyPatch(
-        [Description("Absolute or relative path to the file that should be patched.")] string filePath,
+        [Description("Absolute path or workspace-relative path to the file that should be patched.")] string filePath,
         [Description("Source fragment to find (exact or whitespace-tolerant; see tool description).")] string oldString,
         [Description("Replacement text that will be inserted in place of the matched fragment(s).")] string newString,
         [Description("When true, replaces all occurrences. When false, replaces only the first occurrence for safer edits.")] bool replaceAll = false,
@@ -617,7 +617,7 @@ public sealed class UtilityTools
                 return ToolTelemetry.TraceAndReturn(nameof(ApplyPatch), "Error: `oldString` is empty.");
             }
 
-            var fullPath = Path.GetFullPath(filePath);
+            var fullPath = _solutionManager.ResolvePathAgainstWorkspace(filePath);
             if (!File.Exists(fullPath))
             {
                 return ToolTelemetry.TraceAndReturn(nameof(ApplyPatch), $"Error: File not found: `{fullPath}`");
@@ -779,7 +779,8 @@ public sealed class UtilityTools
                 return ToolTelemetry.TraceAndReturn(nameof(RenameSymbol), "Error: `scope` must be either `project` or `solution`.");
             }
 
-            var document = await _solutionManager.FindDocumentAsync(filePath, cancellationToken);
+            var fullPath = _solutionManager.ResolvePathAgainstWorkspace(filePath);
+            var document = await _solutionManager.FindDocumentAsync(fullPath, cancellationToken);
             if (document is null)
             {
                 _logger.LogWarning(
@@ -787,7 +788,7 @@ public sealed class UtilityTools
                     symbolName,
                     newName,
                     filePath);
-                return ToolTelemetry.TraceAndReturn(nameof(RenameSymbol), $"Error: Document not found in workspace: `{filePath}`");
+                return ToolTelemetry.TraceAndReturn(nameof(RenameSymbol), $"Error: Document not found in workspace: `{fullPath}`");
             }
 
             var root = await document.GetSyntaxRootAsync(cancellationToken);

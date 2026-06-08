@@ -34,7 +34,7 @@ public sealed class EditingTools
                 return ToolTelemetry.TraceAndReturn(nameof(WriteFile), "File path is empty.");
             }
 
-            var fullPath = Path.GetFullPath(filePath);
+            var fullPath = _solutionManager.ResolvePathAgainstWorkspace(filePath);
             var directory = Path.GetDirectoryName(fullPath);
             if (!string.IsNullOrEmpty(directory))
             {

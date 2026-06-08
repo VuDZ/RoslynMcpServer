@@ -8,10 +8,12 @@ namespace RoslynMcpServer.Tools;
 public sealed class RoslynTools
 {
     private readonly ILogger<RoslynTools> _logger;
+    private readonly SolutionManager _solutionManager;
 
-    public RoslynTools(ILogger<RoslynTools> logger)
+    public RoslynTools(ILogger<RoslynTools> logger, SolutionManager solutionManager)
     {
         _logger = logger;
+        _solutionManager = solutionManager;
     }
 
     [McpServerTool(Name = "get_file_content", Title = "Read source file")]
@@ -30,7 +32,7 @@ public sealed class RoslynTools
                 return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(GetFileContent), "Error: `filePath` is empty."));
             }
 
-            var fullPath = Path.GetFullPath(filePath);
+            var fullPath = _solutionManager.ResolvePathAgainstWorkspace(filePath);
             if (!File.Exists(fullPath))
             {
                 return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(GetFileContent), $"File not found: `{filePath}`"));
