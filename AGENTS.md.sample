@@ -30,6 +30,7 @@ Perform silently when the user asks you to **edit**, **refactor**, **build**, **
 3. *(Optional)* `manage_agent_scratchpad` `action: read` if you use the scratchpad.
 
 The `load_workspace` response includes a **workspace health** summary (SDK pin, restore assets, tool count). Set `ROSLYN_MCP_WORKSPACE` in MCP config to this **repo root** (folder with `global.json`) when present.
+For file-based MCP tools, relative `filePath` is resolved against the loaded workspace root when available (fallback: current process directory).
 
 ---
 

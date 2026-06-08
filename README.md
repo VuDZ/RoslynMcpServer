@@ -200,6 +200,8 @@ Before editing any files, identify your host environment:
 - `fixIndex` — 0-based index from `get_code_fixes` for `apply_code_fix`.
 - `path` — `.cs` file or directory for `get_code_skeleton` (absolute path; disk-based, no workspace required).
 
+When a tool accepts `filePath`, relative values are resolved against the loaded workspace root after `load_workspace`; if no workspace is loaded, fallback is `Environment.CurrentDirectory`.
+
 There are **55** registered tools (see list below) and **1** MCP prompt (`RefactoringAssistantPrompt`).
 
 ### Workspace / Roslyn
@@ -247,6 +249,8 @@ There are **55** registered tools (see list below) and **1** MCP prompt (`Refact
 - `filePath: string`
 - `className: string`
 - `methodName: string`
+
+**Path resolution:** `filePath` may be absolute or workspace-relative. After `load_workspace`, `src/...` is resolved from the loaded `.sln/.csproj` directory.
 </details>
 
 <details>
@@ -952,6 +956,8 @@ Before editing any files, identify your host environment:
 - `filePath: string`
 - `className: string`
 - `methodName: string`
+
+**Разрешение пути:** `filePath` может быть абсолютным или относительным к workspace. После `load_workspace` путь вида `src/...` считается от каталога загруженного `.sln/.csproj`.
 </details>
 
 <details>
