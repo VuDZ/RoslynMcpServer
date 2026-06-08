@@ -33,12 +33,13 @@ public sealed class CodeAnalysisTools
         string filePath,
         CancellationToken cancellationToken = default)
     {
-        var document = await _solutionManager.FindDocumentAsync(filePath, cancellationToken);
+        var fullPath = _solutionManager.ResolvePathAgainstWorkspace(filePath);
+        var document = await _solutionManager.FindDocumentAsync(fullPath, cancellationToken);
         if (document is null)
         {
             return ToolTelemetry.TraceAndReturn(
                 nameof(GetClassSkeleton),
-                $"The file was not found in the workspace: `{filePath}`. Load the solution or load_workspace first, or verify the path.");
+                $"The file was not found in the workspace: `{fullPath}`. Load the solution or load_workspace first, or verify the path.");
         }
 
         var semanticModel = await document.GetSemanticModelAsync(cancellationToken);
@@ -47,7 +48,7 @@ public sealed class CodeAnalysisTools
         {
             return ToolTelemetry.TraceAndReturn(
                 nameof(GetClassSkeleton),
-                $"Could not obtain semantic model or syntax tree for file: `{filePath}`.");
+                $"Could not obtain semantic model or syntax tree for file: `{fullPath}`.");
         }
 
         var walker = new ClassSkeletonWalker();
@@ -67,7 +68,7 @@ public sealed class CodeAnalysisTools
     [McpServerTool(Name = "get_diagnostics_for_file", Title = "Get diagnostics for file")]
     [Description("Returns Roslyn compiler diagnostics for a single C# file from the active workspace. Includes only Warning and Error diagnostics.")]
     public async Task<string> GetDiagnosticsForFile(
-        [Description("Absolute path to the target .cs file (same parameter name as get_file_content / find_symbol_references).")] string filePath,
+        [Description("Absolute or workspace-relative path to the target .cs file (same parameter name as get_file_content / find_symbol_references).")] string filePath,
         CancellationToken cancellationToken = default)
     {
         try
@@ -77,7 +78,7 @@ public sealed class CodeAnalysisTools
                 return ToolTelemetry.TraceAndReturn(nameof(GetDiagnosticsForFile), "Error: `filePath` is empty.");
             }
 
-            var fullPath = Path.GetFullPath(filePath);
+            var fullPath = _solutionManager.ResolvePathAgainstWorkspace(filePath);
             if (!string.Equals(Path.GetExtension(fullPath), ".cs", StringComparison.OrdinalIgnoreCase))
             {
                 return ToolTelemetry.TraceAndReturn(nameof(GetDiagnosticsForFile), $"Path must point to a .cs file: `{fullPath}`.");

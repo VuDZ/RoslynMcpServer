@@ -126,7 +126,7 @@ public sealed class AstTools
 
             return ToolTelemetry.TraceAndReturn(
                 toolName,
-                $"{successMessage} File: `{Path.GetFullPath(filePath)}`. Files touched: {writtenPaths.Count}.");
+                $"{successMessage} File: `{_solutionManager.ResolvePathAgainstWorkspace(filePath)}`. Files touched: {writtenPaths.Count}.");
         }
         catch (OperationCanceledException)
         {
@@ -148,7 +148,7 @@ public sealed class AstTools
             throw new ArgumentException("filePath is empty.");
         }
 
-        var fullPath = Path.GetFullPath(filePath);
+        var fullPath = _solutionManager.ResolvePathAgainstWorkspace(filePath);
         if (!string.Equals(Path.GetExtension(fullPath), ".cs", StringComparison.OrdinalIgnoreCase))
         {
             throw new ArgumentException($"Path must point to a .cs file: `{fullPath}`.");

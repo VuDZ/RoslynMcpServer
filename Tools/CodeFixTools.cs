@@ -24,7 +24,7 @@ public sealed class CodeFixTools
         "Call get_diagnostics_for_file first to obtain diagnosticId, line, and column. " +
         "Use the returned fixIndex with apply_code_fix. Prefer this over manually generating fix code.")]
     public async Task<string> GetCodeFixes(
-        [Description("Absolute path to the target .cs file.")] string filePath,
+        [Description("Absolute or workspace-relative path to the target .cs file.")] string filePath,
         [Description("Diagnostic id from get_diagnostics_for_file (e.g. CS0246, IDE0001).")] string diagnosticId,
         [Description("1-based line number where the diagnostic starts.")] int line,
         [Description("1-based column number where the diagnostic starts. Defaults to 1.")] int column = 1,
@@ -32,10 +32,11 @@ public sealed class CodeFixTools
     {
         try
         {
+            var resolvedPath = _solutionManager.ResolvePathAgainstWorkspace(filePath);
             var document = await ResolveDocumentAsync(filePath, cancellationToken);
             if (document is null)
             {
-                return ToolTelemetry.TraceAndReturn(nameof(GetCodeFixes), $"Document was not found in the active workspace: `{Path.GetFullPath(filePath)}`.");
+                return ToolTelemetry.TraceAndReturn(nameof(GetCodeFixes), $"Document was not found in the active workspace: `{resolvedPath}`.");
             }
 
             var fixes = await CodeFixHelper.GetFixesAsync(document, line, column, diagnosticId, cancellationToken);
@@ -43,11 +44,11 @@ public sealed class CodeFixTools
             {
                 return ToolTelemetry.TraceAndReturn(
                     nameof(GetCodeFixes),
-                    $"No code fixes found for diagnostic `{diagnosticId}` at line {line}, column {column} in `{Path.GetFullPath(filePath)}`.");
+                    $"No code fixes found for diagnostic `{diagnosticId}` at line {line}, column {column} in `{resolvedPath}`.");
             }
 
             var sb = new StringBuilder();
-            sb.AppendLine($"File: `{Path.GetFullPath(filePath)}`");
+            sb.AppendLine($"File: `{resolvedPath}`");
             sb.AppendLine($"Diagnostic: `{diagnosticId}` at line {line}, column {column}");
             sb.AppendLine($"Available fixes: {fixes.Count}");
             sb.AppendLine();
@@ -83,7 +84,7 @@ public sealed class CodeFixTools
         "Writes changed files to disk and updates the in-memory workspace. " +
         "Set previewOnly=true to see a diff without applying.")]
     public async Task<string> ApplyCodeFix(
-        [Description("Absolute path to the target .cs file (same as get_code_fixes).")] string filePath,
+        [Description("Absolute or workspace-relative path to the target .cs file (same as get_code_fixes).")] string filePath,
         [Description("Diagnostic id from get_diagnostics_for_file / get_code_fixes.")] string diagnosticId,
         [Description("fixIndex from get_code_fixes (0-based).")] int fixIndex,
         [Description("1-based line number (same as get_code_fixes).")] int line,
@@ -93,10 +94,11 @@ public sealed class CodeFixTools
     {
         try
         {
+            var resolvedPath = _solutionManager.ResolvePathAgainstWorkspace(filePath);
             var document = await ResolveDocumentAsync(filePath, cancellationToken);
             if (document is null)
             {
-                return ToolTelemetry.TraceAndReturn(nameof(ApplyCodeFix), $"Document was not found in the active workspace: `{Path.GetFullPath(filePath)}`.");
+                return ToolTelemetry.TraceAndReturn(nameof(ApplyCodeFix), $"Document was not found in the active workspace: `{resolvedPath}`.");
             }
 
             if (previewOnly)
@@ -151,7 +153,7 @@ public sealed class CodeFixTools
             throw new ArgumentException("filePath is empty.");
         }
 
-        var fullPath = Path.GetFullPath(filePath);
+        var fullPath = _solutionManager.ResolvePathAgainstWorkspace(filePath);
         if (!string.Equals(Path.GetExtension(fullPath), ".cs", StringComparison.OrdinalIgnoreCase))
         {
             throw new ArgumentException($"Path must point to a .cs file: `{fullPath}`.");

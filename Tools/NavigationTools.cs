@@ -53,12 +53,13 @@ public sealed class NavigationTools
                 return ToolTelemetry.TraceAndReturn(nameof(FindSymbolReferences), "Symbol name is empty.");
             }
 
-            var document = await _solutionManager.FindDocumentAsync(filePath, cancellationToken);
+            var fullPath = _solutionManager.ResolvePathAgainstWorkspace(filePath);
+            var document = await _solutionManager.FindDocumentAsync(fullPath, cancellationToken);
             if (document is null)
             {
                 return ToolTelemetry.TraceAndReturn(
                     nameof(FindSymbolReferences),
-                    $"Could not resolve Roslyn document for file: `{filePath}`.");
+                    $"Could not resolve Roslyn document for file: `{fullPath}`.");
             }
 
             var solution = _solutionManager.GetCurrentSolution() ?? document.Project.Solution;
@@ -68,7 +69,7 @@ public sealed class NavigationTools
             {
                 return ToolTelemetry.TraceAndReturn(
                     nameof(FindSymbolReferences),
-                    $"Could not build semantic model for file: `{filePath}`.");
+                    $"Could not build semantic model for file: `{fullPath}`.");
             }
 
             var declaration = FindMatchingDeclaration(syntaxRoot, symbolName);
@@ -76,7 +77,7 @@ public sealed class NavigationTools
             {
                 return ToolTelemetry.TraceAndReturn(
                     nameof(FindSymbolReferences),
-                    $"Symbol `{symbolName}` was not found as a class/interface/method declaration in `{filePath}`.");
+                    $"Symbol `{symbolName}` was not found as a class/interface/method declaration in `{fullPath}`.");
             }
 
             var symbol = semanticModel.GetDeclaredSymbol(declaration, cancellationToken);
@@ -84,7 +85,7 @@ public sealed class NavigationTools
             {
                 return ToolTelemetry.TraceAndReturn(
                     nameof(FindSymbolReferences),
-                    $"Unable to resolve declared symbol for `{symbolName}` in `{filePath}`.");
+                    $"Unable to resolve declared symbol for `{symbolName}` in `{fullPath}`.");
             }
 
             var references = await SymbolFinder.FindReferencesAsync(symbol, solution, cancellationToken);
@@ -747,7 +748,7 @@ public sealed class NavigationTools
         const string toolName = nameof(GetCallGraph);
         try
         {
-            var fullPath = Path.GetFullPath(filePath);
+            var fullPath = _solutionManager.ResolvePathAgainstWorkspace(filePath);
             var document = await _solutionManager.FindDocumentAsync(fullPath, cancellationToken).ConfigureAwait(false);
             if (document is null)
             {

@@ -22,7 +22,7 @@ public sealed class RefactoringTools
         "Extracts a public interface from a class: generates method/property/event signatures, optionally in a new file, " +
         "and adds the interface to the class base list. Use instead of manually authoring interface boilerplate.")]
     public async Task<string> ExtractInterface(
-        [Description("Path to the .cs file containing the class.")] string filePath,
+        [Description("Absolute or workspace-relative path to the .cs file containing the class.")] string filePath,
         [Description("Name of the class to extract from (e.g. `OrderService`).")] string className,
         [Description("Interface name (default: `I` + className, e.g. `IOrderService`).")] string? interfaceName = null,
         [Description("When true (default), writes the interface to `{InterfaceName}.cs` in the same folder.")] bool createNewFile = true,
@@ -33,10 +33,11 @@ public sealed class RefactoringTools
 
         try
         {
+            var resolvedPath = _solutionManager.ResolvePathAgainstWorkspace(filePath);
             var document = await ResolveDocumentAsync(filePath, cancellationToken);
             if (document is null)
             {
-                return ToolTelemetry.TraceAndReturn(toolName, $"Document was not found in the active workspace: `{Path.GetFullPath(filePath)}`.");
+                return ToolTelemetry.TraceAndReturn(toolName, $"Document was not found in the active workspace: `{resolvedPath}`.");
             }
 
             var baseSolution = document.Project.Solution;
@@ -70,7 +71,7 @@ public sealed class RefactoringTools
         "(C# one-type-per-file convention). When `typeName` is omitted, moves every top-level type whose name " +
         "does not match the current file name.")]
     public async Task<string> MoveTypeToNewFile(
-        [Description("Path to the .cs file containing the type(s).")] string filePath,
+        [Description("Absolute or workspace-relative path to the .cs file containing the type(s).")] string filePath,
         [Description("Optional top-level type name to move. Omit to move all types not matching the file name.")] string? typeName = null,
         [Description("When true, returns a preview without writing files.")] bool previewOnly = false,
         CancellationToken cancellationToken = default)
@@ -79,10 +80,11 @@ public sealed class RefactoringTools
 
         try
         {
+            var resolvedPath = _solutionManager.ResolvePathAgainstWorkspace(filePath);
             var document = await ResolveDocumentAsync(filePath, cancellationToken);
             if (document is null)
             {
-                return ToolTelemetry.TraceAndReturn(toolName, $"Document was not found in the active workspace: `{Path.GetFullPath(filePath)}`.");
+                return ToolTelemetry.TraceAndReturn(toolName, $"Document was not found in the active workspace: `{resolvedPath}`.");
             }
 
             var baseSolution = document.Project.Solution;
@@ -117,7 +119,7 @@ public sealed class RefactoringTools
             throw new ArgumentException("filePath is empty.");
         }
 
-        var fullPath = Path.GetFullPath(filePath);
+        var fullPath = _solutionManager.ResolvePathAgainstWorkspace(filePath);
         if (!string.Equals(Path.GetExtension(fullPath), ".cs", StringComparison.OrdinalIgnoreCase))
         {
             throw new ArgumentException($"Path must point to a .cs file: `{fullPath}`.");
