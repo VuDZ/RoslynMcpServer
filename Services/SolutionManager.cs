@@ -198,6 +198,22 @@ public sealed class SolutionManager
         return _workspace?.CurrentSolution ?? _solution;
     }
 
+    public string? GetLoadedWorkspacePath()
+    {
+        return _loadedPath;
+    }
+
+    public string? GetLoadedWorkspaceDirectory()
+    {
+        var loadedPath = _loadedPath;
+        if (string.IsNullOrWhiteSpace(loadedPath))
+        {
+            return null;
+        }
+
+        return Path.GetDirectoryName(Path.GetFullPath(loadedPath));
+    }
+
     /// <summary>
     /// Persists solution document changes to disk and updates the in-memory workspace.
     /// Caller must not hold <see cref="_workspaceLock"/> (this method acquires it).

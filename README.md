@@ -194,6 +194,7 @@ Before editing any files, identify your host environment:
 **Parameter Naming Rules:**
 - `filePath` — a single file (read/edit/diagnostics/logs).
 - `directoryPath` — root folder (`list_directory_tree`, optional root for `search_code`).
+- `includeExtensions` — optional extension filter for `search_code` (`.cs` by default; `*` = all files).
 - `workspacePath` — `.sln` / `.csproj` (and sometimes a directory): `load_workspace`, `run_dotnet_test`, `run_specific_test`, `run_format`, optional reload for `list_projects` / `get_project_graph`. **`run_dotnet_build` accepts only a `.csproj` or `.sln` file path, not a directory.**
 - `symbolName` — C# identifier for `find_symbol_definition`, `find_symbol_references`, `find_usages`, and `find_implementations` (exact name; matching is case-insensitive for definition/usages/implementations).
 - `diagnosticId` — compiler/analyzer id from `get_diagnostics_for_file` (e.g. `CS0246`) for `get_code_fixes` / `apply_code_fix`.
@@ -617,8 +618,10 @@ Verify id/version with `search_nuget_registry` first. Clears workspace cache —
 **Parameters:**
 - `pattern: string`
 - `directoryPath: string? = null`
+- `includeExtensions: string? = ".cs"` — comma/semicolon list (`.cs,.csproj,.json`), or `*` for all files.
 - `useRegex: bool = false`
 - `maxResults: int = 50`
+- `maxScanSeconds: int = 20`
 
 **Agent note:** if your client exposes a built-in **`grep`** tool, prefer that for ad-hoc text search (never shell-driven grep). Use this MCP tool when you need search inside the workspace from the Roslyn MCP process.
 </details>
@@ -903,6 +906,7 @@ Before editing any files, identify your host environment:
 **Имена параметров в JSON:**
 - `filePath` — один файл (чтение/правка/диагностика/логи).
 - `directoryPath` — корневая папка (`list_directory_tree`, опционально корень для `search_code`).
+- `includeExtensions` — опциональный фильтр расширений для `search_code` (по умолчанию `.cs`; `*` = все файлы).
 - `workspacePath` — `.sln` / `.csproj` (и иногда каталог): `load_workspace`, `run_dotnet_test`, `run_specific_test`, `run_format`, опциональная перезагрузка в `list_projects` / `get_project_graph`. **`run_dotnet_build` принимает только путь к файлу `.csproj` или `.sln`, не каталог.**
 - `symbolName` — идентификатор C# для `find_symbol_definition`, `find_symbol_references`, `find_usages` и `find_implementations` (точное имя; регистр не важен для definition/usages/implementations).
 - `diagnosticId` — id компилятора/анализатора из `get_diagnostics_for_file` (например `CS0246`) для `get_code_fixes` / `apply_code_fix`.
@@ -1315,8 +1319,10 @@ Before editing any files, identify your host environment:
 **Параметры:**
 - `pattern: string`
 - `directoryPath: string? = null`
+- `includeExtensions: string? = ".cs"` — список через запятую/`;` (`.cs,.csproj,.json`) или `*` для всех файлов.
 - `useRegex: bool = false`
 - `maxResults: int = 50`
+- `maxScanSeconds: int = 20`
 
 **Для агента:** если в клиенте есть встроенный **`grep`**, для обычного текстового поиска предпочитай его (не grep из терминала). Этот MCP-tool — когда нужен поиск из процесса Roslyn MCP.
 </details>
