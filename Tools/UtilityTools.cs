@@ -436,12 +436,14 @@ public sealed class UtilityTools
     }
 
     [McpServerTool(Name = "search_code", Title = "SearchCode")]
-    [Description("Searches source files like a lightweight ripgrep for LLM workflows. Returns matching lines with file path and line number, while limiting output to prevent context overflow.")]
+    [Description("Searches source files like a lightweight ripgrep for LLM workflows. Returns matching lines with file path and line number, while limiting output to prevent context overflow. When `directoryPath` is omitted, defaults to loaded workspace root (if available), otherwise current directory. By default scans only `.cs` files; override with `includeExtensions`.")]
     public Task<string> SearchCode(
         [Description("Search pattern used to match lines. Interpreted as plain text when `useRegex=false`, or as a regular expression when `useRegex=true`.")] string pattern,
-        [Description("Optional root directory to search. If null or empty, `Environment.CurrentDirectory` is used.")] string? directoryPath = null,
+        [Description("Optional root directory to search. If null or empty, loaded workspace root is used when available; otherwise `Environment.CurrentDirectory`.")] string? directoryPath = null,
+        [Description("Comma/semicolon/space-separated file extensions to scan (default: `.cs`). Example: `.cs,.csproj,.sln,.json`. Use `*` to scan all files.")] string? includeExtensions = ".cs",
         [Description("When true, interprets `pattern` as a .NET regular expression. When false, performs case-insensitive text search using Contains.")] bool useRegex = false,
         [Description("Maximum number of matched lines to return. Limits output for LLM context protection. Default is 50.")] int maxResults = 50,
+        [Description("Maximum scan time in seconds. Default is 20; set 0 to disable timeout.")] int maxScanSeconds = 20,
         CancellationToken cancellationToken = default)
     {
         try
@@ -456,9 +458,8 @@ public sealed class UtilityTools
                 return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(SearchCode), "Error: `maxResults` must be greater than 0."));
             }
 
-            var rootDirectory = string.IsNullOrWhiteSpace(directoryPath)
-                ? Environment.CurrentDirectory
-                : Path.GetFullPath(directoryPath);
+            var rootDirectory = ResolveSearchRootDirectory(directoryPath);
+            var extensionFilter = ParseExtensionFilter(includeExtensions);
 
             if (!Directory.Exists(rootDirectory))
             {
@@ -482,10 +483,30 @@ public sealed class UtilityTools
             var filesScanned = 0;
             var directoriesStack = new Stack<string>();
             directoriesStack.Push(rootDirectory);
+            var stopwatch = Stopwatch.StartNew();
+            var scanTimeout = maxScanSeconds > 0 ? TimeSpan.FromSeconds(maxScanSeconds) : Timeout.InfiniteTimeSpan;
+            var timedOut = false;
 
-            while (directoriesStack.Count > 0 && matches.Count < maxResults)
+            _logger.LogInformation(
+                "SearchCode started: pattern={Pattern} root={RootDirectory} useRegex={UseRegex} maxResults={MaxResults} maxScanSeconds={MaxScanSeconds}",
+                pattern,
+                rootDirectory,
+                useRegex,
+                maxResults,
+                maxScanSeconds);
+            _logger.LogInformation(
+                "SearchCode filter: includeExtensions={IncludeExtensions}",
+                extensionFilter.IncludeAll ? "*" : string.Join(",", extensionFilter.Extensions.OrderBy(x => x, StringComparer.OrdinalIgnoreCase)));
+
+            while (directoriesStack.Count > 0 && matches.Count < maxResults && !timedOut)
             {
                 cancellationToken.ThrowIfCancellationRequested();
+                if (scanTimeout != Timeout.InfiniteTimeSpan && stopwatch.Elapsed >= scanTimeout)
+                {
+                    timedOut = true;
+                    break;
+                }
+
                 var currentDirectory = directoriesStack.Pop();
 
                 IEnumerable<string> subDirectories;
@@ -521,13 +542,33 @@ public sealed class UtilityTools
 
                 foreach (var file in files)
                 {
-                    if (matches.Count >= maxResults)
+                    if (matches.Count >= maxResults || timedOut)
                     {
                         break;
                     }
 
+                    if (!extensionFilter.IncludeAll && !extensionFilter.Extensions.Contains(Path.GetExtension(file)))
+                    {
+                        continue;
+                    }
+
                     cancellationToken.ThrowIfCancellationRequested();
+                    if (scanTimeout != Timeout.InfiniteTimeSpan && stopwatch.Elapsed >= scanTimeout)
+                    {
+                        timedOut = true;
+                        break;
+                    }
+
                     filesScanned++;
+                    if (filesScanned % 1000 == 0)
+                    {
+                        _logger.LogInformation(
+                            "SearchCode progress: scanned={FilesScanned} matches={Matches} elapsedMs={ElapsedMs} root={RootDirectory}",
+                            filesScanned,
+                            matches.Count,
+                            stopwatch.ElapsedMilliseconds,
+                            rootDirectory);
+                    }
 
                     int lineNumber = 0;
                     IEnumerable<string> lines;
@@ -563,6 +604,19 @@ public sealed class UtilityTools
 
             if (matches.Count == 0)
             {
+                if (timedOut)
+                {
+                    _logger.LogWarning(
+                        "SearchCode timed out with no matches: pattern={Pattern} scanned={FilesScanned} elapsedMs={ElapsedMs} root={RootDirectory}",
+                        pattern,
+                        filesScanned,
+                        stopwatch.ElapsedMilliseconds,
+                        rootDirectory);
+                    return Task.FromResult(ToolTelemetry.TraceAndReturn(
+                        nameof(SearchCode),
+                        $"No matches found for `{pattern}` in `{rootDirectory}` before timeout ({maxScanSeconds}s). Scanned files: {filesScanned}."));
+                }
+
                 return Task.FromResult(ToolTelemetry.TraceAndReturn(
                     nameof(SearchCode),
                     $"No matches found for `{pattern}` in `{rootDirectory}`."));
@@ -576,11 +630,25 @@ public sealed class UtilityTools
                 result.AppendLine($"[!] Reached maxResults limit ({maxResults}).");
             }
 
+            if (timedOut)
+            {
+                result.AppendLine($"[!] Search timed out after {maxScanSeconds}s. Results are partial.");
+            }
+
             result.AppendLine();
             foreach (var match in matches)
             {
                 result.AppendLine(match);
             }
+
+            _logger.LogInformation(
+                "SearchCode completed: pattern={Pattern} root={RootDirectory} matches={Matches} scanned={FilesScanned} timedOut={TimedOut} elapsedMs={ElapsedMs}",
+                pattern,
+                rootDirectory,
+                matches.Count,
+                filesScanned,
+                timedOut,
+                stopwatch.ElapsedMilliseconds);
 
             return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(SearchCode), result.ToString().TrimEnd()));
         }
@@ -593,6 +661,46 @@ public sealed class UtilityTools
             _logger.LogError(ex, "SearchCode failed for pattern {Pattern} in {DirectoryPath}", pattern, directoryPath);
             return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(SearchCode), $"Error: {ex.Message}"));
         }
+    }
+
+    private string ResolveSearchRootDirectory(string? directoryPath)
+    {
+        if (!string.IsNullOrWhiteSpace(directoryPath))
+        {
+            return Path.GetFullPath(directoryPath);
+        }
+
+        var loadedWorkspaceDirectory = _solutionManager.GetLoadedWorkspaceDirectory();
+        if (!string.IsNullOrWhiteSpace(loadedWorkspaceDirectory))
+        {
+            return loadedWorkspaceDirectory;
+        }
+
+        return Environment.CurrentDirectory;
+    }
+
+    private static (bool IncludeAll, HashSet<string> Extensions) ParseExtensionFilter(string? includeExtensions)
+    {
+        var raw = string.IsNullOrWhiteSpace(includeExtensions) ? ".cs" : includeExtensions.Trim();
+        if (string.Equals(raw, "*", StringComparison.Ordinal))
+        {
+            return (true, new HashSet<string>(StringComparer.OrdinalIgnoreCase));
+        }
+
+        var values = raw.Split([',', ';', ' '], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (values.Length == 0)
+        {
+            values = [".cs"];
+        }
+
+        var extensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var value in values)
+        {
+            var normalized = value.Length > 0 && value[0] == '.' ? value : "." + value;
+            extensions.Add(normalized);
+        }
+
+        return (false, extensions);
     }
 
     [McpServerTool(Name = "apply_patch", Title = "ApplyPatch")]

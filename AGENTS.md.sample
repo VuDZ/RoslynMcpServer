@@ -39,6 +39,7 @@ For file-based MCP tools, relative `filePath` is resolved against the loaded wor
 - **Do not** run `grep` / `Select-String` / `find` from **shell** (PowerShell, Bash, CMD).
 - **C# declarations and references** (after `load_workspace`): use `find_symbol_definition`, `find_usages` (preferred when you only have `symbolName`), or `find_symbol_references` when you already know the declaring `.cs` `filePath`. These are the **find_references** family — use them for DI audits (`I*` → all registrations), not random text search.
 - **Plain text** (error strings, config keys, comments, non-C# files): use the host **Grep** / **SemanticSearch** tools — faster and OK alongside MCP.
+- `search_code` default scope is code-only (`.cs`). Override with `includeExtensions` (e.g. `.cs,.csproj,.json`) only when needed.
 - **Directory layout:** `list_directory_tree` (MCP) or host file tree.
 
 If `find_usages` returns ambiguous results for a common name, narrow with `find_symbol_definition` or `find_symbol_references` from the declaring file.
