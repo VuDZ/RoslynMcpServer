@@ -179,7 +179,8 @@ public sealed class NavigationTools
             {
                 return ToolTelemetry.TraceAndReturn(
                     nameof(FindSymbolDefinition),
-                    "Error: No active workspace. Call `load_workspace` with your .sln or .csproj first.");
+                    WorkspaceLoadGuidance.FormatNoWorkspaceLoadedMessage(
+                        "Error: No active workspace."));
             }
 
             var trimmedName = symbolName.Trim();
@@ -282,7 +283,8 @@ public sealed class NavigationTools
             {
                 return ToolTelemetry.TraceAndReturn(
                     toolName,
-                    "Error: No active workspace. Call `load_workspace` with your .sln or .csproj first.");
+                    WorkspaceLoadGuidance.FormatNoWorkspaceLoadedMessage(
+                        "Error: No active workspace."));
             }
 
             var trimmedName = symbolName.Trim();
@@ -436,7 +438,8 @@ public sealed class NavigationTools
             {
                 return ToolTelemetry.TraceAndReturn(
                     toolName,
-                    "Error: No active workspace. Call `load_workspace` with your .sln or .csproj first.");
+                    WorkspaceLoadGuidance.FormatNoWorkspaceLoadedMessage(
+                        "Error: No active workspace."));
             }
 
             var trimmedName = symbolName.Trim();

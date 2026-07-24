@@ -84,7 +84,9 @@ public sealed class TestTools
             var solution = _solutionManager.GetCurrentSolution();
             if (solution is null)
             {
-                return ToolTelemetry.TraceAndReturn(toolName, "No workspace loaded. Call `load_workspace` first.");
+                return ToolTelemetry.TraceAndReturn(
+                    toolName,
+                    WorkspaceLoadGuidance.FormatNoWorkspaceLoadedMessage("No workspace loaded."));
             }
 
             var json = await TestDiscoveryHelper.ListTestsJsonAsync(solution, maxResults, cancellationToken)

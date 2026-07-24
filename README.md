@@ -71,6 +71,15 @@ Restart OpenCode or reload MCP servers after running the script.
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.0.15
+
+| Tool / behavior | Notes |
+|-----------------|--------|
+| `search_code` | `caseSensitive` (default `false`); leftover branding → `caseSensitive=true` |
+| No-workspace UX | Semantic tools list candidate `.sln`/`.slnx` under `ROSLYN_MCP_WORKSPACE` / cwd (no auto-load) |
+| `rename_project` | SDK-style dir+csproj+ProjectReference+.sln/.slnx; `dryRun`; no namespace chain |
+| Branding recipe | Documented in `AGENTS.md.sample` (hybrid MCP + host edit) |
+
 ### v1.0.14
 
 | Tool / behavior | Notes |
@@ -82,7 +91,7 @@ Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into a
 | `execute_dotnet_command` | SDK pinning + truncated stdout/stderr |
 | `find_usages` / `find_symbol_references` | **find_references** family; prefer `find_usages` when only `symbolName` is known |
 | `get_project_graph` / `list_projects` | Project dependency graph |
-| `rename_symbol` | `previewOnly=true` default workflow |
+| `rename_symbol` | `previewOnly=true` default workflow; **C# symbols only** |
 | `run_format` | `dotnet format` wrapper |
 
 ### v1.0.13
@@ -127,8 +136,8 @@ Every time you start a new conversation or receive the first prompt in this proj
 
 Do not run searches through raw shells (`PowerShell`, `Bash`, `CMD`) — the workspace might be locked or too large. Never invoke `grep`, `Select-String`, `find`, or similar **from a terminal session**.
 
-- **Semantic search (after `load_workspace`):** You MUST call `find_symbol_definition` with `symbolName`. If you are looking for where an interface, class, or method is **declared**, DO NOT use text search. Do not invent generic tool names like `search`.
-- **Text search:** Use the built-in **`grep`** tool provided by your environment. Do NOT use `bash` or `PowerShell` to run grep/Select-String.
+- **Semantic search (after `load_workspace`):** You MUST call `find_symbol_definition` / `find_usages` with `symbolName`. Looking up a C# identifier (type, method, extension such as `ForHttpRequest`) → **MCP first**, never open with host Grep. Do not invent generic tool names like `search`.
+- **Text search:** Host **`grep`** only for plain text (strings, comments, non-C#) or as **fallback** after MCP finds no symbol. Do NOT use `bash` or `PowerShell` to run grep/Select-String. MCP `search_code` defaults to case-insensitive; for leftover branding checks set `caseSensitive=true`.
 - **Directory layout:** Use `list_directory_tree`.
 
 ## 2. Build & Test Protocol
@@ -145,6 +154,8 @@ Before writing new utility classes, helper methods, or standard validation logic
 - Use `get_code_skeleton` (for files/directories) or `get_class_skeleton` (for loaded workspaces) to understand architecture without loading full method bodies.
 - Use `find_usages` with `symbolName` (after `load_workspace`) for usages across the solution, or `find_symbol_references` with `filePath` + `symbolName` when you already know the declaring file — then mirror the team’s patterns.
 - Use `find_implementations` with `symbolName` to list classes that **implement an interface** or **derive from a base class** — do not use text search or `find_usages` for this.
+
+**Branding / project rename (hybrid):** `load_workspace` → `rename_symbol` for C# symbols → `rename_project` (`dryRun` first) for dir/csproj/refs/sln/slnx → host Grep/edit for README/rules/URLs/Docker/CI → `run_dotnet_build` / `run_dotnet_test`. Do not expect MCP alone for full branding.
 
 For C# edits, ALWAYS prefer `get_class_skeleton`, `get_code_skeleton`, `get_method_body`, `explore_assembly`, `decompile_type`, `get_decompiled_class_skeleton`, `get_decompiled_method_body`, `run_dotnet_build`, and `get_diagnostics_for_file` instead of inventing code from memory. When fixing compiler/analyzer errors, call `get_code_fixes` and `apply_code_fix` **before** guessing a manual patch—Roslyn already knows the correct fix for most standard diagnostics. **Persisting edits to disk** follows **section 6** (IDE-native tools vs this MCP server's file tools).
 
@@ -174,7 +185,7 @@ Before editing any files, identify your host environment:
 - **For method body edits:** read with **`get_method_body`**, write with **`update_method_body`** — not `apply_patch`.
 - **Bug investigation:** use **`get_call_graph`** to see callers/callees before loading many method bodies.
 - **Packages:** use **`search_nuget_registry`** + **`add_package_reference`** — not hand-edited versions in csproj.
-- **After server rebuild:** call **`get_mcp_server_info`**; run `publish-and-verify.ps1`.
+- **After server rebuild:** call **`get_mcp_server_info`** (expect **v1.0.15+**); run `publish-and-verify.ps1`.
 
 
 </details>
@@ -195,6 +206,7 @@ Before editing any files, identify your host environment:
 - `filePath` — a single file (read/edit/diagnostics/logs).
 - `directoryPath` — root folder (`list_directory_tree`, optional root for `search_code`).
 - `includeExtensions` — optional extension filter for `search_code` (`.cs` by default; `*` = all files).
+- `caseSensitive` — optional for `search_code` (default `false`; use `true` for leftover branding checks).
 - `workspacePath` — `.sln` / `.csproj` (and sometimes a directory): `load_workspace`, `run_dotnet_test`, `run_specific_test`, `run_format`, optional reload for `list_projects` / `get_project_graph`. **`run_dotnet_build` accepts only a `.csproj` or `.sln` file path, not a directory.**
 - `symbolName` — C# identifier for `find_symbol_definition`, `find_symbol_references`, `find_usages`, and `find_implementations` (exact name; matching is case-insensitive for definition/usages/implementations).
 - `diagnosticId` — compiler/analyzer id from `get_diagnostics_for_file` (e.g. `CS0246`) for `get_code_fixes` / `apply_code_fix`.
@@ -203,7 +215,7 @@ Before editing any files, identify your host environment:
 
 When a tool accepts `filePath`, relative values are resolved against the loaded workspace root after `load_workspace`; if no workspace is loaded, fallback is `Environment.CurrentDirectory`.
 
-There are **55** registered tools (see list below) and **1** MCP prompt (`RefactoringAssistantPrompt`).
+There are **56** registered tools (see list below) and **1** MCP prompt (`RefactoringAssistantPrompt`).
 
 ### Workspace / Roslyn
 
@@ -621,6 +633,7 @@ Verify id/version with `search_nuget_registry` first. Clears workspace cache —
 - `directoryPath: string? = null`
 - `includeExtensions: string? = ".cs"` — comma/semicolon list (`.cs,.csproj,.json`), or `*` for all files.
 - `useRegex: bool = false`
+- `caseSensitive: bool = false` — default case-insensitive; for leftover branding checks set `true`.
 - `maxResults: int = 50`
 - `maxScanSeconds: int = 20`
 
@@ -666,7 +679,7 @@ Verify id/version with `search_nuget_registry` first. Clears workspace cache —
 ### Roslyn Refactoring / Solution Insights
 
 <details>
-<summary><code>rename_symbol</code> — Semantic rename via Roslyn with preview capability.</summary>
+<summary><code>rename_symbol</code> — Semantic C# symbol rename via Roslyn with preview capability.</summary>
 
 **Parameters:**
 - `filePath: string`
@@ -674,6 +687,20 @@ Verify id/version with `search_nuget_registry` first. Clears workspace cache —
 - `newName: string`
 - `scope: string = "project"` — allowed: `project` | `solution`
 - `previewOnly: bool = true`
+
+**Scope:** C# symbols only (types/members/namespaces as symbols). For project folder / `.csproj` / solution graph use `rename_project`. For README/rules/URLs use host Grep/edit.
+</details>
+
+<details>
+<summary><code>rename_project</code> — Rename SDK-style project directory + `.csproj` and fix MSBuild graph.</summary>
+
+**Parameters:**
+- `projectPath: string` — path to `.csproj`
+- `newProjectName: string` — single path segment (e.g. `DupFinder.Core`)
+- `dryRun: bool = true`
+- `searchRoot: string? = null` — where to find sibling projects / `.sln` / `.slnx`
+
+**Behavior:** Moves identically named project folder + renames `.csproj`; updates `AssemblyName`/`RootNamespace` only when they equal the old project name; rewrites `ProjectReference` paths; updates `.sln` and `.slnx` entries. **SDK-style only.** Unsupported layouts hard-fail (no silent partial write). Does **not** rename C# namespaces/types, Docker, launchSettings, CI, or docs. After apply: `load_workspace` → `run_dotnet_build`.
 </details>
 
 <details>
@@ -721,7 +748,7 @@ Verify id/version with `search_nuget_registry` first. Clears workspace cache —
 
 **Parameters:** *(none)*
 
-Use after `dotnet publish` to verify the MCP host picked up the new binary (expect **55** tools).
+Use after `dotnet publish` to verify the MCP host picked up the new binary (expect **56** tools).
 
 </details>
 
@@ -816,7 +843,7 @@ cd D:\Devel\YourApp
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (таблицы v1.0.13–v1.0.14). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (таблицы v1.0.13–v1.0.15). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 
@@ -841,8 +868,8 @@ Every time you start a new conversation or receive the first prompt in this proj
 
 Do not run searches through raw shells (`PowerShell`, `Bash`, `CMD`) — the workspace might be locked or too large. Never invoke `grep`, `Select-String`, `find`, or similar **from a terminal session**.
 
-- **Semantic search (after `load_workspace`):** You MUST call `find_symbol_definition` with `symbolName`. If you are looking for where an interface, class, or method is **declared**, DO NOT use text search. Do not invent generic tool names like `search`.
-- **Text search:** Use the built-in **`grep`** tool provided by your environment. Do NOT use `bash` or `PowerShell` to run grep/Select-String.
+- **Semantic search (after `load_workspace`):** You MUST call `find_symbol_definition` / `find_usages` with `symbolName`. Looking up a C# identifier (type, method, extension such as `ForHttpRequest`) → **MCP first**, never open with host Grep. Do not invent generic tool names like `search`.
+- **Text search:** Host **`grep`** only for plain text (strings, comments, non-C#) or as **fallback** after MCP finds no symbol. Do NOT use `bash` or `PowerShell` to run grep/Select-String. MCP `search_code` defaults to case-insensitive; for leftover branding checks set `caseSensitive=true`.
 - **Directory layout:** Use `list_directory_tree`.
 
 ## 2. Build & Test Protocol
@@ -859,6 +886,8 @@ Before writing new utility classes, helper methods, or standard validation logic
 - Use `get_code_skeleton` (for files/directories) or `get_class_skeleton` (for loaded workspaces) to understand architecture without loading full method bodies.
 - Use `find_usages` with `symbolName` (after `load_workspace`) for usages across the solution, or `find_symbol_references` with `filePath` + `symbolName` when you already know the declaring file — then mirror the team’s patterns.
 - Use `find_implementations` with `symbolName` to list classes that **implement an interface** or **derive from a base class** — do not use text search or `find_usages` for this.
+
+**Branding / project rename (hybrid):** `load_workspace` → `rename_symbol` for C# symbols → `rename_project` (`dryRun` first) for dir/csproj/refs/sln/slnx → host Grep/edit for README/rules/URLs/Docker/CI → `run_dotnet_build` / `run_dotnet_test`. Do not expect MCP alone for full branding.
 
 For C# edits, ALWAYS prefer `get_class_skeleton`, `get_code_skeleton`, `get_method_body`, `explore_assembly`, `decompile_type`, `get_decompiled_class_skeleton`, `get_decompiled_method_body`, `run_dotnet_build`, and `get_diagnostics_for_file` instead of inventing code from memory. When fixing compiler/analyzer errors, call `get_code_fixes` and `apply_code_fix` **before** guessing a manual patch—Roslyn already knows the correct fix for most standard diagnostics. **Persisting edits to disk** follows **section 6** (IDE-native tools vs this MCP server's file tools).
 
@@ -888,7 +917,7 @@ Before editing any files, identify your host environment:
 - **For method body edits:** read with **`get_method_body`**, write with **`update_method_body`** — not `apply_patch`.
 - **Bug investigation:** use **`get_call_graph`** to see callers/callees before loading many method bodies.
 - **Packages:** use **`search_nuget_registry`** + **`add_package_reference`** — not hand-edited versions in csproj.
-- **After server rebuild:** call **`get_mcp_server_info`**; run `publish-and-verify.ps1`.
+- **After server rebuild:** call **`get_mcp_server_info`** (expect **v1.0.15+**); run `publish-and-verify.ps1`.
 
 
 </details>
@@ -908,13 +937,14 @@ Before editing any files, identify your host environment:
 - `filePath` — один файл (чтение/правка/диагностика/логи).
 - `directoryPath` — корневая папка (`list_directory_tree`, опционально корень для `search_code`).
 - `includeExtensions` — опциональный фильтр расширений для `search_code` (по умолчанию `.cs`; `*` = все файлы).
+- `caseSensitive` — опционально для `search_code` (по умолчанию `false`; для leftover branding — `true`).
 - `workspacePath` — `.sln` / `.csproj` (и иногда каталог): `load_workspace`, `run_dotnet_test`, `run_specific_test`, `run_format`, опциональная перезагрузка в `list_projects` / `get_project_graph`. **`run_dotnet_build` принимает только путь к файлу `.csproj` или `.sln`, не каталог.**
 - `symbolName` — идентификатор C# для `find_symbol_definition`, `find_symbol_references`, `find_usages` и `find_implementations` (точное имя; регистр не важен для definition/usages/implementations).
 - `diagnosticId` — id компилятора/анализатора из `get_diagnostics_for_file` (например `CS0246`) для `get_code_fixes` / `apply_code_fix`.
 - `fixIndex` — индекс (0-based) из `get_code_fixes` для `apply_code_fix`.
 - `path` — файл `.cs` или каталог для `get_code_skeleton` (абсолютный путь; с диска, workspace не обязателен).
 
-Зарегистрировано **55** инструментов (список ниже) и **1** MCP-промпт (`RefactoringAssistantPrompt`).
+Зарегистрировано **56** инструментов (список ниже) и **1** MCP-промпт (`RefactoringAssistantPrompt`).
 
 ### Workspace / Roslyn
 
@@ -1323,6 +1353,7 @@ Before editing any files, identify your host environment:
 - `directoryPath: string? = null`
 - `includeExtensions: string? = ".cs"` — список через запятую/`;` (`.cs,.csproj,.json`) или `*` для всех файлов.
 - `useRegex: bool = false`
+- `caseSensitive: bool = false` — по умолчанию без учёта регистра; для leftover branding — `true`.
 - `maxResults: int = 50`
 - `maxScanSeconds: int = 20`
 
@@ -1368,7 +1399,7 @@ Before editing any files, identify your host environment:
 ### Roslyn Refactoring / Solution Insights
 
 <details>
-<summary><code>rename_symbol</code> — Семантический rename через Roslyn с предпросмотром.</summary>
+<summary><code>rename_symbol</code> — Семантический rename C# символа через Roslyn с предпросмотром.</summary>
 
 **Параметры:**
 - `filePath: string`
@@ -1376,6 +1407,20 @@ Before editing any files, identify your host environment:
 - `newName: string`
 - `scope: string = "project"` — допустимо: `project` | `solution`
 - `previewOnly: bool = true`
+
+**Область:** только C# символы. Для папки проекта / `.csproj` / графа solution — `rename_project`. Для README/rules/URL — host Grep/edit.
+</details>
+
+<details>
+<summary><code>rename_project</code> — Переименование SDK-style проекта (папка + `.csproj`) и правка MSBuild-графа.</summary>
+
+**Параметры:**
+- `projectPath: string` — путь к `.csproj`
+- `newProjectName: string` — один сегмент пути (например `DupFinder.Core`)
+- `dryRun: bool = true`
+- `searchRoot: string? = null` — корень поиска соседних проектов / `.sln` / `.slnx`
+
+**Поведение:** переносит одноимённую папку проекта и `.csproj`; обновляет `AssemblyName`/`RootNamespace` только если они совпадали со старым именем; чинит `ProjectReference`; обновляет `.sln` и `.slnx`. Только **SDK-style**. Нестандартный layout — hard fail. Не трогает C# namespace/типы, Docker, launchSettings, CI, docs. После apply: `load_workspace` → `run_dotnet_build`.
 </details>
 
 <details>
@@ -1423,7 +1468,7 @@ Before editing any files, identify your host environment:
 
 **Параметры:** *(нет)*
 
-После `dotnet publish` — проверка, что MCP подхватил новый бинарник (ожидай **55** tools).
+После `dotnet publish` — проверка, что MCP подхватил новый бинарник (ожидай **56** tools).
 
 </details>
 
