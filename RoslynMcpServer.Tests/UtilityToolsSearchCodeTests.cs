@@ -103,6 +103,65 @@ public sealed class UtilityToolsSearchCodeTests
         }
     }
 
+    [Fact]
+    public async Task SearchCode_caseSensitive_true_does_not_match_different_casing()
+    {
+        var workspaceRoot = CreateTempRoot();
+        var manager = CreateManagerWithLoadedPath(Path.Combine(workspaceRoot, "App.sln"));
+        var tool = new UtilityTools(NullLogger<UtilityTools>.Instance, manager);
+
+        try
+        {
+            File.WriteAllText(Path.Combine(workspaceRoot, "App.sln"), string.Empty);
+            Directory.CreateDirectory(Path.Combine(workspaceRoot, "src"));
+            File.WriteAllText(Path.Combine(workspaceRoot, "src", "a.cs"), "// DupFinder leftover check");
+
+            var insensitive = await tool.SearchCode("dupFinder", caseSensitive: false);
+            Assert.Contains("Found 1 match(es)", insensitive, StringComparison.Ordinal);
+
+            var sensitive = await tool.SearchCode("dupFinder", caseSensitive: true);
+            Assert.Contains("No matches found", sensitive, StringComparison.Ordinal);
+
+            var exact = await tool.SearchCode("DupFinder", caseSensitive: true);
+            Assert.Contains("Found 1 match(es)", exact, StringComparison.Ordinal);
+        }
+        finally
+        {
+            if (Directory.Exists(workspaceRoot))
+            {
+                Directory.Delete(workspaceRoot, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task SearchCode_caseSensitive_regex_respects_flag()
+    {
+        var workspaceRoot = CreateTempRoot();
+        var manager = CreateManagerWithLoadedPath(Path.Combine(workspaceRoot, "App.sln"));
+        var tool = new UtilityTools(NullLogger<UtilityTools>.Instance, manager);
+
+        try
+        {
+            File.WriteAllText(Path.Combine(workspaceRoot, "App.sln"), string.Empty);
+            Directory.CreateDirectory(Path.Combine(workspaceRoot, "src"));
+            File.WriteAllText(Path.Combine(workspaceRoot, "src", "a.cs"), "// DupFinder");
+
+            var insensitive = await tool.SearchCode("dupFinder", useRegex: true, caseSensitive: false);
+            Assert.Contains("Found 1 match(es)", insensitive, StringComparison.Ordinal);
+
+            var sensitive = await tool.SearchCode("dupFinder", useRegex: true, caseSensitive: true);
+            Assert.Contains("No matches found", sensitive, StringComparison.Ordinal);
+        }
+        finally
+        {
+            if (Directory.Exists(workspaceRoot))
+            {
+                Directory.Delete(workspaceRoot, recursive: true);
+            }
+        }
+    }
+
     private static SolutionManager CreateManagerWithLoadedPath(string loadedPath)
     {
         var manager = new SolutionManager(NullLogger<SolutionManager>.Instance);

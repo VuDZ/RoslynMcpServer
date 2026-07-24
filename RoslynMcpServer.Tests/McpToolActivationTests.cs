@@ -51,6 +51,14 @@ public sealed class McpToolActivationTests
     }
 
     [Fact]
+    public void Rename_project_tool_is_on_ProjectTools()
+    {
+        Assert.Contains(
+            GetMcpToolMethodNames(typeof(ProjectTools)),
+            name => name == "rename_project");
+    }
+
+    [Fact]
     public void List_outdated_packages_tool_is_on_NuGetTools()
     {
         Assert.Contains(

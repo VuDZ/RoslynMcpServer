@@ -13,9 +13,9 @@ You are a Senior C# Developer and Architect. You have access to a specialized Ro
 
 ## Quick path (read this first)
 
-1. **Read-only** (where is X? explain code): `load_workspace` → then `find_symbol_definition` / `get_class_skeleton` / host **Grep** for plain text. If unsure whether the workspace is loaded in this chat, call `load_workspace` anyway (idempotent).
+1. **Read-only** (where is X? explain code): `load_workspace` → then `find_symbol_definition` / `find_usages` / `get_class_skeleton`. Host **Grep** only for plain text (strings, comments, non-C#). If unsure whether the workspace is loaded in this chat, call `load_workspace` anyway (idempotent).
 2. **Editing / build / test / run**: full init (below) → MCP tools only for `dotnet` (no shell `dotnet build`).
-3. **C# symbols** (types, interfaces, methods): MCP after `load_workspace` — prefer `find_usages` by `symbolName`; host Grep for strings/comments only.
+3. **Looking up a C# identifier** (type, interface, method, extension like `ForHttpRequest`): **MCP first** — never open with host Grep / `search_code`. Grep is a fallback only after MCP reports no symbol / no workspace candidates exhausted.
 4. **Secrets**: never copy PAT/passwords into chat or commits; use env / user-secrets (see §7).
 5. **E2E HTTP/TFS**: no dedicated MCP probe — use `run_dotnet_run` on internal network or app-specific config; not for headless CI without network.
 
@@ -38,8 +38,10 @@ For file-based MCP tools, relative `filePath` is resolved against the loaded wor
 
 - **Do not** run `grep` / `Select-String` / `find` from **shell** (PowerShell, Bash, CMD).
 - **C# declarations and references** (after `load_workspace`): use `find_symbol_definition`, `find_usages` (preferred when you only have `symbolName`), or `find_symbol_references` when you already know the declaring `.cs` `filePath`. These are the **find_references** family — use them for DI audits (`I*` → all registrations), not random text search.
-- **Plain text** (error strings, config keys, comments, non-C# files): use the host **Grep** / **SemanticSearch** tools — faster and OK alongside MCP.
+- **Do not** use host **Grep** or MCP `search_code` as the **first** tool for a C# type/method/extension name. Example: locating `ForHttpRequest` → `load_workspace` → `find_usages` / `find_symbol_definition`, not Grep under `src/`.
+- **Plain text** (error strings, config keys, comments, non-C# files): host **Grep** / **SemanticSearch** — OK. Also OK as **fallback** if MCP returned no matching symbol.
 - `search_code` default scope is code-only (`.cs`). Override with `includeExtensions` (e.g. `.cs,.csproj,.json`) only when needed.
+- Default `search_code` matching is **case-insensitive**. For **leftover branding** checks (exact old token after rename) set **`caseSensitive=true`**.
 - **Directory layout:** `list_directory_tree` (MCP) or host file tree.
 
 If `find_usages` returns ambiguous results for a common name, narrow with `find_symbol_definition` or `find_symbol_references` from the declaring file.
@@ -65,6 +67,14 @@ On Windows PowerShell 5.x use `;` between commands, not `&&`.
 - `get_code_skeleton` / `get_class_skeleton` for architecture without full bodies.
 - `find_usages` / `find_symbol_references` for reference sweeps; `find_implementations` for interface/base hierarchies (not `find_usages`).
 - `get_project_graph` for layer boundaries.
+
+### Branding / solution rename (hybrid)
+
+1. `load_workspace` on the real `.sln`/`.slnx` (semantic tools fail with candidate paths if you skip this).
+2. `rename_symbol` / `find_usages` for **C# types/namespaces only**.
+3. `rename_project` (`dryRun=true` first) for directory + `.csproj` + `ProjectReference` + `.sln`/`.slnx` (SDK-style, project in its own identically named folder).
+4. Host Grep/edit for README, rules, appsettings text, URLs, Docker, CI — **not** MCP-only branding.
+5. After `rename_project`: `reset_workspace` → `load_workspace` → `run_dotnet_build` / `run_dotnet_test` (do not trust graph rename without build).
 
 Before editing: `get_diagnostics_for_file`, `get_code_fixes` + `apply_code_fix` when applicable. **Persisting edits** → §6.
 
@@ -94,8 +104,8 @@ On tool failure: read the message, fix parameters, retry MCP — do not fall bac
 - **Cursor / IDE with native edit:** use host `edit` / `write` — not MCP `apply_patch` / `update_file_content` when review UI matters.
 - **Headless:** MCP `apply_patch` / `update_file_content`.
 - Prefer MCP AST tools (`add_using`, `update_method_body`, …) over huge patches.
-- **Refactor:** `rename_symbol` with `previewOnly=true` first.
-- After MCP server rebuild: `get_mcp_server_info` (expect v1.0.14+).
+- **Refactor:** `rename_symbol` with `previewOnly=true` first (C# symbols only — not project folders).
+- After MCP server rebuild: `get_mcp_server_info` (expect v1.0.15+).
 
 ---
 

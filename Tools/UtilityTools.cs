@@ -436,12 +436,16 @@ public sealed class UtilityTools
     }
 
     [McpServerTool(Name = "search_code", Title = "SearchCode")]
-    [Description("Searches source files like a lightweight ripgrep for LLM workflows. Returns matching lines with file path and line number, while limiting output to prevent context overflow. When `directoryPath` is omitted, defaults to loaded workspace root (if available), otherwise current directory. By default scans only `.cs` files; override with `includeExtensions`.")]
+    [Description(
+        "Searches source files like a lightweight ripgrep for LLM workflows. Returns matching lines with file path and line number, while limiting output to prevent context overflow. " +
+        "When `directoryPath` is omitted, defaults to loaded workspace root (if available), otherwise current directory. By default scans only `.cs` files; override with `includeExtensions`. " +
+        "Default matching is case-insensitive; for leftover branding checks (e.g. exact `dupsFinder` after rename to `DupFinder`) set `caseSensitive=true`.")]
     public Task<string> SearchCode(
         [Description("Search pattern used to match lines. Interpreted as plain text when `useRegex=false`, or as a regular expression when `useRegex=true`.")] string pattern,
         [Description("Optional root directory to search. If null or empty, loaded workspace root is used when available; otherwise `Environment.CurrentDirectory`.")] string? directoryPath = null,
         [Description("Comma/semicolon/space-separated file extensions to scan (default: `.cs`). Example: `.cs,.csproj,.sln,.json`. Use `*` to scan all files.")] string? includeExtensions = ".cs",
-        [Description("When true, interprets `pattern` as a .NET regular expression. When false, performs case-insensitive text search using Contains.")] bool useRegex = false,
+        [Description("When true, interprets `pattern` as a .NET regular expression. When false, performs text search using Contains.")] bool useRegex = false,
+        [Description("When false (default), matching is case-insensitive. When true, plain and regex matching are case-sensitive. Use true for leftover branding verification.")] bool caseSensitive = false,
         [Description("Maximum number of matched lines to return. Limits output for LLM context protection. Default is 50.")] int maxResults = 50,
         [Description("Maximum scan time in seconds. Default is 20; set 0 to disable timeout.")] int maxScanSeconds = 20,
         CancellationToken cancellationToken = default)
@@ -466,12 +470,19 @@ public sealed class UtilityTools
                 return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(SearchCode), $"Error: Directory not found: `{rootDirectory}`"));
             }
 
+            var comparison = caseSensitive ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
             Regex? regex = null;
             if (useRegex)
             {
                 try
                 {
-                    regex = new Regex(pattern, RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+                    var regexOptions = RegexOptions.Compiled | RegexOptions.CultureInvariant;
+                    if (!caseSensitive)
+                    {
+                        regexOptions |= RegexOptions.IgnoreCase;
+                    }
+
+                    regex = new Regex(pattern, regexOptions);
                 }
                 catch (ArgumentException ex)
                 {
@@ -488,10 +499,11 @@ public sealed class UtilityTools
             var timedOut = false;
 
             _logger.LogInformation(
-                "SearchCode started: pattern={Pattern} root={RootDirectory} useRegex={UseRegex} maxResults={MaxResults} maxScanSeconds={MaxScanSeconds}",
+                "SearchCode started: pattern={Pattern} root={RootDirectory} useRegex={UseRegex} caseSensitive={CaseSensitive} maxResults={MaxResults} maxScanSeconds={MaxScanSeconds}",
                 pattern,
                 rootDirectory,
                 useRegex,
+                caseSensitive,
                 maxResults,
                 maxScanSeconds);
             _logger.LogInformation(
@@ -586,7 +598,7 @@ public sealed class UtilityTools
                         lineNumber++;
                         var isMatch = useRegex
                             ? regex!.IsMatch(line)
-                            : line.Contains(pattern, StringComparison.OrdinalIgnoreCase);
+                            : line.Contains(pattern, comparison);
 
                         if (!isMatch)
                         {
@@ -854,7 +866,10 @@ public sealed class UtilityTools
     }
 
     [McpServerTool(Name = "rename_symbol", Title = "RenameSymbol")]
-    [Description("Performs semantic symbol rename using Roslyn. Can preview impacted locations before applying changes, and can scope updates to a project or entire solution.")]
+    [Description(
+        "Performs semantic C# symbol rename using Roslyn (types, members, namespaces as symbols — not project folders or docs). " +
+        "Can preview impacted locations before applying changes, and can scope updates to a project or entire solution. " +
+        "For directory/.csproj/solution graph renames use `rename_project`. For README/rules/URLs use host Grep/edit.")]
     public async Task<string> RenameSymbol(
         [Description("Path to a C# file containing the target symbol declaration or usage.")] string filePath,
         [Description("Current symbol name to rename.")] string symbolName,
@@ -873,6 +888,13 @@ public sealed class UtilityTools
                     string.IsNullOrWhiteSpace(symbolName),
                     string.IsNullOrWhiteSpace(newName));
                 return ToolTelemetry.TraceAndReturn(nameof(RenameSymbol), "Error: `filePath`, `symbolName`, and `newName` are required.");
+            }
+
+            if (_solutionManager.GetCurrentSolution() is null)
+            {
+                return ToolTelemetry.TraceAndReturn(
+                    nameof(RenameSymbol),
+                    WorkspaceLoadGuidance.FormatNoWorkspaceLoadedMessage("Error: No workspace loaded."));
             }
 
             var normalizedScope = scope.Trim().ToLowerInvariant();
@@ -1038,7 +1060,9 @@ public sealed class UtilityTools
             var solution = _solutionManager.GetCurrentSolution();
             if (solution is null)
             {
-                return ToolTelemetry.TraceAndReturn(nameof(ListProjects), "Error: No workspace loaded.");
+                return ToolTelemetry.TraceAndReturn(
+                    nameof(ListProjects),
+                    WorkspaceLoadGuidance.FormatNoWorkspaceLoadedMessage("Error: No workspace loaded."));
             }
 
             var sb = new StringBuilder();
@@ -1101,7 +1125,9 @@ public sealed class UtilityTools
             var solution = _solutionManager.GetCurrentSolution();
             if (solution is null)
             {
-                return ToolTelemetry.TraceAndReturn(nameof(GetProjectGraph), "Error: No workspace loaded.");
+                return ToolTelemetry.TraceAndReturn(
+                    nameof(GetProjectGraph),
+                    WorkspaceLoadGuidance.FormatNoWorkspaceLoadedMessage("Error: No workspace loaded."));
             }
 
             var sb = new StringBuilder();
