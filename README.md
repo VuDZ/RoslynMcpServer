@@ -71,6 +71,15 @@ Restart OpenCode or reload MCP servers after running the script.
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.0.16
+
+| Tool / behavior | Notes |
+|-----------------|--------|
+| `run_dotnet_test` / `run_specific_test` | `timeoutSeconds` default **300**; kill process tree on timeout/cancel |
+| `run_dotnet_build` probe | Overall wall-clock budget (~300s) + per-step timeout; skip escalate when budget exhausted |
+| `execute_dotnet_command` | Same default timeout + kill on cancel |
+| Silent fail UX | Hints for zombie `dotnet` / locked `obj` when exit≠0 and no parsed diagnostics |
+
 ### v1.0.15
 
 | Tool / behavior | Notes |
@@ -185,7 +194,7 @@ Before editing any files, identify your host environment:
 - **For method body edits:** read with **`get_method_body`**, write with **`update_method_body`** — not `apply_patch`.
 - **Bug investigation:** use **`get_call_graph`** to see callers/callees before loading many method bodies.
 - **Packages:** use **`search_nuget_registry`** + **`add_package_reference`** — not hand-edited versions in csproj.
-- **After server rebuild:** call **`get_mcp_server_info`** (expect **v1.0.15+**); run `publish-and-verify.ps1`.
+- **After server rebuild:** call **`get_mcp_server_info`** (expect **v1.0.16+**); run `publish-and-verify.ps1`.
 
 
 </details>
@@ -843,7 +852,7 @@ cd D:\Devel\YourApp
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (таблицы v1.0.13–v1.0.15). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (таблицы v1.0.13–v1.0.16). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 
@@ -917,7 +926,7 @@ Before editing any files, identify your host environment:
 - **For method body edits:** read with **`get_method_body`**, write with **`update_method_body`** — not `apply_patch`.
 - **Bug investigation:** use **`get_call_graph`** to see callers/callees before loading many method bodies.
 - **Packages:** use **`search_nuget_registry`** + **`add_package_reference`** — not hand-edited versions in csproj.
-- **After server rebuild:** call **`get_mcp_server_info`** (expect **v1.0.15+**); run `publish-and-verify.ps1`.
+- **After server rebuild:** call **`get_mcp_server_info`** (expect **v1.0.16+**); run `publish-and-verify.ps1`.
 
 
 </details>

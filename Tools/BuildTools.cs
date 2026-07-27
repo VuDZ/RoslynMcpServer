@@ -50,6 +50,19 @@ public sealed class BuildTools
             var combined = probe.CombinedOutput;
             var processExitCode = probe.ExitCode;
             var runMetadata = probe.RunMetadata;
+            if (probe.TimedOut || probe.BudgetExhausted)
+            {
+                var hang = new StringBuilder();
+                hang.AppendLine(probe.TimedOut ? "## Build timed out" : "## Build probe budget exhausted");
+                hang.AppendLine();
+                AppendRunMetadata(hang, runMetadata, probe.StepsExecuted);
+                hang.AppendLine();
+                hang.AppendLine(DotNetCliRunner.FormatHangHints(timedOut: probe.TimedOut, cancelled: false));
+                hang.AppendLine();
+                TruncatedProcessLog.AppendLastCharacters(hang, "Console output:", combined);
+                return ToolTelemetry.TraceAndReturn(nameof(RunDotNetBuild), hang.ToString().TrimEnd());
+            }
+
             var parsed = DotNetBuildDiagnosticParser.Parse(combined);
             var errorEntries = MergeErrorEntries(
                 workDir,
@@ -118,7 +131,10 @@ public sealed class BuildTools
         }
         catch (OperationCanceledException)
         {
-            return ToolTelemetry.TraceAndReturn(nameof(RunDotNetBuild), "Build was cancelled.");
+            return ToolTelemetry.TraceAndReturn(
+                nameof(RunDotNetBuild),
+                "Build was cancelled." + Environment.NewLine + Environment.NewLine
+                + DotNetCliRunner.FormatHangHints(timedOut: false, cancelled: true));
         }
         catch (Exception ex)
         {
@@ -165,7 +181,10 @@ public sealed class BuildTools
         sb.AppendLine(
             $"Exit code: `{processExitCode}`. No lines matched MSBuild `path(line,col): error|warning CODE` or NuGet `error|warning NU####` patterns (including `: error NU####` and embedded NU lines).");
         sb.AppendLine(
-            "Steps: minimal build → restore (minimal, then detailed if empty) → build normal → build detailed. SDK is pinned via `global.json` env vars. See sectioned console output below.");
+            "Exit code ≠ 0 with no parsed MSBuild/NU diagnostics. Possible hung restore, wrong SDK pin, or locked `obj`.");
+        sb.AppendLine(DotNetCliRunner.FormatHangHints(timedOut: false, cancelled: false));
+        sb.AppendLine(
+            "Steps: minimal build → restore (minimal, then detailed if empty) → build normal → build detailed (within overall probe budget). See sectioned console output below.");
         MsBuildLogHighlighter.AppendKeyLinesSection(sb, combined);
         TruncatedProcessLog.AppendLastCharacters(
             sb,

@@ -39,10 +39,12 @@ public sealed class UtilityTools
     [McpServerTool(Name = "execute_dotnet_command", Title = "ExecuteDotNetCommand")]
     [Description(
         "Executes `dotnet {command}` with pinned SDK (global.json). Prefer `run_dotnet_build`, `run_dotnet_test`, or `run_dotnet_run` when applicable. "
-        + "On Windows PowerShell 5.x use `;` between commands, not `&&`.")]
+        + "Default timeout 300s; process tree is killed on timeout/cancel. On Windows PowerShell 5.x use `;` between commands, not `&&`.")]
     public async Task<string> ExecuteDotNetCommand(
         [Description("Arguments passed after `dotnet`, for example: `test`, `build`, or `add package Moq`.")] string command,
         [Description("Optional working directory for the command. If omitted or empty, `Environment.CurrentDirectory` is used.")] string? workingDirectory = null,
+        [Description("Process timeout in seconds. Default 300. Set 0 to disable.")]
+        int timeoutSeconds = DotNetCliRunner.DefaultTimeoutSeconds,
         CancellationToken cancellationToken = default)
     {
         try
@@ -63,7 +65,8 @@ public sealed class UtilityTools
             }
 
             var workDir = WorkspaceRootResolver.ResolveDotNetWorkingDirectory(fullWorkingDirectory);
-            var run = await DotNetCliRunner.RunSeparatedAsync(command.Trim(), workDir, timeout: null, cancellationToken)
+            TimeSpan? timeout = timeoutSeconds > 0 ? TimeSpan.FromSeconds(timeoutSeconds) : null;
+            var run = await DotNetCliRunner.RunSeparatedAsync(command.Trim(), workDir, timeout, cancellationToken)
                 .ConfigureAwait(false);
 
             var stdoutExcerpt = ProcessOutputExcerpt.BuildStdoutExcerpt(run.StdOut, 6000);
@@ -79,6 +82,13 @@ public sealed class UtilityTools
 
             sb.AppendLine($"- **Command:** `dotnet {command.Trim()}`");
             sb.AppendLine($"- **Exit code:** `{run.ExitCode}`");
+            if (run.TimedOut)
+            {
+                sb.AppendLine("- **Timed out:** yes (process tree killed)");
+                sb.AppendLine();
+                sb.AppendLine(DotNetCliRunner.FormatHangHints(timedOut: true, cancelled: false));
+            }
+
             sb.AppendLine();
             sb.AppendLine("### StdOut");
             sb.AppendLine(string.IsNullOrEmpty(stdoutExcerpt) ? "(empty)" : "```text\n" + stdoutExcerpt + "\n```");
@@ -90,7 +100,10 @@ public sealed class UtilityTools
         }
         catch (OperationCanceledException)
         {
-            return ToolTelemetry.TraceAndReturn(nameof(ExecuteDotNetCommand), "`dotnet` command was cancelled.");
+            return ToolTelemetry.TraceAndReturn(
+                nameof(ExecuteDotNetCommand),
+                "Command was cancelled." + Environment.NewLine + Environment.NewLine
+                + DotNetCliRunner.FormatHangHints(timedOut: false, cancelled: true));
         }
         catch (Exception ex)
         {
@@ -839,7 +852,8 @@ public sealed class UtilityTools
             var run = await DotNetCliRunner.RunWithMetadataAsync(
                 args.ToString(),
                 workingDirectory,
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken,
+                TimeSpan.FromSeconds(DotNetCliRunner.DefaultTimeoutSeconds)).ConfigureAwait(false);
 
             var stdout = run.CombinedOutput;
             var processExitCode = run.ExitCode;
