@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Text;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Server;
 using RoslynMcpServer.Diagnostics;
@@ -19,13 +20,23 @@ public sealed class TestTools
 
     [McpServerTool(Name = "run_dotnet_test", Title = "Run dotnet test")]
     [Description(
-        "Runs `dotnet test` on the specified project or solution. Use this to verify behavior after writing tests or refactoring. Returns a clean summary of passed/failed tests.")]
+        "Runs `dotnet test` on the specified project or solution. Use this to verify behavior after writing tests or refactoring. " +
+        "Returns a clean summary of passed/failed tests. Default timeout 300s; on timeout/cancel the process tree is killed.")]
     public Task<string> RunDotNetTest(
         [Description("Path to .csproj, .sln, or test project directory (same parameter name as load_workspace / run_dotnet_build).")]
         string workspacePath,
+        [Description("Process timeout in seconds. Default 300. Set 0 to disable timeout (not recommended).")]
+        int timeoutSeconds = DotNetCliRunner.DefaultTimeoutSeconds,
         CancellationToken cancellationToken = default)
     {
-        return ExecuteDotnetTestAsync(nameof(RunDotNetTest), workspacePath, filter: null, filterDescription: null, requireFilterMatch: false, cancellationToken);
+        return ExecuteDotnetTestAsync(
+            nameof(RunDotNetTest),
+            workspacePath,
+            filter: null,
+            filterDescription: null,
+            requireFilterMatch: false,
+            timeoutSeconds,
+            cancellationToken);
     }
 
     [McpServerTool(Name = "run_specific_test", Title = "Run a filtered dotnet test")]
@@ -33,7 +44,7 @@ public sealed class TestTools
         "Runs `dotnet test` filtered to a single test class and/or method. Builds the VSTest `--filter` expression internally — " +
         "do not use `execute_dotnet_command` or hand-written FullyQualifiedName filters. " +
         "When the Roslyn workspace is loaded, resolves the exact fully qualified test name for precise filtering. " +
-        "Use for TDD and bug fixes instead of running the full suite.")]
+        "Use for TDD and bug fixes instead of running the full suite. Default timeout 300s; kills process tree on timeout/cancel.")]
     public async Task<string> RunSpecificTest(
         [Description("Path to .csproj, .sln, or test project directory (same as run_dotnet_test).")]
         string workspacePath,
@@ -41,6 +52,8 @@ public sealed class TestTools
         string? className = null,
         [Description("Test method name, e.g. `CreateUser_WhenValid_ReturnsOk`.")]
         string? methodName = null,
+        [Description("Process timeout in seconds. Default 300. Set 0 to disable timeout (not recommended).")]
+        int timeoutSeconds = DotNetCliRunner.DefaultTimeoutSeconds,
         CancellationToken cancellationToken = default)
     {
         const string toolName = nameof(RunSpecificTest);
@@ -58,12 +71,22 @@ public sealed class TestTools
             var (filter, description) = await TestFilterHelper.BuildFilterAsync(
                 solution, className, methodName, cancellationToken).ConfigureAwait(false);
 
-            return await ExecuteDotnetTestAsync(toolName, workspacePath, filter, description, requireFilterMatch: true, cancellationToken)
+            return await ExecuteDotnetTestAsync(
+                    toolName,
+                    workspacePath,
+                    filter,
+                    description,
+                    requireFilterMatch: true,
+                    timeoutSeconds,
+                    cancellationToken)
                 .ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
-            return ToolTelemetry.TraceAndReturn(toolName, "`run_specific_test` was cancelled.");
+            return ToolTelemetry.TraceAndReturn(
+                toolName,
+                "`run_specific_test` was cancelled." + Environment.NewLine + Environment.NewLine
+                + DotNetCliRunner.FormatHangHints(timedOut: false, cancelled: true));
         }
         catch (Exception ex)
         {
@@ -142,6 +165,7 @@ public sealed class TestTools
         string? filter,
         string? filterDescription,
         bool requireFilterMatch,
+        int timeoutSeconds,
         CancellationToken cancellationToken)
     {
         try
@@ -181,10 +205,25 @@ public sealed class TestTools
                 ? fullPath
                 : WorkspaceRootResolver.FindSolutionOrProjectInDirectory(fullPath) ?? fullPath;
 
+            TimeSpan? timeout = timeoutSeconds > 0 ? TimeSpan.FromSeconds(timeoutSeconds) : null;
             var run = await DotNetCliRunner.RunWithMetadataAsync(
                 $"test \"{targetPath}\" --logger \"console;verbosity=normal\" --verbosity normal{filterArg}",
                 workDir,
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken,
+                timeout).ConfigureAwait(false);
+
+            if (run.TimedOut)
+            {
+                var sb = new StringBuilder();
+                sb.AppendLine("## Test run timed out");
+                sb.AppendLine();
+                sb.AppendLine(run.RunMetadata);
+                sb.AppendLine();
+                sb.AppendLine(DotNetCliRunner.FormatHangHints(timedOut: true, cancelled: false));
+                sb.AppendLine();
+                TruncatedProcessLog.AppendLastCharacters(sb, "Console output before kill:", run.CombinedOutput);
+                return ToolTelemetry.TraceAndReturn(toolName, sb.ToString().TrimEnd());
+            }
 
             var parse = VstestOutputParser.Parse(run.CombinedOutput, run.ExitCode);
             var markdown = VstestOutputParser.BuildMarkdownReport(
@@ -195,11 +234,31 @@ public sealed class TestTools
                 filterDescription,
                 requireFilterMatch);
 
-            return ToolTelemetry.TraceAndReturn(toolName, markdown);
+            if (run.ExitCode != 0 && LooksLikeSilentFailure(run.CombinedOutput, parse))
+            {
+                var sb = new StringBuilder();
+                sb.AppendLine(markdown);
+                sb.AppendLine();
+                sb.AppendLine("### Silent / unparsed failure hints");
+                sb.AppendLine(
+                    "Exit code ≠ 0 but no clear VSTest summary or MSBuild/NU diagnostics were parsed "
+                    + "(common after hung restore or locked `obj`).");
+                sb.AppendLine(DotNetCliRunner.FormatHangHints(timedOut: false, cancelled: false));
+                sb.AppendLine();
+                sb.AppendLine(run.RunMetadata);
+                return ToolTelemetry.TraceAndReturn(toolName, sb.ToString().TrimEnd());
+            }
+
+            return ToolTelemetry.TraceAndReturn(
+                toolName,
+                markdown + Environment.NewLine + Environment.NewLine + run.RunMetadata);
         }
         catch (OperationCanceledException)
         {
-            return ToolTelemetry.TraceAndReturn(toolName, "`dotnet test` was cancelled.");
+            return ToolTelemetry.TraceAndReturn(
+                toolName,
+                "`dotnet test` was cancelled." + Environment.NewLine + Environment.NewLine
+                + DotNetCliRunner.FormatHangHints(timedOut: false, cancelled: true));
         }
         catch (Exception ex)
         {
@@ -208,5 +267,18 @@ public sealed class TestTools
                 toolName,
                 $"Failed to run `dotnet test`: {ex.Message}");
         }
+    }
+
+    private static bool LooksLikeSilentFailure(string combinedOutput, VstestOutputParser.ParseResult parse)
+    {
+        if (parse.Summary is not null || parse.HasRecognizedSummary || parse.Failures.Count > 0)
+        {
+            return false;
+        }
+
+        return combinedOutput.Contains("Build FAILED", StringComparison.OrdinalIgnoreCase)
+               || combinedOutput.Contains("Restore target(s)", StringComparison.OrdinalIgnoreCase)
+               || combinedOutput.Contains("0 Error(s)", StringComparison.OrdinalIgnoreCase)
+               || string.IsNullOrWhiteSpace(combinedOutput);
     }
 }

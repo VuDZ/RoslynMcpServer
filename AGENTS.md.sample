@@ -52,8 +52,8 @@ If `find_usages` returns ambiguous results for a common name, narrow with `find_
 
 NEVER use raw shell `dotnet build` / `dotnet test` — use MCP parsers (structured errors, SDK pinning).
 
-- **Build:** `run_dotnet_build` — read parsed errors and **Key lines**, not only `0 Error(s)`. If you see **`MCP_MSBUILD_SDK_MISMATCH`** or MSBuild/SDK version in the log disagrees with `global.json`, fix the **environment** (SDK install, `ROSLYN_MCP_WORKSPACE`, 64-bit dotnet) before changing application code.
-- **Test:** `run_dotnet_test` or `run_specific_test` — do not hand-write VSTest `--filter` in shell.
+- **Build:** `run_dotnet_build` — read parsed errors and **Key lines**, not only `0 Error(s)`. If you see **`MCP_MSBUILD_SDK_MISMATCH`** or MSBuild/SDK version in the log disagrees with `global.json`, fix the **environment** (SDK install, `ROSLYN_MCP_WORKSPACE`, 64-bit dotnet) before changing application code. Probe has an overall time budget; do not start a second build/test in parallel.
+- **Test:** `run_dotnet_test` or `run_specific_test` — default timeout **300s**; on timeout/cancel the MCP kills the `dotnet` process tree. After an interrupted agent turn, check for zombie `dotnet` before retrying. Do not hand-write VSTest `--filter` in shell.
 - **Run console:** `run_dotnet_run` on the executable `.csproj` + args after `--` (see project README for which project and sample args); stderr tail for progress; do not paste huge stdout into chat.
 - **NuGet audit:** `run_nuget_audit` — separate from compile failures in `run_dotnet_build`.
 - **Before commit message:** `get_changed_files` (MCP) for changed paths and suggested test projects; use host or shell **`git diff`** for commit body when user rules allow shell git. MCP does not return a full diff.
@@ -105,7 +105,7 @@ On tool failure: read the message, fix parameters, retry MCP — do not fall bac
 - **Headless:** MCP `apply_patch` / `update_file_content`.
 - Prefer MCP AST tools (`add_using`, `update_method_body`, …) over huge patches.
 - **Refactor:** `rename_symbol` with `previewOnly=true` first (C# symbols only — not project folders).
-- After MCP server rebuild: `get_mcp_server_info` (expect v1.0.15+).
+- After MCP server rebuild: `get_mcp_server_info` (expect v1.0.16+).
 
 ---
 

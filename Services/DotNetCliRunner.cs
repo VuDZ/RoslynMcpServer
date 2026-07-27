@@ -5,12 +5,17 @@ namespace RoslynMcpServer.Services;
 
 public static class DotNetCliRunner
 {
+    public const int DefaultTimeoutSeconds = 300;
+
     public sealed record RunResult(
         int ExitCode,
         string CombinedOutput,
         string RunMetadata,
         int StdOutLength,
-        int StdErrLength);
+        int StdErrLength,
+        bool TimedOut = false,
+        bool Cancelled = false,
+        bool ProcessKilled = false);
 
     public sealed record SeparatedRunResult(
         int ExitCode,
@@ -23,9 +28,11 @@ public static class DotNetCliRunner
     public static async Task<(int ExitCode, string CombinedOutput)> RunAsync(
         string arguments,
         string? workingDirectory,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        TimeSpan? timeout = null)
     {
-        var result = await RunWithMetadataAsync(arguments, workingDirectory, cancellationToken).ConfigureAwait(false);
+        var result = await RunWithMetadataAsync(arguments, workingDirectory, cancellationToken, timeout)
+            .ConfigureAwait(false);
         return (result.ExitCode, result.CombinedOutput);
     }
 
@@ -39,21 +46,17 @@ public static class DotNetCliRunner
             ? Environment.CurrentDirectory
             : Path.GetFullPath(workingDirectory);
 
-        var dotnet = DotNetHostResolver.ResolveDotNetExecutable();
-        var psi = new ProcessStartInfo
-        {
-            FileName = dotnet,
-            Arguments = arguments,
-            WorkingDirectory = workDir,
-            UseShellExecute = false,
-            CreateNoWindow = true,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            StandardOutputEncoding = Encoding.UTF8,
-            StandardErrorEncoding = Encoding.UTF8
-        };
+        return await RunSeparatedCoreAsync(arguments, workDir, timeout, cancellationToken).ConfigureAwait(false);
+    }
 
-        DotNetSdkEnvironment.ApplyPinnedSdk(psi, workDir);
+    private static async Task<SeparatedRunResult> RunSeparatedCoreAsync(
+        string arguments,
+        string workDir,
+        TimeSpan? timeout,
+        CancellationToken cancellationToken)
+    {
+        var dotnet = DotNetHostResolver.ResolveDotNetExecutable();
+        var psi = CreateProcessStartInfo(dotnet, arguments, workDir);
 
         using var process = new Process { StartInfo = psi };
         if (!process.Start())
@@ -82,7 +85,7 @@ public static class DotNetCliRunner
                 await process.WaitForExitAsync(token).ConfigureAwait(false);
                 var stdout = (await stdoutTask.ConfigureAwait(false)).TrimEnd();
                 var stderr = (await stderrTask.ConfigureAwait(false)).TrimEnd();
-                var metadata = await CreateRunMetadataAsync(workDir, string.Join('\n', stdout, stderr), token)
+                var metadata = await CreateRunMetadataAsync(workDir, string.Join('\n', stdout, stderr), CancellationToken.None)
                     .ConfigureAwait(false);
 
                 return new SeparatedRunResult(process.ExitCode, stdout, stderr, metadata, false, null);
@@ -90,48 +93,20 @@ public static class DotNetCliRunner
             catch (OperationCanceledException) when (timeoutCts is not null && timeoutCts.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
             {
                 timedOut = true;
-                try
-                {
-                    if (!process.HasExited)
-                    {
-                        process.Kill(entireProcessTree: true);
-                    }
-                }
-                catch
-                {
-                    // best effort
-                }
+                TryKillProcessTree(process);
+            }
+            catch (OperationCanceledException)
+            {
+                TryKillProcessTree(process);
+                throw;
             }
             catch (Exception ex)
             {
                 exceptionType = ex.GetType().Name;
-                try
-                {
-                    if (!process.HasExited)
-                    {
-                        process.Kill(entireProcessTree: true);
-                    }
-                }
-                catch
-                {
-                    // best effort
-                }
+                TryKillProcessTree(process);
             }
 
-            string partialStdout = string.Empty;
-            string partialStderr = string.Empty;
-            try
-            {
-                partialStdout = await process.StandardOutput.ReadToEndAsync(CancellationToken.None).ConfigureAwait(false);
-                partialStderr = await process.StandardError.ReadToEndAsync(CancellationToken.None).ConfigureAwait(false);
-            }
-            catch
-            {
-                // ignore
-            }
-
-            partialStdout = partialStdout.TrimEnd();
-            partialStderr = partialStderr.TrimEnd();
+            var (partialStdout, partialStderr) = await ReadRemainingStreamsAsync(process).ConfigureAwait(false);
             var meta = await CreateRunMetadataAsync(workDir, string.Join('\n', partialStdout, partialStderr), CancellationToken.None)
                 .ConfigureAwait(false);
 
@@ -148,13 +123,113 @@ public static class DotNetCliRunner
     public static async Task<RunResult> RunWithMetadataAsync(
         string arguments,
         string? workingDirectory,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        TimeSpan? timeout = null)
     {
         var workDir = string.IsNullOrWhiteSpace(workingDirectory)
             ? Environment.CurrentDirectory
             : Path.GetFullPath(workingDirectory);
 
         var dotnet = DotNetHostResolver.ResolveDotNetExecutable();
+        var psi = CreateProcessStartInfo(dotnet, arguments, workDir);
+
+        using var process = new Process { StartInfo = psi };
+        if (!process.Start())
+        {
+            throw new InvalidOperationException(
+                $"Failed to start `{dotnet}`. Ensure a 64-bit .NET SDK is installed under Program Files\\dotnet.");
+        }
+
+        CancellationTokenSource? timeoutCts = null;
+        if (timeout.HasValue && timeout.Value > TimeSpan.Zero)
+        {
+            timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(timeout.Value);
+        }
+
+        using (timeoutCts)
+        {
+            var token = timeoutCts?.Token ?? cancellationToken;
+            try
+            {
+                var stdoutTask = process.StandardOutput.ReadToEndAsync(token);
+                var stderrTask = process.StandardError.ReadToEndAsync(token);
+                await Task.WhenAll(stdoutTask, stderrTask, process.WaitForExitAsync(token)).ConfigureAwait(false);
+
+                var stdout = (await stdoutTask.ConfigureAwait(false)).TrimEnd();
+                var stderr = (await stderrTask.ConfigureAwait(false)).TrimEnd();
+                var combinedText = CombineStreams(stdout, stderr);
+                var metadata = await CreateRunMetadataAsync(workDir, combinedText, CancellationToken.None)
+                    .ConfigureAwait(false);
+
+                return new RunResult(
+                    process.ExitCode,
+                    combinedText,
+                    metadata,
+                    stdout.Length,
+                    stderr.Length);
+            }
+            catch (OperationCanceledException) when (timeoutCts is not null && timeoutCts.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
+            {
+                TryKillProcessTree(process);
+                var (partialStdout, partialStderr) = await ReadRemainingStreamsAsync(process).ConfigureAwait(false);
+                var combinedText = CombineStreams(partialStdout, partialStderr);
+                var metadata = await CreateRunMetadataAsync(workDir, combinedText, CancellationToken.None)
+                    .ConfigureAwait(false);
+                return new RunResult(
+                    process.HasExited ? process.ExitCode : -1,
+                    combinedText,
+                    metadata,
+                    partialStdout.Length,
+                    partialStderr.Length,
+                    TimedOut: true,
+                    ProcessKilled: true);
+            }
+            catch (OperationCanceledException)
+            {
+                TryKillProcessTree(process);
+                throw;
+            }
+            catch
+            {
+                TryKillProcessTree(process);
+                throw;
+            }
+        }
+    }
+
+    public static async Task<string> CreateRunMetadataAsync(
+        string workingDirectory,
+        string combinedOutput,
+        CancellationToken cancellationToken)
+    {
+        var dotnet = DotNetHostResolver.ResolveDotNetExecutable();
+        var sdkVersion = await TryGetDotNetSdkVersionAsync(dotnet, workingDirectory, cancellationToken)
+            .ConfigureAwait(false);
+        return BuildRunMetadata(dotnet, workingDirectory, combinedOutput, sdkVersion);
+    }
+
+    public static string FormatHangHints(bool timedOut, bool cancelled)
+    {
+        var sb = new StringBuilder();
+        if (timedOut)
+        {
+            sb.AppendLine("**MCP_DOTNET_TIMEOUT:** process exceeded the tool timeout and was killed (`Kill(entireProcessTree)`).");
+        }
+
+        if (cancelled)
+        {
+            sb.AppendLine("**MCP_DOTNET_CANCELLED:** tool cancel requested; process tree was killed.");
+        }
+
+        sb.AppendLine(
+            "If the next `dotnet` call is slow: check zombie processes (`Get-Process dotnet`), delete locked `obj`/`bin` if needed, " +
+            "avoid parallel MCP `run_dotnet_test`/`run_dotnet_build`, and compare with shell `dotnet` from the same WorkingDirectory.");
+        return sb.ToString().TrimEnd();
+    }
+
+    private static ProcessStartInfo CreateProcessStartInfo(string dotnet, string arguments, string workDir)
+    {
         var psi = new ProcessStartInfo
         {
             FileName = dotnet,
@@ -169,21 +244,40 @@ public static class DotNetCliRunner
         };
 
         DotNetSdkEnvironment.ApplyPinnedSdk(psi, workDir);
+        return psi;
+    }
 
-        using var process = new Process { StartInfo = psi };
-        if (!process.Start())
+    private static void TryKillProcessTree(Process process)
+    {
+        try
         {
-            throw new InvalidOperationException(
-                $"Failed to start `{dotnet}`. Ensure a 64-bit .NET SDK is installed under Program Files\\dotnet.");
+            if (!process.HasExited)
+            {
+                process.Kill(entireProcessTree: true);
+            }
         }
+        catch
+        {
+            // best effort
+        }
+    }
 
-        var stdoutTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
-        var stderrTask = process.StandardError.ReadToEndAsync(cancellationToken);
-        await Task.WhenAll(stdoutTask, stderrTask, process.WaitForExitAsync(cancellationToken)).ConfigureAwait(false);
+    private static async Task<(string StdOut, string StdErr)> ReadRemainingStreamsAsync(Process process)
+    {
+        try
+        {
+            var stdout = (await process.StandardOutput.ReadToEndAsync(CancellationToken.None).ConfigureAwait(false)).TrimEnd();
+            var stderr = (await process.StandardError.ReadToEndAsync(CancellationToken.None).ConfigureAwait(false)).TrimEnd();
+            return (stdout, stderr);
+        }
+        catch
+        {
+            return (string.Empty, string.Empty);
+        }
+    }
 
-        var stdout = (await stdoutTask.ConfigureAwait(false)).TrimEnd();
-        var stderr = (await stderrTask.ConfigureAwait(false)).TrimEnd();
-
+    private static string CombineStreams(string stdout, string stderr)
+    {
         var combined = new StringBuilder();
         if (!string.IsNullOrEmpty(stdout))
         {
@@ -200,26 +294,7 @@ public static class DotNetCliRunner
             combined.Append(stderr);
         }
 
-        var combinedText = combined.ToString();
-        var metadata = await CreateRunMetadataAsync(workDir, combinedText, cancellationToken).ConfigureAwait(false);
-
-        return new RunResult(
-            process.ExitCode,
-            combinedText,
-            metadata,
-            stdout.Length,
-            stderr.Length);
-    }
-
-    public static async Task<string> CreateRunMetadataAsync(
-        string workingDirectory,
-        string combinedOutput,
-        CancellationToken cancellationToken)
-    {
-        var dotnet = DotNetHostResolver.ResolveDotNetExecutable();
-        var sdkVersion = await TryGetDotNetSdkVersionAsync(dotnet, workingDirectory, cancellationToken)
-            .ConfigureAwait(false);
-        return BuildRunMetadata(dotnet, workingDirectory, combinedOutput, sdkVersion);
+        return combined.ToString();
     }
 
     private static string BuildRunMetadata(
@@ -300,9 +375,19 @@ public static class DotNetCliRunner
                 return null;
             }
 
-            var output = (await process.StandardOutput.ReadToEndAsync(cancellationToken).ConfigureAwait(false)).Trim();
-            await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
-            return string.IsNullOrEmpty(output) ? null : output;
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            cts.CancelAfter(TimeSpan.FromSeconds(15));
+            try
+            {
+                var output = (await process.StandardOutput.ReadToEndAsync(cts.Token).ConfigureAwait(false)).Trim();
+                await process.WaitForExitAsync(cts.Token).ConfigureAwait(false);
+                return string.IsNullOrEmpty(output) ? null : output;
+            }
+            catch (OperationCanceledException)
+            {
+                TryKillProcessTree(process);
+                return null;
+            }
         }
         catch (Exception)
         {

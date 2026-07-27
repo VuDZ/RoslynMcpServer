@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text;
 using System.Text.RegularExpressions;
 using RoslynMcpServer.Diagnostics;
@@ -6,71 +7,114 @@ namespace RoslynMcpServer.Services;
 
 /// <summary>
 /// Runs <c>dotnet build</c> with SDK pinning and escalates verbosity when diagnostics are missing.
+/// Overall wall-clock budget prevents multi-step NuGet hangs (~15 min).
 /// </summary>
 public static class DotNetBuildProbe
 {
+    public static readonly TimeSpan DefaultOverallBudget = TimeSpan.FromSeconds(300);
+    public static readonly TimeSpan DefaultStepTimeout = TimeSpan.FromSeconds(180);
+
     public sealed record ProbeResult(
         int ExitCode,
         string CombinedOutput,
         string RunMetadata,
-        IReadOnlyList<string> StepsExecuted);
+        IReadOnlyList<string> StepsExecuted,
+        bool TimedOut = false,
+        bool BudgetExhausted = false);
 
     public static async Task<ProbeResult> RunAsync(
         string projectOrSolutionPath,
         string workingDirectory,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        TimeSpan? overallBudget = null,
+        TimeSpan? stepTimeout = null)
     {
+        var budget = overallBudget ?? DefaultOverallBudget;
+        var perStep = stepTimeout ?? DefaultStepTimeout;
         var quoted = $"\"{projectOrSolutionPath}\"";
         var log = new StringBuilder();
         var steps = new List<string>();
         var lastExitCode = 0;
+        var timedOut = false;
+        var budgetExhausted = false;
         var pin = DotNetSdkEnvironment.TryGetPin(workingDirectory);
+        var sw = Stopwatch.StartNew();
 
-        async Task<DotNetCliRunner.RunResult> RunStepAsync(string label, string arguments)
+        async Task<DotNetCliRunner.RunResult?> RunStepAsync(string label, string arguments)
         {
+            if (sw.Elapsed >= budget)
+            {
+                budgetExhausted = true;
+                steps.Add($"{label} (skipped: overall budget {budget.TotalSeconds:0}s exhausted)");
+                return null;
+            }
+
+            var remaining = budget - sw.Elapsed;
+            var timeout = remaining < perStep ? remaining : perStep;
+            if (timeout <= TimeSpan.Zero)
+            {
+                budgetExhausted = true;
+                steps.Add($"{label} (skipped: no remaining budget)");
+                return null;
+            }
+
             steps.Add(label);
-            var run = await DotNetCliRunner.RunWithMetadataAsync(arguments, workingDirectory, cancellationToken)
+            var run = await DotNetCliRunner.RunWithMetadataAsync(arguments, workingDirectory, cancellationToken, timeout)
                 .ConfigureAwait(false);
             lastExitCode = run.ExitCode;
-            AppendSection(log, label, run);
+            if (run.TimedOut)
+            {
+                timedOut = true;
+                steps[^1] = $"{label} (TIMED OUT after {timeout.TotalSeconds:0}s)";
+            }
+
+            AppendSection(log, steps[^1], run);
             return run;
         }
 
         await RunStepAsync("dotnet build -v:minimal", $"build {quoted} -v:minimal").ConfigureAwait(false);
 
-        if (TryBuildPinnedMsBuildRestoreArguments(pin, projectOrSolutionPath) is { } pinnedRestore
+        if (!timedOut
+            && TryBuildPinnedMsBuildRestoreArguments(pin, projectOrSolutionPath) is { } pinnedRestore
             && ShouldRunPinnedMsBuildRestore(log.ToString(), workingDirectory))
         {
             await RunStepAsync("dotnet exec MSBuild /restore (pinned SDK)", pinnedRestore)
                 .ConfigureAwait(false);
         }
 
-        if (ShouldRunMoreDiagnostics(log.ToString()))
+        if (!timedOut && ShouldRunMoreDiagnostics(log.ToString()))
         {
             var restore = await RunStepAsync("dotnet restore -v:minimal", $"restore {quoted} -v:minimal")
                 .ConfigureAwait(false);
-            if (ShouldRunDetailedRestore(log.ToString(), restore))
+            if (restore is not null && !timedOut && ShouldRunDetailedRestore(log.ToString(), restore))
             {
                 await RunStepAsync("dotnet restore -v:detailed", $"restore {quoted} -v:detailed")
                     .ConfigureAwait(false);
             }
         }
 
-        if (ShouldRunMoreDiagnostics(log.ToString()))
+        if (!timedOut && ShouldRunMoreDiagnostics(log.ToString()))
         {
             await RunStepAsync("dotnet build -v:normal", $"build {quoted} -v:normal").ConfigureAwait(false);
         }
 
-        if (ShouldRunMoreDiagnostics(log.ToString()))
+        if (!timedOut && ShouldRunMoreDiagnostics(log.ToString()))
         {
             await RunStepAsync("dotnet build -v:detailed", $"build {quoted} -v:detailed").ConfigureAwait(false);
         }
 
+        if (budgetExhausted)
+        {
+            log.AppendLine();
+            log.AppendLine(
+                $"--- MCP_BUILD_PROBE_BUDGET --- overall budget {budget.TotalSeconds:0}s exhausted after {sw.Elapsed.TotalSeconds:0}s; further escalate steps skipped.");
+        }
+
         var combinedLog = log.ToString().TrimEnd();
-        var metadata = await DotNetCliRunner.CreateRunMetadataAsync(workingDirectory, combinedLog, cancellationToken)
+        var metadata = await DotNetCliRunner.CreateRunMetadataAsync(workingDirectory, combinedLog, CancellationToken.None)
             .ConfigureAwait(false);
 
-        return new ProbeResult(lastExitCode, combinedLog, metadata, steps);
+        return new ProbeResult(lastExitCode, combinedLog, metadata, steps, timedOut, budgetExhausted);
     }
 
     internal static string? TryBuildPinnedMsBuildRestoreArguments(
