@@ -38,11 +38,13 @@ public sealed class UtilityTools
 
     [McpServerTool(Name = "execute_dotnet_command", Title = "ExecuteDotNetCommand")]
     [Description(
-        "Executes `dotnet {command}` with pinned SDK (global.json). Prefer `run_dotnet_build`, `run_dotnet_test`, or `run_dotnet_run` when applicable. "
-        + "Default timeout 300s; process tree is killed on timeout/cancel. On Windows PowerShell 5.x use `;` between commands, not `&&`.")]
+        "Executes `dotnet {command}` with pinned SDK (global.json). Prefer `run_dotnet_build`, `run_dotnet_test`, or `run_dotnet_run` when applicable "
+        + "(those provide parsers, budgets, and structured reports — this tool returns raw truncated stdout/stderr). "
+        + "Default timeout 300s; process tree is killed on timeout/cancel. Output excerpt limits ~6000 stdout / ~2000 stderr chars. "
+        + "On Windows PowerShell 5.x use `;` between commands, not `&&`.")]
     public async Task<string> ExecuteDotNetCommand(
         [Description("Arguments passed after `dotnet`, for example: `test`, `build`, or `add package Moq`.")] string command,
-        [Description("Optional working directory for the command. If omitted or empty, `Environment.CurrentDirectory` is used.")] string? workingDirectory = null,
+        [Description("Optional working directory. If omitted, uses process CWD then resolves nearest global.json root when possible.")] string? workingDirectory = null,
         [Description("Process timeout in seconds. Default 300. Set 0 to disable.")]
         int timeoutSeconds = DotNetCliRunner.DefaultTimeoutSeconds,
         CancellationToken cancellationToken = default)
@@ -115,7 +117,8 @@ public sealed class UtilityTools
     [McpServerTool(Name = "get_changed_files", Title = "Get changed files (git)")]
     [Description(
         "Lists git changed/untracked files under the repository root (for commit messages and scoped testing). "
-        + "Suggests test projects when a workspace is loaded. Does not return file diffs — use the host git tools for patches.")]
+        + "Suggests test projects when a workspace is loaded. Table capped at ~80 paths. "
+        + "Does not return file diffs — use the host git tools for patches.")]
     public async Task<string> GetChangedFiles(
         [Description("Optional path to .sln/.csproj or repo directory. When omitted, uses loaded workspace or current directory.")]
         string? workspacePath = null,
@@ -214,7 +217,7 @@ public sealed class UtilityTools
     }
 
     [McpServerTool(Name = "list_directory_tree", Title = "ListDirectoryTree")]
-    [Description("Recursively lists files and directories as a tree, excluding bin, obj, and .git folders.")]
+    [Description("Recursively lists files and directories as a tree, excluding `bin`, `obj`, `.git`, and `.vs`. Relative `directoryPath` uses process CWD.")]
     public Task<string> ListDirectoryTree(
         [Description("Root directory to list (same idea as `directoryPath` in search_code).")] string directoryPath,
         [Description("Maximum recursion depth (default 2)")] int maxDepth = 2,
@@ -250,7 +253,10 @@ public sealed class UtilityTools
     }
 
     [McpServerTool(Name = "get_method_body", Title = "GetMethodBody")]
-    [Description("Returns the source of one method in a named class (disambiguates overloads and duplicate names across types). Prefer this over reading the whole file for large sources.")]
+    [Description(
+        "Returns the source of the first method matching `methodName` inside `className` in a file "
+        + "(no overload selection — first match wins; use `update_method_body` with `parameterTypes` when overloads matter). "
+        + "Prefers this over reading the whole file for large sources.")]
     public async Task<string> GetMethodBody(
         [Description("Absolute path or workspace-relative path to the C# source file (same parameter name as get_file_content / read_file_range).")] string filePath,
         [Description("Class name containing the method")] string className,
@@ -452,7 +458,8 @@ public sealed class UtilityTools
     [Description(
         "Searches source files like a lightweight ripgrep for LLM workflows. Returns matching lines with file path and line number, while limiting output to prevent context overflow. " +
         "When `directoryPath` is omitted, defaults to loaded workspace root (if available), otherwise current directory. By default scans only `.cs` files; override with `includeExtensions`. " +
-        "Default matching is case-insensitive; for leftover branding checks (e.g. exact `dupsFinder` after rename to `DupFinder`) set `caseSensitive=true`.")]
+        "Skips `bin`, `obj`, `.git`, and `.vs`. Default matching is case-insensitive; for leftover branding checks (e.g. exact `dupsFinder` after rename to `DupFinder`) set `caseSensitive=true`. " +
+        "Relative `directoryPath` resolves against process CWD.")]
     public Task<string> SearchCode(
         [Description("Search pattern used to match lines. Interpreted as plain text when `useRegex=false`, or as a regular expression when `useRegex=true`.")] string pattern,
         [Description("Optional root directory to search. If null or empty, loaded workspace root is used when available; otherwise `Environment.CurrentDirectory`.")] string? directoryPath = null,
@@ -818,9 +825,11 @@ public sealed class UtilityTools
     }
 
     [McpServerTool(Name = "run_format", Title = "RunFormat")]
-    [Description("Runs `dotnet format` to stabilize code style after edits. Supports verify-only mode to report formatting drift without modifying files.")]
+    [Description(
+        "Runs `dotnet format` to stabilize code style after edits. Supports verify-only mode (`--verify-no-changes`). "
+        + "Fixed process timeout 300s. Prefer after bulk AST/patch edits.")]
     public async Task<string> RunFormat(
-        [Description("Path to a .sln, .csproj, or directory — same parameter name and shape as `load_workspace` / `run_dotnet_build`.")] string workspacePath,
+        [Description("Path to a .sln, .csproj, or directory — same parameter name as `load_workspace` / `run_dotnet_test` (directories allowed here; `run_dotnet_build` requires a file).")] string workspacePath,
         [Description("When true, checks formatting without changing files (`--verify-no-changes`).")] bool verifyOnly = false,
         CancellationToken cancellationToken = default)
     {
@@ -1200,7 +1209,10 @@ public sealed class UtilityTools
     }
 
     [McpServerTool(Name = "manage_agent_scratchpad", Title = "ManageAgentScratchpad")]
-    [Description("Manages the agent's long-term memory scratchpad stored at `.agent_memory/scratchpad.md`. Supports read, write, append, and clear actions for persistent notes across sessions.")]
+    [Description(
+        "Manages the agent's long-term memory scratchpad at `.agent_memory/scratchpad.md` under process current directory "
+        + "(often the repo root when `ROSLYN_MCP_WORKSPACE` is set; otherwise may be the user profile). "
+        + "Supports read, write, append, and clear.")]
     public async Task<string> ManageAgentScratchpad(
         [Description("Action for the agent's long-term memory scratchpad. Allowed values: `read`, `write`, `append`, `clear`.")] string action,
         [Description("Optional text payload for the agent's long-term memory scratchpad. Used by `write` and `append`; ignored by `read` and `clear`.")] string? content = null,

@@ -19,9 +19,14 @@ public sealed class BuildTools
     }
 
     [McpServerTool(Name = "run_dotnet_build", Title = "Run dotnet build")]
-    [Description("Runs `dotnet build` on the specified project or solution. Use this AFTER editing a file to verify your changes compile successfully.")]
+    [Description(
+        "Runs a multi-step `dotnet build` probe (minimal → restore escalate → normal/detailed when needed) with pinned SDK. "
+        + "Overall wall-clock budget ~300s, per-step timeout ~180s; returns up to 20 parsed diagnostics plus key log lines. "
+        + "Surfaces `MCP_MSBUILD_SDK_MISMATCH` when MSBuild SDK ≠ global.json pin. "
+        + "`workspacePath` must be a `.csproj` or `.sln` **file** (not a directory). No agent-tunable timeout. "
+        + "Use AFTER editing to verify compile.")]
     public async Task<string> RunDotNetBuild(
-        [Description("Path to .csproj or .sln (same parameter name as load_workspace / run_dotnet_test).")]
+        [Description("Path to a `.csproj` or `.sln` **file** (not a directory). Same parameter name as load_workspace / run_dotnet_test.")]
         string workspacePath,
         CancellationToken cancellationToken = default)
     {

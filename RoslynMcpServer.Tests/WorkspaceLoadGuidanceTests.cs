@@ -24,6 +24,7 @@ public sealed class WorkspaceLoadGuidanceTests
             Assert.Contains("load_workspace", message, StringComparison.Ordinal);
             Assert.Contains("App.sln", message, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("App.slnx", message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("not** accepted", message, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("Candidate solution files:", message, StringComparison.Ordinal);
         }
         finally

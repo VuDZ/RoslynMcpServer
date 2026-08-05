@@ -71,6 +71,18 @@ Restart OpenCode or reload MCP servers after running the script.
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.0.18
+
+| Tool / behavior | Notes |
+|-----------------|--------|
+| Tool descriptions | Accurate agent-facing `[Description]` across build/test/decompile/NuGet/navigation/AST params; `load_workspace` clarifies no `.slnx` |
+
+### v1.0.17
+
+| Tool / behavior | Notes |
+|-----------------|--------|
+| `run_dotnet_test` / `run_specific_test` | Optional `noBuild` / `noRestore` (`--no-build` / `--no-restore`); after build use `noBuild=true` for faster re-runs |
+
 ### v1.0.16
 
 | Tool / behavior | Notes |
@@ -154,7 +166,7 @@ Do not run searches through raw shells (`PowerShell`, `Bash`, `CMD`) — the wor
 NEVER use raw terminal commands (PowerShell, Bash, CMD) to execute `dotnet build` or `dotnet test`. Doing so bypasses our diagnostic parsers and can crash the context window with raw MSBuild output.
 
 - **To Build:** YOU MUST use `run_dotnet_build`. Analyze the structured diagnostics (and any truncated console excerpt — head + tail when output is long) the tool returns.
-- **To Test:** YOU MUST use `run_dotnet_test` for full suites. For a single test class or method during TDD/bug fixes, use `run_specific_test` — never hand-write VSTest `--filter` via `execute_dotnet_command`.
+- **To Test:** YOU MUST use `run_dotnet_test` for full suites. For a single test class or method during TDD/bug fixes, use `run_specific_test` — never hand-write VSTest `--filter` via `execute_dotnet_command`. Default timeout 300s — raise `timeoutSeconds` for long integration tests. After `run_dotnet_build`, re-run with `noBuild=true` (optionally `noRestore=true`).
 
 ## 3. Explore Before Build (Global Context Awareness)
 
@@ -194,7 +206,7 @@ Before editing any files, identify your host environment:
 - **For method body edits:** read with **`get_method_body`**, write with **`update_method_body`** — not `apply_patch`.
 - **Bug investigation:** use **`get_call_graph`** to see callers/callees before loading many method bodies.
 - **Packages:** use **`search_nuget_registry`** + **`add_package_reference`** — not hand-edited versions in csproj.
-- **After server rebuild:** call **`get_mcp_server_info`** (expect **v1.0.16+**); run `publish-and-verify.ps1`.
+- **After server rebuild:** call **`get_mcp_server_info`** (expect **v1.0.18+**); run `publish-and-verify.ps1`.
 
 
 </details>
@@ -525,6 +537,9 @@ Parses C# syntax, inserts with DocumentEditor, formats the file. Prefer over `ap
 
 **Parameters:**
 - `workspacePath: string`
+- `timeoutSeconds: int = 300` — process timeout; `0` disables (not recommended). Raise for long integration tests (e.g. 900/1800).
+- `noBuild: bool = false` — pass `--no-build` (after a successful `run_dotnet_build`).
+- `noRestore: bool = false` — pass `--no-restore`.
 
 **Behavior:** `--logger "console;verbosity=normal"`. Summary from `Passed!`, `Test Run Successful` + `Total tests`/`Passed:` (Failed defaults to 0), or per-test `  Passed FQN [ms]`. MSBuild/prune noise ignored; duplicate NU audit lines deduped. Exit 0 without any summary marker → **`Status: partial`** + last 2KB. `run_specific_test` checks filter matched a test FQN.
 
@@ -537,10 +552,13 @@ Parses C# syntax, inserts with DocumentEditor, formats the file. Prefer over `ap
 - `workspacePath: string`
 - `className: string?` — e.g. `UserServiceTests` (simple or fully qualified)
 - `methodName: string?` — e.g. `CreateUser_WhenValid_ReturnsOk`
+- `timeoutSeconds: int = 300` — same as `run_dotnet_test`.
+- `noBuild: bool = false` — pass `--no-build`.
+- `noRestore: bool = false` — pass `--no-restore`.
 
 At least one of `className` or `methodName` is required. The tool builds `--filter` internally. After `load_workspace`, Roslyn resolves exact fully qualified names when possible.
 
-**Model guidance:** use this for TDD red/green loops — do not run the full suite and do not craft VSTest filter strings manually.
+**Model guidance:** use this for TDD red/green loops — do not run the full suite and do not craft VSTest filter strings manually. After build, prefer `noBuild=true` for faster filtered re-runs.
 
 </details>
 
@@ -852,7 +870,7 @@ cd D:\Devel\YourApp
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (таблицы v1.0.13–v1.0.16). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (таблицы v1.0.13–v1.0.18). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 
@@ -886,7 +904,7 @@ Do not run searches through raw shells (`PowerShell`, `Bash`, `CMD`) — the wor
 NEVER use raw terminal commands (PowerShell, Bash, CMD) to execute `dotnet build` or `dotnet test`. Doing so bypasses our diagnostic parsers and can crash the context window with raw MSBuild output.
 
 - **To Build:** YOU MUST use `run_dotnet_build`. Analyze the structured diagnostics (and any truncated console excerpt — head + tail when output is long) the tool returns.
-- **To Test:** YOU MUST use `run_dotnet_test` for full suites. For a single test class or method during TDD/bug fixes, use `run_specific_test` — never hand-write VSTest `--filter` via `execute_dotnet_command`.
+- **To Test:** YOU MUST use `run_dotnet_test` for full suites. For a single test class or method during TDD/bug fixes, use `run_specific_test` — never hand-write VSTest `--filter` via `execute_dotnet_command`. Default timeout 300s — raise `timeoutSeconds` for long integration tests. After `run_dotnet_build`, re-run with `noBuild=true` (optionally `noRestore=true`).
 
 ## 3. Explore Before Build (Global Context Awareness)
 
@@ -926,7 +944,7 @@ Before editing any files, identify your host environment:
 - **For method body edits:** read with **`get_method_body`**, write with **`update_method_body`** — not `apply_patch`.
 - **Bug investigation:** use **`get_call_graph`** to see callers/callees before loading many method bodies.
 - **Packages:** use **`search_nuget_registry`** + **`add_package_reference`** — not hand-edited versions in csproj.
-- **After server rebuild:** call **`get_mcp_server_info`** (expect **v1.0.16+**); run `publish-and-verify.ps1`.
+- **After server rebuild:** call **`get_mcp_server_info`** (expect **v1.0.18+**); run `publish-and-verify.ps1`.
 
 
 </details>
@@ -1249,6 +1267,9 @@ Before editing any files, identify your host environment:
 
 **Параметры:**
 - `workspacePath: string`
+- `timeoutSeconds: int = 300` — таймаут процесса; `0` отключает (не рекомендуется). Для долгих интеграционных поднимайте (900/1800).
+- `noBuild: bool = false` — `--no-build` (после успешного `run_dotnet_build`).
+- `noRestore: bool = false` — `--no-restore`.
 
 **Поведение:** сводка из `Passed!`, `Test Run Successful` + `Total tests`/`Passed:` (Failed=0 если нет строки), FQN-строки тестов; дедуп NU audit. Без маркеров сводки при exit 0 → **partial** + 2KB лога.
 
@@ -1261,10 +1282,13 @@ Before editing any files, identify your host environment:
 - `workspacePath: string`
 - `className: string?` — например `UserServiceTests`
 - `methodName: string?` — например `CreateUser_WhenValid_ReturnsOk`
+- `timeoutSeconds: int = 300` — как у `run_dotnet_test`.
+- `noBuild: bool = false` — `--no-build`.
+- `noRestore: bool = false` — `--no-restore`.
 
 Нужен хотя бы один из `className` / `methodName`. `--filter` формируется автоматически. После `load_workspace` Roslyn по возможности резолвит точный FQN.
 
-**Для модели:** TDD/фикс бага — этот tool, не полный suite и не ручной VSTest filter.
+**Для модели:** TDD/фикс бага — этот tool, не полный suite и не ручной VSTest filter. После билда предпочитайте `noBuild=true`.
 
 </details>
 

@@ -32,8 +32,9 @@ public sealed class NavigationTools
 
     [McpServerTool(Name = "find_symbol_references", Title = "Find symbol references")]
     [Description(
-        "Alias for find_references: finds all usages of a class, interface, or method when you know the declaring `.cs` file. "
-        + "For solution-wide search by simple name use `find_usages`. CRITICAL for safe refactoring and DI registration audits.")]
+        "Finds all semantic references to a class, interface, or method when you know the declaring `.cs` file "
+        + "(file-scoped SymbolFinder). For solution-wide search by simple name use `find_usages`. "
+        + "Output capped at 20 references. CRITICAL for safe refactoring and DI registration audits. Requires `load_workspace`.")]
     public async Task<string> FindSymbolReferences(
         [Description("Path to a .cs file (same JSON key `filePath` as get_file_content / get_diagnostics_for_file).")]
         string filePath,
@@ -259,10 +260,11 @@ public sealed class NavigationTools
 
     [McpServerTool(Name = "find_usages", Title = "Find symbol usages across solution")]
     [Description(
-        "Alias for find_references (solution-wide): semantically searches the **entire loaded Roslyn solution** for references and invocations of a symbol whose declared name matches `symbolName` (case-insensitive). "
-        + "Returns grouped **file paths**, **1-based line numbers**, and the **actual source line text** at each reference so you can see how project utilities, types, or members are used in context. "
+        "Semantically searches the **entire loaded Roslyn solution** for references and invocations of a symbol whose declared name matches `symbolName` (case-insensitive). "
+        + "Returns grouped **file paths**, **1-based line numbers**, and the **actual source line text** at each reference. "
         + "Use this to learn usage patterns for classes, methods, properties, etc. Call `load_workspace` first. "
-        + "If several declarations share the same simple name, the tool picks a single primary symbol (types preferred over methods/properties, then stable ordering by fully-qualified name); narrow `symbolName` or use `find_symbol_definition` / `find_symbol_references` with a known file when needed. "
+        + "If several declarations share the same simple name, the tool picks a single primary symbol (types preferred over methods/properties, then stable ordering by fully-qualified name); "
+        + "narrow `symbolName` or use `find_symbol_definition` / `find_symbol_references` with a known file when needed. "
         + "Output is capped at 30 references to limit token use.")]
     public async Task<string> FindUsages(
         [Description("Declared name of the type or member whose references to find (e.g. `Guard`, `JsonExtensions`, `Format`).")]

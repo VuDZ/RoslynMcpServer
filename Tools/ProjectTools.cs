@@ -63,9 +63,11 @@ public sealed class ProjectTools
     }
 
     [McpServerTool(Name = "add_package_reference", Title = "Add NuGet package reference")]
-    [Description("Adds a PackageReference to a .csproj file. Verify package id/version with search_nuget_registry first.")]
+    [Description(
+        "Adds a PackageReference to a .csproj file. Verify package id/version with search_nuget_registry first. "
+        + "Relative `projectPath` resolves against process CWD (prefer absolute paths). Clears in-memory workspace — call `load_workspace` after.")]
     public async Task<string> AddPackageReference(
-        [Description("Path to .csproj file.")] string projectPath,
+        [Description("Path to `.csproj` (prefer absolute; relative uses process CWD).")] string projectPath,
         [Description("NuGet package id, e.g. Moq.")] string packageId,
         [Description("Optional version. Omit to add without Version attribute.")] string? version = null,
         CancellationToken cancellationToken = default)
@@ -86,9 +88,13 @@ public sealed class ProjectTools
     }
 
     [McpServerTool(Name = "remove_package_reference", Title = "Remove NuGet package reference")]
-    [Description("Removes a PackageReference from a .csproj file.")]
+    [Description(
+        "Removes a PackageReference from a .csproj file. Relative `projectPath` resolves against process CWD (prefer absolute). "
+        + "Clears in-memory workspace — call `load_workspace` after.")]
     public async Task<string> RemovePackageReference(
+        [Description("Path to `.csproj` (prefer absolute; relative uses process CWD).")]
         string projectPath,
+        [Description("NuGet package id to remove, e.g. Moq.")]
         string packageId,
         CancellationToken cancellationToken = default)
     {
