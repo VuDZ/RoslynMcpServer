@@ -23,6 +23,7 @@ public sealed class TestTools
         "Runs `dotnet test` on the specified project or solution. Use this to verify behavior after writing tests or refactoring. " +
         "Returns a clean summary of passed/failed tests. Default timeout 300s; on timeout/cancel the process tree is killed. " +
         "After `run_dotnet_build`, pass `noBuild=true` (and optionally `noRestore=true`) to skip rebuild. " +
+        "Optional `configuration` maps to `dotnet test -c` (e.g. `Sit-Debug`) for multi-config solutions. " +
         "For long integration tests raise `timeoutSeconds` (e.g. 900/1800).")]
     public Task<string> RunDotNetTest(
         [Description("Path to .csproj, .sln, .slnx, or test project directory (directories allowed; unlike `run_dotnet_build` which requires a file). Prefer `.sln`/`.slnx` for multi-config solutions.")]
@@ -33,6 +34,10 @@ public sealed class TestTools
         bool noBuild = false,
         [Description("Pass `--no-restore` (skip NuGet restore).")]
         bool noRestore = false,
+        [Description(
+            "Optional MSBuild configuration (`dotnet test -c`). Examples: `Debug`, `Release`, `Sit-Debug`, `Dit-Debug`. "
+            + "Omit to use the SDK/solution default (often wrong on multi-config `.slnx`).")]
+        string? configuration = null,
         CancellationToken cancellationToken = default)
     {
         return ExecuteDotnetTestAsync(
@@ -44,6 +49,7 @@ public sealed class TestTools
             timeoutSeconds,
             noBuild,
             noRestore,
+            configuration,
             cancellationToken);
     }
 
@@ -53,7 +59,8 @@ public sealed class TestTools
         "do not use `execute_dotnet_command` or hand-written FullyQualifiedName filters. " +
         "When the Roslyn workspace is loaded, resolves the exact fully qualified test name for precise filtering. " +
         "Use for TDD and bug fixes instead of running the full suite. Default timeout 300s; kills process tree on timeout/cancel. " +
-        "After `run_dotnet_build`, pass `noBuild=true` (and optionally `noRestore=true`). Raise `timeoutSeconds` for slow tests.")]
+        "After `run_dotnet_build`, pass `noBuild=true` (and optionally `noRestore=true`). " +
+        "Optional `configuration` maps to `dotnet test -c` (same as `run_dotnet_test`). Raise `timeoutSeconds` for slow tests.")]
     public async Task<string> RunSpecificTest(
         [Description("Path to .csproj, .sln, .slnx, or test project directory (same as run_dotnet_test; directories allowed). Prefer `.sln`/`.slnx` for multi-config solutions.")]
         string workspacePath,
@@ -67,6 +74,10 @@ public sealed class TestTools
         bool noBuild = false,
         [Description("Pass `--no-restore` (skip NuGet restore).")]
         bool noRestore = false,
+        [Description(
+            "Optional MSBuild configuration (`dotnet test -c`). Examples: `Debug`, `Release`, `Sit-Debug`, `Dit-Debug`. "
+            + "Omit to use the SDK/solution default (often wrong on multi-config `.slnx`).")]
+        string? configuration = null,
         CancellationToken cancellationToken = default)
     {
         const string toolName = nameof(RunSpecificTest);
@@ -93,6 +104,7 @@ public sealed class TestTools
                     timeoutSeconds,
                     noBuild,
                     noRestore,
+                    configuration,
                     cancellationToken)
                 .ConfigureAwait(false);
         }
@@ -183,6 +195,7 @@ public sealed class TestTools
         int timeoutSeconds,
         bool noBuild,
         bool noRestore,
+        string? configuration,
         CancellationToken cancellationToken)
     {
         try
@@ -219,7 +232,15 @@ public sealed class TestTools
                 ? fullPath
                 : WorkspaceRootResolver.FindSolutionOrProjectInDirectory(fullPath) ?? fullPath;
 
-            var testArgs = DotNetTestArguments.Build(targetPath, filter, noBuild, noRestore);
+            string testArgs;
+            try
+            {
+                testArgs = DotNetTestArguments.Build(targetPath, filter, noBuild, noRestore, configuration);
+            }
+            catch (ArgumentException ex)
+            {
+                return ToolTelemetry.TraceAndReturn(toolName, $"Error: {ex.Message}");
+            }
 
             TimeSpan? timeout = timeoutSeconds > 0 ? TimeSpan.FromSeconds(timeoutSeconds) : null;
             var run = await DotNetCliRunner.RunWithMetadataAsync(

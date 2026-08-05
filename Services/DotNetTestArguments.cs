@@ -9,11 +9,13 @@ public static class DotNetTestArguments
         string targetPath,
         string? filter = null,
         bool noBuild = false,
-        bool noRestore = false)
+        bool noRestore = false,
+        string? configuration = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(targetPath);
 
         var args = $"test \"{targetPath}\" --logger \"console;verbosity=normal\" --verbosity normal";
+        args = DotNetConfigurationArguments.Append(args, configuration);
 
         if (noBuild)
         {

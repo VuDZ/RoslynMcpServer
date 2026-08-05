@@ -84,6 +84,12 @@ Restart OpenCode or reload MCP servers after running the script.
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.0.20
+
+| Tool / behavior | Notes |
+|-----------------|--------|
+| `configuration` | Optional `configuration` (`dotnet -c`) on `run_dotnet_build`, `run_dotnet_test`, `run_specific_test` for multi-config solutions (`Sit-Debug`, `Dit-Debug`, …) |
+
 ### v1.0.19
 
 | Tool / behavior | Notes |
@@ -185,8 +191,8 @@ Do not run searches through raw shells (`PowerShell`, `Bash`, `CMD`) — the wor
 
 NEVER use raw terminal commands (PowerShell, Bash, CMD) to execute `dotnet build` or `dotnet test`. Doing so bypasses our diagnostic parsers and can crash the context window with raw MSBuild output.
 
-- **To Build:** YOU MUST use `run_dotnet_build`. Analyze the structured diagnostics (and any truncated console excerpt — head + tail when output is long) the tool returns.
-- **To Test:** YOU MUST use `run_dotnet_test` for full suites. For a single test class or method during TDD/bug fixes, use `run_specific_test` — never hand-write VSTest `--filter` via `execute_dotnet_command`. Default timeout 300s — raise `timeoutSeconds` for long integration tests. After `run_dotnet_build`, re-run with `noBuild=true` (optionally `noRestore=true`). **OpenCode:** host MCP timeout defaults to ~60s (`-32001`); set server `"timeout": 600000` in `opencode.json` — raising only `timeoutSeconds` does not fix that.
+- **To Build:** YOU MUST use `run_dotnet_build`. Analyze the structured diagnostics (and any truncated console excerpt — head + tail when output is long) the tool returns. On multi-config solutions pass `configuration` (e.g. `Sit-Debug`).
+- **To Test:** YOU MUST use `run_dotnet_test` for full suites. For a single test class or method during TDD/bug fixes, use `run_specific_test` — never hand-write VSTest `--filter` via `execute_dotnet_command`. Default timeout 300s — raise `timeoutSeconds` for long integration tests. After `run_dotnet_build`, re-run with `noBuild=true` (optionally `noRestore=true`). Pass the same `configuration` as build when needed. **OpenCode:** host MCP timeout defaults to ~60s (`-32001`); set server `"timeout": 600000` in `opencode.json` — raising only `timeoutSeconds` does not fix that.
 
 ## 3. Explore Before Build (Global Context Awareness)
 
@@ -226,7 +232,7 @@ Before editing any files, identify your host environment:
 - **For method body edits:** read with **`get_method_body`**, write with **`update_method_body`** — not `apply_patch`.
 - **Bug investigation:** use **`get_call_graph`** to see callers/callees before loading many method bodies.
 - **Packages:** use **`search_nuget_registry`** + **`add_package_reference`** — not hand-edited versions in csproj.
-- **After server rebuild:** call **`get_mcp_server_info`** (expect **v1.0.19+**); run `publish-and-verify.ps1`.
+- **After server rebuild:** call **`get_mcp_server_info`** (expect **v1.0.20+**); run `publish-and-verify.ps1`.
 
 
 </details>
@@ -547,6 +553,7 @@ Parses C# syntax, inserts with DocumentEditor, formats the file. Prefer over `ap
 
 **Parameters:**
 - `workspacePath: string` — must be an existing **`.csproj`, `.sln`, or `.slnx` file** (not a directory).
+- `configuration: string? = null` — optional `dotnet build -c` (e.g. `Sit-Debug`, `Dit-Debug`). Omit only when a single default config is correct.
 
 **Behavior:** Inherits full process env, then pins SDK via `MSBUILD_EXE_PATH`, `MSBuildSDKsPath`, `DOTNET_MSBUILD_SDK_RESOLVER_SDKS_DIR` / `SDKS_VER` / `CLI_DIR`, `DOTNET_ROOT`. On MSBuild path mismatch → **`error MCP_MSBUILD_SDK_MISMATCH`** and `dotnet exec …/10.x/MSBuild.dll /restore`. Escalation: minimal build → pinned restore → restore (detailed if empty) → build normal → build detailed. **Key lines** include task `-- FAILED` with project context.
 
@@ -560,6 +567,7 @@ Parses C# syntax, inserts with DocumentEditor, formats the file. Prefer over `ap
 - `timeoutSeconds: int = 300` — process timeout; `0` disables (not recommended). Raise for long integration tests (e.g. 900/1800).
 - `noBuild: bool = false` — pass `--no-build` (after a successful `run_dotnet_build`).
 - `noRestore: bool = false` — pass `--no-restore`.
+- `configuration: string? = null` — optional `dotnet test -c` (e.g. `Sit-Debug`). Use the same value as `run_dotnet_build` when `noBuild=true`.
 
 **Behavior:** `--logger "console;verbosity=normal"`. Summary from `Passed!`, `Test Run Successful` + `Total tests`/`Passed:` (Failed defaults to 0), or per-test `  Passed FQN [ms]`. MSBuild/prune noise ignored; duplicate NU audit lines deduped. Exit 0 without any summary marker → **`Status: partial`** + last 2KB. `run_specific_test` checks filter matched a test FQN.
 
@@ -575,6 +583,7 @@ Parses C# syntax, inserts with DocumentEditor, formats the file. Prefer over `ap
 - `timeoutSeconds: int = 300` — same as `run_dotnet_test`.
 - `noBuild: bool = false` — pass `--no-build`.
 - `noRestore: bool = false` — pass `--no-restore`.
+- `configuration: string? = null` — optional `dotnet test -c` (same as `run_dotnet_test`).
 
 At least one of `className` or `methodName` is required. The tool builds `--filter` internally. After `load_workspace`, Roslyn resolves exact fully qualified names when possible.
 
@@ -903,7 +912,7 @@ cd D:\Devel\YourApp
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (таблицы v1.0.13–v1.0.19). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (таблицы v1.0.13–v1.0.20). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 
@@ -936,8 +945,8 @@ Do not run searches through raw shells (`PowerShell`, `Bash`, `CMD`) — the wor
 
 NEVER use raw terminal commands (PowerShell, Bash, CMD) to execute `dotnet build` or `dotnet test`. Doing so bypasses our diagnostic parsers and can crash the context window with raw MSBuild output.
 
-- **To Build:** YOU MUST use `run_dotnet_build`. Analyze the structured diagnostics (and any truncated console excerpt — head + tail when output is long) the tool returns.
-- **To Test:** YOU MUST use `run_dotnet_test` for full suites. For a single test class or method during TDD/bug fixes, use `run_specific_test` — never hand-write VSTest `--filter` via `execute_dotnet_command`. Default timeout 300s — raise `timeoutSeconds` for long integration tests. After `run_dotnet_build`, re-run with `noBuild=true` (optionally `noRestore=true`). **OpenCode:** host MCP timeout defaults to ~60s (`-32001`); set server `"timeout": 600000` in `opencode.json` — raising only `timeoutSeconds` does not fix that.
+- **To Build:** YOU MUST use `run_dotnet_build`. Analyze the structured diagnostics (and any truncated console excerpt — head + tail when output is long) the tool returns. On multi-config solutions pass `configuration` (e.g. `Sit-Debug`).
+- **To Test:** YOU MUST use `run_dotnet_test` for full suites. For a single test class or method during TDD/bug fixes, use `run_specific_test` — never hand-write VSTest `--filter` via `execute_dotnet_command`. Default timeout 300s — raise `timeoutSeconds` for long integration tests. After `run_dotnet_build`, re-run with `noBuild=true` (optionally `noRestore=true`). Pass the same `configuration` as build when needed. **OpenCode:** host MCP timeout defaults to ~60s (`-32001`); set server `"timeout": 600000` in `opencode.json` — raising only `timeoutSeconds` does not fix that.
 
 ## 3. Explore Before Build (Global Context Awareness)
 
@@ -977,7 +986,7 @@ Before editing any files, identify your host environment:
 - **For method body edits:** read with **`get_method_body`**, write with **`update_method_body`** — not `apply_patch`.
 - **Bug investigation:** use **`get_call_graph`** to see callers/callees before loading many method bodies.
 - **Packages:** use **`search_nuget_registry`** + **`add_package_reference`** — not hand-edited versions in csproj.
-- **After server rebuild:** call **`get_mcp_server_info`** (expect **v1.0.19+**); run `publish-and-verify.ps1`.
+- **After server rebuild:** call **`get_mcp_server_info`** (expect **v1.0.20+**); run `publish-and-verify.ps1`.
 
 
 </details>
@@ -1290,6 +1299,7 @@ Before editing any files, identify your host environment:
 
 **Параметры:**
 - `workspacePath: string` — только существующий **файл** `.csproj`, `.sln` или `.slnx` (не каталог).
+- `configuration: string? = null` — опционально `dotnet build -c` (например `Sit-Debug`, `Dit-Debug`). Не опускайте на multi-config `.slnx`.
 
 **Поведение:** наследование env + pinning (`MSBUILD_EXE_PATH`, `DOTNET_MSBUILD_SDK_RESOLVER_SDKS_*`). Mismatch → **error `MCP_MSBUILD_SDK_MISMATCH`** + pinned `dotnet exec …/MSBuild.dll /restore`. Цепочка minimal → pinned restore → restore/build detailed. **Key lines** с проектом у `-- FAILED`.
 
@@ -1303,6 +1313,7 @@ Before editing any files, identify your host environment:
 - `timeoutSeconds: int = 300` — таймаут процесса; `0` отключает (не рекомендуется). Для долгих интеграционных поднимайте (900/1800).
 - `noBuild: bool = false` — `--no-build` (после успешного `run_dotnet_build`).
 - `noRestore: bool = false` — `--no-restore`.
+- `configuration: string? = null` — опционально `dotnet test -c` (например `Sit-Debug`). При `noBuild=true` — тот же config, что у build.
 
 **Поведение:** сводка из `Passed!`, `Test Run Successful` + `Total tests`/`Passed:` (Failed=0 если нет строки), FQN-строки тестов; дедуп NU audit. Без маркеров сводки при exit 0 → **partial** + 2KB лога.
 
@@ -1318,6 +1329,7 @@ Before editing any files, identify your host environment:
 - `timeoutSeconds: int = 300` — как у `run_dotnet_test`.
 - `noBuild: bool = false` — `--no-build`.
 - `noRestore: bool = false` — `--no-restore`.
+- `configuration: string? = null` — опционально `dotnet test -c` (как у `run_dotnet_test`).
 
 Нужен хотя бы один из `className` / `methodName`. `--filter` формируется автоматически. После `load_workspace` Roslyn по возможности резолвит точный FQN.
 

@@ -27,11 +27,13 @@ public static class DotNetBuildProbe
         string workingDirectory,
         CancellationToken cancellationToken,
         TimeSpan? overallBudget = null,
-        TimeSpan? stepTimeout = null)
+        TimeSpan? stepTimeout = null,
+        string? configuration = null)
     {
         var budget = overallBudget ?? DefaultOverallBudget;
         var perStep = stepTimeout ?? DefaultStepTimeout;
         var quoted = $"\"{projectOrSolutionPath}\"";
+        var configSwitch = DotNetConfigurationArguments.FormatSwitch(configuration);
         var log = new StringBuilder();
         var steps = new List<string>();
         var lastExitCode = 0;
@@ -72,7 +74,10 @@ public static class DotNetBuildProbe
             return run;
         }
 
-        await RunStepAsync("dotnet build -v:minimal", $"build {quoted} -v:minimal").ConfigureAwait(false);
+        await RunStepAsync(
+                $"dotnet build -v:minimal{configSwitch}",
+                $"build {quoted} -v:minimal{configSwitch}")
+            .ConfigureAwait(false);
 
         if (!timedOut
             && TryBuildPinnedMsBuildRestoreArguments(pin, projectOrSolutionPath) is { } pinnedRestore
@@ -95,12 +100,18 @@ public static class DotNetBuildProbe
 
         if (!timedOut && ShouldRunMoreDiagnostics(log.ToString()))
         {
-            await RunStepAsync("dotnet build -v:normal", $"build {quoted} -v:normal").ConfigureAwait(false);
+            await RunStepAsync(
+                    $"dotnet build -v:normal{configSwitch}",
+                    $"build {quoted} -v:normal{configSwitch}")
+                .ConfigureAwait(false);
         }
 
         if (!timedOut && ShouldRunMoreDiagnostics(log.ToString()))
         {
-            await RunStepAsync("dotnet build -v:detailed", $"build {quoted} -v:detailed").ConfigureAwait(false);
+            await RunStepAsync(
+                    $"dotnet build -v:detailed{configSwitch}",
+                    $"build {quoted} -v:detailed{configSwitch}")
+                .ConfigureAwait(false);
         }
 
         if (budgetExhausted)

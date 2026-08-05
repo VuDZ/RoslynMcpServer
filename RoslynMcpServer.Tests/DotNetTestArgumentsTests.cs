@@ -53,6 +53,20 @@ public sealed class DotNetTestArgumentsTests
     }
 
     [Fact]
+    public void Build_configuration_before_no_build_flags()
+    {
+        var args = DotNetTestArguments.Build(
+            Target,
+            configuration: "Sit-Debug",
+            noBuild: true,
+            noRestore: true);
+
+        Assert.Equal(
+            $"test \"{Target}\" --logger \"console;verbosity=normal\" --verbosity normal -c \"Sit-Debug\" --no-build --no-restore",
+            args);
+    }
+
+    [Fact]
     public void Build_escapes_quotes_in_filter()
     {
         var args = DotNetTestArguments.Build(Target, filter: "Name=\"X\"");

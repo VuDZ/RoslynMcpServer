@@ -24,10 +24,15 @@ public sealed class BuildTools
         + "Overall wall-clock budget ~300s, per-step timeout ~180s; returns up to 20 parsed diagnostics plus key log lines. "
         + "Surfaces `MCP_MSBUILD_SDK_MISMATCH` when MSBuild SDK ≠ global.json pin. "
         + "`workspacePath` must be a `.csproj`, `.sln`, or `.slnx` **file** (not a directory). Prefer solution files for multi-config repos. "
+        + "Optional `configuration` maps to `dotnet build -c` (e.g. `Sit-Debug`, `Dit-Debug`) — required when the solution has multiple Debug-like configs. "
         + "No agent-tunable timeout. Use AFTER editing to verify compile.")]
     public async Task<string> RunDotNetBuild(
         [Description("Path to a `.csproj`, `.sln`, or `.slnx` **file** (not a directory). Same parameter name as load_workspace / run_dotnet_test.")]
         string workspacePath,
+        [Description(
+            "Optional MSBuild configuration (`dotnet build -c`). Examples: `Debug`, `Release`, `Sit-Debug`, `Dit-Debug`. "
+            + "Omit to use the SDK/solution default (often wrong on multi-config `.slnx`).")]
+        string? configuration = null,
         CancellationToken cancellationToken = default)
     {
         try
@@ -54,7 +59,12 @@ public sealed class BuildTools
             }
 
             var workDir = WorkspaceRootResolver.ResolveDotNetWorkingDirectory(fullPath);
-            var probe = await DotNetBuildProbe.RunAsync(fullPath, workDir, cancellationToken).ConfigureAwait(false);
+            var probe = await DotNetBuildProbe.RunAsync(
+                    fullPath,
+                    workDir,
+                    cancellationToken,
+                    configuration: configuration)
+                .ConfigureAwait(false);
             var combined = probe.CombinedOutput;
             var processExitCode = probe.ExitCode;
             var runMetadata = probe.RunMetadata;
