@@ -20,9 +20,12 @@ public sealed class WorkspaceTools
     }
 
     [McpServerTool(Name = "load_workspace", Title = "Load C# workspace")]
-    [Description("Loads a C# Solution or Project into the semantic engine and returns a structural map of the codebase. Always call this first before analyzing C# code.")]
+    [Description(
+        "Loads a C# Solution or Project into the semantic engine and returns a structural map plus a **workspace health** block "
+        + "(SDK/global.json pin, restore assets, registered tool count). Always call this first before analyzing C# code. "
+        + "Accepts `.sln` or `.csproj` only (not `.slnx`).")]
     public async Task<string> LoadWorkspace(
-        [Description("Absolute path to the .sln or .csproj — same parameter name as run_dotnet_build, run_dotnet_test, run_format, list_projects.")]
+        [Description("Absolute path to a `.sln` or `.csproj` file (not `.slnx`, not a directory). Same parameter name as run_dotnet_build, run_dotnet_test, run_format, list_projects.")]
         string workspacePath,
         CancellationToken cancellationToken = default)
     {

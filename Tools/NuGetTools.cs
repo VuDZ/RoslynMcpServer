@@ -22,9 +22,10 @@ public sealed class NuGetTools
 
     [McpServerTool(Name = "list_nuget_packages", Title = "List NuGet packages")]
     [Description(
-        "Lists installed NuGet packages for a .sln or .csproj as structured JSON, grouped by project and target framework. " +
-        "Includes transitive dependencies when `includeTransitive` is true. Use before adding or upgrading packages — " +
-        "do not guess installed versions via `execute_dotnet_command`.")]
+        "Lists installed NuGet packages for a .sln or .csproj as structured JSON, grouped by project and target framework. "
+        + "Includes transitive dependencies when `includeTransitive` is true. Use before adding or upgrading packages — "
+        + "do not guess installed versions via `execute_dotnet_command`. "
+        + "No process timeout (runs until complete or cancel); avoid parallel long NuGet/build calls.")]
     public async Task<string> ListNuGetPackages(
         [Description("Path to .sln, .csproj, or directory containing them (same shape as run_dotnet_build / load_workspace).")]
         string workspacePath,
@@ -122,7 +123,8 @@ public sealed class NuGetTools
     [McpServerTool(Name = "run_nuget_audit", Title = "Run NuGet vulnerability audit")]
     [Description(
         "Runs `dotnet list package --vulnerable --include-transitive` and returns a compact table "
-        + "(severity, package, version, project, GHSA/advisory URL). Separate from compile errors in `run_dotnet_build`.")]
+        + "(severity, package, version, project, GHSA/advisory URL). Separate from compile errors in `run_dotnet_build`. "
+        + "No process timeout (runs until complete or cancel).")]
     public async Task<string> RunNuGetAudit(
         [Description("Path to .sln, .csproj, or directory (same as run_dotnet_build / load_workspace).")]
         string workspacePath,
@@ -188,7 +190,9 @@ public sealed class NuGetTools
     }
 
     [McpServerTool(Name = "list_outdated_packages", Title = "List outdated NuGet packages")]
-    [Description("Runs dotnet list package --outdated --format json.")]
+    [Description(
+        "Lists outdated direct PackageReferences (`dotnet list package --outdated --format json`) via `list_nuget_packages` "
+        + "with `includeTransitive=false` and `includeOutdated=true`. No process timeout.")]
     public Task<string> ListOutdatedPackages(
         [Description("Path to .sln, .csproj, or directory containing them.")]
         string workspacePath,
@@ -197,9 +201,9 @@ public sealed class NuGetTools
 
     [McpServerTool(Name = "search_nuget_registry", Title = "Search NuGet registry")]
     [Description(
-        "Searches nuget.org (and other configured feeds) for package names and latest stable versions. " +
-        "Use before `dotnet add package` to verify a package exists and pick a real version — " +
-        "do not invent package ids or versions and do not use raw `execute_dotnet_command` for discovery.")]
+        "Searches nuget.org (and other configured feeds) for package names and latest stable versions. "
+        + "Use before `dotnet add package` / `add_package_reference` to verify a package exists and pick a real version — "
+        + "do not invent package ids or versions. No process timeout (runs until complete or cancel).")]
     public async Task<string> SearchNuGetRegistry(
         [Description("Package id or search term, e.g. `Moq` or `Microsoft.Extensions.Logging`.")]
         string query,

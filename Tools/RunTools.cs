@@ -19,6 +19,7 @@ public sealed class RunTools
     [McpServerTool(Name = "run_dotnet_run", Title = "Run dotnet run")]
     [Description(
         "Runs `dotnet run --project <csproj>` with pinned SDK (same as run_dotnet_build). "
+        + "Default timeout **120s** (raise `timeoutSeconds` for long jobs; `0` = no timeout). "
         + "Returns separate stdout/stderr with size limits — use for console apps (progress on stderr). "
         + "Do not use raw shell `dotnet run` or execute_dotnet_command for project runs.")]
     public async Task<string> RunDotNetRun(

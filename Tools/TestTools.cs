@@ -21,12 +21,18 @@ public sealed class TestTools
     [McpServerTool(Name = "run_dotnet_test", Title = "Run dotnet test")]
     [Description(
         "Runs `dotnet test` on the specified project or solution. Use this to verify behavior after writing tests or refactoring. " +
-        "Returns a clean summary of passed/failed tests. Default timeout 300s; on timeout/cancel the process tree is killed.")]
+        "Returns a clean summary of passed/failed tests. Default timeout 300s; on timeout/cancel the process tree is killed. " +
+        "After `run_dotnet_build`, pass `noBuild=true` (and optionally `noRestore=true`) to skip rebuild. " +
+        "For long integration tests raise `timeoutSeconds` (e.g. 900/1800).")]
     public Task<string> RunDotNetTest(
-        [Description("Path to .csproj, .sln, or test project directory (same parameter name as load_workspace / run_dotnet_build).")]
+        [Description("Path to .csproj, .sln, or test project directory (directories allowed; unlike `run_dotnet_build` which requires a file).")]
         string workspacePath,
         [Description("Process timeout in seconds. Default 300. Set 0 to disable timeout (not recommended).")]
         int timeoutSeconds = DotNetCliRunner.DefaultTimeoutSeconds,
+        [Description("Pass `--no-build` (skip rebuild; use after a successful `run_dotnet_build`).")]
+        bool noBuild = false,
+        [Description("Pass `--no-restore` (skip NuGet restore).")]
+        bool noRestore = false,
         CancellationToken cancellationToken = default)
     {
         return ExecuteDotnetTestAsync(
@@ -36,6 +42,8 @@ public sealed class TestTools
             filterDescription: null,
             requireFilterMatch: false,
             timeoutSeconds,
+            noBuild,
+            noRestore,
             cancellationToken);
     }
 
@@ -44,9 +52,10 @@ public sealed class TestTools
         "Runs `dotnet test` filtered to a single test class and/or method. Builds the VSTest `--filter` expression internally — " +
         "do not use `execute_dotnet_command` or hand-written FullyQualifiedName filters. " +
         "When the Roslyn workspace is loaded, resolves the exact fully qualified test name for precise filtering. " +
-        "Use for TDD and bug fixes instead of running the full suite. Default timeout 300s; kills process tree on timeout/cancel.")]
+        "Use for TDD and bug fixes instead of running the full suite. Default timeout 300s; kills process tree on timeout/cancel. " +
+        "After `run_dotnet_build`, pass `noBuild=true` (and optionally `noRestore=true`). Raise `timeoutSeconds` for slow tests.")]
     public async Task<string> RunSpecificTest(
-        [Description("Path to .csproj, .sln, or test project directory (same as run_dotnet_test).")]
+        [Description("Path to .csproj, .sln, or test project directory (same as run_dotnet_test; directories allowed).")]
         string workspacePath,
         [Description("Test class name (simple or fully qualified), e.g. `UserServiceTests`.")]
         string? className = null,
@@ -54,6 +63,10 @@ public sealed class TestTools
         string? methodName = null,
         [Description("Process timeout in seconds. Default 300. Set 0 to disable timeout (not recommended).")]
         int timeoutSeconds = DotNetCliRunner.DefaultTimeoutSeconds,
+        [Description("Pass `--no-build` (skip rebuild; use after a successful `run_dotnet_build`).")]
+        bool noBuild = false,
+        [Description("Pass `--no-restore` (skip NuGet restore).")]
+        bool noRestore = false,
         CancellationToken cancellationToken = default)
     {
         const string toolName = nameof(RunSpecificTest);
@@ -78,6 +91,8 @@ public sealed class TestTools
                     description,
                     requireFilterMatch: true,
                     timeoutSeconds,
+                    noBuild,
+                    noRestore,
                     cancellationToken)
                 .ConfigureAwait(false);
         }
@@ -127,8 +142,8 @@ public sealed class TestTools
     [Description("Inserts a test method stub ([Fact]/[Test]/[TestMethod]) into a test class via Roslyn AST.")]
     public async Task<string> GenerateTestMethodStub(
         [Description("Absolute or workspace-relative path to the test .cs file.")] string filePath,
-        string className,
-        string methodName,
+        [Description("Test class name that will receive the stub.")] string className,
+        [Description("New test method name to insert.")] string methodName,
         [Description("xunit (default), nunit, or mstest.")] string? testFramework = null,
         CancellationToken cancellationToken = default)
     {
@@ -166,6 +181,8 @@ public sealed class TestTools
         string? filterDescription,
         bool requireFilterMatch,
         int timeoutSeconds,
+        bool noBuild,
+        bool noRestore,
         CancellationToken cancellationToken)
     {
         try
@@ -197,17 +214,15 @@ public sealed class TestTools
                 ? WorkspaceRootResolver.ResolveDotNetWorkingDirectory(fullPath)
                 : WorkspaceRootResolver.FindDirectoryContainingGlobalJson(fullPath) ?? fullPath;
 
-            var filterArg = string.IsNullOrWhiteSpace(filter)
-                ? string.Empty
-                : $" --filter \"{filter.Replace("\"", "\\\"", StringComparison.Ordinal)}\"";
-
             var targetPath = File.Exists(fullPath)
                 ? fullPath
                 : WorkspaceRootResolver.FindSolutionOrProjectInDirectory(fullPath) ?? fullPath;
 
+            var testArgs = DotNetTestArguments.Build(targetPath, filter, noBuild, noRestore);
+
             TimeSpan? timeout = timeoutSeconds > 0 ? TimeSpan.FromSeconds(timeoutSeconds) : null;
             var run = await DotNetCliRunner.RunWithMetadataAsync(
-                $"test \"{targetPath}\" --logger \"console;verbosity=normal\" --verbosity normal{filterArg}",
+                testArgs,
                 workDir,
                 cancellationToken,
                 timeout).ConfigureAwait(false);

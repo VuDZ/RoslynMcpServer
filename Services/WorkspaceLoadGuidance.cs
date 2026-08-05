@@ -30,7 +30,9 @@ public static class WorkspaceLoadGuidance
     {
         var sb = new StringBuilder();
         sb.AppendLine(leadingSentence ?? "Error: No workspace loaded.");
-        sb.AppendLine("Call `load_workspace` with the absolute path to your `.sln`, `.slnx`, or entry `.csproj`.");
+        sb.AppendLine(
+            "Call `load_workspace` with the absolute path to your `.sln` or entry `.csproj` "
+            + "(`.slnx` is listed below when found but is **not** accepted by `load_workspace` — use the matching `.sln`).");
 
         var candidates = DiscoverSolutionCandidates();
         if (candidates.Count == 0)

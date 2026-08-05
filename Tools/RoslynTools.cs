@@ -17,7 +17,10 @@ public sealed class RoslynTools
     }
 
     [McpServerTool(Name = "get_file_content", Title = "Read source file")]
-    [Description("Reads full file content with context-window protection for large files. Uses `filePath` — the same argument name as read_file_range, get_method_body, get_diagnostics_for_file, apply_patch, etc.")]
+    [Description(
+        "Reads file content with context-window protection: if the file has more than 500 lines, returns only the first 100 lines plus a notice. "
+        + "Uses `filePath` — the same argument name as read_file_range, get_method_body, get_diagnostics_for_file, apply_patch, etc. "
+        + "For a specific window use `read_file_range`; for a method use `get_method_body`.")]
     public Task<string> GetFileContent(
         [Description("Absolute or relative path to the file to read.")]
         string filePath,

@@ -27,9 +27,12 @@ public sealed class CodeAnalysisTools
     }
 
     [McpServerTool(Name = "get_class_skeleton", Title = "Get C# class skeleton")]
-    [Description("Extracts the high-level skeleton (contract) of a C# file. Returns namespaces, classes, interfaces, properties, and method signatures, but COMPLETELY OMITS method bodies to save LLM context. Use this before modifying any class.")]
+    [Description(
+        "Extracts the high-level skeleton (contract) of a C# file from the **loaded Roslyn workspace**. "
+        + "Returns namespaces, types, properties, and method signatures; method bodies omitted. "
+        + "Requires `load_workspace` and a document in that workspace. For disk-only (no workspace) use `get_code_skeleton`; for NuGet/DLL types use `get_decompiled_class_skeleton`.")]
     public async Task<string> GetClassSkeleton(
-        [Description("Path to a .cs file (same argument name `filePath` as get_file_content).")]
+        [Description("Path to a .cs file in the loaded workspace (same argument name `filePath` as get_file_content).")]
         string filePath,
         CancellationToken cancellationToken = default)
     {
@@ -134,11 +137,12 @@ public sealed class CodeAnalysisTools
     [McpServerTool(Name = "explore_assembly", Title = "Explore referenced assembly")]
     [Description(
         "Opens an external assembly (NuGet or other DLL) with ILSpy and returns namespaces with visible top-level types. "
-        + "Provide `assemblyName` (no `.dll`, resolved via loaded workspace) or `assemblyPath` (absolute path to `.dll`). "
+        + "Provide `assemblyName` (no `.dll`) or `assemblyPath` (absolute path to `.dll`). "
+        + "`assemblyName` resolves exactly as `{name}.dll` via workspace MetadataReferences → project `deps.json` → NuGet cache (no fuzzy match). "
         + "Call `load_workspace` when using `assemblyName` only.")]
     public Task<string> ExploreAssembly(
-        [Description("Assembly simple name without `.dll` (e.g. `Microsoft.TeamFoundation.Client`). Resolved via workspace references.")] string? assemblyName = null,
-        [Description("Absolute path to a `.dll` file. Use when you already know the path (NuGet package folder, etc.).")] string? assemblyPath = null,
+        [Description("Assembly simple name without `.dll` (e.g. `Microsoft.TeamFoundation.Client`). Exact `{name}.dll` via MetadataReferences → deps.json → NuGet.")] string? assemblyName = null,
+        [Description("Absolute path to a `.dll` file. Bypasses workspace resolve.")] string? assemblyPath = null,
         CancellationToken cancellationToken = default)
     {
         try
@@ -210,10 +214,13 @@ public sealed class CodeAnalysisTools
 
     [McpServerTool(Name = "decompile_type", Title = "Decompile referenced type")]
     [Description(
-        "Decompiles a specific type from a referenced external assembly (NuGet or other DLL) into C# source code using ILSpy. The tool first searches the currently loaded Roslyn workspace MetadataReferences for `assemblyName` (without `.dll`), resolves the physical DLL path, then finds `fullTypeName` in that assembly and returns decompiled source for that exact type. Call `load_workspace` first. This is intended for deep-dive inspection of third-party APIs.")]
+        "Decompiles a specific type from an external assembly into C# via ILSpy. "
+        + "Resolve `assemblyName` (exact `{name}.dll`) via MetadataReferences → `deps.json` → NuGet cache, or pass `assemblyPath`. "
+        + "Then finds `fullTypeName` and returns decompiled source. Circuit breaker: ~500 lines — for large types use `get_decompiled_class_skeleton` / `get_decompiled_method_body`. "
+        + "Call `load_workspace` when using `assemblyName` only.")]
     public Task<string> DecompileType(
-        [Description("Assembly simple name without `.dll`, or omit when `assemblyPath` is set.")] string? assemblyName = null,
-        [Description("Absolute path to a `.dll` file.")] string? assemblyPath = null,
+        [Description("Assembly simple name without `.dll`, or omit when `assemblyPath` is set. Exact resolve: MetadataReferences → deps.json → NuGet.")] string? assemblyName = null,
+        [Description("Absolute path to a `.dll` file. Bypasses workspace resolve.")] string? assemblyPath = null,
         [Description("Full type name with namespace (for example: `Microsoft.AspNetCore.Mvc.ControllerBase`).")] string fullTypeName = "",
         CancellationToken cancellationToken = default)
     {
@@ -291,10 +298,12 @@ public sealed class CodeAnalysisTools
 
     [McpServerTool(Name = "get_decompiled_class_skeleton", Title = "Get decompiled type skeleton")]
     [Description(
-        "Builds a signatures-only C# skeleton for a specific type from a referenced external assembly (NuGet or other DLL) without decompiling full method bodies. The tool resolves `assemblyName` from the loaded Roslyn workspace MetadataReferences, locates `fullTypeName` in ILSpy TypeSystem, and returns public/protected fields, properties, and methods as a compact API overview for LLM context efficiency.")]
+        "Signatures-only C# skeleton for a type in an external assembly (no method bodies). "
+        + "Resolve `assemblyName` exactly via MetadataReferences → `deps.json` → NuGet, or pass `assemblyPath`. "
+        + "Prefer this over `decompile_type` for large types. Call `load_workspace` when using `assemblyName` only.")]
     public Task<string> GetDecompiledClassSkeleton(
-        [Description("Assembly simple name without `.dll`, or omit when `assemblyPath` is set.")] string? assemblyName = null,
-        [Description("Absolute path to a `.dll` file.")] string? assemblyPath = null,
+        [Description("Assembly simple name without `.dll`, or omit when `assemblyPath` is set. Exact resolve: MetadataReferences → deps.json → NuGet.")] string? assemblyName = null,
+        [Description("Absolute path to a `.dll` file. Bypasses workspace resolve.")] string? assemblyPath = null,
         [Description("Full type name with namespace (for example: `Microsoft.AspNetCore.Mvc.ControllerBase`).")] string fullTypeName = "",
         CancellationToken cancellationToken = default)
     {
@@ -437,10 +446,12 @@ public sealed class CodeAnalysisTools
 
     [McpServerTool(Name = "get_decompiled_method_body", Title = "Get decompiled method body")]
     [Description(
-        "Decompiles only method member(s) from a specific type in a referenced external assembly (NuGet or other DLL). The tool resolves `assemblyName` from loaded Roslyn MetadataReferences, finds `fullTypeName` via ILSpy TypeSystem, matches all overloads by `methodName`, and decompiles each matched method entity by metadata token. Useful for deep inspection without decompiling the entire type.")]
+        "Decompiles only method member(s) from a type in an external assembly. "
+        + "Resolve `assemblyName` exactly via MetadataReferences → `deps.json` → NuGet, or pass `assemblyPath`. "
+        + "Matches all overloads by `methodName`. Prefer over full `decompile_type` for focused inspection.")]
     public Task<string> GetDecompiledMethodBody(
-        [Description("Assembly simple name without `.dll`, or omit when `assemblyPath` is set.")] string? assemblyName = null,
-        [Description("Absolute path to a `.dll` file.")] string? assemblyPath = null,
+        [Description("Assembly simple name without `.dll`, or omit when `assemblyPath` is set. Exact resolve: MetadataReferences → deps.json → NuGet.")] string? assemblyName = null,
+        [Description("Absolute path to a `.dll` file. Bypasses workspace resolve.")] string? assemblyPath = null,
         [Description("Full type name with namespace (for example: `Microsoft.AspNetCore.Mvc.ControllerBase`).")] string fullTypeName = "",
         [Description("Method name to decompile. All overloads with this name are returned.")] string methodName = "",
         CancellationToken cancellationToken = default)
