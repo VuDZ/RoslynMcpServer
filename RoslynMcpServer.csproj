@@ -21,9 +21,9 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageId>SampleMcpServer</PackageId>
     <PackageVersion>0.1.0-beta</PackageVersion>
-    <Version>1.0.18</Version>
-    <AssemblyVersion>1.0.18.0</AssemblyVersion>
-    <FileVersion>1.0.18.0</FileVersion>
+    <Version>1.0.19</Version>
+    <AssemblyVersion>1.0.19.0</AssemblyVersion>
+    <FileVersion>1.0.19.0</FileVersion>
     <PackageTags>AI; MCP; server; stdio</PackageTags>
     <Description>An MCP server using the MCP C# SDK.</Description>
   </PropertyGroup>
@@ -41,6 +41,7 @@
   <!-- OpenCode installer script and agent rules template (copied next to the published binary). -->
   <ItemGroup>
     <None Include="install2opencode.ps1" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <None Include="opencode.json.sample" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <None Include="AGENTS.md.sample" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <None Include="publish-and-verify.ps1" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>

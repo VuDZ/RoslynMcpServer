@@ -6,6 +6,8 @@
       "command": [
         "..../RoslynMcpServer.exe"
       ],
+      "timeout": 600000,
+      "enabled": true,
       "environment": {
         "MCP_LOG_INCOMING_RPC": "1",
         "MCP_LOG_INCOMING_RPC_MAX_CHARS": "0"

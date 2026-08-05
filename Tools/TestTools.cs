@@ -25,7 +25,7 @@ public sealed class TestTools
         "After `run_dotnet_build`, pass `noBuild=true` (and optionally `noRestore=true`) to skip rebuild. " +
         "For long integration tests raise `timeoutSeconds` (e.g. 900/1800).")]
     public Task<string> RunDotNetTest(
-        [Description("Path to .csproj, .sln, or test project directory (directories allowed; unlike `run_dotnet_build` which requires a file).")]
+        [Description("Path to .csproj, .sln, .slnx, or test project directory (directories allowed; unlike `run_dotnet_build` which requires a file). Prefer `.sln`/`.slnx` for multi-config solutions.")]
         string workspacePath,
         [Description("Process timeout in seconds. Default 300. Set 0 to disable timeout (not recommended).")]
         int timeoutSeconds = DotNetCliRunner.DefaultTimeoutSeconds,
@@ -55,7 +55,7 @@ public sealed class TestTools
         "Use for TDD and bug fixes instead of running the full suite. Default timeout 300s; kills process tree on timeout/cancel. " +
         "After `run_dotnet_build`, pass `noBuild=true` (and optionally `noRestore=true`). Raise `timeoutSeconds` for slow tests.")]
     public async Task<string> RunSpecificTest(
-        [Description("Path to .csproj, .sln, or test project directory (same as run_dotnet_test; directories allowed).")]
+        [Description("Path to .csproj, .sln, .slnx, or test project directory (same as run_dotnet_test; directories allowed). Prefer `.sln`/`.slnx` for multi-config solutions.")]
         string workspacePath,
         [Description("Test class name (simple or fully qualified), e.g. `UserServiceTests`.")]
         string? className = null,
@@ -202,11 +202,12 @@ public sealed class TestTools
             {
                 var ext = Path.GetExtension(fullPath);
                 if (!string.Equals(ext, ".csproj", StringComparison.OrdinalIgnoreCase)
-                    && !string.Equals(ext, ".sln", StringComparison.OrdinalIgnoreCase))
+                    && !string.Equals(ext, ".sln", StringComparison.OrdinalIgnoreCase)
+                    && !string.Equals(ext, ".slnx", StringComparison.OrdinalIgnoreCase))
                 {
                     return ToolTelemetry.TraceAndReturn(
                         toolName,
-                        $"When passing a file, it must be a `.csproj` or `.sln`: `{fullPath}`");
+                        $"When passing a file, it must be a `.csproj`, `.sln`, or `.slnx`: `{fullPath}`");
                 }
             }
 

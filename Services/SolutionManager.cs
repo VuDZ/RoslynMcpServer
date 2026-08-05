@@ -358,7 +358,7 @@ public sealed class SolutionManager
         if (candidate is null)
         {
             throw new FileNotFoundException(
-                "Could not locate a .sln or .csproj while walking parent directories.",
+                "Could not locate a .sln, .slnx, or .csproj while walking parent directories.",
                 fullFilePath);
         }
 
@@ -394,7 +394,8 @@ public sealed class SolutionManager
         });
 
         var extension = Path.GetExtension(fullPath);
-        if (string.Equals(extension, ".sln", _pathComparison))
+        if (string.Equals(extension, ".sln", _pathComparison)
+            || string.Equals(extension, ".slnx", _pathComparison))
         {
             _ = await workspace.OpenSolutionAsync(fullPath, cancellationToken: cancellationToken);
         }
@@ -407,7 +408,7 @@ public sealed class SolutionManager
         else
         {
             workspace.Dispose();
-            throw new NotSupportedException("Only .sln and .csproj files are supported.");
+            throw new NotSupportedException("Only .sln, .slnx, and .csproj files are supported.");
         }
 
         _workspace = workspace;
@@ -457,6 +458,14 @@ public sealed class SolutionManager
             if (solutionPath is not null)
             {
                 return solutionPath;
+            }
+
+            var slnxPath = Directory
+                .EnumerateFiles(currentDirectory.FullName, "*.slnx", SearchOption.TopDirectoryOnly)
+                .FirstOrDefault();
+            if (slnxPath is not null)
+            {
+                return slnxPath;
             }
 
             var projectPath = Directory

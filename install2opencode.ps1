@@ -172,14 +172,19 @@ Write-Host "MCP binary   : $binary"
 $openCodeConfigPath = Join-Path $projectRoot $OpenCodeConfigFileName
 $config = Read-OpenCodeConfig -ConfigPath $openCodeConfigPath
 
+# OpenCode defaults MCP tools/call to ~60s; long build/test need a larger host timeout (ms).
+# This is separate from Roslyn MCP tool arg `timeoutSeconds` (child `dotnet` process limit).
+$McpHostTimeoutMs = 600000
+
 $config.mcp[$McpServerName] = [ordered]@{
     type    = 'local'
     command = @($binaryForConfig)
+    timeout = $McpHostTimeoutMs
     enabled = $true
 }
 
 Write-OpenCodeConfig -ConfigPath $openCodeConfigPath -Config $config
-Write-Host "Updated $OpenCodeConfigFileName."
+Write-Host "Updated $OpenCodeConfigFileName (MCP host timeout=${McpHostTimeoutMs}ms)."
 
 $agentsPath = Join-Path $projectRoot $AgentsFileName
 $sampleContent = Get-AgentsSampleContent
