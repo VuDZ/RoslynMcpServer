@@ -6,7 +6,7 @@
 Unlike basic file-reading servers, this Model Context Protocol (MCP) server leverages **Roslyn**. Your AI agent (Cursor, Cline, etc.) doesn't just read plain text—it sees C# code through the eyes of the compiler. It can get precise diagnostics without a full rebuild, **apply built-in Roslyn code fixes** (add using, implement interface, fix typos), find symbol references, and perform safe semantic refactoring, drastically reducing LLM hallucinations.
 
 It is designed for AI-driven C# development (with secondary Python support), focusing on:
-- Parsing and analyzing `*.sln`/`*.csproj` via Roslyn.
+- Parsing and analyzing `*.sln`/`*.slnx`/`*.csproj` via Roslyn.
 - Safe, context-aware file read/write operations.
 - CLI integration: running `dotnet build`, `dotnet test`, and custom commands.
 - Compact responses optimized for LLM context windows, backed by detailed server-side logging.
@@ -57,8 +57,21 @@ cd D:\Devel\YourApp
 
 The script:
 
-- Creates or updates **`opencode.json`** in the target directory, registering `RoslynMcpServer` as a local MCP server (`type: local`, `enabled: true`).
+- Creates or updates **`opencode.json`** in the target directory, registering `RoslynMcpServer` as a local MCP server (`type: local`, `enabled: true`, **`timeout`: `600000`** ms = 10 minutes).
 - Creates or updates **`AGENTS.md`**: if Roslyn MCP behavioral rules are not already present, merges content from the bundled `AGENTS.md.sample` (creates a new file or appends to an existing one).
+
+**OpenCode MCP host timeout:** OpenCode’s default for MCP `tools/call` is about **60 seconds**. That is **not** the tool argument `timeoutSeconds` on `run_dotnet_test` / `run_dotnet_run`. Without raising the host timeout, long build/test calls fail with `McpError: MCP error -32001: Request timed out` (~60s) even if you pass `timeoutSeconds: 900`. Set `"timeout": 600000` (or higher) on the server entry — see [`opencode.json.sample`](opencode.json.sample). `install2opencode.ps1` writes this for you. If an older OpenCode build ignores per-server `timeout`, also try `"experimental": { "mcp_timeout": 600000 }` in `opencode.json`.
+
+Example server block:
+
+```json
+"roslyn-mcp-server": {
+  "type": "local",
+  "command": ["C:/path/to/RoslynMcpServer.exe"],
+  "timeout": 600000,
+  "enabled": true
+}
+```
 
 | Parameter | Description |
 | --- | --- |
@@ -71,11 +84,18 @@ Restart OpenCode or reload MCP servers after running the script.
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.0.19
+
+| Tool / behavior | Notes |
+|-----------------|--------|
+| `.slnx` support | `load_workspace`, `run_dotnet_build`, `run_dotnet_test` / `run_specific_test`, discovery, and NuGet/format paths accept `.slnx`; prefer solution files for multi-config repos |
+| OpenCode host timeout | Document + `opencode.json.sample` / `install2opencode.ps1`: `"timeout": 600000` ms — avoids MCP `-32001` (~60s); separate from tool `timeoutSeconds` |
+
 ### v1.0.18
 
 | Tool / behavior | Notes |
 |-----------------|--------|
-| Tool descriptions | Accurate agent-facing `[Description]` across build/test/decompile/NuGet/navigation/AST params; `load_workspace` clarifies no `.slnx` |
+| Tool descriptions | Accurate agent-facing `[Description]` across build/test/decompile/NuGet/navigation/AST params |
 
 ### v1.0.17
 
@@ -150,7 +170,7 @@ You are a Senior C# Developer and Architect. You have access to a specialized Ro
 Every time you start a new conversation or receive the first prompt in this project, you MUST silently perform the following steps before answering the user. **THIS IS A STRICT BLOCKER:**
 
 1. Call the MCP server to list available tools.
-2. Call `load_workspace` with `workspacePath` set to the absolute path of the solution or project file (e.g., `d:/Devel/YourRepo/YourSolution.sln`). **CRITICAL:** Tools like `find_symbol_definition` will fail or hallucinate if you skip this step. In MCP config, set `ROSLYN_MCP_WORKSPACE` to the **repo root** (folder with `global.json`) when possible.
+2. Call `load_workspace` with `workspacePath` set to the absolute path of the solution or project file (`.sln`, `.slnx`, or `.csproj` — prefer solution files for multi-config repos; e.g., `d:/Devel/YourRepo/YourSolution.sln`). **CRITICAL:** Tools like `find_symbol_definition` will fail or hallucinate if you skip this step. In MCP config, set `ROSLYN_MCP_WORKSPACE` to the **repo root** (folder with `global.json`) when possible.
 3. Use `manage_agent_scratchpad` with `action: read` to recall previous state notes (omit if you do not use the scratchpad).
 
 ## 1. The Terminal Ban (Strict Tool Enforcement)
@@ -166,7 +186,7 @@ Do not run searches through raw shells (`PowerShell`, `Bash`, `CMD`) — the wor
 NEVER use raw terminal commands (PowerShell, Bash, CMD) to execute `dotnet build` or `dotnet test`. Doing so bypasses our diagnostic parsers and can crash the context window with raw MSBuild output.
 
 - **To Build:** YOU MUST use `run_dotnet_build`. Analyze the structured diagnostics (and any truncated console excerpt — head + tail when output is long) the tool returns.
-- **To Test:** YOU MUST use `run_dotnet_test` for full suites. For a single test class or method during TDD/bug fixes, use `run_specific_test` — never hand-write VSTest `--filter` via `execute_dotnet_command`. Default timeout 300s — raise `timeoutSeconds` for long integration tests. After `run_dotnet_build`, re-run with `noBuild=true` (optionally `noRestore=true`).
+- **To Test:** YOU MUST use `run_dotnet_test` for full suites. For a single test class or method during TDD/bug fixes, use `run_specific_test` — never hand-write VSTest `--filter` via `execute_dotnet_command`. Default timeout 300s — raise `timeoutSeconds` for long integration tests. After `run_dotnet_build`, re-run with `noBuild=true` (optionally `noRestore=true`). **OpenCode:** host MCP timeout defaults to ~60s (`-32001`); set server `"timeout": 600000` in `opencode.json` — raising only `timeoutSeconds` does not fix that.
 
 ## 3. Explore Before Build (Global Context Awareness)
 
@@ -206,7 +226,7 @@ Before editing any files, identify your host environment:
 - **For method body edits:** read with **`get_method_body`**, write with **`update_method_body`** — not `apply_patch`.
 - **Bug investigation:** use **`get_call_graph`** to see callers/callees before loading many method bodies.
 - **Packages:** use **`search_nuget_registry`** + **`add_package_reference`** — not hand-edited versions in csproj.
-- **After server rebuild:** call **`get_mcp_server_info`** (expect **v1.0.18+**); run `publish-and-verify.ps1`.
+- **After server rebuild:** call **`get_mcp_server_info`** (expect **v1.0.19+**); run `publish-and-verify.ps1`.
 
 
 </details>
@@ -228,7 +248,7 @@ Before editing any files, identify your host environment:
 - `directoryPath` — root folder (`list_directory_tree`, optional root for `search_code`).
 - `includeExtensions` — optional extension filter for `search_code` (`.cs` by default; `*` = all files).
 - `caseSensitive` — optional for `search_code` (default `false`; use `true` for leftover branding checks).
-- `workspacePath` — `.sln` / `.csproj` (and sometimes a directory): `load_workspace`, `run_dotnet_test`, `run_specific_test`, `run_format`, optional reload for `list_projects` / `get_project_graph`. **`run_dotnet_build` accepts only a `.csproj` or `.sln` file path, not a directory.**
+- `workspacePath` — `.sln` / `.slnx` / `.csproj` (and sometimes a directory): `load_workspace`, `run_dotnet_test`, `run_specific_test`, `run_format`, optional reload for `list_projects` / `get_project_graph`. **`run_dotnet_build` accepts only a `.csproj`, `.sln`, or `.slnx` file path, not a directory.** Prefer `.sln`/`.slnx` for multi-config solutions.
 - `symbolName` — C# identifier for `find_symbol_definition`, `find_symbol_references`, `find_usages`, and `find_implementations` (exact name; matching is case-insensitive for definition/usages/implementations).
 - `diagnosticId` — compiler/analyzer id from `get_diagnostics_for_file` (e.g. `CS0246`) for `get_code_fixes` / `apply_code_fix`.
 - `fixIndex` — 0-based index from `get_code_fixes` for `apply_code_fix`.
@@ -241,10 +261,10 @@ There are **56** registered tools (see list below) and **1** MCP prompt (`Refact
 ### Workspace / Roslyn
 
 <details>
-<summary><code>load_workspace</code> — Loads .sln/.csproj into MSBuildWorkspace.</summary>
+<summary><code>load_workspace</code> — Loads .sln/.slnx/.csproj into MSBuildWorkspace.</summary>
 
 **Parameters:**
-- `workspacePath: string`
+- `workspacePath: string` — `.sln`, `.slnx`, or `.csproj` file (not a directory). Prefer solution files for multi-config repos.
 </details>
 
 <details>
@@ -285,7 +305,7 @@ There are **56** registered tools (see list below) and **1** MCP prompt (`Refact
 - `className: string`
 - `methodName: string`
 
-**Path resolution:** `filePath` may be absolute or workspace-relative. After `load_workspace`, `src/...` is resolved from the loaded `.sln/.csproj` directory.
+**Path resolution:** `filePath` may be absolute or workspace-relative. After `load_workspace`, `src/...` is resolved from the loaded `.sln`/`.slnx`/`.csproj` directory.
 </details>
 
 <details>
@@ -526,7 +546,7 @@ Parses C# syntax, inserts with DocumentEditor, formats the file. Prefer over `ap
 <summary><code>run_dotnet_build</code> — Runs dotnet build and returns a compact diagnostic summary.</summary>
 
 **Parameters:**
-- `workspacePath: string` — must be an existing **`.csproj` or `.sln` file** (not a directory).
+- `workspacePath: string` — must be an existing **`.csproj`, `.sln`, or `.slnx` file** (not a directory).
 
 **Behavior:** Inherits full process env, then pins SDK via `MSBUILD_EXE_PATH`, `MSBuildSDKsPath`, `DOTNET_MSBUILD_SDK_RESOLVER_SDKS_DIR` / `SDKS_VER` / `CLI_DIR`, `DOTNET_ROOT`. On MSBuild path mismatch → **`error MCP_MSBUILD_SDK_MISMATCH`** and `dotnet exec …/10.x/MSBuild.dll /restore`. Escalation: minimal build → pinned restore → restore (detailed if empty) → build normal → build detailed. **Key lines** include task `-- FAILED` with project context.
 
@@ -582,7 +602,7 @@ Detects Fact/Theory/TestMethod/etc. Requires `load_workspace`.
 <summary><code>list_nuget_packages</code> — Installed NuGet packages as JSON per project.</summary>
 
 **Parameters:**
-- `workspacePath: string` — `.sln`, `.csproj`, or directory
+- `workspacePath: string` — `.sln`, `.slnx`, `.csproj`, или каталог
 - `includeTransitive: bool` — default `true`
 - `includeOutdated: bool` — default `false` (adds `--outdated`)
 - `includeVulnerable: bool` — default `false` (adds `--vulnerable`)
@@ -808,7 +828,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 В отличие от базовых серверов, которые умеют только читать и писать файлы, этот сервер использует **Roslyn**. Ваш ИИ-агент (в Cursor, Cline и др.) не просто читает текст, он видит C#-код глазами компилятора. Он может получать точечную диагностику без полной пересборки, **применять встроенные Roslyn code fixes** (add using, implement interface, опечатки), искать ссылки на символы и делать безопасный семантический рефакторинг, что кардинально снижает риск галлюцинаций.
 
 Сервер работает по `stdio` и регистрирует инструменты через MCP C# SDK, фокусируясь на:
-- работе с `*.sln`/`*.csproj` через Roslyn;
+- работе с `*.sln`/`*.slnx`/`*.csproj` через Roslyn;
 - безопасных операциях чтения/правки файлов;
 - запуске `dotnet build` / `dotnet test` / произвольных `dotnet` команд;
 - компактных ответах для LLM и подробных логах.
@@ -858,8 +878,21 @@ cd D:\Devel\YourApp
 
 Скрипт:
 
-- создаёт или обновляет **`opencode.json`**, регистрируя `RoslynMcpServer` как локальный MCP-сервер (`type: local`, `enabled: true`);
+- создаёт или обновляет **`opencode.json`**, регистрируя `RoslynMcpServer` как локальный MCP-сервер (`type: local`, `enabled: true`, **`timeout`: `600000`** мс = 10 минут);
 - создаёт или дополняет **`AGENTS.md`**: если правил Roslyn MCP ещё нет, подмешивает текст из `AGENTS.md.sample` (новый файл или append к существующему).
+
+**Таймаут MCP-хоста OpenCode:** по умолчанию OpenCode обрывает MCP `tools/call` примерно через **60 секунд**. Это **не** аргумент тула `timeoutSeconds` у `run_dotnet_test` / `run_dotnet_run`. Без увеличения host timeout длинные build/test падают с `McpError: MCP error -32001: Request timed out` (~60 с), даже если передать `timeoutSeconds: 900`. Укажите `"timeout": 600000` (или больше) в записи сервера — см. [`opencode.json.sample`](opencode.json.sample). `install2opencode.ps1` проставляет это сам. Если старая сборка OpenCode игнорирует per-server `timeout`, добавьте также `"experimental": { "mcp_timeout": 600000 }`.
+
+Пример блока сервера:
+
+```json
+"roslyn-mcp-server": {
+  "type": "local",
+  "command": ["C:/path/to/RoslynMcpServer.exe"],
+  "timeout": 600000,
+  "enabled": true
+}
+```
 
 | Параметр | Описание |
 | --- | --- |
@@ -870,7 +903,7 @@ cd D:\Devel\YourApp
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (таблицы v1.0.13–v1.0.18). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (таблицы v1.0.13–v1.0.19). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 
@@ -888,7 +921,7 @@ You are a Senior C# Developer and Architect. You have access to a specialized Ro
 Every time you start a new conversation or receive the first prompt in this project, you MUST silently perform the following steps before answering the user. **THIS IS A STRICT BLOCKER:**
 
 1. Call the MCP server to list available tools.
-2. Call `load_workspace` with `workspacePath` set to the absolute path of the solution or project file (e.g., `d:/Devel/YourRepo/YourSolution.sln`). **CRITICAL:** Tools like `find_symbol_definition` will fail or hallucinate if you skip this step. In MCP config, set `ROSLYN_MCP_WORKSPACE` to the **repo root** (folder with `global.json`) when possible.
+2. Call `load_workspace` with `workspacePath` set to the absolute path of the solution or project file (`.sln`, `.slnx`, or `.csproj` — prefer solution files for multi-config repos; e.g., `d:/Devel/YourRepo/YourSolution.sln`). **CRITICAL:** Tools like `find_symbol_definition` will fail or hallucinate if you skip this step. In MCP config, set `ROSLYN_MCP_WORKSPACE` to the **repo root** (folder with `global.json`) when possible.
 3. Use `manage_agent_scratchpad` with `action: read` to recall previous state notes (omit if you do not use the scratchpad).
 
 ## 1. The Terminal Ban (Strict Tool Enforcement)
@@ -904,7 +937,7 @@ Do not run searches through raw shells (`PowerShell`, `Bash`, `CMD`) — the wor
 NEVER use raw terminal commands (PowerShell, Bash, CMD) to execute `dotnet build` or `dotnet test`. Doing so bypasses our diagnostic parsers and can crash the context window with raw MSBuild output.
 
 - **To Build:** YOU MUST use `run_dotnet_build`. Analyze the structured diagnostics (and any truncated console excerpt — head + tail when output is long) the tool returns.
-- **To Test:** YOU MUST use `run_dotnet_test` for full suites. For a single test class or method during TDD/bug fixes, use `run_specific_test` — never hand-write VSTest `--filter` via `execute_dotnet_command`. Default timeout 300s — raise `timeoutSeconds` for long integration tests. After `run_dotnet_build`, re-run with `noBuild=true` (optionally `noRestore=true`).
+- **To Test:** YOU MUST use `run_dotnet_test` for full suites. For a single test class or method during TDD/bug fixes, use `run_specific_test` — never hand-write VSTest `--filter` via `execute_dotnet_command`. Default timeout 300s — raise `timeoutSeconds` for long integration tests. After `run_dotnet_build`, re-run with `noBuild=true` (optionally `noRestore=true`). **OpenCode:** host MCP timeout defaults to ~60s (`-32001`); set server `"timeout": 600000` in `opencode.json` — raising only `timeoutSeconds` does not fix that.
 
 ## 3. Explore Before Build (Global Context Awareness)
 
@@ -944,7 +977,7 @@ Before editing any files, identify your host environment:
 - **For method body edits:** read with **`get_method_body`**, write with **`update_method_body`** — not `apply_patch`.
 - **Bug investigation:** use **`get_call_graph`** to see callers/callees before loading many method bodies.
 - **Packages:** use **`search_nuget_registry`** + **`add_package_reference`** — not hand-edited versions in csproj.
-- **After server rebuild:** call **`get_mcp_server_info`** (expect **v1.0.18+**); run `publish-and-verify.ps1`.
+- **After server rebuild:** call **`get_mcp_server_info`** (expect **v1.0.19+**); run `publish-and-verify.ps1`.
 
 
 </details>
@@ -965,7 +998,7 @@ Before editing any files, identify your host environment:
 - `directoryPath` — корневая папка (`list_directory_tree`, опционально корень для `search_code`).
 - `includeExtensions` — опциональный фильтр расширений для `search_code` (по умолчанию `.cs`; `*` = все файлы).
 - `caseSensitive` — опционально для `search_code` (по умолчанию `false`; для leftover branding — `true`).
-- `workspacePath` — `.sln` / `.csproj` (и иногда каталог): `load_workspace`, `run_dotnet_test`, `run_specific_test`, `run_format`, опциональная перезагрузка в `list_projects` / `get_project_graph`. **`run_dotnet_build` принимает только путь к файлу `.csproj` или `.sln`, не каталог.**
+- `workspacePath` — `.sln` / `.slnx` / `.csproj` (и иногда каталог): `load_workspace`, `run_dotnet_test`, `run_specific_test`, `run_format`, опциональная перезагрузка в `list_projects` / `get_project_graph`. **`run_dotnet_build` принимает только путь к файлу `.csproj`, `.sln` или `.slnx`, не каталог.** Для multi-config solution предпочитайте `.sln`/`.slnx`.
 - `symbolName` — идентификатор C# для `find_symbol_definition`, `find_symbol_references`, `find_usages` и `find_implementations` (точное имя; регистр не важен для definition/usages/implementations).
 - `diagnosticId` — id компилятора/анализатора из `get_diagnostics_for_file` (например `CS0246`) для `get_code_fixes` / `apply_code_fix`.
 - `fixIndex` — индекс (0-based) из `get_code_fixes` для `apply_code_fix`.
@@ -976,10 +1009,10 @@ Before editing any files, identify your host environment:
 ### Workspace / Roslyn
 
 <details>
-<summary><code>load_workspace</code> — Загружает .sln/.csproj в MSBuildWorkspace.</summary>
+<summary><code>load_workspace</code> — Загружает .sln/.slnx/.csproj в MSBuildWorkspace.</summary>
 
 **Параметры:**
-- `workspacePath: string`
+- `workspacePath: string` — файл `.sln`, `.slnx` или `.csproj` (не каталог). Для multi-config — предпочтительно solution.
 </details>
 
 <details>
@@ -1020,7 +1053,7 @@ Before editing any files, identify your host environment:
 - `className: string`
 - `methodName: string`
 
-**Разрешение пути:** `filePath` может быть абсолютным или относительным к workspace. После `load_workspace` путь вида `src/...` считается от каталога загруженного `.sln/.csproj`.
+**Разрешение пути:** `filePath` может быть абсолютным или относительным к workspace. После `load_workspace` путь вида `src/...` считается от каталога загруженного `.sln`/`.slnx`/`.csproj`.
 </details>
 
 <details>
@@ -1256,7 +1289,7 @@ Before editing any files, identify your host environment:
 <summary><code>run_dotnet_build</code> — Запускает dotnet build и возвращает компактную сводку.</summary>
 
 **Параметры:**
-- `workspacePath: string` — только существующий **файл** `.csproj` или `.sln` (не каталог).
+- `workspacePath: string` — только существующий **файл** `.csproj`, `.sln` или `.slnx` (не каталог).
 
 **Поведение:** наследование env + pinning (`MSBUILD_EXE_PATH`, `DOTNET_MSBUILD_SDK_RESOLVER_SDKS_*`). Mismatch → **error `MCP_MSBUILD_SDK_MISMATCH`** + pinned `dotnet exec …/MSBuild.dll /restore`. Цепочка minimal → pinned restore → restore/build detailed. **Key lines** с проектом у `-- FAILED`.
 
@@ -1310,7 +1343,7 @@ Before editing any files, identify your host environment:
 <summary><code>list_nuget_packages</code> — Установленные NuGet-пакеты (JSON по проектам).</summary>
 
 **Параметры:**
-- `workspacePath: string` — `.sln`, `.csproj` или каталог
+- `workspacePath: string` — `.sln`, `.slnx`, `.csproj` или каталог
 - `includeTransitive: bool` — по умолчанию `true`
 - `includeOutdated: bool` — по умолчанию `false` (`--outdated`)
 - `includeVulnerable: bool` — по умолчанию `false` (`--vulnerable`)

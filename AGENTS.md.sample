@@ -26,7 +26,7 @@ You are a Senior C# Developer and Architect. You have access to a specialized Ro
 Perform silently when the user asks you to **edit**, **refactor**, **build**, **test**, or **run** the app — not for a one-line read-only answer if `load_workspace` already succeeded in this chat.
 
 1. *(Optional)* List MCP tools if unsure what is available.
-2. **Required:** `load_workspace` with `workspacePath` = absolute path to this repo's `.sln` or entry `.csproj` (IDE workspace root or `list_directory_tree` — **never** hardcode paths from docs or other machines). Without this, Roslyn symbol tools hallucinate. Safe to call again if unsure (idempotent).
+2. **Required:** `load_workspace` with `workspacePath` = absolute path to this repo's `.sln`, `.slnx`, or entry `.csproj` (prefer `.sln`/`.slnx` for multi-config solutions; IDE workspace root or `list_directory_tree` — **never** hardcode paths from docs or other machines). Without this, Roslyn symbol tools hallucinate. Safe to call again if unsure (idempotent).
 3. *(Optional)* `manage_agent_scratchpad` `action: read` if you use the scratchpad.
 
 The `load_workspace` response includes a **workspace health** summary (SDK pin, restore assets, tool count). Set `ROSLYN_MCP_WORKSPACE` in MCP config to this **repo root** (folder with `global.json`) when present.
@@ -54,6 +54,7 @@ NEVER use raw shell `dotnet build` / `dotnet test` — use MCP parsers (structur
 
 - **Build:** `run_dotnet_build` — read parsed errors and **Key lines**, not only `0 Error(s)`. If you see **`MCP_MSBUILD_SDK_MISMATCH`** or MSBuild/SDK version in the log disagrees with `global.json`, fix the **environment** (SDK install, `ROSLYN_MCP_WORKSPACE`, 64-bit dotnet) before changing application code. Probe has an overall time budget; do not start a second build/test in parallel.
 - **Test:** `run_dotnet_test` or `run_specific_test` — default timeout **300s**; raise `timeoutSeconds` for long integration tests (e.g. 900/1800). After a successful `run_dotnet_build`, re-run with `noBuild=true` (and optionally `noRestore=true`) to skip rebuild/restore. On timeout/cancel the MCP kills the `dotnet` process tree. After an interrupted agent turn, check for zombie `dotnet` before retrying. Do not hand-write VSTest `--filter` in shell.
+- **OpenCode host timeout:** `timeoutSeconds` only limits the child `dotnet` process. OpenCode itself defaults MCP `tools/call` to ~**60s** and may return `MCP error -32001: Request timed out` before the tool finishes. In `opencode.json` set the server `"timeout": 600000` (ms) — see `opencode.json.sample` / `install2opencode.ps1`. Raising only `timeoutSeconds` does **not** fix `-32001`.
 - **Run console:** `run_dotnet_run` on the executable `.csproj` + args after `--` (see project README for which project and sample args); stderr tail for progress; do not paste huge stdout into chat.
 - **NuGet audit:** `run_nuget_audit` — separate from compile failures in `run_dotnet_build`.
 - **Before commit message:** `get_changed_files` (MCP) for changed paths and suggested test projects; use host or shell **`git diff`** for commit body when user rules allow shell git. MCP does not return a full diff.
@@ -105,7 +106,7 @@ On tool failure: read the message, fix parameters, retry MCP — do not fall bac
 - **Headless:** MCP `apply_patch` / `update_file_content`.
 - Prefer MCP AST tools (`add_using`, `update_method_body`, …) over huge patches.
 - **Refactor:** `rename_symbol` with `previewOnly=true` first (C# symbols only — not project folders).
-- After MCP server rebuild: `get_mcp_server_info` (expect v1.0.18+).
+- After MCP server rebuild: `get_mcp_server_info` (expect v1.0.19+).
 
 ---
 

@@ -23,9 +23,9 @@ public sealed class WorkspaceTools
     [Description(
         "Loads a C# Solution or Project into the semantic engine and returns a structural map plus a **workspace health** block "
         + "(SDK/global.json pin, restore assets, registered tool count). Always call this first before analyzing C# code. "
-        + "Accepts `.sln` or `.csproj` only (not `.slnx`).")]
+        + "Accepts `.sln`, `.slnx`, or `.csproj` (prefer `.sln`/`.slnx` for multi-config solutions so project configurations resolve correctly).")]
     public async Task<string> LoadWorkspace(
-        [Description("Absolute path to a `.sln` or `.csproj` file (not `.slnx`, not a directory). Same parameter name as run_dotnet_build, run_dotnet_test, run_format, list_projects.")]
+        [Description("Absolute path to a `.sln`, `.slnx`, or `.csproj` file (not a directory). Same parameter name as run_dotnet_build, run_dotnet_test, run_format, list_projects.")]
         string workspacePath,
         CancellationToken cancellationToken = default)
     {
@@ -107,7 +107,7 @@ public sealed class WorkspaceTools
             await _solutionManager.ClearWorkspaceAsync(cancellationToken);
             return ToolTelemetry.TraceAndReturn(
                 nameof(ResetWorkspace),
-                "Workspace cleared. Call load_workspace again with your .sln or .csproj path.");
+                "Workspace cleared. Call load_workspace again with your .sln, .slnx, or .csproj path.");
         }
         catch (OperationCanceledException)
         {

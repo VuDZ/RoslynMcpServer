@@ -22,12 +22,12 @@ public sealed class NuGetTools
 
     [McpServerTool(Name = "list_nuget_packages", Title = "List NuGet packages")]
     [Description(
-        "Lists installed NuGet packages for a .sln or .csproj as structured JSON, grouped by project and target framework. "
+        "Lists installed NuGet packages for a .sln, .slnx, or .csproj as structured JSON, grouped by project and target framework. "
         + "Includes transitive dependencies when `includeTransitive` is true. Use before adding or upgrading packages — "
         + "do not guess installed versions via `execute_dotnet_command`. "
         + "No process timeout (runs until complete or cancel); avoid parallel long NuGet/build calls.")]
     public async Task<string> ListNuGetPackages(
-        [Description("Path to .sln, .csproj, or directory containing them (same shape as run_dotnet_build / load_workspace).")]
+        [Description("Path to .sln, .slnx, .csproj, or directory containing them (same shape as run_dotnet_build / load_workspace).")]
         string workspacePath,
         [Description("When true (default), includes transitive dependencies in the output.")]
         bool includeTransitive = true,
@@ -126,7 +126,7 @@ public sealed class NuGetTools
         + "(severity, package, version, project, GHSA/advisory URL). Separate from compile errors in `run_dotnet_build`. "
         + "No process timeout (runs until complete or cancel).")]
     public async Task<string> RunNuGetAudit(
-        [Description("Path to .sln, .csproj, or directory (same as run_dotnet_build / load_workspace).")]
+        [Description("Path to .sln, .slnx, .csproj, or directory (same as run_dotnet_build / load_workspace).")]
         string workspacePath,
         [Description("Maximum vulnerable entries in the table. Default 40.")]
         int maxEntries = 40,
@@ -194,7 +194,7 @@ public sealed class NuGetTools
         "Lists outdated direct PackageReferences (`dotnet list package --outdated --format json`) via `list_nuget_packages` "
         + "with `includeTransitive=false` and `includeOutdated=true`. No process timeout.")]
     public Task<string> ListOutdatedPackages(
-        [Description("Path to .sln, .csproj, or directory containing them.")]
+        [Description("Path to .sln, .slnx, .csproj, or directory containing them.")]
         string workspacePath,
         CancellationToken cancellationToken = default) =>
         ListNuGetPackages(workspacePath, includeTransitive: false, includeOutdated: true, includeVulnerable: false, cancellationToken);

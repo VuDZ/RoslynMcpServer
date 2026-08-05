@@ -120,7 +120,7 @@ public sealed class UtilityTools
         + "Suggests test projects when a workspace is loaded. Table capped at ~80 paths. "
         + "Does not return file diffs — use the host git tools for patches.")]
     public async Task<string> GetChangedFiles(
-        [Description("Optional path to .sln/.csproj or repo directory. When omitted, uses loaded workspace or current directory.")]
+        [Description("Optional path to .sln/.slnx/.csproj or repo directory. When omitted, uses loaded workspace or current directory.")]
         string? workspacePath = null,
         CancellationToken cancellationToken = default)
     {
@@ -829,7 +829,7 @@ public sealed class UtilityTools
         "Runs `dotnet format` to stabilize code style after edits. Supports verify-only mode (`--verify-no-changes`). "
         + "Fixed process timeout 300s. Prefer after bulk AST/patch edits.")]
     public async Task<string> RunFormat(
-        [Description("Path to a .sln, .csproj, or directory — same parameter name as `load_workspace` / `run_dotnet_test` (directories allowed here; `run_dotnet_build` requires a file).")] string workspacePath,
+        [Description("Path to a .sln, .slnx, .csproj, or directory — same parameter name as `load_workspace` / `run_dotnet_test` (directories allowed here; `run_dotnet_build` requires a file).")] string workspacePath,
         [Description("When true, checks formatting without changing files (`--verify-no-changes`).")] bool verifyOnly = false,
         CancellationToken cancellationToken = default)
     {
@@ -1070,7 +1070,7 @@ public sealed class UtilityTools
     [McpServerTool(Name = "list_projects", Title = "ListProjects")]
     [Description("Lists projects from the active workspace solution, including target frameworks, output type, and project references.")]
     public async Task<string> ListProjects(
-        [Description("Optional path to a .sln or .csproj. When provided, workspace is loaded/reloaded before listing projects.")] string? workspacePath = null,
+        [Description("Optional path to a .sln, .slnx, or .csproj. When provided, workspace is loaded/reloaded before listing projects.")] string? workspacePath = null,
         CancellationToken cancellationToken = default)
     {
         try
@@ -1135,7 +1135,7 @@ public sealed class UtilityTools
     [McpServerTool(Name = "get_project_graph", Title = "GetProjectGraph")]
     [Description("Builds a project-to-project dependency graph from the active workspace solution.")]
     public async Task<string> GetProjectGraph(
-        [Description("Optional path to a .sln or .csproj. When provided, workspace is loaded/reloaded before building the graph.")] string? workspacePath = null,
+        [Description("Optional path to a .sln, .slnx, or .csproj. When provided, workspace is loaded/reloaded before building the graph.")] string? workspacePath = null,
         CancellationToken cancellationToken = default)
     {
         try

@@ -5,7 +5,7 @@ public static class WorkspaceRootResolver
 {
     /// <summary>
     /// Directory to use as <c>WorkingDirectory</c> for <c>dotnet build|test|restore</c>:
-    /// nearest ancestor containing <c>global.json</c>, else the folder holding the .sln/.csproj.
+    /// nearest ancestor containing <c>global.json</c>, else the folder holding the .sln/.slnx/.csproj.
     /// </summary>
     public static string ResolveDotNetWorkingDirectory(string solutionOrProjectPath)
     {
@@ -35,6 +35,12 @@ public static class WorkspaceRootResolver
         if (sln is not null)
         {
             return sln;
+        }
+
+        var slnx = Directory.EnumerateFiles(fullDir, "*.slnx", SearchOption.TopDirectoryOnly).FirstOrDefault();
+        if (slnx is not null)
+        {
+            return slnx;
         }
 
         return Directory.EnumerateFiles(fullDir, "*.csproj", SearchOption.TopDirectoryOnly).FirstOrDefault();

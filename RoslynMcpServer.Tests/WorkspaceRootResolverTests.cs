@@ -27,6 +27,46 @@ public sealed class WorkspaceRootResolverTests
     }
 
     [Fact]
+    public void FindSolutionOrProjectInDirectory_prefers_sln_over_slnx()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "RoslynMcpTests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        var sln = Path.Combine(root, "App.sln");
+        var slnx = Path.Combine(root, "App.slnx");
+        File.WriteAllText(sln, string.Empty);
+        File.WriteAllText(slnx, "<Solution />");
+
+        try
+        {
+            var found = WorkspaceRootResolver.FindSolutionOrProjectInDirectory(root);
+            Assert.Equal(sln, found);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void FindSolutionOrProjectInDirectory_finds_slnx_when_no_sln()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "RoslynMcpTests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        var slnx = Path.Combine(root, "App.slnx");
+        File.WriteAllText(slnx, "<Solution />");
+
+        try
+        {
+            var found = WorkspaceRootResolver.FindSolutionOrProjectInDirectory(root);
+            Assert.Equal(slnx, found);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
     public void TryGetPinnedSdkVersion_reads_sdk_version()
     {
         var root = Path.Combine(Path.GetTempPath(), "RoslynMcpTests", Guid.NewGuid().ToString("N"));

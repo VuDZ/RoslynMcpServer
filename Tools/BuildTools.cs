@@ -23,10 +23,10 @@ public sealed class BuildTools
         "Runs a multi-step `dotnet build` probe (minimal → restore escalate → normal/detailed when needed) with pinned SDK. "
         + "Overall wall-clock budget ~300s, per-step timeout ~180s; returns up to 20 parsed diagnostics plus key log lines. "
         + "Surfaces `MCP_MSBUILD_SDK_MISMATCH` when MSBuild SDK ≠ global.json pin. "
-        + "`workspacePath` must be a `.csproj` or `.sln` **file** (not a directory). No agent-tunable timeout. "
-        + "Use AFTER editing to verify compile.")]
+        + "`workspacePath` must be a `.csproj`, `.sln`, or `.slnx` **file** (not a directory). Prefer solution files for multi-config repos. "
+        + "No agent-tunable timeout. Use AFTER editing to verify compile.")]
     public async Task<string> RunDotNetBuild(
-        [Description("Path to a `.csproj` or `.sln` **file** (not a directory). Same parameter name as load_workspace / run_dotnet_test.")]
+        [Description("Path to a `.csproj`, `.sln`, or `.slnx` **file** (not a directory). Same parameter name as load_workspace / run_dotnet_test.")]
         string workspacePath,
         CancellationToken cancellationToken = default)
     {
@@ -45,9 +45,12 @@ public sealed class BuildTools
 
             var extension = Path.GetExtension(fullPath);
             if (!string.Equals(extension, ".csproj", StringComparison.OrdinalIgnoreCase)
-                && !string.Equals(extension, ".sln", StringComparison.OrdinalIgnoreCase))
+                && !string.Equals(extension, ".sln", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(extension, ".slnx", StringComparison.OrdinalIgnoreCase))
             {
-                return ToolTelemetry.TraceAndReturn(nameof(RunDotNetBuild), $"Path must be a .csproj or .sln file: `{fullPath}`");
+                return ToolTelemetry.TraceAndReturn(
+                    nameof(RunDotNetBuild),
+                    $"Path must be a .csproj, .sln, or .slnx file: `{fullPath}`");
             }
 
             var workDir = WorkspaceRootResolver.ResolveDotNetWorkingDirectory(fullPath);
