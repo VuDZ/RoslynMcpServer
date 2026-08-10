@@ -86,79 +86,59 @@ Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into a
 
 ### v1.0.22
 
-| Tool / behavior | Notes |
-|-----------------|--------|
-| `run_specific_test` method filter | VSTest-safe filters: Roslyn method FQN without `()`; always `FullyQualifiedName~` (not `=`); no bogus leading `.` when `methodName` is already a dotted FQN; escape `\ ( ) & \| = ! ~` |
+- **`run_specific_test` method filter** — VSTest-safe filters: Roslyn method FQN without `()`; always `FullyQualifiedName~` (not `=`); no bogus leading `.` when `methodName` is already a dotted FQN; escape `\ ( ) & | = ! ~`
 
 ### v1.0.21
 
-| Tool / behavior | Notes |
-|-----------------|--------|
-| `load_workspace` soft prune | Unused `PackageReference` / NuGet prune advisories (`will not be pruned`, prune package data) remapped to warnings — do not fail load when projects opened |
+- **`load_workspace` soft prune** — Unused `PackageReference` / NuGet prune advisories (`will not be pruned`, prune package data) remapped to warnings — do not fail load when projects opened
 
 ### v1.0.20
 
-| Tool / behavior | Notes |
-|-----------------|--------|
-| `configuration` | Optional `configuration` (`dotnet -c`) on `run_dotnet_build`, `run_dotnet_test`, `run_specific_test` for multi-config solutions (`Sit-Debug`, `Dit-Debug`, …) |
+- **`configuration`** — Optional `configuration` (`dotnet -c`) on `run_dotnet_build`, `run_dotnet_test`, `run_specific_test` for multi-config solutions (`Sit-Debug`, `Dit-Debug`, …)
 
 ### v1.0.19
 
-| Tool / behavior | Notes |
-|-----------------|--------|
-| `.slnx` support | `load_workspace`, `run_dotnet_build`, `run_dotnet_test` / `run_specific_test`, discovery, and NuGet/format paths accept `.slnx`; prefer solution files for multi-config repos |
-| OpenCode host timeout | Document + `opencode.json.sample` / `install2opencode.ps1`: `"timeout": 600000` ms — avoids MCP `-32001` (~60s); separate from tool `timeoutSeconds` |
+- **`.slnx` support** — `load_workspace`, `run_dotnet_build`, `run_dotnet_test` / `run_specific_test`, discovery, and NuGet/format paths accept `.slnx`; prefer solution files for multi-config repos
+- **OpenCode host timeout** — Document + `opencode.json.sample` / `install2opencode.ps1`: `"timeout": 600000` ms — avoids MCP `-32001` (~60s); separate from tool `timeoutSeconds`
 
 ### v1.0.18
 
-| Tool / behavior | Notes |
-|-----------------|--------|
-| Tool descriptions | Accurate agent-facing `[Description]` across build/test/decompile/NuGet/navigation/AST params |
+- **Tool descriptions** — Accurate agent-facing `[Description]` across build/test/decompile/NuGet/navigation/AST params
 
 ### v1.0.17
 
-| Tool / behavior | Notes |
-|-----------------|--------|
-| `run_dotnet_test` / `run_specific_test` | Optional `noBuild` / `noRestore` (`--no-build` / `--no-restore`); after build use `noBuild=true` for faster re-runs |
+- **`run_dotnet_test` / `run_specific_test`** — Optional `noBuild` / `noRestore` (`--no-build` / `--no-restore`); after build use `noBuild=true` for faster re-runs
 
 ### v1.0.16
 
-| Tool / behavior | Notes |
-|-----------------|--------|
-| `run_dotnet_test` / `run_specific_test` | `timeoutSeconds` default **300**; kill process tree on timeout/cancel |
-| `run_dotnet_build` probe | Overall wall-clock budget (~300s) + per-step timeout; skip escalate when budget exhausted |
-| `execute_dotnet_command` | Same default timeout + kill on cancel |
-| Silent fail UX | Hints for zombie `dotnet` / locked `obj` when exit≠0 and no parsed diagnostics |
+- **`run_dotnet_test` / `run_specific_test`** — `timeoutSeconds` default **300**; kill process tree on timeout/cancel
+- **`run_dotnet_build` probe** — Overall wall-clock budget (~300s) + per-step timeout; skip escalate when budget exhausted
+- **`execute_dotnet_command`** — Same default timeout + kill on cancel
+- **Silent fail UX** — Hints for zombie `dotnet` / locked `obj` when exit≠0 and no parsed diagnostics
 
 ### v1.0.15
 
-| Tool / behavior | Notes |
-|-----------------|--------|
-| `search_code` | `caseSensitive` (default `false`); leftover branding → `caseSensitive=true` |
-| No-workspace UX | Semantic tools list candidate `.sln`/`.slnx` under `ROSLYN_MCP_WORKSPACE` / cwd (no auto-load) |
-| `rename_project` | SDK-style dir+csproj+ProjectReference+.sln/.slnx; `dryRun`; no namespace chain |
-| Branding recipe | Documented in `AGENTS.md.sample` (hybrid MCP + host edit) |
+- **`search_code`** — `caseSensitive` (default `false`); leftover branding → `caseSensitive=true`
+- **No-workspace UX** — Semantic tools list candidate `.sln`/`.slnx` under `ROSLYN_MCP_WORKSPACE` / cwd (no auto-load)
+- **`rename_project`** — SDK-style dir+csproj+ProjectReference+.sln/.slnx; `dryRun`; no namespace chain
+- **Branding recipe** — Documented in `AGENTS.md.sample` (hybrid MCP + host edit)
 
 ### v1.0.14
 
-| Tool / behavior | Notes |
-|-----------------|--------|
-| `run_dotnet_run` | SDK-pinned `dotnet run`, separate stdout/stderr, timeout, truncated output (stderr tail for progress) |
-| `run_nuget_audit` | Structured vulnerability table from `dotnet list package --vulnerable` |
-| `get_changed_files` | Git porcelain status + suggested test projects (no diff body) |
-| `load_workspace` | **Workspace health** block: SDK/global.json, restore assets, tool count |
-| `execute_dotnet_command` | SDK pinning + truncated stdout/stderr |
-| `find_usages` / `find_symbol_references` | **find_references** family; prefer `find_usages` when only `symbolName` is known |
-| `get_project_graph` / `list_projects` | Project dependency graph |
-| `rename_symbol` | `previewOnly=true` default workflow; **C# symbols only** |
-| `run_format` | `dotnet format` wrapper |
+- **`run_dotnet_run`** — SDK-pinned `dotnet run`, separate stdout/stderr, timeout, truncated output (stderr tail for progress)
+- **`run_nuget_audit`** — Structured vulnerability table from `dotnet list package --vulnerable`
+- **`get_changed_files`** — Git porcelain status + suggested test projects (no diff body)
+- **`load_workspace`** — **Workspace health** block: SDK/global.json, restore assets, tool count
+- **`execute_dotnet_command`** — SDK pinning + truncated stdout/stderr
+- **`find_usages` / `find_symbol_references`** — **find_references** family; prefer `find_usages` when only `symbolName` is known
+- **`get_project_graph` / `list_projects`** — Project dependency graph
+- **`rename_symbol`** — `previewOnly=true` default workflow; **C# symbols only**
+- **`run_format`** — `dotnet format` wrapper
 
 ### v1.0.13
 
-| Tool / behavior | Notes |
-|-----------------|--------|
-| `AssemblyReferenceResolver` | Exact `{name}.dll`; deps.json + NuGet fallback |
-| `DecompilerHost` | NuGet / BCL / runtime pack resolver for ILSpy tools |
+- **`AssemblyReferenceResolver`** — Exact `{name}.dll`; deps.json + NuGet fallback
+- **`DecompilerHost`** — NuGet / BCL / runtime pack resolver for ILSpy tools
 
 ### v1.0.10–v1.0.12
 
@@ -862,7 +842,7 @@ cd D:\Devel\YourApp
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (таблицы v1.0.13–v1.0.22). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.0.22). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 
