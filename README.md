@@ -84,6 +84,12 @@ Restart OpenCode or reload MCP servers after running the script.
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.0.22
+
+| Tool / behavior | Notes |
+|-----------------|--------|
+| `run_specific_test` method filter | VSTest-safe filters: Roslyn method FQN without `()`; always `FullyQualifiedName~` (not `=`); no bogus leading `.` when `methodName` is already a dotted FQN; escape `\ ( ) & \| = ! ~` |
+
 ### v1.0.21
 
 | Tool / behavior | Notes |
@@ -529,9 +535,9 @@ Parses C# syntax, inserts with DocumentEditor, formats the file. Prefer over `ap
 - `noRestore: bool = false` — pass `--no-restore`.
 - `configuration: string? = null` — optional `dotnet test -c` (same as `run_dotnet_test`).
 
-At least one of `className` or `methodName` is required. The tool builds `--filter` internally. After `load_workspace`, Roslyn resolves exact fully qualified names when possible.
+At least one of `className` or `methodName` is required. The tool builds a VSTest-safe `--filter` internally (`FullyQualifiedName~…`, no method `()`, no extra leading `.` on dotted names). After `load_workspace`, Roslyn resolves the type/method FQN when possible.
 
-**Model guidance:** use this for TDD red/green loops — do not run the full suite and do not craft VSTest filter strings manually. After build, prefer `noBuild=true` for faster filtered re-runs.
+**Model guidance:** use this for TDD red/green loops — do not run the full suite and do not craft VSTest filter strings manually. Prefer `className` + short `methodName`. After build, prefer `noBuild=true` for faster filtered re-runs.
 
 </details>
 
@@ -856,7 +862,7 @@ cd D:\Devel\YourApp
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (таблицы v1.0.13–v1.0.21). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (таблицы v1.0.13–v1.0.22). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 
@@ -1213,9 +1219,9 @@ cd D:\Devel\YourApp
 - `noRestore: bool = false` — `--no-restore`.
 - `configuration: string? = null` — опционально `dotnet test -c` (как у `run_dotnet_test`).
 
-Нужен хотя бы один из `className` / `methodName`. `--filter` формируется автоматически. После `load_workspace` Roslyn по возможности резолвит точный FQN.
+Нужен хотя бы один из `className` / `methodName`. Tool строит VSTest-safe `--filter` (`FullyQualifiedName~…`, без `()` у метода, без лишней ведущей `.` на dotted FQN). После `load_workspace` Roslyn по возможности резолвит FQN типа/метода.
 
-**Для модели:** TDD/фикс бага — этот tool, не полный suite и не ручной VSTest filter. После билда предпочитайте `noBuild=true`.
+**Для модели:** TDD/фикс бага — этот tool, не полный suite и не ручной VSTest filter. Предпочитайте `className` + короткое `methodName`. После билда предпочитайте `noBuild=true`.
 
 </details>
 
