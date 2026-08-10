@@ -106,7 +106,7 @@ On tool failure: read the message, fix parameters, retry MCP — do not fall bac
 - **Headless:** MCP `apply_patch` / `update_file_content`.
 - Prefer MCP AST tools (`add_using`, `update_method_body`, …) over huge patches.
 - **Refactor:** `rename_symbol` with `previewOnly=true` first (C# symbols only — not project folders).
-- After MCP server rebuild: `get_mcp_server_info` (expect v1.0.20+).
+- After MCP server rebuild: `get_mcp_server_info` (expect v1.0.21+).
 
 ---
 

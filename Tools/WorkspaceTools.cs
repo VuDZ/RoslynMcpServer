@@ -92,6 +92,14 @@ public sealed class WorkspaceTools
                 sb.AppendLine(
                     "> **Note:** NuGet audit advisories (GHSA / NU1903) are shown as warnings here; `dotnet build` may still fail with `NU1904` if audit is treated as error. Use `run_dotnet_build` for the exact NU lines.");
             }
+
+            if (diagnostics.Any(static d =>
+                    d.Contains("NuGet prune", StringComparison.OrdinalIgnoreCase)))
+            {
+                sb.AppendLine();
+                sb.AppendLine(
+                    "> **Note:** NuGet prune / unused `PackageReference` advisories are shown as warnings; the workspace is usable. Remove unused package references if you want a clean restore graph.");
+            }
         }
 
         return ToolTelemetry.TraceAndReturn(nameof(LoadWorkspace), sb.ToString());
