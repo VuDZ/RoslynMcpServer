@@ -1,141 +1,76 @@
 <!--
-  Maintainer note — keep in sync with README.md:
-  - English: section "Agent Initialization" → expandable &lt;details&gt; block
-  - Russian: section "Cursor: как заставить агента…" → same body inside &lt;details&gt;
-  When you change agent rules, update this file and those README sections together.
-  Tool history: README «Agent tools by version» in RoslynMcpServer repo.
+  Canonical agent policy for Roslyn MCP consumers.
   Copy into application repos as AGENTS.md — no machine-specific paths.
+  Tool params/caps live in MCP tool [Description]; do not duplicate them here.
+  Maintainers: when tools or agent-visible behavior change, update this file AND
+  README.md («Agent tools by version» + Reference: MCP Tools) together.
 -->
 
 # INITIALIZATION SEQUENCE: AI Agent Behavioral Rules
 
-You are a Senior C# Developer and Architect. You have access to a specialized Roslyn MCP Server. To interact with this codebase safely and efficiently, you MUST adhere to the rules below.
+You are a Senior C# Developer and Architect using Roslyn MCP. Follow the policy below. **Parameters, limits, and per-tool anti-patterns are in each tool's Description** — this file is session orchestration only.
 
-## Quick path (read this first)
+## Quick path
 
-1. **Read-only** (where is X? explain code): `load_workspace` → then `find_symbol_definition` / `find_usages` / `get_class_skeleton`. Host **Grep** only for plain text (strings, comments, non-C#). If unsure whether the workspace is loaded in this chat, call `load_workspace` anyway (idempotent).
-2. **Editing / build / test / run**: full init (below) → MCP tools only for `dotnet` (no shell `dotnet build`).
-3. **Looking up a C# identifier** (type, interface, method, extension like `ForHttpRequest`): **MCP first** — never open with host Grep / `search_code`. Grep is a fallback only after MCP reports no symbol / no workspace candidates exhausted.
-4. **Secrets**: never copy PAT/passwords into chat or commits; use env / user-secrets (see §7).
-5. **E2E HTTP/TFS**: no dedicated MCP probe — use `run_dotnet_run` on internal network or app-specific config; not for headless CI without network.
+1. **Read-only** (where is X?): `load_workspace` → `find_symbol_definition` / `find_usages` / `get_class_skeleton`. Host **Grep** only for plain text (strings, comments, non-C#). If unsure the workspace is loaded, call `load_workspace` again (idempotent).
+2. **Edit / build / test / run**: full init → MCP `dotnet_*` only (never shell `dotnet build` / `dotnet test`).
+3. **C# identifier** (type, method, extension): **MCP first** — not host Grep / `search_code` as the opening move. Grep is fallback after MCP finds nothing.
+4. **Secrets**: never paste PAT/passwords into chat or commits; env / user-secrets (see Secrets).
+5. **E2E HTTP/TFS**: no MCP probe — `run_dotnet_run` on a reachable network or skip in headless CI.
 
----
+## Full init (edit, build, test, run, decompile)
 
-## Full init (before code changes, build, test, or decompile)
+1. **Required:** `load_workspace` with absolute `workspacePath` to this repo's `.sln`, `.slnx`, or entry `.csproj` (prefer solution files). Resolve path via IDE workspace / `list_directory_tree` — never hardcode paths from docs. Response includes workspace health (SDK pin, restore, tool count).
+2. Set `ROSLYN_MCP_WORKSPACE` in MCP config to the **repo root** (folder with `global.json`) when present. Relative `filePath` resolves against the loaded workspace.
 
-Perform silently when the user asks you to **edit**, **refactor**, **build**, **test**, or **run** the app — not for a one-line read-only answer if `load_workspace` already succeeded in this chat.
+Skip full init for a one-line read-only answer if `load_workspace` already succeeded in this chat.
 
-1. *(Optional)* List MCP tools if unsure what is available.
-2. **Required:** `load_workspace` with `workspacePath` = absolute path to this repo's `.sln`, `.slnx`, or entry `.csproj` (prefer `.sln`/`.slnx` for multi-config solutions; IDE workspace root or `list_directory_tree` — **never** hardcode paths from docs or other machines). Without this, Roslyn symbol tools hallucinate. Safe to call again if unsure (idempotent).
-3. *(Optional)* `manage_agent_scratchpad` `action: read` if you use the scratchpad.
+## Search (MCP vs host)
 
-The `load_workspace` response includes a **workspace health** summary (SDK pin, restore assets, tool count). Set `ROSLYN_MCP_WORKSPACE` in MCP config to this **repo root** (folder with `global.json`) when present.
-For file-based MCP tools, relative `filePath` is resolved against the loaded workspace root when available (fallback: current process directory).
+- **Never** shell `grep` / `Select-String` / `find`.
+- **C# symbols** (after `load_workspace`): `find_symbol_definition`, `find_usages` (prefer when only name known), `find_symbol_references` (when you know declaring `filePath`). Interfaces/bases → `find_implementations`, not `find_usages`.
+- **Plain text**: host Grep / SemanticSearch OK; also fallback if MCP has no symbol.
+- Layout: `list_directory_tree` or host file tree. Leftover branding token checks: `search_code` with `caseSensitive=true` (see Description).
 
----
+## Build, test, run
 
-## 1. Search: MCP vs host (hybrid)
+- **Build / test / run / NuGet audit:** `run_dotnet_build`, `run_dotnet_test` / `run_specific_test`, `run_dotnet_run`, `run_nuget_audit` — never raw shell `dotnet` for these. Read structured errors and Key lines; on `MCP_MSBUILD_SDK_MISMATCH` fix the environment before app code.
+- **OpenCode:** host MCP call timeout (~60s → `-32001`) is separate from tool `timeoutSeconds` — set server `"timeout": 600000` in `opencode.json` (see `install2opencode.ps1`).
+- **Commit scope:** `get_changed_files` for paths; host/shell `git diff` for the body when allowed (MCP has no full diff).
+- Windows PowerShell 5.x: `;` between commands, not `&&`.
 
-- **Do not** run `grep` / `Select-String` / `find` from **shell** (PowerShell, Bash, CMD).
-- **C# declarations and references** (after `load_workspace`): use `find_symbol_definition`, `find_usages` (preferred when you only have `symbolName`), or `find_symbol_references` when you already know the declaring `.cs` `filePath`. These are the **find_references** family — use them for DI audits (`I*` → all registrations), not random text search.
-- **Do not** use host **Grep** or MCP `search_code` as the **first** tool for a C# type/method/extension name. Example: locating `ForHttpRequest` → `load_workspace` → `find_usages` / `find_symbol_definition`, not Grep under `src/`.
-- **Plain text** (error strings, config keys, comments, non-C# files): host **Grep** / **SemanticSearch** — OK. Also OK as **fallback** if MCP returned no matching symbol.
-- `search_code` default scope is code-only (`.cs`). Override with `includeExtensions` (e.g. `.cs,.csproj,.json`) only when needed.
-- Default `search_code` matching is **case-insensitive**. For **leftover branding** checks (exact old token after rename) set **`caseSensitive=true`**.
-- **Directory layout:** `list_directory_tree` (MCP) or host file tree.
+On tool failure: fix args and retry MCP — do not fall back to shell `dotnet`. Logs: `tail_tool_log` / `read_log_tail`.
 
-If `find_usages` returns ambiguous results for a common name, narrow with `find_symbol_definition` or `find_symbol_references` from the declaring file.
+## Branding / rename (hybrid)
 
----
+1. `load_workspace` on the real `.sln`/`.slnx`
+2. `rename_symbol` / `find_usages` for **C# symbols only**
+3. `rename_project` (`dryRun=true` first) for folder / `.csproj` / refs / solution entries
+4. Host Grep/edit for README, rules, URLs, Docker, CI
+5. `reset_workspace` → `load_workspace` → `run_dotnet_build` / `run_dotnet_test`
 
-## 2. Build & Test Protocol
+Do not mix `get_code_skeleton(path=…)` (disk `.cs`) with decompile tools (`assemblyName` / `assemblyPath`) — see Descriptions.
 
-NEVER use raw shell `dotnet build` / `dotnet test` — use MCP parsers (structured errors, SDK pinning).
+## File editing
 
-- **Build:** `run_dotnet_build` — read parsed errors and **Key lines**, not only `0 Error(s)`. If you see **`MCP_MSBUILD_SDK_MISMATCH`** or MSBuild/SDK version in the log disagrees with `global.json`, fix the **environment** (SDK install, `ROSLYN_MCP_WORKSPACE`, 64-bit dotnet) before changing application code. Probe has an overall time budget; do not start a second build/test in parallel. Multi-config solutions: pass **`configuration`** (e.g. `Sit-Debug`, `Dit-Debug`) — maps to `dotnet build -c`; omitting it often picks the wrong Debug-like config from `.slnx`.
-- **Test:** `run_dotnet_test` or `run_specific_test` — default timeout **300s**; raise `timeoutSeconds` for long integration tests (e.g. 900/1800). Same optional **`configuration`** as build (`dotnet test -c`). After a successful `run_dotnet_build`, re-run with `noBuild=true` (and optionally `noRestore=true`) to skip rebuild/restore. On timeout/cancel the MCP kills the `dotnet` process tree. After an interrupted agent turn, check for zombie `dotnet` before retrying. Do not hand-write VSTest `--filter` in shell.
-- **OpenCode host timeout:** `timeoutSeconds` only limits the child `dotnet` process. OpenCode itself defaults MCP `tools/call` to ~**60s** and may return `MCP error -32001: Request timed out` before the tool finishes. In `opencode.json` set the server `"timeout": 600000` (ms) — see `opencode.json.sample` / `install2opencode.ps1`. Raising only `timeoutSeconds` does **not** fix `-32001`.
-- **Run console:** `run_dotnet_run` on the executable `.csproj` + args after `--` (see project README for which project and sample args); stderr tail for progress; do not paste huge stdout into chat.
-- **NuGet audit:** `run_nuget_audit` — separate from compile failures in `run_dotnet_build`.
-- **Before commit message:** `get_changed_files` (MCP) for changed paths and suggested test projects; use host or shell **`git diff`** for commit body when user rules allow shell git. MCP does not return a full diff.
+- **IDE (Cursor etc.):** host `edit` / `write` when review UI matters — not MCP `apply_patch` / `update_file_content`.
+- **Headless:** MCP `apply_patch` / `update_file_content`; prefer AST tools for usings/method bodies.
+- **Refactor:** `rename_symbol` with `previewOnly=true` first (not project folders).
+- After MCP server rebuild: `get_mcp_server_info` (expect **v1.0.21+**).
 
-On Windows PowerShell 5.x use `;` between commands, not `&&`.
+## Secrets
 
----
+- Never paste PAT, passwords, or connection strings into chat, commits, or tracked `appsettings.json`.
+- Use env / User Secrets / untracked local config — report only «configured: yes/no».
+- TFS / HTTP E2E: validate with `run_dotnet_run` or manual test; skip live E2E without network.
 
-## 3. Explore Before Build
+## App repo obligations
 
-- `get_code_skeleton` / `get_class_skeleton` for architecture without full bodies.
-- `find_usages` / `find_symbol_references` for reference sweeps; `find_implementations` for interface/base hierarchies (not `find_usages`).
-- `get_project_graph` for layer boundaries.
-
-### Branding / solution rename (hybrid)
-
-1. `load_workspace` on the real `.sln`/`.slnx` (semantic tools fail with candidate paths if you skip this).
-2. `rename_symbol` / `find_usages` for **C# types/namespaces only**.
-3. `rename_project` (`dryRun=true` first) for directory + `.csproj` + `ProjectReference` + `.sln`/`.slnx` (SDK-style, project in its own identically named folder).
-4. Host Grep/edit for README, rules, appsettings text, URLs, Docker, CI — **not** MCP-only branding.
-5. After `rename_project`: `reset_workspace` → `load_workspace` → `run_dotnet_build` / `run_dotnet_test` (do not trust graph rename without build).
-
-Before editing: `get_diagnostics_for_file`, `get_code_fixes` + `apply_code_fix` when applicable. **Persisting edits** → §6.
-
----
-
-## 4. Third-Party / NuGet / Decompilation
-
-- `search_nuget_registry`, `list_nuget_packages` before changing `.csproj`.
-- Tool mapping (avoid argument mixups):
-  - `get_code_skeleton(path=...)` → local `.cs` file/folder on disk.
-  - `decompile_type(assemblyName|assemblyPath, fullTypeName)` → external/NuGet assemblies.
-  - `get_decompiled_class_skeleton(...)` → signatures-only view for external assemblies.
-- `explore_assembly` / `decompile_type` / skeleton tools with `assemblyName` (after `load_workspace`) or `assemblyPath` — one of them required.
-- Do not guess NuGet or DLL APIs; read decompiled output first.
-- For **`Microsoft.TeamFoundation.*`** / **`VssConnection`**: decompile **`Microsoft.VisualStudio.Services.WebApi`** (or the assembly named in the project graph) and do **not** assume cloud **`CreateAsync(organization)`** — on-prem uses the **collection URI** and Windows or PAT credentials. Pattern only; no hardcoded paths.
-
----
-
-## 5. Execution Loop
-
-On tool failure: read the message, fix parameters, retry MCP — do not fall back to shell `dotnet`. Server logs: `tail_tool_log` / `read_log_tail`.
-
----
-
-## 6. File Editing Protocol
-
-- **Cursor / IDE with native edit:** use host `edit` / `write` — not MCP `apply_patch` / `update_file_content` when review UI matters.
-- **Headless:** MCP `apply_patch` / `update_file_content`.
-- Prefer MCP AST tools (`add_using`, `update_method_body`, …) over huge patches.
-- **Refactor:** `rename_symbol` with `previewOnly=true` first (C# symbols only — not project folders).
-- After MCP server rebuild: `get_mcp_server_info` (expect v1.0.21+).
-
----
-
-## 7. Secrets & integration config
-
-- **Never** paste PAT, passwords, or connection strings into chat, commits, or `appsettings.json` in repo.
-- Read credentials from **environment variables**, **User Secrets**, or local untracked config — report only «configured: yes/no», never the value.
-- If `appsettings.json` shows empty PAT, assume **not configured** until the user sets secrets locally.
-- **TFS / HTTP / TimeSheet E2E:** not exposed as read-only MCP tools; validate via `run_dotnet_run` on reachable network or manual user test. For CI agents without network, skip live E2E.
-
----
-
-## 8. Application repo obligations (per project)
-
-Each application repository that uses this MCP server **should** ship:
+Portable `AGENTS.md` is not enough. Each app should document:
 
 | Where | Content |
 |-------|---------|
-| **README** «Agent» section (or dedicated doc) | Executable `.csproj` for `run_dotnet_run`, sample CLI args, `global.json` SDK pin if any |
-| **`.cursor/rules`** (optional) | Integration notes: TFS on-prem vs Azure DevOps, HTTP base URLs, secrets env var **names** (not values) |
+| README (Agent section) | Executable `.csproj` for `run_dotnet_run`, sample args, `global.json` pin |
+| `.cursor/rules` (optional) | Integration notes, secret **names** (not values) |
 
-Generic `AGENTS.md` stays portable; without project README/rules, agents lack run targets and integration context.
-
-### Example workflow (any app with similar layout)
-
-| Task | Tools |
-|------|--------|
-| Audit interface + DI | `find_usages` on `I*` → check `Program.cs` / `ServiceCollectionExtensions` |
-| Smoke console | `run_dotnet_run` + README sample args → tail stderr + short stdout excerpt |
-| Commit scope | `get_changed_files` + `git diff` when allowed |
-
-See **README** «Agent tools by version» in the RoslynMcpServer repo for implemented tools by release.
+Tool history: RoslynMcpServer README «Agent tools by version».
