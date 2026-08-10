@@ -55,10 +55,12 @@ public sealed class TestTools
 
     [McpServerTool(Name = "run_specific_test", Title = "Run a filtered dotnet test")]
     [Description(
-        "Runs `dotnet test` filtered to a single test class and/or method. Builds the VSTest `--filter` expression internally — " +
+        "Runs `dotnet test` filtered to a single test class and/or method. Builds a VSTest-safe `--filter` internally " +
+        "(`FullyQualifiedName~…`, method FQN without `()`, no bogus leading `.` on dotted names) — " +
         "do not use `execute_dotnet_command` or hand-written FullyQualifiedName filters. " +
-        "When the Roslyn workspace is loaded, resolves the exact fully qualified test name for precise filtering. " +
-        "Use for TDD and bug fixes instead of running the full suite. Default timeout 300s; kills process tree on timeout/cancel. " +
+        "When the Roslyn workspace is loaded, resolves the type/method FQN for precise contains filtering. " +
+        "Prefer `className` + short `methodName`. Use for TDD and bug fixes instead of running the full suite. " +
+        "Default timeout 300s; kills process tree on timeout/cancel. " +
         "After `run_dotnet_build`, pass `noBuild=true` (and optionally `noRestore=true`). " +
         "Optional `configuration` maps to `dotnet test -c` (same as `run_dotnet_test`). Raise `timeoutSeconds` for slow tests.")]
     public async Task<string> RunSpecificTest(
