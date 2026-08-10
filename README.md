@@ -84,6 +84,12 @@ Restart OpenCode or reload MCP servers after running the script.
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.0.21
+
+| Tool / behavior | Notes |
+|-----------------|--------|
+| `load_workspace` soft prune | Unused `PackageReference` / NuGet prune advisories (`will not be pruned`, prune package data) remapped to warnings — do not fail load when projects opened |
+
 ### v1.0.20
 
 | Tool / behavior | Notes |
@@ -232,7 +238,7 @@ Before editing any files, identify your host environment:
 - **For method body edits:** read with **`get_method_body`**, write with **`update_method_body`** — not `apply_patch`.
 - **Bug investigation:** use **`get_call_graph`** to see callers/callees before loading many method bodies.
 - **Packages:** use **`search_nuget_registry`** + **`add_package_reference`** — not hand-edited versions in csproj.
-- **After server rebuild:** call **`get_mcp_server_info`** (expect **v1.0.20+**); run `publish-and-verify.ps1`.
+- **After server rebuild:** call **`get_mcp_server_info`** (expect **v1.0.21+**); run `publish-and-verify.ps1`.
 
 
 </details>
@@ -912,7 +918,7 @@ cd D:\Devel\YourApp
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (таблицы v1.0.13–v1.0.20). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (таблицы v1.0.13–v1.0.21). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 
@@ -986,7 +992,7 @@ Before editing any files, identify your host environment:
 - **For method body edits:** read with **`get_method_body`**, write with **`update_method_body`** — not `apply_patch`.
 - **Bug investigation:** use **`get_call_graph`** to see callers/callees before loading many method bodies.
 - **Packages:** use **`search_nuget_registry`** + **`add_package_reference`** — not hand-edited versions in csproj.
-- **After server rebuild:** call **`get_mcp_server_info`** (expect **v1.0.20+**); run `publish-and-verify.ps1`.
+- **After server rebuild:** call **`get_mcp_server_info`** (expect **v1.0.21+**); run `publish-and-verify.ps1`.
 
 
 </details>

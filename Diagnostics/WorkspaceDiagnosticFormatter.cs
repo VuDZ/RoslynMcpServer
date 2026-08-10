@@ -10,6 +10,11 @@ public static class WorkspaceDiagnosticFormatter
             return $"Warning (NuGet audit): {message}";
         }
 
+        if (IsNuGetPruneAdvisory(message))
+        {
+            return $"Warning (NuGet prune): {message}";
+        }
+
         return $"{kind}: {message}";
     }
 
@@ -19,8 +24,19 @@ public static class WorkspaceDiagnosticFormatter
         || (message.Contains("vulnerabilit", StringComparison.OrdinalIgnoreCase)
             && message.Contains("Package ", StringComparison.OrdinalIgnoreCase));
 
+    /// <summary>
+    /// Unused PackageReference / prune-package design-time advisories that MSBuildWorkspace
+    /// often reports as <c>WorkspaceDiagnosticKind.Failure</c> even though <c>dotnet</c> prints them as warnings.
+    /// </summary>
+    public static bool IsNuGetPruneAdvisory(string message) =>
+        message.Contains("will not be pruned", StringComparison.OrdinalIgnoreCase)
+        || message.Contains("prune package", StringComparison.OrdinalIgnoreCase);
+
+    public static bool IsSoftWorkspaceAdvisory(string message) =>
+        IsNuGetAuditAdvisory(message) || IsNuGetPruneAdvisory(message);
+
     public static bool IsBlockingLoadFailure(string formattedDiagnostic) =>
-        !IsNuGetAuditAdvisory(StripKindPrefix(formattedDiagnostic))
+        !IsSoftWorkspaceAdvisory(StripKindPrefix(formattedDiagnostic))
         && (formattedDiagnostic.Contains("Failure", StringComparison.OrdinalIgnoreCase)
             || formattedDiagnostic.Contains(": error", StringComparison.OrdinalIgnoreCase)
             || formattedDiagnostic.StartsWith("error", StringComparison.OrdinalIgnoreCase));
