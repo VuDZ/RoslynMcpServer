@@ -1,0 +1,7 @@
+<Project>
+  <!-- Repo-local only: transitive System.Security.Cryptography.Xml advisories spam restore/build/publish (NU1903)
+       and blow agent context. Use run_nuget_audit when you actually care about vulns. -->
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);NU1903</NoWarn>
+  </PropertyGroup>
+</Project>

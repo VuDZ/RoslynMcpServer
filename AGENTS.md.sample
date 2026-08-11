@@ -34,7 +34,7 @@ Skip full init for a one-line read-only answer if `load_workspace` already succe
 
 ## Build, test, run
 
-- **Build / test / run / NuGet audit:** `run_dotnet_build`, `run_dotnet_test` / `run_specific_test`, `run_dotnet_run`, `run_nuget_audit` — never raw shell `dotnet` for these. Read structured errors and Key lines; on `MCP_MSBUILD_SDK_MISMATCH` fix the environment before app code.
+- **Build / test / run / NuGet audit:** `run_dotnet_build`, `run_dotnet_test` / `run_specific_test`, `run_dotnet_run`, `run_nuget_audit` — never raw shell `dotnet` for these. Read structured errors and Key lines; on `MCP_MSBUILD_SDK_MISMATCH` fix the environment before app code. `run_dotnet_build` defaults to `--no-incremental` (trust over speed); pass `configuration` on multi-config solutions. If MCP build is green but local `dotnet build` is red, compare WorkingDirectory / `Configuration` / `NoIncremental` in the tool metadata — there is no MCP result cache.
 - **OpenCode:** host MCP call timeout (~60s → `-32001`) is separate from tool `timeoutSeconds` — set server `"timeout": 600000` in `opencode.json` (see `install2opencode.ps1`).
 - **Commit scope:** `get_changed_files` for paths; host/shell `git diff` for the body when allowed (MCP has no full diff).
 - Windows PowerShell 5.x: `;` between commands, not `&&`.
@@ -56,7 +56,7 @@ Do not mix `get_code_skeleton(path=…)` (disk `.cs`) with decompile tools (`ass
 - **IDE (Cursor etc.):** host `edit` / `write` when review UI matters — not MCP `apply_patch` / `update_file_content`.
 - **Headless:** MCP `apply_patch` / `update_file_content`; prefer AST tools for usings/method bodies.
 - **Refactor:** `rename_symbol` with `previewOnly=true` first (not project folders).
-- After MCP server rebuild: `get_mcp_server_info` (expect **v1.0.22+**).
+- After MCP server rebuild: `get_mcp_server_info` (expect **v1.0.25+**).
 
 ## Secrets
 

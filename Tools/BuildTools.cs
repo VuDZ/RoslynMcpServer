@@ -21,7 +21,9 @@ public sealed class BuildTools
     [McpServerTool(Name = "run_dotnet_build", Title = "Run dotnet build")]
     [Description(
         "Runs a multi-step `dotnet build` probe (minimal → restore escalate → normal/detailed when needed) with pinned SDK. "
+        + "Default `noIncremental=true` passes `--no-incremental` so MSBuild up-to-date cache cannot report a fake success after edits. "
         + "Overall wall-clock budget ~300s, per-step timeout ~180s; returns up to 20 parsed diagnostics plus key log lines. "
+        + "Success uses the last `dotnet build` exit (restore exit 0 cannot mask a failed build with no rebuild). "
         + "Surfaces `MCP_MSBUILD_SDK_MISMATCH` when MSBuild SDK ≠ global.json pin. "
         + "`workspacePath` must be a `.csproj`, `.sln`, or `.slnx` **file** (not a directory). Prefer solution files for multi-config repos. "
         + "Optional `configuration` maps to `dotnet build -c` (e.g. `Sit-Debug`, `Dit-Debug`) — required when the solution has multiple Debug-like configs. "
@@ -33,6 +35,10 @@ public sealed class BuildTools
             "Optional MSBuild configuration (`dotnet build -c`). Examples: `Debug`, `Release`, `Sit-Debug`, `Dit-Debug`. "
             + "Omit to use the SDK/solution default (often wrong on multi-config `.slnx`).")]
         string? configuration = null,
+        [Description(
+            "When true (default), pass `--no-incremental` on every `dotnet build` step so up-to-date skips cannot hide compile errors. "
+            + "Set false only for large monorepos where you explicitly accept MSBuild incremental caching.")]
+        bool noIncremental = true,
         CancellationToken cancellationToken = default)
     {
         try
@@ -63,7 +69,8 @@ public sealed class BuildTools
                     fullPath,
                     workDir,
                     cancellationToken,
-                    configuration: configuration)
+                    configuration: configuration,
+                    noIncremental: noIncremental)
                 .ConfigureAwait(false);
             var combined = probe.CombinedOutput;
             var processExitCode = probe.ExitCode;
@@ -73,7 +80,7 @@ public sealed class BuildTools
                 var hang = new StringBuilder();
                 hang.AppendLine(probe.TimedOut ? "## Build timed out" : "## Build probe budget exhausted");
                 hang.AppendLine();
-                AppendRunMetadata(hang, runMetadata, probe.StepsExecuted);
+                AppendRunMetadata(hang, runMetadata, probe.StepsExecuted, configuration, probe.NoIncremental);
                 hang.AppendLine();
                 hang.AppendLine(DotNetCliRunner.FormatHangHints(timedOut: probe.TimedOut, cancelled: false));
                 hang.AppendLine();
@@ -105,7 +112,7 @@ public sealed class BuildTools
             {
                 return ToolTelemetry.TraceAndReturn(
                     nameof(RunDotNetBuild),
-                    BuildSuccessReport(runMetadata, probe.StepsExecuted, warningEntries));
+                    BuildSuccessReport(runMetadata, probe.StepsExecuted, warningEntries, configuration, probe.NoIncremental));
             }
 
             if (errorEntries.Count == 0 && processExitCode != 0)
@@ -116,13 +123,15 @@ public sealed class BuildTools
                         runMetadata,
                         probe.StepsExecuted,
                         processExitCode,
-                        combined));
+                        combined,
+                        configuration,
+                        probe.NoIncremental));
             }
 
             var errSb = new StringBuilder();
             errSb.AppendLine("## Build failed");
             errSb.AppendLine();
-            AppendRunMetadata(errSb, runMetadata, probe.StepsExecuted);
+            AppendRunMetadata(errSb, runMetadata, probe.StepsExecuted, configuration, probe.NoIncremental);
             errSb.AppendLine($"Exit code: `{processExitCode}`. Parsed diagnostics (MSBuild + NuGet NU####):");
             foreach (var d in display)
             {
@@ -166,13 +175,16 @@ public sealed class BuildTools
     private static string BuildSuccessReport(
         string runMetadata,
         IReadOnlyList<string> stepsExecuted,
-        IReadOnlyList<DotNetBuildDiagnosticParser.DiagnosticEntry> warningEntries)
+        IReadOnlyList<DotNetBuildDiagnosticParser.DiagnosticEntry> warningEntries,
+        string? configuration,
+        bool noIncremental)
     {
         var sb = new StringBuilder();
         sb.AppendLine("## Build succeeded");
         sb.AppendLine();
-        AppendRunMetadata(sb, runMetadata, stepsExecuted);
+        AppendRunMetadata(sb, runMetadata, stepsExecuted, configuration, noIncremental);
         sb.AppendLine("No **error** lines matched (MSBuild `path(line,col): error` or NuGet `error NU####`).");
+        sb.AppendLine("Effective build exit is 0 (last `dotnet build` step; restore cannot mask a failed build with no rebuild).");
         if (warningEntries.Count > 0)
         {
             sb.AppendLine();
@@ -190,16 +202,18 @@ public sealed class BuildTools
         string runMetadata,
         IReadOnlyList<string> stepsExecuted,
         int processExitCode,
-        string combined)
+        string combined,
+        string? configuration,
+        bool noIncremental)
     {
         var sb = new StringBuilder();
         sb.AppendLine("## Build failed");
         sb.AppendLine();
-        AppendRunMetadata(sb, runMetadata, stepsExecuted);
+        AppendRunMetadata(sb, runMetadata, stepsExecuted, configuration, noIncremental);
         sb.AppendLine(
             $"Exit code: `{processExitCode}`. No lines matched MSBuild `path(line,col): error|warning CODE` or NuGet `error|warning NU####` patterns (including `: error NU####` and embedded NU lines).");
         sb.AppendLine(
-            "Exit code ≠ 0 with no parsed MSBuild/NU diagnostics. Possible hung restore, wrong SDK pin, or locked `obj`.");
+            "Exit code ≠ 0 with no parsed MSBuild/NU diagnostics. Possible hung restore, wrong SDK pin, locked `obj`, or a failed build step masked by a later restore in older servers (fixed: effective exit prefers build steps).");
         sb.AppendLine(DotNetCliRunner.FormatHangHints(timedOut: false, cancelled: false));
         sb.AppendLine(
             "Steps: minimal build → restore (minimal, then detailed if empty) → build normal → build detailed (within overall probe budget). See sectioned console output below.");
@@ -262,13 +276,22 @@ public sealed class BuildTools
                         || l.Contains("warning", StringComparison.OrdinalIgnoreCase)
                         || l.Contains("FAILED", StringComparison.OrdinalIgnoreCase));
 
-    private static void AppendRunMetadata(StringBuilder sb, string runMetadata, IReadOnlyList<string> stepsExecuted)
+    private static void AppendRunMetadata(
+        StringBuilder sb,
+        string runMetadata,
+        IReadOnlyList<string> stepsExecuted,
+        string? configuration,
+        bool noIncremental)
     {
         sb.AppendLine("### dotnet run");
         foreach (var line in runMetadata.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries))
         {
             sb.AppendLine(line);
         }
+
+        sb.AppendLine(
+            $"- **Configuration:** {(string.IsNullOrWhiteSpace(configuration) ? "(SDK/solution default)" : configuration)}");
+        sb.AppendLine($"- **NoIncremental:** `{noIncremental}`{(noIncremental ? " (`--no-incremental`)" : " (MSBuild up-to-date allowed)")}");
 
         if (stepsExecuted.Count > 0)
         {

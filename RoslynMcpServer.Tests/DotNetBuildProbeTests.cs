@@ -79,4 +79,70 @@ public sealed class DotNetBuildProbeTests
         var restore = new DotNetCliRunner.RunResult(1, string.Empty, string.Empty, 0, 0);
         Assert.True(DotNetBuildProbe.ShouldRunDetailedRestore(log, restore));
     }
+
+    [Fact]
+    public void ComputeEffectiveBuildExitCode_restore_exit_zero_does_not_mask_failed_build()
+    {
+        // Classic false-success: build exit 1, then restore exit 0 becomes lastStepExitCode.
+        var effective = DotNetBuildProbe.ComputeEffectiveBuildExitCode(
+            buildExitCodes: [1],
+            lastStepExitCode: 0,
+            combinedLog: """
+                --- dotnet build -v:minimal (exit 1, stdout 12 chars, stderr 0 chars) ---
+                Build FAILED.
+                --- dotnet restore -v:minimal (exit 0, stdout 40 chars, stderr 0 chars) ---
+                All projects are up-to-date for restore.
+                """);
+        Assert.Equal(1, effective);
+    }
+
+    [Fact]
+    public void ComputeEffectiveBuildExitCode_uses_last_build_after_escalate_recovery()
+    {
+        var effective = DotNetBuildProbe.ComputeEffectiveBuildExitCode(
+            buildExitCodes: [1, 0],
+            lastStepExitCode: 0,
+            combinedLog: """
+                --- dotnet build -v:minimal (exit 1) ---
+                Build FAILED.
+                --- dotnet restore -v:minimal (exit 0) ---
+                --- dotnet build -v:normal (exit 0) ---
+                Build succeeded.
+                """);
+        Assert.Equal(0, effective);
+    }
+
+    [Fact]
+    public void ComputeEffectiveBuildExitCode_reads_failed_build_section_when_no_recorded_codes()
+    {
+        const string log = """
+            --- dotnet build -v:minimal (exit 1, stdout 12 chars, stderr 0 chars) ---
+            Build FAILED.
+            --- dotnet restore -v:minimal (exit 0, stdout 40 chars, stderr 0 chars) ---
+            All projects are up-to-date for restore.
+            """;
+        var effective = DotNetBuildProbe.ComputeEffectiveBuildExitCode(
+            buildExitCodes: [],
+            lastStepExitCode: 0,
+            combinedLog: log);
+        Assert.Equal(1, effective);
+    }
+
+    [Fact]
+    public void FormatIncrementalSwitch_default_no_incremental()
+    {
+        Assert.Equal(" --no-incremental", DotNetBuildProbe.FormatIncrementalSwitch(noIncremental: true));
+        Assert.Equal(string.Empty, DotNetBuildProbe.FormatIncrementalSwitch(noIncremental: false));
+    }
+
+    [Fact]
+    public void TryGetFirstFailedBuildSectionExitCode_finds_nonzero_build_header()
+    {
+        const string log = """
+            --- dotnet build -v:minimal --no-incremental (exit 1, stdout 10 chars, stderr 0 chars) ---
+            Build FAILED.
+            --- dotnet restore -v:minimal (exit 0) ---
+            """;
+        Assert.Equal(1, DotNetBuildProbe.TryGetFirstFailedBuildSectionExitCode(log));
+    }
 }
