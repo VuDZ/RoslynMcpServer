@@ -3,7 +3,10 @@ using System.Diagnostics;
 
 namespace RoslynMcpServer.Services;
 
-/// <summary>Forces <c>dotnet</c>/MSBuild to use the SDK folder resolved from <c>global.json</c>.</summary>
+/// <summary>
+/// Applies <c>global.json</c> SDK pin to child <c>dotnet</c> processes, or clears inherited MSBuild SDK
+/// overrides so Locator/IDE pollution does not force an older SDK.
+/// </summary>
 public static class DotNetSdkEnvironment
 {
     public const string SdkResolverSdksDirVariable = "DOTNET_MSBUILD_SDK_RESOLVER_SDKS_DIR";
@@ -32,6 +35,21 @@ public static class DotNetSdkEnvironment
         return new SdkPinInfo(pinnedVersion, sdkDir, msbuildDll, sdksDir, dotnetRoot);
     }
 
+    /// <summary>
+    /// Env vars that force MSBuild onto a specific SDK folder. <see cref="Microsoft.Build.Locator.MSBuildLocator"/>
+    /// and IDE hosts often set these on the MCP process (e.g. to SDK 9.x); inheriting them into child
+    /// <c>dotnet</c> causes <c>NETSDK1045</c> on net10 projects even when <c>dotnet --version</c> is 10.x.
+    /// </summary>
+    private static readonly string[] MsBuildSdkOverrideVariables =
+    [
+        MsBuildExePathVariable,
+        MsBuildExtensionsPathVariable,
+        MsBuildSdksPathVariable,
+        SdkResolverSdksDirVariable,
+        SdkResolverSdksVerVariable,
+        SdkResolverCliDirVariable
+    ];
+
     public static void ApplyPinnedSdk(ProcessStartInfo psi, string workingDirectory)
     {
         CopyInheritedEnvironment(psi);
@@ -39,6 +57,8 @@ public static class DotNetSdkEnvironment
         var pin = TryGetPin(workingDirectory);
         if (pin?.SdkDirectory is null)
         {
+            // No global.json pin: let the host resolve SDK normally (do not keep Locator/IDE overrides).
+            ClearMsBuildSdkOverrideVariables(psi);
             return;
         }
 
@@ -77,6 +97,14 @@ public static class DotNetSdkEnvironment
             }
 
             psi.Environment.TryAdd(key, entry.Value?.ToString());
+        }
+    }
+
+    internal static void ClearMsBuildSdkOverrideVariables(ProcessStartInfo psi)
+    {
+        foreach (var key in MsBuildSdkOverrideVariables)
+        {
+            psi.Environment.Remove(key);
         }
     }
 

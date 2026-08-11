@@ -84,6 +84,10 @@ Restart OpenCode or reload MCP servers after running the script.
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.0.23
+
+- **`dotnet` child env** — Without `global.json` pin, strip inherited `MSBuildSDKsPath` / `MSBUILD_EXE_PATH` / `DOTNET_MSBUILD_SDK_RESOLVER_*` (MSBuildLocator / IDE pollution) so `run_dotnet_build` / `run_dotnet_test` use the host SDK instead of e.g. 9.x → `NETSDK1045` on net10
+
 ### v1.0.22
 
 - **`run_specific_test` method filter** — VSTest-safe filters: Roslyn method FQN without `()`; always `FullyQualifiedName~` (not `=`); no bogus leading `.` when `methodName` is already a dotted FQN; escape `\ ( ) & | = ! ~`
