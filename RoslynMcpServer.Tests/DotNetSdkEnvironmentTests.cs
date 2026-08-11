@@ -7,6 +7,48 @@ namespace RoslynMcpServer.Tests;
 public sealed class DotNetSdkEnvironmentTests
 {
     [Fact]
+    public void ApplyPinnedSdk_without_global_json_strips_inherited_msbuild_sdk_overrides()
+    {
+        var workDir = Path.Combine(Path.GetTempPath(), "roslyn-mcp-sdk-clear-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(workDir);
+
+        lock (TestEnvironmentLocks.DotNetRoot)
+        {
+            var previousSdks = Environment.GetEnvironmentVariable(DotNetSdkEnvironment.MsBuildSdksPathVariable);
+            var previousExe = Environment.GetEnvironmentVariable(DotNetSdkEnvironment.MsBuildExePathVariable);
+            var previousResolver = Environment.GetEnvironmentVariable(DotNetSdkEnvironment.SdkResolverSdksDirVariable);
+            Environment.SetEnvironmentVariable(
+                DotNetSdkEnvironment.MsBuildSdksPathVariable,
+                @"C:\Program Files\dotnet\sdk\9.0.316\Sdks");
+            Environment.SetEnvironmentVariable(
+                DotNetSdkEnvironment.MsBuildExePathVariable,
+                @"C:\Program Files\dotnet\sdk\9.0.316\MSBuild.dll");
+            Environment.SetEnvironmentVariable(
+                DotNetSdkEnvironment.SdkResolverSdksDirVariable,
+                @"C:\Program Files\dotnet\sdk\9.0.316\Sdks");
+            try
+            {
+                var psi = new ProcessStartInfo { FileName = "dotnet", Arguments = "--version" };
+                DotNetSdkEnvironment.ApplyPinnedSdk(psi, workDir);
+
+                Assert.False(psi.Environment.ContainsKey(DotNetSdkEnvironment.MsBuildSdksPathVariable));
+                Assert.False(psi.Environment.ContainsKey(DotNetSdkEnvironment.MsBuildExePathVariable));
+                Assert.False(psi.Environment.ContainsKey(DotNetSdkEnvironment.SdkResolverSdksDirVariable));
+                Assert.False(psi.Environment.ContainsKey(DotNetSdkEnvironment.SdkResolverSdksVerVariable));
+                Assert.False(psi.Environment.ContainsKey(DotNetSdkEnvironment.SdkResolverCliDirVariable));
+                Assert.False(psi.Environment.ContainsKey(DotNetSdkEnvironment.MsBuildExtensionsPathVariable));
+            }
+            finally
+            {
+                Environment.SetEnvironmentVariable(DotNetSdkEnvironment.MsBuildSdksPathVariable, previousSdks);
+                Environment.SetEnvironmentVariable(DotNetSdkEnvironment.MsBuildExePathVariable, previousExe);
+                Environment.SetEnvironmentVariable(DotNetSdkEnvironment.SdkResolverSdksDirVariable, previousResolver);
+                Directory.Delete(workDir, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
     public void ApplyPinnedSdk_sets_official_resolver_variables_when_sdk_resolved()
     {
         var root = Path.Combine(Path.GetTempPath(), "roslyn-mcp-sdk-" + Guid.NewGuid().ToString("N"));
