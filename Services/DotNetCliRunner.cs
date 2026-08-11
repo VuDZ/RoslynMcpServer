@@ -338,6 +338,8 @@ public static class DotNetCliRunner
             metadata.AppendLine($"- **MSBuildSDKsPath / SDKS_DIR:** `{pin.SdksDirectory}`");
         }
 
+        DotNetSdkEnvironment.AppendSdkEnvMetadata(metadata, workDir, combinedOutput);
+
         var logMsbuild = Diagnostics.MsBuildLogHighlighter.TryGetMsBuildExecutablePath(combinedOutput);
         if (!string.IsNullOrEmpty(logMsbuild))
         {
