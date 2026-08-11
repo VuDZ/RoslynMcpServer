@@ -20,7 +20,8 @@ public static class DotNetBuildProbe
         string RunMetadata,
         IReadOnlyList<string> StepsExecuted,
         bool TimedOut = false,
-        bool BudgetExhausted = false);
+        bool BudgetExhausted = false,
+        bool NoIncremental = true);
 
     public static async Task<ProbeResult> RunAsync(
         string projectOrSolutionPath,
@@ -28,21 +29,24 @@ public static class DotNetBuildProbe
         CancellationToken cancellationToken,
         TimeSpan? overallBudget = null,
         TimeSpan? stepTimeout = null,
-        string? configuration = null)
+        string? configuration = null,
+        bool noIncremental = true)
     {
         var budget = overallBudget ?? DefaultOverallBudget;
         var perStep = stepTimeout ?? DefaultStepTimeout;
         var quoted = $"\"{projectOrSolutionPath}\"";
         var configSwitch = DotNetConfigurationArguments.FormatSwitch(configuration);
+        var incrementalSwitch = noIncremental ? " --no-incremental" : string.Empty;
         var log = new StringBuilder();
         var steps = new List<string>();
+        var buildExitCodes = new List<int>();
         var lastExitCode = 0;
         var timedOut = false;
         var budgetExhausted = false;
         var pin = DotNetSdkEnvironment.TryGetPin(workingDirectory);
         var sw = Stopwatch.StartNew();
 
-        async Task<DotNetCliRunner.RunResult?> RunStepAsync(string label, string arguments)
+        async Task<DotNetCliRunner.RunResult?> RunStepAsync(string label, string arguments, bool isBuildStep)
         {
             if (sw.Elapsed >= budget)
             {
@@ -64,6 +68,11 @@ public static class DotNetBuildProbe
             var run = await DotNetCliRunner.RunWithMetadataAsync(arguments, workingDirectory, cancellationToken, timeout)
                 .ConfigureAwait(false);
             lastExitCode = run.ExitCode;
+            if (isBuildStep)
+            {
+                buildExitCodes.Add(run.ExitCode);
+            }
+
             if (run.TimedOut)
             {
                 timedOut = true;
@@ -75,25 +84,26 @@ public static class DotNetBuildProbe
         }
 
         await RunStepAsync(
-                $"dotnet build -v:minimal{configSwitch}",
-                $"build {quoted} -v:minimal{configSwitch}")
+                $"dotnet build -v:minimal{configSwitch}{incrementalSwitch}",
+                $"build {quoted} -v:minimal{configSwitch}{incrementalSwitch}",
+                isBuildStep: true)
             .ConfigureAwait(false);
 
         if (!timedOut
             && TryBuildPinnedMsBuildRestoreArguments(pin, projectOrSolutionPath) is { } pinnedRestore
             && ShouldRunPinnedMsBuildRestore(log.ToString(), workingDirectory))
         {
-            await RunStepAsync("dotnet exec MSBuild /restore (pinned SDK)", pinnedRestore)
+            await RunStepAsync("dotnet exec MSBuild /restore (pinned SDK)", pinnedRestore, isBuildStep: false)
                 .ConfigureAwait(false);
         }
 
         if (!timedOut && ShouldRunMoreDiagnostics(log.ToString()))
         {
-            var restore = await RunStepAsync("dotnet restore -v:minimal", $"restore {quoted} -v:minimal")
+            var restore = await RunStepAsync("dotnet restore -v:minimal", $"restore {quoted} -v:minimal", isBuildStep: false)
                 .ConfigureAwait(false);
             if (restore is not null && !timedOut && ShouldRunDetailedRestore(log.ToString(), restore))
             {
-                await RunStepAsync("dotnet restore -v:detailed", $"restore {quoted} -v:detailed")
+                await RunStepAsync("dotnet restore -v:detailed", $"restore {quoted} -v:detailed", isBuildStep: false)
                     .ConfigureAwait(false);
             }
         }
@@ -101,16 +111,18 @@ public static class DotNetBuildProbe
         if (!timedOut && ShouldRunMoreDiagnostics(log.ToString()))
         {
             await RunStepAsync(
-                    $"dotnet build -v:normal{configSwitch}",
-                    $"build {quoted} -v:normal{configSwitch}")
+                    $"dotnet build -v:normal{configSwitch}{incrementalSwitch}",
+                    $"build {quoted} -v:normal{configSwitch}{incrementalSwitch}",
+                    isBuildStep: true)
                 .ConfigureAwait(false);
         }
 
         if (!timedOut && ShouldRunMoreDiagnostics(log.ToString()))
         {
             await RunStepAsync(
-                    $"dotnet build -v:detailed{configSwitch}",
-                    $"build {quoted} -v:detailed{configSwitch}")
+                    $"dotnet build -v:detailed{configSwitch}{incrementalSwitch}",
+                    $"build {quoted} -v:detailed{configSwitch}{incrementalSwitch}",
+                    isBuildStep: true)
                 .ConfigureAwait(false);
         }
 
@@ -124,8 +136,66 @@ public static class DotNetBuildProbe
         var combinedLog = log.ToString().TrimEnd();
         var metadata = await DotNetCliRunner.CreateRunMetadataAsync(workingDirectory, combinedLog, CancellationToken.None)
             .ConfigureAwait(false);
+        var effectiveExit = ComputeEffectiveBuildExitCode(buildExitCodes, lastExitCode, combinedLog);
 
-        return new ProbeResult(lastExitCode, combinedLog, metadata, steps, timedOut, budgetExhausted);
+        return new ProbeResult(
+            effectiveExit,
+            combinedLog,
+            metadata,
+            steps,
+            timedOut,
+            budgetExhausted,
+            noIncremental);
+    }
+
+    /// <summary>
+    /// Use the <b>last</b> <c>dotnet build</c> exit (so restore+rebuild escalate can recover),
+    /// never a restore-only exit that would mask a failed build when no rebuild ran.
+    /// When no build steps completed, fall back to the last step exit / log sections.
+    /// </summary>
+    internal static int ComputeEffectiveBuildExitCode(
+        IReadOnlyList<int> buildExitCodes,
+        int lastStepExitCode,
+        string combinedLog)
+    {
+        if (buildExitCodes.Count > 0)
+        {
+            return buildExitCodes[^1];
+        }
+
+        if (TryGetFirstFailedBuildSectionExitCode(combinedLog) is { } sectionCode)
+        {
+            return sectionCode;
+        }
+
+        // No build step completed (budget/timeout) — fall back to last step exit.
+        return lastStepExitCode;
+    }
+
+    private static readonly Regex BuildSectionExit = new(
+        @"---\s+dotnet build[^\r\n]*\(exit\s+(?<code>\d+)",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
+
+    /// <summary>
+    /// Returns the first non-zero exit from a <c>dotnet build</c> section header, if any.
+    /// Used when in-memory build exit codes were not recorded (should be rare).
+    /// </summary>
+    internal static int? TryGetFirstFailedBuildSectionExitCode(string combinedLog)
+    {
+        if (string.IsNullOrEmpty(combinedLog))
+        {
+            return null;
+        }
+
+        foreach (Match match in BuildSectionExit.Matches(combinedLog))
+        {
+            if (int.TryParse(match.Groups["code"].Value, out var code) && code != 0)
+            {
+                return code;
+            }
+        }
+
+        return null;
     }
 
     internal static string? TryBuildPinnedMsBuildRestoreArguments(
@@ -193,6 +263,12 @@ public static class DotNetBuildProbe
 
         return restoreRun.ExitCode != 0 && string.IsNullOrWhiteSpace(restoreRun.CombinedOutput);
     }
+
+    /// <summary>
+    /// Formats the incremental CLI switch for build steps (unit-testable).
+    /// </summary>
+    internal static string FormatIncrementalSwitch(bool noIncremental) =>
+        noIncremental ? " --no-incremental" : string.Empty;
 
     private static void AppendSection(StringBuilder log, string label, DotNetCliRunner.RunResult run)
     {
