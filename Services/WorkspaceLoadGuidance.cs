@@ -32,13 +32,132 @@ public static class WorkspaceLoadGuidance
         sb.AppendLine(leadingSentence ?? "Error: No workspace loaded.");
         sb.AppendLine(
             "Call `load_workspace` with the absolute path to your `.sln`, `.slnx`, or entry `.csproj`.");
+        AppendSolutionCandidates(sb);
+        return sb.ToString().TrimEnd();
+    }
 
+    /// <summary>
+    /// Host/MCP client aborted <c>load_workspace</c> (not an MSBuild/project failure).
+    /// Common with OpenCode default ~60s tool timeout on large solutions.
+    /// </summary>
+    public static string FormatClientCancelledWorkspaceLoadMessage(string workspacePath)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("## Workspace Load Cancelled (client abort)");
+        sb.AppendLine();
+        sb.AppendLine(
+            "**This is not an MSBuild / NuGet failure.** The MCP host cancelled the in-flight "
+            + "`load_workspace` call (AbortError / OperationCanceledException) before Roslyn finished opening the solution.");
+        sb.AppendLine();
+        sb.AppendLine($"- **Path:** `{workspacePath}`");
+        sb.AppendLine("- **What to do:** raise the host MCP tool timeout (OpenCode: `\"timeout\": 600000` ms in mcp config), then call `load_workspace` again and wait until it completes.");
+        sb.AppendLine(
+            "- **Do not** treat NuGet audit / prune lines (`NU190*`, GHSA, `will not be pruned`) logged during load as the root cause of this cancel.");
+        sb.AppendLine(
+            "- Prefer loading a `.sln`/`.slnx` that contains the test projects (not a single helper `.csproj`) before `get_test_list` / `run_specific_test` Roslyn resolve.");
+        return sb.ToString().TrimEnd();
+    }
+
+    /// <summary>
+    /// Empty discovery result while a workspace is loaded — usually wrong scope (helper `.csproj` vs test `.sln`).
+    /// </summary>
+    public static string FormatEmptyTestListMessage(string? loadedWorkspacePath, int projectCount)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("## No tests found in the loaded Roslyn workspace");
+        sb.AppendLine();
+        sb.AppendLine(
+            "**Agent signal:** `get_test_list` scanned the currently loaded workspace and found **0** test methods. "
+            + "This usually means the wrong project/solution is loaded — not that the repo has no tests.");
+        sb.AppendLine();
+        if (!string.IsNullOrWhiteSpace(loadedWorkspacePath))
+        {
+            sb.AppendLine($"- **Loaded workspace:** `{loadedWorkspacePath}`");
+            var ext = Path.GetExtension(loadedWorkspacePath);
+            if (string.Equals(ext, ".csproj", StringComparison.OrdinalIgnoreCase))
+            {
+                sb.AppendLine(
+                    "- **Likely issue:** a single `.csproj` is loaded (often auto-loaded from a file under a helper/common project). "
+                    + "Test assemblies may live in a sibling project under a parent `.sln`.");
+            }
+        }
+        else
+        {
+            sb.AppendLine("- **Loaded workspace:** (unknown path)");
+        }
+
+        sb.AppendLine($"- **Projects in workspace:** {projectCount}");
+        sb.AppendLine(
+            "- **Next step:** call `load_workspace` with the absolute path to the `.sln`/`.slnx` that contains the test projects, then retry `get_test_list`.");
+        AppendSolutionCandidates(sb);
+        return sb.ToString().TrimEnd();
+    }
+
+    /// <summary>
+    /// Extra agent-facing block when VSTest filter matched no test FQN.
+    /// </summary>
+    public static string FormatNoMatchingTestsAgentHint(
+        string? loadedRoslynWorkspacePath,
+        string? filterDescription,
+        string? testTargetPath)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("### Agent diagnostics");
+        sb.AppendLine();
+        sb.AppendLine(
+            "**Signal:** filter ran against `dotnet test`, but no test FQN matched. Treat this as a discovery/workspace problem before rewriting the test.");
+
+        if (!string.IsNullOrWhiteSpace(testTargetPath))
+        {
+            sb.AppendLine($"- **`dotnet test` target:** `{testTargetPath}`");
+        }
+
+        if (!string.IsNullOrWhiteSpace(loadedRoslynWorkspacePath))
+        {
+            sb.AppendLine($"- **Roslyn workspace loaded:** `{loadedRoslynWorkspacePath}`");
+            if (!string.IsNullOrWhiteSpace(testTargetPath)
+                && !PathsEqual(loadedRoslynWorkspacePath, testTargetPath))
+            {
+                sb.AppendLine(
+                    "- **Mismatch:** Roslyn workspace path ≠ `workspacePath` passed to the test tool. "
+                    + "FQN resolve uses the Roslyn workspace; `dotnet test` uses `workspacePath`. "
+                    + "Call `load_workspace` on the same `.sln`/`.slnx` you pass to `run_specific_test`.");
+            }
+        }
+        else
+        {
+            sb.AppendLine(
+                "- **Roslyn workspace loaded:** none — filter fell back to a name suffix (weaker). "
+                + "Call `load_workspace` on the test `.sln` first so Roslyn can resolve the exact FQN.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(filterDescription)
+            && filterDescription.Contains("Name suffix", StringComparison.OrdinalIgnoreCase))
+        {
+            sb.AppendLine(
+                "- **Filter mode:** name-suffix fallback (Roslyn did not resolve the type/method). "
+                + "Common when the loaded workspace is a helper `.csproj` without the test class.");
+        }
+        else if (!string.IsNullOrWhiteSpace(filterDescription)
+                 && filterDescription.Contains("Roslyn-resolved", StringComparison.OrdinalIgnoreCase))
+        {
+            sb.AppendLine(
+                "- **Filter mode:** Roslyn-resolved FQN — names looked valid in the workspace; check nested types (`+`), wrong project in the solution, or Theory display names.");
+        }
+
+        sb.AppendLine(
+            "- **Next:** `load_workspace` on the test solution → `get_test_list` → retry `run_specific_test` with the listed `className`/`methodName`.");
+        return sb.ToString().TrimEnd();
+    }
+
+    private static void AppendSolutionCandidates(StringBuilder sb)
+    {
         var candidates = DiscoverSolutionCandidates();
         if (candidates.Count == 0)
         {
             sb.AppendLine("No `.sln`/`.slnx` candidates found under `ROSLYN_MCP_WORKSPACE` or the current directory.");
             sb.AppendLine("Set MCP env `ROSLYN_MCP_WORKSPACE` to the repo root, or pass an absolute solution path.");
-            return sb.ToString().TrimEnd();
+            return;
         }
 
         sb.AppendLine("Candidate solution files:");
@@ -46,8 +165,6 @@ public static class WorkspaceLoadGuidance
         {
             sb.AppendLine($"- `{path}`");
         }
-
-        return sb.ToString().TrimEnd();
     }
 
     public static IReadOnlyList<string> DiscoverSolutionCandidates(

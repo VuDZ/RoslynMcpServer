@@ -125,7 +125,9 @@ public sealed class TestTools
     }
 
     [McpServerTool(Name = "get_test_list", Title = "List tests in workspace")]
-    [Description("Returns JSON list of test methods (Fact/Theory/TestMethod/etc.) from the loaded solution.")]
+    [Description(
+        "Returns JSON list of test methods (Fact/Theory/TestMethod/etc.) from the **currently loaded** Roslyn workspace. "
+        + "Empty list (`count: 0`) is an agent signal that the wrong `.csproj` may be loaded — call `load_workspace` on the test `.sln`/`.slnx` first.")]
     public async Task<string> GetTestList(
         [Description("Maximum tests to return (default 200).")] int maxResults = 200,
         CancellationToken cancellationToken = default)
@@ -143,12 +145,48 @@ public sealed class TestTools
 
             var json = await TestDiscoveryHelper.ListTestsJsonAsync(solution, maxResults, cancellationToken)
                 .ConfigureAwait(false);
-            return ToolTelemetry.TraceAndReturn(toolName, "```json\n" + json + "\n```");
+            var loadedPath = _solutionManager.GetLoadedWorkspacePath();
+            if (IsEmptyTestListPayload(json))
+            {
+                var guidance = WorkspaceLoadGuidance.FormatEmptyTestListMessage(
+                    loadedPath,
+                    solution.ProjectIds.Count);
+                return ToolTelemetry.TraceAndReturn(
+                    toolName,
+                    guidance + Environment.NewLine + Environment.NewLine + "```json\n" + json + "\n```");
+            }
+
+            var header = string.IsNullOrWhiteSpace(loadedPath)
+                ? null
+                : $"Loaded workspace: `{loadedPath}` ({solution.ProjectIds.Count} projects).";
+            var body = header is null
+                ? "```json\n" + json + "\n```"
+                : header + Environment.NewLine + Environment.NewLine + "```json\n" + json + "\n```";
+            return ToolTelemetry.TraceAndReturn(toolName, body);
+        }
+        catch (OperationCanceledException)
+        {
+            return ToolTelemetry.TraceAndReturn(toolName, "`get_test_list` was cancelled by the MCP host.");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "GetTestList failed");
             return ToolTelemetry.TraceAndReturn(toolName, $"Failed: {ex.Message}");
+        }
+    }
+
+    private static bool IsEmptyTestListPayload(string json)
+    {
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(json);
+            return doc.RootElement.TryGetProperty("count", out var count)
+                   && count.ValueKind == System.Text.Json.JsonValueKind.Number
+                   && count.GetInt32() == 0;
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return false;
         }
     }
 
@@ -272,6 +310,16 @@ public sealed class TestTools
                 filter,
                 filterDescription,
                 requireFilterMatch);
+
+            if (requireFilterMatch
+                && markdown.Contains("## Filtered test run — no matching tests", StringComparison.Ordinal))
+            {
+                var agentHint = WorkspaceLoadGuidance.FormatNoMatchingTestsAgentHint(
+                    _solutionManager.GetLoadedWorkspacePath(),
+                    filterDescription,
+                    targetPath);
+                markdown = markdown + Environment.NewLine + Environment.NewLine + agentHint;
+            }
 
             if (run.ExitCode != 0 && LooksLikeSilentFailure(run.CombinedOutput, parse))
             {

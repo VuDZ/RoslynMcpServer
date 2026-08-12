@@ -216,8 +216,16 @@ public static class VstestOutputParser
             sb.AppendLine("## Filtered test run — no matching tests");
             sb.AppendLine();
             sb.AppendLine(
-                $"No passed/failed test line matched the filter needle `{EscapeMdBackticks(ExtractFilterNeedle(filter) ?? filter!)}`. "
-                + "Check `className` / `methodName` or run `get_test_list` after `load_workspace`.");
+                $"No passed/failed test line matched the filter needle `{EscapeMdBackticks(ExtractFilterNeedle(filter) ?? filter!)}`.");
+            sb.AppendLine();
+            sb.AppendLine(
+                "**Agent signal:** zero tests matched the filter (build may still show `0 Error(s)`). "
+                + "Do not assume the test is missing from the repo — verify Roslyn workspace scope with `get_test_list` after `load_workspace` on the test `.sln`/`.slnx`.");
+            if (!string.IsNullOrWhiteSpace(filterDescription))
+            {
+                sb.AppendLine($"**Match mode:** {filterDescription}");
+            }
+
             sb.AppendLine();
             AppendRawTail(sb, combinedOutput);
             return sb.ToString().TrimEnd();
