@@ -40,6 +40,47 @@ public sealed class WorkspaceLoadGuidanceTests
     }
 
     [Fact]
+    public void FormatClientCancelledWorkspaceLoadMessage_is_explicit_abort_not_msbuild()
+    {
+        var message = WorkspaceLoadGuidance.FormatClientCancelledWorkspaceLoadMessage(
+            @"C:\repo\Tests.sln");
+
+        Assert.Contains("Workspace Load Cancelled (client abort)", message, StringComparison.Ordinal);
+        Assert.Contains("not an MSBuild", message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("timeout", message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Tests.sln", message, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Workspace Load Failed", message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FormatEmptyTestListMessage_flags_csproj_scope()
+    {
+        var message = WorkspaceLoadGuidance.FormatEmptyTestListMessage(
+            @"C:\repo\Common\Common.csproj",
+            projectCount: 1);
+
+        Assert.Contains("No tests found", message, StringComparison.Ordinal);
+        Assert.Contains("Agent signal", message, StringComparison.Ordinal);
+        Assert.Contains("Common.csproj", message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("single `.csproj`", message, StringComparison.Ordinal);
+        Assert.Contains("Projects in workspace:** 1", message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FormatNoMatchingTestsAgentHint_detects_path_mismatch_and_suffix_mode()
+    {
+        var message = WorkspaceLoadGuidance.FormatNoMatchingTestsAgentHint(
+            loadedRoslynWorkspacePath: @"C:\repo\Common\Common.csproj",
+            filterDescription: "Name suffix `.FooTests.Bar`",
+            testTargetPath: @"C:\repo\Tests.sln");
+
+        Assert.Contains("Agent diagnostics", message, StringComparison.Ordinal);
+        Assert.Contains("Mismatch", message, StringComparison.Ordinal);
+        Assert.Contains("name-suffix fallback", message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Tests.sln", message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void DiscoverSolutionCandidates_respects_maxCandidates()
     {
         var root = CreateTempRoot();

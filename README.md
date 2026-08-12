@@ -84,6 +84,10 @@ Restart OpenCode or reload MCP servers after running the script.
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.0.26
+
+- **Agent diagnostics for workspace/test discovery** — `load_workspace` cancelled by the MCP host returns **Workspace Load Cancelled (client abort)** (not MSBuild failure) with OpenCode timeout guidance; `get_test_list` with `count: 0` explains wrong `.csproj` scope; `run_specific_test` no-match reports Roslyn vs `dotnet test` path mismatch and name-suffix fallback.
+
 ### v1.0.25
 
 - **`run_dotnet_build` trust** — Default `noIncremental=true` (`--no-incremental`) so MSBuild up-to-date cache cannot report a fake success after edits; set `false` only for large monorepos that accept incremental risk. Effective exit uses the **last** `dotnet build` step (restore exit 0 cannot mask a failed build with no rebuild). Success/failure metadata includes `Configuration` and `NoIncremental`.
@@ -213,6 +217,8 @@ There are **56** registered tools (see list below) and **1** MCP prompt (`Refact
 
 **Parameters:**
 - `workspacePath: string` — `.sln`, `.slnx`, or `.csproj` file (not a directory). Prefer solution files for multi-config repos.
+
+**Behavior:** Host abort mid-load returns **Workspace Load Cancelled (client abort)** (raise MCP tool timeout; not an MSBuild failure).
 </details>
 
 <details>
@@ -539,7 +545,7 @@ At least one of `className` or `methodName` is required. The tool builds a VSTes
 
 **Parameters:** `maxResults: int = 200`
 
-Detects Fact/Theory/TestMethod/etc. Requires `load_workspace`.
+Detects Fact/Theory/TestMethod/etc. Requires `load_workspace`. Empty `count: 0` includes agent guidance when the wrong `.csproj` is loaded.
 
 </details>
 
@@ -855,7 +861,7 @@ cd D:\Devel\YourApp
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.0.25). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.0.26). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 
@@ -903,6 +909,8 @@ cd D:\Devel\YourApp
 
 **Параметры:**
 - `workspacePath: string` — файл `.sln`, `.slnx` или `.csproj` (не каталог). Для multi-config — предпочтительно solution.
+
+**Поведение:** abort хоста mid-load → **Workspace Load Cancelled (client abort)** (поднять MCP timeout; это не ошибка MSBuild).
 </details>
 
 <details>
@@ -1222,7 +1230,7 @@ cd D:\Devel\YourApp
 <details>
 <summary><code>get_test_list</code> — Список тестов в solution (JSON).</summary>
 
-**Параметры:** `maxResults: int = 200`. Нужен `load_workspace`.
+**Параметры:** `maxResults: int = 200`. Нужен `load_workspace`. При `count: 0` — подсказка, что загружен не тот `.csproj`.
 
 </details>
 

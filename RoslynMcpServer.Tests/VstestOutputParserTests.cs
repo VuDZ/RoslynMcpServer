@@ -87,4 +87,25 @@ public sealed class VstestOutputParserTests
         Assert.Contains("**Status:** partial", md, StringComparison.Ordinal);
         Assert.Contains("Tests completed (exit 0)", md, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void BuildMarkdownReport_no_matching_filter_emits_agent_signal()
+    {
+        const string output = """
+            Passed!  - Failed: 0, Passed: 1, Skipped: 0, Total: 1
+              Passed Other.Namespace.OtherTests.Other [1 ms]
+            """;
+        var parse = VstestOutputParser.Parse(output, 0);
+        var md = VstestOutputParser.BuildMarkdownReport(
+            parse,
+            0,
+            output,
+            "FullyQualifiedName~.MissingTests.MissingMethod",
+            "Name suffix `.MissingTests.MissingMethod`",
+            requireFilterMatch: true);
+
+        Assert.Contains("## Filtered test run — no matching tests", md, StringComparison.Ordinal);
+        Assert.Contains("**Agent signal:**", md, StringComparison.Ordinal);
+        Assert.Contains("**Match mode:** Name suffix", md, StringComparison.Ordinal);
+    }
 }

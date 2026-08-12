@@ -23,7 +23,9 @@ public sealed class WorkspaceTools
     [Description(
         "Loads a C# Solution or Project into the semantic engine and returns a structural map plus a **workspace health** block "
         + "(SDK/global.json pin, restore assets, registered tool count). Always call this first before analyzing C# code. "
-        + "Accepts `.sln`, `.slnx`, or `.csproj` (prefer `.sln`/`.slnx` for multi-config solutions so project configurations resolve correctly).")]
+        + "Accepts `.sln`, `.slnx`, or `.csproj` (prefer `.sln`/`.slnx` for multi-config solutions so project configurations resolve correctly). "
+        + "Large solutions can take minutes — if the host aborts mid-load the tool returns **Workspace Load Cancelled (client abort)** "
+        + "(not MSBuild failure); raise host MCP timeout (e.g. OpenCode `timeout: 600000`) and retry.")]
     public async Task<string> LoadWorkspace(
         [Description("Absolute path to a `.sln`, `.slnx`, or `.csproj` file (not a directory). Same parameter name as run_dotnet_build, run_dotnet_test, run_format, list_projects.")]
         string workspacePath,
@@ -33,6 +35,15 @@ public sealed class WorkspaceTools
         try
         {
             solution = await _solutionManager.LoadAsync(workspacePath, cancellationToken);
+        }
+        catch (OperationCanceledException ex)
+        {
+            _logger.LogWarning(ex, "load_workspace cancelled by client for {Path}", workspacePath);
+            return ToolTelemetry.TraceAndReturn(
+                nameof(LoadWorkspace),
+                WorkspaceLoadGuidance.FormatClientCancelledWorkspaceLoadMessage(workspacePath)
+                + Environment.NewLine
+                + MsBuildEnvironmentInfo.FormatMarkdownSection());
         }
         catch (Exception ex)
         {
