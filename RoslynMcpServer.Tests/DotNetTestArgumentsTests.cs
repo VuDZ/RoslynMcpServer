@@ -67,6 +67,19 @@ public sealed class DotNetTestArgumentsTests
     }
 
     [Fact]
+    public void Build_platform_after_configuration()
+    {
+        var args = DotNetTestArguments.Build(
+            Target,
+            configuration: "kart",
+            platform: "x64");
+
+        Assert.Equal(
+            $"test \"{Target}\" --logger \"console;verbosity=normal\" --verbosity normal -c \"kart\" -p:Platform=\"x64\"",
+            args);
+    }
+
+    [Fact]
     public void Build_escapes_quotes_in_filter()
     {
         var args = DotNetTestArguments.Build(Target, filter: "Name=\"X\"");

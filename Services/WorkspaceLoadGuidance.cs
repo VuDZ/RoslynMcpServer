@@ -1,4 +1,5 @@
 using System.Text;
+using RoslynMcpServer.Diagnostics;
 
 namespace RoslynMcpServer.Services;
 
@@ -57,6 +58,97 @@ public static class WorkspaceLoadGuidance
             "- Prefer loading a `.sln`/`.slnx` that contains the test projects (not a single helper `.csproj`) before `get_test_list` / `run_specific_test` Roslyn resolve.");
         return sb.ToString().TrimEnd();
     }
+
+    /// <summary>
+    /// MSBuild design-time build left TargetFramework empty (ResolvePackageAssets).
+    /// Not NU1701 — retry with solution Configuration/Platform, or this generated sln is not evaluable.
+    /// </summary>
+    public static string FormatMissingTargetFrameworkWorkspaceLoadMessage(
+        string workspacePath,
+        IReadOnlyList<string> diagnostics,
+        string? configuration,
+        string? platform)
+    {
+        const int maxSamplePaths = 5;
+        var sb = new StringBuilder();
+        sb.AppendLine("## Workspace Load Failed (empty TargetFramework)");
+        sb.AppendLine();
+        sb.AppendLine(
+            "MSBuild design-time evaluation did not set `TargetFramework` (`ResolvePackageAssets` required parameter). "
+            + "**This is not NU1701** and is not a harmless restore warning.");
+        sb.AppendLine();
+        sb.AppendLine($"- **Path:** `{workspacePath}`");
+        sb.AppendLine(
+            $"- **MSBuild Configuration:** {(string.IsNullOrWhiteSpace(configuration) ? "(SDK/workspace default — typically Debug)" : $"`{configuration}`")}");
+        sb.AppendLine(
+            $"- **MSBuild Platform:** {(string.IsNullOrWhiteSpace(platform) ? "(SDK/workspace default — typically AnyCPU)" : $"`{platform}`")}");
+        sb.AppendLine();
+        sb.AppendLine(
+            "**What to do:** retry `load_workspace` with `configuration` and `platform` matching the solution config Visual Studio uses "
+            + "(multi-config / Bazel IDE sln often is not Debug|AnyCPU). `run_dotnet_build` / `run_dotnet_test` then inherit those values unless you override them.");
+
+        var configs = SolutionConfigurationCatalog.ListConfigurationPlatforms(workspacePath);
+        if (configs.Count > 0)
+        {
+            sb.AppendLine();
+            sb.AppendLine("Solution configurations found (not auto-selected):");
+            foreach (var entry in configs)
+            {
+                sb.AppendLine($"- `{entry}`");
+            }
+        }
+
+        var samplePaths = new List<string>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var diagnostic in diagnostics)
+        {
+            if (!WorkspaceDiagnosticFormatter.IsMissingTargetFrameworkEvaluation(diagnostic))
+            {
+                continue;
+            }
+
+            var path = WorkspaceDiagnosticFormatter.TryGetProcessedProjectPath(diagnostic);
+            if (string.IsNullOrWhiteSpace(path) || !seen.Add(path))
+            {
+                continue;
+            }
+
+            samplePaths.Add(path);
+            if (samplePaths.Count >= maxSamplePaths)
+            {
+                break;
+            }
+        }
+
+        if (samplePaths.Count > 0)
+        {
+            sb.AppendLine();
+            sb.AppendLine($"Sample projects ({samplePaths.Count}):");
+            foreach (var path in samplePaths)
+            {
+                sb.AppendLine($"- `{path}`");
+            }
+        }
+
+        if (LooksGenerated(workspacePath) || samplePaths.Exists(LooksGenerated))
+        {
+            sb.AppendLine();
+            sb.AppendLine(
+                "This path looks **Bazel/generated** (`generated`, `Bazel`, `_sln_`). "
+                + "If the `.csproj` files have no `TargetFramework` even under the IDE configuration, "
+                + "Roslyn `MSBuildWorkspace` cannot load this solution. Use `get_code_skeleton` / host Grep without a workspace; "
+                + "do not expect `find_symbol_*` on this `.sln`.");
+        }
+
+        sb.Append(MsBuildEnvironmentInfo.FormatMarkdownSection());
+        return sb.ToString().TrimEnd();
+    }
+
+    private static bool LooksGenerated(string path) =>
+        path.Contains($"{Path.DirectorySeparatorChar}generated{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase)
+        || path.Contains("/generated/", StringComparison.OrdinalIgnoreCase)
+        || path.Contains("Bazel", StringComparison.OrdinalIgnoreCase)
+        || path.Contains("_sln_", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     /// Empty discovery result while a workspace is loaded — usually wrong scope (helper `.csproj` vs test `.sln`).

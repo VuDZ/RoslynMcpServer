@@ -27,16 +27,34 @@ public sealed class WorkspaceTools
         + "Large solutions can take minutes — if the host aborts mid-load the tool returns **Workspace Load Cancelled (client abort)** "
         + "(not MSBuild failure); raise host MCP timeout (e.g. OpenCode `timeout: 600000`) and retry. "
         + "NuGet restore warnings (NU1701 TFM compat, audit, unused-package prune) are warnings and do not fail load; "
-        + "true MSBuild/SDK errors and unloadable projects still fail.")]
+        + "true MSBuild/SDK errors and unloadable projects still fail. "
+        + "Optional `configuration` / `platform` are passed as MSBuildWorkspace global properties (same names VS uses for the active solution config). "
+        + "`run_dotnet_build` / `run_dotnet_test` inherit them when their own args are omitted.")]
     public async Task<string> LoadWorkspace(
         [Description("Absolute path to a `.sln`, `.slnx`, or `.csproj` file (not a directory). Same parameter name as run_dotnet_build, run_dotnet_test, run_format, list_projects.")]
         string workspacePath,
+        [Description(
+            "Optional MSBuild Configuration global property (e.g. `Debug`, `Release`, `Sit-Debug`, `kart`). "
+            + "Omit for SDK/solution default (typically Debug). Required when TargetFramework is gated on the IDE solution config.")]
+        string? configuration = null,
+        [Description(
+            "Optional MSBuild Platform global property (e.g. `AnyCPU`, `x64`). `Any CPU` is normalized to `AnyCPU`. "
+            + "Omit for SDK/solution default.")]
+        string? platform = null,
         CancellationToken cancellationToken = default)
     {
         Solution solution;
         try
         {
-            solution = await _solutionManager.LoadAsync(workspacePath, cancellationToken);
+            solution = await _solutionManager.LoadAsync(
+                workspacePath,
+                cancellationToken,
+                configuration,
+                platform);
+        }
+        catch (ArgumentException ex)
+        {
+            return ToolTelemetry.TraceAndReturn(nameof(LoadWorkspace), $"Error: {ex.Message}");
         }
         catch (OperationCanceledException ex)
         {
@@ -62,6 +80,17 @@ public sealed class WorkspaceTools
 
         if (projectCount == 0 || diagnostics.Any(WorkspaceDiagnosticFormatter.IsBlockingLoadFailure))
         {
+            if (diagnostics.Any(WorkspaceDiagnosticFormatter.IsMissingTargetFrameworkEvaluation))
+            {
+                return ToolTelemetry.TraceAndReturn(
+                    nameof(LoadWorkspace),
+                    WorkspaceLoadGuidance.FormatMissingTargetFrameworkWorkspaceLoadMessage(
+                        workspacePath,
+                        diagnostics,
+                        _solutionManager.LoadedConfiguration,
+                        _solutionManager.LoadedPlatform));
+            }
+
             return ToolTelemetry.TraceAndReturn(
                 nameof(LoadWorkspace),
                 BuildFailureReport(
@@ -70,7 +99,12 @@ public sealed class WorkspaceTools
         }
 
         var sb = new StringBuilder();
-        sb.AppendLine(WorkspaceHealthReporter.BuildHealthSection(workspacePath, solution));
+        sb.AppendLine(
+            WorkspaceHealthReporter.BuildHealthSection(
+                workspacePath,
+                solution,
+                _solutionManager.LoadedConfiguration,
+                _solutionManager.LoadedPlatform));
         sb.AppendLine();
         sb.AppendLine($"Successfully loaded workspace. Found {projectCount} projects:");
         foreach (var project in projects.OrderBy(p => p.Name, StringComparer.OrdinalIgnoreCase))

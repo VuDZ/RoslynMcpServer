@@ -1,3 +1,5 @@
+using System.Text.RegularExpressions;
+
 namespace RoslynMcpServer.Diagnostics;
 
 /// <summary>Normalizes MSBuildWorkspace diagnostic text for MCP responses.</summary>
@@ -50,6 +52,24 @@ public static class WorkspaceDiagnosticFormatter
 
     public static bool IsSoftWorkspaceAdvisory(string message) =>
         IsNuGetAuditAdvisory(message) || IsNuGetPruneAdvisory(message) || IsNuGetCompatAdvisory(message);
+
+    /// <summary>
+    /// Design-time evaluation left <c>TargetFramework</c> empty (typical of Bazel-generated csproj
+    /// or a solution opened without the IDE Configuration/Platform). Remains a blocking load failure.
+    /// </summary>
+    public static bool IsMissingTargetFrameworkEvaluation(string message) =>
+        message.Contains("ResolvePackageAssets", StringComparison.OrdinalIgnoreCase)
+        && message.Contains("TargetFramework", StringComparison.OrdinalIgnoreCase);
+
+    private static readonly Regex RxProcessedProjectPath = new(
+        @"processing the file '(?<path>[^']+)'",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+    public static string? TryGetProcessedProjectPath(string message)
+    {
+        var m = RxProcessedProjectPath.Match(message);
+        return m.Success ? m.Groups["path"].Value : null;
+    }
 
     /// <summary>
     /// True when a formatted diagnostic should fail <c>load_workspace</c>.

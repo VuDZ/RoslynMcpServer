@@ -110,4 +110,19 @@ public sealed class WorkspaceDiagnosticFormatterTests
             + "error MSB4019: The imported project was not found.";
         Assert.True(WorkspaceDiagnosticFormatter.IsBlockingLoadFailure(formatted));
     }
+
+    [Fact]
+    public void IsMissingTargetFrameworkEvaluation_still_blocking()
+    {
+        const string msg =
+            "Msbuild failed when processing the file 'D:\\m\\src\\generated\\Foo.csproj' with message: "
+            + "The \"ResolvePackageAssets\" task was not given a value for the required parameter \"TargetFramework\".";
+        var formatted = WorkspaceDiagnosticFormatter.Format("Failure", msg);
+        Assert.StartsWith("Failure:", formatted, StringComparison.Ordinal);
+        Assert.True(WorkspaceDiagnosticFormatter.IsMissingTargetFrameworkEvaluation(formatted));
+        Assert.True(WorkspaceDiagnosticFormatter.IsBlockingLoadFailure(formatted));
+        Assert.Equal(
+            @"D:\m\src\generated\Foo.csproj",
+            WorkspaceDiagnosticFormatter.TryGetProcessedProjectPath(formatted));
+    }
 }

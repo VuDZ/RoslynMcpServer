@@ -8,6 +8,7 @@ using Microsoft.CodeAnalysis.Host.Mef;
 using Microsoft.CodeAnalysis.MSBuild;
 using Microsoft.CodeAnalysis.Text;
 using Microsoft.Extensions.Logging;
+using RoslynMcpServer.Services;
 using Serilog;
 
 public sealed class SolutionManager
@@ -41,6 +42,8 @@ public sealed class SolutionManager
     private MSBuildWorkspace? _workspace;
     private Solution? _solution;
     private string? _loadedPath;
+    private string? _loadedConfiguration;
+    private string? _loadedPlatform;
     private IReadOnlyList<WorkspaceDiagnostic> _lastDiagnostics = Array.Empty<WorkspaceDiagnostic>();
 
     public SolutionManager(ILogger<SolutionManager> logger)
@@ -50,6 +53,12 @@ public sealed class SolutionManager
 
     public IReadOnlyList<WorkspaceDiagnostic> LastDiagnostics => _lastDiagnostics;
 
+    /// <summary>MSBuild <c>Configuration</c> used for the last successful <see cref="LoadAsync"/>, or <see langword="null"/>.</summary>
+    public string? LoadedConfiguration => _loadedConfiguration;
+
+    /// <summary>MSBuild <c>Platform</c> used for the last successful <see cref="LoadAsync"/>, or <see langword="null"/>.</summary>
+    public string? LoadedPlatform => _loadedPlatform;
+
     public async Task<Solution> LoadAsync(string path)
     {
         return await LoadAsync(path, CancellationToken.None);
@@ -57,7 +66,9 @@ public sealed class SolutionManager
 
     public async Task<Solution> LoadAsync(
         string solutionOrProjectPath,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        string? configuration = null,
+        string? platform = null)
     {
         if (string.IsNullOrWhiteSpace(solutionOrProjectPath))
         {
@@ -70,10 +81,13 @@ public sealed class SolutionManager
             throw new FileNotFoundException("Solution or project file not found.", fullPath);
         }
 
+        var normalizedConfiguration = DotNetConfigurationArguments.Normalize(configuration, nameof(configuration));
+        var normalizedPlatform = DotNetConfigurationArguments.NormalizePlatform(platform);
+
         await _workspaceLock.WaitAsync(cancellationToken);
         try
         {
-            return await LoadCoreAsync(fullPath, cancellationToken);
+            return await LoadCoreAsync(fullPath, normalizedConfiguration, normalizedPlatform, cancellationToken);
         }
         finally
         {
@@ -333,6 +347,8 @@ public sealed class SolutionManager
             _workspace = null;
             _solution = null;
             _loadedPath = null;
+            _loadedConfiguration = null;
+            _loadedPlatform = null;
             _lastDiagnostics = Array.Empty<WorkspaceDiagnostic>();
             _logger.LogInformation("Roslyn workspace cleared (MSBuildWorkspace disposed).");
         }
@@ -368,15 +384,27 @@ public sealed class SolutionManager
             throw new FileNotFoundException("Solution or project file not found.", candidateFull);
         }
 
-        _ = await LoadCoreAsync(candidateFull, cancellationToken);
+        _ = await LoadCoreAsync(candidateFull, configuration: null, platform: null, cancellationToken);
     }
 
     /// <summary>
     /// Loads or returns cached solution. Caller must hold <see cref="_workspaceLock"/>.
     /// </summary>
-    private async Task<Solution> LoadCoreAsync(string fullPath, CancellationToken cancellationToken)
+    private async Task<Solution> LoadCoreAsync(
+        string fullPath,
+        string? configuration,
+        string? platform,
+        CancellationToken cancellationToken)
     {
-        if (_workspace is not null && string.Equals(_loadedPath, fullPath, _pathComparison))
+        if (_workspace is not null
+            && MsBuildWorkspaceProperties.IsSameLoadCache(
+                _loadedPath,
+                _loadedConfiguration,
+                _loadedPlatform,
+                fullPath,
+                configuration,
+                platform,
+                _pathComparison))
         {
             var cached = _solution ?? _workspace.CurrentSolution;
             LogProcessWorkingSet("workspace_load_cached");
@@ -385,7 +413,10 @@ public sealed class SolutionManager
 
         _workspace?.Dispose();
         _ = typeof(CSharpFormattingOptions).Assembly.FullName;
-        var workspace = MSBuildWorkspace.Create(MsBuildHostServices);
+        var properties = MsBuildWorkspaceProperties.Create(configuration, platform);
+        var workspace = properties.Count == 0
+            ? MSBuildWorkspace.Create(MsBuildHostServices)
+            : MSBuildWorkspace.Create(properties, MsBuildHostServices);
         var capturedDiagnostics = new List<WorkspaceDiagnostic>();
         workspace.RegisterWorkspaceFailedHandler(e =>
         {
@@ -414,8 +445,14 @@ public sealed class SolutionManager
         _workspace = workspace;
         _solution = workspace.CurrentSolution;
         _loadedPath = fullPath;
+        _loadedConfiguration = configuration;
+        _loadedPlatform = platform;
         _lastDiagnostics = CollectDiagnostics(workspace, capturedDiagnostics);
-        _logger.LogInformation("Loaded Roslyn workspace from {Path}", fullPath);
+        _logger.LogInformation(
+            "Loaded Roslyn workspace from {Path} (Configuration={Configuration}, Platform={Platform})",
+            fullPath,
+            configuration ?? "(default)",
+            platform ?? "(default)");
         LogProcessWorkingSet("workspace_load");
         return _solution;
     }

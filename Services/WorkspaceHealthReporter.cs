@@ -9,7 +9,11 @@ namespace RoslynMcpServer.Services;
 /// <summary>Compact workspace health block for <c>load_workspace</c> responses.</summary>
 public static class WorkspaceHealthReporter
 {
-    public static string BuildHealthSection(string workspacePath, Solution solution)
+    public static string BuildHealthSection(
+        string workspacePath,
+        Solution solution,
+        string? configuration = null,
+        string? platform = null)
     {
         var fullPath = Path.GetFullPath(workspacePath);
         var workDir = WorkspaceRootResolver.ResolveDotNetWorkingDirectory(fullPath);
@@ -22,6 +26,10 @@ public static class WorkspaceHealthReporter
         sb.AppendLine($"- **Solution/project:** `{fullPath}`");
         sb.AppendLine($"- **DotNet working directory:** `{workDir}`");
         sb.AppendLine($"- **Projects loaded:** {solution.Projects.Count()}");
+        sb.AppendLine(
+            $"- **MSBuild Configuration:** {(string.IsNullOrWhiteSpace(configuration) ? "(SDK/workspace default)" : $"`{configuration}`")}");
+        sb.AppendLine(
+            $"- **MSBuild Platform:** {(string.IsNullOrWhiteSpace(platform) ? "(SDK/workspace default)" : $"`{platform}`")}");
         sb.AppendLine($"- **global.json:** {(globalJson is null ? "(not found)" : $"`{globalJson}`")}");
         sb.AppendLine($"- **Pinned SDK (global.json):** {(pinnedSdk ?? "(none)")}");
         sb.AppendLine($"- **Resolved SDK directory:** {(sdkDir ?? "(not resolved)")}");

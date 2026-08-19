@@ -24,6 +24,7 @@ public sealed class TestTools
         "Returns a clean summary of passed/failed tests. Default timeout 300s; on timeout/cancel the process tree is killed. " +
         "After `run_dotnet_build`, pass `noBuild=true` (and optionally `noRestore=true`) to skip rebuild. " +
         "Optional `configuration` maps to `dotnet test -c` (e.g. `Sit-Debug`) for multi-config solutions. " +
+        "Omit `configuration`/`platform` to inherit values from the last `load_workspace`. " +
         "For long integration tests raise `timeoutSeconds` (e.g. 900/1800).")]
     public Task<string> RunDotNetTest(
         [Description("Path to .csproj, .sln, .slnx, or test project directory (directories allowed; unlike `run_dotnet_build` which requires a file). Prefer `.sln`/`.slnx` for multi-config solutions.")]
@@ -36,8 +37,11 @@ public sealed class TestTools
         bool noRestore = false,
         [Description(
             "Optional MSBuild configuration (`dotnet test -c`). Examples: `Debug`, `Release`, `Sit-Debug`, `Dit-Debug`. "
-            + "Omit to use the SDK/solution default (often wrong on multi-config `.slnx`).")]
+            + "Omit to inherit `load_workspace` configuration, else the SDK/solution default (often wrong on multi-config `.slnx`).")]
         string? configuration = null,
+        [Description(
+            "Optional MSBuild Platform (`dotnet test -p:Platform=`). Examples: `AnyCPU`, `x64`. Omit to inherit `load_workspace` platform.")]
+        string? platform = null,
         CancellationToken cancellationToken = default)
     {
         return ExecuteDotnetTestAsync(
@@ -50,6 +54,7 @@ public sealed class TestTools
             noBuild,
             noRestore,
             configuration,
+            platform,
             cancellationToken);
     }
 
@@ -62,7 +67,7 @@ public sealed class TestTools
         "Prefer `className` + short `methodName`. Use for TDD and bug fixes instead of running the full suite. " +
         "Default timeout 300s; kills process tree on timeout/cancel. " +
         "After `run_dotnet_build`, pass `noBuild=true` (and optionally `noRestore=true`). " +
-        "Optional `configuration` maps to `dotnet test -c` (same as `run_dotnet_test`). Raise `timeoutSeconds` for slow tests.")]
+        "Optional `configuration` maps to `dotnet test -c` (same as `run_dotnet_test`). Omit `configuration`/`platform` to inherit `load_workspace`. Raise `timeoutSeconds` for slow tests.")]
     public async Task<string> RunSpecificTest(
         [Description("Path to .csproj, .sln, .slnx, or test project directory (same as run_dotnet_test; directories allowed). Prefer `.sln`/`.slnx` for multi-config solutions.")]
         string workspacePath,
@@ -78,8 +83,11 @@ public sealed class TestTools
         bool noRestore = false,
         [Description(
             "Optional MSBuild configuration (`dotnet test -c`). Examples: `Debug`, `Release`, `Sit-Debug`, `Dit-Debug`. "
-            + "Omit to use the SDK/solution default (often wrong on multi-config `.slnx`).")]
+            + "Omit to inherit `load_workspace` configuration, else the SDK/solution default (often wrong on multi-config `.slnx`).")]
         string? configuration = null,
+        [Description(
+            "Optional MSBuild Platform (`dotnet test -p:Platform=`). Examples: `AnyCPU`, `x64`. Omit to inherit `load_workspace` platform.")]
+        string? platform = null,
         CancellationToken cancellationToken = default)
     {
         const string toolName = nameof(RunSpecificTest);
@@ -107,6 +115,7 @@ public sealed class TestTools
                     noBuild,
                     noRestore,
                     configuration,
+                    platform,
                     cancellationToken)
                 .ConfigureAwait(false);
         }
@@ -236,6 +245,7 @@ public sealed class TestTools
         bool noBuild,
         bool noRestore,
         string? configuration,
+        string? platform,
         CancellationToken cancellationToken)
     {
         try
@@ -273,14 +283,26 @@ public sealed class TestTools
                 : WorkspaceRootResolver.FindSolutionOrProjectInDirectory(fullPath) ?? fullPath;
 
             string testArgs;
+            string? effectiveConfiguration;
+            string? effectivePlatform;
             try
             {
-                testArgs = DotNetTestArguments.Build(targetPath, filter, noBuild, noRestore, configuration);
+                effectiveConfiguration = DotNetConfigurationArguments.Coalesce(
+                    configuration, _solutionManager.LoadedConfiguration, nameof(configuration));
+                effectivePlatform = DotNetConfigurationArguments.CoalescePlatform(
+                    platform, _solutionManager.LoadedPlatform);
+                testArgs = DotNetTestArguments.Build(
+                    targetPath, filter, noBuild, noRestore, effectiveConfiguration, effectivePlatform);
             }
             catch (ArgumentException ex)
             {
                 return ToolTelemetry.TraceAndReturn(toolName, $"Error: {ex.Message}");
             }
+
+            var extraMeta =
+                $"- **Configuration:** {(string.IsNullOrWhiteSpace(effectiveConfiguration) ? "(SDK/solution default)" : effectiveConfiguration)}"
+                + Environment.NewLine
+                + $"- **Platform:** {(string.IsNullOrWhiteSpace(effectivePlatform) ? "(SDK/solution default)" : effectivePlatform)}";
 
             TimeSpan? timeout = timeoutSeconds > 0 ? TimeSpan.FromSeconds(timeoutSeconds) : null;
             var run = await DotNetCliRunner.RunWithMetadataAsync(
@@ -295,6 +317,7 @@ public sealed class TestTools
                 sb.AppendLine("## Test run timed out");
                 sb.AppendLine();
                 sb.AppendLine(run.RunMetadata);
+                sb.AppendLine(extraMeta);
                 sb.AppendLine();
                 sb.AppendLine(DotNetCliRunner.FormatHangHints(timedOut: true, cancelled: false));
                 sb.AppendLine();
@@ -333,12 +356,14 @@ public sealed class TestTools
                 sb.AppendLine(DotNetCliRunner.FormatHangHints(timedOut: false, cancelled: false));
                 sb.AppendLine();
                 sb.AppendLine(run.RunMetadata);
+                sb.AppendLine(extraMeta);
                 return ToolTelemetry.TraceAndReturn(toolName, sb.ToString().TrimEnd());
             }
 
             return ToolTelemetry.TraceAndReturn(
                 toolName,
-                markdown + Environment.NewLine + Environment.NewLine + run.RunMetadata);
+                markdown + Environment.NewLine + Environment.NewLine + run.RunMetadata
+                + Environment.NewLine + extraMeta);
         }
         catch (OperationCanceledException)
         {

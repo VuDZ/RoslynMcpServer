@@ -53,6 +53,28 @@ public sealed class WorkspaceLoadGuidanceTests
     }
 
     [Fact]
+    public void FormatMissingTargetFrameworkWorkspaceLoadMessage_is_not_nu1701_and_hints_bazel()
+    {
+        var diagnostics = new[]
+        {
+            "Failure: Msbuild failed when processing the file 'D:\\m\\src\\product\\kavkis\\Autotests\\_sln_kart\\generated\\Foo.csproj' with message: The \"ResolvePackageAssets\" task was not given a value for the required parameter \"TargetFramework\".",
+        };
+
+        var message = WorkspaceLoadGuidance.FormatMissingTargetFrameworkWorkspaceLoadMessage(
+            @"D:\m\src\product\kavkis\Autotests\_sln_kart\ide_kart_m_src.sln",
+            diagnostics,
+            configuration: null,
+            platform: null);
+
+        Assert.Contains("empty TargetFramework", message, StringComparison.Ordinal);
+        Assert.Contains("not NU1701", message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("configuration", message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Bazel/generated", message, StringComparison.Ordinal);
+        Assert.Contains("Foo.csproj", message, StringComparison.Ordinal);
+        Assert.DoesNotContain("Successfully loaded", message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void FormatEmptyTestListMessage_flags_csproj_scope()
     {
         var message = WorkspaceLoadGuidance.FormatEmptyTestListMessage(
