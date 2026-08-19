@@ -84,6 +84,10 @@ Restart OpenCode or reload MCP servers after running the script.
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.0.27
+
+- **`load_workspace` NU1701 / MSBuild wrapper** — Package TFM-compat restore warnings (`NU1701`, netfx assets in a netcore/net10 project) remapped to warnings — do not fail load when other projects opened. The word `failed` in Roslyn's `Msbuild failed when processing the file` wrapper is no longer treated as fatal by itself; explicit `error NU|MSB|NETSDK` and unloadable projects still fail load.
+
 ### v1.0.26
 
 - **Agent diagnostics for workspace/test discovery** — `load_workspace` cancelled by the MCP host returns **Workspace Load Cancelled (client abort)** (not MSBuild failure) with OpenCode timeout guidance; `get_test_list` with `count: 0` explains wrong `.csproj` scope; `run_specific_test` no-match reports Roslyn vs `dotnet test` path mismatch and name-suffix fallback.
@@ -218,7 +222,7 @@ There are **56** registered tools (see list below) and **1** MCP prompt (`Refact
 **Parameters:**
 - `workspacePath: string` — `.sln`, `.slnx`, or `.csproj` file (not a directory). Prefer solution files for multi-config repos.
 
-**Behavior:** Host abort mid-load returns **Workspace Load Cancelled (client abort)** (raise MCP tool timeout; not an MSBuild failure).
+**Behavior:** Host abort mid-load returns **Workspace Load Cancelled (client abort)** (raise MCP tool timeout; not an MSBuild failure). NuGet restore warnings (`NU1701` TFM compat, audit, prune) are shown as warnings and do not fail load; true MSBuild/SDK errors still do.
 </details>
 
 <details>
@@ -861,7 +865,7 @@ cd D:\Devel\YourApp
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.0.26). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.0.27). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 
@@ -910,7 +914,7 @@ cd D:\Devel\YourApp
 **Параметры:**
 - `workspacePath: string` — файл `.sln`, `.slnx` или `.csproj` (не каталог). Для multi-config — предпочтительно solution.
 
-**Поведение:** abort хоста mid-load → **Workspace Load Cancelled (client abort)** (поднять MCP timeout; это не ошибка MSBuild).
+**Поведение:** abort хоста mid-load → **Workspace Load Cancelled (client abort)** (поднять MCP timeout; это не ошибка MSBuild). Предупреждения restore (`NU1701` TFM-compat, audit, prune) не валят load; настоящие ошибки MSBuild/SDK — валят.
 </details>
 
 <details>

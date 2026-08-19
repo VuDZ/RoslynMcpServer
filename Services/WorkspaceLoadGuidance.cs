@@ -52,7 +52,7 @@ public static class WorkspaceLoadGuidance
         sb.AppendLine($"- **Path:** `{workspacePath}`");
         sb.AppendLine("- **What to do:** raise the host MCP tool timeout (OpenCode: `\"timeout\": 600000` ms in mcp config), then call `load_workspace` again and wait until it completes.");
         sb.AppendLine(
-            "- **Do not** treat NuGet audit / prune lines (`NU190*`, GHSA, `will not be pruned`) logged during load as the root cause of this cancel.");
+            "- **Do not** treat NuGet audit / prune / TFM-compat lines (`NU190*`, GHSA, `NU1701`, `will not be pruned`) logged during load as the root cause of this cancel.");
         sb.AppendLine(
             "- Prefer loading a `.sln`/`.slnx` that contains the test projects (not a single helper `.csproj`) before `get_test_list` / `run_specific_test` Roslyn resolve.");
         return sb.ToString().TrimEnd();

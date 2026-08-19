@@ -25,7 +25,9 @@ public sealed class WorkspaceTools
         + "(SDK/global.json pin, restore assets, registered tool count). Always call this first before analyzing C# code. "
         + "Accepts `.sln`, `.slnx`, or `.csproj` (prefer `.sln`/`.slnx` for multi-config solutions so project configurations resolve correctly). "
         + "Large solutions can take minutes — if the host aborts mid-load the tool returns **Workspace Load Cancelled (client abort)** "
-        + "(not MSBuild failure); raise host MCP timeout (e.g. OpenCode `timeout: 600000`) and retry.")]
+        + "(not MSBuild failure); raise host MCP timeout (e.g. OpenCode `timeout: 600000`) and retry. "
+        + "NuGet restore warnings (NU1701 TFM compat, audit, unused-package prune) are warnings and do not fail load; "
+        + "true MSBuild/SDK errors and unloadable projects still fail.")]
     public async Task<string> LoadWorkspace(
         [Description("Absolute path to a `.sln`, `.slnx`, or `.csproj` file (not a directory). Same parameter name as run_dotnet_build, run_dotnet_test, run_format, list_projects.")]
         string workspacePath,
@@ -110,6 +112,16 @@ public sealed class WorkspaceTools
                 sb.AppendLine();
                 sb.AppendLine(
                     "> **Note:** NuGet prune / unused `PackageReference` advisories are shown as warnings; the workspace is usable. Remove unused package references if you want a clean restore graph.");
+            }
+
+            if (diagnostics.Any(static d =>
+                    d.Contains("NuGet compat", StringComparison.OrdinalIgnoreCase)))
+            {
+                sb.AppendLine();
+                sb.AppendLine(
+                    "> **Note:** NuGet TFM-compat advisories (`NU1701`, netfx package in a netcore/net10 project) are shown as warnings; "
+                    + "`dotnet build` / Visual Studio usually succeed. Use `run_dotnet_build` for the exact NU lines. "
+                    + "A mis-targeted project may still have incomplete references in Roslyn — prefer fixing the TFM or package.");
             }
         }
 
