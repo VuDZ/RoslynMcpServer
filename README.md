@@ -84,6 +84,10 @@ Restart OpenCode or reload MCP servers after running the script.
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.0.28
+
+- **`run_dotnet_test` / `run_specific_test` .slnx summary** — VSTest/MSBuild console may omit `Passed:` when tests fail (and omit `Failed:` on success). Parser infers `Passed = Total − Failed − Skipped` so a fail-only `Total tests` block is not reported as **partial**.
+
 ### v1.0.27
 
 - **`load_workspace` NU1701 / MSBuild wrapper** — Package TFM-compat restore warnings (`NU1701`, netfx assets in a netcore/net10 project) remapped to warnings — do not fail load when other projects opened. The word `failed` in Roslyn's `Msbuild failed when processing the file` wrapper is no longer treated as fatal by itself; explicit `error NU|MSB|NETSDK` and unloadable projects still fail load.
@@ -522,7 +526,7 @@ Parses C# syntax, inserts with DocumentEditor, formats the file. Prefer over `ap
 - `noRestore: bool = false` — pass `--no-restore`.
 - `configuration: string? = null` — optional `dotnet test -c` (e.g. `Sit-Debug`). Use the same value as `run_dotnet_build` when `noBuild=true`.
 
-**Behavior:** `--logger "console;verbosity=normal"`. Summary from `Passed!`, `Test Run Successful` + `Total tests`/`Passed:` (Failed defaults to 0), or per-test `  Passed FQN [ms]`. MSBuild/prune noise ignored; duplicate NU audit lines deduped. Exit 0 without any summary marker → **`Status: partial`** + last 2KB. `run_specific_test` checks filter matched a test FQN.
+**Behavior:** `--logger "console;verbosity=normal"`. Summary from `Passed!`, `Test Run Successful` + `Total tests`/`Passed:` (Failed defaults to 0), or `.slnx` fail-only `Total tests` + `Failed:` (Passed inferred as Total − Failed − Skipped), or per-test `  Passed FQN [ms]`. MSBuild/prune noise ignored; duplicate NU audit lines deduped. Exit 0 without any summary marker → **`Status: partial`** + last 2KB. `run_specific_test` checks filter matched a test FQN.
 
 </details>
 
@@ -865,7 +869,7 @@ cd D:\Devel\YourApp
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.0.27). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.0.28). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 
@@ -1209,7 +1213,7 @@ cd D:\Devel\YourApp
 - `noRestore: bool = false` — `--no-restore`.
 - `configuration: string? = null` — опционально `dotnet test -c` (например `Sit-Debug`). При `noBuild=true` — тот же config, что у build.
 
-**Поведение:** сводка из `Passed!`, `Test Run Successful` + `Total tests`/`Passed:` (Failed=0 если нет строки), FQN-строки тестов; дедуп NU audit. Без маркеров сводки при exit 0 → **partial** + 2KB лога.
+**Поведение:** сводка из `Passed!`, `Test Run Successful` + `Total tests`/`Passed:` (Failed=0 если нет строки), или `.slnx` fail-only `Total tests` + `Failed:` (Passed = Total − Failed − Skipped), FQN-строки тестов; дедуп NU audit. Без маркеров сводки при exit 0 → **partial** + 2KB лога.
 
 </details>
 

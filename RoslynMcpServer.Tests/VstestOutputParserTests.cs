@@ -71,6 +71,55 @@ public sealed class VstestOutputParserTests
     }
 
     [Fact]
+    public void Parse_slnx_total_tests_and_failed_without_passed_line()
+    {
+        const string output = """
+            Test Run Failed.
+            Total tests: 1
+                 Failed: 1
+             Total time: 1,7379 Minutes
+            """;
+        var result = VstestOutputParser.Parse(output, exitCode: 1);
+        Assert.False(result.IsPartialSuccess);
+        Assert.True(result.HasRecognizedSummary);
+        Assert.Equal(1, result.Summary?.Total);
+        Assert.Equal(0, result.Summary?.Passed);
+        Assert.Equal(1, result.Summary?.Failed);
+
+        var md = VstestOutputParser.BuildMarkdownReport(result, 1, output, null, null, false);
+        Assert.Contains("1 Tests Failed", md, StringComparison.Ordinal);
+        Assert.DoesNotContain("**Status:** partial", md, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Parse_infers_passed_from_total_minus_failed_and_skipped()
+    {
+        const string output = """
+            Total tests: 5
+                 Failed: 2
+                Skipped: 1
+             Total time: 2.1 Seconds
+            """;
+        var result = VstestOutputParser.Parse(output, exitCode: 1);
+        Assert.Equal(5, result.Summary?.Total);
+        Assert.Equal(2, result.Summary?.Passed);
+        Assert.Equal(2, result.Summary?.Failed);
+        Assert.Equal(1, result.Summary?.Skipped);
+    }
+
+    [Fact]
+    public void Parse_total_tests_only_does_not_infer_all_passed()
+    {
+        const string output = """
+            Total tests: 4
+             Total time: 1.0 Seconds
+            """;
+        var result = VstestOutputParser.Parse(output, exitCode: 1);
+        Assert.True(result.HasRecognizedSummary);
+        Assert.Null(result.Summary);
+    }
+
+    [Fact]
     public void DeduplicateNuGetAuditLines_removes_repeated_warning()
     {
         const string line = "warning NU1904: Package 'X' has a known vulnerability";

@@ -55,7 +55,7 @@ public static class VstestOutputParser
         @"Test Run Successful\.?",
         RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
-    /// <summary>VSTest console block: Total tests + Passed (Failed/Skipped optional).</summary>
+    /// <summary>VSTest console block: Total tests + Passed (Failed/Skipped optional). Fail-only .slnx blocks are parsed line-wise.</summary>
     private static readonly Regex RxVstestTotalsBlock = new(
         @"Total tests:\s*(?<total>\d+)(?:[\s\S]{0,2000}?)\s+Passed:\s*(?<passed>\d+)",
         RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
@@ -437,9 +437,16 @@ public static class VstestOutputParser
             }
         }
 
+        // .slnx / MSBuild VSTest target often omits Passed: when every test failed (and Failed: on all-pass).
+        // Only infer Passed when Failed or Skipped was present — Total-only stays unparsed.
         if (passed is null)
         {
-            return null;
+            if (failed is null && skipped is null)
+            {
+                return null;
+            }
+
+            passed = Math.Max(0, total - (failed ?? 0) - (skipped ?? 0));
         }
 
         failed ??= 0;
