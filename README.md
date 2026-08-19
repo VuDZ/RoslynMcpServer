@@ -84,6 +84,10 @@ Restart OpenCode or reload MCP servers after running the script.
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.0.29
+
+- **`load_workspace` configuration / platform** — Optional MSBuild global properties (same names as the VS active solution config). Cached for `run_dotnet_build` / `run_dotnet_test` / `run_specific_test` when those tools omit `-c` / `-p:Platform`. Empty `TargetFramework` (`ResolvePackageAssets`) stays a load failure, with a dedicated report (retry with IDE config, or Bazel-generated csproj are not evaluable).
+
 ### v1.0.28
 
 - **`run_dotnet_test` / `run_specific_test` .slnx summary** — VSTest/MSBuild console may omit `Passed:` when tests fail (and omit `Failed:` on success). Parser infers `Passed = Total − Failed − Skipped` so a fail-only `Total tests` block is not reported as **partial**.
@@ -225,8 +229,10 @@ There are **56** registered tools (see list below) and **1** MCP prompt (`Refact
 
 **Parameters:**
 - `workspacePath: string` — `.sln`, `.slnx`, or `.csproj` file (not a directory). Prefer solution files for multi-config repos.
+- `configuration: string?` — optional MSBuild `Configuration` global property (e.g. `Sit-Debug`, `kart`). Inherited by build/test when those tools omit `-c`.
+- `platform: string?` — optional MSBuild `Platform` (`Any CPU` → `AnyCPU`). Inherited by build/test as `-p:Platform=`.
 
-**Behavior:** Host abort mid-load returns **Workspace Load Cancelled (client abort)** (raise MCP tool timeout; not an MSBuild failure). NuGet restore warnings (`NU1701` TFM compat, audit, prune) are shown as warnings and do not fail load; true MSBuild/SDK errors still do.
+**Behavior:** Host abort mid-load returns **Workspace Load Cancelled (client abort)** (raise MCP tool timeout; not an MSBuild failure). NuGet restore warnings (`NU1701` TFM compat, audit, prune) are shown as warnings and do not fail load; true MSBuild/SDK errors still do. Empty `TargetFramework` (`ResolvePackageAssets`) is a dedicated failure — retry with the IDE solution config, or the `.sln` is Bazel-generated and not MSBuild-evaluable.
 </details>
 
 <details>
@@ -509,10 +515,11 @@ Parses C# syntax, inserts with DocumentEditor, formats the file. Prefer over `ap
 
 **Parameters:**
 - `workspacePath: string` — must be an existing **`.csproj`, `.sln`, or `.slnx` file** (not a directory).
-- `configuration: string? = null` — optional `dotnet build -c` (e.g. `Sit-Debug`, `Dit-Debug`). Omit only when a single default config is correct.
+- `configuration: string? = null` — optional `dotnet build -c` (e.g. `Sit-Debug`, `Dit-Debug`). Omit to inherit `load_workspace` configuration.
 - `noIncremental: bool = true` — pass `--no-incremental` on every build step (default). Set `false` only if you explicitly accept MSBuild up-to-date caching.
+- `platform: string? = null` — optional `-p:Platform=` (e.g. `x64`). Omit to inherit `load_workspace` platform.
 
-**Behavior:** Inherits full process env, then pins SDK via `MSBUILD_EXE_PATH`, `MSBuildSDKsPath`, `DOTNET_MSBUILD_SDK_RESOLVER_SDKS_DIR` / `SDKS_VER` / `CLI_DIR`, `DOTNET_ROOT`. On MSBuild path mismatch → **`error MCP_MSBUILD_SDK_MISMATCH`** and `dotnet exec …/10.x/MSBuild.dll /restore`. Escalation: minimal build → pinned restore → restore (detailed if empty) → build normal → build detailed. **Effective exit** = last `dotnet build` step (not restore). Metadata reports `Configuration` / `NoIncremental`. **Key lines** include task `-- FAILED` with project context. No in-process result cache — “cached” greens were MSBuild incremental or exit overwrite.
+**Behavior:** Inherits full process env, then pins SDK via `MSBUILD_EXE_PATH`, `MSBuildSDKsPath`, `DOTNET_MSBUILD_SDK_RESOLVER_SDKS_DIR` / `SDKS_VER` / `CLI_DIR`, `DOTNET_ROOT`. On MSBuild path mismatch → **`error MCP_MSBUILD_SDK_MISMATCH`** and `dotnet exec …/10.x/MSBuild.dll /restore`. Escalation: minimal build → pinned restore → restore (detailed if empty) → build normal → build detailed. **Effective exit** = last `dotnet build` step (not restore). Metadata reports `Configuration` / `Platform` / `NoIncremental`. **Key lines** include task `-- FAILED` with project context. No in-process result cache — “cached” greens were MSBuild incremental or exit overwrite.
 
 </details>
 
@@ -524,7 +531,8 @@ Parses C# syntax, inserts with DocumentEditor, formats the file. Prefer over `ap
 - `timeoutSeconds: int = 300` — process timeout; `0` disables (not recommended). Raise for long integration tests (e.g. 900/1800).
 - `noBuild: bool = false` — pass `--no-build` (after a successful `run_dotnet_build`).
 - `noRestore: bool = false` — pass `--no-restore`.
-- `configuration: string? = null` — optional `dotnet test -c` (e.g. `Sit-Debug`). Use the same value as `run_dotnet_build` when `noBuild=true`.
+- `configuration: string? = null` — optional `dotnet test -c` (e.g. `Sit-Debug`). Omit to inherit `load_workspace` (use the same value as `run_dotnet_build` when `noBuild=true`).
+- `platform: string? = null` — optional `-p:Platform=`. Omit to inherit `load_workspace`.
 
 **Behavior:** `--logger "console;verbosity=normal"`. Summary from `Passed!`, `Test Run Successful` + `Total tests`/`Passed:` (Failed defaults to 0), or `.slnx` fail-only `Total tests` + `Failed:` (Passed inferred as Total − Failed − Skipped), or per-test `  Passed FQN [ms]`. MSBuild/prune noise ignored; duplicate NU audit lines deduped. Exit 0 without any summary marker → **`Status: partial`** + last 2KB. `run_specific_test` checks filter matched a test FQN.
 
@@ -869,7 +877,7 @@ cd D:\Devel\YourApp
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.0.28). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.0.29). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 
@@ -917,8 +925,10 @@ cd D:\Devel\YourApp
 
 **Параметры:**
 - `workspacePath: string` — файл `.sln`, `.slnx` или `.csproj` (не каталог). Для multi-config — предпочтительно solution.
+- `configuration: string?` — опционально MSBuild `Configuration` (например `Sit-Debug`, `kart`). Наследуют build/test, если не передали `-c`.
+- `platform: string?` — опционально MSBuild `Platform` (`Any CPU` → `AnyCPU`).
 
-**Поведение:** abort хоста mid-load → **Workspace Load Cancelled (client abort)** (поднять MCP timeout; это не ошибка MSBuild). Предупреждения restore (`NU1701` TFM-compat, audit, prune) не валят load; настоящие ошибки MSBuild/SDK — валят.
+**Поведение:** abort хоста mid-load → **Workspace Load Cancelled (client abort)** (поднять MCP timeout; это не ошибка MSBuild). Предупреждения restore (`NU1701` TFM-compat, audit, prune) не валят load; настоящие ошибки MSBuild/SDK — валят. Пустой `TargetFramework` (`ResolvePackageAssets`) — отдельный fail: повторить с IDE-конфигом или это Bazel-generated sln, который MSBuildWorkspace не открывает.
 </details>
 
 <details>
@@ -1196,10 +1206,11 @@ cd D:\Devel\YourApp
 
 **Параметры:**
 - `workspacePath: string` — только существующий **файл** `.csproj`, `.sln` или `.slnx` (не каталог).
-- `configuration: string? = null` — опционально `dotnet build -c` (например `Sit-Debug`, `Dit-Debug`). Не опускайте на multi-config `.slnx`.
+- `configuration: string? = null` — опционально `dotnet build -c` (например `Sit-Debug`, `Dit-Debug`). Если не задан — берётся с `load_workspace`.
 - `noIncremental: bool = true` — `--no-incremental` на каждом build-шаге (по умолчанию). `false` только если явно принимаете up-to-date кэш MSBuild.
+- `platform: string? = null` — опционально `-p:Platform=`. Если не задан — с `load_workspace`.
 
-**Поведение:** наследование env + pinning (`MSBUILD_EXE_PATH`, `DOTNET_MSBUILD_SDK_RESOLVER_SDKS_*`). Mismatch → **error `MCP_MSBUILD_SDK_MISMATCH`** + pinned `dotnet exec …/MSBuild.dll /restore`. Цепочка minimal → pinned restore → restore/build detailed. **Итоговый exit** = последний `dotnet build` (не restore). В metadata — `Configuration` / `NoIncremental`. Внутреннего кэша результатов MCP нет.
+**Поведение:** наследование env + pinning (`MSBUILD_EXE_PATH`, `DOTNET_MSBUILD_SDK_RESOLVER_SDKS_*`). Mismatch → **error `MCP_MSBUILD_SDK_MISMATCH`** + pinned `dotnet exec …/MSBuild.dll /restore`. Цепочка minimal → pinned restore → restore/build detailed. **Итоговый exit** = последний `dotnet build` (не restore). В metadata — `Configuration` / `Platform` / `NoIncremental`. Внутреннего кэша результатов MCP нет.
 
 </details>
 
@@ -1211,7 +1222,8 @@ cd D:\Devel\YourApp
 - `timeoutSeconds: int = 300` — таймаут процесса; `0` отключает (не рекомендуется). Для долгих интеграционных поднимайте (900/1800).
 - `noBuild: bool = false` — `--no-build` (после успешного `run_dotnet_build`).
 - `noRestore: bool = false` — `--no-restore`.
-- `configuration: string? = null` — опционально `dotnet test -c` (например `Sit-Debug`). При `noBuild=true` — тот же config, что у build.
+- `configuration: string? = null` — опционально `dotnet test -c` (например `Sit-Debug`). Если не задан — с `load_workspace`.
+- `platform: string? = null` — опционально `-p:Platform=`.
 
 **Поведение:** сводка из `Passed!`, `Test Run Successful` + `Total tests`/`Passed:` (Failed=0 если нет строки), или `.slnx` fail-only `Total tests` + `Failed:` (Passed = Total − Failed − Skipped), FQN-строки тестов; дедуп NU audit. Без маркеров сводки при exit 0 → **partial** + 2KB лога.
 

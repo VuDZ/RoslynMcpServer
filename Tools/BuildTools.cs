@@ -11,10 +11,12 @@ public sealed class BuildTools
 {
     private const int MaxDiagnostics = 20;
 
+    private readonly SolutionManager _solutionManager;
     private readonly ILogger<BuildTools> _logger;
 
-    public BuildTools(ILogger<BuildTools> logger)
+    public BuildTools(SolutionManager solutionManager, ILogger<BuildTools> logger)
     {
+        _solutionManager = solutionManager;
         _logger = logger;
     }
 
@@ -27,18 +29,23 @@ public sealed class BuildTools
         + "Surfaces `MCP_MSBUILD_SDK_MISMATCH` when MSBuild SDK ≠ global.json pin. "
         + "`workspacePath` must be a `.csproj`, `.sln`, or `.slnx` **file** (not a directory). Prefer solution files for multi-config repos. "
         + "Optional `configuration` maps to `dotnet build -c` (e.g. `Sit-Debug`, `Dit-Debug`) — required when the solution has multiple Debug-like configs. "
+        + "Omit `configuration`/`platform` to inherit values from the last `load_workspace`. "
         + "No agent-tunable timeout. Use AFTER editing to verify compile.")]
     public async Task<string> RunDotNetBuild(
         [Description("Path to a `.csproj`, `.sln`, or `.slnx` **file** (not a directory). Same parameter name as load_workspace / run_dotnet_test.")]
         string workspacePath,
         [Description(
             "Optional MSBuild configuration (`dotnet build -c`). Examples: `Debug`, `Release`, `Sit-Debug`, `Dit-Debug`. "
-            + "Omit to use the SDK/solution default (often wrong on multi-config `.slnx`).")]
+            + "Omit to inherit `load_workspace` configuration, else the SDK/solution default (often wrong on multi-config `.slnx`).")]
         string? configuration = null,
         [Description(
             "When true (default), pass `--no-incremental` on every `dotnet build` step so up-to-date skips cannot hide compile errors. "
             + "Set false only for large monorepos where you explicitly accept MSBuild incremental caching.")]
         bool noIncremental = true,
+        [Description(
+            "Optional MSBuild Platform (`dotnet build -p:Platform=`). Examples: `AnyCPU`, `x64`. `Any CPU` is normalized to `AnyCPU`. "
+            + "Omit to inherit `load_workspace` platform.")]
+        string? platform = null,
         CancellationToken cancellationToken = default)
     {
         try
@@ -65,12 +72,27 @@ public sealed class BuildTools
             }
 
             var workDir = WorkspaceRootResolver.ResolveDotNetWorkingDirectory(fullPath);
+            string? effectiveConfiguration;
+            string? effectivePlatform;
+            try
+            {
+                effectiveConfiguration = DotNetConfigurationArguments.Coalesce(
+                    configuration, _solutionManager.LoadedConfiguration, nameof(configuration));
+                effectivePlatform = DotNetConfigurationArguments.CoalescePlatform(
+                    platform, _solutionManager.LoadedPlatform);
+            }
+            catch (ArgumentException ex)
+            {
+                return ToolTelemetry.TraceAndReturn(nameof(RunDotNetBuild), $"Error: {ex.Message}");
+            }
+
             var probe = await DotNetBuildProbe.RunAsync(
                     fullPath,
                     workDir,
                     cancellationToken,
-                    configuration: configuration,
-                    noIncremental: noIncremental)
+                    configuration: effectiveConfiguration,
+                    noIncremental: noIncremental,
+                    platform: effectivePlatform)
                 .ConfigureAwait(false);
             var combined = probe.CombinedOutput;
             var processExitCode = probe.ExitCode;
@@ -80,7 +102,7 @@ public sealed class BuildTools
                 var hang = new StringBuilder();
                 hang.AppendLine(probe.TimedOut ? "## Build timed out" : "## Build probe budget exhausted");
                 hang.AppendLine();
-                AppendRunMetadata(hang, runMetadata, probe.StepsExecuted, configuration, probe.NoIncremental);
+                AppendRunMetadata(hang, runMetadata, probe.StepsExecuted, effectiveConfiguration, effectivePlatform, probe.NoIncremental);
                 hang.AppendLine();
                 hang.AppendLine(DotNetCliRunner.FormatHangHints(timedOut: probe.TimedOut, cancelled: false));
                 hang.AppendLine();
@@ -112,7 +134,7 @@ public sealed class BuildTools
             {
                 return ToolTelemetry.TraceAndReturn(
                     nameof(RunDotNetBuild),
-                    BuildSuccessReport(runMetadata, probe.StepsExecuted, warningEntries, configuration, probe.NoIncremental));
+                    BuildSuccessReport(runMetadata, probe.StepsExecuted, warningEntries, effectiveConfiguration, effectivePlatform, probe.NoIncremental));
             }
 
             if (errorEntries.Count == 0 && processExitCode != 0)
@@ -124,14 +146,15 @@ public sealed class BuildTools
                         probe.StepsExecuted,
                         processExitCode,
                         combined,
-                        configuration,
+                        effectiveConfiguration,
+                        effectivePlatform,
                         probe.NoIncremental));
             }
 
             var errSb = new StringBuilder();
             errSb.AppendLine("## Build failed");
             errSb.AppendLine();
-            AppendRunMetadata(errSb, runMetadata, probe.StepsExecuted, configuration, probe.NoIncremental);
+            AppendRunMetadata(errSb, runMetadata, probe.StepsExecuted, effectiveConfiguration, effectivePlatform, probe.NoIncremental);
             errSb.AppendLine($"Exit code: `{processExitCode}`. Parsed diagnostics (MSBuild + NuGet NU####):");
             foreach (var d in display)
             {
@@ -177,12 +200,13 @@ public sealed class BuildTools
         IReadOnlyList<string> stepsExecuted,
         IReadOnlyList<DotNetBuildDiagnosticParser.DiagnosticEntry> warningEntries,
         string? configuration,
+        string? platform,
         bool noIncremental)
     {
         var sb = new StringBuilder();
         sb.AppendLine("## Build succeeded");
         sb.AppendLine();
-        AppendRunMetadata(sb, runMetadata, stepsExecuted, configuration, noIncremental);
+        AppendRunMetadata(sb, runMetadata, stepsExecuted, configuration, platform, noIncremental);
         sb.AppendLine("No **error** lines matched (MSBuild `path(line,col): error` or NuGet `error NU####`).");
         sb.AppendLine("Effective build exit is 0 (last `dotnet build` step; restore cannot mask a failed build with no rebuild).");
         if (warningEntries.Count > 0)
@@ -204,12 +228,13 @@ public sealed class BuildTools
         int processExitCode,
         string combined,
         string? configuration,
+        string? platform,
         bool noIncremental)
     {
         var sb = new StringBuilder();
         sb.AppendLine("## Build failed");
         sb.AppendLine();
-        AppendRunMetadata(sb, runMetadata, stepsExecuted, configuration, noIncremental);
+        AppendRunMetadata(sb, runMetadata, stepsExecuted, configuration, platform, noIncremental);
         sb.AppendLine(
             $"Exit code: `{processExitCode}`. No lines matched MSBuild `path(line,col): error|warning CODE` or NuGet `error|warning NU####` patterns (including `: error NU####` and embedded NU lines).");
         sb.AppendLine(
@@ -281,6 +306,7 @@ public sealed class BuildTools
         string runMetadata,
         IReadOnlyList<string> stepsExecuted,
         string? configuration,
+        string? platform,
         bool noIncremental)
     {
         sb.AppendLine("### dotnet run");
@@ -291,6 +317,8 @@ public sealed class BuildTools
 
         sb.AppendLine(
             $"- **Configuration:** {(string.IsNullOrWhiteSpace(configuration) ? "(SDK/solution default)" : configuration)}");
+        sb.AppendLine(
+            $"- **Platform:** {(string.IsNullOrWhiteSpace(platform) ? "(SDK/solution default)" : platform)}");
         sb.AppendLine($"- **NoIncremental:** `{noIncremental}`{(noIncremental ? " (`--no-incremental`)" : " (MSBuild up-to-date allowed)")}");
 
         if (stepsExecuted.Count > 0)

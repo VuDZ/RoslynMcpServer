@@ -30,12 +30,14 @@ public static class DotNetBuildProbe
         TimeSpan? overallBudget = null,
         TimeSpan? stepTimeout = null,
         string? configuration = null,
-        bool noIncremental = true)
+        bool noIncremental = true,
+        string? platform = null)
     {
         var budget = overallBudget ?? DefaultOverallBudget;
         var perStep = stepTimeout ?? DefaultStepTimeout;
         var quoted = $"\"{projectOrSolutionPath}\"";
         var configSwitch = DotNetConfigurationArguments.FormatSwitch(configuration);
+        var platformSwitch = DotNetConfigurationArguments.FormatPlatformProperty(platform);
         var incrementalSwitch = noIncremental ? " --no-incremental" : string.Empty;
         var log = new StringBuilder();
         var steps = new List<string>();
@@ -84,8 +86,8 @@ public static class DotNetBuildProbe
         }
 
         await RunStepAsync(
-                $"dotnet build -v:minimal{configSwitch}{incrementalSwitch}",
-                $"build {quoted} -v:minimal{configSwitch}{incrementalSwitch}",
+                $"dotnet build -v:minimal{configSwitch}{platformSwitch}{incrementalSwitch}",
+                $"build {quoted} -v:minimal{configSwitch}{platformSwitch}{incrementalSwitch}",
                 isBuildStep: true)
             .ConfigureAwait(false);
 
@@ -111,8 +113,8 @@ public static class DotNetBuildProbe
         if (!timedOut && ShouldRunMoreDiagnostics(log.ToString()))
         {
             await RunStepAsync(
-                    $"dotnet build -v:normal{configSwitch}{incrementalSwitch}",
-                    $"build {quoted} -v:normal{configSwitch}{incrementalSwitch}",
+                    $"dotnet build -v:normal{configSwitch}{platformSwitch}{incrementalSwitch}",
+                    $"build {quoted} -v:normal{configSwitch}{platformSwitch}{incrementalSwitch}",
                     isBuildStep: true)
                 .ConfigureAwait(false);
         }
@@ -120,8 +122,8 @@ public static class DotNetBuildProbe
         if (!timedOut && ShouldRunMoreDiagnostics(log.ToString()))
         {
             await RunStepAsync(
-                    $"dotnet build -v:detailed{configSwitch}{incrementalSwitch}",
-                    $"build {quoted} -v:detailed{configSwitch}{incrementalSwitch}",
+                    $"dotnet build -v:detailed{configSwitch}{platformSwitch}{incrementalSwitch}",
+                    $"build {quoted} -v:detailed{configSwitch}{platformSwitch}{incrementalSwitch}",
                     isBuildStep: true)
                 .ConfigureAwait(false);
         }
