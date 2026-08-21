@@ -737,7 +737,7 @@ public sealed class UtilityTools
 
     [McpServerTool(Name = "apply_patch", Title = "ApplyPatch")]
     [Description(
-        "Replaces `oldString` with `newString` in a file (the only search-and-replace tool; use `replaceAll=false` for a single occurrence, `replaceAll=true` for all matches). Line endings are normalized for matching (`\\r\\n` → `\\n`); output preserves CRLF when the file used it. Tries exact match on normalized text first, then whitespace-tolerant token matching (string literals with internal spaces may not match).")]
+        "Replaces `oldString` with `newString` in a file (the only search-and-replace tool; use `replaceAll=false` for a single occurrence, `replaceAll=true` for all matches). Line endings are normalized for matching (`\\r\\n` → `\\n`); output preserves CRLF when the file used it. Tries exact match on normalized text first, then whitespace-tolerant token matching (string literals with internal spaces may not match). replaceAll continues after each insert (does not rescan the replacement), so `Foo` → `Ns.Foos` is safe.")]
     public async Task<string> ApplyPatch(
         [Description("Absolute path or workspace-relative path to the file that should be patched.")] string filePath,
         [Description("Source fragment to find (exact or whitespace-tolerant; see tool description).")] string oldString,
@@ -745,6 +745,8 @@ public sealed class UtilityTools
         [Description("When true, replaces all occurrences. When false, replaces only the first occurrence for safer edits.")] bool replaceAll = false,
         CancellationToken cancellationToken = default)
     {
+        var started = Stopwatch.StartNew();
+        var fullPath = filePath;
         try
         {
             if (string.IsNullOrWhiteSpace(filePath))
@@ -757,7 +759,7 @@ public sealed class UtilityTools
                 return ToolTelemetry.TraceAndReturn(nameof(ApplyPatch), "Error: `oldString` is empty.");
             }
 
-            var fullPath = _solutionManager.ResolvePathAgainstWorkspace(filePath);
+            fullPath = _solutionManager.ResolvePathAgainstWorkspace(filePath);
             if (!File.Exists(fullPath))
             {
                 return ToolTelemetry.TraceAndReturn(nameof(ApplyPatch), $"Error: File not found: `{fullPath}`");
@@ -767,9 +769,21 @@ public sealed class UtilityTools
             var sourceNorm = PatchMatchHelper.NormalizeLineEndings(sourceRaw);
             var oldNorm = PatchMatchHelper.NormalizeLineEndings(oldString);
             var newNorm = PatchMatchHelper.NormalizeLineEndings(newString ?? string.Empty);
+            var newContainsOld = oldNorm.Length > 0
+                && newNorm.Contains(oldNorm, StringComparison.Ordinal);
+
+            _logger.LogInformation(
+                "ApplyPatch start file={FilePath} oldLen={OldLen} newLen={NewLen} sourceLen={SourceLen} replaceAll={ReplaceAll} newContainsOld={NewContainsOld}",
+                fullPath,
+                oldNorm.Length,
+                newNorm.Length,
+                sourceNorm.Length,
+                replaceAll,
+                newContainsOld);
 
             string? updatedNorm;
             var usedFlexible = false;
+            var replacementCount = 0;
             try
             {
                 updatedNorm = PatchMatchHelper.ApplyPatchWithFlexibleFallback(
@@ -778,12 +792,15 @@ public sealed class UtilityTools
                     newNorm,
                     replaceAll,
                     out usedFlexible,
-                    out var matched);
+                    out var matched,
+                    out replacementCount,
+                    cancellationToken);
                 if (!matched)
                 {
                     _logger.LogWarning(
-                        "ApplyPatch: could not match oldString in {FilePath}. {Diagnostic}",
+                        "ApplyPatch: could not match oldString in {FilePath} ({ElapsedMs}ms). {Diagnostic}",
                         fullPath,
+                        started.ElapsedMilliseconds,
                         PatchMatchHelper.BuildPatchFailureDiagnostic(oldNorm));
                     return ToolTelemetry.TraceAndReturn(
                         nameof(ApplyPatch),
@@ -794,13 +811,21 @@ public sealed class UtilityTools
             {
                 _logger.LogWarning(
                     ex,
-                    "ApplyPatch: regex match timeout for {FilePath}. {Diagnostic}",
+                    "ApplyPatch: regex match timeout for {FilePath} ({ElapsedMs}ms). {Diagnostic}",
                     fullPath,
+                    started.ElapsedMilliseconds,
                     PatchMatchHelper.BuildPatchFailureDiagnostic(oldNorm));
                 return ToolTelemetry.TraceAndReturn(
                     nameof(ApplyPatch),
                     "Error: Patch match timed out; try a shorter or more specific `oldString`.");
             }
+
+            _logger.LogInformation(
+                "ApplyPatch matched file={FilePath} replacements={ReplacementCount} usedFlexible={UsedFlexible} matchMs={ElapsedMs}",
+                fullPath,
+                replacementCount,
+                usedFlexible,
+                started.ElapsedMilliseconds);
 
             var updatedRaw = PatchMatchHelper.RestorePreferredLineEndings(sourceRaw, updatedNorm!);
             if (string.Equals(sourceRaw, updatedRaw, StringComparison.Ordinal))
@@ -809,17 +834,30 @@ public sealed class UtilityTools
             }
 
             await File.WriteAllTextAsync(fullPath, updatedRaw, cancellationToken);
+            var writeMs = started.ElapsedMilliseconds;
             await _solutionManager.UpdateDocumentInMemoryAsync(fullPath, updatedRaw, cancellationToken);
+            _logger.LogInformation(
+                "ApplyPatch wrote file={FilePath} replacements={ReplacementCount} writeMs={WriteMs} workspaceMs={TotalMs}",
+                fullPath,
+                replacementCount,
+                writeMs,
+                started.ElapsedMilliseconds);
             var note = usedFlexible ? " (whitespace-tolerant match)" : string.Empty;
-            return ToolTelemetry.TraceAndReturn(nameof(ApplyPatch), $"Patch applied successfully to `{fullPath}`.{note}");
+            return ToolTelemetry.TraceAndReturn(
+                nameof(ApplyPatch),
+                $"Patch applied successfully to `{fullPath}` ({replacementCount} replacement(s)).{note}");
         }
         catch (OperationCanceledException)
         {
+            _logger.LogWarning(
+                "ApplyPatch cancelled file={FilePath} after {ElapsedMs}ms",
+                fullPath,
+                started.ElapsedMilliseconds);
             return ToolTelemetry.TraceAndReturn(nameof(ApplyPatch), "ApplyPatch was cancelled.");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "ApplyPatch failed for {FilePath}", filePath);
+            _logger.LogError(ex, "ApplyPatch failed for {FilePath} after {ElapsedMs}ms", fullPath, started.ElapsedMilliseconds);
             return ToolTelemetry.TraceAndReturn(nameof(ApplyPatch), $"Error: {ex.Message}");
         }
     }
