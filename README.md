@@ -84,6 +84,10 @@ Restart OpenCode or reload MCP servers after running the script.
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.0.32
+
+- **`run_specific_test` slow-test duration** — VSTest console lines for long runs use `[1 s]` / `[1 m 28 s]`, not only `[12 ms]`. Parser now accepts those units so a passing filtered test is not reported as **no matching tests**.
+
 ### v1.0.31
 
 - **`run_dotnet_test` / `run_specific_test` pre-test build** — When `noBuild=false`, compile with a separate incremental `dotnet build` (same `-c` / `-p:Platform`), then `dotnet test --no-build --no-restore`. VSTest summary is parsed from the test process only, so MSBuild warning dumps no longer produce **`Status: partial`**. Build failure/timeout is reported and tests are not started. `noBuild=true` still skips the extra compile. Shared `timeoutSeconds` covers both processes.
@@ -544,7 +548,7 @@ Parses C# syntax, inserts with DocumentEditor, formats the file. Prefer over `ap
 - `configuration: string? = null` — optional `dotnet test -c` (e.g. `Sit-Debug`). Omit to inherit `load_workspace` (use the same value as `run_dotnet_build` when `noBuild=true`).
 - `platform: string? = null` — optional `-p:Platform=`. Omit to inherit `load_workspace`.
 
-**Behavior:** When `noBuild=false`, runs incremental `dotnet build` first (same `-c` / platform; not the `run_dotnet_build` probe), then `dotnet test --no-build --no-restore`. Parser sees only the test process. `--logger "console;verbosity=normal"`. Summary from `Passed!`, `Test Run Successful` + `Total tests`/`Passed:` (Failed defaults to 0), or `.slnx` fail-only `Total tests` + `Failed:` (Passed inferred as Total − Failed − Skipped), or per-test `  Passed FQN [ms]`. MSBuild/prune noise ignored; duplicate NU audit lines deduped. Exit 0 without any summary marker → **`Status: partial`** + last 2KB. `run_specific_test` checks filter matched a test FQN. `timeoutSeconds` is the combined budget for build+test.
+**Behavior:** When `noBuild=false`, runs incremental `dotnet build` first (same `-c` / platform; not the `run_dotnet_build` probe), then `dotnet test --no-build --no-restore`. Parser sees only the test process. `--logger "console;verbosity=normal"`. Summary from `Passed!`, `Test Run Successful` + `Total tests`/`Passed:` (Failed defaults to 0), or `.slnx` fail-only `Total tests` + `Failed:` (Passed inferred as Total − Failed − Skipped), or per-test `  Passed FQN [ms]` / `[1 s]` / `[1 m 28 s]`. MSBuild/prune noise ignored; duplicate NU audit lines deduped. Exit 0 without any summary marker → **`Status: partial`** + last 2KB. `run_specific_test` checks filter matched a test FQN. `timeoutSeconds` is the combined budget for build+test.
 
 </details>
 
@@ -887,7 +891,7 @@ cd D:\Devel\YourApp
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.0.31). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.0.32). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 
@@ -1237,7 +1241,7 @@ cd D:\Devel\YourApp
 - `configuration: string? = null` — опционально `dotnet test -c` (например `Sit-Debug`). Если не задан — с `load_workspace`.
 - `platform: string? = null` — опционально `-p:Platform=`.
 
-**Поведение:** при `noBuild=false` сначала отдельный incremental `dotnet build`, затем `dotnet test --no-build --no-restore` (парсер видит только тест). Сводка из `Passed!`, `Test Run Successful` + `Total tests`/`Passed:` (Failed=0 если нет строки), или `.slnx` fail-only `Total tests` + `Failed:` (Passed = Total − Failed − Skipped), FQN-строки тестов; дедуп NU audit. Без маркеров сводки при exit 0 → **partial** + 2KB лога. `timeoutSeconds` — общий бюджет на build+test.
+**Поведение:** при `noBuild=false` сначала отдельный incremental `dotnet build`, затем `dotnet test --no-build --no-restore` (парсер видит только тест). Сводка из `Passed!`, `Test Run Successful` + `Total tests`/`Passed:` (Failed=0 если нет строки), или `.slnx` fail-only `Total tests` + `Failed:` (Passed = Total − Failed − Skipped), FQN-строки тестов (`[ms]` / `[1 s]` / `[1 m 28 s]`); дедуп NU audit. Без маркеров сводки при exit 0 → **partial** + 2KB лога. `timeoutSeconds` — общий бюджет на build+test.
 
 </details>
 

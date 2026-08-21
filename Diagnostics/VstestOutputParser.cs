@@ -11,16 +11,20 @@ public static class VstestOutputParser
     private const int MaxStackTraceLinesPerFailure = 15;
     private const int PartialSuccessTailChars = 2048;
 
+    /// <summary>VSTest console duration: <c>[12 ms]</c>, <c>[1 s]</c>, <c>[1 m 28 s]</c>, <c>[1 h 2 m]</c>.</summary>
+    private const string VstestDurationBracket =
+        @"\[\d+(?:\.\d+)?\s*(?:ms|s|m|h)(?:\s+\d+(?:\.\d+)?\s*(?:ms|s|m|h))*\]";
+
     private static readonly Regex RxXunitFailLine = new(
         @"^\[xUnit\.net[^\]]*\]\s+(?<name>.+?)\s+\[FAIL\]\s*$",
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     private static readonly Regex RxVstestPassedLine = new(
-        @"^\s+Passed\s+(?<name>[A-Za-z_][\w]*(?:\.[A-Za-z_][\w]+)+)\s+\[[\d\.]+\s*ms\]\s*$",
+        $@"^\s+Passed\s+(?<name>[A-Za-z_][\w]*(?:\.[A-Za-z_][\w]+)+)\s+{VstestDurationBracket}\s*$",
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     private static readonly Regex RxVstestFailedLine = new(
-        @"^\s+Failed\s+(?<name>[A-Za-z_][\w]*(?:\.[A-Za-z_][\w]+)+)(?:\s+\[[\d\.]+\s*ms\])?\s*$",
+        $@"^\s+Failed\s+(?<name>[A-Za-z_][\w]*(?:\.[A-Za-z_][\w]+)+)(?:\s+{VstestDurationBracket})?\s*$",
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     private static readonly Regex RxNunitFailedLine = new(

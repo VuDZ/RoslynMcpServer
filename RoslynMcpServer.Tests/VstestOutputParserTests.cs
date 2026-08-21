@@ -31,6 +31,75 @@ public sealed class VstestOutputParserTests
     }
 
     [Fact]
+    public void Parse_recognizes_vstest_passed_line_with_minute_second_duration()
+    {
+        const string output = """
+            Test Run Successful.
+            Total tests: 1
+                 Passed: 1
+              Passed Ns.NexwayOrderCompletedNotificationContext_ReceivedNotification_ExternalEventsPublished [1 m 28 s]
+            """;
+        var result = VstestOutputParser.Parse(output, 0);
+        Assert.False(result.IsPartialSuccess);
+        Assert.Single(result.PassedTestNames);
+        Assert.Contains(
+            "NexwayOrderCompletedNotificationContext_ReceivedNotification_ExternalEventsPublished",
+            result.PassedTestNames[0],
+            StringComparison.Ordinal);
+        Assert.True(VstestOutputParser.FilterMatchedAnyTest(
+            "FullyQualifiedName~NexwayOrderCompletedNotificationContext_ReceivedNotification_ExternalEventsPublished",
+            output,
+            result.PassedTestNames));
+        var md = VstestOutputParser.BuildMarkdownReport(
+            result,
+            0,
+            output,
+            "FullyQualifiedName~NexwayOrderCompletedNotificationContext_ReceivedNotification_ExternalEventsPublished",
+            "Name suffix",
+            requireFilterMatch: true);
+        Assert.Contains("Filtered tests passed", md, StringComparison.Ordinal);
+        Assert.DoesNotContain("no matching tests", md, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Parse_recognizes_vstest_passed_line_with_second_duration()
+    {
+        const string output = """
+            Passed!  - Failed: 0, Passed: 1, Skipped: 0, Total: 1
+              Passed Ns.SlowTests.TakesOneSecond [1 s]
+            """;
+        var result = VstestOutputParser.Parse(output, 0);
+        Assert.Single(result.PassedTestNames);
+        Assert.Equal("Ns.SlowTests.TakesOneSecond", result.PassedTestNames[0]);
+    }
+
+    [Fact]
+    public void Parse_does_not_treat_bracket_noise_as_passed_duration()
+    {
+        const string output = """
+            Passed!  - Failed: 0, Passed: 1, Skipped: 0, Total: 1
+              Passed Ns.OtherTests.Other [SKIP]
+              Passed Ns.OtherTests.Real [12 ms]
+            """;
+        var result = VstestOutputParser.Parse(output, 0);
+        Assert.Single(result.PassedTestNames);
+        Assert.Equal("Ns.OtherTests.Real", result.PassedTestNames[0]);
+    }
+
+    [Fact]
+    public void Parse_recognizes_vstest_failed_line_with_minute_second_duration()
+    {
+        const string output = """
+            Total tests: 1
+                 Failed: 1
+              Failed Ns.SlowTests.FailsAfterMinute [1 m 28 s]
+            """;
+        var result = VstestOutputParser.Parse(output, exitCode: 1);
+        Assert.Single(result.Failures);
+        Assert.Equal("Ns.SlowTests.FailsAfterMinute", result.Failures[0].Name);
+    }
+
+    [Fact]
     public void Parse_partial_when_exit_zero_without_summary()
     {
         const string output = "Building test projects...\nDone.\n";
