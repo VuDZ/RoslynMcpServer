@@ -86,4 +86,68 @@ public sealed class DotNetTestArgumentsTests
 
         Assert.Contains("--filter \"Name=\\\"X\\\"\"", args, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void BuildPlan_noBuild_false_splits_build_then_test_without_restore()
+    {
+        var plan = DotNetTestArguments.BuildPlan(
+            Target,
+            filter: "FullyQualifiedName~Foo",
+            noBuild: false,
+            noRestore: false,
+            configuration: "Sit-Debug",
+            platform: "x64");
+
+        Assert.True(plan.IncludesPreTestBuild);
+        Assert.Equal(
+            $"build \"{Target}\" -c \"Sit-Debug\" -p:Platform=\"x64\"",
+            plan.PreTestBuildArguments);
+        Assert.Equal(
+            $"test \"{Target}\" --logger \"console;verbosity=normal\" --verbosity normal -c \"Sit-Debug\" -p:Platform=\"x64\" --no-build --no-restore --filter \"FullyQualifiedName~Foo\"",
+            plan.TestArguments);
+        Assert.DoesNotContain("--no-incremental", plan.PreTestBuildArguments, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void BuildPlan_noBuild_false_forwards_noRestore_to_pre_test_build()
+    {
+        var plan = DotNetTestArguments.BuildPlan(Target, noBuild: false, noRestore: true);
+
+        Assert.Equal($"build \"{Target}\" --no-restore", plan.PreTestBuildArguments);
+        Assert.Contains("--no-build", plan.TestArguments, StringComparison.Ordinal);
+        Assert.Contains("--no-restore", plan.TestArguments, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void BuildPlan_noBuild_true_skips_pre_test_build()
+    {
+        var plan = DotNetTestArguments.BuildPlan(Target, noBuild: true, noRestore: false);
+
+        Assert.False(plan.IncludesPreTestBuild);
+        Assert.Null(plan.PreTestBuildArguments);
+        Assert.Equal(
+            $"test \"{Target}\" --logger \"console;verbosity=normal\" --verbosity normal --no-build",
+            plan.TestArguments);
+        Assert.DoesNotContain("--no-restore", plan.TestArguments, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RemainingTimeout_unlimited_stays_null()
+    {
+        Assert.Null(DotNetTestArguments.RemainingTimeout(null, TimeSpan.FromMinutes(5)));
+    }
+
+    [Fact]
+    public void RemainingTimeout_subtracts_elapsed_and_clamps_to_zero()
+    {
+        Assert.Equal(
+            TimeSpan.FromSeconds(40),
+            DotNetTestArguments.RemainingTimeout(TimeSpan.FromSeconds(100), TimeSpan.FromSeconds(60)));
+        Assert.Equal(
+            TimeSpan.Zero,
+            DotNetTestArguments.RemainingTimeout(TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(10)));
+        Assert.Equal(
+            TimeSpan.Zero,
+            DotNetTestArguments.RemainingTimeout(TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(30)));
+    }
 }
