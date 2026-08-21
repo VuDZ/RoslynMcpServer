@@ -10,6 +10,11 @@ internal static class PatchMatchHelper
 {
     private static readonly TimeSpan RegexMatchTimeout = TimeSpan.FromSeconds(2);
 
+    /// <summary>
+    /// Safety cap so a matcher bug cannot grow the buffer forever. Ordinary source files stay far below this.
+    /// </summary>
+    internal const int MaxReplacements = 50_000;
+
     public static string NormalizeLineEndings(string text)
     {
         if (string.IsNullOrEmpty(text))
@@ -40,18 +45,21 @@ internal static class PatchMatchHelper
         string oldNormalized,
         bool preferExact,
         out int start,
-        out int end)
+        out int end,
+        int searchFrom = 0)
     {
         start = 0;
         end = 0;
-        if (string.IsNullOrEmpty(oldNormalized))
+        if (string.IsNullOrEmpty(oldNormalized)
+            || searchFrom < 0
+            || searchFrom >= sourceNormalized.Length)
         {
             return false;
         }
 
         if (preferExact)
         {
-            var idx = sourceNormalized.IndexOf(oldNormalized, StringComparison.Ordinal);
+            var idx = sourceNormalized.IndexOf(oldNormalized, searchFrom, StringComparison.Ordinal);
             if (idx >= 0)
             {
                 start = idx;
@@ -60,7 +68,7 @@ internal static class PatchMatchHelper
             }
         }
 
-        return TryWhitespaceAgnosticMatch(sourceNormalized, oldNormalized, out start, out end);
+        return TryWhitespaceAgnosticMatch(sourceNormalized, oldNormalized, searchFrom, out start, out end);
     }
 
     /// <summary>
@@ -72,10 +80,20 @@ internal static class PatchMatchHelper
         string oldNormalized,
         out int start,
         out int end)
+        => TryWhitespaceAgnosticMatch(sourceNormalized, oldNormalized, searchFrom: 0, out start, out end);
+
+    public static bool TryWhitespaceAgnosticMatch(
+        string sourceNormalized,
+        string oldNormalized,
+        int searchFrom,
+        out int start,
+        out int end)
     {
         start = 0;
         end = 0;
-        if (string.IsNullOrEmpty(oldNormalized))
+        if (string.IsNullOrEmpty(oldNormalized)
+            || searchFrom < 0
+            || searchFrom >= sourceNormalized.Length)
         {
             return false;
         }
@@ -106,7 +124,7 @@ internal static class PatchMatchHelper
             RegexOptions.CultureInvariant | RegexOptions.Singleline,
             RegexMatchTimeout);
 
-        var m = re.Match(sourceNormalized);
+        var m = re.Match(sourceNormalized, searchFrom);
         if (!m.Success)
         {
             return false;
@@ -122,32 +140,19 @@ internal static class PatchMatchHelper
         string oldNormalized,
         string newNormalized,
         bool replaceAll,
-        out bool matched)
+        out bool matched,
+        out int replacementCount,
+        CancellationToken cancellationToken = default)
     {
-        matched = false;
-        if (string.IsNullOrEmpty(oldNormalized))
-        {
-            return null;
-        }
-
-        if (!replaceAll)
-        {
-            if (!TryFindMatch(sourceNormalized, oldNormalized, preferExact: true, out var s, out var e))
-            {
-                return null;
-            }
-
-            matched = true;
-            return sourceNormalized[..s] + newNormalized + sourceNormalized[e..];
-        }
-
-        var result = sourceNormalized;
-        while (TryFindMatch(result, oldNormalized, preferExact: true, out var s, out var e))
-        {
-            matched = true;
-            result = result[..s] + newNormalized + result[e..];
-        }
-
+        var result = ApplyReplacements(
+            sourceNormalized,
+            oldNormalized,
+            newNormalized,
+            preferExact: true,
+            replaceAll,
+            cancellationToken,
+            out replacementCount);
+        matched = replacementCount > 0;
         return matched ? result : null;
     }
 
@@ -161,41 +166,39 @@ internal static class PatchMatchHelper
         string newNormalized,
         bool replaceAll,
         out bool usedFlexible,
-        out bool matched)
+        out bool matched,
+        out int replacementCount,
+        CancellationToken cancellationToken = default)
     {
         matched = false;
         usedFlexible = false;
+        replacementCount = 0;
 
-        var exact = ApplyPatchNormalized(sourceNormalized, oldNormalized, newNormalized, replaceAll, out var exactMatched);
+        var exact = ApplyPatchNormalized(
+            sourceNormalized,
+            oldNormalized,
+            newNormalized,
+            replaceAll,
+            out var exactMatched,
+            out replacementCount,
+            cancellationToken);
         if (exactMatched)
         {
             matched = true;
             return exact;
         }
 
-        var result = sourceNormalized;
-        var any = false;
-        if (replaceAll)
-        {
-            while (TryFindMatch(result, oldNormalized, preferExact: false, out var s, out var e))
-            {
-                any = true;
-                usedFlexible = true;
-                result = result[..s] + newNormalized + result[e..];
-            }
-        }
-        else
-        {
-            if (TryFindMatch(result, oldNormalized, preferExact: false, out var s, out var e))
-            {
-                any = true;
-                usedFlexible = true;
-                result = result[..s] + newNormalized + result[e..];
-            }
-        }
-
-        matched = any;
-        return any ? result : null;
+        var result = ApplyReplacements(
+            sourceNormalized,
+            oldNormalized,
+            newNormalized,
+            preferExact: false,
+            replaceAll,
+            cancellationToken,
+            out replacementCount);
+        usedFlexible = replacementCount > 0;
+        matched = replacementCount > 0;
+        return matched ? result : null;
     }
 
     /// <summary>
@@ -216,5 +219,49 @@ internal static class PatchMatchHelper
             : string.Join(" | ", tokens.Take(8)) + " | …";
 
         return $"oldLength={oldNormalized.Length}, tokenCount={tokens.Length}, tokens(head)=[{previewTokens}], snippet={head}";
+    }
+
+    /// <summary>
+    /// Applies replacements and always continues the next search after the inserted text
+    /// (same as <see cref="string.Replace(string,string?,StringComparison)"/>). Scanning the
+    /// replacement again infinite-loops when <paramref name="newNormalized"/> contains
+    /// <paramref name="oldNormalized"/> (e.g. <c>Foo</c> → <c>Ns.Foos</c>).
+    /// </summary>
+    private static string ApplyReplacements(
+        string sourceNormalized,
+        string oldNormalized,
+        string newNormalized,
+        bool preferExact,
+        bool replaceAll,
+        CancellationToken cancellationToken,
+        out int replacementCount)
+    {
+        replacementCount = 0;
+        if (string.IsNullOrEmpty(oldNormalized))
+        {
+            return sourceNormalized;
+        }
+
+        var result = sourceNormalized;
+        var searchFrom = 0;
+        while (TryFindMatch(result, oldNormalized, preferExact, out var s, out var e, searchFrom))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            result = result[..s] + newNormalized + result[e..];
+            searchFrom = s + newNormalized.Length;
+            replacementCount++;
+            if (replacementCount > MaxReplacements)
+            {
+                throw new InvalidOperationException(
+                    $"ApplyPatch exceeded {MaxReplacements} replacements (possible matcher loop).");
+            }
+
+            if (!replaceAll)
+            {
+                break;
+            }
+        }
+
+        return result;
     }
 }

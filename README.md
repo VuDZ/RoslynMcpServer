@@ -84,6 +84,10 @@ Restart OpenCode or reload MCP servers after running the script.
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.0.30
+
+- **`apply_patch` replaceAll hang** — `replaceAll=true` no longer rescans the inserted `newString`. When `newString` contains `oldString` (typical rename `Foo` → `Ns.Foos`, production case `AllSoftNotificationHelper` → `HelperContainer.Eis.AllSoftNotificationHelpers`) the old `while (IndexOf)` loop grew the file forever and never returned — OpenCode showed a freeze with nothing useful in logs. Matching now advances past each insert (same as `string.Replace`); logs `ApplyPatch start/matched/wrote` with lengths, `newContainsOld`, replacement count, and elapsed ms.
+
 ### v1.0.29
 
 - **`load_workspace` configuration / platform** — Optional MSBuild global properties (same names as the VS active solution config). Cached for `run_dotnet_build` / `run_dotnet_test` / `run_specific_test` when those tools omit `-c` / `-p:Platform`. Empty `TargetFramework` (`ResolvePackageAssets`) stays a load failure, with a dedicated report (retry with IDE config, or Bazel-generated csproj are not evaluable).
@@ -506,6 +510,8 @@ Parses C# syntax, inserts with DocumentEditor, formats the file. Prefer over `ap
 - `oldString: string`
 - `newString: string`
 - `replaceAll: bool = false`
+
+**Behavior:** `replaceAll` continues the search after each inserted `newString` (does not rescan the replacement). Safe when `newString` contains `oldString`. Logs start/match/write with elapsed ms.
 </details>
 
 ### Build / Test / CLI
@@ -877,7 +883,7 @@ cd D:\Devel\YourApp
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.0.29). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.0.30). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 
@@ -1197,6 +1203,8 @@ cd D:\Devel\YourApp
 - `oldString: string`
 - `newString: string`
 - `replaceAll: bool = false`
+
+**Поведение:** `replaceAll` продолжает поиск после вставленного `newString` (замену повторно не сканирует). Безопасно, если `newString` содержит `oldString`. В лог пишутся start/match/write и время.
 </details>
 
 ### Build / Test / CLI
