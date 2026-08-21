@@ -22,7 +22,9 @@ public sealed class TestTools
     [Description(
         "Runs `dotnet test` on the specified project or solution. Use this to verify behavior after writing tests or refactoring. " +
         "Returns a clean summary of passed/failed tests. Default timeout 300s; on timeout/cancel the process tree is killed. " +
-        "After `run_dotnet_build`, pass `noBuild=true` (and optionally `noRestore=true`) to skip rebuild. " +
+        "When `noBuild=false` (default), compiles with a separate `dotnet build` then runs `dotnet test --no-build --no-restore` " +
+        "so VSTest summary is not buried under MSBuild warnings. Build failure is reported and tests are not started. " +
+        "After `run_dotnet_build`, pass `noBuild=true` (and optionally `noRestore=true`) to skip the extra compile. " +
         "Optional `configuration` maps to `dotnet test -c` (e.g. `Sit-Debug`) for multi-config solutions. " +
         "Omit `configuration`/`platform` to inherit values from the last `load_workspace`. " +
         "For long integration tests raise `timeoutSeconds` (e.g. 900/1800).")]
@@ -66,6 +68,8 @@ public sealed class TestTools
         "When the Roslyn workspace is loaded, resolves the type/method FQN for precise contains filtering. " +
         "Prefer `className` + short `methodName`. Use for TDD and bug fixes instead of running the full suite. " +
         "Default timeout 300s; kills process tree on timeout/cancel. " +
+        "When `noBuild=false` (default), compiles with a separate `dotnet build` then `dotnet test --no-build --no-restore` " +
+        "(same isolation as `run_dotnet_test`; VSTest summary is parsed without MSBuild warning dumps). " +
         "After `run_dotnet_build`, pass `noBuild=true` (and optionally `noRestore=true`). " +
         "Optional `configuration` maps to `dotnet test -c` (same as `run_dotnet_test`). Omit `configuration`/`platform` to inherit `load_workspace`. Raise `timeoutSeconds` for slow tests.")]
     public async Task<string> RunSpecificTest(
@@ -282,7 +286,7 @@ public sealed class TestTools
                 ? fullPath
                 : WorkspaceRootResolver.FindSolutionOrProjectInDirectory(fullPath) ?? fullPath;
 
-            string testArgs;
+            DotNetTestArguments.CliPlan plan;
             string? effectiveConfiguration;
             string? effectivePlatform;
             try
@@ -291,7 +295,7 @@ public sealed class TestTools
                     configuration, _solutionManager.LoadedConfiguration, nameof(configuration));
                 effectivePlatform = DotNetConfigurationArguments.CoalescePlatform(
                     platform, _solutionManager.LoadedPlatform);
-                testArgs = DotNetTestArguments.Build(
+                plan = DotNetTestArguments.BuildPlan(
                     targetPath, filter, noBuild, noRestore, effectiveConfiguration, effectivePlatform);
             }
             catch (ArgumentException ex)
@@ -302,11 +306,73 @@ public sealed class TestTools
             var extraMeta =
                 $"- **Configuration:** {(string.IsNullOrWhiteSpace(effectiveConfiguration) ? "(SDK/solution default)" : effectiveConfiguration)}"
                 + Environment.NewLine
-                + $"- **Platform:** {(string.IsNullOrWhiteSpace(effectivePlatform) ? "(SDK/solution default)" : effectivePlatform)}";
+                + $"- **Platform:** {(string.IsNullOrWhiteSpace(effectivePlatform) ? "(SDK/solution default)" : effectivePlatform)}"
+                + Environment.NewLine
+                + $"- **PreTestBuild:** {(plan.IncludesPreTestBuild ? "yes (`dotnet build` then `dotnet test --no-build`)" : "skipped (`noBuild=true`)")}";
 
             TimeSpan? timeout = timeoutSeconds > 0 ? TimeSpan.FromSeconds(timeoutSeconds) : null;
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+
+            if (plan.PreTestBuildArguments is not null)
+            {
+                var buildRun = await DotNetCliRunner.RunWithMetadataAsync(
+                    plan.PreTestBuildArguments,
+                    workDir,
+                    cancellationToken,
+                    timeout).ConfigureAwait(false);
+
+                if (buildRun.TimedOut)
+                {
+                    var timedOut = new StringBuilder();
+                    timedOut.AppendLine("## Pre-test build timed out");
+                    timedOut.AppendLine();
+                    timedOut.AppendLine("Tests were not started because `dotnet build` exceeded the tool timeout.");
+                    timedOut.AppendLine();
+                    timedOut.AppendLine(buildRun.RunMetadata);
+                    timedOut.AppendLine(extraMeta);
+                    timedOut.AppendLine();
+                    timedOut.AppendLine(DotNetCliRunner.FormatHangHints(timedOut: true, cancelled: false));
+                    timedOut.AppendLine();
+                    TruncatedProcessLog.AppendLastCharacters(
+                        timedOut, "Console output before kill:", buildRun.CombinedOutput);
+                    return ToolTelemetry.TraceAndReturn(toolName, timedOut.ToString().TrimEnd());
+                }
+
+                if (buildRun.ExitCode != 0)
+                {
+                    var failed = new StringBuilder();
+                    failed.AppendLine("## Pre-test build failed");
+                    failed.AppendLine();
+                    failed.AppendLine("Tests were not started because `dotnet build` failed.");
+                    failed.AppendLine();
+                    failed.AppendLine(buildRun.RunMetadata);
+                    failed.AppendLine(extraMeta);
+                    TruncatedProcessLog.AppendLastCharacters(
+                        failed,
+                        TruncatedProcessLog.BuildPreambleBuildConsoleTail(buildRun.ExitCode),
+                        buildRun.CombinedOutput);
+                    return ToolTelemetry.TraceAndReturn(toolName, failed.ToString().TrimEnd());
+                }
+
+                timeout = DotNetTestArguments.RemainingTimeout(timeout, sw.Elapsed);
+                if (timeout == TimeSpan.Zero)
+                {
+                    var exhausted = new StringBuilder();
+                    exhausted.AppendLine("## Test run timed out");
+                    exhausted.AppendLine();
+                    exhausted.AppendLine(
+                        "Pre-test `dotnet build` succeeded, but no time remained in `timeoutSeconds` to start `dotnet test`.");
+                    exhausted.AppendLine();
+                    exhausted.AppendLine(buildRun.RunMetadata);
+                    exhausted.AppendLine(extraMeta);
+                    exhausted.AppendLine();
+                    exhausted.AppendLine(DotNetCliRunner.FormatHangHints(timedOut: true, cancelled: false));
+                    return ToolTelemetry.TraceAndReturn(toolName, exhausted.ToString().TrimEnd());
+                }
+            }
+
             var run = await DotNetCliRunner.RunWithMetadataAsync(
-                testArgs,
+                plan.TestArguments,
                 workDir,
                 cancellationToken,
                 timeout).ConfigureAwait(false);

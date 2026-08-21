@@ -56,7 +56,7 @@ Do not mix `get_code_skeleton(path=…)` (disk `.cs`) with decompile tools (`ass
 - **IDE (Cursor etc.):** host `edit` / `write` when review UI matters — not MCP `apply_patch` / `update_file_content`.
 - **Headless:** MCP `apply_patch` / `update_file_content`; prefer AST tools for usings/method bodies.
 - **Refactor:** `rename_symbol` with `previewOnly=true` first (not project folders).
-- After MCP server rebuild: `get_mcp_server_info` (expect **v1.0.30+**).
+- After MCP server rebuild: `get_mcp_server_info` (expect **v1.0.31+**).
 
 ## Secrets
 

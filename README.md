@@ -84,6 +84,10 @@ Restart OpenCode or reload MCP servers after running the script.
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.0.31
+
+- **`run_dotnet_test` / `run_specific_test` pre-test build** — When `noBuild=false`, compile with a separate incremental `dotnet build` (same `-c` / `-p:Platform`), then `dotnet test --no-build --no-restore`. VSTest summary is parsed from the test process only, so MSBuild warning dumps no longer produce **`Status: partial`**. Build failure/timeout is reported and tests are not started. `noBuild=true` still skips the extra compile. Shared `timeoutSeconds` covers both processes.
+
 ### v1.0.30
 
 - **`apply_patch` replaceAll hang** — `replaceAll=true` no longer rescans the inserted `newString`. When `newString` contains `oldString` (typical rename `Foo` → `Ns.Foos`, production case `AllSoftNotificationHelper` → `HelperContainer.Eis.AllSoftNotificationHelpers`) the old `while (IndexOf)` loop grew the file forever and never returned — OpenCode showed a freeze with nothing useful in logs. Matching now advances past each insert (same as `string.Replace`); logs `ApplyPatch start/matched/wrote` with lengths, `newContainsOld`, replacement count, and elapsed ms.
@@ -139,7 +143,7 @@ Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into a
 
 ### v1.0.17
 
-- **`run_dotnet_test` / `run_specific_test`** — Optional `noBuild` / `noRestore` (`--no-build` / `--no-restore`); after build use `noBuild=true` for faster re-runs
+- **`run_dotnet_test` / `run_specific_test`** — Optional `noBuild` / `noRestore` (`--no-build` / `--no-restore`); after build use `noBuild=true` for faster re-runs. Default `noBuild=false` compiles in a separate `dotnet build` then tests with `--no-build`.
 
 ### v1.0.16
 
@@ -540,7 +544,7 @@ Parses C# syntax, inserts with DocumentEditor, formats the file. Prefer over `ap
 - `configuration: string? = null` — optional `dotnet test -c` (e.g. `Sit-Debug`). Omit to inherit `load_workspace` (use the same value as `run_dotnet_build` when `noBuild=true`).
 - `platform: string? = null` — optional `-p:Platform=`. Omit to inherit `load_workspace`.
 
-**Behavior:** `--logger "console;verbosity=normal"`. Summary from `Passed!`, `Test Run Successful` + `Total tests`/`Passed:` (Failed defaults to 0), or `.slnx` fail-only `Total tests` + `Failed:` (Passed inferred as Total − Failed − Skipped), or per-test `  Passed FQN [ms]`. MSBuild/prune noise ignored; duplicate NU audit lines deduped. Exit 0 without any summary marker → **`Status: partial`** + last 2KB. `run_specific_test` checks filter matched a test FQN.
+**Behavior:** When `noBuild=false`, runs incremental `dotnet build` first (same `-c` / platform; not the `run_dotnet_build` probe), then `dotnet test --no-build --no-restore`. Parser sees only the test process. `--logger "console;verbosity=normal"`. Summary from `Passed!`, `Test Run Successful` + `Total tests`/`Passed:` (Failed defaults to 0), or `.slnx` fail-only `Total tests` + `Failed:` (Passed inferred as Total − Failed − Skipped), or per-test `  Passed FQN [ms]`. MSBuild/prune noise ignored; duplicate NU audit lines deduped. Exit 0 without any summary marker → **`Status: partial`** + last 2KB. `run_specific_test` checks filter matched a test FQN. `timeoutSeconds` is the combined budget for build+test.
 
 </details>
 
@@ -558,7 +562,7 @@ Parses C# syntax, inserts with DocumentEditor, formats the file. Prefer over `ap
 
 At least one of `className` or `methodName` is required. The tool builds a VSTest-safe `--filter` internally (`FullyQualifiedName~…`, no method `()`, no extra leading `.` on dotted names). After `load_workspace`, Roslyn resolves the type/method FQN when possible.
 
-**Model guidance:** use this for TDD red/green loops — do not run the full suite and do not craft VSTest filter strings manually. Prefer `className` + short `methodName`. After build, prefer `noBuild=true` for faster filtered re-runs.
+**Model guidance:** use this for TDD red/green loops — do not run the full suite and do not craft VSTest filter strings manually. Prefer `className` + short `methodName`. After build, prefer `noBuild=true` for faster filtered re-runs. Same pre-test build split as `run_dotnet_test` when `noBuild=false`.
 
 </details>
 
@@ -883,7 +887,7 @@ cd D:\Devel\YourApp
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.0.30). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.0.31). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 
@@ -1233,7 +1237,7 @@ cd D:\Devel\YourApp
 - `configuration: string? = null` — опционально `dotnet test -c` (например `Sit-Debug`). Если не задан — с `load_workspace`.
 - `platform: string? = null` — опционально `-p:Platform=`.
 
-**Поведение:** сводка из `Passed!`, `Test Run Successful` + `Total tests`/`Passed:` (Failed=0 если нет строки), или `.slnx` fail-only `Total tests` + `Failed:` (Passed = Total − Failed − Skipped), FQN-строки тестов; дедуп NU audit. Без маркеров сводки при exit 0 → **partial** + 2KB лога.
+**Поведение:** при `noBuild=false` сначала отдельный incremental `dotnet build`, затем `dotnet test --no-build --no-restore` (парсер видит только тест). Сводка из `Passed!`, `Test Run Successful` + `Total tests`/`Passed:` (Failed=0 если нет строки), или `.slnx` fail-only `Total tests` + `Failed:` (Passed = Total − Failed − Skipped), FQN-строки тестов; дедуп NU audit. Без маркеров сводки при exit 0 → **partial** + 2KB лога. `timeoutSeconds` — общий бюджет на build+test.
 
 </details>
 
@@ -1251,7 +1255,7 @@ cd D:\Devel\YourApp
 
 Нужен хотя бы один из `className` / `methodName`. Tool строит VSTest-safe `--filter` (`FullyQualifiedName~…`, без `()` у метода, без лишней ведущей `.` на dotted FQN). После `load_workspace` Roslyn по возможности резолвит FQN типа/метода.
 
-**Для модели:** TDD/фикс бага — этот tool, не полный suite и не ручной VSTest filter. Предпочитайте `className` + короткое `methodName`. После билда предпочитайте `noBuild=true`.
+**Для модели:** TDD/фикс бага — этот tool, не полный suite и не ручной VSTest filter. Предпочитайте `className` + короткое `methodName`. После билда предпочитайте `noBuild=true`. При `noBuild=false` — тот же split build/test, что у `run_dotnet_test`.
 
 </details>
 
