@@ -44,6 +44,7 @@ public sealed class SolutionManager
     private string? _loadedPath;
     private string? _loadedConfiguration;
     private string? _loadedPlatform;
+    private string? _loadedTargetFramework;
     private IReadOnlyList<WorkspaceDiagnostic> _lastDiagnostics = Array.Empty<WorkspaceDiagnostic>();
 
     public SolutionManager(ILogger<SolutionManager> logger)
@@ -59,6 +60,9 @@ public sealed class SolutionManager
     /// <summary>MSBuild <c>Platform</c> used for the last successful <see cref="LoadAsync"/>, or <see langword="null"/>.</summary>
     public string? LoadedPlatform => _loadedPlatform;
 
+    /// <summary>MSBuild <c>TargetFramework</c> used for the last successful <see cref="LoadAsync"/>, or <see langword="null"/>.</summary>
+    public string? LoadedTargetFramework => _loadedTargetFramework;
+
     public async Task<Solution> LoadAsync(string path)
     {
         return await LoadAsync(path, CancellationToken.None);
@@ -68,7 +72,8 @@ public sealed class SolutionManager
         string solutionOrProjectPath,
         CancellationToken cancellationToken,
         string? configuration = null,
-        string? platform = null)
+        string? platform = null,
+        string? targetFramework = null)
     {
         if (string.IsNullOrWhiteSpace(solutionOrProjectPath))
         {
@@ -83,11 +88,17 @@ public sealed class SolutionManager
 
         var normalizedConfiguration = DotNetConfigurationArguments.Normalize(configuration, nameof(configuration));
         var normalizedPlatform = DotNetConfigurationArguments.NormalizePlatform(platform);
+        var normalizedTargetFramework = DotNetConfigurationArguments.Normalize(targetFramework, nameof(targetFramework));
 
         await _workspaceLock.WaitAsync(cancellationToken);
         try
         {
-            return await LoadCoreAsync(fullPath, normalizedConfiguration, normalizedPlatform, cancellationToken);
+            return await LoadCoreAsync(
+                fullPath,
+                normalizedConfiguration,
+                normalizedPlatform,
+                normalizedTargetFramework,
+                cancellationToken);
         }
         finally
         {
@@ -349,6 +360,7 @@ public sealed class SolutionManager
             _loadedPath = null;
             _loadedConfiguration = null;
             _loadedPlatform = null;
+            _loadedTargetFramework = null;
             _lastDiagnostics = Array.Empty<WorkspaceDiagnostic>();
             _logger.LogInformation("Roslyn workspace cleared (MSBuildWorkspace disposed).");
         }
@@ -384,7 +396,12 @@ public sealed class SolutionManager
             throw new FileNotFoundException("Solution or project file not found.", candidateFull);
         }
 
-        _ = await LoadCoreAsync(candidateFull, configuration: null, platform: null, cancellationToken);
+        _ = await LoadCoreAsync(
+            candidateFull,
+            configuration: null,
+            platform: null,
+            targetFramework: null,
+            cancellationToken);
     }
 
     /// <summary>
@@ -394,6 +411,7 @@ public sealed class SolutionManager
         string fullPath,
         string? configuration,
         string? platform,
+        string? targetFramework,
         CancellationToken cancellationToken)
     {
         if (_workspace is not null
@@ -401,9 +419,11 @@ public sealed class SolutionManager
                 _loadedPath,
                 _loadedConfiguration,
                 _loadedPlatform,
+                _loadedTargetFramework,
                 fullPath,
                 configuration,
                 platform,
+                targetFramework,
                 _pathComparison))
         {
             var cached = _solution ?? _workspace.CurrentSolution;
@@ -413,7 +433,7 @@ public sealed class SolutionManager
 
         _workspace?.Dispose();
         _ = typeof(CSharpFormattingOptions).Assembly.FullName;
-        var properties = MsBuildWorkspaceProperties.Create(configuration, platform);
+        var properties = MsBuildWorkspaceProperties.Create(configuration, platform, targetFramework);
         var workspace = properties.Count == 0
             ? MSBuildWorkspace.Create(MsBuildHostServices)
             : MSBuildWorkspace.Create(properties, MsBuildHostServices);
@@ -447,12 +467,14 @@ public sealed class SolutionManager
         _loadedPath = fullPath;
         _loadedConfiguration = configuration;
         _loadedPlatform = platform;
+        _loadedTargetFramework = targetFramework;
         _lastDiagnostics = CollectDiagnostics(workspace, capturedDiagnostics);
         _logger.LogInformation(
-            "Loaded Roslyn workspace from {Path} (Configuration={Configuration}, Platform={Platform})",
+            "Loaded Roslyn workspace from {Path} (Configuration={Configuration}, Platform={Platform}, TargetFramework={TargetFramework})",
             fullPath,
             configuration ?? "(default)",
-            platform ?? "(default)");
+            platform ?? "(default)",
+            targetFramework ?? "(default)");
         LogProcessWorkingSet("workspace_load");
         return _solution;
     }

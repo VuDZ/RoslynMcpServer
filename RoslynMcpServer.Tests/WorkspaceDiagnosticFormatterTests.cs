@@ -125,4 +125,19 @@ public sealed class WorkspaceDiagnosticFormatterTests
             @"D:\m\src\generated\Foo.csproj",
             WorkspaceDiagnosticFormatter.TryGetProcessedProjectPath(formatted));
     }
+
+    [Fact]
+    public void IsMissingCompileTarget_still_blocking()
+    {
+        const string msg =
+            "Msbuild failed when processing the file 'C:\\src\\Contracts.csproj' with message: "
+            + "Project does not contain 'Compile' target.";
+        var formatted = WorkspaceDiagnosticFormatter.Format("Failure", msg);
+        Assert.StartsWith("Failure:", formatted, StringComparison.Ordinal);
+        Assert.True(WorkspaceDiagnosticFormatter.IsMissingCompileTarget(formatted));
+        Assert.True(WorkspaceDiagnosticFormatter.IsBlockingLoadFailure(formatted));
+        Assert.Equal(
+            @"C:\src\Contracts.csproj",
+            WorkspaceDiagnosticFormatter.TryGetProcessedProjectPath(formatted));
+    }
 }
