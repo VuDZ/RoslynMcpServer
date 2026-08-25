@@ -144,6 +144,100 @@ public static class WorkspaceLoadGuidance
         return sb.ToString().TrimEnd();
     }
 
+    /// <summary>
+    /// Outer SDK CrossTargeting evaluation has no <c>Compile</c> target (typical when
+    /// <c>Directory.Build.props</c> sets <c>TargetFrameworks</c> without an inner <c>TargetFramework</c>).
+    /// </summary>
+    public static string FormatMissingCompileTargetWorkspaceLoadMessage(
+        string workspacePath,
+        IReadOnlyList<string> diagnostics,
+        string? configuration,
+        string? platform,
+        string? targetFramework)
+    {
+        const int maxSamplePaths = 5;
+        var sb = new StringBuilder();
+        sb.AppendLine("## Workspace Load Failed (missing Compile target)");
+        sb.AppendLine();
+        sb.AppendLine(
+            "MSBuild design-time evaluation ran as a **CrossTargeting outer** build (`TargetFrameworks` set, "
+            + "`TargetFramework` empty). That evaluation has `Build` / `DispatchToInnerBuilds` but **no `Compile` target**, "
+            + "so Roslyn `MSBuildWorkspace` cannot load the project. `dotnet build` can still succeed — it runs `Build`, not `Compile`.");
+        sb.AppendLine();
+        sb.AppendLine($"- **Path:** `{workspacePath}`");
+        sb.AppendLine(
+            $"- **MSBuild Configuration:** {(string.IsNullOrWhiteSpace(configuration) ? "(SDK/workspace default — typically Debug)" : $"`{configuration}`")}");
+        sb.AppendLine(
+            $"- **MSBuild Platform:** {(string.IsNullOrWhiteSpace(platform) ? "(SDK/workspace default — typically AnyCPU)" : $"`{platform}`")}");
+        sb.AppendLine(
+            $"- **MSBuild TargetFramework:** {(string.IsNullOrWhiteSpace(targetFramework) ? "(not passed — outer CrossTargeting evaluation)" : $"`{targetFramework}`")}");
+        sb.AppendLine();
+
+        if (string.IsNullOrWhiteSpace(targetFramework))
+        {
+            sb.AppendLine(
+                "**What to do:** retry `load_workspace` with `targetFramework` set to one inner TFM "
+                + "(same idea as `dotnet build -f net10.0`). This is **not** auto-selected. "
+                + "Analyzer-only projects that do not implement that TFM may still fail; application/library projects usually load.");
+        }
+        else
+        {
+            sb.AppendLine(
+                "**What to do:** the passed `targetFramework` still produced no `Compile` target. "
+                + "Try another TFM from the list below, or use `get_code_skeleton` / host Grep without a workspace.");
+        }
+
+        var tfms = DirectoryBuildPropsReader.ListTargetFrameworks(workspacePath);
+        if (tfms.Count > 0)
+        {
+            sb.AppendLine();
+            sb.AppendLine("Target frameworks from nearest `Directory.Build.props` (not auto-selected):");
+            foreach (var tfm in tfms)
+            {
+                sb.AppendLine($"- `{tfm}`");
+            }
+        }
+
+        var samplePaths = new List<string>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var diagnostic in diagnostics)
+        {
+            if (!WorkspaceDiagnosticFormatter.IsMissingCompileTarget(diagnostic))
+            {
+                continue;
+            }
+
+            var path = WorkspaceDiagnosticFormatter.TryGetProcessedProjectPath(diagnostic);
+            if (string.IsNullOrWhiteSpace(path) || !seen.Add(path))
+            {
+                continue;
+            }
+
+            samplePaths.Add(path);
+            if (samplePaths.Count >= maxSamplePaths)
+            {
+                break;
+            }
+        }
+
+        if (samplePaths.Count > 0)
+        {
+            sb.AppendLine();
+            sb.AppendLine($"Sample projects ({samplePaths.Count}):");
+            foreach (var path in samplePaths)
+            {
+                sb.AppendLine($"- `{path}`");
+            }
+        }
+
+        sb.AppendLine();
+        sb.AppendLine(
+            "Without a loaded workspace, use `get_code_skeleton` / host Grep; `run_dotnet_build` / `run_dotnet_test` still work (they invoke `dotnet`, not Roslyn Compile).");
+
+        sb.Append(MsBuildEnvironmentInfo.FormatMarkdownSection());
+        return sb.ToString().TrimEnd();
+    }
+
     private static bool LooksGenerated(string path) =>
         path.Contains($"{Path.DirectorySeparatorChar}generated{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase)
         || path.Contains("/generated/", StringComparison.OrdinalIgnoreCase)

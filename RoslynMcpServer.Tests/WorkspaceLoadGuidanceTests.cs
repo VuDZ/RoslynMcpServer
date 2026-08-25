@@ -75,6 +75,48 @@ public sealed class WorkspaceLoadGuidanceTests
     }
 
     [Fact]
+    public void FormatMissingCompileTargetWorkspaceLoadMessage_hints_inner_tfm()
+    {
+        var root = CreateTempRoot();
+        try
+        {
+            File.WriteAllText(
+                Path.Combine(root, "Directory.Build.props"),
+                "<Project><TargetFrameworks>netstandard2.0;net10.0</TargetFrameworks></Project>");
+            var sln = Path.Combine(root, "Ecom.sln");
+            File.WriteAllText(sln, string.Empty);
+
+            var diagnostics = new[]
+            {
+                "Failure: Msbuild failed when processing the file 'C:\\src\\Contracts.csproj' with message: Project does not contain 'Compile' target.",
+            };
+
+            var message = WorkspaceLoadGuidance.FormatMissingCompileTargetWorkspaceLoadMessage(
+                sln,
+                diagnostics,
+                configuration: null,
+                platform: null,
+                targetFramework: null);
+
+            Assert.Contains("missing Compile target", message, StringComparison.Ordinal);
+            Assert.Contains("CrossTargeting", message, StringComparison.Ordinal);
+            Assert.Contains("targetFramework", message, StringComparison.Ordinal);
+            Assert.Contains("net10.0", message, StringComparison.Ordinal);
+            Assert.Contains("netstandard2.0", message, StringComparison.Ordinal);
+            Assert.Contains("Contracts.csproj", message, StringComparison.Ordinal);
+            Assert.Contains("get_code_skeleton", message, StringComparison.Ordinal);
+            Assert.DoesNotContain("Successfully loaded", message, StringComparison.Ordinal);
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
     public void FormatEmptyTestListMessage_flags_csproj_scope()
     {
         var message = WorkspaceLoadGuidance.FormatEmptyTestListMessage(

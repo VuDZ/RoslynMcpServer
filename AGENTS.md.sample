@@ -22,6 +22,7 @@ You are a Senior C# Developer and Architect using Roslyn MCP. Follow the policy 
 
 1. **Required:** `load_workspace` with absolute `workspacePath` to this repo's `.sln`, `.slnx`, or entry `.csproj` (prefer solution files). Resolve path via IDE workspace / `list_directory_tree` — never hardcode paths from docs. Response includes workspace health (SDK pin, restore, tool count).
 2. Set `ROSLYN_MCP_WORKSPACE` in MCP config to the **repo root** (folder with `global.json`) when present. Relative `filePath` resolves against the loaded workspace.
+3. If `load_workspace` returns **Workspace Load Failed (missing Compile target)**: retry with `targetFramework` set to **one** inner TFM from that report (from `Directory.Build.props`, e.g. `net10.0`) — same idea as `dotnet build -f`. This is CrossTargeting, not SDK mismatch; do not fall back to shell `dotnet`. Analyzer-only projects may still fail under that TFM; app/library projects usually load. If it still fails: `get_code_skeleton` / host Grep; `run_dotnet_build` / `run_dotnet_test` still work.
 
 Skip full init for a one-line read-only answer if `load_workspace` already succeeded in this chat.
 
@@ -56,7 +57,7 @@ Do not mix `get_code_skeleton(path=…)` (disk `.cs`) with decompile tools (`ass
 - **IDE (Cursor etc.):** host `edit` / `write` when review UI matters — not MCP `apply_patch` / `update_file_content`.
 - **Headless:** MCP `apply_patch` / `update_file_content`; prefer AST tools for usings/method bodies.
 - **Refactor:** `rename_symbol` with `previewOnly=true` first (not project folders).
-- After MCP server rebuild: `get_mcp_server_info` (expect **v1.0.32+**).
+- After MCP server rebuild: `get_mcp_server_info` (expect **v1.0.33+**).
 
 ## Secrets
 

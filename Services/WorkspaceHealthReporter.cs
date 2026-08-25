@@ -13,7 +13,8 @@ public static class WorkspaceHealthReporter
         string workspacePath,
         Solution solution,
         string? configuration = null,
-        string? platform = null)
+        string? platform = null,
+        string? targetFramework = null)
     {
         var fullPath = Path.GetFullPath(workspacePath);
         var workDir = WorkspaceRootResolver.ResolveDotNetWorkingDirectory(fullPath);
@@ -30,6 +31,8 @@ public static class WorkspaceHealthReporter
             $"- **MSBuild Configuration:** {(string.IsNullOrWhiteSpace(configuration) ? "(SDK/workspace default)" : $"`{configuration}`")}");
         sb.AppendLine(
             $"- **MSBuild Platform:** {(string.IsNullOrWhiteSpace(platform) ? "(SDK/workspace default)" : $"`{platform}`")}");
+        sb.AppendLine(
+            $"- **MSBuild TargetFramework:** {(string.IsNullOrWhiteSpace(targetFramework) ? "(SDK/workspace default)" : $"`{targetFramework}`")}");
         sb.AppendLine($"- **global.json:** {(globalJson is null ? "(not found)" : $"`{globalJson}`")}");
         sb.AppendLine($"- **Pinned SDK (global.json):** {(pinnedSdk ?? "(none)")}");
         sb.AppendLine($"- **Resolved SDK directory:** {(sdkDir ?? "(not resolved)")}");

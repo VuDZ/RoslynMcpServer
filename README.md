@@ -84,6 +84,10 @@ Restart OpenCode or reload MCP servers after running the script.
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.0.33
+
+- **`load_workspace` `targetFramework`** — Optional MSBuild `TargetFramework` global property (same idea as `dotnet build -f`). Needed when `Directory.Build.props` / csproj sets `TargetFrameworks`: the CrossTargeting outer evaluation has no `Compile` target and Roslyn cannot load. Dedicated failure **Workspace Load Failed (missing Compile target)** lists TFMs from the nearest props and tells the agent to retry with one inner TFM (e.g. `net10.0`). Not inherited by `run_dotnet_build`. `get_code_skeleton` / host Grep remain usable without a workspace.
+
 ### v1.0.32
 
 - **`run_specific_test` slow-test duration** — VSTest console lines for long runs use `[1 s]` / `[1 m 28 s]`, not only `[12 ms]`. Parser now accepts those units so a passing filtered test is not reported as **no matching tests**.
@@ -203,6 +207,7 @@ Even if the MCP is active, AI clients don't always load the tools into the curre
 Policy summary (full text in the sample):
 
 - `load_workspace` before symbol / build / decompile work; prefer `.sln` / `.slnx`
+- Missing `Compile` target on load → retry with `targetFramework` (inner TFM); not SDK mismatch
 - C# identifiers → MCP first; plain text → host Grep; never shell `grep` / `dotnet build|test`
 - IDE: host edit/write; headless: MCP `apply_patch` / AST tools
 - Secrets: never paste PAT/passwords; app README must document run target / sample args
@@ -243,8 +248,9 @@ There are **56** registered tools (see list below) and **1** MCP prompt (`Refact
 - `workspacePath: string` — `.sln`, `.slnx`, or `.csproj` file (not a directory). Prefer solution files for multi-config repos.
 - `configuration: string?` — optional MSBuild `Configuration` global property (e.g. `Sit-Debug`, `kart`). Inherited by build/test when those tools omit `-c`.
 - `platform: string?` — optional MSBuild `Platform` (`Any CPU` → `AnyCPU`). Inherited by build/test as `-p:Platform=`.
+- `targetFramework: string?` — optional MSBuild `TargetFramework` (e.g. `net10.0`). Pass when the solution uses `TargetFrameworks` so design-time evaluation is an inner TFM with a `Compile` target. Not inherited by build/test.
 
-**Behavior:** Host abort mid-load returns **Workspace Load Cancelled (client abort)** (raise MCP tool timeout; not an MSBuild failure). NuGet restore warnings (`NU1701` TFM compat, audit, prune) are shown as warnings and do not fail load; true MSBuild/SDK errors still do. Empty `TargetFramework` (`ResolvePackageAssets`) is a dedicated failure — retry with the IDE solution config, or the `.sln` is Bazel-generated and not MSBuild-evaluable.
+**Behavior:** Host abort mid-load returns **Workspace Load Cancelled (client abort)** (raise MCP tool timeout; not an MSBuild failure). NuGet restore warnings (`NU1701` TFM compat, audit, prune) are shown as warnings and do not fail load; true MSBuild/SDK errors still do. Empty `TargetFramework` (`ResolvePackageAssets`) is a dedicated failure — retry with the IDE solution config, or the `.sln` is Bazel-generated and not MSBuild-evaluable. Missing `Compile` target (CrossTargeting outer build) is a dedicated failure — retry with `targetFramework` from the report / `Directory.Build.props`; `dotnet build` can still succeed.
 </details>
 
 <details>
@@ -891,7 +897,7 @@ cd D:\Devel\YourApp
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.0.32). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.0.33). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 
@@ -906,6 +912,7 @@ cd D:\Devel\YourApp
 Кратко для модели:
 
 - после `load_workspace` объявления C# — MCP `find_symbol_definition` / `find_usages`, не текстовый поиск и не выдуманный `search`
+- нет target `Compile` при load — повторить с `targetFramework` (inner TFM); это не SDK mismatch
 - текст по файлам — host Grep IDE, не shell grep
 - сборка/тесты — только MCP `run_dotnet_build` / `run_dotnet_test`
 - запись файлов — IDE: нативные правки; headless: MCP `apply_patch` / AST
@@ -941,8 +948,9 @@ cd D:\Devel\YourApp
 - `workspacePath: string` — файл `.sln`, `.slnx` или `.csproj` (не каталог). Для multi-config — предпочтительно solution.
 - `configuration: string?` — опционально MSBuild `Configuration` (например `Sit-Debug`, `kart`). Наследуют build/test, если не передали `-c`.
 - `platform: string?` — опционально MSBuild `Platform` (`Any CPU` → `AnyCPU`).
+- `targetFramework: string?` — опционально MSBuild `TargetFramework` (например `net10.0`). Нужен, когда в решении `TargetFrameworks` (inner TFM с target `Compile`). Build/test это не наследуют.
 
-**Поведение:** abort хоста mid-load → **Workspace Load Cancelled (client abort)** (поднять MCP timeout; это не ошибка MSBuild). Предупреждения restore (`NU1701` TFM-compat, audit, prune) не валят load; настоящие ошибки MSBuild/SDK — валят. Пустой `TargetFramework` (`ResolvePackageAssets`) — отдельный fail: повторить с IDE-конфигом или это Bazel-generated sln, который MSBuildWorkspace не открывает.
+**Поведение:** abort хоста mid-load → **Workspace Load Cancelled (client abort)** (поднять MCP timeout; это не ошибка MSBuild). Предупреждения restore (`NU1701` TFM-compat, audit, prune) не валят load; настоящие ошибки MSBuild/SDK — валят. Пустой `TargetFramework` (`ResolvePackageAssets`) — отдельный fail: повторить с IDE-конфигом или это Bazel-generated sln, который MSBuildWorkspace не открывает. Нет target `Compile` (outer CrossTargeting) — отдельный fail: повторить с `targetFramework` из отчёта / `Directory.Build.props`; `dotnet build` при этом может быть зелёным.
 </details>
 
 <details>

@@ -61,6 +61,14 @@ public static class WorkspaceDiagnosticFormatter
         message.Contains("ResolvePackageAssets", StringComparison.OrdinalIgnoreCase)
         && message.Contains("TargetFramework", StringComparison.OrdinalIgnoreCase);
 
+    /// <summary>
+    /// Outer CrossTargeting evaluation (<c>TargetFrameworks</c> set, <c>TargetFramework</c> empty) has no
+    /// <c>Compile</c> target. Remains a blocking load failure unless the caller retries with an inner TFM.
+    /// </summary>
+    public static bool IsMissingCompileTarget(string message) =>
+        message.Contains("does not contain 'Compile' target", StringComparison.OrdinalIgnoreCase)
+        || message.Contains("does not contain \"Compile\" target", StringComparison.OrdinalIgnoreCase);
+
     private static readonly Regex RxProcessedProjectPath = new(
         @"processing the file '(?<path>[^']+)'",
         RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);

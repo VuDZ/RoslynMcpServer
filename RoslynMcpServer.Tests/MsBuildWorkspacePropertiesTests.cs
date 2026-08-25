@@ -18,6 +18,15 @@ public sealed class MsBuildWorkspacePropertiesTests
         var props = MsBuildWorkspaceProperties.Create("kart", "Any CPU");
         Assert.Equal("kart", props["Configuration"]);
         Assert.Equal("AnyCPU", props["Platform"]);
+        Assert.False(props.ContainsKey("TargetFramework"));
+    }
+
+    [Fact]
+    public void Create_sets_target_framework()
+    {
+        var props = MsBuildWorkspaceProperties.Create(null, null, " net10.0 ");
+        Assert.Equal("net10.0", props["TargetFramework"]);
+        Assert.Single(props);
     }
 
     [Fact]
@@ -28,25 +37,42 @@ public sealed class MsBuildWorkspacePropertiesTests
                 @"C:\src\App.sln",
                 "kart",
                 "x64",
+                "net10.0",
                 @"C:\src\App.sln",
                 "kart",
                 "x64",
+                "net10.0",
                 StringComparison.OrdinalIgnoreCase));
         Assert.False(
             MsBuildWorkspaceProperties.IsSameLoadCache(
                 @"C:\src\App.sln",
                 "kart",
                 "x64",
+                "net10.0",
                 @"C:\src\App.sln",
                 "Debug",
                 "x64",
+                "net10.0",
+                StringComparison.OrdinalIgnoreCase));
+        Assert.False(
+            MsBuildWorkspaceProperties.IsSameLoadCache(
+                @"C:\src\App.sln",
+                "kart",
+                "x64",
+                "net10.0",
+                @"C:\src\App.sln",
+                "kart",
+                "x64",
+                "netstandard2.0",
                 StringComparison.OrdinalIgnoreCase));
         Assert.False(
             MsBuildWorkspaceProperties.IsSameLoadCache(
                 @"C:\src\App.sln",
                 null,
                 null,
+                null,
                 @"C:\src\Other.sln",
+                null,
                 null,
                 null,
                 StringComparison.OrdinalIgnoreCase));

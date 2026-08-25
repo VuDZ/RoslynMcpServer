@@ -29,7 +29,9 @@ public sealed class WorkspaceTools
         + "NuGet restore warnings (NU1701 TFM compat, audit, unused-package prune) are warnings and do not fail load; "
         + "true MSBuild/SDK errors and unloadable projects still fail. "
         + "Optional `configuration` / `platform` are passed as MSBuildWorkspace global properties (same names VS uses for the active solution config). "
-        + "`run_dotnet_build` / `run_dotnet_test` inherit them when their own args are omitted.")]
+        + "Optional `targetFramework` is the MSBuild `TargetFramework` global property (same idea as `dotnet build -f`). "
+        + "Required when `Directory.Build.props` (or the csproj) sets `TargetFrameworks` — the CrossTargeting outer evaluation has no `Compile` target and load fails with **missing Compile target**; pick one inner TFM (e.g. `net10.0`). "
+        + "`run_dotnet_build` / `run_dotnet_test` inherit configuration/platform when their own args are omitted.")]
     public async Task<string> LoadWorkspace(
         [Description("Absolute path to a `.sln`, `.slnx`, or `.csproj` file (not a directory). Same parameter name as run_dotnet_build, run_dotnet_test, run_format, list_projects.")]
         string workspacePath,
@@ -41,6 +43,11 @@ public sealed class WorkspaceTools
             "Optional MSBuild Platform global property (e.g. `AnyCPU`, `x64`). `Any CPU` is normalized to `AnyCPU`. "
             + "Omit for SDK/solution default.")]
         string? platform = null,
+        [Description(
+            "Optional MSBuild TargetFramework global property (e.g. `net10.0`, `netstandard2.0`). "
+            + "Omit for SDK default. Pass when the solution uses `TargetFrameworks` (multi-targeting / Directory.Build.props) "
+            + "so design-time evaluation is an inner TFM that has a `Compile` target. Not inherited by `run_dotnet_build`.")]
+        string? targetFramework = null,
         CancellationToken cancellationToken = default)
     {
         Solution solution;
@@ -50,7 +57,8 @@ public sealed class WorkspaceTools
                 workspacePath,
                 cancellationToken,
                 configuration,
-                platform);
+                platform,
+                targetFramework);
         }
         catch (ArgumentException ex)
         {
@@ -91,6 +99,18 @@ public sealed class WorkspaceTools
                         _solutionManager.LoadedPlatform));
             }
 
+            if (diagnostics.Any(WorkspaceDiagnosticFormatter.IsMissingCompileTarget))
+            {
+                return ToolTelemetry.TraceAndReturn(
+                    nameof(LoadWorkspace),
+                    WorkspaceLoadGuidance.FormatMissingCompileTargetWorkspaceLoadMessage(
+                        workspacePath,
+                        diagnostics,
+                        _solutionManager.LoadedConfiguration,
+                        _solutionManager.LoadedPlatform,
+                        _solutionManager.LoadedTargetFramework));
+            }
+
             return ToolTelemetry.TraceAndReturn(
                 nameof(LoadWorkspace),
                 BuildFailureReport(
@@ -104,7 +124,8 @@ public sealed class WorkspaceTools
                 workspacePath,
                 solution,
                 _solutionManager.LoadedConfiguration,
-                _solutionManager.LoadedPlatform));
+                _solutionManager.LoadedPlatform,
+                _solutionManager.LoadedTargetFramework));
         sb.AppendLine();
         sb.AppendLine($"Successfully loaded workspace. Found {projectCount} projects:");
         foreach (var project in projects.OrderBy(p => p.Name, StringComparer.OrdinalIgnoreCase))
