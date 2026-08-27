@@ -84,6 +84,10 @@ Restart OpenCode or reload MCP servers after running the script.
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.0.34
+
+- **`load_workspace` design-time MSBuild warnings** — MSBuildWorkspace wraps ASP.NET/SDK deprecation (`IncludeOpenAPIAnalyzers` / ASPDEPR007), processor-architecture mismatch (MSB3270), and analyzer-project metadata refs as `Msbuild failed when processing the file` with `Failure` kind, often **without** a `warning XXXX` prefix. Those no longer fail load when projects opened; remapped to **Warning (MSBuild design-time)**. Wrapped messages without `error NU|MSB|NETSDK` or a known-hard inner text (`could not be loaded`, missing `Compile`, empty TFM, SDK not found) are warnings. Explicit errors and unloadable projects still fail.
+
 ### v1.0.33
 
 - **`load_workspace` `targetFramework`** — Optional MSBuild `TargetFramework` global property (same idea as `dotnet build -f`). Needed when `Directory.Build.props` / csproj sets `TargetFrameworks`: the CrossTargeting outer evaluation has no `Compile` target and Roslyn cannot load. Dedicated failure **Workspace Load Failed (missing Compile target)** lists TFMs from the nearest props and tells the agent to retry with one inner TFM (e.g. `net10.0`). Not inherited by `run_dotnet_build`. `get_code_skeleton` / host Grep remain usable without a workspace.
@@ -250,7 +254,7 @@ There are **56** registered tools (see list below) and **1** MCP prompt (`Refact
 - `platform: string?` — optional MSBuild `Platform` (`Any CPU` → `AnyCPU`). Inherited by build/test as `-p:Platform=`.
 - `targetFramework: string?` — optional MSBuild `TargetFramework` (e.g. `net10.0`). Pass when the solution uses `TargetFrameworks` so design-time evaluation is an inner TFM with a `Compile` target. Not inherited by build/test.
 
-**Behavior:** Host abort mid-load returns **Workspace Load Cancelled (client abort)** (raise MCP tool timeout; not an MSBuild failure). NuGet restore warnings (`NU1701` TFM compat, audit, prune) are shown as warnings and do not fail load; true MSBuild/SDK errors still do. Empty `TargetFramework` (`ResolvePackageAssets`) is a dedicated failure — retry with the IDE solution config, or the `.sln` is Bazel-generated and not MSBuild-evaluable. Missing `Compile` target (CrossTargeting outer build) is a dedicated failure — retry with `targetFramework` from the report / `Directory.Build.props`; `dotnet build` can still succeed.
+**Behavior:** Host abort mid-load returns **Workspace Load Cancelled (client abort)** (raise MCP tool timeout; not an MSBuild failure). NuGet restore warnings (`NU1701` TFM compat, audit, prune) and design-time MSBuild warnings (ASP.NET/SDK deprecation such as `IncludeOpenAPIAnalyzers`/`ASPDEPR007`, processor-architecture mismatch, analyzer project without metadata) are shown as warnings and do not fail load even when wrapped as `Msbuild failed when processing the file`; true MSBuild/SDK errors (`error NU|MSB|NETSDK`) still do. Empty `TargetFramework` (`ResolvePackageAssets`) is a dedicated failure — retry with the IDE solution config, or the `.sln` is Bazel-generated and not MSBuild-evaluable. Missing `Compile` target (CrossTargeting outer build) is a dedicated failure — retry with `targetFramework` from the report / `Directory.Build.props`; `dotnet build` can still succeed.
 </details>
 
 <details>
@@ -897,7 +901,7 @@ cd D:\Devel\YourApp
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.0.33). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.0.34). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 
@@ -950,7 +954,7 @@ cd D:\Devel\YourApp
 - `platform: string?` — опционально MSBuild `Platform` (`Any CPU` → `AnyCPU`).
 - `targetFramework: string?` — опционально MSBuild `TargetFramework` (например `net10.0`). Нужен, когда в решении `TargetFrameworks` (inner TFM с target `Compile`). Build/test это не наследуют.
 
-**Поведение:** abort хоста mid-load → **Workspace Load Cancelled (client abort)** (поднять MCP timeout; это не ошибка MSBuild). Предупреждения restore (`NU1701` TFM-compat, audit, prune) не валят load; настоящие ошибки MSBuild/SDK — валят. Пустой `TargetFramework` (`ResolvePackageAssets`) — отдельный fail: повторить с IDE-конфигом или это Bazel-generated sln, который MSBuildWorkspace не открывает. Нет target `Compile` (outer CrossTargeting) — отдельный fail: повторить с `targetFramework` из отчёта / `Directory.Build.props`; `dotnet build` при этом может быть зелёным.
+**Поведение:** abort хоста mid-load → **Workspace Load Cancelled (client abort)** (поднять MCP timeout; это не ошибка MSBuild). Предупреждения restore (`NU1701` TFM-compat, audit, prune) и design-time MSBuild (deprecation `IncludeOpenAPIAnalyzers`/ASPDEPR007, mismatch архитектуры, analyzer без metadata) не валят load даже в обёртке `Msbuild failed when processing the file`; настоящие ошибки MSBuild/SDK (`error NU|MSB|NETSDK`) — валят. Пустой `TargetFramework` (`ResolvePackageAssets`) — отдельный fail: повторить с IDE-конфигом или это Bazel-generated sln, который MSBuildWorkspace не открывает. Нет target `Compile` (outer CrossTargeting) — отдельный fail: повторить с `targetFramework` из отчёта / `Directory.Build.props`; `dotnet build` при этом может быть зелёным.
 </details>
 
 <details>

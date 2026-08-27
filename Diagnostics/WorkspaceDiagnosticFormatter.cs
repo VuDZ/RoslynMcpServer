@@ -22,6 +22,11 @@ public static class WorkspaceDiagnosticFormatter
             return $"Warning (NuGet compat): {message}";
         }
 
+        if (IsMsBuildDesignTimeAdvisory(message))
+        {
+            return $"Warning (MSBuild design-time): {message}";
+        }
+
         return $"{kind}: {message}";
     }
 
@@ -50,8 +55,33 @@ public static class WorkspaceDiagnosticFormatter
             && message.Contains("instead of the project target framework", StringComparison.OrdinalIgnoreCase)
             && message.Contains("may not be fully compatible", StringComparison.OrdinalIgnoreCase));
 
+    /// <summary>
+    /// Design-time MSBuild/Roslyn advisories that MSBuildWorkspace often wraps as
+    /// <c>Msbuild failed when processing the file</c> with <c>WorkspaceDiagnosticKind.Failure</c>
+    /// even though <c>dotnet build</c> treats them as warnings (ASPDEPR007, MSB3270, analyzer refs).
+    /// </summary>
+    public static bool IsMsBuildDesignTimeAdvisory(string message)
+    {
+        if (string.IsNullOrWhiteSpace(message))
+        {
+            return false;
+        }
+
+        if (IsHardMsBuildLoadFailure(message) || HasExplicitErrorToken(message))
+        {
+            return false;
+        }
+
+        return HasMsBuildWarningSeverity(message)
+               || IsNamedDesignTimeAdvisory(message)
+               || IsMsBuildFailedWrapper(message);
+    }
+
     public static bool IsSoftWorkspaceAdvisory(string message) =>
-        IsNuGetAuditAdvisory(message) || IsNuGetPruneAdvisory(message) || IsNuGetCompatAdvisory(message);
+        IsNuGetAuditAdvisory(message)
+        || IsNuGetPruneAdvisory(message)
+        || IsNuGetCompatAdvisory(message)
+        || IsMsBuildDesignTimeAdvisory(message);
 
     /// <summary>
     /// Design-time evaluation left <c>TargetFramework</c> empty (typical of Bazel-generated csproj
@@ -69,6 +99,19 @@ public static class WorkspaceDiagnosticFormatter
         message.Contains("does not contain 'Compile' target", StringComparison.OrdinalIgnoreCase)
         || message.Contains("does not contain \"Compile\" target", StringComparison.OrdinalIgnoreCase);
 
+    /// <summary>
+    /// Inner MSBuild text that must still fail <c>load_workspace</c> even inside the
+    /// <c>Msbuild failed when processing the file</c> wrapper.
+    /// </summary>
+    public static bool IsHardMsBuildLoadFailure(string message) =>
+        IsMissingTargetFrameworkEvaluation(message)
+        || IsMissingCompileTarget(message)
+        || message.Contains("could not be loaded", StringComparison.OrdinalIgnoreCase)
+        || message.Contains("The imported project was not found", StringComparison.OrdinalIgnoreCase)
+        || message.Contains("NETSDK1045", StringComparison.OrdinalIgnoreCase)
+        || (message.Contains("The SDK", StringComparison.OrdinalIgnoreCase)
+            && message.Contains("could not be found", StringComparison.OrdinalIgnoreCase));
+
     private static readonly Regex RxProcessedProjectPath = new(
         @"processing the file '(?<path>[^']+)'",
         RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
@@ -83,6 +126,7 @@ public static class WorkspaceDiagnosticFormatter
     /// True when a formatted diagnostic should fail <c>load_workspace</c>.
     /// Does not treat the word "failed" inside the MSBuildWorkspace wrapper
     /// (<c>Msbuild failed when processing the file</c>) as fatal by itself.
+    /// Wrapped messages without an explicit error code or known-hard inner text are warnings.
     /// </summary>
     public static bool IsBlockingLoadFailure(string formattedDiagnostic)
     {
@@ -97,7 +141,12 @@ public static class WorkspaceDiagnosticFormatter
             return false;
         }
 
-        if (HasExplicitErrorToken(formattedDiagnostic))
+        if (HasExplicitErrorToken(formattedDiagnostic) || HasExplicitErrorToken(body))
+        {
+            return true;
+        }
+
+        if (IsHardMsBuildLoadFailure(body) || IsHardMsBuildLoadFailure(formattedDiagnostic))
         {
             return true;
         }
@@ -109,6 +158,17 @@ public static class WorkspaceDiagnosticFormatter
 
         return formattedDiagnostic.StartsWith("Failure:", StringComparison.OrdinalIgnoreCase);
     }
+
+    private static bool IsNamedDesignTimeAdvisory(string message) =>
+        message.Contains("IncludeOpenAPIAnalyzers", StringComparison.OrdinalIgnoreCase)
+        || message.Contains("deprecated and will be removed", StringComparison.OrdinalIgnoreCase)
+        || message.Contains("mismatch between the processor architecture", StringComparison.OrdinalIgnoreCase)
+        || message.Contains(
+            "Found project reference without a matching metadata reference",
+            StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsMsBuildFailedWrapper(string message) =>
+        message.Contains("Msbuild failed when processing the file", StringComparison.OrdinalIgnoreCase);
 
     private static bool HasExplicitErrorToken(string text) =>
         text.StartsWith("error", StringComparison.OrdinalIgnoreCase)
@@ -122,7 +182,9 @@ public static class WorkspaceDiagnosticFormatter
         || text.Contains(": warning ", StringComparison.OrdinalIgnoreCase)
         || text.Contains(" warning NU", StringComparison.OrdinalIgnoreCase)
         || text.Contains(" warning MSB", StringComparison.OrdinalIgnoreCase)
-        || text.Contains(" warning NETSDK", StringComparison.OrdinalIgnoreCase);
+        || text.Contains(" warning NETSDK", StringComparison.OrdinalIgnoreCase)
+        || text.Contains(" warning ASP", StringComparison.OrdinalIgnoreCase)
+        || text.Contains("ASPDEPR", StringComparison.OrdinalIgnoreCase);
 
     private static string StripKindPrefix(string formatted)
     {

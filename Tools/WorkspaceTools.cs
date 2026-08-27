@@ -26,8 +26,10 @@ public sealed class WorkspaceTools
         + "Accepts `.sln`, `.slnx`, or `.csproj` (prefer `.sln`/`.slnx` for multi-config solutions so project configurations resolve correctly). "
         + "Large solutions can take minutes — if the host aborts mid-load the tool returns **Workspace Load Cancelled (client abort)** "
         + "(not MSBuild failure); raise host MCP timeout (e.g. OpenCode `timeout: 600000`) and retry. "
-        + "NuGet restore warnings (NU1701 TFM compat, audit, unused-package prune) are warnings and do not fail load; "
-        + "true MSBuild/SDK errors and unloadable projects still fail. "
+        + "NuGet restore warnings (NU1701 TFM compat, audit, unused-package prune) and design-time MSBuild warnings "
+        + "(ASP.NET/SDK deprecation such as IncludeOpenAPIAnalyzers/ASPDEPR007, processor-architecture mismatch MSB3270, "
+        + "analyzer project without metadata reference) are warnings and do not fail load even when MSBuildWorkspace wraps them as "
+        + "`Msbuild failed when processing the file`; true MSBuild/SDK errors (`error NU|MSB|NETSDK`) and unloadable projects still fail. "
         + "Optional `configuration` / `platform` are passed as MSBuildWorkspace global properties (same names VS uses for the active solution config). "
         + "Optional `targetFramework` is the MSBuild `TargetFramework` global property (same idea as `dotnet build -f`). "
         + "Required when `Directory.Build.props` (or the csproj) sets `TargetFrameworks` — the CrossTargeting outer evaluation has no `Compile` target and load fails with **missing Compile target**; pick one inner TFM (e.g. `net10.0`). "
@@ -177,6 +179,17 @@ public sealed class WorkspaceTools
                     "> **Note:** NuGet TFM-compat advisories (`NU1701`, netfx package in a netcore/net10 project) are shown as warnings; "
                     + "`dotnet build` / Visual Studio usually succeed. Use `run_dotnet_build` for the exact NU lines. "
                     + "A mis-targeted project may still have incomplete references in Roslyn — prefer fixing the TFM or package.");
+            }
+
+            if (diagnostics.Any(static d =>
+                    d.Contains("MSBuild design-time", StringComparison.OrdinalIgnoreCase)))
+            {
+                sb.AppendLine();
+                sb.AppendLine(
+                    "> **Note:** Design-time MSBuild warnings (ASP.NET/SDK deprecation, processor-architecture mismatch, "
+                    + "analyzer project references) are shown as warnings; the workspace is usable. "
+                    + "MSBuildWorkspace often wraps them as `Msbuild failed when processing the file` without a `warning XXXX` code. "
+                    + "Use `run_dotnet_build` for real `error NU|MSB|NETSDK` lines.");
             }
         }
 

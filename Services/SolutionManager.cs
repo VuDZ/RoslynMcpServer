@@ -441,7 +441,10 @@ public sealed class SolutionManager
         workspace.RegisterWorkspaceFailedHandler(e =>
         {
             capturedDiagnostics.Add(e.Diagnostic);
-            _logger.LogWarning("MSBuildWorkspace warning: {Message}", e.Diagnostic.Message);
+            _logger.LogWarning(
+                "MSBuildWorkspace {Kind}: {Message}",
+                e.Diagnostic.Kind,
+                e.Diagnostic.Message);
         });
 
         var extension = Path.GetExtension(fullPath);
