@@ -84,6 +84,14 @@ Restart OpenCode or reload MCP servers after running the script.
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.1.0
+
+- **Disk sync for saved `.cs`** — after `load_workspace`, a `FileSystemWatcher` records dirty source paths (not every keystroke: unsaved editor buffers are ignored). Before `find_symbol_*` / `find_usages` / `get_class_skeleton` / test discovery, only those files are read and applied with one `TryApplyChanges`. Host/git/`dotnet format` edits of existing files show up without `reset_workspace`. New `.cs` under a project folder are `AddDocument`’d; deleted files are removed. `.csproj`/`.sln`/`Directory.Build.props` set a graph-stale hint and skip the `load_workspace` cache — still no automatic `OpenSolutionAsync` from the watcher. `reset_workspace` remains for generated `obj` files after build. Linux uses inotify (watch-limit errors log and degrade; they do not crash the process).
+
+### v1.0.35
+
+- **VS 2026 / MSBuild 18 BuildHost (`XMakeElements`)** — `Microsoft.CodeAnalysis.*` **5.9.0** (Roslyn AppDomain isolation for the net472 BuildHost). `load_workspace` / `find_symbol_*` no longer die with a raw `TypeInitializationException` on machines with Visual Studio 2026; residual crashes return dedicated **Workspace Load Failed (VS 2026 / MSBuild 18 BuildHost)** and are **not** `MCP_MSBUILD_SDK_MISMATCH`. Workaround: load a single SDK-style `.csproj`. `search_code` / host Grep still work.
+
 ### v1.0.34
 
 - **`load_workspace` design-time MSBuild warnings** — MSBuildWorkspace wraps ASP.NET/SDK deprecation (`IncludeOpenAPIAnalyzers` / ASPDEPR007), processor-architecture mismatch (MSB3270), and analyzer-project metadata refs as `Msbuild failed when processing the file` with `Failure` kind, often **without** a `warning XXXX` prefix. Those no longer fail load when projects opened; remapped to **Warning (MSBuild design-time)**. Wrapped messages without `error NU|MSB|NETSDK` or a known-hard inner text (`could not be loaded`, missing `Compile`, empty TFM, SDK not found) are warnings. Explicit errors and unloadable projects still fail.
@@ -212,7 +220,9 @@ Policy summary (full text in the sample):
 
 - `load_workspace` before symbol / build / decompile work; prefer `.sln` / `.slnx`
 - Missing `Compile` target on load → retry with `targetFramework` (inner TFM); not SDK mismatch
+- VS 2026 BuildHost / `XMakeElements` → not SDK mismatch; need MCP 1.0.35+ or a single SDK-style `.csproj`
 - C# identifiers → MCP first; plain text → host Grep; never shell `grep` / `dotnet build|test`
+- Saved `.cs` (v1.1.0+) sync into symbol search automatically; unsaved editor buffers are ignored; `reset_workspace` after build / generated `obj`
 - IDE: host edit/write; headless: MCP `apply_patch` / AST tools
 - Secrets: never paste PAT/passwords; app README must document run target / sample args
 
@@ -254,24 +264,24 @@ There are **56** registered tools (see list below) and **1** MCP prompt (`Refact
 - `platform: string?` — optional MSBuild `Platform` (`Any CPU` → `AnyCPU`). Inherited by build/test as `-p:Platform=`.
 - `targetFramework: string?` — optional MSBuild `TargetFramework` (e.g. `net10.0`). Pass when the solution uses `TargetFrameworks` so design-time evaluation is an inner TFM with a `Compile` target. Not inherited by build/test.
 
-**Behavior:** Host abort mid-load returns **Workspace Load Cancelled (client abort)** (raise MCP tool timeout; not an MSBuild failure). NuGet restore warnings (`NU1701` TFM compat, audit, prune) and design-time MSBuild warnings (ASP.NET/SDK deprecation such as `IncludeOpenAPIAnalyzers`/`ASPDEPR007`, processor-architecture mismatch, analyzer project without metadata) are shown as warnings and do not fail load even when wrapped as `Msbuild failed when processing the file`; true MSBuild/SDK errors (`error NU|MSB|NETSDK`) still do. Empty `TargetFramework` (`ResolvePackageAssets`) is a dedicated failure — retry with the IDE solution config, or the `.sln` is Bazel-generated and not MSBuild-evaluable. Missing `Compile` target (CrossTargeting outer build) is a dedicated failure — retry with `targetFramework` from the report / `Directory.Build.props`; `dotnet build` can still succeed.
+**Behavior:** Host abort mid-load returns **Workspace Load Cancelled (client abort)** (raise MCP tool timeout; not an MSBuild failure). After a successful load, **saved** `.cs` files are watched and applied before symbol search (unsaved buffers ignored). A changed `.csproj`/`.sln`/`Directory.Build.props` skips the next `load_workspace` cache. NuGet restore warnings (`NU1701` TFM compat, audit, prune) and design-time MSBuild warnings (ASP.NET/SDK deprecation such as `IncludeOpenAPIAnalyzers`/`ASPDEPR007`, processor-architecture mismatch, analyzer project without metadata) are shown as warnings and do not fail load even when wrapped as `Msbuild failed when processing the file`; true MSBuild/SDK errors (`error NU|MSB|NETSDK`) still do. Empty `TargetFramework` (`ResolvePackageAssets`) is a dedicated failure — retry with the IDE solution config, or the `.sln` is Bazel-generated and not MSBuild-evaluable. Missing `Compile` target (CrossTargeting outer build) is a dedicated failure — retry with `targetFramework` from the report / `Directory.Build.props`; `dotnet build` can still succeed. VS 2026 / MSBuild 18 BuildHost crash (`XMakeElements`) is a dedicated failure — **not** `MCP_MSBUILD_SDK_MISMATCH`; use MCP 1.0.35+ or load a single SDK-style `.csproj`.
 </details>
 
 <details>
-<summary><code>reset_workspace</code> — Clears the in-memory MSBuildWorkspace/solution cache. Call before <code>load_workspace</code> again after building the loaded solution on disk.</summary>
+<summary><code>reset_workspace</code> — Clears the in-memory MSBuildWorkspace/solution cache. Call before <code>load_workspace</code> again after building the loaded solution on disk (generated files / refs). Saved <code>.cs</code> edits sync without reset (v1.1.0+).</summary>
 
 **Parameters:** *(none)*
 </details>
 
 <details>
-<summary><code>get_file_content</code> — Reads the entire file (safe preview for large files).</summary>
+<summary><code>get_file_content</code> — Reads the entire file from disk (safe preview for large files).</summary>
 
 **Parameters:**
 - `filePath: string`
 </details>
 
 <details>
-<summary><code>get_class_skeleton</code> — Returns the C# file structure without method bodies.</summary>
+<summary><code>get_class_skeleton</code> — Returns the C# file structure without method bodies (workspace index after applying saved <code>.cs</code>).</summary>
 
 **Parameters:**
 - `filePath: string`
@@ -299,7 +309,7 @@ There are **56** registered tools (see list below) and **1** MCP prompt (`Refact
 </details>
 
 <details>
-<summary><code>get_diagnostics_for_file</code> — Returns Roslyn compiler diagnostics for a single file (Warning and Error only).</summary>
+<summary><code>get_diagnostics_for_file</code> — Returns Roslyn compiler diagnostics for a single file (Warning and Error only; saved <code>.cs</code> applied first).</summary>
 
 **Parameters:**
 - `filePath: string`
@@ -386,7 +396,7 @@ There are **56** registered tools (see list below) and **1** MCP prompt (`Refact
 **Parameters:**
 - `symbolName: string` — class, interface, struct, enum, or member identifier (e.g. `IRunCommand`).
 
-**Model guidance:** after `load_workspace`, use this for “where is X **declared**?” — do **not** answer that with plain-text search or invent a generic tool named `search`. For free-text matches across files, use your client’s built-in **`grep`** tool (not `bash`/`PowerShell` grep). This tool avoids `bin/`/`obj/` and uses Roslyn.
+**Model guidance:** after `load_workspace`, use this for “where is X **declared**?” — do **not** answer that with plain-text search or invent a generic tool named `search`. For free-text matches across files, use your client’s built-in **`grep`** tool (not `bash`/`PowerShell` grep). This tool avoids `bin/`/`obj/` and uses Roslyn. **Saved** `.cs` (IDE/git) are applied before search; unsaved buffers are ignored — no `reset_workspace` for ordinary saves.
 </details>
 
 <details>
@@ -395,7 +405,7 @@ There are **56** registered tools (see list below) and **1** MCP prompt (`Refact
 **Parameters:**
 - `symbolName: string` — declared name of the type or member (e.g. `Guard`, `Format`).
 
-**Behavior:** Requires `load_workspace`. Resolves declarations via Roslyn; if several symbols share the name, one primary symbol is chosen (types preferred over methods, then stable ordering). When you already know the declaring file, `find_symbol_references` may be more precise.
+**Behavior:** Requires `load_workspace`. Applies saved `.cs` from disk first. Resolves declarations via Roslyn; if several symbols share the name, one primary symbol is chosen (types preferred over methods, then stable ordering). When you already know the declaring file, `find_symbol_references` may be more precise.
 </details>
 
 <details>
@@ -405,13 +415,13 @@ There are **56** registered tools (see list below) and **1** MCP prompt (`Refact
 - `symbolName: string` — interface or base class name (e.g. `IRepository`, `BaseController`)
 - `transitive: bool = true` — when `true`, includes indirect implementations / derived types in the hierarchy
 
-**Behavior:** Requires `load_workspace`. For **interfaces**, uses Roslyn `FindImplementationsAsync`; for **classes/structs**, uses `FindDerivedClassesAsync`. Returns each matching type with file path and line (capped at 50). Do not use text search or `find_usages` for “who implements X?” / “what inherits from Y?”.
+**Behavior:** Requires `load_workspace`. Applies saved `.cs` from disk first. For **interfaces**, uses Roslyn `FindImplementationsAsync`; for **classes/structs**, uses `FindDerivedClassesAsync`. Returns each matching type with file path and line (capped at 50). Do not use text search or `find_usages` for “who implements X?” / “what inherits from Y?”.
 
 **Model guidance:** after `load_workspace`, use this instead of grep or analyzing usages when you need the OOP hierarchy.
 </details>
 
 <details>
-<summary><code>get_call_graph</code> — Callers and callees for a method.</summary>
+<summary><code>get_call_graph</code> — Callers and callees for a method (workspace; saved <code>.cs</code> applied first).</summary>
 
 **Parameters:**
 - `filePath: string` — `.cs` file containing the method
@@ -427,7 +437,7 @@ There are **56** registered tools (see list below) and **1** MCP prompt (`Refact
 ### File Editing
 
 <details>
-<summary><code>update_file_content</code> — Completely overwrites a file. Creates missing directories automatically.</summary>
+<summary><code>update_file_content</code> — Completely overwrites a file. Creates missing directories automatically. New <code>.cs</code> under a loaded project is indexed on the next symbol search.</summary>
 
 **Parameters:**
 - `filePath: string`
@@ -581,11 +591,11 @@ At least one of `className` or `methodName` is required. The tool builds a VSTes
 </details>
 
 <details>
-<summary><code>get_test_list</code> — List test methods in loaded solution (JSON).</summary>
+<summary><code>get_test_list</code> — List test methods in loaded solution (JSON; saved <code>.cs</code> applied first).</summary>
 
 **Parameters:** `maxResults: int = 200`
 
-Detects Fact/Theory/TestMethod/etc. Requires `load_workspace`. Empty `count: 0` includes agent guidance when the wrong `.csproj` is loaded.
+Detects Fact/Theory/TestMethod/etc. Requires `load_workspace`. Applies saved `.cs` from disk first. Empty `count: 0` includes agent guidance when the wrong `.csproj` is loaded.
 
 </details>
 
@@ -653,7 +663,7 @@ Verify id/version with `search_nuget_registry` first. Clears workspace cache —
 </details>
 
 <details>
-<summary><code>run_format</code> — Runs dotnet format (apply or verify-only).</summary>
+<summary><code>run_format</code> — Runs dotnet format (apply or verify-only). Applied <code>.cs</code> are picked up by the next symbol search without reset.</summary>
 
 **Parameters:**
 - `workspacePath: string`
@@ -798,7 +808,7 @@ Use after `dotnet publish` to verify the MCP host picked up the new binary (expe
 </details>
 
 <details>
-<summary><code>stop_mcp_server</code> — Stops this MCP host process after returning (for rebuilding the server binary; restart MCP in the IDE).</summary>
+<summary><code>stop_mcp_server</code> — Stops this MCP host process after returning (for rebuilding the server binary; restart MCP in the IDE). Not for refreshing saved source — that syncs automatically.</summary>
 
 **Parameters:** *(none)*
 
@@ -901,7 +911,7 @@ cd D:\Devel\YourApp
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.0.34). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.1.0). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 
@@ -917,6 +927,7 @@ cd D:\Devel\YourApp
 
 - после `load_workspace` объявления C# — MCP `find_symbol_definition` / `find_usages`, не текстовый поиск и не выдуманный `search`
 - нет target `Compile` при load — повторить с `targetFramework` (inner TFM); это не SDK mismatch
+- VS 2026 BuildHost / `XMakeElements` — это не SDK mismatch; нужен MCP 1.0.35+ или один SDK-style `.csproj`
 - текст по файлам — host Grep IDE, не shell grep
 - сборка/тесты — только MCP `run_dotnet_build` / `run_dotnet_test`
 - запись файлов — IDE: нативные правки; headless: MCP `apply_patch` / AST
@@ -954,24 +965,24 @@ cd D:\Devel\YourApp
 - `platform: string?` — опционально MSBuild `Platform` (`Any CPU` → `AnyCPU`).
 - `targetFramework: string?` — опционально MSBuild `TargetFramework` (например `net10.0`). Нужен, когда в решении `TargetFrameworks` (inner TFM с target `Compile`). Build/test это не наследуют.
 
-**Поведение:** abort хоста mid-load → **Workspace Load Cancelled (client abort)** (поднять MCP timeout; это не ошибка MSBuild). Предупреждения restore (`NU1701` TFM-compat, audit, prune) и design-time MSBuild (deprecation `IncludeOpenAPIAnalyzers`/ASPDEPR007, mismatch архитектуры, analyzer без metadata) не валят load даже в обёртке `Msbuild failed when processing the file`; настоящие ошибки MSBuild/SDK (`error NU|MSB|NETSDK`) — валят. Пустой `TargetFramework` (`ResolvePackageAssets`) — отдельный fail: повторить с IDE-конфигом или это Bazel-generated sln, который MSBuildWorkspace не открывает. Нет target `Compile` (outer CrossTargeting) — отдельный fail: повторить с `targetFramework` из отчёта / `Directory.Build.props`; `dotnet build` при этом может быть зелёным.
+**Поведение:** abort хоста mid-load → **Workspace Load Cancelled (client abort)** (поднять MCP timeout; это не ошибка MSBuild). После успешного load **сохранённые** `.cs` вотчатся и подмешиваются в поиск символов (несохранённый буфер игнорируется). Смена `.csproj`/`.sln`/`Directory.Build.props` сбрасывает кэш следующего `load_workspace`. Предупреждения restore (`NU1701` TFM-compat, audit, prune) и design-time MSBuild (deprecation `IncludeOpenAPIAnalyzers`/ASPDEPR007, mismatch архитектуры, analyzer без metadata) не валят load даже в обёртке `Msbuild failed when processing the file`; настоящие ошибки MSBuild/SDK (`error NU|MSB|NETSDK`) — валят. Пустой `TargetFramework` (`ResolvePackageAssets`) — отдельный fail: повторить с IDE-конфигом или это Bazel-generated sln, который MSBuildWorkspace не открывает. Нет target `Compile` (outer CrossTargeting) — отдельный fail: повторить с `targetFramework` из отчёта / `Directory.Build.props`; `dotnet build` при этом может быть зелёным. Падение VS 2026 / MSBuild 18 BuildHost (`XMakeElements`) — отдельный fail, **не** `MCP_MSBUILD_SDK_MISMATCH`; нужен MCP 1.0.35+ или один SDK-style `.csproj`.
 </details>
 
 <details>
-<summary><code>reset_workspace</code> — Сбрасывает in-memory MSBuildWorkspace и кэш решения. После сборки загруженного решения на диске вызови снова <code>load_workspace</code>.</summary>
+<summary><code>reset_workspace</code> — Сбрасывает in-memory MSBuildWorkspace и кэш решения. После сборки (generated в <code>obj</code>, refs) вызови снова <code>load_workspace</code>. Сохранённые <code>.cs</code> с v1.1.0 подхватываются без reset.</summary>
 
 **Параметры:** *(нет)*
 </details>
 
 <details>
-<summary><code>get_file_content</code> — Читает файл целиком (возвращает безопасный preview для больших файлов).</summary>
+<summary><code>get_file_content</code> — Читает файл целиком с диска (возвращает безопасный preview для больших файлов).</summary>
 
 **Параметры:**
 - `filePath: string`
 </details>
 
 <details>
-<summary><code>get_class_skeleton</code> — Возвращает структуру C# файла без тел методов.</summary>
+<summary><code>get_class_skeleton</code> — Возвращает структуру C# файла без тел методов (индекс workspace после saved <code>.cs</code>).</summary>
 
 **Параметры:**
 - `filePath: string`
@@ -999,7 +1010,7 @@ cd D:\Devel\YourApp
 </details>
 
 <details>
-<summary><code>get_diagnostics_for_file</code> — Возвращает Roslyn-диагностику для одного C# файла (только Warning и Error).</summary>
+<summary><code>get_diagnostics_for_file</code> — Возвращает Roslyn-диагностику для одного C# файла (только Warning и Error; сначала saved <code>.cs</code>).</summary>
 
 **Параметры:**
 - `filePath: string`
@@ -1086,7 +1097,7 @@ cd D:\Devel\YourApp
 **Параметры:**
 - `symbolName: string` — имя класса, интерфейса, struct, enum или члена (например `IRunCommand`).
 
-**Для модели:** после `load_workspace` для «где **объявлен** X?» используй этот tool — не текстовый поиск и не выдуманный tool вроде `search`. Для произвольного текста по файлам — встроенный **`grep`** среды (IDE), не `bash`/PowerShell с grep. Так не лезем в `bin/`/`obj/` и опираемся на Roslyn.
+**Для модели:** после `load_workspace` для «где **объявлен** X?» используй этот tool — не текстовый поиск и не выдуманный tool вроде `search`. Для произвольного текста по файлам — встроенный **`grep`** среды (IDE), не `bash`/PowerShell с grep. Так не лезем в `bin/`/`obj/` и опираемся на Roslyn. **Сохранённые** `.cs` (IDE/git) подмешиваются до поиска; несохранённый буфер игнорируется — `reset_workspace` для обычных save не нужен.
 </details>
 
 <details>
@@ -1095,7 +1106,7 @@ cd D:\Devel\YourApp
 **Параметры:**
 - `symbolName: string` — объявленное имя типа или члена (например `Guard`, `Format`).
 
-**Поведение:** нужен `load_workspace`. Поиск объявлений через Roslyn; при нескольких символах с одним именем выбирается один «основной» (типы предпочтительнее методов). Если известен файл объявления, точнее может быть `find_symbol_references`.
+**Поведение:** нужен `load_workspace`. Сначала подмешиваются сохранённые `.cs` с диска. Поиск объявлений через Roslyn; при нескольких символах с одним именем выбирается один «основной» (типы предпочтительнее методов). Если известен файл объявления, точнее может быть `find_symbol_references`.
 </details>
 
 <details>
@@ -1105,7 +1116,7 @@ cd D:\Devel\YourApp
 - `symbolName: string` — имя интерфейса или базового класса (например `IRepository`, `BaseController`)
 - `transitive: bool = true` — при `true` включает косвенные реализации / наследников по иерархии
 
-**Поведение:** нужен `load_workspace`. Для **интерфейсов** — Roslyn `FindImplementationsAsync`; для **классов/struct** — `FindDerivedClassesAsync`. Каждый тип с путём к файлу и строкой (не более 50). Не используйте текстовый поиск или `find_usages` для «кто реализует X?» / «кто наследует Y?».
+**Поведение:** нужен `load_workspace`. Сначала saved `.cs` с диска. Для **интерфейсов** — Roslyn `FindImplementationsAsync`; для **классов/struct** — `FindDerivedClassesAsync`. Каждый тип с путём к файлу и строкой (не более 50). Не используйте текстовый поиск или `find_usages` для «кто реализует X?» / «кто наследует Y?».
 
 **Для модели:** после `load_workspace` — вместо grep или анализа usages, когда нужна OOP-иерархия.
 </details>
@@ -1122,7 +1133,7 @@ cd D:\Devel\YourApp
 ### File Editing
 
 <details>
-<summary><code>update_file_content</code> — Полная перезапись файла. Автоматически создает отсутствующие каталоги.</summary>
+<summary><code>update_file_content</code> — Полная перезапись файла. Автоматически создает отсутствующие каталоги. Новый <code>.cs</code> в загруженном проекте попадает в индекс на следующем поиске символов.</summary>
 
 **Параметры:**
 - `filePath: string`
@@ -1276,7 +1287,7 @@ cd D:\Devel\YourApp
 </details>
 
 <details>
-<summary><code>get_test_list</code> — Список тестов в solution (JSON).</summary>
+<summary><code>get_test_list</code> — Список тестов в solution (JSON). Сначала saved <code>.cs</code> с диска.</summary>
 
 **Параметры:** `maxResults: int = 200`. Нужен `load_workspace`. При `count: 0` — подсказка, что загружен не тот `.csproj`.
 
@@ -1344,7 +1355,7 @@ cd D:\Devel\YourApp
 </details>
 
 <details>
-<summary><code>run_format</code> — Запускает dotnet format (применение или verify-only).</summary>
+<summary><code>run_format</code> — Запускает dotnet format (применение или verify-only). Отформатированные <code>.cs</code> подхватывает следующий поиск символов без reset.</summary>
 
 **Параметры:**
 - `workspacePath: string`
@@ -1489,7 +1500,7 @@ cd D:\Devel\YourApp
 </details>
 
 <details>
-<summary><code>stop_mcp_server</code> — Завершает процесс MCP после ответа (чтобы пересобрать бинарник сервера; затем перезапуск MCP в IDE).</summary>
+<summary><code>stop_mcp_server</code> — Завершает процесс MCP после ответа (чтобы пересобрать бинарник сервера; затем перезапуск MCP в IDE). Не для refresh сохранённых исходников — они синхронизируются сами.</summary>
 
 **Параметры:** *(нет)*
 

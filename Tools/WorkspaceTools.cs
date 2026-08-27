@@ -33,7 +33,10 @@ public sealed class WorkspaceTools
         + "Optional `configuration` / `platform` are passed as MSBuildWorkspace global properties (same names VS uses for the active solution config). "
         + "Optional `targetFramework` is the MSBuild `TargetFramework` global property (same idea as `dotnet build -f`). "
         + "Required when `Directory.Build.props` (or the csproj) sets `TargetFrameworks` — the CrossTargeting outer evaluation has no `Compile` target and load fails with **missing Compile target**; pick one inner TFM (e.g. `net10.0`). "
-        + "`run_dotnet_build` / `run_dotnet_test` inherit configuration/platform when their own args are omitted.")]
+        + "VS 2026 / MSBuild 18 BuildHost crashes (`XMakeElements`) return **Workspace Load Failed (VS 2026 / MSBuild 18 BuildHost)** — this is not `MCP_MSBUILD_SDK_MISMATCH`; prefer MCP 1.0.35+ or load a single SDK-style `.csproj`. "
+        + "`run_dotnet_build` / `run_dotnet_test` inherit configuration/platform when their own args are omitted. "
+        + "After a successful load, **saved** `.cs` files (IDE save, git, `dotnet format`) are watched and applied before symbol search — unsaved editor buffers are ignored. "
+        + "A changed `.csproj`/`.sln`/`Directory.Build.props` does not auto-reopen MSBuild; the next `load_workspace` skips the cache, or call `reset_workspace`.")]
     public async Task<string> LoadWorkspace(
         [Description("Absolute path to a `.sln`, `.slnx`, or `.csproj` file (not a directory). Same parameter name as run_dotnet_build, run_dotnet_test, run_format, list_projects.")]
         string workspacePath,
@@ -75,9 +78,21 @@ public sealed class WorkspaceTools
                 + Environment.NewLine
                 + MsBuildEnvironmentInfo.FormatMarkdownSection());
         }
+        catch (RoslynMsBuildBuildHostException ex)
+        {
+            _logger.LogError(ex, "Failed to load workspace from {Path} (VS 2026 / MSBuild 18 BuildHost)", workspacePath);
+            return ToolTelemetry.TraceAndReturn(nameof(LoadWorkspace), ex.Message);
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to load workspace from {Path}", workspacePath);
+            if (WorkspaceLoadGuidance.IsRoslynMsBuildBuildHostFailure(ex))
+            {
+                return ToolTelemetry.TraceAndReturn(
+                    nameof(LoadWorkspace),
+                    WorkspaceLoadGuidance.FormatRoslynMsBuildBuildHostFailureMessage(workspacePath));
+            }
+
             return ToolTelemetry.TraceAndReturn(nameof(LoadWorkspace), BuildFailureReport(workspacePath, new[] { ex.Message }));
         }
 
@@ -111,6 +126,13 @@ public sealed class WorkspaceTools
                         _solutionManager.LoadedConfiguration,
                         _solutionManager.LoadedPlatform,
                         _solutionManager.LoadedTargetFramework));
+            }
+
+            if (diagnostics.Any(WorkspaceLoadGuidance.IsRoslynMsBuildBuildHostFailure))
+            {
+                return ToolTelemetry.TraceAndReturn(
+                    nameof(LoadWorkspace),
+                    WorkspaceLoadGuidance.FormatRoslynMsBuildBuildHostFailureMessage(workspacePath));
             }
 
             return ToolTelemetry.TraceAndReturn(
@@ -198,7 +220,7 @@ public sealed class WorkspaceTools
 
     [McpServerTool(Name = "reset_workspace", Title = "Reset C# workspace")]
     [Description(
-        "Disposes the in-process MSBuildWorkspace and drops the cached solution. Use after building the loaded solution/project on disk so the next load_workspace picks up fresh references and generated files. Does not restart the MCP process — use stop_mcp_server if the server binary itself was rebuilt.")]
+        "Disposes the in-process MSBuildWorkspace and drops the cached solution. Use after building the loaded solution/project on disk so the next load_workspace picks up fresh references and generated files (`obj`). Saved `.cs` edits no longer require reset — they sync from disk automatically. Does not restart the MCP process — use stop_mcp_server if the server binary itself was rebuilt.")]
     public async Task<string> ResetWorkspace(CancellationToken cancellationToken = default)
     {
         try

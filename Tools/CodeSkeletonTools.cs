@@ -30,10 +30,11 @@ public sealed class CodeSkeletonTools
 
     [McpServerTool(Name = "get_code_skeleton", Title = "Get C# code skeleton from disk")]
     [Description(
-        "Parses C# source from disk (no workspace required) and returns only a **structural skeleton**: namespaces, types, fields, properties, and method/constructor **signatures**. "
+        "Parses C# source from **disk** (no workspace required) and returns only a **structural skeleton**: namespaces, types, fields, properties, and method/constructor **signatures**. "
         + "Method and constructor bodies are replaced with empty blocks `{ }`; expression-bodied members become block-bodied stubs; property accessors with implementations are reduced to auto-style `get;` / `set;` / `init;`. "
         + "Use this to grasp what a large `.cs` file or folder contains **without** loading full method bodies into the LLM context. "
         + "Pass a single `.cs` file path, or a directory (recursive `.cs` discovery, skipping `bin`, `obj`, `Test`, and `Tests` segments; at most 20 files). "
+        + "For a file in the loaded solution, `get_class_skeleton` uses the workspace index (saved `.cs` applied first). "
         + "This tool does **not** accept `assemblyName` / `typeName`; for NuGet/third-party DLLs use `decompile_type` or `get_decompiled_class_skeleton`.")]
     public async Task<string> GetCodeSkeleton(
         [Description("Absolute path to a `.cs` file or a directory to scan for `.cs` files. Required; missing value returns a usage hint.")]

@@ -34,7 +34,8 @@ public sealed class NavigationTools
     [Description(
         "Finds all semantic references to a class, interface, or method when you know the declaring `.cs` file "
         + "(file-scoped SymbolFinder). For solution-wide search by simple name use `find_usages`. "
-        + "Output capped at 20 references. CRITICAL for safe refactoring and DI registration audits. Requires `load_workspace`.")]
+        + "Output capped at 20 references. CRITICAL for safe refactoring and DI registration audits. Requires `load_workspace`. "
+        + "Applies **saved** `.cs` from disk first (IDE/git/`dotnet format`); unsaved editor buffers are ignored.")]
     public async Task<string> FindSymbolReferences(
         [Description("Path to a .cs file (same JSON key `filePath` as get_file_content / get_diagnostics_for_file).")]
         string filePath,
@@ -149,13 +150,18 @@ public sealed class NavigationTools
             _logger.LogError(ex, "Failed to find references for {SymbolName} in {FilePath}", symbolName, filePath);
             return ToolTelemetry.TraceAndReturn(
                 nameof(FindSymbolReferences),
-                $"Failed to find references for `{symbolName}`: {ex.Message}");
+                WorkspaceLoadGuidance.FormatCaughtException(
+                    ex,
+                    $"Failed to find references for `{symbolName}`: {ex.Message}",
+                    filePath));
         }
     }
 
     [McpServerTool(Name = "find_symbol_definition", Title = "Find symbol definitions in workspace")]
     [Description(
         "Searches the **currently loaded Roslyn solution** (semantic workspace index) for declarations whose name matches `symbolName`. "
+        + "Before search, **saved** `.cs` on disk (IDE save, git, `dotnet format`) are merged into that index; unsaved editor buffers are not. "
+        + "Do not call `reset_workspace` for ordinary source saves — only after `dotnet build` generated files under `obj`, or `.csproj`/`.sln` graph changes. "
         + "For each match it returns the symbol display string, every **source** definition file path, and the **1-based** starting line number. "
         + "Use this when you need to know **where a C# type or member is defined** (class, interface, struct, enum, method, property, etc.). "
         + "**Do not** answer “where is it **declared**?” with plain-text search or by running grep/findstr/Select-String from a terminal over the tree—those walk `bin/`, `obj/`, and generated trees, are easy to mis-read, and can trigger access violations or lock contention. "
@@ -175,7 +181,7 @@ public sealed class NavigationTools
                 return ToolTelemetry.TraceAndReturn(nameof(FindSymbolDefinition), "Error: `symbolName` is empty.");
             }
 
-            var solution = _solutionManager.GetCurrentSolution();
+            var solution = await _solutionManager.GetCurrentSolutionAfterDiskSyncAsync(cancellationToken).ConfigureAwait(false);
             if (solution is null)
             {
                 return ToolTelemetry.TraceAndReturn(
@@ -208,7 +214,8 @@ public sealed class NavigationTools
             {
                 return ToolTelemetry.TraceAndReturn(
                     nameof(FindSymbolDefinition),
-                    $"Symbol `{trimmedName}` was not found in the current solution (no matching type or member declarations).");
+                    _solutionManager.WithDiskSyncNotes(
+                        $"Symbol `{trimmedName}` was not found in the current solution (no matching type or member declarations)."));
             }
 
             var sb = new StringBuilder();
@@ -234,7 +241,9 @@ public sealed class NavigationTools
                     {
                         sb.AppendLine(
                             $"[!] Output truncated after {MaxDefinitionLocations} source location(s). Narrow the symbol name or use `find_symbol_references` from a known file.");
-                        return ToolTelemetry.TraceAndReturn(nameof(FindSymbolDefinition), sb.ToString().TrimEnd());
+                        return ToolTelemetry.TraceAndReturn(
+                            nameof(FindSymbolDefinition),
+                            _solutionManager.WithDiskSyncNotes(sb.ToString().TrimEnd()));
                     }
 
                     var path = location.SourceTree!.FilePath!;
@@ -247,20 +256,25 @@ public sealed class NavigationTools
                 }
             }
 
-            return ToolTelemetry.TraceAndReturn(nameof(FindSymbolDefinition), sb.ToString().TrimEnd());
+            return ToolTelemetry.TraceAndReturn(
+                nameof(FindSymbolDefinition),
+                _solutionManager.WithDiskSyncNotes(sb.ToString().TrimEnd()));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to find definition locations for {SymbolName}", symbolName);
             return ToolTelemetry.TraceAndReturn(
                 nameof(FindSymbolDefinition),
-                $"Failed to find definitions for `{symbolName}`: {ex.Message}");
+                WorkspaceLoadGuidance.FormatCaughtException(
+                    ex,
+                    $"Failed to find definitions for `{symbolName}`: {ex.Message}"));
         }
     }
 
     [McpServerTool(Name = "find_usages", Title = "Find symbol usages across solution")]
     [Description(
         "Semantically searches the **entire loaded Roslyn solution** for references and invocations of a symbol whose declared name matches `symbolName` (case-insensitive). "
+        + "Applies **saved** `.cs` from disk first; unsaved editor buffers are ignored (no `reset_workspace` for ordinary saves). "
         + "Returns grouped **file paths**, **1-based line numbers**, and the **actual source line text** at each reference. "
         + "Use this to learn usage patterns for classes, methods, properties, etc. Call `load_workspace` first. "
         + "If several declarations share the same simple name, the tool picks a single primary symbol (types preferred over methods/properties, then stable ordering by fully-qualified name); "
@@ -280,7 +294,7 @@ public sealed class NavigationTools
                 return ToolTelemetry.TraceAndReturn(toolName, "Error: `symbolName` is empty.");
             }
 
-            var solution = _solutionManager.GetCurrentSolution();
+            var solution = await _solutionManager.GetCurrentSolutionAfterDiskSyncAsync(cancellationToken).ConfigureAwait(false);
             if (solution is null)
             {
                 return ToolTelemetry.TraceAndReturn(
@@ -313,7 +327,8 @@ public sealed class NavigationTools
             {
                 return ToolTelemetry.TraceAndReturn(
                     toolName,
-                    $"No declarations named `{trimmedName}` were found in the current solution.");
+                    _solutionManager.WithDiskSyncNotes(
+                        $"No declarations named `{trimmedName}` were found in the current solution."));
             }
 
             var targetSymbol = PickPrimarySymbol(symbols);
@@ -365,7 +380,7 @@ public sealed class NavigationTools
             if (limited.Count == 0)
             {
                 sb.AppendLine("No in-source references were returned for this symbol.");
-                return ToolTelemetry.TraceAndReturn(toolName, sb.ToString().TrimEnd());
+                return ToolTelemetry.TraceAndReturn(toolName, _solutionManager.WithDiskSyncNotes(sb.ToString().TrimEnd()));
             }
 
             sb.AppendLine(
@@ -399,7 +414,7 @@ public sealed class NavigationTools
                 sb.AppendLine($"[!] Truncated to {MaxFindUsagesReferences} references; narrow `symbolName` or use `find_symbol_references` from a declaring file.");
             }
 
-            return ToolTelemetry.TraceAndReturn(toolName, sb.ToString().TrimEnd());
+            return ToolTelemetry.TraceAndReturn(toolName, _solutionManager.WithDiskSyncNotes(sb.ToString().TrimEnd()));
         }
         catch (OperationCanceledException)
         {
@@ -408,13 +423,18 @@ public sealed class NavigationTools
         catch (Exception ex)
         {
             _logger.LogError(ex, "FindUsages failed for {SymbolName}", symbolName);
-            return ToolTelemetry.TraceAndReturn(toolName, $"Failed to find usages for `{symbolName}`: {ex.Message}");
+            return ToolTelemetry.TraceAndReturn(
+                toolName,
+                WorkspaceLoadGuidance.FormatCaughtException(
+                    ex,
+                    $"Failed to find usages for `{symbolName}`: {ex.Message}"));
         }
     }
 
     [McpServerTool(Name = "find_implementations", Title = "Find interface implementations or derived types")]
     [Description(
         "Semantically finds all types that **implement** an interface or **derive from** a base class/struct in the loaded solution. "
+        + "Applies **saved** `.cs` from disk first; unsaved editor buffers are ignored. "
         + "Use for questions like \"which classes implement `IRepository`?\" or \"what inherits from `BaseController`?\". "
         + "Do not use text search or `find_usages` for this — they miss indirect hierarchies and match unrelated identifiers. "
         + "Call `load_workspace` first. For interface symbols uses Roslyn FindImplementations; for classes/structs uses FindDerivedClasses. "
@@ -435,7 +455,7 @@ public sealed class NavigationTools
                 return ToolTelemetry.TraceAndReturn(toolName, "Error: `symbolName` is empty.");
             }
 
-            var solution = _solutionManager.GetCurrentSolution();
+            var solution = await _solutionManager.GetCurrentSolutionAfterDiskSyncAsync(cancellationToken).ConfigureAwait(false);
             if (solution is null)
             {
                 return ToolTelemetry.TraceAndReturn(
@@ -558,7 +578,11 @@ public sealed class NavigationTools
         catch (Exception ex)
         {
             _logger.LogError(ex, "FindImplementations failed for {SymbolName}", symbolName);
-            return ToolTelemetry.TraceAndReturn(toolName, $"Failed to find implementations for `{symbolName}`: {ex.Message}");
+            return ToolTelemetry.TraceAndReturn(
+                toolName,
+                WorkspaceLoadGuidance.FormatCaughtException(
+                    ex,
+                    $"Failed to find implementations for `{symbolName}`: {ex.Message}"));
         }
     }
 
@@ -741,7 +765,7 @@ public sealed class NavigationTools
 
     [McpServerTool(Name = "get_call_graph", Title = "Get method call graph")]
     [Description(
-        "Builds callers and callees for a method in the loaded workspace. Use for bug investigation instead of loading many method bodies.")]
+        "Builds callers and callees for a method in the loaded workspace (after applying **saved** `.cs` from disk). Use for bug investigation instead of loading many method bodies.")]
     public async Task<string> GetCallGraph(
         [Description("Path to the .cs file containing the method.")] string filePath,
         [Description("Class name containing the method.")] string className,
@@ -774,7 +798,9 @@ public sealed class NavigationTools
         catch (Exception ex)
         {
             _logger.LogError(ex, "GetCallGraph failed for {ClassName}.{MethodName}", className, methodName);
-            return ToolTelemetry.TraceAndReturn(toolName, $"Failed: {ex.Message}");
+            return ToolTelemetry.TraceAndReturn(
+                toolName,
+                WorkspaceLoadGuidance.FormatCaughtException(ex, $"Failed: {ex.Message}"));
         }
     }
 }

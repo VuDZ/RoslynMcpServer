@@ -238,6 +238,111 @@ public static class WorkspaceLoadGuidance
         return sb.ToString().TrimEnd();
     }
 
+    /// <summary>
+    /// Roslyn net472 BuildHost + VS 2026 / MSBuild 18 assembly conflict
+    /// (<c>XMakeElements</c> type initializer). Not <c>MCP_MSBUILD_SDK_MISMATCH</c>.
+    /// </summary>
+    public static bool IsRoslynMsBuildBuildHostFailure(Exception? exception)
+    {
+        for (var current = exception; current is not null; current = current.InnerException)
+        {
+            if (IsRoslynMsBuildBuildHostFailure(current.Message))
+            {
+                return true;
+            }
+
+            if (current is TypeInitializationException typeInit
+                && !string.IsNullOrEmpty(typeInit.TypeName)
+                && typeInit.TypeName.Contains("XMakeElements", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            if (current is AggregateException aggregate)
+            {
+                foreach (var inner in aggregate.Flatten().InnerExceptions)
+                {
+                    if (!ReferenceEquals(inner, current) && IsRoslynMsBuildBuildHostFailure(inner))
+                    {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return exception is not null && IsRoslynMsBuildBuildHostFailure(exception.ToString());
+    }
+
+    public static bool IsRoslynMsBuildBuildHostFailure(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return false;
+        }
+
+        if (text.Contains("XMakeElements", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return text.Contains("Microsoft.Build.Evaluation.ProjectCollection", StringComparison.OrdinalIgnoreCase)
+               && (text.Contains("TypeInitialization", StringComparison.OrdinalIgnoreCase)
+                   || text.Contains("type initializer", StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>
+    /// Dedicated agent-facing report so hosts do not treat this as an SDK pin / <c>MCP_MSBUILD_SDK_MISMATCH</c>.
+    /// </summary>
+    public static string FormatRoslynMsBuildBuildHostFailureMessage(string? workspacePath = null)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("## Workspace Load Failed (VS 2026 / MSBuild 18 BuildHost)");
+        sb.AppendLine();
+        sb.AppendLine(
+            "Roslyn's out-of-process **.NET Framework BuildHost** crashed while initializing MSBuild "
+            + "(`Microsoft.Build.Shared.XMakeElements`). This happens when the BuildHost registers "
+            + "**Visual Studio 2026 (MSBuild 18.x)** and loads mismatched `System.Collections.Immutable` / "
+            + "`System.Memory` from the BuildHost folder.");
+        sb.AppendLine();
+        sb.AppendLine(
+            "**This is not** `MCP_MSBUILD_SDK_MISMATCH` and not a .NET SDK pin problem. "
+            + "Do not change `global.json` or fall back to shell `dotnet` for this.");
+        sb.AppendLine();
+        if (!string.IsNullOrWhiteSpace(workspacePath))
+        {
+            sb.AppendLine($"- **Path:** `{workspacePath}`");
+            sb.AppendLine();
+        }
+
+        sb.AppendLine("**What to do:**");
+        sb.AppendLine(
+            "- Use RoslynMcpServer **1.0.35+** (`Microsoft.CodeAnalysis.Workspaces.MSBuild` 5.9+ isolates MSBuild in an AppDomain).");
+        sb.AppendLine(
+            "- If this binary is already 1.0.35+ and the error persists: `load_workspace` on a **single SDK-style `.csproj`** "
+            + "instead of a mixed native/legacy `.sln` (netcore BuildHost).");
+        sb.AppendLine(
+            "- Semantic `find_symbol_*` needs a loaded workspace. `search_code` / host Grep remain usable as text fallback.");
+
+        sb.Append(MsBuildEnvironmentInfo.FormatMarkdownSection());
+        return sb.ToString().TrimEnd();
+    }
+
+    /// <summary>Prefers the dedicated BuildHost report when the exception matches; otherwise <paramref name="fallback"/>.</summary>
+    public static string FormatCaughtException(Exception ex, string fallback, string? workspacePath = null)
+    {
+        if (ex is RoslynMsBuildBuildHostException hostEx)
+        {
+            return hostEx.Message;
+        }
+
+        if (IsRoslynMsBuildBuildHostFailure(ex))
+        {
+            return FormatRoslynMsBuildBuildHostFailureMessage(workspacePath);
+        }
+
+        return fallback;
+    }
+
     private static bool LooksGenerated(string path) =>
         path.Contains($"{Path.DirectorySeparatorChar}generated{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase)
         || path.Contains("/generated/", StringComparison.OrdinalIgnoreCase)
@@ -483,5 +588,17 @@ public static class WorkspaceLoadGuidance
             Path.GetFullPath(a).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar),
             Path.GetFullPath(b).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar),
             OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
+    }
+}
+
+/// <summary>
+/// Thrown when Roslyn's out-of-proc BuildHost crashes on VS 2026 / MSBuild 18
+/// (<c>XMakeElements</c> type initializer). Not an SDK pin / <c>MCP_MSBUILD_SDK_MISMATCH</c>.
+/// </summary>
+public sealed class RoslynMsBuildBuildHostException : InvalidOperationException
+{
+    public RoslynMsBuildBuildHostException(string message, Exception innerException)
+        : base(message, innerException)
+    {
     }
 }

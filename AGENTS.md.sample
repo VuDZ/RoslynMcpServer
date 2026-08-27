@@ -12,7 +12,7 @@ You are a Senior C# Developer and Architect using Roslyn MCP. Follow the policy 
 
 ## Quick path
 
-1. **Read-only** (where is X?): `load_workspace` → `find_symbol_definition` / `find_usages` / `get_class_skeleton`. Host **Grep** only for plain text (strings, comments, non-C#). If unsure the workspace is loaded, call `load_workspace` again (idempotent).
+1. **Read-only** (where is X?): `load_workspace` → `find_symbol_definition` / `find_usages` / `get_class_skeleton`. Host **Grep** only for plain text (strings, comments, non-C#). If unsure the workspace is loaded, call `load_workspace` again (idempotent; also flushes saved `.cs` from disk). Unsaved editor buffers are not in the Roslyn index.
 2. **Edit / build / test / run**: full init → MCP `dotnet_*` only (never shell `dotnet build` / `dotnet test`).
 3. **C# identifier** (type, method, extension): **MCP first** — not host Grep / `search_code` as the opening move. Grep is fallback after MCP finds nothing.
 4. **Secrets**: never paste PAT/passwords into chat or commits; env / user-secrets (see Secrets).
@@ -23,6 +23,7 @@ You are a Senior C# Developer and Architect using Roslyn MCP. Follow the policy 
 1. **Required:** `load_workspace` with absolute `workspacePath` to this repo's `.sln`, `.slnx`, or entry `.csproj` (prefer solution files). Resolve path via IDE workspace / `list_directory_tree` — never hardcode paths from docs. Response includes workspace health (SDK pin, restore, tool count).
 2. Set `ROSLYN_MCP_WORKSPACE` in MCP config to the **repo root** (folder with `global.json`) when present. Relative `filePath` resolves against the loaded workspace.
 3. If `load_workspace` returns **Workspace Load Failed (missing Compile target)**: retry with `targetFramework` set to **one** inner TFM from that report (from `Directory.Build.props`, e.g. `net10.0`) — same idea as `dotnet build -f`. This is CrossTargeting, not SDK mismatch; do not fall back to shell `dotnet`. Analyzer-only projects may still fail under that TFM; app/library projects usually load. If it still fails: `get_code_skeleton` / host Grep; `run_dotnet_build` / `run_dotnet_test` still work.
+4. If `load_workspace` / `find_symbol_*` returns **Workspace Load Failed (VS 2026 / MSBuild 18 BuildHost)** (`XMakeElements`): this is **not** `MCP_MSBUILD_SDK_MISMATCH`. Need MCP **1.0.35+**. Workaround: `load_workspace` on a single SDK-style `.csproj`. `search_code` / host Grep still work.
 
 Skip full init for a one-line read-only answer if `load_workspace` already succeeded in this chat.
 
@@ -57,7 +58,8 @@ Do not mix `get_code_skeleton(path=…)` (disk `.cs`) with decompile tools (`ass
 - **IDE (Cursor etc.):** host `edit` / `write` when review UI matters — not MCP `apply_patch` / `update_file_content`.
 - **Headless:** MCP `apply_patch` / `update_file_content`; prefer AST tools for usings/method bodies.
 - **Refactor:** `rename_symbol` with `previewOnly=true` first (not project folders).
-- After MCP server rebuild: `get_mcp_server_info` (expect **v1.0.34+**).
+- After MCP server rebuild: `get_mcp_server_info` (expect **v1.1.0+**).
+- **Saved** `.cs` (host edit/write, git, `dotnet format`) sync into the semantic index automatically. `reset_workspace` is for generated `obj` files / project-file graph after build — not for ordinary source saves.
 
 ## Secrets
 

@@ -34,7 +34,9 @@ public sealed class ServerLifecycleTools
 
     [McpServerTool(Name = "stop_mcp_server", Title = "Stop MCP server")]
     [Description(
-        "Gracefully stops this Roslyn MCP server process after the tool returns. Use when you rebuilt the server itself (or need a clean process): then run dotnet build from a terminal if needed and restart MCP in Cursor. For refreshing only the loaded C# solution in memory, prefer reset_workspace followed by load_workspace.")]
+        "Gracefully stops this Roslyn MCP server process after the tool returns. Use when you rebuilt the server itself (or need a clean process): then run dotnet build from a terminal if needed and restart MCP in Cursor. "
+        + "Do **not** use this to refresh source after IDE/git saves — **saved** `.cs` sync automatically. "
+        + "For generated `obj` files or a stale `.csproj` graph: `reset_workspace` then `load_workspace` (no process kill).")]
     public Task<string> StopMcpServer(CancellationToken cancellationToken = default)
     {
         _ = cancellationToken;
@@ -47,7 +49,8 @@ public sealed class ServerLifecycleTools
             + "1. Wait until MCP tools disconnect.\n"
             + "2. From a terminal: `dotnet build` on RoslynMcpServer (or your solution).\n"
             + "3. In Cursor: MCP → Restart for this server (or reload the window).\n\n"
-            + "**Without killing the process:** call `reset_workspace`, then `load_workspace` to reload the analyzed solution from disk.\n";
+            + "**Without killing the process:** saved `.cs` already sync into symbol search. "
+            + "For generated `obj` / `.csproj` graph only: `reset_workspace`, then `load_workspace`.\n";
 
         return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(StopMcpServer), message.TrimEnd()));
     }

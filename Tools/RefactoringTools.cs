@@ -20,7 +20,8 @@ public sealed class RefactoringTools
     [McpServerTool(Name = "extract_interface", Title = "Extract interface from class")]
     [Description(
         "Extracts a public interface from a class: generates method/property/event signatures, optionally in a new file, " +
-        "and adds the interface to the class base list. Use instead of manually authoring interface boilerplate.")]
+        "and adds the interface to the class base list. Use instead of manually authoring interface boilerplate. " +
+        "Requires `load_workspace`; applies **saved** `.cs` from disk before editing.")]
     public async Task<string> ExtractInterface(
         [Description("Absolute or workspace-relative path to the .cs file containing the class.")] string filePath,
         [Description("Name of the class to extract from (e.g. `OrderService`).")] string className,

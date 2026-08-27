@@ -65,7 +65,8 @@ public sealed class TestTools
         "Runs `dotnet test` filtered to a single test class and/or method. Builds a VSTest-safe `--filter` internally " +
         "(`FullyQualifiedName~…`, method FQN without `()`, no bogus leading `.` on dotted names) — " +
         "do not use `execute_dotnet_command` or hand-written FullyQualifiedName filters. " +
-        "When the Roslyn workspace is loaded, resolves the type/method FQN for precise contains filtering. " +
+        "When the Roslyn workspace is loaded, resolves the type/method FQN for precise contains filtering "
+        + "(after applying **saved** `.cs` from disk). " +
         "Prefer `className` + short `methodName`. Use for TDD and bug fixes instead of running the full suite. " +
         "Default timeout 300s; kills process tree on timeout/cancel. " +
         "When `noBuild=false` (default), compiles with a separate `dotnet build` then `dotnet test --no-build --no-restore` " +
@@ -105,7 +106,7 @@ public sealed class TestTools
                     "Error: provide at least one of `className` or `methodName`.");
             }
 
-            var solution = _solutionManager.GetCurrentSolution();
+            var solution = await _solutionManager.GetCurrentSolutionAfterDiskSyncAsync(cancellationToken).ConfigureAwait(false);
             var (filter, description) = await TestFilterHelper.BuildFilterAsync(
                 solution, className, methodName, cancellationToken).ConfigureAwait(false);
 
@@ -139,7 +140,8 @@ public sealed class TestTools
 
     [McpServerTool(Name = "get_test_list", Title = "List tests in workspace")]
     [Description(
-        "Returns JSON list of test methods (Fact/Theory/TestMethod/etc.) from the **currently loaded** Roslyn workspace. "
+        "Returns JSON list of test methods (Fact/Theory/TestMethod/etc.) from the **currently loaded** Roslyn workspace "
+        + "(applies **saved** `.cs` from disk first). "
         + "Empty list (`count: 0`) is an agent signal that the wrong `.csproj` may be loaded — call `load_workspace` on the test `.sln`/`.slnx` first.")]
     public async Task<string> GetTestList(
         [Description("Maximum tests to return (default 200).")] int maxResults = 200,
@@ -148,7 +150,7 @@ public sealed class TestTools
         const string toolName = nameof(GetTestList);
         try
         {
-            var solution = _solutionManager.GetCurrentSolution();
+            var solution = await _solutionManager.GetCurrentSolutionAfterDiskSyncAsync(cancellationToken).ConfigureAwait(false);
             if (solution is null)
             {
                 return ToolTelemetry.TraceAndReturn(

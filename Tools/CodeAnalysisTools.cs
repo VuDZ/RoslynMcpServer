@@ -28,9 +28,10 @@ public sealed class CodeAnalysisTools
 
     [McpServerTool(Name = "get_class_skeleton", Title = "Get C# class skeleton")]
     [Description(
-        "Extracts the high-level skeleton (contract) of a C# file from the **loaded Roslyn workspace**. "
+        "Extracts the high-level skeleton (contract) of a C# file from the **loaded Roslyn workspace** "
+        + "(applies **saved** `.cs` from disk first; unsaved editor buffers are ignored). "
         + "Returns namespaces, types, properties, and method signatures; method bodies omitted. "
-        + "Requires `load_workspace` and a document in that workspace. For disk-only (no workspace) use `get_code_skeleton`; for NuGet/DLL types use `get_decompiled_class_skeleton`.")]
+        + "Requires `load_workspace` and a document in that workspace. For raw disk with no workspace (or to skip the index) use `get_code_skeleton`; for NuGet/DLL types use `get_decompiled_class_skeleton`.")]
     public async Task<string> GetClassSkeleton(
         [Description("Path to a .cs file in the loaded workspace (same argument name `filePath` as get_file_content).")]
         string filePath,
@@ -69,7 +70,9 @@ public sealed class CodeAnalysisTools
     }
 
     [McpServerTool(Name = "get_diagnostics_for_file", Title = "Get diagnostics for file")]
-    [Description("Returns Roslyn compiler diagnostics for a single C# file from the active workspace. Includes only Warning and Error diagnostics.")]
+    [Description(
+        "Returns Roslyn compiler diagnostics (Warning and Error) for a single C# file from the active workspace. "
+        + "Applies **saved** `.cs` from disk first; unsaved editor buffers are ignored.")]
     public async Task<string> GetDiagnosticsForFile(
         [Description("Absolute or workspace-relative path to the target .cs file (same parameter name as get_file_content / find_symbol_references).")] string filePath,
         CancellationToken cancellationToken = default)

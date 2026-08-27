@@ -21,6 +21,7 @@ public sealed class CodeFixTools
     [McpServerTool(Name = "get_code_fixes", Title = "Get code fixes for diagnostic")]
     [Description(
         "Returns Roslyn CodeAction fixes available for a compiler/analyzer diagnostic at a specific location. " +
+        "Uses the workspace after applying **saved** `.cs` from disk. " +
         "Call get_diagnostics_for_file first to obtain diagnosticId, line, and column. " +
         "Use the returned fixIndex with apply_code_fix. Prefer this over manually generating fix code.")]
     public async Task<string> GetCodeFixes(

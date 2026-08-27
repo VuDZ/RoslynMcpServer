@@ -18,7 +18,7 @@ public sealed class AstTools
     }
 
     [McpServerTool(Name = "add_using", Title = "Add using directive")]
-    [Description("Adds a `using` directive via Roslyn AST. Prefer over `apply_patch` for imports. Requires `load_workspace`.")]
+    [Description("Adds a `using` directive via Roslyn AST. Prefer over `apply_patch` for imports. Requires `load_workspace`. Resolves the document after applying **saved** `.cs` from disk.")]
     public Task<string> AddUsing(
         [Description("Absolute or workspace-relative path to the `.cs` file.")]
         string filePath,

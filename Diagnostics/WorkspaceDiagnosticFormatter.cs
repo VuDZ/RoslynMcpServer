@@ -106,6 +106,7 @@ public static class WorkspaceDiagnosticFormatter
     public static bool IsHardMsBuildLoadFailure(string message) =>
         IsMissingTargetFrameworkEvaluation(message)
         || IsMissingCompileTarget(message)
+        || message.Contains("XMakeElements", StringComparison.OrdinalIgnoreCase)
         || message.Contains("could not be loaded", StringComparison.OrdinalIgnoreCase)
         || message.Contains("The imported project was not found", StringComparison.OrdinalIgnoreCase)
         || message.Contains("NETSDK1045", StringComparison.OrdinalIgnoreCase)
