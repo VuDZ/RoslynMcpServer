@@ -117,6 +117,60 @@ public sealed class WorkspaceLoadGuidanceTests
     }
 
     [Fact]
+    public void IsRoslynMsBuildBuildHostFailure_detects_remote_xmakeelements_message()
+    {
+        var ex = new InvalidOperationException(
+            "An exception of type System.TypeInitializationException was thrown: "
+            + "The type initializer for 'Microsoft.Build.Shared.XMakeElements' threw an exception.");
+
+        Assert.True(WorkspaceLoadGuidance.IsRoslynMsBuildBuildHostFailure(ex));
+        Assert.True(WorkspaceLoadGuidance.IsRoslynMsBuildBuildHostFailure(ex.Message));
+    }
+
+    [Fact]
+    public void IsRoslynMsBuildBuildHostFailure_detects_type_initializer_exception()
+    {
+        var ex = new TypeInitializationException(
+            "Microsoft.Build.Shared.XMakeElements",
+            new InvalidOperationException("assembly mismatch"));
+
+        Assert.True(WorkspaceLoadGuidance.IsRoslynMsBuildBuildHostFailure(ex));
+    }
+
+    [Fact]
+    public void FormatRoslynMsBuildBuildHostFailureMessage_is_not_sdk_mismatch()
+    {
+        var message = WorkspaceLoadGuidance.FormatRoslynMsBuildBuildHostFailureMessage(
+            @"J:\Proj\kav - GuiTestAppBl.sln");
+
+        Assert.Contains("VS 2026 / MSBuild 18 BuildHost", message, StringComparison.Ordinal);
+        Assert.Contains("XMakeElements", message, StringComparison.Ordinal);
+        Assert.Contains("This is not", message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("MCP_MSBUILD_SDK_MISMATCH", message, StringComparison.Ordinal);
+        Assert.Contains("GuiTestAppBl.sln", message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("1.0.35", message, StringComparison.Ordinal);
+        Assert.Contains("SDK-style", message, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Successfully loaded", message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FormatCaughtException_prefers_build_host_report()
+    {
+        var inner = new InvalidOperationException(
+            "The type initializer for 'Microsoft.Build.Shared.XMakeElements' threw an exception.");
+        var wrapped = new RoslynMsBuildBuildHostException(
+            WorkspaceLoadGuidance.FormatRoslynMsBuildBuildHostFailureMessage(@"C:\app.sln"),
+            inner);
+
+        var formatted = WorkspaceLoadGuidance.FormatCaughtException(
+            wrapped,
+            fallback: "Failed to find references for `Foo`: boom");
+
+        Assert.Contains("VS 2026 / MSBuild 18 BuildHost", formatted, StringComparison.Ordinal);
+        Assert.DoesNotContain("Failed to find references", formatted, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void FormatEmptyTestListMessage_flags_csproj_scope()
     {
         var message = WorkspaceLoadGuidance.FormatEmptyTestListMessage(

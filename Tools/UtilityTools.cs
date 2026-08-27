@@ -256,6 +256,7 @@ public sealed class UtilityTools
     [Description(
         "Returns the source of the first method matching `methodName` inside `className` in a file "
         + "(no overload selection — first match wins; use `update_method_body` with `parameterTypes` when overloads matter). "
+        + "Reads **disk** (same as `get_file_content`), not the Roslyn index — unsaved editor buffers are not included. "
         + "Prefers this over reading the whole file for large sources.")]
     public async Task<string> GetMethodBody(
         [Description("Absolute path or workspace-relative path to the C# source file (same parameter name as get_file_content / read_file_range).")] string filePath,
@@ -737,7 +738,8 @@ public sealed class UtilityTools
 
     [McpServerTool(Name = "apply_patch", Title = "ApplyPatch")]
     [Description(
-        "Replaces `oldString` with `newString` in a file (the only search-and-replace tool; use `replaceAll=false` for a single occurrence, `replaceAll=true` for all matches). Line endings are normalized for matching (`\\r\\n` → `\\n`); output preserves CRLF when the file used it. Tries exact match on normalized text first, then whitespace-tolerant token matching (string literals with internal spaces may not match). replaceAll continues after each insert (does not rescan the replacement), so `Foo` → `Ns.Foos` is safe.")]
+        "Replaces `oldString` with `newString` in a file (the only search-and-replace tool; use `replaceAll=false` for a single occurrence, `replaceAll=true` for all matches). Line endings are normalized for matching (`\\r\\n` → `\\n`); output preserves CRLF when the file used it. Tries exact match on normalized text first, then whitespace-tolerant token matching (string literals with internal spaces may not match). replaceAll continues after each insert (does not rescan the replacement), so `Foo` → `Ns.Foos` is safe. "
+        + "Writes disk and updates the in-memory workspace for files already in the loaded solution.")]
     public async Task<string> ApplyPatch(
         [Description("Absolute path or workspace-relative path to the file that should be patched.")] string filePath,
         [Description("Source fragment to find (exact or whitespace-tolerant; see tool description).")] string oldString,
@@ -833,6 +835,7 @@ public sealed class UtilityTools
                 return ToolTelemetry.TraceAndReturn(nameof(ApplyPatch), "No changes were applied.");
             }
 
+            _solutionManager.SuppressDiskWatchForPath(fullPath);
             await File.WriteAllTextAsync(fullPath, updatedRaw, cancellationToken);
             var writeMs = started.ElapsedMilliseconds;
             await _solutionManager.UpdateDocumentInMemoryAsync(fullPath, updatedRaw, cancellationToken);
@@ -865,7 +868,8 @@ public sealed class UtilityTools
     [McpServerTool(Name = "run_format", Title = "RunFormat")]
     [Description(
         "Runs `dotnet format` to stabilize code style after edits. Supports verify-only mode (`--verify-no-changes`). "
-        + "Fixed process timeout 300s. Prefer after bulk AST/patch edits.")]
+        + "Fixed process timeout 300s. Prefer after bulk AST/patch edits. "
+        + "When not `verifyOnly`, formatted `.cs` on disk are picked up by the next symbol search without `reset_workspace`.")]
     public async Task<string> RunFormat(
         [Description("Path to a .sln, .slnx, .csproj, or directory — same parameter name as `load_workspace` / `run_dotnet_test` (directories allowed here; `run_dotnet_build` requires a file).")] string workspacePath,
         [Description("When true, checks formatting without changing files (`--verify-no-changes`).")] bool verifyOnly = false,
@@ -930,6 +934,7 @@ public sealed class UtilityTools
     [Description(
         "Performs semantic C# symbol rename using Roslyn (types, members, namespaces as symbols — not project folders or docs). " +
         "Can preview impacted locations before applying changes, and can scope updates to a project or entire solution. " +
+        "Applies **saved** `.cs` from disk before resolving the symbol. " +
         "For directory/.csproj/solution graph renames use `rename_project`. For README/rules/URLs use host Grep/edit.")]
     public async Task<string> RenameSymbol(
         [Description("Path to a C# file containing the target symbol declaration or usage.")] string filePath,
@@ -1086,6 +1091,7 @@ public sealed class UtilityTools
 
             foreach (var (doc, text) in changedDocs)
             {
+                _solutionManager.SuppressDiskWatchForPath(doc.FilePath!);
                 await File.WriteAllTextAsync(doc.FilePath!, text, cancellationToken);
                 await _solutionManager.UpdateDocumentInMemoryAsync(doc.FilePath!, text, cancellationToken);
             }

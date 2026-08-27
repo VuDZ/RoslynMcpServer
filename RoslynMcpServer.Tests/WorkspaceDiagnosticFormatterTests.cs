@@ -216,6 +216,18 @@ public sealed class WorkspaceDiagnosticFormatterTests
     }
 
     [Fact]
+    public void IsBlockingLoadFailure_true_for_xmakeelements_buildhost_crash()
+    {
+        const string msg =
+            "An exception of type System.TypeInitializationException was thrown: "
+            + "The type initializer for 'Microsoft.Build.Shared.XMakeElements' threw an exception.";
+        var formatted = WorkspaceDiagnosticFormatter.Format("Failure", msg);
+        Assert.StartsWith("Failure:", formatted, StringComparison.Ordinal);
+        Assert.True(WorkspaceDiagnosticFormatter.IsBlockingLoadFailure(formatted));
+        Assert.True(WorkspaceDiagnosticFormatter.IsHardMsBuildLoadFailure(msg));
+    }
+
+    [Fact]
     public void IsBlockingLoadFailure_true_for_unwrapped_generic_failure()
     {
         var formatted = WorkspaceDiagnosticFormatter.Format("Failure", "Unable to open the solution cache.");

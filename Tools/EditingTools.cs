@@ -18,7 +18,8 @@ public sealed class EditingTools
 
     [McpServerTool(Name = "update_file_content", Title = "Write / overwrite file")]
     [Description(
-        "Writes full file content. Creates a **new file** if `filePath` does not exist, or overwrites an existing file. **Creates all missing parent directories** (e.g. `Services/NewFolder/IUserRepository.cs`). Safe for refactoring that adds new types; no separate mkdir tool is required.")]
+        "Writes full file content. Creates a **new file** if `filePath` does not exist, or overwrites an existing file. **Creates all missing parent directories** (e.g. `Services/NewFolder/IUserRepository.cs`). Safe for refactoring that adds new types; no separate mkdir tool is required. "
+        + "Existing `.cs` already in the loaded workspace are updated in memory immediately. A **new** `.cs` under a loaded project is added to the semantic index on the next `find_symbol_*` / `get_class_skeleton` (disk watcher) — no `reset_workspace`.")]
     public async Task<string> WriteFile(
         [Description("Target file path (new or existing). Same JSON key `filePath` as get_file_content / apply_patch.")]
         string filePath,
@@ -42,6 +43,7 @@ public sealed class EditingTools
             }
 
             var text = content ?? string.Empty;
+            _solutionManager.SuppressDiskWatchForPath(fullPath);
             await File.WriteAllTextAsync(fullPath, text, cancellationToken);
 
             try
