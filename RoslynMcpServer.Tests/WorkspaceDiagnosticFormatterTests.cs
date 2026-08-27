@@ -140,4 +140,86 @@ public sealed class WorkspaceDiagnosticFormatterTests
             @"C:\src\Contracts.csproj",
             WorkspaceDiagnosticFormatter.TryGetProcessedProjectPath(formatted));
     }
+
+    [Fact]
+    public void Format_include_openapi_analyzers_deprecation_as_design_time_warning()
+    {
+        const string msg =
+            "Msbuild failed when processing the file "
+            + "'C:\\data\\ast\\monorepo\\src\\infrastructure\\kpc\\eis\\Src\\EcomIntegrationService.TrustedParty.Api\\EcomIntegrationService.TrustedParty.Api.csproj' "
+            + "with message: The IncludeOpenAPIAnalyzers property and its associated MVC API analyzers are deprecated and will be removed in a future release.";
+        var formatted = WorkspaceDiagnosticFormatter.Format("Failure", msg);
+        Assert.StartsWith("Warning (MSBuild design-time):", formatted, StringComparison.Ordinal);
+        Assert.False(WorkspaceDiagnosticFormatter.IsBlockingLoadFailure(formatted));
+    }
+
+    [Fact]
+    public void IsBlockingLoadFailure_false_for_aspdepr007_warning_code()
+    {
+        const string msg =
+            "Msbuild failed when processing the file 'Foo.Api.csproj' with message: "
+            + "warning ASPDEPR007: The IncludeOpenAPIAnalyzers property and its associated MVC API analyzers "
+            + "are deprecated and will be removed in a future release.";
+        var formatted = WorkspaceDiagnosticFormatter.Format("Failure", msg);
+        Assert.StartsWith("Warning (MSBuild design-time):", formatted, StringComparison.Ordinal);
+        Assert.False(WorkspaceDiagnosticFormatter.IsBlockingLoadFailure(formatted));
+    }
+
+    [Fact]
+    public void Format_processor_architecture_mismatch_as_design_time_warning()
+    {
+        const string msg =
+            "Msbuild failed when processing the file "
+            + "'C:\\data\\ast\\monorepo\\src\\infrastructure\\kpc\\eis\\Src\\EcomIntegrationService.Consumers.Tests\\EcomIntegrationService.Consumers.Tests.csproj' "
+            + "with message: There was a mismatch between the processor architecture of the project being built \"MSIL\" "
+            + "and the processor architecture of the reference "
+            + "\"C:\\data\\ast\\monorepo\\src\\infrastructure\\kpc\\eis\\Src\\EcomIntegrationService.Consumers\\bin\\Debug\\net10.0\\ProducerConsumer.Eis.Consumers.dll\", "
+            + "\"AMD64\". This mismatch may cause runtime failures. Please consider changing the targeted processor architecture "
+            + "of your project through the Configuration Manager so as to align the processor architectures between your project and references, "
+            + "or take a dependency on references with a processor architecture that matches the targeted processor architecture of your project.";
+        var formatted = WorkspaceDiagnosticFormatter.Format("Failure", msg);
+        Assert.StartsWith("Warning (MSBuild design-time):", formatted, StringComparison.Ordinal);
+        Assert.False(WorkspaceDiagnosticFormatter.IsBlockingLoadFailure(formatted));
+    }
+
+    [Fact]
+    public void Format_analyzer_project_without_metadata_reference_as_design_time_warning()
+    {
+        const string msg =
+            "Found project reference without a matching metadata reference: "
+            + @"C:\data\ast\monorepo\src\infrastructure\kpc\eis\Src\EcomIntegrationService.Analyzers\EcomIntegrationService.Analyzers.csproj";
+        var formatted = WorkspaceDiagnosticFormatter.Format("Failure", msg);
+        Assert.StartsWith("Warning (MSBuild design-time):", formatted, StringComparison.Ordinal);
+        Assert.False(WorkspaceDiagnosticFormatter.IsBlockingLoadFailure(formatted));
+    }
+
+    [Fact]
+    public void Format_unknown_wrapped_message_without_error_code_as_design_time_warning()
+    {
+        const string msg =
+            "Msbuild failed when processing the file 'Foo.csproj' with message: "
+            + "Some future SDK advisory without an MSBuild code.";
+        var formatted = WorkspaceDiagnosticFormatter.Format("Failure", msg);
+        Assert.StartsWith("Warning (MSBuild design-time):", formatted, StringComparison.Ordinal);
+        Assert.False(WorkspaceDiagnosticFormatter.IsBlockingLoadFailure(formatted));
+    }
+
+    [Fact]
+    public void IsBlockingLoadFailure_true_for_wrapped_sdk_not_found()
+    {
+        const string msg =
+            "Msbuild failed when processing the file 'Foo.csproj' with message: "
+            + "The SDK 'Microsoft.NET.Sdk' specified could not be found.";
+        var formatted = WorkspaceDiagnosticFormatter.Format("Failure", msg);
+        Assert.StartsWith("Failure:", formatted, StringComparison.Ordinal);
+        Assert.True(WorkspaceDiagnosticFormatter.IsBlockingLoadFailure(formatted));
+    }
+
+    [Fact]
+    public void IsBlockingLoadFailure_true_for_unwrapped_generic_failure()
+    {
+        var formatted = WorkspaceDiagnosticFormatter.Format("Failure", "Unable to open the solution cache.");
+        Assert.StartsWith("Failure:", formatted, StringComparison.Ordinal);
+        Assert.True(WorkspaceDiagnosticFormatter.IsBlockingLoadFailure(formatted));
+    }
 }
