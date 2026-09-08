@@ -84,6 +84,10 @@ Restart OpenCode or reload MCP servers after running the script.
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.1.1
+
+- **`explore_assembly` / decompile `assemblyName`** — dotted simple names (`Spectre.Console`, `Newtonsoft.Json`) are no longer truncated at the last `.`. Only a trailing `.dll` / `.exe` is stripped; previously `Path.GetFileNameWithoutExtension` looked for `Spectre.dll`.
+
 ### v1.1.0
 
 - **Disk sync for saved `.cs`** — after `load_workspace`, a `FileSystemWatcher` records dirty source paths (not every keystroke: unsaved editor buffers are ignored). Before `find_symbol_*` / `find_usages` / `get_class_skeleton` / test discovery, only those files are read and applied with one `TryApplyChanges`. Host/git/`dotnet format` edits of existing files show up without `reset_workspace`. New `.cs` under a project folder are `AddDocument`’d; deleted files are removed. `.csproj`/`.sln`/`Directory.Build.props` set a graph-stale hint and skip the `load_workspace` cache — still no automatic `OpenSolutionAsync` from the watcher. `reset_workspace` remains for generated `obj` files after build. Linux uses inotify (watch-limit errors log and degrade; they do not crash the process).
@@ -911,7 +915,7 @@ cd D:\Devel\YourApp
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.1.0). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.1.1). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 

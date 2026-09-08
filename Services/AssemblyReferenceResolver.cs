@@ -40,7 +40,7 @@ public static class AssemblyReferenceResolver
                 "Error: no active workspace. Call `load_workspace` first, or pass `assemblyPath` to a `.dll` on disk.");
         }
 
-        var targetAssemblyName = Path.GetFileNameWithoutExtension(assemblyName.Trim());
+        var targetAssemblyName = NormalizeAssemblySimpleName(assemblyName);
         var dllPath = ResolveFromSolution(solution, targetAssemblyName)
             ?? DepsJsonAssemblyPathResolver.TryResolveFromSolution(solution, targetAssemblyName)
             ?? NuGetFallbackAssemblyResolver.TryFindAssemblyDll(targetAssemblyName);
@@ -62,6 +62,23 @@ public static class AssemblyReferenceResolver
         }
 
         return new ResolveResult(true, dllPath, null);
+    }
+
+    /// <summary>
+    /// Simple assembly name for exact `{name}.dll` lookup. Strips only a trailing
+    /// <c>.dll</c>/<c>.exe</c>; dotted names such as <c>Spectre.Console</c> stay intact
+    /// (<see cref="Path.GetFileNameWithoutExtension"/> would treat <c>.Console</c> as an extension).
+    /// </summary>
+    internal static string NormalizeAssemblySimpleName(string assemblyName)
+    {
+        var fileName = Path.GetFileName(assemblyName.Trim());
+        if (fileName.EndsWith(".dll", StringComparison.OrdinalIgnoreCase)
+            || fileName.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+        {
+            return Path.GetFileNameWithoutExtension(fileName);
+        }
+
+        return fileName;
     }
 
     private static string? ResolveFromSolution(Solution solution, string targetAssemblyName)

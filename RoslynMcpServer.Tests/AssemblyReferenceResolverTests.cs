@@ -35,4 +35,23 @@ public sealed class AssemblyReferenceResolverTests
         Assert.Contains("assemblyName", result.ErrorMessage!, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("Spectre.Console", "Spectre.Console")]
+    [InlineData("Spectre.Console.dll", "Spectre.Console")]
+    [InlineData("Spectre.Console.DLL", "Spectre.Console")]
+    [InlineData("Newtonsoft.Json", "Newtonsoft.Json")]
+    [InlineData("System", "System")]
+    [InlineData("  Microsoft.TeamFoundation.Client  ", "Microsoft.TeamFoundation.Client")]
+    [InlineData("MyTool.exe", "MyTool")]
+    public void NormalizeAssemblySimpleName_keeps_dotted_simple_names(string input, string expected)
+    {
+        Assert.Equal(expected, AssemblyReferenceResolver.NormalizeAssemblySimpleName(input));
+    }
+
+    [Fact]
+    public void NormalizeAssemblySimpleName_strips_dll_from_file_path()
+    {
+        var path = Path.Combine("lib", "net8.0", "Spectre.Console.dll");
+        Assert.Equal("Spectre.Console", AssemblyReferenceResolver.NormalizeAssemblySimpleName(path));
+    }
 }
