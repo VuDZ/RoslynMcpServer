@@ -138,6 +138,41 @@ public sealed class DotNetTestArgumentsTests
     }
 
     [Fact]
+    public void Build_testAssemblyPath_replaces_target()
+    {
+        const string dll = @"C:\out\Foo.Tests.dll";
+        var args = DotNetTestArguments.Build(
+            Target,
+            filter: "TestCategory=Smoke",
+            noBuild: true,
+            testAssemblyPath: dll);
+
+        Assert.Equal(
+            $"test \"{dll}\" --logger \"console;verbosity=normal\" --verbosity normal --no-build --filter \"TestCategory=Smoke\"",
+            args);
+        Assert.DoesNotContain(Target, args, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void BuildPlan_testAssemblyPath_skips_pre_test_build()
+    {
+        const string dll = @"C:\out\Foo.Tests.dll";
+        var plan = DotNetTestArguments.BuildPlan(
+            Target,
+            filter: "FullyQualifiedName~Foo",
+            noBuild: false,
+            noRestore: false,
+            configuration: "Sit-Debug",
+            testAssemblyPath: dll);
+
+        Assert.False(plan.IncludesPreTestBuild);
+        Assert.Null(plan.PreTestBuildArguments);
+        Assert.Equal(
+            $"test \"{dll}\" --logger \"console;verbosity=normal\" --verbosity normal -c \"Sit-Debug\" --no-build --filter \"FullyQualifiedName~Foo\"",
+            plan.TestArguments);
+    }
+
+    [Fact]
     public void BuildPlan_noBuild_true_skips_pre_test_build()
     {
         var plan = DotNetTestArguments.BuildPlan(Target, noBuild: true, noRestore: false);

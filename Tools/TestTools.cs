@@ -48,6 +48,7 @@ public sealed class TestTools
             noRestore,
             configuration,
             platform,
+            binariesPath: null,
             cancellationToken);
     }
 
@@ -100,6 +101,7 @@ public sealed class TestTools
                     noRestore,
                     configuration,
                     platform,
+                    binariesPath: null,
                     cancellationToken)
                 .ConfigureAwait(false);
         }
@@ -115,6 +117,52 @@ public sealed class TestTools
             _logger.LogError(ex, "RunSpecificTest failed for {WorkspacePath}", workspacePath);
             return ToolTelemetry.TraceAndReturn(toolName, $"Failed to run specific test: {ex.Message}");
         }
+    }
+
+    [McpServerTool(Name = "run_test_by_filter", Title = "Run tests by VSTest filter")]
+    [Description(
+        "Runs dotnet test with a raw VSTest --filter. Executes a process. "
+        + "Prefer run_specific_test for one class or method. Omit configuration/platform to inherit load_workspace.")]
+    public Task<string> RunTestByFilter(
+        [Description("Path to a .csproj, .sln, .slnx, or test project directory.")]
+        string workspacePath,
+        [Description("VSTest --filter string, passed through (e.g. FullyQualifiedName~MyClass).")]
+        string filter,
+        [Description("Process timeout in seconds. 0 disables timeout.")]
+        int timeoutSeconds = DotNetCliRunner.DefaultTimeoutSeconds,
+        [Description("Skip rebuild. Default true. Use after a successful run_dotnet_build.")]
+        bool noBuild = true,
+        [Description("Skip NuGet restore.")]
+        bool noRestore = false,
+        [Description("MSBuild Configuration. Omit to inherit load_workspace.")]
+        string? configuration = null,
+        [Description("MSBuild Platform. Omit to inherit load_workspace.")]
+        string? platform = null,
+        [Description("Optional bin directory with the test DLL. Requires loaded .sln/.slnx and a .csproj workspacePath.")]
+        string? binariesPath = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(filter))
+        {
+            return Task.FromResult(
+                ToolTelemetry.TraceAndReturn(
+                    nameof(RunTestByFilter),
+                    "Error: `filter` is empty."));
+        }
+
+        return ExecuteDotnetTestAsync(
+            nameof(RunTestByFilter),
+            workspacePath,
+            filter.Trim(),
+            "Caller-supplied VSTest filter",
+            requireFilterMatch: false,
+            timeoutSeconds,
+            noBuild,
+            noRestore,
+            configuration,
+            platform,
+            binariesPath,
+            cancellationToken);
     }
 
     [McpServerTool(Name = "get_test_list", Title = "List tests in workspace")]
@@ -229,6 +277,7 @@ public sealed class TestTools
         bool noRestore,
         string? configuration,
         string? platform,
+        string? binariesPath,
         CancellationToken cancellationToken)
     {
         try
@@ -238,7 +287,7 @@ public sealed class TestTools
                 return ToolTelemetry.TraceAndReturn(toolName, "Error: `workspacePath` is empty.");
             }
 
-            var fullPath = Path.GetFullPath(workspacePath);
+            var fullPath = _solutionManager.ResolvePathAgainstWorkspace(workspacePath);
             if (!File.Exists(fullPath) && !Directory.Exists(fullPath))
             {
                 return ToolTelemetry.TraceAndReturn(toolName, $"Path not found: `{fullPath}`");
@@ -265,6 +314,30 @@ public sealed class TestTools
                 ? fullPath
                 : WorkspaceRootResolver.FindSolutionOrProjectInDirectory(fullPath) ?? fullPath;
 
+            string? testAssemblyPath = null;
+            string? resolvedBinariesPath = null;
+            if (!string.IsNullOrWhiteSpace(binariesPath))
+            {
+                resolvedBinariesPath = _solutionManager.ResolvePathAgainstWorkspace(binariesPath);
+                var solution = await _solutionManager.GetCurrentSolutionAfterDiskSyncAsync(cancellationToken)
+                    .ConfigureAwait(false);
+                var projects = (solution?.Projects ?? Enumerable.Empty<Microsoft.CodeAnalysis.Project>())
+                    .Select(p => new TestAssemblyPathResolver.ProjectHint(p.FilePath, p.AssemblyName));
+                var resolved = TestAssemblyPathResolver.TryResolve(
+                    _solutionManager.GetLoadedWorkspacePath(),
+                    targetPath,
+                    resolvedBinariesPath,
+                    projects);
+                if (!resolved.Success)
+                {
+                    return ToolTelemetry.TraceAndReturn(
+                        toolName,
+                        resolved.ErrorMessage ?? "Error: could not resolve `binariesPath`.");
+                }
+
+                testAssemblyPath = resolved.AssemblyPath;
+            }
+
             DotNetTestArguments.CliPlan plan;
             string? effectiveConfiguration;
             string? effectivePlatform;
@@ -281,7 +354,8 @@ public sealed class TestTools
                     noRestore,
                     effectiveConfiguration,
                     effectivePlatform,
-                    _solutionManager.LoadedBuildArgs);
+                    _solutionManager.LoadedBuildArgs,
+                    testAssemblyPath);
             }
             catch (ArgumentException ex)
             {
@@ -296,6 +370,14 @@ public sealed class TestTools
                 + $"- **BuildArgs:** {DotNetBuildArguments.FormatMetadata(_solutionManager.LoadedBuildArgs)}"
                 + Environment.NewLine
                 + $"- **PreTestBuild:** {(plan.IncludesPreTestBuild ? "yes (`dotnet build` then `dotnet test --no-build`)" : "skipped (`noBuild=true`)")}";
+            if (!string.IsNullOrWhiteSpace(resolvedBinariesPath))
+            {
+                extraMeta +=
+                    Environment.NewLine
+                    + $"- **BinariesPath:** {resolvedBinariesPath}"
+                    + Environment.NewLine
+                    + $"- **TestAssembly:** {testAssemblyPath}";
+            }
 
             TimeSpan? timeout = timeoutSeconds > 0 ? TimeSpan.FromSeconds(timeoutSeconds) : null;
             var sw = System.Diagnostics.Stopwatch.StartNew();

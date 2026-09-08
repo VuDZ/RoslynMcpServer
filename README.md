@@ -82,7 +82,7 @@ Restart OpenCode or reload MCP servers after running the script.
 
 ## Tool profiles
 
-Default is **`full`** (every public tool). A **`lite`** session starts with the 18-tool core so local models spend less context on `tools/list`. Extra groups can be added at process start or, on clients that honor `notifications/tools/list_changed`, during the session.
+Default is **`full`** (every public tool). A **`lite`** session starts with the 19-tool core so local models spend less context on `tools/list`. Extra groups can be added at process start or, on clients that honor `notifications/tools/list_changed`, during the session.
 
 | Variable | Values | Effect |
 | --- | --- | --- |
@@ -95,7 +95,7 @@ Portable OpenCode examples: [`opencode.json.sample`](opencode.json.sample) (`ros
 
 | Group | Intent | Tools |
 | --- | --- | ---: |
-| `core` | Workspace, navigation, build, test, help | 18 (lite default) |
+| `core` | Workspace, navigation, build, test, help | 19 (lite default) |
 | `files` | Disk read, search, patch | 7 |
 | `editing` | AST edits, code fixes, format, rename | 17 |
 | `decompile` | Third-party assemblies | 4 |
@@ -112,11 +112,16 @@ Portable OpenCode examples: [`opencode.json.sample`](opencode.json.sample) (`ros
 
 MCP `tools/list` stays JSON + JSON Schema. Markdown is for JIT help and diagnostics.
 
-**Client compatibility:** do not assume the host refreshes tools after `tools/list_changed`. If a newly enabled tool is missing from the client's catalog, restart with `ROSLYN_MCP_TOOL_GROUPS=<group>` (and `ROSLYN_MCP_TOOL_PROFILE=lite`). Measured minified `tools/list` (UTF-8): full **62 / 39,408** (~38.5 KB); lite **18 / 12,173** (~11.9 KB). Adding `editing` to lite is ~22.5 KB (above the 20 KB *startup-lite* budget; expected).
+**Client compatibility:** do not assume the host refreshes tools after `tools/list_changed`. If a newly enabled tool is missing from the client's catalog, restart with `ROSLYN_MCP_TOOL_GROUPS=<group>` (and `ROSLYN_MCP_TOOL_PROFILE=lite`). Measured minified `tools/list` (UTF-8): full **63 / 41,139** (~40.2 KB); lite **19 / 13,904** (~13.6 KB). Adding `editing` to lite is ~24.2 KB (above the 20 KB *startup-lite* budget; expected).
 
 ## Agent tools by version
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
+
+### v1.3.0
+
+- **`run_test_by_filter`** — New tool. Passes a raw VSTest `--filter` to `dotnet test` (`FullyQualifiedName~MyClass`, `TestCategory=Smoke`, …). Default `noBuild=true`. Optional `binariesPath` is a bin directory: requires a loaded `.sln`/`.slnx` and a `.csproj` `workspacePath`; runs `{AssemblyName}.dll` from that directory (no pre-test build). Prefer `run_specific_test` for one class or method.
+- **Catalog size** — minified `tools/list` UTF-8: full 63 tools / 41,139 bytes; lite 19 / 13,904.
 
 ### v1.2.3
 
@@ -308,7 +313,7 @@ Policy summary (full text in the sample):
 - `directoryPath` — root folder (`list_directory_tree`, optional root for `search_code`).
 - `includeExtensions` — optional extension filter for `search_code` (`.cs` by default; `*` = all files).
 - `caseSensitive` — optional for `search_code` (default `false`; use `true` for leftover branding checks).
-- `workspacePath` — `.sln` / `.slnx` / `.csproj` (and sometimes a directory): `load_workspace`, `run_dotnet_test`, `run_specific_test`, `run_format`, optional reload for `list_projects` / `get_project_graph`. **`run_dotnet_build` accepts only a `.csproj`, `.sln`, or `.slnx` file path, not a directory.** Prefer `.sln`/`.slnx` for multi-config solutions.
+- `workspacePath` — `.sln` / `.slnx` / `.csproj` (and sometimes a directory): `load_workspace`, `run_dotnet_test`, `run_specific_test`, `run_test_by_filter`, `run_format`, optional reload for `list_projects` / `get_project_graph`. **`run_dotnet_build` accepts only a `.csproj`, `.sln`, or `.slnx` file path, not a directory.** Prefer `.sln`/`.slnx` for multi-config solutions.
 - `symbolName` — C# identifier for `find_symbol_definition`, `find_symbol_references`, `find_usages`, and `find_implementations` (exact name; matching is case-insensitive for definition/usages/implementations).
 - `diagnosticId` — compiler/analyzer id from `get_diagnostics_for_file` (e.g. `CS0246`) for `get_code_fixes` / `apply_code_fix`.
 - `fixIndex` — 0-based index from `get_code_fixes` for `apply_code_fix`.
@@ -316,7 +321,7 @@ Policy summary (full text in the sample):
 
 When a tool accepts `filePath`, relative values are resolved against the loaded workspace root after `load_workspace`; if no workspace is loaded, fallback is `Environment.CurrentDirectory`.
 
-There are **62** registered tools in the default `full` profile (see list below) and **1** MCP prompt (`RefactoringAssistantPrompt`). A `lite` profile starts with **18** core tools; extra groups use `ROSLYN_MCP_TOOL_GROUPS` or `enable_tool_group`.
+There are **63** registered tools in the default `full` profile (see list below) and **1** MCP prompt (`RefactoringAssistantPrompt`). A `lite` profile starts with **19** core tools; extra groups use `ROSLYN_MCP_TOOL_GROUPS` or `enable_tool_group`.
 
 ### Workspace / Roslyn
 
@@ -654,7 +659,24 @@ Parses C# syntax, inserts with DocumentEditor, formats the file. Prefer over `ap
 
 At least one of `className` or `methodName` is required. The tool builds a VSTest-safe `--filter` internally (`FullyQualifiedName~…`, no method `()`, no extra leading `.` on dotted names). After `load_workspace`, Roslyn resolves the type/method FQN when possible.
 
-**Model guidance:** use this for TDD red/green loops — do not run the full suite and do not craft VSTest filter strings manually. Prefer `className` + short `methodName`. After build, prefer `noBuild=true` for faster filtered re-runs. Same pre-test build split as `run_dotnet_test` when `noBuild=false`.
+**Model guidance:** use this for TDD red/green loops — do not run the full suite. For a raw VSTest `--filter` (`TestCategory=Smoke`, `FullyQualifiedName~…`) use `run_test_by_filter`. Prefer `className` + short `methodName`. After build, prefer `noBuild=true` for faster filtered re-runs. Same pre-test build split as `run_dotnet_test` when `noBuild=false`.
+
+</details>
+
+<details>
+<summary><code>run_test_by_filter</code> — Run dotnet test with a raw VSTest <code>--filter</code>.</summary>
+
+**Parameters:**
+- `workspacePath: string` — `.csproj`, `.sln`, `.slnx`, or test project directory (same as `run_dotnet_test`).
+- `filter: string` — passed through as `--filter` (e.g. `FullyQualifiedName~MyClass`, `FullyQualifiedName~CreateUser`, `TestCategory=Smoke`). Empty is an error. Do not put method `()`.
+- `timeoutSeconds: int = 300` — same as `run_dotnet_test`.
+- `noBuild: bool = true` — skip rebuild (default **true**, unlike the other test tools).
+- `noRestore: bool = false` — `--no-restore`.
+- `configuration: string? = null` — optional `dotnet test -c`. Omit to inherit `load_workspace`.
+- `platform: string? = null` — optional `-p:Platform=`. Omit to inherit `load_workspace`.
+- `binariesPath: string? = null` — optional bin directory containing the test DLL. Requires a loaded `.sln`/`.slnx` and a `.csproj` `workspacePath`. Runs `{AssemblyName}.dll` from that directory; skips pre-test build.
+
+**Behavior:** Same VSTest parser and pre-test build split as `run_dotnet_test` when `binariesPath` is omitted and `noBuild=false`. Does **not** check that the filter needle appears in a test FQN (category filters would false-positive). Prefer `run_specific_test` for one class or method.
 
 </details>
 
@@ -871,7 +893,7 @@ Verify id/version with `search_nuget_registry` first. Clears workspace cache —
 
 **Parameters:** *(none)*
 
-Use after `dotnet publish` to verify the MCP host picked up the new binary (expect **v1.2.3** and **62** tools on `full`, or **18** on `lite`).
+Use after `dotnet publish` to verify the MCP host picked up the new binary (expect **v1.3.0** and **63** tools on `full`, or **19** on `lite`).
 
 </details>
 
@@ -1006,7 +1028,7 @@ cd D:\Devel\YourApp
 
 ## Профили инструментов
 
-По умолчанию **`full`** (все публичные тулы). **`lite`** стартует с 18 core-тулов. Дополнительные группы — при старте процесса или, если клиент обрабатывает `notifications/tools/list_changed`, во время сессии.
+По умолчанию **`full`** (все публичные тулы). **`lite`** стартует с 19 core-тулов. Дополнительные группы — при старте процесса или, если клиент обрабатывает `notifications/tools/list_changed`, во время сессии.
 
 | Переменная | Значения | Эффект |
 | --- | --- | --- |
@@ -1019,7 +1041,7 @@ cd D:\Devel\YourApp
 
 | Группа | Назначение | Тулов |
 | --- | --- | ---: |
-| `core` | workspace, навигация, build, test, help | 18 (lite по умолчанию) |
+| `core` | workspace, навигация, build, test, help | 19 (lite по умолчанию) |
 | `files` | чтение/поиск/патч с диска | 7 |
 | `editing` | AST, code fixes, format, rename | 17 |
 | `decompile` | сторонние сборки | 4 |
@@ -1028,11 +1050,11 @@ cd D:\Devel\YourApp
 | `runtime` | `run`, список тестов, сырой `dotnet` | 3 |
 | `operations` | логи, scratchpad, stop | 4 |
 
-`list_tool_groups` / `get_tool_help` / `enable_tool_group` — Markdown-справка и runtime-включение. `tools/list` остаётся JSON Schema. Если клиент не обновляет список после `tools/list_changed`, перезапустите с `ROSLYN_MCP_TOOL_GROUPS=<group>`. Замеры minified UTF-8: full **62 / 39 408**; lite **18 / 12 173**.
+`list_tool_groups` / `get_tool_help` / `enable_tool_group` — Markdown-справка и runtime-включение. `tools/list` остаётся JSON Schema. Если клиент не обновляет список после `tools/list_changed`, перезапустите с `ROSLYN_MCP_TOOL_GROUPS=<group>`. Замеры minified UTF-8: full **63 / 41 139**; lite **19 / 13 904**.
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.2.3). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.3.0). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 
@@ -1067,13 +1089,13 @@ cd D:\Devel\YourApp
 - `directoryPath` — корневая папка (`list_directory_tree`, опционально корень для `search_code`).
 - `includeExtensions` — опциональный фильтр расширений для `search_code` (по умолчанию `.cs`; `*` = все файлы).
 - `caseSensitive` — опционально для `search_code` (по умолчанию `false`; для leftover branding — `true`).
-- `workspacePath` — `.sln` / `.slnx` / `.csproj` (и иногда каталог): `load_workspace`, `run_dotnet_test`, `run_specific_test`, `run_format`, опциональная перезагрузка в `list_projects` / `get_project_graph`. **`run_dotnet_build` принимает только путь к файлу `.csproj`, `.sln` или `.slnx`, не каталог.** Для multi-config solution предпочитайте `.sln`/`.slnx`.
+- `workspacePath` — `.sln` / `.slnx` / `.csproj` (и иногда каталог): `load_workspace`, `run_dotnet_test`, `run_specific_test`, `run_test_by_filter`, `run_format`, опциональная перезагрузка в `list_projects` / `get_project_graph`. **`run_dotnet_build` принимает только путь к файлу `.csproj`, `.sln` или `.slnx`, не каталог.** Для multi-config solution предпочитайте `.sln`/`.slnx`.
 - `symbolName` — идентификатор C# для `find_symbol_definition`, `find_symbol_references`, `find_usages` и `find_implementations` (точное имя; регистр не важен для definition/usages/implementations).
 - `diagnosticId` — id компилятора/анализатора из `get_diagnostics_for_file` (например `CS0246`) для `get_code_fixes` / `apply_code_fix`.
 - `fixIndex` — индекс (0-based) из `get_code_fixes` для `apply_code_fix`.
 - `path` — файл `.cs` или каталог для `get_code_skeleton` (абсолютный путь; с диска, workspace не обязателен).
 
-Зарегистрировано **62** инструмента в профиле `full` (список ниже) и **1** MCP-промпт (`RefactoringAssistantPrompt`). Профиль `lite` стартует с **18** core-тулов; остальные группы — `ROSLYN_MCP_TOOL_GROUPS` или `enable_tool_group`.
+Зарегистрировано **63** инструмента в профиле `full` (список ниже) и **1** MCP-промпт (`RefactoringAssistantPrompt`). Профиль `lite` стартует с **19** core-тулов; остальные группы — `ROSLYN_MCP_TOOL_GROUPS` или `enable_tool_group`.
 
 ### Workspace / Roslyn
 
@@ -1406,7 +1428,24 @@ cd D:\Devel\YourApp
 
 Нужен хотя бы один из `className` / `methodName`. Tool строит VSTest-safe `--filter` (`FullyQualifiedName~…`, без `()` у метода, без лишней ведущей `.` на dotted FQN). После `load_workspace` Roslyn по возможности резолвит FQN типа/метода.
 
-**Для модели:** TDD/фикс бага — этот tool, не полный suite и не ручной VSTest filter. Предпочитайте `className` + короткое `methodName`. После билда предпочитайте `noBuild=true`. При `noBuild=false` — тот же split build/test, что у `run_dotnet_test`.
+**Для модели:** TDD/фикс бага — этот tool, не полный suite. Сырой VSTest `--filter` (`TestCategory=Smoke`, `FullyQualifiedName~…`) — `run_test_by_filter`. Предпочитайте `className` + короткое `methodName`. После билда предпочитайте `noBuild=true`. При `noBuild=false` — тот же split build/test, что у `run_dotnet_test`.
+
+</details>
+
+<details>
+<summary><code>run_test_by_filter</code> — dotnet test с сырым VSTest <code>--filter</code>.</summary>
+
+**Параметры:**
+- `workspacePath: string` — `.csproj`, `.sln`, `.slnx` или каталог тестового проекта (как у `run_dotnet_test`).
+- `filter: string` — передаётся в `--filter` (например `FullyQualifiedName~MyClass`, `FullyQualifiedName~CreateUser`, `TestCategory=Smoke`). Пустой — ошибка. Не ставьте `()` у метода.
+- `timeoutSeconds: int = 300` — как у `run_dotnet_test`.
+- `noBuild: bool = true` — пропуск rebuild (по умолчанию **true**, в отличие от остальных test tools).
+- `noRestore: bool = false` — `--no-restore`.
+- `configuration: string? = null` — опционально `dotnet test -c`. Если не задан — с `load_workspace`.
+- `platform: string? = null` — опционально `-p:Platform=`.
+- `binariesPath: string? = null` — каталог bin с test DLL. Нужен loaded `.sln`/`.slnx` и `workspacePath` на `.csproj`. Запускает `{AssemblyName}.dll` из этого каталога; pre-test build не выполняется.
+
+**Поведение:** тот же парсер VSTest и split build/test, что у `run_dotnet_test`, если `binariesPath` не задан и `noBuild=false`. Не проверяет, что needle фильтра есть в FQN теста (для `TestCategory` это дало бы ложный no-match). Для одного класса/метода предпочитайте `run_specific_test`.
 
 </details>
 
@@ -1619,7 +1658,7 @@ cd D:\Devel\YourApp
 
 **Параметры:** *(нет)*
 
-После `dotnet publish` — проверка, что MCP подхватил новый бинарник (ожидай **v1.2.3** и **62** tools в `full`, или **18** в `lite`).
+После `dotnet publish` — проверка, что MCP подхватил новый бинарник (ожидай **v1.3.0** и **63** tools в `full`, или **19** в `lite`).
 
 </details>
 

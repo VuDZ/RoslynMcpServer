@@ -162,6 +162,7 @@ public static class McpToolCatalog
             Core<BuildTools>("run_dotnet_build", readOnly: false, executesProcess: true),
             Core<TestTools>("run_dotnet_test", readOnly: false, executesProcess: true),
             Core<TestTools>("run_specific_test", readOnly: false, executesProcess: true),
+            Core<TestTools>("run_test_by_filter", readOnly: false, executesProcess: true),
             Core<UtilityTools>("get_changed_files", readOnly: true, executesProcess: true),
 
             Group<RoslynTools>("get_file_content", McpToolGroups.Files, readOnly: true),

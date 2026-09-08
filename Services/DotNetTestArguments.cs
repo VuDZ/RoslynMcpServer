@@ -18,11 +18,13 @@ public static class DotNetTestArguments
         bool noBuild = false,
         bool noRestore = false,
         string? configuration = null,
-        string? platform = null)
+        string? platform = null,
+        string? testAssemblyPath = null)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(targetPath);
+        var testTarget = string.IsNullOrWhiteSpace(testAssemblyPath) ? targetPath : testAssemblyPath;
+        ArgumentException.ThrowIfNullOrWhiteSpace(testTarget);
 
-        var args = $"test \"{targetPath}\" --logger \"console;verbosity=normal\" --verbosity normal";
+        var args = $"test \"{testTarget}\" --logger \"console;verbosity=normal\" --verbosity normal";
         args = DotNetConfigurationArguments.Append(args, configuration);
         args = DotNetConfigurationArguments.AppendPlatform(args, platform);
 
@@ -80,8 +82,23 @@ public static class DotNetTestArguments
         bool noRestore = false,
         string? configuration = null,
         string? platform = null,
-        string? buildArgs = null)
+        string? buildArgs = null,
+        string? testAssemblyPath = null)
     {
+        if (!string.IsNullOrWhiteSpace(testAssemblyPath))
+        {
+            return new CliPlan(
+                PreTestBuildArguments: null,
+                TestArguments: Build(
+                    targetPath,
+                    filter,
+                    noBuild: true,
+                    noRestore,
+                    configuration,
+                    platform,
+                    testAssemblyPath));
+        }
+
         if (noBuild)
         {
             return new CliPlan(
