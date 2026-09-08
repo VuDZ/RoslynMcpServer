@@ -53,7 +53,7 @@ public static class McpToolHelpCatalog
             ["load_workspace"] = new()
             {
                 Prerequisites = "workspacePath must be a .sln, .slnx, or .csproj file, not a directory.",
-                Workflow = "Call this before C# analysis. Prefer a solution file for multi-config repos. Pass targetFramework when the project uses TargetFrameworks. run_dotnet_build and run_dotnet_test inherit configuration/platform when omitted. Optional buildArgs is a session suffix for later `dotnet build` (probe and pre-test build).",
+                Workflow = "Call this before C# analysis. Prefer a solution file for multi-config repos. Pass targetFramework when the project uses TargetFrameworks. run_dotnet_build and run_dotnet_test inherit configuration/platform when omitted. Optional buildArgs is a session suffix for later `dotnet build` (probe and pre-test build). On a large .sln pass briefOutput=true to collapse MSBuild/NuGet warnings; failures still print in full.",
                 Pitfalls = "Host abort mid-load is a client timeout, not an MSBuild failure. Restore/design-time warnings do not fail load; NU/MSB/NETSDK errors do. A changed .csproj/.sln does not auto-reopen MSBuild — call again or reset_workspace. Unsaved editor buffers are ignored.",
                 RelatedTools = ["reset_workspace", "run_dotnet_build", "run_dotnet_test"],
             },

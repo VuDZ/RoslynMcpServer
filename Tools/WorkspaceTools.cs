@@ -26,7 +26,8 @@ public sealed class WorkspaceTools
     [Description(
         "Loads a .sln, .slnx, or .csproj into the semantic workspace. Call this first before C# analysis. "
         + "Optional configuration/platform/targetFramework are MSBuild global properties; targetFramework is required when the project uses TargetFrameworks. "
-        + "Optional buildArgs is a session suffix for later `dotnet build` (probe and pre-test build); do not put -c / -p:Platform / -v / --no-incremental there.")]
+        + "Optional buildArgs is a session suffix for later `dotnet build` (probe and pre-test build); do not put -c / -p:Platform / -v / --no-incremental there. "
+        + "briefOutput=true collapses MSBuild/NuGet warnings to category and code counts (default false keeps full messages). Failures always print in full.")]
     public async Task<string> LoadWorkspace(
         [Description("Path to a .sln, .slnx, or .csproj file, not a directory.")]
         string workspacePath,
@@ -38,6 +39,8 @@ public sealed class WorkspaceTools
         string? targetFramework = null,
         [Description("Extra arguments appended to later `dotnet build` (probe and pre-test build). Omit for none. Do not include -c, -p:Platform, -v, or --no-incremental.")]
         string? buildArgs = null,
+        [Description("When true, collapse workspace warnings to category and code counts. Default false keeps full messages. Failures always print in full.")]
+        bool briefOutput = false,
         CancellationToken cancellationToken = default)
     {
         Solution solution;
@@ -145,62 +148,11 @@ public sealed class WorkspaceTools
             sb.AppendLine($"- {project.Name} [{InferCompactProjectType(project)}]");
         }
 
-        if (diagnostics.Count > 0)
+        var diagnosticSection = WorkspaceLoadDiagnosticsReporter.FormatSection(diagnostics, briefOutput);
+        if (!string.IsNullOrEmpty(diagnosticSection))
         {
             sb.AppendLine();
-            sb.AppendLine("Workspace diagnostics:");
-            foreach (var diagnostic in diagnostics)
-            {
-                sb.AppendLine($"- {diagnostic}");
-            }
-
-            if (diagnostics.Any(static d =>
-                    d.Contains("do not have a version specified", StringComparison.OrdinalIgnoreCase)))
-            {
-                sb.AppendLine();
-                sb.AppendLine(
-                    "> **Note:** Design-time MSBuild can report missing `PackageReference` versions before `dotnet restore`, "
-                    + "even when `Version=` is present in the `.csproj` on disk. Run `dotnet restore` at the solution root, "
-                    + "then `reset_workspace` and `load_workspace`. Set MCP env `ROSLYN_MCP_WORKSPACE` to the repo root "
-                    + "(where `global.json` lives) so MSBuild.Locator pins the same SDK as `run_dotnet_build`.");
-            }
-
-            if (diagnostics.Any(static d =>
-                    d.Contains("NuGet audit", StringComparison.OrdinalIgnoreCase)))
-            {
-                sb.AppendLine();
-                sb.AppendLine(
-                    "> **Note:** NuGet audit advisories (GHSA / NU1903) are shown as warnings here; `dotnet build` may still fail with `NU1904` if audit is treated as error. Use `run_dotnet_build` for the exact NU lines.");
-            }
-
-            if (diagnostics.Any(static d =>
-                    d.Contains("NuGet prune", StringComparison.OrdinalIgnoreCase)))
-            {
-                sb.AppendLine();
-                sb.AppendLine(
-                    "> **Note:** NuGet prune / unused `PackageReference` advisories are shown as warnings; the workspace is usable. Remove unused package references if you want a clean restore graph.");
-            }
-
-            if (diagnostics.Any(static d =>
-                    d.Contains("NuGet compat", StringComparison.OrdinalIgnoreCase)))
-            {
-                sb.AppendLine();
-                sb.AppendLine(
-                    "> **Note:** NuGet TFM-compat advisories (`NU1701`, netfx package in a netcore/net10 project) are shown as warnings; "
-                    + "`dotnet build` / Visual Studio usually succeed. Use `run_dotnet_build` for the exact NU lines. "
-                    + "A mis-targeted project may still have incomplete references in Roslyn — prefer fixing the TFM or package.");
-            }
-
-            if (diagnostics.Any(static d =>
-                    d.Contains("MSBuild design-time", StringComparison.OrdinalIgnoreCase)))
-            {
-                sb.AppendLine();
-                sb.AppendLine(
-                    "> **Note:** Design-time MSBuild warnings (ASP.NET/SDK deprecation, processor-architecture mismatch, "
-                    + "analyzer project references) are shown as warnings; the workspace is usable. "
-                    + "MSBuildWorkspace often wraps them as `Msbuild failed when processing the file` without a `warning XXXX` code. "
-                    + "Use `run_dotnet_build` for real `error NU|MSB|NETSDK` lines.");
-            }
+            sb.AppendLine(diagnosticSection);
         }
 
         return ToolTelemetry.TraceAndReturn(nameof(LoadWorkspace), sb.ToString());

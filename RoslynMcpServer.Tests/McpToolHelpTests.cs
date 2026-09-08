@@ -45,6 +45,7 @@ public sealed class McpToolHelpTests
         Assert.Contains("`configuration`", help, StringComparison.Ordinal);
         Assert.Contains("`platform`", help, StringComparison.Ordinal);
         Assert.Contains("`targetFramework`", help, StringComparison.Ordinal);
+        Assert.Contains("`briefOutput`", help, StringComparison.Ordinal);
         Assert.Contains("required", help, StringComparison.Ordinal);
         Assert.Contains("default null", help, StringComparison.Ordinal);
 
