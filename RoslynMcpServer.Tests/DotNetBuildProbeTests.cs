@@ -136,6 +136,19 @@ public sealed class DotNetBuildProbeTests
     }
 
     [Fact]
+    public void FormatBuildStepSuffix_appends_session_build_args_after_first_class_switches()
+    {
+        Assert.Equal(
+            " -c \"Sit-Debug\" -p:Platform=\"x64\" --no-incremental -p:TreatWarningsAsErrors=false",
+            DotNetBuildProbe.FormatBuildStepSuffix(
+                "Sit-Debug",
+                "x64",
+                noIncremental: true,
+                "-p:TreatWarningsAsErrors=false"));
+        Assert.Equal(string.Empty, DotNetBuildProbe.FormatBuildStepSuffix(null, null, noIncremental: false, null));
+    }
+
+    [Fact]
     public void TryGetFirstFailedBuildSectionExitCode_finds_nonzero_build_header()
     {
         const string log = """

@@ -13,7 +13,8 @@ public static class WorkspaceHealthReporter
         McpToolActivationService activation,
         string? configuration = null,
         string? platform = null,
-        string? targetFramework = null)
+        string? targetFramework = null,
+        string? buildArgs = null)
     {
         ArgumentNullException.ThrowIfNull(activation);
         var fullPath = Path.GetFullPath(workspacePath);
@@ -33,6 +34,7 @@ public static class WorkspaceHealthReporter
             $"- **MSBuild Platform:** {(string.IsNullOrWhiteSpace(platform) ? "(SDK/workspace default)" : $"`{platform}`")}");
         sb.AppendLine(
             $"- **MSBuild TargetFramework:** {(string.IsNullOrWhiteSpace(targetFramework) ? "(SDK/workspace default)" : $"`{targetFramework}`")}");
+        sb.AppendLine($"- **BuildArgs:** {DotNetBuildArguments.FormatMetadata(buildArgs)}");
         sb.AppendLine($"- **global.json:** {(globalJson is null ? "(not found)" : $"`{globalJson}`")}");
         sb.AppendLine($"- **Pinned SDK (global.json):** {(pinnedSdk ?? "(none)")}");
         sb.AppendLine($"- **Resolved SDK directory:** {(sdkDir ?? "(not resolved)")}");

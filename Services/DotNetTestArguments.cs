@@ -51,13 +51,15 @@ public static class DotNetTestArguments
         string targetPath,
         bool noRestore = false,
         string? configuration = null,
-        string? platform = null)
+        string? platform = null,
+        string? buildArgs = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(targetPath);
 
         var args = $"build \"{targetPath}\"";
         args = DotNetConfigurationArguments.Append(args, configuration);
         args = DotNetConfigurationArguments.AppendPlatform(args, platform);
+        args = DotNetBuildArguments.Append(args, buildArgs);
         if (noRestore)
         {
             args += " --no-restore";
@@ -76,7 +78,8 @@ public static class DotNetTestArguments
         bool noBuild = false,
         bool noRestore = false,
         string? configuration = null,
-        string? platform = null)
+        string? platform = null,
+        string? buildArgs = null)
     {
         if (noBuild)
         {
@@ -87,7 +90,7 @@ public static class DotNetTestArguments
         }
 
         return new CliPlan(
-            PreTestBuildArguments: BuildPreTestBuild(targetPath, noRestore, configuration, platform),
+            PreTestBuildArguments: BuildPreTestBuild(targetPath, noRestore, configuration, platform, buildArgs),
             TestArguments: Build(
                 targetPath, filter, noBuild: true, noRestore: true, configuration, platform));
     }

@@ -21,7 +21,7 @@ public sealed class TestTools
     [McpServerTool(Name = "run_dotnet_test", Title = "Run dotnet test")]
     [Description(
         "Runs dotnet test on a project, solution, or test directory. Executes a process. "
-        + "Prefer run_specific_test for one class or method. Omit configuration/platform to inherit load_workspace.")]
+        + "Prefer run_specific_test for one class or method. Omit configuration/platform to inherit load_workspace. Pre-test `dotnet build` also inherits load_workspace `buildArgs`.")]
     public Task<string> RunDotNetTest(
         [Description("Path to a .csproj, .sln, .slnx, or test project directory. Directories are allowed unlike run_dotnet_build.")]
         string workspacePath,
@@ -275,7 +275,13 @@ public sealed class TestTools
                 effectivePlatform = DotNetConfigurationArguments.CoalescePlatform(
                     platform, _solutionManager.LoadedPlatform);
                 plan = DotNetTestArguments.BuildPlan(
-                    targetPath, filter, noBuild, noRestore, effectiveConfiguration, effectivePlatform);
+                    targetPath,
+                    filter,
+                    noBuild,
+                    noRestore,
+                    effectiveConfiguration,
+                    effectivePlatform,
+                    _solutionManager.LoadedBuildArgs);
             }
             catch (ArgumentException ex)
             {
@@ -286,6 +292,8 @@ public sealed class TestTools
                 $"- **Configuration:** {(string.IsNullOrWhiteSpace(effectiveConfiguration) ? "(SDK/solution default)" : effectiveConfiguration)}"
                 + Environment.NewLine
                 + $"- **Platform:** {(string.IsNullOrWhiteSpace(effectivePlatform) ? "(SDK/solution default)" : effectivePlatform)}"
+                + Environment.NewLine
+                + $"- **BuildArgs:** {DotNetBuildArguments.FormatMetadata(_solutionManager.LoadedBuildArgs)}"
                 + Environment.NewLine
                 + $"- **PreTestBuild:** {(plan.IncludesPreTestBuild ? "yes (`dotnet build` then `dotnet test --no-build`)" : "skipped (`noBuild=true`)")}";
 

@@ -53,7 +53,7 @@ public static class McpToolHelpCatalog
             ["load_workspace"] = new()
             {
                 Prerequisites = "workspacePath must be a .sln, .slnx, or .csproj file, not a directory.",
-                Workflow = "Call this before C# analysis. Prefer a solution file for multi-config repos. Pass targetFramework when the project uses TargetFrameworks. run_dotnet_build and run_dotnet_test inherit configuration/platform when omitted.",
+                Workflow = "Call this before C# analysis. Prefer a solution file for multi-config repos. Pass targetFramework when the project uses TargetFrameworks. run_dotnet_build and run_dotnet_test inherit configuration/platform when omitted. Optional buildArgs is a session suffix for later `dotnet build` (probe and pre-test build).",
                 Pitfalls = "Host abort mid-load is a client timeout, not an MSBuild failure. Restore/design-time warnings do not fail load; NU/MSB/NETSDK errors do. A changed .csproj/.sln does not auto-reopen MSBuild — call again or reset_workspace. Unsaved editor buffers are ignored.",
                 RelatedTools = ["reset_workspace", "run_dotnet_build", "run_dotnet_test"],
             },
@@ -113,13 +113,13 @@ public static class McpToolHelpCatalog
             ["run_dotnet_build"] = new()
             {
                 Prerequisites = "workspacePath must be a .csproj, .sln, or .slnx file, not a directory.",
-                Workflow = "Use after edits to verify compile. Omit configuration/platform to inherit load_workspace. Default noIncremental=true so up-to-date cache cannot hide errors.",
+                Workflow = "Use after edits to verify compile. Omit configuration/platform to inherit load_workspace. Extra `dotnet build` args inherit from load_workspace `buildArgs`. Default noIncremental=true so up-to-date cache cannot hide errors.",
                 Pitfalls = "Do not use execute_dotnet_command for ordinary builds. Restore success cannot mask a failed build.",
                 RelatedTools = ["run_dotnet_test", "execute_dotnet_command", "load_workspace"],
             },
             ["run_dotnet_test"] = new()
             {
-                Workflow = "Runs the full suite. Directories are allowed (unlike run_dotnet_build). Omit configuration/platform to inherit load_workspace. After a successful build, pass noBuild=true.",
+                Workflow = "Runs the full suite. Directories are allowed (unlike run_dotnet_build). Omit configuration/platform to inherit load_workspace. Pre-test `dotnet build` also inherits load_workspace `buildArgs`. After a successful build, pass noBuild=true.",
                 Pitfalls = "For one class or method use run_specific_test. Do not hand-write VSTest filters via execute_dotnet_command.",
                 RelatedTools = ["run_specific_test", "run_dotnet_build", "execute_dotnet_command"],
             },

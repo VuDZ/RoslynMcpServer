@@ -119,6 +119,25 @@ public sealed class DotNetTestArgumentsTests
     }
 
     [Fact]
+    public void BuildPlan_appends_buildArgs_to_pre_test_build_only()
+    {
+        var plan = DotNetTestArguments.BuildPlan(
+            Target,
+            noBuild: false,
+            configuration: "Sit-Debug",
+            platform: "x64",
+            buildArgs: "-p:TreatWarningsAsErrors=false");
+
+        Assert.Equal(
+            $"build \"{Target}\" -c \"Sit-Debug\" -p:Platform=\"x64\" -p:TreatWarningsAsErrors=false",
+            plan.PreTestBuildArguments);
+        Assert.DoesNotContain(
+            "-p:TreatWarningsAsErrors=false",
+            plan.TestArguments,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void BuildPlan_noBuild_true_skips_pre_test_build()
     {
         var plan = DotNetTestArguments.BuildPlan(Target, noBuild: true, noRestore: false);

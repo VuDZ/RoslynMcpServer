@@ -87,7 +87,9 @@ Default is **`full`** (every public tool). A **`lite`** session starts with the 
 | Variable | Values | Effect |
 | --- | --- | --- |
 | `ROSLYN_MCP_TOOL_PROFILE` | `full` (default) or `lite` | Selects the startup catalog. Empty/unset is `full`. |
-| `ROSLYN_MCP_TOOL_GROUPS` | comma-separated group names | Adds those groups to **`lite` before the first `tools/list`**. In `full` the names are recorded and do not change the set. |
+| `ROSLYN_MCP_TOOL_GROUPS` | `core`, `files`, `editing`, `decompile`, `nuget`, `project`, `runtime`, `operations` (comma-separated, case-insensitive) | Adds those groups to **`lite` before the first `tools/list`**. In `full` the names are recorded and do not change the set. Unknown names fail startup. `core` is already in lite. |
+
+Example: `ROSLYN_MCP_TOOL_GROUPS=decompile,nuget`
 
 Portable OpenCode examples: [`opencode.json.sample`](opencode.json.sample) (`roslyn-mcp-server` = full, `roslyn-mcp-lite`, `roslyn-mcp-lite-groups`). Enable only one server.
 
@@ -110,11 +112,16 @@ Portable OpenCode examples: [`opencode.json.sample`](opencode.json.sample) (`ros
 
 MCP `tools/list` stays JSON + JSON Schema. Markdown is for JIT help and diagnostics.
 
-**Client compatibility:** do not assume the host refreshes tools after `tools/list_changed`. If a newly enabled tool is missing from the client's catalog, restart with `ROSLYN_MCP_TOOL_GROUPS=<group>` (and `ROSLYN_MCP_TOOL_PROFILE=lite`). Measured minified `tools/list` (UTF-8): full **62 / 38,500** (~37.6 KB); lite **18 / 11,265** (~11.0 KB). Adding `editing` to lite is ~21.6 KB (above the 20 KB *startup-lite* budget; expected).
+**Client compatibility:** do not assume the host refreshes tools after `tools/list_changed`. If a newly enabled tool is missing from the client's catalog, restart with `ROSLYN_MCP_TOOL_GROUPS=<group>` (and `ROSLYN_MCP_TOOL_PROFILE=lite`). Measured minified `tools/list` (UTF-8): full **62 / 39,063** (~38.1 KB); lite **18 / 11,828** (~11.6 KB). Adding `editing` to lite is ~22.2 KB (above the 20 KB *startup-lite* budget; expected).
 
 ## Agent tools by version
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
+
+### v1.2.1
+
+- **`load_workspace` `buildArgs`** — Optional extra arguments appended to later `dotnet build` only: the `run_dotnet_build` probe steps and the pre-test compile used by `run_dotnet_test` / `run_specific_test`. Session-cached like `configuration` / `platform` (not an MSBuildWorkspace property; changing `buildArgs` does not reopen the solution). Omit or whitespace clears the session suffix. Do not put `-c` / `-p:Platform` / `-v` / `--no-incremental` here. Not applied to restore, `dotnet test`, or `dotnet run`.
+- **Catalog size** — minified `tools/list` UTF-8: full 62 tools / 39,063 bytes; lite 18 / 11,828.
 
 ### v1.2.0
 
@@ -277,7 +284,7 @@ Policy summary (full text in the sample):
 - Environment Variables:
   - `ROSLYN_MCP_WORKSPACE` — repo root for MSBuild/SDK discovery at startup (see MCP config above).
   - `ROSLYN_MCP_TOOL_PROFILE` — `full` (default) or `lite` (see **Tool profiles**).
-  - `ROSLYN_MCP_TOOL_GROUPS` — comma-separated extra groups for `lite` at startup.
+  - `ROSLYN_MCP_TOOL_GROUPS` — comma-separated extra groups for `lite` at startup. Valid: `core`, `files`, `editing`, `decompile`, `nuget`, `project`, `runtime`, `operations` (see **Tool profiles**).
   - `ROSLYN_MCP_LOG_TOOL_OUTPUT=full` — verbose tool response logging.
   - `MCP_LOG_INCOMING_RPC=0` (disable incoming RPC logging).
   - `MCP_LOG_INCOMING_RPC_MAX_CHARS=<N>` (limit payload log length, `0` = unlimited).
@@ -309,6 +316,7 @@ There are **62** registered tools in the default `full` profile (see list below)
 - `configuration: string?` — optional MSBuild `Configuration` global property (e.g. `Sit-Debug`, `kart`). Inherited by build/test when those tools omit `-c`.
 - `platform: string?` — optional MSBuild `Platform` (`Any CPU` → `AnyCPU`). Inherited by build/test as `-p:Platform=`.
 - `targetFramework: string?` — optional MSBuild `TargetFramework` (e.g. `net10.0`). Pass when the solution uses `TargetFrameworks` so design-time evaluation is an inner TFM with a `Compile` target. Not inherited by build/test.
+- `buildArgs: string?` — optional extra arguments appended to later `dotnet build` (probe and pre-test build). Session-cached; omit to clear. Do not include `-c`, `-p:Platform`, `-v`, or `--no-incremental`.
 
 **Behavior:** Host abort mid-load returns **Workspace Load Cancelled (client abort)** (raise MCP tool timeout; not an MSBuild failure). After a successful load, **saved** `.cs` files are watched and applied before symbol search (unsaved buffers ignored). A changed `.csproj`/`.sln`/`Directory.Build.props` skips the next `load_workspace` cache. NuGet restore warnings (`NU1701` TFM compat, audit, prune) and design-time MSBuild warnings (ASP.NET/SDK deprecation such as `IncludeOpenAPIAnalyzers`/`ASPDEPR007`, processor-architecture mismatch, analyzer project without metadata) are shown as warnings and do not fail load even when wrapped as `Msbuild failed when processing the file`; true MSBuild/SDK errors (`error NU|MSB|NETSDK`) still do. Empty `TargetFramework` (`ResolvePackageAssets`) is a dedicated failure — retry with the IDE solution config, or the `.sln` is Bazel-generated and not MSBuild-evaluable. Missing `Compile` target (CrossTargeting outer build) is a dedicated failure — retry with `targetFramework` from the report / `Directory.Build.props`; `dotnet build` can still succeed. VS 2026 / MSBuild 18 BuildHost crash (`XMakeElements`) is a dedicated failure — **not** `MCP_MSBUILD_SDK_MISMATCH`; use MCP 1.0.35+ or load a single SDK-style `.csproj`.
 </details>
@@ -599,7 +607,7 @@ Parses C# syntax, inserts with DocumentEditor, formats the file. Prefer over `ap
 - `noIncremental: bool = true` — pass `--no-incremental` on every build step (default). Set `false` only if you explicitly accept MSBuild up-to-date caching.
 - `platform: string? = null` — optional `-p:Platform=` (e.g. `x64`). Omit to inherit `load_workspace` platform.
 
-**Behavior:** Inherits full process env, then pins SDK via `MSBUILD_EXE_PATH`, `MSBuildSDKsPath`, `DOTNET_MSBUILD_SDK_RESOLVER_SDKS_DIR` / `SDKS_VER` / `CLI_DIR`, `DOTNET_ROOT`. On MSBuild path mismatch → **`error MCP_MSBUILD_SDK_MISMATCH`** and `dotnet exec …/10.x/MSBuild.dll /restore`. Escalation: minimal build → pinned restore → restore (detailed if empty) → build normal → build detailed. **Effective exit** = last `dotnet build` step (not restore). Metadata reports `Configuration` / `Platform` / `NoIncremental`. **Key lines** include task `-- FAILED` with project context. No in-process result cache — “cached” greens were MSBuild incremental or exit overwrite.
+**Behavior:** Inherits full process env, then pins SDK via `MSBUILD_EXE_PATH`, `MSBuildSDKsPath`, `DOTNET_MSBUILD_SDK_RESOLVER_SDKS_DIR` / `SDKS_VER` / `CLI_DIR`, `DOTNET_ROOT`. On MSBuild path mismatch → **`error MCP_MSBUILD_SDK_MISMATCH`** and `dotnet exec …/10.x/MSBuild.dll /restore`. Escalation: minimal build → pinned restore → restore (detailed if empty) → build normal → build detailed. **Effective exit** = last `dotnet build` step (not restore). Metadata reports `Configuration` / `Platform` / `BuildArgs` / `NoIncremental`. Session `buildArgs` from `load_workspace` are appended to build steps only (not restore). **Key lines** include task `-- FAILED` with project context. No in-process result cache — “cached” greens were MSBuild incremental or exit overwrite.
 
 </details>
 
@@ -614,7 +622,7 @@ Parses C# syntax, inserts with DocumentEditor, formats the file. Prefer over `ap
 - `configuration: string? = null` — optional `dotnet test -c` (e.g. `Sit-Debug`). Omit to inherit `load_workspace` (use the same value as `run_dotnet_build` when `noBuild=true`).
 - `platform: string? = null` — optional `-p:Platform=`. Omit to inherit `load_workspace`.
 
-**Behavior:** When `noBuild=false`, runs incremental `dotnet build` first (same `-c` / platform; not the `run_dotnet_build` probe), then `dotnet test --no-build --no-restore`. Parser sees only the test process. `--logger "console;verbosity=normal"`. Summary from `Passed!`, `Test Run Successful` + `Total tests`/`Passed:` (Failed defaults to 0), or `.slnx` fail-only `Total tests` + `Failed:` (Passed inferred as Total − Failed − Skipped), or per-test `  Passed FQN [ms]` / `[1 s]` / `[1 m 28 s]`. MSBuild/prune noise ignored; duplicate NU audit lines deduped. Exit 0 without any summary marker → **`Status: partial`** + last 2KB. `run_specific_test` checks filter matched a test FQN. `timeoutSeconds` is the combined budget for build+test.
+**Behavior:** When `noBuild=false`, runs incremental `dotnet build` first (same `-c` / platform / session `buildArgs` from `load_workspace`; not the `run_dotnet_build` probe), then `dotnet test --no-build --no-restore`. Parser sees only the test process. `--logger "console;verbosity=normal"`. Summary from `Passed!`, `Test Run Successful` + `Total tests`/`Passed:` (Failed defaults to 0), or `.slnx` fail-only `Total tests` + `Failed:` (Passed inferred as Total − Failed − Skipped), or per-test `  Passed FQN [ms]` / `[1 s]` / `[1 m 28 s]`. MSBuild/prune noise ignored; duplicate NU audit lines deduped. Exit 0 without any summary marker → **`Status: partial`** + last 2KB. `run_specific_test` checks filter matched a test FQN. `timeoutSeconds` is the combined budget for build+test.
 
 </details>
 
@@ -849,7 +857,7 @@ Verify id/version with `search_nuget_registry` first. Clears workspace cache —
 
 **Parameters:** *(none)*
 
-Use after `dotnet publish` to verify the MCP host picked up the new binary (expect **v1.2.0** and **62** tools on `full`, or **18** on `lite`).
+Use after `dotnet publish` to verify the MCP host picked up the new binary (expect **v1.2.1** and **62** tools on `full`, or **18** on `lite`).
 
 </details>
 
@@ -989,17 +997,28 @@ cd D:\Devel\YourApp
 | Переменная | Значения | Эффект |
 | --- | --- | --- |
 | `ROSLYN_MCP_TOOL_PROFILE` | `full` (по умолчанию) или `lite` | Стартовый каталог. Пустое/не задано = `full`. |
-| `ROSLYN_MCP_TOOL_GROUPS` | имена групп через запятую | Добавляет группы в **`lite` до первого `tools/list`**. В `full` имена только записываются. |
+| `ROSLYN_MCP_TOOL_GROUPS` | `core`, `files`, `editing`, `decompile`, `nuget`, `project`, `runtime`, `operations` (через запятую, без учёта регистра) | Добавляет группы в **`lite` до первого `tools/list`**. В `full` имена только записываются. Неизвестное имя валит старт. `core` в lite уже есть. |
+
+Пример: `ROSLYN_MCP_TOOL_GROUPS=decompile,nuget`
 
 Примеры OpenCode: [`opencode.json.sample`](opencode.json.sample). Включайте только один сервер.
 
-Группы: `core` (18, lite default), `files` (7), `editing` (17), `decompile` (4), `nuget` (6), `project` (3), `runtime` (3), `operations` (4).
+| Группа | Назначение | Тулов |
+| --- | --- | ---: |
+| `core` | workspace, навигация, build, test, help | 18 (lite по умолчанию) |
+| `files` | чтение/поиск/патч с диска | 7 |
+| `editing` | AST, code fixes, format, rename | 17 |
+| `decompile` | сторонние сборки | 4 |
+| `nuget` | пакеты: list/audit/search/add/remove | 6 |
+| `project` | граф solution и rename проекта | 3 |
+| `runtime` | `run`, список тестов, сырой `dotnet` | 3 |
+| `operations` | логи, scratchpad, stop | 4 |
 
-`list_tool_groups` / `get_tool_help` / `enable_tool_group` — Markdown-справка и runtime-включение. `tools/list` остаётся JSON Schema. Если клиент не обновляет список после `tools/list_changed`, перезапустите с `ROSLYN_MCP_TOOL_GROUPS=<group>`. Замеры minified UTF-8: full **62 / 38 500**; lite **18 / 11 265**.
+`list_tool_groups` / `get_tool_help` / `enable_tool_group` — Markdown-справка и runtime-включение. `tools/list` остаётся JSON Schema. Если клиент не обновляет список после `tools/list_changed`, перезапустите с `ROSLYN_MCP_TOOL_GROUPS=<group>`. Замеры minified UTF-8: full **62 / 39 063**; lite **18 / 11 828**.
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.2.0). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.2.1). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 
@@ -1025,7 +1044,7 @@ cd D:\Devel\YourApp
 - Основной лог: `logs/mcp-*.log` (относительно `AppContext.BaseDirectory`).
 - Включено логирование входящих JSON-RPC сообщений (`MCP_LOG_INCOMING_RPC`, `MCP_LOG_INCOMING_RPC_MAX_CHARS`).
 - **Ответы tools:** в лог пишется однострочная сводка и отдельные строки warning/error (без полного дублирования ответа MCP). `ROSLYN_MCP_LOG_TOOL_OUTPUT=full` — полный текст ответов tools.
-- Переменные: `ROSLYN_MCP_WORKSPACE` (корень репо для MSBuild/SDK), `ROSLYN_MCP_TOOL_PROFILE` / `ROSLYN_MCP_TOOL_GROUPS` (см. **Профили инструментов**), `ROSLYN_MCP_LOG_TOOL_OUTPUT=full`.
+- Переменные: `ROSLYN_MCP_WORKSPACE` (корень репо для MSBuild/SDK), `ROSLYN_MCP_TOOL_PROFILE` (`full`/`lite`), `ROSLYN_MCP_TOOL_GROUPS` (`core`, `files`, `editing`, `decompile`, `nuget`, `project`, `runtime`, `operations`; см. **Профили инструментов**), `ROSLYN_MCP_LOG_TOOL_OUTPUT=full`.
 
 ## Reference: MCP Tools
 
@@ -1052,6 +1071,7 @@ cd D:\Devel\YourApp
 - `configuration: string?` — опционально MSBuild `Configuration` (например `Sit-Debug`, `kart`). Наследуют build/test, если не передали `-c`.
 - `platform: string?` — опционально MSBuild `Platform` (`Any CPU` → `AnyCPU`).
 - `targetFramework: string?` — опционально MSBuild `TargetFramework` (например `net10.0`). Нужен, когда в решении `TargetFrameworks` (inner TFM с target `Compile`). Build/test это не наследуют.
+- `buildArgs: string?` — опциональные extra-аргументы для последующих `dotnet build` (probe и пребилд тестов). Кэш сессии; пустое значение сбрасывает. Не класть `-c`, `-p:Platform`, `-v`, `--no-incremental`.
 
 **Поведение:** abort хоста mid-load → **Workspace Load Cancelled (client abort)** (поднять MCP timeout; это не ошибка MSBuild). После успешного load **сохранённые** `.cs` вотчатся и подмешиваются в поиск символов (несохранённый буфер игнорируется). Смена `.csproj`/`.sln`/`Directory.Build.props` сбрасывает кэш следующего `load_workspace`. Предупреждения restore (`NU1701` TFM-compat, audit, prune) и design-time MSBuild (deprecation `IncludeOpenAPIAnalyzers`/ASPDEPR007, mismatch архитектуры, analyzer без metadata) не валят load даже в обёртке `Msbuild failed when processing the file`; настоящие ошибки MSBuild/SDK (`error NU|MSB|NETSDK`) — валят. Пустой `TargetFramework` (`ResolvePackageAssets`) — отдельный fail: повторить с IDE-конфигом или это Bazel-generated sln, который MSBuildWorkspace не открывает. Нет target `Compile` (outer CrossTargeting) — отдельный fail: повторить с `targetFramework` из отчёта / `Directory.Build.props`; `dotnet build` при этом может быть зелёным. Падение VS 2026 / MSBuild 18 BuildHost (`XMakeElements`) — отдельный fail, **не** `MCP_MSBUILD_SDK_MISMATCH`; нужен MCP 1.0.35+ или один SDK-style `.csproj`.
 </details>
@@ -1337,7 +1357,7 @@ cd D:\Devel\YourApp
 - `noIncremental: bool = true` — `--no-incremental` на каждом build-шаге (по умолчанию). `false` только если явно принимаете up-to-date кэш MSBuild.
 - `platform: string? = null` — опционально `-p:Platform=`. Если не задан — с `load_workspace`.
 
-**Поведение:** наследование env + pinning (`MSBUILD_EXE_PATH`, `DOTNET_MSBUILD_SDK_RESOLVER_SDKS_*`). Mismatch → **error `MCP_MSBUILD_SDK_MISMATCH`** + pinned `dotnet exec …/MSBuild.dll /restore`. Цепочка minimal → pinned restore → restore/build detailed. **Итоговый exit** = последний `dotnet build` (не restore). В metadata — `Configuration` / `Platform` / `NoIncremental`. Внутреннего кэша результатов MCP нет.
+**Поведение:** наследование env + pinning (`MSBUILD_EXE_PATH`, `DOTNET_MSBUILD_SDK_RESOLVER_SDKS_*`). Mismatch → **error `MCP_MSBUILD_SDK_MISMATCH`** + pinned `dotnet exec …/MSBuild.dll /restore`. Цепочка minimal → pinned restore → restore/build detailed. **Итоговый exit** = последний `dotnet build` (не restore). В metadata — `Configuration` / `Platform` / `BuildArgs` / `NoIncremental`. Session `buildArgs` с `load_workspace` добавляются только к build-шагам (не к restore). Внутреннего кэша результатов MCP нет.
 
 </details>
 
@@ -1352,7 +1372,7 @@ cd D:\Devel\YourApp
 - `configuration: string? = null` — опционально `dotnet test -c` (например `Sit-Debug`). Если не задан — с `load_workspace`.
 - `platform: string? = null` — опционально `-p:Platform=`.
 
-**Поведение:** при `noBuild=false` сначала отдельный incremental `dotnet build`, затем `dotnet test --no-build --no-restore` (парсер видит только тест). Сводка из `Passed!`, `Test Run Successful` + `Total tests`/`Passed:` (Failed=0 если нет строки), или `.slnx` fail-only `Total tests` + `Failed:` (Passed = Total − Failed − Skipped), FQN-строки тестов (`[ms]` / `[1 s]` / `[1 m 28 s]`); дедуп NU audit. Без маркеров сводки при exit 0 → **partial** + 2KB лога. `timeoutSeconds` — общий бюджет на build+test.
+**Поведение:** при `noBuild=false` сначала отдельный incremental `dotnet build` (те же `-c` / platform / session `buildArgs` с `load_workspace`), затем `dotnet test --no-build --no-restore` (парсер видит только тест). Сводка из `Passed!`, `Test Run Successful` + `Total tests`/`Passed:` (Failed=0 если нет строки), или `.slnx` fail-only `Total tests` + `Failed:` (Passed = Total − Failed − Skipped), FQN-строки тестов (`[ms]` / `[1 s]` / `[1 m 28 s]`); дедуп NU audit. Без маркеров сводки при exit 0 → **partial** + 2KB лога. `timeoutSeconds` — общий бюджет на build+test.
 
 </details>
 
@@ -1583,7 +1603,7 @@ cd D:\Devel\YourApp
 
 **Параметры:** *(нет)*
 
-После `dotnet publish` — проверка, что MCP подхватил новый бинарник (ожидай **v1.2.0** и **62** tools в `full`, или **18** в `lite`).
+После `dotnet publish` — проверка, что MCP подхватил новый бинарник (ожидай **v1.2.1** и **62** tools в `full`, или **18** в `lite`).
 
 </details>
 

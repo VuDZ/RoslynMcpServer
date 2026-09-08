@@ -31,14 +31,13 @@ public static class DotNetBuildProbe
         TimeSpan? stepTimeout = null,
         string? configuration = null,
         bool noIncremental = true,
-        string? platform = null)
+        string? platform = null,
+        string? buildArgs = null)
     {
         var budget = overallBudget ?? DefaultOverallBudget;
         var perStep = stepTimeout ?? DefaultStepTimeout;
         var quoted = $"\"{projectOrSolutionPath}\"";
-        var configSwitch = DotNetConfigurationArguments.FormatSwitch(configuration);
-        var platformSwitch = DotNetConfigurationArguments.FormatPlatformProperty(platform);
-        var incrementalSwitch = noIncremental ? " --no-incremental" : string.Empty;
+        var buildSuffix = FormatBuildStepSuffix(configuration, platform, noIncremental, buildArgs);
         var log = new StringBuilder();
         var steps = new List<string>();
         var buildExitCodes = new List<int>();
@@ -86,8 +85,8 @@ public static class DotNetBuildProbe
         }
 
         await RunStepAsync(
-                $"dotnet build -v:minimal{configSwitch}{platformSwitch}{incrementalSwitch}",
-                $"build {quoted} -v:minimal{configSwitch}{platformSwitch}{incrementalSwitch}",
+                $"dotnet build -v:minimal{buildSuffix}",
+                $"build {quoted} -v:minimal{buildSuffix}",
                 isBuildStep: true)
             .ConfigureAwait(false);
 
@@ -113,8 +112,8 @@ public static class DotNetBuildProbe
         if (!timedOut && ShouldRunMoreDiagnostics(log.ToString()))
         {
             await RunStepAsync(
-                    $"dotnet build -v:normal{configSwitch}{platformSwitch}{incrementalSwitch}",
-                    $"build {quoted} -v:normal{configSwitch}{platformSwitch}{incrementalSwitch}",
+                    $"dotnet build -v:normal{buildSuffix}",
+                    $"build {quoted} -v:normal{buildSuffix}",
                     isBuildStep: true)
                 .ConfigureAwait(false);
         }
@@ -122,8 +121,8 @@ public static class DotNetBuildProbe
         if (!timedOut && ShouldRunMoreDiagnostics(log.ToString()))
         {
             await RunStepAsync(
-                    $"dotnet build -v:detailed{configSwitch}{platformSwitch}{incrementalSwitch}",
-                    $"build {quoted} -v:detailed{configSwitch}{platformSwitch}{incrementalSwitch}",
+                    $"dotnet build -v:detailed{buildSuffix}",
+                    $"build {quoted} -v:detailed{buildSuffix}",
                     isBuildStep: true)
                 .ConfigureAwait(false);
         }
@@ -271,6 +270,19 @@ public static class DotNetBuildProbe
     /// </summary>
     internal static string FormatIncrementalSwitch(bool noIncremental) =>
         noIncremental ? " --no-incremental" : string.Empty;
+
+    /// <summary>
+    /// Configuration, platform, incremental, and session <c>buildArgs</c> for <c>dotnet build</c> steps only.
+    /// </summary>
+    internal static string FormatBuildStepSuffix(
+        string? configuration,
+        string? platform,
+        bool noIncremental,
+        string? buildArgs) =>
+        DotNetConfigurationArguments.FormatSwitch(configuration)
+        + DotNetConfigurationArguments.FormatPlatformProperty(platform)
+        + FormatIncrementalSwitch(noIncremental)
+        + DotNetBuildArguments.FormatSuffix(buildArgs);
 
     private static void AppendSection(StringBuilder log, string label, DotNetCliRunner.RunResult run)
     {

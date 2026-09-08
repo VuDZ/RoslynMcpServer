@@ -25,7 +25,8 @@ public sealed class WorkspaceTools
     [McpServerTool(Name = "load_workspace", Title = "Load C# workspace")]
     [Description(
         "Loads a .sln, .slnx, or .csproj into the semantic workspace. Call this first before C# analysis. "
-        + "Optional configuration/platform/targetFramework are MSBuild global properties; targetFramework is required when the project uses TargetFrameworks.")]
+        + "Optional configuration/platform/targetFramework are MSBuild global properties; targetFramework is required when the project uses TargetFrameworks. "
+        + "Optional buildArgs is a session suffix for later `dotnet build` (probe and pre-test build); do not put -c / -p:Platform / -v / --no-incremental there.")]
     public async Task<string> LoadWorkspace(
         [Description("Path to a .sln, .slnx, or .csproj file, not a directory.")]
         string workspacePath,
@@ -35,6 +36,8 @@ public sealed class WorkspaceTools
         string? platform = null,
         [Description("MSBuild TargetFramework. Required for multi-targeting. Not inherited by run_dotnet_build.")]
         string? targetFramework = null,
+        [Description("Extra arguments appended to later `dotnet build` (probe and pre-test build). Omit for none. Do not include -c, -p:Platform, -v, or --no-incremental.")]
+        string? buildArgs = null,
         CancellationToken cancellationToken = default)
     {
         Solution solution;
@@ -45,7 +48,8 @@ public sealed class WorkspaceTools
                 cancellationToken,
                 configuration,
                 platform,
-                targetFramework);
+                targetFramework,
+                buildArgs);
         }
         catch (ArgumentException ex)
         {
@@ -132,7 +136,8 @@ public sealed class WorkspaceTools
                 _activation,
                 _solutionManager.LoadedConfiguration,
                 _solutionManager.LoadedPlatform,
-                _solutionManager.LoadedTargetFramework));
+                _solutionManager.LoadedTargetFramework,
+                _solutionManager.LoadedBuildArgs));
         sb.AppendLine();
         sb.AppendLine($"Successfully loaded workspace. Found {projectCount} projects:");
         foreach (var project in projects.OrderBy(p => p.Name, StringComparer.OrdinalIgnoreCase))

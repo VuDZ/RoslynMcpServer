@@ -58,6 +58,7 @@ public sealed class SolutionManager
     private string? _loadedConfiguration;
     private string? _loadedPlatform;
     private string? _loadedTargetFramework;
+    private string? _loadedBuildArgs;
     private IReadOnlyList<WorkspaceDiagnostic> _lastDiagnostics = Array.Empty<WorkspaceDiagnostic>();
 
     public SolutionManager(ILogger<SolutionManager> logger)
@@ -78,6 +79,11 @@ public sealed class SolutionManager
     /// <summary>MSBuild <c>TargetFramework</c> used for the last successful <see cref="LoadAsync"/>, or <see langword="null"/>.</summary>
     public string? LoadedTargetFramework => _loadedTargetFramework;
 
+    /// <summary>
+    /// Extra <c>dotnet build</c> args from the last <see cref="LoadAsync"/> (session CLI only; not an MSBuildWorkspace property).
+    /// </summary>
+    public string? LoadedBuildArgs => _loadedBuildArgs;
+
     public async Task<Solution> LoadAsync(string path)
     {
         return await LoadAsync(path, CancellationToken.None);
@@ -88,7 +94,8 @@ public sealed class SolutionManager
         CancellationToken cancellationToken,
         string? configuration = null,
         string? platform = null,
-        string? targetFramework = null)
+        string? targetFramework = null,
+        string? buildArgs = null)
     {
         if (string.IsNullOrWhiteSpace(solutionOrProjectPath))
         {
@@ -104,6 +111,7 @@ public sealed class SolutionManager
         var normalizedConfiguration = DotNetConfigurationArguments.Normalize(configuration, nameof(configuration));
         var normalizedPlatform = DotNetConfigurationArguments.NormalizePlatform(platform);
         var normalizedTargetFramework = DotNetConfigurationArguments.Normalize(targetFramework, nameof(targetFramework));
+        var normalizedBuildArgs = DotNetBuildArguments.Normalize(buildArgs);
 
         await _workspaceLock.WaitAsync(cancellationToken);
         try
@@ -113,6 +121,7 @@ public sealed class SolutionManager
                 normalizedConfiguration,
                 normalizedPlatform,
                 normalizedTargetFramework,
+                normalizedBuildArgs,
                 cancellationToken);
         }
         finally
@@ -459,6 +468,7 @@ public sealed class SolutionManager
             _loadedConfiguration = null;
             _loadedPlatform = null;
             _loadedTargetFramework = null;
+            _loadedBuildArgs = null;
             _lastDiagnostics = Array.Empty<WorkspaceDiagnostic>();
             _logger.LogInformation("Roslyn workspace cleared (MSBuildWorkspace disposed).");
         }
@@ -499,6 +509,7 @@ public sealed class SolutionManager
             configuration: null,
             platform: null,
             targetFramework: null,
+            buildArgs: null,
             cancellationToken);
     }
 
@@ -510,6 +521,7 @@ public sealed class SolutionManager
         string? configuration,
         string? platform,
         string? targetFramework,
+        string? buildArgs,
         CancellationToken cancellationToken)
     {
         if (_workspace is not null
@@ -525,6 +537,7 @@ public sealed class SolutionManager
                 _pathComparison)
             && !_projectGraphStale)
         {
+            ApplySessionBuildArgs(buildArgs);
             await FlushDirtyDocumentsUnderLockAsync(cancellationToken).ConfigureAwait(false);
             var cached = _solution ?? _workspace.CurrentSolution;
             LogProcessWorkingSet("workspace_load_cached");
@@ -586,17 +599,25 @@ public sealed class SolutionManager
         _loadedConfiguration = configuration;
         _loadedPlatform = platform;
         _loadedTargetFramework = targetFramework;
+        ApplySessionBuildArgs(buildArgs);
         _lastDiagnostics = CollectDiagnostics(workspace, capturedDiagnostics);
         StartDiskWatcherUnderLock(fullPath);
         _logger.LogInformation(
-            "Loaded Roslyn workspace from {Path} (Configuration={Configuration}, Platform={Platform}, TargetFramework={TargetFramework})",
+            "Loaded Roslyn workspace from {Path} (Configuration={Configuration}, Platform={Platform}, TargetFramework={TargetFramework}, BuildArgs={BuildArgs})",
             fullPath,
             configuration ?? "(default)",
             platform ?? "(default)",
-            targetFramework ?? "(default)");
+            targetFramework ?? "(default)",
+            buildArgs ?? "(none)");
         LogProcessWorkingSet("workspace_load");
         return _solution;
     }
+
+    /// <summary>
+    /// Session CLI extras are not part of the MSBuildWorkspace cache key.
+    /// Always replace so a second <c>load_workspace</c> can change or clear them without reopening the solution.
+    /// </summary>
+    internal void ApplySessionBuildArgs(string? buildArgs) => _loadedBuildArgs = buildArgs;
 
     /// <summary>
     /// Must be called with <see cref="_workspaceLock"/> held.
