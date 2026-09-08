@@ -45,7 +45,8 @@ public static class DotNetTestArguments
     }
 
     /// <summary>
-    /// Incremental <c>dotnet build</c> (no <c>--no-incremental</c>) with the same <c>-c</c> / platform as the test step.
+    /// Incremental <c>dotnet build</c> (no <c>--no-incremental</c>) with the same configuration / platform as the test step
+    /// (<c>-p:Configuration</c> on the build; <c>dotnet test</c> still uses <c>-c</c>).
     /// </summary>
     public static string BuildPreTestBuild(
         string targetPath,
@@ -57,7 +58,7 @@ public static class DotNetTestArguments
         ArgumentException.ThrowIfNullOrWhiteSpace(targetPath);
 
         var args = $"build \"{targetPath}\"";
-        args = DotNetConfigurationArguments.Append(args, configuration);
+        args = DotNetConfigurationArguments.AppendConfigurationProperty(args, configuration);
         args = DotNetConfigurationArguments.AppendPlatform(args, platform);
         args = DotNetBuildArguments.Append(args, buildArgs);
         if (noRestore)

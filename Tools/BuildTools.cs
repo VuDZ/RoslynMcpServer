@@ -23,7 +23,8 @@ public sealed class BuildTools
     [McpServerTool(Name = "run_dotnet_build", Title = "Run dotnet build")]
     [Description(
         "Runs dotnet build with parsed diagnostics. Executes a process. workspacePath must be a .csproj/.sln/.slnx file, not a directory. "
-        + "Default noIncremental=true. Omit configuration/platform to inherit load_workspace. Extra `dotnet build` args inherit from load_workspace `buildArgs`.")]
+        + "Default noIncremental=true. Omit configuration/platform to inherit load_workspace. Extra `dotnet build` args inherit from load_workspace `buildArgs`. "
+        + "Optional projectName builds that project via its .sln/.slnx MSBuild target (solution-folder path).")]
     public async Task<string> RunDotNetBuild(
         [Description("Path to a .csproj, .sln, or .slnx file, not a directory.")]
         string workspacePath,
@@ -33,6 +34,9 @@ public sealed class BuildTools
         bool noIncremental = true,
         [Description("MSBuild Platform. Omit to inherit load_workspace.")]
         string? platform = null,
+        [Description(
+            "Optional project name. When set, workspacePath must be a .sln/.slnx. Builds that project via its solution-folder MSBuild target instead of the whole solution.")]
+        string? projectName = null,
         CancellationToken cancellationToken = default)
     {
         try
@@ -73,6 +77,30 @@ public sealed class BuildTools
                 return ToolTelemetry.TraceAndReturn(nameof(RunDotNetBuild), $"Error: {ex.Message}");
             }
 
+            string? solutionTarget = null;
+            string? resolvedProjectName = null;
+            if (!string.IsNullOrWhiteSpace(projectName))
+            {
+                if (!string.Equals(extension, ".sln", StringComparison.OrdinalIgnoreCase)
+                    && !string.Equals(extension, ".slnx", StringComparison.OrdinalIgnoreCase))
+                {
+                    return ToolTelemetry.TraceAndReturn(
+                        nameof(RunDotNetBuild),
+                        "Error: `projectName` requires `workspacePath` to be a `.sln` or `.slnx` so the project can be built as a solution target.");
+                }
+
+                var resolved = SolutionProjectTargetResolver.TryResolve(fullPath, projectName);
+                if (!resolved.Success)
+                {
+                    return ToolTelemetry.TraceAndReturn(
+                        nameof(RunDotNetBuild),
+                        resolved.ErrorMessage ?? "Error: could not resolve `projectName`.");
+                }
+
+                solutionTarget = resolved.TargetName;
+                resolvedProjectName = resolved.DisplayName;
+            }
+
             var probe = await DotNetBuildProbe.RunAsync(
                     fullPath,
                     workDir,
@@ -80,7 +108,8 @@ public sealed class BuildTools
                     configuration: effectiveConfiguration,
                     noIncremental: noIncremental,
                     platform: effectivePlatform,
-                    buildArgs: _solutionManager.LoadedBuildArgs)
+                    buildArgs: _solutionManager.LoadedBuildArgs,
+                    target: solutionTarget)
                 .ConfigureAwait(false);
             var combined = probe.CombinedOutput;
             var processExitCode = probe.ExitCode;
@@ -90,7 +119,7 @@ public sealed class BuildTools
                 var hang = new StringBuilder();
                 hang.AppendLine(probe.TimedOut ? "## Build timed out" : "## Build probe budget exhausted");
                 hang.AppendLine();
-                AppendRunMetadata(hang, runMetadata, probe.StepsExecuted, effectiveConfiguration, effectivePlatform, probe.NoIncremental, _solutionManager.LoadedBuildArgs);
+                AppendRunMetadata(hang, runMetadata, probe.StepsExecuted, effectiveConfiguration, effectivePlatform, probe.NoIncremental, _solutionManager.LoadedBuildArgs, resolvedProjectName, solutionTarget);
                 hang.AppendLine();
                 hang.AppendLine(DotNetCliRunner.FormatHangHints(timedOut: probe.TimedOut, cancelled: false));
                 hang.AppendLine();
@@ -122,7 +151,7 @@ public sealed class BuildTools
             {
                 return ToolTelemetry.TraceAndReturn(
                     nameof(RunDotNetBuild),
-                    BuildSuccessReport(runMetadata, probe.StepsExecuted, warningEntries, effectiveConfiguration, effectivePlatform, probe.NoIncremental, _solutionManager.LoadedBuildArgs));
+                    BuildSuccessReport(runMetadata, probe.StepsExecuted, warningEntries, effectiveConfiguration, effectivePlatform, probe.NoIncremental, _solutionManager.LoadedBuildArgs, resolvedProjectName, solutionTarget));
             }
 
             if (errorEntries.Count == 0 && processExitCode != 0)
@@ -137,13 +166,15 @@ public sealed class BuildTools
                         effectiveConfiguration,
                         effectivePlatform,
                         probe.NoIncremental,
-                        _solutionManager.LoadedBuildArgs));
+                        _solutionManager.LoadedBuildArgs,
+                        resolvedProjectName,
+                        solutionTarget));
             }
 
             var errSb = new StringBuilder();
             errSb.AppendLine("## Build failed");
             errSb.AppendLine();
-            AppendRunMetadata(errSb, runMetadata, probe.StepsExecuted, effectiveConfiguration, effectivePlatform, probe.NoIncremental, _solutionManager.LoadedBuildArgs);
+            AppendRunMetadata(errSb, runMetadata, probe.StepsExecuted, effectiveConfiguration, effectivePlatform, probe.NoIncremental, _solutionManager.LoadedBuildArgs, resolvedProjectName, solutionTarget);
             errSb.AppendLine($"Exit code: `{processExitCode}`. Parsed diagnostics (MSBuild + NuGet NU####):");
             foreach (var d in display)
             {
@@ -191,12 +222,14 @@ public sealed class BuildTools
         string? configuration,
         string? platform,
         bool noIncremental,
-        string? buildArgs)
+        string? buildArgs,
+        string? projectName,
+        string? solutionTarget)
     {
         var sb = new StringBuilder();
         sb.AppendLine("## Build succeeded");
         sb.AppendLine();
-        AppendRunMetadata(sb, runMetadata, stepsExecuted, configuration, platform, noIncremental, buildArgs);
+        AppendRunMetadata(sb, runMetadata, stepsExecuted, configuration, platform, noIncremental, buildArgs, projectName, solutionTarget);
         sb.AppendLine("No **error** lines matched (MSBuild `path(line,col): error` or NuGet `error NU####`).");
         sb.AppendLine("Effective build exit is 0 (last `dotnet build` step; restore cannot mask a failed build with no rebuild).");
         if (warningEntries.Count > 0)
@@ -220,12 +253,14 @@ public sealed class BuildTools
         string? configuration,
         string? platform,
         bool noIncremental,
-        string? buildArgs)
+        string? buildArgs,
+        string? projectName,
+        string? solutionTarget)
     {
         var sb = new StringBuilder();
         sb.AppendLine("## Build failed");
         sb.AppendLine();
-        AppendRunMetadata(sb, runMetadata, stepsExecuted, configuration, platform, noIncremental, buildArgs);
+        AppendRunMetadata(sb, runMetadata, stepsExecuted, configuration, platform, noIncremental, buildArgs, projectName, solutionTarget);
         sb.AppendLine(
             $"Exit code: `{processExitCode}`. No lines matched MSBuild `path(line,col): error|warning CODE` or NuGet `error|warning NU####` patterns (including `: error NU####` and embedded NU lines).");
         sb.AppendLine(
@@ -299,7 +334,9 @@ public sealed class BuildTools
         string? configuration,
         string? platform,
         bool noIncremental,
-        string? buildArgs)
+        string? buildArgs,
+        string? projectName,
+        string? solutionTarget)
     {
         sb.AppendLine("### dotnet run");
         foreach (var line in runMetadata.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries))
@@ -311,6 +348,10 @@ public sealed class BuildTools
             $"- **Configuration:** {(string.IsNullOrWhiteSpace(configuration) ? "(SDK/solution default)" : configuration)}");
         sb.AppendLine(
             $"- **Platform:** {(string.IsNullOrWhiteSpace(platform) ? "(SDK/solution default)" : platform)}");
+        sb.AppendLine(
+            $"- **ProjectName:** {(string.IsNullOrWhiteSpace(projectName) ? "(none)" : projectName)}");
+        sb.AppendLine(
+            $"- **SolutionTarget:** {(string.IsNullOrWhiteSpace(solutionTarget) ? "(none)" : $"`{solutionTarget}` (`-t`)")}");
         sb.AppendLine($"- **BuildArgs:** {DotNetBuildArguments.FormatMetadata(buildArgs)}");
         sb.AppendLine($"- **NoIncremental:** `{noIncremental}`{(noIncremental ? " (`--no-incremental`)" : " (MSBuild up-to-date allowed)")}");
 

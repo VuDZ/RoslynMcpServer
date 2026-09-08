@@ -139,13 +139,29 @@ public sealed class DotNetBuildProbeTests
     public void FormatBuildStepSuffix_appends_session_build_args_after_first_class_switches()
     {
         Assert.Equal(
-            " -c \"Sit-Debug\" -p:Platform=\"x64\" --no-incremental -p:TreatWarningsAsErrors=false",
+            " -p:Configuration=\"Sit-Debug\" -p:Platform=\"x64\" --no-incremental -p:TreatWarningsAsErrors=false",
             DotNetBuildProbe.FormatBuildStepSuffix(
                 "Sit-Debug",
                 "x64",
                 noIncremental: true,
                 "-p:TreatWarningsAsErrors=false"));
         Assert.Equal(string.Empty, DotNetBuildProbe.FormatBuildStepSuffix(null, null, noIncremental: false, null));
+        Assert.Equal(
+            " -t:\"src\\My_Project\" -p:Configuration=\"Sit-Debug\" -p:Platform=\"x64\" --no-incremental",
+            DotNetBuildProbe.FormatBuildStepSuffix(
+                "Sit-Debug",
+                "x64",
+                noIncremental: true,
+                buildArgs: null,
+                target: @"src\My_Project"));
+    }
+
+    [Fact]
+    public void FormatTargetSwitch_rejects_quotes()
+    {
+        Assert.Equal(string.Empty, DotNetBuildProbe.FormatTargetSwitch(null));
+        Assert.Equal(" -t:\"App\"", DotNetBuildProbe.FormatTargetSwitch("App"));
+        Assert.Throws<ArgumentException>(() => DotNetBuildProbe.FormatTargetSwitch("Foo\"Bar"));
     }
 
     [Fact]

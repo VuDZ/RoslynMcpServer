@@ -20,6 +20,14 @@ public sealed class DotNetConfigurationArgumentsTests
     }
 
     [Fact]
+    public void FormatConfigurationProperty_wraps_name()
+    {
+        Assert.Equal(" -p:Configuration=\"Sit-Debug\"", DotNetConfigurationArguments.FormatConfigurationProperty("Sit-Debug"));
+        Assert.Equal(" -p:Configuration=\"Dit-Debug\"", DotNetConfigurationArguments.FormatConfigurationProperty("  Dit-Debug  "));
+        Assert.Equal(string.Empty, DotNetConfigurationArguments.FormatConfigurationProperty(null));
+    }
+
+    [Fact]
     public void FormatSwitch_rejects_unsafe_characters()
     {
         Assert.Throws<ArgumentException>(() => DotNetConfigurationArguments.FormatSwitch("Sit\"Debug"));

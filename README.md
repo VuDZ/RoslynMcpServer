@@ -118,6 +118,13 @@ MCP `tools/list` stays JSON + JSON Schema. Markdown is for JIT help and diagnost
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.2.3
+
+- **`run_dotnet_build` `projectName`** — Optional. When set, `workspacePath` must be a `.sln`/`.slnx`. Resolves the project's Solution Explorer virtual path (solution folders, not the filesystem path) and runs `dotnet build <sln> -t:"Folder\Project"` so solution Configuration/Platform mappings apply. Match is case-insensitive on display name, file name without extension, or virtual path (`src\App`). Missing or ambiguous names return the `Name → path` list. `.csproj` + `projectName` is an error.
+- **`dotnet build` `-p:Configuration`** — Probe steps and the pre-test compile now pass `-p:Configuration=` (same as existing `-p:Platform`). `dotnet test` still uses `-c` so output is found under `bin/{configuration}`.
+- Metadata reports `ProjectName` and `SolutionTarget` (`-t`) to diagnose MSB4057.
+- **Catalog size** — minified `tools/list` UTF-8: full 62 tools / 39,738 bytes; lite 18 / 12,503.
+
 ### v1.2.2
 
 - **`load_workspace` `briefOutput`** — Optional. Default `false` keeps the full MSBuild/NuGet warning dump (plus notes). `true` collapses successful-load warnings to category and code counts (`MSB3270×28`, `NU1701×5`, …). Health block and project list stay. Failures (`Workspace Load Failed`, missing TFM/Compile, BuildHost, client abort) always print in full. Not session-cached.
@@ -609,11 +616,12 @@ Parses C# syntax, inserts with DocumentEditor, formats the file. Prefer over `ap
 
 **Parameters:**
 - `workspacePath: string` — must be an existing **`.csproj`, `.sln`, or `.slnx` file** (not a directory).
-- `configuration: string? = null` — optional `dotnet build -c` (e.g. `Sit-Debug`, `Dit-Debug`). Omit to inherit `load_workspace` configuration.
+- `configuration: string? = null` — optional `-p:Configuration=` (e.g. `Sit-Debug`, `Dit-Debug`). Omit to inherit `load_workspace` configuration.
 - `noIncremental: bool = true` — pass `--no-incremental` on every build step (default). Set `false` only if you explicitly accept MSBuild up-to-date caching.
 - `platform: string? = null` — optional `-p:Platform=` (e.g. `x64`). Omit to inherit `load_workspace` platform.
+- `projectName: string? = null` — optional. When set, `workspacePath` must be a `.sln`/`.slnx`. Builds that project via its solution-folder MSBuild target (`-t:"Folder\Project"`). Match display name, file name, or virtual path.
 
-**Behavior:** Inherits full process env, then pins SDK via `MSBUILD_EXE_PATH`, `MSBuildSDKsPath`, `DOTNET_MSBUILD_SDK_RESOLVER_SDKS_DIR` / `SDKS_VER` / `CLI_DIR`, `DOTNET_ROOT`. On MSBuild path mismatch → **`error MCP_MSBUILD_SDK_MISMATCH`** and `dotnet exec …/10.x/MSBuild.dll /restore`. Escalation: minimal build → pinned restore → restore (detailed if empty) → build normal → build detailed. **Effective exit** = last `dotnet build` step (not restore). Metadata reports `Configuration` / `Platform` / `BuildArgs` / `NoIncremental`. Session `buildArgs` from `load_workspace` are appended to build steps only (not restore). **Key lines** include task `-- FAILED` with project context. No in-process result cache — “cached” greens were MSBuild incremental or exit overwrite.
+**Behavior:** Inherits full process env, then pins SDK via `MSBUILD_EXE_PATH`, `MSBuildSDKsPath`, `DOTNET_MSBUILD_SDK_RESOLVER_SDKS_DIR` / `SDKS_VER` / `CLI_DIR`, `DOTNET_ROOT`. On MSBuild path mismatch → **`error MCP_MSBUILD_SDK_MISMATCH`** and `dotnet exec …/10.x/MSBuild.dll /restore`. Escalation: minimal build → pinned restore → restore (detailed if empty) → build normal → build detailed. **Effective exit** = last `dotnet build` step (not restore). Metadata reports `Configuration` / `Platform` / `ProjectName` / `SolutionTarget` / `BuildArgs` / `NoIncremental`. Session `buildArgs` from `load_workspace` are appended to build steps only (not restore). **Key lines** include task `-- FAILED` with project context. No in-process result cache — “cached” greens were MSBuild incremental or exit overwrite.
 
 </details>
 
@@ -863,7 +871,7 @@ Verify id/version with `search_nuget_registry` first. Clears workspace cache —
 
 **Parameters:** *(none)*
 
-Use after `dotnet publish` to verify the MCP host picked up the new binary (expect **v1.2.2** and **62** tools on `full`, or **18** on `lite`).
+Use after `dotnet publish` to verify the MCP host picked up the new binary (expect **v1.2.3** and **62** tools on `full`, or **18** on `lite`).
 
 </details>
 
@@ -1024,7 +1032,7 @@ cd D:\Devel\YourApp
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.2.2). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.2.3). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 
@@ -1360,11 +1368,12 @@ cd D:\Devel\YourApp
 
 **Параметры:**
 - `workspacePath: string` — только существующий **файл** `.csproj`, `.sln` или `.slnx` (не каталог).
-- `configuration: string? = null` — опционально `dotnet build -c` (например `Sit-Debug`, `Dit-Debug`). Если не задан — берётся с `load_workspace`.
+- `configuration: string? = null` — опционально `-p:Configuration=` (например `Sit-Debug`, `Dit-Debug`). Если не задан — берётся с `load_workspace`.
 - `noIncremental: bool = true` — `--no-incremental` на каждом build-шаге (по умолчанию). `false` только если явно принимаете up-to-date кэш MSBuild.
 - `platform: string? = null` — опционально `-p:Platform=`. Если не задан — с `load_workspace`.
+- `projectName: string? = null` — опционально. Если задан, `workspacePath` должен быть `.sln`/`.slnx`. Собирает этот проект через MSBuild-таргет виртуального пути в solution (`-t:"Folder\Project"`). Совпадение по display name, имени файла или виртуальному пути.
 
-**Поведение:** наследование env + pinning (`MSBUILD_EXE_PATH`, `DOTNET_MSBUILD_SDK_RESOLVER_SDKS_*`). Mismatch → **error `MCP_MSBUILD_SDK_MISMATCH`** + pinned `dotnet exec …/MSBuild.dll /restore`. Цепочка minimal → pinned restore → restore/build detailed. **Итоговый exit** = последний `dotnet build` (не restore). В metadata — `Configuration` / `Platform` / `BuildArgs` / `NoIncremental`. Session `buildArgs` с `load_workspace` добавляются только к build-шагам (не к restore). Внутреннего кэша результатов MCP нет.
+**Поведение:** наследование env + pinning (`MSBUILD_EXE_PATH`, `DOTNET_MSBUILD_SDK_RESOLVER_SDKS_*`). Mismatch → **error `MCP_MSBUILD_SDK_MISMATCH`** + pinned `dotnet exec …/MSBuild.dll /restore`. Цепочка minimal → pinned restore → restore/build detailed. **Итоговый exit** = последний `dotnet build` (не restore). В metadata — `Configuration` / `Platform` / `ProjectName` / `SolutionTarget` / `BuildArgs` / `NoIncremental`. Session `buildArgs` с `load_workspace` добавляются только к build-шагам (не к restore). Внутреннего кэша результатов MCP нет.
 
 </details>
 
@@ -1610,7 +1619,7 @@ cd D:\Devel\YourApp
 
 **Параметры:** *(нет)*
 
-После `dotnet publish` — проверка, что MCP подхватил новый бинарник (ожидай **v1.2.2** и **62** tools в `full`, или **18** в `lite`).
+После `dotnet publish` — проверка, что MCP подхватил новый бинарник (ожидай **v1.2.3** и **62** tools в `full`, или **18** в `lite`).
 
 </details>
 

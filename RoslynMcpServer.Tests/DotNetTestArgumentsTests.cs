@@ -100,7 +100,7 @@ public sealed class DotNetTestArgumentsTests
 
         Assert.True(plan.IncludesPreTestBuild);
         Assert.Equal(
-            $"build \"{Target}\" -c \"Sit-Debug\" -p:Platform=\"x64\"",
+            $"build \"{Target}\" -p:Configuration=\"Sit-Debug\" -p:Platform=\"x64\"",
             plan.PreTestBuildArguments);
         Assert.Equal(
             $"test \"{Target}\" --logger \"console;verbosity=normal\" --verbosity normal -c \"Sit-Debug\" -p:Platform=\"x64\" --no-build --no-restore --filter \"FullyQualifiedName~Foo\"",
@@ -129,7 +129,7 @@ public sealed class DotNetTestArgumentsTests
             buildArgs: "-p:TreatWarningsAsErrors=false");
 
         Assert.Equal(
-            $"build \"{Target}\" -c \"Sit-Debug\" -p:Platform=\"x64\" -p:TreatWarningsAsErrors=false",
+            $"build \"{Target}\" -p:Configuration=\"Sit-Debug\" -p:Platform=\"x64\" -p:TreatWarningsAsErrors=false",
             plan.PreTestBuildArguments);
         Assert.DoesNotContain(
             "-p:TreatWarningsAsErrors=false",

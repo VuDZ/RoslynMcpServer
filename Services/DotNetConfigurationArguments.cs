@@ -1,8 +1,8 @@
 namespace RoslynMcpServer.Services;
 
 /// <summary>
-/// Formats optional MSBuild <c>-c</c> / <c>-p:Platform</c> for <c>dotnet build|test</c>
-/// and sanitizes names used as MSBuildWorkspace global properties.
+/// Formats optional MSBuild <c>-c</c> / <c>-p:Configuration</c> / <c>-p:Platform</c>
+/// for <c>dotnet build|test</c> and sanitizes names used as MSBuildWorkspace global properties.
 /// </summary>
 public static class DotNetConfigurationArguments
 {
@@ -59,11 +59,22 @@ public static class DotNetConfigurationArguments
 
     /// <summary>
     /// Returns a leading-space fragment <c> -c "Name"</c>, or empty when <paramref name="configuration"/> is omitted.
+    /// Use for <c>dotnet test</c> so the CLI still locates <c>bin/{configuration}</c>.
     /// </summary>
     public static string FormatSwitch(string? configuration)
     {
         var name = Normalize(configuration, nameof(configuration));
         return name is null ? string.Empty : $" -c \"{name}\"";
+    }
+
+    /// <summary>
+    /// Returns a leading-space fragment <c> -p:Configuration="Name"</c>, or empty when omitted.
+    /// Use for <c>dotnet build</c> (probe and pre-test compile).
+    /// </summary>
+    public static string FormatConfigurationProperty(string? configuration)
+    {
+        var name = Normalize(configuration, nameof(configuration));
+        return name is null ? string.Empty : $" -p:Configuration=\"{name}\"";
     }
 
     /// <summary>
@@ -80,6 +91,14 @@ public static class DotNetConfigurationArguments
     {
         ArgumentNullException.ThrowIfNull(arguments);
         var suffix = FormatSwitch(configuration);
+        return suffix.Length == 0 ? arguments : arguments + suffix;
+    }
+
+    /// <summary>Appends <c>-p:Configuration</c> when set; otherwise returns <paramref name="arguments"/> unchanged.</summary>
+    public static string AppendConfigurationProperty(string arguments, string? configuration)
+    {
+        ArgumentNullException.ThrowIfNull(arguments);
+        var suffix = FormatConfigurationProperty(configuration);
         return suffix.Length == 0 ? arguments : arguments + suffix;
     }
 

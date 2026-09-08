@@ -113,8 +113,8 @@ public static class McpToolHelpCatalog
             ["run_dotnet_build"] = new()
             {
                 Prerequisites = "workspacePath must be a .csproj, .sln, or .slnx file, not a directory.",
-                Workflow = "Use after edits to verify compile. Omit configuration/platform to inherit load_workspace. Extra `dotnet build` args inherit from load_workspace `buildArgs`. Default noIncremental=true so up-to-date cache cannot hide errors.",
-                Pitfalls = "Do not use execute_dotnet_command for ordinary builds. Restore success cannot mask a failed build.",
+                Workflow = "Use after edits to verify compile. Omit configuration/platform to inherit load_workspace. Extra `dotnet build` args inherit from load_workspace `buildArgs`. Default noIncremental=true so up-to-date cache cannot hide errors. Pass projectName with a .sln/.slnx workspacePath to build one project via its solution-folder MSBuild target (`-t`). Configuration on build steps is `-p:Configuration`.",
+                Pitfalls = "Do not use execute_dotnet_command for ordinary builds. Restore success cannot mask a failed build. projectName requires a .sln/.slnx, not a .csproj. Ambiguous names need the virtual path (Folder\\Project).",
                 RelatedTools = ["run_dotnet_test", "execute_dotnet_command", "load_workspace"],
             },
             ["run_dotnet_test"] = new()

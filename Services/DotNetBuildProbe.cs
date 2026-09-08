@@ -32,12 +32,13 @@ public static class DotNetBuildProbe
         string? configuration = null,
         bool noIncremental = true,
         string? platform = null,
-        string? buildArgs = null)
+        string? buildArgs = null,
+        string? target = null)
     {
         var budget = overallBudget ?? DefaultOverallBudget;
         var perStep = stepTimeout ?? DefaultStepTimeout;
         var quoted = $"\"{projectOrSolutionPath}\"";
-        var buildSuffix = FormatBuildStepSuffix(configuration, platform, noIncremental, buildArgs);
+        var buildSuffix = FormatBuildStepSuffix(configuration, platform, noIncremental, buildArgs, target);
         var log = new StringBuilder();
         var steps = new List<string>();
         var buildExitCodes = new List<int>();
@@ -272,14 +273,38 @@ public static class DotNetBuildProbe
         noIncremental ? " --no-incremental" : string.Empty;
 
     /// <summary>
-    /// Configuration, platform, incremental, and session <c>buildArgs</c> for <c>dotnet build</c> steps only.
+    /// Formats <c>-t:"Name"</c> for a solution project target, or empty when omitted.
+    /// </summary>
+    internal static string FormatTargetSwitch(string? target)
+    {
+        if (string.IsNullOrWhiteSpace(target))
+        {
+            return string.Empty;
+        }
+
+        var name = target.Trim();
+        if (name.Contains('"', StringComparison.Ordinal)
+            || name.Contains('\n', StringComparison.Ordinal)
+            || name.Contains('\r', StringComparison.Ordinal)
+            || name.Contains('\0', StringComparison.Ordinal))
+        {
+            throw new ArgumentException("target contains an invalid character.", nameof(target));
+        }
+
+        return $" -t:\"{name}\"";
+    }
+
+    /// <summary>
+    /// Target, configuration, platform, incremental, and session <c>buildArgs</c> for <c>dotnet build</c> steps only.
     /// </summary>
     internal static string FormatBuildStepSuffix(
         string? configuration,
         string? platform,
         bool noIncremental,
-        string? buildArgs) =>
-        DotNetConfigurationArguments.FormatSwitch(configuration)
+        string? buildArgs,
+        string? target = null) =>
+        FormatTargetSwitch(target)
+        + DotNetConfigurationArguments.FormatConfigurationProperty(configuration)
         + DotNetConfigurationArguments.FormatPlatformProperty(platform)
         + FormatIncrementalSwitch(noIncremental)
         + DotNetBuildArguments.FormatSuffix(buildArgs);
