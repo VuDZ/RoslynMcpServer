@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Reflection;
 using ModelContextProtocol.Server;
 using RoslynMcpServer.Tools;
@@ -6,8 +7,8 @@ namespace RoslynMcpServer.Hosting;
 
 /// <summary>
 /// Single source of truth for MCP tools: names, host methods, groups, lite-core membership,
-/// and read/write classification. Drives DI host registration, SDK tool registration,
-/// profile selection, counts, tests, and later help generation.
+/// and read/write/process classification. Drives DI host registration, SDK tool registration,
+/// profile selection, counts, tests, and help generation.
 /// </summary>
 public static class McpToolCatalog
 {
@@ -16,10 +17,21 @@ public static class McpToolCatalog
     /// </summary>
     public static IReadOnlyList<string> ReservedBootstrapToolNames { get; } =
     [
-        "list_tool_groups",
-        "get_tool_help",
         "enable_tool_group",
     ];
+
+    /// <summary>
+    /// Epoch 1 minified <c>tools/list</c> UTF-8 sizes captured before Epoch 2 description compaction.
+    /// </summary>
+    public const int Epoch1FullCatalogBytes = 64181;
+
+    public const int Epoch1LiteCatalogBytes = 23115;
+
+    /// <summary>
+    /// Epoch 1 tool+parameter <see cref="DescriptionAttribute"/> character total for the original 59 tools.
+    /// Recapture with <see cref="SumDescriptionCharacters"/> on that set if the catalog is rebuilt.
+    /// </summary>
+    public const int Epoch1DescriptionCharacters = 35445;
 
     public static IReadOnlyList<McpToolDescriptor> All { get; } = Build();
 
@@ -125,7 +137,9 @@ public static class McpToolCatalog
         McpToolDescriptor[] entries =
         [
             Core<ServerLifecycleTools>("get_mcp_server_info", readOnly: true),
-            Core<WorkspaceTools>("load_workspace", readOnly: false),
+            Core<ToolHelpTools>("list_tool_groups", readOnly: true),
+            Core<ToolHelpTools>("get_tool_help", readOnly: true),
+            Core<WorkspaceTools>("load_workspace", readOnly: false, executesProcess: true),
             Core<WorkspaceTools>("reset_workspace", readOnly: false),
             Core<CodeSkeletonTools>("get_code_skeleton", readOnly: true),
             Core<CodeAnalysisTools>("get_class_skeleton", readOnly: true),
@@ -135,10 +149,10 @@ public static class McpToolCatalog
             Core<NavigationTools>("find_symbol_references", readOnly: true),
             Core<NavigationTools>("find_implementations", readOnly: true),
             Core<NavigationTools>("get_call_graph", readOnly: true),
-            Core<BuildTools>("run_dotnet_build", readOnly: false),
-            Core<TestTools>("run_dotnet_test", readOnly: false),
-            Core<TestTools>("run_specific_test", readOnly: false),
-            Core<UtilityTools>("get_changed_files", readOnly: true),
+            Core<BuildTools>("run_dotnet_build", readOnly: false, executesProcess: true),
+            Core<TestTools>("run_dotnet_test", readOnly: false, executesProcess: true),
+            Core<TestTools>("run_specific_test", readOnly: false, executesProcess: true),
+            Core<UtilityTools>("get_changed_files", readOnly: true, executesProcess: true),
 
             Group<RoslynTools>("get_file_content", McpToolGroups.Files, readOnly: true),
             Group<UtilityTools>("read_file_range", McpToolGroups.Files, readOnly: true),
@@ -162,7 +176,7 @@ public static class McpToolCatalog
             Group<CodeFixTools>("apply_code_fix", McpToolGroups.Editing, readOnly: false),
             Group<RefactoringTools>("extract_interface", McpToolGroups.Editing, readOnly: false),
             Group<RefactoringTools>("move_type_to_new_file", McpToolGroups.Editing, readOnly: false),
-            Group<UtilityTools>("run_format", McpToolGroups.Editing, readOnly: false),
+            Group<UtilityTools>("run_format", McpToolGroups.Editing, readOnly: false, executesProcess: true),
             Group<UtilityTools>("rename_symbol", McpToolGroups.Editing, readOnly: false),
             Group<TestTools>("generate_test_method_stub", McpToolGroups.Editing, readOnly: false),
 
@@ -171,10 +185,10 @@ public static class McpToolCatalog
             Group<CodeAnalysisTools>("get_decompiled_class_skeleton", McpToolGroups.Decompile, readOnly: true),
             Group<CodeAnalysisTools>("get_decompiled_method_body", McpToolGroups.Decompile, readOnly: true),
 
-            Group<NuGetTools>("list_nuget_packages", McpToolGroups.NuGet, readOnly: true),
-            Group<NuGetTools>("run_nuget_audit", McpToolGroups.NuGet, readOnly: true),
-            Group<NuGetTools>("list_outdated_packages", McpToolGroups.NuGet, readOnly: true),
-            Group<NuGetTools>("search_nuget_registry", McpToolGroups.NuGet, readOnly: true),
+            Group<NuGetTools>("list_nuget_packages", McpToolGroups.NuGet, readOnly: true, executesProcess: true),
+            Group<NuGetTools>("run_nuget_audit", McpToolGroups.NuGet, readOnly: true, executesProcess: true),
+            Group<NuGetTools>("list_outdated_packages", McpToolGroups.NuGet, readOnly: true, executesProcess: true),
+            Group<NuGetTools>("search_nuget_registry", McpToolGroups.NuGet, readOnly: true, executesProcess: true),
             Group<ProjectTools>("add_package_reference", McpToolGroups.NuGet, readOnly: false),
             Group<ProjectTools>("remove_package_reference", McpToolGroups.NuGet, readOnly: false),
 
@@ -182,29 +196,34 @@ public static class McpToolCatalog
             Group<UtilityTools>("get_project_graph", McpToolGroups.Project, readOnly: true),
             Group<ProjectTools>("rename_project", McpToolGroups.Project, readOnly: false),
 
-            Group<RunTools>("run_dotnet_run", McpToolGroups.Runtime, readOnly: false),
-            Group<UtilityTools>("execute_dotnet_command", McpToolGroups.Runtime, readOnly: false),
+            Group<RunTools>("run_dotnet_run", McpToolGroups.Runtime, readOnly: false, executesProcess: true),
+            Group<UtilityTools>("execute_dotnet_command", McpToolGroups.Runtime, readOnly: false, executesProcess: true),
             Group<TestTools>("get_test_list", McpToolGroups.Runtime, readOnly: true),
 
             Group<UtilityTools>("read_log_tail", McpToolGroups.Operations, readOnly: true),
             Group<UtilityTools>("tail_tool_log", McpToolGroups.Operations, readOnly: true),
             Group<UtilityTools>("manage_agent_scratchpad", McpToolGroups.Operations, readOnly: false),
-            Group<ServerLifecycleTools>("stop_mcp_server", McpToolGroups.Operations, readOnly: false),
+            Group<ServerLifecycleTools>("stop_mcp_server", McpToolGroups.Operations, readOnly: false, executesProcess: true),
         ];
 
         Validate(entries);
         return entries;
     }
 
-    private static McpToolDescriptor Core<THost>(string name, bool readOnly)
+    private static McpToolDescriptor Core<THost>(string name, bool readOnly, bool executesProcess = false)
         where THost : class =>
-        Create<THost>(name, McpToolGroups.Core, inLiteCore: true, readOnly);
+        Create<THost>(name, McpToolGroups.Core, inLiteCore: true, readOnly, executesProcess);
 
-    private static McpToolDescriptor Group<THost>(string name, string group, bool readOnly)
+    private static McpToolDescriptor Group<THost>(string name, string group, bool readOnly, bool executesProcess = false)
         where THost : class =>
-        Create<THost>(name, group, inLiteCore: false, readOnly);
+        Create<THost>(name, group, inLiteCore: false, readOnly, executesProcess);
 
-    private static McpToolDescriptor Create<THost>(string name, string group, bool inLiteCore, bool readOnly)
+    private static McpToolDescriptor Create<THost>(
+        string name,
+        string group,
+        bool inLiteCore,
+        bool readOnly,
+        bool executesProcess)
         where THost : class
     {
         var hostType = typeof(THost);
@@ -216,7 +235,32 @@ public static class McpToolCatalog
             Group = group,
             InLiteCore = inLiteCore,
             IsReadOnly = readOnly,
+            ExecutesProcess = executesProcess,
         };
+    }
+
+    public static int SumDescriptionCharacters(IEnumerable<McpToolDescriptor>? tools = null)
+    {
+        var total = 0;
+        foreach (var descriptor in tools ?? All)
+        {
+            var methodDescription = descriptor.Method.GetCustomAttribute<DescriptionAttribute>()?.Description;
+            if (!string.IsNullOrEmpty(methodDescription))
+            {
+                total += methodDescription.Length;
+            }
+
+            foreach (var parameter in descriptor.Method.GetParameters())
+            {
+                var parameterDescription = parameter.GetCustomAttribute<DescriptionAttribute>()?.Description;
+                if (!string.IsNullOrEmpty(parameterDescription))
+                {
+                    total += parameterDescription.Length;
+                }
+            }
+        }
+
+        return total;
     }
 
     private static MethodInfo GetToolMethod(Type hostType, string toolName)

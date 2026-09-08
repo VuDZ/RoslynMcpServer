@@ -32,14 +32,12 @@ public sealed class NavigationTools
 
     [McpServerTool(Name = "find_symbol_references", Title = "Find symbol references")]
     [Description(
-        "Finds all semantic references to a class, interface, or method when you know the declaring `.cs` file "
-        + "(file-scoped SymbolFinder). For solution-wide search by simple name use `find_usages`. "
-        + "Output capped at 20 references. CRITICAL for safe refactoring and DI registration audits. Requires `load_workspace`. "
-        + "Applies **saved** `.cs` from disk first (IDE/git/`dotnet format`); unsaved editor buffers are ignored.")]
+        "Finds semantic references when the declaring .cs file is known. Requires load_workspace. "
+        + "For solution-wide search by name use find_usages.")]
     public async Task<string> FindSymbolReferences(
-        [Description("Path to a .cs file (same JSON key `filePath` as get_file_content / get_diagnostics_for_file).")]
+        [Description("Path to the declaring .cs file.")]
         string filePath,
-        [Description("Symbol name (class/interface/method)")]
+        [Description("Symbol name declared in that file.")]
         string symbolName,
         CancellationToken cancellationToken = default)
     {
@@ -159,18 +157,10 @@ public sealed class NavigationTools
 
     [McpServerTool(Name = "find_symbol_definition", Title = "Find symbol definitions in workspace")]
     [Description(
-        "Searches the **currently loaded Roslyn solution** (semantic workspace index) for declarations whose name matches `symbolName`. "
-        + "Before search, **saved** `.cs` on disk (IDE save, git, `dotnet format`) are merged into that index; unsaved editor buffers are not. "
-        + "Do not call `reset_workspace` for ordinary source saves — only after `dotnet build` generated files under `obj`, or `.csproj`/`.sln` graph changes. "
-        + "For each match it returns the symbol display string, every **source** definition file path, and the **1-based** starting line number. "
-        + "Use this when you need to know **where a C# type or member is defined** (class, interface, struct, enum, method, property, etc.). "
-        + "**Do not** answer “where is it **declared**?” with plain-text search or by running grep/findstr/Select-String from a terminal over the tree—those walk `bin/`, `obj/`, and generated trees, are easy to mis-read, and can trigger access violations or lock contention. "
-        + "For arbitrary text search across files, use your environment’s built-in **`grep`** tool (not `bash`/`PowerShell` pipelines). "
-        + "Call `load_workspace` first so the solution is loaded; then call this tool with the exact identifier text (matching is case-insensitive). "
-        + "Do not invent generic tool names like `search` for this task. "
-        + "For finding *usages*, use `find_usages` (solution-wide by simple name) or `find_symbol_references` when you already know the declaring `.cs` file.")]
+        "Finds declarations of a type or member in the loaded workspace. Requires load_workspace. "
+        + "Do not use text search for where a symbol is declared. For usages use find_usages; when the declaring file is known use find_symbol_references.")]
     public async Task<string> FindSymbolDefinition(
-        [Description("Exact identifier of the type or member to locate (e.g. `IRunAvpCommand`).")]
+        [Description("Exact identifier of the type or member.")]
         string symbolName,
         CancellationToken cancellationToken = default)
     {
@@ -273,15 +263,10 @@ public sealed class NavigationTools
 
     [McpServerTool(Name = "find_usages", Title = "Find symbol usages across solution")]
     [Description(
-        "Semantically searches the **entire loaded Roslyn solution** for references and invocations of a symbol whose declared name matches `symbolName` (case-insensitive). "
-        + "Applies **saved** `.cs` from disk first; unsaved editor buffers are ignored (no `reset_workspace` for ordinary saves). "
-        + "Returns grouped **file paths**, **1-based line numbers**, and the **actual source line text** at each reference. "
-        + "Use this to learn usage patterns for classes, methods, properties, etc. Call `load_workspace` first. "
-        + "If several declarations share the same simple name, the tool picks a single primary symbol (types preferred over methods/properties, then stable ordering by fully-qualified name); "
-        + "narrow `symbolName` or use `find_symbol_definition` / `find_symbol_references` with a known file when needed. "
-        + "Output is capped at 30 references to limit token use.")]
+        "Finds solution-wide semantic references by declared name. Requires load_workspace. "
+        + "When the declaring file is known use find_symbol_references. For interface or base hierarchy use find_implementations.")]
     public async Task<string> FindUsages(
-        [Description("Declared name of the type or member whose references to find (e.g. `Guard`, `JsonExtensions`, `Format`).")]
+        [Description("Declared name of the type or member.")]
         string symbolName,
         CancellationToken cancellationToken = default)
     {
@@ -433,16 +418,12 @@ public sealed class NavigationTools
 
     [McpServerTool(Name = "find_implementations", Title = "Find interface implementations or derived types")]
     [Description(
-        "Semantically finds all types that **implement** an interface or **derive from** a base class/struct in the loaded solution. "
-        + "Applies **saved** `.cs` from disk first; unsaved editor buffers are ignored. "
-        + "Use for questions like \"which classes implement `IRepository`?\" or \"what inherits from `BaseController`?\". "
-        + "Do not use text search or `find_usages` for this — they miss indirect hierarchies and match unrelated identifiers. "
-        + "Call `load_workspace` first. For interface symbols uses Roslyn FindImplementations; for classes/structs uses FindDerivedClasses. "
-        + "Output is capped at 50 types.")]
+        "Finds types that implement an interface or derive from a base type. Requires load_workspace. "
+        + "Do not use find_usages or text search for this.")]
     public async Task<string> FindImplementations(
-        [Description("Name of the interface or base class (e.g. `IRepository`, `BaseController`). Case-insensitive.")]
+        [Description("Interface or base type name.")]
         string symbolName,
-        [Description("When true (default), includes indirect implementations / derived types (transitive hierarchy).")]
+        [Description("When true (default), include indirect implementations and derived types.")]
         bool transitive = true,
         CancellationToken cancellationToken = default)
     {
@@ -764,14 +745,13 @@ public sealed class NavigationTools
     }
 
     [McpServerTool(Name = "get_call_graph", Title = "Get method call graph")]
-    [Description(
-        "Builds callers and callees for a method in the loaded workspace (after applying **saved** `.cs` from disk). Use for bug investigation instead of loading many method bodies.")]
+    [Description("Lists callers and callees of a method in the loaded workspace. Requires load_workspace.")]
     public async Task<string> GetCallGraph(
         [Description("Path to the .cs file containing the method.")] string filePath,
-        [Description("Class name containing the method.")] string className,
+        [Description("Class containing the method.")] string className,
         [Description("Method name.")] string methodName,
-        [Description("Max nodes per callers/callees list (default 25).")] int maxNodes = 25,
-        [Description("When true, includes callees outside the loaded solution (e.g. BCL).")] bool includeExternalCallees = false,
+        [Description("Max nodes per callers/callees list.")] int maxNodes = 25,
+        [Description("When true, include callees outside the loaded solution.")] bool includeExternalCallees = false,
         CancellationToken cancellationToken = default)
     {
         const string toolName = nameof(GetCallGraph);

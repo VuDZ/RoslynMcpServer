@@ -20,15 +20,12 @@ public sealed class CodeFixTools
 
     [McpServerTool(Name = "get_code_fixes", Title = "Get code fixes for diagnostic")]
     [Description(
-        "Returns Roslyn CodeAction fixes available for a compiler/analyzer diagnostic at a specific location. " +
-        "Uses the workspace after applying **saved** `.cs` from disk. " +
-        "Call get_diagnostics_for_file first to obtain diagnosticId, line, and column. " +
-        "Use the returned fixIndex with apply_code_fix. Prefer this over manually generating fix code.")]
+        "Lists Roslyn code fixes for a diagnostic at a location. Requires load_workspace. Use fixIndex with apply_code_fix.")]
     public async Task<string> GetCodeFixes(
-        [Description("Absolute or workspace-relative path to the target .cs file.")] string filePath,
-        [Description("Diagnostic id from get_diagnostics_for_file (e.g. CS0246, IDE0001).")] string diagnosticId,
-        [Description("1-based line number where the diagnostic starts.")] int line,
-        [Description("1-based column number where the diagnostic starts. Defaults to 1.")] int column = 1,
+        [Description("Path to the target .cs file.")] string filePath,
+        [Description("Diagnostic id from get_diagnostics_for_file.")] string diagnosticId,
+        [Description("1-based line where the diagnostic starts.")] int line,
+        [Description("1-based column where the diagnostic starts.")] int column = 1,
         CancellationToken cancellationToken = default)
     {
         try
@@ -81,16 +78,14 @@ public sealed class CodeFixTools
 
     [McpServerTool(Name = "apply_code_fix", Title = "Apply Roslyn code fix")]
     [Description(
-        "Applies a Roslyn CodeAction fix previously listed by get_code_fixes. " +
-        "Writes changed files to disk and updates the in-memory workspace. " +
-        "Set previewOnly=true to see a diff without applying.")]
+        "Applies a Roslyn code fix listed by get_code_fixes. Writes files. previewOnly=true returns a diff without writing.")]
     public async Task<string> ApplyCodeFix(
-        [Description("Absolute or workspace-relative path to the target .cs file (same as get_code_fixes).")] string filePath,
-        [Description("Diagnostic id from get_diagnostics_for_file / get_code_fixes.")] string diagnosticId,
-        [Description("fixIndex from get_code_fixes (0-based).")] int fixIndex,
-        [Description("1-based line number (same as get_code_fixes).")] int line,
-        [Description("1-based column number (same as get_code_fixes). Defaults to 1.")] int column = 1,
-        [Description("When true, returns a preview diff without writing files.")] bool previewOnly = false,
+        [Description("Path to the target .cs file.")] string filePath,
+        [Description("Diagnostic id from get_code_fixes.")] string diagnosticId,
+        [Description("fixIndex from get_code_fixes, 0-based.")] int fixIndex,
+        [Description("1-based line number.")] int line,
+        [Description("1-based column number.")] int column = 1,
+        [Description("When true, preview a diff without writing.")] bool previewOnly = false,
         CancellationToken cancellationToken = default)
     {
         try

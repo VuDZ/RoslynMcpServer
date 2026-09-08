@@ -14,6 +14,21 @@ public sealed class McpToolDescriptor
     public required string Group { get; init; }
     public required bool InLiteCore { get; init; }
     public required bool IsReadOnly { get; init; }
+    public required bool ExecutesProcess { get; init; }
+
+    /// <summary>Compact classification for help: read, write, or process.</summary>
+    public string Classification
+    {
+        get
+        {
+            if (ExecutesProcess)
+            {
+                return "process";
+            }
+
+            return IsReadOnly ? "read" : "write";
+        }
+    }
 
     public Func<IServiceProvider, McpServerTool> CreateFactory()
     {

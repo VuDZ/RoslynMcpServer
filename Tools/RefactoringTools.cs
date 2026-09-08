@@ -19,15 +19,13 @@ public sealed class RefactoringTools
 
     [McpServerTool(Name = "extract_interface", Title = "Extract interface from class")]
     [Description(
-        "Extracts a public interface from a class: generates method/property/event signatures, optionally in a new file, " +
-        "and adds the interface to the class base list. Use instead of manually authoring interface boilerplate. " +
-        "Requires `load_workspace`; applies **saved** `.cs` from disk before editing.")]
+        "Extracts a public interface from a class. Writes files. Requires load_workspace. previewOnly=true writes nothing.")]
     public async Task<string> ExtractInterface(
-        [Description("Absolute or workspace-relative path to the .cs file containing the class.")] string filePath,
-        [Description("Name of the class to extract from (e.g. `OrderService`).")] string className,
-        [Description("Interface name (default: `I` + className, e.g. `IOrderService`).")] string? interfaceName = null,
-        [Description("When true (default), writes the interface to `{InterfaceName}.cs` in the same folder.")] bool createNewFile = true,
-        [Description("When true, returns a preview without writing files.")] bool previewOnly = false,
+        [Description("Path to the .cs file containing the class.")] string filePath,
+        [Description("Class to extract from.")] string className,
+        [Description("Interface name. Default is I plus className.")] string? interfaceName = null,
+        [Description("When true (default), write the interface to a new file.")] bool createNewFile = true,
+        [Description("When true, preview without writing.")] bool previewOnly = false,
         CancellationToken cancellationToken = default)
     {
         const string toolName = nameof(ExtractInterface);
@@ -68,13 +66,11 @@ public sealed class RefactoringTools
 
     [McpServerTool(Name = "move_type_to_new_file", Title = "Move type to its own file")]
     [Description(
-        "Moves one or more top-level types from a multi-type .cs file into separate files named `{TypeName}.cs` " +
-        "(C# one-type-per-file convention). When `typeName` is omitted, moves every top-level type whose name " +
-        "does not match the current file name.")]
+        "Moves top-level types into separate files named {TypeName}.cs. Writes files. previewOnly=true writes nothing.")]
     public async Task<string> MoveTypeToNewFile(
-        [Description("Absolute or workspace-relative path to the .cs file containing the type(s).")] string filePath,
-        [Description("Optional top-level type name to move. Omit to move all types not matching the file name.")] string? typeName = null,
-        [Description("When true, returns a preview without writing files.")] bool previewOnly = false,
+        [Description("Path to the .cs file containing the type(s).")] string filePath,
+        [Description("Optional type name to move. Omit to move types that do not match the file name.")] string? typeName = null,
+        [Description("When true, preview without writing.")] bool previewOnly = false,
         CancellationToken cancellationToken = default)
     {
         const string toolName = nameof(MoveTypeToNewFile);

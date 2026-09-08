@@ -7,8 +7,8 @@ The documents are intended to be given to separate implementation chats in
 order. Each epoch must treat the repository state produced by previous epochs
 as base truth and must not implement later epochs early.
 
-Epoch 1 is implemented; see [epoch-1-handoff.md](epoch-1-handoff.md) for
-counts, sizes, and the unreleased version status.
+Epoch 1 is implemented; see [epoch-1-handoff.md](epoch-1-handoff.md).
+Epoch 2 is implemented; see [epoch-2-handoff.md](epoch-2-handoff.md).
 
 ## Fixed architectural decisions
 

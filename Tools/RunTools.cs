@@ -18,22 +18,19 @@ public sealed class RunTools
 
     [McpServerTool(Name = "run_dotnet_run", Title = "Run dotnet run")]
     [Description(
-        "Runs `dotnet run --project <csproj>` with pinned SDK (same as run_dotnet_build). "
-        + "Default timeout **120s** (raise `timeoutSeconds` for long jobs; `0` = no timeout). "
-        + "Returns separate stdout/stderr with size limits — use for console apps (progress on stderr). "
-        + "Do not use raw shell `dotnet run` or execute_dotnet_command for project runs.")]
+        "Runs dotnet run --project <csproj>. Executes a process. Prefer this over execute_dotnet_command.")]
     public async Task<string> RunDotNetRun(
-        [Description("Path to a .csproj (executable/worker project). Same roots as load_workspace / run_dotnet_build.")]
+        [Description("Path to an executable .csproj.")]
         string workspacePath,
-        [Description("Optional arguments after `--` (space-separated), e.g. `https://server/tfs/.../100` `--verbose`.")]
+        [Description("Arguments after --.")]
         string? arguments = null,
-        [Description("Optional working directory override. When omitted, uses global.json repo root.")]
+        [Description("Working directory override. Omit to use global.json repo root.")]
         string? workingDirectory = null,
-        [Description("Process timeout in seconds. Default 120. 0 = no timeout.")]
+        [Description("Process timeout in seconds. 0 disables timeout.")]
         int timeoutSeconds = 120,
-        [Description("Max stdout characters in the response (head+tail when truncated). Default 8000.")]
+        [Description("Max stdout characters in the response.")]
         int maxStdoutChars = ProcessOutputExcerpt.DefaultMaxStdoutCharacters,
-        [Description("Max stderr characters; prefers tail (progress bar). Default 2000.")]
+        [Description("Max stderr characters in the response.")]
         int maxStderrChars = ProcessOutputExcerpt.DefaultMaxStderrCharacters,
         CancellationToken cancellationToken = default)
     {

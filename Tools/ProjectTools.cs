@@ -19,14 +19,12 @@ public sealed class ProjectTools
 
     [McpServerTool(Name = "rename_project", Title = "Rename MSBuild project")]
     [Description(
-        "Renames an SDK-style project folder and `.csproj`, updates `AssemblyName`/`RootNamespace` when they match the old project name, " +
-        "fixes `ProjectReference` paths, and updates `.sln`/`.slnx` entries. Does **not** rename C# namespaces/types (use `rename_symbol` after reload). " +
-        "Does not touch Docker, launchSettings, CI, or docs. Requires the project to live in its own identically named folder. Prefer `dryRun=true` first.")]
+        "Renames an SDK-style project folder and .csproj. Default dryRun=true. Does not rename C# types — use rename_symbol after reload.")]
     public Task<string> RenameProject(
-        [Description("Absolute or workspace-relative path to the `.csproj` to rename.")] string projectPath,
-        [Description("New project name (single path segment), e.g. `DupFinder.Core`.")] string newProjectName,
-        [Description("When true (default), returns the planned moves/edits without writing.")] bool dryRun = true,
-        [Description("Optional root to search for sibling `.csproj` / `.sln` / `.slnx`. Defaults to `ROSLYN_MCP_WORKSPACE` or nearest solution parent.")] string? searchRoot = null,
+        [Description("Path to the .csproj to rename.")] string projectPath,
+        [Description("New project name (single path segment).")] string newProjectName,
+        [Description("When true (default), preview planned moves without writing.")] bool dryRun = true,
+        [Description("Optional root to search for sibling projects and solutions.")] string? searchRoot = null,
         CancellationToken cancellationToken = default)
     {
         const string toolName = nameof(RenameProject);
@@ -64,12 +62,11 @@ public sealed class ProjectTools
 
     [McpServerTool(Name = "add_package_reference", Title = "Add NuGet package reference")]
     [Description(
-        "Adds a PackageReference to a .csproj file. Verify package id/version with search_nuget_registry first. "
-        + "Relative `projectPath` resolves against process CWD (prefer absolute paths). Clears in-memory workspace — call `load_workspace` after.")]
+        "Adds a PackageReference to a .csproj. Writes the file. Verify id/version with search_nuget_registry first. Call load_workspace after.")]
     public async Task<string> AddPackageReference(
-        [Description("Path to `.csproj` (prefer absolute; relative uses process CWD).")] string projectPath,
-        [Description("NuGet package id, e.g. Moq.")] string packageId,
-        [Description("Optional version. Omit to add without Version attribute.")] string? version = null,
+        [Description("Path to the .csproj.")] string projectPath,
+        [Description("NuGet package id.")] string packageId,
+        [Description("Optional version. Omit to add without a Version attribute.")] string? version = null,
         CancellationToken cancellationToken = default)
     {
         const string toolName = nameof(AddPackageReference);
@@ -88,13 +85,11 @@ public sealed class ProjectTools
     }
 
     [McpServerTool(Name = "remove_package_reference", Title = "Remove NuGet package reference")]
-    [Description(
-        "Removes a PackageReference from a .csproj file. Relative `projectPath` resolves against process CWD (prefer absolute). "
-        + "Clears in-memory workspace — call `load_workspace` after.")]
+    [Description("Removes a PackageReference from a .csproj. Writes the file. Call load_workspace after.")]
     public async Task<string> RemovePackageReference(
-        [Description("Path to `.csproj` (prefer absolute; relative uses process CWD).")]
+        [Description("Path to the .csproj.")]
         string projectPath,
-        [Description("NuGet package id to remove, e.g. Moq.")]
+        [Description("NuGet package id to remove.")]
         string packageId,
         CancellationToken cancellationToken = default)
     {

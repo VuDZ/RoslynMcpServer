@@ -20,29 +20,20 @@ public sealed class TestTools
 
     [McpServerTool(Name = "run_dotnet_test", Title = "Run dotnet test")]
     [Description(
-        "Runs `dotnet test` on the specified project or solution. Use this to verify behavior after writing tests or refactoring. " +
-        "Returns a clean summary of passed/failed tests. Default timeout 300s; on timeout/cancel the process tree is killed. " +
-        "When `noBuild=false` (default), compiles with a separate `dotnet build` then runs `dotnet test --no-build --no-restore` " +
-        "so VSTest summary is not buried under MSBuild warnings. Build failure is reported and tests are not started. " +
-        "After `run_dotnet_build`, pass `noBuild=true` (and optionally `noRestore=true`) to skip the extra compile. " +
-        "Optional `configuration` maps to `dotnet test -c` (e.g. `Sit-Debug`) for multi-config solutions. " +
-        "Omit `configuration`/`platform` to inherit values from the last `load_workspace`. " +
-        "For long integration tests raise `timeoutSeconds` (e.g. 900/1800).")]
+        "Runs dotnet test on a project, solution, or test directory. Executes a process. "
+        + "Prefer run_specific_test for one class or method. Omit configuration/platform to inherit load_workspace.")]
     public Task<string> RunDotNetTest(
-        [Description("Path to .csproj, .sln, .slnx, or test project directory (directories allowed; unlike `run_dotnet_build` which requires a file). Prefer `.sln`/`.slnx` for multi-config solutions.")]
+        [Description("Path to a .csproj, .sln, .slnx, or test project directory. Directories are allowed unlike run_dotnet_build.")]
         string workspacePath,
-        [Description("Process timeout in seconds. Default 300. Set 0 to disable timeout (not recommended).")]
+        [Description("Process timeout in seconds. 0 disables timeout.")]
         int timeoutSeconds = DotNetCliRunner.DefaultTimeoutSeconds,
-        [Description("Pass `--no-build` (skip rebuild; use after a successful `run_dotnet_build`).")]
+        [Description("Skip rebuild. Use after a successful run_dotnet_build.")]
         bool noBuild = false,
-        [Description("Pass `--no-restore` (skip NuGet restore).")]
+        [Description("Skip NuGet restore.")]
         bool noRestore = false,
-        [Description(
-            "Optional MSBuild configuration (`dotnet test -c`). Examples: `Debug`, `Release`, `Sit-Debug`, `Dit-Debug`. "
-            + "Omit to inherit `load_workspace` configuration, else the SDK/solution default (often wrong on multi-config `.slnx`).")]
+        [Description("MSBuild Configuration. Omit to inherit load_workspace.")]
         string? configuration = null,
-        [Description(
-            "Optional MSBuild Platform (`dotnet test -p:Platform=`). Examples: `AnyCPU`, `x64`. Omit to inherit `load_workspace` platform.")]
+        [Description("MSBuild Platform. Omit to inherit load_workspace.")]
         string? platform = null,
         CancellationToken cancellationToken = default)
     {
@@ -62,36 +53,24 @@ public sealed class TestTools
 
     [McpServerTool(Name = "run_specific_test", Title = "Run a filtered dotnet test")]
     [Description(
-        "Runs `dotnet test` filtered to a single test class and/or method. Builds a VSTest-safe `--filter` internally " +
-        "(`FullyQualifiedName~…`, method FQN without `()`, no bogus leading `.` on dotted names) — " +
-        "do not use `execute_dotnet_command` or hand-written FullyQualifiedName filters. " +
-        "When the Roslyn workspace is loaded, resolves the type/method FQN for precise contains filtering "
-        + "(after applying **saved** `.cs` from disk). " +
-        "Prefer `className` + short `methodName`. Use for TDD and bug fixes instead of running the full suite. " +
-        "Default timeout 300s; kills process tree on timeout/cancel. " +
-        "When `noBuild=false` (default), compiles with a separate `dotnet build` then `dotnet test --no-build --no-restore` " +
-        "(same isolation as `run_dotnet_test`; VSTest summary is parsed without MSBuild warning dumps). " +
-        "After `run_dotnet_build`, pass `noBuild=true` (and optionally `noRestore=true`). " +
-        "Optional `configuration` maps to `dotnet test -c` (same as `run_dotnet_test`). Omit `configuration`/`platform` to inherit `load_workspace`. Raise `timeoutSeconds` for slow tests.")]
+        "Runs dotnet test filtered to one class and/or method. Executes a process. "
+        + "Builds a VSTest-safe filter internally; do not use execute_dotnet_command.")]
     public async Task<string> RunSpecificTest(
-        [Description("Path to .csproj, .sln, .slnx, or test project directory (same as run_dotnet_test; directories allowed). Prefer `.sln`/`.slnx` for multi-config solutions.")]
+        [Description("Path to a .csproj, .sln, .slnx, or test project directory.")]
         string workspacePath,
-        [Description("Test class name (simple or fully qualified), e.g. `UserServiceTests`.")]
+        [Description("Test class name, simple or fully qualified.")]
         string? className = null,
-        [Description("Test method name, e.g. `CreateUser_WhenValid_ReturnsOk`.")]
+        [Description("Test method name.")]
         string? methodName = null,
-        [Description("Process timeout in seconds. Default 300. Set 0 to disable timeout (not recommended).")]
+        [Description("Process timeout in seconds. 0 disables timeout.")]
         int timeoutSeconds = DotNetCliRunner.DefaultTimeoutSeconds,
-        [Description("Pass `--no-build` (skip rebuild; use after a successful `run_dotnet_build`).")]
+        [Description("Skip rebuild. Use after a successful run_dotnet_build.")]
         bool noBuild = false,
-        [Description("Pass `--no-restore` (skip NuGet restore).")]
+        [Description("Skip NuGet restore.")]
         bool noRestore = false,
-        [Description(
-            "Optional MSBuild configuration (`dotnet test -c`). Examples: `Debug`, `Release`, `Sit-Debug`, `Dit-Debug`. "
-            + "Omit to inherit `load_workspace` configuration, else the SDK/solution default (often wrong on multi-config `.slnx`).")]
+        [Description("MSBuild Configuration. Omit to inherit load_workspace.")]
         string? configuration = null,
-        [Description(
-            "Optional MSBuild Platform (`dotnet test -p:Platform=`). Examples: `AnyCPU`, `x64`. Omit to inherit `load_workspace` platform.")]
+        [Description("MSBuild Platform. Omit to inherit load_workspace.")]
         string? platform = null,
         CancellationToken cancellationToken = default)
     {
@@ -140,11 +119,9 @@ public sealed class TestTools
 
     [McpServerTool(Name = "get_test_list", Title = "List tests in workspace")]
     [Description(
-        "Returns JSON list of test methods (Fact/Theory/TestMethod/etc.) from the **currently loaded** Roslyn workspace "
-        + "(applies **saved** `.cs` from disk first). "
-        + "Empty list (`count: 0`) is an agent signal that the wrong `.csproj` may be loaded — call `load_workspace` on the test `.sln`/`.slnx` first.")]
+        "Returns JSON list of test methods from the loaded workspace. Requires load_workspace.")]
     public async Task<string> GetTestList(
-        [Description("Maximum tests to return (default 200).")] int maxResults = 200,
+        [Description("Maximum tests to return.")] int maxResults = 200,
         CancellationToken cancellationToken = default)
     {
         const string toolName = nameof(GetTestList);
@@ -206,11 +183,11 @@ public sealed class TestTools
     }
 
     [McpServerTool(Name = "generate_test_method_stub", Title = "Generate test method stub")]
-    [Description("Inserts a test method stub ([Fact]/[Test]/[TestMethod]) into a test class via Roslyn AST.")]
+    [Description("Inserts a test method stub into a test class. Writes the file. Requires load_workspace.")]
     public async Task<string> GenerateTestMethodStub(
-        [Description("Absolute or workspace-relative path to the test .cs file.")] string filePath,
-        [Description("Test class name that will receive the stub.")] string className,
-        [Description("New test method name to insert.")] string methodName,
+        [Description("Path to the test .cs file.")] string filePath,
+        [Description("Test class that will receive the stub.")] string className,
+        [Description("New test method name.")] string methodName,
         [Description("xunit (default), nunit, or mstest.")] string? testFramework = null,
         CancellationToken cancellationToken = default)
     {

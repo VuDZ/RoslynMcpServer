@@ -17,13 +17,9 @@ public sealed class RoslynTools
     }
 
     [McpServerTool(Name = "get_file_content", Title = "Read source file")]
-    [Description(
-        "Reads file content from **disk** with context-window protection: if the file has more than 500 lines, returns only the first 100 lines plus a notice. "
-        + "Does not use the Roslyn workspace (unsaved editor buffers are not included). "
-        + "Uses `filePath` — the same argument name as read_file_range, get_method_body, get_diagnostics_for_file, apply_patch, etc. "
-        + "For a specific window use `read_file_range`; for a method use `get_method_body`.")]
+    [Description("Reads a file from disk. Large files are truncated. Does not use the workspace.")]
     public Task<string> GetFileContent(
-        [Description("Absolute or relative path to the file to read.")]
+        [Description("Path to the file to read.")]
         string filePath,
         CancellationToken cancellationToken = default)
     {

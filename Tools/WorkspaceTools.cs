@@ -24,37 +24,16 @@ public sealed class WorkspaceTools
 
     [McpServerTool(Name = "load_workspace", Title = "Load C# workspace")]
     [Description(
-        "Loads a C# Solution or Project into the semantic engine and returns a structural map plus a **workspace health** block "
-        + "(SDK/global.json pin, restore assets, registered tool count). Always call this first before analyzing C# code. "
-        + "Accepts `.sln`, `.slnx`, or `.csproj` (prefer `.sln`/`.slnx` for multi-config solutions so project configurations resolve correctly). "
-        + "Large solutions can take minutes — if the host aborts mid-load the tool returns **Workspace Load Cancelled (client abort)** "
-        + "(not MSBuild failure); raise host MCP timeout (e.g. OpenCode `timeout: 600000`) and retry. "
-        + "NuGet restore warnings (NU1701 TFM compat, audit, unused-package prune) and design-time MSBuild warnings "
-        + "(ASP.NET/SDK deprecation such as IncludeOpenAPIAnalyzers/ASPDEPR007, processor-architecture mismatch MSB3270, "
-        + "analyzer project without metadata reference) are warnings and do not fail load even when MSBuildWorkspace wraps them as "
-        + "`Msbuild failed when processing the file`; true MSBuild/SDK errors (`error NU|MSB|NETSDK`) and unloadable projects still fail. "
-        + "Optional `configuration` / `platform` are passed as MSBuildWorkspace global properties (same names VS uses for the active solution config). "
-        + "Optional `targetFramework` is the MSBuild `TargetFramework` global property (same idea as `dotnet build -f`). "
-        + "Required when `Directory.Build.props` (or the csproj) sets `TargetFrameworks` — the CrossTargeting outer evaluation has no `Compile` target and load fails with **missing Compile target**; pick one inner TFM (e.g. `net10.0`). "
-        + "VS 2026 / MSBuild 18 BuildHost crashes (`XMakeElements`) return **Workspace Load Failed (VS 2026 / MSBuild 18 BuildHost)** — this is not `MCP_MSBUILD_SDK_MISMATCH`; prefer MCP 1.0.35+ or load a single SDK-style `.csproj`. "
-        + "`run_dotnet_build` / `run_dotnet_test` inherit configuration/platform when their own args are omitted. "
-        + "After a successful load, **saved** `.cs` files (IDE save, git, `dotnet format`) are watched and applied before symbol search — unsaved editor buffers are ignored. "
-        + "A changed `.csproj`/`.sln`/`Directory.Build.props` does not auto-reopen MSBuild; the next `load_workspace` skips the cache, or call `reset_workspace`.")]
+        "Loads a .sln, .slnx, or .csproj into the semantic workspace. Call this first before C# analysis. "
+        + "Optional configuration/platform/targetFramework are MSBuild global properties; targetFramework is required when the project uses TargetFrameworks.")]
     public async Task<string> LoadWorkspace(
-        [Description("Absolute path to a `.sln`, `.slnx`, or `.csproj` file (not a directory). Same parameter name as run_dotnet_build, run_dotnet_test, run_format, list_projects.")]
+        [Description("Path to a .sln, .slnx, or .csproj file, not a directory.")]
         string workspacePath,
-        [Description(
-            "Optional MSBuild Configuration global property (e.g. `Debug`, `Release`, `Sit-Debug`, `kart`). "
-            + "Omit for SDK/solution default (typically Debug). Required when TargetFramework is gated on the IDE solution config.")]
+        [Description("MSBuild Configuration. Omit for SDK default.")]
         string? configuration = null,
-        [Description(
-            "Optional MSBuild Platform global property (e.g. `AnyCPU`, `x64`). `Any CPU` is normalized to `AnyCPU`. "
-            + "Omit for SDK/solution default.")]
+        [Description("MSBuild Platform. Any CPU is normalized to AnyCPU.")]
         string? platform = null,
-        [Description(
-            "Optional MSBuild TargetFramework global property (e.g. `net10.0`, `netstandard2.0`). "
-            + "Omit for SDK default. Pass when the solution uses `TargetFrameworks` (multi-targeting / Directory.Build.props) "
-            + "so design-time evaluation is an inner TFM that has a `Compile` target. Not inherited by `run_dotnet_build`.")]
+        [Description("MSBuild TargetFramework. Required for multi-targeting. Not inherited by run_dotnet_build.")]
         string? targetFramework = null,
         CancellationToken cancellationToken = default)
     {
@@ -223,8 +202,7 @@ public sealed class WorkspaceTools
     }
 
     [McpServerTool(Name = "reset_workspace", Title = "Reset C# workspace")]
-    [Description(
-        "Disposes the in-process MSBuildWorkspace and drops the cached solution. Use after building the loaded solution/project on disk so the next load_workspace picks up fresh references and generated files (`obj`). Saved `.cs` edits no longer require reset — they sync from disk automatically. Does not restart the MCP process — use stop_mcp_server if the server binary itself was rebuilt.")]
+    [Description("Disposes the in-process workspace cache. Use after building so the next load_workspace picks up generated files. Does not restart the MCP process.")]
     public async Task<string> ResetWorkspace(CancellationToken cancellationToken = default)
     {
         try

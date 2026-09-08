@@ -18,11 +18,11 @@ public sealed class AstTools
     }
 
     [McpServerTool(Name = "add_using", Title = "Add using directive")]
-    [Description("Adds a `using` directive via Roslyn AST. Prefer over `apply_patch` for imports. Requires `load_workspace`. Resolves the document after applying **saved** `.cs` from disk.")]
+    [Description("Adds a using directive via Roslyn AST. Writes the file. Requires load_workspace.")]
     public Task<string> AddUsing(
-        [Description("Absolute or workspace-relative path to the `.cs` file.")]
+        [Description("Path to the .cs file.")]
         string filePath,
-        [Description("Namespace to import, e.g. `System.Text`.")]
+        [Description("Namespace to import.")]
         string namespaceName,
         CancellationToken cancellationToken = default) =>
         ApplyAsync(nameof(AddUsing), filePath,
@@ -31,11 +31,11 @@ public sealed class AstTools
             cancellationToken);
 
     [McpServerTool(Name = "remove_using", Title = "Remove using directive")]
-    [Description("Removes a `using` directive from a C# file via Roslyn AST. Requires `load_workspace`.")]
+    [Description("Removes a using directive via Roslyn AST. Writes the file. Requires load_workspace.")]
     public Task<string> RemoveUsing(
-        [Description("Absolute or workspace-relative path to the `.cs` file.")]
+        [Description("Path to the .cs file.")]
         string filePath,
-        [Description("Namespace of the using to remove, e.g. `System.Text`.")]
+        [Description("Namespace of the using to remove.")]
         string namespaceName,
         CancellationToken cancellationToken = default) =>
         ApplyAsync(nameof(RemoveUsing), filePath,
@@ -44,11 +44,11 @@ public sealed class AstTools
             cancellationToken);
 
     [McpServerTool(Name = "organize_usings", Title = "Organize usings")]
-    [Description("Sorts using directives and optionally removes unused usings via semantic analysis. Requires `load_workspace`.")]
+    [Description("Sorts usings and optionally removes unused ones. Writes the file. Requires load_workspace.")]
     public Task<string> OrganizeUsings(
-        [Description("Absolute or workspace-relative path to the `.cs` file.")]
+        [Description("Path to the .cs file.")]
         string filePath,
-        [Description("When true (default), removes usings with no referenced symbols in the file.")]
+        [Description("When true (default), remove unused usings.")]
         bool removeUnused = true,
         CancellationToken cancellationToken = default) =>
         ApplyAsync(nameof(OrganizeUsings), filePath,
@@ -57,13 +57,13 @@ public sealed class AstTools
             cancellationToken);
 
     [McpServerTool(Name = "add_method_to_class", Title = "Add method to class")]
-    [Description("Inserts a parsed method declaration into a class via DocumentEditor. Requires `load_workspace`.")]
+    [Description("Inserts a parsed method into a class. Writes the file. Requires load_workspace.")]
     public Task<string> AddMethodToClass(
-        [Description("Absolute or workspace-relative path to the `.cs` file.")]
+        [Description("Path to the .cs file.")]
         string filePath,
-        [Description("Target class name (simple name).")]
+        [Description("Target class name.")]
         string className,
-        [Description("Full method declaration source, e.g. `public void Foo() { }`.")]
+        [Description("Full method declaration source.")]
         string methodSource,
         CancellationToken cancellationToken = default) =>
         ApplyAsync(nameof(AddMethodToClass), filePath,
@@ -72,17 +72,17 @@ public sealed class AstTools
             cancellationToken);
 
     [McpServerTool(Name = "update_method_body", Title = "Update method body")]
-    [Description("Replaces a method body via Roslyn AST with syntax validation before write. Prefer over apply_patch for body-only edits. Pair with get_method_body. Requires `load_workspace`.")]
+    [Description("Replaces a method body via Roslyn AST. Writes the file. Requires load_workspace. Prefer over apply_patch for body-only edits.")]
     public Task<string> UpdateMethodBody(
-        [Description("Absolute or workspace-relative path to the `.cs` file.")]
+        [Description("Path to the .cs file.")]
         string filePath,
         [Description("Class containing the method.")]
         string className,
         [Description("Method name to update.")]
         string methodName,
-        [Description("New method body: statements only, or a full `{ ... }` block.")]
+        [Description("New body: statements only, or a full { ... } block.")]
         string newBody,
-        [Description("Parameter type names to disambiguate overloads, e.g. [\"string\", \"int\"]. Required when overloads exist.")]
+        [Description("Parameter type names to disambiguate overloads. Required when overloads exist.")]
         string[]? parameterTypes = null,
         CancellationToken cancellationToken = default) =>
         ApplyAsync(nameof(UpdateMethodBody), filePath,
@@ -92,13 +92,13 @@ public sealed class AstTools
             cancellationToken);
 
     [McpServerTool(Name = "add_property_to_class", Title = "Add property to class")]
-    [Description("Inserts a parsed property declaration into a class via Roslyn AST. Requires `load_workspace`.")]
+    [Description("Inserts a parsed property into a class. Writes the file. Requires load_workspace.")]
     public Task<string> AddPropertyToClass(
-        [Description("Absolute or workspace-relative path to the `.cs` file.")]
+        [Description("Path to the .cs file.")]
         string filePath,
-        [Description("Target class name (simple name).")]
+        [Description("Target class name.")]
         string className,
-        [Description("Full property declaration source, e.g. `public string Name { get; set; }`.")]
+        [Description("Full property declaration source.")]
         string propertySource,
         CancellationToken cancellationToken = default) =>
         ApplyAsync(nameof(AddPropertyToClass), filePath,
@@ -107,13 +107,13 @@ public sealed class AstTools
             cancellationToken);
 
     [McpServerTool(Name = "add_field_to_class", Title = "Add field to class")]
-    [Description("Inserts a parsed field declaration into a class via Roslyn AST. Requires `load_workspace`.")]
+    [Description("Inserts a parsed field into a class. Writes the file. Requires load_workspace.")]
     public Task<string> AddFieldToClass(
-        [Description("Absolute or workspace-relative path to the `.cs` file.")]
+        [Description("Path to the .cs file.")]
         string filePath,
-        [Description("Target class name (simple name).")]
+        [Description("Target class name.")]
         string className,
-        [Description("Full field declaration source, e.g. `private readonly ILogger _log;`.")]
+        [Description("Full field declaration source.")]
         string fieldSource,
         CancellationToken cancellationToken = default) =>
         ApplyAsync(nameof(AddFieldToClass), filePath,
@@ -122,13 +122,13 @@ public sealed class AstTools
             cancellationToken);
 
     [McpServerTool(Name = "remove_member", Title = "Remove class member")]
-    [Description("Removes a method, property, field, or event member from a class by name. Requires `load_workspace`.")]
+    [Description("Removes a method, property, field, or event by name. Writes the file. Requires load_workspace.")]
     public Task<string> RemoveMember(
-        [Description("Absolute or workspace-relative path to the `.cs` file.")]
+        [Description("Path to the .cs file.")]
         string filePath,
         [Description("Class containing the member.")]
         string className,
-        [Description("Member name (method/property/field/event) to remove.")]
+        [Description("Member name to remove.")]
         string memberName,
         CancellationToken cancellationToken = default) =>
         ApplyAsync(nameof(RemoveMember), filePath,
@@ -137,13 +137,13 @@ public sealed class AstTools
             cancellationToken);
 
     [McpServerTool(Name = "add_type_to_class_bases", Title = "Add base type or interface")]
-    [Description("Adds a base class or interface to a class base list via Roslyn AST. Requires `load_workspace`.")]
+    [Description("Adds a base class or interface to a class. Writes the file. Requires load_workspace.")]
     public Task<string> AddTypeToClassBases(
-        [Description("Absolute or workspace-relative path to the `.cs` file.")]
+        [Description("Path to the .cs file.")]
         string filePath,
-        [Description("Target class name (simple name).")]
+        [Description("Target class name.")]
         string className,
-        [Description("Base class or interface type name to add, e.g. `IDisposable`.")]
+        [Description("Base class or interface type name to add.")]
         string typeName,
         CancellationToken cancellationToken = default) =>
         ApplyAsync(nameof(AddTypeToClassBases), filePath,
@@ -152,13 +152,13 @@ public sealed class AstTools
             cancellationToken);
 
     [McpServerTool(Name = "implement_interface", Title = "Implement interface stubs")]
-    [Description("Adds interface to class base list and generates NotImplemented stubs for missing members. Requires `load_workspace`.")]
+    [Description("Adds an interface and NotImplemented stubs for missing members. Writes the file. Requires load_workspace.")]
     public Task<string> ImplementInterface(
-        [Description("Absolute or workspace-relative path to the `.cs` file.")]
+        [Description("Path to the .cs file.")]
         string filePath,
-        [Description("Target class name (simple name).")]
+        [Description("Target class name.")]
         string className,
-        [Description("Interface name to implement, e.g. `IDisposable`.")]
+        [Description("Interface name to implement.")]
         string interfaceName,
         CancellationToken cancellationToken = default) =>
         ApplyAsync(nameof(ImplementInterface), filePath,

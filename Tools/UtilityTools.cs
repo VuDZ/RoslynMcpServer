@@ -38,14 +38,11 @@ public sealed class UtilityTools
 
     [McpServerTool(Name = "execute_dotnet_command", Title = "ExecuteDotNetCommand")]
     [Description(
-        "Executes `dotnet {command}` with pinned SDK (global.json). Prefer `run_dotnet_build`, `run_dotnet_test`, or `run_dotnet_run` when applicable "
-        + "(those provide parsers, budgets, and structured reports — this tool returns raw truncated stdout/stderr). "
-        + "Default timeout 300s; process tree is killed on timeout/cancel. Output excerpt limits ~6000 stdout / ~2000 stderr chars. "
-        + "On Windows PowerShell 5.x use `;` between commands, not `&&`.")]
+        "Runs raw dotnet {command}. Executes a process. Prefer specialized build/test/run tools.")]
     public async Task<string> ExecuteDotNetCommand(
-        [Description("Arguments passed after `dotnet`, for example: `test`, `build`, or `add package Moq`.")] string command,
-        [Description("Optional working directory. If omitted, uses process CWD then resolves nearest global.json root when possible.")] string? workingDirectory = null,
-        [Description("Process timeout in seconds. Default 300. Set 0 to disable.")]
+        [Description("Arguments after dotnet, for example test or add package Moq.")] string command,
+        [Description("Working directory. Omit to use process CWD then nearest global.json root.")] string? workingDirectory = null,
+        [Description("Process timeout in seconds. 0 disables timeout.")]
         int timeoutSeconds = DotNetCliRunner.DefaultTimeoutSeconds,
         CancellationToken cancellationToken = default)
     {
@@ -115,12 +112,9 @@ public sealed class UtilityTools
     }
 
     [McpServerTool(Name = "get_changed_files", Title = "Get changed files (git)")]
-    [Description(
-        "Lists git changed/untracked files under the repository root (for commit messages and scoped testing). "
-        + "Suggests test projects when a workspace is loaded. Table capped at ~80 paths. "
-        + "Does not return file diffs — use the host git tools for patches.")]
+    [Description("Lists git changed and untracked files. Executes git. Does not return diffs.")]
     public async Task<string> GetChangedFiles(
-        [Description("Optional path to .sln/.slnx/.csproj or repo directory. When omitted, uses loaded workspace or current directory.")]
+        [Description("Path to a .sln/.slnx/.csproj or repo directory. Omit to use loaded workspace or current directory.")]
         string? workspacePath = null,
         CancellationToken cancellationToken = default)
     {
@@ -217,10 +211,10 @@ public sealed class UtilityTools
     }
 
     [McpServerTool(Name = "list_directory_tree", Title = "ListDirectoryTree")]
-    [Description("Recursively lists files and directories as a tree, excluding `bin`, `obj`, `.git`, and `.vs`. Relative `directoryPath` uses process CWD.")]
+    [Description("Lists files and directories as a tree, skipping bin, obj, .git, and .vs.")]
     public Task<string> ListDirectoryTree(
-        [Description("Root directory to list (same idea as `directoryPath` in search_code).")] string directoryPath,
-        [Description("Maximum recursion depth (default 2)")] int maxDepth = 2,
+        [Description("Root directory to list.")] string directoryPath,
+        [Description("Maximum recursion depth.")] int maxDepth = 2,
         CancellationToken cancellationToken = default)
     {
         _ = cancellationToken;
@@ -253,15 +247,11 @@ public sealed class UtilityTools
     }
 
     [McpServerTool(Name = "get_method_body", Title = "GetMethodBody")]
-    [Description(
-        "Returns the source of the first method matching `methodName` inside `className` in a file "
-        + "(no overload selection — first match wins; use `update_method_body` with `parameterTypes` when overloads matter). "
-        + "Reads **disk** (same as `get_file_content`), not the Roslyn index — unsaved editor buffers are not included. "
-        + "Prefers this over reading the whole file for large sources.")]
+    [Description("Returns the first matching method source from a disk .cs file. First match wins; no overload selection.")]
     public async Task<string> GetMethodBody(
-        [Description("Absolute path or workspace-relative path to the C# source file (same parameter name as get_file_content / read_file_range).")] string filePath,
-        [Description("Class name containing the method")] string className,
-        [Description("Method name to extract")] string methodName,
+        [Description("Path to the C# source file.")] string filePath,
+        [Description("Class containing the method.")] string className,
+        [Description("Method name to extract.")] string methodName,
         CancellationToken cancellationToken = default)
     {
         try
@@ -323,13 +313,11 @@ public sealed class UtilityTools
     }
 
     [McpServerTool(Name = "read_log_tail", Title = "ReadLogTail")]
-    [Description(
-        "Reads the tail of a log file for LLM-safe diagnostics. Optionally filters lines by keyword (case-insensitive). "
-        + "When `filePath` is omitted, reads the latest MCP server log (`logs/mcp-*.log`) — same as `tail_tool_log`.")]
+    [Description("Reads the tail of a log file. Omit filePath to read the latest MCP server log.")]
     public async Task<string> ReadLogTail(
-        [Description("Absolute path or workspace-relative path to the log file. Omit to read the latest MCP server log (logs/mcp-*.log).")] string? filePath = null,
-        [Description("How many lines from the end of the result to return. Default is 200.")] int lastNLines = 200,
-        [Description("Optional case-insensitive keyword to filter lines before taking the tail. Pass null or empty string to disable filtering.")] string? filterKeyword = null,
+        [Description("Path to the log file. Omit for the latest logs/mcp-*.log.")] string? filePath = null,
+        [Description("Lines to return from the end.")] int lastNLines = 200,
+        [Description("Case-insensitive keyword filter applied before the tail.")] string? filterKeyword = null,
         CancellationToken cancellationToken = default)
     {
         try
@@ -374,11 +362,11 @@ public sealed class UtilityTools
     }
 
     [McpServerTool(Name = "read_file_range", Title = "ReadFileRange")]
-    [Description("Reads a specific chunk of a text file to reduce LLM context usage. Returns up to `lineCount` lines starting from the 1-based `startLine`, with original line numbers included in the output.")]
+    [Description("Reads a line range from a disk file with original line numbers.")]
     public Task<string> ReadFileRange(
-        [Description("Absolute path or workspace-relative path to the target file (same parameter name as get_file_content).")] string filePath,
-        [Description("1-based line number where reading should start (first line is 1).")] int startLine,
-        [Description("Number of lines to read from the starting line. Must be greater than 0.")] int lineCount,
+        [Description("Path to the file.")] string filePath,
+        [Description("1-based start line.")] int startLine,
+        [Description("Number of lines to read. Must be greater than 0.")] int lineCount,
         CancellationToken cancellationToken = default)
     {
         try
@@ -457,18 +445,16 @@ public sealed class UtilityTools
 
     [McpServerTool(Name = "search_code", Title = "SearchCode")]
     [Description(
-        "Searches source files like a lightweight ripgrep for LLM workflows. Returns matching lines with file path and line number, while limiting output to prevent context overflow. " +
-        "When `directoryPath` is omitted, defaults to loaded workspace root (if available), otherwise current directory. By default scans only `.cs` files; override with `includeExtensions`. " +
-        "Skips `bin`, `obj`, `.git`, and `.vs`. Default matching is case-insensitive; for leftover branding checks (e.g. exact `dupsFinder` after rename to `DupFinder`) set `caseSensitive=true`. " +
-        "Relative `directoryPath` resolves against process CWD.")]
+        "Text-searches source files. No workspace required. Default .cs, case-insensitive. "
+        + "Not for finding symbol declarations — use find_symbol_definition.")]
     public Task<string> SearchCode(
-        [Description("Search pattern used to match lines. Interpreted as plain text when `useRegex=false`, or as a regular expression when `useRegex=true`.")] string pattern,
-        [Description("Optional root directory to search. If null or empty, loaded workspace root is used when available; otherwise `Environment.CurrentDirectory`.")] string? directoryPath = null,
-        [Description("Comma/semicolon/space-separated file extensions to scan (default: `.cs`). Example: `.cs,.csproj,.sln,.json`. Use `*` to scan all files.")] string? includeExtensions = ".cs",
-        [Description("When true, interprets `pattern` as a .NET regular expression. When false, performs text search using Contains.")] bool useRegex = false,
-        [Description("When false (default), matching is case-insensitive. When true, plain and regex matching are case-sensitive. Use true for leftover branding verification.")] bool caseSensitive = false,
-        [Description("Maximum number of matched lines to return. Limits output for LLM context protection. Default is 50.")] int maxResults = 50,
-        [Description("Maximum scan time in seconds. Default is 20; set 0 to disable timeout.")] int maxScanSeconds = 20,
+        [Description("Search text, or a regex when useRegex is true.")] string pattern,
+        [Description("Root directory. Omit for loaded workspace root or process CWD.")] string? directoryPath = null,
+        [Description("File extensions to scan, comma-separated. Use * for all files.")] string? includeExtensions = ".cs",
+        [Description("When true, treat pattern as a .NET regular expression.")] bool useRegex = false,
+        [Description("When true, matching is case-sensitive.")] bool caseSensitive = false,
+        [Description("Maximum matched lines to return.")] int maxResults = 50,
+        [Description("Maximum scan time in seconds. 0 disables timeout.")] int maxScanSeconds = 20,
         CancellationToken cancellationToken = default)
     {
         try
@@ -737,14 +723,12 @@ public sealed class UtilityTools
     }
 
     [McpServerTool(Name = "apply_patch", Title = "ApplyPatch")]
-    [Description(
-        "Replaces `oldString` with `newString` in a file (the only search-and-replace tool; use `replaceAll=false` for a single occurrence, `replaceAll=true` for all matches). Line endings are normalized for matching (`\\r\\n` → `\\n`); output preserves CRLF when the file used it. Tries exact match on normalized text first, then whitespace-tolerant token matching (string literals with internal spaces may not match). replaceAll continues after each insert (does not rescan the replacement), so `Foo` → `Ns.Foos` is safe. "
-        + "Writes disk and updates the in-memory workspace for files already in the loaded solution.")]
+    [Description("Replaces oldString with newString in a file. Writes the file. Default replaceAll=false.")]
     public async Task<string> ApplyPatch(
-        [Description("Absolute path or workspace-relative path to the file that should be patched.")] string filePath,
-        [Description("Source fragment to find (exact or whitespace-tolerant; see tool description).")] string oldString,
-        [Description("Replacement text that will be inserted in place of the matched fragment(s).")] string newString,
-        [Description("When true, replaces all occurrences. When false, replaces only the first occurrence for safer edits.")] bool replaceAll = false,
+        [Description("Path to the file to patch.")] string filePath,
+        [Description("Source fragment to find.")] string oldString,
+        [Description("Replacement text.")] string newString,
+        [Description("When true, replace all matches; when false, only the first.")] bool replaceAll = false,
         CancellationToken cancellationToken = default)
     {
         var started = Stopwatch.StartNew();
@@ -866,13 +850,10 @@ public sealed class UtilityTools
     }
 
     [McpServerTool(Name = "run_format", Title = "RunFormat")]
-    [Description(
-        "Runs `dotnet format` to stabilize code style after edits. Supports verify-only mode (`--verify-no-changes`). "
-        + "Fixed process timeout 300s. Prefer after bulk AST/patch edits. "
-        + "When not `verifyOnly`, formatted `.cs` on disk are picked up by the next symbol search without `reset_workspace`.")]
+    [Description("Runs dotnet format. Executes a process. Directories are allowed. verifyOnly checks without writing.")]
     public async Task<string> RunFormat(
-        [Description("Path to a .sln, .slnx, .csproj, or directory — same parameter name as `load_workspace` / `run_dotnet_test` (directories allowed here; `run_dotnet_build` requires a file).")] string workspacePath,
-        [Description("When true, checks formatting without changing files (`--verify-no-changes`).")] bool verifyOnly = false,
+        [Description("Path to a .sln, .slnx, .csproj, or directory.")] string workspacePath,
+        [Description("When true, check formatting without changing files.")] bool verifyOnly = false,
         CancellationToken cancellationToken = default)
     {
         try
@@ -932,16 +913,13 @@ public sealed class UtilityTools
 
     [McpServerTool(Name = "rename_symbol", Title = "RenameSymbol")]
     [Description(
-        "Performs semantic C# symbol rename using Roslyn (types, members, namespaces as symbols — not project folders or docs). " +
-        "Can preview impacted locations before applying changes, and can scope updates to a project or entire solution. " +
-        "Applies **saved** `.cs` from disk before resolving the symbol. " +
-        "For directory/.csproj/solution graph renames use `rename_project`. For README/rules/URLs use host Grep/edit.")]
+        "Semantic C# symbol rename. Default previewOnly=true. For project folders use rename_project.")]
     public async Task<string> RenameSymbol(
-        [Description("Path to a C# file containing the target symbol declaration or usage.")] string filePath,
-        [Description("Current symbol name to rename.")] string symbolName,
-        [Description("New symbol name that should replace the current name.")] string newName,
-        [Description("Rename scope: `project` (default) or `solution`.")] string scope = "project",
-        [Description("When true, returns preview only and does not write any changes.")] bool previewOnly = true,
+        [Description("Path to a C# file containing the symbol.")] string filePath,
+        [Description("Current symbol name.")] string symbolName,
+        [Description("New symbol name.")] string newName,
+        [Description("Rename scope: project (default) or solution.")] string scope = "project",
+        [Description("When true (default), preview only and do not write.")] bool previewOnly = true,
         CancellationToken cancellationToken = default)
     {
         try
@@ -1112,9 +1090,9 @@ public sealed class UtilityTools
     }
 
     [McpServerTool(Name = "list_projects", Title = "ListProjects")]
-    [Description("Lists projects from the active workspace solution, including target frameworks, output type, and project references.")]
+    [Description("Lists projects from the loaded workspace, including TFMs and project references.")]
     public async Task<string> ListProjects(
-        [Description("Optional path to a .sln, .slnx, or .csproj. When provided, workspace is loaded/reloaded before listing projects.")] string? workspacePath = null,
+        [Description("Optional .sln/.slnx/.csproj. When set, the workspace is loaded first.")] string? workspacePath = null,
         CancellationToken cancellationToken = default)
     {
         try
@@ -1177,9 +1155,9 @@ public sealed class UtilityTools
     }
 
     [McpServerTool(Name = "get_project_graph", Title = "GetProjectGraph")]
-    [Description("Builds a project-to-project dependency graph from the active workspace solution.")]
+    [Description("Builds a project-to-project dependency graph from the loaded workspace.")]
     public async Task<string> GetProjectGraph(
-        [Description("Optional path to a .sln, .slnx, or .csproj. When provided, workspace is loaded/reloaded before building the graph.")] string? workspacePath = null,
+        [Description("Optional .sln/.slnx/.csproj. When set, the workspace is loaded first.")] string? workspacePath = null,
         CancellationToken cancellationToken = default)
     {
         try
@@ -1218,10 +1196,10 @@ public sealed class UtilityTools
     }
 
     [McpServerTool(Name = "tail_tool_log", Title = "TailToolLog")]
-    [Description("Reads the latest MCP tool/server log file under `logs/mcp-*.log` as a shortcut over ReadLogTail.")]
+    [Description("Reads the latest MCP server log under logs/mcp-*.log.")]
     public async Task<string> TailToolLog(
-        [Description("Number of lines to return from the end of the latest log file. Default is 200.")] int lastNLines = 200,
-        [Description("Optional case-insensitive keyword filter applied before taking the tail.")] string? filterKeyword = null,
+        [Description("Lines to return from the end.")] int lastNLines = 200,
+        [Description("Case-insensitive keyword filter applied before the tail.")] string? filterKeyword = null,
         CancellationToken cancellationToken = default)
     {
         try
@@ -1253,13 +1231,10 @@ public sealed class UtilityTools
     }
 
     [McpServerTool(Name = "manage_agent_scratchpad", Title = "ManageAgentScratchpad")]
-    [Description(
-        "Manages the agent's long-term memory scratchpad at `.agent_memory/scratchpad.md` under process current directory "
-        + "(often the repo root when `ROSLYN_MCP_WORKSPACE` is set; otherwise may be the user profile). "
-        + "Supports read, write, append, and clear.")]
+    [Description("Reads, writes, appends, or clears .agent_memory/scratchpad.md under process CWD. Writes files.")]
     public async Task<string> ManageAgentScratchpad(
-        [Description("Action for the agent's long-term memory scratchpad. Allowed values: `read`, `write`, `append`, `clear`.")] string action,
-        [Description("Optional text payload for the agent's long-term memory scratchpad. Used by `write` and `append`; ignored by `read` and `clear`.")] string? content = null,
+        [Description("Action: read, write, append, or clear.")] string action,
+        [Description("Text payload for write and append.")] string? content = null,
         CancellationToken cancellationToken = default)
     {
         try

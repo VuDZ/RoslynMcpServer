@@ -32,7 +32,11 @@ public static class RoslynMcpServiceCollectionExtensions
         RegisterCore(services, surface);
 
         var builder = services
-            .AddMcpServer(o => McpInboundProtocolLogger.Register(o))
+            .AddMcpServer(o =>
+            {
+                o.ServerInstructions = McpToolHelpCatalog.ServerInstructions;
+                McpInboundProtocolLogger.Register(o);
+            })
             .WithStdioServerTransport();
 
         McpToolRegistry.RegisterSelectedTools(services, surface);

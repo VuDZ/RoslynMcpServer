@@ -22,29 +22,16 @@ public sealed class BuildTools
 
     [McpServerTool(Name = "run_dotnet_build", Title = "Run dotnet build")]
     [Description(
-        "Runs a multi-step `dotnet build` probe (minimal → restore escalate → normal/detailed when needed) with pinned SDK. "
-        + "Default `noIncremental=true` passes `--no-incremental` so MSBuild up-to-date cache cannot report a fake success after edits. "
-        + "Overall wall-clock budget ~300s, per-step timeout ~180s; returns up to 20 parsed diagnostics plus key log lines. "
-        + "Success uses the last `dotnet build` exit (restore exit 0 cannot mask a failed build with no rebuild). "
-        + "Surfaces `MCP_MSBUILD_SDK_MISMATCH` when MSBuild SDK ≠ global.json pin. "
-        + "`workspacePath` must be a `.csproj`, `.sln`, or `.slnx` **file** (not a directory). Prefer solution files for multi-config repos. "
-        + "Optional `configuration` maps to `dotnet build -c` (e.g. `Sit-Debug`, `Dit-Debug`) — required when the solution has multiple Debug-like configs. "
-        + "Omit `configuration`/`platform` to inherit values from the last `load_workspace`. "
-        + "No agent-tunable timeout. Use AFTER editing to verify compile.")]
+        "Runs dotnet build with parsed diagnostics. Executes a process. workspacePath must be a .csproj/.sln/.slnx file, not a directory. "
+        + "Default noIncremental=true. Omit configuration/platform to inherit load_workspace.")]
     public async Task<string> RunDotNetBuild(
-        [Description("Path to a `.csproj`, `.sln`, or `.slnx` **file** (not a directory). Same parameter name as load_workspace / run_dotnet_test.")]
+        [Description("Path to a .csproj, .sln, or .slnx file, not a directory.")]
         string workspacePath,
-        [Description(
-            "Optional MSBuild configuration (`dotnet build -c`). Examples: `Debug`, `Release`, `Sit-Debug`, `Dit-Debug`. "
-            + "Omit to inherit `load_workspace` configuration, else the SDK/solution default (often wrong on multi-config `.slnx`).")]
+        [Description("MSBuild Configuration. Omit to inherit load_workspace.")]
         string? configuration = null,
-        [Description(
-            "When true (default), pass `--no-incremental` on every `dotnet build` step so up-to-date skips cannot hide compile errors. "
-            + "Set false only for large monorepos where you explicitly accept MSBuild incremental caching.")]
+        [Description("When true (default), pass --no-incremental so up-to-date cache cannot hide errors.")]
         bool noIncremental = true,
-        [Description(
-            "Optional MSBuild Platform (`dotnet build -p:Platform=`). Examples: `AnyCPU`, `x64`. `Any CPU` is normalized to `AnyCPU`. "
-            + "Omit to inherit `load_workspace` platform.")]
+        [Description("MSBuild Platform. Omit to inherit load_workspace.")]
         string? platform = null,
         CancellationToken cancellationToken = default)
     {

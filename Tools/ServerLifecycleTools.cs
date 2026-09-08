@@ -28,7 +28,7 @@ public sealed class ServerLifecycleTools
     }
 
     [McpServerTool(Name = "get_mcp_server_info", Title = "Get MCP server info")]
-    [Description("Returns binary path, tool count, log location, and workspace state — use to verify publish/reload.")]
+    [Description("Returns binary path, registered tool count, log location, and workspace state.")]
     public Task<string> GetMcpServerInfo(CancellationToken cancellationToken = default)
     {
         _ = cancellationToken;
@@ -38,9 +38,7 @@ public sealed class ServerLifecycleTools
 
     [McpServerTool(Name = "stop_mcp_server", Title = "Stop MCP server")]
     [Description(
-        "Gracefully stops this Roslyn MCP server process after the tool returns. Use when you rebuilt the server itself (or need a clean process): then run dotnet build from a terminal if needed and restart MCP in Cursor. "
-        + "Do **not** use this to refresh source after IDE/git saves — **saved** `.cs` sync automatically. "
-        + "For generated `obj` files or a stale `.csproj` graph: `reset_workspace` then `load_workspace` (no process kill).")]
+        "Stops this MCP server process after the tool returns. Use after rebuilding the server binary, not to refresh saved .cs.")]
     public Task<string> StopMcpServer(CancellationToken cancellationToken = default)
     {
         _ = cancellationToken;

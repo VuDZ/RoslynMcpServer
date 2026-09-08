@@ -22,18 +22,15 @@ public sealed class NuGetTools
 
     [McpServerTool(Name = "list_nuget_packages", Title = "List NuGet packages")]
     [Description(
-        "Lists installed NuGet packages for a .sln, .slnx, or .csproj as structured JSON, grouped by project and target framework. "
-        + "Includes transitive dependencies when `includeTransitive` is true. Use before adding or upgrading packages — "
-        + "do not guess installed versions via `execute_dotnet_command`. "
-        + "No process timeout (runs until complete or cancel); avoid parallel long NuGet/build calls.")]
+        "Lists installed NuGet packages as JSON. Executes a process. Use before adding or upgrading packages.")]
     public async Task<string> ListNuGetPackages(
-        [Description("Path to .sln, .slnx, .csproj, or directory containing them (same shape as run_dotnet_build / load_workspace).")]
+        [Description("Path to a .sln, .slnx, .csproj, or directory containing them.")]
         string workspacePath,
-        [Description("When true (default), includes transitive dependencies in the output.")]
+        [Description("When true (default), include transitive dependencies.")]
         bool includeTransitive = true,
-        [Description("When true, adds `--outdated` to highlight packages with newer versions on configured feeds.")]
+        [Description("When true, highlight packages with newer versions.")]
         bool includeOutdated = false,
-        [Description("When true, adds `--vulnerable` to list packages with known vulnerabilities.")]
+        [Description("When true, list packages with known vulnerabilities.")]
         bool includeVulnerable = false,
         CancellationToken cancellationToken = default)
     {
@@ -121,14 +118,11 @@ public sealed class NuGetTools
     }
 
     [McpServerTool(Name = "run_nuget_audit", Title = "Run NuGet vulnerability audit")]
-    [Description(
-        "Runs `dotnet list package --vulnerable --include-transitive` and returns a compact table "
-        + "(severity, package, version, project, GHSA/advisory URL). Separate from compile errors in `run_dotnet_build`. "
-        + "No process timeout (runs until complete or cancel).")]
+    [Description("Runs a NuGet vulnerability audit. Executes a process. Separate from compile errors in run_dotnet_build.")]
     public async Task<string> RunNuGetAudit(
-        [Description("Path to .sln, .slnx, .csproj, or directory (same as run_dotnet_build / load_workspace).")]
+        [Description("Path to a .sln, .slnx, .csproj, or directory.")]
         string workspacePath,
-        [Description("Maximum vulnerable entries in the table. Default 40.")]
+        [Description("Maximum vulnerable entries in the table.")]
         int maxEntries = 40,
         CancellationToken cancellationToken = default)
     {
@@ -190,26 +184,22 @@ public sealed class NuGetTools
     }
 
     [McpServerTool(Name = "list_outdated_packages", Title = "List outdated NuGet packages")]
-    [Description(
-        "Lists outdated direct PackageReferences (`dotnet list package --outdated --format json`) via `list_nuget_packages` "
-        + "with `includeTransitive=false` and `includeOutdated=true`. No process timeout.")]
+    [Description("Lists outdated direct PackageReferences. Executes a process.")]
     public Task<string> ListOutdatedPackages(
-        [Description("Path to .sln, .slnx, .csproj, or directory containing them.")]
+        [Description("Path to a .sln, .slnx, .csproj, or directory.")]
         string workspacePath,
         CancellationToken cancellationToken = default) =>
         ListNuGetPackages(workspacePath, includeTransitive: false, includeOutdated: true, includeVulnerable: false, cancellationToken);
 
     [McpServerTool(Name = "search_nuget_registry", Title = "Search NuGet registry")]
     [Description(
-        "Searches nuget.org (and other configured feeds) for package names and latest stable versions. "
-        + "Use before `dotnet add package` / `add_package_reference` to verify a package exists and pick a real version — "
-        + "do not invent package ids or versions. No process timeout (runs until complete or cancel).")]
+        "Searches nuget.org for package names and latest stable versions. Executes a process. Do not invent package ids.")]
     public async Task<string> SearchNuGetRegistry(
-        [Description("Package id or search term, e.g. `Moq` or `Microsoft.Extensions.Logging`.")]
+        [Description("Package id or search term.")]
         string query,
-        [Description("When true (default), returns only packages whose id exactly matches `query` (case-insensitive).")]
+        [Description("When true (default), return only packages whose id exactly matches query.")]
         bool exactMatch = true,
-        [Description("Maximum results when `exactMatch` is false. Ignored for exact match. Default 10.")]
+        [Description("Maximum results when exactMatch is false.")]
         int maxResults = 10,
         CancellationToken cancellationToken = default)
     {
