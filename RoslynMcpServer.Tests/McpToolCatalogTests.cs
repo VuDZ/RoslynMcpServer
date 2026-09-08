@@ -256,9 +256,11 @@ public sealed class McpToolCatalogTests(ITestOutputHelper output)
     {
         using var fullHost = BuildHost(new McpToolProfileOptions { Profile = "full" });
         using var liteHost = BuildHost(new McpToolProfileOptions { Profile = "lite" });
+        _ = fullHost.Services.GetRequiredService<IOptions<McpServerOptions>>().Value;
+        _ = liteHost.Services.GetRequiredService<IOptions<McpServerOptions>>().Value;
 
-        var full = MeasureToolsList(fullHost.Services);
-        var lite = MeasureToolsList(liteHost.Services);
+        var full = MeasureProtocolTools(fullHost.Services.GetRequiredService<McpRuntimeToolCollection>());
+        var lite = MeasureProtocolTools(liteHost.Services.GetRequiredService<McpRuntimeToolCollection>());
         output.WriteLine($"full tools/list UTF-8 bytes={full.Utf8Bytes} count={full.Count}");
         output.WriteLine($"lite tools/list UTF-8 bytes={lite.Utf8Bytes} count={lite.Count}");
 
@@ -270,6 +272,33 @@ public sealed class McpToolCatalogTests(ITestOutputHelper output)
         Assert.True(
             lite.Utf8Bytes <= LiteCatalogBudgetBytes,
             $"lite tools/list is {lite.Utf8Bytes} bytes (full {full.Utf8Bytes}); budget is {LiteCatalogBudgetBytes}.");
+    }
+
+    [Fact]
+    public void Epoch4_surface_sizes_match_recorded_release_numbers()
+    {
+        AssertRecorded("full", 62, 38500, MeasureSurface(new McpToolProfileOptions { Profile = "full" }));
+        AssertRecorded("lite", 18, 11265, MeasureSurface(new McpToolProfileOptions { Profile = "lite" }));
+        AssertRecorded("lite+files", 25, 15493, MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "files" }));
+        AssertRecorded("lite+editing", 35, 22141, MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "editing" }));
+        AssertRecorded("lite+decompile", 22, 14183, MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "decompile" }));
+        AssertRecorded("lite+nuget", 24, 14878, MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "nuget" }));
+        AssertRecorded("lite+project", 21, 12902, MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "project" }));
+        AssertRecorded("lite+runtime", 21, 13311, MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "runtime" }));
+        AssertRecorded("lite+operations", 22, 13182, MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "operations" }));
+
+        var enabled = MeasureSurface(
+            new McpToolProfileOptions { Profile = "lite" },
+            activation => activation.EnableGroup("files"));
+        AssertRecorded("lite+enable:files", 25, 15493, enabled);
+        Assert.Equal(15493, MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "files" }).Utf8Bytes);
+    }
+
+    private static void AssertRecorded(string label, int count, int bytes, (int Count, int Utf8Bytes) actual)
+    {
+        Assert.True(
+            actual.Count == count && actual.Utf8Bytes == bytes,
+            $"{label} expected {count} tools / {bytes} bytes, got {actual.Count} / {actual.Utf8Bytes}.");
     }
 
     [Fact]
@@ -352,10 +381,13 @@ public sealed class McpToolCatalogTests(ITestOutputHelper output)
         return property.TryGetProperty("anyOf", out _) || property.TryGetProperty("oneOf", out _);
     }
 
-    internal static (int Count, int Utf8Bytes) MeasureToolsList(IServiceProvider services)
+    internal static (int Count, int Utf8Bytes) MeasureToolsList(IServiceProvider services) =>
+        MeasureProtocolTools(services.GetServices<McpServerTool>());
+
+    internal static (int Count, int Utf8Bytes) MeasureProtocolTools(IEnumerable<McpServerTool> tools)
     {
-        var tools = services.GetServices<McpServerTool>().Select(t => t.ProtocolTool).ToList();
-        var result = new ListToolsResult { Tools = tools };
+        var list = tools.Select(t => t.ProtocolTool).ToList();
+        var result = new ListToolsResult { Tools = list };
         var json = JsonSerializer.Serialize(result, McpJsonUtilities.DefaultOptions);
         using var document = JsonDocument.Parse(json);
         using var stream = new MemoryStream();
@@ -364,7 +396,18 @@ public sealed class McpToolCatalogTests(ITestOutputHelper output)
             document.RootElement.WriteTo(writer);
         }
 
-        return (tools.Count, (int)stream.Length);
+        return (list.Count, (int)stream.Length);
+    }
+
+    private static (int Count, int Utf8Bytes) MeasureSurface(
+        McpToolProfileOptions options,
+        Action<McpToolActivationService>? after = null)
+    {
+        using var host = BuildHost(options);
+        _ = host.Services.GetRequiredService<IOptions<McpServerOptions>>().Value;
+        var activation = host.Services.GetRequiredService<McpToolActivationService>();
+        after?.Invoke(activation);
+        return MeasureProtocolTools(host.Services.GetRequiredService<McpRuntimeToolCollection>());
     }
 
     private static IReadOnlyList<string> GetRegisteredToolNames(IServiceProvider services) =>

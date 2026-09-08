@@ -42,7 +42,7 @@ Your compiled binary will be at:
 
 **Option B: Via `mcp.json`**
 Add the absolute path to your configuration file (see the provided `mcp.json` and `.cursor/mcp.json` examples in the repo).
-*Optional:* Pass `env` with `ROSLYN_MCP_WORKSPACE` set to the **repository root** (folder containing `global.json`) so MSBuild.Locator and `run_dotnet_build` use the same SDK as your solution.
+*Optional:* Pass `env` with `ROSLYN_MCP_WORKSPACE` set to the **repository root** (folder containing `global.json`) so MSBuild.Locator and `run_dotnet_build` use the same SDK as your solution. For a smaller catalog on local models, also set `ROSLYN_MCP_TOOL_PROFILE` / `ROSLYN_MCP_TOOL_GROUPS` (see **Tool profiles**).
 
 **Option C: OpenCode (`install2opencode.ps1`)**
 
@@ -80,9 +80,49 @@ Example server block:
 
 Restart OpenCode or reload MCP servers after running the script.
 
+## Tool profiles
+
+Default is **`full`** (every public tool). A **`lite`** session starts with the 18-tool core so local models spend less context on `tools/list`. Extra groups can be added at process start or, on clients that honor `notifications/tools/list_changed`, during the session.
+
+| Variable | Values | Effect |
+| --- | --- | --- |
+| `ROSLYN_MCP_TOOL_PROFILE` | `full` (default) or `lite` | Selects the startup catalog. Empty/unset is `full`. |
+| `ROSLYN_MCP_TOOL_GROUPS` | comma-separated group names | Adds those groups to **`lite` before the first `tools/list`**. In `full` the names are recorded and do not change the set. |
+
+Portable OpenCode examples: [`opencode.json.sample`](opencode.json.sample) (`roslyn-mcp-server` = full, `roslyn-mcp-lite`, `roslyn-mcp-lite-groups`). Enable only one server.
+
+| Group | Intent | Tools |
+| --- | --- | ---: |
+| `core` | Workspace, navigation, build, test, help | 18 (lite default) |
+| `files` | Disk read, search, patch | 7 |
+| `editing` | AST edits, code fixes, format, rename | 17 |
+| `decompile` | Third-party assemblies | 4 |
+| `nuget` | Package list, audit, search, add/remove | 6 |
+| `project` | Solution graph and project rename | 3 |
+| `runtime` | Run apps, list tests, raw `dotnet` | 3 |
+| `operations` | Logs, scratchpad, process lifecycle | 4 |
+
+**Discovery (Markdown, not a replacement for JSON Schema):**
+
+- `list_tool_groups` — purpose, active/inactive, member names, startup fallback.
+- `get_tool_help` — kind/group plus **live** parameters from the registered method schema.
+- `enable_tool_group` — add one group to this process (idempotent; `full` is a no-op). Sends `tools/list_changed` only when the set actually grows. There is **no** disable in this release.
+
+MCP `tools/list` stays JSON + JSON Schema. Markdown is for JIT help and diagnostics.
+
+**Client compatibility:** do not assume the host refreshes tools after `tools/list_changed`. If a newly enabled tool is missing from the client's catalog, restart with `ROSLYN_MCP_TOOL_GROUPS=<group>` (and `ROSLYN_MCP_TOOL_PROFILE=lite`). Measured minified `tools/list` (UTF-8): full **62 / 38,500** (~37.6 KB); lite **18 / 11,265** (~11.0 KB). Adding `editing` to lite is ~21.6 KB (above the 20 KB *startup-lite* budget; expected).
+
 ## Agent tools by version
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
+
+### v1.2.0
+
+- **Tool profiles** — `ROSLYN_MCP_TOOL_PROFILE=full|lite` (default `full`). Lite starts with 18 core tools (workspace, navigation, build/test, `list_tool_groups` / `get_tool_help` / `enable_tool_group`).
+- **Startup groups** — `ROSLYN_MCP_TOOL_GROUPS=decompile,nuget` expands lite before the first `tools/list`. Fallback for clients that ignore `tools/list_changed`.
+- **`list_tool_groups` / `get_tool_help`** — compact Markdown help. Parameter names/types/defaults come from the live schema; Markdown does not replace JSON Schema.
+- **`enable_tool_group`** — add one catalog group at runtime; one `tools/list_changed` per real change. Idempotent; `full` is a no-op. No runtime disable.
+- **Catalog size** — minified `tools/list` UTF-8: full 62 tools / 38,500 bytes; lite 18 / 11,265. Description text on the original 59 tools: 35,445 → 13,387 (−62%).
 
 ### v1.1.1
 
@@ -236,6 +276,8 @@ Policy summary (full text in the sample):
 - **Tool output:** logged as a one-line summary plus separate warning/error lines (not a duplicated full MCP response). Set `ROSLYN_MCP_LOG_TOOL_OUTPUT=full` to log entire tool responses at Information level.
 - Environment Variables:
   - `ROSLYN_MCP_WORKSPACE` — repo root for MSBuild/SDK discovery at startup (see MCP config above).
+  - `ROSLYN_MCP_TOOL_PROFILE` — `full` (default) or `lite` (see **Tool profiles**).
+  - `ROSLYN_MCP_TOOL_GROUPS` — comma-separated extra groups for `lite` at startup.
   - `ROSLYN_MCP_LOG_TOOL_OUTPUT=full` — verbose tool response logging.
   - `MCP_LOG_INCOMING_RPC=0` (disable incoming RPC logging).
   - `MCP_LOG_INCOMING_RPC_MAX_CHARS=<N>` (limit payload log length, `0` = unlimited).
@@ -255,7 +297,7 @@ Policy summary (full text in the sample):
 
 When a tool accepts `filePath`, relative values are resolved against the loaded workspace root after `load_workspace`; if no workspace is loaded, fallback is `Environment.CurrentDirectory`.
 
-There are **56** registered tools (see list below) and **1** MCP prompt (`RefactoringAssistantPrompt`).
+There are **62** registered tools in the default `full` profile (see list below) and **1** MCP prompt (`RefactoringAssistantPrompt`). A `lite` profile starts with **18** core tools; extra groups use `ROSLYN_MCP_TOOL_GROUPS` or `enable_tool_group`.
 
 ### Workspace / Roslyn
 
@@ -807,7 +849,34 @@ Verify id/version with `search_nuget_registry` first. Clears workspace cache —
 
 **Parameters:** *(none)*
 
-Use after `dotnet publish` to verify the MCP host picked up the new binary (expect **56** tools).
+Use after `dotnet publish` to verify the MCP host picked up the new binary (expect **v1.2.0** and **62** tools on `full`, or **18** on `lite`).
+
+</details>
+
+<details>
+<summary><code>list_tool_groups</code> — Lists groups with purpose, active state, and member names.</summary>
+
+**Parameters:** *(none)*
+
+Does not enable groups. Use `enable_tool_group` or restart with `ROSLYN_MCP_TOOL_GROUPS`. Markdown output; `tools/list` remains JSON Schema.
+
+</details>
+
+<details>
+<summary><code>get_tool_help</code> — Markdown help for one public tool (kind, group, live parameters).</summary>
+
+**Parameters:**
+- `toolName: string` — exact public tool name (e.g. `find_usages`). Unknown names return close matches.
+
+</details>
+
+<details>
+<summary><code>enable_tool_group</code> — Adds every missing tool in one catalog group to this session.</summary>
+
+**Parameters:**
+- `group: string` — exact group name, case-insensitive (`files`, `editing`, `decompile`, `nuget`, `project`, `runtime`, `operations`).
+
+Idempotent. Profile `full` is a no-op. Sends `tools/list_changed` only when tools were added. Clients that ignore the notification: restart with `ROSLYN_MCP_TOOL_GROUPS=<group>`. No disable in this release.
 
 </details>
 
@@ -875,7 +944,7 @@ dotnet publish RoslynMcpServer.csproj -c Release -r win-x64
 
 **Через файл конфига:**
 Укажите абсолютный путь (примеры лежат в `mcp.json` и `.cursor/mcp.json`).
-Опционально добавьте `env` с `ROSLYN_MCP_WORKSPACE` — **корень репозитория** (каталог с `global.json`), чтобы MSBuild.Locator и `run_dotnet_build` использовали тот же SDK, что и решение.
+Опционально добавьте `env` с `ROSLYN_MCP_WORKSPACE` — **корень репозитория** (каталог с `global.json`), чтобы MSBuild.Locator и `run_dotnet_build` использовали тот же SDK, что и решение. Для ужатого каталога на локальных моделях задайте также `ROSLYN_MCP_TOOL_PROFILE` / `ROSLYN_MCP_TOOL_GROUPS` (см. **Профили инструментов**).
 
 **OpenCode (`install2opencode.ps1`):**
 
@@ -913,9 +982,24 @@ cd D:\Devel\YourApp
 
 После установки перезапустите OpenCode или перезагрузите MCP-серверы.
 
+## Профили инструментов
+
+По умолчанию **`full`** (все публичные тулы). **`lite`** стартует с 18 core-тулов. Дополнительные группы — при старте процесса или, если клиент обрабатывает `notifications/tools/list_changed`, во время сессии.
+
+| Переменная | Значения | Эффект |
+| --- | --- | --- |
+| `ROSLYN_MCP_TOOL_PROFILE` | `full` (по умолчанию) или `lite` | Стартовый каталог. Пустое/не задано = `full`. |
+| `ROSLYN_MCP_TOOL_GROUPS` | имена групп через запятую | Добавляет группы в **`lite` до первого `tools/list`**. В `full` имена только записываются. |
+
+Примеры OpenCode: [`opencode.json.sample`](opencode.json.sample). Включайте только один сервер.
+
+Группы: `core` (18, lite default), `files` (7), `editing` (17), `decompile` (4), `nuget` (6), `project` (3), `runtime` (3), `operations` (4).
+
+`list_tool_groups` / `get_tool_help` / `enable_tool_group` — Markdown-справка и runtime-включение. `tools/list` остаётся JSON Schema. Если клиент не обновляет список после `tools/list_changed`, перезапустите с `ROSLYN_MCP_TOOL_GROUPS=<group>`. Замеры minified UTF-8: full **62 / 38 500**; lite **18 / 11 265**.
+
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.1.1). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.2.0). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 
@@ -941,7 +1025,7 @@ cd D:\Devel\YourApp
 - Основной лог: `logs/mcp-*.log` (относительно `AppContext.BaseDirectory`).
 - Включено логирование входящих JSON-RPC сообщений (`MCP_LOG_INCOMING_RPC`, `MCP_LOG_INCOMING_RPC_MAX_CHARS`).
 - **Ответы tools:** в лог пишется однострочная сводка и отдельные строки warning/error (без полного дублирования ответа MCP). `ROSLYN_MCP_LOG_TOOL_OUTPUT=full` — полный текст ответов tools.
-- Переменные: `ROSLYN_MCP_WORKSPACE` (корень репо для MSBuild/SDK), `ROSLYN_MCP_LOG_TOOL_OUTPUT=full`.
+- Переменные: `ROSLYN_MCP_WORKSPACE` (корень репо для MSBuild/SDK), `ROSLYN_MCP_TOOL_PROFILE` / `ROSLYN_MCP_TOOL_GROUPS` (см. **Профили инструментов**), `ROSLYN_MCP_LOG_TOOL_OUTPUT=full`.
 
 ## Reference: MCP Tools
 
@@ -956,7 +1040,7 @@ cd D:\Devel\YourApp
 - `fixIndex` — индекс (0-based) из `get_code_fixes` для `apply_code_fix`.
 - `path` — файл `.cs` или каталог для `get_code_skeleton` (абсолютный путь; с диска, workspace не обязателен).
 
-Зарегистрировано **56** инструментов (список ниже) и **1** MCP-промпт (`RefactoringAssistantPrompt`).
+Зарегистрировано **62** инструмента в профиле `full` (список ниже) и **1** MCP-промпт (`RefactoringAssistantPrompt`). Профиль `lite` стартует с **18** core-тулов; остальные группы — `ROSLYN_MCP_TOOL_GROUPS` или `enable_tool_group`.
 
 ### Workspace / Roslyn
 
@@ -1499,7 +1583,34 @@ cd D:\Devel\YourApp
 
 **Параметры:** *(нет)*
 
-После `dotnet publish` — проверка, что MCP подхватил новый бинарник (ожидай **56** tools).
+После `dotnet publish` — проверка, что MCP подхватил новый бинарник (ожидай **v1.2.0** и **62** tools в `full`, или **18** в `lite`).
+
+</details>
+
+<details>
+<summary><code>list_tool_groups</code> — Группы: назначение, active/inactive, состав.</summary>
+
+**Параметры:** *(нет)*
+
+Группы не включает. Для включения — `enable_tool_group` или рестарт с `ROSLYN_MCP_TOOL_GROUPS`. Markdown; `tools/list` остаётся JSON Schema.
+
+</details>
+
+<details>
+<summary><code>get_tool_help</code> — Markdown-справка по одному тулу (kind, group, живые параметры).</summary>
+
+**Параметры:**
+- `toolName: string` — точное публичное имя (например `find_usages`). Неизвестные имена — близкие совпадения.
+
+</details>
+
+<details>
+<summary><code>enable_tool_group</code> — Добавляет все недостающие тулы одной группы в эту сессию.</summary>
+
+**Параметры:**
+- `group: string` — точное имя группы, без учёта регистра (`files`, `editing`, `decompile`, `nuget`, `project`, `runtime`, `operations`).
+
+Идемпотентно. Профиль `full` — no-op. `tools/list_changed` только при реальном добавлении. Если клиент не обновляет список: рестарт с `ROSLYN_MCP_TOOL_GROUPS=<group>`. Disable в этом релизе нет.
 
 </details>
 

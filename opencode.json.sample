@@ -10,7 +10,31 @@
       "enabled": true,
       "environment": {
         "MCP_LOG_INCOMING_RPC": "1",
-        "MCP_LOG_INCOMING_RPC_MAX_CHARS": "0"
+        "MCP_LOG_INCOMING_RPC_MAX_CHARS": "0",
+        "ROSLYN_MCP_TOOL_PROFILE": "full"
+      }
+    },
+    "roslyn-mcp-lite": {
+      "type": "local",
+      "command": [
+        "..../RoslynMcpServer.exe"
+      ],
+      "timeout": 600000,
+      "enabled": false,
+      "environment": {
+        "ROSLYN_MCP_TOOL_PROFILE": "lite"
+      }
+    },
+    "roslyn-mcp-lite-groups": {
+      "type": "local",
+      "command": [
+        "..../RoslynMcpServer.exe"
+      ],
+      "timeout": 600000,
+      "enabled": false,
+      "environment": {
+        "ROSLYN_MCP_TOOL_PROFILE": "lite",
+        "ROSLYN_MCP_TOOL_GROUPS": "decompile,nuget"
       }
     }
   }

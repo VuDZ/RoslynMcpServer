@@ -10,6 +10,7 @@ as base truth and must not implement later epochs early.
 Epoch 1 is implemented; see [epoch-1-handoff.md](epoch-1-handoff.md).
 Epoch 2 is implemented; see [epoch-2-handoff.md](epoch-2-handoff.md).
 Epoch 3 is implemented; see [epoch-3-handoff.md](epoch-3-handoff.md).
+Epoch 4 is implemented; see [epoch-4-handoff.md](epoch-4-handoff.md). Shipped as **v1.2.0**.
 
 ## Fixed architectural decisions
 
@@ -38,9 +39,7 @@ Epoch 3 is implemented; see [epoch-3-handoff.md](epoch-3-handoff.md).
 
 ## Baseline
 
-- Current server code registers 59 MCP tools across 16 host classes.
-- The observed full tool catalog is approximately 68 KB of formatted JSON.
-- Tool and parameter descriptions contain approximately 36,000 characters.
+- Shipped catalog is **62** tools (`full`) / **18** lite-core. Historical Epoch 1 baseline was 59 tools / ~68 KB formatted / ~36k description characters.
 - Eight verbose tools account for roughly 31% of description text:
   `load_workspace`, `run_specific_test`, `find_symbol_definition`,
   `search_code`, `run_dotnet_test`, `run_dotnet_build`,
