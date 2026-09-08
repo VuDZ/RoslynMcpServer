@@ -7,21 +7,20 @@ namespace RoslynMcpServer.Hosting;
 
 public static class McpToolHelpFormatter
 {
-    public static string FormatGroups(McpToolSurface surface)
+    public static string FormatGroups(McpToolActivationService activation)
     {
-        ArgumentNullException.ThrowIfNull(surface);
+        ArgumentNullException.ThrowIfNull(activation);
 
-        var activeGroups = surface.RegisteredTools
-            .Select(t => t.Group)
-            .ToHashSet(StringComparer.Ordinal);
+        var activeGroups = activation.ActiveGroups.ToHashSet(StringComparer.Ordinal);
 
         var sb = new StringBuilder();
         sb.AppendLine("# Tool groups");
         sb.AppendLine();
-        sb.AppendLine($"Profile: `{surface.Profile}`.");
-        sb.AppendLine($"Startup groups: {surface.FormatStartupGroupsMarkdown()}.");
+        sb.AppendLine($"Profile: `{activation.Profile}`.");
+        sb.AppendLine($"Startup groups: {activation.FormatStartupGroupsMarkdown()}.");
+        sb.AppendLine($"Dynamic groups: {activation.FormatDynamicGroupsMarkdown()}.");
         sb.AppendLine();
-        sb.AppendLine("Startup fallback: set `ROSLYN_MCP_TOOL_PROFILE=lite` and `ROSLYN_MCP_TOOL_GROUPS=decompile,nuget` (comma-separated group names) before launch. In `full`, extra groups are recorded but do not change the set.");
+        sb.AppendLine("Call `enable_tool_group` to add one group to this session. Clients that ignore `tools/list_changed` should restart with `ROSLYN_MCP_TOOL_PROFILE=lite` and `ROSLYN_MCP_TOOL_GROUPS=decompile,nuget`. In `full`, extra groups are recorded but do not change the set.");
         sb.AppendLine();
 
         foreach (var group in McpToolGroups.All)
@@ -39,26 +38,26 @@ public static class McpToolHelpFormatter
         return sb.ToString().TrimEnd();
     }
 
-    public static string FormatToolHelp(string? toolName, McpToolSurface surface)
+    public static string FormatToolHelp(string? toolName, McpToolActivationService activation)
     {
-        ArgumentNullException.ThrowIfNull(surface);
+        ArgumentNullException.ThrowIfNull(activation);
 
         if (string.IsNullOrWhiteSpace(toolName))
         {
-            return FormatUnknown(toolName, surface);
+            return FormatUnknown(toolName, activation);
         }
 
         var trimmed = toolName.Trim();
         var descriptor = McpToolCatalog.All.FirstOrDefault(d => d.Name.Equals(trimmed, StringComparison.Ordinal));
         if (descriptor is null)
         {
-            return FormatUnknown(trimmed, surface);
+            return FormatUnknown(trimmed, activation);
         }
 
         McpToolHelpCatalog.TryGet(descriptor.Name, out var extra);
         extra ??= new McpToolHelpEntry();
 
-        var registered = surface.RegisteredTools.Any(d => d.Name.Equals(descriptor.Name, StringComparison.Ordinal));
+        var registered = activation.IsToolActive(descriptor.Name);
         var purpose = descriptor.Method.GetCustomAttribute<DescriptionAttribute>()?.Description?.Trim();
         var parameters = ReadParameters(descriptor.Method);
 
@@ -166,7 +165,7 @@ public static class McpToolHelpFormatter
         return list;
     }
 
-    private static string FormatUnknown(string? toolName, McpToolSurface surface)
+    private static string FormatUnknown(string? toolName, McpToolActivationService activation)
     {
         var names = McpToolCatalog.All.Select(d => d.Name).ToArray();
         var suggestions = SuggestNames(toolName, names);
@@ -183,7 +182,7 @@ public static class McpToolHelpFormatter
             sb.Append(" Close names: ").Append(string.Join(", ", suggestions.Select(n => $"`{n}`"))).Append('.');
         }
 
-        sb.Append(" Call `list_tool_groups` for the catalog in profile `").Append(surface.Profile).Append("`.");
+        sb.Append(" Call `list_tool_groups` for the catalog in profile `").Append(activation.Profile).Append("`.");
         return sb.ToString();
     }
 

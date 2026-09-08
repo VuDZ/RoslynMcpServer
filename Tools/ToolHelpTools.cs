@@ -7,11 +7,11 @@ namespace RoslynMcpServer.Tools;
 
 public sealed class ToolHelpTools
 {
-    private readonly McpToolSurface _toolSurface;
+    private readonly McpToolActivationService _activation;
 
-    public ToolHelpTools(McpToolSurface toolSurface)
+    public ToolHelpTools(McpToolActivationService activation)
     {
-        _toolSurface = toolSurface;
+        _activation = activation;
     }
 
     [McpServerTool(Name = "list_tool_groups", Title = "List tool groups")]
@@ -21,7 +21,7 @@ public sealed class ToolHelpTools
         _ = cancellationToken;
         return Task.FromResult(ToolTelemetry.TraceAndReturn(
             nameof(ListToolGroups),
-            McpToolHelpFormatter.FormatGroups(_toolSurface)));
+            McpToolHelpFormatter.FormatGroups(_activation)));
     }
 
     [McpServerTool(Name = "get_tool_help", Title = "Get tool help")]
@@ -34,6 +34,19 @@ public sealed class ToolHelpTools
         _ = cancellationToken;
         return Task.FromResult(ToolTelemetry.TraceAndReturn(
             nameof(GetToolHelp),
-            McpToolHelpFormatter.FormatToolHelp(toolName, _toolSurface)));
+            McpToolHelpFormatter.FormatToolHelp(toolName, _activation)));
+    }
+
+    [McpServerTool(Name = "enable_tool_group", Title = "Enable tool group")]
+    [Description("Adds every missing tool in one catalog group to this session and notifies via tools/list_changed. Idempotent; full profile is a no-op.")]
+    public Task<string> EnableToolGroup(
+        [Description("Exact group name, case-insensitive. Example: files.")]
+        string group,
+        CancellationToken cancellationToken = default)
+    {
+        _ = cancellationToken;
+        return Task.FromResult(ToolTelemetry.TraceAndReturn(
+            nameof(EnableToolGroup),
+            _activation.EnableGroup(group).Markdown));
     }
 }

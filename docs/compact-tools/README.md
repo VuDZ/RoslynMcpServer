@@ -9,6 +9,7 @@ as base truth and must not implement later epochs early.
 
 Epoch 1 is implemented; see [epoch-1-handoff.md](epoch-1-handoff.md).
 Epoch 2 is implemented; see [epoch-2-handoff.md](epoch-2-handoff.md).
+Epoch 3 is implemented; see [epoch-3-handoff.md](epoch-3-handoff.md).
 
 ## Fixed architectural decisions
 

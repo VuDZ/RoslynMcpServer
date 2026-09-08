@@ -7,9 +7,9 @@ namespace RoslynMcpServer.Services;
 
 public static class McpServerInfoHelper
 {
-    public static string BuildInfoMarkdown(Solution? loadedSolution, McpToolSurface toolSurface)
+    public static string BuildInfoMarkdown(Solution? loadedSolution, McpToolActivationService activation)
     {
-        ArgumentNullException.ThrowIfNull(toolSurface);
+        ArgumentNullException.ThrowIfNull(activation);
         var assembly = Assembly.GetExecutingAssembly();
         var exePath = Environment.ProcessPath ?? assembly.Location;
         var exeTime = File.Exists(exePath) ? File.GetLastWriteTime(exePath) : (DateTime?)null;
@@ -29,9 +29,10 @@ public static class McpServerInfoHelper
         }
 
         sb.AppendLine($"- **Base directory:** `{AppContext.BaseDirectory}`");
-        sb.AppendLine($"- **Tool profile:** `{toolSurface.Profile}`");
-        sb.AppendLine($"- **Startup tool groups:** {toolSurface.FormatStartupGroupsMarkdown()}");
-        sb.AppendLine($"- **Registered MCP tools:** {toolSurface.RegisteredToolCount}");
+        sb.AppendLine($"- **Tool profile:** `{activation.Profile}`");
+        sb.AppendLine($"- **Startup tool groups:** {activation.FormatStartupGroupsMarkdown()}");
+        sb.AppendLine($"- **Dynamic tool groups:** {activation.FormatDynamicGroupsMarkdown()}");
+        sb.AppendLine($"- **Registered MCP tools:** {activation.CurrentToolCount}");
         sb.AppendLine($"- **Latest log file:** {(latestLog is null ? "(none yet)" : $"`{latestLog}`")}");
         sb.AppendLine($"- **Workspace loaded:** {(loadedSolution is null ? "no" : $"yes ({loadedSolution.ProjectIds.Count} projects)")}");
         sb.AppendLine();

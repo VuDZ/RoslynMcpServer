@@ -64,9 +64,9 @@ catch (InvalidOperationException ex)
 }
 
 var host = builder.Build();
-var toolSurface = host.Services.GetRequiredService<McpToolSurface>();
+var activation = host.Services.GetRequiredService<McpToolActivationService>();
 Console.Error.WriteLine(
-    $"[RoslynMcp] tool profile={toolSurface.Profile}; startup groups={toolSurface.FormatStartupGroupsDisplay()}; registered tools={toolSurface.RegisteredToolCount}");
+    $"[RoslynMcp] tool profile={activation.Profile}; startup groups={activation.FormatStartupGroupsDisplay()}; dynamic groups={activation.FormatDynamicGroupsDisplay()}; registered tools={activation.CurrentToolCount}");
 
 await host.RunAsync();
 

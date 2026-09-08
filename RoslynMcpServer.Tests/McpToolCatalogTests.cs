@@ -46,7 +46,7 @@ public sealed class McpToolCatalogTests(ITestOutputHelper output)
             .OrderBy(n => n, StringComparer.Ordinal)
             .ToArray();
 
-        Assert.Equal(61, reflected.Length);
+        Assert.Equal(62, reflected.Length);
         Assert.Equal(reflected, registered);
     }
 
@@ -59,6 +59,7 @@ public sealed class McpToolCatalogTests(ITestOutputHelper output)
             "get_mcp_server_info",
             "list_tool_groups",
             "get_tool_help",
+            "enable_tool_group",
             "load_workspace",
             "reset_workspace",
             "get_code_skeleton",
@@ -79,7 +80,7 @@ public sealed class McpToolCatalogTests(ITestOutputHelper output)
         Assert.All(surface.RegisteredTools, d => Assert.True(d.InLiteCore));
         Assert.DoesNotContain(surface.RegisteredTools, d => d.Name == "decompile_type");
         Assert.DoesNotContain(surface.RegisteredTools, d => d.Name == "search_code");
-        Assert.DoesNotContain(surface.RegisteredTools, d => d.Name == "enable_tool_group");
+        Assert.Contains(surface.RegisteredTools, d => d.Name == "enable_tool_group");
         Assert.Contains(surface.RegisteredTools, d => d.Name == "list_tool_groups");
         Assert.Contains(surface.RegisteredTools, d => d.Name == "get_tool_help");
     }
@@ -200,7 +201,7 @@ public sealed class McpToolCatalogTests(ITestOutputHelper output)
         Assert.DoesNotContain("apply_patch", registered);
         Assert.Contains("list_tool_groups", registered);
         Assert.Contains("get_tool_help", registered);
-        Assert.DoesNotContain("enable_tool_group", registered);
+        Assert.Contains("enable_tool_group", registered);
     }
 
     [Fact]
@@ -229,12 +230,15 @@ public sealed class McpToolCatalogTests(ITestOutputHelper output)
         });
 
         var surface = host.Services.GetRequiredService<McpToolSurface>();
-        var info = McpServerInfoHelper.BuildInfoMarkdown(loadedSolution: null, surface);
+        var activation = host.Services.GetRequiredService<McpToolActivationService>();
+        var info = McpServerInfoHelper.BuildInfoMarkdown(loadedSolution: null, activation);
 
         Assert.Contains("- **Tool profile:** `lite`", info, StringComparison.Ordinal);
         Assert.Contains("- **Startup tool groups:** `files`", info, StringComparison.Ordinal);
-        Assert.Contains($"- **Registered MCP tools:** {surface.RegisteredToolCount}", info, StringComparison.Ordinal);
+        Assert.Contains("- **Dynamic tool groups:** (none)", info, StringComparison.Ordinal);
+        Assert.Contains($"- **Registered MCP tools:** {activation.CurrentToolCount}", info, StringComparison.Ordinal);
         Assert.DoesNotContain($"- **Registered MCP tools:** {McpToolCatalog.All.Count}", info, StringComparison.Ordinal);
+        Assert.Equal(surface.RegisteredToolCount, activation.CurrentToolCount);
         Assert.Equal(surface.RegisteredToolCount, host.Services.GetServices<McpServerTool>().Count());
     }
 
@@ -273,7 +277,7 @@ public sealed class McpToolCatalogTests(ITestOutputHelper output)
     {
         var all = McpToolCatalog.SumDescriptionCharacters();
         var withoutHelp = McpToolCatalog.SumDescriptionCharacters(
-            McpToolCatalog.All.Where(d => d.Name is not ("list_tool_groups" or "get_tool_help")));
+            McpToolCatalog.All.Where(d => d.Name is not ("list_tool_groups" or "get_tool_help" or "enable_tool_group")));
         output.WriteLine($"description chars all={all} withoutHelp={withoutHelp} epoch1={McpToolCatalog.Epoch1DescriptionCharacters}");
 
         var ceiling = (int)Math.Floor(McpToolCatalog.Epoch1DescriptionCharacters * 0.6);

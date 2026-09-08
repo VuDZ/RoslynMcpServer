@@ -7,7 +7,7 @@
 public static class McpToolHelpCatalog
 {
     public const string ServerInstructions =
-        "Call list_tool_groups to discover groups and get_tool_help for a named tool; extra lite groups can be enabled at startup with ROSLYN_MCP_TOOL_GROUPS.";
+        "Call list_tool_groups, get_tool_help, and enable_tool_group; clients that ignore tools/list_changed should restart with ROSLYN_MCP_TOOL_GROUPS.";
 
     public static IReadOnlyDictionary<string, McpToolHelpEntry> Entries { get; } = Build();
 
@@ -32,17 +32,23 @@ public static class McpToolHelpCatalog
             ["list_tool_groups"] = new()
             {
                 Workflow = "Call this first on a lite profile to see which groups are active and which tool names they contain.",
-                RelatedTools = ["get_tool_help"],
+                RelatedTools = ["get_tool_help", "enable_tool_group"],
             },
             ["get_tool_help"] = new()
             {
                 Workflow = "Pass an exact public tool name. Parameters are generated from the live schema, not from this help catalog.",
                 Pitfalls = "Unknown names return close matches. This is not a substitute for JSON Schema on tools/list.",
-                RelatedTools = ["list_tool_groups"],
+                RelatedTools = ["list_tool_groups", "enable_tool_group"],
+            },
+            ["enable_tool_group"] = new()
+            {
+                Workflow = "Pass one exact group name. Adds missing typed tools and sends tools/list_changed. Repeated calls and the full profile are no-ops.",
+                Pitfalls = "There is no disable in this release. Clients that ignore tools/list_changed must restart with ROSLYN_MCP_TOOL_GROUPS.",
+                RelatedTools = ["list_tool_groups", "get_tool_help"],
             },
             ["get_mcp_server_info"] = new()
             {
-                Workflow = "Use after publish/reload to confirm the binary path, profile, startup groups, and registered count.",
+                Workflow = "Use after publish/reload to confirm the binary path, profile, startup groups, dynamic groups, and current tool count.",
             },
             ["load_workspace"] = new()
             {

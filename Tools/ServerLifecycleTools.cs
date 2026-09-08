@@ -13,18 +13,18 @@ public sealed class ServerLifecycleTools
     private readonly IHostApplicationLifetime _lifetime;
     private readonly SolutionManager _solutionManager;
     private readonly ILogger<ServerLifecycleTools> _logger;
-    private readonly McpToolSurface _toolSurface;
+    private readonly McpToolActivationService _activation;
 
     public ServerLifecycleTools(
         IHostApplicationLifetime lifetime,
         SolutionManager solutionManager,
         ILogger<ServerLifecycleTools> logger,
-        McpToolSurface toolSurface)
+        McpToolActivationService activation)
     {
         _lifetime = lifetime;
         _solutionManager = solutionManager;
         _logger = logger;
-        _toolSurface = toolSurface;
+        _activation = activation;
     }
 
     [McpServerTool(Name = "get_mcp_server_info", Title = "Get MCP server info")]
@@ -32,7 +32,7 @@ public sealed class ServerLifecycleTools
     public Task<string> GetMcpServerInfo(CancellationToken cancellationToken = default)
     {
         _ = cancellationToken;
-        var info = McpServerInfoHelper.BuildInfoMarkdown(_solutionManager.GetCurrentSolution(), _toolSurface);
+        var info = McpServerInfoHelper.BuildInfoMarkdown(_solutionManager.GetCurrentSolution(), _activation);
         return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(GetMcpServerInfo), info));
     }
 

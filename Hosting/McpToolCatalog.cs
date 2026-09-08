@@ -13,12 +13,9 @@ namespace RoslynMcpServer.Hosting;
 public static class McpToolCatalog
 {
     /// <summary>
-    /// Public names reserved for later epochs. Do not register placeholder implementations.
+    /// Public names reserved for later epochs. Empty after Epoch 3 registered <c>enable_tool_group</c>.
     /// </summary>
-    public static IReadOnlyList<string> ReservedBootstrapToolNames { get; } =
-    [
-        "enable_tool_group",
-    ];
+    public static IReadOnlyList<string> ReservedBootstrapToolNames { get; } = [];
 
     /// <summary>
     /// Epoch 1 minified <c>tools/list</c> UTF-8 sizes captured before Epoch 2 description compaction.
@@ -107,7 +104,13 @@ public static class McpToolCatalog
                 continue;
             }
 
-            var group = MatchGroup(token);
+            if (!TryNormalizeGroup(token, out var group))
+            {
+                throw new InvalidOperationException(
+                    $"Unknown tool group '{token}'. Valid groups: {string.Join(", ", McpToolGroups.All)}. "
+                    + $"Set {McpToolProfileOptions.GroupsVariableName} to a comma-separated subset.");
+            }
+
             if (seen.Add(group))
             {
                 canonical.Add(group);
@@ -117,19 +120,25 @@ public static class McpToolCatalog
         return canonical;
     }
 
-    private static string MatchGroup(string token)
+    public static bool TryNormalizeGroup(string? token, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out string? group)
     {
-        foreach (var group in McpToolGroups.All)
+        group = null;
+        if (string.IsNullOrWhiteSpace(token))
         {
-            if (group.Equals(token, StringComparison.OrdinalIgnoreCase))
+            return false;
+        }
+
+        var trimmed = token.Trim();
+        foreach (var candidate in McpToolGroups.All)
+        {
+            if (candidate.Equals(trimmed, StringComparison.OrdinalIgnoreCase))
             {
-                return group;
+                group = candidate;
+                return true;
             }
         }
 
-        throw new InvalidOperationException(
-            $"Unknown tool group '{token}'. Valid groups: {string.Join(", ", McpToolGroups.All)}. "
-            + $"Set {McpToolProfileOptions.GroupsVariableName} to a comma-separated subset.");
+        return false;
     }
 
     private static IReadOnlyList<McpToolDescriptor> Build()
@@ -139,6 +148,7 @@ public static class McpToolCatalog
             Core<ServerLifecycleTools>("get_mcp_server_info", readOnly: true),
             Core<ToolHelpTools>("list_tool_groups", readOnly: true),
             Core<ToolHelpTools>("get_tool_help", readOnly: true),
+            Core<ToolHelpTools>("enable_tool_group", readOnly: false),
             Core<WorkspaceTools>("load_workspace", readOnly: false, executesProcess: true),
             Core<WorkspaceTools>("reset_workspace", readOnly: false),
             Core<CodeSkeletonTools>("get_code_skeleton", readOnly: true),

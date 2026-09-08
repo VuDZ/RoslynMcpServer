@@ -13,13 +13,13 @@ public sealed class WorkspaceTools
 {
     private readonly SolutionManager _solutionManager;
     private readonly ILogger<WorkspaceTools> _logger;
-    private readonly McpToolSurface _toolSurface;
+    private readonly McpToolActivationService _activation;
 
-    public WorkspaceTools(SolutionManager solutionManager, ILogger<WorkspaceTools> logger, McpToolSurface toolSurface)
+    public WorkspaceTools(SolutionManager solutionManager, ILogger<WorkspaceTools> logger, McpToolActivationService activation)
     {
         _solutionManager = solutionManager;
         _logger = logger;
-        _toolSurface = toolSurface;
+        _activation = activation;
     }
 
     [McpServerTool(Name = "load_workspace", Title = "Load C# workspace")]
@@ -129,7 +129,7 @@ public sealed class WorkspaceTools
             WorkspaceHealthReporter.BuildHealthSection(
                 workspacePath,
                 solution,
-                _toolSurface,
+                _activation,
                 _solutionManager.LoadedConfiguration,
                 _solutionManager.LoadedPlatform,
                 _solutionManager.LoadedTargetFramework));

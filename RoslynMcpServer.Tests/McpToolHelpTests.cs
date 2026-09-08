@@ -143,6 +143,7 @@ public sealed class McpToolHelpTests
     {
         Assert.DoesNotContain("load_workspace", McpToolHelpCatalog.ServerInstructions, StringComparison.Ordinal);
         Assert.Contains("list_tool_groups", McpToolHelpCatalog.ServerInstructions, StringComparison.Ordinal);
+        Assert.Contains("enable_tool_group", McpToolHelpCatalog.ServerInstructions, StringComparison.Ordinal);
         Assert.Contains("ROSLYN_MCP_TOOL_GROUPS", McpToolHelpCatalog.ServerInstructions, StringComparison.Ordinal);
         Assert.True(McpToolHelpCatalog.ServerInstructions.Length < 250);
         Assert.DoesNotContain('\n', McpToolHelpCatalog.ServerInstructions);

@@ -16,7 +16,8 @@ public static class RoslynMcpServiceCollectionExtensions
         this IServiceCollection services,
         McpToolProfileOptions? profileOptions = null)
     {
-        RegisterCore(services, McpToolCatalog.CreateSurface(profileOptions ?? McpToolProfileOptions.FromEnvironment()));
+        var surface = McpToolCatalog.CreateSurface(profileOptions ?? McpToolProfileOptions.FromEnvironment());
+        RegisterCore(services, surface, new McpRuntimeToolCollection());
         return services;
     }
 
@@ -29,12 +30,17 @@ public static class RoslynMcpServiceCollectionExtensions
         McpToolProfileOptions? profileOptions = null)
     {
         var surface = McpToolCatalog.CreateSurface(profileOptions ?? McpToolProfileOptions.FromEnvironment());
-        RegisterCore(services, surface);
+        var toolCollection = new McpRuntimeToolCollection();
+        RegisterCore(services, surface, toolCollection);
+
+        // Must run before McpServerOptionsSetup so SDK TryAdd uses this instance.
+        services.Configure<McpServerOptions>(o => o.ToolCollection = toolCollection);
 
         var builder = services
             .AddMcpServer(o =>
             {
                 o.ServerInstructions = McpToolHelpCatalog.ServerInstructions;
+                o.ToolCollection = toolCollection;
                 McpInboundProtocolLogger.Register(o);
             })
             .WithStdioServerTransport();
@@ -43,7 +49,10 @@ public static class RoslynMcpServiceCollectionExtensions
         return builder;
     }
 
-    private static void RegisterCore(IServiceCollection services, McpToolSurface surface)
+    private static void RegisterCore(
+        IServiceCollection services,
+        McpToolSurface surface,
+        McpRuntimeToolCollection toolCollection)
     {
         var options = new McpToolProfileOptions
         {
@@ -53,6 +62,9 @@ public static class RoslynMcpServiceCollectionExtensions
 
         services.AddSingleton<IOptions<McpToolProfileOptions>>(Options.Create(options));
         services.AddSingleton(surface);
+        services.AddSingleton(toolCollection);
+        services.AddSingleton<McpServerPrimitiveCollection<McpServerTool>>(toolCollection);
+        services.AddSingleton<McpToolActivationService>();
         services.AddSingleton<SolutionManager>();
         foreach (var toolType in McpToolCatalog.HostTypes)
         {

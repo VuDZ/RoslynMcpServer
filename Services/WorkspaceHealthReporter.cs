@@ -10,12 +10,12 @@ public static class WorkspaceHealthReporter
     public static string BuildHealthSection(
         string workspacePath,
         Solution solution,
-        McpToolSurface toolSurface,
+        McpToolActivationService activation,
         string? configuration = null,
         string? platform = null,
         string? targetFramework = null)
     {
-        ArgumentNullException.ThrowIfNull(toolSurface);
+        ArgumentNullException.ThrowIfNull(activation);
         var fullPath = Path.GetFullPath(workspacePath);
         var workDir = WorkspaceRootResolver.ResolveDotNetWorkingDirectory(fullPath);
         var globalJson = GlobalJsonSdkReader.FindGlobalJsonPath(workDir);
@@ -37,9 +37,10 @@ public static class WorkspaceHealthReporter
         sb.AppendLine($"- **Pinned SDK (global.json):** {(pinnedSdk ?? "(none)")}");
         sb.AppendLine($"- **Resolved SDK directory:** {(sdkDir ?? "(not resolved)")}");
         sb.AppendLine($"- **Restore assets:** {DescribeRestoreAssets(solution)}");
-        sb.AppendLine($"- **Tool profile:** `{toolSurface.Profile}`");
-        sb.AppendLine($"- **Startup tool groups:** {toolSurface.FormatStartupGroupsMarkdown()}");
-        sb.AppendLine($"- **Registered MCP tools:** {toolSurface.RegisteredToolCount} (use `get_mcp_server_info` for binary path)");
+        sb.AppendLine($"- **Tool profile:** `{activation.Profile}`");
+        sb.AppendLine($"- **Startup tool groups:** {activation.FormatStartupGroupsMarkdown()}");
+        sb.AppendLine($"- **Dynamic tool groups:** {activation.FormatDynamicGroupsMarkdown()}");
+        sb.AppendLine($"- **Registered MCP tools:** {activation.CurrentToolCount} (use `get_mcp_server_info` for binary path)");
         sb.AppendLine();
         sb.AppendLine(
             "> **Workflow:** Call `load_workspace` first. Build/test/run via `run_dotnet_build`, `run_dotnet_test`, `run_dotnet_run` — not raw shell `dotnet`. "
