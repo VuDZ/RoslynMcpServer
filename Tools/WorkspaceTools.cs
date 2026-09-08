@@ -4,6 +4,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Server;
 using RoslynMcpServer.Diagnostics;
+using RoslynMcpServer.Hosting;
 using RoslynMcpServer.Services;
 
 namespace RoslynMcpServer.Tools;
@@ -12,11 +13,13 @@ public sealed class WorkspaceTools
 {
     private readonly SolutionManager _solutionManager;
     private readonly ILogger<WorkspaceTools> _logger;
+    private readonly McpToolSurface _toolSurface;
 
-    public WorkspaceTools(SolutionManager solutionManager, ILogger<WorkspaceTools> logger)
+    public WorkspaceTools(SolutionManager solutionManager, ILogger<WorkspaceTools> logger, McpToolSurface toolSurface)
     {
         _solutionManager = solutionManager;
         _logger = logger;
+        _toolSurface = toolSurface;
     }
 
     [McpServerTool(Name = "load_workspace", Title = "Load C# workspace")]
@@ -147,6 +150,7 @@ public sealed class WorkspaceTools
             WorkspaceHealthReporter.BuildHealthSection(
                 workspacePath,
                 solution,
+                _toolSurface,
                 _solutionManager.LoadedConfiguration,
                 _solutionManager.LoadedPlatform,
                 _solutionManager.LoadedTargetFramework));

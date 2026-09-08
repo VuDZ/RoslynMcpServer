@@ -1,10 +1,10 @@
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
-using Xunit;
 using Microsoft.Extensions.Hosting;
 using ModelContextProtocol.Server;
 using RoslynMcpServer.Hosting;
 using RoslynMcpServer.Tools;
+using Xunit;
 
 namespace RoslynMcpServer.Tests;
 
@@ -69,7 +69,7 @@ public sealed class McpToolActivationTests
     private static IHost BuildHost()
     {
         var builder = Host.CreateApplicationBuilder();
-        builder.Services.AddRoslynMcpServerTools();
+        builder.Services.AddRoslynMcpServerTools(new McpToolProfileOptions { Profile = "full" });
         return builder.Build();
     }
 

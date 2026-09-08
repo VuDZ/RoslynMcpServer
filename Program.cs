@@ -50,11 +50,25 @@ builder.Services.AddSerilog((_, configuration) =>
 });
 
 // MCP stdio transport + tools (see RoslynMcpServiceCollectionExtensions).
-builder.Services
-    .AddRoslynMcpServerTools()
-    .WithPrompts<BasicPrompts>();
+try
+{
+    builder.Services
+        .AddRoslynMcpServerTools()
+        .WithPrompts<BasicPrompts>();
+}
+catch (InvalidOperationException ex)
+{
+    Console.Error.WriteLine($"[RoslynMcp] {ex.Message}");
+    Environment.ExitCode = 1;
+    return;
+}
 
-await builder.Build().RunAsync();
+var host = builder.Build();
+var toolSurface = host.Services.GetRequiredService<McpToolSurface>();
+Console.Error.WriteLine(
+    $"[RoslynMcp] tool profile={toolSurface.Profile}; startup groups={toolSurface.FormatStartupGroupsDisplay()}; registered tools={toolSurface.RegisteredToolCount}");
+
+await host.RunAsync();
 
 static void ApplyOptionalWorkspaceRootFromEnvironment()
 {

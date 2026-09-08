@@ -1,7 +1,5 @@
-using System.Reflection;
 using System.Text;
 using Microsoft.CodeAnalysis;
-using ModelContextProtocol.Server;
 using RoslynMcpServer.Hosting;
 
 namespace RoslynMcpServer.Services;
@@ -12,10 +10,12 @@ public static class WorkspaceHealthReporter
     public static string BuildHealthSection(
         string workspacePath,
         Solution solution,
+        McpToolSurface toolSurface,
         string? configuration = null,
         string? platform = null,
         string? targetFramework = null)
     {
+        ArgumentNullException.ThrowIfNull(toolSurface);
         var fullPath = Path.GetFullPath(workspacePath);
         var workDir = WorkspaceRootResolver.ResolveDotNetWorkingDirectory(fullPath);
         var globalJson = GlobalJsonSdkReader.FindGlobalJsonPath(workDir);
@@ -37,7 +37,9 @@ public static class WorkspaceHealthReporter
         sb.AppendLine($"- **Pinned SDK (global.json):** {(pinnedSdk ?? "(none)")}");
         sb.AppendLine($"- **Resolved SDK directory:** {(sdkDir ?? "(not resolved)")}");
         sb.AppendLine($"- **Restore assets:** {DescribeRestoreAssets(solution)}");
-        sb.AppendLine($"- **Registered MCP tools:** {CountRegisteredTools()} (use `get_mcp_server_info` for binary path)");
+        sb.AppendLine($"- **Tool profile:** `{toolSurface.Profile}`");
+        sb.AppendLine($"- **Startup tool groups:** {toolSurface.FormatStartupGroupsMarkdown()}");
+        sb.AppendLine($"- **Registered MCP tools:** {toolSurface.RegisteredToolCount} (use `get_mcp_server_info` for binary path)");
         sb.AppendLine();
         sb.AppendLine(
             "> **Workflow:** Call `load_workspace` first. Build/test/run via `run_dotnet_build`, `run_dotnet_test`, `run_dotnet_run` — not raw shell `dotnet`. "
@@ -77,12 +79,5 @@ public static class WorkspaceHealthReporter
         return withAssets == projectPaths.Count
             ? $"ok ({withAssets}/{projectPaths.Count} projects have obj/project.assets.json)"
             : $"incomplete ({withAssets}/{projectPaths.Count} — run `dotnet restore` at solution root, then `reset_workspace` + `load_workspace`)";
-    }
-
-    public static int CountRegisteredTools()
-    {
-        return McpToolRegistry.ToolTypes
-            .SelectMany(t => t.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly))
-            .Count(m => m.GetCustomAttribute<McpServerToolAttribute>() is not null);
     }
 }
