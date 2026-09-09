@@ -2,49 +2,101 @@
 
 [🇷🇺 Читать на русском (Russian Version)](#russian-version)
 
-**Why use this over standard FileSystem MCPs?**
-Unlike basic file-reading servers, this Model Context Protocol (MCP) server leverages **Roslyn**. Your AI agent (Cursor, Cline, etc.) doesn't just read plain text—it sees C# code through the eyes of the compiler. It can get precise diagnostics without a full rebuild, **apply built-in Roslyn code fixes** (add using, implement interface, fix typos), find symbol references, and perform safe semantic refactoring, drastically reducing LLM hallucinations.
+RoslynMcpServer gives an AI coding agent compiler-aware tools for C# solutions: semantic navigation, diagnostics and code fixes, refactoring, dependency inspection, and bounded `dotnet` build/test/run output.
 
-It is designed for AI-driven C# development (with secondary Python support), focusing on:
-- Parsing and analyzing `*.sln`/`*.slnx`/`*.csproj` via Roslyn.
-- Safe, context-aware file read/write operations.
-- CLI integration: running `dotnet build`, `dotnet test`, and custom commands.
-- Compact responses optimized for LLM context windows, backed by detailed server-side logging.
+Unlike a filesystem MCP, it loads `.sln`, `.slnx`, or `.csproj` through Roslyn/MSBuild. The agent can resolve symbols and project context instead of inferring them from text alone.
 
-## ⚠️ Security Disclaimer
-This server grants the AI agent read, write, and execution privileges (via the `dotnet` CLI) within your workspace. **Always use source control (Git)** to track changes. Do not run the server as Administrator.
+## MCP and agent: the 60-second model
+
+- **MCP client** — Cursor, OpenCode, or another compatible host. It starts the server and exposes its tools to the model.
+- **AI agent** — the model plus the client's orchestration. It decides which tool to call; it is not part of this repository.
+- **RoslynMcpServer** — a local stdio process. It exposes tools but has no chat UI and does not act autonomously.
+- **`AGENTS.md`** — repository policy for the agent. MCP configuration makes tools available; this file tells the agent when to use them.
+
+Typical flow:
+
+`developer request → agent → MCP tool call → Roslyn/MSBuild/ILSpy/dotnet → compact result → agent`
+
+The server is C#-focused. It can read non-C# files and execute selected CLI operations, but it does not provide Python semantic analysis. See [Architecture and constraints](docs/ARCHITECTURE.md) for component boundaries, state, synchronization, and extension rules.
+
+## What it provides
+
+- Compiler-aware declaration, usage, implementation, and call-graph navigation.
+- Roslyn diagnostics, code actions, AST edits, and semantic rename.
+- ILSpy inspection of referenced or explicitly addressed assemblies.
+- Build, test, run, format, and NuGet workflows with SDK alignment, timeouts, parsed diagnostics, and context-safe output.
+- `full` and context-saving `lite` tool catalogs, plus in-session tool-group discovery.
+
+## Security boundary
+
+This server can read and write files and start `dotnet`/Git child processes with the permissions of its host process. It is **not a sandbox** and does not confine every operation to the loaded workspace.
+
+- Use Git and review agent changes.
+- Do not run the server as Administrator/root.
+- Never put PATs, passwords, connection strings, or other secrets in prompts or tool arguments.
+- Incoming MCP parameters are logged by default; see [Logs](#logs) before using the server with sensitive repositories.
 
 ## Prerequisites
-- Strictly **.NET 10 SDK** installed on your machine. *(Earlier SDK versions are not supported and will fail to build).*
-- An MCP-compatible IDE or client (e.g., Cursor, OpenCode, VS Code with Cline).
 
-## Setup & Connection (Local)
+- An MCP client with local stdio-server support.
+- A .NET SDK compatible with the solution being analyzed; honor the repository's `global.json`.
+- The **.NET 10 SDK** when building this server from source.
+- Git is strongly recommended for reviewing and reverting agent changes.
 
-It is highly recommended to run the **published executable**. This ensures instant startup without the overhead of `dotnet run`. The project is configured with `ReadyToRun` enabled and `PublishSingleFile` disabled (to ensure Roslyn can dynamically load MSBuild and analyzer dependencies).
+## First setup
 
-### 1. Publish the Server (Run once or after code updates)
-From the repository root (replace the RID if you are not on Windows x64):
+Run the **published executable**, not `dotnet run`. The publish is self-contained and ReadyToRun, but intentionally not single-file because Roslyn, MSBuild, analyzers, and BuildHost dependencies are loaded dynamically.
+
+### 1. Publish the server
+
+From this repository (replace the RID for another platform):
 
 ```bash
 dotnet publish RoslynMcpServer.csproj -c Release -r win-x64
 ```
 
-Your compiled binary will be at:
+The Windows x64 binary is written to:
+
 - Windows x64: `bin/Release/net10.0/win-x64/publish/RoslynMcpServer.exe`
-- Linux/macOS: Same relative path under your specified `-r` flag.
 
-### 2. Configure the MCP Client
+Linux/macOS use the same relative publish layout under the selected RID.
 
-**Option A: Via Cursor UI**
-1. Go to **Cursor Settings** -> **Features** -> **MCP** -> **+ Add New MCP Server**.
-2. Type: `stdio`.
-3. Command: Enter the **absolute path** to your published executable (e.g., `D:\Devel\RoslynMcpServer\bin\Release\net10.0\win-x64\publish\RoslynMcpServer.exe`).
+### 2. Register the local stdio server
 
-**Option B: Via `mcp.json`**
-Add the absolute path to your configuration file (see the provided `mcp.json` and `.cursor/mcp.json` examples in the repo).
-*Optional:* Pass `env` with `ROSLYN_MCP_WORKSPACE` set to the **repository root** (folder containing `global.json`) so MSBuild.Locator and `run_dotnet_build` use the same SDK as your solution. For a smaller catalog on local models, also set `ROSLYN_MCP_TOOL_PROFILE` / `ROSLYN_MCP_TOOL_GROUPS` (see **Tool profiles**).
+In Cursor, use **Cursor Settings → Tools & MCP**, or create a project-level `.cursor/mcp.json`. JSON paths can use forward slashes on Windows:
 
-**Option C: OpenCode (`install2opencode.ps1`)**
+```json
+{
+  "mcpServers": {
+    "roslyn-mcp-server": {
+      "command": "C:/absolute/path/to/RoslynMcpServer.exe",
+      "env": {
+        "ROSLYN_MCP_WORKSPACE": "C:/absolute/path/to/YourApp"
+      }
+    }
+  }
+}
+```
+
+`ROSLYN_MCP_WORKSPACE` is optional but recommended: set it to the target repository root, especially when that repository contains `global.json`. For smaller local models, configure `ROSLYN_MCP_TOOL_PROFILE` / `ROSLYN_MCP_TOOL_GROUPS` as described in [Tool profiles](#tool-profiles).
+
+Restart or reload MCP servers after changing client configuration.
+
+### 3. Add agent policy to the target repository
+
+Copy or merge [`AGENTS.md.sample`](AGENTS.md.sample) into the application repository as `AGENTS.md`. Keep repository-specific commands and entry points there. This is separate from MCP registration: without policy, the tools may be connected but the agent can still choose generic text search or shell commands.
+
+### 4. Verify the first session
+
+Ask the agent:
+
+> Use Roslyn MCP. Call `get_mcp_server_info`, then `load_workspace` for the absolute path to this repository's solution. List the loaded projects and report workspace health. Do not modify files.
+
+A healthy session reports the server binary/version, the active tool profile, SDK/restore health, and at least one loaded project. Then try a semantic request such as “find the definition and usages of `SolutionManager`.”
+
+If tools are missing, call `list_tool_groups`. If workspace loading fails, follow the returned diagnostic rather than switching to shell `dotnet`.
+
+### OpenCode installer
 
 After `dotnet publish`, the publish folder contains [`install2opencode.ps1`](install2opencode.ps1) and [`AGENTS.md.sample`](AGENTS.md.sample) next to `RoslynMcpServer.exe`.
 
@@ -286,6 +338,7 @@ Even if the MCP is active, AI clients don't always load the tools into the curre
 
 Policy summary (full text in the sample):
 
+- Verify the server with `get_mcp_server_info`; inspect missing `lite` tools with `list_tool_groups` / `enable_tool_group`
 - `load_workspace` before symbol / build / decompile work; prefer `.sln` / `.slnx`
 - Missing `Compile` target on load → retry with `targetFramework` (inner TFM); not SDK mismatch
 - VS 2026 BuildHost / `XMakeElements` → not SDK mismatch; need MCP 1.0.35+ or a single SDK-style `.csproj`
@@ -949,48 +1002,99 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 [🇬🇧 Back to English (Main)](#roslynmcpserver)
 
-**Почему это лучше стандартных файловых MCP?**
-В отличие от базовых серверов, которые умеют только читать и писать файлы, этот сервер использует **Roslyn**. Ваш ИИ-агент (в Cursor, Cline и др.) не просто читает текст, он видит C#-код глазами компилятора. Он может получать точечную диагностику без полной пересборки, **применять встроенные Roslyn code fixes** (add using, implement interface, опечатки), искать ссылки на символы и делать безопасный семантический рефакторинг, что кардинально снижает риск галлюцинаций.
+RoslynMcpServer предоставляет AI-агенту compiler-aware инструменты для C#-решений: семантическую навигацию, диагностику и code fixes, рефакторинг, анализ зависимостей и компактный вывод `dotnet build/test/run`.
 
-Сервер работает по `stdio` и регистрирует инструменты через MCP C# SDK, фокусируясь на:
-- работе с `*.sln`/`*.slnx`/`*.csproj` через Roslyn;
-- безопасных операциях чтения/правки файлов;
-- запуске `dotnet build` / `dotnet test` / произвольных `dotnet` команд;
-- компактных ответах для LLM и подробных логах.
+В отличие от файлового MCP, сервер загружает `.sln`, `.slnx` или `.csproj` через Roslyn/MSBuild. Агент работает с символами и контекстом проектов, а не только предполагает структуру по тексту.
 
-## ⚠️ Предупреждение о безопасности
-Этот сервер предоставляет ИИ-агенту права на чтение, запись и выполнение консольных команд (`dotnet`) в вашем рабочем пространстве. **Всегда используйте системы контроля версий (Git)**. Не запускайте сервер от имени администратора.
+## MCP и агент за одну минуту
+
+- **MCP-клиент** — Cursor, OpenCode или другой совместимый хост. Запускает сервер и предоставляет его tools модели.
+- **AI-агент** — модель и orchestration клиента. Именно агент выбирает tools; он не является частью этого репозитория.
+- **RoslynMcpServer** — локальный stdio-процесс. У него нет собственного чата и автономного цикла.
+- **`AGENTS.md`** — правила репозитория для агента. MCP-конфиг подключает tools, а этот файл определяет, когда ими пользоваться.
+
+Типовой поток:
+
+`запрос разработчика → агент → MCP tool → Roslyn/MSBuild/ILSpy/dotnet → компактный результат → агент`
+
+Сервер ориентирован на C#. Он умеет читать другие файлы и запускать отдельные CLI-операции, но не выполняет семантический анализ Python. Компоненты, состояние и обязательные ограничения описаны в [Architecture and constraints](docs/ARCHITECTURE.md).
+
+## Основные возможности
+
+- Поиск объявлений, использований, реализаций и связей вызовов через Roslyn.
+- Диагностика, CodeAction, AST-правки и семантический rename.
+- Анализ подключённых или явно заданных сборок через ILSpy.
+- Build, test, run, format и NuGet с выравниванием SDK, таймаутами и структурированным выводом.
+- Полный каталог `full` и экономный `lite` с группами tools.
+
+## Граница безопасности
+
+Сервер читает и пишет файлы и запускает дочерние процессы `dotnet`/Git с правами хост-процесса. Это **не sandbox**; не все операции ограничены каталогом загруженного workspace.
+
+- Используйте Git и проверяйте изменения агента.
+- Не запускайте сервер от администратора/root.
+- Не передавайте PAT, пароли и connection strings в prompts или аргументах tools.
+- Параметры входящих MCP-вызовов по умолчанию логируются; проверьте раздел «Логи» для чувствительных репозиториев.
 
 ## Требования
-- Строго **.NET 10 SDK**. *(Сборка более старыми версиями SDK не поддерживается и завершится ошибкой).*
-- IDE с поддержкой MCP (Cursor, OpenCode, VS Code + Cline).
 
-## Подключение к Cursor / VS Code (локально)
+- MCP-клиент с поддержкой локального stdio-сервера.
+- .NET SDK, совместимый с анализируемым solution; учитывайте его `global.json`.
+- **.NET 10 SDK** для сборки самого RoslynMcpServer из исходников.
+- Git настоятельно рекомендуется для review и отката изменений.
 
-Рекомендуется запускать **собранный exe**. Это обеспечивает мгновенный старт без оверхеда от `dotnet run`. Проект настроен с флагом `ReadyToRun`, но **без** `PublishSingleFile` (чтобы Roslyn мог динамически загружать зависимости).
+## Первый запуск
 
-### 1. Собрать publish (один раз и после изменений)
+Используйте **published executable**, а не `dotnet run`. Publish self-contained и ReadyToRun, но намеренно не single-file: Roslyn, MSBuild, analyzers и BuildHost загружают сборки динамически.
+
+### 1. Собрать сервер
 
 ```bash
 dotnet publish RoslynMcpServer.csproj -c Release -r win-x64
 ```
 
-Готовый exe:
-- Windows x64: `bin/Release/net10.0/win-x64/publish/RoslynMcpServer.exe`
-- Linux/macOS: тот же относительный путь под ваш `-r`.
+Для Windows x64 бинарник будет здесь:
 
-### 2. Конфиг MCP
+- `bin/Release/net10.0/win-x64/publish/RoslynMcpServer.exe`
 
-**Через интерфейс Cursor:**
-1. Перейдите в **Cursor Settings** -> **Features** -> **MCP** -> **+ Add New MCP Server**.
-2. Выберите тип: `stdio`.
-3. Вставьте **абсолютный путь** к `RoslynMcpServer.exe`.
+Для Linux/macOS используется тот же относительный layout с выбранным RID.
 
-**Через файл конфига:**
-Укажите абсолютный путь (примеры лежат в `mcp.json` и `.cursor/mcp.json`).
-Опционально добавьте `env` с `ROSLYN_MCP_WORKSPACE` — **корень репозитория** (каталог с `global.json`), чтобы MSBuild.Locator и `run_dotnet_build` использовали тот же SDK, что и решение. Для ужатого каталога на локальных моделях задайте также `ROSLYN_MCP_TOOL_PROFILE` / `ROSLYN_MCP_TOOL_GROUPS` (см. **Профили инструментов**).
+### 2. Зарегистрировать локальный stdio-сервер
 
-**OpenCode (`install2opencode.ps1`):**
+В Cursor откройте **Cursor Settings → Tools & MCP** или создайте `.cursor/mcp.json` в целевом проекте. В Windows внутри JSON удобно использовать `/`:
+
+```json
+{
+  "mcpServers": {
+    "roslyn-mcp-server": {
+      "command": "C:/absolute/path/to/RoslynMcpServer.exe",
+      "env": {
+        "ROSLYN_MCP_WORKSPACE": "C:/absolute/path/to/YourApp"
+      }
+    }
+  }
+}
+```
+
+`ROSLYN_MCP_WORKSPACE` необязателен, но рекомендуется: укажите корень целевого репозитория, особенно если там есть `global.json`. Для локальных моделей настройте `ROSLYN_MCP_TOOL_PROFILE` / `ROSLYN_MCP_TOOL_GROUPS` из раздела «Профили инструментов».
+
+После изменения конфигурации перезапустите или reload MCP servers.
+
+### 3. Добавить правила агента в целевой репозиторий
+
+Скопируйте или влейте [`AGENTS.md.sample`](AGENTS.md.sample) в репозиторий приложения как `AGENTS.md`. Специфичные для приложения entry points и команды добавьте туда отдельно. Это не MCP-конфиг: без policy tools могут быть подключены, но агент всё равно выберет обычный текстовый поиск или shell-команды.
+
+### 4. Проверить первую сессию
+
+Попросите агента:
+
+> Используй Roslyn MCP. Вызови `get_mcp_server_info`, затем `load_workspace` с абсолютным путём к solution этого репозитория. Перечисли загруженные проекты и состояние workspace. Файлы не изменяй.
+
+Исправная сессия покажет путь/версию бинарника, активный профиль tools, состояние SDK/restore и хотя бы один проект. Затем проверьте семантический запрос: «найди объявление и использования `SolutionManager`».
+
+Если tools не видны, вызовите `list_tool_groups`. Если не загрузился workspace, следуйте его диагностике, а не переключайтесь на shell `dotnet`.
+
+### Установщик OpenCode
 
 После `dotnet publish` в каталоге publish лежат [`install2opencode.ps1`](install2opencode.ps1) и [`AGENTS.md.sample`](AGENTS.md.sample) рядом с `RoslynMcpServer.exe`.
 
@@ -1068,6 +1172,7 @@ cd D:\Devel\YourApp
 
 Кратко для модели:
 
+- проверить сервер через `get_mcp_server_info`; отсутствующие `lite`-tools — через `list_tool_groups` / `enable_tool_group`
 - после `load_workspace` объявления C# — MCP `find_symbol_definition` / `find_usages`, не текстовый поиск и не выдуманный `search`
 - нет target `Compile` при load — повторить с `targetFramework` (inner TFM); это не SDK mismatch
 - VS 2026 BuildHost / `XMakeElements` — это не SDK mismatch; нужен MCP 1.0.35+ или один SDK-style `.csproj`

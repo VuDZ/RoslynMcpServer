@@ -37,17 +37,16 @@ Epoch 4 is implemented; see [epoch-4-handoff.md](epoch-4-handoff.md). Shipped as
 3. [Epoch 3 — Dynamic tool groups](epoch-3-dynamic-tool-groups.md)
 4. [Epoch 4 — Release and client validation](epoch-4-release-and-validation.md)
 
-## Baseline
+## Historical baseline (v1.2.0)
 
-- Shipped catalog is **62** tools (`full`) / **18** lite-core. Historical Epoch 1 baseline was 59 tools / ~68 KB formatted / ~36k description characters.
+- The catalog shipped by these epochs was **62** tools (`full`) / **18** lite-core. Current counts are maintained in the root [`README.md`](../../README.md) and the live `list_tool_groups` output.
+- Historical Epoch 1 baseline was 59 tools / ~68 KB formatted / ~36k description characters.
 - Eight verbose tools account for roughly 31% of description text:
   `load_workspace`, `run_specific_test`, `find_symbol_definition`,
   `search_code`, `run_dotnet_test`, `run_dotnet_build`,
   `get_code_skeleton`, and `find_usages`.
 - `UtilityTools` contains 14 unrelated tools, so class-level filtering is not
   sufficiently granular.
-- `README.md` currently reports a stale tool count and must be corrected only
-  in the release/documentation epoch unless an earlier epoch ships separately.
 
 ## Rules for every implementation chat
 
