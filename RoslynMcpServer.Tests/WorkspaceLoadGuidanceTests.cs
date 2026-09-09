@@ -185,6 +185,22 @@ public sealed class WorkspaceLoadGuidanceTests
     }
 
     [Fact]
+    public void FormatFilteredTestListEmptyMessage_does_not_blame_workspace_scope()
+    {
+        var message = WorkspaceLoadGuidance.FormatFilteredTestListEmptyMessage(
+            @"C:\repo\App.sln",
+            projectName: "App.Tests",
+            nameContains: "MissingTest");
+
+        Assert.Contains("No tests matched the get_test_list filters", message, StringComparison.Ordinal);
+        Assert.Contains("App.sln", message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("projectName:** `App.Tests`", message, StringComparison.Ordinal);
+        Assert.Contains("nameContains:** `MissingTest`", message, StringComparison.Ordinal);
+        Assert.DoesNotContain("wrong project/solution is loaded", message, StringComparison.Ordinal);
+        Assert.DoesNotContain("single `.csproj`", message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void FormatNoMatchingTestsAgentHint_detects_path_mismatch_and_suffix_mode()
     {
         var message = WorkspaceLoadGuidance.FormatNoMatchingTestsAgentHint(

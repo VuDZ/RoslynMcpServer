@@ -167,9 +167,14 @@ public sealed class TestTools
 
     [McpServerTool(Name = "get_test_list", Title = "List tests in workspace")]
     [Description(
-        "Returns JSON list of test methods from the loaded workspace. Requires load_workspace.")]
+        "Returns JSON list of test methods from the loaded workspace. Requires load_workspace. "
+        + "Optional projectName and nameContains filter before maxResults.")]
     public async Task<string> GetTestList(
         [Description("Maximum tests to return.")] int maxResults = 200,
+        [Description("Limit discovery to this Roslyn project (name, file name, or assembly).")]
+        string? projectName = null,
+        [Description("Case-insensitive substring of the test FQN (namespace, class, method).")]
+        string? nameContains = null,
         CancellationToken cancellationToken = default)
     {
         const string toolName = nameof(GetTestList);
@@ -183,14 +188,24 @@ public sealed class TestTools
                     WorkspaceLoadGuidance.FormatNoWorkspaceLoadedMessage("No workspace loaded."));
             }
 
-            var json = await TestDiscoveryHelper.ListTestsJsonAsync(solution, maxResults, cancellationToken)
+            var listed = await TestDiscoveryHelper.ListTestsJsonAsync(
+                    solution, maxResults, projectName, nameContains, cancellationToken)
                 .ConfigureAwait(false);
+            if (!listed.Success)
+            {
+                return ToolTelemetry.TraceAndReturn(toolName, listed.Payload);
+            }
+
+            var json = listed.Payload;
             var loadedPath = _solutionManager.GetLoadedWorkspacePath();
             if (IsEmptyTestListPayload(json))
             {
-                var guidance = WorkspaceLoadGuidance.FormatEmptyTestListMessage(
-                    loadedPath,
-                    solution.ProjectIds.Count);
+                var guidance = listed.FiltersApplied
+                    ? WorkspaceLoadGuidance.FormatFilteredTestListEmptyMessage(
+                        loadedPath, projectName, nameContains)
+                    : WorkspaceLoadGuidance.FormatEmptyTestListMessage(
+                        loadedPath,
+                        solution.ProjectIds.Count);
                 return ToolTelemetry.TraceAndReturn(
                     toolName,
                     guidance + Environment.NewLine + Environment.NewLine + "```json\n" + json + "\n```");

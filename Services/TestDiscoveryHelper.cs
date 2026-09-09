@@ -16,12 +16,36 @@ public static class TestDiscoveryHelper
         "Fact", "Theory", "Test", "TestMethod", "DataTestMethod", "TestCase"
     };
 
-    public static async Task<string> ListTestsJsonAsync(Solution solution, int maxResults, CancellationToken cancellationToken)
+    public sealed record ListTestsResult(bool Success, string Payload, bool FiltersApplied)
+    {
+        public static ListTestsResult Ok(string json, bool filtersApplied) =>
+            new(true, json, filtersApplied);
+
+        public static ListTestsResult Fail(string errorMessage) =>
+            new(false, errorMessage, FiltersApplied: true);
+    }
+
+    public static async Task<ListTestsResult> ListTestsJsonAsync(
+        Solution solution,
+        int maxResults,
+        string? projectName,
+        string? nameContains,
+        CancellationToken cancellationToken)
     {
         maxResults = Math.Clamp(maxResults, 1, 500);
+        var projectFilter = string.IsNullOrWhiteSpace(projectName) ? null : projectName.Trim();
+        var nameFilter = string.IsNullOrWhiteSpace(nameContains) ? null : nameContains.Trim();
+        var filtersApplied = projectFilter is not null || nameFilter is not null;
+
+        var resolved = TryResolveProjects(solution, projectFilter);
+        if (!resolved.Success)
+        {
+            return ListTestsResult.Fail(resolved.ErrorMessage ?? "Error: could not resolve `projectName`.");
+        }
+
         var tests = new List<object>();
 
-        foreach (var project in solution.Projects)
+        foreach (var project in resolved.Projects)
         {
             foreach (var document in project.Documents)
             {
@@ -51,23 +75,69 @@ public static class TestDiscoveryHelper
                     }
 
                     var className = symbol.ContainingType?.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat) ?? "?";
+                    var methodName = symbol.Name;
+                    if (!MatchesNameContains(symbol, className, methodName, nameFilter))
+                    {
+                        continue;
+                    }
+
                     tests.Add(new
                     {
+                        projectName = project.Name,
                         className,
-                        methodName = symbol.Name,
+                        methodName,
                         fullyQualifiedName = symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
                         filePath = document.FilePath
                     });
 
                     if (tests.Count >= maxResults)
                     {
-                        return Serialize(tests, truncated: true);
+                        return ListTestsResult.Ok(
+                            Serialize(tests, truncated: true, projectFilter, nameFilter),
+                            filtersApplied);
                     }
                 }
             }
         }
 
-        return Serialize(tests, truncated: false);
+        return ListTestsResult.Ok(
+            Serialize(tests, truncated: false, projectFilter, nameFilter),
+            filtersApplied);
+    }
+
+    internal static ProjectResolveResult TryResolveProjects(Solution solution, string? projectName)
+    {
+        var projects = solution.Projects.ToList();
+        if (string.IsNullOrWhiteSpace(projectName))
+        {
+            return ProjectResolveResult.Ok(projects);
+        }
+
+        var needle = projectName.Trim();
+        var matches = projects.Where(p => ProjectMatches(p, needle)).ToList();
+        if (matches.Count == 1)
+        {
+            return ProjectResolveResult.Ok(matches);
+        }
+
+        var list = FormatProjectList(matches.Count == 0 ? projects : matches);
+        if (matches.Count == 0)
+        {
+            return ProjectResolveResult.Fail(
+                $"Error: `projectName` `{needle}` was not found in the loaded workspace. Projects:{Environment.NewLine}{list}");
+        }
+
+        return ProjectResolveResult.Fail(
+            $"Error: `projectName` `{needle}` matches {matches.Count} projects. Pass a unique name, file name, or assembly name:{Environment.NewLine}{list}");
+    }
+
+    internal sealed record ProjectResolveResult(bool Success, IReadOnlyList<Project> Projects, string? ErrorMessage)
+    {
+        public static ProjectResolveResult Ok(IReadOnlyList<Project> projects) =>
+            new(true, projects, null);
+
+        public static ProjectResolveResult Fail(string errorMessage) =>
+            new(false, Array.Empty<Project>(), errorMessage);
     }
 
     public static async Task<Document> GenerateTestMethodStubAsync(
@@ -126,7 +196,69 @@ public static class TestDiscoveryHelper
         return false;
     }
 
-    private static string Serialize(List<object> tests, bool truncated)
+    private static bool ProjectMatches(Project project, string needle)
+    {
+        if (project.Name.Equals(needle, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        if (!string.IsNullOrWhiteSpace(project.AssemblyName)
+            && project.AssemblyName.Equals(needle, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        if (string.IsNullOrWhiteSpace(project.FilePath))
+        {
+            return false;
+        }
+
+        var fileName = Path.GetFileNameWithoutExtension(project.FilePath);
+        return fileName.Equals(needle, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool MatchesNameContains(
+        ISymbol symbol,
+        string className,
+        string methodName,
+        string? nameFilter)
+    {
+        if (nameFilter is null)
+        {
+            return true;
+        }
+
+        var vstestFqn = TestFilterHelper.FormatVstestFullyQualifiedName(symbol);
+        return vstestFqn.Contains(nameFilter, StringComparison.OrdinalIgnoreCase)
+               || className.Contains(nameFilter, StringComparison.OrdinalIgnoreCase)
+               || methodName.Contains(nameFilter, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string FormatProjectList(IEnumerable<Project> projects)
+    {
+        var sb = new StringBuilder();
+        foreach (var project in projects.OrderBy(p => p.Name, StringComparer.OrdinalIgnoreCase))
+        {
+            sb.Append("- ");
+            sb.Append(project.Name);
+            if (!string.IsNullOrWhiteSpace(project.FilePath))
+            {
+                sb.Append(" → ");
+                sb.Append(project.FilePath);
+            }
+
+            sb.AppendLine();
+        }
+
+        return sb.ToString().TrimEnd();
+    }
+
+    private static string Serialize(
+        List<object> tests,
+        bool truncated,
+        string? projectFilter,
+        string? nameContains)
     {
         var payload = new Dictionary<string, object?>
         {
@@ -134,6 +266,15 @@ public static class TestDiscoveryHelper
             ["truncated"] = truncated,
             ["tests"] = tests
         };
+        if (projectFilter is not null)
+        {
+            payload["projectFilter"] = projectFilter;
+        }
+
+        if (nameContains is not null)
+        {
+            payload["nameContains"] = nameContains;
+        }
 
         return JsonSerializer.Serialize(payload, new JsonSerializerOptions { WriteIndented = true });
     }

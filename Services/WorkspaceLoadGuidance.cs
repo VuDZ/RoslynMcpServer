@@ -385,6 +385,45 @@ public static class WorkspaceLoadGuidance
     }
 
     /// <summary>
+    /// Empty discovery after <c>projectName</c> / <c>nameContains</c> — not the same as a wrong workspace.
+    /// </summary>
+    public static string FormatFilteredTestListEmptyMessage(
+        string? loadedWorkspacePath,
+        string? projectName,
+        string? nameContains)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("## No tests matched the get_test_list filters");
+        sb.AppendLine();
+        sb.AppendLine(
+            "**Agent signal:** the loaded workspace was scanned, but **0** test methods matched the supplied filters. "
+            + "This is not the same as a missing test project — drop or relax `projectName` / `nameContains` before assuming the wrong `.sln` is loaded.");
+        sb.AppendLine();
+        if (!string.IsNullOrWhiteSpace(loadedWorkspacePath))
+        {
+            sb.AppendLine($"- **Loaded workspace:** `{loadedWorkspacePath}`");
+        }
+        else
+        {
+            sb.AppendLine("- **Loaded workspace:** (unknown path)");
+        }
+
+        if (!string.IsNullOrWhiteSpace(projectName))
+        {
+            sb.AppendLine($"- **projectName:** `{projectName.Trim()}`");
+        }
+
+        if (!string.IsNullOrWhiteSpace(nameContains))
+        {
+            sb.AppendLine($"- **nameContains:** `{nameContains.Trim()}`");
+        }
+
+        sb.AppendLine(
+            "- **Next step:** retry `get_test_list` without filters, or with a broader `nameContains`.");
+        return sb.ToString().TrimEnd();
+    }
+
+    /// <summary>
     /// Extra agent-facing block when VSTest filter matched no test FQN.
     /// </summary>
     public static string FormatNoMatchingTestsAgentHint(

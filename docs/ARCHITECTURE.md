@@ -95,6 +95,7 @@ Execution tools start a matching `dotnet` host in the repository working directo
 - SDK environment handling honors a repository `global.json` and removes inherited IDE/MSBuild overrides that would select the wrong SDK.
 - Build uses a bounded multi-step probe and structured MSBuild/NuGet parsing. The effective result follows build steps, so a later restore cannot mask a failed build.
 - Tests separate the optional compile step from `dotnet test --no-build`; the VSTest parser therefore receives test output rather than an MSBuild warning dump.
+- `get_test_list` discovers tests by scanning loaded Roslyn syntax for xUnit/NUnit/MSTest attributes. It is not VSTest. Optional `projectName` and `nameContains` run before the `maxResults` cap. Unknown or ambiguous `projectName` is an error against the loaded project list, not an empty JSON payload.
 - Timeouts and cancellation attempt to kill the complete child-process tree.
 - Process output is parsed and truncated before it is returned to protect the agent context window.
 

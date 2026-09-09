@@ -348,8 +348,9 @@ public static class McpToolHelpCatalog
             ["get_test_list"] = new()
             {
                 Prerequisites = "Requires load_workspace on the test solution.",
-                Pitfalls = "An empty list often means the wrong project was loaded.",
-                RelatedTools = ["run_specific_test", "run_test_by_filter"],
+                Workflow = "Optional projectName limits discovery to one loaded Roslyn project (display name, file name, or assembly). Optional nameContains is a case-insensitive substring of the VSTest FQN (namespace, class, method). Both filters run before maxResults.",
+                Pitfalls = "Unfiltered count 0 usually means the wrong project was loaded. A filtered count 0 means no match — drop projectName/nameContains before assuming the wrong .sln. Unknown or ambiguous projectName returns the project list, not an empty JSON. Project match is exact, not Contains.",
+                RelatedTools = ["run_specific_test", "run_test_by_filter", "list_projects"],
             },
             ["read_log_tail"] = new()
             {

@@ -164,11 +164,16 @@ Portable OpenCode examples: [`opencode.json.sample`](opencode.json.sample) (`ros
 
 MCP `tools/list` stays JSON + JSON Schema. Markdown is for JIT help and diagnostics.
 
-**Client compatibility:** do not assume the host refreshes tools after `tools/list_changed`. If a newly enabled tool is missing from the client's catalog, restart with `ROSLYN_MCP_TOOL_GROUPS=<group>` (and `ROSLYN_MCP_TOOL_PROFILE=lite`). Measured minified `tools/list` (UTF-8): full **63 / 41,139** (~40.2 KB); lite **19 / 13,904** (~13.6 KB). Adding `editing` to lite is ~24.2 KB (above the 20 KB *startup-lite* budget; expected).
+**Client compatibility:** do not assume the host refreshes tools after `tools/list_changed`. If a newly enabled tool is missing from the client's catalog, restart with `ROSLYN_MCP_TOOL_GROUPS=<group>` (and `ROSLYN_MCP_TOOL_PROFILE=lite`). Measured minified `tools/list` (UTF-8): full **63 / 41,490** (~40.5 KB); lite **19 / 13,904** (~13.6 KB). Adding `editing` to lite is ~24.2 KB (above the 20 KB *startup-lite* budget; expected).
 
 ## Agent tools by version
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
+
+### v1.3.1
+
+- **`get_test_list` filters** — Optional `projectName` (exact match on loaded Roslyn project name, file name, or assembly) and `nameContains` (case-insensitive substring of the VSTest FQN, class, or method). Both apply **before** `maxResults`. Unknown or ambiguous `projectName` returns the project list, not empty JSON. Filtered `count: 0` is a no-match signal (not “wrong `.csproj`”). Each test item includes `projectName`.
+- **Catalog size** — minified `tools/list` UTF-8: full 63 tools / 41,490 bytes; lite 19 / 13,904.
 
 ### v1.3.0
 
@@ -736,9 +741,12 @@ At least one of `className` or `methodName` is required. The tool builds a VSTes
 <details>
 <summary><code>get_test_list</code> — List test methods in loaded solution (JSON; saved <code>.cs</code> applied first).</summary>
 
-**Parameters:** `maxResults: int = 200`
+**Parameters:**
+- `maxResults: int = 200` (clamped 1–500)
+- `projectName: string? = null` — optional. Limit discovery to one loaded Roslyn project (case-insensitive exact match on display name, file name without extension, or assembly name). Missing or ambiguous names return the project list, not empty JSON.
+- `nameContains: string? = null` — optional. Case-insensitive substring of the VSTest FQN (`Namespace.Class.Method`), class name, or method name.
 
-Detects Fact/Theory/TestMethod/etc. Requires `load_workspace`. Applies saved `.cs` from disk first. Empty `count: 0` includes agent guidance when the wrong `.csproj` is loaded.
+**Behavior:** Detects Fact/Theory/TestMethod/etc. Requires `load_workspace`. Applies saved `.cs` from disk first. Filters run **before** `maxResults`. Each item includes `projectName`. Unfiltered `count: 0` includes agent guidance when the wrong `.csproj` is loaded; a filtered `count: 0` means no match (drop or relax filters first).
 
 </details>
 
@@ -946,7 +954,7 @@ Verify id/version with `search_nuget_registry` first. Clears workspace cache —
 
 **Parameters:** *(none)*
 
-Use after `dotnet publish` to verify the MCP host picked up the new binary (expect **v1.3.0** and **63** tools on `full`, or **19** on `lite`).
+Use after `dotnet publish` to verify the MCP host picked up the new binary (expect **v1.3.1** and **63** tools on `full`, or **19** on `lite`).
 
 </details>
 
@@ -1154,11 +1162,11 @@ cd D:\Devel\YourApp
 | `runtime` | `run`, список тестов, сырой `dotnet` | 3 |
 | `operations` | логи, scratchpad, stop | 4 |
 
-`list_tool_groups` / `get_tool_help` / `enable_tool_group` — Markdown-справка и runtime-включение. `tools/list` остаётся JSON Schema. Если клиент не обновляет список после `tools/list_changed`, перезапустите с `ROSLYN_MCP_TOOL_GROUPS=<group>`. Замеры minified UTF-8: full **63 / 41 139**; lite **19 / 13 904**.
+`list_tool_groups` / `get_tool_help` / `enable_tool_group` — Markdown-справка и runtime-включение. `tools/list` остаётся JSON Schema. Если клиент не обновляет список после `tools/list_changed`, перезапустите с `ROSLYN_MCP_TOOL_GROUPS=<group>`. Замеры minified UTF-8: full **63 / 41 490**; lite **19 / 13 904**.
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.3.0). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.3.1). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 
@@ -1557,7 +1565,12 @@ cd D:\Devel\YourApp
 <details>
 <summary><code>get_test_list</code> — Список тестов в solution (JSON). Сначала saved <code>.cs</code> с диска.</summary>
 
-**Параметры:** `maxResults: int = 200`. Нужен `load_workspace`. При `count: 0` — подсказка, что загружен не тот `.csproj`.
+**Параметры:**
+- `maxResults: int = 200` (кламп 1–500)
+- `projectName: string? = null` — опционально. Только этот проект в загруженном workspace (точное совпадение без учёта регистра: display name, имя файла без расширения, assembly). Нет совпадения или неоднозначность — список проектов, не пустой JSON.
+- `nameContains: string? = null` — опционально. Подстрока без учёта регистра по VSTest FQN (`Namespace.Class.Method`), имени класса или метода.
+
+**Поведение:** Fact/Theory/TestMethod/и т.д. Нужен `load_workspace`. Фильтры применяются **до** `maxResults`. В каждом элементе есть `projectName`. Без фильтров `count: 0` — подсказка, что загружен не тот `.csproj`; с фильтрами `count: 0` — нет совпадений (сначала ослабьте фильтр).
 
 </details>
 
@@ -1763,7 +1776,7 @@ cd D:\Devel\YourApp
 
 **Параметры:** *(нет)*
 
-После `dotnet publish` — проверка, что MCP подхватил новый бинарник (ожидай **v1.3.0** и **63** tools в `full`, или **19** в `lite`).
+После `dotnet publish` — проверка, что MCP подхватил новый бинарник (ожидай **v1.3.1** и **63** tools в `full`, или **19** в `lite`).
 
 </details>
 

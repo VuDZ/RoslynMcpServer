@@ -278,14 +278,14 @@ public sealed class McpToolCatalogTests(ITestOutputHelper output)
     [Fact]
     public void Epoch4_surface_sizes_match_recorded_release_numbers()
     {
-        AssertRecorded("full", 63, 41139, MeasureSurface(new McpToolProfileOptions { Profile = "full" }));
+        AssertRecorded("full", 63, 41490, MeasureSurface(new McpToolProfileOptions { Profile = "full" }));
         AssertRecorded("lite", 19, 13904, MeasureSurface(new McpToolProfileOptions { Profile = "lite" }));
         AssertRecorded("lite+files", 26, 18132, MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "files" }));
         AssertRecorded("lite+editing", 36, 24780, MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "editing" }));
         AssertRecorded("lite+decompile", 23, 16822, MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "decompile" }));
         AssertRecorded("lite+nuget", 25, 17517, MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "nuget" }));
         AssertRecorded("lite+project", 22, 15541, MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "project" }));
-        AssertRecorded("lite+runtime", 22, 15950, MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "runtime" }));
+        AssertRecorded("lite+runtime", 22, 16301, MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "runtime" }));
         AssertRecorded("lite+operations", 23, 15821, MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "operations" }));
 
         var enabled = MeasureSurface(
