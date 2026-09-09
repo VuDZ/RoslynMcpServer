@@ -27,7 +27,8 @@ public sealed class WorkspaceTools
         "Loads a .sln, .slnx, or .csproj into the semantic workspace. Call this first before C# analysis. "
         + "Optional configuration/platform/targetFramework are MSBuild global properties; targetFramework is required when the project uses TargetFrameworks. "
         + "Optional buildArgs is a session suffix for later `dotnet build` (probe and pre-test build); do not put -c / -p:Platform / -v / --no-incremental there. "
-        + "briefOutput=true collapses MSBuild/NuGet warnings to category and code counts (default false keeps full messages). Failures always print in full.")]
+        + "briefOutput=true collapses MSBuild/NuGet warnings to category and code counts (default false keeps full messages). Failures always print in full. "
+        + "logProjectOutputDiagnostics=true logs per-project OutputFilePath/GeneratedFilesOutputDirectory and AnalyzerReference file existence/timestamp to the MCP server log (diagnostic-only, not returned in this response) — use to debug analyzer/generator projects not producing generated sources when Directory.Build.props overrides OutputPath.")]
     public async Task<string> LoadWorkspace(
         [Description("Path to a .sln, .slnx, or .csproj file, not a directory.")]
         string workspacePath,
@@ -41,6 +42,8 @@ public sealed class WorkspaceTools
         string? buildArgs = null,
         [Description("When true, collapse workspace warnings to category and code counts. Default false keeps full messages. Failures always print in full.")]
         bool briefOutput = false,
+        [Description("When true, log per-project OutputFilePath/GeneratedFilesOutputDirectory and AnalyzerReference existence/timestamp at Information level (see tail_tool_log / read_log_tail). Default false. Diagnostic-only; not included in this tool's return value.")]
+        bool logProjectOutputDiagnostics = false,
         CancellationToken cancellationToken = default)
     {
         Solution solution;
@@ -129,6 +132,18 @@ public sealed class WorkspaceTools
                 BuildFailureReport(
                     workspacePath,
                     diagnostics.Count > 0 ? diagnostics : new[] { "Workspace loaded with zero projects." }));
+        }
+
+        if (logProjectOutputDiagnostics)
+        {
+            try
+            {
+                ProjectOutputDiagnosticsLogger.Log(solution, _logger);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "logProjectOutputDiagnostics logging failed for {Path}", workspacePath);
+            }
         }
 
         var sb = new StringBuilder();

@@ -170,6 +170,11 @@ MCP `tools/list` stays JSON + JSON Schema. Markdown is for JIT help and diagnost
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.3.3
+
+- **`load_workspace` `logProjectOutputDiagnostics`** — Optional bool (default `false`). When `true`, logs one Information-level line per project (`OutputFilePath`, exists/last-write, `CompilationOutputInfo.GeneratedFilesOutputDirectory`, exists) plus one line per `AnalyzerReference` (`Display`, `FullPath`, exists/last-write) to the MCP server log — not the tool's return value. Diagnostic-only aid for the known pitfall where a repo-wide `Directory.Build.props` overrides `OutputPath` (e.g. into a shared `artifacts` folder) and MSBuildWorkspace design-time evaluation ends up pointing an analyzer/generator project's `AnalyzerReference` at a stale or missing DLL, silently disabling source generation. Read the result with `tail_tool_log` / `read_log_tail`. New helper: `Services/ProjectOutputDiagnosticsLogger.cs` (`Collect` for pure data, `Log` to write it).
+- **Catalog size** — minified `tools/list` UTF-8: full 63 tools / 42,632 bytes; lite 19 / 15,046.
+
 ### v1.3.2
 
 - **`binariesPath` on `run_specific_test` / `run_dotnet_test`** — Same bin-directory mode as `run_test_by_filter`: loaded `.sln`/`.slnx` plus a `.csproj` `workspacePath`; runs `{AssemblyName}.dll` from that directory (the DLL sits directly in `binariesPath`, no `OutputPath` join). When `noBuild=false`, pre-test compile is `dotnet build <sln> -t:"Folder\Project"` (configuration/platform/`buildArgs` from `load_workspace`), then `dotnet test <dll> --no-build`. When `noBuild=true`, the DLL must already exist. After a successful sln-target build, a missing DLL reports the expected path plus a Configuration / `.runtimeconfig.json` hint.
@@ -399,6 +404,7 @@ There are **63** registered tools in the default `full` profile (see list below)
 - `targetFramework: string?` — optional MSBuild `TargetFramework` (e.g. `net10.0`). Pass when the solution uses `TargetFrameworks` so design-time evaluation is an inner TFM with a `Compile` target. Not inherited by build/test.
 - `buildArgs: string?` — optional extra arguments appended to later `dotnet build` (probe and pre-test build). Session-cached; omit to clear. Do not include `-c`, `-p:Platform`, `-v`, or `--no-incremental`.
 - `briefOutput: bool = false` — when `true`, collapse successful-load MSBuild/NuGet warnings to category and code counts. Default `false` keeps full messages. Failures always print in full.
+- `logProjectOutputDiagnostics: bool = false` — when `true`, logs one Information-level line per project (`OutputFilePath`, exists/last-write UTC, `CompilationOutputInfo.GeneratedFilesOutputDirectory`, exists) and one line per `AnalyzerReference` (`Display`, `FullPath`, exists/last-write UTC) to the MCP server log — not returned in this tool's response. Diagnostic-only aid for `Directory.Build.props` overriding `OutputPath` (e.g. into a shared `artifacts` folder) so an analyzer/generator project's `AnalyzerReference` ends up pointing at a stale or missing DLL. Read with `tail_tool_log` / `read_log_tail`.
 
 **Behavior:** Host abort mid-load returns **Workspace Load Cancelled (client abort)** (raise MCP tool timeout; not an MSBuild failure). After a successful load, **saved** `.cs` files are watched and applied before symbol search (unsaved buffers ignored). A changed `.csproj`/`.sln`/`Directory.Build.props` skips the next `load_workspace` cache. NuGet restore warnings (`NU1701` TFM compat, audit, prune) and design-time MSBuild warnings (ASP.NET/SDK deprecation such as `IncludeOpenAPIAnalyzers`/`ASPDEPR007`, processor-architecture mismatch, analyzer project without metadata) are shown as warnings and do not fail load even when wrapped as `Msbuild failed when processing the file`; true MSBuild/SDK errors (`error NU|MSB|NETSDK`) still do. Empty `TargetFramework` (`ResolvePackageAssets`) is a dedicated failure — retry with the IDE solution config, or the `.sln` is Bazel-generated and not MSBuild-evaluable. Missing `Compile` target (CrossTargeting outer build) is a dedicated failure — retry with `targetFramework` from the report / `Directory.Build.props`; `dotnet build` can still succeed. VS 2026 / MSBuild 18 BuildHost crash (`XMakeElements`) is a dedicated failure — **not** `MCP_MSBUILD_SDK_MISMATCH`; use MCP 1.0.35+ or load a single SDK-style `.csproj`.
 </details>
@@ -963,7 +969,7 @@ Verify id/version with `search_nuget_registry` first. Clears workspace cache —
 
 **Parameters:** *(none)*
 
-Use after `dotnet publish` to verify the MCP host picked up the new binary (expect **v1.3.2** and **63** tools on `full`, or **19** on `lite`).
+Use after `dotnet publish` to verify the MCP host picked up the new binary (expect **v1.3.3** and **63** tools on `full`, or **19** on `lite`).
 
 </details>
 
@@ -1175,7 +1181,7 @@ cd D:\Devel\YourApp
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.3.2). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.3.3). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 
@@ -1788,7 +1794,7 @@ cd D:\Devel\YourApp
 
 **Параметры:** *(нет)*
 
-После `dotnet publish` — проверка, что MCP подхватил новый бинарник (ожидай **v1.3.2** и **63** tools в `full`, или **19** в `lite`).
+После `dotnet publish` — проверка, что MCP подхватил новый бинарник (ожидай **v1.3.3** и **63** tools в `full`, или **19** в `lite`).
 
 </details>
 
