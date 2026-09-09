@@ -42,6 +42,7 @@ Key runtime components:
 - `Diagnostics/*.cs` parse noisy external output and turn it into actionable MCP responses.
 - `RoslynMcpServer.Tests` references the server project and tests catalogs, parsers, path/SDK handling, workspace synchronization, and tool orchestration.
 - `docs/compact-tools/` records the historical implementation epochs for the compact catalog; it is not the operator or contributor architecture reference.
+- `docs/workspace-load-cache/` is a **forward-looking** plan (faster load of large solutions, disk evaluation snapshot). It is not shipped behavior. Do not treat those epochs as the current workspace lifecycle.
 
 The solution has two projects and one dependency edge: `RoslynMcpServer.Tests` references `RoslynMcpServer`.
 
@@ -63,7 +64,7 @@ The current host is stdio and effectively has one MCP session per process. `Solu
 
 `SolutionManager` owns the active `MSBuildWorkspace`, loaded `Solution`, load properties, and disk watcher.
 
-1. `load_workspace` opens one `.sln`, `.slnx`, or `.csproj` and caches it by path plus MSBuild configuration, platform, and target framework.
+1. `load_workspace` opens one `.sln`, `.slnx`, or `.csproj` and caches it **in process** by path plus MSBuild configuration, platform, and target framework. That cache dies with the MCP process. There is no on-disk evaluation cache yet; planned work is in [`docs/workspace-load-cache/`](workspace-load-cache/README.md).
 2. Semantic tools consume the current in-memory Roslyn snapshot.
 3. Saved `.cs` changes are queued by `FileSystemWatcher` and applied in a batch before the next semantic operation.
 4. Server-initiated Roslyn edits are written asynchronously to disk and applied back to the workspace.

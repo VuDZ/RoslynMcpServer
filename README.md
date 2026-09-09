@@ -17,7 +17,7 @@ Typical flow:
 
 `developer request → agent → MCP tool call → Roslyn/MSBuild/ILSpy/dotnet → compact result → agent`
 
-The server is C#-focused. It can read non-C# files and execute selected CLI operations, but it does not provide Python semantic analysis. See [Architecture and constraints](docs/ARCHITECTURE.md) for component boundaries, state, synchronization, and extension rules.
+The server is C#-focused. It can read non-C# files and execute selected CLI operations, but it does not provide Python semantic analysis. See [Architecture and constraints](docs/ARCHITECTURE.md) for component boundaries, state, synchronization, and extension rules. Planned (not shipped) large-solution load cache: [docs/workspace-load-cache/](docs/workspace-load-cache/README.md).
 
 ## What it provides
 
@@ -1053,7 +1053,7 @@ RoslynMcpServer предоставляет AI-агенту compiler-aware инс
 
 `запрос разработчика → агент → MCP tool → Roslyn/MSBuild/ILSpy/dotnet → компактный результат → агент`
 
-Сервер ориентирован на C#. Он умеет читать другие файлы и запускать отдельные CLI-операции, но не выполняет семантический анализ Python. Компоненты, состояние и обязательные ограничения описаны в [Architecture and constraints](docs/ARCHITECTURE.md).
+Сервер ориентирован на C#. Он умеет читать другие файлы и запускать отдельные CLI-операции, но не выполняет семантический анализ Python. Компоненты, состояние и обязательные ограничения описаны в [Architecture and constraints](docs/ARCHITECTURE.md). План (ещё не в runtime) кеша загрузки больших решений: [docs/workspace-load-cache/](docs/workspace-load-cache/README.md).
 
 ## Основные возможности
 
