@@ -89,6 +89,31 @@ RAM умирает с процессом. Watcher тоже. Наивный «х�
 
 `npm install` при неизменном C# не меняет индекс (не заходили в `node_modules`).
 
+### Живая сессия: `git pull` при работающем MCP
+
+Хеши должны оставаться истинными **не только после рестарта**. Штатный сбой:
+агент работает, снаружи `git pull` / ast sync / смена ветки.
+
+Сейчас `FileSystemWatcher` (буфер 64KB на Windows) на overflow ставит
+`_refreshAllDocuments` и на следующем semantic call перечитывает только
+**уже известные** `Document` (`WorkspaceDocumentDiskSync`). Новые `.cs` с pull
+в dirty-set не попали — RAM и любой записанный индекс расходятся с диском.
+
+Epoch 3 обязана:
+
+1. События Created/Changed/Deleted/Renamed по allowlist — инкрементально
+   обновить hash этого файла (и предков Merkle) и тот же dirty-путь, что
+   уже идёт в `WithDocumentText`. Файлы графа — ещё и evaluation stale.
+2. `OnDiskWatcherError` / overflow / directory rename → индекс **untrusted**.
+   Следующий flush (перед semantic tool или `load_workspace`) делает **полный
+   stat/hash конуса** (prune + allowlist), пересчитывает Merkle, add/remove
+   документов по обходу, пишет индекс. Не вызывать `git`. Не ограничиваться
+   known documents.
+3. Пока индекс untrusted — не отвечать disk-snapshot hit; RAM после полного
+   обхода должна совпасть с диском.
+4. Не откладывать пересчёт хешей до смерти процесса: pull посреди чата
+   должен быть виден на следующем `find_symbol_*`.
+
 ### Сборка workspace на hit
 
 Публичного «resume MSBuildWorkspace» нет. На hit графа собирать snapshot через
@@ -117,10 +142,11 @@ Default: `.cs` доверяет size+mtime. Остаточный риск (ко�
 - Встройка в `LoadCoreAsync` после проверки RAM-кеша.
 - Расширение `WorkspaceDiskPathFilter` + тесты.
 - Параметр force-reload на `load_workspace`.
-- Лог: hit/miss per project, время stat/hash/DTB, prune skipped dirs.
+- Лог: hit/miss per project, время stat/hash/DTB, prune skipped dirs, overflow → full restat.
 - Тесты без монорепы: temp tree с `node_modules` (не должен хешироваться),
   новый `.cs` при том же csproj → Merkle miss без DTB-мока если возможно,
-  смена csproj → miss графа, смена только mtime+size `.cs` → перехеш.
+  смена csproj → miss графа, смена только mtime+size `.cs` → перехеш,
+  **новый файл + refreshAll/overflow** → документ появляется и хеш в индексе.
 - `.gitignore` / docs: кеш не в VCS.
 - `ARCHITECTURE.md` Workspace lifecycle — **current-state после шипа**.
 - Version: **minor** (новое поведение load + параметры).
@@ -137,6 +163,7 @@ Default: `.cs` доверяет size+mtime. Остаточный риск (ко�
 ## Risks
 
 - Тихий stale после size+mtime collision на `.cs` — strict / miss при сомнении.
+- `git pull` при живом MCP + overflow watcher: текущий `refreshAll` не видит новые файлы — Epoch 3 обязана restat конуса.
 - Неполный `ProjectInfo` (анализаторы, nullable, langversion) → кривая семантика.
   Лучше miss, чем угадать options.
 - Overlay + Adhoc: все чтения через `GetCurrentSolution()`.
@@ -150,7 +177,8 @@ Default: `.cs` доверяет size+mtime. Остаточный риск (ко�
 
 | Событие | DTB | Документы |
 |---------|-----|-----------|
-| Правки `.cs`, зонд совпал | hit | чтение с диска |
+| `git pull` / sync при **живом** MCP, без overflow | hit/инкремент | dirty paths + хеши этих файлов |
+| Overflow watcher / тысяча файлов с pull | untrusted → полный обход конуса | add/remove с диска, не только known |
 | Sync: новые `.cs`, csproj тот же | hit графа | Merkle miss, обход |
 | Корневой `Directory.Build.*` / assets / SDK | miss затронутых | после DTB |
 | `npm install` | hit | без изменений |

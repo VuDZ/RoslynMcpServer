@@ -60,13 +60,14 @@ publish, рестарт Cursor/OpenCode, `reset_workspace`). Повторный 
 - Не пропускать поддерево по `Directory.LastWriteTime` (Windows).
 - Сомнение → cache miss и DTB. Явный force-reload. Индекс не коммитить.
 - Правило: лучше медленный DTB, чем тихий рассинхрон символов.
+- Хеши актуальны и **во время работы**: `git pull` при живом MCP не должен оставлять индекс/RAM на старом дереве. Overflow watcher → полный пересчёт конуса (не только known documents).
 
 ## Сессия vs диск
 
 | Слой | Живёт | Что даёт |
 |------|-------|----------|
 | RAM `MSBuildWorkspace` | PID процесса | повторный `load_workspace` без `OpenSolutionAsync` |
-| Watcher + `WithDocumentText` | тот же PID | saved `.cs` без reopen |
+| Watcher + `WithDocumentText` | тот же PID | saved `.cs` без reopen; Epoch 3 ещё и хеши. Overflow ≠ «только known docs» |
 | Epoch 3 snapshot + индекс | между процессами | пропуск DTB после Reload MCP, если дерево не изменилось |
 
 ## Правила для чата реализации
