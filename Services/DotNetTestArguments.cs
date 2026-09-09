@@ -49,17 +49,20 @@ public static class DotNetTestArguments
     /// <summary>
     /// Incremental <c>dotnet build</c> (no <c>--no-incremental</c>) with the same configuration / platform as the test step
     /// (<c>-p:Configuration</c> on the build; <c>dotnet test</c> still uses <c>-c</c>).
+    /// Optional <paramref name="solutionTarget"/> appends <c>-t</c> (loaded <c>.sln</c>/<c>.slnx</c> project target).
     /// </summary>
     public static string BuildPreTestBuild(
         string targetPath,
         bool noRestore = false,
         string? configuration = null,
         string? platform = null,
-        string? buildArgs = null)
+        string? buildArgs = null,
+        string? solutionTarget = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(targetPath);
 
         var args = $"build \"{targetPath}\"";
+        args += DotNetBuildProbe.FormatTargetSwitch(solutionTarget);
         args = DotNetConfigurationArguments.AppendConfigurationProperty(args, configuration);
         args = DotNetConfigurationArguments.AppendPlatform(args, platform);
         args = DotNetBuildArguments.Append(args, buildArgs);

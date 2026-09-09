@@ -119,20 +119,20 @@ public static class McpToolHelpCatalog
             },
             ["run_dotnet_test"] = new()
             {
-                Workflow = "Runs the full suite. Directories are allowed (unlike run_dotnet_build). Omit configuration/platform to inherit load_workspace. Pre-test `dotnet build` also inherits load_workspace `buildArgs`. After a successful build, pass noBuild=true.",
-                Pitfalls = "For one class or method use run_specific_test. For a raw VSTest --filter use run_test_by_filter. Do not hand-write filters via execute_dotnet_command.",
+                Workflow = "Runs the full suite. Directories are allowed (unlike run_dotnet_build). Omit configuration/platform to inherit load_workspace. Pre-test `dotnet build` also inherits load_workspace `buildArgs`. After a successful build, pass noBuild=true. Optional binariesPath is a bin directory: loaded .sln/.slnx plus a .csproj workspacePath; runs AssemblyName.dll from that directory. When noBuild=false, builds that project via the loaded solution `-t` first.",
+                Pitfalls = "For one class or method use run_specific_test. For a raw VSTest --filter use run_test_by_filter. Do not hand-write filters via execute_dotnet_command. binariesPath is a directory, not a DLL path; the DLL must sit directly in it, with .runtimeconfig.json / .deps.json beside it.",
                 RelatedTools = ["run_specific_test", "run_test_by_filter", "run_dotnet_build", "execute_dotnet_command"],
             },
             ["run_specific_test"] = new()
             {
-                Workflow = "Provide className and/or methodName. Prefer simple class name plus short method name. The tool builds a VSTest-safe filter internally.",
-                Pitfalls = "Do not use execute_dotnet_command. For TestCategory or a raw FullyQualifiedName expression use run_test_by_filter. At least one of className or methodName is required.",
+                Workflow = "Provide className and/or methodName. Prefer simple class name plus short method name. The tool builds a VSTest-safe filter internally. Optional binariesPath is a bin directory: loaded .sln/.slnx plus a .csproj workspacePath; runs AssemblyName.dll from that directory. When noBuild=false, builds that project via the loaded solution `-t` first.",
+                Pitfalls = "Do not use execute_dotnet_command. For TestCategory or a raw FullyQualifiedName expression use run_test_by_filter. At least one of className or methodName is required. binariesPath is a directory, not a DLL path; the DLL must sit directly in it, with .runtimeconfig.json / .deps.json beside it.",
                 RelatedTools = ["run_dotnet_test", "run_test_by_filter", "get_test_list", "execute_dotnet_command"],
             },
             ["run_test_by_filter"] = new()
             {
-                Workflow = "Pass a raw VSTest --filter (FullyQualifiedName~MyClass, TestCategory=Smoke). Default noBuild=true. Optional binariesPath is a bin directory: loaded .sln/.slnx plus a .csproj workspacePath; the tool runs the AssemblyName.dll found there.",
-                Pitfalls = "Do not put method () in the filter. Empty filter is an error. binariesPath is a directory, not a DLL path. Prefer run_specific_test for one class or method.",
+                Workflow = "Pass a raw VSTest --filter (FullyQualifiedName~MyClass, TestCategory=Smoke). Default noBuild=true. Optional binariesPath is a bin directory: loaded .sln/.slnx plus a .csproj workspacePath; the tool runs the AssemblyName.dll found there. When noBuild=false, builds that project via the loaded solution `-t` first.",
+                Pitfalls = "Do not put method () in the filter. Empty filter is an error. binariesPath is a directory, not a DLL path; the DLL must sit directly in it, with .runtimeconfig.json / .deps.json beside it. Prefer run_specific_test for one class or method.",
                 RelatedTools = ["run_specific_test", "run_dotnet_test", "run_dotnet_build", "execute_dotnet_command"],
             },
             ["get_changed_files"] = new()

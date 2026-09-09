@@ -154,6 +154,33 @@ public sealed class DotNetTestArgumentsTests
     }
 
     [Fact]
+    public void BuildPreTestBuild_appends_solution_target_before_configuration()
+    {
+        const string sln = @"C:\src\App.sln";
+        var args = DotNetTestArguments.BuildPreTestBuild(
+            sln,
+            noRestore: false,
+            configuration: "Sit-Debug",
+            platform: "x64",
+            buildArgs: "-p:TreatWarningsAsErrors=false",
+            solutionTarget: @"src\App.Tests");
+
+        Assert.Equal(
+            $"build \"{sln}\" -t:\"src\\App.Tests\" -p:Configuration=\"Sit-Debug\" -p:Platform=\"x64\" -p:TreatWarningsAsErrors=false",
+            args);
+        Assert.DoesNotContain("--no-incremental", args, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void BuildPreTestBuild_omits_target_switch_when_solutionTarget_blank()
+    {
+        var args = DotNetTestArguments.BuildPreTestBuild(Target, solutionTarget: "  ");
+
+        Assert.Equal($"build \"{Target}\"", args);
+        Assert.DoesNotContain("-t:", args, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void BuildPlan_testAssemblyPath_skips_pre_test_build()
     {
         const string dll = @"C:\out\Foo.Tests.dll";

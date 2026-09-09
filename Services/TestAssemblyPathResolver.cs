@@ -1,7 +1,7 @@
 ﻿namespace RoslynMcpServer.Services;
 
 /// <summary>
-/// Resolves a test assembly DLL from a custom bin directory for <c>run_test_by_filter</c>.
+/// Resolves a test assembly DLL from a custom bin directory for test tools.
 /// </summary>
 public static class TestAssemblyPathResolver
 {
@@ -19,7 +19,8 @@ public static class TestAssemblyPathResolver
         string targetCsprojPath,
         string binariesDirectory,
         IEnumerable<ProjectHint> projects,
-        Func<string, bool>? fileExists = null)
+        Func<string, bool>? fileExists = null,
+        bool requireExists = true)
     {
         ArgumentNullException.ThrowIfNull(projects);
         fileExists ??= File.Exists;
@@ -45,7 +46,12 @@ public static class TestAssemblyPathResolver
                 "Error: `binariesPath` requires `workspacePath` to point to a `.csproj`.");
         }
 
-        if (string.IsNullOrWhiteSpace(binariesDirectory) || !Directory.Exists(binariesDirectory))
+        if (string.IsNullOrWhiteSpace(binariesDirectory))
+        {
+            return ResolveResult.Fail("Error: `binariesPath` is empty.");
+        }
+
+        if (requireExists && !Directory.Exists(binariesDirectory))
         {
             return ResolveResult.Fail(
                 $"Error: `binariesPath` is not a directory: `{binariesDirectory}`.");
@@ -76,12 +82,44 @@ public static class TestAssemblyPathResolver
             ? Path.GetFileNameWithoutExtension(targetCsprojPath)
             : match.AssemblyName.Trim();
         var dllPath = Path.GetFullPath(Path.Combine(binariesDirectory, assemblyName + ".dll"));
-        if (!fileExists(dllPath))
+        if (requireExists)
         {
-            return ResolveResult.Fail($"Error: test assembly not found: `{dllPath}`.");
+            return EnsureAssemblyExists(dllPath, afterSolutionTargetBuild: false, fileExists);
         }
 
         return ResolveResult.Ok(dllPath);
+    }
+
+    public static ResolveResult EnsureAssemblyExists(
+        string? assemblyPath,
+        bool afterSolutionTargetBuild,
+        Func<string, bool>? fileExists = null)
+    {
+        if (string.IsNullOrWhiteSpace(assemblyPath))
+        {
+            return ResolveResult.Fail("Error: test assembly path is empty.");
+        }
+
+        fileExists ??= File.Exists;
+        var fullPath = Path.GetFullPath(assemblyPath);
+        if (fileExists(fullPath))
+        {
+            return ResolveResult.Ok(fullPath);
+        }
+
+        return ResolveResult.Fail(FormatAssemblyNotFound(fullPath, afterSolutionTargetBuild));
+    }
+
+    internal static string FormatAssemblyNotFound(string assemblyPath, bool afterSolutionTargetBuild)
+    {
+        var message = $"Error: test assembly not found: `{assemblyPath}`.";
+        if (afterSolutionTargetBuild)
+        {
+            message +=
+                " Solution-target build succeeded. Check `binariesPath` and Configuration — the DLL must sit directly in that directory (with `.runtimeconfig.json` / `.deps.json`).";
+        }
+
+        return message;
     }
 
     private static bool IsSolutionExtension(string? extension) =>

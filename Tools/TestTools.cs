@@ -35,6 +35,8 @@ public sealed class TestTools
         string? configuration = null,
         [Description("MSBuild Platform. Omit to inherit load_workspace.")]
         string? platform = null,
+        [Description("Bin directory with AssemblyName.dll. Needs loaded .sln/.slnx and a .csproj workspacePath. noBuild=false builds via solution `-t`.")]
+        string? binariesPath = null,
         CancellationToken cancellationToken = default)
     {
         return ExecuteDotnetTestAsync(
@@ -48,7 +50,7 @@ public sealed class TestTools
             noRestore,
             configuration,
             platform,
-            binariesPath: null,
+            binariesPath,
             cancellationToken);
     }
 
@@ -73,6 +75,8 @@ public sealed class TestTools
         string? configuration = null,
         [Description("MSBuild Platform. Omit to inherit load_workspace.")]
         string? platform = null,
+        [Description("Bin directory with AssemblyName.dll. Needs loaded .sln/.slnx and a .csproj workspacePath. noBuild=false builds via solution `-t`.")]
+        string? binariesPath = null,
         CancellationToken cancellationToken = default)
     {
         const string toolName = nameof(RunSpecificTest);
@@ -101,7 +105,7 @@ public sealed class TestTools
                     noRestore,
                     configuration,
                     platform,
-                    binariesPath: null,
+                    binariesPath,
                     cancellationToken)
                 .ConfigureAwait(false);
         }
@@ -138,7 +142,7 @@ public sealed class TestTools
         string? configuration = null,
         [Description("MSBuild Platform. Omit to inherit load_workspace.")]
         string? platform = null,
-        [Description("Optional bin directory with the test DLL. Requires loaded .sln/.slnx and a .csproj workspacePath.")]
+        [Description("Bin directory with AssemblyName.dll. Needs loaded .sln/.slnx and a .csproj workspacePath. noBuild=false builds via solution `-t`.")]
         string? binariesPath = null,
         CancellationToken cancellationToken = default)
     {
@@ -329,31 +333,6 @@ public sealed class TestTools
                 ? fullPath
                 : WorkspaceRootResolver.FindSolutionOrProjectInDirectory(fullPath) ?? fullPath;
 
-            string? testAssemblyPath = null;
-            string? resolvedBinariesPath = null;
-            if (!string.IsNullOrWhiteSpace(binariesPath))
-            {
-                resolvedBinariesPath = _solutionManager.ResolvePathAgainstWorkspace(binariesPath);
-                var solution = await _solutionManager.GetCurrentSolutionAfterDiskSyncAsync(cancellationToken)
-                    .ConfigureAwait(false);
-                var projects = (solution?.Projects ?? Enumerable.Empty<Microsoft.CodeAnalysis.Project>())
-                    .Select(p => new TestAssemblyPathResolver.ProjectHint(p.FilePath, p.AssemblyName));
-                var resolved = TestAssemblyPathResolver.TryResolve(
-                    _solutionManager.GetLoadedWorkspacePath(),
-                    targetPath,
-                    resolvedBinariesPath,
-                    projects);
-                if (!resolved.Success)
-                {
-                    return ToolTelemetry.TraceAndReturn(
-                        toolName,
-                        resolved.ErrorMessage ?? "Error: could not resolve `binariesPath`.");
-                }
-
-                testAssemblyPath = resolved.AssemblyPath;
-            }
-
-            DotNetTestArguments.CliPlan plan;
             string? effectiveConfiguration;
             string? effectivePlatform;
             try
@@ -362,6 +341,82 @@ public sealed class TestTools
                     configuration, _solutionManager.LoadedConfiguration, nameof(configuration));
                 effectivePlatform = DotNetConfigurationArguments.CoalescePlatform(
                     platform, _solutionManager.LoadedPlatform);
+            }
+            catch (ArgumentException ex)
+            {
+                return ToolTelemetry.TraceAndReturn(toolName, $"Error: {ex.Message}");
+            }
+
+            string? testAssemblyPath = null;
+            string? resolvedBinariesPath = null;
+            string? solutionTarget = null;
+            string? slnPreTestBuildArguments = null;
+            string? slnBuildWorkDir = null;
+            if (!string.IsNullOrWhiteSpace(binariesPath))
+            {
+                resolvedBinariesPath = _solutionManager.ResolvePathAgainstWorkspace(binariesPath);
+                var loadedWorkspacePath = _solutionManager.GetLoadedWorkspacePath();
+                var solution = await _solutionManager.GetCurrentSolutionAfterDiskSyncAsync(cancellationToken)
+                    .ConfigureAwait(false);
+                var projects = (solution?.Projects ?? Enumerable.Empty<Microsoft.CodeAnalysis.Project>())
+                    .Select(p => new TestAssemblyPathResolver.ProjectHint(p.FilePath, p.AssemblyName));
+                var resolved = TestAssemblyPathResolver.TryResolve(
+                    loadedWorkspacePath,
+                    targetPath,
+                    resolvedBinariesPath,
+                    projects,
+                    requireExists: noBuild);
+                if (!resolved.Success)
+                {
+                    return ToolTelemetry.TraceAndReturn(
+                        toolName,
+                        resolved.ErrorMessage ?? "Error: could not resolve `binariesPath`.");
+                }
+
+                testAssemblyPath = resolved.AssemblyPath;
+
+                if (!noBuild)
+                {
+                    if (string.IsNullOrWhiteSpace(loadedWorkspacePath))
+                    {
+                        return ToolTelemetry.TraceAndReturn(
+                            toolName,
+                            "Error: `binariesPath` requires a `.sln` or `.slnx` workspace loaded. Call `load_workspace` first.");
+                    }
+
+                    var projectNeedle = Path.GetFileNameWithoutExtension(targetPath);
+                    var targetResolved = SolutionProjectTargetResolver.TryResolve(
+                        loadedWorkspacePath, projectNeedle);
+                    if (!targetResolved.Success)
+                    {
+                        return ToolTelemetry.TraceAndReturn(
+                            toolName,
+                            targetResolved.ErrorMessage ?? "Error: could not resolve the solution build target.");
+                    }
+
+                    solutionTarget = targetResolved.TargetName;
+                    try
+                    {
+                        slnPreTestBuildArguments = DotNetTestArguments.BuildPreTestBuild(
+                            loadedWorkspacePath,
+                            noRestore,
+                            effectiveConfiguration,
+                            effectivePlatform,
+                            _solutionManager.LoadedBuildArgs,
+                            solutionTarget);
+                    }
+                    catch (ArgumentException ex)
+                    {
+                        return ToolTelemetry.TraceAndReturn(toolName, $"Error: {ex.Message}");
+                    }
+
+                    slnBuildWorkDir = WorkspaceRootResolver.ResolveDotNetWorkingDirectory(loadedWorkspacePath);
+                }
+            }
+
+            DotNetTestArguments.CliPlan plan;
+            try
+            {
                 plan = DotNetTestArguments.BuildPlan(
                     targetPath,
                     filter,
@@ -377,6 +432,11 @@ public sealed class TestTools
                 return ToolTelemetry.TraceAndReturn(toolName, $"Error: {ex.Message}");
             }
 
+            var preTestBuildMeta = slnPreTestBuildArguments is not null
+                ? "yes (`dotnet build` solution `-t` then `dotnet test --no-build`)"
+                : plan.IncludesPreTestBuild
+                    ? "yes (`dotnet build` then `dotnet test --no-build`)"
+                    : "skipped (`noBuild=true`)";
             var extraMeta =
                 $"- **Configuration:** {(string.IsNullOrWhiteSpace(effectiveConfiguration) ? "(SDK/solution default)" : effectiveConfiguration)}"
                 + Environment.NewLine
@@ -384,7 +444,14 @@ public sealed class TestTools
                 + Environment.NewLine
                 + $"- **BuildArgs:** {DotNetBuildArguments.FormatMetadata(_solutionManager.LoadedBuildArgs)}"
                 + Environment.NewLine
-                + $"- **PreTestBuild:** {(plan.IncludesPreTestBuild ? "yes (`dotnet build` then `dotnet test --no-build`)" : "skipped (`noBuild=true`)")}";
+                + $"- **PreTestBuild:** {preTestBuildMeta}";
+            if (!string.IsNullOrWhiteSpace(solutionTarget))
+            {
+                extraMeta +=
+                    Environment.NewLine
+                    + $"- **SolutionTarget:** `{solutionTarget}` (`-t`)";
+            }
+
             if (!string.IsNullOrWhiteSpace(resolvedBinariesPath))
             {
                 extraMeta +=
@@ -397,11 +464,13 @@ public sealed class TestTools
             TimeSpan? timeout = timeoutSeconds > 0 ? TimeSpan.FromSeconds(timeoutSeconds) : null;
             var sw = System.Diagnostics.Stopwatch.StartNew();
 
-            if (plan.PreTestBuildArguments is not null)
+            var preTestBuildArguments = slnPreTestBuildArguments ?? plan.PreTestBuildArguments;
+            var preTestWorkDir = slnBuildWorkDir ?? workDir;
+            if (preTestBuildArguments is not null)
             {
                 var buildRun = await DotNetCliRunner.RunWithMetadataAsync(
-                    plan.PreTestBuildArguments,
-                    workDir,
+                    preTestBuildArguments,
+                    preTestWorkDir,
                     cancellationToken,
                     timeout).ConfigureAwait(false);
 
@@ -436,6 +505,21 @@ public sealed class TestTools
                         TruncatedProcessLog.BuildPreambleBuildConsoleTail(buildRun.ExitCode),
                         buildRun.CombinedOutput);
                     return ToolTelemetry.TraceAndReturn(toolName, failed.ToString().TrimEnd());
+                }
+
+                if (slnPreTestBuildArguments is not null)
+                {
+                    var ensured = TestAssemblyPathResolver.EnsureAssemblyExists(
+                        testAssemblyPath, afterSolutionTargetBuild: true);
+                    if (!ensured.Success)
+                    {
+                        var missing = new StringBuilder();
+                        missing.AppendLine(ensured.ErrorMessage ?? "Error: test assembly not found.");
+                        missing.AppendLine();
+                        missing.AppendLine(buildRun.RunMetadata);
+                        missing.AppendLine(extraMeta);
+                        return ToolTelemetry.TraceAndReturn(toolName, missing.ToString().TrimEnd());
+                    }
                 }
 
                 timeout = DotNetTestArguments.RemainingTimeout(timeout, sw.Elapsed);
