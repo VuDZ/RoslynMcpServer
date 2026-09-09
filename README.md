@@ -170,6 +170,16 @@ MCP `tools/list` stays JSON + JSON Schema. Markdown is for JIT help and diagnost
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.3.5
+
+- **Fix: `shadowCopyInSolutionAnalyzers` (v1.3.4) no longer touches the real `.csproj` on disk.** The v1.3.4 implementation applied the rewritten `Solution` via `Workspace.TryApplyChanges`, which for `MSBuildWorkspace` persists `AddAnalyzerReference`/`RemoveAnalyzerReference` back into the backing project file. Confirmed against the `C:\Scratch\GenRepro` repro: this injected a machine-/session-specific temp shadow path as a literal `<Analyzer Include=...>` MSBuild item and could not remove the original `ProjectReference OutputItemType="Analyzer"` reference (it is synthesized by MSBuild, not a literal item), leaving both active — the generator then ran twice and the next real `dotnet build` failed with `CS0102`/`CS0111` duplicate-member errors. Fix: `SolutionManager` now keeps the rewrite purely in-memory — `GetCurrentSolution()` re-derives the analyzer-reference overlay on top of `workspace.CurrentSolution` on every read instead of ever pushing it back via `TryApplyChanges`. `FindDocumentAsync` (backs `get_diagnostics_for_file`, `find_symbol_references`, AST/code-fix tools) now also reads through `GetCurrentSolution()` instead of `workspace.CurrentSolution` directly, so the fixed semantic model (no more `CS0103` on generator-produced types) reaches those tools too. Any tool that edits a document and calls back into `ApplySolutionChangesToDiskAsync` (rename, code fix, generated test stub) is defended by a new guard that strips any accidental `AnalyzerReference` diff before it reaches `TryApplyChanges`, so the same corruption cannot resurface via a different call path. No tool parameters changed; `shadowCopyInSolutionAnalyzers` behaves the same from the caller's side, just without the disk side effect. **Known separate limitation (not something this fixes):** `find_symbol_definition` still cannot locate a generator-emitted type by name — `SymbolFinder` [never searches source-generated documents, by Roslyn design](https://github.com/dotnet/roslyn/issues/63375). `get_diagnostics_for_file` / `find_symbol_references` from a real usage site are unaffected.
+- **Catalog size** — minified `tools/list` UTF-8: full 63 tools / (see `get_mcp_server_info`); lite 19 / (unchanged — no tool surface change).
+
+### v1.3.4
+
+- **`load_workspace` `shadowCopyInSolutionAnalyzers`** — Optional bool (default `false`). Fixes the case `logProjectOutputDiagnostics` (v1.3.3) diagnoses: rewrites any `AnalyzerReference` whose file name matches another (unambiguous) in-solution project's `AssemblyName` to a private shadow copy of that project's own resolved output (`CompilationOutputInfo.AssemblyPath` / `OutputFilePath`, not the possibly-broken original reference path). Confirmed against an external repro: without the fix, `Directory.Build.props` overriding `OutputPath` left an `OutputItemType="Analyzer"` `ProjectReference`'s resolved path missing on disk, so the generator never ran in the Roslyn semantic model even though `dotnet build` succeeded (`CS0103` on a generator-produced type). Also avoids locking the analyzer project's real build output (a prior `dotnet build` of it would otherwise fail with `MSB3027`) — shadow copies are namespaced by the source file's last-write time, so a rebuilt analyzer is picked up fresh on the next `load_workspace`. Requires the referenced project to already have a build output on disk (build it once first). Returns a one-line summary; details go to the MCP server log via `tail_tool_log` / `read_log_tail`. New: `Services/AnalyzerReferenceShadowCopier.cs` (pure rewrite + `Solution.WithProjectAnalyzerReferences`), `Services/InProcessAnalyzerAssemblyLoader.cs` (public-API-only `IAnalyzerAssemblyLoader`, since Roslyn's own non-locking loader is `internal`). **Superseded by v1.3.5**: the application mechanism described here (`Workspace.TryApplyChanges`) corrupted the real `.csproj` — see the v1.3.5 entry above.
+- **Catalog size** — minified `tools/list` UTF-8: full 63 tools / 43,619 bytes; lite 19 / 16,033.
+
 ### v1.3.3
 
 - **`load_workspace` `logProjectOutputDiagnostics`** — Optional bool (default `false`). When `true`, logs one Information-level line per project (`OutputFilePath`, exists/last-write, `CompilationOutputInfo.GeneratedFilesOutputDirectory`, exists) plus one line per `AnalyzerReference` (`Display`, `FullPath`, exists/last-write) to the MCP server log — not the tool's return value. Diagnostic-only aid for the known pitfall where a repo-wide `Directory.Build.props` overrides `OutputPath` (e.g. into a shared `artifacts` folder) and MSBuildWorkspace design-time evaluation ends up pointing an analyzer/generator project's `AnalyzerReference` at a stale or missing DLL, silently disabling source generation. Read the result with `tail_tool_log` / `read_log_tail`. New helper: `Services/ProjectOutputDiagnosticsLogger.cs` (`Collect` for pure data, `Log` to write it).
@@ -405,6 +415,7 @@ There are **63** registered tools in the default `full` profile (see list below)
 - `buildArgs: string?` — optional extra arguments appended to later `dotnet build` (probe and pre-test build). Session-cached; omit to clear. Do not include `-c`, `-p:Platform`, `-v`, or `--no-incremental`.
 - `briefOutput: bool = false` — when `true`, collapse successful-load MSBuild/NuGet warnings to category and code counts. Default `false` keeps full messages. Failures always print in full.
 - `logProjectOutputDiagnostics: bool = false` — when `true`, logs one Information-level line per project (`OutputFilePath`, exists/last-write UTC, `CompilationOutputInfo.GeneratedFilesOutputDirectory`, exists) and one line per `AnalyzerReference` (`Display`, `FullPath`, exists/last-write UTC) to the MCP server log — not returned in this tool's response. Diagnostic-only aid for `Directory.Build.props` overriding `OutputPath` (e.g. into a shared `artifacts` folder) so an analyzer/generator project's `AnalyzerReference` ends up pointing at a stale or missing DLL. Read with `tail_tool_log` / `read_log_tail`.
+- `shadowCopyInSolutionAnalyzers: bool = false` — when `true`, rewrites `AnalyzerReference`s whose file name matches another (unambiguous) in-solution project's `AssemblyName` to a shadow copy of that project's own resolved output, fixing source generation broken by the `OutputPath` override above and avoiding a lock on the real build output. Requires that project to already have a build output on disk. This response includes a one-line summary (`N rewritten, M skipped`); per-reference detail (original path, shadow path, or skip reason) goes to the MCP server log.
 
 **Behavior:** Host abort mid-load returns **Workspace Load Cancelled (client abort)** (raise MCP tool timeout; not an MSBuild failure). After a successful load, **saved** `.cs` files are watched and applied before symbol search (unsaved buffers ignored). A changed `.csproj`/`.sln`/`Directory.Build.props` skips the next `load_workspace` cache. NuGet restore warnings (`NU1701` TFM compat, audit, prune) and design-time MSBuild warnings (ASP.NET/SDK deprecation such as `IncludeOpenAPIAnalyzers`/`ASPDEPR007`, processor-architecture mismatch, analyzer project without metadata) are shown as warnings and do not fail load even when wrapped as `Msbuild failed when processing the file`; true MSBuild/SDK errors (`error NU|MSB|NETSDK`) still do. Empty `TargetFramework` (`ResolvePackageAssets`) is a dedicated failure — retry with the IDE solution config, or the `.sln` is Bazel-generated and not MSBuild-evaluable. Missing `Compile` target (CrossTargeting outer build) is a dedicated failure — retry with `targetFramework` from the report / `Directory.Build.props`; `dotnet build` can still succeed. VS 2026 / MSBuild 18 BuildHost crash (`XMakeElements`) is a dedicated failure — **not** `MCP_MSBUILD_SDK_MISMATCH`; use MCP 1.0.35+ or load a single SDK-style `.csproj`.
 </details>
@@ -969,7 +980,7 @@ Verify id/version with `search_nuget_registry` first. Clears workspace cache —
 
 **Parameters:** *(none)*
 
-Use after `dotnet publish` to verify the MCP host picked up the new binary (expect **v1.3.3** and **63** tools on `full`, or **19** on `lite`).
+Use after `dotnet publish` to verify the MCP host picked up the new binary (expect **v1.3.5** and **63** tools on `full`, or **19** on `lite`).
 
 </details>
 
@@ -1181,7 +1192,7 @@ cd D:\Devel\YourApp
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.3.3). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.3.5). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 
@@ -1794,7 +1805,7 @@ cd D:\Devel\YourApp
 
 **Параметры:** *(нет)*
 
-После `dotnet publish` — проверка, что MCP подхватил новый бинарник (ожидай **v1.3.3** и **63** tools в `full`, или **19** в `lite`).
+После `dotnet publish` — проверка, что MCP подхватил новый бинарник (ожидай **v1.3.5** и **63** tools в `full`, или **19** в `lite`).
 
 </details>
 

@@ -52,8 +52,12 @@ public sealed class SolutionManager
     private volatile bool _refreshAllDocuments;
     private volatile bool _projectGraphStale;
 
+    private readonly InProcessAnalyzerAssemblyLoader _analyzerAssemblyLoader = new();
+
     private MSBuildWorkspace? _workspace;
     private Solution? _solution;
+    private bool _shadowCopyAnalyzersEnabled;
+    private string? _shadowCopyRootDirectory;
     private string? _loadedPath;
     private string? _loadedConfiguration;
     private string? _loadedPlatform;
@@ -175,7 +179,7 @@ public sealed class SolutionManager
                 return;
             }
 
-            _solution = workspace.CurrentSolution;
+            _solution = ApplyShadowCopyOverlayIfEnabled(workspace.CurrentSolution);
             LogProcessWorkingSet("document_update");
         }
         finally
@@ -204,7 +208,12 @@ public sealed class SolutionManager
                 return null;
             }
 
-            return workspace.CurrentSolution.Projects
+            // Route through the analyzer-shadow-copy overlay (GetCurrentSolution), not workspace.CurrentSolution
+            // directly — otherwise document.GetSemanticModelAsync() on the returned Document would still compile
+            // against the original (possibly broken/locked) AnalyzerReference. See
+            // ShadowCopyInSolutionAnalyzerReferencesAsync for why the overlay is never pushed into the workspace.
+            var solution = GetCurrentSolution() ?? workspace.CurrentSolution;
+            return solution.Projects
                 .SelectMany(p => p.Documents)
                 .FirstOrDefault(d =>
                     string.Equals(Path.GetFullPath(d.FilePath ?? string.Empty), fullFilePath, _pathComparison));
@@ -247,7 +256,119 @@ public sealed class SolutionManager
 
     public Solution? GetCurrentSolution()
     {
-        return _workspace?.CurrentSolution ?? _solution;
+        // Prefer the locally-tracked snapshot: it carries the analyzer-reference shadow-copy overlay (see
+        // ShadowCopyInSolutionAnalyzerReferencesAsync) which must never be pushed into workspace.CurrentSolution.
+        return _solution ?? _workspace?.CurrentSolution;
+    }
+
+    /// <summary>
+    /// Rewrites <see cref="AnalyzerReference"/>s that point at another in-solution project's build output to
+    /// load from a private shadow-copy folder instead (see <see cref="AnalyzerReferenceShadowCopier"/>).
+    /// </summary>
+    /// <remarks>
+    /// This deliberately never calls <see cref="Workspace.TryApplyChanges(Solution)"/> with the rewritten
+    /// solution. <see cref="MSBuildWorkspace"/> supports <c>ApplyChangesKind.AddAnalyzerReference</c> /
+    /// <c>RemoveAnalyzerReference</c> by editing the backing <c>.csproj</c> on disk — confirmed via the
+    /// <c>C:\Scratch\GenRepro</c> repro: applying this way (a) injected a machine-/session-specific temp shadow
+    /// path as a new literal <c>&lt;Analyzer Include=...&gt;</c> item, and (b) could not remove the original
+    /// <c>ProjectReference OutputItemType="Analyzer"</c>-derived reference (it is synthesized by MSBuild, not a
+    /// literal item), leaving both active and making the generator run twice (CS0102/CS0111 on the next real
+    /// <c>dotnet build</c>). Instead, the rewrite is kept purely in-memory: enabling the flag once causes every
+    /// subsequent <see cref="GetCurrentSolution"/> read to overlay the shadow copy back onto whatever
+    /// <c>workspace.CurrentSolution</c> currently is (see <see cref="ApplyShadowCopyOverlayIfEnabled"/>), so the
+    /// override survives later document edits without ever touching the real project file. No-op (empty result)
+    /// when no workspace is loaded.
+    /// </remarks>
+    public async Task<IReadOnlyList<AnalyzerReferenceShadowCopier.RewriteResult>> ShadowCopyInSolutionAnalyzerReferencesAsync(
+        CancellationToken cancellationToken = default)
+    {
+        await _workspaceLock.WaitAsync(cancellationToken);
+        try
+        {
+            var workspace = _workspace;
+            var loadedPath = _loadedPath;
+            if (workspace is null || loadedPath is null)
+            {
+                return Array.Empty<AnalyzerReferenceShadowCopier.RewriteResult>();
+            }
+
+            var shadowRoot = AnalyzerReferenceShadowCopier.GetDefaultShadowRootDirectory(loadedPath);
+            var (newSolution, results) = AnalyzerReferenceShadowCopier.ShadowCopyInSolutionAnalyzerReferences(
+                workspace.CurrentSolution,
+                shadowRoot,
+                _analyzerAssemblyLoader);
+
+            if (results.Any(r => r.Applied))
+            {
+                _shadowCopyAnalyzersEnabled = true;
+                _shadowCopyRootDirectory = shadowRoot;
+                _solution = newSolution;
+            }
+
+            return results;
+        }
+        finally
+        {
+            _workspaceLock.Release();
+        }
+    }
+
+    /// <summary>
+    /// Reapplies the in-solution analyzer-reference shadow copy (if previously enabled via
+    /// <see cref="ShadowCopyInSolutionAnalyzerReferencesAsync"/>) on top of <paramref name="solution"/>. Every
+    /// caller that would otherwise cache <c>workspace.CurrentSolution</c> into <c>_solution</c> must route
+    /// through here instead, so the overlay is never lost after a later document edit / disk sync (those still
+    /// mutate <c>workspace.CurrentSolution</c> directly, which never carries the overlay — see
+    /// <see cref="ShadowCopyInSolutionAnalyzerReferencesAsync"/>). A no-op (returns <paramref name="solution"/>
+    /// unchanged) when the flag was never enabled for this load.
+    /// </summary>
+    private Solution ApplyShadowCopyOverlayIfEnabled(Solution solution)
+    {
+        if (!_shadowCopyAnalyzersEnabled || string.IsNullOrWhiteSpace(_shadowCopyRootDirectory))
+        {
+            return solution;
+        }
+
+        var (rewritten, _) = AnalyzerReferenceShadowCopier.ShadowCopyInSolutionAnalyzerReferences(
+            solution,
+            _shadowCopyRootDirectory,
+            _analyzerAssemblyLoader);
+        return rewritten;
+    }
+
+    /// <summary>
+    /// Defensive guard for every remaining <see cref="Workspace.TryApplyChanges(Solution)"/> call site: strips
+    /// any <see cref="AnalyzerReference"/> difference between <paramref name="candidate"/> and
+    /// <paramref name="workspaceCurrentSolution"/> before the diff reaches the workspace. Without this, a tool
+    /// that built its edit on top of the analyzer-shadow-copy overlay (via <see cref="GetCurrentSolution"/>) —
+    /// e.g. a rename or code fix — would smuggle the overlay's <see cref="AnalyzerReference"/> change back into
+    /// <c>TryApplyChanges</c>, which is exactly the disk-corrupting behavior
+    /// <see cref="ShadowCopyInSolutionAnalyzerReferencesAsync"/> exists to avoid. No-op when the flag was never
+    /// enabled for this load, or when a project has no analyzer-reference difference.
+    /// </summary>
+    private Solution RevertAnalyzerReferenceOverlayForApply(Solution candidate, Solution workspaceCurrentSolution)
+    {
+        if (!_shadowCopyAnalyzersEnabled)
+        {
+            return candidate;
+        }
+
+        foreach (var projectId in candidate.ProjectIds.ToList())
+        {
+            var project = candidate.GetProject(projectId);
+            var originalProject = workspaceCurrentSolution.GetProject(projectId);
+            if (project is null || originalProject is null)
+            {
+                continue;
+            }
+
+            if (!project.AnalyzerReferences.SequenceEqual(originalProject.AnalyzerReferences))
+            {
+                candidate = candidate.WithProjectAnalyzerReferences(projectId, originalProject.AnalyzerReferences);
+            }
+        }
+
+        return candidate;
     }
 
     /// <summary>
@@ -392,9 +513,12 @@ public sealed class SolutionManager
         try
         {
             var workspace = _workspace;
-            if (workspace is not null && workspace.TryApplyChanges(newSolution))
+            var solutionToApply = workspace is null
+                ? newSolution
+                : RevertAnalyzerReferenceOverlayForApply(newSolution, workspace.CurrentSolution);
+            if (workspace is not null && workspace.TryApplyChanges(solutionToApply))
             {
-                _solution = workspace.CurrentSolution;
+                _solution = ApplyShadowCopyOverlayIfEnabled(workspace.CurrentSolution);
             }
             else
             {
@@ -443,7 +567,7 @@ public sealed class SolutionManager
 
         if (workspace.TryApplyChanges(newSolution))
         {
-            _solution = workspace.CurrentSolution;
+            _solution = ApplyShadowCopyOverlayIfEnabled(workspace.CurrentSolution);
         }
     }
 
@@ -464,6 +588,8 @@ public sealed class SolutionManager
             _workspace?.Dispose();
             _workspace = null;
             _solution = null;
+            _shadowCopyAnalyzersEnabled = false;
+            _shadowCopyRootDirectory = null;
             _loadedPath = null;
             _loadedConfiguration = null;
             _loadedPlatform = null;
@@ -550,6 +676,8 @@ public sealed class SolutionManager
         _selfWriteUntilTicks.Clear();
         _refreshAllDocuments = false;
         _projectGraphStale = false;
+        _shadowCopyAnalyzersEnabled = false;
+        _shadowCopyRootDirectory = null;
         _ = typeof(CSharpFormattingOptions).Assembly.FullName;
         var properties = MsBuildWorkspaceProperties.Create(configuration, platform, targetFramework);
         var workspace = properties.Count == 0
@@ -594,7 +722,7 @@ public sealed class SolutionManager
         }
 
         _workspace = workspace;
-        _solution = workspace.CurrentSolution;
+        _solution = ApplyShadowCopyOverlayIfEnabled(workspace.CurrentSolution);
         _loadedPath = fullPath;
         _loadedConfiguration = configuration;
         _loadedPlatform = platform;
@@ -672,7 +800,7 @@ public sealed class SolutionManager
             return;
         }
 
-        _solution = workspace.CurrentSolution;
+        _solution = ApplyShadowCopyOverlayIfEnabled(workspace.CurrentSolution);
         _logger.LogInformation(
             "workspace_disk_sync updated={Updated} added={Added} removed={Removed} unchanged={Unchanged} refreshAll={RefreshAll} elapsedMs={ElapsedMs}",
             result.Updated,
