@@ -1,7 +1,7 @@
 # Workspace load cache — план v2
 
 Статус: **proposed, не реализовано**. Этот каталог — самостоятельная альтернатива
-плану уровнем выше. Наличие файлов не означает, что исходный план принят,
+плану в соседнем каталоге `workspace-load-cache`. Наличие файлов не означает, что исходный план принят,
 отменён или что поведение runtime изменилось.
 
 ## Цель и критерий корректности
@@ -30,11 +30,11 @@ MSBuild load. Нельзя объявлять произвольный MSBuild-�
   в `MSBuildWorkspace.TryApplyChanges` и сохранять в project-файлы.
 - Дискового evaluation-кэша и универсального механизма гидрации нет.
 
-Источники: [архитектура](../../ARCHITECTURE.md),
-[SolutionManager](../../../Services/SolutionManager.cs),
-[синхронизация документов](../../../Services/WorkspaceDocumentDiskSync.cs),
-[фильтр путей](../../../Services/WorkspaceDiskPathFilter.cs),
-[история overlay](../../analyzer-shadow-copy/README.md).
+Источники: [архитектура](../ARCHITECTURE.md),
+[SolutionManager](../../Services/SolutionManager.cs),
+[синхронизация документов](../../Services/WorkspaceDocumentDiskSync.cs),
+[фильтр путей](../../Services/WorkspaceDiskPathFilter.cs),
+[история overlay](../analyzer-shadow-copy/README.md).
 
 ## Порядок работ
 
