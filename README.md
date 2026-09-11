@@ -164,7 +164,7 @@ Portable OpenCode examples: [`opencode.json.sample`](opencode.json.sample) (`ros
 
 MCP `tools/list` stays JSON + JSON Schema. Markdown is for JIT help and diagnostics.
 
-**Client compatibility:** do not assume the host refreshes tools after `tools/list_changed`. If a newly enabled tool is missing from the client's catalog, restart with `ROSLYN_MCP_TOOL_GROUPS=<group>` (and `ROSLYN_MCP_TOOL_PROFILE=lite`). Measured minified `tools/list` (UTF-8): full **63 / 41,958** (~41.0 KB); lite **19 / 14,372** (~14.0 KB). Adding `editing` to lite is ~24.7 KB (above the 20 KB *startup-lite* budget; expected).
+**Client compatibility:** do not assume the host refreshes tools after `tools/list_changed`. If a newly enabled tool is missing from the client's catalog, restart with `ROSLYN_MCP_TOOL_GROUPS=<group>` (and `ROSLYN_MCP_TOOL_PROFILE=lite`). Measured minified `tools/list` (UTF-8): full **63 / 44,165** (~43.1 KB); lite **19 / 16,579** (~16.2 KB). Adding `editing` to lite is above the 20 KB *startup-lite* budget (expected).
 
 ## Agent tools by version
 
@@ -172,7 +172,7 @@ Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into a
 
 ### v1.3.8
 
-- **Workspace write boundary (epoch 4).** All production `TryApplyChanges` and server document writes go through one preflight → exact original↔shadow inverse → persist → apply/reconciliation → overlay publish workflow. Unsupported or stale analyzer-reference diffs are rejected before any server write. Partial persistence, reconciliation success/failure, and preflight rejection are distinct internal outcomes (existing tool text, no new MCP schema). Post-apply reuses the prepared mapping with no analyzer file I/O.
+- **Workspace write boundary (epoch 4).** All production `TryApplyChanges` and server document writes go through one preflight → exact original↔shadow inverse → persist → apply/reconciliation → overlay publish workflow. Unsupported or stale analyzer-reference diffs (including CodeAction / `rename_symbol`) are rejected before any server write instead of silently wiping the analyzer list. Partial persistence is not full success: the reply includes Status, Reason, and the known saved paths (existing tool text, no new MCP schema). Post-apply reuses the prepared mapping with no analyzer file I/O. Upgrade from v1.3.5: consumer edit no longer recopies analyzer files and will not pick up rebuilt generator bytes — after a same-identity rebuild, restart the MCP process.
 - **Catalog size** — unchanged: full 63 tools / 44,165 bytes; lite 19 / 16,579.
 
 ### v1.3.7
@@ -187,7 +187,7 @@ Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into a
 
 ### v1.3.5
 
-- **Fix: `shadowCopyInSolutionAnalyzers` (v1.3.4) no longer touches the real `.csproj` on disk.** The v1.3.4 implementation applied the rewritten `Solution` via `Workspace.TryApplyChanges`, which for `MSBuildWorkspace` persists `AddAnalyzerReference`/`RemoveAnalyzerReference` back into the backing project file. Confirmed against the `C:\Scratch\GenRepro` repro: this injected a machine-/session-specific temp shadow path as a literal `<Analyzer Include=...>` MSBuild item and could not remove the original `ProjectReference OutputItemType="Analyzer"` reference (it is synthesized by MSBuild, not a literal item), leaving both active — the generator then ran twice and the next real `dotnet build` failed with `CS0102`/`CS0111` duplicate-member errors. Fix: `SolutionManager` now keeps the rewrite purely in-memory — `GetCurrentSolution()` re-derives the analyzer-reference overlay on top of `workspace.CurrentSolution` on every read instead of ever pushing it back via `TryApplyChanges`. `FindDocumentAsync` (backs `get_diagnostics_for_file`, `find_symbol_references`, AST/code-fix tools) now also reads through `GetCurrentSolution()` instead of `workspace.CurrentSolution` directly, so the fixed semantic model (no more `CS0103` on generator-produced types) reaches those tools too. Any tool that edits a document and calls back into `ApplySolutionChangesToDiskAsync` (rename, code fix, generated test stub) is defended by a new guard that strips any accidental `AnalyzerReference` diff before it reaches `TryApplyChanges`, so the same corruption cannot resurface via a different call path. No tool parameters changed; `shadowCopyInSolutionAnalyzers` behaves the same from the caller's side, just without the disk side effect. **Known separate limitation (not something this fixes):** `find_symbol_definition` still cannot locate a generator-emitted type by name — `SymbolFinder` [never searches source-generated documents, by Roslyn design](https://github.com/dotnet/roslyn/issues/63375). `get_diagnostics_for_file` / `find_symbol_references` from a real usage site are unaffected.
+- **Fix: `shadowCopyInSolutionAnalyzers` (v1.3.4) no longer touches the real `.csproj` on disk.** The v1.3.4 implementation applied the rewritten `Solution` via `Workspace.TryApplyChanges`, which for `MSBuildWorkspace` persists `AddAnalyzerReference`/`RemoveAnalyzerReference` back into the backing project file. Confirmed against the `C:\Scratch\GenRepro` repro: this injected a machine-/session-specific temp shadow path as a literal `<Analyzer Include=...>` MSBuild item and could not remove the original `ProjectReference OutputItemType="Analyzer"` reference (it is synthesized by MSBuild, not a literal item), leaving both active — the generator then ran twice and the next real `dotnet build` failed with `CS0102`/`CS0111` duplicate-member errors. Fix: `SolutionManager` now keeps the rewrite purely in-memory instead of ever pushing it back via `TryApplyChanges`. *(Historical wording said `GetCurrentSolution()` re-derived the overlay on every read. The getter returned a stored `_solution` even then; v1.3.6+ documents that explicitly and reapplies mapping only at mutation points.)* `FindDocumentAsync` (backs `get_diagnostics_for_file`, `find_symbol_references`, AST/code-fix tools) now also reads through `GetCurrentSolution()` instead of `workspace.CurrentSolution` directly, so the fixed semantic model (no more `CS0103` on generator-produced types) reaches those tools too. Any tool that edits a document and calls back into `ApplySolutionChangesToDiskAsync` (rename, code fix, generated test stub) is defended by a new guard that strips any accidental `AnalyzerReference` diff before it reaches `TryApplyChanges`, so the same corruption cannot resurface via a different call path. No tool parameters changed; `shadowCopyInSolutionAnalyzers` behaves the same from the caller's side, just without the disk side effect. **Known separate limitation (not something this fixes):** `find_symbol_definition` still cannot locate a generator-emitted type by name — `SymbolFinder` [never searches source-generated documents, by Roslyn design](https://github.com/dotnet/roslyn/issues/63375). `get_diagnostics_for_file` / `find_symbol_references` from a real usage site are unaffected.
 - **Catalog size** — minified `tools/list` UTF-8: full 63 tools / (see `get_mcp_server_info`); lite 19 / (unchanged — no tool surface change).
 
 ### v1.3.4
@@ -432,13 +432,13 @@ There are **63** registered tools in the default `full` profile (see list below)
 - `logProjectOutputDiagnostics: bool = false` — when `true`, logs one Information-level line per project (`OutputFilePath`, exists/last-write UTC, `CompilationOutputInfo.GeneratedFilesOutputDirectory`, exists) and one line per `AnalyzerReference` (`Display`, `FullPath`, exists/last-write UTC) to the MCP server log — not returned in this tool's response. Diagnostic-only aid for `Directory.Build.props` overriding `OutputPath` (e.g. into a shared `artifacts` folder) so an analyzer/generator project's `AnalyzerReference` ends up pointing at a stale or missing DLL. Read with `tail_tool_log` / `read_log_tail`.
 - `shadowCopyInSolutionAnalyzers: bool = false` — when `true`, rewrites `AnalyzerReference`s whose file name matches another (unambiguous) in-solution project's `AssemblyName` to a shadow copy of that project's own resolved output, fixing source generation broken by the `OutputPath` override above and avoiding a lock on the real build output. Requires that project to already have a build output on disk. Prepared generations are content-hashed (`v2-main-only`) and reused on document edit without recopying analyzer files. After rebuilding a generator with the same assembly identity, restart the MCP process — `reset_workspace` does not unload CLR assemblies. Private helper DLLs are refused (main-only). This response includes a short summary (`N rewritten` plus execution status); per-reference detail goes to the MCP server log.
 
-**Analyzer shadow-copy activation and side effects:** this flag is opt-in; the MCP client and agent do not enable it automatically. Add a conditional rule to the target repository's `AGENTS.md` when that repository uses in-solution analyzer/generator projects with a custom `OutputPath`. Enabling it copies versioned analyzer DLL/PDB files under the OS temp directory and re-applies the in-memory overlay after workspace document updates, adding some disk I/O and CPU. Old timestamped generations are not currently cleaned automatically and can accumulate. The real `.csproj` and analyzer build output are not modified; the MCP process locks only the shadow copy.
+**Analyzer shadow-copy activation and side effects:** this flag is opt-in; the MCP client and agent do not enable it automatically. Add a conditional rule to the target repository's `AGENTS.md` when that repository uses in-solution analyzer/generator projects with a custom `OutputPath`. Enabling it copies versioned analyzer DLL/PDB files under the OS temp `v2-main-only/` namespace and re-applies the in-memory overlay after workspace document updates, adding some disk I/O and CPU. Cached `false`/omitted does not disable an already-active overlay; use `reset_workspace` then load without the flag. Old generations (including leftover timestamp directories) are not cleaned automatically and can accumulate; `reset_workspace` does not delete them. The real `.csproj` and analyzer build output are not modified; the MCP process locks only the shadow copy. Path resolution and this anti-lock workaround are independent. `find_symbol_definition` by a generator-emitted type name remains a Roslyn limitation, not a failed overlay.
 
 **Behavior:** Host abort mid-load returns **Workspace Load Cancelled (client abort)** (raise MCP tool timeout; not an MSBuild failure). After a successful load, **saved** `.cs` files are watched and applied before symbol search (unsaved buffers ignored). A changed `.csproj`/`.sln`/`Directory.Build.props` skips the next `load_workspace` cache. NuGet restore warnings (`NU1701` TFM compat, audit, prune) and design-time MSBuild warnings (ASP.NET/SDK deprecation such as `IncludeOpenAPIAnalyzers`/`ASPDEPR007`, processor-architecture mismatch, analyzer project without metadata) are shown as warnings and do not fail load even when wrapped as `Msbuild failed when processing the file`; true MSBuild/SDK errors (`error NU|MSB|NETSDK`) still do. Empty `TargetFramework` (`ResolvePackageAssets`) is a dedicated failure — retry with the IDE solution config, or the `.sln` is Bazel-generated and not MSBuild-evaluable. Missing `Compile` target (CrossTargeting outer build) is a dedicated failure — retry with `targetFramework` from the report / `Directory.Build.props`; `dotnet build` can still succeed. VS 2026 / MSBuild 18 BuildHost crash (`XMakeElements`) is a dedicated failure — **not** `MCP_MSBUILD_SDK_MISMATCH`; use MCP 1.0.35+ or load a single SDK-style `.csproj`.
 </details>
 
 <details>
-<summary><code>reset_workspace</code> — Clears the in-memory MSBuildWorkspace/solution cache. Call before <code>load_workspace</code> again after building the loaded solution on disk (generated files / refs). Saved <code>.cs</code> edits sync without reset (v1.1.0+).</summary>
+<summary><code>reset_workspace</code> — Clears the in-memory MSBuildWorkspace/solution cache. Call before <code>load_workspace</code> again after building the loaded solution on disk (generated files / refs). Saved <code>.cs</code> edits sync without reset (v1.1.0+). Does <strong>not</strong> unload CLR analyzer assemblies; after a same-identity generator rebuild, restart the MCP process.</summary>
 
 **Parameters:** *(none)*
 </details>
@@ -512,7 +512,7 @@ There are **63** registered tools in the default `full` profile (see list below)
 - `column: int = 1`
 - `previewOnly: bool = false` — when `true`, returns a diff preview without writing files
 
-**Behavior:** writes changed files to disk and updates the in-memory workspace. Re-run `get_diagnostics_for_file` to verify remaining issues.
+**Behavior:** writes changed files through the workspace write boundary and updates the in-memory workspace. An unsupported or stale analyzer-reference diff is rejected before any server write. If only some files are saved, the reply is not full success: it includes Status, Reason, and the known saved paths. Re-run `get_diagnostics_for_file` to verify remaining issues.
 
 **Note:** `fixIndex` is valid only for the same `filePath` / `diagnosticId` / `line` / `column` pair in the same session (file must not change between `get_code_fixes` and `apply_code_fix`).
 </details>
@@ -938,6 +938,8 @@ Verify id/version with `search_nuget_registry` first. Clears workspace cache —
 - `previewOnly: bool = true`
 
 **Scope:** C# symbols only (types/members/namespaces as symbols). For project folder / `.csproj` / solution graph use `rename_project`. For README/rules/URLs use host Grep/edit.
+
+**Behavior:** persist goes through the same write boundary as `apply_code_fix`. Unsupported analyzer-reference diffs are rejected before writes. Partial save reports Status, Reason, and known saved paths — not full success of the rename.
 </details>
 
 <details>
@@ -1205,7 +1207,7 @@ cd D:\Devel\YourApp
 | `runtime` | `run`, список тестов, сырой `dotnet` | 3 |
 | `operations` | логи, scratchpad, stop | 4 |
 
-`list_tool_groups` / `get_tool_help` / `enable_tool_group` — Markdown-справка и runtime-включение. `tools/list` остаётся JSON Schema. Если клиент не обновляет список после `tools/list_changed`, перезапустите с `ROSLYN_MCP_TOOL_GROUPS=<group>`. Замеры minified UTF-8: full **63 / 41 958**; lite **19 / 14 372**.
+`list_tool_groups` / `get_tool_help` / `enable_tool_group` — Markdown-справка и runtime-включение. `tools/list` остаётся JSON Schema. Если клиент не обновляет список после `tools/list_changed`, перезапустите с `ROSLYN_MCP_TOOL_GROUPS=<group>`. Замеры minified UTF-8: full **63 / 44 165**; lite **19 / 16 579**.
 
 ## История agent-tools по версиям
 
@@ -1268,13 +1270,13 @@ cd D:\Devel\YourApp
 - `logProjectOutputDiagnostics: bool = false` — диагностически пишет в MCP-лог resolved output и состояние `AnalyzerReference`; в ответ tool эти данные не попадают. Используйте для in-solution analyzer/generator проектов, если `Directory.Build.props` переопределяет `OutputPath`.
 - `shadowCopyInSolutionAnalyzers: bool = false` — заменяет подходящие in-solution `AnalyzerReference` на приватные shadow copies реального output соответствующих проектов. Analyzer-проект должен быть предварительно собран. Поколения адресуются по содержимому и повторно применяются при edit без копирования analyzer-файлов. После пересборки генератора с той же assembly identity нужен **новый процесс MCP** (`reset_workspace` не выгружает CLR). Приватные helper DLL отклоняются (main-only). Краткая сводка возвращается в ответе, детали доступны через `tail_tool_log` / `read_log_tail`.
 
-**Активация и побочные эффекты analyzer shadow copy:** флаг opt-in; MCP-клиент и агент автоматически его не включают. Для репозитория с in-solution analyzer/generator и custom `OutputPath` добавьте условное правило в его `AGENTS.md`. При включении versioned DLL/PDB копируются в каталог RoslynMcpServer под OS temp; overlay повторно применяется после обновлений документов, что добавляет I/O и CPU. Старые timestamped-каталоги автоматически не очищаются и могут накапливаться. Реальные `.csproj` и build output не изменяются; MCP-процесс блокирует только shadow copy.
+**Активация и побочные эффекты analyzer shadow copy:** флаг opt-in; MCP-клиент и агент автоматически его не включают. Для репозитория с in-solution analyzer/generator и custom `OutputPath` добавьте условное правило в его `AGENTS.md`. При включении versioned DLL/PDB копируются в `v2-main-only/` под OS temp; overlay повторно применяется после обновлений документов. Cached `false`/omitted не выключает уже активный overlay; отключение — `reset_workspace`, затем load без флага. Старые поколения (включая timestamp-каталоги) автоматически не очищаются; reset их не удаляет. Реальные `.csproj` и build output не изменяются; MCP-процесс блокирует только shadow copy. Path resolution и anti-lock независимы. `find_symbol_definition` по имени generated-типа — ограничение Roslyn, не отказ overlay.
 
 **Поведение:** abort хоста mid-load → **Workspace Load Cancelled (client abort)** (поднять MCP timeout; это не ошибка MSBuild). После успешного load **сохранённые** `.cs` вотчатся и подмешиваются в поиск символов (несохранённый буфер игнорируется). Смена `.csproj`/`.sln`/`Directory.Build.props` сбрасывает кэш следующего `load_workspace`. Предупреждения restore (`NU1701` TFM-compat, audit, prune) и design-time MSBuild (deprecation `IncludeOpenAPIAnalyzers`/ASPDEPR007, mismatch архитектуры, analyzer без metadata) не валят load даже в обёртке `Msbuild failed when processing the file`; настоящие ошибки MSBuild/SDK (`error NU|MSB|NETSDK`) — валят. Пустой `TargetFramework` (`ResolvePackageAssets`) — отдельный fail: повторить с IDE-конфигом или это Bazel-generated sln, который MSBuildWorkspace не открывает. Нет target `Compile` (outer CrossTargeting) — отдельный fail: повторить с `targetFramework` из отчёта / `Directory.Build.props`; `dotnet build` при этом может быть зелёным. Падение VS 2026 / MSBuild 18 BuildHost (`XMakeElements`) — отдельный fail, **не** `MCP_MSBUILD_SDK_MISMATCH`; нужен MCP 1.0.35+ или один SDK-style `.csproj`.
 </details>
 
 <details>
-<summary><code>reset_workspace</code> — Сбрасывает in-memory MSBuildWorkspace и кэш решения. После сборки (generated в <code>obj</code>, refs) вызови снова <code>load_workspace</code>. Сохранённые <code>.cs</code> с v1.1.0 подхватываются без reset.</summary>
+<summary><code>reset_workspace</code> — Сбрасывает in-memory MSBuildWorkspace и кэш решения. После сборки (generated в <code>obj</code>, refs) вызови снова <code>load_workspace</code>. Сохранённые <code>.cs</code> с v1.1.0 подхватываются без reset. CLR-сборки анализаторов <strong>не</strong> выгружает; после same-identity пересборки генератора нужен новый процесс MCP.</summary>
 
 **Параметры:** *(нет)*
 </details>
@@ -1348,7 +1350,7 @@ cd D:\Devel\YourApp
 - `column: int = 1`
 - `previewOnly: bool = false` — при `true` только diff-превью без записи на диск
 
-**Поведение:** записывает изменённые файлы на диск и обновляет in-memory workspace. После применения вызовите `get_diagnostics_for_file` для проверки.
+**Поведение:** пишет файлы через write boundary и обновляет in-memory workspace. Неподдержанный или stale analyzer-reference diff отклоняется до любой серверной записи. Частичное сохранение — не полный успех: в ответе Status, Reason и известные сохранённые пути. После применения вызовите `get_diagnostics_for_file` для проверки.
 
 **Заметка:** `fixIndex` действителен только для той же пары `filePath` / `diagnosticId` / `line` / `column` в рамках сессии (файл не должен меняться между `get_code_fixes` и `apply_code_fix`).
 </details>
@@ -1767,6 +1769,8 @@ cd D:\Devel\YourApp
 - `previewOnly: bool = true`
 
 **Область:** только C# символы. Для папки проекта / `.csproj` / графа solution — `rename_project`. Для README/rules/URL — host Grep/edit.
+
+**Поведение:** сохранение идёт через тот же write boundary, что и `apply_code_fix`. Неподдержанный analyzer-reference diff отклоняется до записи. Частичное сохранение сообщает Status, Reason и известные пути — это не полный успех rename.
 </details>
 
 <details>

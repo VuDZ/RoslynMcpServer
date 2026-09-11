@@ -1,7 +1,10 @@
 # Analyzer shadow copy — спецификация v2
 
-Статус: **нормативная спецификация после арбитража; реализация серии не выполнена этим проходом**.
+Статус: **нормативная спецификация; эпохи 1–4 приняты; эпоха 6 — аудит
+документации завершён**; серия не завершена (эпоха 5 deferred, U-ARB-01).
 Дата: 2026-09-11. Язык нормативного текста — русский; имена API и идентификаторы сохранены.
+Shipped: v1.3.6 mapping, v1.3.7 restart-required / main-only, v1.3.8 write boundary
+(`f54aec15f48f942ef9ac077c752bf03ae018bf31`).
 
 ## Назначение и область
 
@@ -16,11 +19,26 @@ v2 объединяет обязательные решения арбитраж
 перечислены в [UNRESOLVED-v2.md](UNRESOLVED-v2.md): соответствующие этапы имеют
 явные условия допуска, поэтому v2 не означает безусловную готовность всей реализации.
 
-## Текущее поведение v1.3.5
+## Текущее поведение v1.3.8 (shipped)
+
+Сверх арбитражного baseline v1.3.5:
+
+- Prepare — `load_workspace` / enable / явный artifact refresh. Edit, watcher
+  flush и post-apply — `mapping.Apply` без analyzer I/O (`v2-main-only`).
+- Same-identity обновление генератора: **restart-required**. Cached load и
+  reset+load готовят файлы, но не исполняют V2. Main-only: private helpers
+  отклоняются. Reset не выгружает CLR.
+- Запись: preflight → exact inverse → persist → reconciliation → publish mapping.
+  Unknown/stale analyzer diff отклоняется до серверных записей. Partial persistence
+  сообщает Status, Reason и известные сохранённые пути — это не полный успех.
+- Matcher по имени DLL не менялся (эпоха 5 / U-ARB-01). Sticky `false`/omitted —
+  U-ARB-05. Поколения при clear не удаляются.
+
+## Историческое поведение v1.3.5
 
 Основание — факты, зафиксированные арбитражем для commit
 `3dcd63f7f814e6ac366c409693b34a8492130307`, .NET 10, Roslyn 5.9.0.
-В этом проходе runtime-эксперименты не выполнялись.
+Ниже — baseline до эпох 2–4, не текущий shipped.
 
 - `GetCurrentSolution()` возвращает сохранённый `_solution`, при его отсутствии —
   `workspace.CurrentSolution`. Пересчёта overlay при каждом чтении нет.
@@ -97,7 +115,7 @@ lock существующей DLL остаются предметом обяза
 | [3. Загрузчик](epoch-3-loader-contract-and-dependencies.md) | Режим: restart-required / main-only. **Принято** v1.3.7; [приёмка](epoch-3-acceptance.md) | 1–2 |
 | [4. Запись](epoch-4-workspace-write-boundary.md) | Точная инверсия и полный workflow записи/reconciliation/overlay. **Принято** v1.3.8; [приёмка](epoch-4-acceptance.md) | 1 и контракт mapping из 2; CLR gate 3 остаётся отдельным |
 | [5. Происхождение](epoch-5-reference-provenance.md) | Сначала metadata feasibility; rollout только после U-ARB-01 и marker-тестов | 1; алгоритмически независима от 2–4 |
-| [6. Документация](epoch-6-contract-and-documentation.md) | Аудит фактических результатов/ограничений 1–5 | Учитывает также явно отложенные результаты |
+| [6. Документация](epoch-6-contract-and-documentation.md) | Аудит фактических результатов/ограничений 1–5. **Аудит завершён**; [результаты](epoch-6-results.md), [приёмка](epoch-6-acceptance.md). Серия не завершена | Учитывает также явно отложенные результаты |
 
 ## Сквозные границы
 
@@ -126,8 +144,9 @@ refresh на событие watcher нет в целевом контракте.
 - [POST-ARBITRATION-ISSUES.md](POST-ARBITRATION-ISSUES.md) — только новые существенные вопросы.
 - [epoch-1-results.md](epoch-1-results.md) — измеренный runtime baseline эпохи 1.
 - [epoch-1-acceptance.md](epoch-1-acceptance.md) — приёмка эпохи 1 (красный baseline принят).
-- [FOLLOWUPS.md](FOLLOWUPS.md) — оставшаяся работа (harness, DOC-EARLY, эпоха 2; 3/5 не открывать).
+- [FOLLOWUPS.md](FOLLOWUPS.md) — оставшаяся работа (эпоха 5 / U-ARB-01 не открывать; F-06 на мерж).
 - [epoch-1-semantic-entry-points.md](epoch-1-semantic-entry-points.md) — инвентаризация semantic readers.
+- [epoch-6-results.md](epoch-6-results.md) / [epoch-6-acceptance.md](epoch-6-acceptance.md) — аудит контракта.
 
 Каждая эпоха фиксирует окружение, команды, результаты, ограничения и фактический
 статус; unit-тесты не заменяют реальный MSBuildWorkspace. Подтверждение документации

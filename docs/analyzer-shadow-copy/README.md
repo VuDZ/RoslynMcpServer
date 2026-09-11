@@ -27,8 +27,11 @@ this directory is the v1.3.3–v1.3.5 history. Read it when you need to know
 - Prepare runs at `load_workspace` / enable / explicit artifact refresh. Document edit, watcher flush, and post-apply reapply the in-memory mapping with no analyzer file I/O.
 - Loader contract (epoch 3): **restart-required** for same-identity in-process refresh; **main-only** dependencies. Private helpers and identity collisions are refused before execution. Workspace clear does not unload CLR assemblies.
 - The rewritten `Solution` is still **never** handed to `Workspace.TryApplyChanges` on the real `MSBuildWorkspace`.
-- The write boundary performs an exact inverse of the operation's mapping before any server write; unknown/stale analyzer diffs are rejected (epoch 4 / v1.3.8).
-- Timestamp layout and recopy-on-edit below are **v1.3.5 history**.
+- The write boundary performs an exact inverse of the operation's mapping before any server write; unknown/stale analyzer diffs are rejected (epoch 4 / v1.3.8). CodeAction / rename therefore fail closed instead of silently wiping analyzer-list differences. Partial persistence reports Status, Reason, and known saved paths — not full success of the request.
+- Upgrade from v1.3.5: consumer edit no longer recopies analyzer files and will not pick up new generator bytes. After rebuilding a generator, restart the MCP process, then `load_workspace` with `shadowCopyInSolutionAnalyzers=true`. `reset_workspace` does not unload CLR assemblies. Cached `false`/omitted does not disable an active overlay.
+- Generations use `v2-main-only/`. A dependency-set layout is a different namespace; timestamp directories are not migrated in place and are not deleted on clear.
+- Path resolution and this anti-lock workaround are independent. Generated-name `find_symbol_definition` is a Roslyn limitation, not missing generation.
+- Timestamp layout and recopy-on-edit below are **v1.3.5 history**. Forward spec and audit: [`docs/analyzer-shadow-copy-improvements/v2/`](../analyzer-shadow-copy-improvements/v2/README.md).
 
 ## Fixed architectural decisions (v1.3.5 history)
 - `SolutionManager.FindDocumentAsync` reads through `GetCurrentSolution()`, not `workspace.CurrentSolution` directly, so every MCP tool that resolves a `Document` (not just ones that call `GetCurrentSolution()` explicitly) sees the fix.

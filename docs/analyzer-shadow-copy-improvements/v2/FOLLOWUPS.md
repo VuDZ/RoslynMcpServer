@@ -2,13 +2,14 @@
 
 Эпоха 1 закрыта как **измеренный красный baseline**
 ([epoch-1-results.md](epoch-1-results.md), [epoch-1-acceptance.md](epoch-1-acceptance.md)).
-Ниже — оставшаяся работа. Не начинать эпохи 3 и 5.
+Ниже — оставшаяся работа. Эпохи 2–4 и 6 закрыты. Эпоху 5 / U-ARB-01 не открывать.
 
 | ID | Когда | Что |
 | --- | --- | --- |
 | F-01 | сразу, до эпохи 2 | Зафиксировать harness: x64 host, 45 с RPC, Kill на dispose |
 | F-02 | сразу | Перепрогнать `Category=AnalyzerLifecycle`, обновить results (убрать x86 / 8 мин) |
-| F-03 | **сделано** | DOC-EARLY: ARCHITECTURE / historical README / remarks = v1.3.6 mapping |
+| F-03 | **сделано** | DOC-EARLY: ARCHITECTURE / historical README / remarks = stored snapshot (аудит E6-S1) |
+| F-08 | **принято** ([epoch-6-acceptance.md](epoch-6-acceptance.md)) | Эпоха 6: аудит S1–S4. Серия не завершена. A6-13 не блокер |
 | F-04 | **принято** ([epoch-2-acceptance.md](epoch-2-acceptance.md)) | E2-S5 11/11. Открыт A2-09 (stores). A2-12 закрыт: catalog 63 / 43895 |
 | F-05 | **принято** ([epoch-4-acceptance.md](epoch-4-acceptance.md)) | Эпоха 4: write boundary. Открыты A4-09…A4-12 (не блокеры) |
 | F-06 | мерж в main | A1-10: version bump, изоляция test seams |
@@ -170,6 +171,6 @@ Depends: evidence gates
 
 ---
 
-Порядок в следующем чате: эпоха 6 (документация фактов 1–4) или F-06 на коммит
-server. Эпоху 5 / U-ARB-01 не открывать. F-07 не открывать. A4-09…A4-12 не чинить
-без отдельного запроса.
+Порядок в следующем чате: F-06 на коммит server. Эпоху 5 / U-ARB-01 не открывать.
+F-07 не открывать. A4-09…A4-12 не чинить без отдельного запроса. Эпоха 6 закрыта
+как документационный аудит; серия остаётся незавершённой.

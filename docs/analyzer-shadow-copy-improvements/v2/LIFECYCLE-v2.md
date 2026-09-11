@@ -1,9 +1,10 @@
 # Матрица жизненного цикла v2
 
-Этот документ — общий контракт эпох 1–6. Текущие факты относятся к v1.3.5 по
-арбитражу; целевые строки не являются отчётом о выполненных тестах. U-ARB-02/03/05
-не выбираются матрицей. «Обновление» в таблицах всегда уточняется: граф, файлы
-или исполнение.
+Этот документ — общий контракт эпох 1–6. Колонка «v1.3.5» — арбитражный baseline,
+не текущий shipped. Целевые строки 2/3/4 **приняты** в v1.3.6–v1.3.8; эпоха 5
+deferred (U-ARB-01). Построчный аудит: [epoch-6-results.md](epoch-6-results.md).
+U-ARB-02 = restart-required, U-ARB-03 = main-only (эпоха 3); U-ARB-05 не выбран.
+«Обновление» в таблицах всегда уточняется: граф, файлы или исполнение.
 
 ## LC-S1. Действие, v1.3.5, цель и проверка
 
@@ -19,13 +20,13 @@
 | Graph-stale reopen | Граф открывается заново, поля overlay сбрасываются; loader остаётся | Mapping новой базы при opt-in, никакого переноса старых ProjectId | Graph stale, новая сессия, запись старого candidate |
 | Другое решение | Workspace/overlay сбрасываются; CLR identity не сбрасывается | Нет переноса mapping, gate безопасного исполнения по U-ARB-02 | A enabled→B disabled, same identity |
 | `GetCurrentSolution()` | Возвращает сохранённый snapshot/fallback; flush не выполняет | То же чтение без подготовки; одна база semantic operation | Инвентаризация читателей и read→transform |
-| Text edit / `UpdateDocumentInMemoryAsync` | Raw text apply, затем повторная подготовка overlay | Общий workflow, готовый mapping, без refresh файлов анализатора | Маркер, новый текст, `.csproj` bytes, forced rebuild |
+| Text edit / `UpdateDocumentInMemoryAsync` | **v1.3.5:** raw text apply, затем повторная подготовка overlay. **v1.3.6+:** mapping reapply, без analyzer I/O | Общий workflow, готовый mapping, без refresh файлов анализатора | Маркер, новый текст, `.csproj` bytes, forced rebuild |
 | Overlay-derived apply / `ApplySolutionChangesToDiskAsync` | **v1.3.8:** preflight до записи, точный inverse, структурированный исход, reapply mapping | Preflight до серверной записи, точный inverse, структурированный исход, reapply mapping | Exact inverse, unknown/stale rejection, все outcomes E4-S2 |
-| Under-lock text apply/fallback | Отдельные внутренние ветки могут публиковать тексты и reprepare | Общий workflow без повторного semaphore; только применённое состояние | Fault injection и отсутствие повторного захвата |
+| Under-lock text apply/fallback | **v1.3.5:** внутренние ветки могли публиковать тексты и reprepare. **v1.3.8:** тот же write boundary / mapping reapply, без повторного semaphore | Общий workflow без повторного semaphore; только применённое состояние | Fault injection и отсутствие повторного захвата |
 | Доставка FSW | Накапливает dirty paths; `_solution` ещё не обновлён | Сохранить различие delivery/flush; не запускать artifact refresh | Наблюдаемая доставка с timeout |
-| Production watcher flush | Применяет dirty documents к workspace, затем reprepare overlay | Common workflow и mapping reapply без analyzer I/O | Реальный FSW→FindDocumentAsync/синхронизированный getter→маркер/текст |
-| Полный/частичный prepare failure | Rewrite results могут теряться на reapply; bool не описывает частичный mapping | Пер-ссылка результат, failed/stale refresh отдельно от edit и execution | Нет output, injected prepare failure, disk-full |
-| Apply failure / частичная запись / reconciliation | Уже записанные тексты согласуются fallback; это не атомарное сохранение | Не публиковать неприменённые project changes; различать partial и reconciliation failure | Cancellation, per-file I/O, rejected apply, fallback |
+| Production watcher flush | **v1.3.5:** dirty documents, затем reprepare overlay. **v1.3.6+:** mapping reapply без analyzer I/O | Common workflow и mapping reapply без analyzer I/O | Реальный FSW→FindDocumentAsync/синхронизированный getter→маркер/текст |
+| Полный/частичный prepare failure | **v1.3.5:** rewrite results могли теряться на reapply; bool не описывал частичный mapping. **v1.3.6+:** per-ref result; file-fail держит stale mapping; restart-required снимает overlay | Пер-ссылка результат, failed/stale refresh отдельно от edit и execution | Нет output, injected prepare failure, disk-full |
+| Apply failure / частичная запись / reconciliation | **v1.3.5:** уже записанные тексты согласуются fallback; это не атомарное сохранение. **v1.3.8:** `WorkspaceWriteStatus` + Reason + SavedPaths; неприменённый project state не публикуется | Не публиковать неприменённые project changes; различать partial и reconciliation failure | Cancellation, per-file I/O, rejected apply, fallback |
 | Clear/dispose | Workspace/overlay очищаются; process loader остаётся | Не удалять опубликованные поколения и не обещать unload | Старый operation context отвергается; cache сохраняется до безопасного cleanup |
 
 ## LC-S2. Эффекты целевых переходов
@@ -83,3 +84,13 @@ U-ARB-02 — restart-required: cached load и reset+load готовят файл
 не является workflow обновления; это наблюдаемое изменение совместимости workaround.
 При failed refresh старое поколение явно помечено stale, а успех следующего edit
 не отменяет эту информацию. Отключение до U-ARB-05 — reset, затем load false/omitted.
+
+CodeAction / `rename_symbol`: неподдержанный analyzer diff отклоняется до записей;
+частичное сохранение возвращает Status, Reason и известные пути и не считается
+полным успехом запроса.
+
+## LC-S4. Аудит v1.3.8
+
+Построчная сверка колонок G/S/M/A/L/D/R и веток LC-S1 с кодом и принятыми
+тестами — [epoch-6-results.md](epoch-6-results.md). `_solution` assignment —
+публикация ссылки на снимок, не атомарное сохранение файлов.
