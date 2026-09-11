@@ -92,7 +92,7 @@ lock существующей DLL остаются предметом обяза
 | Этап | Результат и условие завершения | Зависимости |
 | --- | --- | --- |
 | Раннее исправление описания | Задача DOC-EARLY из эпохи 6: точное описание v1.3.5 | Не ждёт runtime-эпох |
-| [1. Жизненный цикл](epoch-1-lifecycle-verification.md) | Исполняемый baseline с точным маркером; допустим измеренный failure | Нет |
+| [1. Жизненный цикл](epoch-1-lifecycle-verification.md) | Измеренный красный baseline: [результаты](epoch-1-results.md), [приёмка](epoch-1-acceptance.md) | Нет |
 | [2. Поколения](epoch-2-immutable-shadow-copies.md) | Неизменяемые файлы и готовый mapping, повторное применение без I/O анализаторов | 1 |
 | [3. Загрузчик](epoch-3-loader-contract-and-dependencies.md) | Сначала выбор режима, затем приёмка его реализации | 1–2; U-ARB-02/03 |
 | [4. Запись](epoch-4-workspace-write-boundary.md) | Точная инверсия и полный workflow записи/reconciliation/overlay | 1 и контракт mapping из 2; CLR gate 3 остаётся отдельным |
@@ -124,6 +124,10 @@ refresh на событие watcher нет в целевом контракте.
 - [TRACEABILITY-v2.md](TRACEABILITY-v2.md) — исходные требования, решения и разделы v2.
 - [UNRESOLVED-v2.md](UNRESOLVED-v2.md) — пять сохранённых открытых решений.
 - [POST-ARBITRATION-ISSUES.md](POST-ARBITRATION-ISSUES.md) — только новые существенные вопросы.
+- [epoch-1-results.md](epoch-1-results.md) — измеренный runtime baseline эпохи 1.
+- [epoch-1-acceptance.md](epoch-1-acceptance.md) — приёмка эпохи 1 (красный baseline принят).
+- [FOLLOWUPS.md](FOLLOWUPS.md) — оставшаяся работа (harness, DOC-EARLY, эпоха 2; 3/5 не открывать).
+- [epoch-1-semantic-entry-points.md](epoch-1-semantic-entry-points.md) — инвентаризация semantic readers.
 
 Каждая эпоха фиксирует окружение, команды, результаты, ограничения и фактический
 статус; unit-тесты не заменяют реальный MSBuildWorkspace. Подтверждение документации

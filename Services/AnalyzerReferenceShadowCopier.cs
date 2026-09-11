@@ -42,6 +42,12 @@ public static class AnalyzerReferenceShadowCopier
         string? SkipReason);
 
     /// <summary>
+    /// Test seam: next <see cref="CopyToShadowDirectory"/> calls throw <see cref="IOException"/> before
+    /// <c>File.Copy</c>. Distinct from <c>SolutionManager.FailNextOverlayPrepare</c>, which skips the copier.
+    /// </summary>
+    internal static int RemainingForcedCopyFailures { get; set; }
+
+    /// <summary>
     /// Computes a stable, human-readable shadow-copy root directory for a loaded solution/project path, under
     /// the OS temp directory. Distinct loaded paths never collide; the same path always maps to the same
     /// directory so repeated loads reuse (and overwrite) prior shadow copies.
@@ -174,6 +180,12 @@ public static class AnalyzerReferenceShadowCopier
     /// </summary>
     private static string CopyToShadowDirectory(string sourcePath, string shadowRootDirectory, string matchedProjectName)
     {
+        if (RemainingForcedCopyFailures > 0)
+        {
+            RemainingForcedCopyFailures--;
+            throw new IOException("Forced copy failure for epoch-1 overlay reapply baseline.");
+        }
+
         var generation = File.GetLastWriteTimeUtc(sourcePath).Ticks.ToString(System.Globalization.CultureInfo.InvariantCulture);
         var shadowDirectory = Path.Combine(shadowRootDirectory, matchedProjectName, generation);
         Directory.CreateDirectory(shadowDirectory);

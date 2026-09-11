@@ -1,7 +1,8 @@
 # Эпоха 1 — Интеграционная проверка жизненного цикла
 
-Статус: **планируется**. Результат — измеренный baseline, допускающий failures.
-Термины и целевые инварианты заданы в [README](README.md).
+Статус: **baseline измерен (красный)**. Результат — полный прогон с failures:
+см. [epoch-1-results.md](epoch-1-results.md), приёмка [epoch-1-acceptance.md](epoch-1-acceptance.md).
+Инвентаризация читателей: [epoch-1-semantic-entry-points.md](epoch-1-semantic-entry-points.md).
 
 ## E1-S1. Тестовый хост и oracle
 

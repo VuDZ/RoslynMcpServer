@@ -25,6 +25,7 @@
   </PropertyGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="RoslynMcpServer.Tests" />
+    <InternalsVisibleTo Include="RoslynMcpServer.LifecycleTestHost" />
   </ItemGroup>
   <!-- Include additional files for browsing the MCP server. -->
   <ItemGroup>
@@ -49,6 +50,8 @@
   <ItemGroup>
     <Compile Remove="RoslynMcpServer.Tests\**" />
     <None Remove="RoslynMcpServer.Tests\**" />
+    <Compile Remove="RoslynMcpServer.LifecycleTestHost\**" />
+    <None Remove="RoslynMcpServer.LifecycleTestHost\**" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="ICSharpCode.Decompiler" Version="10.0.1.8346" />

@@ -31,6 +31,21 @@ public sealed class InProcessAnalyzerAssemblyLoader : IAnalyzerAssemblyLoader
         return _loadedByPath.GetOrAdd(fullPath, LoadCore);
     }
 
+    /// <summary>
+    /// Snapshot of assemblies this loader has loaded in the current process. Test/host observation only.
+    /// </summary>
+    internal IReadOnlyList<LoadedAnalyzerAssembly> SnapshotLoadedAssemblies()
+    {
+        return _loadedByPath
+            .Select(kv => new LoadedAnalyzerAssembly(
+                kv.Key,
+                kv.Value.GetName().FullName ?? kv.Value.FullName ?? kv.Value.GetName().Name ?? kv.Key,
+                kv.Value.Location))
+            .ToList();
+    }
+
+    internal readonly record struct LoadedAnalyzerAssembly(string RequestedPath, string Identity, string Location);
+
     public void AddDependencyLocation(string fullPath)
     {
         if (string.IsNullOrWhiteSpace(fullPath))

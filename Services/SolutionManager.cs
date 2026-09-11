@@ -58,6 +58,13 @@ public sealed class SolutionManager
     private Solution? _solution;
     private bool _shadowCopyAnalyzersEnabled;
     private string? _shadowCopyRootDirectory;
+    private bool _lastLoadWasCacheHit;
+    private bool _lastLoadReopenedGraph;
+    private bool _lastPrepareAttempted;
+    private bool _lastPrepareInjectedFailure;
+    private int _overlayPrepareCount;
+    private IReadOnlyList<AnalyzerReferenceShadowCopier.RewriteResult> _lastShadowCopyResults =
+        Array.Empty<AnalyzerReferenceShadowCopier.RewriteResult>();
     private string? _loadedPath;
     private string? _loadedConfiguration;
     private string? _loadedPlatform;
@@ -73,6 +80,38 @@ public sealed class SolutionManager
     }
 
     public IReadOnlyList<WorkspaceDiagnostic> LastDiagnostics => _lastDiagnostics;
+
+    /// <summary>True when the last <see cref="LoadAsync"/> reused the existing workspace graph (cached load).</summary>
+    internal bool LastLoadWasCacheHit => _lastLoadWasCacheHit;
+
+    /// <summary>True when the last <see cref="LoadAsync"/> disposed and reopened the MSBuild graph.</summary>
+    internal bool LastLoadReopenedGraph => _lastLoadReopenedGraph;
+
+    /// <summary>True when the last overlay prepare/reapply attempted analyzer file I/O.</summary>
+    internal bool LastPrepareAttempted => _lastPrepareAttempted;
+
+    /// <summary>True when the last overlay reapply used the injected prepare-failure seam.</summary>
+    internal bool LastPrepareInjectedFailure => _lastPrepareInjectedFailure;
+
+    internal int OverlayPrepareCount => _overlayPrepareCount;
+
+    internal IReadOnlyList<AnalyzerReferenceShadowCopier.RewriteResult> LastShadowCopyResults => _lastShadowCopyResults;
+
+    internal bool ShadowCopyAnalyzersEnabled => _shadowCopyAnalyzersEnabled;
+
+    internal string? ShadowCopyRootDirectory => _shadowCopyRootDirectory;
+
+    /// <summary>
+    /// When true, the next <see cref="ApplyShadowCopyOverlayIfEnabled"/> skips rewrite and returns the incoming
+    /// solution unchanged (simulates a failed prepare). Test/host seam only; production never sets this.
+    /// </summary>
+    internal bool FailNextOverlayPrepare { get; set; }
+
+    internal IReadOnlyList<string> GetPendingDirtySourcePaths() => _dirtySourcePaths.Keys.ToArray();
+
+    internal Solution? GetWorkspaceCurrentSolution() => _workspace?.CurrentSolution;
+
+    internal InProcessAnalyzerAssemblyLoader AnalyzerAssemblyLoader => _analyzerAssemblyLoader;
 
     /// <summary>MSBuild <c>Configuration</c> used for the last successful <see cref="LoadAsync"/>, or <see langword="null"/>.</summary>
     public string? LoadedConfiguration => _loadedConfiguration;
@@ -293,10 +332,14 @@ public sealed class SolutionManager
             }
 
             var shadowRoot = AnalyzerReferenceShadowCopier.GetDefaultShadowRootDirectory(loadedPath);
+            _lastPrepareAttempted = true;
+            _lastPrepareInjectedFailure = false;
+            _overlayPrepareCount++;
             var (newSolution, results) = AnalyzerReferenceShadowCopier.ShadowCopyInSolutionAnalyzerReferences(
                 workspace.CurrentSolution,
                 shadowRoot,
                 _analyzerAssemblyLoader);
+            _lastShadowCopyResults = results;
 
             if (results.Any(r => r.Applied))
             {
@@ -326,13 +369,26 @@ public sealed class SolutionManager
     {
         if (!_shadowCopyAnalyzersEnabled || string.IsNullOrWhiteSpace(_shadowCopyRootDirectory))
         {
+            _lastPrepareAttempted = false;
             return solution;
         }
 
-        var (rewritten, _) = AnalyzerReferenceShadowCopier.ShadowCopyInSolutionAnalyzerReferences(
+        _lastPrepareAttempted = true;
+        _overlayPrepareCount++;
+
+        if (FailNextOverlayPrepare)
+        {
+            FailNextOverlayPrepare = false;
+            _lastPrepareInjectedFailure = true;
+            return solution;
+        }
+
+        _lastPrepareInjectedFailure = false;
+        var (rewritten, results) = AnalyzerReferenceShadowCopier.ShadowCopyInSolutionAnalyzerReferences(
             solution,
             _shadowCopyRootDirectory,
             _analyzerAssemblyLoader);
+        _lastShadowCopyResults = results;
         return rewritten;
     }
 
@@ -396,6 +452,50 @@ public sealed class SolutionManager
             _workspaceLock.Release();
         }
     }
+
+    /// <summary>
+    /// Waits until <paramref name="filePath"/> appears in the watcher dirty set, or <paramref name="timeout"/> elapses.
+    /// Does not flush. Distinguishes undelivered FSW events from a later flush failure.
+    /// </summary>
+    internal async Task<DirtySourceWaitResult> WaitForDirtySourceAsync(
+        string filePath,
+        TimeSpan timeout,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(filePath))
+        {
+            return new DirtySourceWaitResult(Delivered: false, TimedOut: true, Elapsed: TimeSpan.Zero, PendingCount: _dirtySourcePaths.Count);
+        }
+
+        var fullPath = Path.GetFullPath(filePath);
+        var started = Stopwatch.StartNew();
+        while (started.Elapsed < timeout)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (_dirtySourcePaths.ContainsKey(fullPath))
+            {
+                return new DirtySourceWaitResult(
+                    Delivered: true,
+                    TimedOut: false,
+                    Elapsed: started.Elapsed,
+                    PendingCount: _dirtySourcePaths.Count);
+            }
+
+            await Task.Delay(50, cancellationToken).ConfigureAwait(false);
+        }
+
+        return new DirtySourceWaitResult(
+            Delivered: false,
+            TimedOut: true,
+            Elapsed: started.Elapsed,
+            PendingCount: _dirtySourcePaths.Count);
+    }
+
+    internal readonly record struct DirtySourceWaitResult(
+        bool Delivered,
+        bool TimedOut,
+        TimeSpan Elapsed,
+        int PendingCount);
 
     /// <summary>
     /// Suppresses watcher-driven re-reads of <paramref name="filePath"/> for a short window after this
@@ -665,6 +765,9 @@ public sealed class SolutionManager
         {
             ApplySessionBuildArgs(buildArgs);
             await FlushDirtyDocumentsUnderLockAsync(cancellationToken).ConfigureAwait(false);
+            _lastLoadWasCacheHit = true;
+            _lastLoadReopenedGraph = false;
+            _lastPrepareAttempted = false;
             var cached = _solution ?? _workspace.CurrentSolution;
             LogProcessWorkingSet("workspace_load_cached");
             return cached;
@@ -678,6 +781,10 @@ public sealed class SolutionManager
         _projectGraphStale = false;
         _shadowCopyAnalyzersEnabled = false;
         _shadowCopyRootDirectory = null;
+        _lastLoadWasCacheHit = false;
+        _lastLoadReopenedGraph = true;
+        _lastPrepareAttempted = false;
+        _lastPrepareInjectedFailure = false;
         _ = typeof(CSharpFormattingOptions).Assembly.FullName;
         var properties = MsBuildWorkspaceProperties.Create(configuration, platform, targetFramework);
         var workspace = properties.Count == 0

@@ -16,5 +16,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\RoslynMcpServer.csproj" />
+    <ProjectReference Include="..\RoslynMcpServer.LifecycleTestHost\RoslynMcpServer.LifecycleTestHost.csproj" />
   </ItemGroup>
 </Project>
