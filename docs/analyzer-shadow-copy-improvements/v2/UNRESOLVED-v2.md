@@ -34,47 +34,31 @@ repro. Inaccessible требует отдельного решения и не �
 
 ## U-ARB-02 — Поддерживаемый режим обновления генератора
 
+Статус: **выбран — restart-required** (эпоха 3, v1.3.7).
+
 Связанные findings: E1-02, E1-03, E3-01, E3-05, E6-01.
 
-Требования разрешают документированное ограничение restart и не требуют
-in-process hot reload. Фактическое V1→V2 поведение текущего loader на .NET 10
-ещё не измерено точным execution oracle.
+Evidence эпохи 1 и повтор эпохи 3: V1→V2 cached и reset+load не исполняют V2
+(CLR identity живёт дольше workspace); process restart исполняет точный V2;
+A→B same identity без restart исполняет чужую сборку, поэтому отказ.
 
-Недостающие evidence:
-
-- Exact markers для cached load, reset+load и process restart при неизменной
-  assembly identity и изменённых bytes.
-- Реальный loaded assembly path/identity и факт возврата stale assembly.
-- Операционная стоимость и ожидаемая частота необходимого server restart.
-
-После evidence выбрать точно ограниченный in-process update либо restart-required
-контракт. В обоих вариантах unsupported in-process refresh не должен молча выдавать
-known-stale или wrong semantics. Здесь вариант не выбран, даже если restart
-может быть окончательным поддержанным результатом. Точки v2:
+Контракт: неподдержанный in-process refresh отклоняется с действием
+«restart the MCP server process». Restart — окончательный режим, не временный
+workaround. Точки v2:
 [E3-S1/S5](epoch-3-loader-contract-and-dependencies.md), E1-S2, LC-S1–S3.
 
 ## U-ARB-03 — Production discovery зависимостей и scope binding
 
+Статус: **выбран — main-only + явный отказ** (эпоха 3, v1.3.7).
+
 Связанные findings: E2-01, E3-02, E3-03, E3-04.
 
-Fixture с явным набором файлов может доказать preparation/binding mechanics,
-но production источник полного набора private runtime dependencies не установлен.
-Requester-scoped resolution конфликтующих helpers также не доказан.
+Production источник полного private runtime-набора не установлен. ALC не выбран.
+Конфликтующие helpers не имеют requester/generation-scoped resolution.
 
-Недостающие evidence:
-
-- Стабильный источник зависимостей: evaluated build metadata, generated manifest
-  либо иной проверенный механизм.
-- Фактические вызовы `AddDependencyLocation` и requesting-assembly поведение
-  закреплённой версии Roslyn.
-- Type-identity результаты ALC prototype с перечисленными shared host contracts.
-- Исполнение конфликтующих helpers и измерения unload/lifetime.
-
-После evidence выбрать scoped dependency support и только при необходимости
-ALC/resolver design. При недостаточности evidence явно ограничить поддержку
-main-only генераторами и отклонять dependency scenarios с понятной диагностикой.
-Эта ветка здесь не объявляется автоматически выбранной. Main-only файловая политика
-эпохи 2 уже определена и сама не решает loader support. Точки v2:
+Контракт: исполняются только main-only генераторы; AssemblyRef вне точного
+`AnalyzerHostContractCatalog` отклоняется; first-match simple-name probing снят;
+private DLL из real output не используются как fallback. Точки v2:
 [E2-S2](epoch-2-immutable-shadow-copies.md), [E3-S2–S5](epoch-3-loader-contract-and-dependencies.md).
 
 ## U-ARB-04 — Возможная загрузка analyzer из raw workspace

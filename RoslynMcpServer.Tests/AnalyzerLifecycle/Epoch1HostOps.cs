@@ -76,6 +76,31 @@ internal static class Epoch1HostOps
         return oracle;
     }
 
+    public static void AssertRestartRequired(HostResponse loadOrInspect, HostResponse? oracle = null)
+    {
+        var execution = loadOrInspect.Execution ?? oracle?.Execution;
+        Assert.NotNull(execution);
+        Assert.True(
+            string.Equals(execution!.Status, "RestartRequired", StringComparison.Ordinal)
+            || string.Equals(execution.Status, "IdentityCollision", StringComparison.Ordinal),
+            "Expected restart-required identity gate, got status="
+            + execution.Status
+            + " reason="
+            + execution.Reason);
+        Assert.Contains("restart", execution.Action ?? execution.Reason ?? "", StringComparison.OrdinalIgnoreCase);
+        if (oracle is not null)
+        {
+            Assert.False(oracle.OracleSuccess, "Unsupported refresh must not execute V1 or V2. failure=" + oracle.OracleFailure);
+            Assert.True(
+                string.IsNullOrEmpty(oracle.Marker),
+                "Stale or new marker must be absent. marker=" + oracle.Marker);
+            Assert.NotEqual(GeneratorConsumerFixture.MarkerV1, oracle.Marker);
+            Assert.NotEqual(GeneratorConsumerFixture.MarkerV2, oracle.Marker);
+            Assert.NotEqual(GeneratorConsumerFixture.MarkerA, oracle.Marker);
+            Assert.NotEqual(GeneratorConsumerFixture.MarkerB, oracle.Marker);
+        }
+    }
+
     public static void AssertProjectFilesUnchanged(GeneratorConsumerFixture fixture, HostResponse snapshot)
     {
         Assert.NotNull(snapshot.CsprojSha256);

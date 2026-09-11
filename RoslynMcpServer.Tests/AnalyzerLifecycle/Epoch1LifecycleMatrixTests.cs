@@ -93,14 +93,9 @@ public sealed class Epoch1LifecycleMatrixTests
 
         var oracle = await Epoch1HostOps.OracleAsync(host);
         Dump("v1v2-cached-oracle", oracle);
-        Assert.True(oracle.OracleSuccess, "Oracle must return an exact marker, not diagnostics.");
-        Assert.False(
-            string.Equals(oracle.Marker, GeneratorConsumerFixture.MarkerV2, StringComparison.Ordinal)
-            && string.Equals(oracle.Rewrite?.FirstOrDefault()?.Generation, v1Generation, StringComparison.Ordinal),
-            "Old timestamp generation path must not be called content generation V2.");
-        Assert.Equal(GeneratorConsumerFixture.MarkerV2, oracle.Marker);
-        Assert.False(string.IsNullOrWhiteSpace(oracle.AssemblyIdentity));
-        Assert.False(string.IsNullOrWhiteSpace(oracle.LoadedAnalyzerPath ?? oracle.OverlayAnalyzerPath));
+        Epoch1HostOps.AssertRestartRequired(cached, oracle);
+        Assert.False(string.IsNullOrWhiteSpace(cached.Rewrite?.FirstOrDefault()?.Generation));
+        Assert.NotEqual(v1Generation, cached.Rewrite?.FirstOrDefault()?.Generation);
     }
 
     [AnalyzerLifecycleFact]
@@ -125,10 +120,9 @@ public sealed class Epoch1LifecycleMatrixTests
         Assert.False(load.CacheHit);
         Assert.True(load.ReopenedGraph);
         Assert.True(load.PrepareAttempted);
-        var oracle = await Epoch1HostOps.RequireMarkerAsync(host, GeneratorConsumerFixture.MarkerV2);
+        var oracle = await Epoch1HostOps.OracleAsync(host);
         Dump("v1v2-reset-oracle", oracle);
-        Assert.False(string.IsNullOrWhiteSpace(oracle.AssemblyIdentity));
-        Assert.False(string.IsNullOrWhiteSpace(oracle.LoadedAnalyzerPath ?? oracle.OverlayAnalyzerPath));
+        Epoch1HostOps.AssertRestartRequired(load, oracle);
     }
 
     [AnalyzerLifecycleFact]
@@ -238,11 +232,10 @@ public sealed class Epoch1LifecycleMatrixTests
 
         var oracleB = await Epoch1HostOps.OracleAsync(host);
         Dump("solution-B-oracle", oracleB);
+        Epoch1HostOps.AssertRestartRequired(loadB, oracleB);
         Assert.NotEqual(GeneratorConsumerFixture.MarkerA, oracleB.Marker);
-        Assert.Equal(GeneratorConsumerFixture.MarkerB, oracleB.Marker);
-        Assert.True(oracleB.OracleSuccess);
-        Assert.False(string.IsNullOrWhiteSpace(oracleB.LoadedAnalyzerPath ?? oracleB.WorkspaceAnalyzerPath));
-        Assert.Contains("Generator", oracleB.AssemblyIdentity ?? oracleB.LoadedAnalyzerPath ?? "", StringComparison.OrdinalIgnoreCase);
+        Assert.NotEqual(GeneratorConsumerFixture.MarkerB, oracleB.Marker);
+        Assert.False(oracleB.OracleSuccess);
     }
 
     [AnalyzerLifecycleFact]

@@ -28,6 +28,8 @@ internal sealed class GeneratorConsumerFixture : IDisposable
     public string GeneratorSourcePath { get; private set; } = "";
     public string ConsumerProjectPath { get; private set; } = "";
     public string ConsumerSourcePath { get; private set; } = "";
+    public string? HelperProjectPath { get; private set; }
+    public string? HelperSourcePath { get; private set; }
     public IReadOnlyList<string> ExtraConsumerSourcePaths { get; private set; } = Array.Empty<string>();
     public string? ForeignDllPath { get; private set; }
     public string? MissingForeignPath { get; private set; }
@@ -40,7 +42,9 @@ internal sealed class GeneratorConsumerFixture : IDisposable
         int extraConsumers = 0,
         bool foreignAnalyzer = false,
         bool missingForeignPath = false,
-        string assemblyName = "Generator")
+        string assemblyName = "Generator",
+        bool privateHelper = false,
+        string helperVersion = "1.0.0.0")
     {
         var root = Path.Combine(
             Path.GetTempPath(),
@@ -54,7 +58,9 @@ internal sealed class GeneratorConsumerFixture : IDisposable
             extraConsumers,
             foreignAnalyzer,
             missingForeignPath,
-            assemblyName);
+            assemblyName,
+            privateHelper,
+            helperVersion);
         return fixture;
     }
 
@@ -101,6 +107,28 @@ internal sealed class GeneratorConsumerFixture : IDisposable
         if (Directory.Exists(bin))
         {
             return Directory.EnumerateFiles(bin, "Generator.dll", SearchOption.AllDirectories).FirstOrDefault();
+        }
+
+        return null;
+    }
+
+    public string? FindHelperOutputDll()
+    {
+        var artifacts = Path.Combine(Root, "artifacts", "Generator.Helpers");
+        if (Directory.Exists(artifacts))
+        {
+            var hit = Directory.EnumerateFiles(artifacts, "Generator.Helpers.dll", SearchOption.AllDirectories)
+                .FirstOrDefault();
+            if (hit is not null)
+            {
+                return hit;
+            }
+        }
+
+        var bin = Path.Combine(Root, "Generator.Helpers", "bin");
+        if (Directory.Exists(bin))
+        {
+            return Directory.EnumerateFiles(bin, "Generator.Helpers.dll", SearchOption.AllDirectories).FirstOrDefault();
         }
 
         return null;
@@ -160,7 +188,9 @@ internal sealed class GeneratorConsumerFixture : IDisposable
         int extraConsumers,
         bool foreignAnalyzer,
         bool missingForeignPath,
-        string assemblyName)
+        string assemblyName,
+        bool privateHelper,
+        string helperVersion)
     {
         if (outputPathMode == OutputPathMode.RedirectedMissingAnalyzerPath)
         {
@@ -197,10 +227,20 @@ internal sealed class GeneratorConsumerFixture : IDisposable
               <ItemGroup>
                 <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" PrivateAssets="all" />
               </ItemGroup>
+              {(privateHelper ? """
+              <ItemGroup>
+                <ProjectReference Include="..\Generator.Helpers\Generator.Helpers.csproj" PrivateAssets="all" />
+              </ItemGroup>
+              """ : "")}
             </Project>
             """);
+        if (privateHelper)
+        {
+            WriteHelperProject(helperVersion);
+        }
+
         GeneratorSourcePath = Path.Combine(generatorDir, "MarkerGenerator.cs");
-        File.WriteAllText(GeneratorSourcePath, CreateGeneratorSource(marker));
+        File.WriteAllText(GeneratorSourcePath, CreateGeneratorSource(marker, privateHelper));
 
         var consumerNames = new List<string> { "Consumer" };
         for (var i = 1; i <= extraConsumers; i++)
@@ -253,7 +293,7 @@ internal sealed class GeneratorConsumerFixture : IDisposable
                 </Project>
                 """);
             var source = Path.Combine(dir, "MarkerConsumer.cs");
-            File.WriteAllText(source, CreateConsumerSource(name));
+            File.WriteAllText(source, CreateConsumerSource(name, privateHelper));
             if (name == "Consumer")
             {
                 ConsumerProjectPath = csproj;
@@ -268,7 +308,7 @@ internal sealed class GeneratorConsumerFixture : IDisposable
         ExtraConsumerSourcePaths = extraSources;
 
         SolutionPath = Path.Combine(Root, "Repro.sln");
-        File.WriteAllText(SolutionPath, CreateSolution(consumerNames), Encoding.UTF8);
+        File.WriteAllText(SolutionPath, CreateSolution(consumerNames, privateHelper), Encoding.UTF8);
 
         if (foreignAnalyzer)
         {
@@ -312,8 +352,54 @@ internal sealed class GeneratorConsumerFixture : IDisposable
         ForeignDllPath = Path.Combine(Root, "external", assemblyName + ".dll");
     }
 
-    internal static string CreateGeneratorSource(string marker)
+    private void WriteHelperProject(string helperVersion)
     {
+        var dir = Path.Combine(Root, "Generator.Helpers");
+        Directory.CreateDirectory(dir);
+        HelperProjectPath = Path.Combine(dir, "Generator.Helpers.csproj");
+        File.WriteAllText(
+            HelperProjectPath,
+            $"""
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <TargetFramework>netstandard2.0</TargetFramework>
+                <LangVersion>latest</LangVersion>
+                <Nullable>enable</Nullable>
+                <AssemblyName>Generator.Helpers</AssemblyName>
+                <Version>{helperVersion}</Version>
+                <Deterministic>true</Deterministic>
+              </PropertyGroup>
+            </Project>
+            """);
+        HelperSourcePath = Path.Combine(dir, "HelperInfo.cs");
+        File.WriteAllText(HelperSourcePath, CreateHelperSource(helperVersion));
+    }
+
+    public void SetHelperVersionComment(string comment)
+    {
+        if (HelperSourcePath is null)
+        {
+            throw new InvalidOperationException("Fixture has no helper project.");
+        }
+
+        File.WriteAllText(HelperSourcePath, CreateHelperSource(comment));
+    }
+
+    internal static string CreateHelperSource(string versionOrComment) =>
+        $$"""
+        namespace Generator.Helpers;
+
+        public static class HelperInfo
+        {
+            public static string Name { get; } = "{{versionOrComment}}";
+        }
+        """;
+
+    internal static string CreateGeneratorSource(string marker, bool privateHelper = false)
+    {
+        var helperUse = privateHelper
+            ? "                    _ = Generator.Helpers.HelperInfo.Name;"
+            : "";
         var source = """
             using Microsoft.CodeAnalysis;
 
@@ -322,6 +408,7 @@ internal sealed class GeneratorConsumerFixture : IDisposable
             {
                 public void Initialize(IncrementalGeneratorInitializationContext context)
                 {
+            __HELPER__
                     context.RegisterPostInitializationOutput(ctx =>
                     {
                         ctx.AddSource("GeneratedMarker.g.cs", @"
@@ -334,27 +421,50 @@ internal sealed class GeneratorConsumerFixture : IDisposable
                 }
             }
             """;
-        return source.Replace("__MARKER__", marker, StringComparison.Ordinal);
+        return source
+            .Replace("__HELPER__", helperUse, StringComparison.Ordinal)
+            .Replace("__MARKER__", marker, StringComparison.Ordinal);
     }
 
-    internal static string CreateConsumerSource(string classPrefix) =>
-        $$"""
-        internal static class {{classPrefix}}MarkerConsumer
-        {
-            // edit-target
-            public static string GetMarker() => GeneratedMarker.Version;
-        }
-        """;
+    internal static string CreateConsumerSource(string classPrefix, bool privateHelper = false) =>
+        privateHelper
+            ? $$"""
+            internal static class {{classPrefix}}MarkerConsumer
+            {
+                // edit-target
+                public static string GetMarker() => "no-generator";
+            }
+            """
+            : $$"""
+            internal static class {{classPrefix}}MarkerConsumer
+            {
+                // edit-target
+                public static string GetMarker() => GeneratedMarker.Version;
+            }
+            """;
 
-    private static string CreateSolution(IReadOnlyList<string> consumerNames)
+    private static string CreateSolution(IReadOnlyList<string> consumerNames, bool includeHelper)
     {
         var sb = new StringBuilder();
         sb.AppendLine("Microsoft Visual Studio Solution File, Format Version 12.00");
         sb.AppendLine("# Visual Studio Version 17");
+        var helperId = "{10101010-1010-1010-1010-101010101010}";
+        if (includeHelper)
+        {
+            sb.AppendLine($"Project(\"{{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}}\") = \"Generator.Helpers\", \"Generator.Helpers\\Generator.Helpers.csproj\", \"{helperId}\"");
+            sb.AppendLine("EndProject");
+        }
+
         var generatorId = "{11111111-1111-1111-1111-111111111111}";
         sb.AppendLine($"Project(\"{{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}}\") = \"Generator\", \"Generator\\Generator.csproj\", \"{generatorId}\"");
         sb.AppendLine("EndProject");
-        var ids = new List<string> { generatorId };
+        var ids = new List<string>();
+        if (includeHelper)
+        {
+            ids.Add(helperId);
+        }
+
+        ids.Add(generatorId);
         for (var i = 0; i < consumerNames.Count; i++)
         {
             var id = "{22222222-2222-2222-2222-" + (i + 1).ToString("000000000000") + "}";

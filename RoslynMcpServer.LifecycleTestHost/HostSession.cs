@@ -87,6 +87,8 @@ internal sealed class HostSession
                 Roslyn = roslyn,
                 Bootstrap = MsBuildEnvironmentInfo.RegistrationSummary,
                 DotNetHost = DotNetHostResolver.ResolveDotNetExecutable(),
+                WorkingSetBytes = Environment.WorkingSet,
+                PrivateMemoryBytes = System.Diagnostics.Process.GetCurrentProcess().PrivateMemorySize64,
             },
         };
     }
@@ -136,7 +138,20 @@ internal sealed class HostSession
             return Fail("oracle", "no-project:" + projectName);
         }
 
+        if (_manager.LastExecutionObservation.RequiresRestart
+            || _manager.LastExecutionObservation.Status == AnalyzerExecutionStatus.DependencyUnsupported)
+        {
+            var blocked = Inspect("oracle");
+            blocked.OracleSuccess = false;
+            blocked.Marker = null;
+            blocked.OracleFailure = "execution-not-permitted:" + _manager.LastExecutionObservation.Status;
+            FillAnalyzerPaths(blocked, project);
+            blocked.Ok = true;
+            return blocked;
+        }
+
         var observation = await SourceGeneratorOracle.ReadAsync(project, cancellationToken).ConfigureAwait(false);
+        _manager.ObserveAnalyzerExecution(project);
         var response = Inspect("oracle");
         response.OracleSuccess = observation.Success;
         response.Marker = observation.Marker;
@@ -574,6 +589,7 @@ internal sealed class HostSession
             LoadedWorkspacePath = _manager.GetLoadedWorkspacePath(),
             PendingDirtyCount = _manager.GetPendingDirtySourcePaths().Count,
             Rewrite = MapRewrite(_manager.LastShadowCopyResults),
+            Execution = MapExecution(_manager.LastExecutionObservation),
         };
 
         var overlay = _manager.GetCurrentSolution();
@@ -617,6 +633,24 @@ internal sealed class HostSession
             .FirstOrDefault(p =>
                 p is not null
                 && string.Equals(Path.GetFileNameWithoutExtension(p), "Generator", StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static ExecutionDto MapExecution(AnalyzerExecutionObservation observation)
+    {
+        return new ExecutionDto
+        {
+            Status = observation.Status.ToString(),
+            Stage = observation.HighestStage.ToString(),
+            Reason = observation.Reason,
+            Action = observation.Action,
+            Project = observation.ProjectName,
+            Generator = observation.GeneratorName,
+            Generation = observation.GenerationId,
+            Dependency = observation.DependencyName,
+            ExpectedPath = observation.ExpectedPath,
+            LoadedPath = observation.LoadedPath,
+            Identity = observation.AssemblyIdentity,
+        };
     }
 
     private static List<RewriteDto> MapRewrite(IReadOnlyList<AnalyzerReferenceShadowCopier.RewriteResult> results)

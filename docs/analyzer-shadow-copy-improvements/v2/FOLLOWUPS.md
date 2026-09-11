@@ -12,7 +12,7 @@
 | F-04 | **принято** ([epoch-2-acceptance.md](epoch-2-acceptance.md)) | E2-S5 11/11. Открыт A2-09 (stores). A2-12 закрыт: catalog 63 / 43895 |
 | F-05 | после F-04 | Эпоха 4: write boundary на mapping |
 | F-06 | мерж в main | A1-10: version bump, изоляция test seams |
-| F-07 | не сейчас | U-ARB-02/03 loader, U-ARB-01 matcher, U-ARB-05 sticky flag |
+| F-07 | **эпоха 3 принята** ([epoch-3-acceptance.md](epoch-3-acceptance.md)) | restart-required / main-only. U-ARB-01 matcher и U-ARB-05 sticky не открывать |
 
 ---
 
@@ -154,10 +154,12 @@ ID: F-07
 Severity: — (запрет)
 Depends: evidence gates
 
+Сделано 2026-09-11: эпоха 3 выбрала и реализовала restart-required + main-only
+отказ. ALC и production helper discovery не открывать без новой спецификации.
+
 Не делать в ближайшем чате:
 
-- Эпоха 3 / U-ARB-02: V1→V2 same-identity, ALC, restart-required как реализация.
-- U-ARB-03: production helper discovery.
+- ALC / in-process V2 / production helper discovery сверх main-only отказа.
 - Эпоха 5 / U-ARB-01: смена matcher. Foreign results — evidence, не rollout.
 - U-ARB-05: менять sticky `false`/`omitted` на cached load.
 - Ослаблять oracle assertions ради зелёного filter.

@@ -5,18 +5,19 @@ using Microsoft.CodeAnalysis;
 namespace RoslynMcpServer.Services;
 
 /// <summary>
-/// Minimal, public-API-only <see cref="IAnalyzerAssemblyLoader"/> for analyzer/generator DLLs that
-/// <see cref="AnalyzerReferenceShadowCopier"/> has already copied into a private scratch directory.
-/// Roslyn's own non-locking loader (<c>Microsoft.CodeAnalysis.AnalyzerAssemblyLoader.CreateNonLockingLoader</c>)
-/// is <c>internal</c> and not usable from a normal NuGet consumer, so this type implements the small public
-/// contract itself. Because callers only ever pass paths under a scratch directory (never the analyzer
-/// project's real build output), a plain <see cref="Assembly.LoadFrom(string)"/> is safe here — the file this
-/// process ends up locking is the private copy, not the one a later <c>dotnet build</c> needs to overwrite.
+/// Process-lifetime <see cref="IAnalyzerAssemblyLoader"/> owned by <see cref="SolutionManager"/>.
+/// Loads only paths the caller already prepared (shadow generations), never the analyzer
+/// project's real build output. Same-identity bytes cannot be replaced in-process
+/// (<see cref="AnalyzerLoaderContract.SupportedRefreshMode"/>). Private helper resolution
+/// is instrumented and refused — first-match simple-name probing is not supported.
+/// Workspace clear does not unload assemblies or detach the resolve handler.
 /// </summary>
 public sealed class InProcessAnalyzerAssemblyLoader : IAnalyzerAssemblyLoader
 {
     private readonly ConcurrentDictionary<string, Assembly> _loadedByPath = new(StringComparer.OrdinalIgnoreCase);
-    private readonly ConcurrentDictionary<string, byte> _dependencyDirectories = new(StringComparer.OrdinalIgnoreCase);
+    private readonly ConcurrentDictionary<string, Assembly> _loadedByIdentity = new(StringComparer.OrdinalIgnoreCase);
+    private readonly ConcurrentQueue<DependencyLocationRecord> _dependencyLocations = new();
+    private readonly ConcurrentQueue<DependencyResolveAttempt> _resolveAttempts = new();
     private readonly object _resolveHandlerGate = new();
     private bool _resolveHandlerRegistered;
 
@@ -28,7 +29,22 @@ public sealed class InProcessAnalyzerAssemblyLoader : IAnalyzerAssemblyLoader
             throw new ArgumentException("Path must be absolute.", nameof(fullPath));
         }
 
-        return _loadedByPath.GetOrAdd(fullPath, LoadCore);
+        var normalized = Path.GetFullPath(fullPath);
+        if (_loadedByPath.TryGetValue(normalized, out var existing))
+        {
+            return existing;
+        }
+
+        if (TryGetIdentityCollision(normalized, out var collision))
+        {
+            throw new AnalyzerIdentityCollisionException(
+                AnalyzerLoaderContract.IdentityCollisionReason,
+                normalized,
+                collision.Location,
+                collision.Identity);
+        }
+
+        return _loadedByPath.GetOrAdd(normalized, LoadCore);
     }
 
     /// <summary>
@@ -44,7 +60,34 @@ public sealed class InProcessAnalyzerAssemblyLoader : IAnalyzerAssemblyLoader
             .ToList();
     }
 
+    internal IReadOnlyList<DependencyLocationRecord> SnapshotDependencyLocations() => _dependencyLocations.ToArray();
+
+    internal IReadOnlyList<DependencyResolveAttempt> SnapshotResolveAttempts() => _resolveAttempts.ToArray();
+
+    internal bool ResolveHandlerRegistered
+    {
+        get
+        {
+            lock (_resolveHandlerGate)
+            {
+                return _resolveHandlerRegistered;
+            }
+        }
+    }
+
     internal readonly record struct LoadedAnalyzerAssembly(string RequestedPath, string Identity, string Location);
+
+    internal readonly record struct DependencyLocationRecord(
+        string FullPath,
+        string? Directory,
+        DateTimeOffset RecordedAtUtc);
+
+    internal readonly record struct DependencyResolveAttempt(
+        string RequestedName,
+        string? RequestingAssemblyLocation,
+        string? RequestingAssemblyIdentity,
+        string? SelectedPath,
+        string Outcome);
 
     public void AddDependencyLocation(string fullPath)
     {
@@ -53,23 +96,97 @@ public sealed class InProcessAnalyzerAssemblyLoader : IAnalyzerAssemblyLoader
             return;
         }
 
-        var directory = Path.GetDirectoryName(fullPath);
-        if (!string.IsNullOrEmpty(directory))
+        string? directory = null;
+        try
         {
-            _dependencyDirectories.TryAdd(directory, 0);
+            directory = Path.GetDirectoryName(Path.GetFullPath(fullPath));
         }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            directory = Path.GetDirectoryName(fullPath);
+        }
+
+        _dependencyLocations.Enqueue(new DependencyLocationRecord(
+            fullPath,
+            directory,
+            DateTimeOffset.UtcNow));
+    }
+
+    internal bool TryGetIdentityCollision(string assemblyPath, out LoadedAnalyzerAssembly loaded)
+    {
+        loaded = default;
+        AssemblyName identity;
+        try
+        {
+            identity = AssemblyName.GetAssemblyName(assemblyPath);
+        }
+        catch (Exception ex) when (ex is BadImageFormatException or FileLoadException or ArgumentException)
+        {
+            return false;
+        }
+
+        var key = IdentityKey(identity);
+        if (string.IsNullOrEmpty(key) || !_loadedByIdentity.TryGetValue(key, out var assembly))
+        {
+            return false;
+        }
+
+        if (!string.IsNullOrEmpty(assembly.Location) && PathsEqual(assembly.Location, assemblyPath))
+        {
+            return false;
+        }
+
+        loaded = new LoadedAnalyzerAssembly(
+            assembly.Location,
+            assembly.GetName().FullName ?? assembly.FullName ?? key,
+            assembly.Location);
+        return true;
     }
 
     private Assembly LoadCore(string fullPath)
     {
         EnsureDependencyResolveHandlerRegistered();
-        return Assembly.LoadFrom(fullPath);
+        if (TryGetIdentityCollision(fullPath, out var collision))
+        {
+            throw new AnalyzerIdentityCollisionException(
+                AnalyzerLoaderContract.IdentityCollisionReason,
+                fullPath,
+                collision.Location,
+                collision.Identity);
+        }
+
+        Assembly assembly;
+        try
+        {
+            assembly = Assembly.LoadFrom(fullPath);
+        }
+        catch (FileLoadException)
+        {
+            if (TryGetIdentityCollision(fullPath, out var loaded)
+                || AnalyzerExecutionGate.TryGetProcessIdentityCollision(fullPath, out loaded))
+            {
+                throw new AnalyzerIdentityCollisionException(
+                    AnalyzerLoaderContract.IdentityCollisionReason,
+                    fullPath,
+                    loaded.Location,
+                    loaded.Identity);
+            }
+
+            throw;
+        }
+
+        var key = IdentityKey(assembly.GetName());
+        if (!string.IsNullOrEmpty(key))
+        {
+            _loadedByIdentity.TryAdd(key, assembly);
+        }
+
+        return assembly;
     }
 
     /// <summary>
-    /// Best-effort same-directory probing for analyzer dependencies that are not already loadable from the
-    /// default load context (e.g. a helper library shipped alongside the analyzer DLL). NuGet-provided BCL/Roslyn
-    /// dependencies normally resolve without this; this only covers extra private dependencies.
+    /// Records resolve requests. Does not bind the first matching simple name from an
+    /// unordered process-global directory set — that is explicitly unsupported.
     /// </summary>
     private void EnsureDependencyResolveHandlerRegistered()
     {
@@ -85,28 +202,88 @@ public sealed class InProcessAnalyzerAssemblyLoader : IAnalyzerAssemblyLoader
                 return;
             }
 
-            AppDomain.CurrentDomain.AssemblyResolve += ResolveDependencyFromKnownDirectories;
+            AppDomain.CurrentDomain.AssemblyResolve += RecordUnsupportedDependencyResolve;
             _resolveHandlerRegistered = true;
         }
     }
 
-    private Assembly? ResolveDependencyFromKnownDirectories(object? sender, ResolveEventArgs args)
+    private Assembly? RecordUnsupportedDependencyResolve(object? sender, ResolveEventArgs args)
     {
-        var simpleName = new AssemblyName(args.Name).Name;
-        if (string.IsNullOrEmpty(simpleName))
+        var requested = args.Name;
+        var requesting = args.RequestingAssembly;
+        string? selected = null;
+        var outcome = "unsupported-private-dependency";
+
+        if (AnalyzerHostContractCatalog.IsSharedHostContract(new AssemblyName(requested).Name))
+        {
+            outcome = "host-contract-not-probed";
+        }
+        else
+        {
+            var simpleName = new AssemblyName(requested).Name;
+            if (!string.IsNullOrEmpty(simpleName) && requesting?.Location is { Length: > 0 } requesterPath)
+            {
+                var alongside = Path.Combine(Path.GetDirectoryName(requesterPath) ?? string.Empty, simpleName + ".dll");
+                if (File.Exists(alongside))
+                {
+                    selected = alongside;
+                    outcome = AnalyzerHostContractCatalog.IsSharedHostContract(simpleName)
+                        ? "rejected-generation-private-contract-copy"
+                        : "rejected-private-helper";
+                }
+            }
+        }
+
+        _resolveAttempts.Enqueue(new DependencyResolveAttempt(
+            requested,
+            requesting?.Location,
+            requesting?.GetName().FullName,
+            selected,
+            outcome));
+        return null;
+    }
+
+    private static string? IdentityKey(AssemblyName name)
+    {
+        if (string.IsNullOrEmpty(name.Name))
         {
             return null;
         }
 
-        foreach (var directory in _dependencyDirectories.Keys)
-        {
-            var candidate = Path.Combine(directory, simpleName + ".dll");
-            if (File.Exists(candidate))
-            {
-                return _loadedByPath.GetOrAdd(candidate, Assembly.LoadFrom);
-            }
-        }
-
-        return null;
+        return name.Name + "," + (name.Version?.ToString() ?? "0.0.0.0");
     }
+
+    private static bool PathsEqual(string left, string right)
+    {
+        var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+        try
+        {
+            return string.Equals(Path.GetFullPath(left), Path.GetFullPath(right), comparison);
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            return string.Equals(left, right, comparison);
+        }
+    }
+}
+
+internal sealed class AnalyzerIdentityCollisionException : InvalidOperationException
+{
+    public AnalyzerIdentityCollisionException(
+        string message,
+        string requestedPath,
+        string loadedPath,
+        string identity)
+        : base(message)
+    {
+        RequestedPath = requestedPath;
+        LoadedPath = loadedPath;
+        Identity = identity;
+    }
+
+    public string RequestedPath { get; }
+
+    public string LoadedPath { get; }
+
+    public string Identity { get; }
 }

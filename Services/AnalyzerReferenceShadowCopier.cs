@@ -106,33 +106,7 @@ public static class AnalyzerReferenceShadowCopier
         ArgumentNullException.ThrowIfNull(loader);
         _ = loader;
 
-        var assemblyNameToProjectId = solution.Projects
-            .GroupBy(p => p.AssemblyName, StringComparer.OrdinalIgnoreCase)
-            .Where(g => g.Count() == 1)
-            .ToDictionary(g => g.Key, g => g.First().Id, StringComparer.OrdinalIgnoreCase);
-
-        var workItems = new List<PendingRewrite>();
-        foreach (var project in solution.Projects)
-        {
-            foreach (var analyzerReference in project.AnalyzerReferences)
-            {
-                var fileName = TryGetFileNameWithoutExtension(analyzerReference.FullPath);
-                if (fileName is null
-                    || !assemblyNameToProjectId.TryGetValue(fileName, out var matchedProjectId)
-                    || matchedProjectId == project.Id)
-                {
-                    continue;
-                }
-
-                var matchedProject = solution.GetProject(matchedProjectId);
-                if (matchedProject is null)
-                {
-                    continue;
-                }
-
-                workItems.Add(new PendingRewrite(project, analyzerReference, matchedProject));
-            }
-        }
+        var workItems = EnumerateInSolutionAnalyzerRefs(solution).ToList();
 
         if (workItems.Count == 0)
         {
@@ -228,6 +202,38 @@ public static class AnalyzerReferenceShadowCopier
             FailureSummary: firstFailure);
     }
 
+    internal static IEnumerable<PendingRewrite> EnumerateInSolutionAnalyzerRefs(Solution solution)
+    {
+        ArgumentNullException.ThrowIfNull(solution);
+
+        var assemblyNameToProjectId = solution.Projects
+            .GroupBy(p => p.AssemblyName, StringComparer.OrdinalIgnoreCase)
+            .Where(g => g.Count() == 1)
+            .ToDictionary(g => g.Key, g => g.First().Id, StringComparer.OrdinalIgnoreCase);
+
+        foreach (var project in solution.Projects)
+        {
+            foreach (var analyzerReference in project.AnalyzerReferences)
+            {
+                var fileName = TryGetFileNameWithoutExtension(analyzerReference.FullPath);
+                if (fileName is null
+                    || !assemblyNameToProjectId.TryGetValue(fileName, out var matchedProjectId)
+                    || matchedProjectId == project.Id)
+                {
+                    continue;
+                }
+
+                var matchedProject = solution.GetProject(matchedProjectId);
+                if (matchedProject is null)
+                {
+                    continue;
+                }
+
+                yield return new PendingRewrite(project, analyzerReference, matchedProject);
+            }
+        }
+    }
+
     internal static Solution ApplyMapping(
         Solution solution,
         AnalyzerShadowMapping mapping,
@@ -299,7 +305,7 @@ public static class AnalyzerReferenceShadowCopier
         }
     }
 
-    private readonly record struct PendingRewrite(
+    internal readonly record struct PendingRewrite(
         Project Project,
         AnalyzerReference AnalyzerReference,
         Project MatchedProject);

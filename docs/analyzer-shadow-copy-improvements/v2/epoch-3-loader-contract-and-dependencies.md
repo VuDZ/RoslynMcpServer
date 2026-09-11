@@ -1,99 +1,90 @@
 # Эпоха 3 — Контракт загрузчика и зависимости
 
-Статус: **исследование и выбор режима не завершены; реализация выбранного режима
-планируется после решения**. Зависимости: эпохи 1–2. Открытые решения: U-ARB-02/03.
+Статус: **принято** (U-ARB-02: restart-required; U-ARB-03: main-only + явный отказ).
+Зависимости: эпохи 1–2.
+Приёмка: [epoch-3-acceptance.md](epoch-3-acceptance.md).
+Прогон: [epoch-3-results.md](epoch-3-results.md).
 
 ## E3-S1. Проверка выполнимости и выбор режима
 
 Проверенное content-addressed поколение устанавливает идентичность подготовленных
 байтов; один новый shadow path не доказывает ни их проверку, ни выбранную CLR assembly.
 Текущий минимальный loader использует `Assembly.LoadFrom` и живёт дольше workspace.
-Сначала выполнить production oracle эпохи 1 на .NET 10/Roslyn 5.9.0: V1→V2 с теми
-же assembly name/version для cached load, reset+load в том же процессе и process
-restart. Записать подготовку, generation ID, cache/reopen, реальный loaded path,
-identity и exact marker. Проверить также A→B с одинаковой identity.
 
-По evidence и явному решению U-ARB-02 выбрать один поддержанный контракт:
+Production oracle эпохи 1 на .NET 10 / Roslyn 5.9.0 (и повтор в этой эпохе):
 
-| Допустимый итог | Обязательства реализации |
-| --- | --- |
-| Обновление в процессе подтверждено | Точно перечислить поддержанные операции и конфигурации; V2 исполняется по oracle в этих пределах |
-| Требуется process restart | До исполнения отклонять неподдержанный in-process refresh с диагностикой и действием «перезапустить сервер»; после restart проверять V2 |
+| Операция | Подготовка / generation | Loaded path | Exact marker |
+| --- | --- | --- | --- |
+| V1→V2 cached load | новый hash, overlay не активируется как V2 | старое поколение остаётся в CLR | V2 **не** исполняется |
+| V1→V2 reset+load | новый session mapping не даёт новую CLR identity | loader процесса сохраняется | V2 **не** исполняется |
+| V1→V2 process restart | новое поколение в новом процессе | новый shadow | точный **V2** |
+| A→B same identity | mapping A не переносится | identity уже в процессе | маркер A не выдаётся за B |
 
-В этой ревизии итог не выбран. Неудача первого эксперимента не выбирает restart
-автоматически. Hot reload не является безусловным требованием. Restart-required
-может стать окончательным режимом; он не обязан оставаться временным workaround.
-В любом режиме нельзя молча возвращать known-stale/wrong semantics или исполнять
-сборку другого решения. Успешный refresh файлов не обходится без binding gate.
+Выбранный контракт U-ARB-02: **restart-required**.
+
+Поддержанные операции: первый opt-in load main-only генератора в процессе,
+где эта assembly identity ещё не загружена; process restart + load для новой
+версии с той же identity. Неподдержанный in-process refresh (cached load и
+reset+load при уже загруженной identity) отклоняется до исполнения с
+диагностикой и действием «restart the MCP server process». После restart
+проверяется exact V2.
+
+Неудача эксперимента не выбирала restart автоматически: in-process update
+не подтверждён, hot reload не требуется, restart-required — окончательный
+режим этой реализации. Нельзя молча возвращать known-stale/wrong semantics
+или исполнять сборку другого решения.
 
 ## E3-S2. Подготовка и discovery зависимостей
 
-Сначала проверить fixture с явно известным набором main DLL и private helper DLL.
-Разделить отсутствие подготовленного файла, binding failure и execution result.
-Проверить helper-only change при неизменной main DLL, missing/incompatible helper
-и два генератора с конфликтующими версиями одноимённой helper.
+Fixture с явным main DLL + private helper DLL проверен. Разделены: отсутствие
+подготовленного файла, binding/dependency refusal и execution result.
 
-До production support выбрать и проверить источник полного приватного runtime-набора:
-evaluated build metadata, manifest или другой доказанный механизм. Копирование всех
-`*.dll` общего output с blacklist не является production discovery. Если источник
-не установлен, по U-ARB-03 явно ограничить поддерживаемые сценарии main-only и
-выдавать понятный отказ для зависимостей; не угадывать набор файлов.
+Production источник полного private runtime-набора не установлен. По U-ARB-03
+поддержка ограничена **main-only**: AssemblyRef вне точного
+`AnalyzerHostContractCatalog` — отказ. Копирование всех `*.dll` output с
+blacklist не используется. Private DLL из реального build output не являются
+fallback. Helper-only change не дополняет main-only поколение и не считается
+успешной генерацией.
 
-Утверждённый набор готовится по отдельной dependency-set политике эпохи 2; все
-обязательные пути и хеши входят в identity. Изменение только helper должно менять
-поколение этой политики. Main-only поколение не дополняется и не выдаётся за полное.
-Private DLL из реального build output не используются как fallback: это возвращает
-риск lock и обходит подготовленный набор.
+Конфликтующие версии одноимённой helper отклоняются тем же main-only
+отказом (`DependencyUnsupported`), до любой версии: requester-scoped
+resolution не реализован и отдельный reason не используется.
 
 ## E3-S3. Binding и время жизни
 
-Во время feasibility инструментировать `AddDependencyLocation`, requesting assembly,
-выбранную dependency path и generation. Поддержка конфликтующих helpers требует
-доказанного requester/generation-scoped resolution. Иначе конфигурация явно
-неподдержана и отклоняется до выдачи семантики. Недопустим поиск первого совпадения
-simple name в неупорядоченном process-global наборе каталогов.
+`AddDependencyLocation` записывает path/directory/время. Resolve handler
+записывает requesting assembly, requested name и исход; **не** берёт первый
+`simpleName.dll` из неупорядоченного process-global набора. Конфликтующие
+helpers не поддерживаются.
 
-ALC остаётся условным кандидатом после разделения discovery/preparation/binding.
-Перед любым ALC prototype перечислить фактические shared host contract assemblies,
-их identity и правила совместимости версий; запретить generation-private копии
-этих контрактов. Общая маска `System.*` и название Roslyn не заменяют точного списка.
-Добавить negative duplicate-contract test и positive execution test с совместимой
-идентичностью типов генератора и хоста. Эта спецификация не выбирает ALC или
-«один loader на поколение» без evidence и не приписывает им security sandbox.
+ALC не выбран. Shared host contracts перечислены точно в
+`AnalyzerHostContractCatalog` (не маска `System.*`). Generation-private копии
+этих контрактов не резолвятся из каталога поколения. Negative test:
+положенный рядом `Microsoft.CodeAnalysis.dll` не загружается loader'ом.
+Positive: main-only генератор исполняется с host type identity
+(`IIncrementalGenerator`).
 
-Описать фактического владельца loader/context/resolver. Очистка обработчиков и
-контекстов привязана к его завершению и отсутствию зависимых операций. Workspace
-clear не обещает снятие handler или выгрузку CLR assemblies; старые snapshots и
-compilation могут их удерживать. Не вводить обещание немедленной выгрузки.
+Владелец loader/resolver — `SolutionManager` (время жизни процесса).
+`ClearWorkspaceAsync` не снимает handler и не выгружает CLR assemblies.
+Немедленная выгрузка не обещается.
 
 ## E3-S4. Состояния и ошибки
 
-Различать как минимум `prepared` (файлы пригодны), `reference rewritten` (ссылка
-в overlay заменена), `load failed` и `execution observed` (результат реально
-наблюдался). Rewrite count в load response относится только к ссылкам. Частичная
-подготовка и stale refresh из эпохи 2 не являются успехом исполнения.
+Различаются `prepared`, `reference rewritten`, `load failed`,
+`execution observed`, плюс `restart-required` / `dependency-unsupported` /
+`identity-collision`. Rewrite count в ответе `load_workspace` — только ссылки.
+Публичная сводка краткая; внутренний `AnalyzerExecutionObservation` хранит
+стадии, project/generator/generation и missing/conflicting dependency.
 
-Loading остаётся lazy; eager validation требует отдельного измеренного решения.
-На первом использовании сопоставлять load failure с project, генератором,
-generation и missing/conflicting dependency. В реализации проверить фактически
-доступный канал Roslyn load errors/compilation diagnostics; не полагаться на то,
-что вся ошибка обязательно возникает в одном `GetSemanticModelAsync`.
-Внутренний результат сохраняет стадии и причину; публичная сводка остаётся краткой.
+Loading остаётся lazy. First-use (`ObserveAnalyzerExecution` / compilation)
+сопоставляет отказ с project, генератором и причиной. Канал: metadata inspect
+до load, исключение `GetAnalyzers`, identity collision в loader; пустые
+diagnostics по-прежнему не oracle версии.
 
 ## E3-S5. Приёмка и ресурсы
 
-Исследование завершено, когда evidence записано и режим выбран явно. Реализация
-завершена отдельно, когда его acceptance проходит: exact V1/V2, A/B isolation,
-безопасный отказ для неподдержанного refresh/конфликтов, корректный first-use failure,
-helper-only invalidation и исполнение только для объявленного dependency support.
-Неподдержанный сценарий проверяется на отказ, а не помечается как успешная генерация.
-
-После семантики и каждого write path эпохи 1 принудительная сборка должна реально
-перезаписывать main/helper output. Existing-path anti-lock проверяется независимо
-от inverse overlay; возможная raw-workspace утечка остаётся U-ARB-04.
-Измерить память и диск на серии повторных загрузок, удержание старых поколений,
-время жизни владельцев и стоимость/ожидаемую частоту restart. Зафиксировать
-ограничения поддержанной матрицы без выдуманного численного SLA.
+Исследование завершено: evidence эпохи 1 записано, режим выбран явно.
+Реализация принимается отдельным прогоном E3-S5.
 
 Нативные зависимости и отдельный процесс исполнения генераторов остаются вне
-эпохи; необходимость такого расширения требует отдельной спецификации.
+эпохи.

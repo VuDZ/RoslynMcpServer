@@ -71,6 +71,7 @@ public sealed class HostResponse
     public List<LoadedAssemblyDto>? LoadedAssemblies { get; set; }
     public EnvironmentDto? Environment { get; set; }
     public ConcurrencyDto? Concurrency { get; set; }
+    public ExecutionDto? Execution { get; set; }
 }
 
 public sealed class RewriteDto
@@ -99,6 +100,23 @@ public sealed class EnvironmentDto
     public string? Roslyn { get; set; }
     public string? Bootstrap { get; set; }
     public string? DotNetHost { get; set; }
+    public long WorkingSetBytes { get; set; }
+    public long PrivateMemoryBytes { get; set; }
+}
+
+public sealed class ExecutionDto
+{
+    public string Status { get; set; } = "";
+    public string? Stage { get; set; }
+    public string? Reason { get; set; }
+    public string? Action { get; set; }
+    public string? Project { get; set; }
+    public string? Generator { get; set; }
+    public string? Generation { get; set; }
+    public string? Dependency { get; set; }
+    public string? ExpectedPath { get; set; }
+    public string? LoadedPath { get; set; }
+    public string? Identity { get; set; }
 }
 
 public sealed class ConcurrencyDto

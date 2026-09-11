@@ -73,10 +73,10 @@
 `shadowCopyInSolutionAnalyzers=true`. Успешный rewrite означает замену ссылок;
 исполнение подтверждается при семантическом использовании.
 
-После изменения генератора завершить build и выполнить операцию artifact refresh,
-поддержанную выбранным режимом U-ARB-02. Если режим требует restart, нужен новый
-процесс сервера; reset+load его не заменяет. До выбора режима нельзя обещать V2
-ни по cached load, ни по reset+load.
+После изменения генератора завершить build и **перезапустить процесс MCP сервера**,
+затем `load_workspace` с `shadowCopyInSolutionAnalyzers=true`. Выбранный режим
+U-ARB-02 — restart-required: cached load и reset+load готовят файлы, но не
+исполняют V2. Reset+load не заменяет restart.
 
 В отличие от v1.3.5, edit Consumer после эпох 2/4 не перечитывает output генератора
 и сохраняет активный mapping. Прежний случайный pickup новых bytes при edit больше

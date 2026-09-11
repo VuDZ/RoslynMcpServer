@@ -58,8 +58,9 @@ public sealed class SolutionManager
     private Solution? _solution;
     // Overlay state is not one enabled bool: mapping is prepared/active generations,
     // _lastRefreshStale/_lastShadowCopyResults are the last refresh, sticky
-    // _shadowCopyAnalyzersEnabled is U-ARB-05 active overlay. Observed CLR execution
-    // is not stored (epoch 3). Holding mapping for an in-flight write is epoch 4.
+    // _shadowCopyAnalyzersEnabled is U-ARB-05 active overlay.
+    // _lastExecutionObservation is epoch-3 prepared/rewritten/load-failed/execution/restart.
+    // Holding mapping for an in-flight write is epoch 4.
     private bool _shadowCopyAnalyzersEnabled;
     private string? _shadowCopyRootDirectory;
     private Guid _loadSessionId;
@@ -72,6 +73,7 @@ public sealed class SolutionManager
     private int _overlayPrepareCount;
     private IReadOnlyList<AnalyzerReferenceShadowCopier.RewriteResult> _lastShadowCopyResults =
         Array.Empty<AnalyzerReferenceShadowCopier.RewriteResult>();
+    private AnalyzerExecutionObservation _lastExecutionObservation = AnalyzerExecutionObservation.None;
     private string? _loadedPath;
     private string? _loadedConfiguration;
     private string? _loadedPlatform;
@@ -106,6 +108,23 @@ public sealed class SolutionManager
     internal int OverlayPrepareCount => _overlayPrepareCount;
 
     internal IReadOnlyList<AnalyzerReferenceShadowCopier.RewriteResult> LastShadowCopyResults => _lastShadowCopyResults;
+
+    internal AnalyzerExecutionObservation LastExecutionObservation => _lastExecutionObservation;
+
+    /// <summary>
+    /// First-use observation: maps a load/execution failure to project, generator,
+    /// generation, and missing/conflicting dependency. Loading stays lazy until this
+    /// or a semantic compilation runs.
+    /// </summary>
+    internal AnalyzerExecutionObservation ObserveAnalyzerExecution(Project project)
+    {
+        ArgumentNullException.ThrowIfNull(project);
+        _lastExecutionObservation = AnalyzerExecutionGate.ObserveFirstUse(
+            project,
+            _lastExecutionObservation,
+            _analyzerAssemblyLoader);
+        return _lastExecutionObservation;
+    }
 
     internal bool ShadowCopyAnalyzersEnabled => _shadowCopyAnalyzersEnabled;
 
@@ -233,7 +252,7 @@ public sealed class SolutionManager
                 return;
             }
 
-            _solution = ApplyShadowCopyOverlayIfEnabled(workspace.CurrentSolution);
+            _solution = PublishInMemorySolution(workspace.CurrentSolution);
             LogProcessWorkingSet("document_update");
         }
         finally
@@ -378,10 +397,27 @@ public sealed class SolutionManager
 
     /// <summary>
     /// Reapplies the stored analyzer-reference mapping on top of <paramref name="solution"/> with no analyzer
-    /// file I/O. Every caller that would otherwise cache <c>workspace.CurrentSolution</c> into <c>_solution</c>
+    /// file I/O, then applies the epoch-3 binding gate (identity collision / unsupported helpers).
+    /// Every caller that would otherwise cache <c>workspace.CurrentSolution</c> into <c>_solution</c>
     /// must route through here so the overlay survives document edit / disk sync. A no-op when this load
-    /// session has no mapping.
+    /// session has no mapping and the gate has nothing to block.
     /// </summary>
+    private Solution PublishInMemorySolution(Solution solution)
+    {
+        if (_lastExecutionObservation.RequiresRestart)
+        {
+            return AnalyzerExecutionGate.StripInSolutionAnalyzerReferences(solution);
+        }
+
+        solution = ApplyShadowCopyOverlayIfEnabled(solution);
+        if (!_lastExecutionObservation.PermitsExecution)
+        {
+            solution = AnalyzerExecutionGate.BlockUnsupportedReferences(solution, _analyzerAssemblyLoader);
+        }
+
+        return solution;
+    }
+
     private Solution ApplyShadowCopyOverlayIfEnabled(Solution solution)
     {
         var mapping = _analyzerShadowMapping;
@@ -407,19 +443,99 @@ public sealed class SolutionManager
         string shadowRoot,
         AnalyzerShadowPrepareOutcome prepared)
     {
-        _lastShadowCopyResults = prepared.Results;
-        _lastRefreshStale = prepared.UsedPreviousMappingAsStale
-            || prepared.Mapping.Entries.Any(e => e.StaleGeneration);
+        var gate = EvaluatePreparedMapping(prepared.Mapping);
+        if (gate.Status == AnalyzerExecutionStatus.None && !_lastExecutionObservation.PermitsExecution)
+        {
+            gate = _lastExecutionObservation;
+        }
 
-        if (prepared.Mapping.HasAnyApplied)
+        _lastExecutionObservation = gate;
+        _lastRefreshStale = prepared.UsedPreviousMappingAsStale
+            || prepared.Mapping.Entries.Any(e => e.StaleGeneration)
+            || !gate.PermitsExecution;
+
+        var results = ToGatedRewriteResults(prepared.Results, gate);
+        _lastShadowCopyResults = results;
+
+        if (gate.PermitsExecution && prepared.Mapping.HasAnyApplied)
         {
             _analyzerShadowMapping = prepared.Mapping;
             _shadowCopyAnalyzersEnabled = true;
             _shadowCopyRootDirectory = shadowRoot;
-            _solution = prepared.Mapping.Apply(workspaceSolution, _analyzerAssemblyLoader);
+            _lastExecutionObservation = gate.WithStage(
+                AnalyzerPreparationStage.ReferenceRewritten,
+                AnalyzerExecutionStatus.ReferenceRewritten);
+            _solution = PublishInMemorySolution(workspaceSolution);
+            return results;
         }
 
-        return prepared.Results;
+        if (!gate.PermitsExecution && _analyzerShadowMapping is { HasAnyApplied: true } previous)
+        {
+            var stale = previous.WithStale(gate.Reason ?? AnalyzerLoaderContract.RestartRequiredReason);
+            _analyzerShadowMapping = stale;
+            _lastRefreshStale = true;
+            _shadowCopyRootDirectory = shadowRoot;
+            // Restart-required must not keep stale V1 in compilation (A3-01).
+            // File-prepare failure still reapplies the previous mapping (epoch 2).
+            _shadowCopyAnalyzersEnabled = !gate.RequiresRestart;
+            _solution = PublishInMemorySolution(workspaceSolution);
+            return results;
+        }
+
+        if (prepared.Mapping.HasAnyApplied && !gate.PermitsExecution)
+        {
+            _analyzerShadowMapping = null;
+            _shadowCopyAnalyzersEnabled = false;
+            _shadowCopyRootDirectory = shadowRoot;
+            _solution = PublishInMemorySolution(workspaceSolution);
+        }
+
+        return results;
+    }
+
+    private AnalyzerExecutionObservation EvaluatePreparedMapping(AnalyzerShadowMapping mapping)
+    {
+        AnalyzerExecutionObservation? firstBlock = null;
+        AnalyzerExecutionObservation? firstPrepared = null;
+        foreach (var entry in mapping.Entries)
+        {
+            var observation = AnalyzerExecutionGate.EvaluatePreparedEntry(entry, _analyzerAssemblyLoader);
+            if (!observation.PermitsExecution)
+            {
+                firstBlock ??= observation;
+            }
+            else if (observation.Status == AnalyzerExecutionStatus.Prepared)
+            {
+                firstPrepared ??= observation;
+            }
+        }
+
+        return firstBlock ?? firstPrepared ?? AnalyzerExecutionObservation.None;
+    }
+
+    private static IReadOnlyList<AnalyzerReferenceShadowCopier.RewriteResult> ToGatedRewriteResults(
+        IReadOnlyList<AnalyzerReferenceShadowCopier.RewriteResult> results,
+        AnalyzerExecutionObservation gate)
+    {
+        if (gate.PermitsExecution)
+        {
+            return results;
+        }
+
+        return results.Select(result =>
+        {
+            if (!result.Applied)
+            {
+                return result;
+            }
+
+            return result with
+            {
+                Applied = false,
+                SkipReason = gate.Reason ?? AnalyzerLoaderContract.RestartRequiredReason,
+                StaleGeneration = true,
+            };
+        }).ToList();
     }
 
     private IReadOnlyList<AnalyzerReferenceShadowCopier.RewriteResult> CompleteFailedPrepare(
@@ -427,6 +543,16 @@ public sealed class SolutionManager
         string shadowRoot,
         string reason)
     {
+        _lastExecutionObservation = new AnalyzerExecutionObservation
+        {
+            Status = AnalyzerExecutionStatus.LoadFailed,
+            HighestStage = AnalyzerPreparationStage.LoadFailed,
+            Reason = reason,
+            ProjectName = _analyzerShadowMapping?.Entries.FirstOrDefault()?.ProjectName,
+            GeneratorName = _analyzerShadowMapping?.Entries.FirstOrDefault()?.MatchedProjectName,
+            GenerationId = _analyzerShadowMapping?.Entries.FirstOrDefault()?.GenerationId,
+        };
+
         if (_analyzerShadowMapping is { HasAnyApplied: true } previous)
         {
             var stale = previous.WithStale(reason);
@@ -435,12 +561,13 @@ public sealed class SolutionManager
             _lastRefreshStale = true;
             _shadowCopyAnalyzersEnabled = true;
             _shadowCopyRootDirectory = shadowRoot;
-            _solution = stale.Apply(workspaceSolution, _analyzerAssemblyLoader);
+            _solution = PublishInMemorySolution(workspaceSolution);
             return _lastShadowCopyResults;
         }
 
         _lastShadowCopyResults = Array.Empty<AnalyzerReferenceShadowCopier.RewriteResult>();
         _lastRefreshStale = false;
+        _lastExecutionObservation = AnalyzerExecutionObservation.None;
         return _lastShadowCopyResults;
     }
 
@@ -456,7 +583,7 @@ public sealed class SolutionManager
     /// </summary>
     private Solution RevertAnalyzerReferenceOverlayForApply(Solution candidate, Solution workspaceCurrentSolution)
     {
-        if (!_shadowCopyAnalyzersEnabled)
+        if (_shadowCopyAnalyzersEnabled is false && _lastExecutionObservation.PermitsExecution)
         {
             return candidate;
         }
@@ -670,7 +797,7 @@ public sealed class SolutionManager
                 : RevertAnalyzerReferenceOverlayForApply(newSolution, workspace.CurrentSolution);
             if (workspace is not null && workspace.TryApplyChanges(solutionToApply))
             {
-                _solution = ApplyShadowCopyOverlayIfEnabled(workspace.CurrentSolution);
+                _solution = PublishInMemorySolution(workspace.CurrentSolution);
             }
             else
             {
@@ -719,7 +846,7 @@ public sealed class SolutionManager
 
         if (workspace.TryApplyChanges(newSolution))
         {
-            _solution = ApplyShadowCopyOverlayIfEnabled(workspace.CurrentSolution);
+            _solution = PublishInMemorySolution(workspace.CurrentSolution);
         }
     }
 
@@ -745,6 +872,7 @@ public sealed class SolutionManager
             _analyzerShadowMapping = null;
             _loadSessionId = Guid.Empty;
             _lastRefreshStale = false;
+            _lastExecutionObservation = AnalyzerExecutionObservation.None;
             _loadedPath = null;
             _loadedConfiguration = null;
             _loadedPlatform = null;
@@ -839,6 +967,7 @@ public sealed class SolutionManager
         _analyzerShadowMapping = null;
         _loadSessionId = Guid.NewGuid();
         _lastRefreshStale = false;
+        _lastExecutionObservation = AnalyzerExecutionObservation.None;
         _lastLoadWasCacheHit = false;
         _lastLoadReopenedGraph = true;
         _lastPrepareAttempted = false;
@@ -887,7 +1016,10 @@ public sealed class SolutionManager
         }
 
         _workspace = workspace;
-        _solution = ApplyShadowCopyOverlayIfEnabled(workspace.CurrentSolution);
+        _lastExecutionObservation = AnalyzerExecutionGate.EvaluateInSolutionAnalyzers(
+            workspace.CurrentSolution,
+            _analyzerAssemblyLoader);
+        _solution = PublishInMemorySolution(workspace.CurrentSolution);
         _loadedPath = fullPath;
         _loadedConfiguration = configuration;
         _loadedPlatform = platform;
@@ -965,7 +1097,7 @@ public sealed class SolutionManager
             return;
         }
 
-        _solution = ApplyShadowCopyOverlayIfEnabled(workspace.CurrentSolution);
+        _solution = PublishInMemorySolution(workspace.CurrentSolution);
         _logger.LogInformation(
             "workspace_disk_sync updated={Updated} added={Added} removed={Removed} unchanged={Unchanged} refreshAll={RefreshAll} elapsedMs={ElapsedMs}",
             result.Updated,
