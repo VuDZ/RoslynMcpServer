@@ -1,6 +1,6 @@
 # Эпоха 4 — Единая граница записи workspace
 
-Статус: **планируется**. Зависимости: эпоха 1 и контракт original↔shadow mapping
+Статус: **принято** (v1.3.8, [epoch-4-acceptance.md](epoch-4-acceptance.md)). Зависимости: эпоха 1 и контракт original↔shadow mapping
 [эпохи 2](epoch-2-immutable-shadow-copies.md). Binding gate эпохи 3 независим.
 
 ## E4-S1. Контекст операции и preflight

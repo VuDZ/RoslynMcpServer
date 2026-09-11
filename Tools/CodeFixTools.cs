@@ -110,9 +110,16 @@ public sealed class CodeFixTools
             var (newSolution, changedPaths) = await CodeFixHelper.ApplyFixAsync(
                 document, line, column, diagnosticId, fixIndex, cancellationToken);
 
-            var writtenPaths = await _solutionManager.ApplySolutionChangesToDiskAsync(
+            var write = await _solutionManager.ApplySolutionChangesToDiskAsync(
                 baseSolution, newSolution, cancellationToken);
+            if (!write.IsFullSuccess)
+            {
+                return ToolTelemetry.TraceAndReturn(
+                    nameof(ApplyCodeFix),
+                    write.FormatAdapterMessage($"Applied fix [{fixIndex}] for `{diagnosticId}` at line {line}, column {column}."));
+            }
 
+            var writtenPaths = write.SavedPaths;
             var sb = new StringBuilder();
             sb.AppendLine($"Applied fix [{fixIndex}] for `{diagnosticId}` at line {line}, column {column}.");
             sb.AppendLine($"Updated files ({writtenPaths.Count}):");

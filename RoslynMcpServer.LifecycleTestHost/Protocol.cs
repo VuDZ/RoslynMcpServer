@@ -18,6 +18,7 @@ public sealed class HostCommand
     public string? GatePath { get; set; }
     public int TimeoutMs { get; set; } = 15_000;
     public bool NoIncremental { get; set; } = true;
+    public int CancelAfterWrites { get; set; }
 }
 
 public sealed class HostResponse
@@ -66,6 +67,13 @@ public sealed class HostResponse
 
     public bool SameSnapshotAfterSymbol { get; set; }
     public string? RenamedTo { get; set; }
+
+    public string? WriteStatus { get; set; }
+    public string? WriteReason { get; set; }
+    public string[]? SavedPaths { get; set; }
+    public bool OverlayPublished { get; set; }
+    public bool UnappliedProjectState { get; set; }
+    public bool WorkspaceApplied { get; set; }
 
     public List<RewriteDto>? Rewrite { get; set; }
     public List<LoadedAssemblyDto>? LoadedAssemblies { get; set; }

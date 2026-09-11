@@ -68,6 +68,9 @@ private DLL из real output не используются как fallback. То
 Write boundary предотвращает сохранение известных overlay references, но ни одна
 сторона не показала конкретную операцию, которая загружает существующий analyzer
 напрямую из `workspace.CurrentSolution` до overlay или вне него.
+Эпоха 4 (принята): inverse + forced rebuild на full-success write paths
+(missing и existing-correct-path) меняет hash real output — lock-утечки не видно.
+Это измерение persistence, не выбор load boundary.
 
 Недостающие evidence:
 

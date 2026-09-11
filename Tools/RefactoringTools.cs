@@ -48,10 +48,15 @@ public sealed class RefactoringTools
                 return ToolTelemetry.TraceAndReturn(toolName, "Preview only — no files written." + Environment.NewLine + StructuralRefactoringHelper.FormatPreview(preview));
             }
 
-            var writtenPaths = await _solutionManager.ApplySolutionChangesToDiskAsync(baseSolution, newSolution, cancellationToken);
+            var write = await _solutionManager.ApplySolutionChangesToDiskAsync(baseSolution, newSolution, cancellationToken);
+            if (!write.IsFullSuccess)
+            {
+                return ToolTelemetry.TraceAndReturn(toolName, write.FormatAdapterMessage("Extract interface was not fully applied."));
+            }
+
             return ToolTelemetry.TraceAndReturn(
                 toolName,
-                $"Extract interface applied. Files touched: {writtenPaths.Count}{Environment.NewLine}{StructuralRefactoringHelper.FormatPreview(preview)}");
+                $"Extract interface applied. Files touched: {write.SavedPaths.Count}{Environment.NewLine}{StructuralRefactoringHelper.FormatPreview(preview)}");
         }
         catch (OperationCanceledException)
         {
@@ -93,10 +98,15 @@ public sealed class RefactoringTools
                 return ToolTelemetry.TraceAndReturn(toolName, "Preview only — no files written." + Environment.NewLine + StructuralRefactoringHelper.FormatPreview(preview));
             }
 
-            var writtenPaths = await _solutionManager.ApplySolutionChangesToDiskAsync(baseSolution, newSolution, cancellationToken);
+            var write = await _solutionManager.ApplySolutionChangesToDiskAsync(baseSolution, newSolution, cancellationToken);
+            if (!write.IsFullSuccess)
+            {
+                return ToolTelemetry.TraceAndReturn(toolName, write.FormatAdapterMessage("Move type was not fully applied."));
+            }
+
             return ToolTelemetry.TraceAndReturn(
                 toolName,
-                $"Move type applied. Files touched: {writtenPaths.Count}{Environment.NewLine}{StructuralRefactoringHelper.FormatPreview(preview)}");
+                $"Move type applied. Files touched: {write.SavedPaths.Count}{Environment.NewLine}{StructuralRefactoringHelper.FormatPreview(preview)}");
         }
         catch (OperationCanceledException)
         {

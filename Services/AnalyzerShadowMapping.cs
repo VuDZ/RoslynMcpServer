@@ -92,6 +92,114 @@ internal sealed class AnalyzerShadowMapping
         return solution;
     }
 
+    /// <summary>
+    /// Replaces only known shadow references from this mapping with their originals.
+    /// Unrelated references, order, and multiplicity are preserved. A removed project
+    /// is not recreated. Does not wipe the analyzer list to the workspace copy.
+    /// </summary>
+    public Solution InvertKnownReplacements(
+        Solution candidate,
+        Solution? workspaceCurrent,
+        IAnalyzerAssemblyLoader loader)
+    {
+        ArgumentNullException.ThrowIfNull(candidate);
+        ArgumentNullException.ThrowIfNull(loader);
+
+        foreach (var projectId in candidate.ProjectIds.ToList())
+        {
+            var project = candidate.GetProject(projectId);
+            if (project is null)
+            {
+                continue;
+            }
+
+            var projectEntries = Entries.Where(e => e.ProjectId == projectId && e.Applied).ToList();
+            if (projectEntries.Count == 0)
+            {
+                continue;
+            }
+
+            var workspaceProject = workspaceCurrent?.GetProject(projectId);
+            var changed = false;
+            var newReferences = new List<AnalyzerReference>(project.AnalyzerReferences.Count);
+            foreach (var reference in project.AnalyzerReferences)
+            {
+                var entry = FindEntryByShadowPath(projectEntries, reference);
+                if (entry is { OriginalFullPath: not null })
+                {
+                    newReferences.Add(RestoreOriginal(entry, workspaceProject, loader));
+                    changed = true;
+                }
+                else
+                {
+                    newReferences.Add(reference);
+                }
+            }
+
+            if (changed)
+            {
+                candidate = candidate.WithProjectAnalyzerReferences(projectId, newReferences);
+            }
+        }
+
+        return candidate;
+    }
+
+    internal static bool PathsEqual(string left, string right)
+    {
+        var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+        try
+        {
+            return string.Equals(Path.GetFullPath(left), Path.GetFullPath(right), comparison);
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            return string.Equals(left, right, comparison);
+        }
+    }
+
+    private static AnalyzerReference RestoreOriginal(
+        AnalyzerShadowReferenceEntry entry,
+        Project? workspaceProject,
+        IAnalyzerAssemblyLoader loader)
+    {
+        if (workspaceProject is not null)
+        {
+            foreach (var original in workspaceProject.AnalyzerReferences)
+            {
+                if (original.FullPath is not null
+                    && entry.OriginalFullPath is not null
+                    && PathsEqual(original.FullPath, entry.OriginalFullPath))
+                {
+                    return original;
+                }
+            }
+        }
+
+        return new AnalyzerFileReference(entry.OriginalFullPath!, loader);
+    }
+
+    private static AnalyzerShadowReferenceEntry? FindEntryByShadowPath(
+        IReadOnlyList<AnalyzerShadowReferenceEntry> projectEntries,
+        AnalyzerReference reference)
+    {
+        if (string.IsNullOrWhiteSpace(reference.FullPath))
+        {
+            return null;
+        }
+
+        foreach (var entry in projectEntries)
+        {
+            if (!string.IsNullOrWhiteSpace(entry.ShadowCopyPath)
+                && PathsEqual(entry.ShadowCopyPath, reference.FullPath))
+            {
+                return entry;
+            }
+        }
+
+        return null;
+    }
+
     private static AnalyzerShadowReferenceEntry? FindEntry(
         IReadOnlyList<AnalyzerShadowReferenceEntry> projectEntries,
         AnalyzerReference reference)
@@ -121,19 +229,6 @@ internal sealed class AnalyzerShadowMapping
         }
 
         return null;
-    }
-
-    private static bool PathsEqual(string left, string right)
-    {
-        var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
-        try
-        {
-            return string.Equals(Path.GetFullPath(left), Path.GetFullPath(right), comparison);
-        }
-        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
-        {
-            return string.Equals(left, right, comparison);
-        }
     }
 
     private static string? TryFileNameWithoutExtension(string? path)

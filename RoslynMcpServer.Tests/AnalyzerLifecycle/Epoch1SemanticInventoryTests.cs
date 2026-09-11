@@ -16,18 +16,18 @@ public sealed class Epoch1SemanticInventoryTests
         ("Tools/WorkspaceTools.cs", "getter-after-enable", "LoadWorkspace enable→GetCurrentSolution for summary; same load session."),
         ("Tools/ServerLifecycleTools.cs", "getter", "get_mcp_server_info reads overlay snapshot; no flush."),
         ("Tools/UtilityTools.cs", "getter", "Non-rename tools read GetCurrentSolution without flush."),
-        ("Tools/UtilityTools.cs", "flush-then-reget", "RenameSymbol: FindDocumentAsync (flush) then GetCurrentSolution() again after symbol resolution — must keep one base."),
+        ("Tools/UtilityTools.cs", "flush-then-reget", "RenameSymbol: FindDocumentAsync (flush) then GetCurrentSolution() again after symbol resolution — persist via ApplySolutionChangesToDiskAsync write boundary."),
         ("Tools/CodeAnalysisTools.cs", "flush", "get_diagnostics_for_file / get_class_skeleton use FindDocumentAsync."),
         ("Tools/CodeAnalysisTools.cs", "getter", "explore_assembly / decompile_* / skeleton resolve via GetCurrentSolution (no compilation of overlay generators)."),
         ("Tools/CodeFixTools.cs", "flush-then-apply", "FindDocumentAsync then ApplySolutionChangesToDiskAsync."),
         ("Tools/RefactoringTools.cs", "flush-then-apply", "FindDocumentAsync then ApplySolutionChangesToDiskAsync."),
         ("Tools/AstTools.cs", "flush-then-apply", "FindDocumentAsync then ApplySolutionChangesToDiskAsync."),
-        ("Tools/EditingTools.cs", "write-then-update", "File write + UpdateDocumentInMemoryAsync; no flush."),
+        ("Tools/EditingTools.cs", "write-then-update", "UpdateDocumentInMemoryAsync writes after preflight; non-workspace files still write directly."),
         ("Tools/TestTools.cs", "flush-getter", "GetCurrentSolutionAfterDiskSyncAsync and FindDocumentAsync."),
         ("Tools/NavigationTools.cs", "flush-then-reget", "FindSymbolReferences: FindDocumentAsync then GetCurrentSolution()."),
         ("Tools/NavigationTools.cs", "flush-getter", "FindUsages / implementations / definition use GetCurrentSolutionAfterDiskSyncAsync."),
         ("Services/SolutionManager.cs", "overlay-read", "GetCurrentSolution returns _solution overlay or workspace fallback; does not prepare or load assemblies."),
-        ("Services/SolutionManager.cs", "raw-workspace", "workspace.CurrentSolution used for TryApplyChanges, document id lookup, and overlay source — not a semantic compilation entry except via tests."),
+        ("Services/SolutionManager.cs", "raw-workspace", "workspace.CurrentSolution is the write-boundary base and overlay source; the only production TryApplyChanges is TryApplyWorkspaceChanges."),
     };
 
     [Fact]

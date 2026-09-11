@@ -2,6 +2,7 @@ using System.ComponentModel;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Server;
 using RoslynMcpServer.Diagnostics;
+using RoslynMcpServer.Services;
 
 namespace RoslynMcpServer.Tools;
 
@@ -41,16 +42,17 @@ public sealed class EditingTools
             }
 
             var text = content ?? string.Empty;
-            _solutionManager.SuppressDiskWatchForPath(fullPath);
-            await File.WriteAllTextAsync(fullPath, text, cancellationToken);
-
-            try
+            var write = await _solutionManager.UpdateDocumentInMemoryAsync(fullPath, text, cancellationToken);
+            if (write.Status == WorkspaceWriteStatus.Skipped)
             {
-                await _solutionManager.UpdateDocumentInMemoryAsync(fullPath, text, cancellationToken);
+                _solutionManager.SuppressDiskWatchForPath(fullPath);
+                await File.WriteAllTextAsync(fullPath, text, cancellationToken);
             }
-            catch (Exception ex)
+            else if (!write.IsFullSuccess)
             {
-                _logger.LogWarning(ex, "In-memory workspace sync failed after write for {FilePath}", fullPath);
+                return ToolTelemetry.TraceAndReturn(
+                    nameof(WriteFile),
+                    write.FormatAdapterMessage($"Failed to write `{fullPath}`."));
             }
 
             return ToolTelemetry.TraceAndReturn(

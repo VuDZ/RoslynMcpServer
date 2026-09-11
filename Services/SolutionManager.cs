@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Formatting;
@@ -74,6 +75,9 @@ public sealed class SolutionManager
     private IReadOnlyList<AnalyzerReferenceShadowCopier.RewriteResult> _lastShadowCopyResults =
         Array.Empty<AnalyzerReferenceShadowCopier.RewriteResult>();
     private AnalyzerExecutionObservation _lastExecutionObservation = AnalyzerExecutionObservation.None;
+    private readonly ConditionalWeakTable<Solution, WorkspaceWriteOperationContext> _operationContexts = new();
+    private WorkspaceWriteOperationContext? _lastPublishedWriteContext;
+    private WorkspaceWriteResult? _lastWriteResult;
     private string? _loadedPath;
     private string? _loadedConfiguration;
     private string? _loadedPlatform;
@@ -140,6 +144,20 @@ public sealed class SolutionManager
     /// not consume this seam. Test/host only; production never sets this.
     /// </summary>
     internal bool FailNextOverlayPrepare { get; set; }
+
+    /// <summary>Test seam: next workspace apply returns false without calling Roslyn.</summary>
+    internal bool FailNextTryApplyChanges { get; set; }
+
+    /// <summary>Test seam: throw <see cref="IOException"/> when persisting this path (or any path when <c>*</c>).</summary>
+    internal string? FailNextDocumentWritePath { get; set; }
+
+    /// <summary>Test seam: reconciliation of saved texts fails without publishing the candidate.</summary>
+    internal bool FailNextReconciliation { get; set; }
+
+    /// <summary>Test seam: cancel after this many successful document writes (0 = disabled).</summary>
+    internal int CancelAfterDocumentWrites { get; set; }
+
+    internal WorkspaceWriteResult? LastWriteResult => _lastWriteResult;
 
     internal IReadOnlyList<string> GetPendingDirtySourcePaths() => _dirtySourcePaths.Keys.ToArray();
 
@@ -208,52 +226,25 @@ public sealed class SolutionManager
     }
 
     /// <summary>
-    /// Updates Roslyn's in-memory document text to match disk content (must be called under the same
-    /// path normalization as the workspace). Uses <see cref="Workspace.TryApplyChanges"/> — the supported
-    /// public API equivalent of applying <see cref="Solution.WithDocumentText"/>.
+    /// Text-edit write path: preflight, persist the document, apply the cleaned candidate, publish overlay.
+    /// Callers must not write the file first — persistence happens after preflight.
     /// </summary>
-    public async Task UpdateDocumentInMemoryAsync(
+    public async Task<WorkspaceWriteResult> UpdateDocumentInMemoryAsync(
         string filePath,
         string newText,
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(filePath))
         {
-            return;
+            return RememberWrite(WorkspaceWriteResult.Skipped("empty-path"));
         }
 
         var fullPath = Path.GetFullPath(filePath);
         await _workspaceLock.WaitAsync(cancellationToken);
         try
         {
-            var workspace = _workspace;
-            if (workspace is null)
-            {
-                _logger.LogDebug("Skip in-memory document update: no workspace loaded ({Path}).", fullPath);
-                return;
-            }
-
-            SuppressDiskWatchForPath(fullPath);
-
-            var documentId = FindDocumentIdForPath(workspace.CurrentSolution, fullPath, _pathComparison);
-            if (documentId is null)
-            {
-                _logger.LogDebug("Skip in-memory document update: file not part of loaded workspace ({Path}).", fullPath);
-                return;
-            }
-
-            var newSolution = workspace.CurrentSolution.WithDocumentText(
-                documentId,
-                SourceText.From(newText ?? string.Empty, Encoding.UTF8));
-
-            if (!workspace.TryApplyChanges(newSolution))
-            {
-                _logger.LogWarning("TryApplyChanges failed for in-memory update of {Path}.", fullPath);
-                return;
-            }
-
-            _solution = PublishInMemorySolution(workspace.CurrentSolution);
-            LogProcessWorkingSet("document_update");
+            return await UpdateDocumentInMemoryUnderLockAsync(fullPath, newText ?? string.Empty, persistToDisk: true, cancellationToken)
+                .ConfigureAwait(false);
         }
         finally
         {
@@ -465,7 +456,7 @@ public sealed class SolutionManager
             _lastExecutionObservation = gate.WithStage(
                 AnalyzerPreparationStage.ReferenceRewritten,
                 AnalyzerExecutionStatus.ReferenceRewritten);
-            _solution = PublishInMemorySolution(workspaceSolution);
+            SetPublishedSolution(workspaceSolution);
             return results;
         }
 
@@ -478,7 +469,7 @@ public sealed class SolutionManager
             // Restart-required must not keep stale V1 in compilation (A3-01).
             // File-prepare failure still reapplies the previous mapping (epoch 2).
             _shadowCopyAnalyzersEnabled = !gate.RequiresRestart;
-            _solution = PublishInMemorySolution(workspaceSolution);
+            SetPublishedSolution(workspaceSolution);
             return results;
         }
 
@@ -487,7 +478,7 @@ public sealed class SolutionManager
             _analyzerShadowMapping = null;
             _shadowCopyAnalyzersEnabled = false;
             _shadowCopyRootDirectory = shadowRoot;
-            _solution = PublishInMemorySolution(workspaceSolution);
+            SetPublishedSolution(workspaceSolution);
         }
 
         return results;
@@ -561,7 +552,7 @@ public sealed class SolutionManager
             _lastRefreshStale = true;
             _shadowCopyAnalyzersEnabled = true;
             _shadowCopyRootDirectory = shadowRoot;
-            _solution = PublishInMemorySolution(workspaceSolution);
+            SetPublishedSolution(workspaceSolution);
             return _lastShadowCopyResults;
         }
 
@@ -571,39 +562,63 @@ public sealed class SolutionManager
         return _lastShadowCopyResults;
     }
 
-    /// <summary>
-    /// Defensive guard for every remaining <see cref="Workspace.TryApplyChanges(Solution)"/> call site: strips
-    /// any <see cref="AnalyzerReference"/> difference between <paramref name="candidate"/> and
-    /// <paramref name="workspaceCurrentSolution"/> before the diff reaches the workspace. Without this, a tool
-    /// that built its edit on top of the analyzer-shadow-copy overlay (via <see cref="GetCurrentSolution"/>) —
-    /// e.g. a rename or code fix — would smuggle the overlay's <see cref="AnalyzerReference"/> change back into
-    /// <c>TryApplyChanges</c>, which is exactly the disk-corrupting behavior
-    /// <see cref="ShadowCopyInSolutionAnalyzerReferencesAsync"/> exists to avoid. No-op when the flag was never
-    /// enabled for this load, or when a project has no analyzer-reference difference.
-    /// </summary>
-    private Solution RevertAnalyzerReferenceOverlayForApply(Solution candidate, Solution workspaceCurrentSolution)
+    private void SetPublishedSolution(Solution workspaceSolution)
     {
-        if (_shadowCopyAnalyzersEnabled is false && _lastExecutionObservation.PermitsExecution)
+        var overlay = PublishInMemorySolution(workspaceSolution);
+        _solution = overlay;
+        var context = new WorkspaceWriteOperationContext(
+            _loadSessionId,
+            _loadedPath,
+            _analyzerShadowMapping,
+            overlay);
+        _lastPublishedWriteContext = context;
+        try
         {
-            return candidate;
+            _operationContexts.Add(overlay, context);
+        }
+        catch (ArgumentException)
+        {
+        }
+    }
+
+    private WorkspaceWriteOperationContext ResolveOperationContext(Solution? oldSolution)
+    {
+        if (oldSolution is not null && _operationContexts.TryGetValue(oldSolution, out var stamped))
+        {
+            return stamped;
         }
 
-        foreach (var projectId in candidate.ProjectIds.ToList())
+        if (oldSolution is not null
+            && _lastPublishedWriteContext is not null
+            && (ReferenceEquals(oldSolution, _lastPublishedWriteContext.BaseSnapshot)
+                || ReferenceEquals(oldSolution, _solution)))
         {
-            var project = candidate.GetProject(projectId);
-            var originalProject = workspaceCurrentSolution.GetProject(projectId);
-            if (project is null || originalProject is null)
-            {
-                continue;
-            }
-
-            if (!project.AnalyzerReferences.SequenceEqual(originalProject.AnalyzerReferences))
-            {
-                candidate = candidate.WithProjectAnalyzerReferences(projectId, originalProject.AnalyzerReferences);
-            }
+            return _lastPublishedWriteContext;
         }
 
-        return candidate;
+        return new WorkspaceWriteOperationContext(
+            _loadSessionId,
+            _loadedPath,
+            _analyzerShadowMapping,
+            oldSolution ?? _solution);
+    }
+
+    private WorkspaceWriteResult RememberWrite(WorkspaceWriteResult result)
+    {
+        _lastWriteResult = result;
+        return result;
+    }
+
+    private bool TryApplyWorkspaceChanges(Workspace workspace, Solution cleaned)
+    {
+        if (FailNextTryApplyChanges)
+        {
+            FailNextTryApplyChanges = false;
+            _logger.LogWarning("TryApplyChanges injected failure (test seam).");
+            return false;
+        }
+
+        return workspace.TryApplyChanges(cleaned);
     }
 
     /// <summary>
@@ -740,15 +755,194 @@ public sealed class SolutionManager
     }
 
     /// <summary>
-    /// Persists solution document changes to disk and updates the in-memory workspace.
+    /// Overlay-derived apply: preflight and exact inverse before any document write,
+    /// then persist, TryApplyChanges, reconcile, and publish the prepared mapping.
     /// Caller must not hold <see cref="_workspaceLock"/> (this method acquires it).
     /// </summary>
-    public async Task<IReadOnlyList<string>> ApplySolutionChangesToDiskAsync(
+    public async Task<WorkspaceWriteResult> ApplySolutionChangesToDiskAsync(
         Solution oldSolution,
         Solution newSolution,
         CancellationToken cancellationToken = default)
     {
-        var changedPaths = new List<string>();
+        ArgumentNullException.ThrowIfNull(oldSolution);
+        ArgumentNullException.ThrowIfNull(newSolution);
+
+        await _workspaceLock.WaitAsync(cancellationToken);
+        try
+        {
+            return await ApplyWorkspaceWriteUnderLockAsync(
+                    newSolution,
+                    oldSolution,
+                    ResolveOperationContext(oldSolution),
+                    persistDocuments: true,
+                    alreadyOnDisk: null,
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }
+        finally
+        {
+            _workspaceLock.Release();
+        }
+    }
+
+    /// <summary>
+    /// Must be called with <see cref="_workspaceLock"/> held.
+    /// </summary>
+    private async Task<WorkspaceWriteResult> UpdateDocumentInMemoryUnderLockAsync(
+        string filePath,
+        string newText,
+        bool persistToDisk,
+        CancellationToken cancellationToken)
+    {
+        var workspace = _workspace;
+        if (workspace is null)
+        {
+            _logger.LogDebug("Skip in-memory document update: no workspace loaded ({Path}).", filePath);
+            return RememberWrite(WorkspaceWriteResult.Skipped("no-workspace"));
+        }
+
+        var fullPath = Path.GetFullPath(filePath);
+        var documentId = FindDocumentIdForPath(workspace.CurrentSolution, fullPath, _pathComparison);
+        if (documentId is null)
+        {
+            _logger.LogDebug("Skip in-memory document update: file not part of loaded workspace ({Path}).", fullPath);
+            return RememberWrite(WorkspaceWriteResult.Skipped("not-in-workspace"));
+        }
+
+        var baseSolution = workspace.CurrentSolution;
+        var candidate = baseSolution.WithDocumentText(
+            documentId,
+            SourceText.From(newText, Encoding.UTF8));
+        var context = new WorkspaceWriteOperationContext(
+            _loadSessionId,
+            _loadedPath,
+            _analyzerShadowMapping,
+            baseSolution);
+        IReadOnlyList<(string Path, string Text)>? alreadyOnDisk = persistToDisk
+            ? null
+            : [(fullPath, newText)];
+        return await ApplyWorkspaceWriteUnderLockAsync(
+                candidate,
+                baseSolution,
+                context,
+                persistDocuments: persistToDisk,
+                alreadyOnDisk,
+                cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    private async Task<WorkspaceWriteResult> ApplyWorkspaceWriteUnderLockAsync(
+        Solution candidate,
+        Solution? baseForDocuments,
+        WorkspaceWriteOperationContext operationContext,
+        bool persistDocuments,
+        IReadOnlyList<(string Path, string Text)>? alreadyOnDisk,
+        CancellationToken cancellationToken)
+    {
+        var workspace = _workspace;
+        if (workspace is null)
+        {
+            return RememberWrite(WorkspaceWriteResult.Skipped("no-workspace"));
+        }
+
+        var preflight = WorkspaceWriteBoundary.Preflight(
+            candidate,
+            workspace.CurrentSolution,
+            operationContext,
+            _loadSessionId,
+            _loadedPath,
+            _analyzerAssemblyLoader);
+        if (!preflight.Accepted || preflight.CleanedCandidate is null)
+        {
+            _logger.LogWarning(
+                "Workspace write preflight rejected: {Reason}",
+                preflight.Reason);
+            return RememberWrite(WorkspaceWriteResult.PreflightRejected(preflight.Reason ?? "preflight-rejected"));
+        }
+
+        var cleaned = preflight.CleanedCandidate;
+        var saved = new List<string>();
+        var savedTexts = new List<(string Path, string Text)>();
+        if (alreadyOnDisk is not null)
+        {
+            foreach (var item in alreadyOnDisk)
+            {
+                saved.Add(item.Path);
+                savedTexts.Add(item);
+            }
+        }
+
+        var cancelled = false;
+        Exception? persistError = null;
+        if (persistDocuments && baseForDocuments is not null)
+        {
+            try
+            {
+                await PersistDocumentChangesAsync(
+                        baseForDocuments,
+                        candidate,
+                        saved,
+                        savedTexts,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                cancelled = true;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                persistError = ex;
+            }
+        }
+
+        if (cancelled || persistError is not null)
+        {
+            return await FinishAfterSideEffectsAsync(
+                    workspace,
+                    saved,
+                    savedTexts,
+                    unappliedProject: true,
+                    cancelled ? WorkspaceWriteStatus.Cancelled : WorkspaceWriteStatus.PartialPersistence,
+                    cancelled ? "cancelled" : persistError!.GetType().Name + ": " + persistError.Message,
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        if (TryApplyWorkspaceChanges(workspace, cleaned))
+        {
+            SetPublishedSolution(workspace.CurrentSolution);
+            LogProcessWorkingSet("document_update");
+            return RememberWrite(new WorkspaceWriteResult
+            {
+                Status = WorkspaceWriteStatus.FullSuccess,
+                SavedPaths = saved,
+                WorkspaceApplied = true,
+                OverlayPublished = true,
+            });
+        }
+
+        _logger.LogWarning(
+            "TryApplyChanges rejected after preflight. saved={SavedCount}",
+            saved.Count);
+        return await FinishAfterSideEffectsAsync(
+                workspace,
+                saved,
+                savedTexts,
+                unappliedProject: true,
+                WorkspaceWriteStatus.PartialPersistence,
+                "try-apply-rejected",
+                cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    private async Task PersistDocumentChangesAsync(
+        Solution oldSolution,
+        Solution newSolution,
+        List<string> saved,
+        List<(string Path, string Text)> savedTexts,
+        CancellationToken cancellationToken)
+    {
         foreach (var project in newSolution.Projects)
         {
             foreach (var newDoc in project.Documents)
@@ -759,95 +953,130 @@ public sealed class SolutionManager
                 }
 
                 var oldDoc = oldSolution.GetDocument(newDoc.Id);
-                var newText = await newDoc.GetTextAsync(cancellationToken);
-                var text = newText.ToString();
+                var text = (await newDoc.GetTextAsync(cancellationToken).ConfigureAwait(false)).ToString();
+                if (oldDoc is not null)
+                {
+                    var oldText = (await oldDoc.GetTextAsync(cancellationToken).ConfigureAwait(false)).ToString();
+                    if (string.Equals(oldText, text, StringComparison.Ordinal))
+                    {
+                        continue;
+                    }
+                }
 
+                var fullPath = Path.GetFullPath(newDoc.FilePath);
                 if (oldDoc is null)
                 {
-                    var directory = Path.GetDirectoryName(newDoc.FilePath);
+                    var directory = Path.GetDirectoryName(fullPath);
                     if (!string.IsNullOrWhiteSpace(directory))
                     {
                         Directory.CreateDirectory(directory);
                     }
-
-                    SuppressDiskWatchForPath(newDoc.FilePath);
-                    await File.WriteAllTextAsync(newDoc.FilePath, text, cancellationToken);
-                    changedPaths.Add(newDoc.FilePath);
-                    continue;
                 }
 
-                var oldText = await oldDoc.GetTextAsync(cancellationToken);
-                if (string.Equals(oldText.ToString(), text, StringComparison.Ordinal))
+                if (FailNextDocumentWritePath is not null
+                    && (FailNextDocumentWritePath == "*"
+                        || string.Equals(Path.GetFullPath(FailNextDocumentWritePath), fullPath, _pathComparison)))
                 {
-                    continue;
+                    FailNextDocumentWritePath = null;
+                    throw new IOException("injected-file-write-failure:" + fullPath);
                 }
 
-                SuppressDiskWatchForPath(newDoc.FilePath);
-                await File.WriteAllTextAsync(newDoc.FilePath, text, cancellationToken);
-                changedPaths.Add(newDoc.FilePath);
-            }
-        }
-
-        await _workspaceLock.WaitAsync(cancellationToken);
-        try
-        {
-            var workspace = _workspace;
-            var solutionToApply = workspace is null
-                ? newSolution
-                : RevertAnalyzerReferenceOverlayForApply(newSolution, workspace.CurrentSolution);
-            if (workspace is not null && workspace.TryApplyChanges(solutionToApply))
-            {
-                _solution = PublishInMemorySolution(workspace.CurrentSolution);
-            }
-            else
-            {
-                foreach (var path in changedPaths)
+                SuppressDiskWatchForPath(fullPath);
+                await File.WriteAllTextAsync(fullPath, text, cancellationToken).ConfigureAwait(false);
+                saved.Add(fullPath);
+                savedTexts.Add((fullPath, text));
+                if (CancelAfterDocumentWrites > 0 && saved.Count >= CancelAfterDocumentWrites)
                 {
-                    var doc = newSolution.Projects
-                        .SelectMany(p => p.Documents)
-                        .FirstOrDefault(d => string.Equals(Path.GetFullPath(d.FilePath ?? string.Empty), Path.GetFullPath(path), _pathComparison));
-                    if (doc is not null)
-                    {
-                        var text = (await doc.GetTextAsync(cancellationToken)).ToString();
-                        await UpdateDocumentInMemoryUnderLockAsync(path, text);
-                    }
+                    CancelAfterDocumentWrites = 0;
+                    throw new OperationCanceledException("CancelAfterDocumentWrites");
                 }
             }
         }
-        finally
-        {
-            _workspaceLock.Release();
-        }
-
-        return changedPaths;
     }
 
-    /// <summary>
-    /// Must be called with <see cref="_workspaceLock"/> held.
-    /// </summary>
-    private async Task UpdateDocumentInMemoryUnderLockAsync(string filePath, string newText)
+    private async Task<WorkspaceWriteResult> FinishAfterSideEffectsAsync(
+        Workspace workspace,
+        List<string> saved,
+        List<(string Path, string Text)> savedTexts,
+        bool unappliedProject,
+        WorkspaceWriteStatus persistenceStatus,
+        string reason,
+        CancellationToken cancellationToken)
     {
-        var workspace = _workspace;
-        if (workspace is null)
+        if (savedTexts.Count == 0)
         {
-            return;
+            return RememberWrite(new WorkspaceWriteResult
+            {
+                Status = persistenceStatus,
+                Reason = reason,
+                SavedPaths = saved,
+                UnappliedProjectState = unappliedProject,
+            });
         }
 
-        var fullPath = Path.GetFullPath(filePath);
-        var documentId = FindDocumentIdForPath(workspace.CurrentSolution, fullPath, _pathComparison);
-        if (documentId is null)
+        var reconciled = await ReconcileSavedTextsUnderLockAsync(workspace, savedTexts, cancellationToken)
+            .ConfigureAwait(false);
+        if (reconciled)
         {
-            return;
+            SetPublishedSolution(workspace.CurrentSolution);
+            return RememberWrite(new WorkspaceWriteResult
+            {
+                Status = WorkspaceWriteStatus.ReconciliationSucceeded,
+                Reason = reason,
+                SavedPaths = saved,
+                WorkspaceApplied = false,
+                OverlayPublished = true,
+                UnappliedProjectState = unappliedProject,
+            });
         }
 
-        var newSolution = workspace.CurrentSolution.WithDocumentText(
-            documentId,
-            SourceText.From(newText, Encoding.UTF8));
-
-        if (workspace.TryApplyChanges(newSolution))
+        return RememberWrite(new WorkspaceWriteResult
         {
-            _solution = PublishInMemorySolution(workspace.CurrentSolution);
+            Status = WorkspaceWriteStatus.ReconciliationFailed,
+            Reason = reason + "; reconciliation-failed",
+            SavedPaths = saved,
+            OverlayPublished = false,
+            UnappliedProjectState = true,
+        });
+    }
+
+    private async Task<bool> ReconcileSavedTextsUnderLockAsync(
+        Workspace workspace,
+        IReadOnlyList<(string Path, string Text)> savedTexts,
+        CancellationToken cancellationToken)
+    {
+        if (FailNextReconciliation)
+        {
+            FailNextReconciliation = false;
+            return false;
         }
+
+        var current = workspace.CurrentSolution;
+        var changed = false;
+        foreach (var (path, text) in savedTexts)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var documentId = FindDocumentIdForPath(current, Path.GetFullPath(path), _pathComparison);
+            if (documentId is null)
+            {
+                return false;
+            }
+
+            current = current.WithDocumentText(documentId, SourceText.From(text, Encoding.UTF8));
+            changed = true;
+        }
+
+        if (!changed)
+        {
+            return true;
+        }
+
+        if (!TryApplyWorkspaceChanges(workspace, current))
+        {
+            return false;
+        }
+
+        return true;
     }
 
     /// <summary>
@@ -867,6 +1096,8 @@ public sealed class SolutionManager
             _workspace?.Dispose();
             _workspace = null;
             _solution = null;
+            _lastPublishedWriteContext = null;
+            _lastWriteResult = null;
             _shadowCopyAnalyzersEnabled = false;
             _shadowCopyRootDirectory = null;
             _analyzerShadowMapping = null;
@@ -965,6 +1196,8 @@ public sealed class SolutionManager
         _shadowCopyAnalyzersEnabled = false;
         _shadowCopyRootDirectory = null;
         _analyzerShadowMapping = null;
+        _lastPublishedWriteContext = null;
+        _lastWriteResult = null;
         _loadSessionId = Guid.NewGuid();
         _lastRefreshStale = false;
         _lastExecutionObservation = AnalyzerExecutionObservation.None;
@@ -1016,11 +1249,11 @@ public sealed class SolutionManager
         }
 
         _workspace = workspace;
+        _loadedPath = fullPath;
         _lastExecutionObservation = AnalyzerExecutionGate.EvaluateInSolutionAnalyzers(
             workspace.CurrentSolution,
             _analyzerAssemblyLoader);
-        _solution = PublishInMemorySolution(workspace.CurrentSolution);
-        _loadedPath = fullPath;
+        SetPublishedSolution(workspace.CurrentSolution);
         _loadedConfiguration = configuration;
         _loadedPlatform = platform;
         _loadedTargetFramework = targetFramework;
@@ -1035,7 +1268,7 @@ public sealed class SolutionManager
             targetFramework ?? "(default)",
             buildArgs ?? "(none)");
         LogProcessWorkingSet("workspace_load");
-        return _solution;
+        return _solution ?? workspace.CurrentSolution;
     }
 
     /// <summary>
@@ -1087,25 +1320,51 @@ public sealed class SolutionManager
             return;
         }
 
-        if (!workspace.TryApplyChanges(result.Solution))
+        var alreadyOnDisk = new List<(string Path, string Text)>();
+        foreach (var path in dirty)
+        {
+            if (!File.Exists(path))
+            {
+                continue;
+            }
+
+            alreadyOnDisk.Add((path, await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false)));
+        }
+
+        var context = new WorkspaceWriteOperationContext(
+            _loadSessionId,
+            _loadedPath,
+            _analyzerShadowMapping,
+            workspace.CurrentSolution);
+        var write = await ApplyWorkspaceWriteUnderLockAsync(
+                result.Solution,
+                workspace.CurrentSolution,
+                context,
+                persistDocuments: false,
+                alreadyOnDisk,
+                cancellationToken)
+            .ConfigureAwait(false);
+        if (!write.IsFullSuccess && write.Status != WorkspaceWriteStatus.ReconciliationSucceeded)
         {
             _logger.LogWarning(
-                "TryApplyChanges failed after workspace_disk_sync updated={Updated} added={Added} removed={Removed}.",
+                "workspace_disk_sync write {Status} reason={Reason} updated={Updated} added={Added} removed={Removed}.",
+                write.Status,
+                write.Reason,
                 result.Updated,
                 result.Added,
                 result.Removed);
             return;
         }
 
-        _solution = PublishInMemorySolution(workspace.CurrentSolution);
         _logger.LogInformation(
-            "workspace_disk_sync updated={Updated} added={Added} removed={Removed} unchanged={Unchanged} refreshAll={RefreshAll} elapsedMs={ElapsedMs}",
+            "workspace_disk_sync updated={Updated} added={Added} removed={Removed} unchanged={Unchanged} refreshAll={RefreshAll} elapsedMs={ElapsedMs} write={WriteStatus}",
             result.Updated,
             result.Added,
             result.Removed,
             result.Unchanged,
             refreshAll,
-            started.ElapsedMilliseconds);
+            started.ElapsedMilliseconds,
+            write.Status);
         LogProcessWorkingSet("document_update");
     }
 

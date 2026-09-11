@@ -95,7 +95,7 @@ lock существующей DLL остаются предметом обяза
 | [1. Жизненный цикл](epoch-1-lifecycle-verification.md) | Измеренный красный baseline: [результаты](epoch-1-results.md), [приёмка](epoch-1-acceptance.md) | Нет |
 | [2. Поколения](epoch-2-immutable-shadow-copies.md) | Неизменяемые файлы и готовый mapping, повторное применение без I/O анализаторов. **Реализовано в v1.3.6**; [приёмка](epoch-2-acceptance.md). CLR execution — эпоха 3 | 1 |
 | [3. Загрузчик](epoch-3-loader-contract-and-dependencies.md) | Режим: restart-required / main-only. **Принято** v1.3.7; [приёмка](epoch-3-acceptance.md) | 1–2 |
-| [4. Запись](epoch-4-workspace-write-boundary.md) | Точная инверсия и полный workflow записи/reconciliation/overlay | 1 и контракт mapping из 2; CLR gate 3 остаётся отдельным |
+| [4. Запись](epoch-4-workspace-write-boundary.md) | Точная инверсия и полный workflow записи/reconciliation/overlay. **Принято** v1.3.8; [приёмка](epoch-4-acceptance.md) | 1 и контракт mapping из 2; CLR gate 3 остаётся отдельным |
 | [5. Происхождение](epoch-5-reference-provenance.md) | Сначала metadata feasibility; rollout только после U-ARB-01 и marker-тестов | 1; алгоритмически независима от 2–4 |
 | [6. Документация](epoch-6-contract-and-documentation.md) | Аудит фактических результатов/ограничений 1–5 | Учитывает также явно отложенные результаты |
 

@@ -10,7 +10,7 @@
 | F-02 | сразу | Перепрогнать `Category=AnalyzerLifecycle`, обновить results (убрать x86 / 8 мин) |
 | F-03 | **сделано** | DOC-EARLY: ARCHITECTURE / historical README / remarks = v1.3.6 mapping |
 | F-04 | **принято** ([epoch-2-acceptance.md](epoch-2-acceptance.md)) | E2-S5 11/11. Открыт A2-09 (stores). A2-12 закрыт: catalog 63 / 43895 |
-| F-05 | после F-04 | Эпоха 4: write boundary на mapping |
+| F-05 | **принято** ([epoch-4-acceptance.md](epoch-4-acceptance.md)) | Эпоха 4: write boundary. Открыты A4-09…A4-12 (не блокеры) |
 | F-06 | мерж в main | A1-10: version bump, изоляция test seams |
 | F-07 | **эпоха 3 принята** ([epoch-3-acceptance.md](epoch-3-acceptance.md)) | restart-required / main-only. U-ARB-01 matcher и U-ARB-05 sticky не открывать |
 
@@ -130,6 +130,10 @@ Work:
 Done when:
 E4-S4: inventory `TryApplyChanges`, exact inverse tests (не whole-list wipe), 3 write path + fallback.
 
+Сделано 2026-09-11: приёмка **принята** ([epoch-4-acceptance.md](epoch-4-acceptance.md),
+прогон [epoch-4-results.md](epoch-4-results.md)). Независимый прогон: unit 10/10,
+lifecycle+регресс 15/15. A4-09…A4-12 не блокеры.
+
 ---
 
 ID: F-06
@@ -166,4 +170,6 @@ Depends: evidence gates
 
 ---
 
-Порядок в следующем чате: **F-05 (эпоха 4)** после принятой эпохи 2. F-02 полный `Category=AnalyzerLifecycle` по желанию (V1→V2/A→B останутся красными). F-06 на коммит server. F-07 не открывать.
+Порядок в следующем чате: эпоха 6 (документация фактов 1–4) или F-06 на коммит
+server. Эпоху 5 / U-ARB-01 не открывать. F-07 не открывать. A4-09…A4-12 не чинить
+без отдельного запроса.

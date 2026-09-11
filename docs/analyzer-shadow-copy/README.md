@@ -8,7 +8,7 @@ lock its own build output) when a repo-wide `Directory.Build.props` overrides
 
 All three epochs below are **shipped**. This is not a forward-looking plan —
 it is kept so the reasoning, the first (flawed) fix attempt, and the final
-design are not lost. `docs/ARCHITECTURE.md` describes the **current** shipped state (v1.3.7 restart-required / main-only);
+design are not lost. `docs/ARCHITECTURE.md` describes the **current** shipped state (v1.3.8 write boundary + v1.3.7 restart-required / main-only);
 this directory is the v1.3.3–v1.3.5 history. Read it when you need to know
 *why* the overlay exists, or before touching `Services/AnalyzerReferenceShadowCopier.cs`,
 `Services/SolutionManager.cs`'s shadow-copy overlay, or
@@ -20,14 +20,14 @@ this directory is the v1.3.3–v1.3.5 history. Read it when you need to know
 2. [Epoch 2 — First fix attempt: `Workspace.TryApplyChanges`](epoch-2-first-fix-attempt-and-disk-corruption.md) — shipped as **v1.3.4**, then found to corrupt the real `.csproj` on disk. **Superseded by Epoch 3.**
 3. [Epoch 3 — Correct fix: in-memory overlay](epoch-3-inmemory-overlay-fix.md) — shipped as **v1.3.5**. Recopy-on-edit superseded by **v1.3.6** mapping (prepare at load/refresh only).
 
-## Current shipped behavior (v1.3.7)
+## Current shipped behavior (v1.3.8)
 
 - File preparation is separate from the `Solution` transform. Generations are content-hashed under `v2-main-only/` (not last-write-time directories).
 - `GetCurrentSolution()` returns the stored `_solution` (fallback `workspace.CurrentSolution`). The getter does **not** recompute or recopy the overlay.
 - Prepare runs at `load_workspace` / enable / explicit artifact refresh. Document edit, watcher flush, and post-apply reapply the in-memory mapping with no analyzer file I/O.
 - Loader contract (epoch 3): **restart-required** for same-identity in-process refresh; **main-only** dependencies. Private helpers and identity collisions are refused before execution. Workspace clear does not unload CLR assemblies.
 - The rewritten `Solution` is still **never** handed to `Workspace.TryApplyChanges` on the real `MSBuildWorkspace`.
-- `RevertAnalyzerReferenceOverlayForApply` still strips analyzer-reference diffs before apply (exact inverse is epoch 4).
+- The write boundary performs an exact inverse of the operation's mapping before any server write; unknown/stale analyzer diffs are rejected (epoch 4 / v1.3.8).
 - Timestamp layout and recopy-on-edit below are **v1.3.5 history**.
 
 ## Fixed architectural decisions (v1.3.5 history)
@@ -54,5 +54,5 @@ not depend on any real product code.
 - Read this index and all three epoch documents before changing the shadow-copy overlay logic.
 - Never reintroduce `workspace.TryApplyChanges(shadowCopiedSolution)` against the real `MSBuildWorkspace` — see Epoch 2 for exactly what breaks.
 - Any new code path that resolves a `Document` or `Solution` for semantic analysis must go through `SolutionManager.GetCurrentSolution()` / `FindDocumentAsync`, not `workspace.CurrentSolution` directly, or it will silently miss the overlay.
-- Any new code path that calls `Workspace.TryApplyChanges` must go through (or replicate) `RevertAnalyzerReferenceOverlayForApply` first.
+- Any new code path that calls `Workspace.TryApplyChanges` or writes workspace documents must go through the write boundary (`ApplyWorkspaceWriteUnderLockAsync` / `TryApplyWorkspaceChanges`).
 - Keep `docs/ARCHITECTURE.md`'s "Workspace lifecycle" section synchronized with the actual code — it is the current-state description; this directory is the history.

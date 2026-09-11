@@ -271,12 +271,16 @@ public sealed class TestTools
             var baseSolution = document.Project.Solution;
             var newDocument = await TestDiscoveryHelper.GenerateTestMethodStubAsync(
                 document, className, methodName, testFramework, cancellationToken).ConfigureAwait(false);
-            var written = await _solutionManager.ApplySolutionChangesToDiskAsync(
+            var write = await _solutionManager.ApplySolutionChangesToDiskAsync(
                 baseSolution, newDocument.Project.Solution, cancellationToken).ConfigureAwait(false);
+            if (!write.IsFullSuccess)
+            {
+                return ToolTelemetry.TraceAndReturn(toolName, write.FormatAdapterMessage($"Added test stub `{methodName}` to `{className}`."));
+            }
 
             return ToolTelemetry.TraceAndReturn(
                 toolName,
-                $"Added test stub `{methodName}` to `{className}`. Files touched: {written.Count}.");
+                $"Added test stub `{methodName}` to `{className}`. Files touched: {write.SavedPaths.Count}.");
         }
         catch (Exception ex)
         {

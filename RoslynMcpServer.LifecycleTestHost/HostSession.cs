@@ -17,6 +17,8 @@ internal sealed class HostSession
     private readonly SolutionManager _manager = new(NullLogger<SolutionManager>.Instance);
     private readonly StringComparison _pathComparison =
         OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+    private Solution? _heldOldSolution;
+    private Solution? _heldNewSolution;
 
     public async Task<HostResponse> ExecuteAsync(HostCommand command, CancellationToken cancellationToken)
     {
@@ -35,6 +37,13 @@ internal sealed class HostSession
                 "flushGetter" => await FlushGetterAsync(cancellationToken).ConfigureAwait(false),
                 "inspect" => Inspect("inspect"),
                 "injectPrepareFailure" => InjectPrepareFailure(),
+                "injectApplyFailure" => InjectApplyFailure(),
+                "injectFileWriteFailure" => InjectFileWriteFailure(command),
+                "injectReconciliationFailure" => InjectReconciliationFailure(),
+                "injectCancelAfterWrites" => InjectCancelAfterWrites(command),
+                "holdOverlayEdit" => HoldOverlayEdit(command),
+                "applyHeld" => await ApplyHeldAsync(cancellationToken).ConfigureAwait(false),
+                "applyUnknownAnalyzerDiff" => await ApplyUnknownAnalyzerDiffAsync(command, cancellationToken).ConfigureAwait(false),
                 "forceCopyFailure" => ForceCopyFailure(),
                 "publishGeneration" => PublishGeneration(command),
                 "rename" => await RenameOverlayAsync(command, cancellationToken).ConfigureAwait(false),
@@ -196,11 +205,17 @@ internal sealed class HostSession
         }
 
         var fullPath = Path.GetFullPath(command.Path);
-        _manager.SuppressDiskWatchForPath(fullPath);
-        await File.WriteAllTextAsync(fullPath, command.Text, cancellationToken).ConfigureAwait(false);
-        await _manager.UpdateDocumentInMemoryAsync(fullPath, command.Text, cancellationToken).ConfigureAwait(false);
+        var write = await _manager.UpdateDocumentInMemoryAsync(fullPath, command.Text, cancellationToken)
+            .ConfigureAwait(false);
         var response = Inspect("updateDocument");
+        AttachWrite(response, write);
         response.DocumentText = command.Text;
+        response.Ok = write.IsFullSuccess;
+        if (!write.IsFullSuccess)
+        {
+            response.Error = write.Reason ?? write.Status.ToString();
+        }
+
         return response;
     }
 
@@ -227,10 +242,17 @@ internal sealed class HostSession
         var newSolution = solution.WithDocumentText(
             document.Id,
             SourceText.From(command.Text, Encoding.UTF8));
-        _ = await _manager.ApplySolutionChangesToDiskAsync(solution, newSolution, cancellationToken)
+        var write = await _manager.ApplySolutionChangesToDiskAsync(solution, newSolution, cancellationToken)
             .ConfigureAwait(false);
         var response = Inspect("applyOverlayEdit");
+        AttachWrite(response, write);
         response.DocumentText = command.Text;
+        response.Ok = write.IsFullSuccess;
+        if (!write.IsFullSuccess)
+        {
+            response.Error = write.Reason ?? write.Status.ToString();
+        }
+
         return response;
     }
 
@@ -352,6 +374,122 @@ internal sealed class HostSession
         return response;
     }
 
+    private HostResponse InjectApplyFailure()
+    {
+        _manager.FailNextTryApplyChanges = true;
+        return Inspect("injectApplyFailure");
+    }
+
+    private HostResponse InjectFileWriteFailure(HostCommand command)
+    {
+        _manager.FailNextDocumentWritePath = string.IsNullOrWhiteSpace(command.Path) ? "*" : Path.GetFullPath(command.Path);
+        return Inspect("injectFileWriteFailure");
+    }
+
+    private HostResponse InjectReconciliationFailure()
+    {
+        _manager.FailNextReconciliation = true;
+        return Inspect("injectReconciliationFailure");
+    }
+
+    private HostResponse InjectCancelAfterWrites(HostCommand command)
+    {
+        _manager.CancelAfterDocumentWrites = command.CancelAfterWrites <= 0 ? 1 : command.CancelAfterWrites;
+        return Inspect("injectCancelAfterWrites");
+    }
+
+    private HostResponse HoldOverlayEdit(HostCommand command)
+    {
+        if (string.IsNullOrWhiteSpace(command.Path) || command.Text is null)
+        {
+            return Fail("holdOverlayEdit", "path-and-text-required");
+        }
+
+        var solution = _manager.GetCurrentSolution();
+        if (solution is null)
+        {
+            return Fail("holdOverlayEdit", "no-solution");
+        }
+
+        var fullPath = Path.GetFullPath(command.Path);
+        var document = FindDocument(solution, fullPath);
+        if (document is null)
+        {
+            return Fail("holdOverlayEdit", "document-not-found");
+        }
+
+        _heldOldSolution = solution;
+        _heldNewSolution = solution.WithDocumentText(
+            document.Id,
+            SourceText.From(command.Text, Encoding.UTF8));
+        return Inspect("holdOverlayEdit");
+    }
+
+    private async Task<HostResponse> ApplyHeldAsync(CancellationToken cancellationToken)
+    {
+        if (_heldOldSolution is null || _heldNewSolution is null)
+        {
+            return Fail("applyHeld", "no-held-candidate");
+        }
+
+        var write = await _manager.ApplySolutionChangesToDiskAsync(
+                _heldOldSolution,
+                _heldNewSolution,
+                cancellationToken)
+            .ConfigureAwait(false);
+        var response = Inspect("applyHeld");
+        AttachWrite(response, write);
+        response.Ok = write.IsFullSuccess;
+        if (!write.IsFullSuccess)
+        {
+            response.Error = write.Reason ?? write.Status.ToString();
+        }
+
+        return response;
+    }
+
+    private async Task<HostResponse> ApplyUnknownAnalyzerDiffAsync(HostCommand command, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(command.Path) || command.Text is null)
+        {
+            return Fail("applyUnknownAnalyzerDiff", "path-and-text-required");
+        }
+
+        var solution = _manager.GetCurrentSolution();
+        if (solution is null)
+        {
+            return Fail("applyUnknownAnalyzerDiff", "no-solution");
+        }
+
+        var fullPath = Path.GetFullPath(command.Path);
+        var document = FindDocument(solution, fullPath);
+        if (document is null)
+        {
+            return Fail("applyUnknownAnalyzerDiff", "document-not-found");
+        }
+
+        var extraPath = Path.Combine(Path.GetTempPath(), "RoslynMcpServer.UnknownAnalyzer", "Unknown.dll");
+        var extra = new Microsoft.CodeAnalysis.Diagnostics.AnalyzerFileReference(
+            extraPath,
+            _manager.AnalyzerAssemblyLoader);
+        var refs = document.Project.AnalyzerReferences.ToList();
+        refs.Add(extra);
+        var candidate = solution
+            .WithProjectAnalyzerReferences(document.Project.Id, refs)
+            .WithDocumentText(document.Id, SourceText.From(command.Text, Encoding.UTF8));
+        var write = await _manager.ApplySolutionChangesToDiskAsync(solution, candidate, cancellationToken)
+            .ConfigureAwait(false);
+        var response = Inspect("applyUnknownAnalyzerDiff");
+        AttachWrite(response, write);
+        response.Ok = write.IsFullSuccess;
+        if (!write.IsFullSuccess)
+        {
+            response.Error = write.Reason ?? write.Status.ToString();
+        }
+
+        return response;
+    }
+
     private HostResponse ForceCopyFailure()
     {
         AnalyzerReferenceShadowCopier.RemainingForcedCopyFailures = 1;
@@ -411,10 +549,17 @@ internal sealed class HostSession
             command.NewName,
             cancellationToken).ConfigureAwait(false);
 
-        _ = await _manager.ApplySolutionChangesToDiskAsync(baseSolution, renamed, cancellationToken)
+        var write = await _manager.ApplySolutionChangesToDiskAsync(baseSolution, renamed, cancellationToken)
             .ConfigureAwait(false);
 
         var response = Inspect("rename");
+        AttachWrite(response, write);
+        response.Ok = write.IsFullSuccess;
+        if (!write.IsFullSuccess)
+        {
+            response.Error = write.Reason ?? write.Status.ToString();
+        }
+
         response.SameSnapshotAfterSymbol = sameSnapshot;
         response.RenamedTo = command.NewName;
         var updated = await _manager.FindDocumentAsync(command.Path, cancellationToken).ConfigureAwait(false);
@@ -591,6 +736,10 @@ internal sealed class HostSession
             Rewrite = MapRewrite(_manager.LastShadowCopyResults),
             Execution = MapExecution(_manager.LastExecutionObservation),
         };
+        if (_manager.LastWriteResult is { } lastWrite)
+        {
+            AttachWrite(response, lastWrite);
+        }
 
         var overlay = _manager.GetCurrentSolution();
         var workspace = _manager.GetWorkspaceCurrentSolution();
@@ -633,6 +782,16 @@ internal sealed class HostSession
             .FirstOrDefault(p =>
                 p is not null
                 && string.Equals(Path.GetFileNameWithoutExtension(p), "Generator", StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static void AttachWrite(HostResponse response, WorkspaceWriteResult write)
+    {
+        response.WriteStatus = write.Status.ToString();
+        response.WriteReason = write.Reason;
+        response.SavedPaths = write.SavedPaths.ToArray();
+        response.OverlayPublished = write.OverlayPublished;
+        response.UnappliedProjectState = write.UnappliedProjectState;
+        response.WorkspaceApplied = write.WorkspaceApplied;
     }
 
     private static ExecutionDto MapExecution(AnalyzerExecutionObservation observation)

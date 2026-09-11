@@ -819,10 +819,20 @@ public sealed class UtilityTools
                 return ToolTelemetry.TraceAndReturn(nameof(ApplyPatch), "No changes were applied.");
             }
 
-            _solutionManager.SuppressDiskWatchForPath(fullPath);
-            await File.WriteAllTextAsync(fullPath, updatedRaw, cancellationToken);
+            var write = await _solutionManager.UpdateDocumentInMemoryAsync(fullPath, updatedRaw, cancellationToken);
+            if (write.Status == WorkspaceWriteStatus.Skipped)
+            {
+                _solutionManager.SuppressDiskWatchForPath(fullPath);
+                await File.WriteAllTextAsync(fullPath, updatedRaw, cancellationToken);
+            }
+            else if (!write.IsFullSuccess)
+            {
+                return ToolTelemetry.TraceAndReturn(
+                    nameof(ApplyPatch),
+                    write.FormatAdapterMessage("Patch matched but workspace write was not fully applied."));
+            }
+
             var writeMs = started.ElapsedMilliseconds;
-            await _solutionManager.UpdateDocumentInMemoryAsync(fullPath, updatedRaw, cancellationToken);
             _logger.LogInformation(
                 "ApplyPatch wrote file={FilePath} replacements={ReplacementCount} writeMs={WriteMs} workspaceMs={TotalMs}",
                 fullPath,
@@ -1047,36 +1057,20 @@ public sealed class UtilityTools
                 }
             }
 
-            var changedDocs = new List<(Document Doc, string Text)>();
-            foreach (var newProject in renamedSolution.Projects)
+            var write = await _solutionManager.ApplySolutionChangesToDiskAsync(
+                baseSolution,
+                renamedSolution,
+                cancellationToken);
+            if (!write.IsFullSuccess)
             {
-                foreach (var newDoc in newProject.Documents)
-                {
-                    var oldDoc = baseSolution.GetDocument(newDoc.Id);
-                    if (oldDoc is null || newDoc.FilePath is null)
-                    {
-                        continue;
-                    }
-
-                    var oldText = await oldDoc.GetTextAsync(cancellationToken);
-                    var newText = await newDoc.GetTextAsync(cancellationToken);
-                    if (!string.Equals(oldText.ToString(), newText.ToString(), StringComparison.Ordinal))
-                    {
-                        changedDocs.Add((newDoc, newText.ToString()));
-                    }
-                }
-            }
-
-            foreach (var (doc, text) in changedDocs)
-            {
-                _solutionManager.SuppressDiskWatchForPath(doc.FilePath!);
-                await File.WriteAllTextAsync(doc.FilePath!, text, cancellationToken);
-                await _solutionManager.UpdateDocumentInMemoryAsync(doc.FilePath!, text, cancellationToken);
+                return ToolTelemetry.TraceAndReturn(
+                    nameof(RenameSymbol),
+                    write.FormatAdapterMessage($"Rename `{symbolName}` -> `{newName}` was not fully applied."));
             }
 
             return ToolTelemetry.TraceAndReturn(
                 nameof(RenameSymbol),
-                $"Rename applied: `{symbolName}` -> `{newName}`. Updated files: {changedDocs.Count}.");
+                $"Rename applied: `{symbolName}` -> `{newName}`. Updated files: {write.SavedPaths.Count}.");
         }
         catch (OperationCanceledException)
         {

@@ -1,8 +1,9 @@
 # Изменения v1 → v2
 
 Ревизия спецификации от 2026-09-11. Эпоха 3 реализована в **v1.3.7**
-(restart-required / main-only); см. [epoch-3-results.md](epoch-3-results.md).
-Остальные эпохи этой серией не закрыты. Исходные v1/review/response/arbitration
+(restart-required / main-only); эпоха 4 **принята** в **v1.3.8** (write boundary).
+См. [epoch-3-results.md](epoch-3-results.md), [epoch-4-results.md](epoch-4-results.md).
+Эпохи 5–6 этой серией не закрыты. Исходные v1/review/response/arbitration
 сохранены. Файлы эпох переписаны как самостоятельный русский нормативный текст,
 добавлены общая lifecycle matrix и реестры трассировки/открытых вопросов.
 

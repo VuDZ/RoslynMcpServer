@@ -177,12 +177,16 @@ public sealed class AstTools
         {
             var (document, baseSolution) = await ResolveDocumentAsync(filePath, cancellationToken);
             var newDocument = await mutate(document).ConfigureAwait(false);
-            var writtenPaths = await _solutionManager.ApplySolutionChangesToDiskAsync(
+            var write = await _solutionManager.ApplySolutionChangesToDiskAsync(
                 baseSolution, newDocument.Project.Solution, cancellationToken).ConfigureAwait(false);
+            if (!write.IsFullSuccess)
+            {
+                return ToolTelemetry.TraceAndReturn(toolName, write.FormatAdapterMessage(successMessage));
+            }
 
             return ToolTelemetry.TraceAndReturn(
                 toolName,
-                $"{successMessage} File: `{_solutionManager.ResolvePathAgainstWorkspace(filePath)}`. Files touched: {writtenPaths.Count}.");
+                $"{successMessage} File: `{_solutionManager.ResolvePathAgainstWorkspace(filePath)}`. Files touched: {write.SavedPaths.Count}.");
         }
         catch (OperationCanceledException)
         {

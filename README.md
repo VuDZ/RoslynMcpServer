@@ -170,6 +170,11 @@ MCP `tools/list` stays JSON + JSON Schema. Markdown is for JIT help and diagnost
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.3.8
+
+- **Workspace write boundary (epoch 4).** All production `TryApplyChanges` and server document writes go through one preflight → exact original↔shadow inverse → persist → apply/reconciliation → overlay publish workflow. Unsupported or stale analyzer-reference diffs are rejected before any server write. Partial persistence, reconciliation success/failure, and preflight rejection are distinct internal outcomes (existing tool text, no new MCP schema). Post-apply reuses the prepared mapping with no analyzer file I/O.
+- **Catalog size** — unchanged: full 63 tools / 44,165 bytes; lite 19 / 16,579.
+
 ### v1.3.7
 
 - **`shadowCopyInSolutionAnalyzers` loader contract (epoch 3).** Chosen mode is **restart-required**: a rebuilt generator with the same assembly name/version cannot execute in the current MCP process (cached load and `reset_workspace`+load refuse with an explicit “restart the MCP server process” action). A new process runs the new bytes. Supported dependency policy is **main-only**; private helper DLLs are refused rather than guessed from the output directory. Rewrite count still means reference rewrite only; execution status is a separate line in the load summary.
@@ -992,7 +997,7 @@ Verify id/version with `search_nuget_registry` first. Clears workspace cache —
 
 **Parameters:** *(none)*
 
-Use after `dotnet publish` to verify the MCP host picked up the new binary (expect **v1.3.7** and **63** tools on `full`, or **19** on `lite`).
+Use after `dotnet publish` to verify the MCP host picked up the new binary (expect **v1.3.8** and **63** tools on `full`, or **19** on `lite`).
 
 </details>
 
@@ -1204,7 +1209,7 @@ cd D:\Devel\YourApp
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.3.7). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.3.8). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 
@@ -1821,7 +1826,7 @@ cd D:\Devel\YourApp
 
 **Параметры:** *(нет)*
 
-После `dotnet publish` — проверка, что MCP подхватил новый бинарник (ожидай **v1.3.7** и **63** tools в `full`, или **19** в `lite`).
+После `dotnet publish` — проверка, что MCP подхватил новый бинарник (ожидай **v1.3.8** и **63** tools в `full`, или **19** в `lite`).
 
 </details>
 
