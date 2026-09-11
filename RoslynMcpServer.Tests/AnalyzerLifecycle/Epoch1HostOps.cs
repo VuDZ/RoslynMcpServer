@@ -102,9 +102,17 @@ internal static class Epoch1HostOps
         File.AppendAllText(fixture.GeneratorSourcePath, Environment.NewLine + "// rebuild-bump " + Guid.NewGuid().ToString("N"));
         await BuildAsync(host, fixture.GeneratorProjectPath, noIncremental: true, cancellationToken).ConfigureAwait(false);
 
+        if (!File.Exists(dll))
+        {
+            dll = fixture.FindGeneratorOutputDll();
+        }
+
+        Assert.False(string.IsNullOrWhiteSpace(dll) || !File.Exists(dll), "generator output missing after forced rebuild");
         var after = await host.SendAsync(new HostCommand { Op = "hashFile", Path = dll }, cancellationToken)
             .ConfigureAwait(false);
-        Assert.False(string.IsNullOrWhiteSpace(after.FileSha256));
+        Assert.False(
+            string.IsNullOrWhiteSpace(after.FileSha256),
+            "hashFile failed after forced rebuild: " + after.Error + " path=" + dll);
         Assert.NotEqual(before.FileSha256, after.FileSha256);
         return (dll!, before.FileSha256!, after.FileSha256!);
     }

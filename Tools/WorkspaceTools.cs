@@ -29,7 +29,7 @@ public sealed class WorkspaceTools
         + "Optional buildArgs is a session suffix for later `dotnet build` (probe and pre-test build); do not put -c / -p:Platform / -v / --no-incremental there. "
         + "briefOutput=true collapses MSBuild/NuGet warnings to category and code counts (default false keeps full messages). Failures always print in full. "
         + "logProjectOutputDiagnostics=true logs per-project OutputFilePath/GeneratedFilesOutputDirectory and AnalyzerReference file existence/timestamp to the MCP server log (diagnostic-only, not returned in this response) — use to debug analyzer/generator projects not producing generated sources when Directory.Build.props overrides OutputPath. "
-        + "shadowCopyInSolutionAnalyzers=true fixes that same case: rewrites AnalyzerReferences that point at another in-solution project's build output to a private shadow copy of that project's own resolved output, so source generation works even when the design-time-resolved AnalyzerReference path was wrong, and the real build output is never locked by this process. Requires the referenced analyzer/generator project to have been built at least once.")]
+        + "shadowCopyInSolutionAnalyzers=true fixes that same case: rewrites AnalyzerReferences that point at another in-solution project's build output to a private shadow copy of that project's own resolved output, so source generation works even when the design-time-resolved AnalyzerReference path was wrong, and the real build output is never locked by this process. Requires the referenced analyzer/generator project to have been built at least once. Prepared generations are content-hashed and immutable; later document edits reapply the in-memory mapping without recopying analyzer files.")]
     public async Task<string> LoadWorkspace(
         [Description("Path to a .sln, .slnx, or .csproj file, not a directory.")]
         string workspacePath,
@@ -45,7 +45,7 @@ public sealed class WorkspaceTools
         bool briefOutput = false,
         [Description("When true, log per-project OutputFilePath/GeneratedFilesOutputDirectory and AnalyzerReference existence/timestamp at Information level (see tail_tool_log / read_log_tail). Default false. Diagnostic-only; not included in this tool's return value.")]
         bool logProjectOutputDiagnostics = false,
-        [Description("When true, rewrite AnalyzerReferences pointing at another in-solution project's build output to a shadow copy of that project's own resolved output (fixes source generation broken by a Directory.Build.props OutputPath override, and avoids locking the real build output). Default false. Requires the referenced project to already have a build output on disk. A short summary is included in this response; details go to the MCP server log.")]
+        [Description("When true, rewrite AnalyzerReferences pointing at another in-solution project's build output to a shadow copy of that project's own resolved output (fixes source generation broken by a Directory.Build.props OutputPath override, and avoids locking the real build output). Default false. Requires the referenced project to already have a build output on disk. Generations are content-hashed and reused on document edit without recopying. A short summary is included in this response; details go to the MCP server log.")]
         bool shadowCopyInSolutionAnalyzers = false,
         CancellationToken cancellationToken = default)
     {
@@ -214,6 +214,13 @@ public sealed class WorkspaceTools
         {
             sb.Append(", ").Append(skipped).Append(" skipped (see tail_tool_log for reasons)");
         }
+
+        var stale = results.Count(r => r.StaleGeneration);
+        if (stale > 0)
+        {
+            sb.Append(" (").Append(stale).Append(" stale-generation)");
+        }
+
         sb.Append('.');
         return sb.ToString();
     }
@@ -244,7 +251,7 @@ public sealed class WorkspaceTools
     }
 
     [McpServerTool(Name = "reset_workspace", Title = "Reset C# workspace")]
-    [Description("Disposes the in-process workspace cache. Use after building so the next load_workspace picks up generated files. Does not restart the MCP process.")]
+    [Description("Disposes the in-process workspace cache. Use after building so the next load_workspace picks up generated files. Does not restart the MCP process and does not delete published analyzer shadow generations.")]
     public async Task<string> ResetWorkspace(CancellationToken cancellationToken = default)
     {
         try

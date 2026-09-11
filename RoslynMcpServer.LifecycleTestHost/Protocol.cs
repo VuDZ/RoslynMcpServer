@@ -14,6 +14,8 @@ public sealed class HostCommand
     public string? TargetFramework { get; set; }
     public string? OracleSource { get; set; }
     public string? Arguments { get; set; }
+    public string? ShadowRoot { get; set; }
+    public string? GatePath { get; set; }
     public int TimeoutMs { get; set; } = 15_000;
     public bool NoIncremental { get; set; } = true;
 }
@@ -29,7 +31,14 @@ public sealed class HostResponse
     public bool ReopenedGraph { get; set; }
     public bool PrepareAttempted { get; set; }
     public bool PrepareInjectedFailure { get; set; }
+    public bool LastRefreshStale { get; set; }
+    public bool MappingPresent { get; set; }
     public int OverlayPrepareCount { get; set; }
+    public int AnalyzerFileIoCount { get; set; }
+    public bool ReusedExisting { get; set; }
+    public string? GenerationDirectory { get; set; }
+    public long GenerationBytes { get; set; }
+    public long ShadowRootBytes { get; set; }
     public bool ShadowEnabled { get; set; }
     public string? ShadowRoot { get; set; }
     public string? LoadedWorkspacePath { get; set; }

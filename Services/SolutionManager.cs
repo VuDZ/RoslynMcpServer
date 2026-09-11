@@ -56,12 +56,19 @@ public sealed class SolutionManager
 
     private MSBuildWorkspace? _workspace;
     private Solution? _solution;
+    // Overlay state is not one enabled bool: mapping is prepared/active generations,
+    // _lastRefreshStale/_lastShadowCopyResults are the last refresh, sticky
+    // _shadowCopyAnalyzersEnabled is U-ARB-05 active overlay. Observed CLR execution
+    // is not stored (epoch 3). Holding mapping for an in-flight write is epoch 4.
     private bool _shadowCopyAnalyzersEnabled;
     private string? _shadowCopyRootDirectory;
+    private Guid _loadSessionId;
+    private AnalyzerShadowMapping? _analyzerShadowMapping;
     private bool _lastLoadWasCacheHit;
     private bool _lastLoadReopenedGraph;
     private bool _lastPrepareAttempted;
     private bool _lastPrepareInjectedFailure;
+    private bool _lastRefreshStale;
     private int _overlayPrepareCount;
     private IReadOnlyList<AnalyzerReferenceShadowCopier.RewriteResult> _lastShadowCopyResults =
         Array.Empty<AnalyzerReferenceShadowCopier.RewriteResult>();
@@ -87,11 +94,14 @@ public sealed class SolutionManager
     /// <summary>True when the last <see cref="LoadAsync"/> disposed and reopened the MSBuild graph.</summary>
     internal bool LastLoadReopenedGraph => _lastLoadReopenedGraph;
 
-    /// <summary>True when the last overlay prepare/reapply attempted analyzer file I/O.</summary>
+    /// <summary>True when the last overlay prepare/refresh attempted analyzer file I/O.</summary>
     internal bool LastPrepareAttempted => _lastPrepareAttempted;
 
-    /// <summary>True when the last overlay reapply used the injected prepare-failure seam.</summary>
+    /// <summary>True when the last overlay prepare used the injected prepare-failure seam.</summary>
     internal bool LastPrepareInjectedFailure => _lastPrepareInjectedFailure;
+
+    /// <summary>True when the last refresh failed and a previous compatible mapping was kept as stale.</summary>
+    internal bool LastRefreshStale => _lastRefreshStale;
 
     internal int OverlayPrepareCount => _overlayPrepareCount;
 
@@ -101,9 +111,14 @@ public sealed class SolutionManager
 
     internal string? ShadowCopyRootDirectory => _shadowCopyRootDirectory;
 
+    internal AnalyzerShadowMapping? AnalyzerShadowMapping => _analyzerShadowMapping;
+
+    internal Guid LoadSessionId => _loadSessionId;
+
     /// <summary>
-    /// When true, the next <see cref="ApplyShadowCopyOverlayIfEnabled"/> skips rewrite and returns the incoming
-    /// solution unchanged (simulates a failed prepare). Test/host seam only; production never sets this.
+    /// When true, the next <see cref="ShadowCopyInSolutionAnalyzerReferencesAsync"/> skips file preparation
+    /// (simulates a failed refresh). Document edit / flush / post-apply reapply the existing mapping and do
+    /// not consume this seam. Test/host only; production never sets this.
     /// </summary>
     internal bool FailNextOverlayPrepare { get; set; }
 
@@ -295,14 +310,15 @@ public sealed class SolutionManager
 
     public Solution? GetCurrentSolution()
     {
-        // Prefer the locally-tracked snapshot: it carries the analyzer-reference shadow-copy overlay (see
-        // ShadowCopyInSolutionAnalyzerReferencesAsync) which must never be pushed into workspace.CurrentSolution.
+        // Stored snapshot only. Overlay is prepared at load/enable/refresh and reapplied from the in-memory
+        // mapping at mutation points (edit / flush / post-apply). This getter does not copy analyzer files,
+        // hash generations, or recompute the overlay.
         return _solution ?? _workspace?.CurrentSolution;
     }
 
     /// <summary>
-    /// Rewrites <see cref="AnalyzerReference"/>s that point at another in-solution project's build output to
-    /// load from a private shadow-copy folder instead (see <see cref="AnalyzerReferenceShadowCopier"/>).
+    /// Prepares immutable shadow generations for in-solution analyzer references and stores the mapping
+    /// (see <see cref="AnalyzerReferenceShadowCopier"/>). Allowed at load/enable and explicit artifact refresh.
     /// </summary>
     /// <remarks>
     /// This deliberately never calls <see cref="Workspace.TryApplyChanges(Solution)"/> with the rewritten
@@ -312,11 +328,10 @@ public sealed class SolutionManager
     /// path as a new literal <c>&lt;Analyzer Include=...&gt;</c> item, and (b) could not remove the original
     /// <c>ProjectReference OutputItemType="Analyzer"</c>-derived reference (it is synthesized by MSBuild, not a
     /// literal item), leaving both active and making the generator run twice (CS0102/CS0111 on the next real
-    /// <c>dotnet build</c>). Instead, the rewrite is kept purely in-memory: enabling the flag once causes every
-    /// subsequent <see cref="GetCurrentSolution"/> read to overlay the shadow copy back onto whatever
-    /// <c>workspace.CurrentSolution</c> currently is (see <see cref="ApplyShadowCopyOverlayIfEnabled"/>), so the
-    /// override survives later document edits without ever touching the real project file. No-op (empty result)
-    /// when no workspace is loaded.
+    /// <c>dotnet build</c>). The rewrite is kept in an in-memory mapping bound to this load session.
+    /// Document edit, watcher flush, reconciliation and post-apply reapply that mapping with no analyzer
+    /// file I/O. Published generations are not deleted on <see cref="ClearWorkspaceAsync"/>. No-op (empty
+    /// result) when no workspace is loaded.
     /// </remarks>
     public async Task<IReadOnlyList<AnalyzerReferenceShadowCopier.RewriteResult>> ShadowCopyInSolutionAnalyzerReferencesAsync(
         CancellationToken cancellationToken = default)
@@ -333,22 +348,27 @@ public sealed class SolutionManager
 
             var shadowRoot = AnalyzerReferenceShadowCopier.GetDefaultShadowRootDirectory(loadedPath);
             _lastPrepareAttempted = true;
-            _lastPrepareInjectedFailure = false;
             _overlayPrepareCount++;
-            var (newSolution, results) = AnalyzerReferenceShadowCopier.ShadowCopyInSolutionAnalyzerReferences(
-                workspace.CurrentSolution,
-                shadowRoot,
-                _analyzerAssemblyLoader);
-            _lastShadowCopyResults = results;
 
-            if (results.Any(r => r.Applied))
+            if (FailNextOverlayPrepare)
             {
-                _shadowCopyAnalyzersEnabled = true;
-                _shadowCopyRootDirectory = shadowRoot;
-                _solution = newSolution;
+                FailNextOverlayPrepare = false;
+                _lastPrepareInjectedFailure = true;
+                return CompleteFailedPrepare(
+                    workspace.CurrentSolution,
+                    shadowRoot,
+                    "injected-prepare-failure");
             }
 
-            return results;
+            _lastPrepareInjectedFailure = false;
+            var prepared = AnalyzerReferenceShadowCopier.PrepareInSolutionAnalyzerReferences(
+                workspace.CurrentSolution,
+                shadowRoot,
+                _analyzerAssemblyLoader,
+                _analyzerShadowMapping,
+                _loadSessionId,
+                loadedPath);
+            return CompletePrepare(workspace.CurrentSolution, shadowRoot, prepared);
         }
         finally
         {
@@ -357,39 +377,71 @@ public sealed class SolutionManager
     }
 
     /// <summary>
-    /// Reapplies the in-solution analyzer-reference shadow copy (if previously enabled via
-    /// <see cref="ShadowCopyInSolutionAnalyzerReferencesAsync"/>) on top of <paramref name="solution"/>. Every
-    /// caller that would otherwise cache <c>workspace.CurrentSolution</c> into <c>_solution</c> must route
-    /// through here instead, so the overlay is never lost after a later document edit / disk sync (those still
-    /// mutate <c>workspace.CurrentSolution</c> directly, which never carries the overlay — see
-    /// <see cref="ShadowCopyInSolutionAnalyzerReferencesAsync"/>). A no-op (returns <paramref name="solution"/>
-    /// unchanged) when the flag was never enabled for this load.
+    /// Reapplies the stored analyzer-reference mapping on top of <paramref name="solution"/> with no analyzer
+    /// file I/O. Every caller that would otherwise cache <c>workspace.CurrentSolution</c> into <c>_solution</c>
+    /// must route through here so the overlay survives document edit / disk sync. A no-op when this load
+    /// session has no mapping.
     /// </summary>
     private Solution ApplyShadowCopyOverlayIfEnabled(Solution solution)
     {
-        if (!_shadowCopyAnalyzersEnabled || string.IsNullOrWhiteSpace(_shadowCopyRootDirectory))
+        var mapping = _analyzerShadowMapping;
+        if (!_shadowCopyAnalyzersEnabled
+            || mapping is null
+            || mapping.SessionId != _loadSessionId)
         {
-            _lastPrepareAttempted = false;
             return solution;
         }
 
-        _lastPrepareAttempted = true;
-        _overlayPrepareCount++;
-
-        if (FailNextOverlayPrepare)
+        if (!string.IsNullOrWhiteSpace(mapping.LoadedPath)
+            && !string.IsNullOrWhiteSpace(_loadedPath)
+            && !string.Equals(mapping.LoadedPath, _loadedPath, _pathComparison))
         {
-            FailNextOverlayPrepare = false;
-            _lastPrepareInjectedFailure = true;
             return solution;
         }
 
-        _lastPrepareInjectedFailure = false;
-        var (rewritten, results) = AnalyzerReferenceShadowCopier.ShadowCopyInSolutionAnalyzerReferences(
-            solution,
-            _shadowCopyRootDirectory,
-            _analyzerAssemblyLoader);
-        _lastShadowCopyResults = results;
-        return rewritten;
+        return mapping.Apply(solution, _analyzerAssemblyLoader);
+    }
+
+    private IReadOnlyList<AnalyzerReferenceShadowCopier.RewriteResult> CompletePrepare(
+        Solution workspaceSolution,
+        string shadowRoot,
+        AnalyzerShadowPrepareOutcome prepared)
+    {
+        _lastShadowCopyResults = prepared.Results;
+        _lastRefreshStale = prepared.UsedPreviousMappingAsStale
+            || prepared.Mapping.Entries.Any(e => e.StaleGeneration);
+
+        if (prepared.Mapping.HasAnyApplied)
+        {
+            _analyzerShadowMapping = prepared.Mapping;
+            _shadowCopyAnalyzersEnabled = true;
+            _shadowCopyRootDirectory = shadowRoot;
+            _solution = prepared.Mapping.Apply(workspaceSolution, _analyzerAssemblyLoader);
+        }
+
+        return prepared.Results;
+    }
+
+    private IReadOnlyList<AnalyzerReferenceShadowCopier.RewriteResult> CompleteFailedPrepare(
+        Solution workspaceSolution,
+        string shadowRoot,
+        string reason)
+    {
+        if (_analyzerShadowMapping is { HasAnyApplied: true } previous)
+        {
+            var stale = previous.WithStale(reason);
+            _analyzerShadowMapping = stale;
+            _lastShadowCopyResults = AnalyzerReferenceShadowCopier.ToRewriteResults(stale);
+            _lastRefreshStale = true;
+            _shadowCopyAnalyzersEnabled = true;
+            _shadowCopyRootDirectory = shadowRoot;
+            _solution = stale.Apply(workspaceSolution, _analyzerAssemblyLoader);
+            return _lastShadowCopyResults;
+        }
+
+        _lastShadowCopyResults = Array.Empty<AnalyzerReferenceShadowCopier.RewriteResult>();
+        _lastRefreshStale = false;
+        return _lastShadowCopyResults;
     }
 
     /// <summary>
@@ -690,6 +742,9 @@ public sealed class SolutionManager
             _solution = null;
             _shadowCopyAnalyzersEnabled = false;
             _shadowCopyRootDirectory = null;
+            _analyzerShadowMapping = null;
+            _loadSessionId = Guid.Empty;
+            _lastRefreshStale = false;
             _loadedPath = null;
             _loadedConfiguration = null;
             _loadedPlatform = null;
@@ -781,6 +836,9 @@ public sealed class SolutionManager
         _projectGraphStale = false;
         _shadowCopyAnalyzersEnabled = false;
         _shadowCopyRootDirectory = null;
+        _analyzerShadowMapping = null;
+        _loadSessionId = Guid.NewGuid();
+        _lastRefreshStale = false;
         _lastLoadWasCacheHit = false;
         _lastLoadReopenedGraph = true;
         _lastPrepareAttempted = false;

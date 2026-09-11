@@ -33,6 +33,7 @@ public class AnalyzerReferenceShadowCopierTests
         Assert.NotNull(result.ShadowCopyPath);
         Assert.True(File.Exists(result.ShadowCopyPath));
         Assert.StartsWith(fixture.ShadowRoot, result.ShadowCopyPath, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("v2-main-only", result.ShadowCopyPath, StringComparison.OrdinalIgnoreCase);
 
         var consumer = newSolution.Projects.Single(p => p.Name == "Consumer");
         var rewritten = Assert.Single(consumer.AnalyzerReferences);
@@ -82,6 +83,35 @@ public class AnalyzerReferenceShadowCopierTests
         Assert.Empty(results);
         var consumer = newSolution.Projects.Single(p => p.Name == "Consumer");
         Assert.Same(nugetAnalyzerPath, consumer.AnalyzerReferences.Single().FullPath);
+    }
+
+    [Fact]
+    public void ApplyMapping_does_not_read_analyzer_files_and_survives_missing_source()
+    {
+        using var fixture = new ReproFixture();
+        var generatorOutput = fixture.CreateFile("Generator", "obj", "Debug", "Generator.dll");
+        var brokenReferencePath = Path.Combine(fixture.RootDirectory, "artifacts", "Generator", "Generator.dll");
+        var solution = fixture.BuildSolution(
+            generatorOutputFilePath: generatorOutput,
+            consumerAnalyzerReferences: new AnalyzerReference[] { new FakeAnalyzerReference("Unresolved: " + brokenReferencePath, brokenReferencePath) });
+        var loader = new InProcessAnalyzerAssemblyLoader();
+
+        var prepared = AnalyzerReferenceShadowCopier.PrepareInSolutionAnalyzerReferences(
+            solution,
+            fixture.ShadowRoot,
+            loader,
+            previousMapping: null,
+            sessionId: Guid.NewGuid(),
+            loadedPath: Path.Combine(fixture.RootDirectory, "repro.slnx"));
+        Assert.True(prepared.Mapping.HasAnyApplied);
+        File.Delete(generatorOutput);
+        var ioBefore = AnalyzerShadowGenerationPublisher.AnalyzerFileIoCount;
+
+        var reapplied = prepared.Mapping.Apply(solution, loader);
+        Assert.Equal(ioBefore, AnalyzerShadowGenerationPublisher.AnalyzerFileIoCount);
+        var rewritten = Assert.Single(reapplied.Projects.Single(p => p.Name == "Consumer").AnalyzerReferences);
+        Assert.Equal(prepared.Mapping.Entries[0].ShadowCopyPath, rewritten.FullPath);
+        Assert.True(File.Exists(rewritten.FullPath));
     }
 
     [Fact]

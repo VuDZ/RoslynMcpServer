@@ -36,6 +36,7 @@ internal sealed class HostSession
                 "inspect" => Inspect("inspect"),
                 "injectPrepareFailure" => InjectPrepareFailure(),
                 "forceCopyFailure" => ForceCopyFailure(),
+                "publishGeneration" => PublishGeneration(command),
                 "rename" => await RenameOverlayAsync(command, cancellationToken).ConfigureAwait(false),
                 "snapshotCsproj" => SnapshotCsproj(command),
                 "build" => await BuildAsync(command, cancellationToken).ConfigureAwait(false),
@@ -275,6 +276,60 @@ internal sealed class HostSession
         return response;
     }
 
+    private HostResponse PublishGeneration(HostCommand command)
+    {
+        if (string.IsNullOrWhiteSpace(command.Path) || !File.Exists(command.Path))
+        {
+            return Fail("publishGeneration", "source-not-found");
+        }
+
+        var root = command.ShadowRoot;
+        if (string.IsNullOrWhiteSpace(root))
+        {
+            return Fail("publishGeneration", "shadow-root-required");
+        }
+
+        if (!string.IsNullOrWhiteSpace(command.GatePath))
+        {
+            AnalyzerShadowGenerationPublisher.BeforeMoveGatePath = command.GatePath;
+            AnalyzerShadowGenerationPublisher.BeforeMoveGateTimeout = TimeSpan.FromMilliseconds(
+                command.TimeoutMs <= 0 ? 30_000 : command.TimeoutMs);
+        }
+
+        try
+        {
+            var published = AnalyzerShadowGenerationPublisher.PublishMainOnly(command.Path, root, "Generator");
+            var response = Inspect("publishGeneration");
+            response.Ok = published.Success;
+            response.Error = published.FailureReason;
+            response.ReusedExisting = published.ReusedExisting;
+            response.GenerationDirectory = published.GenerationDirectory;
+            response.GenerationBytes = published.GenerationBytes;
+            response.ShadowRootBytes = AnalyzerShadowGenerationPublisher.MeasureDirectoryBytes(root);
+            if (published.Success)
+            {
+                response.Rewrite =
+                [
+                    new RewriteDto
+                    {
+                        ProjectName = "Consumer",
+                        MatchedProjectName = "Generator",
+                        OriginalFullPath = command.Path,
+                        ShadowCopyPath = published.MainShadowPath,
+                        Applied = true,
+                        Generation = published.GenerationId,
+                    },
+                ];
+            }
+
+            return response;
+        }
+        finally
+        {
+            AnalyzerShadowGenerationPublisher.BeforeMoveGatePath = null;
+        }
+    }
+
     private HostResponse InjectPrepareFailure()
     {
         _manager.FailNextOverlayPrepare = true;
@@ -510,7 +565,10 @@ internal sealed class HostSession
             ReopenedGraph = _manager.LastLoadReopenedGraph,
             PrepareAttempted = _manager.LastPrepareAttempted,
             PrepareInjectedFailure = _manager.LastPrepareInjectedFailure,
+            LastRefreshStale = _manager.LastRefreshStale,
+            MappingPresent = _manager.AnalyzerShadowMapping is { HasAnyApplied: true },
             OverlayPrepareCount = _manager.OverlayPrepareCount,
+            AnalyzerFileIoCount = AnalyzerShadowGenerationPublisher.AnalyzerFileIoCount,
             ShadowEnabled = _manager.ShadowCopyAnalyzersEnabled,
             ShadowRoot = _manager.ShadowCopyRootDirectory,
             LoadedWorkspacePath = _manager.GetLoadedWorkspacePath(),
@@ -571,7 +629,7 @@ internal sealed class HostSession
             ShadowCopyPath = r.ShadowCopyPath,
             Applied = r.Applied,
             SkipReason = r.SkipReason,
-            Generation = TryGeneration(r.ShadowCopyPath),
+            Generation = r.GenerationId ?? TryGeneration(r.ShadowCopyPath),
         }).ToList();
     }
 

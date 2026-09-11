@@ -24,11 +24,12 @@ namespace RoslynMcpServer.Services;
 /// (two projects sharing one) are left untouched rather than guessed. The source file copied is always the
 /// matched project's own resolved output (<see cref="Project.CompilationOutputInfo"/>'s <c>AssemblyPath</c>, or
 /// <see cref="Project.OutputFilePath"/>), not the (possibly broken) original reference path — that resolved
-/// output already has to exist on disk for anything useful to happen. Pure rewrite logic is separated from the
-/// caller so it is unit-testable without a live workspace. The caller (<see cref="SolutionManager"/>) must never
-/// apply the result via <see cref="Workspace.TryApplyChanges(Solution)"/> against the real
-/// <see cref="MSBuildWorkspace"/> — see <see cref="SolutionManager.ShadowCopyInSolutionAnalyzerReferencesAsync"/>
-/// for why (it persists analyzer reference changes back to the <c>.csproj</c> on disk).
+/// output already has to exist on disk for anything useful to happen.
+/// File preparation (immutable content-hashed generations) is separate from the pure <see cref="Solution"/>
+/// transform. The caller (<see cref="SolutionManager"/>) must never apply the result via
+/// <see cref="Workspace.TryApplyChanges(Solution)"/> against the real <see cref="MSBuildWorkspace"/> — see
+/// <see cref="SolutionManager.ShadowCopyInSolutionAnalyzerReferencesAsync"/> for why (it persists analyzer
+/// reference changes back to the <c>.csproj</c> on disk).
 /// </summary>
 public static class AnalyzerReferenceShadowCopier
 {
@@ -39,18 +40,24 @@ public static class AnalyzerReferenceShadowCopier
         string MatchedProjectName,
         string? ShadowCopyPath,
         bool Applied,
-        string? SkipReason);
+        string? SkipReason,
+        string? GenerationId = null,
+        bool StaleGeneration = false);
 
     /// <summary>
-    /// Test seam: next <see cref="CopyToShadowDirectory"/> calls throw <see cref="IOException"/> before
-    /// <c>File.Copy</c>. Distinct from <c>SolutionManager.FailNextOverlayPrepare</c>, which skips the copier.
+    /// Test seam: next publisher copies throw <see cref="IOException"/> before writing bytes.
+    /// Distinct from <c>SolutionManager.FailNextOverlayPrepare</c>, which skips the copier.
     /// </summary>
-    internal static int RemainingForcedCopyFailures { get; set; }
+    internal static int RemainingForcedCopyFailures
+    {
+        get => AnalyzerShadowGenerationPublisher.RemainingForcedCopyFailures;
+        set => AnalyzerShadowGenerationPublisher.RemainingForcedCopyFailures = value;
+    }
 
     /// <summary>
     /// Computes a stable, human-readable shadow-copy root directory for a loaded solution/project path, under
     /// the OS temp directory. Distinct loaded paths never collide; the same path always maps to the same
-    /// directory so repeated loads reuse (and overwrite) prior shadow copies.
+    /// directory so repeated loads can reuse published generations (never overwrite them).
     /// </summary>
     public static string GetDefaultShadowRootDirectory(string loadedPath)
     {
@@ -64,44 +71,55 @@ public static class AnalyzerReferenceShadowCopier
     }
 
     /// <summary>
-    /// Rewrites every in-solution <see cref="AnalyzerReference"/> found across <paramref name="solution"/>'s
-    /// projects. Returns the (possibly unchanged) solution plus one <see cref="RewriteResult"/> per matched
-    /// reference, applied or not. Never throws for a single failed copy/match — failures are reported via
-    /// <see cref="RewriteResult.SkipReason"/> so the caller can log them and leave that reference untouched.
+    /// Prepares immutable generations then rewrites in-solution analyzer references. Combined helper for
+    /// unit tests; production load/refresh uses <see cref="PrepareInSolutionAnalyzerReferences"/> and
+    /// <see cref="ApplyMapping"/> separately so document edit can reapply without analyzer file I/O.
     /// </summary>
     public static (Solution Solution, IReadOnlyList<RewriteResult> Results) ShadowCopyInSolutionAnalyzerReferences(
         Solution solution,
         string shadowRootDirectory,
         IAnalyzerAssemblyLoader loader)
     {
+        var prepared = PrepareInSolutionAnalyzerReferences(
+            solution,
+            shadowRootDirectory,
+            loader,
+            previousMapping: null,
+            sessionId: Guid.Empty,
+            loadedPath: null);
+        var rewritten = prepared.Mapping.HasAnyApplied
+            ? prepared.Mapping.Apply(solution, loader)
+            : solution;
+        return (rewritten, prepared.Results);
+    }
+
+    internal static AnalyzerShadowPrepareOutcome PrepareInSolutionAnalyzerReferences(
+        Solution solution,
+        string shadowRootDirectory,
+        IAnalyzerAssemblyLoader loader,
+        AnalyzerShadowMapping? previousMapping,
+        Guid sessionId,
+        string? loadedPath)
+    {
         ArgumentNullException.ThrowIfNull(solution);
         ArgumentException.ThrowIfNullOrWhiteSpace(shadowRootDirectory);
         ArgumentNullException.ThrowIfNull(loader);
+        _ = loader;
 
         var assemblyNameToProjectId = solution.Projects
             .GroupBy(p => p.AssemblyName, StringComparer.OrdinalIgnoreCase)
             .Where(g => g.Count() == 1)
             .ToDictionary(g => g.Key, g => g.First().Id, StringComparer.OrdinalIgnoreCase);
 
-        var results = new List<RewriteResult>();
-
-        foreach (var projectId in solution.Projects.Select(p => p.Id).ToList())
+        var workItems = new List<PendingRewrite>();
+        foreach (var project in solution.Projects)
         {
-            var project = solution.GetProject(projectId);
-            if (project is null)
-            {
-                continue;
-            }
-
-            var toRemove = new List<AnalyzerReference>();
-            var toAdd = new List<AnalyzerReference>();
-
             foreach (var analyzerReference in project.AnalyzerReferences)
             {
                 var fileName = TryGetFileNameWithoutExtension(analyzerReference.FullPath);
                 if (fileName is null
                     || !assemblyNameToProjectId.TryGetValue(fileName, out var matchedProjectId)
-                    || matchedProjectId == projectId)
+                    || matchedProjectId == project.Id)
                 {
                     continue;
                 }
@@ -112,108 +130,156 @@ public static class AnalyzerReferenceShadowCopier
                     continue;
                 }
 
-                var sourcePath = matchedProject.CompilationOutputInfo.AssemblyPath ?? matchedProject.OutputFilePath;
-                if (string.IsNullOrWhiteSpace(sourcePath) || !File.Exists(sourcePath))
-                {
-                    results.Add(new RewriteResult(
-                        project.Name,
-                        analyzerReference.Display,
-                        analyzerReference.FullPath,
-                        matchedProject.Name,
-                        ShadowCopyPath: null,
-                        Applied: false,
-                        SkipReason: $"matched project '{matchedProject.Name}' has no existing resolved output file (build it first)"));
-                    continue;
-                }
-
-                string shadowPath;
-                try
-                {
-                    shadowPath = CopyToShadowDirectory(sourcePath, shadowRootDirectory, matchedProject.Name);
-                }
-                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-                {
-                    results.Add(new RewriteResult(
-                        project.Name,
-                        analyzerReference.Display,
-                        analyzerReference.FullPath,
-                        matchedProject.Name,
-                        ShadowCopyPath: null,
-                        Applied: false,
-                        SkipReason: $"shadow copy failed: {ex.Message}"));
-                    continue;
-                }
-
-                toRemove.Add(analyzerReference);
-                toAdd.Add(new AnalyzerFileReference(shadowPath, loader));
-                results.Add(new RewriteResult(
-                    project.Name,
-                    analyzerReference.Display,
-                    analyzerReference.FullPath,
-                    matchedProject.Name,
-                    shadowPath,
-                    Applied: true,
-                    SkipReason: null));
+                workItems.Add(new PendingRewrite(project, analyzerReference, matchedProject));
             }
+        }
 
-            if (toRemove.Count == 0)
+        if (workItems.Count == 0)
+        {
+            var empty = new AnalyzerShadowMapping(sessionId, loadedPath, Array.Empty<AnalyzerShadowReferenceEntry>());
+            return new AnalyzerShadowPrepareOutcome(
+                empty,
+                Array.Empty<RewriteResult>(),
+                RefreshSucceeded: true,
+                UsedPreviousMappingAsStale: false,
+                FailureSummary: null);
+        }
+
+        var publishBySource = new Dictionary<string, AnalyzerShadowPublishResult>(StringComparer.OrdinalIgnoreCase);
+        var entries = new List<AnalyzerShadowReferenceEntry>(workItems.Count);
+        var anyPublishFailure = false;
+        string? firstFailure = null;
+
+        foreach (var item in workItems)
+        {
+            var sourcePath = item.MatchedProject.CompilationOutputInfo.AssemblyPath ?? item.MatchedProject.OutputFilePath;
+            if (string.IsNullOrWhiteSpace(sourcePath) || !File.Exists(sourcePath))
             {
+                var skipped = KeepPreviousOrSkip(
+                    previousMapping,
+                    item,
+                    $"matched project '{item.MatchedProject.Name}' has no existing resolved output file (build it first)");
+                if (!skipped.Applied)
+                {
+                    anyPublishFailure = true;
+                    firstFailure ??= skipped.SkipReason;
+                }
+                else if (skipped.StaleGeneration)
+                {
+                    anyPublishFailure = true;
+                    firstFailure ??= skipped.SkipReason;
+                }
+
+                entries.Add(skipped);
                 continue;
             }
 
-            var updatedReferences = project.AnalyzerReferences
-                .Where(r => !toRemove.Contains(r))
-                .Concat(toAdd)
-                .ToList();
-            solution = solution.WithProjectAnalyzerReferences(projectId, updatedReferences);
-        }
-
-        return (solution, results);
-    }
-
-    /// <summary>
-    /// Copies <paramref name="sourcePath"/> (and its <c>.pdb</c>, best-effort) into
-    /// <c>{shadowRootDirectory}\{matchedProjectName}\{sourceLastWriteTicks}\{fileName}</c>. Namespacing by the
-    /// source file's last-write time means a rebuilt analyzer gets a fresh path — and therefore a fresh
-    /// <see cref="IAnalyzerAssemblyLoader.LoadFromPath"/> load — on the next <c>load_workspace</c>, instead of
-    /// silently reusing a process-lifetime-cached stale assembly.
-    /// </summary>
-    private static string CopyToShadowDirectory(string sourcePath, string shadowRootDirectory, string matchedProjectName)
-    {
-        if (RemainingForcedCopyFailures > 0)
-        {
-            RemainingForcedCopyFailures--;
-            throw new IOException("Forced copy failure for epoch-1 overlay reapply baseline.");
-        }
-
-        var generation = File.GetLastWriteTimeUtc(sourcePath).Ticks.ToString(System.Globalization.CultureInfo.InvariantCulture);
-        var shadowDirectory = Path.Combine(shadowRootDirectory, matchedProjectName, generation);
-        Directory.CreateDirectory(shadowDirectory);
-
-        var shadowPath = Path.Combine(shadowDirectory, Path.GetFileName(sourcePath));
-        File.Copy(sourcePath, shadowPath, overwrite: true);
-
-        TryCopySidecar(sourcePath, shadowPath, ".pdb");
-        return shadowPath;
-    }
-
-    private static void TryCopySidecar(string sourcePath, string shadowPath, string sidecarExtension)
-    {
-        try
-        {
-            var sourceSidecar = Path.ChangeExtension(sourcePath, sidecarExtension);
-            if (!File.Exists(sourceSidecar))
+            var sourceFull = Path.GetFullPath(sourcePath);
+            if (!publishBySource.TryGetValue(sourceFull, out var published))
             {
-                return;
+                published = AnalyzerShadowGenerationPublisher.PublishMainOnly(
+                    sourceFull,
+                    shadowRootDirectory,
+                    item.MatchedProject.Name);
+                publishBySource[sourceFull] = published;
             }
 
-            var shadowSidecar = Path.ChangeExtension(shadowPath, sidecarExtension);
-            File.Copy(sourceSidecar, shadowSidecar, overwrite: true);
+            if (!published.Success || string.IsNullOrWhiteSpace(published.MainShadowPath))
+            {
+                anyPublishFailure = true;
+                firstFailure ??= published.FailureReason;
+                entries.Add(KeepPreviousOrSkip(
+                    previousMapping,
+                    item,
+                    published.FailureReason ?? "publish-failed"));
+                continue;
+            }
+
+            entries.Add(new AnalyzerShadowReferenceEntry(
+                item.Project.Id,
+                item.Project.Name,
+                item.AnalyzerReference.Display,
+                item.AnalyzerReference.FullPath,
+                item.MatchedProject.Name,
+                published.MainShadowPath,
+                published.GenerationId,
+                Applied: true,
+                SkipReason: null,
+                StaleGeneration: false));
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+
+        var mapping = new AnalyzerShadowMapping(sessionId, loadedPath, entries);
+        if (anyPublishFailure && previousMapping is { HasAnyApplied: true } && !mapping.HasAnyApplied)
         {
-            // Sidecar files (.pdb) are a debugging nicety only; a missing/locked one must not block the fix.
+            var stale = previousMapping.WithStale(firstFailure ?? "refresh-failed");
+            return new AnalyzerShadowPrepareOutcome(
+                stale,
+                ToRewriteResults(stale),
+                RefreshSucceeded: false,
+                UsedPreviousMappingAsStale: true,
+                FailureSummary: firstFailure);
         }
+
+        return new AnalyzerShadowPrepareOutcome(
+            mapping,
+            ToRewriteResults(mapping),
+            RefreshSucceeded: !anyPublishFailure,
+            UsedPreviousMappingAsStale: mapping.Entries.Any(e => e.StaleGeneration),
+            FailureSummary: firstFailure);
+    }
+
+    internal static Solution ApplyMapping(
+        Solution solution,
+        AnalyzerShadowMapping mapping,
+        IAnalyzerAssemblyLoader loader)
+    {
+        return mapping.Apply(solution, loader);
+    }
+
+    internal static IReadOnlyList<RewriteResult> ToRewriteResults(AnalyzerShadowMapping mapping)
+    {
+        return mapping.Entries.Select(e => new RewriteResult(
+            e.ProjectName,
+            e.AnalyzerDisplay,
+            e.OriginalFullPath,
+            e.MatchedProjectName,
+            e.ShadowCopyPath,
+            e.Applied,
+            e.SkipReason,
+            e.GenerationId,
+            e.StaleGeneration)).ToList();
+    }
+
+    private static AnalyzerShadowReferenceEntry KeepPreviousOrSkip(
+        AnalyzerShadowMapping? previousMapping,
+        PendingRewrite item,
+        string reason)
+    {
+        var previous = previousMapping?.Entries.FirstOrDefault(e =>
+            e.ProjectId == item.Project.Id
+            && string.Equals(e.OriginalFullPath, item.AnalyzerReference.FullPath, StringComparison.OrdinalIgnoreCase)
+            && e.Applied
+            && !string.IsNullOrWhiteSpace(e.ShadowCopyPath));
+        if (previous is not null)
+        {
+            return previous with
+            {
+                StaleGeneration = true,
+                SkipReason = "stale-generation: " + reason,
+            };
+        }
+
+        return new AnalyzerShadowReferenceEntry(
+            item.Project.Id,
+            item.Project.Name,
+            item.AnalyzerReference.Display,
+            item.AnalyzerReference.FullPath,
+            item.MatchedProject.Name,
+            ShadowCopyPath: null,
+            GenerationId: null,
+            Applied: false,
+            SkipReason: reason,
+            StaleGeneration: false);
     }
 
     private static string? TryGetFileNameWithoutExtension(string? path)
@@ -232,4 +298,16 @@ public static class AnalyzerReferenceShadowCopier
             return null;
         }
     }
+
+    private readonly record struct PendingRewrite(
+        Project Project,
+        AnalyzerReference AnalyzerReference,
+        Project MatchedProject);
 }
+
+internal readonly record struct AnalyzerShadowPrepareOutcome(
+    AnalyzerShadowMapping Mapping,
+    IReadOnlyList<AnalyzerReferenceShadowCopier.RewriteResult> Results,
+    bool RefreshSucceeded,
+    bool UsedPreviousMappingAsStale,
+    string? FailureSummary);

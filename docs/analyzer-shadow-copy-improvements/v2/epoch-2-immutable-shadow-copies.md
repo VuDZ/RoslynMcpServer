@@ -1,6 +1,7 @@
 # Эпоха 2 — Неизменяемые поколения и mapping
 
-Статус: **планируется**. Зависимость: [эпоха 1](epoch-1-lifecycle-verification.md).
+Статус: **принято** (файлы/mapping; CLR execution — эпоха 3). Зависимость: [эпоха 1](epoch-1-lifecycle-verification.md).
+Приёмка: [epoch-2-acceptance.md](epoch-2-acceptance.md). Открыт A2-09 (stores).
 Контракт mapping этого этапа обязателен для эпохи 4; файловая идентичность не
 закрывает CLR binding gate эпохи 3.
 

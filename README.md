@@ -170,6 +170,11 @@ MCP `tools/list` stays JSON + JSON Schema. Markdown is for JIT help and diagnost
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.3.6
+
+- **`shadowCopyInSolutionAnalyzers` immutable mapping (epoch 2).** Analyzer shadow copies are content-hashed main-only generations under `v2-main-only/` (manifest-last, same-volume no-replace publish). Preparation runs at load/enable and explicit refresh only; document edit, watcher flush, and post-apply reapply the in-memory mapping with **zero analyzer file I/O**, so a missing original output path no longer drops the overlay. Failed refresh keeps a stale mapping instead of reverting to broken originals. Timestamp directories are not migrated. CLR reload of a rebuilt generator remains an epoch-3 / U-ARB-02 gate.
+- **Catalog size** — minified `tools/list` UTF-8: full 63 tools / 43,895 bytes; lite 19 / 16,309.
+
 ### v1.3.5
 
 - **Fix: `shadowCopyInSolutionAnalyzers` (v1.3.4) no longer touches the real `.csproj` on disk.** The v1.3.4 implementation applied the rewritten `Solution` via `Workspace.TryApplyChanges`, which for `MSBuildWorkspace` persists `AddAnalyzerReference`/`RemoveAnalyzerReference` back into the backing project file. Confirmed against the `C:\Scratch\GenRepro` repro: this injected a machine-/session-specific temp shadow path as a literal `<Analyzer Include=...>` MSBuild item and could not remove the original `ProjectReference OutputItemType="Analyzer"` reference (it is synthesized by MSBuild, not a literal item), leaving both active — the generator then ran twice and the next real `dotnet build` failed with `CS0102`/`CS0111` duplicate-member errors. Fix: `SolutionManager` now keeps the rewrite purely in-memory — `GetCurrentSolution()` re-derives the analyzer-reference overlay on top of `workspace.CurrentSolution` on every read instead of ever pushing it back via `TryApplyChanges`. `FindDocumentAsync` (backs `get_diagnostics_for_file`, `find_symbol_references`, AST/code-fix tools) now also reads through `GetCurrentSolution()` instead of `workspace.CurrentSolution` directly, so the fixed semantic model (no more `CS0103` on generator-produced types) reaches those tools too. Any tool that edits a document and calls back into `ApplySolutionChangesToDiskAsync` (rename, code fix, generated test stub) is defended by a new guard that strips any accidental `AnalyzerReference` diff before it reaches `TryApplyChanges`, so the same corruption cannot resurface via a different call path. No tool parameters changed; `shadowCopyInSolutionAnalyzers` behaves the same from the caller's side, just without the disk side effect. **Known separate limitation (not something this fixes):** `find_symbol_definition` still cannot locate a generator-emitted type by name — `SymbolFinder` [never searches source-generated documents, by Roslyn design](https://github.com/dotnet/roslyn/issues/63375). `get_diagnostics_for_file` / `find_symbol_references` from a real usage site are unaffected.
@@ -415,7 +420,7 @@ There are **63** registered tools in the default `full` profile (see list below)
 - `buildArgs: string?` — optional extra arguments appended to later `dotnet build` (probe and pre-test build). Session-cached; omit to clear. Do not include `-c`, `-p:Platform`, `-v`, or `--no-incremental`.
 - `briefOutput: bool = false` — when `true`, collapse successful-load MSBuild/NuGet warnings to category and code counts. Default `false` keeps full messages. Failures always print in full.
 - `logProjectOutputDiagnostics: bool = false` — when `true`, logs one Information-level line per project (`OutputFilePath`, exists/last-write UTC, `CompilationOutputInfo.GeneratedFilesOutputDirectory`, exists) and one line per `AnalyzerReference` (`Display`, `FullPath`, exists/last-write UTC) to the MCP server log — not returned in this tool's response. Diagnostic-only aid for `Directory.Build.props` overriding `OutputPath` (e.g. into a shared `artifacts` folder) so an analyzer/generator project's `AnalyzerReference` ends up pointing at a stale or missing DLL. Read with `tail_tool_log` / `read_log_tail`.
-- `shadowCopyInSolutionAnalyzers: bool = false` — when `true`, rewrites `AnalyzerReference`s whose file name matches another (unambiguous) in-solution project's `AssemblyName` to a shadow copy of that project's own resolved output, fixing source generation broken by the `OutputPath` override above and avoiding a lock on the real build output. Requires that project to already have a build output on disk. This response includes a one-line summary (`N rewritten, M skipped`); per-reference detail (original path, shadow path, or skip reason) goes to the MCP server log.
+- `shadowCopyInSolutionAnalyzers: bool = false` — when `true`, rewrites `AnalyzerReference`s whose file name matches another (unambiguous) in-solution project's `AssemblyName` to a shadow copy of that project's own resolved output, fixing source generation broken by the `OutputPath` override above and avoiding a lock on the real build output. Requires that project to already have a build output on disk. Prepared generations are content-hashed (`v2-main-only`) and reused on document edit without recopying analyzer files. This response includes a one-line summary (`N rewritten, M skipped`); per-reference detail (original path, shadow path, or skip reason) goes to the MCP server log.
 
 **Analyzer shadow-copy activation and side effects:** this flag is opt-in; the MCP client and agent do not enable it automatically. Add a conditional rule to the target repository's `AGENTS.md` when that repository uses in-solution analyzer/generator projects with a custom `OutputPath`. Enabling it copies versioned analyzer DLL/PDB files under the OS temp directory and re-applies the in-memory overlay after workspace document updates, adding some disk I/O and CPU. Old timestamped generations are not currently cleaned automatically and can accumulate. The real `.csproj` and analyzer build output are not modified; the MCP process locks only the shadow copy.
 
@@ -982,7 +987,7 @@ Verify id/version with `search_nuget_registry` first. Clears workspace cache —
 
 **Parameters:** *(none)*
 
-Use after `dotnet publish` to verify the MCP host picked up the new binary (expect **v1.3.5** and **63** tools on `full`, or **19** on `lite`).
+Use after `dotnet publish` to verify the MCP host picked up the new binary (expect **v1.3.6** and **63** tools on `full`, or **19** on `lite`).
 
 </details>
 
@@ -1194,7 +1199,7 @@ cd D:\Devel\YourApp
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.3.5). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.3.6). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 
@@ -1251,7 +1256,7 @@ cd D:\Devel\YourApp
 - `buildArgs: string?` — опциональные extra-аргументы для последующих `dotnet build` (probe и пребилд тестов). Кэш сессии; пустое значение сбрасывает. Не класть `-c`, `-p:Platform`, `-v`, `--no-incremental`.
 - `briefOutput: bool = false` — `true` сворачивает предупреждения MSBuild/NuGet успешного load в счётчики категорий и кодов. По умолчанию полный дамп. Ошибки load всегда печатаются целиком.
 - `logProjectOutputDiagnostics: bool = false` — диагностически пишет в MCP-лог resolved output и состояние `AnalyzerReference`; в ответ tool эти данные не попадают. Используйте для in-solution analyzer/generator проектов, если `Directory.Build.props` переопределяет `OutputPath`.
-- `shadowCopyInSolutionAnalyzers: bool = false` — заменяет подходящие in-solution `AnalyzerReference` на приватные shadow copies реального output соответствующих проектов. Analyzer-проект должен быть предварительно собран. Краткая сводка возвращается в ответе, детали доступны через `tail_tool_log` / `read_log_tail`.
+- `shadowCopyInSolutionAnalyzers: bool = false` — заменяет подходящие in-solution `AnalyzerReference` на приватные shadow copies реального output соответствующих проектов. Analyzer-проект должен быть предварительно собран. Поколения адресуются по содержимому и повторно применяются при edit без копирования analyzer-файлов. Краткая сводка возвращается в ответе, детали доступны через `tail_tool_log` / `read_log_tail`.
 
 **Активация и побочные эффекты analyzer shadow copy:** флаг opt-in; MCP-клиент и агент автоматически его не включают. Для репозитория с in-solution analyzer/generator и custom `OutputPath` добавьте условное правило в его `AGENTS.md`. При включении versioned DLL/PDB копируются в каталог RoslynMcpServer под OS temp; overlay повторно применяется после обновлений документов, что добавляет I/O и CPU. Старые timestamped-каталоги автоматически не очищаются и могут накапливаться. Реальные `.csproj` и build output не изменяются; MCP-процесс блокирует только shadow copy.
 
@@ -1811,7 +1816,7 @@ cd D:\Devel\YourApp
 
 **Параметры:** *(нет)*
 
-После `dotnet publish` — проверка, что MCP подхватил новый бинарник (ожидай **v1.3.5** и **63** tools в `full`, или **19** в `lite`).
+После `dotnet publish` — проверка, что MCP подхватил новый бинарник (ожидай **v1.3.6** и **63** tools в `full`, или **19** в `lite`).
 
 </details>
 

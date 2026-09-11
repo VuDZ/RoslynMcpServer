@@ -1,7 +1,9 @@
 # Epoch 3 — Correct fix: in-memory overlay
 
-Status: **shipped as v1.3.5**. Current shipped design; see
-`docs/ARCHITECTURE.md` ("Workspace lifecycle") for the day-to-day description.
+Status: **shipped as v1.3.5**. Overlay application (never `TryApplyChanges`).
+**v1.3.6** replaced recopy-on-edit with mapping reapply; `GetCurrentSolution()`
+already returned stored `_solution` in v1.3.5 — do not describe the getter as
+recompute-on-read. See `docs/ARCHITECTURE.md` for current behavior.
 
 ## Baseline / problem
 

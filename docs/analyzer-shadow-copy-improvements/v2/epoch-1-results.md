@@ -79,3 +79,22 @@ dotnet test c:\Repos\RoslynMcpServer\RoslynMcpServer.Tests\RoslynMcpServer.Tests
 Перед rebuild убить leftover `RoslynMcpServer.LifecycleTestHost` (MSB3027 / hung build).
 Недоступный MSBuild bootstrap → Skip с причиной, не passed.
 Не запускать полный filter через MCP: протокол `-32001` обрывает suite раньше записи строк.
+
+## Повтор после эпохи 2 (2026-09-11, x64)
+
+Не полный `Category=AnalyzerLifecycle`. Окружение, команды и полные path/байты:
+[epoch-2-results.md](epoch-2-results.md). Testhost **64-bit**, SDK `C:\Program Files\dotnet\sdk\10.0.204`.
+Исходная таблица выше — 32-bit baseline; строки ниже заменяют только покрытые эпохой 2 ячейки.
+
+| Случай | Результат | Evidence |
+| --- | --- | --- |
+| Overlay reapply + injected prepare failure | **pass** | marker V1; overlay остаётся `v2-main-only\<hash>\Generator.dll`; `OverlayPrepareCount=1` `AnalyzerFileIoCount=8` на edit; inject не потребляется |
+| Overlay reapply + forced `File.Copy` IOException | **pass** | то же: marker V1, shadow path, counts 1 / 8 |
+
+| Путь | Redirected missing path | SDK default correct path |
+| --- | --- | --- |
+| `UpdateDocumentInMemoryAsync` + запись файла | **pass** — marker V1; overlay = shadow `v2-main-only`; `OverlayPrepareCount 1→1` `AnalyzerFileIoCount 8→8` | **pass** — то же (overlay = shadow, не workspace original) |
+| Overlay apply / rename | **pass** — marker V1; `SameSnapshotAfterSymbol=True`; counts 1→1 / 8→8 | **pass** — то же |
+| FSW dirty wait + `FindDocumentAsync` flush | **pass** — dirty доставлен, flush опубликовал `fsw-`, marker V1; counts 1→1 / 8→8 | **pass** — то же |
+
+V1→V2 cached/reset, A→B, false→true на cached load **не перегонялись** в этом повторе; остаются fail эпохи 3 / U-ARB-05. Assertions не ослаблялись.

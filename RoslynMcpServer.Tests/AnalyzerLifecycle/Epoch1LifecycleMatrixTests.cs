@@ -372,17 +372,22 @@ public sealed class Epoch1LifecycleMatrixTests
         using var fixture = GeneratorConsumerFixture.Create(OutputPathMode.RedirectedMissingAnalyzerPath);
         await using var host = LifecycleHostClient.Start();
         await Epoch1HostOps.BuildAsync(host, fixture.SolutionPath);
-        _ = await Epoch1HostOps.LoadAsync(host, fixture.SolutionPath, shadowCopy: true);
+        var load = await Epoch1HostOps.LoadAsync(host, fixture.SolutionPath, shadowCopy: true);
         var before = await Epoch1HostOps.RequireMarkerAsync(host, GeneratorConsumerFixture.MarkerV1);
         var shadowBefore = before.OverlayAnalyzerPath;
         Assert.False(string.IsNullOrWhiteSpace(shadowBefore));
+        var prepareCount = load.OverlayPrepareCount;
+        var fileIo = load.AnalyzerFileIoCount;
 
         _ = await host.SendAsync(new HostCommand { Op = "injectPrepareFailure" });
         var edited = fixture.WithConsumerComment("after-prepare-failure");
         var update = await host.SendAsync(
             new HostCommand { Op = "updateDocument", Path = fixture.ConsumerSourcePath, Text = edited });
         Dump("reapply-failure-update", update);
-        Assert.True(update.PrepareInjectedFailure);
+        Assert.True(update.Ok, update.Error);
+        Assert.Equal(prepareCount, update.OverlayPrepareCount);
+        Assert.Equal(fileIo, update.AnalyzerFileIoCount);
+        Assert.False(update.PrepareInjectedFailure, "edit must not consume prepare-failure; it is not a refresh.");
 
         var after = await Epoch1HostOps.OracleAsync(host);
         Dump("reapply-failure-oracle", after);
@@ -401,17 +406,22 @@ public sealed class Epoch1LifecycleMatrixTests
         using var fixture = GeneratorConsumerFixture.Create(OutputPathMode.RedirectedMissingAnalyzerPath);
         await using var host = LifecycleHostClient.Start();
         await Epoch1HostOps.BuildAsync(host, fixture.SolutionPath);
-        _ = await Epoch1HostOps.LoadAsync(host, fixture.SolutionPath, shadowCopy: true);
+        var load = await Epoch1HostOps.LoadAsync(host, fixture.SolutionPath, shadowCopy: true);
         var before = await Epoch1HostOps.RequireMarkerAsync(host, GeneratorConsumerFixture.MarkerV1);
         var shadowBefore = before.OverlayAnalyzerPath;
         Assert.False(string.IsNullOrWhiteSpace(shadowBefore));
+        var prepareCount = load.OverlayPrepareCount;
+        var fileIo = load.AnalyzerFileIoCount;
 
         _ = await host.SendAsync(new HostCommand { Op = "forceCopyFailure" });
         var edited = fixture.WithConsumerComment("after-copy-ioexception");
         var update = await host.SendAsync(
             new HostCommand { Op = "updateDocument", Path = fixture.ConsumerSourcePath, Text = edited });
         Dump("reapply-copy-fail-update", update);
-        Assert.Contains(
+        Assert.True(update.Ok, update.Error);
+        Assert.Equal(prepareCount, update.OverlayPrepareCount);
+        Assert.Equal(fileIo, update.AnalyzerFileIoCount);
+        Assert.DoesNotContain(
             update.Rewrite ?? new List<RewriteDto>(),
             r => !r.Applied && (r.SkipReason ?? "").Contains("shadow copy failed", StringComparison.OrdinalIgnoreCase));
 
@@ -465,7 +475,7 @@ public sealed class Epoch1LifecycleMatrixTests
     private void Dump(string label, HostResponse response)
     {
         _output.WriteLine(
-            "[{0}] ok={1} err={2} cacheHit={3} reopen={4} prepare={5} gen={6} marker={7} oracleFail={8} overlay={9} loaded={10} identity={11}",
+            "[{0}] ok={1} err={2} cacheHit={3} reopen={4} prepare={5} gen={6} marker={7} oracleFail={8} overlay={9} loaded={10} identity={11} OverlayPrepareCount={12} AnalyzerFileIoCount={13}",
             label,
             response.Ok,
             response.Error,
@@ -477,6 +487,8 @@ public sealed class Epoch1LifecycleMatrixTests
             response.OracleFailure,
             response.OverlayAnalyzerPath,
             response.LoadedAnalyzerPath,
-            response.AssemblyIdentity);
+            response.AssemblyIdentity,
+            response.OverlayPrepareCount,
+            response.AnalyzerFileIoCount);
     }
 }

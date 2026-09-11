@@ -11,10 +11,22 @@ internal sealed class AnalyzerLifecycleFactAttribute : FactAttribute
 {
     public AnalyzerLifecycleFactAttribute()
     {
-        var (available, reason) = LifecycleEnvironment.Probe.Value;
-        if (!available)
+        try
         {
-            Skip = "Environment unavailable: " + reason;
+            var (available, reason) = LifecycleEnvironment.Probe.Value;
+            if (!available)
+            {
+                Skip = "Environment unavailable: " + reason;
+            }
+        }
+        catch (Exception ex) when (
+            ex is FileNotFoundException
+                or FileLoadException
+                or BadImageFormatException
+                or TypeLoadException
+                or InvalidOperationException)
+        {
+            Skip = "Environment unavailable: " + ex.GetType().Name + ": " + ex.Message;
         }
     }
 }

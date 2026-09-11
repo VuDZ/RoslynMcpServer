@@ -8,8 +8,8 @@
 | --- | --- | --- |
 | F-01 | сразу, до эпохи 2 | Зафиксировать harness: x64 host, 45 с RPC, Kill на dispose |
 | F-02 | сразу | Перепрогнать `Category=AnalyzerLifecycle`, обновить results (убрать x86 / 8 мин) |
-| F-03 | сразу, можно параллельно | DOC-EARLY: правки ARCHITECTURE / historical README / remarks |
-| F-04 | следующая реализация | Эпоха 2: mapping + reapply без analyzer I/O |
+| F-03 | **сделано** | DOC-EARLY: ARCHITECTURE / historical README / remarks = v1.3.6 mapping |
+| F-04 | **принято** ([epoch-2-acceptance.md](epoch-2-acceptance.md)) | E2-S5 11/11. Открыт A2-09 (stores). A2-12 закрыт: catalog 63 / 43895 |
 | F-05 | после F-04 | Эпоха 4: write boundary на mapping |
 | F-06 | мерж в main | A1-10: version bump, изоляция test seams |
 | F-07 | не сейчас | U-ARB-02/03 loader, U-ARB-01 matcher, U-ARB-05 sticky flag |
@@ -81,6 +81,8 @@ Work:
 Done when:
 Три targets совпадают с кодом; DOC-EARLY не отмечен выполненным, пока файлы не изменены.
 
+Сделано 2026-09-11: `docs/ARCHITECTURE.md`, `docs/analyzer-shadow-copy/README.md`, remarks/`SolutionManager` overlay comments описывают v1.3.6 mapping (prepare на load/refresh, getter не recopy). Timestamp-layout оставлен как история v1.3.5.
+
 ---
 
 ID: F-04
@@ -107,7 +109,9 @@ Work:
 Целевые тесты эпохи 1, которые должны стать pass: три missing-path write-path; оба reapply-fail. V1→V2 cached/reset и A→B **остаются fail** (эпоха 3).
 
 Done when:
-E2-S5 по файлам/mapping; epoch-1 write-path missing-path зелёные; `OverlayPrepareCount` на edit = 0.
+E2-S5 по файлам/mapping **и** прогнанный lifecycle (write-path missing-path зелёные, `OverlayPrepareCount` на edit не растёт).
+
+Сделано 2026-09-11: приёмка **принята** ([epoch-2-acceptance.md](epoch-2-acceptance.md), прогон [epoch-2-results.md](epoch-2-results.md)). Write-path 6/6: `OverlayPrepareCount 1→1`, `AnalyzerFileIoCount 8→8`, marker V1. V1→V2 cached/reset и A→B остаются fail (эпоха 3). A2-09 не блокер.
 
 ---
 
@@ -160,4 +164,4 @@ Depends: evidence gates
 
 ---
 
-Порядок в следующем чате: **F-01 → F-02 → F-04**. F-03 параллельно. F-05 после зелёных missing-path write tests. F-06 на коммит server. F-07 не открывать.
+Порядок в следующем чате: **F-05 (эпоха 4)** после принятой эпохи 2. F-02 полный `Category=AnalyzerLifecycle` по желанию (V1→V2/A→B останутся красными). F-06 на коммит server. F-07 не открывать.

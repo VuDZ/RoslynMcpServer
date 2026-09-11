@@ -30,9 +30,13 @@ public sealed class Epoch1WritePathTests
         await PrepareAsync(host, fixture);
 
         var newText = fixture.WithConsumerComment("text-edit-" + mode);
+        var afterLoad = await host.SendAsync(new HostCommand { Op = "inspect" });
         var update = await host.SendAsync(
             new HostCommand { Op = "updateDocument", Path = fixture.ConsumerSourcePath, Text = newText });
         Assert.True(update.Ok, update.Error);
+        Assert.Equal(afterLoad.OverlayPrepareCount, update.OverlayPrepareCount);
+        Assert.Equal(afterLoad.AnalyzerFileIoCount, update.AnalyzerFileIoCount);
+        RecordIo(mode, "text-edit", afterLoad, update);
 
         var oracle = await Epoch1HostOps.RequireMarkerAsync(host, GeneratorConsumerFixture.MarkerV1);
         Assert.Contains("text-edit-", File.ReadAllText(fixture.ConsumerSourcePath), StringComparison.Ordinal);
@@ -53,9 +57,13 @@ public sealed class Epoch1WritePathTests
         await PrepareAsync(host, fixture);
 
         var newText = fixture.WithConsumerComment("overlay-apply-" + mode);
+        var afterLoad = await host.SendAsync(new HostCommand { Op = "inspect" });
         var apply = await host.SendAsync(
             new HostCommand { Op = "applyOverlayEdit", Path = fixture.ConsumerSourcePath, Text = newText });
         Assert.True(apply.Ok, apply.Error);
+        Assert.Equal(afterLoad.OverlayPrepareCount, apply.OverlayPrepareCount);
+        Assert.Equal(afterLoad.AnalyzerFileIoCount, apply.AnalyzerFileIoCount);
+        RecordIo(mode, "overlay-apply", afterLoad, apply);
 
         var oracle = await Epoch1HostOps.RequireMarkerAsync(host, GeneratorConsumerFixture.MarkerV1);
         Assert.Contains("overlay-apply-", File.ReadAllText(fixture.ConsumerSourcePath), StringComparison.Ordinal);
@@ -96,6 +104,7 @@ public sealed class Epoch1WritePathTests
         await PrepareAsync(host, fixture);
 
         var newText = fixture.WithConsumerComment("fsw-" + mode);
+        var afterLoad = await host.SendAsync(new HostCommand { Op = "inspect" });
         File.WriteAllText(fixture.ConsumerSourcePath, newText);
 
         var wait = await host.SendAsync(
@@ -120,6 +129,9 @@ public sealed class Epoch1WritePathTests
             new HostCommand { Op = "flushFind", Path = fixture.ConsumerSourcePath });
         Assert.True(flushed.Ok, "Production flush via FindDocumentAsync failed: " + flushed.Error);
         Assert.Contains("fsw-", flushed.DocumentText ?? "", StringComparison.Ordinal);
+        Assert.Equal(afterLoad.OverlayPrepareCount, flushed.OverlayPrepareCount);
+        Assert.Equal(afterLoad.AnalyzerFileIoCount, flushed.AnalyzerFileIoCount);
+        RecordIo(mode, "fsw-flush", afterLoad, flushed);
 
         var getter = await host.SendAsync(new HostCommand { Op = "flushGetter" });
         Assert.True(getter.Ok, getter.Error);
@@ -138,6 +150,18 @@ public sealed class Epoch1WritePathTests
         var load = await Epoch1HostOps.LoadAsync(host, fixture.SolutionPath, shadowCopy: true);
         Assert.True(load.Ok, load.Error);
         await Epoch1HostOps.RequireMarkerAsync(host, GeneratorConsumerFixture.MarkerV1);
+    }
+
+    private void RecordIo(OutputPathMode mode, string pathName, HostResponse before, HostResponse after)
+    {
+        _output.WriteLine(
+            "io {0}/{1}: OverlayPrepareCount {2}->{3} AnalyzerFileIoCount {4}->{5}",
+            mode,
+            pathName,
+            before.OverlayPrepareCount,
+            after.OverlayPrepareCount,
+            before.AnalyzerFileIoCount,
+            after.AnalyzerFileIoCount);
     }
 
     private void RecordLoadPath(OutputPathMode mode, string pathName, HostResponse oracle, HostResponse snapshot)
@@ -171,10 +195,22 @@ internal sealed class AnalyzerLifecycleTheoryAttribute : TheoryAttribute
 {
     public AnalyzerLifecycleTheoryAttribute()
     {
-        var (available, reason) = LifecycleEnvironment.Probe.Value;
-        if (!available)
+        try
         {
-            Skip = "Environment unavailable: " + reason;
+            var (available, reason) = LifecycleEnvironment.Probe.Value;
+            if (!available)
+            {
+                Skip = "Environment unavailable: " + reason;
+            }
+        }
+        catch (Exception ex) when (
+            ex is FileNotFoundException
+                or FileLoadException
+                or BadImageFormatException
+                or TypeLoadException
+                or InvalidOperationException)
+        {
+            Skip = "Environment unavailable: " + ex.GetType().Name + ": " + ex.Message;
         }
     }
 }
