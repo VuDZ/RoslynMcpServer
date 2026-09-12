@@ -18,14 +18,15 @@ process-lifetime `InProcessAnalyzerAssemblyLoader`, который видит т
 | --- | --- | --- |
 | Physical `LoadAsync`, flag off, без semantic query | Generator assembly не загружена | success; hash DLL изменён |
 | Physical `LoadAsync` + shadow prepare, без semantic query | Generator assembly не загружена | success; hash DLL изменён |
-| Raw `workspace.CurrentSolution` → `GetCompilationAsync` до enable | Точный real `Generator.dll` | fail `MSB3021` при `CopyRetryCount=0`; hash не изменён |
+| Published `GetCurrentSolution()` без активного overlay → `GetCompilationAsync`, затем enable | Точный real `Generator.dll`; published и raw references совпадают | fail `MSB3021` при `CopyRetryCount=0`; hash не изменён |
 | После предыдущей строки cached enable=true | Prepare выполняется, overlay не активируется; identity gate указывает loaded real path и требует restart | real output остаётся locked |
 | Overlay semantic после enable=true | Точный content-hashed shadow `Generator.dll`; real path отсутствует в process assemblies | success; hash real DLL изменён |
 | Явный test-only raw reader после уже выполненной overlay semantic | Маркер `V1`; отдельная real assembly не появляется, остаётся загруженной shadow identity | success; hash real DLL изменён |
 
-Таким образом, конкретный trigger lock воспроизведён: semantic compilation
-existing-correct raw project **до** загрузки shadow identity. Сам physical open,
-provenance capture и prepare analyzer не загружают и output не блокируют.
+Таким образом, конкретный production-equivalent trigger lock воспроизведён:
+semantic compilation existing-correct published project без активного overlay
+**до** загрузки shadow identity. Сам physical open, provenance capture и prepare
+analyzer не загружают и output не блокируют.
 
 ## Три production write path
 
@@ -54,19 +55,26 @@ Raw test output: 6/6 passed. MCP parser ошибочно классифицир�
 `GetWorkspaceCurrentSolution()` с последующим semantic model/compilation.
 Semantic tools получают overlay через `FindDocumentAsync`,
 `GetCurrentSolutionAfterDiskSyncAsync` или `GetCurrentSolution`.
+Если overlay не активирован, этот published snapshot содержит те же real analyzer
+references, что raw workspace; обычная production semantic operation поэтому
+может загрузить и заблокировать existing-correct real output. Это ожидаемая
+граница opt-in, а не обход уже активного overlay. Evidence-тест воспроизводит
+`load false → semantic → cached enable true`: enable затем отклоняется identity
+gate и требует restart.
 Raw `workspace.CurrentSolution` в `SolutionManager` используется как база
 write boundary, reconciliation и последующего `PublishInMemorySolution`, без
 прямого `GetCompilationAsync`/`GetSemanticModelAsync`.
 
 `WorkspaceTools.LoadWorkspace` всё же выполняет physical load и shadow prepare
 двумя последовательными await-вызовами с отдельными захватами workspace lock.
-Evidence выше измеряет последствие semantic raw use до enable, но не доказывает,
-что production MCP dispatch фактически вклинивает такой запрос в это окно.
+Evidence выше измеряет semantic use до enable как отдельный no-overlay request,
+но не доказывает, что production MCP dispatch фактически вклинивает запрос в
+окно одного `load_workspace(..., shadowCopyInSolutionAnalyzers=true)`.
 
 ## Граница вывода
 
-Evidence локализует возможную утечку и подтверждает anti-lock для штатных
-overlay semantic/write путей на указанной матрице. Он **не**:
+Evidence локализует no-overlay lock и подтверждает anti-lock для штатных overlay
+semantic/write путей на указанной матрице. Он **не**:
 
 - вводит новую boundary или меняет production code;
 - доказывает отсутствие dispatch race между load и enable;

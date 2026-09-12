@@ -105,19 +105,24 @@ analyzer напрямую из `workspace.CurrentSolution` до overlay или �
 
 - Physical load и prepare без semantic query не загружают Generator; forced
   rebuild real output успешен.
-- Явный raw `GetCompilationAsync` до enable загружает точный real output и
-  воспроизводит lock (`MSB3021`); последующий enable отклоняется identity gate.
+- Published `GetCurrentSolution()` без активного overlay содержит raw real
+  analyzer reference. Обычный `GetCompilationAsync` загружает точный real output
+  и воспроизводит lock (`MSB3021`); последующий enable отклоняется identity gate.
 - Overlay semantic загружает точный shadow path. Все три write paths на
   existing-correct fixture оставляют real path незагруженным, а forced rebuild
   успешен и меняет hash.
-- Production inventory не нашёл явного raw semantic reader. Остаётся не измерена
-  фактическая concurrent-dispatch вставка между physical load и отдельным prepare.
+- Production inventory не нашёл явного raw-workspace semantic reader. При
+  выключенном overlay production semantic paths используют published snapshot
+  с raw references; это воспроизведённая opt-in boundary, но не обход активного
+  overlay. Остаётся не измерена фактическая concurrent-dispatch вставка между
+  physical load и отдельным prepare одного enable=true вызова.
 
 После evidence: если утечка воспроизведена, специфицировать отдельную semantic/load
 boundary. Если не воспроизведена на поддержанной матрице, документировать измеренную
 область без утверждения, что write workflow вызвал anti-lock гарантию. Эта v2
 пока **не выбирает новую load boundary**: пользователь ограничил этот шаг evidence,
-а production trigger/race не воспроизведён. Цель не сужается до missing paths.
+а production dispatch race при запрошенном overlay не воспроизведён. Цель не
+сужается до missing paths.
 Точки v2:
 [E1-S3/S4](epoch-1-lifecycle-verification.md), [E4-S3/S4](epoch-4-workspace-write-boundary.md).
 

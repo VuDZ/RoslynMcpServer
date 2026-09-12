@@ -45,7 +45,7 @@ public sealed class UArb04LoadBoundaryEvidenceTests(ITestOutputHelper output)
     }
 
     [AnalyzerLifecycleFact]
-    public async Task Existing_correct_path_raw_semantic_before_enable_loads_real_output_and_measures_rebuild_lock()
+    public async Task Existing_correct_path_published_semantic_before_enable_loads_real_output_and_measures_rebuild_lock()
     {
         using var fixture = GeneratorConsumerFixture.Create(OutputPathMode.SdkDefaultCorrectPath);
         await using var host = LifecycleHostClient.Start();
@@ -55,12 +55,13 @@ public sealed class UArb04LoadBoundaryEvidenceTests(ITestOutputHelper output)
         var load = await Epoch1HostOps.LoadAsync(host, fixture.SolutionPath, shadowCopy: false);
         Assert.Empty(load.ProcessAnalyzerAssemblies ?? []);
 
-        var rawOracle = await Epoch1HostOps.OracleAsync(host, oracleSource: "workspace");
-        Assert.True(rawOracle.OracleSuccess, rawOracle.OracleFailure);
-        Assert.Equal(GeneratorConsumerFixture.MarkerV1, rawOracle.Marker);
-        AssertPathEqual(realOutput, rawOracle.WorkspaceAnalyzerPath);
-        AssertPathPresent(realOutput, rawOracle.ProcessAnalyzerAssemblies);
-        AssertPathEqual(realOutput, rawOracle.LoadedAnalyzerPath);
+        var publishedOracle = await Epoch1HostOps.OracleAsync(host);
+        Assert.True(publishedOracle.OracleSuccess, publishedOracle.OracleFailure);
+        Assert.Equal(GeneratorConsumerFixture.MarkerV1, publishedOracle.Marker);
+        AssertPathEqual(realOutput, publishedOracle.OverlayAnalyzerPath);
+        AssertPathEqual(realOutput, publishedOracle.WorkspaceAnalyzerPath);
+        AssertPathPresent(realOutput, publishedOracle.ProcessAnalyzerAssemblies);
+        AssertPathEqual(realOutput, publishedOracle.LoadedAnalyzerPath);
 
         var enable = await Epoch1HostOps.LoadAsync(host, fixture.SolutionPath, shadowCopy: true);
         Assert.True(enable.CacheHit);
@@ -85,10 +86,10 @@ public sealed class UArb04LoadBoundaryEvidenceTests(ITestOutputHelper output)
         }
 
         output.WriteLine(
-            "raw-semantic real={0} loaded={1} process={2} exit={3} hash={4}->{5}",
+            "published-no-overlay-semantic real={0} loaded={1} process={2} exit={3} hash={4}->{5}",
             realOutput,
-            rawOracle.LoadedAnalyzerPath,
-            FormatPaths(rawOracle.ProcessAnalyzerAssemblies),
+            publishedOracle.LoadedAnalyzerPath,
+            FormatPaths(publishedOracle.ProcessAnalyzerAssemblies),
             rebuild.BuildExitCode,
             rebuild.Before,
             rebuild.After);
