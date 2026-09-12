@@ -11,6 +11,9 @@ v1.3.9; [E5-S2 matcher принят](epoch-5-s2-acceptance.md) в v1.3.10;
 [E5-S3 принят](epoch-5-s3-acceptance.md) в v1.3.11;
 [E5-S4 принят](epoch-5-s4-acceptance.md) в v1.3.12. Эпоха 5 закрыта.
 U-ARB-05 выбран как session-sticky и реализован в v1.3.13.
+Для U-ARB-04 выполнен [evidence-проход](u-arb-04-load-boundary-evidence.md):
+raw semantic до enable воспроизводит real-output lock; overlay/write paths
+оставляют real output незагруженным. Новая boundary не выбиралась.
 Серия не завершена (U-ARB-04 и inaccessible в U-ARB-01). Исходные
 v1/review/response/arbitration сохранены. Файлы эпох переписаны как самостоятельный
 русский нормативный текст, добавлены общая lifecycle matrix и реестры

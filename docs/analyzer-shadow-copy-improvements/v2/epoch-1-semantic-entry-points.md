@@ -23,3 +23,18 @@ assemblies. Flush выполняется только `FindDocumentAsync` /
 | `Services/SolutionManager.cs` | overlay `_solution` | flush только явными API | getter без lock | lookup/TryApplyChanges/overlay source; не semantic oracle |
 
 Новый caller без строки в этой таблице должен ломать `Epoch1SemanticInventoryTests`.
+
+## U-ARB-04 evidence (2026-09-12)
+
+`Epoch1SemanticInventoryTests.Production_code_has_no_explicit_raw_workspace_semantic_reader`
+подтверждает, что `Tools/`/`Services/` не вызывают test-only
+`GetWorkspaceCurrentSolution()` для semantic compilation. Raw
+`workspace.CurrentSolution` в `SolutionManager` остаётся базой write workflow,
+но сам manager не вызывает на ней `GetCompilationAsync`/`GetSemanticModelAsync`.
+
+Отдельный test-only raw oracle доказал, что `GetCompilationAsync` existing-correct
+project до enable загружает real analyzer path и блокирует forced rebuild.
+Штатные overlay readers загружают shadow path. Полная матрица и граница вывода:
+[u-arb-04-load-boundary-evidence.md](u-arb-04-load-boundary-evidence.md).
+Production concurrent-dispatch между завершением physical load и отдельным
+enable/prepare этим evidence-проходом не воспроизводился.

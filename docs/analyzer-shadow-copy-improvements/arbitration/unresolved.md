@@ -77,6 +77,10 @@ generators and fail dependency scenarios with actionable diagnostics.
 
 ## U-ARB-04 — Raw-workspace analyzer load leak
 
+Evidence completed in v2 on 2026-09-12; no new boundary was selected. See
+[`v2/u-arb-04-load-boundary-evidence.md`](../v2/u-arb-04-load-boundary-evidence.md).
+The text below is the pre-evidence gate retained for arbitration history.
+
 Related findings: E1-07, E4-03.
 
 The write boundary demonstrably prevents persistence of known overlay references,

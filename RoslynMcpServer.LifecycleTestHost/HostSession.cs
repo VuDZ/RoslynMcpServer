@@ -193,6 +193,8 @@ internal sealed class HostSession
             a.RequestedPath.Contains("Generator", StringComparison.OrdinalIgnoreCase)
             || a.Identity.StartsWith("Generator,", StringComparison.OrdinalIgnoreCase)
             || string.Equals(Path.GetFileNameWithoutExtension(a.RequestedPath), "Generator", StringComparison.OrdinalIgnoreCase));
+        loaded ??= response.ProcessAnalyzerAssemblies?.FirstOrDefault(a =>
+            a.Identity.StartsWith("Generator,", StringComparison.OrdinalIgnoreCase));
         if (loaded is not null)
         {
             response.AssemblyIdentity = loaded.Identity;
@@ -789,6 +791,7 @@ internal sealed class HostSession
         if (consumer is not null && overlay is not null)
         {
             FillAnalyzerPaths(response, consumer);
+            response.ProcessAnalyzerAssemblies = SnapshotProcessAnalyzerAssemblies(consumer);
         }
 
         if (workspace is not null)
@@ -843,6 +846,31 @@ internal sealed class HostSession
                 .Cast<string>()
                 .ToArray();
         response.WorkspaceAnalyzerPath ??= response.WorkspaceAnalyzerPaths.FirstOrDefault();
+    }
+
+    private static List<LoadedAssemblyDto> SnapshotProcessAnalyzerAssemblies(Project project)
+    {
+        var analyzerNames = project.AnalyzerReferences
+            .Select(reference => Path.GetFileNameWithoutExtension(reference.FullPath))
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        return AppDomain.CurrentDomain.GetAssemblies()
+            .Where(assembly => !assembly.IsDynamic)
+            .Select(assembly => new
+            {
+                Assembly = assembly,
+                Name = assembly.GetName(),
+            })
+            .Where(item => item.Name.Name is not null && analyzerNames.Contains(item.Name.Name))
+            .Select(item => new LoadedAssemblyDto
+            {
+                RequestedPath = item.Assembly.Location,
+                Identity = item.Name.FullName ?? item.Name.Name ?? string.Empty,
+                Location = item.Assembly.Location,
+            })
+            .OrderBy(item => item.Location, StringComparer.OrdinalIgnoreCase)
+            .ToList();
     }
 
     private static void AttachWrite(HostResponse response, WorkspaceWriteResult write)

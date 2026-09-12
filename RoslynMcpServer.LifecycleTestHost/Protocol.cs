@@ -86,6 +86,7 @@ public sealed class HostResponse
 
     public List<RewriteDto>? Rewrite { get; set; }
     public List<LoadedAssemblyDto>? LoadedAssemblies { get; set; }
+    public List<LoadedAssemblyDto>? ProcessAnalyzerAssemblies { get; set; }
     public EnvironmentDto? Environment { get; set; }
     public ConcurrencyDto? Concurrency { get; set; }
     public ExecutionDto? Execution { get; set; }

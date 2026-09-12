@@ -42,7 +42,7 @@ public sealed class Epoch1WritePathTests
         Assert.Contains("text-edit-", File.ReadAllText(fixture.ConsumerSourcePath), StringComparison.Ordinal);
         var snapshot = await host.SendAsync(new HostCommand { Op = "snapshotCsproj", Path = fixture.Root });
         Epoch1HostOps.AssertProjectFilesUnchanged(fixture, snapshot);
-        RecordLoadPath(mode, "text-edit", oracle, snapshot);
+        RecordLoadPath(mode, "text-edit", fixture, oracle, snapshot);
         var rebuild = await Epoch1HostOps.AssertForcedGeneratorRebuildWritesBytesAsync(host, fixture);
         RecordRebuild(mode, "text-edit", rebuild);
         await Epoch1HostOps.RequireMarkerAsync(host, GeneratorConsumerFixture.MarkerV1);
@@ -90,7 +90,7 @@ public sealed class Epoch1WritePathTests
         var afterRename = await Epoch1HostOps.RequireMarkerAsync(host, GeneratorConsumerFixture.MarkerV1);
         var snapshot2 = await host.SendAsync(new HostCommand { Op = "snapshotCsproj", Path = fixture.Root });
         Epoch1HostOps.AssertProjectFilesUnchanged(fixture, snapshot2);
-        RecordLoadPath(mode, "overlay-apply", afterRename, snapshot2);
+        RecordLoadPath(mode, "overlay-apply", fixture, afterRename, snapshot2);
         var rebuild = await Epoch1HostOps.AssertForcedGeneratorRebuildWritesBytesAsync(host, fixture);
         RecordRebuild(mode, "overlay-apply", rebuild);
     }
@@ -139,7 +139,7 @@ public sealed class Epoch1WritePathTests
         var oracle = await Epoch1HostOps.RequireMarkerAsync(host, GeneratorConsumerFixture.MarkerV1);
         var snapshot = await host.SendAsync(new HostCommand { Op = "snapshotCsproj", Path = fixture.Root });
         Epoch1HostOps.AssertProjectFilesUnchanged(fixture, snapshot);
-        RecordLoadPath(mode, "fsw-flush", oracle, snapshot);
+        RecordLoadPath(mode, "fsw-flush", fixture, oracle, snapshot);
         var rebuild = await Epoch1HostOps.AssertForcedGeneratorRebuildWritesBytesAsync(host, fixture);
         RecordRebuild(mode, "fsw-flush", rebuild);
     }
@@ -164,7 +164,12 @@ public sealed class Epoch1WritePathTests
             after.AnalyzerFileIoCount);
     }
 
-    private void RecordLoadPath(OutputPathMode mode, string pathName, HostResponse oracle, HostResponse snapshot)
+    private void RecordLoadPath(
+        OutputPathMode mode,
+        string pathName,
+        GeneratorConsumerFixture fixture,
+        HostResponse oracle,
+        HostResponse snapshot)
     {
         _output.WriteLine(
             "anti-lock {0}/{1}: marker={2} overlay={3} workspace={4} loaded={5} identity={6} analyzerIncludes={7}",
@@ -177,6 +182,19 @@ public sealed class Epoch1WritePathTests
             oracle.AssemblyIdentity,
             string.Join("; ", snapshot.TemporaryAnalyzerIncludes ?? Array.Empty<string>()));
         Assert.False(string.IsNullOrWhiteSpace(oracle.OverlayAnalyzerPath ?? oracle.LoadedAnalyzerPath));
+        if (mode == OutputPathMode.SdkDefaultCorrectPath)
+        {
+            var realOutput = fixture.FindGeneratorOutputDll();
+            Assert.True(PathsEqual(realOutput, oracle.WorkspaceAnalyzerPath));
+            Assert.False(PathsEqual(realOutput, oracle.OverlayAnalyzerPath));
+            Assert.True(PathsEqual(oracle.OverlayAnalyzerPath, oracle.LoadedAnalyzerPath));
+            Assert.Contains(
+                oracle.ProcessAnalyzerAssemblies ?? [],
+                assembly => PathsEqual(oracle.OverlayAnalyzerPath, assembly.Location));
+            Assert.DoesNotContain(
+                oracle.ProcessAnalyzerAssemblies ?? [],
+                assembly => PathsEqual(realOutput, assembly.Location));
+        }
     }
 
     private void RecordRebuild(OutputPathMode mode, string pathName, (string Dll, string Before, string After) rebuild)
@@ -189,6 +207,14 @@ public sealed class Epoch1WritePathTests
             rebuild.Before,
             rebuild.After);
     }
+
+    private static bool PathsEqual(string? left, string? right) =>
+        !string.IsNullOrWhiteSpace(left)
+        && !string.IsNullOrWhiteSpace(right)
+        && string.Equals(
+            Path.GetFullPath(left),
+            Path.GetFullPath(right),
+            OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
 }
 
 internal sealed class AnalyzerLifecycleTheoryAttribute : TheoryAttribute

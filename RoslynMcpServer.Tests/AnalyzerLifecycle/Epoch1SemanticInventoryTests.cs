@@ -97,6 +97,32 @@ public sealed class Epoch1SemanticInventoryTests
         Assert.Contains(Expected, e => e.Kind == "flush-getter");
     }
 
+    [Fact]
+    public void Production_code_has_no_explicit_raw_workspace_semantic_reader()
+    {
+        var repoRoot = FindRepoRoot();
+        var productionFiles = Directory
+            .GetFiles(Path.Combine(repoRoot, "Tools"), "*.cs", SearchOption.TopDirectoryOnly)
+            .Concat(Directory.GetFiles(Path.Combine(repoRoot, "Services"), "*.cs", SearchOption.TopDirectoryOnly))
+            .ToArray();
+
+        foreach (var file in productionFiles)
+        {
+            var text = File.ReadAllText(file);
+            if (!file.EndsWith(
+                    Path.Combine("Services", "SolutionManager.cs"),
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                Assert.DoesNotContain("GetWorkspaceCurrentSolution(", text, StringComparison.Ordinal);
+            }
+        }
+
+        var manager = File.ReadAllText(Path.Combine(repoRoot, "Services", "SolutionManager.cs"));
+        Assert.DoesNotMatch(
+            new Regex(@"await\s+[^;\r\n]*Get(?:Compilation|SemanticModel)Async\s*\(", RegexOptions.CultureInvariant),
+            manager);
+    }
+
     private static string FindRepoRoot()
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);

@@ -8,7 +8,9 @@
 [E5-S3 принят](epoch-5-s3-acceptance.md) в v1.3.11;
 [E5-S4 принят](epoch-5-s4-acceptance.md) в v1.3.12. U-ARB-05
 [принят](u-arb-05-acceptance.md) как session-sticky в v1.3.13. Серия не
-завершена (U-ARB-04 и inaccessible в U-ARB-01).
+завершена. Для U-ARB-04 выполнен
+[evidence load boundary](u-arb-04-load-boundary-evidence.md) без новой
+спецификации; decision gate остаётся открытым. Inaccessible не открывался.
 
 | ID | Когда | Что |
 | --- | --- | --- |
@@ -230,7 +232,8 @@ E5-S3 [принят](epoch-5-s3-acceptance.md) в v1.3.11. E5-S4
 
 ---
 
-Порядок в следующем чате: U-ARB-05 [принят](u-arb-05-acceptance.md).
-Следующий gate — U-ARB-04 (только evidence load boundary, без новой
-спецификации). Inaccessible и F-07 не открывать. E5-S3-1, A4-09…A4-12,
+U-ARB-04 evidence выполнен: raw semantic до enable загружает/блокирует real
+output; штатные overlay/write пути загружают shadow и оставляют real output
+пересобираемым. Новая boundary не выбрана; фактический concurrent-dispatch race
+не воспроизведён. Inaccessible и F-07 не открывать. E5-S3-1, A4-09…A4-12,
 A6-13, F-06 и U-ARB-05-1 не чинить без отдельного запроса.

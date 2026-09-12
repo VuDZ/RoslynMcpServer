@@ -125,8 +125,10 @@ flush, затем повторный getter — гарантии той же б�
 
 - Эпоха 5 / U-ARB-01: capture + confirmed-only приняты в v1.3.12;
   inaccessible не выбран.
-- U-ARB-04: load boundary не выбрана; измерение persistence эпохи 4 не есть
-  anti-lock гарантия.
+- U-ARB-04: load boundary не выбрана; поздний
+  [evidence-проход](u-arb-04-load-boundary-evidence.md) локализовал lock у raw
+  semantic до enable и подтвердил shadow path для штатных write paths.
+  Измерение persistence эпохи 4 само по себе не есть anti-lock гарантия.
 - U-ARB-05 закрыт после аудита: выбран session-sticky контракт
   ([решение](u-arb-05-decision.md), v1.3.13).
 - A2-09, A4-09…A4-12 открыты, не блокеры принятых эпох.

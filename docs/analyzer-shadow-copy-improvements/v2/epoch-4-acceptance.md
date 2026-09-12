@@ -155,7 +155,9 @@ Suggested change:
 ## Что не чинить в этой эпохе
 
 - MVCC / merge engine / реестр всех in-flight operations
-- Load-isolation redesign (U-ARB-04) — утечки нет; inverse защищает `.csproj`, не CLR load
+- Load-isolation redesign (U-ARB-04) — в write-path матрице утечки не было;
+  поздний evidence воспроизвёл real-output lock только у явного raw semantic
+  reader до enable. Inverse защищает `.csproj`, не CLR load
 - Намеренное редактирование analyzer references
 - U-ARB-01 matcher, U-ARB-05 sticky flag
 - A2-09 отдельные stores (requested / prepared / active / refresh / observed)

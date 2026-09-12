@@ -2,7 +2,9 @@
 
 Статус: **нормативная спецификация; эпохи 1–6 приняты**; серия не завершена
 (U-ARB-04 и inaccessible в U-ARB-01). U-ARB-05 выбран как session-sticky в
-v1.3.13. Эпоха 5: U-ARB-01 = capture на load, [эскиз F-09 принят](epoch-5-f09-acceptance.md),
+v1.3.13. Для U-ARB-04 выполнен
+[evidence load boundary](u-arb-04-load-boundary-evidence.md), без выбора новой
+boundary. Эпоха 5: U-ARB-01 = capture на load, [эскиз F-09 принят](epoch-5-f09-acceptance.md),
 [production snapshot принят](epoch-5-f09-production-capture-acceptance.md) в
 v1.3.9; [E5-S2 принят](epoch-5-s2-acceptance.md) в v1.3.10;
 [E5-S3 принят](epoch-5-s3-acceptance.md) в v1.3.11;

@@ -89,26 +89,36 @@ private DLL из real output не используются как fallback. То
 
 ## U-ARB-04 — Возможная загрузка analyzer из raw workspace
 
+Статус: **evidence выполнен; решение и новая load boundary не выбирались**.
+Результаты: [u-arb-04-load-boundary-evidence.md](u-arb-04-load-boundary-evidence.md).
+
 Связанные findings: E1-07, E4-03.
 
 Write boundary предотвращает сохранение известных overlay references, но ни одна
-сторона не показала конкретную операцию, которая загружает существующий analyzer
-напрямую из `workspace.CurrentSolution` до overlay или вне него.
+сторона ранее не показала конкретную операцию, которая загружает существующий
+analyzer напрямую из `workspace.CurrentSolution` до overlay или вне него.
 Эпоха 4 (принята): inverse + forced rebuild на full-success write paths
 (missing и existing-correct-path) меняет hash real output — lock-утечки не видно.
 Это измерение persistence, не выбор load boundary.
 
-Недостающие evidence:
+Новый evidence-проход установил:
 
-- Existing-correct-path tests с семантикой, всеми write paths и фактическим
-  loaded assembly path.
-- Forced rebuild после каждой операции, доказывающий либо опровергающий lock output.
-- Временная последовательность загрузки до включения overlay и raw-workspace readers.
+- Physical load и prepare без semantic query не загружают Generator; forced
+  rebuild real output успешен.
+- Явный raw `GetCompilationAsync` до enable загружает точный real output и
+  воспроизводит lock (`MSB3021`); последующий enable отклоняется identity gate.
+- Overlay semantic загружает точный shadow path. Все три write paths на
+  existing-correct fixture оставляют real path незагруженным, а forced rebuild
+  успешен и меняет hash.
+- Production inventory не нашёл явного raw semantic reader. Остаётся не измерена
+  фактическая concurrent-dispatch вставка между physical load и отдельным prepare.
 
 После evidence: если утечка воспроизведена, специфицировать отдельную semantic/load
 boundary. Если не воспроизведена на поддержанной матрице, документировать измеренную
 область без утверждения, что write workflow вызвал anti-lock гарантию. Эта v2
-не выбирает новую load boundary и не сужает цель до missing paths. Точки v2:
+пока **не выбирает новую load boundary**: пользователь ограничил этот шаг evidence,
+а production trigger/race не воспроизведён. Цель не сужается до missing paths.
+Точки v2:
 [E1-S3/S4](epoch-1-lifecycle-verification.md), [E4-S3/S4](epoch-4-workspace-write-boundary.md).
 
 ## U-ARB-05 — Семантика флага при повторных вызовах
