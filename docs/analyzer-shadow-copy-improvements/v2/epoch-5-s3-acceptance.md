@@ -23,7 +23,7 @@
 | Schema | — | Компактный текст + log | **закрыт** |
 | Matcher | — | Confirmed-only не менялся | **закрыт** |
 | E5-S3-1 | Low | `proven_foreign_path` = source project not loaded | **открыт**, не блокер |
-| E5-S3-2 | Low | Lifecycle DTO без ReasonCode | **открыт**, не блокер |
+| E5-S3-2 | Low | Lifecycle DTO без ReasonCode | **закрыт** в E5-S4 |
 
 Версия **v1.3.11**. Inaccessible / U-ARB-05 не выбирались.
 
@@ -62,14 +62,14 @@ Claim:
 их не пробрасывает. Lifecycle проверяет только Applied. Коды покрыты
 unit-тестами.
 
-Suggested change:
-Не блокер S3. Если E5-S4 будет оракулить коды на fixture — добавить поля
-в DTO. Публичный MCP ответ не расширять.
+Resolution:
+E5-S4 добавил ReasonCode и path states в `RewriteDto`/`MapRewrite` и
+оракулит их на fixture. Публичный MCP ответ не расширен.
 
 ---
 
 ## Что дальше
 
-E5-S4: зафиксировать, что diagnostics различают missing output / unconfirmed /
-foreign / access на реальных fixture; серия эпохи 5 иначе закрывается
-документально. Inaccessible и sticky не открывать.
+E5-S4 [принят](epoch-5-s4-acceptance.md) в v1.3.12: diagnostics на fixture
+различают missing output / unconfirmed / access; foreign existing честно
+`provenance_unconfirmed`. Inaccessible и sticky не открывать.

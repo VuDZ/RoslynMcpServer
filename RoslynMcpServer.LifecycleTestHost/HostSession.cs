@@ -56,6 +56,7 @@ internal sealed class HostSession
                 "applyHeld" => await ApplyHeldAsync(cancellationToken).ConfigureAwait(false),
                 "applyUnknownAnalyzerDiff" => await ApplyUnknownAnalyzerDiffAsync(command, cancellationToken).ConfigureAwait(false),
                 "forceCopyFailure" => ForceCopyFailure(),
+                "forceAccessFailure" => ForceAccessFailure(),
                 "publishGeneration" => PublishGeneration(command),
                 "rename" => await RenameOverlayAsync(command, cancellationToken).ConfigureAwait(false),
                 "snapshotCsproj" => SnapshotCsproj(command),
@@ -366,6 +367,7 @@ internal sealed class HostSession
                         ShadowCopyPath = published.MainShadowPath,
                         Applied = true,
                         Generation = published.GenerationId,
+                        ReasonCode = AnalyzerReferenceReasonCodes.ReferenceRewritten,
                     },
                 ];
             }
@@ -520,6 +522,12 @@ internal sealed class HostSession
     {
         AnalyzerReferenceShadowCopier.RemainingForcedCopyFailures = 1;
         return Inspect("forceCopyFailure");
+    }
+
+    private HostResponse ForceAccessFailure()
+    {
+        AnalyzerReferenceShadowCopier.RemainingForcedAccessFailures = 1;
+        return Inspect("forceAccessFailure");
     }
 
     private async Task<HostResponse> RenameOverlayAsync(HostCommand command, CancellationToken cancellationToken)
@@ -876,6 +884,11 @@ internal sealed class HostSession
             Applied = r.Applied,
             SkipReason = r.SkipReason,
             Generation = r.GenerationId ?? TryGeneration(r.ShadowCopyPath),
+            ReasonCode = r.ReasonCode,
+            OriginalPathState = r.OriginalPathState.ToString(),
+            SelectedSourcePath = r.SelectedSourcePath,
+            SelectedSourcePathState = r.SelectedSourcePathState.ToString(),
+            SelectionBasis = r.SelectionBasis.ToString(),
         }).ToList();
     }
 

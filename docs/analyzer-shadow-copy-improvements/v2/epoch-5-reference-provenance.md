@@ -1,7 +1,8 @@
 # Эпоха 5 — Происхождение analyzer references
 
-Статус: **E5-S1, E5-S2 и E5-S3 выполнены**
-([S1](epoch-5-s1-results.md), [S2](epoch-5-s2-results.md));
+Статус: **E5-S1–S4 выполнены; эпоха 5 закрыта**
+([S1](epoch-5-s1-results.md), [S2](epoch-5-s2-results.md),
+[S4](epoch-5-s4-acceptance.md));
 U-ARB-01 выбран — capture на load ([UNRESOLVED-v2.md](UNRESOLVED-v2.md)).
 Эскиз F-09 [принят](epoch-5-f09-acceptance.md)
 ([дизайн](epoch-5-f09-capture-design.md)): production-кандидат — binlog той же
@@ -9,6 +10,7 @@ design-time загрузки, без второго eval. P0-spike заверш�
 snapshot [принят](epoch-5-f09-production-capture-acceptance.md) в v1.3.9.
 Provenance-only rollout matcher реализован в v1.3.10.
 Диагностика E5-S3 [реализована](epoch-5-s3-results.md) в v1.3.11.
+Приёмка E5-S4 [принята](epoch-5-s4-acceptance.md) в v1.3.12.
 Запас: Alt-2 unique-name эвристика, Alt-3 сужение до exact path.
 Inaccessible не выбран.
 Зависимость: exact oracle и fixtures эпохи 1. Алгоритм не зависит от эпох 2–4,
@@ -89,6 +91,9 @@ TFM повторным разбором unevaluated `TargetFrameworks`. Неск
 новая структурированная схема ответа не вводится. Load/execute статусы — эпоха 3.
 
 ## E5-S4. Приёмка
+
+Статус: **принято в v1.3.12**
+([результаты](epoch-5-s4-results.md), [приёмка](epoch-5-s4-acceptance.md)).
 
 До rollout обязательны metadata feasibility и записанное решение U-ARB-01, включая
 политику inaccessible. Проверить original missing-path repro и foreign same-name

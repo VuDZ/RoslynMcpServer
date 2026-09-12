@@ -2,16 +2,16 @@
 
 Вопросы перенесены из авторитетного [arbitration/unresolved.md](../arbitration/unresolved.md).
 U-ARB-01/02/03 — политика выбрана; matcher E5-S2 [принят](epoch-5-s2-acceptance.md)
-в v1.3.10. U-ARB-04/05 и inaccessible в U-ARB-01 остаются открытыми.
-Ни наличие v2, ни запасные варианты ниже не разрешают менять matcher без
-принятого capture design.
+в v1.3.10; приёмка E5-S4 [принята](epoch-5-s4-acceptance.md) в v1.3.12.
+U-ARB-04/05 и inaccessible в U-ARB-01 остаются открытыми.
 
 ## U-ARB-01 — Происхождение ссылок при отсутствующем пути
 
-Статус: **реализован — capture provenance на load + confirmed-only matcher**
-(v1.3.10). Evidence:
-[epoch-5-s1-results.md](epoch-5-s1-results.md),
-[epoch-5-s2-results.md](epoch-5-s2-results.md).
+Статус: **реализован и принят — capture provenance на load + confirmed-only
+matcher** (v1.3.10); fixture-приёмка E5-S4 в v1.3.12.
+Evidence: [epoch-5-s1-results.md](epoch-5-s1-results.md),
+[epoch-5-s2-results.md](epoch-5-s2-results.md),
+[epoch-5-s4-results.md](epoch-5-s4-results.md).
 Inaccessible **не** выбран.
 
 Связанные findings: E5-01, E5-02, E5-04, E5-05.
@@ -27,7 +27,7 @@ inner TFM). Rewrite только confirmed item → загруженный inner
 Недоказанное missing — skip, не unique-name. Filename остаётся кандидатом,
 не доказательством. Считать snapshot не на semantic query и не на edit `.cs`.
 
-Это выбор политики, не готовый rollout. [Эскиз F-09](epoch-5-f09-capture-design.md)
+Политика реализована и принята E5-S2–S4. [Эскиз F-09](epoch-5-f09-capture-design.md)
 выбрал production-кандидатом binlog той же design-time загрузки
 `MSBuildWorkspace`: replay событий вместо второго target/evaluation pass.
 Эскиз **принят** ([epoch-5-f09-acceptance.md](epoch-5-f09-acceptance.md)).
@@ -49,10 +49,12 @@ fallback.
 | Alt-3 | Сузить: rewrite только при точном path = loaded output | Честно; missing-path половину исходного repro сдаём |
 
 Переход на Alt-2/Alt-3 — отдельное решение владельца после провала capture,
-с записью здесь и в E5-S4 **до** смены тестов/matcher. Пока держать
-выпущенный unique-name matcher.
+с записью здесь **до** смены тестов/matcher. Capture принят; unique-name
+fallback снят в v1.3.10. Alt-2/Alt-3 не внедрялись.
 
-Inaccessible не наследует missing-file и не наследует этот выбор. Точки v2:
+Inaccessible не наследует missing-file и не наследует этот выбор. E5-S4
+различает `access_failure` как reason/path state и не назначает rewrite
+или skip. Точки v2:
 [E5-S1–S4](epoch-5-reference-provenance.md), E1-S2 и LC-S1.
 
 ## U-ARB-02 — Поддерживаемый режим обновления генератора

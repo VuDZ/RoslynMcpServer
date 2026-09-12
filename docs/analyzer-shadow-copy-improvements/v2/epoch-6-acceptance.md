@@ -37,8 +37,9 @@ Shipped-поведение: **v1.3.8** (`f54aec15f48f942ef9ac077c752bf03ae018bf3
 - **A6-11:** LC-S1 Under-lock / prepare failure / apply failure аннотированы
   как text edit / FSW.
 - **A6-08:** v2 README / spec / FOLLOWUPS F-08: аудит завершён; серия нет
-  (эпоха 5 deferred). v1 `epoch-6-contract-and-documentation.md` всё ещё
-  «S1/S2 приняты, не завершён» — указатель отстал, не ломает статус v2.
+  (U-ARB-04/05; эпоха 5 позднее принята в v1.3.12). v1
+  `epoch-6-contract-and-documentation.md` всё ещё «S1/S2 приняты, не
+  завершён» — указатель отстал, не ломает статус v2.
 
 `f54aec15` — shipped write boundary, не commit аудита.
 

@@ -1,11 +1,11 @@
 # Analyzer shadow copy — спецификация v2
 
-Статус: **нормативная спецификация; эпохи 1–4 приняты; эпоха 6 — аудит
-документации завершён**; серия не завершена (эпоха 5: E5-S1 есть, U-ARB-01 =
-capture на load, [эскиз F-09 принят](epoch-5-f09-acceptance.md),
+Статус: **нормативная спецификация; эпохи 1–6 приняты**; серия не завершена
+(U-ARB-04/05). Эпоха 5: U-ARB-01 = capture на load, [эскиз F-09 принят](epoch-5-f09-acceptance.md),
 [production snapshot принят](epoch-5-f09-production-capture-acceptance.md) в
 v1.3.9; [E5-S2 принят](epoch-5-s2-acceptance.md) в v1.3.10;
-[E5-S3 принят](epoch-5-s3-acceptance.md) в v1.3.11; E5-S4 остаётся).
+[E5-S3 принят](epoch-5-s3-acceptance.md) в v1.3.11;
+[E5-S4 принят](epoch-5-s4-acceptance.md) в v1.3.12.
 Дата: 2026-09-11. Язык нормативного текста — русский; имена API и идентификаторы сохранены.
 Shipped: v1.3.6 mapping, v1.3.7 restart-required / main-only, v1.3.8 write boundary
 (`f54aec15f48f942ef9ac077c752bf03ae018bf31`).
@@ -35,8 +35,9 @@ v2 объединяет обязательные решения арбитраж
 - Запись: preflight → exact inverse → persist → reconciliation → publish mapping.
   Unknown/stale analyzer diff отклоняется до серверных записей. Partial persistence
   сообщает Status, Reason и известные сохранённые пути — это не полный успех.
-- Matcher по имени DLL не менялся (эпоха 5 / U-ARB-01). Sticky `false`/omitted —
-  U-ARB-05. Поколения при clear не удаляются.
+- Matcher: rewrite только confirmed load-session provenance (v1.3.10+);
+  unique-name fallback снят. Sticky `false`/omitted — U-ARB-05. Поколения
+  при clear не удаляются. Inaccessible в U-ARB-01 не выбран.
 
 ## Историческое поведение v1.3.5
 
@@ -118,7 +119,7 @@ lock существующей DLL остаются предметом обяза
 | [2. Поколения](epoch-2-immutable-shadow-copies.md) | Неизменяемые файлы и готовый mapping, повторное применение без I/O анализаторов. **Реализовано в v1.3.6**; [приёмка](epoch-2-acceptance.md). CLR execution — эпоха 3 | 1 |
 | [3. Загрузчик](epoch-3-loader-contract-and-dependencies.md) | Режим: restart-required / main-only. **Принято** v1.3.7; [приёмка](epoch-3-acceptance.md) | 1–2 |
 | [4. Запись](epoch-4-workspace-write-boundary.md) | Точная инверсия и полный workflow записи/reconciliation/overlay. **Принято** v1.3.8; [приёмка](epoch-4-acceptance.md) | 1 и контракт mapping из 2; CLR gate 3 остаётся отдельным |
-| [5. Происхождение](epoch-5-reference-provenance.md) | E5-S1: [результаты](epoch-5-s1-results.md). U-ARB-01: capture на load; [эскиз F-09](epoch-5-f09-capture-design.md) [принят](epoch-5-f09-acceptance.md), [P0-spike = GO](epoch-5-f09-p0-spike-results.md), [production snapshot принят](epoch-5-f09-production-capture-acceptance.md) v1.3.9; [E5-S2 принят](epoch-5-s2-acceptance.md) v1.3.10; [E5-S3 принят](epoch-5-s3-acceptance.md) v1.3.11; E5-S4 остаётся | 1; алгоритмически независима от 2–4 |
+| [5. Происхождение](epoch-5-reference-provenance.md) | **Принято** v1.3.12. E5-S1: [результаты](epoch-5-s1-results.md). U-ARB-01: capture на load; [эскиз F-09](epoch-5-f09-capture-design.md) [принят](epoch-5-f09-acceptance.md), [P0-spike = GO](epoch-5-f09-p0-spike-results.md), [production snapshot принят](epoch-5-f09-production-capture-acceptance.md) v1.3.9; [E5-S2 принят](epoch-5-s2-acceptance.md) v1.3.10; [E5-S3 принят](epoch-5-s3-acceptance.md) v1.3.11; [E5-S4 принят](epoch-5-s4-acceptance.md) v1.3.12 | 1; алгоритмически независима от 2–4 |
 | [6. Документация](epoch-6-contract-and-documentation.md) | Аудит фактических результатов/ограничений 1–5. **Аудит завершён**; [результаты](epoch-6-results.md), [приёмка](epoch-6-acceptance.md). Серия не завершена | Учитывает также явно отложенные результаты |
 
 ## Сквозные границы
@@ -148,7 +149,7 @@ refresh на событие watcher нет в целевом контракте.
 - [POST-ARBITRATION-ISSUES.md](POST-ARBITRATION-ISSUES.md) — только новые существенные вопросы.
 - [epoch-1-results.md](epoch-1-results.md) — измеренный runtime baseline эпохи 1.
 - [epoch-1-acceptance.md](epoch-1-acceptance.md) — приёмка эпохи 1 (красный baseline принят).
-- [FOLLOWUPS.md](FOLLOWUPS.md) — оставшаяся работа после E5-S2.
+- [FOLLOWUPS.md](FOLLOWUPS.md) — оставшаяся работа после закрытия эпохи 5.
 - [epoch-1-semantic-entry-points.md](epoch-1-semantic-entry-points.md) — инвентаризация semantic readers.
 - [epoch-6-results.md](epoch-6-results.md) / [epoch-6-acceptance.md](epoch-6-acceptance.md) — аудит контракта.
 

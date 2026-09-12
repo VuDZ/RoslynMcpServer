@@ -8,8 +8,9 @@
 [P0-spike завершён с GO](epoch-5-f09-p0-spike-results.md);
 [production snapshot принят](epoch-5-f09-production-capture-acceptance.md) в
 v1.3.9; [E5-S2 matcher принят](epoch-5-s2-acceptance.md) в v1.3.10;
-[E5-S3 принят](epoch-5-s3-acceptance.md) в v1.3.11; E5-S4 остаётся.
-Серия не завершена. Исходные
+[E5-S3 принят](epoch-5-s3-acceptance.md) в v1.3.11;
+[E5-S4 принят](epoch-5-s4-acceptance.md) в v1.3.12. Эпоха 5 закрыта.
+Серия не завершена (U-ARB-04/05). Исходные
 v1/review/response/arbitration сохранены. Файлы эпох переписаны как самостоятельный
 русский нормативный текст, добавлены общая lifecycle matrix и реестры
 трассировки/открытых вопросов.
@@ -71,10 +72,10 @@ v1/review/response/arbitration сохранены. Файлы эпох пере�
 - E5-01 — UNRESOLVED. Противоречивые безусловные требования заменены явным gate
   U-ARB-01; ни эвристика, ни skip-all, ни сужение repro не выбраны.
 - U-ARB-01–05 полностью сохранены в [UNRESOLVED-v2.md](UNRESOLVED-v2.md).
-  U-ARB-01 **выбран** (capture на load); F-09 эскиз принят, канал ждёт P0;
-  U-ARB-02/03 **выбраны** (restart-required / main-only, эпоха 3).
-  U-ARB-04/05 остаются открытыми gates. Эпоха 6 аудирует документы, не закрывает
-  эти gates.
+  U-ARB-01 **выбран и принят** (capture на load; E5-S2–S4 в v1.3.10–1.3.12);
+  inaccessible не выбран. U-ARB-02/03 **выбраны** (restart-required / main-only,
+  эпоха 3). U-ARB-04/05 остаются открытыми gates. Эпоха 6 аудирует документы,
+  не закрывает эти gates.
 
 ## Сквозные следствия принятых решений
 

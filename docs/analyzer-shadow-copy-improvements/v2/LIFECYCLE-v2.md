@@ -2,7 +2,8 @@
 
 Этот документ — общий контракт эпох 1–6. Колонка «v1.3.5» — арбитражный baseline,
 не текущий shipped. Целевые строки 2/3/4 **приняты** в v1.3.6–v1.3.8; эпоха 5
-deferred (U-ARB-01). Построчный аудит: [epoch-6-results.md](epoch-6-results.md).
+**принята** в v1.3.12 (U-ARB-01 capture + confirmed-only; inaccessible не
+выбран). Построчный аудит: [epoch-6-results.md](epoch-6-results.md).
 U-ARB-02 = restart-required, U-ARB-03 = main-only (эпоха 3); U-ARB-05 не выбран.
 «Обновление» в таблицах всегда уточняется: граф, файлы или исполнение.
 

@@ -100,6 +100,11 @@ public sealed class RewriteDto
     public bool Applied { get; set; }
     public string? SkipReason { get; set; }
     public string? Generation { get; set; }
+    public string? ReasonCode { get; set; }
+    public string? OriginalPathState { get; set; }
+    public string? SelectedSourcePath { get; set; }
+    public string? SelectedSourcePathState { get; set; }
+    public string? SelectionBasis { get; set; }
 }
 
 public sealed class LoadedAssemblyDto
