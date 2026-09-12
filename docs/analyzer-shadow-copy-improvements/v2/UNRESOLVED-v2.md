@@ -1,35 +1,48 @@
 # Неразрешённые вопросы v2
 
-Все пять вопросов перенесены из авторитетного [arbitration/unresolved.md](../arbitration/unresolved.md).
-Их статус — **UNRESOLVED**. Ни наличие v2, ни перечисленные условные варианты
-не означают выбора реализации. E5-01 имеет verdict UNRESOLVED; остальные вопросы
-являются открытыми gates внутри принятых с ограничениями решений.
+Вопросы перенесены из авторитетного [arbitration/unresolved.md](../arbitration/unresolved.md).
+U-ARB-01/02/03 — политика выбрана; rollout matcher (эпоха 5) всё ещё ждёт
+дизайн захвата. U-ARB-04/05 и inaccessible в U-ARB-01 остаются открытыми.
+Ни наличие v2, ни запасные варианты ниже не разрешают менять matcher без
+принятого capture design.
 
 ## U-ARB-01 — Происхождение ссылок при отсутствующем пути
 
+Статус: **выбран — capture provenance на load** (2026-09-12, владелец требования).
+Evidence: [epoch-5-s1-results.md](epoch-5-s1-results.md). Matcher **не** изменён.
+Inaccessible **не** выбран.
+
 Связанные findings: E5-01, E5-02, E5-04, E5-05.
 
-Нельзя одновременно требовать доказанную analyzer-to-project связь, пропускать
-каждое недоказанное соответствие и гарантировать исправление исходного missing-path
-repro, пока не установлен пригодный канал provenance.
+E5-S1: в публичном Roslyn 5.9.0 связи `AnalyzerReference → Project` нет;
+в design-time MSBuild она есть (`%(Analyzer.MSBuildSourceProjectFile)` +
+effective Configuration / inner TFM). BuildHost схлопывает item в
+`/analyzer:<path>` и теряет metadata.
 
-Недостающие evidence:
+**Выбранный режим.** На `load_workspace` / явной смене графа захватить
+design-time provenance (source `.csproj` + effective globals / выбранный
+inner TFM). Rewrite только confirmed item → загруженный inner project.
+Недоказанное missing — skip, не unique-name. Filename остаётся кандидатом,
+не доказательством. Считать snapshot не на semantic query и не на edit `.cs`.
 
-- Фактически доступные evaluated Roslyn 5.9.0/MSBuild metadata для
-  `OutputItemType="Analyzer" ReferenceOutputAssembly="false"`.
-- Надёжность связи analyzer item с загруженным проектом по поддержанной
-  Configuration/TFM матрице.
-- Стоимость и lifecycle дополнительной evaluation, если она нужна.
-- Exact execution oracle для missing foreign analyzer с тем же filename,
-  что и output in-solution проекта.
+Это выбор политики, не готовый канал. Rollout E5-S2 запрещён, пока нет
+принятого эскиза захвата (hook той же design-time загрузки /
+`ProjectInstance` того же graph / иной способ без скрытого второго полного
+eval «на каждый load»). Второй отдельный `dotnet msbuild` — допустимый
+prototype, не обещание production-цены.
 
-После evidence: если надёжная связь существует, использовать её и пропускать
-недоказанные missing/inaccessible пути. Если её нет, владелец продуктового
-требования должен выбрать между явно документированной opt-in unique-name эвристикой
-для missing paths и сужением поддержки с отказом от исправления этой части исходного
-repro. Inaccessible требует отдельного решения и не наследует missing-file правило.
+**Запас, если capture не взлетит** (не выбирать заранее, не забывать):
 
-До решения сохраняется выпущенный matcher, rollout эпохи 5 запрещён. Точки v2:
+| ID | Режим | Следствие |
+| --- | --- | --- |
+| Alt-2 | Оставить unique-name как **явную** opt-in эвристику | Дешево; исходный missing-path repro жив; provenance нет |
+| Alt-3 | Сузить: rewrite только при точном path = loaded output | Честно; missing-path половину исходного repro сдаём |
+
+Переход на Alt-2/Alt-3 — отдельное решение владельца после провала capture,
+с записью здесь и в E5-S4 **до** смены тестов/matcher. Пока держать
+выпущенный unique-name matcher.
+
+Inaccessible не наследует missing-file и не наследует этот выбор. Точки v2:
 [E5-S1–S4](epoch-5-reference-provenance.md), E1-S2 и LC-S1.
 
 ## U-ARB-02 — Поддерживаемый режим обновления генератора

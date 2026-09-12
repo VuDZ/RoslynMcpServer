@@ -2,7 +2,8 @@
 
 Эпоха 1 закрыта как **измеренный красный baseline**
 ([epoch-1-results.md](epoch-1-results.md), [epoch-1-acceptance.md](epoch-1-acceptance.md)).
-Ниже — оставшаяся работа. Эпохи 2–4 и 6 закрыты. Эпоху 5 / U-ARB-01 не открывать.
+Ниже — оставшаяся работа. Эпохи 2–4 и 6 закрыты. Эпоха 5: политика U-ARB-01
+выбрана (capture); matcher не открывать до capture design.
 
 | ID | Когда | Что |
 | --- | --- | --- |
@@ -13,7 +14,8 @@
 | F-04 | **принято** ([epoch-2-acceptance.md](epoch-2-acceptance.md)) | E2-S5 11/11. Открыт A2-09 (stores). A2-12 закрыт: catalog 63 / 43895 |
 | F-05 | **принято** ([epoch-4-acceptance.md](epoch-4-acceptance.md)) | Эпоха 4: write boundary. Открыты A4-09…A4-12 (не блокеры) |
 | F-06 | мерж в main | A1-10: version bump, изоляция test seams |
-| F-07 | **эпоха 3 принята** ([epoch-3-acceptance.md](epoch-3-acceptance.md)) | restart-required / main-only. U-ARB-01 matcher и U-ARB-05 sticky не открывать |
+| F-07 | **эпоха 3 принята** ([epoch-3-acceptance.md](epoch-3-acceptance.md)) | restart-required / main-only. Matcher эпохи 5 и U-ARB-05 sticky не открывать |
+| F-09 | после U-ARB-01 | Эскиз захвата `MSBuildSourceProjectFile`+TFM на load. Не менять matcher. Запас Alt-2/Alt-3 в UNRESOLVED |
 
 ---
 
@@ -165,12 +167,46 @@ Depends: evidence gates
 Не делать в ближайшем чате:
 
 - ALC / in-process V2 / production helper discovery сверх main-only отказа.
-- Эпоха 5 / U-ARB-01: смена matcher. Foreign results — evidence, не rollout.
+- Эпоха 5 rollout / смена matcher до принятого capture design (F-09).
+  Политика U-ARB-01 уже выбрана; Alt-2/Alt-3 не внедрять «на всякий случай».
 - U-ARB-05: менять sticky `false`/`omitted` на cached load.
 - Ослаблять oracle assertions ради зелёного filter.
 
 ---
 
-Порядок в следующем чате: F-06 на коммит server. Эпоху 5 / U-ARB-01 не открывать.
-F-07 не открывать. A4-09…A4-12 не чинить без отдельного запроса. Эпоха 6 закрыта
-как документационный аудит; серия остаётся незавершённой.
+ID: F-09
+Severity: High
+Depends: U-ARB-01 выбран (capture); [epoch-5-s1-results.md](epoch-5-s1-results.md)
+
+Target:
+[UNRESOLVED-v2.md](UNRESOLVED-v2.md) U-ARB-01
+[epoch-5-reference-provenance.md](epoch-5-reference-provenance.md) (эскиз, не S2 rollout)
+Новый файл: `docs/analyzer-shadow-copy-improvements/v2/epoch-5-f09-capture-design.md`
+
+Work:
+Эскиз **только захвата** design-time provenance на `load_workspace` / явной
+смене графа. Нужно: откуда взять `%(Analyzer.MSBuildSourceProjectFile)` и
+effective Configuration / inner TFM, не теряя их на границе BuildHost
+`/analyzer:<path>`; ключ item → загруженный inner `Project`; когда
+пересчитывать snapshot (load / graph-stale / смена global properties);
+оценка цены (hook той же design-time загрузки vs `ProjectInstance` того же
+graph vs второй `dotnet msbuild` как prototype).
+
+Не делать в F-09:
+- смену matcher / таблицу E5-S2 в коде;
+- внедрение Alt-2 (unique-name) или Alt-3 (exact path only);
+- выбор inaccessible;
+- semantic-path evaluation.
+
+Done when:
+Файл эскиза отвечает: канал, входы, lifetime snapshot, отказ/skip без
+metadata, почему это не второй полный eval «на каждый load» (или честно
+что prototype так и делает). Приёмка эскиза отдельно; без неё E5-S2
+запрещён. Если канал нереализуем — не молча откатываться: владелец пишет
+Alt-2 или Alt-3 в U-ARB-01.
+
+---
+
+Порядок в следующем чате: F-09 (эскиз capture) или коммит этой записи U-ARB-01.
+Matcher / E5-S2 не писать. F-07 не открывать. A4-09…A4-12 и A6-13 не чинить
+без отдельного запроса. Серия незавершена.

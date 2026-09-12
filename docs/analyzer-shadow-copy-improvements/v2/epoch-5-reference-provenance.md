@@ -1,6 +1,9 @@
 # Эпоха 5 — Происхождение analyzer references
 
-Статус: **исследование metadata планируется; rollout matcher заблокирован U-ARB-01**.
+Статус: **E5-S1 выполнено** ([epoch-5-s1-results.md](epoch-5-s1-results.md));
+U-ARB-01 выбран — capture на load ([UNRESOLVED-v2.md](UNRESOLVED-v2.md)).
+Rollout matcher **заблокирован** до принятого capture design. Запас: Alt-2
+unique-name эвристика, Alt-3 сужение до exact path. Inaccessible не выбран.
 Зависимость: exact oracle и fixtures эпохи 1. Алгоритм не зависит от эпох 2–4,
 но его приёмка не означает готовность всей серии.
 
