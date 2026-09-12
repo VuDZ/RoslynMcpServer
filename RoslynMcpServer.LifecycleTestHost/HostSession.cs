@@ -54,6 +54,7 @@ internal sealed class HostSession
                 "injectCaptureFailure" => InjectCaptureFailure(command),
                 "holdOverlayEdit" => HoldOverlayEdit(command),
                 "applyHeld" => await ApplyHeldAsync(cancellationToken).ConfigureAwait(false),
+                "publishedDocument" => await PublishedDocumentAsync(command, cancellationToken).ConfigureAwait(false),
                 "applyUnknownAnalyzerDiff" => await ApplyUnknownAnalyzerDiffAsync(command, cancellationToken).ConfigureAwait(false),
                 "forceCopyFailure" => ForceCopyFailure(),
                 "forceAccessFailure" => ForceAccessFailure(),
@@ -449,6 +450,33 @@ internal sealed class HostSession
             document.Id,
             SourceText.From(command.Text, Encoding.UTF8));
         return Inspect("holdOverlayEdit");
+    }
+
+    private async Task<HostResponse> PublishedDocumentAsync(
+        HostCommand command,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(command.Path))
+        {
+            return Fail("publishedDocument", "path-required");
+        }
+
+        var solution = await _manager.GetPublishedSolutionAsync(cancellationToken).ConfigureAwait(false);
+        if (solution is null)
+        {
+            return Fail("publishedDocument", "no-solution");
+        }
+
+        var fullPath = Path.GetFullPath(command.Path);
+        var document = FindDocument(solution, fullPath);
+        if (document is null)
+        {
+            return Fail("publishedDocument", "document-not-found");
+        }
+
+        var response = Inspect("publishedDocument");
+        response.DocumentText = (await document.GetTextAsync(cancellationToken).ConfigureAwait(false)).ToString();
+        return response;
     }
 
     private async Task<HostResponse> ApplyHeldAsync(CancellationToken cancellationToken)

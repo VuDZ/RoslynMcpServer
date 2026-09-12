@@ -1,6 +1,7 @@
 # S1 — закрепить три воспроизведения
 
-Статус: **не выполнено**. Зависимости: нет.
+Статус: **выполнено; независимая приёмка
+[принята](s1-acceptance.md)** (красный baseline, не фикс). Зависимости: нет.
 Результат шага: постоянные regression-тесты V3-R1, V3-R2 и V3-R3.
 
 ## Основание
@@ -52,4 +53,79 @@ marker и сравнение текстов, без многокилобайтн
 
 ## Результат
 
-Не выполнено.
+Выполнено 2026-09-12. Это сохранённый красный baseline, не исправление и не выпуск.
+
+### Источники и среда
+
+- **HEAD:** `671d1ae` (`docs: add v3 plan for stale-write and fail-closed holes`)
+- **Commit шага:** этот коммит;
+  `RoslynMcpServer.Tests/AnalyzerLifecycle/V3RegressionBaselineTests.cs`,
+  `publishedDocument` в `LifecycleTestHost/HostSession.cs`, этот файл
+  и [s1-acceptance.md](s1-acceptance.md)
+- **Версия csproj / MCP:** `1.3.15` (тесты и test-host; production/MCP binary не менялись, bump не делался)
+- **OS / host:** Windows, x64 process
+- **SDK:** `10.0.204` (`run_dotnet_build` / `run_specific_test`)
+- **MCP binary:** `RoslynMcpServer` v1.3.15.0,
+  `bin/Release/net10.0/win-x64/publish/RoslynMcpServer.exe`
+
+### Команды
+
+1. `load_workspace` → `RoslynMcpServer.sln`
+2. `run_dotnet_build` → `RoslynMcpServer.sln` (затем повторно
+   `-t:RoslynMcpServer_Tests` после правки assertions)
+3. `run_specific_test` class=`V3RegressionBaselineTests`, `noBuild=true`,
+   `timeoutSeconds=600`
+
+### Фактические результаты
+
+Все три теста **запустились** (не skip, не timeout, сборка успешна).
+Итог: **3 failed / 0 passed**, ~25 с. Assertions описывают безопасный контракт
+и на неисправленной базе v1.3.15 падают именно на свойствах R1–R3.
+
+| ID | Тест | Фактический отказ | Соответствие дефекту |
+| --- | --- | --- | --- |
+| R1 | `V3_R1_same_session_stale_candidate_is_rejected_before_any_write` | `status=ReconciliationSucceeded reason=try-apply-rejected`; `saved=1:Consumer/MarkerConsumer.cs`; диск и published содержат held A; `.csproj` byte-identical | Да: stale same-session candidate пишет A после B |
+| R2 | `V3_R2_prepare_failure_stays_fail_closed_after_text_edit` | После load fail-closed держится (`shadow=False`, `publishedRef=-`). После text edit: `publishedRef=netstandard2.0/Generator.dll`, `realPublished=True`, `realLoaded=True`, `realProcess=True` | Да: edit возвращает real reference и грузит real DLL |
+| R3 | `V3_R3_corrupt_capture_does_not_publish_or_execute_real_output` | `capture=Failed`, `shadow=False`, `publishedRef=netstandard2.0/Generator.dll`, `realPublished=True` (ещё до oracle) | Да: corrupt capture оставляет real reference в published snapshot |
+
+Компактные строки отказа (без JSON):
+
+```
+R1 apply ok=False err=try-apply-rejected status=ReconciliationSucceeded
+reason=try-apply-rejected diskEqExpected=False publishedEqExpected=False
+diskHasHeldA=True publishedHasHeldA=True csprojUnchanged=True
+saved=1:Consumer/MarkerConsumer.cs
+
+R2 after-edit oracle ok=True status=FullSuccess exec=LoadFailed
+publishedRef=netstandard2.0/Generator.dll loaded=netstandard2.0/Generator.dll
+marker= oracle=False/no-constant realPublished=True realLoaded=True
+realProcess=True realLoader=False
+
+R3 load ok=True capture=Failed shadow=False
+publishedRef=netstandard2.0/Generator.dll realPublished=True
+realLoaded=False realProcess=False
+```
+
+### Самопроверка
+
+- Каждый сценарий: отдельный host-процесс + `SdkDefaultCorrectPath` + успешный
+  `build` генератора до load.
+- Semantic checks идут через `GetPublishedSolutionAsync` / `oracle` без
+  `oracleSource=workspace`. R1 читает published text тем же accessor
+  (`publishedDocument`).
+- Отказ компактный: status, reason, paths, marker, сравнение текстов.
+- Ожидания не закрепляют потерю текста и загрузку real output как зелёный
+  результат. Тесты остаются для S2–S4.
+
+### Ограничения
+
+- **R2 marker:** ревью v1.3.15 измеряло exact `V1` из real output. Этот прогон
+  подтвердил published real path и process load; `SourceGeneratorOracle`
+  вернул `no-constant`, не `V1`. Безопасность по-прежнему опровергается
+  путями, не отсутствием маркера.
+- **R3 execution:** assertion останавливается на published real reference,
+  поэтому exact marker из oracle в этом прогоне не измерялся. Это более раннее
+  звено того же дефекта.
+- MCP parser повторяет упавшие имена в хвосте (`Showing first 5 failures`);
+  уникальных тестов три.
+- Красный baseline не выпускается и не означает готовность v3.
