@@ -1,5 +1,4 @@
-﻿using Microsoft.Extensions.Logging.Abstractions;
-using RoslynMcpServer.Services;
+﻿using RoslynMcpServer.Services;
 using Xunit;
 
 namespace RoslynMcpServer.Tests;
@@ -59,7 +58,7 @@ public sealed class DotNetBuildArgumentsTests
     [Fact]
     public async Task ApplySessionBuildArgs_replaces_without_workspace_reload()
     {
-        var manager = new SolutionManager(NullLogger<SolutionManager>.Instance);
+        var manager = SolutionManagerTestFactory.Create();
         manager.ApplySessionBuildArgs("-p:Foo=1");
         Assert.Equal("-p:Foo=1", manager.LoadedBuildArgs);
 

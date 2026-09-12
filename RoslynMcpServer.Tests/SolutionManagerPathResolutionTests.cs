@@ -107,7 +107,7 @@ public sealed class SolutionManagerPathResolutionTests
 
     private static SolutionManager CreateManager(string? loadedPath = null)
     {
-        var manager = new SolutionManager(NullLogger<SolutionManager>.Instance);
+        var manager = SolutionManagerTestFactory.Create();
         if (!string.IsNullOrWhiteSpace(loadedPath))
         {
             typeof(SolutionManager)

@@ -19,6 +19,7 @@ public sealed class HostCommand
     public int TimeoutMs { get; set; } = 15_000;
     public bool NoIncremental { get; set; } = true;
     public int CancelAfterWrites { get; set; }
+    public string? CaptureFailureMode { get; set; }
 }
 
 public sealed class HostResponse
@@ -36,6 +37,12 @@ public sealed class HostResponse
     public bool MappingPresent { get; set; }
     public int OverlayPrepareCount { get; set; }
     public int AnalyzerFileIoCount { get; set; }
+    public long ProvenanceCaptureCount { get; set; }
+    public bool ProvenanceSnapshotPresent { get; set; }
+    public string? ProvenanceCaptureStatus { get; set; }
+    public int ProvenanceAnalyzerItemCount { get; set; }
+    public int ProvenanceConfirmedBindingCount { get; set; }
+    public int ProvenanceTempDirectoryCount { get; set; }
     public bool ReusedExisting { get; set; }
     public string? GenerationDirectory { get; set; }
     public long GenerationBytes { get; set; }

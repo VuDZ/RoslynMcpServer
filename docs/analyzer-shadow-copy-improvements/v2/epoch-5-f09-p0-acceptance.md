@@ -15,13 +15,16 @@
 | P0-4 | — | Foreign same-name не foreign | **закрыт** |
 | P0-5 | — | Compiler output не менялся | **закрыт** |
 | P0-6 | — | bytes / wall на fixture и repo sln | **закрыт** — наблюдение, не SLA |
-| P0-7 | Medium | Lifecycle counters в `LoadCoreAsync` | **открыт** — spike вне `SolutionManager` |
+| P0-7 | Medium | Lifecycle counters в `LoadCoreAsync` | **закрыт** ([приёмка](epoch-5-f09-production-capture-acceptance.md)) |
 | P0-8 | — | Fail-closed + delete temp | **закрыт** |
 | F09-01 | Medium | Join bin vs obj | **закрыт** — redirected fixture + `Identity == OutputFilePath` |
-| F09-02 | Medium | Always-on | **измерен** — ~50–75 ms median; telemetry в production |
-| F09-04 | Low | `Microsoft.Build` в server csproj | **открыт** — есть только в Tests |
+| F09-02 | Medium | Always-on | **закрыт** — always-on в production; telemetry есть |
+| F09-04 | Low | `Microsoft.Build` в server csproj | **закрыт** — v1.3.9, runtime assets исключены |
 
-`SolutionManager` / matcher / публичный API не менялись.
+Production implementation:
+[epoch-5-f09-production-capture-results.md](epoch-5-f09-production-capture-results.md).
+`SolutionManager` теперь публикует load-scoped snapshot; matcher и публичный API
+не менялись.
 
 ---
 
@@ -45,10 +48,8 @@ Suggested change:
 
 ## Что дальше
 
-1. Production capture: `Microsoft.Build` в server csproj (F09-04), immutable
-   snapshot, join как в results (не требовать `TargetPath`/`IntermediateAssembly`),
-   fail-closed replay, cleanup, **не** `LoggerVerbosity.Diagnostic`.
-2. Lifecycle tests на `LoadCoreAsync` (P0-7).
-3. Только после atomic snapshot — E5-S2 / смена matcher и marker acceptance.
+1. Production snapshot [принят](epoch-5-f09-production-capture-acceptance.md).
+2. Отдельный E5-S2 / смена matcher и marker acceptance; join через
+   production snapshot (F09-PROD-1).
 
 Не делать: Alt-2/Alt-3, inaccessible, rollout matcher в этом шаге.

@@ -5,8 +5,9 @@
 эпоха 6 — **аудит документации завершён** ([epoch-6-acceptance.md](epoch-6-acceptance.md)).
 Эпоха 5: E5-S1 измерено; U-ARB-01 выбран как capture на load (запас Alt-2/Alt-3);
 эскиз F-09 [принят](epoch-5-f09-acceptance.md);
-[P0-spike завершён с GO](epoch-5-f09-p0-spike-results.md); rollout ждёт
-production snapshot.
+[P0-spike завершён с GO](epoch-5-f09-p0-spike-results.md);
+[production snapshot принят](epoch-5-f09-production-capture-acceptance.md) в
+v1.3.9; rollout matcher ждёт E5-S2.
 Серия не завершена. Исходные
 v1/review/response/arbitration сохранены. Файлы эпох переписаны как самостоятельный
 русский нормативный текст, добавлены общая lifecycle matrix и реестры

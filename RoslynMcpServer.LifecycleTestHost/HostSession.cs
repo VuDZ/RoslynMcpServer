@@ -7,6 +7,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Rename;
 using Microsoft.CodeAnalysis.Text;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using RoslynMcpServer.Diagnostics;
 using RoslynMcpServer.Services;
 
@@ -14,11 +15,20 @@ namespace RoslynMcpServer.LifecycleTestHost;
 
 internal sealed class HostSession
 {
-    private readonly SolutionManager _manager = new(NullLogger<SolutionManager>.Instance);
+    private readonly SolutionManager _manager = CreateSolutionManager();
     private readonly StringComparison _pathComparison =
         OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
     private Solution? _heldOldSolution;
     private Solution? _heldNewSolution;
+
+    private static SolutionManager CreateSolutionManager()
+    {
+        var capture = new AnalyzerProvenanceCaptureService(
+            NullLogger<AnalyzerProvenanceCaptureService>.Instance,
+            Options.Create(new AnalyzerProvenanceCaptureOptions()),
+            TimeProvider.System);
+        return new SolutionManager(NullLogger<SolutionManager>.Instance, capture);
+    }
 
     public async Task<HostResponse> ExecuteAsync(HostCommand command, CancellationToken cancellationToken)
     {
@@ -41,6 +51,7 @@ internal sealed class HostSession
                 "injectFileWriteFailure" => InjectFileWriteFailure(command),
                 "injectReconciliationFailure" => InjectReconciliationFailure(),
                 "injectCancelAfterWrites" => InjectCancelAfterWrites(command),
+                "injectCaptureFailure" => InjectCaptureFailure(command),
                 "holdOverlayEdit" => HoldOverlayEdit(command),
                 "applyHeld" => await ApplyHeldAsync(cancellationToken).ConfigureAwait(false),
                 "applyUnknownAnalyzerDiff" => await ApplyUnknownAnalyzerDiffAsync(command, cancellationToken).ConfigureAwait(false),
@@ -398,6 +409,21 @@ internal sealed class HostSession
         return Inspect("injectCancelAfterWrites");
     }
 
+    private HostResponse InjectCaptureFailure(HostCommand command)
+    {
+        if (!Enum.TryParse<AnalyzerProvenanceCaptureFailureMode>(
+                command.CaptureFailureMode,
+                ignoreCase: true,
+                out var failureMode)
+            || failureMode == AnalyzerProvenanceCaptureFailureMode.None)
+        {
+            return Fail("injectCaptureFailure", "capture-failure-mode-required");
+        }
+
+        _manager.FailNextAnalyzerProvenanceCapture = failureMode;
+        return Inspect("injectCaptureFailure");
+    }
+
     private HostResponse HoldOverlayEdit(HostCommand command)
     {
         if (string.IsNullOrWhiteSpace(command.Path) || command.Text is null)
@@ -729,6 +755,12 @@ internal sealed class HostSession
             MappingPresent = _manager.AnalyzerShadowMapping is { HasAnyApplied: true },
             OverlayPrepareCount = _manager.OverlayPrepareCount,
             AnalyzerFileIoCount = AnalyzerShadowGenerationPublisher.AnalyzerFileIoCount,
+            ProvenanceCaptureCount = _manager.AnalyzerProvenanceCaptureCount,
+            ProvenanceSnapshotPresent = _manager.AnalyzerProvenanceSnapshot is not null,
+            ProvenanceCaptureStatus = _manager.AnalyzerProvenanceSnapshot?.Status.ToString(),
+            ProvenanceAnalyzerItemCount = _manager.AnalyzerProvenanceSnapshot?.AnalyzerItems.Length ?? 0,
+            ProvenanceConfirmedBindingCount = _manager.AnalyzerProvenanceSnapshot?.Metrics.ConfirmedBindingCount ?? 0,
+            ProvenanceTempDirectoryCount = CountProvenanceTempDirectories(),
             ShadowEnabled = _manager.ShadowCopyAnalyzersEnabled,
             ShadowRoot = _manager.ShadowCopyRootDirectory,
             LoadedWorkspacePath = _manager.GetLoadedWorkspacePath(),
@@ -766,6 +798,14 @@ internal sealed class HostSession
         }
 
         return response;
+    }
+
+    private static int CountProvenanceTempDirectories()
+    {
+        var processRoot = Path.Combine(Path.GetTempPath(), $"RoslynMcpServer-{Environment.ProcessId}");
+        return Directory.Exists(processRoot)
+            ? Directory.EnumerateDirectories(processRoot, "*", SearchOption.TopDirectoryOnly).Count()
+            : 0;
     }
 
     private void FillAnalyzerPaths(HostResponse response, Project project)

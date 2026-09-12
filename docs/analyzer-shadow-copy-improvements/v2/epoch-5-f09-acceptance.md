@@ -14,7 +14,7 @@ Matcher и E5-S2 rollout не открыты.
 | F09-01 | Medium | Join TargetPath vs obj `AssemblyPath` | **закрыт P0** — exact `Analyzer.Identity == Project.OutputFilePath`; свойства не обязательны |
 | F09-02 | Medium | Capture на каждом load, даже flag=false | **измерен P0** — always-on сохранён; telemetry обязательна |
 | F09-03 | Low | Type-name `BinaryLogger` — частный контракт | **закрыт как факт 5.9.0**; pin в spike |
-| F09-04 | Low | В csproj нет `Microsoft.Build` / `BinaryLogger` | **открыт** — пакет для spike, не сейчас |
+| F09-04 | Low | В csproj нет `Microsoft.Build` / `BinaryLogger` | **закрыт v1.3.9** ([приёмка](epoch-5-f09-production-capture-acceptance.md)) |
 
 ---
 

@@ -4,9 +4,9 @@
 U-ARB-01 выбран — capture на load ([UNRESOLVED-v2.md](UNRESOLVED-v2.md)).
 Эскиз F-09 [принят](epoch-5-f09-acceptance.md)
 ([дизайн](epoch-5-f09-capture-design.md)): production-кандидат — binlog той же
-design-time загрузки, без второго eval. P0-spike завершён с GO
-([результаты](epoch-5-f09-p0-spike-results.md)); rollout matcher ждёт production
-snapshot и lifecycle tests.
+design-time загрузки, без второго eval. P0-spike завершён с GO; production
+snapshot [принят](epoch-5-f09-production-capture-acceptance.md) в v1.3.9.
+Rollout matcher не начат.
 Запас: Alt-2 unique-name эвристика, Alt-3 сужение до exact path.
 Inaccessible не выбран.
 Зависимость: exact oracle и fixtures эпохи 1. Алгоритм не зависит от эпох 2–4,

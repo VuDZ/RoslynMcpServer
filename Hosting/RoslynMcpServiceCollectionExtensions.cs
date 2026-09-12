@@ -65,6 +65,10 @@ public static class RoslynMcpServiceCollectionExtensions
         services.AddSingleton(toolCollection);
         services.AddSingleton<McpServerPrimitiveCollection<McpServerTool>>(toolCollection);
         services.AddSingleton<McpToolActivationService>();
+        services.AddOptions<AnalyzerProvenanceCaptureOptions>()
+            .BindConfiguration(AnalyzerProvenanceCaptureOptions.SectionName);
+        services.AddSingleton(TimeProvider.System);
+        services.AddSingleton<AnalyzerProvenanceCaptureService>();
         services.AddSingleton<SolutionManager>();
         foreach (var toolType in McpToolCatalog.HostTypes)
         {

@@ -1,8 +1,8 @@
 # F-09 — захват design-time provenance
 
-Дата: 2026-09-12. Статус: **эскиз принят** ([epoch-5-f09-acceptance.md](epoch-5-f09-acceptance.md));
-P0-spike выполнен с вердиктом GO
-([результаты](epoch-5-f09-p0-spike-results.md)). Matcher пока не изменён.
+Дата: 2026-09-12. Статус: **эскиз, P0 и production snapshot приняты**
+([приёмка](epoch-5-f09-production-capture-acceptance.md)).
+Matcher пока не изменён.
 
 Связанные материалы:
 [E5-S1](epoch-5-s1-results.md),

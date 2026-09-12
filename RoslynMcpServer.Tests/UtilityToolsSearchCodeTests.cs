@@ -164,7 +164,7 @@ public sealed class UtilityToolsSearchCodeTests
 
     private static SolutionManager CreateManagerWithLoadedPath(string loadedPath)
     {
-        var manager = new SolutionManager(NullLogger<SolutionManager>.Instance);
+        var manager = SolutionManagerTestFactory.Create();
         typeof(SolutionManager)
             .GetField("_loadedPath", BindingFlags.Instance | BindingFlags.NonPublic)!
             .SetValue(manager, loadedPath);

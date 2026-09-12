@@ -13,7 +13,7 @@ public sealed class TestToolsRunTestByFilterTests
     public async Task RunTestByFilter_rejects_empty_filter(string? filter)
     {
         var tools = new TestTools(
-            new SolutionManager(NullLogger<SolutionManager>.Instance),
+            SolutionManagerTestFactory.Create(),
             NullLogger<TestTools>.Instance);
 
         var result = await tools.RunTestByFilter(

@@ -3,7 +3,8 @@
 Эпоха 1 закрыта как **измеренный красный baseline**
 ([epoch-1-results.md](epoch-1-results.md), [epoch-1-acceptance.md](epoch-1-acceptance.md)).
 Ниже — оставшаяся работа. Эпохи 2–4 и 6 закрыты. Эпоха 5: политика U-ARB-01
-выбрана (capture), P0-spike = GO; matcher ждёт production snapshot.
+выбрана (capture), production snapshot [принят](epoch-5-f09-production-capture-acceptance.md);
+matcher ждёт E5-S2.
 
 | ID | Когда | Что |
 | --- | --- | --- |
@@ -15,7 +16,7 @@
 | F-05 | **принято** ([epoch-4-acceptance.md](epoch-4-acceptance.md)) | Эпоха 4: write boundary. Открыты A4-09…A4-12 (не блокеры) |
 | F-06 | мерж в main | A1-10: version bump, изоляция test seams |
 | F-07 | **эпоха 3 принята** ([epoch-3-acceptance.md](epoch-3-acceptance.md)) | restart-required / main-only. Matcher эпохи 5 и U-ARB-05 sticky не открывать |
-| F-09 | **P0 принят** ([epoch-5-f09-p0-acceptance.md](epoch-5-f09-p0-acceptance.md)) | Канал GO. Открыты F09-04 и P0-7. Matcher нет |
+| F-09 | **принято** ([epoch-5-f09-production-capture-acceptance.md](epoch-5-f09-production-capture-acceptance.md)) | Snapshot v1.3.9. Открыты F09-PROD-1/2. Matcher нет |
 
 ---
 
@@ -215,12 +216,14 @@ join, lifetime, fail-closed правила, цена/секретность binl
 Matcher, Alt-2/Alt-3, inaccessible и semantic-path evaluation не менялись.
 Приёмка эскиза **принята** ([epoch-5-f09-acceptance.md](epoch-5-f09-acceptance.md)).
 P0 **принят** ([epoch-5-f09-p0-acceptance.md](epoch-5-f09-p0-acceptance.md)):
-независимый прогон 4/4. F09-01 закрыт, F09-02 измерен, F09-04 и P0-7 открыты.
-Matcher не менять.
+независимый прогон 4/4. Production capture/snapshot
+[принят](epoch-5-f09-production-capture-acceptance.md): F09-04 и P0-7 закрыты.
+Открыты F09-PROD-1 (join matrix не через production `Bind`) и F09-PROD-2.
+Matcher не менять до отдельного E5-S2.
 
 ---
 
-Порядок в следующем чате: production capture/snapshot (F09-04 + P0-7), не
-matcher. E5-S2 только после atomic snapshot.
+Порядок в следующем чате: E5-S2 / смена matcher + marker acceptance.
+Join доказывать через production snapshot (F09-PROD-1), не через spike.
 F-07 не открывать. A4-09…A4-12 и A6-13 не чинить без отдельного запроса.
 Серия незавершена.

@@ -170,6 +170,11 @@ MCP `tools/list` stays JSON + JSON Schema. Markdown is for JIT help and diagnost
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.3.9
+
+- **Analyzer provenance capture (F-09 production snapshot).** Every physical `MSBuildWorkspace` open now records the same design-time build into process-private binlogs, replays them into an immutable load-session snapshot, and exact-joins captured analyzer items to loaded consumer/source `ProjectId`s. Replay is fail-closed and temporary data is deleted before publication. Cached loads, source edits, semantic queries, and analyzer artifact refreshes do not recapture; graph-stale, changed load globals, and reset+load do. This release does not change the analyzer matcher or enable E5-S2 rollout.
+- **Catalog size** — unchanged: full 63 tools / 44,165 bytes; lite 19 / 16,579.
+
 ### v1.3.8
 
 - **Workspace write boundary (epoch 4).** All production `TryApplyChanges` and server document writes go through one preflight → exact original↔shadow inverse → persist → apply/reconciliation → overlay publish workflow. Unsupported or stale analyzer-reference diffs (including CodeAction / `rename_symbol`) are rejected before any server write instead of silently wiping the analyzer list. Partial persistence is not full success: the reply includes Status, Reason, and the known saved paths (existing tool text, no new MCP schema). Post-apply reuses the prepared mapping with no analyzer file I/O. Upgrade from v1.3.5: consumer edit no longer recopies analyzer files and will not pick up rebuilt generator bytes — after a same-identity rebuild, restart the MCP process.
@@ -999,7 +1004,7 @@ Verify id/version with `search_nuget_registry` first. Clears workspace cache —
 
 **Parameters:** *(none)*
 
-Use after `dotnet publish` to verify the MCP host picked up the new binary (expect **v1.3.8** and **63** tools on `full`, or **19** on `lite`).
+Use after `dotnet publish` to verify the MCP host picked up the new binary (expect **v1.3.9** and **63** tools on `full`, or **19** on `lite`).
 
 </details>
 
@@ -1211,7 +1216,7 @@ cd D:\Devel\YourApp
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.3.8). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.3.9). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 
@@ -1830,7 +1835,7 @@ cd D:\Devel\YourApp
 
 **Параметры:** *(нет)*
 
-После `dotnet publish` — проверка, что MCP подхватил новый бинарник (ожидай **v1.3.8** и **63** tools в `full`, или **19** в `lite`).
+После `dotnet publish` — проверка, что MCP подхватил новый бинарник (ожидай **v1.3.9** и **63** tools в `full`, или **19** в `lite`).
 
 </details>
 

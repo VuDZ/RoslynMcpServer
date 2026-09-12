@@ -40,6 +40,7 @@ public sealed class SolutionManager
     }
 
     private readonly ILogger<SolutionManager> _logger;
+    private readonly AnalyzerProvenanceCaptureService _analyzerProvenanceCaptureService;
     private readonly SemaphoreSlim _workspaceLock = new(1, 1);
     private readonly StringComparison _pathComparison =
         OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
@@ -84,10 +85,18 @@ public sealed class SolutionManager
     private string? _loadedTargetFramework;
     private string? _loadedBuildArgs;
     private IReadOnlyList<WorkspaceDiagnostic> _lastDiagnostics = Array.Empty<WorkspaceDiagnostic>();
+    private AnalyzerProvenanceSnapshot? _analyzerProvenanceSnapshot;
+    private long _analyzerProvenanceCaptureCount;
 
-    public SolutionManager(ILogger<SolutionManager> logger)
+    public SolutionManager(
+        ILogger<SolutionManager> logger,
+        AnalyzerProvenanceCaptureService analyzerProvenanceCaptureService)
     {
+        ArgumentNullException.ThrowIfNull(logger);
+        ArgumentNullException.ThrowIfNull(analyzerProvenanceCaptureService);
+
         _logger = logger;
+        _analyzerProvenanceCaptureService = analyzerProvenanceCaptureService;
         _dirtySourcePaths = new ConcurrentDictionary<string, byte>(_pathComparer);
         _selfWriteUntilTicks = new ConcurrentDictionary<string, long>(_pathComparer);
     }
@@ -137,6 +146,15 @@ public sealed class SolutionManager
     internal AnalyzerShadowMapping? AnalyzerShadowMapping => _analyzerShadowMapping;
 
     internal Guid LoadSessionId => _loadSessionId;
+
+    internal AnalyzerProvenanceSnapshot? AnalyzerProvenanceSnapshot => _analyzerProvenanceSnapshot;
+
+    internal long AnalyzerProvenanceCaptureCount => _analyzerProvenanceCaptureCount;
+
+    internal AnalyzerProvenanceCaptureFailureMode FailNextAnalyzerProvenanceCapture
+    {
+        set => _analyzerProvenanceCaptureService.FailureModeForNextCapture = value;
+    }
 
     /// <summary>
     /// When true, the next <see cref="ShadowCopyInSolutionAnalyzerReferencesAsync"/> skips file preparation
@@ -1101,6 +1119,7 @@ public sealed class SolutionManager
             _shadowCopyAnalyzersEnabled = false;
             _shadowCopyRootDirectory = null;
             _analyzerShadowMapping = null;
+            _analyzerProvenanceSnapshot = null;
             _loadSessionId = Guid.Empty;
             _lastRefreshStale = false;
             _lastExecutionObservation = AnalyzerExecutionObservation.None;
@@ -1196,6 +1215,7 @@ public sealed class SolutionManager
         _shadowCopyAnalyzersEnabled = false;
         _shadowCopyRootDirectory = null;
         _analyzerShadowMapping = null;
+        _analyzerProvenanceSnapshot = null;
         _lastPublishedWriteContext = null;
         _lastWriteResult = null;
         _loadSessionId = Guid.NewGuid();
@@ -1220,25 +1240,17 @@ public sealed class SolutionManager
                 e.Diagnostic.Message);
         });
 
+        AnalyzerProvenanceSnapshot provenanceSnapshot;
         try
         {
-            var extension = Path.GetExtension(fullPath);
-            if (string.Equals(extension, ".sln", _pathComparison)
-                || string.Equals(extension, ".slnx", _pathComparison))
-            {
-                _ = await workspace.OpenSolutionAsync(fullPath, cancellationToken: cancellationToken);
-            }
-            else if (string.Equals(extension, ".csproj", _pathComparison))
-            {
-                var project = await workspace.OpenProjectAsync(fullPath, cancellationToken: cancellationToken);
-                _ = workspace.CurrentSolution.GetProject(project.Id)
-                    ?? throw new InvalidOperationException($"Unable to load project '{fullPath}'.");
-            }
-            else
-            {
-                workspace.Dispose();
-                throw new NotSupportedException("Only .sln, .slnx, and .csproj files are supported.");
-            }
+            _analyzerProvenanceCaptureCount++;
+            provenanceSnapshot = await _analyzerProvenanceCaptureService.OpenAndCaptureAsync(
+                    workspace,
+                    fullPath,
+                    _loadSessionId,
+                    properties,
+                    cancellationToken)
+                .ConfigureAwait(false);
         }
         catch (Exception ex) when (WorkspaceLoadGuidance.IsRoslynMsBuildBuildHostFailure(ex))
         {
@@ -1247,6 +1259,11 @@ public sealed class SolutionManager
                 WorkspaceLoadGuidance.FormatRoslynMsBuildBuildHostFailureMessage(fullPath),
                 ex);
         }
+        catch
+        {
+            workspace.Dispose();
+            throw;
+        }
 
         _workspace = workspace;
         _loadedPath = fullPath;
@@ -1254,6 +1271,7 @@ public sealed class SolutionManager
             workspace.CurrentSolution,
             _analyzerAssemblyLoader);
         SetPublishedSolution(workspace.CurrentSolution);
+        _analyzerProvenanceSnapshot = provenanceSnapshot;
         _loadedConfiguration = configuration;
         _loadedPlatform = platform;
         _loadedTargetFramework = targetFramework;

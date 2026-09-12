@@ -32,8 +32,9 @@ inner TFM). Rewrite только confirmed item → загруженный inner
 P0-spike подтвердил `Analyzer.MSBuildSourceProjectFile`, effective
 Configuration/inner TFM и exact join к загруженному `ProjectId`
 ([результаты](epoch-5-f09-p0-spike-results.md)); F09-01 закрыт. Production
-snapshot и matcher пока не реализованы: rollout E5-S2 допускается только после
-atomic capture/lifecycle tests, не напрямую из spike.
+snapshot [принят](epoch-5-f09-production-capture-acceptance.md) в v1.3.9.
+Matcher не изменён: rollout E5-S2 — отдельный этап; join доказывать через
+production snapshot (F09-PROD-1), не через spike.
 `ProjectInstance` и второй `dotnet msbuild` оценены, но не выбраны production
 fallback.
 
