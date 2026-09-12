@@ -17,9 +17,13 @@ internal sealed record AnalyzerDependencyInspection(
 /// </summary>
 internal static class AnalyzerPrivateDependencyInspector
 {
+    /// <summary>Test counter: metadata inspection calls. Ordinary publication must not increment this.</summary>
+    internal static int InspectCount;
+
     public static AnalyzerDependencyInspection Inspect(string assemblyPath)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(assemblyPath);
+        InspectCount++;
 
         if (!File.Exists(assemblyPath))
         {

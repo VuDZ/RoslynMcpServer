@@ -543,12 +543,17 @@ public static class AnalyzerReferenceShadowCopier
             AnalyzerReferenceSelectionBasis.None,
             detail);
 
+    /// <summary>Test counter: filesystem path probes. Ordinary publication must not increment this.</summary>
+    internal static int PathProbeCount;
+
     private static AnalyzerReferencePathState ProbePath(string? path)
     {
         if (string.IsNullOrWhiteSpace(path))
         {
             return AnalyzerReferencePathState.NotProvided;
         }
+
+        PathProbeCount++;
 
         try
         {

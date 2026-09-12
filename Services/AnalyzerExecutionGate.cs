@@ -42,6 +42,9 @@ internal static class AnalyzerExecutionGate
             loader);
     }
 
+    /// <summary>Test counter: path evaluations (identity/dependency probing). Ordinary publication must not increment this.</summary>
+    internal static int AssemblyEvaluationCount;
+
     public static AnalyzerExecutionObservation EvaluateAssemblyPath(
         string assemblyPath,
         string? projectName,
@@ -51,6 +54,7 @@ internal static class AnalyzerExecutionGate
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(assemblyPath);
         ArgumentNullException.ThrowIfNull(loader);
+        AssemblyEvaluationCount++;
 
         var inspection = AnalyzerPrivateDependencyInspector.Inspect(assemblyPath);
         if (inspection.FailureReason == "source-missing")

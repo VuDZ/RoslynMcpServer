@@ -37,6 +37,10 @@ public sealed class HostResponse
     public bool MappingPresent { get; set; }
     public int OverlayPrepareCount { get; set; }
     public int AnalyzerFileIoCount { get; set; }
+    public int InspectorInspectCount { get; set; }
+    public int AnalyzerPathProbeCount { get; set; }
+    public int AnalyzerAssemblyEvaluationCount { get; set; }
+    public string? PublicationAdmission { get; set; }
     public long ProvenanceCaptureCount { get; set; }
     public bool ProvenanceSnapshotPresent { get; set; }
     public string? ProvenanceCaptureStatus { get; set; }

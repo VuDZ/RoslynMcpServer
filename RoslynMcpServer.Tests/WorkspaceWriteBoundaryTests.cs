@@ -241,11 +241,49 @@ public sealed class WorkspaceWriteBoundaryTests
                 ShadowCopyEnabled: true,
                 RawWorkspaceRevision: 2,
                 RawWorkspaceSnapshot: raw,
-                PublishedSnapshot: published),
+                PublishedSnapshot: published,
+                PublicationAdmission: SemanticPublicationAdmission.AllowedMapping),
             new InProcessAnalyzerAssemblyLoader(),
             heldBase: held);
         Assert.False(preflight.Accepted);
         Assert.Equal(WorkspaceWriteBoundary.ReasonStaleBase, preflight.Reason);
+    }
+
+    [Fact]
+    public void Publication_admission_change_without_raw_mutation_is_rejected()
+    {
+        using var workspace = new AdhocWorkspace();
+        var projectId = ProjectId.CreateNewId();
+        var original = new FakeAnalyzerReference("original", @"C:\Repro\Generator.dll");
+        var baseSolution = workspace.CurrentSolution.AddProject(
+            ProjectInfo.Create(projectId, VersionStamp.Create(), "Consumer", "Consumer", LanguageNames.CSharp)
+                .WithAnalyzerReferences(new AnalyzerReference[] { original }));
+        var session = Guid.NewGuid();
+        var context = WorkspaceWriteOperationContext.Verified(
+            session,
+            @"C:\Repro\App.sln",
+            mapping: null,
+            baseSolution,
+            baseSolution,
+            rawWorkspaceRevision: 1,
+            shadowCopyEnabled: false,
+            publicationAdmission: SemanticPublicationAdmission.NoOverlay);
+
+        var preflight = WorkspaceWriteBoundary.Preflight(
+            baseSolution,
+            baseSolution,
+            context,
+            new WorkspaceWriteFreshnessState(
+                session,
+                @"C:\Repro\App.sln",
+                Mapping: null,
+                ShadowCopyEnabled: false,
+                RawWorkspaceRevision: 1,
+                RawWorkspaceSnapshot: baseSolution,
+                PublicationAdmission: SemanticPublicationAdmission.Banned),
+            new InProcessAnalyzerAssemblyLoader());
+        Assert.False(preflight.Accepted);
+        Assert.Equal(WorkspaceWriteBoundary.ReasonStalePublication, preflight.Reason);
     }
 
     [Fact]
@@ -481,7 +519,10 @@ public sealed class WorkspaceWriteBoundaryTests
             mapping,
             shadowCopyEnabled,
             revision,
-            raw);
+            raw,
+            PublicationAdmission: shadowCopyEnabled
+                ? SemanticPublicationAdmission.AllowedMapping
+                : SemanticPublicationAdmission.NoOverlay);
     }
 
     private static AnalyzerShadowMapping Mapping(ProjectId projectId, string original, string shadow)

@@ -177,6 +177,7 @@ internal static class WorkspaceWriteBoundary
         WorkspaceWriteFreshnessState current)
     {
         return operationContext.ShadowCopyEnabled == current.ShadowCopyEnabled
+            && operationContext.PublicationAdmission == current.PublicationAdmission
             && ReferenceEquals(operationContext.Mapping, current.Mapping);
     }
 

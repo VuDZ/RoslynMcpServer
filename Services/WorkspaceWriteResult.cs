@@ -108,6 +108,7 @@ internal sealed class WorkspaceWriteOperationContext
         Solution? rawWorkspaceSnapshot,
         long rawWorkspaceRevision,
         bool shadowCopyEnabled,
+        SemanticPublicationAdmission publicationAdmission,
         bool isVerified)
     {
         SessionId = sessionId;
@@ -117,6 +118,7 @@ internal sealed class WorkspaceWriteOperationContext
         RawWorkspaceSnapshot = rawWorkspaceSnapshot;
         RawWorkspaceRevision = rawWorkspaceRevision;
         ShadowCopyEnabled = shadowCopyEnabled;
+        PublicationAdmission = publicationAdmission;
         IsVerified = isVerified;
     }
 
@@ -128,6 +130,7 @@ internal sealed class WorkspaceWriteOperationContext
         rawWorkspaceSnapshot: null,
         rawWorkspaceRevision: -1,
         shadowCopyEnabled: false,
+        publicationAdmission: SemanticPublicationAdmission.None,
         isVerified: false);
 
     public static WorkspaceWriteOperationContext Verified(
@@ -137,7 +140,8 @@ internal sealed class WorkspaceWriteOperationContext
         Solution? baseSnapshot,
         Solution? rawWorkspaceSnapshot,
         long rawWorkspaceRevision,
-        bool shadowCopyEnabled)
+        bool shadowCopyEnabled,
+        SemanticPublicationAdmission? publicationAdmission = null)
     {
         return new WorkspaceWriteOperationContext(
             sessionId,
@@ -147,6 +151,9 @@ internal sealed class WorkspaceWriteOperationContext
             rawWorkspaceSnapshot,
             rawWorkspaceRevision,
             shadowCopyEnabled,
+            publicationAdmission ?? (shadowCopyEnabled
+                ? SemanticPublicationAdmission.AllowedMapping
+                : SemanticPublicationAdmission.NoOverlay),
             isVerified: true);
     }
 
@@ -164,6 +171,8 @@ internal sealed class WorkspaceWriteOperationContext
 
     public bool ShadowCopyEnabled { get; }
 
+    public SemanticPublicationAdmission PublicationAdmission { get; }
+
     public bool IsVerified { get; }
 }
 
@@ -177,7 +186,8 @@ internal readonly record struct WorkspaceWriteFreshnessState(
     bool ShadowCopyEnabled,
     long RawWorkspaceRevision,
     Solution? RawWorkspaceSnapshot,
-    Solution? PublishedSnapshot = null);
+    Solution? PublishedSnapshot = null,
+    SemanticPublicationAdmission PublicationAdmission = SemanticPublicationAdmission.NoOverlay);
 
 internal readonly record struct WorkspaceWritePreflight(
     bool Accepted,
