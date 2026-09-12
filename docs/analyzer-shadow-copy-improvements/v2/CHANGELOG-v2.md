@@ -15,7 +15,8 @@ U-ARB-05 выбран как session-sticky и реализован в v1.3.13.
 published no-overlay semantic до enable воспроизводит real-output lock;
 overlay/write paths оставляют real output незагруженным.
 [Atomic load/prepare boundary реализована и принята](u-arb-04-implementation-acceptance.md)
-в v1.3.14. Серия не завершена только из-за inaccessible в U-ARB-01. Исходные
+в v1.3.14. Inaccessible original закрыт как skip в v1.3.21
+([u-arb-01-inaccessible-skip.md](u-arb-01-inaccessible-skip.md)). Исходные
 v1/review/response/arbitration сохранены. Файлы эпох переписаны как самостоятельный
 русский нормативный текст, добавлены общая lifecycle matrix и реестры
 трассировки/открытых вопросов.

@@ -40,6 +40,7 @@ internal static class AnalyzerShadowGenerationPublisher
         AnalyzerFileIoCount = 0;
         RemainingForcedCopyFailures = 0;
         RemainingForcedAccessFailures = 0;
+        AnalyzerReferenceShadowCopier.ForcedAccessFailurePathContains = null;
         RemainingForcedMoveFailures = 0;
         RemainingForcedDiskFullFailures = 0;
         ForcedDiskFullStage = null;

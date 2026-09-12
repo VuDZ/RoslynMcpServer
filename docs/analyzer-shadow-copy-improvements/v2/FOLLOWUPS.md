@@ -7,14 +7,13 @@
 [E5-S2 matcher принят](epoch-5-s2-acceptance.md) в v1.3.10;
 [E5-S3 принят](epoch-5-s3-acceptance.md) в v1.3.11;
 [E5-S4 принят](epoch-5-s4-acceptance.md) в v1.3.12. U-ARB-05
-[принят](u-arb-05-acceptance.md) как session-sticky в v1.3.13. Серия не
-завершена: inaccessible остаётся **открытым и не входит в подтверждённую
-поддержку**. U-ARB-04 atomic load/prepare
+[принят](u-arb-05-acceptance.md) как session-sticky в v1.3.13. U-ARB-04
+atomic load/prepare
 [реализована и принята](u-arb-04-implementation-acceptance.md) в v1.3.14;
 U-ARB-04-1 закрыт. v3 S2 закрыл A4-09/A4-12 в продукте
 ([s2-acceptance.md](../v3/s2-acceptance.md)); историческая пометка
-«не блокеры» в F-05 сохранена ниже. Inaccessible не открывался и не
-выбирался.
+«не блокеры» в F-05 сохранена ниже. Inaccessible original выбран как skip
+в v1.3.21 ([u-arb-01-inaccessible-skip.md](u-arb-01-inaccessible-skip.md)).
 
 | ID | Когда | Что |
 | --- | --- | --- |
@@ -247,7 +246,7 @@ semantic загружает/блокирует real output; штатные overl
 shadow. U-ARB-04-1 [принят](u-arb-04-acceptance.md). Atomic load/prepare
 [реализован и принят](u-arb-04-implementation-acceptance.md) в v1.3.14;
 норматив — [u-arb-04-atomic-load-prepare.md](u-arb-04-atomic-load-prepare.md).
-Inaccessible и F-07 не открывать. E5-S3-1, A4-10, A4-11, A6-13, F-06,
+Inaccessible original закрыт skip в v1.3.21; F-07 не открывать. E5-S3-1, A4-10, A4-11, A6-13, F-06,
 U-ARB-05-1 не чинить без отдельного запроса. A4-09/A4-12 закрыты в
 продукте v3 S2 ([s2-acceptance.md](../v3/s2-acceptance.md)) — не
 переоткрывать как «необязательный leftover». U-ARB-04-IMPL-1 закрыт в

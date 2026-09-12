@@ -12,7 +12,8 @@ Provenance-only rollout matcher реализован в v1.3.10.
 Диагностика E5-S3 [реализована](epoch-5-s3-results.md) в v1.3.11.
 Приёмка E5-S4 [принята](epoch-5-s4-acceptance.md) в v1.3.12.
 Запас: Alt-2 unique-name эвристика, Alt-3 сужение до exact path.
-Inaccessible не выбран.
+Inaccessible original: **skip** с v1.3.21
+([u-arb-01-inaccessible-skip.md](u-arb-01-inaccessible-skip.md)).
 Зависимость: exact oracle и fixtures эпохи 1. Алгоритм не зависит от эпох 2–4,
 но его приёмка не означает готовность всей серии.
 
@@ -58,14 +59,15 @@ TFM повторным разбором unevaluated `TargetFrameworks`. Неск
 | Provenance-confirmed проект, original path stale/wrong | Использовать подтверждённый resolved output, если пригоден | Существующий другой путь может быть stale output того же проекта |
 | Доказанно внешний analyzer | Сохранить исходную ссылку; не заменять in-solution кандидатом | Foreign должен быть доказан, не выведен только из несовпадения путей |
 | Missing original без доказательства | Сохранить исходную ссылку; не применять filename fallback | Missing не является provenance |
-| Inaccessible original | Действие не выбрано отдельно в U-ARB-01 | Access failure не означает отсутствие файла |
+| Inaccessible original | **Skip** (v1.3.21): не rewrite, не fail-closed snapshot; `access_failure` | Access failure не означает отсутствие файла; решение можно сменить после полевых репозиториев |
 | Неоднозначные загруженные кандидаты | Skip, если verified provenance не снимает неоднозначность | Не выбирать первый и не добавлять фиктивную неоднозначность из TFM XML |
 | Source output отсутствует | Не готовить замену; исходная ссылка и конкретная причина | Отсутствие source отдельно от original-path state |
 
 Это таблица разных условий, а не алгоритм с неявным приоритетом строк: выбор связи
 и доступность файлов фиксируются раздельно. Ветка missing закрыта принятым rollout: unconfirmed missing сохраняется
-без filename fallback. Inaccessible **остаётся открытым** даже при
-понятном `access_failure`; действие rewrite/skip здесь не назначается.
+без filename fallback. Поправка 2026-09-12 / v1.3.21: inaccessible original
+— **skip** ([u-arb-01-inaccessible-skip.md](u-arb-01-inaccessible-skip.md));
+исторический E5-S4 rollout по-прежнему не включал эту ветку в 1.3.12.
 
 ## E5-S3. Диагностика
 
@@ -103,11 +105,9 @@ fixture эпохи 1 с разными exact executed markers, в том чис�
 
 Поправка 2026-09-12 (v3 S6): исходный gate требовал решение inaccessible
 **до** rollout. Rollout E5-S2–S4 **уже принят** (v1.3.10–1.3.12) на матрице
-available / missing-path / foreign. Inaccessible **не выбран**, **не
-входит в подтверждённую поддержку** и не является выполненной предпосылкой
-уже принятого rollout. Rewrite/skip для недоступного original здесь не
-назначаются. Статус тот же в [README](README.md), [UNRESOLVED-v2.md](UNRESOLVED-v2.md)
-и [epoch-5-s4-acceptance.md](epoch-5-s4-acceptance.md).
+available / missing-path / foreign; inaccessible тогда не был предпосылкой
+того rollout. Поправка 2026-09-12 / v1.3.21: skip выбран отдельно
+([u-arb-01-inaccessible-skip.md](u-arb-01-inaccessible-skip.md)).
 
 Приёмка исходного repro зависит от решения: при достаточном provenance он должен
 исправляться; если владелец выберет сужение поддержки, ограничение и изменённое

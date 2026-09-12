@@ -35,6 +35,15 @@ public sealed class AnalyzerShadowPublicationPlannerTests : IDisposable
             applied: false,
             reason: AnalyzerReferenceReasonCodes.PreparationFailure,
             basis: AnalyzerReferenceSelectionBasis.LoadSessionProvenanceExactOutput)));
+        Assert.False(AnalyzerShadowPublicationPlanner.IsConfirmedOverlay(Entry(
+            projectId,
+            applied: false,
+            reason: AnalyzerReferenceReasonCodes.AccessFailure)));
+        Assert.True(AnalyzerShadowPublicationPlanner.IsConfirmedOverlay(Entry(
+            projectId,
+            applied: false,
+            reason: AnalyzerReferenceReasonCodes.AccessFailure,
+            basis: AnalyzerReferenceSelectionBasis.LoadSessionProvenanceExactOutput)));
     }
 
     [Fact]

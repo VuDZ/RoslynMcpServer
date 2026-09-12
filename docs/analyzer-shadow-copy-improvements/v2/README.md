@@ -1,13 +1,13 @@
 # Analyzer shadow copy — спецификация v2
 
 Статус: **нормативная спецификация; эпохи 1–6 и U-ARB-04 приняты**.
-Серия **не завершена**: inaccessible в U-ARB-01 остаётся **открытым и
-не входит в подтверждённую поддержку** (rewrite/skip не выбраны). Это не
-заявление, что прежняя приёмка v2 покрыла V3-R1–R3. Штатные 36/36 unit и
-9/9 `UArb04LoadBoundaryEvidenceTests` не доказывают отсутствие этих дыр.
-v3 S1–S5 реализованы и независимо приняты (v1.3.16–1.3.19); S6 согласует
-документацию; итоговая приёмка v3 — [S7](../v3/s7-runtime-acceptance.md),
-ещё не выполнена. U-ARB-05 выбран как session-sticky в
+Серия v1/v2 **закрыта по арбитражным gate**: inaccessible original в
+U-ARB-01 выбран как **skip** в v1.3.21
+([u-arb-01-inaccessible-skip.md](u-arb-01-inaccessible-skip.md)).
+Это не заявление, что прежняя приёмка v2 покрыла V3-R1–R3. Штатные 36/36
+unit и 9/9 `UArb04LoadBoundaryEvidenceTests` не доказывают отсутствие
+тех дыр. v3 принята в исходниках v1.3.20+; S7 на 1.3.19 был красным
+(S7-1), закрыт в S8. U-ARB-05 выбран как session-sticky в
 v1.3.13. Для U-ARB-04 выполнен
 [evidence load boundary](u-arb-04-load-boundary-evidence.md) и
 [atomic load/prepare boundary реализована и принята](u-arb-04-implementation-acceptance.md)
@@ -16,7 +16,8 @@ v1.3.13. Для U-ARB-04 выполнен
 v1.3.9; [E5-S2 принят](epoch-5-s2-acceptance.md) в v1.3.10;
 [E5-S3 принят](epoch-5-s3-acceptance.md) в v1.3.11;
 [E5-S4 принят](epoch-5-s4-acceptance.md) в v1.3.12. Принятая матрица E5 —
-available / missing-path / foreign; inaccessible в неё не входит.
+available / missing-path / foreign; inaccessible original добавлен как
+skip в v1.3.21, не задним числом в приёмку 1.3.12.
 Дата: 2026-09-12. Язык нормативного текста — русский; имена API и идентификаторы сохранены.
 Shipped: v1.3.6 mapping, v1.3.7 restart-required / main-only, v1.3.8 write boundary
 (`f54aec15f48f942ef9ac077c752bf03ae018bf31`).
@@ -53,8 +54,8 @@ v2 объединяет обязательные решения арбитраж
   unique-name fallback снят. U-ARB-05: активация session-sticky — cached
   `false`/omitted сохраняют активный overlay без refresh; отключение через
   reset/new session. Поколения
-  при clear не удаляются. Inaccessible в U-ARB-01 **не выбран** и не
-  поддерживается.
+  при clear не удаляются. Inaccessible original в U-ARB-01 — **skip**
+  (v1.3.21; не missing, не rewrite).
 - U-ARB-04: opt-in load/cache lookup, prepare/gate и публикация образуют одну
   atomic boundary. Production semantic readers ждут опубликованный snapshot
   (`GetPublishedSolutionAsync` / `FindDocumentAsync`); `GetCurrentSolution()`

@@ -282,6 +282,7 @@ findings. SHA-256 всех 28 непосредственных входных ф
 [s4-acceptance.md](../v3/s4-acceptance.md),
 [s5-acceptance.md](../v3/s5-acceptance.md).
 A4-09 закрыт в продукте S2 (P1); E2 «original после ошибки» не актуальная
-публикация; inaccessible открыт и не входит в принятый E5 rollout;
+публикация; inaccessible original — skip с v1.3.21
+([u-arb-01-inaccessible-skip.md](u-arb-01-inaccessible-skip.md));
 `GetCurrentSolution()` без fallback. Старые 36/36 и 9/9 не доказывают
-отсутствие R1–R3. Серия v1/v2 не объявляется завершённой.
+отсутствие R1–R3.

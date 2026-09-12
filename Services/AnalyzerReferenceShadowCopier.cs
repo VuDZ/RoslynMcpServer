@@ -65,6 +65,12 @@ public static class AnalyzerReferenceShadowCopier
         set => AnalyzerShadowGenerationPublisher.RemainingForcedAccessFailures = value;
     }
 
+    /// <summary>Test seam: <see cref="ProbePath"/> returns AccessFailure when the path contains this fragment.</summary>
+    internal static string? ForcedAccessFailurePathContains;
+
+    internal const string InaccessibleOriginalSkipReason =
+        "inaccessible original skipped (U-ARB-01 skip); not treated as missing; not rewritten";
+
     /// <summary>
     /// Computes a stable, human-readable shadow-copy root directory for a loaded solution/project path, under
     /// the OS temp directory. Distinct loaded paths never collide; the same path always maps to the same
@@ -143,6 +149,13 @@ public static class AnalyzerReferenceShadowCopier
 
         foreach (var item in decisions)
         {
+            if (item.ReasonCode == AnalyzerReferenceReasonCodes.AccessFailure
+                && item.SelectionBasis == AnalyzerReferenceSelectionBasis.None)
+            {
+                entries.Add(CreateSkippedEntry(item, item.Detail ?? InaccessibleOriginalSkipReason));
+                continue;
+            }
+
             if (item.MatchedProject is null)
             {
                 entries.Add(CreateSkippedEntry(item, item.Detail));
@@ -297,6 +310,18 @@ public static class AnalyzerReferenceShadowCopier
                 }
 
                 var originalPathState = ProbePath(analyzerReference.FullPath);
+                if (originalPathState == AnalyzerReferencePathState.AccessFailure)
+                {
+                    yield return CreateInaccessibleOriginalSkip(
+                        solution,
+                        project,
+                        analyzerReference,
+                        originalPathState,
+                        provenanceSnapshot,
+                        sessionId);
+                    continue;
+                }
+
                 if (provenanceSnapshot is not
                     {
                         Status: AnalyzerProvenanceCaptureStatus.Complete,
@@ -505,6 +530,52 @@ public static class AnalyzerReferenceShadowCopier
             item.SelectionBasis);
     }
 
+    private static ReferenceDecision CreateInaccessibleOriginalSkip(
+        Solution solution,
+        Project project,
+        AnalyzerReference analyzerReference,
+        AnalyzerReferencePathState originalPathState,
+        AnalyzerProvenanceSnapshot? provenanceSnapshot,
+        Guid sessionId)
+    {
+        Project? confirmed = null;
+        if (provenanceSnapshot is { Status: AnalyzerProvenanceCaptureStatus.Complete }
+            && provenanceSnapshot.LoadSessionId == sessionId
+            && !string.IsNullOrWhiteSpace(analyzerReference.FullPath))
+        {
+            var sourceProjectIds = provenanceSnapshot.Bindings
+                .Where(binding =>
+                    binding.ConsumerProjectId == project.Id
+                    && AnalyzerShadowMapping.PathsEqual(binding.Identity, analyzerReference.FullPath)
+                    && binding.Status == AnalyzerProvenanceBindingStatus.Confirmed
+                    && binding.SourceProjectId is not null)
+                .Select(binding => binding.SourceProjectId!)
+                .Distinct()
+                .ToArray();
+            if (sourceProjectIds.Length == 1 && sourceProjectIds[0] != project.Id)
+            {
+                confirmed = solution.GetProject(sourceProjectIds[0]);
+            }
+        }
+
+        var detail = confirmed is null
+            ? InaccessibleOriginalSkipReason
+            : InaccessibleOriginalSkipReason
+                + "; confirmed project '"
+                + confirmed.Name
+                + "' was not used for rewrite";
+        return new ReferenceDecision(
+            project,
+            analyzerReference,
+            confirmed,
+            SelectedSourcePath: null,
+            originalPathState,
+            AnalyzerReferencePathState.NotProvided,
+            AnalyzerReferenceReasonCodes.AccessFailure,
+            AnalyzerReferenceSelectionBasis.None,
+            detail);
+    }
+
     private static AnalyzerShadowReferenceEntry CreateSkippedEntry(
         ReferenceDecision item,
         string? detail) =>
@@ -546,6 +617,8 @@ public static class AnalyzerReferenceShadowCopier
     /// <summary>Test counter: filesystem path probes. Ordinary publication must not increment this.</summary>
     internal static int PathProbeCount;
 
+    internal static AnalyzerReferencePathState ProbePathForTests(string? path) => ProbePath(path);
+
     private static AnalyzerReferencePathState ProbePath(string? path)
     {
         if (string.IsNullOrWhiteSpace(path))
@@ -554,6 +627,11 @@ public static class AnalyzerReferenceShadowCopier
         }
 
         PathProbeCount++;
+        if (!string.IsNullOrWhiteSpace(ForcedAccessFailurePathContains)
+            && path.Contains(ForcedAccessFailurePathContains, StringComparison.OrdinalIgnoreCase))
+        {
+            return AnalyzerReferencePathState.AccessFailure;
+        }
 
         try
         {

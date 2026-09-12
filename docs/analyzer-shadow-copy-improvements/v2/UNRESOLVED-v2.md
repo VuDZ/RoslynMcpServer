@@ -6,9 +6,9 @@ U-ARB-01/02/03 — политика выбрана; matcher E5-S2 [принят]
 U-ARB-05 [принят](u-arb-05-acceptance.md) как session-sticky в v1.3.13.
 U-ARB-04 evidence [принят](u-arb-04-acceptance.md); atomic load/prepare
 boundary [реализована и принята](u-arb-04-implementation-acceptance.md) в
-v1.3.14. Inaccessible в U-ARB-01 остаётся **открытым и не входит в
-подтверждённую поддержку** (не выбран rewrite/skip). v3 S2–S5 закрыли
-V3-R1–R3 в продукте; серия v1/v2 от этого не становится завершённой.
+v1.3.14. Inaccessible original в U-ARB-01 **выбран как skip** в v1.3.21
+([решение](u-arb-01-inaccessible-skip.md)); rewrite/fail-closed остаются
+задокументированными альтернативами. v3 S2–S5 закрыли V3-R1–R3 в продукте.
 
 ## U-ARB-01 — Происхождение ссылок при отсутствующем пути
 
@@ -17,9 +17,10 @@ matcher** (v1.3.10); fixture-приёмка E5-S4 в v1.3.12.
 Evidence: [epoch-5-s1-results.md](epoch-5-s1-results.md),
 [epoch-5-s2-results.md](epoch-5-s2-results.md),
 [epoch-5-s4-results.md](epoch-5-s4-results.md).
-Inaccessible **не** выбран и **не** входит в подтверждённую поддержку
-принятого E5 rollout (available / missing-path / foreign). Rewrite/skip
-для недоступного original здесь не назначаются.
+Inaccessible original **выбран как skip** в v1.3.21 (не missing, не rewrite,
+не fail-closed всего snapshot). Принятый E5 rollout available / missing-path
+/ foreign не меняется. Подробности и альтернативы:
+[u-arb-01-inaccessible-skip.md](u-arb-01-inaccessible-skip.md).
 
 Связанные findings: E5-01, E5-02, E5-04, E5-05.
 
@@ -59,10 +60,11 @@ fallback.
 с записью здесь **до** смены тестов/matcher. Capture принят; unique-name
 fallback снят в v1.3.10. Alt-2/Alt-3 не внедрялись.
 
-Inaccessible не наследует missing-file и не наследует этот выбор. E5-S4
-различает `access_failure` как reason/path state и не назначает rewrite
-или skip. Точки v2:
-[E5-S1–S4](epoch-5-reference-provenance.md), E1-S2 и LC-S1.
+Inaccessible не наследует missing-file и не наследует Alt-2/Alt-3. E5-S4
+по-прежнему различает `access_failure` как reason/path state. Действие для
+original path с 2026-09-12 / v1.3.21 — **skip**
+([u-arb-01-inaccessible-skip.md](u-arb-01-inaccessible-skip.md)).
+Точки v2: [E5-S1–S4](epoch-5-reference-provenance.md), E1-S2 и LC-S1.
 
 ## U-ARB-02 — Поддерживаемый режим обновления генератора
 

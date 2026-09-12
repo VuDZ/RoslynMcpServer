@@ -43,11 +43,12 @@ internal static class AnalyzerShadowPublicationPlanner
             return false;
         }
 
+        // U-ARB-01 skip: access_failure on the original path is not an overlay
+        // candidate. Source-output access failure stays confirmed via ExactOutput.
         return entry.Applied
             || entry.SelectionBasis == AnalyzerReferenceSelectionBasis.LoadSessionProvenanceExactOutput
             || entry.ReasonCode is AnalyzerReferenceReasonCodes.ReferenceRewritten
                 or AnalyzerReferenceReasonCodes.PreparationFailure
-                or AnalyzerReferenceReasonCodes.AccessFailure
                 or AnalyzerReferenceReasonCodes.SourceOutputMissing;
     }
 
@@ -305,6 +306,22 @@ internal static class AnalyzerShadowPublicationPlanner
             sb.Append(plan.PreparedCount == 0
                 ? " No in-solution analyzer candidates; nothing rewritten."
                 : " No overlay applied.");
+        }
+
+        var inaccessibleOriginals = 0;
+        foreach (var entry in plan.Mapping.Entries)
+        {
+            if (!entry.Applied && entry.OriginalPathState == AnalyzerReferencePathState.AccessFailure)
+            {
+                inaccessibleOriginals++;
+            }
+        }
+
+        if (inaccessibleOriginals > 0)
+        {
+            sb.Append(' ')
+                .Append(inaccessibleOriginals)
+                .Append(" inaccessible original path(s) skipped (U-ARB-01 skip; not missing; not rewritten).");
         }
 
         if (!string.IsNullOrWhiteSpace(plan.Reason)

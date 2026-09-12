@@ -6,6 +6,7 @@ using Xunit;
 
 namespace RoslynMcpServer.Tests;
 
+[Collection("AnalyzerReferenceShadowCopier")]
 public class AnalyzerReferenceShadowCopierTests
 {
     [Fact]
@@ -348,6 +349,56 @@ public class AnalyzerReferenceShadowCopierTests
             Assert.False(result.Applied);
             Assert.Equal(AnalyzerReferenceReasonCodes.AccessFailure, result.ReasonCode);
             Assert.Equal(AnalyzerReferencePathState.AccessFailure, result.SelectedSourcePathState);
+        }
+        finally
+        {
+            AnalyzerShadowGenerationPublisher.ResetTestHooks();
+        }
+    }
+
+    [Fact]
+    public void PrepareInSolutionAnalyzerReferences_skips_inaccessible_original_even_when_source_exists()
+    {
+        using var fixture = new ReproFixture();
+        var generatorOutput = fixture.CreateFile("Generator", "obj", "Debug", "Generator.dll");
+        var originalPath = fixture.CreateFile("uarb01-inacc", "Generator.dll");
+        var solution = fixture.BuildSolution(
+            generatorOutput,
+            new AnalyzerReference[] { new FakeAnalyzerReference("produced", originalPath) });
+        var consumer = solution.Projects.Single(project => project.Name == "Consumer");
+        var generator = solution.Projects.Single(project => project.Name == "Generator");
+        var liveOriginal = consumer.AnalyzerReferences.Single().FullPath;
+        Assert.Contains("uarb01-inacc", liveOriginal, StringComparison.OrdinalIgnoreCase);
+        var sessionId = Guid.NewGuid();
+
+        try
+        {
+            AnalyzerReferenceShadowCopier.ForcedAccessFailurePathContains = "uarb01-inacc";
+            var prepared = AnalyzerReferenceShadowCopier.PrepareInSolutionAnalyzerReferences(
+                solution,
+                fixture.ShadowRoot,
+                new InProcessAnalyzerAssemblyLoader(),
+                previousMapping: null,
+                sessionId,
+                loadedPath: Path.Combine(fixture.RootDirectory, "repro.sln"),
+                CreateSnapshot(sessionId, consumer.Id, generator.Id, liveOriginal!));
+
+            var result = Assert.Single(prepared.Results);
+            Assert.False(result.Applied);
+            Assert.Equal(AnalyzerReferenceReasonCodes.AccessFailure, result.ReasonCode);
+            Assert.Equal(AnalyzerReferencePathState.AccessFailure, result.OriginalPathState);
+            Assert.Equal(AnalyzerReferencePathState.NotProvided, result.SelectedSourcePathState);
+            Assert.Contains("U-ARB-01 skip", result.SkipReason, StringComparison.Ordinal);
+            Assert.Contains("Generator", result.SkipReason, StringComparison.Ordinal);
+            Assert.DoesNotContain(prepared.Mapping.Entries, AnalyzerShadowPublicationPlanner.IsConfirmedOverlay);
+
+            var plan = AnalyzerShadowPublicationPlanner.Evaluate(
+                prepared,
+                new InProcessAnalyzerAssemblyLoader(),
+                restartBanLatched: false);
+            var summary = AnalyzerShadowPublicationPlanner.FormatLoadSummary(plan, plan.Gate);
+            Assert.Contains("U-ARB-01 skip", summary, StringComparison.Ordinal);
+            Assert.Contains("not missing", summary, StringComparison.OrdinalIgnoreCase);
         }
         finally
         {
