@@ -19,12 +19,12 @@ namespace RoslynMcpServer.Services;
 /// that file locked for the life of the MCP process, which then breaks a later <c>dotnet build</c> of the
 /// analyzer/generator project (MSB3027).</item>
 /// </list>
-/// This type only touches <see cref="AnalyzerReference"/>s whose file name (without extension) matches another
-/// project's <see cref="Project.AssemblyName"/> in the same <see cref="Solution"/>; ambiguous assembly names
-/// (two projects sharing one) are left untouched rather than guessed. The source file copied is always the
-/// matched project's own resolved output (<see cref="Project.CompilationOutputInfo"/>'s <c>AssemblyPath</c>, or
-/// <see cref="Project.OutputFilePath"/>), not the (possibly broken) original reference path — that resolved
-/// output already has to exist on disk for anything useful to happen.
+/// This type only touches <see cref="AnalyzerReference"/>s whose load-session provenance confirms an exact
+/// consumer reference to one loaded source <see cref="Project"/>. File names and assembly names are not
+/// evidence of origin. The source file copied is always the confirmed project's own resolved output
+/// (<see cref="Project.CompilationOutputInfo"/>'s <c>AssemblyPath</c>, or <see cref="Project.OutputFilePath"/>),
+/// not the (possibly broken) original reference path — that resolved output already has to exist on disk for
+/// anything useful to happen.
 /// File preparation (immutable content-hashed generations) is separate from the pure <see cref="Solution"/>
 /// transform. The caller (<see cref="SolutionManager"/>) must never apply the result via
 /// <see cref="Workspace.TryApplyChanges(Solution)"/> against the real <see cref="MSBuildWorkspace"/> — see
@@ -86,7 +86,8 @@ public static class AnalyzerReferenceShadowCopier
             loader,
             previousMapping: null,
             sessionId: Guid.Empty,
-            loadedPath: null);
+            loadedPath: null,
+            provenanceSnapshot: null);
         var rewritten = prepared.Mapping.HasAnyApplied
             ? prepared.Mapping.Apply(solution, loader)
             : solution;
@@ -99,14 +100,19 @@ public static class AnalyzerReferenceShadowCopier
         IAnalyzerAssemblyLoader loader,
         AnalyzerShadowMapping? previousMapping,
         Guid sessionId,
-        string? loadedPath)
+        string? loadedPath,
+        AnalyzerProvenanceSnapshot? provenanceSnapshot)
     {
         ArgumentNullException.ThrowIfNull(solution);
         ArgumentException.ThrowIfNullOrWhiteSpace(shadowRootDirectory);
         ArgumentNullException.ThrowIfNull(loader);
         _ = loader;
 
-        var workItems = EnumerateInSolutionAnalyzerRefs(solution).ToList();
+        var workItems = EnumerateInSolutionAnalyzerRefs(
+                solution,
+                provenanceSnapshot,
+                sessionId)
+            .ToList();
 
         if (workItems.Count == 0)
         {
@@ -202,28 +208,45 @@ public static class AnalyzerReferenceShadowCopier
             FailureSummary: firstFailure);
     }
 
-    internal static IEnumerable<PendingRewrite> EnumerateInSolutionAnalyzerRefs(Solution solution)
+    internal static IEnumerable<PendingRewrite> EnumerateInSolutionAnalyzerRefs(
+        Solution solution,
+        AnalyzerProvenanceSnapshot? provenanceSnapshot,
+        Guid sessionId)
     {
         ArgumentNullException.ThrowIfNull(solution);
 
-        var assemblyNameToProjectId = solution.Projects
-            .GroupBy(p => p.AssemblyName, StringComparer.OrdinalIgnoreCase)
-            .Where(g => g.Count() == 1)
-            .ToDictionary(g => g.Key, g => g.First().Id, StringComparer.OrdinalIgnoreCase);
+        if (provenanceSnapshot is not
+            {
+                Status: AnalyzerProvenanceCaptureStatus.Complete,
+            }
+            || provenanceSnapshot.LoadSessionId != sessionId)
+        {
+            yield break;
+        }
 
         foreach (var project in solution.Projects)
         {
             foreach (var analyzerReference in project.AnalyzerReferences)
             {
-                var fileName = TryGetFileNameWithoutExtension(analyzerReference.FullPath);
-                if (fileName is null
-                    || !assemblyNameToProjectId.TryGetValue(fileName, out var matchedProjectId)
-                    || matchedProjectId == project.Id)
+                if (string.IsNullOrWhiteSpace(analyzerReference.FullPath))
                 {
                     continue;
                 }
 
-                var matchedProject = solution.GetProject(matchedProjectId);
+                var sourceProjectIds = provenanceSnapshot.Bindings
+                    .Where(binding => binding.Status == AnalyzerProvenanceBindingStatus.Confirmed
+                        && binding.ConsumerProjectId == project.Id
+                        && binding.SourceProjectId is not null
+                        && AnalyzerShadowMapping.PathsEqual(binding.Identity, analyzerReference.FullPath))
+                    .Select(binding => binding.SourceProjectId!)
+                    .Distinct()
+                    .ToArray();
+                if (sourceProjectIds.Length != 1 || sourceProjectIds[0] == project.Id)
+                {
+                    continue;
+                }
+
+                var matchedProject = solution.GetProject(sourceProjectIds[0]);
                 if (matchedProject is null)
                 {
                     continue;
@@ -286,23 +309,6 @@ public static class AnalyzerReferenceShadowCopier
             Applied: false,
             SkipReason: reason,
             StaleGeneration: false);
-    }
-
-    private static string? TryGetFileNameWithoutExtension(string? path)
-    {
-        if (string.IsNullOrWhiteSpace(path))
-        {
-            return null;
-        }
-
-        try
-        {
-            return Path.GetFileNameWithoutExtension(path);
-        }
-        catch (ArgumentException)
-        {
-            return null;
-        }
     }
 
     internal readonly record struct PendingRewrite(

@@ -527,7 +527,7 @@ public sealed class AnalyzerProvenanceCaptureService
         return new ReplayFileOutcome(immutableContexts, immutableItems);
     }
 
-    private static AnalyzerProvenanceBinding Bind(
+    internal static AnalyzerProvenanceBinding Bind(
         Solution solution,
         ImmutableArray<AnalyzerProvenanceProjectContext> contexts,
         CapturedAnalyzerProvenanceItem item)
@@ -546,7 +546,12 @@ public sealed class AnalyzerProvenanceCaptureService
                     && project.AnalyzerReferences.Any(reference => PathEquals(reference.FullPath, item.Identity)))
                 .ToArray()
             : [];
-        var selectedConsumer = SelectProjectByExactOutputs(consumerCandidates, consumerContext, item.Identity);
+        var selectedConsumer = SelectProjectByExactOutputs(
+            consumerCandidates,
+            consumerContext,
+            item.Identity,
+            nearestTargetFramework: null,
+            analyzerIdentityIsSourceOutput: false);
         if (selectedConsumer.Status != ProjectSelectionStatus.Selected)
         {
             return CreateUnconfirmedBinding(
@@ -573,7 +578,12 @@ public sealed class AnalyzerProvenanceCaptureService
                 && context.ParentContext == item.TaskContext
                 && PathEquals(context.ProjectFile, item.SourceProjectFile))
             .ToArray();
-        var selectedSource = SelectProjectByExactOutputs(sourceCandidates, nestedContexts, item.Identity);
+        var selectedSource = SelectProjectByExactOutputs(
+            sourceCandidates,
+            nestedContexts,
+            item.Identity,
+            item.NearestTargetFramework,
+            analyzerIdentityIsSourceOutput: true);
         if (selectedSource.Status != ProjectSelectionStatus.Selected)
         {
             return new AnalyzerProvenanceBinding(
@@ -615,14 +625,16 @@ public sealed class AnalyzerProvenanceCaptureService
     private static ProjectSelection SelectProjectByExactOutputs(
         IReadOnlyList<Project> candidates,
         IReadOnlyList<AnalyzerProvenanceProjectContext> contexts,
-        string analyzerIdentity)
+        string analyzerIdentity,
+        string? nearestTargetFramework,
+        bool analyzerIdentityIsSourceOutput)
     {
         if (candidates.Count == 0)
         {
             return new ProjectSelection(ProjectSelectionStatus.Missing, null);
         }
 
-        if (candidates.Count == 1)
+        if (!analyzerIdentityIsSourceOutput && candidates.Count == 1)
         {
             return new ProjectSelection(ProjectSelectionStatus.Selected, candidates[0]);
         }
@@ -630,7 +642,8 @@ public sealed class AnalyzerProvenanceCaptureService
         var exactIds = new HashSet<ProjectId>();
         foreach (var project in candidates)
         {
-            if (PathEquals(analyzerIdentity, project.OutputFilePath))
+            if (analyzerIdentityIsSourceOutput
+                && PathEquals(analyzerIdentity, project.OutputFilePath))
             {
                 exactIds.Add(project.Id);
             }
@@ -649,11 +662,33 @@ public sealed class AnalyzerProvenanceCaptureService
             }
         }
 
-        return exactIds.Count == 1
-            ? new ProjectSelection(
-                ProjectSelectionStatus.Selected,
-                candidates.Single(project => exactIds.Contains(project.Id)))
-            : new ProjectSelection(ProjectSelectionStatus.Ambiguous, null);
+        if (exactIds.Count != 1)
+        {
+            return new ProjectSelection(ProjectSelectionStatus.Ambiguous, null);
+        }
+
+        var selected = candidates.Single(project => exactIds.Contains(project.Id));
+        return HasTargetFrameworkConflict(contexts, nearestTargetFramework)
+            ? new ProjectSelection(ProjectSelectionStatus.Ambiguous, null)
+            : new ProjectSelection(ProjectSelectionStatus.Selected, selected);
+    }
+
+    private static bool HasTargetFrameworkConflict(
+        IReadOnlyList<AnalyzerProvenanceProjectContext> contexts,
+        string? nearestTargetFramework)
+    {
+        if (string.IsNullOrWhiteSpace(nearestTargetFramework))
+        {
+            return false;
+        }
+
+        var effectiveTargetFrameworks = contexts
+            .Select(context => Get(context.GlobalProperties, "TargetFramework"))
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        return effectiveTargetFrameworks.Length > 0
+            && !effectiveTargetFrameworks.Contains(nearestTargetFramework, StringComparer.OrdinalIgnoreCase);
     }
 
     private static ImmutableDictionary<string, string> SelectEffectiveGlobals(

@@ -4,7 +4,7 @@
 ([epoch-1-results.md](epoch-1-results.md), [epoch-1-acceptance.md](epoch-1-acceptance.md)).
 Ниже — оставшаяся работа. Эпохи 2–4 и 6 закрыты. Эпоха 5: политика U-ARB-01
 выбрана (capture), production snapshot [принят](epoch-5-f09-production-capture-acceptance.md);
-matcher ждёт E5-S2.
+[E5-S2 matcher принят](epoch-5-s2-acceptance.md) в v1.3.10; E5-S3 остаётся.
 
 | ID | Когда | Что |
 | --- | --- | --- |
@@ -15,8 +15,8 @@ matcher ждёт E5-S2.
 | F-04 | **принято** ([epoch-2-acceptance.md](epoch-2-acceptance.md)) | E2-S5 11/11. Открыт A2-09 (stores). A2-12 закрыт: catalog 63 / 43895 |
 | F-05 | **принято** ([epoch-4-acceptance.md](epoch-4-acceptance.md)) | Эпоха 4: write boundary. Открыты A4-09…A4-12 (не блокеры) |
 | F-06 | мерж в main | A1-10: version bump, изоляция test seams |
-| F-07 | **эпоха 3 принята** ([epoch-3-acceptance.md](epoch-3-acceptance.md)) | restart-required / main-only. Matcher эпохи 5 и U-ARB-05 sticky не открывать |
-| F-09 | **принято** ([epoch-5-f09-production-capture-acceptance.md](epoch-5-f09-production-capture-acceptance.md)) | Snapshot v1.3.9. Открыты F09-PROD-1/2. Matcher нет |
+| F-07 | **эпоха 3 принята** ([epoch-3-acceptance.md](epoch-3-acceptance.md)) | restart-required / main-only. U-ARB-05 sticky не открывать |
+| F-09 | **принято** ([epoch-5-f09-production-capture-acceptance.md](epoch-5-f09-production-capture-acceptance.md)) | Snapshot v1.3.9; F09-PROD-1/2 закрыты [E5-S2](epoch-5-s2-acceptance.md) |
 
 ---
 
@@ -218,12 +218,12 @@ Matcher, Alt-2/Alt-3, inaccessible и semantic-path evaluation не меняли
 P0 **принят** ([epoch-5-f09-p0-acceptance.md](epoch-5-f09-p0-acceptance.md)):
 независимый прогон 4/4. Production capture/snapshot
 [принят](epoch-5-f09-production-capture-acceptance.md): F09-04 и P0-7 закрыты.
-Открыты F09-PROD-1 (join matrix не через production `Bind`) и F09-PROD-2.
-Matcher не менять до отдельного E5-S2.
+E5-S2 [принят](epoch-5-s2-acceptance.md): confirmed-only matcher, exact `V1` /
+`FOREIGN`; E5-S2-1 закрыт exact `V1` для второго TFM в свежем host.
+E5-S3 не начат.
 
 ---
 
-Порядок в следующем чате: E5-S2 / смена matcher + marker acceptance.
-Join доказывать через production snapshot (F09-PROD-1), не через spike.
+Порядок в следующем чате: E5-S3 reason codes, не sticky и не inaccessible.
 F-07 не открывать. A4-09…A4-12 и A6-13 не чинить без отдельного запроса.
 Серия незавершена.

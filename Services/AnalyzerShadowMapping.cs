@@ -214,37 +214,6 @@ internal sealed class AnalyzerShadowMapping
             }
         }
 
-        var fileName = TryFileNameWithoutExtension(reference.FullPath);
-        if (fileName is null)
-        {
-            return null;
-        }
-
-        foreach (var entry in projectEntries)
-        {
-            if (string.Equals(entry.MatchedProjectName, fileName, StringComparison.OrdinalIgnoreCase))
-            {
-                return entry;
-            }
-        }
-
         return null;
-    }
-
-    private static string? TryFileNameWithoutExtension(string? path)
-    {
-        if (string.IsNullOrWhiteSpace(path))
-        {
-            return null;
-        }
-
-        try
-        {
-            return Path.GetFileNameWithoutExtension(path);
-        }
-        catch (ArgumentException)
-        {
-            return null;
-        }
     }
 }

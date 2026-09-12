@@ -9,6 +9,54 @@ namespace RoslynMcpServer.Tests.AnalyzerLifecycle;
 public sealed class F09ProductionCaptureTests
 {
     [AnalyzerLifecycleFact]
+    public async Task Production_snapshot_selects_each_loaded_inner_tfm_for_rollout()
+    {
+        using var fixture = GeneratorConsumerFixture.Create(
+            OutputPathMode.SdkDefaultCorrectPath,
+            extraConsumers: 1);
+        await using var host = LifecycleHostClient.Start();
+        await Epoch1HostOps.BuildAsync(host, fixture.SolutionPath);
+
+        fixture.MakeGeneratorMultiTargeted();
+        var net10ConsumerSource = Assert.Single(fixture.ExtraConsumerSourcePaths);
+        var net10ConsumerDirectory = Path.GetDirectoryName(net10ConsumerSource)!;
+        var net10ConsumerProject = Path.Combine(
+            net10ConsumerDirectory,
+            Path.GetFileName(net10ConsumerDirectory) + ".csproj");
+        GeneratorConsumerFixture.SetProjectTargetFramework(net10ConsumerProject, "net10.0");
+        await Epoch1HostOps.BuildAsync(host, fixture.GeneratorProjectPath);
+        await Epoch1HostOps.BuildAsync(host, net10ConsumerProject);
+
+        var load = await Epoch1HostOps.LoadAsync(host, fixture.SolutionPath, shadowCopy: true);
+
+        Assert.True(load.Ok, load.Error);
+        Assert.Equal("Complete", load.ProvenanceCaptureStatus);
+        Assert.True(load.ProvenanceConfirmedBindingCount >= 2);
+        var rewrites = load.Rewrite ?? [];
+        Assert.Equal(2, rewrites.Count);
+        Assert.All(rewrites, rewrite => Assert.True(rewrite.Applied, rewrite.SkipReason));
+        Assert.Equal(
+            2,
+            rewrites
+                .Select(rewrite => rewrite.ShadowCopyPath)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Count());
+        await Epoch1HostOps.RequireMarkerAsync(host, GeneratorConsumerFixture.MarkerV1, "Consumer");
+
+        await using var net10Host = LifecycleHostClient.Start();
+        var net10Load = await Epoch1HostOps.LoadAsync(net10Host, fixture.SolutionPath, shadowCopy: true);
+        Assert.Equal("Complete", net10Load.ProvenanceCaptureStatus);
+        Assert.Contains(
+            net10Load.Rewrite ?? [],
+            rewrite => rewrite.Applied
+                && string.Equals(rewrite.ProjectName, "Consumer1", StringComparison.Ordinal));
+        await Epoch1HostOps.RequireMarkerAsync(
+            net10Host,
+            GeneratorConsumerFixture.MarkerV1,
+            "Consumer1");
+    }
+
+    [AnalyzerLifecycleFact]
     public async Task Replay_failures_publish_fail_closed_status_and_delete_temporary_files()
     {
         using var fixture = GeneratorConsumerFixture.Create(OutputPathMode.SdkDefaultCorrectPath);
@@ -20,10 +68,12 @@ public sealed class F09ProductionCaptureTests
             Op = "injectCaptureFailure",
             CaptureFailureMode = "Missing",
         });
-        var missing = await Epoch1HostOps.LoadAsync(host, fixture.SolutionPath, shadowCopy: false);
+        var missing = await Epoch1HostOps.LoadAsync(host, fixture.SolutionPath, shadowCopy: true);
         Assert.True(missing.Ok, missing.Error);
         Assert.Equal("Failed", missing.ProvenanceCaptureStatus);
         Assert.Equal(0, missing.ProvenanceConfirmedBindingCount);
+        Assert.Empty(missing.Rewrite ?? []);
+        Assert.False(missing.ShadowEnabled);
         Assert.Equal(0, missing.ProvenanceTempDirectoryCount);
 
         _ = await host.SendAsync(new HostCommand { Op = "reset" });

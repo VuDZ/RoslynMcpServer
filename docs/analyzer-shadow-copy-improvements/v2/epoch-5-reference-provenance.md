@@ -1,12 +1,13 @@
 # Эпоха 5 — Происхождение analyzer references
 
-Статус: **E5-S1 выполнено** ([epoch-5-s1-results.md](epoch-5-s1-results.md));
+Статус: **E5-S1 и E5-S2 выполнены**
+([S1](epoch-5-s1-results.md), [S2](epoch-5-s2-results.md));
 U-ARB-01 выбран — capture на load ([UNRESOLVED-v2.md](UNRESOLVED-v2.md)).
 Эскиз F-09 [принят](epoch-5-f09-acceptance.md)
 ([дизайн](epoch-5-f09-capture-design.md)): production-кандидат — binlog той же
 design-time загрузки, без второго eval. P0-spike завершён с GO; production
 snapshot [принят](epoch-5-f09-production-capture-acceptance.md) в v1.3.9.
-Rollout matcher не начат.
+Provenance-only rollout matcher реализован в v1.3.10. E5-S3 не начат.
 Запас: Alt-2 unique-name эвристика, Alt-3 сужение до exact path.
 Inaccessible не выбран.
 Зависимость: exact oracle и fixtures эпохи 1. Алгоритм не зависит от эпох 2–4,
@@ -39,6 +40,9 @@ U-ARB-01 должен определить missing-path policy после eviden
 
 ## E5-S2. Нормативная таблица для последующего rollout
 
+Статус: **принято в v1.3.10**
+([результаты](epoch-5-s2-results.md), [приёмка](epoch-5-s2-acceptance.md)).
+
 Поиск кандидатов и подтверждение связи — отдельные шаги. Кандидаты берутся из
 фактически загруженных inner `Project`, их global properties и resolved outputs
 (`CompilationOutputInfo`/`OutputFilePath` в пределах доступной модели). Не выбирать
@@ -50,7 +54,7 @@ TFM повторным разбором unevaluated `TargetFrameworks`. Неск
 | Exact resolved output загруженного проекта | Подтверждённое точное соответствие позволяет подготовку/rewrite | Проверенное равенство output, не похожая строка пути |
 | Provenance-confirmed проект, original path stale/wrong | Использовать подтверждённый resolved output, если пригоден | Существующий другой путь может быть stale output того же проекта |
 | Доказанно внешний analyzer | Сохранить исходную ссылку; не заменять in-solution кандидатом | Foreign должен быть доказан, не выведен только из несовпадения путей |
-| Missing original без доказательства | Действие не выбрано: U-ARB-01 | Missing не является provenance |
+| Missing original без доказательства | Сохранить исходную ссылку; не применять filename fallback | Missing не является provenance |
 | Inaccessible original | Действие не выбрано отдельно в U-ARB-01 | Access failure не означает отсутствие файла |
 | Неоднозначные загруженные кандидаты | Skip, если verified provenance не снимает неоднозначность | Не выбирать первый и не добавлять фиктивную неоднозначность из TFM XML |
 | Source output отсутствует | Не готовить замену; исходная ссылка и конкретная причина | Отсутствие source отдельно от original-path state |

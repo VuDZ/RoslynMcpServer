@@ -7,7 +7,8 @@
 эскиз F-09 [принят](epoch-5-f09-acceptance.md);
 [P0-spike завершён с GO](epoch-5-f09-p0-spike-results.md);
 [production snapshot принят](epoch-5-f09-production-capture-acceptance.md) в
-v1.3.9; rollout matcher ждёт E5-S2.
+v1.3.9; [E5-S2 matcher принят](epoch-5-s2-acceptance.md) в v1.3.10.
+E5-S3 остаётся.
 Серия не завершена. Исходные
 v1/review/response/arbitration сохранены. Файлы эпох переписаны как самостоятельный
 русский нормативный текст, добавлены общая lifecycle matrix и реестры

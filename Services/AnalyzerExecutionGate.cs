@@ -121,13 +121,18 @@ internal static class AnalyzerExecutionGate
 
     public static AnalyzerExecutionObservation EvaluateInSolutionAnalyzers(
         Solution solution,
+        AnalyzerProvenanceSnapshot? provenanceSnapshot,
+        Guid sessionId,
         InProcessAnalyzerAssemblyLoader loader)
     {
         ArgumentNullException.ThrowIfNull(solution);
         ArgumentNullException.ThrowIfNull(loader);
 
         AnalyzerExecutionObservation? firstBlock = null;
-        foreach (var item in AnalyzerReferenceShadowCopier.EnumerateInSolutionAnalyzerRefs(solution))
+        foreach (var item in AnalyzerReferenceShadowCopier.EnumerateInSolutionAnalyzerRefs(
+                     solution,
+                     provenanceSnapshot,
+                     sessionId))
         {
             var path = item.MatchedProject.CompilationOutputInfo.AssemblyPath
                 ?? item.MatchedProject.OutputFilePath
@@ -152,11 +157,15 @@ internal static class AnalyzerExecutionGate
         return firstBlock ?? AnalyzerExecutionObservation.None;
     }
 
-    public static Solution StripInSolutionAnalyzerReferences(Solution solution)
+    public static Solution StripInSolutionAnalyzerReferences(
+        Solution solution,
+        AnalyzerProvenanceSnapshot? provenanceSnapshot,
+        Guid sessionId)
     {
         ArgumentNullException.ThrowIfNull(solution);
 
-        var blockedByProject = AnalyzerReferenceShadowCopier.EnumerateInSolutionAnalyzerRefs(solution)
+        var blockedByProject = AnalyzerReferenceShadowCopier
+            .EnumerateInSolutionAnalyzerRefs(solution, provenanceSnapshot, sessionId)
             .GroupBy(item => item.Project.Id)
             .ToDictionary(
                 g => g.Key,
@@ -186,12 +195,18 @@ internal static class AnalyzerExecutionGate
 
     public static Solution BlockUnsupportedReferences(
         Solution solution,
+        AnalyzerProvenanceSnapshot? provenanceSnapshot,
+        Guid sessionId,
         InProcessAnalyzerAssemblyLoader loader)
     {
         ArgumentNullException.ThrowIfNull(solution);
         ArgumentNullException.ThrowIfNull(loader);
 
-        foreach (var projectId in solution.ProjectIds.ToList())
+        var pendingByProject = AnalyzerReferenceShadowCopier
+            .EnumerateInSolutionAnalyzerRefs(solution, provenanceSnapshot, sessionId)
+            .GroupBy(item => item.Project.Id)
+            .ToDictionary(group => group.Key, group => group.ToList());
+        foreach (var (projectId, pending) in pendingByProject)
         {
             var project = solution.GetProject(projectId);
             if (project is null || project.AnalyzerReferences.Count == 0)
@@ -203,7 +218,15 @@ internal static class AnalyzerExecutionGate
             var kept = new List<AnalyzerReference>(project.AnalyzerReferences.Count);
             foreach (var reference in project.AnalyzerReferences)
             {
-                if (ShouldBlock(solution, reference, loader))
+                var item = pending.FirstOrDefault(candidate =>
+                    candidate.AnalyzerReference == reference
+                    || (!string.IsNullOrWhiteSpace(candidate.AnalyzerReference.FullPath)
+                        && !string.IsNullOrWhiteSpace(reference.FullPath)
+                        && AnalyzerShadowMapping.PathsEqual(
+                            candidate.AnalyzerReference.FullPath,
+                            reference.FullPath)));
+                if (item.Project is not null
+                    && ShouldBlock(reference, item.MatchedProject, loader))
                 {
                     changed = true;
                     continue;
@@ -278,8 +301,8 @@ internal static class AnalyzerExecutionGate
     }
 
     private static bool ShouldBlock(
-        Solution solution,
         AnalyzerReference reference,
+        Project matchedProject,
         InProcessAnalyzerAssemblyLoader loader)
     {
         if (string.IsNullOrWhiteSpace(reference.FullPath))
@@ -302,15 +325,12 @@ internal static class AnalyzerExecutionGate
             return false;
         }
 
-        var fileName = Path.GetFileNameWithoutExtension(full);
-        var matched = solution.Projects.FirstOrDefault(p =>
-            string.Equals(p.AssemblyName, fileName, StringComparison.OrdinalIgnoreCase));
-        if (matched is null)
-        {
-            return false;
-        }
-
-        var observation = EvaluateAssemblyPath(full, matched.Name, matched.AssemblyName, generationId: null, loader);
+        var observation = EvaluateAssemblyPath(
+            full,
+            matchedProject.Name,
+            matchedProject.AssemblyName,
+            generationId: null,
+            loader);
         return !observation.PermitsExecution;
     }
 

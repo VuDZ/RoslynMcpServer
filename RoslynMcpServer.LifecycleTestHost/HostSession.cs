@@ -810,18 +810,31 @@ internal sealed class HostSession
 
     private void FillAnalyzerPaths(HostResponse response, Project project)
     {
-        var overlayRef = project.AnalyzerReferences.FirstOrDefault(r =>
-            r.FullPath is not null
-            && string.Equals(Path.GetFileNameWithoutExtension(r.FullPath), "Generator", StringComparison.OrdinalIgnoreCase));
-        response.OverlayAnalyzerPath = overlayRef?.FullPath;
+        response.OverlayAnalyzerPaths = project.AnalyzerReferences
+            .Select(reference => reference.FullPath)
+            .Where(path => path is not null
+                && string.Equals(
+                    Path.GetFileNameWithoutExtension(path),
+                    "Generator",
+                    StringComparison.OrdinalIgnoreCase))
+            .Cast<string>()
+            .ToArray();
+        response.OverlayAnalyzerPath = response.OverlayAnalyzerPaths.FirstOrDefault();
 
         var workspace = _manager.GetWorkspaceCurrentSolution();
         var raw = workspace?.GetProject(project.Id);
-        response.WorkspaceAnalyzerPath ??= raw?.AnalyzerReferences
-            .Select(r => r.FullPath)
-            .FirstOrDefault(p =>
-                p is not null
-                && string.Equals(Path.GetFileNameWithoutExtension(p), "Generator", StringComparison.OrdinalIgnoreCase));
+        response.WorkspaceAnalyzerPaths = raw is null
+            ? []
+            : raw.AnalyzerReferences
+                .Select(reference => reference.FullPath)
+                .Where(path => path is not null
+                    && string.Equals(
+                        Path.GetFileNameWithoutExtension(path),
+                        "Generator",
+                        StringComparison.OrdinalIgnoreCase))
+                .Cast<string>()
+                .ToArray();
+        response.WorkspaceAnalyzerPath ??= response.WorkspaceAnalyzerPaths.FirstOrDefault();
     }
 
     private static void AttachWrite(HostResponse response, WorkspaceWriteResult write)

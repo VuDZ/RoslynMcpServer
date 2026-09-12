@@ -395,7 +395,8 @@ public sealed class SolutionManager
                 _analyzerAssemblyLoader,
                 _analyzerShadowMapping,
                 _loadSessionId,
-                loadedPath);
+                loadedPath,
+                _analyzerProvenanceSnapshot);
             return CompletePrepare(workspace.CurrentSolution, shadowRoot, prepared);
         }
         finally
@@ -415,13 +416,20 @@ public sealed class SolutionManager
     {
         if (_lastExecutionObservation.RequiresRestart)
         {
-            return AnalyzerExecutionGate.StripInSolutionAnalyzerReferences(solution);
+            return AnalyzerExecutionGate.StripInSolutionAnalyzerReferences(
+                solution,
+                _analyzerProvenanceSnapshot,
+                _loadSessionId);
         }
 
         solution = ApplyShadowCopyOverlayIfEnabled(solution);
         if (!_lastExecutionObservation.PermitsExecution)
         {
-            solution = AnalyzerExecutionGate.BlockUnsupportedReferences(solution, _analyzerAssemblyLoader);
+            solution = AnalyzerExecutionGate.BlockUnsupportedReferences(
+                solution,
+                _analyzerProvenanceSnapshot,
+                _loadSessionId,
+                _analyzerAssemblyLoader);
         }
 
         return solution;
@@ -1267,11 +1275,13 @@ public sealed class SolutionManager
 
         _workspace = workspace;
         _loadedPath = fullPath;
+        _analyzerProvenanceSnapshot = provenanceSnapshot;
         _lastExecutionObservation = AnalyzerExecutionGate.EvaluateInSolutionAnalyzers(
             workspace.CurrentSolution,
+            provenanceSnapshot,
+            _loadSessionId,
             _analyzerAssemblyLoader);
         SetPublishedSolution(workspace.CurrentSolution);
-        _analyzerProvenanceSnapshot = provenanceSnapshot;
         _loadedConfiguration = configuration;
         _loadedPlatform = platform;
         _loadedTargetFramework = targetFramework;

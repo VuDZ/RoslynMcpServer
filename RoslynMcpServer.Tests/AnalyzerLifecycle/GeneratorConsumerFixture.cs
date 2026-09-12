@@ -44,7 +44,8 @@ internal sealed class GeneratorConsumerFixture : IDisposable
         bool missingForeignPath = false,
         string assemblyName = "Generator",
         bool privateHelper = false,
-        string helperVersion = "1.0.0.0")
+        string helperVersion = "1.0.0.0",
+        bool includeAnalyzerProjectReference = true)
     {
         var root = Path.Combine(
             Path.GetTempPath(),
@@ -60,13 +61,34 @@ internal sealed class GeneratorConsumerFixture : IDisposable
             missingForeignPath,
             assemblyName,
             privateHelper,
-            helperVersion);
+            helperVersion,
+            includeAnalyzerProjectReference);
         return fixture;
     }
 
     public void SetGeneratorMarker(string marker)
     {
         File.WriteAllText(GeneratorSourcePath, CreateGeneratorSource(marker));
+    }
+
+    public void MakeGeneratorMultiTargeted()
+    {
+        var text = File.ReadAllText(GeneratorProjectPath)
+            .Replace(
+                "<TargetFramework>netstandard2.0</TargetFramework>",
+                "<TargetFrameworks>netstandard2.0;net10.0</TargetFrameworks>",
+                StringComparison.Ordinal);
+        File.WriteAllText(GeneratorProjectPath, text);
+    }
+
+    public static void SetProjectTargetFramework(string projectPath, string targetFramework)
+    {
+        var text = File.ReadAllText(projectPath)
+            .Replace(
+                "<TargetFramework>netstandard2.0</TargetFramework>",
+                $"<TargetFramework>{targetFramework}</TargetFramework>",
+                StringComparison.Ordinal);
+        File.WriteAllText(projectPath, text);
     }
 
     public string ReadConsumerSource() => File.ReadAllText(ConsumerSourcePath);
@@ -190,7 +212,8 @@ internal sealed class GeneratorConsumerFixture : IDisposable
         bool missingForeignPath,
         string assemblyName,
         bool privateHelper,
-        string helperVersion)
+        string helperVersion,
+        bool includeAnalyzerProjectReference)
     {
         if (outputPathMode == OutputPathMode.RedirectedMissingAnalyzerPath)
         {
@@ -258,22 +281,31 @@ internal sealed class GeneratorConsumerFixture : IDisposable
             if (name == "Consumer" && foreignAnalyzer)
             {
                 ForeignDllPath = Path.Combine(Root, "external", "Generator.dll");
-                analyzerItem = """
+                analyzerItem = $"""
                     <ItemGroup>
-                      <Analyzer Include="..\external\Generator.dll" />
+                      <Analyzer Include="{ForeignDllPath}" />
                     </ItemGroup>
                     """;
             }
             else if (name == "Consumer" && missingForeignPath)
             {
                 MissingForeignPath = Path.Combine(Root, "missing", "Generator.dll");
-                analyzerItem = """
+                analyzerItem = $"""
                     <ItemGroup>
-                      <Analyzer Include="..\missing\Generator.dll" />
+                      <Analyzer Include="{MissingForeignPath}" />
                     </ItemGroup>
                     """;
             }
 
+            var projectReferenceItem = includeAnalyzerProjectReference
+                ? """
+                  <ItemGroup>
+                    <ProjectReference Include="..\Generator\Generator.csproj"
+                                      OutputItemType="Analyzer"
+                                      ReferenceOutputAssembly="false" />
+                  </ItemGroup>
+                  """
+                : "";
             File.WriteAllText(
                 csproj,
                 $"""
@@ -284,16 +316,16 @@ internal sealed class GeneratorConsumerFixture : IDisposable
                     <Nullable>enable</Nullable>
                     <AssemblyName>{name}</AssemblyName>
                   </PropertyGroup>
-                  <ItemGroup>
-                    <ProjectReference Include="..\Generator\Generator.csproj"
-                                      OutputItemType="Analyzer"
-                                      ReferenceOutputAssembly="false" />
-                  </ItemGroup>
+                  {projectReferenceItem}
                   {analyzerItem}
                 </Project>
                 """);
             var source = Path.Combine(dir, "MarkerConsumer.cs");
-            File.WriteAllText(source, CreateConsumerSource(name, privateHelper));
+            File.WriteAllText(
+                source,
+                CreateConsumerSource(
+                    name,
+                    privateHelper || (missingForeignPath && name == "Consumer")));
             if (name == "Consumer")
             {
                 ConsumerProjectPath = csproj;

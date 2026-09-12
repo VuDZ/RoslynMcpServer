@@ -1,15 +1,17 @@
 # Неразрешённые вопросы v2
 
 Вопросы перенесены из авторитетного [arbitration/unresolved.md](../arbitration/unresolved.md).
-U-ARB-01/02/03 — политика выбрана; rollout matcher (эпоха 5) всё ещё ждёт
-дизайн захвата. U-ARB-04/05 и inaccessible в U-ARB-01 остаются открытыми.
+U-ARB-01/02/03 — политика выбрана; matcher E5-S2 [принят](epoch-5-s2-acceptance.md)
+в v1.3.10. U-ARB-04/05 и inaccessible в U-ARB-01 остаются открытыми.
 Ни наличие v2, ни запасные варианты ниже не разрешают менять matcher без
 принятого capture design.
 
 ## U-ARB-01 — Происхождение ссылок при отсутствующем пути
 
-Статус: **выбран — capture provenance на load** (2026-09-12, владелец требования).
-Evidence: [epoch-5-s1-results.md](epoch-5-s1-results.md). Matcher **не** изменён.
+Статус: **реализован — capture provenance на load + confirmed-only matcher**
+(v1.3.10). Evidence:
+[epoch-5-s1-results.md](epoch-5-s1-results.md),
+[epoch-5-s2-results.md](epoch-5-s2-results.md).
 Inaccessible **не** выбран.
 
 Связанные findings: E5-01, E5-02, E5-04, E5-05.
@@ -33,8 +35,9 @@ P0-spike подтвердил `Analyzer.MSBuildSourceProjectFile`, effective
 Configuration/inner TFM и exact join к загруженному `ProjectId`
 ([результаты](epoch-5-f09-p0-spike-results.md)); F09-01 закрыт. Production
 snapshot [принят](epoch-5-f09-production-capture-acceptance.md) в v1.3.9.
-Matcher не изменён: rollout E5-S2 — отдельный этап; join доказывать через
-production snapshot (F09-PROD-1), не через spike.
+Rollout E5-S2 реализован в v1.3.10: rewrite только для complete confirmed
+binding текущей load-сессии; unconfirmed missing и same-name external ссылки
+сохраняются без filename fallback. Production snapshot закрыл F09-PROD-1/2.
 `ProjectInstance` и второй `dotnet msbuild` оценены, но не выбраны production
 fallback.
 

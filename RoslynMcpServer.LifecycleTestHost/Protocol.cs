@@ -59,6 +59,8 @@ public sealed class HostResponse
     public string? LoadedAnalyzerPath { get; set; }
     public string? OverlayAnalyzerPath { get; set; }
     public string? WorkspaceAnalyzerPath { get; set; }
+    public string[]? OverlayAnalyzerPaths { get; set; }
+    public string[]? WorkspaceAnalyzerPaths { get; set; }
     public string? DocumentText { get; set; }
 
     public bool DirtyDelivered { get; set; }

@@ -31,6 +31,8 @@ public sealed class Epoch1LifecycleMatrixTests
         Assert.True(load.ReopenedGraph);
         Assert.True(load.PrepareAttempted);
         Assert.True(load.ShadowEnabled);
+        Assert.Equal("Complete", load.ProvenanceCaptureStatus);
+        Assert.True(load.ProvenanceConfirmedBindingCount > 0);
         var rewrite = Assert.Single(load.Rewrite ?? new List<RewriteDto>());
         Assert.True(rewrite.Applied, "prepare failed: " + rewrite.SkipReason);
         Assert.False(string.IsNullOrWhiteSpace(rewrite.ShadowCopyPath));
@@ -309,34 +311,36 @@ public sealed class Epoch1LifecycleMatrixTests
     }
 
     [AnalyzerLifecycleFact]
-    public async Task Foreign_existing_same_filename_records_executed_marker_and_path()
+    public async Task Foreign_existing_same_filename_is_preserved_and_executes_its_own_marker()
     {
         using var fixture = GeneratorConsumerFixture.Create(
             OutputPathMode.SdkDefaultCorrectPath,
-            foreignAnalyzer: true);
+            foreignAnalyzer: true,
+            includeAnalyzerProjectReference: false);
         await using var host = LifecycleHostClient.Start();
 
         var foreignProject = Path.Combine(fixture.Root, "ForeignGenerator", "ForeignGenerator.csproj");
         await Epoch1HostOps.BuildAsync(host, foreignProject);
         Assert.True(File.Exists(fixture.ForeignDllPath), "foreign Generator.dll must exist");
         await Epoch1HostOps.BuildAsync(host, fixture.GeneratorProjectPath);
+        await Epoch1HostOps.BuildAsync(host, fixture.ConsumerProjectPath);
 
-        _ = await Epoch1HostOps.LoadAsync(host, fixture.SolutionPath, shadowCopy: true);
+        var load = await Epoch1HostOps.LoadAsync(host, fixture.SolutionPath, shadowCopy: true);
+        Assert.Equal("Complete", load.ProvenanceCaptureStatus);
+        Assert.Equal(0, load.ProvenanceConfirmedBindingCount);
+        Assert.Empty(load.Rewrite ?? []);
+        Assert.Contains(
+            load.OverlayAnalyzerPaths ?? [],
+            path => PathsEqual(path, fixture.ForeignDllPath));
+
         var oracle = await Epoch1HostOps.OracleAsync(host);
         Dump("foreign-existing", oracle);
-        AssertOracleDefinite(oracle);
-        Assert.False(string.IsNullOrWhiteSpace(oracle.OverlayAnalyzerPath ?? oracle.LoadedAnalyzerPath ?? oracle.WorkspaceAnalyzerPath));
-        _output.WriteLine(
-            "U-ARB-01 observation (existing foreign): marker={0} foreignDll={1} overlay={2} workspace={3} loaded={4} (V1 vs FOREIGN is not a product invariant until U-ARB-01).",
-            oracle.Marker,
-            fixture.ForeignDllPath,
-            oracle.OverlayAnalyzerPath,
-            oracle.WorkspaceAnalyzerPath,
-            oracle.LoadedAnalyzerPath);
+        Assert.True(oracle.OracleSuccess, oracle.OracleFailure);
+        Assert.Equal(GeneratorConsumerFixture.MarkerForeign, oracle.Marker);
     }
 
     [AnalyzerLifecycleFact]
-    public async Task Foreign_missing_path_same_filename_is_evidence_for_U_ARB_01()
+    public async Task Foreign_missing_path_same_filename_is_not_replaced_by_in_solution_candidate()
     {
         using var fixture = GeneratorConsumerFixture.Create(
             OutputPathMode.RedirectedMissingAnalyzerPath,
@@ -345,18 +349,23 @@ public sealed class Epoch1LifecycleMatrixTests
         await Epoch1HostOps.BuildAsync(host, fixture.GeneratorProjectPath);
         Assert.False(File.Exists(fixture.MissingForeignPath));
 
-        _ = await Epoch1HostOps.LoadAsync(host, fixture.SolutionPath, shadowCopy: true);
+        var load = await Epoch1HostOps.LoadAsync(host, fixture.SolutionPath, shadowCopy: true);
+        Assert.Equal("Complete", load.ProvenanceCaptureStatus);
+        Assert.True(load.ProvenanceConfirmedBindingCount > 0);
+        var rewrite = Assert.Single(load.Rewrite ?? []);
+        Assert.True(rewrite.Applied, rewrite.SkipReason);
+        Assert.Contains(
+            load.OverlayAnalyzerPaths ?? [],
+            path => PathsEqualFromProject(path, fixture.ConsumerProjectPath, fixture.MissingForeignPath));
+        Assert.Contains(
+            load.OverlayAnalyzerPaths ?? [],
+            path => PathsEqual(path, rewrite.ShadowCopyPath));
+
         var oracle = await Epoch1HostOps.OracleAsync(host);
-        Dump("foreign-missing-U-ARB-01", oracle);
-        AssertOracleDefinite(oracle);
-        Assert.False(string.IsNullOrWhiteSpace(oracle.OverlayAnalyzerPath ?? oracle.LoadedAnalyzerPath ?? oracle.WorkspaceAnalyzerPath));
-        _output.WriteLine(
-            "U-ARB-01 observation (missing foreign): marker={0} missingPath={1} overlay={2} workspace={3} loaded={4} (not a product invariant until U-ARB-01).",
-            oracle.Marker,
-            fixture.MissingForeignPath,
-            oracle.OverlayAnalyzerPath,
-            oracle.WorkspaceAnalyzerPath,
-            oracle.LoadedAnalyzerPath);
+        Dump("foreign-missing", oracle);
+        Assert.False(oracle.OracleSuccess);
+        Assert.Equal("no-constant", oracle.OracleFailure);
+        Assert.NotEqual(GeneratorConsumerFixture.MarkerV1, oracle.Marker);
     }
 
     [AnalyzerLifecycleFact]
@@ -463,6 +472,27 @@ public sealed class Epoch1LifecycleMatrixTests
         Assert.False(
             string.IsNullOrWhiteSpace(oracle.OracleFailure),
             "definite oracle failure requires a reason; empty diagnostics are not an oracle");
+    }
+
+    private static bool PathsEqual(string? left, string? right) =>
+        !string.IsNullOrWhiteSpace(left)
+        && !string.IsNullOrWhiteSpace(right)
+        && string.Equals(
+            Path.GetFullPath(left),
+            Path.GetFullPath(right),
+            OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
+
+    private static bool PathsEqualFromProject(string? path, string projectPath, string? expected)
+    {
+        if (string.IsNullOrWhiteSpace(path) || string.IsNullOrWhiteSpace(expected))
+        {
+            return false;
+        }
+
+        var resolved = Path.IsPathRooted(path)
+            ? path
+            : Path.Combine(Path.GetDirectoryName(projectPath)!, path);
+        return PathsEqual(resolved, expected);
     }
 
     private void Dump(string label, HostResponse response)
