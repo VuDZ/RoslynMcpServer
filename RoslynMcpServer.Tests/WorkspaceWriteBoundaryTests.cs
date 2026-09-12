@@ -77,6 +77,80 @@ public sealed class WorkspaceWriteBoundaryTests
     }
 
     [Fact]
+    public void Exact_inverse_restores_intentionally_excluded_references_and_rejects_unknown_diff()
+    {
+        using var workspace = new AdhocWorkspace();
+        var projectId = ProjectId.CreateNewId();
+        var nuget = new FakeAnalyzerReference("nuget", @"C:\NuGet\A.dll");
+        var originalA = new FakeAnalyzerReference("original-a", @"C:\Repro\Generator.dll");
+        var originalB = new FakeAnalyzerReference("original-b", @"C:\Repro\GeneratorB.dll");
+        var shadowA = new FakeAnalyzerReference("shadow-a", @"C:\Shadow\Generator.dll");
+
+        var baseSolution = workspace.CurrentSolution.AddProject(
+            ProjectInfo.Create(projectId, VersionStamp.Create(), "Consumer", "Consumer", LanguageNames.CSharp)
+                .WithAnalyzerReferences(new AnalyzerReference[] { nuget, originalA, originalB }));
+        var published = baseSolution.WithProjectAnalyzerReferences(
+            projectId,
+            new AnalyzerReference[] { nuget, shadowA });
+
+        var mapping = new AnalyzerShadowMapping(
+            Guid.NewGuid(),
+            @"C:\Repro\App.sln",
+            [
+                new AnalyzerShadowReferenceEntry(
+                    projectId,
+                    "Consumer",
+                    "original-a",
+                    originalA.FullPath,
+                    "Generator",
+                    shadowA.FullPath,
+                    "gen-a",
+                    Applied: true,
+                    SkipReason: null,
+                    StaleGeneration: false),
+                new AnalyzerShadowReferenceEntry(
+                    projectId,
+                    "Consumer",
+                    "original-b",
+                    originalB.FullPath,
+                    "GeneratorB",
+                    ShadowCopyPath: null,
+                    GenerationId: null,
+                    Applied: false,
+                    SkipReason: "prepare-failed",
+                    StaleGeneration: false,
+                    ReasonCode: AnalyzerReferenceReasonCodes.PreparationFailure,
+                    SelectionBasis: AnalyzerReferenceSelectionBasis.LoadSessionProvenanceExactOutput),
+            ]);
+        var excluded = new[]
+        {
+            new ExcludedAnalyzerReference(projectId, originalB.FullPath, originalB.Id),
+        };
+
+        var accepted = WorkspaceWriteBoundary.ClassifyAndInvert(
+            published,
+            baseSolution,
+            mapping,
+            new InProcessAnalyzerAssemblyLoader(),
+            excluded);
+        Assert.True(accepted.Accepted, accepted.Reason);
+        Assert.True(
+            WorkspaceWriteBoundary.AnalyzerReferencesEquivalent(
+                accepted.CleanedCandidate!.GetProject(projectId)!.AnalyzerReferences,
+                baseSolution.GetProject(projectId)!.AnalyzerReferences));
+
+        var unknown = baseSolution.WithProjectAnalyzerReferences(projectId, new AnalyzerReference[] { shadowA });
+        var rejected = WorkspaceWriteBoundary.ClassifyAndInvert(
+            unknown,
+            baseSolution,
+            mapping,
+            new InProcessAnalyzerAssemblyLoader(),
+            excluded);
+        Assert.False(rejected.Accepted);
+        Assert.Equal("unknown-analyzer-diff", rejected.Reason);
+    }
+
+    [Fact]
     public void No_overlay_is_noop_when_analyzer_lists_match()
     {
         using var workspace = new AdhocWorkspace();

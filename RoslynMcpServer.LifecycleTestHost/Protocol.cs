@@ -43,6 +43,12 @@ public sealed class HostResponse
     public string? PublicationAdmission { get; set; }
     public string? PublicationBanReason { get; set; }
     public bool PublishedSnapshotPresent { get; set; }
+    public int PreparedCount { get; set; }
+    public int AppliedCount { get; set; }
+    public int StaleCount { get; set; }
+    public int BlockedCount { get; set; }
+    public bool RefreshComplete { get; set; }
+    public string? ShadowCopySummary { get; set; }
     public Guid LoadSessionId { get; set; }
     public long ProvenanceCaptureCount { get; set; }
     public bool ProvenanceSnapshotPresent { get; set; }
@@ -106,6 +112,7 @@ public sealed class RewriteDto
     public string MatchedProjectName { get; set; } = "";
     public string? ShadowCopyPath { get; set; }
     public bool Applied { get; set; }
+    public bool StaleGeneration { get; set; }
     public string? SkipReason { get; set; }
     public string? Generation { get; set; }
     public string? ReasonCode { get; set; }

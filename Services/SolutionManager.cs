@@ -81,6 +81,7 @@ public sealed class SolutionManager
     private IReadOnlyList<AnalyzerReferenceShadowCopier.RewriteResult> _lastShadowCopyResults =
         Array.Empty<AnalyzerReferenceShadowCopier.RewriteResult>();
     private AnalyzerExecutionObservation _lastExecutionObservation = AnalyzerExecutionObservation.None;
+    private AnalyzerShadowPublicationPlan? _lastPublicationPlan;
     private SemanticPublicationState _publicationState = SemanticPublicationState.None;
     private readonly ConditionalWeakTable<Solution, WorkspaceWriteOperationContext> _operationContexts = new();
     private WorkspaceWriteOperationContext? _lastPublishedWriteContext;
@@ -130,6 +131,8 @@ public sealed class SolutionManager
     internal IReadOnlyList<AnalyzerReferenceShadowCopier.RewriteResult> LastShadowCopyResults => _lastShadowCopyResults;
 
     internal AnalyzerExecutionObservation LastExecutionObservation => _lastExecutionObservation;
+
+    internal AnalyzerShadowPublicationPlan? LastPublicationPlan => _lastPublicationPlan;
 
     internal SemanticPublicationAdmission PublicationAdmission => _publicationState.Admission;
 
@@ -553,7 +556,9 @@ public sealed class SolutionManager
         return _publicationState.Admission switch
         {
             SemanticPublicationAdmission.NoOverlay => solution,
-            SemanticPublicationAdmission.AllowedMapping => ApplyShadowCopyOverlayIfEnabled(solution),
+            SemanticPublicationAdmission.AllowedMapping => SemanticPublicationState.ApplyExcludedReferences(
+                ApplyShadowCopyOverlayIfEnabled(solution),
+                _publicationState.ExcludedReferences),
             SemanticPublicationAdmission.Banned => SemanticPublicationState.ApplyExcludedReferences(
                 solution,
                 _publicationState.ExcludedReferences),
@@ -589,116 +594,63 @@ public sealed class SolutionManager
         string shadowRoot,
         AnalyzerShadowPrepareOutcome prepared)
     {
-        var gate = EvaluatePreparedMapping(prepared.Mapping);
-        if (gate.Status == AnalyzerExecutionStatus.None && !_lastExecutionObservation.PermitsExecution)
-        {
-            gate = _lastExecutionObservation;
-        }
-
-        _lastExecutionObservation = gate;
-        _lastRefreshStale = prepared.UsedPreviousMappingAsStale
-            || prepared.Mapping.Entries.Any(e => e.StaleGeneration)
-            || !gate.PermitsExecution;
-
-        var results = ToGatedRewriteResults(prepared.Results, gate);
-        _lastShadowCopyResults = results;
-
-        if (gate.PermitsExecution && prepared.Mapping.HasAnyApplied)
-        {
-            _analyzerShadowMapping = prepared.Mapping;
-            _shadowCopyAnalyzersEnabled = true;
-            _shadowCopyRootDirectory = shadowRoot;
-            _publicationState = SemanticPublicationState.AllowedMapping;
-            _lastExecutionObservation = gate.WithStage(
-                AnalyzerPreparationStage.ReferenceRewritten,
-                AnalyzerExecutionStatus.ReferenceRewritten);
-            SetPublishedSolution(workspaceSolution);
-            return results;
-        }
-
-        if (!gate.PermitsExecution && _analyzerShadowMapping is { HasAnyApplied: true } previous)
-        {
-            var stale = previous.WithStale(gate.Reason ?? AnalyzerLoaderContract.RestartRequiredReason);
-            _analyzerShadowMapping = stale;
-            _lastRefreshStale = true;
-            _shadowCopyRootDirectory = shadowRoot;
-            // Restart-required must not keep stale V1 in compilation (A3-01).
-            // File-prepare failure still reapplies the previous mapping (epoch 2).
-            if (gate.RequiresRestart)
-            {
-                _shadowCopyAnalyzersEnabled = false;
-                EnterBannedPublication(
-                    workspaceSolution,
-                    gate.Reason ?? AnalyzerLoaderContract.RestartRequiredReason);
-            }
-            else
-            {
-                _shadowCopyAnalyzersEnabled = true;
-                _publicationState = SemanticPublicationState.AllowedMapping;
-            }
-
-            SetPublishedSolution(workspaceSolution);
-            return results;
-        }
-
-        if (prepared.Mapping.HasAnyApplied && !gate.PermitsExecution)
-        {
-            _analyzerShadowMapping = null;
-            _shadowCopyAnalyzersEnabled = false;
-            _shadowCopyRootDirectory = shadowRoot;
-            EnterBannedPublication(
-                workspaceSolution,
-                gate.Reason ?? AnalyzerLoaderContract.RestartRequiredReason);
-            SetPublishedSolution(workspaceSolution);
-        }
-
-        return results;
+        var plan = AnalyzerShadowPublicationPlanner.Evaluate(
+            prepared,
+            _analyzerAssemblyLoader,
+            restartBanLatched: IsRestartBanLatched());
+        ApplyPublicationPlan(workspaceSolution, shadowRoot, plan, prepared.Results);
+        return _lastShadowCopyResults;
     }
 
     private AnalyzerExecutionObservation EvaluatePreparedMapping(AnalyzerShadowMapping mapping)
     {
-        AnalyzerExecutionObservation? firstBlock = null;
-        AnalyzerExecutionObservation? firstPrepared = null;
-        foreach (var entry in mapping.Entries)
-        {
-            var observation = AnalyzerExecutionGate.EvaluatePreparedEntry(entry, _analyzerAssemblyLoader);
-            if (!observation.PermitsExecution)
-            {
-                firstBlock ??= observation;
-            }
-            else if (observation.Status == AnalyzerExecutionStatus.Prepared)
-            {
-                firstPrepared ??= observation;
-            }
-        }
-
-        return firstBlock ?? firstPrepared ?? AnalyzerExecutionObservation.None;
+        var prepared = new AnalyzerShadowPrepareOutcome(
+            mapping,
+            AnalyzerReferenceShadowCopier.ToRewriteResults(mapping),
+            RefreshSucceeded: mapping.Entries.All(e => !e.StaleGeneration),
+            UsedPreviousMappingAsStale: mapping.Entries.Any(e => e.StaleGeneration),
+            FailureSummary: null);
+        return AnalyzerShadowPublicationPlanner.Evaluate(
+            prepared,
+            _analyzerAssemblyLoader,
+            restartBanLatched: IsRestartBanLatched()).Gate;
     }
 
-    private static IReadOnlyList<AnalyzerReferenceShadowCopier.RewriteResult> ToGatedRewriteResults(
-        IReadOnlyList<AnalyzerReferenceShadowCopier.RewriteResult> results,
-        AnalyzerExecutionObservation gate)
+    private void ApplyPublicationPlan(
+        Solution workspaceSolution,
+        string shadowRoot,
+        AnalyzerShadowPublicationPlan plan,
+        IReadOnlyList<AnalyzerReferenceShadowCopier.RewriteResult> ungatedResults)
     {
-        if (gate.PermitsExecution)
-        {
-            return results;
-        }
+        _lastPublicationPlan = plan;
+        _lastExecutionObservation = plan.Gate;
+        _lastRefreshStale = !plan.RefreshComplete || plan.StaleCount > 0;
+        _lastShadowCopyResults = AnalyzerShadowPublicationPlanner.ToRewriteResults(ungatedResults, plan);
+        _shadowCopyRootDirectory = shadowRoot;
+        _analyzerShadowMapping = plan.Kind == AnalyzerShadowPublicationKind.Unavailable
+            ? null
+            : plan.Mapping;
+        _shadowCopyAnalyzersEnabled = plan.OverlayEnabled;
 
-        return results.Select(result =>
+        _publicationState = plan.Kind switch
         {
-            if (!result.Applied)
-            {
-                return result;
-            }
+            AnalyzerShadowPublicationKind.Allowed => SemanticPublicationState.Allow(plan.Exclusions),
+            AnalyzerShadowPublicationKind.Banned => SemanticPublicationState.Banned(plan.Reason, plan.Exclusions),
+            AnalyzerShadowPublicationKind.Unavailable => SemanticPublicationState.Unavailable(plan.Reason),
+            _ => _publicationState,
+        };
 
-            return result with
-            {
-                Applied = false,
-                SkipReason = gate.Reason ?? AnalyzerLoaderContract.RestartRequiredReason,
-                StaleGeneration = true,
-                ReasonCode = AnalyzerReferenceReasonCodes.PreparationFailure,
-            };
-        }).ToList();
+        SetPublishedSolution(workspaceSolution);
+    }
+
+    private bool IsRestartBanLatched()
+    {
+        return _publicationState.IsBanned
+            && (_lastExecutionObservation.RequiresRestart
+                || (!string.IsNullOrWhiteSpace(_publicationState.BanReason)
+                    && _publicationState.BanReason.Contains(
+                        "restart",
+                        StringComparison.OrdinalIgnoreCase)));
     }
 
     private IReadOnlyList<AnalyzerReferenceShadowCopier.RewriteResult> CompleteFailedPrepare(
@@ -708,23 +660,66 @@ public sealed class SolutionManager
     {
         _lastExecutionObservation = new AnalyzerExecutionObservation
         {
-            Status = AnalyzerExecutionStatus.LoadFailed,
-            HighestStage = AnalyzerPreparationStage.LoadFailed,
-            Reason = reason,
+            Status = IsRestartBanLatched()
+                ? AnalyzerExecutionStatus.RestartRequired
+                : AnalyzerExecutionStatus.LoadFailed,
+            HighestStage = IsRestartBanLatched()
+                ? AnalyzerPreparationStage.Prepared
+                : AnalyzerPreparationStage.LoadFailed,
+            Reason = IsRestartBanLatched()
+                ? (_publicationState.BanReason ?? AnalyzerLoaderContract.RestartRequiredReason)
+                : reason,
             ProjectName = _analyzerShadowMapping?.Entries.FirstOrDefault()?.ProjectName,
             GeneratorName = _analyzerShadowMapping?.Entries.FirstOrDefault()?.MatchedProjectName,
             GenerationId = _analyzerShadowMapping?.Entries.FirstOrDefault()?.GenerationId,
+            Action = IsRestartBanLatched() ? AnalyzerLoaderContract.RestartAction : null,
         };
+
+        if (IsRestartBanLatched())
+        {
+            _lastRefreshStale = true;
+            _shadowCopyRootDirectory = shadowRoot;
+            _shadowCopyAnalyzersEnabled = false;
+            if (_lastPublicationPlan is { } previousPlan)
+            {
+                _lastPublicationPlan = previousPlan with
+                {
+                    AppliedCount = 0,
+                    OverlayEnabled = false,
+                    RefreshComplete = false,
+                    Kind = AnalyzerShadowPublicationKind.Banned,
+                    Admission = SemanticPublicationAdmission.Banned,
+                    Reason = _lastExecutionObservation.Reason,
+                };
+            }
+
+            SetPublishedSolution(workspaceSolution);
+            return _lastShadowCopyResults;
+        }
 
         if (_analyzerShadowMapping is { HasAnyApplied: true } previous)
         {
             var stale = previous.WithStale(reason, AnalyzerReferenceReasonCodes.PreparationFailure);
+            var preservedExclusions = _publicationState.ExcludedReferences;
             _analyzerShadowMapping = stale;
             _lastShadowCopyResults = AnalyzerReferenceShadowCopier.ToRewriteResults(stale);
             _lastRefreshStale = true;
             _shadowCopyAnalyzersEnabled = true;
             _shadowCopyRootDirectory = shadowRoot;
-            _publicationState = SemanticPublicationState.AllowedMapping;
+            _publicationState = SemanticPublicationState.Allow(preservedExclusions);
+            _lastPublicationPlan = new AnalyzerShadowPublicationPlan(
+                AnalyzerShadowPublicationKind.Allowed,
+                SemanticPublicationAdmission.AllowedMapping,
+                stale,
+                preservedExclusions,
+                _lastExecutionObservation,
+                OverlayEnabled: true,
+                RefreshComplete: false,
+                PreparedCount: 0,
+                AppliedCount: stale.Entries.Count(e => e.Applied),
+                StaleCount: stale.Entries.Count(e => e.StaleGeneration),
+                BlockedCount: preservedExclusions.Count,
+                Reason: "stale-generation: " + reason);
             SetPublishedSolution(workspaceSolution);
             return _lastShadowCopyResults;
         }
@@ -806,6 +801,20 @@ public sealed class SolutionManager
         EnterBannedPublication(
             workspaceSolution,
             reason ?? _lastExecutionObservation.Reason ?? "opt-in-publication-banned");
+        _lastPublicationPlan = new AnalyzerShadowPublicationPlan(
+            AnalyzerShadowPublicationKind.Banned,
+            SemanticPublicationAdmission.Banned,
+            _analyzerShadowMapping
+                ?? new AnalyzerShadowMapping(_loadSessionId, _loadedPath, Array.Empty<AnalyzerShadowReferenceEntry>()),
+            _publicationState.ExcludedReferences,
+            _lastExecutionObservation,
+            OverlayEnabled: false,
+            RefreshComplete: false,
+            PreparedCount: 0,
+            AppliedCount: 0,
+            StaleCount: 0,
+            BlockedCount: _publicationState.ExcludedReferences.Count,
+            Reason: _publicationState.BanReason);
         SetPublishedSnapshot(PublishInMemorySolution(workspaceSolution));
     }
 
@@ -865,7 +874,8 @@ public sealed class SolutionManager
             rawWorkspace,
             _rawWorkspaceRevision,
             _shadowCopyAnalyzersEnabled,
-            _publicationState.Admission);
+            _publicationState.Admission,
+            _publicationState.ExcludedReferences);
     }
 
     private WorkspaceWriteFreshnessState CurrentWriteFreshness(Solution rawWorkspace)
@@ -878,7 +888,8 @@ public sealed class SolutionManager
             _rawWorkspaceRevision,
             rawWorkspace,
             _solution,
-            _publicationState.Admission);
+            _publicationState.Admission,
+            _publicationState.ExcludedReferences);
     }
 
     private void NoteRawWorkspaceRevision()
@@ -1433,6 +1444,7 @@ public sealed class SolutionManager
             _loadSessionId = Guid.Empty;
             _lastRefreshStale = false;
             _lastExecutionObservation = AnalyzerExecutionObservation.None;
+            _lastPublicationPlan = null;
             _publicationState = SemanticPublicationState.None;
             _loadedPath = null;
             _loadedConfiguration = null;
@@ -1505,6 +1517,7 @@ public sealed class SolutionManager
         _loadSessionId = Guid.NewGuid();
         _lastRefreshStale = false;
         _lastExecutionObservation = AnalyzerExecutionObservation.None;
+        _lastPublicationPlan = null;
         _publicationState = SemanticPublicationState.None;
         _lastLoadWasCacheHit = false;
         _lastLoadReopenedGraph = true;

@@ -171,7 +171,8 @@ internal sealed class HostSession
             return blocked;
         }
 
-        var observation = await SourceGeneratorOracle.ReadAsync(project, cancellationToken).ConfigureAwait(false);
+        var observation = await SourceGeneratorOracle.ReadAsync(project, cancellationToken, command.Symbol)
+            .ConfigureAwait(false);
         _manager.ObserveAnalyzerExecution(project);
         var response = Inspect("oracle");
         response.OracleSuccess = observation.Success;
@@ -602,7 +603,7 @@ internal sealed class HostSession
 
     private HostResponse ForceCopyFailure()
     {
-        AnalyzerReferenceShadowCopier.RemainingForcedCopyFailures = 1;
+        AnalyzerReferenceShadowCopier.RemainingForcedCopyFailures++;
         return Inspect("forceCopyFailure");
     }
 
@@ -979,6 +980,14 @@ internal sealed class HostSession
             PublicationAdmission = _manager.PublicationAdmission.ToString(),
             PublicationBanReason = _manager.PublicationBanReason,
             PublishedSnapshotPresent = _manager.HasPublishedSemanticSnapshot,
+            PreparedCount = _manager.LastPublicationPlan?.PreparedCount ?? 0,
+            AppliedCount = _manager.LastPublicationPlan?.AppliedCount ?? 0,
+            StaleCount = _manager.LastPublicationPlan?.StaleCount ?? 0,
+            BlockedCount = _manager.LastPublicationPlan?.BlockedCount ?? 0,
+            RefreshComplete = _manager.LastPublicationPlan?.RefreshComplete ?? false,
+            ShadowCopySummary = _manager.LastPublicationPlan is { } plan
+                ? AnalyzerShadowPublicationPlanner.FormatLoadSummary(plan, _manager.LastExecutionObservation)
+                : null,
             LoadSessionId = _manager.LoadSessionId,
             ProvenanceCaptureCount = _manager.AnalyzerProvenanceCaptureCount,
             ProvenanceSnapshotPresent = _manager.AnalyzerProvenanceSnapshot is not null,
@@ -1038,14 +1047,12 @@ internal sealed class HostSession
     {
         response.OverlayAnalyzerPaths = project.AnalyzerReferences
             .Select(reference => reference.FullPath)
-            .Where(path => path is not null
-                && string.Equals(
-                    Path.GetFileNameWithoutExtension(path),
-                    "Generator",
-                    StringComparison.OrdinalIgnoreCase))
+            .Where(path => !string.IsNullOrWhiteSpace(path))
             .Cast<string>()
             .ToArray();
-        response.OverlayAnalyzerPath = response.OverlayAnalyzerPaths.FirstOrDefault();
+        response.OverlayAnalyzerPath = response.OverlayAnalyzerPaths.FirstOrDefault(path =>
+            string.Equals(Path.GetFileNameWithoutExtension(path), "Generator", StringComparison.OrdinalIgnoreCase))
+            ?? response.OverlayAnalyzerPaths.FirstOrDefault();
 
         var workspace = _manager.GetWorkspaceCurrentSolution();
         var raw = workspace?.GetProject(project.Id);
@@ -1053,14 +1060,12 @@ internal sealed class HostSession
             ? []
             : raw.AnalyzerReferences
                 .Select(reference => reference.FullPath)
-                .Where(path => path is not null
-                    && string.Equals(
-                        Path.GetFileNameWithoutExtension(path),
-                        "Generator",
-                        StringComparison.OrdinalIgnoreCase))
+                .Where(path => !string.IsNullOrWhiteSpace(path))
                 .Cast<string>()
                 .ToArray();
-        response.WorkspaceAnalyzerPath ??= response.WorkspaceAnalyzerPaths.FirstOrDefault();
+        response.WorkspaceAnalyzerPath ??= response.WorkspaceAnalyzerPaths.FirstOrDefault(path =>
+            string.Equals(Path.GetFileNameWithoutExtension(path), "Generator", StringComparison.OrdinalIgnoreCase))
+            ?? response.WorkspaceAnalyzerPaths.FirstOrDefault();
     }
 
     private static List<LoadedAssemblyDto> SnapshotProcessAnalyzerAssemblies(Project project)
@@ -1069,6 +1074,8 @@ internal sealed class HostSession
             .Select(reference => Path.GetFileNameWithoutExtension(reference.FullPath))
             .Where(name => !string.IsNullOrWhiteSpace(name))
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        analyzerNames.Add("Generator");
+        analyzerNames.Add("GeneratorB");
 
         return AppDomain.CurrentDomain.GetAssemblies()
             .Where(assembly => !assembly.IsDynamic)
@@ -1125,6 +1132,7 @@ internal sealed class HostSession
             MatchedProjectName = r.MatchedProjectName,
             ShadowCopyPath = r.ShadowCopyPath,
             Applied = r.Applied,
+            StaleGeneration = r.StaleGeneration,
             SkipReason = r.SkipReason,
             Generation = r.GenerationId ?? TryGeneration(r.ShadowCopyPath),
             ReasonCode = r.ReasonCode,

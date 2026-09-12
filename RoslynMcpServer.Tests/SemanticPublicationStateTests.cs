@@ -47,6 +47,45 @@ public sealed class SemanticPublicationStateTests
     }
 
     [Fact]
+    public void RestoreExcludedReferences_reinserts_only_predetermined_identities()
+    {
+        using var workspace = new AdhocWorkspace();
+        var projectId = ProjectId.CreateNewId();
+        var nuget = new FakeAnalyzerReference("nuget", @"C:\NuGet\A.dll");
+        var original = new FakeAnalyzerReference("original", @"C:\Repro\Generator.dll");
+        var other = new FakeAnalyzerReference("other", @"C:\Repro\Other.dll");
+        var workspaceSolution = workspace.CurrentSolution.AddProject(
+            ProjectInfo.Create(projectId, VersionStamp.Create(), "Consumer", "Consumer", LanguageNames.CSharp)
+                .WithAnalyzerReferences(new AnalyzerReference[] { nuget, original, other }));
+        var published = workspaceSolution.WithProjectAnalyzerReferences(
+            projectId,
+            new AnalyzerReference[] { nuget, other });
+
+        var restored = SemanticPublicationState.RestoreExcludedReferences(
+            published,
+            workspaceSolution,
+            [new ExcludedAnalyzerReference(projectId, original.FullPath, original.Id)]);
+
+        var refs = restored.GetProject(projectId)!.AnalyzerReferences;
+        Assert.Equal(3, refs.Count);
+        Assert.Same(nuget, refs[0]);
+        Assert.Same(original, refs[1]);
+        Assert.Same(other, refs[2]);
+    }
+
+    [Fact]
+    public void Allow_with_exclusions_keeps_overlay_admission()
+    {
+        var projectId = ProjectId.CreateNewId();
+        var state = SemanticPublicationState.Allow(
+            [new ExcludedAnalyzerReference(projectId, @"C:\Repro\GeneratorB.dll", null)]);
+        Assert.Equal(SemanticPublicationAdmission.AllowedMapping, state.Admission);
+        Assert.True(state.AllowsOverlay);
+        Assert.False(state.IsBanned);
+        Assert.Single(state.ExcludedReferences);
+    }
+
+    [Fact]
     public void ApplyExcludedReferences_is_noop_when_set_is_empty()
     {
         using var workspace = new AdhocWorkspace();

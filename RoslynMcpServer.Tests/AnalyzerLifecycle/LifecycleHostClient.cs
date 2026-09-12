@@ -163,7 +163,15 @@ internal sealed class LifecycleHostClient : IAsyncDisposable
             await _process.StandardInput.FlushAsync(cancellationToken).ConfigureAwait(false);
 
             using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            timeoutCts.CancelAfter(ResponseTimeout);
+            var responseTimeout = command.TimeoutMs > 0
+                ? TimeSpan.FromMilliseconds(command.TimeoutMs + 10_000)
+                : ResponseTimeout;
+            if (responseTimeout < ResponseTimeout)
+            {
+                responseTimeout = ResponseTimeout;
+            }
+
+            timeoutCts.CancelAfter(responseTimeout);
             string? responseLine = null;
             try
             {

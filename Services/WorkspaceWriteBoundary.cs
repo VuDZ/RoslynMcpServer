@@ -53,14 +53,20 @@ internal static class WorkspaceWriteBoundary
             return new WorkspaceWritePreflight(false, ReasonStalePublication, null);
         }
 
-        return ClassifyAndInvert(candidate, workspaceCurrent, operationContext.Mapping, loader);
+        return ClassifyAndInvert(
+            candidate,
+            workspaceCurrent,
+            operationContext.Mapping,
+            loader,
+            operationContext.ExcludedReferences);
     }
 
     public static WorkspaceWritePreflight ClassifyAndInvert(
         Solution candidate,
         Solution workspaceCurrent,
         AnalyzerShadowMapping? mapping,
-        IAnalyzerAssemblyLoader loader)
+        IAnalyzerAssemblyLoader loader,
+        IReadOnlyList<ExcludedAnalyzerReference>? excludedReferences = null)
     {
         ArgumentNullException.ThrowIfNull(candidate);
         ArgumentNullException.ThrowIfNull(workspaceCurrent);
@@ -69,6 +75,10 @@ internal static class WorkspaceWriteBoundary
         var cleaned = mapping is null
             ? candidate
             : mapping.InvertKnownReplacements(candidate, workspaceCurrent, loader);
+        cleaned = SemanticPublicationState.RestoreExcludedReferences(
+            cleaned,
+            workspaceCurrent,
+            excludedReferences);
 
         foreach (var projectId in cleaned.ProjectIds.ToList())
         {
@@ -178,7 +188,53 @@ internal static class WorkspaceWriteBoundary
     {
         return operationContext.ShadowCopyEnabled == current.ShadowCopyEnabled
             && operationContext.PublicationAdmission == current.PublicationAdmission
-            && ReferenceEquals(operationContext.Mapping, current.Mapping);
+            && ReferenceEquals(operationContext.Mapping, current.Mapping)
+            && ExclusionsEqual(
+                operationContext.ExcludedReferences,
+                current.ExcludedReferences ?? Array.Empty<ExcludedAnalyzerReference>());
+    }
+
+    private static bool ExclusionsEqual(
+        IReadOnlyList<ExcludedAnalyzerReference> left,
+        IReadOnlyList<ExcludedAnalyzerReference> right)
+    {
+        if (ReferenceEquals(left, right))
+        {
+            return true;
+        }
+
+        if (left.Count != right.Count)
+        {
+            return false;
+        }
+
+        for (var i = 0; i < left.Count; i++)
+        {
+            if (left[i].ProjectId != right[i].ProjectId
+                || !Equals(left[i].AnalyzerId, right[i].AnalyzerId))
+            {
+                return false;
+            }
+
+            var leftPath = left[i].FullPath;
+            var rightPath = right[i].FullPath;
+            if (string.IsNullOrWhiteSpace(leftPath) || string.IsNullOrWhiteSpace(rightPath))
+            {
+                if (leftPath != rightPath)
+                {
+                    return false;
+                }
+
+                continue;
+            }
+
+            if (!AnalyzerShadowMapping.PathsEqual(leftPath, rightPath))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private static bool LoadedPathsCompatible(string? operationPath, string? currentPath)

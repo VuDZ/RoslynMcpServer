@@ -11,9 +11,15 @@ internal static class SourceGeneratorOracle
     public const string GeneratedTypeMetadataName = "GeneratedMarker";
     public const string GeneratedFieldName = "Version";
 
-    public static async Task<OracleObservation> ReadAsync(Project project, CancellationToken cancellationToken)
+    public static async Task<OracleObservation> ReadAsync(
+        Project project,
+        CancellationToken cancellationToken,
+        string? generatedTypeMetadataName = null)
     {
         ArgumentNullException.ThrowIfNull(project);
+        var typeName = string.IsNullOrWhiteSpace(generatedTypeMetadataName)
+            ? GeneratedTypeMetadataName
+            : generatedTypeMetadataName;
 
         Compilation? compilation;
         try
@@ -30,7 +36,7 @@ internal static class SourceGeneratorOracle
             return OracleObservation.Fail("no-compilation");
         }
 
-        var type = compilation.GetTypeByMetadataName(GeneratedTypeMetadataName);
+        var type = compilation.GetTypeByMetadataName(typeName);
         if (type is null)
         {
             return OracleObservation.Fail("no-type");
@@ -52,7 +58,7 @@ internal static class SourceGeneratorOracle
         {
             var generated = await project.GetSourceGeneratedDocumentsAsync(cancellationToken).ConfigureAwait(false);
             var hit = generated.FirstOrDefault(d =>
-                d.Name.Contains("GeneratedMarker", StringComparison.OrdinalIgnoreCase));
+                d.Name.Contains(typeName, StringComparison.OrdinalIgnoreCase));
             if (hit is not null)
             {
                 generatedText = (await hit.GetTextAsync(cancellationToken).ConfigureAwait(false)).ToString();

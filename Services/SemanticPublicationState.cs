@@ -44,6 +44,19 @@ internal sealed class SemanticPublicationState
         banReason: null,
         Array.Empty<ExcludedAnalyzerReference>());
 
+    public static SemanticPublicationState Allow(IReadOnlyList<ExcludedAnalyzerReference>? excluded)
+    {
+        if (excluded is null || excluded.Count == 0)
+        {
+            return AllowedMapping;
+        }
+
+        return new(
+            SemanticPublicationAdmission.AllowedMapping,
+            banReason: null,
+            excluded);
+    }
+
     private SemanticPublicationState(
         SemanticPublicationAdmission admission,
         string? banReason,
@@ -133,6 +146,65 @@ internal sealed class SemanticPublicationState
         return solution;
     }
 
+    /// <summary>
+    /// Restores predetermined excluded references from the raw workspace so exact
+    /// inverse does not treat a fail-closed strip as a <c>.csproj</c> deletion.
+    /// Unknown analyzer diffs are not inserted.
+    /// </summary>
+    public static Solution RestoreExcludedReferences(
+        Solution candidate,
+        Solution workspaceCurrent,
+        IReadOnlyList<ExcludedAnalyzerReference>? excluded)
+    {
+        ArgumentNullException.ThrowIfNull(candidate);
+        ArgumentNullException.ThrowIfNull(workspaceCurrent);
+        if (excluded is null || excluded.Count == 0)
+        {
+            return candidate;
+        }
+
+        var byProject = excluded
+            .GroupBy(item => item.ProjectId)
+            .ToDictionary(group => group.Key, group => group.ToArray());
+
+        foreach (var (projectId, blocked) in byProject)
+        {
+            var workspaceProject = workspaceCurrent.GetProject(projectId);
+            var candidateProject = candidate.GetProject(projectId);
+            if (workspaceProject is null || candidateProject is null)
+            {
+                continue;
+            }
+
+            var result = candidateProject.AnalyzerReferences.ToList();
+            var workspaceRefs = workspaceProject.AnalyzerReferences;
+            var changed = false;
+            for (var i = 0; i < workspaceRefs.Count; i++)
+            {
+                var workspaceRef = workspaceRefs[i];
+                if (!IsExcluded(workspaceRef, blocked))
+                {
+                    continue;
+                }
+
+                if (result.Any(existing => SameIdentity(existing, workspaceRef)))
+                {
+                    continue;
+                }
+
+                result.Insert(Math.Min(i, result.Count), workspaceRef);
+                changed = true;
+            }
+
+            if (changed)
+            {
+                candidate = candidate.WithProjectAnalyzerReferences(projectId, result);
+            }
+        }
+
+        return candidate;
+    }
+
     public static IReadOnlyList<ExcludedAnalyzerReference> CaptureFromInSolutionReferences(
         Solution solution,
         AnalyzerProvenanceSnapshot? provenanceSnapshot,
@@ -168,5 +240,22 @@ internal sealed class SemanticPublicationState
         }
 
         return false;
+    }
+
+    private static bool SameIdentity(AnalyzerReference left, AnalyzerReference right)
+    {
+        if (ReferenceEquals(left, right))
+        {
+            return true;
+        }
+
+        if (left.FullPath is not null
+            && right.FullPath is not null
+            && AnalyzerShadowMapping.PathsEqual(left.FullPath, right.FullPath))
+        {
+            return true;
+        }
+
+        return Equals(left.Id, right.Id);
     }
 }

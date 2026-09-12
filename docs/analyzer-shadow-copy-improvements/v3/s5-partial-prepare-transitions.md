@@ -1,6 +1,8 @@
 # S5 — обеспечить безопасную публикацию частичного prepare
 
-Статус: **не выполнено**. Зависимость: [S4](s4-provenance-failure-gate.md).
+Статус: **выполнено; независимая приёмка
+[принята](s5-acceptance.md)** (v1.3.19).
+Зависимость: [S4](s4-provenance-failure-gate.md).
 Результат шага: смешанный результат подготовки имеет проверенный безопасный
 путь публикации и честную диагностику.
 
@@ -60,4 +62,72 @@ Exact inverse должен понимать допустимый опублик�
 
 ## Результат
 
-Не выполнено.
+Выполнено 2026-09-12. Смешанный prepare публикует только доказанно безопасный
+snapshot: успешные references — shadow, неуспешные confirmed — исключение или
+разрешённый stale, иначе вся публикация banned. Real output не возвращается
+из-за чужого успеха.
+
+### Источники и среда
+
+- **База:** `6fe0665` (`fix: withhold opt-in semantics when provenance capture is unsuitable`, v1.3.18)
+- **Commit шага:** рабочее дерево этого шага; `AnalyzerShadowPublicationPlanner`,
+  `SemanticPublicationState.Allow` / `RestoreExcludedReferences`,
+  `SolutionManager.CompletePrepare`, write-boundary inverse, load summary,
+  two-generator fixture, `V3PartialPrepareTransitionTests`, csproj `1.3.19`,
+  README, этот файл
+- **Версия csproj:** `1.3.19`
+- **OS / host:** Windows, x64 process
+- **SDK:** `10.0.204` (`run_dotnet_build` / `run_specific_test`)
+- **MCP binary:** `RoslynMcpServer` (workspace tools; production publish/reload
+  этого шага не делались)
+
+### Реализация
+
+- Публикация решается по всем confirmed overlay references, не по `HasAnyApplied`.
+- Успешная подготовка одной reference не оставляет другую confirmed на real path.
+- Допустимы: fresh apply, stale если execution gate разрешает тот же shadow,
+  иначе исключение из snapshot. Restart-required не исполняет stale V1 и V2.
+- Restart-ban не поднимается `CompleteFailedPrepare` / ordinary publication.
+- Load summary: `prepared` / `applied` / `stale` / `blocked`. Ban не сообщает
+  `Applied=true` из подготовленных файлов. Partial не есть полный refresh.
+- Exact inverse восстанавливает намеренные exclusions и по-прежнему отвергает
+  unknown analyzer diff; `.csproj` не получает shadow includes.
+- Fixture: `Generator` + `GeneratorB` (разные assembly identities).
+
+### Команды
+
+1. `load_workspace` → `RoslynMcpServer.sln`
+2. `run_dotnet_build` → `RoslynMcpServer.sln`
+3. `run_specific_test` class=`AnalyzerShadowPublicationPlannerTests`
+4. `run_specific_test` class=`WorkspaceWriteBoundaryTests`
+5. `run_specific_test` class=`SemanticPublicationStateTests`
+6. `run_specific_test` class=`V3PartialPrepareTransitionTests` (`timeoutSeconds=600`)
+7. `run_specific_test` class=`V3RegressionBaselineTests` / `V3PersistentPublicationStateTests` / `V3ProvenanceFailureGateTests`
+8. `run_specific_test` class=`Epoch2ImmutableShadowTests` / `AnalyzerReferenceShadowCopierTests`
+9. `McpToolCatalogTests.Surface_sizes_match_recorded_release_numbers`
+
+### Фактические результаты
+
+| Проверка | Результат |
+| --- | --- |
+| Mixed prepare (1 success + 1 file fail) | **passed** — нет real published/process; allowed marker exact; blocked marker отсутствует |
+| Edit / flush / reconciliation | **passed** — тот же admission, без analyzer I/O; `.csproj` byte-identical |
+| File-failed refresh | **passed** — stale только у failed; другая applied fresh |
+| Active → restart-required → edit/cached load | **passed** — нет V1/V2; stale V1 не исполняется |
+| Forced rebuild real output | **passed** — hash изменился (lock check, не «нет marker») |
+| Summary: none applied / partial / restart | **passed** — согласовано со snapshot |
+| Exact inverse + unknown diff | **passed** — exclusions restored; extra deletion rejected |
+| R1 / R2 / R3, S3, S4, Epoch2, foreign, catalog | **passed** — 63 / 44,503 без изменения |
+
+### Самопроверка
+
+- Production published accessor (`GetPublishedSolutionAsync` / default oracle) не
+  видит confirmed real output при частичном результате.
+- Load text отличает prepared / applied / stale / blocked.
+- Публичная MCP-схема не менялась; catalog 63 / 44,503.
+
+### Ограничения
+
+- Production/MCP publish+reload не выполнялись; номер выпуска в исходниках `1.3.19`.
+- Inaccessible U-ARB-01 по-прежнему вне v3 S5.
+- Независимая приёмка: [s5-acceptance.md](s5-acceptance.md).

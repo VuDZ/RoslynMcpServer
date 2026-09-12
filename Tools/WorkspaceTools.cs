@@ -164,9 +164,13 @@ public sealed class WorkspaceTools
         }
         else if (shadowCopyInSolutionAnalyzers)
         {
-            shadowCopySummary = FormatShadowCopySummary(
-                shadowCopyResults,
-                _solutionManager.LastExecutionObservation);
+            shadowCopySummary = _solutionManager.LastPublicationPlan is { } plan
+                ? AnalyzerShadowPublicationPlanner.FormatLoadSummary(
+                    plan,
+                    _solutionManager.LastExecutionObservation)
+                : FormatShadowCopySummary(
+                    shadowCopyResults,
+                    _solutionManager.LastExecutionObservation);
             LogShadowCopyResults(shadowCopyResults);
         }
         else if (_solutionManager.ShadowCopyAnalyzersEnabled)

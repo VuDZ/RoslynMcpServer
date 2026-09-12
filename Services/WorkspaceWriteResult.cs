@@ -109,6 +109,7 @@ internal sealed class WorkspaceWriteOperationContext
         long rawWorkspaceRevision,
         bool shadowCopyEnabled,
         SemanticPublicationAdmission publicationAdmission,
+        IReadOnlyList<ExcludedAnalyzerReference> excludedReferences,
         bool isVerified)
     {
         SessionId = sessionId;
@@ -119,6 +120,7 @@ internal sealed class WorkspaceWriteOperationContext
         RawWorkspaceRevision = rawWorkspaceRevision;
         ShadowCopyEnabled = shadowCopyEnabled;
         PublicationAdmission = publicationAdmission;
+        ExcludedReferences = excludedReferences;
         IsVerified = isVerified;
     }
 
@@ -131,6 +133,7 @@ internal sealed class WorkspaceWriteOperationContext
         rawWorkspaceRevision: -1,
         shadowCopyEnabled: false,
         publicationAdmission: SemanticPublicationAdmission.None,
+        excludedReferences: Array.Empty<ExcludedAnalyzerReference>(),
         isVerified: false);
 
     public static WorkspaceWriteOperationContext Verified(
@@ -141,7 +144,8 @@ internal sealed class WorkspaceWriteOperationContext
         Solution? rawWorkspaceSnapshot,
         long rawWorkspaceRevision,
         bool shadowCopyEnabled,
-        SemanticPublicationAdmission? publicationAdmission = null)
+        SemanticPublicationAdmission? publicationAdmission = null,
+        IReadOnlyList<ExcludedAnalyzerReference>? excludedReferences = null)
     {
         return new WorkspaceWriteOperationContext(
             sessionId,
@@ -154,6 +158,7 @@ internal sealed class WorkspaceWriteOperationContext
             publicationAdmission ?? (shadowCopyEnabled
                 ? SemanticPublicationAdmission.AllowedMapping
                 : SemanticPublicationAdmission.NoOverlay),
+            excludedReferences ?? Array.Empty<ExcludedAnalyzerReference>(),
             isVerified: true);
     }
 
@@ -173,6 +178,8 @@ internal sealed class WorkspaceWriteOperationContext
 
     public SemanticPublicationAdmission PublicationAdmission { get; }
 
+    public IReadOnlyList<ExcludedAnalyzerReference> ExcludedReferences { get; }
+
     public bool IsVerified { get; }
 }
 
@@ -187,7 +194,8 @@ internal readonly record struct WorkspaceWriteFreshnessState(
     long RawWorkspaceRevision,
     Solution? RawWorkspaceSnapshot,
     Solution? PublishedSnapshot = null,
-    SemanticPublicationAdmission PublicationAdmission = SemanticPublicationAdmission.NoOverlay);
+    SemanticPublicationAdmission PublicationAdmission = SemanticPublicationAdmission.NoOverlay,
+    IReadOnlyList<ExcludedAnalyzerReference>? ExcludedReferences = null);
 
 internal readonly record struct WorkspaceWritePreflight(
     bool Accepted,

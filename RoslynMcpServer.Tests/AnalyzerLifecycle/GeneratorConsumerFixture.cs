@@ -26,6 +26,8 @@ internal sealed class GeneratorConsumerFixture : IDisposable
     public string SolutionPath { get; private set; } = "";
     public string GeneratorProjectPath { get; private set; } = "";
     public string GeneratorSourcePath { get; private set; } = "";
+    public string? SecondGeneratorProjectPath { get; private set; }
+    public string? SecondGeneratorSourcePath { get; private set; }
     public string ConsumerProjectPath { get; private set; } = "";
     public string ConsumerSourcePath { get; private set; } = "";
     public string? HelperProjectPath { get; private set; }
@@ -45,7 +47,8 @@ internal sealed class GeneratorConsumerFixture : IDisposable
         string assemblyName = "Generator",
         bool privateHelper = false,
         string helperVersion = "1.0.0.0",
-        bool includeAnalyzerProjectReference = true)
+        bool includeAnalyzerProjectReference = true,
+        bool secondGenerator = false)
     {
         var root = Path.Combine(
             Path.GetTempPath(),
@@ -62,13 +65,48 @@ internal sealed class GeneratorConsumerFixture : IDisposable
             assemblyName,
             privateHelper,
             helperVersion,
-            includeAnalyzerProjectReference);
+            includeAnalyzerProjectReference,
+            secondGenerator);
+        return fixture;
+    }
+
+    public static GeneratorConsumerFixture CreateTwoGenerators(
+        OutputPathMode outputPathMode,
+        string firstMarker = MarkerV1,
+        string secondMarker = MarkerB)
+    {
+        var fixture = Create(outputPathMode, firstMarker, secondGenerator: true);
+        if (fixture.SecondGeneratorSourcePath is not null)
+        {
+            File.WriteAllText(
+                fixture.SecondGeneratorSourcePath,
+                CreateGeneratorSource(
+                    secondMarker,
+                    generatedTypeName: "GeneratedMarkerB",
+                    generatorClassName: "MarkerGeneratorB"));
+        }
+
         return fixture;
     }
 
     public void SetGeneratorMarker(string marker)
     {
         File.WriteAllText(GeneratorSourcePath, CreateGeneratorSource(marker));
+    }
+
+    public void SetSecondGeneratorMarker(string marker)
+    {
+        if (SecondGeneratorSourcePath is null)
+        {
+            throw new InvalidOperationException("Fixture has no second generator.");
+        }
+
+        File.WriteAllText(
+            SecondGeneratorSourcePath,
+            CreateGeneratorSource(
+                marker,
+                generatedTypeName: "GeneratedMarkerB",
+                generatorClassName: "MarkerGeneratorB"));
     }
 
     public void MakeGeneratorMultiTargeted()
@@ -129,6 +167,27 @@ internal sealed class GeneratorConsumerFixture : IDisposable
         if (Directory.Exists(bin))
         {
             return Directory.EnumerateFiles(bin, "Generator.dll", SearchOption.AllDirectories).FirstOrDefault();
+        }
+
+        return null;
+    }
+
+    public string? FindSecondGeneratorOutputDll()
+    {
+        var artifacts = Path.Combine(Root, "artifacts", "GeneratorB");
+        if (Directory.Exists(artifacts))
+        {
+            var hit = Directory.EnumerateFiles(artifacts, "GeneratorB.dll", SearchOption.AllDirectories).FirstOrDefault();
+            if (hit is not null)
+            {
+                return hit;
+            }
+        }
+
+        var bin = Path.Combine(Root, "GeneratorB", "bin");
+        if (Directory.Exists(bin))
+        {
+            return Directory.EnumerateFiles(bin, "GeneratorB.dll", SearchOption.AllDirectories).FirstOrDefault();
         }
 
         return null;
@@ -213,7 +272,8 @@ internal sealed class GeneratorConsumerFixture : IDisposable
         string assemblyName,
         bool privateHelper,
         string helperVersion,
-        bool includeAnalyzerProjectReference)
+        bool includeAnalyzerProjectReference,
+        bool secondGenerator)
     {
         if (outputPathMode == OutputPathMode.RedirectedMissingAnalyzerPath)
         {
@@ -265,6 +325,39 @@ internal sealed class GeneratorConsumerFixture : IDisposable
         GeneratorSourcePath = Path.Combine(generatorDir, "MarkerGenerator.cs");
         File.WriteAllText(GeneratorSourcePath, CreateGeneratorSource(marker, privateHelper));
 
+        if (secondGenerator)
+        {
+            var secondDir = Path.Combine(Root, "GeneratorB");
+            Directory.CreateDirectory(secondDir);
+            SecondGeneratorProjectPath = Path.Combine(secondDir, "GeneratorB.csproj");
+            File.WriteAllText(
+                SecondGeneratorProjectPath,
+                """
+                <Project Sdk="Microsoft.NET.Sdk">
+                  <PropertyGroup>
+                    <TargetFramework>netstandard2.0</TargetFramework>
+                    <LangVersion>latest</LangVersion>
+                    <Nullable>enable</Nullable>
+                    <IsRoslynComponent>true</IsRoslynComponent>
+                    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+                    <AssemblyName>GeneratorB</AssemblyName>
+                    <Version>0.0.0.0</Version>
+                    <Deterministic>true</Deterministic>
+                  </PropertyGroup>
+                  <ItemGroup>
+                    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" PrivateAssets="all" />
+                  </ItemGroup>
+                </Project>
+                """);
+            SecondGeneratorSourcePath = Path.Combine(secondDir, "MarkerGeneratorB.cs");
+            File.WriteAllText(
+                SecondGeneratorSourcePath,
+                CreateGeneratorSource(
+                    MarkerB,
+                    generatedTypeName: "GeneratedMarkerB",
+                    generatorClassName: "MarkerGeneratorB"));
+        }
+
         var consumerNames = new List<string> { "Consumer" };
         for (var i = 1; i <= extraConsumers; i++)
         {
@@ -298,13 +391,24 @@ internal sealed class GeneratorConsumerFixture : IDisposable
             }
 
             var projectReferenceItem = includeAnalyzerProjectReference
-                ? """
-                  <ItemGroup>
-                    <ProjectReference Include="..\Generator\Generator.csproj"
-                                      OutputItemType="Analyzer"
-                                      ReferenceOutputAssembly="false" />
-                  </ItemGroup>
-                  """
+                ? secondGenerator
+                    ? """
+                      <ItemGroup>
+                        <ProjectReference Include="..\Generator\Generator.csproj"
+                                          OutputItemType="Analyzer"
+                                          ReferenceOutputAssembly="false" />
+                        <ProjectReference Include="..\GeneratorB\GeneratorB.csproj"
+                                          OutputItemType="Analyzer"
+                                          ReferenceOutputAssembly="false" />
+                      </ItemGroup>
+                      """
+                    : """
+                      <ItemGroup>
+                        <ProjectReference Include="..\Generator\Generator.csproj"
+                                          OutputItemType="Analyzer"
+                                          ReferenceOutputAssembly="false" />
+                      </ItemGroup>
+                      """
                 : "";
             File.WriteAllText(
                 csproj,
@@ -340,7 +444,7 @@ internal sealed class GeneratorConsumerFixture : IDisposable
         ExtraConsumerSourcePaths = extraSources;
 
         SolutionPath = Path.Combine(Root, "Repro.sln");
-        File.WriteAllText(SolutionPath, CreateSolution(consumerNames, privateHelper), Encoding.UTF8);
+        File.WriteAllText(SolutionPath, CreateSolution(consumerNames, privateHelper, secondGenerator), Encoding.UTF8);
 
         if (foreignAnalyzer)
         {
@@ -427,7 +531,11 @@ internal sealed class GeneratorConsumerFixture : IDisposable
         }
         """;
 
-    internal static string CreateGeneratorSource(string marker, bool privateHelper = false)
+    internal static string CreateGeneratorSource(
+        string marker,
+        bool privateHelper = false,
+        string generatedTypeName = "GeneratedMarker",
+        string generatorClassName = "MarkerGenerator")
     {
         var helperUse = privateHelper
             ? "                    _ = Generator.Helpers.HelperInfo.Name;"
@@ -436,15 +544,15 @@ internal sealed class GeneratorConsumerFixture : IDisposable
             using Microsoft.CodeAnalysis;
 
             [Generator]
-            public sealed class MarkerGenerator : IIncrementalGenerator
+            public sealed class __CLASS__ : IIncrementalGenerator
             {
                 public void Initialize(IncrementalGeneratorInitializationContext context)
                 {
             __HELPER__
                     context.RegisterPostInitializationOutput(ctx =>
                     {
-                        ctx.AddSource("GeneratedMarker.g.cs", @"
-            internal static class GeneratedMarker
+                        ctx.AddSource("__TYPE__.g.cs", @"
+            internal static class __TYPE__
             {
                 public const string Version = ""__MARKER__"";
             }
@@ -454,6 +562,8 @@ internal sealed class GeneratorConsumerFixture : IDisposable
             }
             """;
         return source
+            .Replace("__CLASS__", generatorClassName, StringComparison.Ordinal)
+            .Replace("__TYPE__", generatedTypeName, StringComparison.Ordinal)
             .Replace("__HELPER__", helperUse, StringComparison.Ordinal)
             .Replace("__MARKER__", marker, StringComparison.Ordinal);
     }
@@ -475,7 +585,10 @@ internal sealed class GeneratorConsumerFixture : IDisposable
             }
             """;
 
-    private static string CreateSolution(IReadOnlyList<string> consumerNames, bool includeHelper)
+    private static string CreateSolution(
+        IReadOnlyList<string> consumerNames,
+        bool includeHelper,
+        bool includeSecondGenerator)
     {
         var sb = new StringBuilder();
         sb.AppendLine("Microsoft Visual Studio Solution File, Format Version 12.00");
@@ -490,6 +603,13 @@ internal sealed class GeneratorConsumerFixture : IDisposable
         var generatorId = "{11111111-1111-1111-1111-111111111111}";
         sb.AppendLine($"Project(\"{{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}}\") = \"Generator\", \"Generator\\Generator.csproj\", \"{generatorId}\"");
         sb.AppendLine("EndProject");
+        var secondGeneratorId = "{11111111-1111-1111-1111-111111111112}";
+        if (includeSecondGenerator)
+        {
+            sb.AppendLine($"Project(\"{{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}}\") = \"GeneratorB\", \"GeneratorB\\GeneratorB.csproj\", \"{secondGeneratorId}\"");
+            sb.AppendLine("EndProject");
+        }
+
         var ids = new List<string>();
         if (includeHelper)
         {
@@ -497,6 +617,10 @@ internal sealed class GeneratorConsumerFixture : IDisposable
         }
 
         ids.Add(generatorId);
+        if (includeSecondGenerator)
+        {
+            ids.Add(secondGeneratorId);
+        }
         for (var i = 0; i < consumerNames.Count; i++)
         {
             var id = "{22222222-2222-2222-2222-" + (i + 1).ToString("000000000000") + "}";

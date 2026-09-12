@@ -17,6 +17,7 @@ internal static class Epoch1HostOps
                 Op = "build",
                 Path = path,
                 NoIncremental = noIncremental,
+                TimeoutMs = 60_000,
             },
             cancellationToken).ConfigureAwait(false);
         Assert.True(
@@ -45,7 +46,8 @@ internal static class Epoch1HostOps
         LifecycleHostClient host,
         string project = "Consumer",
         string? oracleSource = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        string? generatedType = null)
     {
         return await host.SendAsync(
             new HostCommand
@@ -53,6 +55,7 @@ internal static class Epoch1HostOps
                 Op = "oracle",
                 Project = project,
                 OracleSource = oracleSource,
+                Symbol = generatedType,
             },
             cancellationToken).ConfigureAwait(false);
     }
