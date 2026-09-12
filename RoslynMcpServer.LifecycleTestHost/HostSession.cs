@@ -56,6 +56,7 @@ internal sealed class HostSession
                 "applyHeld" => await ApplyHeldAsync(cancellationToken).ConfigureAwait(false),
                 "publishedDocument" => await PublishedDocumentAsync(command, cancellationToken).ConfigureAwait(false),
                 "applyUnknownAnalyzerDiff" => await ApplyUnknownAnalyzerDiffAsync(command, cancellationToken).ConfigureAwait(false),
+                "applyDetachedCandidate" => await ApplyDetachedCandidateAsync(command, cancellationToken).ConfigureAwait(false),
                 "forceCopyFailure" => ForceCopyFailure(),
                 "forceAccessFailure" => ForceAccessFailure(),
                 "publishGeneration" => PublishGeneration(command),
@@ -534,6 +535,47 @@ internal sealed class HostSession
         var write = await _manager.ApplySolutionChangesToDiskAsync(solution, candidate, cancellationToken)
             .ConfigureAwait(false);
         var response = Inspect("applyUnknownAnalyzerDiff");
+        AttachWrite(response, write);
+        response.Ok = write.IsFullSuccess;
+        if (!write.IsFullSuccess)
+        {
+            response.Error = write.Reason ?? write.Status.ToString();
+        }
+
+        return response;
+    }
+
+    private async Task<HostResponse> ApplyDetachedCandidateAsync(
+        HostCommand command,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(command.Path) || command.Text is null)
+        {
+            return Fail("applyDetachedCandidate", "path-and-text-required");
+        }
+
+        using var adhoc = new AdhocWorkspace();
+        var projectId = ProjectId.CreateNewId();
+        var documentId = DocumentId.CreateNewId(projectId);
+        var fullPath = Path.GetFullPath(command.Path);
+        var detached = adhoc.CurrentSolution
+            .AddProject(ProjectInfo.Create(
+                projectId,
+                VersionStamp.Create(),
+                "Detached",
+                "Detached",
+                LanguageNames.CSharp))
+            .AddDocument(
+                documentId,
+                Path.GetFileName(fullPath),
+                SourceText.From("// detached-base", Encoding.UTF8),
+                filePath: fullPath);
+        var candidate = detached.WithDocumentText(
+            documentId,
+            SourceText.From(command.Text, Encoding.UTF8));
+        var write = await _manager.ApplySolutionChangesToDiskAsync(detached, candidate, cancellationToken)
+            .ConfigureAwait(false);
+        var response = Inspect("applyDetachedCandidate");
         AttachWrite(response, write);
         response.Ok = write.IsFullSuccess;
         if (!write.IsFullSuccess)

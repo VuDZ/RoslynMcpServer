@@ -170,6 +170,11 @@ MCP `tools/list` stays JSON + JSON Schema. Markdown is for JIT help and diagnost
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.3.16
+
+- **Reject stale write bases before any disk or workspace mutation (V3-R1 / A4-09).** A candidate built on an older published snapshot is `PreflightRejected` (`stale-base`, `stale-publication`, or `unknown-operation-context`) before document persist, project-file write, `TryApplyChanges`, or reconciliation. Same-session intervening edits, watcher flush, reset/reload, and unverifiable external candidates cannot overwrite newer text. Fresh under-lock update/flush still apply. Public MCP schema is unchanged.
+- **Catalog size** — unchanged: full 63 tools / 44,503 bytes; lite 19 / 16,917.
+
 ### v1.3.15
 
 - **No implicit semantic workspace load (U-ARB-04-IMPL-1).** `FindDocumentAsync` no longer walks parent directories and publishes a raw workspace when semantic tools are called before `load_workspace`. It returns no document, matching the existing tool contract and no-workspace guidance; clients must load a workspace explicitly.
@@ -1036,7 +1041,7 @@ Verify id/version with `search_nuget_registry` first. Clears workspace cache —
 
 **Parameters:** *(none)*
 
-Use after `dotnet publish` to verify the MCP host picked up the new binary (expect **v1.3.15** and **63** tools on `full`, or **19** on `lite`).
+Use after `dotnet publish` to verify the MCP host picked up the new binary (expect **v1.3.16** and **63** tools on `full`, or **19** on `lite`).
 
 </details>
 
@@ -1248,7 +1253,7 @@ cd D:\Devel\YourApp
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.3.15). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.3.16). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 
@@ -1869,7 +1874,7 @@ cd D:\Devel\YourApp
 
 **Параметры:** *(нет)*
 
-После `dotnet publish` — проверка, что MCP подхватил новый бинарник (ожидай **v1.3.15** и **63** tools в `full`, или **19** в `lite`).
+После `dotnet publish` — проверка, что MCP подхватил новый бинарник (ожидай **v1.3.16** и **63** tools в `full`, или **19** в `lite`).
 
 </details>
 

@@ -127,21 +127,236 @@ public sealed class WorkspaceWriteBoundaryTests
             ProjectInfo.Create(projectId, VersionStamp.Create(), "Consumer", "Consumer", LanguageNames.CSharp)
                 .WithAnalyzerReferences(new AnalyzerReference[] { original }));
         var currentSession = Guid.NewGuid();
-        var context = new WorkspaceWriteOperationContext(
+        var mapping = Mapping(projectId, original.FullPath!, @"C:\Shadow\Generator.dll");
+        var context = WorkspaceWriteOperationContext.Verified(
             Guid.NewGuid(),
             @"C:\Repro\App.sln",
-            Mapping(projectId, original.FullPath!, @"C:\Shadow\Generator.dll"),
-            baseSolution);
+            mapping,
+            baseSolution,
+            baseSolution,
+            rawWorkspaceRevision: 1,
+            shadowCopyEnabled: true);
 
         var preflight = WorkspaceWriteBoundary.Preflight(
             baseSolution,
             baseSolution,
             context,
-            currentSession,
-            @"C:\Repro\App.sln",
+            Freshness(currentSession, mapping, baseSolution),
             new InProcessAnalyzerAssemblyLoader());
         Assert.False(preflight.Accepted);
-        Assert.Equal("stale-session", preflight.Reason);
+        Assert.Equal(WorkspaceWriteBoundary.ReasonStaleSession, preflight.Reason);
+    }
+
+    [Fact]
+    public void Stale_raw_revision_is_rejected_before_inverse()
+    {
+        using var workspace = new AdhocWorkspace();
+        var projectId = ProjectId.CreateNewId();
+        var original = new FakeAnalyzerReference("original", @"C:\Repro\Generator.dll");
+        var baseSolution = workspace.CurrentSolution.AddProject(
+            ProjectInfo.Create(projectId, VersionStamp.Create(), "Consumer", "Consumer", LanguageNames.CSharp)
+                .WithAnalyzerReferences(new AnalyzerReference[] { original }));
+        var session = Guid.NewGuid();
+        var mapping = Mapping(projectId, original.FullPath!, @"C:\Shadow\Generator.dll");
+        var context = WorkspaceWriteOperationContext.Verified(
+            session,
+            @"C:\Repro\App.sln",
+            mapping,
+            baseSolution,
+            baseSolution,
+            rawWorkspaceRevision: 1,
+            shadowCopyEnabled: true);
+
+        var preflight = WorkspaceWriteBoundary.Preflight(
+            baseSolution,
+            baseSolution,
+            context,
+            Freshness(session, mapping, baseSolution, revision: 2),
+            new InProcessAnalyzerAssemblyLoader());
+        Assert.False(preflight.Accepted);
+        Assert.Equal(WorkspaceWriteBoundary.ReasonStaleBase, preflight.Reason);
+    }
+
+    [Fact]
+    public void Stale_raw_snapshot_identity_is_rejected_even_when_revision_matches()
+    {
+        using var workspace = new AdhocWorkspace();
+        var projectId = ProjectId.CreateNewId();
+        var original = new FakeAnalyzerReference("original", @"C:\Repro\Generator.dll");
+        var first = workspace.CurrentSolution.AddProject(
+            ProjectInfo.Create(projectId, VersionStamp.Create(), "Consumer", "Consumer", LanguageNames.CSharp)
+                .WithAnalyzerReferences(new AnalyzerReference[] { original }));
+        var later = first.WithProjectName(projectId, "Consumer2");
+        var session = Guid.NewGuid();
+        var mapping = Mapping(projectId, original.FullPath!, @"C:\Shadow\Generator.dll");
+        var context = WorkspaceWriteOperationContext.Verified(
+            session,
+            @"C:\Repro\App.sln",
+            mapping,
+            first,
+            first,
+            rawWorkspaceRevision: 1,
+            shadowCopyEnabled: true);
+
+        var preflight = WorkspaceWriteBoundary.Preflight(
+            later,
+            later,
+            context,
+            Freshness(session, mapping, later, revision: 1),
+            new InProcessAnalyzerAssemblyLoader());
+        Assert.False(preflight.Accepted);
+        Assert.Equal(WorkspaceWriteBoundary.ReasonStaleBase, preflight.Reason);
+    }
+
+    [Fact]
+    public void Held_base_that_is_neither_current_published_nor_raw_is_rejected()
+    {
+        using var workspace = new AdhocWorkspace();
+        var projectId = ProjectId.CreateNewId();
+        var original = new FakeAnalyzerReference("original", @"C:\Repro\Generator.dll");
+        var raw = workspace.CurrentSolution.AddProject(
+            ProjectInfo.Create(projectId, VersionStamp.Create(), "Consumer", "Consumer", LanguageNames.CSharp)
+                .WithAnalyzerReferences(new AnalyzerReference[] { original }));
+        var published = raw.WithProjectName(projectId, "Published");
+        var held = raw.WithProjectName(projectId, "Held");
+        var session = Guid.NewGuid();
+        var mapping = Mapping(projectId, original.FullPath!, @"C:\Shadow\Generator.dll");
+        var context = WorkspaceWriteOperationContext.Verified(
+            session,
+            @"C:\Repro\App.sln",
+            mapping,
+            published,
+            raw,
+            rawWorkspaceRevision: 2,
+            shadowCopyEnabled: true);
+
+        var preflight = WorkspaceWriteBoundary.Preflight(
+            held,
+            raw,
+            context,
+            new WorkspaceWriteFreshnessState(
+                session,
+                @"C:\Repro\App.sln",
+                mapping,
+                ShadowCopyEnabled: true,
+                RawWorkspaceRevision: 2,
+                RawWorkspaceSnapshot: raw,
+                PublishedSnapshot: published),
+            new InProcessAnalyzerAssemblyLoader(),
+            heldBase: held);
+        Assert.False(preflight.Accepted);
+        Assert.Equal(WorkspaceWriteBoundary.ReasonStaleBase, preflight.Reason);
+    }
+
+    [Fact]
+    public void Mapping_change_without_raw_mutation_is_rejected()
+    {
+        using var workspace = new AdhocWorkspace();
+        var projectId = ProjectId.CreateNewId();
+        var original = new FakeAnalyzerReference("original", @"C:\Repro\Generator.dll");
+        var baseSolution = workspace.CurrentSolution.AddProject(
+            ProjectInfo.Create(projectId, VersionStamp.Create(), "Consumer", "Consumer", LanguageNames.CSharp)
+                .WithAnalyzerReferences(new AnalyzerReference[] { original }));
+        var session = Guid.NewGuid();
+        var heldMapping = Mapping(projectId, original.FullPath!, @"C:\Shadow\Generator.dll");
+        var currentMapping = Mapping(projectId, original.FullPath!, @"C:\Shadow\Generator-v2.dll");
+        var context = WorkspaceWriteOperationContext.Verified(
+            session,
+            @"C:\Repro\App.sln",
+            heldMapping,
+            baseSolution,
+            baseSolution,
+            rawWorkspaceRevision: 1,
+            shadowCopyEnabled: true);
+
+        var preflight = WorkspaceWriteBoundary.Preflight(
+            baseSolution,
+            baseSolution,
+            context,
+            Freshness(session, currentMapping, baseSolution),
+            new InProcessAnalyzerAssemblyLoader());
+        Assert.False(preflight.Accepted);
+        Assert.Equal(WorkspaceWriteBoundary.ReasonStalePublication, preflight.Reason);
+    }
+
+    [Fact]
+    public void Unknown_operation_context_is_rejected_before_inverse()
+    {
+        using var workspace = new AdhocWorkspace();
+        var projectId = ProjectId.CreateNewId();
+        var baseSolution = workspace.CurrentSolution.AddProject(
+            ProjectInfo.Create(projectId, VersionStamp.Create(), "Consumer", "Consumer", LanguageNames.CSharp));
+        var session = Guid.NewGuid();
+
+        var missing = WorkspaceWriteBoundary.Preflight(
+            baseSolution,
+            baseSolution,
+            operationContext: null,
+            Freshness(session, mapping: null, baseSolution, shadowCopyEnabled: false),
+            new InProcessAnalyzerAssemblyLoader());
+        Assert.False(missing.Accepted);
+        Assert.Equal(WorkspaceWriteBoundary.ReasonUnknownOperationContext, missing.Reason);
+
+        var unverified = WorkspaceWriteBoundary.Preflight(
+            baseSolution,
+            baseSolution,
+            WorkspaceWriteOperationContext.Unverified,
+            Freshness(session, mapping: null, baseSolution, shadowCopyEnabled: false),
+            new InProcessAnalyzerAssemblyLoader());
+        Assert.False(unverified.Accepted);
+        Assert.Equal(WorkspaceWriteBoundary.ReasonUnknownOperationContext, unverified.Reason);
+    }
+
+    [Fact]
+    public void Fresh_context_is_accepted_with_and_without_overlay()
+    {
+        using var workspace = new AdhocWorkspace();
+        var projectId = ProjectId.CreateNewId();
+        var original = new FakeAnalyzerReference("original", @"C:\Repro\Generator.dll");
+        var shadow = new FakeAnalyzerReference("shadow", @"C:\Shadow\Generator.dll");
+        var raw = workspace.CurrentSolution.AddProject(
+            ProjectInfo.Create(projectId, VersionStamp.Create(), "Consumer", "Consumer", LanguageNames.CSharp)
+                .WithAnalyzerReferences(new AnalyzerReference[] { original }));
+        var session = Guid.NewGuid();
+
+        var noOverlay = WorkspaceWriteOperationContext.Verified(
+            session,
+            @"C:\Repro\App.sln",
+            mapping: null,
+            raw,
+            raw,
+            rawWorkspaceRevision: 1,
+            shadowCopyEnabled: false);
+        var noOverlayPreflight = WorkspaceWriteBoundary.Preflight(
+            raw,
+            raw,
+            noOverlay,
+            Freshness(session, mapping: null, raw, shadowCopyEnabled: false),
+            new InProcessAnalyzerAssemblyLoader());
+        Assert.True(noOverlayPreflight.Accepted);
+        Assert.Same(raw, noOverlayPreflight.CleanedCandidate);
+
+        var mapping = Mapping(projectId, original.FullPath!, shadow.FullPath!);
+        var overlayCandidate = raw.WithProjectAnalyzerReferences(projectId, new AnalyzerReference[] { shadow });
+        var overlay = WorkspaceWriteOperationContext.Verified(
+            session,
+            @"C:\Repro\App.sln",
+            mapping,
+            overlayCandidate,
+            raw,
+            rawWorkspaceRevision: 1,
+            shadowCopyEnabled: true);
+        var overlayPreflight = WorkspaceWriteBoundary.Preflight(
+            overlayCandidate,
+            raw,
+            overlay,
+            Freshness(session, mapping, raw),
+            new InProcessAnalyzerAssemblyLoader());
+        Assert.True(overlayPreflight.Accepted);
+        Assert.True(
+            WorkspaceWriteBoundary.AnalyzerReferencesEquivalent(
+                overlayPreflight.CleanedCandidate!.GetProject(projectId)!.AnalyzerReferences,
+                raw.GetProject(projectId)!.AnalyzerReferences));
     }
 
     [Fact]
@@ -251,6 +466,22 @@ public sealed class WorkspaceWriteBoundaryTests
         Assert.Equal(1, calls);
         Assert.Contains("private bool TryApplyWorkspaceChanges", text, StringComparison.Ordinal);
         Assert.DoesNotContain("RevertAnalyzerReferenceOverlayForApply", text, StringComparison.Ordinal);
+    }
+
+    private static WorkspaceWriteFreshnessState Freshness(
+        Guid sessionId,
+        AnalyzerShadowMapping? mapping,
+        Solution raw,
+        bool shadowCopyEnabled = true,
+        long revision = 1)
+    {
+        return new WorkspaceWriteFreshnessState(
+            sessionId,
+            @"C:\Repro\App.sln",
+            mapping,
+            shadowCopyEnabled,
+            revision,
+            raw);
     }
 
     private static AnalyzerShadowMapping Mapping(ProjectId projectId, string original, string shadow)

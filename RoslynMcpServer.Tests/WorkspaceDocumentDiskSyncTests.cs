@@ -26,7 +26,7 @@ public sealed class WorkspaceDocumentDiskSyncTests
     }
 
     [Fact]
-    public async Task ApplyAsync_skips_unchanged_text()
+    public async Task ApplyAsync_refreshes_identity_when_text_is_unchanged()
     {
         using var ctx = TempProject.Create();
 
@@ -38,7 +38,8 @@ public sealed class WorkspaceDocumentDiskSyncTests
 
         Assert.Equal(0, result.Updated);
         Assert.Equal(1, result.Unchanged);
-        Assert.Same(ctx.Workspace.CurrentSolution, result.Solution);
+        var text = await result.Solution.GetDocument(ctx.DocumentId)!.GetTextAsync();
+        Assert.Contains("class A", text.ToString(), StringComparison.Ordinal);
     }
 
     [Fact]

@@ -104,14 +104,16 @@ public static class WorkspaceDocumentDiskSync
                 }
 
                 var sourceText = await document.GetTextAsync(cancellationToken).ConfigureAwait(false);
+                current = current.WithDocumentText(documentId, SourceText.From(diskText));
                 if (string.Equals(sourceText.ToString(), diskText, StringComparison.Ordinal))
                 {
                     unchanged++;
-                    continue;
+                }
+                else
+                {
+                    updated++;
                 }
 
-                current = current.WithDocumentText(documentId, SourceText.From(diskText));
-                updated++;
                 continue;
             }
 

@@ -84,6 +84,7 @@ public sealed class SolutionManager
     private readonly ConditionalWeakTable<Solution, WorkspaceWriteOperationContext> _operationContexts = new();
     private WorkspaceWriteOperationContext? _lastPublishedWriteContext;
     private WorkspaceWriteResult? _lastWriteResult;
+    private long _rawWorkspaceRevision;
     private string? _loadedPath;
     private string? _loadedConfiguration;
     private string? _loadedPlatform;
@@ -721,11 +722,7 @@ public sealed class SolutionManager
     private void SetPublishedSnapshot(Solution overlay)
     {
         _solution = overlay;
-        var context = new WorkspaceWriteOperationContext(
-            _loadSessionId,
-            _loadedPath,
-            _analyzerShadowMapping,
-            overlay);
+        var context = CreateVerifiedWriteContext(overlay, _workspace?.CurrentSolution);
         _lastPublishedWriteContext = context;
         try
         {
@@ -736,6 +733,37 @@ public sealed class SolutionManager
         }
     }
 
+    private WorkspaceWriteOperationContext CreateVerifiedWriteContext(
+        Solution? publishedBase,
+        Solution? rawWorkspace)
+    {
+        return WorkspaceWriteOperationContext.Verified(
+            _loadSessionId,
+            _loadedPath,
+            _analyzerShadowMapping,
+            publishedBase,
+            rawWorkspace,
+            _rawWorkspaceRevision,
+            _shadowCopyAnalyzersEnabled);
+    }
+
+    private WorkspaceWriteFreshnessState CurrentWriteFreshness(Solution rawWorkspace)
+    {
+        return new WorkspaceWriteFreshnessState(
+            _loadSessionId,
+            _loadedPath,
+            _analyzerShadowMapping,
+            _shadowCopyAnalyzersEnabled,
+            _rawWorkspaceRevision,
+            rawWorkspace,
+            _solution);
+    }
+
+    private void NoteRawWorkspaceRevision()
+    {
+        _rawWorkspaceRevision++;
+    }
+
     private WorkspaceWriteOperationContext ResolveOperationContext(Solution? oldSolution)
     {
         if (oldSolution is not null && _operationContexts.TryGetValue(oldSolution, out var stamped))
@@ -744,18 +772,14 @@ public sealed class SolutionManager
         }
 
         if (oldSolution is not null
-            && _lastPublishedWriteContext is not null
-            && (ReferenceEquals(oldSolution, _lastPublishedWriteContext.BaseSnapshot)
+            && _lastPublishedWriteContext is { IsVerified: true } last
+            && (ReferenceEquals(oldSolution, last.BaseSnapshot)
                 || ReferenceEquals(oldSolution, _solution)))
         {
-            return _lastPublishedWriteContext;
+            return last;
         }
 
-        return new WorkspaceWriteOperationContext(
-            _loadSessionId,
-            _loadedPath,
-            _analyzerShadowMapping,
-            oldSolution ?? _solution);
+        return WorkspaceWriteOperationContext.Unverified;
     }
 
     private WorkspaceWriteResult RememberWrite(WorkspaceWriteResult result)
@@ -773,7 +797,13 @@ public sealed class SolutionManager
             return false;
         }
 
-        return workspace.TryApplyChanges(cleaned);
+        if (!workspace.TryApplyChanges(cleaned))
+        {
+            return false;
+        }
+
+        NoteRawWorkspaceRevision();
+        return true;
     }
 
     /// <summary>
@@ -992,11 +1022,7 @@ public sealed class SolutionManager
         var candidate = baseSolution.WithDocumentText(
             documentId,
             SourceText.From(newText, Encoding.UTF8));
-        var context = new WorkspaceWriteOperationContext(
-            _loadSessionId,
-            _loadedPath,
-            _analyzerShadowMapping,
-            baseSolution);
+        var context = CreateVerifiedWriteContext(_solution, baseSolution);
         IReadOnlyList<(string Path, string Text)>? alreadyOnDisk = persistToDisk
             ? null
             : [(fullPath, newText)];
@@ -1028,9 +1054,9 @@ public sealed class SolutionManager
             candidate,
             workspace.CurrentSolution,
             operationContext,
-            _loadSessionId,
-            _loadedPath,
-            _analyzerAssemblyLoader);
+            CurrentWriteFreshness(workspace.CurrentSolution),
+            _analyzerAssemblyLoader,
+            baseForDocuments);
         if (!preflight.Accepted || preflight.CleanedCandidate is null)
         {
             _logger.LogWarning(
@@ -1277,6 +1303,7 @@ public sealed class SolutionManager
             _solution = null;
             _lastPublishedWriteContext = null;
             _lastWriteResult = null;
+            NoteRawWorkspaceRevision();
             _shadowCopyAnalyzersEnabled = false;
             _shadowCopyRootDirectory = null;
             _analyzerShadowMapping = null;
@@ -1400,6 +1427,7 @@ public sealed class SolutionManager
         }
 
         _workspace = workspace;
+        NoteRawWorkspaceRevision();
         _loadedPath = fullPath;
         _analyzerProvenanceSnapshot = provenanceSnapshot;
         _lastExecutionObservation = AnalyzerExecutionGate.EvaluateInSolutionAnalyzers(
@@ -1486,8 +1514,16 @@ public sealed class SolutionManager
             _pathComparison,
             cancellationToken).ConfigureAwait(false);
 
-        if (result.Updated == 0 && result.Added == 0 && result.Removed == 0)
+        if (result.Updated == 0
+            && result.Added == 0
+            && result.Removed == 0
+            && ReferenceEquals(result.Solution, workspace.CurrentSolution))
         {
+            if (dirty.Count > 0 || refreshAll)
+            {
+                NoteRawWorkspaceRevision();
+            }
+
             return;
         }
 
@@ -1502,14 +1538,11 @@ public sealed class SolutionManager
             alreadyOnDisk.Add((path, await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false)));
         }
 
-        var context = new WorkspaceWriteOperationContext(
-            _loadSessionId,
-            _loadedPath,
-            _analyzerShadowMapping,
-            workspace.CurrentSolution);
+        var rawBase = workspace.CurrentSolution;
+        var context = CreateVerifiedWriteContext(_solution, rawBase);
         var write = await ApplyWorkspaceWriteUnderLockAsync(
                 result.Solution,
-                workspace.CurrentSolution,
+                rawBase,
                 context,
                 persistDocuments: false,
                 alreadyOnDisk,

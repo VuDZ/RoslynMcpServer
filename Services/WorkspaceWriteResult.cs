@@ -92,21 +92,62 @@ public sealed class WorkspaceWriteResult
 }
 
 /// <summary>
-/// Mapping, session, and base snapshot the candidate was built with.
+/// Mapping, session, published base, and raw-workspace stamp the candidate was built with.
 /// Not a history of snapshots or an in-flight operation registry.
+/// <see cref="BaseSnapshot"/> is the published overlay used for lookup/transform.
+/// Freshness compares <see cref="RawWorkspaceRevision"/> / <see cref="RawWorkspaceSnapshot"/>,
+/// never overlay versus raw via <c>ReferenceEquals</c>.
 /// </summary>
 internal sealed class WorkspaceWriteOperationContext
 {
-    public WorkspaceWriteOperationContext(
+    private WorkspaceWriteOperationContext(
         Guid sessionId,
         string? loadedPath,
         AnalyzerShadowMapping? mapping,
-        Solution? baseSnapshot)
+        Solution? baseSnapshot,
+        Solution? rawWorkspaceSnapshot,
+        long rawWorkspaceRevision,
+        bool shadowCopyEnabled,
+        bool isVerified)
     {
         SessionId = sessionId;
         LoadedPath = loadedPath;
         Mapping = mapping;
         BaseSnapshot = baseSnapshot;
+        RawWorkspaceSnapshot = rawWorkspaceSnapshot;
+        RawWorkspaceRevision = rawWorkspaceRevision;
+        ShadowCopyEnabled = shadowCopyEnabled;
+        IsVerified = isVerified;
+    }
+
+    public static WorkspaceWriteOperationContext Unverified { get; } = new(
+        Guid.Empty,
+        loadedPath: null,
+        mapping: null,
+        baseSnapshot: null,
+        rawWorkspaceSnapshot: null,
+        rawWorkspaceRevision: -1,
+        shadowCopyEnabled: false,
+        isVerified: false);
+
+    public static WorkspaceWriteOperationContext Verified(
+        Guid sessionId,
+        string? loadedPath,
+        AnalyzerShadowMapping? mapping,
+        Solution? baseSnapshot,
+        Solution? rawWorkspaceSnapshot,
+        long rawWorkspaceRevision,
+        bool shadowCopyEnabled)
+    {
+        return new WorkspaceWriteOperationContext(
+            sessionId,
+            loadedPath,
+            mapping,
+            baseSnapshot,
+            rawWorkspaceSnapshot,
+            rawWorkspaceRevision,
+            shadowCopyEnabled,
+            isVerified: true);
     }
 
     public Guid SessionId { get; }
@@ -116,7 +157,27 @@ internal sealed class WorkspaceWriteOperationContext
     public AnalyzerShadowMapping? Mapping { get; }
 
     public Solution? BaseSnapshot { get; }
+
+    public Solution? RawWorkspaceSnapshot { get; }
+
+    public long RawWorkspaceRevision { get; }
+
+    public bool ShadowCopyEnabled { get; }
+
+    public bool IsVerified { get; }
 }
+
+/// <summary>
+/// Live session/mapping/raw stamp compared with a held operation context under the write lock.
+/// </summary>
+internal readonly record struct WorkspaceWriteFreshnessState(
+    Guid SessionId,
+    string? LoadedPath,
+    AnalyzerShadowMapping? Mapping,
+    bool ShadowCopyEnabled,
+    long RawWorkspaceRevision,
+    Solution? RawWorkspaceSnapshot,
+    Solution? PublishedSnapshot = null);
 
 internal readonly record struct WorkspaceWritePreflight(
     bool Accepted,

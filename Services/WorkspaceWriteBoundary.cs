@@ -9,40 +9,51 @@ namespace RoslynMcpServer.Services;
 /// </summary>
 internal static class WorkspaceWriteBoundary
 {
+    public const string ReasonStaleSession = "stale-session";
+    public const string ReasonStaleBase = "stale-base";
+    public const string ReasonStalePublication = "stale-publication";
+    public const string ReasonUnknownOperationContext = "unknown-operation-context";
+
     public static WorkspaceWritePreflight Preflight(
         Solution candidate,
         Solution workspaceCurrent,
         WorkspaceWriteOperationContext? operationContext,
-        Guid currentSessionId,
-        string? currentLoadedPath,
-        IAnalyzerAssemblyLoader loader)
+        WorkspaceWriteFreshnessState current,
+        IAnalyzerAssemblyLoader loader,
+        Solution? heldBase = null)
     {
         ArgumentNullException.ThrowIfNull(candidate);
         ArgumentNullException.ThrowIfNull(workspaceCurrent);
         ArgumentNullException.ThrowIfNull(loader);
 
-        if (operationContext is not null)
+        if (operationContext is null || !operationContext.IsVerified)
         {
-            if (operationContext.SessionId != Guid.Empty
-                && operationContext.SessionId != currentSessionId)
-            {
-                return new WorkspaceWritePreflight(false, "stale-session", null);
-            }
-
-            if (!LoadedPathsCompatible(operationContext.LoadedPath, currentLoadedPath))
-            {
-                return new WorkspaceWritePreflight(false, "stale-session", null);
-            }
+            return new WorkspaceWritePreflight(false, ReasonUnknownOperationContext, null);
         }
 
-        var mapping = operationContext?.Mapping;
-        var classification = ClassifyAndInvert(candidate, workspaceCurrent, mapping, loader);
-        if (!classification.Accepted)
+        if (operationContext.SessionId != Guid.Empty
+            && operationContext.SessionId != current.SessionId)
         {
-            return classification;
+            return new WorkspaceWritePreflight(false, ReasonStaleSession, null);
         }
 
-        return classification;
+        if (!LoadedPathsCompatible(operationContext.LoadedPath, current.LoadedPath))
+        {
+            return new WorkspaceWritePreflight(false, ReasonStaleSession, null);
+        }
+
+        if (!RawWorkspaceFresh(operationContext, current, workspaceCurrent)
+            || !HeldBaseFresh(heldBase, current, workspaceCurrent))
+        {
+            return new WorkspaceWritePreflight(false, ReasonStaleBase, null);
+        }
+
+        if (!PublicationCompatible(operationContext, current))
+        {
+            return new WorkspaceWritePreflight(false, ReasonStalePublication, null);
+        }
+
+        return ClassifyAndInvert(candidate, workspaceCurrent, operationContext.Mapping, loader);
     }
 
     public static WorkspaceWritePreflight ClassifyAndInvert(
@@ -129,6 +140,44 @@ internal static class WorkspaceWriteBoundary
 
         return string.Equals(left.Display, right.Display, StringComparison.Ordinal)
             && Equals(left.Id, right.Id);
+    }
+
+    private static bool HeldBaseFresh(
+        Solution? heldBase,
+        WorkspaceWriteFreshnessState current,
+        Solution workspaceCurrent)
+    {
+        if (heldBase is null)
+        {
+            return true;
+        }
+
+        var currentRaw = current.RawWorkspaceSnapshot ?? workspaceCurrent;
+        return ReferenceEquals(heldBase, currentRaw)
+            || ReferenceEquals(heldBase, current.PublishedSnapshot);
+    }
+
+    private static bool RawWorkspaceFresh(
+        WorkspaceWriteOperationContext operationContext,
+        WorkspaceWriteFreshnessState current,
+        Solution workspaceCurrent)
+    {
+        if (operationContext.RawWorkspaceRevision != current.RawWorkspaceRevision)
+        {
+            return false;
+        }
+
+        var currentRaw = current.RawWorkspaceSnapshot ?? workspaceCurrent;
+        return operationContext.RawWorkspaceSnapshot is not null
+            && ReferenceEquals(operationContext.RawWorkspaceSnapshot, currentRaw);
+    }
+
+    private static bool PublicationCompatible(
+        WorkspaceWriteOperationContext operationContext,
+        WorkspaceWriteFreshnessState current)
+    {
+        return operationContext.ShadowCopyEnabled == current.ShadowCopyEnabled
+            && ReferenceEquals(operationContext.Mapping, current.Mapping);
     }
 
     private static bool LoadedPathsCompatible(string? operationPath, string? currentPath)
