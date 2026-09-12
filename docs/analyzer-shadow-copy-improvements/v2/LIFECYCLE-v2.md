@@ -4,7 +4,8 @@
 не текущий shipped. Целевые строки 2/3/4 **приняты** в v1.3.6–v1.3.8; эпоха 5
 **принята** в v1.3.12 (U-ARB-01 capture + confirmed-only; inaccessible не
 выбран). Построчный аудит: [epoch-6-results.md](epoch-6-results.md).
-U-ARB-02 = restart-required, U-ARB-03 = main-only (эпоха 3); U-ARB-05 не выбран.
+U-ARB-02 = restart-required, U-ARB-03 = main-only (эпоха 3);
+U-ARB-05 = session-sticky (v1.3.13).
 «Обновление» в таблицах всегда уточняется: граф, файлы или исполнение.
 
 ## LC-S1. Действие, v1.3.5, цель и проверка
@@ -14,7 +15,7 @@ U-ARB-02 = restart-required, U-ARB-03 = main-only (эпоха 3); U-ARB-05 не 
 | Первый load/cache miss, false или omitted | Открывает workspace, overlay не включён | Сохранить opt-in, новая сессия без активного mapping | E1-S2: first load, broken-path negative control |
 | Первый load/cache miss, true | После load отдельная подготовка main/PDB; rewrite до lazy load | Подготовка и ответ привязаны к сессии, immutable mapping, раздельный execution status | E1-S1/S2/S4, E2-S5 |
 | Cached load, true | Граф переиспользуется, copier вызывается отдельно | Попытка подготовки на этом входе; при обещанном refresh обязательны hash; supported execution по U-ARB-02 | Три операции V1→V2, same-size/same-time mutation |
-| Cached load, ранее true, затем false/omitted | Активный overlay сохраняется | Сохранить до U-ARB-05; это не disable и не новый refresh | true→false, true→omitted |
+| Cached load, ранее true, затем false/omitted | Активный overlay сохраняется | Session-sticky: сохранить overlay; это не disable и не новый refresh | true→false, true→omitted |
 | Cached load, false→true | Попытка включения/подготовки без reopen графа | Mapping той же load session, результаты по ссылкам | false→true и prepare failure |
 | Reset+load с каждым вариантом флага | Workspace заново; loader тот же; старый opt-in сброшен | Новый session mapping только при opt-in; свежая CLR версия не следует из reset | Варианты флага после reset и exact V1/V2 |
 | Process restart+load | Новый процесс и loader | Проверка выбранного режима U-ARB-02; opt-in при новой загрузке | Exact V2, identity/path, стоимость restart |
@@ -45,7 +46,7 @@ U-ARB-02 = restart-required, U-ARB-03 = main-only (эпоха 3); U-ARB-05 не 
 | Первый load true, prepare успешна | Новая сессия | Полный overlay | Новый, этой сессии | Подготовленные | Текущий процесс, lazy | Состояние новой сессии; prepare не flush | Prepared/rewritten, execution ещё не наблюдалось |
 | Cached true, разрешённая успешная подготовка | Прежний | Полный overlay результата | Проверенный результат той же сессии | Выбранные по content policy | Прежний; U-ARB-02 gate | Не меняется от prepare; flush учитывается отдельно | Refresh/rewrite отдельно от execution |
 | Cached true, неподдержанное in-process обновление | Прежний | Неподдержанный результат не публикуется как успех | Подготовка не разрешает исполнение | Нет разрешения активировать заведомо неверную версию | Прежний | Prepare не flush | Явный отказ по выбранному U-ARB-02 режиму |
-| Cached true→false/omitted | Прежний | Прежний overlay | Прежний | Прежние | Прежний | Без изменения от флага | Текущее sticky поведение, не disable; U-ARB-05 |
+| Cached true→false/omitted | Прежний | Прежний overlay | Прежний | Прежние | Прежний | Без изменения от флага | Session-sticky контракт: не disable и не refresh |
 | Cached false→true | Прежний | Overlay по результату подготовки | Новый/частичный результат этой сессии | Успешно подготовленные | Прежний, lazy | Prepare не flush | Prepared/partial/failure отдельно |
 | Reset+load | Новая сессия | Новый raw/overlay по флагу | Старый не переносится | Новые только при opt-in | Прежний, assemblies могут жить | Состояние нового workspace | Reopen; execution по U-ARB-02 |
 | Process restart+load | Новая сессия | Новый по флагу | Новый при opt-in | Выбранные в новом процессе | Новый | Новая сессия watcher | Новый load; exact execution проверяется отдельно |
@@ -84,7 +85,9 @@ U-ARB-02 — restart-required: cached load и reset+load готовят файл
 и сохраняет активный mapping. Прежний случайный pickup новых bytes при edit больше
 не является workflow обновления; это наблюдаемое изменение совместимости workaround.
 При failed refresh старое поколение явно помечено stale, а успех следующего edit
-не отменяет эту информацию. Отключение до U-ARB-05 — reset, затем load false/omitted.
+не отменяет эту информацию. По session-sticky контракту U-ARB-05 отключение —
+`reset_workspace`, затем load с `false`/omitted; другой load key или graph reopen
+также начинает новую сессию без прежнего overlay.
 
 CodeAction / `rename_symbol`: неподдержанный analyzer diff отклоняется до записей;
 частичное сохранение возвращает Status, Reason и известные пути и не считается

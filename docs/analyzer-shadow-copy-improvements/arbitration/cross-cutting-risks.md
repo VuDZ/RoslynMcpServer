@@ -7,8 +7,8 @@ Interactions: E1-04, E1-09, E2-04, E3-06, E6-03; Astra N-06.
 The revision must distinguish requested mode, prepared mapping, active generation,
 last refresh result, and observed execution result. A boolean cannot represent a
 partially prepared mapping, a stale-but-active generation, or a failed first-use
-load. The eventual U-ARB-05 flag policy must not discard a still-needed mapping
-before disable/refresh behavior has a defined result.
+load. U-ARB-05 later selected session-sticky activation, so cached false/omitted
+must not discard the mapping; disable starts a new workspace session.
 
 ## 2. Mapping lifetime and operation consistency are one contract
 

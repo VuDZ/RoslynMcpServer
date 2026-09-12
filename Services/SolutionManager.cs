@@ -59,8 +59,8 @@ public sealed class SolutionManager
     private MSBuildWorkspace? _workspace;
     private Solution? _solution;
     // Overlay state is not one enabled bool: mapping is prepared/active generations,
-    // _lastRefreshStale/_lastShadowCopyResults are the last refresh, sticky
-    // _shadowCopyAnalyzersEnabled is U-ARB-05 active overlay.
+    // _lastRefreshStale/_lastShadowCopyResults are the last refresh, and
+    // _shadowCopyAnalyzersEnabled is session-sticky active-overlay state.
     // _lastExecutionObservation is epoch-3 prepared/rewritten/load-failed/execution/restart.
     // Holding mapping for an in-flight write is epoch 4.
     private bool _shadowCopyAnalyzersEnabled;

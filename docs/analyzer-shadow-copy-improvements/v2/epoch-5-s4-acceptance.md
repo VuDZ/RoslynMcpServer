@@ -25,8 +25,9 @@ unconfirmed / access. Публичная MCP schema не расширена.**
 | E5-S3-1 | Low | `proven_foreign_path` = source project not loaded | **открыт**, не блокер |
 | Alt-2/3 / inaccessible | — | Не выбирались | **вне скоупа** |
 
-Версия **v1.3.12**. Открыто, не блокер: E5-S3-1. Inaccessible и sticky не выбирались.
-Эпоха 5 S1–S4 закрыта. Серия не завершена (U-ARB-04/05).
+Версия **v1.3.12**. Открыто, не блокер: E5-S3-1. Inaccessible и sticky не выбирались
+этой приёмкой. Эпоха 5 S1–S4 закрыта. Позднее U-ARB-05 выбран как session-sticky
+в v1.3.13; U-ARB-04 и inaccessible остаются открытыми.
 
 ---
 
@@ -51,6 +52,7 @@ foreign к proven foreign.
 
 ## Что дальше
 
-Эпоха 5 закрыта. Открыто, не блокер: E5-S3-1. Inaccessible и sticky не
-открывать. Открытые gates серии — U-ARB-04 (load boundary) и U-ARB-05.
+Эпоха 5 закрыта. Открыто, не блокер: E5-S3-1. Inaccessible не открывать.
+U-ARB-05 позднее закрыт как session-sticky; открытый gate серии —
+U-ARB-04 (load boundary).
 F-07, A4-09…A4-12 и A6-13 не чинить без отдельного запроса.

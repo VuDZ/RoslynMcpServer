@@ -20,7 +20,7 @@ Runtime в этой эпохе не запускался. Команды пов�
 | Исследование завершено | Эпоха 1: красный baseline принят |
 | Реализация принята | Эпохи 2 / 3 / 4: v1.3.6 / v1.3.7 / v1.3.8 |
 | Аудит завершён | Эта эпоха: S1–S4 сверены; A6-08/11/12 закрыты. A6-13 не блокер |
-| Серия завершена | **нет** — эпоха 5 принята (v1.3.12); U-ARB-04/05 открыты |
+| Серия завершена | **нет** — эпоха 5 принята (v1.3.12); U-ARB-05 закрыт в v1.3.13, U-ARB-04 и inaccessible открыты |
 
 Эпоха 3 документируется как **выбранный restart-required / main-only**, не как
 исследовательский failure и не как in-process V2. Эпоха 5 — **принята**
@@ -109,8 +109,8 @@ flush, затем повторный getter — гарантии той же б�
 - Upgrade: v1.3.5 recopy-on-edit мог подхватить новые bytes; v1.3.6+ edit/flush
   только reapply. Обновление генератора: build → **restart MCP** →
   `load_workspace` `shadowCopyInSolutionAnalyzers=true`. Reset ≠ unload.
-- Sticky `false`/omitted на cached load до U-ARB-05; отключение — reset, затем
-  load без флага.
+- U-ARB-05 после аудита выбран в v1.3.13: session-sticky `false`/omitted на
+  cached load; отключение — reset, затем load без флага.
 - CodeAction / rename: unknown/stale analyzer diff → `PreflightRejected` до
   записей; адаптер отдаёт Status, Reason, известные `SavedPaths`. Partial ≠
   полный успех запроса.
@@ -127,7 +127,8 @@ flush, затем повторный getter — гарантии той же б�
   inaccessible не выбран.
 - U-ARB-04: load boundary не выбрана; измерение persistence эпохи 4 не есть
   anti-lock гарантия.
-- U-ARB-05: desired-state флага не выбран.
+- U-ARB-05 закрыт после аудита: выбран session-sticky контракт
+  ([решение](u-arb-05-decision.md), v1.3.13).
 - A2-09, A4-09…A4-12 открыты, не блокеры принятых эпох.
 - Историческая порча `.csproj` (v1.3.4) автоматически не чистится.
 - A6-13: `docs/analyzer-shadow-copy/README.md` § v1.3.5 history всё ещё

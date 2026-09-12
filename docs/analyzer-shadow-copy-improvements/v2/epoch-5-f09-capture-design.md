@@ -200,7 +200,8 @@ refresh snapshot не пересчитывают.
 Захват выполняется при каждом физическом open независимо от текущего значения
 `shadowCopyInSolutionAnalyzers`. Это позволяет последующему cached
 `false -> true` использовать тот же load snapshot без скрытой evaluation и не
-решает отдельно sticky-семантику U-ARB-05.
+решало sticky-семантику U-ARB-05 в рамках F-09; она отдельно выбрана как
+session-sticky в v1.3.13.
 
 `ClearWorkspaceAsync` удаляет ссылку на snapshot. Временные binlog удаляются
 после replay в `finally`; они не входят в shadow cache и не сохраняются для

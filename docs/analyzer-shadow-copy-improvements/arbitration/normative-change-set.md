@@ -22,7 +22,8 @@
 6. State the current v1.3.5 behavior of `shadowCopyInSolutionAnalyzers`: a same-key
    cached load with `false` or omission does not disable a previously active
    overlay; reset followed by load does. Do not change this behavior until
-   U-ARB-05 is decided.
+   U-ARB-05 is decided. **Satisfied in v1.3.13:** U-ARB-05 retained this behavior
+   as the session-sticky contract.
 
 ## Epoch 1 — lifecycle verification
 

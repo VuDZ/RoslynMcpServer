@@ -242,7 +242,7 @@
 | Messaging | E1-08, E3-06, E4-04, E5-04, E6-03: события FSW и MCP summary/status описаны; отдельный broker, очередь и обещания exactly-once не требуются |
 | Наблюдаемость | Все E1-01–10, E2-02–06, E3-01–06, E4-02/03/04/06, E5-02–05, E6-01/03: exact marker/path, раздельные стадии и причины, G/S/M/A/L/D/R, ресурсные измерения |
 | Ошибки | E1-07/08/09/10, E2-03/04/05/06, E3-01/02/04/05/06, E4-01/02/04, E5-02/04: injected failure, stale refresh, unsupported execution, partial writes, cancellation и gate-ограничения включены в приёмку |
-| Миграции/совместимость | E1-04, E2-01/04/06, E4-02, E6-01/02/04: новый namespace без in-place migration, edit reuse вместо pickup, stricter unknown-diff refusal, DOC-EARLY и upgrade note; U-ARB-05 не решён |
+| Миграции/совместимость | E1-04, E2-01/04/06, E4-02, E6-01/02/04: новый namespace без in-place migration, edit reuse вместо pickup, stricter unknown-diff refusal, DOC-EARLY и upgrade note; U-ARB-05 = session-sticky для совместимости optional non-nullable bool |
 | Тестирование | Все 39 принятых findings имеют указанные разделы приёмки/аудита; E1 — исследовательский baseline, 2/4 — runtime reuse/inverse, 3/5 — условные gates, 6 — документационный аудит |
 | Нефункциональные требования | E1-01/08/10, E2-02/05/06, E3-02/03/04/05, E5-03, E6-01/04: bounded waits, process isolation, цена hash/evaluation, рост memory/disk, операционный бюджет и restart cost. Новых численных SLA нет |
 

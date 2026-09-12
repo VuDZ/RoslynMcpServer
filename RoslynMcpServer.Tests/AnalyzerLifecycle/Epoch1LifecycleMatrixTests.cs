@@ -153,25 +153,33 @@ public sealed class Epoch1LifecycleMatrixTests
     }
 
     [AnalyzerLifecycleFact]
-    public async Task Flag_true_to_false_and_omitted_is_sticky_until_reset()
+    public async Task Flag_true_to_false_and_omitted_preserves_session_overlay_until_reset()
     {
         using var fixture = GeneratorConsumerFixture.Create(OutputPathMode.RedirectedMissingAnalyzerPath);
         await using var host = LifecycleHostClient.Start();
         await Epoch1HostOps.BuildAsync(host, fixture.SolutionPath);
 
-        _ = await Epoch1HostOps.LoadAsync(host, fixture.SolutionPath, shadowCopy: true);
+        var enabled = await Epoch1HostOps.LoadAsync(host, fixture.SolutionPath, shadowCopy: true);
         await Epoch1HostOps.RequireMarkerAsync(host, GeneratorConsumerFixture.MarkerV1);
+        var prepareCount = enabled.OverlayPrepareCount;
+        var generation = Assert.Single(enabled.Rewrite ?? []).Generation;
 
         var toFalse = await Epoch1HostOps.LoadAsync(host, fixture.SolutionPath, shadowCopy: false);
         Dump("flag-true-false", toFalse);
         Assert.True(toFalse.CacheHit);
-        Assert.True(toFalse.ShadowEnabled, "v1.3.5 sticky: cached false does not disable overlay (U-ARB-05).");
+        Assert.False(toFalse.PrepareAttempted);
+        Assert.True(toFalse.ShadowEnabled, "Session-sticky contract: cached false preserves the active overlay.");
+        Assert.Equal(prepareCount, toFalse.OverlayPrepareCount);
+        Assert.Equal(generation, Assert.Single(toFalse.Rewrite ?? []).Generation);
         await Epoch1HostOps.RequireMarkerAsync(host, GeneratorConsumerFixture.MarkerV1);
 
         var omitted = await Epoch1HostOps.LoadAsync(host, fixture.SolutionPath, shadowCopy: null);
         Dump("flag-true-omitted", omitted);
         Assert.True(omitted.CacheHit);
-        Assert.True(omitted.ShadowEnabled, "v1.3.5 sticky: omitted flag does not disable overlay (U-ARB-05).");
+        Assert.False(omitted.PrepareAttempted);
+        Assert.True(omitted.ShadowEnabled, "Session-sticky contract: omission preserves the active overlay.");
+        Assert.Equal(prepareCount, omitted.OverlayPrepareCount);
+        Assert.Equal(generation, Assert.Single(omitted.Rewrite ?? []).Generation);
         await Epoch1HostOps.RequireMarkerAsync(host, GeneratorConsumerFixture.MarkerV1);
 
         _ = await host.SendAsync(new HostCommand { Op = "reset" });
@@ -179,11 +187,16 @@ public sealed class Epoch1LifecycleMatrixTests
         Assert.False(afterResetFalse.ShadowEnabled);
         var offOracle = await Epoch1HostOps.OracleAsync(host);
         Assert.False(offOracle.OracleSuccess);
-        Assert.Equal("no-type", offOracle.OracleFailure);
+        Assert.Equal("execution-not-permitted:RestartRequired", offOracle.OracleFailure);
+        Assert.NotEqual(GeneratorConsumerFixture.MarkerV1, offOracle.Marker);
 
         _ = await host.SendAsync(new HostCommand { Op = "reset" });
         var afterResetOmitted = await Epoch1HostOps.LoadAsync(host, fixture.SolutionPath, shadowCopy: null);
         Assert.False(afterResetOmitted.ShadowEnabled);
+        var omittedOracle = await Epoch1HostOps.OracleAsync(host);
+        Assert.False(omittedOracle.OracleSuccess);
+        Assert.Equal("execution-not-permitted:RestartRequired", omittedOracle.OracleFailure);
+        Assert.NotEqual(GeneratorConsumerFixture.MarkerV1, omittedOracle.Marker);
     }
 
     [AnalyzerLifecycleFact]

@@ -3,7 +3,8 @@
 Вопросы перенесены из авторитетного [arbitration/unresolved.md](../arbitration/unresolved.md).
 U-ARB-01/02/03 — политика выбрана; matcher E5-S2 [принят](epoch-5-s2-acceptance.md)
 в v1.3.10; приёмка E5-S4 [принята](epoch-5-s4-acceptance.md) в v1.3.12.
-U-ARB-04/05 и inaccessible в U-ARB-01 остаются открытыми.
+U-ARB-05 [принят](u-arb-05-acceptance.md) как session-sticky в v1.3.13.
+U-ARB-04 и inaccessible в U-ARB-01 остаются открытыми.
 
 ## U-ARB-01 — Происхождение ссылок при отсутствующем пути
 
@@ -112,21 +113,22 @@ boundary. Если не воспроизведена на поддержанно
 
 ## U-ARB-05 — Семантика флага при повторных вызовах
 
+Статус: **выбран, реализован и принят — session-sticky** (v1.3.13).
+Решение: [u-arb-05-decision.md](u-arb-05-decision.md).
+Независимая приёмка: [u-arb-05-acceptance.md](u-arb-05-acceptance.md).
+
 Связанные findings: E1-04, E6-03.
 
 Публичный параметр — optional non-nullable bool: omission неотличим от явного
 `false` на границе метода. На same-key cache hit действует session-sticky
-поведение; reset или другая загрузка его очищает. Opt-in означает отсутствие
-автоматического включения, но не определяет desired state каждого вызова.
+поведение: `true` включает или обновляет overlay текущей load-сессии;
+последующие `false`/omitted сохраняют активные mapping/generation и не запускают
+prepare. Reset, graph reopen или другая загрузка создают новую сессию и очищают
+состояние overlay.
 
-Недостающие требования/evidence:
-
-- Полагаются ли существующие клиенты на сохранение overlay при false/omitted.
-- Включение относится к каждому load request или к workspace session.
-- Политика совместимости при изменении sticky поведения.
-
-Требуется выбрать и описать desired-state (`false`/omitted отключают) либо
-session-sticky (отключение через reset). Tri-state или новый параметр — отдельное
-публичное API-изменение с отдельным обоснованием. До решения сохранить и точно
-документировать текущее поведение; старый mapping не отбрасывается неявно.
-Точки v2: README, E1-S2, E2-S1, LC-S1–S3, E6-S3.
+Выбранная политика сохраняет shipped-поведение v1.3.5+ и совместима со старыми
+клиентами, которые не передают добавленный optional параметр. Desired-state
+отклонён: при non-nullable default он превратил бы omission в неявный disable.
+Tri-state/новый disable-параметр не вводится. Ответ cached load теперь явно
+сообщает о сохранении активного overlay. Точки v2: README, E1-S2, E2-S1,
+LC-S1–S3, E6-S3 и решение выше.

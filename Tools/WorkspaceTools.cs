@@ -29,7 +29,7 @@ public sealed class WorkspaceTools
         + "Optional buildArgs is a session suffix for later `dotnet build` (probe and pre-test build); do not put -c / -p:Platform / -v / --no-incremental there. "
         + "briefOutput=true collapses MSBuild/NuGet warnings to category and code counts (default false keeps full messages). Failures always print in full. "
         + "logProjectOutputDiagnostics=true logs per-project OutputFilePath/GeneratedFilesOutputDirectory and AnalyzerReference file existence/timestamp to the MCP server log (diagnostic-only, not returned in this response) — use to debug analyzer/generator projects not producing generated sources when Directory.Build.props overrides OutputPath. "
-        + "shadowCopyInSolutionAnalyzers=true fixes that same case: rewrites AnalyzerReferences that point at another in-solution project's build output to a private shadow copy of that project's own resolved output, so source generation works even when the design-time-resolved AnalyzerReference path was wrong, and the real build output is never locked by this process. Requires the referenced analyzer/generator project to have been built at least once. Prepared generations are content-hashed and immutable; later document edits reapply the in-memory mapping without recopying analyzer files. Same-identity rebuild needs a new MCP process (reset_workspace does not unload CLR); private helper DLLs are refused (main-only).")]
+        + "shadowCopyInSolutionAnalyzers=true fixes that same case: rewrites AnalyzerReferences that point at another in-solution project's build output to a private shadow copy of that project's own resolved output, so source generation works even when the design-time-resolved AnalyzerReference path was wrong, and the real build output is never locked by this process. Requires the referenced analyzer/generator project to have been built at least once. Prepared generations are content-hashed and immutable; later document edits reapply the in-memory mapping without recopying analyzer files. Activation is session-sticky: after enablement, cached false/omitted calls preserve the active overlay; reset_workspace or reopening another load key clears it. Same-identity rebuild needs a new MCP process (reset_workspace does not unload CLR); private helper DLLs are refused (main-only).")]
     public async Task<string> LoadWorkspace(
         [Description("Path to a .sln, .slnx, or .csproj file, not a directory.")]
         string workspacePath,
@@ -45,7 +45,7 @@ public sealed class WorkspaceTools
         bool briefOutput = false,
         [Description("When true, log per-project OutputFilePath/GeneratedFilesOutputDirectory and AnalyzerReference existence/timestamp at Information level (see tail_tool_log / read_log_tail). Default false. Diagnostic-only; not included in this tool's return value.")]
         bool logProjectOutputDiagnostics = false,
-        [Description("When true, rewrite AnalyzerReferences pointing at another in-solution project's build output to a shadow copy of that project's own resolved output (fixes source generation broken by a Directory.Build.props OutputPath override, and avoids locking the real build output). Default false. Requires the referenced project to already have a build output on disk. Generations are content-hashed and reused on document edit without recopying. Same-identity refresh requires restarting the MCP process; reset_workspace does not unload CLR assemblies; private helper DLLs are refused. A short summary is included in this response; details go to the MCP server log.")]
+        [Description("When true, rewrite AnalyzerReferences pointing at another in-solution project's build output to a shadow copy of that project's own resolved output (fixes source generation broken by a Directory.Build.props OutputPath override, and avoids locking the real build output). Default false. Activation is session-sticky: after enablement, a cached false/omitted call preserves the active overlay and does not refresh it; reset_workspace or another load key clears it. Requires the referenced project to already have a build output on disk. Generations are content-hashed and reused on document edit without recopying. Same-identity refresh requires restarting the MCP process; reset_workspace does not unload CLR assemblies; private helper DLLs are refused. A short summary is included in this response; details go to the MCP server log.")]
         bool shadowCopyInSolutionAnalyzers = false,
         CancellationToken cancellationToken = default)
     {
@@ -164,6 +164,12 @@ public sealed class WorkspaceTools
                 _logger.LogWarning(ex, "shadowCopyInSolutionAnalyzers failed for {Path}", workspacePath);
                 shadowCopySummary = $"- **Analyzer reference shadow copy:** failed — {ex.Message}";
             }
+        }
+        else if (_solutionManager.ShadowCopyAnalyzersEnabled)
+        {
+            shadowCopySummary =
+                "- **Analyzer reference shadow copy:** active session overlay preserved; "
+                + "false/omitted does not disable or refresh it. Use reset_workspace to disable.";
         }
 
         var sb = new StringBuilder();

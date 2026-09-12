@@ -26,7 +26,7 @@ field, прочитать `IFieldSymbol.ConstantValue` и сравнить с т
 | --- | --- |
 | Базовая генерация | Build, сохранить `.csproj` bytes, opt-in load, точный V1; повторить семантику без изменений |
 | Обновление V1→V2 | При неизменных assembly name/version изменить только генератор, завершить build; отдельно cached load, reset+load в том же процессе, process restart |
-| Флаг на том же ключе | true→false, true→omitted, false→true; каждый вариант также после reset. Зафиксировать sticky v1.3.5, последующая смена ожидаемого результата только по U-ARB-05 |
+| Флаг на том же ключе | true→false, true→omitted, false→true; каждый вариант также после reset. U-ARB-05 в v1.3.13 закрепляет sticky v1.3.5 как session-sticky контракт |
 | Смена решения | A с opt-in и маркером A, затем B с той же assembly identity, корректным analyzer path и отключённым overlay: проверять маркер B и реально загруженные identity/path. Для B с broken path и выключенным флагом ожидать отсутствие генерации |
 | Нет output | Первое включение до build, затем build и повторная загрузка; различать failed prepare и последующее исполнение |
 | Несколько Consumer | Общий генератор, повторные подготовки и семантические обращения всех Consumer; обязательный случай эпох 1/2 |

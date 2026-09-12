@@ -97,6 +97,10 @@ boundary without claiming that the write funnel caused the anti-lock guarantee.
 
 ## U-ARB-05 — Repeated-call flag semantics
 
+Resolved in v2 / v1.3.13: **session-sticky**. See
+[`v2/u-arb-05-decision.md`](../v2/u-arb-05-decision.md). The text below is the
+pre-decision evidence gate retained for arbitration history.
+
 Related findings: E1-04, E6-03.
 
 The public parameter is a non-nullable optional boolean, so the implementation

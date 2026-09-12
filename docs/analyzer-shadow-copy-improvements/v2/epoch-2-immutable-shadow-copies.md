@@ -25,7 +25,8 @@ project IDs другой сессии не подставляются автом
 Необслуживаемая попытка обновления должна явно отклоняться согласно эпохе 3.
 Любая операция, обещающая refresh, перечитывает и хеширует обязательные байты
 независимо от cache hit графа, timestamp и размера. Повторный `false`/omitted
-на cached load сам не создаёт refresh и не выключает overlay до U-ARB-05.
+на cached load сам не создаёт refresh и не выключает overlay: это принято как
+session-sticky контракт U-ARB-05 в v1.3.13.
 
 Document edit, watcher flush, reconciliation, post-apply publication и чтение
 снимка используют готовый mapping без копирования, хеширования или чтения файлов

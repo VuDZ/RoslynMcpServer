@@ -6,8 +6,9 @@
 выбрана (capture), production snapshot [принят](epoch-5-f09-production-capture-acceptance.md);
 [E5-S2 matcher принят](epoch-5-s2-acceptance.md) в v1.3.10;
 [E5-S3 принят](epoch-5-s3-acceptance.md) в v1.3.11;
-[E5-S4 принят](epoch-5-s4-acceptance.md) в v1.3.12. Серия не завершена
-(U-ARB-04/05).
+[E5-S4 принят](epoch-5-s4-acceptance.md) в v1.3.12. U-ARB-05
+[принят](u-arb-05-acceptance.md) как session-sticky в v1.3.13. Серия не
+завершена (U-ARB-04 и inaccessible в U-ARB-01).
 
 | ID | Когда | Что |
 | --- | --- | --- |
@@ -18,7 +19,7 @@
 | F-04 | **принято** ([epoch-2-acceptance.md](epoch-2-acceptance.md)) | E2-S5 11/11. Открыт A2-09 (stores). A2-12 закрыт: catalog 63 / 43895 |
 | F-05 | **принято** ([epoch-4-acceptance.md](epoch-4-acceptance.md)) | Эпоха 4: write boundary. Открыты A4-09…A4-12 (не блокеры) |
 | F-06 | мерж в main | A1-10: version bump, изоляция test seams |
-| F-07 | **эпоха 3 принята** ([epoch-3-acceptance.md](epoch-3-acceptance.md)) | restart-required / main-only. U-ARB-05 sticky не открывать |
+| F-07 | **эпоха 3 принята** ([epoch-3-acceptance.md](epoch-3-acceptance.md)) | restart-required / main-only. U-ARB-05 отдельно закрыт как session-sticky в v1.3.13 |
 | F-09 | **принято** ([epoch-5-f09-production-capture-acceptance.md](epoch-5-f09-production-capture-acceptance.md)) | Snapshot v1.3.9; F09-PROD-1/2 закрыты [E5-S2](epoch-5-s2-acceptance.md) |
 
 ---
@@ -173,7 +174,7 @@ Depends: evidence gates
 - ALC / in-process V2 / production helper discovery сверх main-only отказа.
 - Эпоха 5 rollout / смена matcher до принятого capture design (F-09).
   Политика U-ARB-01 уже выбрана; Alt-2/Alt-3 не внедрять «на всякий случай».
-- U-ARB-05: менять sticky `false`/`omitted` на cached load.
+- U-ARB-05: менять выбранный session-sticky контракт без отдельного API-решения.
 - Ослаблять oracle assertions ради зелёного filter.
 
 ---
@@ -229,6 +230,7 @@ E5-S3 [принят](epoch-5-s3-acceptance.md) в v1.3.11. E5-S4
 
 ---
 
-Порядок в следующем чате: не открывать inaccessible и U-ARB-05.
-F-07 не открывать. A4-09…A4-12 и A6-13 не чинить без отдельного запроса.
-Серия незавершена (U-ARB-04/05).
+Порядок в следующем чате: U-ARB-05 [принят](u-arb-05-acceptance.md).
+Следующий gate — U-ARB-04 (только evidence load boundary, без новой
+спецификации). Inaccessible и F-07 не открывать. E5-S3-1, A4-09…A4-12,
+A6-13, F-06 и U-ARB-05-1 не чинить без отдельного запроса.

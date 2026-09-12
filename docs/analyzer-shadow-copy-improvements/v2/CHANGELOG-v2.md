@@ -10,7 +10,8 @@
 v1.3.9; [E5-S2 matcher принят](epoch-5-s2-acceptance.md) в v1.3.10;
 [E5-S3 принят](epoch-5-s3-acceptance.md) в v1.3.11;
 [E5-S4 принят](epoch-5-s4-acceptance.md) в v1.3.12. Эпоха 5 закрыта.
-Серия не завершена (U-ARB-04/05). Исходные
+U-ARB-05 выбран как session-sticky и реализован в v1.3.13.
+Серия не завершена (U-ARB-04 и inaccessible в U-ARB-01). Исходные
 v1/review/response/arbitration сохранены. Файлы эпох переписаны как самостоятельный
 русский нормативный текст, добавлены общая lifecycle matrix и реестры
 трассировки/открытых вопросов.
@@ -29,7 +30,7 @@ v1/review/response/arbitration сохранены. Файлы эпох пере�
 | [E1-01](../arbitration/finding-verdicts.md) — ACCEPT | Oracle выполняется в изолированном production test host с MSBuild bootstrap и читает точный IFieldSymbol.ConstantValue; новый публичный MCP API не нужен. | [E1-S1/S5](epoch-1-lifecycle-verification.md); [E3-S1](epoch-3-loader-contract-and-dependencies.md) |
 | [E1-02](../arbitration/finding-verdicts.md) — ACCEPT | Неопределённый полный reload заменён тремя операциями: cached load, reset+load и process restart, с независимым учётом графа, artifact refresh и исполнения. | README: термины; [E1-S2](epoch-1-lifecycle-verification.md); [E2-S1](epoch-2-immutable-shadow-copies.md); [E3-S1](epoch-3-loader-contract-and-dependencies.md); [LC-S1–S3](LIFECYCLE-v2.md); [E6-S2/S3](epoch-6-contract-and-documentation.md) |
 | [E1-03](../arbitration/finding-verdicts.md) — ACCEPT | A/B same-identity тест проверяет реально исполненный маркер и loaded path/identity; broken-path B с flag off проверяет отсутствие генерации. | [E1-S2/S4](epoch-1-lifecycle-verification.md); [E3-S1/S5](epoch-3-loader-contract-and-dependencies.md); [LC-S1/S2](LIFECYCLE-v2.md) |
-| [E1-04](../arbitration/finding-verdicts.md) — ACCEPT WITH MODIFICATION | Добавлены true→false, true→omitted, false→true и reset-варианты; sticky/reset поведение сохраняется, будущая семантика не выбрана. | README: v1.3.5; [E1-S2](epoch-1-lifecycle-verification.md); [E2-S1](epoch-2-immutable-shadow-copies.md); [LC-S1–S3](LIFECYCLE-v2.md); [U-ARB-05](UNRESOLVED-v2.md) |
+| [E1-04](../arbitration/finding-verdicts.md) — ACCEPT WITH MODIFICATION | Добавлены true→false, true→omitted, false→true и reset-варианты; shipped sticky/reset поведение принято как session-sticky контракт U-ARB-05 в v1.3.13. | README: v1.3.13; [E1-S2](epoch-1-lifecycle-verification.md); [E2-S1](epoch-2-immutable-shadow-copies.md); [LC-S1–S3](LIFECYCLE-v2.md); [решение U-ARB-05](u-arb-05-decision.md) |
 | [E1-05](../arbitration/finding-verdicts.md) — ACCEPT | Consumer использует generated member и не меняется при V1→V2; отрицательный контроль исключает ложный успех diagnostics. | [E1-S1](epoch-1-lifecycle-verification.md); [E3-S1](epoch-3-loader-contract-and-dependencies.md); [E5-S4](epoch-5-reference-provenance.md) |
 | [E1-06](../arbitration/finding-verdicts.md) — ACCEPT WITH MODIFICATION | Три write paths названы и проверяются независимо: text edit, overlay apply, watcher+flush; каждый требует маркер, текст и неизменные project bytes. | [E1-S3](epoch-1-lifecycle-verification.md); [E4-S2/S4](epoch-4-workspace-write-boundary.md); [LC-S1/S2](LIFECYCLE-v2.md) |
 | [E1-07](../arbitration/finding-verdicts.md) — ACCEPT | Добавлен existing-correct-path fixture к missing-path; после семантики каждого write path требуется forced output-writing rebuild и actual load path. | [E1-S3](epoch-1-lifecycle-verification.md); [E3-S5](epoch-3-loader-contract-and-dependencies.md); [E4-S3/S4](epoch-4-workspace-write-boundary.md); [U-ARB-04](UNRESOLVED-v2.md) |
@@ -60,7 +61,7 @@ v1/review/response/arbitration сохранены. Файлы эпох пере�
 | [E5-05](../arbitration/finding-verdicts.md) — ACCEPT WITH MODIFICATION | Foreign same-name marker fixture и исходный missing-path repro обязательны для rollout; алгоритмическая независимость 5 от 2–4 не означает готовность серии. | [E1-S2](epoch-1-lifecycle-verification.md); [E5-S1/S4](epoch-5-reference-provenance.md); README: эпохи |
 | [E6-01](../arbitration/finding-verdicts.md) — ACCEPT | Добавлены action/current/target/verification matrix и upgrade note о смене recopy-on-edit на mapping reuse, трёх операциях загрузки и отсутствии CLR unload при reset. | [LC-S1–S3](LIFECYCLE-v2.md); [E6-S3](epoch-6-contract-and-documentation.md); [E2-S1/S2](epoch-2-immutable-shadow-copies.md) |
 | [E6-02](../arbitration/finding-verdicts.md) — ACCEPT WITH MODIFICATION | Создана ранняя задача DOC-EARLY для трёх точных targets recompute-on-read; защищённые внешние артефакты этим проходом не меняются, эпоха 6 аудирует задачу. | [E6-S1](epoch-6-contract-and-documentation.md); README: текущее поведение и эпохи |
-| [E6-03](../arbitration/finding-verdicts.md) — ACCEPT | Матрица покрывает реальные lifecycle ветки и семь состояний G/S/M/A/L/D/R, включая partial mapping, fallback, dirty delivery/flush и clear. | [LC-S1/S2](LIFECYCLE-v2.md); [E6-S2](epoch-6-contract-and-documentation.md); [E1-S2/S4](epoch-1-lifecycle-verification.md); [U-ARB-05](UNRESOLVED-v2.md) |
+| [E6-03](../arbitration/finding-verdicts.md) — ACCEPT | Матрица покрывает реальные lifecycle ветки и семь состояний G/S/M/A/L/D/R, включая partial mapping, fallback, dirty delivery/flush и clear; repeated flag закреплён как session-sticky. | [LC-S1/S2](LIFECYCLE-v2.md); [E6-S2](epoch-6-contract-and-documentation.md); [E1-S2/S4](epoch-1-lifecycle-verification.md); [решение U-ARB-05](u-arb-05-decision.md) |
 | [E6-04](../arbitration/finding-verdicts.md) — ACCEPT WITH MODIFICATION | Эпоха 6 только аудит; reuse принимается в 2/4. Аудит допускает explicit deferred 3, но не закрывает незавершённую runtime-работу всей серии. | [E6-S2/S4](epoch-6-contract-and-documentation.md); [E2-S5](epoch-2-immutable-shadow-copies.md); [E4-S4](epoch-4-workspace-write-boundary.md); README: статус |
 
 ## Закрытые и открытые решения
@@ -74,8 +75,8 @@ v1/review/response/arbitration сохранены. Файлы эпох пере�
 - U-ARB-01–05 полностью сохранены в [UNRESOLVED-v2.md](UNRESOLVED-v2.md).
   U-ARB-01 **выбран и принят** (capture на load; E5-S2–S4 в v1.3.10–1.3.12);
   inaccessible не выбран. U-ARB-02/03 **выбраны** (restart-required / main-only,
-  эпоха 3). U-ARB-04/05 остаются открытыми gates. Эпоха 6 аудирует документы,
-  не закрывает эти gates.
+  эпоха 3). U-ARB-05 **выбран** как session-sticky в v1.3.13.
+  U-ARB-04 остаётся открытым gate; inaccessible в U-ARB-01 не выбран.
 
 ## Сквозные следствия принятых решений
 

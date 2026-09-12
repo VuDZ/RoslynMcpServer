@@ -1,12 +1,13 @@
 # Analyzer shadow copy — спецификация v2
 
 Статус: **нормативная спецификация; эпохи 1–6 приняты**; серия не завершена
-(U-ARB-04/05). Эпоха 5: U-ARB-01 = capture на load, [эскиз F-09 принят](epoch-5-f09-acceptance.md),
+(U-ARB-04 и inaccessible в U-ARB-01). U-ARB-05 выбран как session-sticky в
+v1.3.13. Эпоха 5: U-ARB-01 = capture на load, [эскиз F-09 принят](epoch-5-f09-acceptance.md),
 [production snapshot принят](epoch-5-f09-production-capture-acceptance.md) в
 v1.3.9; [E5-S2 принят](epoch-5-s2-acceptance.md) в v1.3.10;
 [E5-S3 принят](epoch-5-s3-acceptance.md) в v1.3.11;
 [E5-S4 принят](epoch-5-s4-acceptance.md) в v1.3.12.
-Дата: 2026-09-11. Язык нормативного текста — русский; имена API и идентификаторы сохранены.
+Дата: 2026-09-12. Язык нормативного текста — русский; имена API и идентификаторы сохранены.
 Shipped: v1.3.6 mapping, v1.3.7 restart-required / main-only, v1.3.8 write boundary
 (`f54aec15f48f942ef9ac077c752bf03ae018bf31`).
 
@@ -23,7 +24,7 @@ v2 объединяет обязательные решения арбитраж
 перечислены в [UNRESOLVED-v2.md](UNRESOLVED-v2.md): соответствующие этапы имеют
 явные условия допуска, поэтому v2 не означает безусловную готовность всей реализации.
 
-## Текущее поведение v1.3.8 (shipped)
+## Текущее поведение v1.3.13 (shipped)
 
 Сверх арбитражного baseline v1.3.5:
 
@@ -36,7 +37,9 @@ v2 объединяет обязательные решения арбитраж
   Unknown/stale analyzer diff отклоняется до серверных записей. Partial persistence
   сообщает Status, Reason и известные сохранённые пути — это не полный успех.
 - Matcher: rewrite только confirmed load-session provenance (v1.3.10+);
-  unique-name fallback снят. Sticky `false`/omitted — U-ARB-05. Поколения
+  unique-name fallback снят. U-ARB-05: активация session-sticky — cached
+  `false`/omitted сохраняют активный overlay без refresh; отключение через
+  reset/new session. Поколения
   при clear не удаляются. Inaccessible в U-ARB-01 не выбран.
 
 ## Историческое поведение v1.3.5
@@ -53,8 +56,8 @@ v2 объединяет обязательные решения арбитраж
 - При том же ключе path/Configuration/Platform/TFM и актуальном графе load может
   переиспользовать workspace. Повторный `true` отдельно запускает shadow-подготовку.
 - `shadowCopyInSolutionAnalyzers=false` и отсутствие аргумента не выключают ранее
-  активированный overlay на cached load. Для отключения применяется
-  `reset_workspace`, затем load с `false`/без аргумента. До U-ARB-05 это поведение сохраняется.
+  активированный overlay на cached load. Это поведение позже принято как
+  session-sticky контракт U-ARB-05 в v1.3.13.
 - Reset и смена решения очищают состояние workspace/overlay, но не singleton loader
   и не CLR assemblies. Коллизия реально исполненных сборок требует измерения.
 - Watcher доставляет dirty paths; синхронизация текста происходит на production flush.
@@ -102,8 +105,9 @@ lock существующей DLL остаются предметом обяза
 5. Ошибку подготовки нельзя выдавать за успешный refresh или генерацию.
    Подготовка, rewrite, load failure и наблюдаемое исполнение различаются.
    Приёмка — эпохи 2/3/4/5.
-6. Функция остаётся opt-in. Новые публичные MCP параметры и схемы не вводятся
-   этой ревизией. Политика повторного флага ограничена U-ARB-05.
+6. Функция остаётся opt-in. U-ARB-05 выбирает session-sticky активацию:
+   `true` включает/обновляет overlay текущей сессии, cached `false`/omitted
+   сохраняют его без refresh. Новые публичные MCP параметры и схемы не вводятся.
 7. Поиск generated declarations по имени остаётся вне серии.
 
 Операция удерживает базовый immutable snapshot и использованный mapping до своего
