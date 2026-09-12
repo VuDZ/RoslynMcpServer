@@ -82,6 +82,7 @@ overlay и existing-correct-path matrix эпохи 1. Фиксировать loa
 и forced rebuild после всех write paths. Конкретный trigger lock заранее не задан.
 Отдельный дизайн semantic/load boundary допускается только после воспроизведения
 и локализации утечки по U-ARB-04. Anti-lock цель не сужается до missing-path fixture.
+Реализация после evidence: [u-arb-04-atomic-load-prepare.md](u-arb-04-atomic-load-prepare.md).
 
 ## E4-S4. Приёмка
 

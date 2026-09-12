@@ -3,10 +3,9 @@
 Статус: **историческая спецификация v1**. Живая норма и аудит —
 [v2/](v2/README.md). Эпохи 1–4 приняты в v1.3.6–v1.3.8; эпоха 6 — аудит
 документации завершён; эпоха 5 **принята** в v1.3.12. Серия **не завершена**
-(U-ARB-04 и inaccessible в U-ARB-01); U-ARB-05 выбран как session-sticky
-в v1.3.13. Для U-ARB-04 выполнен
-[evidence load boundary](v2/u-arb-04-load-boundary-evidence.md), без новой
-спецификации.
+только из-за inaccessible в U-ARB-01; U-ARB-05 выбран как session-sticky
+в v1.3.13. U-ARB-04 atomic load/prepare
+[реализован и принят](v2/u-arb-04-implementation-acceptance.md) в v1.3.14.
 
 Этот каталог продолжает [историю исходного исправления](../analyzer-shadow-copy/README.md).
 Номера эпох локальны для этого каталога. Файлы ниже — доарбитражный план; не

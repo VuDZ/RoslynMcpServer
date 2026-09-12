@@ -81,7 +81,12 @@ semantic/write путей на указанной матрице. Он **не**:
 - обобщает результат на другие ОС/runtime/Roslyn;
 - утверждает, что write boundary сама обеспечивает load isolation.
 
-U-ARB-04 остаётся открытым decision gate. Следующий шаг, если владелец его
-разрешит, — отдельно решить, достаточно ли измеренной production-инвентаризации
-или нужен детерминированный concurrent-dispatch repro/design. Inaccessible не
-входит в этот шаг.
+На момент evidence U-ARB-04 оставался открытым decision gate: следующим шагом
+было отдельно решить, достаточно ли измеренной production-инвентаризации или
+нужен детерминированный concurrent-dispatch repro/design. Inaccessible в этот
+шаг не входил.
+
+Последующее [решение](u-arb-04-decision.md) установило по реализации MCP SDK и
+двум отдельным захватам `_workspaceLock`, что concurrent interleaving разрешена,
+и выбрало atomic load/prepare boundary. Позднее она
+[реализована и принята](u-arb-04-implementation-acceptance.md) в v1.3.14.

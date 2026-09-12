@@ -105,6 +105,32 @@ public sealed class SolutionManagerPathResolutionTests
         }
     }
 
+    [Fact]
+    public async Task FindDocumentAsync_without_loaded_workspace_does_not_auto_load()
+    {
+        var root = CreateTempRoot();
+        var sourcePath = Path.Combine(root, "Class1.cs");
+        File.WriteAllText(
+            Path.Combine(root, "App.csproj"),
+            """<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup></Project>""");
+        File.WriteAllText(sourcePath, "public sealed class Class1 { }");
+        var manager = CreateManager();
+
+        try
+        {
+            var document = await manager.FindDocumentAsync(sourcePath);
+
+            Assert.Null(document);
+            Assert.Null(manager.GetLoadedWorkspacePath());
+            Assert.Null(manager.GetCurrentSolution());
+            Assert.Null(manager.GetWorkspaceCurrentSolution());
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
     private static SolutionManager CreateManager(string? loadedPath = null)
     {
         var manager = SolutionManagerTestFactory.Create();

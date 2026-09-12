@@ -197,7 +197,7 @@
 | NC-E3-13 | E3-S5; E2-S4 |
 | NC-E4-1–5 | E4-S1/S4; E2-S1 |
 | NC-E4-6–9 | E4-S1/S2/S4; LC-S2 |
-| NC-E4-10–11 | E4-S3/S4; E1-S3/S4; U-ARB-04 |
+| NC-E4-10–11 | E4-S3/S4; E1-S3/S4; [U-ARB-04 spec](u-arb-04-atomic-load-prepare.md) |
 | NC-E5-1–2 | E5-S1; U-ARB-01 |
 | NC-E5-3–5 | E5-S2 |
 | NC-E5-6–7 | E5-S3 |
@@ -216,7 +216,7 @@
 | 1. Раздельное состояние | E1-04/09, E2-04, E3-06, E6-03; N-06 | README; E2-S1/S4; E3-S4; LC-S2 |
 | 2. Mapping и операция | R-02/03, E2-04, E4-01/05; N-02 | E1-S4; E2-S1; E4-S1/S2 |
 | 3. Неатомарная запись | E4-02/04/06; N-01 | E4-S1/S2/S4; LC-S2 |
-| 4. Write/load safety | E1-07, E3-01, E4-03/06; N-04 | E1-S3/S4; E4-S3; E3-S5; U-ARB-04 |
+| 4. Write/load safety | E1-07, E3-01, E4-03/06; N-04 | E1-S3/S4; E4-S3; E3-S5; [U-ARB-04 spec](u-arb-04-atomic-load-prepare.md) |
 | 5. Content/dependency/CLR identity | E2-01/02, закрытый E2-07, E3-01/02 | E2-S2; E3-S1/S2 |
 | 6. Shared cache integrity | E2-03/05/06; N-05 | E2-S3/S4/S5 |
 | 7. Выбор исполняемого кода | E3-04, E5-01/02/04 | E3-S3; E4-S1; E5-S1–S3; U-ARB-01/03 |

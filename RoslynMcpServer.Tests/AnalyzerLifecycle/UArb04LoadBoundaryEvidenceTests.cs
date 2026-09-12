@@ -129,6 +129,166 @@ public sealed class UArb04LoadBoundaryEvidenceTests(ITestOutputHelper output)
             rebuild.After);
     }
 
+    [AnalyzerLifecycleFact]
+    public async Task Opt_in_load_entered_first_blocks_semantic_until_shadow_snapshot_is_published()
+    {
+        using var fixture = GeneratorConsumerFixture.Create(OutputPathMode.SdkDefaultCorrectPath);
+        await using var host = LifecycleHostClient.Start();
+        await Epoch1HostOps.BuildAsync(host, fixture.SolutionPath);
+
+        var realOutput = RequireGeneratorOutput(fixture);
+        var concurrent = await host.SendAsync(new HostCommand
+        {
+            Op = "atomicLoadSemantic",
+            Path = fixture.SolutionPath,
+            ShadowCopy = true,
+            Project = "Consumer",
+        });
+
+        Assert.True(concurrent.Ok, concurrent.Error);
+        Assert.NotNull(concurrent.Concurrency);
+        Assert.True(concurrent.Concurrency!.BothCompleted);
+        Assert.False(concurrent.Concurrency.SemanticCompletedBeforePrepare);
+        Assert.True(concurrent.Concurrency.PublishedSnapshotPresent);
+        Assert.True(concurrent.ShadowEnabled);
+        Assert.True(concurrent.OracleSuccess, concurrent.OracleFailure);
+        Assert.Equal(GeneratorConsumerFixture.MarkerV1, concurrent.Marker);
+        Assert.False(PathsEqual(realOutput, concurrent.OverlayAnalyzerPath));
+        AssertPathEqual(concurrent.OverlayAnalyzerPath, concurrent.LoadedAnalyzerPath);
+        AssertPathPresent(concurrent.OverlayAnalyzerPath!, concurrent.ProcessAnalyzerAssemblies);
+        AssertPathAbsent(realOutput, concurrent.ProcessAnalyzerAssemblies);
+
+        var projectSnapshot = await host.SendAsync(
+            new HostCommand { Op = "snapshotCsproj", Path = fixture.Root });
+        Epoch1HostOps.AssertProjectFilesUnchanged(fixture, projectSnapshot);
+        _ = await Epoch1HostOps.AssertForcedGeneratorRebuildWritesBytesAsync(host, fixture);
+    }
+
+    [AnalyzerLifecycleFact]
+    public async Task New_session_prepare_failure_publishes_only_fail_closed_snapshot()
+    {
+        using var fixture = GeneratorConsumerFixture.Create(OutputPathMode.SdkDefaultCorrectPath);
+        await using var host = LifecycleHostClient.Start();
+        await Epoch1HostOps.BuildAsync(host, fixture.SolutionPath);
+
+        var realOutput = RequireGeneratorOutput(fixture);
+        _ = await host.SendAsync(new HostCommand { Op = "injectPrepareFailure" });
+        var load = await Epoch1HostOps.LoadAsync(host, fixture.SolutionPath, shadowCopy: true);
+
+        Assert.True(load.Ok, load.Error);
+        Assert.True(load.PrepareAttempted);
+        Assert.True(load.PrepareInjectedFailure);
+        Assert.False(load.ShadowEnabled);
+        Assert.Equal("LoadFailed", load.Execution?.Status);
+        Assert.Null(load.OverlayAnalyzerPath);
+        AssertPathAbsent(realOutput, load.ProcessAnalyzerAssemblies);
+
+        var semantic = await Epoch1HostOps.OracleAsync(host);
+        Assert.False(semantic.OracleSuccess);
+        Assert.Null(semantic.OverlayAnalyzerPath);
+        AssertPathAbsent(realOutput, semantic.ProcessAnalyzerAssemblies);
+    }
+
+    [AnalyzerLifecycleFact]
+    public async Task Cancellation_after_physical_load_does_not_prepare_or_publish_raw_snapshot()
+    {
+        using var fixture = GeneratorConsumerFixture.Create(OutputPathMode.SdkDefaultCorrectPath);
+        await using var host = LifecycleHostClient.Start();
+        await Epoch1HostOps.BuildAsync(host, fixture.SolutionPath);
+
+        var realOutput = RequireGeneratorOutput(fixture);
+        var cancelled = await host.SendAsync(new HostCommand
+        {
+            Op = "atomicLoadSemantic",
+            Path = fixture.SolutionPath,
+            Arguments = "cancel",
+        });
+
+        Assert.True(cancelled.Ok, cancelled.Error);
+        Assert.NotNull(cancelled.Concurrency);
+        Assert.True(cancelled.Concurrency!.LoadCancelled);
+        Assert.True(cancelled.Concurrency.PublishedSnapshotPresent);
+        Assert.False(cancelled.PrepareAttempted);
+        Assert.False(cancelled.ShadowEnabled);
+        Assert.Null(cancelled.OverlayAnalyzerPath);
+        AssertPathAbsent(realOutput, cancelled.ProcessAnalyzerAssemblies);
+    }
+
+    [AnalyzerLifecycleFact]
+    public async Task Zero_project_blocking_load_does_not_start_prepare_or_publish_semantic_snapshot()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "RoslynMcpServer.UArb04", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            var solutionPath = Path.Combine(root, "Empty.sln");
+            await File.WriteAllTextAsync(
+                solutionPath,
+                """
+                Microsoft Visual Studio Solution File, Format Version 12.00
+                # Visual Studio Version 17
+                VisualStudioVersion = 17.0.31903.59
+                MinimumVisualStudioVersion = 10.0.40219.1
+                Global
+                EndGlobal
+                """);
+
+            await using var host = LifecycleHostClient.Start();
+            var load = await Epoch1HostOps.LoadAsync(host, solutionPath, shadowCopy: true);
+            Assert.True(load.Ok, load.Error);
+            Assert.False(load.PrepareAttempted);
+            Assert.False(load.ShadowEnabled);
+
+            var semantic = await Epoch1HostOps.OracleAsync(host);
+            Assert.False(semantic.Ok);
+            Assert.Equal("no-solution", semantic.Error);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [AnalyzerLifecycleFact]
+    public async Task Graph_stale_reopen_with_opt_in_prepares_before_publishing_new_session()
+    {
+        using var fixture = GeneratorConsumerFixture.Create(OutputPathMode.SdkDefaultCorrectPath);
+        await using var host = LifecycleHostClient.Start();
+        await Epoch1HostOps.BuildAsync(host, fixture.SolutionPath);
+
+        var first = await Epoch1HostOps.LoadAsync(host, fixture.SolutionPath, shadowCopy: true);
+        Assert.True(first.ShadowEnabled);
+        var firstSessionPrepareCount = first.OverlayPrepareCount;
+        await File.AppendAllTextAsync(
+            fixture.ConsumerProjectPath,
+            Environment.NewLine + "<!-- u-arb-04 graph stale -->" + Environment.NewLine);
+
+        HostResponse? reopened = null;
+        var started = TimeProvider.System.GetTimestamp();
+        while (TimeProvider.System.GetElapsedTime(started) < TimeSpan.FromSeconds(10))
+        {
+            reopened = await Epoch1HostOps.LoadAsync(host, fixture.SolutionPath, shadowCopy: true);
+            if (reopened.ReopenedGraph)
+            {
+                break;
+            }
+
+            await Task.Delay(TimeSpan.FromMilliseconds(100), TimeProvider.System);
+        }
+
+        Assert.NotNull(reopened);
+        Assert.True(reopened!.Ok, reopened.Error);
+        Assert.True(reopened.ReopenedGraph);
+        Assert.True(reopened.PrepareAttempted);
+        Assert.True(reopened.ShadowEnabled);
+        Assert.True(reopened.OverlayPrepareCount > firstSessionPrepareCount);
+
+        var realOutput = RequireGeneratorOutput(fixture);
+        var semantic = await Epoch1HostOps.RequireMarkerAsync(host, GeneratorConsumerFixture.MarkerV1);
+        Assert.False(PathsEqual(realOutput, semantic.OverlayAnalyzerPath));
+        AssertPathAbsent(realOutput, semantic.ProcessAnalyzerAssemblies);
+    }
+
     private static async Task<(bool Ok, int BuildExitCode, string BuildOutput, string Before, string After)>
         AttemptForcedGeneratorRebuildAsync(
             LifecycleHostClient host,

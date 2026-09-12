@@ -1,10 +1,11 @@
 # Analyzer shadow copy — спецификация v2
 
-Статус: **нормативная спецификация; эпохи 1–6 приняты**; серия не завершена
-(U-ARB-04 и inaccessible в U-ARB-01). U-ARB-05 выбран как session-sticky в
+Статус: **нормативная спецификация; эпохи 1–6 и U-ARB-04 приняты**; серия не
+завершена только из-за inaccessible в U-ARB-01. U-ARB-05 выбран как session-sticky в
 v1.3.13. Для U-ARB-04 выполнен
-[evidence load boundary](u-arb-04-load-boundary-evidence.md), без выбора новой
-boundary. Эпоха 5: U-ARB-01 = capture на load, [эскиз F-09 принят](epoch-5-f09-acceptance.md),
+[evidence load boundary](u-arb-04-load-boundary-evidence.md) и
+[atomic load/prepare boundary реализована и принята](u-arb-04-implementation-acceptance.md)
+в v1.3.14. Эпоха 5: U-ARB-01 = capture на load, [эскиз F-09 принят](epoch-5-f09-acceptance.md),
 [production snapshot принят](epoch-5-f09-production-capture-acceptance.md) в
 v1.3.9; [E5-S2 принят](epoch-5-s2-acceptance.md) в v1.3.10;
 [E5-S3 принят](epoch-5-s3-acceptance.md) в v1.3.11;
@@ -26,7 +27,7 @@ v2 объединяет обязательные решения арбитраж
 перечислены в [UNRESOLVED-v2.md](UNRESOLVED-v2.md): соответствующие этапы имеют
 явные условия допуска, поэтому v2 не означает безусловную готовность всей реализации.
 
-## Текущее поведение v1.3.13 (shipped)
+## Текущее поведение v1.3.14 (shipped)
 
 Сверх арбитражного baseline v1.3.5:
 
@@ -43,6 +44,9 @@ v2 объединяет обязательные решения арбитраж
   `false`/omitted сохраняют активный overlay без refresh; отключение через
   reset/new session. Поколения
   при clear не удаляются. Inaccessible в U-ARB-01 не выбран.
+- U-ARB-04: opt-in load/cache lookup, prepare/gate и публикация образуют одну
+  atomic boundary. Production semantic readers ждут опубликованный snapshot;
+  новая сессия при prepare failure/cancellation fail-closed.
 
 ## Историческое поведение v1.3.5
 

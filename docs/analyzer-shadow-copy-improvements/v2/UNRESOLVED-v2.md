@@ -4,7 +4,9 @@
 U-ARB-01/02/03 — политика выбрана; matcher E5-S2 [принят](epoch-5-s2-acceptance.md)
 в v1.3.10; приёмка E5-S4 [принята](epoch-5-s4-acceptance.md) в v1.3.12.
 U-ARB-05 [принят](u-arb-05-acceptance.md) как session-sticky в v1.3.13.
-U-ARB-04 и inaccessible в U-ARB-01 остаются открытыми.
+U-ARB-04 evidence [принят](u-arb-04-acceptance.md); atomic load/prepare
+boundary [реализована и принята](u-arb-04-implementation-acceptance.md) в
+v1.3.14. Inaccessible в U-ARB-01 остаётся открытым.
 
 ## U-ARB-01 — Происхождение ссылок при отсутствующем пути
 
@@ -89,8 +91,14 @@ private DLL из real output не используются как fallback. То
 
 ## U-ARB-04 — Возможная загрузка analyzer из raw workspace
 
-Статус: **evidence выполнен; решение и новая load boundary не выбирались**.
+Статус: **закрыт — evidence и решение приняты; atomic load/prepare boundary
+[реализована и принята](u-arb-04-implementation-acceptance.md) в v1.3.14**.
 Результаты: [u-arb-04-load-boundary-evidence.md](u-arb-04-load-boundary-evidence.md).
+Независимая приёмка evidence: [u-arb-04-acceptance.md](u-arb-04-acceptance.md).
+Решение: [u-arb-04-decision.md](u-arb-04-decision.md).
+Leftover U-ARB-04-1 [принят](u-arb-04-acceptance.md). Независимая приёмка
+кода: [u-arb-04-implementation-acceptance.md](u-arb-04-implementation-acceptance.md).
+Low U-ARB-04-IMPL-1 закрыт в v1.3.15: implicit `FindDocument` auto-load удалён.
 
 Связанные findings: E1-07, E4-03.
 
@@ -117,12 +125,13 @@ analyzer напрямую из `workspace.CurrentSolution` до overlay или �
   overlay. Остаётся не измерена фактическая concurrent-dispatch вставка между
   physical load и отдельным prepare одного enable=true вызова.
 
-После evidence: если утечка воспроизведена, специфицировать отдельную semantic/load
-boundary. Если не воспроизведена на поддержанной матрице, документировать измеренную
-область без утверждения, что write workflow вызвал anti-lock гарантию. Эта v2
-пока **не выбирает новую load boundary**: пользователь ограничил этот шаг evidence,
-а production dispatch race при запрошенном overlay не воспроизведён. Цель не
-сужается до missing paths.
+После evidence выбранная boundary реализована: `LoadWorkspace` вызывает единый
+manager workflow под одним `_workspaceLock`, а production semantic readers ждут
+published-snapshot accessor. Новый opt-in raw snapshot между physical load и
+prepare не публикуется; prepare failure/cancellation новой сессии fail-closed.
+Норматив: [u-arb-04-atomic-load-prepare.md](u-arb-04-atomic-load-prepare.md),
+приёмка: [u-arb-04-implementation-acceptance.md](u-arb-04-implementation-acceptance.md).
+Цель не сужалась до missing paths.
 Точки v2:
 [E1-S3/S4](epoch-1-lifecycle-verification.md), [E4-S3/S4](epoch-4-workspace-write-boundary.md).
 

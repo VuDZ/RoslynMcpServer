@@ -27,7 +27,8 @@ unconfirmed / access. Публичная MCP schema не расширена.**
 
 Версия **v1.3.12**. Открыто, не блокер: E5-S3-1. Inaccessible и sticky не выбирались
 этой приёмкой. Эпоха 5 S1–S4 закрыта. Позднее U-ARB-05 выбран как session-sticky
-в v1.3.13; U-ARB-04 и inaccessible остаются открытыми.
+в v1.3.13; U-ARB-04 реализован и принят в v1.3.14; inaccessible остаётся
+открытым.
 
 ---
 

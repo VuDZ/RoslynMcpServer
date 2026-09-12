@@ -170,6 +170,16 @@ MCP `tools/list` stays JSON + JSON Schema. Markdown is for JIT help and diagnost
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.3.15
+
+- **No implicit semantic workspace load (U-ARB-04-IMPL-1).** `FindDocumentAsync` no longer walks parent directories and publishes a raw workspace when semantic tools are called before `load_workspace`. It returns no document, matching the existing tool contract and no-workspace guidance; clients must load a workspace explicitly.
+- **Catalog size** — unchanged: full 63 tools / 44,503 bytes; lite 19 / 16,917.
+
+### v1.3.14
+
+- **Atomic analyzer load/prepare boundary (U-ARB-04).** Opt-in `load_workspace(..., shadowCopyInSolutionAnalyzers=true)` now performs physical load/cache lookup, shadow preparation, execution gate, and final snapshot publication under one manager lock. Production semantic readers wait for that boundary and consume only the published snapshot; they cannot compile an intermediate raw analyzer path. A new-session prepare failure or cancellation is fail-closed, while an existing applied mapping remains available as stale where the prior contract permits it. The public MCP schema is unchanged.
+- **Catalog size** — unchanged: full 63 tools / 44,503 bytes; lite 19 / 16,917.
+
 ### v1.3.13
 
 - **Repeated analyzer-shadow flag contract (U-ARB-05).** `shadowCopyInSolutionAnalyzers` activation is session-sticky. After successful enablement, a same-key cached `false`/omitted call preserves the active mapping/generation and performs no analyzer preparation or refresh. Disable with `reset_workspace` followed by a load without the flag; another load key or graph reopen also starts a new session without the old overlay. This preserves v1.3.5+ compatibility because the optional non-nullable boolean cannot distinguish omission by an older client from explicit `false`. Cached loads now explicitly report when an active overlay was preserved. No new MCP parameter or schema shape.
@@ -459,7 +469,7 @@ There are **63** registered tools in the default `full` profile (see list below)
 
 **Analyzer shadow-copy activation and side effects:** this flag is opt-in; the MCP client and agent do not enable it automatically. Add a conditional rule to the target repository's `AGENTS.md` when that repository uses in-solution analyzer/generator projects with a custom `OutputPath`. Enabling it copies versioned analyzer DLL/PDB files under the OS temp `v2-main-only/` namespace and re-applies the in-memory overlay after workspace document updates, adding some disk I/O and CPU. Activation is session-sticky: cached `false`/omitted preserves an already-active overlay and does not refresh analyzer files; use `reset_workspace` then load without the flag to disable. Old generations (including leftover timestamp directories) are not cleaned automatically and can accumulate; `reset_workspace` does not delete them. The real `.csproj` and analyzer build output are not modified; on the supported overlay paths the MCP process locks the shadow copy, not the real output. Path resolution and this anti-lock workaround are independent. `find_symbol_definition` by a generator-emitted type name remains a Roslyn limitation, not a failed overlay.
 
-**Measured anti-lock scope (U-ARB-04):** physical load/prepare is lazy, and the supported overlay semantic/write paths load the shadow path and leave an existing-correct real output rebuildable. A test-only raw semantic compilation before enable loads and locks the real DLL on Windows; no explicit production raw semantic reader was found, while concurrent dispatch between physical load and prepare remains unmeasured. This is evidence only, not a new load-boundary contract; see [`u-arb-04-load-boundary-evidence.md`](docs/analyzer-shadow-copy-improvements/v2/u-arb-04-load-boundary-evidence.md).
+**Atomic anti-lock boundary (U-ARB-04):** physical load/cache lookup, opt-in prepare, execution gate, and final snapshot publication are one serialized manager operation. Production semantic readers wait for this boundary and never compile an intermediate raw analyzer reference. If opt-in entered first, a concurrent semantic request receives the shadow overlay; prepare failure/cancellation on a new session publishes only a fail-closed snapshot. A semantic operation completed before later enablement remains an honest no-overlay operation and can make the identity gate require a process restart. See the [evidence](docs/analyzer-shadow-copy-improvements/v2/u-arb-04-load-boundary-evidence.md), [decision](docs/analyzer-shadow-copy-improvements/v2/u-arb-04-decision.md), and [implementation specification](docs/analyzer-shadow-copy-improvements/v2/u-arb-04-atomic-load-prepare.md).
 
 **Behavior:** Host abort mid-load returns **Workspace Load Cancelled (client abort)** (raise MCP tool timeout; not an MSBuild failure). After a successful load, **saved** `.cs` files are watched and applied before symbol search (unsaved buffers ignored). A changed `.csproj`/`.sln`/`Directory.Build.props` skips the next `load_workspace` cache. NuGet restore warnings (`NU1701` TFM compat, audit, prune) and design-time MSBuild warnings (ASP.NET/SDK deprecation such as `IncludeOpenAPIAnalyzers`/`ASPDEPR007`, processor-architecture mismatch, analyzer project without metadata) are shown as warnings and do not fail load even when wrapped as `Msbuild failed when processing the file`; true MSBuild/SDK errors (`error NU|MSB|NETSDK`) still do. Empty `TargetFramework` (`ResolvePackageAssets`) is a dedicated failure — retry with the IDE solution config, or the `.sln` is Bazel-generated and not MSBuild-evaluable. Missing `Compile` target (CrossTargeting outer build) is a dedicated failure — retry with `targetFramework` from the report / `Directory.Build.props`; `dotnet build` can still succeed. VS 2026 / MSBuild 18 BuildHost crash (`XMakeElements`) is a dedicated failure — **not** `MCP_MSBUILD_SDK_MISMATCH`; use MCP 1.0.35+ or load a single SDK-style `.csproj`.
 </details>
@@ -1026,7 +1036,7 @@ Verify id/version with `search_nuget_registry` first. Clears workspace cache —
 
 **Parameters:** *(none)*
 
-Use after `dotnet publish` to verify the MCP host picked up the new binary (expect **v1.3.13** and **63** tools on `full`, or **19** on `lite`).
+Use after `dotnet publish` to verify the MCP host picked up the new binary (expect **v1.3.15** and **63** tools on `full`, or **19** on `lite`).
 
 </details>
 
@@ -1238,7 +1248,7 @@ cd D:\Devel\YourApp
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.3.13). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.3.15). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 
@@ -1299,7 +1309,7 @@ cd D:\Devel\YourApp
 
 **Активация и побочные эффекты analyzer shadow copy:** флаг opt-in; MCP-клиент и агент автоматически его не включают. Для репозитория с in-solution analyzer/generator и custom `OutputPath` добавьте условное правило в его `AGENTS.md`. При включении versioned DLL/PDB копируются в `v2-main-only/` под OS temp; overlay повторно применяется после обновлений документов. Активация session-sticky: cached `false`/omitted сохраняет уже активный overlay и не обновляет analyzer-файлы; отключение — `reset_workspace`, затем load без флага. Старые поколения (включая timestamp-каталоги) автоматически не очищаются; reset их не удаляет. Реальные `.csproj` и build output не изменяются; на поддержанных overlay-путях MCP-процесс блокирует shadow copy, а не real output. Path resolution и anti-lock независимы. `find_symbol_definition` по имени generated-типа — ограничение Roslyn, не отказ overlay.
 
-**Измеренная anti-lock область (U-ARB-04):** physical load/prepare ленивы; штатные overlay semantic/write пути загружают shadow path и оставляют existing-correct real output пересобираемым. Test-only raw semantic до enable на Windows загружает и блокирует real DLL; явный production raw semantic reader не найден, concurrent dispatch между physical load и prepare не измерен. Это только evidence, не новый load-boundary контракт: [`u-arb-04-load-boundary-evidence.md`](docs/analyzer-shadow-copy-improvements/v2/u-arb-04-load-boundary-evidence.md).
+**Atomic anti-lock boundary (U-ARB-04):** physical load/cache lookup, opt-in prepare, execution gate и публикация итогового snapshot выполняются как одна сериализованная manager-операция. Production semantic readers ждут эту boundary и не компилируют промежуточные raw analyzer references. Если opt-in вошёл первым, конкурентный semantic получает shadow overlay; prepare failure/cancellation новой сессии публикует только fail-closed snapshot. Semantic, завершённый до более позднего enable, остаётся честной no-overlay операцией и может привести identity gate к restart-required. См. [evidence](docs/analyzer-shadow-copy-improvements/v2/u-arb-04-load-boundary-evidence.md), [решение](docs/analyzer-shadow-copy-improvements/v2/u-arb-04-decision.md) и [спецификацию реализации](docs/analyzer-shadow-copy-improvements/v2/u-arb-04-atomic-load-prepare.md).
 
 **Поведение:** abort хоста mid-load → **Workspace Load Cancelled (client abort)** (поднять MCP timeout; это не ошибка MSBuild). После успешного load **сохранённые** `.cs` вотчатся и подмешиваются в поиск символов (несохранённый буфер игнорируется). Смена `.csproj`/`.sln`/`Directory.Build.props` сбрасывает кэш следующего `load_workspace`. Предупреждения restore (`NU1701` TFM-compat, audit, prune) и design-time MSBuild (deprecation `IncludeOpenAPIAnalyzers`/ASPDEPR007, mismatch архитектуры, analyzer без metadata) не валят load даже в обёртке `Msbuild failed when processing the file`; настоящие ошибки MSBuild/SDK (`error NU|MSB|NETSDK`) — валят. Пустой `TargetFramework` (`ResolvePackageAssets`) — отдельный fail: повторить с IDE-конфигом или это Bazel-generated sln, который MSBuildWorkspace не открывает. Нет target `Compile` (outer CrossTargeting) — отдельный fail: повторить с `targetFramework` из отчёта / `Directory.Build.props`; `dotnet build` при этом может быть зелёным. Падение VS 2026 / MSBuild 18 BuildHost (`XMakeElements`) — отдельный fail, **не** `MCP_MSBUILD_SDK_MISMATCH`; нужен MCP 1.0.35+ или один SDK-style `.csproj`.
 </details>
@@ -1859,7 +1869,7 @@ cd D:\Devel\YourApp
 
 **Параметры:** *(нет)*
 
-После `dotnet publish` — проверка, что MCP подхватил новый бинарник (ожидай **v1.3.13** и **63** tools в `full`, или **19** в `lite`).
+После `dotnet publish` — проверка, что MCP подхватил новый бинарник (ожидай **v1.3.15** и **63** tools в `full`, или **19** в `lite`).
 
 </details>
 

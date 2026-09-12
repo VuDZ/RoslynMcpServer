@@ -7,34 +7,42 @@ assemblies. Flush выполняется только `FindDocumentAsync` /
 
 | Файл | Откуда snapshot | Flush | Та же база до transform | Raw `workspace.CurrentSolution` compilation |
 | --- | --- | --- | --- | --- |
-| `Tools/WorkspaceTools.cs` | getter после enable | нет | Load→enable→summary в одном вызове, два захвата lock | нет |
+| `Tools/WorkspaceTools.cs` | `LoadAndPrepareAsync` | boundary целиком | Load/cache→prepare/gate→publish под одним lock; diagnostics/summary после boundary | нет |
 | `Tools/ServerLifecycleTools.cs` | getter | нет | n/a | нет |
 | `Tools/UtilityTools.cs` (прочие) | getter | нет | n/a | нет |
-| `Tools/UtilityTools.cs` `RenameSymbol` | `FindDocumentAsync` затем **повторный** `GetCurrentSolution()` | да, затем re-get | **нет гарантии** той же базы после symbol | нет |
-| `Tools/NavigationTools.cs` `FindSymbolReferences` | `FindDocumentAsync` затем `GetCurrentSolution()` | да, затем re-get | **нет гарантии** | нет |
-| `Tools/NavigationTools.cs` usages/impl/definition | `GetCurrentSolutionAfterDiskSyncAsync` | да | одна база после flush | нет |
+| `Tools/UtilityTools.cs` `RenameSymbol` | сериализованный `FindDocumentAsync`; база = `document.Project.Solution` | да | та же база после symbol | нет |
+| `Tools/NavigationTools.cs` `FindSymbolReferences` | сериализованный `FindDocumentAsync`; база = `document.Project.Solution` | да | та же база | нет |
+| `Tools/NavigationTools.cs` usages/impl/definition | `GetPublishedSolutionAfterDiskSyncAsync` | да | опубликованная база после flush | нет |
 | `Tools/CodeAnalysisTools.cs` diagnostics/skeleton | `FindDocumentAsync` | да | документ из flushed overlay | нет |
 | `Tools/CodeAnalysisTools.cs` explore/decompile | getter (resolve DLL path) | нет | n/a, не компилирует overlay generators | нет |
 | `Tools/CodeFixTools.cs` | `FindDocumentAsync` → `ApplySolutionChangesToDiskAsync` | да | transform от document solution | apply использует workspace current для revert overlay |
 | `Tools/RefactoringTools.cs` | то же | да | то же | то же |
 | `Tools/AstTools.cs` | то же | да | то же | то же |
 | `Tools/EditingTools.cs` | запись файла + `UpdateDocumentInMemoryAsync` | нет | n/a | apply идёт на `workspace.CurrentSolution` |
-| `Tools/TestTools.cs` | `GetCurrentSolutionAfterDiskSyncAsync` / `FindDocumentAsync` | да | после flush | нет |
-| `Services/SolutionManager.cs` | overlay `_solution` | flush только явными API | getter без lock | lookup/TryApplyChanges/overlay source; не semantic oracle |
+| `Tools/TestTools.cs` | `GetPublishedSolutionAfterDiskSyncAsync` / `FindDocumentAsync` | да | после serialized flush | нет |
+| `Services/SolutionManager.cs` | published `_solution` | accessor/flush под `_workspaceLock` | semantic accessor ждёт load/prepare; lock-free getter только non-semantic | lookup/TryApplyChanges/overlay source; не semantic oracle |
 
 Новый caller без строки в этой таблице должен ломать `Epoch1SemanticInventoryTests`.
 
 ## U-ARB-04 evidence (2026-09-12)
 
 `Epoch1SemanticInventoryTests.Production_code_has_no_explicit_raw_workspace_semantic_reader`
-подтверждает, что `Tools/`/`Services/` не вызывают test-only
+подтверждает, что `Tools/`/`Services/` не вызывают
 `GetWorkspaceCurrentSolution()` для semantic compilation. Raw
 `workspace.CurrentSolution` в `SolutionManager` остаётся базой write workflow,
 но сам manager не вызывает на ней `GetCompilationAsync`/`GetSemanticModelAsync`.
 
-Отдельный test-only raw oracle доказал, что `GetCompilationAsync` existing-correct
-project до enable загружает real analyzer path и блокирует forced rebuild.
-Штатные overlay readers загружают shadow path. Полная матрица и граница вывода:
+Default oracle из опубликованного `GetCurrentSolution()` без активного overlay
+доказал, что обычный `GetCompilationAsync` existing-correct project до enable
+загружает real analyzer path и блокирует forced rebuild. Это
+production-equivalent opt-in boundary. Отдельный test-only raw oracle запускался
+после overlay semantic, переиспользовал shadow identity и отдельный real analyzer
+не загрузил. Штатные overlay readers загружают shadow path. Полная матрица и
+граница вывода:
 [u-arb-04-load-boundary-evidence.md](u-arb-04-load-boundary-evidence.md).
 Production concurrent-dispatch между завершением physical load и отдельным
-enable/prepare этим evidence-проходом не воспроизводился.
+enable/prepare evidence-проходом не воспроизводился. В v1.3.14 отдельные
+захваты заменены atomic manager workflow, semantic readers переведены на
+published-snapshot accessor, а inventory guard запрещает lock-free getter
+перед `GetCompilationAsync` / `GetSemanticModelAsync`. Детерминированная
+приёмка: [u-arb-04-implementation-acceptance.md](u-arb-04-implementation-acceptance.md).

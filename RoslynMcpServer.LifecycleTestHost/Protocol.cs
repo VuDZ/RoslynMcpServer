@@ -145,6 +145,9 @@ public sealed class ExecutionDto
 public sealed class ConcurrencyDto
 {
     public bool BothCompleted { get; set; }
+    public bool SemanticCompletedBeforePrepare { get; set; }
+    public bool PublishedSnapshotPresent { get; set; }
+    public bool LoadCancelled { get; set; }
     public string? FirstError { get; set; }
     public string? SecondError { get; set; }
     public bool ShadowEnabledAfter { get; set; }

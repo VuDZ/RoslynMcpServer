@@ -62,7 +62,7 @@ public sealed class NavigationTools
                     $"Could not resolve Roslyn document for file: `{fullPath}`.");
             }
 
-            var solution = _solutionManager.GetCurrentSolution() ?? document.Project.Solution;
+            var solution = document.Project.Solution;
             var semanticModel = await document.GetSemanticModelAsync(cancellationToken);
             var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken);
             if (semanticModel is null || syntaxRoot is null)
@@ -171,7 +171,7 @@ public sealed class NavigationTools
                 return ToolTelemetry.TraceAndReturn(nameof(FindSymbolDefinition), "Error: `symbolName` is empty.");
             }
 
-            var solution = await _solutionManager.GetCurrentSolutionAfterDiskSyncAsync(cancellationToken).ConfigureAwait(false);
+            var solution = await _solutionManager.GetPublishedSolutionAfterDiskSyncAsync(cancellationToken).ConfigureAwait(false);
             if (solution is null)
             {
                 return ToolTelemetry.TraceAndReturn(
@@ -279,7 +279,7 @@ public sealed class NavigationTools
                 return ToolTelemetry.TraceAndReturn(toolName, "Error: `symbolName` is empty.");
             }
 
-            var solution = await _solutionManager.GetCurrentSolutionAfterDiskSyncAsync(cancellationToken).ConfigureAwait(false);
+            var solution = await _solutionManager.GetPublishedSolutionAfterDiskSyncAsync(cancellationToken).ConfigureAwait(false);
             if (solution is null)
             {
                 return ToolTelemetry.TraceAndReturn(
@@ -436,7 +436,7 @@ public sealed class NavigationTools
                 return ToolTelemetry.TraceAndReturn(toolName, "Error: `symbolName` is empty.");
             }
 
-            var solution = await _solutionManager.GetCurrentSolutionAfterDiskSyncAsync(cancellationToken).ConfigureAwait(false);
+            var solution = await _solutionManager.GetPublishedSolutionAfterDiskSyncAsync(cancellationToken).ConfigureAwait(false);
             if (solution is null)
             {
                 return ToolTelemetry.TraceAndReturn(

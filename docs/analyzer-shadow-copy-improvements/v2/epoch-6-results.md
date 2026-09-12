@@ -20,7 +20,7 @@ Runtime в этой эпохе не запускался. Команды пов�
 | Исследование завершено | Эпоха 1: красный baseline принят |
 | Реализация принята | Эпохи 2 / 3 / 4: v1.3.6 / v1.3.7 / v1.3.8 |
 | Аудит завершён | Эта эпоха: S1–S4 сверены; A6-08/11/12 закрыты. A6-13 не блокер |
-| Серия завершена | **нет** — эпоха 5 принята (v1.3.12); U-ARB-05 закрыт в v1.3.13, U-ARB-04 и inaccessible открыты |
+| Серия завершена | **нет** — эпоха 5 принята (v1.3.12); U-ARB-05 закрыт в v1.3.13; U-ARB-04 реализован в v1.3.14; inaccessible открыт |
 
 Эпоха 3 документируется как **выбранный restart-required / main-only**, не как
 исследовательский failure и не как in-process V2. Эпоха 5 — **принята**
@@ -125,9 +125,11 @@ flush, затем повторный getter — гарантии той же б�
 
 - Эпоха 5 / U-ARB-01: capture + confirmed-only приняты в v1.3.12;
   inaccessible не выбран.
-- U-ARB-04: load boundary не выбрана; поздний
-  [evidence-проход](u-arb-04-load-boundary-evidence.md) локализовал lock у raw
-  semantic до enable и подтвердил shadow path для штатных write paths.
+- U-ARB-04: поздний
+  [evidence-проход](u-arb-04-load-boundary-evidence.md) локализовал lock у
+  published no-overlay semantic до enable и подтвердил shadow path для штатных
+  write paths; затем atomic load/prepare boundary
+  [реализована и принята](u-arb-04-implementation-acceptance.md) в v1.3.14.
   Измерение persistence эпохи 4 само по себе не есть anti-lock гарантия.
 - U-ARB-05 закрыт после аудита: выбран session-sticky контракт
   ([решение](u-arb-05-decision.md), v1.3.13).

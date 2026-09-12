@@ -12,9 +12,10 @@ v1.3.9; [E5-S2 matcher принят](epoch-5-s2-acceptance.md) в v1.3.10;
 [E5-S4 принят](epoch-5-s4-acceptance.md) в v1.3.12. Эпоха 5 закрыта.
 U-ARB-05 выбран как session-sticky и реализован в v1.3.13.
 Для U-ARB-04 выполнен [evidence-проход](u-arb-04-load-boundary-evidence.md):
-raw semantic до enable воспроизводит real-output lock; overlay/write paths
-оставляют real output незагруженным. Новая boundary не выбиралась.
-Серия не завершена (U-ARB-04 и inaccessible в U-ARB-01). Исходные
+published no-overlay semantic до enable воспроизводит real-output lock;
+overlay/write paths оставляют real output незагруженным.
+[Atomic load/prepare boundary реализована и принята](u-arb-04-implementation-acceptance.md)
+в v1.3.14. Серия не завершена только из-за inaccessible в U-ARB-01. Исходные
 v1/review/response/arbitration сохранены. Файлы эпох переписаны как самостоятельный
 русский нормативный текст, добавлены общая lifecycle matrix и реестры
 трассировки/открытых вопросов.
@@ -79,7 +80,9 @@ v1/review/response/arbitration сохранены. Файлы эпох пере�
   U-ARB-01 **выбран и принят** (capture на load; E5-S2–S4 в v1.3.10–1.3.12);
   inaccessible не выбран. U-ARB-02/03 **выбраны** (restart-required / main-only,
   эпоха 3). U-ARB-05 **выбран** как session-sticky в v1.3.13.
-  U-ARB-04 остаётся открытым gate; inaccessible в U-ARB-01 не выбран.
+  Для U-ARB-04 atomic load/prepare boundary
+  [реализована и принята](u-arb-04-implementation-acceptance.md) в v1.3.14;
+  inaccessible в U-ARB-01 не выбран.
 
 ## Сквозные следствия принятых решений
 

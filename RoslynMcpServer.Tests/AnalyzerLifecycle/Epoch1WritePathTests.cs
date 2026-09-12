@@ -81,11 +81,11 @@ public sealed class Epoch1WritePathTests
         Assert.True(rename.Ok, rename.Error);
         Assert.Contains("ConsumerMarkerConsumerRenamed", rename.DocumentText ?? "", StringComparison.Ordinal);
         _output.WriteLine(
-            "Rename SameSnapshotAfterSymbol={0} (production RenameSymbol re-gets GetCurrentSolution after symbol).",
+            "Rename SameSnapshotAfterSymbol={0} (production rename keeps the serialized document snapshot).",
             rename.SameSnapshotAfterSymbol);
         Assert.True(
             rename.SameSnapshotAfterSymbol,
-            "E1-S4: GetCurrentSolution() after symbol was a different snapshot than FindDocumentAsync. Follow-up epoch 4.");
+            "E1-S4: rename must keep the same serialized snapshot after symbol resolution.");
 
         var afterRename = await Epoch1HostOps.RequireMarkerAsync(host, GeneratorConsumerFixture.MarkerV1);
         var snapshot2 = await host.SendAsync(new HostCommand { Op = "snapshotCsproj", Path = fixture.Root });

@@ -10,8 +10,13 @@ using Microsoft.CodeAnalysis.Host.Mef;
 using Microsoft.CodeAnalysis.MSBuild;
 using Microsoft.CodeAnalysis.Text;
 using Microsoft.Extensions.Logging;
+using RoslynMcpServer.Diagnostics;
 using RoslynMcpServer.Services;
 using Serilog;
+
+internal sealed record WorkspaceLoadPreparationResult(
+    Solution Solution,
+    IReadOnlyList<AnalyzerReferenceShadowCopier.RewriteResult> ShadowCopyResults);
 
 public sealed class SolutionManager
 {
@@ -163,6 +168,12 @@ public sealed class SolutionManager
     /// </summary>
     internal bool FailNextOverlayPrepare { get; set; }
 
+    /// <summary>
+    /// Test seam invoked after physical load/cache lookup and before opt-in prepare while
+    /// <see cref="_workspaceLock"/> is still held.
+    /// </summary>
+    internal Func<CancellationToken, Task>? AfterPhysicalLoadBeforePrepareAsync { get; set; }
+
     /// <summary>Test seam: next workspace apply returns false without calling Roslyn.</summary>
     internal bool FailNextTryApplyChanges { get; set; }
 
@@ -210,6 +221,27 @@ public sealed class SolutionManager
         string? targetFramework = null,
         string? buildArgs = null)
     {
+        var result = await LoadAndPrepareAsync(
+                solutionOrProjectPath,
+                shadowCopyInSolutionAnalyzers: false,
+                cancellationToken,
+                configuration,
+                platform,
+                targetFramework,
+                buildArgs)
+            .ConfigureAwait(false);
+        return result.Solution;
+    }
+
+    internal async Task<WorkspaceLoadPreparationResult> LoadAndPrepareAsync(
+        string solutionOrProjectPath,
+        bool shadowCopyInSolutionAnalyzers,
+        CancellationToken cancellationToken,
+        string? configuration = null,
+        string? platform = null,
+        string? targetFramework = null,
+        string? buildArgs = null)
+    {
         if (string.IsNullOrWhiteSpace(solutionOrProjectPath))
         {
             throw new ArgumentException("Solution or project path cannot be empty.", nameof(solutionOrProjectPath));
@@ -229,13 +261,68 @@ public sealed class SolutionManager
         await _workspaceLock.WaitAsync(cancellationToken);
         try
         {
-            return await LoadCoreAsync(
-                fullPath,
-                normalizedConfiguration,
-                normalizedPlatform,
-                normalizedTargetFramework,
-                normalizedBuildArgs,
-                cancellationToken);
+            var publishedBeforeBoundary = _solution;
+            Solution solution;
+            try
+            {
+                solution = await LoadCoreAsync(
+                        fullPath,
+                        normalizedConfiguration,
+                        normalizedPlatform,
+                        normalizedTargetFramework,
+                        normalizedBuildArgs,
+                        publishLoadedSolution: !shadowCopyInSolutionAnalyzers,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+            }
+            catch
+            {
+                if (shadowCopyInSolutionAnalyzers)
+                {
+                    RestoreSafePublishedSnapshotAfterOptInFailure();
+                }
+
+                throw;
+            }
+
+            if (!shadowCopyInSolutionAnalyzers)
+            {
+                return new WorkspaceLoadPreparationResult(solution, _lastShadowCopyResults);
+            }
+
+            if (_lastLoadWasCacheHit)
+            {
+                _solution = publishedBeforeBoundary;
+            }
+
+            if (HasBlockingLoadFailure(solution))
+            {
+                _solution = null;
+                return new WorkspaceLoadPreparationResult(solution, Array.Empty<AnalyzerReferenceShadowCopier.RewriteResult>());
+            }
+
+            try
+            {
+                var boundarySeam = AfterPhysicalLoadBeforePrepareAsync;
+                if (boundarySeam is not null)
+                {
+                    await boundarySeam(cancellationToken).ConfigureAwait(false);
+                }
+
+                var results = PrepareInSolutionAnalyzerReferencesUnderLock();
+                if (!_shadowCopyAnalyzersEnabled
+                    && _analyzerShadowMapping is not { HasAnyApplied: true })
+                {
+                    SetFailClosedPublishedSolution(_workspace!.CurrentSolution);
+                }
+
+                return new WorkspaceLoadPreparationResult(_solution!, results);
+            }
+            catch
+            {
+                RestoreSafePublishedSnapshotAfterOptInFailure();
+                throw;
+            }
         }
         finally
         {
@@ -281,20 +368,21 @@ public sealed class SolutionManager
         await _workspaceLock.WaitAsync(cancellationToken);
         try
         {
-            await EnsureWorkspaceLoadedForFileUnderLockAsync(fullFilePath, cancellationToken);
-            await FlushDirtyDocumentsUnderLockAsync(cancellationToken);
-
-            var workspace = _workspace;
-            if (workspace is null)
+            if (_workspace is null)
             {
                 return null;
             }
 
-            // Route through the analyzer-shadow-copy overlay (GetCurrentSolution), not workspace.CurrentSolution
-            // directly — otherwise document.GetSemanticModelAsync() on the returned Document would still compile
-            // against the original (possibly broken/locked) AnalyzerReference. See
-            // ShadowCopyInSolutionAnalyzerReferencesAsync for why the overlay is never pushed into the workspace.
-            var solution = GetCurrentSolution() ?? workspace.CurrentSolution;
+            await FlushDirtyDocumentsUnderLockAsync(cancellationToken);
+
+            // Return only a published snapshot. In particular, never fall back to raw
+            // workspace.CurrentSolution while an opt-in load is fail-closed.
+            var solution = _solution;
+            if (solution is null)
+            {
+                return null;
+            }
+
             return solution.Projects
                 .SelectMany(p => p.Documents)
                 .FirstOrDefault(d =>
@@ -341,7 +429,7 @@ public sealed class SolutionManager
         // Stored snapshot only. Overlay is prepared at load/enable/refresh and reapplied from the in-memory
         // mapping at mutation points (edit / flush / post-apply). This getter does not copy analyzer files,
         // hash generations, or recompute the overlay.
-        return _solution ?? _workspace?.CurrentSolution;
+        return _solution;
     }
 
     /// <summary>
@@ -367,42 +455,47 @@ public sealed class SolutionManager
         await _workspaceLock.WaitAsync(cancellationToken);
         try
         {
-            var workspace = _workspace;
-            var loadedPath = _loadedPath;
-            if (workspace is null || loadedPath is null)
-            {
-                return Array.Empty<AnalyzerReferenceShadowCopier.RewriteResult>();
-            }
-
-            var shadowRoot = AnalyzerReferenceShadowCopier.GetDefaultShadowRootDirectory(loadedPath);
-            _lastPrepareAttempted = true;
-            _overlayPrepareCount++;
-
-            if (FailNextOverlayPrepare)
-            {
-                FailNextOverlayPrepare = false;
-                _lastPrepareInjectedFailure = true;
-                return CompleteFailedPrepare(
-                    workspace.CurrentSolution,
-                    shadowRoot,
-                    "injected-prepare-failure");
-            }
-
-            _lastPrepareInjectedFailure = false;
-            var prepared = AnalyzerReferenceShadowCopier.PrepareInSolutionAnalyzerReferences(
-                workspace.CurrentSolution,
-                shadowRoot,
-                _analyzerAssemblyLoader,
-                _analyzerShadowMapping,
-                _loadSessionId,
-                loadedPath,
-                _analyzerProvenanceSnapshot);
-            return CompletePrepare(workspace.CurrentSolution, shadowRoot, prepared);
+            return PrepareInSolutionAnalyzerReferencesUnderLock();
         }
         finally
         {
             _workspaceLock.Release();
         }
+    }
+
+    private IReadOnlyList<AnalyzerReferenceShadowCopier.RewriteResult> PrepareInSolutionAnalyzerReferencesUnderLock()
+    {
+        var workspace = _workspace;
+        var loadedPath = _loadedPath;
+        if (workspace is null || loadedPath is null)
+        {
+            return Array.Empty<AnalyzerReferenceShadowCopier.RewriteResult>();
+        }
+
+        var shadowRoot = AnalyzerReferenceShadowCopier.GetDefaultShadowRootDirectory(loadedPath);
+        _lastPrepareAttempted = true;
+        _overlayPrepareCount++;
+
+        if (FailNextOverlayPrepare)
+        {
+            FailNextOverlayPrepare = false;
+            _lastPrepareInjectedFailure = true;
+            return CompleteFailedPrepare(
+                workspace.CurrentSolution,
+                shadowRoot,
+                "injected-prepare-failure");
+        }
+
+        _lastPrepareInjectedFailure = false;
+        var prepared = AnalyzerReferenceShadowCopier.PrepareInSolutionAnalyzerReferences(
+            workspace.CurrentSolution,
+            shadowRoot,
+            _analyzerAssemblyLoader,
+            _analyzerShadowMapping,
+            _loadSessionId,
+            loadedPath,
+            _analyzerProvenanceSnapshot);
+        return CompletePrepare(workspace.CurrentSolution, shadowRoot, prepared);
     }
 
     /// <summary>
@@ -585,13 +678,48 @@ public sealed class SolutionManager
 
         _lastShadowCopyResults = Array.Empty<AnalyzerReferenceShadowCopier.RewriteResult>();
         _lastRefreshStale = false;
-        _lastExecutionObservation = AnalyzerExecutionObservation.None;
+        SetFailClosedPublishedSolution(workspaceSolution);
         return _lastShadowCopyResults;
     }
 
     private void SetPublishedSolution(Solution workspaceSolution)
     {
         var overlay = PublishInMemorySolution(workspaceSolution);
+        SetPublishedSnapshot(overlay);
+    }
+
+    private Solution CreateFailClosedSnapshot(Solution workspaceSolution) =>
+        AnalyzerExecutionGate.StripInSolutionAnalyzerReferences(
+            workspaceSolution,
+            _analyzerProvenanceSnapshot,
+            _loadSessionId);
+
+    private void SetFailClosedPublishedSolution(Solution workspaceSolution)
+    {
+        _shadowCopyAnalyzersEnabled = false;
+        SetPublishedSnapshot(CreateFailClosedSnapshot(workspaceSolution));
+    }
+
+    private void RestoreSafePublishedSnapshotAfterOptInFailure()
+    {
+        if (_workspace is null || _analyzerProvenanceSnapshot is null)
+        {
+            _solution = null;
+            return;
+        }
+
+        if (_shadowCopyAnalyzersEnabled
+            && _analyzerShadowMapping is { HasAnyApplied: true })
+        {
+            SetPublishedSolution(_workspace.CurrentSolution);
+            return;
+        }
+
+        SetFailClosedPublishedSolution(_workspace.CurrentSolution);
+    }
+
+    private void SetPublishedSnapshot(Solution overlay)
+    {
         _solution = overlay;
         var context = new WorkspaceWriteOperationContext(
             _loadSessionId,
@@ -649,13 +777,37 @@ public sealed class SolutionManager
     }
 
     /// <summary>
-    /// Applies queued on-disk <c>.cs</c> changes (FileSystemWatcher dirty set) then returns the snapshot.
-    /// Unsaved editor buffers are ignored — only files already written to disk.
+    /// Waits for an in-flight load/prepare boundary and returns only its published snapshot.
+    /// It never falls back to raw <see cref="Workspace.CurrentSolution"/>.
     /// </summary>
-    public async Task<Solution?> GetCurrentSolutionAfterDiskSyncAsync(CancellationToken cancellationToken = default)
+    public async Task<Solution?> GetPublishedSolutionAsync(CancellationToken cancellationToken = default)
     {
-        await EnsureDiskChangesAppliedAsync(cancellationToken).ConfigureAwait(false);
-        return GetCurrentSolution();
+        await _workspaceLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            return _solution;
+        }
+        finally
+        {
+            _workspaceLock.Release();
+        }
+    }
+
+    /// <summary>
+    /// Applies queued disk changes and returns the published snapshot under one lock acquisition.
+    /// </summary>
+    public async Task<Solution?> GetPublishedSolutionAfterDiskSyncAsync(CancellationToken cancellationToken = default)
+    {
+        await _workspaceLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await FlushDirtyDocumentsUnderLockAsync(cancellationToken).ConfigureAwait(false);
+            return _solution;
+        }
+        finally
+        {
+            _workspaceLock.Release();
+        }
     }
 
     /// <summary>
@@ -1147,41 +1299,6 @@ public sealed class SolutionManager
     }
 
     /// <summary>
-    /// Must be called with <see cref="_workspaceLock"/> held.
-    /// </summary>
-    private async Task EnsureWorkspaceLoadedForFileUnderLockAsync(
-        string fullFilePath,
-        CancellationToken cancellationToken)
-    {
-        if (_workspace is not null)
-        {
-            return;
-        }
-
-        var candidate = FindClosestSolutionOrProject(fullFilePath);
-        if (candidate is null)
-        {
-            throw new FileNotFoundException(
-                "Could not locate a .sln, .slnx, or .csproj while walking parent directories.",
-                fullFilePath);
-        }
-
-        var candidateFull = Path.GetFullPath(candidate);
-        if (!File.Exists(candidateFull))
-        {
-            throw new FileNotFoundException("Solution or project file not found.", candidateFull);
-        }
-
-        _ = await LoadCoreAsync(
-            candidateFull,
-            configuration: null,
-            platform: null,
-            targetFramework: null,
-            buildArgs: null,
-            cancellationToken);
-    }
-
-    /// <summary>
     /// Loads or returns cached solution. Caller must hold <see cref="_workspaceLock"/>.
     /// </summary>
     private async Task<Solution> LoadCoreAsync(
@@ -1190,6 +1307,7 @@ public sealed class SolutionManager
         string? platform,
         string? targetFramework,
         string? buildArgs,
+        bool publishLoadedSolution,
         CancellationToken cancellationToken)
     {
         if (_workspace is not null
@@ -1217,6 +1335,13 @@ public sealed class SolutionManager
 
         StopDiskWatcherUnderLock();
         _workspace?.Dispose();
+        _workspace = null;
+        _solution = null;
+        _loadedPath = null;
+        _loadedConfiguration = null;
+        _loadedPlatform = null;
+        _loadedTargetFramework = null;
+        _loadedBuildArgs = null;
         _dirtySourcePaths.Clear();
         _selfWriteUntilTicks.Clear();
         _refreshAllDocuments = false;
@@ -1282,7 +1407,10 @@ public sealed class SolutionManager
             provenanceSnapshot,
             _loadSessionId,
             _analyzerAssemblyLoader);
-        SetPublishedSolution(workspace.CurrentSolution);
+        if (publishLoadedSolution)
+        {
+            SetPublishedSolution(workspace.CurrentSolution);
+        }
         _loadedConfiguration = configuration;
         _loadedPlatform = platform;
         _loadedTargetFramework = targetFramework;
@@ -1297,7 +1425,21 @@ public sealed class SolutionManager
             targetFramework ?? "(default)",
             buildArgs ?? "(none)");
         LogProcessWorkingSet("workspace_load");
-        return _solution ?? workspace.CurrentSolution;
+        return publishLoadedSolution ? _solution ?? workspace.CurrentSolution : workspace.CurrentSolution;
+    }
+
+    private bool HasBlockingLoadFailure(Solution solution)
+    {
+        if (!solution.Projects.Any())
+        {
+            return true;
+        }
+
+        return _lastDiagnostics
+            .Select(diagnostic => WorkspaceDiagnosticFormatter.Format(
+                diagnostic.Kind.ToString(),
+                diagnostic.Message))
+            .Any(WorkspaceDiagnosticFormatter.IsBlockingLoadFailure);
     }
 
     /// <summary>
@@ -1560,47 +1702,6 @@ public sealed class SolutionManager
                     return document.Id;
                 }
             }
-        }
-
-        return null;
-    }
-
-    private string? FindClosestSolutionOrProject(string fullFilePath)
-    {
-        var directoryPath = Path.GetDirectoryName(fullFilePath);
-        if (directoryPath is null)
-        {
-            return null;
-        }
-
-        var currentDirectory = new DirectoryInfo(directoryPath);
-        while (currentDirectory is not null)
-        {
-            var solutionPath = Directory
-                .EnumerateFiles(currentDirectory.FullName, "*.sln", SearchOption.TopDirectoryOnly)
-                .FirstOrDefault();
-            if (solutionPath is not null)
-            {
-                return solutionPath;
-            }
-
-            var slnxPath = Directory
-                .EnumerateFiles(currentDirectory.FullName, "*.slnx", SearchOption.TopDirectoryOnly)
-                .FirstOrDefault();
-            if (slnxPath is not null)
-            {
-                return slnxPath;
-            }
-
-            var projectPath = Directory
-                .EnumerateFiles(currentDirectory.FullName, "*.csproj", SearchOption.TopDirectoryOnly)
-                .FirstOrDefault();
-            if (projectPath is not null)
-            {
-                return projectPath;
-            }
-
-            currentDirectory = currentDirectory.Parent;
         }
 
         return null;

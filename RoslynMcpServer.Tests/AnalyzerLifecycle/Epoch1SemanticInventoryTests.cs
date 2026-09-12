@@ -5,7 +5,7 @@ namespace RoslynMcpServer.Tests.AnalyzerLifecycle;
 
 /// <summary>
 /// E1-S4 inventory of semantic entry points. New callers of GetCurrentSolution /
-/// FindDocumentAsync / GetCurrentSolutionAfterDiskSyncAsync / workspace.CurrentSolution
+/// FindDocumentAsync / GetPublishedSolutionAfterDiskSyncAsync / workspace.CurrentSolution
 /// compilation must be classified here; getter callers stay in the contract.
 /// </summary>
 [Trait("Category", "AnalyzerLifecycle")]
@@ -13,20 +13,21 @@ public sealed class Epoch1SemanticInventoryTests
 {
     private static readonly (string File, string Kind, string Notes)[] Expected =
     {
-        ("Tools/WorkspaceTools.cs", "getter-after-enable", "LoadWorkspace enable→GetCurrentSolution for summary; same load session."),
+        ("Tools/WorkspaceTools.cs", "atomic-load", "LoadWorkspace uses one LoadAndPrepareAsync boundary; diagnostics and summary run after publish."),
         ("Tools/ServerLifecycleTools.cs", "getter", "get_mcp_server_info reads overlay snapshot; no flush."),
         ("Tools/UtilityTools.cs", "getter", "Non-rename tools read GetCurrentSolution without flush."),
-        ("Tools/UtilityTools.cs", "flush-then-reget", "RenameSymbol: FindDocumentAsync (flush) then GetCurrentSolution() again after symbol resolution — persist via ApplySolutionChangesToDiskAsync write boundary."),
+        ("Tools/UtilityTools.cs", "serialized-document", "RenameSymbol keeps document.Project.Solution as the base after serialized FindDocumentAsync."),
         ("Tools/CodeAnalysisTools.cs", "flush", "get_diagnostics_for_file / get_class_skeleton use FindDocumentAsync."),
         ("Tools/CodeAnalysisTools.cs", "getter", "explore_assembly / decompile_* / skeleton resolve via GetCurrentSolution (no compilation of overlay generators)."),
         ("Tools/CodeFixTools.cs", "flush-then-apply", "FindDocumentAsync then ApplySolutionChangesToDiskAsync."),
         ("Tools/RefactoringTools.cs", "flush-then-apply", "FindDocumentAsync then ApplySolutionChangesToDiskAsync."),
         ("Tools/AstTools.cs", "flush-then-apply", "FindDocumentAsync then ApplySolutionChangesToDiskAsync."),
         ("Tools/EditingTools.cs", "write-then-update", "UpdateDocumentInMemoryAsync writes after preflight; non-workspace files still write directly."),
-        ("Tools/TestTools.cs", "flush-getter", "GetCurrentSolutionAfterDiskSyncAsync and FindDocumentAsync."),
-        ("Tools/NavigationTools.cs", "flush-then-reget", "FindSymbolReferences: FindDocumentAsync then GetCurrentSolution()."),
-        ("Tools/NavigationTools.cs", "flush-getter", "FindUsages / implementations / definition use GetCurrentSolutionAfterDiskSyncAsync."),
-        ("Services/SolutionManager.cs", "overlay-read", "GetCurrentSolution returns _solution overlay or workspace fallback; does not prepare or load assemblies."),
+        ("Tools/TestTools.cs", "serialized-flush", "GetPublishedSolutionAfterDiskSyncAsync and FindDocumentAsync."),
+        ("Tools/NavigationTools.cs", "serialized-document", "FindSymbolReferences keeps document.Project.Solution from serialized FindDocumentAsync."),
+        ("Tools/NavigationTools.cs", "serialized-flush", "FindUsages / implementations / definition use GetPublishedSolutionAfterDiskSyncAsync."),
+        ("Services/SolutionManager.cs", "published-accessor", "Semantic accessors wait for the load/prepare lock and return only _solution."),
+        ("Services/SolutionManager.cs", "overlay-read", "GetCurrentSolution remains a non-semantic lock-free info accessor."),
         ("Services/SolutionManager.cs", "raw-workspace", "workspace.CurrentSolution is the write-boundary base and overlay source; the only production TryApplyChanges is TryApplyWorkspaceChanges."),
     };
 
@@ -45,9 +46,14 @@ public sealed class Epoch1SemanticInventoryTests
                 hits.Add(rel + "::GetCurrentSolution");
             }
 
-            if (Regex.IsMatch(text, @"GetCurrentSolutionAfterDiskSyncAsync\s*\("))
+            if (Regex.IsMatch(text, @"GetPublishedSolutionAfterDiskSyncAsync\s*\("))
             {
-                hits.Add(rel + "::GetCurrentSolutionAfterDiskSyncAsync");
+                hits.Add(rel + "::GetPublishedSolutionAfterDiskSyncAsync");
+            }
+
+            if (Regex.IsMatch(text, @"GetPublishedSolutionAsync\s*\("))
+            {
+                hits.Add(rel + "::GetPublishedSolutionAsync");
             }
 
             if (Regex.IsMatch(text, @"FindDocumentAsync\s*\("))
@@ -66,7 +72,7 @@ public sealed class Epoch1SemanticInventoryTests
         Assert.Contains(hits, h => h.StartsWith("Tools/UtilityTools.cs::GetCurrentSolution", StringComparison.Ordinal));
         Assert.Contains(hits, h => h.StartsWith("Tools/CodeAnalysisTools.cs::GetCurrentSolution", StringComparison.Ordinal));
         Assert.Contains(hits, h => h.StartsWith("Tools/NavigationTools.cs::FindDocumentAsync", StringComparison.Ordinal));
-        Assert.Contains(hits, h => h.Contains("GetCurrentSolutionAfterDiskSyncAsync", StringComparison.Ordinal));
+        Assert.Contains(hits, h => h.Contains("GetPublishedSolutionAfterDiskSyncAsync", StringComparison.Ordinal));
 
         foreach (var (file, _, _) in Expected)
         {
@@ -88,13 +94,13 @@ public sealed class Epoch1SemanticInventoryTests
     }
 
     [Fact]
-    public void Inventory_covers_rename_two_phase_read_transform_and_decompile_getters()
+    public void Inventory_covers_serialized_read_transform_and_decompile_getters()
     {
-        Assert.Contains(Expected, e => e.File == "Tools/UtilityTools.cs" && e.Kind == "flush-then-reget");
-        Assert.Contains(Expected, e => e.File == "Tools/NavigationTools.cs" && e.Kind == "flush-then-reget");
+        Assert.Contains(Expected, e => e.File == "Tools/UtilityTools.cs" && e.Kind == "serialized-document");
+        Assert.Contains(Expected, e => e.File == "Tools/NavigationTools.cs" && e.Kind == "serialized-document");
         Assert.Contains(Expected, e => e.File == "Tools/CodeAnalysisTools.cs" && e.Kind == "getter");
         Assert.Contains(Expected, e => e.Kind == "getter");
-        Assert.Contains(Expected, e => e.Kind == "flush-getter");
+        Assert.Contains(Expected, e => e.Kind == "serialized-flush");
     }
 
     [Fact]
@@ -121,6 +127,44 @@ public sealed class Epoch1SemanticInventoryTests
         Assert.DoesNotMatch(
             new Regex(@"await\s+[^;\r\n]*Get(?:Compilation|SemanticModel)Async\s*\(", RegexOptions.CultureInvariant),
             manager);
+    }
+
+    [Fact]
+    public void Production_semantic_calls_have_no_nearby_lock_free_solution_getter()
+    {
+        var repoRoot = FindRepoRoot();
+        var productionFiles = Directory
+            .GetFiles(Path.Combine(repoRoot, "Tools"), "*.cs", SearchOption.TopDirectoryOnly)
+            .Concat(Directory.GetFiles(Path.Combine(repoRoot, "Services"), "*.cs", SearchOption.TopDirectoryOnly));
+        var semanticCall = new Regex(
+            @"await\s+[^;\r\n]*Get(?:Compilation|SemanticModel)Async\s*\(",
+            RegexOptions.CultureInvariant);
+
+        foreach (var file in productionFiles)
+        {
+            var text = File.ReadAllText(file);
+            foreach (Match match in semanticCall.Matches(text))
+            {
+                var windowStart = Math.Max(0, match.Index - 2_000);
+                var precedingWindow = text[windowStart..match.Index];
+                Assert.DoesNotMatch(
+                    new Regex(@"Get(?:Workspace)?CurrentSolution\s*\(\s*\)", RegexOptions.CultureInvariant),
+                    precedingWindow);
+            }
+        }
+    }
+
+    [Fact]
+    public void Workspace_tool_uses_single_atomic_manager_load_workflow()
+    {
+        var repoRoot = FindRepoRoot();
+        var source = File.ReadAllText(Path.Combine(repoRoot, "Tools", "WorkspaceTools.cs"));
+
+        Assert.Contains("LoadAndPrepareAsync(", source, StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "await _solutionManager.ShadowCopyInSolutionAnalyzerReferencesAsync(",
+            source,
+            StringComparison.Ordinal);
     }
 
     private static string FindRepoRoot()

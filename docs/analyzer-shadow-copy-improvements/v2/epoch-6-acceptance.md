@@ -38,7 +38,8 @@ Shipped-поведение: **v1.3.8** (`f54aec15f48f942ef9ac077c752bf03ae018bf3
   как text edit / FSW.
 - **A6-08:** v2 README / spec / FOLLOWUPS F-08: аудит завершён; серия нет
   (эпоха 5 позднее принята в v1.3.12; U-ARB-05 позднее закрыт как
-  session-sticky в v1.3.13; U-ARB-04/inaccessible остаются). v1
+  session-sticky в v1.3.13; U-ARB-04 позднее реализован в v1.3.14;
+  inaccessible остаётся). v1
   `epoch-6-contract-and-documentation.md` всё ещё «S1/S2 приняты, не
   завершён» — указатель отстал, не ломает статус v2.
 

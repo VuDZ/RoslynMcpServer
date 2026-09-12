@@ -50,15 +50,20 @@ public sealed class WorkspaceTools
         CancellationToken cancellationToken = default)
     {
         Solution solution;
+        IReadOnlyList<AnalyzerReferenceShadowCopier.RewriteResult> shadowCopyResults;
         try
         {
-            solution = await _solutionManager.LoadAsync(
-                workspacePath,
-                cancellationToken,
-                configuration,
-                platform,
-                targetFramework,
-                buildArgs);
+            var load = await _solutionManager.LoadAndPrepareAsync(
+                    workspacePath,
+                    shadowCopyInSolutionAnalyzers,
+                    cancellationToken,
+                    configuration,
+                    platform,
+                    targetFramework,
+                    buildArgs)
+                .ConfigureAwait(false);
+            solution = load.Solution;
+            shadowCopyResults = load.ShadowCopyResults;
         }
         catch (ArgumentException ex)
         {
@@ -152,18 +157,10 @@ public sealed class WorkspaceTools
         string? shadowCopySummary = null;
         if (shadowCopyInSolutionAnalyzers)
         {
-            try
-            {
-                var results = await _solutionManager.ShadowCopyInSolutionAnalyzerReferencesAsync(cancellationToken);
-                shadowCopySummary = FormatShadowCopySummary(results, _solutionManager.LastExecutionObservation);
-                LogShadowCopyResults(results);
-                solution = _solutionManager.GetCurrentSolution() ?? solution;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "shadowCopyInSolutionAnalyzers failed for {Path}", workspacePath);
-                shadowCopySummary = $"- **Analyzer reference shadow copy:** failed — {ex.Message}";
-            }
+            shadowCopySummary = FormatShadowCopySummary(
+                shadowCopyResults,
+                _solutionManager.LastExecutionObservation);
+            LogShadowCopyResults(shadowCopyResults);
         }
         else if (_solutionManager.ShadowCopyAnalyzersEnabled)
         {

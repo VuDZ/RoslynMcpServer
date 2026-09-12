@@ -90,7 +90,7 @@ public sealed class TestTools
                     "Error: provide at least one of `className` or `methodName`.");
             }
 
-            var solution = await _solutionManager.GetCurrentSolutionAfterDiskSyncAsync(cancellationToken).ConfigureAwait(false);
+            var solution = await _solutionManager.GetPublishedSolutionAfterDiskSyncAsync(cancellationToken).ConfigureAwait(false);
             var (filter, description) = await TestFilterHelper.BuildFilterAsync(
                 solution, className, methodName, cancellationToken).ConfigureAwait(false);
 
@@ -184,7 +184,7 @@ public sealed class TestTools
         const string toolName = nameof(GetTestList);
         try
         {
-            var solution = await _solutionManager.GetCurrentSolutionAfterDiskSyncAsync(cancellationToken).ConfigureAwait(false);
+            var solution = await _solutionManager.GetPublishedSolutionAfterDiskSyncAsync(cancellationToken).ConfigureAwait(false);
             if (solution is null)
             {
                 return ToolTelemetry.TraceAndReturn(
@@ -360,7 +360,7 @@ public sealed class TestTools
             {
                 resolvedBinariesPath = _solutionManager.ResolvePathAgainstWorkspace(binariesPath);
                 var loadedWorkspacePath = _solutionManager.GetLoadedWorkspacePath();
-                var solution = await _solutionManager.GetCurrentSolutionAfterDiskSyncAsync(cancellationToken)
+                var solution = await _solutionManager.GetPublishedSolutionAfterDiskSyncAsync(cancellationToken)
                     .ConfigureAwait(false);
                 var projects = (solution?.Projects ?? Enumerable.Empty<Microsoft.CodeAnalysis.Project>())
                     .Select(p => new TestAssemblyPathResolver.ProjectHint(p.FilePath, p.AssemblyName));

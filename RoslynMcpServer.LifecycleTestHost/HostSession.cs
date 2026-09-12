@@ -63,6 +63,7 @@ internal sealed class HostSession
                 "build" => await BuildAsync(command, cancellationToken).ConfigureAwait(false),
                 "hashFile" => HashFile(command),
                 "concurrentLoad" => await ConcurrentLoadAsync(command, cancellationToken).ConfigureAwait(false),
+                "atomicLoadSemantic" => await AtomicLoadSemanticAsync(command, cancellationToken).ConfigureAwait(false),
                 _ => Fail(command.Op, "unknown-op:" + command.Op),
             };
         }
@@ -121,22 +122,17 @@ internal sealed class HostSession
             return Fail("load", "path-required");
         }
 
-        _ = await _manager.LoadAsync(
-            command.Path,
-            cancellationToken,
-            command.Configuration,
-            command.Platform,
-            command.TargetFramework).ConfigureAwait(false);
-
-        IReadOnlyList<AnalyzerReferenceShadowCopier.RewriteResult>? rewrite = null;
-        if (command.ShadowCopy == true)
-        {
-            rewrite = await _manager.ShadowCopyInSolutionAnalyzerReferencesAsync(cancellationToken)
-                .ConfigureAwait(false);
-        }
+        var load = await _manager.LoadAndPrepareAsync(
+                command.Path,
+                command.ShadowCopy == true,
+                cancellationToken,
+                command.Configuration,
+                command.Platform,
+                command.TargetFramework)
+            .ConfigureAwait(false);
 
         var response = Inspect("load");
-        response.Rewrite = MapRewrite(rewrite ?? _manager.LastShadowCopyResults);
+        response.Rewrite = MapRewrite(load.ShadowCopyResults);
         return response;
     }
 
@@ -146,7 +142,7 @@ internal sealed class HostSession
         var fromWorkspace = string.Equals(command.OracleSource, "workspace", StringComparison.OrdinalIgnoreCase);
         var solution = fromWorkspace
             ? _manager.GetWorkspaceCurrentSolution()
-            : _manager.GetCurrentSolution();
+            : await _manager.GetPublishedSolutionAsync(cancellationToken).ConfigureAwait(false);
         if (solution is null)
         {
             return Fail("oracle", "no-solution");
@@ -316,7 +312,7 @@ internal sealed class HostSession
 
     private async Task<HostResponse> FlushGetterAsync(CancellationToken cancellationToken)
     {
-        var solution = await _manager.GetCurrentSolutionAfterDiskSyncAsync(cancellationToken).ConfigureAwait(false);
+        var solution = await _manager.GetPublishedSolutionAfterDiskSyncAsync(cancellationToken).ConfigureAwait(false);
         var response = Inspect("flushGetter");
         if (solution is null)
         {
@@ -575,7 +571,7 @@ internal sealed class HostSession
             return Fail("rename", "symbol-not-found:" + command.Symbol);
         }
 
-        var afterSymbol = _manager.GetCurrentSolution();
+        var afterSymbol = await _manager.GetPublishedSolutionAsync(cancellationToken).ConfigureAwait(false);
         var sameSnapshot = afterSymbol is not null && ReferenceEquals(document.Project.Solution, afterSymbol);
         var baseSolution = document.Project.Solution;
         var renamed = await Renamer.RenameSymbolAsync(
@@ -715,12 +711,11 @@ internal sealed class HostSession
         {
             try
             {
-                _ = await _manager.LoadAsync(command.Path, cancellationToken).ConfigureAwait(false);
-                if (command.ShadowCopy == true)
-                {
-                    _ = await _manager.ShadowCopyInSolutionAnalyzerReferencesAsync(cancellationToken)
-                        .ConfigureAwait(false);
-                }
+                _ = await _manager.LoadAndPrepareAsync(
+                        command.Path,
+                        command.ShadowCopy == true,
+                        cancellationToken)
+                    .ConfigureAwait(false);
 
                 return null;
             }
@@ -733,15 +728,17 @@ internal sealed class HostSession
         var first = OneAsync();
         var second = OneAsync();
         await Task.WhenAll(first, second).ConfigureAwait(false);
+        var firstError = await first.ConfigureAwait(false);
+        var secondError = await second.ConfigureAwait(false);
 
         var oracle = await OracleAsync(new HostCommand { Op = "oracle", Project = command.Project ?? "Consumer" }, cancellationToken)
             .ConfigureAwait(false);
         var response = Inspect("concurrentLoad");
         response.Concurrency = new ConcurrencyDto
         {
-            BothCompleted = first.Result is null && second.Result is null,
-            FirstError = first.Result,
-            SecondError = second.Result,
+            BothCompleted = firstError is null && secondError is null,
+            FirstError = firstError,
+            SecondError = secondError,
             ShadowEnabledAfter = _manager.ShadowCopyAnalyzersEnabled,
             MarkerAfter = oracle.Marker,
         };
@@ -749,6 +746,133 @@ internal sealed class HostSession
         response.Marker = oracle.Marker;
         response.OracleFailure = oracle.OracleFailure;
         return response;
+    }
+
+    private async Task<HostResponse> AtomicLoadSemanticAsync(
+        HostCommand command,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(command.Path))
+        {
+            return Fail("atomicLoadSemantic", "path-required");
+        }
+
+        if (string.Equals(command.Arguments, "cancel", StringComparison.OrdinalIgnoreCase))
+        {
+            using var loadCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            _manager.AfterPhysicalLoadBeforePrepareAsync = _ =>
+            {
+                loadCancellation.Cancel();
+                return Task.FromCanceled(loadCancellation.Token);
+            };
+
+            var loadCancelled = false;
+            try
+            {
+                _ = await _manager.LoadAndPrepareAsync(
+                        command.Path,
+                        shadowCopyInSolutionAnalyzers: true,
+                        loadCancellation.Token)
+                    .ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                loadCancelled = true;
+            }
+            finally
+            {
+                _manager.AfterPhysicalLoadBeforePrepareAsync = null;
+            }
+
+            var published = await _manager.GetPublishedSolutionAsync(cancellationToken).ConfigureAwait(false);
+            var cancelledResponse = Inspect("atomicLoadSemantic");
+            cancelledResponse.Concurrency = new ConcurrencyDto
+            {
+                LoadCancelled = loadCancelled,
+                PublishedSnapshotPresent = published is not null,
+            };
+            return cancelledResponse;
+        }
+
+        var physicalLoadReached = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var continuePrepare = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        _manager.AfterPhysicalLoadBeforePrepareAsync = async ct =>
+        {
+            physicalLoadReached.TrySetResult();
+            await continuePrepare.Task.WaitAsync(ct).ConfigureAwait(false);
+        };
+
+        Task<WorkspaceLoadPreparationResult>? loadTask = null;
+        Task<Solution?>? semanticTask = null;
+        try
+        {
+            loadTask = _manager.LoadAndPrepareAsync(
+                command.Path,
+                shadowCopyInSolutionAnalyzers: true,
+                cancellationToken);
+            await physicalLoadReached.Task
+                .WaitAsync(TimeSpan.FromMilliseconds(command.TimeoutMs), cancellationToken)
+                .ConfigureAwait(false);
+
+            semanticTask = _manager.GetPublishedSolutionAsync(cancellationToken);
+            var semanticCompletedBeforePrepare = semanticTask.IsCompleted;
+            continuePrepare.TrySetResult();
+
+            _ = await loadTask.ConfigureAwait(false);
+            var published = await semanticTask.ConfigureAwait(false);
+            if (published is null)
+            {
+                return Fail("atomicLoadSemantic", "published-snapshot-missing");
+            }
+
+            var projectName = string.IsNullOrWhiteSpace(command.Project) ? "Consumer" : command.Project;
+            var project = published.Projects.FirstOrDefault(candidate =>
+                string.Equals(candidate.Name, projectName, StringComparison.OrdinalIgnoreCase));
+            if (project is null)
+            {
+                return Fail("atomicLoadSemantic", "no-project:" + projectName);
+            }
+
+            var observation = await SourceGeneratorOracle.ReadAsync(project, cancellationToken).ConfigureAwait(false);
+            _manager.ObserveAnalyzerExecution(project);
+
+            var response = Inspect("atomicLoadSemantic");
+            response.Concurrency = new ConcurrencyDto
+            {
+                BothCompleted = true,
+                SemanticCompletedBeforePrepare = semanticCompletedBeforePrepare,
+                PublishedSnapshotPresent = true,
+                ShadowEnabledAfter = _manager.ShadowCopyAnalyzersEnabled,
+                MarkerAfter = observation.Marker,
+            };
+            response.OracleSuccess = observation.Success;
+            response.Marker = observation.Marker;
+            response.OracleFailure = observation.Failure;
+            response.GeneratedText = observation.GeneratedText;
+            response.LoadedAssemblies = _manager.AnalyzerAssemblyLoader
+                .SnapshotLoadedAssemblies()
+                .Select(assembly => new LoadedAssemblyDto
+                {
+                    RequestedPath = assembly.RequestedPath,
+                    Identity = assembly.Identity,
+                    Location = assembly.Location,
+                })
+                .ToList();
+            var loaded = response.LoadedAssemblies.FirstOrDefault(assembly =>
+                assembly.Identity.StartsWith("Generator,", StringComparison.OrdinalIgnoreCase));
+            if (loaded is not null)
+            {
+                response.AssemblyIdentity = loaded.Identity;
+                response.LoadedAnalyzerPath = loaded.Location;
+            }
+
+            return response;
+        }
+        finally
+        {
+            continuePrepare.TrySetResult();
+            _manager.AfterPhysicalLoadBeforePrepareAsync = null;
+        }
     }
 
     private HostResponse Inspect(string op)

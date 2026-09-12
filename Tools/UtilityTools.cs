@@ -944,13 +944,6 @@ public sealed class UtilityTools
                 return ToolTelemetry.TraceAndReturn(nameof(RenameSymbol), "Error: `filePath`, `symbolName`, and `newName` are required.");
             }
 
-            if (_solutionManager.GetCurrentSolution() is null)
-            {
-                return ToolTelemetry.TraceAndReturn(
-                    nameof(RenameSymbol),
-                    WorkspaceLoadGuidance.FormatNoWorkspaceLoadedMessage("Error: No workspace loaded."));
-            }
-
             var normalizedScope = scope.Trim().ToLowerInvariant();
             if (normalizedScope is not ("project" or "solution"))
             {
@@ -998,7 +991,7 @@ public sealed class UtilityTools
                 return ToolTelemetry.TraceAndReturn(nameof(RenameSymbol), $"Error: Symbol `{symbolName}` not found.");
             }
 
-            var baseSolution = _solutionManager.GetCurrentSolution() ?? document.Project.Solution;
+            var baseSolution = document.Project.Solution;
             var references = await SymbolFinder.FindReferencesAsync(targetSymbol, baseSolution, cancellationToken);
             var affectedLocations = references
                 .SelectMany(r => r.Locations)
