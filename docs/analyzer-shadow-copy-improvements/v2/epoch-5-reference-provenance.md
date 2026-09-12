@@ -4,7 +4,9 @@
 U-ARB-01 выбран — capture на load ([UNRESOLVED-v2.md](UNRESOLVED-v2.md)).
 Эскиз F-09 [принят](epoch-5-f09-acceptance.md)
 ([дизайн](epoch-5-f09-capture-design.md)): production-кандидат — binlog той же
-design-time загрузки, без второго eval. Rollout matcher **заблокирован** до P0-spike.
+design-time загрузки, без второго eval. P0-spike завершён с GO
+([результаты](epoch-5-f09-p0-spike-results.md)); rollout matcher ждёт production
+snapshot и lifecycle tests.
 Запас: Alt-2 unique-name эвристика, Alt-3 сужение до exact path.
 Inaccessible не выбран.
 Зависимость: exact oracle и fixtures эпохи 1. Алгоритм не зависит от эпох 2–4,
@@ -25,9 +27,9 @@ Discovery не изменяет matcher и не выполняет build рад�
 
 F-09 не вводит дополнительную evaluation: `BinaryLogger` подключается к уже
 выполняемой `MSBuildWorkspace` design-time загрузке, после чего binlog replay
-строит load-scoped snapshot. Это решение остаётся эскизом, пока spike не докажет,
-что BuildHost binlog сохраняет analyzer item metadata и позволяет exact join к
-загруженному inner `ProjectId`.
+строит load-scoped snapshot. P0 доказал, что BuildHost binlog сохраняет analyzer
+item metadata и позволяет exact join к загруженному inner `ProjectId`; детали
+event shape и поправка join зафиксированы в отдельном отчёте.
 
 U-ARB-01 должен определить missing-path policy после evidence. До решения сохранить
 выпущенный matcher целиком; даже частичное внедрение новой таблицы ниже не разрешено.

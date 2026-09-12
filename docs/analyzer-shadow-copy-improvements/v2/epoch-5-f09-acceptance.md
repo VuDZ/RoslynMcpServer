@@ -1,18 +1,18 @@
 # Приёмка F-09 — эскиз захвата provenance
 
-Дата: 2026-09-12. Вердикт: **эскиз принимается как production-кандидат.
-E5-S2 и matcher запрещены до P0-spike.**
+Дата: 2026-09-12. Вердикт: **эскиз принят; P0 принят**
+([epoch-5-f09-p0-acceptance.md](epoch-5-f09-p0-acceptance.md)).
+Matcher и E5-S2 rollout не открыты.
 Норматив: [FOLLOWUPS.md](FOLLOWUPS.md) F-09, [U-ARB-01](UNRESOLVED-v2.md),
 [epoch-5-f09-capture-design.md](epoch-5-f09-capture-design.md).
-Evidence канала: Roslyn 5.9.0 decompile, не runtime spike.
 
 | ID | Sev | Тема | Статус |
 | --- | --- | --- | --- |
 | F09-D1 | — | Канал / не второй eval | **закрыт** — binlog той же `Open*Async`; replay без target pass |
 | F09-D2 | — | Входы / lifetime / fail-closed | **закрыт** — load/graph-stale/globals; skip без metadata ≠ foreign |
 | F09-D3 | — | Matcher / Alt-2/3 / inaccessible | **закрыт** — не выбирались |
-| F09-01 | Medium | Join TargetPath vs obj `AssemblyPath` | **открыт** — P0 на redirected fixture |
-| F09-02 | Medium | Capture на каждом load, даже flag=false | **открыт** — цена, не смена канала |
+| F09-01 | Medium | Join TargetPath vs obj `AssemblyPath` | **закрыт P0** — exact `Analyzer.Identity == Project.OutputFilePath`; свойства не обязательны |
+| F09-02 | Medium | Capture на каждом load, даже flag=false | **измерен P0** — always-on сохранён; telemetry обязательна |
 | F09-03 | Low | Type-name `BinaryLogger` — частный контракт | **закрыт как факт 5.9.0**; pin в spike |
 | F09-04 | Low | В csproj нет `Microsoft.Build` / `BinaryLogger` | **открыт** — пакет для spike, не сейчас |
 

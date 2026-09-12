@@ -1,7 +1,8 @@
 # F-09 — захват design-time provenance
 
-Дата: 2026-09-12. Статус: **эскиз принят** ([epoch-5-f09-acceptance.md](epoch-5-f09-acceptance.md)).
-E5-S2 и matcher запрещены до P0-spike.
+Дата: 2026-09-12. Статус: **эскиз принят** ([epoch-5-f09-acceptance.md](epoch-5-f09-acceptance.md));
+P0-spike выполнен с вердиктом GO
+([результаты](epoch-5-f09-p0-spike-results.md)). Matcher пока не изменён.
 
 Связанные материалы:
 [E5-S1](epoch-5-s1-results.md),
@@ -56,10 +57,11 @@ binlog replay-ятся через публичный
 Это перехватывает результат до того, как Roslyn преобразует analyzer в
 `/analyzer:<path>` и создаст path-only `AnalyzerReference`.
 
-Канал считается реализуемым на уровне API, но не принятым до P0-spike ниже:
-spike должен подтвердить, что binlog Roslyn BuildHost действительно сохраняет
-`Analyzer` task output вместе с custom metadata на поддержанном SDK. Сам факт
-наличия `BinaryLogger` overload этого ещё не доказывает.
+На стадии эскиза канал считался реализуемым только на уровне API. P0-spike ниже
+подтвердил, что binlog Roslyn BuildHost действительно сохраняет `Analyzer` task
+output вместе с custom metadata на поддержанном SDK
+([результаты](epoch-5-f09-p0-spike-results.md)); одного факта наличия overload
+для этого вывода было бы недостаточно.
 
 ## Почему это не второй полный eval
 
@@ -290,4 +292,3 @@ matcher не меняется. Нельзя молча перейти на `Proj
 `dotnet msbuild`, Alt-2 или Alt-3. Владелец требования отдельно фиксирует
 следующий выбор в U-ARB-01; при отказе от capture это должен быть Alt-2 либо
 Alt-3 до изменения тестов или matcher.
-

@@ -29,10 +29,11 @@ inner TFM). Rewrite только confirmed item → загруженный inner
 выбрал production-кандидатом binlog той же design-time загрузки
 `MSBuildWorkspace`: replay событий вместо второго target/evaluation pass.
 Эскиз **принят** ([epoch-5-f09-acceptance.md](epoch-5-f09-acceptance.md)).
-Канал в коде не открыт, пока P0-spike не подтвердит
-`Analyzer.MSBuildSourceProjectFile`, effective globals/inner TFM и exact join к
-загруженному `ProjectId` на redirected fixture (F09-01). Rollout E5-S2 до
-зелёного P0 запрещён.
+P0-spike подтвердил `Analyzer.MSBuildSourceProjectFile`, effective
+Configuration/inner TFM и exact join к загруженному `ProjectId`
+([результаты](epoch-5-f09-p0-spike-results.md)); F09-01 закрыт. Production
+snapshot и matcher пока не реализованы: rollout E5-S2 допускается только после
+atomic capture/lifecycle tests, не напрямую из spike.
 `ProjectInstance` и второй `dotnet msbuild` оценены, но не выбраны production
 fallback.
 

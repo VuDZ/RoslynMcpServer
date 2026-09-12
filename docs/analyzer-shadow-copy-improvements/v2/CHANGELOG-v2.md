@@ -4,7 +4,9 @@
 (restart-required / main-only); эпоха 4 **принята** в **v1.3.8** (write boundary);
 эпоха 6 — **аудит документации завершён** ([epoch-6-acceptance.md](epoch-6-acceptance.md)).
 Эпоха 5: E5-S1 измерено; U-ARB-01 выбран как capture на load (запас Alt-2/Alt-3);
-эскиз F-09 [принят](epoch-5-f09-acceptance.md); rollout ждёт P0-spike.
+эскиз F-09 [принят](epoch-5-f09-acceptance.md);
+[P0-spike завершён с GO](epoch-5-f09-p0-spike-results.md); rollout ждёт
+production snapshot.
 Серия не завершена. Исходные
 v1/review/response/arbitration сохранены. Файлы эпох переписаны как самостоятельный
 русский нормативный текст, добавлены общая lifecycle matrix и реестры
