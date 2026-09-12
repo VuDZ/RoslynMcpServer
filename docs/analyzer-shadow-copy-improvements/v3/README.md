@@ -1,8 +1,8 @@
 # Analyzer shadow copy — исправления v3
 
-Дата: 2026-09-12. Статус: **S1–S6 реализованы и независимо приняты
-(код v1.3.16–1.3.19; S6 docs-only); S7 прогнан и [не принят](s7-acceptance.md)
-из‑за S7-1**. v3 целиком **не** принята.
+Дата: 2026-09-12. Статус: **v3 принята в исходниках v1.3.20** (S1–S6, S8;
+S7 повтор после S8). Первый прогон S7 на 1.3.19 [не принят](s7-acceptance.md)
+(S7-1); закрыт в S8. Опубликованный MCP process всё ещё **1.3.15**.
 Исходная серия v1/v2 **не** объявляется завершённой: inaccessible в
 U-ARB-01 остаётся открытым и не входит в подтверждённую поддержку.
 База ревью: код v1.3.15 и [спецификация v2](../v2/README.md).
@@ -19,6 +19,7 @@ opt-in load. Это продолжение v2, а не заявление, чт�
 | V3-R2 | P1 | После первой ошибки prepare опубликован безопасный snapshot, но следующий text edit возвращает real analyzer reference. Oracle исполняет V1 из `Generator/bin/Debug/netstandard2.0/Generator.dll` | S3 |
 | V3-R3 | P1 | Corrupt provenance capture + opt-in load оставляет real reference в semantic snapshot. Oracle исполняет V1 из real build output | S4 |
 | V3-R4 | Документация | E2 допускает original после ошибки, U-ARB-04 требует fail-closed; A4-09 объявлен неблокирующим; E5 требует inaccessible до уже принятого rollout | S6 |
+| S7-1 | P1 | После S5 полный ban публикует `LoadFailed` / `opt-in-prepare-not-enabled` вместо `DependencyUnsupported` (helper / main-only) | S8 |
 
 В ревью прошли 36/36 выбранных unit-тестов и 9/9 штатных
 `UArb04LoadBoundaryEvidenceTests`. Три временных regression-теста завершились
@@ -42,7 +43,8 @@ opt-in load. Это продолжение v2, а не заявление, чт�
 | [S4 — отказ при failed capture](s4-provenance-failure-gate.md) | Без пригодного provenance opt-in semantic snapshot недоступен | S3 |
 | [S5 — частичный prepare и переходы](s5-partial-prepare-transitions.md) | Безопасная публикация при смешанном результате подготовки | S4 |
 | [S6 — согласование документации](s6-contract-alignment.md) | Единый актуальный норматив и честные статусы приёмки | S5 |
-| [S7 — итоговая приёмка](s7-runtime-acceptance.md) | Зафиксированные результаты всей v3 ([не принято](s7-acceptance.md)) | S6 |
+| [S7 — итоговая приёмка](s7-runtime-acceptance.md) | Зафиксированные результаты всей v3 ([1.3.19 не принято](s7-acceptance.md); [1.3.20 в исходниках принято](s7-acceptance.md)) | S6 |
+| [S8 — сохранить execution gate](s8-preserve-execution-gate.md) | `DependencyUnsupported` / main-only переживает полный ban публикации | S7 |
 
 ## Общие ограничения
 
@@ -69,7 +71,7 @@ Inaccessible U-ARB-01 остаётся отдельным открытым пр�
 не равен inaccessible analyzer path. При незакрытом U-ARB-01 нельзя объявить
 завершённой всю исходную серию.
 
-Принятые leftover Lows (не чинить в S6): S3-1 `LoadCore` cache hit
+Принятые leftover Lows (не чинить в S6–S8): S3-1 `LoadCore` cache hit
 `_solution ?? CurrentSolution` (это не published accessor);
 S4-1 `PublishInMemorySolution(Unavailable)` возвращает raw, публикация
 режется `_solution = null`; S5-1 `IsRestartBanLatched` ищет `"restart"`

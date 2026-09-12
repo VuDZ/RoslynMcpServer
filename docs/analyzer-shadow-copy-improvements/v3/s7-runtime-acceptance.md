@@ -1,7 +1,7 @@
 # S7 — принять исправления v3 по runtime evidence
 
-Статус: **выполнено; независимая приёмка
-[не принята](s7-acceptance.md)** (v1.3.19 / `0115790`, блокер S7-1).
+Статус: **выполнено; первый прогон [не принят](s7-acceptance.md) на 1.3.19;
+повтор на 1.3.20 [принят в исходниках](s7-acceptance.md).**
 Зависимость: [S6](s6-contract-alignment.md).
 Результат шага: итоговый проверяемый вердикт по R1–R4 и архитектурным гарантиям v3.
 
@@ -97,5 +97,17 @@ host-процессы; reset workspace не заменяет изоляцию п
 | Документация | R4 закрыт S6; inaccessible open |
 | Catalog | pass — 63 / 44,503 |
 
-Блокер **S7-1:** `AnalyzerShadowPublicationPlanner` при нулевом `appliedCount`
-и ненулевом `blockedCount` теряет `DependencyUnsupported`. v3 не принята.
+Блокер **S7-1** на 1.3.19: `AnalyzerShadowPublicationPlanner` терял
+`DependencyUnsupported`. Закрыт в S8.
+
+### Повтор 2026-09-12 на v1.3.20
+
+- **Версия исходников:** **1.3.20** (незакоммиченное дерево S8 + этот повтор).
+- **Опубликованный MCP:** всё ещё **1.3.15**. Publish/reload не делались.
+- **Unit:** planner **4/4**; loader 5/5; write-boundary 17; publisher 18;
+  provenance bind 3; publication state 5; catalog 63 / 44,503.
+- **Lifecycle (тот же фильтр):** combined **78 passed, 1 failed** (13 м 16 с) —
+  `Edit_flush_and_reconciliation_*` = `host-response-timeout` на первом build;
+  изолированный повтор **1/1** за 7 с. Epoch3 **7/7** в combined, оба helper
+  `DependencyUnsupported`.
+- **CLR/dependencies:** pass. v3 принята **в исходниках**; серия v1/v2 не завершена.

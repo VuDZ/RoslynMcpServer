@@ -73,6 +73,7 @@ internal static class AnalyzerShadowPublicationPlanner
 
         AnalyzerExecutionObservation? restart = null;
         AnalyzerExecutionObservation? firstPrepared = null;
+        AnalyzerExecutionObservation? firstNonRestartGate = null;
         var exclusions = new List<ExcludedAnalyzerReference>();
         var preparedCount = 0;
         var appliedCount = 0;
@@ -121,6 +122,7 @@ internal static class AnalyzerShadowPublicationPlanner
                     continue;
                 }
 
+                firstNonRestartGate ??= observation;
                 blockedCount++;
                 exclusions.Add(ToExclusion(entry));
                 sanitized.Add(BlockEntry(entry, observation.Reason ?? AnalyzerReferenceReasonCodes.PreparationFailure));
@@ -169,6 +171,23 @@ internal static class AnalyzerShadowPublicationPlanner
 
         if (blockedCount > 0)
         {
+            if (firstNonRestartGate is not null)
+            {
+                return new AnalyzerShadowPublicationPlan(
+                    AnalyzerShadowPublicationKind.Banned,
+                    SemanticPublicationAdmission.Banned,
+                    publishedMapping,
+                    exclusions,
+                    firstNonRestartGate,
+                    OverlayEnabled: false,
+                    RefreshComplete: false,
+                    preparedCount,
+                    AppliedCount: 0,
+                    StaleCount: 0,
+                    blockedCount,
+                    firstNonRestartGate.Reason ?? prepared.FailureSummary ?? "opt-in-prepare-not-enabled");
+            }
+
             var reason = prepared.FailureSummary
                 ?? restart?.Reason
                 ?? "opt-in-prepare-not-enabled";

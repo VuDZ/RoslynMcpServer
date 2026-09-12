@@ -1,11 +1,23 @@
 ﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using RoslynMcpServer.Services;
 using Xunit;
 
 namespace RoslynMcpServer.Tests;
 
-public sealed class AnalyzerShadowPublicationPlannerTests
+public sealed class AnalyzerShadowPublicationPlannerTests : IDisposable
 {
+    private readonly string _root = Path.Combine(
+        Path.GetTempPath(),
+        "RoslynMcpServer.Tests",
+        "PlannerGate",
+        Guid.NewGuid().ToString("N"));
+
+    public AnalyzerShadowPublicationPlannerTests()
+    {
+        Directory.CreateDirectory(_root);
+    }
+
     [Fact]
     public void Confirmed_overlay_excludes_foreign_and_unconfirmed()
     {
@@ -104,6 +116,49 @@ public sealed class AnalyzerShadowPublicationPlannerTests
         Assert.Contains("blocked=2", summary, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Confirmed_private_helper_entry_bans_with_dependency_unsupported_gate()
+    {
+        var helper = Emit(
+            "Planner.Helpers",
+            "namespace Generator.Helpers; public static class HelperInfo { public static string Name { get; } = \"H\"; }");
+        var withHelper = Emit(
+            "PlannerWithHelper",
+            "public static class UsesHelper { public static string Name => Generator.Helpers.HelperInfo.Name; }",
+            extraReferences: new[] { MetadataReference.CreateFromFile(helper) });
+        var projectId = ProjectId.CreateNewId();
+        var mapping = new AnalyzerShadowMapping(
+            Guid.NewGuid(),
+            @"C:\Repro\App.sln",
+            [
+                Entry(
+                    projectId,
+                    applied: true,
+                    reason: AnalyzerReferenceReasonCodes.ReferenceRewritten,
+                    shadow: withHelper),
+            ]);
+        var prepared = new AnalyzerShadowPrepareOutcome(
+            mapping,
+            AnalyzerReferenceShadowCopier.ToRewriteResults(mapping),
+            RefreshSucceeded: true,
+            UsedPreviousMappingAsStale: false,
+            FailureSummary: null);
+
+        var plan = AnalyzerShadowPublicationPlanner.Evaluate(
+            prepared,
+            new InProcessAnalyzerAssemblyLoader(),
+            restartBanLatched: false);
+
+        Assert.Equal(AnalyzerShadowPublicationKind.Banned, plan.Kind);
+        Assert.Equal(0, plan.AppliedCount);
+        Assert.False(plan.OverlayEnabled);
+        Assert.Equal(AnalyzerExecutionStatus.DependencyUnsupported, plan.Gate.Status);
+        Assert.Contains("main-only", plan.Gate.Action ?? "", StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Planner.Helpers", plan.Gate.Reason ?? "", StringComparison.OrdinalIgnoreCase);
+        Assert.Equal("Planner.Helpers", plan.Gate.DependencyName);
+        Assert.All(plan.Mapping.Entries, entry => Assert.False(entry.Applied));
+    }
+
     private static AnalyzerShadowReferenceEntry Entry(
         ProjectId projectId,
         bool applied,
@@ -125,5 +180,51 @@ public sealed class AnalyzerShadowPublicationPlannerTests
             StaleGeneration: false,
             reason,
             SelectionBasis: basis);
+    }
+
+    private string Emit(
+        string assemblyName,
+        string source,
+        IReadOnlyList<MetadataReference>? extraReferences = null)
+    {
+        var tree = CSharpSyntaxTree.ParseText(source);
+        var references = new List<MetadataReference>
+        {
+            MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
+        };
+        var systemRuntime = Path.Combine(Path.GetDirectoryName(typeof(object).Assembly.Location)!, "System.Runtime.dll");
+        if (File.Exists(systemRuntime))
+        {
+            references.Add(MetadataReference.CreateFromFile(systemRuntime));
+        }
+
+        if (extraReferences is not null)
+        {
+            references.AddRange(extraReferences);
+        }
+
+        var compilation = CSharpCompilation.Create(
+            assemblyName,
+            new[] { tree },
+            references,
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
+                .WithAssemblyIdentityComparer(DesktopAssemblyIdentityComparer.Default));
+        compilation = compilation.WithAssemblyName(assemblyName);
+        var output = Path.Combine(_root, assemblyName + "-" + Guid.NewGuid().ToString("N")[..8] + ".dll");
+        var result = compilation.Emit(output);
+        Assert.True(result.Success, string.Join(Environment.NewLine, result.Diagnostics));
+        return output;
+    }
+
+    public void Dispose()
+    {
+        try
+        {
+            Directory.Delete(_root, recursive: true);
+        }
+        catch
+        {
+            // best-effort
+        }
     }
 }

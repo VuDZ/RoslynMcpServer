@@ -170,6 +170,11 @@ MCP `tools/list` stays JSON + JSON Schema. Markdown is for JIT help and diagnost
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.3.20
+
+- **Preserve DependencyUnsupported / main-only through a full publication ban (v3 S8).** When every confirmed overlay reference is blocked and none is applied, the publication plan keeps the first non-restart `AnalyzerExecutionGate` observation (`Status`, `Reason`, `Action`, `DependencyName`) instead of replacing it with `LoadFailed` / `opt-in-prepare-not-enabled`. Restart-required still uses the existing restart ban. Overlay stays unpublished (`Applied=false`). Public MCP schema is unchanged.
+- **Catalog size** — unchanged: full 63 tools / 44,503 bytes; lite 19 / 16,917.
+
 ### v1.3.19
 
 - **Safe publication for a mixed analyzer prepare (v3 S5).** Opt-in overlay admission is no longer `HasAnyApplied`. Every confirmed in-solution reference is either applied (fresh or allowed stale), excluded from the semantic snapshot, or the whole snapshot is banned/unavailable. A failed confirmed reference is never published as real build output because another generator prepared. Load text reports `prepared` / `applied` / `stale` / `blocked`; a blocked publication does not claim `Applied=true` from leftover files. Exact inverse restores intentional exclusions and still rejects unknown analyzer diffs. Public MCP schema is unchanged.
@@ -1056,7 +1061,7 @@ Verify id/version with `search_nuget_registry` first. Clears workspace cache —
 
 **Parameters:** *(none)*
 
-Use after `dotnet publish` to verify the MCP host picked up the new binary (expect **v1.3.19** and **63** tools on `full`, or **19** on `lite`).
+Use after `dotnet publish` to verify the MCP host picked up the new binary (expect **v1.3.20** and **63** tools on `full`, or **19** on `lite`).
 
 </details>
 
@@ -1268,7 +1273,7 @@ cd D:\Devel\YourApp
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.3.19). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.3.20). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 
@@ -1889,7 +1894,7 @@ cd D:\Devel\YourApp
 
 **Параметры:** *(нет)*
 
-После `dotnet publish` — проверка, что MCP подхватил новый бинарник (ожидай **v1.3.19** и **63** tools в `full`, или **19** в `lite`).
+После `dotnet publish` — проверка, что MCP подхватил новый бинарник (ожидай **v1.3.20** и **63** tools в `full`, или **19** в `lite`).
 
 </details>
 

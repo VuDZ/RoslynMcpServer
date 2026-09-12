@@ -1,6 +1,10 @@
 # Приёмка v3 S7 — итоговый runtime
 
-Дата: 2026-09-12. Вердикт: **не принято (код v1.3.19, commit `0115790`).**
+Дата: 2026-09-12. Первый вердикт: **не принято (код v1.3.19, commit `0115790`).**
+Поправка 2026-09-12: повтор матрицы на **v1.3.20** (после S8) —
+**принимается в исходниках.** Исторический отказ 1.3.19 не переписывается.
+Опубликованный MCP process всё ещё **1.3.15**. Исходная серия v1/v2 не
+завершена (inaccessible open).
 R1–R3, частичный prepare, успешный opt-in, запись, capture gate и
 restart-required зелёные. Строка CLR/dependencies красная: private helper
 больше не даёт `DependencyUnsupported` / main-only. v3 целиком не принята;
@@ -56,10 +60,21 @@ S5 этот путь не гонял.
 | V3-R2 | P1 | fail-closed сбрасывается edit | **закрыт** (S3) |
 | V3-R3 | P1 | corrupt capture → real | **закрыт** (S4) |
 | V3-R4 | Docs | противоречивые live-нормы | **закрыт** (S6) |
-| S7-1 | P1 | helper → `LoadFailed` / `opt-in-prepare-not-enabled` вместо `DependencyUnsupported` | **открыт — блокер S7** |
+| S7-1 | P1 | helper → `LoadFailed` / `opt-in-prepare-not-enabled` вместо `DependencyUnsupported` | **закрыт в S8** (1.3.20) |
 | S3-1 / S4-1 / S5-1 / S6-1…S6-3 | Low | прежние leftover | открыты, не чинились |
 
-Следующий шаг — точечный фикс планировщика (сохранить gate observation,
-включая `DependencyUnsupported` / Action), bump и повтор только
-затронутых Epoch3 helper + planner unit. Не объявлять v3 принятой
-до зелёной строки CLR.
+## Повтор 2026-09-12 на v1.3.20
+
+Тот же фильтр lifecycle, DLL Debug после S8. Combined: **78 passed, 1 failed,
+0 skipped**, 13 м 16 с. Единственный fail —
+`V3PartialPrepareTransitionTests.Edit_flush_and_reconciliation_keep_partial_admission_without_analyzer_io`
+на первом `BuildAsync`: `host-response-timeout` (не assertion контракта).
+Изолированный повтор того же теста: **1/1**, 7 с. Epoch3 helper оба **passed**
+в combined-прогоне (`DependencyUnsupported`).
+
+Unit на той же DLL: `WorkspaceWriteBoundaryTests` 17/17;
+`AnalyzerShadowGenerationPublisherTests` 18/18; `AnalyzerProvenanceBindingTests` 3/3;
+`SemanticPublicationStateTests` 5/5; planner **4/4**; loader 5/5; catalog 63 / 44,503.
+
+CLR/dependencies **зелёная**. v3 **принята в исходниках** v1.3.20. Publish/reload
+не делались.
