@@ -15,7 +15,7 @@
 | F-05 | **принято** ([epoch-4-acceptance.md](epoch-4-acceptance.md)) | Эпоха 4: write boundary. Открыты A4-09…A4-12 (не блокеры) |
 | F-06 | мерж в main | A1-10: version bump, изоляция test seams |
 | F-07 | **эпоха 3 принята** ([epoch-3-acceptance.md](epoch-3-acceptance.md)) | restart-required / main-only. Matcher эпохи 5 и U-ARB-05 sticky не открывать |
-| F-09 | после U-ARB-01 | Эскиз захвата `MSBuildSourceProjectFile`+TFM на load. Не менять matcher. Запас Alt-2/Alt-3 в UNRESOLVED |
+| F-09 | **эскиз принят** ([epoch-5-f09-acceptance.md](epoch-5-f09-acceptance.md)) | Binlog той же load. E5-S2 до P0. Открыты F09-01 (bin/obj join), F09-02 (always-on) |
 
 ---
 
@@ -205,8 +205,20 @@ metadata, почему это не второй полный eval «на каж�
 запрещён. Если канал нереализуем — не молча откатываться: владелец пишет
 Alt-2 или Alt-3 в U-ARB-01.
 
+Сделано 2026-09-12:
+[epoch-5-f09-capture-design.md](epoch-5-f09-capture-design.md) выбирает
+production-кандидатом `BinaryLogger` той же `MSBuildWorkspace` design-time
+загрузки и replay после `Open*Async`; отдельный target/evaluation pass не
+выполняется. Зафиксированы inputs, exact item→consumer/source inner `ProjectId`
+join, lifetime, fail-closed правила, цена/секретность binlog и P0-spike.
+`ProjectInstance` и второй `dotnet msbuild` не выбраны production fallback.
+Matcher, Alt-2/Alt-3, inaccessible и semantic-path evaluation не менялись.
+Приёмка эскиза **принята** ([epoch-5-f09-acceptance.md](epoch-5-f09-acceptance.md)).
+E5-S2 всё ещё запрещён до P0-spike. Открыты F09-01 / F09-02 / F09-04.
+
 ---
 
-Порядок в следующем чате: F-09 (эскиз capture) или коммит этой записи U-ARB-01.
-Matcher / E5-S2 не писать. F-07 не открывать. A4-09…A4-12 и A6-13 не чинить
-без отдельного запроса. Серия незавершена.
+Порядок в следующем чате: P0-spike F-09 (не matcher). F09-01 обязателен на
+redirected fixture.
+Matcher / E5-S2 до приёмки не писать. F-07 не открывать. A4-09…A4-12 и A6-13
+не чинить без отдельного запроса. Серия незавершена.

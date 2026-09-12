@@ -25,11 +25,16 @@ inner TFM). Rewrite только confirmed item → загруженный inner
 Недоказанное missing — skip, не unique-name. Filename остаётся кандидатом,
 не доказательством. Считать snapshot не на semantic query и не на edit `.cs`.
 
-Это выбор политики, не готовый канал. Rollout E5-S2 запрещён, пока нет
-принятого эскиза захвата (hook той же design-time загрузки /
-`ProjectInstance` того же graph / иной способ без скрытого второго полного
-eval «на каждый load»). Второй отдельный `dotnet msbuild` — допустимый
-prototype, не обещание production-цены.
+Это выбор политики, не готовый rollout. [Эскиз F-09](epoch-5-f09-capture-design.md)
+выбрал production-кандидатом binlog той же design-time загрузки
+`MSBuildWorkspace`: replay событий вместо второго target/evaluation pass.
+Эскиз **принят** ([epoch-5-f09-acceptance.md](epoch-5-f09-acceptance.md)).
+Канал в коде не открыт, пока P0-spike не подтвердит
+`Analyzer.MSBuildSourceProjectFile`, effective globals/inner TFM и exact join к
+загруженному `ProjectId` на redirected fixture (F09-01). Rollout E5-S2 до
+зелёного P0 запрещён.
+`ProjectInstance` и второй `dotnet msbuild` оценены, но не выбраны production
+fallback.
 
 **Запас, если capture не взлетит** (не выбирать заранее, не забывать):
 
