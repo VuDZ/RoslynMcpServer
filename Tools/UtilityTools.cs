@@ -1094,7 +1094,7 @@ public sealed class UtilityTools
             {
                 return ToolTelemetry.TraceAndReturn(
                     nameof(ListProjects),
-                    WorkspaceLoadGuidance.FormatNoWorkspaceLoadedMessage("Error: No workspace loaded."));
+                    _solutionManager.FormatNoPublishedSolutionMessage("Error: No workspace loaded."));
             }
 
             var sb = new StringBuilder();
@@ -1159,7 +1159,7 @@ public sealed class UtilityTools
             {
                 return ToolTelemetry.TraceAndReturn(
                     nameof(GetProjectGraph),
-                    WorkspaceLoadGuidance.FormatNoWorkspaceLoadedMessage("Error: No workspace loaded."));
+                    _solutionManager.FormatNoPublishedSolutionMessage("Error: No workspace loaded."));
             }
 
             var sb = new StringBuilder();

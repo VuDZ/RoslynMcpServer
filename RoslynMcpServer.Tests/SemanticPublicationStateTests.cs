@@ -33,6 +33,20 @@ public sealed class SemanticPublicationStateTests
     }
 
     [Fact]
+    public void Unavailable_withholds_snapshot_and_is_not_banned()
+    {
+        var state = SemanticPublicationState.Unavailable(AnalyzerProvenanceCaptureGate.ReasonFailed);
+        Assert.Equal(SemanticPublicationAdmission.Unavailable, state.Admission);
+        Assert.True(state.IsUnavailable);
+        Assert.True(state.WithholdsSnapshot);
+        Assert.False(state.IsBanned);
+        Assert.False(state.AllowsOverlay);
+        Assert.False(state.AllowsRawReferences);
+        Assert.Equal(AnalyzerProvenanceCaptureGate.ReasonFailed, state.BanReason);
+        Assert.Empty(state.ExcludedReferences);
+    }
+
+    [Fact]
     public void ApplyExcludedReferences_is_noop_when_set_is_empty()
     {
         using var workspace = new AdhocWorkspace();

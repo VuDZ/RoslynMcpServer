@@ -38,6 +38,44 @@ public static class WorkspaceLoadGuidance
     }
 
     /// <summary>
+    /// Opt-in load opened the MSBuild graph but withheld the semantic snapshot
+    /// because provenance capture is missing, failed, incomplete, or from another session.
+    /// </summary>
+    public static string FormatSemanticWorkspaceUnavailableMessage(
+        string? leadingSentence,
+        string? captureStatus,
+        string? reason,
+        bool overlayAllowed,
+        bool captureReused)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine(leadingSentence ?? "Error: Semantic workspace is unavailable.");
+        sb.AppendLine();
+        sb.AppendLine("## Semantic workspace unavailable");
+        sb.AppendLine();
+        sb.AppendLine(
+            "The MSBuild graph is open, but the semantic workspace was not published.");
+        sb.AppendLine(
+            $"- **Provenance capture:** {(string.IsNullOrWhiteSpace(captureStatus) ? "missing" : captureStatus)}");
+        sb.AppendLine(
+            $"- **Reason:** {(string.IsNullOrWhiteSpace(reason) ? "provenance-capture-missing" : reason)}");
+        sb.AppendLine(
+            $"- **Overlay:** {(overlayAllowed ? "allowed" : "not allowed")}");
+        sb.AppendLine();
+        if (captureReused)
+        {
+            sb.AppendLine(
+                "This load reused the existing capture. Cached `shadowCopyInSolutionAnalyzers=true` does **not** repair a failed or incomplete snapshot.");
+        }
+
+        sb.AppendLine(
+            "Call `reset_workspace` then `load_workspace` (or reopen another load key) so capture can run on a new graph/session.");
+        sb.AppendLine(
+            "`reset_workspace` does not unload CLR assemblies; same-identity generator refresh still requires restarting the MCP process.");
+        return sb.ToString().TrimEnd();
+    }
+
+    /// <summary>
     /// Host/MCP client aborted <c>load_workspace</c> (not an MSBuild/project failure).
     /// Common with OpenCode default ~60s tool timeout on large solutions.
     /// </summary>

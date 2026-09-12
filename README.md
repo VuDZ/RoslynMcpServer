@@ -170,6 +170,11 @@ MCP `tools/list` stays JSON + JSON Schema. Markdown is for JIT help and diagnost
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.3.18
+
+- **Withhold opt-in semantics when provenance capture is unsuitable (V3-R3).** For `shadowCopyInSolutionAnalyzers=true`, a missing, Failed, Incomplete, or other-session capture no longer publishes a raw semantic snapshot. The MSBuild graph can still open; the load text reports capture status, the refusal reason, and that overlay is not allowed. Cached `true` reuses the failed snapshot and does not restore semantics — call `reset_workspace` then `load_workspace` (or reopen another load key). Complete capture still keeps the confirmed-only matcher (missing-path / foreign fixtures). Honest no-overlay load is unchanged. Public MCP schema is unchanged.
+- **Catalog size** — unchanged: full 63 tools / 44,503 bytes; lite 19 / 16,917.
+
 ### v1.3.17
 
 - **Persistent fail-closed publication after a failed opt-in (V3-R2).** Semantic publication admission is now a load-session policy, not the last prepare/execution observation. A failed opt-in stays banned across text edit, watcher flush, reconciliation, load-boundary cancellation, and cached `false`/omitted. Ordinary publication reapplies a predetermined excluded-reference set and does not inspect or probe analyzer files. Cached `true` may restore only after a successful allowed prepare (identity gate still applies). Honest no-overlay still publishes raw references; successful opt-in still executes the exact marker from the shadow path. Public MCP schema is unchanged.
@@ -475,7 +480,7 @@ There are **63** registered tools in the default `full` profile (see list below)
 - `buildArgs: string?` — optional extra arguments appended to later `dotnet build` (probe and pre-test build). Session-cached; omit to clear. Do not include `-c`, `-p:Platform`, `-v`, or `--no-incremental`.
 - `briefOutput: bool = false` — when `true`, collapse successful-load MSBuild/NuGet warnings to category and code counts. Default `false` keeps full messages. Failures always print in full.
 - `logProjectOutputDiagnostics: bool = false` — when `true`, logs one Information-level line per project (`OutputFilePath`, exists/last-write UTC, `CompilationOutputInfo.GeneratedFilesOutputDirectory`, exists) and one line per `AnalyzerReference` (`Display`, `FullPath`, exists/last-write UTC) to the MCP server log — not returned in this tool's response. Diagnostic-only aid for `Directory.Build.props` overriding `OutputPath` (e.g. into a shared `artifacts` folder) so an analyzer/generator project's `AnalyzerReference` ends up pointing at a stale or missing DLL. Read with `tail_tool_log` / `read_log_tail`.
-- `shadowCopyInSolutionAnalyzers: bool = false` — when `true`, rewrites only `AnalyzerReference`s whose complete load-session provenance exact-joins them to one loaded in-solution project; filename/`AssemblyName` similarity is not evidence. Same-name external, unconfirmed, ambiguous, or incomplete-capture references remain unchanged. Activation is session-sticky: after enablement, a same-key cached `false`/omitted call preserves the active overlay without preparation/refresh. The selected project must already have its resolved output on disk. Prepared generations are content-hashed (`v2-main-only`) and reused on document edit without recopying analyzer files. After rebuilding a generator with the same assembly identity, restart the MCP process — `reset_workspace` does not unload CLR assemblies. Private helper DLLs are refused (main-only). This response includes a short summary (`N rewritten` plus execution status); per-reference detail goes to the MCP server log.
+- `shadowCopyInSolutionAnalyzers: bool = false` — when `true`, rewrites only `AnalyzerReference`s whose complete load-session provenance exact-joins them to one loaded in-solution project; filename/`AssemblyName` similarity is not evidence. Same-name external, unconfirmed, or ambiguous references remain unchanged. A missing, Failed, Incomplete, or other-session capture does not publish a semantic snapshot (the MSBuild graph may still open); cached `true` reuses that capture — call `reset_workspace` then `load_workspace`. Activation is session-sticky: after enablement, a same-key cached `false`/omitted call preserves the active overlay without preparation/refresh. The selected project must already have its resolved output on disk. Prepared generations are content-hashed (`v2-main-only`) and reused on document edit without recopying analyzer files. After rebuilding a generator with the same assembly identity, restart the MCP process — `reset_workspace` does not unload CLR assemblies. Private helper DLLs are refused (main-only). This response includes a short summary (`N rewritten` plus execution status, or an explicit semantic-unavailable note); per-reference detail goes to the MCP server log.
 
 **Analyzer shadow-copy activation and side effects:** this flag is opt-in; the MCP client and agent do not enable it automatically. Add a conditional rule to the target repository's `AGENTS.md` when that repository uses in-solution analyzer/generator projects with a custom `OutputPath`. Enabling it copies versioned analyzer DLL/PDB files under the OS temp `v2-main-only/` namespace and re-applies the in-memory overlay after workspace document updates, adding some disk I/O and CPU. Activation is session-sticky: cached `false`/omitted preserves an already-active overlay and does not refresh analyzer files; use `reset_workspace` then load without the flag to disable. Old generations (including leftover timestamp directories) are not cleaned automatically and can accumulate; `reset_workspace` does not delete them. The real `.csproj` and analyzer build output are not modified; on the supported overlay paths the MCP process locks the shadow copy, not the real output. Path resolution and this anti-lock workaround are independent. `find_symbol_definition` by a generator-emitted type name remains a Roslyn limitation, not a failed overlay.
 
@@ -1046,7 +1051,7 @@ Verify id/version with `search_nuget_registry` first. Clears workspace cache —
 
 **Parameters:** *(none)*
 
-Use after `dotnet publish` to verify the MCP host picked up the new binary (expect **v1.3.17** and **63** tools on `full`, or **19** on `lite`).
+Use after `dotnet publish` to verify the MCP host picked up the new binary (expect **v1.3.18** and **63** tools on `full`, or **19** on `lite`).
 
 </details>
 
@@ -1258,7 +1263,7 @@ cd D:\Devel\YourApp
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.3.17). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.3.18). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 
@@ -1315,7 +1320,7 @@ cd D:\Devel\YourApp
 - `buildArgs: string?` — опциональные extra-аргументы для последующих `dotnet build` (probe и пребилд тестов). Кэш сессии; пустое значение сбрасывает. Не класть `-c`, `-p:Platform`, `-v`, `--no-incremental`.
 - `briefOutput: bool = false` — `true` сворачивает предупреждения MSBuild/NuGet успешного load в счётчики категорий и кодов. По умолчанию полный дамп. Ошибки load всегда печатаются целиком.
 - `logProjectOutputDiagnostics: bool = false` — диагностически пишет в MCP-лог resolved output и состояние `AnalyzerReference`; в ответ tool эти данные не попадают. Используйте для in-solution analyzer/generator проектов, если `Directory.Build.props` переопределяет `OutputPath`.
-- `shadowCopyInSolutionAnalyzers: bool = false` — заменяет только те `AnalyzerReference`, которые complete provenance snapshot текущей load-сессии exact-join-ит к одному загруженному in-solution проекту. Filename/`AssemblyName` не считаются evidence; external same-name, unconfirmed, ambiguous и incomplete-capture ссылки сохраняются без изменения. Активация session-sticky: после включения same-key cached `false`/omitted сохраняет активный overlay без preparation/refresh. Analyzer-проект должен быть предварительно собран. Поколения адресуются по содержимому и повторно применяются при edit без копирования analyzer-файлов. После пересборки генератора с той же assembly identity нужен **новый процесс MCP** (`reset_workspace` не выгружает CLR). Приватные helper DLL отклоняются (main-only). Краткая сводка возвращается в ответе, детали доступны через `tail_tool_log` / `read_log_tail`.
+- `shadowCopyInSolutionAnalyzers: bool = false` — заменяет только те `AnalyzerReference`, которые complete provenance snapshot текущей load-сессии exact-join-ит к одному загруженному in-solution проекту. Filename/`AssemblyName` не считаются evidence; external same-name, unconfirmed и ambiguous ссылки сохраняются без изменения. Missing/Failed/Incomplete или чужой session capture не публикует semantic snapshot (MSBuild graph при этом может открыться); cached `true` переиспользует этот capture — нужны `reset_workspace` и повторный `load_workspace`. Активация session-sticky: после включения same-key cached `false`/omitted сохраняет активный overlay без preparation/refresh. Analyzer-проект должен быть предварительно собран. Поколения адресуются по содержимому и повторно применяются при edit без копирования analyzer-файлов. После пересборки генератора с той же assembly identity нужен **новый процесс MCP** (`reset_workspace` не выгружает CLR). Приватные helper DLL отклоняются (main-only). Краткая сводка возвращается в ответе, детали доступны через `tail_tool_log` / `read_log_tail`.
 
 **Активация и побочные эффекты analyzer shadow copy:** флаг opt-in; MCP-клиент и агент автоматически его не включают. Для репозитория с in-solution analyzer/generator и custom `OutputPath` добавьте условное правило в его `AGENTS.md`. При включении versioned DLL/PDB копируются в `v2-main-only/` под OS temp; overlay повторно применяется после обновлений документов. Активация session-sticky: cached `false`/omitted сохраняет уже активный overlay и не обновляет analyzer-файлы; отключение — `reset_workspace`, затем load без флага. Старые поколения (включая timestamp-каталоги) автоматически не очищаются; reset их не удаляет. Реальные `.csproj` и build output не изменяются; на поддержанных overlay-путях MCP-процесс блокирует shadow copy, а не real output. Path resolution и anti-lock независимы. `find_symbol_definition` по имени generated-типа — ограничение Roslyn, не отказ overlay.
 
@@ -1879,7 +1884,7 @@ cd D:\Devel\YourApp
 
 **Параметры:** *(нет)*
 
-После `dotnet publish` — проверка, что MCP подхватил новый бинарник (ожидай **v1.3.17** и **63** tools в `full`, или **19** в `lite`).
+После `dotnet publish` — проверка, что MCP подхватил новый бинарник (ожидай **v1.3.18** и **63** tools в `full`, или **19** в `lite`).
 
 </details>
 

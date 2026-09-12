@@ -14,6 +14,7 @@ internal enum SemanticPublicationAdmission
     NoOverlay = 1,
     AllowedMapping = 2,
     Banned = 3,
+    Unavailable = 4,
 }
 
 internal readonly record struct ExcludedAnalyzerReference(
@@ -63,6 +64,14 @@ internal sealed class SemanticPublicationState
             excluded ?? Array.Empty<ExcludedAnalyzerReference>());
     }
 
+    public static SemanticPublicationState Unavailable(string? reason)
+    {
+        return new(
+            SemanticPublicationAdmission.Unavailable,
+            reason,
+            Array.Empty<ExcludedAnalyzerReference>());
+    }
+
     public SemanticPublicationAdmission Admission { get; }
 
     public string? BanReason { get; }
@@ -74,6 +83,11 @@ internal sealed class SemanticPublicationState
     public bool AllowsOverlay => Admission == SemanticPublicationAdmission.AllowedMapping;
 
     public bool IsBanned => Admission == SemanticPublicationAdmission.Banned;
+
+    public bool IsUnavailable => Admission == SemanticPublicationAdmission.Unavailable;
+
+    public bool WithholdsSnapshot =>
+        Admission is SemanticPublicationAdmission.None or SemanticPublicationAdmission.Unavailable;
 
     public static Solution ApplyExcludedReferences(
         Solution solution,

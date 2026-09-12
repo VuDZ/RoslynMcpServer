@@ -189,7 +189,7 @@ public sealed class TestTools
             {
                 return ToolTelemetry.TraceAndReturn(
                     toolName,
-                    WorkspaceLoadGuidance.FormatNoWorkspaceLoadedMessage("No workspace loaded."));
+                    _solutionManager.FormatNoPublishedSolutionMessage("No workspace loaded."));
             }
 
             var listed = await TestDiscoveryHelper.ListTestsJsonAsync(

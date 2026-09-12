@@ -72,8 +72,9 @@ public sealed class F09ProductionCaptureTests
         Assert.True(missing.Ok, missing.Error);
         Assert.Equal("Failed", missing.ProvenanceCaptureStatus);
         Assert.Equal(0, missing.ProvenanceConfirmedBindingCount);
-        Assert.NotEmpty(missing.Rewrite ?? []);
-        Assert.All(missing.Rewrite ?? [], rewrite => Assert.False(rewrite.Applied));
+        Assert.Equal("Unavailable", missing.PublicationAdmission);
+        Assert.False(missing.PublishedSnapshotPresent);
+        Assert.Empty(missing.Rewrite ?? []);
         Assert.False(missing.ShadowEnabled);
         Assert.Equal(0, missing.ProvenanceTempDirectoryCount);
 

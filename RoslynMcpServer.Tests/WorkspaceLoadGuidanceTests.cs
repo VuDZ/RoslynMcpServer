@@ -241,6 +241,27 @@ public sealed class WorkspaceLoadGuidanceTests
         }
     }
 
+    [Fact]
+    public void FormatSemanticWorkspaceUnavailableMessage_distinguishes_graph_from_semantics()
+    {
+        var message = WorkspaceLoadGuidance.FormatSemanticWorkspaceUnavailableMessage(
+            "Error: Semantic workspace is unavailable.",
+            "Failed",
+            AnalyzerProvenanceCaptureGate.ReasonFailed,
+            overlayAllowed: false,
+            captureReused: true);
+
+        Assert.Contains("Semantic workspace unavailable", message, StringComparison.Ordinal);
+        Assert.Contains("MSBuild graph is open", message, StringComparison.Ordinal);
+        Assert.Contains("Failed", message, StringComparison.Ordinal);
+        Assert.Contains(AnalyzerProvenanceCaptureGate.ReasonFailed, message, StringComparison.Ordinal);
+        Assert.Contains("not allowed", message, StringComparison.Ordinal);
+        Assert.Contains("does **not** repair", message, StringComparison.Ordinal);
+        Assert.Contains("reset_workspace", message, StringComparison.Ordinal);
+        Assert.DoesNotContain("Successfully loaded", message, StringComparison.Ordinal);
+        Assert.DoesNotContain("0 rewritten", message, StringComparison.Ordinal);
+    }
+
     private static string CreateTempRoot()
     {
         var root = Path.Combine(Path.GetTempPath(), "RoslynMcpWsGuide", Guid.NewGuid().ToString("N"));

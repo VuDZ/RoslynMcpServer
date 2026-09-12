@@ -41,6 +41,9 @@ public sealed class HostResponse
     public int AnalyzerPathProbeCount { get; set; }
     public int AnalyzerAssemblyEvaluationCount { get; set; }
     public string? PublicationAdmission { get; set; }
+    public string? PublicationBanReason { get; set; }
+    public bool PublishedSnapshotPresent { get; set; }
+    public Guid LoadSessionId { get; set; }
     public long ProvenanceCaptureCount { get; set; }
     public bool ProvenanceSnapshotPresent { get; set; }
     public string? ProvenanceCaptureStatus { get; set; }

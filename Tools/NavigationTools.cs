@@ -176,7 +176,7 @@ public sealed class NavigationTools
             {
                 return ToolTelemetry.TraceAndReturn(
                     nameof(FindSymbolDefinition),
-                    WorkspaceLoadGuidance.FormatNoWorkspaceLoadedMessage(
+                    _solutionManager.FormatNoPublishedSolutionMessage(
                         "Error: No active workspace."));
             }
 
@@ -284,7 +284,7 @@ public sealed class NavigationTools
             {
                 return ToolTelemetry.TraceAndReturn(
                     toolName,
-                    WorkspaceLoadGuidance.FormatNoWorkspaceLoadedMessage(
+                    _solutionManager.FormatNoPublishedSolutionMessage(
                         "Error: No active workspace."));
             }
 
@@ -441,7 +441,7 @@ public sealed class NavigationTools
             {
                 return ToolTelemetry.TraceAndReturn(
                     toolName,
-                    WorkspaceLoadGuidance.FormatNoWorkspaceLoadedMessage(
+                    _solutionManager.FormatNoPublishedSolutionMessage(
                         "Error: No active workspace."));
             }
 

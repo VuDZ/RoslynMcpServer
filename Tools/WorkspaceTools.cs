@@ -155,7 +155,14 @@ public sealed class WorkspaceTools
         }
 
         string? shadowCopySummary = null;
-        if (shadowCopyInSolutionAnalyzers)
+        var semanticUnavailable =
+            _solutionManager.PublicationAdmission == SemanticPublicationAdmission.Unavailable;
+        if (semanticUnavailable)
+        {
+            shadowCopySummary = _solutionManager.FormatNoPublishedSolutionMessage(
+                "Semantic workspace is unavailable.");
+        }
+        else if (shadowCopyInSolutionAnalyzers)
         {
             shadowCopySummary = FormatShadowCopySummary(
                 shadowCopyResults,
@@ -180,7 +187,15 @@ public sealed class WorkspaceTools
                 _solutionManager.LoadedTargetFramework,
                 _solutionManager.LoadedBuildArgs));
         sb.AppendLine();
-        sb.AppendLine($"Successfully loaded workspace. Found {projectCount} projects:");
+        if (semanticUnavailable)
+        {
+            sb.AppendLine($"Opened MSBuild graph. Found {projectCount} projects:");
+        }
+        else
+        {
+            sb.AppendLine($"Successfully loaded workspace. Found {projectCount} projects:");
+        }
+
         foreach (var project in projects.OrderBy(p => p.Name, StringComparer.OrdinalIgnoreCase))
         {
             sb.AppendLine($"- {project.Name} [{InferCompactProjectType(project)}]");

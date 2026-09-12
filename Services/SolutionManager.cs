@@ -135,6 +135,21 @@ public sealed class SolutionManager
 
     internal string? PublicationBanReason => _publicationState.BanReason;
 
+    internal string FormatNoPublishedSolutionMessage(string? leadingSentence = null)
+    {
+        if (_workspace is not null && _publicationState.IsUnavailable)
+        {
+            return WorkspaceLoadGuidance.FormatSemanticWorkspaceUnavailableMessage(
+                leadingSentence,
+                _analyzerProvenanceSnapshot?.Status.ToString(),
+                _publicationState.BanReason,
+                overlayAllowed: false,
+                captureReused: _lastLoadWasCacheHit);
+        }
+
+        return WorkspaceLoadGuidance.FormatNoWorkspaceLoadedMessage(leadingSentence);
+    }
+
     /// <summary>
     /// First-use observation: maps a load/execution failure to project, generator,
     /// generation, and missing/conflicting dependency. Loading stays lazy until this
@@ -191,6 +206,14 @@ public sealed class SolutionManager
 
     /// <summary>Test seam: cancel after this many successful document writes (0 = disabled).</summary>
     internal int CancelAfterDocumentWrites { get; set; }
+
+    /// <summary>Test seam: drop the captured snapshot before the opt-in publication gate.</summary>
+    internal bool DiscardNextProvenanceSnapshot { get; set; }
+
+    /// <summary>Test seam: rewrite the snapshot session id so it no longer matches this load.</summary>
+    internal bool AssignForeignSessionToNextCapture { get; set; }
+
+    internal bool HasPublishedSemanticSnapshot => _solution is not null;
 
     internal WorkspaceWriteResult? LastWriteResult => _lastWriteResult;
 
@@ -296,16 +319,28 @@ public sealed class SolutionManager
                 return new WorkspaceLoadPreparationResult(solution, _lastShadowCopyResults);
             }
 
-            if (_lastLoadWasCacheHit)
-            {
-                _solution = publishedBeforeBoundary;
-            }
-
             if (HasBlockingLoadFailure(solution))
             {
                 EnterBannedPublication(_workspace!.CurrentSolution, "blocking-load-failure");
                 _solution = null;
                 return new WorkspaceLoadPreparationResult(solution, Array.Empty<AnalyzerReferenceShadowCopier.RewriteResult>());
+            }
+
+            ApplyCaptureTestSeams();
+            var unsuitableCapture = AnalyzerProvenanceCaptureGate.TryGetUnsuitableReason(
+                _analyzerProvenanceSnapshot,
+                _loadSessionId);
+            if (unsuitableCapture is not null)
+            {
+                EnterUnavailablePublication(unsuitableCapture);
+                return new WorkspaceLoadPreparationResult(
+                    _workspace!.CurrentSolution,
+                    Array.Empty<AnalyzerReferenceShadowCopier.RewriteResult>());
+            }
+
+            if (_lastLoadWasCacheHit)
+            {
+                _solution = publishedBeforeBoundary;
             }
 
             try
@@ -326,7 +361,7 @@ public sealed class SolutionManager
                         _lastExecutionObservation.Reason ?? "opt-in-prepare-not-enabled");
                 }
 
-                return new WorkspaceLoadPreparationResult(_solution!, results);
+                return new WorkspaceLoadPreparationResult(_workspace!.CurrentSolution, results);
             }
             catch
             {
@@ -522,6 +557,7 @@ public sealed class SolutionManager
             SemanticPublicationAdmission.Banned => SemanticPublicationState.ApplyExcludedReferences(
                 solution,
                 _publicationState.ExcludedReferences),
+            SemanticPublicationAdmission.Unavailable => solution,
             _ => SemanticPublicationState.ApplyExcludedReferences(
                 solution,
                 _publicationState.ExcludedReferences),
@@ -701,7 +737,7 @@ public sealed class SolutionManager
 
     private void SetPublishedSolution(Solution workspaceSolution)
     {
-        if (_publicationState.Admission == SemanticPublicationAdmission.None)
+        if (_publicationState.WithholdsSnapshot)
         {
             _solution = null;
             _lastPublishedWriteContext = CreateVerifiedWriteContext(null, _workspace?.CurrentSolution);
@@ -721,8 +757,51 @@ public sealed class SolutionManager
         _publicationState = SemanticPublicationState.Banned(reason, excluded);
     }
 
+    private void EnterUnavailablePublication(string reason)
+    {
+        _shadowCopyAnalyzersEnabled = false;
+        _analyzerShadowMapping = null;
+        _lastShadowCopyResults = Array.Empty<AnalyzerReferenceShadowCopier.RewriteResult>();
+        _publicationState = SemanticPublicationState.Unavailable(reason);
+        _solution = null;
+        _lastPublishedWriteContext = CreateVerifiedWriteContext(null, _workspace?.CurrentSolution);
+        _logger.LogWarning(
+            "Opt-in semantic snapshot withheld: {Reason} capture={CaptureStatus} session={SessionId} cacheHit={CacheHit}",
+            reason,
+            _analyzerProvenanceSnapshot?.Status.ToString() ?? "missing",
+            _loadSessionId,
+            _lastLoadWasCacheHit);
+    }
+
+    private void ApplyCaptureTestSeams()
+    {
+        if (DiscardNextProvenanceSnapshot)
+        {
+            DiscardNextProvenanceSnapshot = false;
+            _analyzerProvenanceSnapshot = null;
+        }
+
+        if (AssignForeignSessionToNextCapture && _analyzerProvenanceSnapshot is not null)
+        {
+            AssignForeignSessionToNextCapture = false;
+            _analyzerProvenanceSnapshot = _analyzerProvenanceSnapshot with
+            {
+                LoadSessionId = Guid.NewGuid(),
+            };
+        }
+    }
+
     private void SetFailClosedPublishedSolution(Solution workspaceSolution, string? reason = null)
     {
+        var unsuitable = AnalyzerProvenanceCaptureGate.TryGetUnsuitableReason(
+            _analyzerProvenanceSnapshot,
+            _loadSessionId);
+        if (unsuitable is not null)
+        {
+            EnterUnavailablePublication(unsuitable);
+            return;
+        }
+
         _shadowCopyAnalyzersEnabled = false;
         EnterBannedPublication(
             workspaceSolution,
@@ -735,9 +814,7 @@ public sealed class SolutionManager
         if (_workspace is null)
         {
             _solution = null;
-            _publicationState = SemanticPublicationState.Banned(
-                "opt-in-boundary-failed",
-                Array.Empty<ExcludedAnalyzerReference>());
+            _publicationState = SemanticPublicationState.Unavailable("opt-in-boundary-failed");
             return;
         }
 
@@ -745,6 +822,15 @@ public sealed class SolutionManager
             && _analyzerShadowMapping is { HasAnyApplied: true })
         {
             SetPublishedSolution(_workspace.CurrentSolution);
+            return;
+        }
+
+        var unsuitable = AnalyzerProvenanceCaptureGate.TryGetUnsuitableReason(
+            _analyzerProvenanceSnapshot,
+            _loadSessionId);
+        if (unsuitable is not null)
+        {
+            EnterUnavailablePublication(unsuitable);
             return;
         }
 

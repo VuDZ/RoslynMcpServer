@@ -52,6 +52,8 @@ internal sealed class HostSession
                 "injectReconciliationFailure" => InjectReconciliationFailure(),
                 "injectCancelAfterWrites" => InjectCancelAfterWrites(command),
                 "injectCaptureFailure" => InjectCaptureFailure(command),
+                "injectNullCapture" => InjectNullCapture(),
+                "injectForeignCaptureSession" => InjectForeignCaptureSession(),
                 "holdOverlayEdit" => HoldOverlayEdit(command),
                 "applyHeld" => await ApplyHeldAsync(cancellationToken).ConfigureAwait(false),
                 "publishedDocument" => await PublishedDocumentAsync(command, cancellationToken).ConfigureAwait(false),
@@ -424,6 +426,18 @@ internal sealed class HostSession
 
         _manager.FailNextAnalyzerProvenanceCapture = failureMode;
         return Inspect("injectCaptureFailure");
+    }
+
+    private HostResponse InjectNullCapture()
+    {
+        _manager.DiscardNextProvenanceSnapshot = true;
+        return Inspect("injectNullCapture");
+    }
+
+    private HostResponse InjectForeignCaptureSession()
+    {
+        _manager.AssignForeignSessionToNextCapture = true;
+        return Inspect("injectForeignCaptureSession");
     }
 
     private HostResponse HoldOverlayEdit(HostCommand command)
@@ -963,6 +977,9 @@ internal sealed class HostSession
             AnalyzerPathProbeCount = AnalyzerReferenceShadowCopier.PathProbeCount,
             AnalyzerAssemblyEvaluationCount = AnalyzerExecutionGate.AssemblyEvaluationCount,
             PublicationAdmission = _manager.PublicationAdmission.ToString(),
+            PublicationBanReason = _manager.PublicationBanReason,
+            PublishedSnapshotPresent = _manager.HasPublishedSemanticSnapshot,
+            LoadSessionId = _manager.LoadSessionId,
             ProvenanceCaptureCount = _manager.AnalyzerProvenanceCaptureCount,
             ProvenanceSnapshotPresent = _manager.AnalyzerProvenanceSnapshot is not null,
             ProvenanceCaptureStatus = _manager.AnalyzerProvenanceSnapshot?.Status.ToString(),

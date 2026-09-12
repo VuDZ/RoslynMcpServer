@@ -201,20 +201,27 @@ public sealed class Epoch5S4AcceptanceTests
         Assert.True(load.Ok, load.Error);
         Assert.Equal("Failed", load.ProvenanceCaptureStatus);
         Assert.Equal(0, load.ProvenanceConfirmedBindingCount);
-        Assert.NotEmpty(load.Rewrite ?? []);
-        Assert.All(
-            load.Rewrite ?? [],
-            rewrite =>
-            {
-                Assert.False(rewrite.Applied);
-                Assert.Equal(AnalyzerReferenceReasonCodes.ProvenanceUnconfirmed, rewrite.ReasonCode);
-            });
+        Assert.Equal("Unavailable", load.PublicationAdmission);
+        Assert.Equal(AnalyzerProvenanceCaptureGate.ReasonFailed, load.PublicationBanReason);
+        Assert.False(load.PublishedSnapshotPresent);
+        Assert.False(load.ShadowEnabled);
+        Assert.Empty(load.Rewrite ?? []);
 
         var oracle = await Epoch1HostOps.OracleAsync(host);
         Dump("unconfirmed-capture-oracle", oracle);
+        Assert.False(IsPublishedSemanticAvailable(oracle));
+        Assert.Equal("no-solution", oracle.Error);
         Assert.False(oracle.OracleSuccess);
         Assert.NotEqual(GeneratorConsumerFixture.MarkerV1, oracle.Marker);
     }
+
+    private static bool IsPublishedSemanticAvailable(HostResponse response) =>
+        !string.Equals(response.Error, "no-solution", StringComparison.Ordinal)
+        && (response.OracleSuccess
+            || response.PublishedSnapshotPresent
+            || !string.IsNullOrWhiteSpace(response.OverlayAnalyzerPath)
+            || !string.IsNullOrWhiteSpace(response.LoadedAnalyzerPath)
+            || !string.IsNullOrWhiteSpace(response.Marker));
 
     private static bool PathsEqual(string? left, string? right) =>
         !string.IsNullOrWhiteSpace(left)

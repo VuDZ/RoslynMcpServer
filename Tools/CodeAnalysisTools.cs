@@ -36,9 +36,17 @@ public sealed class CodeAnalysisTools
         CancellationToken cancellationToken = default)
     {
         var fullPath = _solutionManager.ResolvePathAgainstWorkspace(filePath);
-        var document = await _solutionManager.FindDocumentAsync(fullPath, cancellationToken);
+            var document = await _solutionManager.FindDocumentAsync(fullPath, cancellationToken);
         if (document is null)
         {
+            if (_solutionManager.PublicationAdmission == SemanticPublicationAdmission.Unavailable)
+            {
+                return ToolTelemetry.TraceAndReturn(
+                    nameof(GetClassSkeleton),
+                    _solutionManager.FormatNoPublishedSolutionMessage(
+                        $"The file was not found in the published semantic workspace: `{fullPath}`."));
+            }
+
             return ToolTelemetry.TraceAndReturn(
                 nameof(GetClassSkeleton),
                 $"The file was not found in the workspace: `{fullPath}`. Load the solution or load_workspace first, or verify the path.");
@@ -89,6 +97,14 @@ public sealed class CodeAnalysisTools
             var document = await _solutionManager.FindDocumentAsync(fullPath, cancellationToken);
             if (document is null)
             {
+                if (_solutionManager.PublicationAdmission == SemanticPublicationAdmission.Unavailable)
+                {
+                    return ToolTelemetry.TraceAndReturn(
+                        nameof(GetDiagnosticsForFile),
+                        _solutionManager.FormatNoPublishedSolutionMessage(
+                            $"Document was not found in the published semantic workspace: `{fullPath}`."));
+                }
+
                 return ToolTelemetry.TraceAndReturn(
                     nameof(GetDiagnosticsForFile),
                     $"Document was not found in the active workspace: `{fullPath}`.");

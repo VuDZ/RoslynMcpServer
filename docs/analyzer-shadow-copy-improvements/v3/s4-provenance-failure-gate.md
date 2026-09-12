@@ -1,6 +1,8 @@
 # S4 — блокировать opt-in semantics при непригодном capture
 
-Статус: **не выполнено**. Зависимость: [S3](s3-persistent-publication-state.md).
+Статус: **выполнено; независимая приёмка
+[принята](s4-acceptance.md)** (v1.3.18, V3-R3 закрыт).
+Зависимость: [S3](s3-persistent-publication-state.md).
 Результат шага: V3-R3 устранён; failed/incomplete capture не даёт raw semantic snapshot.
 
 ## Основание
@@ -54,4 +56,68 @@ Complete capture с отдельной unconfirmed/foreign reference не при
 
 ## Результат
 
-Не выполнено.
+Выполнено 2026-09-12. V3-R3 закрыт: opt-in без пригодного provenance не публикует
+semantic snapshot. Отказ переживает edit / flush / cached false/omitted / cached true;
+восстановление только через reset/reopen с новым capture.
+
+### Источники и среда
+
+- **База:** `d45ff5b` (`fix: keep fail-closed publication after failed opt-in`, v1.3.17)
+- **Commit шага:** рабочее дерево этого шага; `AnalyzerProvenanceCaptureGate`,
+  `SemanticPublicationAdmission.Unavailable`, `SolutionManager` load/prepare,
+  `WorkspaceLoadGuidance` / `WorkspaceTools` load text, host inspect,
+  `V3ProvenanceFailureGateTests`, правки E5/F09 Failed-capture, csproj `1.3.18`,
+  README, `AGENTS.md.sample`, этот файл
+- **Версия csproj:** `1.3.18`
+- **OS / host:** Windows, x64 process
+- **SDK:** `10.0.204` (`run_dotnet_build` / `run_specific_test`)
+- **MCP binary:** `RoslynMcpServer` (workspace tools; production publish/reload
+  этого шага не делались)
+
+### Реализация
+
+- Пригодный capture для opt-in: `Complete` и `LoadSessionId` текущей сессии.
+  Missing / Failed / Incomplete / чужой session → `Unavailable`, `_solution = null`.
+- Не вызывается strip-confirmed fail-closed: пустой confirmed-набор больше не
+  оставляет raw snapshot.
+- Cache hit не делает Failed→Complete и не восстанавливает overlay даже при
+  cached true; сообщение указывает `reset_workspace` + повторный load.
+- Complete capture с unconfirmed/foreign остаётся confirmed-only matcher.
+- No-overlay load по-прежнему публикует raw без нового требования к capture.
+- Временные binlogs удаляются по существующему контракту capture.
+
+### Команды
+
+1. `load_workspace` → `RoslynMcpServer.sln`
+2. `run_dotnet_build` → `RoslynMcpServer.sln`
+3. `run_specific_test` class=`V3RegressionBaselineTests`, `noBuild=true`
+4. `run_specific_test` class=`V3ProvenanceFailureGateTests` (по методам)
+5. `run_specific_test` Epoch5 Failed-capture / missing-path, F09 replay-failures
+6. `WorkspaceWriteBoundaryTests`, `McpToolCatalogTests.Surface_sizes_match_recorded_release_numbers`
+
+### Фактические результаты
+
+| Проверка | Результат |
+| --- | --- |
+| R3 `V3_R3_corrupt_capture_does_not_publish_or_execute_real_output` | **passed** — `no-solution`, нет real published/loaded/process, marker пуст |
+| R1 / R2 | **passed** — S2/S3 не регрессировали |
+| Missing / mixed Incomplete / null / session mismatch | **passed** — `Unavailable`, нет raw fallback |
+| Edit / flush / cached false/omitted / cached true | **passed** — семантика закрыта; session reused; Failed остаётся Failed |
+| Reset/reopen + fresh host exact V1 | **passed** — новый session/graph, shadow path, не real output |
+| Complete foreign + missing-path | **passed** — не приравнены к failed capture |
+| No-overlay + Failed capture | **passed** — raw refs как прежде |
+| F09 temp binlogs | **passed** — `ProvenanceTempDirectoryCount=0` |
+| Catalog | **63 / 44,503** без изменения |
+
+### Самопроверка
+
+- Production published accessor (`GetPublishedSolutionAsync` / `oracle` без
+  `oracleSource=workspace`) при непригодном capture возвращает отсутствие.
+- Load text отличает открытый MSBuild graph от unavailable semantic workspace.
+- Публичная MCP-схема не менялась; catalog 63 / 44,503.
+
+### Ограничения
+
+- Production/MCP publish+reload не выполнялись; номер выпуска в исходниках `1.3.18`.
+- Inaccessible U-ARB-01 по-прежнему вне v3 S4.
+- Независимая приёмка: [s4-acceptance.md](s4-acceptance.md).
