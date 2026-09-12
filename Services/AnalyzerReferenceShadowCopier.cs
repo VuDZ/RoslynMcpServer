@@ -37,12 +37,17 @@ public static class AnalyzerReferenceShadowCopier
         string ProjectName,
         string AnalyzerDisplay,
         string? OriginalFullPath,
-        string MatchedProjectName,
+        string? MatchedProjectName,
         string? ShadowCopyPath,
         bool Applied,
         string? SkipReason,
         string? GenerationId = null,
-        bool StaleGeneration = false);
+        bool StaleGeneration = false,
+        string ReasonCode = AnalyzerReferenceReasonCodes.ProvenanceUnconfirmed,
+        AnalyzerReferencePathState OriginalPathState = AnalyzerReferencePathState.NotProvided,
+        string? SelectedSourcePath = null,
+        AnalyzerReferencePathState SelectedSourcePathState = AnalyzerReferencePathState.NotProvided,
+        AnalyzerReferenceSelectionBasis SelectionBasis = AnalyzerReferenceSelectionBasis.None);
 
     /// <summary>
     /// Test seam: next publisher copies throw <see cref="IOException"/> before writing bytes.
@@ -52,6 +57,12 @@ public static class AnalyzerReferenceShadowCopier
     {
         get => AnalyzerShadowGenerationPublisher.RemainingForcedCopyFailures;
         set => AnalyzerShadowGenerationPublisher.RemainingForcedCopyFailures = value;
+    }
+
+    internal static int RemainingForcedAccessFailures
+    {
+        get => AnalyzerShadowGenerationPublisher.RemainingForcedAccessFailures;
+        set => AnalyzerShadowGenerationPublisher.RemainingForcedAccessFailures = value;
     }
 
     /// <summary>
@@ -108,13 +119,13 @@ public static class AnalyzerReferenceShadowCopier
         ArgumentNullException.ThrowIfNull(loader);
         _ = loader;
 
-        var workItems = EnumerateInSolutionAnalyzerRefs(
+        var decisions = EnumerateReferenceDecisions(
                 solution,
                 provenanceSnapshot,
                 sessionId)
             .ToList();
 
-        if (workItems.Count == 0)
+        if (decisions.Count == 0)
         {
             var empty = new AnalyzerShadowMapping(sessionId, loadedPath, Array.Empty<AnalyzerShadowReferenceEntry>());
             return new AnalyzerShadowPrepareOutcome(
@@ -126,19 +137,39 @@ public static class AnalyzerReferenceShadowCopier
         }
 
         var publishBySource = new Dictionary<string, AnalyzerShadowPublishResult>(StringComparer.OrdinalIgnoreCase);
-        var entries = new List<AnalyzerShadowReferenceEntry>(workItems.Count);
+        var entries = new List<AnalyzerShadowReferenceEntry>(decisions.Count);
         var anyPublishFailure = false;
         string? firstFailure = null;
 
-        foreach (var item in workItems)
+        foreach (var item in decisions)
         {
-            var sourcePath = item.MatchedProject.CompilationOutputInfo.AssemblyPath ?? item.MatchedProject.OutputFilePath;
-            if (string.IsNullOrWhiteSpace(sourcePath) || !File.Exists(sourcePath))
+            if (item.MatchedProject is null)
             {
+                entries.Add(CreateSkippedEntry(item, item.Detail));
+                continue;
+            }
+
+            var sourcePath = item.SelectedSourcePath;
+            if (item.SelectedSourcePathState != AnalyzerReferencePathState.Exists)
+            {
+                var (reasonCode, reason) = item.SelectedSourcePathState switch
+                {
+                    AnalyzerReferencePathState.AccessFailure => (
+                        AnalyzerReferenceReasonCodes.AccessFailure,
+                        $"cannot access resolved output of selected project '{item.MatchedProject.Name}'"),
+                    AnalyzerReferencePathState.Invalid => (
+                        AnalyzerReferenceReasonCodes.PreparationFailure,
+                        $"selected project '{item.MatchedProject.Name}' has an invalid resolved output path"),
+                    _ => (
+                        AnalyzerReferenceReasonCodes.SourceOutputMissing,
+                        $"matched project '{item.MatchedProject.Name}' has no existing resolved output file (build it first)"),
+                };
                 var skipped = KeepPreviousOrSkip(
                     previousMapping,
                     item,
-                    $"matched project '{item.MatchedProject.Name}' has no existing resolved output file (build it first)");
+                    reason,
+                    reasonCode,
+                    item.SelectedSourcePathState);
                 if (!skipped.Applied)
                 {
                     anyPublishFailure = true;
@@ -154,7 +185,7 @@ public static class AnalyzerReferenceShadowCopier
                 continue;
             }
 
-            var sourceFull = Path.GetFullPath(sourcePath);
+            var sourceFull = Path.GetFullPath(sourcePath!);
             if (!publishBySource.TryGetValue(sourceFull, out var published))
             {
                 published = AnalyzerShadowGenerationPublisher.PublishMainOnly(
@@ -168,10 +199,19 @@ public static class AnalyzerReferenceShadowCopier
             {
                 anyPublishFailure = true;
                 firstFailure ??= published.FailureReason;
+                var accessFailure = published.FailureReason?.StartsWith(
+                    "access-failure:",
+                    StringComparison.OrdinalIgnoreCase) == true;
                 entries.Add(KeepPreviousOrSkip(
                     previousMapping,
                     item,
-                    published.FailureReason ?? "publish-failed"));
+                    published.FailureReason ?? "publish-failed",
+                    accessFailure
+                        ? AnalyzerReferenceReasonCodes.AccessFailure
+                        : AnalyzerReferenceReasonCodes.PreparationFailure,
+                    accessFailure
+                        ? AnalyzerReferencePathState.AccessFailure
+                        : item.SelectedSourcePathState));
                 continue;
             }
 
@@ -185,7 +225,12 @@ public static class AnalyzerReferenceShadowCopier
                 published.GenerationId,
                 Applied: true,
                 SkipReason: null,
-                StaleGeneration: false));
+                StaleGeneration: false,
+                ReasonCode: AnalyzerReferenceReasonCodes.ReferenceRewritten,
+                item.OriginalPathState,
+                sourceFull,
+                AnalyzerReferencePathState.Exists,
+                item.SelectionBasis));
         }
 
         var mapping = new AnalyzerShadowMapping(sessionId, loadedPath, entries);
@@ -215,46 +260,178 @@ public static class AnalyzerReferenceShadowCopier
     {
         ArgumentNullException.ThrowIfNull(solution);
 
-        if (provenanceSnapshot is not
-            {
-                Status: AnalyzerProvenanceCaptureStatus.Complete,
-            }
-            || provenanceSnapshot.LoadSessionId != sessionId)
+        foreach (var decision in EnumerateReferenceDecisions(solution, provenanceSnapshot, sessionId))
         {
-            yield break;
+            if (decision.MatchedProject is not null
+                && decision.ReasonCode == AnalyzerReferenceReasonCodes.ReferenceRewritten)
+            {
+                yield return new PendingRewrite(
+                    decision.Project,
+                    decision.AnalyzerReference,
+                    decision.MatchedProject);
+            }
         }
+    }
 
+    internal static IEnumerable<ReferenceDecision> EnumerateReferenceDecisions(
+        Solution solution,
+        AnalyzerProvenanceSnapshot? provenanceSnapshot,
+        Guid sessionId)
+    {
+        ArgumentNullException.ThrowIfNull(solution);
         foreach (var project in solution.Projects)
         {
             foreach (var analyzerReference in project.AnalyzerReferences)
             {
-                if (string.IsNullOrWhiteSpace(analyzerReference.FullPath))
+                var matchingBindings = string.IsNullOrWhiteSpace(analyzerReference.FullPath)
+                    ? []
+                    : provenanceSnapshot?.Bindings
+                        .Where(binding => binding.ConsumerProjectId == project.Id
+                            && AnalyzerShadowMapping.PathsEqual(binding.Identity, analyzerReference.FullPath))
+                        .ToArray()
+                        ?? [];
+                var hasCandidate = HasLoadedSourceCandidate(solution, project.Id, analyzerReference.FullPath);
+                if (!hasCandidate && matchingBindings.Length == 0)
                 {
                     continue;
                 }
 
-                var sourceProjectIds = provenanceSnapshot.Bindings
+                var originalPathState = ProbePath(analyzerReference.FullPath);
+                if (provenanceSnapshot is not
+                    {
+                        Status: AnalyzerProvenanceCaptureStatus.Complete,
+                    }
+                    || provenanceSnapshot.LoadSessionId != sessionId
+                    || string.IsNullOrWhiteSpace(analyzerReference.FullPath))
+                {
+                    yield return Unconfirmed(
+                        project,
+                        analyzerReference,
+                        originalPathState,
+                        "complete load-session provenance is unavailable");
+                    continue;
+                }
+
+                var bindings = matchingBindings;
+                var sourceProjectIds = bindings
                     .Where(binding => binding.Status == AnalyzerProvenanceBindingStatus.Confirmed
-                        && binding.ConsumerProjectId == project.Id
-                        && binding.SourceProjectId is not null
-                        && AnalyzerShadowMapping.PathsEqual(binding.Identity, analyzerReference.FullPath))
+                        && binding.SourceProjectId is not null)
                     .Select(binding => binding.SourceProjectId!)
                     .Distinct()
                     .ToArray();
-                if (sourceProjectIds.Length != 1 || sourceProjectIds[0] == project.Id)
+                if (sourceProjectIds.Length > 1
+                    || bindings.Any(binding =>
+                        binding.Status == AnalyzerProvenanceBindingStatus.AmbiguousSourceProject))
                 {
+                    yield return new ReferenceDecision(
+                        project,
+                        analyzerReference,
+                        MatchedProject: null,
+                        SelectedSourcePath: null,
+                        originalPathState,
+                        AnalyzerReferencePathState.NotProvided,
+                        AnalyzerReferenceReasonCodes.AmbiguousAssemblyName,
+                        AnalyzerReferenceSelectionBasis.ProvenanceAmbiguousLoadedSource,
+                        "verified provenance did not distinguish one loaded source project");
                     continue;
                 }
 
-                var matchedProject = solution.GetProject(sourceProjectIds[0]);
-                if (matchedProject is null)
+                if (sourceProjectIds.Length == 1 && sourceProjectIds[0] != project.Id)
                 {
+                    var matchedProject = solution.GetProject(sourceProjectIds[0]);
+                    if (matchedProject is null)
+                    {
+                        yield return Unconfirmed(
+                            project,
+                            analyzerReference,
+                            originalPathState,
+                            "confirmed source project is absent from the loaded solution");
+                        continue;
+                    }
+
+                    var sourcePath = matchedProject.CompilationOutputInfo.AssemblyPath
+                        ?? matchedProject.OutputFilePath;
+                    var sourcePathState = ProbePath(sourcePath);
+                    yield return new ReferenceDecision(
+                        project,
+                        analyzerReference,
+                        matchedProject,
+                        sourcePath,
+                        originalPathState,
+                        sourcePathState,
+                        sourcePathState switch
+                        {
+                            AnalyzerReferencePathState.Exists => AnalyzerReferenceReasonCodes.ReferenceRewritten,
+                            AnalyzerReferencePathState.AccessFailure => AnalyzerReferenceReasonCodes.AccessFailure,
+                            AnalyzerReferencePathState.Invalid => AnalyzerReferenceReasonCodes.PreparationFailure,
+                            _ => AnalyzerReferenceReasonCodes.SourceOutputMissing,
+                        },
+                        AnalyzerReferenceSelectionBasis.LoadSessionProvenanceExactOutput,
+                        Detail: null);
                     continue;
                 }
 
-                yield return new PendingRewrite(project, analyzerReference, matchedProject);
+                if (bindings.Any(binding =>
+                    binding.Status == AnalyzerProvenanceBindingStatus.MissingSourceProject
+                    && !string.IsNullOrWhiteSpace(binding.SourceProjectFile)))
+                {
+                    yield return new ReferenceDecision(
+                        project,
+                        analyzerReference,
+                        MatchedProject: null,
+                        SelectedSourcePath: null,
+                        originalPathState,
+                        AnalyzerReferencePathState.NotProvided,
+                        AnalyzerReferenceReasonCodes.ProvenForeignPath,
+                        AnalyzerReferenceSelectionBasis.ProvenanceSourceProjectNotLoaded,
+                        "captured analyzer item originates from a project outside the loaded solution");
+                    continue;
+                }
+
+                yield return Unconfirmed(
+                    project,
+                    analyzerReference,
+                    originalPathState,
+                    originalPathState == AnalyzerReferencePathState.AccessFailure
+                        ? "original analyzer path could not be inspected"
+                        : "no verified source-project binding");
             }
         }
+    }
+
+    private static bool HasLoadedSourceCandidate(
+        Solution solution,
+        ProjectId consumerProjectId,
+        string? analyzerPath)
+    {
+        if (string.IsNullOrWhiteSpace(analyzerPath))
+        {
+            return false;
+        }
+
+        string fileName;
+        try
+        {
+            fileName = Path.GetFileName(analyzerPath);
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            return false;
+        }
+
+        return solution.Projects.Any(project =>
+            project.Id != consumerProjectId
+            && (
+                string.Equals(
+                    Path.GetFileName(project.CompilationOutputInfo.AssemblyPath ?? project.OutputFilePath),
+                    fileName,
+                    StringComparison.OrdinalIgnoreCase)
+                || string.Equals(
+                    string.IsNullOrWhiteSpace(project.AssemblyName)
+                        ? null
+                        : project.AssemblyName + ".dll",
+                    fileName,
+                    StringComparison.OrdinalIgnoreCase)));
     }
 
     internal static Solution ApplyMapping(
@@ -276,13 +453,20 @@ public static class AnalyzerReferenceShadowCopier
             e.Applied,
             e.SkipReason,
             e.GenerationId,
-            e.StaleGeneration)).ToList();
+            e.StaleGeneration,
+            e.ReasonCode,
+            e.OriginalPathState,
+            e.SelectedSourcePath,
+            e.SelectedSourcePathState,
+            e.SelectionBasis)).ToList();
     }
 
     private static AnalyzerShadowReferenceEntry KeepPreviousOrSkip(
         AnalyzerShadowMapping? previousMapping,
-        PendingRewrite item,
-        string reason)
+        ReferenceDecision item,
+        string reason,
+        string reasonCode,
+        AnalyzerReferencePathState selectedSourcePathState)
     {
         var previous = previousMapping?.Entries.FirstOrDefault(e =>
             e.ProjectId == item.Project.Id
@@ -295,6 +479,11 @@ public static class AnalyzerReferenceShadowCopier
             {
                 StaleGeneration = true,
                 SkipReason = "stale-generation: " + reason,
+                ReasonCode = reasonCode,
+                OriginalPathState = item.OriginalPathState,
+                SelectedSourcePath = item.SelectedSourcePath,
+                SelectedSourcePathState = selectedSourcePathState,
+                SelectionBasis = item.SelectionBasis,
             };
         }
 
@@ -303,13 +492,99 @@ public static class AnalyzerReferenceShadowCopier
             item.Project.Name,
             item.AnalyzerReference.Display,
             item.AnalyzerReference.FullPath,
-            item.MatchedProject.Name,
+            item.MatchedProject?.Name,
             ShadowCopyPath: null,
             GenerationId: null,
             Applied: false,
             SkipReason: reason,
-            StaleGeneration: false);
+            StaleGeneration: false,
+            reasonCode,
+            item.OriginalPathState,
+            item.SelectedSourcePath,
+            selectedSourcePathState,
+            item.SelectionBasis);
     }
+
+    private static AnalyzerShadowReferenceEntry CreateSkippedEntry(
+        ReferenceDecision item,
+        string? detail) =>
+        new(
+            item.Project.Id,
+            item.Project.Name,
+            item.AnalyzerReference.Display,
+            item.AnalyzerReference.FullPath,
+            item.MatchedProject?.Name,
+            ShadowCopyPath: null,
+            GenerationId: null,
+            Applied: false,
+            SkipReason: detail,
+            StaleGeneration: false,
+            item.ReasonCode,
+            item.OriginalPathState,
+            item.SelectedSourcePath,
+            item.SelectedSourcePathState,
+            item.SelectionBasis);
+
+    private static ReferenceDecision Unconfirmed(
+        Project project,
+        AnalyzerReference analyzerReference,
+        AnalyzerReferencePathState originalPathState,
+        string detail) =>
+        new(
+            project,
+            analyzerReference,
+            MatchedProject: null,
+            SelectedSourcePath: null,
+            originalPathState,
+            AnalyzerReferencePathState.NotProvided,
+            originalPathState == AnalyzerReferencePathState.AccessFailure
+                ? AnalyzerReferenceReasonCodes.AccessFailure
+                : AnalyzerReferenceReasonCodes.ProvenanceUnconfirmed,
+            AnalyzerReferenceSelectionBasis.None,
+            detail);
+
+    private static AnalyzerReferencePathState ProbePath(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return AnalyzerReferencePathState.NotProvided;
+        }
+
+        try
+        {
+            var attributes = File.GetAttributes(Path.GetFullPath(path));
+            return (attributes & FileAttributes.Directory) == 0
+                ? AnalyzerReferencePathState.Exists
+                : AnalyzerReferencePathState.Missing;
+        }
+        catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
+        {
+            return AnalyzerReferencePathState.Missing;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return AnalyzerReferencePathState.AccessFailure;
+        }
+        catch (IOException)
+        {
+            return AnalyzerReferencePathState.AccessFailure;
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            return AnalyzerReferencePathState.Invalid;
+        }
+    }
+
+    internal sealed record ReferenceDecision(
+        Project Project,
+        AnalyzerReference AnalyzerReference,
+        Project? MatchedProject,
+        string? SelectedSourcePath,
+        AnalyzerReferencePathState OriginalPathState,
+        AnalyzerReferencePathState SelectedSourcePathState,
+        string ReasonCode,
+        AnalyzerReferenceSelectionBasis SelectionBasis,
+        string? Detail);
 
     internal readonly record struct PendingRewrite(
         Project Project,

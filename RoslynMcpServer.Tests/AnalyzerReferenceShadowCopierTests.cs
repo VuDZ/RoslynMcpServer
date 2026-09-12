@@ -41,9 +41,16 @@ public class AnalyzerReferenceShadowCopierTests
 
         var result = Assert.Single(results);
         Assert.True(result.Applied);
+        Assert.Equal(AnalyzerReferenceReasonCodes.ReferenceRewritten, result.ReasonCode);
         Assert.Equal("Consumer", result.ProjectName);
         Assert.Equal("Generator", result.MatchedProjectName);
         Assert.Equal(brokenReferencePath, result.OriginalFullPath);
+        Assert.Equal(AnalyzerReferencePathState.Missing, result.OriginalPathState);
+        Assert.Equal(generatorOutput, result.SelectedSourcePath);
+        Assert.Equal(AnalyzerReferencePathState.Exists, result.SelectedSourcePathState);
+        Assert.Equal(
+            AnalyzerReferenceSelectionBasis.LoadSessionProvenanceExactOutput,
+            result.SelectionBasis);
         Assert.NotNull(result.ShadowCopyPath);
         Assert.True(File.Exists(result.ShadowCopyPath));
         Assert.StartsWith(fixture.ShadowRoot, result.ShadowCopyPath, StringComparison.OrdinalIgnoreCase);
@@ -86,6 +93,9 @@ public class AnalyzerReferenceShadowCopierTests
 
         var result = Assert.Single(results);
         Assert.False(result.Applied);
+        Assert.Equal(AnalyzerReferenceReasonCodes.SourceOutputMissing, result.ReasonCode);
+        Assert.Equal(AnalyzerReferencePathState.Missing, result.OriginalPathState);
+        Assert.Equal(AnalyzerReferencePathState.Missing, result.SelectedSourcePathState);
         Assert.NotNull(result.SkipReason);
 
         // Unchanged: same reference instance still present, nothing rewritten.
@@ -129,7 +139,9 @@ public class AnalyzerReferenceShadowCopierTests
             fixture.ShadowRoot,
             loader);
 
-        Assert.Empty(results);
+        var result = Assert.Single(results);
+        Assert.False(result.Applied);
+        Assert.Equal(AnalyzerReferenceReasonCodes.ProvenanceUnconfirmed, result.ReasonCode);
         Assert.Same(
             solution.Projects.Single(p => p.Name == "Consumer").AnalyzerReferences.Single(),
             unchanged.Projects.Single(p => p.Name == "Consumer").AnalyzerReferences.Single());
@@ -166,7 +178,16 @@ public class AnalyzerReferenceShadowCopierTests
         var rewritten = prepared.Mapping.Apply(solution, loader);
         var paths = rewritten.GetProject(consumer.Id)!.AnalyzerReferences.Select(reference => reference.FullPath).ToArray();
 
-        Assert.Single(prepared.Results);
+        Assert.Equal(2, prepared.Results.Count);
+        Assert.Contains(
+            prepared.Results,
+            result => result.Applied
+                && result.ReasonCode == AnalyzerReferenceReasonCodes.ReferenceRewritten);
+        Assert.Contains(
+            prepared.Results,
+            result => !result.Applied
+                && result.ReasonCode == AnalyzerReferenceReasonCodes.ProvenanceUnconfirmed
+                && result.OriginalFullPath == foreignReferencePath);
         Assert.Contains(paths, path => path is not null && AnalyzerShadowMapping.PathsEqual(path, foreignReferencePath));
         Assert.Contains(paths, path => path is not null && path.StartsWith(fixture.ShadowRoot, StringComparison.OrdinalIgnoreCase));
     }
@@ -214,8 +235,124 @@ public class AnalyzerReferenceShadowCopierTests
             loadedPath: Path.Combine(fixture.RootDirectory, "repro.sln"),
             snapshot);
 
-        Assert.Empty(prepared.Results);
+        var result = Assert.Single(prepared.Results);
+        Assert.False(result.Applied);
+        Assert.Equal(AnalyzerReferenceReasonCodes.AmbiguousAssemblyName, result.ReasonCode);
+        Assert.Equal(
+            AnalyzerReferenceSelectionBasis.ProvenanceAmbiguousLoadedSource,
+            result.SelectionBasis);
         Assert.False(prepared.Mapping.HasAnyApplied);
+    }
+
+    [Fact]
+    public void PrepareInSolutionAnalyzerReferences_reports_proven_foreign_without_rewrite()
+    {
+        using var fixture = new ReproFixture();
+        var foreignPath = fixture.CreateFile("external", "ForeignAnalyzer.dll");
+        var solution = fixture.BuildSolution(
+            fixture.CreateFile("Generator", "Generator.dll"),
+            new AnalyzerReference[] { new FakeAnalyzerReference("foreign", foreignPath) });
+        var consumer = solution.Projects.Single(project => project.Name == "Consumer");
+        var sessionId = Guid.NewGuid();
+        var foreignBinding = new AnalyzerProvenanceBinding(
+            AnalyzerProvenanceBindingStatus.MissingSourceProject,
+            consumer.Id,
+            SourceProjectId: null,
+            Identity: foreignPath,
+            SourceProjectFile: Path.Combine(fixture.RootDirectory, "External", "External.csproj"),
+            SelectedInnerTargetFramework: null,
+            EffectiveGlobalProperties: ImmutableDictionary<string, string>.Empty);
+        var snapshot = CreateSnapshotWithoutDefaultBinding(sessionId, foreignBinding);
+
+        var prepared = AnalyzerReferenceShadowCopier.PrepareInSolutionAnalyzerReferences(
+            solution,
+            fixture.ShadowRoot,
+            new InProcessAnalyzerAssemblyLoader(),
+            previousMapping: null,
+            sessionId,
+            loadedPath: Path.Combine(fixture.RootDirectory, "repro.sln"),
+            snapshot);
+
+        var result = Assert.Single(prepared.Results);
+        Assert.False(result.Applied);
+        Assert.Equal(AnalyzerReferenceReasonCodes.ProvenForeignPath, result.ReasonCode);
+        Assert.Equal(AnalyzerReferencePathState.Exists, result.OriginalPathState);
+        Assert.Equal(
+            AnalyzerReferenceSelectionBasis.ProvenanceSourceProjectNotLoaded,
+            result.SelectionBasis);
+    }
+
+    [Fact]
+    public void PrepareInSolutionAnalyzerReferences_reports_preparation_failure_separately()
+    {
+        using var fixture = new ReproFixture();
+        var generatorOutput = fixture.CreateFile("Generator", "Generator.dll");
+        var originalPath = Path.Combine(fixture.RootDirectory, "stale", "Generator.dll");
+        var solution = fixture.BuildSolution(
+            generatorOutput,
+            new AnalyzerReference[] { new FakeAnalyzerReference("produced", originalPath) });
+        var consumer = solution.Projects.Single(project => project.Name == "Consumer");
+        var generator = solution.Projects.Single(project => project.Name == "Generator");
+        var sessionId = Guid.NewGuid();
+        var snapshot = CreateSnapshot(sessionId, consumer.Id, generator.Id, originalPath);
+
+        try
+        {
+            AnalyzerReferenceShadowCopier.RemainingForcedCopyFailures = 1;
+            var prepared = AnalyzerReferenceShadowCopier.PrepareInSolutionAnalyzerReferences(
+                solution,
+                fixture.ShadowRoot,
+                new InProcessAnalyzerAssemblyLoader(),
+                previousMapping: null,
+                sessionId,
+                loadedPath: Path.Combine(fixture.RootDirectory, "repro.sln"),
+                snapshot);
+
+            var result = Assert.Single(prepared.Results);
+            Assert.False(result.Applied);
+            Assert.Equal(AnalyzerReferenceReasonCodes.PreparationFailure, result.ReasonCode);
+            Assert.Equal(AnalyzerReferencePathState.Exists, result.SelectedSourcePathState);
+        }
+        finally
+        {
+            AnalyzerShadowGenerationPublisher.ResetTestHooks();
+        }
+    }
+
+    [Fact]
+    public void PrepareInSolutionAnalyzerReferences_reports_source_access_failure_separately()
+    {
+        using var fixture = new ReproFixture();
+        var generatorOutput = fixture.CreateFile("Generator", "Generator.dll");
+        var originalPath = Path.Combine(fixture.RootDirectory, "stale", "Generator.dll");
+        var solution = fixture.BuildSolution(
+            generatorOutput,
+            new AnalyzerReference[] { new FakeAnalyzerReference("produced", originalPath) });
+        var consumer = solution.Projects.Single(project => project.Name == "Consumer");
+        var generator = solution.Projects.Single(project => project.Name == "Generator");
+        var sessionId = Guid.NewGuid();
+
+        try
+        {
+            AnalyzerReferenceShadowCopier.RemainingForcedAccessFailures = 1;
+            var prepared = AnalyzerReferenceShadowCopier.PrepareInSolutionAnalyzerReferences(
+                solution,
+                fixture.ShadowRoot,
+                new InProcessAnalyzerAssemblyLoader(),
+                previousMapping: null,
+                sessionId,
+                loadedPath: Path.Combine(fixture.RootDirectory, "repro.sln"),
+                CreateSnapshot(sessionId, consumer.Id, generator.Id, originalPath));
+
+            var result = Assert.Single(prepared.Results);
+            Assert.False(result.Applied);
+            Assert.Equal(AnalyzerReferenceReasonCodes.AccessFailure, result.ReasonCode);
+            Assert.Equal(AnalyzerReferencePathState.AccessFailure, result.SelectedSourcePathState);
+        }
+        finally
+        {
+            AnalyzerShadowGenerationPublisher.ResetTestHooks();
+        }
     }
 
     [Fact]
@@ -293,6 +430,21 @@ public class AnalyzerReferenceShadowCopierTests
             [],
             new AnalyzerProvenanceCaptureMetrics(1, 0, TimeSpan.Zero, 0, bindings.Length, bindings.Length));
     }
+
+    private static AnalyzerProvenanceSnapshot CreateSnapshotWithoutDefaultBinding(
+        Guid sessionId,
+        params AnalyzerProvenanceBinding[] bindings) =>
+        new(
+            sessionId,
+            LoadedPath: "repro.sln",
+            ImmutableDictionary<string, string>.Empty,
+            new AnalyzerProvenanceToolset(null, null, "", null, null, null),
+            AnalyzerProvenanceCaptureStatus.Complete,
+            [],
+            [],
+            bindings.ToImmutableArray(),
+            [],
+            new AnalyzerProvenanceCaptureMetrics(1, 0, TimeSpan.Zero, 0, bindings.Length, 0));
 
     private sealed class FakeAnalyzerReference : AnalyzerReference
     {

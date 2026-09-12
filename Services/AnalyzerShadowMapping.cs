@@ -3,17 +3,50 @@ using Microsoft.CodeAnalysis.Diagnostics;
 
 namespace RoslynMcpServer.Services;
 
+internal static class AnalyzerReferenceReasonCodes
+{
+    public const string ReferenceRewritten = "reference_rewritten";
+    public const string SourceOutputMissing = "source_output_missing";
+    public const string AmbiguousAssemblyName = "ambiguous_assembly_name";
+    public const string ProvenForeignPath = "proven_foreign_path";
+    public const string ProvenanceUnconfirmed = "provenance_unconfirmed";
+    public const string AccessFailure = "access_failure";
+    public const string PreparationFailure = "preparation_failure";
+}
+
+public enum AnalyzerReferencePathState
+{
+    NotProvided,
+    Exists,
+    Missing,
+    AccessFailure,
+    Invalid,
+}
+
+public enum AnalyzerReferenceSelectionBasis
+{
+    None,
+    LoadSessionProvenanceExactOutput,
+    ProvenanceSourceProjectNotLoaded,
+    ProvenanceAmbiguousLoadedSource,
+}
+
 internal sealed record AnalyzerShadowReferenceEntry(
     ProjectId ProjectId,
     string ProjectName,
     string AnalyzerDisplay,
     string? OriginalFullPath,
-    string MatchedProjectName,
+    string? MatchedProjectName,
     string? ShadowCopyPath,
     string? GenerationId,
     bool Applied,
     string? SkipReason,
-    bool StaleGeneration);
+    bool StaleGeneration,
+    string ReasonCode = AnalyzerReferenceReasonCodes.ProvenanceUnconfirmed,
+    AnalyzerReferencePathState OriginalPathState = AnalyzerReferencePathState.NotProvided,
+    string? SelectedSourcePath = null,
+    AnalyzerReferencePathState SelectedSourcePathState = AnalyzerReferencePathState.NotProvided,
+    AnalyzerReferenceSelectionBasis SelectionBasis = AnalyzerReferenceSelectionBasis.None);
 
 /// <summary>
 /// Immutable in-memory original↔shadow mapping for one load session. Applying it never reads analyzer files.
@@ -38,11 +71,16 @@ internal sealed class AnalyzerShadowMapping
 
     public bool HasAnyApplied => Entries.Any(e => e.Applied && !string.IsNullOrWhiteSpace(e.ShadowCopyPath));
 
-    public AnalyzerShadowMapping WithStale(string reason)
+    public AnalyzerShadowMapping WithStale(string reason, string? reasonCode = null)
     {
         var updated = Entries
             .Select(e => e.Applied
-                ? e with { StaleGeneration = true, SkipReason = "stale-generation: " + reason }
+                ? e with
+                {
+                    StaleGeneration = true,
+                    SkipReason = "stale-generation: " + reason,
+                    ReasonCode = reasonCode ?? e.ReasonCode,
+                }
                 : e)
             .ToList();
         return new AnalyzerShadowMapping(SessionId, LoadedPath, updated);

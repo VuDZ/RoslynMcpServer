@@ -1,13 +1,14 @@
 # Эпоха 5 — Происхождение analyzer references
 
-Статус: **E5-S1 и E5-S2 выполнены**
+Статус: **E5-S1, E5-S2 и E5-S3 выполнены**
 ([S1](epoch-5-s1-results.md), [S2](epoch-5-s2-results.md));
 U-ARB-01 выбран — capture на load ([UNRESOLVED-v2.md](UNRESOLVED-v2.md)).
 Эскиз F-09 [принят](epoch-5-f09-acceptance.md)
 ([дизайн](epoch-5-f09-capture-design.md)): production-кандидат — binlog той же
 design-time загрузки, без второго eval. P0-spike завершён с GO; production
 snapshot [принят](epoch-5-f09-production-capture-acceptance.md) в v1.3.9.
-Provenance-only rollout matcher реализован в v1.3.10. E5-S3 не начат.
+Provenance-only rollout matcher реализован в v1.3.10.
+Диагностика E5-S3 [реализована](epoch-5-s3-results.md) в v1.3.11.
 Запас: Alt-2 unique-name эвристика, Alt-3 сужение до exact path.
 Inaccessible не выбран.
 Зависимость: exact oracle и fixtures эпохи 1. Алгоритм не зависит от эпох 2–4,
@@ -64,6 +65,9 @@ TFM повторным разбором unevaluated `TargetFrameworks`. Неск
 остаются открытыми даже при понятном diagnostic code.
 
 ## E5-S3. Диагностика
+
+Статус: **принято в v1.3.11**
+([результаты](epoch-5-s3-results.md), [приёмка](epoch-5-s3-acceptance.md)).
 
 Ввести стабильные внутренние reason codes:
 

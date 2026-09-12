@@ -551,6 +551,7 @@ public sealed class SolutionManager
                 Applied = false,
                 SkipReason = gate.Reason ?? AnalyzerLoaderContract.RestartRequiredReason,
                 StaleGeneration = true,
+                ReasonCode = AnalyzerReferenceReasonCodes.PreparationFailure,
             };
         }).ToList();
     }
@@ -572,7 +573,7 @@ public sealed class SolutionManager
 
         if (_analyzerShadowMapping is { HasAnyApplied: true } previous)
         {
-            var stale = previous.WithStale(reason);
+            var stale = previous.WithStale(reason, AnalyzerReferenceReasonCodes.PreparationFailure);
             _analyzerShadowMapping = stale;
             _lastShadowCopyResults = AnalyzerReferenceShadowCopier.ToRewriteResults(stale);
             _lastRefreshStale = true;

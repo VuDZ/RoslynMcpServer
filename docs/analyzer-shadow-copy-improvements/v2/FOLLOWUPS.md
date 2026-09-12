@@ -4,7 +4,8 @@
 ([epoch-1-results.md](epoch-1-results.md), [epoch-1-acceptance.md](epoch-1-acceptance.md)).
 Ниже — оставшаяся работа. Эпохи 2–4 и 6 закрыты. Эпоха 5: политика U-ARB-01
 выбрана (capture), production snapshot [принят](epoch-5-f09-production-capture-acceptance.md);
-[E5-S2 matcher принят](epoch-5-s2-acceptance.md) в v1.3.10; E5-S3 остаётся.
+[E5-S2 matcher принят](epoch-5-s2-acceptance.md) в v1.3.10;
+[E5-S3 принят](epoch-5-s3-acceptance.md) в v1.3.11; E5-S4 остаётся.
 
 | ID | Когда | Что |
 | --- | --- | --- |
@@ -220,10 +221,12 @@ P0 **принят** ([epoch-5-f09-p0-acceptance.md](epoch-5-f09-p0-acceptance.md
 [принят](epoch-5-f09-production-capture-acceptance.md): F09-04 и P0-7 закрыты.
 E5-S2 [принят](epoch-5-s2-acceptance.md): confirmed-only matcher, exact `V1` /
 `FOREIGN`; E5-S2-1 закрыт exact `V1` для второго TFM в свежем host.
-E5-S3 не начат.
+E5-S3 [принят](epoch-5-s3-acceptance.md) в v1.3.11. Открыты E5-S3-1/2 (не
+блокеры). E5-S4 не начат.
 
 ---
 
-Порядок в следующем чате: E5-S3 reason codes, не sticky и не inaccessible.
+Порядок в следующем чате: E5-S4 (диагностика на fixture / закрытие эпохи 5
+в docs). Inaccessible и U-ARB-05 не открывать.
 F-07 не открывать. A4-09…A4-12 и A6-13 не чинить без отдельного запроса.
 Серия незавершена.

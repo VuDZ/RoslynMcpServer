@@ -328,7 +328,8 @@ public sealed class Epoch1LifecycleMatrixTests
         var load = await Epoch1HostOps.LoadAsync(host, fixture.SolutionPath, shadowCopy: true);
         Assert.Equal("Complete", load.ProvenanceCaptureStatus);
         Assert.Equal(0, load.ProvenanceConfirmedBindingCount);
-        Assert.Empty(load.Rewrite ?? []);
+        Assert.NotEmpty(load.Rewrite ?? []);
+        Assert.All(load.Rewrite ?? [], rewrite => Assert.False(rewrite.Applied));
         Assert.Contains(
             load.OverlayAnalyzerPaths ?? [],
             path => PathsEqual(path, fixture.ForeignDllPath));
@@ -352,7 +353,9 @@ public sealed class Epoch1LifecycleMatrixTests
         var load = await Epoch1HostOps.LoadAsync(host, fixture.SolutionPath, shadowCopy: true);
         Assert.Equal("Complete", load.ProvenanceCaptureStatus);
         Assert.True(load.ProvenanceConfirmedBindingCount > 0);
-        var rewrite = Assert.Single(load.Rewrite ?? []);
+        var rewrites = load.Rewrite ?? [];
+        var rewrite = Assert.Single(rewrites, candidate => candidate.Applied);
+        Assert.Contains(rewrites, candidate => !candidate.Applied);
         Assert.True(rewrite.Applied, rewrite.SkipReason);
         Assert.Contains(
             load.OverlayAnalyzerPaths ?? [],

@@ -33,11 +33,11 @@ public sealed class F09ProductionCaptureTests
         Assert.Equal("Complete", load.ProvenanceCaptureStatus);
         Assert.True(load.ProvenanceConfirmedBindingCount >= 2);
         var rewrites = load.Rewrite ?? [];
-        Assert.Equal(2, rewrites.Count);
-        Assert.All(rewrites, rewrite => Assert.True(rewrite.Applied, rewrite.SkipReason));
+        var applied = rewrites.Where(rewrite => rewrite.Applied).ToArray();
+        Assert.Equal(2, applied.Length);
         Assert.Equal(
             2,
-            rewrites
+            applied
                 .Select(rewrite => rewrite.ShadowCopyPath)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .Count());
@@ -72,7 +72,8 @@ public sealed class F09ProductionCaptureTests
         Assert.True(missing.Ok, missing.Error);
         Assert.Equal("Failed", missing.ProvenanceCaptureStatus);
         Assert.Equal(0, missing.ProvenanceConfirmedBindingCount);
-        Assert.Empty(missing.Rewrite ?? []);
+        Assert.NotEmpty(missing.Rewrite ?? []);
+        Assert.All(missing.Rewrite ?? [], rewrite => Assert.False(rewrite.Applied));
         Assert.False(missing.ShadowEnabled);
         Assert.Equal(0, missing.ProvenanceTempDirectoryCount);
 

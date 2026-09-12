@@ -206,7 +206,7 @@ public sealed class WorkspaceTools
         var sb = new StringBuilder();
         if (results.Count == 0)
         {
-            sb.Append("- **Analyzer reference shadow copy:** no in-solution AnalyzerReference matched another project's assembly name; nothing rewritten.");
+            sb.Append("- **Analyzer reference shadow copy:** no in-solution analyzer candidates; nothing rewritten.");
         }
         else
         {
@@ -252,19 +252,31 @@ public sealed class WorkspaceTools
             if (result.Applied)
             {
                 _logger.LogInformation(
-                    "AnalyzerReferenceShadowCopy project={ProjectName} matchedProject={MatchedProjectName} originalFullPath={OriginalFullPath} shadowCopyPath={ShadowCopyPath}",
+                    "AnalyzerReferenceShadowCopy project={ProjectName} selectedProject={SelectedProjectName} reasonCode={ReasonCode} selectionBasis={SelectionBasis} originalFullPath={OriginalFullPath} originalPathState={OriginalPathState} selectedSourcePath={SelectedSourcePath} selectedSourcePathState={SelectedSourcePathState} shadowCopyPath={ShadowCopyPath} generation={GenerationId}",
                     result.ProjectName,
-                    result.MatchedProjectName,
+                    result.MatchedProjectName ?? "(none)",
+                    result.ReasonCode,
+                    result.SelectionBasis,
                     result.OriginalFullPath ?? "(null)",
-                    result.ShadowCopyPath);
+                    result.OriginalPathState,
+                    result.SelectedSourcePath ?? "(none)",
+                    result.SelectedSourcePathState,
+                    result.ShadowCopyPath,
+                    result.GenerationId ?? "(none)");
             }
             else
             {
                 _logger.LogWarning(
-                    "AnalyzerReferenceShadowCopy project={ProjectName} matchedProject={MatchedProjectName} originalFullPath={OriginalFullPath} skipReason={SkipReason}",
+                    "AnalyzerReferenceShadowCopy project={ProjectName} selectedProject={SelectedProjectName} reasonCode={ReasonCode} selectionBasis={SelectionBasis} originalFullPath={OriginalFullPath} originalPathState={OriginalPathState} selectedSourcePath={SelectedSourcePath} selectedSourcePathState={SelectedSourcePathState} generation={GenerationId} skipReason={SkipReason}",
                     result.ProjectName,
-                    result.MatchedProjectName,
+                    result.MatchedProjectName ?? "(none)",
+                    result.ReasonCode,
+                    result.SelectionBasis,
                     result.OriginalFullPath ?? "(null)",
+                    result.OriginalPathState,
+                    result.SelectedSourcePath ?? "(none)",
+                    result.SelectedSourcePathState,
+                    result.GenerationId ?? "(none)",
                     result.SkipReason);
             }
         }

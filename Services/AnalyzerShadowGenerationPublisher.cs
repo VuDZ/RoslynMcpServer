@@ -24,6 +24,7 @@ internal static class AnalyzerShadowGenerationPublisher
 
     internal static int AnalyzerFileIoCount;
     internal static int RemainingForcedCopyFailures;
+    internal static int RemainingForcedAccessFailures;
     internal static int RemainingForcedMoveFailures;
     internal static int RemainingForcedDiskFullFailures;
     internal static string? ForcedDiskFullStage;
@@ -38,6 +39,7 @@ internal static class AnalyzerShadowGenerationPublisher
     {
         AnalyzerFileIoCount = 0;
         RemainingForcedCopyFailures = 0;
+        RemainingForcedAccessFailures = 0;
         RemainingForcedMoveFailures = 0;
         RemainingForcedDiskFullFailures = 0;
         ForcedDiskFullStage = null;
@@ -385,6 +387,12 @@ internal static class AnalyzerShadowGenerationPublisher
 
     private static void CopyFile(string sourcePath, string destinationPath)
     {
+        if (RemainingForcedAccessFailures > 0)
+        {
+            RemainingForcedAccessFailures--;
+            throw new UnauthorizedAccessException("Forced analyzer source access failure.");
+        }
+
         if (RemainingForcedCopyFailures > 0)
         {
             RemainingForcedCopyFailures--;
@@ -521,6 +529,11 @@ internal static class AnalyzerShadowGenerationPublisher
 
     private static string FormatIoFailure(Exception ex)
     {
+        if (ex is UnauthorizedAccessException)
+        {
+            return "access-failure: " + ex.Message;
+        }
+
         if (ex is IOException io && io.HResult == DiskFullHResult)
         {
             return "disk-full: " + io.Message;
