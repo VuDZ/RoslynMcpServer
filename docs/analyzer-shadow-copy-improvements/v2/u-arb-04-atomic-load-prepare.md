@@ -44,8 +44,9 @@ raw; enable на cache hit (`false→true`) входит в тот же един
 | Load `false`/omitted | raw `workspace.CurrentSolution` — честный no-overlay |
 | Opt-in успех (новый session или cache-hit enable) | overlay после gate; real output не в published analyzer refs |
 | Opt-in, prepare/gate не дал applied overlay (новый session) | **fail-closed:** не публиковать raw новой сессии как успешный opt-in result |
-| Opt-in, есть прежний applied mapping (file-prepare fail, эпоха 2) | прежний stale mapping; не подменять его raw |
-| Restart-required после честного no-overlay semantic | overlay не активируется; это не маскируется как успешный enable |
+| Opt-in, непригодный capture (missing/Failed/Incomplete/чужой session) | **Unavailable:** `_solution=null`; prepare не запускать (v3 S4) |
+| Opt-in, есть прежний applied mapping (file-prepare fail, эпоха 2 / v3 S5) | только доказанно безопасный snapshot: applied/allowed stale; failed confirmed не real path |
+| Restart-required после честного no-overlay semantic | overlay не активируется; это не маскируется как успешный enable; stale V1/V2 не исполняется |
 | Cancellation / blocking load failure | prepare не запускать; не оставлять «сырой успех» opt-in |
 
 Fail-closed на новой opt-in сессии: `_solution ?? _workspace.CurrentSolution`
@@ -55,6 +56,17 @@ existing-correct real analyzer path. Допустимо: не публикова
 не raw) и semantic accessor не делает fallback на `CurrentSolution`; либо
 опубликовать snapshot без этих in-solution analyzer refs. Нельзя: присвоить
 `_workspace` и отдать lock-free getter с fallback на raw.
+
+Поправка 2026-09-12 (v3 S3–S5): raw workspace может сохранить original
+references для persistence / exact inverse. Это **не** разрешение
+публиковать или исполнять их после отказа opt-in. Admission
+(NoOverlay / AllowedMapping / Banned) переживает edit/flush/recon/cancel
+и cached `false`/omitted ([s3-acceptance.md](../v3/s3-acceptance.md)).
+Непригодный capture не чинится cached `true`
+([s4-acceptance.md](../v3/s4-acceptance.md)). Частичный prepare решает
+каждый confirmed ref, не `HasAnyApplied`
+([s5-acceptance.md](../v3/s5-acceptance.md)). `GetCurrentSolution()`
+возвращает только `_solution`.
 
 Graph reopen / другой load key / `ClearWorkspaceAsync` по-прежнему сбрасывают
 overlay. Opt-in на новой сессии снова идёт через этот workflow. Cache-hit

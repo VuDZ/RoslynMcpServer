@@ -63,8 +63,9 @@ TFM повторным разбором unevaluated `TargetFrameworks`. Неск
 | Source output отсутствует | Не готовить замену; исходная ссылка и конкретная причина | Отсутствие source отдельно от original-path state |
 
 Это таблица разных условий, а не алгоритм с неявным приоритетом строк: выбор связи
-и доступность файлов фиксируются раздельно. Ветки missing/inaccessible до решения
-остаются открытыми даже при понятном diagnostic code.
+и доступность файлов фиксируются раздельно. Ветка missing закрыта принятым rollout: unconfirmed missing сохраняется
+без filename fallback. Inaccessible **остаётся открытым** даже при
+понятном `access_failure`; действие rewrite/skip здесь не назначается.
 
 ## E5-S3. Диагностика
 
@@ -99,6 +100,14 @@ TFM повторным разбором unevaluated `TargetFrameworks`. Неск
 политику inaccessible. Проверить original missing-path repro и foreign same-name
 fixture эпохи 1 с разными exact executed markers, в том числе missing foreign.
 Отсутствие generated ошибки или одинаковая форма API не доказывают верный выбор.
+
+Поправка 2026-09-12 (v3 S6): исходный gate требовал решение inaccessible
+**до** rollout. Rollout E5-S2–S4 **уже принят** (v1.3.10–1.3.12) на матрице
+available / missing-path / foreign. Inaccessible **не выбран**, **не
+входит в подтверждённую поддержку** и не является выполненной предпосылкой
+уже принятого rollout. Rewrite/skip для недоступного original здесь не
+назначаются. Статус тот же в [README](README.md), [UNRESOLVED-v2.md](UNRESOLVED-v2.md)
+и [epoch-5-s4-acceptance.md](epoch-5-s4-acceptance.md).
 
 Приёмка исходного repro зависит от решения: при достаточном provenance он должен
 исправляться; если владелец выберет сужение поддержки, ограничение и изменённое

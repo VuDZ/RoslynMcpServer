@@ -1,9 +1,14 @@
 # E1-S4 — Инвентаризация semantic entry points
 
-Снимок: `GetCurrentSolution()` возвращает `_solution` (overlay) или
-`workspace.CurrentSolution`. Сам getter не копирует файлы и не загружает
-assemblies. Flush выполняется только `FindDocumentAsync` /
-`GetCurrentSolutionAfterDiskSyncAsync` / `EnsureDiskChangesAppliedAsync`.
+Снимок (актуально v1.3.14+): `GetCurrentSolution()` возвращает **только**
+опубликованный `_solution`. Fallback на `workspace.CurrentSolution` снят.
+Сам getter не копирует файлы и не загружает assemblies. Semantic readers
+ждут manager boundary: `GetPublishedSolutionAsync` /
+`GetPublishedSolutionAfterDiskSyncAsync` / `FindDocumentAsync`.
+Исторический inventory (v1.3.5): getter мог вернуть `_solution` или
+`workspace.CurrentSolution` — это не текущий контракт.
+Flush выполняется только `FindDocumentAsync` /
+`GetPublishedSolutionAfterDiskSyncAsync` / `EnsureDiskChangesAppliedAsync`.
 
 | Файл | Откуда snapshot | Flush | Та же база до transform | Raw `workspace.CurrentSolution` compilation |
 | --- | --- | --- | --- | --- |

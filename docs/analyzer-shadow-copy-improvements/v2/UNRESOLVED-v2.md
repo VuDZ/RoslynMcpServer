@@ -6,7 +6,9 @@ U-ARB-01/02/03 — политика выбрана; matcher E5-S2 [принят]
 U-ARB-05 [принят](u-arb-05-acceptance.md) как session-sticky в v1.3.13.
 U-ARB-04 evidence [принят](u-arb-04-acceptance.md); atomic load/prepare
 boundary [реализована и принята](u-arb-04-implementation-acceptance.md) в
-v1.3.14. Inaccessible в U-ARB-01 остаётся открытым.
+v1.3.14. Inaccessible в U-ARB-01 остаётся **открытым и не входит в
+подтверждённую поддержку** (не выбран rewrite/skip). v3 S2–S5 закрыли
+V3-R1–R3 в продукте; серия v1/v2 от этого не становится завершённой.
 
 ## U-ARB-01 — Происхождение ссылок при отсутствующем пути
 
@@ -15,7 +17,9 @@ matcher** (v1.3.10); fixture-приёмка E5-S4 в v1.3.12.
 Evidence: [epoch-5-s1-results.md](epoch-5-s1-results.md),
 [epoch-5-s2-results.md](epoch-5-s2-results.md),
 [epoch-5-s4-results.md](epoch-5-s4-results.md).
-Inaccessible **не** выбран.
+Inaccessible **не** выбран и **не** входит в подтверждённую поддержку
+принятого E5 rollout (available / missing-path / foreign). Rewrite/skip
+для недоступного original здесь не назначаются.
 
 Связанные findings: E5-01, E5-02, E5-04, E5-05.
 

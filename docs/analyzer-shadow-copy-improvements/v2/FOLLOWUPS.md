@@ -8,9 +8,13 @@
 [E5-S3 принят](epoch-5-s3-acceptance.md) в v1.3.11;
 [E5-S4 принят](epoch-5-s4-acceptance.md) в v1.3.12. U-ARB-05
 [принят](u-arb-05-acceptance.md) как session-sticky в v1.3.13. Серия не
-завершена только из-за inaccessible. U-ARB-04 atomic load/prepare
+завершена: inaccessible остаётся **открытым и не входит в подтверждённую
+поддержку**. U-ARB-04 atomic load/prepare
 [реализована и принята](u-arb-04-implementation-acceptance.md) в v1.3.14;
-U-ARB-04-1 закрыт. Inaccessible не открывался.
+U-ARB-04-1 закрыт. v3 S2 закрыл A4-09/A4-12 в продукте
+([s2-acceptance.md](../v3/s2-acceptance.md)); историческая пометка
+«не блокеры» в F-05 сохранена ниже. Inaccessible не открывался и не
+выбирался.
 
 | ID | Когда | Что |
 | --- | --- | --- |
@@ -19,7 +23,7 @@ U-ARB-04-1 закрыт. Inaccessible не открывался.
 | F-03 | **сделано** | DOC-EARLY: ARCHITECTURE / historical README / remarks = stored snapshot (аудит E6-S1) |
 | F-08 | **принято** ([epoch-6-acceptance.md](epoch-6-acceptance.md)) | Эпоха 6: аудит S1–S4. Серия не завершена. A6-13 не блокер |
 | F-04 | **принято** ([epoch-2-acceptance.md](epoch-2-acceptance.md)) | E2-S5 11/11. Открыт A2-09 (stores). A2-12 закрыт: catalog 63 / 43895 |
-| F-05 | **принято** ([epoch-4-acceptance.md](epoch-4-acceptance.md)) | Эпоха 4: write boundary. Открыты A4-09…A4-12 (не блокеры) |
+| F-05 | **принято** ([epoch-4-acceptance.md](epoch-4-acceptance.md)) | Эпоха 4: write boundary. A4-09…A4-12 записаны как не блокеры **на 2026-09-11**. Поправка 2026-09-12: A4-09/A4-12 закрыты в продукте v3 S2 ([s2-acceptance.md](../v3/s2-acceptance.md)); A4-10/A4-11 остаются Low |
 | F-06 | мерж в main | A1-10: version bump, изоляция test seams |
 | F-07 | **эпоха 3 принята** ([epoch-3-acceptance.md](epoch-3-acceptance.md)) | restart-required / main-only. U-ARB-05 отдельно закрыт как session-sticky в v1.3.13 |
 | F-09 | **принято** ([epoch-5-f09-production-capture-acceptance.md](epoch-5-f09-production-capture-acceptance.md)) | Snapshot v1.3.9; F09-PROD-1/2 закрыты [E5-S2](epoch-5-s2-acceptance.md) |
@@ -86,6 +90,10 @@ SolutionManager.ShadowCopyInSolutionAnalyzerReferencesAsync remarks
 Work:
 В v1.3.5 `GetCurrentSolution()` возвращает `_solution` с fallback на `workspace.CurrentSolution`. Чтение getter не пересчитывает overlay. Подготовка — в load/enable и (пока) после document apply. Исторические эпохи оставить историей с оговоркой.
 
+Актуально (v1.3.14+): getter возвращает только `_solution`; semantic readers —
+`GetPublishedSolutionAsync` / `FindDocumentAsync`. Fallback на
+`workspace.CurrentSolution` снят. См. [epoch-1-semantic-entry-points.md](epoch-1-semantic-entry-points.md).
+
 Не обещать «новый path = новая CLR assembly». Не ждать эпоху 6.
 
 Done when:
@@ -142,7 +150,9 @@ E4-S4: inventory `TryApplyChanges`, exact inverse tests (не whole-list wipe), 
 
 Сделано 2026-09-11: приёмка **принята** ([epoch-4-acceptance.md](epoch-4-acceptance.md),
 прогон [epoch-4-results.md](epoch-4-results.md)). Независимый прогон: unit 10/10,
-lifecycle+регресс 15/15. A4-09…A4-12 не блокеры.
+lifecycle+регресс 15/15. A4-09…A4-12 записаны как не блокеры эпохи 4
+(2026-09-11). Поправка 2026-09-12: A4-09/A4-12 закрыты v3 S2
+([s2-acceptance.md](../v3/s2-acceptance.md)).
 
 ---
 
@@ -237,6 +247,10 @@ semantic загружает/блокирует real output; штатные overl
 shadow. U-ARB-04-1 [принят](u-arb-04-acceptance.md). Atomic load/prepare
 [реализован и принят](u-arb-04-implementation-acceptance.md) в v1.3.14;
 норматив — [u-arb-04-atomic-load-prepare.md](u-arb-04-atomic-load-prepare.md).
-Inaccessible и F-07 не открывать. E5-S3-1, A4-09…A4-12, A6-13, F-06,
-U-ARB-05-1 не чинить без отдельного запроса. U-ARB-04-IMPL-1 закрыт в
-v1.3.15: implicit `FindDocument` auto-load удалён.
+Inaccessible и F-07 не открывать. E5-S3-1, A4-10, A4-11, A6-13, F-06,
+U-ARB-05-1 не чинить без отдельного запроса. A4-09/A4-12 закрыты в
+продукте v3 S2 ([s2-acceptance.md](../v3/s2-acceptance.md)) — не
+переоткрывать как «необязательный leftover». U-ARB-04-IMPL-1 закрыт в
+v1.3.15: implicit `FindDocument` auto-load удалён. v3 S3–S5 закрыли
+устойчивый fail-closed, capture gate и частичный prepare; leftover Lows
+S3-1 / S4-1 / S5-1 не чинить в документации как продуктовые дефекты.

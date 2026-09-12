@@ -20,7 +20,11 @@ load/session identity и конкретный mapping/generation, с котор�
 
 1. Проверить совместимость текущей load session и базы с operation context.
    Stale/несовместимый candidate отклонить до побочных эффектов; защитой overlay
-   нельзя перезаписывать более свежие изменения.
+   нельзя перезаписывать более свежие изменения. Это обязательная защита данных,
+   не optional leftover: v3 S2 закрывает A4-09/A4-12 в продукте
+   (`stale-base` / `stale-publication` / `unknown-operation-context` до persist).
+   Non-goal MVCC не освобождает от проверки базы. Evidence:
+   [s2-acceptance.md](../v3/s2-acceptance.md).
 2. Классифицировать analyzer-reference diff относительно базы и известного mapping.
 3. Обратить только внесённые этим mapping замены original↔shadow. Сохранить
    несвязанные references, порядок и кратность, без дублирования.

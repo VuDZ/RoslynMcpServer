@@ -3,7 +3,11 @@
 Этот документ — общий контракт эпох 1–6. Колонка «v1.3.5» — арбитражный baseline,
 не текущий shipped. Целевые строки 2/3/4 **приняты** в v1.3.6–v1.3.8; эпоха 5
 **принята** в v1.3.12 (U-ARB-01 capture + confirmed-only; inaccessible не
-выбран). Построчный аудит: [epoch-6-results.md](epoch-6-results.md).
+выбран и **не** входит в подтверждённую поддержку). Построчный аудит:
+[epoch-6-results.md](epoch-6-results.md) — снимок v1.3.8/1.3.14; актуальная
+публикация / freshness / capture — v3 S2–S5
+([s2-acceptance.md](../v3/s2-acceptance.md) …
+[s5-acceptance.md](../v3/s5-acceptance.md)).
 U-ARB-02 = restart-required, U-ARB-03 = main-only (эпоха 3);
 U-ARB-05 = session-sticky (v1.3.13).
 «Обновление» в таблицах всегда уточняется: граф, файлы или исполнение.
@@ -21,14 +25,14 @@ U-ARB-05 = session-sticky (v1.3.13).
 | Process restart+load | Новый процесс и loader | Проверка выбранного режима U-ARB-02; opt-in при новой загрузке | Exact V2, identity/path, стоимость restart |
 | Graph-stale reopen | Граф открывается заново, поля overlay сбрасываются; loader остаётся | Mapping новой базы при opt-in, никакого переноса старых ProjectId | Graph stale, новая сессия, запись старого candidate |
 | Другое решение | Workspace/overlay сбрасываются; CLR identity не сбрасывается | Нет переноса mapping, gate безопасного исполнения по U-ARB-02 | A enabled→B disabled, same identity |
-| `GetCurrentSolution()` | Возвращает сохранённый snapshot/fallback; flush не выполняет; lock-free | Semantic compilation — сериализованный accessor; lock-free getter не база `GetCompilationAsync` в окне load/enable ([U-ARB-04 S2](u-arb-04-atomic-load-prepare.md)) | Inventory + concurrency seam |
+| `GetCurrentSolution()` | Исторически `_solution` с fallback на `workspace.CurrentSolution`; flush не выполняет; lock-free | Возвращает только опубликованный `_solution` (без fallback). Semantic readers — `GetPublishedSolutionAsync` / `FindDocumentAsync`; lock-free getter не база `GetCompilationAsync` ([U-ARB-04 S2](u-arb-04-atomic-load-prepare.md)) | Inventory + concurrency seam |
 | Первый opt-in load / cache-hit enable | Два await / два `_workspaceLock`; raw публикуется до prepare | Один захват: load/cache → prepare/gate → publish; raw новой opt-in сессии не публиковать | [U-ARB-04 S1/S4](u-arb-04-atomic-load-prepare.md) |
 | Text edit / `UpdateDocumentInMemoryAsync` | **v1.3.5:** raw text apply, затем повторная подготовка overlay. **v1.3.6+:** mapping reapply, без analyzer I/O | Общий workflow, готовый mapping, без refresh файлов анализатора | Маркер, новый текст, `.csproj` bytes, forced rebuild |
 | Overlay-derived apply / `ApplySolutionChangesToDiskAsync` | **v1.3.8:** preflight до записи, точный inverse, структурированный исход, reapply mapping | Preflight до серверной записи, точный inverse, структурированный исход, reapply mapping | Exact inverse, unknown/stale rejection, все outcomes E4-S2 |
 | Under-lock text apply/fallback | **v1.3.5:** внутренние ветки могли публиковать тексты и reprepare. **v1.3.8:** тот же write boundary / mapping reapply, без повторного semaphore | Общий workflow без повторного semaphore; только применённое состояние | Fault injection и отсутствие повторного захвата |
 | Доставка FSW | Накапливает dirty paths; `_solution` ещё не обновлён | Сохранить различие delivery/flush; не запускать artifact refresh | Наблюдаемая доставка с timeout |
 | Production watcher flush | **v1.3.5:** dirty documents, затем reprepare overlay. **v1.3.6+:** mapping reapply без analyzer I/O | Common workflow и mapping reapply без analyzer I/O | Реальный FSW→FindDocumentAsync/синхронизированный getter→маркер/текст |
-| Полный/частичный prepare failure | **v1.3.5:** rewrite results могли теряться на reapply; bool не описывал частичный mapping. **v1.3.6+:** per-ref result; file-fail держит stale mapping; restart-required снимает overlay | Пер-ссылка результат, failed/stale refresh отдельно от edit и execution | Нет output, injected prepare failure, disk-full |
+| Полный/частичный prepare failure | **v1.3.5:** rewrite results могли теряться на reapply; bool не описывал частичный mapping. **v1.3.6+:** per-ref result; file-fail держит stale mapping; restart-required снимает overlay | Пер-ссылка результат (v3 S5); failed/stale отдельно от edit. Новая сессия без applied mapping — fail-closed / Unavailable, не raw publication confirmed originals (v3 S3/S4) | Нет output, injected prepare failure, disk-full, [s3](../v3/s3-acceptance.md)/[s4](../v3/s4-acceptance.md)/[s5](../v3/s5-acceptance.md) |
 | Apply failure / частичная запись / reconciliation | **v1.3.5:** уже записанные тексты согласуются fallback; это не атомарное сохранение. **v1.3.8:** `WorkspaceWriteStatus` + Reason + SavedPaths; неприменённый project state не публикуется | Не публиковать неприменённые project changes; различать partial и reconciliation failure | Cancellation, per-file I/O, rejected apply, fallback |
 | Clear/dispose | Workspace/overlay очищаются; process loader остаётся | Не удалять опубликованные поколения и не обещать unload | Старый operation context отвергается; cache сохраняется до безопасного cleanup |
 
@@ -53,13 +57,13 @@ U-ARB-05 = session-sticky (v1.3.13).
 | Process restart+load | Новая сессия | Новый по флагу | Новый при opt-in | Выбранные в новом процессе | Новый | Новая сессия watcher | Новый load; exact execution проверяется отдельно |
 | Graph-stale reopen | Новый граф/база | Новый по opt-in | Пересоздаётся для новой базы | Из новой подготовки | Прежний | Относится к новому workspace | Reopen и refresh outcomes раздельны |
 | A→B load | Сессия B | B по флагу | Mapping A не применяется к B | Только B при opt-in | Прежний; identity gate | Watcher B | Маркер B либо явный unsupported; broken/off — отсутствие генерации |
-| Getter | Прежний | Читает целый S/fallback | Прежний | Прежние | Getter не загружает | Не flush | Нет обещания свежести недоставленного/неflushed текста |
+| Getter | Прежний | Читает только опубликованный `_solution` | Прежний | Прежние | Getter не загружает | Не flush | Нет обещания свежести недоставленного/неflushed текста; нет fallback на raw |
 | Text edit, полный успех | Прежний | Принятый новый текст+overlay | Прежний совместимый | Прежние | Прежний | Штатный document sync; не artifact refresh | Успех записи; last refresh сохраняется отдельно |
 | Overlay apply, полный успех | Принятые поддержанные изменения | Полный принятый snapshot+overlay | Только совместимые записи mapping для оставшихся проектов | По применимому mapping | Прежний | Штатный document sync | Полный успех записи; не refresh |
 | Under-lock apply, полный успех | Как соответствующий apply | Как соответствующий apply | Без prepare | По mapping | Прежний | Штатный document sync | Тот же результат workflow |
 | FSW delivery | Прежний; событие графа отдельно помечает stale | Прежний | Прежний | Прежние | Прежний | Добавлены доставленные dirty paths | Delivery не равна публикации |
 | Flush, полный успех | Прежний граф | Доставленные и обработанные тексты+overlay | Прежний | Прежние | Прежний | Обработанные dirty paths учтены штатным sync | Freshness в пределах завершённого flush, не всей файловой системы |
-| Prepare failure без старого mapping | База текущей сессии | Только результат с исходными ссылками на failed entries | Успешные entries + причины failed entries | Только пригодные, если есть | Прежний | Prepare не flush | Failure/partial; не полный refresh/execution success |
+| Prepare failure без старого mapping | База текущей сессии | Fail-closed / Unavailable: confirmed real refs **не** публикуются и не исполняются (v3 S3/S4). Raw workspace может хранить originals для persistence | Успешные entries + причины failed entries | Нет активного overlay generation | Прежний | Prepare не flush | Failure; не полный refresh/execution success; не «original после ошибки» как published snapshot |
 | Failed refresh со старым совместимым mapping | Прежний | Допустим прежний overlay | Допустим прежний mapping | Прежние только с явным stale | Прежний; execution gate сохраняется | Prepare не flush | Failed refresh, stale-generation; последующий edit не стирает отказ |
 | Preflight rejection | Прежний | Candidate не публикуется | Прежний | Прежние | Прежний | Нет новых серверных write effects; внешние события остаются внешними | Unsupported/stale, никаких записей операции |
 | Partial persistence→reconciliation success | Только фактически принятый project state | Согласованные сохранённые тексты+overlay | Применимый готовый | По mapping | Прежний | Сверить с фактическим document sync, не выдавать необработанное за flushed | Partial с reconciliation success |
@@ -89,6 +93,11 @@ U-ARB-02 — restart-required: cached load и reset+load готовят файл
 не отменяет эту информацию. По session-sticky контракту U-ARB-05 отключение —
 `reset_workspace`, затем load с `false`/omitted; другой load key или graph reopen
 также начинает новую сессию без прежнего overlay.
+
+После непригодного capture или fail-closed opt-in semantic snapshot недоступен.
+Recovery — `reset_workspace` и новый `load_workspace` (другой load key /
+graph reopen тоже новая сессия). Reset **не** выгружает CLR. Cached `true`
+не чинит Failed/Incomplete capture.
 
 CodeAction / `rename_symbol`: неподдержанный analyzer diff отклоняется до записей;
 частичное сохранение возвращает Status, Reason и известные пути и не считается

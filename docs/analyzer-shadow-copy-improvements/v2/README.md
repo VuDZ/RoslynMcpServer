@@ -1,7 +1,13 @@
 # Analyzer shadow copy — спецификация v2
 
-Статус: **нормативная спецификация; эпохи 1–6 и U-ARB-04 приняты**; серия не
-завершена только из-за inaccessible в U-ARB-01. U-ARB-05 выбран как session-sticky в
+Статус: **нормативная спецификация; эпохи 1–6 и U-ARB-04 приняты**.
+Серия **не завершена**: inaccessible в U-ARB-01 остаётся **открытым и
+не входит в подтверждённую поддержку** (rewrite/skip не выбраны). Это не
+заявление, что прежняя приёмка v2 покрыла V3-R1–R3. Штатные 36/36 unit и
+9/9 `UArb04LoadBoundaryEvidenceTests` не доказывают отсутствие этих дыр.
+v3 S1–S5 реализованы и независимо приняты (v1.3.16–1.3.19); S6 согласует
+документацию; итоговая приёмка v3 — [S7](../v3/s7-runtime-acceptance.md),
+ещё не выполнена. U-ARB-05 выбран как session-sticky в
 v1.3.13. Для U-ARB-04 выполнен
 [evidence load boundary](u-arb-04-load-boundary-evidence.md) и
 [atomic load/prepare boundary реализована и принята](u-arb-04-implementation-acceptance.md)
@@ -9,7 +15,8 @@ v1.3.13. Для U-ARB-04 выполнен
 [production snapshot принят](epoch-5-f09-production-capture-acceptance.md) в
 v1.3.9; [E5-S2 принят](epoch-5-s2-acceptance.md) в v1.3.10;
 [E5-S3 принят](epoch-5-s3-acceptance.md) в v1.3.11;
-[E5-S4 принят](epoch-5-s4-acceptance.md) в v1.3.12.
+[E5-S4 принят](epoch-5-s4-acceptance.md) в v1.3.12. Принятая матрица E5 —
+available / missing-path / foreign; inaccessible в неё не входит.
 Дата: 2026-09-12. Язык нормативного текста — русский; имена API и идентификаторы сохранены.
 Shipped: v1.3.6 mapping, v1.3.7 restart-required / main-only, v1.3.8 write boundary
 (`f54aec15f48f942ef9ac077c752bf03ae018bf31`).
@@ -27,9 +34,10 @@ v2 объединяет обязательные решения арбитраж
 перечислены в [UNRESOLVED-v2.md](UNRESOLVED-v2.md): соответствующие этапы имеют
 явные условия допуска, поэтому v2 не означает безусловную готовность всей реализации.
 
-## Текущее поведение v1.3.14 (shipped)
+## Текущее поведение v1.3.19 (shipped)
 
-Сверх арбитражного baseline v1.3.5:
+Сверх арбитражного baseline v1.3.5. Исторический срез v1.3.14 сохранён в
+приёмке U-ARB-04; ниже — актуальный контракт после v3 S2–S5.
 
 - Prepare — `load_workspace` / enable / явный artifact refresh. Edit, watcher
   flush и post-apply — `mapping.Apply` без analyzer I/O (`v2-main-only`).
@@ -37,16 +45,32 @@ v2 объединяет обязательные решения арбитраж
   reset+load готовят файлы, но не исполняют V2. Main-only: private helpers
   отклоняются. Reset не выгружает CLR.
 - Запись: preflight → exact inverse → persist → reconciliation → publish mapping.
-  Unknown/stale analyzer diff отклоняется до серверных записей. Partial persistence
-  сообщает Status, Reason и известные сохранённые пути — это не полный успех.
+  Unknown analyzer diff и **stale write base** отклоняются до серверных записей
+  (`stale-base` / `stale-publication` / `unknown-operation-context`; v3 S2,
+  A4-09/A4-12 закрыты в продукте). Partial persistence сообщает Status, Reason
+  и известные сохранённые пути — это не полный успех.
 - Matcher: rewrite только confirmed load-session provenance (v1.3.10+);
   unique-name fallback снят. U-ARB-05: активация session-sticky — cached
   `false`/omitted сохраняют активный overlay без refresh; отключение через
   reset/new session. Поколения
-  при clear не удаляются. Inaccessible в U-ARB-01 не выбран.
+  при clear не удаляются. Inaccessible в U-ARB-01 **не выбран** и не
+  поддерживается.
 - U-ARB-04: opt-in load/cache lookup, prepare/gate и публикация образуют одну
-  atomic boundary. Production semantic readers ждут опубликованный snapshot;
-  новая сессия при prepare failure/cancellation fail-closed.
+  atomic boundary. Production semantic readers ждут опубликованный snapshot
+  (`GetPublishedSolutionAsync` / `FindDocumentAsync`); `GetCurrentSolution()`
+  возвращает только `_solution`, без fallback на `workspace.CurrentSolution`.
+- Публикация после отказа opt-in (v3 S3–S5): raw workspace может хранить
+  original refs для persistence / exact inverse — это **не** разрешение
+  публиковать или исполнять их. Admission (NoOverlay / AllowedMapping / Banned)
+  переживает edit/flush/recon/cancel и cached `false`. Непригодный capture
+  (missing/Failed/Incomplete/чужой session) → Unavailable, `_solution=null`;
+  cached `true` не чинит. Каждый confirmed overlay ref решается отдельно;
+  failed confirmed не остаётся на real path из-за чужого успеха. Recovery =
+  `reset_workspace` + новый load (CLR не выгружается).
+  Evidence: [s2-acceptance.md](../v3/s2-acceptance.md),
+  [s3-acceptance.md](../v3/s3-acceptance.md),
+  [s4-acceptance.md](../v3/s4-acceptance.md),
+  [s5-acceptance.md](../v3/s5-acceptance.md).
 
 ## Историческое поведение v1.3.5
 
@@ -162,6 +186,7 @@ refresh на событие watcher нет в целевом контракте.
 - [FOLLOWUPS.md](FOLLOWUPS.md) — оставшаяся работа после закрытия эпохи 5.
 - [epoch-1-semantic-entry-points.md](epoch-1-semantic-entry-points.md) — инвентаризация semantic readers.
 - [epoch-6-results.md](epoch-6-results.md) / [epoch-6-acceptance.md](epoch-6-acceptance.md) — аудит контракта.
+- [v3](../v3/README.md) — исправления R1–R3 (S1–S5 приняты) и согласование документации (S6); итоговая приёмка S7 не выполнена.
 
 Каждая эпоха фиксирует окружение, команды, результаты, ограничения и фактический
 статус; unit-тесты не заменяют реальный MSBuildWorkspace. Подтверждение документации

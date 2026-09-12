@@ -6,7 +6,8 @@
 Версия: **v1.3.8**.
 
 Самоприёмка реализации закрыла A4-01…A4-08 без остатка. Ниже — независимый
-повтор: матрица E4-S4 зелёная, блокера нет. Открыты неблокеры A4-09…A4-12.
+повтор: матрица E4-S4 зелёная, блокера нет. Открыты неблокеры A4-09…A4-12
+**(исторический вердикт 2026-09-11; см. поправку 2026-09-12 ниже)**.
 
 | ID | Sev | Тема | Статус |
 | --- | --- | --- | --- |
@@ -18,10 +19,10 @@
 | A4-06 | — | Post-apply без analyzer I/O | **закрыт** — `OverlayPrepareCount` / `AnalyzerFileIoCount` не растут |
 | A4-07 | — | Нет temp `<Analyzer Include>` | **закрыт** — `snapshotCsproj` после write path |
 | A4-08 | — | Existing-output lock | **закрыт** — оба `OutputPathMode` на full-success; forced rebuild меняет hash DLL; Epoch1 `Text_edit` 2/2 |
-| A4-09 | Medium | `BaseSnapshot` не участвует в preflight | **открыт** — не блокер |
+| A4-09 | Medium | `BaseSnapshot` не участвует в preflight | **открыт** — не блокер *(на 2026-09-11)* |
 | A4-10 | Low | `Cancelled` схлопывается в recon | **открыт** — не блокер |
 | A4-11 | Low | Watcher-тест не проверяет `WriteStatus` | **открыт** — не блокер |
-| A4-12 | Low | Fallback context = текущая сессия | **открыт** — не блокер |
+| A4-12 | Low | Fallback context = текущая сессия | **открыт** — не блокер *(на 2026-09-11)* |
 
 ---
 
@@ -164,4 +165,21 @@ Suggested change:
 - Намеренное редактирование analyzer references
 - U-ARB-01 matcher, U-ARB-05 sticky flag
 - A2-09 отдельные stores (requested / prepared / active / refresh / observed)
-- A4-09…A4-12
+- A4-09…A4-12 *(исторический leftover эпохи 4; см. поправку ниже)*
+
+---
+
+## Поправка 2026-09-12 (v3 S2)
+
+Историческая оценка A4-09/A4-12 как неблокеров эпохи 4 сохранена выше.
+Ревью v3 воспроизвело потерю свежих изменений: same-session stale candidate
+давал `ReconciliationSucceeded` / `try-apply-rejected` и старый текст на
+диске (V3-R1). Non-goal MVCC не освобождал от проверки базы до записи.
+
+В продукте с **v1.3.16** (`7fb86b3`) A4-09 закрыт как **P1**: stale
+candidate отклоняется до persist / `TryApplyChanges` / reconciliation
+(`stale-base` / `stale-publication` / `unknown-operation-context`). A4-12
+закрыт: неизвестный operation context больше не подставляет текущие
+session/mapping. Evidence: [s2-acceptance.md](../v3/s2-acceptance.md),
+норматив [s2-write-base-freshness.md](../v3/s2-write-base-freshness.md).
+A4-10 и A4-11 остаются историческими Low эпохи 4.

@@ -1,6 +1,8 @@
 # S6 — согласовать нормативы и статусы документации
 
-Статус: **не выполнено**. Зависимость: [S5](s5-partial-prepare-transitions.md).
+Статус: **выполнено; независимая приёмка
+[принята](s6-acceptance.md)** (docs-only, v1.3.19, V3-R4 закрыт).
+Зависимость: [S5](s5-partial-prepare-transitions.md).
 Результат шага: V3-R4 устранён; документация описывает один актуальный контракт.
 
 ## Основание
@@ -64,4 +66,11 @@ failed capture и prepare без обещания, что reset выгружае
 
 ## Результат
 
-Не выполнено.
+Выполнено 2026-09-12 (документация; независимая приёмка не утверждается).
+
+- **HEAD (до правки):** `8451847` (`docs: add deferred plan for build MCP progress notifications`), поверх S5 `8d75453` (v1.3.19).
+- **Версия:** `RoslynMcpServer.csproj` **1.3.19** (не повышалась: только docs/help Markdown, без смены `[Description]` / schema / catalog).
+- **Окружение:** Windows 10 (build 26200), MCP process всё ещё **1.3.15** (publish/reload этого шага не делались). Команды runtime/теста не запускались.
+- **Команды:** `git rev-parse HEAD`, `git log -1`; полный `AnalyzerLifecycle` не гонялся (S7).
+- **Файлы:** `docs/ARCHITECTURE.md`; `README.md` (EN+RU `load_workspace`); v2 `README.md`, `LIFECYCLE-v2.md`, `epoch-2-immutable-shadow-copies.md`, `epoch-4-workspace-write-boundary.md`, `epoch-4-acceptance.md`, `epoch-5-reference-provenance.md`, `epoch-1-semantic-entry-points.md`, `u-arb-04-atomic-load-prepare.md`, `UNRESOLVED-v2.md`, `FOLLOWUPS.md`, `TRACEABILITY-v2.md`; v3 `README.md`, этот файл.
+- **Ограничения:** исторические v2 results/acceptance не переписаны как будто R1–R3 были зелёными тогда; добавлены датированные поправки 2026-09-12 и ссылки на `s2-acceptance.md`…`s5-acceptance.md`. Старые 36/36 и 9/9 не выдаются за отсутствие R1–R3. Inaccessible не выбран. Leftover Lows S3-1 / S4-1 / S5-1 только задокументированы. `AGENTS.md.sample` не менялся (recovery reset+reload уже есть с S4). `[Description]` / `McpToolHelpCatalog` не менялись — README Reference уже соответствовал S2–S5; правка schema потребовала бы 1.3.20.
