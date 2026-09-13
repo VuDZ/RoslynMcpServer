@@ -56,4 +56,4 @@ Alt-2/Alt-3 из U-ARB-01 (unique-name / exact-path only) **сюда не отн
 и не включать rewrite молча.
 
 Точки: [epoch-5-reference-provenance.md](epoch-5-reference-provenance.md),
-[ARCHITECTURE.md](../../ARCHITECTURE.md), README `load_workspace`.
+[ARCHITECTURE.md](../../../ARCHITECTURE.md), README `load_workspace`.

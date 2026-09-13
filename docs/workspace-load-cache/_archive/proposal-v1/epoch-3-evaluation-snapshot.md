@@ -15,7 +15,7 @@ Status: **planned**. Центр фичи. Делать после Epoch 1–2 (�
 - [README.md](README.md) — запреты и матрица.
 - Base truth: `SolutionManager.LoadCoreAsync`, `WorkspaceDiskPathFilter`,
   in-memory analyzer overlay (`GetCurrentSolution`, никогда
-  `TryApplyChanges` с overlay — см. `docs/analyzer-shadow-copy/`).
+  `TryApplyChanges` с overlay — см. `docs/archive/analyzer-shadow-copy/`).
 - Сессионный RAM-кеш оставить: если PID жив и ключ совпал — по-прежнему
   `workspace_load_cached`, диск-snapshot не читаем.
 

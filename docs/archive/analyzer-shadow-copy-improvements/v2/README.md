@@ -31,11 +31,11 @@ Shipped: v1.3.6 mapping, v1.3.7 restart-required / main-only, v1.3.8 write bound
 без блокировки сервером. Это разные проверяемые свойства.
 
 v2 объединяет обязательные решения арбитража. Ссылки на историю нужны для аудита,
-а правила реализации полностью изложены в этом каталоге. Открытые решения
-перечислены в [UNRESOLVED-v2.md](UNRESOLVED-v2.md): соответствующие этапы имеют
-явные условия допуска, поэтому v2 не означает безусловную готовность всей реализации.
+а правила реализации полностью изложены в этом каталоге. Закрытые U-ARB
+зафиксированы в [UNRESOLVED-v2.md](UNRESOLVED-v2.md). Серия принята и
+перенесена в archive; текущее runtime-описание — ARCHITECTURE / product README.
 
-## Текущее поведение v1.3.19 (shipped)
+## Текущее поведение v1.3.21 (shipped)
 
 Сверх арбитражного baseline v1.3.5. Исторический срез v1.3.14 сохранён в
 приёмке U-ARB-04; ниже — актуальный контракт после v3 S2–S5.
@@ -180,14 +180,14 @@ refresh на событие watcher нет в целевом контракте.
 - [Матрица жизненного цикла](LIFECYCLE-v2.md) — действия, состояния и проверки.
 - [CHANGELOG-v2.md](CHANGELOG-v2.md) — материальные изменения и finding IDs.
 - [TRACEABILITY-v2.md](TRACEABILITY-v2.md) — исходные требования, решения и разделы v2.
-- [UNRESOLVED-v2.md](UNRESOLVED-v2.md) — пять сохранённых открытых решений.
-- [POST-ARBITRATION-ISSUES.md](POST-ARBITRATION-ISSUES.md) — только новые существенные вопросы.
+- [UNRESOLVED-v2.md](UNRESOLVED-v2.md) — закрытые U-ARB-01…05 (не открытые gates).
+- [POST-ARBITRATION-ISSUES.md](POST-ARBITRATION-ISSUES.md) — после арбитража новых вопросов не было.
 - [epoch-1-results.md](epoch-1-results.md) — измеренный runtime baseline эпохи 1.
 - [epoch-1-acceptance.md](epoch-1-acceptance.md) — приёмка эпохи 1 (красный baseline принят).
 - [FOLLOWUPS.md](FOLLOWUPS.md) — оставшаяся работа после закрытия эпохи 5.
 - [epoch-1-semantic-entry-points.md](epoch-1-semantic-entry-points.md) — инвентаризация semantic readers.
 - [epoch-6-results.md](epoch-6-results.md) / [epoch-6-acceptance.md](epoch-6-acceptance.md) — аудит контракта.
-- [v3](../v3/README.md) — исправления R1–R3 (S1–S5 приняты) и согласование документации (S6); итоговая приёмка S7 не выполнена.
+- [v3](../v3/README.md) — R1–R3 / S1–S8 приняты в исходниках v1.3.20+; published MCP 1.3.21.
 
 Каждая эпоха фиксирует окружение, команды, результаты, ограничения и фактический
 статус; unit-тесты не заменяют реальный MSBuildWorkspace. Подтверждение документации

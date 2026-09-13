@@ -5,6 +5,7 @@
 | Тема | Зачем читать |
 |---|---|
 | [compact-tools/](compact-tools/README.md) | Эпохи каталога MCP tools; shipped v1.2.0. Текущие числа — в корневом README и `list_tool_groups` |
-| [analyzer-shadow-copy/](analyzer-shadow-copy/README.md) | Почему появился overlay (v1.3.3–v1.3.5). Контракт — [../analyzer-shadow-copy-improvements/v2/](../analyzer-shadow-copy-improvements/v2/README.md) |
+| [analyzer-shadow-copy/](analyzer-shadow-copy/README.md) | Почему появился overlay (v1.3.3–v1.3.5) |
+| [analyzer-shadow-copy-improvements/](analyzer-shadow-copy-improvements/README.md) | v2/v3, U-ARB, приёмки. Runtime — [ARCHITECTURE](../ARCHITECTURE.md) |
 
-Process-пакеты (review / арбитраж) лежат в `_archive/` соответствующей живой темы, не здесь.
+Process-пакеты (review / арбитраж) лежат в `_archive/` соответствующей темы, не на живой полке.

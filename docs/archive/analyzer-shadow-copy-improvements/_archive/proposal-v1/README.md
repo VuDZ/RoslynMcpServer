@@ -7,7 +7,7 @@
 в v1.3.13. U-ARB-04 atomic load/prepare
 [реализован и принят](../../v2/u-arb-04-implementation-acceptance.md) в v1.3.14.
 
-Этот каталог продолжает [историю исходного исправления](../../../archive/analyzer-shadow-copy/README.md).
+Этот каталог продолжает [историю исходного исправления](../../../analyzer-shadow-copy/README.md).
 Номера эпох локальны для этого каталога. Файлы ниже — доарбитражный план; не
 читать их как текущий shipped-контракт.
 
@@ -40,7 +40,7 @@
 
 - Исторически подтверждено: передача overlay в реальный `MSBuildWorkspace.TryApplyChanges`
   могла записать временный `<Analyzer>` в `.csproj`. Механизм описан в
-  [исходной эпохе 2](../../../archive/analyzer-shadow-copy/epoch-2-first-fix-attempt-and-disk-corruption.md).
+  [исходной эпохе 2](../../../analyzer-shadow-copy/epoch-2-first-fix-attempt-and-disk-corruption.md).
 - Наблюдается в коде: `GetCurrentSolution()` возвращает сохранённый `_solution`
   с fallback на `workspace.CurrentSolution`. Overlay обновляется в отдельных
   точках синхронизации, а не при каждом чтении, вопреки части текущих текстов.

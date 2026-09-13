@@ -18,9 +18,7 @@
 
 ## Contract
 
-| Тема | Канон | Статус |
-|---|---|---|
-| Analyzer shadow copy | [analyzer-shadow-copy-improvements/v2/](analyzer-shadow-copy-improvements/v2/README.md), [v3/](analyzer-shadow-copy-improvements/v3/README.md) | shipped; U-ARB решения всё ещё контракт |
+Нет. Факты shipped-фич — в [ARCHITECTURE.md](ARCHITECTURE.md) и корневом README.
 
 ## Record
 
