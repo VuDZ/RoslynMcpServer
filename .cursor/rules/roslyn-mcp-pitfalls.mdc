@@ -1,0 +1,46 @@
+---
+description: Known pitfalls and regression lessons from production use
+alwaysApply: true
+---
+
+# Known pitfalls (do not reintroduce)
+
+1. **Relative paths vs CWD** — Cursor often starts MCP with CWD = user home. Relative `filePath` without workspace resolve → wrong/missing files. Fix: `ResolvePathAgainstWorkspace`.
+
+2. **`search_code` without directory** — scanning from home hangs forever. Default to loaded workspace directory; default extension filter `.cs`; add scan timeout.
+
+3. **`get_code_skeleton` vs decompile** — agents pass `assemblyName`/`typeName` to file skeleton. Keep tools distinct; friendly error if `path` missing.
+
+4. **Fuzzy assembly match** — `Contains(name)` picks wrong DLL. Exact `{name}.dll` + deps.json + NuGet/BCL fallback only.
+
+5. **SDK mismatch silent** — `0 Error(s)` while wrong MSBuild (9.x vs 10.x pin). Detect and emit `MCP_MSBUILD_SDK_MISMATCH`; fix env before app code.
+
+6. **NuGet audit invisible at `-v:minimal`** — escalate restore/normal verbosity; parse embedded `error NU####`.
+
+7. **VSTest “partial” on missing counters** — requiring both `Passed:` and `Failed:` is wrong. Success often omits `Failed:`; `.slnx`/MSBuild VSTest fail output often omits `Passed:`. Infer the missing side (`Failed`/`Skipped` → 0, or `Passed = Total − Failed − Skipped`). Total-only without those lines stays unparsed.
+
+8. **MSBuild bitness** — 64-bit process + x86 SDK = BadImageFormat. Register matching MSBuild early.
+
+9. **CWD = BaseDirectory** — publish folder breaks tools; use `ROSLYN_MCP_WORKSPACE` instead.
+
+10. **Hardcoded paths in docs** — breaks other machines; resolve via IDE workspace / `list_directory_tree`.
+
+11. **`run_specific_test` filter** — never put Roslyn `FullyQualifiedFormat` (method `()`) into `FullyQualifiedName=`; VSTest treats `()` as grouping. Prefer `FullyQualifiedName~` with `Ns.Type.Method` (no parens). Do not prefix a leading `.` when the needle is already dotted (`.Ns.Class` does not appear inside `Ns.Class`).
+
+12. **Fake/cached `run_dotnet_build` success** — MCP has **no** result cache. False greens came from (a) MSBuild incremental/up-to-date skipping recompile → default `--no-incremental`; (b) probe `lastExitCode` overwritten by restore exit 0 after a failed build → effective exit = last **build** step only; (c) omitted `-c` on multi-config solutions. Always check metadata `Configuration` / `NoIncremental`.
+
+13. **Publish locked by zombie MCP** — Cursor may keep `RoslynMcpServer.exe` running after MCP disconnect; publish then fails with MSB3027 file locks. `publish-and-verify.ps1` auto-kills repo/publish holders (opt out: `-SkipKill`), then reload MCP.
+
+14. **`apply_patch` replaceAll hang** — never rescan the inserted `newString`. If `newString` contains `oldString` (`Foo` → `Ns.Foos`), `while (IndexOf)` grows the buffer forever, MCP never returns, logs stay empty. Advance `searchFrom` past each insert (same as `string.Replace`); log start/match/write with `newContainsOld` and elapsed ms.
+
+15. **`run_specific_test` / `run_dotnet_test` without `--no-build`** — a single `dotnet test` on a large `.slnx` dumps MSBuild warnings after (or instead of) the VSTest banner. Parser requires `Passed!` / `Total tests:` / `Test Run Successful`; exit 0 with only `Time Elapsed` / `N Warning(s)` becomes **`Status: partial`** + last 2KB of build footer. Split: `dotnet build` then `dotnet test --no-build --no-restore`; parse only the test process. Do not treat exit 0 as success and do not feed the build log to `VstestOutputParser`.
+
+16. **VSTest duration not only `ms`** — slow tests print `[1 s]` / `[1 m 28 s]`. A Passed/Failed regex that requires `ms` only reports **no matching tests** despite `Total tests: 1` / `Passed: 1`. Accept `ms|s|m|h` (compound durations). Do not treat any `[...]` as duration.
+
+17. **`TargetFrameworks` / missing `Compile`** — `Directory.Build.props` with `TargetFrameworks` (even one TFM, or `netstandard2.0;net10.0`) makes design-time evaluation a CrossTargeting outer build: `Build` exists, `Compile` does not. `load_workspace` must pass `targetFramework` (inner TFM, e.g. `net10.0`). Do not treat this as SDK mismatch; `dotnet build` can still succeed. Dedicated failure lists TFMs from nearest props.
+
+18. **`load_workspace` fake Failure from design-time warnings** — MSBuildWorkspace wraps ordinary warnings as `Msbuild failed when processing the file` with `Kind=Failure` and often **omits** `warning ASPDEPR007` / `warning MSB3270`. Inner text like IncludeOpenAPIAnalyzers deprecation, processor-architecture mismatch, or analyzer project without metadata must not fail load when projects opened. Do not treat wrapper word `failed` or `StartsWith("Failure:")` as fatal; block only on `error NU|MSB|NETSDK` or known-hard (missing Compile, empty TFM, could not be loaded, SDK not found). Log `Diagnostic.Kind`, not always “warning”.
+
+19. **VS 2026 / MSBuild 18 `XMakeElements` is not SDK mismatch** — net472 BuildHost registers VS 18 MSBuild and dies in `Microsoft.Build.Shared.XMakeElements` (`RemoteInvocationException` / `TypeInitializationException`). Agents mislabel this as `MCP_MSBUILD_SDK_MISMATCH`. Fix: `Microsoft.CodeAnalysis.Workspaces.MSBuild` **5.9+** (AppDomain isolation). Dedicated report **Workspace Load Failed (VS 2026 / MSBuild 18 BuildHost)**; workaround is a single SDK-style `.csproj`. Do not change `global.json` for this.
+
+20. **Stale symbols after IDE/git vs unsaved buffers** — `find_symbol_*` uses the in-memory snapshot. v1.1.0+ watches **saved** `.cs` (FileSystemWatcher dirty set, batch `WithDocumentText`). Do not hook editor keystrokes. Do not `OpenSolutionAsync` from the watcher. `.csproj`/`.sln` → graph-stale + skip load cache, not a full reload in the event handler. `obj` generated sources still need `reset_workspace`. Linux inotify limit → log `Error`, degrade, do not crash.

@@ -1,0 +1,16 @@
+---
+description: Conventions when editing Tools and Services in this repo
+globs: Tools/**/*.cs,Services/**/*.cs,Hosting/**/*.cs
+alwaysApply: false
+---
+
+# Tools & Services changes
+
+- Register new tools in `McpToolCatalog` (names, host, group, lite-core, read/write). That catalog drives DI host registration and method-level MCP SDK registration. Do **not** add a parallel `WithTools<T>()` list.
+- Constructor-inject `SolutionManager` / helpers; tools are singletons.
+- Resolve all relative file paths via `ResolvePathAgainstWorkspace`.
+- Prefer structured return strings (markdown sections, `###` metadata) matching existing tools.
+- Log outcomes as summary + warning highlights; gate full dumps behind `ROSLYN_MCP_LOG_TOOL_OUTPUT=full`.
+- Friendly errors for bad/missing args — avoid unhandled exceptions leaking as opaque MCP failures.
+- Add/adjust unit tests under `RoslynMcpServer.Tests` for parsers, resolvers, path helpers.
+- Version: follow always-apply rule `roslyn-mcp-version-bump.mdc` — patch-bump after successful self-build when shipping code/tool changes; sync README + `AGENTS.md.sample`.

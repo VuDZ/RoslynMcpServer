@@ -35,5 +35,7 @@ Thumbs.db
 .curcor/
 .opencode/
 AGENTS.md
-.cursor/
+.cursor/*
+!.cursor/rules/
+!.cursor/rules/**
 

@@ -1,0 +1,31 @@
+---
+description: Path resolution, search_code defaults, workspace-relative paths
+alwaysApply: true
+---
+
+# Path resolution & search
+
+## Relative `filePath`
+
+`Path.GetFullPath` alone resolves against **process CWD** (often the user profile under Cursor). Always use `SolutionManager.ResolvePathAgainstWorkspace`:
+
+- Absolute → normalize and return
+- Relative → combine with directory of loaded `.sln`/`.csproj` (`_loadedPath`)
+- No workspace → fallback `Path.GetFullPath` (CWD)
+
+Wire **all** filePath-based tools through this helper. Tests: `SolutionManagerPathResolutionTests`.
+
+## `search_code`
+
+- Default root: `GetLoadedWorkspaceDirectory()` when `directoryPath` omitted — **never** rely on CWD alone (hangs scanning user profile).
+- Default extensions: `.cs` only; override via `includeExtensions` (e.g. `.cs,.csproj,.json` or `*` for all).
+- Support `maxScanSeconds` + progress logging to avoid unbounded scans.
+
+## Env
+
+- `ROSLYN_MCP_WORKSPACE` — repo root (folder with `global.json`); sets process cwd at startup for tools that still use CWD.
+- Do **not** set `CurrentDirectory` to `AppContext.BaseDirectory` (publish output) — breaks search/scratchpad.
+
+## Agent-facing docs
+
+Relative paths in MCP calls are OK after `load_workspace`. Prefer absolute when unsure. Never hardcode machine-specific paths in `AGENTS.md` / README samples.

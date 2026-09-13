@@ -1,0 +1,30 @@
+---
+description: Assembly resolve, ILSpy decompile, NuGet/BCL fallback
+globs: Services/**/*.{cs},Tools/CodeAnalysisTools.cs,Tools/CodeSkeletonTools.cs
+alwaysApply: false
+---
+
+# Decompile & assembly resolve
+
+## Exact resolve (v1.0.13+)
+
+`AssemblyReferenceResolver` / `DepsJsonAssemblyPathResolver` / `NuGetFallbackAssemblyResolver`:
+
+- Prefer exact `{assemblyName}.dll` — **no** fuzzy `Contains` matching (wrong DLL / BadImage).
+- Resolve via project `deps.json`, then NuGet cache, then BCL / runtime pack maps (`BclAssemblyPackageMap`).
+- Tools accept `assemblyName` (after `load_workspace`) **or** `assemblyPath`.
+
+## DecompilerHost
+
+ILSpy-backed; circuit breakers (e.g. `decompile_type` max ~500 lines). Large types → skeleton first.
+
+## API assumptions
+
+Do not invent NuGet APIs from memory — decompile first. Especially **Azure DevOps / TFS**:
+
+- Decompile `Microsoft.VisualStudio.Services.WebApi` (or graph-named assembly).
+- Do **not** assume cloud `VssConnection.CreateAsync(organization)` for on-prem — collection URI + Windows/PAT.
+
+## Tests
+
+`AssemblyReferenceResolverTests`, `DepsJsonAssemblyPathResolverTests`, `NuGetFallbackAssemblyResolverTests`.

@@ -1,0 +1,35 @@
+---
+description: SDK pinning, DotNet CLI, build/test parsers, MSBuild bitness
+globs: Services/DotNet*.cs,Services/GlobalJson*.cs,Services/Workspace*.cs,Diagnostics/**/*.cs,Tools/BuildTools.cs,Tools/TestTools.cs,Tools/RunTools.cs
+alwaysApply: false
+---
+
+# Build / SDK / DotNet CLI
+
+## Bitness
+
+MCP process is 64-bit. x86 MSBuild/SDK → `BadImageFormatException`. Use 64-bit `dotnet` (`DotNetHostResolver`). `MsBuildBootstrapper.Register()` before workspace use.
+
+## `global.json` pinning
+
+`DotNetSdkEnvironment` / `GlobalJsonSdkReader`: pin via `MSBUILD_EXE_PATH`, `MSBuildSDKsPath`, `DOTNET_MSBUILD_SDK_RESOLVER_SDKS_*`, `DOTNET_ROOT`, inherit full process env. Working directory = nearest ancestor with `global.json` when possible.
+Without a resolved pin, **strip** inherited `MSBuildSDKsPath` / `MSBUILD_EXE_PATH` / resolver vars (MSBuildLocator and Cursor/VS often leave SDK 9.x overrides → `NETSDK1045` on net10).
+Run metadata includes inherited overrides, strip/pin **SDK env action**, and SDK version inferred from MSBuild/NETSDK log paths.
+
+## `run_dotnet_build` (`DotNetBuildProbe`)
+
+Escalate when diagnostics missing: `build -v:minimal` → `restore` → `build -v:normal`. Parse MSBuild `path(line,col): error|warning` **and** NuGet `NU####` / GHSA. Surface `MCP_MSBUILD_SDK_MISMATCH` if log SDK ≠ pin. Deduplicate repeated NU lines.
+Optional tool arg `configuration` → `-c` on build steps only (multi-config `.slnx`: `Sit-Debug`, `Dit-Debug`, …). Omit to inherit `load_workspace` configuration. Optional `platform` → `-p:Platform=` (same inherit).
+Default `noIncremental=true` → `--no-incremental` on every build step (agent verification must not trust MSBuild up-to-date). Effective exit = **last** `dotnet build` step — never let restore exit 0 mask a failed build with no rebuild. Report `Configuration` / `NoIncremental` in metadata.
+
+## Tests (`VstestOutputParser` / `TestTools`)
+
+Success often has `Test Run Successful` / `Total tests` + `Passed` **without** `Failed:` line — treat missing Failed/Skipped as 0. `.slnx` fail output often has `Total tests` + `Failed:` **without** `Passed:` — infer Passed = Total − Failed − Skipped. Avoid false `partial` status.
+`run_dotnet_test` / `run_specific_test`: `timeoutSeconds` (default 300, shared by pre-test build + test); optional `noBuild` / `noRestore`; optional `configuration` (`-c`) and `platform` (`-p:Platform=`), same as build (inherit from `load_workspace` when omitted). When `noBuild=false`, run incremental `dotnet build` then `dotnet test --no-build --no-restore` so `VstestOutputParser` never sees MSBuild warning dumps. Do not use `DotNetBuildProbe` for that compile. `noBuild=true` skips the extra build.
+
+## Other
+
+- `run_dotnet_run` — timeout, truncated stdout, stderr tail for progress.
+- `run_nuget_audit` — `dotnet list package --vulnerable`, structured table.
+- `load_workspace` NuGet audit, prune/unused PackageReference, NU1701 TFM-compat, **and** design-time MSBuild advisories (ASPDEPR007 / IncludeOpenAPIAnalyzers, MSB3270, analyzer project without metadata) → warnings, not hard Failure; do not treat the word `failed` in the MSBuildWorkspace wrapper as fatal unless inner text has `error NU|MSB|NETSDK` or a known-hard pattern. Health block shows SDK/restore/tool count.
+- Logs: summary + highlight lines; `ROSLYN_MCP_LOG_TOOL_OUTPUT=full` for verbose; `read_log_tail` / `tail_tool_log`.

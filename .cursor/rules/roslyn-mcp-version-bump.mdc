@@ -1,0 +1,34 @@
+---
+description: Auto-bump Version after successful MCP self-build and reload
+alwaysApply: true
+---
+
+# Auto version bump (this MCP server)
+
+When changing **RoslynMcpServer itself** and verifying with **this same MCP** (build/test/run via MCP tools, then use the new binary):
+
+## When to bump
+
+After a **successful** `run_dotnet_build` / `dotnet test` (and before or with `dotnet publish` + MCP reload):
+
+1. Bump **patch** in `RoslynMcpServer.csproj`: `Version`, `AssemblyVersion`, `FileVersion` together (e.g. `1.0.14` → `1.0.15`, `1.0.14.0` → `1.0.15.0`).
+2. Do **not** leave shippable behavior changes at the old version — agents check `get_mcp_server_info` against the number in csproj/docs.
+3. Skip bump only for pure docs/typos/rules with **no** code or tool-behavior change.
+
+## SemVer in this repo
+
+- **Patch** (`1.0.x`): fixes, tool UX, parsers, path resolve, logging — default for almost every ship.
+- **Minor** (`1.x.0`): new MCP tools or clearly additive public capabilities.
+- Do not bump `PackageVersion` (`0.1.0-beta`) unless packaging intentionally changes.
+
+## After bump
+
+1. Update README «Agent tools by version» (+ RU pointer) when user-visible tools/behavior change.
+2. Sync `AGENTS.md.sample` / expected version hints (`get_mcp_server_info` → new version).
+3. Publish (`publish-and-verify.ps1` or `dotnet publish … -r win-x64`), reload MCP host, confirm **`get_mcp_server_info`** shows the new version.
+
+## Dogfooding
+
+Prefer MCP `run_dotnet_build` / `run_dotnet_test` / `run_dotnet_run` on this repo’s workspace — same as app repos. Shell `dotnet` only if MCP is unavailable or for publish/reload scripts that are outside tool coverage.
+
+`publish-and-verify.ps1` stops leftover `RoslynMcpServer.exe` under this repo/publish (Cursor often keeps MCP alive after disconnect and locks publish DLLs). Pass `-SkipKill` to disable. Then reload MCP and confirm `get_mcp_server_info`.

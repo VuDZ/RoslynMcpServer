@@ -1,0 +1,32 @@
+---
+description: MCP tool mapping — skeleton vs decompile vs symbols vs build
+alwaysApply: true
+---
+
+# Tool mapping (avoid mixups)
+
+| Intent | Tool | Key args |
+|--------|------|----------|
+| File/folder skeleton (disk) | `get_code_skeleton` | **`path`** only (`.cs` or dir; max 20 files; skips bin/obj/Test) |
+| Type skeleton in loaded workspace | `get_class_skeleton` | symbol / workspace context |
+| External/NuGet type body | `decompile_type` | `assemblyName` **or** `assemblyPath` + `fullTypeName` |
+| External signatures only | `get_decompiled_class_skeleton` | same assembly args |
+| Method in decompiled type | `get_decompiled_method_body` | assembly + type + method |
+| Explore DLL | `explore_assembly` | `assemblyName` or `assemblyPath` |
+| Symbol find | `find_symbol_definition` / `find_usages` / `find_symbol_references` | prefer `find_usages` when only name known |
+| Project folder rename | `rename_project` | SDK-style; `dryRun` first; no namespace chain |
+| Interfaces/base | `find_implementations` | not `find_usages` |
+| Plain text in `.cs` | `search_code` or host Grep | leftover branding → `caseSensitive=true` |
+| Build / test / run | `run_dotnet_build` / `run_dotnet_test` / `run_specific_test` / `run_dotnet_run` | never shell `dotnet` for these; build: default `noIncremental`, optional `configuration`; tests: `timeoutSeconds` (build+test budget), optional `noBuild`/`noRestore` |
+| NuGet vulns | `run_nuget_audit` | separate from compile errors |
+| Git status for agents | `get_changed_files` | porcelain + suggested tests; **no** full diff |
+
+## Failure UX
+
+Missing `path` on `get_code_skeleton` → friendly text error (do not throw unhandled MCP exception). Do not accept `assemblyName`/`typeName` on file skeleton tools.
+
+## Hybrid search (AGENTS)
+
+- Shell grep/`Select-String` forbidden for agent workflow.
+- C# symbols → MCP after `load_workspace`.
+- Strings/comments/non-C# → host Grep/SemanticSearch OK.

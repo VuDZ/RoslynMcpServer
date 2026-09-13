@@ -1,0 +1,24 @@
+---
+description: Archive finished specs; strip review junk before starting a spec
+alwaysApply: true
+---
+
+# Docs spec lifecycle
+
+Index: [`docs/README.md`](docs/README.md). Canon vs process: `_archive/` inside the topic; closed series without contract → `docs/archive/`.
+
+## Starting a spec
+
+Before implementing or editing `docs/<topic>/`:
+
+- Look next to the canon for leftover **process**: `review/`, `review-response/`, `arbitration/`, or pre-arb epoch copies with the same names as the live spec.
+- If any sit on the live shelf, **propose** moving them to `<topic>/_archive/` first. Do not treat review as the spec. Do not move silently.
+
+## Closing a series
+
+When every epoch is accepted/shipped **and** UNRESOLVED / U-ARB gates for that series are closed or explicitly skipped, **remind** the user to archive:
+
+- Still cited from ARCHITECTURE / product README as live contract → keep in `docs/`; archive only process.
+- History only (no remaining contract) → `docs/archive/<topic>/` and update the tables in `docs/README.md`.
+
+Do not delete accepted/rejected review. Do not rewrite specs “to match reality” after ship — copy facts into ARCHITECTURE / README and mark the design shipped.

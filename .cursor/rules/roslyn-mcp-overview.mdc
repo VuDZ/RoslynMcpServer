@@ -1,0 +1,51 @@
+---
+description: RoslynMcpServer — architecture, layout, version, DI
+alwaysApply: true
+---
+
+# RoslynMcpServer overview
+
+MCP server (stdio) for C# analysis: Roslyn workspaces + ILSpy decompile. TFM `net10.0`, version in `RoslynMcpServer.csproj` (currently **1.1.0**). Package id `SampleMcpServer`. Self-contained publish for win/osx/linux RIDs.
+
+## Layout
+
+- `Program.cs` — MSBuild bootstrap, optional `ROSLYN_MCP_WORKSPACE` → cwd, Serilog to `logs/mcp-*.log` under `AppContext.BaseDirectory`
+- `Hosting/` — DI (`AddRoslynMcpServerTools`), `McpToolRegistry`
+- `Tools/` — MCP tool classes (Workspace, CodeAnalysis, Skeleton, Build, Run, Test, NuGet, Utility, …)
+- `Services/` — `SolutionManager`, decompile/resolve, DotNet CLI, health
+- `Diagnostics/` — parsers (build, VSTest, NuGet audit), SDK mismatch, MSBuild locator
+- `RoslynMcpServer.Tests/` — xUnit; `InternalsVisibleTo`
+- Docs: `README.md` (EN+RU), `AGENTS.md.sample` (copy to app repos as `AGENTS.md`)
+
+## DI / tools
+
+Tools are singletons registered in `RoslynMcpServiceCollectionExtensions`. Inject `SolutionManager` — do not `new` workspaces/HTTP. Heavy services via constructor.
+
+## Related consumer
+
+Real-world validation often uses **BrqMover** (`c:\Devel\BrqMover`) — app repo with its own `AGENTS.md`; do not hardcode that path into this repo’s docs/rules.
+
+## Version history (agent-relevant)
+
+- **1.1.0** — disk watcher: saved `.cs` (IDE/git) sync into MSBuildWorkspace before symbol search; no keystroke/unsaved buffers; `.csproj` changes skip load cache, not OpenSolutionAsync from the watcher
+- **1.0.35** — Roslyn 5.9.0; dedicated VS 2026 / MSBuild 18 BuildHost (`XMakeElements`) load/symbol failure (not SDK mismatch)
+- **1.0.34** — `load_workspace`: wrapped design-time MSBuild warnings (ASPDEPR007 / IncludeOpenAPIAnalyzers, MSB3270, analyzer metadata refs) are warnings, not hard Failure
+- **1.0.33** — `load_workspace` optional `targetFramework` (inner TFM for CrossTargeting / `TargetFrameworks`); dedicated missing-`Compile` load report
+- **1.0.32** — `run_specific_test`: VSTest Passed/Failed lines accept `[1 s]` / `[1 m 28 s]` durations (not only `ms`)
+- **1.0.31** — `run_dotnet_test` / `run_specific_test`: separate incremental `dotnet build` then `dotnet test --no-build` (parser sees test output only)
+- **1.0.30** — `apply_patch` replaceAll: advance past inserted text (hang when newString contains oldString)
+- **1.0.29** — `load_workspace` optional Configuration/Platform (cached for build/test); empty-TFM ResolvePackageAssets dedicated fail
+- **1.0.28** — `run_dotnet_test`: infer Passed when `.slnx` VSTest omits the `Passed:` line
+- **1.0.27** — `load_workspace`: NU1701 / TFM-compat restore warnings soft (not fatal); `Msbuild failed` wrapper word `failed` is not blocking by itself
+- **1.0.26** — agent diagnostics: client-abort `load_workspace`, empty `get_test_list`, `run_specific_test` path/filter mismatch hints
+- **1.0.25** — `run_dotnet_build`: default `--no-incremental`; effective exit = last build step (restore cannot mask)
+- **1.0.22** — `run_specific_test`: VSTest-safe method filters (`~`, no `()`, no bogus leading `.` on dotted FQNs)
+- **1.0.21** — `load_workspace`: NuGet prune / unused PackageReference advisories soft (warnings), not hard Failure
+- **1.0.20** — optional `configuration` (`-c`) on `run_dotnet_build` / `run_dotnet_test` / `run_specific_test`
+- **1.0.19** — `.slnx` accepted by `load_workspace` / build / test / discovery (prefer solution files for multi-config)
+- **1.0.18** — tool `[Description]` accuracy pass (build probe, decompile resolve, NuGet timeouts, AST params)
+- **1.0.17** — `run_dotnet_test` / `run_specific_test` optional `noBuild` / `noRestore`
+- **1.0.15** — `search_code` `caseSensitive`; no-workspace candidate paths; `rename_project`; branding recipe in AGENTS
+- **1.0.14** — `run_dotnet_run`, `run_nuget_audit`, `get_changed_files`, workspace health on `load_workspace`
+- **1.0.13** — exact assembly resolve (deps.json + NuGet), no fuzzy `Contains`
+- **1.0.10+** — SDK pin from `global.json`, build probe, VSTest parser, `MCP_MSBUILD_SDK_MISMATCH`

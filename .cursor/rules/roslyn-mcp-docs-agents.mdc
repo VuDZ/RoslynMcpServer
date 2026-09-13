@@ -1,0 +1,47 @@
+---
+description: Docs sync AGENTS/README, agent conventions, PowerShell, secrets
+alwaysApply: true
+---
+
+# Docs & agent conventions
+
+## Layers
+
+| Layer | Role |
+|-------|------|
+| MCP tool `[Description]` | Per-tool API: params, caps, anti-patterns |
+| `AGENTS.md.sample` | Session policy only (when / MCP vs host / bans) — copy to app repos as `AGENTS.md` |
+| README «Agent tools by version» + **Reference: MCP Tools** | Human changelog + tool catalog |
+| README Agent Initialization | Short pointer to sample — **not** a full copy of AGENTS |
+
+## Keep in sync (when tools change)
+
+When adding/changing MCP tools, Descriptions, or agent-visible behavior, update **together**:
+
+1. **`AGENTS.md.sample`** — only if session policy changes (init, bans, hybrid search, edit/secrets). Do **not** paste tool params/caps into AGENTS.
+2. **`README.md`** — «Agent tools by version» (semver row) **and** **Reference: MCP Tools** (EN; RU Reference as needed) when the public tool surface changes.
+3. **Version** in `RoslynMcpServer.csproj` when shipping tool changes (see `roslyn-mcp-version-bump.mdc`).
+
+Copy `AGENTS.md.sample` → app repo `AGENTS.md` — **no machine-specific paths**.
+
+## Agent workflow (summary)
+
+- Quick read-only: `load_workspace` → symbol tools / Grep.
+- Edit/build/test/run: full init → MCP `dotnet_*` only (no shell `dotnet build/test`).
+- After MCP rebuild: `get_mcp_server_info` expect current version (1.1.0+).
+- Windows PowerShell 5.x: use `;` between commands, not `&&`.
+- Secrets: never PAT/passwords in chat/commits; env / user-secrets; report configured yes/no only.
+- IDE edits: host edit/write; headless: MCP `apply_patch` / AST tools.
+- Rename: `previewOnly=true` first.
+
+## App repos should document
+
+Executable `.csproj` for `run_dotnet_run`, sample args, `global.json` pin, integration notes (TFS vs Azure) in README or `.cursor/rules` — not in portable AGENTS alone.
+
+## Spec archive
+
+Epoch plans and review packages: see `roslyn-mcp-docs-lifecycle.mdc` (start-of-work junk check; remind to archive when the series is closed).
+
+## Engineering style (this repo)
+
+Base Truth: minimal diffs; no wholesale rewrites. Async I/O; no `.Result`/`.Wait()`. Null-check references. Tests: xUnit (+ Moq when mocking). Prefer Options/`IOptions` for config if adding settings.
