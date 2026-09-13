@@ -34,7 +34,7 @@ MSBuild load. Нельзя объявлять произвольный MSBuild-�
 [SolutionManager](../../Services/SolutionManager.cs),
 [синхронизация документов](../../Services/WorkspaceDocumentDiskSync.cs),
 [фильтр путей](../../Services/WorkspaceDiskPathFilter.cs),
-[история overlay](../analyzer-shadow-copy/README.md).
+[история overlay](../../../archive/analyzer-shadow-copy/README.md).
 
 ## Порядок работ
 

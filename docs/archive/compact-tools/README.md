@@ -39,7 +39,7 @@ Epoch 4 is implemented; see [epoch-4-handoff.md](epoch-4-handoff.md). Shipped as
 
 ## Historical baseline (v1.2.0)
 
-- The catalog shipped by these epochs was **62** tools (`full`) / **18** lite-core. Current counts are maintained in the root [`README.md`](../../README.md) and the live `list_tool_groups` output.
+- The catalog shipped by these epochs was **62** tools (`full`) / **18** lite-core. Current counts are maintained in the root [`README.md`](../../../README.md) and the live `list_tool_groups` output.
 - Historical Epoch 1 baseline was 59 tools / ~68 KB formatted / ~36k description characters.
 - Eight verbose tools account for roughly 31% of description text:
   `load_workspace`, `run_specific_test`, `find_symbol_definition`,

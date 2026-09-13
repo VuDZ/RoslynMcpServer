@@ -31,7 +31,7 @@ this directory is the v1.3.3–v1.3.5 history. Read it when you need to know
 - Upgrade from v1.3.5: consumer edit no longer recopies analyzer files and will not pick up new generator bytes. After rebuilding a generator, restart the MCP process, then `load_workspace` with `shadowCopyInSolutionAnalyzers=true`. `reset_workspace` does not unload CLR assemblies. Cached `false`/omitted does not disable an active overlay.
 - Generations use `v2-main-only/`. A dependency-set layout is a different namespace; timestamp directories are not migrated in place and are not deleted on clear.
 - Path resolution and this anti-lock workaround are independent. Generated-name `find_symbol_definition` is a Roslyn limitation, not missing generation.
-- Timestamp layout and recopy-on-edit below are **v1.3.5 history**. Forward spec and audit: [`docs/analyzer-shadow-copy-improvements/v2/`](../analyzer-shadow-copy-improvements/v2/README.md).
+- Timestamp layout and recopy-on-edit below are **v1.3.5 history**. Forward spec and audit: [`docs/analyzer-shadow-copy-improvements/v2/`](../../analyzer-shadow-copy-improvements/v2/README.md).
 
 ## Fixed architectural decisions (v1.3.5 history)
 - `SolutionManager.FindDocumentAsync` reads through `GetCurrentSolution()`, not `workspace.CurrentSolution` directly, so every MCP tool that resolves a `Document` (not just ones that call `GetCurrentSolution()` explicitly) sees the fix.

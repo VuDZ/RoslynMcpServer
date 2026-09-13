@@ -1,85 +1,139 @@
-# Кеш загрузки больших решений: эпохи реализации
+# Workspace load cache — proposal v2
 
-Каталог — **план**, не описание текущего runtime. Документы рассчитаны на отдельные
-чаты реализации **по порядку**. Состояние репозитория после предыдущей эпохи —
-base truth; следующие эпохи не начинать заранее. После каждой shipped-эпохи
-чат пишет `epoch-N-handoff.md` (как в `docs/compact-tools/`) и синхронизирует
-`docs/ARCHITECTURE.md`. Пока эпохи не shipped, current-state остаётся только в
-`docs/ARCHITECTURE.md`: in-process кеш `MSBuildWorkspace` на время жизни процесса.
+Статус: **post-arbitration specification, proposed, не реализовано**.
+Канон этой темы. Runtime не меняется. Исторический v1, доарбитражный draft,
+review, ответы и арбитраж — в [_archive/](_archive/README.md).
 
-Язык этих файлов — русский. Код, `[Description]`, README продукта и
-`ARCHITECTURE.md` при реализации остаются на том языке, на котором они сейчас.
+## 1. Цели и границы
 
-## Зачем
+Серия сохраняет исходные цели:
 
-Холодный `load_workspace` на 100+ проектов — это N× design-time MSBuild
-(`OpenSolutionAsync`). Visual Studio ускоряет reopen через CPS-кэш в `.vs/`;
-`MSBuildWorkspace` его **не читает**. Публичный Roslyn `IPersistentStorageService`
-удалён. Свой диск-кеш строится на слое **результата evaluation + индекса файлов**,
-не на pickle `Solution`/`Compilation`.
+- **O1** — ускорить первый полезный semantic-запрос в новом PID на большом
+  C#-решении, включая reuse полностью неизменного дерева.
+- **O2** — не использовать git/ast, VS cache, внутреннее Roslyn storage,
+  сериализацию `Solution`, `Compilation`, `SyntaxTree`, source/generated texts.
+- **O3** — проверять ограниченный конус решения; не сканировать монорепу
+  целиком ради удобства и не терять значимые inputs ради бюджета.
+- **O4** — после внешнего sync живая сессия на следующем semantic call видит
+  подтверждённое состояние либо явно сообщает невозможность обновления.
+- **O5** — основной результат поддерживает reuse после изменения source content
+  и membership без обязательного полного DTB для доказанного профиля.
+- **O6** — analyzer overlay остаётся in-memory; cache identity использует inner
+  TFM, outer evaluation не гидратируется как обычный project instance.
+- **O7** — metadata references и partial load остаются самостоятельными
+  направлениями ускорения с собственными contracts и измерениями.
+- **O8** — correctness-first: неизвестность означает отказ от hit; write или
+  refactoring на stale/unknown base запрещены.
 
-Сессионный RAM-кеш (`SolutionManager.LoadCoreAsync`, ключ path + Configuration +
-Platform + TargetFramework) уже есть и **умирает вместе с процессом** (Reload MCP,
-publish, рестарт Cursor/OpenCode, `reset_workspace`). Повторный `load_workspace` в
-том же PID дешёвый. Боль — новый PID.
+Epoch 2 является только **unchanged-restart checkpoint**. Он не закрывает O4/O5,
+не завершает серию и сам по себе не разрешает public activation. Полный основной
+маршрут обязан закрыть O4 и O5. Закрытая модель 4C допустима для O5 только при
+доказанном subset и `unknown -> ordinary load`; общий интерпретатор MSBuild
+по-прежнему запрещён.
 
-Целевая среда: монорепа (в т.ч. VCS **ast**, форк git с другим CLI). Инвалидация
-диск-кеша **не** вызывает git/ast.
+Trace: O1–O8; R-05, R-06, E0-05, E2-04 — ACCEPT WITH MODIFICATION;
+E4-01 — REJECT (closed-subset направление сохранено).
 
-## Статус эпох
+## 2. Текущее основание
 
-| Эпоха | Файл | Статус |
-|-------|------|--------|
-| 1 | [epoch-1-msbuild-fast-open.md](epoch-1-msbuild-fast-open.md) | planned |
-| 2 | [epoch-2-lazy-project-load.md](epoch-2-lazy-project-load.md) | planned |
-| 3 | [epoch-3-evaluation-snapshot.md](epoch-3-evaluation-snapshot.md) | planned — центр фичи после рестарта процесса |
-| 4 | [epoch-4-symbol-index.md](epoch-4-symbol-index.md) | planned — опционально, после 3 |
+Base truth закреплён на commit
+`9867318ddb5294ce144bf024b9a61a1a2e3814c3`, source version **1.3.21**.
+Версия фактически запущенного MCP записывается отдельно в handoff и не выводится
+из source version.
 
-## Фиксированные решения (не пересматривать без новой эпохи)
+Обязательные совместимые ограничения текущего lifecycle:
 
-- Не читать и не писать VS `.vs` / `.dtbcache`.
-- Не подключать внутренний Roslyn SQLite / `IChecksummedPersistentStorageService`.
-- Не сериализовать `Solution`, `Compilation`, SyntaxTree, тексты исходников.
-- Инвалидация диск-кеша: индекс `(path, LastWriteTimeUtc, Length, content hash)` +
-  Merkle каталогов. VCS (`git.exe`, `ast`, `GitChangedFilesHelper`) в этот путь
-  не входит. `get_changed_files` не менять ради кеша.
-- Файлы графа (`.sln`/`.slnx`, `.csproj`, walk-up `Directory.Build.*` /
-  `Directory.Packages.props` / `nuget.config` / `global.json`, `project.assets.json`)
-  на холодном open **всегда** перехешировать. Для `.cs`/`.razor`/`.cshtml` зонд
-  size+mtime, затем hash при miss.
-- Список документов из snapshot брать только если Merkle исходников проекта совпал.
-- Analyzer shadow-copy overlay (`GetCurrentSolution`) остаётся in-memory **после**
-  гидрации; shadow-пути в диск-кеш не писать.
-- CrossTargeting: ключ кеша включает inner `TargetFramework`. Outer evaluation не кешировать.
-- Ключ кеша = абсолютный путь загруженного `.sln`/`.csproj` + Configuration +
-  Platform + TFM. Не один файл на корень монорепы.
-- Обход только конуса решения. Не сканировать весь `…/monorepo`.
-- Prune каталогов через общий [`WorkspaceDiskPathFilter`](../../Services/WorkspaceDiskPathFilter.cs)
-  (рекурсию обрывать). Не индексировать `node_modules` и аналог. Allowlist расширений
-  для Merkle исходников; не вычёркивать целиком `wwwroot`/`ClientApp`/`dist` по имени.
-- Не пропускать поддерево по `Directory.LastWriteTime` (Windows).
-- Сомнение → cache miss и DTB. Явный force-reload. Индекс не коммитить.
-- Правило: лучше медленный DTB, чем тихий рассинхрон символов.
-- Хеши актуальны и **во время работы**: `git pull` при живом MCP не должен оставлять индекс/RAM на старом дереве. Overflow watcher → полный пересчёт конуса (не только known documents).
+- **A-LOAD** — load/hydrate, prepare, admission gate и atomic manager
+  publication выполняются под одним acquisition; internal under-lock методы
+  повторно semaphore не захватывают; reader видит только published snapshot.
+- **A-STICKY** — overlay opt-in session-sticky: false/omitted на same-key RAM
+  session не отключают активный режим; reset, новый key и новый PID создают
+  новую сессию; overlay автоматически не включается.
+- **A-WRITE** — write preflight проверяет опубликованную base generation,
+  exact inverse удаляет shadow refs, partial persistence сообщается; rollback
+  нескольких файлов и MVCC не обещаются.
+- **A-ADMISSION** — `Banned`/`Unavailable` и неполный provenance не обходятся
+  raw publication.
+- **A-PROVENANCE** — текущий analyzer evidence привязан к load session и
+  `ProjectId`; перенос между PID не предполагается.
+- **A-LOADER** — analyzer loader process-lifetime, main-only; same-identity
+  update может требовать restart, reset не выгружает CLR.
 
-## Сессия vs диск
+Trace: R-03 — ACCEPT; E1-06 — ACCEPT; R-04, C-05, E1-04 —
+ACCEPT WITH MODIFICATION.
 
-| Слой | Живёт | Что даёт |
-|------|-------|----------|
-| RAM `MSBuildWorkspace` | PID процесса | повторный `load_workspace` без `OpenSolutionAsync` |
-| Watcher + `WithDocumentText` | тот же PID | saved `.cs` без reopen; Epoch 3 ещё и хеши. Overflow ≠ «только known docs» |
-| Epoch 3 snapshot + индекс | между процессами | пропуск DTB после Reload MCP, если дерево не изменилось |
+## 3. Целевая нагрузка и профиль
 
-## Правила для чата реализации
+До production go владелец фиксирует target solution, размер, SDK, обязательные
+TFM/project-instance contexts, generators, imports/tasks, overlay/metadata modes
+и смесь unchanged/edit/build/restart/live calls. Если нагрузка multi-target,
+exact inner-instance mapping — gate. Ограниченный одно-TFM результат нельзя
+обобщать на другие большие решения.
 
-1. Прочитать этот README и **только назначенную** эпоху.
-2. Не реализовывать следующие эпохи.
-3. Base truth — текущий код (`SolutionManager`, `WorkspaceTools`, фильтр путей).
-4. После кода: тесты, version bump по правилу репозитория, `ARCHITECTURE.md`,
-   `[Description]` / README «Agent tools by version» если меняется поверхность tools.
-5. Остановиться и написать handoff: что сделано, что осталось следующей эпохе.
+Численный budget, median/p95, miss overhead, hit-rate и resource limits
+утверждаются до получения результатов. Пока это не сделано, действует
+[U-ARB-03](UNRESOLVED-v2.md#u-arb-03--репрезентативная-нагрузка-и-численный-budget);
+fixture разрешает experiment, но не public activation.
 
-## Указатели в shipped-доках
+Trace: R-06, E0-02, E0-04, V-03, V-04 — ACCEPT WITH MODIFICATION.
 
-- `docs/ARCHITECTURE.md` — current-state; этот каталог — план.
-- Корневой `README.md` — одна строка на этот каталог, не дублировать эпохи.
+## 4. Этапы и обязательные результаты
+
+| Эпоха | Обязательный результат | Не означает |
+|---|---|---|
+| [0 — feasibility](epoch-0-feasibility.md) | Выбранный production host, capability/write contract, доказанный admission profile, oracle и budget plan | Готовность production hit |
+| [1 — lifecycle](epoch-1-workspace-lifecycle.md) | Общий production lifecycle обычной загрузки и hydrate, безопасные writes, memberships и transition table | Наличие disk generation |
+| [2 — unchanged checkpoint](epoch-2-conservative-disk-cache.md) | Безопасный cross-process hit неизменного supported tree и корректный store | Закрытие O4/O5 или activation |
+| [3 — live consistency](epoch-3-live-consistency.md) | Закрытие O4 после решения freshness gate; RAM/index/cache validity разделены | Обязательную запись generation после каждого edit |
+| [4 — measured directions](epoch-4-measured-optimizations.md) | Независимые metadata/partial/validation/O5/index изменения только после измерений | Разрешение ослабить admission |
+
+До начала production реализации должны быть закрыты применимые feasibility
+blockers U-ARB-04, U-ARB-05 и U-ARB-06. U-ARB-01 и U-ARB-02 остаются явными
+decision gates в Epoch 2/3.
+
+Trace: R-01, R-02, R-04, R-05, E0-01, E2-01, E2-05, E3-02, E3-04 —
+арбитражные решения и unresolved gates.
+
+## 5. Полномочия решений
+
+Каждый handoff выдаёт пять независимых verdict:
+
+1. `experiment allowed`;
+2. `implementation allowed`;
+3. `public activation allowed`;
+4. `next epoch allowed`;
+5. `series complete`.
+
+`go`, выключенный default, zero-DTB, зелёный store или fixture-only не заменяют
+эти решения. `series complete=true` требует закрытия O1–O8 в согласованном
+scope, включая O4/O5. Отклонение не отменяет MUST, O4/O5 или A-WRITE.
+
+Trace: E0-04, E2-06, H-01 — ACCEPT WITH MODIFICATION; E2-02 — REJECT
+(конъюнктивная приёмка сохранена).
+
+## 6. Общие запреты
+
+- Не читать и не писать `.vs`/`.dtbcache`.
+- Не использовать внутренние Roslyn storage API и произвольную десериализацию.
+- Не сериализовать source/generated text или shadow temp paths.
+- Не использовать VCS для admission/validation.
+- Не выполнять truncated scan как hit.
+- Не считать checksum известных файлов доказательством отсутствия неизвестных.
+- Не загружать analyzer DLL только по cache DTO.
+- Не менять product README, AGENTS, ARCHITECTURE или версию до фактического
+  выпуска поведения; при выпуске обновить их по правилам репозитория.
+
+## 7. Комплект спецификации
+
+- [Контракт](cache-contract.md)
+- [Epoch 0](epoch-0-feasibility.md)
+- [Epoch 1](epoch-1-workspace-lifecycle.md)
+- [Epoch 2](epoch-2-conservative-disk-cache.md)
+- [Epoch 3](epoch-3-live-consistency.md)
+- [Epoch 4](epoch-4-measured-optimizations.md)
+- [Verification](verification.md)
+- [Handoff template](handoff-template.md)
+- [Изменения v2](CHANGELOG-v2.md)
+- [Traceability](TRACEABILITY-v2.md)
+- [Unresolved](UNRESOLVED-v2.md)
+- [Post-arbitration issues](POST-ARBITRATION-ISSUES.md)

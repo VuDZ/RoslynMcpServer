@@ -64,7 +64,7 @@ Do **not** treat empty cells as “supported”. Only observed results are fille
 | Client | Instructions to model | Initial tool count | Context cost | `tools/list_changed` refresh | New typed tool callable | Startup-group fallback | Notes |
 |---|---|---|---|---|---|---|---|
 | Cursor (this release chat) | not observed as Qwen prompt injection | 59 on stale **v1.1.1** binary before publish | not exposed | **not claimed** | **not claimed** on the stale binary | not exercised live | This session used the published 1.1.1 process, not Qwen. Reload MCP after publish, then re-check `get_mcp_server_info`. |
-| OpenCode + local model | not observed | not observed | not observed | **not claimed** | **not claimed** | config samples only | [`opencode.json.sample`](../../opencode.json.sample) has full / lite / lite+groups. |
+| OpenCode + local model | not observed | not observed | not observed | **not claimed** | **not claimed** | config samples only | [`opencode.json.sample`](../../../opencode.json.sample) has full / lite / lite+groups. |
 | MCP SDK test client | n/a | lite 18 | n/a | **yes** (in-process) | **yes** (`list_directory_tree` after `files`) | startup-group no-op covered in unit tests | `McpToolGroupEnablementIntegrationTests` |
 
 ### Observed Cursor smoke (pre-publish, this chat)

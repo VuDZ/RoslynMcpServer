@@ -1,6 +1,6 @@
 # Неразрешённые вопросы v2
 
-Вопросы перенесены из авторитетного [arbitration/unresolved.md](../arbitration/unresolved.md).
+Вопросы перенесены из авторитетного [arbitration/unresolved.md](../_archive/arbitration/unresolved.md).
 U-ARB-01/02/03 — политика выбрана; matcher E5-S2 [принят](epoch-5-s2-acceptance.md)
 в v1.3.10; приёмка E5-S4 [принята](epoch-5-s4-acceptance.md) в v1.3.12.
 U-ARB-05 [принят](u-arb-05-acceptance.md) как session-sticky в v1.3.13.

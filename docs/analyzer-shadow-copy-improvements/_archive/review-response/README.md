@@ -24,7 +24,7 @@
 - [Сводка решений, изменений и арбитража](SUMMARY.md).
 
 Исходный review: [README](../review/README.md). Исходное предложение:
-[README](../README.md). В этом проходе нет реализации, новых baseline-результатов
+[README](../proposal-v1/README.md). В этом проходе нет реализации, новых baseline-результатов
 или пересмотра окончательной архитектуры. Выводы по коду отделены от гипотез
 о фактической загрузке DLL. Никакие эксперименты с генераторами не запускались.
 
@@ -39,37 +39,37 @@
   эксперимент перед большой переработкой loader и возможность документировать
   ограничения. Пользователь не устанавливал обязательную поддержку hot reload,
   ALC, MVCC, shared cache или автоматической очистки.
-- **H1** — [историческая эпоха 1](../../analyzer-shadow-copy/epoch-1-diagnosis-and-mvp.md),
+- **H1** — [историческая эпоха 1](../../../archive/analyzer-shadow-copy/epoch-1-diagnosis-and-mvp.md),
   «Baseline / problem», «Decisions»: неправильный analyzer path и lock корректного
   output — две исходные задачи; disposable external repro, diagnostic-only flag.
-- **H2** — [историческая эпоха 2](../../analyzer-shadow-copy/epoch-2-first-fix-attempt-and-disk-corruption.md),
+- **H2** — [историческая эпоха 2](../../../archive/analyzer-shadow-copy/epoch-2-first-fix-attempt-and-disk-corruption.md),
   «The defect», «Compatibility / migration impact»: нельзя сохранять shadow
   references в `.csproj`; cleanup исторической порчи не автоматизирован.
-- **H3** — [историческая эпоха 3](../../analyzer-shadow-copy/epoch-3-inmemory-overlay-fix.md),
+- **H3** — [историческая эпоха 3](../../../archive/analyzer-shadow-copy/epoch-3-inmemory-overlay-fix.md),
   «Decisions» 4–7, «Scope and non-goals», «Verification»: overlay-aware reads,
   обратное преобразование перед apply, отсутствие нового public SG search.
-- **A** — [ARCHITECTURE](../../ARCHITECTURE.md), «Runtime composition», «Workspace lifecycle»:
+- **A** — [ARCHITECTURE](../../../ARCHITECTURE.md), «Runtime composition», «Workspace lifecycle»:
   singleton `SolutionManager`, RAM load cache, сохранённые тексты, watcher,
   opt-in, temp growth. Ошибочная фраза recompute-on-read не признаётся фактом.
-- **C** — [SolutionManager.cs](../../../Services/SolutionManager.cs):
+- **C** — [SolutionManager.cs](../../../../Services/SolutionManager.cs):
   `GetCurrentSolution` (257), `ShadowCopyInSolutionAnalyzerReferencesAsync` (282),
   `ApplyShadowCopyOverlayIfEnabled` (325), revert guard (349),
   `ApplySolutionChangesToDiskAsync` (466), `ClearWorkspaceAsync` (578),
   `LoadCoreAsync` (646), `FlushDirtyDocumentsUnderLockAsync` (756).
-- **F** — [AnalyzerReferenceShadowCopier.cs](../../../Services/AnalyzerReferenceShadowCopier.cs):
+- **F** — [AnalyzerReferenceShadowCopier.cs](../../../../Services/AnalyzerReferenceShadowCopier.cs):
   `GetDefaultShadowRootDirectory`, matcher в `ShadowCopyInSolutionAnalyzerReferences`,
   `CopyToShadowDirectory`, `RewriteResult`.
-- **L** — [InProcessAnalyzerAssemblyLoader.cs](../../../Services/InProcessAnalyzerAssemblyLoader.cs):
+- **L** — [InProcessAnalyzerAssemblyLoader.cs](../../../../Services/InProcessAnalyzerAssemblyLoader.cs):
   `LoadFromPath`, `LoadCore`, `AddDependencyLocation`, глобальный resolver.
-- **W** — [WorkspaceTools.cs](../../../Tools/WorkspaceTools.cs), `LoadWorkspace`:
+- **W** — [WorkspaceTools.cs](../../../../Tools/WorkspaceTools.cs), `LoadWorkspace`:
   `LoadAsync` и включение overlay — отдельные вызовы, `false` не выключает
   ранее включённый overlay на RAM hit.
-- **T** — [SolutionManagerAnalyzerOverlayTests.cs](../../../RoslynMcpServer.Tests/SolutionManagerAnalyzerOverlayTests.cs):
+- **T** — [SolutionManagerAnalyzerOverlayTests.cs](../../../../RoslynMcpServer.Tests/SolutionManagerAnalyzerOverlayTests.cs):
   только `AdhocWorkspace` и reflection guard; комментарий фиксирует отсутствие
-  MSBuild bootstrap в этом наборе. [csproj](../../../RoslynMcpServer.csproj)
+  MSBuild bootstrap в этом наборе. [csproj](../../../../RoslynMcpServer.csproj)
   уже предоставляет `InternalsVisibleTo` тестовому проекту.
 
-Другие планы, включая [workspace-load-cache v2](../../workspace-load-cache_v2/README.md),
+Другие планы, включая [workspace-load-cache](../../../workspace-load-cache/README.md),
 имеют статус proposed и не являются действующим ADR, разрешающим изменить lifecycle
 этой серии. Действующих `AGENTS.md` в workspace/проверенных родительских каталогах
 не найдено; `AGENTS.md.sample` не приравнивается к ним.
