@@ -19,12 +19,20 @@ public static class VstestOutputParser
         @"^\[xUnit\.net[^\]]*\]\s+(?<name>.+?)\s+\[FAIL\]\s*$",
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
+    /// <summary>
+    /// Console logger: display name may be FQN, <c>Class.Method</c>, method-only (<c>methodDisplay=method</c>),
+    /// or Theory <c>Name(args)</c>. Duration is the line terminator so MSBuild <c>Passed:</c> counters do not match.
+    /// </summary>
     private static readonly Regex RxVstestPassedLine = new(
-        $@"^\s+Passed\s+(?<name>[A-Za-z_][\w]*(?:\.[A-Za-z_][\w]+)+)\s+{VstestDurationBracket}\s*$",
+        $@"^\s*Passed\s+(?<name>.+?)(?:\s*\(.*\))?\s+{VstestDurationBracket}\s*$",
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
-    private static readonly Regex RxVstestFailedLine = new(
-        $@"^\s+Failed\s+(?<name>[A-Za-z_][\w]*(?:\.[A-Za-z_][\w]+)+)(?:\s*\(.*\))?(?:\s+{VstestDurationBracket})?\s*$",
+    private static readonly Regex RxVstestFailedLineWithDuration = new(
+        $@"^\s*Failed\s+(?<name>.+?)(?:\s*\(.*\))?\s+{VstestDurationBracket}\s*$",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+    private static readonly Regex RxVstestFailedLineDotted = new(
+        @"^\s*Failed\s+(?<name>[A-Za-z_][\w]*(?:\.[A-Za-z_][\w]+)+)(?:\s*\(.*\))?\s*$",
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     private static readonly string[] ErrorBodyTerminators =
@@ -135,7 +143,7 @@ public static class VstestOutputParser
 
         foreach (var name in passedNames)
         {
-            if (name.Contains(needle, StringComparison.OrdinalIgnoreCase))
+            if (TestNameMatchesFilterNeedle(name, needle))
             {
                 return true;
             }
@@ -143,7 +151,7 @@ public static class VstestOutputParser
 
         foreach (var name in CollectFailedTestNames(combinedOutput))
         {
-            if (name.Contains(needle, StringComparison.OrdinalIgnoreCase))
+            if (TestNameMatchesFilterNeedle(name, needle))
             {
                 return true;
             }
@@ -151,17 +159,25 @@ public static class VstestOutputParser
 
         foreach (var line in combinedOutput.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries))
         {
-            if (!line.Contains(needle, StringComparison.OrdinalIgnoreCase))
+            var trimmed = line.TrimEnd();
+            if (!LooksLikeTestOutcomeLine(trimmed))
             {
                 continue;
             }
 
-            var trimmed = line.TrimEnd();
-            if (RxVstestPassedLine.IsMatch(trimmed)
-                || TryGetFailedTestName(trimmed, out _)
-                || trimmed.Contains("[FAIL]", StringComparison.OrdinalIgnoreCase)
-                || (trimmed.TrimStart().StartsWith("Failed ", StringComparison.OrdinalIgnoreCase)
-                    && !IsMsBuildNoiseLine(trimmed)))
+            if (TryGetPassedTestName(trimmed, out var passed)
+                && TestNameMatchesFilterNeedle(passed, needle))
+            {
+                return true;
+            }
+
+            if (TryGetFailedTestName(trimmed, out var failed)
+                && TestNameMatchesFilterNeedle(failed, needle))
+            {
+                return true;
+            }
+
+            if (LineContainsFilterNeedle(trimmed, needle))
             {
                 return true;
             }
@@ -584,10 +600,9 @@ public static class VstestOutputParser
         var names = new List<string>();
         foreach (var line in text.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries))
         {
-            var m = RxVstestPassedLine.Match(line.TrimEnd());
-            if (m.Success)
+            if (TryGetPassedTestName(line.TrimEnd(), out var name))
             {
-                names.Add(m.Groups["name"].Value.Trim());
+                names.Add(name);
             }
         }
 
@@ -636,37 +651,135 @@ public static class VstestOutputParser
         return result;
     }
 
+    private static bool TryGetPassedTestName(string trimmed, out string name)
+    {
+        name = string.Empty;
+        var m = RxVstestPassedLine.Match(trimmed);
+        if (!m.Success)
+        {
+            return false;
+        }
+
+        name = StripTrailingTheoryArguments(m.Groups["name"].Value.Trim());
+        return !string.IsNullOrWhiteSpace(name);
+    }
+
     private static bool TryGetFailedTestName(string trimmed, out string name)
     {
         name = string.Empty;
+
         var xm = RxXunitFailLine.Match(trimmed);
         if (xm.Success)
         {
-            name = xm.Groups["name"].Value.Trim();
+            name = StripTrailingTheoryArguments(xm.Groups["name"].Value.Trim());
             return IsPlausibleTestName(name);
         }
 
         var nm = RxNunitFailedLine.Match(trimmed);
         if (nm.Success)
         {
-            name = nm.Groups["name"].Value.Trim();
+            name = StripTrailingTheoryArguments(nm.Groups["name"].Value.Trim());
             return IsPlausibleTestName(name);
         }
 
-        var vm = RxVstestFailedLine.Match(trimmed);
-        if (vm.Success)
+        var withDuration = RxVstestFailedLineWithDuration.Match(trimmed);
+        if (withDuration.Success)
         {
-            name = vm.Groups["name"].Value.Trim();
+            if (IsRestoreOrPruneFailureLine(trimmed))
+            {
+                return false;
+            }
+
+            name = StripTrailingTheoryArguments(withDuration.Groups["name"].Value.Trim());
+            return !string.IsNullOrWhiteSpace(name)
+                   && !name.StartsWith("to ", StringComparison.OrdinalIgnoreCase);
+        }
+
+        var dotted = RxVstestFailedLineDotted.Match(trimmed);
+        if (dotted.Success)
+        {
+            name = StripTrailingTheoryArguments(dotted.Groups["name"].Value.Trim());
             return IsPlausibleTestName(name);
         }
 
         return false;
     }
 
+    /// <summary>
+    /// xUnit <c>methodDisplay=method</c> prints only the method; Roslyn filters use <c>Ns.Class.Method</c>.
+    /// Match FQN containment, or a display suffix bounded by <c>.</c> so <c>OtherMethod</c> does not match <c>Method</c>.
+    /// </summary>
+    internal static bool TestNameMatchesFilterNeedle(string name, string needle)
+    {
+        if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(needle))
+        {
+            return false;
+        }
+
+        var display = StripTrailingTheoryArguments(name.Trim());
+        if (display.Contains(needle, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        var needleCore = needle.Trim().TrimStart('.');
+        if (needleCore.Length == 0)
+        {
+            return false;
+        }
+
+        if (display.Contains(needleCore, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return needleCore.EndsWith(display, StringComparison.OrdinalIgnoreCase)
+               && (needleCore.Length == display.Length
+                   || needleCore[needleCore.Length - display.Length - 1] == '.');
+    }
+
+    private static bool LineContainsFilterNeedle(string trimmed, string needle)
+    {
+        if (trimmed.Contains(needle, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        var needleCore = needle.Trim().TrimStart('.');
+        return needleCore.Length > 0
+               && trimmed.Contains(needleCore, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool LooksLikeTestOutcomeLine(string trimmed)
+    {
+        if (RxVstestPassedLine.IsMatch(trimmed)
+            || TryGetFailedTestName(trimmed, out _)
+            || trimmed.Contains("[FAIL]", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        var t = trimmed.TrimStart();
+        return t.StartsWith("Failed ", StringComparison.OrdinalIgnoreCase)
+               && !IsMsBuildNoiseLine(trimmed);
+    }
+
+    private static string StripTrailingTheoryArguments(string name)
+    {
+        var open = name.IndexOf('(');
+        return open > 0 ? name[..open].TrimEnd() : name;
+    }
+
     private static bool IsMsBuildNoiseLine(string line) =>
+        IsRestoreOrPruneFailureLine(line)
+        || line.Contains("MSBuild", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Restore/prune console lines, not a test whose display name happens to contain <c>MSBuild</c>.
+    /// </summary>
+    private static bool IsRestoreOrPruneFailureLine(string line) =>
         line.Contains("prune package", StringComparison.OrdinalIgnoreCase)
-        || line.Contains("to load", StringComparison.OrdinalIgnoreCase)
-        || line.Contains("MSBuild", StringComparison.OrdinalIgnoreCase)
+        || line.Contains("Failed to load", StringComparison.OrdinalIgnoreCase)
         || line.StartsWith("Done executing", StringComparison.OrdinalIgnoreCase);
 
     private static bool IsPlausibleTestName(string name) =>

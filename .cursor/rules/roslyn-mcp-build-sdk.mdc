@@ -25,6 +25,7 @@ Default `noIncremental=true` → `--no-incremental` on every build step (agent v
 ## Tests (`VstestOutputParser` / `TestTools`)
 
 Success often has `Test Run Successful` / `Total tests` + `Passed` **without** `Failed:` line — treat missing Failed/Skipped as 0. `.slnx` fail output often has `Total tests` + `Failed:` **without** `Passed:` — infer Passed = Total − Failed − Skipped. Avoid false `partial` status.
+`run_specific_test` filter match: xUnit may print method-only names or Theory `FQN(args)` while the needle is `Ns.Class.Method`. Do not require a dotted FQN on the Passed line or `line.Contains(fullNeedle)`; match a display suffix with a `.` boundary. False **no matching tests** after `Passed: 1` sends agents into workspace/filter retries.
 `run_dotnet_test` / `run_specific_test`: `timeoutSeconds` (default 300, shared by pre-test build + test); optional `noBuild` / `noRestore`; optional `configuration` (`-c`) and `platform` (`-p:Platform=`), same as build (inherit from `load_workspace` when omitted). When `noBuild=false`, run incremental `dotnet build` then `dotnet test --no-build --no-restore` so `VstestOutputParser` never sees MSBuild warning dumps. Do not use `DotNetBuildProbe` for that compile. `noBuild=true` skips the extra build.
 
 ## Other

@@ -170,6 +170,11 @@ MCP `tools/list` stays JSON + JSON Schema. Markdown is for JIT help and diagnost
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.3.23
+
+- **`run_specific_test` filter vs xUnit display names** — a passing filtered run is no longer reported as **no matching tests** when VSTest prints a method-only name (`methodDisplay=method`) or Theory `FQN(args)` while the filter needle is `Ns.Class.Method`. Parser matches a display-name suffix (dot-bounded) and still rejects a different method that only shares a tail (`OtherMethod` ≠ `Method`). Slow durations such as `[3 m 8 s]` stay valid.
+- **Catalog size** — unchanged: full 63 tools / 44,503 bytes; lite 19 / 16,917.
+
 ### v1.3.22
 
 - **`run_dotnet_test` / `run_specific_test` failure text** — VSTest `Error Message:` stays multiline (head+tail of the assertion, not a 512-character one-liner). The MSBuild footer `Build FAILED` / `0 Error(s)` that follows a failed test is not treated as a compile failure, not a silent/unparsed failure, and is stripped from raw-tail fallbacks so agents see the assertion (FluentAssertions diffs included) instead of empty compiler counters. Theory `Failed FQN(args)` lines match the filter. MCP log highlights skip those outcome lines.
@@ -812,7 +817,7 @@ Parses C# syntax, inserts with DocumentEditor, formats the file. Prefer over `ap
 - `platform: string? = null` — optional `-p:Platform=`. Omit to inherit `load_workspace`.
 - `binariesPath: string? = null` — optional bin directory containing `{AssemblyName}.dll`. Requires a loaded `.sln`/`.slnx` and a `.csproj` `workspacePath`. When `noBuild=false`, builds that project via the loaded solution `-t` first, then `dotnet test` on the DLL. When `noBuild=true`, the DLL must already exist in that directory.
 
-**Behavior:** When `noBuild=false` and `binariesPath` is omitted, runs incremental `dotnet build` first (same `-c` / platform / session `buildArgs` from `load_workspace`; not the `run_dotnet_build` probe), then `dotnet test --no-build --no-restore`. With `binariesPath`, the compile is `dotnet build <sln> -t` and the test target is the DLL. Parser sees only the test process. `--logger "console;verbosity=normal"`. Summary from `Passed!`, `Test Run Successful` + `Total tests`/`Passed:` (Failed defaults to 0), or `.slnx` fail-only `Total tests` + `Failed:` (Passed inferred as Total − Failed − Skipped), or per-test `  Passed FQN [ms]` / `[1 s]` / `[1 m 28 s]`. Failed-test `Error Message:` is reported multiline (head+tail); Standard Output is not mixed into the assertion; the VSTest `Build FAILED` / `0 Error(s)` footer is ignored as a compile result. MSBuild/prune noise ignored; duplicate NU audit lines deduped. Exit 0 without any summary marker → **`Status: partial`** + last 2KB (footer stripped). `run_specific_test` checks filter matched a test FQN (including Theory `Failed FQN(args)` lines). `timeoutSeconds` is the combined budget for build+test. A DLL test also needs `.runtimeconfig.json` / `.deps.json` beside the assembly.
+**Behavior:** When `noBuild=false` and `binariesPath` is omitted, runs incremental `dotnet build` first (same `-c` / platform / session `buildArgs` from `load_workspace`; not the `run_dotnet_build` probe), then `dotnet test --no-build --no-restore`. With `binariesPath`, the compile is `dotnet build <sln> -t` and the test target is the DLL. Parser sees only the test process. `--logger "console;verbosity=normal"`. Summary from `Passed!`, `Test Run Successful` + `Total tests`/`Passed:` (Failed defaults to 0), or `.slnx` fail-only `Total tests` + `Failed:` (Passed inferred as Total − Failed − Skipped), or per-test `  Passed FQN [ms]` / `[1 s]` / `[1 m 28 s]`. Failed-test `Error Message:` is reported multiline (head+tail); Standard Output is not mixed into the assertion; the VSTest `Build FAILED` / `0 Error(s)` footer is ignored as a compile result. MSBuild/prune noise ignored; duplicate NU audit lines deduped. Exit 0 without any summary marker → **`Status: partial`** + last 2KB (footer stripped). `run_specific_test` checks the filter matched a test (FQN, method-only xUnit display names, Theory `FQN(args)` Passed/Failed lines). `timeoutSeconds` is the combined budget for build+test. A DLL test also needs `.runtimeconfig.json` / `.deps.json` beside the assembly.
 
 </details>
 
@@ -830,7 +835,7 @@ Parses C# syntax, inserts with DocumentEditor, formats the file. Prefer over `ap
 - `platform: string? = null` — optional `-p:Platform=`. Omit to inherit `load_workspace`.
 - `binariesPath: string? = null` — same as `run_dotnet_test`: bin directory with `{AssemblyName}.dll`; loaded `.sln`/`.slnx` plus `.csproj` `workspacePath`. `noBuild=false` builds via the solution `-t` first.
 
-At least one of `className` or `methodName` is required. The tool builds a VSTest-safe `--filter` internally (`FullyQualifiedName~…`, no method `()`, no extra leading `.` on dotted names). After `load_workspace`, Roslyn resolves the type/method FQN when possible.
+At least one of `className` or `methodName` is required. The tool builds a VSTest-safe `--filter` internally (`FullyQualifiedName~…`, no method `()`, no extra leading `.` on dotted names). After `load_workspace`, Roslyn resolves the type/method FQN when possible. A pass is recognized when VSTest prints only the method name or `Method(args)` — that is not **no matching tests**.
 
 **Model guidance:** use this for TDD red/green loops — do not run the full suite. For a raw VSTest `--filter` (`TestCategory=Smoke`, `FullyQualifiedName~…`) use `run_test_by_filter`. Prefer `className` + short `methodName`. After build, prefer `noBuild=true` for faster filtered re-runs. Same pre-test build split as `run_dotnet_test` when `noBuild=false`. Projects that must be built inside their `.sln` should pass `binariesPath` and a `.csproj` `workspacePath`.
 
@@ -1071,7 +1076,7 @@ Verify id/version with `search_nuget_registry` first. Clears workspace cache —
 
 **Parameters:** *(none)*
 
-Use after `dotnet publish` to verify the MCP host picked up the new binary (expect **v1.3.22** and **63** tools on `full`, or **19** on `lite`).
+Use after `dotnet publish` to verify the MCP host picked up the new binary (expect **v1.3.23** and **63** tools on `full`, or **19** on `lite`).
 
 </details>
 
@@ -1283,7 +1288,7 @@ cd D:\Devel\YourApp
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.3.22). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.3.23). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 
@@ -1665,7 +1670,7 @@ cd D:\Devel\YourApp
 - `platform: string? = null` — опционально `-p:Platform=`.
 - `binariesPath: string? = null` — как у `run_dotnet_test`: каталог bin с `{AssemblyName}.dll`; loaded `.sln`/`.slnx` и `workspacePath` на `.csproj`. `noBuild=false` собирает через solution `-t`.
 
-Нужен хотя бы один из `className` / `methodName`. Tool строит VSTest-safe `--filter` (`FullyQualifiedName~…`, без `()` у метода, без лишней ведущей `.` на dotted FQN). После `load_workspace` Roslyn по возможности резолвит FQN типа/метода.
+Нужен хотя бы один из `className` / `methodName`. Tool строит VSTest-safe `--filter` (`FullyQualifiedName~…`, без `()` у метода, без лишней ведущей `.` на dotted FQN). После `load_workspace` Roslyn по возможности резолвит FQN типа/метода. Строка `Passed` только с именем метода или `Method(args)` — это успех, не **no matching tests**.
 
 **Для модели:** TDD/фикс бага — этот tool, не полный suite. Сырой VSTest `--filter` (`TestCategory=Smoke`, `FullyQualifiedName~…`) — `run_test_by_filter`. Предпочитайте `className` + короткое `methodName`. После билда предпочитайте `noBuild=true`. При `noBuild=false` — тот же split build/test, что у `run_dotnet_test`. Проекты, которые собираются только внутри своего `.sln`, передавайте с `binariesPath` и `.csproj`.
 
@@ -1904,7 +1909,7 @@ cd D:\Devel\YourApp
 
 **Параметры:** *(нет)*
 
-После `dotnet publish` — проверка, что MCP подхватил новый бинарник (ожидай **v1.3.22** и **63** tools в `full`, или **19** в `lite`).
+После `dotnet publish` — проверка, что MCP подхватил новый бинарник (ожидай **v1.3.23** и **63** tools в `full`, или **19** в `lite`).
 
 </details>
 

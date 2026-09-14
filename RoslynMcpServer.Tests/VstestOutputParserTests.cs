@@ -62,6 +62,101 @@ public sealed class VstestOutputParserTests
     }
 
     [Fact]
+    public void FilterMatchedAnyTest_method_only_display_matches_roslyn_fqn_needle()
+    {
+        const string method =
+            "AvangateNewOrderNotification_MixedB2cB2bOrder_PurchasingContextSkippedLicenseSubscriptionsSaved";
+        var output = $"""
+            Test Run Successful.
+            Total tests: 1
+                 Passed: 1
+              Passed {method} [3 m 8 s]
+            """;
+        var result = VstestOutputParser.Parse(output, 0);
+        Assert.False(result.IsPartialSuccess);
+        Assert.Single(result.PassedTestNames);
+        Assert.Equal(method, result.PassedTestNames[0]);
+
+        const string filter =
+            "FullyQualifiedName~Kaspersky.Ucp.AvangateNewOrderNotificationTests."
+            + "AvangateNewOrderNotification_MixedB2cB2bOrder_PurchasingContextSkippedLicenseSubscriptionsSaved";
+        Assert.True(VstestOutputParser.FilterMatchedAnyTest(filter, output, result.PassedTestNames));
+
+        var md = VstestOutputParser.BuildMarkdownReport(
+            result,
+            0,
+            output,
+            filter,
+            "Roslyn-resolved FQN `Kaspersky.Ucp.AvangateNewOrderNotificationTests."
+            + "AvangateNewOrderNotification_MixedB2cB2bOrder_PurchasingContextSkippedLicenseSubscriptionsSaved`",
+            requireFilterMatch: true);
+        Assert.Contains("Filtered tests passed", md, StringComparison.Ordinal);
+        Assert.DoesNotContain("no matching tests", md, StringComparison.Ordinal);
+        Assert.DoesNotContain("Agent signal", md, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FilterMatchedAnyTest_method_only_display_matches_class_method_suffix_needle()
+    {
+        const string method =
+            "AvangateNewOrderNotification_MixedB2cB2bOrder_PurchasingContextSkippedLicenseSubscriptionsSaved";
+        var output = $"""
+            Test Run Successful.
+            Total tests: 1
+                 Passed: 1
+            Passed {method} [3 m 8 s]
+            """;
+        var result = VstestOutputParser.Parse(output, 0);
+        Assert.True(VstestOutputParser.FilterMatchedAnyTest(
+            "FullyQualifiedName~.AvangateNewOrderNotificationTests." + method,
+            output,
+            result.PassedTestNames));
+    }
+
+    [Fact]
+    public void FilterMatchedAnyTest_passed_theory_args_match_fqn_needle()
+    {
+        const string output = """
+            Test Run Successful.
+            Total tests: 6
+                 Passed: 6
+              Passed Ns.Billing.OrderTests.TheoryCase(kind: "b2b") [12 ms]
+              Passed Ns.Billing.OrderTests.TheoryCase(kind: "b2c") [1 s]
+              Passed Ns.Billing.OrderTests.TheoryCase(kind: "mixed") [1 m 28 s]
+            """;
+        var result = VstestOutputParser.Parse(output, 0);
+        Assert.Equal(3, result.PassedTestNames.Count);
+        Assert.All(result.PassedTestNames, n => Assert.Equal("Ns.Billing.OrderTests.TheoryCase", n));
+        Assert.True(VstestOutputParser.FilterMatchedAnyTest(
+            "FullyQualifiedName~Ns.Billing.OrderTests.TheoryCase",
+            output,
+            result.PassedTestNames));
+        var md = VstestOutputParser.BuildMarkdownReport(
+            result,
+            0,
+            output,
+            "FullyQualifiedName~Ns.Billing.OrderTests.TheoryCase",
+            "Roslyn-resolved FQN `Ns.Billing.OrderTests.TheoryCase`",
+            requireFilterMatch: true);
+        Assert.Contains("Filtered tests passed", md, StringComparison.Ordinal);
+        Assert.DoesNotContain("no matching tests", md, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FilterMatchedAnyTest_does_not_match_other_method_with_shared_suffix()
+    {
+        const string output = """
+            Passed!  - Failed: 0, Passed: 1, Skipped: 0, Total: 1
+              Passed Ns.Tests.OtherMethod [1 ms]
+            """;
+        var result = VstestOutputParser.Parse(output, 0);
+        Assert.False(VstestOutputParser.FilterMatchedAnyTest(
+            "FullyQualifiedName~Ns.Tests.Method",
+            output,
+            result.PassedTestNames));
+    }
+
+    [Fact]
     public void Parse_recognizes_vstest_passed_line_with_second_duration()
     {
         const string output = """
@@ -352,7 +447,9 @@ public sealed class VstestOutputParserTests
             """;
 
         var result = VstestOutputParser.Parse(output, exitCode: 1);
-        Assert.Empty(result.Failures);
+        Assert.Single(result.Failures);
+        Assert.Equal("Display name without dots", result.Failures[0].Name);
+        Assert.Contains("unique-assert-token", result.Failures[0].Error, StringComparison.Ordinal);
         Assert.Equal(1, result.Summary?.Failed);
         Assert.False(VstestOutputParser.IsSilentUnparsedFailure(result, output));
 
