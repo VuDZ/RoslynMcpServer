@@ -582,7 +582,7 @@ public sealed class TestTools
                 markdown = markdown + Environment.NewLine + Environment.NewLine + agentHint;
             }
 
-            if (run.ExitCode != 0 && LooksLikeSilentFailure(run.CombinedOutput, parse))
+            if (run.ExitCode != 0 && VstestOutputParser.IsSilentUnparsedFailure(parse, run.CombinedOutput))
             {
                 var sb = new StringBuilder();
                 sb.AppendLine(markdown);
@@ -617,18 +617,5 @@ public sealed class TestTools
                 toolName,
                 $"Failed to run `dotnet test`: {ex.Message}");
         }
-    }
-
-    private static bool LooksLikeSilentFailure(string combinedOutput, VstestOutputParser.ParseResult parse)
-    {
-        if (parse.Summary is not null || parse.HasRecognizedSummary || parse.Failures.Count > 0)
-        {
-            return false;
-        }
-
-        return combinedOutput.Contains("Build FAILED", StringComparison.OrdinalIgnoreCase)
-               || combinedOutput.Contains("Restore target(s)", StringComparison.OrdinalIgnoreCase)
-               || combinedOutput.Contains("0 Error(s)", StringComparison.OrdinalIgnoreCase)
-               || string.IsNullOrWhiteSpace(combinedOutput);
     }
 }

@@ -24,8 +24,19 @@ public static class VstestOutputParser
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     private static readonly Regex RxVstestFailedLine = new(
-        $@"^\s+Failed\s+(?<name>[A-Za-z_][\w]*(?:\.[A-Za-z_][\w]+)+)(?:\s+{VstestDurationBracket})?\s*$",
+        $@"^\s+Failed\s+(?<name>[A-Za-z_][\w]*(?:\.[A-Za-z_][\w]+)+)(?:\s*\(.*\))?(?:\s+{VstestDurationBracket})?\s*$",
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+    private static readonly string[] ErrorBodyTerminators =
+    [
+        "Stack Trace:",
+        "Standard Output Messages:",
+        "Standard Output:",
+        "Standard Error Messages:",
+        "Standard Error:",
+        "Debug Trace:",
+        "Attachments:",
+    ];
 
     private static readonly Regex RxNunitFailedLine = new(
         @"^\s*Failed\s*:\s*(?<name>[A-Za-z_][\w]+(?:\.[A-Za-z_][\w]+)*)\s*$",
@@ -140,14 +151,50 @@ public static class VstestOutputParser
 
         foreach (var line in combinedOutput.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries))
         {
-            if (RxVstestPassedLine.IsMatch(line.TrimEnd())
-                && line.Contains(needle, StringComparison.OrdinalIgnoreCase))
+            if (!line.Contains(needle, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            var trimmed = line.TrimEnd();
+            if (RxVstestPassedLine.IsMatch(trimmed)
+                || TryGetFailedTestName(trimmed, out _)
+                || trimmed.Contains("[FAIL]", StringComparison.OrdinalIgnoreCase)
+                || (trimmed.TrimStart().StartsWith("Failed ", StringComparison.OrdinalIgnoreCase)
+                    && !IsMsBuildNoiseLine(trimmed)))
             {
                 return true;
             }
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// Exit ≠ 0 with no VSTest summary/failures and no test-run markers — hung restore, locked <c>obj</c>, or a
+    /// compile that died without a parsed diagnostic. A VSTest <c>Build FAILED</c> / <c>0 Error(s)</c> footer after
+    /// tests actually ran is not silent.
+    /// </summary>
+    public static bool IsSilentUnparsedFailure(ParseResult parse, string combinedOutput)
+    {
+        ArgumentNullException.ThrowIfNull(parse);
+        if (parse.Summary is not null || parse.HasRecognizedSummary || parse.Failures.Count > 0)
+        {
+            return false;
+        }
+
+        if (HasTestExecutionMarkers(combinedOutput))
+        {
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(combinedOutput))
+        {
+            return true;
+        }
+
+        return combinedOutput.Contains("Restore target(s)", StringComparison.OrdinalIgnoreCase)
+               || combinedOutput.Contains("Build FAILED", StringComparison.OrdinalIgnoreCase);
     }
 
     public static string BuildMarkdownReport(
@@ -272,24 +319,71 @@ public static class VstestOutputParser
 
     private static void AppendRawTail(StringBuilder sb, string combinedOutput)
     {
+        var stripped = TruncatedProcessLog.StripTrailingMsBuildOutcome(combinedOutput);
+        var window = TryGetAssertionWindow(stripped) ?? stripped;
+
         sb.AppendLine();
         sb.AppendLine($"Raw output (last {PartialSuccessTailChars} chars):");
         sb.AppendLine();
         sb.AppendLine("```text");
-        if (string.IsNullOrEmpty(combinedOutput))
+        if (string.IsNullOrEmpty(window))
         {
             sb.AppendLine("(empty)");
         }
-        else if (combinedOutput.Length <= PartialSuccessTailChars)
-        {
-            sb.AppendLine(combinedOutput.TrimEnd());
-        }
         else
         {
-            sb.AppendLine(combinedOutput[^PartialSuccessTailChars..].TrimEnd());
+            sb.AppendLine(TruncatedProcessLog.BuildTruncatedExcerpt(window, PartialSuccessTailChars).TrimEnd());
         }
 
         sb.AppendLine("```");
+    }
+
+    /// <summary>
+    /// Prefer the VSTest assertion + stack over a log tail that is only Standard Output plus the MSBuild footer.
+    /// </summary>
+    private static string? TryGetAssertionWindow(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+        {
+            return null;
+        }
+
+        var emIdx = text.IndexOf("Error Message:", StringComparison.OrdinalIgnoreCase);
+        if (emIdx < 0)
+        {
+            return null;
+        }
+
+        var stdoutIdx = IndexOfEarliest(text, emIdx + "Error Message:".Length, "Standard Output Messages:", "Standard Output:");
+        var end = stdoutIdx >= 0 ? stdoutIdx : text.Length;
+        var window = text[emIdx..end].Trim();
+        return string.IsNullOrEmpty(window) ? null : window;
+    }
+
+    private static bool HasTestExecutionMarkers(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+        {
+            return false;
+        }
+
+        if (HasSummaryMarkers(text)
+            || text.Contains("Test Run Failed", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("[FAIL]", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        foreach (var line in text.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries))
+        {
+            var trimmed = line.TrimEnd();
+            if (RxVstestPassedLine.IsMatch(trimmed) || TryGetFailedTestName(trimmed, out _))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static bool HasSummaryMarkers(string text) =>
@@ -545,11 +639,6 @@ public static class VstestOutputParser
     private static bool TryGetFailedTestName(string trimmed, out string name)
     {
         name = string.Empty;
-        if (IsMsBuildNoiseLine(trimmed))
-        {
-            return false;
-        }
-
         var xm = RxXunitFailLine.Match(trimmed);
         if (xm.Success)
         {
@@ -614,7 +703,12 @@ public static class VstestOutputParser
         if (emIdx >= 0)
         {
             var bodyStart = emIdx + "Error Message:".Length;
-            var bodyEnd = stIdx >= 0 ? stIdx : block.Length;
+            var bodyEnd = IndexOfEarliest(block, bodyStart, ErrorBodyTerminators);
+            if (bodyEnd < 0)
+            {
+                bodyEnd = block.Length;
+            }
+
             error = NormalizeDetailBody(block.AsSpan(bodyStart, bodyEnd - bodyStart));
         }
         else if (stIdx > 0)
@@ -628,23 +722,40 @@ public static class VstestOutputParser
 
         if (stIdx >= 0)
         {
-            var after = block[(stIdx + "Stack Trace:".Length)..].TrimStart();
+            var afterStart = stIdx + "Stack Trace:".Length;
+            var afterEnd = IndexOfEarliest(block, afterStart, "Standard Output Messages:", "Standard Output:", "Standard Error Messages:", "Standard Error:", "Debug Trace:", "Attachments:");
+            var after = (afterEnd >= 0 ? block[afterStart..afterEnd] : block[afterStart..]).TrimStart();
             stack = TrimStackTrace(after);
         }
     }
 
+    private static int IndexOfEarliest(string text, int start, params string[] tokens)
+    {
+        var best = -1;
+        foreach (var token in tokens)
+        {
+            var i = text.IndexOf(token, start, StringComparison.OrdinalIgnoreCase);
+            if (i >= 0 && (best < 0 || i < best))
+            {
+                best = i;
+            }
+        }
+
+        return best;
+    }
+
     private static string NormalizeDetailBody(ReadOnlySpan<char> span)
     {
-        var s = span.ToString().Trim();
-        if (string.IsNullOrEmpty(s))
+        var s = span.ToString();
+        if (string.IsNullOrWhiteSpace(s))
         {
             return string.Empty;
         }
 
         var sb = new StringBuilder();
-        foreach (var line in s.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries))
+        foreach (var line in s.Split(['\r', '\n'], StringSplitOptions.None))
         {
-            var t = line.Trim();
+            var t = line.TrimEnd();
             if (t.Length == 0)
             {
                 continue;
@@ -652,13 +763,18 @@ public static class VstestOutputParser
 
             if (sb.Length > 0)
             {
-                sb.Append(' ');
+                sb.Append('\n');
             }
 
-            sb.Append(t);
+            sb.Append(t.TrimStart());
         }
 
-        return sb.Length > 512 ? sb.ToString(0, 509) + "..." : sb.ToString();
+        if (sb.Length == 0)
+        {
+            return string.Empty;
+        }
+
+        return TruncatedProcessLog.BuildTruncatedExcerpt(sb.ToString(), TruncatedProcessLog.DefaultMaxCombinedCharacters);
     }
 
     private static string TrimStackTrace(string stack)
@@ -706,7 +822,18 @@ public static class VstestOutputParser
             sb.AppendLine($"{i + 1}. **TestName:** `{EscapeMdBackticks(f.Name)}`");
             if (!string.IsNullOrEmpty(f.Error))
             {
-                sb.AppendLine($"   **Error:** {EscapeMdBackticks(f.Error)}");
+                if (f.Error.Contains('\n', StringComparison.Ordinal))
+                {
+                    sb.AppendLine("   **Error:**");
+                    sb.AppendLine();
+                    sb.AppendLine("```text");
+                    sb.AppendLine(f.Error.Replace("```", "'''", StringComparison.Ordinal).TrimEnd());
+                    sb.AppendLine("```");
+                }
+                else
+                {
+                    sb.AppendLine($"   **Error:** {EscapeMdBackticks(f.Error)}");
+                }
             }
 
             if (!string.IsNullOrEmpty(f.Stack))

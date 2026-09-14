@@ -226,4 +226,155 @@ public sealed class VstestOutputParserTests
         Assert.Contains("**Agent signal:**", md, StringComparison.Ordinal);
         Assert.Contains("**Match mode:** Name suffix", md, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void Parse_keeps_multiline_assertion_beyond_512_chars()
+    {
+        var padding = new string('x', 700);
+        var output = $$"""
+            Test Run Failed.
+            Total tests: 1
+                 Failed: 1
+              Failed Ns.NexwayOrderPaymentRefusedNotificationContextTests.ProcessBillingError [1 s]
+              Error Message:
+               Expected notification to be equivalent to
+               {
+                   EventKey = Idcd3cab8d-aaaa-bbbb-cccc-dddddddddddd,
+                   MessageType = OrderPaymentRefused,
+                   {{padding}}
+               }
+               The following member(s) don't match:
+               - BillingErrorCode: expected "Expired" but found "Unknown"
+              Stack Trace:
+                 at Ns.Tests.ProcessBillingError()
+              Standard Output Messages:
+               1 found, deleted
+            Build FAILED.
+                0 Warning(s)
+                0 Error(s)
+
+            Time Elapsed 00:00:12.34
+            """;
+
+        var result = VstestOutputParser.Parse(output, exitCode: 1);
+        Assert.False(VstestOutputParser.IsSilentUnparsedFailure(result, output));
+        Assert.Single(result.Failures);
+        Assert.Contains("MessageType = OrderPaymentRefused", result.Failures[0].Error, StringComparison.Ordinal);
+        Assert.Contains("BillingErrorCode", result.Failures[0].Error, StringComparison.Ordinal);
+        Assert.Contains('\n', result.Failures[0].Error);
+        Assert.DoesNotContain("1 found, deleted", result.Failures[0].Error, StringComparison.Ordinal);
+        Assert.DoesNotContain("1 found, deleted", result.Failures[0].Stack, StringComparison.Ordinal);
+
+        var md = VstestOutputParser.BuildMarkdownReport(result, 1, output, null, null, false);
+        Assert.Contains("1 Tests Failed", md, StringComparison.Ordinal);
+        Assert.Contains("BillingErrorCode", md, StringComparison.Ordinal);
+        Assert.DoesNotContain("Build FAILED", md, StringComparison.Ordinal);
+        Assert.DoesNotContain("0 Error(s)", md, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Parse_error_body_head_and_tail_preserve_fluent_diff()
+    {
+        var padding = new string('y', 4000);
+        var output = $$"""
+            Total tests: 1
+                 Failed: 1
+              Failed Ns.SlowTests.BeEquivalentToHuge [12 ms]
+              Error Message:
+               Expected subject to be equivalent to
+               { EventKey = head-token-aa, MessageType = OrderPaymentRefused }
+               {{padding}}
+               Difference: tail-token-zz BillingErrorCode mismatch
+              Stack Trace:
+                 at Ns.SlowTests.BeEquivalentToHuge()
+            """;
+
+        var result = VstestOutputParser.Parse(output, exitCode: 1);
+        Assert.Contains("head-token-aa", result.Failures[0].Error, StringComparison.Ordinal);
+        Assert.Contains("tail-token-zz", result.Failures[0].Error, StringComparison.Ordinal);
+        Assert.Contains("MIDDLE LOG TRUNCATED", result.Failures[0].Error, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Parse_failed_line_with_MsBuild_in_test_name_is_not_noise()
+    {
+        const string output = """
+            Total tests: 1
+                 Failed: 1
+              Failed Ns.TruncatedProcessLogTests.StripTrailingMsBuildOutcome_removes_footer [8 ms]
+              Error Message:
+               boom
+            """;
+        var result = VstestOutputParser.Parse(output, exitCode: 1);
+        Assert.Single(result.Failures);
+        Assert.Contains("StripTrailingMsBuildOutcome_removes_footer", result.Failures[0].Name, StringComparison.Ordinal);
+        Assert.Contains("boom", result.Failures[0].Error, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Parse_recognizes_vstest_failed_theory_line_with_arguments()
+    {
+        const string output = """
+            Total tests: 1
+                 Failed: 1
+              Failed Ns.SlowTests.TheoryCase(foo: "bar", n: 2) [12 ms]
+              Error Message:
+               Expected 1 to be 2
+            """;
+        var result = VstestOutputParser.Parse(output, exitCode: 1);
+        Assert.Single(result.Failures);
+        Assert.Equal("Ns.SlowTests.TheoryCase", result.Failures[0].Name);
+        Assert.Contains("Expected 1 to be 2", result.Failures[0].Error, StringComparison.Ordinal);
+        Assert.True(VstestOutputParser.FilterMatchedAnyTest(
+            "FullyQualifiedName~Ns.SlowTests.TheoryCase",
+            output,
+            result.PassedTestNames));
+    }
+
+    [Fact]
+    public void BuildMarkdownReport_unparsed_failure_shows_error_message_not_msbuild_footer()
+    {
+        var stdout = new string('z', 5000);
+        var output = $"""
+            Test Run Failed.
+            Total tests: 1
+                 Failed: 1
+              Failed Display name without dots [1 s]
+              Error Message:
+               Expected unique-assert-token to be true
+              Stack Trace:
+                 at Tests.Foo()
+              Standard Output Messages:
+               {stdout}
+            Build FAILED.
+                0 Warning(s)
+                0 Error(s)
+            """;
+
+        var result = VstestOutputParser.Parse(output, exitCode: 1);
+        Assert.Empty(result.Failures);
+        Assert.Equal(1, result.Summary?.Failed);
+        Assert.False(VstestOutputParser.IsSilentUnparsedFailure(result, output));
+
+        var md = VstestOutputParser.BuildMarkdownReport(
+            result,
+            1,
+            output,
+            "FullyQualifiedName~ProcessBillingError",
+            "Name suffix",
+            requireFilterMatch: false);
+        Assert.Contains("unique-assert-token", md, StringComparison.Ordinal);
+        Assert.DoesNotContain("Build FAILED", md, StringComparison.Ordinal);
+        Assert.DoesNotContain("0 Error(s)", md, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void IsSilentUnparsedFailure_true_for_empty_or_restore_without_tests()
+    {
+        var parse = VstestOutputParser.Parse("", exitCode: 1);
+        Assert.True(VstestOutputParser.IsSilentUnparsedFailure(parse, ""));
+        Assert.True(VstestOutputParser.IsSilentUnparsedFailure(
+            parse,
+            "Restore target(s) failed.\nBuild FAILED.\n    0 Error(s)"));
+    }
 }

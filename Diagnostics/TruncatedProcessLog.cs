@@ -1,11 +1,14 @@
 using System.Globalization;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace RoslynMcpServer.Diagnostics;
 
 /// <summary>
 /// Appends a truncated excerpt of combined process stdout/stderr for LLM-visible diagnostics when structured parsing fails.
 /// Long logs use a head+tail strategy so early MSBuild errors and final summary lines both appear.
+/// Trailing VSTest/MSBuild outcome lines (<c>Build FAILED</c> / <c>0 Error(s)</c>) are stripped first so the tail is the
+/// real diagnostic, not the empty compiler counter that always follows a failed test.
 /// </summary>
 internal static class TruncatedProcessLog
 {
@@ -19,6 +22,10 @@ internal static class TruncatedProcessLog
     public const int TailCharactersWhenTruncated = 1500;
 
     private const string MiddleMarker = "\n\n...[MIDDLE LOG TRUNCATED]...\n\n";
+
+    private static readonly Regex MsBuildCountLine = new(
+        @"^\d+ (?:Warning|Error)\(s\)$",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
 
     /// <summary>Obsolete name: kept for call-site stability; implements head+tail truncation.</summary>
     public static void AppendLastCharacters(
@@ -48,21 +55,103 @@ internal static class TruncatedProcessLog
     }
 
     /// <summary>
-    /// If <paramref name="combined"/> is at most <paramref name="maxCombinedCharacters"/>, returns it unchanged.
+    /// Drops a trailing MSBuild/VSTest outcome block so a later tail excerpt is not only
+    /// <c>Build FAILED</c> / <c>0 Warning(s)</c> / <c>0 Error(s)</c> / <c>Time Elapsed</c>.
+    /// Returns the original text when that block is the entire payload.
+    /// </summary>
+    public static string StripTrailingMsBuildOutcome(string combined)
+    {
+        ArgumentNullException.ThrowIfNull(combined);
+        if (combined.Length == 0)
+        {
+            return combined;
+        }
+
+        var lines = combined.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n');
+        var end = lines.Length;
+        while (end > 0 && string.IsNullOrWhiteSpace(lines[end - 1]))
+        {
+            end--;
+        }
+
+        var stripped = false;
+        while (end > 0)
+        {
+            var trimmed = lines[end - 1].Trim();
+            if (trimmed.Length == 0)
+            {
+                end--;
+                continue;
+            }
+
+            if (!IsMsBuildOutcomeLine(trimmed))
+            {
+                break;
+            }
+
+            end--;
+            stripped = true;
+        }
+
+        if (!stripped || end == 0)
+        {
+            return combined;
+        }
+
+        while (end > 0 && string.IsNullOrWhiteSpace(lines[end - 1]))
+        {
+            end--;
+        }
+
+        if (end == 0)
+        {
+            return combined;
+        }
+
+        return string.Join('\n', lines[..end]).TrimEnd();
+    }
+
+    /// <summary>
+    /// Strips a trailing MSBuild outcome, then if the remainder is at most
+    /// <paramref name="maxCombinedCharacters"/> returns it unchanged.
     /// Otherwise returns the first <see cref="HeadCharactersWhenTruncated"/> characters, a middle marker,
     /// and the last <see cref="TailCharactersWhenTruncated"/> characters.
     /// </summary>
     public static string BuildTruncatedExcerpt(string combined, int maxCombinedCharacters = DefaultMaxCombinedCharacters)
     {
         ArgumentNullException.ThrowIfNull(combined);
-        if (combined.Length <= maxCombinedCharacters)
+        var source = StripTrailingMsBuildOutcome(combined);
+        if (source.Length <= maxCombinedCharacters)
         {
-            return combined;
+            return source;
         }
 
-        var head = combined[..HeadCharactersWhenTruncated];
-        var tail = combined[^TailCharactersWhenTruncated..];
+        var head = source[..HeadCharactersWhenTruncated];
+        var tail = source[^TailCharactersWhenTruncated..];
         return string.Concat(head, MiddleMarker, tail);
+    }
+
+    internal static bool IsMsBuildOutcomeLine(string trimmedLine)
+    {
+        if (string.IsNullOrEmpty(trimmedLine))
+        {
+            return false;
+        }
+
+        if (trimmedLine.Equals("Build FAILED.", StringComparison.OrdinalIgnoreCase)
+            || trimmedLine.Equals("Build FAILED", StringComparison.OrdinalIgnoreCase)
+            || trimmedLine.Equals("Build succeeded.", StringComparison.OrdinalIgnoreCase)
+            || trimmedLine.Equals("Build succeeded", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        if (MsBuildCountLine.IsMatch(trimmedLine))
+        {
+            return true;
+        }
+
+        return trimmedLine.StartsWith("Time Elapsed", StringComparison.OrdinalIgnoreCase);
     }
 
     public static string BuildPreambleTestFailed(int exitCode) =>

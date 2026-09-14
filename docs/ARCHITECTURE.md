@@ -107,7 +107,7 @@ Execution tools start a matching `dotnet` host in the repository working directo
 - Tests separate the optional compile step from `dotnet test --no-build`; the VSTest parser therefore receives test output rather than an MSBuild warning dump. When `binariesPath` is set, compile is `dotnet build <loaded.sln> -t` (same solution-folder target as `run_dotnet_build` `projectName`) and VSTest runs `{AssemblyName}.dll` from that directory; the DLL is not required on disk until after that compile if `noBuild=false`.
 - `get_test_list` discovers tests by scanning loaded Roslyn syntax for xUnit/NUnit/MSTest attributes. It is not VSTest. Optional `projectName` and `nameContains` run before the `maxResults` cap. Unknown or ambiguous `projectName` is an error against the loaded project list, not an empty JSON payload.
 - Timeouts and cancellation attempt to kill the complete child-process tree.
-- Process output is parsed and truncated before it is returned to protect the agent context window.
+- Process output is parsed and truncated before it is returned to protect the agent context window. Failed-test `Error Message:` is kept multiline (head+tail of the assertion). The VSTest `Build FAILED` / `0 Error(s)` footer after a failed test is not a compile diagnostic and is stripped from raw-tail fallbacks.
 
 These tools execute with the permissions and network access of the MCP process. They are not a sandbox.
 

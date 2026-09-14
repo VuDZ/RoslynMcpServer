@@ -48,4 +48,25 @@ public sealed class ToolLogAnalyzerTests
         Assert.Single(lines);
         Assert.Contains("Failure", lines[0], StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void ExtractHighlightLines_skips_msbuild_vstest_outcome_footer()
+    {
+        const string text = """
+            ## Filtered test run
+            ❌ 1 Tests Failed.
+            Build FAILED.
+            0 Warning(s)
+            0 Error(s)
+            Time Elapsed 00:00:12.34
+            """;
+
+        var lines = ToolLogAnalyzer.ExtractHighlightLines(text);
+        Assert.Contains(lines, l => l.Contains("## Filtered test run", StringComparison.Ordinal));
+        Assert.Contains(lines, l => l.Contains("Tests Failed", StringComparison.Ordinal));
+        Assert.DoesNotContain(lines, l => l.Equals("Build FAILED.", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(lines, l => l.Contains("0 Error(s)", StringComparison.Ordinal));
+        Assert.DoesNotContain(lines, l => l.Contains("0 Warning(s)", StringComparison.Ordinal));
+        Assert.DoesNotContain(lines, l => l.StartsWith("Time Elapsed", StringComparison.OrdinalIgnoreCase));
+    }
 }

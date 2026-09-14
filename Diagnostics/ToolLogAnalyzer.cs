@@ -117,6 +117,11 @@ public static class ToolLogAnalyzer
 
     private static bool ShouldHighlight(string line)
     {
+        if (TruncatedProcessLog.IsMsBuildOutcomeLine(line.Trim()))
+        {
+            return false;
+        }
+
         foreach (var token in HighlightSubstrings)
         {
             if (line.Contains(token, StringComparison.OrdinalIgnoreCase))
