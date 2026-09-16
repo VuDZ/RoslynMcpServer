@@ -120,6 +120,87 @@ function Stop-RoslynMcpLockHolders {
     }
 }
 
+function Get-ArtifactVersion {
+    param([string]$ExePath)
+
+    $info = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($ExePath)
+    foreach ($raw in @($info.ProductVersion, $info.FileVersion)) {
+        if ([string]::IsNullOrWhiteSpace($raw)) { continue }
+        $candidate = $raw.Split('+', 2)[0].Trim()
+        if ($candidate -match '^(\d+\.\d+\.\d+)') {
+            return $Matches[1]
+        }
+    }
+
+    throw "Cannot determine three-part version from $ExePath (ProductVersion='$($info.ProductVersion)', FileVersion='$($info.FileVersion)')."
+}
+
+function New-PublishArtifactZip {
+    param(
+        [string]$PublishDir,
+        [string]$RepoRoot,
+        [string]$Version
+    )
+
+    $readmePath = Join-Path $RepoRoot 'README.md'
+    if (-not (Test-Path -LiteralPath $readmePath)) {
+        throw "README.md not found: $readmePath"
+    }
+
+    $artifactsDir = Join-Path $RepoRoot 'artifacts'
+    New-Item -ItemType Directory -Path $artifactsDir -Force | Out-Null
+
+    $zipPath = Join-Path $artifactsDir ("RoslynMCP-{0}.zip" -f $Version)
+    $stagingRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("RoslynMcpPublish_" + [guid]::NewGuid().ToString('N'))
+    $payloadDir = Join-Path $stagingRoot 'RoslynMCP'
+    New-Item -ItemType Directory -Path $payloadDir -Force | Out-Null
+
+    try {
+        Get-ChildItem -LiteralPath $PublishDir -Force | Where-Object { $_.Name -ne 'logs' } | ForEach-Object {
+            Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $payloadDir $_.Name) -Recurse -Force
+        }
+
+        Copy-Item -LiteralPath $readmePath -Destination (Join-Path $payloadDir 'README.md') -Force
+
+        if (Test-Path -LiteralPath $zipPath) {
+            Remove-Item -LiteralPath $zipPath -Force
+        }
+
+        Compress-Archive -Path $payloadDir -DestinationPath $zipPath -CompressionLevel Optimal
+
+        Add-Type -AssemblyName System.IO.Compression.FileSystem
+        $zip = [System.IO.Compression.ZipFile]::OpenRead($zipPath)
+        try {
+            $names = @(
+                $zip.Entries | ForEach-Object { $_.FullName.Replace('\', '/') }
+            )
+            $unexpectedRoot = @($names | Where-Object { $_ -and -not $_.StartsWith('RoslynMCP/') })
+            if ($unexpectedRoot.Count -gt 0) {
+                throw ("Artifact zip must have root folder RoslynMCP. Unexpected entries: {0}" -f (($unexpectedRoot | Select-Object -First 5) -join ', '))
+            }
+
+            $logs = @($names | Where-Object { $_ -match '^RoslynMCP/logs(/|$)' })
+            if ($logs.Count -gt 0) {
+                throw ("Artifact zip must not include publish logs/: {0}" -f (($logs | Select-Object -First 5) -join ', '))
+            }
+
+            if ($names -notcontains 'RoslynMCP/README.md') {
+                throw "Artifact zip is missing RoslynMCP/README.md"
+            }
+        }
+        finally {
+            $zip.Dispose()
+        }
+    }
+    finally {
+        if (Test-Path -LiteralPath $stagingRoot) {
+            Remove-Item -LiteralPath $stagingRoot -Recurse -Force
+        }
+    }
+
+    return $zipPath
+}
+
 $dotnet = Resolve-DotNetX64
 Write-Host "dotnet host  : $dotnet"
 & $dotnet --info | Select-String -Pattern '^\s*(RID|Architecture|Base Path)\s*:' | ForEach-Object { Write-Host $_.Line.Trim() }
@@ -141,17 +222,25 @@ if (-not (Test-Path $exe)) {
 }
 
 $exeInfo = Get-Item $exe
-$version = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($exe).FileVersion
+$fileVersion = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($exe).FileVersion
+$artifactVersion = Get-ArtifactVersion -ExePath $exe
 Write-Host "Binary       : $exe"
-Write-Host "FileVersion  : $version"
+Write-Host "FileVersion  : $fileVersion"
 Write-Host "LastWriteTime: $($exeInfo.LastWriteTime.ToString('o'))"
 Write-Host "Size         : $($exeInfo.Length) bytes"
+
+Write-Host "Packaging artifact zip (root RoslynMCP, no logs/, README.md included)..."
+$zipPath = New-PublishArtifactZip -PublishDir $PublishDir -RepoRoot $PSScriptRoot -Version $artifactVersion
+$zipInfo = Get-Item $zipPath
+Write-Host "Artifact     : $zipPath"
+Write-Host "Zip size     : $($zipInfo.Length) bytes"
 
 # Tool count via reflection at runtime is not exposed via CLI; verify assembly loads.
 Write-Host ""
 Write-Host "Next steps:"
 Write-Host "  1. Cursor -> MCP -> Reload RoslynMcpServer (old PIDs were stopped before publish)"
-Write-Host "  2. Call get_mcp_server_info (expect >= $ExpectedMinTools tools, version $version)"
+Write-Host "  2. Call get_mcp_server_info (expect >= $ExpectedMinTools tools, version $fileVersion)"
 Write-Host "  3. Logs: $PublishDir\logs\mcp-*.log"
+Write-Host "  4. Artifact zip: $zipPath"
 
 exit 0
