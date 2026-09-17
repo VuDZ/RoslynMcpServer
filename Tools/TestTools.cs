@@ -9,6 +9,12 @@ namespace RoslynMcpServer.Tools;
 
 public sealed class TestTools
 {
+    private const string IncludeFullOutputDescription =
+        "When true, include failed-test Standard Output/Error up to 100000 chars per stream. Default false uses maxOutputChars (2500 head+tail).";
+
+    private const string MaxOutputCharsDescription =
+        "Per-failure Standard Output budget in characters. 0 = 2500 (head 1600 + tail 700). Capped at 100000. With includeFullOutput, 0 means the 100000 cap. StdErr scales with this.";
+
     private readonly SolutionManager _solutionManager;
     private readonly ILogger<TestTools> _logger;
 
@@ -37,6 +43,10 @@ public sealed class TestTools
         string? platform = null,
         [Description("Bin directory with AssemblyName.dll. Needs loaded .sln/.slnx and a .csproj workspacePath. noBuild=false builds via solution `-t`.")]
         string? binariesPath = null,
+        [Description(IncludeFullOutputDescription)]
+        bool includeFullOutput = false,
+        [Description(MaxOutputCharsDescription)]
+        int maxOutputChars = 0,
         CancellationToken cancellationToken = default)
     {
         return ExecuteDotnetTestAsync(
@@ -51,6 +61,8 @@ public sealed class TestTools
             configuration,
             platform,
             binariesPath,
+            includeFullOutput,
+            maxOutputChars,
             cancellationToken);
     }
 
@@ -77,6 +89,10 @@ public sealed class TestTools
         string? platform = null,
         [Description("Bin directory with AssemblyName.dll. Needs loaded .sln/.slnx and a .csproj workspacePath. noBuild=false builds via solution `-t`.")]
         string? binariesPath = null,
+        [Description(IncludeFullOutputDescription)]
+        bool includeFullOutput = false,
+        [Description(MaxOutputCharsDescription)]
+        int maxOutputChars = 0,
         CancellationToken cancellationToken = default)
     {
         const string toolName = nameof(RunSpecificTest);
@@ -106,6 +122,8 @@ public sealed class TestTools
                     configuration,
                     platform,
                     binariesPath,
+                    includeFullOutput,
+                    maxOutputChars,
                     cancellationToken)
                 .ConfigureAwait(false);
         }
@@ -144,6 +162,10 @@ public sealed class TestTools
         string? platform = null,
         [Description("Bin directory with AssemblyName.dll. Needs loaded .sln/.slnx and a .csproj workspacePath. noBuild=false builds via solution `-t`.")]
         string? binariesPath = null,
+        [Description(IncludeFullOutputDescription)]
+        bool includeFullOutput = false,
+        [Description(MaxOutputCharsDescription)]
+        int maxOutputChars = 0,
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(filter))
@@ -166,6 +188,8 @@ public sealed class TestTools
             configuration,
             platform,
             binariesPath,
+            includeFullOutput,
+            maxOutputChars,
             cancellationToken);
     }
 
@@ -301,10 +325,17 @@ public sealed class TestTools
         string? configuration,
         string? platform,
         string? binariesPath,
+        bool includeFullOutput,
+        int maxOutputChars,
         CancellationToken cancellationToken)
     {
         try
         {
+            if (maxOutputChars < 0)
+            {
+                return ToolTelemetry.TraceAndReturn(toolName, "Error: `maxOutputChars` must be >= 0.");
+            }
+
             if (string.IsNullOrWhiteSpace(workspacePath))
             {
                 return ToolTelemetry.TraceAndReturn(toolName, "Error: `workspacePath` is empty.");
@@ -465,6 +496,9 @@ public sealed class TestTools
                     + $"- **TestAssembly:** {testAssemblyPath}";
             }
 
+            var outputOptions = new TestOutputReportOptions(includeFullOutput, maxOutputChars);
+            extraMeta += Environment.NewLine + outputOptions.FormatMetadata();
+
             TimeSpan? timeout = timeoutSeconds > 0 ? TimeSpan.FromSeconds(timeoutSeconds) : null;
             var sw = System.Diagnostics.Stopwatch.StartNew();
 
@@ -570,7 +604,8 @@ public sealed class TestTools
                 run.CombinedOutput,
                 filter,
                 filterDescription,
-                requireFilterMatch);
+                requireFilterMatch,
+                outputOptions);
 
             if (requireFilterMatch
                 && markdown.Contains("## Filtered test run — no matching tests", StringComparison.Ordinal))

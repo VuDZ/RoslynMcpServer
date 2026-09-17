@@ -359,10 +359,12 @@ public sealed class VstestOutputParserTests
         Assert.Contains('\n', result.Failures[0].Error);
         Assert.DoesNotContain("1 found, deleted", result.Failures[0].Error, StringComparison.Ordinal);
         Assert.DoesNotContain("1 found, deleted", result.Failures[0].Stack, StringComparison.Ordinal);
+        Assert.Contains("1 found, deleted", result.Failures[0].StdOut, StringComparison.Ordinal);
 
         var md = VstestOutputParser.BuildMarkdownReport(result, 1, output, null, null, false);
         Assert.Contains("1 Tests Failed", md, StringComparison.Ordinal);
         Assert.Contains("BillingErrorCode", md, StringComparison.Ordinal);
+        Assert.Contains("1 found, deleted", md, StringComparison.Ordinal);
         Assert.DoesNotContain("Build FAILED", md, StringComparison.Ordinal);
         Assert.DoesNotContain("0 Error(s)", md, StringComparison.Ordinal);
     }
@@ -463,6 +465,83 @@ public sealed class VstestOutputParserTests
         Assert.Contains("unique-assert-token", md, StringComparison.Ordinal);
         Assert.DoesNotContain("Build FAILED", md, StringComparison.Ordinal);
         Assert.DoesNotContain("0 Error(s)", md, StringComparison.Ordinal);
+        Assert.Contains("**StdOut:**", md, StringComparison.Ordinal);
+        Assert.Contains("includeFullOutput=true", md, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void BuildMarkdownReport_keeps_conversation_id_in_stdout_head()
+    {
+        const string conversation = "Test. Start time 2026-09-17T09:06:32Z. ConversationId: abc-123-guid";
+        const string middle = "MIDDLE-TOKEN-SHOULD-DROP";
+        var paddingHead = new string('x', 2000);
+        var paddingTail = new string('y', 2000);
+        var output = $"""
+            Total tests: 1
+                 Failed: 1
+              Failed Ns.Pay.WhenIp [1 s]
+              Error Message:
+               Expected ip to be ""
+              Stack Trace:
+                 at Ns.Pay.WhenIp()
+              Standard Output Messages:
+               {conversation}
+               {paddingHead}
+               {middle}
+               {paddingTail}
+               tail-end-zzz
+              Standard Error Messages:
+               stderr-boom
+            """;
+
+        var result = VstestOutputParser.Parse(output, exitCode: 1);
+        Assert.Contains(conversation, result.Failures[0].StdOut, StringComparison.Ordinal);
+        Assert.Contains(middle, result.Failures[0].StdOut, StringComparison.Ordinal);
+        Assert.Contains("stderr-boom", result.Failures[0].StdErr, StringComparison.Ordinal);
+        Assert.DoesNotContain(conversation, result.Failures[0].Error, StringComparison.Ordinal);
+
+        var md = VstestOutputParser.BuildMarkdownReport(result, 1, output, null, null, false);
+        Assert.Contains(conversation, md, StringComparison.Ordinal);
+        Assert.Contains("tail-end-zzz", md, StringComparison.Ordinal);
+        Assert.DoesNotContain(middle, md, StringComparison.Ordinal);
+        Assert.Contains("stderr-boom", md, StringComparison.Ordinal);
+        Assert.Contains("includeFullOutput=true", md, StringComparison.Ordinal);
+
+        var full = VstestOutputParser.BuildMarkdownReport(
+            result,
+            1,
+            output,
+            null,
+            null,
+            false,
+            new TestOutputReportOptions(IncludeFullOutput: true, MaxOutputChars: 0));
+        Assert.Contains(middle, full, StringComparison.Ordinal);
+        Assert.DoesNotContain("includeFullOutput=true", full, StringComparison.Ordinal);
+
+        var raised = VstestOutputParser.BuildMarkdownReport(
+            result,
+            1,
+            output,
+            null,
+            null,
+            false,
+            new TestOutputReportOptions(IncludeFullOutput: false, MaxOutputChars: 12_000));
+        Assert.Contains(middle, raised, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TestOutputReportOptions_resolves_default_full_and_explicit_caps()
+    {
+        Assert.Equal(2500, TestOutputReportOptions.Default.StdOutBudget);
+        Assert.Equal(1000, TestOutputReportOptions.Default.StdErrBudget);
+
+        var full = new TestOutputReportOptions(true, 0);
+        Assert.Equal(100_000, full.StdOutBudget);
+        Assert.Equal(100_000, full.StdErrBudget);
+
+        var capped = new TestOutputReportOptions(true, 8_000);
+        Assert.Equal(8_000, capped.StdOutBudget);
+        Assert.Equal(3_200, capped.StdErrBudget);
     }
 
     [Fact]

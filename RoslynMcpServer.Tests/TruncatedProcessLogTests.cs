@@ -52,4 +52,15 @@ public sealed class TruncatedProcessLogTests
         Assert.DoesNotContain("0 Error(s)", excerpt, StringComparison.Ordinal);
         Assert.DoesNotContain("Build FAILED", excerpt, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void TruncateHeadTail_keeps_head_and_tail_without_msbuild_strip()
+    {
+        var text = "HEAD-TOKEN " + new string('m', 4000) + " TAIL-TOKEN";
+        var excerpt = TruncatedProcessLog.TruncateHeadTail(text, maxCharacters: 2500, headCharacters: 1600, tailCharacters: 700);
+        Assert.Contains("HEAD-TOKEN", excerpt, StringComparison.Ordinal);
+        Assert.Contains("TAIL-TOKEN", excerpt, StringComparison.Ordinal);
+        Assert.Contains("MIDDLE LOG TRUNCATED", excerpt, StringComparison.Ordinal);
+        Assert.True(excerpt.Length <= 2500, excerpt.Length.ToString());
+    }
 }

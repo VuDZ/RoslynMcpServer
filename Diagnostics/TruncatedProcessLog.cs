@@ -21,7 +21,7 @@ internal static class TruncatedProcessLog
     /// <summary>Last segment length when combined output exceeds <see cref="DefaultMaxCombinedCharacters"/>.</summary>
     public const int TailCharactersWhenTruncated = 1500;
 
-    private const string MiddleMarker = "\n\n...[MIDDLE LOG TRUNCATED]...\n\n";
+    internal const string MiddleMarker = "\n\n...[MIDDLE LOG TRUNCATED]...\n\n";
 
     private static readonly Regex MsBuildCountLine = new(
         @"^\d+ (?:Warning|Error)\(s\)$",
@@ -129,6 +129,38 @@ internal static class TruncatedProcessLog
         var head = source[..HeadCharactersWhenTruncated];
         var tail = source[^TailCharactersWhenTruncated..];
         return string.Concat(head, MiddleMarker, tail);
+    }
+
+    /// <summary>
+    /// Head+tail by character count without stripping MSBuild footers (VSTest Standard Output blocks).
+    /// Returns <paramref name="text"/> unchanged when it is at most <paramref name="maxCharacters"/>.
+    /// </summary>
+    public static string TruncateHeadTail(string text, int maxCharacters, int headCharacters, int tailCharacters)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+        if (maxCharacters <= 0 || text.Length <= maxCharacters)
+        {
+            return text;
+        }
+
+        ArgumentOutOfRangeException.ThrowIfNegative(headCharacters);
+        ArgumentOutOfRangeException.ThrowIfNegative(tailCharacters);
+
+        var markerLen = MiddleMarker.Length;
+        if (maxCharacters <= markerLen + 2)
+        {
+            return text[..maxCharacters];
+        }
+
+        var available = maxCharacters - markerLen;
+        var head = Math.Min(headCharacters, Math.Max(1, available - 1));
+        var tail = Math.Min(tailCharacters, available - head);
+        if (tail < 1)
+        {
+            return text[..available];
+        }
+
+        return string.Concat(text.AsSpan(0, head), MiddleMarker, text.AsSpan(text.Length - tail));
     }
 
     internal static bool IsMsBuildOutcomeLine(string trimmedLine)

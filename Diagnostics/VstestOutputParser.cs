@@ -85,7 +85,7 @@ public static class VstestOutputParser
 
     public sealed record TestSummary(int Total, int Passed, int Failed, int Skipped);
 
-    public sealed record FailedTestDetail(string Name, string Error, string Stack);
+    public sealed record FailedTestDetail(string Name, string Error, string Stack, string StdOut = "", string StdErr = "");
 
     public sealed record ParseResult(
         TestSummary? Summary,
@@ -219,7 +219,8 @@ public static class VstestOutputParser
         string combinedOutput,
         string? filter,
         string? filterDescription,
-        bool requireFilterMatch)
+        bool requireFilterMatch,
+        TestOutputReportOptions outputOptions = default)
     {
         var sb = new StringBuilder();
 
@@ -254,7 +255,7 @@ public static class VstestOutputParser
             if (parse.Failures.Count > 0)
             {
                 sb.AppendLine();
-                AppendFailureDetails(sb, parse.Failures, CountFailureAnchors(combinedOutput) > MaxFailedTestDetails);
+                AppendFailureDetails(sb, parse.Failures, CountFailureAnchors(combinedOutput) > MaxFailedTestDetails, outputOptions);
             }
 
             if (exitCode != 0)
@@ -322,7 +323,7 @@ public static class VstestOutputParser
             $"Total: **{total}** · Passed: **{passed}** · Failed: **{failed}**" +
             (skipped > 0 ? $" · Skipped: **{skipped}**" : string.Empty));
         sb.AppendLine();
-        AppendFailureDetails(sb, parse.Failures, CountFailureAnchors(combinedOutput) > MaxFailedTestDetails);
+        AppendFailureDetails(sb, parse.Failures, CountFailureAnchors(combinedOutput) > MaxFailedTestDetails, outputOptions);
         if (parse.Failures.Count == 0)
         {
             sb.AppendLine(
@@ -644,8 +645,8 @@ public static class VstestOutputParser
             var name = blocks[b].Name;
             var end = b + 1 < blocks.Count ? blocks[b + 1].StartLine : lines.Length;
             var blockText = string.Join(Environment.NewLine, lines[start..end]);
-            ExtractErrorAndStack(blockText, out var error, out var stack);
-            result.Add(new FailedTestDetail(name, error, stack));
+            ExtractFailureFields(blockText, out var error, out var stack, out var stdOut, out var stdErr);
+            result.Add(new FailedTestDetail(name, error, stack, stdOut, stdErr));
         }
 
         return result;
@@ -805,7 +806,38 @@ public static class VstestOutputParser
             : filter.Trim();
     }
 
-    private static void ExtractErrorAndStack(string block, out string error, out string stack)
+    private static readonly string[] StdOutEndBanners =
+    [
+        "Standard Error Messages:",
+        "Standard Error:",
+        "Debug Trace:",
+        "Attachments:",
+    ];
+
+    private static readonly string[] StdErrEndBanners =
+    [
+        "Debug Trace:",
+        "Attachments:",
+    ];
+
+    private static readonly string[] StdOutStartBanners =
+    [
+        "Standard Output Messages:",
+        "Standard Output:",
+    ];
+
+    private static readonly string[] StdErrStartBanners =
+    [
+        "Standard Error Messages:",
+        "Standard Error:",
+    ];
+
+    private static void ExtractFailureFields(
+        string block,
+        out string error,
+        out string stack,
+        out string stdOut,
+        out string stdErr)
     {
         error = string.Empty;
         stack = string.Empty;
@@ -840,6 +872,82 @@ public static class VstestOutputParser
             var after = (afterEnd >= 0 ? block[afterStart..afterEnd] : block[afterStart..]).TrimStart();
             stack = TrimStackTrace(after);
         }
+
+        stdOut = ExtractLabeledBlock(block, StdOutStartBanners, StdOutEndBanners);
+        stdErr = ExtractLabeledBlock(block, StdErrStartBanners, StdErrEndBanners);
+    }
+
+    private static string ExtractLabeledBlock(string block, string[] startBanners, string[] endBanners)
+    {
+        var bannerIdx = IndexOfEarliest(block, 0, startBanners);
+        if (bannerIdx < 0)
+        {
+            return string.Empty;
+        }
+
+        var lineEnd = block.IndexOf('\n', bannerIdx);
+        var bodyStart = lineEnd < 0 ? block.Length : lineEnd + 1;
+        if (bodyStart >= block.Length)
+        {
+            return string.Empty;
+        }
+
+        var bodyEnd = IndexOfEarliest(block, bodyStart, endBanners);
+        if (bodyEnd < 0)
+        {
+            bodyEnd = block.Length;
+        }
+
+        var joined = JoinNonEmptyTrimmedLines(block.AsSpan(bodyStart, bodyEnd - bodyStart));
+        if (string.IsNullOrEmpty(joined))
+        {
+            return string.Empty;
+        }
+
+        joined = TruncatedProcessLog.StripTrailingMsBuildOutcome(joined);
+        if (string.IsNullOrEmpty(joined))
+        {
+            return string.Empty;
+        }
+
+        var (head, tail) = TestOutputReportOptions.ScaleHeadTail(
+            TestOutputReportOptions.ParseStreamCapChars,
+            TestOutputReportOptions.DefaultStdOutChars,
+            TestOutputReportOptions.DefaultStdOutHeadChars,
+            TestOutputReportOptions.DefaultStdOutTailChars);
+        return TruncatedProcessLog.TruncateHeadTail(
+            joined,
+            TestOutputReportOptions.ParseStreamCapChars,
+            head,
+            tail);
+    }
+
+    private static string JoinNonEmptyTrimmedLines(ReadOnlySpan<char> span)
+    {
+        var s = span.ToString();
+        if (string.IsNullOrWhiteSpace(s))
+        {
+            return string.Empty;
+        }
+
+        var sb = new StringBuilder();
+        foreach (var line in s.Split(['\r', '\n'], StringSplitOptions.None))
+        {
+            var t = line.TrimEnd();
+            if (t.Length == 0)
+            {
+                continue;
+            }
+
+            if (sb.Length > 0)
+            {
+                sb.Append('\n');
+            }
+
+            sb.Append(t.TrimStart());
+        }
+
+        return sb.ToString();
     }
 
     private static int IndexOfEarliest(string text, int start, params string[] tokens)
@@ -922,12 +1030,29 @@ public static class VstestOutputParser
         return n;
     }
 
-    private static void AppendFailureDetails(StringBuilder sb, IReadOnlyList<FailedTestDetail> failures, bool truncated)
+    private static void AppendFailureDetails(
+        StringBuilder sb,
+        IReadOnlyList<FailedTestDetail> failures,
+        bool truncated,
+        TestOutputReportOptions outputOptions)
     {
         if (failures.Count == 0)
         {
             return;
         }
+
+        var stdoutBudget = outputOptions.StdOutBudget;
+        var stderrBudget = outputOptions.StdErrBudget;
+        var (stdoutHead, stdoutTail) = TestOutputReportOptions.ScaleHeadTail(
+            stdoutBudget,
+            TestOutputReportOptions.DefaultStdOutChars,
+            TestOutputReportOptions.DefaultStdOutHeadChars,
+            TestOutputReportOptions.DefaultStdOutTailChars);
+        var (stderrHead, stderrTail) = TestOutputReportOptions.ScaleHeadTail(
+            stderrBudget,
+            TestOutputReportOptions.DefaultStdErrChars,
+            TestOutputReportOptions.DefaultStdErrHeadChars,
+            TestOutputReportOptions.DefaultStdErrTailChars);
 
         for (var i = 0; i < failures.Count; i++)
         {
@@ -955,12 +1080,54 @@ public static class VstestOutputParser
                 sb.AppendLine($"   **Stack:** {EscapeMdBackticks(stackOneLine)}");
             }
 
+            AppendFailureStream(sb, "StdOut", f.StdOut, stdoutBudget, stdoutHead, stdoutTail, outputOptions);
+            AppendFailureStream(sb, "StdErr", f.StdErr, stderrBudget, stderrHead, stderrTail, outputOptions);
+
             sb.AppendLine();
         }
 
         if (truncated)
         {
             sb.AppendLine("[!] Showing first 5 failures only.");
+        }
+    }
+
+    private static void AppendFailureStream(
+        StringBuilder sb,
+        string label,
+        string raw,
+        int budget,
+        int head,
+        int tail,
+        TestOutputReportOptions outputOptions)
+    {
+        if (string.IsNullOrEmpty(raw))
+        {
+            return;
+        }
+
+        var shown = TruncatedProcessLog.TruncateHeadTail(raw, budget, head, tail);
+        sb.AppendLine($"   **{label}:**");
+        sb.AppendLine();
+        sb.AppendLine("```text");
+        sb.AppendLine(shown.Replace("```", "'''", StringComparison.Ordinal).TrimEnd());
+        sb.AppendLine("```");
+
+        if (shown.Length < raw.Length)
+        {
+            if (budget >= TestOutputReportOptions.FullOutputSafetyCapChars)
+            {
+                sb.AppendLine($"   _{label} truncated at the {TestOutputReportOptions.FullOutputSafetyCapChars}-char safety cap._");
+            }
+            else
+            {
+                sb.AppendLine(
+                    $"   _{label} truncated to {budget} chars (head+tail). Pass `includeFullOutput=true` or raise `maxOutputChars`._");
+            }
+        }
+        else if (outputOptions.IncludeFullOutput && raw.Contains(TruncatedProcessLog.MiddleMarker, StringComparison.Ordinal))
+        {
+            sb.AppendLine($"   _{label} was capped at parse time ({TestOutputReportOptions.ParseStreamCapChars} chars)._");
         }
     }
 

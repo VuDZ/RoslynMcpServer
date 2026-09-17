@@ -164,11 +164,16 @@ Portable OpenCode examples: [`opencode.json.sample`](opencode.json.sample) (`ros
 
 MCP `tools/list` stays JSON + JSON Schema. Markdown is for JIT help and diagnostics.
 
-**Client compatibility:** do not assume the host refreshes tools after `tools/list_changed`. If a newly enabled tool is missing from the client's catalog, restart with `ROSLYN_MCP_TOOL_GROUPS=<group>` (and `ROSLYN_MCP_TOOL_PROFILE=lite`). Measured minified `tools/list` (UTF-8): full **63 / 44,503** (~43.5 KB); lite **19 / 16,917** (~16.5 KB). Adding `editing` to lite is above the 20 KB *startup-lite* budget (expected).
+**Client compatibility:** do not assume the host refreshes tools after `tools/list_changed`. If a newly enabled tool is missing from the client's catalog, restart with `ROSLYN_MCP_TOOL_GROUPS=<group>` (and `ROSLYN_MCP_TOOL_PROFILE=lite`). Measured minified `tools/list` (UTF-8): full **63 / 45,868** (~44.8 KB); lite **19 / 18,282** (~17.9 KB). Adding `editing` to lite is above the 20 KB *startup-lite* budget (expected).
 
 ## Agent tools by version
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
+
+### v1.3.24
+
+- **Failed-test Standard Output in `run_specific_test` / `run_dotnet_test` / `run_test_by_filter`** — VSTest `Standard Output Messages:` / `Standard Error Messages:` (ConversationId, `TestContext`, `ITestOutputHelper`) are included in the markdown report instead of being used only as a parser terminator. Default per-failure budget is **2500** chars of StdOut (head **1600** + tail **700**) and **1000** of StdErr so assertion text stays intact. Optional `includeFullOutput=true` raises the cap to **100000** per stream; optional `maxOutputChars` sets an explicit StdOut budget (StdErr scales; both clamped at 100000). Truncated streams tell the agent to pass those knobs. Do not shell-out `dotnet test` to recover ConversationId.
+- **Catalog size** — full 63 tools / 45,868 bytes; lite 19 / 18,282 (two optional parameters on the three test tools).
 
 ### v1.3.23
 
@@ -816,8 +821,10 @@ Parses C# syntax, inserts with DocumentEditor, formats the file. Prefer over `ap
 - `configuration: string? = null` — optional `dotnet test -c` (e.g. `Sit-Debug`). Omit to inherit `load_workspace` (use the same value as `run_dotnet_build` when `noBuild=true`).
 - `platform: string? = null` — optional `-p:Platform=`. Omit to inherit `load_workspace`.
 - `binariesPath: string? = null` — optional bin directory containing `{AssemblyName}.dll`. Requires a loaded `.sln`/`.slnx` and a `.csproj` `workspacePath`. When `noBuild=false`, builds that project via the loaded solution `-t` first, then `dotnet test` on the DLL. When `noBuild=true`, the DLL must already exist in that directory.
+- `includeFullOutput: bool = false` — when `true`, include failed-test Standard Output/Error up to 100000 chars per stream. Default `false` uses `maxOutputChars`.
+- `maxOutputChars: int = 0` — per-failure Standard Output budget. `0` = 2500 (head 1600 + tail 700), or 100000 when `includeFullOutput` is true. Capped at 100000. StdErr scales with this.
 
-**Behavior:** When `noBuild=false` and `binariesPath` is omitted, runs incremental `dotnet build` first (same `-c` / platform / session `buildArgs` from `load_workspace`; not the `run_dotnet_build` probe), then `dotnet test --no-build --no-restore`. With `binariesPath`, the compile is `dotnet build <sln> -t` and the test target is the DLL. Parser sees only the test process. `--logger "console;verbosity=normal"`. Summary from `Passed!`, `Test Run Successful` + `Total tests`/`Passed:` (Failed defaults to 0), or `.slnx` fail-only `Total tests` + `Failed:` (Passed inferred as Total − Failed − Skipped), or per-test `  Passed FQN [ms]` / `[1 s]` / `[1 m 28 s]`. Failed-test `Error Message:` is reported multiline (head+tail); Standard Output is not mixed into the assertion; the VSTest `Build FAILED` / `0 Error(s)` footer is ignored as a compile result. MSBuild/prune noise ignored; duplicate NU audit lines deduped. Exit 0 without any summary marker → **`Status: partial`** + last 2KB (footer stripped). `run_specific_test` checks the filter matched a test (FQN, method-only xUnit display names, Theory `FQN(args)` Passed/Failed lines). `timeoutSeconds` is the combined budget for build+test. A DLL test also needs `.runtimeconfig.json` / `.deps.json` beside the assembly.
+**Behavior:** When `noBuild=false` and `binariesPath` is omitted, runs incremental `dotnet build` first (same `-c` / platform / session `buildArgs` from `load_workspace`; not the `run_dotnet_build` probe), then `dotnet test --no-build --no-restore`. With `binariesPath`, the compile is `dotnet build <sln> -t` and the test target is the DLL. Parser sees only the test process. `--logger "console;verbosity=normal"`. Summary from `Passed!`, `Test Run Successful` + `Total tests`/`Passed:` (Failed defaults to 0), or `.slnx` fail-only `Total tests` + `Failed:` (Passed inferred as Total − Failed − Skipped), or per-test `  Passed FQN [ms]` / `[1 s]` / `[1 m 28 s]`. Failed-test `Error Message:` is reported multiline (head+tail); Standard Output/Error are separate `StdOut`/`StdErr` blocks (default 2500/1000 chars, head+tail; `includeFullOutput` / `maxOutputChars` raise the cap). The VSTest `Build FAILED` / `0 Error(s)` footer is ignored as a compile result. MSBuild/prune noise ignored; duplicate NU audit lines deduped. Exit 0 without any summary marker → **`Status: partial`** + last 2KB (footer stripped). `run_specific_test` checks the filter matched a test (FQN, method-only xUnit display names, Theory `FQN(args)` Passed/Failed lines). `timeoutSeconds` is the combined budget for build+test. A DLL test also needs `.runtimeconfig.json` / `.deps.json` beside the assembly.
 
 </details>
 
@@ -834,6 +841,8 @@ Parses C# syntax, inserts with DocumentEditor, formats the file. Prefer over `ap
 - `configuration: string? = null` — optional `dotnet test -c` (same as `run_dotnet_test`).
 - `platform: string? = null` — optional `-p:Platform=`. Omit to inherit `load_workspace`.
 - `binariesPath: string? = null` — same as `run_dotnet_test`: bin directory with `{AssemblyName}.dll`; loaded `.sln`/`.slnx` plus `.csproj` `workspacePath`. `noBuild=false` builds via the solution `-t` first.
+- `includeFullOutput: bool = false` — same as `run_dotnet_test`.
+- `maxOutputChars: int = 0` — same as `run_dotnet_test`.
 
 At least one of `className` or `methodName` is required. The tool builds a VSTest-safe `--filter` internally (`FullyQualifiedName~…`, no method `()`, no extra leading `.` on dotted names). After `load_workspace`, Roslyn resolves the type/method FQN when possible. A pass is recognized when VSTest prints only the method name or `Method(args)` — that is not **no matching tests**.
 
@@ -853,6 +862,8 @@ At least one of `className` or `methodName` is required. The tool builds a VSTes
 - `configuration: string? = null` — optional `dotnet test -c`. Omit to inherit `load_workspace`.
 - `platform: string? = null` — optional `-p:Platform=`. Omit to inherit `load_workspace`.
 - `binariesPath: string? = null` — optional bin directory containing the test DLL. Requires a loaded `.sln`/`.slnx` and a `.csproj` `workspacePath`. Runs `{AssemblyName}.dll` from that directory. When `noBuild=false`, builds the project via the loaded solution `-t` first; when `noBuild=true`, the DLL must already exist.
+- `includeFullOutput: bool = false` — same as `run_dotnet_test`.
+- `maxOutputChars: int = 0` — same as `run_dotnet_test`.
 
 **Behavior:** Same VSTest parser and pre-test build split as `run_dotnet_test` when `binariesPath` is omitted and `noBuild=false`. Does **not** check that the filter needle appears in a test FQN (category filters would false-positive). Prefer `run_specific_test` for one class or method.
 
@@ -1651,8 +1662,10 @@ cd D:\Devel\YourApp
 - `configuration: string? = null` — опционально `dotnet test -c` (например `Sit-Debug`). Если не задан — с `load_workspace`.
 - `platform: string? = null` — опционально `-p:Platform=`.
 - `binariesPath: string? = null` — каталог bin с `{AssemblyName}.dll`. Нужен loaded `.sln`/`.slnx` и `workspacePath` на `.csproj`. При `noBuild=false` сначала `dotnet build <sln> -t`, затем `dotnet test` по DLL. При `noBuild=true` DLL уже должна лежать в этом каталоге.
+- `includeFullOutput: bool = false` — полный Standard Output/Error упавшего теста до 100000 символов на поток. По умолчанию `false` — бюджет `maxOutputChars`.
+- `maxOutputChars: int = 0` — бюджет StdOut на один failed test. `0` = 2500 (голова 1600 + хвост 700), или 100000 при `includeFullOutput`. Потолок 100000. StdErr масштабируется.
 
-**Поведение:** при `noBuild=false` и без `binariesPath` сначала отдельный incremental `dotnet build` (те же `-c` / platform / session `buildArgs` с `load_workspace`), затем `dotnet test --no-build --no-restore` (парсер видит только тест). С `binariesPath` сборка идёт через solution `-t`, цель теста — DLL. Сводка из `Passed!`, `Test Run Successful` + `Total tests`/`Passed:` (Failed=0 если нет строки), или `.slnx` fail-only `Total tests` + `Failed:` (Passed = Total − Failed − Skipped), FQN-строки тестов (`[ms]` / `[1 s]` / `[1 m 28 s]`); `Error Message:` многострочный (head+tail), футер VSTest `Build FAILED` / `0 Error(s)` не считается ошибкой компиляции; дедуп NU audit. Без маркеров сводки при exit 0 → **partial** + 2KB лога (футер срезан). `timeoutSeconds` — общий бюджет на build+test. Рядом с DLL нужны `.runtimeconfig.json` / `.deps.json`.
+**Поведение:** при `noBuild=false` и без `binariesPath` сначала отдельный incremental `dotnet build` (те же `-c` / platform / session `buildArgs` с `load_workspace`), затем `dotnet test --no-build --no-restore` (парсер видит только тест). С `binariesPath` сборка идёт через solution `-t`, цель теста — DLL. Сводка из `Passed!`, `Test Run Successful` + `Total tests`/`Passed:` (Failed=0 если нет строки), или `.slnx` fail-only `Total tests` + `Failed:` (Passed = Total − Failed − Skipped), FQN-строки тестов (`[ms]` / `[1 s]` / `[1 m 28 s]`); `Error Message:` многострочный (head+tail); StdOut/StdErr отдельными блоками (по умолчанию 2500/1000, head+tail; `includeFullOutput` / `maxOutputChars` поднимают лимит); футер VSTest `Build FAILED` / `0 Error(s)` не считается ошибкой компиляции; дедуп NU audit. Без маркеров сводки при exit 0 → **partial** + 2KB лога (футер срезан). `timeoutSeconds` — общий бюджет на build+test. Рядом с DLL нужны `.runtimeconfig.json` / `.deps.json`.
 
 </details>
 
@@ -1669,6 +1682,8 @@ cd D:\Devel\YourApp
 - `configuration: string? = null` — опционально `dotnet test -c` (как у `run_dotnet_test`).
 - `platform: string? = null` — опционально `-p:Platform=`.
 - `binariesPath: string? = null` — как у `run_dotnet_test`: каталог bin с `{AssemblyName}.dll`; loaded `.sln`/`.slnx` и `workspacePath` на `.csproj`. `noBuild=false` собирает через solution `-t`.
+- `includeFullOutput: bool = false` — как у `run_dotnet_test`.
+- `maxOutputChars: int = 0` — как у `run_dotnet_test`.
 
 Нужен хотя бы один из `className` / `methodName`. Tool строит VSTest-safe `--filter` (`FullyQualifiedName~…`, без `()` у метода, без лишней ведущей `.` на dotted FQN). После `load_workspace` Roslyn по возможности резолвит FQN типа/метода. Строка `Passed` только с именем метода или `Method(args)` — это успех, не **no matching tests**.
 
@@ -1688,6 +1703,8 @@ cd D:\Devel\YourApp
 - `configuration: string? = null` — опционально `dotnet test -c`. Если не задан — с `load_workspace`.
 - `platform: string? = null` — опционально `-p:Platform=`.
 - `binariesPath: string? = null` — каталог bin с test DLL. Нужен loaded `.sln`/`.slnx` и `workspacePath` на `.csproj`. Запускает `{AssemblyName}.dll` из этого каталога. При `noBuild=false` сначала solution `-t`; при `noBuild=true` DLL уже должна существовать.
+- `includeFullOutput: bool = false` — как у `run_dotnet_test`.
+- `maxOutputChars: int = 0` — как у `run_dotnet_test`.
 
 **Поведение:** тот же парсер VSTest и split build/test, что у `run_dotnet_test`, если `binariesPath` не задан и `noBuild=false`. Не проверяет, что needle фильтра есть в FQN теста (для `TestCategory` это дало бы ложный no-match). Для одного класса/метода предпочитайте `run_specific_test`.
 
