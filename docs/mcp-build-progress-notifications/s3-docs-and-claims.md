@@ -1,6 +1,6 @@
 # S3 — честные формулировки
 
-Статус: **не выполнено**. Зависимость: [S2](s2-build-probe-progress.md).
+Статус: **выполнено (v1.3.25)**. Зависимость: [S2](s2-build-probe-progress.md).
 Результат шага: docs не обещают, что progress лечит хост-таймаут.
 
 ## Основание
@@ -26,4 +26,11 @@ Patch-bump только если в S1–S2 ушло в код (см. version-bu
 
 ## Результат
 
-Не выполнено.
+Выполнено. EN `README` → «Agent tools by version» **v1.3.25**: progress на
+`run_dotnet_build` — heartbeat (шаг, elapsed, previous exit), без stdout;
+явно «**not** a replacement for `timeoutSeconds`» и «**not** a fix for host
+`tools/call` limits (`-32001`, Cursor ACP ~60 s)». RU pointer обновлён
+(диапазон до v1.3.25), RU Reference `run_dotnet_build` — одна фраза про
+heartbeat без обещаний. `get_mcp_server_info`-подсказки (EN + RU) → v1.3.25.
+`AGENTS.md.sample` не менялся: политика сессии та же. Catalog size записан:
+без изменения (full 63 / 45 868, lite 19 / 18 282).

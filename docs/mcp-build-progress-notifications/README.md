@@ -1,13 +1,14 @@
 # MCP `notifications/progress` для `run_dotnet_build`
 
-Дата: 2026-09-12. Статус: **план; реализация не начата**.
+Дата: 2026-09-12. Статус: **S1–S3 shipped в v1.3.25 (review-исправления
+v1.3.26); S4 (test/run) не начат**. Process (`review/`, `response/`) — в
+[_archive/](_archive/README.md).
 Повод: длинный `tools/call` на build/test и вопрос, лечит ли progress
 хост-таймаут Cursor (п.1). Ответ: **сам лимит хоста — нет**; progress —
-отложенный UX, не фикс п.1.
+UX-heartbeat, не фикс п.1.
 
-Этот каталог — напоминание и границы работы. Не начинать, пока нет явного
-запроса на реализацию. Состояние репозитория на момент записи: **v1.3.19**,
-S5 shadow-copy принят.
+Состояние репозитория на момент записи плана: **v1.3.19**, S5 shadow-copy
+принят. Реализация первой поставки: **v1.3.25**.
 
 ## Зачем отложено
 
@@ -54,10 +55,10 @@ Cursor IDE уже держит такие вызовы. OpenCode лечится 
 
 | Шаг | Единственный результат | Зависимость |
 | --- | --- | --- |
-| [S1 — шов progress в CLI runner](s1-cli-runner-progress-seam.md) | Runner умеет слать progress без смены схемы тулов | Нет |
-| [S2 — build probe](s2-build-probe-progress.md) | `run_dotnet_build` репортит шаги restore/build | S1 |
-| [S3 — честные docs](s3-docs-and-claims.md) | README не обещает лечение хост-таймаута | S2 |
-| [S4 — test/run, опционально](s4-test-and-run.md) | Тот же шов на test/run, если S1–S3 уже shipped | S3 |
+| [S1 — шов progress в CLI runner](s1-cli-runner-progress-seam.md) | Runner умеет слать progress без смены схемы тулов | Нет · **shipped v1.3.25** |
+| [S2 — build probe](s2-build-probe-progress.md) | `run_dotnet_build` репортит шаги restore/build | S1 · **shipped v1.3.25** |
+| [S3 — честные docs](s3-docs-and-claims.md) | README не обещает лечение хост-таймаута | S2 · **shipped v1.3.25** |
+| [S4 — test/run, опционально](s4-test-and-run.md) | Тот же шов на test/run, если S1–S3 уже shipped | S3 · **не начат** |
 
 ## Фиксированные решения
 
@@ -73,5 +74,48 @@ Cursor IDE уже держит такие вызовы. OpenCode лечится 
 
 ## Результат каталога
 
-Не выполнено. После реализации — handoff в этом README (версия, commit,
-что именно репортится, какие хосты проверены).
+Первая поставка (S1–S3) выполнена в **v1.3.25** и уточнена по
+[review](_archive/review/README.md) в **v1.3.26** (та же фича, без новых тулов
+и параметров).
+
+- **Commit:** bump `1.3.24 → 1.3.25` (первая поставка) и `1.3.25 → 1.3.26`
+  (исправления ревью); публичный MCP-контракт не менялся, поэтому отдельного
+  catalog-budget ряда нет.
+- **Что репортится** (только `run_dotnet_build`): на границе каждого шага probe
+  (`dotnet build -v:minimal` → pinned restore → `restore -v:minimal` →
+  `restore -v:detailed` → `build -v:normal` → `build -v:detailed`) и далее
+  heartbeat раз в **5 с**, пока процесс жив. Текст: метка шага, `elapsed`
+  **текущего шага** (на границе — `starting`, без числа), exit предыдущего шага.
+  Без stdout, без путей машины, без полного лога. Числовое `Progress` — целые
+  секунды шага со строгим ростом (per-step часы сбрасываются, значение — нет);
+  `Total` не отправляется, поэтому это **не процент готовности** — хостам
+  смотреть `Message`.
+- **Транспорт:** MCP `notifications/progress` через `IProgress<ProgressNotificationValue>`,
+  который SDK инжектит в метод тула (`ExcludeFromSchema`). Новых параметров
+  тулов нет. Хост без progress token получает SDK-овский no-op singleton;
+  `McpToolProgressReporter.TryCreate` распознаёт его и возвращает `null`, так
+  что heartbeat-таймер не заводится вообще — тот же результат сборки и путь
+  без таймера, что до S1. `Report` сам глотает сбои транспорта (контракт
+  `ICliProgressReporter`, не надежда на `catch` у каждого call site).
+- **Seam:** `Services/CliProgress.cs` (`CliProgressUpdate` / `ICliProgressReporter` /
+  `CliProgressWatch`) + `DotNetCliRunner` (heartbeat-таймер только при watch) +
+  `DotNetBuildProbe` (границы шагов) + `Tools/McpToolProgressReporter.cs` (адаптер).
+  Шов переиспользуем для S4 без изменений.
+- **Хосты:** проверено unit-тестом шва (fake reporter + искусственно долгий
+  процесс), тестом probe на **многошаговой** эскалации (метки `-v:minimal` →
+  `restore` → `-v:normal`), прямым тестом `TryCreate` против реального
+  SDK-singleton `ModelContextProtocol.NullProgress`, и двумя in-process MCP
+  server+client тестами на **живом** `dotnet build` — с progress token
+  (уведомления есть) и без token (тот же отчёт о сборке). `SlowProject` в
+  тестах разведён по OS (`ping -n 3` / `sleep 2`). Реальные хосты (Cursor IDE,
+  Cursor ACP/CLI, OpenCode) не перепроверялись: прогресс не претендует на
+  лечение их таймаутов.
+- **Ревью:** [`_archive/review/`](_archive/review/README.md) (R-01, G-01,
+  S1-01, S1-02, S2-01, S2-02, S2-03) — все приняты и исправлены в v1.3.26; сам
+  каталог review не редактировался. Постатейные вердикты и новые риски —
+  [`_archive/response/`](_archive/response/summary.md) (`summary.md`,
+  NEW-D-01, NEW-D-02); на арбитраж ничего не вынесено. Process лежит в
+  [`_archive/`](_archive/README.md), не на живой полке.
+
+Осталось (опционально): [S4](s4-test-and-run.md) — тот же шов на
+`run_dotnet_test` / `run_specific_test` / `run_dotnet_run`.

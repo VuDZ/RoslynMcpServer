@@ -1,6 +1,6 @@
 # S1 — шов progress в `DotNetCliRunner`
 
-Статус: **не выполнено**.
+Статус: **выполнено (v1.3.25)**.
 Результат шага: долгий CLI-процесс может отправить MCP progress, не меняя
 публичные параметры тулов.
 
@@ -33,4 +33,27 @@ progress в файл лога как замену протоколу.
 
 ## Результат
 
-Не выполнено.
+Выполнено. `Services/CliProgress.cs`: `CliProgressUpdate` (stage, elapsed, last
+exit + `Describe()`), `ICliProgressReporter` (никогда не бросает),
+`CliProgressWatch` (`HeartbeatInterval`, default 5 с; `LastExitCode`).
+`DotNetCliRunner.RunWithMetadataAsync` получил последний необязательный
+параметр `CliProgressWatch? progress = null`; без watch вызов идёт в прежний
+`RunCoreAsync` без таймера (поведение байт-в-байт), с watch — linked CTS +
+heartbeat-task, который снимается в `finally` (`CancelAsync` + await).
+Kill-on-timeout и `ReadRemainingStreamsAsync` не менялись.
+
+`Elapsed` — время **текущего шага** (на границе шага — `TimeSpan.Zero`,
+`Describe()` печатает `starting`), а не время всего probe; heartbeat-часы
+заводит runner на каждый процесс.
+
+No-token путь достижим на живом туле: SDK всегда биндит
+`IProgress<ProgressNotificationValue>` (либо `TokenProgress`, либо внутренний
+singleton `NullProgress`). `Tools/McpToolProgressReporter.TryCreate` возвращает
+`null` для `NullProgress` (по полному имени типа, с fallback «просто лишний
+таймер», если SDK переименует тип), поэтому «без watch» — не только тестовый
+путь. `Report` сам глотает исключения, а не полагается на `catch` в probe.
+
+Тесты: `CliProgressTests` (Describe без stdout; heartbeat ≥1 при живом
+процессе и интервале 250 мс; без watch — таймаут и kill по-прежнему);
+`BuildProgressIntegrationTests.TryCreate_treats_the_sdk_no_op_progress_instance_as_no_progress`
+(рефлексия по реальному SDK-типу) и `Report_swallows_a_failing_progress_channel`.

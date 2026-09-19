@@ -1,6 +1,6 @@
 # S2 — progress на `run_dotnet_build`
 
-Статус: **не выполнено**. Зависимость: [S1](s1-cli-runner-progress-seam.md).
+Статус: **выполнено (v1.3.25)**. Зависимость: [S1](s1-cli-runner-progress-seam.md).
 Результат шага: живой build probe репортит границы шагов и периодический
 heartbeat, пока идёт `dotnet build`.
 
@@ -32,4 +32,26 @@ effective exit) не менять.
 
 ## Результат
 
-Не выполнено.
+Выполнено. `DotNetBuildProbe.RunAsync` получил `ICliProgressReporter? progress = null`;
+`RunStepAsync` репортит границу шага (`ReportStepStarted`, сразу, с exit
+предыдущего шага и без elapsed) и передаёт `CliProgressWatch` в runner для
+heartbeat'ов текущего шага.
+Итог тула (diagnostics, `MCP_MSBUILD_SDK_MISMATCH`, effective exit, steps)
+не менялся. `BuildTools.RunDotNetBuild` получил инжектируемый
+`IProgress<ProgressNotificationValue>? progress = null`, обёрнутый в
+`Tools/McpToolProgressReporter`. `[Description]` и публичная схема не менялись
+(`McpToolHelpFormatter.IsMcpBoundParameter` исключает SDK-bound параметры из
+справки и из schema-теста), catalog size тот же: full 63 / 45 868, lite 19 / 18 282.
+
+Тесты:
+
+- `DotNetBuildProbeTests.RunAsync_reports_every_escalated_step_label_to_the_progress_reporter` —
+  приёмка «видны отдельные шаги»: временный проект падает без парсимого
+  `error CODE` (`Error` в `BeforeTargets="Build"`), probe эскалирует, и fake
+  reporter видит разные label'ы (`-v:minimal`, `restore -v:minimal`,
+  `-v:normal`), границы без elapsed с exit предыдущего шага.
+- `BuildProgressIntegrationTests` — in-process MCP server+client на **живом**
+  `dotnet build`: с progress token приходят уведомления с текстом
+  `dotnet build …`, без пути временной папки, и результат — `Build succeeded`;
+  без progress token тот же живой build даёт обычный отчёт (`Build succeeded`,
+  `Steps:`, `dotnet build -v:minimal`). `SlowProject` разведён по OS.
