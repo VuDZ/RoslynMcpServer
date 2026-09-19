@@ -6,7 +6,7 @@ Verdict: ACCEPT
 Критика верна. Предписанный `Microsoft.CodeAnalysis.SymbolKey` в Roslyn 5.9.0 internal; прямой вызов из сервера не компилируется, а спека одновременно запрещает собственный handle.
 
 Требования:
-Incoming [`roslyn_mcp_tool_review.md`](../../../../roslyn_mcp_tool_review.md) §6: «opaque server-side symbol handle is sufficient»; «external API does not have to expose raw Roslyn internals». Чат: symbol-oriented 1.x, не ломка имён.
+Incoming [`roslyn_mcp_tool_review.md`](../roslyn_mcp_tool_review.md) §6: «opaque server-side symbol handle is sufficient»; «external API does not have to expose raw Roslyn internals». Чат: symbol-oriented 1.x, не ломка имён.
 Shipped: [`RoslynMcpServer.csproj`](../../../../RoslynMcpServer.csproj) PackageReference Workspaces **5.9.0**. В дереве нет обращения к `SymbolKey`. `InternalsVisibleTo` только на `RoslynMcpServer.Tests` / `LifecycleTestHost`, не на Roslyn. [ARCHITECTURE.md](../../../ARCHITECTURE.md): `InProcessAnalyzerAssemblyLoader` — **public-API-only**. Probe ревью (`SymbolKey.IsVisible=False`) согласуется с `internal partial struct SymbolKey`.
 
 Что менять:

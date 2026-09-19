@@ -2,7 +2,7 @@
 
 Не норма. Живой mapping — [../../review-mapping.md](../../review-mapping.md).
 
-Incoming: [`roslyn_mcp_tool_review.md`](../../../../roslyn_mcp_tool_review.md)
+Incoming: [`roslyn_mcp_tool_review.md`](../roslyn_mcp_tool_review.md)
 (2026-09, полная критика tool surface). Исторический mapping v1; не канон.
 
 Вердикты:

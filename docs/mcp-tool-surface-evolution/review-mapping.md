@@ -1,6 +1,6 @@
 # Mapping: `roslyn_mcp_tool_review.md`
 
-Incoming: [`roslyn_mcp_tool_review.md`](../../roslyn_mcp_tool_review.md)
+Incoming: [`roslyn_mcp_tool_review.md`](_archive/roslyn_mcp_tool_review.md)
 (2026-09, полная критика tool surface). Это **не** канон. Канон серии —
 [README.md](README.md) и файлы стадий (proposal v2). V1 mapping:
 [_archive/proposal-v1/review-mapping.md](_archive/proposal-v1/review-mapping.md).

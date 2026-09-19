@@ -2,7 +2,7 @@
 
 Каталог ответов на [`../review/`](../review/README.md). Спеки и файлы `review/` не менялись.
 
-Опора (в этом порядке): исходные требования (чат 2026-09-19, [`roslyn_mcp_tool_review.md`](../../../../roslyn_mcp_tool_review.md) §6 opaque handle); предложение [`../README.md`](../proposal-v1/README.md) и стадии; shipped-код / [`ARCHITECTURE.md`](../../../ARCHITECTURE.md).
+Опора (в этом порядке): исходные требования (чат 2026-09-19, [`roslyn_mcp_tool_review.md`](../roslyn_mcp_tool_review.md) §6 opaque handle); предложение [`../README.md`](../proposal-v1/README.md) и стадии; shipped-код / [`ARCHITECTURE.md`](../../../ARCHITECTURE.md).
 
 Сводка: [`summary.md`](summary.md).
 

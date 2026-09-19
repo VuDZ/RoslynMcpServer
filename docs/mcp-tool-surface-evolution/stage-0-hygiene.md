@@ -4,7 +4,7 @@
 не меняется.
 
 Источник: короткий текст про зрелость (в полном
-[`roslyn_mcp_tool_review.md`](../../roslyn_mcp_tool_review.md) этого блока
+[`roslyn_mcp_tool_review.md`](_archive/roslyn_mcp_tool_review.md) этого блока
 нет). Mapping: M-1…M-4 в [review-mapping.md](review-mapping.md).
 Арбитраж: E0-01 — ACCEPT WITH MODIFICATION.
 

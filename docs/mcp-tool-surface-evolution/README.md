@@ -13,7 +13,7 @@ Stage 2 можно передавать в реализацию только п�
 
 - зрелость (packaging, documentation drift, отсутствие CI test gate);
 - внешняя критика tool surface:
-  [`roslyn_mcp_tool_review.md`](../../roslyn_mcp_tool_review.md)
+  [`roslyn_mcp_tool_review.md`](_archive/roslyn_mcp_tool_review.md)
   (полная версия; incoming, **не** норма).
 
 Состояние репозитория на момент записи: **v1.3.24**, full **63** / lite **19**.
@@ -96,7 +96,7 @@ flowchart LR
 | --- | --- |
 | Runtime / инварианты | [ARCHITECTURE.md](../ARCHITECTURE.md) |
 | Исторический compact catalog | [archive/compact-tools](../archive/compact-tools/README.md) |
-| Incoming критика (полная) | [roslyn_mcp_tool_review.md](../../roslyn_mcp_tool_review.md) |
+| Incoming критика (полная) | [roslyn_mcp_tool_review.md](_archive/roslyn_mcp_tool_review.md) |
 | Mapping секций → вердикт | [review-mapping.md](review-mapping.md) |
 | Изменения v1 → v2 | [CHANGELOG-v2.md](CHANGELOG-v2.md) |
 | Product catalog | корневой README, `McpToolCatalog` |

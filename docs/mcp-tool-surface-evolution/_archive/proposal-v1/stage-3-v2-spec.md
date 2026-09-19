@@ -8,7 +8,7 @@ Mapping: R-§9, §13, §20–§26, deferred части §2, §6, §8, §15, §19
 `full` **не реализовывать**, пока нет принятой нормы.
 
 Входной набросок сигнатур — §21–§22
-[`roslyn_mcp_tool_review.md`](../../../../roslyn_mcp_tool_review.md). Ниже — что
+[`roslyn_mcp_tool_review.md`](../roslyn_mcp_tool_review.md). Ниже — что
 спека **обязана** решить, не копируя review как истину.
 
 ## Зачем отдельная стадия

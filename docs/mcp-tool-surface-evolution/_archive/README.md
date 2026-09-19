@@ -4,8 +4,8 @@
 
 Incoming критика tool surface (не норма серии):
 
-- [`../../../roslyn_mcp_tool_review.md`](../../../roslyn_mcp_tool_review.md)
-  — полная статья (§1–§26).
+- [roslyn_mcp_tool_review.md](roslyn_mcp_tool_review.md)
+  — полная статья (§1–§26); incoming, не канон.
 
 | Каталог | Содержимое |
 |---|---|

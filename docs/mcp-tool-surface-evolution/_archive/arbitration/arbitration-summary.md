@@ -2,7 +2,7 @@
 
 Дата: 2026-09-19. Предмет: пять findings из [`review/`](../review/README.md) и ответы из [`response/`](../response/README.md). Это решения для следующей ревизии плана, не реализация Stage 0/2 и не спецификация v2.
 
-Приоритет источников: исходная задача, доступная через [`roslyn_mcp_tool_review.md`](../../../../roslyn_mcp_tool_review.md) и описание краткого запроса в [`review-mapping.md`](../proposal-v1/review-mapping.md); явные ограничения серии в [`README.md`](../proposal-v1/README.md); затем проверяемый код и [`ARCHITECTURE.md`](../../../ARCHITECTURE.md). Исходный краткий текст чата отдельно в дереве отсутствует; его пересказ не используется для вывода новых требований.
+Приоритет источников: исходная задача, доступная через [`roslyn_mcp_tool_review.md`](../roslyn_mcp_tool_review.md) и описание краткого запроса в [`review-mapping.md`](../proposal-v1/review-mapping.md); явные ограничения серии в [`README.md`](../proposal-v1/README.md); затем проверяемый код и [`ARCHITECTURE.md`](../../../ARCHITECTURE.md). Исходный краткий текст чата отдельно в дереве отсутствует; его пересказ не используется для вывода новых требований.
 
 | Finding | Позиция Grok | Позиция Astra | Итог | Обязательное изменение |
 | --- | --- | --- | --- | --- |
