@@ -5,7 +5,7 @@ alwaysApply: true
 
 # RoslynMcpServer overview
 
-MCP server (stdio) for C# analysis: Roslyn workspaces + ILSpy decompile. TFM `net10.0`, version in `RoslynMcpServer.csproj` (currently **1.1.0**). Package id `SampleMcpServer`. Self-contained publish for win/osx/linux RIDs.
+MCP server (stdio) for C# analysis: Roslyn workspaces + ILSpy decompile. TFM `net10.0`, version in `RoslynMcpServer.csproj` (currently **1.3.24**). Package id `SampleMcpServer`. Self-contained publish for win/osx/linux RIDs.
 
 ## Layout
 
@@ -27,6 +27,36 @@ Real-world validation often uses **BrqMover** (`c:\Devel\BrqMover`) — app repo
 
 ## Version history (agent-relevant)
 
+- **1.3.24** — test tools include VSTest `Standard Output/Error` (ConversationId, `ITestOutputHelper`) with per-stream budgets; `includeFullOutput` / `maxOutputChars`
+- **1.3.23** — `run_specific_test` matches xUnit method-only / `FQN(args)` display names (dot-bounded suffix); slow durations `[3 m 8 s]` valid
+- **1.3.22** — test failure text keeps multiline `Error Message:`; MSBuild `Build FAILED` / `0 Error(s)` footer after failed tests is not compile/silent failure
+- **1.3.21** — U-ARB-01: inaccessible original analyzer path is skip (no rewrite, not missing)
+- **1.3.20** — preserve `DependencyUnsupported` / main-only through a full publication ban (v3 S8)
+- **1.3.19** — mixed analyzer prepare: per-reference applied/excluded/banned publication (v3 S5), no `HasAnyApplied`
+- **1.3.18** — withhold opt-in semantics when provenance capture unsuitable (V3-R3); cached `true` does not repair
+- **1.3.17** — persistent fail-closed publication after a failed opt-in (V3-R2)
+- **1.3.16** — reject stale write bases before any disk/workspace mutation (V3-R1 / A4-09)
+- **1.3.15** — no implicit semantic workspace load (`FindDocumentAsync`; U-ARB-04-IMPL-1)
+- **1.3.14** — atomic analyzer load/prepare boundary (U-ARB-04)
+- **1.3.13** — `shadowCopyInSolutionAnalyzers` activation is session-sticky (U-ARB-05); disable via `reset_workspace`
+- **1.3.12** — analyzer provenance acceptance (E5-S4)
+- **1.3.11** — analyzer provenance diagnostics: stable internal reason codes (E5-S3)
+- **1.3.10** — analyzer provenance rollout: exact load-session F-09 join only (E5-S2)
+- **1.3.9** — analyzer provenance capture via design-time binlog replay (F-09)
+- **1.3.8** — workspace write boundary (epoch 4): preflight → exact inverse → persist → apply/reconciliation
+- **1.3.7** — overlay loader contract: restart-required, main-only (epoch 3)
+- **1.3.6** — immutable content-hashed analyzer generation mapping (epoch 2); zero analyzer I/O on edit
+- **1.3.5** — overlay fix: shadow rewrite stays in-memory, never `TryApplyChanges` (v1.3.4 corrupted real `.csproj`)
+- **1.3.4** — `load_workspace` `shadowCopyInSolutionAnalyzers` (superseded by 1.3.5)
+- **1.3.3** — `load_workspace` `logProjectOutputDiagnostics`
+- **1.3.2** — `binariesPath` on `run_specific_test` / `run_dotnet_test`; `run_test_by_filter` honors `noBuild`
+- **1.3.1** — `get_test_list` `projectName` / `nameContains` filters
+- **1.3.0** — `run_test_by_filter` (raw VSTest `--filter`)
+- **1.2.3** — `run_dotnet_build` `projectName` (sln `-t` virtual path); `-p:Configuration` in probes
+- **1.2.2** — `load_workspace` `briefOutput`
+- **1.2.1** — `load_workspace` `buildArgs` (session-cached; build only)
+- **1.2.0** — tool profiles `full` / `lite`, `ROSLYN_MCP_TOOL_GROUPS`, `list_tool_groups` / `get_tool_help` / `enable_tool_group`
+- **1.1.1** — decompile `assemblyName`: dotted simple names (`Spectre.Console`) no longer truncated
 - **1.1.0** — disk watcher: saved `.cs` (IDE/git) sync into MSBuildWorkspace before symbol search; no keystroke/unsaved buffers; `.csproj` changes skip load cache, not OpenSolutionAsync from the watcher
 - **1.0.35** — Roslyn 5.9.0; dedicated VS 2026 / MSBuild 18 BuildHost (`XMakeElements`) load/symbol failure (not SDK mismatch)
 - **1.0.34** — `load_workspace`: wrapped design-time MSBuild warnings (ASPDEPR007 / IncludeOpenAPIAnalyzers, MSB3270, analyzer metadata refs) are warnings, not hard Failure
