@@ -33,7 +33,8 @@ public static class DotNetBuildProbe
         bool noIncremental = true,
         string? platform = null,
         string? buildArgs = null,
-        string? target = null)
+        string? target = null,
+        ICliProgressReporter? progress = null)
     {
         var budget = overallBudget ?? DefaultOverallBudget;
         var perStep = stepTimeout ?? DefaultStepTimeout;
@@ -43,6 +44,7 @@ public static class DotNetBuildProbe
         var steps = new List<string>();
         var buildExitCodes = new List<int>();
         var lastExitCode = 0;
+        int? completedStepExit = null;
         var timedOut = false;
         var budgetExhausted = false;
         var pin = DotNetSdkEnvironment.TryGetPin(workingDirectory);
@@ -67,8 +69,15 @@ public static class DotNetBuildProbe
             }
 
             steps.Add(label);
-            var run = await DotNetCliRunner.RunWithMetadataAsync(arguments, workingDirectory, cancellationToken, timeout)
+            // Boundary report carries no elapsed: the per-step clock starts with the runner
+            // heartbeat below, so `Elapsed` always means "this step", never "whole probe".
+            ReportStepStarted(progress, label, completedStepExit);
+            var watch = progress is null
+                ? null
+                : new CliProgressWatch(progress, label) { LastExitCode = completedStepExit };
+            var run = await DotNetCliRunner.RunWithMetadataAsync(arguments, workingDirectory, cancellationToken, timeout, watch)
                 .ConfigureAwait(false);
+            completedStepExit = run.ExitCode;
             lastExitCode = run.ExitCode;
             if (isBuildStep)
             {
@@ -308,6 +317,30 @@ public static class DotNetBuildProbe
         + DotNetConfigurationArguments.FormatPlatformProperty(platform)
         + FormatIncrementalSwitch(noIncremental)
         + DotNetBuildArguments.FormatSuffix(buildArgs);
+
+    /// <summary>
+    /// Reports a step boundary so the agent sees the current probe stage immediately,
+    /// without waiting for the first runner heartbeat.
+    /// </summary>
+    private static void ReportStepStarted(
+        ICliProgressReporter? progress,
+        string label,
+        int? lastExitCode)
+    {
+        if (progress is null)
+        {
+            return;
+        }
+
+        try
+        {
+            progress.Report(new CliProgressUpdate(label, TimeSpan.Zero, lastExitCode));
+        }
+        catch
+        {
+            // Progress must never fail the build.
+        }
+    }
 
     private static void AppendSection(StringBuilder log, string label, DotNetCliRunner.RunResult run)
     {

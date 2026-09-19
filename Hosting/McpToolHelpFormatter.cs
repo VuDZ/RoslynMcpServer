@@ -1,7 +1,11 @@
 ﻿using System.ComponentModel;
 using System.Globalization;
 using System.Reflection;
+using System.Security.Claims;
 using System.Text;
+using ModelContextProtocol;
+using ModelContextProtocol.Protocol;
+using ModelContextProtocol.Server;
 
 namespace RoslynMcpServer.Hosting;
 
@@ -147,7 +151,7 @@ public static class McpToolHelpFormatter
         var list = new List<McpToolParameterHelp>();
         foreach (var parameter in method.GetParameters())
         {
-            if (parameter.ParameterType == typeof(CancellationToken) || parameter.Name is null)
+            if (parameter.Name is null || IsMcpBoundParameter(parameter.ParameterType))
             {
                 continue;
             }
@@ -164,6 +168,19 @@ public static class McpToolHelpFormatter
 
         return list;
     }
+
+    /// <summary>
+    /// The MCP SDK binds these from the request itself (cancellation, progress token, server,
+    /// request context, DI service) and excludes them from the tool JSON schema; tool help and
+    /// schema assertions must ignore them as well.
+    /// </summary>
+    internal static bool IsMcpBoundParameter(Type parameterType) =>
+        parameterType == typeof(CancellationToken)
+        || parameterType == typeof(IServiceProvider)
+        || parameterType == typeof(ClaimsPrincipal)
+        || parameterType == typeof(McpServer)
+        || parameterType == typeof(RequestContext<CallToolRequestParams>)
+        || parameterType == typeof(IProgress<ProgressNotificationValue>);
 
     private static string FormatUnknown(string? toolName, McpToolActivationService activation)
     {

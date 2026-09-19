@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Text;
 using Microsoft.Extensions.Logging;
+using ModelContextProtocol;
 using ModelContextProtocol.Server;
 using RoslynMcpServer.Diagnostics;
 using RoslynMcpServer.Services;
@@ -37,6 +38,7 @@ public sealed class BuildTools
         [Description(
             "Optional project name. When set, workspacePath must be a .sln/.slnx. Builds that project via its solution-folder MSBuild target instead of the whole solution.")]
         string? projectName = null,
+        IProgress<ProgressNotificationValue>? progress = null,
         CancellationToken cancellationToken = default)
     {
         try
@@ -109,7 +111,8 @@ public sealed class BuildTools
                     noIncremental: noIncremental,
                     platform: effectivePlatform,
                     buildArgs: _solutionManager.LoadedBuildArgs,
-                    target: solutionTarget)
+                    target: solutionTarget,
+                    progress: McpToolProgressReporter.TryCreate(progress))
                 .ConfigureAwait(false);
             var combined = probe.CombinedOutput;
             var processExitCode = probe.ExitCode;

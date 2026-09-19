@@ -170,6 +170,16 @@ MCP `tools/list` stays JSON + JSON Schema. Markdown is for JIT help and diagnost
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.3.26
+
+- **`run_dotnet_build` progress precision** — the reported `elapsed` is always the **current step** (a step boundary reports `starting`, not the whole-probe clock), and the numeric `Progress` is whole elapsed seconds with a strictly increasing value instead of a 1, 2, 3 counter that a progress bar renders as "1%". No `Total` is sent, so it is **not** a completion percentage — hosts should render `Message`. The adapter now honors the `ICliProgressReporter` contract itself (transport failures are swallowed there, not only at probe/runner call sites).
+- **Catalog size** — unchanged: full 63 tools / 45,868 bytes; lite 19 / 18,282.
+
+### v1.3.25
+
+- **`run_dotnet_build` protocol progress** — while a live `dotnet build` / restore step runs, the tool emits MCP `notifications/progress` heartbeats (default every **5 s**) plus one report at each probe step boundary: step label, elapsed seconds, and the previous step's exit code. No stdout and no machine paths are sent, and the text is a heartbeat for a live agent — **not** a result, **not** a replacement for `timeoutSeconds`, and **not** a fix for host `tools/call` limits (`-32001`, Cursor ACP ~60 s). No new tool parameters and no catalog change: the SDK-supplied `IProgress<ProgressNotificationValue>` parameter is excluded from the JSON schema, and a host that sends no progress token gets the SDK's no-op instance, so no heartbeat timer is started at all and the build result is unchanged (`ModelContextProtocol.NullProgress` is detected by type; if a future SDK renames it, the only cost is a harmless timer). `run_dotnet_test` / `run_specific_test` / `run_dotnet_run` do not report progress yet.
+- **Catalog size** — unchanged: full 63 tools / 45,868 bytes; lite 19 / 18,282.
+
 ### v1.3.24
 
 - **Failed-test Standard Output in `run_specific_test` / `run_dotnet_test` / `run_test_by_filter`** — VSTest `Standard Output Messages:` / `Standard Error Messages:` (ConversationId, `TestContext`, `ITestOutputHelper`) are included in the markdown report instead of being used only as a parser terminator. Default per-failure budget is **2500** chars of StdOut (head **1600** + tail **700**) and **1000** of StdErr so assertion text stays intact. Optional `includeFullOutput=true` raises the cap to **100000** per stream; optional `maxOutputChars` sets an explicit StdOut budget (StdErr scales; both clamped at 100000). Truncated streams tell the agent to pass those knobs. Do not shell-out `dotnet test` to recover ConversationId.
@@ -806,7 +816,7 @@ Parses C# syntax, inserts with DocumentEditor, formats the file. Prefer over `ap
 - `platform: string? = null` — optional `-p:Platform=` (e.g. `x64`). Omit to inherit `load_workspace` platform.
 - `projectName: string? = null` — optional. When set, `workspacePath` must be a `.sln`/`.slnx`. Builds that project via its solution-folder MSBuild target (`-t:"Folder\Project"`). Match display name, file name, or virtual path.
 
-**Behavior:** Inherits full process env, then pins SDK via `MSBUILD_EXE_PATH`, `MSBuildSDKsPath`, `DOTNET_MSBUILD_SDK_RESOLVER_SDKS_DIR` / `SDKS_VER` / `CLI_DIR`, `DOTNET_ROOT`. On MSBuild path mismatch → **`error MCP_MSBUILD_SDK_MISMATCH`** and `dotnet exec …/10.x/MSBuild.dll /restore`. Escalation: minimal build → pinned restore → restore (detailed if empty) → build normal → build detailed. **Effective exit** = last `dotnet build` step (not restore). Metadata reports `Configuration` / `Platform` / `ProjectName` / `SolutionTarget` / `BuildArgs` / `NoIncremental`. Session `buildArgs` from `load_workspace` are appended to build steps only (not restore). **Key lines** include task `-- FAILED` with project context. No in-process result cache — “cached” greens were MSBuild incremental or exit overwrite.
+**Behavior:** Inherits full process env, then pins SDK via `MSBUILD_EXE_PATH`, `MSBuildSDKsPath`, `DOTNET_MSBUILD_SDK_RESOLVER_SDKS_DIR` / `SDKS_VER` / `CLI_DIR`, `DOTNET_ROOT`. On MSBuild path mismatch → **`error MCP_MSBUILD_SDK_MISMATCH`** and `dotnet exec …/10.x/MSBuild.dll /restore`. Escalation: minimal build → pinned restore → restore (detailed if empty) → build normal → build detailed. **Effective exit** = last `dotnet build` step (not restore). Metadata reports `Configuration` / `Platform` / `ProjectName` / `SolutionTarget` / `BuildArgs` / `NoIncremental`. Session `buildArgs` from `load_workspace` are appended to build steps only (not restore). **Key lines** include task `-- FAILED` with project context. No in-process result cache — “cached” greens were MSBuild incremental or exit overwrite. While a step runs, MCP progress heartbeats report the step label, elapsed seconds, and previous exit (no stdout); this is UX only and cannot extend the host `tools/call` timeout.
 
 </details>
 
@@ -1087,7 +1097,7 @@ Verify id/version with `search_nuget_registry` first. Clears workspace cache —
 
 **Parameters:** *(none)*
 
-Use after `dotnet publish` to verify the MCP host picked up the new binary (expect **v1.3.24** and **63** tools on `full`, or **19** on `lite`).
+Use after `dotnet publish` to verify the MCP host picked up the new binary (expect **v1.3.26** and **63** tools on `full`, or **19** on `lite`).
 
 </details>
 
@@ -1299,7 +1309,7 @@ cd D:\Devel\YourApp
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.3.24). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.3.26). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 
@@ -1647,7 +1657,7 @@ cd D:\Devel\YourApp
 - `platform: string? = null` — опционально `-p:Platform=`. Если не задан — с `load_workspace`.
 - `projectName: string? = null` — опционально. Если задан, `workspacePath` должен быть `.sln`/`.slnx`. Собирает этот проект через MSBuild-таргет виртуального пути в solution (`-t:"Folder\Project"`). Совпадение по display name, имени файла или виртуальному пути.
 
-**Поведение:** наследование env + pinning (`MSBUILD_EXE_PATH`, `DOTNET_MSBUILD_SDK_RESOLVER_SDKS_*`). Mismatch → **error `MCP_MSBUILD_SDK_MISMATCH`** + pinned `dotnet exec …/MSBuild.dll /restore`. Цепочка minimal → pinned restore → restore/build detailed. **Итоговый exit** = последний `dotnet build` (не restore). В metadata — `Configuration` / `Platform` / `ProjectName` / `SolutionTarget` / `BuildArgs` / `NoIncremental`. Session `buildArgs` с `load_workspace` добавляются только к build-шагам (не к restore). Внутреннего кэша результатов MCP нет.
+**Поведение:** наследование env + pinning (`MSBUILD_EXE_PATH`, `DOTNET_MSBUILD_SDK_RESOLVER_SDKS_*`). Mismatch → **error `MCP_MSBUILD_SDK_MISMATCH`** + pinned `dotnet exec …/MSBuild.dll /restore`. Цепочка minimal → pinned restore → restore/build detailed. **Итоговый exit** = последний `dotnet build` (не restore). В metadata — `Configuration` / `Platform` / `ProjectName` / `SolutionTarget` / `BuildArgs` / `NoIncremental`. Session `buildArgs` с `load_workspace` добавляются только к build-шагам (не к restore). Внутреннего кэша результатов MCP нет. Пока шаг выполняется, идут MCP progress-heartbeat'ы (метка шага, elapsed, предыдущий exit; без stdout) — это UX, а не обход хост-таймаута `tools/call`.
 
 </details>
 
@@ -1926,7 +1936,7 @@ cd D:\Devel\YourApp
 
 **Параметры:** *(нет)*
 
-После `dotnet publish` — проверка, что MCP подхватил новый бинарник (ожидай **v1.3.24** и **63** tools в `full`, или **19** в `lite`).
+После `dotnet publish` — проверка, что MCP подхватил новый бинарник (ожидай **v1.3.26** и **63** tools в `full`, или **19** в `lite`).
 
 </details>
 

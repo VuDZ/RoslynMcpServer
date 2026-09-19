@@ -21,6 +21,7 @@ Run metadata includes inherited overrides, strip/pin **SDK env action**, and SDK
 Escalate when diagnostics missing: `build -v:minimal` → `restore` → `build -v:normal`. Parse MSBuild `path(line,col): error|warning` **and** NuGet `NU####` / GHSA. Surface `MCP_MSBUILD_SDK_MISMATCH` if log SDK ≠ pin. Deduplicate repeated NU lines.
 Optional tool arg `configuration` → `-c` on build steps only (multi-config `.slnx`: `Sit-Debug`, `Dit-Debug`, …). Omit to inherit `load_workspace` configuration. Optional `platform` → `-p:Platform=` (same inherit).
 Default `noIncremental=true` → `--no-incremental` on every build step (agent verification must not trust MSBuild up-to-date). Effective exit = **last** `dotnet build` step — never let restore exit 0 mask a failed build with no rebuild. Report `Configuration` / `NoIncremental` in metadata.
+While a step lives, `run_dotnet_build` emits MCP `notifications/progress` heartbeats (step label, elapsed, previous exit; no stdout) through `DotNetCliRunner`/`DotNetBuildProbe`; the SDK-injected `IProgress<ProgressNotificationValue>` parameter is schema-excluded (`McpToolHelpFormatter.IsMcpBoundParameter`). UX only — never claim it raises the host `tools/call` timeout.
 
 ## Tests (`VstestOutputParser` / `TestTools`)
 

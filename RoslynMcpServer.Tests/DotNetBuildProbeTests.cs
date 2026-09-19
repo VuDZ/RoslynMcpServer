@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using RoslynMcpServer.Services;
 using Xunit;
 
@@ -5,6 +6,76 @@ namespace RoslynMcpServer.Tests;
 
 public sealed class DotNetBuildProbeTests
 {
+    /// <summary>
+    /// A failing build with no parseable <c>error CODE:</c> line makes the probe escalate
+    /// (<c>restore</c> → <c>build -v:normal</c> → <c>build -v:detailed</c>), which is the only way
+    /// to prove that separate steps are reported rather than one "dotnet build" substring.
+    /// </summary>
+    [Fact]
+    public async Task RunAsync_reports_every_escalated_step_label_to_the_progress_reporter()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "RoslynMcpProbeSteps-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            var csproj = Path.Combine(root, "Failing.csproj");
+            // A failing target hook (not a redefinition of `Build`, which the SDK import wins):
+            // exit 1 with a code-less `error :` line, so the parser sees no diagnostic and the
+            // probe escalates instead of stopping at step 1.
+            File.WriteAllText(csproj, """
+                <Project Sdk="Microsoft.NET.Sdk">
+                  <PropertyGroup>
+                    <TargetFramework>net10.0</TargetFramework>
+                  </PropertyGroup>
+                  <Target Name="McpProgressOracleFail" BeforeTargets="Build">
+                    <Error Text="MCP progress step oracle" />
+                  </Target>
+                  <Target Name="CoreCompile" />
+                </Project>
+                """);
+
+            var reporter = new RecordingProgressReporter();
+            var probe = await DotNetBuildProbe.RunAsync(
+                csproj,
+                root,
+                CancellationToken.None,
+                overallBudget: TimeSpan.FromSeconds(240),
+                stepTimeout: TimeSpan.FromSeconds(90),
+                noIncremental: false,
+                progress: reporter);
+
+            Assert.NotEqual(0, probe.ExitCode);
+
+            var updates = reporter.Updates.ToArray();
+            Assert.NotEmpty(updates);
+            var stages = updates.Select(u => u.Stage).Distinct(StringComparer.Ordinal).ToArray();
+            Assert.Contains("dotnet build -v:minimal", stages);
+            Assert.Contains("dotnet restore -v:minimal", stages);
+            Assert.Contains("dotnet build -v:normal", stages);
+
+            // Boundary reports carry no elapsed; heartbeats carry the current step's clock.
+            var boundaries = updates.Where(u => u.Elapsed == TimeSpan.Zero).ToArray();
+            Assert.Equal(stages.Length, boundaries.Select(b => b.Stage).Distinct(StringComparer.Ordinal).Count());
+            Assert.All(boundaries, boundary => Assert.Contains(": starting", boundary.Describe(), StringComparison.Ordinal));
+
+            // Every step after the first is announced with the previous step's exit code.
+            var failures = updates.Skip(1).Where(u => u.Elapsed == TimeSpan.Zero).ToArray();
+            Assert.NotEmpty(failures);
+            Assert.All(failures, update => Assert.NotNull(update.LastExitCode));
+        }
+        finally
+        {
+            try
+            {
+                Directory.Delete(root, recursive: true);
+            }
+            catch
+            {
+                // ignore temp cleanup failures
+            }
+        }
+    }
+
     [Fact]
     public void ShouldRunMoreDiagnostics_true_after_failed_build_with_no_parsed_errors()
     {
@@ -162,6 +233,13 @@ public sealed class DotNetBuildProbeTests
         Assert.Equal(string.Empty, DotNetBuildProbe.FormatTargetSwitch(null));
         Assert.Equal(" -t:\"App\"", DotNetBuildProbe.FormatTargetSwitch("App"));
         Assert.Throws<ArgumentException>(() => DotNetBuildProbe.FormatTargetSwitch("Foo\"Bar"));
+    }
+
+    private sealed class RecordingProgressReporter : ICliProgressReporter
+    {
+        public ConcurrentQueue<CliProgressUpdate> Updates { get; } = new();
+
+        public void Report(CliProgressUpdate update) => Updates.Enqueue(update);
     }
 
     [Fact]

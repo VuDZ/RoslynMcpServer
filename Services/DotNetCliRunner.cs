@@ -120,11 +120,39 @@ public static class DotNetCliRunner
         }
     }
 
+    /// <summary>
+    /// Runs the CLI process and, when <paramref name="progress"/> is supplied, emits periodic
+    /// heartbeats while the process is alive. Without a watch the behavior is byte-for-byte
+    /// unchanged (no timer, no reporting).
+    /// </summary>
     public static async Task<RunResult> RunWithMetadataAsync(
         string arguments,
         string? workingDirectory,
         CancellationToken cancellationToken,
-        TimeSpan? timeout = null)
+        TimeSpan? timeout = null,
+        CliProgressWatch? progress = null)
+    {
+        if (progress is null)
+        {
+            return await RunCoreAsync(arguments, workingDirectory, cancellationToken, timeout).ConfigureAwait(false);
+        }
+
+        var heartbeat = StartHeartbeat(progress, cancellationToken);
+        try
+        {
+            return await RunCoreAsync(arguments, workingDirectory, cancellationToken, timeout).ConfigureAwait(false);
+        }
+        finally
+        {
+            await StopHeartbeatAsync(heartbeat).ConfigureAwait(false);
+        }
+    }
+
+    private static async Task<RunResult> RunCoreAsync(
+        string arguments,
+        string? workingDirectory,
+        CancellationToken cancellationToken,
+        TimeSpan? timeout)
     {
         var workDir = string.IsNullOrWhiteSpace(workingDirectory)
             ? Environment.CurrentDirectory
@@ -194,6 +222,68 @@ public static class DotNetCliRunner
             {
                 TryKillProcessTree(process);
                 throw;
+            }
+        }
+    }
+
+    private static (CancellationTokenSource Cts, Task Task)? StartHeartbeat(
+        CliProgressWatch progress,
+        CancellationToken cancellationToken)
+    {
+        var interval = progress.HeartbeatInterval > TimeSpan.Zero
+            ? progress.HeartbeatInterval
+            : CliProgressWatch.DefaultHeartbeatInterval;
+        var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        var stopwatch = Stopwatch.StartNew();
+        return (cts, ReportHeartbeatAsync(progress, stopwatch, interval, cts.Token));
+    }
+
+    private static async Task StopHeartbeatAsync((CancellationTokenSource Cts, Task Task)? heartbeat)
+    {
+        if (heartbeat is not { } value)
+        {
+            return;
+        }
+
+        try
+        {
+            await value.Cts.CancelAsync().ConfigureAwait(false);
+            await value.Task.ConfigureAwait(false);
+        }
+        catch
+        {
+            // Progress must never change the CLI outcome.
+        }
+        finally
+        {
+            value.Cts.Dispose();
+        }
+    }
+
+    private static async Task ReportHeartbeatAsync(
+        CliProgressWatch progress,
+        Stopwatch stopwatch,
+        TimeSpan interval,
+        CancellationToken cancellationToken)
+    {
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            try
+            {
+                await Task.Delay(interval, cancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+
+            try
+            {
+                progress.Reporter.Report(new CliProgressUpdate(progress.Stage, stopwatch.Elapsed, progress.LastExitCode));
+            }
+            catch
+            {
+                // A progress failure (client disconnect, host without progress support) is not a build failure.
             }
         }
     }
