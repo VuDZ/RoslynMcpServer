@@ -32,10 +32,12 @@ Mapping: R-§9, §13, §20–§26, deferred части §2, §6, §8, §15, §19
    code-fix writes, `update_method_body`, `implement_interface`, ILSpy;
    §25 держит их optional. Выбрать один список и KB budget.
 3. **Имена.** `find_references` vs сохранить `find_usages`;
-   `get_type_outline` vs `get_class_skeleton`; `get_diagnostics` vs
+   `get_type_outline` / `get_symbol_outline(symbolId)` vs
+   `get_class_skeleton`; `get_diagnostics` vs
    `get_diagnostics_for_file`; decompiled align (`get_decompiled_member`).
-   Aliases-как-дубли запрещены compact-tools — нужен явный breaking или
-   период двух имён (это и есть policy).
+   Stage 2 generic outline **не** вводит. Aliases-как-дубли запрещены
+   compact-tools — нужен явный breaking или период двух имён (это и есть
+   policy).
 4. **`resolve_symbol` vs совмещённый `get_symbol_info`.**
 5. **`add_member` / `remove_symbol` / `update_member_body`.** Слияние AST
    (§13) без generic `dispatch`.

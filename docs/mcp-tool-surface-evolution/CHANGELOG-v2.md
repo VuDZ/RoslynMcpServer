@@ -48,6 +48,21 @@ arbitration файлы не изменены (лежат в [_archive/](_archive
 10. **R-§6 mapping.** Норма — session-scoped opaque handle, не
     `SymbolKey`. [E2-01]
 
+## Follow-up (v2 канон, до реализации)
+
+11. **Цель ID.** «Resolve once» ограничен неизменным документом объявления
+    и той же load-сессией. Прозрачный re-issue ID по якорю после `stale-id`
+    запрещён (E2-04). Ответ `stale-id` отдаёт last-known
+    project/document/location/kind/FQN для `get_symbol_info`.
+12. **`get_method_body`.** ID-режим = published snapshot того же resolver;
+    legacy path+class+method = disk first-match. Не «делегировать позже».
+13. **`get_symbol_outline`.** Не Stage 2; generic outline — Stage 3.
+14. **Descriptions.** XOR-режимы, пример ID-only и prefer `symbolId` в
+    `[Description]`, README и `AGENTS.md.sample`. Legacy `symbolName` у
+    `find_usages` остаётся, как неоднозначный primary-pick.
+15. **Fingerprint.** Checksum уже загруженного `SourceText`; Merkle /
+    инкрементальный hash не входят в Stage 2.
+
 ## Preserved unresolved gates
 
 - Точный pin SDK репозитория и политика patch. [E0-01 граница] → U-ARB-01.
@@ -64,6 +79,9 @@ arbitration файлы не изменены (лежат в [_archive/](_archive
 - Location-only на все пять старых tools. [E2-02]
 - Durable ID для именованных деклараций по checksum vs fail-closed только
   для locals. [E2-04]
+- Прозрачный re-issue ID по якорю после `stale-id`. [E2-04]
+- `get_symbol_outline` в Stage 2. [R-§3]
+- Инкрементальный/Merkle hash файла.
 
 ## Migration and runtime impact
 

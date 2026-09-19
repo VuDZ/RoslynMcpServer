@@ -11,7 +11,12 @@ Mapping: R-§2, §3, §5, §6, §7 (`symbolId` на rename), частично §
 
 ## Цель
 
-Агент резолвит символ один раз и дальше передаёт opaque id:
+Пока документ объявления и load-сессия не изменились, агент резолвит
+символ один раз и дальше передаёт opaque id — без повторного
+`filePath + className + methodName` (overloads, nested types, partial,
+explicit interface impl). ID **не** переживает правку файла объявления
+(см. lifetime). После `stale-id` агент заново резолвит через location или
+query в `get_symbol_info`, не тем же id и не полным поиском с нуля.
 
 ```text
 find_symbol_definition / get_symbol_info
@@ -23,9 +28,6 @@ find_usages(symbolId)          # или filePath+line+column
 rename_symbol(symbolId, newName, previewOnly=true)
 get_call_graph(symbolId)
 ```
-
-Вместо повторного `filePath + className + methodName` (overloads, nested
-types, partial, explicit interface impl).
 
 ## Идентичность
 
@@ -42,12 +44,14 @@ Stage 2. `Microsoft.CodeAnalysis.SymbolKey` **не** использовать.
 - `DocumentId`;
 - якорь декларации;
 - для символа с несколькими объявлениями — все относящиеся документы;
-- fingerprint **полного текста** каждого документа объявления.
+- fingerprint **полного текста** каждого документа объявления
+  (checksum уже загруженного `SourceText`; отдельный disk read и
+  инкрементальный/Merkle hash **не** входят в Stage 2).
 
 Создавать ID от `ISymbol` на **published** solution
 (`GetPublishedSolutionAfterDiskSyncAsync`). Один resolver используют
-`get_symbol_info`, `get_symbol_source`, navigation и rename. Разные проверки
-в разных adapters запрещены.
+`get_symbol_info`, `get_symbol_source`, ID-режим `get_method_body`,
+navigation и rename. Разные проверки в разных adapters запрещены.
 
 ### Lifetime
 
@@ -80,9 +84,17 @@ ID **не** переживает произвольную правку доку�
 5. Проверить kind и project context.
 
 Если любая проверка не проходит — явный **`stale-id`**. Не выбирать
-ближайший, первый или одноимённый символ. Candidates допустимы при
-неопределённом имени или project membership, **никогда** после провала
-проверки исторической идентичности ID.
+ближайший, первый или одноимённый символ. **Не** выдавать прозрачно новый
+ID по сохранённому якорю: после смены текста файла якорь указывает в
+другой синтаксис (E2-04). Candidates допустимы при неопределённом имени
+или project membership, **никогда** после провала проверки исторической
+идентичности ID.
+
+Ответ `stale-id` содержит последние **известные на момент выдачи ID**
+поля, без нового выбора символа: `project`, `document` / path, location
+(line/column), `kind`, FQN. Их достаточно, чтобы сразу вызвать
+`get_symbol_info` в location- или query-режиме. Повтор того же `symbolId`
+после `stale-id` снова `stale-id`.
 
 Для edits: identity validation **до** построения кандидата на запись и до
 preview, и повторно до apply. Существующий write freshness gate проверяет
@@ -127,6 +139,14 @@ location-режима `find_usages`.
   символ;
 - не заполнен ни один полный режим → **`missing-selector`**;
 - пустые строки считать отсутствующими.
+
+`[Description]` каждого из пяти старых tools, плюс `get_symbol_info` /
+`get_symbol_source`, обязан содержать: перечень режимов, пример ID-only,
+предпочтение `symbolId`. Для `find_usages` явно: `symbolName` остаётся
+валидным legacy и даёт прежний name-search + primary-pick; для точного
+символа — `symbolId` или location. При ship обновить README Reference и
+одну строку session policy в `AGENTS.md.sample` (предпочитать `symbolId`;
+после `stale-id` — `get_symbol_info` по location/query).
 
 `newName` всегда required в схеме и runtime. `scope` и `previewOnly=true`
 сохранить. Для C# сигнатуры допустимо переставить `newName` перед optional
@@ -178,23 +198,31 @@ memberships этого пути.
 - выход: `kind`, FQN, containing type, return/params, accessibility,
   базовые flags (`isAsync` / `isVirtual` по применимости), source location,
   **`symbolId`** с указанным lifetime;
+- Description: после `stale-id` — location или query заново, не повтор
+  того же id;
 - расширенные поля §5 (generic args, XML summary, attributes, nullable,
   implemented/overridden) — не блокер первой поставки.
 
 `get_symbol_source`:
 
 - вход: `symbolId`;
-- workspace snapshot (не disk-first, как нынешний `get_method_body`);
+- published workspace snapshot после disk sync (тот же resolver);
 - method, constructor, property, accessor, field, event, type
   (class/record/struct/interface/enum), local function;
 - overload-aware.
 
-`get_symbol_outline(symbolId)` (§3): желательно, если это тонкая обёртка
-над walker'ом `get_class_skeleton` для произвольного типа. Если нет —
-оставить `get_class_skeleton` и перенести generic outline в Stage 3.
+`get_method_body` **не** удалять. Два режима с разной freshness — это
+контракт Stage 2, не «позже»:
 
-`get_method_body` не удалять: может позже делегировать в `get_symbol_source`
-для методов.
+- `symbolId` → тот же published snapshot и identity checks, что
+  `get_symbol_source` (для методов). Не disk-first first-match.
+- legacy `filePath+className+methodName` → прежнее поведение: чтение
+  диска, first match, без overload selection.
+- Description: точное тело после `load_workspace` — `symbolId` или
+  `get_symbol_source`, не path+name.
+
+Generic `get_symbol_outline(symbolId)` в Stage 2 **нет**. Остаётся
+`get_class_skeleton`; outline — Stage 3.
 
 ## Тесты
 
@@ -208,7 +236,12 @@ MCP schema и вызовы:
 - каждый legacy-вызов;
 - `newName` required;
 - отсутствие и смешение selectors;
-- defaults rename (`scope`, `previewOnly=true`).
+- defaults rename (`scope`, `previewOnly=true`);
+- `stale-id` содержит last-known project/document/location/kind/FQN и не
+  выдаёт новый ID;
+- `get_method_body(symbolId)` читает snapshot, не disk first-match;
+- legacy `get_method_body(filePath, class, method)` по-прежнему disk
+  first-match.
 
 Сценарии точности:
 
@@ -236,6 +269,9 @@ MCP schema и вызовы:
 - Переносимые между процессами/загрузками ID и сохранение ID после
   изменения документа объявления
   ([U-ARB-02](UNRESOLVED-v2.md#u-arb-02--переносимый-или-durable-symbolid)).
+- Прозрачный re-issue нового ID по якорю после `stale-id`.
+- Инкрементальный content hash / Merkle файла.
+- Generic `get_symbol_outline` (Stage 3).
 - Общая миграция legacy filePath-tools на project-aware выбор (U-ARB-03).
 - `get_diagnostics(scope)` (§8) — Stage 3.
 - `add_member` / `remove_symbol` / `update_member_body` rename (§13, §21).
@@ -251,8 +287,12 @@ MCP schema и вызовы:
   после Stage 1).
 - Старые вызовы без `symbolId` ведут себя как сейчас.
 - ID-only вызовы пяти старых tools валидны.
-- README «Agent tools by version» + Reference: lifetime ID, `stale-id` и
-  отсутствие точности legacy path-only для linked-файла.
+- Descriptions пяти старых tools + `get_symbol_info` / `get_symbol_source`
+  перечисляют режимы, пример ID-only и предпочтение `symbolId`.
+- README «Agent tools by version» + Reference + `AGENTS.md.sample`:
+  lifetime ID, payload `stale-id`, prefer `symbolId`, ID-режим
+  `get_method_body` = snapshot, отсутствие точности legacy path-only для
+  linked-файла.
 
 ## Версия
 

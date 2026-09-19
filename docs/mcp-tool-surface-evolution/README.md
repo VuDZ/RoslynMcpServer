@@ -32,7 +32,8 @@ targeted build/test, ILSpy. `lite` уже близко к правильному
 
 1. починить зрелость (CI, packaging, счётчики);
 2. довести `lite` до пары skeleton + body и semantic rename;
-3. сделать символ first-class (`symbolId`) **аддитивно** в 1.x;
+3. сделать символ first-class (`symbolId`) **аддитивно** в 1.x:
+   session-scoped; после правки файла объявления — `stale-id`, не тот же id;
 4. отдельно специфицировать breaking v2, не удаляя имена до принятой нормы.
 
 ## Фиксированные ограничения 1.x
