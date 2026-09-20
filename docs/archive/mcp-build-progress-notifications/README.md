@@ -1,7 +1,7 @@
 # MCP `notifications/progress` для `run_dotnet_build`
 
-Дата: 2026-09-12. Статус: **S1–S3 shipped в v1.3.25 (review-исправления
-v1.3.26); S4 (test/run) не начат**. Process (`review/`, `response/`) — в
+Дата: 2026-09-12. Статус: **S1–S4 shipped** (S1–S3 v1.3.25, review-исправления
+v1.3.26, S4 v1.3.27). Process (`review/`, `response/`) — в
 [_archive/](_archive/README.md).
 Повод: длинный `tools/call` на build/test и вопрос, лечит ли progress
 хост-таймаут Cursor (п.1). Ответ: **сам лимит хоста — нет**; progress —
@@ -35,8 +35,10 @@ Cursor IDE уже держит такие вызовы. OpenCode лечится 
 периодический MCP progress во время живого `dotnet build` / restore.
 Публичная схема тула не меняется (новых параметров нет).
 
-`run_dotnet_test` / `run_specific_test` / `run_dotnet_run` — отдельный
-последующий шаг: тот же CLI runner, но другая приёмка и риск шума.
+`run_dotnet_test` / `run_specific_test` / `run_test_by_filter` /
+`run_dotnet_run` — отдельный последующий шаг: тот же reporter, но другая
+приёмка и риск шума; `run_dotnet_run` ещё и другой entrypoint runner
+(`RunSeparatedAsync`). Канон — [S4](s4-test-and-run.md).
 
 ## Что это не делает
 
@@ -58,7 +60,7 @@ Cursor IDE уже держит такие вызовы. OpenCode лечится 
 | [S1 — шов progress в CLI runner](s1-cli-runner-progress-seam.md) | Runner умеет слать progress без смены схемы тулов | Нет · **shipped v1.3.25** |
 | [S2 — build probe](s2-build-probe-progress.md) | `run_dotnet_build` репортит шаги restore/build | S1 · **shipped v1.3.25** |
 | [S3 — честные docs](s3-docs-and-claims.md) | README не обещает лечение хост-таймаута | S2 · **shipped v1.3.25** |
-| [S4 — test/run, опционально](s4-test-and-run.md) | Тот же шов на test/run, если S1–S3 уже shipped | S3 · **не начат** |
+| [S4 — test/run, опционально](s4-test-and-run.md) | Progress на test/run (+ `run_test_by_filter`); watch на `RunSeparatedAsync` | S3 · **shipped v1.3.27** |
 
 ## Фиксированные решения
 
@@ -100,7 +102,9 @@ Cursor IDE уже держит такие вызовы. OpenCode лечится 
 - **Seam:** `Services/CliProgress.cs` (`CliProgressUpdate` / `ICliProgressReporter` /
   `CliProgressWatch`) + `DotNetCliRunner` (heartbeat-таймер только при watch) +
   `DotNetBuildProbe` (границы шагов) + `Tools/McpToolProgressReporter.cs` (адаптер).
-  Шов переиспользуем для S4 без изменений.
+  Для S4 переиспользуются `ICliProgressReporter` / `CliProgressWatch` /
+  `TryCreate` без правок контракта `RunWithMetadataAsync`. `RunSeparatedAsync`
+  получил тот же optional watch в **v1.3.27**.
 - **Хосты:** проверено unit-тестом шва (fake reporter + искусственно долгий
   процесс), тестом probe на **многошаговой** эскалации (метки `-v:minimal` →
   `restore` → `-v:normal`), прямым тестом `TryCreate` против реального
@@ -117,5 +121,7 @@ Cursor IDE уже держит такие вызовы. OpenCode лечится 
   NEW-D-01, NEW-D-02); на арбитраж ничего не вынесено. Process лежит в
   [`_archive/`](_archive/README.md), не на живой полке.
 
-Осталось (опционально): [S4](s4-test-and-run.md) — тот же шов на
-`run_dotnet_test` / `run_specific_test` / `run_dotnet_run`.
+S4 выполнен в **v1.3.27**: progress на `run_dotnet_test` / `run_specific_test` /
+`run_test_by_filter` / `run_dotnet_run`. Метки `dotnet build` / `dotnet test` /
+`dotnet run`; heartbeat 5 с; `RunSeparatedAsync` с optional watch. Факты —
+корневой README (ряд v1.3.27) и [ARCHITECTURE.md](../../ARCHITECTURE.md).

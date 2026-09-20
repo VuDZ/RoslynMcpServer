@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Text;
 using Microsoft.Extensions.Logging;
+using ModelContextProtocol;
 using ModelContextProtocol.Server;
 using RoslynMcpServer.Diagnostics;
 using RoslynMcpServer.Services;
@@ -47,6 +48,7 @@ public sealed class TestTools
         bool includeFullOutput = false,
         [Description(MaxOutputCharsDescription)]
         int maxOutputChars = 0,
+        IProgress<ProgressNotificationValue>? progress = null,
         CancellationToken cancellationToken = default)
     {
         return ExecuteDotnetTestAsync(
@@ -63,6 +65,7 @@ public sealed class TestTools
             binariesPath,
             includeFullOutput,
             maxOutputChars,
+            progress,
             cancellationToken);
     }
 
@@ -93,6 +96,7 @@ public sealed class TestTools
         bool includeFullOutput = false,
         [Description(MaxOutputCharsDescription)]
         int maxOutputChars = 0,
+        IProgress<ProgressNotificationValue>? progress = null,
         CancellationToken cancellationToken = default)
     {
         const string toolName = nameof(RunSpecificTest);
@@ -124,6 +128,7 @@ public sealed class TestTools
                     binariesPath,
                     includeFullOutput,
                     maxOutputChars,
+                    progress,
                     cancellationToken)
                 .ConfigureAwait(false);
         }
@@ -166,6 +171,7 @@ public sealed class TestTools
         bool includeFullOutput = false,
         [Description(MaxOutputCharsDescription)]
         int maxOutputChars = 0,
+        IProgress<ProgressNotificationValue>? progress = null,
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(filter))
@@ -190,6 +196,7 @@ public sealed class TestTools
             binariesPath,
             includeFullOutput,
             maxOutputChars,
+            progress,
             cancellationToken);
     }
 
@@ -327,6 +334,7 @@ public sealed class TestTools
         string? binariesPath,
         bool includeFullOutput,
         int maxOutputChars,
+        IProgress<ProgressNotificationValue>? progress,
         CancellationToken cancellationToken)
     {
         try
@@ -501,16 +509,20 @@ public sealed class TestTools
 
             TimeSpan? timeout = timeoutSeconds > 0 ? TimeSpan.FromSeconds(timeoutSeconds) : null;
             var sw = System.Diagnostics.Stopwatch.StartNew();
+            var cliProgress = McpToolProgressReporter.TryCreate(progress);
+            int? previousExit = null;
 
             var preTestBuildArguments = slnPreTestBuildArguments ?? plan.PreTestBuildArguments;
             var preTestWorkDir = slnBuildWorkDir ?? workDir;
             if (preTestBuildArguments is not null)
             {
-                var buildRun = await DotNetCliRunner.RunWithMetadataAsync(
+                var buildRun = await CliProgressStep.RunWithMetadataAsync(
                     preTestBuildArguments,
                     preTestWorkDir,
                     cancellationToken,
-                    timeout).ConfigureAwait(false);
+                    timeout,
+                    cliProgress,
+                    CliProgressStep.BuildStage).ConfigureAwait(false);
 
                 if (buildRun.TimedOut)
                 {
@@ -575,13 +587,18 @@ public sealed class TestTools
                     exhausted.AppendLine(DotNetCliRunner.FormatHangHints(timedOut: true, cancelled: false));
                     return ToolTelemetry.TraceAndReturn(toolName, exhausted.ToString().TrimEnd());
                 }
+
+                previousExit = buildRun.ExitCode;
             }
 
-            var run = await DotNetCliRunner.RunWithMetadataAsync(
+            var run = await CliProgressStep.RunWithMetadataAsync(
                 plan.TestArguments,
                 workDir,
                 cancellationToken,
-                timeout).ConfigureAwait(false);
+                timeout,
+                cliProgress,
+                CliProgressStep.TestStage,
+                previousExit).ConfigureAwait(false);
 
             if (run.TimedOut)
             {

@@ -84,6 +84,128 @@ public sealed class CliProgressTests
         }
     }
 
+    [Fact]
+    public async Task RunSeparatedAsync_without_a_watch_still_times_out_and_kills_the_process()
+    {
+        var root = CreateTempRoot();
+        try
+        {
+            var csproj = WriteHangProject(root);
+
+            var run = await DotNetCliRunner.RunSeparatedAsync(
+                $"msbuild \"{csproj}\" /t:Hang /nologo /v:q",
+                root,
+                TimeSpan.FromSeconds(4),
+                CancellationToken.None);
+
+            Assert.True(run.TimedOut);
+        }
+        finally
+        {
+            DeleteQuietly(root);
+        }
+    }
+
+    [Fact]
+    public async Task RunSeparatedAsync_reports_heartbeats_while_the_process_is_alive()
+    {
+        var root = CreateTempRoot();
+        try
+        {
+            var csproj = WriteHangProject(root);
+            var reporter = new RecordingProgressReporter();
+            var watch = new CliProgressWatch(reporter, CliProgressStep.RunStage)
+            {
+                HeartbeatInterval = TimeSpan.FromMilliseconds(250),
+            };
+
+            var run = await DotNetCliRunner.RunSeparatedAsync(
+                $"msbuild \"{csproj}\" /t:Hang /nologo /v:q",
+                root,
+                TimeSpan.FromSeconds(4),
+                CancellationToken.None,
+                watch);
+
+            Assert.True(run.TimedOut);
+            Assert.NotEmpty(reporter.Updates);
+            Assert.All(reporter.Updates, update => Assert.Equal(CliProgressStep.RunStage, update.Stage));
+            Assert.All(reporter.Updates, update => Assert.True(update.Elapsed > TimeSpan.Zero));
+            Assert.All(
+                reporter.Updates,
+                update => Assert.DoesNotContain("Pinging", update.Describe(), StringComparison.OrdinalIgnoreCase));
+        }
+        finally
+        {
+            DeleteQuietly(root);
+        }
+    }
+
+    [Fact]
+    public async Task Test_orchestration_reports_build_then_test_labels_with_previous_exit()
+    {
+        var reporter = new RecordingProgressReporter();
+        var workDir = Environment.CurrentDirectory;
+
+        var build = await CliProgressStep.RunWithMetadataAsync(
+            "--info",
+            workDir,
+            CancellationToken.None,
+            timeout: TimeSpan.FromSeconds(30),
+            reporter,
+            CliProgressStep.BuildStage);
+        Assert.Equal(0, build.ExitCode);
+
+        var test = await CliProgressStep.RunWithMetadataAsync(
+            "--info",
+            workDir,
+            CancellationToken.None,
+            timeout: TimeSpan.FromSeconds(30),
+            reporter,
+            CliProgressStep.TestStage,
+            build.ExitCode);
+        Assert.Equal(0, test.ExitCode);
+
+        var updates = reporter.Updates.ToArray();
+        var starts = updates.Where(update => update.Elapsed == TimeSpan.Zero).ToArray();
+        Assert.Equal(2, starts.Length);
+        Assert.Equal(CliProgressStep.BuildStage, starts[0].Stage);
+        Assert.Null(starts[0].LastExitCode);
+        Assert.Equal(CliProgressStep.TestStage, starts[1].Stage);
+        Assert.Equal(build.ExitCode, starts[1].LastExitCode);
+        Assert.Contains("starting", starts[1].Describe(), StringComparison.Ordinal);
+        Assert.Contains($"previous step exit {build.ExitCode}", starts[1].Describe(), StringComparison.Ordinal);
+        Assert.All(
+            updates,
+            update =>
+            {
+                Assert.DoesNotContain("Passed", update.Describe(), StringComparison.Ordinal);
+                Assert.DoesNotContain("Failed", update.Describe(), StringComparison.Ordinal);
+                Assert.DoesNotContain(workDir, update.Describe(), StringComparison.OrdinalIgnoreCase);
+            });
+    }
+
+    [Fact]
+    public async Task Test_orchestration_without_pre_test_reports_only_dotnet_test()
+    {
+        var reporter = new RecordingProgressReporter();
+
+        var test = await CliProgressStep.RunWithMetadataAsync(
+            "--info",
+            Environment.CurrentDirectory,
+            CancellationToken.None,
+            timeout: TimeSpan.FromSeconds(30),
+            reporter,
+            CliProgressStep.TestStage);
+
+        Assert.Equal(0, test.ExitCode);
+        var updates = reporter.Updates.ToArray();
+        Assert.NotEmpty(updates);
+        Assert.All(updates, update => Assert.Equal(CliProgressStep.TestStage, update.Stage));
+        Assert.DoesNotContain(updates, update => update.Stage == CliProgressStep.BuildStage);
+        Assert.Null(updates[0].LastExitCode);
+        Assert.Equal(TimeSpan.Zero, updates[0].Elapsed);
+    }
+
     private static string CreateTempRoot()
     {
         var root = Path.Combine(Path.GetTempPath(), "RoslynMcpProgress-" + Guid.NewGuid().ToString("N"));

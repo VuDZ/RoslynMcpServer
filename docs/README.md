@@ -14,7 +14,6 @@
 | Тема | Канон | Статус |
 |---|---|---|
 | Workspace load cache | [workspace-load-cache/](workspace-load-cache/README.md) | post-arbitration spec, не в runtime |
-| MCP build progress | [mcp-build-progress-notifications/](mcp-build-progress-notifications/README.md) | S1–S3 shipped (v1.3.25, review fixes v1.3.26); S4 (test/run) не начат; process в `_archive/` |
 | MCP tool surface evolution | [mcp-tool-surface-evolution/](mcp-tool-surface-evolution/README.md) | post-arbitration spec v2; реализация не начата |
 
 ## Contract

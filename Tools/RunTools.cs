@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Text;
 using Microsoft.Extensions.Logging;
+using ModelContextProtocol;
 using ModelContextProtocol.Server;
 using RoslynMcpServer.Diagnostics;
 using RoslynMcpServer.Services;
@@ -32,6 +33,7 @@ public sealed class RunTools
         int maxStdoutChars = ProcessOutputExcerpt.DefaultMaxStdoutCharacters,
         [Description("Max stderr characters in the response.")]
         int maxStderrChars = ProcessOutputExcerpt.DefaultMaxStderrCharacters,
+        IProgress<ProgressNotificationValue>? progress = null,
         CancellationToken cancellationToken = default)
     {
         const string toolName = nameof(RunDotNetRun);
@@ -69,7 +71,13 @@ public sealed class RunTools
             }
 
             TimeSpan? timeout = timeoutSeconds > 0 ? TimeSpan.FromSeconds(timeoutSeconds) : null;
-            var run = await DotNetCliRunner.RunSeparatedAsync(args.ToString(), workDir, timeout, cancellationToken)
+            var run = await CliProgressStep.RunSeparatedAsync(
+                    args.ToString(),
+                    workDir,
+                    timeout,
+                    cancellationToken,
+                    McpToolProgressReporter.TryCreate(progress),
+                    CliProgressStep.RunStage)
                 .ConfigureAwait(false);
 
             var stdoutExcerpt = ProcessOutputExcerpt.BuildStdoutExcerpt(run.StdOut, maxStdoutChars);

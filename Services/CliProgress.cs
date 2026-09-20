@@ -49,3 +49,54 @@ public sealed record CliProgressWatch(ICliProgressReporter Reporter, string Stag
     /// <summary>Exit code of the last completed step, when one already finished.</summary>
     public int? LastExitCode { get; init; }
 }
+
+/// <summary>
+/// Stable step labels and runner wiring for test/run progress (S4).
+/// </summary>
+internal static class CliProgressStep
+{
+    public const string BuildStage = "dotnet build";
+    public const string TestStage = "dotnet test";
+    public const string RunStage = "dotnet run";
+
+    public static void ReportStarted(ICliProgressReporter? progress, string stage, int? lastExitCode = null)
+        => progress?.Report(new CliProgressUpdate(stage, TimeSpan.Zero, lastExitCode));
+
+    public static CliProgressWatch? Watch(ICliProgressReporter? progress, string stage, int? lastExitCode = null)
+        => progress is null ? null : new CliProgressWatch(progress, stage) { LastExitCode = lastExitCode };
+
+    public static Task<DotNetCliRunner.RunResult> RunWithMetadataAsync(
+        string arguments,
+        string? workingDirectory,
+        CancellationToken cancellationToken,
+        TimeSpan? timeout,
+        ICliProgressReporter? progress,
+        string stage,
+        int? lastExitCode = null)
+    {
+        ReportStarted(progress, stage, lastExitCode);
+        return DotNetCliRunner.RunWithMetadataAsync(
+            arguments,
+            workingDirectory,
+            cancellationToken,
+            timeout,
+            Watch(progress, stage, lastExitCode));
+    }
+
+    public static Task<DotNetCliRunner.SeparatedRunResult> RunSeparatedAsync(
+        string arguments,
+        string? workingDirectory,
+        TimeSpan? timeout,
+        CancellationToken cancellationToken,
+        ICliProgressReporter? progress,
+        string stage)
+    {
+        ReportStarted(progress, stage);
+        return DotNetCliRunner.RunSeparatedAsync(
+            arguments,
+            workingDirectory,
+            timeout,
+            cancellationToken,
+            Watch(progress, stage));
+    }
+}

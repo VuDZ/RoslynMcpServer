@@ -36,17 +36,36 @@ public static class DotNetCliRunner
         return (result.ExitCode, result.CombinedOutput);
     }
 
+    /// <summary>
+    /// Runs the CLI process with stdout and stderr kept separate. When
+    /// <paramref name="progress"/> is supplied, emits periodic heartbeats while the
+    /// process is alive. Without a watch the behavior is byte-for-byte unchanged.
+    /// </summary>
     public static async Task<SeparatedRunResult> RunSeparatedAsync(
         string arguments,
         string? workingDirectory,
         TimeSpan? timeout = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        CliProgressWatch? progress = null)
     {
         var workDir = string.IsNullOrWhiteSpace(workingDirectory)
             ? Environment.CurrentDirectory
             : Path.GetFullPath(workingDirectory);
 
-        return await RunSeparatedCoreAsync(arguments, workDir, timeout, cancellationToken).ConfigureAwait(false);
+        if (progress is null)
+        {
+            return await RunSeparatedCoreAsync(arguments, workDir, timeout, cancellationToken).ConfigureAwait(false);
+        }
+
+        var heartbeat = StartHeartbeat(progress, cancellationToken);
+        try
+        {
+            return await RunSeparatedCoreAsync(arguments, workDir, timeout, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            await StopHeartbeatAsync(heartbeat).ConfigureAwait(false);
+        }
     }
 
     private static async Task<SeparatedRunResult> RunSeparatedCoreAsync(

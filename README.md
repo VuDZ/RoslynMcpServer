@@ -170,6 +170,11 @@ MCP `tools/list` stays JSON + JSON Schema. Markdown is for JIT help and diagnost
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.3.27
+
+- **`run_dotnet_test` / `run_specific_test` / `run_test_by_filter` / `run_dotnet_run` protocol progress** — the same MCP `notifications/progress` heartbeat as `run_dotnet_build` (step label, current-step elapsed, previous exit; default **5 s**; no stdout). Test tools report `dotnet build` then `dotnet test` when `noBuild=false`, or only `dotnet test` when `noBuild=true`; `run_dotnet_run` reports `dotnet run`. Pre-test compile is still one incremental `dotnet build`, not the build probe. **Not** a replacement for `timeoutSeconds` and **not** a fix for host `tools/call` limits (`-32001`, Cursor ACP ~60 s). No new tool parameters and no catalog change (`IProgress` stays schema-excluded).
+- **Catalog size** — unchanged: full 63 tools / 45,868 bytes; lite 19 / 18,282.
+
 ### v1.3.26
 
 - **`run_dotnet_build` progress precision** — the reported `elapsed` is always the **current step** (a step boundary reports `starting`, not the whole-probe clock), and the numeric `Progress` is whole elapsed seconds with a strictly increasing value instead of a 1, 2, 3 counter that a progress bar renders as "1%". No `Total` is sent, so it is **not** a completion percentage — hosts should render `Message`. The adapter now honors the `ICliProgressReporter` contract itself (transport failures are swallowed there, not only at probe/runner call sites).
@@ -834,7 +839,7 @@ Parses C# syntax, inserts with DocumentEditor, formats the file. Prefer over `ap
 - `includeFullOutput: bool = false` — when `true`, include failed-test Standard Output/Error up to 100000 chars per stream. Default `false` uses `maxOutputChars`.
 - `maxOutputChars: int = 0` — per-failure Standard Output budget. `0` = 2500 (head 1600 + tail 700), or 100000 when `includeFullOutput` is true. Capped at 100000. StdErr scales with this.
 
-**Behavior:** When `noBuild=false` and `binariesPath` is omitted, runs incremental `dotnet build` first (same `-c` / platform / session `buildArgs` from `load_workspace`; not the `run_dotnet_build` probe), then `dotnet test --no-build --no-restore`. With `binariesPath`, the compile is `dotnet build <sln> -t` and the test target is the DLL. Parser sees only the test process. `--logger "console;verbosity=normal"`. Summary from `Passed!`, `Test Run Successful` + `Total tests`/`Passed:` (Failed defaults to 0), or `.slnx` fail-only `Total tests` + `Failed:` (Passed inferred as Total − Failed − Skipped), or per-test `  Passed FQN [ms]` / `[1 s]` / `[1 m 28 s]`. Failed-test `Error Message:` is reported multiline (head+tail); Standard Output/Error are separate `StdOut`/`StdErr` blocks (default 2500/1000 chars, head+tail; `includeFullOutput` / `maxOutputChars` raise the cap). The VSTest `Build FAILED` / `0 Error(s)` footer is ignored as a compile result. MSBuild/prune noise ignored; duplicate NU audit lines deduped. Exit 0 without any summary marker → **`Status: partial`** + last 2KB (footer stripped). `run_specific_test` checks the filter matched a test (FQN, method-only xUnit display names, Theory `FQN(args)` Passed/Failed lines). `timeoutSeconds` is the combined budget for build+test. A DLL test also needs `.runtimeconfig.json` / `.deps.json` beside the assembly.
+**Behavior:** When `noBuild=false` and `binariesPath` is omitted, runs incremental `dotnet build` first (same `-c` / platform / session `buildArgs` from `load_workspace`; not the `run_dotnet_build` probe), then `dotnet test --no-build --no-restore`. With `binariesPath`, the compile is `dotnet build <sln> -t` and the test target is the DLL. Parser sees only the test process. `--logger "console;verbosity=normal"`. Summary from `Passed!`, `Test Run Successful` + `Total tests`/`Passed:` (Failed defaults to 0), or `.slnx` fail-only `Total tests` + `Failed:` (Passed inferred as Total − Failed − Skipped), or per-test `  Passed FQN [ms]` / `[1 s]` / `[1 m 28 s]`. Failed-test `Error Message:` is reported multiline (head+tail); Standard Output/Error are separate `StdOut`/`StdErr` blocks (default 2500/1000 chars, head+tail; `includeFullOutput` / `maxOutputChars` raise the cap). The VSTest `Build FAILED` / `0 Error(s)` footer is ignored as a compile result. MSBuild/prune noise ignored; duplicate NU audit lines deduped. Exit 0 without any summary marker → **`Status: partial`** + last 2KB (footer stripped). `run_specific_test` checks the filter matched a test (FQN, method-only xUnit display names, Theory `FQN(args)` Passed/Failed lines). `timeoutSeconds` is the combined budget for build+test. A DLL test also needs `.runtimeconfig.json` / `.deps.json` beside the assembly. While a step runs, MCP progress heartbeats report `dotnet build` / `dotnet test` (no stdout); this is UX only and cannot extend the host `tools/call` timeout.
 
 </details>
 
@@ -1097,7 +1102,7 @@ Verify id/version with `search_nuget_registry` first. Clears workspace cache —
 
 **Parameters:** *(none)*
 
-Use after `dotnet publish` to verify the MCP host picked up the new binary (expect **v1.3.26** and **63** tools on `full`, or **19** on `lite`).
+Use after `dotnet publish` to verify the MCP host picked up the new binary (expect **v1.3.27** and **63** tools on `full`, or **19** on `lite`).
 
 </details>
 
@@ -1309,7 +1314,7 @@ cd D:\Devel\YourApp
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.3.26). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.3.27). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 
@@ -1675,7 +1680,7 @@ cd D:\Devel\YourApp
 - `includeFullOutput: bool = false` — полный Standard Output/Error упавшего теста до 100000 символов на поток. По умолчанию `false` — бюджет `maxOutputChars`.
 - `maxOutputChars: int = 0` — бюджет StdOut на один failed test. `0` = 2500 (голова 1600 + хвост 700), или 100000 при `includeFullOutput`. Потолок 100000. StdErr масштабируется.
 
-**Поведение:** при `noBuild=false` и без `binariesPath` сначала отдельный incremental `dotnet build` (те же `-c` / platform / session `buildArgs` с `load_workspace`), затем `dotnet test --no-build --no-restore` (парсер видит только тест). С `binariesPath` сборка идёт через solution `-t`, цель теста — DLL. Сводка из `Passed!`, `Test Run Successful` + `Total tests`/`Passed:` (Failed=0 если нет строки), или `.slnx` fail-only `Total tests` + `Failed:` (Passed = Total − Failed − Skipped), FQN-строки тестов (`[ms]` / `[1 s]` / `[1 m 28 s]`); `Error Message:` многострочный (head+tail); StdOut/StdErr отдельными блоками (по умолчанию 2500/1000, head+tail; `includeFullOutput` / `maxOutputChars` поднимают лимит); футер VSTest `Build FAILED` / `0 Error(s)` не считается ошибкой компиляции; дедуп NU audit. Без маркеров сводки при exit 0 → **partial** + 2KB лога (футер срезан). `timeoutSeconds` — общий бюджет на build+test. Рядом с DLL нужны `.runtimeconfig.json` / `.deps.json`.
+**Поведение:** при `noBuild=false` и без `binariesPath` сначала отдельный incremental `dotnet build` (те же `-c` / platform / session `buildArgs` с `load_workspace`), затем `dotnet test --no-build --no-restore` (парсер видит только тест). С `binariesPath` сборка идёт через solution `-t`, цель теста — DLL. Сводка из `Passed!`, `Test Run Successful` + `Total tests`/`Passed:` (Failed=0 если нет строки), или `.slnx` fail-only `Total tests` + `Failed:` (Passed = Total − Failed − Skipped), FQN-строки тестов (`[ms]` / `[1 s]` / `[1 m 28 s]`); `Error Message:` многострочный (head+tail); StdOut/StdErr отдельными блоками (по умолчанию 2500/1000, head+tail; `includeFullOutput` / `maxOutputChars` поднимают лимит); футер VSTest `Build FAILED` / `0 Error(s)` не считается ошибкой компиляции; дедуп NU audit. Без маркеров сводки при exit 0 → **partial** + 2KB лога (футер срезан). `timeoutSeconds` — общий бюджет на build+test. Рядом с DLL нужны `.runtimeconfig.json` / `.deps.json`. Пока шаг выполняется, идут MCP progress-heartbeat'ы (`dotnet build` / `dotnet test`, без stdout) — UX, не обход хост-таймаута `tools/call`.
 
 </details>
 
@@ -1936,7 +1941,7 @@ cd D:\Devel\YourApp
 
 **Параметры:** *(нет)*
 
-После `dotnet publish` — проверка, что MCP подхватил новый бинарник (ожидай **v1.3.26** и **63** tools в `full`, или **19** в `lite`).
+После `dotnet publish` — проверка, что MCP подхватил новый бинарник (ожидай **v1.3.27** и **63** tools в `full`, или **19** в `lite`).
 
 </details>
 
