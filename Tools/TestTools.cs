@@ -235,12 +235,17 @@ public sealed class TestTools
             var loadedPath = _solutionManager.GetLoadedWorkspacePath();
             if (IsEmptyTestListPayload(json))
             {
-                var guidance = listed.FiltersApplied
+                // Filters only explain an empty result when the workspace did find test methods.
+                // With zero methods found, the filter advice is misleading — the workspace scope is
+                // the real signal.
+                var guidance = listed.FiltersApplied && listed.TotalTestMethodsFound > 0
                     ? WorkspaceLoadGuidance.FormatFilteredTestListEmptyMessage(
-                        loadedPath, projectName, nameContains)
+                        loadedPath, projectName, nameContains, listed.TotalTestMethodsFound)
                     : WorkspaceLoadGuidance.FormatEmptyTestListMessage(
                         loadedPath,
-                        solution.ProjectIds.Count);
+                        solution.ProjectIds.Count,
+                        projectName,
+                        nameContains);
                 return ToolTelemetry.TraceAndReturn(
                     toolName,
                     guidance + Environment.NewLine + Environment.NewLine + "```json\n" + json + "\n```");

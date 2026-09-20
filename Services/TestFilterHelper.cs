@@ -171,12 +171,11 @@ public static class TestFilterHelper
 
     private static bool IsTestMethod(IMethodSymbol method)
     {
-        return method.GetAttributes().Any(static attribute =>
-        {
-            var name = attribute.AttributeClass?.Name;
-            return name is "FactAttribute" or "TheoryAttribute" or "TestAttribute" or "TestMethodAttribute"
-                or "TestCaseAttribute" or "DataTestMethodAttribute" or "DataRowAttribute";
-        });
+        // Shared matcher (also used by get_test_list): walks the base chain, so custom attributes
+        // derived from a framework root resolve too. DataRowAttribute is intentionally not a marker
+        // — it does not create a test without TestMethod/DataTestMethod.
+        return method.GetAttributes().Any(
+            static attribute => TestAttributeMatcher.IsTestAttributeType(attribute.AttributeClass));
     }
 
     /// <summary>

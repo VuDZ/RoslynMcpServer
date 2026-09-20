@@ -11,15 +11,20 @@ namespace RoslynMcpServer.Services;
 
 public static class TestDiscoveryHelper
 {
-    private static readonly HashSet<string> TestAttributes = new(StringComparer.Ordinal)
+    /// <summary>
+    /// <paramref name="TotalTestMethodsFound"/> counts test methods matched **before**
+    /// <c>projectName</c>/<c>nameContains</c>, so a zero result can be attributed either to the
+    /// filters or to a workspace without any tests. When <c>truncated</c> is true the scan stopped
+    /// early at <c>maxResults</c> and the number is a lower bound.
+    /// </summary>
+    public sealed record ListTestsResult(
+        bool Success,
+        string Payload,
+        bool FiltersApplied,
+        int TotalTestMethodsFound = 0)
     {
-        "Fact", "Theory", "Test", "TestMethod", "DataTestMethod", "TestCase"
-    };
-
-    public sealed record ListTestsResult(bool Success, string Payload, bool FiltersApplied)
-    {
-        public static ListTestsResult Ok(string json, bool filtersApplied) =>
-            new(true, json, filtersApplied);
+        public static ListTestsResult Ok(string json, bool filtersApplied, int totalTestMethodsFound) =>
+            new(true, json, filtersApplied, totalTestMethodsFound);
 
         public static ListTestsResult Fail(string errorMessage) =>
             new(false, errorMessage, FiltersApplied: true);
@@ -44,6 +49,7 @@ public static class TestDiscoveryHelper
         }
 
         var tests = new List<object>();
+        var totalTestMethodsFound = 0;
 
         foreach (var project in resolved.Projects)
         {
@@ -74,6 +80,8 @@ public static class TestDiscoveryHelper
                         continue;
                     }
 
+                    totalTestMethodsFound++;
+
                     var className = symbol.ContainingType?.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat) ?? "?";
                     var methodName = symbol.Name;
                     if (!MatchesNameContains(symbol, className, methodName, nameFilter))
@@ -93,16 +101,18 @@ public static class TestDiscoveryHelper
                     if (tests.Count >= maxResults)
                     {
                         return ListTestsResult.Ok(
-                            Serialize(tests, truncated: true, projectFilter, nameFilter),
-                            filtersApplied);
+                            Serialize(tests, totalTestMethodsFound, truncated: true, projectFilter, nameFilter),
+                            filtersApplied,
+                            totalTestMethodsFound);
                     }
                 }
             }
         }
 
         return ListTestsResult.Ok(
-            Serialize(tests, truncated: false, projectFilter, nameFilter),
-            filtersApplied);
+            Serialize(tests, totalTestMethodsFound, truncated: false, projectFilter, nameFilter),
+            filtersApplied,
+            totalTestMethodsFound);
     }
 
     internal static ProjectResolveResult TryResolveProjects(Solution solution, string? projectName)
@@ -184,9 +194,14 @@ public static class TestDiscoveryHelper
         {
             foreach (var attr in attrList.Attributes)
             {
-                var symbol = model.GetSymbolInfo(attr).Symbol ?? model.GetTypeInfo(attr).Type;
-                var name = symbol?.Name ?? attr.Name.ToString();
-                if (TestAttributes.Contains(name) || name.EndsWith("Fact", StringComparison.Ordinal) || name.EndsWith("Theory", StringComparison.Ordinal))
+                var type = TestAttributeMatcher.ResolveAttributeType(attr, model);
+                // Custom attributes derived from a framework root (e.g. [WpfFact],
+                // [AnalyzerLifecycleFact]) are matched through the base chain; the syntactic name is
+                // a fallback only for a compilation where the attribute did not bind at all.
+                var isTest = type is not null
+                    ? TestAttributeMatcher.IsTestAttributeType(type)
+                    : TestAttributeMatcher.IsTestAttributeSyntaxName(attr.Name.ToString());
+                if (isTest)
                 {
                     return true;
                 }
@@ -256,6 +271,7 @@ public static class TestDiscoveryHelper
 
     private static string Serialize(
         List<object> tests,
+        int totalTestMethodsFound,
         bool truncated,
         string? projectFilter,
         string? nameContains)
@@ -263,6 +279,7 @@ public static class TestDiscoveryHelper
         var payload = new Dictionary<string, object?>
         {
             ["count"] = tests.Count,
+            ["totalTestMethodsFound"] = totalTestMethodsFound,
             ["truncated"] = truncated,
             ["tests"] = tests
         };

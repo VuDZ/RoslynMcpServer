@@ -201,6 +201,43 @@ public sealed class WorkspaceLoadGuidanceTests
     }
 
     [Fact]
+    public void FormatFilteredTestListEmptyMessage_states_how_many_tests_were_found()
+    {
+        var message = WorkspaceLoadGuidance.FormatFilteredTestListEmptyMessage(
+            @"C:\repo\App.sln",
+            projectName: null,
+            nameContains: "NoSuchTest",
+            totalTestMethodsFound: 42);
+
+        Assert.Contains("**42** test methods were found", message, StringComparison.Ordinal);
+        Assert.Contains("nameContains:** `NoSuchTest`", message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FormatEmptyTestListMessage_says_filters_cannot_be_the_cause()
+    {
+        var message = WorkspaceLoadGuidance.FormatEmptyTestListMessage(
+            @"C:\repo\App.sln",
+            projectCount: 3,
+            projectName: "App.Tests",
+            nameContains: "AllSoftOrderCompletedValidation");
+
+        Assert.Contains("Filters are not the cause", message, StringComparison.Ordinal);
+        Assert.Contains("cannot change this result", message, StringComparison.Ordinal);
+        Assert.Contains("Projects in workspace:** 3", message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FormatEmptyTestListMessage_without_filters_omits_the_filter_note()
+    {
+        var message = WorkspaceLoadGuidance.FormatEmptyTestListMessage(
+            @"C:\repo\App.sln",
+            projectCount: 3);
+
+        Assert.DoesNotContain("Filters are not the cause", message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void FormatNoMatchingTestsAgentHint_detects_path_mismatch_and_suffix_mode()
     {
         var message = WorkspaceLoadGuidance.FormatNoMatchingTestsAgentHint(

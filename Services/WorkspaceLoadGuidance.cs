@@ -389,8 +389,14 @@ public static class WorkspaceLoadGuidance
 
     /// <summary>
     /// Empty discovery result while a workspace is loaded — usually wrong scope (helper `.csproj` vs test `.sln`).
+    /// Used both with and without filters: when the workspace holds no test methods at all, the
+    /// filters are irrelevant and relaxing them cannot help.
     /// </summary>
-    public static string FormatEmptyTestListMessage(string? loadedWorkspacePath, int projectCount)
+    public static string FormatEmptyTestListMessage(
+        string? loadedWorkspacePath,
+        int projectCount,
+        string? projectName = null,
+        string? nameContains = null)
     {
         var sb = new StringBuilder();
         sb.AppendLine("## No tests found in the loaded Roslyn workspace");
@@ -416,6 +422,14 @@ public static class WorkspaceLoadGuidance
         }
 
         sb.AppendLine($"- **Projects in workspace:** {projectCount}");
+
+        if (!string.IsNullOrWhiteSpace(projectName) || !string.IsNullOrWhiteSpace(nameContains))
+        {
+            sb.AppendLine(
+                "- **Filters are not the cause:** a filter was supplied, but the workspace contains no test methods at all — "
+                + "relaxing or dropping `projectName` / `nameContains` cannot change this result.");
+        }
+
         sb.AppendLine(
             "- **Next step:** call `load_workspace` with the absolute path to the `.sln`/`.slnx` that contains the test projects, then retry `get_test_list`.");
         AppendSolutionCandidates(sb);
@@ -423,19 +437,22 @@ public static class WorkspaceLoadGuidance
     }
 
     /// <summary>
-    /// Empty discovery after <c>projectName</c> / <c>nameContains</c> — not the same as a wrong workspace.
+    /// Empty discovery after <c>projectName</c> / <c>nameContains</c> **while the workspace does
+    /// contain test methods** — not the same as a wrong workspace.
     /// </summary>
     public static string FormatFilteredTestListEmptyMessage(
         string? loadedWorkspacePath,
         string? projectName,
-        string? nameContains)
+        string? nameContains,
+        int totalTestMethodsFound = 0)
     {
         var sb = new StringBuilder();
         sb.AppendLine("## No tests matched the get_test_list filters");
         sb.AppendLine();
         sb.AppendLine(
-            "**Agent signal:** the loaded workspace was scanned, but **0** test methods matched the supplied filters. "
-            + "This is not the same as a missing test project — drop or relax `projectName` / `nameContains` before assuming the wrong `.sln` is loaded.");
+            $"**Agent signal:** the loaded workspace was scanned and **{totalTestMethodsFound}** test methods were found, "
+            + "but **0** matched the supplied filters. This is not the same as a missing test project — "
+            + "drop or relax `projectName` / `nameContains` before assuming the wrong `.sln` is loaded.");
         sb.AppendLine();
         if (!string.IsNullOrWhiteSpace(loadedWorkspacePath))
         {

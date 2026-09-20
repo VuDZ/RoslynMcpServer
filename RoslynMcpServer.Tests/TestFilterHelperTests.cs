@@ -1,3 +1,6 @@
+using System.Runtime.InteropServices;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.Text;
 using RoslynMcpServer.Services;
 using Xunit;
 
@@ -77,6 +80,46 @@ public sealed class TestFilterHelperTests
             CancellationToken.None);
 
         Assert.Equal("FullyQualifiedName~GetAppStorePricesTests", filter);
+    }
+
+    [Fact]
+    public async Task BuildFilter_resolves_method_marked_with_custom_fact_derived_attribute()
+    {
+        // Custom attributes derived from a framework root must resolve: get_test_list and the
+        // filter now share one matcher (TestAttributeMatcher), so a class using
+        // AnalyzerLifecycleFactAttribute-style attributes is filterable too.
+        using var workspace = new AdhocWorkspace();
+        var project = workspace.AddProject("Lifecycle.Tests", LanguageNames.CSharp)
+            .AddMetadataReference(MetadataReference.CreateFromFile(typeof(object).Assembly.Location))
+            .AddMetadataReference(MetadataReference.CreateFromFile(
+                Path.Combine(RuntimeEnvironment.GetRuntimeDirectory(), "System.Runtime.dll")))
+            .AddMetadataReference(MetadataReference.CreateFromFile(typeof(FactAttribute).Assembly.Location));
+        var document = project.AddDocument(
+            "LifecycleTests.cs",
+            SourceText.From("""
+                using Xunit;
+
+                namespace Analyzer.Lifecycle.Tests;
+
+                internal sealed class CustomFactAttribute : FactAttribute {}
+
+                public class LifecycleTests
+                {
+                    [CustomFact] public void DerivedOne() {}
+                }
+                """),
+            filePath: Path.Combine(Path.GetTempPath(), "LifecycleTests.cs"));
+        workspace.TryApplyChanges(document.Project.Solution);
+
+        // A method name resolves only when IsTestMethod accepts the (derived) attribute.
+        var (filter, description) = await TestFilterHelper.BuildFilterAsync(
+            workspace.CurrentSolution,
+            className: "LifecycleTests",
+            methodName: "DerivedOne",
+            CancellationToken.None);
+
+        Assert.Equal("FullyQualifiedName~Analyzer.Lifecycle.Tests.LifecycleTests.DerivedOne", filter);
+        Assert.Contains("Roslyn-resolved FQN", description, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -170,6 +170,22 @@ MCP `tools/list` stays JSON + JSON Schema. Markdown is for JIT help and diagnost
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.3.29
+
+- **Custom attributes derived from a framework test attribute are now discovered and filterable** — a single `TestAttributeMatcher` walks the attribute base chain against `FactAttribute` / `TheoryAttribute` (xUnit), `TestAttribute` / `TestCaseAttribute` / `TestCaseSourceAttribute` (NUnit), `TestMethodAttribute` (MSTest). So `[WpfFact]` and this repo's own `AnalyzerLifecycleFactAttribute : FactAttribute` (83 usages in `AnalyzerLifecycle/`) are reported by `get_test_list` and resolve in `run_specific_test` / `run_test_by_filter`, matching what VSTest already ran. MSTest `DataTestMethodAttribute` follows from `TestMethodAttribute`; `DataRowAttribute` is no longer treated as a test marker on its own (it does not create a test without `TestMethod`/`DataTestMethod`).
+- **One matcher instead of two** — `TestDiscoveryHelper` and `TestFilterHelper` previously kept separate test-attribute lists that had already drifted (`DataRow` recognized by the filter but not by discovery). Both now call `TestAttributeMatcher`.
+- **`get_test_list` payload** — new `totalTestMethodsFound` field (test methods matched **before** `projectName` / `nameContains`). When the scan is truncated at `maxResults` it is a lower bound.
+- **Empty-result guidance no longer misleads** — filters are blamed for an empty list only when the workspace actually found test methods. With `totalTestMethodsFound == 0` the message is the workspace-scope one and states that relaxing the filters cannot change the result; the filtered message now reports how many methods were found.
+- **Tests** — regression coverage for a custom `FactAttribute`-derived attribute (real xUnit hierarchy), in-source NUnit/MSTest hierarchies, and an unbound-compilation fixture for the syntactic fallback. `ListTests_does_not_match_lookalike_non_test_attributes` is renamed and documented as an over-broad-matcher guard (it cannot detect a regression back to `.ctor`; the positive tests do).
+- **Catalog size** — unchanged: full 63 tools / 45,868 bytes; lite 19 / 18,282.
+
+### v1.3.28
+
+- **`get_test_list` returned 0 tests on every real workspace** — `HasTestAttribute` called `GetSymbolInfo(AttributeSyntax)`, which returns the attribute **constructor** (`IMethodSymbol`, `Name == ".ctor"`), never the attribute type; the fallback also compared against `Fact`/`Theory` while the real types are `FactAttribute`/`TheoryAttribute`. Result: `count: 0` for any loaded `.sln`/`.slnx` where the attributes actually bind (all real xUnit/NUnit/MSTest projects), while `run_test_by_filter` / `run_specific_test` still found and ran the same tests (they use `TestFilterHelper`, which checks `AttributeClass.Name`). Fixed by resolving `IMethodSymbol.ContainingType` (or `GetTypeInfo` type) and matching the type name with the `Attribute` suffix stripped and any qualifier removed; the syntactic name is still used as a fallback only when the attribute does not bind at all.
+- **`get_test_list` empty-result guidance** — no longer the only explanation for `count: 0`: with semantic binding fixed, an unfiltered empty list means the loaded workspace really has no test methods (tests live in another `.sln`), and a filtered empty list means the filters matched nothing.
+- **`TestDiscoveryHelperTests` were a false green** — the `AdhocWorkspace` fixtures had no metadata references (and no `System.Runtime`, so `FactAttribute`'s base `Attribute` was unresolved with `CS0012`), so the attribute never bound, the syntactic fallback matched, and the suite passed against the broken code. Fixtures now reference corelib + `System.Runtime` + `xunit.core` and use `using Xunit;`, plus regression tests for bound attribute spellings (`[Fact]`, `[FactAttribute]`, `[Xunit.Fact]`) and a look-alike `[NotATest]` that must stay ignored. Reverting the fix now fails 8 of these tests.
+- **Catalog size** — unchanged: full 63 tools / 45,868 bytes; lite 19 / 18,282.
+
 ### v1.3.27
 
 - **`run_dotnet_test` / `run_specific_test` / `run_test_by_filter` / `run_dotnet_run` protocol progress** — the same MCP `notifications/progress` heartbeat as `run_dotnet_build` (step label, current-step elapsed, previous exit; default **5 s**; no stdout). Test tools report `dotnet build` then `dotnet test` when `noBuild=false`, or only `dotnet test` when `noBuild=true`; `run_dotnet_run` reports `dotnet run`. Pre-test compile is still one incremental `dotnet build`, not the build probe. **Not** a replacement for `timeoutSeconds` and **not** a fix for host `tools/call` limits (`-32001`, Cursor ACP ~60 s). No new tool parameters and no catalog change (`IProgress` stays schema-excluded).
@@ -1102,7 +1118,7 @@ Verify id/version with `search_nuget_registry` first. Clears workspace cache —
 
 **Parameters:** *(none)*
 
-Use after `dotnet publish` to verify the MCP host picked up the new binary (expect **v1.3.27** and **63** tools on `full`, or **19** on `lite`).
+Use after `dotnet publish` to verify the MCP host picked up the new binary (expect **v1.3.29** and **63** tools on `full`, or **19** on `lite`).
 
 </details>
 
@@ -1314,7 +1330,7 @@ cd D:\Devel\YourApp
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.3.27). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.3.29). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 
@@ -1941,7 +1957,7 @@ cd D:\Devel\YourApp
 
 **Параметры:** *(нет)*
 
-После `dotnet publish` — проверка, что MCP подхватил новый бинарник (ожидай **v1.3.27** и **63** tools в `full`, или **19** в `lite`).
+После `dotnet publish` — проверка, что MCP подхватил новый бинарник (ожидай **v1.3.29** и **63** tools в `full`, или **19** в `lite`).
 
 </details>
 
