@@ -218,7 +218,9 @@ public sealed class WorkspaceTools
             sb.AppendLine(shadowCopySummary);
         }
 
-        return ToolTelemetry.TraceAndReturn(nameof(LoadWorkspace), sb.ToString());
+        return ToolTelemetry.TraceAndReturn(
+            nameof(LoadWorkspace),
+            _solutionManager.WithDiskSyncNotes(sb.ToString()));
     }
 
     private static string FormatShadowCopySummary(

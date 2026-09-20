@@ -187,7 +187,7 @@ backing `.csproj`; учесть shared/linked файлы, один путь в �
 
 ## 7. Связь с другими работами
 
-- [`disk-sync-csproj-mutation`](../disk-sync-csproj-mutation/README.md) решает
+- [`disk-sync-csproj-mutation`](../archive/disk-sync-csproj-mutation/README.md) решает
   отдельный дефект: `AddDocument`/`RemoveDocument` из disk-sync могут менять
   `.csproj`. Эта тема не должна обходить принятое там ограничение, добавляя
   не-C# документы в `MSBuildWorkspace` через тот же путь.

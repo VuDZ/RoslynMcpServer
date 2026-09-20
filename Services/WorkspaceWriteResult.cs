@@ -45,6 +45,14 @@ public sealed class WorkspaceWriteResult
 
     public bool IsFullSuccess => Status == WorkspaceWriteStatus.FullSuccess;
 
+    /// <summary>
+    /// Disk-sync I-5: a skipped write may land on disk only when the path is unknown to the snapshot.
+    /// <c>missing-on-disk</c> must not recreate the file until reload.
+    /// </summary>
+    public bool ShouldWriteSkippedPathToDisk =>
+        Status == WorkspaceWriteStatus.Skipped
+        && (Reason is "no-workspace" or "not-in-workspace");
+
     /// <summary>Path list for adapters that previously returned only written files.</summary>
     public IReadOnlyList<string> WrittenPathsForAdapters => SavedPaths;
 

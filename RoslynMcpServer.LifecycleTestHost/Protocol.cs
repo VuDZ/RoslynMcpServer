@@ -34,6 +34,8 @@ public sealed class HostResponse
     public bool PrepareAttempted { get; set; }
     public bool PrepareInjectedFailure { get; set; }
     public bool LastRefreshStale { get; set; }
+    public bool ProjectGraphStale { get; set; }
+    public string? ProjectGraphStaleHint { get; set; }
     public bool MappingPresent { get; set; }
     public int OverlayPrepareCount { get; set; }
     public int AnalyzerFileIoCount { get; set; }

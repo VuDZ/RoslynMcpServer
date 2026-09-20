@@ -114,7 +114,7 @@ public sealed class TestTools
             var (filter, description) = await TestFilterHelper.BuildFilterAsync(
                 solution, className, methodName, cancellationToken).ConfigureAwait(false);
 
-            return await ExecuteDotnetTestAsync(
+            var result = await ExecuteDotnetTestAsync(
                     toolName,
                     workspacePath,
                     filter,
@@ -131,18 +131,20 @@ public sealed class TestTools
                     progress,
                     cancellationToken)
                 .ConfigureAwait(false);
+            return _solutionManager.WithDiskSyncNotes(result);
         }
         catch (OperationCanceledException)
         {
-            return ToolTelemetry.TraceAndReturn(
+            return _solutionManager.WithDiskSyncNotes(ToolTelemetry.TraceAndReturn(
                 toolName,
                 "`run_specific_test` was cancelled." + Environment.NewLine + Environment.NewLine
-                + DotNetCliRunner.FormatHangHints(timedOut: false, cancelled: true));
+                + DotNetCliRunner.FormatHangHints(timedOut: false, cancelled: true)));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "RunSpecificTest failed for {WorkspacePath}", workspacePath);
-            return ToolTelemetry.TraceAndReturn(toolName, $"Failed to run specific test: {ex.Message}");
+            return _solutionManager.WithDiskSyncNotes(
+                ToolTelemetry.TraceAndReturn(toolName, $"Failed to run specific test: {ex.Message}"));
         }
     }
 
@@ -218,9 +220,7 @@ public sealed class TestTools
             var solution = await _solutionManager.GetPublishedSolutionAfterDiskSyncAsync(cancellationToken).ConfigureAwait(false);
             if (solution is null)
             {
-                return ToolTelemetry.TraceAndReturn(
-                    toolName,
-                    _solutionManager.FormatNoPublishedSolutionMessage("No workspace loaded."));
+                return Finish(_solutionManager.FormatNoPublishedSolutionMessage("No workspace loaded."));
             }
 
             var listed = await TestDiscoveryHelper.ListTestsJsonAsync(
@@ -228,7 +228,7 @@ public sealed class TestTools
                 .ConfigureAwait(false);
             if (!listed.Success)
             {
-                return ToolTelemetry.TraceAndReturn(toolName, listed.Payload);
+                return Finish(listed.Payload);
             }
 
             var json = listed.Payload;
@@ -246,9 +246,7 @@ public sealed class TestTools
                         solution.ProjectIds.Count,
                         projectName,
                         nameContains);
-                return ToolTelemetry.TraceAndReturn(
-                    toolName,
-                    guidance + Environment.NewLine + Environment.NewLine + "```json\n" + json + "\n```");
+                return Finish(guidance + Environment.NewLine + Environment.NewLine + "```json\n" + json + "\n```");
             }
 
             var header = string.IsNullOrWhiteSpace(loadedPath)
@@ -257,7 +255,7 @@ public sealed class TestTools
             var body = header is null
                 ? "```json\n" + json + "\n```"
                 : header + Environment.NewLine + Environment.NewLine + "```json\n" + json + "\n```";
-            return ToolTelemetry.TraceAndReturn(toolName, body);
+            return Finish(body);
         }
         catch (OperationCanceledException)
         {
@@ -268,6 +266,9 @@ public sealed class TestTools
             _logger.LogError(ex, "GetTestList failed");
             return ToolTelemetry.TraceAndReturn(toolName, $"Failed: {ex.Message}");
         }
+
+        string Finish(string payload) =>
+            ToolTelemetry.TraceAndReturn(toolName, _solutionManager.WithDiskSyncNotes(payload));
     }
 
     private static bool IsEmptyTestListPayload(string json)

@@ -170,6 +170,18 @@ MCP `tools/list` stays JSON + JSON Schema. Markdown is for JIT help and diagnost
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.3.31
+
+- **`update_file_content` no longer recreates a deleted `.cs`** — `Skipped("missing-on-disk")` is not treated as «not in workspace, write the file». Disk write on skip is only `no-workspace` / `not-in-workspace`. Same for `apply_patch`. T-7 now also drives the MCP `WriteFile` path via the lifecycle host.
+- **Disk-sync does not `WithDocumentText` a missing file** — a cached `SourceText` after `find_symbol_*` / `rename_symbol` no longer forces a new `Solution` instance (and `TryApplyChanges`) when the path is `Unrepresentable`.
+- **Catalog size** — unchanged: full 63 tools / 45,868 bytes; lite 19 / 18,282.
+
+### v1.3.30
+
+- **Disk-sync no longer mutates `.csproj`** — `WorkspaceDocumentDiskSync` updates texts of **known** documents only. A new or deleted `.cs` is `Unrepresentable`: no `Solution.AddDocument` / `RemoveDocument`, so `MSBuildWorkspace.TryApplyChanges` does not write a duplicate `<Compile Include>` (NETSDK1022). Composition sets `_projectGraphStale` with a dedicated hint (not «a `.csproj` changed») and skips the next `load_workspace` cache. `dotnet build` of an SDK-style project still compiles a new file via glob **before** reload — expected. Missing-on-disk paths are not recreated by `update_file_content` / persist until reload. `update_file_content` skip (`not-in-workspace`) for `.cs` marks composition-stale **before** the 1 s watcher suppress.
+- **Agent hint surfaces** — `get_test_list`, `run_specific_test`, successful `load_workspace`, `update_file_content` skip, and existing `WithDiskSyncNotes` navigation tools. Not `run_dotnet_build`. Intentional `AddDocument` in `extract_interface` / `move_type_to_new_file` is unchanged (follow-up).
+- **Catalog size** — unchanged: full 63 tools / 45,868 bytes; lite 19 / 18,282.
+
 ### v1.3.29
 
 - **Custom attributes derived from a framework test attribute are now discovered and filterable** — a single `TestAttributeMatcher` walks the attribute base chain against `FactAttribute` / `TheoryAttribute` (xUnit), `TestAttribute` / `TestCaseAttribute` / `TestCaseSourceAttribute` (NUnit), `TestMethodAttribute` (MSTest). So `[WpfFact]` and this repo's own `AnalyzerLifecycleFactAttribute : FactAttribute` (83 usages in `AnalyzerLifecycle/`) are reported by `get_test_list` and resolve in `run_specific_test` / `run_test_by_filter`, matching what VSTest already ran. MSTest `DataTestMethodAttribute` follows from `TestMethodAttribute`; `DataRowAttribute` is no longer treated as a test marker on its own (it does not create a test without `TestMethod`/`DataTestMethod`).
@@ -358,7 +370,7 @@ Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into a
 
 ### v1.1.0
 
-- **Disk sync for saved `.cs`** — after `load_workspace`, a `FileSystemWatcher` records dirty source paths (not every keystroke: unsaved editor buffers are ignored). Before `find_symbol_*` / `find_usages` / `get_class_skeleton` / test discovery, only those files are read and applied with one `TryApplyChanges`. Host/git/`dotnet format` edits of existing files show up without `reset_workspace`. New `.cs` under a project folder are `AddDocument`’d; deleted files are removed. `.csproj`/`.sln`/`Directory.Build.props` set a graph-stale hint and skip the `load_workspace` cache — still no automatic `OpenSolutionAsync` from the watcher. `reset_workspace` remains for generated `obj` files after build. Linux uses inotify (watch-limit errors log and degrade; they do not crash the process).
+- **Disk sync for saved `.cs`** — after `load_workspace`, a `FileSystemWatcher` records dirty source paths (not every keystroke: unsaved editor buffers are ignored). Before `find_symbol_*` / `find_usages` / `get_class_skeleton` / test discovery, only **known** documents are re-read (`WithDocumentText`). Host/git/`dotnet format` edits of already loaded files show up without `reset_workspace`. A new or deleted `.cs` is **not** added/removed from the `Solution` (that would make `TryApplyChanges` write `<Compile Include>` and break SDK globs with NETSDK1022). Instead the project graph is marked composition-stale: call `reset_workspace` then `load_workspace` (or `load_workspace` alone — stale skips the load cache). MSBuild decides membership on reload — the file is not guaranteed to enter the workspace. `.csproj`/`.sln`/`Directory.Build.props` set a separate graph-file stale hint. `reset_workspace` remains for generated `obj` files after build. Linux uses inotify (watch-limit errors log and degrade; they do not crash the process).
 
 ### v1.0.35
 
@@ -495,7 +507,7 @@ Policy summary (full text in the sample):
 - Missing `Compile` target on load → retry with `targetFramework` (inner TFM); not SDK mismatch
 - VS 2026 BuildHost / `XMakeElements` → not SDK mismatch; need MCP 1.0.35+ or a single SDK-style `.csproj`
 - C# identifiers → MCP first; plain text → host Grep; never shell `grep` / `dotnet build|test`
-- Saved `.cs` (v1.1.0+) sync into symbol search automatically; unsaved editor buffers are ignored; `reset_workspace` after build / generated `obj`
+- Saved `.cs` of already loaded files (v1.1.0+) sync into symbol search automatically; new or deleted `.cs` needs reload (v1.3.30); unsaved editor buffers are ignored; `reset_workspace` after build / generated `obj`
 - IDE: host edit/write; headless: MCP `apply_patch` / AST tools
 - Secrets: never paste PAT/passwords; app README must document run target / sample args
 
@@ -1118,7 +1130,7 @@ Verify id/version with `search_nuget_registry` first. Clears workspace cache —
 
 **Parameters:** *(none)*
 
-Use after `dotnet publish` to verify the MCP host picked up the new binary (expect **v1.3.29** and **63** tools on `full`, or **19** on `lite`).
+Use after `dotnet publish` to verify the MCP host picked up the new binary (expect **v1.3.31** and **63** tools on `full`, or **19** on `lite`).
 
 </details>
 
@@ -1330,7 +1342,7 @@ cd D:\Devel\YourApp
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.3.29). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.3.31). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 
@@ -1957,7 +1969,7 @@ cd D:\Devel\YourApp
 
 **Параметры:** *(нет)*
 
-После `dotnet publish` — проверка, что MCP подхватил новый бинарник (ожидай **v1.3.29** и **63** tools в `full`, или **19** в `lite`).
+После `dotnet publish` — проверка, что MCP подхватил новый бинарник (ожидай **v1.3.31** и **63** tools в `full`, или **19** в `lite`).
 
 </details>
 

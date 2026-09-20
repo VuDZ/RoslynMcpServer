@@ -10,6 +10,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using RoslynMcpServer.Diagnostics;
 using RoslynMcpServer.Services;
+using RoslynMcpServer.Tools;
 
 namespace RoslynMcpServer.LifecycleTestHost;
 
@@ -41,10 +42,12 @@ internal sealed class HostSession
                 "oracle" => await OracleAsync(command, cancellationToken).ConfigureAwait(false),
                 "reset" => await ResetAsync(cancellationToken).ConfigureAwait(false),
                 "updateDocument" => await UpdateDocumentAsync(command, cancellationToken).ConfigureAwait(false),
+                "writeFile" => await WriteFileAsync(command, cancellationToken).ConfigureAwait(false),
                 "applyOverlayEdit" => await ApplyOverlayEditAsync(command, cancellationToken).ConfigureAwait(false),
                 "waitDirty" => await WaitDirtyAsync(command, cancellationToken).ConfigureAwait(false),
                 "flushFind" => await FlushFindAsync(command, cancellationToken).ConfigureAwait(false),
                 "flushGetter" => await FlushGetterAsync(cancellationToken).ConfigureAwait(false),
+                "forceRefreshAll" => ForceRefreshAll(),
                 "inspect" => Inspect("inspect"),
                 "injectPrepareFailure" => InjectPrepareFailure(),
                 "injectApplyFailure" => InjectApplyFailure(),
@@ -234,6 +237,33 @@ internal sealed class HostSession
         return response;
     }
 
+    private async Task<HostResponse> WriteFileAsync(HostCommand command, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(command.Path) || command.Text is null)
+        {
+            return Fail("writeFile", "path-and-text-required");
+        }
+
+        var tools = new EditingTools(NullLogger<EditingTools>.Instance, _manager);
+        var body = await tools.WriteFile(command.Path, command.Text, cancellationToken).ConfigureAwait(false);
+        var response = Inspect("writeFile");
+        response.DocumentText = body;
+        var lastWrite = _manager.LastWriteResult;
+        if (lastWrite is not null)
+        {
+            AttachWrite(response, lastWrite);
+        }
+
+        var wrote = body.StartsWith("Successfully wrote", StringComparison.Ordinal);
+        response.Ok = wrote;
+        if (!wrote)
+        {
+            response.Error = lastWrite?.Reason ?? body;
+        }
+
+        return response;
+    }
+
     private async Task<HostResponse> ApplyOverlayEditAsync(HostCommand command, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(command.Path) || command.Text is null)
@@ -326,6 +356,12 @@ internal sealed class HostSession
         }
 
         return response;
+    }
+
+    private HostResponse ForceRefreshAll()
+    {
+        _manager.RequestRefreshAllDocumentsForTests();
+        return Inspect("forceRefreshAll");
     }
 
     private HostResponse PublishGeneration(HostCommand command)
@@ -971,6 +1007,8 @@ internal sealed class HostSession
             PrepareAttempted = _manager.LastPrepareAttempted,
             PrepareInjectedFailure = _manager.LastPrepareInjectedFailure,
             LastRefreshStale = _manager.LastRefreshStale,
+            ProjectGraphStale = _manager.ProjectGraphStale,
+            ProjectGraphStaleHint = _manager.GetProjectGraphStaleHint(),
             MappingPresent = _manager.AnalyzerShadowMapping is { HasAnyApplied: true },
             OverlayPrepareCount = _manager.OverlayPrepareCount,
             AnalyzerFileIoCount = AnalyzerShadowGenerationPublisher.AnalyzerFileIoCount,

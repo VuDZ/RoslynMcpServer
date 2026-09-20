@@ -56,8 +56,11 @@ public sealed class SolutionManager
     private readonly ConcurrentDictionary<string, byte> _dirtySourcePaths;
     private readonly ConcurrentDictionary<string, long> _selfWriteUntilTicks;
     private FileSystemWatcher? _diskWatcher;
+    private readonly ConcurrentDictionary<string, byte> _missingOnDiskPaths;
     private volatile bool _refreshAllDocuments;
     private volatile bool _projectGraphStale;
+    private volatile bool _projectGraphStaleFromGraphFile;
+    private volatile bool _projectGraphStaleFromComposition;
 
     private readonly InProcessAnalyzerAssemblyLoader _analyzerAssemblyLoader = new();
 
@@ -107,7 +110,21 @@ public sealed class SolutionManager
         _analyzerProvenanceCaptureService = analyzerProvenanceCaptureService;
         _dirtySourcePaths = new ConcurrentDictionary<string, byte>(_pathComparer);
         _selfWriteUntilTicks = new ConcurrentDictionary<string, long>(_pathComparer);
+        _missingOnDiskPaths = new ConcurrentDictionary<string, byte>(_pathComparer);
     }
+
+    internal const string ProjectGraphFileStaleHint =
+        "> **Note:** A `.csproj` / `.sln` / `Directory.Build.props` changed on disk. Saved `.cs` files are synced; "
+        + "package refs and compile globs may be stale. Call `reset_workspace` then `load_workspace` "
+        + "(or `load_workspace` alone — a stale project graph skips the load cache).";
+
+    internal const string ProjectGraphCompositionStaleHint =
+        "> **Note:** A saved `.cs` file appeared or disappeared outside the loaded workspace snapshot. "
+        + "MSBuild decides membership on reload — the file is not guaranteed to enter the workspace. Call `reset_workspace` then `load_workspace` "
+        + "(or `load_workspace` alone — a stale project graph skips the load cache).";
+
+    /// <summary>True when the next <c>load_workspace</c> must skip the in-process graph cache.</summary>
+    internal bool ProjectGraphStale => _projectGraphStale;
 
     public IReadOnlyList<WorkspaceDiagnostic> LastDiagnostics => _lastDiagnostics;
 
@@ -1049,8 +1066,8 @@ public sealed class SolutionManager
     }
 
     /// <summary>
-    /// Hint when <c>.csproj</c> / solution / Directory.Build.* changed on disk. Source <c>.cs</c> is still synced;
-    /// project graph (refs, globs) needs <c>reset_workspace</c> + <c>load_workspace</c> unless the next load skips cache.
+    /// Hint when the project graph or compile membership may be stale. Source <c>.cs</c> of known documents is still synced;
+    /// membership and refs need <c>reset_workspace</c> + <c>load_workspace</c> unless the next load skips cache.
     /// </summary>
     public string? GetProjectGraphStaleHint()
     {
@@ -1059,9 +1076,55 @@ public sealed class SolutionManager
             return null;
         }
 
-        return "> **Note:** A `.csproj` / `.sln` / `Directory.Build.props` changed on disk. Saved `.cs` files are synced; "
-            + "package refs and compile globs may be stale. Call `reset_workspace` then `load_workspace` "
-            + "(or `load_workspace` alone — a stale project graph skips the load cache).";
+        var graphFile = _projectGraphStaleFromGraphFile;
+        var composition = _projectGraphStaleFromComposition;
+        if (graphFile && composition)
+        {
+            return ProjectGraphFileStaleHint
+                + Environment.NewLine
+                + Environment.NewLine
+                + ProjectGraphCompositionStaleHint;
+        }
+
+        if (composition)
+        {
+            return ProjectGraphCompositionStaleHint;
+        }
+
+        return ProjectGraphFileStaleHint;
+    }
+
+    /// <summary>
+    /// Marks a <c>.cs</c> path as unrepresentable (new file outside the loaded snapshot).
+    /// Thread-safe; may be called without <see cref="_workspaceLock"/>.
+    /// </summary>
+    public void NoteUnrepresentableSourcePath(string filePath)
+    {
+        if (string.IsNullOrWhiteSpace(filePath) || !WorkspaceDiskPathFilter.IsCSharpSource(filePath))
+        {
+            return;
+        }
+
+        string fullPath;
+        try
+        {
+            fullPath = Path.GetFullPath(filePath);
+        }
+        catch (Exception)
+        {
+            return;
+        }
+
+        MarkProjectGraphStaleFromComposition();
+        _logger.LogWarning("Unrepresentable source path (composition unknown): {Path}", fullPath);
+    }
+
+    /// <summary>
+    /// Test seam: next flush re-reads every known document (watcher-error / directory-rename path).
+    /// </summary>
+    internal void RequestRefreshAllDocumentsForTests()
+    {
+        _refreshAllDocuments = true;
     }
 
     public string WithDiskSyncNotes(string body)
@@ -1149,6 +1212,14 @@ public sealed class SolutionManager
         {
             _logger.LogDebug("Skip in-memory document update: file not part of loaded workspace ({Path}).", fullPath);
             return RememberWrite(WorkspaceWriteResult.Skipped("not-in-workspace"));
+        }
+
+        if (IsMissingOnDisk(fullPath))
+        {
+            _logger.LogWarning(
+                "Skip persist of missing-on-disk path {Path} until workspace reload.",
+                fullPath);
+            return RememberWrite(WorkspaceWriteResult.Skipped("missing-on-disk"));
         }
 
         var baseSolution = workspace.CurrentSolution;
@@ -1302,6 +1373,14 @@ public sealed class SolutionManager
                 }
 
                 var fullPath = Path.GetFullPath(newDoc.FilePath);
+                if (IsMissingOnDisk(fullPath))
+                {
+                    _logger.LogWarning(
+                        "Skip persist of missing-on-disk path {Path} until workspace reload.",
+                        fullPath);
+                    continue;
+                }
+
                 if (oldDoc is null)
                 {
                     var directory = Path.GetDirectoryName(fullPath);
@@ -1429,8 +1508,9 @@ public sealed class SolutionManager
             StopDiskWatcherUnderLock();
             _dirtySourcePaths.Clear();
             _selfWriteUntilTicks.Clear();
+            _missingOnDiskPaths.Clear();
             _refreshAllDocuments = false;
-            _projectGraphStale = false;
+            ClearProjectGraphStale();
             _workspace?.Dispose();
             _workspace = null;
             _solution = null;
@@ -1506,8 +1586,9 @@ public sealed class SolutionManager
         _loadedBuildArgs = null;
         _dirtySourcePaths.Clear();
         _selfWriteUntilTicks.Clear();
+        _missingOnDiskPaths.Clear();
         _refreshAllDocuments = false;
-        _projectGraphStale = false;
+        ClearProjectGraphStale();
         _shadowCopyAnalyzersEnabled = false;
         _shadowCopyRootDirectory = null;
         _analyzerShadowMapping = null;
@@ -1652,14 +1733,51 @@ public sealed class SolutionManager
             _pathComparison,
             cancellationToken).ConfigureAwait(false);
 
+        if (result.Unrepresentable.Count > 0 || refreshAll)
+        {
+            MarkProjectGraphStaleFromComposition();
+            _logger.LogWarning(
+                "workspace_disk_sync composition unknown unrepresentable={Count} refreshAll={RefreshAll} paths={Paths}",
+                result.Unrepresentable.Count,
+                refreshAll,
+                result.Unrepresentable.Count == 0
+                    ? "(none)"
+                    : string.Join("; ", result.Unrepresentable));
+        }
+
+        var inputSolution = workspace.CurrentSolution;
+        foreach (var path in result.Unrepresentable)
+        {
+            if (File.Exists(path))
+            {
+                continue;
+            }
+
+            if (FindDocumentIdForPath(inputSolution, path, _pathComparison) is not null)
+            {
+                _missingOnDiskPaths.TryAdd(path, 0);
+            }
+        }
+
         if (result.Updated == 0
-            && result.Added == 0
-            && result.Removed == 0
             && ReferenceEquals(result.Solution, workspace.CurrentSolution))
         {
             if (dirty.Count > 0 || refreshAll)
             {
                 NoteRawWorkspaceRevision();
+            }
+
+            if (dirty.Count > 0 || refreshAll || result.Unrepresentable.Count > 0)
+            {
+                _logger.LogInformation(
+                    "workspace_disk_sync updated={Updated} added={Added} removed={Removed} unchanged={Unchanged} unrepresentable={Unrepresentable} refreshAll={RefreshAll} elapsedMs={ElapsedMs} write=\"None\"",
+                    result.Updated,
+                    result.Added,
+                    result.Removed,
+                    result.Unchanged,
+                    result.Unrepresentable.Count,
+                    refreshAll,
+                    started.ElapsedMilliseconds);
             }
 
             return;
@@ -1669,6 +1787,11 @@ public sealed class SolutionManager
         foreach (var path in dirty)
         {
             if (!File.Exists(path))
+            {
+                continue;
+            }
+
+            if (FindDocumentIdForPath(inputSolution, path, _pathComparison) is null)
             {
                 continue;
             }
@@ -1689,21 +1812,23 @@ public sealed class SolutionManager
         if (!write.IsFullSuccess && write.Status != WorkspaceWriteStatus.ReconciliationSucceeded)
         {
             _logger.LogWarning(
-                "workspace_disk_sync write {Status} reason={Reason} updated={Updated} added={Added} removed={Removed}.",
+                "workspace_disk_sync write {Status} reason={Reason} updated={Updated} added={Added} removed={Removed} unrepresentable={Unrepresentable}.",
                 write.Status,
                 write.Reason,
                 result.Updated,
                 result.Added,
-                result.Removed);
+                result.Removed,
+                result.Unrepresentable.Count);
             return;
         }
 
         _logger.LogInformation(
-            "workspace_disk_sync updated={Updated} added={Added} removed={Removed} unchanged={Unchanged} refreshAll={RefreshAll} elapsedMs={ElapsedMs} write={WriteStatus}",
+            "workspace_disk_sync updated={Updated} added={Added} removed={Removed} unchanged={Unchanged} unrepresentable={Unrepresentable} refreshAll={RefreshAll} elapsedMs={ElapsedMs} write={WriteStatus}",
             result.Updated,
             result.Added,
             result.Removed,
             result.Unchanged,
+            result.Unrepresentable.Count,
             refreshAll,
             started.ElapsedMilliseconds,
             write.Status);
@@ -1828,7 +1953,7 @@ public sealed class SolutionManager
 
         if (WorkspaceDiskPathFilter.IsProjectGraphFile(fullPath))
         {
-            _projectGraphStale = true;
+            MarkProjectGraphStaleFromGraphFile();
             _logger.LogInformation("Project graph file changed on disk: {Path}", fullPath);
             return;
         }
@@ -1855,6 +1980,27 @@ public sealed class SolutionManager
 
         _selfWriteUntilTicks.TryRemove(fullPath, out _);
         return false;
+    }
+
+    private bool IsMissingOnDisk(string fullPath) => _missingOnDiskPaths.ContainsKey(fullPath);
+
+    private void MarkProjectGraphStaleFromGraphFile()
+    {
+        _projectGraphStaleFromGraphFile = true;
+        _projectGraphStale = true;
+    }
+
+    private void MarkProjectGraphStaleFromComposition()
+    {
+        _projectGraphStaleFromComposition = true;
+        _projectGraphStale = true;
+    }
+
+    private void ClearProjectGraphStale()
+    {
+        _projectGraphStale = false;
+        _projectGraphStaleFromGraphFile = false;
+        _projectGraphStaleFromComposition = false;
     }
 
     private static DocumentId? FindDocumentIdForPath(

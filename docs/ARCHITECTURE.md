@@ -66,7 +66,7 @@ The current host is stdio and effectively has one MCP session per process. `Solu
 
 1. `load_workspace` opens one `.sln`, `.slnx`, or `.csproj` and caches it **in process** by path plus MSBuild configuration, platform, and target framework. That cache dies with the MCP process. There is no on-disk evaluation cache yet; planned work is in [`docs/workspace-load-cache/`](workspace-load-cache/README.md).
 2. Semantic tools consume the current in-memory Roslyn snapshot.
-3. Saved `.cs` changes are queued by `FileSystemWatcher` and applied in a batch before the next semantic operation.
+3. Saved `.cs` changes for **known** documents are queued by `FileSystemWatcher` and applied as text updates (`WithDocumentText`) before the next semantic operation. A new or deleted `.cs` does not change `Solution` membership; the project graph is marked composition-stale and the next `load_workspace` reopens (MSBuild decides globs).
 4. Server-initiated Roslyn edits are written asynchronously to disk and applied back to the workspace.
 5. `reset_workspace` disposes the workspace and clears all cached state.
 

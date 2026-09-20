@@ -36,17 +36,41 @@ public sealed class EditingTools
 
             var fullPath = _solutionManager.ResolvePathAgainstWorkspace(filePath);
             var directory = Path.GetDirectoryName(fullPath);
-            if (!string.IsNullOrEmpty(directory))
-            {
-                Directory.CreateDirectory(directory);
-            }
 
             var text = content ?? string.Empty;
             var write = await _solutionManager.UpdateDocumentInMemoryAsync(fullPath, text, cancellationToken);
             if (write.Status == WorkspaceWriteStatus.Skipped)
             {
+                if (!write.ShouldWriteSkippedPathToDisk)
+                {
+                    var refused = string.Equals(write.Reason, "missing-on-disk", StringComparison.Ordinal)
+                        ? $"Refused to recreate `{fullPath}`: the file disappeared from disk and remains in the loaded workspace snapshot until reload. Call `reset_workspace` then `load_workspace` (or `load_workspace` alone — a stale project graph skips the load cache)."
+                        : write.FormatAdapterMessage($"Failed to write `{fullPath}`.");
+                    return ToolTelemetry.TraceAndReturn(
+                        nameof(WriteFile),
+                        _solutionManager.WithDiskSyncNotes(refused));
+                }
+
+                if (WorkspaceDiskPathFilter.IsCSharpSource(fullPath))
+                {
+                    _solutionManager.NoteUnrepresentableSourcePath(fullPath);
+                }
+
+                if (!string.IsNullOrEmpty(directory))
+                {
+                    Directory.CreateDirectory(directory);
+                }
+
                 _solutionManager.SuppressDiskWatchForPath(fullPath);
                 await File.WriteAllTextAsync(fullPath, text, cancellationToken);
+
+                var skippedBody = $"Successfully wrote `{fullPath}` ({text.Length} characters).";
+                if (WorkspaceDiskPathFilter.IsCSharpSource(fullPath))
+                {
+                    skippedBody = _solutionManager.WithDiskSyncNotes(skippedBody);
+                }
+
+                return ToolTelemetry.TraceAndReturn(nameof(WriteFile), skippedBody);
             }
             else if (!write.IsFullSuccess)
             {

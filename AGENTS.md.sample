@@ -68,7 +68,7 @@ Do not mix `get_code_skeleton(path=…)` (disk `.cs`) with decompile tools (`ass
 - **Headless:** MCP `apply_patch` / `update_file_content`; prefer AST tools for usings/method bodies.
 - **Refactor:** `rename_symbol` with `previewOnly=true` first (not project folders).
 - After an MCP server rebuild/reload: call `get_mcp_server_info` and verify that the reported version and binary path match the release you intended to load. Extra `dotnet build` properties belong on `load_workspace` `buildArgs` (inherited by the build probe and pre-test compile).
-- **Saved** `.cs` (host edit/write, git, `dotnet format`) sync into the semantic index automatically. Use `reset_workspace` only when generated `obj` sources/references or the project-file graph must be reloaded — not after every build and not for ordinary source saves.
+- **Saved** `.cs` (host edit/write, git, `dotnet format`) of **already loaded** files sync into the semantic index automatically. Creating or deleting a `.cs` file requires `reset_workspace` then `load_workspace` (or `load_workspace` alone — a stale project graph skips the load cache) before symbol search / `get_test_list`. Use `reset_workspace` also when generated `obj` sources/references or the project-file graph must be reloaded — not after every build and not for ordinary source saves.
 
 ## Secrets
 

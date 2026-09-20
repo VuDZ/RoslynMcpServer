@@ -43,11 +43,12 @@ public sealed class WorkspaceDocumentDiskSyncTests
     }
 
     [Fact]
-    public async Task ApplyAsync_adds_new_cs_under_project_directory()
+    public async Task ApplyAsync_does_not_add_new_cs_under_project_directory()
     {
         using var ctx = TempProject.Create();
         var extra = Path.Combine(ctx.Root, "B.cs");
         File.WriteAllText(extra, "class B {}");
+        var beforeCount = ctx.Workspace.CurrentSolution.Projects.SelectMany(p => p.Documents).Count();
 
         var result = await WorkspaceDocumentDiskSync.ApplyAsync(
             ctx.Workspace.CurrentSolution,
@@ -55,16 +56,22 @@ public sealed class WorkspaceDocumentDiskSyncTests
             refreshAllDocuments: false,
             StringComparison.OrdinalIgnoreCase);
 
-        Assert.Equal(1, result.Added);
-        Assert.Contains(
+        Assert.Equal(0, result.Added);
+        Assert.Contains(result.Unrepresentable, p => string.Equals(p, extra, StringComparison.OrdinalIgnoreCase));
+        Assert.Equal(beforeCount, result.Solution.Projects.SelectMany(p => p.Documents).Count());
+        Assert.DoesNotContain(
             result.Solution.Projects.SelectMany(p => p.Documents),
             d => string.Equals(d.FilePath, extra, StringComparison.OrdinalIgnoreCase));
+        Assert.True(ReferenceEquals(ctx.Workspace.CurrentSolution, result.Solution));
     }
 
     [Fact]
-    public async Task ApplyAsync_removes_document_when_file_deleted()
+    public async Task ApplyAsync_does_not_remove_document_when_file_deleted()
     {
         using var ctx = TempProject.Create();
+        var loaded = ctx.Workspace.CurrentSolution.GetDocument(ctx.DocumentId)!;
+        _ = await loaded.GetTextAsync();
+        Assert.True(loaded.TryGetText(out _));
         File.Delete(ctx.SourcePath);
 
         var result = await WorkspaceDocumentDiskSync.ApplyAsync(
@@ -73,8 +80,38 @@ public sealed class WorkspaceDocumentDiskSyncTests
             refreshAllDocuments: false,
             StringComparison.OrdinalIgnoreCase);
 
-        Assert.Equal(1, result.Removed);
-        Assert.Null(result.Solution.GetDocument(ctx.DocumentId));
+        Assert.Equal(0, result.Removed);
+        Assert.NotNull(result.Solution.GetDocument(ctx.DocumentId));
+        Assert.Contains(
+            result.Unrepresentable,
+            p => string.Equals(p, ctx.SourcePath, StringComparison.OrdinalIgnoreCase));
+        Assert.True(ReferenceEquals(ctx.Workspace.CurrentSolution, result.Solution));
+    }
+
+    [Fact]
+    public async Task ApplyAsync_updates_known_file_and_reports_new_file_unrepresentable()
+    {
+        using var ctx = TempProject.Create();
+        File.WriteAllText(ctx.SourcePath, "class A { public int X; }");
+        var extra = Path.Combine(ctx.Root, "B.cs");
+        File.WriteAllText(extra, "class B {}");
+
+        var result = await WorkspaceDocumentDiskSync.ApplyAsync(
+            ctx.Workspace.CurrentSolution,
+            new[] { ctx.SourcePath, extra },
+            refreshAllDocuments: false,
+            StringComparison.OrdinalIgnoreCase);
+
+        Assert.Equal(1, result.Updated);
+        Assert.Equal(0, result.Added);
+        Assert.Equal(0, result.Removed);
+        Assert.Single(result.Unrepresentable);
+        Assert.Contains(result.Unrepresentable, p => string.Equals(p, extra, StringComparison.OrdinalIgnoreCase));
+        var text = await result.Solution.GetDocument(ctx.DocumentId)!.GetTextAsync();
+        Assert.Contains("public int X", text.ToString(), StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            result.Solution.Projects.SelectMany(p => p.Documents),
+            d => string.Equals(d.FilePath, extra, StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]

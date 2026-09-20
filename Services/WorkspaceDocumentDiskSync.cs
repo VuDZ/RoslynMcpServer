@@ -8,11 +8,13 @@ public readonly record struct WorkspaceDocumentDiskSyncResult(
     int Updated,
     int Added,
     int Removed,
-    int Unchanged);
+    int Unchanged,
+    IReadOnlyList<string> Unrepresentable);
 
 /// <summary>
-/// Applies on-disk <c>.cs</c> changes to an in-memory <see cref="Solution"/> without MSBuild reopen.
-/// Only the supplied dirty paths are read, or every document when <c>refreshAllDocuments</c> is set.
+/// Syncs texts of known documents from disk into an in-memory <see cref="Solution"/> without MSBuild reopen.
+/// Composition changes (new or missing <c>.cs</c> paths) are reported, not applied.
+/// Only the supplied dirty paths are read, or every known document when <c>refreshAllDocuments</c> is set.
 /// </summary>
 public static class WorkspaceDocumentDiskSync
 {
@@ -64,14 +66,13 @@ public static class WorkspaceDocumentDiskSync
 
         if (paths.Count == 0)
         {
-            return new WorkspaceDocumentDiskSyncResult(solution, 0, 0, 0, 0);
+            return new WorkspaceDocumentDiskSyncResult(solution, 0, 0, 0, 0, Array.Empty<string>());
         }
 
         var updated = 0;
-        var added = 0;
-        var removed = 0;
         var unchanged = 0;
         var current = solution;
+        var unrepresentable = new List<string>();
 
         foreach (var fullPath in paths)
         {
@@ -79,23 +80,14 @@ public static class WorkspaceDocumentDiskSync
             var documentId = FindDocumentIdForPath(current, fullPath, pathComparison);
             var exists = File.Exists(fullPath);
 
-            if (!exists)
+            if (documentId is not null)
             {
-                if (documentId is null)
+                if (!exists)
                 {
-                    unchanged++;
+                    unrepresentable.Add(fullPath);
                     continue;
                 }
 
-                current = current.RemoveDocument(documentId);
-                removed++;
-                continue;
-            }
-
-            var diskText = await File.ReadAllTextAsync(fullPath, cancellationToken).ConfigureAwait(false);
-
-            if (documentId is not null)
-            {
                 var document = current.GetDocument(documentId);
                 if (document is null)
                 {
@@ -103,6 +95,7 @@ public static class WorkspaceDocumentDiskSync
                     continue;
                 }
 
+                var diskText = await File.ReadAllTextAsync(fullPath, cancellationToken).ConfigureAwait(false);
                 var sourceText = await document.GetTextAsync(cancellationToken).ConfigureAwait(false);
                 current = current.WithDocumentText(documentId, SourceText.From(diskText));
                 if (string.Equals(sourceText.ToString(), diskText, StringComparison.Ordinal))
@@ -117,25 +110,22 @@ public static class WorkspaceDocumentDiskSync
                 continue;
             }
 
-            var project = FindContainingProject(current, fullPath, pathComparison);
-            if (project is null)
+            if (exists)
             {
-                unchanged++;
+                unrepresentable.Add(fullPath);
                 continue;
             }
 
-            var folders = GetDocumentFolders(project, fullPath, pathComparison);
-            var newId = DocumentId.CreateNewId(project.Id, debugName: Path.GetFileName(fullPath));
-            current = current.AddDocument(
-                newId,
-                Path.GetFileName(fullPath),
-                SourceText.From(diskText),
-                folders,
-                filePath: fullPath);
-            added++;
+            unchanged++;
         }
 
-        return new WorkspaceDocumentDiskSyncResult(current, updated, added, removed, unchanged);
+        return new WorkspaceDocumentDiskSyncResult(
+            current,
+            updated,
+            Added: 0,
+            Removed: 0,
+            unchanged,
+            unrepresentable);
     }
 
     internal static DocumentId? FindDocumentIdForPath(

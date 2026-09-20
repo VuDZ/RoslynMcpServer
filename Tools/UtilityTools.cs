@@ -822,6 +822,14 @@ public sealed class UtilityTools
             var write = await _solutionManager.UpdateDocumentInMemoryAsync(fullPath, updatedRaw, cancellationToken);
             if (write.Status == WorkspaceWriteStatus.Skipped)
             {
+                if (!write.ShouldWriteSkippedPathToDisk)
+                {
+                    return ToolTelemetry.TraceAndReturn(
+                        nameof(ApplyPatch),
+                        _solutionManager.WithDiskSyncNotes(
+                            write.FormatAdapterMessage("Patch matched but workspace write was not fully applied.")));
+                }
+
                 _solutionManager.SuppressDiskWatchForPath(fullPath);
                 await File.WriteAllTextAsync(fullPath, updatedRaw, cancellationToken);
             }
