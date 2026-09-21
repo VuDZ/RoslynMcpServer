@@ -179,6 +179,11 @@ MCP `tools/list` stays JSON + JSON Schema. Markdown is for JIT help and diagnost
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.4.0
+
+- **Navigation S1 (positional)** — optional `line`/`column` (1-based) on `find_symbol_references` and optional `filePath`/`line`/`column` on `find_symbol_definition`. With `line` set, resolves the symbol at that position (declaration or usage) via `SourcePositionHelper`; auto-column picks the unique identifier token matching `symbolName` on the line (never `string.IndexOf`); ambiguity lists columns. Calls without `line` keep prior behavior. `find_usages` unchanged. No FQN-without-file (S2), maxResults/overflow (S3), enclosing-member fallback (S4), or `directOnly` (S5).
+- **Catalog size** — full 63 tools / 47,348 bytes; lite 19 / 19,641.
+
 ### v1.3.41
 
 - **`search_code` multi-root scope** — when `directoryPath` is omitted, scans the loaded `.sln`/`.csproj` directory union each project's directory (`ComputeWatchRoots`; nested duplicates dropped), so external projects are covered and loose `.cs` at the solution root still matches. Explicit `directoryPath` stays a single root. Shared `maxResults` / `maxScanSeconds` across roots; missing roots are skipped (error only if every root is missing).
@@ -741,8 +746,10 @@ There are **63** registered tools in the default `full` profile (see list below)
 <summary><code>find_symbol_references</code> — Finds usages of a class/interface/method across the solution.</summary>
 
 **Parameters:**
-- `filePath: string`
-- `symbolName: string`
+- `filePath: string` — declaring `.cs` when `line` is omitted; any `.cs` containing the position when `line` is set
+- `symbolName: string` — declared name (no `line`), or auto-column needle when `line` is set and `column` omitted
+- `line: int?` — optional 1-based line; when set, resolve the symbol at that position (declaration or usage)
+- `column: int?` — optional 1-based column; omit to auto-pick the unique matching identifier token on the line
 </details>
 
 <details>
@@ -750,8 +757,11 @@ There are **63** registered tools in the default `full` profile (see list below)
 
 **Parameters:**
 - `symbolName: string` — class, interface, struct, enum, or member identifier (e.g. `IRunCommand`).
+- `filePath: string?` — optional; required with `line` for positional go-to-definition
+- `line: int?` — optional 1-based line in `filePath` (usage or declaration)
+- `column: int?` — optional 1-based column; omit to auto-pick the unique matching identifier token on the line
 
-**Model guidance:** after `load_workspace`, use this for “where is X **declared**?” — do **not** answer that with plain-text search or invent a generic tool named `search`. For free-text matches across files, use your client’s built-in **`grep`** tool (not `bash`/`PowerShell` grep). This tool avoids `bin/`/`obj/` and uses Roslyn. **Saved** `.cs` (IDE/git) are applied before search; unsaved buffers are ignored — no `reset_workspace` for ordinary saves.
+**Model guidance:** after `load_workspace`, use this for “where is X **declared**?” — do **not** answer that with plain-text search or invent a generic tool named `search`. For free-text matches across files, use your client’s built-in **`grep`** tool (not `bash`/`PowerShell` grep). This tool avoids `bin/`/`obj/` and uses Roslyn. **Saved** `.cs` (IDE/git) are applied before search; unsaved buffers are ignored — no `reset_workspace` for ordinary saves. Omit `filePath`/`line` for solution-wide name search; pass `filePath`+`line` to go to the definition of the symbol under that position.
 </details>
 
 <details>
@@ -1410,7 +1420,7 @@ cd D:\Devel\YourApp
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.3.41). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.4.0). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 
@@ -1595,8 +1605,10 @@ cd D:\Devel\YourApp
 <summary><code>find_symbol_references</code> — Ищет использования класса/интерфейса/метода по solution.</summary>
 
 **Параметры:**
-- `filePath: string`
-- `symbolName: string`
+- `filePath: string` — файл объявления без `line`; любой `.cs` с позицией при `line`
+- `symbolName: string` — имя объявления (без `line`) или needle для auto-column при `line` без `column`
+- `line: int?` — опциональная 1-based строка; при задании резолвит символ в этой позиции (объявление или usage)
+- `column: int?` — опциональная 1-based колонка; без неё — единственный identifier token с именем `symbolName` на строке
 </details>
 
 <details>
@@ -1604,8 +1616,11 @@ cd D:\Devel\YourApp
 
 **Параметры:**
 - `symbolName: string` — имя класса, интерфейса, struct, enum или члена (например `IRunCommand`).
+- `filePath: string?` — опционально; обязателен вместе с `line` для позиционного go-to-definition
+- `line: int?` — опциональная 1-based строка в `filePath` (usage или объявление)
+- `column: int?` — опциональная 1-based колонка; без неё — единственный совпадающий identifier token на строке
 
-**Для модели:** после `load_workspace` для «где **объявлен** X?» используй этот tool — не текстовый поиск и не выдуманный tool вроде `search`. Для произвольного текста по файлам — встроенный **`grep`** среды (IDE), не `bash`/PowerShell с grep. Так не лезем в `bin/`/`obj/` и опираемся на Roslyn. **Сохранённые** `.cs` (IDE/git) подмешиваются до поиска; несохранённый буфер игнорируется — `reset_workspace` для обычных save не нужен.
+**Для модели:** после `load_workspace` для «где **объявлен** X?» используй этот tool — не текстовый поиск и не выдуманный tool вроде `search`. Для произвольного текста по файлам — встроенный **`grep`** среды (IDE), не `bash`/PowerShell с grep. Так не лезем в `bin/`/`obj/` и опираемся на Roslyn. **Сохранённые** `.cs` (IDE/git) подмешиваются до поиска; несохранённый буфер игнорируется — `reset_workspace` для обычных save не нужен. Без `filePath`/`line` — поиск по имени по solution; с `filePath`+`line` — определение символа в этой позиции.
 </details>
 
 <details>

@@ -83,8 +83,8 @@ public static class McpToolHelpCatalog
             ["find_symbol_definition"] = new()
             {
                 Prerequisites = "Requires load_workspace.",
-                Workflow = "Pass the exact identifier. Matching is case-insensitive. Use this for where a type or member is declared.",
-                Pitfalls = "Do not use text search or a terminal grep for declarations. Unsaved editor buffers are ignored.",
+                Workflow = "Pass the exact identifier for solution-wide name search (case-insensitive). Or pass filePath+line (optional column) to go to the definition of the symbol at that position.",
+                Pitfalls = "Do not use text search or a terminal grep for declarations. Unsaved editor buffers are ignored. line without filePath is an error.",
                 RelatedTools = ["find_usages", "find_symbol_references", "search_code"],
             },
             ["find_usages"] = new()
@@ -96,7 +96,8 @@ public static class McpToolHelpCatalog
             },
             ["find_symbol_references"] = new()
             {
-                Prerequisites = "Requires load_workspace and the declaring .cs file.",
+                Prerequisites = "Requires load_workspace and a .cs filePath.",
+                Workflow = "Omit line to resolve a declaration by name in that file. Pass line (optional column) to resolve the symbol at that position (declaration or usage), then list references.",
                 RelatedTools = ["find_usages", "find_symbol_definition"],
             },
             ["find_implementations"] = new()

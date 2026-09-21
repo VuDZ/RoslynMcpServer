@@ -33,12 +33,17 @@ public sealed class NavigationTools
     [McpServerTool(Name = "find_symbol_references", Title = "Find symbol references")]
     [Description(
         "Finds semantic references when the declaring .cs file is known. Requires load_workspace. "
-        + "For solution-wide search by name use find_usages.")]
+        + "Optional line/column (1-based) resolve the symbol at that position (declaration or usage); "
+        + "omit line for declaration-by-name in the file. For solution-wide search by name use find_usages.")]
     public async Task<string> FindSymbolReferences(
-        [Description("Path to the declaring .cs file.")]
+        [Description("Path to the .cs file (declaring file, or any file when line is set).")]
         string filePath,
-        [Description("Symbol name declared in that file.")]
+        [Description("Symbol name. With line omitted: declared in that file. With line set: used for auto-column when column is omitted.")]
         string symbolName,
+        [Description("Optional 1-based line. When set, resolve the symbol at that position (declaration or usage).")]
+        int? line = null,
+        [Description("Optional 1-based column. When omitted with line set, picks the unique identifier token matching symbolName on that line.")]
+        int? column = null,
         CancellationToken cancellationToken = default)
     {
         try
@@ -75,34 +80,71 @@ public sealed class NavigationTools
                     $"Could not build semantic model for file: `{fullPath}`.");
             }
 
-            var declaration = FindMatchingDeclaration(syntaxRoot, symbolName);
-            if (declaration is null)
+            int? positionAbsolute = null;
+            if (line is int lineNumber)
             {
-                return ToolTelemetry.TraceAndReturn(
-                    nameof(FindSymbolReferences),
-                    $"Symbol `{symbolName}` was not found as a class/interface/method declaration in `{fullPath}`.");
-            }
+                var (positionSymbol, position, positionError) = await SourcePositionHelper
+                    .ResolveSymbolInDocumentAsync(document, symbolName, lineNumber, column, cancellationToken)
+                    .ConfigureAwait(false);
+                if (positionError is not null)
+                {
+                    return ToolTelemetry.TraceAndReturn(nameof(FindSymbolReferences), positionError);
+                }
 
-            if (semanticModel.GetDeclaredSymbol(declaration, cancellationToken) is null)
+                if (positionSymbol is null || position is null)
+                {
+                    return ToolTelemetry.TraceAndReturn(
+                        nameof(FindSymbolReferences),
+                        $"Unable to resolve symbol `{symbolName}` at line {lineNumber} in `{fullPath}`.");
+                }
+
+                positionAbsolute = position.AbsolutePosition;
+            }
+            else
             {
-                return ToolTelemetry.TraceAndReturn(
-                    nameof(FindSymbolReferences),
-                    $"Unable to resolve declared symbol for `{symbolName}` in `{fullPath}`.");
+                var declaration = FindMatchingDeclaration(syntaxRoot, symbolName);
+                if (declaration is null)
+                {
+                    return ToolTelemetry.TraceAndReturn(
+                        nameof(FindSymbolReferences),
+                        $"Symbol `{symbolName}` was not found as a class/interface/method declaration in `{fullPath}`.");
+                }
+
+                if (semanticModel.GetDeclaredSymbol(declaration, cancellationToken) is null)
+                {
+                    return ToolTelemetry.TraceAndReturn(
+                        nameof(FindSymbolReferences),
+                        $"Unable to resolve declared symbol for `{symbolName}` in `{fullPath}`.");
+                }
             }
 
             var (references, _) = await WorkspaceAnalyzerSanitizer.WithSanitizedRetryAsync(
                 async sol =>
                 {
-                    var mappedSymbol = await RemapDeclaredSymbolAsync(
-                        sol,
-                        publishedDocument.Id,
-                        symbolName,
-                        (root, model, ct) =>
-                        {
-                            var declaration = FindMatchingDeclaration(root, symbolName);
-                            return declaration is null ? null : model.GetDeclaredSymbol(declaration, ct);
-                        },
-                        cancellationToken).ConfigureAwait(false);
+                    ISymbol mappedSymbol;
+                    if (positionAbsolute is int absolutePosition)
+                    {
+                        mappedSymbol = await RemapSymbolAtPositionAsync(
+                            sol,
+                            publishedDocument.Id,
+                            absolutePosition,
+                            symbolName,
+                            cancellationToken).ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        mappedSymbol = await RemapDeclaredSymbolAsync(
+                            sol,
+                            publishedDocument.Id,
+                            symbolName,
+                            (root, model, ct) =>
+                            {
+                                var declaration = FindMatchingDeclaration(root, symbolName);
+                                return declaration is null ? null : model.GetDeclaredSymbol(declaration, ct);
+                            },
+                            cancellationToken).ConfigureAwait(false);
+                    }
+
                     return await SymbolFinder.FindReferencesAsync(mappedSymbol, sol, cancellationToken)
                         .ConfigureAwait(false);
                 },
@@ -178,10 +220,18 @@ public sealed class NavigationTools
     [McpServerTool(Name = "find_symbol_definition", Title = "Find symbol definitions in workspace")]
     [Description(
         "Finds declarations of a type or member in the loaded workspace. Requires load_workspace. "
+        + "Omit filePath/line for solution-wide name search. Pass filePath+line (optional column) to go to the "
+        + "definition of the symbol at that position (usage or declaration). "
         + "Do not use text search for where a symbol is declared. For usages use find_usages; when the declaring file is known use find_symbol_references.")]
     public async Task<string> FindSymbolDefinition(
-        [Description("Exact identifier of the type or member.")]
+        [Description("Exact identifier of the type or member. With filePath+line: used for auto-column when column is omitted.")]
         string symbolName,
+        [Description("Optional .cs file. Required when line is set; with line, resolves the symbol at that position.")]
+        string? filePath = null,
+        [Description("Optional 1-based line in filePath. Requires filePath. Omit with empty filePath for name search.")]
+        int? line = null,
+        [Description("Optional 1-based column. When omitted with line set, picks the unique identifier token matching symbolName on that line.")]
+        int? column = null,
         CancellationToken cancellationToken = default)
     {
         try
@@ -189,6 +239,23 @@ public sealed class NavigationTools
             if (string.IsNullOrWhiteSpace(symbolName))
             {
                 return ToolTelemetry.TraceAndReturn(nameof(FindSymbolDefinition), "Error: `symbolName` is empty.");
+            }
+
+            var trimmedName = symbolName.Trim();
+            var hasFilePath = !string.IsNullOrWhiteSpace(filePath);
+
+            if (line is not null && !hasFilePath)
+            {
+                return ToolTelemetry.TraceAndReturn(
+                    nameof(FindSymbolDefinition),
+                    "Error: `line` requires `filePath`. Pass the .cs file containing that line.");
+            }
+
+            if (hasFilePath && line is null)
+            {
+                return ToolTelemetry.TraceAndReturn(
+                    nameof(FindSymbolDefinition),
+                    "Error: when `filePath` is set, also pass `line` (1-based) to resolve the symbol at that position.");
             }
 
             var solution = await _solutionManager.GetSanitizedPublishedSolutionAsync(cancellationToken).ConfigureAwait(false);
@@ -200,20 +267,71 @@ public sealed class NavigationTools
                         "Error: No active workspace."));
             }
 
-            var trimmedName = symbolName.Trim();
-            var declarations = await FindDeclarationsByNameAsync(
-                solution,
-                trimmedName,
-                SymbolFilter.Type | SymbolFilter.Member,
-                cancellationToken).ConfigureAwait(false);
-
-            var symbols = declarations.Distinct(SymbolEqualityComparer.Default).ToList();
-            if (symbols.Count == 0)
+            List<ISymbol> symbols;
+            if (hasFilePath && line is int lineNumber)
             {
-                return ToolTelemetry.TraceAndReturn(
-                    nameof(FindSymbolDefinition),
-                    _solutionManager.WithDiskSyncNotes(
-                        $"Symbol `{trimmedName}` was not found in the current solution (no matching type or member declarations)."));
+                var fullPath = _solutionManager.ResolvePathAgainstWorkspace(filePath!);
+                var document = await _solutionManager.FindDocumentAsync(fullPath, cancellationToken).ConfigureAwait(false);
+                if (document is null)
+                {
+                    return ToolTelemetry.TraceAndReturn(
+                        nameof(FindSymbolDefinition),
+                        $"Could not resolve Roslyn document for file: `{fullPath}`.");
+                }
+
+                var publishedDocument = document;
+                document = solution.GetDocument(publishedDocument.Id) ?? publishedDocument;
+
+                var (positionSymbol, position, positionError) = await SourcePositionHelper
+                    .ResolveSymbolInDocumentAsync(document, trimmedName, lineNumber, column, cancellationToken)
+                    .ConfigureAwait(false);
+                if (positionError is not null)
+                {
+                    return ToolTelemetry.TraceAndReturn(nameof(FindSymbolDefinition), positionError);
+                }
+
+                if (positionSymbol is null || position is null)
+                {
+                    return ToolTelemetry.TraceAndReturn(
+                        nameof(FindSymbolDefinition),
+                        $"Unable to resolve symbol `{trimmedName}` at line {lineNumber} in `{fullPath}`.");
+                }
+
+                var (definitionSymbol, _) = await WorkspaceAnalyzerSanitizer.WithSanitizedRetryAsync(
+                    async sol =>
+                    {
+                        var mapped = await RemapSymbolAtPositionAsync(
+                            sol,
+                            publishedDocument.Id,
+                            position.AbsolutePosition,
+                            trimmedName,
+                            cancellationToken).ConfigureAwait(false);
+                        var sourceDef = await SymbolFinder.FindSourceDefinitionAsync(mapped, sol, cancellationToken)
+                            .ConfigureAwait(false);
+                        return sourceDef ?? mapped;
+                    },
+                    () => _solutionManager.GetSanitizedPublishedSolution(),
+                    solution,
+                    cancellationToken).ConfigureAwait(false);
+
+                symbols = [definitionSymbol];
+            }
+            else
+            {
+                var declarations = await FindDeclarationsByNameAsync(
+                    solution,
+                    trimmedName,
+                    SymbolFilter.Type | SymbolFilter.Member,
+                    cancellationToken).ConfigureAwait(false);
+
+                symbols = declarations.Distinct(SymbolEqualityComparer.Default).ToList();
+                if (symbols.Count == 0)
+                {
+                    return ToolTelemetry.TraceAndReturn(
+                        nameof(FindSymbolDefinition),
+                        _solutionManager.WithDiskSyncNotes(
+                            $"Symbol `{trimmedName}` was not found in the current solution (no matching type or member declarations)."));
+                }
             }
 
             var sb = new StringBuilder();
@@ -245,10 +363,10 @@ public sealed class NavigationTools
                     }
 
                     var path = location.SourceTree!.FilePath!;
-                    var line = location.GetLineSpan().StartLinePosition.Line + 1;
+                    var defLine = location.GetLineSpan().StartLinePosition.Line + 1;
                     sb.AppendLine($"Symbol: {display}");
                     sb.AppendLine($"  File: {path}");
-                    sb.AppendLine($"  Line: {line}");
+                    sb.AppendLine($"  Line: {defLine}");
                     sb.AppendLine();
                     emitted++;
                 }
@@ -708,6 +826,27 @@ public sealed class NavigationTools
         return resolve(root, model, cancellationToken)
             ?? throw new InvalidOperationException(
                 $"Symbol `{symbolName}` was not found in the sanitized solution snapshot.");
+    }
+
+    private static async Task<ISymbol> RemapSymbolAtPositionAsync(
+        Solution solution,
+        DocumentId documentId,
+        int absolutePosition,
+        string symbolName,
+        CancellationToken cancellationToken)
+    {
+        var mapped = solution.GetDocument(documentId)
+            ?? throw new InvalidOperationException(
+                $"Document for `{symbolName}` is not in the sanitized solution snapshot.");
+        var root = await mapped.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false)
+            ?? throw new InvalidOperationException(
+                $"Could not build syntax tree for `{symbolName}` in the sanitized solution snapshot.");
+        var model = await mapped.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false)
+            ?? throw new InvalidOperationException(
+                $"Could not build semantic model for `{symbolName}` in the sanitized solution snapshot.");
+        return SourcePositionHelper.GetSymbolAtPosition(model, root, absolutePosition, cancellationToken)
+            ?? throw new InvalidOperationException(
+                $"Symbol `{symbolName}` was not found at the requested position in the sanitized solution snapshot.");
     }
 
     private static async Task<TSymbol> RemapDeclaredSymbolAtSpanAsync<TSymbol>(
