@@ -179,6 +179,11 @@ MCP `tools/list` stays JSON + JSON Schema. Markdown is for JIT help and diagnost
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.4.2
+
+- **Navigation S3 (maxResults / preview / overflow)** — `find_symbol_references`, `find_usages`, and `find_implementations` accept optional `maxResults` (default 50, or env `ROSLYN_MCP_MAX_RESULTS` when a positive int; explicit arg wins; clamp 1–500), `preview` (default false: `path:line:col` only; true adds the source line, truncated at 400 chars), and `overflowCursor` (fetch the next in-memory overflow chunk; does not start a new search). Excess locations are stored in-process (max 8 entries, ≤2 000 000 chars total, 30 min TTL, 16 000-char chunks) — not silent drop and not `%Temp%` files. S1 position and S2 FQN resolver unchanged. `find_usages` kept. No S4/S5.
+- **Catalog size** — full 63 tools / 49,117 bytes; lite 19 / 21,410.
+
 ### v1.4.1
 
 - **Navigation S2 (name/FQN, optional filePath)** — `find_symbol_references` `filePath` is optional. Omit it for solution-wide simple name (all declaration groups) or exact FQN (`Namespace.Type` / `Namespace.Type.Member`; no `global::`, no `()`). FQN miss lists candidates and does **not** fall back to simple name. Overloads share one FQN group. `find_usages` kept as the name-based alias (same resolver; no `PickPrimarySymbol`). S1 positional path unchanged. No S3/S4/S5.
@@ -755,6 +760,11 @@ There are **63** registered tools in the default `full` profile (see list below)
 - `filePath: string?` — optional `.cs` file; omit for solution-wide name/FQN search; required when `line` is set; without `line`, declaration-by-name in that file
 - `line: int?` — optional 1-based line; requires `filePath`; when set, resolve the symbol at that position (declaration or usage)
 - `column: int?` — optional 1-based column; omit to auto-pick the unique matching identifier token on the line
+- `maxResults: int?` — optional listing cap (1–500). Default 50, or env `ROSLYN_MCP_MAX_RESULTS` when a positive int; explicit arg wins
+- `preview: bool = false` — when true, append the source line (truncated at 400 chars); default `path:line:col` only
+- `overflowCursor: string?` — when set, return the next in-memory overflow chunk (does not start a new search)
+
+**Behavior:** Locations beyond `maxResults` are stored in-process behind a cursor (not silent drop; not a host `%Temp%` path). Unknown/expired cursor → human error.
 </details>
 
 <details>
@@ -770,12 +780,15 @@ There are **63** registered tools in the default `full` profile (see list below)
 </details>
 
 <details>
-<summary><code>find_usages</code> — Solution-wide references for a declared name: file, line, and source line text (capped at 30 locations).</summary>
+<summary><code>find_usages</code> — Solution-wide references for a declared name (<code>path:line:col</code>; optional preview / overflow).</summary>
 
 **Parameters:**
 - `symbolName: string` — simple name or exact FQN (same rules as `find_symbol_references` without `filePath`).
+- `maxResults: int?` — optional listing cap (1–500). Default 50, or env `ROSLYN_MCP_MAX_RESULTS` when a positive int; explicit arg wins
+- `preview: bool = false` — when true, append the source line (truncated at 400 chars)
+- `overflowCursor: string?` — next in-memory overflow chunk; does not start a new search
 
-**Behavior:** Requires `load_workspace`. Name-based alias of `find_symbol_references` without `filePath`. Applies saved `.cs` from disk first. All matching declaration groups are returned (no primary pick). FQN miss lists candidates and does not fall back to simple name. Overloads share one FQN group.
+**Behavior:** Requires `load_workspace`. Name-based alias of `find_symbol_references` without `filePath`. Applies saved `.cs` from disk first. All matching declaration groups are returned (no primary pick). FQN miss lists candidates and does not fall back to simple name. Overloads share one FQN group. Excess locations use the same overflow store as `find_symbol_references`.
 </details>
 
 <details>
@@ -784,8 +797,11 @@ There are **63** registered tools in the default `full` profile (see list below)
 **Parameters:**
 - `symbolName: string` — interface or base class name (e.g. `IRepository`, `BaseController`)
 - `transitive: bool = true` — when `true`, includes indirect implementations / derived types in the hierarchy
+- `maxResults: int?` — optional listing cap (1–500). Default 50, or env `ROSLYN_MCP_MAX_RESULTS` when a positive int; explicit arg wins
+- `preview: bool = false` — when true, append the source line (truncated at 400 chars); default `path:line:col` only
+- `overflowCursor: string?` — next in-memory overflow chunk; does not start a new search
 
-**Behavior:** Requires `load_workspace`. Applies saved `.cs` from disk first. For **interfaces**, uses Roslyn `FindImplementationsAsync`; for **classes/structs**, uses `FindDerivedClassesAsync`. Returns each matching type with file path and line (capped at 50). Do not use text search or `find_usages` for “who implements X?” / “what inherits from Y?”.
+**Behavior:** Requires `load_workspace`. Applies saved `.cs` from disk first. For **interfaces**, uses Roslyn `FindImplementationsAsync`; for **classes/structs**, uses `FindDerivedClassesAsync`. Returns each matching type with `path:line:col`. Excess types use the same overflow store. Do not use text search or `find_usages` for “who implements X?” / “what inherits from Y?”.
 
 **Model guidance:** after `load_workspace`, use this instead of grep or analyzing usages when you need the OOP hierarchy.
 </details>
@@ -1425,7 +1441,7 @@ cd D:\Devel\YourApp
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.4.1). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.4.2). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 
@@ -1614,6 +1630,11 @@ cd D:\Devel\YourApp
 - `filePath: string?` — опциональный `.cs`; без него — поиск по имени/FQN по solution; обязателен с `line`; без `line` — объявление по имени в этом файле
 - `line: int?` — опциональная 1-based строка; требует `filePath`; резолвит символ в этой позиции
 - `column: int?` — опциональная 1-based колонка; без неё — единственный identifier token с именем `symbolName` на строке
+- `maxResults: int?` — лимит списка (1–500). По умолчанию 50 или env `ROSLYN_MCP_MAX_RESULTS` (положительное int); явный arg важнее env
+- `preview: bool = false` — true: добавить текст строки исходника (до 400 символов); иначе только `path:line:col`
+- `overflowCursor: string?` — следующий chunk in-memory overflow (новый поиск не запускается)
+
+**Поведение:** локации сверх `maxResults` хранятся в процессе за cursor (не тихая обрезка; не `%Temp%` на хосте). Неизвестный/истёкший cursor — человекочитаемая ошибка.
 </details>
 
 <details>
@@ -1629,12 +1650,15 @@ cd D:\Devel\YourApp
 </details>
 
 <details>
-<summary><code>find_usages</code> — Ссылки по всему solution: файл, строка и текст строки исходника (не более 30 вхождений).</summary>
+<summary><code>find_usages</code> — Ссылки по всему solution (<code>path:line:col</code>; опционально preview / overflow).</summary>
 
 **Параметры:**
 - `symbolName: string` — простое имя или точный FQN (те же правила, что у `find_symbol_references` без `filePath`).
+- `maxResults: int?` — лимит списка (1–500). По умолчанию 50 или env `ROSLYN_MCP_MAX_RESULTS`; явный arg важнее env
+- `preview: bool = false` — true: добавить текст строки исходника (до 400 символов)
+- `overflowCursor: string?` — следующий chunk in-memory overflow
 
-**Поведение:** нужен `load_workspace`. Name-based alias `find_symbol_references` без `filePath`. Сначала saved `.cs` с диска. Все группы объявлений (без выбора primary). FQN-промах перечисляет кандидатов и не падает на простое имя. Перегрузки — одна FQN-группа.
+**Поведение:** нужен `load_workspace`. Name-based alias `find_symbol_references` без `filePath`. Сначала saved `.cs` с диска. Все группы объявлений (без выбора primary). FQN-промах перечисляет кандидатов и не падает на простое имя. Перегрузки — одна FQN-группа. Избыток локаций — тот же overflow store.
 </details>
 
 <details>
@@ -1643,8 +1667,11 @@ cd D:\Devel\YourApp
 **Параметры:**
 - `symbolName: string` — имя интерфейса или базового класса (например `IRepository`, `BaseController`)
 - `transitive: bool = true` — при `true` включает косвенные реализации / наследников по иерархии
+- `maxResults: int?` — лимит списка (1–500). По умолчанию 50 или env `ROSLYN_MCP_MAX_RESULTS`; явный arg важнее env
+- `preview: bool = false` — true: добавить текст строки исходника (до 400 символов); иначе только `path:line:col`
+- `overflowCursor: string?` — следующий chunk in-memory overflow
 
-**Поведение:** нужен `load_workspace`. Сначала saved `.cs` с диска. Для **интерфейсов** — Roslyn `FindImplementationsAsync`; для **классов/struct** — `FindDerivedClassesAsync`. Каждый тип с путём к файлу и строкой (не более 50). Не используйте текстовый поиск или `find_usages` для «кто реализует X?» / «кто наследует Y?».
+**Поведение:** нужен `load_workspace`. Сначала saved `.cs` с диска. Для **интерфейсов** — Roslyn `FindImplementationsAsync`; для **классов/struct** — `FindDerivedClassesAsync`. Каждый тип с `path:line:col`. Избыток — overflow store. Не используйте текстовый поиск или `find_usages` для «кто реализует X?» / «кто наследует Y?».
 
 **Для модели:** после `load_workspace` — вместо grep или анализа usages, когда нужна OOP-иерархия.
 </details>

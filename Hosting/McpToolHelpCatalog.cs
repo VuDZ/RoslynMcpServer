@@ -90,22 +90,22 @@ public static class McpToolHelpCatalog
             ["find_usages"] = new()
             {
                 Prerequisites = "Requires load_workspace.",
-                Workflow = "Name-based alias of find_symbol_references without filePath. Simple name or exact FQN; every matching declaration group is listed (no primary pick).",
-                Pitfalls = "Not for interface/base hierarchy. Output is capped. FQN miss lists candidates and does not fall back to simple name.",
+                Workflow = "Name-based alias of find_symbol_references without filePath. Simple name or exact FQN; every matching declaration group is listed (no primary pick). Optional maxResults/preview/overflowCursor.",
+                Pitfalls = "Not for interface/base hierarchy. Over maxResults stores remainder behind overflowCursor (not silent drop). FQN miss lists candidates and does not fall back to simple name.",
                 RelatedTools = ["find_symbol_definition", "find_symbol_references", "find_implementations"],
             },
             ["find_symbol_references"] = new()
             {
                 Prerequisites = "Requires load_workspace.",
-                Workflow = "Omit filePath for solution-wide name/FQN search (all groups). Pass filePath without line for declaration-by-name in that file. Pass filePath+line (optional column) for positional resolve.",
-                Pitfalls = "FQN miss lists candidates and does not fall back to simple name. Overloads share one FQN group.",
+                Workflow = "Omit filePath for solution-wide name/FQN search (all groups). Pass filePath without line for declaration-by-name in that file. Pass filePath+line (optional column) for positional resolve. Optional maxResults/preview/overflowCursor.",
+                Pitfalls = "FQN miss lists candidates and does not fall back to simple name. Overloads share one FQN group. Over maxResults: pass overflowCursor for the next chunk.",
                 RelatedTools = ["find_usages", "find_symbol_definition"],
             },
             ["find_implementations"] = new()
             {
                 Prerequisites = "Requires load_workspace.",
-                Workflow = "Use for which types implement an interface or derive from a base. Transitive by default.",
-                Pitfalls = "Do not use find_usages or text search for this — they miss indirect hierarchy.",
+                Workflow = "Use for which types implement an interface or derive from a base. Transitive by default. Optional maxResults/preview/overflowCursor.",
+                Pitfalls = "Do not use find_usages or text search for this — they miss indirect hierarchy. Over maxResults stores remainder behind overflowCursor.",
                 RelatedTools = ["find_usages", "find_symbol_definition"],
             },
             ["get_call_graph"] = new()

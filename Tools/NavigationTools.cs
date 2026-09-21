@@ -14,12 +14,8 @@ namespace RoslynMcpServer.Tools;
 
 public sealed class NavigationTools
 {
-    private const int MaxReferences = 20;
     private const int MaxDefinitionLocations = 200;
-    private const int MaxFindUsagesReferences = 30;
-    private const int MaxFindUsagesSourceLineChars = 400;
     private const int MaxAmbiguousCandidatesListed = 10;
-    private const int MaxImplementations = 50;
 
     private readonly SolutionManager _solutionManager;
     private readonly ILogger<NavigationTools> _logger;
@@ -36,7 +32,7 @@ public sealed class NavigationTools
         + "Omit filePath for solution-wide name/FQN search (all matching declaration groups). "
         + "Pass filePath without line for declaration-by-name in that file. "
         + "Pass filePath+line (optional column) to resolve at that position. "
-        + "find_usages is the name-based alias without filePath.")]
+        + "Optional maxResults/preview/overflowCursor. find_usages is the name-based alias without filePath.")]
     public async Task<string> FindSymbolReferences(
         [Description(
             "Simple name (case-insensitive) or exact FQN (Namespace.Type or Namespace.Type.Member; no global::, no ()). "
@@ -50,18 +46,33 @@ public sealed class NavigationTools
         int? line = null,
         [Description("Optional 1-based column. When omitted with line set, picks the unique identifier token matching symbolName on that line.")]
         int? column = null,
+        [Description("Listing cap 1–500. Default 50 or ROSLYN_MCP_MAX_RESULTS; explicit arg wins.")]
+        int? maxResults = null,
+        [Description("True: append source line (max 400 chars). Default false: path:line:col only.")]
+        bool preview = false,
+        [Description("Next in-memory overflow chunk; does not start a new search.")]
+        string? overflowCursor = null,
         CancellationToken cancellationToken = default)
     {
         const string toolName = nameof(FindSymbolReferences);
 
         try
         {
+            if (!string.IsNullOrWhiteSpace(overflowCursor))
+            {
+                return ToolTelemetry.TraceAndReturn(
+                    toolName,
+                    NavigationListingHelper.FormatOverflowChunkResponse(
+                        NavigationOverflowStore.TryTakeChunk(overflowCursor)));
+            }
+
             if (string.IsNullOrWhiteSpace(symbolName))
             {
                 return ToolTelemetry.TraceAndReturn(toolName, "Symbol name is empty.");
             }
 
             var trimmedName = symbolName.Trim();
+            var resolvedMax = NavigationListingHelper.ResolveMaxResults(maxResults);
             var hasFilePath = !string.IsNullOrWhiteSpace(filePath);
 
             if (line is not null && !hasFilePath)
@@ -76,8 +87,8 @@ public sealed class NavigationTools
                 return await FindReferencesByNameAsync(
                         toolName,
                         trimmedName,
-                        includeSourceLines: false,
-                        maxReferences: MaxReferences,
+                        preview,
+                        resolvedMax,
                         cancellationToken)
                     .ConfigureAwait(false);
             }
@@ -177,7 +188,14 @@ public sealed class NavigationTools
                 cancellationToken).ConfigureAwait(false);
             var locations = references
                 .SelectMany(r => r.Locations)
-                .Where(l => l.Location.IsInSource)
+                .Where(l => l.Location.IsInSource && l.Document.FilePath is not null)
+                .DistinctBy(l => (
+                    l.Document.Id,
+                    l.Location.SourceSpan.Start,
+                    l.Location.SourceSpan.End))
+                .OrderBy(l => l.Document.FilePath, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(l => l.Location.GetLineSpan().StartLinePosition.Line)
+                .ThenBy(l => l.Location.SourceSpan.Start)
                 .ToList();
 
             if (locations.Count == 0)
@@ -185,47 +203,32 @@ public sealed class NavigationTools
                 return ToolTelemetry.TraceAndReturn(toolName, $"No usages found for `{trimmedName}`.");
             }
 
-            var truncated = locations.Count > MaxReferences;
-            var limited = locations.Take(MaxReferences).ToList();
+            var textByDocument = preview ? new Dictionary<DocumentId, SourceText>() : null;
+            var lines = new List<string>(locations.Count);
+            foreach (var location in locations)
+            {
+                var path = location.Document.FilePath!;
+                var span = location.Location.GetLineSpan();
+                var line1 = span.StartLinePosition.Line + 1;
+                var col1 = span.StartLinePosition.Character + 1;
+                string? previewLine = null;
+                if (preview && textByDocument is not null)
+                {
+                    previewLine = await GetReferenceSourceLineAsync(location, textByDocument, cancellationToken)
+                        .ConfigureAwait(false);
+                    if (string.IsNullOrEmpty(previewLine))
+                    {
+                        previewLine = "(source line unavailable)";
+                    }
+                }
+
+                lines.Add("- " + NavigationListingHelper.FormatLocationLine(path, line1, col1, previewLine));
+            }
 
             var sb = new StringBuilder();
-            sb.AppendLine($"Found {limited.Count} usages for '{trimmedName}':");
+            sb.AppendLine($"Found {locations.Count} usages for '{trimmedName}':");
             sb.AppendLine();
-
-            foreach (var docGroup in limited.GroupBy(l => l.Document.Id))
-            {
-                var refDoc = solution.GetDocument(docGroup.Key);
-                var docPath = refDoc?.FilePath ?? "(unknown file)";
-                sb.AppendLine($"File: {docPath}");
-
-                if (refDoc is null)
-                {
-                    sb.AppendLine("- Inside: (document unavailable)");
-                    sb.AppendLine();
-                    continue;
-                }
-
-                var root = await refDoc.GetSyntaxRootAsync(cancellationToken);
-                if (root is null)
-                {
-                    sb.AppendLine("- Inside: (syntax tree unavailable)");
-                    sb.AppendLine();
-                    continue;
-                }
-
-                foreach (var location in docGroup)
-                {
-                    var node = root.FindNode(location.Location.SourceSpan, getInnermostNodeForTie: true);
-                    sb.AppendLine($"- Inside: {GetEnclosingContext(node)}");
-                }
-
-                sb.AppendLine();
-            }
-
-            if (truncated)
-            {
-                sb.AppendLine("[!] More than 20 usages found. Truncated to protect LLM context.");
-            }
+            NavigationListingHelper.AppendCappedLines(sb, lines, resolvedMax, "location(s)");
 
             return ToolTelemetry.TraceAndReturn(toolName, sb.ToString().TrimEnd());
         }
@@ -422,16 +425,30 @@ public sealed class NavigationTools
     [Description(
         "Name-based alias of find_symbol_references without filePath. Requires load_workspace. "
         + "Solution-wide simple name or exact FQN; all matching declaration groups are returned (no primary pick). "
-        + "For interface or base hierarchy use find_implementations.")]
+        + "Optional maxResults/preview/overflowCursor. For interface or base hierarchy use find_implementations.")]
     public async Task<string> FindUsages(
         [Description("Simple name (case-insensitive) or exact FQN (Namespace.Type or Namespace.Type.Member; no global::, no ()).")]
         string symbolName,
+        [Description("Listing cap 1–500. Default 50 or ROSLYN_MCP_MAX_RESULTS; explicit arg wins.")]
+        int? maxResults = null,
+        [Description("True: append source line (max 400 chars). Default false: path:line:col only.")]
+        bool preview = false,
+        [Description("Next in-memory overflow chunk; does not start a new search.")]
+        string? overflowCursor = null,
         CancellationToken cancellationToken = default)
     {
         const string toolName = nameof(FindUsages);
 
         try
         {
+            if (!string.IsNullOrWhiteSpace(overflowCursor))
+            {
+                return ToolTelemetry.TraceAndReturn(
+                    toolName,
+                    NavigationListingHelper.FormatOverflowChunkResponse(
+                        NavigationOverflowStore.TryTakeChunk(overflowCursor)));
+            }
+
             if (string.IsNullOrWhiteSpace(symbolName))
             {
                 return ToolTelemetry.TraceAndReturn(toolName, "Error: `symbolName` is empty.");
@@ -440,8 +457,8 @@ public sealed class NavigationTools
             return await FindReferencesByNameAsync(
                     toolName,
                     symbolName.Trim(),
-                    includeSourceLines: true,
-                    maxReferences: MaxFindUsagesReferences,
+                    preview,
+                    NavigationListingHelper.ResolveMaxResults(maxResults),
                     cancellationToken)
                 .ConfigureAwait(false);
         }
@@ -463,23 +480,38 @@ public sealed class NavigationTools
     [McpServerTool(Name = "find_implementations", Title = "Find interface implementations or derived types")]
     [Description(
         "Finds types that implement an interface or derive from a base type. Requires load_workspace. "
-        + "Do not use find_usages or text search for this.")]
+        + "Optional maxResults/preview/overflowCursor. Do not use find_usages or text search for this.")]
     public async Task<string> FindImplementations(
         [Description("Interface or base type name.")]
         string symbolName,
         [Description("When true (default), include indirect implementations and derived types.")]
         bool transitive = true,
+        [Description("Listing cap 1–500. Default 50 or ROSLYN_MCP_MAX_RESULTS; explicit arg wins.")]
+        int? maxResults = null,
+        [Description("True: append source line (max 400 chars). Default false: path:line:col only.")]
+        bool preview = false,
+        [Description("Next in-memory overflow chunk; does not start a new search.")]
+        string? overflowCursor = null,
         CancellationToken cancellationToken = default)
     {
         const string toolName = nameof(FindImplementations);
 
         try
         {
+            if (!string.IsNullOrWhiteSpace(overflowCursor))
+            {
+                return ToolTelemetry.TraceAndReturn(
+                    toolName,
+                    NavigationListingHelper.FormatOverflowChunkResponse(
+                        NavigationOverflowStore.TryTakeChunk(overflowCursor)));
+            }
+
             if (string.IsNullOrWhiteSpace(symbolName))
             {
                 return ToolTelemetry.TraceAndReturn(toolName, "Error: `symbolName` is empty.");
             }
 
+            var resolvedMax = NavigationListingHelper.ResolveMaxResults(maxResults);
             var solution = await _solutionManager.GetSanitizedPublishedSolutionAsync(cancellationToken).ConfigureAwait(false);
             if (solution is null)
             {
@@ -592,36 +624,49 @@ public sealed class NavigationTools
                 return ToolTelemetry.TraceAndReturn(toolName, sb.ToString().TrimEnd());
             }
 
-            var truncated = results.Count > MaxImplementations;
-            var limited = results.Take(MaxImplementations).ToList();
-
-            sb.AppendLine($"Found **{results.Count}** type(s)" + (truncated ? $" (showing first {MaxImplementations}):" : ":"));
+            sb.AppendLine($"Found **{results.Count}** type(s):");
             sb.AppendLine();
 
+            var textByDocument = preview ? new Dictionary<DocumentId, SourceText>() : null;
+            var lines = new List<string>(results.Count);
             var index = 1;
-            foreach (var type in limited)
+            foreach (var type in results)
             {
                 var display = type.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
                 var location = type.Locations.FirstOrDefault(l => l.IsInSource && l.SourceTree?.FilePath is not null);
                 if (location is null)
                 {
-                    sb.AppendLine($"{index}. `{display}` — (no in-source location)");
+                    lines.Add($"{index}. `{display}` — (no in-source location)");
                 }
                 else
                 {
                     var path = location.SourceTree!.FilePath!;
-                    var line = location.GetLineSpan().StartLinePosition.Line + 1;
-                    sb.AppendLine($"{index}. `{display}` — `{path}:{line}`");
+                    var span = location.GetLineSpan();
+                    var line1 = span.StartLinePosition.Line + 1;
+                    var col1 = span.StartLinePosition.Character + 1;
+                    string? previewLine = null;
+                    if (preview && textByDocument is not null)
+                    {
+                        previewLine = await GetSourceLineAtAsync(
+                                solution,
+                                location,
+                                textByDocument,
+                                cancellationToken)
+                            .ConfigureAwait(false);
+                        if (string.IsNullOrEmpty(previewLine))
+                        {
+                            previewLine = "(source line unavailable)";
+                        }
+                    }
+
+                    var loc = NavigationListingHelper.FormatLocationLine(path, line1, col1, previewLine);
+                    lines.Add($"{index}. `{display}` — {loc}");
                 }
 
                 index++;
             }
 
-            if (truncated)
-            {
-                sb.AppendLine();
-                sb.AppendLine($"[!] Truncated to {MaxImplementations} types. Narrow `symbolName` or use `find_symbol_definition` to disambiguate.");
-            }
+            NavigationListingHelper.AppendCappedLines(sb, lines, resolvedMax, "type(s)");
 
             return ToolTelemetry.TraceAndReturn(toolName, sb.ToString().TrimEnd());
         }
@@ -643,8 +688,8 @@ public sealed class NavigationTools
     private async Task<string> FindReferencesByNameAsync(
         string toolName,
         string trimmedName,
-        bool includeSourceLines,
-        int maxReferences,
+        bool preview,
+        int maxResults,
         CancellationToken cancellationToken)
     {
         var solution = await _solutionManager.GetSanitizedPublishedSolutionAsync(cancellationToken).ConfigureAwait(false);
@@ -727,15 +772,12 @@ public sealed class NavigationTools
                 cancellationToken)
             .ConfigureAwait(false);
 
+        var totalLocations = groupResults.Sum(g => g.Locations.Count);
         var sb = new StringBuilder();
         sb.AppendLine($"## References for `{trimmedName}`");
         sb.AppendLine();
-        sb.AppendLine($"Found **{groupResults.Count}** declaration group(s).");
+        sb.AppendLine($"Found **{groupResults.Count}** declaration group(s), **{totalLocations}** location(s).");
         sb.AppendLine();
-
-        var remaining = maxReferences;
-        var truncated = false;
-        var textByDocument = includeSourceLines ? new Dictionary<DocumentId, SourceText>() : null;
 
         foreach (var (fqn, groupSymbols, locations) in groupResults)
         {
@@ -749,86 +791,47 @@ public sealed class NavigationTools
                 _ => groupSymbols[0].Kind.ToString().ToLowerInvariant()
             };
 
-            sb.AppendLine($"### `{fqn}` ({kindLabel}" + (groupSymbols.Count > 1 ? $", {groupSymbols.Count} overloads" : string.Empty) + ")");
-            sb.AppendLine();
-
-            if (locations.Count == 0)
-            {
-                sb.AppendLine("No in-source references were returned for this group.");
-                sb.AppendLine();
-                continue;
-            }
-
-            if (remaining <= 0)
-            {
-                truncated = true;
-                sb.AppendLine($"({locations.Count} reference(s) omitted — output capped at {maxReferences}.)");
-                sb.AppendLine();
-                continue;
-            }
-
-            var take = Math.Min(remaining, locations.Count);
-            if (take < locations.Count)
-            {
-                truncated = true;
-            }
-
-            var limited = locations.Take(take).ToList();
-            remaining -= limited.Count;
-
-            if (includeSourceLines && textByDocument is not null)
-            {
-                foreach (var fileGroup in limited.GroupBy(l => l.Document.FilePath!, StringComparer.OrdinalIgnoreCase))
-                {
-                    sb.AppendLine($"#### `{fileGroup.Key}`");
-                    sb.AppendLine();
-                    foreach (var refLoc in fileGroup)
-                    {
-                        var line1Based = refLoc.Location.GetLineSpan().StartLinePosition.Line + 1;
-                        var lineText = await GetReferenceSourceLineAsync(refLoc, textByDocument, cancellationToken)
-                            .ConfigureAwait(false);
-                        if (string.IsNullOrEmpty(lineText))
-                        {
-                            lineText = "(source line unavailable)";
-                        }
-
-                        sb.AppendLine($"- **Line {line1Based}:** `{EscapeMdBackticks(lineText)}`");
-                    }
-
-                    sb.AppendLine();
-                }
-            }
-            else
-            {
-                foreach (var docGroup in limited.GroupBy(l => l.Document.Id))
-                {
-                    var refDoc = solution.GetDocument(docGroup.Key) ?? docGroup.First().Document;
-                    var docPath = refDoc.FilePath ?? "(unknown file)";
-                    sb.AppendLine($"File: {docPath}");
-
-                    var root = await refDoc.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
-                    if (root is null)
-                    {
-                        sb.AppendLine("- Inside: (syntax tree unavailable)");
-                        sb.AppendLine();
-                        continue;
-                    }
-
-                    foreach (var location in docGroup)
-                    {
-                        var node = root.FindNode(location.Location.SourceSpan, getInnermostNodeForTie: true);
-                        sb.AppendLine($"- Inside: {GetEnclosingContext(node)}");
-                    }
-
-                    sb.AppendLine();
-                }
-            }
+            sb.AppendLine(
+                $"- `{fqn}` ({kindLabel}"
+                + (groupSymbols.Count > 1 ? $", {groupSymbols.Count} overloads" : string.Empty)
+                + $", {locations.Count} location(s))");
         }
 
-        if (truncated)
+        sb.AppendLine();
+
+        if (totalLocations == 0)
         {
-            sb.AppendLine($"[!] Truncated to {maxReferences} references across groups; narrow `symbolName` (FQN) or pass `filePath`.");
+            sb.AppendLine("No in-source references were returned.");
+            return ToolTelemetry.TraceAndReturn(toolName, _solutionManager.WithDiskSyncNotes(sb.ToString().TrimEnd()));
         }
+
+        var textByDocument = preview ? new Dictionary<DocumentId, SourceText>() : null;
+        var lines = new List<string>(totalLocations);
+
+        foreach (var (fqn, _, locations) in groupResults)
+        {
+            foreach (var refLoc in locations)
+            {
+                var path = refLoc.Document.FilePath!;
+                var span = refLoc.Location.GetLineSpan();
+                var line1 = span.StartLinePosition.Line + 1;
+                var col1 = span.StartLinePosition.Character + 1;
+                string? previewLine = null;
+                if (preview && textByDocument is not null)
+                {
+                    previewLine = await GetReferenceSourceLineAsync(refLoc, textByDocument, cancellationToken)
+                        .ConfigureAwait(false);
+                    if (string.IsNullOrEmpty(previewLine))
+                    {
+                        previewLine = "(source line unavailable)";
+                    }
+                }
+
+                lines.Add($"- `{fqn}` {NavigationListingHelper.FormatLocationLine(path, line1, col1, previewLine)}");
+            }
+        }
+
+        NavigationListingHelper.AppendCappedLines(sb, lines, maxResults, "location(s)");
 
         return ToolTelemetry.TraceAndReturn(toolName, _solutionManager.WithDiskSyncNotes(sb.ToString().TrimEnd()));
     }
@@ -997,22 +1000,44 @@ public sealed class NavigationTools
             textByDocument[document.Id] = text;
         }
 
-        var lineIndex = refLoc.Location.GetLineSpan().StartLinePosition.Line;
+        return GetSourceLineFromText(text, refLoc.Location.GetLineSpan().StartLinePosition.Line);
+    }
+
+    private static async Task<string> GetSourceLineAtAsync(
+        Solution solution,
+        Location location,
+        Dictionary<DocumentId, SourceText> textByDocument,
+        CancellationToken cancellationToken)
+    {
+        if (location.SourceTree is null)
+        {
+            return string.Empty;
+        }
+
+        var document = solution.GetDocument(location.SourceTree);
+        if (document is null)
+        {
+            return string.Empty;
+        }
+
+        if (!textByDocument.TryGetValue(document.Id, out var text))
+        {
+            text = await document.GetTextAsync(cancellationToken).ConfigureAwait(false);
+            textByDocument[document.Id] = text;
+        }
+
+        return GetSourceLineFromText(text, location.GetLineSpan().StartLinePosition.Line);
+    }
+
+    private static string GetSourceLineFromText(SourceText text, int lineIndex)
+    {
         if (lineIndex < 0 || lineIndex >= text.Lines.Count)
         {
             return string.Empty;
         }
 
-        var raw = text.Lines[lineIndex].ToString().TrimEnd();
-        if (raw.Length > MaxFindUsagesSourceLineChars)
-        {
-            return raw[..MaxFindUsagesSourceLineChars] + "…";
-        }
-
-        return raw;
+        return NavigationListingHelper.TruncatePreview(text.Lines[lineIndex].ToString());
     }
-
-    private static string EscapeMdBackticks(string s) => s.Replace('`', '\'');
 
     private static SyntaxNode? FindMatchingDeclaration(SyntaxNode root, string symbolName)
     {
