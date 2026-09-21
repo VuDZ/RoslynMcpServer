@@ -324,7 +324,7 @@ public static class DotNetCliRunner
         return sb.ToString().TrimEnd();
     }
 
-    private static ProcessStartInfo CreateProcessStartInfo(string dotnet, string arguments, string workDir)
+    internal static ProcessStartInfo CreateProcessStartInfo(string dotnet, string arguments, string workDir)
     {
         var psi = new ProcessStartInfo
         {
@@ -341,6 +341,8 @@ public static class DotNetCliRunner
 
         DotNetSdkEnvironment.ApplyPinnedSdk(psi, workDir);
         psi.Environment["MSBUILDDISABLENODEREUSE"] = "1";
+        // Parsers are English-only; a ru-RU machine otherwise prints "Пройдено!" instead of "Passed!".
+        psi.Environment["DOTNET_CLI_UI_LANGUAGE"] = "en-US";
         return psi;
     }
 
@@ -445,7 +447,7 @@ public static class DotNetCliRunner
         return combined.ToString();
     }
 
-    private static string BuildRunMetadata(
+    internal static string BuildRunMetadata(
         string dotnetPath,
         string workDir,
         string combinedOutput,
@@ -495,6 +497,7 @@ public static class DotNetCliRunner
         }
 
         metadata.AppendLine($"- **WorkingDirectory:** `{workDir}`");
+        metadata.AppendLine("- **DOTNET_CLI_UI_LANGUAGE:** `en-US`");
         return metadata.ToString().TrimEnd();
     }
 

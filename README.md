@@ -179,6 +179,11 @@ MCP `tools/list` stays JSON + JSON Schema. Markdown is for JIT help and diagnost
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.3.34
+
+- **Child `dotnet` processes always use English CLI UI** — `DotNetCliRunner.CreateProcessStartInfo` sets `DOTNET_CLI_UI_LANGUAGE=en-US` (kept next to `MSBUILDDISABLENODEREUSE=1`) so MSBuild/VSTest print `Passed!`, not `Пройдено!`, on ru-RU machines. English-only parsers are unchanged. Run metadata surfaces `DOTNET_CLI_UI_LANGUAGE: en-US`.
+- **Catalog size** — unchanged: full 63 tools / 45,868 bytes; lite 19 / 18,282.
+
 ### v1.3.33
 
 - **`get_test_list` `fullyQualifiedName` is a VSTest FQN** — `Ns.Type.Method` with no `global::` and no `()`, via `TestFilterHelper.FormatVstestFullyQualifiedName` (same helper as the `nameContains` filter). Previously `SymbolDisplayFormat.FullyQualifiedFormat` produced `global::Ns.Type.Method()`, which breaks VSTest `--filter` (parentheses are expression grouping, pitfall 11). Nested/generic adapter FQN (`+` vs `.`) is still a follow-up.
@@ -1370,7 +1375,7 @@ cd D:\Devel\YourApp
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.3.33). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.3.34). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 
