@@ -179,6 +179,11 @@ MCP `tools/list` stays JSON + JSON Schema. Markdown is for JIT help and diagnost
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.3.40
+
+- **Mixed non-C# projects no longer fail `load_workspace`** — diagnostics like `file extension '.vcxproj' is not associated with a language` (or a quoted non-C# `*.proj` extension) are soft advisories; loaded C# projects stay usable and the message remains visible. `Project file not found` on a C# `.csproj` and any `: error NU/MSB/NETSDK` / hard MSBuild load failure stay blocking.
+- **Catalog size** — unchanged: full 63 tools / 45,868 bytes; lite 19 / 18,282.
+
 ### v1.3.39
 
 - **CLI `Platform` is target-aware** — `.sln`/`.slnx` keep verbatim `Any CPU` (`-p:Platform="Any CPU"`) so MSBuild solution configs do not fail with MSB4126; `.csproj` still gets canonical `AnyCPU`. `load_workspace` continues to set the MSBuildWorkspace global property to `AnyCPU`. Session inherit stores both `LoadedPlatform` (canonical) and `LoadedPlatformRaw` (trimmed); omitted `platform` on build/test picks by the file being built. `FormatConfigurationProperty` (`-p:Configuration=`) is unchanged.
@@ -1400,7 +1405,7 @@ cd D:\Devel\YourApp
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.3.39). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.3.40). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 

@@ -77,11 +77,38 @@ public static class WorkspaceDiagnosticFormatter
                || IsMsBuildFailedWrapper(message);
     }
 
+    /// <summary>
+    /// Expected when a mixed solution includes native/other languages Roslyn cannot host
+    /// (e.g. <c>file extension '.vcxproj' is not associated with a language</c>).
+    /// Soft so loaded C# projects stay usable; does not soften missing C# projects
+    /// (<c>Project file not found</c>) or explicit MSBuild errors.
+    /// </summary>
+    public static bool IsExpectedNonCSharpProjectAdvisory(string message)
+    {
+        if (string.IsNullOrWhiteSpace(message))
+        {
+            return false;
+        }
+
+        if (IsHardMsBuildLoadFailure(message) || HasExplicitErrorToken(message))
+        {
+            return false;
+        }
+
+        return message.Contains("is not associated with a language", StringComparison.OrdinalIgnoreCase)
+               || RxQuotedNonCSharpProjectExtension.IsMatch(message);
+    }
+
+    private static readonly Regex RxQuotedNonCSharpProjectExtension = new(
+        @"['""]\.(?:vcx|cpp|wix|sql|njs|sh|cd|db|x|fsx)proj['""]",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
     public static bool IsSoftWorkspaceAdvisory(string message) =>
         IsNuGetAuditAdvisory(message)
         || IsNuGetPruneAdvisory(message)
         || IsNuGetCompatAdvisory(message)
-        || IsMsBuildDesignTimeAdvisory(message);
+        || IsMsBuildDesignTimeAdvisory(message)
+        || IsExpectedNonCSharpProjectAdvisory(message);
 
     /// <summary>
     /// Design-time evaluation left <c>TargetFramework</c> empty (typical of Bazel-generated csproj

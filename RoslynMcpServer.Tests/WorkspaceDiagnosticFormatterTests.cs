@@ -234,4 +234,71 @@ public sealed class WorkspaceDiagnosticFormatterTests
         Assert.StartsWith("Failure:", formatted, StringComparison.Ordinal);
         Assert.True(WorkspaceDiagnosticFormatter.IsBlockingLoadFailure(formatted));
     }
+
+    [Fact]
+    public void IsExpectedNonCSharpProjectAdvisory_true_for_english_language_association_phrase()
+    {
+        const string msg = "file extension '.vcxproj' is not associated with a language";
+        Assert.True(WorkspaceDiagnosticFormatter.IsExpectedNonCSharpProjectAdvisory(msg));
+        Assert.True(WorkspaceDiagnosticFormatter.IsSoftWorkspaceAdvisory(msg));
+        var formatted = WorkspaceDiagnosticFormatter.Format("Failure", msg);
+        Assert.False(WorkspaceDiagnosticFormatter.IsBlockingLoadFailure(formatted));
+    }
+
+    [Fact]
+    public void IsExpectedNonCSharpProjectAdvisory_true_for_quoted_vcxproj_without_english_phrase()
+    {
+        // Localized MSBuild text keeps the quoted extension; English phrase may be absent.
+        const string msg = "Расширение \".vcxproj\" не связано с языком";
+        Assert.True(WorkspaceDiagnosticFormatter.IsExpectedNonCSharpProjectAdvisory(msg));
+        Assert.True(WorkspaceDiagnosticFormatter.IsSoftWorkspaceAdvisory(msg));
+        Assert.False(WorkspaceDiagnosticFormatter.IsBlockingLoadFailure(
+            WorkspaceDiagnosticFormatter.Format("Failure", msg)));
+    }
+
+    [Fact]
+    public void Project_file_not_found_for_csproj_remains_blocking()
+    {
+        const string msg = "Project file not found: 'C:\\src\\Missing.Lib.csproj'";
+        Assert.False(WorkspaceDiagnosticFormatter.IsExpectedNonCSharpProjectAdvisory(msg));
+        Assert.False(WorkspaceDiagnosticFormatter.IsSoftWorkspaceAdvisory(msg));
+        var formatted = WorkspaceDiagnosticFormatter.Format("Failure", msg);
+        Assert.True(WorkspaceDiagnosticFormatter.IsBlockingLoadFailure(formatted));
+    }
+
+    [Fact]
+    public void NonCSharp_marker_with_explicit_msb_error_remains_blocking()
+    {
+        const string msg =
+            "file extension '.vcxproj' is not associated with a language: error MSB4019: The imported project was not found.";
+        Assert.False(WorkspaceDiagnosticFormatter.IsExpectedNonCSharpProjectAdvisory(msg));
+        Assert.False(WorkspaceDiagnosticFormatter.IsSoftWorkspaceAdvisory(msg));
+        Assert.True(WorkspaceDiagnosticFormatter.IsBlockingLoadFailure(
+            WorkspaceDiagnosticFormatter.Format("Failure", msg)));
+    }
+
+    [Fact]
+    public void Hard_regressions_remain_blocking_after_non_csharp_advisory()
+    {
+        Assert.True(WorkspaceDiagnosticFormatter.IsBlockingLoadFailure(
+            WorkspaceDiagnosticFormatter.Format(
+                "Failure",
+                "error NETSDK1045: The current .NET SDK does not support targeting .NET 10.0.")));
+        Assert.True(WorkspaceDiagnosticFormatter.IsBlockingLoadFailure(
+            WorkspaceDiagnosticFormatter.Format(
+                "Failure",
+                "An exception of type System.TypeInitializationException was thrown: "
+                + "The type initializer for 'Microsoft.Build.Shared.XMakeElements' threw an exception.")));
+        Assert.True(WorkspaceDiagnosticFormatter.IsBlockingLoadFailure(
+            WorkspaceDiagnosticFormatter.Format(
+                "Failure",
+                "Msbuild failed when processing the file 'Contracts.csproj' with message: "
+                + "Project does not contain 'Compile' target.")));
+        Assert.True(WorkspaceDiagnosticFormatter.IsBlockingLoadFailure(
+            "C:\\src\\Foo.csproj(1,1): error NU1101: Unable to find package X."));
+        Assert.True(WorkspaceDiagnosticFormatter.IsBlockingLoadFailure(
+            "C:\\src\\Foo.csproj(1,1): error MSB4019: The imported project was not found."));
+        Assert.True(WorkspaceDiagnosticFormatter.IsBlockingLoadFailure(
+            "C:\\src\\Foo.csproj(1,1): error NETSDK1004: Assets file not found."));
+    }
 }
