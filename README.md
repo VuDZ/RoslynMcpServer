@@ -143,12 +143,12 @@ Restart OpenCode or reload MCP servers after running the script.
 
 ## Tool profiles
 
-Default is **`full`** (every public tool). A **`lite`** session starts with the 19-tool core so local models spend less context on `tools/list`. Extra groups can be added at process start or, on clients that honor `notifications/tools/list_changed`, during the session.
+Default is **`full`** (every public tool). A **`lite`** session starts with the 15-tool core so local models spend less context on `tools/list`. Extra groups can be added at process start or, on clients that honor `notifications/tools/list_changed`, during the session.
 
 | Variable | Values | Effect |
 | --- | --- | --- |
 | `ROSLYN_MCP_TOOL_PROFILE` | `full` (default) or `lite` | Selects the startup catalog. Empty/unset is `full`. |
-| `ROSLYN_MCP_TOOL_GROUPS` | `core`, `files`, `editing`, `decompile`, `nuget`, `project`, `runtime`, `operations` (comma-separated, case-insensitive) | Adds those groups to **`lite` before the first `tools/list`**. In `full` the names are recorded and do not change the set. Unknown names fail startup. `core` is already in lite. |
+| `ROSLYN_MCP_TOOL_GROUPS` | `core`, `files`, `navigation`, `editing`, `decompile`, `nuget`, `project`, `runtime`, `operations` (comma-separated, case-insensitive) | Adds those groups to **`lite` before the first `tools/list`**. In `full` the names are recorded and do not change the set. Unknown names fail startup. `core` is already in lite. |
 
 Example: `ROSLYN_MCP_TOOL_GROUPS=decompile,nuget`
 
@@ -156,9 +156,10 @@ Portable OpenCode examples: [`opencode.json.sample`](opencode.json.sample) (`ros
 
 | Group | Intent | Tools |
 | --- | --- | ---: |
-| `core` | Workspace, navigation, build, test, help | 19 (lite default) |
-| `files` | Disk read, search, patch | 7 |
-| `editing` | AST edits, code fixes, format, rename | 17 |
+| `core` | Workspace, symbol lookup, build, test, help | 15 (lite default) |
+| `files` | Disk read, search, patch, `get_code_skeleton` | 8 |
+| `navigation` | Type hierarchy, references from a known declaration, call graph | 3 |
+| `editing` | AST edits, code fixes, format, rename | 8 |
 | `decompile` | Third-party assemblies | 4 |
 | `nuget` | Package list, audit, search, add/remove | 6 |
 | `project` | Solution graph and project rename | 3 |
@@ -173,11 +174,16 @@ Portable OpenCode examples: [`opencode.json.sample`](opencode.json.sample) (`ros
 
 MCP `tools/list` stays JSON + JSON Schema. Markdown is for JIT help and diagnostics.
 
-**Client compatibility:** do not assume the host refreshes tools after `tools/list_changed`. If a newly enabled tool is missing from the client's catalog, restart with `ROSLYN_MCP_TOOL_GROUPS=<group>` (and `ROSLYN_MCP_TOOL_PROFILE=lite`). Measured minified `tools/list` (UTF-8): full **63 / 45,868** (~44.8 KB); lite **19 / 18,282** (~17.9 KB). Adding `editing` to lite is above the 20 KB *startup-lite* budget (expected).
+**Client compatibility:** do not assume the host refreshes tools after `tools/list_changed`. If a newly enabled tool is missing from the client's catalog, restart with `ROSLYN_MCP_TOOL_GROUPS=<group>` (and `ROSLYN_MCP_TOOL_PROFILE=lite`). Measured minified `tools/list` (UTF-8): full **54 / 45,093**; lite **15** (byte size pending remeasure after this demotion).
 
 ## Agent tools by version
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
+
+### v1.4.12
+
+- **Lite demotion (membership only)** — `find_symbol_references`, `find_implementations`, and `get_call_graph` moved from `core` to the new `navigation` group; `get_code_skeleton` moved from `core` to `files`. All four remain in `full`. Bare `lite` no longer lists them; enable `navigation` or `files` (or set `ROSLYN_MCP_TOOL_GROUPS`) to get them. `find_symbol_definition` and `find_usages` stay in `core`. Default profile is still `full`.
+- **Catalog size** — full unchanged 54 tools / 45,093 bytes; lite 15 / 17,449.
 
 ### v1.4.11
 
@@ -639,7 +645,7 @@ Policy summary (full text in the sample):
 - Environment Variables:
   - `ROSLYN_MCP_WORKSPACE` — repo root for MSBuild/SDK discovery at startup (see MCP config above). Also sets process cwd so `RoslynMcp.jsonc` in the working directory is read from the repo, not the user profile.
   - `ROSLYN_MCP_TOOL_PROFILE` — `full` (default) or `lite` (see **Tool profiles**).
-  - `ROSLYN_MCP_TOOL_GROUPS` — comma-separated extra groups for `lite` at startup. Valid: `core`, `files`, `editing`, `decompile`, `nuget`, `project`, `runtime`, `operations` (see **Tool profiles**).
+  - `ROSLYN_MCP_TOOL_GROUPS` — comma-separated extra groups for `lite` at startup. Valid: `core`, `files`, `navigation`, `editing`, `decompile`, `nuget`, `project`, `runtime`, `operations` (see **Tool profiles**).
   - `ROSLYN_MCP_LOG_TOOL_OUTPUT=full` — verbose tool response logging.
   - `MCP_LOG_INCOMING_RPC=0` (disable incoming RPC logging).
   - `MCP_LOG_INCOMING_RPC_MAX_CHARS=<N>` (limit payload log length, `0` = unlimited).
@@ -659,7 +665,7 @@ Policy summary (full text in the sample):
 
 When a tool accepts `filePath`, relative values are resolved against the loaded workspace root after `load_workspace`; if no workspace is loaded, fallback is `Environment.CurrentDirectory`.
 
-There are **63** registered tools in the default `full` profile (see list below) and **1** MCP prompt (`RefactoringAssistantPrompt`). A `lite` profile starts with **19** core tools; extra groups use `ROSLYN_MCP_TOOL_GROUPS` or `enable_tool_group`.
+There are **54** registered tools in the default `full` profile (see list below) and **1** MCP prompt (`RefactoringAssistantPrompt`). A `lite` profile starts with **15** core tools; extra groups use `ROSLYN_MCP_TOOL_GROUPS` or `enable_tool_group`.
 
 ### Workspace / Roslyn
 
@@ -709,7 +715,7 @@ There are **63** registered tools in the default `full` profile (see list below)
 **Parameters:**
 - `path: string` — absolute path to one `.cs` file or a folder to scan recursively.
 
-**Note:** Does not require `load_workspace`. For a file already in the loaded solution, `get_class_skeleton` may still be preferable (workspace-consistent view).
+**Note:** Does not require `load_workspace`. In `lite`, enable the `files` group (or use `full`) to see this tool. For a file already in the loaded solution, `get_class_skeleton` may still be preferable (workspace-consistent view).
 **Important:** This tool is file/folder-only (`path`). Do **not** pass `assemblyName` / `typeName`; for external/NuGet assemblies use `decompile_type` / `get_decompiled_class_skeleton`.
 </details>
 
@@ -1472,12 +1478,12 @@ cd D:\Devel\YourApp
 
 ## Профили инструментов
 
-По умолчанию **`full`** (все публичные тулы). **`lite`** стартует с 19 core-тулов. Дополнительные группы — при старте процесса или, если клиент обрабатывает `notifications/tools/list_changed`, во время сессии.
+По умолчанию **`full`** (все публичные тулы). **`lite`** стартует с 15 core-тулов. Дополнительные группы — при старте процесса или, если клиент обрабатывает `notifications/tools/list_changed`, во время сессии.
 
 | Переменная | Значения | Эффект |
 | --- | --- | --- |
 | `ROSLYN_MCP_TOOL_PROFILE` | `full` (по умолчанию) или `lite` | Стартовый каталог. Пустое/не задано = `full`. |
-| `ROSLYN_MCP_TOOL_GROUPS` | `core`, `files`, `editing`, `decompile`, `nuget`, `project`, `runtime`, `operations` (через запятую, без учёта регистра) | Добавляет группы в **`lite` до первого `tools/list`**. В `full` имена только записываются. Неизвестное имя валит старт. `core` в lite уже есть. |
+| `ROSLYN_MCP_TOOL_GROUPS` | `core`, `files`, `navigation`, `editing`, `decompile`, `nuget`, `project`, `runtime`, `operations` (через запятую, без учёта регистра) | Добавляет группы в **`lite` до первого `tools/list`**. В `full` имена только записываются. Неизвестное имя валит старт. `core` в lite уже есть. |
 
 Пример: `ROSLYN_MCP_TOOL_GROUPS=decompile,nuget`
 
@@ -1485,20 +1491,21 @@ cd D:\Devel\YourApp
 
 | Группа | Назначение | Тулов |
 | --- | --- | ---: |
-| `core` | workspace, навигация, build, test, help | 19 (lite по умолчанию) |
-| `files` | чтение/поиск/патч с диска | 7 |
-| `editing` | AST, code fixes, format, rename | 17 |
+| `core` | workspace, поиск символов, build, test, help | 15 (lite по умолчанию) |
+| `files` | чтение/поиск/патч с диска, `get_code_skeleton` | 8 |
+| `navigation` | иерархия типов, ссылки по известному объявлению, граф вызовов | 3 |
+| `editing` | AST, code fixes, format, rename | 8 |
 | `decompile` | сторонние сборки | 4 |
 | `nuget` | пакеты: list/audit/search/add/remove | 6 |
 | `project` | граф solution и rename проекта | 3 |
 | `runtime` | `run`, список тестов, сырой `dotnet` | 3 |
 | `operations` | логи, scratchpad, stop | 4 |
 
-`list_tool_groups` / `get_tool_help` / `enable_tool_group` — Markdown-справка и runtime-включение. `tools/list` остаётся JSON Schema. Если клиент не обновляет список после `tools/list_changed`, перезапустите с `ROSLYN_MCP_TOOL_GROUPS=<group>`. Замеры minified UTF-8: full **63 / 45 868**; lite **19 / 18 282**.
+`list_tool_groups` / `get_tool_help` / `enable_tool_group` — Markdown-справка и runtime-включение. `tools/list` остаётся JSON Schema. Если клиент не обновляет список после `tools/list_changed`, перезапустите с `ROSLYN_MCP_TOOL_GROUPS=<group>`. Замеры minified UTF-8: full **54 / 45 093**; lite **15** (байты lite — после повторного замера).
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.4.11). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.4.12). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 
@@ -1526,7 +1533,7 @@ cd D:\Devel\YourApp
 - Основной лог: `logs/mcp-*.log` (относительно `AppContext.BaseDirectory`).
 - Включено логирование входящих JSON-RPC сообщений (`MCP_LOG_INCOMING_RPC`, `MCP_LOG_INCOMING_RPC_MAX_CHARS`).
 - **Ответы tools:** в лог пишется однострочная сводка и отдельные строки warning/error (без полного дублирования ответа MCP). `ROSLYN_MCP_LOG_TOOL_OUTPUT=full` — полный текст ответов tools.
-- Переменные: `ROSLYN_MCP_WORKSPACE` (корень репо для MSBuild/SDK), `ROSLYN_MCP_TOOL_PROFILE` (`full`/`lite`), `ROSLYN_MCP_TOOL_GROUPS` (`core`, `files`, `editing`, `decompile`, `nuget`, `project`, `runtime`, `operations`; см. **Профили инструментов**), `ROSLYN_MCP_LOG_TOOL_OUTPUT=full`.
+- Переменные: `ROSLYN_MCP_WORKSPACE` (корень репо для MSBuild/SDK), `ROSLYN_MCP_TOOL_PROFILE` (`full`/`lite`), `ROSLYN_MCP_TOOL_GROUPS` (`core`, `files`, `navigation`, `editing`, `decompile`, `nuget`, `project`, `runtime`, `operations`; см. **Профили инструментов**), `ROSLYN_MCP_LOG_TOOL_OUTPUT=full`.
 
 ## Reference: MCP Tools
 
@@ -1541,7 +1548,7 @@ cd D:\Devel\YourApp
 - `fixIndex` — индекс (0-based) из `get_code_fixes` для `apply_code_fix`.
 - `path` — файл `.cs` или каталог для `get_code_skeleton` (абсолютный путь; с диска, workspace не обязателен).
 
-Зарегистрировано **63** инструмента в профиле `full` (список ниже) и **1** MCP-промпт (`RefactoringAssistantPrompt`). Профиль `lite` стартует с **19** core-тулов; остальные группы — `ROSLYN_MCP_TOOL_GROUPS` или `enable_tool_group`.
+Зарегистрировано **54** инструмента в профиле `full` (список ниже) и **1** MCP-промпт (`RefactoringAssistantPrompt`). Профиль `lite` стартует с **15** core-тулов; остальные группы — `ROSLYN_MCP_TOOL_GROUPS` или `enable_tool_group`.
 
 ### Workspace / Roslyn
 
@@ -1591,7 +1598,7 @@ cd D:\Devel\YourApp
 **Параметры:**
 - `path: string` — абсолютный путь к одному файлу `.cs` или к папке для рекурсивного обхода.
 
-**Заметка:** `load_workspace` не требуется. Для файла из уже загруженного solution по-прежнему уместен `get_class_skeleton`.
+**Заметка:** `load_workspace` не требуется. В `lite` включите группу `files` (или используйте `full`), чтобы увидеть этот tool. Для файла из уже загруженного solution по-прежнему уместен `get_class_skeleton`.
 **Важно:** этот tool работает только с путём к файлу/папке (`path`). Не передавайте сюда `assemblyName` / `typeName`; для внешних/NuGet-сборок используйте `decompile_type` / `get_decompiled_class_skeleton`.
 </details>
 

@@ -5,6 +5,7 @@ public static class McpToolGroups
 {
     public const string Core = "core";
     public const string Files = "files";
+    public const string Navigation = "navigation";
     public const string Editing = "editing";
     public const string Decompile = "decompile";
     public const string NuGet = "nuget";
@@ -16,6 +17,7 @@ public static class McpToolGroups
     [
         Core,
         Files,
+        Navigation,
         Editing,
         Decompile,
         NuGet,
@@ -28,6 +30,7 @@ public static class McpToolGroups
     {
         Core => "Workspace, navigation, build, and test essentials.",
         Files => "Disk file read, search, and patch.",
+        Navigation => "Type hierarchy, references from a known declaration, and call graph.",
         Editing => "AST edits, code fixes, format, and rename.",
         Decompile => "Inspect third-party assemblies.",
         NuGet => "Package list, audit, search, add, and remove.",

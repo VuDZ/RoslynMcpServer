@@ -16,7 +16,7 @@
 | Явный раннер тестов | [test-runner-selection/](test-runner-selection/README.md) | эпоха 1, код не начат; `testRunner=auto\|vstest\|mtp`, молчание = `auto` |
 | Workspace load cache | [workspace-load-cache/](workspace-load-cache/README.md) | post-arbitration spec, не в runtime |
 | MCP tool surface evolution | [mcp-tool-surface-evolution/](mcp-tool-surface-evolution/README.md) | post-arbitration spec v2; реализация не начата |
-| Срез выдачи по логам | [tool-usage-cut/](tool-usage-cut/README.md) | эпоха 1 сделана (full 54 / lite 19); эпоха 2 не начата (lite → 15) |
+| Срез выдачи по логам | [tool-usage-cut/](tool-usage-cut/README.md) | обе эпохи сделаны; full 54, lite 15 |
 | GitHub binary releases | [github-releases/](github-releases/README.md) | O-01 закрыт; CI + release workflow есть; smoke дистрибутива и O-02/O-03 открыты |
 
 ## Contract

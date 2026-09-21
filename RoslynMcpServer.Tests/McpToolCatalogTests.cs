@@ -168,14 +168,10 @@ public sealed class McpToolCatalogTests(ITestOutputHelper output)
             "enable_tool_group",
             "load_workspace",
             "reset_workspace",
-            "get_code_skeleton",
             "get_class_skeleton",
             "get_diagnostics_for_file",
             "find_symbol_definition",
             "find_usages",
-            "find_symbol_references",
-            "find_implementations",
-            "get_call_graph",
             "run_dotnet_build",
             "run_dotnet_test",
             "run_specific_test",
@@ -184,12 +180,86 @@ public sealed class McpToolCatalogTests(ITestOutputHelper output)
         };
 
         Assert.Equal(expected.OrderBy(n => n, StringComparer.Ordinal), surface.RegisteredTools.Select(t => t.Name).OrderBy(n => n, StringComparer.Ordinal));
+        Assert.Equal(15, surface.RegisteredToolCount);
         Assert.All(surface.RegisteredTools, d => Assert.True(d.InLiteCore));
+        Assert.Equal(
+            McpToolCatalog.All.Where(d => d.InLiteCore).Select(d => d.Name).OrderBy(n => n, StringComparer.Ordinal),
+            surface.RegisteredTools.Select(t => t.Name).OrderBy(n => n, StringComparer.Ordinal));
+        Assert.DoesNotContain(surface.RegisteredTools, d => d.Name == "find_symbol_references");
+        Assert.DoesNotContain(surface.RegisteredTools, d => d.Name == "find_implementations");
+        Assert.DoesNotContain(surface.RegisteredTools, d => d.Name == "get_call_graph");
+        Assert.DoesNotContain(surface.RegisteredTools, d => d.Name == "get_code_skeleton");
         Assert.DoesNotContain(surface.RegisteredTools, d => d.Name == "decompile_type");
         Assert.DoesNotContain(surface.RegisteredTools, d => d.Name == "search_code");
+        Assert.Contains(surface.RegisteredTools, d => d.Name == "find_symbol_definition");
+        Assert.Contains(surface.RegisteredTools, d => d.Name == "find_usages");
         Assert.Contains(surface.RegisteredTools, d => d.Name == "enable_tool_group");
         Assert.Contains(surface.RegisteredTools, d => d.Name == "list_tool_groups");
         Assert.Contains(surface.RegisteredTools, d => d.Name == "get_tool_help");
+    }
+
+    [Fact]
+    public void Lite_plus_navigation_returns_three_nav_tools_not_skeleton()
+    {
+        var surface = McpToolCatalog.CreateSurface(new McpToolProfileOptions
+        {
+            Profile = "lite",
+            Groups = "navigation",
+        });
+
+        Assert.Contains(surface.RegisteredTools, d => d.Name == "find_symbol_references");
+        Assert.Contains(surface.RegisteredTools, d => d.Name == "find_implementations");
+        Assert.Contains(surface.RegisteredTools, d => d.Name == "get_call_graph");
+        Assert.DoesNotContain(surface.RegisteredTools, d => d.Name == "get_code_skeleton");
+        Assert.Equal(18, surface.RegisteredToolCount);
+    }
+
+    [Fact]
+    public void Lite_plus_files_returns_skeleton_with_existing_files_tools()
+    {
+        var surface = McpToolCatalog.CreateSurface(new McpToolProfileOptions
+        {
+            Profile = "lite",
+            Groups = "files",
+        });
+        var filesNames = McpToolCatalog.All
+            .Where(d => d.Group == McpToolGroups.Files)
+            .Select(d => d.Name)
+            .ToHashSet(StringComparer.Ordinal);
+
+        Assert.Contains("get_code_skeleton", filesNames);
+        Assert.Contains(surface.RegisteredTools, d => d.Name == "get_code_skeleton");
+        Assert.All(filesNames, name => Assert.Contains(surface.RegisteredTools, d => d.Name == name));
+        Assert.DoesNotContain(surface.RegisteredTools, d => d.Name == "find_symbol_references");
+        Assert.Equal(23, surface.RegisteredToolCount);
+    }
+
+    [Fact]
+    public void Full_still_contains_demoted_navigation_and_skeleton_tools()
+    {
+        var surface = McpToolCatalog.CreateSurface(new McpToolProfileOptions { Profile = "full" });
+        Assert.Contains(surface.RegisteredTools, d => d.Name == "find_symbol_references");
+        Assert.Contains(surface.RegisteredTools, d => d.Name == "find_implementations");
+        Assert.Contains(surface.RegisteredTools, d => d.Name == "get_call_graph");
+        Assert.Contains(surface.RegisteredTools, d => d.Name == "get_code_skeleton");
+        Assert.Equal(McpToolGroups.Navigation, McpToolCatalog.All.First(d => d.Name == "find_symbol_references").Group);
+        Assert.Equal(McpToolGroups.Files, McpToolCatalog.All.First(d => d.Name == "get_code_skeleton").Group);
+    }
+
+    [Fact]
+    public void Navigation_group_is_accepted_and_listed()
+    {
+        Assert.Contains(McpToolGroups.Navigation, McpToolGroups.All);
+        Assert.True(McpToolCatalog.TryNormalizeGroup("navigation", out var group));
+        Assert.Equal(McpToolGroups.Navigation, group);
+        Assert.Contains("Type hierarchy", McpToolGroups.Describe(McpToolGroups.Navigation), StringComparison.Ordinal);
+
+        var surface = McpToolCatalog.CreateSurface(new McpToolProfileOptions
+        {
+            Profile = "lite",
+            Groups = "navigation",
+        });
+        Assert.Equal(["navigation"], surface.StartupGroups);
     }
 
     [Fact]
@@ -243,6 +313,7 @@ public sealed class McpToolCatalogTests(ITestOutputHelper output)
 
         Assert.Contains("Unknown tool group 'widgets'", ex.Message, StringComparison.Ordinal);
         Assert.Contains("files", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("navigation", ex.Message, StringComparison.Ordinal);
         Assert.Contains(McpToolProfileOptions.GroupsVariableName, ex.Message, StringComparison.Ordinal);
     }
 
@@ -404,20 +475,20 @@ public sealed class McpToolCatalogTests(ITestOutputHelper output)
         output.WriteLine($"lite+operations={liteOperations.Count}/{liteOperations.Utf8Bytes}");
 
         AssertRecorded("full", 54, 45093, full);
-        AssertRecorded("lite", 19, 22087, lite);
-        AssertRecorded("lite+files", 26, 26916, liteFiles);
-        AssertRecorded("lite+editing", 27, 27669, liteEditing);
-        AssertRecorded("lite+decompile", 23, 25005, liteDecompile);
-        AssertRecorded("lite+nuget", 25, 25700, liteNuget);
-        AssertRecorded("lite+project", 22, 23724, liteProject);
-        AssertRecorded("lite+runtime", 22, 24597, liteRuntime);
-        AssertRecorded("lite+operations", 23, 24004, liteOperations);
+        AssertRecorded("lite", 15, 17449, lite);
+        AssertRecorded("lite+files", 23, 22817, liteFiles);
+        AssertRecorded("lite+editing", 23, 23031, liteEditing);
+        AssertRecorded("lite+decompile", 19, 20367, liteDecompile);
+        AssertRecorded("lite+nuget", 21, 21062, liteNuget);
+        AssertRecorded("lite+project", 18, 19086, liteProject);
+        AssertRecorded("lite+runtime", 18, 19959, liteRuntime);
+        AssertRecorded("lite+operations", 19, 19366, liteOperations);
 
         var enabled = MeasureSurface(
             new McpToolProfileOptions { Profile = "lite" },
             activation => activation.EnableGroup("files"));
-        AssertRecorded("lite+enable:files", 26, 26916, enabled);
-        Assert.Equal(26916, MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "files" }).Utf8Bytes);
+        AssertRecorded("lite+enable:files", 23, 22817, enabled);
+        Assert.Equal(22817, MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "files" }).Utf8Bytes);
     }
 
     private static void AssertRecorded(string label, int count, int bytes, (int Count, int Utf8Bytes) actual)

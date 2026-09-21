@@ -174,7 +174,7 @@ public static class WorkspaceLoadGuidance
             sb.AppendLine(
                 "This path looks **Bazel/generated** (`generated`, `Bazel`, `_sln_`). "
                 + "If the `.csproj` files have no `TargetFramework` even under the IDE configuration, "
-                + "Roslyn `MSBuildWorkspace` cannot load this solution. Use `get_code_skeleton` / host Grep without a workspace; "
+                + "Roslyn `MSBuildWorkspace` cannot load this solution. Use `get_code_skeleton` (available in `full` and the `files` group) / host Grep without a workspace; "
                 + "do not expect `find_symbol_*` on this `.sln`.");
         }
 
@@ -222,7 +222,7 @@ public static class WorkspaceLoadGuidance
         {
             sb.AppendLine(
                 "**What to do:** the passed `targetFramework` still produced no `Compile` target. "
-                + "Try another TFM from the list below, or use `get_code_skeleton` / host Grep without a workspace.");
+                + "Try another TFM from the list below, or use `get_code_skeleton` (available in `full` and the `files` group) / host Grep without a workspace.");
         }
 
         var tfms = DirectoryBuildPropsReader.ListTargetFrameworks(workspacePath);
@@ -270,7 +270,7 @@ public static class WorkspaceLoadGuidance
 
         sb.AppendLine();
         sb.AppendLine(
-            "Without a loaded workspace, use `get_code_skeleton` / host Grep; `run_dotnet_build` / `run_dotnet_test` still work (they invoke `dotnet`, not Roslyn Compile).");
+            "Without a loaded workspace, use `get_code_skeleton` (available in `full` and the `files` group) / host Grep; `run_dotnet_build` / `run_dotnet_test` still work (they invoke `dotnet`, not Roslyn Compile).");
 
         sb.Append(MsBuildEnvironmentInfo.FormatMarkdownSection());
         return sb.ToString().TrimEnd();

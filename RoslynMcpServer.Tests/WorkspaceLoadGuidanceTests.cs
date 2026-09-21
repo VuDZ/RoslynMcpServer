@@ -105,6 +105,8 @@ public sealed class WorkspaceLoadGuidanceTests
             Assert.Contains("netstandard2.0", message, StringComparison.Ordinal);
             Assert.Contains("Contracts.csproj", message, StringComparison.Ordinal);
             Assert.Contains("get_code_skeleton", message, StringComparison.Ordinal);
+            Assert.Contains("files", message, StringComparison.Ordinal);
+            Assert.Contains("full", message, StringComparison.Ordinal);
             Assert.DoesNotContain("Successfully loaded", message, StringComparison.Ordinal);
         }
         finally
@@ -114,6 +116,40 @@ public sealed class WorkspaceLoadGuidanceTests
                 Directory.Delete(root, recursive: true);
             }
         }
+    }
+
+    [Fact]
+    public void FormatMissingCompileTargetWorkspaceLoadMessage_with_failed_tfm_names_files_group()
+    {
+        var message = WorkspaceLoadGuidance.FormatMissingCompileTargetWorkspaceLoadMessage(
+            @"C:\repo\App.sln",
+            diagnostics: ["Failure: Project does not contain 'Compile' target."],
+            configuration: null,
+            platform: null,
+            targetFramework: "net10.0");
+
+        Assert.Contains("get_code_skeleton", message, StringComparison.Ordinal);
+        Assert.Contains("files", message, StringComparison.Ordinal);
+        Assert.Contains("full", message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FormatMissingTargetFrameworkWorkspaceLoadMessage_names_files_group_for_skeleton()
+    {
+        var diagnostics = new[]
+        {
+            "Failure: Msbuild failed when processing the file 'D:\\m\\src\\product\\kavkis\\Autotests\\_sln_kart\\generated\\Foo.csproj' with message: The \"ResolvePackageAssets\" task was not given a value for the required parameter \"TargetFramework\".",
+        };
+
+        var message = WorkspaceLoadGuidance.FormatMissingTargetFrameworkWorkspaceLoadMessage(
+            @"D:\m\src\product\kavkis\Autotests\_sln_kart\ide_kart_m_src.sln",
+            diagnostics,
+            configuration: null,
+            platform: null);
+
+        Assert.Contains("get_code_skeleton", message, StringComparison.Ordinal);
+        Assert.Contains("files", message, StringComparison.Ordinal);
+        Assert.Contains("full", message, StringComparison.Ordinal);
     }
 
     [Fact]

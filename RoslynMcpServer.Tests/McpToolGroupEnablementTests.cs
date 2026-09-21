@@ -23,6 +23,7 @@ public sealed class McpToolGroupEnablementTests
         Assert.Empty(result.NewlyEnabledTools);
         Assert.Contains("Unknown group `widgets`", result.Markdown, StringComparison.Ordinal);
         Assert.Contains("`files`", result.Markdown, StringComparison.Ordinal);
+        Assert.Contains("`navigation`", result.Markdown, StringComparison.Ordinal);
         Assert.Contains("`list_tool_groups`", result.Markdown, StringComparison.Ordinal);
         Assert.Equal(0, notifications());
         Assert.Empty(activation.DynamicGroups);
