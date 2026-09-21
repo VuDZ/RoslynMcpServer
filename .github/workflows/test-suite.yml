@@ -1,0 +1,81 @@
+name: Test suite
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: 'Commit SHA to test (empty = caller github.sha)'
+        type: string
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: ${{ matrix.name }}
+    runs-on: windows-latest
+    timeout-minutes: ${{ matrix.timeout }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: unit
+            timeout: 20
+            filter: Category!=AnalyzerLifecycle
+          - name: lifecycle-epoch1
+            timeout: 45
+            filter: Category=AnalyzerLifecycle&FullyQualifiedName~Epoch1
+          - name: lifecycle-v3
+            timeout: 45
+            filter: Category=AnalyzerLifecycle&FullyQualifiedName~V3
+          - name: lifecycle-epoch4-5
+            timeout: 45
+            filter: Category=AnalyzerLifecycle&(FullyQualifiedName~Epoch4|FullyQualifiedName~Epoch5)
+          - name: lifecycle-rest
+            timeout: 45
+            filter: Category=AnalyzerLifecycle&FullyQualifiedName!~Epoch1&FullyQualifiedName!~V3&FullyQualifiedName!~Epoch4&FullyQualifiedName!~Epoch5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref != '' && inputs.ref || github.sha }}
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+          cache: true
+          cache-dependency-path: |
+            **/*.csproj
+            Directory.Build.props
+
+      - name: Restore
+        run: dotnet restore RoslynMcpServer.sln
+
+      - name: Test
+        shell: pwsh
+        env:
+          SHARD: ${{ matrix.name }}
+          FILTER: ${{ matrix.filter }}
+        run: |
+          dotnet test RoslynMcpServer.sln `
+            -c Release `
+            --no-restore `
+            --verbosity normal `
+            --logger "trx;LogFileName=$env:SHARD.trx" `
+            --results-directory "${{ github.workspace }}/TestResults" `
+            --filter "$env:FILTER"
+
+      - name: Fail if any test skipped
+        shell: pwsh
+        run: .\.github\scripts\Assert-NoSkippedTests.ps1 -ResultsDirectory "${{ github.workspace }}\TestResults"
+
+      - name: Upload TRX
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trx-${{ matrix.name }}
+          path: TestResults/**
+          if-no-files-found: error

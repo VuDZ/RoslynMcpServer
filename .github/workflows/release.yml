@@ -21,9 +21,14 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  release:
+  meta:
     runs-on: windows-latest
-    timeout-minutes: 90
+    outputs:
+      sha: ${{ steps.meta.outputs.sha }}
+      version: ${{ steps.meta.outputs.version }}
+      tag: ${{ steps.meta.outputs.tag }}
+      sc_zip: ${{ steps.meta.outputs.sc_zip }}
+      fdd_zip: ${{ steps.meta.outputs.fdd_zip }}
     steps:
       - name: Resolve SHA
         id: rev
@@ -67,39 +72,52 @@ jobs:
             throw "Docs/rules-only changes since the previous tag. Re-run with force=true only if a binary release is still intended."
           }
 
+      - name: Upload release notes
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-notes
+          path: release-notes.md
+          if-no-files-found: error
+
+  tests:
+    needs: meta
+    uses: ./.github/workflows/test-suite.yml
+    with:
+      ref: ${{ needs.meta.outputs.sha }}
+
+  publish:
+    needs: [meta, tests]
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.meta.outputs.sha }}
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Download release notes
+        uses: actions/download-artifact@v4
+        with:
+          name: release-notes
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
+          cache: true
+          cache-dependency-path: |
+            **/*.csproj
+            Directory.Build.props
 
       - name: Restore
         run: dotnet restore RoslynMcpServer.sln
 
-      - name: Test
-        run: >-
-          dotnet test RoslynMcpServer.sln
-          -c Release
-          --no-restore
-          --verbosity normal
-          --logger "trx;LogFileName=release.trx"
-          --results-directory "${{ github.workspace }}/TestResults"
-
-      - name: Fail if any test skipped
-        shell: pwsh
-        run: .\.github\scripts\Assert-NoSkippedTests.ps1 -ResultsDirectory "${{ github.workspace }}\TestResults"
-
-      - name: Upload TRX
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: release-trx
-          path: TestResults/**
-          if-no-files-found: error
-
       - name: Publish win-x64
         shell: pwsh
         run: |
-          $version = '${{ steps.meta.outputs.version }}'
+          $version = '${{ needs.meta.outputs.version }}'
           $scOut = Join-Path '${{ github.workspace }}' 'artifacts\publish\win-x64-self-contained'
           $fddOut = Join-Path '${{ github.workspace }}' 'artifacts\publish\win-x64-framework-dependent'
           New-Item -ItemType Directory -Path $scOut -Force | Out-Null
@@ -132,8 +150,8 @@ jobs:
           }
 
           $zipDir = Join-Path '${{ github.workspace }}' 'artifacts\zips'
-          $scZip = Join-Path $zipDir '${{ steps.meta.outputs.sc_zip }}'
-          $fddZip = Join-Path $zipDir '${{ steps.meta.outputs.fdd_zip }}'
+          $scZip = Join-Path $zipDir '${{ needs.meta.outputs.sc_zip }}'
+          $fddZip = Join-Path $zipDir '${{ needs.meta.outputs.fdd_zip }}'
           .\.github\scripts\New-PublishZip.ps1 -PublishDir $scOut -ZipPath $scZip
           .\.github\scripts\New-PublishZip.ps1 -PublishDir $fddOut -ZipPath $fddZip
 
@@ -142,11 +160,11 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: pwsh
         run: |
-          $tag = '${{ steps.meta.outputs.tag }}'
-          $sha = '${{ steps.meta.outputs.sha }}'
-          $version = '${{ steps.meta.outputs.version }}'
-          $scZip = Join-Path '${{ github.workspace }}' "artifacts\zips\${{ steps.meta.outputs.sc_zip }}"
-          $fddZip = Join-Path '${{ github.workspace }}' "artifacts\zips\${{ steps.meta.outputs.fdd_zip }}"
+          $tag = '${{ needs.meta.outputs.tag }}'
+          $sha = '${{ needs.meta.outputs.sha }}'
+          $version = '${{ needs.meta.outputs.version }}'
+          $scZip = Join-Path '${{ github.workspace }}' "artifacts\zips\${{ needs.meta.outputs.sc_zip }}"
+          $fddZip = Join-Path '${{ github.workspace }}' "artifacts\zips\${{ needs.meta.outputs.fdd_zip }}"
           $notes = Join-Path '${{ github.workspace }}' 'release-notes.md'
 
           $tagExists = $false

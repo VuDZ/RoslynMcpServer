@@ -15,3 +15,6 @@ read `.cursor/skills/prepare-github-release/SKILL.md` and run
 
 Skip a binary release for docs/rules-only trees. Local version bumps stay
 independent of GitHub Releases (several bugfixes may share one dispatch).
+
+CI shards (AnalyzerLifecycle vs unit, remainder filter): `.cursor/rules/roslyn-mcp-ci.mdc`.
+Do not replace `test-suite.yml` with one sequential `dotnet test`.

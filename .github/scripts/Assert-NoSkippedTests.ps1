@@ -5,7 +5,8 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [string]$ResultsDirectory
+    [string]$ResultsDirectory,
+    [switch]$AllowEmpty
 )
 
 $ErrorActionPreference = 'Stop'
@@ -45,6 +46,11 @@ foreach ($file in $trxFiles) {
 Write-Host "TRX counters: total=$total executed=$executed passed=$passed failed=$failed notExecuted=$notExecuted"
 
 if ($total -le 0) {
+    if ($AllowEmpty) {
+        Write-Host 'No tests in this TRX (empty shard allowed).'
+        return
+    }
+
     throw 'No tests discovered. CI must run the full RoslynMcpServer.Tests assembly.'
 }
 
