@@ -32,38 +32,62 @@ public sealed class NavigationTools
 
     [McpServerTool(Name = "find_symbol_references", Title = "Find symbol references")]
     [Description(
-        "Finds semantic references when the declaring .cs file is known. Requires load_workspace. "
-        + "Optional line/column (1-based) resolve the symbol at that position (declaration or usage); "
-        + "omit line for declaration-by-name in the file. For solution-wide search by name use find_usages.")]
+        "Finds semantic references in the loaded workspace. Requires load_workspace. "
+        + "Omit filePath for solution-wide name/FQN search (all matching declaration groups). "
+        + "Pass filePath without line for declaration-by-name in that file. "
+        + "Pass filePath+line (optional column) to resolve at that position. "
+        + "find_usages is the name-based alias without filePath.")]
     public async Task<string> FindSymbolReferences(
-        [Description("Path to the .cs file (declaring file, or any file when line is set).")]
-        string filePath,
-        [Description("Symbol name. With line omitted: declared in that file. With line set: used for auto-column when column is omitted.")]
+        [Description(
+            "Simple name (case-insensitive) or exact FQN (Namespace.Type or Namespace.Type.Member; no global::, no ()). "
+            + "With filePath+line: also the auto-column needle when column is omitted.")]
         string symbolName,
-        [Description("Optional 1-based line. When set, resolve the symbol at that position (declaration or usage).")]
+        [Description(
+            "Optional .cs file. Omit for solution-wide name/FQN search. Required when line is set. "
+            + "With line omitted: declaration-by-name in that file.")]
+        string? filePath = null,
+        [Description("Optional 1-based line. Requires filePath. When set, resolve the symbol at that position (declaration or usage).")]
         int? line = null,
         [Description("Optional 1-based column. When omitted with line set, picks the unique identifier token matching symbolName on that line.")]
         int? column = null,
         CancellationToken cancellationToken = default)
     {
+        const string toolName = nameof(FindSymbolReferences);
+
         try
         {
-            if (string.IsNullOrWhiteSpace(filePath))
-            {
-                return ToolTelemetry.TraceAndReturn(nameof(FindSymbolReferences), "Error: `filePath` is empty.");
-            }
-
             if (string.IsNullOrWhiteSpace(symbolName))
             {
-                return ToolTelemetry.TraceAndReturn(nameof(FindSymbolReferences), "Symbol name is empty.");
+                return ToolTelemetry.TraceAndReturn(toolName, "Symbol name is empty.");
             }
 
-            var fullPath = _solutionManager.ResolvePathAgainstWorkspace(filePath);
+            var trimmedName = symbolName.Trim();
+            var hasFilePath = !string.IsNullOrWhiteSpace(filePath);
+
+            if (line is not null && !hasFilePath)
+            {
+                return ToolTelemetry.TraceAndReturn(
+                    toolName,
+                    "Error: `line` requires `filePath`. Pass the .cs file containing that line, or omit both for name/FQN search.");
+            }
+
+            if (!hasFilePath)
+            {
+                return await FindReferencesByNameAsync(
+                        toolName,
+                        trimmedName,
+                        includeSourceLines: false,
+                        maxReferences: MaxReferences,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+            }
+
+            var fullPath = _solutionManager.ResolvePathAgainstWorkspace(filePath!);
             var document = await _solutionManager.FindDocumentAsync(fullPath, cancellationToken);
             if (document is null)
             {
                 return ToolTelemetry.TraceAndReturn(
-                    nameof(FindSymbolReferences),
+                    toolName,
                     $"Could not resolve Roslyn document for file: `{fullPath}`.");
             }
 
@@ -76,7 +100,7 @@ public sealed class NavigationTools
             if (semanticModel is null || syntaxRoot is null)
             {
                 return ToolTelemetry.TraceAndReturn(
-                    nameof(FindSymbolReferences),
+                    toolName,
                     $"Could not build semantic model for file: `{fullPath}`.");
             }
 
@@ -84,37 +108,37 @@ public sealed class NavigationTools
             if (line is int lineNumber)
             {
                 var (positionSymbol, position, positionError) = await SourcePositionHelper
-                    .ResolveSymbolInDocumentAsync(document, symbolName, lineNumber, column, cancellationToken)
+                    .ResolveSymbolInDocumentAsync(document, trimmedName, lineNumber, column, cancellationToken)
                     .ConfigureAwait(false);
                 if (positionError is not null)
                 {
-                    return ToolTelemetry.TraceAndReturn(nameof(FindSymbolReferences), positionError);
+                    return ToolTelemetry.TraceAndReturn(toolName, positionError);
                 }
 
                 if (positionSymbol is null || position is null)
                 {
                     return ToolTelemetry.TraceAndReturn(
-                        nameof(FindSymbolReferences),
-                        $"Unable to resolve symbol `{symbolName}` at line {lineNumber} in `{fullPath}`.");
+                        toolName,
+                        $"Unable to resolve symbol `{trimmedName}` at line {lineNumber} in `{fullPath}`.");
                 }
 
                 positionAbsolute = position.AbsolutePosition;
             }
             else
             {
-                var declaration = FindMatchingDeclaration(syntaxRoot, symbolName);
+                var declaration = FindMatchingDeclaration(syntaxRoot, trimmedName);
                 if (declaration is null)
                 {
                     return ToolTelemetry.TraceAndReturn(
-                        nameof(FindSymbolReferences),
-                        $"Symbol `{symbolName}` was not found as a class/interface/method declaration in `{fullPath}`.");
+                        toolName,
+                        $"Symbol `{trimmedName}` was not found as a class/interface/method declaration in `{fullPath}`.");
                 }
 
                 if (semanticModel.GetDeclaredSymbol(declaration, cancellationToken) is null)
                 {
                     return ToolTelemetry.TraceAndReturn(
-                        nameof(FindSymbolReferences),
-                        $"Unable to resolve declared symbol for `{symbolName}` in `{fullPath}`.");
+                        toolName,
+                        $"Unable to resolve declared symbol for `{trimmedName}` in `{fullPath}`.");
                 }
             }
 
@@ -128,7 +152,7 @@ public sealed class NavigationTools
                             sol,
                             publishedDocument.Id,
                             absolutePosition,
-                            symbolName,
+                            trimmedName,
                             cancellationToken).ConfigureAwait(false);
                     }
                     else
@@ -136,10 +160,10 @@ public sealed class NavigationTools
                         mappedSymbol = await RemapDeclaredSymbolAsync(
                             sol,
                             publishedDocument.Id,
-                            symbolName,
+                            trimmedName,
                             (root, model, ct) =>
                             {
-                                var declaration = FindMatchingDeclaration(root, symbolName);
+                                var declaration = FindMatchingDeclaration(root, trimmedName);
                                 return declaration is null ? null : model.GetDeclaredSymbol(declaration, ct);
                             },
                             cancellationToken).ConfigureAwait(false);
@@ -158,14 +182,14 @@ public sealed class NavigationTools
 
             if (locations.Count == 0)
             {
-                return ToolTelemetry.TraceAndReturn(nameof(FindSymbolReferences), $"No usages found for `{symbolName}`.");
+                return ToolTelemetry.TraceAndReturn(toolName, $"No usages found for `{trimmedName}`.");
             }
 
             var truncated = locations.Count > MaxReferences;
             var limited = locations.Take(MaxReferences).ToList();
 
             var sb = new StringBuilder();
-            sb.AppendLine($"Found {limited.Count} usages for '{symbolName}':");
+            sb.AppendLine($"Found {limited.Count} usages for '{trimmedName}':");
             sb.AppendLine();
 
             foreach (var docGroup in limited.GroupBy(l => l.Document.Id))
@@ -203,13 +227,13 @@ public sealed class NavigationTools
                 sb.AppendLine("[!] More than 20 usages found. Truncated to protect LLM context.");
             }
 
-            return ToolTelemetry.TraceAndReturn(nameof(FindSymbolReferences), sb.ToString().TrimEnd());
+            return ToolTelemetry.TraceAndReturn(toolName, sb.ToString().TrimEnd());
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to find references for {SymbolName} in {FilePath}", symbolName, filePath);
             return ToolTelemetry.TraceAndReturn(
-                nameof(FindSymbolReferences),
+                toolName,
                 WorkspaceLoadGuidance.FormatCaughtException(
                     ex,
                     $"Failed to find references for `{symbolName}`: {ex.Message}",
@@ -318,13 +342,20 @@ public sealed class NavigationTools
             }
             else
             {
-                var declarations = await FindDeclarationsByNameAsync(
+                var (declarations, resolveError) = await ResolveDeclarationsOnSanitizedAsync(
                     solution,
                     trimmedName,
                     SymbolFilter.Type | SymbolFilter.Member,
                     cancellationToken).ConfigureAwait(false);
 
-                symbols = declarations.Distinct(SymbolEqualityComparer.Default).ToList();
+                if (resolveError is not null)
+                {
+                    return ToolTelemetry.TraceAndReturn(
+                        nameof(FindSymbolDefinition),
+                        _solutionManager.WithDiskSyncNotes(resolveError));
+                }
+
+                symbols = declarations.ToList();
                 if (symbols.Count == 0)
                 {
                     return ToolTelemetry.TraceAndReturn(
@@ -389,10 +420,11 @@ public sealed class NavigationTools
 
     [McpServerTool(Name = "find_usages", Title = "Find symbol usages across solution")]
     [Description(
-        "Finds solution-wide semantic references by declared name. Requires load_workspace. "
-        + "When the declaring file is known use find_symbol_references. For interface or base hierarchy use find_implementations.")]
+        "Name-based alias of find_symbol_references without filePath. Requires load_workspace. "
+        + "Solution-wide simple name or exact FQN; all matching declaration groups are returned (no primary pick). "
+        + "For interface or base hierarchy use find_implementations.")]
     public async Task<string> FindUsages(
-        [Description("Declared name of the type or member.")]
+        [Description("Simple name (case-insensitive) or exact FQN (Namespace.Type or Namespace.Type.Member; no global::, no ()).")]
         string symbolName,
         CancellationToken cancellationToken = default)
     {
@@ -405,130 +437,13 @@ public sealed class NavigationTools
                 return ToolTelemetry.TraceAndReturn(toolName, "Error: `symbolName` is empty.");
             }
 
-            var solution = await _solutionManager.GetSanitizedPublishedSolutionAsync(cancellationToken).ConfigureAwait(false);
-            if (solution is null)
-            {
-                return ToolTelemetry.TraceAndReturn(
+            return await FindReferencesByNameAsync(
                     toolName,
-                    _solutionManager.FormatNoPublishedSolutionMessage(
-                        "Error: No active workspace."));
-            }
-
-            var trimmedName = symbolName.Trim();
-            var declarations = await FindDeclarationsByNameAsync(
-                solution,
-                trimmedName,
-                SymbolFilter.Type | SymbolFilter.Member,
-                cancellationToken).ConfigureAwait(false);
-
-            var symbols = declarations.Distinct(SymbolEqualityComparer.Default).ToList();
-            if (symbols.Count == 0)
-            {
-                return ToolTelemetry.TraceAndReturn(
-                    toolName,
-                    _solutionManager.WithDiskSyncNotes(
-                        $"No declarations named `{trimmedName}` were found in the current solution."));
-            }
-
-            var targetSymbol = PickPrimarySymbol(symbols);
-            var chosenDisplay = targetSymbol.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
-            var chosenFqn = targetSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-            var declaringLocation = GetRequiredDeclaringLocation(targetSymbol, solution, trimmedName);
-
-            var (references, _) = await WorkspaceAnalyzerSanitizer.WithSanitizedRetryAsync(
-                    async sol =>
-                    {
-                        var mappedSymbol = await RemapDeclaredSymbolAtSpanAsync<ISymbol>(
-                            sol,
-                            declaringLocation.DocumentId,
-                            declaringLocation.Span,
-                            trimmedName,
-                            cancellationToken).ConfigureAwait(false);
-                        return await SymbolFinder.FindReferencesAsync(mappedSymbol, sol, cancellationToken)
-                            .ConfigureAwait(false);
-                    },
-                    () => _solutionManager.GetSanitizedPublishedSolution(),
-                    solution,
+                    symbolName.Trim(),
+                    includeSourceLines: true,
+                    maxReferences: MaxFindUsagesReferences,
                     cancellationToken)
                 .ConfigureAwait(false);
-
-            var refLocations = references
-                .SelectMany(r => r.Locations)
-                .Where(l => l.Location.IsInSource && l.Document.FilePath is not null)
-                .OrderBy(l => l.Document.FilePath, StringComparer.OrdinalIgnoreCase)
-                .ThenBy(l => l.Location.GetLineSpan().StartLinePosition.Line)
-                .ThenBy(l => l.Location.SourceSpan.Start)
-                .ToList();
-
-            var totalFound = refLocations.Count;
-            var truncated = totalFound > MaxFindUsagesReferences;
-            var limited = refLocations.Take(MaxFindUsagesReferences).ToList();
-
-            var sb = new StringBuilder();
-            sb.AppendLine($"## Usages for `{trimmedName}`");
-            sb.AppendLine();
-            sb.AppendLine($"**Primary symbol:** `{chosenDisplay}`");
-            sb.AppendLine($"`{chosenFqn}`");
-            sb.AppendLine();
-
-            if (symbols.Count > 1)
-            {
-                sb.AppendLine(
-                    $"[!] {symbols.Count} declarations match this name; references are for the primary symbol above. Other candidates:");
-                foreach (var s in symbols
-                             .Where(s => !SymbolEqualityComparer.Default.Equals(s, targetSymbol))
-                             .OrderBy(s => s.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat), StringComparer.Ordinal)
-                             .Take(MaxAmbiguousCandidatesListed))
-                {
-                    sb.AppendLine($"  - {s.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)}");
-                }
-
-                if (symbols.Count - 1 > MaxAmbiguousCandidatesListed)
-                {
-                    sb.AppendLine($"  … and {symbols.Count - 1 - MaxAmbiguousCandidatesListed} more.");
-                }
-
-                sb.AppendLine();
-            }
-
-            if (limited.Count == 0)
-            {
-                sb.AppendLine("No in-source references were returned for this symbol.");
-                return ToolTelemetry.TraceAndReturn(toolName, _solutionManager.WithDiskSyncNotes(sb.ToString().TrimEnd()));
-            }
-
-            sb.AppendLine(
-                $"Showing **{limited.Count}** reference location(s)" +
-                (truncated ? $" of **{totalFound}** total (capped at {MaxFindUsagesReferences})." : "."));
-            sb.AppendLine();
-
-            var textByDocument = new Dictionary<DocumentId, SourceText>();
-            foreach (var group in limited.GroupBy(l => l.Document.FilePath!, StringComparer.OrdinalIgnoreCase))
-            {
-                sb.AppendLine($"### `{group.Key}`");
-                sb.AppendLine();
-                foreach (var refLoc in group)
-                {
-                    var line1Based = refLoc.Location.GetLineSpan().StartLinePosition.Line + 1;
-                    var lineText = await GetReferenceSourceLineAsync(refLoc, textByDocument, cancellationToken)
-                        .ConfigureAwait(false);
-                    if (string.IsNullOrEmpty(lineText))
-                    {
-                        lineText = "(source line unavailable)";
-                    }
-
-                    sb.AppendLine($"- **Line {line1Based}:** `{EscapeMdBackticks(lineText)}`");
-                }
-
-                sb.AppendLine();
-            }
-
-            if (truncated)
-            {
-                sb.AppendLine($"[!] Truncated to {MaxFindUsagesReferences} references; narrow `symbolName` or use `find_symbol_references` from a declaring file.");
-            }
-
-            return ToolTelemetry.TraceAndReturn(toolName, _solutionManager.WithDiskSyncNotes(sb.ToString().TrimEnd()));
         }
         catch (OperationCanceledException)
         {
@@ -725,63 +640,236 @@ public sealed class NavigationTools
         }
     }
 
+    private async Task<string> FindReferencesByNameAsync(
+        string toolName,
+        string trimmedName,
+        bool includeSourceLines,
+        int maxReferences,
+        CancellationToken cancellationToken)
+    {
+        var solution = await _solutionManager.GetSanitizedPublishedSolutionAsync(cancellationToken).ConfigureAwait(false);
+        if (solution is null)
+        {
+            return ToolTelemetry.TraceAndReturn(
+                toolName,
+                _solutionManager.FormatNoPublishedSolutionMessage(
+                    "Error: No active workspace."));
+        }
+
+        var (symbols, resolveError) = await ResolveDeclarationsOnSanitizedAsync(
+            solution,
+            trimmedName,
+            SymbolFilter.Type | SymbolFilter.Member,
+            cancellationToken).ConfigureAwait(false);
+
+        if (resolveError is not null)
+        {
+            return ToolTelemetry.TraceAndReturn(toolName, _solutionManager.WithDiskSyncNotes(resolveError));
+        }
+
+        if (symbols.Count == 0)
+        {
+            return ToolTelemetry.TraceAndReturn(
+                toolName,
+                _solutionManager.WithDiskSyncNotes(
+                    $"No declarations named `{trimmedName}` were found in the current solution."));
+        }
+
+        // Capture declaring locations on the resolve snapshot; remap before SymbolFinder on any retry snapshot.
+        var groups = SymbolDeclarationResolver.GroupByFqn(symbols);
+        var groupDeclLocations = groups
+            .Select(g => (
+                Fqn: g.Key,
+                Symbols: g.ToList(),
+                DeclaringLocations: g.Select(s => GetRequiredDeclaringLocation(s, solution, trimmedName)).ToList()))
+            .ToList();
+
+        var (groupResults, _) = await WorkspaceAnalyzerSanitizer.WithSanitizedRetryAsync(
+                async sol =>
+                {
+                    var results = new List<(string Fqn, IReadOnlyList<ISymbol> Symbols, List<ReferenceLocation> Locations)>();
+                    foreach (var group in groupDeclLocations)
+                    {
+                        var locations = new List<ReferenceLocation>();
+                        foreach (var declaringLocation in group.DeclaringLocations)
+                        {
+                            var mappedSymbol = await RemapDeclaredSymbolAtSpanAsync<ISymbol>(
+                                sol,
+                                declaringLocation.DocumentId,
+                                declaringLocation.Span,
+                                trimmedName,
+                                cancellationToken).ConfigureAwait(false);
+                            var references = await SymbolFinder.FindReferencesAsync(mappedSymbol, sol, cancellationToken)
+                                .ConfigureAwait(false);
+                            locations.AddRange(
+                                references
+                                    .SelectMany(r => r.Locations)
+                                    .Where(l => l.Location.IsInSource && l.Document.FilePath is not null));
+                        }
+
+                        var deduped = locations
+                            .DistinctBy(l => (
+                                l.Document.Id,
+                                l.Location.SourceSpan.Start,
+                                l.Location.SourceSpan.End))
+                            .OrderBy(l => l.Document.FilePath, StringComparer.OrdinalIgnoreCase)
+                            .ThenBy(l => l.Location.GetLineSpan().StartLinePosition.Line)
+                            .ThenBy(l => l.Location.SourceSpan.Start)
+                            .ToList();
+
+                        results.Add((group.Fqn, group.Symbols, deduped));
+                    }
+
+                    return results;
+                },
+                () => _solutionManager.GetSanitizedPublishedSolution(),
+                solution,
+                cancellationToken)
+            .ConfigureAwait(false);
+
+        var sb = new StringBuilder();
+        sb.AppendLine($"## References for `{trimmedName}`");
+        sb.AppendLine();
+        sb.AppendLine($"Found **{groupResults.Count}** declaration group(s).");
+        sb.AppendLine();
+
+        var remaining = maxReferences;
+        var truncated = false;
+        var textByDocument = includeSourceLines ? new Dictionary<DocumentId, SourceText>() : null;
+
+        foreach (var (fqn, groupSymbols, locations) in groupResults)
+        {
+            var kindLabel = groupSymbols[0] switch
+            {
+                INamedTypeSymbol t => GetTypeKindLabel(t),
+                IMethodSymbol => "method",
+                IPropertySymbol => "property",
+                IEventSymbol => "event",
+                IFieldSymbol => "field",
+                _ => groupSymbols[0].Kind.ToString().ToLowerInvariant()
+            };
+
+            sb.AppendLine($"### `{fqn}` ({kindLabel}" + (groupSymbols.Count > 1 ? $", {groupSymbols.Count} overloads" : string.Empty) + ")");
+            sb.AppendLine();
+
+            if (locations.Count == 0)
+            {
+                sb.AppendLine("No in-source references were returned for this group.");
+                sb.AppendLine();
+                continue;
+            }
+
+            if (remaining <= 0)
+            {
+                truncated = true;
+                sb.AppendLine($"({locations.Count} reference(s) omitted — output capped at {maxReferences}.)");
+                sb.AppendLine();
+                continue;
+            }
+
+            var take = Math.Min(remaining, locations.Count);
+            if (take < locations.Count)
+            {
+                truncated = true;
+            }
+
+            var limited = locations.Take(take).ToList();
+            remaining -= limited.Count;
+
+            if (includeSourceLines && textByDocument is not null)
+            {
+                foreach (var fileGroup in limited.GroupBy(l => l.Document.FilePath!, StringComparer.OrdinalIgnoreCase))
+                {
+                    sb.AppendLine($"#### `{fileGroup.Key}`");
+                    sb.AppendLine();
+                    foreach (var refLoc in fileGroup)
+                    {
+                        var line1Based = refLoc.Location.GetLineSpan().StartLinePosition.Line + 1;
+                        var lineText = await GetReferenceSourceLineAsync(refLoc, textByDocument, cancellationToken)
+                            .ConfigureAwait(false);
+                        if (string.IsNullOrEmpty(lineText))
+                        {
+                            lineText = "(source line unavailable)";
+                        }
+
+                        sb.AppendLine($"- **Line {line1Based}:** `{EscapeMdBackticks(lineText)}`");
+                    }
+
+                    sb.AppendLine();
+                }
+            }
+            else
+            {
+                foreach (var docGroup in limited.GroupBy(l => l.Document.Id))
+                {
+                    var refDoc = solution.GetDocument(docGroup.Key) ?? docGroup.First().Document;
+                    var docPath = refDoc.FilePath ?? "(unknown file)";
+                    sb.AppendLine($"File: {docPath}");
+
+                    var root = await refDoc.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
+                    if (root is null)
+                    {
+                        sb.AppendLine("- Inside: (syntax tree unavailable)");
+                        sb.AppendLine();
+                        continue;
+                    }
+
+                    foreach (var location in docGroup)
+                    {
+                        var node = root.FindNode(location.Location.SourceSpan, getInnermostNodeForTie: true);
+                        sb.AppendLine($"- Inside: {GetEnclosingContext(node)}");
+                    }
+
+                    sb.AppendLine();
+                }
+            }
+        }
+
+        if (truncated)
+        {
+            sb.AppendLine($"[!] Truncated to {maxReferences} references across groups; narrow `symbolName` (FQN) or pass `filePath`.");
+        }
+
+        return ToolTelemetry.TraceAndReturn(toolName, _solutionManager.WithDiskSyncNotes(sb.ToString().TrimEnd()));
+    }
+
+    private async Task<(IReadOnlyList<ISymbol> Symbols, string? Error)> ResolveDeclarationsOnSanitizedAsync(
+        Solution solution,
+        string trimmedName,
+        SymbolFilter filter,
+        CancellationToken cancellationToken)
+    {
+        var (result, _) = await WorkspaceAnalyzerSanitizer.WithSanitizedRetryAsync(
+            sol => SymbolDeclarationResolver.ResolveDeclarationsAsync(sol, trimmedName, filter, cancellationToken),
+            () => _solutionManager.GetSanitizedPublishedSolution(),
+            solution,
+            cancellationToken).ConfigureAwait(false);
+        return result;
+    }
+
     private async Task<List<INamedTypeSymbol>> FindNamedTypeDeclarationsAsync(
         Solution solution,
         string trimmedName,
         CancellationToken cancellationToken)
     {
-        var declarations = await FindDeclarationsByNameAsync(
+        var (declarations, error) = await ResolveDeclarationsOnSanitizedAsync(
             solution,
             trimmedName,
             SymbolFilter.Type,
             cancellationToken).ConfigureAwait(false);
+
+        if (error is not null)
+        {
+            // FQN miss for implementations: treat as no types (message already FQN-specific if applicable).
+            // Callers that need the error text use ResolveDeclarationsOnSanitizedAsync directly.
+            return [];
+        }
 
         return declarations
             .OfType<INamedTypeSymbol>()
             .Distinct(SymbolEqualityComparer.Default)
             .Cast<INamedTypeSymbol>()
             .ToList();
-    }
-
-    private async Task<List<ISymbol>> FindDeclarationsByNameAsync(
-        Solution solution,
-        string trimmedName,
-        SymbolFilter filter,
-        CancellationToken cancellationToken)
-    {
-        var (declarations, _) = await WorkspaceAnalyzerSanitizer.WithSanitizedRetryAsync(
-            sol => FindDeclarationsByNameCoreAsync(sol, trimmedName, filter, cancellationToken),
-            () => _solutionManager.GetSanitizedPublishedSolution(),
-            solution,
-            cancellationToken).ConfigureAwait(false);
-        return declarations;
-    }
-
-    private static async Task<List<ISymbol>> FindDeclarationsByNameCoreAsync(
-        Solution solution,
-        string trimmedName,
-        SymbolFilter filter,
-        CancellationToken cancellationToken)
-    {
-        var declarations = new List<ISymbol>();
-        foreach (var projectId in solution.ProjectIds)
-        {
-            var project = solution.GetProject(projectId);
-            if (project is null)
-            {
-                continue;
-            }
-
-            var found = await SymbolFinder.FindDeclarationsAsync(
-                project,
-                trimmedName,
-                ignoreCase: true,
-                filter,
-                cancellationToken).ConfigureAwait(false);
-            declarations.AddRange(found);
-        }
-
-        return declarations;
     }
 
     private static (DocumentId DocumentId, TextSpan Span) GetRequiredDeclaringLocation(
@@ -895,25 +983,6 @@ public sealed class NavigationTools
         TypeKind.Class when type.IsRecord => "record",
         TypeKind.Class => type.IsAbstract ? "abstract class" : "class",
         _ => type.TypeKind.ToString().ToLowerInvariant()
-    };
-
-    private static ISymbol PickPrimarySymbol(IReadOnlyList<ISymbol> symbols)
-    {
-        return symbols
-            .OrderByDescending(SymbolPriority)
-            .ThenBy(s => s is IMethodSymbol m ? m.Parameters.Length : 0)
-            .ThenBy(s => s.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat), StringComparer.Ordinal)
-            .First();
-    }
-
-    private static int SymbolPriority(ISymbol symbol) => symbol switch
-    {
-        INamedTypeSymbol => 400,
-        IMethodSymbol => 300,
-        IPropertySymbol => 250,
-        IEventSymbol => 200,
-        IFieldSymbol => 150,
-        _ => 100
     };
 
     private static async Task<string> GetReferenceSourceLineAsync(

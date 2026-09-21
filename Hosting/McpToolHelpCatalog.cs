@@ -90,14 +90,15 @@ public static class McpToolHelpCatalog
             ["find_usages"] = new()
             {
                 Prerequisites = "Requires load_workspace.",
-                Workflow = "Solution-wide search by declared simple name. If several declarations share a name, one primary symbol is chosen (types preferred).",
-                Pitfalls = "Not for interface/base hierarchy. Output is capped.",
+                Workflow = "Name-based alias of find_symbol_references without filePath. Simple name or exact FQN; every matching declaration group is listed (no primary pick).",
+                Pitfalls = "Not for interface/base hierarchy. Output is capped. FQN miss lists candidates and does not fall back to simple name.",
                 RelatedTools = ["find_symbol_definition", "find_symbol_references", "find_implementations"],
             },
             ["find_symbol_references"] = new()
             {
-                Prerequisites = "Requires load_workspace and a .cs filePath.",
-                Workflow = "Omit line to resolve a declaration by name in that file. Pass line (optional column) to resolve the symbol at that position (declaration or usage), then list references.",
+                Prerequisites = "Requires load_workspace.",
+                Workflow = "Omit filePath for solution-wide name/FQN search (all groups). Pass filePath without line for declaration-by-name in that file. Pass filePath+line (optional column) for positional resolve.",
+                Pitfalls = "FQN miss lists candidates and does not fall back to simple name. Overloads share one FQN group.",
                 RelatedTools = ["find_usages", "find_symbol_definition"],
             },
             ["find_implementations"] = new()
