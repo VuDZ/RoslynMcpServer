@@ -179,6 +179,11 @@ MCP `tools/list` stays JSON + JSON Schema. Markdown is for JIT help and diagnost
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.4.6
+
+- **`find_symbol_references` `directOnly`** — optional, default false, and only valid with `filePath`. For a class virtual, abstract, or override method, `true` keeps calls whose static receiver is the declaring type or a type derived from it (`this`, the type itself, a derived type, `?.`). A base-type receiver or a sibling branch is virtual dispatch. If the receiver cannot be resolved, the location is kept. Source and metadata forms of the same type match by full name; closed `T<int>` matches open `T<>` via `ConstructedFrom`. Default false returns the same points and adds one note when some of them are virtual dispatch. The base virtual method is not filtered and gets no note. Interface methods and ordinary methods are unchanged. `directOnly: true` without `filePath` is an error. The filter runs after dedup and before the overflow cap.
+- **Catalog size** — full 63 tools / 49,851 bytes; lite 19 / 22,031.
+
 ### v1.4.5
 
 - **`find_implementations` lists every same-named base** — a short name that matches several interfaces or base classes returns a section per base (exact FQN still selects one type). Each base is remapped onto the sanitized snapshot before `FindImplementationsAsync` / `FindDerivedClassesAsync`. An empty section is kept. FQN miss returns the resolver candidate text and does not fall back to the short name. A unique name keeps the previous single-type header. No new parameters.
@@ -778,8 +783,9 @@ There are **63** registered tools in the default `full` profile (see list below)
 - `maxResults: int?` — optional listing cap (1–500). Default 50, or env `ROSLYN_MCP_MAX_RESULTS` when a positive int; explicit arg wins
 - `preview: bool = false` — when true, append the source line (truncated at 400 chars); default `path:line:col` only
 - `overflowCursor: string?` — when set, return the next in-memory overflow chunk (does not start a new search)
+- `directOnly: bool = false` — when true (requires `filePath`), for a class virtual/abstract/override method keep only direct-receiver calls; default false returns the same points and may add one virtual-dispatch note. Cross-project source/metadata types match by full name.
 
-**Behavior:** File without line covers class/struct/record/interface/enum/method/ctor/dtor/property/event/field (not operator/indexer/local function). Several matches → error listing FQN and identifier `line:column` (no silent first). Locations beyond `maxResults` are stored in-process behind a cursor (not silent drop; not a host `%Temp%` path). Unknown/expired cursor → human error.
+**Behavior:** File without line covers class/struct/record/interface/enum/method/ctor/dtor/property/event/field (not operator/indexer/local function). Several matches → error listing FQN and identifier `line:column` (no silent first). Locations beyond `maxResults` are stored in-process behind a cursor (not silent drop; not a host `%Temp%` path). Unknown/expired cursor → human error. Filter (when used) runs after dedupe and before the listing cap / overflow store.
 </details>
 
 <details>
@@ -1456,7 +1462,7 @@ cd D:\Devel\YourApp
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.4.5). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.4.6). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 
@@ -1648,8 +1654,9 @@ cd D:\Devel\YourApp
 - `maxResults: int?` — лимит списка (1–500). По умолчанию 50 или env `ROSLYN_MCP_MAX_RESULTS` (положительное int); явный arg важнее env
 - `preview: bool = false` — true: добавить текст строки исходника (до 400 символов); иначе только `path:line:col`
 - `overflowCursor: string?` — следующий chunk in-memory overflow (новый поиск не запускается)
+- `directOnly: bool = false` — при true (нужен `filePath`) для virtual/abstract/override метода класса оставляет только прямые вызовы; по умолчанию false — те же точки и при необходимости одна строка про virtual dispatch. Межпроектные source/metadata типы сравниваются по полному имени.
 
-**Поведение:** файл без строки покрывает class/struct/record/interface/enum/method/ctor/dtor/property/event/field (не operator/indexer/local function). Несколько совпадений → ошибка со списком FQN и `строка:колонка` идентификатора (без тихого первого). Локации сверх `maxResults` хранятся в процессе за cursor (не тихая обрезка; не `%Temp%` на хосте). Неизвестный/истёкший cursor — человекочитаемая ошибка.
+**Поведение:** файл без строки покрывает class/struct/record/interface/enum/method/ctor/dtor/property/event/field (не operator/indexer/local function). Несколько совпадений → ошибка со списком FQN и `строка:колонка` идентификатора (без тихого первого). Локации сверх `maxResults` хранятся в процессе за cursor (не тихая обрезка; не `%Temp%` на хосте). Неизвестный/истёкший cursor — человекочитаемая ошибка. Фильтр (если включён) применяется после дедупа и до лимита списка / overflow store.
 </details>
 
 <details>

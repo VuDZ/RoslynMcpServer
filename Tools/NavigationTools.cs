@@ -28,22 +28,18 @@ public sealed class NavigationTools
     [McpServerTool(Name = "find_symbol_references", Title = "Find symbol references")]
     [Description(
         "Finds semantic references. Requires load_workspace. "
-        + "Omit filePath: solution-wide name/FQN (case-insensitive). "
-        + "filePath without line: unique declaration (case-sensitive; excl. operator/indexer/local function); "
-        + "several → error with FQN and identifier line:column. "
-        + "filePath+line (±column): positional. Optional maxResults/preview/overflowCursor. find_usages is the name-based alias.")]
+        + "No filePath: solution-wide name/FQN. "
+        + "filePath alone: unique declaration (case-sensitive; not operator/indexer/local function); several → FQN+line:column error. "
+        + "filePath+line (±column): positional. Optional maxResults/preview/overflowCursor. "
+        + "directOnly (needs filePath): class virtual/override/abstract; cross-project FQN type match. find_usages=name alias.")]
     public async Task<string> FindSymbolReferences(
-        [Description(
-            "Simple name or exact FQN (no global::, no ()). "
-            + "Solution-wide: case-insensitive; file without line: ordinal. With filePath+line: auto-column needle.")]
+        [Description("Simple name or exact FQN (no global::, no ()). Solution-wide case-insensitive; file without line ordinal; +line auto-column needle.")]
         string symbolName,
-        [Description(
-            "Optional .cs. Omit for solution-wide search. Required with line. "
-            + "Without line: unique matching declaration (error if several).")]
+        [Description("Optional .cs. Omit for solution-wide search. Required with line. Without line: unique declaration (error if several).")]
         string? filePath = null,
-        [Description("Optional 1-based line. Requires filePath. When set, resolve the symbol at that position (declaration or usage).")]
+        [Description("Optional 1-based line. Requires filePath. Resolves the symbol at that position.")]
         int? line = null,
-        [Description("Optional 1-based column. When omitted with line set, picks the unique identifier token matching symbolName on that line.")]
+        [Description("Optional 1-based column. Omit with line to pick the unique matching identifier on that line.")]
         int? column = null,
         [Description("Listing cap 1–500. Default 50 or ROSLYN_MCP_MAX_RESULTS; explicit arg wins.")]
         int? maxResults = null,
@@ -51,6 +47,8 @@ public sealed class NavigationTools
         bool preview = false,
         [Description("Next in-memory overflow chunk; does not start a new search.")]
         string? overflowCursor = null,
+        [Description("True: direct calls only (class virtual/override/abstract). Needs filePath.")]
+        bool directOnly = false,
         CancellationToken cancellationToken = default)
     {
         const string toolName = nameof(FindSymbolReferences);
@@ -73,6 +71,12 @@ public sealed class NavigationTools
             var trimmedName = symbolName.Trim();
             var resolvedMax = NavigationListingHelper.ResolveMaxResults(maxResults);
             var hasFilePath = !string.IsNullOrWhiteSpace(filePath);
+
+            var directOnlyGuard = VirtualReferenceClassifier.ValidateDirectOnlyRequiresFilePath(directOnly, hasFilePath);
+            if (directOnlyGuard is not null)
+            {
+                return ToolTelemetry.TraceAndReturn(toolName, directOnlyGuard);
+            }
 
             if (line is not null && !hasFilePath)
             {
@@ -156,6 +160,7 @@ public sealed class NavigationTools
                 }
             }
 
+            ISymbol? requestedSymbol = null;
             var (references, _) = await WorkspaceAnalyzerSanitizer.WithSanitizedRetryAsync(
                 async sol =>
                 {
@@ -183,6 +188,7 @@ public sealed class NavigationTools
                             cancellationToken).ConfigureAwait(false);
                     }
 
+                    requestedSymbol = mappedSymbol;
                     return await SymbolFinder.FindReferencesAsync(mappedSymbol, sol, cancellationToken)
                         .ConfigureAwait(false);
                 },
@@ -205,6 +211,23 @@ public sealed class NavigationTools
             {
                 return ToolTelemetry.TraceAndReturn(toolName, $"No usages found for `{trimmedName}`.");
             }
+
+            if (requestedSymbol is null)
+            {
+                return ToolTelemetry.TraceAndReturn(
+                    toolName,
+                    $"Unable to resolve symbol `{trimmedName}` for reference classification.");
+            }
+
+            var filter = await VirtualReferenceClassifier
+                .ApplyAsync(requestedSymbol, locations, directOnly, cancellationToken)
+                .ConfigureAwait(false);
+            if (filter.Error is not null)
+            {
+                return ToolTelemetry.TraceAndReturn(toolName, filter.Error);
+            }
+
+            locations = filter.Locations.ToList();
 
             var textByDocument = preview ? new Dictionary<DocumentId, SourceText>() : null;
             var lines = new List<string>(locations.Count);
@@ -230,6 +253,12 @@ public sealed class NavigationTools
 
             var sb = new StringBuilder();
             sb.AppendLine($"Found {locations.Count} usages for '{trimmedName}':");
+            if (filter.Note is not null)
+            {
+                sb.AppendLine();
+                sb.AppendLine(filter.Note);
+            }
+
             sb.AppendLine();
             NavigationListingHelper.AppendCappedLines(sb, lines, resolvedMax, "location(s)");
 

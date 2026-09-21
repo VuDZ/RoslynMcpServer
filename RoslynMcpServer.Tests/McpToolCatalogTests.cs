@@ -278,21 +278,40 @@ public sealed class McpToolCatalogTests(ITestOutputHelper output)
     [Fact]
     public void Surface_sizes_match_recorded_release_numbers()
     {
-        AssertRecorded("full", 63, 49763, MeasureSurface(new McpToolProfileOptions { Profile = "full" }));
-        AssertRecorded("lite", 19, 21943, MeasureSurface(new McpToolProfileOptions { Profile = "lite" }));
-        AssertRecorded("lite+files", 26, 26292, MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "files" }));
-        AssertRecorded("lite+editing", 36, 32819, MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "editing" }));
-        AssertRecorded("lite+decompile", 23, 24861, MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "decompile" }));
-        AssertRecorded("lite+nuget", 25, 25556, MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "nuget" }));
-        AssertRecorded("lite+project", 22, 23580, MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "project" }));
-        AssertRecorded("lite+runtime", 22, 24453, MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "runtime" }));
-        AssertRecorded("lite+operations", 23, 23860, MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "operations" }));
+        var full = MeasureSurface(new McpToolProfileOptions { Profile = "full" });
+        var lite = MeasureSurface(new McpToolProfileOptions { Profile = "lite" });
+        var liteFiles = MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "files" });
+        var liteEditing = MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "editing" });
+        var liteDecompile = MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "decompile" });
+        var liteNuget = MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "nuget" });
+        var liteProject = MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "project" });
+        var liteRuntime = MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "runtime" });
+        var liteOperations = MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "operations" });
+        output.WriteLine($"full={full.Count}/{full.Utf8Bytes}");
+        output.WriteLine($"lite={lite.Count}/{lite.Utf8Bytes}");
+        output.WriteLine($"lite+files={liteFiles.Count}/{liteFiles.Utf8Bytes}");
+        output.WriteLine($"lite+editing={liteEditing.Count}/{liteEditing.Utf8Bytes}");
+        output.WriteLine($"lite+decompile={liteDecompile.Count}/{liteDecompile.Utf8Bytes}");
+        output.WriteLine($"lite+nuget={liteNuget.Count}/{liteNuget.Utf8Bytes}");
+        output.WriteLine($"lite+project={liteProject.Count}/{liteProject.Utf8Bytes}");
+        output.WriteLine($"lite+runtime={liteRuntime.Count}/{liteRuntime.Utf8Bytes}");
+        output.WriteLine($"lite+operations={liteOperations.Count}/{liteOperations.Utf8Bytes}");
+
+        AssertRecorded("full", 63, 49851, full);
+        AssertRecorded("lite", 19, 22031, lite);
+        AssertRecorded("lite+files", 26, 26380, liteFiles);
+        AssertRecorded("lite+editing", 36, 32907, liteEditing);
+        AssertRecorded("lite+decompile", 23, 24949, liteDecompile);
+        AssertRecorded("lite+nuget", 25, 25644, liteNuget);
+        AssertRecorded("lite+project", 22, 23668, liteProject);
+        AssertRecorded("lite+runtime", 22, 24541, liteRuntime);
+        AssertRecorded("lite+operations", 23, 23948, liteOperations);
 
         var enabled = MeasureSurface(
             new McpToolProfileOptions { Profile = "lite" },
             activation => activation.EnableGroup("files"));
-        AssertRecorded("lite+enable:files", 26, 26292, enabled);
-        Assert.Equal(26292, MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "files" }).Utf8Bytes);
+        AssertRecorded("lite+enable:files", 26, 26380, enabled);
+        Assert.Equal(26380, MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "files" }).Utf8Bytes);
     }
 
     private static void AssertRecorded(string label, int count, int bytes, (int Count, int Utf8Bytes) actual)

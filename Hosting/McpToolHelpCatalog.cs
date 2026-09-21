@@ -97,8 +97,8 @@ public static class McpToolHelpCatalog
             ["find_symbol_references"] = new()
             {
                 Prerequisites = "Requires load_workspace.",
-                Workflow = "Omit filePath for solution-wide name/FQN search (case-insensitive). Pass filePath without line to select the single declaration in that file (case-sensitive). Pass filePath+line (optional column) for positional resolve. Optional maxResults/preview/overflowCursor.",
-                Pitfalls = "File without line: several declarations → error listing FQN and identifier line:column (no silent first). FQN miss lists candidates and does not fall back to simple name. Overloads share one FQN group. Over maxResults: pass overflowCursor for the next chunk.",
+                Workflow = "Omit filePath for solution-wide name/FQN search (case-insensitive). Pass filePath without line to select the single declaration in that file (case-sensitive). Pass filePath+line (optional column) for positional resolve. Optional maxResults/preview/overflowCursor. Optional directOnly (default false) with filePath filters class virtual/abstract/override calls to direct receivers.",
+                Pitfalls = "File without line: several declarations → error listing FQN and identifier line:column (no silent first). directOnly: true without filePath is an error. FQN miss lists candidates and does not fall back to simple name. Overloads share one FQN group. Over maxResults: pass overflowCursor for the next chunk.",
                 RelatedTools = ["find_usages", "find_symbol_definition"],
             },
             ["find_implementations"] = new()
