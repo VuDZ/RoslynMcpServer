@@ -95,6 +95,7 @@ public sealed class SolutionManager
     private string? _loadedPath;
     private string? _loadedConfiguration;
     private string? _loadedPlatform;
+    private string? _loadedPlatformRaw;
     private string? _loadedTargetFramework;
     private string? _loadedBuildArgs;
     private IReadOnlyList<WorkspaceDiagnostic> _lastDiagnostics = Array.Empty<WorkspaceDiagnostic>();
@@ -248,8 +249,17 @@ public sealed class SolutionManager
     /// <summary>MSBuild <c>Configuration</c> used for the last successful <see cref="LoadAsync"/>, or <see langword="null"/>.</summary>
     public string? LoadedConfiguration => _loadedConfiguration;
 
-    /// <summary>MSBuild <c>Platform</c> used for the last successful <see cref="LoadAsync"/>, or <see langword="null"/>.</summary>
+    /// <summary>
+    /// Canonical MSBuild <c>Platform</c> for the last successful <see cref="LoadAsync"/>
+    /// (<c>Any CPU</c> → <c>AnyCPU</c>), used as the MSBuildWorkspace global property.
+    /// </summary>
     public string? LoadedPlatform => _loadedPlatform;
+
+    /// <summary>
+    /// Trimmed platform spelling from the last successful <see cref="LoadAsync"/> without the
+    /// <c>Any CPU</c> → <c>AnyCPU</c> alias. Used when inheriting platform for <c>.sln</c>/<c>.slnx</c> CLI.
+    /// </summary>
+    public string? LoadedPlatformRaw => _loadedPlatformRaw;
 
     /// <summary>MSBuild <c>TargetFramework</c> used for the last successful <see cref="LoadAsync"/>, or <see langword="null"/>.</summary>
     public string? LoadedTargetFramework => _loadedTargetFramework;
@@ -305,6 +315,7 @@ public sealed class SolutionManager
         }
 
         var normalizedConfiguration = DotNetConfigurationArguments.Normalize(configuration, nameof(configuration));
+        var platformRaw = DotNetConfigurationArguments.Normalize(platform, nameof(platform));
         var normalizedPlatform = DotNetConfigurationArguments.NormalizePlatform(platform);
         var normalizedTargetFramework = DotNetConfigurationArguments.Normalize(targetFramework, nameof(targetFramework));
         var normalizedBuildArgs = DotNetBuildArguments.Normalize(buildArgs);
@@ -320,6 +331,7 @@ public sealed class SolutionManager
                         fullPath,
                         normalizedConfiguration,
                         normalizedPlatform,
+                        platformRaw,
                         normalizedTargetFramework,
                         normalizedBuildArgs,
                         publishLoadedSolution: !shadowCopyInSolutionAnalyzers,
@@ -1597,6 +1609,7 @@ public sealed class SolutionManager
             _loadedPath = null;
             _loadedConfiguration = null;
             _loadedPlatform = null;
+            _loadedPlatformRaw = null;
             _loadedTargetFramework = null;
             _loadedBuildArgs = null;
             _lastDiagnostics = Array.Empty<WorkspaceDiagnostic>();
@@ -1615,6 +1628,7 @@ public sealed class SolutionManager
         string fullPath,
         string? configuration,
         string? platform,
+        string? platformRaw,
         string? targetFramework,
         string? buildArgs,
         bool publishLoadedSolution,
@@ -1634,6 +1648,8 @@ public sealed class SolutionManager
             && !_projectGraphStale)
         {
             ApplySessionBuildArgs(buildArgs);
+            // Same canonical Platform for the workspace; refresh raw spelling for CLI inherit.
+            _loadedPlatformRaw = platformRaw;
             await FlushDirtyDocumentsUnderLockAsync(cancellationToken).ConfigureAwait(false);
             _lastLoadWasCacheHit = true;
             _lastLoadReopenedGraph = false;
@@ -1650,6 +1666,7 @@ public sealed class SolutionManager
         _loadedPath = null;
         _loadedConfiguration = null;
         _loadedPlatform = null;
+        _loadedPlatformRaw = null;
         _loadedTargetFramework = null;
         _loadedBuildArgs = null;
         _dirtySourcePaths.Clear();
@@ -1728,6 +1745,7 @@ public sealed class SolutionManager
         }
         _loadedConfiguration = configuration;
         _loadedPlatform = platform;
+        _loadedPlatformRaw = platformRaw;
         _loadedTargetFramework = targetFramework;
         ApplySessionBuildArgs(buildArgs);
         _lastDiagnostics = CollectDiagnostics(workspace, capturedDiagnostics);
@@ -1735,10 +1753,11 @@ public sealed class SolutionManager
             fullPath,
             workspace.CurrentSolution.Projects.Select(static project => project.FilePath));
         _logger.LogInformation(
-            "Loaded Roslyn workspace from {Path} (Configuration={Configuration}, Platform={Platform}, TargetFramework={TargetFramework}, BuildArgs={BuildArgs})",
+            "Loaded Roslyn workspace from {Path} (Configuration={Configuration}, Platform={Platform}, PlatformRaw={PlatformRaw}, TargetFramework={TargetFramework}, BuildArgs={BuildArgs})",
             fullPath,
             configuration ?? "(default)",
             platform ?? "(default)",
+            platformRaw ?? "(default)",
             targetFramework ?? "(default)",
             buildArgs ?? "(none)");
         LogProcessWorkingSet("workspace_load");

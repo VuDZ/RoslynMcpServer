@@ -39,7 +39,8 @@ public static class DotNetBuildProbe
         var budget = overallBudget ?? DefaultOverallBudget;
         var perStep = stepTimeout ?? DefaultStepTimeout;
         var quoted = $"\"{projectOrSolutionPath}\"";
-        var buildSuffix = FormatBuildStepSuffix(configuration, platform, noIncremental, buildArgs, target);
+        var buildSuffix = FormatBuildStepSuffix(
+            configuration, platform, noIncremental, buildArgs, target, projectOrSolutionPath);
         var log = new StringBuilder();
         var steps = new List<string>();
         var buildExitCodes = new List<int>();
@@ -305,16 +306,18 @@ public static class DotNetBuildProbe
 
     /// <summary>
     /// Target, configuration, platform, incremental, and session <c>buildArgs</c> for <c>dotnet build</c> steps only.
+    /// <paramref name="cliTargetPath"/> is the <c>.sln</c>/<c>.slnx</c>/<c>.csproj</c> being built (platform naming).
     /// </summary>
     internal static string FormatBuildStepSuffix(
         string? configuration,
         string? platform,
         bool noIncremental,
         string? buildArgs,
-        string? target = null) =>
+        string? target = null,
+        string? cliTargetPath = null) =>
         FormatTargetSwitch(target)
         + DotNetConfigurationArguments.FormatConfigurationProperty(configuration)
-        + DotNetConfigurationArguments.FormatPlatformProperty(platform)
+        + DotNetConfigurationArguments.FormatPlatformProperty(platform, cliTargetPath)
         + FormatIncrementalSwitch(noIncremental)
         + DotNetBuildArguments.FormatSuffix(buildArgs);
 

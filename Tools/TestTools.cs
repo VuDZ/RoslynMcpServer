@@ -402,8 +402,11 @@ public sealed class TestTools
             {
                 effectiveConfiguration = DotNetConfigurationArguments.Coalesce(
                     configuration, _solutionManager.LoadedConfiguration, nameof(configuration));
-                effectivePlatform = DotNetConfigurationArguments.CoalescePlatform(
-                    platform, _solutionManager.LoadedPlatform);
+                effectivePlatform = DotNetConfigurationArguments.CoalescePlatformForTarget(
+                    platform,
+                    _solutionManager.LoadedPlatformRaw,
+                    _solutionManager.LoadedPlatform,
+                    targetPath);
             }
             catch (ArgumentException ex)
             {

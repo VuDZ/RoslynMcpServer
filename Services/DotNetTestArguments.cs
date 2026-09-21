@@ -26,7 +26,8 @@ public static class DotNetTestArguments
 
         var args = $"test \"{testTarget}\" --logger \"console;verbosity=normal\" --verbosity normal";
         args = DotNetConfigurationArguments.Append(args, configuration);
-        args = DotNetConfigurationArguments.AppendPlatform(args, platform);
+        // Platform naming follows the solution/project path, not a binariesPath DLL.
+        args = DotNetConfigurationArguments.AppendPlatform(args, platform, targetPath);
 
         if (noBuild)
         {
@@ -64,7 +65,7 @@ public static class DotNetTestArguments
         var args = $"build \"{targetPath}\"";
         args += DotNetBuildProbe.FormatTargetSwitch(solutionTarget);
         args = DotNetConfigurationArguments.AppendConfigurationProperty(args, configuration);
-        args = DotNetConfigurationArguments.AppendPlatform(args, platform);
+        args = DotNetConfigurationArguments.AppendPlatform(args, platform, targetPath);
         args = DotNetBuildArguments.Append(args, buildArgs);
         if (noRestore)
         {

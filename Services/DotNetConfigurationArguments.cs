@@ -39,6 +39,7 @@ public static class DotNetConfigurationArguments
 
     /// <summary>
     /// Same as <see cref="Normalize"/> plus the well-known sln alias <c>Any CPU</c> → <c>AnyCPU</c>.
+    /// Use for MSBuildWorkspace global properties and SDK-style <c>.csproj</c> CLI.
     /// </summary>
     public static string? NormalizePlatform(string? platform)
     {
@@ -51,11 +52,59 @@ public static class DotNetConfigurationArguments
         return name.Equals("Any CPU", StringComparison.OrdinalIgnoreCase) ? "AnyCPU" : name;
     }
 
+    /// <summary>
+    /// <see langword="true"/> when <paramref name="targetPath"/> is a <c>.sln</c> / <c>.slnx</c>
+    /// (solution configuration names are verbatim, e.g. <c>Any CPU</c>).
+    /// </summary>
+    public static bool UsesSolutionPlatformNaming(string? targetPath)
+    {
+        if (string.IsNullOrWhiteSpace(targetPath))
+        {
+            return false;
+        }
+
+        var extension = Path.GetExtension(targetPath);
+        return extension.Equals(".sln", StringComparison.OrdinalIgnoreCase)
+            || extension.Equals(".slnx", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// CLI platform for <paramref name="targetPath"/>: trim+validate for <c>.sln</c>/<c>.slnx</c>;
+    /// <see cref="NormalizePlatform"/> for <c>.csproj</c> and unknown targets.
+    /// </summary>
+    public static string? NormalizePlatformForTarget(string? platform, string? targetPath) =>
+        UsesSolutionPlatformNaming(targetPath)
+            ? Normalize(platform, nameof(platform))
+            : NormalizePlatform(platform);
+
     public static string? Coalesce(string? explicitValue, string? cached, string paramName) =>
         Normalize(explicitValue, paramName) ?? cached;
 
+    /// <summary>
+    /// Always-canonical coalesce (workspace-style). Prefer
+    /// <see cref="CoalescePlatformForTarget"/> for <c>dotnet build|test</c>.
+    /// </summary>
     public static string? CoalescePlatform(string? explicitValue, string? cached) =>
         NormalizePlatform(explicitValue) ?? cached;
+
+    /// <summary>
+    /// Inherits platform for a concrete CLI target: explicit value is normalized for that target;
+    /// when omitted, uses <paramref name="cachedRaw"/> for <c>.sln</c>/<c>.slnx</c> and
+    /// <paramref name="cachedCanonical"/> for <c>.csproj</c>.
+    /// </summary>
+    public static string? CoalescePlatformForTarget(
+        string? explicitValue,
+        string? cachedRaw,
+        string? cachedCanonical,
+        string? targetPath)
+    {
+        if (!string.IsNullOrWhiteSpace(explicitValue))
+        {
+            return NormalizePlatformForTarget(explicitValue, targetPath);
+        }
+
+        return UsesSolutionPlatformNaming(targetPath) ? cachedRaw : cachedCanonical;
+    }
 
     /// <summary>
     /// Returns a leading-space fragment <c> -c "Name"</c>, or empty when <paramref name="configuration"/> is omitted.
@@ -79,10 +128,12 @@ public static class DotNetConfigurationArguments
 
     /// <summary>
     /// Returns a leading-space fragment <c> -p:Platform="Name"</c>, or empty when omitted.
+    /// When <paramref name="targetPath"/> is a <c>.sln</c>/<c>.slnx</c>, keeps <c>Any CPU</c> verbatim;
+    /// otherwise aliases to <c>AnyCPU</c> (SDK <c>.csproj</c> / unknown).
     /// </summary>
-    public static string FormatPlatformProperty(string? platform)
+    public static string FormatPlatformProperty(string? platform, string? targetPath = null)
     {
-        var name = NormalizePlatform(platform);
+        var name = NormalizePlatformForTarget(platform, targetPath);
         return name is null ? string.Empty : $" -p:Platform=\"{name}\"";
     }
 
@@ -103,10 +154,10 @@ public static class DotNetConfigurationArguments
     }
 
     /// <summary>Appends <c>-p:Platform</c> when set; otherwise returns <paramref name="arguments"/> unchanged.</summary>
-    public static string AppendPlatform(string arguments, string? platform)
+    public static string AppendPlatform(string arguments, string? platform, string? targetPath = null)
     {
         ArgumentNullException.ThrowIfNull(arguments);
-        var suffix = FormatPlatformProperty(platform);
+        var suffix = FormatPlatformProperty(platform, targetPath);
         return suffix.Length == 0 ? arguments : arguments + suffix;
     }
 }

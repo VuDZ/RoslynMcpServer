@@ -179,6 +179,11 @@ MCP `tools/list` stays JSON + JSON Schema. Markdown is for JIT help and diagnost
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.3.39
+
+- **CLI `Platform` is target-aware** — `.sln`/`.slnx` keep verbatim `Any CPU` (`-p:Platform="Any CPU"`) so MSBuild solution configs do not fail with MSB4126; `.csproj` still gets canonical `AnyCPU`. `load_workspace` continues to set the MSBuildWorkspace global property to `AnyCPU`. Session inherit stores both `LoadedPlatform` (canonical) and `LoadedPlatformRaw` (trimmed); omitted `platform` on build/test picks by the file being built. `FormatConfigurationProperty` (`-p:Configuration=`) is unchanged.
+- **Catalog size** — unchanged: full 63 tools / 45,868 bytes; lite 19 / 18,282.
+
 ### v1.3.38
 
 - **Disk watcher covers projects outside the `.sln` folder** — `ComputeWatchRoots` unions the loaded `.sln`/`.csproj` directory with each project's directory and drops nested duplicates (if A contains B, keep A). One recursive `FileSystemWatcher` per remaining root (same `*.*` / NotifyFilter / 64KB Windows buffer). A root that fails to start is logged and skipped; Linux inotify errors still degrade without crashing. Disk-sync is unchanged: known documents only (`WithDocumentText`), no `AddDocument`/`RemoveDocument`.
@@ -1395,7 +1400,7 @@ cd D:\Devel\YourApp
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.3.38). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.3.39). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 

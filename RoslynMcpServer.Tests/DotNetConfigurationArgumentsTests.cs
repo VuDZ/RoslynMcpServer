@@ -46,8 +46,28 @@ public sealed class DotNetConfigurationArgumentsTests
     public void FormatPlatformProperty_wraps_name()
     {
         Assert.Equal(" -p:Platform=\"x64\"", DotNetConfigurationArguments.FormatPlatformProperty("x64"));
+        // No target path → project/canonical naming (Any CPU → AnyCPU).
         Assert.Equal(" -p:Platform=\"AnyCPU\"", DotNetConfigurationArguments.FormatPlatformProperty("Any CPU"));
         Assert.Equal(string.Empty, DotNetConfigurationArguments.FormatPlatformProperty(null));
+    }
+
+    [Fact]
+    public void FormatPlatformProperty_solution_keeps_any_cpu_verbatim()
+    {
+        Assert.Equal(
+            " -p:Platform=\"Any CPU\"",
+            DotNetConfigurationArguments.FormatPlatformProperty("Any CPU", @"E:\repo\App.sln"));
+        Assert.Equal(
+            " -p:Platform=\"Any CPU\"",
+            DotNetConfigurationArguments.FormatPlatformProperty("  Any CPU  ", @"E:\repo\App.slnx"));
+    }
+
+    [Fact]
+    public void FormatPlatformProperty_csproj_aliases_any_cpu()
+    {
+        Assert.Equal(
+            " -p:Platform=\"AnyCPU\"",
+            DotNetConfigurationArguments.FormatPlatformProperty("Any CPU", @"E:\repo\App.csproj"));
     }
 
     [Fact]
@@ -57,6 +77,39 @@ public sealed class DotNetConfigurationArgumentsTests
         Assert.Equal("Debug", DotNetConfigurationArguments.Coalesce(null, "Debug", "configuration"));
         Assert.Equal("x64", DotNetConfigurationArguments.CoalescePlatform(null, "x64"));
         Assert.Equal("AnyCPU", DotNetConfigurationArguments.CoalescePlatform("Any CPU", "x64"));
+    }
+
+    [Fact]
+    public void CoalescePlatformForTarget_inherits_raw_for_solution_canonical_for_csproj()
+    {
+        const string raw = "Any CPU";
+        const string canonical = "AnyCPU";
+
+        Assert.Equal(
+            raw,
+            DotNetConfigurationArguments.CoalescePlatformForTarget(
+                null, raw, canonical, @"E:\repo\App.sln"));
+        Assert.Equal(
+            raw,
+            DotNetConfigurationArguments.CoalescePlatformForTarget(
+                null, raw, canonical, @"E:\repo\App.slnx"));
+        Assert.Equal(
+            canonical,
+            DotNetConfigurationArguments.CoalescePlatformForTarget(
+                null, raw, canonical, @"E:\repo\App.csproj"));
+    }
+
+    [Fact]
+    public void CoalescePlatformForTarget_explicit_follows_target_naming()
+    {
+        Assert.Equal(
+            "Any CPU",
+            DotNetConfigurationArguments.CoalescePlatformForTarget(
+                "Any CPU", "x64", "x64", @"E:\repo\App.sln"));
+        Assert.Equal(
+            "AnyCPU",
+            DotNetConfigurationArguments.CoalescePlatformForTarget(
+                "Any CPU", "x64", "x64", @"E:\repo\App.csproj"));
     }
 
     [Fact]
@@ -76,5 +129,9 @@ public sealed class DotNetConfigurationArgumentsTests
         Assert.Equal(
             "build \"App.slnx\" -v:minimal -p:Platform=\"x64\"",
             DotNetConfigurationArguments.AppendPlatform("build \"App.slnx\" -v:minimal", "x64"));
+        Assert.Equal(
+            "build \"App.sln\" -v:minimal -p:Platform=\"Any CPU\"",
+            DotNetConfigurationArguments.AppendPlatform(
+                "build \"App.sln\" -v:minimal", "Any CPU", @"E:\repo\App.sln"));
     }
 }
