@@ -179,6 +179,11 @@ MCP `tools/list` stays JSON + JSON Schema. Markdown is for JIT help and diagnost
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.4.3
+
+- **Lossless diagnostic report (hybrid)** — when `run_dotnet_build` / `run_dotnet_test` / `run_specific_test` / `run_test_by_filter` / `run_dotnet_run` return a truncated excerpt (head/tail or raw tail) or a partial/unparsed test/build failure, the redacted full combined log is kept in-process (max 4 reports, ≤1 000 000 chars each, 15 min TTL, 16 000-char chunks). Pass optional `reportCursor` to the same tool for the next chunk (no new process). Successful short all-pass reports do not store or mention a cursor. Secrets (`password`/`token`/`Bearer`/URL userinfo, etc.) are redacted to `[redacted]` before store. Not a `%Temp%` path. Inline excerpt and StdOut/StdErr budgets from 1.3.24 unchanged; VSTest aggregation (item 2) and nonzero-exit gated success (item 5) unchanged.
+- **Catalog size** — full 63 tools / 49,682 bytes; lite 19 / 21,862.
+
 ### v1.4.2
 
 - **Navigation S3 (maxResults / preview / overflow)** — `find_symbol_references`, `find_usages`, and `find_implementations` accept optional `maxResults` (default 50, or env `ROSLYN_MCP_MAX_RESULTS` when a positive int; explicit arg wins; clamp 1–500), `preview` (default false: `path:line:col` only; true adds the source line, truncated at 400 chars), and `overflowCursor` (fetch the next in-memory overflow chunk; does not start a new search). Excess locations are stored in-process (max 8 entries, ≤2 000 000 chars total, 30 min TTL, 16 000-char chunks) — not silent drop and not `%Temp%` files. S1 position and S2 FQN resolver unchanged. `find_usages` kept. No S4/S5.
@@ -1441,7 +1446,7 @@ cd D:\Devel\YourApp
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.4.2). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.4.3). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 

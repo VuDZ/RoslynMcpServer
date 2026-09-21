@@ -115,25 +115,25 @@ public static class McpToolHelpCatalog
             ["run_dotnet_build"] = new()
             {
                 Prerequisites = "workspacePath must be a .csproj, .sln, or .slnx file, not a directory.",
-                Workflow = "Use after edits to verify compile. Omit configuration/platform to inherit load_workspace. Extra `dotnet build` args inherit from load_workspace `buildArgs`. Default noIncremental=true so up-to-date cache cannot hide errors. Pass projectName with a .sln/.slnx workspacePath to build one project via its solution-folder MSBuild target (`-t`). Configuration on build steps is `-p:Configuration`.",
+                Workflow = "Use after edits to verify compile. Omit configuration/platform to inherit load_workspace. Extra `dotnet build` args inherit from load_workspace `buildArgs`. Default noIncremental=true so up-to-date cache cannot hide errors. Pass projectName with a .sln/.slnx workspacePath to build one project via its solution-folder MSBuild target (`-t`). Configuration on build steps is `-p:Configuration`. Truncated or unparsed failures may include reportCursor — pass it back to fetch the next in-memory full-log chunk (no new process).",
                 Pitfalls = "Do not use execute_dotnet_command for ordinary builds. Restore success cannot mask a failed build. projectName requires a .sln/.slnx, not a .csproj. Ambiguous names need the virtual path (Folder\\Project).",
                 RelatedTools = ["run_dotnet_test", "execute_dotnet_command", "load_workspace"],
             },
             ["run_dotnet_test"] = new()
             {
-                Workflow = "Runs the full suite. Directories are allowed (unlike run_dotnet_build). Omit configuration/platform to inherit load_workspace. Pre-test `dotnet build` also inherits load_workspace `buildArgs`. After a successful build, pass noBuild=true. Optional binariesPath is a bin directory: loaded .sln/.slnx plus a .csproj workspacePath; runs AssemblyName.dll from that directory. When noBuild=false, builds that project via the loaded solution `-t` first. Failed tests include Standard Output/Error (default 2500/1000 chars, head+tail). Pass includeFullOutput=true or maxOutputChars to raise the cap (safety 100000).",
+                Workflow = "Runs the full suite. Directories are allowed (unlike run_dotnet_build). Omit configuration/platform to inherit load_workspace. Pre-test `dotnet build` also inherits load_workspace `buildArgs`. After a successful build, pass noBuild=true. Optional binariesPath is a bin directory: loaded .sln/.slnx plus a .csproj workspacePath; runs AssemblyName.dll from that directory. When noBuild=false, builds that project via the loaded solution `-t` first. Failed tests include Standard Output/Error (default 2500/1000 chars, head+tail). Pass includeFullOutput=true or maxOutputChars to raise the cap (safety 100000). Truncated or partial/unparsed reports may include reportCursor for an in-memory full log.",
                 Pitfalls = "For one class or method use run_specific_test. For a raw VSTest --filter use run_test_by_filter. Do not hand-write filters via execute_dotnet_command. binariesPath is a directory, not a DLL path; the DLL must sit directly in it, with .runtimeconfig.json / .deps.json beside it. Do not shell-out to capture ConversationId — use includeFullOutput/maxOutputChars.",
                 RelatedTools = ["run_specific_test", "run_test_by_filter", "run_dotnet_build", "execute_dotnet_command"],
             },
             ["run_specific_test"] = new()
             {
-                Workflow = "Provide className and/or methodName. Prefer simple class name plus short method name. The tool builds a VSTest-safe filter internally. Optional binariesPath is a bin directory: loaded .sln/.slnx plus a .csproj workspacePath; runs AssemblyName.dll from that directory. When noBuild=false, builds that project via the loaded solution `-t` first. Failed-test Standard Output (ConversationId, TestContext) is in the report: default 2500 chars head+tail; includeFullOutput=true or maxOutputChars for more.",
+                Workflow = "Provide className and/or methodName. Prefer simple class name plus short method name. The tool builds a VSTest-safe filter internally. Optional binariesPath is a bin directory: loaded .sln/.slnx plus a .csproj workspacePath; runs AssemblyName.dll from that directory. When noBuild=false, builds that project via the loaded solution `-t` first. Failed-test Standard Output (ConversationId, TestContext) is in the report: default 2500 chars head+tail; includeFullOutput=true or maxOutputChars for more. Truncated or partial/unparsed reports may include reportCursor for an in-memory full log.",
                 Pitfalls = "Do not use execute_dotnet_command. For TestCategory or a raw FullyQualifiedName expression use run_test_by_filter. At least one of className or methodName is required. binariesPath is a directory, not a DLL path; the DLL must sit directly in it, with .runtimeconfig.json / .deps.json beside it. Missing StdOut in the report is not a reason to rerun via shell; raise includeFullOutput or maxOutputChars.",
                 RelatedTools = ["run_dotnet_test", "run_test_by_filter", "get_test_list", "execute_dotnet_command"],
             },
             ["run_test_by_filter"] = new()
             {
-                Workflow = "Pass a raw VSTest --filter (FullyQualifiedName~MyClass, TestCategory=Smoke). Default noBuild=true. Optional binariesPath is a bin directory: loaded .sln/.slnx plus a .csproj workspacePath; the tool runs the AssemblyName.dll found there. When noBuild=false, builds that project via the loaded solution `-t` first. Same StdOut/StdErr report knobs as run_specific_test (includeFullOutput, maxOutputChars).",
+                Workflow = "Pass a raw VSTest --filter (FullyQualifiedName~MyClass, TestCategory=Smoke). Default noBuild=true. Optional binariesPath is a bin directory: loaded .sln/.slnx plus a .csproj workspacePath; the tool runs the AssemblyName.dll found there. When noBuild=false, builds that project via the loaded solution `-t` first. Same StdOut/StdErr report knobs as run_specific_test (includeFullOutput, maxOutputChars). Truncated or partial/unparsed reports may include reportCursor for an in-memory full log.",
                 Pitfalls = "Do not put method () in the filter. Empty filter is an error. binariesPath is a directory, not a DLL path; the DLL must sit directly in it, with .runtimeconfig.json / .deps.json beside it. Prefer run_specific_test for one class or method.",
                 RelatedTools = ["run_specific_test", "run_dotnet_test", "run_dotnet_build", "execute_dotnet_command"],
             },
@@ -338,7 +338,7 @@ public static class McpToolHelpCatalog
             },
             ["run_dotnet_run"] = new()
             {
-                Workflow = "Runs an executable csproj. Prefer this over execute_dotnet_command or a raw shell.",
+                Workflow = "Runs an executable csproj. Prefer this over execute_dotnet_command or a raw shell. Truncated stdout/stderr may include reportCursor for an in-memory full log chunk.",
                 RelatedTools = ["execute_dotnet_command", "run_dotnet_build"],
             },
             ["execute_dotnet_command"] = new()

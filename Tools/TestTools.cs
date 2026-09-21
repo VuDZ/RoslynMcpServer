@@ -48,6 +48,8 @@ public sealed class TestTools
         bool includeFullOutput = false,
         [Description(MaxOutputCharsDescription)]
         int maxOutputChars = 0,
+        [Description(DiagnosticReportAttachment.ReportCursorParameterDescription)]
+        string? reportCursor = null,
         IProgress<ProgressNotificationValue>? progress = null,
         CancellationToken cancellationToken = default)
     {
@@ -65,6 +67,7 @@ public sealed class TestTools
             binariesPath,
             includeFullOutput,
             maxOutputChars,
+            reportCursor,
             progress,
             cancellationToken);
     }
@@ -96,6 +99,8 @@ public sealed class TestTools
         bool includeFullOutput = false,
         [Description(MaxOutputCharsDescription)]
         int maxOutputChars = 0,
+        [Description(DiagnosticReportAttachment.ReportCursorParameterDescription)]
+        string? reportCursor = null,
         IProgress<ProgressNotificationValue>? progress = null,
         CancellationToken cancellationToken = default)
     {
@@ -103,6 +108,14 @@ public sealed class TestTools
 
         try
         {
+            if (!string.IsNullOrWhiteSpace(reportCursor))
+            {
+                return ToolTelemetry.TraceAndReturn(
+                    toolName,
+                    DiagnosticReportAttachment.FormatChunkResponse(
+                        DiagnosticReportStore.TryTakeChunk(reportCursor)));
+            }
+
             if (string.IsNullOrWhiteSpace(className) && string.IsNullOrWhiteSpace(methodName))
             {
                 return ToolTelemetry.TraceAndReturn(
@@ -142,6 +155,7 @@ public sealed class TestTools
                     binariesPath,
                     includeFullOutput,
                     maxOutputChars,
+                    reportCursor: null,
                     progress,
                     cancellationToken)
                 .ConfigureAwait(false);
@@ -187,9 +201,20 @@ public sealed class TestTools
         bool includeFullOutput = false,
         [Description(MaxOutputCharsDescription)]
         int maxOutputChars = 0,
+        [Description(DiagnosticReportAttachment.ReportCursorParameterDescription)]
+        string? reportCursor = null,
         IProgress<ProgressNotificationValue>? progress = null,
         CancellationToken cancellationToken = default)
     {
+        if (!string.IsNullOrWhiteSpace(reportCursor))
+        {
+            return Task.FromResult(
+                ToolTelemetry.TraceAndReturn(
+                    nameof(RunTestByFilter),
+                    DiagnosticReportAttachment.FormatChunkResponse(
+                        DiagnosticReportStore.TryTakeChunk(reportCursor))));
+        }
+
         if (string.IsNullOrWhiteSpace(filter))
         {
             return Task.FromResult(
@@ -212,6 +237,7 @@ public sealed class TestTools
             binariesPath,
             includeFullOutput,
             maxOutputChars,
+            reportCursor: null,
             progress,
             cancellationToken);
     }
@@ -354,11 +380,20 @@ public sealed class TestTools
         string? binariesPath,
         bool includeFullOutput,
         int maxOutputChars,
+        string? reportCursor,
         IProgress<ProgressNotificationValue>? progress,
         CancellationToken cancellationToken)
     {
         try
         {
+            if (!string.IsNullOrWhiteSpace(reportCursor))
+            {
+                return ToolTelemetry.TraceAndReturn(
+                    toolName,
+                    DiagnosticReportAttachment.FormatChunkResponse(
+                        DiagnosticReportStore.TryTakeChunk(reportCursor)));
+            }
+
             if (maxOutputChars < 0)
             {
                 return ToolTelemetry.TraceAndReturn(toolName, "Error: `maxOutputChars` must be >= 0.");
@@ -561,7 +596,12 @@ public sealed class TestTools
                     timedOut.AppendLine();
                     TruncatedProcessLog.AppendLastCharacters(
                         timedOut, "Console output before kill:", buildRun.CombinedOutput);
-                    return ToolTelemetry.TraceAndReturn(toolName, timedOut.ToString().TrimEnd());
+                    var timedOutText = timedOut.ToString().TrimEnd();
+                    timedOutText = DiagnosticReportAttachment.AttachToResponse(
+                        timedOutText,
+                        buildRun.CombinedOutput,
+                        DiagnosticReportAttachment.ClientResponseHasTruncatedExcerpt(timedOutText));
+                    return ToolTelemetry.TraceAndReturn(toolName, timedOutText);
                 }
 
                 if (buildRun.ExitCode != 0)
@@ -577,7 +617,13 @@ public sealed class TestTools
                         failed,
                         TruncatedProcessLog.BuildPreambleBuildConsoleTail(buildRun.ExitCode),
                         buildRun.CombinedOutput);
-                    return ToolTelemetry.TraceAndReturn(toolName, failed.ToString().TrimEnd());
+                    var failedText = failed.ToString().TrimEnd();
+                    failedText = DiagnosticReportAttachment.AttachToResponse(
+                        failedText,
+                        buildRun.CombinedOutput,
+                        DiagnosticReportAttachment.ClientResponseHasTruncatedExcerpt(failedText)
+                        || DiagnosticReportAttachment.IsUnparsedBuildFailure(failedText));
+                    return ToolTelemetry.TraceAndReturn(toolName, failedText);
                 }
 
                 if (slnPreTestBuildArguments is not null)
@@ -634,7 +680,12 @@ public sealed class TestTools
                 sb.AppendLine(DotNetCliRunner.FormatHangHints(timedOut: true, cancelled: false));
                 sb.AppendLine();
                 TruncatedProcessLog.AppendLastCharacters(sb, "Console output before kill:", run.CombinedOutput);
-                return ToolTelemetry.TraceAndReturn(toolName, sb.ToString().TrimEnd());
+                var timedOutText = sb.ToString().TrimEnd();
+                timedOutText = DiagnosticReportAttachment.AttachToResponse(
+                    timedOutText,
+                    run.CombinedOutput,
+                    DiagnosticReportAttachment.ClientResponseHasTruncatedExcerpt(timedOutText));
+                return ToolTelemetry.TraceAndReturn(toolName, timedOutText);
             }
 
             var parse = VstestOutputParser.Parse(run.CombinedOutput, run.ExitCode);
@@ -657,6 +708,7 @@ public sealed class TestTools
                 markdown = markdown + Environment.NewLine + Environment.NewLine + agentHint;
             }
 
+            string finalMarkdown;
             if (run.ExitCode != 0 && VstestOutputParser.IsSilentUnparsedFailure(parse, run.CombinedOutput))
             {
                 var sb = new StringBuilder();
@@ -670,13 +722,21 @@ public sealed class TestTools
                 sb.AppendLine();
                 sb.AppendLine(run.RunMetadata);
                 sb.AppendLine(extraMeta);
-                return ToolTelemetry.TraceAndReturn(toolName, sb.ToString().TrimEnd());
+                finalMarkdown = sb.ToString().TrimEnd();
+            }
+            else
+            {
+                finalMarkdown = markdown + Environment.NewLine + Environment.NewLine + run.RunMetadata
+                    + Environment.NewLine + extraMeta;
             }
 
-            return ToolTelemetry.TraceAndReturn(
-                toolName,
-                markdown + Environment.NewLine + Environment.NewLine + run.RunMetadata
-                + Environment.NewLine + extraMeta);
+            var shouldStore = DiagnosticReportAttachment.ClientResponseHasTruncatedExcerpt(finalMarkdown)
+                              || DiagnosticReportAttachment.IsPartialOrUnparsedTestStatus(finalMarkdown);
+            finalMarkdown = DiagnosticReportAttachment.AttachToResponse(
+                finalMarkdown,
+                run.CombinedOutput,
+                shouldStore);
+            return ToolTelemetry.TraceAndReturn(toolName, finalMarkdown);
         }
         catch (OperationCanceledException)
         {

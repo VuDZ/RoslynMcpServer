@@ -33,6 +33,8 @@ public sealed class RunTools
         int maxStdoutChars = ProcessOutputExcerpt.DefaultMaxStdoutCharacters,
         [Description("Max stderr characters in the response.")]
         int maxStderrChars = ProcessOutputExcerpt.DefaultMaxStderrCharacters,
+        [Description(DiagnosticReportAttachment.ReportCursorParameterDescription)]
+        string? reportCursor = null,
         IProgress<ProgressNotificationValue>? progress = null,
         CancellationToken cancellationToken = default)
     {
@@ -40,6 +42,14 @@ public sealed class RunTools
 
         try
         {
+            if (!string.IsNullOrWhiteSpace(reportCursor))
+            {
+                return ToolTelemetry.TraceAndReturn(
+                    toolName,
+                    DiagnosticReportAttachment.FormatChunkResponse(
+                        DiagnosticReportStore.TryTakeChunk(reportCursor)));
+            }
+
             if (string.IsNullOrWhiteSpace(workspacePath))
             {
                 return ToolTelemetry.TraceAndReturn(toolName, "Error: `workspacePath` is empty.");
@@ -137,7 +147,17 @@ public sealed class RunTools
                     "> Check stderr tail for progress/errors. For HTTP/proxy issues verify corporate network — not an MCP SDK mismatch.");
             }
 
-            return ToolTelemetry.TraceAndReturn(toolName, sb.ToString().TrimEnd());
+            var text = sb.ToString().TrimEnd();
+            var combined = string.IsNullOrEmpty(run.StdErr)
+                ? run.StdOut
+                : string.IsNullOrEmpty(run.StdOut)
+                    ? run.StdErr
+                    : run.StdOut + "\n" + run.StdErr;
+            var shouldStore = DiagnosticReportAttachment.ClientResponseHasTruncatedExcerpt(text)
+                              || run.StdOut.Length > maxStdoutChars
+                              || run.StdErr.Length > maxStderrChars;
+            text = DiagnosticReportAttachment.AttachToResponse(text, combined, shouldStore);
+            return ToolTelemetry.TraceAndReturn(toolName, text);
         }
         catch (OperationCanceledException)
         {

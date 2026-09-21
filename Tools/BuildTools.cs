@@ -38,11 +38,21 @@ public sealed class BuildTools
         [Description(
             "Optional project name. When set, workspacePath must be a .sln/.slnx. Builds that project via its solution-folder MSBuild target instead of the whole solution.")]
         string? projectName = null,
+        [Description(DiagnosticReportAttachment.ReportCursorParameterDescription)]
+        string? reportCursor = null,
         IProgress<ProgressNotificationValue>? progress = null,
         CancellationToken cancellationToken = default)
     {
         try
         {
+            if (!string.IsNullOrWhiteSpace(reportCursor))
+            {
+                return ToolTelemetry.TraceAndReturn(
+                    nameof(RunDotNetBuild),
+                    DiagnosticReportAttachment.FormatChunkResponse(
+                        DiagnosticReportStore.TryTakeChunk(reportCursor)));
+            }
+
             if (string.IsNullOrWhiteSpace(workspacePath))
             {
                 return ToolTelemetry.TraceAndReturn(nameof(RunDotNetBuild), "Error: `workspacePath` is empty.");
@@ -130,7 +140,12 @@ public sealed class BuildTools
                 hang.AppendLine(DotNetCliRunner.FormatHangHints(timedOut: probe.TimedOut, cancelled: false));
                 hang.AppendLine();
                 TruncatedProcessLog.AppendLastCharacters(hang, "Console output:", combined);
-                return ToolTelemetry.TraceAndReturn(nameof(RunDotNetBuild), hang.ToString().TrimEnd());
+                var hangText = hang.ToString().TrimEnd();
+                hangText = DiagnosticReportAttachment.AttachToResponse(
+                    hangText,
+                    combined,
+                    DiagnosticReportAttachment.ClientResponseHasTruncatedExcerpt(hangText));
+                return ToolTelemetry.TraceAndReturn(nameof(RunDotNetBuild), hangText);
             }
 
             var parsed = DotNetBuildDiagnosticParser.Parse(combined);
@@ -203,7 +218,12 @@ public sealed class BuildTools
 
             MsBuildLogHighlighter.AppendKeyLinesSection(errSb, combined);
             AppendNuGetAuditHintIfNeeded(errSb, combined);
-            return ToolTelemetry.TraceAndReturn(nameof(RunDotNetBuild), errSb.ToString().TrimEnd());
+            var errText = errSb.ToString().TrimEnd();
+            errText = DiagnosticReportAttachment.AttachToResponse(
+                errText,
+                combined,
+                DiagnosticReportAttachment.ClientResponseHasTruncatedExcerpt(errText));
+            return ToolTelemetry.TraceAndReturn(nameof(RunDotNetBuild), errText);
         }
         catch (OperationCanceledException)
         {
@@ -280,7 +300,12 @@ public sealed class BuildTools
             TruncatedProcessLog.BuildPreambleBuildConsoleTail(processExitCode),
             combined);
         AppendNuGetAuditHintIfNeeded(sb, combined);
-        return sb.ToString().TrimEnd();
+        var text = sb.ToString().TrimEnd();
+        // Unparsed build failure always keeps a full report when there is output (even if short).
+        return DiagnosticReportAttachment.AttachToResponse(
+            text,
+            combined,
+            shouldStore: !string.IsNullOrEmpty(combined));
     }
 
     private static void AppendNuGetAuditHintIfNeeded(StringBuilder sb, string combined)
