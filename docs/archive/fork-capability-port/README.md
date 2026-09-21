@@ -1,6 +1,6 @@
 # Порт оставшихся возможностей VladD2
 
-Дата: 2026-09-21. Статус: **этапы 1–7 сделаны (v1.4.10); этап 8 не начат**.
+Дата: 2026-09-21. Статус: **архив**. Этапы 1–7 shipped (v1.4.4–v1.4.10). Runtime — корневой README «Agent tools by version». Этап 8 удалён: тестовый проект остаётся на xUnit v2. Поддержка Microsoft Testing Platform — [test-runner-selection](../../test-runner-selection/README.md), код не начат.
 
 Сравнение деревьев, не общего предка (его нет):
 
@@ -24,9 +24,8 @@
 | 5 | [stage-05-definition-paging.md](stage-05-definition-paging.md) | Хвост списка определений через `overflowCursor` |
 | 6 | [stage-06-lazy-workspace.md](stage-06-lazy-workspace.md) | Необязательный `RoslynMcp.jsonc` в формате форка; `load_workspace` сравнивает только переданные настройки |
 | 7 | [stage-07-ripgrep.md](stage-07-ripgrep.md) | Ripgrep только по отдельному аргументу |
-| 8 | [stage-08-xunit-v3.md](stage-08-xunit-v3.md) | Тестовый проект на xUnit v3, адаптер VSTest и фильтры CI те же |
 
-Этапы 1–5 — бывшие P1 и P2. Этапы 6 и 7 — конфиг и ripgrep. Этап 8 — тестовый проект на xUnit v3; он не блокирует остальные.
+Этапы 1–5 — бывшие P1 и P2. Этапы 6 и 7 — конфиг и ripgrep.
 
 ## Что в этапах сознательно нет
 
