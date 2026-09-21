@@ -30,6 +30,7 @@ public sealed class AstTools
             $"Added using `{AstModificationHelper.NormalizeNamespaceForDisplay(namespaceName)}`.",
             cancellationToken);
 
+    // WithheldUntilV2: delete the methods in v2.0 if this decision does not change.
     [McpServerTool(Name = "remove_using", Title = "Remove using directive")]
     [Description("Removes a using directive via Roslyn AST. Writes the file. Requires load_workspace.")]
     public Task<string> RemoveUsing(
@@ -43,6 +44,7 @@ public sealed class AstTools
             $"Removed using `{AstModificationHelper.NormalizeNamespaceForDisplay(namespaceName)}`.",
             cancellationToken);
 
+    // WithheldUntilV2: delete the methods in v2.0 if this decision does not change.
     [McpServerTool(Name = "organize_usings", Title = "Organize usings")]
     [Description("Sorts usings and optionally removes unused ones. Writes the file. Requires load_workspace.")]
     public Task<string> OrganizeUsings(
@@ -91,6 +93,7 @@ public sealed class AstTools
             $"Updated body of `{className}.{methodName}`.",
             cancellationToken);
 
+    // WithheldUntilV2: delete the methods in v2.0 if this decision does not change.
     [McpServerTool(Name = "add_property_to_class", Title = "Add property to class")]
     [Description("Inserts a parsed property into a class. Writes the file. Requires load_workspace.")]
     public Task<string> AddPropertyToClass(
@@ -106,6 +109,7 @@ public sealed class AstTools
             $"Added property to class `{className}`.",
             cancellationToken);
 
+    // WithheldUntilV2: delete the methods in v2.0 if this decision does not change.
     [McpServerTool(Name = "add_field_to_class", Title = "Add field to class")]
     [Description("Inserts a parsed field into a class. Writes the file. Requires load_workspace.")]
     public Task<string> AddFieldToClass(
@@ -121,6 +125,7 @@ public sealed class AstTools
             $"Added field to class `{className}`.",
             cancellationToken);
 
+    // WithheldUntilV2: delete the methods in v2.0 if this decision does not change.
     [McpServerTool(Name = "remove_member", Title = "Remove class member")]
     [Description("Removes a method, property, field, or event by name. Writes the file. Requires load_workspace.")]
     public Task<string> RemoveMember(
@@ -136,6 +141,7 @@ public sealed class AstTools
             $"Removed member `{memberName}` from class `{className}`.",
             cancellationToken);
 
+    // WithheldUntilV2: delete the methods in v2.0 if this decision does not change.
     [McpServerTool(Name = "add_type_to_class_bases", Title = "Add base type or interface")]
     [Description("Adds a base class or interface to a class. Writes the file. Requires load_workspace.")]
     public Task<string> AddTypeToClassBases(
@@ -151,6 +157,7 @@ public sealed class AstTools
             $"Added `{typeName}` to base list of `{className}`.",
             cancellationToken);
 
+    // WithheldUntilV2: delete the methods in v2.0 if this decision does not change.
     [McpServerTool(Name = "implement_interface", Title = "Implement interface stubs")]
     [Description("Adds an interface and NotImplemented stubs for missing members. Writes the file. Requires load_workspace.")]
     public Task<string> ImplementInterface(

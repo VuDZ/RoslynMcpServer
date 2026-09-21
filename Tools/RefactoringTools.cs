@@ -17,6 +17,7 @@ public sealed class RefactoringTools
         _logger = logger;
     }
 
+    // WithheldUntilV2: delete the methods in v2.0 if this decision does not change.
     [McpServerTool(Name = "extract_interface", Title = "Extract interface from class")]
     [Description(
         "Extracts a public interface from a class. Writes files. Requires load_workspace. previewOnly=true writes nothing.")]
@@ -69,6 +70,7 @@ public sealed class RefactoringTools
         }
     }
 
+    // WithheldUntilV2: delete the methods in v2.0 if this decision does not change.
     [McpServerTool(Name = "move_type_to_new_file", Title = "Move type to its own file")]
     [Description(
         "Moves top-level types into separate files named {TypeName}.cs. Writes files. previewOnly=true writes nothing.")]

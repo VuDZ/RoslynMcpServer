@@ -18,6 +18,23 @@ public static class McpToolCatalog
     public static IReadOnlyList<string> ReservedBootstrapToolNames { get; } = [];
 
     /// <summary>
+    /// Attributed tools kept out of <c>tools/list</c> until v2.0.
+    /// Delete the methods in v2.0 if this decision does not change.
+    /// </summary>
+    public static IReadOnlyList<string> WithheldUntilV2 { get; } =
+    [
+        "remove_using",
+        "organize_usings",
+        "add_property_to_class",
+        "add_field_to_class",
+        "add_type_to_class_bases",
+        "remove_member",
+        "implement_interface",
+        "extract_interface",
+        "move_type_to_new_file",
+    ];
+
+    /// <summary>
     /// Epoch 1 minified <c>tools/list</c> UTF-8 sizes captured before Epoch 2 description compaction.
     /// </summary>
     public const int Epoch1FullCatalogBytes = 64181;
@@ -174,19 +191,10 @@ public static class McpToolCatalog
             Group<UtilityTools>("apply_patch", McpToolGroups.Files, readOnly: false),
 
             Group<AstTools>("add_using", McpToolGroups.Editing, readOnly: false),
-            Group<AstTools>("remove_using", McpToolGroups.Editing, readOnly: false),
-            Group<AstTools>("organize_usings", McpToolGroups.Editing, readOnly: false),
             Group<AstTools>("add_method_to_class", McpToolGroups.Editing, readOnly: false),
             Group<AstTools>("update_method_body", McpToolGroups.Editing, readOnly: false),
-            Group<AstTools>("add_property_to_class", McpToolGroups.Editing, readOnly: false),
-            Group<AstTools>("add_field_to_class", McpToolGroups.Editing, readOnly: false),
-            Group<AstTools>("remove_member", McpToolGroups.Editing, readOnly: false),
-            Group<AstTools>("add_type_to_class_bases", McpToolGroups.Editing, readOnly: false),
-            Group<AstTools>("implement_interface", McpToolGroups.Editing, readOnly: false),
             Group<CodeFixTools>("get_code_fixes", McpToolGroups.Editing, readOnly: true),
             Group<CodeFixTools>("apply_code_fix", McpToolGroups.Editing, readOnly: false),
-            Group<RefactoringTools>("extract_interface", McpToolGroups.Editing, readOnly: false),
-            Group<RefactoringTools>("move_type_to_new_file", McpToolGroups.Editing, readOnly: false),
             Group<UtilityTools>("run_format", McpToolGroups.Editing, readOnly: false, executesProcess: true),
             Group<UtilityTools>("rename_symbol", McpToolGroups.Editing, readOnly: false),
             Group<TestTools>("generate_test_method_stub", McpToolGroups.Editing, readOnly: false),
@@ -217,7 +225,7 @@ public static class McpToolCatalog
             Group<ServerLifecycleTools>("stop_mcp_server", McpToolGroups.Operations, readOnly: false, executesProcess: true),
         ];
 
-        Validate(entries);
+        ValidateCatalogConsistency(entries, WithheldUntilV2);
         return entries;
     }
 
@@ -306,8 +314,18 @@ public static class McpToolCatalog
         return matches[0];
     }
 
-    private static void Validate(IReadOnlyList<McpToolDescriptor> entries)
+    /// <summary>
+    /// Catalog ↔ attribute consistency. <paramref name="withheldUntilV2"/> names may keep
+    /// <c>[McpServerTool]</c> without a <see cref="Build"/> row; pass an empty list to assert
+    /// a strict 1:1 match (test seam).
+    /// </summary>
+    internal static void ValidateCatalogConsistency(
+        IReadOnlyList<McpToolDescriptor> entries,
+        IReadOnlyList<string> withheldUntilV2)
     {
+        ArgumentNullException.ThrowIfNull(entries);
+        ArgumentNullException.ThrowIfNull(withheldUntilV2);
+
         var duplicateNames = entries
             .GroupBy(d => d.Name, StringComparer.Ordinal)
             .Where(g => g.Count() > 1)
@@ -346,8 +364,24 @@ public static class McpToolCatalog
         var reflected = DiscoverAttributedTools();
         var catalogNames = entries.Select(d => d.Name).ToHashSet(StringComparer.Ordinal);
         var reflectedNames = reflected.Select(r => r.Name).ToHashSet(StringComparer.Ordinal);
+        var withheld = withheldUntilV2.ToHashSet(StringComparer.Ordinal);
 
-        var missing = reflectedNames.Except(catalogNames, StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
+        var withheldMissingAttribute = withheld
+            .Where(name => !reflectedNames.Contains(name))
+            .Order(StringComparer.Ordinal)
+            .ToArray();
+        if (withheldMissingAttribute.Length > 0)
+        {
+            throw new InvalidOperationException(
+                "WithheldUntilV2 names must keep [McpServerTool]: "
+                + string.Join(", ", withheldMissingAttribute));
+        }
+
+        var missing = reflectedNames
+            .Except(catalogNames, StringComparer.Ordinal)
+            .Except(withheld, StringComparer.Ordinal)
+            .Order(StringComparer.Ordinal)
+            .ToArray();
         if (missing.Length > 0)
         {
             throw new InvalidOperationException(

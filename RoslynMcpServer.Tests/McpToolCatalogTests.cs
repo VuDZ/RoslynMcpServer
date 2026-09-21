@@ -7,6 +7,7 @@ using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using RoslynMcpServer.Hosting;
 using RoslynMcpServer.Services;
+using RoslynMcpServer.Tools;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -45,9 +46,114 @@ public sealed class McpToolCatalogTests(ITestOutputHelper output)
             .Select(t => t.Name)
             .OrderBy(n => n, StringComparer.Ordinal)
             .ToArray();
+        var withheld = McpToolCatalog.WithheldUntilV2.ToHashSet(StringComparer.Ordinal);
+        var expectedRegistered = reflected
+            .Where(n => !withheld.Contains(n))
+            .OrderBy(n => n, StringComparer.Ordinal)
+            .ToArray();
 
         Assert.Equal(63, reflected.Length);
-        Assert.Equal(reflected, registered);
+        Assert.Equal(9, McpToolCatalog.WithheldUntilV2.Count);
+        Assert.Equal(54, registered.Length);
+        Assert.Equal(expectedRegistered, registered);
+    }
+
+    [Fact]
+    public void Neither_full_nor_lite_registers_withheld_until_v2_names()
+    {
+        var full = McpToolCatalog.CreateSurface(new McpToolProfileOptions { Profile = "full" });
+        var lite = McpToolCatalog.CreateSurface(new McpToolProfileOptions { Profile = "lite" });
+        foreach (var name in McpToolCatalog.WithheldUntilV2)
+        {
+            Assert.DoesNotContain(full.RegisteredTools, d => d.Name.Equals(name, StringComparison.Ordinal));
+            Assert.DoesNotContain(lite.RegisteredTools, d => d.Name.Equals(name, StringComparison.Ordinal));
+            Assert.DoesNotContain(McpToolCatalog.All, d => d.Name.Equals(name, StringComparison.Ordinal));
+        }
+    }
+
+    [Fact]
+    public void DiscoverAttributedTools_still_finds_all_withheld_until_v2_names()
+    {
+        var reflected = McpToolCatalog.DiscoverAttributedTools()
+            .Select(t => t.Name)
+            .ToHashSet(StringComparer.Ordinal);
+
+        Assert.Equal(9, McpToolCatalog.WithheldUntilV2.Count);
+        foreach (var name in McpToolCatalog.WithheldUntilV2)
+        {
+            Assert.Contains(name, reflected);
+        }
+    }
+
+    [Fact]
+    public void Catalog_without_withhold_list_still_rejects_extra_attribute_and_orphan_catalog_name()
+    {
+        // Empty withhold requires a 1:1 catalog of every attributed tool.
+        var publishedByName = McpToolCatalog.All.ToDictionary(d => d.Name, StringComparer.Ordinal);
+        var strictCatalog = McpToolCatalog.DiscoverAttributedTools()
+            .Select(r =>
+            {
+                if (publishedByName.TryGetValue(r.Name, out var existing))
+                {
+                    return existing;
+                }
+
+                return new McpToolDescriptor
+                {
+                    Name = r.Name,
+                    HostType = r.HostType,
+                    Method = r.Method,
+                    Group = McpToolGroups.Editing,
+                    InLiteCore = false,
+                    IsReadOnly = false,
+                    ExecutesProcess = false,
+                };
+            })
+            .ToArray();
+        Assert.Equal(63, strictCatalog.Length);
+
+        var withoutAddUsing = strictCatalog
+            .Where(d => !d.Name.Equals("add_using", StringComparison.Ordinal))
+            .ToArray();
+        var missingAttr = Assert.Throws<InvalidOperationException>(() =>
+            McpToolCatalog.ValidateCatalogConsistency(withoutAddUsing, []));
+        Assert.Contains("missing attributed tools", missingAttr.Message, StringComparison.Ordinal);
+        Assert.Contains("add_using", missingAttr.Message, StringComparison.Ordinal);
+
+        var sample = strictCatalog[0];
+        var orphan = new McpToolDescriptor
+        {
+            Name = "not_a_real_mcp_tool",
+            HostType = sample.HostType,
+            Method = sample.Method,
+            Group = sample.Group,
+            InLiteCore = sample.InLiteCore,
+            IsReadOnly = sample.IsReadOnly,
+            ExecutesProcess = sample.ExecutesProcess,
+        };
+        var withOrphan = strictCatalog.Append(orphan).ToArray();
+        var noAttribute = Assert.Throws<InvalidOperationException>(() =>
+            McpToolCatalog.ValidateCatalogConsistency(withOrphan, []));
+        Assert.Contains("no [McpServerTool]", noAttribute.Message, StringComparison.Ordinal);
+        Assert.Contains("not_a_real_mcp_tool", noAttribute.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Withheld_until_v2_name_without_attribute_is_rejected()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            McpToolCatalog.ValidateCatalogConsistency(
+                McpToolCatalog.All,
+                McpToolCatalog.WithheldUntilV2.Append("ghost_withheld_tool").ToArray()));
+        Assert.Contains("WithheldUntilV2 names must keep [McpServerTool]", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("ghost_withheld_tool", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HostTypes_exclude_refactoring_tools_while_ast_tools_remain()
+    {
+        Assert.DoesNotContain(typeof(RefactoringTools), McpToolCatalog.HostTypes);
+        Assert.Contains(typeof(AstTools), McpToolCatalog.HostTypes);
     }
 
     [Fact]
@@ -297,10 +403,10 @@ public sealed class McpToolCatalogTests(ITestOutputHelper output)
         output.WriteLine($"lite+runtime={liteRuntime.Count}/{liteRuntime.Utf8Bytes}");
         output.WriteLine($"lite+operations={liteOperations.Count}/{liteOperations.Utf8Bytes}");
 
-        AssertRecorded("full", 63, 50474, full);
+        AssertRecorded("full", 54, 45093, full);
         AssertRecorded("lite", 19, 22087, lite);
         AssertRecorded("lite+files", 26, 26916, liteFiles);
-        AssertRecorded("lite+editing", 36, 33050, liteEditing);
+        AssertRecorded("lite+editing", 27, 27669, liteEditing);
         AssertRecorded("lite+decompile", 23, 25005, liteDecompile);
         AssertRecorded("lite+nuget", 25, 25700, liteNuget);
         AssertRecorded("lite+project", 22, 23724, liteProject);

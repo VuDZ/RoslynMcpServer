@@ -179,6 +179,11 @@ MCP `tools/list` stays JSON + JSON Schema. Markdown is for JIT help and diagnost
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.4.11
+
+- **Nine tools withheld from `tools/list` until v2.0** — `remove_using`, `organize_usings`, `add_property_to_class`, `add_field_to_class`, `add_type_to_class_bases`, `remove_member`, `implement_interface`, `extract_interface`, `move_type_to_new_file`. Names stay in source with `[McpServerTool]`; delete the methods in v2.0 if this decision does not change. Neither `full` nor `lite` registers them (`McpToolCatalog.WithheldUntilV2`).
+- **Catalog size** — full 54 tools / 45,093 bytes; lite unchanged at 19 / 22,087.
+
 ### v1.4.10
 
 - **`search_code` ripgrep is opt-in** — `useRipgrep` defaults to false and keeps the managed file walk (PATH is not probed, `rg` is not started). `true` uses ripgrep only: missing `rg` is an error and does not fall back to the managed walk. Optional `ripgrepPath` is used only with the flag; otherwise it is ignored and the response says so. If the argument is omitted, `ripgrep-path` from `RoslynMcp.jsonc` is used, then `rg` on PATH. The config key alone does not switch the engine. Roots, extensions, case, `maxResults`, and `maxScanSeconds` stay the same. Cancellation and timeout kill the `rg` process tree. Output stays `file:line | text`. The header notes that hidden and gitignored files may be skipped. With the flag, `useRegex` is ripgrep syntax.
@@ -1493,7 +1498,7 @@ cd D:\Devel\YourApp
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.4.10). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.4.11). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 
