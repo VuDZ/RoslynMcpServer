@@ -179,6 +179,11 @@ MCP `tools/list` stays JSON + JSON Schema. Markdown is for JIT help and diagnost
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.4.8
+
+- **`find_symbol_definition` pages the tail** — optional `maxResults` and `overflowCursor`, same rules as references (explicit arg, else `ROSLYN_MCP_MAX_RESULTS`, else 50, clamp 1–500). Every in-source place is collected first (column and full name unchanged), then the already-built list is capped. The next chunk is the same tool with `overflowCursor` and does not search again. The old hard stop at 200 places is gone. A call that used to return up to 200 places now returns the first page plus a cursor when more remain. No `%TEMP%` file.
+- **Catalog size** — full 63 tools / 50,153 bytes; lite 19 / 22,246.
+
 ### v1.4.7
 
 - **`rename_symbol` and `get_call_graph` no longer pick the first overload** — optional `line` and `column` must be passed together or both omitted. With no position, several stage-1 declarations of that name (for the graph: ordinary methods of the named class) return an error listing FQN and identifier line:column, and rename writes nothing. With both coordinates, `SourcePositionHelper` selects that declaration or call site. A call-graph position must be a method. `previewOnly` stays the default. `maxNodes` truncation is unchanged. No `%TEMP%` dump.
@@ -801,6 +806,10 @@ There are **63** registered tools in the default `full` profile (see list below)
 - `filePath: string?` — optional; omit for solution-wide name search; without `line`, select the unique matching declaration in that file; required with `line` for positional go-to-definition
 - `line: int?` — optional 1-based line in `filePath` (usage or declaration)
 - `column: int?` — optional 1-based column; omit to auto-pick the unique matching identifier token on the line
+- `maxResults: int?` — optional listing cap (1–500). Default 50, or env `ROSLYN_MCP_MAX_RESULTS` when a positive int; explicit arg wins
+- `overflowCursor: string?` — next in-memory overflow chunk; does not start a new search
+
+**Behavior:** Locations beyond `maxResults` are stored in-process behind a cursor (not silent drop; not a host `%Temp%` path). Unknown/expired cursor → human error. File+line mode uses the same cursor scheme.
 
 **Model guidance:** after `load_workspace`, use this for “where is X **declared**?” — do **not** answer that with plain-text search or invent a generic tool named `search`. For free-text matches across files, use your client’s built-in **`grep`** tool (not `bash`/`PowerShell` grep). This tool avoids `bin/`/`obj/` and uses Roslyn. **Saved** `.cs` (IDE/git) are applied before search; unsaved buffers are ignored — no `reset_workspace` for ordinary saves. Omit `filePath`/`line` for solution-wide name search; pass `filePath` without `line` for the single declaration in that file (prints every in-source location, including partial parts, each with column and full name); several matches → error with FQN and identifier coordinates; pass `filePath`+`line` to go to the definition of the symbol under that position.
 </details>
@@ -1471,7 +1480,7 @@ cd D:\Devel\YourApp
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.4.7). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.4.8). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 
@@ -1676,6 +1685,10 @@ cd D:\Devel\YourApp
 - `filePath: string?` — опционально; без него — поиск по имени по solution; без `line` — единственное совпавшее объявление в файле; обязателен вместе с `line` для позиционного go-to-definition
 - `line: int?` — опциональная 1-based строка в `filePath` (usage или объявление)
 - `column: int?` — опциональная 1-based колонка; без неё — единственный совпадающий identifier token на строке
+- `maxResults: int?` — лимит списка (1–500). По умолчанию 50 или env `ROSLYN_MCP_MAX_RESULTS`; явный arg важнее env
+- `overflowCursor: string?` — следующий chunk in-memory overflow; новый поиск не запускается
+
+**Поведение:** локации сверх `maxResults` хранятся в процессе за cursor (не тихая обрезка; не `%Temp%` на хосте). Неизвестный/истёкший cursor — человекочитаемая ошибка. Режим file+line использует ту же схему cursor.
 
 **Для модели:** после `load_workspace` для «где **объявлен** X?» используй этот tool — не текстовый поиск и не выдуманный tool вроде `search`. Для произвольного текста по файлам — встроенный **`grep`** среды (IDE), не `bash`/PowerShell с grep. Так не лезем в `bin/`/`obj/` и опираемся на Roslyn. **Сохранённые** `.cs` (IDE/git) подмешиваются до поиска; несохранённый буфер игнорируется — `reset_workspace` для обычных save не нужен. Без `filePath`/`line` — поиск по имени по solution; `filePath` без `line` — одно объявление в файле (печатает все исходные места, включая части `partial`, каждое с колонкой и полным именем); несколько совпадений → ошибка с FQN и координатами идентификатора; с `filePath`+`line` — определение символа в этой позиции.
 </details>

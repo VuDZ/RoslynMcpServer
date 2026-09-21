@@ -9,6 +9,25 @@ namespace RoslynMcpServer.Services;
 /// </summary>
 internal static class DefinitionLocationFormatter
 {
+    public static string FormatLocation(ISymbol symbol, Location location)
+    {
+        ArgumentNullException.ThrowIfNull(symbol);
+        ArgumentNullException.ThrowIfNull(location);
+
+        var sb = new StringBuilder();
+        AppendLocation(sb, symbol, location);
+        return sb.ToString().TrimEnd();
+    }
+
+    public static string FormatNoSourceLocations(ISymbol symbol)
+    {
+        ArgumentNullException.ThrowIfNull(symbol);
+
+        var sb = new StringBuilder();
+        AppendNoSourceLocations(sb, symbol);
+        return sb.ToString().TrimEnd();
+    }
+
     public static void AppendLocation(StringBuilder sb, ISymbol symbol, Location location)
     {
         ArgumentNullException.ThrowIfNull(sb);

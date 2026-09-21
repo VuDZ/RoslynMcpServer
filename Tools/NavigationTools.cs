@@ -14,8 +14,6 @@ namespace RoslynMcpServer.Tools;
 
 public sealed class NavigationTools
 {
-    private const int MaxDefinitionLocations = 200;
-
     private readonly SolutionManager _solutionManager;
     private readonly ILogger<NavigationTools> _logger;
 
@@ -280,32 +278,45 @@ public sealed class NavigationTools
     [Description(
         "Finds declarations. Requires load_workspace. "
         + "Omit filePath/line: solution-wide name (case-insensitive). "
-        + "filePath without line: unique declaration (case-sensitive); prints every in-source location (partials) "
-        + "with column and full name; several → error with FQN and identifier line:column. "
-        + "filePath+line (±column): positional. Do not use text search for declarations.")]
+        + "filePath alone: unique declaration (case-sensitive); all in-source places (partials) "
+        + "with column+full name; several → FQN+line:column error. "
+        + "filePath+line (±column): positional. Optional maxResults/overflowCursor "
+        + "(default 50 or ROSLYN_MCP_MAX_RESULTS, 1–500; not dropped). "
+        + "Not text search.")]
     public async Task<string> FindSymbolDefinition(
-        [Description(
-            "Type/member identifier. Solution-wide: case-insensitive; file without line: ordinal. "
-            + "With filePath+line: auto-column needle.")]
+        [Description("Name. Solution-wide case-insensitive; file without line ordinal; +line auto-column.")]
         string symbolName,
-        [Description(
-            "Optional .cs. Omit for solution-wide search. Required with line. "
-            + "Without line: unique matching declaration (error if several).")]
+        [Description("Optional .cs. Omit for solution-wide. Required with line. Without line: unique declaration.")]
         string? filePath = null,
-        [Description("Optional 1-based line in filePath. Requires filePath. When set, resolves the symbol at that position.")]
+        [Description("Optional 1-based line; requires filePath.")]
         int? line = null,
-        [Description("Optional 1-based column. When omitted with line set, picks the unique identifier token matching symbolName on that line.")]
+        [Description("Optional 1-based column; omit to auto-pick matching identifier on the line.")]
         int? column = null,
+        [Description("Cap 1–500. Default 50 or ROSLYN_MCP_MAX_RESULTS; explicit wins.")]
+        int? maxResults = null,
+        [Description("Next in-memory overflow chunk; no new search.")]
+        string? overflowCursor = null,
         CancellationToken cancellationToken = default)
     {
+        const string toolName = nameof(FindSymbolDefinition);
+
         try
         {
+            if (!string.IsNullOrWhiteSpace(overflowCursor))
+            {
+                return ToolTelemetry.TraceAndReturn(
+                    toolName,
+                    NavigationListingHelper.FormatOverflowChunkResponse(
+                        NavigationOverflowStore.TryTakeChunk(overflowCursor)));
+            }
+
             if (string.IsNullOrWhiteSpace(symbolName))
             {
-                return ToolTelemetry.TraceAndReturn(nameof(FindSymbolDefinition), "Error: `symbolName` is empty.");
+                return ToolTelemetry.TraceAndReturn(toolName, "Error: `symbolName` is empty.");
             }
 
             var trimmedName = symbolName.Trim();
+            var resolvedMax = NavigationListingHelper.ResolveMaxResults(maxResults);
             var hasFilePath = !string.IsNullOrWhiteSpace(filePath);
 
             if (line is not null && !hasFilePath)
@@ -433,11 +444,7 @@ public sealed class NavigationTools
                 }
             }
 
-            var sb = new StringBuilder();
-            sb.AppendLine($"Found {symbols.Count} declaration symbol(s) matching `{trimmedName}`:");
-            sb.AppendLine();
-
-            var emitted = 0;
+            var locationLines = new List<string>();
             foreach (var symbol in symbols)
             {
                 var sourceLocations = symbol.Locations
@@ -445,35 +452,31 @@ public sealed class NavigationTools
                     .ToList();
                 if (sourceLocations.Count == 0)
                 {
-                    DefinitionLocationFormatter.AppendNoSourceLocations(sb, symbol);
+                    // Trailing blank keeps the same visual gap AppendLocation used between entries.
+                    locationLines.Add(DefinitionLocationFormatter.FormatNoSourceLocations(symbol) + "\n");
                     continue;
                 }
 
                 foreach (var location in sourceLocations)
                 {
-                    if (emitted >= MaxDefinitionLocations)
-                    {
-                        sb.AppendLine(
-                            $"[!] Output truncated after {MaxDefinitionLocations} source location(s). Narrow the symbol name or use `find_symbol_references` from a known file.");
-                        return ToolTelemetry.TraceAndReturn(
-                            nameof(FindSymbolDefinition),
-                            _solutionManager.WithDiskSyncNotes(sb.ToString().TrimEnd()));
-                    }
-
-                    DefinitionLocationFormatter.AppendLocation(sb, symbol, location);
-                    emitted++;
+                    locationLines.Add(DefinitionLocationFormatter.FormatLocation(symbol, location) + "\n");
                 }
             }
 
+            var sb = new StringBuilder();
+            sb.AppendLine($"Found {symbols.Count} declaration symbol(s) matching `{trimmedName}`:");
+            sb.AppendLine();
+            NavigationListingHelper.AppendCappedLines(sb, locationLines, resolvedMax, "location(s)");
+
             return ToolTelemetry.TraceAndReturn(
-                nameof(FindSymbolDefinition),
+                toolName,
                 _solutionManager.WithDiskSyncNotes(sb.ToString().TrimEnd()));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to find definition locations for {SymbolName}", symbolName);
             return ToolTelemetry.TraceAndReturn(
-                nameof(FindSymbolDefinition),
+                toolName,
                 WorkspaceLoadGuidance.FormatCaughtException(
                     ex,
                     $"Failed to find definitions for `{symbolName}`: {ex.Message}"));

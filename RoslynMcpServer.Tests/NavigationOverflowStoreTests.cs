@@ -155,4 +155,47 @@ public sealed class NavigationListingHelperTests : IDisposable
         Assert.Contains("loc-3", take.Chunk);
         Assert.Contains("loc-5", take.Chunk);
     }
+
+    [Fact]
+    public void AppendCappedLines_definition_locations_cursor_returns_tail_without_research()
+    {
+        var lines = Enumerable.Range(1, 5)
+            .Select(i =>
+                $"Symbol: Type{i}\n"
+                + $"  Full name: Ns.Type{i}\n"
+                + $"  File: C:\\src\\Type{i}.cs\n"
+                + $"  Line: {i}\n"
+                + "  Column: 1")
+            .ToList();
+
+        var sb = new StringBuilder();
+        sb.AppendLine("Found 5 declaration symbol(s) matching `Type`:");
+        sb.AppendLine();
+        NavigationListingHelper.AppendCappedLines(sb, lines, maxResults: 2, "location(s)");
+        var text = sb.ToString();
+
+        Assert.Contains("Type1", text);
+        Assert.Contains("Type2", text);
+        Assert.DoesNotContain("Type3", text);
+        Assert.Contains("overflowCursor", text);
+        Assert.Contains("not complete", text);
+        Assert.DoesNotContain("Narrow the symbol name", text);
+        Assert.DoesNotContain("Output truncated after", text);
+
+        var cursorStart = text.IndexOf("overflowCursor`=`", StringComparison.Ordinal);
+        Assert.True(cursorStart >= 0);
+        var idStart = cursorStart + "overflowCursor`=`".Length;
+        var idEnd = text.IndexOf('`', idStart);
+        var cursor = text[idStart..idEnd];
+
+        // Taking the cursor returns the stored remainder only — no declaration search.
+        var take = NavigationOverflowStore.TryTakeChunk(cursor);
+        Assert.True(take.Ok);
+        Assert.False(take.HasMore);
+        Assert.Contains("Type3", take.Chunk);
+        Assert.Contains("Type5", take.Chunk);
+        Assert.Contains("Full name: Ns.Type4", take.Chunk);
+        Assert.DoesNotContain("Type1", take.Chunk);
+        Assert.DoesNotContain("Type2", take.Chunk);
+    }
 }
