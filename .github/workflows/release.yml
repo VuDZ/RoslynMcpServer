@@ -1,0 +1,179 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: 'Commit SHA already on main (empty = selected branch HEAD)'
+        required: false
+        type: string
+      force:
+        description: 'Allow a release when the tree vs the previous tag is docs/rules only'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: github-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: windows-latest
+    timeout-minutes: 90
+    steps:
+      - name: Resolve SHA
+        id: rev
+        shell: pwsh
+        run: |
+          $sha = '${{ inputs.commit_sha }}'.Trim()
+          if ([string]::IsNullOrWhiteSpace($sha)) {
+            $sha = '${{ github.sha }}'
+          }
+          "sha=$sha" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8NoBOM
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.rev.outputs.sha }}
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Fetch origin/main
+        run: git fetch origin main --tags --force
+
+      - name: Release metadata
+        id: meta
+        shell: pwsh
+        run: |
+          .\.github\scripts\Get-ReleaseMetadata.ps1 `
+            -CommitRef HEAD `
+            -NotesPath "${{ github.workspace }}\release-notes.md" `
+            -GitHubOutput $env:GITHUB_OUTPUT
+
+      - name: Guard
+        shell: pwsh
+        run: |
+          $onMain = '${{ steps.meta.outputs.on_origin_main }}'
+          $docsOnly = '${{ steps.meta.outputs.docs_only }}'
+          $force = '${{ inputs.force }}'
+          if ($onMain -ne 'True' -and $onMain -ne 'true') {
+            throw "SHA ${{ steps.meta.outputs.sha }} is not on origin/main. Push that commit first."
+          }
+          if (($docsOnly -eq 'True' -or $docsOnly -eq 'true') -and $force -ne 'true') {
+            throw "Docs/rules-only changes since the previous tag. Re-run with force=true only if a binary release is still intended."
+          }
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore RoslynMcpServer.sln
+
+      - name: Test
+        run: >-
+          dotnet test RoslynMcpServer.sln
+          -c Release
+          --no-restore
+          --verbosity normal
+          --logger "trx;LogFileName=release.trx"
+          --results-directory "${{ github.workspace }}/TestResults"
+
+      - name: Fail if any test skipped
+        shell: pwsh
+        run: .\.github\scripts\Assert-NoSkippedTests.ps1 -ResultsDirectory "${{ github.workspace }}\TestResults"
+
+      - name: Upload TRX
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-trx
+          path: TestResults/**
+          if-no-files-found: error
+
+      - name: Publish win-x64
+        shell: pwsh
+        run: |
+          $version = '${{ steps.meta.outputs.version }}'
+          $scOut = Join-Path '${{ github.workspace }}' 'artifacts\publish\win-x64-self-contained'
+          $fddOut = Join-Path '${{ github.workspace }}' 'artifacts\publish\win-x64-framework-dependent'
+          New-Item -ItemType Directory -Path $scOut -Force | Out-Null
+          New-Item -ItemType Directory -Path $fddOut -Force | Out-Null
+
+          dotnet publish RoslynMcpServer.csproj -c Release -r win-x64 --self-contained true -o $scOut --no-restore
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          dotnet publish RoslynMcpServer.csproj -c Release -r win-x64 --self-contained false -o $fddOut --no-restore
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          $scExe = Join-Path $scOut 'RoslynMcpServer.exe'
+          $fddExe = Join-Path $fddOut 'RoslynMcpServer.exe'
+          foreach ($exe in @($scExe, $fddExe)) {
+            $info = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($exe)
+            $product = $info.ProductVersion.Split('+', 2)[0].Trim()
+            if ($product -notlike "$version*") {
+              throw "ProductVersion '$($info.ProductVersion)' on $exe does not match csproj Version $version."
+            }
+          }
+
+          $scRuntime = Join-Path $scOut 'coreclr.dll'
+          if (-not (Test-Path -LiteralPath $scRuntime)) {
+            throw "Self-contained publish is missing coreclr.dll: $scOut"
+          }
+
+          $fddRuntime = Join-Path $fddOut 'coreclr.dll'
+          if (Test-Path -LiteralPath $fddRuntime) {
+            throw "Framework-dependent publish must not include coreclr.dll: $fddOut"
+          }
+
+          $zipDir = Join-Path '${{ github.workspace }}' 'artifacts\zips'
+          $scZip = Join-Path $zipDir '${{ steps.meta.outputs.sc_zip }}'
+          $fddZip = Join-Path $zipDir '${{ steps.meta.outputs.fdd_zip }}'
+          .\.github\scripts\New-PublishZip.ps1 -PublishDir $scOut -ZipPath $scZip
+          .\.github\scripts\New-PublishZip.ps1 -PublishDir $fddOut -ZipPath $fddZip
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: pwsh
+        run: |
+          $tag = '${{ steps.meta.outputs.tag }}'
+          $sha = '${{ steps.meta.outputs.sha }}'
+          $version = '${{ steps.meta.outputs.version }}'
+          $scZip = Join-Path '${{ github.workspace }}' "artifacts\zips\${{ steps.meta.outputs.sc_zip }}"
+          $fddZip = Join-Path '${{ github.workspace }}' "artifacts\zips\${{ steps.meta.outputs.fdd_zip }}"
+          $notes = Join-Path '${{ github.workspace }}' 'release-notes.md'
+
+          $tagExists = $false
+          & git rev-parse -q --verify "refs/tags/$tag" | Out-Null
+          if ($LASTEXITCODE -eq 0) {
+            $tagExists = $true
+            $tagSha = (git rev-list -n 1 $tag).Trim()
+            if ($tagSha -ne $sha) {
+              throw "Tag $tag already points to $tagSha, not $sha."
+            }
+          }
+
+          $releaseJson = & gh release view $tag --json isDraft,isPrerelease 2>$null
+          if ($LASTEXITCODE -eq 0) {
+            $release = $releaseJson | ConvertFrom-Json
+            if (-not $release.isDraft) {
+              throw "GitHub Release $tag is already published. Refusing to replace it."
+            }
+
+            gh release upload $tag $scZip $fddZip --clobber
+            gh release edit $tag --draft=false --target $sha --title $version --notes-file $notes
+            Write-Host "Published existing draft $tag"
+            return
+          }
+
+          if ($tagExists) {
+            Write-Host "Tag $tag already exists on $sha; creating release from existing tag."
+          }
+
+          gh release create $tag $scZip $fddZip --target $sha --title $version --notes-file $notes

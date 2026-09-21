@@ -1,0 +1,17 @@
+---
+description: GitHub Releases are dispatched by a human; agents never push tags
+alwaysApply: true
+---
+
+# GitHub Releases (this repo)
+
+Do **not** `git tag`, `git push`, or `gh release create` for a product release.
+The agent cannot unlock the SSH key. Tag + GitHub Release are created by
+`.github/workflows/release.yml` after a human **Actions → Release → Run workflow**.
+
+When the user asks to выпусти релиз / пометь релизным / cut a GitHub Release:
+read `.cursor/skills/prepare-github-release/SKILL.md` and run
+`.github/scripts/Get-ReleaseMetadata.ps1`. Do not invent a second release path.
+
+Skip a binary release for docs/rules-only trees. Local version bumps stay
+independent of GitHub Releases (several bugfixes may share one dispatch).

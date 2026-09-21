@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore RoslynMcpServer.sln
+
+      - name: Test
+        run: >-
+          dotnet test RoslynMcpServer.sln
+          -c Release
+          --no-restore
+          --verbosity normal
+          --logger "trx;LogFileName=ci.trx"
+          --results-directory "${{ github.workspace }}/TestResults"
+
+      - name: Fail if any test skipped
+        shell: pwsh
+        run: .\.github\scripts\Assert-NoSkippedTests.ps1 -ResultsDirectory "${{ github.workspace }}\TestResults"
+
+      - name: Upload TRX
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-trx
+          path: TestResults/**
+          if-no-files-found: error
