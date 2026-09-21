@@ -89,6 +89,10 @@ jobs:
     needs: [meta, tests]
     runs-on: windows-latest
     timeout-minutes: 30
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -154,6 +158,11 @@ jobs:
           $fddZip = Join-Path $zipDir '${{ needs.meta.outputs.fdd_zip }}'
           .\.github\scripts\New-PublishZip.ps1 -PublishDir $scOut -ZipPath $scZip
           .\.github\scripts\New-PublishZip.ps1 -PublishDir $fddOut -ZipPath $fddZip
+
+      - name: Attest release zips
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: ${{ github.workspace }}/artifacts/zips/*.zip
 
       - name: Publish GitHub Release
         env:

@@ -140,6 +140,8 @@ BuildHost. Single-file и Native AOT не являются требования�
 - В описании скачивания рекомендовать self-contained для простой установки;
   framework-dependent предлагать как более компактный вариант при наличии
   .NET 10 Runtime.
+- Zip выпуска получают GitHub Artifact Attestation (SLSA provenance) на job
+  `publish`. Это не Authenticode. TRX из CI не аттестовать.
 - Предусмотреть обслуживание встроенного runtime: нужные обновления .NET
   требуют новой self-contained поставки, даже если код сервера не менялся.
 

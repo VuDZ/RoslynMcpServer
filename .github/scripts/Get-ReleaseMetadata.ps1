@@ -162,7 +162,8 @@ function ConvertTo-NotesMarkdown {
         [string]$PreviousTag,
         [string]$Version,
         [string]$ScZip,
-        [string]$FddZip
+        [string]$FddZip,
+        [string]$RepoSlug
     )
 
     $lines = New-Object System.Collections.Generic.List[string]
@@ -172,6 +173,17 @@ function ConvertTo-NotesMarkdown {
     [void]$lines.Add(('- **Framework-dependent** (`{0}`): smaller; requires a .NET 10 Runtime (or SDK 10) for win-x64.' -f $FddZip))
     [void]$lines.Add('')
     [void]$lines.Add('The server still locates an installed MSBuild/SDK for the **consumer project**. The bundled runtime does not replace that SDK.')
+    if (-not [string]::IsNullOrWhiteSpace($RepoSlug)) {
+        [void]$lines.Add('')
+        [void]$lines.Add('## Provenance')
+        [void]$lines.Add('')
+        [void]$lines.Add('Each zip has a GitHub Artifact Attestation from the Release workflow. Optional check (not Authenticode / SmartScreen):')
+        [void]$lines.Add('')
+        [void]$lines.Add('```')
+        [void]$lines.Add(('gh attestation verify {0} -R {1}' -f $ScZip, $RepoSlug))
+        [void]$lines.Add(('gh attestation verify {0} -R {1}' -f $FddZip, $RepoSlug))
+        [void]$lines.Add('```')
+    }
     [void]$lines.Add('')
     [void]$lines.Add('## Changes')
     [void]$lines.Add('')
@@ -270,7 +282,8 @@ $notes = ConvertTo-NotesMarkdown `
     -PreviousTag $previousTag `
     -Version $version `
     -ScZip $scZip `
-    -FddZip $fddZip
+    -FddZip $fddZip `
+    -RepoSlug $slug
 
 if ($NotesPath) {
     $notesDir = Split-Path -Parent $NotesPath

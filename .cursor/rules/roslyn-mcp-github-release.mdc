@@ -18,3 +18,8 @@ independent of GitHub Releases (several bugfixes may share one dispatch).
 
 CI shards (AnalyzerLifecycle vs unit, remainder filter): `.cursor/rules/roslyn-mcp-ci.mdc`.
 Do not replace `test-suite.yml` with one sequential `dotnet test`.
+
+Attest **Release zips only** (`actions/attest-build-provenance` on `publish` after
+`New-PublishZip`, before `gh release create`). Do not attest CI TRX. Job
+`publish` needs `id-token: write` and `attestations: write` in addition to
+`contents: write`. This is provenance, not Authenticode.
