@@ -179,6 +179,11 @@ MCP `tools/list` stays JSON + JSON Schema. Markdown is for JIT help and diagnost
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.4.10
+
+- **`search_code` ripgrep is opt-in** — `useRipgrep` defaults to false and keeps the managed file walk (PATH is not probed, `rg` is not started). `true` uses ripgrep only: missing `rg` is an error and does not fall back to the managed walk. Optional `ripgrepPath` is used only with the flag; otherwise it is ignored and the response says so. If the argument is omitted, `ripgrep-path` from `RoslynMcp.jsonc` is used, then `rg` on PATH. The config key alone does not switch the engine. Roots, extensions, case, `maxResults`, and `maxScanSeconds` stay the same. Cancellation and timeout kill the `rg` process tree. Output stays `file:line | text`. The header notes that hidden and gitignored files may be skipped. With the flag, `useRegex` is ripgrep syntax.
+- **Catalog size** — full 63 tools / 50,474 bytes; lite 19 / 22,087.
+
 ### v1.4.9
 
 - **Optional `RoslynMcp.jsonc` and passed-only `load_workspace` compare** — the server reads `RoslynMcp.jsonc` from the executable directory, then from the process working directory (cwd wins; comments allowed). Relative `workspace-path` resolves against cwd. `ROSLYN_MCP_WORKSPACE` still sets that directory at startup. No file means call `load_workspace` yourself. If `workspace-path` is set, the first semantic tool loads through `LoadAndPrepareAsync` and waits; it does not cancel a load already in progress. A broken file disables lazy load; `load_workspace` still works and the parse failure stays visible. `load_workspace` compares only arguments you passed: an omitted configuration, platform, or target framework does not reopen and does not clear the value already loaded. A different configuration reloads and keeps the platform and TFM you did not mention. `max-results` and `preview` in the file apply only when the tool argument is omitted (`ROSLYN_MCP_MAX_RESULTS` and an explicit arg still win). `ripgrep-path` is stored for a later opt-in and does not switch search. `shadowCopyInSolutionAnalyzers` is not a config key. `get_mcp_server_info` shows which files were read, the merged keys, and whether the solution came from the file or from `load_workspace`.
@@ -1140,18 +1145,20 @@ Verify id/version with `search_nuget_registry` first. Clears workspace cache —
 </details>
 
 <details>
-<summary><code>search_code</code> — Context-friendly ripgrep alternative (plain text or regex).</summary>
+<summary><code>search_code</code> — Text search (managed file walk by default; optional ripgrep).</summary>
 
 **Parameters:**
 - `pattern: string`
 - `directoryPath: string? = null`
 - `includeExtensions: string? = ".cs"` — comma/semicolon list (`.cs,.csproj,.json`), or `*` for all files.
-- `useRegex: bool = false`
+- `useRegex: bool = false` — .NET regex for the managed walk; ripgrep (Rust) syntax when `useRipgrep` is true.
 - `caseSensitive: bool = false` — default case-insensitive; for leftover branding checks set `true`.
 - `maxResults: int = 50`
 - `maxScanSeconds: int = 20`
+- `useRipgrep: bool = false` — when true, runs `rg` only (no managed-walk fallback). Missing `rg` is an error only with this flag.
+- `ripgrepPath: string? = null` — full path to `rg`/`rg.exe`; used only with `useRipgrep=true` (else ignored). Omit to use `RoslynMcp.jsonc` `ripgrep-path` or PATH.
 
-**Agent note:** if your client exposes a built-in **`grep`** tool, prefer that for ad-hoc text search (never shell-driven grep). Use this MCP tool when you need search inside the workspace from the Roslyn MCP process.
+**Agent note:** if your client exposes a built-in **`grep`** tool, prefer that for ad-hoc text search (never shell-driven grep). Use this MCP tool when you need search inside the workspace from the Roslyn MCP process. Do not assume ripgrep is installed.
 </details>
 
 <details>
@@ -1486,7 +1493,7 @@ cd D:\Devel\YourApp
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.4.9). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.4.10). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 
@@ -2011,18 +2018,20 @@ cd D:\Devel\YourApp
 </details>
 
 <details>
-<summary><code>search_code</code> — Поиск совпадений по файлам (plain text или regex).</summary>
+<summary><code>search_code</code> — Текстовый поиск (по умолчанию управляемый обход; опционально ripgrep).</summary>
 
 **Параметры:**
 - `pattern: string`
 - `directoryPath: string? = null`
 - `includeExtensions: string? = ".cs"` — список через запятую/`;` (`.cs,.csproj,.json`) или `*` для всех файлов.
-- `useRegex: bool = false`
+- `useRegex: bool = false` — .NET regex для управляемого обхода; синтаксис ripgrep (Rust) при `useRipgrep: true`.
 - `caseSensitive: bool = false` — по умолчанию без учёта регистра; для leftover branding — `true`.
 - `maxResults: int = 50`
 - `maxScanSeconds: int = 20`
+- `useRipgrep: bool = false` — при `true` только `rg` (без fallback на управляемый обход). Отсутствие `rg` — ошибка только с этим флагом.
+- `ripgrepPath: string? = null` — полный путь к `rg`/`rg.exe`; учитывается только с `useRipgrep=true` (иначе игнорируется). Без аргумента — `ripgrep-path` из `RoslynMcp.jsonc` или PATH.
 
-**Для агента:** если в клиенте есть встроенный **`grep`**, для обычного текстового поиска предпочитай его (не grep из терминала). Этот MCP-tool — когда нужен поиск из процесса Roslyn MCP.
+**Для агента:** если в клиенте есть встроенный **`grep`**, для обычного текстового поиска предпочитай его (не grep из терминала). Этот MCP-tool — когда нужен поиск из процесса Roslyn MCP. Не предполагай, что ripgrep установлен.
 </details>
 
 <details>

@@ -50,7 +50,7 @@ Skip full init for a one-line read-only answer if `load_workspace` already succe
 
 - **Never** shell `grep` / `Select-String` / `find`.
 - **C# symbols** (after `load_workspace`): `find_symbol_definition`, `find_usages` (prefer when only name known), `find_symbol_references` (when you know declaring `filePath`). Interfaces/bases → `find_implementations`, not `find_usages`.
-- **Plain text**: host Grep / SemanticSearch OK; also fallback if MCP has no symbol.
+- **Plain text**: host Grep / SemanticSearch OK; also fallback if MCP has no symbol. Default `search_code` is the managed file walk — do not assume ripgrep is installed (`useRipgrep` is opt-in).
 - Layout: `list_directory_tree` or host file tree. Leftover branding token checks: `search_code` with `caseSensitive=true` (see Description).
 
 ## Build, test, run

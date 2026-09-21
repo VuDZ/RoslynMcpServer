@@ -445,25 +445,28 @@ public sealed class UtilityTools
 
     [McpServerTool(Name = "search_code", Title = "SearchCode")]
     [Description(
-        "Text-searches source files. No workspace required. Default .cs, case-insensitive. "
-        + "Omit directoryPath to search the loaded file directory and external project directories. "
-        + "Not for finding symbol declarations вЂ” use find_symbol_definition.")]
-    public Task<string> SearchCode(
+        "Text-searches source files (managed walk by default). No workspace required. Default .cs, case-insensitive. "
+        + "Omit directoryPath for loaded file dir + external project dirs. "
+        + "useRipgrep=true uses rg only (path / jsonc / PATH); missing rg errors only then. "
+        + "Not for symbol declarations — use find_symbol_definition.")]
+    public async Task<string> SearchCode(
         [Description("Search text, or a regex when useRegex is true.")] string pattern,
         [Description("Root directory. Omit to scan loaded file directory and external project dirs (or process CWD).")] string? directoryPath = null,
         [Description("File extensions to scan, comma-separated. Use * for all files.")] string? includeExtensions = ".cs",
-        [Description("When true, treat pattern as a .NET regular expression.")] bool useRegex = false,
+        [Description("Regex when true (.NET managed walk; ripgrep/Rust when useRipgrep is true).")] bool useRegex = false,
         [Description("When true, matching is case-sensitive.")] bool caseSensitive = false,
         [Description("Max matched lines. Omit → 50 / ROSLYN_MCP_MAX_RESULTS / RoslynMcp.jsonc max-results.")]
         int? maxResults = null,
         [Description("Maximum scan time in seconds. 0 disables timeout.")] int maxScanSeconds = 20,
+        [Description("When true, ripgrep only (no managed fallback). Default false; PATH not probed.")] bool useRipgrep = false,
+        [Description("Full path to rg/rg.exe. Only with useRipgrep=true; else ignored. Else jsonc ripgrep-path or PATH.")] string? ripgrepPath = null,
         CancellationToken cancellationToken = default)
     {
         try
         {
             if (string.IsNullOrWhiteSpace(pattern))
             {
-                return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(SearchCode), "Error: `pattern` is empty."));
+                return ToolTelemetry.TraceAndReturn(nameof(SearchCode), "Error: `pattern` is empty.");
             }
 
             var resolvedMaxResults = NavigationListingHelper.ResolveMaxResults(
@@ -472,8 +475,12 @@ public sealed class UtilityTools
 
             if (resolvedMaxResults <= 0)
             {
-                return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(SearchCode), "Error: `maxResults` must be greater than 0."));
+                return ToolTelemetry.TraceAndReturn(nameof(SearchCode), "Error: `maxResults` must be greater than 0.");
             }
+
+            var unusedRipgrepPathNote = !useRipgrep && !string.IsNullOrWhiteSpace(ripgrepPath)
+                ? "Note: ripgrepPath was ignored because useRipgrep is false."
+                : null;
 
             var candidateRoots = ResolveSearchRootDirectories(directoryPath);
             var extensionFilter = ParseExtensionFilter(includeExtensions);
@@ -492,62 +499,274 @@ public sealed class UtilityTools
             if (existingRoots.Count == 0)
             {
                 var missingDisplay = FormatRootsForDisplay(candidateRoots);
-                return Task.FromResult(ToolTelemetry.TraceAndReturn(
+                return ToolTelemetry.TraceAndReturn(
                     nameof(SearchCode),
-                    $"Error: Directory not found: {missingDisplay}"));
+                    $"Error: Directory not found: {missingDisplay}");
             }
 
             var rootsDisplay = FormatRootsForDisplay(existingRoots);
-            var comparison = caseSensitive ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
-            Regex? regex = null;
-            if (useRegex)
-            {
-                try
-                {
-                    var regexOptions = RegexOptions.Compiled | RegexOptions.CultureInvariant;
-                    if (!caseSensitive)
-                    {
-                        regexOptions |= RegexOptions.IgnoreCase;
-                    }
 
-                    regex = new Regex(pattern, regexOptions);
-                }
-                catch (ArgumentException ex)
-                {
-                    return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(SearchCode), $"Error: Invalid regex pattern: {ex.Message}"));
-                }
+            if (useRipgrep)
+            {
+                return await SearchCodeWithRipgrepAsync(
+                        pattern,
+                        existingRoots,
+                        rootsDisplay,
+                        extensionFilter,
+                        useRegex,
+                        caseSensitive,
+                        resolvedMaxResults,
+                        maxScanSeconds,
+                        ripgrepPath,
+                        cancellationToken)
+                    .ConfigureAwait(false);
             }
 
-            var matches = new List<string>(Math.Min(resolvedMaxResults, 200));
-            var filesScanned = 0;
-            var stopwatch = Stopwatch.StartNew();
-            var scanTimeout = maxScanSeconds > 0 ? TimeSpan.FromSeconds(maxScanSeconds) : Timeout.InfiniteTimeSpan;
-            var timedOut = false;
-
-            _logger.LogInformation(
-                "SearchCode started: pattern={Pattern} roots={Roots} useRegex={UseRegex} caseSensitive={CaseSensitive} maxResults={MaxResults} maxScanSeconds={MaxScanSeconds}",
+            return SearchCodeManagedWalk(
                 pattern,
+                existingRoots,
                 rootsDisplay,
+                extensionFilter,
                 useRegex,
                 caseSensitive,
                 resolvedMaxResults,
-                maxScanSeconds);
-            _logger.LogInformation(
-                "SearchCode filter: includeExtensions={IncludeExtensions}",
-                extensionFilter.IncludeAll ? "*" : string.Join(",", extensionFilter.Extensions.OrderBy(x => x, StringComparer.OrdinalIgnoreCase)));
+                maxScanSeconds,
+                unusedRipgrepPathNote,
+                cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            return ToolTelemetry.TraceAndReturn(nameof(SearchCode), "SearchCode was cancelled.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "SearchCode failed for pattern {Pattern} in {DirectoryPath}", pattern, directoryPath);
+            return ToolTelemetry.TraceAndReturn(nameof(SearchCode), $"Error: {ex.Message}");
+        }
+    }
 
-            foreach (var rootDirectory in existingRoots)
+    private async Task<string> SearchCodeWithRipgrepAsync(
+        string pattern,
+        IReadOnlyList<string> existingRoots,
+        string rootsDisplay,
+        (bool IncludeAll, HashSet<string> Extensions) extensionFilter,
+        bool useRegex,
+        bool caseSensitive,
+        int resolvedMaxResults,
+        int maxScanSeconds,
+        string? ripgrepPath,
+        CancellationToken cancellationToken)
+    {
+        var binary = RipgrepRunner.ResolveBinary(ripgrepPath, _solutionManager.FileSettings.RipgrepPath);
+        if (string.IsNullOrWhiteSpace(binary))
+        {
+            return ToolTelemetry.TraceAndReturn(
+                nameof(SearchCode),
+                "Error: useRipgrep is enabled but rg was not found. Omit useRipgrep (or set it to false) to use the ordinary managed file walk.");
+        }
+
+        _logger.LogInformation(
+            "SearchCode ripgrep started: pattern={Pattern} roots={Roots} binary={Binary} useRegex={UseRegex} caseSensitive={CaseSensitive} maxResults={MaxResults} maxScanSeconds={MaxScanSeconds}",
+            pattern,
+            rootsDisplay,
+            binary,
+            useRegex,
+            caseSensitive,
+            resolvedMaxResults,
+            maxScanSeconds);
+
+        TimeSpan? timeout = maxScanSeconds > 0 ? TimeSpan.FromSeconds(maxScanSeconds) : null;
+        var run = await RipgrepRunner.RunAsync(
+                binary,
+                existingRoots,
+                pattern,
+                useRegex,
+                caseSensitive,
+                extensionFilter.IncludeAll,
+                extensionFilter.Extensions,
+                resolvedMaxResults,
+                timeout,
+                cancellationToken)
+            .ConfigureAwait(false);
+
+        if (run.Cancelled)
+        {
+            return ToolTelemetry.TraceAndReturn(nameof(SearchCode), "SearchCode was cancelled.");
+        }
+
+        // rg exit 2 is an error; 0 = matches, 1 = no matches.
+        if (run.ExitCode >= 2 && run.Matches.Count == 0 && !run.TimedOut)
+        {
+            var detail = string.IsNullOrWhiteSpace(run.StdErr) ? $"exit code {run.ExitCode}" : run.StdErr.Trim();
+            return ToolTelemetry.TraceAndReturn(
+                nameof(SearchCode),
+                $"Error: ripgrep failed ({detail}). Omit useRipgrep to use the ordinary managed file walk.");
+        }
+
+        if (run.Matches.Count == 0)
+        {
+            if (run.TimedOut)
             {
-                if (matches.Count >= resolvedMaxResults || timedOut)
+                return ToolTelemetry.TraceAndReturn(
+                    nameof(SearchCode),
+                    AppendRipgrepHeader(
+                        $"No matches found for `{pattern}` in {rootsDisplay} before timeout ({maxScanSeconds}s)."));
+            }
+
+            return ToolTelemetry.TraceAndReturn(
+                nameof(SearchCode),
+                AppendRipgrepHeader($"No matches found for `{pattern}` in {rootsDisplay}."));
+        }
+
+        var result = new StringBuilder();
+        result.AppendLine("Search engine: ripgrep (hidden and gitignored files may have been skipped).");
+        result.AppendLine($"Found {run.Matches.Count} match(es) for `{pattern}` in {rootsDisplay}.");
+        if (run.MaxResultsReached)
+        {
+            result.AppendLine($"[!] Reached maxResults limit ({resolvedMaxResults}).");
+        }
+
+        if (run.TimedOut)
+        {
+            result.AppendLine($"[!] Search timed out after {maxScanSeconds}s. Results are partial.");
+        }
+
+        result.AppendLine();
+        foreach (var match in run.Matches)
+        {
+            result.AppendLine(RipgrepRunner.FormatManagedMatch(match));
+        }
+
+        _logger.LogInformation(
+            "SearchCode ripgrep completed: pattern={Pattern} roots={Roots} matches={Matches} timedOut={TimedOut} exit={ExitCode}",
+            pattern,
+            rootsDisplay,
+            run.Matches.Count,
+            run.TimedOut,
+            run.ExitCode);
+
+        return ToolTelemetry.TraceAndReturn(nameof(SearchCode), result.ToString().TrimEnd());
+    }
+
+    private static string AppendRipgrepHeader(string body)
+        => "Search engine: ripgrep (hidden and gitignored files may have been skipped)."
+           + Environment.NewLine
+           + body;
+
+    private string SearchCodeManagedWalk(
+        string pattern,
+        IReadOnlyList<string> existingRoots,
+        string rootsDisplay,
+        (bool IncludeAll, HashSet<string> Extensions) extensionFilter,
+        bool useRegex,
+        bool caseSensitive,
+        int resolvedMaxResults,
+        int maxScanSeconds,
+        string? unusedRipgrepPathNote,
+        CancellationToken cancellationToken)
+    {
+        var comparison = caseSensitive ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
+        Regex? regex = null;
+        if (useRegex)
+        {
+            try
+            {
+                var regexOptions = RegexOptions.Compiled | RegexOptions.CultureInvariant;
+                if (!caseSensitive)
                 {
+                    regexOptions |= RegexOptions.IgnoreCase;
+                }
+
+                regex = new Regex(pattern, regexOptions);
+            }
+            catch (ArgumentException ex)
+            {
+                return ToolTelemetry.TraceAndReturn(nameof(SearchCode), $"Error: Invalid regex pattern: {ex.Message}");
+            }
+        }
+
+        var matches = new List<string>(Math.Min(resolvedMaxResults, 200));
+        var filesScanned = 0;
+        var stopwatch = Stopwatch.StartNew();
+        var scanTimeout = maxScanSeconds > 0 ? TimeSpan.FromSeconds(maxScanSeconds) : Timeout.InfiniteTimeSpan;
+        var timedOut = false;
+
+        _logger.LogInformation(
+            "SearchCode started: pattern={Pattern} roots={Roots} useRegex={UseRegex} caseSensitive={CaseSensitive} maxResults={MaxResults} maxScanSeconds={MaxScanSeconds}",
+            pattern,
+            rootsDisplay,
+            useRegex,
+            caseSensitive,
+            resolvedMaxResults,
+            maxScanSeconds);
+        _logger.LogInformation(
+            "SearchCode filter: includeExtensions={IncludeExtensions}",
+            extensionFilter.IncludeAll ? "*" : string.Join(",", extensionFilter.Extensions.OrderBy(x => x, StringComparer.OrdinalIgnoreCase)));
+
+        foreach (var rootDirectory in existingRoots)
+        {
+            if (matches.Count >= resolvedMaxResults || timedOut)
+            {
+                break;
+            }
+
+            var directoriesStack = new Stack<string>();
+            directoriesStack.Push(rootDirectory);
+
+            while (directoriesStack.Count > 0 && matches.Count < resolvedMaxResults && !timedOut)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (scanTimeout != Timeout.InfiniteTimeSpan && stopwatch.Elapsed >= scanTimeout)
+                {
+                    timedOut = true;
                     break;
                 }
 
-                var directoriesStack = new Stack<string>();
-                directoriesStack.Push(rootDirectory);
+                var currentDirectory = directoriesStack.Pop();
 
-                while (directoriesStack.Count > 0 && matches.Count < resolvedMaxResults && !timedOut)
+                IEnumerable<string> subDirectories;
+                try
                 {
+                    subDirectories = Directory.EnumerateDirectories(currentDirectory);
+                }
+                catch
+                {
+                    continue;
+                }
+
+                foreach (var subDirectory in subDirectories)
+                {
+                    var name = Path.GetFileName(subDirectory);
+                    if (ExcludedDirectories.Contains(name))
+                    {
+                        continue;
+                    }
+
+                    directoriesStack.Push(subDirectory);
+                }
+
+                IEnumerable<string> files;
+                try
+                {
+                    files = Directory.EnumerateFiles(currentDirectory);
+                }
+                catch
+                {
+                    continue;
+                }
+
+                foreach (var file in files)
+                {
+                    if (matches.Count >= resolvedMaxResults || timedOut)
+                    {
+                        break;
+                    }
+
+                    if (!extensionFilter.IncludeAll && !extensionFilter.Extensions.Contains(Path.GetExtension(file)))
+                    {
+                        continue;
+                    }
+
                     cancellationToken.ThrowIfCancellationRequested();
                     if (scanTimeout != Timeout.InfiniteTimeSpan && stopwatch.Elapsed >= scanTimeout)
                     {
@@ -555,161 +774,115 @@ public sealed class UtilityTools
                         break;
                     }
 
-                    var currentDirectory = directoriesStack.Pop();
+                    filesScanned++;
+                    if (filesScanned % 1000 == 0)
+                    {
+                        _logger.LogInformation(
+                            "SearchCode progress: scanned={FilesScanned} matches={Matches} elapsedMs={ElapsedMs} root={RootDirectory}",
+                            filesScanned,
+                            matches.Count,
+                            stopwatch.ElapsedMilliseconds,
+                            rootDirectory);
+                    }
 
-                    IEnumerable<string> subDirectories;
+                    int lineNumber = 0;
+                    IEnumerable<string> lines;
                     try
                     {
-                        subDirectories = Directory.EnumerateDirectories(currentDirectory);
+                        lines = File.ReadLines(file);
                     }
                     catch
                     {
                         continue;
                     }
 
-                    foreach (var subDirectory in subDirectories)
+                    foreach (var line in lines)
                     {
-                        var name = Path.GetFileName(subDirectory);
-                        if (ExcludedDirectories.Contains(name))
+                        lineNumber++;
+                        var isMatch = useRegex
+                            ? regex!.IsMatch(line)
+                            : line.Contains(pattern, comparison);
+
+                        if (!isMatch)
                         {
                             continue;
                         }
 
-                        directoriesStack.Push(subDirectory);
-                    }
-
-                    IEnumerable<string> files;
-                    try
-                    {
-                        files = Directory.EnumerateFiles(currentDirectory);
-                    }
-                    catch
-                    {
-                        continue;
-                    }
-
-                    foreach (var file in files)
-                    {
-                        if (matches.Count >= resolvedMaxResults || timedOut)
+                        matches.Add($"{file}:{lineNumber} | {line}");
+                        if (matches.Count >= resolvedMaxResults)
                         {
                             break;
-                        }
-
-                        if (!extensionFilter.IncludeAll && !extensionFilter.Extensions.Contains(Path.GetExtension(file)))
-                        {
-                            continue;
-                        }
-
-                        cancellationToken.ThrowIfCancellationRequested();
-                        if (scanTimeout != Timeout.InfiniteTimeSpan && stopwatch.Elapsed >= scanTimeout)
-                        {
-                            timedOut = true;
-                            break;
-                        }
-
-                        filesScanned++;
-                        if (filesScanned % 1000 == 0)
-                        {
-                            _logger.LogInformation(
-                                "SearchCode progress: scanned={FilesScanned} matches={Matches} elapsedMs={ElapsedMs} root={RootDirectory}",
-                                filesScanned,
-                                matches.Count,
-                                stopwatch.ElapsedMilliseconds,
-                                rootDirectory);
-                        }
-
-                        int lineNumber = 0;
-                        IEnumerable<string> lines;
-                        try
-                        {
-                            lines = File.ReadLines(file);
-                        }
-                        catch
-                        {
-                            continue;
-                        }
-
-                        foreach (var line in lines)
-                        {
-                            lineNumber++;
-                            var isMatch = useRegex
-                                ? regex!.IsMatch(line)
-                                : line.Contains(pattern, comparison);
-
-                            if (!isMatch)
-                            {
-                                continue;
-                            }
-
-                            matches.Add($"{file}:{lineNumber} | {line}");
-                            if (matches.Count >= resolvedMaxResults)
-                            {
-                                break;
-                            }
                         }
                     }
                 }
             }
+        }
 
-            if (matches.Count == 0)
+        string PrefixNotes(string body)
+        {
+            if (unusedRipgrepPathNote is null)
             {
-                if (timedOut)
-                {
-                    _logger.LogWarning(
-                        "SearchCode timed out with no matches: pattern={Pattern} scanned={FilesScanned} elapsedMs={ElapsedMs} roots={Roots}",
-                        pattern,
-                        filesScanned,
-                        stopwatch.ElapsedMilliseconds,
-                        rootsDisplay);
-                    return Task.FromResult(ToolTelemetry.TraceAndReturn(
-                        nameof(SearchCode),
-                        $"No matches found for `{pattern}` in {rootsDisplay} before timeout ({maxScanSeconds}s). Scanned files: {filesScanned}."));
-                }
-
-                return Task.FromResult(ToolTelemetry.TraceAndReturn(
-                    nameof(SearchCode),
-                    $"No matches found for `{pattern}` in {rootsDisplay}."));
+                return body;
             }
 
-            var result = new StringBuilder();
-            result.AppendLine($"Found {matches.Count} match(es) for `{pattern}` in {rootsDisplay}.");
-            result.AppendLine($"Scanned files: {filesScanned}.");
-            if (matches.Count >= resolvedMaxResults)
-            {
-                result.AppendLine($"[!] Reached maxResults limit ({resolvedMaxResults}).");
-            }
+            return unusedRipgrepPathNote + Environment.NewLine + body;
+        }
 
+        if (matches.Count == 0)
+        {
             if (timedOut)
             {
-                result.AppendLine($"[!] Search timed out after {maxScanSeconds}s. Results are partial.");
+                _logger.LogWarning(
+                    "SearchCode timed out with no matches: pattern={Pattern} scanned={FilesScanned} elapsedMs={ElapsedMs} roots={Roots}",
+                    pattern,
+                    filesScanned,
+                    stopwatch.ElapsedMilliseconds,
+                    rootsDisplay);
+                return ToolTelemetry.TraceAndReturn(
+                    nameof(SearchCode),
+                    PrefixNotes(
+                        $"No matches found for `{pattern}` in {rootsDisplay} before timeout ({maxScanSeconds}s). Scanned files: {filesScanned}."));
             }
 
-            result.AppendLine();
-            foreach (var match in matches)
-            {
-                result.AppendLine(match);
-            }
+            return ToolTelemetry.TraceAndReturn(
+                nameof(SearchCode),
+                PrefixNotes($"No matches found for `{pattern}` in {rootsDisplay}."));
+        }
 
-            _logger.LogInformation(
-                "SearchCode completed: pattern={Pattern} roots={Roots} matches={Matches} scanned={FilesScanned} timedOut={TimedOut} elapsedMs={ElapsedMs}",
-                pattern,
-                rootsDisplay,
-                matches.Count,
-                filesScanned,
-                timedOut,
-                stopwatch.ElapsedMilliseconds);
+        var result = new StringBuilder();
+        if (unusedRipgrepPathNote is not null)
+        {
+            result.AppendLine(unusedRipgrepPathNote);
+        }
 
-            return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(SearchCode), result.ToString().TrimEnd()));
-        }
-        catch (OperationCanceledException)
+        result.AppendLine($"Found {matches.Count} match(es) for `{pattern}` in {rootsDisplay}.");
+        result.AppendLine($"Scanned files: {filesScanned}.");
+        if (matches.Count >= resolvedMaxResults)
         {
-            return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(SearchCode), "SearchCode was cancelled."));
+            result.AppendLine($"[!] Reached maxResults limit ({resolvedMaxResults}).");
         }
-        catch (Exception ex)
+
+        if (timedOut)
         {
-            _logger.LogError(ex, "SearchCode failed for pattern {Pattern} in {DirectoryPath}", pattern, directoryPath);
-            return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(SearchCode), $"Error: {ex.Message}"));
+            result.AppendLine($"[!] Search timed out after {maxScanSeconds}s. Results are partial.");
         }
+
+        result.AppendLine();
+        foreach (var match in matches)
+        {
+            result.AppendLine(match);
+        }
+
+        _logger.LogInformation(
+            "SearchCode completed: pattern={Pattern} roots={Roots} matches={Matches} scanned={FilesScanned} timedOut={TimedOut} elapsedMs={ElapsedMs}",
+            pattern,
+            rootsDisplay,
+            matches.Count,
+            filesScanned,
+            timedOut,
+            stopwatch.ElapsedMilliseconds);
+
+        return ToolTelemetry.TraceAndReturn(nameof(SearchCode), result.ToString().TrimEnd());
     }
 
     /// <summary>

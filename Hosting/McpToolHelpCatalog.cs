@@ -157,8 +157,8 @@ public static class McpToolHelpCatalog
             },
             ["search_code"] = new()
             {
-                Workflow = "Text/regex search over source files. No workspace required. Default root is loaded workspace or process CWD; default extension is .cs.",
-                Pitfalls = "Not for finding where a symbol is declared — use find_symbol_definition. Skips bin, obj, .git, and .vs.",
+                Workflow = "Managed file walk by default. Pass useRipgrep=true to run rg only (no fallback). Missing rg is fine on ordinary calls.",
+                Pitfalls = "Not for finding where a symbol is declared — use find_symbol_definition. Managed walk skips bin, obj, .git, and .vs. Ripgrep may skip hidden and gitignored files.",
                 RelatedTools = ["find_symbol_definition", "find_usages"],
             },
             ["list_directory_tree"] = new()
