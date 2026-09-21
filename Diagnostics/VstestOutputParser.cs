@@ -83,6 +83,14 @@ public static class VstestOutputParser
         @"Total tests:\s*(?<total>\d+)(?:[\s\S]{0,2000}?)\s+Passed:\s*(?<passed>\d+)",
         RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
+    /// <summary>
+    /// Per-assembly VSTest discovery noise when a filter matches nothing in that assembly.
+    /// Sibling assemblies on a <c>.sln</c> run print this even when another assembly executed the test.
+    /// </summary>
+    private static readonly Regex RxNoTestMatchesLine = new(
+        @"No test matches the given testcase filter",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
     public sealed record TestSummary(int Total, int Passed, int Failed, int Skipped);
 
     public sealed record FailedTestDetail(string Name, string Error, string Stack, string StdOut = "", string StdErr = "");
@@ -237,6 +245,13 @@ public static class VstestOutputParser
             sb.AppendLine();
         }
 
+        // Must run before IsPartialSuccess: all-assembly "No test matches" with exit 0 is otherwise swallowed as partial.
+        if (ShouldReportFilteredNoMatch(requireFilterMatch, parse.Summary, filter, combinedOutput, parse.PassedTestNames))
+        {
+            AppendFilteredNoMatch(sb, filter, filterDescription, combinedOutput);
+            return sb.ToString().TrimEnd();
+        }
+
         if (parse.IsPartialSuccess)
         {
             sb.AppendLine("**Status:** partial");
@@ -279,29 +294,14 @@ public static class VstestOutputParser
             return sb.ToString().TrimEnd();
         }
 
-        if (requireFilterMatch && !FilterMatchedAnyTest(filter, combinedOutput, parse.PassedTestNames))
-        {
-            sb.AppendLine("## Filtered test run — no matching tests");
-            sb.AppendLine();
-            sb.AppendLine(
-                $"No passed/failed test line matched the filter needle `{EscapeMdBackticks(ExtractFilterNeedle(filter) ?? filter!)}`.");
-            sb.AppendLine();
-            sb.AppendLine(
-                "**Agent signal:** zero tests matched the filter (build may still show `0 Error(s)`). "
-                + "Do not assume the test is missing from the repo — verify Roslyn workspace scope with `get_test_list` after `load_workspace` on the test `.sln`/`.slnx`.");
-            if (!string.IsNullOrWhiteSpace(filterDescription))
-            {
-                sb.AppendLine($"**Match mode:** {filterDescription}");
-            }
-
-            sb.AppendLine();
-            AppendRawTail(sb, combinedOutput);
-            return sb.ToString().TrimEnd();
-        }
-
         var (total, passed, failed, skipped) = summary;
 
-        if (failed == 0 && exitCode == 0)
+        // Gated success: parsed summary, Failed==0, Total>0, not silent. exitCode is not in the predicate.
+        var gatedSuccess = failed == 0
+            && total > 0
+            && !IsSilentUnparsedFailure(parse, combinedOutput);
+
+        if (gatedSuccess)
         {
             sb.AppendLine(string.IsNullOrWhiteSpace(filter) ? "## All tests passed successfully!" : "## Filtered tests passed");
             sb.AppendLine();
@@ -312,6 +312,13 @@ public static class VstestOutputParser
             {
                 sb.AppendLine();
                 sb.AppendLine($"Matched tests: `{EscapeMdBackticks(string.Join("`, `", parse.PassedTestNames.Take(5)))}`");
+            }
+
+            if (exitCode != 0)
+            {
+                sb.AppendLine();
+                sb.AppendLine(
+                    "_Exit code is non-zero but no test failed — sibling test projects reported `No test matches the given testcase filter` and are ignored. All executed tests passed._");
             }
 
             return sb.ToString().TrimEnd();
@@ -332,6 +339,64 @@ public static class VstestOutputParser
         }
 
         return sb.ToString().TrimEnd();
+    }
+
+    /// <summary>
+    /// Filtered no-match only when no tests executed (<c>summary</c> missing or <c>Total == 0</c>)
+    /// and the log has the VSTest line <c>No test matches the given testcase filter</c>.
+    /// <c>Total &gt; 0</c> (sibling no-match noise / MSTest method-only display) must not abort;
+    /// 1.3.23 name-match still flags a genuine needle miss when that explicit line is absent.
+    /// </summary>
+    private static bool ShouldReportFilteredNoMatch(
+        bool requireFilterMatch,
+        TestSummary? summary,
+        string? filter,
+        string combinedOutput,
+        IReadOnlyList<string> passedTestNames)
+    {
+        if (!requireFilterMatch)
+        {
+            return false;
+        }
+
+        var hasExplicitNoMatchLine = ContainsNoTestMatchesFilterLine(combinedOutput);
+        if (summary is { Total: > 0 })
+        {
+            if (hasExplicitNoMatchLine)
+            {
+                return false;
+            }
+
+            return !FilterMatchedAnyTest(filter, combinedOutput, passedTestNames);
+        }
+
+        return hasExplicitNoMatchLine;
+    }
+
+    private static bool ContainsNoTestMatchesFilterLine(string combinedOutput)
+        => !string.IsNullOrEmpty(combinedOutput) && RxNoTestMatchesLine.IsMatch(combinedOutput);
+
+    private static void AppendFilteredNoMatch(
+        StringBuilder sb,
+        string? filter,
+        string? filterDescription,
+        string combinedOutput)
+    {
+        sb.AppendLine("## Filtered test run — no matching tests");
+        sb.AppendLine();
+        sb.AppendLine(
+            $"No passed/failed test line matched the filter needle `{EscapeMdBackticks(ExtractFilterNeedle(filter) ?? filter!)}`.");
+        sb.AppendLine();
+        sb.AppendLine(
+            "**Agent signal:** zero tests matched the filter (build may still show `0 Error(s)`). "
+            + "Do not assume the test is missing from the repo — verify Roslyn workspace scope with `get_test_list` after `load_workspace` on the test `.sln`/`.slnx`.");
+        if (!string.IsNullOrWhiteSpace(filterDescription))
+        {
+            sb.AppendLine($"**Match mode:** {filterDescription}");
+        }
+
+        sb.AppendLine();
+        AppendRawTail(sb, combinedOutput);
     }
 
     private static void AppendRawTail(StringBuilder sb, string combinedOutput)

@@ -555,6 +555,159 @@ public sealed class VstestOutputParserTests
     }
 
     [Fact]
+    public void BuildMarkdownReport_xunit_multi_project_matching_test_with_nonzero_exit_passes()
+    {
+        const string output = """
+            No test matches the given testcase filter `FullyQualifiedName~MyNamespace.MyClass.MyTest` in C:\x\B\bin\Debug\net10.0\B.dll
+
+              Passed MyNamespace.MyClass.MyTest [15 ms]
+
+            Test Run Successful.
+            Total tests: 1
+                 Passed: 1
+             Total time: 1,0813 Seconds
+            """;
+        var parse = VstestOutputParser.Parse(output, exitCode: 1);
+        Assert.Equal(1, parse.Summary?.Total);
+        Assert.Equal(1, parse.Summary?.Passed);
+        Assert.Equal(0, parse.Summary?.Failed);
+        Assert.False(VstestOutputParser.IsSilentUnparsedFailure(parse, output));
+
+        var md = VstestOutputParser.BuildMarkdownReport(
+            parse,
+            1,
+            output,
+            "FullyQualifiedName~MyNamespace.MyClass.MyTest",
+            "Name suffix",
+            requireFilterMatch: true);
+
+        Assert.Contains("## Filtered tests passed", md, StringComparison.Ordinal);
+        Assert.DoesNotContain("Tests Failed", md, StringComparison.Ordinal);
+        Assert.DoesNotContain("no matching tests", md, StringComparison.Ordinal);
+        Assert.Contains("non-zero", md, StringComparison.Ordinal);
+        Assert.Contains("exit", md, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("_Exit code is non-zero", md, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void BuildMarkdownReport_mstest_multi_project_matching_test_not_flagged_no_match()
+    {
+        const string output = """
+            No test matches the given testcase filter `FullyQualifiedName~Recovery.FinalStateTests.Test_Foo` in C:\src\bin\Debug\net8.0\WiWorkflowTests.dll
+            No test matches the given testcase filter `FullyQualifiedName~Recovery.FinalStateTests.Test_Foo` in C:\src\bin\Debug\net8.0\RegexTests.dll
+
+              Passed Test_Foo [28 ms]
+
+            Test Run Successful.
+            Total tests: 1
+                 Passed: 1
+             Total time: 0,3378 Seconds
+            """;
+        var parse = VstestOutputParser.Parse(output, exitCode: 0);
+        Assert.Equal(1, parse.Summary?.Total);
+        Assert.Equal(1, parse.Summary?.Passed);
+
+        var md = VstestOutputParser.BuildMarkdownReport(
+            parse,
+            0,
+            output,
+            "FullyQualifiedName~Recovery.FinalStateTests.Test_Foo",
+            "Name suffix",
+            requireFilterMatch: true);
+
+        Assert.Contains("## Filtered tests passed", md, StringComparison.Ordinal);
+        Assert.DoesNotContain("no matching tests", md, StringComparison.Ordinal);
+        Assert.DoesNotContain("non-zero", md, StringComparison.Ordinal);
+        Assert.DoesNotContain("_Exit code is non-zero", md, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    public void BuildMarkdownReport_all_assemblies_no_match_reports_filtered_no_match(int exitCode)
+    {
+        const string output = """
+            No test matches the given testcase filter `FullyQualifiedName~ZZZ_NO_SUCH_TEST_ZZZ` in C:\src\bin\Debug\net10.0\A.dll
+            No test matches the given testcase filter `FullyQualifiedName~ZZZ_NO_SUCH_TEST_ZZZ` in C:\src\bin\Debug\net10.0\B.dll
+            """;
+        var parse = VstestOutputParser.Parse(output, exitCode);
+        Assert.Null(parse.Summary);
+
+        var md = VstestOutputParser.BuildMarkdownReport(
+            parse,
+            exitCode,
+            output,
+            "FullyQualifiedName~ZZZ_NO_SUCH_TEST_ZZZ",
+            "Name suffix",
+            requireFilterMatch: true);
+
+        Assert.Contains("## Filtered test run — no matching tests", md, StringComparison.Ordinal);
+        Assert.DoesNotContain("All tests passed", md, StringComparison.Ordinal);
+        Assert.DoesNotContain("Filtered tests passed", md, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void BuildMarkdownReport_restore_failed_without_summary_is_not_success()
+    {
+        const string output = """
+            Restore target(s) failed.
+            Build FAILED.
+                0 Error(s)
+            """;
+        var parse = VstestOutputParser.Parse(output, exitCode: 1);
+        Assert.Null(parse.Summary);
+        Assert.True(VstestOutputParser.IsSilentUnparsedFailure(parse, output));
+
+        var md = VstestOutputParser.BuildMarkdownReport(parse, 1, output, null, null, requireFilterMatch: false);
+        Assert.DoesNotContain("All tests passed", md, StringComparison.Ordinal);
+        Assert.DoesNotContain("Filtered tests passed", md, StringComparison.Ordinal);
+        Assert.DoesNotContain("no matching tests", md, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void BuildMarkdownReport_real_failure_keeps_assertion_details()
+    {
+        const string output = """
+            Test Run Failed.
+            Total tests: 1
+                 Failed: 1
+              Failed Ns.SlowTests.BeEquivalentTo [12 ms]
+              Error Message:
+               Expected 1 to be 2
+              Stack Trace:
+                 at Ns.SlowTests.BeEquivalentTo()
+            """;
+        var parse = VstestOutputParser.Parse(output, exitCode: 1);
+        Assert.Equal(1, parse.Summary?.Failed);
+        Assert.False(VstestOutputParser.IsSilentUnparsedFailure(parse, output));
+
+        var md = VstestOutputParser.BuildMarkdownReport(parse, 1, output, null, null, requireFilterMatch: false);
+        Assert.Contains("❌", md, StringComparison.Ordinal);
+        Assert.Contains("1 Tests Failed", md, StringComparison.Ordinal);
+        Assert.Contains("Expected 1 to be 2", md, StringComparison.Ordinal);
+        Assert.DoesNotContain("All tests passed", md, StringComparison.Ordinal);
+        Assert.DoesNotContain("non-zero", md, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void BuildMarkdownReport_single_assembly_success_omits_nonzero_exit_note()
+    {
+        const string output = """
+            Passed!  - Failed: 0, Passed: 1, Skipped: 0, Total: 1
+              Passed Ns.Class.Method [12 ms]
+            """;
+        var parse = VstestOutputParser.Parse(output, exitCode: 0);
+        Assert.Equal(0, parse.Summary?.Failed);
+        Assert.Equal(1, parse.Summary?.Total);
+
+        var md = VstestOutputParser.BuildMarkdownReport(parse, 0, output, null, null, requireFilterMatch: false);
+        Assert.Contains("## All tests passed successfully!", md, StringComparison.Ordinal);
+        Assert.DoesNotContain("non-zero", md, StringComparison.Ordinal);
+        Assert.DoesNotContain("_Exit code is non-zero", md, StringComparison.Ordinal);
+        Assert.DoesNotContain("Tests Failed", md, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Parse_sums_end_summary_lines_across_two_assemblies()
     {
         const string output = """

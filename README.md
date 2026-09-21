@@ -179,6 +179,11 @@ MCP `tools/list` stays JSON + JSON Schema. Markdown is for JIT help and diagnost
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.3.37
+
+- **Filtered `dotnet test` on a `.sln` is success when a sibling assembly prints `No test matches`** — xUnit often exits **1** even though another assembly `Passed: 1`. The report uses a gated success (`parsed TestSummary`, `Failed == 0`, `Total > 0`, not silent); `exitCode` is not in that predicate. Non-zero exit adds one italic note; metadata still has the real exit. `## Filtered test run — no matching tests` only when no tests ran and the log has that VSTest line. Hung restore / `Build FAILED` without a summary stays not-success.
+- **Catalog size** — unchanged: full 63 tools / 45,868 bytes; lite 19 / 18,282.
+
 ### v1.3.36
 
 - **`run_dotnet_test` / `run_specific_test` sum VSTest counts across test assemblies** — on a `.sln` each project prints `Total tests:` / `Passed!`; the parser no longer keeps the last end-summary or the first totals block plus leaked `Skipped:` from another assembly. Blocks are aggregated; a `Total > 0` block without count lines fail-closes the whole summary (`null` / partial). `Total tests: 0` without counts is a zero block. `.slnx` fail-only `Passed` inference and StdOut/StdErr budgets are unchanged.
@@ -1385,7 +1390,7 @@ cd D:\Devel\YourApp
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.3.36). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.3.37). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 
