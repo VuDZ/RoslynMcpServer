@@ -110,9 +110,23 @@ public sealed class TestTools
                     "Error: provide at least one of `className` or `methodName`.");
             }
 
-            var solution = await _solutionManager.GetPublishedSolutionAfterDiskSyncAsync(cancellationToken).ConfigureAwait(false);
-            var (filter, description) = await TestFilterHelper.BuildFilterAsync(
-                solution, className, methodName, cancellationToken).ConfigureAwait(false);
+            var solution = await _solutionManager.GetSanitizedPublishedSolutionAsync(cancellationToken).ConfigureAwait(false);
+            (string filter, string description) filterAndDescription;
+            if (solution is null)
+            {
+                filterAndDescription = await TestFilterHelper.BuildFilterAsync(
+                    solution: null, className, methodName, cancellationToken).ConfigureAwait(false);
+            }
+            else
+            {
+                filterAndDescription = (await WorkspaceAnalyzerSanitizer.WithSanitizedRetryAsync(
+                    sol => TestFilterHelper.BuildFilterAsync(sol, className, methodName, cancellationToken),
+                    () => _solutionManager.GetSanitizedPublishedSolution(),
+                    solution,
+                    cancellationToken).ConfigureAwait(false)).Value;
+            }
+
+            var (filter, description) = filterAndDescription;
 
             var result = await ExecuteDotnetTestAsync(
                     toolName,

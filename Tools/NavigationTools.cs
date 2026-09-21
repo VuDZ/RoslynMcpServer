@@ -62,7 +62,10 @@ public sealed class NavigationTools
                     $"Could not resolve Roslyn document for file: `{fullPath}`.");
             }
 
-            var solution = document.Project.Solution;
+            var publishedDocument = document;
+            var solution = await _solutionManager.GetSanitizedPublishedSolutionAsync(cancellationToken).ConfigureAwait(false)
+                ?? publishedDocument.Project.Solution;
+            document = solution.GetDocument(publishedDocument.Id) ?? publishedDocument;
             var semanticModel = await document.GetSemanticModelAsync(cancellationToken);
             var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken);
             if (semanticModel is null || syntaxRoot is null)
@@ -80,15 +83,32 @@ public sealed class NavigationTools
                     $"Symbol `{symbolName}` was not found as a class/interface/method declaration in `{fullPath}`.");
             }
 
-            var symbol = semanticModel.GetDeclaredSymbol(declaration, cancellationToken);
-            if (symbol is null)
+            if (semanticModel.GetDeclaredSymbol(declaration, cancellationToken) is null)
             {
                 return ToolTelemetry.TraceAndReturn(
                     nameof(FindSymbolReferences),
                     $"Unable to resolve declared symbol for `{symbolName}` in `{fullPath}`.");
             }
 
-            var references = await SymbolFinder.FindReferencesAsync(symbol, solution, cancellationToken);
+            var (references, _) = await WorkspaceAnalyzerSanitizer.WithSanitizedRetryAsync(
+                async sol =>
+                {
+                    var mappedSymbol = await RemapDeclaredSymbolAsync(
+                        sol,
+                        publishedDocument.Id,
+                        symbolName,
+                        (root, model, ct) =>
+                        {
+                            var declaration = FindMatchingDeclaration(root, symbolName);
+                            return declaration is null ? null : model.GetDeclaredSymbol(declaration, ct);
+                        },
+                        cancellationToken).ConfigureAwait(false);
+                    return await SymbolFinder.FindReferencesAsync(mappedSymbol, sol, cancellationToken)
+                        .ConfigureAwait(false);
+                },
+                () => _solutionManager.GetSanitizedPublishedSolution(),
+                solution,
+                cancellationToken).ConfigureAwait(false);
             var locations = references
                 .SelectMany(r => r.Locations)
                 .Where(l => l.Location.IsInSource)
@@ -171,7 +191,7 @@ public sealed class NavigationTools
                 return ToolTelemetry.TraceAndReturn(nameof(FindSymbolDefinition), "Error: `symbolName` is empty.");
             }
 
-            var solution = await _solutionManager.GetPublishedSolutionAfterDiskSyncAsync(cancellationToken).ConfigureAwait(false);
+            var solution = await _solutionManager.GetSanitizedPublishedSolutionAsync(cancellationToken).ConfigureAwait(false);
             if (solution is null)
             {
                 return ToolTelemetry.TraceAndReturn(
@@ -181,23 +201,11 @@ public sealed class NavigationTools
             }
 
             var trimmedName = symbolName.Trim();
-            var declarations = new List<ISymbol>();
-            foreach (var projectId in solution.ProjectIds)
-            {
-                var project = solution.GetProject(projectId);
-                if (project is null)
-                {
-                    continue;
-                }
-
-                var found = await SymbolFinder.FindDeclarationsAsync(
-                    project,
-                    trimmedName,
-                    ignoreCase: true,
-                    SymbolFilter.Type | SymbolFilter.Member,
-                    cancellationToken).ConfigureAwait(false);
-                declarations.AddRange(found);
-            }
+            var declarations = await FindDeclarationsByNameAsync(
+                solution,
+                trimmedName,
+                SymbolFilter.Type | SymbolFilter.Member,
+                cancellationToken).ConfigureAwait(false);
 
             var symbols = declarations.Distinct(SymbolEqualityComparer.Default).ToList();
             if (symbols.Count == 0)
@@ -279,7 +287,7 @@ public sealed class NavigationTools
                 return ToolTelemetry.TraceAndReturn(toolName, "Error: `symbolName` is empty.");
             }
 
-            var solution = await _solutionManager.GetPublishedSolutionAfterDiskSyncAsync(cancellationToken).ConfigureAwait(false);
+            var solution = await _solutionManager.GetSanitizedPublishedSolutionAsync(cancellationToken).ConfigureAwait(false);
             if (solution is null)
             {
                 return ToolTelemetry.TraceAndReturn(
@@ -289,23 +297,11 @@ public sealed class NavigationTools
             }
 
             var trimmedName = symbolName.Trim();
-            var declarations = new List<ISymbol>();
-            foreach (var projectId in solution.ProjectIds)
-            {
-                var project = solution.GetProject(projectId);
-                if (project is null)
-                {
-                    continue;
-                }
-
-                var found = await SymbolFinder.FindDeclarationsAsync(
-                    project,
-                    trimmedName,
-                    ignoreCase: true,
-                    SymbolFilter.Type | SymbolFilter.Member,
-                    cancellationToken).ConfigureAwait(false);
-                declarations.AddRange(found);
-            }
+            var declarations = await FindDeclarationsByNameAsync(
+                solution,
+                trimmedName,
+                SymbolFilter.Type | SymbolFilter.Member,
+                cancellationToken).ConfigureAwait(false);
 
             var symbols = declarations.Distinct(SymbolEqualityComparer.Default).ToList();
             if (symbols.Count == 0)
@@ -319,8 +315,23 @@ public sealed class NavigationTools
             var targetSymbol = PickPrimarySymbol(symbols);
             var chosenDisplay = targetSymbol.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
             var chosenFqn = targetSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+            var declaringLocation = GetRequiredDeclaringLocation(targetSymbol, solution, trimmedName);
 
-            var references = await SymbolFinder.FindReferencesAsync(targetSymbol, solution, cancellationToken)
+            var (references, _) = await WorkspaceAnalyzerSanitizer.WithSanitizedRetryAsync(
+                    async sol =>
+                    {
+                        var mappedSymbol = await RemapDeclaredSymbolAtSpanAsync<ISymbol>(
+                            sol,
+                            declaringLocation.DocumentId,
+                            declaringLocation.Span,
+                            trimmedName,
+                            cancellationToken).ConfigureAwait(false);
+                        return await SymbolFinder.FindReferencesAsync(mappedSymbol, sol, cancellationToken)
+                            .ConfigureAwait(false);
+                    },
+                    () => _solutionManager.GetSanitizedPublishedSolution(),
+                    solution,
+                    cancellationToken)
                 .ConfigureAwait(false);
 
             var refLocations = references
@@ -436,7 +447,7 @@ public sealed class NavigationTools
                 return ToolTelemetry.TraceAndReturn(toolName, "Error: `symbolName` is empty.");
             }
 
-            var solution = await _solutionManager.GetPublishedSolutionAfterDiskSyncAsync(cancellationToken).ConfigureAwait(false);
+            var solution = await _solutionManager.GetSanitizedPublishedSolutionAsync(cancellationToken).ConfigureAwait(false);
             if (solution is null)
             {
                 return ToolTelemetry.TraceAndReturn(
@@ -458,20 +469,49 @@ public sealed class NavigationTools
             var kindLabel = GetTypeKindLabel(targetType);
             var chosenDisplay = targetType.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
             var chosenFqn = targetType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+            var declaringLocation = GetRequiredDeclaringLocation(targetType, solution, trimmedName);
 
             IEnumerable<INamedTypeSymbol> relatedTypes;
             string searchMode;
             switch (targetType.TypeKind)
             {
                 case TypeKind.Interface:
-                    relatedTypes = await SymbolFinder.FindImplementationsAsync(
-                        targetType, solution, transitive, projects: null, cancellationToken).ConfigureAwait(false);
+                    var (implementations, _) = await WorkspaceAnalyzerSanitizer.WithSanitizedRetryAsync(
+                        async sol =>
+                        {
+                            var mappedType = await RemapDeclaredSymbolAtSpanAsync<INamedTypeSymbol>(
+                                sol,
+                                declaringLocation.DocumentId,
+                                declaringLocation.Span,
+                                trimmedName,
+                                cancellationToken).ConfigureAwait(false);
+                            return await SymbolFinder.FindImplementationsAsync(
+                                mappedType, sol, transitive, projects: null, cancellationToken).ConfigureAwait(false);
+                        },
+                        () => _solutionManager.GetSanitizedPublishedSolution(),
+                        solution,
+                        cancellationToken).ConfigureAwait(false);
+                    relatedTypes = implementations;
                     searchMode = transitive ? "implementations (transitive)" : "direct implementations";
                     break;
                 case TypeKind.Class:
                 case TypeKind.Struct:
-                    relatedTypes = await SymbolFinder.FindDerivedClassesAsync(
-                        targetType, solution, transitive, projects: null, cancellationToken).ConfigureAwait(false);
+                    var (derived, _) = await WorkspaceAnalyzerSanitizer.WithSanitizedRetryAsync(
+                        async sol =>
+                        {
+                            var mappedType = await RemapDeclaredSymbolAtSpanAsync<INamedTypeSymbol>(
+                                sol,
+                                declaringLocation.DocumentId,
+                                declaringLocation.Span,
+                                trimmedName,
+                                cancellationToken).ConfigureAwait(false);
+                            return await SymbolFinder.FindDerivedClassesAsync(
+                                mappedType, sol, transitive, projects: null, cancellationToken).ConfigureAwait(false);
+                        },
+                        () => _solutionManager.GetSanitizedPublishedSolution(),
+                        solution,
+                        cancellationToken).ConfigureAwait(false);
+                    relatedTypes = derived;
                     searchMode = transitive ? "derived types (transitive)" : "direct derived types";
                     break;
                 default:
@@ -567,9 +607,42 @@ public sealed class NavigationTools
         }
     }
 
-    private static async Task<List<INamedTypeSymbol>> FindNamedTypeDeclarationsAsync(
+    private async Task<List<INamedTypeSymbol>> FindNamedTypeDeclarationsAsync(
         Solution solution,
         string trimmedName,
+        CancellationToken cancellationToken)
+    {
+        var declarations = await FindDeclarationsByNameAsync(
+            solution,
+            trimmedName,
+            SymbolFilter.Type,
+            cancellationToken).ConfigureAwait(false);
+
+        return declarations
+            .OfType<INamedTypeSymbol>()
+            .Distinct(SymbolEqualityComparer.Default)
+            .Cast<INamedTypeSymbol>()
+            .ToList();
+    }
+
+    private async Task<List<ISymbol>> FindDeclarationsByNameAsync(
+        Solution solution,
+        string trimmedName,
+        SymbolFilter filter,
+        CancellationToken cancellationToken)
+    {
+        var (declarations, _) = await WorkspaceAnalyzerSanitizer.WithSanitizedRetryAsync(
+            sol => FindDeclarationsByNameCoreAsync(sol, trimmedName, filter, cancellationToken),
+            () => _solutionManager.GetSanitizedPublishedSolution(),
+            solution,
+            cancellationToken).ConfigureAwait(false);
+        return declarations;
+    }
+
+    private static async Task<List<ISymbol>> FindDeclarationsByNameCoreAsync(
+        Solution solution,
+        string trimmedName,
+        SymbolFilter filter,
         CancellationToken cancellationToken)
     {
         var declarations = new List<ISymbol>();
@@ -585,16 +658,86 @@ public sealed class NavigationTools
                 project,
                 trimmedName,
                 ignoreCase: true,
-                SymbolFilter.Type,
+                filter,
                 cancellationToken).ConfigureAwait(false);
             declarations.AddRange(found);
         }
 
-        return declarations
-            .OfType<INamedTypeSymbol>()
-            .Distinct(SymbolEqualityComparer.Default)
-            .Cast<INamedTypeSymbol>()
-            .ToList();
+        return declarations;
+    }
+
+    private static (DocumentId DocumentId, TextSpan Span) GetRequiredDeclaringLocation(
+        ISymbol symbol,
+        Solution solution,
+        string symbolName)
+    {
+        foreach (var location in symbol.Locations)
+        {
+            if (!location.IsInSource || location.SourceTree is null)
+            {
+                continue;
+            }
+
+            var document = solution.GetDocument(location.SourceTree);
+            if (document is not null)
+            {
+                return (document.Id, location.SourceSpan);
+            }
+        }
+
+        throw new InvalidOperationException(
+            $"Symbol `{symbolName}` has no in-source declaring document in the current solution snapshot.");
+    }
+
+    private static async Task<ISymbol> RemapDeclaredSymbolAsync(
+        Solution solution,
+        DocumentId documentId,
+        string symbolName,
+        Func<SyntaxNode, SemanticModel, CancellationToken, ISymbol?> resolve,
+        CancellationToken cancellationToken)
+    {
+        var mapped = solution.GetDocument(documentId)
+            ?? throw new InvalidOperationException(
+                $"Declaring document for `{symbolName}` is not in the sanitized solution snapshot.");
+        var root = await mapped.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false)
+            ?? throw new InvalidOperationException(
+                $"Could not build syntax tree for `{symbolName}` in the sanitized solution snapshot.");
+        var model = await mapped.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false)
+            ?? throw new InvalidOperationException(
+                $"Could not build semantic model for `{symbolName}` in the sanitized solution snapshot.");
+        return resolve(root, model, cancellationToken)
+            ?? throw new InvalidOperationException(
+                $"Symbol `{symbolName}` was not found in the sanitized solution snapshot.");
+    }
+
+    private static async Task<TSymbol> RemapDeclaredSymbolAtSpanAsync<TSymbol>(
+        Solution solution,
+        DocumentId documentId,
+        TextSpan span,
+        string symbolName,
+        CancellationToken cancellationToken)
+        where TSymbol : class, ISymbol
+    {
+        var mapped = solution.GetDocument(documentId)
+            ?? throw new InvalidOperationException(
+                $"Declaring document for `{symbolName}` is not in the sanitized solution snapshot.");
+        var root = await mapped.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false)
+            ?? throw new InvalidOperationException(
+                $"Could not build syntax tree for `{symbolName}` in the sanitized solution snapshot.");
+        var model = await mapped.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false)
+            ?? throw new InvalidOperationException(
+                $"Could not build semantic model for `{symbolName}` in the sanitized solution snapshot.");
+        var node = root.FindNode(span, getInnermostNodeForTie: true);
+        for (var current = node; current is not null; current = current.Parent)
+        {
+            if (model.GetDeclaredSymbol(current, cancellationToken) is TSymbol symbol)
+            {
+                return symbol;
+            }
+        }
+
+        throw new InvalidOperationException(
+            $"Symbol `{symbolName}` was not found in the sanitized solution snapshot.");
     }
 
     private static INamedTypeSymbol PickPrimaryTypeSymbol(IReadOnlyList<INamedTypeSymbol> types)
@@ -764,9 +907,21 @@ public sealed class NavigationTools
                 return ToolTelemetry.TraceAndReturn(toolName, $"Document not in workspace: `{fullPath}`. Call `load_workspace` first.");
             }
 
-            var solution = document.Project.Solution;
-            var graph = await CallGraphHelper.BuildCallGraphAsync(
-                solution, document, className, methodName, maxNodes, includeExternalCallees, cancellationToken)
+            var publishedDocument = document;
+            var solution = await _solutionManager.GetSanitizedPublishedSolutionAsync(cancellationToken).ConfigureAwait(false)
+                ?? publishedDocument.Project.Solution;
+            var (graph, _) = await WorkspaceAnalyzerSanitizer.WithSanitizedRetryAsync(
+                    sol =>
+                    {
+                        var mapped = sol.GetDocument(publishedDocument.Id)
+                            ?? throw new InvalidOperationException(
+                                $"Document `{fullPath}` is not in the sanitized solution snapshot.");
+                        return CallGraphHelper.BuildCallGraphAsync(
+                            sol, mapped, className, methodName, maxNodes, includeExternalCallees, cancellationToken);
+                    },
+                    () => _solutionManager.GetSanitizedPublishedSolution(),
+                    solution,
+                    cancellationToken)
                 .ConfigureAwait(false);
 
             return ToolTelemetry.TraceAndReturn(toolName, CallGraphHelper.FormatMarkdown(graph));

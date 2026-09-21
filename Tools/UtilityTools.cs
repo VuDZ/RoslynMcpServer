@@ -976,6 +976,12 @@ public sealed class UtilityTools
                 return ToolTelemetry.TraceAndReturn(nameof(RenameSymbol), $"Error: Document not found in workspace: `{fullPath}`");
             }
 
+            var publishedDocument = document;
+            var publishedSolution = publishedDocument.Project.Solution;
+            var searchSolution = await _solutionManager.GetSanitizedPublishedSolutionAsync(cancellationToken).ConfigureAwait(false)
+                ?? publishedSolution;
+            document = searchSolution.GetDocument(publishedDocument.Id) ?? publishedDocument;
+
             var root = await document.GetSyntaxRootAsync(cancellationToken);
             var semanticModel = await document.GetSemanticModelAsync(cancellationToken);
             if (root is null || semanticModel is null)
@@ -999,14 +1005,35 @@ public sealed class UtilityTools
                 return ToolTelemetry.TraceAndReturn(nameof(RenameSymbol), $"Error: Symbol `{symbolName}` not found.");
             }
 
-            var baseSolution = document.Project.Solution;
-            var references = await SymbolFinder.FindReferencesAsync(targetSymbol, baseSolution, cancellationToken);
+            var (references, _) = await WorkspaceAnalyzerSanitizer.WithSanitizedRetryAsync(
+                async sol =>
+                {
+                    var mapped = sol.GetDocument(publishedDocument.Id)
+                        ?? throw new InvalidOperationException(
+                            $"Document `{fullPath}` is not in the sanitized solution snapshot.");
+                    var mappedRoot = await mapped.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
+                    var mappedModel = await mapped.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
+                    if (mappedRoot is null || mappedModel is null)
+                    {
+                        throw new InvalidOperationException(
+                            "Failed to obtain syntax root or semantic model for the sanitized solution snapshot.");
+                    }
+
+                    var mappedSymbol = ExtractTargetSymbol(mappedRoot, mappedModel, symbolName, cancellationToken)
+                        ?? throw new InvalidOperationException(
+                            $"Symbol `{symbolName}` was not found in the sanitized solution snapshot.");
+                    return await SymbolFinder.FindReferencesAsync(mappedSymbol, sol, cancellationToken)
+                        .ConfigureAwait(false);
+                },
+                () => _solutionManager.GetSanitizedPublishedSolution(),
+                searchSolution,
+                cancellationToken).ConfigureAwait(false);
             var affectedLocations = references
                 .SelectMany(r => r.Locations)
                 .Where(l => l.Location.IsInSource)
                 .ToList();
 
-            var targetProjectId = document.Project.Id;
+            var targetProjectId = publishedDocument.Project.Id;
             if (normalizedScope == "project")
             {
                 affectedLocations = affectedLocations
@@ -1033,12 +1060,35 @@ public sealed class UtilityTools
             }
 
             var renameOptions = new SymbolRenameOptions();
-            var renamedSolution = await Renamer.RenameSymbolAsync(
-                baseSolution,
-                targetSymbol,
-                renameOptions,
-                newName,
-                cancellationToken);
+            var (renamePair, _) = await WorkspaceAnalyzerSanitizer.WithSanitizedRetryAsync(
+                async sol =>
+                {
+                    var mapped = sol.GetDocument(publishedDocument.Id)
+                        ?? throw new InvalidOperationException(
+                            $"Document `{fullPath}` is not in the sanitized solution snapshot.");
+                    var mappedRoot = await mapped.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
+                    var mappedModel = await mapped.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
+                    if (mappedRoot is null || mappedModel is null)
+                    {
+                        throw new InvalidOperationException("Failed to obtain syntax root or semantic model.");
+                    }
+
+                    var mappedSymbol = ExtractTargetSymbol(mappedRoot, mappedModel, symbolName, cancellationToken)
+                        ?? throw new InvalidOperationException($"Symbol `{symbolName}` not found.");
+                    var renamed = await Renamer.RenameSymbolAsync(
+                        sol,
+                        mappedSymbol,
+                        renameOptions,
+                        newName,
+                        cancellationToken).ConfigureAwait(false);
+                    return (Base: sol, Renamed: renamed);
+                },
+                () => _solutionManager.GetSanitizedPublishedSolution(),
+                searchSolution,
+                cancellationToken).ConfigureAwait(false);
+
+            var sanitizedBase = renamePair.Base;
+            var renamedSolution = renamePair.Renamed;
 
             if (normalizedScope == "project")
             {
@@ -1046,7 +1096,7 @@ public sealed class UtilityTools
                 {
                     foreach (var doc in project.Documents)
                     {
-                        var originalDoc = baseSolution.GetDocument(doc.Id);
+                        var originalDoc = sanitizedBase.GetDocument(doc.Id);
                         if (originalDoc is null)
                         {
                             continue;
@@ -1058,9 +1108,19 @@ public sealed class UtilityTools
                 }
             }
 
+            var persistSolution = renamedSolution;
+            if (!ReferenceEquals(sanitizedBase, publishedSolution))
+            {
+                persistSolution = await CopyDocumentTextChangesAsync(
+                    sanitizedBase,
+                    renamedSolution,
+                    publishedSolution,
+                    cancellationToken).ConfigureAwait(false);
+            }
+
             var write = await _solutionManager.ApplySolutionChangesToDiskAsync(
-                baseSolution,
-                renamedSolution,
+                publishedSolution,
+                persistSolution,
                 cancellationToken);
             if (!write.IsFullSuccess)
             {
@@ -1323,6 +1383,31 @@ public sealed class UtilityTools
             _logger.LogError(ex, "ManageAgentScratchpad failed for action {Action}", action);
             return ToolTelemetry.TraceAndReturn(nameof(ManageAgentScratchpad), $"Error: {ex.Message}");
         }
+    }
+
+    private static async Task<Solution> CopyDocumentTextChangesAsync(
+        Solution fromBase,
+        Solution fromNew,
+        Solution onto,
+        CancellationToken cancellationToken)
+    {
+        var result = onto;
+        foreach (var projectChange in fromNew.GetChanges(fromBase).GetProjectChanges())
+        {
+            foreach (var docId in projectChange.GetChangedDocuments())
+            {
+                var newDoc = fromNew.GetDocument(docId);
+                if (newDoc is null || result.GetDocument(docId) is null)
+                {
+                    continue;
+                }
+
+                var newText = await newDoc.GetTextAsync(cancellationToken).ConfigureAwait(false);
+                result = result.WithDocumentText(docId, newText);
+            }
+        }
+
+        return result;
     }
 
     private static ISymbol? ExtractTargetSymbol(

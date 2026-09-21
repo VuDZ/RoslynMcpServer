@@ -66,6 +66,8 @@ public sealed class SolutionManager
 
     private MSBuildWorkspace? _workspace;
     private Solution? _solution;
+    private Solution? _sanitizedPublishedSolution;
+    private Solution? _sanitizedPublishedSolutionSource;
     // Overlay state is not one enabled bool: mapping is prepared/active generations,
     // _lastRefreshStale/_lastShadowCopyResults are the last refresh, and
     // _shadowCopyAnalyzersEnabled is session-sticky active-overlay state.
@@ -975,6 +977,7 @@ public sealed class SolutionManager
 
     /// <summary>
     /// Applies queued disk changes and returns the published snapshot under one lock acquisition.
+    /// This is the raw published graph (overlay/admission/health). It is not analyzer-sanitized.
     /// </summary>
     public async Task<Solution?> GetPublishedSolutionAfterDiskSyncAsync(CancellationToken cancellationToken = default)
     {
@@ -988,6 +991,71 @@ public sealed class SolutionManager
         {
             _workspaceLock.Release();
         }
+    }
+
+    /// <summary>
+    /// Applies queued disk changes and returns a cached snapshot of the published solution with
+    /// <c>UnresolvedAnalyzerReference</c> stubs removed. Does not replace the published snapshot —
+    /// health, overlay, and admission still see missing analyzer paths.
+    /// </summary>
+    public async Task<Solution?> GetSanitizedPublishedSolutionAsync(CancellationToken cancellationToken = default)
+    {
+        await _workspaceLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await FlushDirtyDocumentsUnderLockAsync(cancellationToken).ConfigureAwait(false);
+            return GetOrCreateSanitizedPublishedSolution();
+        }
+        finally
+        {
+            _workspaceLock.Release();
+        }
+    }
+
+    /// <summary>
+    /// Returns the cached sanitized snapshot of the current published solution without flushing disk
+    /// changes. Used as the retry source when Roslyn 5.9.0 throws on a project checksum.
+    /// Acquires <see cref="_workspaceLock"/> (sync <see cref="SemaphoreSlim.Wait()"/> — not a Task).
+    /// Must not be called while the caller already holds that lock (<see cref="SemaphoreSlim"/> is not recursive);
+    /// <see cref="GetSanitizedPublishedSolutionAsync"/> calls <see cref="GetOrCreateSanitizedPublishedSolution"/> directly.
+    /// </summary>
+    public Solution? GetSanitizedPublishedSolution()
+    {
+        _workspaceLock.Wait();
+        try
+        {
+            return GetOrCreateSanitizedPublishedSolution();
+        }
+        finally
+        {
+            _workspaceLock.Release();
+        }
+    }
+
+    private Solution? GetOrCreateSanitizedPublishedSolution()
+    {
+        var raw = _solution;
+        if (raw is null)
+        {
+            return null;
+        }
+
+        if (ReferenceEquals(_sanitizedPublishedSolutionSource, raw))
+        {
+            return _sanitizedPublishedSolution;
+        }
+
+        var (sanitized, removed) = WorkspaceAnalyzerSanitizer.RemoveUnresolvedAnalyzers(raw);
+        if (removed > 0)
+        {
+            _logger.LogInformation(
+                "Removed {Removed} unresolved analyzer reference(s) from a cached search snapshot (Roslyn 5.9.0 project-checksum crash workaround). Published solution is unchanged.",
+                removed);
+        }
+
+        _sanitizedPublishedSolutionSource = raw;
+        _sanitizedPublishedSolution = sanitized;
+        return sanitized;
     }
 
     /// <summary>

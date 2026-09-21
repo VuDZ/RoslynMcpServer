@@ -16,17 +16,17 @@ public sealed class Epoch1SemanticInventoryTests
         ("Tools/WorkspaceTools.cs", "atomic-load", "LoadWorkspace uses one LoadAndPrepareAsync boundary; diagnostics and summary run after publish."),
         ("Tools/ServerLifecycleTools.cs", "getter", "get_mcp_server_info reads overlay snapshot; no flush."),
         ("Tools/UtilityTools.cs", "getter", "Non-rename tools read GetCurrentSolution without flush."),
-        ("Tools/UtilityTools.cs", "serialized-document", "RenameSymbol keeps document.Project.Solution as the base after serialized FindDocumentAsync."),
+        ("Tools/UtilityTools.cs", "serialized-document", "RenameSymbol searches on the sanitized published snapshot; persist copies document texts onto the published/raw write base after serialized FindDocumentAsync."),
         ("Tools/CodeAnalysisTools.cs", "flush", "get_diagnostics_for_file / get_class_skeleton use FindDocumentAsync."),
         ("Tools/CodeAnalysisTools.cs", "getter", "explore_assembly / decompile_* / skeleton resolve via GetCurrentSolution (no compilation of overlay generators)."),
         ("Tools/CodeFixTools.cs", "flush-then-apply", "FindDocumentAsync then ApplySolutionChangesToDiskAsync."),
         ("Tools/RefactoringTools.cs", "flush-then-apply", "FindDocumentAsync then ApplySolutionChangesToDiskAsync."),
         ("Tools/AstTools.cs", "flush-then-apply", "FindDocumentAsync then ApplySolutionChangesToDiskAsync."),
         ("Tools/EditingTools.cs", "write-then-update", "UpdateDocumentInMemoryAsync writes after preflight; non-workspace files still write directly."),
-        ("Tools/TestTools.cs", "serialized-flush", "GetPublishedSolutionAfterDiskSyncAsync and FindDocumentAsync."),
-        ("Tools/NavigationTools.cs", "serialized-document", "FindSymbolReferences keeps document.Project.Solution from serialized FindDocumentAsync."),
-        ("Tools/NavigationTools.cs", "serialized-flush", "FindUsages / implementations / definition use GetPublishedSolutionAfterDiskSyncAsync."),
-        ("Services/SolutionManager.cs", "published-accessor", "Semantic accessors wait for the load/prepare lock and return only _solution."),
+        ("Tools/TestTools.cs", "serialized-flush", "GetPublishedSolutionAfterDiskSyncAsync, GetSanitizedPublishedSolutionAsync (run_specific_test filter), and FindDocumentAsync."),
+        ("Tools/NavigationTools.cs", "serialized-document", "FindSymbolReferences maps the FindDocumentAsync document onto the sanitized published snapshot + retry."),
+        ("Tools/NavigationTools.cs", "serialized-flush", "FindUsages / implementations / definition / call graph use GetSanitizedPublishedSolutionAsync; AfterDiskSync stays raw."),
+        ("Services/SolutionManager.cs", "published-accessor", "Semantic accessors wait for the load/prepare lock and return only _solution. Sanitizer cache is a separate snapshot keyed by raw published identity."),
         ("Services/SolutionManager.cs", "overlay-read", "GetCurrentSolution remains a non-semantic lock-free info accessor."),
         ("Services/SolutionManager.cs", "raw-workspace", "workspace.CurrentSolution is the write-boundary base and overlay source; the only production TryApplyChanges is TryApplyWorkspaceChanges."),
     };
@@ -51,6 +51,11 @@ public sealed class Epoch1SemanticInventoryTests
                 hits.Add(rel + "::GetPublishedSolutionAfterDiskSyncAsync");
             }
 
+            if (Regex.IsMatch(text, @"GetSanitizedPublishedSolutionAsync\s*\("))
+            {
+                hits.Add(rel + "::GetSanitizedPublishedSolutionAsync");
+            }
+
             if (Regex.IsMatch(text, @"GetPublishedSolutionAsync\s*\("))
             {
                 hits.Add(rel + "::GetPublishedSolutionAsync");
@@ -72,7 +77,9 @@ public sealed class Epoch1SemanticInventoryTests
         Assert.Contains(hits, h => h.StartsWith("Tools/UtilityTools.cs::GetCurrentSolution", StringComparison.Ordinal));
         Assert.Contains(hits, h => h.StartsWith("Tools/CodeAnalysisTools.cs::GetCurrentSolution", StringComparison.Ordinal));
         Assert.Contains(hits, h => h.StartsWith("Tools/NavigationTools.cs::FindDocumentAsync", StringComparison.Ordinal));
+        Assert.Contains(hits, h => h.StartsWith("Tools/NavigationTools.cs::GetSanitizedPublishedSolutionAsync", StringComparison.Ordinal));
         Assert.Contains(hits, h => h.Contains("GetPublishedSolutionAfterDiskSyncAsync", StringComparison.Ordinal));
+        Assert.DoesNotContain(hits, h => h.StartsWith("Tools/NavigationTools.cs::GetPublishedSolutionAfterDiskSyncAsync", StringComparison.Ordinal));
 
         foreach (var (file, _, _) in Expected)
         {
