@@ -84,24 +84,12 @@ public static class DotNetCliRunner
                 $"Failed to start `{dotnet}`. Ensure a 64-bit .NET SDK is installed under Program Files\\dotnet.");
         }
 
-        CancellationTokenSource? timeoutCts = null;
-        if (timeout.HasValue && timeout.Value > TimeSpan.Zero)
+        var stdoutTask = process.StandardOutput.ReadToEndAsync(CancellationToken.None);
+        var stderrTask = process.StandardError.ReadToEndAsync(CancellationToken.None);
+        try
         {
-            timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            timeoutCts.CancelAfter(timeout.Value);
-        }
-
-        using (timeoutCts)
-        {
-            var token = timeoutCts?.Token ?? cancellationToken;
-            var timedOut = false;
-            string? exceptionType = null;
-
-            try
+            if (!await WaitForExitOrTimeoutAsync(process, timeout, cancellationToken).ConfigureAwait(false))
             {
-                var stdoutTask = process.StandardOutput.ReadToEndAsync(token);
-                var stderrTask = process.StandardError.ReadToEndAsync(token);
-                await process.WaitForExitAsync(token).ConfigureAwait(false);
                 var stdout = (await stdoutTask.ConfigureAwait(false)).TrimEnd();
                 var stderr = (await stderrTask.ConfigureAwait(false)).TrimEnd();
                 var metadata = await CreateRunMetadataAsync(workDir, string.Join('\n', stdout, stderr), CancellationToken.None)
@@ -109,23 +97,10 @@ public static class DotNetCliRunner
 
                 return new SeparatedRunResult(process.ExitCode, stdout, stderr, metadata, false, null);
             }
-            catch (OperationCanceledException) when (timeoutCts is not null && timeoutCts.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
-            {
-                timedOut = true;
-                TryKillProcessTree(process);
-            }
-            catch (OperationCanceledException)
-            {
-                TryKillProcessTree(process);
-                throw;
-            }
-            catch (Exception ex)
-            {
-                exceptionType = ex.GetType().Name;
-                TryKillProcessTree(process);
-            }
 
-            var (partialStdout, partialStderr) = await ReadRemainingStreamsAsync(process).ConfigureAwait(false);
+            TryKillProcessTree(process);
+            var (partialStdout, partialStderr) = await AwaitOutputAsync(stdoutTask, stderrTask, OutputDrainTimeout)
+                .ConfigureAwait(false);
             var meta = await CreateRunMetadataAsync(workDir, string.Join('\n', partialStdout, partialStderr), CancellationToken.None)
                 .ConfigureAwait(false);
 
@@ -134,8 +109,28 @@ public static class DotNetCliRunner
                 partialStdout,
                 partialStderr,
                 meta,
-                timedOut,
-                exceptionType);
+                TimedOut: true,
+                ExceptionType: null);
+        }
+        catch (OperationCanceledException)
+        {
+            TryKillProcessTree(process);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            TryKillProcessTree(process);
+            var (partialStdout, partialStderr) = await AwaitOutputAsync(stdoutTask, stderrTask, OutputDrainTimeout)
+                .ConfigureAwait(false);
+            var meta = await CreateRunMetadataAsync(workDir, string.Join('\n', partialStdout, partialStderr), CancellationToken.None)
+                .ConfigureAwait(false);
+            return new SeparatedRunResult(
+                process.HasExited ? process.ExitCode : -1,
+                partialStdout,
+                partialStderr,
+                meta,
+                TimedOut: false,
+                ExceptionType: ex.GetType().Name);
         }
     }
 
@@ -187,22 +182,15 @@ public static class DotNetCliRunner
                 $"Failed to start `{dotnet}`. Ensure a 64-bit .NET SDK is installed under Program Files\\dotnet.");
         }
 
-        CancellationTokenSource? timeoutCts = null;
-        if (timeout.HasValue && timeout.Value > TimeSpan.Zero)
+        // Do not cancel pipe reads: redirected stdout does not observe a cancellation token.
+        // Wait with WhenAny+Delay (WaitForExitAsync(token) is not reliable for nested `dotnet build`),
+        // then Kill and drain with a bounded wait so the caller always gets a result.
+        var stdoutTask = process.StandardOutput.ReadToEndAsync(CancellationToken.None);
+        var stderrTask = process.StandardError.ReadToEndAsync(CancellationToken.None);
+        try
         {
-            timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            timeoutCts.CancelAfter(timeout.Value);
-        }
-
-        using (timeoutCts)
-        {
-            var token = timeoutCts?.Token ?? cancellationToken;
-            try
+            if (!await WaitForExitOrTimeoutAsync(process, timeout, cancellationToken).ConfigureAwait(false))
             {
-                var stdoutTask = process.StandardOutput.ReadToEndAsync(token);
-                var stderrTask = process.StandardError.ReadToEndAsync(token);
-                await Task.WhenAll(stdoutTask, stderrTask, process.WaitForExitAsync(token)).ConfigureAwait(false);
-
                 var stdout = (await stdoutTask.ConfigureAwait(false)).TrimEnd();
                 var stderr = (await stderrTask.ConfigureAwait(false)).TrimEnd();
                 var combinedText = CombineStreams(stdout, stderr);
@@ -216,32 +204,31 @@ public static class DotNetCliRunner
                     stdout.Length,
                     stderr.Length);
             }
-            catch (OperationCanceledException) when (timeoutCts is not null && timeoutCts.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
-            {
-                TryKillProcessTree(process);
-                var (partialStdout, partialStderr) = await ReadRemainingStreamsAsync(process).ConfigureAwait(false);
-                var combinedText = CombineStreams(partialStdout, partialStderr);
-                var metadata = await CreateRunMetadataAsync(workDir, combinedText, CancellationToken.None)
-                    .ConfigureAwait(false);
-                return new RunResult(
-                    process.HasExited ? process.ExitCode : -1,
-                    combinedText,
-                    metadata,
-                    partialStdout.Length,
-                    partialStderr.Length,
-                    TimedOut: true,
-                    ProcessKilled: true);
-            }
-            catch (OperationCanceledException)
-            {
-                TryKillProcessTree(process);
-                throw;
-            }
-            catch
-            {
-                TryKillProcessTree(process);
-                throw;
-            }
+
+            TryKillProcessTree(process);
+            var (partialStdout, partialStderr) = await AwaitOutputAsync(stdoutTask, stderrTask, OutputDrainTimeout)
+                .ConfigureAwait(false);
+            var combinedTimedOut = CombineStreams(partialStdout, partialStderr);
+            var timedOutMetadata = await CreateRunMetadataAsync(workDir, combinedTimedOut, CancellationToken.None)
+                .ConfigureAwait(false);
+            return new RunResult(
+                process.HasExited ? process.ExitCode : -1,
+                combinedTimedOut,
+                timedOutMetadata,
+                partialStdout.Length,
+                partialStderr.Length,
+                TimedOut: true,
+                ProcessKilled: true);
+        }
+        catch (OperationCanceledException)
+        {
+            TryKillProcessTree(process);
+            throw;
+        }
+        catch
+        {
+            TryKillProcessTree(process);
+            throw;
         }
     }
 
@@ -353,7 +340,40 @@ public static class DotNetCliRunner
         };
 
         DotNetSdkEnvironment.ApplyPinnedSdk(psi, workDir);
+        psi.Environment["MSBUILDDISABLENODEREUSE"] = "1";
         return psi;
+    }
+
+    /// <summary>
+    /// Returns <c>true</c> when the timeout elapsed before the process exited.
+    /// Uses <see cref="Task.WhenAny"/> + <see cref="Task.Delay"/> because
+    /// <see cref="Process.WaitForExitAsync(CancellationToken)"/> often ignores cancellation
+    /// for nested <c>dotnet build</c> / MSBuild.
+    /// </summary>
+    private static async Task<bool> WaitForExitOrTimeoutAsync(
+        Process process,
+        TimeSpan? timeout,
+        CancellationToken cancellationToken)
+    {
+        var exitTask = process.WaitForExitAsync(CancellationToken.None);
+        if (timeout is not { } limit || limit <= TimeSpan.Zero)
+        {
+            await exitTask.WaitAsync(cancellationToken).ConfigureAwait(false);
+            return false;
+        }
+
+        using var delayCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        var delayTask = Task.Delay(limit, delayCts.Token);
+        var completed = await Task.WhenAny(exitTask, delayTask).ConfigureAwait(false);
+        if (completed == exitTask)
+        {
+            await delayCts.CancelAsync().ConfigureAwait(false);
+            await exitTask.ConfigureAwait(false);
+            return false;
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+        return true;
     }
 
     private static void TryKillProcessTree(Process process)
@@ -371,17 +391,36 @@ public static class DotNetCliRunner
         }
     }
 
-    private static async Task<(string StdOut, string StdErr)> ReadRemainingStreamsAsync(Process process)
+    private static readonly TimeSpan OutputDrainTimeout = TimeSpan.FromSeconds(3);
+
+    private static async Task<(string StdOut, string StdErr)> AwaitOutputAsync(
+        Task<string> stdoutTask,
+        Task<string> stderrTask,
+        TimeSpan? drainTimeout = null)
+    {
+        return (
+            await AwaitOneAsync(stdoutTask, drainTimeout).ConfigureAwait(false),
+            await AwaitOneAsync(stderrTask, drainTimeout).ConfigureAwait(false));
+    }
+
+    private static async Task<string> AwaitOneAsync(Task<string> readTask, TimeSpan? drainTimeout)
     {
         try
         {
-            var stdout = (await process.StandardOutput.ReadToEndAsync(CancellationToken.None).ConfigureAwait(false)).TrimEnd();
-            var stderr = (await process.StandardError.ReadToEndAsync(CancellationToken.None).ConfigureAwait(false)).TrimEnd();
-            return (stdout, stderr);
+            if (drainTimeout is { } limit && limit > TimeSpan.Zero)
+            {
+                var finished = await Task.WhenAny(readTask, Task.Delay(limit)).ConfigureAwait(false);
+                if (finished != readTask)
+                {
+                    return string.Empty;
+                }
+            }
+
+            return (await readTask.ConfigureAwait(false)).TrimEnd();
         }
         catch
         {
-            return (string.Empty, string.Empty);
+            return string.Empty;
         }
     }
 

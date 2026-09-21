@@ -17,7 +17,7 @@ internal static class Epoch1HostOps
                 Op = "build",
                 Path = path,
                 NoIncremental = noIncremental,
-                TimeoutMs = 60_000,
+                TimeoutMs = 120_000,
             },
             cancellationToken).ConfigureAwait(false);
         Assert.True(

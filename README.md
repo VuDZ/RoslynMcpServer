@@ -170,6 +170,12 @@ MCP `tools/list` stays JSON + JSON Schema. Markdown is for JIT help and diagnost
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.3.32
+
+- **`dotnet` CLI timeout no longer hangs the MCP process** — `DotNetCliRunner` waits with `WhenAny`+`Delay` (not `WaitForExitAsync(token)`), kills the process tree, and drains pipes with a 3 s cap. Nested `dotnet build` / MSBuild often ignore cancel on redirected stdout, which left `run_dotnet_build` / `run_dotnet_test` / `run_dotnet_run` (and the lifecycle host `build` op) stuck until the client RPC limit. Child processes also set `MSBUILDDISABLENODEREUSE=1`.
+- **Lifecycle host `build` honors `TimeoutMs`** — was hardcoded to 45 s and ignored the command budget (now 120 s for epoch-1 matrix builds).
+- **Catalog size** — unchanged: full 63 tools / 45,868 bytes; lite 19 / 18,282.
+
 ### v1.3.31
 
 - **`update_file_content` no longer recreates a deleted `.cs`** — `Skipped("missing-on-disk")` is not treated as «not in workspace, write the file». Disk write on skip is only `no-workspace` / `not-in-workspace`. Same for `apply_patch`. T-7 now also drives the MCP `WriteFile` path via the lifecycle host.
@@ -1130,7 +1136,7 @@ Verify id/version with `search_nuget_registry` first. Clears workspace cache —
 
 **Parameters:** *(none)*
 
-Use after `dotnet publish` to verify the MCP host picked up the new binary (expect **v1.3.31** and **63** tools on `full`, or **19** on `lite`).
+Use after `dotnet publish` to verify the MCP host picked up the new binary (expect **v1.3.32** and **63** tools on `full`, or **19** on `lite`).
 
 </details>
 
@@ -1342,7 +1348,7 @@ cd D:\Devel\YourApp
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.3.31). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.3.32). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 
@@ -1969,7 +1975,7 @@ cd D:\Devel\YourApp
 
 **Параметры:** *(нет)*
 
-После `dotnet publish` — проверка, что MCP подхватил новый бинарник (ожидай **v1.3.31** и **63** tools в `full`, или **19** в `lite`).
+После `dotnet publish` — проверка, что MCP подхватил новый бинарник (ожидай **v1.3.32** и **63** tools в `full`, или **19** в `lite`).
 
 </details>
 

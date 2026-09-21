@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using RoslynMcpServer.Services;
 using Xunit;
 
@@ -47,14 +48,19 @@ public sealed class DotNetCliRunnerHangTests
                   </Project>
                   """);
 
+            var elapsed = Stopwatch.StartNew();
             var run = await DotNetCliRunner.RunWithMetadataAsync(
                 $"msbuild \"{csproj}\" /t:Hang /nologo /v:q",
                 root,
                 CancellationToken.None,
                 TimeSpan.FromSeconds(4));
+            elapsed.Stop();
 
             Assert.True(run.TimedOut);
             Assert.True(run.ProcessKilled);
+            Assert.True(
+                elapsed.Elapsed < TimeSpan.FromSeconds(20),
+                "CLI timeout must return after Kill, not hang on redirected pipes. elapsed=" + elapsed.Elapsed);
         }
         finally
         {

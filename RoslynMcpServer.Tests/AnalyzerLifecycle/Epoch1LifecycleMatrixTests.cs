@@ -269,13 +269,17 @@ public sealed class Epoch1LifecycleMatrixTests
         await Epoch1HostOps.RequireMarkerAsync(host, GeneratorConsumerFixture.MarkerA);
 
         await Epoch1HostOps.BuildAsync(host, solutionB.SolutionPath);
-        _ = await Epoch1HostOps.LoadAsync(host, solutionB.SolutionPath, shadowCopy: false);
+        var loadB = await Epoch1HostOps.LoadAsync(host, solutionB.SolutionPath, shadowCopy: false);
+        Dump("solution-B-broken-off-load", loadB);
+        Assert.False(loadB.CacheHit);
+        Assert.False(loadB.ShadowEnabled);
+
         var oracle = await Epoch1HostOps.OracleAsync(host);
         Dump("solution-B-broken-off", oracle);
-        Assert.False(oracle.OracleSuccess);
-        Assert.Equal("no-type", oracle.OracleFailure);
+        Epoch1HostOps.AssertRestartRequired(loadB, oracle);
         Assert.NotEqual(GeneratorConsumerFixture.MarkerA, oracle.Marker);
         Assert.NotEqual(GeneratorConsumerFixture.MarkerB, oracle.Marker);
+        Assert.False(oracle.OracleSuccess);
     }
 
     [AnalyzerLifecycleFact]

@@ -791,17 +791,24 @@ internal sealed class HostSession
             args.Append(' ').Append(command.Arguments);
         }
 
+        var timeout = command.TimeoutMs > 0
+            ? TimeSpan.FromMilliseconds(command.TimeoutMs)
+            : TimeSpan.FromSeconds(45);
         var run = await DotNetCliRunner.RunWithMetadataAsync(
             args.ToString(),
             workDir,
             cancellationToken,
-            TimeSpan.FromSeconds(45)).ConfigureAwait(false);
+            timeout).ConfigureAwait(false);
 
         var response = Inspect("build");
         response.BuildExitCode = run.ExitCode;
         response.BuildOutput = TrimOutput(run.CombinedOutput);
-        response.Ok = run.ExitCode == 0;
-        if (!response.Ok)
+        response.Ok = run.ExitCode == 0 && !run.TimedOut;
+        if (run.TimedOut)
+        {
+            response.Error = "timed-out";
+        }
+        else if (!response.Ok)
         {
             response.Error = "build-exit-" + run.ExitCode;
         }
