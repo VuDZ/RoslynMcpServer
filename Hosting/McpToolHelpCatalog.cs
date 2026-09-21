@@ -111,6 +111,9 @@ public static class McpToolHelpCatalog
             ["get_call_graph"] = new()
             {
                 Prerequisites = "Requires load_workspace.",
+                Workflow = "className+methodName; overloads need line+column (decl or call site).",
+                Pitfalls = "No position + overloads → ambiguity error, not the first. maxNodes still caps lists.",
+                RelatedTools = ["find_usages", "get_method_body"],
             },
             ["run_dotnet_build"] = new()
             {
@@ -260,7 +263,8 @@ public static class McpToolHelpCatalog
             ["rename_symbol"] = new()
             {
                 Prerequisites = "Requires load_workspace.",
-                Pitfalls = "Default previewOnly=true — set false to write. Does not rename project folders; use rename_project for that.",
+                Workflow = "previewOnly=true default. Overloads: pass line+column together.",
+                Pitfalls = "previewOnly=true default; false writes via write boundary. Folders: rename_project.",
                 RelatedTools = ["rename_project", "find_symbol_references"],
             },
             ["generate_test_method_stub"] = new()

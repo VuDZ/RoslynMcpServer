@@ -16,8 +16,65 @@ public sealed record CallGraphResult(
 
 public static class CallGraphHelper
 {
-    private const int DefaultMaxNodes = 25;
+    /// <summary>
+    /// Builds a callers/callees graph for a method selected by name (unique in class) or line+column.
+    /// </summary>
+    public static async Task<(CallGraphResult? Graph, string? Error)> TryBuildCallGraphAsync(
+        Solution solution,
+        Document document,
+        string className,
+        string methodName,
+        int maxNodes,
+        bool includeExternalCallees,
+        int? line,
+        int? column,
+        CancellationToken cancellationToken)
+    {
+        maxNodes = Math.Clamp(maxNodes, 1, 100);
 
+        var (methodSymbol, selectError) = await SymbolSelectionHelper
+            .TrySelectMethodForCallGraphAsync(document, className, methodName, line, column, cancellationToken)
+            .ConfigureAwait(false);
+        if (selectError is not null)
+        {
+            return (null, selectError);
+        }
+
+        if (methodSymbol is null)
+        {
+            return (null, $"Error: Could not resolve symbol for `{className}.{methodName}`.");
+        }
+
+        var (methodDecl, declModel, declError) = await ResolveMethodDeclarationAsync(
+                solution,
+                methodSymbol,
+                className,
+                methodName,
+                cancellationToken)
+            .ConfigureAwait(false);
+        if (declError is not null)
+        {
+            return (null, declError);
+        }
+
+        var targetDisplay = methodSymbol.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
+
+        var callers = await CollectCallersAsync(solution, methodSymbol, maxNodes, cancellationToken).ConfigureAwait(false);
+        var callees = CollectCallees(declModel!, methodDecl!, solution, maxNodes, includeExternalCallees);
+
+        return (
+            new CallGraphResult(
+                targetDisplay,
+                callers.Nodes,
+                callees.Nodes,
+                callers.Truncated,
+                callees.Truncated),
+            null);
+    }
+
+    /// <summary>
+    /// Compatibility entry used by older call sites that always pick by class+method name (no position).
+    /// </summary>
     public static async Task<CallGraphResult> BuildCallGraphAsync(
         Solution solution,
         Document document,
@@ -27,37 +84,23 @@ public static class CallGraphHelper
         bool includeExternalCallees,
         CancellationToken cancellationToken)
     {
-        maxNodes = Math.Clamp(maxNodes, 1, 100);
-
-        var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
-        var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
-        if (root is null || semanticModel is null)
+        var (graph, error) = await TryBuildCallGraphAsync(
+                solution,
+                document,
+                className,
+                methodName,
+                maxNodes,
+                includeExternalCallees,
+                line: null,
+                column: null,
+                cancellationToken)
+            .ConfigureAwait(false);
+        if (error is not null || graph is null)
         {
-            throw new InvalidOperationException("Could not obtain syntax tree or semantic model.");
+            throw new InvalidOperationException(error ?? $"Could not build call graph for `{className}.{methodName}`.");
         }
 
-        var classDecl = TypeSyntaxHelper.FindClassDeclaration(root, className.Trim())
-            ?? throw new InvalidOperationException($"Class `{className}` not found in `{document.FilePath}`.");
-
-        var methodDecl = classDecl.Members
-            .OfType<MethodDeclarationSyntax>()
-            .FirstOrDefault(m => string.Equals(m.Identifier.Text, methodName.Trim(), StringComparison.Ordinal))
-            ?? throw new InvalidOperationException($"Method `{methodName}` not found in class `{className}`.");
-
-        var methodSymbol = semanticModel.GetDeclaredSymbol(methodDecl, cancellationToken) as IMethodSymbol
-            ?? throw new InvalidOperationException($"Could not resolve symbol for `{className}.{methodName}`.");
-
-        var targetDisplay = methodSymbol.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
-
-        var callers = await CollectCallersAsync(solution, methodSymbol, maxNodes, cancellationToken).ConfigureAwait(false);
-        var callees = CollectCallees(semanticModel, methodDecl, solution, maxNodes, includeExternalCallees);
-
-        return new CallGraphResult(
-            targetDisplay,
-            callers.Nodes,
-            callees.Nodes,
-            callers.Truncated,
-            callees.Truncated);
+        return graph;
     }
 
     public static string FormatMarkdown(CallGraphResult graph)
@@ -106,6 +149,41 @@ public static class CallGraphHelper
         }
 
         return sb.ToString().TrimEnd();
+    }
+
+    private static async Task<(MethodDeclarationSyntax? Decl, SemanticModel? Model, string? Error)> ResolveMethodDeclarationAsync(
+        Solution solution,
+        IMethodSymbol methodSymbol,
+        string className,
+        string methodName,
+        CancellationToken cancellationToken)
+    {
+        foreach (var synRef in methodSymbol.DeclaringSyntaxReferences)
+        {
+            if (synRef.GetSyntax(cancellationToken) is not MethodDeclarationSyntax methodDecl)
+            {
+                continue;
+            }
+
+            var declDocument = solution.GetDocument(methodDecl.SyntaxTree);
+            if (declDocument is null)
+            {
+                continue;
+            }
+
+            var declModel = await declDocument.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
+            if (declModel is null)
+            {
+                continue;
+            }
+
+            return (methodDecl, declModel, null);
+        }
+
+        return (
+            null,
+            null,
+            $"Error: Could not resolve method declaration for `{className}.{methodName}`.");
     }
 
     private static string FormatNode(string prefix, CallGraphNode node)

@@ -179,6 +179,11 @@ MCP `tools/list` stays JSON + JSON Schema. Markdown is for JIT help and diagnost
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.4.7
+
+- **`rename_symbol` and `get_call_graph` no longer pick the first overload** — optional `line` and `column` must be passed together or both omitted. With no position, several stage-1 declarations of that name (for the graph: ordinary methods of the named class) return an error listing FQN and identifier line:column, and rename writes nothing. With both coordinates, `SourcePositionHelper` selects that declaration or call site. A call-graph position must be a method. `previewOnly` stays the default. `maxNodes` truncation is unchanged. No `%TEMP%` dump.
+- **Catalog size** — full 63 tools / 50,028 bytes; lite 19 / 22,121.
+
 ### v1.4.6
 
 - **`find_symbol_references` `directOnly`** — optional, default false, and only valid with `filePath`. For a class virtual, abstract, or override method, `true` keeps calls whose static receiver is the declaring type or a type derived from it (`this`, the type itself, a derived type, `?.`). A base-type receiver or a sibling branch is virtual dispatch. If the receiver cannot be resolved, the location is kept. Source and metadata forms of the same type match by full name; closed `T<int>` matches open `T<>` via `ConstructedFrom`. Default false returns the same points and adds one note when some of them are virtual dispatch. The base virtual method is not filtered and gets no note. Interface methods and ordinary methods are unchanged. `directOnly: true` without `filePath` is an error. The filter runs after dedup and before the overflow cap.
@@ -836,8 +841,10 @@ There are **63** registered tools in the default `full` profile (see list below)
 - `methodName: string`
 - `maxNodes: int = 25` — cap per callers/callees list
 - `includeExternalCallees: bool = false` — include BCL / external calls
+- `line: int?` — optional 1-based line; must be passed together with `column`
+- `column: int?` — optional 1-based column; must be passed together with `line`
 
-**Behavior:** Requires `load_workspace`. Uses `SymbolFinder.FindCallersAsync` and invocation analysis inside the method body. Use for bug investigation instead of loading many bodies via `get_method_body`.
+**Behavior:** Requires `load_workspace`. Uses `SymbolFinder.FindCallersAsync` and invocation analysis inside the method body. Without position, several same-named methods in the class is an error (FQN + line:column), not the first match. With `line`+`column`, resolves a declaration or call site. Use for bug investigation instead of loading many bodies via `get_method_body`.
 
 </details>
 
@@ -1179,10 +1186,12 @@ Verify id/version with `search_nuget_registry` first. Clears workspace cache —
 - `newName: string`
 - `scope: string = "project"` — allowed: `project` | `solution`
 - `previewOnly: bool = true`
+- `line: int?` — optional 1-based line; must be passed together with `column`
+- `column: int?` — optional 1-based column; must be passed together with `line`
 
 **Scope:** C# symbols only (types/members/namespaces as symbols). For project folder / `.csproj` / solution graph use `rename_project`. For README/rules/URLs use host Grep/edit.
 
-**Behavior:** persist goes through the same write boundary as `apply_code_fix`. Unsupported analyzer-reference diffs are rejected before writes. Partial save reports Status, Reason, and known saved paths — not full success of the rename.
+**Behavior:** Without position, several same-named declarations in the file is an error (FQN + line:column) and nothing is written. With `line`+`column`, resolves a declaration or usage in that file. Persist goes through the same write boundary as `apply_code_fix`. Unsupported analyzer-reference diffs are rejected before writes. Partial save reports Status, Reason, and known saved paths — not full success of the rename. Preview remains the default.
 </details>
 
 <details>
@@ -1462,7 +1471,7 @@ cd D:\Devel\YourApp
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.4.6). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.4.7). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 
@@ -1701,9 +1710,9 @@ cd D:\Devel\YourApp
 <details>
 <summary><code>get_call_graph</code> — Кто вызывает метод и что вызывает он (call graph).</summary>
 
-**Параметры:** `filePath`, `className`, `methodName`, `maxNodes: int = 25`, `includeExternalCallees: bool = false`
+**Параметры:** `filePath`, `className`, `methodName`, `maxNodes: int = 25`, `includeExternalCallees: bool = false`, `line: int?`, `column: int?` (строка и колонка только вместе)
 
-Нужен `load_workspace`. Для расследования багов — вместо массовой загрузки тел через `get_method_body`.
+Нужен `load_workspace`. Без позиции несколько одноимённых методов в классе — ошибка (FQN + line:column), не первый. С `line`+`column` — объявление или место вызова. Для расследования багов — вместо массовой загрузки тел через `get_method_body`.
 
 </details>
 
@@ -2043,10 +2052,12 @@ cd D:\Devel\YourApp
 - `newName: string`
 - `scope: string = "project"` — допустимо: `project` | `solution`
 - `previewOnly: bool = true`
+- `line: int?` — необязательная 1-based строка; только вместе с `column`
+- `column: int?` — необязательная 1-based колонка; только вместе с `line`
 
 **Область:** только C# символы. Для папки проекта / `.csproj` / графа solution — `rename_project`. Для README/rules/URL — host Grep/edit.
 
-**Поведение:** сохранение идёт через тот же write boundary, что и `apply_code_fix`. Неподдержанный analyzer-reference diff отклоняется до записи. Частичное сохранение сообщает Status, Reason и известные пути — это не полный успех rename.
+**Поведение:** без позиции несколько одноимённых объявлений в файле — ошибка (FQN + line:column), запись на диск не выполняется. С `line`+`column` — объявление или использование в этом файле. Сохранение идёт через тот же write boundary, что и `apply_code_fix`. Неподдержанный analyzer-reference diff отклоняется до записи. Частичное сохранение сообщает Status, Reason и известные пути — это не полный успех rename. Предпросмотр по-прежнему по умолчанию.
 </details>
 
 <details>

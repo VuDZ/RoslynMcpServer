@@ -995,13 +995,15 @@ public sealed class UtilityTools
 
     [McpServerTool(Name = "rename_symbol", Title = "RenameSymbol")]
     [Description(
-        "Semantic C# symbol rename. Default previewOnly=true. For project folders use rename_project.")]
+        "Rename C# symbol. previewOnly=true default. Overloads: line+column together.")]
     public async Task<string> RenameSymbol(
-        [Description("Path to a C# file containing the symbol.")] string filePath,
-        [Description("Current symbol name.")] string symbolName,
-        [Description("New symbol name.")] string newName,
-        [Description("Rename scope: project (default) or solution.")] string scope = "project",
-        [Description("When true (default), preview only and do not write.")] bool previewOnly = true,
+        [Description("C# file with the symbol.")] string filePath,
+        [Description("Current name.")] string symbolName,
+        [Description("New name.")] string newName,
+        [Description("project or solution.")] string scope = "project",
+        [Description("Default true; false writes.")] bool previewOnly = true,
+        [Description("1-based; with column.")] int? line = null,
+        [Description("1-based; with line.")] int? column = null,
         CancellationToken cancellationToken = default)
     {
         try
@@ -1046,46 +1048,41 @@ public sealed class UtilityTools
                 ?? publishedSolution;
             document = searchSolution.GetDocument(publishedDocument.Id) ?? publishedDocument;
 
-            var root = await document.GetSyntaxRootAsync(cancellationToken);
-            var semanticModel = await document.GetSemanticModelAsync(cancellationToken);
-            if (root is null || semanticModel is null)
+            var (selection, selectError) = await SymbolSelectionHelper
+                .TrySelectForRenameAsync(document, symbolName, line, column, cancellationToken)
+                .ConfigureAwait(false);
+            if (selectError is not null)
             {
                 _logger.LogWarning(
-                    "RenameSymbol: no syntax/semantic model for `{SymbolName}` -> `{NewName}` in `{FilePath}`.",
+                    "RenameSymbol: selection failed for `{SymbolName}` -> `{NewName}` in `{FilePath}`: {Error}",
                     symbolName,
                     newName,
-                    filePath);
-                return ToolTelemetry.TraceAndReturn(nameof(RenameSymbol), "Error: Failed to obtain syntax root or semantic model.");
+                    filePath,
+                    selectError);
+                return ToolTelemetry.TraceAndReturn(nameof(RenameSymbol), selectError);
             }
 
-            var targetSymbol = ExtractTargetSymbol(root, semanticModel, symbolName, cancellationToken);
-            if (targetSymbol is null)
+            if (selection is null)
             {
-                _logger.LogWarning(
-                    "RenameSymbol: symbol `{SymbolName}` not found for rename to `{NewName}` in `{FilePath}`.",
-                    symbolName,
-                    newName,
-                    filePath);
                 return ToolTelemetry.TraceAndReturn(nameof(RenameSymbol), $"Error: Symbol `{symbolName}` not found.");
             }
+
+            var absolutePosition = selection.AbsolutePosition;
+            var selectedFqn = SymbolDeclarationResolver.GetSymbolFqn(selection.Symbol);
 
             var (references, _) = await WorkspaceAnalyzerSanitizer.WithSanitizedRetryAsync(
                 async sol =>
                 {
-                    var mapped = sol.GetDocument(publishedDocument.Id)
-                        ?? throw new InvalidOperationException(
-                            $"Document `{fullPath}` is not in the sanitized solution snapshot.");
-                    var mappedRoot = await mapped.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
-                    var mappedModel = await mapped.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
-                    if (mappedRoot is null || mappedModel is null)
-                    {
-                        throw new InvalidOperationException(
-                            "Failed to obtain syntax root or semantic model for the sanitized solution snapshot.");
-                    }
-
-                    var mappedSymbol = ExtractTargetSymbol(mappedRoot, mappedModel, symbolName, cancellationToken)
-                        ?? throw new InvalidOperationException(
-                            $"Symbol `{symbolName}` was not found in the sanitized solution snapshot.");
+                    var mappedSymbol = await RemapRenameTargetAsync(
+                            sol,
+                            publishedDocument.Id,
+                            fullPath,
+                            symbolName,
+                            line,
+                            column,
+                            absolutePosition,
+                            cancellationToken)
+                        .ConfigureAwait(false);
                     return await SymbolFinder.FindReferencesAsync(mappedSymbol, sol, cancellationToken)
                         .ConfigureAwait(false);
                 },
@@ -1109,12 +1106,13 @@ public sealed class UtilityTools
             {
                 var preview = new StringBuilder();
                 preview.AppendLine($"Symbol: `{symbolName}` -> `{newName}`");
+                preview.AppendLine($"Target: `{selectedFqn}`");
                 preview.AppendLine($"Scope: {normalizedScope}");
                 preview.AppendLine($"Affected locations: {affectedLocations.Count}");
                 foreach (var location in affectedLocations.Take(100))
                 {
-                    var line = location.Location.GetLineSpan().StartLinePosition.Line + 1;
-                    preview.AppendLine($"- {location.Document.FilePath}:{line}");
+                    var locLine = location.Location.GetLineSpan().StartLinePosition.Line + 1;
+                    preview.AppendLine($"- {location.Document.FilePath}:{locLine}");
                 }
                 if (affectedLocations.Count > 100)
                 {
@@ -1127,18 +1125,16 @@ public sealed class UtilityTools
             var (renamePair, _) = await WorkspaceAnalyzerSanitizer.WithSanitizedRetryAsync(
                 async sol =>
                 {
-                    var mapped = sol.GetDocument(publishedDocument.Id)
-                        ?? throw new InvalidOperationException(
-                            $"Document `{fullPath}` is not in the sanitized solution snapshot.");
-                    var mappedRoot = await mapped.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
-                    var mappedModel = await mapped.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
-                    if (mappedRoot is null || mappedModel is null)
-                    {
-                        throw new InvalidOperationException("Failed to obtain syntax root or semantic model.");
-                    }
-
-                    var mappedSymbol = ExtractTargetSymbol(mappedRoot, mappedModel, symbolName, cancellationToken)
-                        ?? throw new InvalidOperationException($"Symbol `{symbolName}` not found.");
+                    var mappedSymbol = await RemapRenameTargetAsync(
+                            sol,
+                            publishedDocument.Id,
+                            fullPath,
+                            symbolName,
+                            line,
+                            column,
+                            absolutePosition,
+                            cancellationToken)
+                        .ConfigureAwait(false);
                     var renamed = await Renamer.RenameSymbolAsync(
                         sol,
                         mappedSymbol,
@@ -1474,44 +1470,43 @@ public sealed class UtilityTools
         return result;
     }
 
-    private static ISymbol? ExtractTargetSymbol(
-        SyntaxNode root,
-        SemanticModel semanticModel,
+    private static async Task<ISymbol> RemapRenameTargetAsync(
+        Solution solution,
+        DocumentId documentId,
+        string fullPath,
         string symbolName,
+        int? line,
+        int? column,
+        int? absolutePosition,
         CancellationToken cancellationToken)
     {
-        foreach (var node in root.DescendantNodes())
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            switch (node)
-            {
-                case ClassDeclarationSyntax c when string.Equals(c.Identifier.Text, symbolName, StringComparison.Ordinal):
-                    return semanticModel.GetDeclaredSymbol(c, cancellationToken);
-                case StructDeclarationSyntax s when string.Equals(s.Identifier.Text, symbolName, StringComparison.Ordinal):
-                    return semanticModel.GetDeclaredSymbol(s, cancellationToken);
-                case InterfaceDeclarationSyntax i when string.Equals(i.Identifier.Text, symbolName, StringComparison.Ordinal):
-                    return semanticModel.GetDeclaredSymbol(i, cancellationToken);
-                case EnumDeclarationSyntax e when string.Equals(e.Identifier.Text, symbolName, StringComparison.Ordinal):
-                    return semanticModel.GetDeclaredSymbol(e, cancellationToken);
-                case MethodDeclarationSyntax m when string.Equals(m.Identifier.Text, symbolName, StringComparison.Ordinal):
-                    return semanticModel.GetDeclaredSymbol(m, cancellationToken);
-                case PropertyDeclarationSyntax p when string.Equals(p.Identifier.Text, symbolName, StringComparison.Ordinal):
-                    return semanticModel.GetDeclaredSymbol(p, cancellationToken);
-                case FieldDeclarationSyntax f:
-                {
-                    var v = f.Declaration.Variables.FirstOrDefault(x =>
-                        string.Equals(x.Identifier.Text, symbolName, StringComparison.Ordinal));
-                    if (v is not null)
-                    {
-                        return semanticModel.GetDeclaredSymbol(v, cancellationToken);
-                    }
+        var mapped = solution.GetDocument(documentId)
+            ?? throw new InvalidOperationException(
+                $"Document `{fullPath}` is not in the sanitized solution snapshot.");
 
-                    break;
-                }
-            }
+        if (absolutePosition is int position)
+        {
+            var mappedRoot = await mapped.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false)
+                ?? throw new InvalidOperationException(
+                    "Failed to obtain syntax root for the sanitized solution snapshot.");
+            var mappedModel = await mapped.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false)
+                ?? throw new InvalidOperationException(
+                    "Failed to obtain semantic model for the sanitized solution snapshot.");
+            return SourcePositionHelper.GetSymbolAtPosition(mappedModel, mappedRoot, position, cancellationToken)
+                ?? throw new InvalidOperationException(
+                    $"Symbol `{symbolName}` was not found at the requested position in the sanitized solution snapshot.");
         }
 
-        return null;
+        var (selection, error) = await SymbolSelectionHelper
+            .TrySelectForRenameAsync(mapped, symbolName, line, column, cancellationToken)
+            .ConfigureAwait(false);
+        if (error is not null || selection is null)
+        {
+            throw new InvalidOperationException(
+                error ?? $"Symbol `{symbolName}` was not found in the sanitized solution snapshot.");
+        }
+
+        return selection.Symbol;
     }
 
     private static string? ExtractSimpleCsprojValue(string xml, string elementName)

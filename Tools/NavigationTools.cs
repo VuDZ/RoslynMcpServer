@@ -1157,13 +1157,16 @@ public sealed class NavigationTools
     }
 
     [McpServerTool(Name = "get_call_graph", Title = "Get method call graph")]
-    [Description("Lists callers and callees of a method in the loaded workspace. Requires load_workspace.")]
+    [Description(
+        "Callers/callees. Requires load_workspace. Overloads: line+column (not first).")]
     public async Task<string> GetCallGraph(
-        [Description("Path to the .cs file containing the method.")] string filePath,
-        [Description("Class containing the method.")] string className,
+        [Description(".cs file with the method.")] string filePath,
+        [Description("Containing class.")] string className,
         [Description("Method name.")] string methodName,
-        [Description("Max nodes per callers/callees list.")] int maxNodes = 25,
-        [Description("When true, include callees outside the loaded solution.")] bool includeExternalCallees = false,
+        [Description("Cap per list.")] int maxNodes = 25,
+        [Description("Include external callees.")] bool includeExternalCallees = false,
+        [Description("1-based; with column.")] int? line = null,
+        [Description("1-based; with line.")] int? column = null,
         CancellationToken cancellationToken = default)
     {
         const string toolName = nameof(GetCallGraph);
@@ -1179,21 +1182,36 @@ public sealed class NavigationTools
             var publishedDocument = document;
             var solution = await _solutionManager.GetSanitizedPublishedSolutionAsync(cancellationToken).ConfigureAwait(false)
                 ?? publishedDocument.Project.Solution;
-            var (graph, _) = await WorkspaceAnalyzerSanitizer.WithSanitizedRetryAsync(
+            var (build, _) = await WorkspaceAnalyzerSanitizer.WithSanitizedRetryAsync(
                     sol =>
                     {
                         var mapped = sol.GetDocument(publishedDocument.Id)
                             ?? throw new InvalidOperationException(
                                 $"Document `{fullPath}` is not in the sanitized solution snapshot.");
-                        return CallGraphHelper.BuildCallGraphAsync(
-                            sol, mapped, className, methodName, maxNodes, includeExternalCallees, cancellationToken);
+                        return CallGraphHelper.TryBuildCallGraphAsync(
+                            sol,
+                            mapped,
+                            className,
+                            methodName,
+                            maxNodes,
+                            includeExternalCallees,
+                            line,
+                            column,
+                            cancellationToken);
                     },
                     () => _solutionManager.GetSanitizedPublishedSolution(),
                     solution,
                     cancellationToken)
                 .ConfigureAwait(false);
 
-            return ToolTelemetry.TraceAndReturn(toolName, CallGraphHelper.FormatMarkdown(graph));
+            if (build.Error is not null || build.Graph is null)
+            {
+                return ToolTelemetry.TraceAndReturn(
+                    toolName,
+                    build.Error ?? $"Failed to build call graph for `{className}.{methodName}`.");
+            }
+
+            return ToolTelemetry.TraceAndReturn(toolName, CallGraphHelper.FormatMarkdown(build.Graph));
         }
         catch (OperationCanceledException)
         {

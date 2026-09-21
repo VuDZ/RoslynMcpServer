@@ -79,14 +79,26 @@ internal static class FileDeclarationCollector
         return matches;
     }
 
-    public static string FormatAmbiguity(string symbolName, string filePath, IReadOnlyList<Match> matches)
+    /// <param name="disambiguationAdvice">
+    /// Sentence after the match count (before the listing). Default keeps stage-1 optional-column wording.
+    /// Rename / call graph pass advice that requires <c>line</c> and <c>column</c> together.
+    /// </param>
+    public static string FormatAmbiguity(
+        string symbolName,
+        string filePath,
+        IReadOnlyList<Match> matches,
+        string? disambiguationAdvice = null)
     {
         ArgumentNullException.ThrowIfNull(matches);
+
+        var advice = string.IsNullOrWhiteSpace(disambiguationAdvice)
+            ? "Pass `line` (and `column` if needed) to disambiguate:"
+            : disambiguationAdvice.Trim();
 
         var sb = new System.Text.StringBuilder();
         sb.AppendLine(
             $"Error: Ambiguous: identifier `{symbolName}` matches {matches.Count} declarations in `{filePath}`. "
-            + "Pass `line` (and `column` if needed) to disambiguate:");
+            + advice);
         foreach (var match in matches)
         {
             sb.AppendLine(
