@@ -55,7 +55,7 @@ public sealed class SolutionManager
 
     private readonly ConcurrentDictionary<string, byte> _dirtySourcePaths;
     private readonly ConcurrentDictionary<string, long> _selfWriteUntilTicks;
-    private FileSystemWatcher? _diskWatcher;
+    private readonly List<FileSystemWatcher> _diskWatchers = new();
     private readonly ConcurrentDictionary<string, byte> _missingOnDiskPaths;
     private volatile bool _refreshAllDocuments;
     private volatile bool _projectGraphStale;
@@ -1731,7 +1731,9 @@ public sealed class SolutionManager
         _loadedTargetFramework = targetFramework;
         ApplySessionBuildArgs(buildArgs);
         _lastDiagnostics = CollectDiagnostics(workspace, capturedDiagnostics);
-        StartDiskWatcherUnderLock(fullPath);
+        StartDiskWatcherUnderLock(
+            fullPath,
+            workspace.CurrentSolution.Projects.Select(static project => project.FilePath));
         _logger.LogInformation(
             "Loaded Roslyn workspace from {Path} (Configuration={Configuration}, Platform={Platform}, TargetFramework={TargetFramework}, BuildArgs={BuildArgs})",
             fullPath,
@@ -1903,71 +1905,208 @@ public sealed class SolutionManager
         LogProcessWorkingSet("document_update");
     }
 
-    private void StartDiskWatcherUnderLock(string workspaceFilePath)
+    /// <summary>
+    /// Directories to watch (and later to search) for a loaded workspace: directory of
+    /// <paramref name="loadedFilePath"/> union directories of <paramref name="projectFilePaths"/>,
+    /// with nested duplicates removed (if A contains B, keep A). Does not invent ancestor
+    /// <c>Directory.Build.props</c> roots and does not LCA-merge (Unix absolute paths stay rooted).
+    /// </summary>
+    internal static IReadOnlyList<string> ComputeWatchRoots(
+        string? loadedFilePath,
+        IEnumerable<string?>? projectFilePaths)
     {
-        StopDiskWatcherUnderLock();
-        var directory = Path.GetDirectoryName(Path.GetFullPath(workspaceFilePath));
-        if (string.IsNullOrWhiteSpace(directory) || !Directory.Exists(directory))
+        var comparison = OperatingSystem.IsWindows()
+            ? StringComparison.OrdinalIgnoreCase
+            : StringComparison.Ordinal;
+        var comparer = OperatingSystem.IsWindows()
+            ? StringComparer.OrdinalIgnoreCase
+            : StringComparer.Ordinal;
+
+        var directories = new HashSet<string>(comparer);
+        TryAddWatchDirectory(directories, loadedFilePath);
+        if (projectFilePaths is not null)
         {
-            _logger.LogDebug("Disk watcher not started: workspace directory missing ({Path}).", workspaceFilePath);
-            return;
+            foreach (var projectFilePath in projectFilePaths)
+            {
+                TryAddWatchDirectory(directories, projectFilePath);
+            }
+        }
+
+        if (directories.Count == 0)
+        {
+            return Array.Empty<string>();
+        }
+
+        var roots = new List<string>();
+        foreach (var directory in directories)
+        {
+            var nested = false;
+            foreach (var other in directories)
+            {
+                if (comparer.Equals(directory, other))
+                {
+                    continue;
+                }
+
+                if (IsStrictSubdirectory(directory, other, comparison))
+                {
+                    nested = true;
+                    break;
+                }
+            }
+
+            if (!nested)
+            {
+                roots.Add(directory);
+            }
+        }
+
+        roots.Sort(comparer);
+        return roots;
+    }
+
+    private static void TryAddWatchDirectory(HashSet<string> directories, string? filePath)
+    {
+        var directory = TryGetFileDirectory(filePath);
+        if (directory is not null)
+        {
+            directories.Add(directory);
+        }
+    }
+
+    private static string? TryGetFileDirectory(string? filePath)
+    {
+        if (string.IsNullOrWhiteSpace(filePath) || filePath.IndexOfAny(Path.GetInvalidPathChars()) >= 0)
+        {
+            return null;
         }
 
         try
         {
-            var watcher = new FileSystemWatcher(directory)
+            var fullPath = Path.GetFullPath(filePath.Trim());
+            var directory = Path.GetDirectoryName(fullPath);
+            if (string.IsNullOrEmpty(directory))
             {
-                IncludeSubdirectories = true,
-                NotifyFilter = NotifyFilters.FileName
-                    | NotifyFilters.LastWrite
-                    | NotifyFilters.Size
-                    | NotifyFilters.DirectoryName,
-                Filter = "*.*",
-            };
-
-            if (OperatingSystem.IsWindows())
-            {
-                watcher.InternalBufferSize = 64 * 1024;
+                return null;
             }
 
-            watcher.Changed += OnDiskWatcherChanged;
-            watcher.Created += OnDiskWatcherChanged;
-            watcher.Deleted += OnDiskWatcherChanged;
-            watcher.Renamed += OnDiskWatcherRenamed;
-            watcher.Error += OnDiskWatcherError;
-            watcher.EnableRaisingEvents = true;
-            _diskWatcher = watcher;
-            _logger.LogInformation("Disk watcher started on {Directory}", directory);
+            return Path.GetFullPath(directory);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (
+            ex is ArgumentException
+                or NotSupportedException
+                or PathTooLongException
+                or IOException)
         {
-            _logger.LogWarning(ex, "Disk watcher failed to start for {Directory}. Symbol search stays on the load snapshot until reset_workspace.", directory);
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// True when <paramref name="candidate"/> is strictly inside <paramref name="parent"/>
+    /// (trailing separators ignored; <c>repo</c> does not contain <c>repo-other</c>).
+    /// </summary>
+    private static bool IsStrictSubdirectory(string candidate, string parent, StringComparison comparison)
+    {
+        var parentTrim = parent.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        var candidateTrim = candidate.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        if (string.Equals(parentTrim, candidateTrim, comparison))
+        {
+            return false;
+        }
+
+        var prefix = parentTrim + Path.DirectorySeparatorChar;
+        if (candidateTrim.StartsWith(prefix, comparison))
+        {
+            return true;
+        }
+
+        if (Path.DirectorySeparatorChar != Path.AltDirectorySeparatorChar)
+        {
+            var altPrefix = parentTrim + Path.AltDirectorySeparatorChar;
+            if (candidateTrim.StartsWith(altPrefix, comparison))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void StartDiskWatcherUnderLock(string workspaceFilePath, IEnumerable<string?> projectFilePaths)
+    {
+        StopDiskWatcherUnderLock();
+        var roots = ComputeWatchRoots(workspaceFilePath, projectFilePaths);
+        foreach (var directory in roots)
+        {
+            if (string.IsNullOrWhiteSpace(directory) || !Directory.Exists(directory))
+            {
+                _logger.LogDebug("Disk watcher not started: workspace directory missing ({Path}).", directory);
+                continue;
+            }
+
+            FileSystemWatcher? watcher = null;
+            try
+            {
+                watcher = new FileSystemWatcher(directory)
+                {
+                    IncludeSubdirectories = true,
+                    NotifyFilter = NotifyFilters.FileName
+                        | NotifyFilters.LastWrite
+                        | NotifyFilters.Size
+                        | NotifyFilters.DirectoryName,
+                    Filter = "*.*",
+                };
+
+                if (OperatingSystem.IsWindows())
+                {
+                    watcher.InternalBufferSize = 64 * 1024;
+                }
+
+                watcher.Changed += OnDiskWatcherChanged;
+                watcher.Created += OnDiskWatcherChanged;
+                watcher.Deleted += OnDiskWatcherChanged;
+                watcher.Renamed += OnDiskWatcherRenamed;
+                watcher.Error += OnDiskWatcherError;
+                watcher.EnableRaisingEvents = true;
+                _diskWatchers.Add(watcher);
+                watcher = null;
+                _logger.LogInformation("Disk watcher started on {Directory}", directory);
+            }
+            catch (Exception ex)
+            {
+                watcher?.Dispose();
+                _logger.LogWarning(ex, "Disk watcher failed to start for {Directory}. Symbol search stays on the load snapshot until reset_workspace.", directory);
+            }
         }
     }
 
     private void StopDiskWatcherUnderLock()
     {
-        var watcher = _diskWatcher;
-        if (watcher is null)
+        if (_diskWatchers.Count == 0)
         {
             return;
         }
 
-        _diskWatcher = null;
-        try
+        var watchers = _diskWatchers.ToArray();
+        _diskWatchers.Clear();
+        foreach (var watcher in watchers)
         {
-            watcher.EnableRaisingEvents = false;
-        }
-        catch (ObjectDisposedException)
-        {
-        }
+            try
+            {
+                watcher.EnableRaisingEvents = false;
+            }
+            catch (ObjectDisposedException)
+            {
+            }
 
-        watcher.Changed -= OnDiskWatcherChanged;
-        watcher.Created -= OnDiskWatcherChanged;
-        watcher.Deleted -= OnDiskWatcherChanged;
-        watcher.Renamed -= OnDiskWatcherRenamed;
-        watcher.Error -= OnDiskWatcherError;
-        watcher.Dispose();
+            watcher.Changed -= OnDiskWatcherChanged;
+            watcher.Created -= OnDiskWatcherChanged;
+            watcher.Deleted -= OnDiskWatcherChanged;
+            watcher.Renamed -= OnDiskWatcherRenamed;
+            watcher.Error -= OnDiskWatcherError;
+            watcher.Dispose();
+        }
     }
 
     private void OnDiskWatcherChanged(object sender, FileSystemEventArgs e)
