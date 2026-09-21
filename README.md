@@ -179,6 +179,11 @@ MCP `tools/list` stays JSON + JSON Schema. Markdown is for JIT help and diagnost
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.4.9
+
+- **Optional `RoslynMcp.jsonc` and passed-only `load_workspace` compare** — the server reads `RoslynMcp.jsonc` from the executable directory, then from the process working directory (cwd wins; comments allowed). Relative `workspace-path` resolves against cwd. `ROSLYN_MCP_WORKSPACE` still sets that directory at startup. No file means call `load_workspace` yourself. If `workspace-path` is set, the first semantic tool loads through `LoadAndPrepareAsync` and waits; it does not cancel a load already in progress. A broken file disables lazy load; `load_workspace` still works and the parse failure stays visible. `load_workspace` compares only arguments you passed: an omitted configuration, platform, or target framework does not reopen and does not clear the value already loaded. A different configuration reloads and keeps the platform and TFM you did not mention. `max-results` and `preview` in the file apply only when the tool argument is omitted (`ROSLYN_MCP_MAX_RESULTS` and an explicit arg still win). `ripgrep-path` is stored for a later opt-in and does not switch search. `shadowCopyInSolutionAnalyzers` is not a config key. `get_mcp_server_info` shows which files were read, the merged keys, and whether the solution came from the file or from `load_workspace`.
+- **Catalog size** — full 63 tools / 50,074 bytes; lite 19 / 22,087.
+
 ### v1.4.8
 
 - **`find_symbol_definition` pages the tail** — optional `maxResults` and `overflowCursor`, same rules as references (explicit arg, else `ROSLYN_MCP_MAX_RESULTS`, else 50, clamp 1–500). Every in-source place is collected first (column and full name unchanged), then the already-built list is capped. The next chunk is the same tool with `overflowCursor` and does not search again. The old hard stop at 200 places is gone. A call that used to return up to 200 places now returns the first page plus a cursor when more remain. No `%TEMP%` file.
@@ -608,7 +613,8 @@ Even if the MCP is active, AI clients don't always load the tools into the curre
 Policy summary (full text in the sample):
 
 - Verify the server with `get_mcp_server_info`; inspect missing `lite` tools with `list_tool_groups` / `enable_tool_group`
-- `load_workspace` before symbol / build / decompile work; prefer `.sln` / `.slnx`
+- Optional `RoslynMcp.jsonc` (exe directory, then cwd; cwd wins). Set `ROSLYN_MCP_WORKSPACE` to the repo root at startup so cwd is not the user profile. See `RoslynMcp.jsonc.sample` and `AGENTS.md.sample`
+- `load_workspace` before symbol / build / decompile work (or rely on config `workspace-path`); prefer `.sln` / `.slnx`; compares only arguments you passed
 - Missing `Compile` target on load → retry with `targetFramework` (inner TFM); not SDK mismatch
 - VS 2026 BuildHost / `XMakeElements` → not SDK mismatch; need MCP 1.0.35+ or a single SDK-style `.csproj`
 - C# identifiers → MCP first; plain text → host Grep; never shell `grep` / `dotnet build|test`
@@ -621,7 +627,7 @@ Policy summary (full text in the sample):
 - Global incoming JSON-RPC logging is enabled by default.
 - **Tool output:** logged as a one-line summary plus separate warning/error lines (not a duplicated full MCP response). Set `ROSLYN_MCP_LOG_TOOL_OUTPUT=full` to log entire tool responses at Information level.
 - Environment Variables:
-  - `ROSLYN_MCP_WORKSPACE` — repo root for MSBuild/SDK discovery at startup (see MCP config above).
+  - `ROSLYN_MCP_WORKSPACE` — repo root for MSBuild/SDK discovery at startup (see MCP config above). Also sets process cwd so `RoslynMcp.jsonc` in the working directory is read from the repo, not the user profile.
   - `ROSLYN_MCP_TOOL_PROFILE` — `full` (default) or `lite` (see **Tool profiles**).
   - `ROSLYN_MCP_TOOL_GROUPS` — comma-separated extra groups for `lite` at startup. Valid: `core`, `files`, `editing`, `decompile`, `nuget`, `project`, `runtime`, `operations` (see **Tool profiles**).
   - `ROSLYN_MCP_LOG_TOOL_OUTPUT=full` — verbose tool response logging.
@@ -1480,7 +1486,7 @@ cd D:\Devel\YourApp
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.4.8). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.4.9). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 
@@ -1495,7 +1501,8 @@ cd D:\Devel\YourApp
 Кратко для модели:
 
 - проверить сервер через `get_mcp_server_info`; отсутствующие `lite`-tools — через `list_tool_groups` / `enable_tool_group`
-- после `load_workspace` объявления C# — MCP `find_symbol_definition` / `find_usages`, не текстовый поиск и не выдуманный `search`
+- опциональный `RoslynMcp.jsonc` (каталог exe, затем cwd; cwd перекрывает). `ROSLYN_MCP_WORKSPACE` в начале процесса ставит cwd на корень репо — без него cwd часто домашний каталог, и файл проекта читается не оттуда. Ключи: `workspace-path`, `configuration`, `platform`, `target-framework`, `max-results`, `preview`, `ripgrep-path`. Нет файла — вызывайте `load_workspace` сами. Первый семантический tool при `workspace-path` грузит решение и ждёт; чужую загрузку не отменяет. `load_workspace` сравнивает только переданные аргументы (опущенные не сбрасывают уже загруженные). Sample: `RoslynMcp.jsonc.sample`
+- после `load_workspace` (или lazy из jsonc) объявления C# — MCP `find_symbol_definition` / `find_usages`, не текстовый поиск и не выдуманный `search`
 - нет target `Compile` при load — повторить с `targetFramework` (inner TFM); это не SDK mismatch
 - VS 2026 BuildHost / `XMakeElements` — это не SDK mismatch; нужен MCP 1.0.35+ или один SDK-style `.csproj`
 - текст по файлам — host Grep IDE, не shell grep

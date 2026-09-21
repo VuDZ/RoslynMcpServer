@@ -1,0 +1,13 @@
+{
+  // Optional Roslyn MCP settings. Copy to RoslynMcp.jsonc next to the published exe
+  // and/or in the process working directory (cwd wins for the same keys).
+  // Set ROSLYN_MCP_WORKSPACE to the repo root at startup so cwd is not the user profile.
+
+  // "workspace-path": "YourApp.sln",
+  // "configuration": "Debug",
+  // "platform": "Any CPU",
+  // "target-framework": "net10.0",
+  // "max-results": 50,
+  // "preview": false,
+  // "ripgrep-path": "rg"
+}

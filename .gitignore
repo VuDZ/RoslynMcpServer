@@ -35,6 +35,7 @@ Thumbs.db
 .curcor/
 .opencode/
 AGENTS.md
+RoslynMcp.jsonc
 .cursor/*
 !.cursor/rules/
 !.cursor/rules/**

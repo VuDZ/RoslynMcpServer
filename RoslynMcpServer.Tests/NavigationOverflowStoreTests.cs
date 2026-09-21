@@ -114,6 +114,25 @@ public sealed class NavigationListingHelperTests : IDisposable
     }
 
     [Fact]
+    public void ResolveMaxResults_uses_config_when_arg_and_env_omitted()
+    {
+        Environment.SetEnvironmentVariable(NavigationListingHelper.MaxResultsEnvVariable, null);
+        Assert.Equal(77, NavigationListingHelper.ResolveMaxResults(null, configFallback: 77));
+        Assert.Equal(7, NavigationListingHelper.ResolveMaxResults(7, configFallback: 77));
+        Environment.SetEnvironmentVariable(NavigationListingHelper.MaxResultsEnvVariable, "42");
+        Assert.Equal(42, NavigationListingHelper.ResolveMaxResults(null, configFallback: 77));
+    }
+
+    [Fact]
+    public void ResolvePreview_uses_config_when_arg_omitted()
+    {
+        Assert.False(NavigationListingHelper.ResolvePreview(null));
+        Assert.True(NavigationListingHelper.ResolvePreview(null, configFallback: true));
+        Assert.False(NavigationListingHelper.ResolvePreview(false, configFallback: true));
+        Assert.True(NavigationListingHelper.ResolvePreview(true, configFallback: false));
+    }
+
+    [Fact]
     public void FormatLocationLine_preview_false_omits_source_text()
     {
         var line = NavigationListingHelper.FormatLocationLine(@"C:\src\A.cs", 10, 4, previewSourceLine: null);

@@ -24,12 +24,14 @@ public sealed class WorkspaceTools
 
     [McpServerTool(Name = "load_workspace", Title = "Load C# workspace")]
     [Description(
-        "Loads a .sln, .slnx, or .csproj into the semantic workspace. Call this first before C# analysis. "
+        "Loads a .sln, .slnx, or .csproj into the semantic workspace. Call before C# analysis unless RoslynMcp.jsonc set workspace-path (first semantic tool loads it and waits; does not cancel an in-progress load). "
+        + "Compares only arguments you passed: omitted configuration/platform/targetFramework/buildArgs do not clear already-loaded values. "
+        + "A different configuration reloads and keeps platform/TFM you did not mention. Same path with no explicit differences returns the loaded workspace. "
         + "Optional configuration/platform/targetFramework are MSBuild global properties; targetFramework is required when the project uses TargetFrameworks. "
         + "Optional buildArgs is a session suffix for later `dotnet build` (probe and pre-test build); do not put -c / -p:Platform / -v / --no-incremental there. "
-        + "briefOutput=true collapses MSBuild/NuGet warnings to category and code counts (default false keeps full messages). Failures always print in full. "
-        + "logProjectOutputDiagnostics=true logs per-project OutputFilePath/GeneratedFilesOutputDirectory and AnalyzerReference file existence/timestamp to the MCP server log (diagnostic-only, not returned in this response) — use to debug analyzer/generator projects not producing generated sources when Directory.Build.props overrides OutputPath. "
-        + "shadowCopyInSolutionAnalyzers=true fixes that same case: rewrites AnalyzerReferences that point at another in-solution project's build output to a private shadow copy of that project's own resolved output, so source generation works even when the design-time-resolved AnalyzerReference path was wrong, and the real build output is never locked by this process. Requires the referenced analyzer/generator project to have been built at least once. Prepared generations are content-hashed and immutable; later document edits reapply the in-memory mapping without recopying analyzer files. Activation is session-sticky: after enablement, cached false/omitted calls preserve the active overlay; reset_workspace or reopening another load key clears it. Same-identity rebuild needs a new MCP process (reset_workspace does not unload CLR); private helper DLLs are refused (main-only).")]
+        + "briefOutput=true collapses MSBuild/NuGet warnings to category and code counts (default false). Failures always print in full. "
+        + "logProjectOutputDiagnostics=true logs OutputFilePath/GeneratedFilesOutputDirectory and AnalyzerReference existence to the server log. "
+        + "shadowCopyInSolutionAnalyzers=true rewrites in-solution AnalyzerReferences to private shadow copies (session-sticky; not a RoslynMcp.jsonc key; reset_workspace clears).")]
     public async Task<string> LoadWorkspace(
         [Description("Path to a .sln, .slnx, or .csproj file, not a directory.")]
         string workspacePath,
@@ -60,7 +62,8 @@ public sealed class WorkspaceTools
                     configuration,
                     platform,
                     targetFramework,
-                    buildArgs)
+                    buildArgs,
+                    loadSource: WorkspaceLoadSource.ExplicitLoad)
                 .ConfigureAwait(false);
             solution = load.Solution;
             shadowCopyResults = load.ShadowCopyResults;
@@ -307,7 +310,10 @@ public sealed class WorkspaceTools
     }
 
     [McpServerTool(Name = "reset_workspace", Title = "Reset C# workspace")]
-    [Description("Disposes the in-process workspace cache. Use after building so the next load_workspace picks up generated files. Does not restart the MCP process and does not delete published analyzer shadow generations.")]
+    [Description(
+        "Disposes the in-process workspace cache. Use after building so the next load_workspace picks up generated files. "
+        + "Does not restart the MCP process and does not delete published analyzer shadow generations. "
+        + "Clears a lazy RoslynMcp.jsonc load as well; the next semantic tool may load again from the file if workspace-path is set.")]
     public async Task<string> ResetWorkspace(CancellationToken cancellationToken = default)
     {
         try

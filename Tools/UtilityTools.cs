@@ -1,4 +1,4 @@
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Diagnostics;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -447,14 +447,15 @@ public sealed class UtilityTools
     [Description(
         "Text-searches source files. No workspace required. Default .cs, case-insensitive. "
         + "Omit directoryPath to search the loaded file directory and external project directories. "
-        + "Not for finding symbol declarations — use find_symbol_definition.")]
+        + "Not for finding symbol declarations вЂ” use find_symbol_definition.")]
     public Task<string> SearchCode(
         [Description("Search text, or a regex when useRegex is true.")] string pattern,
         [Description("Root directory. Omit to scan loaded file directory and external project dirs (or process CWD).")] string? directoryPath = null,
         [Description("File extensions to scan, comma-separated. Use * for all files.")] string? includeExtensions = ".cs",
         [Description("When true, treat pattern as a .NET regular expression.")] bool useRegex = false,
         [Description("When true, matching is case-sensitive.")] bool caseSensitive = false,
-        [Description("Maximum matched lines to return.")] int maxResults = 50,
+        [Description("Max matched lines. Omit → 50 / ROSLYN_MCP_MAX_RESULTS / RoslynMcp.jsonc max-results.")]
+        int? maxResults = null,
         [Description("Maximum scan time in seconds. 0 disables timeout.")] int maxScanSeconds = 20,
         CancellationToken cancellationToken = default)
     {
@@ -465,7 +466,11 @@ public sealed class UtilityTools
                 return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(SearchCode), "Error: `pattern` is empty."));
             }
 
-            if (maxResults <= 0)
+            var resolvedMaxResults = NavigationListingHelper.ResolveMaxResults(
+                maxResults,
+                _solutionManager.FileSettings.MaxResults);
+
+            if (resolvedMaxResults <= 0)
             {
                 return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(SearchCode), "Error: `maxResults` must be greater than 0."));
             }
@@ -513,7 +518,7 @@ public sealed class UtilityTools
                 }
             }
 
-            var matches = new List<string>(Math.Min(maxResults, 200));
+            var matches = new List<string>(Math.Min(resolvedMaxResults, 200));
             var filesScanned = 0;
             var stopwatch = Stopwatch.StartNew();
             var scanTimeout = maxScanSeconds > 0 ? TimeSpan.FromSeconds(maxScanSeconds) : Timeout.InfiniteTimeSpan;
@@ -525,7 +530,7 @@ public sealed class UtilityTools
                 rootsDisplay,
                 useRegex,
                 caseSensitive,
-                maxResults,
+                resolvedMaxResults,
                 maxScanSeconds);
             _logger.LogInformation(
                 "SearchCode filter: includeExtensions={IncludeExtensions}",
@@ -533,7 +538,7 @@ public sealed class UtilityTools
 
             foreach (var rootDirectory in existingRoots)
             {
-                if (matches.Count >= maxResults || timedOut)
+                if (matches.Count >= resolvedMaxResults || timedOut)
                 {
                     break;
                 }
@@ -541,7 +546,7 @@ public sealed class UtilityTools
                 var directoriesStack = new Stack<string>();
                 directoriesStack.Push(rootDirectory);
 
-                while (directoriesStack.Count > 0 && matches.Count < maxResults && !timedOut)
+                while (directoriesStack.Count > 0 && matches.Count < resolvedMaxResults && !timedOut)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     if (scanTimeout != Timeout.InfiniteTimeSpan && stopwatch.Elapsed >= scanTimeout)
@@ -585,7 +590,7 @@ public sealed class UtilityTools
 
                     foreach (var file in files)
                     {
-                        if (matches.Count >= maxResults || timedOut)
+                        if (matches.Count >= resolvedMaxResults || timedOut)
                         {
                             break;
                         }
@@ -637,7 +642,7 @@ public sealed class UtilityTools
                             }
 
                             matches.Add($"{file}:{lineNumber} | {line}");
-                            if (matches.Count >= maxResults)
+                            if (matches.Count >= resolvedMaxResults)
                             {
                                 break;
                             }
@@ -669,9 +674,9 @@ public sealed class UtilityTools
             var result = new StringBuilder();
             result.AppendLine($"Found {matches.Count} match(es) for `{pattern}` in {rootsDisplay}.");
             result.AppendLine($"Scanned files: {filesScanned}.");
-            if (matches.Count >= maxResults)
+            if (matches.Count >= resolvedMaxResults)
             {
-                result.AppendLine($"[!] Reached maxResults limit ({maxResults}).");
+                result.AppendLine($"[!] Reached maxResults limit ({resolvedMaxResults}).");
             }
 
             if (timedOut)
@@ -709,7 +714,7 @@ public sealed class UtilityTools
 
     /// <summary>
     /// Resolves search roots. Explicit <paramref name="directoryPath"/> is a single full path.
-    /// When omitted: <see cref="SolutionManager.ComputeWatchRoots"/> (loaded file dir ∪ project dirs);
+    /// When omitted: <see cref="SolutionManager.ComputeWatchRoots"/> (loaded file dir в€Є project dirs);
     /// empty list falls back to <paramref name="processCurrentDirectory"/>.
     /// </summary>
     internal static IReadOnlyList<string> ResolveSearchRoots(
@@ -1551,7 +1556,7 @@ public sealed class UtilityTools
         foreach (var dir in childDirectories)
         {
             var isLast = ++index == entriesCount;
-            var prefix = isLast ? "└── " : "├── ";
+            var prefix = isLast ? "в””в”Ђв”Ђ " : "в”њв”Ђв”Ђ ";
             sb.AppendLine($"{new string(' ', currentDepth * 4)}{prefix}{dir.Name}/");
             AppendDirectoryTree(sb, dir, currentDepth + 1, maxDepth);
         }
@@ -1559,7 +1564,7 @@ public sealed class UtilityTools
         foreach (var file in files)
         {
             var isLast = ++index == entriesCount;
-            var prefix = isLast ? "└── " : "├── ";
+            var prefix = isLast ? "в””в”Ђв”Ђ " : "в”њв”Ђв”Ђ ";
             sb.AppendLine($"{new string(' ', currentDepth * 4)}{prefix}{file.Name}");
         }
     }

@@ -49,6 +49,28 @@ builder.Services.AddSerilog((_, configuration) =>
             shared: true);
 });
 
+// Optional RoslynMcp.jsonc (exe directory, then process cwd). Read after ROSLYN_MCP_WORKSPACE
+// may have switched cwd to the repo root.
+var fileSettings = RoslynMcpServer.Config.RoslynMcpFileSettings.LoadFromDefaultLocations();
+builder.Services.AddSingleton(fileSettings);
+if (fileSettings.ParseFailures.Count > 0)
+{
+    foreach (var failure in fileSettings.ParseFailures)
+    {
+        Console.Error.WriteLine($"[RoslynMcp] WARN: RoslynMcp.jsonc parse failed ({failure.Path}): {failure.Message}");
+    }
+}
+else if (fileSettings.HasAnyFile)
+{
+    Console.Error.WriteLine(
+        $"[RoslynMcp] RoslynMcp.jsonc: workspace-path={(fileSettings.WorkspacePath ?? "(none)")}");
+}
+
+foreach (var key in fileSettings.UnknownKeys)
+{
+    Console.Error.WriteLine($"[RoslynMcp] WARN: RoslynMcp.jsonc unknown key ignored: {key}");
+}
+
 // MCP stdio transport + tools (see RoslynMcpServiceCollectionExtensions).
 try
 {

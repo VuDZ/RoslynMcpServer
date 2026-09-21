@@ -11,6 +11,30 @@ public static class MsBuildBootstrapper
         var is64Bit = Environment.Is64BitProcess;
         MsBuildEnvironmentInfo.ProcessDescription = is64Bit ? "64-bit" : "32-bit";
 
+        if (MSBuildLocator.IsRegistered)
+        {
+            MsBuildEnvironmentInfo.RegistrationSummary ??= "already registered";
+            MsBuildEnvironmentInfo.RefreshRegisteredInstance();
+            return;
+        }
+
+        try
+        {
+            RegisterCore(is64Bit);
+        }
+        catch (InvalidOperationException ex) when (
+            ex.Message.Contains("already loaded", StringComparison.OrdinalIgnoreCase)
+            || ex.Message.Contains("RegisterInstance", StringComparison.OrdinalIgnoreCase))
+        {
+            MsBuildEnvironmentInfo.RegistrationSummary =
+                "MSBuild assemblies already loaded; RegisterInstance skipped: " + ex.Message;
+            Console.Error.WriteLine($"[WARN] {MsBuildEnvironmentInfo.RegistrationSummary}");
+            MsBuildEnvironmentInfo.RefreshRegisteredInstance();
+        }
+    }
+
+    private static void RegisterCore(bool is64Bit)
+    {
         var instances = MSBuildLocator.QueryVisualStudioInstances().ToList();
         var queriedLines = new List<string>();
         foreach (var i in instances)

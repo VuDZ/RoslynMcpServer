@@ -39,10 +39,10 @@ public sealed class NavigationTools
         int? line = null,
         [Description("Optional 1-based column. Omit with line to pick the unique matching identifier on that line.")]
         int? column = null,
-        [Description("Listing cap 1–500. Default 50 or ROSLYN_MCP_MAX_RESULTS; explicit arg wins.")]
+        [Description("Listing cap 1–500. Default 50 / ROSLYN_MCP_MAX_RESULTS / RoslynMcp.jsonc max-results; explicit wins.")]
         int? maxResults = null,
-        [Description("True: append source line (max 400 chars). Default false: path:line:col only.")]
-        bool preview = false,
+        [Description("True: append source line (max 400 chars). Omit → RoslynMcp.jsonc preview, else false.")]
+        bool? preview = null,
         [Description("Next in-memory overflow chunk; does not start a new search.")]
         string? overflowCursor = null,
         [Description("True: direct calls only (class virtual/override/abstract). Needs filePath.")]
@@ -67,7 +67,12 @@ public sealed class NavigationTools
             }
 
             var trimmedName = symbolName.Trim();
-            var resolvedMax = NavigationListingHelper.ResolveMaxResults(maxResults);
+            var resolvedMax = NavigationListingHelper.ResolveMaxResults(
+                maxResults,
+                _solutionManager.FileSettings.MaxResults);
+            var resolvedPreview = NavigationListingHelper.ResolvePreview(
+                preview,
+                _solutionManager.FileSettings.Preview);
             var hasFilePath = !string.IsNullOrWhiteSpace(filePath);
 
             var directOnlyGuard = VirtualReferenceClassifier.ValidateDirectOnlyRequiresFilePath(directOnly, hasFilePath);
@@ -88,7 +93,7 @@ public sealed class NavigationTools
                 return await FindReferencesByNameAsync(
                         toolName,
                         trimmedName,
-                        preview,
+                        resolvedPreview,
                         resolvedMax,
                         cancellationToken)
                     .ConfigureAwait(false);
@@ -227,7 +232,7 @@ public sealed class NavigationTools
 
             locations = filter.Locations.ToList();
 
-            var textByDocument = preview ? new Dictionary<DocumentId, SourceText>() : null;
+            var textByDocument = resolvedPreview ? new Dictionary<DocumentId, SourceText>() : null;
             var lines = new List<string>(locations.Count);
             foreach (var location in locations)
             {
@@ -236,7 +241,7 @@ public sealed class NavigationTools
                 var line1 = span.StartLinePosition.Line + 1;
                 var col1 = span.StartLinePosition.Character + 1;
                 string? previewLine = null;
-                if (preview && textByDocument is not null)
+                if (resolvedPreview && textByDocument is not null)
                 {
                     previewLine = await GetReferenceSourceLineAsync(location, textByDocument, cancellationToken)
                         .ConfigureAwait(false);
@@ -292,7 +297,7 @@ public sealed class NavigationTools
         int? line = null,
         [Description("Optional 1-based column; omit to auto-pick matching identifier on the line.")]
         int? column = null,
-        [Description("Cap 1–500. Default 50 or ROSLYN_MCP_MAX_RESULTS; explicit wins.")]
+        [Description("Cap 1–500. Default 50 / ROSLYN_MCP_MAX_RESULTS / RoslynMcp.jsonc max-results; explicit wins.")]
         int? maxResults = null,
         [Description("Next in-memory overflow chunk; no new search.")]
         string? overflowCursor = null,
@@ -316,7 +321,9 @@ public sealed class NavigationTools
             }
 
             var trimmedName = symbolName.Trim();
-            var resolvedMax = NavigationListingHelper.ResolveMaxResults(maxResults);
+            var resolvedMax = NavigationListingHelper.ResolveMaxResults(
+                maxResults,
+                _solutionManager.FileSettings.MaxResults);
             var hasFilePath = !string.IsNullOrWhiteSpace(filePath);
 
             if (line is not null && !hasFilePath)
@@ -491,10 +498,10 @@ public sealed class NavigationTools
     public async Task<string> FindUsages(
         [Description("Simple name (case-insensitive) or exact FQN (Namespace.Type or Namespace.Type.Member; no global::, no ()).")]
         string symbolName,
-        [Description("Listing cap 1–500. Default 50 or ROSLYN_MCP_MAX_RESULTS; explicit arg wins.")]
+        [Description("Listing cap 1–500. Default 50 / ROSLYN_MCP_MAX_RESULTS / RoslynMcp.jsonc max-results; explicit wins.")]
         int? maxResults = null,
-        [Description("True: append source line (max 400 chars). Default false: path:line:col only.")]
-        bool preview = false,
+        [Description("True: append source line (max 400 chars). Omit → RoslynMcp.jsonc preview, else false.")]
+        bool? preview = null,
         [Description("Next in-memory overflow chunk; does not start a new search.")]
         string? overflowCursor = null,
         CancellationToken cancellationToken = default)
@@ -519,8 +526,8 @@ public sealed class NavigationTools
             return await FindReferencesByNameAsync(
                     toolName,
                     symbolName.Trim(),
-                    preview,
-                    NavigationListingHelper.ResolveMaxResults(maxResults),
+                    NavigationListingHelper.ResolvePreview(preview, _solutionManager.FileSettings.Preview),
+                    NavigationListingHelper.ResolveMaxResults(maxResults, _solutionManager.FileSettings.MaxResults),
                     cancellationToken)
                 .ConfigureAwait(false);
         }
@@ -549,10 +556,10 @@ public sealed class NavigationTools
         string symbolName,
         [Description("When true (default), include indirect implementations and derived types.")]
         bool transitive = true,
-        [Description("Listing cap 1–500. Default 50 or ROSLYN_MCP_MAX_RESULTS; explicit arg wins.")]
+        [Description("Listing cap 1–500. Default 50 / ROSLYN_MCP_MAX_RESULTS / RoslynMcp.jsonc max-results; explicit wins.")]
         int? maxResults = null,
-        [Description("True: append source line (max 400 chars). Default false: path:line:col only.")]
-        bool preview = false,
+        [Description("True: append source line (max 400 chars). Omit → RoslynMcp.jsonc preview, else false.")]
+        bool? preview = null,
         [Description("Next in-memory overflow chunk; does not start a new search.")]
         string? overflowCursor = null,
         CancellationToken cancellationToken = default)
@@ -574,7 +581,12 @@ public sealed class NavigationTools
                 return ToolTelemetry.TraceAndReturn(toolName, "Error: `symbolName` is empty.");
             }
 
-            var resolvedMax = NavigationListingHelper.ResolveMaxResults(maxResults);
+            var resolvedMax = NavigationListingHelper.ResolveMaxResults(
+                maxResults,
+                _solutionManager.FileSettings.MaxResults);
+            var resolvedPreview = NavigationListingHelper.ResolvePreview(
+                preview,
+                _solutionManager.FileSettings.Preview);
             var solution = await _solutionManager.GetSanitizedPublishedSolutionAsync(cancellationToken).ConfigureAwait(false);
             if (solution is null)
             {
@@ -696,7 +708,7 @@ public sealed class NavigationTools
                     cancellationToken)
                 .ConfigureAwait(false);
 
-            var textByDocument = preview ? new Dictionary<DocumentId, SourceText>() : null;
+            var textByDocument = resolvedPreview ? new Dictionary<DocumentId, SourceText>() : null;
             var sections = new List<ImplementationListingFormatter.BaseSection>(sectionResults.Count);
             foreach (var (fqn, mappedType, searchMode, related) in sectionResults)
             {
@@ -704,7 +716,7 @@ public sealed class NavigationTools
                 foreach (var type in related)
                 {
                     string? previewLine = null;
-                    if (preview && textByDocument is not null)
+                    if (resolvedPreview && textByDocument is not null)
                     {
                         var location = type.Locations.FirstOrDefault(
                             l => l.IsInSource && l.SourceTree?.FilePath is not null);

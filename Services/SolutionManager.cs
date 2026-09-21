@@ -10,6 +10,7 @@ using Microsoft.CodeAnalysis.Host.Mef;
 using Microsoft.CodeAnalysis.MSBuild;
 using Microsoft.CodeAnalysis.Text;
 using Microsoft.Extensions.Logging;
+using RoslynMcpServer.Config;
 using RoslynMcpServer.Diagnostics;
 using RoslynMcpServer.Services;
 using Serilog;
@@ -17,6 +18,14 @@ using Serilog;
 internal sealed record WorkspaceLoadPreparationResult(
     Solution Solution,
     IReadOnlyList<AnalyzerReferenceShadowCopier.RewriteResult> ShadowCopyResults);
+
+/// <summary>How the published semantic snapshot was obtained for this session.</summary>
+public enum WorkspaceLoadSource
+{
+    None = 0,
+    ConfigFile = 1,
+    ExplicitLoad = 2,
+}
 
 public sealed class SolutionManager
 {
@@ -101,16 +110,22 @@ public sealed class SolutionManager
     private IReadOnlyList<WorkspaceDiagnostic> _lastDiagnostics = Array.Empty<WorkspaceDiagnostic>();
     private AnalyzerProvenanceSnapshot? _analyzerProvenanceSnapshot;
     private long _analyzerProvenanceCaptureCount;
+    private readonly RoslynMcpFileSettings _fileSettings;
+    private WorkspaceLoadSource _workspaceLoadSource = WorkspaceLoadSource.None;
+    private volatile bool _workspaceLoadInProgress;
+    private string? _lastLazyLoadFailureReport;
 
     public SolutionManager(
         ILogger<SolutionManager> logger,
-        AnalyzerProvenanceCaptureService analyzerProvenanceCaptureService)
+        AnalyzerProvenanceCaptureService analyzerProvenanceCaptureService,
+        RoslynMcpFileSettings? fileSettings = null)
     {
         ArgumentNullException.ThrowIfNull(logger);
         ArgumentNullException.ThrowIfNull(analyzerProvenanceCaptureService);
 
         _logger = logger;
         _analyzerProvenanceCaptureService = analyzerProvenanceCaptureService;
+        _fileSettings = fileSettings ?? RoslynMcpFileSettings.Empty;
         _dirtySourcePaths = new ConcurrentDictionary<string, byte>(_pathComparer);
         _selfWriteUntilTicks = new ConcurrentDictionary<string, long>(_pathComparer);
         _missingOnDiskPaths = new ConcurrentDictionary<string, byte>(_pathComparer);
@@ -160,6 +175,16 @@ public sealed class SolutionManager
 
     internal string FormatNoPublishedSolutionMessage(string? leadingSentence = null)
     {
+        if (!string.IsNullOrWhiteSpace(_lastLazyLoadFailureReport))
+        {
+            if (string.IsNullOrWhiteSpace(leadingSentence))
+            {
+                return _lastLazyLoadFailureReport;
+            }
+
+            return leadingSentence.TrimEnd() + Environment.NewLine + Environment.NewLine + _lastLazyLoadFailureReport;
+        }
+
         if (_workspace is not null && _publicationState.IsUnavailable)
         {
             return WorkspaceLoadGuidance.FormatSemanticWorkspaceUnavailableMessage(
@@ -172,6 +197,18 @@ public sealed class SolutionManager
 
         return WorkspaceLoadGuidance.FormatNoWorkspaceLoadedMessage(leadingSentence);
     }
+
+    /// <summary>Optional <c>RoslynMcp.jsonc</c> settings loaded at process start.</summary>
+    public RoslynMcpFileSettings FileSettings => _fileSettings;
+
+    /// <summary>Whether the published snapshot came from the config file or an explicit <c>load_workspace</c>.</summary>
+    public WorkspaceLoadSource WorkspaceLoadSource => _workspaceLoadSource;
+
+    /// <summary>True while <see cref="LoadAndPrepareAsync"/> holds the workspace lock for an MSBuild open/prepare.</summary>
+    public bool WorkspaceLoadInProgress => _workspaceLoadInProgress;
+
+    /// <summary>Last failed lazy config load report (same style as <c>load_workspace</c>), or null.</summary>
+    public string? LastLazyLoadFailureReport => _lastLazyLoadFailureReport;
 
     /// <summary>
     /// First-use observation: maps a load/execution failure to project, generator,
@@ -301,7 +338,8 @@ public sealed class SolutionManager
         string? configuration = null,
         string? platform = null,
         string? targetFramework = null,
-        string? buildArgs = null)
+        string? buildArgs = null,
+        WorkspaceLoadSource loadSource = WorkspaceLoadSource.ExplicitLoad)
     {
         if (string.IsNullOrWhiteSpace(solutionOrProjectPath))
         {
@@ -314,6 +352,8 @@ public sealed class SolutionManager
             throw new FileNotFoundException("Solution or project file not found.", fullPath);
         }
 
+        var buildArgsPassed = !string.IsNullOrWhiteSpace(buildArgs);
+
         var normalizedConfiguration = DotNetConfigurationArguments.Normalize(configuration, nameof(configuration));
         var platformRaw = DotNetConfigurationArguments.Normalize(platform, nameof(platform));
         var normalizedPlatform = DotNetConfigurationArguments.NormalizePlatform(platform);
@@ -321,19 +361,46 @@ public sealed class SolutionManager
         var normalizedBuildArgs = DotNetBuildArguments.Normalize(buildArgs);
 
         await _workspaceLock.WaitAsync(cancellationToken);
+        _workspaceLoadInProgress = true;
         try
         {
+            var fileConfiguration = DotNetConfigurationArguments.Normalize(
+                _fileSettings.Configuration,
+                nameof(_fileSettings.Configuration));
+            var filePlatformRaw = DotNetConfigurationArguments.Normalize(
+                _fileSettings.Platform,
+                nameof(_fileSettings.Platform));
+            var filePlatform = DotNetConfigurationArguments.NormalizePlatform(_fileSettings.Platform);
+            var fileTargetFramework = DotNetConfigurationArguments.Normalize(
+                _fileSettings.TargetFramework,
+                nameof(_fileSettings.TargetFramework));
+
+            // Passed overrides loaded; omitted keeps loaded; when nothing loaded yet, fill from file.
+            var effectiveConfiguration = normalizedConfiguration ?? _loadedConfiguration ?? fileConfiguration;
+            var effectivePlatform = normalizedPlatform ?? _loadedPlatform ?? filePlatform;
+            var effectivePlatformRaw = !string.IsNullOrWhiteSpace(platform)
+                ? platformRaw
+                : _loadedPlatformRaw ?? filePlatformRaw ?? platformRaw;
+            var effectiveTargetFramework = normalizedTargetFramework
+                ?? _loadedTargetFramework
+                ?? fileTargetFramework;
+            var effectiveBuildArgs = buildArgsPassed ? normalizedBuildArgs : _loadedBuildArgs;
+
             var publishedBeforeBoundary = _solution;
             Solution solution;
             try
             {
                 solution = await LoadCoreAsync(
                         fullPath,
-                        normalizedConfiguration,
-                        normalizedPlatform,
-                        platformRaw,
-                        normalizedTargetFramework,
-                        normalizedBuildArgs,
+                        passedConfiguration: normalizedConfiguration,
+                        passedPlatform: normalizedPlatform,
+                        passedTargetFramework: normalizedTargetFramework,
+                        effectiveConfiguration: effectiveConfiguration,
+                        effectivePlatform: effectivePlatform,
+                        effectivePlatformRaw: effectivePlatformRaw,
+                        effectiveTargetFramework: effectiveTargetFramework,
+                        effectiveBuildArgs: effectiveBuildArgs,
+                        applyBuildArgs: buildArgsPassed,
                         publishLoadedSolution: !shadowCopyInSolutionAnalyzers,
                         cancellationToken)
                     .ConfigureAwait(false);
@@ -346,6 +413,12 @@ public sealed class SolutionManager
                 }
 
                 throw;
+            }
+
+            if (_solution is not null)
+            {
+                _workspaceLoadSource = loadSource;
+                _lastLazyLoadFailureReport = null;
             }
 
             if (!shadowCopyInSolutionAnalyzers)
@@ -405,6 +478,7 @@ public sealed class SolutionManager
         }
         finally
         {
+            _workspaceLoadInProgress = false;
             _workspaceLock.Release();
         }
     }
@@ -444,6 +518,7 @@ public sealed class SolutionManager
         }
 
         var fullFilePath = ResolvePathAgainstWorkspace(filePath);
+        await EnsureWorkspaceFromConfigAsync(cancellationToken).ConfigureAwait(false);
         await _workspaceLock.WaitAsync(cancellationToken);
         try
         {
@@ -973,9 +1048,12 @@ public sealed class SolutionManager
     /// <summary>
     /// Waits for an in-flight load/prepare boundary and returns only its published snapshot.
     /// It never falls back to raw <see cref="Workspace.CurrentSolution"/>.
+    /// When no solution is published yet and <c>RoslynMcp.jsonc</c> has <c>workspace-path</c>,
+    /// loads via <see cref="LoadAndPrepareAsync"/> first (does not cancel an in-progress load).
     /// </summary>
     public async Task<Solution?> GetPublishedSolutionAsync(CancellationToken cancellationToken = default)
     {
+        await EnsureWorkspaceFromConfigAsync(cancellationToken).ConfigureAwait(false);
         await _workspaceLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
@@ -993,6 +1071,7 @@ public sealed class SolutionManager
     /// </summary>
     public async Task<Solution?> GetPublishedSolutionAfterDiskSyncAsync(CancellationToken cancellationToken = default)
     {
+        await EnsureWorkspaceFromConfigAsync(cancellationToken).ConfigureAwait(false);
         await _workspaceLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
@@ -1012,6 +1091,7 @@ public sealed class SolutionManager
     /// </summary>
     public async Task<Solution?> GetSanitizedPublishedSolutionAsync(CancellationToken cancellationToken = default)
     {
+        await EnsureWorkspaceFromConfigAsync(cancellationToken).ConfigureAwait(false);
         await _workspaceLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
@@ -1022,6 +1102,79 @@ public sealed class SolutionManager
         {
             _workspaceLock.Release();
         }
+    }
+
+    /// <summary>
+    /// First semantic call with no published solution and a config <c>workspace-path</c>:
+    /// same <see cref="LoadAndPrepareAsync"/> path as <c>load_workspace</c>.
+    /// Waits for an in-progress load; does not cancel it.
+    /// </summary>
+    public async Task EnsureWorkspaceFromConfigAsync(CancellationToken cancellationToken = default)
+    {
+        if (_solution is not null)
+        {
+            return;
+        }
+
+        // Spec: any broken RoslynMcp.jsonc disables lazy load (load_workspace still works;
+        // parse failures remain visible in logs / get_mcp_server_info).
+        if (_fileSettings.ParseFailures.Count > 0)
+        {
+            return;
+        }
+
+        var workspacePath = _fileSettings.ResolveWorkspacePathAgainstWorkingDirectory();
+        if (string.IsNullOrWhiteSpace(workspacePath))
+        {
+            return;
+        }
+
+        try
+        {
+            await LoadAndPrepareAsync(
+                    workspacePath,
+                    shadowCopyInSolutionAnalyzers: false,
+                    cancellationToken,
+                    _fileSettings.Configuration,
+                    _fileSettings.Platform,
+                    _fileSettings.TargetFramework,
+                    buildArgs: null,
+                    loadSource: WorkspaceLoadSource.ConfigFile)
+                .ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _lastLazyLoadFailureReport = FormatLazyLoadFailureReport(workspacePath, ex);
+            _logger.LogWarning(ex, "Lazy RoslynMcp.jsonc workspace load failed for {Path}", workspacePath);
+        }
+    }
+
+    private static string FormatLazyLoadFailureReport(string path, Exception ex)
+    {
+        if (ex is RoslynMsBuildBuildHostException hostEx)
+        {
+            return hostEx.Message;
+        }
+
+        if (WorkspaceLoadGuidance.IsRoslynMsBuildBuildHostFailure(ex))
+        {
+            return WorkspaceLoadGuidance.FormatRoslynMsBuildBuildHostFailureMessage(path);
+        }
+
+        var sb = new StringBuilder();
+        sb.AppendLine("## Workspace Load Failed");
+        sb.AppendLine();
+        sb.AppendLine($"- **Path:** `{path}`");
+        sb.AppendLine($"- **Source:** `RoslynMcp.jsonc` (lazy load)");
+        sb.AppendLine();
+        sb.AppendLine("### Errors");
+        sb.AppendLine($"- {ex.Message}");
+        sb.Append(MsBuildEnvironmentInfo.FormatMarkdownSection());
+        return sb.ToString();
     }
 
     /// <summary>
@@ -1612,6 +1765,8 @@ public sealed class SolutionManager
             _loadedPlatformRaw = null;
             _loadedTargetFramework = null;
             _loadedBuildArgs = null;
+            _workspaceLoadSource = WorkspaceLoadSource.None;
+            _lastLazyLoadFailureReport = null;
             _lastDiagnostics = Array.Empty<WorkspaceDiagnostic>();
             _logger.LogInformation("Roslyn workspace cleared (MSBuildWorkspace disposed).");
         }
@@ -1623,33 +1778,47 @@ public sealed class SolutionManager
 
     /// <summary>
     /// Loads or returns cached solution. Caller must hold <see cref="_workspaceLock"/>.
+    /// Compares only <paramref name="passedConfiguration"/> / platform / TFM that were actually
+    /// supplied; loads with the effective (merged) property set.
     /// </summary>
     private async Task<Solution> LoadCoreAsync(
         string fullPath,
-        string? configuration,
-        string? platform,
-        string? platformRaw,
-        string? targetFramework,
-        string? buildArgs,
+        string? passedConfiguration,
+        string? passedPlatform,
+        string? passedTargetFramework,
+        string? effectiveConfiguration,
+        string? effectivePlatform,
+        string? effectivePlatformRaw,
+        string? effectiveTargetFramework,
+        string? effectiveBuildArgs,
+        bool applyBuildArgs,
         bool publishLoadedSolution,
         CancellationToken cancellationToken)
     {
         if (_workspace is not null
-            && MsBuildWorkspaceProperties.IsSameLoadCache(
+            && MsBuildWorkspaceProperties.MatchesPassedLoadArguments(
                 _loadedPath,
                 _loadedConfiguration,
                 _loadedPlatform,
                 _loadedTargetFramework,
                 fullPath,
-                configuration,
-                platform,
-                targetFramework,
+                passedConfiguration,
+                passedPlatform,
+                passedTargetFramework,
                 _pathComparison)
             && !_projectGraphStale)
         {
-            ApplySessionBuildArgs(buildArgs);
-            // Same canonical Platform for the workspace; refresh raw spelling for CLI inherit.
-            _loadedPlatformRaw = platformRaw;
+            if (applyBuildArgs)
+            {
+                ApplySessionBuildArgs(effectiveBuildArgs);
+            }
+
+            // Same canonical Platform for the workspace; refresh raw spelling only when platform was passed.
+            if (passedPlatform is not null)
+            {
+                _loadedPlatformRaw = effectivePlatformRaw;
+            }
+
             await FlushDirtyDocumentsUnderLockAsync(cancellationToken).ConfigureAwait(false);
             _lastLoadWasCacheHit = true;
             _lastLoadReopenedGraph = false;
@@ -1690,7 +1859,10 @@ public sealed class SolutionManager
         _lastPrepareAttempted = false;
         _lastPrepareInjectedFailure = false;
         _ = typeof(CSharpFormattingOptions).Assembly.FullName;
-        var properties = MsBuildWorkspaceProperties.Create(configuration, platform, targetFramework);
+        var properties = MsBuildWorkspaceProperties.Create(
+            effectiveConfiguration,
+            effectivePlatform,
+            effectiveTargetFramework);
         var workspace = properties.Count == 0
             ? MSBuildWorkspace.Create(MsBuildHostServices)
             : MSBuildWorkspace.Create(properties, MsBuildHostServices);
@@ -1743,11 +1915,19 @@ public sealed class SolutionManager
             _publicationState = SemanticPublicationState.NoOverlay;
             SetPublishedSolution(workspace.CurrentSolution);
         }
-        _loadedConfiguration = configuration;
-        _loadedPlatform = platform;
-        _loadedPlatformRaw = platformRaw;
-        _loadedTargetFramework = targetFramework;
-        ApplySessionBuildArgs(buildArgs);
+        _loadedConfiguration = effectiveConfiguration;
+        _loadedPlatform = effectivePlatform;
+        _loadedPlatformRaw = effectivePlatformRaw;
+        _loadedTargetFramework = effectiveTargetFramework;
+        if (applyBuildArgs)
+        {
+            ApplySessionBuildArgs(effectiveBuildArgs);
+        }
+        else
+        {
+            _loadedBuildArgs = effectiveBuildArgs;
+        }
+
         _lastDiagnostics = CollectDiagnostics(workspace, capturedDiagnostics);
         StartDiskWatcherUnderLock(
             fullPath,
@@ -1755,11 +1935,11 @@ public sealed class SolutionManager
         _logger.LogInformation(
             "Loaded Roslyn workspace from {Path} (Configuration={Configuration}, Platform={Platform}, PlatformRaw={PlatformRaw}, TargetFramework={TargetFramework}, BuildArgs={BuildArgs})",
             fullPath,
-            configuration ?? "(default)",
-            platform ?? "(default)",
-            platformRaw ?? "(default)",
-            targetFramework ?? "(default)",
-            buildArgs ?? "(none)");
+            effectiveConfiguration ?? "(default)",
+            effectivePlatform ?? "(default)",
+            effectivePlatformRaw ?? "(default)",
+            effectiveTargetFramework ?? "(default)",
+            effectiveBuildArgs ?? "(none)");
         LogProcessWorkingSet("workspace_load");
         return publishLoadedSolution ? _solution ?? workspace.CurrentSolution : workspace.CurrentSolution;
     }

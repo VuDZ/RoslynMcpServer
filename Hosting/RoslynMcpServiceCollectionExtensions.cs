@@ -1,6 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using ModelContextProtocol.Server;
+using RoslynMcpServer.Config;
 using RoslynMcpServer.Diagnostics;
 using RoslynMcpServer.Services;
 
@@ -69,6 +71,7 @@ public static class RoslynMcpServiceCollectionExtensions
             .BindConfiguration(AnalyzerProvenanceCaptureOptions.SectionName);
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton<AnalyzerProvenanceCaptureService>();
+        services.TryAddSingleton(RoslynMcpFileSettings.Empty);
         services.AddSingleton<SolutionManager>();
         foreach (var toolType in McpToolCatalog.HostTypes)
         {

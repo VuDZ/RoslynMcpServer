@@ -228,7 +228,11 @@ internal static class NavigationListingHelper
     public const int PreviewSourceLineChars = 400;
     public const string MaxResultsEnvVariable = "ROSLYN_MCP_MAX_RESULTS";
 
-    public static int ResolveMaxResults(int? maxResults)
+    /// <summary>
+    /// Explicit arg → env <see cref="MaxResultsEnvVariable"/> → optional config <c>max-results</c> → 50.
+    /// Clamp 1–500.
+    /// </summary>
+    public static int ResolveMaxResults(int? maxResults, int? configFallback = null)
     {
         if (maxResults is int explicitValue)
         {
@@ -241,8 +245,17 @@ internal static class NavigationListingHelper
             return Math.Clamp(fromEnv, MinMaxResults, MaxMaxResultsBound);
         }
 
+        if (configFallback is int fromConfig && fromConfig > 0)
+        {
+            return Math.Clamp(fromConfig, MinMaxResults, MaxMaxResultsBound);
+        }
+
         return DefaultMaxResults;
     }
+
+    /// <summary>Explicit <paramref name="preview"/> wins; otherwise optional config <c>preview</c>; otherwise false.</summary>
+    public static bool ResolvePreview(bool? preview, bool? configFallback = null)
+        => preview ?? configFallback ?? false;
 
     public static string FormatLocationLine(string path, int line1Based, int column1Based, string? previewSourceLine)
     {

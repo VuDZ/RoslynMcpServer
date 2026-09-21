@@ -77,4 +77,31 @@ public sealed class MsBuildWorkspacePropertiesTests
                 null,
                 StringComparison.OrdinalIgnoreCase));
     }
+
+    [Fact]
+    public void MatchesPassedLoadArguments_omitted_does_not_clear_loaded_values()
+    {
+        Assert.True(
+            MsBuildWorkspaceProperties.MatchesPassedLoadArguments(
+                @"C:\src\App.sln",
+                "kart",
+                "x64",
+                "net10.0",
+                @"C:\src\App.sln",
+                null,
+                null,
+                null,
+                StringComparison.OrdinalIgnoreCase));
+        Assert.False(
+            MsBuildWorkspaceProperties.MatchesPassedLoadArguments(
+                @"C:\src\App.sln",
+                "kart",
+                "x64",
+                "net10.0",
+                @"C:\src\App.sln",
+                "Debug",
+                null,
+                null,
+                StringComparison.OrdinalIgnoreCase));
+    }
 }
