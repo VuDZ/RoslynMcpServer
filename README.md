@@ -179,6 +179,11 @@ MCP `tools/list` stays JSON + JSON Schema. Markdown is for JIT help and diagnost
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.4.5
+
+- **`find_implementations` lists every same-named base** — a short name that matches several interfaces or base classes returns a section per base (exact FQN still selects one type). Each base is remapped onto the sanitized snapshot before `FindImplementationsAsync` / `FindDerivedClassesAsync`. An empty section is kept. FQN miss returns the resolver candidate text and does not fall back to the short name. A unique name keeps the previous single-type header. No new parameters.
+- **Catalog size** — full 63 tools / 49,763 bytes; lite 19 / 21,943.
+
 ### v1.4.4
 
 - **File declaration pick and definition coordinates** — `find_symbol_references` and `find_symbol_definition` with `filePath` and no `line` select the single matching declaration in that file (ordinal, case-sensitive). Kinds: class, struct, record, interface, enum, method, constructor, destructor, property, event, field, event field. Several matches is an error listing FQN and identifier `line:column` (no silent first). Operator, indexer, and local function stay line/column only. A unique file match on `find_symbol_definition` prints every in-source location of that symbol (including all `partial` parts), each with column and full name (`SymbolDeclarationResolver.GetSymbolFqn`, no `global::`). Solution-wide name search stays case-insensitive. Positional `filePath`+`line` is unchanged. No `directOnly`.
@@ -805,13 +810,13 @@ There are **63** registered tools in the default `full` profile (see list below)
 <summary><code>find_implementations</code> — Find classes implementing an interface or derived from a base type.</summary>
 
 **Parameters:**
-- `symbolName: string` — interface or base class name (e.g. `IRepository`, `BaseController`)
+- `symbolName: string` — interface or base class name (e.g. `IRepository`, `BaseController`). Simple name returns a section per matching base; exact FQN selects one type
 - `transitive: bool = true` — when `true`, includes indirect implementations / derived types in the hierarchy
 - `maxResults: int?` — optional listing cap (1–500). Default 50, or env `ROSLYN_MCP_MAX_RESULTS` when a positive int; explicit arg wins
 - `preview: bool = false` — when true, append the source line (truncated at 400 chars); default `path:line:col` only
 - `overflowCursor: string?` — next in-memory overflow chunk; does not start a new search
 
-**Behavior:** Requires `load_workspace`. Applies saved `.cs` from disk first. For **interfaces**, uses Roslyn `FindImplementationsAsync`; for **classes/structs**, uses `FindDerivedClassesAsync`. Returns each matching type with `path:line:col`. Excess types use the same overflow store. Do not use text search or `find_usages` for “who implements X?” / “what inherits from Y?”.
+**Behavior:** Requires `load_workspace`. Applies saved `.cs` from disk first. For **interfaces**, uses Roslyn `FindImplementationsAsync`; for **classes/structs**, uses `FindDerivedClassesAsync`. Several same-named bases each get a section (empty sections are kept). Exact FQN still selects one type; FQN miss returns the resolver candidate text (no simple-name fallback). Returns each matching type with `path:line:col`. Excess types use the same overflow store. Do not use text search or `find_usages` for “who implements X?” / “what inherits from Y?”.
 
 **Model guidance:** after `load_workspace`, use this instead of grep or analyzing usages when you need the OOP hierarchy.
 </details>
@@ -1451,7 +1456,7 @@ cd D:\Devel\YourApp
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.4.4). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.4.5). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 
@@ -1675,13 +1680,13 @@ cd D:\Devel\YourApp
 <summary><code>find_implementations</code> — Классы, реализующие интерфейс, или наследники базового типа.</summary>
 
 **Параметры:**
-- `symbolName: string` — имя интерфейса или базового класса (например `IRepository`, `BaseController`)
+- `symbolName: string` — имя интерфейса или базового класса (например `IRepository`, `BaseController`). Короткое имя — секция на каждую совпавшую базу; точное FQN — один тип
 - `transitive: bool = true` — при `true` включает косвенные реализации / наследников по иерархии
 - `maxResults: int?` — лимит списка (1–500). По умолчанию 50 или env `ROSLYN_MCP_MAX_RESULTS`; явный arg важнее env
 - `preview: bool = false` — true: добавить текст строки исходника (до 400 символов); иначе только `path:line:col`
 - `overflowCursor: string?` — следующий chunk in-memory overflow
 
-**Поведение:** нужен `load_workspace`. Сначала saved `.cs` с диска. Для **интерфейсов** — Roslyn `FindImplementationsAsync`; для **классов/struct** — `FindDerivedClassesAsync`. Каждый тип с `path:line:col`. Избыток — overflow store. Не используйте текстовый поиск или `find_usages` для «кто реализует X?» / «кто наследует Y?».
+**Поведение:** нужен `load_workspace`. Сначала saved `.cs` с диска. Для **интерфейсов** — Roslyn `FindImplementationsAsync`; для **классов/struct** — `FindDerivedClassesAsync`. Несколько одноимённых баз — секция на каждую (пустые секции сохраняются). Точное FQN по-прежнему один тип; промах FQN — текст резолвера с кандидатами (без отката на короткое имя). Каждый тип с `path:line:col`. Избыток — overflow store. Не используйте текстовый поиск или `find_usages` для «кто реализует X?» / «кто наследует Y?».
 
 **Для модели:** после `load_workspace` — вместо grep или анализа usages, когда нужна OOP-иерархия.
 </details>

@@ -15,7 +15,6 @@ namespace RoslynMcpServer.Tools;
 public sealed class NavigationTools
 {
     private const int MaxDefinitionLocations = 200;
-    private const int MaxAmbiguousCandidatesListed = 10;
 
     private readonly SolutionManager _solutionManager;
     private readonly ILogger<NavigationTools> _logger;
@@ -510,10 +509,11 @@ public sealed class NavigationTools
 
     [McpServerTool(Name = "find_implementations", Title = "Find interface implementations or derived types")]
     [Description(
-        "Finds types that implement an interface or derive from a base type. Requires load_workspace. "
-        + "Optional maxResults/preview/overflowCursor. Do not use find_usages or text search for this.")]
+        "Finds interface implementations or derived types. Requires load_workspace. "
+        + "Same short name: section per base; exact FQN: one type; FQN miss: resolver text. "
+        + "Optional maxResults/preview/overflowCursor. Not find_usages or text search.")]
     public async Task<string> FindImplementations(
-        [Description("Interface or base type name.")]
+        [Description("Simple name (section per match) or exact FQN (one type; no global::).")]
         string symbolName,
         [Description("When true (default), include indirect implementations and derived types.")]
         bool transitive = true,
@@ -553,7 +553,26 @@ public sealed class NavigationTools
             }
 
             var trimmedName = symbolName.Trim();
-            var typeSymbols = await FindNamedTypeDeclarationsAsync(solution, trimmedName, cancellationToken);
+            var (declarations, resolveError) = await ResolveDeclarationsOnSanitizedAsync(
+                solution,
+                trimmedName,
+                SymbolFilter.Type,
+                cancellationToken).ConfigureAwait(false);
+
+            if (resolveError is not null)
+            {
+                return ToolTelemetry.TraceAndReturn(
+                    toolName,
+                    _solutionManager.WithDiskSyncNotes(resolveError));
+            }
+
+            var typeSymbols = declarations
+                .OfType<INamedTypeSymbol>()
+                .Distinct(SymbolEqualityComparer.Default)
+                .Cast<INamedTypeSymbol>()
+                .OrderBy(t => SymbolDeclarationResolver.GetSymbolFqn(t), StringComparer.Ordinal)
+                .ToList();
+
             if (typeSymbols.Count == 0)
             {
                 return ToolTelemetry.TraceAndReturn(
@@ -561,144 +580,153 @@ public sealed class NavigationTools
                     $"No type declaration named `{trimmedName}` was found in the current solution.");
             }
 
-            var targetType = PickPrimaryTypeSymbol(typeSymbols);
-            var kindLabel = GetTypeKindLabel(targetType);
-            var chosenDisplay = targetType.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
-            var chosenFqn = targetType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-            var declaringLocation = GetRequiredDeclaringLocation(targetType, solution, trimmedName);
-
-            IEnumerable<INamedTypeSymbol> relatedTypes;
-            string searchMode;
-            switch (targetType.TypeKind)
-            {
-                case TypeKind.Interface:
-                    var (implementations, _) = await WorkspaceAnalyzerSanitizer.WithSanitizedRetryAsync(
-                        async sol =>
-                        {
-                            var mappedType = await RemapDeclaredSymbolAtSpanAsync<INamedTypeSymbol>(
-                                sol,
-                                declaringLocation.DocumentId,
-                                declaringLocation.Span,
-                                trimmedName,
-                                cancellationToken).ConfigureAwait(false);
-                            return await SymbolFinder.FindImplementationsAsync(
-                                mappedType, sol, transitive, projects: null, cancellationToken).ConfigureAwait(false);
-                        },
-                        () => _solutionManager.GetSanitizedPublishedSolution(),
-                        solution,
-                        cancellationToken).ConfigureAwait(false);
-                    relatedTypes = implementations;
-                    searchMode = transitive ? "implementations (transitive)" : "direct implementations";
-                    break;
-                case TypeKind.Class:
-                case TypeKind.Struct:
-                    var (derived, _) = await WorkspaceAnalyzerSanitizer.WithSanitizedRetryAsync(
-                        async sol =>
-                        {
-                            var mappedType = await RemapDeclaredSymbolAtSpanAsync<INamedTypeSymbol>(
-                                sol,
-                                declaringLocation.DocumentId,
-                                declaringLocation.Span,
-                                trimmedName,
-                                cancellationToken).ConfigureAwait(false);
-                            return await SymbolFinder.FindDerivedClassesAsync(
-                                mappedType, sol, transitive, projects: null, cancellationToken).ConfigureAwait(false);
-                        },
-                        () => _solutionManager.GetSanitizedPublishedSolution(),
-                        solution,
-                        cancellationToken).ConfigureAwait(false);
-                    relatedTypes = derived;
-                    searchMode = transitive ? "derived types (transitive)" : "direct derived types";
-                    break;
-                default:
-                    return ToolTelemetry.TraceAndReturn(
-                        toolName,
-                        $"Symbol `{trimmedName}` is a {targetType.TypeKind}; only interfaces, classes, and structs are supported.");
-            }
-
-            var results = relatedTypes
-                .Distinct(SymbolEqualityComparer.Default)
-                .Cast<INamedTypeSymbol>()
-                .OrderBy(t => t.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat), StringComparer.Ordinal)
+            var unsupported = typeSymbols
+                .Where(t => t.TypeKind is not (TypeKind.Interface or TypeKind.Class or TypeKind.Struct))
+                .ToList();
+            var supported = typeSymbols
+                .Where(t => t.TypeKind is TypeKind.Interface or TypeKind.Class or TypeKind.Struct)
                 .ToList();
 
-            var sb = new StringBuilder();
-            sb.AppendLine($"## {searchMode} for `{trimmedName}`");
-            sb.AppendLine();
-            sb.AppendLine($"**Base symbol:** `{chosenDisplay}` ({kindLabel})");
-            sb.AppendLine($"`{chosenFqn}`");
-            sb.AppendLine();
-
-            if (typeSymbols.Count > 1)
+            if (supported.Count == 0)
             {
-                sb.AppendLine(
-                    $"[!] {typeSymbols.Count} type declarations match this name; results are for the primary symbol above. Other candidates:");
-                foreach (var candidate in typeSymbols
-                             .Where(t => !SymbolEqualityComparer.Default.Equals(t, targetType))
-                             .OrderBy(t => t.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat), StringComparer.Ordinal)
-                             .Take(MaxAmbiguousCandidatesListed))
-                {
-                    sb.AppendLine($"  - {candidate.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)}");
-                }
-
-                if (typeSymbols.Count - 1 > MaxAmbiguousCandidatesListed)
-                {
-                    sb.AppendLine($"  … and {typeSymbols.Count - 1 - MaxAmbiguousCandidatesListed} more.");
-                }
-
-                sb.AppendLine();
+                var first = unsupported[0];
+                return ToolTelemetry.TraceAndReturn(
+                    toolName,
+                    $"Symbol `{trimmedName}` is a {first.TypeKind}; only interfaces, classes, and structs are supported.");
             }
 
-            if (results.Count == 0)
-            {
-                sb.AppendLine($"No {searchMode} were found in the solution.");
-                return ToolTelemetry.TraceAndReturn(toolName, sb.ToString().TrimEnd());
-            }
+            // Declaring locations on the resolve snapshot; remap before SymbolFinder on any retry snapshot.
+            var baseDeclLocations = supported
+                .Select(t => (
+                    Fqn: SymbolDeclarationResolver.GetSymbolFqn(t),
+                    DeclaringLocation: GetRequiredDeclaringLocation(t, solution, trimmedName)))
+                .ToList();
 
-            sb.AppendLine($"Found **{results.Count}** type(s):");
-            sb.AppendLine();
+            var (sectionResults, _) = await WorkspaceAnalyzerSanitizer.WithSanitizedRetryAsync(
+                    async sol =>
+                    {
+                        var results = new List<(
+                            string Fqn,
+                            INamedTypeSymbol MappedType,
+                            string SearchMode,
+                            List<INamedTypeSymbol> Related)>();
+
+                        foreach (var baseDecl in baseDeclLocations)
+                        {
+                            var mappedType = await RemapDeclaredSymbolAtSpanAsync<INamedTypeSymbol>(
+                                sol,
+                                baseDecl.DeclaringLocation.DocumentId,
+                                baseDecl.DeclaringLocation.Span,
+                                trimmedName,
+                                cancellationToken).ConfigureAwait(false);
+
+                            IEnumerable<INamedTypeSymbol> related;
+                            string searchMode;
+                            switch (mappedType.TypeKind)
+                            {
+                                case TypeKind.Interface:
+                                    related = await SymbolFinder.FindImplementationsAsync(
+                                        mappedType, sol, transitive, projects: null, cancellationToken)
+                                        .ConfigureAwait(false);
+                                    searchMode = ImplementationListingFormatter.GetSearchMode(
+                                        TypeKind.Interface, transitive);
+                                    break;
+                                case TypeKind.Class:
+                                case TypeKind.Struct:
+                                    related = await SymbolFinder.FindDerivedClassesAsync(
+                                        mappedType, sol, transitive, projects: null, cancellationToken)
+                                        .ConfigureAwait(false);
+                                    searchMode = ImplementationListingFormatter.GetSearchMode(
+                                        mappedType.TypeKind, transitive);
+                                    break;
+                                default:
+                                    related = [];
+                                    searchMode = ImplementationListingFormatter.GetSearchMode(
+                                        mappedType.TypeKind, transitive);
+                                    break;
+                            }
+
+                            var ordered = related
+                                .Distinct(SymbolEqualityComparer.Default)
+                                .Cast<INamedTypeSymbol>()
+                                .OrderBy(
+                                    t => t.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+                                    StringComparer.Ordinal)
+                                .ToList();
+
+                            results.Add((baseDecl.Fqn, mappedType, searchMode, ordered));
+                        }
+
+                        return results;
+                    },
+                    () => _solutionManager.GetSanitizedPublishedSolution(),
+                    solution,
+                    cancellationToken)
+                .ConfigureAwait(false);
 
             var textByDocument = preview ? new Dictionary<DocumentId, SourceText>() : null;
-            var lines = new List<string>(results.Count);
-            var index = 1;
-            foreach (var type in results)
+            var sections = new List<ImplementationListingFormatter.BaseSection>(sectionResults.Count);
+            foreach (var (fqn, mappedType, searchMode, related) in sectionResults)
             {
-                var display = type.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
-                var location = type.Locations.FirstOrDefault(l => l.IsInSource && l.SourceTree?.FilePath is not null);
-                if (location is null)
+                var relatedLines = new List<ImplementationListingFormatter.RelatedTypeLine>(related.Count);
+                foreach (var type in related)
                 {
-                    lines.Add($"{index}. `{display}` — (no in-source location)");
-                }
-                else
-                {
-                    var path = location.SourceTree!.FilePath!;
-                    var span = location.GetLineSpan();
-                    var line1 = span.StartLinePosition.Line + 1;
-                    var col1 = span.StartLinePosition.Character + 1;
                     string? previewLine = null;
                     if (preview && textByDocument is not null)
                     {
-                        previewLine = await GetSourceLineAtAsync(
-                                solution,
-                                location,
-                                textByDocument,
-                                cancellationToken)
-                            .ConfigureAwait(false);
-                        if (string.IsNullOrEmpty(previewLine))
+                        var location = type.Locations.FirstOrDefault(
+                            l => l.IsInSource && l.SourceTree?.FilePath is not null);
+                        if (location is not null)
                         {
-                            previewLine = "(source line unavailable)";
+                            previewLine = await GetSourceLineAtAsync(
+                                    solution,
+                                    location,
+                                    textByDocument,
+                                    cancellationToken)
+                                .ConfigureAwait(false);
+                            if (string.IsNullOrEmpty(previewLine))
+                            {
+                                previewLine = "(source line unavailable)";
+                            }
                         }
                     }
 
-                    var loc = NavigationListingHelper.FormatLocationLine(path, line1, col1, previewLine);
-                    lines.Add($"{index}. `{display}` — {loc}");
+                    relatedLines.Add(ImplementationListingFormatter.ToRelatedTypeLine(type, previewLine));
                 }
 
-                index++;
+                sections.Add(
+                    new ImplementationListingFormatter.BaseSection(
+                        fqn,
+                        ImplementationListingFormatter.GetTypeKindLabel(mappedType),
+                        searchMode,
+                        mappedType.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat),
+                        mappedType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+                        relatedLines));
             }
 
-            NavigationListingHelper.AppendCappedLines(sb, lines, resolvedMax, "type(s)");
+            var sb = new StringBuilder();
+            if (sections.Count == 1)
+            {
+                var section = sections[0];
+                ImplementationListingFormatter.AppendSingleTypeHeader(sb, trimmedName, section);
 
+                if (section.RelatedTypes.Count == 0)
+                {
+                    sb.AppendLine($"No {section.SearchMode} were found in the solution.");
+                    return ToolTelemetry.TraceAndReturn(toolName, sb.ToString().TrimEnd());
+                }
+
+                sb.AppendLine($"Found **{section.RelatedTypes.Count}** type(s):");
+                sb.AppendLine();
+                var lines = ImplementationListingFormatter.BuildNumberedRelatedLines(section.RelatedTypes);
+                NavigationListingHelper.AppendCappedLines(sb, lines, resolvedMax, "type(s)");
+                return ToolTelemetry.TraceAndReturn(toolName, sb.ToString().TrimEnd());
+            }
+
+            var totalRelated = sections.Sum(s => s.RelatedTypes.Count);
+            ImplementationListingFormatter.AppendMultiTypeHeader(sb, trimmedName, sections.Count, totalRelated);
+            var multiLines = ImplementationListingFormatter.BuildMultiSectionLines(sections);
+            NavigationListingHelper.AppendCappedLines(sb, multiLines, resolvedMax, "type(s)");
             return ToolTelemetry.TraceAndReturn(toolName, sb.ToString().TrimEnd());
         }
         catch (OperationCanceledException)
@@ -881,31 +909,6 @@ public sealed class NavigationTools
         return result;
     }
 
-    private async Task<List<INamedTypeSymbol>> FindNamedTypeDeclarationsAsync(
-        Solution solution,
-        string trimmedName,
-        CancellationToken cancellationToken)
-    {
-        var (declarations, error) = await ResolveDeclarationsOnSanitizedAsync(
-            solution,
-            trimmedName,
-            SymbolFilter.Type,
-            cancellationToken).ConfigureAwait(false);
-
-        if (error is not null)
-        {
-            // FQN miss for implementations: treat as no types (message already FQN-specific if applicable).
-            // Callers that need the error text use ResolveDeclarationsOnSanitizedAsync directly.
-            return [];
-        }
-
-        return declarations
-            .OfType<INamedTypeSymbol>()
-            .Distinct(SymbolEqualityComparer.Default)
-            .Cast<INamedTypeSymbol>()
-            .ToList();
-    }
-
     private static (DocumentId DocumentId, TextSpan Span) GetRequiredDeclaringLocation(
         ISymbol symbol,
         Solution solution,
@@ -1001,23 +1004,8 @@ public sealed class NavigationTools
             $"Symbol `{symbolName}` was not found in the sanitized solution snapshot.");
     }
 
-    private static INamedTypeSymbol PickPrimaryTypeSymbol(IReadOnlyList<INamedTypeSymbol> types)
-    {
-        return types
-            .OrderByDescending(t => t.TypeKind == TypeKind.Interface ? 300 : t.TypeKind == TypeKind.Class ? 200 : 100)
-            .ThenBy(t => t.IsAbstract ? 0 : 1)
-            .ThenBy(t => t.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat), StringComparer.Ordinal)
-            .First();
-    }
-
-    private static string GetTypeKindLabel(INamedTypeSymbol type) => type.TypeKind switch
-    {
-        TypeKind.Interface => "interface",
-        TypeKind.Struct => "struct",
-        TypeKind.Class when type.IsRecord => "record",
-        TypeKind.Class => type.IsAbstract ? "abstract class" : "class",
-        _ => type.TypeKind.ToString().ToLowerInvariant()
-    };
+    private static string GetTypeKindLabel(INamedTypeSymbol type) =>
+        ImplementationListingFormatter.GetTypeKindLabel(type);
 
     private static async Task<string> GetReferenceSourceLineAsync(
         ReferenceLocation refLoc,

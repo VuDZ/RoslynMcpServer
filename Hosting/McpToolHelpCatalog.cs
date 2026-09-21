@@ -104,8 +104,8 @@ public static class McpToolHelpCatalog
             ["find_implementations"] = new()
             {
                 Prerequisites = "Requires load_workspace.",
-                Workflow = "Use for which types implement an interface or derive from a base. Transitive by default. Optional maxResults/preview/overflowCursor.",
-                Pitfalls = "Do not use find_usages or text search for this — they miss indirect hierarchy. Over maxResults stores remainder behind overflowCursor.",
+                Workflow = "Use for which types implement an interface or derive from a base. Same short name → one section per base FQN (exact FQN still one type). Transitive by default. Optional maxResults/preview/overflowCursor.",
+                Pitfalls = "Do not use find_usages or text search. FQN miss is the resolver text (candidates, no simple-name fallback). Over maxResults stores remainder behind overflowCursor.",
                 RelatedTools = ["find_usages", "find_symbol_definition"],
             },
             ["get_call_graph"] = new()

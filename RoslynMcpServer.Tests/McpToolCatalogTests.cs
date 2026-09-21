@@ -278,21 +278,21 @@ public sealed class McpToolCatalogTests(ITestOutputHelper output)
     [Fact]
     public void Surface_sizes_match_recorded_release_numbers()
     {
-        AssertRecorded("full", 63, 49675, MeasureSurface(new McpToolProfileOptions { Profile = "full" }));
-        AssertRecorded("lite", 19, 21855, MeasureSurface(new McpToolProfileOptions { Profile = "lite" }));
-        AssertRecorded("lite+files", 26, 26204, MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "files" }));
-        AssertRecorded("lite+editing", 36, 32731, MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "editing" }));
-        AssertRecorded("lite+decompile", 23, 24773, MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "decompile" }));
-        AssertRecorded("lite+nuget", 25, 25468, MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "nuget" }));
-        AssertRecorded("lite+project", 22, 23492, MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "project" }));
-        AssertRecorded("lite+runtime", 22, 24365, MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "runtime" }));
-        AssertRecorded("lite+operations", 23, 23772, MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "operations" }));
+        AssertRecorded("full", 63, 49763, MeasureSurface(new McpToolProfileOptions { Profile = "full" }));
+        AssertRecorded("lite", 19, 21943, MeasureSurface(new McpToolProfileOptions { Profile = "lite" }));
+        AssertRecorded("lite+files", 26, 26292, MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "files" }));
+        AssertRecorded("lite+editing", 36, 32819, MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "editing" }));
+        AssertRecorded("lite+decompile", 23, 24861, MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "decompile" }));
+        AssertRecorded("lite+nuget", 25, 25556, MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "nuget" }));
+        AssertRecorded("lite+project", 22, 23580, MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "project" }));
+        AssertRecorded("lite+runtime", 22, 24453, MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "runtime" }));
+        AssertRecorded("lite+operations", 23, 23860, MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "operations" }));
 
         var enabled = MeasureSurface(
             new McpToolProfileOptions { Profile = "lite" },
             activation => activation.EnableGroup("files"));
-        AssertRecorded("lite+enable:files", 26, 26204, enabled);
-        Assert.Equal(26204, MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "files" }).Utf8Bytes);
+        AssertRecorded("lite+enable:files", 26, 26292, enabled);
+        Assert.Equal(26292, MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "files" }).Utf8Bytes);
     }
 
     private static void AssertRecorded(string label, int count, int bytes, (int Count, int Utf8Bytes) actual)
