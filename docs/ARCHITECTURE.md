@@ -127,7 +127,7 @@ Serilog writes rolling files under `logs/` next to the executable:
 - tool telemetry logs compact outcome/highlight lines by default;
 - `ROSLYN_MCP_LOG_TOOL_OUTPUT=full` logs complete tool responses.
 
-Logs can contain repository paths, source fragments, command arguments, and MCP parameters. Do not pass secrets in prompts or tool arguments, and apply normal access controls and retention rules to the log directory.
+Logs can contain repository paths, source fragments, command arguments, and MCP parameters. Do not pass secrets in prompts or tool arguments, and apply normal access controls and retention rules to the log directory. The server does not send product telemetry or workspace contents to a remote service of its own; network use is limited to explicit MCP tool calls that invoke `dotnet` against a configured feed (see [PRIVACY.md](../PRIVACY.md)).
 
 ## Architectural constraints
 

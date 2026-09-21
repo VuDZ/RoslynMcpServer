@@ -36,6 +36,15 @@ This server can read and write files and start `dotnet`/Git child processes with
 - Never put PATs, passwords, connection strings, or other secrets in prompts or tool arguments.
 - Incoming MCP parameters are logged by default; see [Logs](#logs) before using the server with sensitive repositories.
 
+## Privacy
+
+RoslynMcpServer does not collect telemetry or transmit user data automatically.
+
+Network access occurs only when explicitly requested by the user or MCP client
+through functionality that requires access to an external service.
+
+The process is local stdio: no backend and no HTTP client of its own. File logs stay next to the executable. NuGet/registry traffic happens only when an MCP tool runs `dotnet` against a feed (`search_nuget_registry`, outdated/vulnerable listing, restore as part of build/test/run). Those calls send package ids and restore metadata, not source or prompts. Details: [PRIVACY.md](PRIVACY.md).
+
 ## Prerequisites
 
 - An MCP client with local stdio-server support.
@@ -1225,6 +1234,14 @@ RoslynMcpServer предоставляет AI-агенту compiler-aware инс
 - Не запускайте сервер от администратора/root.
 - Не передавайте PAT, пароли и connection strings в prompts или аргументах tools.
 - Параметры входящих MCP-вызовов по умолчанию логируются; проверьте раздел «Логи» для чувствительных репозиториев.
+
+## Конфиденциальность
+
+RoslynMcpServer не собирает телеметрию и не передаёт пользовательские данные автоматически.
+
+Сетевой доступ возникает только когда пользователь или MCP-клиент явно запрашивают функцию, которой нужен внешний сервис.
+
+Процесс локальный (stdio): своего бэкенда и HTTP-клиента нет. Логи пишутся на диск рядом с исполняемым файлом. Обращения к NuGet/реестру — только если MCP-tool запускает `dotnet` к фиду (`search_nuget_registry`, outdated/vulnerable, restore в составе build/test/run). Уходят идентификаторы пакетов и метаданные restore, не исходники и не промпты. Подробности: [PRIVACY.md](PRIVACY.md).
 
 ## Требования
 

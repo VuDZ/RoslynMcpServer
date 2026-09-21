@@ -32,6 +32,7 @@
   <!-- Include additional files for browsing the MCP server. -->
   <ItemGroup>
     <None Include="LICENSE" Pack="true" PackagePath="/" />
+    <None Include="PRIVACY.md" Pack="true" PackagePath="/" />
     <None Include="README.md" Pack="true" PackagePath="/" />
   </ItemGroup>
   <!-- OpenCode installer script and agent rules template (copied next to the published binary). -->
