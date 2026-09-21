@@ -28,19 +28,19 @@ public sealed class NavigationTools
 
     [McpServerTool(Name = "find_symbol_references", Title = "Find symbol references")]
     [Description(
-        "Finds semantic references in the loaded workspace. Requires load_workspace. "
-        + "Omit filePath for solution-wide name/FQN search (all matching declaration groups). "
-        + "Pass filePath without line for declaration-by-name in that file. "
-        + "Pass filePath+line (optional column) to resolve at that position. "
-        + "Optional maxResults/preview/overflowCursor. find_usages is the name-based alias without filePath.")]
+        "Finds semantic references. Requires load_workspace. "
+        + "Omit filePath: solution-wide name/FQN (case-insensitive). "
+        + "filePath without line: unique declaration (case-sensitive; excl. operator/indexer/local function); "
+        + "several → error with FQN and identifier line:column. "
+        + "filePath+line (±column): positional. Optional maxResults/preview/overflowCursor. find_usages is the name-based alias.")]
     public async Task<string> FindSymbolReferences(
         [Description(
-            "Simple name (case-insensitive) or exact FQN (Namespace.Type or Namespace.Type.Member; no global::, no ()). "
-            + "With filePath+line: also the auto-column needle when column is omitted.")]
+            "Simple name or exact FQN (no global::, no ()). "
+            + "Solution-wide: case-insensitive; file without line: ordinal. With filePath+line: auto-column needle.")]
         string symbolName,
         [Description(
-            "Optional .cs file. Omit for solution-wide name/FQN search. Required when line is set. "
-            + "With line omitted: declaration-by-name in that file.")]
+            "Optional .cs. Omit for solution-wide search. Required with line. "
+            + "Without line: unique matching declaration (error if several).")]
         string? filePath = null,
         [Description("Optional 1-based line. Requires filePath. When set, resolve the symbol at that position (declaration or usage).")]
         int? line = null,
@@ -137,19 +137,23 @@ public sealed class NavigationTools
             }
             else
             {
-                var declaration = FindMatchingDeclaration(syntaxRoot, trimmedName);
-                if (declaration is null)
+                var fileMatches = FileDeclarationCollector.Collect(
+                    syntaxRoot,
+                    semanticModel,
+                    trimmedName,
+                    cancellationToken);
+                if (fileMatches.Count == 0)
                 {
                     return ToolTelemetry.TraceAndReturn(
                         toolName,
-                        $"Symbol `{trimmedName}` was not found as a class/interface/method declaration in `{fullPath}`.");
+                        FileDeclarationCollector.FormatNotFound(trimmedName, fullPath));
                 }
 
-                if (semanticModel.GetDeclaredSymbol(declaration, cancellationToken) is null)
+                if (fileMatches.Count > 1)
                 {
                     return ToolTelemetry.TraceAndReturn(
                         toolName,
-                        $"Unable to resolve declared symbol for `{trimmedName}` in `{fullPath}`.");
+                        FileDeclarationCollector.FormatAmbiguity(trimmedName, fullPath, fileMatches));
                 }
             }
 
@@ -174,8 +178,8 @@ public sealed class NavigationTools
                             trimmedName,
                             (root, model, ct) =>
                             {
-                                var declaration = FindMatchingDeclaration(root, trimmedName);
-                                return declaration is null ? null : model.GetDeclaredSymbol(declaration, ct);
+                                var matches = FileDeclarationCollector.Collect(root, model, trimmedName, ct);
+                                return matches.Count == 1 ? matches[0].Symbol : null;
                             },
                             cancellationToken).ConfigureAwait(false);
                     }
@@ -246,16 +250,21 @@ public sealed class NavigationTools
 
     [McpServerTool(Name = "find_symbol_definition", Title = "Find symbol definitions in workspace")]
     [Description(
-        "Finds declarations of a type or member in the loaded workspace. Requires load_workspace. "
-        + "Omit filePath/line for solution-wide name search. Pass filePath+line (optional column) to go to the "
-        + "definition of the symbol at that position (usage or declaration). "
-        + "Do not use text search for where a symbol is declared. For usages use find_usages; when the declaring file is known use find_symbol_references.")]
+        "Finds declarations. Requires load_workspace. "
+        + "Omit filePath/line: solution-wide name (case-insensitive). "
+        + "filePath without line: unique declaration (case-sensitive); prints every in-source location (partials) "
+        + "with column and full name; several → error with FQN and identifier line:column. "
+        + "filePath+line (±column): positional. Do not use text search for declarations.")]
     public async Task<string> FindSymbolDefinition(
-        [Description("Exact identifier of the type or member. With filePath+line: used for auto-column when column is omitted.")]
+        [Description(
+            "Type/member identifier. Solution-wide: case-insensitive; file without line: ordinal. "
+            + "With filePath+line: auto-column needle.")]
         string symbolName,
-        [Description("Optional .cs file. Required when line is set; with line, resolves the symbol at that position.")]
+        [Description(
+            "Optional .cs. Omit for solution-wide search. Required with line. "
+            + "Without line: unique matching declaration (error if several).")]
         string? filePath = null,
-        [Description("Optional 1-based line in filePath. Requires filePath. Omit with empty filePath for name search.")]
+        [Description("Optional 1-based line in filePath. Requires filePath. When set, resolves the symbol at that position.")]
         int? line = null,
         [Description("Optional 1-based column. When omitted with line set, picks the unique identifier token matching symbolName on that line.")]
         int? column = null,
@@ -278,13 +287,6 @@ public sealed class NavigationTools
                     "Error: `line` requires `filePath`. Pass the .cs file containing that line.");
             }
 
-            if (hasFilePath && line is null)
-            {
-                return ToolTelemetry.TraceAndReturn(
-                    nameof(FindSymbolDefinition),
-                    "Error: when `filePath` is set, also pass `line` (1-based) to resolve the symbol at that position.");
-            }
-
             var solution = await _solutionManager.GetSanitizedPublishedSolutionAsync(cancellationToken).ConfigureAwait(false);
             if (solution is null)
             {
@@ -295,7 +297,7 @@ public sealed class NavigationTools
             }
 
             List<ISymbol> symbols;
-            if (hasFilePath && line is int lineNumber)
+            if (hasFilePath)
             {
                 var fullPath = _solutionManager.ResolvePathAgainstWorkspace(filePath!);
                 var document = await _solutionManager.FindDocumentAsync(fullPath, cancellationToken).ConfigureAwait(false);
@@ -309,39 +311,74 @@ public sealed class NavigationTools
                 var publishedDocument = document;
                 document = solution.GetDocument(publishedDocument.Id) ?? publishedDocument;
 
-                var (positionSymbol, position, positionError) = await SourcePositionHelper
-                    .ResolveSymbolInDocumentAsync(document, trimmedName, lineNumber, column, cancellationToken)
-                    .ConfigureAwait(false);
-                if (positionError is not null)
+                if (line is int lineNumber)
                 {
-                    return ToolTelemetry.TraceAndReturn(nameof(FindSymbolDefinition), positionError);
-                }
-
-                if (positionSymbol is null || position is null)
-                {
-                    return ToolTelemetry.TraceAndReturn(
-                        nameof(FindSymbolDefinition),
-                        $"Unable to resolve symbol `{trimmedName}` at line {lineNumber} in `{fullPath}`.");
-                }
-
-                var (definitionSymbol, _) = await WorkspaceAnalyzerSanitizer.WithSanitizedRetryAsync(
-                    async sol =>
+                    var (positionSymbol, position, positionError) = await SourcePositionHelper
+                        .ResolveSymbolInDocumentAsync(document, trimmedName, lineNumber, column, cancellationToken)
+                        .ConfigureAwait(false);
+                    if (positionError is not null)
                     {
-                        var mapped = await RemapSymbolAtPositionAsync(
-                            sol,
-                            publishedDocument.Id,
-                            position.AbsolutePosition,
-                            trimmedName,
-                            cancellationToken).ConfigureAwait(false);
-                        var sourceDef = await SymbolFinder.FindSourceDefinitionAsync(mapped, sol, cancellationToken)
-                            .ConfigureAwait(false);
-                        return sourceDef ?? mapped;
-                    },
-                    () => _solutionManager.GetSanitizedPublishedSolution(),
-                    solution,
-                    cancellationToken).ConfigureAwait(false);
+                        return ToolTelemetry.TraceAndReturn(nameof(FindSymbolDefinition), positionError);
+                    }
 
-                symbols = [definitionSymbol];
+                    if (positionSymbol is null || position is null)
+                    {
+                        return ToolTelemetry.TraceAndReturn(
+                            nameof(FindSymbolDefinition),
+                            $"Unable to resolve symbol `{trimmedName}` at line {lineNumber} in `{fullPath}`.");
+                    }
+
+                    var (definitionSymbol, _) = await WorkspaceAnalyzerSanitizer.WithSanitizedRetryAsync(
+                        async sol =>
+                        {
+                            var mapped = await RemapSymbolAtPositionAsync(
+                                sol,
+                                publishedDocument.Id,
+                                position.AbsolutePosition,
+                                trimmedName,
+                                cancellationToken).ConfigureAwait(false);
+                            var sourceDef = await SymbolFinder.FindSourceDefinitionAsync(mapped, sol, cancellationToken)
+                                .ConfigureAwait(false);
+                            return sourceDef ?? mapped;
+                        },
+                        () => _solutionManager.GetSanitizedPublishedSolution(),
+                        solution,
+                        cancellationToken).ConfigureAwait(false);
+
+                    symbols = [definitionSymbol];
+                }
+                else
+                {
+                    var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
+                    var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
+                    if (semanticModel is null || syntaxRoot is null)
+                    {
+                        return ToolTelemetry.TraceAndReturn(
+                            nameof(FindSymbolDefinition),
+                            $"Could not build semantic model for file: `{fullPath}`.");
+                    }
+
+                    var fileMatches = FileDeclarationCollector.Collect(
+                        syntaxRoot,
+                        semanticModel,
+                        trimmedName,
+                        cancellationToken);
+                    if (fileMatches.Count == 0)
+                    {
+                        return ToolTelemetry.TraceAndReturn(
+                            nameof(FindSymbolDefinition),
+                            FileDeclarationCollector.FormatNotFound(trimmedName, fullPath));
+                    }
+
+                    if (fileMatches.Count > 1)
+                    {
+                        return ToolTelemetry.TraceAndReturn(
+                            nameof(FindSymbolDefinition),
+                            FileDeclarationCollector.FormatAmbiguity(trimmedName, fullPath, fileMatches));
+                    }
+
+                    symbols = [fileMatches[0].Symbol];
+                }
             }
             else
             {
@@ -375,13 +412,12 @@ public sealed class NavigationTools
             var emitted = 0;
             foreach (var symbol in symbols)
             {
-                var display = symbol.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
-                var sourceLocations = symbol.Locations.Where(l => l.IsInSource && l.SourceTree?.FilePath is not null).ToList();
+                var sourceLocations = symbol.Locations
+                    .Where(l => l.IsInSource && l.SourceTree?.FilePath is not null)
+                    .ToList();
                 if (sourceLocations.Count == 0)
                 {
-                    sb.AppendLine($"Symbol: {display}");
-                    sb.AppendLine("  (no in-source locations — metadata or implicit declaration only)");
-                    sb.AppendLine();
+                    DefinitionLocationFormatter.AppendNoSourceLocations(sb, symbol);
                     continue;
                 }
 
@@ -396,12 +432,7 @@ public sealed class NavigationTools
                             _solutionManager.WithDiskSyncNotes(sb.ToString().TrimEnd()));
                     }
 
-                    var path = location.SourceTree!.FilePath!;
-                    var defLine = location.GetLineSpan().StartLinePosition.Line + 1;
-                    sb.AppendLine($"Symbol: {display}");
-                    sb.AppendLine($"  File: {path}");
-                    sb.AppendLine($"  Line: {defLine}");
-                    sb.AppendLine();
+                    DefinitionLocationFormatter.AppendLocation(sb, symbol, location);
                     emitted++;
                 }
             }
@@ -1037,18 +1068,6 @@ public sealed class NavigationTools
         }
 
         return NavigationListingHelper.TruncatePreview(text.Lines[lineIndex].ToString());
-    }
-
-    private static SyntaxNode? FindMatchingDeclaration(SyntaxNode root, string symbolName)
-    {
-        return root.DescendantNodes().FirstOrDefault(node =>
-            node switch
-            {
-                ClassDeclarationSyntax c => string.Equals(c.Identifier.ValueText, symbolName, StringComparison.Ordinal),
-                InterfaceDeclarationSyntax i => string.Equals(i.Identifier.ValueText, symbolName, StringComparison.Ordinal),
-                MethodDeclarationSyntax m => string.Equals(m.Identifier.ValueText, symbolName, StringComparison.Ordinal),
-                _ => false
-            });
     }
 
     private static string GetEnclosingContext(SyntaxNode? referenceNode)

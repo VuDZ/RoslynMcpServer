@@ -179,6 +179,11 @@ MCP `tools/list` stays JSON + JSON Schema. Markdown is for JIT help and diagnost
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.4.4
+
+- **File declaration pick and definition coordinates** — `find_symbol_references` and `find_symbol_definition` with `filePath` and no `line` select the single matching declaration in that file (ordinal, case-sensitive). Kinds: class, struct, record, interface, enum, method, constructor, destructor, property, event, field, event field. Several matches is an error listing FQN and identifier `line:column` (no silent first). Operator, indexer, and local function stay line/column only. A unique file match on `find_symbol_definition` prints every in-source location of that symbol (including all `partial` parts), each with column and full name (`SymbolDeclarationResolver.GetSymbolFqn`, no `global::`). Solution-wide name search stays case-insensitive. Positional `filePath`+`line` is unchanged. No `directOnly`.
+- **Catalog size** — full 63 tools / 49,675 bytes; lite 19 / 21,855.
+
 ### v1.4.3
 
 - **Lossless diagnostic report (hybrid)** — when `run_dotnet_build` / `run_dotnet_test` / `run_specific_test` / `run_test_by_filter` / `run_dotnet_run` return a truncated excerpt (head/tail or raw tail) or a partial/unparsed test/build failure, the redacted full combined log is kept in-process (max 4 reports, ≤1 000 000 chars each, 15 min TTL, 16 000-char chunks). Pass optional `reportCursor` to the same tool for the next chunk (no new process). Successful short all-pass reports do not store or mention a cursor. Secrets (`password`/`token`/`Bearer`/URL userinfo, etc.) are redacted to `[redacted]` before store. Not a `%Temp%` path. Inline excerpt and StdOut/StdErr budgets from 1.3.24 unchanged; VSTest aggregation (item 2) and nonzero-exit gated success (item 5) unchanged.
@@ -611,7 +616,7 @@ Policy summary (full text in the sample):
 - `includeExtensions` — optional extension filter for `search_code` (`.cs` by default; `*` = all files).
 - `caseSensitive` — optional for `search_code` (default `false`; use `true` for leftover branding checks).
 - `workspacePath` — `.sln` / `.slnx` / `.csproj` (and sometimes a directory): `load_workspace`, `run_dotnet_test`, `run_specific_test`, `run_test_by_filter`, `run_format`, optional reload for `list_projects` / `get_project_graph`. **`run_dotnet_build` accepts only a `.csproj`, `.sln`, or `.slnx` file path, not a directory.** Prefer `.sln`/`.slnx` for multi-config solutions.
-- `symbolName` — C# identifier for `find_symbol_definition`, `find_symbol_references`, `find_usages`, and `find_implementations` (exact name; matching is case-insensitive for definition/usages/implementations).
+- `symbolName` — C# identifier for `find_symbol_definition`, `find_symbol_references`, `find_usages`, and `find_implementations` (exact name; solution-wide definition/usages/implementations and `find_symbol_references` without `filePath` are case-insensitive; `filePath` without `line` on definition and references is ordinal case-sensitive).
 - `diagnosticId` — compiler/analyzer id from `get_diagnostics_for_file` (e.g. `CS0246`) for `get_code_fixes` / `apply_code_fix`.
 - `fixIndex` — 0-based index from `get_code_fixes` for `apply_code_fix`.
 - `path` — `.cs` file or directory for `get_code_skeleton` (absolute path; disk-based, no workspace required).
@@ -758,30 +763,30 @@ There are **63** registered tools in the default `full` profile (see list below)
 </details>
 
 <details>
-<summary><code>find_symbol_references</code> — Finds usages of a class/interface/method across the solution.</summary>
+<summary><code>find_symbol_references</code> — Finds usages of a type/member across the solution.</summary>
 
 **Parameters:**
-- `symbolName: string` — simple name (case-insensitive) or exact FQN (`Namespace.Type` / `Namespace.Type.Member`; no `global::`, no `()`); with `filePath`+`line`, also the auto-column needle when `column` is omitted
-- `filePath: string?` — optional `.cs` file; omit for solution-wide name/FQN search; required when `line` is set; without `line`, declaration-by-name in that file
+- `symbolName: string` — simple name or exact FQN (`Namespace.Type` / `Namespace.Type.Member`; no `global::`, no `()`); solution-wide search is case-insensitive; with `filePath` and no `line`, match is ordinal case-sensitive; with `filePath`+`line`, also the auto-column needle when `column` is omitted
+- `filePath: string?` — optional `.cs` file; omit for solution-wide name/FQN search; required when `line` is set; without `line`, select the unique matching declaration in that file (error if several)
 - `line: int?` — optional 1-based line; requires `filePath`; when set, resolve the symbol at that position (declaration or usage)
 - `column: int?` — optional 1-based column; omit to auto-pick the unique matching identifier token on the line
 - `maxResults: int?` — optional listing cap (1–500). Default 50, or env `ROSLYN_MCP_MAX_RESULTS` when a positive int; explicit arg wins
 - `preview: bool = false` — when true, append the source line (truncated at 400 chars); default `path:line:col` only
 - `overflowCursor: string?` — when set, return the next in-memory overflow chunk (does not start a new search)
 
-**Behavior:** Locations beyond `maxResults` are stored in-process behind a cursor (not silent drop; not a host `%Temp%` path). Unknown/expired cursor → human error.
+**Behavior:** File without line covers class/struct/record/interface/enum/method/ctor/dtor/property/event/field (not operator/indexer/local function). Several matches → error listing FQN and identifier `line:column` (no silent first). Locations beyond `maxResults` are stored in-process behind a cursor (not silent drop; not a host `%Temp%` path). Unknown/expired cursor → human error.
 </details>
 
 <details>
-<summary><code>find_symbol_definition</code> — Semantic lookup: where a type or member is declared (file path + line) in the loaded solution.</summary>
+<summary><code>find_symbol_definition</code> — Semantic lookup: where a type or member is declared (file, line, column, full name) in the loaded solution.</summary>
 
 **Parameters:**
-- `symbolName: string` — class, interface, struct, enum, or member identifier (e.g. `IRunCommand`).
-- `filePath: string?` — optional; required with `line` for positional go-to-definition
+- `symbolName: string` — class, interface, struct, enum, or member identifier (e.g. `IRunCommand`); solution-wide search is case-insensitive; file without line is ordinal case-sensitive.
+- `filePath: string?` — optional; omit for solution-wide name search; without `line`, select the unique matching declaration in that file; required with `line` for positional go-to-definition
 - `line: int?` — optional 1-based line in `filePath` (usage or declaration)
 - `column: int?` — optional 1-based column; omit to auto-pick the unique matching identifier token on the line
 
-**Model guidance:** after `load_workspace`, use this for “where is X **declared**?” — do **not** answer that with plain-text search or invent a generic tool named `search`. For free-text matches across files, use your client’s built-in **`grep`** tool (not `bash`/`PowerShell` grep). This tool avoids `bin/`/`obj/` and uses Roslyn. **Saved** `.cs` (IDE/git) are applied before search; unsaved buffers are ignored — no `reset_workspace` for ordinary saves. Omit `filePath`/`line` for solution-wide name search; pass `filePath`+`line` to go to the definition of the symbol under that position.
+**Model guidance:** after `load_workspace`, use this for “where is X **declared**?” — do **not** answer that with plain-text search or invent a generic tool named `search`. For free-text matches across files, use your client’s built-in **`grep`** tool (not `bash`/`PowerShell` grep). This tool avoids `bin/`/`obj/` and uses Roslyn. **Saved** `.cs` (IDE/git) are applied before search; unsaved buffers are ignored — no `reset_workspace` for ordinary saves. Omit `filePath`/`line` for solution-wide name search; pass `filePath` without `line` for the single declaration in that file (prints every in-source location, including partial parts, each with column and full name); several matches → error with FQN and identifier coordinates; pass `filePath`+`line` to go to the definition of the symbol under that position.
 </details>
 
 <details>
@@ -1446,7 +1451,7 @@ cd D:\Devel\YourApp
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.4.3). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.4.4). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 
@@ -1483,7 +1488,7 @@ cd D:\Devel\YourApp
 - `includeExtensions` — опциональный фильтр расширений для `search_code` (по умолчанию `.cs`; `*` = все файлы).
 - `caseSensitive` — опционально для `search_code` (по умолчанию `false`; для leftover branding — `true`).
 - `workspacePath` — `.sln` / `.slnx` / `.csproj` (и иногда каталог): `load_workspace`, `run_dotnet_test`, `run_specific_test`, `run_test_by_filter`, `run_format`, опциональная перезагрузка в `list_projects` / `get_project_graph`. **`run_dotnet_build` принимает только путь к файлу `.csproj`, `.sln` или `.slnx`, не каталог.** Для multi-config solution предпочитайте `.sln`/`.slnx`.
-- `symbolName` — идентификатор C# для `find_symbol_definition`, `find_symbol_references`, `find_usages` и `find_implementations` (точное имя; регистр не важен для definition/usages/implementations).
+- `symbolName` — идентификатор C# для `find_symbol_definition`, `find_symbol_references`, `find_usages` и `find_implementations` (точное имя; поиск по solution для definition/usages/implementations и `find_symbol_references` без `filePath` без учёта регистра; `filePath` без `line` у definition и references — порядковое сравнение с учётом регистра).
 - `diagnosticId` — id компилятора/анализатора из `get_diagnostics_for_file` (например `CS0246`) для `get_code_fixes` / `apply_code_fix`.
 - `fixIndex` — индекс (0-based) из `get_code_fixes` для `apply_code_fix`.
 - `path` — файл `.cs` или каталог для `get_code_skeleton` (абсолютный путь; с диска, workspace не обязателен).
@@ -1628,30 +1633,30 @@ cd D:\Devel\YourApp
 </details>
 
 <details>
-<summary><code>find_symbol_references</code> — Ищет использования класса/интерфейса/метода по solution.</summary>
+<summary><code>find_symbol_references</code> — Ищет использования типа/члена по solution.</summary>
 
 **Параметры:**
-- `symbolName: string` — простое имя (без учёта регистра) или точный FQN (`Namespace.Type` / `Namespace.Type.Member`; без `global::`, без `()`); при `filePath`+`line` также needle для auto-column без `column`
-- `filePath: string?` — опциональный `.cs`; без него — поиск по имени/FQN по solution; обязателен с `line`; без `line` — объявление по имени в этом файле
+- `symbolName: string` — простое имя или точный FQN (`Namespace.Type` / `Namespace.Type.Member`; без `global::`, без `()`); поиск по solution без учёта регистра; при `filePath` без `line` — порядковое сравнение с учётом регистра; при `filePath`+`line` также needle для auto-column без `column`
+- `filePath: string?` — опциональный `.cs`; без него — поиск по имени/FQN по solution; обязателен с `line`; без `line` — единственное совпавшее объявление в файле (несколько → ошибка)
 - `line: int?` — опциональная 1-based строка; требует `filePath`; резолвит символ в этой позиции
 - `column: int?` — опциональная 1-based колонка; без неё — единственный identifier token с именем `symbolName` на строке
 - `maxResults: int?` — лимит списка (1–500). По умолчанию 50 или env `ROSLYN_MCP_MAX_RESULTS` (положительное int); явный arg важнее env
 - `preview: bool = false` — true: добавить текст строки исходника (до 400 символов); иначе только `path:line:col`
 - `overflowCursor: string?` — следующий chunk in-memory overflow (новый поиск не запускается)
 
-**Поведение:** локации сверх `maxResults` хранятся в процессе за cursor (не тихая обрезка; не `%Temp%` на хосте). Неизвестный/истёкший cursor — человекочитаемая ошибка.
+**Поведение:** файл без строки покрывает class/struct/record/interface/enum/method/ctor/dtor/property/event/field (не operator/indexer/local function). Несколько совпадений → ошибка со списком FQN и `строка:колонка` идентификатора (без тихого первого). Локации сверх `maxResults` хранятся в процессе за cursor (не тихая обрезка; не `%Temp%` на хосте). Неизвестный/истёкший cursor — человекочитаемая ошибка.
 </details>
 
 <details>
-<summary><code>find_symbol_definition</code> — Семантический поиск: где объявлен тип или член (путь к файлу и строка) в загруженном solution.</summary>
+<summary><code>find_symbol_definition</code> — Семантический поиск: где объявлен тип или член (файл, строка, колонка, полное имя) в загруженном solution.</summary>
 
 **Параметры:**
-- `symbolName: string` — имя класса, интерфейса, struct, enum или члена (например `IRunCommand`).
-- `filePath: string?` — опционально; обязателен вместе с `line` для позиционного go-to-definition
+- `symbolName: string` — имя класса, интерфейса, struct, enum или члена (например `IRunCommand`); поиск по solution без учёта регистра; файл без строки — с учётом регистра.
+- `filePath: string?` — опционально; без него — поиск по имени по solution; без `line` — единственное совпавшее объявление в файле; обязателен вместе с `line` для позиционного go-to-definition
 - `line: int?` — опциональная 1-based строка в `filePath` (usage или объявление)
 - `column: int?` — опциональная 1-based колонка; без неё — единственный совпадающий identifier token на строке
 
-**Для модели:** после `load_workspace` для «где **объявлен** X?» используй этот tool — не текстовый поиск и не выдуманный tool вроде `search`. Для произвольного текста по файлам — встроенный **`grep`** среды (IDE), не `bash`/PowerShell с grep. Так не лезем в `bin/`/`obj/` и опираемся на Roslyn. **Сохранённые** `.cs` (IDE/git) подмешиваются до поиска; несохранённый буфер игнорируется — `reset_workspace` для обычных save не нужен. Без `filePath`/`line` — поиск по имени по solution; с `filePath`+`line` — определение символа в этой позиции.
+**Для модели:** после `load_workspace` для «где **объявлен** X?» используй этот tool — не текстовый поиск и не выдуманный tool вроде `search`. Для произвольного текста по файлам — встроенный **`grep`** среды (IDE), не `bash`/PowerShell с grep. Так не лезем в `bin/`/`obj/` и опираемся на Roslyn. **Сохранённые** `.cs` (IDE/git) подмешиваются до поиска; несохранённый буфер игнорируется — `reset_workspace` для обычных save не нужен. Без `filePath`/`line` — поиск по имени по solution; `filePath` без `line` — одно объявление в файле (печатает все исходные места, включая части `partial`, каждое с колонкой и полным именем); несколько совпадений → ошибка с FQN и координатами идентификатора; с `filePath`+`line` — определение символа в этой позиции.
 </details>
 
 <details>

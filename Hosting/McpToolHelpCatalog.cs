@@ -83,8 +83,8 @@ public static class McpToolHelpCatalog
             ["find_symbol_definition"] = new()
             {
                 Prerequisites = "Requires load_workspace.",
-                Workflow = "Pass the exact identifier for solution-wide name search (case-insensitive). Or pass filePath+line (optional column) to go to the definition of the symbol at that position.",
-                Pitfalls = "Do not use text search or a terminal grep for declarations. Unsaved editor buffers are ignored. line without filePath is an error.",
+                Workflow = "Omit filePath for solution-wide name search (case-insensitive). Pass filePath without line to select the single declaration in that file. Pass filePath+line (optional column) for positional go-to-definition. Each printed location includes column and full name.",
+                Pitfalls = "File without line is case-sensitive; several declarations → error listing FQN and identifier line:column (no silent first). Solution-wide name search stays case-insensitive. line without filePath is an error. Unsaved buffers are ignored.",
                 RelatedTools = ["find_usages", "find_symbol_references", "search_code"],
             },
             ["find_usages"] = new()
@@ -97,8 +97,8 @@ public static class McpToolHelpCatalog
             ["find_symbol_references"] = new()
             {
                 Prerequisites = "Requires load_workspace.",
-                Workflow = "Omit filePath for solution-wide name/FQN search (all groups). Pass filePath without line for declaration-by-name in that file. Pass filePath+line (optional column) for positional resolve. Optional maxResults/preview/overflowCursor.",
-                Pitfalls = "FQN miss lists candidates and does not fall back to simple name. Overloads share one FQN group. Over maxResults: pass overflowCursor for the next chunk.",
+                Workflow = "Omit filePath for solution-wide name/FQN search (case-insensitive). Pass filePath without line to select the single declaration in that file (case-sensitive). Pass filePath+line (optional column) for positional resolve. Optional maxResults/preview/overflowCursor.",
+                Pitfalls = "File without line: several declarations → error listing FQN and identifier line:column (no silent first). FQN miss lists candidates and does not fall back to simple name. Overloads share one FQN group. Over maxResults: pass overflowCursor for the next chunk.",
                 RelatedTools = ["find_usages", "find_symbol_definition"],
             },
             ["find_implementations"] = new()
