@@ -9,5 +9,6 @@
 | [analyzer-shadow-copy-improvements/](analyzer-shadow-copy-improvements/README.md) | v2/v3, U-ARB, приёмки. Runtime — [ARCHITECTURE](../ARCHITECTURE.md) |
 | [mcp-build-progress-notifications/](mcp-build-progress-notifications/README.md) | S1–S4 shipped v1.3.25–v1.3.27. Runtime — [ARCHITECTURE](../ARCHITECTURE.md), README v1.3.25–v1.3.27 |
 | [disk-sync-csproj-mutation/](disk-sync-csproj-mutation/README.md) | Disk-sync `AddDocument` → NETSDK1022. Shipped v1.3.30, I-5 v1.3.31. Runtime — [ARCHITECTURE](../ARCHITECTURE.md), README v1.3.30–v1.3.31 |
+| [fork-simplification-comparison/](fork-simplification-comparison/README.md) | Перенос идей из `VladD2@simplification`. Shipped v1.3.33–v1.4.3. Не ship: 7b, 9, навигация S4/S5. Runtime — корневой README |
 
 Process-пакеты (review / арбитраж) лежат в `_archive/` соответствующей темы, не на живой полке.

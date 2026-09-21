@@ -406,7 +406,7 @@ public static bool IsExpectedNonCSharpProjectAdvisory(string message) =>
 выполняется для этих файлов.
 
 Первая проверка написала «уже запланировано отдельно». Active-спека
-[`workspace-load-cache`](../workspace-load-cache/README.md) Epoch 3 требует
+[`workspace-load-cache`](../../workspace-load-cache/README.md) Epoch 3 требует
 coverage map для **хеш-кэша** (не shipped, U-ARB-02 открыт) — это не
 `ComputeWatchRoots` и не замена тактическому фиксу.
 

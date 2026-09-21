@@ -1,11 +1,15 @@
 # Сравнение с форком VladD2/RoslynMcpServer (`simplification`)
 
-Статус: **proposal / отчёт о сравнении, не реализовано**. Runtime этим документом
-не меняется. Канон сравнения — этот файл. **Ship-план (отдельные файлы):**
+Статус: **shipped 1.3.33–1.4.3; archived**. Runtime — корневой README
+«Agent tools by version». Этот пакет — история сравнения, не живой контракт.
+Канон сравнения — этот файл. **Ship-план (отдельные файлы):**
 [implementation/README.md](implementation/README.md). Разбор по пунктам —
 [port-candidates-1-2-3-4-7.md](port-candidates-1-2-3-4-7.md),
 [port-candidate-5-nonzero-exit.md](port-candidate-5-nonzero-exit.md),
 [navigation-surface-8.md](navigation-surface-8.md).
+
+Не входило в ship: **7b** (missing C# project), **9** (`AnalyzerShadowLoader`),
+навигация **S4** (enclosing member) и **S5** (`directOnly`).
 
 ## 0. Короткий вердикт
 
@@ -98,7 +102,7 @@ analyzer-машинерию, перейти на config-based lazy load». Ча�
 
 Продуктовое решение: наша поверхность не проходит порог «40 тулов» — это
 осознанный размен в пользу headless-редактирования и tool-groups. `add_member`
-уже **DEFER** в [mcp-tool-surface-evolution Stage 3](../mcp-tool-surface-evolution/stage-3-v2-spec.md)
+уже **DEFER** в [mcp-tool-surface-evolution Stage 3](../../mcp-tool-surface-evolution/stage-3-v2-spec.md)
 (1.x не удаляет три имени и не вводит dispatcher). Из форка сюда не переносить.
 
 ## 4. Что у нас уже закрыто (переносить не нужно)
