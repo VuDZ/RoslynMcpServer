@@ -94,7 +94,7 @@ public static class TestDiscoveryHelper
                         projectName = project.Name,
                         className,
                         methodName,
-                        fullyQualifiedName = symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+                        fullyQualifiedName = TestFilterHelper.FormatVstestFullyQualifiedName(symbol),
                         filePath = document.FilePath
                     });
 

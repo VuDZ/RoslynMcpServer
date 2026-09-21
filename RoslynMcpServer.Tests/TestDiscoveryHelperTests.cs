@@ -282,6 +282,54 @@ public sealed class TestDiscoveryHelperTests
     }
 
     [Fact]
+    public async Task ListTests_fullyQualifiedName_is_vstest_shape_without_global_or_parens()
+    {
+        using var ctx = VstestFqnWorkspace.Create();
+        var result = await TestDiscoveryHelper.ListTestsJsonAsync(
+            ctx.Workspace.CurrentSolution,
+            maxResults: 20,
+            projectName: null,
+            nameContains: null,
+            CancellationToken.None);
+
+        Assert.True(result.Success);
+        using var doc = JsonDocument.Parse(result.Payload);
+        var byMethod = FullyQualifiedNamesByMethod(doc);
+
+        Assert.Equal("MyTests.DoesThing", byMethod["DoesThing"]);
+        Assert.Equal("Acme.Tests.WidgetTests.Parses", byMethod["Parses"]);
+        Assert.All(
+            byMethod.Values,
+            fqn =>
+            {
+                Assert.DoesNotContain("global::", fqn, StringComparison.Ordinal);
+                Assert.DoesNotContain("()", fqn, StringComparison.Ordinal);
+            });
+    }
+
+    [Fact]
+    public async Task ListTests_fullyQualifiedName_for_nested_class_matches_helper_display_form()
+    {
+        // Documents FormatVstestFullyQualifiedName output (C# `.` nested separator).
+        // TODO: adapter-specific nested/generic FQN (CLR `+`, generic arity) is not verified against testhost here.
+        using var ctx = VstestFqnWorkspace.Create();
+        var result = await TestDiscoveryHelper.ListTestsJsonAsync(
+            ctx.Workspace.CurrentSolution,
+            maxResults: 20,
+            projectName: null,
+            nameContains: "NestedFact",
+            CancellationToken.None);
+
+        Assert.True(result.Success);
+        using var doc = JsonDocument.Parse(result.Payload);
+        var fqn = FullyQualifiedNamesByMethod(doc)["NestedFact"];
+        Assert.Equal("Acme.Tests.Outer.Inner.NestedFact", fqn);
+        Assert.DoesNotContain("global::", fqn, StringComparison.Ordinal);
+        Assert.DoesNotContain("()", fqn, StringComparison.Ordinal);
+        Assert.DoesNotContain("+", fqn, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task ListTests_reports_total_found_before_filters()
     {
         using var ctx = TwoProjectWorkspace.Create();
@@ -302,6 +350,59 @@ public sealed class TestDiscoveryHelperTests
         doc.RootElement.GetProperty("tests").EnumerateArray()
             .Select(t => t.GetProperty("methodName").GetString() ?? string.Empty)
             .ToArray();
+
+    private static Dictionary<string, string> FullyQualifiedNamesByMethod(JsonDocument doc) =>
+        doc.RootElement.GetProperty("tests").EnumerateArray()
+            .ToDictionary(
+                t => t.GetProperty("methodName").GetString() ?? string.Empty,
+                t => t.GetProperty("fullyQualifiedName").GetString() ?? string.Empty,
+                StringComparer.Ordinal);
+
+    /// <summary>VSTest FQN shapes: no-namespace, namespaced, and nested type (helper display form).</summary>
+    private sealed class VstestFqnWorkspace : IDisposable
+    {
+        private VstestFqnWorkspace(AdhocWorkspace workspace) => Workspace = workspace;
+
+        public AdhocWorkspace Workspace { get; }
+
+        public static VstestFqnWorkspace Create()
+        {
+            var workspace = new AdhocWorkspace();
+            AddCSharpProject(
+                workspace,
+                name: "Fqn.Tests",
+                assemblyName: "Fqn.Tests",
+                csprojPath: Path.Combine(Path.GetTempPath(), "Fqn.Tests.csproj"),
+                documentName: "FqnTests.cs",
+                source: """
+                    using Xunit;
+
+                    public class MyTests
+                    {
+                        [Fact] public void DoesThing() {}
+                    }
+
+                    namespace Acme.Tests
+                    {
+                        public class WidgetTests
+                        {
+                            [Fact] public void Parses() {}
+                        }
+
+                        public class Outer
+                        {
+                            public class Inner
+                            {
+                                [Fact] public void NestedFact() {}
+                            }
+                        }
+                    }
+                    """);
+            return new VstestFqnWorkspace(workspace);
+        }
+
+        public void Dispose() => Workspace.Dispose();
+    }
 
     private sealed class TwoProjectWorkspace : IDisposable
     {
