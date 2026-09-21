@@ -179,6 +179,11 @@ MCP `tools/list` stays JSON + JSON Schema. Markdown is for JIT help and diagnost
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.3.36
+
+- **`run_dotnet_test` / `run_specific_test` sum VSTest counts across test assemblies** — on a `.sln` each project prints `Total tests:` / `Passed!`; the parser no longer keeps the last end-summary or the first totals block plus leaked `Skipped:` from another assembly. Blocks are aggregated; a `Total > 0` block without count lines fail-closes the whole summary (`null` / partial). `Total tests: 0` without counts is a zero block. `.slnx` fail-only `Passed` inference and StdOut/StdErr budgets are unchanged.
+- **Catalog size** — unchanged: full 63 tools / 45,868 bytes; lite 19 / 18,282.
+
 ### v1.3.35
 
 - **Solution-wide SymbolFinder no longer dies on a missing analyzer DLL** — Roslyn 5.9.0 cannot checksum a project that still has an `UnresolvedAnalyzerReference` stub, so one missing analyzer DLL used to break `find_usages` / `find_symbol_references` / `find_implementations` / `get_call_graph` / `rename_symbol` and `run_specific_test` filter resolution for the whole solution. Search now uses a **cached sanitized snapshot** of the published graph (stubs stripped, one retry). Raw published solution is unchanged, so health/load diagnostics and overlay admission still see the missing path. The sanitized graph is never `TryApplyChanges`'d into `MSBuildWorkspace` and never `SetPublishedSolution`.
@@ -1380,7 +1385,7 @@ cd D:\Devel\YourApp
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.3.35). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.3.36). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 

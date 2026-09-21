@@ -412,20 +412,16 @@ public static class VstestOutputParser
 
     private static TestSummary? InferSummaryFromMarkers(string text)
     {
-        foreach (Match m in RxEndSummaryLine.Matches(text))
+        var endSummary = TryParseEndSummaryLines(text);
+        if (endSummary is not null)
         {
-            if (m.Success)
-            {
-                return SummaryFromEndMatch(m);
-            }
+            return endSummary;
         }
 
-        var alt = RxEndSummaryLineAlt.Match(text);
-        if (alt.Success)
+        var alt = TryParseEndSummaryLineAlt(text);
+        if (alt is not null)
         {
-            var passed = int.Parse(alt.Groups["passed"].Value, CultureInfo.InvariantCulture);
-            var failed = int.Parse(alt.Groups["failed"].Value, CultureInfo.InvariantCulture);
-            return new TestSummary(passed + failed, passed, failed, 0);
+            return alt;
         }
 
         return TryParseTestSummary(text);
@@ -444,33 +440,24 @@ public static class VstestOutputParser
             return null;
         }
 
-        Match? lastEnd = null;
-        foreach (Match m in RxEndSummaryLine.Matches(text))
+        // Source order: end-summary → aggregated totals blocks → line-wise fallback.
+        var endSummary = TryParseEndSummaryLines(text);
+        if (endSummary is not null)
         {
-            lastEnd = m;
+            return endSummary;
         }
 
-        if (lastEnd is { Success: true })
+        var alt = TryParseEndSummaryLineAlt(text);
+        if (alt is not null)
         {
-            return SummaryFromEndMatch(lastEnd);
+            return alt;
         }
 
-        var alt = RxEndSummaryLineAlt.Match(text);
-        if (alt.Success)
+        if (TryParseTotalTestsBlocks(text, out var blocksSummary))
         {
-            var passed = int.Parse(alt.Groups["passed"].Value, CultureInfo.InvariantCulture);
-            var failed = int.Parse(alt.Groups["failed"].Value, CultureInfo.InvariantCulture);
-            return new TestSummary(passed + failed, passed, failed, 0);
-        }
-
-        var vstestBlock = RxVstestTotalsBlock.Match(text);
-        if (vstestBlock.Success)
-        {
-            var total = int.Parse(vstestBlock.Groups["total"].Value, CultureInfo.InvariantCulture);
-            var passed = int.Parse(vstestBlock.Groups["passed"].Value, CultureInfo.InvariantCulture);
-            var failed = TryReadCountAfterTotalTests(text, RxFailedCountLine) ?? 0;
-            var skipped = TryReadCountAfterTotalTests(text, RxSkippedCountLine) ?? 0;
-            return new TestSummary(total, passed, failed, skipped);
+            // Attempted: success, all Total-only, or fail-closed mix. Do not fall through
+            // to last-block line-wise (that would resurrect a partial assembly).
+            return blocksSummary;
         }
 
         if (RxTestRunSuccessful.IsMatch(text))
@@ -501,6 +488,121 @@ public static class VstestOutputParser
         return null;
     }
 
+    /// <summary>Sums every <c>Passed!</c> / <c>Failed!</c> end-summary line. Does not keep last only.</summary>
+    private static TestSummary? TryParseEndSummaryLines(string text)
+    {
+        var matches = RxEndSummaryLine.Matches(text);
+        if (matches.Count == 0)
+        {
+            return null;
+        }
+
+        var total = 0;
+        var passed = 0;
+        var failed = 0;
+        var skipped = 0;
+        foreach (Match m in matches)
+        {
+            if (!m.Success)
+            {
+                continue;
+            }
+
+            var one = SummaryFromEndMatch(m);
+            total += one.Total;
+            passed += one.Passed;
+            failed += one.Failed;
+            skipped += one.Skipped;
+        }
+
+        return new TestSummary(total, passed, failed, skipped);
+    }
+
+    /// <summary>
+    /// <see cref="RxEndSummaryLineAlt"/> is a <c>Passed!</c>-only subset of <see cref="RxEndSummaryLine"/>.
+    /// Multiple alt lines cannot occur without primary matches, so first-match remains.
+    /// </summary>
+    private static TestSummary? TryParseEndSummaryLineAlt(string text)
+    {
+        var alt = RxEndSummaryLineAlt.Match(text);
+        if (!alt.Success)
+        {
+            return null;
+        }
+
+        var passed = int.Parse(alt.Groups["passed"].Value, CultureInfo.InvariantCulture);
+        var failed = int.Parse(alt.Groups["failed"].Value, CultureInfo.InvariantCulture);
+        return new TestSummary(passed + failed, passed, failed, 0);
+    }
+
+    /// <summary>
+    /// Aggregates every <c>Total tests:</c> block. Per-block scan stops at the next <c>Total tests:</c>.
+    /// A <c>Total &gt; 0</c> block with no count lines fail-closes the whole summary (<see langword="null"/>).
+    /// <c>Total tests: 0</c> without counts is a zero block and may be aggregated.
+    /// </summary>
+    /// <returns>
+    /// <see langword="true"/> when the log contains one or more <c>Total tests:</c> lines
+    /// (summary may still be null: all Total-only, or fail-closed mix).
+    /// </returns>
+    private static bool TryParseTotalTestsBlocks(string text, out TestSummary? summary)
+    {
+        summary = null;
+        var lines = text.Split(['\r', '\n'], StringSplitOptions.None);
+        var indices = new List<int>();
+        for (var i = 0; i < lines.Length; i++)
+        {
+            if (RxTotalTests.IsMatch(lines[i].Trim()))
+            {
+                indices.Add(i);
+            }
+        }
+
+        if (indices.Count == 0)
+        {
+            return false;
+        }
+
+        var total = 0;
+        var passed = 0;
+        var failed = 0;
+        var skipped = 0;
+        var anyAggregated = false;
+
+        foreach (var start in indices)
+        {
+            var block = TryParseCountsNearTotalTestsLine(lines, start);
+            if (block is not null)
+            {
+                total += block.Total;
+                passed += block.Passed;
+                failed += block.Failed;
+                skipped += block.Skipped;
+                anyAggregated = true;
+                continue;
+            }
+
+            var tm = RxTotalTests.Match(lines[start].Trim());
+            var blockTotal = int.Parse(tm.Groups["total"].Value, CultureInfo.InvariantCulture);
+            if (blockTotal == 0)
+            {
+                anyAggregated = true;
+                continue;
+            }
+
+            // Fail-closed mix: do not add this total and emit Total != Passed+Failed+Skipped.
+            summary = null;
+            return true;
+        }
+
+        if (!anyAggregated)
+        {
+            return true;
+        }
+
+        summary = new TestSummary(total, passed, failed, skipped);
+        return true;
+    }
+
     private static TestSummary? TryParseVstestCountsFromLines(string text)
     {
         var lines = text.Split(['\r', '\n'], StringSplitOptions.None);
@@ -517,7 +619,8 @@ public static class VstestOutputParser
         return null;
     }
 
-    private static TestSummary? TryParseCountsNearTotalTestsLine(string[] lines, int totalTestsLineIndex)
+    /// <summary>Line-wise counts for one <c>Total tests:</c> block. Stops at the next <c>Total tests:</c> (no whole-log leak).</summary>
+    internal static TestSummary? TryParseCountsNearTotalTestsLine(string[] lines, int totalTestsLineIndex)
     {
         var tm = RxTotalTests.Match(lines[totalTestsLineIndex].Trim());
         if (!tm.Success)
@@ -530,8 +633,14 @@ public static class VstestOutputParser
         int? failed = null;
         int? skipped = null;
 
-        for (var j = totalTestsLineIndex; j < Math.Min(totalTestsLineIndex + 24, lines.Length); j++)
+        for (var j = totalTestsLineIndex; j < lines.Length; j++)
         {
+            var trimmed = lines[j].Trim();
+            if (j > totalTestsLineIndex && RxTotalTests.IsMatch(trimmed))
+            {
+                break;
+            }
+
             var line = lines[j].TrimEnd();
             var pm = RxPassedCountLine.Match(line);
             if (pm.Success)
@@ -567,20 +676,6 @@ public static class VstestOutputParser
         failed ??= 0;
         skipped ??= 0;
         return new TestSummary(total, passed.Value, failed.Value, skipped.Value);
-    }
-
-    private static int? TryReadCountAfterTotalTests(string text, Regex lineRegex)
-    {
-        foreach (var line in text.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries))
-        {
-            var m = lineRegex.Match(line.TrimEnd());
-            if (m.Success)
-            {
-                return int.Parse(m.Groups["n"].Value, CultureInfo.InvariantCulture);
-            }
-        }
-
-        return null;
     }
 
     private static TestSummary SummaryFromEndMatch(Match m)

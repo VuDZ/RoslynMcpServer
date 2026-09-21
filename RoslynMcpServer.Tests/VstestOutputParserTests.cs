@@ -553,4 +553,194 @@ public sealed class VstestOutputParserTests
             parse,
             "Restore target(s) failed.\nBuild FAILED.\n    0 Error(s)"));
     }
+
+    [Fact]
+    public void Parse_sums_end_summary_lines_across_two_assemblies()
+    {
+        const string output = """
+            Passed!  - Failed:     0, Passed:     3, Skipped:     0, Total:     3, Duration: 120 ms
+            Passed!  - Failed:     1, Passed:     4, Skipped:     2, Total:     7, Duration: 800 ms
+            """;
+        var result = VstestOutputParser.Parse(output, exitCode: 1);
+        Assert.False(result.IsPartialSuccess);
+        Assert.True(result.HasRecognizedSummary);
+        AssertBalancedSummary(result.Summary, total: 10, passed: 7, failed: 1, skipped: 2);
+    }
+
+    [Fact]
+    public void Parse_sums_total_tests_blocks_across_two_all_pass_assemblies()
+    {
+        const string output = """
+            Test Run Successful.
+            Total tests: 10
+                 Passed: 10
+
+            Test Run Successful.
+            Total tests: 5
+                 Passed: 5
+            """;
+        var result = VstestOutputParser.Parse(output, exitCode: 0);
+        Assert.False(result.IsPartialSuccess);
+        Assert.True(result.HasRecognizedSummary);
+        AssertBalancedSummary(result.Summary, total: 15, passed: 15, failed: 0, skipped: 0);
+    }
+
+    [Fact]
+    public void Parse_zero_match_assembly_plus_three_passed_aggregates_three()
+    {
+        const string output = """
+            Total tests: 0
+
+            Test Run Successful.
+            Total tests: 3
+                 Passed: 3
+            """;
+        var result = VstestOutputParser.Parse(output, exitCode: 0);
+        Assert.False(result.IsPartialSuccess);
+        Assert.True(result.HasRecognizedSummary);
+        AssertBalancedSummary(result.Summary, total: 3, passed: 3, failed: 0, skipped: 0);
+    }
+
+    [Fact]
+    public void Parse_end_summary_wins_over_fail_only_totals_block()
+    {
+        // Source order: end-summary → totals blocks. Do not merge formats and do not
+        // let a later fail-only block replace or add to Passed! counts.
+        const string output = """
+            Passed!  - Failed: 0, Passed: 5, Skipped: 0, Total: 5
+            Test Run Failed.
+            Total tests: 2
+                 Failed: 2
+            """;
+        var result = VstestOutputParser.Parse(output, exitCode: 1);
+        Assert.False(result.IsPartialSuccess);
+        Assert.True(result.HasRecognizedSummary);
+        AssertBalancedSummary(result.Summary, total: 5, passed: 5, failed: 0, skipped: 0);
+        Assert.NotEqual(7, result.Summary?.Total);
+        Assert.NotEqual(2, result.Summary?.Failed);
+    }
+
+    [Fact]
+    public void Parse_all_total_only_blocks_leave_summary_null()
+    {
+        const string output = """
+            Total tests: 4
+             Total time: 1.0 Seconds
+
+            Total tests: 8
+             Total time: 2.0 Seconds
+            """;
+        var result = VstestOutputParser.Parse(output, exitCode: 1);
+        Assert.True(result.HasRecognizedSummary);
+        Assert.Null(result.Summary);
+    }
+
+    [Fact]
+    public void Parse_mix_total_only_and_full_block_is_fail_closed()
+    {
+        const string output = """
+            Total tests: 4
+             Total time: 1.0 Seconds
+
+            Test Run Successful.
+            Total tests: 3
+                 Passed: 3
+            """;
+        var result = VstestOutputParser.Parse(output, exitCode: 0);
+        Assert.True(result.HasRecognizedSummary);
+        Assert.Null(result.Summary);
+        Assert.NotEqual(7, result.Summary?.Total);
+        Assert.NotEqual(3, result.Summary?.Passed);
+    }
+
+    [Fact]
+    public void Parse_zero_total_without_counts_aggregates_with_full_block()
+    {
+        const string output = """
+            Total tests: 0
+             Total time: 0.1 Seconds
+
+            Test Run Successful.
+            Total tests: 4
+                 Passed: 4
+            """;
+        var result = VstestOutputParser.Parse(output, exitCode: 0);
+        Assert.False(result.IsPartialSuccess);
+        Assert.True(result.HasRecognizedSummary);
+        AssertBalancedSummary(result.Summary, total: 4, passed: 4, failed: 0, skipped: 0);
+    }
+
+    [Fact]
+    public void Parse_does_not_take_skipped_from_later_assembly_block()
+    {
+        // Fork symptom: first Total:1 + later Skipped:2 leaked across assemblies.
+        const string output = """
+            Test Run Successful.
+            Total tests: 1
+                 Passed: 1
+
+            Test Run Successful.
+            Total tests: 253
+                 Passed: 251
+                Skipped: 2
+            """;
+        var result = VstestOutputParser.Parse(output, exitCode: 0);
+        Assert.False(result.IsPartialSuccess);
+        AssertBalancedSummary(result.Summary, total: 254, passed: 252, failed: 0, skipped: 2);
+        Assert.NotEqual(1, result.Summary?.Total);
+    }
+
+    [Fact]
+    public void Parse_counts_beyond_24_lines_still_bound_to_own_total_tests_block()
+    {
+        var noise = string.Join('\n', Enumerable.Range(0, 30).Select(i => $"  log line {i}"));
+        var output = $"""
+            Total tests: 2
+            {noise}
+                 Passed: 2
+
+            Total tests: 1
+                 Failed: 1
+            """;
+        var result = VstestOutputParser.Parse(output, exitCode: 1);
+        Assert.False(result.IsPartialSuccess);
+        AssertBalancedSummary(result.Summary, total: 3, passed: 2, failed: 1, skipped: 0);
+    }
+
+    [Fact]
+    public void TryParseCountsNearTotalTestsLine_stops_at_next_total_tests()
+    {
+        var lines = """
+            Total tests: 1
+                 Passed: 1
+            Total tests: 2
+                Skipped: 2
+            """.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
+
+        var firstIdx = Array.FindIndex(lines, static l => l.Trim().StartsWith("Total tests: 1", StringComparison.OrdinalIgnoreCase));
+        var secondIdx = Array.FindIndex(lines, static l => l.Trim().StartsWith("Total tests: 2", StringComparison.OrdinalIgnoreCase));
+        Assert.True(firstIdx >= 0 && secondIdx > firstIdx);
+
+        var first = VstestOutputParser.TryParseCountsNearTotalTestsLine(lines, firstIdx);
+        AssertBalancedSummary(first, total: 1, passed: 1, failed: 0, skipped: 0);
+        Assert.NotEqual(2, first?.Skipped);
+
+        var second = VstestOutputParser.TryParseCountsNearTotalTestsLine(lines, secondIdx);
+        AssertBalancedSummary(second, total: 2, passed: 0, failed: 0, skipped: 2);
+    }
+
+    private static void AssertBalancedSummary(
+        VstestOutputParser.TestSummary? summary,
+        int total,
+        int passed,
+        int failed,
+        int skipped)
+    {
+        Assert.NotNull(summary);
+        Assert.Equal(total, summary.Total);
+        Assert.Equal(passed, summary.Passed);
+        Assert.Equal(failed, summary.Failed);
+        Assert.Equal(skipped, summary.Skipped);
+        Assert.Equal(summary.Total, summary.Passed + summary.Failed + summary.Skipped);
+    }
 }
