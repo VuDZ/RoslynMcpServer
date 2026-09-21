@@ -40,3 +40,7 @@ Do not add a named shard that leaves rest empty without `--filter` proof. Do not
 (`.github/scripts/Assert-NoSkippedTests.ps1`), not a green CI.
 
 Pass `--filter` as a quoted env value (`"$env:FILTER"`). Bare `&` in PowerShell is the call operator.
+
+JS actions must be Node 24 majors (`checkout@v6`, `setup-dotnet@v5`, `upload-artifact@v7`,
+`download-artifact@v8`). Do not pin `@v4` of those — GitHub removes Node 20. Do not set
+`ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION`. Hosted `windows-latest` is new enough.
