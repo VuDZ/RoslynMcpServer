@@ -364,6 +364,10 @@ public sealed class SolutionManager
         _workspaceLoadInProgress = true;
         try
         {
+            // Cancel and Release can race: SemaphoreSlim may grant the waiter after its token
+            // is already cancelled. Do not run this load; the in-progress load keeps its own token.
+            cancellationToken.ThrowIfCancellationRequested();
+
             var fileConfiguration = DotNetConfigurationArguments.Normalize(
                 _fileSettings.Configuration,
                 nameof(_fileSettings.Configuration));

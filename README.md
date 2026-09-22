@@ -180,6 +180,10 @@ MCP `tools/list` stays JSON + JSON Schema. Markdown is for JIT help and diagnost
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.4.13
+
+- **Concurrent `load_workspace`** — a caller cancelled while waiting for the in-progress load still throws `OperationCanceledException` when `SemaphoreSlim` grants the lock in the same race as `Cancel`. The load already inside the lock is not cancelled.
+
 ### v1.4.12
 
 - **Lite demotion (membership only)** — `find_symbol_references`, `find_implementations`, and `get_call_graph` moved from `core` to the new `navigation` group; `get_code_skeleton` moved from `core` to `files`. All four remain in `full`. Bare `lite` no longer lists them; enable `navigation` or `files` (or set `ROSLYN_MCP_TOOL_GROUPS`) to get them. `find_symbol_definition` and `find_usages` stay in `core`. Default profile is still `full`.
@@ -1505,7 +1509,7 @@ cd D:\Devel\YourApp
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.4.12). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.4.13). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 
