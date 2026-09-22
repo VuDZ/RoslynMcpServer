@@ -19,7 +19,7 @@ After a **successful** `run_dotnet_build` / `dotnet test` (and before or with `d
 
 - **Patch** (`1.0.x`): fixes, tool UX, parsers, path resolve, logging — default for almost every ship.
 - **Minor** (`1.x.0`): new MCP tools or clearly additive public capabilities.
-- Do not bump `PackageVersion` (`0.1.0-beta`) unless packaging intentionally changes.
+- There is no `PackageVersion`: the product is not a NuGet package. Do not add one.
 
 ## After bump
 

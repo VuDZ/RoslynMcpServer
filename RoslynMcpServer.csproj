@@ -17,8 +17,7 @@
     <!-- Set recommended package metadata -->
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageId>SampleMcpServer</PackageId>
-    <PackageVersion>0.1.0-beta</PackageVersion>
+    <PackageId>RoslynMcpServer</PackageId>
     <Version>1.4.13</Version>
     <AssemblyVersion>1.4.13.0</AssemblyVersion>
     <FileVersion>1.4.13.0</FileVersion>
