@@ -74,6 +74,8 @@ exact inner-instance mapping — gate. Ограниченный одно-TFM р�
 утверждаются до получения результатов. Пока это не сделано, действует
 [U-ARB-03](UNRESOLVED-v2.md#u-arb-03--репрезентативная-нагрузка-и-численный-budget);
 fixture разрешает experiment, но не public activation.
+Снять текущие задержки на двух закреплённых корпусах:
+[baseline benchmark](baseline-benchmark.md). Отчёт сам gate не закрывает.
 
 Trace: R-06, E0-02, E0-04, V-03, V-04 — ACCEPT WITH MODIFICATION.
 
@@ -137,3 +139,4 @@ Trace: E0-04, E2-06, H-01 — ACCEPT WITH MODIFICATION; E2-02 — REJECT
 - [Traceability](TRACEABILITY-v2.md)
 - [Unresolved](UNRESOLVED-v2.md)
 - [Post-arbitration issues](POST-ARBITRATION-ISSUES.md)
+- [Baseline benchmark](baseline-benchmark.md)
