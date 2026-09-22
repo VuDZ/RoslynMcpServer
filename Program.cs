@@ -75,8 +75,7 @@ foreach (var key in fileSettings.UnknownKeys)
 try
 {
     builder.Services
-        .AddRoslynMcpServerTools()
-        .WithPrompts<BasicPrompts>();
+        .AddRoslynMcpServerTools();
 }
 catch (InvalidOperationException ex)
 {

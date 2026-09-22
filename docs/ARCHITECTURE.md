@@ -29,7 +29,7 @@ Startup is intentionally ordered:
 1. `Program.cs` registers a process-bitness-compatible MSBuild before Roslyn workspace types are used.
 2. Roslyn C# workspace and feature assemblies are force-loaded for MEF discovery.
 3. `ROSLYN_MCP_WORKSPACE`, when set, establishes the repository working directory. The publish directory must not become the working directory.
-4. The .NET Generic Host configures Serilog, dependency injection, MCP stdio transport, prompts, and the selected tool surface.
+4. The .NET Generic Host configures Serilog, dependency injection, MCP stdio transport, and the selected tool surface.
 5. Tool factories and process-wide shared services are registered; tool constructor dependencies are resolved through DI.
 
 Key runtime components:

@@ -669,7 +669,7 @@ Policy summary (full text in the sample):
 
 When a tool accepts `filePath`, relative values are resolved against the loaded workspace root after `load_workspace`; if no workspace is loaded, fallback is `Environment.CurrentDirectory`.
 
-There are **54** registered tools in the default `full` profile (see list below) and **1** MCP prompt (`RefactoringAssistantPrompt`). A `lite` profile starts with **15** core tools; extra groups use `ROSLYN_MCP_TOOL_GROUPS` or `enable_tool_group`.
+There are **54** registered tools in the default `full` profile (see list below). A `lite` profile starts with **15** core tools; extra groups use `ROSLYN_MCP_TOOL_GROUPS` or `enable_tool_group`.
 
 ### Workspace / Roslyn
 
@@ -1326,15 +1326,6 @@ Idempotent. Profile `full` is a no-op. Sends `tools/list_changed` only when tool
 
 </details>
 
-### Prompts
-
-<details>
-<summary><code>RefactoringAssistantPrompt</code> — Short system-style instructions for C# refactoring workflows.</summary>
-
-**Parameters:**
-- `focus: string? = null`
-</details>
-
 ## License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 ---
@@ -1552,7 +1543,7 @@ cd D:\Devel\YourApp
 - `fixIndex` — индекс (0-based) из `get_code_fixes` для `apply_code_fix`.
 - `path` — файл `.cs` или каталог для `get_code_skeleton` (абсолютный путь; с диска, workspace не обязателен).
 
-Зарегистрировано **54** инструмента в профиле `full` (список ниже) и **1** MCP-промпт (`RefactoringAssistantPrompt`). Профиль `lite` стартует с **15** core-тулов; остальные группы — `ROSLYN_MCP_TOOL_GROUPS` или `enable_tool_group`.
+Зарегистрировано **54** инструмента в профиле `full` (список ниже). Профиль `lite` стартует с **15** core-тулов; остальные группы — `ROSLYN_MCP_TOOL_GROUPS` или `enable_tool_group`.
 
 ### Workspace / Roslyn
 
@@ -2198,15 +2189,6 @@ cd D:\Devel\YourApp
 
 **Параметры:** *(нет)*
 
-</details>
-
-### Prompts
-
-<details>
-<summary><code>RefactoringAssistantPrompt</code> — Краткие инструкции для сценариев C#-рефакторинга.</summary>
-
-**Параметры:**
-- `focus: string? = null`
 </details>
 
 ## Лицензия
