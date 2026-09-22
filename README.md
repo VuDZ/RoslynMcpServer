@@ -180,6 +180,10 @@ MCP `tools/list` stays JSON + JSON Schema. Markdown is for JIT help and diagnost
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.4.14
+
+- **`load_workspace` health** — a missing `obj` next to the project no longer fails the tool. Restore assets are also accepted from `artifacts/obj/<ProjectName>/project.assets.json` and from the `obj` folder beside the output `bin` directory.
+
 ### v1.4.13
 
 - **Concurrent `load_workspace`** — a caller cancelled while waiting for the in-progress load still throws `OperationCanceledException` when `SemaphoreSlim` grants the lock in the same race as `Cancel`. The load already inside the lock is not cancelled.
@@ -1500,7 +1504,7 @@ cd D:\Devel\YourApp
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.4.13). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.4.14). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 

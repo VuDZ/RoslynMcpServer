@@ -52,35 +52,136 @@ public static class WorkspaceHealthReporter
 
     private static string DescribeRestoreAssets(Solution solution)
     {
-        var projectPaths = solution.Projects
-            .Select(p => p.FilePath)
-            .Where(p => !string.IsNullOrWhiteSpace(p))
-            .Select(p => p!)
+        var projects = solution.Projects
+            .Where(p => !string.IsNullOrWhiteSpace(p.FilePath))
             .ToList();
 
-        if (projectPaths.Count == 0)
+        if (projects.Count == 0)
         {
             return "unknown (no project paths)";
         }
 
         var withAssets = 0;
-        foreach (var csproj in projectPaths)
+        foreach (var project in projects)
         {
-            var projectDir = Path.GetDirectoryName(csproj);
-            if (projectDir is null)
-            {
-                continue;
-            }
-
-            if (Directory.EnumerateFiles(Path.Combine(projectDir, "obj"), "project.assets.json", SearchOption.AllDirectories)
-                .Any())
+            var outputPath = project.CompilationOutputInfo.AssemblyPath ?? project.OutputFilePath;
+            if (HasRestoreAssets(project.FilePath!, outputPath))
             {
                 withAssets++;
             }
         }
 
-        return withAssets == projectPaths.Count
-            ? $"ok ({withAssets}/{projectPaths.Count} projects have obj/project.assets.json)"
-            : $"incomplete ({withAssets}/{projectPaths.Count} — run `dotnet restore` at solution root, then `reset_workspace` + `load_workspace`)";
+        return withAssets == projects.Count
+            ? $"ok ({withAssets}/{projects.Count} projects have project.assets.json)"
+            : $"incomplete ({withAssets}/{projects.Count} — run `dotnet restore` at solution root, then `reset_workspace` + `load_workspace`)";
+    }
+
+    /// <summary>
+    /// SDK projects keep <c>project.assets.json</c> under <c>obj</c> next to the project.
+    /// Arcade and other redirected layouts put it under <c>artifacts/obj/&lt;ProjectName&gt;</c>
+    /// or beside the <c>bin</c> folder of <paramref name="outputFilePath"/>.
+    /// A missing directory is "no assets", not a failed <c>load_workspace</c>.
+    /// </summary>
+    internal static bool HasRestoreAssets(string projectFilePath, string? outputFilePath)
+    {
+        var projectDir = Path.GetDirectoryName(projectFilePath);
+        if (projectDir is not null && DirectoryContainsAssets(Path.Combine(projectDir, "obj")))
+        {
+            return true;
+        }
+
+        if (OutputBinHasSiblingObjAssets(outputFilePath))
+        {
+            return true;
+        }
+
+        return ArcadeArtifactsHasAssets(projectFilePath);
+    }
+
+    private static bool DirectoryContainsAssets(string directory)
+    {
+        try
+        {
+            if (!Directory.Exists(directory))
+            {
+                return false;
+            }
+
+            if (File.Exists(Path.Combine(directory, "project.assets.json")))
+            {
+                return true;
+            }
+
+            return Directory.EnumerateFiles(directory, "project.assets.json", SearchOption.AllDirectories).Any();
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return false;
+        }
+    }
+
+    private static bool OutputBinHasSiblingObjAssets(string? outputFilePath)
+    {
+        if (string.IsNullOrWhiteSpace(outputFilePath))
+        {
+            return false;
+        }
+
+        var current = Path.GetDirectoryName(outputFilePath);
+        string? child = null;
+        while (!string.IsNullOrEmpty(current))
+        {
+            if (string.Equals(Path.GetFileName(current), "bin", StringComparison.OrdinalIgnoreCase)
+                && !string.IsNullOrEmpty(child))
+            {
+                var parent = Path.GetDirectoryName(current);
+                if (parent is null)
+                {
+                    return false;
+                }
+
+                return DirectoryContainsAssets(Path.Combine(parent, "obj", child));
+            }
+
+            child = Path.GetFileName(current);
+            var parentDir = Path.GetDirectoryName(current);
+            if (string.Equals(parentDir, current, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            current = parentDir;
+        }
+
+        return false;
+    }
+
+    private static bool ArcadeArtifactsHasAssets(string projectFilePath)
+    {
+        var projectName = Path.GetFileNameWithoutExtension(projectFilePath);
+        if (string.IsNullOrEmpty(projectName))
+        {
+            return false;
+        }
+
+        var dir = Path.GetDirectoryName(projectFilePath);
+        while (!string.IsNullOrEmpty(dir))
+        {
+            var assets = Path.Combine(dir, "artifacts", "obj", projectName, "project.assets.json");
+            if (File.Exists(assets))
+            {
+                return true;
+            }
+
+            var parent = Path.GetDirectoryName(dir);
+            if (string.Equals(parent, dir, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            dir = parent;
+        }
+
+        return false;
     }
 }
