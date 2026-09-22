@@ -30,6 +30,10 @@ packages/
 .DS_Store
 Thumbs.db
 
+# Python
+__pycache__/
+*.pyc
+
 # Local AI tooling folders
 .mcp/
 .curcor/

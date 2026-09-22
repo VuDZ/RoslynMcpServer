@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Normative workspace-load baseline client (baseline-benchmark-1).
+"""Normative workspace-load baseline client (baseline-benchmark-3).
 
 Timing rules and pins live in baseline-benchmark.md. Do not add flags that
 override SHA, timeouts, or which samples enter the median.
@@ -21,11 +21,12 @@ import subprocess
 import sys
 import threading
 import time
+import urllib.request
 from ctypes import wintypes
 from datetime import datetime, timezone
 from pathlib import Path
 
-SPEC_TOKEN = "baseline-benchmark-1"
+SPEC_TOKEN = "baseline-benchmark-3"
 WARM_ATTEMPTS = 10
 CONSECUTIVE_FAILURES = 3
 RESTORE_TIMEOUT_S = 3600
@@ -36,6 +37,26 @@ TRACE_READY_S = 45
 MIN_BENCH_FREE = 20 * 1024**3
 MIN_OUT_FREE = 4 * 1024**3
 RESPONSE_CHAR_CAP = 2_000_000
+HEARTBEAT_S = 10
+SDK_INSTALL_URL = "https://dot.net/v1/dotnet-install.ps1"
+
+_log_lock = threading.Lock()
+_log_path: Path | None = None
+
+
+def log(message: str) -> None:
+    stamp = datetime.now(timezone.utc).strftime("%H:%M:%S")
+    line = f"[{stamp}] {message}"
+    with _log_lock:
+        print(line, flush=True)
+        if _log_path is not None:
+            with _log_path.open("a", encoding="utf-8") as handle:
+                handle.write(line + "\n")
+
+
+def progress(phase: str, state: str, elapsed_s: float, detail: str = "") -> None:
+    tail = f" {detail}" if detail else ""
+    log(f"PROGRESS phase={phase} state={state} elapsed={elapsed_s:.0f}s{tail}")
 
 CORPORA = (
     {
@@ -43,14 +64,14 @@ CORPORA = (
         "url": "https://github.com/OrchardCMS/OrchardCore.git",
         "sha": "b9c4b2f23e56ef11fbdbd28603c871d1b0fc9deb",
         "tag": "v3.0.1",
-        "workspace": "OrchardCore.sln",
+        "workspace": "OrchardCore.slnx",
         "symbols": ("ShellSettings", "ManifestConstants"),
     },
     {
         "id": "roslyn-deep",
         "url": "https://github.com/dotnet/roslyn.git",
-        "sha": "cf91b80aa2f0eb5b64d7bdb544170d9744883f72",
-        "tag": "",
+        "sha": "013d3a758df6c137497ff37a93f0d4bed103853a",
+        "tag": "release/stable",
         "workspace": "src/Compilers/CSharp/Portable/Microsoft.CodeAnalysis.CSharp.csproj",
         "symbols": ("CSharpCompilation", "Binder"),
     },
@@ -161,10 +182,9 @@ def file_version(path: Path) -> str:
 
 
 def send_message(proc: subprocess.Popen, message: dict) -> None:
-    body = json.dumps(message).encode("utf-8")
-    header = f"Content-Length: {len(body)}\r\n\r\n".encode("ascii")
+    # ModelContextProtocol 1.3 stdio is one JSON object per line, not Content-Length.
+    body = json.dumps(message, separators=(",", ":")).encode("utf-8") + b"\n"
     assert proc.stdin is not None
-    proc.stdin.write(header)
     proc.stdin.write(body)
     proc.stdin.flush()
 
@@ -173,29 +193,20 @@ def _read_frames(stdout, out_q: queue.Queue) -> None:
     buf = b""
     try:
         while True:
-            chunk = stdout.read(65536)
+            # BufferedReader.read(n) waits until n bytes or EOF. A JSON line is
+            # far smaller than that, so the response sits in the pipe forever.
+            read = getattr(stdout, "read1", None) or stdout.read
+            chunk = read(65536)
             if not chunk:
                 out_q.put(None)
                 return
             buf += chunk
-            while True:
-                sep = buf.find(b"\r\n\r\n")
-                if sep < 0:
-                    break
-                header = buf[:sep].decode("ascii", "replace")
-                length = None
-                for line in header.split("\r\n"):
-                    if line.lower().startswith("content-length:"):
-                        length = int(line.split(":", 1)[1].strip())
-                if length is None:
-                    buf = buf[sep + 4 :]
+            while b"\n" in buf:
+                raw, buf = buf.split(b"\n", 1)
+                line = raw.strip()
+                if not line:
                     continue
-                start = sep + 4
-                if len(buf) < start + length:
-                    break
-                body = buf[start : start + length]
-                buf = buf[start + length :]
-                out_q.put(json.loads(body.decode("utf-8")))
+                out_q.put(json.loads(line.decode("utf-8")))
     except Exception as ex:  # noqa: BLE001 — surface to the attempt record
         out_q.put(ex)
 
@@ -226,6 +237,23 @@ def wait_response(messages: queue.Queue, expect_id: int, timeout_s: float) -> di
             raise item
         if item.get("id") == expect_id:
             return item
+
+
+def wait_logged(messages: queue.Queue, expect_id: int, timeout_s: float, label: str) -> dict:
+    started = time.perf_counter()
+    stop = threading.Event()
+    progress(label, "start", 0)
+
+    def beat() -> None:
+        while not stop.wait(HEARTBEAT_S):
+            progress(label, "running", time.perf_counter() - started, "waiting for MCP response")
+
+    threading.Thread(target=beat, daemon=True).start()
+    try:
+        return wait_response(messages, expect_id, timeout_s)
+    finally:
+        stop.set()
+        progress(label, "done", time.perf_counter() - started)
 
 
 def extract_tool(message: dict) -> tuple[str, bool]:
@@ -308,19 +336,125 @@ def git(repo: Path, args: list[str], env: dict[str, str], timeout: float = 600) 
     )
 
 
+def run_streaming(
+    args: list[str],
+    *,
+    cwd: Path | None,
+    env: dict[str, str],
+    timeout_s: float,
+    label: str,
+    log_path: Path | None = None,
+) -> int:
+    progress(label, "start", 0, " ".join(args))
+    started = time.perf_counter()
+    proc = subprocess.Popen(
+        args,
+        cwd=str(cwd) if cwd else None,
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+    )
+    assert proc.stdout is not None
+    pieces: list[str] = []
+    last_output = {"at": time.perf_counter(), "text": ""}
+    stop = threading.Event()
+
+    def pump() -> None:
+        buf = ""
+        last_progress = 0.0
+        while True:
+            chunk = proc.stdout.read(256) if proc.stdout is not None else ""
+            if not chunk:
+                tail = buf.strip()
+                if tail:
+                    pieces.append(tail)
+                    log(f"{label}: {tail}")
+                return
+            buf += chunk
+            last_output["at"] = time.perf_counter()
+            while True:
+                newline = buf.find("\n")
+                carriage = buf.find("\r")
+                if newline < 0 and carriage < 0:
+                    break
+                if carriage >= 0 and (newline < 0 or carriage < newline):
+                    cut = carriage
+                    progress = True
+                else:
+                    cut = newline
+                    progress = False
+                piece = buf[:cut].strip()
+                buf = buf[cut + 1 :]
+                if not piece:
+                    continue
+                pieces.append(piece)
+                last_output["text"] = piece[-160:]
+                now = time.perf_counter()
+                interesting = any(
+                    token in piece.lower()
+                    for token in ("error", "warning", "fail", "succeeded", "restored")
+                )
+                if not progress or interesting or now - last_progress >= 5:
+                    last_progress = now
+                    log(f"{label}: {piece}")
+
+    def beat() -> None:
+        while not stop.wait(HEARTBEAT_S):
+            quiet = time.perf_counter() - last_output["at"]
+            detail = f"quiet={quiet:.0f}s"
+            if last_output["text"]:
+                detail += f" last={last_output['text']}"
+            progress(label, "running", time.perf_counter() - started, detail)
+
+    pump_thread = threading.Thread(target=pump, daemon=True)
+    threading.Thread(target=beat, daemon=True).start()
+    pump_thread.start()
+    timed_out = False
+    try:
+        code = proc.wait(timeout=timeout_s)
+    except subprocess.TimeoutExpired:
+        timed_out = True
+        code = -1
+        kill_tree(proc.pid)
+        log(f"{label}: timed out after {timeout_s:.0f}s")
+    finally:
+        stop.set()
+    pump_thread.join(timeout=5)
+    elapsed = time.perf_counter() - started
+    progress(label, "exit", elapsed, f"code={code}")
+    log(f"{label}: exit {code} in {elapsed:.1f}s")
+    if log_path is not None:
+        write_text(log_path, "\n".join(pieces))
+    if timed_out:
+        raise subprocess.TimeoutExpired(args, timeout_s)
+    return code
+
+
 def ensure_clone(corpus: dict, dest: Path, env: dict[str, str]) -> str:
+    corpus_id = corpus["id"]
     expected = corpus["sha"]
+    log(f"{corpus_id} clone: dest={dest} url={corpus['url']} pin={expected}")
     if (dest / ".git").is_dir():
         head = git(dest, ["rev-parse", "HEAD"], env)
         actual = (head.stdout or "").strip()
         if head.returncode == 0 and actual == expected:
+            log(f"{corpus_id} clone: reuse existing checkout HEAD {actual}")
             return actual
-        raise RuntimeError(
-            f"clone at {dest} is {actual or 'unreadable'}, pin is {expected}; refusing to delete"
+        message = (
+            f"clone at {dest} is {actual or 'unreadable'}, pin is {expected}; "
+            "delete that directory and rerun"
         )
+        log(f"{corpus_id} clone: {message}")
+        raise RuntimeError(message)
     if dest.exists() and any(dest.iterdir()):
-        raise RuntimeError(f"{dest} exists and is not the pinned clone; refusing to delete")
+        message = f"{dest} exists and is not the pinned clone; delete that directory and rerun"
+        log(f"{corpus_id} clone: {message}")
+        raise RuntimeError(message)
     dest.mkdir(parents=True, exist_ok=True)
+    log(f"{corpus_id} clone: git init")
     init = git(dest, ["init"], env)
     if init.returncode != 0:
         raise RuntimeError(init.stderr.strip() or "git init failed")
@@ -328,16 +462,29 @@ def ensure_clone(corpus: dict, dest: Path, env: dict[str, str]) -> str:
     remote = git(dest, ["remote", "add", "origin", corpus["url"]], env)
     if remote.returncode != 0:
         raise RuntimeError(remote.stderr.strip() or "git remote add failed")
-    fetched = git(dest, ["fetch", "--depth", "1", "origin", expected], env, timeout=3600)
-    if fetched.returncode != 0:
-        raise RuntimeError((fetched.stderr or fetched.stdout or "git fetch failed").strip())
-    checked = git(dest, ["checkout", "--force", "FETCH_HEAD"], env)
-    if checked.returncode != 0:
-        raise RuntimeError((checked.stderr or "git checkout failed").strip())
+    fetch_code = run_streaming(
+        ["git", "fetch", "--progress", "--depth", "1", "origin", expected],
+        cwd=dest,
+        env=env,
+        timeout_s=3600,
+        label=f"{corpus_id} git-fetch",
+    )
+    if fetch_code != 0:
+        raise RuntimeError(f"git fetch failed with exit {fetch_code}")
+    checkout_code = run_streaming(
+        ["git", "checkout", "--force", "FETCH_HEAD"],
+        cwd=dest,
+        env=env,
+        timeout_s=1800,
+        label=f"{corpus_id} git-checkout",
+    )
+    if checkout_code != 0:
+        raise RuntimeError(f"git checkout failed with exit {checkout_code}")
     head = git(dest, ["rev-parse", "HEAD"], env)
     actual = (head.stdout or "").strip()
     if actual != expected:
         raise RuntimeError(f"HEAD {actual} != pin {expected}")
+    log(f"{corpus_id} clone: HEAD {actual}")
     return actual
 
 
@@ -349,15 +496,38 @@ def write_text(path: Path, text: str) -> None:
     path.write_text(capped, encoding="utf-8")
 
 
-def scan_inventory(root: Path) -> dict:
+def scan_inventory(root: Path, label: str) -> dict:
     multi = 0
     razor_or_web = 0
     analyzer_items = 0
     csproj = 0
+    dirs = 0
+    started = time.perf_counter()
+    last_tick = started
+    progress(label, "start", 0, f"root={root}")
     skip = {".git", "bin", "obj", "artifacts", "node_modules"}
     for dirpath, dirnames, filenames in os.walk(root):
         dirnames[:] = [name for name in dirnames if name not in skip]
+        dirs += 1
+        now = time.perf_counter()
+        if now - last_tick >= HEARTBEAT_S:
+            last_tick = now
+            progress(
+                label,
+                "running",
+                now - started,
+                f"dirs={dirs} csproj={csproj} dir={dirpath}",
+            )
         for name in filenames:
+            now = time.perf_counter()
+            if now - last_tick >= HEARTBEAT_S:
+                last_tick = now
+                progress(
+                    label,
+                    "running",
+                    now - started,
+                    f"dirs={dirs} csproj={csproj} dir={dirpath}",
+                )
             if not name.endswith(".csproj"):
                 continue
             csproj += 1
@@ -371,7 +541,7 @@ def scan_inventory(root: Path) -> dict:
                 razor_or_web += 1
             if 'OutputItemType="Analyzer"' in text or "OutputItemType='Analyzer'" in text:
                 analyzer_items += 1
-    return {
+    found = {
         "csprojFiles": csproj,
         "csprojWithTargetFrameworksElement": multi,
         "csprojSdkRazorOrWeb": razor_or_web,
@@ -379,6 +549,8 @@ def scan_inventory(root: Path) -> dict:
         "directoryBuildProps": (root / "Directory.Build.props").is_file(),
         "nugetConfig": (root / "NuGet.config").is_file() or (root / "nuget.config").is_file(),
     }
+    progress(label, "done", time.perf_counter() - started, f"dirs={dirs} csproj={csproj}")
+    return found
 
 
 def read_global_json(root: Path) -> str:
@@ -388,37 +560,189 @@ def read_global_json(root: Path) -> str:
     return path.read_text(encoding="utf-8", errors="replace")
 
 
-def dotnet_version(dotnet: str, cwd: Path, env: dict[str, str]) -> tuple[int, str]:
-    completed = subprocess.run(
-        [dotnet, "--version"],
-        cwd=str(cwd),
-        env=env,
-        capture_output=True,
-        text=True,
-        timeout=120,
-        check=False,
-    )
+def dotnet_capture(dotnet: str, args: list[str], cwd: Path, env: dict[str, str]) -> tuple[int, str]:
+    phase = "dotnet " + " ".join(args)
+    started = time.perf_counter()
+    stop = threading.Event()
+    progress(phase, "start", 0, f"cwd={cwd}")
+
+    def beat() -> None:
+        while not stop.wait(HEARTBEAT_S):
+            progress(phase, "running", time.perf_counter() - started)
+
+    threading.Thread(target=beat, daemon=True).start()
+    try:
+        completed = subprocess.run(
+            [dotnet, *args],
+            cwd=str(cwd),
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=120,
+            check=False,
+        )
+    finally:
+        stop.set()
     text = ((completed.stdout or "") + (completed.stderr or "")).strip()
+    progress(phase, "done", time.perf_counter() - started, f"exit={completed.returncode}")
     return completed.returncode, text
 
 
-def restore(dotnet: str, workspace: Path, cwd: Path, env: dict[str, str], log_path: Path) -> tuple[int, float]:
-    started = time.perf_counter()
-    completed = subprocess.run(
-        [dotnet, "restore", str(workspace)],
-        cwd=str(cwd),
-        env=env,
-        capture_output=True,
-        text=True,
-        timeout=RESTORE_TIMEOUT_S,
-        check=False,
+def parse_sdk(global_json: str) -> tuple[str | None, str | None]:
+    if not global_json.strip():
+        return None, None
+    try:
+        sdk = json.loads(global_json).get("sdk") or {}
+    except json.JSONDecodeError as ex:
+        log(f"global.json is not JSON ({ex}); SDK probe uses the PATH host only")
+        return None, None
+    version = sdk.get("version")
+    roll = sdk.get("rollForward")
+    return (
+        version if isinstance(version, str) and version else None,
+        roll if isinstance(roll, str) and roll else None,
     )
-    elapsed_ms = (time.perf_counter() - started) * 1000
-    write_text(
-        log_path,
-        (completed.stdout or "") + "\n----- stderr -----\n" + (completed.stderr or ""),
+
+
+def isolate_dotnet(env: dict[str, str], dotnet_exe: Path) -> dict[str, str]:
+    isolated = dict(env)
+    root = str(dotnet_exe.parent)
+    isolated["DOTNET_ROOT"] = root
+    isolated["DOTNET_MULTILEVEL_LOOKUP"] = "0"
+    isolated["PATH"] = root + os.pathsep + isolated.get("PATH", "")
+    return isolated
+
+
+def install_sdk(bench_root: Path, version: str) -> Path:
+    install_dir = bench_root / "dotnet" / version
+    exe = install_dir / "dotnet.exe"
+    script = bench_root / "dotnet-install.ps1"
+    script.parent.mkdir(parents=True, exist_ok=True)
+    if not script.is_file():
+        log(f"sdk: download {SDK_INSTALL_URL} -> {script}")
+        download_started = time.perf_counter()
+        seen = {"at": download_started, "pct": -1}
+
+        def reporthook(count: int, block: int, total: int) -> None:
+            got = count * block
+            now = time.perf_counter()
+            pct = int(100 * got / total) if total > 0 else -1
+            if now - seen["at"] < HEARTBEAT_S and pct == seen["pct"]:
+                return
+            seen["at"] = now
+            seen["pct"] = pct
+            if total > 0:
+                detail = f"{got}/{total} bytes {pct}%"
+            else:
+                detail = f"{got} bytes"
+            progress("sdk-download", "running", now - download_started, detail)
+
+        progress("sdk-download", "start", 0, SDK_INSTALL_URL)
+        urllib.request.urlretrieve(SDK_INSTALL_URL, script, reporthook=reporthook)
+        progress(
+            "sdk-download",
+            "done",
+            time.perf_counter() - download_started,
+            f"bytes={script.stat().st_size}",
+        )
+    else:
+        log(f"sdk: reuse installer {script}")
+    log(f"sdk: install exactly {version} into {install_dir}")
+    code = run_streaming(
+        [
+            "powershell",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            str(script),
+            "-Version",
+            version,
+            "-InstallDir",
+            str(install_dir),
+        ],
+        cwd=bench_root,
+        env=os.environ.copy(),
+        timeout_s=1800,
+        label="sdk-install",
+        log_path=install_dir / "install.log",
     )
-    return completed.returncode, elapsed_ms
+    if code != 0 or not exe.is_file():
+        raise RuntimeError(f"SDK {version} install failed (exit {code}); expected {exe}")
+    sdk_dir = install_dir / "sdk" / version
+    log(f"sdk: dotnet.exe={exe.is_file()} sdk folder {sdk_dir} exists={sdk_dir.is_dir()}")
+    if not sdk_dir.is_dir():
+        raise RuntimeError(f"SDK install did not create {sdk_dir}")
+    return exe
+
+
+def describe_host(label: str, dotnet_exe: str, cwd: Path, env: dict[str, str]) -> tuple[int, str, str]:
+    code, text = dotnet_capture(dotnet_exe, ["--version"], cwd, env)
+    first = text.splitlines()[0].strip() if text else "(empty)"
+    log(f"{label}: dotnet={dotnet_exe}")
+    log(f"{label}: DOTNET_ROOT={env.get('DOTNET_ROOT') or '(unset)'} MULTILEVEL_LOOKUP={env.get('DOTNET_MULTILEVEL_LOOKUP') or '(unset)'}")
+    log(f"{label}: dotnet --version exit {code}: {first}")
+    list_code, sdks = dotnet_capture(dotnet_exe, ["--list-sdks"], cwd, env)
+    for line in (sdks.splitlines() or ["(no sdk list)"]):
+        log(f"{label}: list-sdks exit {list_code}: {line}")
+    return code, first, sdks
+
+
+def prepare_dotnet(
+    corpus_id: str,
+    bench_root: Path,
+    clone: Path,
+    global_json: str,
+    env: dict[str, str],
+    path_dotnet: str,
+) -> tuple[dict[str, str], str, dict]:
+    requested, roll = parse_sdk(global_json)
+    info = {
+        "sdkRequested": requested,
+        "sdkRollForward": roll,
+        "sdkSource": None,
+        "dotnetExe": path_dotnet,
+        "dotnetVersion": None,
+        "sdkList": None,
+    }
+    log(
+        f"{corpus_id} sdk: requested={requested or '(none)'} "
+        f"rollForward={roll or '(host default)'}"
+    )
+    code, resolved, sdks = describe_host(f"{corpus_id} path-host", path_dotnet, clone, env)
+    if code == 0:
+        info["sdkSource"] = "PATH"
+        info["dotnetVersion"] = resolved
+        info["sdkList"] = sdks
+        log(f"{corpus_id} sdk: PATH host satisfies global.json with {resolved}")
+        return env, path_dotnet, info
+    if not requested:
+        raise RuntimeError(f"PATH dotnet cannot resolve an SDK and global.json has no sdk.version ({resolved})")
+    exe = bench_root / "dotnet" / requested / "dotnet.exe"
+    if exe.is_file():
+        log(f"{corpus_id} sdk: versioned tree already present at {exe}")
+    else:
+        log(f"{corpus_id} sdk: PATH host does not satisfy global.json; installing {requested}")
+        exe = install_sdk(bench_root, requested)
+    isolated = isolate_dotnet(env, exe)
+    code, resolved, sdks = describe_host(f"{corpus_id} versioned", str(exe), clone, isolated)
+    if code != 0:
+        log(f"{corpus_id} sdk: versioned tree failed the global.json probe; reinstalling once")
+        exe = install_sdk(bench_root, requested)
+        isolated = isolate_dotnet(env, exe)
+        code, resolved, sdks = describe_host(f"{corpus_id} versioned-reinstall", str(exe), clone, isolated)
+    sdk_dir = exe.parent / "sdk" / requested
+    if code != 0 or not sdk_dir.is_dir():
+        raise RuntimeError(
+            f"SDK {requested} at {exe} does not satisfy global.json "
+            f"(dotnet --version exit {code}, sdk folder exists={sdk_dir.is_dir()})"
+        )
+    info["sdkSource"] = "versioned-install"
+    info["dotnetExe"] = str(exe)
+    info["dotnetVersion"] = resolved
+    info["sdkList"] = sdks
+    log(f"{corpus_id} sdk: using isolated {exe} resolved={resolved}")
+    return isolated, str(exe), info
 
 
 def start_trace(pid: int, out_path: Path) -> tuple[subprocess.Popen | None, str]:
@@ -553,6 +877,7 @@ def run_attempt(
             env=env,
         )
         assert proc.stdout is not None and proc.stderr is not None
+        log(f"{corpus_id} {series}#{index}: server pid={proc.pid}")
         threading.Thread(target=_read_frames, args=(proc.stdout, messages), daemon=True).start()
         threading.Thread(target=drain_stderr, args=(proc.stderr, stderr_lines), daemon=True).start()
         threading.Thread(
@@ -574,8 +899,10 @@ def run_attempt(
                 },
             },
         )
-        init_resp = wait_response(messages, init_id, INIT_TIMEOUT_S)
+        log(f"{corpus_id} {series}#{index}: initialize")
+        init_resp = wait_logged(messages, init_id, INIT_TIMEOUT_S, f"{corpus_id} {series}#{index} initialize")
         record["startupMs"] = (time.perf_counter() - started) * 1000
+        log(f"{corpus_id} {series}#{index}: initialize done in {record['startupMs'] / 1000:.1f}s")
         if "error" in init_resp:
             record["loadOutcome"] = "failed"
             record["error"] = json.dumps(init_resp["error"])[:2000]
@@ -588,6 +915,7 @@ def run_attempt(
             arguments["targetFramework"] = target_framework
         load_id = next_id
         next_id += 1
+        log(f"{corpus_id} {series}#{index}: load_workspace tfm={target_framework or '(omitted)'}")
         load_started = time.perf_counter()
         send_message(
             proc,
@@ -598,12 +926,18 @@ def run_attempt(
                 "params": {"name": "load_workspace", "arguments": arguments},
             },
         )
-        load_resp = wait_response(messages, load_id, LOAD_TIMEOUT_S)
+        load_resp = wait_logged(
+            messages, load_id, LOAD_TIMEOUT_S, f"{corpus_id} {series}#{index} load_workspace"
+        )
         record["loadMs"] = (time.perf_counter() - load_started) * 1000
         load_text, load_error = extract_tool(load_resp)
         write_text(response_dir / f"{corpus_id}-{series}-{index}-load.txt", load_text)
         record["loadOutcome"] = classify_load(load_text, load_error)
         record["projectCount"] = project_count(load_text)
+        log(
+            f"{corpus_id} {series}#{index}: load_workspace {record['loadOutcome']} "
+            f"in {record['loadMs'] / 1000:.1f}s projects={record['projectCount']}"
+        )
         if record["loadOutcome"] != "success":
             record["error"] = " ".join(load_text.split())[:500]
             return record
@@ -611,6 +945,7 @@ def run_attempt(
         for symbol in symbols:
             sem_id = next_id
             next_id += 1
+            log(f"{corpus_id} {series}#{index}: find_symbol_definition {symbol}")
             sem_started = time.perf_counter()
             send_message(
                 proc,
@@ -624,8 +959,14 @@ def run_attempt(
                     },
                 },
             )
-            sem_resp = wait_response(messages, sem_id, SEMANTIC_TIMEOUT_S)
+            sem_resp = wait_logged(
+                messages,
+                sem_id,
+                SEMANTIC_TIMEOUT_S,
+                f"{corpus_id} {series}#{index} find_symbol_definition {symbol}",
+            )
             elapsed = (time.perf_counter() - sem_started) * 1000
+            log(f"{corpus_id} {series}#{index}: find_symbol_definition {symbol} returned in {elapsed / 1000:.1f}s")
             semantic_text, sem_error = extract_tool(sem_resp)
             write_text(
                 response_dir / f"{corpus_id}-{series}-{index}-semantic-{symbol}.txt",
@@ -754,35 +1095,57 @@ def run_corpus(
         "targetFramework": None,
         "attempts": [],
     }
+    log(f"=== {corpus_id} === pin={corpus['sha']} workspace={corpus['workspace']}")
     env = child_env(dest)
     try:
         section["sha"] = ensure_clone(corpus, dest, env)
     except (RuntimeError, subprocess.TimeoutExpired, OSError) as ex:
         section["blocker"] = f"clone: {ex}"
+        log(f"BLOCKER {corpus_id}: {section['blocker']}")
         return section
     env = child_env(dest)
     workspace = dest / corpus["workspace"]
     if not workspace.is_file():
         section["blocker"] = f"workspace file missing: {workspace}"
+        log(f"BLOCKER {corpus_id}: {section['blocker']}")
         return section
+    log(f"{corpus_id} workspace file: {workspace}")
     section["globalJson"] = read_global_json(dest)
-    section["inventory"] = scan_inventory(dest)
-    code, version_text = dotnet_version(dotnet, dest, env)
-    section["dotnetVersion"] = version_text
-    if code != 0:
-        section["blocker"] = f"dotnet --version exited {code}: {version_text[:1500]}"
-        return section
+    log(f"{corpus_id} inventory: scanning csproj files")
+    section["inventory"] = scan_inventory(dest, f"{corpus_id} inventory")
+    inventory = section["inventory"]
+    log(
+        f"{corpus_id} inventory: csproj={inventory['csprojFiles']} "
+        f"TargetFrameworks={inventory['csprojWithTargetFrameworksElement']} "
+        f"razor/web={inventory['csprojSdkRazorOrWeb']} "
+        f"analyzer-items={inventory['csprojOutputItemTypeAnalyzer']}"
+    )
     try:
-        restore_code, restore_ms = restore(
-            dotnet, workspace, dest, env, response_dir / "restore.log"
+        env, dotnet_exe, sdk_info = prepare_dotnet(corpus_id, bench_root, dest, section["globalJson"], env, dotnet)
+    except (RuntimeError, subprocess.TimeoutExpired, OSError) as ex:
+        section["blocker"] = f"sdk: {ex}"
+        log(f"BLOCKER {corpus_id}: {section['blocker']}")
+        return section
+    section.update(sdk_info)
+    restore_started = time.perf_counter()
+    try:
+        restore_code = run_streaming(
+            [dotnet_exe, "restore", str(workspace)],
+            cwd=dest,
+            env=env,
+            timeout_s=RESTORE_TIMEOUT_S,
+            label=f"{corpus_id} dotnet-restore",
+            log_path=response_dir / "restore.log",
         )
     except subprocess.TimeoutExpired:
         section["blocker"] = f"dotnet restore exceeded {RESTORE_TIMEOUT_S}s"
+        log(f"BLOCKER {corpus_id}: {section['blocker']}")
         return section
     section["restoreExit"] = restore_code
-    section["restoreMs"] = restore_ms
+    section["restoreMs"] = (time.perf_counter() - restore_started) * 1000
     if restore_code != 0:
         section["blocker"] = f"dotnet restore exited {restore_code}; see {corpus_id}/restore.log"
+        log(f"BLOCKER {corpus_id}: {section['blocker']}")
         return section
 
     tfm: str | None = None
@@ -808,6 +1171,7 @@ def run_corpus(
         chosen = choose_tfm(first["tfmCandidates"])
         if chosen:
             tfm = chosen
+            log(f"{corpus_id} post-restore: missing Compile target, retry targetFramework={tfm}")
             retried = run_attempt(
                 exe=exe,
                 repo_root=dest,
@@ -826,9 +1190,11 @@ def run_corpus(
     section["targetFramework"] = tfm
     if not full_ok(first) and first["loadOutcome"] != "success":
         section["blocker"] = f"post-restore load {first['loadOutcome']}: {first.get('error')}"
+        log(f"BLOCKER {corpus_id}: {section['blocker']}")
         return section
 
     if shutil.which("dotnet-trace"):
+        log(f"{corpus_id} profiled-warm: dotnet-trace on PATH")
         profiled = run_attempt(
             exe=exe,
             repo_root=dest,
@@ -845,6 +1211,7 @@ def run_corpus(
         section["attempts"].append(profiled)
     else:
         section["profileNote"] = "dotnet-trace not on PATH; profiled-warm skipped"
+        log(f"{corpus_id} profiled-warm skipped: dotnet-trace not on PATH")
 
     consecutive = 0
     for index in range(WARM_ATTEMPTS):
@@ -870,6 +1237,7 @@ def run_corpus(
                 section["stoppedEarly"] = (
                     f"stopped warm series after {CONSECUTIVE_FAILURES} consecutive non-success attempts"
                 )
+                log(f"{corpus_id} {section['stoppedEarly']}")
                 break
     return section
 
@@ -894,6 +1262,9 @@ def render_section(section: dict) -> str:
         f"- Checked out: `{section.get('sha') or '—'}`",
         f"- Workspace: `{section['workspace']}`",
         f"- targetFramework passed: `{section.get('targetFramework') or '(omitted)'}`",
+        f"- SDK requested: `{section.get('sdkRequested') or '—'}` rollForward `{section.get('sdkRollForward') or '—'}`",
+        f"- SDK source: `{section.get('sdkSource') or '—'}`",
+        f"- dotnet.exe: `{section.get('dotnetExe') or '—'}`",
         f"- dotnet --version: `{section.get('dotnetVersion') or '—'}`",
         f"- Restore exit: `{section.get('restoreExit')}` in {fmt_s(section.get('restoreMs'))}",
     ]
@@ -1034,6 +1405,11 @@ def resolve_server(repo: Path, explicit: Path | None) -> Path:
 
 
 def main() -> int:
+    try:
+        sys.stdout.reconfigure(line_buffering=True)
+        sys.stderr.reconfigure(line_buffering=True)
+    except (AttributeError, OSError):
+        pass
     if sys.platform != "win32":
         print("This baseline client is normative on Windows x64 only.", file=sys.stderr)
         return 1
@@ -1045,20 +1421,26 @@ def main() -> int:
     bench_root = args.bench_root.resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
     bench_root.mkdir(parents=True, exist_ok=True)
+    global _log_path
+    _log_path = out_dir / "run.log"
+    log(f"baseline {SPEC_TOKEN} out={out_dir}")
+    log(f"bench-root={bench_root} free={shutil.disk_usage(bench_root).free / 1024**3:.1f} GiB")
     if shutil.disk_usage(bench_root).free < MIN_BENCH_FREE:
-        print(f"Need >= 20 GiB free on {bench_root}", file=sys.stderr)
+        log(f"BLOCKER need >= 20 GiB free on {bench_root}")
         return 1
     if shutil.disk_usage(out_dir).free < MIN_OUT_FREE:
-        print(f"Need >= 4 GiB free on {out_dir}", file=sys.stderr)
+        log(f"BLOCKER need >= 4 GiB free on {out_dir}")
         return 1
     exe = resolve_server(repo, args.server)
     if not exe.is_file():
-        print(f"Server exe not found: {exe}", file=sys.stderr)
+        log(f"BLOCKER server exe not found: {exe}")
         return 1
+    log(f"server={exe} fileVersion={file_version(exe)}")
     dotnet = shutil.which("dotnet")
     if not dotnet:
-        print("dotnet not on PATH", file=sys.stderr)
+        log("BLOCKER dotnet not on PATH")
         return 1
+    log(f"PATH dotnet={dotnet}")
     selected = [c for c in CORPORA if args.corpus == "all" or c["id"] == args.corpus]
     meta = {
         "when": datetime.now(timezone.utc).isoformat(),
@@ -1088,7 +1470,7 @@ def main() -> int:
         json.dumps({"meta": meta, "sections": sections}, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
-    print(f"REPORT {report_path}")
+    log(f"REPORT {report_path}")
     return 0
 
 

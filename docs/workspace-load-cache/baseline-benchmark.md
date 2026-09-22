@@ -1,7 +1,7 @@
 # Baseline benchmark — workspace load
 
 Статус: **исполняемый runbook** для снятия текущего baseline. Runtime кеша нет.
-Токен сверки со скриптом: `baseline-benchmark-1`.
+Токен сверки со скриптом: `baseline-benchmark-3`.
 Инструмент: [baseline_bench.py](baseline_bench.py). Его пины, таймауты и правила
 выборки совпадают с этим файлом. Расхождение чинится по этому файлу.
 
@@ -22,8 +22,9 @@
 4. Не передавать в `load_workspace` файл `.slnf`. Не включать
    `shadowCopyInSolutionAnalyzers`. Не вызывать `dotnet build` / `dotnet test`
    на корпусах. Restore входит в скрипт и в тайминг load не входит.
-5. Запустить скрипт. Если предусловие SDK не выполнено — одна починка из
-   раздела «SDK» и один повторный запуск. Клон с тем же SHA переиспользуется.
+5. Запустить скрипт и читать stdout или `<out>/run.log`. Клон с тем же SHA
+   переиспользуется. Недостающий SDK клиент ставит сам, ровно `sdk.version`
+   из `global.json` корпуса.
 6. В ответе указать путь к `report.md`, compare key каждого корпуса и таблицы
    Warm median как в файле. Числа руками не пересчитывать. U-ARB-03 не закрывать
    и `UNRESOLVED-v2.md` не править.
@@ -34,8 +35,8 @@
 
 | id | Репозиторий | Pin | Файл для `load_workspace` | Зачем |
 |---|---|---|---|---|
-| `orchard-wide` | `https://github.com/OrchardCMS/OrchardCore.git` | tag `v3.0.1`, SHA `b9c4b2f23e56ef11fbdbd28603c871d1b0fc9deb` | `OrchardCore.sln` | широкий SDK-style граф, Razor, `Directory.Build.props` |
-| `roslyn-deep` | `https://github.com/dotnet/roslyn.git` | SHA `cf91b80aa2f0eb5b64d7bdb544170d9744883f72` (main на 2026-09-22; GitHub Release roslyn для пина не используется) | `src/Compilers/CSharp/Portable/Microsoft.CodeAnalysis.CSharp.csproj` | один толстый проект: parse и первый semantic |
+| `orchard-wide` | `https://github.com/OrchardCMS/OrchardCore.git` | tag `v3.0.1`, SHA `b9c4b2f23e56ef11fbdbd28603c871d1b0fc9deb` | `OrchardCore.slnx` | широкий SDK-style граф, Razor, `Directory.Build.props` |
+| `roslyn-deep` | `https://github.com/dotnet/roslyn.git` | ветка `release/stable`, SHA `013d3a758df6c137497ff37a93f0d4bed103853a` | `src/Compilers/CSharp/Portable/Microsoft.CodeAnalysis.CSharp.csproj` | один толстый проект: parse и первый semantic |
 
 Оба дерева публичные, без секретов. Клон — `git fetch --depth 1 origin <sha>`
 в каталог вне репозитория RoslynMcpServer. После checkout `git rev-parse HEAD`
@@ -82,17 +83,46 @@
 
 ### SDK
 
-Скрипт вызывает `dotnet --version` с cwd = корень клона, чтобы сработал
-`global.json`. Ненулевой код или текст про ненайденный SDK — blocker корпуса.
+Для каждого корпуса клиент читает `sdk.version` и `rollForward` из `global.json`
+и вызывает `dotnet --version` с cwd = корень клона.
 
-Один раз разрешено докачать **ровно** `sdk.version` из этого `global.json`
-в `<bench-root>/dotnet` скриптом `dotnet-install.ps1` и повторить прогон
-с `DOTNET_ROOT` и этим каталогом в начале `PATH`. Другую версию SDK не ставить.
-`global.json` корпуса не менять. Повторный прогон переиспользует клон с тем же SHA.
+Если хост из `PATH` удовлетворяет `global.json`, корпус остаётся на нём.
+Чужой SDK из `<bench-root>/dotnet/` в этот корпус не подмешивается: иначе
+`rollForward: latestMajor` уедет на более новый бандл.
+
+Если хост из `PATH` не удовлетворяет `global.json`, клиент сам ставит **ровно**
+`sdk.version` в `<bench-root>/dotnet/<sdk.version>/` скриптом `dotnet-install.ps1`
+(скачивает его в `<bench-root>`, если файла ещё нет). Другую версию не ставит и
+`global.json` не меняет. Дальше этот корпус и процесс сервера идут с
+`DOTNET_ROOT` на этот каталог и `DOTNET_MULTILEVEL_LOOKUP=0`.
+
+Перед restore клиент проверяет три вещи и пишет их в журнал: `dotnet --version`
+завершился нулём в корне клона, `dotnet --list-sdks` показывает поставленный
+бандл, каталог `sdk/<sdk.version>` рядом с `dotnet.exe` существует. Если
+уже лежащее дерево проверку не проходит, клиент ставит ту же версию ещё один раз.
+Второй провал — blocker, замеры не начинаются.
+
+### Журнал
+
+Клиент печатает строки `[ЧЧ:ММ:СС]` на stdout и в `<out>/run.log`, с flush на
+каждую строку. Каждая долгая фаза (clone, checkout, обход `.csproj`, скачивание
+и установка SDK, `dotnet --version` / `--list-sdks`, restore, `initialize`,
+`load_workspace`, `find_symbol_definition`) пишет:
+
+```text
+PROGRESS phase=<name> state=start|running|done|exit elapsed=<seconds>s ...
+```
+
+`state=running` повторяется каждые 10 с, пока фаза не кончилась, даже если
+дочерний процесс уже что-то печатает. В строке есть `last=` или `quiet=` и,
+для обхода дерева, текущий каталог и счётчик `.csproj`. Нет новой строки
+`PROGRESS` дольше 10 с — фаза зависла. Полный вывод restore —
+`<out>/<id>/restore.log`, установки SDK —
+`<bench-root>/dotnet/<sdk.version>/install.log`.
 
 Restore (`dotnet restore` на тот же файл, который грузится) делает скрипт.
-Лог: `<out>/<id>/restore.log`. Ненулевой код — blocker корпуса, замеры не
-начинаются. NuGet.config и пакеты руками не подменять.
+Ненулевой код — blocker корпуса, замеры не начинаются. NuGet.config и пакеты
+руками не подменять.
 
 ## Протокол одного замера
 
@@ -148,6 +178,7 @@ p95 — nearest-rank, индекс `ceil(0.95 * n) - 1` после сортир�
 
 | Файл | Содержимое |
 |---|---|
+| `run.log` | тот же журнал, что на stdout |
 | `report.md` | текст для человека |
 | `attempts.jsonl` | один JSON на замер, миллисекунды как числа |
 | `workload.json` | метаданные машины, инвентарь, те же замеры |
