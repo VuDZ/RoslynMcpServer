@@ -39,6 +39,7 @@ __pycache__/
 .curcor/
 .opencode/
 AGENTS.md
+!/AGENTS.md
 RoslynMcp.jsonc
 .cursor/*
 !.cursor/rules/
