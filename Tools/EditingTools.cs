@@ -62,7 +62,12 @@ public sealed class EditingTools
                 }
 
                 _solutionManager.SuppressDiskWatchForPath(fullPath);
-                await File.WriteAllTextAsync(fullPath, text, cancellationToken);
+                // Keep the BOM state of an existing file; a plain write defaults to no BOM and would strip it.
+                await File.WriteAllTextAsync(
+                    fullPath,
+                    text,
+                    SourceTextEncoding.ForDiskPath(fullPath),
+                    cancellationToken);
 
                 var skippedBody = $"Successfully wrote `{fullPath}` ({text.Length} characters).";
                 if (WorkspaceDiskPathFilter.IsCSharpSource(fullPath))

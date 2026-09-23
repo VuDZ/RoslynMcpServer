@@ -1460,9 +1460,15 @@ public sealed class SolutionManager
         }
 
         var baseSolution = workspace.CurrentSolution;
+        var existingDocument = baseSolution.GetDocument(documentId);
+        var existingText = existingDocument is null
+            ? null
+            : await existingDocument.GetTextAsync(cancellationToken).ConfigureAwait(false);
+        // Preserve the file's BOM state: MSBuildWorkspace rewrites the document with this encoding on apply.
+        var writeEncoding = SourceTextEncoding.ResolveForWrite(existingText, candidate: null, fullPath);
         var candidate = baseSolution.WithDocumentText(
             documentId,
-            SourceText.From(newText, Encoding.UTF8));
+            SourceText.From(newText, writeEncoding));
         var context = CreateVerifiedWriteContext(_solution, baseSolution);
         IReadOnlyList<(string Path, string Text)>? alreadyOnDisk = persistToDisk
             ? null
@@ -1599,11 +1605,13 @@ public sealed class SolutionManager
                 }
 
                 var oldDoc = oldSolution.GetDocument(newDoc.Id);
-                var text = (await newDoc.GetTextAsync(cancellationToken).ConfigureAwait(false)).ToString();
+                var newSourceText = await newDoc.GetTextAsync(cancellationToken).ConfigureAwait(false);
+                var text = newSourceText.ToString();
+                SourceText? oldSourceText = null;
                 if (oldDoc is not null)
                 {
-                    var oldText = (await oldDoc.GetTextAsync(cancellationToken).ConfigureAwait(false)).ToString();
-                    if (string.Equals(oldText, text, StringComparison.Ordinal))
+                    oldSourceText = await oldDoc.GetTextAsync(cancellationToken).ConfigureAwait(false);
+                    if (string.Equals(oldSourceText.ToString(), text, StringComparison.Ordinal))
                     {
                         continue;
                     }
@@ -1635,8 +1643,11 @@ public sealed class SolutionManager
                     throw new IOException("injected-file-write-failure:" + fullPath);
                 }
 
+                // One operation writes the file twice (persist here, again on TryApplyChanges); both must use the
+                // same encoding, or a BOM added by one is reverted by the other.
+                var writeEncoding = SourceTextEncoding.ResolveForWrite(oldSourceText, newSourceText, fullPath);
                 SuppressDiskWatchForPath(fullPath);
-                await File.WriteAllTextAsync(fullPath, text, cancellationToken).ConfigureAwait(false);
+                await File.WriteAllTextAsync(fullPath, text, writeEncoding, cancellationToken).ConfigureAwait(false);
                 saved.Add(fullPath);
                 savedTexts.Add((fullPath, text));
                 if (CancelAfterDocumentWrites > 0 && saved.Count >= CancelAfterDocumentWrites)
@@ -1710,13 +1721,19 @@ public sealed class SolutionManager
         foreach (var (path, text) in savedTexts)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var documentId = FindDocumentIdForPath(current, Path.GetFullPath(path), _pathComparison);
+            var fullPath = Path.GetFullPath(path);
+            var documentId = FindDocumentIdForPath(current, fullPath, _pathComparison);
             if (documentId is null)
             {
                 return false;
             }
 
-            current = current.WithDocumentText(documentId, SourceText.From(text, Encoding.UTF8));
+            var existingDocument = current.GetDocument(documentId);
+            var existingText = existingDocument is null
+                ? null
+                : await existingDocument.GetTextAsync(cancellationToken).ConfigureAwait(false);
+            var writeEncoding = SourceTextEncoding.ResolveForWrite(existingText, candidate: null, fullPath);
+            current = current.WithDocumentText(documentId, SourceText.From(text, writeEncoding));
             changed = true;
         }
 

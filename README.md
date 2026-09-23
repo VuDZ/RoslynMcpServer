@@ -180,6 +180,11 @@ MCP `tools/list` stays JSON + JSON Schema. Markdown is for JIT help and diagnost
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.4.15
+
+- **Edits keep the file's BOM state** — `update_file_content`, `apply_patch`, AST edits, and the disk-sync/watcher write path no longer add a UTF-8 BOM to files that had none, and no longer strip a BOM that existed. `MSBuildWorkspace` rewrites a changed document during `TryApplyChanges` with `SourceText.Encoding`, and `Encoding.UTF8` carries a BOM preamble; the complementary `File.WriteAllText` without an encoding stripped one. Both writes of one operation now resolve the encoding from the file (existing document → candidate text → on-disk BOM), falling back to BOM-free UTF-8 only for a new file. No `RoslynMcp.jsonc` key; the previous behavior was a bug, not a setting.
+- **Catalog size** — full 54 tools / 45,093 bytes; lite 15 / 17,449.
+
 ### v1.4.14
 
 - **`load_workspace` health** — a missing `obj` next to the project no longer fails the tool. Restore assets are also accepted from `artifacts/obj/<ProjectName>/project.assets.json` and from the `obj` folder beside the output `bin` directory.

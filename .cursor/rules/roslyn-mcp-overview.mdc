@@ -5,7 +5,7 @@ alwaysApply: true
 
 # RoslynMcpServer overview
 
-MCP server (stdio) for C# analysis: Roslyn workspaces + ILSpy decompile. TFM `net10.0`, version in `RoslynMcpServer.csproj` (currently **1.4.14**). Package id `RoslynMcpServer`. Self-contained publish for win/osx/linux RIDs.
+MCP server (stdio) for C# analysis: Roslyn workspaces + ILSpy decompile. TFM `net10.0`, version in `RoslynMcpServer.csproj` (currently **1.4.15**). Package id `RoslynMcpServer`. Self-contained publish for win/osx/linux RIDs.
 
 ## Layout
 
@@ -27,6 +27,7 @@ Real-world validation often uses **BrqMover** (`c:\Devel\BrqMover`) — app repo
 
 ## Version history (agent-relevant)
 
+- **1.4.15** — writes preserve the file's BOM state (no BOM added to BOM-free files, none stripped from BOM files); `SourceTextEncoding` resolves existing document → candidate → on-disk BOM
 - **1.3.32** — `DotNetCliRunner` timeout kills the process then drains pipes (no hang on canceled `ReadToEndAsync`); lifecycle host `build` honors `TimeoutMs`
 - **1.3.31** — `update_file_content` / `apply_patch` do not recreate missing-on-disk `.cs`; disk-sync does not `WithDocumentText` a deleted known document
 - **1.3.30** — disk-sync updates texts of known documents only (no `AddDocument`/`RemoveDocument`); new/deleted `.cs` → composition-stale + reload, not `<Compile Include>` / NETSDK1022

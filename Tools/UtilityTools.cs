@@ -1073,7 +1073,12 @@ public sealed class UtilityTools
                 }
 
                 _solutionManager.SuppressDiskWatchForPath(fullPath);
-                await File.WriteAllTextAsync(fullPath, updatedRaw, cancellationToken);
+                // Keep the BOM state of an existing file; a plain write defaults to no BOM and would strip it.
+                await File.WriteAllTextAsync(
+                    fullPath,
+                    updatedRaw,
+                    SourceTextEncoding.ForDiskPath(fullPath),
+                    cancellationToken);
             }
             else if (!write.IsFullSuccess)
             {
