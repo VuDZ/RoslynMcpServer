@@ -83,11 +83,15 @@ public sealed class StructuralRefactoringHelper
             sourceEditor.ReplaceNode(classDecl, updatedClassDecl);
             solution = sourceEditor.GetChangedDocument().Project.Solution;
 
+            // MSBuildWorkspace persists an added document with SourceText.Encoding; the new file inherits the
+            // source document's BOM state instead of Encoding.UTF8, which would always add a BOM.
+            var sourceText = await document.GetTextAsync(cancellationToken).ConfigureAwait(false);
+            var newFileEncoding = SourceTextEncoding.ResolveForWrite(sourceText, candidate: null, document.FilePath);
             var newDocId = DocumentId.CreateNewId(document.Project.Id, debugName: resolvedInterfaceName);
             solution = solution.AddDocument(
                 newDocId,
                 Path.GetFileName(newFilePath),
-                SourceText.From(interfaceFileRoot.ToFullString(), Encoding.UTF8),
+                SourceText.From(interfaceFileRoot.ToFullString(), newFileEncoding),
                 GetDocumentFolders(document, newFilePath),
                 filePath: newFilePath);
 
@@ -171,6 +175,10 @@ public sealed class StructuralRefactoringHelper
         var modifiedPaths = new List<string> { document.FilePath };
         var details = new List<string>();
 
+        // Added documents are persisted with SourceText.Encoding; keep the source file's BOM state.
+        var sourceText = await document.GetTextAsync(cancellationToken).ConfigureAwait(false);
+        var newFileEncoding = SourceTextEncoding.ResolveForWrite(sourceText, candidate: null, document.FilePath);
+
         foreach (var typeIdentifier in moveList.Select(GetTypeIdentifier).Distinct(StringComparer.Ordinal))
         {
             var typeToRemove = GetTopLevelTypeDeclarations(currentRoot)
@@ -187,7 +195,7 @@ public sealed class StructuralRefactoringHelper
             solution = solution.AddDocument(
                 newDocId,
                 Path.GetFileName(newFilePath),
-                SourceText.From(typeFileRoot.ToFullString(), Encoding.UTF8),
+                SourceText.From(typeFileRoot.ToFullString(), newFileEncoding),
                 GetDocumentFolders(document, newFilePath),
                 filePath: newFilePath);
 
