@@ -23,6 +23,7 @@ packages/
 
 # Logs and diagnostics
 *.log
+mcp-usage/
 *.tlog
 *.tmp
 
