@@ -31,7 +31,7 @@ generated `.cs` под `obj` шаблона), эпоха 7 это исключе
 
 | Эпоха | Файл | Статус |
 |---|---|---|
-| 1. Регистрация тулов | [epoch-1-registration.md](epoch-1-registration.md) | не начата |
+| 1. Регистрация тулов | [epoch-1-registration.md](epoch-1-registration.md) | сделана |
 | 2. Манифест и пути | [epoch-2-manifest-and-paths.md](epoch-2-manifest-and-paths.md) | не начата |
 | 3. Теневая копия | [epoch-3-shadow-copy.md](epoch-3-shadow-copy.md) | не начата |
 | 4. Шаблон | [epoch-4-sample-plugin.md](epoch-4-sample-plugin.md) | не начата |
