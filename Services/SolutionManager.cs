@@ -12,230 +12,103 @@ using Microsoft.CodeAnalysis.Text;
 using Microsoft.Extensions.Logging;
 using RoslynMcpServer.Config;
 using RoslynMcpServer.Diagnostics;
-using RoslynMcpServer.Services;
 using Serilog;
 
-internal sealed record WorkspaceLoadPreparationResult(
-    Solution Solution,
-    IReadOnlyList<AnalyzerReferenceShadowCopier.RewriteResult> ShadowCopyResults);
-
-/// <summary>How the published semantic snapshot was obtained for this session.</summary>
-public enum WorkspaceLoadSource
-{
-    None = 0,
-    ConfigFile = 1,
-    ExplicitLoad = 2,
-}
+namespace RoslynMcpServer.Services;
 
 public sealed class SolutionManager
 {
-    /// <summary>
-    /// Working set threshold (bytes) above which a memory warning is emitted.
-    /// </summary>
-    private const long MemoryWarningThresholdBytes = 1500L * 1024 * 1024;
-
-    /// <summary>Ignore FileSystemWatcher events for paths we just wrote (partial-read race).</summary>
-    private const int SelfWriteSuppressMs = 1000;
-
-    /// <summary>
-    /// Explicit MEF host so MSBuildWorkspace discovers the C# language / project loader
-    /// (fixes "language 'C#' is not supported" when using parameterless MSBuildWorkspace.Create()).
-    /// </summary>
-    private static readonly HostServices MsBuildHostServices = MefHostServices.Create(
-        LoadMefAssemblies());
-
-    private static IEnumerable<Assembly> LoadMefAssemblies()
-    {
-        yield return typeof(Workspace).Assembly;
-        yield return typeof(CSharpFormattingOptions).Assembly;
-        yield return typeof(MSBuildWorkspace).Assembly;
-        yield return Assembly.Load(new AssemblyName("Microsoft.CodeAnalysis.Features"));
-        yield return Assembly.Load(new AssemblyName("Microsoft.CodeAnalysis.CSharp.Features"));
-    }
-
-    private readonly ILogger<SolutionManager> _logger;
-    private readonly AnalyzerProvenanceCaptureService _analyzerProvenanceCaptureService;
-    private readonly SemaphoreSlim _workspaceLock = new(1, 1);
-    private readonly StringComparison _pathComparison =
-        OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
-
-    private readonly StringComparer _pathComparer =
-        OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
-
-    private readonly ConcurrentDictionary<string, byte> _dirtySourcePaths;
-    private readonly ConcurrentDictionary<string, long> _selfWriteUntilTicks;
-    private readonly List<FileSystemWatcher> _diskWatchers = new();
-    private readonly ConcurrentDictionary<string, byte> _missingOnDiskPaths;
-    private volatile bool _refreshAllDocuments;
-    private volatile bool _projectGraphStale;
-    private volatile bool _projectGraphStaleFromGraphFile;
-    private volatile bool _projectGraphStaleFromComposition;
-
-    private readonly InProcessAnalyzerAssemblyLoader _analyzerAssemblyLoader = new();
-
-    private MSBuildWorkspace? _workspace;
-    private Solution? _solution;
-    private Solution? _sanitizedPublishedSolution;
-    private Solution? _sanitizedPublishedSolutionSource;
-    // Overlay state is not one enabled bool: mapping is prepared/active generations,
-    // _lastRefreshStale/_lastShadowCopyResults are the last refresh, and
-    // _shadowCopyAnalyzersEnabled is session-sticky active-overlay state.
-    // _lastExecutionObservation is epoch-3 prepared/rewritten/load-failed/execution/restart.
-    // Holding mapping for an in-flight write is epoch 4.
-    private bool _shadowCopyAnalyzersEnabled;
-    private string? _shadowCopyRootDirectory;
-    private Guid _loadSessionId;
-    private AnalyzerShadowMapping? _analyzerShadowMapping;
-    private bool _lastLoadWasCacheHit;
-    private bool _lastLoadReopenedGraph;
-    private bool _lastPrepareAttempted;
-    private bool _lastPrepareInjectedFailure;
-    private bool _lastRefreshStale;
-    private int _overlayPrepareCount;
-    private IReadOnlyList<AnalyzerReferenceShadowCopier.RewriteResult> _lastShadowCopyResults =
-        Array.Empty<AnalyzerReferenceShadowCopier.RewriteResult>();
-    private AnalyzerExecutionObservation _lastExecutionObservation = AnalyzerExecutionObservation.None;
-    private AnalyzerShadowPublicationPlan? _lastPublicationPlan;
-    private SemanticPublicationState _publicationState = SemanticPublicationState.None;
-    private readonly ConditionalWeakTable<Solution, WorkspaceWriteOperationContext> _operationContexts = new();
-    private WorkspaceWriteOperationContext? _lastPublishedWriteContext;
-    private WorkspaceWriteResult? _lastWriteResult;
-    private long _rawWorkspaceRevision;
-    private string? _loadedPath;
-    private string? _loadedConfiguration;
-    private string? _loadedPlatform;
-    private string? _loadedPlatformRaw;
-    private string? _loadedTargetFramework;
-    private string? _loadedBuildArgs;
-    private IReadOnlyList<WorkspaceDiagnostic> _lastDiagnostics = Array.Empty<WorkspaceDiagnostic>();
-    private AnalyzerProvenanceSnapshot? _analyzerProvenanceSnapshot;
-    private long _analyzerProvenanceCaptureCount;
-    private readonly RoslynMcpFileSettings _fileSettings;
-    private WorkspaceLoadSource _workspaceLoadSource = WorkspaceLoadSource.None;
-    private volatile bool _workspaceLoadInProgress;
-    private string? _lastLazyLoadFailureReport;
-
-    public SolutionManager(
-        ILogger<SolutionManager> logger,
-        AnalyzerProvenanceCaptureService analyzerProvenanceCaptureService,
-        RoslynMcpFileSettings? fileSettings = null)
-    {
-        ArgumentNullException.ThrowIfNull(logger);
-        ArgumentNullException.ThrowIfNull(analyzerProvenanceCaptureService);
-
-        _logger = logger;
-        _analyzerProvenanceCaptureService = analyzerProvenanceCaptureService;
-        _fileSettings = fileSettings ?? RoslynMcpFileSettings.Empty;
-        _dirtySourcePaths = new ConcurrentDictionary<string, byte>(_pathComparer);
-        _selfWriteUntilTicks = new ConcurrentDictionary<string, long>(_pathComparer);
-        _missingOnDiskPaths = new ConcurrentDictionary<string, byte>(_pathComparer);
-    }
-
-    internal const string ProjectGraphFileStaleHint =
-        "> **Note:** A `.csproj` / `.sln` / `Directory.Build.props` changed on disk. Saved `.cs` files are synced; "
-        + "package refs and compile globs may be stale. Call `reset_workspace` then `load_workspace` "
-        + "(or `load_workspace` alone — a stale project graph skips the load cache).";
-
-    internal const string ProjectGraphCompositionStaleHint =
-        "> **Note:** A saved `.cs` file appeared or disappeared outside the loaded workspace snapshot. "
-        + "MSBuild decides membership on reload — the file is not guaranteed to enter the workspace. Call `reset_workspace` then `load_workspace` "
-        + "(or `load_workspace` alone — a stale project graph skips the load cache).";
-
-    /// <summary>True when the next <c>load_workspace</c> must skip the in-process graph cache.</summary>
-    internal bool ProjectGraphStale => _projectGraphStale;
-
-    public IReadOnlyList<WorkspaceDiagnostic> LastDiagnostics => _lastDiagnostics;
-
-    /// <summary>True when the last <see cref="LoadAsync"/> reused the existing workspace graph (cached load).</summary>
-    internal bool LastLoadWasCacheHit => _lastLoadWasCacheHit;
-
-    /// <summary>True when the last <see cref="LoadAsync"/> disposed and reopened the MSBuild graph.</summary>
-    internal bool LastLoadReopenedGraph => _lastLoadReopenedGraph;
-
-    /// <summary>True when the last overlay prepare/refresh attempted analyzer file I/O.</summary>
-    internal bool LastPrepareAttempted => _lastPrepareAttempted;
-
-    /// <summary>True when the last overlay prepare used the injected prepare-failure seam.</summary>
-    internal bool LastPrepareInjectedFailure => _lastPrepareInjectedFailure;
-
-    /// <summary>True when the last refresh failed and a previous compatible mapping was kept as stale.</summary>
-    internal bool LastRefreshStale => _lastRefreshStale;
-
-    internal int OverlayPrepareCount => _overlayPrepareCount;
-
-    internal IReadOnlyList<AnalyzerReferenceShadowCopier.RewriteResult> LastShadowCopyResults => _lastShadowCopyResults;
-
-    internal AnalyzerExecutionObservation LastExecutionObservation => _lastExecutionObservation;
-
-    internal AnalyzerShadowPublicationPlan? LastPublicationPlan => _lastPublicationPlan;
-
-    internal SemanticPublicationAdmission PublicationAdmission => _publicationState.Admission;
-
-    internal string? PublicationBanReason => _publicationState.BanReason;
-
-    internal string FormatNoPublishedSolutionMessage(string? leadingSentence = null)
-    {
-        if (!string.IsNullOrWhiteSpace(_lastLazyLoadFailureReport))
-        {
-            if (string.IsNullOrWhiteSpace(leadingSentence))
-            {
-                return _lastLazyLoadFailureReport;
-            }
-
-            return leadingSentence.TrimEnd() + Environment.NewLine + Environment.NewLine + _lastLazyLoadFailureReport;
-        }
-
-        if (_workspace is not null && _publicationState.IsUnavailable)
-        {
-            return WorkspaceLoadGuidance.FormatSemanticWorkspaceUnavailableMessage(
-                leadingSentence,
-                _analyzerProvenanceSnapshot?.Status.ToString(),
-                _publicationState.BanReason,
-                overlayAllowed: false,
-                captureReused: _lastLoadWasCacheHit);
-        }
-
-        return WorkspaceLoadGuidance.FormatNoWorkspaceLoadedMessage(leadingSentence);
-    }
-
     /// <summary>Optional <c>RoslynMcp.jsonc</c> settings loaded at process start.</summary>
-    public RoslynMcpFileSettings FileSettings => _fileSettings;
+    public RoslynMcpFileSettings FileSettings { get; }
 
     /// <summary>Whether the published snapshot came from the config file or an explicit <c>load_workspace</c>.</summary>
-    public WorkspaceLoadSource WorkspaceLoadSource => _workspaceLoadSource;
+    public WorkspaceLoadSource WorkspaceLoadSource { get; private set; } = WorkspaceLoadSource.None;
 
     /// <summary>True while <see cref="LoadAndPrepareAsync"/> holds the workspace lock for an MSBuild open/prepare.</summary>
     public bool WorkspaceLoadInProgress => _workspaceLoadInProgress;
 
     /// <summary>Last failed lazy config load report (same style as <c>load_workspace</c>), or null.</summary>
-    public string? LastLazyLoadFailureReport => _lastLazyLoadFailureReport;
+    public string? LastLazyLoadFailureReport { get; private set; }
+
+    public IReadOnlyList<WorkspaceDiagnostic> LastDiagnostics { get; private set; } =
+        Array.Empty<WorkspaceDiagnostic>();
+
+    /// <summary>MSBuild <c>Configuration</c> used for the last successful <see cref="LoadAsync"/>, or <see langword="null"/>.</summary>
+    public string? LoadedConfiguration { get; private set; }
 
     /// <summary>
-    /// First-use observation: maps a load/execution failure to project, generator,
-    /// generation, and missing/conflicting dependency. Loading stays lazy until this
-    /// or a semantic compilation runs.
+    /// Canonical MSBuild <c>Platform</c> for the last successful <see cref="LoadAsync"/>
+    /// (<c>Any CPU</c> → <c>AnyCPU</c>), used as the MSBuildWorkspace global property.
     /// </summary>
-    internal AnalyzerExecutionObservation ObserveAnalyzerExecution(Project project)
-    {
-        ArgumentNullException.ThrowIfNull(project);
-        _lastExecutionObservation = AnalyzerExecutionGate.ObserveFirstUse(
-            project,
-            _lastExecutionObservation,
-            _analyzerAssemblyLoader);
-        return _lastExecutionObservation;
-    }
+    public string? LoadedPlatform { get; private set; }
 
-    internal bool ShadowCopyAnalyzersEnabled => _shadowCopyAnalyzersEnabled;
+    /// <summary>
+    /// Trimmed platform spelling from the last successful <see cref="LoadAsync"/> without the
+    /// <c>Any CPU</c> → <c>AnyCPU</c> alias. Used when inheriting platform for <c>.sln</c>/<c>.slnx</c> CLI.
+    /// </summary>
+    public string? LoadedPlatformRaw { get; private set; }
 
-    internal string? ShadowCopyRootDirectory => _shadowCopyRootDirectory;
+    /// <summary>MSBuild <c>TargetFramework</c> used for the last successful <see cref="LoadAsync"/>, or <see langword="null"/>.</summary>
+    public string? LoadedTargetFramework { get; private set; }
 
-    internal AnalyzerShadowMapping? AnalyzerShadowMapping => _analyzerShadowMapping;
+    /// <summary>
+    /// Extra <c>dotnet build</c> args from the last <see cref="LoadAsync"/> (session CLI only; not an MSBuildWorkspace property).
+    /// </summary>
+    public string? LoadedBuildArgs { get; private set; }
 
-    internal Guid LoadSessionId => _loadSessionId;
+    // Same-assembly tools and the lifecycle test host read these members.
+    // InternalsVisibleTo is only RoslynMcpServer.Tests and RoslynMcpServer.LifecycleTestHost.
+    // A plugin assembly does not see them; the public members above are its workspace API.
 
-    internal AnalyzerProvenanceSnapshot? AnalyzerProvenanceSnapshot => _analyzerProvenanceSnapshot;
+    /// <summary>True when the next <c>load_workspace</c> must skip the in-process graph cache.</summary>
+    internal bool ProjectGraphStale => _projectGraphStale;
 
-    internal long AnalyzerProvenanceCaptureCount => _analyzerProvenanceCaptureCount;
+    /// <summary>True when the last <see cref="LoadAsync"/> reused the existing workspace graph (cached load).</summary>
+    internal bool LastLoadWasCacheHit { get; private set; }
+
+    /// <summary>True when the last <see cref="LoadAsync"/> disposed and reopened the MSBuild graph.</summary>
+    internal bool LastLoadReopenedGraph { get; private set; }
+
+    /// <summary>True when the last overlay prepare/refresh attempted analyzer file I/O.</summary>
+    internal bool LastPrepareAttempted { get; private set; }
+
+    /// <summary>True when the last overlay prepare used the injected prepare-failure seam.</summary>
+    internal bool LastPrepareInjectedFailure { get; private set; }
+
+    /// <summary>True when the last refresh failed and a previous compatible mapping was kept as stale.</summary>
+    internal bool LastRefreshStale { get; private set; }
+
+    internal int OverlayPrepareCount { get; private set; }
+
+    internal IReadOnlyList<AnalyzerReferenceShadowCopier.RewriteResult> LastShadowCopyResults { get; private set; } =
+        Array.Empty<AnalyzerReferenceShadowCopier.RewriteResult>();
+
+    internal AnalyzerExecutionObservation LastExecutionObservation { get; private set; } =
+        AnalyzerExecutionObservation.None;
+
+    internal AnalyzerShadowPublicationPlan? LastPublicationPlan { get; private set; }
+
+    internal SemanticPublicationAdmission PublicationAdmission => _publicationState.Admission;
+
+    internal string? PublicationBanReason => _publicationState.BanReason;
+
+    // Not one overlay-enabled flag. The mapping is the prepared generation,
+    // the last-refresh properties describe only the latest prepare, and
+    // ShadowCopyAnalyzersEnabled stays set for the session once an overlay is active.
+    // LastExecutionObservation is the first-use gate (prepared, rewritten, load failed,
+    // executing, or restart required). The mapping is also held across an in-flight write
+    // so publication can be reversed without another analyzer-file pass.
+    internal bool ShadowCopyAnalyzersEnabled { get; private set; }
+
+    internal string? ShadowCopyRootDirectory { get; private set; }
+
+    internal AnalyzerShadowMapping? AnalyzerShadowMapping { get; private set; }
+
+    internal Guid LoadSessionId { get; private set; }
+
+    internal AnalyzerProvenanceSnapshot? AnalyzerProvenanceSnapshot { get; private set; }
+
+    internal long AnalyzerProvenanceCaptureCount { get; private set; }
 
     internal AnalyzerProvenanceCaptureFailureMode FailNextAnalyzerProvenanceCapture
     {
@@ -275,36 +148,25 @@ public sealed class SolutionManager
 
     internal bool HasPublishedSemanticSnapshot => _solution is not null;
 
-    internal WorkspaceWriteResult? LastWriteResult => _lastWriteResult;
+    internal WorkspaceWriteResult? LastWriteResult { get; private set; }
 
-    internal IReadOnlyList<string> GetPendingDirtySourcePaths() => _dirtySourcePaths.Keys.ToArray();
+    internal InProcessAnalyzerAssemblyLoader AnalyzerAssemblyLoader { get; } = new();
 
-    internal Solution? GetWorkspaceCurrentSolution() => _workspace?.CurrentSolution;
+    public SolutionManager(
+        ILogger<SolutionManager> logger,
+        AnalyzerProvenanceCaptureService analyzerProvenanceCaptureService,
+        RoslynMcpFileSettings? fileSettings = null)
+    {
+        ArgumentNullException.ThrowIfNull(logger);
+        ArgumentNullException.ThrowIfNull(analyzerProvenanceCaptureService);
 
-    internal InProcessAnalyzerAssemblyLoader AnalyzerAssemblyLoader => _analyzerAssemblyLoader;
-
-    /// <summary>MSBuild <c>Configuration</c> used for the last successful <see cref="LoadAsync"/>, or <see langword="null"/>.</summary>
-    public string? LoadedConfiguration => _loadedConfiguration;
-
-    /// <summary>
-    /// Canonical MSBuild <c>Platform</c> for the last successful <see cref="LoadAsync"/>
-    /// (<c>Any CPU</c> → <c>AnyCPU</c>), used as the MSBuildWorkspace global property.
-    /// </summary>
-    public string? LoadedPlatform => _loadedPlatform;
-
-    /// <summary>
-    /// Trimmed platform spelling from the last successful <see cref="LoadAsync"/> without the
-    /// <c>Any CPU</c> → <c>AnyCPU</c> alias. Used when inheriting platform for <c>.sln</c>/<c>.slnx</c> CLI.
-    /// </summary>
-    public string? LoadedPlatformRaw => _loadedPlatformRaw;
-
-    /// <summary>MSBuild <c>TargetFramework</c> used for the last successful <see cref="LoadAsync"/>, or <see langword="null"/>.</summary>
-    public string? LoadedTargetFramework => _loadedTargetFramework;
-
-    /// <summary>
-    /// Extra <c>dotnet build</c> args from the last <see cref="LoadAsync"/> (session CLI only; not an MSBuildWorkspace property).
-    /// </summary>
-    public string? LoadedBuildArgs => _loadedBuildArgs;
+        _logger = logger;
+        _analyzerProvenanceCaptureService = analyzerProvenanceCaptureService;
+        FileSettings = fileSettings ?? RoslynMcpFileSettings.Empty;
+        _dirtySourcePaths = new ConcurrentDictionary<string, byte>(_pathComparer);
+        _selfWriteUntilTicks = new ConcurrentDictionary<string, long>(_pathComparer);
+        _missingOnDiskPaths = new ConcurrentDictionary<string, byte>(_pathComparer);
+    }
 
     public async Task<Solution> LoadAsync(string path)
     {
@@ -329,162 +191,6 @@ public sealed class SolutionManager
                 buildArgs)
             .ConfigureAwait(false);
         return result.Solution;
-    }
-
-    internal async Task<WorkspaceLoadPreparationResult> LoadAndPrepareAsync(
-        string solutionOrProjectPath,
-        bool shadowCopyInSolutionAnalyzers,
-        CancellationToken cancellationToken,
-        string? configuration = null,
-        string? platform = null,
-        string? targetFramework = null,
-        string? buildArgs = null,
-        WorkspaceLoadSource loadSource = WorkspaceLoadSource.ExplicitLoad)
-    {
-        if (string.IsNullOrWhiteSpace(solutionOrProjectPath))
-        {
-            throw new ArgumentException("Solution or project path cannot be empty.", nameof(solutionOrProjectPath));
-        }
-
-        var fullPath = Path.GetFullPath(solutionOrProjectPath);
-        if (!File.Exists(fullPath))
-        {
-            throw new FileNotFoundException("Solution or project file not found.", fullPath);
-        }
-
-        var buildArgsPassed = !string.IsNullOrWhiteSpace(buildArgs);
-
-        var normalizedConfiguration = DotNetConfigurationArguments.Normalize(configuration, nameof(configuration));
-        var platformRaw = DotNetConfigurationArguments.Normalize(platform, nameof(platform));
-        var normalizedPlatform = DotNetConfigurationArguments.NormalizePlatform(platform);
-        var normalizedTargetFramework = DotNetConfigurationArguments.Normalize(targetFramework, nameof(targetFramework));
-        var normalizedBuildArgs = DotNetBuildArguments.Normalize(buildArgs);
-
-        await _workspaceLock.WaitAsync(cancellationToken);
-        _workspaceLoadInProgress = true;
-        try
-        {
-            // Cancel and Release can race: SemaphoreSlim may grant the waiter after its token
-            // is already cancelled. Do not run this load; the in-progress load keeps its own token.
-            cancellationToken.ThrowIfCancellationRequested();
-
-            var fileConfiguration = DotNetConfigurationArguments.Normalize(
-                _fileSettings.Configuration,
-                nameof(_fileSettings.Configuration));
-            var filePlatformRaw = DotNetConfigurationArguments.Normalize(
-                _fileSettings.Platform,
-                nameof(_fileSettings.Platform));
-            var filePlatform = DotNetConfigurationArguments.NormalizePlatform(_fileSettings.Platform);
-            var fileTargetFramework = DotNetConfigurationArguments.Normalize(
-                _fileSettings.TargetFramework,
-                nameof(_fileSettings.TargetFramework));
-
-            // Passed overrides loaded; omitted keeps loaded; when nothing loaded yet, fill from file.
-            var effectiveConfiguration = normalizedConfiguration ?? _loadedConfiguration ?? fileConfiguration;
-            var effectivePlatform = normalizedPlatform ?? _loadedPlatform ?? filePlatform;
-            var effectivePlatformRaw = !string.IsNullOrWhiteSpace(platform)
-                ? platformRaw
-                : _loadedPlatformRaw ?? filePlatformRaw ?? platformRaw;
-            var effectiveTargetFramework = normalizedTargetFramework
-                ?? _loadedTargetFramework
-                ?? fileTargetFramework;
-            var effectiveBuildArgs = buildArgsPassed ? normalizedBuildArgs : _loadedBuildArgs;
-
-            var publishedBeforeBoundary = _solution;
-            Solution solution;
-            try
-            {
-                solution = await LoadCoreAsync(
-                        fullPath,
-                        passedConfiguration: normalizedConfiguration,
-                        passedPlatform: normalizedPlatform,
-                        passedTargetFramework: normalizedTargetFramework,
-                        effectiveConfiguration: effectiveConfiguration,
-                        effectivePlatform: effectivePlatform,
-                        effectivePlatformRaw: effectivePlatformRaw,
-                        effectiveTargetFramework: effectiveTargetFramework,
-                        effectiveBuildArgs: effectiveBuildArgs,
-                        applyBuildArgs: buildArgsPassed,
-                        publishLoadedSolution: !shadowCopyInSolutionAnalyzers,
-                        cancellationToken)
-                    .ConfigureAwait(false);
-            }
-            catch
-            {
-                if (shadowCopyInSolutionAnalyzers)
-                {
-                    RestoreSafePublishedSnapshotAfterOptInFailure();
-                }
-
-                throw;
-            }
-
-            if (_solution is not null)
-            {
-                _workspaceLoadSource = loadSource;
-                _lastLazyLoadFailureReport = null;
-            }
-
-            if (!shadowCopyInSolutionAnalyzers)
-            {
-                return new WorkspaceLoadPreparationResult(solution, _lastShadowCopyResults);
-            }
-
-            if (HasBlockingLoadFailure(solution))
-            {
-                EnterBannedPublication(_workspace!.CurrentSolution, "blocking-load-failure");
-                _solution = null;
-                return new WorkspaceLoadPreparationResult(solution, Array.Empty<AnalyzerReferenceShadowCopier.RewriteResult>());
-            }
-
-            ApplyCaptureTestSeams();
-            var unsuitableCapture = AnalyzerProvenanceCaptureGate.TryGetUnsuitableReason(
-                _analyzerProvenanceSnapshot,
-                _loadSessionId);
-            if (unsuitableCapture is not null)
-            {
-                EnterUnavailablePublication(unsuitableCapture);
-                return new WorkspaceLoadPreparationResult(
-                    _workspace!.CurrentSolution,
-                    Array.Empty<AnalyzerReferenceShadowCopier.RewriteResult>());
-            }
-
-            if (_lastLoadWasCacheHit)
-            {
-                _solution = publishedBeforeBoundary;
-            }
-
-            try
-            {
-                var boundarySeam = AfterPhysicalLoadBeforePrepareAsync;
-                if (boundarySeam is not null)
-                {
-                    await boundarySeam(cancellationToken).ConfigureAwait(false);
-                }
-
-                var results = PrepareInSolutionAnalyzerReferencesUnderLock();
-                if (_publicationState.Admission is SemanticPublicationAdmission.None
-                    || (!_publicationState.AllowsOverlay
-                        && _analyzerShadowMapping is not { HasAnyApplied: true }))
-                {
-                    SetFailClosedPublishedSolution(
-                        _workspace!.CurrentSolution,
-                        _lastExecutionObservation.Reason ?? "opt-in-prepare-not-enabled");
-                }
-
-                return new WorkspaceLoadPreparationResult(_workspace!.CurrentSolution, results);
-            }
-            catch
-            {
-                RestoreSafePublishedSnapshotAfterOptInFailure();
-                throw;
-            }
-        }
-        finally
-        {
-            _workspaceLoadInProgress = false;
-            _workspaceLock.Release();
-        }
     }
 
     /// <summary>
@@ -621,434 +327,6 @@ public sealed class SolutionManager
         }
     }
 
-    private IReadOnlyList<AnalyzerReferenceShadowCopier.RewriteResult> PrepareInSolutionAnalyzerReferencesUnderLock()
-    {
-        var workspace = _workspace;
-        var loadedPath = _loadedPath;
-        if (workspace is null || loadedPath is null)
-        {
-            return Array.Empty<AnalyzerReferenceShadowCopier.RewriteResult>();
-        }
-
-        var shadowRoot = AnalyzerReferenceShadowCopier.GetDefaultShadowRootDirectory(loadedPath);
-        _lastPrepareAttempted = true;
-        _overlayPrepareCount++;
-
-        if (FailNextOverlayPrepare)
-        {
-            FailNextOverlayPrepare = false;
-            _lastPrepareInjectedFailure = true;
-            return CompleteFailedPrepare(
-                workspace.CurrentSolution,
-                shadowRoot,
-                "injected-prepare-failure");
-        }
-
-        _lastPrepareInjectedFailure = false;
-        var prepared = AnalyzerReferenceShadowCopier.PrepareInSolutionAnalyzerReferences(
-            workspace.CurrentSolution,
-            shadowRoot,
-            _analyzerAssemblyLoader,
-            _analyzerShadowMapping,
-            _loadSessionId,
-            loadedPath,
-            _analyzerProvenanceSnapshot);
-        return CompletePrepare(workspace.CurrentSolution, shadowRoot, prepared);
-    }
-
-    /// <summary>
-    /// Reapplies the session publication policy on top of <paramref name="solution"/> with no analyzer
-    /// file I/O, inspector, or provenance rediscovery. Admission and the excluded-reference set were
-    /// decided at the load/prepare boundary.
-    /// </summary>
-    private Solution PublishInMemorySolution(Solution solution)
-    {
-        return _publicationState.Admission switch
-        {
-            SemanticPublicationAdmission.NoOverlay => solution,
-            SemanticPublicationAdmission.AllowedMapping => SemanticPublicationState.ApplyExcludedReferences(
-                ApplyShadowCopyOverlayIfEnabled(solution),
-                _publicationState.ExcludedReferences),
-            SemanticPublicationAdmission.Banned => SemanticPublicationState.ApplyExcludedReferences(
-                solution,
-                _publicationState.ExcludedReferences),
-            SemanticPublicationAdmission.Unavailable => solution,
-            _ => SemanticPublicationState.ApplyExcludedReferences(
-                solution,
-                _publicationState.ExcludedReferences),
-        };
-    }
-
-    private Solution ApplyShadowCopyOverlayIfEnabled(Solution solution)
-    {
-        var mapping = _analyzerShadowMapping;
-        if (!_shadowCopyAnalyzersEnabled
-            || mapping is null
-            || mapping.SessionId != _loadSessionId)
-        {
-            return solution;
-        }
-
-        if (!string.IsNullOrWhiteSpace(mapping.LoadedPath)
-            && !string.IsNullOrWhiteSpace(_loadedPath)
-            && !string.Equals(mapping.LoadedPath, _loadedPath, _pathComparison))
-        {
-            return solution;
-        }
-
-        return mapping.Apply(solution, _analyzerAssemblyLoader);
-    }
-
-    private IReadOnlyList<AnalyzerReferenceShadowCopier.RewriteResult> CompletePrepare(
-        Solution workspaceSolution,
-        string shadowRoot,
-        AnalyzerShadowPrepareOutcome prepared)
-    {
-        var plan = AnalyzerShadowPublicationPlanner.Evaluate(
-            prepared,
-            _analyzerAssemblyLoader,
-            restartBanLatched: IsRestartBanLatched());
-        ApplyPublicationPlan(workspaceSolution, shadowRoot, plan, prepared.Results);
-        return _lastShadowCopyResults;
-    }
-
-    private AnalyzerExecutionObservation EvaluatePreparedMapping(AnalyzerShadowMapping mapping)
-    {
-        var prepared = new AnalyzerShadowPrepareOutcome(
-            mapping,
-            AnalyzerReferenceShadowCopier.ToRewriteResults(mapping),
-            RefreshSucceeded: mapping.Entries.All(e => !e.StaleGeneration),
-            UsedPreviousMappingAsStale: mapping.Entries.Any(e => e.StaleGeneration),
-            FailureSummary: null);
-        return AnalyzerShadowPublicationPlanner.Evaluate(
-            prepared,
-            _analyzerAssemblyLoader,
-            restartBanLatched: IsRestartBanLatched()).Gate;
-    }
-
-    private void ApplyPublicationPlan(
-        Solution workspaceSolution,
-        string shadowRoot,
-        AnalyzerShadowPublicationPlan plan,
-        IReadOnlyList<AnalyzerReferenceShadowCopier.RewriteResult> ungatedResults)
-    {
-        _lastPublicationPlan = plan;
-        _lastExecutionObservation = plan.Gate;
-        _lastRefreshStale = !plan.RefreshComplete || plan.StaleCount > 0;
-        _lastShadowCopyResults = AnalyzerShadowPublicationPlanner.ToRewriteResults(ungatedResults, plan);
-        _shadowCopyRootDirectory = shadowRoot;
-        _analyzerShadowMapping = plan.Kind == AnalyzerShadowPublicationKind.Unavailable
-            ? null
-            : plan.Mapping;
-        _shadowCopyAnalyzersEnabled = plan.OverlayEnabled;
-
-        _publicationState = plan.Kind switch
-        {
-            AnalyzerShadowPublicationKind.Allowed => SemanticPublicationState.Allow(plan.Exclusions),
-            AnalyzerShadowPublicationKind.Banned => SemanticPublicationState.Banned(plan.Reason, plan.Exclusions),
-            AnalyzerShadowPublicationKind.Unavailable => SemanticPublicationState.Unavailable(plan.Reason),
-            _ => _publicationState,
-        };
-
-        SetPublishedSolution(workspaceSolution);
-    }
-
-    private bool IsRestartBanLatched()
-    {
-        return _publicationState.IsBanned
-            && (_lastExecutionObservation.RequiresRestart
-                || (!string.IsNullOrWhiteSpace(_publicationState.BanReason)
-                    && _publicationState.BanReason.Contains(
-                        "restart",
-                        StringComparison.OrdinalIgnoreCase)));
-    }
-
-    private IReadOnlyList<AnalyzerReferenceShadowCopier.RewriteResult> CompleteFailedPrepare(
-        Solution workspaceSolution,
-        string shadowRoot,
-        string reason)
-    {
-        _lastExecutionObservation = new AnalyzerExecutionObservation
-        {
-            Status = IsRestartBanLatched()
-                ? AnalyzerExecutionStatus.RestartRequired
-                : AnalyzerExecutionStatus.LoadFailed,
-            HighestStage = IsRestartBanLatched()
-                ? AnalyzerPreparationStage.Prepared
-                : AnalyzerPreparationStage.LoadFailed,
-            Reason = IsRestartBanLatched()
-                ? (_publicationState.BanReason ?? AnalyzerLoaderContract.RestartRequiredReason)
-                : reason,
-            ProjectName = _analyzerShadowMapping?.Entries.FirstOrDefault()?.ProjectName,
-            GeneratorName = _analyzerShadowMapping?.Entries.FirstOrDefault()?.MatchedProjectName,
-            GenerationId = _analyzerShadowMapping?.Entries.FirstOrDefault()?.GenerationId,
-            Action = IsRestartBanLatched() ? AnalyzerLoaderContract.RestartAction : null,
-        };
-
-        if (IsRestartBanLatched())
-        {
-            _lastRefreshStale = true;
-            _shadowCopyRootDirectory = shadowRoot;
-            _shadowCopyAnalyzersEnabled = false;
-            if (_lastPublicationPlan is { } previousPlan)
-            {
-                _lastPublicationPlan = previousPlan with
-                {
-                    AppliedCount = 0,
-                    OverlayEnabled = false,
-                    RefreshComplete = false,
-                    Kind = AnalyzerShadowPublicationKind.Banned,
-                    Admission = SemanticPublicationAdmission.Banned,
-                    Reason = _lastExecutionObservation.Reason,
-                };
-            }
-
-            SetPublishedSolution(workspaceSolution);
-            return _lastShadowCopyResults;
-        }
-
-        if (_analyzerShadowMapping is { HasAnyApplied: true } previous)
-        {
-            var stale = previous.WithStale(reason, AnalyzerReferenceReasonCodes.PreparationFailure);
-            var preservedExclusions = _publicationState.ExcludedReferences;
-            _analyzerShadowMapping = stale;
-            _lastShadowCopyResults = AnalyzerReferenceShadowCopier.ToRewriteResults(stale);
-            _lastRefreshStale = true;
-            _shadowCopyAnalyzersEnabled = true;
-            _shadowCopyRootDirectory = shadowRoot;
-            _publicationState = SemanticPublicationState.Allow(preservedExclusions);
-            _lastPublicationPlan = new AnalyzerShadowPublicationPlan(
-                AnalyzerShadowPublicationKind.Allowed,
-                SemanticPublicationAdmission.AllowedMapping,
-                stale,
-                preservedExclusions,
-                _lastExecutionObservation,
-                OverlayEnabled: true,
-                RefreshComplete: false,
-                PreparedCount: 0,
-                AppliedCount: stale.Entries.Count(e => e.Applied),
-                StaleCount: stale.Entries.Count(e => e.StaleGeneration),
-                BlockedCount: preservedExclusions.Count,
-                Reason: "stale-generation: " + reason);
-            SetPublishedSolution(workspaceSolution);
-            return _lastShadowCopyResults;
-        }
-
-        _lastShadowCopyResults = Array.Empty<AnalyzerReferenceShadowCopier.RewriteResult>();
-        _lastRefreshStale = false;
-        SetFailClosedPublishedSolution(workspaceSolution, reason);
-        return _lastShadowCopyResults;
-    }
-
-    private void SetPublishedSolution(Solution workspaceSolution)
-    {
-        if (_publicationState.WithholdsSnapshot)
-        {
-            _solution = null;
-            _lastPublishedWriteContext = CreateVerifiedWriteContext(null, _workspace?.CurrentSolution);
-            return;
-        }
-
-        var overlay = PublishInMemorySolution(workspaceSolution);
-        SetPublishedSnapshot(overlay);
-    }
-
-    private void EnterBannedPublication(Solution workspaceSolution, string reason)
-    {
-        var excluded = SemanticPublicationState.CaptureFromInSolutionReferences(
-            workspaceSolution,
-            _analyzerProvenanceSnapshot,
-            _loadSessionId);
-        _publicationState = SemanticPublicationState.Banned(reason, excluded);
-    }
-
-    private void EnterUnavailablePublication(string reason)
-    {
-        _shadowCopyAnalyzersEnabled = false;
-        _analyzerShadowMapping = null;
-        _lastShadowCopyResults = Array.Empty<AnalyzerReferenceShadowCopier.RewriteResult>();
-        _publicationState = SemanticPublicationState.Unavailable(reason);
-        _solution = null;
-        _lastPublishedWriteContext = CreateVerifiedWriteContext(null, _workspace?.CurrentSolution);
-        _logger.LogWarning(
-            "Opt-in semantic snapshot withheld: {Reason} capture={CaptureStatus} session={SessionId} cacheHit={CacheHit}",
-            reason,
-            _analyzerProvenanceSnapshot?.Status.ToString() ?? "missing",
-            _loadSessionId,
-            _lastLoadWasCacheHit);
-    }
-
-    private void ApplyCaptureTestSeams()
-    {
-        if (DiscardNextProvenanceSnapshot)
-        {
-            DiscardNextProvenanceSnapshot = false;
-            _analyzerProvenanceSnapshot = null;
-        }
-
-        if (AssignForeignSessionToNextCapture && _analyzerProvenanceSnapshot is not null)
-        {
-            AssignForeignSessionToNextCapture = false;
-            _analyzerProvenanceSnapshot = _analyzerProvenanceSnapshot with
-            {
-                LoadSessionId = Guid.NewGuid(),
-            };
-        }
-    }
-
-    private void SetFailClosedPublishedSolution(Solution workspaceSolution, string? reason = null)
-    {
-        var unsuitable = AnalyzerProvenanceCaptureGate.TryGetUnsuitableReason(
-            _analyzerProvenanceSnapshot,
-            _loadSessionId);
-        if (unsuitable is not null)
-        {
-            EnterUnavailablePublication(unsuitable);
-            return;
-        }
-
-        _shadowCopyAnalyzersEnabled = false;
-        EnterBannedPublication(
-            workspaceSolution,
-            reason ?? _lastExecutionObservation.Reason ?? "opt-in-publication-banned");
-        _lastPublicationPlan = new AnalyzerShadowPublicationPlan(
-            AnalyzerShadowPublicationKind.Banned,
-            SemanticPublicationAdmission.Banned,
-            _analyzerShadowMapping
-                ?? new AnalyzerShadowMapping(_loadSessionId, _loadedPath, Array.Empty<AnalyzerShadowReferenceEntry>()),
-            _publicationState.ExcludedReferences,
-            _lastExecutionObservation,
-            OverlayEnabled: false,
-            RefreshComplete: false,
-            PreparedCount: 0,
-            AppliedCount: 0,
-            StaleCount: 0,
-            BlockedCount: _publicationState.ExcludedReferences.Count,
-            Reason: _publicationState.BanReason);
-        SetPublishedSnapshot(PublishInMemorySolution(workspaceSolution));
-    }
-
-    private void RestoreSafePublishedSnapshotAfterOptInFailure()
-    {
-        if (_workspace is null)
-        {
-            _solution = null;
-            _publicationState = SemanticPublicationState.Unavailable("opt-in-boundary-failed");
-            return;
-        }
-
-        if (_publicationState.AllowsOverlay
-            && _analyzerShadowMapping is { HasAnyApplied: true })
-        {
-            SetPublishedSolution(_workspace.CurrentSolution);
-            return;
-        }
-
-        var unsuitable = AnalyzerProvenanceCaptureGate.TryGetUnsuitableReason(
-            _analyzerProvenanceSnapshot,
-            _loadSessionId);
-        if (unsuitable is not null)
-        {
-            EnterUnavailablePublication(unsuitable);
-            return;
-        }
-
-        SetFailClosedPublishedSolution(
-            _workspace.CurrentSolution,
-            _lastExecutionObservation.Reason ?? "opt-in-boundary-failed");
-    }
-
-    private void SetPublishedSnapshot(Solution overlay)
-    {
-        _solution = overlay;
-        var context = CreateVerifiedWriteContext(overlay, _workspace?.CurrentSolution);
-        _lastPublishedWriteContext = context;
-        try
-        {
-            _operationContexts.Add(overlay, context);
-        }
-        catch (ArgumentException)
-        {
-        }
-    }
-
-    private WorkspaceWriteOperationContext CreateVerifiedWriteContext(
-        Solution? publishedBase,
-        Solution? rawWorkspace)
-    {
-        return WorkspaceWriteOperationContext.Verified(
-            _loadSessionId,
-            _loadedPath,
-            _analyzerShadowMapping,
-            publishedBase,
-            rawWorkspace,
-            _rawWorkspaceRevision,
-            _shadowCopyAnalyzersEnabled,
-            _publicationState.Admission,
-            _publicationState.ExcludedReferences);
-    }
-
-    private WorkspaceWriteFreshnessState CurrentWriteFreshness(Solution rawWorkspace)
-    {
-        return new WorkspaceWriteFreshnessState(
-            _loadSessionId,
-            _loadedPath,
-            _analyzerShadowMapping,
-            _shadowCopyAnalyzersEnabled,
-            _rawWorkspaceRevision,
-            rawWorkspace,
-            _solution,
-            _publicationState.Admission,
-            _publicationState.ExcludedReferences);
-    }
-
-    private void NoteRawWorkspaceRevision()
-    {
-        _rawWorkspaceRevision++;
-    }
-
-    private WorkspaceWriteOperationContext ResolveOperationContext(Solution? oldSolution)
-    {
-        if (oldSolution is not null && _operationContexts.TryGetValue(oldSolution, out var stamped))
-        {
-            return stamped;
-        }
-
-        if (oldSolution is not null
-            && _lastPublishedWriteContext is { IsVerified: true } last
-            && (ReferenceEquals(oldSolution, last.BaseSnapshot)
-                || ReferenceEquals(oldSolution, _solution)))
-        {
-            return last;
-        }
-
-        return WorkspaceWriteOperationContext.Unverified;
-    }
-
-    private WorkspaceWriteResult RememberWrite(WorkspaceWriteResult result)
-    {
-        _lastWriteResult = result;
-        return result;
-    }
-
-    private bool TryApplyWorkspaceChanges(Workspace workspace, Solution cleaned)
-    {
-        if (FailNextTryApplyChanges)
-        {
-            FailNextTryApplyChanges = false;
-            _logger.LogWarning("TryApplyChanges injected failure (test seam).");
-            return false;
-        }
-
-        if (!workspace.TryApplyChanges(cleaned))
-        {
-            return false;
-        }
-
-        NoteRawWorkspaceRevision();
-        return true;
-    }
-
     /// <summary>
     /// Waits for an in-flight load/prepare boundary and returns only its published snapshot.
     /// It never falls back to raw <see cref="Workspace.CurrentSolution"/>.
@@ -1122,12 +400,12 @@ public sealed class SolutionManager
 
         // Spec: any broken RoslynMcp.jsonc disables lazy load (load_workspace still works;
         // parse failures remain visible in logs / get_mcp_server_info).
-        if (_fileSettings.ParseFailures.Count > 0)
+        if (FileSettings.ParseFailures.Count > 0)
         {
             return;
         }
 
-        var workspacePath = _fileSettings.ResolveWorkspacePathAgainstWorkingDirectory();
+        var workspacePath = FileSettings.ResolveWorkspacePathAgainstWorkingDirectory();
         if (string.IsNullOrWhiteSpace(workspacePath))
         {
             return;
@@ -1139,9 +417,9 @@ public sealed class SolutionManager
                     workspacePath,
                     shadowCopyInSolutionAnalyzers: false,
                     cancellationToken,
-                    _fileSettings.Configuration,
-                    _fileSettings.Platform,
-                    _fileSettings.TargetFramework,
+                    FileSettings.Configuration,
+                    FileSettings.Platform,
+                    FileSettings.TargetFramework,
                     buildArgs: null,
                     loadSource: WorkspaceLoadSource.ConfigFile)
                 .ConfigureAwait(false);
@@ -1152,33 +430,9 @@ public sealed class SolutionManager
         }
         catch (Exception ex)
         {
-            _lastLazyLoadFailureReport = FormatLazyLoadFailureReport(workspacePath, ex);
+            LastLazyLoadFailureReport = FormatLazyLoadFailureReport(workspacePath, ex);
             _logger.LogWarning(ex, "Lazy RoslynMcp.jsonc workspace load failed for {Path}", workspacePath);
         }
-    }
-
-    private static string FormatLazyLoadFailureReport(string path, Exception ex)
-    {
-        if (ex is RoslynMsBuildBuildHostException hostEx)
-        {
-            return hostEx.Message;
-        }
-
-        if (WorkspaceLoadGuidance.IsRoslynMsBuildBuildHostFailure(ex))
-        {
-            return WorkspaceLoadGuidance.FormatRoslynMsBuildBuildHostFailureMessage(path);
-        }
-
-        var sb = new StringBuilder();
-        sb.AppendLine("## Workspace Load Failed");
-        sb.AppendLine();
-        sb.AppendLine($"- **Path:** `{path}`");
-        sb.AppendLine($"- **Source:** `RoslynMcp.jsonc` (lazy load)");
-        sb.AppendLine();
-        sb.AppendLine("### Errors");
-        sb.AppendLine($"- {ex.Message}");
-        sb.Append(MsBuildEnvironmentInfo.FormatMarkdownSection());
-        return sb.ToString();
     }
 
     /// <summary>
@@ -1201,32 +455,6 @@ public sealed class SolutionManager
         }
     }
 
-    private Solution? GetOrCreateSanitizedPublishedSolution()
-    {
-        var raw = _solution;
-        if (raw is null)
-        {
-            return null;
-        }
-
-        if (ReferenceEquals(_sanitizedPublishedSolutionSource, raw))
-        {
-            return _sanitizedPublishedSolution;
-        }
-
-        var (sanitized, removed) = WorkspaceAnalyzerSanitizer.RemoveUnresolvedAnalyzers(raw);
-        if (removed > 0)
-        {
-            _logger.LogInformation(
-                "Removed {Removed} unresolved analyzer reference(s) from a cached search snapshot (Roslyn 5.9.0 project-checksum crash workaround). Published solution is unchanged.",
-                removed);
-        }
-
-        _sanitizedPublishedSolutionSource = raw;
-        _sanitizedPublishedSolution = sanitized;
-        return sanitized;
-    }
-
     /// <summary>
     /// Flushes watcher dirty paths into the in-memory workspace. No-op when nothing changed (O(1)).
     /// </summary>
@@ -1242,50 +470,6 @@ public sealed class SolutionManager
             _workspaceLock.Release();
         }
     }
-
-    /// <summary>
-    /// Waits until <paramref name="filePath"/> appears in the watcher dirty set, or <paramref name="timeout"/> elapses.
-    /// Does not flush. Distinguishes undelivered FSW events from a later flush failure.
-    /// </summary>
-    internal async Task<DirtySourceWaitResult> WaitForDirtySourceAsync(
-        string filePath,
-        TimeSpan timeout,
-        CancellationToken cancellationToken = default)
-    {
-        if (string.IsNullOrWhiteSpace(filePath))
-        {
-            return new DirtySourceWaitResult(Delivered: false, TimedOut: true, Elapsed: TimeSpan.Zero, PendingCount: _dirtySourcePaths.Count);
-        }
-
-        var fullPath = Path.GetFullPath(filePath);
-        var started = Stopwatch.StartNew();
-        while (started.Elapsed < timeout)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (_dirtySourcePaths.ContainsKey(fullPath))
-            {
-                return new DirtySourceWaitResult(
-                    Delivered: true,
-                    TimedOut: false,
-                    Elapsed: started.Elapsed,
-                    PendingCount: _dirtySourcePaths.Count);
-            }
-
-            await Task.Delay(50, cancellationToken).ConfigureAwait(false);
-        }
-
-        return new DirtySourceWaitResult(
-            Delivered: false,
-            TimedOut: true,
-            Elapsed: started.Elapsed,
-            PendingCount: _dirtySourcePaths.Count);
-    }
-
-    internal readonly record struct DirtySourceWaitResult(
-        bool Delivered,
-        bool TimedOut,
-        TimeSpan Elapsed,
-        int PendingCount);
 
     /// <summary>
     /// Suppresses watcher-driven re-reads of <paramref name="filePath"/> for a short window after this
@@ -1356,14 +540,6 @@ public sealed class SolutionManager
         _logger.LogWarning("Unrepresentable source path (composition unknown): {Path}", fullPath);
     }
 
-    /// <summary>
-    /// Test seam: next flush re-reads every known document (watcher-error / directory-rename path).
-    /// </summary>
-    internal void RequestRefreshAllDocumentsForTests()
-    {
-        _refreshAllDocuments = true;
-    }
-
     public string WithDiskSyncNotes(string body)
     {
         if (string.IsNullOrEmpty(body))
@@ -1425,6 +601,843 @@ public sealed class SolutionManager
         {
             _workspaceLock.Release();
         }
+    }
+
+    /// <summary>
+    /// Disposes the active <see cref="MSBuildWorkspace"/> and clears cached solution state so the next
+    /// <see cref="LoadAsync"/> rebuilds from disk (e.g. after an external <c>dotnet build</c>).
+    /// </summary>
+    public async Task ClearWorkspaceAsync(CancellationToken cancellationToken = default)
+    {
+        await _workspaceLock.WaitAsync(cancellationToken);
+        try
+        {
+            StopDiskWatcherUnderLock();
+            _dirtySourcePaths.Clear();
+            _selfWriteUntilTicks.Clear();
+            _missingOnDiskPaths.Clear();
+            _refreshAllDocuments = false;
+            ClearProjectGraphStale();
+            _workspace?.Dispose();
+            _workspace = null;
+            _solution = null;
+            _lastPublishedWriteContext = null;
+            LastWriteResult = null;
+            NoteRawWorkspaceRevision();
+            ShadowCopyAnalyzersEnabled = false;
+            ShadowCopyRootDirectory = null;
+            AnalyzerShadowMapping = null;
+            AnalyzerProvenanceSnapshot = null;
+            LoadSessionId = Guid.Empty;
+            LastRefreshStale = false;
+            LastExecutionObservation = AnalyzerExecutionObservation.None;
+            LastPublicationPlan = null;
+            _publicationState = SemanticPublicationState.None;
+            _loadedPath = null;
+            LoadedConfiguration = null;
+            LoadedPlatform = null;
+            LoadedPlatformRaw = null;
+            LoadedTargetFramework = null;
+            LoadedBuildArgs = null;
+            WorkspaceLoadSource = WorkspaceLoadSource.None;
+            LastLazyLoadFailureReport = null;
+            LastDiagnostics = Array.Empty<WorkspaceDiagnostic>();
+            _logger.LogInformation("Roslyn workspace cleared (MSBuildWorkspace disposed).");
+        }
+        finally
+        {
+            _workspaceLock.Release();
+        }
+    }
+
+    internal string FormatNoPublishedSolutionMessage(string? leadingSentence = null)
+    {
+        if (!string.IsNullOrWhiteSpace(LastLazyLoadFailureReport))
+        {
+            if (string.IsNullOrWhiteSpace(leadingSentence))
+            {
+                return LastLazyLoadFailureReport;
+            }
+
+            return leadingSentence.TrimEnd() + Environment.NewLine + Environment.NewLine + LastLazyLoadFailureReport;
+        }
+
+        if (_workspace is not null && _publicationState.IsUnavailable)
+        {
+            return WorkspaceLoadGuidance.FormatSemanticWorkspaceUnavailableMessage(
+                leadingSentence,
+                AnalyzerProvenanceSnapshot?.Status.ToString(),
+                _publicationState.BanReason,
+                overlayAllowed: false,
+                captureReused: LastLoadWasCacheHit);
+        }
+
+        return WorkspaceLoadGuidance.FormatNoWorkspaceLoadedMessage(leadingSentence);
+    }
+
+    /// <summary>
+    /// First-use observation: maps a load/execution failure to project, generator,
+    /// generation, and missing/conflicting dependency. Loading stays lazy until this
+    /// or a semantic compilation runs.
+    /// </summary>
+    internal AnalyzerExecutionObservation ObserveAnalyzerExecution(Project project)
+    {
+        ArgumentNullException.ThrowIfNull(project);
+        LastExecutionObservation = AnalyzerExecutionGate.ObserveFirstUse(
+            project,
+            LastExecutionObservation,
+            AnalyzerAssemblyLoader);
+        return LastExecutionObservation;
+    }
+
+    internal IReadOnlyList<string> GetPendingDirtySourcePaths() => _dirtySourcePaths.Keys.ToArray();
+
+    internal Solution? GetWorkspaceCurrentSolution() => _workspace?.CurrentSolution;
+
+    internal async Task<WorkspaceLoadPreparationResult> LoadAndPrepareAsync(
+        string solutionOrProjectPath,
+        bool shadowCopyInSolutionAnalyzers,
+        CancellationToken cancellationToken,
+        string? configuration = null,
+        string? platform = null,
+        string? targetFramework = null,
+        string? buildArgs = null,
+        WorkspaceLoadSource loadSource = WorkspaceLoadSource.ExplicitLoad)
+    {
+        if (string.IsNullOrWhiteSpace(solutionOrProjectPath))
+        {
+            throw new ArgumentException("Solution or project path cannot be empty.", nameof(solutionOrProjectPath));
+        }
+
+        var fullPath = Path.GetFullPath(solutionOrProjectPath);
+        if (!File.Exists(fullPath))
+        {
+            throw new FileNotFoundException("Solution or project file not found.", fullPath);
+        }
+
+        var buildArgsPassed = !string.IsNullOrWhiteSpace(buildArgs);
+
+        var normalizedConfiguration = DotNetConfigurationArguments.Normalize(configuration, nameof(configuration));
+        var platformRaw = DotNetConfigurationArguments.Normalize(platform, nameof(platform));
+        var normalizedPlatform = DotNetConfigurationArguments.NormalizePlatform(platform);
+        var normalizedTargetFramework = DotNetConfigurationArguments.Normalize(targetFramework, nameof(targetFramework));
+        var normalizedBuildArgs = DotNetBuildArguments.Normalize(buildArgs);
+
+        await _workspaceLock.WaitAsync(cancellationToken);
+        _workspaceLoadInProgress = true;
+        try
+        {
+            // Cancel and Release can race: SemaphoreSlim may grant the waiter after its token
+            // is already cancelled. Do not run this load; the in-progress load keeps its own token.
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var fileConfiguration = DotNetConfigurationArguments.Normalize(
+                FileSettings.Configuration,
+                nameof(FileSettings.Configuration));
+            var filePlatformRaw = DotNetConfigurationArguments.Normalize(
+                FileSettings.Platform,
+                nameof(FileSettings.Platform));
+            var filePlatform = DotNetConfigurationArguments.NormalizePlatform(FileSettings.Platform);
+            var fileTargetFramework = DotNetConfigurationArguments.Normalize(
+                FileSettings.TargetFramework,
+                nameof(FileSettings.TargetFramework));
+
+            // Passed overrides loaded; omitted keeps loaded; when nothing loaded yet, fill from file.
+            var effectiveConfiguration = normalizedConfiguration ?? LoadedConfiguration ?? fileConfiguration;
+            var effectivePlatform = normalizedPlatform ?? LoadedPlatform ?? filePlatform;
+            var effectivePlatformRaw = !string.IsNullOrWhiteSpace(platform)
+                ? platformRaw
+                : LoadedPlatformRaw ?? filePlatformRaw ?? platformRaw;
+            var effectiveTargetFramework = normalizedTargetFramework
+                ?? LoadedTargetFramework
+                ?? fileTargetFramework;
+            var effectiveBuildArgs = buildArgsPassed ? normalizedBuildArgs : LoadedBuildArgs;
+
+            var publishedBeforeBoundary = _solution;
+            Solution solution;
+            try
+            {
+                solution = await LoadCoreAsync(
+                        fullPath,
+                        passedConfiguration: normalizedConfiguration,
+                        passedPlatform: normalizedPlatform,
+                        passedTargetFramework: normalizedTargetFramework,
+                        effectiveConfiguration: effectiveConfiguration,
+                        effectivePlatform: effectivePlatform,
+                        effectivePlatformRaw: effectivePlatformRaw,
+                        effectiveTargetFramework: effectiveTargetFramework,
+                        effectiveBuildArgs: effectiveBuildArgs,
+                        applyBuildArgs: buildArgsPassed,
+                        publishLoadedSolution: !shadowCopyInSolutionAnalyzers,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+            }
+            catch
+            {
+                if (shadowCopyInSolutionAnalyzers)
+                {
+                    RestoreSafePublishedSnapshotAfterOptInFailure();
+                }
+
+                throw;
+            }
+
+            if (_solution is not null)
+            {
+                WorkspaceLoadSource = loadSource;
+                LastLazyLoadFailureReport = null;
+            }
+
+            if (!shadowCopyInSolutionAnalyzers)
+            {
+                return new WorkspaceLoadPreparationResult(solution, LastShadowCopyResults);
+            }
+
+            if (HasBlockingLoadFailure(solution))
+            {
+                EnterBannedPublication(_workspace!.CurrentSolution, "blocking-load-failure");
+                _solution = null;
+                return new WorkspaceLoadPreparationResult(solution, Array.Empty<AnalyzerReferenceShadowCopier.RewriteResult>());
+            }
+
+            ApplyCaptureTestSeams();
+            var unsuitableCapture = AnalyzerProvenanceCaptureGate.TryGetUnsuitableReason(
+                AnalyzerProvenanceSnapshot,
+                LoadSessionId);
+            if (unsuitableCapture is not null)
+            {
+                EnterUnavailablePublication(unsuitableCapture);
+                return new WorkspaceLoadPreparationResult(
+                    _workspace!.CurrentSolution,
+                    Array.Empty<AnalyzerReferenceShadowCopier.RewriteResult>());
+            }
+
+            if (LastLoadWasCacheHit)
+            {
+                _solution = publishedBeforeBoundary;
+            }
+
+            try
+            {
+                var boundarySeam = AfterPhysicalLoadBeforePrepareAsync;
+                if (boundarySeam is not null)
+                {
+                    await boundarySeam(cancellationToken).ConfigureAwait(false);
+                }
+
+                var results = PrepareInSolutionAnalyzerReferencesUnderLock();
+                if (_publicationState.Admission is SemanticPublicationAdmission.None
+                    || (!_publicationState.AllowsOverlay
+                        && AnalyzerShadowMapping is not { HasAnyApplied: true }))
+                {
+                    SetFailClosedPublishedSolution(
+                        _workspace!.CurrentSolution,
+                        LastExecutionObservation.Reason ?? "opt-in-prepare-not-enabled");
+                }
+
+                return new WorkspaceLoadPreparationResult(_workspace!.CurrentSolution, results);
+            }
+            catch
+            {
+                RestoreSafePublishedSnapshotAfterOptInFailure();
+                throw;
+            }
+        }
+        finally
+        {
+            _workspaceLoadInProgress = false;
+            _workspaceLock.Release();
+        }
+    }
+
+    /// <summary>
+    /// Waits until <paramref name="filePath"/> appears in the watcher dirty set, or <paramref name="timeout"/> elapses.
+    /// Does not flush. Distinguishes undelivered FSW events from a later flush failure.
+    /// </summary>
+    internal async Task<DirtySourceWaitResult> WaitForDirtySourceAsync(
+        string filePath,
+        TimeSpan timeout,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(filePath))
+        {
+            return new DirtySourceWaitResult(Delivered: false, TimedOut: true, Elapsed: TimeSpan.Zero, PendingCount: _dirtySourcePaths.Count);
+        }
+
+        var fullPath = Path.GetFullPath(filePath);
+        var started = Stopwatch.StartNew();
+        while (started.Elapsed < timeout)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (_dirtySourcePaths.ContainsKey(fullPath))
+            {
+                return new DirtySourceWaitResult(
+                    Delivered: true,
+                    TimedOut: false,
+                    Elapsed: started.Elapsed,
+                    PendingCount: _dirtySourcePaths.Count);
+            }
+
+            await Task.Delay(50, cancellationToken).ConfigureAwait(false);
+        }
+
+        return new DirtySourceWaitResult(
+            Delivered: false,
+            TimedOut: true,
+            Elapsed: started.Elapsed,
+            PendingCount: _dirtySourcePaths.Count);
+    }
+
+    /// <summary>
+    /// Test seam: next flush re-reads every known document (watcher-error / directory-rename path).
+    /// </summary>
+    internal void RequestRefreshAllDocumentsForTests()
+    {
+        _refreshAllDocuments = true;
+    }
+
+    /// <summary>
+    /// Session CLI extras are not part of the MSBuildWorkspace cache key.
+    /// Always replace so a second <c>load_workspace</c> can change or clear them without reopening the solution.
+    /// </summary>
+    internal void ApplySessionBuildArgs(string? buildArgs) => LoadedBuildArgs = buildArgs;
+
+    /// <summary>
+    /// Directories to watch (and later to search) for a loaded workspace: directory of
+    /// <paramref name="loadedFilePath"/> union directories of <paramref name="projectFilePaths"/>,
+    /// with nested duplicates removed (if A contains B, keep A). Does not invent ancestor
+    /// <c>Directory.Build.props</c> roots and does not LCA-merge (Unix absolute paths stay rooted).
+    /// </summary>
+    internal static IReadOnlyList<string> ComputeWatchRoots(
+        string? loadedFilePath,
+        IEnumerable<string?>? projectFilePaths)
+    {
+        var comparison = OperatingSystem.IsWindows()
+            ? StringComparison.OrdinalIgnoreCase
+            : StringComparison.Ordinal;
+        var comparer = OperatingSystem.IsWindows()
+            ? StringComparer.OrdinalIgnoreCase
+            : StringComparer.Ordinal;
+
+        var directories = new HashSet<string>(comparer);
+        TryAddWatchDirectory(directories, loadedFilePath);
+        if (projectFilePaths is not null)
+        {
+            foreach (var projectFilePath in projectFilePaths)
+            {
+                TryAddWatchDirectory(directories, projectFilePath);
+            }
+        }
+
+        if (directories.Count == 0)
+        {
+            return Array.Empty<string>();
+        }
+
+        var roots = new List<string>();
+        foreach (var directory in directories)
+        {
+            var nested = false;
+            foreach (var other in directories)
+            {
+                if (comparer.Equals(directory, other))
+                {
+                    continue;
+                }
+
+                if (IsStrictSubdirectory(directory, other, comparison))
+                {
+                    nested = true;
+                    break;
+                }
+            }
+
+            if (!nested)
+            {
+                roots.Add(directory);
+            }
+        }
+
+        roots.Sort(comparer);
+        return roots;
+    }
+
+    private IReadOnlyList<AnalyzerReferenceShadowCopier.RewriteResult> PrepareInSolutionAnalyzerReferencesUnderLock()
+    {
+        var workspace = _workspace;
+        var loadedPath = _loadedPath;
+        if (workspace is null || loadedPath is null)
+        {
+            return Array.Empty<AnalyzerReferenceShadowCopier.RewriteResult>();
+        }
+
+        var shadowRoot = AnalyzerReferenceShadowCopier.GetDefaultShadowRootDirectory(loadedPath);
+        LastPrepareAttempted = true;
+        OverlayPrepareCount++;
+
+        if (FailNextOverlayPrepare)
+        {
+            FailNextOverlayPrepare = false;
+            LastPrepareInjectedFailure = true;
+            return CompleteFailedPrepare(
+                workspace.CurrentSolution,
+                shadowRoot,
+                "injected-prepare-failure");
+        }
+
+        LastPrepareInjectedFailure = false;
+        var prepared = AnalyzerReferenceShadowCopier.PrepareInSolutionAnalyzerReferences(
+            workspace.CurrentSolution,
+            shadowRoot,
+            AnalyzerAssemblyLoader,
+            AnalyzerShadowMapping,
+            LoadSessionId,
+            loadedPath,
+            AnalyzerProvenanceSnapshot);
+        return CompletePrepare(workspace.CurrentSolution, shadowRoot, prepared);
+    }
+
+    /// <summary>
+    /// Reapplies the session publication policy on top of <paramref name="solution"/> with no analyzer
+    /// file I/O, inspector, or provenance rediscovery. Admission and the excluded-reference set were
+    /// decided at the load/prepare boundary.
+    /// </summary>
+    private Solution PublishInMemorySolution(Solution solution)
+    {
+        return _publicationState.Admission switch
+        {
+            SemanticPublicationAdmission.NoOverlay => solution,
+            SemanticPublicationAdmission.AllowedMapping => SemanticPublicationState.ApplyExcludedReferences(
+                ApplyShadowCopyOverlayIfEnabled(solution),
+                _publicationState.ExcludedReferences),
+            SemanticPublicationAdmission.Banned => SemanticPublicationState.ApplyExcludedReferences(
+                solution,
+                _publicationState.ExcludedReferences),
+            SemanticPublicationAdmission.Unavailable => solution,
+            _ => SemanticPublicationState.ApplyExcludedReferences(
+                solution,
+                _publicationState.ExcludedReferences),
+        };
+    }
+
+    private Solution ApplyShadowCopyOverlayIfEnabled(Solution solution)
+    {
+        var mapping = AnalyzerShadowMapping;
+        if (!ShadowCopyAnalyzersEnabled
+            || mapping is null
+            || mapping.SessionId != LoadSessionId)
+        {
+            return solution;
+        }
+
+        if (!string.IsNullOrWhiteSpace(mapping.LoadedPath)
+            && !string.IsNullOrWhiteSpace(_loadedPath)
+            && !string.Equals(mapping.LoadedPath, _loadedPath, _pathComparison))
+        {
+            return solution;
+        }
+
+        return mapping.Apply(solution, AnalyzerAssemblyLoader);
+    }
+
+    private IReadOnlyList<AnalyzerReferenceShadowCopier.RewriteResult> CompletePrepare(
+        Solution workspaceSolution,
+        string shadowRoot,
+        AnalyzerShadowPrepareOutcome prepared)
+    {
+        var plan = AnalyzerShadowPublicationPlanner.Evaluate(
+            prepared,
+            AnalyzerAssemblyLoader,
+            restartBanLatched: IsRestartBanLatched());
+        ApplyPublicationPlan(workspaceSolution, shadowRoot, plan, prepared.Results);
+        return LastShadowCopyResults;
+    }
+
+    private AnalyzerExecutionObservation EvaluatePreparedMapping(AnalyzerShadowMapping mapping)
+    {
+        var prepared = new AnalyzerShadowPrepareOutcome(
+            mapping,
+            AnalyzerReferenceShadowCopier.ToRewriteResults(mapping),
+            RefreshSucceeded: mapping.Entries.All(e => !e.StaleGeneration),
+            UsedPreviousMappingAsStale: mapping.Entries.Any(e => e.StaleGeneration),
+            FailureSummary: null);
+        return AnalyzerShadowPublicationPlanner.Evaluate(
+            prepared,
+            AnalyzerAssemblyLoader,
+            restartBanLatched: IsRestartBanLatched()).Gate;
+    }
+
+    private void ApplyPublicationPlan(
+        Solution workspaceSolution,
+        string shadowRoot,
+        AnalyzerShadowPublicationPlan plan,
+        IReadOnlyList<AnalyzerReferenceShadowCopier.RewriteResult> ungatedResults)
+    {
+        LastPublicationPlan = plan;
+        LastExecutionObservation = plan.Gate;
+        LastRefreshStale = !plan.RefreshComplete || plan.StaleCount > 0;
+        LastShadowCopyResults = AnalyzerShadowPublicationPlanner.ToRewriteResults(ungatedResults, plan);
+        ShadowCopyRootDirectory = shadowRoot;
+        AnalyzerShadowMapping = plan.Kind == AnalyzerShadowPublicationKind.Unavailable
+            ? null
+            : plan.Mapping;
+        ShadowCopyAnalyzersEnabled = plan.OverlayEnabled;
+
+        _publicationState = plan.Kind switch
+        {
+            AnalyzerShadowPublicationKind.Allowed => SemanticPublicationState.Allow(plan.Exclusions),
+            AnalyzerShadowPublicationKind.Banned => SemanticPublicationState.Banned(plan.Reason, plan.Exclusions),
+            AnalyzerShadowPublicationKind.Unavailable => SemanticPublicationState.Unavailable(plan.Reason),
+            _ => _publicationState,
+        };
+
+        SetPublishedSolution(workspaceSolution);
+    }
+
+    private bool IsRestartBanLatched()
+    {
+        return _publicationState.IsBanned
+            && (LastExecutionObservation.RequiresRestart
+                || (!string.IsNullOrWhiteSpace(_publicationState.BanReason)
+                    && _publicationState.BanReason.Contains(
+                        "restart",
+                        StringComparison.OrdinalIgnoreCase)));
+    }
+
+    private IReadOnlyList<AnalyzerReferenceShadowCopier.RewriteResult> CompleteFailedPrepare(
+        Solution workspaceSolution,
+        string shadowRoot,
+        string reason)
+    {
+        LastExecutionObservation = new AnalyzerExecutionObservation
+        {
+            Status = IsRestartBanLatched()
+                ? AnalyzerExecutionStatus.RestartRequired
+                : AnalyzerExecutionStatus.LoadFailed,
+            HighestStage = IsRestartBanLatched()
+                ? AnalyzerPreparationStage.Prepared
+                : AnalyzerPreparationStage.LoadFailed,
+            Reason = IsRestartBanLatched()
+                ? (_publicationState.BanReason ?? AnalyzerLoaderContract.RestartRequiredReason)
+                : reason,
+            ProjectName = AnalyzerShadowMapping?.Entries.FirstOrDefault()?.ProjectName,
+            GeneratorName = AnalyzerShadowMapping?.Entries.FirstOrDefault()?.MatchedProjectName,
+            GenerationId = AnalyzerShadowMapping?.Entries.FirstOrDefault()?.GenerationId,
+            Action = IsRestartBanLatched() ? AnalyzerLoaderContract.RestartAction : null,
+        };
+
+        if (IsRestartBanLatched())
+        {
+            LastRefreshStale = true;
+            ShadowCopyRootDirectory = shadowRoot;
+            ShadowCopyAnalyzersEnabled = false;
+            if (LastPublicationPlan is { } previousPlan)
+            {
+                LastPublicationPlan = previousPlan with
+                {
+                    AppliedCount = 0,
+                    OverlayEnabled = false,
+                    RefreshComplete = false,
+                    Kind = AnalyzerShadowPublicationKind.Banned,
+                    Admission = SemanticPublicationAdmission.Banned,
+                    Reason = LastExecutionObservation.Reason,
+                };
+            }
+
+            SetPublishedSolution(workspaceSolution);
+            return LastShadowCopyResults;
+        }
+
+        if (AnalyzerShadowMapping is { HasAnyApplied: true } previous)
+        {
+            var stale = previous.WithStale(reason, AnalyzerReferenceReasonCodes.PreparationFailure);
+            var preservedExclusions = _publicationState.ExcludedReferences;
+            AnalyzerShadowMapping = stale;
+            LastShadowCopyResults = AnalyzerReferenceShadowCopier.ToRewriteResults(stale);
+            LastRefreshStale = true;
+            ShadowCopyAnalyzersEnabled = true;
+            ShadowCopyRootDirectory = shadowRoot;
+            _publicationState = SemanticPublicationState.Allow(preservedExclusions);
+            LastPublicationPlan = new AnalyzerShadowPublicationPlan(
+                AnalyzerShadowPublicationKind.Allowed,
+                SemanticPublicationAdmission.AllowedMapping,
+                stale,
+                preservedExclusions,
+                LastExecutionObservation,
+                OverlayEnabled: true,
+                RefreshComplete: false,
+                PreparedCount: 0,
+                AppliedCount: stale.Entries.Count(e => e.Applied),
+                StaleCount: stale.Entries.Count(e => e.StaleGeneration),
+                BlockedCount: preservedExclusions.Count,
+                Reason: "stale-generation: " + reason);
+            SetPublishedSolution(workspaceSolution);
+            return LastShadowCopyResults;
+        }
+
+        LastShadowCopyResults = Array.Empty<AnalyzerReferenceShadowCopier.RewriteResult>();
+        LastRefreshStale = false;
+        SetFailClosedPublishedSolution(workspaceSolution, reason);
+        return LastShadowCopyResults;
+    }
+
+    private void SetPublishedSolution(Solution workspaceSolution)
+    {
+        if (_publicationState.WithholdsSnapshot)
+        {
+            _solution = null;
+            _lastPublishedWriteContext = CreateVerifiedWriteContext(null, _workspace?.CurrentSolution);
+            return;
+        }
+
+        var overlay = PublishInMemorySolution(workspaceSolution);
+        SetPublishedSnapshot(overlay);
+    }
+
+    private void EnterBannedPublication(Solution workspaceSolution, string reason)
+    {
+        var excluded = SemanticPublicationState.CaptureFromInSolutionReferences(
+            workspaceSolution,
+            AnalyzerProvenanceSnapshot,
+            LoadSessionId);
+        _publicationState = SemanticPublicationState.Banned(reason, excluded);
+    }
+
+    private void EnterUnavailablePublication(string reason)
+    {
+        ShadowCopyAnalyzersEnabled = false;
+        AnalyzerShadowMapping = null;
+        LastShadowCopyResults = Array.Empty<AnalyzerReferenceShadowCopier.RewriteResult>();
+        _publicationState = SemanticPublicationState.Unavailable(reason);
+        _solution = null;
+        _lastPublishedWriteContext = CreateVerifiedWriteContext(null, _workspace?.CurrentSolution);
+        _logger.LogWarning(
+            "Opt-in semantic snapshot withheld: {Reason} capture={CaptureStatus} session={SessionId} cacheHit={CacheHit}",
+            reason,
+            AnalyzerProvenanceSnapshot?.Status.ToString() ?? "missing",
+            LoadSessionId,
+            LastLoadWasCacheHit);
+    }
+
+    private void ApplyCaptureTestSeams()
+    {
+        if (DiscardNextProvenanceSnapshot)
+        {
+            DiscardNextProvenanceSnapshot = false;
+            AnalyzerProvenanceSnapshot = null;
+        }
+
+        if (AssignForeignSessionToNextCapture && AnalyzerProvenanceSnapshot is not null)
+        {
+            AssignForeignSessionToNextCapture = false;
+            AnalyzerProvenanceSnapshot = AnalyzerProvenanceSnapshot with
+            {
+                LoadSessionId = Guid.NewGuid(),
+            };
+        }
+    }
+
+    private void SetFailClosedPublishedSolution(Solution workspaceSolution, string? reason = null)
+    {
+        var unsuitable = AnalyzerProvenanceCaptureGate.TryGetUnsuitableReason(
+            AnalyzerProvenanceSnapshot,
+            LoadSessionId);
+        if (unsuitable is not null)
+        {
+            EnterUnavailablePublication(unsuitable);
+            return;
+        }
+
+        ShadowCopyAnalyzersEnabled = false;
+        EnterBannedPublication(
+            workspaceSolution,
+            reason ?? LastExecutionObservation.Reason ?? "opt-in-publication-banned");
+        LastPublicationPlan = new AnalyzerShadowPublicationPlan(
+            AnalyzerShadowPublicationKind.Banned,
+            SemanticPublicationAdmission.Banned,
+            AnalyzerShadowMapping
+                ?? new AnalyzerShadowMapping(LoadSessionId, _loadedPath, Array.Empty<AnalyzerShadowReferenceEntry>()),
+            _publicationState.ExcludedReferences,
+            LastExecutionObservation,
+            OverlayEnabled: false,
+            RefreshComplete: false,
+            PreparedCount: 0,
+            AppliedCount: 0,
+            StaleCount: 0,
+            BlockedCount: _publicationState.ExcludedReferences.Count,
+            Reason: _publicationState.BanReason);
+        SetPublishedSnapshot(PublishInMemorySolution(workspaceSolution));
+    }
+
+    private void RestoreSafePublishedSnapshotAfterOptInFailure()
+    {
+        if (_workspace is null)
+        {
+            _solution = null;
+            _publicationState = SemanticPublicationState.Unavailable("opt-in-boundary-failed");
+            return;
+        }
+
+        if (_publicationState.AllowsOverlay
+            && AnalyzerShadowMapping is { HasAnyApplied: true })
+        {
+            SetPublishedSolution(_workspace.CurrentSolution);
+            return;
+        }
+
+        var unsuitable = AnalyzerProvenanceCaptureGate.TryGetUnsuitableReason(
+            AnalyzerProvenanceSnapshot,
+            LoadSessionId);
+        if (unsuitable is not null)
+        {
+            EnterUnavailablePublication(unsuitable);
+            return;
+        }
+
+        SetFailClosedPublishedSolution(
+            _workspace.CurrentSolution,
+            LastExecutionObservation.Reason ?? "opt-in-boundary-failed");
+    }
+
+    private void SetPublishedSnapshot(Solution overlay)
+    {
+        _solution = overlay;
+        var context = CreateVerifiedWriteContext(overlay, _workspace?.CurrentSolution);
+        _lastPublishedWriteContext = context;
+        try
+        {
+            _operationContexts.Add(overlay, context);
+        }
+        catch (ArgumentException)
+        {
+        }
+    }
+
+    private WorkspaceWriteOperationContext CreateVerifiedWriteContext(
+        Solution? publishedBase,
+        Solution? rawWorkspace)
+    {
+        return WorkspaceWriteOperationContext.Verified(
+            LoadSessionId,
+            _loadedPath,
+            AnalyzerShadowMapping,
+            publishedBase,
+            rawWorkspace,
+            _rawWorkspaceRevision,
+            ShadowCopyAnalyzersEnabled,
+            _publicationState.Admission,
+            _publicationState.ExcludedReferences);
+    }
+
+    private WorkspaceWriteFreshnessState CurrentWriteFreshness(Solution rawWorkspace)
+    {
+        return new WorkspaceWriteFreshnessState(
+            LoadSessionId,
+            _loadedPath,
+            AnalyzerShadowMapping,
+            ShadowCopyAnalyzersEnabled,
+            _rawWorkspaceRevision,
+            rawWorkspace,
+            _solution,
+            _publicationState.Admission,
+            _publicationState.ExcludedReferences);
+    }
+
+    private void NoteRawWorkspaceRevision()
+    {
+        _rawWorkspaceRevision++;
+    }
+
+    private WorkspaceWriteOperationContext ResolveOperationContext(Solution? oldSolution)
+    {
+        if (oldSolution is not null && _operationContexts.TryGetValue(oldSolution, out var stamped))
+        {
+            return stamped;
+        }
+
+        if (oldSolution is not null
+            && _lastPublishedWriteContext is { IsVerified: true } last
+            && (ReferenceEquals(oldSolution, last.BaseSnapshot)
+                || ReferenceEquals(oldSolution, _solution)))
+        {
+            return last;
+        }
+
+        return WorkspaceWriteOperationContext.Unverified;
+    }
+
+    private WorkspaceWriteResult RememberWrite(WorkspaceWriteResult result)
+    {
+        LastWriteResult = result;
+        return result;
+    }
+
+    private bool TryApplyWorkspaceChanges(Workspace workspace, Solution cleaned)
+    {
+        if (FailNextTryApplyChanges)
+        {
+            FailNextTryApplyChanges = false;
+            _logger.LogWarning("TryApplyChanges injected failure (test seam).");
+            return false;
+        }
+
+        if (!workspace.TryApplyChanges(cleaned))
+        {
+            return false;
+        }
+
+        NoteRawWorkspaceRevision();
+        return true;
+    }
+
+    private static string FormatLazyLoadFailureReport(string path, Exception ex)
+    {
+        if (ex is RoslynMsBuildBuildHostException hostEx)
+        {
+            return hostEx.Message;
+        }
+
+        if (WorkspaceLoadGuidance.IsRoslynMsBuildBuildHostFailure(ex))
+        {
+            return WorkspaceLoadGuidance.FormatRoslynMsBuildBuildHostFailureMessage(path);
+        }
+
+        var sb = new StringBuilder();
+        sb.AppendLine("## Workspace Load Failed");
+        sb.AppendLine();
+        sb.AppendLine($"- **Path:** `{path}`");
+        sb.AppendLine($"- **Source:** `RoslynMcp.jsonc` (lazy load)");
+        sb.AppendLine();
+        sb.AppendLine("### Errors");
+        sb.AppendLine($"- {ex.Message}");
+        sb.Append(MsBuildEnvironmentInfo.FormatMarkdownSection());
+        return sb.ToString();
+    }
+
+    private Solution? GetOrCreateSanitizedPublishedSolution()
+    {
+        var raw = _solution;
+        if (raw is null)
+        {
+            return null;
+        }
+
+        if (ReferenceEquals(_sanitizedPublishedSolutionSource, raw))
+        {
+            return _sanitizedPublishedSolution;
+        }
+
+        var (sanitized, removed) = WorkspaceAnalyzerSanitizer.RemoveUnresolvedAnalyzers(raw);
+        if (removed > 0)
+        {
+            _logger.LogInformation(
+                "Removed {Removed} unresolved analyzer reference(s) from a cached search snapshot (Roslyn 5.9.0 project-checksum crash workaround). Published solution is unchanged.",
+                removed);
+        }
+
+        _sanitizedPublishedSolutionSource = raw;
+        _sanitizedPublishedSolution = sanitized;
+        return sanitized;
     }
 
     /// <summary>
@@ -1502,7 +1515,7 @@ public sealed class SolutionManager
             workspace.CurrentSolution,
             operationContext,
             CurrentWriteFreshness(workspace.CurrentSolution),
-            _analyzerAssemblyLoader,
+            AnalyzerAssemblyLoader,
             baseForDocuments);
         if (!preflight.Accepted || preflight.CleanedCandidate is null)
         {
@@ -1751,53 +1764,6 @@ public sealed class SolutionManager
     }
 
     /// <summary>
-    /// Disposes the active <see cref="MSBuildWorkspace"/> and clears cached solution state so the next
-    /// <see cref="LoadAsync"/> rebuilds from disk (e.g. after an external <c>dotnet build</c>).
-    /// </summary>
-    public async Task ClearWorkspaceAsync(CancellationToken cancellationToken = default)
-    {
-        await _workspaceLock.WaitAsync(cancellationToken);
-        try
-        {
-            StopDiskWatcherUnderLock();
-            _dirtySourcePaths.Clear();
-            _selfWriteUntilTicks.Clear();
-            _missingOnDiskPaths.Clear();
-            _refreshAllDocuments = false;
-            ClearProjectGraphStale();
-            _workspace?.Dispose();
-            _workspace = null;
-            _solution = null;
-            _lastPublishedWriteContext = null;
-            _lastWriteResult = null;
-            NoteRawWorkspaceRevision();
-            _shadowCopyAnalyzersEnabled = false;
-            _shadowCopyRootDirectory = null;
-            _analyzerShadowMapping = null;
-            _analyzerProvenanceSnapshot = null;
-            _loadSessionId = Guid.Empty;
-            _lastRefreshStale = false;
-            _lastExecutionObservation = AnalyzerExecutionObservation.None;
-            _lastPublicationPlan = null;
-            _publicationState = SemanticPublicationState.None;
-            _loadedPath = null;
-            _loadedConfiguration = null;
-            _loadedPlatform = null;
-            _loadedPlatformRaw = null;
-            _loadedTargetFramework = null;
-            _loadedBuildArgs = null;
-            _workspaceLoadSource = WorkspaceLoadSource.None;
-            _lastLazyLoadFailureReport = null;
-            _lastDiagnostics = Array.Empty<WorkspaceDiagnostic>();
-            _logger.LogInformation("Roslyn workspace cleared (MSBuildWorkspace disposed).");
-        }
-        finally
-        {
-            _workspaceLock.Release();
-        }
-    }
-
-    /// <summary>
     /// Loads or returns cached solution. Caller must hold <see cref="_workspaceLock"/>.
     /// Compares only <paramref name="passedConfiguration"/> / platform / TFM that were actually
     /// supplied; loads with the effective (merged) property set.
@@ -1819,9 +1785,9 @@ public sealed class SolutionManager
         if (_workspace is not null
             && MsBuildWorkspaceProperties.MatchesPassedLoadArguments(
                 _loadedPath,
-                _loadedConfiguration,
-                _loadedPlatform,
-                _loadedTargetFramework,
+                LoadedConfiguration,
+                LoadedPlatform,
+                LoadedTargetFramework,
                 fullPath,
                 passedConfiguration,
                 passedPlatform,
@@ -1837,13 +1803,13 @@ public sealed class SolutionManager
             // Same canonical Platform for the workspace; refresh raw spelling only when platform was passed.
             if (passedPlatform is not null)
             {
-                _loadedPlatformRaw = effectivePlatformRaw;
+                LoadedPlatformRaw = effectivePlatformRaw;
             }
 
             await FlushDirtyDocumentsUnderLockAsync(cancellationToken).ConfigureAwait(false);
-            _lastLoadWasCacheHit = true;
-            _lastLoadReopenedGraph = false;
-            _lastPrepareAttempted = false;
+            LastLoadWasCacheHit = true;
+            LastLoadReopenedGraph = false;
+            LastPrepareAttempted = false;
             var cached = _solution ?? _workspace.CurrentSolution;
             LogProcessWorkingSet("workspace_load_cached");
             return cached;
@@ -1854,31 +1820,31 @@ public sealed class SolutionManager
         _workspace = null;
         _solution = null;
         _loadedPath = null;
-        _loadedConfiguration = null;
-        _loadedPlatform = null;
-        _loadedPlatformRaw = null;
-        _loadedTargetFramework = null;
-        _loadedBuildArgs = null;
+        LoadedConfiguration = null;
+        LoadedPlatform = null;
+        LoadedPlatformRaw = null;
+        LoadedTargetFramework = null;
+        LoadedBuildArgs = null;
         _dirtySourcePaths.Clear();
         _selfWriteUntilTicks.Clear();
         _missingOnDiskPaths.Clear();
         _refreshAllDocuments = false;
         ClearProjectGraphStale();
-        _shadowCopyAnalyzersEnabled = false;
-        _shadowCopyRootDirectory = null;
-        _analyzerShadowMapping = null;
-        _analyzerProvenanceSnapshot = null;
+        ShadowCopyAnalyzersEnabled = false;
+        ShadowCopyRootDirectory = null;
+        AnalyzerShadowMapping = null;
+        AnalyzerProvenanceSnapshot = null;
         _lastPublishedWriteContext = null;
-        _lastWriteResult = null;
-        _loadSessionId = Guid.NewGuid();
-        _lastRefreshStale = false;
-        _lastExecutionObservation = AnalyzerExecutionObservation.None;
-        _lastPublicationPlan = null;
+        LastWriteResult = null;
+        LoadSessionId = Guid.NewGuid();
+        LastRefreshStale = false;
+        LastExecutionObservation = AnalyzerExecutionObservation.None;
+        LastPublicationPlan = null;
         _publicationState = SemanticPublicationState.None;
-        _lastLoadWasCacheHit = false;
-        _lastLoadReopenedGraph = true;
-        _lastPrepareAttempted = false;
-        _lastPrepareInjectedFailure = false;
+        LastLoadWasCacheHit = false;
+        LastLoadReopenedGraph = true;
+        LastPrepareAttempted = false;
+        LastPrepareInjectedFailure = false;
         _ = typeof(CSharpFormattingOptions).Assembly.FullName;
         var properties = MsBuildWorkspaceProperties.Create(
             effectiveConfiguration,
@@ -1900,11 +1866,11 @@ public sealed class SolutionManager
         AnalyzerProvenanceSnapshot provenanceSnapshot;
         try
         {
-            _analyzerProvenanceCaptureCount++;
+            AnalyzerProvenanceCaptureCount++;
             provenanceSnapshot = await _analyzerProvenanceCaptureService.OpenAndCaptureAsync(
                     workspace,
                     fullPath,
-                    _loadSessionId,
+                    LoadSessionId,
                     properties,
                     cancellationToken)
                 .ConfigureAwait(false);
@@ -1925,31 +1891,31 @@ public sealed class SolutionManager
         _workspace = workspace;
         NoteRawWorkspaceRevision();
         _loadedPath = fullPath;
-        _analyzerProvenanceSnapshot = provenanceSnapshot;
-        _lastExecutionObservation = AnalyzerExecutionGate.EvaluateInSolutionAnalyzers(
+        AnalyzerProvenanceSnapshot = provenanceSnapshot;
+        LastExecutionObservation = AnalyzerExecutionGate.EvaluateInSolutionAnalyzers(
             workspace.CurrentSolution,
             provenanceSnapshot,
-            _loadSessionId,
-            _analyzerAssemblyLoader);
+            LoadSessionId,
+            AnalyzerAssemblyLoader);
         if (publishLoadedSolution)
         {
             _publicationState = SemanticPublicationState.NoOverlay;
             SetPublishedSolution(workspace.CurrentSolution);
         }
-        _loadedConfiguration = effectiveConfiguration;
-        _loadedPlatform = effectivePlatform;
-        _loadedPlatformRaw = effectivePlatformRaw;
-        _loadedTargetFramework = effectiveTargetFramework;
+        LoadedConfiguration = effectiveConfiguration;
+        LoadedPlatform = effectivePlatform;
+        LoadedPlatformRaw = effectivePlatformRaw;
+        LoadedTargetFramework = effectiveTargetFramework;
         if (applyBuildArgs)
         {
             ApplySessionBuildArgs(effectiveBuildArgs);
         }
         else
         {
-            _loadedBuildArgs = effectiveBuildArgs;
+            LoadedBuildArgs = effectiveBuildArgs;
         }
 
-        _lastDiagnostics = CollectDiagnostics(workspace, capturedDiagnostics);
+        LastDiagnostics = CollectDiagnostics(workspace, capturedDiagnostics);
         StartDiskWatcherUnderLock(
             fullPath,
             workspace.CurrentSolution.Projects.Select(static project => project.FilePath));
@@ -1972,18 +1938,12 @@ public sealed class SolutionManager
             return true;
         }
 
-        return _lastDiagnostics
+        return LastDiagnostics
             .Select(diagnostic => WorkspaceDiagnosticFormatter.Format(
                 diagnostic.Kind.ToString(),
                 diagnostic.Message))
             .Any(WorkspaceDiagnosticFormatter.IsBlockingLoadFailure);
     }
-
-    /// <summary>
-    /// Session CLI extras are not part of the MSBuildWorkspace cache key.
-    /// Always replace so a second <c>load_workspace</c> can change or clear them without reopening the solution.
-    /// </summary>
-    internal void ApplySessionBuildArgs(string? buildArgs) => _loadedBuildArgs = buildArgs;
 
     /// <summary>
     /// Must be called with <see cref="_workspaceLock"/> held.
@@ -2123,66 +2083,6 @@ public sealed class SolutionManager
             started.ElapsedMilliseconds,
             write.Status);
         LogProcessWorkingSet("document_update");
-    }
-
-    /// <summary>
-    /// Directories to watch (and later to search) for a loaded workspace: directory of
-    /// <paramref name="loadedFilePath"/> union directories of <paramref name="projectFilePaths"/>,
-    /// with nested duplicates removed (if A contains B, keep A). Does not invent ancestor
-    /// <c>Directory.Build.props</c> roots and does not LCA-merge (Unix absolute paths stay rooted).
-    /// </summary>
-    internal static IReadOnlyList<string> ComputeWatchRoots(
-        string? loadedFilePath,
-        IEnumerable<string?>? projectFilePaths)
-    {
-        var comparison = OperatingSystem.IsWindows()
-            ? StringComparison.OrdinalIgnoreCase
-            : StringComparison.Ordinal;
-        var comparer = OperatingSystem.IsWindows()
-            ? StringComparer.OrdinalIgnoreCase
-            : StringComparer.Ordinal;
-
-        var directories = new HashSet<string>(comparer);
-        TryAddWatchDirectory(directories, loadedFilePath);
-        if (projectFilePaths is not null)
-        {
-            foreach (var projectFilePath in projectFilePaths)
-            {
-                TryAddWatchDirectory(directories, projectFilePath);
-            }
-        }
-
-        if (directories.Count == 0)
-        {
-            return Array.Empty<string>();
-        }
-
-        var roots = new List<string>();
-        foreach (var directory in directories)
-        {
-            var nested = false;
-            foreach (var other in directories)
-            {
-                if (comparer.Equals(directory, other))
-                {
-                    continue;
-                }
-
-                if (IsStrictSubdirectory(directory, other, comparison))
-                {
-                    nested = true;
-                    break;
-                }
-            }
-
-            if (!nested)
-            {
-                roots.Add(directory);
-            }
-        }
-
-        roots.Sort(comparer);
-        return roots;
     }
 
     private static void TryAddWatchDirectory(HashSet<string> directories, string? filePath)
@@ -2484,4 +2384,70 @@ public sealed class SolutionManager
                 context);
         }
     }
+
+    private static IEnumerable<Assembly> LoadMefAssemblies()
+    {
+        yield return typeof(Workspace).Assembly;
+        yield return typeof(CSharpFormattingOptions).Assembly;
+        yield return typeof(MSBuildWorkspace).Assembly;
+        yield return Assembly.Load(new AssemblyName("Microsoft.CodeAnalysis.Features"));
+        yield return Assembly.Load(new AssemblyName("Microsoft.CodeAnalysis.CSharp.Features"));
+    }
+
+    internal readonly record struct DirtySourceWaitResult(
+        bool Delivered,
+        bool TimedOut,
+        TimeSpan Elapsed,
+        int PendingCount);
+
+    internal const string ProjectGraphFileStaleHint =
+        "> **Note:** A `.csproj` / `.sln` / `Directory.Build.props` changed on disk. Saved `.cs` files are synced; "
+        + "package refs and compile globs may be stale. Call `reset_workspace` then `load_workspace` "
+        + "(or `load_workspace` alone — a stale project graph skips the load cache).";
+
+    internal const string ProjectGraphCompositionStaleHint =
+        "> **Note:** A saved `.cs` file appeared or disappeared outside the loaded workspace snapshot. "
+        + "MSBuild decides membership on reload — the file is not guaranteed to enter the workspace. Call `reset_workspace` then `load_workspace` "
+        + "(or `load_workspace` alone — a stale project graph skips the load cache).";
+
+    /// <summary>
+    /// Working set threshold (bytes) above which a memory warning is emitted.
+    /// </summary>
+    private const long MemoryWarningThresholdBytes = 1500L * 1024 * 1024;
+
+    /// <summary>Ignore FileSystemWatcher events for paths we just wrote (partial-read race).</summary>
+    private const int SelfWriteSuppressMs = 1000;
+
+    /// <summary>
+    /// Explicit MEF host so MSBuildWorkspace discovers the C# language / project loader
+    /// (fixes "language 'C#' is not supported" when using parameterless MSBuildWorkspace.Create()).
+    /// </summary>
+    private static readonly HostServices MsBuildHostServices = MefHostServices.Create(
+        LoadMefAssemblies());
+    private readonly ILogger<SolutionManager> _logger;
+    private readonly AnalyzerProvenanceCaptureService _analyzerProvenanceCaptureService;
+    private readonly SemaphoreSlim _workspaceLock = new(1, 1);
+    private readonly StringComparison _pathComparison =
+        OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+    private readonly StringComparer _pathComparer =
+        OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
+    private readonly ConcurrentDictionary<string, byte> _dirtySourcePaths;
+    private readonly ConcurrentDictionary<string, long> _selfWriteUntilTicks;
+    private readonly List<FileSystemWatcher> _diskWatchers = new();
+    private readonly ConcurrentDictionary<string, byte> _missingOnDiskPaths;
+    private volatile bool _refreshAllDocuments;
+    private volatile bool _projectGraphStale;
+    private volatile bool _projectGraphStaleFromGraphFile;
+    private volatile bool _projectGraphStaleFromComposition;
+    private MSBuildWorkspace? _workspace;
+    private Solution? _solution;
+    private Solution? _sanitizedPublishedSolution;
+    private Solution? _sanitizedPublishedSolutionSource;
+
+    private SemanticPublicationState _publicationState = SemanticPublicationState.None;
+    private readonly ConditionalWeakTable<Solution, WorkspaceWriteOperationContext> _operationContexts = new();
+    private WorkspaceWriteOperationContext? _lastPublishedWriteContext;
+    private long _rawWorkspaceRevision;
+    private string? _loadedPath;
+    private volatile bool _workspaceLoadInProgress;
 }

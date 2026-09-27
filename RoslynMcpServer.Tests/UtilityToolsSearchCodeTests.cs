@@ -1,5 +1,6 @@
 using System.Reflection;
 using Microsoft.Extensions.Logging.Abstractions;
+using RoslynMcpServer.Services;
 using RoslynMcpServer.Tools;
 using Xunit;
 

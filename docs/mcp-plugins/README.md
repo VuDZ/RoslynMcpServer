@@ -18,10 +18,12 @@
   `IServiceProvider`.
 - [`McpRuntimeToolCollection.TryAddMany`](../../Hosting/McpRuntimeToolCollection.cs)
   умеет добавить тулы в живую коллекцию SDK и один раз поднять `Changed`.
-- [`SolutionManager`](../../Services/SolutionManager.cs) публичный:
-  `GetPublishedSolutionAsync`, `FindDocumentAsync`, `ResolvePathAgainstWorkspace`,
-  диск-синк. Рядом уже публичны `CallGraphHelper`, `TestDiscoveryHelper`,
-  `GitChangedFilesHelper`.
+- [`SolutionManager`](../../Services/SolutionManager.cs) публичный, в
+  `RoslynMcpServer.Services`: `GetPublishedSolutionAsync`, `FindDocumentAsync`,
+  `ResolvePathAgainstWorkspace`, диск-синк. Рядом уже публичны `CallGraphHelper`,
+  `TestDiscoveryHelper`, `GitChangedFilesHelper`. `internal`-члены этого типа
+  (оракул последней загрузки и швы `FailNext*`) видны только тестам и
+  lifecycle-хосту через `InternalsVisibleTo`, не сборке плагина.
 - Каталог [`McpToolCatalog`](../../Hosting/McpToolCatalog.cs) — закрытый список
   встроенных имён. Плагинные тулы в него не входят: иначе разъедутся тесты,
   lite/full и help.

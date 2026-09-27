@@ -1,3 +1,4 @@
+using RoslynMcpServer.Services;
 using Xunit;
 
 namespace RoslynMcpServer.Tests;
