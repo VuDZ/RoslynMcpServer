@@ -1,91 +1,62 @@
-﻿using System.Security.Cryptography;
+using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace RoslynMcpServer.Tests.AnalyzerLifecycle;
 
 public enum OutputPathMode
 {
+    /// <summary>
+    /// A repo-level <c>Directory.Build.props</c> redirects the output and turns off the TFM suffix,
+    /// so the analyzer path a consumer restores does not exist until the overlay republishes it.
+    /// </summary>
     RedirectedMissingAnalyzerPath,
+
+    /// <summary>
+    /// SDK defaults: the analyzer path in the consumer exists and is the real build output, which
+    /// the overlay must shadow rather than replace.
+    /// </summary>
     SdkDefaultCorrectPath,
 }
 
+/// <summary>
+/// Generator plus consumer solution used by the lifecycle host tests. The default mode is the SDK
+/// layout; the redirected layout is opt-in for the V1-to-V2 identity cases.
+/// </summary>
 internal sealed class GeneratorConsumerFixture : IDisposable
 {
     public const string MarkerV1 = "V1";
     public const string MarkerV2 = "V2";
-    public const string MarkerA = "A";
-    public const string MarkerB = "B";
-    public const string MarkerForeign = "FOREIGN";
 
-    private GeneratorConsumerFixture(string root)
+    private GeneratorConsumerFixture(string root, OutputPathMode outputPathMode)
     {
         Root = root;
+        OutputPathMode = outputPathMode;
     }
 
     public string Root { get; }
+    public OutputPathMode OutputPathMode { get; }
     public string SolutionPath { get; private set; } = "";
     public string GeneratorProjectPath { get; private set; } = "";
     public string GeneratorSourcePath { get; private set; } = "";
-    public string? SecondGeneratorProjectPath { get; private set; }
-    public string? SecondGeneratorSourcePath { get; private set; }
     public string ConsumerProjectPath { get; private set; } = "";
     public string ConsumerSourcePath { get; private set; } = "";
-    public string? HelperProjectPath { get; private set; }
-    public string? HelperSourcePath { get; private set; }
     public IReadOnlyList<string> ExtraConsumerSourcePaths { get; private set; } = Array.Empty<string>();
-    public string? ForeignDllPath { get; private set; }
-    public string? MissingForeignPath { get; private set; }
     public IReadOnlyDictionary<string, byte[]> ProjectFileBytes { get; private set; } =
         new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
 
     public static GeneratorConsumerFixture Create(
-        OutputPathMode outputPathMode,
+        OutputPathMode outputPathMode = OutputPathMode.SdkDefaultCorrectPath,
         string marker = MarkerV1,
-        int extraConsumers = 0,
-        bool foreignAnalyzer = false,
-        bool missingForeignPath = false,
-        string assemblyName = "Generator",
-        bool privateHelper = false,
-        string helperVersion = "1.0.0.0",
-        bool includeAnalyzerProjectReference = true,
-        bool secondGenerator = false)
+        int extraConsumers = 0)
     {
         var root = Path.Combine(
             Path.GetTempPath(),
             "RoslynMcpServer.Epoch1",
             Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
-        var fixture = new GeneratorConsumerFixture(root);
-        fixture.WriteLayout(
-            outputPathMode,
-            marker,
-            extraConsumers,
-            foreignAnalyzer,
-            missingForeignPath,
-            assemblyName,
-            privateHelper,
-            helperVersion,
-            includeAnalyzerProjectReference,
-            secondGenerator);
-        return fixture;
-    }
-
-    public static GeneratorConsumerFixture CreateTwoGenerators(
-        OutputPathMode outputPathMode,
-        string firstMarker = MarkerV1,
-        string secondMarker = MarkerB)
-    {
-        var fixture = Create(outputPathMode, firstMarker, secondGenerator: true);
-        if (fixture.SecondGeneratorSourcePath is not null)
-        {
-            File.WriteAllText(
-                fixture.SecondGeneratorSourcePath,
-                CreateGeneratorSource(
-                    secondMarker,
-                    generatedTypeName: "GeneratedMarkerB",
-                    generatorClassName: "MarkerGeneratorB"));
-        }
-
+        var fixture = new GeneratorConsumerFixture(root, outputPathMode);
+        fixture.WriteLayout(outputPathMode, marker, extraConsumers);
         return fixture;
     }
 
@@ -94,19 +65,37 @@ internal sealed class GeneratorConsumerFixture : IDisposable
         File.WriteAllText(GeneratorSourcePath, CreateGeneratorSource(marker));
     }
 
-    public void SetSecondGeneratorMarker(string marker)
+    /// <summary>
+    /// Forces the next generator build to produce different bytes. The generator project sets
+    /// <c>Deterministic=true</c>, so the same source always compiles to the same DLL, and neither a
+    /// comment nor a plain rebuild proves anything. The unique token therefore goes into the marker of
+    /// the generated source, which the generator embeds as a constant; its literal uses doubled quotes
+    /// because the generated code lives in a verbatim string.
+    /// </summary>
+    /// <returns>The token the rebuilt DLL embeds.</returns>
+    public string ForceGeneratorOutputChange()
     {
-        if (SecondGeneratorSourcePath is null)
+        var source = File.ReadAllText(GeneratorSourcePath);
+        const string MarkerPrefix = "public const string Version = \"\"";
+        var markerStart = source.IndexOf(MarkerPrefix, StringComparison.Ordinal);
+        if (markerStart < 0)
         {
-            throw new InvalidOperationException("Fixture has no second generator.");
+            throw new InvalidOperationException("generator source has no marker constant: " + GeneratorSourcePath);
         }
 
+        // The literal closes with doubled quotes; the token joins the marker value so the generator
+        // embeds it, which the compiler cannot fold away.
+        var literalEnd = source.IndexOf("\"\";", markerStart, StringComparison.Ordinal);
+        if (literalEnd < 0)
+        {
+            throw new InvalidOperationException("generator marker constant is not terminated: " + GeneratorSourcePath);
+        }
+
+        var token = "rebuild-" + Guid.NewGuid().ToString("N");
         File.WriteAllText(
-            SecondGeneratorSourcePath,
-            CreateGeneratorSource(
-                marker,
-                generatedTypeName: "GeneratedMarkerB",
-                generatorClassName: "MarkerGeneratorB"));
+            GeneratorSourcePath,
+            source.Insert(literalEnd, "." + token));
+        return token;
     }
 
     public void MakeGeneratorMultiTargeted()
@@ -131,12 +120,10 @@ internal sealed class GeneratorConsumerFixture : IDisposable
 
     public string ReadConsumerSource() => File.ReadAllText(ConsumerSourcePath);
 
-    public void WriteConsumerSource(string text) => File.WriteAllText(ConsumerSourcePath, text);
-
     public string WithConsumerComment(string comment)
     {
         var current = ReadConsumerSource();
-        var updated = System.Text.RegularExpressions.Regex.Replace(
+        var updated = Regex.Replace(
             current,
             @"// edit-target.*",
             "// edit-target " + comment);
@@ -151,79 +138,50 @@ internal sealed class GeneratorConsumerFixture : IDisposable
         return updated;
     }
 
+    /// <summary>
+    /// Locates the generator's own build output. The redirected layout switches the TFM suffix off, so
+    /// depending on which <c>Directory.Build.props</c> the evaluation saw, the build lands in
+    /// <c>artifacts</c> or in <c>Generator\bin</c>; the SDK layout keeps the <c>bin\&lt;Configuration&gt;\&lt;tfm&gt;</c>
+    /// shape. The freshest real output wins, and reference assemblies under <c>obj\...\ref</c> are never
+    /// returned: they are rewritten on every compile even when the IL did not change.
+    /// </summary>
     public string? FindGeneratorOutputDll()
     {
-        var artifacts = Path.Combine(Root, "artifacts", "Generator");
-        if (Directory.Exists(artifacts))
+        return Candidates().OrderByDescending(File.GetLastWriteTimeUtc).FirstOrDefault();
+
+        IEnumerable<string> Candidates()
         {
-            var hit = Directory.EnumerateFiles(artifacts, "Generator.dll", SearchOption.AllDirectories).FirstOrDefault();
-            if (hit is not null)
+            if (OutputPathMode == OutputPathMode.RedirectedMissingAnalyzerPath)
             {
-                return hit;
+                var redirected = new[]
+                {
+                    Path.Combine(Root, "artifacts", "Generator.dll"),
+                    Path.Combine(Root, "artifacts", "GeneratorDebug", "Generator.dll"),
+                };
+                foreach (var candidate in redirected.Where(File.Exists))
+                {
+                    yield return candidate;
+                }
+            }
+
+            foreach (var root in new[] { Path.Combine(Root, "artifacts"), Path.Combine(Root, "Generator", "bin") })
+            {
+                if (!Directory.Exists(root))
+                {
+                    continue;
+                }
+
+                foreach (var candidate in Directory.EnumerateFiles(root, "Generator.dll", SearchOption.AllDirectories)
+                             .Where(path => !IsReferenceAssembly(path)))
+                {
+                    yield return candidate;
+                }
             }
         }
 
-        var bin = Path.Combine(Root, "Generator", "bin");
-        if (Directory.Exists(bin))
-        {
-            return Directory.EnumerateFiles(bin, "Generator.dll", SearchOption.AllDirectories).FirstOrDefault();
-        }
-
-        return null;
-    }
-
-    public string? FindSecondGeneratorOutputDll()
-    {
-        var artifacts = Path.Combine(Root, "artifacts", "GeneratorB");
-        if (Directory.Exists(artifacts))
-        {
-            var hit = Directory.EnumerateFiles(artifacts, "GeneratorB.dll", SearchOption.AllDirectories).FirstOrDefault();
-            if (hit is not null)
-            {
-                return hit;
-            }
-        }
-
-        var bin = Path.Combine(Root, "GeneratorB", "bin");
-        if (Directory.Exists(bin))
-        {
-            return Directory.EnumerateFiles(bin, "GeneratorB.dll", SearchOption.AllDirectories).FirstOrDefault();
-        }
-
-        return null;
-    }
-
-    public string? FindHelperOutputDll()
-    {
-        var artifacts = Path.Combine(Root, "artifacts", "Generator.Helpers");
-        if (Directory.Exists(artifacts))
-        {
-            var hit = Directory.EnumerateFiles(artifacts, "Generator.Helpers.dll", SearchOption.AllDirectories)
-                .FirstOrDefault();
-            if (hit is not null)
-            {
-                return hit;
-            }
-        }
-
-        var bin = Path.Combine(Root, "Generator.Helpers", "bin");
-        if (Directory.Exists(bin))
-        {
-            return Directory.EnumerateFiles(bin, "Generator.Helpers.dll", SearchOption.AllDirectories).FirstOrDefault();
-        }
-
-        return null;
-    }
-
-    public IReadOnlyDictionary<string, string> HashProjectFiles()
-    {
-        var hashes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var file in Directory.EnumerateFiles(Root, "*.csproj", SearchOption.AllDirectories))
-        {
-            hashes[file] = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(file)));
-        }
-
-        return hashes;
+        static bool IsReferenceAssembly(string path) =>
+            path.Contains($"{Path.DirectorySeparatorChar}ref{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase)
+            || path.Contains($"{Path.DirectorySeparatorChar}refint{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase);
     }
 
     public static bool ProjectBytesUnchanged(
@@ -263,17 +221,41 @@ internal sealed class GeneratorConsumerFixture : IDisposable
         }
     }
 
-    private void WriteLayout(
-        OutputPathMode outputPathMode,
-        string marker,
-        int extraConsumers,
-        bool foreignAnalyzer,
-        bool missingForeignPath,
-        string assemblyName,
-        bool privateHelper,
-        string helperVersion,
-        bool includeAnalyzerProjectReference,
-        bool secondGenerator)
+    internal static string CreateGeneratorSource(string marker)
+    {
+        var source = """
+            using Microsoft.CodeAnalysis;
+
+            [Generator]
+            public sealed class MarkerGenerator : IIncrementalGenerator
+            {
+                public void Initialize(IncrementalGeneratorInitializationContext context)
+                {
+                    context.RegisterPostInitializationOutput(ctx =>
+                    {
+                        ctx.AddSource("GeneratedMarker.g.cs", @"
+            internal static class GeneratedMarker
+            {
+                public const string Version = ""__MARKER__"";
+            }
+            ");
+                    });
+                }
+            }
+            """;
+        return source.Replace("__MARKER__", marker, StringComparison.Ordinal);
+    }
+
+    internal static string CreateConsumerSource(string classPrefix) =>
+        $$"""
+        internal static class {{classPrefix}}MarkerConsumer
+        {
+            // edit-target
+            public static string GetMarker() => GeneratedMarker.Version;
+        }
+        """;
+
+    private void WriteLayout(OutputPathMode outputPathMode, string marker, int extraConsumers)
     {
         if (outputPathMode == OutputPathMode.RedirectedMissingAnalyzerPath)
         {
@@ -282,7 +264,7 @@ internal sealed class GeneratorConsumerFixture : IDisposable
                 """
                 <Project>
                   <PropertyGroup>
-                    <BaseOutputPath>$(MSBuildThisFileDirectory)artifacts\$(MSBuildProjectName)\</BaseOutputPath>
+                    <BaseOutputPath>$(MSBuildThisFileDirectory)artifacts\$(MSBuildProjectName)</BaseOutputPath>
                     <OutputPath>$(BaseOutputPath)$(Configuration)\</OutputPath>
                     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
                   </PropertyGroup>
@@ -295,7 +277,7 @@ internal sealed class GeneratorConsumerFixture : IDisposable
         GeneratorProjectPath = Path.Combine(generatorDir, "Generator.csproj");
         File.WriteAllText(
             GeneratorProjectPath,
-            $"""
+            """
             <Project Sdk="Microsoft.NET.Sdk">
               <PropertyGroup>
                 <TargetFramework>netstandard2.0</TargetFramework>
@@ -303,60 +285,17 @@ internal sealed class GeneratorConsumerFixture : IDisposable
                 <Nullable>enable</Nullable>
                 <IsRoslynComponent>true</IsRoslynComponent>
                 <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
-                <AssemblyName>{assemblyName}</AssemblyName>
+                <AssemblyName>Generator</AssemblyName>
                 <Version>0.0.0.0</Version>
                 <Deterministic>true</Deterministic>
               </PropertyGroup>
               <ItemGroup>
                 <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" PrivateAssets="all" />
               </ItemGroup>
-              {(privateHelper ? """
-              <ItemGroup>
-                <ProjectReference Include="..\Generator.Helpers\Generator.Helpers.csproj" PrivateAssets="all" />
-              </ItemGroup>
-              """ : "")}
             </Project>
             """);
-        if (privateHelper)
-        {
-            WriteHelperProject(helperVersion);
-        }
-
         GeneratorSourcePath = Path.Combine(generatorDir, "MarkerGenerator.cs");
-        File.WriteAllText(GeneratorSourcePath, CreateGeneratorSource(marker, privateHelper));
-
-        if (secondGenerator)
-        {
-            var secondDir = Path.Combine(Root, "GeneratorB");
-            Directory.CreateDirectory(secondDir);
-            SecondGeneratorProjectPath = Path.Combine(secondDir, "GeneratorB.csproj");
-            File.WriteAllText(
-                SecondGeneratorProjectPath,
-                """
-                <Project Sdk="Microsoft.NET.Sdk">
-                  <PropertyGroup>
-                    <TargetFramework>netstandard2.0</TargetFramework>
-                    <LangVersion>latest</LangVersion>
-                    <Nullable>enable</Nullable>
-                    <IsRoslynComponent>true</IsRoslynComponent>
-                    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
-                    <AssemblyName>GeneratorB</AssemblyName>
-                    <Version>0.0.0.0</Version>
-                    <Deterministic>true</Deterministic>
-                  </PropertyGroup>
-                  <ItemGroup>
-                    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" PrivateAssets="all" />
-                  </ItemGroup>
-                </Project>
-                """);
-            SecondGeneratorSourcePath = Path.Combine(secondDir, "MarkerGeneratorB.cs");
-            File.WriteAllText(
-                SecondGeneratorSourcePath,
-                CreateGeneratorSource(
-                    MarkerB,
-                    generatedTypeName: "GeneratedMarkerB",
-                    generatorClassName: "MarkerGeneratorB"));
-        }
+        File.WriteAllText(GeneratorSourcePath, CreateGeneratorSource(marker));
 
         var consumerNames = new List<string> { "Consumer" };
         for (var i = 1; i <= extraConsumers; i++)
@@ -370,46 +309,6 @@ internal sealed class GeneratorConsumerFixture : IDisposable
             var dir = Path.Combine(Root, name);
             Directory.CreateDirectory(dir);
             var csproj = Path.Combine(dir, name + ".csproj");
-            var analyzerItem = "";
-            if (name == "Consumer" && foreignAnalyzer)
-            {
-                ForeignDllPath = Path.Combine(Root, "external", "Generator.dll");
-                analyzerItem = $"""
-                    <ItemGroup>
-                      <Analyzer Include="{ForeignDllPath}" />
-                    </ItemGroup>
-                    """;
-            }
-            else if (name == "Consumer" && missingForeignPath)
-            {
-                MissingForeignPath = Path.Combine(Root, "missing", "Generator.dll");
-                analyzerItem = $"""
-                    <ItemGroup>
-                      <Analyzer Include="{MissingForeignPath}" />
-                    </ItemGroup>
-                    """;
-            }
-
-            var projectReferenceItem = includeAnalyzerProjectReference
-                ? secondGenerator
-                    ? """
-                      <ItemGroup>
-                        <ProjectReference Include="..\Generator\Generator.csproj"
-                                          OutputItemType="Analyzer"
-                                          ReferenceOutputAssembly="false" />
-                        <ProjectReference Include="..\GeneratorB\GeneratorB.csproj"
-                                          OutputItemType="Analyzer"
-                                          ReferenceOutputAssembly="false" />
-                      </ItemGroup>
-                      """
-                    : """
-                      <ItemGroup>
-                        <ProjectReference Include="..\Generator\Generator.csproj"
-                                          OutputItemType="Analyzer"
-                                          ReferenceOutputAssembly="false" />
-                      </ItemGroup>
-                      """
-                : "";
             File.WriteAllText(
                 csproj,
                 $"""
@@ -420,16 +319,15 @@ internal sealed class GeneratorConsumerFixture : IDisposable
                     <Nullable>enable</Nullable>
                     <AssemblyName>{name}</AssemblyName>
                   </PropertyGroup>
-                  {projectReferenceItem}
-                  {analyzerItem}
+                  <ItemGroup>
+                    <ProjectReference Include="..\Generator\Generator.csproj"
+                                      OutputItemType="Analyzer"
+                                      ReferenceOutputAssembly="false" />
+                  </ItemGroup>
                 </Project>
                 """);
             var source = Path.Combine(dir, "MarkerConsumer.cs");
-            File.WriteAllText(
-                source,
-                CreateConsumerSource(
-                    name,
-                    privateHelper || (missingForeignPath && name == "Consumer")));
+            File.WriteAllText(source, CreateConsumerSource(name));
             if (name == "Consumer")
             {
                 ConsumerProjectPath = csproj;
@@ -444,12 +342,7 @@ internal sealed class GeneratorConsumerFixture : IDisposable
         ExtraConsumerSourcePaths = extraSources;
 
         SolutionPath = Path.Combine(Root, "Repro.sln");
-        File.WriteAllText(SolutionPath, CreateSolution(consumerNames, privateHelper, secondGenerator), Encoding.UTF8);
-
-        if (foreignAnalyzer)
-        {
-            WriteForeignGeneratorProject(MarkerForeign, assemblyName);
-        }
+        File.WriteAllText(SolutionPath, CreateSolution(consumerNames), Encoding.UTF8);
 
         var bytes = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
         foreach (var file in Directory.EnumerateFiles(Root, "*.csproj", SearchOption.AllDirectories))
@@ -460,167 +353,16 @@ internal sealed class GeneratorConsumerFixture : IDisposable
         ProjectFileBytes = bytes;
     }
 
-    private void WriteForeignGeneratorProject(string marker, string assemblyName)
-    {
-        var dir = Path.Combine(Root, "ForeignGenerator");
-        Directory.CreateDirectory(dir);
-        File.WriteAllText(
-            Path.Combine(dir, "ForeignGenerator.csproj"),
-            $"""
-            <Project Sdk="Microsoft.NET.Sdk">
-              <PropertyGroup>
-                <TargetFramework>netstandard2.0</TargetFramework>
-                <LangVersion>latest</LangVersion>
-                <Nullable>enable</Nullable>
-                <IsRoslynComponent>true</IsRoslynComponent>
-                <AssemblyName>{assemblyName}</AssemblyName>
-                <Version>0.0.0.0</Version>
-                <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-                <OutputPath>$(MSBuildThisFileDirectory)..\external\</OutputPath>
-              </PropertyGroup>
-              <ItemGroup>
-                <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" PrivateAssets="all" />
-              </ItemGroup>
-            </Project>
-            """);
-        File.WriteAllText(Path.Combine(dir, "MarkerGenerator.cs"), CreateGeneratorSource(marker));
-        Directory.CreateDirectory(Path.Combine(Root, "external"));
-        ForeignDllPath = Path.Combine(Root, "external", assemblyName + ".dll");
-    }
-
-    private void WriteHelperProject(string helperVersion)
-    {
-        var dir = Path.Combine(Root, "Generator.Helpers");
-        Directory.CreateDirectory(dir);
-        HelperProjectPath = Path.Combine(dir, "Generator.Helpers.csproj");
-        File.WriteAllText(
-            HelperProjectPath,
-            $"""
-            <Project Sdk="Microsoft.NET.Sdk">
-              <PropertyGroup>
-                <TargetFramework>netstandard2.0</TargetFramework>
-                <LangVersion>latest</LangVersion>
-                <Nullable>enable</Nullable>
-                <AssemblyName>Generator.Helpers</AssemblyName>
-                <Version>{helperVersion}</Version>
-                <Deterministic>true</Deterministic>
-              </PropertyGroup>
-            </Project>
-            """);
-        HelperSourcePath = Path.Combine(dir, "HelperInfo.cs");
-        File.WriteAllText(HelperSourcePath, CreateHelperSource(helperVersion));
-    }
-
-    public void SetHelperVersionComment(string comment)
-    {
-        if (HelperSourcePath is null)
-        {
-            throw new InvalidOperationException("Fixture has no helper project.");
-        }
-
-        File.WriteAllText(HelperSourcePath, CreateHelperSource(comment));
-    }
-
-    internal static string CreateHelperSource(string versionOrComment) =>
-        $$"""
-        namespace Generator.Helpers;
-
-        public static class HelperInfo
-        {
-            public static string Name { get; } = "{{versionOrComment}}";
-        }
-        """;
-
-    internal static string CreateGeneratorSource(
-        string marker,
-        bool privateHelper = false,
-        string generatedTypeName = "GeneratedMarker",
-        string generatorClassName = "MarkerGenerator")
-    {
-        var helperUse = privateHelper
-            ? "                    _ = Generator.Helpers.HelperInfo.Name;"
-            : "";
-        var source = """
-            using Microsoft.CodeAnalysis;
-
-            [Generator]
-            public sealed class __CLASS__ : IIncrementalGenerator
-            {
-                public void Initialize(IncrementalGeneratorInitializationContext context)
-                {
-            __HELPER__
-                    context.RegisterPostInitializationOutput(ctx =>
-                    {
-                        ctx.AddSource("__TYPE__.g.cs", @"
-            internal static class __TYPE__
-            {
-                public const string Version = ""__MARKER__"";
-            }
-            ");
-                    });
-                }
-            }
-            """;
-        return source
-            .Replace("__CLASS__", generatorClassName, StringComparison.Ordinal)
-            .Replace("__TYPE__", generatedTypeName, StringComparison.Ordinal)
-            .Replace("__HELPER__", helperUse, StringComparison.Ordinal)
-            .Replace("__MARKER__", marker, StringComparison.Ordinal);
-    }
-
-    internal static string CreateConsumerSource(string classPrefix, bool privateHelper = false) =>
-        privateHelper
-            ? $$"""
-            internal static class {{classPrefix}}MarkerConsumer
-            {
-                // edit-target
-                public static string GetMarker() => "no-generator";
-            }
-            """
-            : $$"""
-            internal static class {{classPrefix}}MarkerConsumer
-            {
-                // edit-target
-                public static string GetMarker() => GeneratedMarker.Version;
-            }
-            """;
-
-    private static string CreateSolution(
-        IReadOnlyList<string> consumerNames,
-        bool includeHelper,
-        bool includeSecondGenerator)
+    private static string CreateSolution(IReadOnlyList<string> consumerNames)
     {
         var sb = new StringBuilder();
         sb.AppendLine("Microsoft Visual Studio Solution File, Format Version 12.00");
         sb.AppendLine("# Visual Studio Version 17");
-        var helperId = "{10101010-1010-1010-1010-101010101010}";
-        if (includeHelper)
-        {
-            sb.AppendLine($"Project(\"{{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}}\") = \"Generator.Helpers\", \"Generator.Helpers\\Generator.Helpers.csproj\", \"{helperId}\"");
-            sb.AppendLine("EndProject");
-        }
-
         var generatorId = "{11111111-1111-1111-1111-111111111111}";
         sb.AppendLine($"Project(\"{{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}}\") = \"Generator\", \"Generator\\Generator.csproj\", \"{generatorId}\"");
         sb.AppendLine("EndProject");
-        var secondGeneratorId = "{11111111-1111-1111-1111-111111111112}";
-        if (includeSecondGenerator)
-        {
-            sb.AppendLine($"Project(\"{{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}}\") = \"GeneratorB\", \"GeneratorB\\GeneratorB.csproj\", \"{secondGeneratorId}\"");
-            sb.AppendLine("EndProject");
-        }
 
-        var ids = new List<string>();
-        if (includeHelper)
-        {
-            ids.Add(helperId);
-        }
-
-        ids.Add(generatorId);
-        if (includeSecondGenerator)
-        {
-            ids.Add(secondGeneratorId);
-        }
+        var ids = new List<string> { generatorId };
         for (var i = 0; i < consumerNames.Count; i++)
         {
             var id = "{22222222-2222-2222-2222-" + (i + 1).ToString("000000000000") + "}";

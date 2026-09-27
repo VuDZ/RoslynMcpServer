@@ -24,18 +24,10 @@ jobs:
           - name: unit
             timeout: 20
             filter: Category!=AnalyzerLifecycle
-          - name: lifecycle-epoch1
-            timeout: 45
-            filter: Category=AnalyzerLifecycle&FullyQualifiedName~Epoch1
-          - name: lifecycle-v3
-            timeout: 45
-            filter: Category=AnalyzerLifecycle&FullyQualifiedName~V3
-          - name: lifecycle-epoch4-5
-            timeout: 45
-            filter: Category=AnalyzerLifecycle&(FullyQualifiedName~Epoch4|FullyQualifiedName~Epoch5)
-          - name: lifecycle-rest
-            timeout: 45
-            filter: Category=AnalyzerLifecycle&FullyQualifiedName!~Epoch1&FullyQualifiedName!~V3&FullyQualifiedName!~Epoch4&FullyQualifiedName!~Epoch5
+          - name: lifecycle
+            timeout: 20
+            filter: Category=AnalyzerLifecycle
+            lifecycleOptIn: '1'
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -54,11 +46,14 @@ jobs:
       - name: Restore
         run: dotnet restore RoslynMcpServer.sln
 
+      # ROSLYN_MCP_ANALYZER_LIFECYCLE is the suite's own opt-in gate: it is unset for `unit` and set
+      # for `lifecycle` only. The host tests skip without it, and the skip then fails this job.
       - name: Test
         shell: pwsh
         env:
           SHARD: ${{ matrix.name }}
           FILTER: ${{ matrix.filter }}
+          ROSLYN_MCP_ANALYZER_LIFECYCLE: ${{ matrix.lifecycleOptIn }}
         run: |
           dotnet test RoslynMcpServer.sln `
             -c Release `

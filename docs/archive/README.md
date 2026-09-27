@@ -6,7 +6,7 @@
 |---|---|
 | [compact-tools/](compact-tools/README.md) | Эпохи каталога MCP tools; shipped v1.2.0. Текущие числа — в корневом README и `list_tool_groups` |
 | [analyzer-shadow-copy/](analyzer-shadow-copy/README.md) | Почему появился overlay (v1.3.3–v1.3.5) |
-| [analyzer-shadow-copy-improvements/](analyzer-shadow-copy-improvements/README.md) | v2/v3, U-ARB, приёмки. Runtime — [ARCHITECTURE](../ARCHITECTURE.md) |
+| [analyzer-shadow-copy-improvements/](analyzer-shadow-copy-improvements/README.md) | v2/v3, U-ARB, приёмки. Эпоха 7 (урезание lifecycle-набора) выполнена, приёмка принята. Runtime — [ARCHITECTURE](../ARCHITECTURE.md) |
 | [mcp-build-progress-notifications/](mcp-build-progress-notifications/README.md) | S1–S4 shipped v1.3.25–v1.3.27. Runtime — [ARCHITECTURE](../ARCHITECTURE.md), README v1.3.25–v1.3.27 |
 | [disk-sync-csproj-mutation/](disk-sync-csproj-mutation/README.md) | Disk-sync `AddDocument` → NETSDK1022. Shipped v1.3.30, I-5 v1.3.31. Runtime — [ARCHITECTURE](../ARCHITECTURE.md), README v1.3.30–v1.3.31 |
 | [fork-simplification-comparison/](fork-simplification-comparison/README.md) | Перенос идей из `VladD2@simplification`. Shipped v1.3.33–v1.4.3. Не ship: 7b, 9, навигация S4/S5. Runtime — корневой README |

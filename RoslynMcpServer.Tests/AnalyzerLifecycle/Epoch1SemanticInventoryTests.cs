@@ -1,4 +1,4 @@
-﻿using System.Text.RegularExpressions;
+using System.Text.RegularExpressions;
 using Xunit;
 
 namespace RoslynMcpServer.Tests.AnalyzerLifecycle;
@@ -7,8 +7,8 @@ namespace RoslynMcpServer.Tests.AnalyzerLifecycle;
 /// E1-S4 inventory of semantic entry points. New callers of GetCurrentSolution /
 /// FindDocumentAsync / GetPublishedSolutionAfterDiskSyncAsync / workspace.CurrentSolution
 /// compilation must be classified here; getter callers stay in the contract.
+/// Source-only: no MSBuild host, so it runs in the unit job.
 /// </summary>
-[Trait("Category", "AnalyzerLifecycle")]
 public sealed class Epoch1SemanticInventoryTests
 {
     private static readonly (string File, string Kind, string Notes)[] Expected =

@@ -1,9 +1,13 @@
-﻿using RoslynMcpServer.LifecycleTestHost;
+using RoslynMcpServer.LifecycleTestHost;
 using Xunit;
 
 namespace RoslynMcpServer.Tests.AnalyzerLifecycle;
 
-internal static class Epoch1HostOps
+/// <summary>
+/// Host operations shared by the lifecycle suite: build, load, marker oracle, and the
+/// forced-rebuild check.
+/// </summary>
+internal static class LifecycleHostOps
 {
     public static async Task<HostResponse> BuildAsync(
         LifecycleHostClient host,
@@ -79,6 +83,10 @@ internal static class Epoch1HostOps
         return oracle;
     }
 
+    /// <summary>
+    /// Asserts that the identity gate refuses to execute either generator version: the refresh needs
+    /// a process restart, and the oracle must not observe a stale or a new marker.
+    /// </summary>
     public static void AssertRestartRequired(HostResponse loadOrInspect, HostResponse? oracle = null)
     {
         var execution = loadOrInspect.Execution ?? oracle?.Execution;
@@ -99,8 +107,6 @@ internal static class Epoch1HostOps
                 "Stale or new marker must be absent. marker=" + oracle.Marker);
             Assert.NotEqual(GeneratorConsumerFixture.MarkerV1, oracle.Marker);
             Assert.NotEqual(GeneratorConsumerFixture.MarkerV2, oracle.Marker);
-            Assert.NotEqual(GeneratorConsumerFixture.MarkerA, oracle.Marker);
-            Assert.NotEqual(GeneratorConsumerFixture.MarkerB, oracle.Marker);
         }
     }
 
@@ -116,32 +122,37 @@ internal static class Epoch1HostOps
             "Temporary <Analyzer Include> present: " + string.Join("; ", snapshot.TemporaryAnalyzerIncludes ?? Array.Empty<string>()));
     }
 
+    /// <summary>
+    /// Changes the generated code, rebuilds without incrementality, and asserts the published build
+    /// output really changed, so a stale DLL cannot pass a later marker check by accident.
+    /// </summary>
     public static async Task<(string Dll, string Before, string After)> AssertForcedGeneratorRebuildWritesBytesAsync(
         LifecycleHostClient host,
         GeneratorConsumerFixture fixture,
         CancellationToken cancellationToken = default)
     {
         var dll = fixture.FindGeneratorOutputDll();
-        Assert.NotNull(dll);
+        Assert.True(dll is not null, "generator output missing under " + fixture.Root);
         var before = await host.SendAsync(new HostCommand { Op = "hashFile", Path = dll }, cancellationToken)
             .ConfigureAwait(false);
         Assert.False(string.IsNullOrWhiteSpace(before.FileSha256));
 
-        File.AppendAllText(fixture.GeneratorSourcePath, Environment.NewLine + "// rebuild-bump " + Guid.NewGuid().ToString("N"));
+        var token = fixture.ForceGeneratorOutputChange();
         await BuildAsync(host, fixture.GeneratorProjectPath, noIncremental: true, cancellationToken).ConfigureAwait(false);
 
-        if (!File.Exists(dll))
-        {
-            dll = fixture.FindGeneratorOutputDll();
-        }
-
-        Assert.False(string.IsNullOrWhiteSpace(dll) || !File.Exists(dll), "generator output missing after forced rebuild");
-        var after = await host.SendAsync(new HostCommand { Op = "hashFile", Path = dll }, cancellationToken)
+        // The redirect can move the output between builds, so re-resolve the path instead of reusing
+        // the one hashed before the rebuild.
+        var rebuilt = fixture.FindGeneratorOutputDll();
+        Assert.True(
+            !string.IsNullOrWhiteSpace(rebuilt) && File.Exists(rebuilt),
+            "generator output missing after forced rebuild under " + fixture.Root);
+        var after = await host.SendAsync(new HostCommand { Op = "hashFile", Path = rebuilt }, cancellationToken)
             .ConfigureAwait(false);
         Assert.False(
             string.IsNullOrWhiteSpace(after.FileSha256),
-            "hashFile failed after forced rebuild: " + after.Error + " path=" + dll);
+            "hashFile failed after forced rebuild: " + after.Error + " path=" + rebuilt);
         Assert.NotEqual(before.FileSha256, after.FileSha256);
-        return (dll!, before.FileSha256!, after.FileSha256!);
+        Assert.Contains(token, File.ReadAllText(fixture.GeneratorSourcePath), StringComparison.Ordinal);
+        return (rebuilt!, before.FileSha256!, after.FileSha256!);
     }
 }

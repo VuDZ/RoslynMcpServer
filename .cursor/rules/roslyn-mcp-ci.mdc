@@ -1,16 +1,15 @@
 ---
-description: GitHub Actions test shards; do not serialize the full suite again
+description: GitHub Actions test jobs; do not serialize the full suite again
 alwaysApply: true
 ---
 
-# CI test shards (this repo)
+# CI test jobs (this repo)
 
 Canon: [`.github/workflows/test-suite.yml`](../../.github/workflows/test-suite.yml).
 `ci.yml` and `release.yml` **call** that workflow. Do not copy a second `dotnet test` matrix.
 
 The repo is **public** — GitHub-hosted minutes are not the limit (~20 concurrent jobs are).
 Do **not** fold CI back into one sequential `dotnet test` on the whole `.sln` to “save runners”.
-Wall clock on one Windows job was ~14 minutes because AnalyzerLifecycle is serialized.
 
 ## What may not run in one testhost
 
@@ -19,25 +18,25 @@ Wall clock on one Windows job was ~14 minutes because AnalyzerLifecycle is seria
 xUnit threads will race. Unit tests (`Category!=AnalyzerLifecycle`) already parallelize
 inside the testhost.
 
-Speedup is **separate GitHub jobs**, not `MaxParallelThreads` on that collection.
-
 ## Partition contract
 
-Union of filters must be every discovered test; shards must not overlap.
+Union of filters must be every discovered test; the two jobs must not overlap.
 
-| Job | Filter |
-|---|---|
-| `unit` | `Category!=AnalyzerLifecycle` |
-| `lifecycle-epoch1` | `Category=AnalyzerLifecycle&FullyQualifiedName~Epoch1` |
-| `lifecycle-v3` | `Category=AnalyzerLifecycle&FullyQualifiedName~V3` |
-| `lifecycle-epoch4-5` | `Category=AnalyzerLifecycle&(FullyQualifiedName~Epoch4\|FullyQualifiedName~Epoch5)` |
-| `lifecycle-rest` | `Category=AnalyzerLifecycle` and **not** Epoch1/V3/Epoch4/Epoch5 |
+| Job | Filter | `ROSLYN_MCP_ANALYZER_LIFECYCLE` |
+|---|---|---|
+| `unit` | `Category!=AnalyzerLifecycle` | unset |
+| `lifecycle` | `Category=AnalyzerLifecycle` | `1` |
 
-A new AnalyzerLifecycle class without those name needles **must** land in `lifecycle-rest`.
-Do not add a named shard that leaves rest empty without `--filter` proof. Do not drop the rest shard.
+`AnalyzerLifecycleHostTests` is the **only** class carrying `Category=AnalyzerLifecycle`
+(thirteen host methods). `Epoch1SemanticInventoryTests` is source-only, carries no trait, and
+runs in `unit`. Do not add named per-epoch shards back, and do not leave an empty named shard.
 
-`fail-fast: false`. Skip (`AnalyzerLifecycleFact` when the host cannot start) is a **job failure**
-(`.github/scripts/Assert-NoSkippedTests.ps1`), not a green CI.
+`AnalyzerLifecycleFactAttribute` / `AnalyzerLifecycleTheoryAttribute` read the variable **before**
+the host probe: anything other than `1` skips without starting an MSBuild host. MCP tools never set
+it, so an agent must not pick these methods through `run_specific_test` — the run would skip.
+
+`fail-fast: false`. Skip is a **job failure** (`.github/scripts/Assert-NoSkippedTests.ps1`), not a
+green CI. Never weaken that script.
 
 Pass `--filter` as a quoted env value (`"$env:FILTER"`). Bare `&` in PowerShell is the call operator.
 
