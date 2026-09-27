@@ -112,7 +112,7 @@ public sealed class UtilityTools
     }
 
     [McpServerTool(Name = "get_changed_files", Title = "Get changed files (git)")]
-    [Description("Lists git changed and untracked files. Executes git. Does not return diffs.")]
+    [Description("Lists git changed and untracked files. Executes git (180s, plus up to 3s to stop the process). Does not return diffs.")]
     public async Task<string> GetChangedFiles(
         [Description("Path to a .sln/.slnx/.csproj or repo directory. Omit to use loaded workspace or current directory.")]
         string? workspacePath = null,

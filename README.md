@@ -174,11 +174,16 @@ Portable OpenCode examples: [`opencode.json.sample`](opencode.json.sample) (`ros
 
 MCP `tools/list` stays JSON + JSON Schema. Markdown is for JIT help and diagnostics.
 
-**Client compatibility:** do not assume the host refreshes tools after `tools/list_changed`. If a newly enabled tool is missing from the client's catalog, restart with `ROSLYN_MCP_TOOL_GROUPS=<group>` (and `ROSLYN_MCP_TOOL_PROFILE=lite`). Measured minified `tools/list` (UTF-8): full **54 / 45,093**; lite **15** (byte size pending remeasure after this demotion).
+**Client compatibility:** do not assume the host refreshes tools after `tools/list_changed`. If a newly enabled tool is missing from the client's catalog, restart with `ROSLYN_MCP_TOOL_GROUPS=<group>` (and `ROSLYN_MCP_TOOL_PROFILE=lite`). Measured minified `tools/list` (UTF-8): full **54 / 45,135**; lite **15 / 17,491**.
 
 ## Agent tools by version
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
+
+### v1.4.17
+
+- **`get_changed_files`** — `git status` reads stdout and stderr together and stops the process if that does not finish. The budget is 180s for the run plus up to 3s to stop it, on Windows, Linux, and macOS. A client that cancels sooner still cancels; the server limit is the backstop when the client waits longer.
+- **Catalog size** — full 54 tools / 45,135 bytes; lite 15 / 17,491. The increase is the longer `get_changed_files` description.
 
 ### v1.4.16
 
@@ -1509,11 +1514,11 @@ cd D:\Devel\YourApp
 | `runtime` | `run`, список тестов, сырой `dotnet` | 3 |
 | `operations` | логи, scratchpad, stop | 4 |
 
-`list_tool_groups` / `get_tool_help` / `enable_tool_group` — Markdown-справка и runtime-включение. `tools/list` остаётся JSON Schema. Если клиент не обновляет список после `tools/list_changed`, перезапустите с `ROSLYN_MCP_TOOL_GROUPS=<group>`. Замеры minified UTF-8: full **54 / 45 093**; lite **15** (байты lite — после повторного замера).
+`list_tool_groups` / `get_tool_help` / `enable_tool_group` — Markdown-справка и runtime-включение. `tools/list` остаётся JSON Schema. Если клиент не обновляет список после `tools/list_changed`, перезапустите с `ROSLYN_MCP_TOOL_GROUPS=<group>`. Замеры minified UTF-8: full **54 / 45 135**; lite **15 / 17 491**.
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.4.16). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.4.17). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 

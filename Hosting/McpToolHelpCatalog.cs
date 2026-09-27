@@ -142,7 +142,8 @@ public static class McpToolHelpCatalog
             },
             ["get_changed_files"] = new()
             {
-                Workflow = "Lists git changed/untracked files. Does not return diffs — use host git tools for patches.",
+                Workflow = "Lists git changed/untracked files. git status is limited to 180s plus up to 3s to stop the process, on every OS. Does not return diffs — use host git tools for patches.",
+                Pitfalls = "A client timeout shorter than 180s cancels first. The server limit is the backstop when the client waits longer.",
                 RelatedTools = ["run_specific_test"],
             },
             ["get_file_content"] = new()
