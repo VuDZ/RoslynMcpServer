@@ -17,7 +17,7 @@
 | Workspace load cache | [workspace-load-cache/](workspace-load-cache/README.md) | post-arbitration spec, не в runtime |
 | MCP tool surface evolution | [mcp-tool-surface-evolution/](mcp-tool-surface-evolution/README.md) | post-arbitration spec v2; реализация не начата |
 | GitHub binary releases | [github-releases/](github-releases/README.md) | O-01 закрыт; CI + release workflow есть; smoke дистрибутива и O-02/O-03 открыты |
-| Плагины MCP | [mcp-plugins/](mcp-plugins/README.md) | эпохи 1–7 написаны, код не начат; руководство — [authoring.md](mcp-plugins/authoring.md) |
+| Плагины MCP | [mcp-plugins/v2/](mcp-plugins/v2/README.md) | post-arbitration spec v2, код не начат; руководство — [authoring.md](mcp-plugins/v2/authoring.md). Process и v1 — [mcp-plugins/_archive/](mcp-plugins/_archive/README.md) |
 
 ## Contract
 
