@@ -4,6 +4,7 @@ using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.FindSymbols;
 using Microsoft.CodeAnalysis.Text;
 using RoslynMcpServer.Services;
+using RoslynMcpServer.Tests.SourceStructure;
 using Xunit;
 
 namespace RoslynMcpServer.Tests;
@@ -19,6 +20,9 @@ namespace RoslynMcpServer.Tests;
 public sealed class WorkspaceAnalyzerSanitizerTests
 {
     private const string UnresolvedAnalyzerPath = @"C:\missing\Analyzers\SomeCustomAnalyzer.dll";
+
+    private const string SolutionManagerNamespace = "RoslynMcpServer.Services";
+    private const string SolutionManagerType = "SolutionManager";
 
     [Fact]
     public async Task FindDerivedClasses_throws_on_unresolved_analyzer_and_works_after_sanitization()
@@ -39,65 +43,30 @@ public sealed class WorkspaceAnalyzerSanitizerTests
         Assert.Contains(derived, t => t.Name == "Derived");
     }
 
+    /// <summary>
+    /// Covers <c>GetPublishedSolutionAfterDiskSyncAsync</c>: the raw entry returns <c>_solution</c> and
+    /// never reaches the sanitizer or the publication of a new snapshot.
+    /// </summary>
     [Fact]
     public void GetPublishedSolutionAfterDiskSyncAsync_still_returns_raw_published_snapshot()
     {
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "RoslynMcpServer.csproj")))
-        {
-            dir = dir.Parent;
-        }
+        var violations = SanitizedEntryChecks.VerifyRawPublishedEntry(ReadSolutionManagerTarget());
 
-        Assert.NotNull(dir);
-        var source = File.ReadAllText(Path.Combine(dir.FullName, "Services", "SolutionManager.cs"));
-        var start = source.IndexOf(
-            "public async Task<Solution?> GetPublishedSolutionAfterDiskSyncAsync",
-            StringComparison.Ordinal);
-        var next = source.IndexOf(
-            "public async Task<Solution?> GetSanitizedPublishedSolutionAsync",
-            StringComparison.Ordinal);
-        Assert.True(start >= 0 && next > start);
-        var body = source[start..next];
-        Assert.Contains("return _solution;", body, StringComparison.Ordinal);
-        Assert.DoesNotContain("GetOrCreateSanitizedPublishedSolution", body, StringComparison.Ordinal);
-        Assert.DoesNotContain("RemoveUnresolvedAnalyzers", body, StringComparison.Ordinal);
-        Assert.DoesNotContain("SetPublishedSolution", body, StringComparison.Ordinal);
+        Assert.Empty(violations);
     }
 
+    /// <summary>
+    /// Covers both sanitized entries. <c>GetSanitizedPublishedSolutionAsync</c> calls the private helper
+    /// and never the public synchronous entry; <c>GetSanitizedPublishedSolution</c> takes
+    /// <c>_workspaceLock</c>, reads the snapshot inside the protected <c>try</c>, releases the lock in its
+    /// <c>finally</c> and has no sync-over-async member access.
+    /// </summary>
     [Fact]
     public void GetSanitizedPublishedSolution_takes_workspace_lock_and_async_does_not_call_sync()
     {
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "RoslynMcpServer.csproj")))
-        {
-            dir = dir.Parent;
-        }
+        var violations = SanitizedEntryChecks.VerifySanitizedEntries(ReadSolutionManagerTarget());
 
-        Assert.NotNull(dir);
-        var source = File.ReadAllText(Path.Combine(dir.FullName, "Services", "SolutionManager.cs"));
-
-        var asyncStart = source.IndexOf(
-            "public async Task<Solution?> GetSanitizedPublishedSolutionAsync",
-            StringComparison.Ordinal);
-        var syncStart = source.IndexOf(
-            "public Solution? GetSanitizedPublishedSolution()",
-            StringComparison.Ordinal);
-        var createStart = source.IndexOf(
-            "private Solution? GetOrCreateSanitizedPublishedSolution()",
-            StringComparison.Ordinal);
-        Assert.True(asyncStart >= 0 && syncStart > asyncStart && createStart > syncStart);
-
-        var asyncBody = source[asyncStart..syncStart];
-        Assert.Contains("GetOrCreateSanitizedPublishedSolution()", asyncBody, StringComparison.Ordinal);
-        Assert.DoesNotContain("return GetSanitizedPublishedSolution()", asyncBody, StringComparison.Ordinal);
-        Assert.DoesNotContain("GetSanitizedPublishedSolution();", asyncBody, StringComparison.Ordinal);
-
-        var syncBody = source[syncStart..createStart];
-        Assert.Contains("_workspaceLock.Wait(", syncBody, StringComparison.Ordinal);
-        Assert.Contains("_workspaceLock.Release()", syncBody, StringComparison.Ordinal);
-        Assert.Contains("GetOrCreateSanitizedPublishedSolution()", syncBody, StringComparison.Ordinal);
-        Assert.DoesNotContain(".Result", syncBody, StringComparison.Ordinal);
-        Assert.DoesNotContain("GetAwaiter()", syncBody, StringComparison.Ordinal);
+        Assert.Empty(violations);
     }
 
     [Fact]
@@ -182,6 +151,27 @@ public sealed class WorkspaceAnalyzerSanitizerTests
             () => WorkspaceAnalyzerSanitizer.WithSanitizedRetryAsync(search, () => solution, solution, CancellationToken.None));
 
         Assert.Same(original, ex);
+    }
+
+    /// <summary>
+    /// Reads <c>Services/SolutionManager.cs</c> from the working copy: the check covers the source
+    /// shape, not the compiled assembly.
+    /// </summary>
+    private static SourceTarget ReadSolutionManagerTarget()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "RoslynMcpServer.csproj")))
+        {
+            dir = dir.Parent;
+        }
+
+        Assert.NotNull(dir);
+        var sourcePath = Path.Combine(dir.FullName, "Services", "SolutionManager.cs");
+        return new SourceTarget(
+            File.ReadAllText(sourcePath),
+            sourcePath,
+            SolutionManagerNamespace,
+            SolutionManagerType);
     }
 
     /// <summary>

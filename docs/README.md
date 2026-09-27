@@ -18,6 +18,7 @@
 | MCP tool surface evolution | [mcp-tool-surface-evolution/](mcp-tool-surface-evolution/README.md) | post-arbitration spec v2; реализация не начата |
 | GitHub binary releases | [github-releases/](github-releases/README.md) | O-01 закрыт; CI + release workflow есть; smoke дистрибутива и O-02/O-03 открыты |
 | Плагины MCP | [mcp-plugins/v2/](mcp-plugins/v2/README.md) | post-arbitration spec v2, код не начат; руководство — [authoring.md](mcp-plugins/v2/authoring.md). Process и v1 — [mcp-plugins/_archive/](mcp-plugins/_archive/README.md) |
+| Улучшение тестов | [test-improvements/](test-improvements/README.md) | эпоха 1 выполнена, план и отчёт в [архиве](test-improvements/_archive/README.md); далее эпоха 2 |
 
 ## Contract
 
