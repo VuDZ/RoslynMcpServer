@@ -37,16 +37,19 @@ var builder = Host.CreateApplicationBuilder(args);
 builder.Logging.ClearProviders();
 
 var logPath = Path.Combine(AppContext.BaseDirectory, "logs", "mcp-.log");
+var sessionId = HarnessSessionId.CreateForCurrentProcess();
 builder.Services.AddSerilog((_, configuration) =>
 {
     configuration
         .MinimumLevel.Information()
         .Enrich.FromLogContext()
+        .Enrich.WithProperty(HarnessSessionId.PropertyName, sessionId)
         .WriteTo.File(
             path: logPath,
             rollingInterval: RollingInterval.Day,
             retainedFileCountLimit: 14,
-            shared: true);
+            shared: true,
+            outputTemplate: HarnessSessionId.LogOutputTemplate);
 });
 
 // Optional RoslynMcp.jsonc (exe directory, then process cwd). Read after ROSLYN_MCP_WORKSPACE
@@ -87,7 +90,7 @@ catch (InvalidOperationException ex)
 var host = builder.Build();
 var activation = host.Services.GetRequiredService<McpToolActivationService>();
 Console.Error.WriteLine(
-    $"[RoslynMcp] tool profile={activation.Profile}; startup groups={activation.FormatStartupGroupsDisplay()}; dynamic groups={activation.FormatDynamicGroupsDisplay()}; registered tools={activation.CurrentToolCount}");
+    $"[RoslynMcp] session={sessionId}; tool profile={activation.Profile}; startup groups={activation.FormatStartupGroupsDisplay()}; dynamic groups={activation.FormatDynamicGroupsDisplay()}; registered tools={activation.CurrentToolCount}");
 
 await host.RunAsync();
 

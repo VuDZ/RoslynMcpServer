@@ -180,6 +180,10 @@ MCP `tools/list` stays JSON + JSON Schema. Markdown is for JIT help and diagnost
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.4.16
+
+- **Log lines name the calling harness** — every Serilog line carries a short session token after the level (`[cursor-k7m2]`, `[dsh-p9qx]`, `[opencode-4mht]`). The name is taken from the immediate parent process (`Cursor.exe`, `claude`, `codex`, `opencode`). When that parent is `node` or `nodejs`, the name comes from a package or directory in its command line (`@deepseek-ai/dsh`, Claude Code, Codex, OpenCode, `cursor-agent`). The command line is not written to the log. A 4-character suffix separates two processes of the same harness. An unrecognized parent is `cli`. Stderr startup line includes `session=`.
+
 ### v1.4.15
 
 - **Edits keep the file's BOM state** — `update_file_content`, `apply_patch`, AST edits, and the disk-sync/watcher write path no longer add a UTF-8 BOM to files that had none, and no longer strip a BOM that existed. `MSBuildWorkspace` rewrites a changed document during `TryApplyChanges` with `SourceText.Encoding`, and `Encoding.UTF8` carries a BOM preamble; the complementary `File.WriteAllText` without an encoding stripped one. Both writes of one operation now resolve the encoding from the file (existing document → candidate text → on-disk BOM), falling back to BOM-free UTF-8 only for a new file. No `RoslynMcp.jsonc` key; the previous behavior was a bug, not a setting.
@@ -1509,7 +1513,7 @@ cd D:\Devel\YourApp
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.4.14). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.4.16). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 
