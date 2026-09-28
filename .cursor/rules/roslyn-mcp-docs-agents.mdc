@@ -45,3 +45,5 @@ Epoch plans and review packages: see `roslyn-mcp-docs-lifecycle.mdc` (start-of-w
 ## Engineering style (this repo)
 
 Base Truth: minimal diffs; no wholesale rewrites. Async I/O; no `.Result`/`.Wait()`. Null-check references. Tests: xUnit (+ Moq when mocking). Prefer Options/`IOptions` for config if adding settings.
+
+English for text that lives in code: comments, XML docs, log/diagnostic messages, exception messages, test failure text and asserted fragments. Localized external output kept as test data stays verbatim. Canon: `docs/code-style.md`, §Language. Project docs (`docs/`, README, AGENTS, these rules) keep their current language.

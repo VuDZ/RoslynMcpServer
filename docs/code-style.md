@@ -42,6 +42,18 @@ Arrange members in this order:
 - Give async methods an `Async` suffix, and put `CancellationToken` last. Exceptions are allowed for names fixed by an external contract. When renaming, keep the external names of MCP tools.
 - Read the applicable `.editorconfig` files if they exist, and follow their settings. Do not assume the standard C# formatter will provide meaningful line breaks or enforce the line-length guide.
 
+### Language
+
+- Write everything that lives in code in English: comments, XML documentation, log and diagnostic
+  messages, exception messages, and test failure text — including the fragments that tests assert on.
+- Keep localized external input as data. Russian output of another tool used as a test fixture or a
+  test case stays verbatim; it is data, not project text. The same applies to identifiers and text a
+  third party defines, such as MCP tool names.
+- Project documentation keeps the language it already uses: `docs/`, `README.md`, `AGENTS.md`, and
+  `.cursor/rules`. This rule does not ask to retranslate it.
+- When you touch a file that still mixes languages, translate the text you touch. Do not turn an
+  unrelated change into a mass retranslation.
+
 ### Comments and bug fixes
 
 - Comment non-obvious decisions, external-library limitations, important operation order, race conditions, and workarounds.

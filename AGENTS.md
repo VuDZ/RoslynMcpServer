@@ -10,3 +10,4 @@ The rules are in [docs/code-style.md](docs/code-style.md), relative to the repos
 - If the task moves from discussion to implementation, read the rules before the first code change.
 - If applicable rules change during the task, re-read the changed sections before continuing to work on code.
 - If you launch a subagent that will create, edit, or review the style of C# code, include in its prompt a requirement to read `docs/code-style.md` before the first edit or before style comments.
+- Text that lives in code is English: comments, XML docs, log and diagnostic messages, exception messages, test failure text, and asserted fragments. Localized external output kept as test data stays verbatim; project documentation keeps its current language.
