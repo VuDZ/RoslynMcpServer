@@ -8,8 +8,10 @@
 коллеги и который следующие эпохи грузят. Эвристики нет. Хост этот проект при
 старте ещё не подхватывает.
 
-Текст классов и `plugin.json` совпадает с [authoring.md](authoring.md), плюс
+Текст классов совпадает с [authoring.md](authoring.md), плюс
 `using RoslynMcpServer.Plugins`. Пространство имён шаблона — `RoslynMcpPlugin`.
+Поля `plugin.json` кроме `minHostVersion` совпадают с руководством.
+В исходном манифесте `minHostVersion` — `1.0`: это значение в выход не попадает.
 Тул `sample_loaded_workspace` возвращает `SolutionManager.GetLoadedWorkspacePath()`
 или строку `No workspace is loaded.`, если путь пустой.
 
@@ -22,12 +24,14 @@
 Class library `net10.0`, не self-contained. Ссылка на `RoslynMcpServer.csproj`:
 `Private=false`, `ExcludeAssets=runtime`. Пакет `ModelContextProtocol` той же
 `Major.Minor`, что у хоста (`1.3.0` на этих исходниках): `PrivateAssets=all`,
-`ExcludeAssets=runtime`. `plugin.json` копируется в выход
-(`CopyToOutputDirectory=PreserveNewest`).
+`ExcludeAssets=runtime`. `plugin.json` попадает в выход рядом с entry.
 
-`minHostVersion` в манифесте шаблона — текущая `Version` хоста (`1.4.15`, пока
-эпоха 6 её не сдвинула). `id` — `sample`, `entry` — `RoslynMcpPlugin.dll`,
-`pluginType` — `RoslynMcpPlugin.SamplePlugin`, `toolPrefix` — `sample_`.
+`minHostVersion` в выходной копии — `AssemblyVersion` разрешённой ссылки на
+`RoslynMcpServer`. Число из исходного JSON, включая `1.0`, в выход не
+доживает. Как цель MSBuild читает версию ссылки и подставляет её, эпоха не
+нормирует. Остальные поля исходного манифеста копируются как есть: `id` —
+`sample`, `entry` — `RoslynMcpPlugin.dll`, `pluginType` —
+`RoslynMcpPlugin.SamplePlugin`, `toolPrefix` — `sample_`.
 
 Проект добавляется в `RoslynMcpServer.sln`, конфигурации Debug и Release,
 Any CPU. В хостовый csproj ссылкой не входит и в publish сервера не копируется.
@@ -76,6 +80,8 @@ Any CPU. В хостовый csproj ссылкой не входит и в publi
   `ModelContextProtocol.dll` рядом отсутствуют.
 - `plugin.json` из выхода читается правилами эпохи 2 и даёт план с id `sample`,
   префиксом `sample_` и типом `RoslynMcpPlugin.SamplePlugin`.
+  `minHostVersion` в этом файле равна `AssemblyVersion` ссылки на
+  `RoslynMcpServer` и не равна `1.0` из исходника.
 - После чистой сборки и повторной сборки типа шаблона нет в сборке хоста.
   `McpToolCatalog` не падает и не содержит `sample_loaded_workspace`.
 

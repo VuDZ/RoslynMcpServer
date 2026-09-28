@@ -73,9 +73,6 @@ Schema SDK не читается. Метаданные discarded-плагина 
 
 `list_tool_groups` имена плагинов не показывает. `lite` и `full` их не снимают.
 
-`samples/RoslynMcpPlugin/plugin.json`: `minHostVersion` становится новой
-`Version` хоста. Другие поля не менять.
-
 ## Файлы
 
 - `Plugins/PluginStartup.cs`
@@ -83,7 +80,6 @@ Schema SDK не читается. Метаданные discarded-плагина 
 - `Services/McpServerInfoHelper.cs` — новая перегрузка
 - `Tools/ServerLifecycleTools.cs` — отдаёт отчёт в info
 - `Hosting/McpToolHelpFormatter.cs` — help по загруженному тулу из отчёта старта
-- `samples/RoslynMcpPlugin/plugin.json` — только `minHostVersion`
 - `RoslynMcpServer.csproj` — три свойства версии
 - `README.md` — строка «Agent tools by version» и указатель RU на эту версию.
   Числа каталога full/lite не пересчитывать и не менять: плагины в каталог не входят.
@@ -96,7 +92,9 @@ Schema SDK не читается. Метаданные discarded-плагина 
 ## Тесты
 
 Временный `baseDirectory` с drop-in `plugins/sample/`, скопированным из выхода
-шаблона (DLL, deps, pdb, `plugin.json` с уже новым `minHostVersion`).
+шаблона (DLL, deps, pdb, `plugin.json`). `minHostVersion` в этой копии уже
+новая: её подставила сборка шаблона из `AssemblyVersion` хоста после патча
+версии. Исходный `plugin.json` эпоха не правит.
 In-process тесты `PluginStartup` остаются. Коллекцию читать после резолва
 `IOptions<McpServerOptions>.Value`.
 
