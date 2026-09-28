@@ -9,7 +9,7 @@ Claim:
 Первый tools/list реального MCP-процесса содержит плагины; общий sample проверяется через ROSLYN_MCP_PLUGINS, включая discovery и DI.
 
 Evidence:
-Все перечисленные startup-тесты вызывают PluginStartup непосредственно, с временным baseDirectory и drop-in. Тест эпохи 2 передаёт строку переменной окружения аргументом discovery, а не запускает Program. Ни один gate не отправляет initialize / tools/list / tools/call запущенному host. Поэтому проверка пропускает сам wiring [Program.cs](../../../../Program.cs), чтение environment и реальную материализацию SDK. Это отдельная граница от E3-01: здесь проверяется процесс и протокол, а там удержание файлов при загруженном ALC.
+Все перечисленные startup-тесты вызывают PluginStartup непосредственно, с временным baseDirectory и drop-in. Тест эпохи 2 передаёт строку переменной окружения аргументом discovery, а не запускает Program. Ни один gate не отправляет initialize / tools/list / tools/call запущенному host. Поэтому проверка пропускает сам wiring [Program.cs](../../../../../Program.cs), чтение environment и реальную материализацию SDK. Это отдельная граница от E3-01: здесь проверяется процесс и протокол, а там удержание файлов при загруженном ALC.
 
 Failure scenario:
 1. PluginStartup корректен и проходит in-process тесты; в Program ошибочно передана пустая строка вместо ROSLYN_MCP_PLUGINS либо вызов startup не попал в нужную ветку запуска.

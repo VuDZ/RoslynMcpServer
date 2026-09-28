@@ -31,20 +31,20 @@
 им соответствует. Таблица эпох: строка эпохи 7 становится «сделана» вместе с
 остальными, которые уже сделаны. Абзацы контракта не сокращать до ссылки.
 
-[docs/README.md](../../../README.md): строка «Плагины MCP» больше не говорит, что код
+[docs/README.md](../../../../README.md): строка «Плагины MCP» больше не говорит, что код
 не начат.
 
-Корневой [README.md](../../../../README.md): один короткий указатель на
+Корневой [README.md](../../../../../README.md): один короткий указатель на
 `docs/mcp-plugins/authoring.md`. Пересказ манифеста, теневой копии и кухни туда
 не копировать. Отдельную строку «Agent tools by version» эта эпоха не заводит:
 её добавила эпоха 6. Русский указатель — ссылка на тот же `authoring.md`, без
 второго перевода руководства.
 
-[RoslynMcp.jsonc.sample](../../../../RoslynMcp.jsonc.sample): закомментированный ключ
+[RoslynMcp.jsonc.sample](../../../../../RoslynMcp.jsonc.sample): закомментированный ключ
 `plugins`, массив путей, рядом комментарий что drop-in `plugins/<id>/` работает
 без этого ключа, а dev-путь можно задать и переменной `ROSLYN_MCP_PLUGINS`.
 
-[docs/ARCHITECTURE.md](../../../ARCHITECTURE.md), раздел Extending the server: абзац,
+[docs/ARCHITECTURE.md](../../../../ARCHITECTURE.md), раздел Extending the server: абзац,
 что плагин — отдельный путь от нового тула хоста. Плагин не добавляется в
 `McpToolCatalog`, получает тот же `SolutionManager` и описан в
 `docs/mcp-plugins/README.md`. Шаги 1–8 для встроенного тула не удалять.

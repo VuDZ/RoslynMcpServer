@@ -9,7 +9,7 @@
 диска эта эпоха не читает.
 
 Контракт имён — [README.md](README.md). Класс тула хост создаёт на вызов через
-`ActivatorUtilities`, как [`McpToolDescriptor.CreateFactory`](../../../../Hosting/McpToolDescriptor.cs).
+`ActivatorUtilities`, как [`McpToolDescriptor.CreateFactory`](../../../../../Hosting/McpToolDescriptor.cs).
 
 ## Поведение
 
@@ -20,9 +20,9 @@
 
 `AddToolsFrom<T>` обходит открытые методы `T` с `[McpServerTool]`. Для каждого
 принятого имени регистрирует `T` как singleton (один раз) и фабрику тула тем же
-способом, что [`McpToolRegistry.RegisterSelectedTools`](../../../../Hosting/McpToolRegistry.cs):
+способом, что [`McpToolRegistry.RegisterSelectedTools`](../../../../../Hosting/McpToolRegistry.cs):
 `AddSingleton` фабрики `Func<IServiceProvider, McpServerTool>`. В
-[`McpToolCatalog`](../../../../Hosting/McpToolCatalog.cs) имя не добавляется.
+[`McpToolCatalog`](../../../../../Hosting/McpToolCatalog.cs) имя не добавляется.
 `HostTypes` каталога не растёт. `lite` / `full` эти тулы не фильтрует.
 
 Имя пропускается, в результат регистрации попадает причина, остальные имена

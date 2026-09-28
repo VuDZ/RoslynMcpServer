@@ -14,7 +14,7 @@
 
 ## Старт
 
-В [`Program.cs`](../../../../Program.cs) после `AddRoslynMcpServerTools` и до
+В [`Program.cs`](../../../../../Program.cs) после `AddRoslynMcpServerTools` и до
 `builder.Build()` вызывается один метод старта. Ему передают `IServiceCollection`,
 уже зарегистрированные настройки, `AppContext.BaseDirectory`, значение
 `ROSLYN_MCP_PLUGINS` и stderr.
@@ -35,7 +35,7 @@
 ## Что видит агент
 
 `get_mcp_server_info` дописывает плагины, не заменяя текущие строки. Новая
-перегрузка [`McpServerInfoHelper.BuildInfoMarkdown`](../../../../Services/McpServerInfoHelper.cs).
+перегрузка [`McpServerInfoHelper.BuildInfoMarkdown`](../../../../../Services/McpServerInfoHelper.cs).
 Старые перегрузки текст не меняют, пока им не передали отчёт: существующие
 тесты снимка остаются зелёными.
 

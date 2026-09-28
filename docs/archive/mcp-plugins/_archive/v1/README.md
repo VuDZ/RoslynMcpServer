@@ -14,7 +14,7 @@ README и не комментарий к примеру ниже. Эпохи н�
 эпоха 4 создаёт, эпоха 6 меняет только `minHostVersion`; таблица ниже — эпоха
 меняет только свою строку на «сделана».
 
-Перед первым C# в эпохе читать [docs/code-style.md](../../../code-style.md). Один
+Перед первым C# в эпохе читать [docs/code-style.md](../../../../code-style.md). Один
 независимый тип на файл. Тесты — xUnit, без `Assert.Skip`, без категории
 `AnalyzerLifecycle` (шард `unit`).
 
@@ -38,20 +38,20 @@ README и не комментарий к примеру ниже. Эпохи н�
 ## Что уже есть
 
 - Тул — класс с `[McpServerTool]` и конструктором. Схема для агента берётся
-  из атрибутов, как у [`NavigationTools`](../../../../Tools/NavigationTools.cs):
+  из атрибутов, как у [`NavigationTools`](../../../../../Tools/NavigationTools.cs):
   туда уже инжектятся `SolutionManager` и `ILogger<T>`.
-- Фабрика в [`McpToolDescriptor.CreateFactory`](../../../../Hosting/McpToolDescriptor.cs)
+- Фабрика в [`McpToolDescriptor.CreateFactory`](../../../../../Hosting/McpToolDescriptor.cs)
   вызывает `ActivatorUtilities.CreateInstance` — зависимости приходят из того же
   `IServiceProvider`.
-- [`McpRuntimeToolCollection.TryAddMany`](../../../../Hosting/McpRuntimeToolCollection.cs)
+- [`McpRuntimeToolCollection.TryAddMany`](../../../../../Hosting/McpRuntimeToolCollection.cs)
   умеет добавить тулы в живую коллекцию SDK и один раз поднять `Changed`.
-- [`SolutionManager`](../../../../Services/SolutionManager.cs) публичный, в
+- [`SolutionManager`](../../../../../Services/SolutionManager.cs) публичный, в
   `RoslynMcpServer.Services`: `GetPublishedSolutionAsync`, `FindDocumentAsync`,
   `ResolvePathAgainstWorkspace`, диск-синк. Рядом уже публичны `CallGraphHelper`,
   `TestDiscoveryHelper`, `GitChangedFilesHelper`. `internal`-члены этого типа
   (оракул последней загрузки и швы `FailNext*`) видны только тестам и
   lifecycle-хосту через `InternalsVisibleTo`, не сборке плагина.
-- Каталог [`McpToolCatalog`](../../../../Hosting/McpToolCatalog.cs) — закрытый список
+- Каталог [`McpToolCatalog`](../../../../../Hosting/McpToolCatalog.cs) — закрытый список
   встроенных имён. Плагинные тулы в него не входят: иначе разъедутся тесты,
   lite/full и help.
 
@@ -168,7 +168,7 @@ Cursor часто домашний каталог. Хост не ищет `IRosl
 
 - `{BaseDirectory}/plugins/<id>/` рядом с опубликованным exe — drop-in, грузится
   с этого пути. Имя подкаталога совпадает с `id`.
-- Ключ `plugins` в [`RoslynMcp.jsonc`](../../../../RoslynMcp.jsonc.sample) и/или
+- Ключ `plugins` в [`RoslynMcp.jsonc`](../../../../../RoslynMcp.jsonc.sample) и/или
   `ROSLYN_MCP_PLUGINS` — каталог сборки (`bin/Debug/net10.0`) или путь к entry DLL.
   Перед загрузкой хост копирует каталог во временный каталог этого запуска и грузит
   копию. Исходный `bin` остаётся доступным для записи, пока старый процесс ещё жив.

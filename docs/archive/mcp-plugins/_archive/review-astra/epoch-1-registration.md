@@ -9,7 +9,7 @@ Claim:
 Прошедшие проверку имён методы регистрируются через фабрики как встроенные; после Build доступны в коллекции. Ошибки одного плагина не препятствуют запуску остальных.
 
 Evidence:
-[McpToolRegistry.cs](../../../../Hosting/McpToolRegistry.cs):16–21 добавляет отложенные DI-фабрики, а [McpToolDescriptor.cs](../../../../Hosting/McpToolDescriptor.cs):33–50 вызывает `McpServerTool.Create` внутри фабрики. Проверок только имени недостаточно для поддерживаемой SDK сигнатуры. Проба с MCP `1.3.0` и открытым generic-методом с допустимым именем показала: Register и Build успешны, разрешение `IOptions<McpServerOptions>.Value` падает с `ArgumentException: Open generic methods are not supported`. Именно `McpServerOptionsSetup` потребляет `IEnumerable<McpServerTool>`; текущий [Program.cs](../../../../Program.cs):87–92 не оборачивает SDK startup в обработку отдельного плагина.
+[McpToolRegistry.cs](../../../../../Hosting/McpToolRegistry.cs):16–21 добавляет отложенные DI-фабрики, а [McpToolDescriptor.cs](../../../../../Hosting/McpToolDescriptor.cs):33–50 вызывает `McpServerTool.Create` внутри фабрики. Проверок только имени недостаточно для поддерживаемой SDK сигнатуры. Проба с MCP `1.3.0` и открытым generic-методом с допустимым именем показала: Register и Build успешны, разрешение `IOptions<McpServerOptions>.Value` падает с `ArgumentException: Open generic methods are not supported`. Именно `McpServerOptionsSetup` потребляет `IEnumerable<McpServerTool>`; текущий [Program.cs](../../../../../Program.cs):87–92 не оборачивает SDK startup в обработку отдельного плагина.
 
 Failure scenario:
 1. Плагин добавляет атрибутированный generic-метод с правильным префиксом. AddToolsFrom сохраняет фабрику и возвращается успешно.
@@ -35,7 +35,7 @@ Claim:
 Имя отвергается, если уже зарегистрировано другим вызовом AddToolsFrom в этом процессе.
 
 Evidence:
-Текущий [RoslynMcpServiceCollectionExtensions.cs](../../../../Hosting/RoslynMcpServiceCollectionExtensions.cs):33–37 создаёт новую runtime-коллекцию на каждый вызов AddRoslynMcpServerTools. [McpToolActivationTests.cs](../../../../RoslynMcpServer.Tests/McpToolActivationTests.cs), `BuildHost`, создаёт независимый host для теста. Новые эпохи тоже многократно регистрируют `sample_loaded_workspace`, включая отдельный lite-host. Глобальный набор имён на процесс переживёт dispose одного контейнера; ни правило сброса, ни исключение для независимого IServiceCollection не заданы.
+Текущий [RoslynMcpServiceCollectionExtensions.cs](../../../../../Hosting/RoslynMcpServiceCollectionExtensions.cs):33–37 создаёт новую runtime-коллекцию на каждый вызов AddRoslynMcpServerTools. [McpToolActivationTests.cs](../../../../../RoslynMcpServer.Tests/McpToolActivationTests.cs), `BuildHost`, создаёт независимый host для теста. Новые эпохи тоже многократно регистрируют `sample_loaded_workspace`, включая отдельный lite-host. Глобальный набор имён на процесс переживёт dispose одного контейнера; ни правило сброса, ни исключение для независимого IServiceCollection не заданы.
 
 Failure scenario:
 1. Первый тест регистрирует sample и успешно завершает работу хоста.

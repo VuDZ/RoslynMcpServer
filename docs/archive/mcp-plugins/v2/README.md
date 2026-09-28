@@ -1,17 +1,20 @@
 # Плагины MCP
 
-Дата: 2026-09-28. Статус: **эпохи 1–6 выполнены** ([архив](_archive/README.md)); эпоха 7 не начата.
+Дата: 2026-09-28. Статус: **эпохи 1–7 выполнены** ([архив](_archive/README.md)).
+Загрузчик и шаблон реализованы в сервере 1.4.18; руководство автора сверено с ними.
 Текущий контракт этой темы. Предыдущий текст —
 [_archive/v1/](../_archive/v1/README.md) — нормой не является.
 
 Ревизия арбитража [_archive/arbitration/](../_archive/arbitration/result.md)
 от 2026-09-27. Решения человека по `P-001`…`P-015` — принять как есть. Отчёт —
 [../revision/result.md](../revision/result.md). Основание поведения хоста —
-исходники **1.4.15**. Пока эпохи не выполнены, runtime не меняется.
+исходники **1.4.15**; реализация завершена в **1.4.18**.
 
-Как собрать плагин — в [authoring.md](authoring.md). Это не абзац продуктового
-README и не комментарий к примеру ниже. Эпохи ниже исполняют этот контракт и
-не заменяют его.
+Как собрать и подключить плагин — в
+[руководстве рядом с примером](../../../../samples/RoslynMcpPlugin/README.md).
+[authoring.md](authoring.md) сохранён как указатель на него. Руководство остаётся
+вне каталога темы при его архивировании. Эпохи ниже исполняют этот контракт
+и не заменяют его.
 
 ## Эпохи
 
@@ -22,7 +25,7 @@ README и не комментарий к примеру ниже. Эпохи н�
 эпоха меняет только свою строку на «сделана». `samples/RoslynMcpPlugin/plugin.json`
 создаёт эпоха 4 и дальше не правит: `minHostVersion` в выход кладёт сборка шаблона.
 
-Перед первым C# в эпохе читать [docs/code-style.md](../../code-style.md). Один
+Перед первым C# в эпохе читать [docs/code-style.md](../../../code-style.md). Один
 независимый тип на файл. Тесты — xUnit, без `Assert.Skip`, без категории
 `AnalyzerLifecycle` (шард `unit`).
 
@@ -37,7 +40,7 @@ README и не комментарий к примеру ниже. Эпохи н�
 | 4. Шаблон | [epoch-4-sample-plugin.md](_archive/epoch-4-sample-plugin.md) | сделана |
 | 5. Загрузка сборки | [epoch-5-assembly-load.md](_archive/epoch-5-assembly-load.md) | сделана |
 | 6. Старт хоста | [epoch-6-host-startup.md](_archive/epoch-6-host-startup.md) | сделана |
-| 7. Документация | [epoch-7-documentation.md](epoch-7-documentation.md) | не начата |
+| 7. Документация | [epoch-7-documentation.md](_archive/epoch-7-documentation.md) | сделана |
 
 Чужой test-impact остаётся у коллег. Этот репозиторий даёт только шов:
 загрузить их сборку, зарегистрировать её тулы и отдать им тот же процесс,
@@ -46,14 +49,14 @@ README и не комментарий к примеру ниже. Эпохи н�
 ## Что уже есть
 
 - Тул — класс с `[McpServerTool]` и конструктором. Схема для агента берётся
-  из атрибутов, как у [`NavigationTools`](../../../Tools/NavigationTools.cs):
+  из атрибутов, как у [`NavigationTools`](../../../../Tools/NavigationTools.cs):
   туда уже инжектятся `SolutionManager` и `ILogger<T>`.
-- Фабрика в [`McpToolDescriptor.CreateFactory`](../../../Hosting/McpToolDescriptor.cs)
+- Фабрика в [`McpToolDescriptor.CreateFactory`](../../../../Hosting/McpToolDescriptor.cs)
   вызывает `ActivatorUtilities.CreateInstance` — зависимости приходят из того же
   `IServiceProvider`.
-- [`McpRuntimeToolCollection.TryAddMany`](../../../Hosting/McpRuntimeToolCollection.cs)
+- [`McpRuntimeToolCollection.TryAddMany`](../../../../Hosting/McpRuntimeToolCollection.cs)
   умеет добавить тулы в живую коллекцию SDK и один раз поднять `Changed`.
-- [`SolutionManager`](../../../Services/SolutionManager.cs) публичный, в
+- [`SolutionManager`](../../../../Services/SolutionManager.cs) публичный, в
   `RoslynMcpServer.Services`: `GetPublishedSolutionAsync`,
   `GetPublishedSolutionAfterDiskSyncAsync`, `GetSanitizedPublishedSolutionAsync`,
   `FindDocumentAsync`, `ResolvePathAgainstWorkspace`, диск-синк. Рядом уже публичны
@@ -61,7 +64,7 @@ README и не комментарий к примеру ниже. Эпохи н�
   этого типа (оракул последней загрузки и швы `FailNext*`) видны только тестам и
   lifecycle-хосту через `InternalsVisibleTo`, не сборке плагина. Новый метод
   `SolutionManager` эта серия не добавляет.
-- Каталог [`McpToolCatalog`](../../../Hosting/McpToolCatalog.cs) — закрытый список
+- Каталог [`McpToolCatalog`](../../../../Hosting/McpToolCatalog.cs) — закрытый список
   встроенных имён. Плагинные тулы в него не входят: иначе разъедутся тесты,
   lite/full и help.
 
@@ -145,6 +148,15 @@ runtime-ассеты не копировать) и против `ModelContextPro
 `Microsoft.CodeAnalysis.*`, `Microsoft.Extensions.*`. Тогда `SolutionManager` в
 плагине и в хосте — один тип, DI сходится.
 
+Без исходников сервера ссылка компилятора ведёт на `RoslynMcpServer.dll`
+из каталога публикации с `Private=false`. Исполняемый файл self-contained
+публикации является нативным apphost и не заменяет ссылку на DLL.
+Частные управляемые зависимости поставляются в выходном каталоге плагина;
+сборки контракта туда не копируются. Шаблон обеспечивает это через
+`CopyLocalLockFileAssemblies=true`, а записи компиляции в `deps.json` — через
+`PreserveCompilationContext=true`, `PreserveCompilationReferences=false`
+и `TrimDepsJsonLibrariesWithoutAssets=false`.
+
 Публичные сервисы и хелперы — это кухня, которой пользуются встроенные тулы.
 Плагин вызывает их и Roslyn на общем `Solution`. Методы встроенных тулов
 (`TestTools.RunDotNetTest`, `NavigationTools.FindSymbolReferences` и остальные)
@@ -165,6 +177,10 @@ internal-хелпер, его отдельно выводят в public API хо
 
 `minHostVersion` из `plugin.json` — нижняя граница продукта: тот же мажор, хост
 не старее. Снимать эту границу нельзя.
+
+В выходной `plugin.json` шаблона эту версию записывает сборка из
+`AssemblyVersion` ссылки на `RoslynMcpServer`, а не автор вручную.
+Для хоста 1.4.18 записывается `1.4.18.0`.
 
 Дополнительно, до `Load` entry, версия ссылки читается и когда runtime-ассеты
 контракта исключены. Носитель — compile-запись в `deps.json` рядом с entry.
@@ -199,7 +215,7 @@ Cursor часто домашний каталог. Хост не ищет `IRosl
   "entry": "TestImpact.dll",
   "pluginType": "TestImpact.TestImpactPlugin",
   "toolPrefix": "impact_",
-  "minHostVersion": "1.4.15"
+  "minHostVersion": "1.4.18.0"
 }
 ```
 
@@ -209,7 +225,7 @@ Cursor часто домашний каталог. Хост не ищет `IRosl
 
 - `{BaseDirectory}/plugins/<id>/` рядом с опубликованным exe — drop-in, грузится
   с этого пути. Имя подкаталога совпадает с `id`.
-- Ключ `plugins` в [`RoslynMcp.jsonc`](../../../RoslynMcp.jsonc.sample) и/или
+- Ключ `plugins` в [`RoslynMcp.jsonc`](../../../../RoslynMcp.jsonc.sample) и/или
   `ROSLYN_MCP_PLUGINS` — каталог сборки (`bin/Debug/net10.0`) или путь к entry DLL.
   Перед загрузкой хост копирует каталог во временный каталог этого запуска и грузит
   копию. Исходный `bin` остаётся доступным для записи, пока старый процесс ещё жив.
@@ -244,13 +260,11 @@ Cursor часто домашний каталог. Хост не ищет `IRosl
 с `toolPrefix` `sample_`. Тест указывает `ROSLYN_MCP_PLUGINS` на выход этого
 проекта и проверяет обнаружение, префикс, DI и теневую копию.
 
-Пошагово тот же проект разобран в [authoring.md](authoring.md): ссылки на хост,
-манифест, регистрация, куда класть сборку, цикл правки, отладка. Продуктовый
-README при появлении загрузчика получает ссылку на это руководство, не его
-пересказ.
-
-Проект появляется в дереве вместе с загрузчиком: без `IRoslynMcpPlugin` он
-не собирается.
+Пошагово тот же проект разобран в
+[руководстве автора](../../../../samples/RoslynMcpPlugin/README.md): ссылки на хост,
+манифест, регистрация, размещение сборки, цикл правки, отладка.
+Продуктовый README ссылается на это руководство. Проект и загрузчик уже есть
+в дереве; инструмент примера использует частную зависимость `Newtonsoft.Json`.
 
 ## Граница репозитория
 

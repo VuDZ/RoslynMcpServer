@@ -52,7 +52,7 @@ Claim:
 Плагин анализирует тот же загруженный Solution, что встроенные тулы; показанный вход для эвристики — `GetPublishedSolutionAsync`.
 
 Evidence:
-[SolutionManager.cs](../../../../Services/SolutionManager.cs):336–349 возвращает `_solution` под lock, но не вызывает `FlushDirtyDocumentsUnderLockAsync`. Дисковый watcher лишь ставит пути в очередь: `OnDiskWatcherChanged` / `QueueDiskPath`, строки 2232–2293. Синхронизацию выполняют отдельные публичные `GetPublishedSolutionAfterDiskSyncAsync` (:353–367) и `GetSanitizedPublishedSolutionAsync` (:369–387). Встроенные [NavigationTools](../../../../Tools/NavigationTools.cs):336, 590, 798 используют второй из них. Таким образом, общий экземпляр менеджера не означает одинаковую актуальность семантического входа.
+[SolutionManager.cs](../../../../../Services/SolutionManager.cs):336–349 возвращает `_solution` под lock, но не вызывает `FlushDirtyDocumentsUnderLockAsync`. Дисковый watcher лишь ставит пути в очередь: `OnDiskWatcherChanged` / `QueueDiskPath`, строки 2232–2293. Синхронизацию выполняют отдельные публичные `GetPublishedSolutionAfterDiskSyncAsync` (:353–367) и `GetSanitizedPublishedSolutionAsync` (:369–387). Встроенные [NavigationTools](../../../../../Tools/NavigationTools.cs):336, 590, 798 используют второй из них. Таким образом, общий экземпляр менеджера не означает одинаковую актуальность семантического входа.
 
 Failure scenario:
 1. Пользователь загружает workspace и сохраняет изменение `.cs`; watcher доставляет событие, путь остаётся в очереди.

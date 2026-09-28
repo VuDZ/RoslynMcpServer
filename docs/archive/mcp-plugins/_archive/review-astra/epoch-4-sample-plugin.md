@@ -9,7 +9,7 @@ Claim:
 Добавление samples/RoslynMcpPlugin не включает его в хост: ProjectReference из host csproj отсутствует, каталог встроенных тулов не меняется, хост ещё не подхватывает шаблон.
 
 Evidence:
-Корневой [RoslynMcpServer.csproj](../../../../RoslynMcpServer.csproj):52–57 исключает из Compile только Tests и LifecycleTestHost. MSBuild evaluation подтверждает `EnableDefaultCompileItems=true` и отсутствие исключения samples; SDK включает `**/*.cs`. Поэтому SampleTools.cs окажется в RoslynMcpServer.dll независимо от ProjectReference. [McpToolCatalog.cs](../../../../Hosting/McpToolCatalog.cs):229, 365–389, 400–425 проверяет все атрибутированные методы сборки хоста и отвергает имя, которого нет в каталоге. При этом эпоха 4 не разрешает изменение корневого csproj, а эпоха 6 разрешает в нём только три свойства версии.
+Корневой [RoslynMcpServer.csproj](../../../../../RoslynMcpServer.csproj):52–57 исключает из Compile только Tests и LifecycleTestHost. MSBuild evaluation подтверждает `EnableDefaultCompileItems=true` и отсутствие исключения samples; SDK включает `**/*.cs`. Поэтому SampleTools.cs окажется в RoslynMcpServer.dll независимо от ProjectReference. [McpToolCatalog.cs](../../../../../Hosting/McpToolCatalog.cs):229, 365–389, 400–425 проверяет все атрибутированные методы сборки хоста и отвергает имя, которого нет в каталоге. При этом эпоха 4 не разрешает изменение корневого csproj, а эпоха 6 разрешает в нём только три свойства версии.
 
 Failure scenario:
 1. Исполнитель создаёт два .cs-файла шаблона в samples по плану, не меняя host csproj.

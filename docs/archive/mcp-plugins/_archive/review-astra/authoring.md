@@ -35,7 +35,7 @@ Claim:
 На опубликованный exe допустима сборочная `Reference` с `Private=false`.
 
 Evidence:
-[RoslynMcpServer.csproj](../../../../RoslynMcpServer.csproj):5, 14–15 задаёт executable, self-contained publish и `PublishSingleFile=false`. В таком publish `.exe` — native apphost, а управляемая сборка контракта лежит в `RoslynMcpServer.dll`. Проверка metadata существующего опубликованного exe вернула `PE image does not have metadata`. `Private=false` регулирует копирование ссылки, но не превращает apphost в CLR assembly.
+[RoslynMcpServer.csproj](../../../../../RoslynMcpServer.csproj):5, 14–15 задаёт executable, self-contained publish и `PublishSingleFile=false`. В таком publish `.exe` — native apphost, а управляемая сборка контракта лежит в `RoslynMcpServer.dll`. Проверка metadata существующего опубликованного exe вернула `PE image does not have metadata`. `Private=false` регулирует копирование ссылки, но не превращает apphost в CLR assembly.
 
 Failure scenario:
 1. Автор получает только publish и следует разрешённому сценарию без исходников.

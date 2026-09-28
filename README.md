@@ -19,6 +19,8 @@ Typical flow:
 
 The server is C#-focused. It can read non-C# files and execute selected CLI operations, but it does not provide Python semantic analysis. See [Architecture and constraints](docs/ARCHITECTURE.md) for component boundaries, state, synchronization, and extension rules. Docs index: [docs/README.md](docs/README.md). Planned (not shipped) large-solution load cache: [docs/workspace-load-cache/](docs/workspace-load-cache/README.md).
 
+Plugin development and setup: [authoring guide](samples/RoslynMcpPlugin/README.md#english-version).
+
 ## What it provides
 
 - Compiler-aware declaration, usage, implementation, and call-graph navigation.
@@ -1361,6 +1363,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 RoslynMcpServer предоставляет AI-агенту compiler-aware инструменты для C#-решений: семантическую навигацию, диагностику и code fixes, рефакторинг, анализ зависимостей и компактный вывод `dotnet build/test/run`.
 
 В отличие от файлового MCP, сервер загружает `.sln`, `.slnx` или `.csproj` через Roslyn/MSBuild. Агент работает с символами и контекстом проектов, а не только предполагает структуру по тексту.
+
+Разработка и подключение плагинов: [руководство автора](samples/RoslynMcpPlugin/README.md#russian-version).
 
 ## MCP и агент за одну минуту
 
