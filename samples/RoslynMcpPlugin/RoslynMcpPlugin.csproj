@@ -44,7 +44,7 @@
        state the host version the plugin was actually compiled against, so it cannot drift from the
        resolved reference. The version is read from the reference rather than written by hand here,
        and the two escapes below stand for a quote and a line break, which an attribute cannot hold. -->
-  <Target Name="WritePluginManifest" BeforeTargets="GetCopyToOutputDirectoryItems">
+  <Target Name="WritePluginManifest" AfterTargets="CopyFilesToOutputDirectory">
     <GetAssemblyIdentity AssemblyFiles="@(ReferencePath)" Condition="'%(Filename)' == 'RoslynMcpServer'">
       <Output TaskParameter="Assemblies" ItemName="HostAssemblyIdentity" />
     </GetAssemblyIdentity>
@@ -65,6 +65,8 @@
   </Target>
 
   <ItemGroup>
-    <None Include="plugin.json" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Never copy the source file over the manifest the target writes. PreserveNewest would put the
+         source minHostVersion back whenever that file is newer than the output. -->
+    <None Update="plugin.json" CopyToOutputDirectory="Never" />
   </ItemGroup>
 </Project>
