@@ -50,21 +50,21 @@ public sealed class WorkspaceAnalyzerSanitizerTests
     [Fact]
     public void GetPublishedSolutionAfterDiskSyncAsync_still_returns_raw_published_snapshot()
     {
-        var violations = SanitizedEntryChecks.VerifyRawPublishedEntry(ReadSolutionManagerTarget());
+        var violations = SanitizedEntryChecks.VerifyRawPublishedEntry(ProductionAnalysis.Instance, SolutionManagerTarget());
 
         Assert.Empty(violations);
     }
 
     /// <summary>
     /// Covers both sanitized entries. <c>GetSanitizedPublishedSolutionAsync</c> calls the private helper
-    /// and never the public synchronous entry; <c>GetSanitizedPublishedSolution</c> takes
+    /// and never reaches the public synchronous entry; <c>GetSanitizedPublishedSolution</c> takes
     /// <c>_workspaceLock</c>, reads the snapshot inside the protected <c>try</c>, releases the lock in its
     /// <c>finally</c> and has no sync-over-async member access.
     /// </summary>
     [Fact]
     public void GetSanitizedPublishedSolution_takes_workspace_lock_and_async_does_not_call_sync()
     {
-        var violations = SanitizedEntryChecks.VerifySanitizedEntries(ReadSolutionManagerTarget());
+        var violations = SanitizedEntryChecks.VerifySanitizedEntries(ProductionAnalysis.Instance, SolutionManagerTarget());
 
         Assert.Empty(violations);
     }
@@ -154,24 +154,18 @@ public sealed class WorkspaceAnalyzerSanitizerTests
     }
 
     /// <summary>
-    /// Reads <c>Services/SolutionManager.cs</c> from the working copy: the check covers the source
-    /// shape, not the compiled assembly.
+    /// Target inside the cached production scope, which is compiled from the working copy: the check
+    /// covers the source shape, not the compiled assembly. The file is located once and every check
+    /// shares the same compilation.
     /// </summary>
-    private static SourceTarget ReadSolutionManagerTarget()
+    private static SourceTarget SolutionManagerTarget()
     {
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "RoslynMcpServer.csproj")))
-        {
-            dir = dir.Parent;
-        }
+        var sourcePath = Path.Combine(RepositoryRoot.Find(), "Services", "SolutionManager.cs");
+        var file = ProductionAnalysis.Instance.Scope.Files
+            .FirstOrDefault(candidate => string.Equals(Path.GetFullPath(candidate.Path), sourcePath, StringComparison.OrdinalIgnoreCase));
 
-        Assert.NotNull(dir);
-        var sourcePath = Path.Combine(dir.FullName, "Services", "SolutionManager.cs");
-        return new SourceTarget(
-            File.ReadAllText(sourcePath),
-            sourcePath,
-            SolutionManagerNamespace,
-            SolutionManagerType);
+        Assert.NotNull(file);
+        return new SourceTarget(file!, SolutionManagerNamespace, SolutionManagerType);
     }
 
     /// <summary>

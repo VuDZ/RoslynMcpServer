@@ -2,12 +2,16 @@ using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 using RoslynMcpServer.Services;
+using RoslynMcpServer.Tests.SourceStructure;
 using Xunit;
 
 namespace RoslynMcpServer.Tests;
 
 public sealed class WorkspaceWriteBoundaryTests
 {
+    private const string SolutionManagerNamespace = "RoslynMcpServer.Services";
+    private const string SolutionManagerType = "SolutionManager";
+
     [Fact]
     public void Exact_inverse_restores_only_mapped_shadow_and_keeps_unrelated_order_and_multiplicity()
     {
@@ -556,28 +560,22 @@ public sealed class WorkspaceWriteBoundaryTests
         Assert.Null(preflight.CleanedCandidate!.GetProject(removedId));
     }
 
+    /// <summary>
+    /// The workspace write boundary: <c>Workspace.TryApplyChanges</c> is referenced exactly once in the
+    /// production sources, from <c>SolutionManager.TryApplyWorkspaceChanges</c>, and the overlay revert
+    /// helper does not exist. The member is matched by symbol across the declared production scope, so a
+    /// same-named method of another type, a comment and a string literal are not call sites, while an
+    /// unresolved reference makes the count undecidable instead of green.
+    /// </summary>
     [Fact]
     public void Production_TryApplyChanges_has_single_SolutionManager_call_site()
     {
-        var path = Path.Combine(FindRepoRoot(), "Services", "SolutionManager.cs");
-        var text = File.ReadAllText(path);
-        var calls = 0;
-        var searchFrom = 0;
-        while (true)
-        {
-            var index = text.IndexOf("workspace.TryApplyChanges(", searchFrom, StringComparison.Ordinal);
-            if (index < 0)
-            {
-                break;
-            }
+        var violations = WriteBoundaryChecks.Verify(
+            ProductionAnalysis.Instance,
+            SolutionManagerNamespace,
+            SolutionManagerType);
 
-            calls++;
-            searchFrom = index + 1;
-        }
-
-        Assert.Equal(1, calls);
-        Assert.Contains("private bool TryApplyWorkspaceChanges", text, StringComparison.Ordinal);
-        Assert.DoesNotContain("RevertAnalyzerReferenceOverlayForApply", text, StringComparison.Ordinal);
+        Assert.Empty(violations);
     }
 
     private static WorkspaceWriteFreshnessState Freshness(
@@ -617,22 +615,6 @@ public sealed class WorkspaceWriteBoundaryTests
                     SkipReason: null,
                     StaleGeneration: false),
             ]);
-    }
-
-    private static string FindRepoRoot()
-    {
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir is not null)
-        {
-            if (File.Exists(Path.Combine(dir.FullName, "RoslynMcpServer.csproj")))
-            {
-                return dir.FullName;
-            }
-
-            dir = dir.Parent;
-        }
-
-        throw new DirectoryNotFoundException("Could not locate repository root.");
     }
 
     private sealed class FakeAnalyzerReference : AnalyzerReference

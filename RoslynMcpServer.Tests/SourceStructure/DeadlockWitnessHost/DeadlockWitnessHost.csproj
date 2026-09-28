@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <!-- Framework-dependent without an apphost, like RoslynMcpServer.LifecycleTestHost: the parent
+         starts it with `dotnet exec <dll>`, so no apphost and no self-contained publish are needed. -->
+    <SelfContained>false</SelfContained>
+    <UseAppHost>false</UseAppHost>
+    <PlatformTarget>x64</PlatformTarget>
+    <RootNamespace>RoslynMcpServer.Tests.SourceStructure.DeadlockWitnessHost</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- This project lives inside the test project directory; the test project excludes it from its
+         own compile items. The host deliberately references nothing but the framework. -->
+  </ItemGroup>
+</Project>

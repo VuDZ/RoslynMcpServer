@@ -1,6 +1,8 @@
 # Эпоха 2. Поиск и проверка общего решения
 
-Статус: **не начата**. Зависимость: [эпоха 1](_archive/epoch-1-sanitizer-test-fix.md) (выполнена).
+Статус: **выполнена** (2026-09-28, локальные прогоны; CI не запускался).
+Зависимость: [эпоха 1](_archive/epoch-1-sanitizer-test-fix.md) (выполнена).
+Решение: [epoch-2-decision.md](epoch-2-decision.md), отчёт: [epoch-2-results.md](epoch-2-results.md).
 
 ## Цель
 

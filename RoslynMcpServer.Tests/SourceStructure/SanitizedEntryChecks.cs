@@ -1,26 +1,41 @@
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace RoslynMcpServer.Tests.SourceStructure;
 
 /// <summary>
-/// Shape checks for the three entries into the cached sanitized snapshot: the async entry, the
-/// synchronous retry callback and the raw entry after disk-sync. Only the immediate method body is
-/// checked: comments, string literals and the contents of local functions and lambdas do not count
-/// as calls. Symbol binding, transitive calls and behavior are out of scope here, so a user-defined
-/// property with the exact name <c>Result</c> stays a limitation of this check.
+/// Contract of the three entries into the cached sanitized snapshot, checked on the semantic model of
+/// the declared scope:
+/// <list type="bullet">
+/// <item>the async entry calls the private helper directly and never reaches the public synchronous
+/// entry, which would re-enter the non-recursive <c>_workspaceLock</c> and hang forever;</item>
+/// <item>the synchronous entry takes that same lock field, reads the snapshot inside the protected
+/// <c>try</c>, releases the lock in its <c>finally</c> and performs no sync-over-async member
+/// access;</item>
+/// <item>the raw entry returns the published solution field and touches neither the sanitizer nor the
+/// publication path.</item>
+/// </list>
+/// <para>
+/// The lock is the field symbol, not the name <c>_workspaceLock</c>: another <c>SemaphoreSlim</c> field
+/// does not satisfy the requirement, and a same-named member of another type does not satisfy it
+/// either. Call forms are classified: a direct call, a reachable path through other methods, a method
+/// group and a <c>nameof</c> mention are reported separately, and all of them are violations because a
+/// mention can be turned into a call later. Input compilation errors, unresolved calls, ambiguous
+/// targets and out-of-scope conditional directives are returned as violations, never as success. A
+/// reachability walk that stopped on a delegate call it could not attribute to a delegate member of the
+/// scope is a violation as well: no other rule of this check can see such a call site.
+/// </para>
 /// </summary>
 internal static class SanitizedEntryChecks
 {
-    private const string AsyncEntry = "GetSanitizedPublishedSolutionAsync";
-    private const string SyncEntry = "GetSanitizedPublishedSolution";
-    private const string Helper = "GetOrCreateSanitizedPublishedSolution";
-    private const string RawEntry = "GetPublishedSolutionAfterDiskSyncAsync";
-    private const string WorkspaceLock = "_workspaceLock";
-    private const string PublishedSolution = "_solution";
+    public const string AsyncEntry = "GetSanitizedPublishedSolutionAsync";
+    public const string SyncEntry = "GetSanitizedPublishedSolution";
+    public const string Helper = "GetOrCreateSanitizedPublishedSolution";
+    public const string RawEntry = "GetPublishedSolutionAfterDiskSyncAsync";
+    public const string WorkspaceLock = "_workspaceLock";
+    public const string PublishedSolution = "_solution";
 
-    private static readonly string[] BlockingMembers = { "Result", "GetAwaiter" };
-
-    private static readonly string[] RawForbiddenNames =
+    public static readonly string[] RawForbiddenNames =
     {
         Helper,
         "RemoveUnresolvedAnalyzers",
@@ -28,206 +43,350 @@ internal static class SanitizedEntryChecks
     };
 
     /// <summary>
-    /// Contract violations of the async entry and the synchronous entry; an empty list means the
-    /// contract holds. Parse diagnostics and a missing method are returned as violations too.
+    /// Violations of the async entry and the synchronous entry; an empty list means the contract holds.
+    /// Scope diagnostics and unresolved call sites are returned as violations too.
     /// </summary>
-    public static IReadOnlyList<string> VerifySanitizedEntries(SourceTarget target)
+    public static IReadOnlyList<string> VerifySanitizedEntries(SourceSetAnalysis analysis, SourceTarget target)
     {
-        var (type, error) = SourceMethodLocator.LocateType(target);
-        if (error is not null)
+        var violations = new List<string>(analysis.InputDiagnostics);
+        var type = analysis.FindType(target.NamespaceName, target.TypeName, violations);
+        if (type is null)
         {
-            return new[] { error };
+            return violations;
         }
 
-        var violations = new List<string>();
-        var (asyncEntry, asyncError) = SourceMethodLocator.LocateMethod(type!, target.TypeName, AsyncEntry);
-        if (asyncError is not null)
+        var asyncEntry = analysis.FindDeclaredMethod(type, AsyncEntry, violations);
+        var syncEntry = analysis.FindDeclaredMethod(type, SyncEntry, violations);
+        if (asyncEntry is not null)
         {
-            violations.Add(asyncError);
-        }
-        else
-        {
-            CollectAsyncEntryViolations(target.TypeName, asyncEntry!, violations);
+            VerifyAsyncEntry(analysis, asyncEntry, syncEntry, violations);
         }
 
-        var (syncEntry, syncError) = SourceMethodLocator.LocateMethod(type!, target.TypeName, SyncEntry);
-        if (syncError is not null)
+        if (syncEntry is not null)
         {
-            violations.Add(syncError);
-        }
-        else
-        {
-            CollectSyncEntryViolations(target.TypeName, syncEntry!, violations);
+            VerifySyncEntry(analysis, syncEntry, violations);
         }
 
         return violations;
     }
 
-    /// <summary>Contract violations of the raw entry after disk-sync; an empty list means success.</summary>
-    public static IReadOnlyList<string> VerifyRawPublishedEntry(SourceTarget target)
+    /// <summary>Violations of the raw entry after disk-sync; an empty list means the contract holds.</summary>
+    public static IReadOnlyList<string> VerifyRawPublishedEntry(SourceSetAnalysis analysis, SourceTarget target)
     {
-        var (type, error) = SourceMethodLocator.LocateType(target);
-        if (error is not null)
+        var violations = new List<string>(analysis.InputDiagnostics);
+        var type = analysis.FindType(target.NamespaceName, target.TypeName, violations);
+        if (type is null)
         {
-            return new[] { error };
+            return violations;
         }
 
-        var (rawEntry, rawError) = SourceMethodLocator.LocateMethod(type!, target.TypeName, RawEntry);
-        if (rawError is not null)
+        var rawEntry = analysis.FindDeclaredMethod(type, RawEntry, violations);
+        if (rawEntry is null)
         {
-            return new[] { rawError };
+            return violations;
         }
 
-        var display = $"{target.TypeName}.{RawEntry}";
-        var scope = SourceMethodLocator.TryGetScope(rawEntry!);
-        if (scope is null)
+        var (body, error) = MethodBodyScope.Create(analysis, rawEntry);
+        if (body is null)
         {
-            return new[] { $"{display}: method has no body to check" };
+            violations.Add(error!);
+            return violations;
         }
 
-        var violations = new List<string>();
-        var returnsPublishedSolution = SourceMethodLocator.DirectNodes(scope)
-            .OfType<ReturnStatementSyntax>()
-            .Any(statement => IsPublishedSolutionReference(statement.Expression));
+        violations.AddRange(body.UnresolvedCalls());
+        var publishedSolution = Field(type, PublishedSolution);
+        var returnsPublishedSolution = publishedSolution is not null
+            && body.Nodes.OfType<ReturnStatementSyntax>()
+                .Select(statement => statement.Expression)
+                .Any(expression => expression is not null && IsFieldReference(body, expression, publishedSolution));
         if (!returnsPublishedSolution)
         {
-            violations.Add($"{display}: body does not return {PublishedSolution} — the raw snapshot was replaced with a sanitized one");
+            violations.Add($"{body.Display}: body does not return {PublishedSolution} — the raw snapshot was replaced with a sanitized one");
         }
 
         foreach (var name in RawForbiddenNames)
         {
-            var references = SourceMethodLocator.DirectNameReferences(scope, name);
+            var references = body.ReferencesNamed(name);
             if (references.Count > 0)
             {
-                violations.Add(
-                    $"{display}: forbidden reference to {name} at line {SourceMethodLocator.LineOf(references[0])}");
+                violations.Add($"{body.Display}: forbidden reference to {name} at {references[0].FilePath}:{references[0].Line}");
             }
         }
 
         return violations;
     }
 
-    private static void CollectAsyncEntryViolations(
-        string typeName,
-        MethodDeclarationSyntax method,
+    private static void VerifyAsyncEntry(
+        SourceSetAnalysis analysis,
+        IMethodSymbol asyncEntry,
+        IMethodSymbol? syncEntry,
         List<string> violations)
     {
-        var display = $"{typeName}.{AsyncEntry}";
-        var scope = SourceMethodLocator.TryGetScope(method);
-        if (scope is null)
+        var (body, error) = MethodBodyScope.Create(analysis, asyncEntry);
+        if (body is null)
         {
-            violations.Add($"{display}: method has no body to check");
+            violations.Add(error!);
             return;
         }
 
-        var callsHelper = SourceMethodLocator.DirectInvocations(scope)
-            .Any(invocation => SourceMethodLocator.IsSelfCall(invocation, Helper));
-        if (!callsHelper)
+        violations.AddRange(body.UnresolvedCalls());
+        VerifyHelperCall(analysis, body, violations);
+
+        if (syncEntry is null)
         {
-            violations.Add($"{display}: no direct call to {Helper}() in the method body");
+            return;
         }
 
-        var syncReferences = SourceMethodLocator.DirectNameReferences(scope, SyncEntry);
-        if (syncReferences.Count > 0)
+        ReportMentions(body, syncEntry, violations);
+        var reachability = ReachabilityAnalysis.FindPath(
+            analysis,
+            asyncEntry,
+            syncEntry.Name,
+            symbol => SymbolEqualityComparer.Default.Equals(symbol.OriginalDefinition, syncEntry.OriginalDefinition));
+        violations.AddRange(reachability.Diagnostics);
+        if (reachability.IsReachable)
         {
-            var line = SourceMethodLocator.LineOf(syncReferences[0]);
             violations.Add(
-                $"{display}: reference to the public synchronous entry {SyncEntry} at line {line}: "
-                + $"re-entering the non-recursive {WorkspaceLock} — deadlock");
+                $"{body.Display}: reaches the public synchronous entry {SyncEntry} while holding the non-recursive "
+                + $"{WorkspaceLock} — deadlock; path: {reachability.DescribePath()}");
+        }
+
+        ReportUndecidedInvocations(body, reachability, violations);
+        ReportBlockingMembers(analysis, body, violations);
+    }
+
+    /// <summary>
+    /// Refuses a walk that stopped on a delegate call it could not attribute to a delegate member of the
+    /// scope. Such a call site is invisible to every other rule of this check — the target is registered
+    /// elsewhere and the receiver is computed elsewhere — so a green verdict on it would be unproven
+    /// rather than proven. A limit of the other kind, a delegate member merely reached from the walk, keeps
+    /// its verdict: the production test seam is registered outside the declared scope by design, and the
+    /// walk did follow the call to the member (see <see cref="ReachabilityLimitKind"/>).
+    /// </summary>
+    private static void ReportUndecidedInvocations(
+        MethodBodyScope body,
+        ReachabilityResult reachability,
+        List<string> violations)
+    {
+        foreach (var limit in reachability.Limits.Where(limit => limit.Kind == ReachabilityLimitKind.DelegateReceiverNotInScope))
+        {
+            violations.Add($"{body.Display}: reachability is undecided — {limit.Text}");
         }
     }
 
-    private static void CollectSyncEntryViolations(
-        string typeName,
-        MethodDeclarationSyntax method,
-        List<string> violations)
+    private static void VerifyHelperCall(SourceSetAnalysis analysis, MethodBodyScope body, List<string> violations)
     {
-        var display = $"{typeName}.{SyncEntry}";
-        var scope = SourceMethodLocator.TryGetScope(method);
-        if (scope is null)
+        var helper = body.Method.ContainingType.GetMembers(Helper).OfType<IMethodSymbol>().ToList();
+        if (helper.Count == 0)
         {
-            violations.Add($"{display}: method has no body to check");
+            violations.Add($"{body.Display}: the private helper {Helper} was not found in {body.Method.ContainingType.ToDisplayString()}");
             return;
         }
 
-        foreach (var member in BlockingMembers)
+        var callsHelper = body.Invocations.Any(invocation =>
+            body.CalledMethod(invocation) is { } called
+            && helper.Any(candidate => SymbolEqualityComparer.Default.Equals(called.OriginalDefinition, candidate.OriginalDefinition)));
+        if (!callsHelper)
         {
-            var references = SourceMethodLocator.DirectNameReferences(scope, member);
-            if (references.Count > 0)
-            {
-                var line = SourceMethodLocator.LineOf(references[0]);
-                violations.Add($"{display}: sync-over-async — member access {member} at line {line}");
-            }
+            violations.Add($"{body.Display}: no direct call to {Helper}() in the method body");
+        }
+    }
+
+    private static void VerifySyncEntry(SourceSetAnalysis analysis, IMethodSymbol syncEntry, List<string> violations)
+    {
+        var (body, error) = MethodBodyScope.Create(analysis, syncEntry);
+        if (body is null)
+        {
+            violations.Add(error!);
+            return;
         }
 
-        var invocations = SourceMethodLocator.DirectInvocations(scope).ToList();
-        var protectedTry = FindProtectedTry(method);
+        violations.AddRange(body.UnresolvedCalls());
+        ReportBlockingMembers(analysis, body, violations);
+
+        var lockField = Field(syncEntry.ContainingType, WorkspaceLock);
+        if (lockField is null)
+        {
+            violations.Add($"{body.Display}: field {WorkspaceLock} was not found in {syncEntry.ContainingType.ToDisplayString()}");
+            return;
+        }
+
+        if (!IsSemaphore(analysis, lockField))
+        {
+            violations.Add(
+                $"{body.Display}: {WorkspaceLock} is of type {lockField.Type.ToDisplayString()}, not SemaphoreSlim; "
+                + "the lock contract is stated for a non-recursive SemaphoreSlim");
+        }
+
+        var waits = body.Invocations
+            .Where(invocation => IsCallOn(body, invocation, lockField, "Wait"))
+            .ToList();
+        if (waits.Count == 0)
+        {
+            var otherWaits = body.Invocations
+                .Where(invocation => CalledName(body, invocation) == "Wait")
+                .Select(invocation => (invocation.Expression as MemberAccessExpressionSyntax)?.Expression.ToString()
+                    ?? invocation.Expression.ToString())
+                .Distinct(StringComparer.Ordinal)
+                .ToList();
+            violations.Add(otherWaits.Count == 0
+                ? $"{body.Display}: no call to {WorkspaceLock}.Wait() in the method body"
+                : $"{body.Display}: Wait() is called on {string.Join(", ", otherWaits)}, not on {WorkspaceLock}");
+        }
+
+        var protectedTry = FindProtectedTry(body, lockField);
         if (protectedTry is null)
         {
-            violations.Add($"{display}: no call to {WorkspaceLock}.Release() in the finally of the protected try");
+            violations.Add($"{body.Display}: no call to {WorkspaceLock}.Release() in the finally of the protected try");
+            return;
         }
 
-        var waits = invocations
-            .Where(invocation => SourceMethodLocator.InvokedMemberName(invocation) == "Wait")
-            .ToList();
-        var lockWaits = waits
-            .Where(invocation => SourceMethodLocator.ReceiverText(invocation) == WorkspaceLock)
-            .ToList();
-        if (lockWaits.Count == 0)
+        if (waits.Count > 0 && !IsLockTakenBeforeTry(body, protectedTry, waits))
         {
-            violations.Add(waits.Count == 0
-                ? $"{display}: no call to {WorkspaceLock}.Wait() in the method body"
-                : $"{display}: Wait() is called on {DescribeReceivers(waits)}, not on {WorkspaceLock}");
-        }
-        else if (protectedTry is not null && !IsLockTakenBeforeTry(method, protectedTry, lockWaits))
-        {
-            violations.Add($"{display}: {WorkspaceLock}.Wait() must be taken before the protected try");
+            violations.Add($"{body.Display}: {WorkspaceLock}.Wait() must be taken before the protected try");
         }
 
-        if (protectedTry is not null
-            && !SourceMethodLocator.DirectInvocations(protectedTry.Block)
-                .Any(invocation => SourceMethodLocator.IsSelfCall(invocation, Helper)))
+        var helper = syncEntry.ContainingType.GetMembers(Helper).OfType<IMethodSymbol>().ToList();
+        var helperInsideTry = MethodBodyScope.DirectNodes(protectedTry.Block)
+            .OfType<InvocationExpressionSyntax>()
+            .Select(invocation => body.CalledMethod(invocation))
+            .Any(called => called is not null
+                && helper.Any(candidate => SymbolEqualityComparer.Default.Equals(called.OriginalDefinition, candidate.OriginalDefinition)));
+        if (!helperInsideTry)
         {
-            violations.Add($"{display}: the snapshot read ({Helper}()) must happen inside the protected try");
+            violations.Add($"{body.Display}: the snapshot read ({Helper}()) must happen inside the protected try");
         }
     }
 
     /// <summary>
-    /// The protected <c>try</c> is the one whose <c>finally</c> releases <c>_workspaceLock</c>.
+    /// Reference forms of the public synchronous entry inside the async entry that are not calls: a
+    /// method group can be invoked through a delegate later, and a <c>nameof</c> mention is reported as
+    /// the weaker form it is. A call is reported exactly once, by the reachability query with its path,
+    /// so the form is read from the invocation the name belongs to: <c>this.M()</c> and <c>x?.M()</c>
+    /// are calls too, and looking only at the parent of the name reported them a second time as a
+    /// mention.
     /// </summary>
-    private static TryStatementSyntax? FindProtectedTry(MethodDeclarationSyntax method) =>
-        method.Body?.Statements
+    private static void ReportMentions(MethodBodyScope body, IMethodSymbol syncEntry, List<string> violations)
+    {
+        foreach (var reference in body.ReferencesTo(syncEntry))
+        {
+            if (IsInvokedMember(reference.Node))
+            {
+                continue;
+            }
+
+            var enclosingInvocation = reference.Node.Ancestors().OfType<InvocationExpressionSyntax>().FirstOrDefault();
+            var form = enclosingInvocation is not null && MethodBodyScope.IsNameOf(enclosingInvocation)
+                ? "nameof mention"
+                : "method group";
+            violations.Add(
+                $"{body.Display}: {form} of the public synchronous entry {SyncEntry} at {reference.FilePath}:{reference.Line} — "
+                + $"re-entering the non-recursive {WorkspaceLock} is possible: deadlock");
+        }
+    }
+
+    /// <summary>
+    /// True when the name is the invoked member itself: a bare name (<c>M()</c>), the name of a member
+    /// access (<c>this.M()</c>, <c>x.M()</c>) or the name of a conditional-access member binding
+    /// (<c>x?.M()</c>), each being the expression of the invocation it is called through.
+    /// </summary>
+    private static bool IsInvokedMember(SimpleNameSyntax node)
+    {
+        ExpressionSyntax expression = node.Parent switch
+        {
+            MemberAccessExpressionSyntax access when access.Name == node => access,
+            MemberBindingExpressionSyntax binding when binding.Name == node => binding,
+            _ => node,
+        };
+
+        return expression.Parent is InvocationExpressionSyntax invocation && invocation.Expression == expression;
+    }
+
+    private static void ReportBlockingMembers(SourceSetAnalysis analysis, MethodBodyScope body, List<string> violations)
+    {
+        var rules = BlockingMemberRules.For(analysis);
+        foreach (var node in body.Nodes.OfType<SimpleNameSyntax>())
+        {
+            var symbol = body.SymbolOf(node);
+            var rule = symbol is null
+                ? rules.ClassifyUnresolvedName(node.Identifier.ValueText)
+                : rules.Classify(symbol);
+            if (rule is null)
+            {
+                continue;
+            }
+
+            var bound = symbol is null
+                ? string.Empty
+                : $" (`{node}` resolves to {symbol.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)})";
+            violations.Add($"{body.Display}: sync-over-async — {rule} at {SourceSetAnalysis.Describe(node)}{bound}");
+        }
+    }
+
+    /// <summary>
+    /// The protected <c>try</c> is the direct statement of the body whose <c>finally</c> releases the
+    /// lock field; a <c>finally</c> that releases another lock does not protect this one.
+    /// </summary>
+    private static TryStatementSyntax? FindProtectedTry(MethodBodyScope body, IFieldSymbol lockField) =>
+        (body.Body as BlockSyntax)?.Statements
             .OfType<TryStatementSyntax>()
             .FirstOrDefault(statement => statement.Finally is not null
-                && SourceMethodLocator.DirectInvocations(statement.Finally.Block)
-                    .Any(invocation => SourceMethodLocator.IsMemberCall(invocation, WorkspaceLock, "Release")));
+                && MethodBodyScope.DirectNodes(statement.Finally.Block)
+                    .OfType<InvocationExpressionSyntax>()
+                    .Any(invocation => IsCallOn(body, invocation, lockField, "Release")));
 
     private static bool IsLockTakenBeforeTry(
-        MethodDeclarationSyntax method,
+        MethodBodyScope body,
         TryStatementSyntax protectedTry,
-        IReadOnlyList<InvocationExpressionSyntax> lockWaits)
+        IReadOnlyList<InvocationExpressionSyntax> waits)
     {
-        var statements = method.Body!.Statements;
+        var statements = ((BlockSyntax)body.Body).Statements;
         var tryIndex = statements.IndexOf(protectedTry);
         if (tryIndex <= 0)
         {
             return false;
         }
 
-        var beforeTry = statements.Take(tryIndex);
-        return lockWaits.Any(wait => beforeTry.Any(statement => SourceMethodLocator.IsInside(wait, statement)));
+        var beforeTry = statements.Take(tryIndex).ToList();
+        return waits.Any(wait => beforeTry.Any(statement => statement.Span.Contains(wait.Span)));
     }
 
-    private static bool IsPublishedSolutionReference(ExpressionSyntax? expression)
+    private static bool IsCallOn(MethodBodyScope body, InvocationExpressionSyntax invocation, IFieldSymbol field, string methodName)
     {
-        var text = expression?.ToString();
-        return text == PublishedSolution || text == "this." + PublishedSolution;
+        if (CalledName(body, invocation) != methodName)
+        {
+            return false;
+        }
+
+        var receiver = (invocation.Expression as MemberAccessExpressionSyntax)?.Expression;
+        return receiver is not null && IsFieldReference(body, receiver, field);
     }
 
-    private static string DescribeReceivers(IReadOnlyList<InvocationExpressionSyntax> invocations) =>
-        string.Join(
-            ", ",
-            invocations
-                .Select(invocation => SourceMethodLocator.ReceiverText(invocation) ?? "<no receiver>")
-                .Distinct(StringComparer.Ordinal));
+    private static string? CalledName(MethodBodyScope body, InvocationExpressionSyntax invocation) =>
+        body.CalledMethod(invocation)?.Name;
+
+    private static bool IsFieldReference(MethodBodyScope body, ExpressionSyntax expression, IFieldSymbol field) =>
+        body.SymbolOf(expression) is { } symbol && SymbolEqualityComparer.Default.Equals(symbol, field);
+
+    private static IFieldSymbol? Field(INamedTypeSymbol type, string name) =>
+        type.GetMembers(name).OfType<IFieldSymbol>().FirstOrDefault();
+
+    private static bool IsSemaphore(SourceSetAnalysis analysis, IFieldSymbol field)
+    {
+        var semaphore = analysis.Compilation.GetTypeByMetadataName("System.Threading.SemaphoreSlim");
+        if (semaphore is null || SymbolEqualityComparer.Default.Equals(field.Type, semaphore))
+        {
+            return semaphore is not null;
+        }
+
+        for (var current = field.Type.BaseType; current is not null; current = current.BaseType)
+        {
+            if (SymbolEqualityComparer.Default.Equals(current, semaphore))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 }

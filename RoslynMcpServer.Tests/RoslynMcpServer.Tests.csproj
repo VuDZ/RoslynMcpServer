@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
@@ -36,5 +36,13 @@
   <ItemGroup>
     <ProjectReference Include="..\RoslynMcpServer.csproj" />
     <ProjectReference Include="..\RoslynMcpServer.LifecycleTestHost\RoslynMcpServer.LifecycleTestHost.csproj" />
+    <!-- Separate process for the deadlock witness check; referenced so the host is built with the test
+         project and its dll lands next to the test assembly. -->
+    <ProjectReference Include="SourceStructure\DeadlockWitnessHost\DeadlockWitnessHost.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Sources of the witness host belong to its own project, not to the test assembly. -->
+    <Compile Remove="SourceStructure\DeadlockWitnessHost\**" />
+    <None Remove="SourceStructure\DeadlockWitnessHost\**" />
   </ItemGroup>
 </Project>
