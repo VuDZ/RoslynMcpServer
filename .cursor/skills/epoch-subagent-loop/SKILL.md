@@ -3,16 +3,22 @@ name: epoch-subagent-loop
 description: >-
   Implements a docs epoch series by launching a subagent, reviewing the diff,
   sending must-fix findings back to a subagent until the review accepts, then
-  committing and continuing to the next epoch when the series says so. Use when
+  committing and continuing to the next epoch when the series says so. Accepts
+  a finished epoch when the user says it is ready: review it, and if there are
+  remarks stop without marking, archiving, or committing; if there are none,
+  mark it done, move that epoch to the topic archive, then commit. Use when
   the user asks to implement docs epochs with subagents, a review-fix loop, and
-  a commit between epochs.
+  a commit between epochs, or to accept an epoch (приёмка, эпоха готова,
+  пометь готовым, в архив).
 ---
 
 # Epoch subagent loop
 
 запуск задачи сабагентом, ревью изменений, если нужны доработки - исправление саб агентом, опять проверка, если нужны доработки - повторить сабагент/ревью и так до завершения, потом коммит и следующая эпоха, если указано
 
-The parent orchestrates. It does not implement the epoch itself.
+Приёмка готовой эпохи: посмотри, если нет замечаний, то пометь готовым и перемести в архив, потом коммить. Если замечания есть — сообщи их и остановись.
+
+The parent orchestrates. It does not implement the epoch itself. User acceptance is a separate path from the loop below: do not launch a subagent to fix remarks unless the user asks.
 
 ## Order
 
@@ -49,6 +55,18 @@ MUST-FIX
 ```
 
 No praise, no restating the spec.
+
+## Acceptance
+
+When the user says an epoch is ready and asks to look:
+
+1. Review the epoch against its spec and its results file. Run the tests the epoch names, via Roslyn MCP. A remark is a spec miss or a behavior bug. A nit is not a remark.
+2. If there is a remark: report it and stop. Do not mark the epoch done, do not move files, do not commit.
+3. If there are no remarks:
+   - Mark the epoch done in its own file and in the series README.
+   - Move that epoch's plan and results into `<topic>/_archive/`. Later epochs stay on the live shelf. Do not move the whole series to `docs/archive/` until every epoch is done.
+   - Point the series README, `docs/README.md`, and the next epoch's dependency at the archive. Fix relative links inside the moved files. Do not rewrite the spec to match the implementation.
+   - Commit only this epoch's files, as below. Do not push.
 
 ## Commit
 
