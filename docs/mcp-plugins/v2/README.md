@@ -1,6 +1,6 @@
 # Плагины MCP
 
-Дата: 2026-09-28. Статус: **эпохи 1 и 2 выполнены** ([архив](_archive/README.md)); эпоха 3 не начата.
+Дата: 2026-09-28. Статус: **эпохи 1–3 выполнены** ([архив](_archive/README.md)); эпоха 4 не начата.
 Текущий контракт этой темы. Предыдущий текст —
 [_archive/v1/](../_archive/v1/README.md) — нормой не является.
 
@@ -33,7 +33,7 @@ generated `.cs` под `obj` шаблона), эпоха 7 это исключе
 |---|---|---|
 | 1. Регистрация тулов | [epoch-1-registration.md](_archive/epoch-1-registration.md) | сделана |
 | 2. Манифест и пути | [epoch-2-manifest-and-paths.md](_archive/epoch-2-manifest-and-paths.md) | сделана |
-| 3. Теневая копия | [epoch-3-shadow-copy.md](epoch-3-shadow-copy.md) | сделана |
+| 3. Теневая копия | [epoch-3-shadow-copy.md](_archive/epoch-3-shadow-copy.md) | сделана |
 | 4. Шаблон | [epoch-4-sample-plugin.md](epoch-4-sample-plugin.md) | не начата |
 | 5. Загрузка сборки | [epoch-5-assembly-load.md](epoch-5-assembly-load.md) | не начата |
 | 6. Старт хоста | [epoch-6-host-startup.md](epoch-6-host-startup.md) | не начата |
