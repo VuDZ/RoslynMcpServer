@@ -21,12 +21,13 @@ Arrange members in this order:
 2. Constructors.
 3. Methods.
 4. Private nested types, if needed.
-5. Constants and fields.
+5. Private fields.
 
+- Constants stay where they are. Do not move a constant to satisfy this order. Place a new constant next to the members that use it.
+- Private instance and static fields end the type. In a file that contains only that type, they end the file. `const` members are constants, not fields for this rule.
 - Within each group, follow accessibility order: `public`, `internal`, `protected internal`, `protected`, `private protected`, `private`.
-- Public and internal properties therefore come at the start of the class, protected fields come before private fields, and private fields end the class.
 - Keep overloads of the same method together; accessibility order may be broken for that. Place a static constructor before instance constructors.
-- When moving existing fields, keep a semantically significant initializer order. Preserving behavior matters more than mechanical sorting.
+- When moving private fields, keep a semantically significant initializer order. Preserving behavior matters more than mechanical sorting.
 
 ### Formatting and naming
 
@@ -34,12 +35,12 @@ Arrange members in this order:
 - Keep braces even for a single-statement body.
 - Use `PascalCase` for types, methods, properties, and constants, `camelCase` for parameters and local variables, and `_camelCase` for private and protected fields, including static fields.
 - Leave short calls on one line. Break long calls and complex arguments at meaningful boundaries; when the argument list is expanded, put one argument per line.
-- The line-length guide is 120 characters. This is not a hard limit: do not split string literals, URLs, and other indivisible fragments only to hit the number.
+- 120 characters is a guide, not a limit. A longer line is acceptable. Do not split a line only to come in under 120, including string literals, URLs, and other indivisible fragments.
 - Break long call chains at operations. A short chain of simple calls may stay on one line.
 - Use `var` when the type is obvious from the expression or the nearest context. Name the type explicitly when that makes the result clear without jumping to the called method's declaration.
 - Use expression-bodied members for simple expressions, short conversions, and delegation. Format complex calculations and branching as an ordinary body.
 - Give variables meaningful names. `i`, `sb`, and `ex` are acceptable in a short obvious context; expand ambiguous abbreviations such as `tm`, `emIdx`, and `stIdx`.
-- Give async methods an `Async` suffix, and put `CancellationToken` last. Exceptions are allowed for names fixed by an external contract. When renaming, keep the external names of MCP tools.
+- Put `CancellationToken` last. Do not rename a method only to add or remove an `Async` suffix. Keep the external names of MCP tools.
 - Read the applicable `.editorconfig` files if they exist, and follow their settings. Do not assume the standard C# formatter will provide meaningful line breaks or enforce the line-length guide.
 
 ### Language
@@ -97,5 +98,4 @@ For example, a useful comment on test-result handling:
 
 - Follow the rules when creating and changing code. Do not expand an ordinary task into a mass reformat or a reorganization of the repository.
 - Separate mass formatting from changes to structure and behavior, so the result is easier to review.
-- Use the configured formatter and analyzers for mechanical rules. When checking with `dotnet format --verify-no-changes --include …`, name the specific project or solution and the affected files; the ellipsis stands for the path list, not a literal argument.
-- The formatter checks only the rules it supports and that are enabled. Judge method and class boundaries, name quality, and whether comments are useful separately.
+- Judge method and class boundaries, name quality, and whether comments are useful by reading the change. A formatter does not decide those.
