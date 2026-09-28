@@ -82,7 +82,7 @@ internal static class SanitizedEntryChecks
         var scope = SourceMethodLocator.TryGetScope(rawEntry!);
         if (scope is null)
         {
-            return new[] { $"{display}: нет тела метода для проверки" };
+            return new[] { $"{display}: method has no body to check" };
         }
 
         var violations = new List<string>();
@@ -91,7 +91,7 @@ internal static class SanitizedEntryChecks
             .Any(statement => IsPublishedSolutionReference(statement.Expression));
         if (!returnsPublishedSolution)
         {
-            violations.Add($"{display}: тело не возвращает {PublishedSolution} — raw-снимок подменён sanitized");
+            violations.Add($"{display}: body does not return {PublishedSolution} — the raw snapshot was replaced with a sanitized one");
         }
 
         foreach (var name in RawForbiddenNames)
@@ -100,7 +100,7 @@ internal static class SanitizedEntryChecks
             if (references.Count > 0)
             {
                 violations.Add(
-                    $"{display}: запрещённая ссылка на {name} в строке {SourceMethodLocator.LineOf(references[0])}");
+                    $"{display}: forbidden reference to {name} at line {SourceMethodLocator.LineOf(references[0])}");
             }
         }
 
@@ -116,7 +116,7 @@ internal static class SanitizedEntryChecks
         var scope = SourceMethodLocator.TryGetScope(method);
         if (scope is null)
         {
-            violations.Add($"{display}: нет тела метода для проверки");
+            violations.Add($"{display}: method has no body to check");
             return;
         }
 
@@ -124,7 +124,7 @@ internal static class SanitizedEntryChecks
             .Any(invocation => SourceMethodLocator.IsSelfCall(invocation, Helper));
         if (!callsHelper)
         {
-            violations.Add($"{display}: нет непосредственного вызова {Helper}() в теле метода");
+            violations.Add($"{display}: no direct call to {Helper}() in the method body");
         }
 
         var syncReferences = SourceMethodLocator.DirectNameReferences(scope, SyncEntry);
@@ -132,8 +132,8 @@ internal static class SanitizedEntryChecks
         {
             var line = SourceMethodLocator.LineOf(syncReferences[0]);
             violations.Add(
-                $"{display}: ссылка на публичный синхронный вход {SyncEntry} в строке {line}: "
-                + $"повторный вход в нерекурсивный {WorkspaceLock} — дедлок");
+                $"{display}: reference to the public synchronous entry {SyncEntry} at line {line}: "
+                + $"re-entering the non-recursive {WorkspaceLock} — deadlock");
         }
     }
 
@@ -146,7 +146,7 @@ internal static class SanitizedEntryChecks
         var scope = SourceMethodLocator.TryGetScope(method);
         if (scope is null)
         {
-            violations.Add($"{display}: нет тела метода для проверки");
+            violations.Add($"{display}: method has no body to check");
             return;
         }
 
@@ -156,7 +156,7 @@ internal static class SanitizedEntryChecks
             if (references.Count > 0)
             {
                 var line = SourceMethodLocator.LineOf(references[0]);
-                violations.Add($"{display}: sync-over-async — обращение к члену {member} в строке {line}");
+                violations.Add($"{display}: sync-over-async — member access {member} at line {line}");
             }
         }
 
@@ -164,7 +164,7 @@ internal static class SanitizedEntryChecks
         var protectedTry = FindProtectedTry(method);
         if (protectedTry is null)
         {
-            violations.Add($"{display}: нет вызова {WorkspaceLock}.Release() в finally защищённого try");
+            violations.Add($"{display}: no call to {WorkspaceLock}.Release() in the finally of the protected try");
         }
 
         var waits = invocations
@@ -176,19 +176,19 @@ internal static class SanitizedEntryChecks
         if (lockWaits.Count == 0)
         {
             violations.Add(waits.Count == 0
-                ? $"{display}: нет вызова {WorkspaceLock}.Wait() в теле метода"
-                : $"{display}: Wait() вызван у {DescribeReceivers(waits)}, а не у {WorkspaceLock}");
+                ? $"{display}: no call to {WorkspaceLock}.Wait() in the method body"
+                : $"{display}: Wait() is called on {DescribeReceivers(waits)}, not on {WorkspaceLock}");
         }
         else if (protectedTry is not null && !IsLockTakenBeforeTry(method, protectedTry, lockWaits))
         {
-            violations.Add($"{display}: захват {WorkspaceLock}.Wait() должен стоять перед защищённым try");
+            violations.Add($"{display}: {WorkspaceLock}.Wait() must be taken before the protected try");
         }
 
         if (protectedTry is not null
             && !SourceMethodLocator.DirectInvocations(protectedTry.Block)
                 .Any(invocation => SourceMethodLocator.IsSelfCall(invocation, Helper)))
         {
-            violations.Add($"{display}: обращение к снимку ({Helper}()) должно быть внутри защищённого try");
+            violations.Add($"{display}: the snapshot read ({Helper}()) must happen inside the protected try");
         }
     }
 
@@ -228,6 +228,6 @@ internal static class SanitizedEntryChecks
         string.Join(
             ", ",
             invocations
-                .Select(invocation => SourceMethodLocator.ReceiverText(invocation) ?? "<без receiver>")
+                .Select(invocation => SourceMethodLocator.ReceiverText(invocation) ?? "<no receiver>")
                 .Distinct(StringComparer.Ordinal));
 }

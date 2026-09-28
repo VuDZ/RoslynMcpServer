@@ -214,7 +214,7 @@ public sealed class SanitizedEntryChecksTests
         AssertCompiles(mutated);
         AssertViolation(
             VerifySanitized(mutated),
-            $"{DemoType}.{AsyncEntry}: ссылка на публичный синхронный вход {SyncEntry}");
+            $"{DemoType}.{AsyncEntry}: reference to the public synchronous entry {SyncEntry}");
     }
 
     [Fact]
@@ -229,7 +229,7 @@ public sealed class SanitizedEntryChecksTests
         AssertCompiles(mutated);
         AssertViolation(
             VerifySanitized(mutated),
-            $"{DemoType}.{AsyncEntry}: ссылка на публичный синхронный вход {SyncEntry}");
+            $"{DemoType}.{AsyncEntry}: reference to the public synchronous entry {SyncEntry}");
     }
 
     [Fact]
@@ -238,7 +238,7 @@ public sealed class SanitizedEntryChecksTests
         var mutated = MutateMember(SyncSignature, RawSignature, BodyIndent + "_workspaceLock.Wait();\n", string.Empty);
 
         AssertCompiles(mutated);
-        AssertViolation(VerifySanitized(mutated), "нет вызова _workspaceLock.Wait() в теле метода");
+        AssertViolation(VerifySanitized(mutated), "no call to _workspaceLock.Wait() in the method body");
     }
 
     [Fact]
@@ -251,7 +251,7 @@ public sealed class SanitizedEntryChecksTests
             string.Empty);
 
         AssertCompiles(mutated);
-        AssertViolation(VerifySanitized(mutated), "нет вызова _workspaceLock.Release() в finally защищённого try");
+        AssertViolation(VerifySanitized(mutated), "no call to _workspaceLock.Release() in the finally of the protected try");
     }
 
     [Fact]
@@ -260,7 +260,7 @@ public sealed class SanitizedEntryChecksTests
         var mutated = MutateMember(SyncSignature, RawSignature, "_workspaceLock", "_otherLock");
 
         AssertCompiles(mutated);
-        AssertViolation(VerifySanitized(mutated), "Wait() вызван у _otherLock, а не у _workspaceLock");
+        AssertViolation(VerifySanitized(mutated), "Wait() is called on _otherLock, not on _workspaceLock");
     }
 
     [Fact]
@@ -284,7 +284,7 @@ public sealed class SanitizedEntryChecksTests
             + BodyIndent + "return snapshot;");
 
         AssertCompiles(mutated);
-        AssertViolation(VerifySanitized(mutated), "нет вызова _workspaceLock.Release() в finally защищённого try");
+        AssertViolation(VerifySanitized(mutated), "no call to _workspaceLock.Release() in the finally of the protected try");
     }
 
     [Fact]
@@ -302,7 +302,7 @@ public sealed class SanitizedEntryChecksTests
             + BodyIndent + "}");
 
         AssertCompiles(mutated);
-        AssertViolation(VerifySanitized(mutated), "должно быть внутри защищённого try");
+        AssertViolation(VerifySanitized(mutated), "must happen inside the protected try");
     }
 
     [Fact]
@@ -316,7 +316,7 @@ public sealed class SanitizedEntryChecksTests
             + BodyIndent + "var ignored = Task.FromResult(0).Result;");
 
         AssertCompiles(mutated);
-        AssertViolation(VerifySanitized(mutated), "обращение к члену Result");
+        AssertViolation(VerifySanitized(mutated), "member access Result");
     }
 
     [Fact]
@@ -330,7 +330,7 @@ public sealed class SanitizedEntryChecksTests
             + BodyIndent + "Task.CompletedTask.GetAwaiter().GetResult();");
 
         AssertCompiles(mutated);
-        AssertViolation(VerifySanitized(mutated), "обращение к члену GetAwaiter");
+        AssertViolation(VerifySanitized(mutated), "member access GetAwaiter");
     }
 
     [Fact]
@@ -346,7 +346,7 @@ public sealed class SanitizedEntryChecksTests
             BodyIndent + "_workspaceLock.WaitAsync().Result;");
 
         Assert.NotEmpty(CompilationErrors(mutated));
-        AssertViolation(VerifySanitized(mutated), "обращение к члену Result");
+        AssertViolation(VerifySanitized(mutated), "member access Result");
     }
 
     [Fact]
@@ -364,7 +364,7 @@ public sealed class SanitizedEntryChecksTests
             + NestedIndent + "return _solution;");
 
         AssertCompiles(mutated);
-        AssertViolation(VerifySanitized(mutated), "должно быть внутри защищённого try");
+        AssertViolation(VerifySanitized(mutated), "must happen inside the protected try");
     }
 
     [Fact]
@@ -378,7 +378,7 @@ public sealed class SanitizedEntryChecksTests
             + NestedIndent + "return read();");
 
         AssertCompiles(mutated);
-        AssertViolation(VerifySanitized(mutated), "должно быть внутри защищённого try");
+        AssertViolation(VerifySanitized(mutated), "must happen inside the protected try");
     }
 
     [Fact]
@@ -392,8 +392,8 @@ public sealed class SanitizedEntryChecksTests
 
         AssertCompiles(mutated);
         var violations = VerifyRaw(mutated);
-        AssertViolation(violations, "тело не возвращает _solution");
-        AssertViolation(violations, $"запрещённая ссылка на {HelperEntry}");
+        AssertViolation(violations, "body does not return _solution");
+        AssertViolation(violations, $"forbidden reference to {HelperEntry}");
     }
 
     [Fact]
@@ -406,7 +406,7 @@ public sealed class SanitizedEntryChecksTests
             MemberIndent + "public Snapshot? RenamedEntry()");
 
         AssertCompiles(mutated);
-        AssertViolation(VerifySanitized(mutated), $"{SyncEntry}: метод не найден");
+        AssertViolation(VerifySanitized(mutated), $"{SyncEntry}: method not found");
     }
 
     [Fact]
@@ -421,7 +421,7 @@ public sealed class SanitizedEntryChecksTests
         var mutated = MutateWholeSource(SyncSignature, overload + SyncSignature);
 
         AssertCompiles(mutated);
-        AssertViolation(VerifySanitized(mutated), "нужна однозначная сигнатура");
+        AssertViolation(VerifySanitized(mutated), "an unambiguous signature is required");
     }
 
     [Fact]
@@ -433,7 +433,7 @@ public sealed class SanitizedEntryChecksTests
             + "\ninternal sealed partial class DemoManager\n{\n}\n";
 
         AssertCompiles(mutated);
-        AssertViolation(VerifySanitized(mutated), "partial-типы эта проверка не объединяет");
+        AssertViolation(VerifySanitized(mutated), "does not merge partial types");
     }
 
     [Fact]
@@ -454,7 +454,7 @@ public sealed class SanitizedEntryChecksTests
             """;
 
         AssertCompiles(source);
-        AssertViolation(VerifySanitized(source), "нет тела метода для проверки");
+        AssertViolation(VerifySanitized(source), "method has no body to check");
     }
 
     [Fact]
@@ -462,7 +462,7 @@ public sealed class SanitizedEntryChecksTests
     {
         var truncated = Baseline[..Baseline.IndexOf(HelperSignature, StringComparison.Ordinal)];
 
-        AssertViolation(VerifySanitized(truncated), "исходник не разобран");
+        AssertViolation(VerifySanitized(truncated), "source did not parse");
     }
 
     [Fact]
@@ -470,8 +470,8 @@ public sealed class SanitizedEntryChecksTests
     {
         var target = new SourceTarget(Baseline, DemoPath, "Other.Namespace", DemoType);
 
-        AssertViolation(SanitizedEntryChecks.VerifySanitizedEntries(target), "тип не найден");
-        AssertViolation(SanitizedEntryChecks.VerifyRawPublishedEntry(target), "тип не найден");
+        AssertViolation(SanitizedEntryChecks.VerifySanitizedEntries(target), "type not found");
+        AssertViolation(SanitizedEntryChecks.VerifyRawPublishedEntry(target), "type not found");
     }
 
     private static IReadOnlyList<string> VerifySanitized(string sourceText) =>
@@ -483,9 +483,9 @@ public sealed class SanitizedEntryChecksTests
     private static string CutMember(string signature, string terminator)
     {
         var start = Baseline.IndexOf(signature, StringComparison.Ordinal);
-        Assert.True(start >= 0, $"маркер члена не найден: {signature}");
+        Assert.True(start >= 0, $"member marker not found: {signature}");
         var end = Baseline.IndexOf(terminator, start, StringComparison.Ordinal);
-        Assert.True(end > start, $"терминатор члена не найден: {terminator}");
+        Assert.True(end > start, $"member terminator not found: {terminator}");
         return Baseline[start..end];
     }
 

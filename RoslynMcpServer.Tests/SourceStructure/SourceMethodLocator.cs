@@ -21,7 +21,7 @@ internal static class SourceMethodLocator
             .ToList();
         if (syntaxErrors.Count > 0)
         {
-            return (null, $"{target.SourcePath}: исходник не разобран: {string.Join("; ", syntaxErrors)}");
+            return (null, $"{target.SourcePath}: source did not parse: {string.Join("; ", syntaxErrors)}");
         }
 
         var candidates = tree.GetRoot()
@@ -31,14 +31,14 @@ internal static class SourceMethodLocator
             .ToList();
         if (candidates.Count == 0)
         {
-            return (null, $"{target.NamespaceName}.{target.TypeName}: тип не найден в {target.SourcePath}");
+            return (null, $"{target.NamespaceName}.{target.TypeName}: type not found in {target.SourcePath}");
         }
 
         if (candidates.Count > 1)
         {
             return (null,
-                $"{target.NamespaceName}.{target.TypeName}: найдено {candidates.Count} объявлений типа; "
-                + $"partial-типы эта проверка не объединяет ({target.SourcePath})");
+                $"{target.NamespaceName}.{target.TypeName}: {candidates.Count} type declarations found; "
+                + $"this check does not merge partial types ({target.SourcePath})");
         }
 
         return (candidates[0], null);
@@ -59,14 +59,14 @@ internal static class SourceMethodLocator
             .ToList();
         if (candidates.Count == 0)
         {
-            return (null, $"{typeDisplayName}.{methodName}: метод не найден");
+            return (null, $"{typeDisplayName}.{methodName}: method not found");
         }
 
         if (candidates.Count > 1)
         {
             return (null,
-                $"{typeDisplayName}.{methodName}: объявлений с этим именем — {candidates.Count}, "
-                + "нужна однозначная сигнатура");
+                $"{typeDisplayName}.{methodName}: {candidates.Count} declarations with this name, "
+                + "an unambiguous signature is required");
         }
 
         return (candidates[0], null);
@@ -155,7 +155,7 @@ internal static class SourceMethodLocator
         }
 
         var line = diagnostic.Location.GetLineSpan().StartLinePosition.Line + 1;
-        return $"{diagnostic.Id} {diagnostic.GetMessage()} (строка {line})";
+        return $"{diagnostic.Id} {diagnostic.GetMessage()} (line {line})";
     }
 
     /// <summary>Local function or lambda: its body runs somewhere other than where it is declared.</summary>
