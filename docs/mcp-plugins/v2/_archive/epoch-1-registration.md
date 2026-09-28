@@ -8,8 +8,8 @@
 `IServiceCollection` и ту же коллекцию MCP, что у встроенных тулов. Сборки с
 диска эта эпоха не читает.
 
-Контракт имён — [README.md](README.md). Класс тула хост создаёт на вызов через
-`ActivatorUtilities`, как [`McpToolDescriptor.CreateFactory`](../../../Hosting/McpToolDescriptor.cs).
+Контракт имён — [README.md](../README.md). Класс тула хост создаёт на вызов через
+`ActivatorUtilities`, как [`McpToolDescriptor.CreateFactory`](../../../../Hosting/McpToolDescriptor.cs).
 
 ## Поведение
 
@@ -35,7 +35,7 @@
 регистрируется как singleton один раз. В общий контейнер сервисы и тулы этого
 плагина попадают только когда `Register` вернулся нормально и `Create` успел
 для каждого принятого метода. Встроенные тулы остаются на отложенных фабриках
-[`McpToolRegistry.RegisterSelectedTools`](../../../Hosting/McpToolRegistry.cs).
+[`McpToolRegistry.RegisterSelectedTools`](../../../../Hosting/McpToolRegistry.cs).
 Буфер дескрипторов до commit либо снятие уже добавленных дескрипторов до
 публикации статуса — оба допустимы.
 
@@ -45,7 +45,7 @@
 эффекты вне DI не откатываются. Неуспешный метод назван в причине пропуска.
 Общий catch вокруг старта встроенного каталога не ставится.
 
-В [`McpToolCatalog`](../../../Hosting/McpToolCatalog.cs) имя не добавляется.
+В [`McpToolCatalog`](../../../../Hosting/McpToolCatalog.cs) имя не добавляется.
 `HostTypes` каталога не растёт. `lite` / `full` эти тулы не фильтрует. Второго
 наполнения коллекции из отчёта регистрации нет.
 
