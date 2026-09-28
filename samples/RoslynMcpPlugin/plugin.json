@@ -1,0 +1,7 @@
+{
+  "id": "sample",
+  "entry": "RoslynMcpPlugin.dll",
+  "pluginType": "RoslynMcpPlugin.SamplePlugin",
+  "toolPrefix": "sample_",
+  "minHostVersion": "1.0"
+}
