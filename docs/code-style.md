@@ -55,6 +55,14 @@ Arrange members in this order:
 - When you touch a file that still mixes languages, translate the text you touch. Do not turn an
   unrelated change into a mass retranslation.
 
+### Tests that inspect production code
+
+Do not infer the structure or semantics of production C# from the text of a source file. Do not conclude that a method calls a method, that a lock is taken, or that a symbol occurs once from `IndexOf`, `Contains`, `Regex`, a slice between declarations, or a window around a substring. A green test does not make a text slice a structural check.
+
+Check behavior by executing it. Check the shape of the code through `SourceSetAnalysis` and the helpers next to it in `RoslynMcpServer.Tests/SourceStructure/`.
+
+Exact text is allowed when the contract is the text itself: a message, CLI output, a `.csproj`, markdown, or a generated file.
+
 ### Comments and bug fixes
 
 - Comment non-obvious decisions, external-library limitations, important operation order, race conditions, and workarounds.

@@ -1,0 +1,14 @@
+---
+description: Do not assert production C# structure from source text
+alwaysApply: true
+---
+
+# Structural tests
+
+Do not infer the structure or semantics of production C# from the text of a source file. Do not conclude that a method calls a method, that a lock is taken, or that a symbol occurs once from `IndexOf`, `Contains`, `Regex`, a slice between declarations, or a window around a substring. A green test does not make a text slice a structural check.
+
+Check behavior by executing it. Check the shape of the code through `SourceSetAnalysis` and the helpers next to it in `RoslynMcpServer.Tests/SourceStructure/`.
+
+Exact text is allowed when the contract is the text itself: a message, CLI output, a `.csproj`, markdown, or a generated file.
+
+Canon: `docs/code-style.md`, section "Tests that inspect production code".
