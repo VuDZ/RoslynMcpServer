@@ -6,6 +6,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using RoslynMcpServer.Diagnostics;
 using RoslynMcpServer.Hosting;
+using RoslynMcpServer.Plugins;
 using RoslynMcpServer.Tools;
 using Serilog;
 using System.Reflection;
@@ -87,7 +88,31 @@ catch (InvalidOperationException ex)
     return;
 }
 
+// Plugins are discovered, copied and loaded before the provider exists, so the first tools/list already
+// contains their tools. A broken plugin is skipped inside the pass and never stops the host.
+PluginStartup.Report pluginStartup;
+try
+{
+    pluginStartup = PluginStartup.Run(
+        builder.Services,
+        fileSettings,
+        AppContext.BaseDirectory,
+        Environment.GetEnvironmentVariable(PluginDiscovery.EnvironmentVariableName),
+        Console.Error);
+}
+catch (Exception ex)
+{
+    // Same scheme as a broken tool catalog: the reason on stderr, a non-zero exit code, and no host start.
+    Console.Error.WriteLine($"[RoslynMcp] {ex.Message}");
+    Environment.ExitCode = 1;
+    return;
+}
+
 var host = builder.Build();
+
+// No second discovery: the start pass already holds the skip lines, and the log file exists only now.
+PluginStartup.WriteSkipsToLog(pluginStartup, host.Services.GetRequiredService<ILoggerFactory>());
+
 var activation = host.Services.GetRequiredService<McpToolActivationService>();
 Console.Error.WriteLine(
     $"[RoslynMcp] session={sessionId}; tool profile={activation.Profile}; startup groups={activation.FormatStartupGroupsDisplay()}; dynamic groups={activation.FormatDynamicGroupsDisplay()}; registered tools={activation.CurrentToolCount}");

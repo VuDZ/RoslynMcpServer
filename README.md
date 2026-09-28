@@ -180,6 +180,11 @@ MCP `tools/list` stays JSON + JSON Schema. Markdown is for JIT help and diagnost
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.4.18
+
+- **Plugins** — the server loads plugin assemblies before the host is built, so the first `tools/list` already contains their tools. Sources: `{BaseDirectory}/plugins/<id>/` drop-in directories, the `plugins` key of `RoslynMcp.jsonc`, and `ROSLYN_MCP_PLUGINS` (a directory or an entry DLL path; a development directory is copied to a temporary directory of this run before it is loaded). The manifest `id` must equal `IRoslynMcpPlugin.Name`, every tool name must start with the manifest `toolPrefix`, and a plugin compiled against another `ModelContextProtocol` Minor, a newer `RoslynMcpServer`, or another Roslyn major is refused before its DLL is opened. A plugin that cannot be loaded is skipped with a `[RoslynMcp] plugin skipped (<id or path>): <reason>` line on stderr at the moment of the skip and in `logs/mcp-*.log` after a successful start; the process starts with the remaining plugins and the built-in tools. `get_mcp_server_info` adds the loaded plugins (id, entry file that was opened, tool names) and one line per skipped source. `get_tool_help` for a plugin tool returns the `[Description]` and parameters of its accepted method and reports `Kind: plugin` / `Group: plugin`. Plugin tools are counted in `Registered MCP tools`, are not filtered by `lite`/`full`, and never enter `McpToolCatalog` or `list_tool_groups`.
+- **Catalog size** — unchanged: full 54 tools / 45,135 bytes; lite 15 / 17,491. Plugin tools are not catalog entries.
+
 ### v1.4.17
 
 - **`get_changed_files`** — `git status` reads stdout and stderr together and stops the process if that does not finish. The budget is 180s for the run plus up to 3s to stop it, on Windows, Linux, and macOS. A client that cancels sooner still cancels; the server limit is the backstop when the client waits longer.
@@ -1518,7 +1523,7 @@ cd D:\Devel\YourApp
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.4.17). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.4.18). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 

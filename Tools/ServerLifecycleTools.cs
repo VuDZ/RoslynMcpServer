@@ -1,9 +1,11 @@
-using System.ComponentModel;
+﻿using System.ComponentModel;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Server;
 using RoslynMcpServer.Diagnostics;
 using RoslynMcpServer.Hosting;
+using RoslynMcpServer.Plugins;
 using RoslynMcpServer.Services;
 
 namespace RoslynMcpServer.Tools;
@@ -14,17 +16,20 @@ public sealed class ServerLifecycleTools
     private readonly SolutionManager _solutionManager;
     private readonly ILogger<ServerLifecycleTools> _logger;
     private readonly McpToolActivationService _activation;
+    private readonly IServiceProvider _services;
 
     public ServerLifecycleTools(
         IHostApplicationLifetime lifetime,
         SolutionManager solutionManager,
         ILogger<ServerLifecycleTools> logger,
-        McpToolActivationService activation)
+        McpToolActivationService activation,
+        IServiceProvider services)
     {
         _lifetime = lifetime;
         _solutionManager = solutionManager;
         _logger = logger;
         _activation = activation;
+        _services = services;
     }
 
     [McpServerTool(Name = "get_mcp_server_info", Title = "Get MCP server info")]
@@ -33,13 +38,18 @@ public sealed class ServerLifecycleTools
     public Task<string> GetMcpServerInfo(CancellationToken cancellationToken = default)
     {
         _ = cancellationToken;
+
+        // The plugin start pass registers its report in this container; a host built without that pass has
+        // none and has no plugin to report.
+        var pluginStartup = _services.GetService<PluginStartup.Report>() ?? PluginStartup.Report.Empty;
         var info = McpServerInfoHelper.BuildInfoMarkdown(
             _solutionManager.GetCurrentSolution(),
             _activation,
             _solutionManager.FileSettings,
             _solutionManager.WorkspaceLoadSource,
             _solutionManager.WorkspaceLoadInProgress,
-            _solutionManager.LastLazyLoadFailureReport);
+            _solutionManager.LastLazyLoadFailureReport,
+            pluginStartup);
         return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(GetMcpServerInfo), info));
     }
 
