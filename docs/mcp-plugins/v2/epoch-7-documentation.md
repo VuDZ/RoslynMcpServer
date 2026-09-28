@@ -31,6 +31,14 @@ managed-зависимости в выходе, ссылка на `RoslynMcpServ
 - `minHostVersion`: число в выходной `plugin.json` ставит сборка из
   `AssemblyVersion` ссылки на `RoslynMcpServer`, его не ведёт человек.
   Пример в тексте — версия хоста на момент правки;
+- пример csproj — файл шаблона, не укороченный набросок. В нём
+  `CopyLocalLockFileAssemblies`, `PreserveCompilationContext`,
+  выключенный `PreserveCompilationReferences`, выключенный
+  `TrimDepsJsonLibrariesWithoutAssets` и цель, которая пишет выходной
+  `plugin.json`. Без compile-записей в `deps.json` эпоха 2 пропускает плагин.
+  Частная зависимость примера — `Newtonsoft.Json`, тул её вызывает. Сборки
+  контракта в выход не копируются. Фразу, что свойство копирования не
+  нормировано, заменить этим;
 - цикл правки, теневая копия, drop-in `plugins/<id>/`, `ROSLYN_MCP_PLUGINS` и
   отладка от процесса хоста остаются. Формулировки, которые противоречат
   старту из эпохи 6 (куда пишется пропуск, какой путь виден в

@@ -12,14 +12,14 @@
 |---|---|---|---|
 | P-001 | ACCEPTED | APPLIED | `v2/README.md` (пример и три входа), `v2/authoring.md` («Чем пользоваться»), `v2/epoch-5-assembly-load.md` (тест диска) |
 | P-002 | ACCEPTED | APPLIED | `v2/README.md` («Совместимость»), `v2/authoring.md` (таблица `minHostVersion` и оси), `v2/_archive/epoch-2-manifest-and-paths.md` |
-| P-003 | ACCEPTED | APPLIED | `v2/authoring.md`, `v2/epoch-4-sample-plugin.md`; location частной DLL — `v2/epoch-5-assembly-load.md` |
+| P-003 | ACCEPTED | APPLIED | `v2/authoring.md`, `v2/_archive/epoch-4-sample-plugin.md`; location частной DLL — `v2/epoch-5-assembly-load.md` |
 | P-004 | ACCEPTED | APPLIED | `v2/authoring.md` |
 | P-005 | ACCEPTED | APPLIED | `v2/_archive/epoch-1-registration.md`, `v2/epoch-5-assembly-load.md` |
 | P-006 | ACCEPTED | APPLIED | `v2/_archive/epoch-1-registration.md`, `v2/epoch-5-assembly-load.md`, `v2/epoch-6-host-startup.md` |
 | P-007 | ACCEPTED | APPLIED | `v2/_archive/epoch-1-registration.md` |
 | P-008 | ACCEPTED | APPLIED | `v2/_archive/epoch-2-manifest-and-paths.md`; стык со стартом — `v2/epoch-6-host-startup.md` |
 | P-009 | ACCEPTED | APPLIED | `v2/_archive/epoch-3-shadow-copy.md` (тест байтов не про ALC), `v2/epoch-5-assembly-load.md` |
-| P-010 | ACCEPTED | APPLIED | `v2/README.md` (общий файл), `v2/epoch-4-sample-plugin.md`, `v2/epoch-7-documentation.md` |
+| P-010 | ACCEPTED | APPLIED | `v2/README.md` (общий файл), `v2/_archive/epoch-4-sample-plugin.md`, `v2/epoch-7-documentation.md` |
 | P-011 | ACCEPTED | APPLIED | `v2/epoch-5-assembly-load.md` |
 | P-012 | ACCEPTED | APPLIED | `v2/README.md` (граница), `v2/authoring.md`, `v2/_archive/epoch-3-shadow-copy.md`, `v2/epoch-5-assembly-load.md` |
 | P-013 | ACCEPTED | APPLIED | `v2/epoch-6-host-startup.md` |
@@ -115,14 +115,14 @@
 
 - `P-001` → ACCEPTED → APPLIED → `v2/README.md`, `v2/authoring.md`, `v2/epoch-5-assembly-load.md`
 - `P-002` → ACCEPTED → APPLIED → `v2/README.md`, `v2/authoring.md`, `v2/_archive/epoch-2-manifest-and-paths.md`
-- `P-003` → ACCEPTED → APPLIED → `v2/authoring.md`, `v2/epoch-4-sample-plugin.md`, location в `v2/epoch-5-assembly-load.md`
+- `P-003` → ACCEPTED → APPLIED → `v2/authoring.md`, `v2/_archive/epoch-4-sample-plugin.md`, location в `v2/epoch-5-assembly-load.md`
 - `P-004` → ACCEPTED → APPLIED → `v2/authoring.md`
 - `P-005` → ACCEPTED → APPLIED → `v2/_archive/epoch-1-registration.md`, `v2/epoch-5-assembly-load.md`
 - `P-006` → ACCEPTED → APPLIED → `v2/_archive/epoch-1-registration.md`, `v2/epoch-5-assembly-load.md`, `v2/epoch-6-host-startup.md`
 - `P-007` → ACCEPTED → APPLIED → `v2/_archive/epoch-1-registration.md`
 - `P-008` → ACCEPTED → APPLIED → `v2/_archive/epoch-2-manifest-and-paths.md`
 - `P-009` → ACCEPTED → APPLIED → `v2/_archive/epoch-3-shadow-copy.md`, `v2/epoch-5-assembly-load.md`
-- `P-010` → ACCEPTED → APPLIED → `v2/README.md`, `v2/epoch-4-sample-plugin.md`, `v2/epoch-7-documentation.md`
+- `P-010` → ACCEPTED → APPLIED → `v2/README.md`, `v2/_archive/epoch-4-sample-plugin.md`, `v2/epoch-7-documentation.md`
 - `P-011` → ACCEPTED → APPLIED → `v2/epoch-5-assembly-load.md`
 - `P-012` → ACCEPTED → APPLIED → `v2/authoring.md`, `v2/_archive/epoch-3-shadow-copy.md`, `v2/epoch-5-assembly-load.md`, граница в `v2/README.md`
 - `P-013` → ACCEPTED → APPLIED → `v2/epoch-6-host-startup.md`

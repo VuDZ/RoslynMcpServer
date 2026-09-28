@@ -92,9 +92,10 @@ Schema SDK не читается. Метаданные discarded-плагина 
 ## Тесты
 
 Временный `baseDirectory` с drop-in `plugins/sample/`, скопированным из выхода
-шаблона (DLL, deps, pdb, `plugin.json`). `minHostVersion` в этой копии уже
-новая: её подставила сборка шаблона из `AssemblyVersion` хоста после патча
-версии. Исходный `plugin.json` эпоха не правит.
+шаблона (DLL, deps, pdb, `plugin.json`, `Newtonsoft.Json.dll`). Сборок контракта
+хоста в этой копии нет. `minHostVersion` уже новая: её подставила сборка
+шаблона из `AssemblyVersion` хоста после патча версии. Исходный `plugin.json`
+эпоха не правит.
 In-process тесты `PluginStartup` остаются. Коллекцию читать после резолва
 `IOptions<McpServerOptions>.Value`.
 
