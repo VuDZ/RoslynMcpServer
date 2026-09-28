@@ -148,6 +148,9 @@ public sealed class SolutionManager
 
     internal bool HasPublishedSemanticSnapshot => _solution is not null;
 
+    /// <summary>True when a watcher error or a directory rename asked the next flush to re-read every known document.</summary>
+    internal bool RefreshAllDocumentsPending => _refreshAllDocuments;
+
     internal WorkspaceWriteResult? LastWriteResult { get; private set; }
 
     internal InProcessAnalyzerAssemblyLoader AnalyzerAssemblyLoader { get; } = new();
@@ -894,6 +897,22 @@ public sealed class SolutionManager
     internal void RequestRefreshAllDocumentsForTests()
     {
         _refreshAllDocuments = true;
+    }
+
+    /// <summary>Test seam: the watcher <c>Error</c> callback, including a logger that throws.</summary>
+    internal void NotifyDiskWatcherError(Exception exception)
+    {
+        ArgumentNullException.ThrowIfNull(exception);
+        OnDiskWatcherError(this, new ErrorEventArgs(exception));
+    }
+
+    /// <summary>Test seam: the watcher <c>Renamed</c> callback for a directory that exists on disk.</summary>
+    internal void NotifyDiskWatcherDirectoryRename(string directoryPath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(directoryPath);
+        OnDiskWatcherRenamed(
+            this,
+            new RenamedEventArgs(WatcherChangeTypes.Renamed, directoryPath, name: null, oldName: null));
     }
 
     /// <summary>
@@ -2239,7 +2258,10 @@ public sealed class SolutionManager
         if (Directory.Exists(e.FullPath) || Directory.Exists(e.OldFullPath))
         {
             _refreshAllDocuments = true;
-            _logger.LogInformation("Disk watcher: directory rename, will refresh known documents on next semantic call.");
+            LogDiskWatcherCallback(
+                LogLevel.Information,
+                exception: null,
+                "Disk watcher: directory rename, will refresh known documents on next semantic call.");
             return;
         }
 
@@ -2250,10 +2272,28 @@ public sealed class SolutionManager
     private void OnDiskWatcherError(object sender, ErrorEventArgs e)
     {
         _refreshAllDocuments = true;
-        var ex = e.GetException();
-        _logger.LogWarning(
-            ex,
+        LogDiskWatcherCallback(
+            LogLevel.Warning,
+            e.GetException(),
             "Disk watcher error (buffer overflow or inotify limit). Next semantic call will re-read known documents from disk, not OpenSolutionAsync.");
+    }
+
+    /// <summary>
+    /// Watcher callbacks run on a thread-pool thread. <c>Logger.Log</c> rethrows when a provider throws,
+    /// and that exception is unhandled and kills the process. Windows Event Log does this after its
+    /// handle is disposed; a hosted runner often cannot write that log. The caller has already requested
+    /// a full re-read, so a failed write still degrades instead of crashing.
+    /// </summary>
+    private void LogDiskWatcherCallback(LogLevel level, Exception? exception, string message)
+    {
+        try
+        {
+            _logger.Log(level, exception, message);
+        }
+        catch (Exception)
+        {
+            // The refresh flag is already set. Reporting this failure through the same logger would throw again.
+        }
     }
 
     private void QueueDiskPath(string? rawPath)

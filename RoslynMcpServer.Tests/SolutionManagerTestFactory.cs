@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using RoslynMcpServer.Config;
@@ -7,12 +8,14 @@ namespace RoslynMcpServer.Tests;
 
 internal static class SolutionManagerTestFactory
 {
-    public static SolutionManager Create(RoslynMcpFileSettings? fileSettings = null)
+    public static SolutionManager Create(
+        RoslynMcpFileSettings? fileSettings = null,
+        ILogger<SolutionManager>? logger = null)
     {
         var capture = new AnalyzerProvenanceCaptureService(
             NullLogger<AnalyzerProvenanceCaptureService>.Instance,
             Options.Create(new AnalyzerProvenanceCaptureOptions()),
             TimeProvider.System);
-        return new SolutionManager(NullLogger<SolutionManager>.Instance, capture, fileSettings);
+        return new SolutionManager(logger ?? NullLogger<SolutionManager>.Instance, capture, fileSettings);
     }
 }

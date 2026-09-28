@@ -5,7 +5,7 @@ alwaysApply: true
 
 # RoslynMcpServer overview
 
-MCP server (stdio) for C# analysis: Roslyn workspaces + ILSpy decompile. TFM `net10.0`, version in `RoslynMcpServer.csproj` (currently **1.4.18**). Package id `RoslynMcpServer`. Self-contained publish for win/osx/linux RIDs.
+MCP server (stdio) for C# analysis: Roslyn workspaces + ILSpy decompile. TFM `net10.0`, version in `RoslynMcpServer.csproj` (currently **1.4.19**). Package id `RoslynMcpServer`. Self-contained publish for win/osx/linux RIDs.
 
 ## Layout
 
@@ -27,6 +27,7 @@ Real-world validation often uses **BrqMover** (`c:\Devel\BrqMover`) — app repo
 
 ## Version history (agent-relevant)
 
+- **1.4.19** — disk watcher error and directory-rename callbacks still request a full re-read when the logger throws (`Logger.Log` rethrows a provider failure such as Windows Event Log `ObjectDisposedException`); the callback no longer kills the process
 - **1.4.18** — plugins: `IRoslynMcpPlugin` assemblies load before `Build` from `plugins/<id>/`, the `plugins` key of `RoslynMcp.jsonc`, or `ROSLYN_MCP_PLUGINS` (dev directory shadow-copied); a plugin that cannot be loaded is skipped with `[RoslynMcp] plugin skipped (<id or path>): <reason>` on stderr and in `logs/mcp-*.log` while the host still starts; `get_mcp_server_info` lists loaded plugins and skips, `get_tool_help` reports `Kind`/`Group` `plugin` from the start report; plugin tools are in `tools/list` and `Registered MCP tools`, not in `McpToolCatalog` or `list_tool_groups`, and `lite`/`full` do not filter them
 - **1.4.17** — `get_changed_files` reads git stdout and stderr together, closes stdin, and stops the process after 180s plus up to 3s of cleanup (`Kill(entireProcessTree)` on Windows, Linux, and macOS)
 - **1.4.16** — shared `logs/mcp-*.log` lines include a harness session id (`[cursor-k7m2]`, `[opencode-4mht]`): parent exe name, or node command-line package/directory; 4-char suffix; unknown parent is `cli`; command line is not logged
