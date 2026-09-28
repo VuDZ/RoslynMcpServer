@@ -35,7 +35,7 @@ README и не комментарий к примеру ниже. Эпохи н�
 | 2. Манифест и пути | [epoch-2-manifest-and-paths.md](_archive/epoch-2-manifest-and-paths.md) | сделана |
 | 3. Теневая копия | [epoch-3-shadow-copy.md](_archive/epoch-3-shadow-copy.md) | сделана |
 | 4. Шаблон | [epoch-4-sample-plugin.md](_archive/epoch-4-sample-plugin.md) | сделана |
-| 5. Загрузка сборки | [epoch-5-assembly-load.md](epoch-5-assembly-load.md) | не начата |
+| 5. Загрузка сборки | [epoch-5-assembly-load.md](epoch-5-assembly-load.md) | сделана |
 | 6. Старт хоста | [epoch-6-host-startup.md](epoch-6-host-startup.md) | не начата |
 | 7. Документация | [epoch-7-documentation.md](epoch-7-documentation.md) | не начата |
 
