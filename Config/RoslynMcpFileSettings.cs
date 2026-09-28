@@ -20,6 +20,7 @@ public sealed class RoslynMcpFileSettings
         "max-results",
         "preview",
         "ripgrep-path",
+        "plugins",
     };
 
     public static RoslynMcpFileSettings Empty { get; } = new(
@@ -34,6 +35,7 @@ public sealed class RoslynMcpFileSettings
         maxResults: null,
         preview: null,
         ripgrepPath: null,
+        plugins: Array.Empty<string>(),
         unknownKeys: Array.Empty<string>(),
         parseFailures: Array.Empty<RoslynMcpConfigParseFailure>());
 
@@ -49,6 +51,7 @@ public sealed class RoslynMcpFileSettings
         int? maxResults,
         bool? preview,
         string? ripgrepPath,
+        IReadOnlyList<string> plugins,
         IReadOnlyList<string> unknownKeys,
         IReadOnlyList<RoslynMcpConfigParseFailure> parseFailures)
     {
@@ -63,6 +66,7 @@ public sealed class RoslynMcpFileSettings
         MaxResults = maxResults;
         Preview = preview;
         RipgrepPath = ripgrepPath;
+        Plugins = plugins;
         UnknownKeys = unknownKeys;
         ParseFailures = parseFailures;
     }
@@ -83,6 +87,12 @@ public sealed class RoslynMcpFileSettings
 
     /// <summary>Stored for stage 7; does not switch the default search engine by itself.</summary>
     public string? RipgrepPath { get; }
+
+    /// <summary>
+    /// Raw values of the <c>plugins</c> key: directories holding a <c>plugin.json</c> or entry DLL paths.
+    /// Empty when the key is absent, so an empty array of the cwd file really means zero explicit paths.
+    /// </summary>
+    public IReadOnlyList<string> Plugins { get; }
 
     public IReadOnlyList<string> UnknownKeys { get; }
     public IReadOnlyList<RoslynMcpConfigParseFailure> ParseFailures { get; }
@@ -177,6 +187,7 @@ public sealed class RoslynMcpFileSettings
             maxResults: merged.MaxResults,
             preview: merged.Preview,
             ripgrepPath: merged.RipgrepPath,
+            plugins: merged.Plugins ?? Array.Empty<string>(),
             unknownKeys: merged.UnknownKeys,
             parseFailures: failures);
     }
@@ -211,6 +222,9 @@ public sealed class RoslynMcpFileSettings
             maxResults: workingDirectory.MaxResults ?? executable.MaxResults,
             preview: workingDirectory.Preview ?? executable.Preview,
             ripgrepPath: workingDirectory.RipgrepPath ?? executable.RipgrepPath,
+            // Wholesale, not key by key: the cwd array replaces the exe array, and an empty cwd array
+            // therefore means zero explicit paths instead of falling back to the exe entries.
+            plugins: workingDirectory.Plugins ?? executable.Plugins,
             unknownKeys: unknown);
     }
 
@@ -236,8 +250,19 @@ public sealed class RoslynMcpFileSettings
 
         using (document)
         {
-            settings = ParseDocument(document);
-            return true;
+            try
+            {
+                settings = ParseDocument(document);
+                return true;
+            }
+            catch (JsonException ex)
+            {
+                // A known key with a value of the wrong type is a failure of this file, not of the host:
+                // the parse is reported and the successfully read sibling file keeps merging by the
+                // cwd-over-exe rule. Letting this escape would take the process down at startup.
+                error = ex.Message;
+                return false;
+            }
         }
     }
 
@@ -255,6 +280,7 @@ public sealed class RoslynMcpFileSettings
         int? maxResults = null;
         bool? preview = null;
         string? ripgrepPath = null;
+        IReadOnlyList<string>? plugins = null;
         var unknown = new List<string>();
 
         foreach (var property in document.RootElement.EnumerateObject())
@@ -289,6 +315,9 @@ public sealed class RoslynMcpFileSettings
                 case "ripgrep-path":
                     ripgrepPath = ReadString(property.Value);
                     break;
+                case "plugins":
+                    plugins = ReadStringArray(property.Value);
+                    break;
             }
         }
 
@@ -300,6 +329,7 @@ public sealed class RoslynMcpFileSettings
             maxResults,
             preview,
             ripgrepPath,
+            plugins,
             unknown);
     }
 
@@ -317,6 +347,36 @@ public sealed class RoslynMcpFileSettings
 
         var value = element.GetString();
         return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    }
+
+    /// <summary>
+    /// Reads the <c>plugins</c> array. A missing value is <see langword="null"/>; a value of another type,
+    /// or an element that is not a string, throws so the file is reported as a parse failure.
+    /// </summary>
+    private static IReadOnlyList<string>? ReadStringArray(JsonElement element)
+    {
+        if (element.ValueKind == JsonValueKind.Null)
+        {
+            return null;
+        }
+
+        if (element.ValueKind != JsonValueKind.Array)
+        {
+            throw new JsonException($"plugins must be an array of strings, got {element.ValueKind}.");
+        }
+
+        var items = new List<string>();
+        foreach (var item in element.EnumerateArray())
+        {
+            if (item.ValueKind != JsonValueKind.String)
+            {
+                throw new JsonException($"plugins must be an array of strings, got an element of kind {item.ValueKind}.");
+            }
+
+            items.Add(item.GetString()?.Trim() ?? string.Empty);
+        }
+
+        return items;
     }
 
     private static int? ReadPositiveInt(JsonElement element)
@@ -383,7 +443,7 @@ public sealed class RoslynMcpFileSettings
     internal sealed class PartialSettings
     {
         public static PartialSettings Empty { get; } = new(
-            null, null, null, null, null, null, null, Array.Empty<string>());
+            null, null, null, null, null, null, null, null, Array.Empty<string>());
 
         public PartialSettings(
             string? workspacePath,
@@ -393,6 +453,7 @@ public sealed class RoslynMcpFileSettings
             int? maxResults,
             bool? preview,
             string? ripgrepPath,
+            IReadOnlyList<string>? plugins,
             IReadOnlyList<string> unknownKeys)
         {
             WorkspacePath = workspacePath;
@@ -402,6 +463,7 @@ public sealed class RoslynMcpFileSettings
             MaxResults = maxResults;
             Preview = preview;
             RipgrepPath = ripgrepPath;
+            Plugins = plugins;
             UnknownKeys = unknownKeys;
         }
 
@@ -412,6 +474,10 @@ public sealed class RoslynMcpFileSettings
         public int? MaxResults { get; }
         public bool? Preview { get; }
         public string? RipgrepPath { get; }
+
+        /// <summary><see langword="null"/> when the file has no <c>plugins</c> key.</summary>
+        public IReadOnlyList<string>? Plugins { get; }
+
         public IReadOnlyList<string> UnknownKeys { get; }
     }
 }

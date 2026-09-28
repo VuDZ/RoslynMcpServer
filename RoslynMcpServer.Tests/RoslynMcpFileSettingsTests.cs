@@ -158,6 +158,128 @@ public sealed class RoslynMcpFileSettingsTests : IDisposable
             Environment.CurrentDirectory = previous;
         }
     }
+
+    [Fact]
+    public void LoadFromDirectories_plugins_key_is_known_and_read()
+    {
+        File.WriteAllText(
+            Path.Combine(_cwdDir, RoslynMcpFileSettings.FileName),
+            """{ "plugins": ["C:/plugins/a", "C:/plugins/b"] }""");
+
+        var settings = RoslynMcpFileSettings.LoadFromDirectories(_exeDir, _cwdDir);
+
+        Assert.Equal(["C:/plugins/a", "C:/plugins/b"], settings.Plugins);
+        Assert.Empty(settings.UnknownKeys);
+        Assert.Empty(settings.ParseFailures);
+    }
+
+    [Fact]
+    public void LoadFromDirectories_no_plugins_key_yields_no_explicit_paths()
+    {
+        File.WriteAllText(
+            Path.Combine(_cwdDir, RoslynMcpFileSettings.FileName),
+            """{ "configuration": "Debug" }""");
+
+        var settings = RoslynMcpFileSettings.LoadFromDirectories(_exeDir, _cwdDir);
+
+        Assert.Empty(settings.Plugins);
+        Assert.Empty(settings.UnknownKeys);
+    }
+
+    [Fact]
+    public void LoadFromDirectories_cwd_plugins_array_replaces_the_exe_array_wholesale()
+    {
+        File.WriteAllText(
+            Path.Combine(_exeDir, RoslynMcpFileSettings.FileName),
+            """{ "plugins": ["C:/from-exe"] }""");
+        File.WriteAllText(
+            Path.Combine(_cwdDir, RoslynMcpFileSettings.FileName),
+            """{ "plugins": ["C:/from-cwd-1", "C:/from-cwd-2"] }""");
+
+        var settings = RoslynMcpFileSettings.LoadFromDirectories(_exeDir, _cwdDir);
+
+        Assert.Equal(["C:/from-cwd-1", "C:/from-cwd-2"], settings.Plugins);
+    }
+
+    [Fact]
+    public void LoadFromDirectories_empty_cwd_plugins_array_yields_no_explicit_paths()
+    {
+        File.WriteAllText(
+            Path.Combine(_exeDir, RoslynMcpFileSettings.FileName),
+            """{ "plugins": ["C:/from-exe"], "configuration": "Debug" }""");
+        File.WriteAllText(
+            Path.Combine(_cwdDir, RoslynMcpFileSettings.FileName),
+            """{ "plugins": [] }""");
+
+        var settings = RoslynMcpFileSettings.LoadFromDirectories(_exeDir, _cwdDir);
+
+        Assert.Empty(settings.Plugins);
+        Assert.Equal("Debug", settings.Configuration);
+    }
+
+    [Fact]
+    public void LoadFromDirectories_plugins_of_another_type_records_failure_without_throwing()
+    {
+        File.WriteAllText(
+            Path.Combine(_cwdDir, RoslynMcpFileSettings.FileName),
+            """{ "plugins": "C:/plugins/a" }""");
+
+        var settings = RoslynMcpFileSettings.LoadFromDirectories(_exeDir, _cwdDir);
+
+        Assert.Empty(settings.Plugins);
+        Assert.NotEmpty(settings.ParseFailures);
+        Assert.Contains(settings.ParseFailures, f => f.Path.Contains("cwd", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void LoadFromDirectories_plugins_element_of_another_type_records_failure_without_throwing()
+    {
+        File.WriteAllText(
+            Path.Combine(_cwdDir, RoslynMcpFileSettings.FileName),
+            """{ "plugins": ["C:/plugins/a", 7] }""");
+
+        var settings = RoslynMcpFileSettings.LoadFromDirectories(_exeDir, _cwdDir);
+
+        Assert.Empty(settings.Plugins);
+        Assert.NotEmpty(settings.ParseFailures);
+    }
+
+    [Fact]
+    public void LoadFromDirectories_broken_plugins_key_keeps_the_other_file_merge()
+    {
+        File.WriteAllText(
+            Path.Combine(_exeDir, RoslynMcpFileSettings.FileName),
+            """{ "workspace-path": "FromExe.sln", "plugins": ["C:/from-exe"] }""");
+        File.WriteAllText(
+            Path.Combine(_cwdDir, RoslynMcpFileSettings.FileName),
+            """{ "configuration": "Release", "plugins": { "a": 1 } }""");
+
+        var settings = RoslynMcpFileSettings.LoadFromDirectories(_exeDir, _cwdDir);
+
+        // The cwd file fails as a whole, so the exe file supplies every key it holds.
+        Assert.Equal("FromExe.sln", settings.WorkspacePath);
+        Assert.Equal(["C:/from-exe"], settings.Plugins);
+        Assert.Null(settings.Configuration);
+        Assert.NotEmpty(settings.ParseFailures);
+        Assert.Contains(settings.ParseFailures, f => f.Path.Contains("cwd", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void LoadFromDirectories_broken_exe_file_keeps_plugins_from_cwd()
+    {
+        File.WriteAllText(
+            Path.Combine(_exeDir, RoslynMcpFileSettings.FileName),
+            "{ broken");
+        File.WriteAllText(
+            Path.Combine(_cwdDir, RoslynMcpFileSettings.FileName),
+            """{ "plugins": ["C:/from-cwd"] }""");
+
+        var settings = RoslynMcpFileSettings.LoadFromDirectories(_exeDir, _cwdDir);
+
+        Assert.Equal(["C:/from-cwd"], settings.Plugins);
+        Assert.NotEmpty(settings.ParseFailures);
+        Assert.Contains(settings.ParseFailures, f => f.Path.Contains("exe", StringComparison.OrdinalIgnoreCase));
+    }
 }
 
 public sealed class MsBuildWorkspacePropertiesPassedArgsTests
