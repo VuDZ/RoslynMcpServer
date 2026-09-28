@@ -1,6 +1,6 @@
 # Плагины MCP
 
-Дата: 2026-09-28. Статус: **эпохи 1–5 выполнены** ([архив](_archive/README.md)); эпоха 6 не начата.
+Дата: 2026-09-28. Статус: **эпохи 1–6 выполнены** ([архив](_archive/README.md)); эпоха 7 не начата.
 Текущий контракт этой темы. Предыдущий текст —
 [_archive/v1/](../_archive/v1/README.md) — нормой не является.
 
@@ -36,7 +36,7 @@ README и не комментарий к примеру ниже. Эпохи н�
 | 3. Теневая копия | [epoch-3-shadow-copy.md](_archive/epoch-3-shadow-copy.md) | сделана |
 | 4. Шаблон | [epoch-4-sample-plugin.md](_archive/epoch-4-sample-plugin.md) | сделана |
 | 5. Загрузка сборки | [epoch-5-assembly-load.md](_archive/epoch-5-assembly-load.md) | сделана |
-| 6. Старт хоста | [epoch-6-host-startup.md](epoch-6-host-startup.md) | сделана |
+| 6. Старт хоста | [epoch-6-host-startup.md](_archive/epoch-6-host-startup.md) | сделана |
 | 7. Документация | [epoch-7-documentation.md](epoch-7-documentation.md) | не начата |
 
 Чужой test-impact остаётся у коллег. Этот репозиторий даёт только шов:
