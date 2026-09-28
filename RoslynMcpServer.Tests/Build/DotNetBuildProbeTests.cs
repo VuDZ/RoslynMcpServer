@@ -1,0 +1,255 @@
+using System.Collections.Concurrent;
+using RoslynMcpServer.Services;
+using Xunit;
+
+namespace RoslynMcpServer.Tests.Build;
+
+public sealed class DotNetBuildProbeTests
+{
+    /// <summary>
+    /// A failing build with no parseable <c>error CODE:</c> line makes the probe escalate
+    /// (<c>restore</c> → <c>build -v:normal</c> → <c>build -v:detailed</c>), which is the only way
+    /// to prove that separate steps are reported rather than one "dotnet build" substring.
+    /// </summary>
+    [Fact]
+    public async Task RunAsync_reports_every_escalated_step_label_to_the_progress_reporter()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "RoslynMcpProbeSteps-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            var csproj = Path.Combine(root, "Failing.csproj");
+            // A failing target hook (not a redefinition of `Build`, which the SDK import wins):
+            // exit 1 with a code-less `error :` line, so the parser sees no diagnostic and the
+            // probe escalates instead of stopping at step 1.
+            File.WriteAllText(csproj, """
+                <Project Sdk="Microsoft.NET.Sdk">
+                  <PropertyGroup>
+                    <TargetFramework>net10.0</TargetFramework>
+                  </PropertyGroup>
+                  <Target Name="McpProgressOracleFail" BeforeTargets="Build">
+                    <Error Text="MCP progress step oracle" />
+                  </Target>
+                  <Target Name="CoreCompile" />
+                </Project>
+                """);
+
+            var reporter = new RecordingProgressReporter();
+            var probe = await DotNetBuildProbe.RunAsync(
+                csproj,
+                root,
+                CancellationToken.None,
+                overallBudget: TimeSpan.FromSeconds(240),
+                stepTimeout: TimeSpan.FromSeconds(90),
+                noIncremental: false,
+                progress: reporter);
+
+            Assert.NotEqual(0, probe.ExitCode);
+
+            var updates = reporter.Updates.ToArray();
+            Assert.NotEmpty(updates);
+            var stages = updates.Select(u => u.Stage).Distinct(StringComparer.Ordinal).ToArray();
+            Assert.Contains("dotnet build -v:minimal", stages);
+            Assert.Contains("dotnet restore -v:minimal", stages);
+            Assert.Contains("dotnet build -v:normal", stages);
+
+            // Boundary reports carry no elapsed; heartbeats carry the current step's clock.
+            var boundaries = updates.Where(u => u.Elapsed == TimeSpan.Zero).ToArray();
+            Assert.Equal(stages.Length, boundaries.Select(b => b.Stage).Distinct(StringComparer.Ordinal).Count());
+            Assert.All(boundaries, boundary => Assert.Contains(": starting", boundary.Describe(), StringComparison.Ordinal));
+
+            // Every step after the first is announced with the previous step's exit code.
+            var failures = updates.Skip(1).Where(u => u.Elapsed == TimeSpan.Zero).ToArray();
+            Assert.NotEmpty(failures);
+            Assert.All(failures, update => Assert.NotNull(update.LastExitCode));
+        }
+        finally
+        {
+            try
+            {
+                Directory.Delete(root, recursive: true);
+            }
+            catch
+            {
+                // ignore temp cleanup failures
+            }
+        }
+    }
+
+    [Fact]
+    public void ShouldRunMoreDiagnostics_true_after_failed_build_with_no_parsed_errors()
+    {
+        const string log = """
+            --- dotnet build -v:minimal (exit 1) ---
+            Build FAILED.
+                0 Warning(s)
+                0 Error(s)
+            """;
+        Assert.True(DotNetBuildProbe.ShouldRunMoreDiagnostics(log));
+    }
+
+    [Fact]
+    public void ShouldRunMoreDiagnostics_false_when_nuget_error_parsed()
+    {
+        const string log = """
+            --- dotnet build -v:minimal (exit 1) ---
+            error NU1904: Warning As Error: Package 'X' has a known critical severity vulnerability
+            """;
+        Assert.False(DotNetBuildProbe.ShouldRunMoreDiagnostics(log));
+    }
+
+    [Fact]
+    public void ShouldRunMoreDiagnostics_true_after_restore_exit_zero_but_build_still_failed()
+    {
+        const string log = """
+            --- dotnet build -v:minimal (exit 1, stdout 12 chars, stderr 0 chars) ---
+            Build FAILED.
+            --- dotnet restore -v:minimal (exit 0, stdout 40 chars, stderr 0 chars) ---
+            All projects are up-to-date for restore.
+            """;
+        Assert.True(DotNetBuildProbe.ShouldRunMoreDiagnostics(log));
+    }
+
+    [Fact]
+    public void ShouldRunPinnedMsBuildRestore_when_log_shows_wrong_msbuild_path()
+    {
+        const string log = """
+            --- dotnet build -v:minimal (exit 1, stdout 10 chars, stderr 0 chars) ---
+            MSBuild executable path = C:\Program Files\dotnet\sdk\9.0.314\MSBuild.dll
+            Build FAILED.
+            """;
+        var root = Path.Combine(Path.GetTempPath(), "roslyn-mcp-probe-" + Guid.NewGuid().ToString("N"));
+        var sdkDir = Path.Combine(root, "sdk", "10.0.888");
+        Directory.CreateDirectory(Path.Combine(sdkDir, "Sdks"));
+        File.WriteAllText(Path.Combine(sdkDir, "MSBuild.dll"), string.Empty);
+        File.WriteAllText(Path.Combine(sdkDir, "Microsoft.Build.dll"), string.Empty);
+        File.WriteAllText(Path.Combine(root, "global.json"), """{ "sdk": { "version": "10.0.888" } }""");
+        lock (TestEnvironmentLocks.DotNetRoot)
+        {
+            var previousRoot = Environment.GetEnvironmentVariable("DOTNET_ROOT");
+            Environment.SetEnvironmentVariable("DOTNET_ROOT", root);
+            try
+            {
+                Assert.True(DotNetBuildProbe.ShouldRunPinnedMsBuildRestore(log, root));
+            }
+            finally
+            {
+                Environment.SetEnvironmentVariable("DOTNET_ROOT", previousRoot);
+                Directory.Delete(root, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public void ShouldRunDetailedRestore_when_exit_nonzero_and_output_empty()
+    {
+        const string log = """
+            --- dotnet build -v:minimal (exit 1, stdout 0 chars, stderr 0 chars) ---
+            Build FAILED.
+            """;
+        var restore = new DotNetCliRunner.RunResult(1, string.Empty, string.Empty, 0, 0);
+        Assert.True(DotNetBuildProbe.ShouldRunDetailedRestore(log, restore));
+    }
+
+    [Fact]
+    public void ComputeEffectiveBuildExitCode_restore_exit_zero_does_not_mask_failed_build()
+    {
+        // Classic false-success: build exit 1, then restore exit 0 becomes lastStepExitCode.
+        var effective = DotNetBuildProbe.ComputeEffectiveBuildExitCode(
+            buildExitCodes: [1],
+            lastStepExitCode: 0,
+            combinedLog: """
+                --- dotnet build -v:minimal (exit 1, stdout 12 chars, stderr 0 chars) ---
+                Build FAILED.
+                --- dotnet restore -v:minimal (exit 0, stdout 40 chars, stderr 0 chars) ---
+                All projects are up-to-date for restore.
+                """);
+        Assert.Equal(1, effective);
+    }
+
+    [Fact]
+    public void ComputeEffectiveBuildExitCode_uses_last_build_after_escalate_recovery()
+    {
+        var effective = DotNetBuildProbe.ComputeEffectiveBuildExitCode(
+            buildExitCodes: [1, 0],
+            lastStepExitCode: 0,
+            combinedLog: """
+                --- dotnet build -v:minimal (exit 1) ---
+                Build FAILED.
+                --- dotnet restore -v:minimal (exit 0) ---
+                --- dotnet build -v:normal (exit 0) ---
+                Build succeeded.
+                """);
+        Assert.Equal(0, effective);
+    }
+
+    [Fact]
+    public void ComputeEffectiveBuildExitCode_reads_failed_build_section_when_no_recorded_codes()
+    {
+        const string log = """
+            --- dotnet build -v:minimal (exit 1, stdout 12 chars, stderr 0 chars) ---
+            Build FAILED.
+            --- dotnet restore -v:minimal (exit 0, stdout 40 chars, stderr 0 chars) ---
+            All projects are up-to-date for restore.
+            """;
+        var effective = DotNetBuildProbe.ComputeEffectiveBuildExitCode(
+            buildExitCodes: [],
+            lastStepExitCode: 0,
+            combinedLog: log);
+        Assert.Equal(1, effective);
+    }
+
+    [Fact]
+    public void FormatIncrementalSwitch_default_no_incremental()
+    {
+        Assert.Equal(" --no-incremental", DotNetBuildProbe.FormatIncrementalSwitch(noIncremental: true));
+        Assert.Equal(string.Empty, DotNetBuildProbe.FormatIncrementalSwitch(noIncremental: false));
+    }
+
+    [Fact]
+    public void FormatBuildStepSuffix_appends_session_build_args_after_first_class_switches()
+    {
+        Assert.Equal(
+            " -p:Configuration=\"Sit-Debug\" -p:Platform=\"x64\" --no-incremental -p:TreatWarningsAsErrors=false",
+            DotNetBuildProbe.FormatBuildStepSuffix(
+                "Sit-Debug",
+                "x64",
+                noIncremental: true,
+                "-p:TreatWarningsAsErrors=false"));
+        Assert.Equal(string.Empty, DotNetBuildProbe.FormatBuildStepSuffix(null, null, noIncremental: false, null));
+        Assert.Equal(
+            " -t:\"src\\My_Project\" -p:Configuration=\"Sit-Debug\" -p:Platform=\"x64\" --no-incremental",
+            DotNetBuildProbe.FormatBuildStepSuffix(
+                "Sit-Debug",
+                "x64",
+                noIncremental: true,
+                buildArgs: null,
+                target: @"src\My_Project"));
+    }
+
+    [Fact]
+    public void FormatTargetSwitch_rejects_quotes()
+    {
+        Assert.Equal(string.Empty, DotNetBuildProbe.FormatTargetSwitch(null));
+        Assert.Equal(" -t:\"App\"", DotNetBuildProbe.FormatTargetSwitch("App"));
+        Assert.Throws<ArgumentException>(() => DotNetBuildProbe.FormatTargetSwitch("Foo\"Bar"));
+    }
+
+    private sealed class RecordingProgressReporter : ICliProgressReporter
+    {
+        public ConcurrentQueue<CliProgressUpdate> Updates { get; } = new();
+
+        public void Report(CliProgressUpdate update) => Updates.Enqueue(update);
+    }
+
+    [Fact]
+    public void TryGetFirstFailedBuildSectionExitCode_finds_nonzero_build_header()
+    {
+        const string log = """
+            --- dotnet build -v:minimal --no-incremental (exit 1, stdout 10 chars, stderr 0 chars) ---
+            Build FAILED.
+            --- dotnet restore -v:minimal (exit 0) ---
+            """;
+        Assert.Equal(1, DotNetBuildProbe.TryGetFirstFailedBuildSectionExitCode(log));
+    }
+}

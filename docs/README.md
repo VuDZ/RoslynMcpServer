@@ -18,7 +18,7 @@
 | MCP tool surface evolution | [mcp-tool-surface-evolution/](mcp-tool-surface-evolution/README.md) | post-arbitration spec v2; реализация не начата |
 | GitHub binary releases | [github-releases/](github-releases/README.md) | O-01 закрыт; CI + release workflow есть; smoke дистрибутива и O-02/O-03 открыты |
 | Улучшение тестов | [test-improvements/](test-improvements/README.md) | эпохи 1 и 2 выполнены, планы и отчёты в [архиве](test-improvements/_archive/README.md); далее эпоха 3 |
-| Раскладка тестов | [test-layout/](test-layout/README.md) | план, код не начат; каталоги `RoslynMcpServer.Tests` по функциональным областям |
+| Раскладка тестов | [test-layout/](test-layout/README.md) | выполнено; каталоги `RoslynMcpServer.Tests` по функциональным областям |
 
 ## Contract
 
