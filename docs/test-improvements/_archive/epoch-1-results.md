@@ -1,7 +1,7 @@
 # Эпоха 1. Результаты: исправление ложного падения sanitizer-теста
 
 Статус: **выполнена** (2026-09-28). План: [epoch-1-sanitizer-test-fix.md](epoch-1-sanitizer-test-fix.md).
-Следующий шаг: [эпоха 2](../epoch-2-general-solution.md).
+Следующий шаг: [эпоха 2](epoch-2-general-solution.md).
 
 Целевое ложное падение устранено. Новых падений и пропусков нет: unit-набор 680 из 680,
 `Skipped: 0`. Production-код не менялся.

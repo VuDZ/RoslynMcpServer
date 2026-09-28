@@ -79,4 +79,4 @@ dotnet test RoslynMcpServer.Tests/RoslynMcpServer.Tests.csproj --filter "Categor
 новых падений или пропусков нет; посторонние исходные сбои перечислены отдельно.
 
 Эпоха закрывается самостоятельно, не ожидая разработки общего решения.
-Следующий шаг — [эпоха 2](../epoch-2-general-solution.md).
+Следующий шаг — [эпоха 2](epoch-2-general-solution.md).
