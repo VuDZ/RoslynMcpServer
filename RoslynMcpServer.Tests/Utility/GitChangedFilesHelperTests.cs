@@ -51,7 +51,7 @@ public sealed class GitChangedFilesHelperTests
         }
         finally
         {
-            await KillByMarkerAsync(marker).ConfigureAwait(false);
+            await KillByMarkerAsync(marker);
         }
     }
 
@@ -76,11 +76,11 @@ public sealed class GitChangedFilesHelperTests
             Assert.False(result.Success);
             Assert.Contains("MCP_GIT_TIMEOUT", result.Error, StringComparison.Ordinal);
             Assert.Contains("process tree was killed", result.Error, StringComparison.Ordinal);
-            Assert.Empty(await PidsWithMarkerAsync(marker).ConfigureAwait(false));
+            Assert.Empty(await PidsWithMarkerAsync(marker));
         }
         finally
         {
-            await KillByMarkerAsync(marker).ConfigureAwait(false);
+            await KillByMarkerAsync(marker);
         }
     }
 
@@ -99,8 +99,7 @@ public sealed class GitChangedFilesHelperTests
             start);
         try
         {
-            var (shellPids, children) = await WaitForParentAndChildAsync(marker, TimeSpan.FromSeconds(15))
-                .ConfigureAwait(false);
+            var (shellPids, children) = await WaitForParentAndChildAsync(marker, TimeSpan.FromSeconds(15));
             Assert.NotEmpty(shellPids);
             Assert.NotEmpty(children);
 
@@ -110,7 +109,7 @@ public sealed class GitChangedFilesHelperTests
                 TimeSpan.FromSeconds(15),
                 () => KillByMarkerAsync(marker));
 
-            Assert.Empty(await PidsWithMarkerAsync(marker).ConfigureAwait(false));
+            Assert.Empty(await PidsWithMarkerAsync(marker));
             foreach (var child in children)
             {
                 Assert.False(PidAlive(child), $"child {child} still running");
@@ -118,7 +117,7 @@ public sealed class GitChangedFilesHelperTests
         }
         finally
         {
-            await KillByMarkerAsync(marker).ConfigureAwait(false);
+            await KillByMarkerAsync(marker);
         }
     }
 
@@ -151,7 +150,7 @@ public sealed class GitChangedFilesHelperTests
         }
         finally
         {
-            await KillHoldersAsync(marker, pidFile).ConfigureAwait(false);
+            await KillHoldersAsync(marker, pidFile);
         }
     }
 
