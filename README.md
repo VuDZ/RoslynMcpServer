@@ -174,11 +174,17 @@ Portable OpenCode examples: [`opencode.json.sample`](opencode.json.sample) (`ros
 
 MCP `tools/list` stays JSON + JSON Schema. Markdown is for JIT help and diagnostics.
 
-**Client compatibility:** do not assume the host refreshes tools after `tools/list_changed`. If a newly enabled tool is missing from the client's catalog, restart with `ROSLYN_MCP_TOOL_GROUPS=<group>` (and `ROSLYN_MCP_TOOL_PROFILE=lite`). Measured minified `tools/list` (UTF-8): full **54 / 45,135**; lite **15 / 17,491**.
+**Client compatibility:** do not assume the host refreshes tools after `tools/list_changed`. If a newly enabled tool is missing from the client's catalog, restart with `ROSLYN_MCP_TOOL_GROUPS=<group>` (and `ROSLYN_MCP_TOOL_PROFILE=lite`). A `2025-11-25` initialize session receives `tools/list_changed` when the set grows. A `2026-07-28` session receives it only after `subscriptions/listen` with `toolsListChanged`; the server accepts that revision through the MCP C# SDK. Measured minified `tools/list` (UTF-8): full **54 / 43,029**; lite **15 / 16,906**.
 
 ## Agent tools by version
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
+
+### v1.5.0
+
+- **MCP C# SDK 2.2.0** — the host package moved from 1.3.0. `enable_tool_group` still sends one `tools/list_changed` when the set grows; the batch uses the SDK `DeferChangedEvents` scope. Clients on the `2025-11-25` initialize handshake receive that notification on the session. Clients on `2026-07-28` (the SDK 2.2 default, which this server accepts) receive it only after `subscriptions/listen` with `toolsListChanged`. No separate protocol feature is added on top of the SDK.
+- **Plugins** — a plugin's `ModelContextProtocol` reference must be `Major.Minor` 2.2. A plugin built against 1.3 is skipped at discovery. Patch equality is still not required.
+- **Catalog size** — full 54 tools / 43,029 bytes; lite 15 / 16,906. Counts are unchanged. Each tool's JSON is 39 bytes shorter because SDK 2.2 no longer writes the core `execution.taskSupport` field (Tasks left the core package; this server does not reference that extension).
 
 ### v1.4.17
 
@@ -1518,7 +1524,7 @@ cd D:\Devel\YourApp
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.4.17). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.5.0). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 

@@ -4,6 +4,7 @@ using Xunit;
 
 namespace RoslynMcpServer.Tests;
 
+[Collection("NavigationOverflowStore")]
 public sealed class NavigationOverflowStoreTests : IDisposable
 {
     public NavigationOverflowStoreTests()
@@ -71,6 +72,7 @@ public sealed class NavigationOverflowStoreTests : IDisposable
     }
 }
 
+[Collection("NavigationOverflowStore")]
 public sealed class NavigationListingHelperTests : IDisposable
 {
     public NavigationListingHelperTests()

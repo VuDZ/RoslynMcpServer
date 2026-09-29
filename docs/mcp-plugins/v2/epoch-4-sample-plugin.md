@@ -21,7 +21,7 @@
 
 Class library `net10.0`, не self-contained. Ссылка на `RoslynMcpServer.csproj`:
 `Private=false`, `ExcludeAssets=runtime`. Пакет `ModelContextProtocol` той же
-`Major.Minor`, что у хоста (`1.3.0` на этих исходниках): `PrivateAssets=all`,
+`Major.Minor`, что у хоста (`2.2.0` на этих исходниках): `PrivateAssets=all`,
 `ExcludeAssets=runtime`. `plugin.json` копируется в выход
 (`CopyToOutputDirectory=PreserveNewest`).
 

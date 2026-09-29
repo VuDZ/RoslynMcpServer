@@ -56,7 +56,7 @@ The tool surface is catalog-driven at method granularity. Registration must not 
 - `enable_tool_group` can append a group to the live process and emits one `tools/list_changed` notification for a real change.
 - Runtime disable is not supported.
 
-`McpRuntimeToolCollection` batches additions because the MCP SDK collection normally raises a change event per tool. Its implementation reflects over an SDK private field, so an MCP SDK upgrade must verify this class and its integration tests.
+`McpRuntimeToolCollection` batches additions because `TryAdd` raises a change event per tool. It wraps the inserts in the SDK `DeferChangedEvents` scope so a group enablement raises one notification. An MCP SDK upgrade must still verify this class and its integration tests.
 
 The current host is stdio and effectively has one MCP session per process. `SolutionManager`, tool activation, and the runtime tool collection are process-wide singletons. Reusing this registration unchanged in a future HTTP or multi-session host would leak workspace and activation state across sessions.
 
@@ -143,7 +143,7 @@ The following are invariants, not optional conventions:
 8. **Tool responses must remain bounded.** New process, search, and decompile features need result caps, cancellation, and concise failure fallbacks.
 9. **Public tool metadata has one owner.** Add or change a tool through `McpToolCatalog`, its attributed method/schema, help entry when needed, and catalog tests.
 10. **Publishing must stay non-single-file unless dynamic loading is redesigned and verified.** Roslyn, MSBuild BuildHost, analyzers, and MEF discover assemblies at runtime.
-11. **Runtime group activation is SDK-version-sensitive.** `McpRuntimeToolCollection` depends on MCP SDK internals and must be revalidated on package upgrades.
+11. **Runtime group activation follows the MCP SDK notification contract.** `McpRuntimeToolCollection` batches `TryAdd` through `DeferChangedEvents`. Revalidate that class and its integration tests on package upgrades.
 12. **Filesystem/process access is privileged.** The server trusts the client and operating-system identity; it does not confine operations to the loaded workspace.
 
 ## Extending the server

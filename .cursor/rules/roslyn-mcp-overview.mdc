@@ -5,7 +5,7 @@ alwaysApply: true
 
 # RoslynMcpServer overview
 
-MCP server (stdio) for C# analysis: Roslyn workspaces + ILSpy decompile. TFM `net10.0`, version in `RoslynMcpServer.csproj` (currently **1.4.17**). Package id `RoslynMcpServer`. Self-contained publish for win/osx/linux RIDs.
+MCP server (stdio) for C# analysis: Roslyn workspaces + ILSpy decompile. TFM `net10.0`, version in `RoslynMcpServer.csproj` (currently **1.5.0**). Package id `RoslynMcpServer`. Self-contained publish for win/osx/linux RIDs.
 
 ## Layout
 
@@ -27,6 +27,7 @@ Real-world validation often uses **BrqMover** (`c:\Devel\BrqMover`) — app repo
 
 ## Version history (agent-relevant)
 
+- **1.5.0** — MCP C# SDK 2.2.0. Group enablement batches `tools/list_changed` with the SDK `DeferChangedEvents` scope. `2025-11-25` sessions receive that notification directly; `2026-07-28` sessions receive it after `subscriptions/listen` (`toolsListChanged`). Plugin projects reference `ModelContextProtocol` 2.2 (`Major.Minor` must match the host assembly)
 - **1.4.17** — `get_changed_files` reads git stdout and stderr together, closes stdin, and stops the process after 180s plus up to 3s of cleanup (`Kill(entireProcessTree)` on Windows, Linux, and macOS)
 - **1.4.16** — shared `logs/mcp-*.log` lines include a harness session id (`[cursor-k7m2]`, `[opencode-4mht]`): parent exe name, or node command-line package/directory; 4-char suffix; unknown parent is `cli`; command line is not logged
 - **1.4.15** — writes preserve the file's BOM state (no BOM added to BOM-free files, none stripped from BOM files); `SourceTextEncoding` resolves existing document → candidate → on-disk BOM

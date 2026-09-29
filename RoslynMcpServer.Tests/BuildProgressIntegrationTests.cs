@@ -44,6 +44,7 @@ public sealed class BuildProgressIntegrationTests
                 serverToClient.Reader.AsStream()),
             new McpClientOptions
             {
+                ProtocolVersion = McpInitializeHandshake.ProtocolVersion,
                 ClientInfo = new Implementation { Name = "build-progress-test", Version = "1.0" },
             },
             cancellationToken: cts.Token);
@@ -118,6 +119,7 @@ public sealed class BuildProgressIntegrationTests
                 serverToClient.Reader.AsStream()),
             new McpClientOptions
             {
+                ProtocolVersion = McpInitializeHandshake.ProtocolVersion,
                 ClientInfo = new Implementation { Name = "build-no-progress-test", Version = "1.0" },
             },
             cancellationToken: cts.Token);

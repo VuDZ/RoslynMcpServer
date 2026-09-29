@@ -1,23 +1,15 @@
-﻿using System.Collections.Concurrent;
-using System.Reflection;
-using ModelContextProtocol.Server;
+﻿using ModelContextProtocol.Server;
 
 namespace RoslynMcpServer.Hosting;
 
 /// <summary>
-/// SDK 1.3 <see cref="McpServerPrimitiveCollection{T}.TryAdd"/> raises <see cref="McpServerPrimitiveCollection{T}.Changed"/>
-/// per tool. A group enablement must notify once, so this type batches inserts and raises a single event.
+/// Batches tool inserts so one group enablement raises
+/// <see cref="McpServerPrimitiveCollection{T}.Changed"/> once.
+/// <see cref="McpServerPrimitiveCollection{T}.TryAdd"/> notifies on every insert; the SDK deferral
+/// scope holds those notifications until the scope is disposed, and then raises at most one.
 /// </summary>
 public sealed class McpRuntimeToolCollection : McpServerPrimitiveCollection<McpServerTool>
 {
-    private static readonly FieldInfo PrimitivesField =
-        typeof(McpServerPrimitiveCollection<McpServerTool>).GetField(
-            "_primitives",
-            BindingFlags.Instance | BindingFlags.NonPublic)
-        ?? throw new InvalidOperationException(
-            "ModelContextProtocol 1.3 McpServerPrimitiveCollection<T>._primitives was not found. "
-            + "Update McpRuntimeToolCollection.TryAddMany for the installed SDK.");
-
     public int TryAddMany(IReadOnlyList<McpServerTool> tools)
     {
         ArgumentNullException.ThrowIfNull(tools);
@@ -26,20 +18,17 @@ public sealed class McpRuntimeToolCollection : McpServerPrimitiveCollection<McpS
             return 0;
         }
 
-        var primitives = (ConcurrentDictionary<string, McpServerTool>)PrimitivesField.GetValue(this)!;
         var added = 0;
-        foreach (var tool in tools)
+        using (DeferChangedEvents())
         {
-            ArgumentNullException.ThrowIfNull(tool);
-            if (primitives.TryAdd(((IMcpServerPrimitive)tool).Id, tool))
+            foreach (var tool in tools)
             {
-                added++;
+                ArgumentNullException.ThrowIfNull(tool);
+                if (TryAdd(tool))
+                {
+                    added++;
+                }
             }
-        }
-
-        if (added > 0)
-        {
-            RaiseChanged();
         }
 
         return added;

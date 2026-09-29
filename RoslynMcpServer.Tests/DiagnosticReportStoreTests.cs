@@ -5,6 +5,7 @@ using Xunit;
 
 namespace RoslynMcpServer.Tests;
 
+[Collection("DiagnosticReportStore")]
 public sealed class DiagnosticReportStoreTests : IDisposable
 {
     public DiagnosticReportStoreTests()
@@ -137,6 +138,7 @@ public sealed class DiagnosticReportStoreTests : IDisposable
     }
 }
 
+[Collection("DiagnosticReportStore")]
 public sealed class DiagnosticReportAttachmentTests : IDisposable
 {
     public DiagnosticReportAttachmentTests()

@@ -52,7 +52,7 @@ managed-зависимости плагина лежат там же. Сборк
       <Private>false</Private>
       <ExcludeAssets>runtime</ExcludeAssets>
     </ProjectReference>
-    <PackageReference Include="ModelContextProtocol" Version="1.3.0">
+    <PackageReference Include="ModelContextProtocol" Version="2.2.0">
       <PrivateAssets>all</PrivateAssets>
       <ExcludeAssets>runtime</ExcludeAssets>
     </PackageReference>
@@ -65,7 +65,7 @@ managed-зависимости плагина лежат там же. Сборк
 ```
 
 `Major.Minor` пакета MCP равен загруженной сборке хоста (`ModelContextProtocol`
-1.3.0 на исходниках 1.4.15). Exact-равенство патча не требуется. `Private` /
+2.2.0 на исходниках 1.5.0). Exact-равенство патча не требуется. `Private` /
 `ExcludeAssets=runtime` оставляют эти сборки у процесса хоста. В рантайме
 загрузчик отдаёт уже загруженные `RoslynMcpServer`, `ModelContextProtocol`,
 `Microsoft.CodeAnalysis.*`, `Microsoft.Extensions.*` по имени. Тогда

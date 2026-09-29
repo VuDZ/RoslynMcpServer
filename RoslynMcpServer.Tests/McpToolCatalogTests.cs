@@ -474,21 +474,21 @@ public sealed class McpToolCatalogTests(ITestOutputHelper output)
         output.WriteLine($"lite+runtime={liteRuntime.Count}/{liteRuntime.Utf8Bytes}");
         output.WriteLine($"lite+operations={liteOperations.Count}/{liteOperations.Utf8Bytes}");
 
-        AssertRecorded("full", 54, 45135, full);
-        AssertRecorded("lite", 15, 17491, lite);
-        AssertRecorded("lite+files", 23, 22859, liteFiles);
-        AssertRecorded("lite+editing", 23, 23073, liteEditing);
-        AssertRecorded("lite+decompile", 19, 20409, liteDecompile);
-        AssertRecorded("lite+nuget", 21, 21104, liteNuget);
-        AssertRecorded("lite+project", 18, 19128, liteProject);
-        AssertRecorded("lite+runtime", 18, 20001, liteRuntime);
-        AssertRecorded("lite+operations", 19, 19408, liteOperations);
+        AssertRecorded("full", 54, 43029, full);
+        AssertRecorded("lite", 15, 16906, lite);
+        AssertRecorded("lite+files", 23, 21962, liteFiles);
+        AssertRecorded("lite+editing", 23, 22176, liteEditing);
+        AssertRecorded("lite+decompile", 19, 19668, liteDecompile);
+        AssertRecorded("lite+nuget", 21, 20285, liteNuget);
+        AssertRecorded("lite+project", 18, 18426, liteProject);
+        AssertRecorded("lite+runtime", 18, 19299, liteRuntime);
+        AssertRecorded("lite+operations", 19, 18667, liteOperations);
 
         var enabled = MeasureSurface(
             new McpToolProfileOptions { Profile = "lite" },
             activation => activation.EnableGroup("files"));
-        AssertRecorded("lite+enable:files", 23, 22859, enabled);
-        Assert.Equal(22859, MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "files" }).Utf8Bytes);
+        AssertRecorded("lite+enable:files", 23, 21962, enabled);
+        Assert.Equal(21962, MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "files" }).Utf8Bytes);
     }
 
     private static void AssertRecorded(string label, int count, int bytes, (int Count, int Utf8Bytes) actual)
