@@ -9,5 +9,9 @@
   // "target-framework": "net10.0",
   // "max-results": 50,
   // "preview": false,
-  // "ripgrep-path": "rg"
+  // "ripgrep-path": "rg",
+
+  // Drop-in plugins/<id>/ next to the server works without this key.
+  // Development paths can also be set through ROSLYN_MCP_PLUGINS.
+  // "plugins": ["C:/Repos/MyPlugin/bin/Debug/net10.0"]
 }

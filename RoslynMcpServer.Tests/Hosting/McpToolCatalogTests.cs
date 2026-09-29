@@ -1,0 +1,619 @@
+using System.Text.Json;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
+using ModelContextProtocol;
+using ModelContextProtocol.Protocol;
+using ModelContextProtocol.Server;
+using RoslynMcpServer.Hosting;
+using RoslynMcpServer.Services;
+using RoslynMcpServer.Tools;
+using Xunit;
+using Xunit.Abstractions;
+
+namespace RoslynMcpServer.Tests.Hosting;
+
+public sealed class McpToolCatalogTests(ITestOutputHelper output)
+{
+    public const int FullCatalogBudgetBytes = 50 * 1024;
+    public const int LiteCatalogBudgetBytes = 22 * 1024;
+
+    [Fact]
+    public void Default_profile_is_full()
+    {
+        var surface = McpToolCatalog.CreateSurface(new McpToolProfileOptions());
+        Assert.Equal(McpToolProfileOptions.FullProfile, surface.Profile);
+        Assert.Empty(surface.StartupGroups);
+        Assert.Equal(McpToolCatalog.All.Count, surface.RegisteredToolCount);
+    }
+
+    [Fact]
+    public void Empty_and_whitespace_profile_is_full()
+    {
+        Assert.Equal(McpToolProfileOptions.FullProfile, McpToolCatalog.CreateSurface(new McpToolProfileOptions { Profile = "" }).Profile);
+        Assert.Equal(McpToolProfileOptions.FullProfile, McpToolCatalog.CreateSurface(new McpToolProfileOptions { Profile = "  " }).Profile);
+    }
+
+    [Fact]
+    public void Explicit_full_contains_every_pre_existing_tool()
+    {
+        var surface = McpToolCatalog.CreateSurface(new McpToolProfileOptions { Profile = "full" });
+        var reflected = McpToolCatalog.DiscoverAttributedTools()
+            .Select(t => t.Name)
+            .OrderBy(n => n, StringComparer.Ordinal)
+            .ToArray();
+        var registered = surface.RegisteredTools
+            .Select(t => t.Name)
+            .OrderBy(n => n, StringComparer.Ordinal)
+            .ToArray();
+        var withheld = McpToolCatalog.WithheldUntilV2.ToHashSet(StringComparer.Ordinal);
+        var expectedRegistered = reflected
+            .Where(n => !withheld.Contains(n))
+            .OrderBy(n => n, StringComparer.Ordinal)
+            .ToArray();
+
+        Assert.Equal(63, reflected.Length);
+        Assert.Equal(9, McpToolCatalog.WithheldUntilV2.Count);
+        Assert.Equal(54, registered.Length);
+        Assert.Equal(expectedRegistered, registered);
+    }
+
+    [Fact]
+    public void Neither_full_nor_lite_registers_withheld_until_v2_names()
+    {
+        var full = McpToolCatalog.CreateSurface(new McpToolProfileOptions { Profile = "full" });
+        var lite = McpToolCatalog.CreateSurface(new McpToolProfileOptions { Profile = "lite" });
+        foreach (var name in McpToolCatalog.WithheldUntilV2)
+        {
+            Assert.DoesNotContain(full.RegisteredTools, d => d.Name.Equals(name, StringComparison.Ordinal));
+            Assert.DoesNotContain(lite.RegisteredTools, d => d.Name.Equals(name, StringComparison.Ordinal));
+            Assert.DoesNotContain(McpToolCatalog.All, d => d.Name.Equals(name, StringComparison.Ordinal));
+        }
+    }
+
+    [Fact]
+    public void DiscoverAttributedTools_still_finds_all_withheld_until_v2_names()
+    {
+        var reflected = McpToolCatalog.DiscoverAttributedTools()
+            .Select(t => t.Name)
+            .ToHashSet(StringComparer.Ordinal);
+
+        Assert.Equal(9, McpToolCatalog.WithheldUntilV2.Count);
+        foreach (var name in McpToolCatalog.WithheldUntilV2)
+        {
+            Assert.Contains(name, reflected);
+        }
+    }
+
+    [Fact]
+    public void Catalog_without_withhold_list_still_rejects_extra_attribute_and_orphan_catalog_name()
+    {
+        // Empty withhold requires a 1:1 catalog of every attributed tool.
+        var publishedByName = McpToolCatalog.All.ToDictionary(d => d.Name, StringComparer.Ordinal);
+        var strictCatalog = McpToolCatalog.DiscoverAttributedTools()
+            .Select(r =>
+            {
+                if (publishedByName.TryGetValue(r.Name, out var existing))
+                {
+                    return existing;
+                }
+
+                return new McpToolDescriptor
+                {
+                    Name = r.Name,
+                    HostType = r.HostType,
+                    Method = r.Method,
+                    Group = McpToolGroups.Editing,
+                    InLiteCore = false,
+                    IsReadOnly = false,
+                    ExecutesProcess = false,
+                };
+            })
+            .ToArray();
+        Assert.Equal(63, strictCatalog.Length);
+
+        var withoutAddUsing = strictCatalog
+            .Where(d => !d.Name.Equals("add_using", StringComparison.Ordinal))
+            .ToArray();
+        var missingAttr = Assert.Throws<InvalidOperationException>(() =>
+            McpToolCatalog.ValidateCatalogConsistency(withoutAddUsing, []));
+        Assert.Contains("missing attributed tools", missingAttr.Message, StringComparison.Ordinal);
+        Assert.Contains("add_using", missingAttr.Message, StringComparison.Ordinal);
+
+        var sample = strictCatalog[0];
+        var orphan = new McpToolDescriptor
+        {
+            Name = "not_a_real_mcp_tool",
+            HostType = sample.HostType,
+            Method = sample.Method,
+            Group = sample.Group,
+            InLiteCore = sample.InLiteCore,
+            IsReadOnly = sample.IsReadOnly,
+            ExecutesProcess = sample.ExecutesProcess,
+        };
+        var withOrphan = strictCatalog.Append(orphan).ToArray();
+        var noAttribute = Assert.Throws<InvalidOperationException>(() =>
+            McpToolCatalog.ValidateCatalogConsistency(withOrphan, []));
+        Assert.Contains("no [McpServerTool]", noAttribute.Message, StringComparison.Ordinal);
+        Assert.Contains("not_a_real_mcp_tool", noAttribute.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Withheld_until_v2_name_without_attribute_is_rejected()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            McpToolCatalog.ValidateCatalogConsistency(
+                McpToolCatalog.All,
+                McpToolCatalog.WithheldUntilV2.Append("ghost_withheld_tool").ToArray()));
+        Assert.Contains("WithheldUntilV2 names must keep [McpServerTool]", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("ghost_withheld_tool", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HostTypes_exclude_refactoring_tools_while_ast_tools_remain()
+    {
+        Assert.DoesNotContain(typeof(RefactoringTools), McpToolCatalog.HostTypes);
+        Assert.Contains(typeof(AstTools), McpToolCatalog.HostTypes);
+    }
+
+    [Fact]
+    public void Lite_contains_only_agreed_core()
+    {
+        var surface = McpToolCatalog.CreateSurface(new McpToolProfileOptions { Profile = "lite" });
+        var expected = new[]
+        {
+            "get_mcp_server_info",
+            "list_tool_groups",
+            "get_tool_help",
+            "enable_tool_group",
+            "load_workspace",
+            "reset_workspace",
+            "get_class_skeleton",
+            "get_diagnostics_for_file",
+            "find_symbol_definition",
+            "find_usages",
+            "run_dotnet_build",
+            "run_dotnet_test",
+            "run_specific_test",
+            "run_test_by_filter",
+            "get_changed_files",
+        };
+
+        Assert.Equal(expected.OrderBy(n => n, StringComparer.Ordinal), surface.RegisteredTools.Select(t => t.Name).OrderBy(n => n, StringComparer.Ordinal));
+        Assert.Equal(15, surface.RegisteredToolCount);
+        Assert.All(surface.RegisteredTools, d => Assert.True(d.InLiteCore));
+        Assert.Equal(
+            McpToolCatalog.All.Where(d => d.InLiteCore).Select(d => d.Name).OrderBy(n => n, StringComparer.Ordinal),
+            surface.RegisteredTools.Select(t => t.Name).OrderBy(n => n, StringComparer.Ordinal));
+        Assert.DoesNotContain(surface.RegisteredTools, d => d.Name == "find_symbol_references");
+        Assert.DoesNotContain(surface.RegisteredTools, d => d.Name == "find_implementations");
+        Assert.DoesNotContain(surface.RegisteredTools, d => d.Name == "get_call_graph");
+        Assert.DoesNotContain(surface.RegisteredTools, d => d.Name == "get_code_skeleton");
+        Assert.DoesNotContain(surface.RegisteredTools, d => d.Name == "decompile_type");
+        Assert.DoesNotContain(surface.RegisteredTools, d => d.Name == "search_code");
+        Assert.Contains(surface.RegisteredTools, d => d.Name == "find_symbol_definition");
+        Assert.Contains(surface.RegisteredTools, d => d.Name == "find_usages");
+        Assert.Contains(surface.RegisteredTools, d => d.Name == "enable_tool_group");
+        Assert.Contains(surface.RegisteredTools, d => d.Name == "list_tool_groups");
+        Assert.Contains(surface.RegisteredTools, d => d.Name == "get_tool_help");
+    }
+
+    [Fact]
+    public void Lite_plus_navigation_returns_three_nav_tools_not_skeleton()
+    {
+        var surface = McpToolCatalog.CreateSurface(new McpToolProfileOptions
+        {
+            Profile = "lite",
+            Groups = "navigation",
+        });
+
+        Assert.Contains(surface.RegisteredTools, d => d.Name == "find_symbol_references");
+        Assert.Contains(surface.RegisteredTools, d => d.Name == "find_implementations");
+        Assert.Contains(surface.RegisteredTools, d => d.Name == "get_call_graph");
+        Assert.DoesNotContain(surface.RegisteredTools, d => d.Name == "get_code_skeleton");
+        Assert.Equal(18, surface.RegisteredToolCount);
+    }
+
+    [Fact]
+    public void Lite_plus_files_returns_skeleton_with_existing_files_tools()
+    {
+        var surface = McpToolCatalog.CreateSurface(new McpToolProfileOptions
+        {
+            Profile = "lite",
+            Groups = "files",
+        });
+        var filesNames = McpToolCatalog.All
+            .Where(d => d.Group == McpToolGroups.Files)
+            .Select(d => d.Name)
+            .ToHashSet(StringComparer.Ordinal);
+
+        Assert.Contains("get_code_skeleton", filesNames);
+        Assert.Contains(surface.RegisteredTools, d => d.Name == "get_code_skeleton");
+        Assert.All(filesNames, name => Assert.Contains(surface.RegisteredTools, d => d.Name == name));
+        Assert.DoesNotContain(surface.RegisteredTools, d => d.Name == "find_symbol_references");
+        Assert.Equal(23, surface.RegisteredToolCount);
+    }
+
+    [Fact]
+    public void Full_still_contains_demoted_navigation_and_skeleton_tools()
+    {
+        var surface = McpToolCatalog.CreateSurface(new McpToolProfileOptions { Profile = "full" });
+        Assert.Contains(surface.RegisteredTools, d => d.Name == "find_symbol_references");
+        Assert.Contains(surface.RegisteredTools, d => d.Name == "find_implementations");
+        Assert.Contains(surface.RegisteredTools, d => d.Name == "get_call_graph");
+        Assert.Contains(surface.RegisteredTools, d => d.Name == "get_code_skeleton");
+        Assert.Equal(McpToolGroups.Navigation, McpToolCatalog.All.First(d => d.Name == "find_symbol_references").Group);
+        Assert.Equal(McpToolGroups.Files, McpToolCatalog.All.First(d => d.Name == "get_code_skeleton").Group);
+    }
+
+    [Fact]
+    public void Navigation_group_is_accepted_and_listed()
+    {
+        Assert.Contains(McpToolGroups.Navigation, McpToolGroups.All);
+        Assert.True(McpToolCatalog.TryNormalizeGroup("navigation", out var group));
+        Assert.Equal(McpToolGroups.Navigation, group);
+        Assert.Contains("Type hierarchy", McpToolGroups.Describe(McpToolGroups.Navigation), StringComparison.Ordinal);
+
+        var surface = McpToolCatalog.CreateSurface(new McpToolProfileOptions
+        {
+            Profile = "lite",
+            Groups = "navigation",
+        });
+        Assert.Equal(["navigation"], surface.StartupGroups);
+    }
+
+    [Fact]
+    public void Startup_groups_expand_lite()
+    {
+        var surface = McpToolCatalog.CreateSurface(new McpToolProfileOptions
+        {
+            Profile = "lite",
+            Groups = "decompile,nuget",
+        });
+
+        Assert.Equal(["decompile", "nuget"], surface.StartupGroups);
+        Assert.Contains(surface.RegisteredTools, d => d.Name == "decompile_type");
+        Assert.Contains(surface.RegisteredTools, d => d.Name == "list_nuget_packages");
+        Assert.Contains(surface.RegisteredTools, d => d.Name == "add_package_reference");
+        Assert.DoesNotContain(surface.RegisteredTools, d => d.Name == "search_code");
+        Assert.DoesNotContain(surface.RegisteredTools, d => d.Name == "run_dotnet_run");
+        Assert.True(surface.RegisteredToolCount > McpToolCatalog.All.Count(d => d.InLiteCore));
+    }
+
+    [Fact]
+    public void Startup_groups_are_noop_in_full()
+    {
+        var surface = McpToolCatalog.CreateSurface(new McpToolProfileOptions
+        {
+            Profile = "full",
+            Groups = "decompile,nuget",
+        });
+
+        Assert.Equal(["decompile", "nuget"], surface.StartupGroups);
+        Assert.Equal(McpToolCatalog.All.Count, surface.RegisteredToolCount);
+    }
+
+    [Fact]
+    public void Invalid_profile_is_rejected()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            McpToolCatalog.CreateSurface(new McpToolProfileOptions { Profile = "tiny" }));
+
+        Assert.Contains("Unknown tool profile 'tiny'", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("full", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("lite", ex.Message, StringComparison.Ordinal);
+        Assert.Contains(McpToolProfileOptions.ProfileVariableName, ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Invalid_group_is_rejected()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            McpToolCatalog.CreateSurface(new McpToolProfileOptions { Groups = "decompile,widgets" }));
+
+        Assert.Contains("Unknown tool group 'widgets'", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("files", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("navigation", ex.Message, StringComparison.Ordinal);
+        Assert.Contains(McpToolProfileOptions.GroupsVariableName, ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Casing_whitespace_and_duplicate_groups_are_normalized()
+    {
+        var surface = McpToolCatalog.CreateSurface(new McpToolProfileOptions
+        {
+            Profile = " LITE ",
+            Groups = " Decompile , nuget, DECOMPILE , files ",
+        });
+
+        Assert.Equal(McpToolProfileOptions.LiteProfile, surface.Profile);
+        Assert.Equal(["decompile", "nuget", "files"], surface.StartupGroups);
+        Assert.Contains(surface.RegisteredTools, d => d.Name == "decompile_type");
+        Assert.Contains(surface.RegisteredTools, d => d.Name == "search_code");
+        Assert.Contains(surface.RegisteredTools, d => d.Name == "list_nuget_packages");
+    }
+
+    [Fact]
+    public void Public_tool_names_are_unique()
+    {
+        var duplicates = McpToolCatalog.All
+            .GroupBy(d => d.Name, StringComparer.Ordinal)
+            .Where(g => g.Count() > 1)
+            .Select(g => g.Key)
+            .ToArray();
+
+        Assert.Empty(duplicates);
+    }
+
+    [Fact]
+    public void Reserved_bootstrap_names_are_not_registered()
+    {
+        foreach (var name in McpToolCatalog.ReservedBootstrapToolNames)
+        {
+            Assert.DoesNotContain(McpToolCatalog.All, d => d.Name.Equals(name, StringComparison.Ordinal));
+        }
+    }
+
+    [Fact]
+    public void Every_catalog_entry_can_be_activated_through_di()
+    {
+        using var host = BuildHost(new McpToolProfileOptions { Profile = "full" });
+        foreach (var entry in McpToolCatalog.All)
+        {
+            var instance = ActivatorUtilities.CreateInstance(host.Services, entry.HostType);
+            Assert.NotNull(instance);
+            Assert.IsType(entry.HostType, instance, exactMatch: false);
+        }
+    }
+
+    [Fact]
+    public void Lite_does_not_register_excluded_tools_in_sdk_collection()
+    {
+        using var host = BuildHost(new McpToolProfileOptions { Profile = "lite" });
+        var registered = GetRegisteredToolNames(host.Services);
+
+        Assert.Equal(
+            McpToolCatalog.All.Where(d => d.InLiteCore).Select(d => d.Name).OrderBy(n => n, StringComparer.Ordinal),
+            registered.OrderBy(n => n, StringComparer.Ordinal));
+        Assert.DoesNotContain("decompile_type", registered);
+        Assert.DoesNotContain("apply_patch", registered);
+        Assert.Contains("list_tool_groups", registered);
+        Assert.Contains("get_tool_help", registered);
+        Assert.Contains("enable_tool_group", registered);
+    }
+
+    [Fact]
+    public void Startup_groups_appear_in_first_sdk_tool_list()
+    {
+        using var host = BuildHost(new McpToolProfileOptions
+        {
+            Profile = "lite",
+            Groups = "decompile",
+        });
+
+        var registered = GetRegisteredToolNames(host.Services);
+        Assert.Contains("decompile_type", registered);
+        Assert.Contains("explore_assembly", registered);
+        Assert.Contains("get_mcp_server_info", registered);
+        Assert.DoesNotContain("search_code", registered);
+    }
+
+    [Fact]
+    public void Server_info_reports_active_profile_groups_and_count()
+    {
+        using var host = BuildHost(new McpToolProfileOptions
+        {
+            Profile = "lite",
+            Groups = "files",
+        });
+
+        var surface = host.Services.GetRequiredService<McpToolSurface>();
+        var activation = host.Services.GetRequiredService<McpToolActivationService>();
+        var info = McpServerInfoHelper.BuildInfoMarkdown(loadedSolution: null, activation);
+
+        Assert.Contains("- **Tool profile:** `lite`", info, StringComparison.Ordinal);
+        Assert.Contains("- **Startup tool groups:** `files`", info, StringComparison.Ordinal);
+        Assert.Contains("- **Dynamic tool groups:** (none)", info, StringComparison.Ordinal);
+        Assert.Contains($"- **Registered MCP tools:** {activation.CurrentToolCount}", info, StringComparison.Ordinal);
+        Assert.DoesNotContain($"- **Registered MCP tools:** {McpToolCatalog.All.Count}", info, StringComparison.Ordinal);
+        Assert.Equal(surface.RegisteredToolCount, activation.CurrentToolCount);
+        Assert.Equal(surface.RegisteredToolCount, host.Services.GetServices<McpServerTool>().Count());
+    }
+
+    [Fact]
+    public void Options_are_registered_for_the_resolved_surface()
+    {
+        using var host = BuildHost(new McpToolProfileOptions { Profile = "lite", Groups = "runtime" });
+        var options = host.Services.GetRequiredService<IOptions<McpToolProfileOptions>>().Value;
+        Assert.Equal(McpToolProfileOptions.LiteProfile, options.Profile);
+        Assert.Equal("runtime", options.Groups);
+    }
+
+    [Fact]
+    public void Minified_tools_list_sizes_are_within_epoch2_budgets()
+    {
+        using var fullHost = BuildHost(new McpToolProfileOptions { Profile = "full" });
+        using var liteHost = BuildHost(new McpToolProfileOptions { Profile = "lite" });
+        _ = fullHost.Services.GetRequiredService<IOptions<McpServerOptions>>().Value;
+        _ = liteHost.Services.GetRequiredService<IOptions<McpServerOptions>>().Value;
+
+        var full = MeasureProtocolTools(fullHost.Services.GetRequiredService<McpRuntimeToolCollection>());
+        var lite = MeasureProtocolTools(liteHost.Services.GetRequiredService<McpRuntimeToolCollection>());
+        output.WriteLine($"full tools/list UTF-8 bytes={full.Utf8Bytes} count={full.Count}");
+        output.WriteLine($"lite tools/list UTF-8 bytes={lite.Utf8Bytes} count={lite.Count}");
+
+        Assert.Equal(McpToolCatalog.All.Count, full.Count);
+        Assert.Equal(McpToolCatalog.All.Count(d => d.InLiteCore), lite.Count);
+        Assert.True(
+            full.Utf8Bytes <= FullCatalogBudgetBytes,
+            $"full tools/list is {full.Utf8Bytes} bytes (lite {lite.Utf8Bytes}); budget is {FullCatalogBudgetBytes}.");
+        Assert.True(
+            lite.Utf8Bytes <= LiteCatalogBudgetBytes,
+            $"lite tools/list is {lite.Utf8Bytes} bytes (full {full.Utf8Bytes}); budget is {LiteCatalogBudgetBytes}.");
+    }
+
+    [Fact]
+    public void Surface_sizes_match_recorded_release_numbers()
+    {
+        var full = MeasureSurface(new McpToolProfileOptions { Profile = "full" });
+        var lite = MeasureSurface(new McpToolProfileOptions { Profile = "lite" });
+        var liteFiles = MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "files" });
+        var liteEditing = MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "editing" });
+        var liteDecompile = MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "decompile" });
+        var liteNuget = MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "nuget" });
+        var liteProject = MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "project" });
+        var liteRuntime = MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "runtime" });
+        var liteOperations = MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "operations" });
+        output.WriteLine($"full={full.Count}/{full.Utf8Bytes}");
+        output.WriteLine($"lite={lite.Count}/{lite.Utf8Bytes}");
+        output.WriteLine($"lite+files={liteFiles.Count}/{liteFiles.Utf8Bytes}");
+        output.WriteLine($"lite+editing={liteEditing.Count}/{liteEditing.Utf8Bytes}");
+        output.WriteLine($"lite+decompile={liteDecompile.Count}/{liteDecompile.Utf8Bytes}");
+        output.WriteLine($"lite+nuget={liteNuget.Count}/{liteNuget.Utf8Bytes}");
+        output.WriteLine($"lite+project={liteProject.Count}/{liteProject.Utf8Bytes}");
+        output.WriteLine($"lite+runtime={liteRuntime.Count}/{liteRuntime.Utf8Bytes}");
+        output.WriteLine($"lite+operations={liteOperations.Count}/{liteOperations.Utf8Bytes}");
+
+        AssertRecorded("full", 54, 43029, full);
+        AssertRecorded("lite", 15, 16906, lite);
+        AssertRecorded("lite+files", 23, 21962, liteFiles);
+        AssertRecorded("lite+editing", 23, 22176, liteEditing);
+        AssertRecorded("lite+decompile", 19, 19668, liteDecompile);
+        AssertRecorded("lite+nuget", 21, 20285, liteNuget);
+        AssertRecorded("lite+project", 18, 18426, liteProject);
+        AssertRecorded("lite+runtime", 18, 19299, liteRuntime);
+        AssertRecorded("lite+operations", 19, 18667, liteOperations);
+
+        var enabled = MeasureSurface(
+            new McpToolProfileOptions { Profile = "lite" },
+            activation => activation.EnableGroup("files"));
+        AssertRecorded("lite+enable:files", 23, 21962, enabled);
+        Assert.Equal(21962, MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "files" }).Utf8Bytes);
+    }
+
+    private static void AssertRecorded(string label, int count, int bytes, (int Count, int Utf8Bytes) actual)
+    {
+        Assert.True(
+            actual.Count == count && actual.Utf8Bytes == bytes,
+            $"{label} expected {count} tools / {bytes} bytes, got {actual.Count} / {actual.Utf8Bytes}.");
+    }
+
+    [Fact]
+    public void Description_character_count_is_recorded()
+    {
+        var all = McpToolCatalog.SumDescriptionCharacters();
+        var withoutHelp = McpToolCatalog.SumDescriptionCharacters(
+            McpToolCatalog.All.Where(d => d.Name is not ("list_tool_groups" or "get_tool_help" or "enable_tool_group")));
+        output.WriteLine($"description chars all={all} withoutHelp={withoutHelp} epoch1={McpToolCatalog.Epoch1DescriptionCharacters}");
+
+        var ceiling = (int)Math.Floor(McpToolCatalog.Epoch1DescriptionCharacters * 0.6);
+        Assert.True(
+            withoutHelp <= ceiling,
+            $"Description text is {withoutHelp} chars; 40% reduction from {McpToolCatalog.Epoch1DescriptionCharacters} requires <= {ceiling}.");
+    }
+
+    [Fact]
+    public void Every_registered_tool_has_a_non_empty_description()
+    {
+        using var host = BuildHost(new McpToolProfileOptions { Profile = "full" });
+        foreach (var tool in host.Services.GetServices<McpServerTool>())
+        {
+            Assert.False(
+                string.IsNullOrWhiteSpace(tool.ProtocolTool.Description),
+                $"Tool '{tool.ProtocolTool.Name}' has an empty description.");
+        }
+    }
+
+    [Fact]
+    public void Public_tool_schemas_preserve_required_default_and_type()
+    {
+        using var host = BuildHost(new McpToolProfileOptions { Profile = "full" });
+        var byName = host.Services.GetServices<McpServerTool>().ToDictionary(t => t.ProtocolTool.Name, StringComparer.Ordinal);
+
+        foreach (var descriptor in McpToolCatalog.All)
+        {
+            Assert.True(byName.TryGetValue(descriptor.Name, out var tool), descriptor.Name);
+            var schema = tool.ProtocolTool.InputSchema;
+            Assert.Equal(JsonValueKind.Object, schema.ValueKind);
+
+            var properties = schema.TryGetProperty("properties", out var props) && props.ValueKind == JsonValueKind.Object
+                ? props
+                : default;
+            var required = schema.TryGetProperty("required", out var reqEl) && reqEl.ValueKind == JsonValueKind.Array
+                ? reqEl.EnumerateArray().Select(e => e.GetString()!).ToHashSet(StringComparer.Ordinal)
+                : new HashSet<string>(StringComparer.Ordinal);
+
+            foreach (var parameter in McpToolHelpFormatter.ReadParameters(descriptor.Method))
+            {
+                Assert.Equal(JsonValueKind.Object, properties.ValueKind);
+                Assert.True(
+                    properties.TryGetProperty(parameter.Name, out var prop),
+                    $"Tool '{descriptor.Name}' is missing schema property '{parameter.Name}'.");
+                Assert.True(
+                    HasJsonType(prop),
+                    $"Tool '{descriptor.Name}' parameter '{parameter.Name}' lost JSON type information.");
+
+                if (parameter.Required)
+                {
+                    Assert.Contains(parameter.Name, required);
+                }
+
+                if (!parameter.Required)
+                {
+                    Assert.True(
+                        prop.TryGetProperty("default", out _),
+                        $"Tool '{descriptor.Name}' parameter '{parameter.Name}' lost its default value.");
+                }
+            }
+        }
+    }
+
+    private static bool HasJsonType(JsonElement property)
+    {
+        if (property.TryGetProperty("type", out var typeEl))
+        {
+            return typeEl.ValueKind is JsonValueKind.String or JsonValueKind.Array;
+        }
+
+        return property.TryGetProperty("anyOf", out _) || property.TryGetProperty("oneOf", out _);
+    }
+
+    internal static (int Count, int Utf8Bytes) MeasureToolsList(IServiceProvider services) =>
+        MeasureProtocolTools(services.GetServices<McpServerTool>());
+
+    internal static (int Count, int Utf8Bytes) MeasureProtocolTools(IEnumerable<McpServerTool> tools)
+    {
+        var list = tools.Select(t => t.ProtocolTool).ToList();
+        var result = new ListToolsResult { Tools = list };
+        var json = JsonSerializer.Serialize(result, McpJsonUtilities.DefaultOptions);
+        using var document = JsonDocument.Parse(json);
+        using var stream = new MemoryStream();
+        using (var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = false }))
+        {
+            document.RootElement.WriteTo(writer);
+        }
+
+        return (list.Count, (int)stream.Length);
+    }
+
+    private static (int Count, int Utf8Bytes) MeasureSurface(
+        McpToolProfileOptions options,
+        Action<McpToolActivationService>? after = null)
+    {
+        using var host = BuildHost(options);
+        _ = host.Services.GetRequiredService<IOptions<McpServerOptions>>().Value;
+        var activation = host.Services.GetRequiredService<McpToolActivationService>();
+        after?.Invoke(activation);
+        return MeasureProtocolTools(host.Services.GetRequiredService<McpRuntimeToolCollection>());
+    }
+
+    private static IReadOnlyList<string> GetRegisteredToolNames(IServiceProvider services) =>
+        services.GetServices<McpServerTool>().Select(t => t.ProtocolTool.Name).ToArray();
+
+    private static IHost BuildHost(McpToolProfileOptions options)
+    {
+        var builder = Host.CreateApplicationBuilder();
+        builder.Services.AddRoslynMcpServerTools(options);
+        return builder.Build();
+    }
+}

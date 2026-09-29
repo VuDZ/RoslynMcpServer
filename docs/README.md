@@ -17,13 +17,13 @@
 | Workspace load cache | [workspace-load-cache/](workspace-load-cache/README.md) | post-arbitration spec, не в runtime |
 | MCP tool surface evolution | [mcp-tool-surface-evolution/](mcp-tool-surface-evolution/README.md) | post-arbitration spec v2; реализация не начата |
 | GitHub binary releases | [github-releases/](github-releases/README.md) | O-01 закрыт; CI + release workflow есть; smoke дистрибутива и O-02/O-03 открыты |
-| Плагины MCP | [mcp-plugins/v2/](mcp-plugins/v2/README.md) | post-arbitration spec v2, код не начат; руководство — [authoring.md](mcp-plugins/v2/authoring.md). Process и v1 — [mcp-plugins/_archive/](mcp-plugins/_archive/README.md) |
 | Улучшение тестов | [test-improvements/](test-improvements/README.md) | эпохи 1 и 2 выполнены, планы и отчёты в [архиве](test-improvements/_archive/README.md); далее эпоха 3 |
-| Раскладка тестов | [test-layout/](test-layout/README.md) | план, код не начат; каталоги `RoslynMcpServer.Tests` по функциональным областям |
+| Раскладка тестов | [test-layout/](test-layout/README.md) | выполнено; каталоги `RoslynMcpServer.Tests` по функциональным областям |
 
 ## Contract
 
 Нет. Факты shipped-фич — в [ARCHITECTURE.md](ARCHITECTURE.md) и корневом README.
+Руководство по плагинам — [samples/RoslynMcpPlugin/README.md](../samples/RoslynMcpPlugin/README.md).
 
 ## Record
 

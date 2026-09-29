@@ -6,6 +6,7 @@ using System.Text;
 using ModelContextProtocol;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
+using RoslynMcpServer.Plugins;
 
 namespace RoslynMcpServer.Hosting;
 
@@ -42,20 +43,45 @@ public static class McpToolHelpFormatter
         return sb.ToString().TrimEnd();
     }
 
-    public static string FormatToolHelp(string? toolName, McpToolActivationService activation)
+    public static string FormatToolHelp(string? toolName, McpToolActivationService activation) =>
+        FormatToolHelp(toolName, activation, pluginStartup: null);
+
+    /// <summary>
+    /// Help for one tool: a built-in tool of the catalog, or a tool of a loaded plugin, which is not a catalog
+    /// entry and has no group of <c>list_tool_groups</c>.
+    /// </summary>
+    /// <param name="toolName">Name the agent asked for.</param>
+    /// <param name="activation">Tool surface of this process.</param>
+    /// <param name="pluginStartup">
+    /// Report of the plugin start pass of this process. A tool it holds gets its kind, group, description and
+    /// parameters from there; the names of loaded plugin tools also join the close names of an unknown tool.
+    /// <see langword="null"/> is a host that made no such pass.
+    /// </param>
+    public static string FormatToolHelp(
+        string? toolName,
+        McpToolActivationService activation,
+        PluginStartup.Report? pluginStartup)
     {
         ArgumentNullException.ThrowIfNull(activation);
 
         if (string.IsNullOrWhiteSpace(toolName))
         {
-            return FormatUnknown(toolName, activation);
+            return FormatUnknown(toolName, activation, pluginStartup);
         }
 
         var trimmed = toolName.Trim();
+
+        // A plugin tool is not a catalog entry, so every line of its help comes from the accepted method the
+        // start pass recorded; the JSON Schema the SDK builds for it is not a help source.
+        if (pluginStartup is not null && pluginStartup.TryFindTool(trimmed, out var pluginTool))
+        {
+            return FormatPluginToolHelp(pluginTool);
+        }
+
         var descriptor = McpToolCatalog.All.FirstOrDefault(d => d.Name.Equals(trimmed, StringComparison.Ordinal));
         if (descriptor is null)
         {
-            return FormatUnknown(trimmed, activation);
+            return FormatUnknown(trimmed, activation, pluginStartup);
         }
 
         McpToolHelpCatalog.TryGet(descriptor.Name, out var extra);
@@ -84,37 +110,7 @@ public static class McpToolHelpFormatter
 
         sb.AppendLine("## Parameters");
         sb.AppendLine();
-        if (parameters.Count == 0)
-        {
-            sb.AppendLine("None.");
-        }
-        else
-        {
-            foreach (var parameter in parameters)
-            {
-                sb.Append("- `").Append(parameter.Name).Append("` (").Append(parameter.JsonType);
-                if (parameter.Required)
-                {
-                    sb.Append(", required");
-                }
-                else
-                {
-                    sb.Append(", optional");
-                    if (parameter.DefaultDisplay is not null)
-                    {
-                        sb.Append(", default ").Append(parameter.DefaultDisplay);
-                    }
-                }
-
-                sb.Append(')');
-                if (!string.IsNullOrWhiteSpace(parameter.Description))
-                {
-                    sb.Append(": ").Append(parameter.Description);
-                }
-
-                sb.AppendLine();
-            }
-        }
+        AppendParameters(sb, parameters);
 
         if (!string.IsNullOrWhiteSpace(extra.Workflow))
         {
@@ -144,6 +140,68 @@ public static class McpToolHelpFormatter
         }
 
         return sb.ToString().TrimEnd();
+    }
+
+    /// <summary>
+    /// Help text of one tool of a loaded plugin: the shape of a catalog entry, with <c>plugin</c> as both the
+    /// kind and the group, because such a tool belongs to no group of <c>list_tool_groups</c>.
+    /// </summary>
+    private static string FormatPluginToolHelp(PluginStartup.Tool tool)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine($"# `{tool.Name}`");
+        sb.AppendLine();
+        sb.AppendLine("- Kind: plugin");
+        sb.AppendLine("- Group: `plugin`");
+        sb.AppendLine();
+
+        var purpose = tool.Method.GetCustomAttribute<DescriptionAttribute>()?.Description?.Trim();
+        if (!string.IsNullOrWhiteSpace(purpose))
+        {
+            sb.AppendLine(purpose);
+            sb.AppendLine();
+        }
+
+        sb.AppendLine("## Parameters");
+        sb.AppendLine();
+        AppendParameters(sb, ReadParameters(tool.Method));
+
+        return sb.ToString().TrimEnd();
+    }
+
+    /// <summary>Renders the parameter list of one tool, or the line that says the tool takes none.</summary>
+    private static void AppendParameters(StringBuilder sb, IReadOnlyList<McpToolParameterHelp> parameters)
+    {
+        if (parameters.Count == 0)
+        {
+            sb.AppendLine("None.");
+            return;
+        }
+
+        foreach (var parameter in parameters)
+        {
+            sb.Append("- `").Append(parameter.Name).Append("` (").Append(parameter.JsonType);
+            if (parameter.Required)
+            {
+                sb.Append(", required");
+            }
+            else
+            {
+                sb.Append(", optional");
+                if (parameter.DefaultDisplay is not null)
+                {
+                    sb.Append(", default ").Append(parameter.DefaultDisplay);
+                }
+            }
+
+            sb.Append(')');
+            if (!string.IsNullOrWhiteSpace(parameter.Description))
+            {
+                sb.Append(": ").Append(parameter.Description);
+            }
+
+            sb.AppendLine();
+        }
     }
 
     internal static IReadOnlyList<McpToolParameterHelp> ReadParameters(MethodInfo method)
@@ -182,9 +240,22 @@ public static class McpToolHelpFormatter
         || parameterType == typeof(RequestContext<CallToolRequestParams>)
         || parameterType == typeof(IProgress<ProgressNotificationValue>);
 
-    private static string FormatUnknown(string? toolName, McpToolActivationService activation)
+    /// <summary>
+    /// Text for a name no tool of this process has. Close names come from the catalog and from the tools of
+    /// the loaded plugins alike: a plugin tool is in <c>tools/list</c>, so a near miss of its name is worth
+    /// the same suggestion as a near miss of a catalog name.
+    /// </summary>
+    private static string FormatUnknown(
+        string? toolName,
+        McpToolActivationService activation,
+        PluginStartup.Report? pluginStartup)
     {
-        var names = McpToolCatalog.All.Select(d => d.Name).ToArray();
+        var names = McpToolCatalog.All.Select(d => d.Name).ToList();
+        if (pluginStartup is not null)
+        {
+            names.AddRange(pluginStartup.ToolNames);
+        }
+
         var suggestions = SuggestNames(toolName, names);
         var sb = new StringBuilder();
         sb.Append("Unknown tool");

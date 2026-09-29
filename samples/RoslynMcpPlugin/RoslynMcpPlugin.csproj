@@ -1,0 +1,72 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- A plugin is a class library the host loads from a directory of its own, so its private
+         managed dependencies have to lie next to the entry assembly. The SDK default for a class
+         library does not copy the assemblies a PackageReference resolves: without this property the
+         private dependency stays in the NuGet cache and the loaded plugin cannot resolve it. -->
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <!-- The host checks the contract versions a plugin was compiled against, and the carrier of those
+         versions is the compile record of deps.json: the record of a library is the compile asset whose
+         file name is the assembly. The contract assemblies are compile-only references here, so neither
+         part comes from the runtime graph of the project. Without the compilation context the file lists
+         no reference for RoslynMcpServer at all; with it, the trimming of libraries that have no runtime
+         asset empties every contract record of its assets and leaves only the library key behind. Both
+         are off for that reason. The references themselves are not to be shipped, so the refs folder the
+         compilation context would otherwise fill stays off. -->
+    <PreserveCompilationContext>true</PreserveCompilationContext>
+    <PreserveCompilationReferences>false</PreserveCompilationReferences>
+    <TrimDepsJsonLibrariesWithoutAssets>false</TrimDepsJsonLibrariesWithoutAssets>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Compile against the host and the MCP SDK, never carry either into the output: the running
+         host shares its already loaded assemblies with the plugin, so SolutionManager is one type
+         in both. Major.Minor of the SDK must equal the loaded host one. -->
+    <ProjectReference Include="..\..\RoslynMcpServer.csproj">
+      <Private>false</Private>
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </ProjectReference>
+    <PackageReference Include="ModelContextProtocol" Version="2.2.0">
+      <PrivateAssets>all</PrivateAssets>
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </PackageReference>
+    <!-- Private managed dependency of the plugin: no host assembly backs it, so it travels in the
+         plugin directory and the plugin resolves it from there. -->
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <!-- The source plugin.json and the file next to the entry assembly differ: the delivered one must
+       state the host version the plugin was actually compiled against, so it cannot drift from the
+       resolved reference. The version is read from the reference rather than written by hand here,
+       and the two escapes below stand for a quote and a line break, which an attribute cannot hold. -->
+  <Target Name="WritePluginManifest" AfterTargets="CopyFilesToOutputDirectory">
+    <GetAssemblyIdentity AssemblyFiles="@(ReferencePath)" Condition="'%(Filename)' == 'RoslynMcpServer'">
+      <Output TaskParameter="Assemblies" ItemName="HostAssemblyIdentity" />
+    </GetAssemblyIdentity>
+
+    <!-- Without the host reference there is no version to state, and a manifest that carries none
+         would be discovered as broken only at host startup. -->
+    <Error Condition="'@(HostAssemblyIdentity)' == ''"
+           Text="No resolved reference to RoslynMcpServer: plugin.json cannot state minHostVersion." />
+
+    <PropertyGroup>
+      <PluginManifestText>{ %22id%22: %22sample%22,%0A  %22entry%22: %22RoslynMcpPlugin.dll%22,%0A  %22pluginType%22: %22RoslynMcpPlugin.SamplePlugin%22,%0A  %22toolPrefix%22: %22sample_%22,%0A  %22minHostVersion%22: %22%(HostAssemblyIdentity.Version)%22%0A}</PluginManifestText>
+    </PropertyGroup>
+
+    <WriteLinesToFile File="$(TargetDir)plugin.json"
+                      Lines="$(PluginManifestText)"
+                      Overwrite="true"
+                      WriteOnlyWhenDifferent="true" />
+  </Target>
+
+  <ItemGroup>
+    <!-- Never copy the source file over the manifest the target writes. PreserveNewest would put the
+         source minHostVersion back whenever that file is newer than the output. -->
+    <None Update="plugin.json" CopyToOutputDirectory="Never" />
+  </ItemGroup>
+</Project>

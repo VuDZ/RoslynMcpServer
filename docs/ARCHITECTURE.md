@@ -148,7 +148,13 @@ The following are invariants, not optional conventions:
 
 ## Extending the server
 
-For a new or changed MCP tool:
+Плагин — отдельный способ расширения сервера. Его инструменты не добавляются
+в `McpToolCatalog`, а получают тот же `SolutionManager`, что и встроенные
+инструменты. Подключение и разработка описаны в
+[руководстве рядом с примером](../samples/RoslynMcpPlugin/README.md),
+контракт реализации — в [docs/archive/mcp-plugins/v2/README.md](archive/mcp-plugins/v2/README.md).
+
+For a new or changed built-in MCP tool:
 
 1. Keep protocol validation and response formatting in the appropriate `Tools` host.
 2. Put reusable behavior in `Services` or output classification in `Diagnostics`.

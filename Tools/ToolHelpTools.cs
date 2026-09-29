@@ -1,17 +1,21 @@
 ﻿using System.ComponentModel;
+using Microsoft.Extensions.DependencyInjection;
 using ModelContextProtocol.Server;
 using RoslynMcpServer.Diagnostics;
 using RoslynMcpServer.Hosting;
+using RoslynMcpServer.Plugins;
 
 namespace RoslynMcpServer.Tools;
 
 public sealed class ToolHelpTools
 {
     private readonly McpToolActivationService _activation;
+    private readonly IServiceProvider _services;
 
-    public ToolHelpTools(McpToolActivationService activation)
+    public ToolHelpTools(McpToolActivationService activation, IServiceProvider services)
     {
         _activation = activation;
+        _services = services;
     }
 
     [McpServerTool(Name = "list_tool_groups", Title = "List tool groups")]
@@ -32,9 +36,13 @@ public sealed class ToolHelpTools
         CancellationToken cancellationToken = default)
     {
         _ = cancellationToken;
+
+        // A plugin tool has no article of its own: its text comes from the accepted method of the start
+        // report, which the start pass registered in this container.
+        var pluginStartup = _services.GetService<PluginStartup.Report>() ?? PluginStartup.Report.Empty;
         return Task.FromResult(ToolTelemetry.TraceAndReturn(
             nameof(GetToolHelp),
-            McpToolHelpFormatter.FormatToolHelp(toolName, _activation)));
+            McpToolHelpFormatter.FormatToolHelp(toolName, _activation, pluginStartup)));
     }
 
     [McpServerTool(Name = "enable_tool_group", Title = "Enable tool group")]

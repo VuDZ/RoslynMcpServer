@@ -54,6 +54,10 @@
     <None Remove="RoslynMcpServer.Tests\**" />
     <Compile Remove="RoslynMcpServer.LifecycleTestHost\**" />
     <None Remove="RoslynMcpServer.LifecycleTestHost\**" />
+    <!-- The sample plugin is a separate project of this repository. Its sources, including the
+         generated .cs under its obj directory, are not part of the host assembly. -->
+    <Compile Remove="samples\**" />
+    <None Remove="samples\**" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="ICSharpCode.Decompiler" Version="10.0.1.8346" />

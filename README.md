@@ -19,6 +19,8 @@ Typical flow:
 
 The server is C#-focused. It can read non-C# files and execute selected CLI operations, but it does not provide Python semantic analysis. See [Architecture and constraints](docs/ARCHITECTURE.md) for component boundaries, state, synchronization, and extension rules. Docs index: [docs/README.md](docs/README.md). Planned (not shipped) large-solution load cache: [docs/workspace-load-cache/](docs/workspace-load-cache/README.md).
 
+Plugin development and setup: [authoring guide](samples/RoslynMcpPlugin/README.md#english-version).
+
 ## What it provides
 
 - Compiler-aware declaration, usage, implementation, and call-graph navigation.
@@ -185,6 +187,15 @@ Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into a
 - **MCP C# SDK 2.2.0** — the host package moved from 1.3.0. `enable_tool_group` still sends one `tools/list_changed` when the set grows; the batch uses the SDK `DeferChangedEvents` scope. Clients on the `2025-11-25` initialize handshake receive that notification on the session. Clients on `2026-07-28` (the SDK 2.2 default, which this server accepts) receive it only after `subscriptions/listen` with `toolsListChanged`. No separate protocol feature is added on top of the SDK.
 - **Plugins** — a plugin's `ModelContextProtocol` reference must be `Major.Minor` 2.2. A plugin built against 1.3 is skipped at discovery. Patch equality is still not required.
 - **Catalog size** — full 54 tools / 43,029 bytes; lite 15 / 16,906. Counts are unchanged. Each tool's JSON is 39 bytes shorter because SDK 2.2 no longer writes the core `execution.taskSupport` field (Tasks left the core package; this server does not reference that extension).
+
+### v1.4.19
+
+- **Disk watcher** — an error or a directory rename from `FileSystemWatcher` still asks the next semantic call to re-read known documents when the logger throws. `Logger.Log` rethrows a provider failure (Windows Event Log does this after its handle is disposed), and that callback runs on a thread-pool thread, so the exception used to kill the process. The refresh is requested before the log write.
+
+### v1.4.18
+
+- **Plugins** — the server loads plugin assemblies before the host is built, so the first `tools/list` already contains their tools. Sources: `{BaseDirectory}/plugins/<id>/` drop-in directories, the `plugins` key of `RoslynMcp.jsonc`, and `ROSLYN_MCP_PLUGINS` (a directory or an entry DLL path; a development directory is copied to a temporary directory of this run before it is loaded). The manifest `id` must equal `IRoslynMcpPlugin.Name`, every tool name must start with the manifest `toolPrefix`, and a plugin compiled against another `ModelContextProtocol` Minor, a newer `RoslynMcpServer`, or another Roslyn major is refused before its DLL is opened. A plugin that cannot be loaded is skipped with a `[RoslynMcp] plugin skipped (<id or path>): <reason>` line on stderr at the moment of the skip and in `logs/mcp-*.log` after a successful start; the process starts with the remaining plugins and the built-in tools. `get_mcp_server_info` adds the loaded plugins (id, entry file that was opened, tool names) and one line per skipped source. `get_tool_help` for a plugin tool returns the `[Description]` and parameters of its accepted method and reports `Kind: plugin` / `Group: plugin`. Plugin tools are counted in `Registered MCP tools`, are not filtered by `lite`/`full`, and never enter `McpToolCatalog` or `list_tool_groups`.
+- **Catalog size** — unchanged: full 54 tools / 45,135 bytes; lite 15 / 17,491. Plugin tools are not catalog entries.
 
 ### v1.4.17
 
@@ -1363,6 +1374,8 @@ RoslynMcpServer предоставляет AI-агенту compiler-aware инс
 
 В отличие от файлового MCP, сервер загружает `.sln`, `.slnx` или `.csproj` через Roslyn/MSBuild. Агент работает с символами и контекстом проектов, а не только предполагает структуру по тексту.
 
+Разработка и подключение плагинов: [руководство автора](samples/RoslynMcpPlugin/README.md#russian-version).
+
 ## MCP и агент за одну минуту
 
 - **MCP-клиент** — Cursor, OpenCode или другой совместимый хост. Запускает сервер и предоставляет его tools модели.
@@ -1520,7 +1533,7 @@ cd D:\Devel\YourApp
 | `runtime` | `run`, список тестов, сырой `dotnet` | 3 |
 | `operations` | логи, scratchpad, stop | 4 |
 
-`list_tool_groups` / `get_tool_help` / `enable_tool_group` — Markdown-справка и runtime-включение. `tools/list` остаётся JSON Schema. Если клиент не обновляет список после `tools/list_changed`, перезапустите с `ROSLYN_MCP_TOOL_GROUPS=<group>`. Замеры minified UTF-8: full **54 / 45 135**; lite **15 / 17 491**.
+`list_tool_groups` / `get_tool_help` / `enable_tool_group` — Markdown-справка и runtime-включение. `tools/list` остаётся JSON Schema. Если клиент не обновляет список после `tools/list_changed`, перезапустите с `ROSLYN_MCP_TOOL_GROUPS=<group>`. Замеры minified UTF-8: full **54 / 43 029**; lite **15 / 16 906**.
 
 ## История agent-tools по версиям
 

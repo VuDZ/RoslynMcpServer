@@ -1,0 +1,136 @@
+using System.Diagnostics;
+using System.Text;
+using RoslynMcpServer.Services;
+using Xunit;
+
+namespace RoslynMcpServer.Tests.Build;
+
+public sealed class DotNetSdkEnvironmentTests
+{
+    [Fact]
+    public void ApplyPinnedSdk_without_global_json_strips_inherited_msbuild_sdk_overrides()
+    {
+        var workDir = Path.Combine(Path.GetTempPath(), "roslyn-mcp-sdk-clear-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(workDir);
+
+        lock (TestEnvironmentLocks.DotNetRoot)
+        {
+            var previousSdks = Environment.GetEnvironmentVariable(DotNetSdkEnvironment.MsBuildSdksPathVariable);
+            var previousExe = Environment.GetEnvironmentVariable(DotNetSdkEnvironment.MsBuildExePathVariable);
+            var previousResolver = Environment.GetEnvironmentVariable(DotNetSdkEnvironment.SdkResolverSdksDirVariable);
+            Environment.SetEnvironmentVariable(
+                DotNetSdkEnvironment.MsBuildSdksPathVariable,
+                @"C:\Program Files\dotnet\sdk\9.0.316\Sdks");
+            Environment.SetEnvironmentVariable(
+                DotNetSdkEnvironment.MsBuildExePathVariable,
+                @"C:\Program Files\dotnet\sdk\9.0.316\MSBuild.dll");
+            Environment.SetEnvironmentVariable(
+                DotNetSdkEnvironment.SdkResolverSdksDirVariable,
+                @"C:\Program Files\dotnet\sdk\9.0.316\Sdks");
+            try
+            {
+                var psi = new ProcessStartInfo { FileName = "dotnet", Arguments = "--version" };
+                var result = DotNetSdkEnvironment.ApplyPinnedSdk(psi, workDir);
+
+                Assert.Equal(DotNetSdkEnvironment.SdkEnvAction.StrippedInheritedOverrides, result.Action);
+                Assert.Contains("9.0.316", result.Inherited.MsBuildSdksPath, StringComparison.Ordinal);
+                Assert.False(psi.Environment.ContainsKey(DotNetSdkEnvironment.MsBuildSdksPathVariable));
+                Assert.False(psi.Environment.ContainsKey(DotNetSdkEnvironment.MsBuildExePathVariable));
+                Assert.False(psi.Environment.ContainsKey(DotNetSdkEnvironment.SdkResolverSdksDirVariable));
+                Assert.False(psi.Environment.ContainsKey(DotNetSdkEnvironment.SdkResolverSdksVerVariable));
+                Assert.False(psi.Environment.ContainsKey(DotNetSdkEnvironment.SdkResolverCliDirVariable));
+                Assert.False(psi.Environment.ContainsKey(DotNetSdkEnvironment.MsBuildExtensionsPathVariable));
+            }
+            finally
+            {
+                Environment.SetEnvironmentVariable(DotNetSdkEnvironment.MsBuildSdksPathVariable, previousSdks);
+                Environment.SetEnvironmentVariable(DotNetSdkEnvironment.MsBuildExePathVariable, previousExe);
+                Environment.SetEnvironmentVariable(DotNetSdkEnvironment.SdkResolverSdksDirVariable, previousResolver);
+                Directory.Delete(workDir, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public void ApplyPinnedSdk_sets_official_resolver_variables_when_sdk_resolved()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "roslyn-mcp-sdk-" + Guid.NewGuid().ToString("N"));
+        var sdkDir = Path.Combine(root, "sdk", "10.0.999");
+        var sdksDir = Path.Combine(sdkDir, "Sdks");
+        Directory.CreateDirectory(sdksDir);
+        File.WriteAllText(Path.Combine(sdkDir, "MSBuild.dll"), string.Empty);
+        File.WriteAllText(Path.Combine(sdkDir, "Microsoft.Build.dll"), string.Empty);
+        File.WriteAllText(
+            Path.Combine(root, "global.json"),
+            """
+            { "sdk": { "version": "10.0.999" } }
+            """);
+
+        lock (TestEnvironmentLocks.DotNetRoot)
+        {
+            var previousRoot = Environment.GetEnvironmentVariable("DOTNET_ROOT");
+            Environment.SetEnvironmentVariable("DOTNET_ROOT", root);
+            try
+            {
+                var psi = new ProcessStartInfo { FileName = "dotnet", Arguments = "--version" };
+                var result = DotNetSdkEnvironment.ApplyPinnedSdk(psi, root);
+
+                Assert.Equal(DotNetSdkEnvironment.SdkEnvAction.PinnedFromGlobalJson, result.Action);
+                Assert.True(psi.Environment.ContainsKey("PATH"));
+                Assert.Equal(Path.Combine(sdkDir, "MSBuild.dll"), psi.Environment[DotNetSdkEnvironment.MsBuildExePathVariable]);
+                Assert.Equal(sdksDir, psi.Environment[DotNetSdkEnvironment.SdkResolverSdksDirVariable]);
+                Assert.Equal("10.0.999", psi.Environment[DotNetSdkEnvironment.SdkResolverSdksVerVariable]);
+            }
+            finally
+            {
+                Environment.SetEnvironmentVariable("DOTNET_ROOT", previousRoot);
+                Directory.Delete(root, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public void TryInferSdkVersionFromLog_reads_msbuild_path_and_netsdk_paths()
+    {
+        const string withMsbuild =
+            "MSBuild executable path = C:\\Program Files\\dotnet\\sdk\\10.0.204\\MSBuild.dll";
+        Assert.Equal("10.0.204", DotNetSdkEnvironment.TryInferSdkVersionFromLog(withMsbuild));
+
+        const string netsdk =
+            @"C:\Program Files\dotnet\sdk\9.0.316\Sdks\Microsoft.NET.Sdk\targets\Microsoft.NET.TargetFrameworkInference.targets(166,5): error NETSDK1045:";
+        Assert.Equal("9.0.316", DotNetSdkEnvironment.TryInferSdkVersionFromLog(netsdk));
+    }
+
+    [Fact]
+    public void AppendSdkEnvMetadata_reports_inherited_strip_and_log_sdk()
+    {
+        var workDir = Path.Combine(Path.GetTempPath(), "roslyn-mcp-sdk-meta-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(workDir);
+
+        lock (TestEnvironmentLocks.DotNetRoot)
+        {
+            var previousSdks = Environment.GetEnvironmentVariable(DotNetSdkEnvironment.MsBuildSdksPathVariable);
+            Environment.SetEnvironmentVariable(
+                DotNetSdkEnvironment.MsBuildSdksPathVariable,
+                @"C:\Program Files\dotnet\sdk\9.0.316\Sdks");
+            try
+            {
+                var sb = new StringBuilder();
+                const string log =
+                    @"C:\Program Files\dotnet\sdk\9.0.316\Sdks\Microsoft.NET.Sdk\targets\x.targets: error NETSDK1045:";
+                DotNetSdkEnvironment.AppendSdkEnvMetadata(sb, workDir, log);
+                var text = sb.ToString();
+
+                Assert.Contains("Inherited MSBuildSDKsPath", text, StringComparison.Ordinal);
+                Assert.Contains("9.0.316", text, StringComparison.Ordinal);
+                Assert.Contains("stripped inherited", text, StringComparison.Ordinal);
+                Assert.Contains("SDK from MSBuild log paths", text, StringComparison.Ordinal);
+            }
+            finally
+            {
+                Environment.SetEnvironmentVariable(DotNetSdkEnvironment.MsBuildSdksPathVariable, previousSdks);
+                Directory.Delete(workDir, recursive: true);
+            }
+        }
+    }
+}
