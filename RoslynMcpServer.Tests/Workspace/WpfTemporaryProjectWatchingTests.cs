@@ -17,6 +17,8 @@ public sealed class WpfTemporaryProjectWatchingTests
         var manager = SolutionManagerTestFactory.Create(logger: logger);
         var evidence = new StringBuilder();
         var events = new ConcurrentQueue<string>();
+        var observedChangeTypes = new ConcurrentDictionary<WatcherChangeTypes, byte>();
+        var observedLifecycle = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var temporaryDeleted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         manager.AfterDiskWatcherChangeForTests = args =>
         {
@@ -30,11 +32,27 @@ public sealed class WpfTemporaryProjectWatchingTests
         {
             IncludeSubdirectories = true,
             InternalBufferSize = 64 * 1024,
+            Filter = "*_wpftmp.csproj",
+            NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite | NotifyFilters.Size,
         };
-        observer.Created += (_, args) => events.Enqueue($"Created {args.FullPath}");
-        observer.Changed += (_, args) => events.Enqueue($"Changed {args.FullPath}");
-        observer.Deleted += (_, args) => events.Enqueue($"Deleted {args.FullPath}");
-        observer.Error += (_, args) => events.Enqueue($"Error {args.GetException()}");
+        void RecordEvent(object sender, FileSystemEventArgs args)
+        {
+            events.Enqueue($"{args.ChangeType} {args.FullPath}");
+            observedChangeTypes.TryAdd(args.ChangeType, 0);
+            if (observedChangeTypes.Count == 3)
+            {
+                observedLifecycle.TrySetResult();
+            }
+        }
+        observer.Created += RecordEvent;
+        observer.Changed += RecordEvent;
+        observer.Deleted += RecordEvent;
+        observer.Error += (_, args) =>
+        {
+            events.Enqueue($"Error {args.GetException()}");
+            observedLifecycle.TrySetException(args.GetException());
+            temporaryDeleted.TrySetException(args.GetException());
+        };
         try
         {
             evidence.AppendLine("SDK " + (await fixture.RunDotNetAsync("--version")).Trim());
@@ -48,7 +66,18 @@ public sealed class WpfTemporaryProjectWatchingTests
             RecordState(evidence, "before build", manager);
             observer.EnableRaisingEvents = true;
             evidence.AppendLine(await fixture.BuildAsync());
-            await temporaryDeleted.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            // The manager and observer have independent event queues. Manager delivery does not
+            // imply that the observer has already recorded the full temporary-file lifecycle.
+            try
+            {
+                await Task.WhenAll(temporaryDeleted.Task, observedLifecycle.Task).WaitAsync(TimeSpan.FromMinutes(1));
+            }
+            catch (TimeoutException ex)
+            {
+                throw new TimeoutException("The WPF temporary project lifecycle was not delivered.\n"
+                    + evidence + "\nEVENTS\n" + string.Join('\n', events)
+                    + "\nLOG\n" + string.Join('\n', logger.Messages), ex);
+            }
             RecordState(evidence, "after delivery", manager);
             Assert.False(manager.ProjectGraphStale);
             Assert.False(manager.RefreshAllDocumentsPending);
@@ -104,6 +133,7 @@ public sealed class WpfTemporaryProjectWatchingTests
         }
         finally
         {
+            evidence.AppendLine("FINAL EVENTS\n" + string.Join('\n', events));
             evidence.AppendLine("FINAL LOG\n" + string.Join('\n', logger.Messages));
             await File.WriteAllTextAsync(Path.Combine(Path.GetTempPath(), "RoslynWpfWatching-evidence.txt"), evidence.ToString());
             await manager.ClearWorkspaceAsync();
@@ -117,38 +147,35 @@ public sealed class WpfTemporaryProjectWatchingTests
         using var fixture = new WpfTemporaryProjectFixture();
         var logger = new WorkspaceRecordingLogger();
         var manager = SolutionManagerTestFactory.Create(logger: logger);
-        using var observer = new FileSystemWatcher(fixture.Root) { IncludeSubdirectories = true };
-        var edited = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        observer.Created += (_, args) =>
+        var delivered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        manager.AfterDiskWatcherChangeForTests = args =>
         {
-            if (!args.FullPath.EndsWith("_wpftmp.csproj", StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(args.FullPath, fixture.ProjectPath, StringComparison.OrdinalIgnoreCase))
             {
-                return;
-            }
-            try
-            {
-                // The temporary project is written before its internal compilation. Inject a real
-                // graph edit while that build is running to catch whole-build suppression regressions.
-                File.AppendAllText(fixture.ProjectPath, "\n<!-- External edit during WPF temporary compilation. -->\n");
-                edited.TrySetResult();
-            }
-            catch (Exception ex)
-            {
-                edited.TrySetException(ex);
+                delivered.TrySetResult();
             }
         };
         try
         {
             await fixture.BuildAsync();
             await manager.LoadAsync(fixture.SolutionPath);
-            observer.EnableRaisingEvents = true;
-            await fixture.BuildAsync();
-            await edited.Task.WaitAsync(TimeSpan.FromSeconds(10));
-            var deadline = DateTime.UtcNow.AddSeconds(10);
-            while (!manager.ProjectGraphStaleFromGraphFile && DateTime.UtcNow < deadline)
+            await fixture.BuildWithPausedTemporaryCompilationAsync(async temporaryProject =>
             {
-                await Task.Delay(50);
-            }
+                Assert.EndsWith("_wpftmp.csproj", temporaryProject, StringComparison.OrdinalIgnoreCase);
+                Assert.True(File.Exists(temporaryProject), "The temporary compilation must still be active.");
+                Assert.False(manager.ProjectGraphStaleFromGraphFile);
+                await File.AppendAllTextAsync(fixture.ProjectPath, "\n<!-- External edit during WPF temporary compilation. -->\n");
+                try
+                {
+                    await delivered.Task.WaitAsync(TimeSpan.FromMinutes(1));
+                }
+                catch (TimeoutException ex)
+                {
+                    throw new TimeoutException("The real project edit was not delivered during paused WPF compilation.\n"
+                        + string.Join('\n', logger.Messages), ex);
+                }
+                Assert.True(manager.ProjectGraphStaleFromGraphFile);
+            });
             Assert.True(manager.ProjectGraphStaleFromGraphFile);
             Assert.False(manager.ProjectGraphStaleFromComposition);
             Assert.Contains(logger.Messages, message => message == "Project graph file changed on disk: " + fixture.ProjectPath);
