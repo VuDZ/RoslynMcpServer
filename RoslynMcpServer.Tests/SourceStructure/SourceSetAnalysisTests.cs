@@ -1011,16 +1011,14 @@ public sealed class SourceSetAnalysisTests
     }
 
     [Fact]
-    public void Production_reachability_records_the_test_seam_as_the_single_limit()
+    public void Production_reachability_records_only_the_known_delegate_limits()
     {
-        // The production tree invokes exactly one delegate member on the walk from the async entry: the
-        // local `boundarySeam` in SolutionManager.LoadAsync, initialized from the test-seam property
-        // `AfterPhysicalLoadBeforePrepareAsync`. The property is assigned only by the test and lifecycle
-        // host projects, which are outside this scope, so the walk follows the local to the property and
-        // records one limit there; nothing is silently treated as absent, and the walk is therefore
-        // undecided rather than a proof that the synchronous entry cannot be reached. The kind is part of
-        // the fact as well: this is the limit of a member whose target is registered outside the scope,
-        // the one the contract check reports as "not shown" instead of refusing the source.
+        // Watcher callbacks add two test seams to the load walk because the analysis also visits the
+        // event-handler lambdas registered during load. Like the load seam, their assignments live in
+        // excluded test projects. TryRun's update parameter is another explicit limit: argument-to-
+        // parameter flow is not modeled, although passed lambda bodies are checked at their call sites.
+        // Keep an exact inventory rather than accepting any number of limits; an unexpected blind spot
+        // must still fail, and these known limits must not turn into a decided absence of the sync entry.
         var production = ProductionAnalysis.Instance;
         var type = FindType(production, "RoslynMcpServer.Services", "SolutionManager")!;
         var asyncEntry = production.FindDeclaredMethod(type, SanitizedEntryChecks.AsyncEntry, new List<string>())!;
@@ -1035,10 +1033,64 @@ public sealed class SourceSetAnalysisTests
         Assert.False(reachability.IsReachable);
         Assert.False(reachability.IsDecided);
         Assert.Empty(reachability.Diagnostics);
-        var limit = Assert.Single(reachability.Limits);
-        Assert.Equal(ReachabilityLimitKind.TargetOutsideTheScope, limit.Kind);
-        Assert.Contains("AfterPhysicalLoadBeforePrepareAsync", limit.Text, StringComparison.Ordinal);
-        Assert.Contains("boundarySeam", limit.Text, StringComparison.Ordinal);
+        string[] expectedMembers =
+        [
+            "AfterPhysicalLoadBeforePrepareAsync",
+            "BeforeDiskWatcherCallbackForTests",
+            "AfterDiskWatcherChangeForTests",
+            "update",
+        ];
+        Assert.Equal(expectedMembers.Length, reachability.Limits.Count);
+        foreach (var member in expectedMembers)
+        {
+            var limit = Assert.Single(reachability.Limits,
+                candidate => candidate.Text.StartsWith($"`{member}`", StringComparison.Ordinal));
+            Assert.Equal(ReachabilityLimitKind.TargetOutsideTheScope, limit.Kind);
+            var sourcePath = member == "update"
+                ? Path.Combine("Services", "Models", "WorkspaceInputSession.cs")
+                : Path.Combine("Services", "SolutionManager.cs");
+            Assert.Contains(sourcePath, limit.Text, StringComparison.Ordinal);
+        }
+        Assert.Contains(reachability.Limits, limit => limit.Text.StartsWith("`AfterPhysicalLoadBeforePrepareAsync`",
+            StringComparison.Ordinal) && limit.Text.Contains("`boundarySeam`", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Passed_lambda_is_checked_while_delegate_parameter_flow_remains_a_declared_limit(bool callsTarget)
+    {
+        // Passing a lambda does not assign the callee's parameter in this analysis. That limitation must
+        // remain visible without hiding a forbidden call written inside the passed lambda itself.
+        var source = $$"""
+            namespace Demo;
+
+            internal sealed class Manager
+            {
+                public int Entry() => Run(() => {{(callsTarget ? "Wanted()" : "42")}});
+
+                private int Run(System.Func<int> callback) => callback();
+
+                public int Wanted() => 1;
+            }
+            """;
+
+        var reachability = Reachability(Analyze((DemoPath, source)));
+
+        Assert.Equal(callsTarget, reachability.IsReachable);
+        Assert.Empty(reachability.Diagnostics);
+        if (callsTarget)
+        {
+            Assert.True(reachability.IsDecided);
+            Assert.Contains(reachability.Path, step => step.Callee.Name == "Wanted");
+        }
+        else
+        {
+            Assert.False(reachability.IsDecided);
+            var limit = Assert.Single(reachability.Limits);
+            Assert.Equal(ReachabilityLimitKind.TargetOutsideTheScope, limit.Kind);
+            Assert.StartsWith("`callback` invoked at Demo/Demo.cs:7", limit.Text, StringComparison.Ordinal);
+        }
     }
 
     private static INamedTypeSymbol? FindType(SourceSetAnalysis analysis, string namespaceName, string typeName)
