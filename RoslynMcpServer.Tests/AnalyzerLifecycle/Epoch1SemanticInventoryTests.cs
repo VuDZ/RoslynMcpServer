@@ -26,9 +26,9 @@ public sealed class Epoch1SemanticInventoryTests
         ("Tools/TestTools.cs", "serialized-flush", "GetPublishedSolutionAfterDiskSyncAsync, GetSanitizedPublishedSolutionAsync (run_specific_test filter), and FindDocumentAsync."),
         ("Tools/NavigationTools.cs", "serialized-document", "FindSymbolReferences maps the FindDocumentAsync document onto the sanitized published snapshot + retry."),
         ("Tools/NavigationTools.cs", "serialized-flush", "FindUsages / implementations / definition / call graph use GetSanitizedPublishedSolutionAsync; AfterDiskSync stays raw."),
-        ("Services/SolutionManager.cs", "published-accessor", "Semantic accessors wait for the load/prepare lock and return only _solution. Sanitizer cache is a separate snapshot keyed by raw published identity."),
-        ("Services/SolutionManager.cs", "overlay-read", "GetCurrentSolution remains a non-semantic lock-free info accessor."),
-        ("Services/SolutionManager.cs", "raw-workspace", "workspace.CurrentSolution is the write-boundary base and overlay source; the only production TryApplyChanges is TryApplyWorkspaceChanges."),
+        ("Services/Workspace/SolutionManager.cs", "published-accessor", "Semantic accessors wait for the load/prepare lock and return only _solution. Sanitizer cache is a separate snapshot keyed by raw published identity."),
+        ("Services/Workspace/SolutionManager.cs", "overlay-read", "GetCurrentSolution remains a non-semantic lock-free info accessor."),
+        ("Services/Workspace/SolutionManager.cs", "raw-workspace", "workspace.CurrentSolution is the write-boundary base and overlay source; the only production TryApplyChanges is TryApplyWorkspaceChanges."),
     };
 
     [Fact]
@@ -37,7 +37,7 @@ public sealed class Epoch1SemanticInventoryTests
         var repoRoot = FindRepoRoot();
         var hits = new List<string>();
         foreach (var relative in Directory.GetFiles(Path.Combine(repoRoot, "Tools"), "*.cs", SearchOption.TopDirectoryOnly)
-                     .Concat(new[] { Path.Combine(repoRoot, "Services", "SolutionManager.cs") }))
+                     .Concat(new[] { Path.Combine(repoRoot, "Services", "Workspace", "SolutionManager.cs") }))
         {
             var text = File.ReadAllText(relative);
             var rel = Path.GetRelativePath(repoRoot, relative).Replace('\\', '/');
@@ -116,21 +116,21 @@ public sealed class Epoch1SemanticInventoryTests
         var repoRoot = FindRepoRoot();
         var productionFiles = Directory
             .GetFiles(Path.Combine(repoRoot, "Tools"), "*.cs", SearchOption.TopDirectoryOnly)
-            .Concat(Directory.GetFiles(Path.Combine(repoRoot, "Services"), "*.cs", SearchOption.TopDirectoryOnly))
+            .Concat(Directory.GetFiles(Path.Combine(repoRoot, "Services"), "*.cs", SearchOption.AllDirectories))
             .ToArray();
 
         foreach (var file in productionFiles)
         {
             var text = File.ReadAllText(file);
             if (!file.EndsWith(
-                    Path.Combine("Services", "SolutionManager.cs"),
+                    Path.Combine("Services", "Workspace", "SolutionManager.cs"),
                     StringComparison.OrdinalIgnoreCase))
             {
                 Assert.DoesNotContain("GetWorkspaceCurrentSolution(", text, StringComparison.Ordinal);
             }
         }
 
-        var manager = File.ReadAllText(Path.Combine(repoRoot, "Services", "SolutionManager.cs"));
+        var manager = File.ReadAllText(Path.Combine(repoRoot, "Services", "Workspace", "SolutionManager.cs"));
         Assert.DoesNotMatch(
             new Regex(@"await\s+[^;\r\n]*Get(?:Compilation|SemanticModel)Async\s*\(", RegexOptions.CultureInvariant),
             manager);
@@ -142,7 +142,7 @@ public sealed class Epoch1SemanticInventoryTests
         var repoRoot = FindRepoRoot();
         var productionFiles = Directory
             .GetFiles(Path.Combine(repoRoot, "Tools"), "*.cs", SearchOption.TopDirectoryOnly)
-            .Concat(Directory.GetFiles(Path.Combine(repoRoot, "Services"), "*.cs", SearchOption.TopDirectoryOnly));
+            .Concat(Directory.GetFiles(Path.Combine(repoRoot, "Services"), "*.cs", SearchOption.AllDirectories));
         var semanticCall = new Regex(
             @"await\s+[^;\r\n]*Get(?:Compilation|SemanticModel)Async\s*\(",
             RegexOptions.CultureInvariant);

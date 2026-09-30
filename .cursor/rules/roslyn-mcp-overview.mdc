@@ -12,7 +12,7 @@ MCP server (stdio) for C# analysis: Roslyn workspaces + ILSpy decompile. TFM `ne
 - `Program.cs` — MSBuild bootstrap, optional `ROSLYN_MCP_WORKSPACE` → cwd, Serilog to `logs/mcp-*.log` under `AppContext.BaseDirectory` (each line prefixed with a harness session id)
 - `Hosting/` — DI (`AddRoslynMcpServerTools`), `McpToolRegistry`
 - `Tools/` — MCP tool classes (Workspace, CodeAnalysis, Skeleton, Build, Run, Test, NuGet, Utility, …)
-- `Services/` — `SolutionManager`, decompile/resolve, DotNet CLI, health
+- `Services/` — `Workspace` (`SolutionManager`), `Analyzers`, `Build`, `Editing`, `Navigation`, `Resolve`, `Testing`; helpers that do not belong to one of those stay at the root
 - `Diagnostics/` — parsers (build, VSTest, NuGet audit), SDK mismatch, MSBuild locator
 - `RoslynMcpServer.Tests/` — xUnit; `InternalsVisibleTo`
 - Docs: `README.md` (EN+RU), `AGENTS.md.sample` (copy to app repos as `AGENTS.md`)

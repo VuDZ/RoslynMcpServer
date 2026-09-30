@@ -21,7 +21,7 @@ public sealed class WorkspaceAnalyzerSanitizerTests
 {
     private const string UnresolvedAnalyzerPath = @"C:\missing\Analyzers\SomeCustomAnalyzer.dll";
 
-    private const string SolutionManagerNamespace = "RoslynMcpServer.Services";
+    private const string SolutionManagerNamespace = "RoslynMcpServer.Services.Workspace";
     private const string SolutionManagerType = "SolutionManager";
 
     [Fact]
@@ -160,7 +160,7 @@ public sealed class WorkspaceAnalyzerSanitizerTests
     /// </summary>
     private static SourceTarget SolutionManagerTarget()
     {
-        var sourcePath = Path.Combine(RepositoryRoot.Find(), "Services", "SolutionManager.cs");
+        var sourcePath = Path.Combine(RepositoryRoot.Find(), "Services", "Workspace", "SolutionManager.cs");
         var file = ProductionAnalysis.Instance.Scope.Files
             .FirstOrDefault(candidate => string.Equals(Path.GetFullPath(candidate.Path), sourcePath, StringComparison.OrdinalIgnoreCase));
 

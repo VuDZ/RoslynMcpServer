@@ -33,15 +33,15 @@ snapshot остаются в этой теме. Обнаружение само 
   вложенные дубликаты корней удаляются. `QueueDiskPath` помечает как dirty
   только `.cs`; для файлов из `IsProjectGraphFile` устанавливает
   `_projectGraphStale`; остальные события игнорирует.
-  См. [`SolutionManager.cs`](../../Services/SolutionManager.cs) и
-  [`WorkspaceDiskPathFilter.cs`](../../Services/WorkspaceDiskPathFilter.cs).
+  См. [`SolutionManager.cs`](../../Services/Workspace/SolutionManager.cs) и
+  [`WorkspaceDiskPathFilter.cs`](../../Services/Workspace/WorkspaceDiskPathFilter.cs).
 - `IsProjectGraphFile` узнаёт `.csproj`, `.sln`, `.slnx`, `global.json`,
   `Directory.Build.props`, `Directory.Build.targets` и
   `Directory.Packages.props`. Произвольный импортированный
   `.props`/`.targets`, `NuGet.Config` или файл с собственным расширением этим
   правилом не классифицируется. Это граница **текущего фильтра**, а не список
   всех входов MSBuild.
-- [`WorkspaceDocumentDiskSync.cs`](../../Services/WorkspaceDocumentDiskSync.cs)
+- [`WorkspaceDocumentDiskSync.cs`](../../Services/Workspace/WorkspaceDocumentDiskSync.cs)
   читает только `.cs` и `Project.Documents`. При переполнении watcher его
   `refreshAllDocuments` повторно читает известные C# документы, но не проверяет
   `AdditionalDocuments`, `AnalyzerConfigDocuments` или состав проекта.

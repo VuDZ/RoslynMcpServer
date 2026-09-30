@@ -9,7 +9,7 @@ namespace RoslynMcpServer.Tests.Workspace;
 
 public sealed class WorkspaceWriteBoundaryTests
 {
-    private const string SolutionManagerNamespace = "RoslynMcpServer.Services";
+    private const string SolutionManagerNamespace = "RoslynMcpServer.Services.Workspace";
     private const string SolutionManagerType = "SolutionManager";
 
     [Fact]

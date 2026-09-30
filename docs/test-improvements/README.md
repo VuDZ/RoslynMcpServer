@@ -62,7 +62,7 @@ ApplyPublicationPlan(workspaceSolution, shadowRoot, plan, prepared.Results);
 
 `prepared.Results` — позиционный параметр `AnalyzerShadowPrepareOutcome`, а `.Results` содержит
 подстроку `.Result`, которую и запрещает `Assert.DoesNotContain(".Result", syncBody)`. Это
-**единственное вхождение `.Result` во всём `Services/SolutionManager.cs`**.
+**единственное вхождение `.Result` во всём `Services/Workspace/SolutionManager.cs`**.
 
 Прогон подтверждает адрес срабатывания:
 
@@ -80,7 +80,7 @@ Total: 1 · Passed: 0 · Failed: 1
 
 ### 1.3 Когда сломалось
 
-Срез посчитан на каждом коммите, менявшем `Services/SolutionManager.cs`:
+Срез посчитан на каждом коммите, менявшем `Services/Workspace/SolutionManager.cs`:
 
 | Коммит | Дата | Строка sync-входа | Строка приватного хелпера | Длина среза | `.Result` в срезе |
 |---|---|---|---|---|---|
@@ -125,7 +125,7 @@ namespace». Он переупорядочил члены файла: публи
 | `WorkspaceAnalyzerSanitizerTests.GetPublishedSolutionAfterDiskSyncAsync_still_returns_raw_published_snapshot` | срез между двумя соседними публичными async-методами | Жива только потому, что методы соседствуют: вставка члена между ними расширит срез так же, как в красном тесте |
 | `WorkspaceAnalyzerSanitizerTests.GetSanitizedPublishedSolution_takes_workspace_lock_and_async_does_not_call_sync` | срезы между тремя объявлениями | Уже сломана (см. выше) |
 | `WorkspaceWriteBoundaryTests.Production_TryApplyChanges_has_single_SolutionManager_call_site` | `IndexOf`-цикл по всему файлу, счёт вхождений `workspace.TryApplyChanges(` | Считает по имени, а не по символу: попадёт упоминание в комментарии или вызов у другого receiver с тем же именем |
-| `AnalyzerLifecycle/Epoch1SemanticInventoryTests` (инвентарь семантических входов) | `Regex`/`Contains` по `Tools/*.cs` и `Services/SolutionManager.cs` | Регексп по имени метода не отличает вызов от упоминания; перестановка членов и смена формы записи не отслеживаются |
+| `AnalyzerLifecycle/Epoch1SemanticInventoryTests` (инвентарь семантических входов) | `Regex`/`Contains` по `Tools/*.cs` и `Services/Workspace/SolutionManager.cs` | Регексп по имени метода не отличает вызов от упоминания; перестановка членов и смена формы записи не отслеживаются |
 
 Общее у всех четырёх: проверяется **написание кода**, а не его структура. Формулировка «вызов метода
 M из тела метода N» в терминах подстрок выполнима только при дополнительном допущении о разметке
@@ -234,12 +234,12 @@ xUnit не входит в данную серию.
 ## Ссылки
 
 - Красный тест: `RoslynMcpServer.Tests/WorkspaceAnalyzerSanitizerTests.cs:68`, ассерт на строке 99.
-- Ломающий коммит: `bd53829` (2026-09-27), переупорядочивание членов `Services/SolutionManager.cs`.
+- Ломающий коммит: `bd53829` (2026-09-27), переупорядочивание членов `Services/Workspace/SolutionManager.cs`.
 - Унаследованный красный тест в отчёте закрытой серии:
   `docs/archive/analyzer-shadow-copy-improvements/epoch-7-lifecycle-suite-cut.md`.
-- Контракт входов и нерекурсивный `_workspaceLock`: `Services/SolutionManager.cs`.
-- Колбэк ретрая: `WithSanitizedRetryAsync` в `Services/WorkspaceAnalyzerSanitizer.cs`.
-- Семантический движок: `Services/CallGraphHelper.cs`, прецедент использования в тесте —
+- Контракт входов и нерекурсивный `_workspaceLock`: `Services/Workspace/SolutionManager.cs`.
+- Колбэк ретрая: `WithSanitizedRetryAsync` в `Services/Analyzers/WorkspaceAnalyzerSanitizer.cs`.
+- Семантический движок: `Services/Navigation/CallGraphHelper.cs`, прецедент использования в тесте —
   `RoslynMcpServer.Tests/RenameAndCallGraphDisambiguationTests.cs`.
 - Фабрика менеджера: `RoslynMcpServer.Tests/SolutionManagerTestFactory.cs`.
 - Существующий CI-набор и проверка skips: `.github/workflows/test-suite.yml`.

@@ -10,7 +10,7 @@
 
 Проверено на commit `045b839`, source version `1.5.0`:
 
-- [ComputeWatchRoots](../../Services/SolutionManager.cs) уже объединяет
+- [ComputeWatchRoots](../../Services/Workspace/SolutionManager.cs) уже объединяет
   каталог `.sln`/`.csproj` и каталоги загруженных проектов, удаляя вложенные
   дубликаты. Внешние проекты покрыты; это проверяют
   [SolutionManagerWatchRootsTests](../../RoslynMcpServer.Tests/Workspace/SolutionManagerWatchRootsTests.cs).
@@ -18,10 +18,10 @@
   попасть ни в один watcher. Физическое размещение проекта этого не решает.
 - `QueueDiskPath` принимает любые `.cs` под корнями, даже не включённые в проект.
   Неизвестный существующий файл затем может пометить композицию как stale.
-- [WorkspaceDocumentDiskSync](../../Services/WorkspaceDocumentDiskSync.cs)
+- [WorkspaceDocumentDiskSync](../../Services/Workspace/WorkspaceDocumentDiskSync.cs)
   ищет первый `DocumentId` по пути. Обновление всех memberships общего файла
   нужно проверить и обеспечить, не полагаясь на первый найденный документ.
-- [WorkspaceDiskPathFilter](../../Services/WorkspaceDiskPathFilter.cs)
+- [WorkspaceDiskPathFilter](../../Services/Workspace/WorkspaceDiskPathFilter.cs)
   исключает `obj`, `bin`, `artifacts` и другие каталоги по имени сегмента.
   Это политика фонового обхода; она не доказывает нерелевантность явного входа.
 

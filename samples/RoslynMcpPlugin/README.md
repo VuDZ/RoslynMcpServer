@@ -253,7 +253,7 @@ to demonstrate a private dependency:
 using System.ComponentModel;
 using ModelContextProtocol.Server;
 using Newtonsoft.Json.Linq;
-using RoslynMcpServer.Services;
+using RoslynMcpServer.Services.Workspace;
 
 namespace RoslynMcpPlugin;
 
@@ -753,7 +753,7 @@ public sealed class SamplePlugin : IRoslynMcpPlugin
 using System.ComponentModel;
 using ModelContextProtocol.Server;
 using Newtonsoft.Json.Linq;
-using RoslynMcpServer.Services;
+using RoslynMcpServer.Services.Workspace;
 
 namespace RoslynMcpPlugin;
 

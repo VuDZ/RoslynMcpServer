@@ -180,7 +180,7 @@ public sealed class BuildProgressIntegrationTests
         var reporter = McpToolProgressReporter.TryCreate(new ThrowingProgress());
         Assert.NotNull(reporter);
 
-        reporter!.Report(new Services.CliProgressUpdate("dotnet build -v:minimal", TimeSpan.FromSeconds(5), null));
+        reporter!.Report(new Services.Build.CliProgressUpdate("dotnet build -v:minimal", TimeSpan.FromSeconds(5), null));
     }
 
     [Fact]
@@ -190,12 +190,12 @@ public sealed class BuildProgressIntegrationTests
         var reporter = McpToolProgressReporter.TryCreate(progress)!;
 
         // Step boundary: no elapsed.
-        reporter.Report(new Services.CliProgressUpdate("dotnet build -v:minimal", TimeSpan.Zero, null));
+        reporter.Report(new Services.Build.CliProgressUpdate("dotnet build -v:minimal", TimeSpan.Zero, null));
         // Long step heartbeats.
-        reporter.Report(new Services.CliProgressUpdate("dotnet build -v:minimal", TimeSpan.FromSeconds(5), null));
-        reporter.Report(new Services.CliProgressUpdate("dotnet build -v:minimal", TimeSpan.FromSeconds(10), 1));
+        reporter.Report(new Services.Build.CliProgressUpdate("dotnet build -v:minimal", TimeSpan.FromSeconds(5), null));
+        reporter.Report(new Services.Build.CliProgressUpdate("dotnet build -v:minimal", TimeSpan.FromSeconds(10), 1));
         // Next step boundary: the per-step clock resets, the numeric value must not go backwards.
-        reporter.Report(new Services.CliProgressUpdate("dotnet restore -v:minimal", TimeSpan.Zero, 1));
+        reporter.Report(new Services.Build.CliProgressUpdate("dotnet restore -v:minimal", TimeSpan.Zero, 1));
 
         var values = progress.Values.ToArray();
         Assert.Equal(4, values.Length);

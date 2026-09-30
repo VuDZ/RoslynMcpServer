@@ -1007,7 +1007,7 @@ public sealed class SourceSetAnalysisTests
         Assert.Contains(
             production.Scope.Files,
             file => file.Path.EndsWith("SolutionManager.cs", StringComparison.OrdinalIgnoreCase));
-        Assert.NotNull(FindType(production, "RoslynMcpServer.Services", "SolutionManager"));
+        Assert.NotNull(FindType(production, "RoslynMcpServer.Services.Workspace", "SolutionManager"));
     }
 
     [Fact]
@@ -1020,7 +1020,7 @@ public sealed class SourceSetAnalysisTests
         // Keep an exact inventory rather than accepting any number of limits; an unexpected blind spot
         // must still fail, and these known limits must not turn into a decided absence of the sync entry.
         var production = ProductionAnalysis.Instance;
-        var type = FindType(production, "RoslynMcpServer.Services", "SolutionManager")!;
+        var type = FindType(production, "RoslynMcpServer.Services.Workspace", "SolutionManager")!;
         var asyncEntry = production.FindDeclaredMethod(type, SanitizedEntryChecks.AsyncEntry, new List<string>())!;
         var syncEntry = production.FindDeclaredMethod(type, SanitizedEntryChecks.SyncEntry, new List<string>())!;
 
@@ -1048,7 +1048,7 @@ public sealed class SourceSetAnalysisTests
             Assert.Equal(ReachabilityLimitKind.TargetOutsideTheScope, limit.Kind);
             var sourcePath = member == "update"
                 ? Path.Combine("Services", "Models", "WorkspaceInputSession.cs")
-                : Path.Combine("Services", "SolutionManager.cs");
+                : Path.Combine("Services", "Workspace", "SolutionManager.cs");
             Assert.Contains(sourcePath, limit.Text, StringComparison.Ordinal);
         }
         Assert.Contains(reachability.Limits, limit => limit.Text.StartsWith("`AfterPhysicalLoadBeforePrepareAsync`",

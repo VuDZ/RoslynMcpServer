@@ -1,7 +1,7 @@
 using System.ComponentModel;
 using ModelContextProtocol.Server;
 using Newtonsoft.Json.Linq;
-using RoslynMcpServer.Services;
+using RoslynMcpServer.Services.Workspace;
 
 namespace RoslynMcpPlugin;
 

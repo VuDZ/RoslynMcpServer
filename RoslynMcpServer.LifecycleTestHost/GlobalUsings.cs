@@ -1,0 +1,9 @@
+global using RoslynMcpServer.Services;
+global using RoslynMcpServer.Services.Analyzers;
+global using RoslynMcpServer.Services.Build;
+global using RoslynMcpServer.Services.Editing;
+global using RoslynMcpServer.Services.Models;
+global using RoslynMcpServer.Services.Navigation;
+global using RoslynMcpServer.Services.Resolve;
+global using RoslynMcpServer.Services.Testing;
+global using RoslynMcpServer.Services.Workspace;

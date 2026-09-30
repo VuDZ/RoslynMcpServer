@@ -1,6 +1,6 @@
 ---
 description: SDK pinning, DotNet CLI, build/test parsers, MSBuild bitness
-globs: Services/DotNet*.cs,Services/GlobalJson*.cs,Services/Workspace*.cs,Diagnostics/**/*.cs,Tools/BuildTools.cs,Tools/TestTools.cs,Tools/RunTools.cs
+globs: Services/Build/DotNet*.cs,Services/Build/GlobalJson*.cs,Services/Workspace/Workspace*.cs,Diagnostics/**/*.cs,Tools/BuildTools.cs,Tools/TestTools.cs,Tools/RunTools.cs
 alwaysApply: false
 ---
 

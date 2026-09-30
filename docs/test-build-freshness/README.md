@@ -31,9 +31,9 @@
 У `run_test_by_filter` текущий default `noBuild=true`, у двух других test tools
 — `false`; общую политику нельзя внедрить только в один адаптер.
 
-Основа команд уже есть в [DotNetTestArguments](../../Services/DotNetTestArguments.cs)
-и [SolutionProjectTargetResolver](../../Services/SolutionProjectTargetResolver.cs).
-Наличие сборки проверяет [TestAssemblyPathResolver](../../Services/TestAssemblyPathResolver.cs),
+Основа команд уже есть в [DotNetTestArguments](../../Services/Build/DotNetTestArguments.cs)
+и [SolutionProjectTargetResolver](../../Services/Build/SolutionProjectTargetResolver.cs).
+Наличие сборки проверяет [TestAssemblyPathResolver](../../Services/Testing/TestAssemblyPathResolver.cs),
 но это не проверка её свежести. Прямой `.dll` в `workspacePath` сейчас не
 поддерживается: новый формат входа в этой серии автоматически не обещается.
 
