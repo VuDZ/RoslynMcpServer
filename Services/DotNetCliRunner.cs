@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace RoslynMcpServer.Services;
@@ -340,10 +341,34 @@ public static class DotNetCliRunner
         };
 
         DotNetSdkEnvironment.ApplyPinnedSdk(psi, workDir);
+        EnsureWindowsProcessorArchitecture(psi, RuntimeInformation.ProcessArchitecture);
         psi.Environment["MSBUILDDISABLENODEREUSE"] = "1";
         // Parsers are English-only; a ru-RU machine otherwise prints "Пройдено!" instead of "Passed!".
         psi.Environment["DOTNET_CLI_UI_LANGUAGE"] = "en-US";
         return psi;
+    }
+
+    internal static void EnsureWindowsProcessorArchitecture(ProcessStartInfo psi, Architecture processArchitecture)
+    {
+        if (!OperatingSystem.IsWindows()
+            || (psi.Environment.TryGetValue("PROCESSOR_ARCHITECTURE", out var inheritedArchitecture)
+                && !string.IsNullOrEmpty(inheritedArchitecture)))
+        {
+            return;
+        }
+
+        // Restricted hosts can omit this normally inherited Windows variable. The SDK's InstallerBase
+        // dereferences it during `dotnet --info`, so fill only the child environment before launching.
+        // https://github.com/dotnet/sdk/blob/main/src/Cli/dotnet/Installer/Windows/InstallerBase.cs
+        // DotNetHostResolver normally selects a host matching the MCP process architecture.
+        psi.Environment["PROCESSOR_ARCHITECTURE"] = processArchitecture switch
+        {
+            Architecture.X64 => "AMD64",
+            Architecture.X86 => "x86",
+            Architecture.Arm64 => "ARM64",
+            Architecture.Arm => "ARM",
+            _ => processArchitecture.ToString().ToUpperInvariant()
+        };
     }
 
     /// <summary>
