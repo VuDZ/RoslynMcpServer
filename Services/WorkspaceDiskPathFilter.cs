@@ -6,18 +6,6 @@ namespace RoslynMcpServer.Services;
 /// </summary>
 public static class WorkspaceDiskPathFilter
 {
-    private static readonly StringComparer DirNameComparer = StringComparer.OrdinalIgnoreCase;
-
-    private static readonly HashSet<string> IgnoredDirectoryNames = new(DirNameComparer)
-    {
-        "bin",
-        "obj",
-        ".git",
-        "node_modules",
-        "TestResults",
-        "artifacts",
-    };
-
     public static bool IsIgnoredPath(string? fullPath)
     {
         if (string.IsNullOrWhiteSpace(fullPath))
@@ -27,7 +15,7 @@ public static class WorkspaceDiskPathFilter
 
         foreach (var segment in fullPath.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar))
         {
-            if (IgnoredDirectoryNames.Contains(segment))
+            if (_ignoredDirectoryNames.Contains(segment))
             {
                 return true;
             }
@@ -68,6 +56,14 @@ public static class WorkspaceDiskPathFilter
             || ext.Equals(".slnx", StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>Identifies a WPF temporary-project name; loaded-project membership is checked separately.</summary>
+    public static bool IsWpfTemporaryProject(string? fullPath)
+    {
+        return !string.IsNullOrWhiteSpace(fullPath)
+            && string.Equals(Path.GetExtension(fullPath), ".csproj", StringComparison.OrdinalIgnoreCase)
+            && Path.GetFileNameWithoutExtension(fullPath).EndsWith("_wpftmp", StringComparison.OrdinalIgnoreCase);
+    }
+
     public static bool IsPathUnderDirectory(string fullFilePath, string directoryPath, StringComparison comparison)
     {
         if (string.IsNullOrWhiteSpace(fullFilePath) || string.IsNullOrWhiteSpace(directoryPath))
@@ -101,4 +97,16 @@ public static class WorkspaceDiskPathFilter
 
         return false;
     }
+
+    private static readonly StringComparer _dirNameComparer = StringComparer.OrdinalIgnoreCase;
+
+    private static readonly HashSet<string> _ignoredDirectoryNames = new(_dirNameComparer)
+    {
+        "bin",
+        "obj",
+        ".git",
+        "node_modules",
+        "TestResults",
+        "artifacts",
+    };
 }

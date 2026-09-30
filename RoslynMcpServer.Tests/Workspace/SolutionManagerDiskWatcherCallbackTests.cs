@@ -12,6 +12,7 @@ public sealed class SolutionManagerDiskWatcherCallbackTests
     {
         var logger = new ThrowingLogger();
         var manager = SolutionManagerTestFactory.Create(logger: logger);
+        manager.StartDiskWatcherSessionForTests([]);
 
         var thrown = Record.Exception(() => manager.NotifyDiskWatcherError(new Win32Exception(5)));
 
@@ -25,6 +26,7 @@ public sealed class SolutionManagerDiskWatcherCallbackTests
     {
         var logger = new ThrowingLogger();
         var manager = SolutionManagerTestFactory.Create(logger: logger);
+        manager.StartDiskWatcherSessionForTests([]);
 
         var thrown = Record.Exception(() => manager.NotifyDiskWatcherDirectoryRename(Path.GetTempPath()));
 

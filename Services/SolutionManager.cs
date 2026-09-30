@@ -12,6 +12,7 @@ using Microsoft.CodeAnalysis.Text;
 using Microsoft.Extensions.Logging;
 using RoslynMcpServer.Config;
 using RoslynMcpServer.Diagnostics;
+using RoslynMcpServer.Services.Models;
 using Serilog;
 
 namespace RoslynMcpServer.Services;
@@ -62,6 +63,10 @@ public sealed class SolutionManager
 
     /// <summary>True when the next <c>load_workspace</c> must skip the in-process graph cache.</summary>
     internal bool ProjectGraphStale => _projectGraphStale;
+
+    internal bool ProjectGraphStaleFromGraphFile => _projectGraphStaleFromGraphFile;
+
+    internal bool ProjectGraphStaleFromComposition => _projectGraphStaleFromComposition;
 
     /// <summary>True when the last <see cref="LoadAsync"/> reused the existing workspace graph (cached load).</summary>
     internal bool LastLoadWasCacheHit { get; private set; }
@@ -150,6 +155,14 @@ public sealed class SolutionManager
 
     /// <summary>True when a watcher error or a directory rename asked the next flush to re-read every known document.</summary>
     internal bool RefreshAllDocumentsPending => _refreshAllDocuments;
+
+    internal WorkspaceInputSession? DiskWatcherSession => _diskWatcherSession;
+
+    /// <summary>Test seam invoked before session admission, allowing delivery to race with session closure.</summary>
+    internal Action? BeforeDiskWatcherCallbackForTests { get; set; }
+
+    /// <summary>Test observer for completed file-change callbacks, including ignored build artifacts.</summary>
+    internal Action<FileSystemEventArgs>? AfterDiskWatcherChangeForTests { get; set; }
 
     internal WorkspaceWriteResult? LastWriteResult { get; private set; }
 
@@ -903,17 +916,41 @@ public sealed class SolutionManager
     internal void NotifyDiskWatcherError(Exception exception)
     {
         ArgumentNullException.ThrowIfNull(exception);
-        OnDiskWatcherError(this, new ErrorEventArgs(exception));
+        if (_diskWatcherSession is { } session)
+        {
+            OnDiskWatcherError(session, new ErrorEventArgs(exception));
+        }
     }
 
     /// <summary>Test seam: the watcher <c>Renamed</c> callback for a directory that exists on disk.</summary>
     internal void NotifyDiskWatcherDirectoryRename(string directoryPath)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(directoryPath);
-        OnDiskWatcherRenamed(
-            this,
-            new RenamedEventArgs(WatcherChangeTypes.Renamed, directoryPath, name: null, oldName: null));
+        if (_diskWatcherSession is { } session)
+        {
+            OnDiskWatcherRenamed(
+                session,
+                new RenamedEventArgs(WatcherChangeTypes.Renamed, directoryPath, name: null, oldName: null));
+        }
     }
+
+    /// <summary>Creates a session without physical watchers for deterministic callback tests.</summary>
+    internal WorkspaceInputSession StartDiskWatcherSessionForTests(IEnumerable<string?> projectFilePaths)
+    {
+        StopDiskWatcherUnderLock();
+        var session = new WorkspaceInputSession(projectFilePaths);
+        _diskWatcherSession = session;
+        return session;
+    }
+
+    internal void NotifyDiskWatcherChange(WorkspaceInputSession session, FileSystemEventArgs args)
+        => OnDiskWatcherChanged(session, args);
+
+    internal void NotifyDiskWatcherRename(WorkspaceInputSession session, RenamedEventArgs args)
+        => OnDiskWatcherRenamed(session, args);
+
+    internal void NotifyDiskWatcherError(WorkspaceInputSession session, Exception exception)
+        => OnDiskWatcherError(session, new ErrorEventArgs(exception));
 
     /// <summary>
     /// Session CLI extras are not part of the MSBuildWorkspace cache key.
@@ -2175,7 +2212,11 @@ public sealed class SolutionManager
     private void StartDiskWatcherUnderLock(string workspaceFilePath, IEnumerable<string?> projectFilePaths)
     {
         StopDiskWatcherUnderLock();
-        var roots = ComputeWatchRoots(workspaceFilePath, projectFilePaths);
+        // Capture once before enabling events. Deleted and renamed loaded projects still belong
+        // to this graph even when their backing files no longer exist. See docs/wpf-temporary-project-watching/README.md.
+        var session = new WorkspaceInputSession(projectFilePaths);
+        _diskWatcherSession = session;
+        var roots = ComputeWatchRoots(workspaceFilePath, session.LoadedProjectPaths);
         foreach (var directory in roots)
         {
             if (string.IsNullOrWhiteSpace(directory) || !Directory.Exists(directory))
@@ -2202,11 +2243,11 @@ public sealed class SolutionManager
                     watcher.InternalBufferSize = 64 * 1024;
                 }
 
-                watcher.Changed += OnDiskWatcherChanged;
-                watcher.Created += OnDiskWatcherChanged;
-                watcher.Deleted += OnDiskWatcherChanged;
-                watcher.Renamed += OnDiskWatcherRenamed;
-                watcher.Error += OnDiskWatcherError;
+                watcher.Changed += (_, args) => OnDiskWatcherChanged(session, args);
+                watcher.Created += (_, args) => OnDiskWatcherChanged(session, args);
+                watcher.Deleted += (_, args) => OnDiskWatcherChanged(session, args);
+                watcher.Renamed += (_, args) => OnDiskWatcherRenamed(session, args);
+                watcher.Error += (_, args) => OnDiskWatcherError(session, args);
                 watcher.EnableRaisingEvents = true;
                 _diskWatchers.Add(watcher);
                 watcher = null;
@@ -2222,6 +2263,10 @@ public sealed class SolutionManager
 
     private void StopDiskWatcherUnderLock()
     {
+        // Closure waits for admitted mutations before reset clears flags or installs another session.
+        // A token check alone would let a callback write new-session state after passing the check.
+        _diskWatcherSession?.Close();
+        _diskWatcherSession = null;
         if (_diskWatchers.Count == 0)
         {
             return;
@@ -2239,39 +2284,54 @@ public sealed class SolutionManager
             {
             }
 
-            watcher.Changed -= OnDiskWatcherChanged;
-            watcher.Created -= OnDiskWatcherChanged;
-            watcher.Deleted -= OnDiskWatcherChanged;
-            watcher.Renamed -= OnDiskWatcherRenamed;
-            watcher.Error -= OnDiskWatcherError;
             watcher.Dispose();
         }
     }
 
-    private void OnDiskWatcherChanged(object sender, FileSystemEventArgs e)
+    private void OnDiskWatcherChanged(WorkspaceInputSession session, FileSystemEventArgs e)
     {
-        QueueDiskPath(e.FullPath);
+        BeforeDiskWatcherCallbackForTests?.Invoke();
+        string? graphPath = null;
+        session.TryRun(() => graphPath = QueueDiskPath(session, e.FullPath));
+        LogChangedGraphPath(graphPath);
+        AfterDiskWatcherChangeForTests?.Invoke(e);
     }
 
-    private void OnDiskWatcherRenamed(object sender, RenamedEventArgs e)
+    private void OnDiskWatcherRenamed(WorkspaceInputSession session, RenamedEventArgs e)
     {
-        if (Directory.Exists(e.FullPath) || Directory.Exists(e.OldFullPath))
+        BeforeDiskWatcherCallbackForTests?.Invoke();
+        var directoryRenamed = false;
+        string? oldGraphPath = null;
+        string? newGraphPath = null;
+        var accepted = session.TryRun(() =>
         {
-            _refreshAllDocuments = true;
+            if (Directory.Exists(e.FullPath) || Directory.Exists(e.OldFullPath))
+            {
+                _refreshAllDocuments = true;
+                directoryRenamed = true;
+                return;
+            }
+            oldGraphPath = QueueDiskPath(session, e.OldFullPath);
+            newGraphPath = QueueDiskPath(session, e.FullPath);
+        });
+        if (accepted && directoryRenamed)
+        {
             LogDiskWatcherCallback(
                 LogLevel.Information,
                 exception: null,
                 "Disk watcher: directory rename, will refresh known documents on next semantic call.");
-            return;
         }
-
-        QueueDiskPath(e.OldFullPath);
-        QueueDiskPath(e.FullPath);
+        LogChangedGraphPath(oldGraphPath);
+        LogChangedGraphPath(newGraphPath);
     }
 
-    private void OnDiskWatcherError(object sender, ErrorEventArgs e)
+    private void OnDiskWatcherError(WorkspaceInputSession session, ErrorEventArgs e)
     {
-        _refreshAllDocuments = true;
+        BeforeDiskWatcherCallbackForTests?.Invoke();
+        if (!session.TryRun(() => _refreshAllDocuments = true))
+        {
+            return;
+        }
         LogDiskWatcherCallback(
             LogLevel.Warning,
             e.GetException(),
@@ -2296,11 +2356,21 @@ public sealed class SolutionManager
         }
     }
 
-    private void QueueDiskPath(string? rawPath)
+    private void LogChangedGraphPath(string? graphPath)
+    {
+        if (graphPath is not null)
+        {
+            // Providers are external code: do not run them inside the session's closure gate.
+            LogDiskWatcherCallback(LogLevel.Information, exception: null,
+                $"Project graph file changed on disk: {graphPath}");
+        }
+    }
+
+    private string? QueueDiskPath(WorkspaceInputSession session, string? rawPath)
     {
         if (string.IsNullOrWhiteSpace(rawPath) || WorkspaceDiskPathFilter.IsIgnoredPath(rawPath))
         {
-            return;
+            return null;
         }
 
         string fullPath;
@@ -2310,27 +2380,32 @@ public sealed class SolutionManager
         }
         catch (Exception)
         {
-            return;
+            return null;
         }
 
         if (IsSelfWriteSuppressed(fullPath))
         {
-            return;
+            return null;
         }
 
         if (WorkspaceDiskPathFilter.IsProjectGraphFile(fullPath))
         {
+            if (WorkspaceDiskPathFilter.IsWpfTemporaryProject(fullPath)
+                && !session.LoadedProjectPaths.Contains(fullPath))
+            {
+                return null;
+            }
             MarkProjectGraphStaleFromGraphFile();
-            _logger.LogInformation("Project graph file changed on disk: {Path}", fullPath);
-            return;
+            return fullPath;
         }
 
         if (!WorkspaceDiskPathFilter.IsCSharpSource(fullPath))
         {
-            return;
+            return null;
         }
 
         _dirtySourcePaths.TryAdd(fullPath, 0);
+        return null;
     }
 
     private bool IsSelfWriteSuppressed(string fullPath)
@@ -2474,6 +2549,7 @@ public sealed class SolutionManager
     private readonly ConcurrentDictionary<string, byte> _dirtySourcePaths;
     private readonly ConcurrentDictionary<string, long> _selfWriteUntilTicks;
     private readonly List<FileSystemWatcher> _diskWatchers = new();
+    private WorkspaceInputSession? _diskWatcherSession;
     private readonly ConcurrentDictionary<string, byte> _missingOnDiskPaths;
     private volatile bool _refreshAllDocuments;
     private volatile bool _projectGraphStale;

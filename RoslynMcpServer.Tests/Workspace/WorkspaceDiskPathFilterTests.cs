@@ -5,6 +5,26 @@ namespace RoslynMcpServer.Tests.Workspace;
 
 public sealed class WorkspaceDiskPathFilterTests
 {
+    [Theory]
+    [InlineData("Foo_abc_wpftmp.csproj", true)]
+    [InlineData("Foo_ABC_WpFtMp.CsPrOj", true)]
+    [InlineData("Foo_wpftmp.csproj", true)]
+    [InlineData("Foo_wpftmp_Bar.csproj", false)]
+    [InlineData("Foo_wpftmp.vbproj", false)]
+    [InlineData("Foo_wpftmp.cs", false)]
+    [InlineData("Foo_wpftmp/Bar.csproj", false)]
+    [InlineData(null, false)]
+    [InlineData("", false)]
+    [InlineData("   ", false)]
+    public void Temporary_project_name_is_separate_from_graph_file_classification(string? path, bool expected)
+    {
+        Assert.Equal(expected, WorkspaceDiskPathFilter.IsWpfTemporaryProject(path));
+        if (expected)
+        {
+            Assert.True(WorkspaceDiskPathFilter.IsProjectGraphFile(path));
+        }
+    }
+
     [Fact]
     public void IsIgnoredPath_skips_bin_obj_git_node_modules()
     {

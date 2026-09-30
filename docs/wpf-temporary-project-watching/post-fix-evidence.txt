@@ -1,0 +1,169 @@
+SDK 10.0.300
+Command: dotnet build C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\WpfProbe.slnx --no-incremental --nologo
+Command CWD: C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c
+before build: stale=False graphFile=False composition=False reason= refreshAll=False dirty=0 cacheHit=False reopen=True
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  WPF_PROBE project=C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\WpfProbe.csproj startupDirectory=C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c projectDirectory=C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App temporary=WpfProbe_wpftmp
+  WpfProbe -> C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\bin\Debug\net10.0-windows\WpfProbe.dll
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:00.75
+
+after delivery: stale=False graphFile=False composition=False reason= refreshAll=False dirty=0 cacheHit=False reopen=True
+after semantic flush: stale=False graphFile=False composition=False reason= refreshAll=False dirty=0 cacheHit=False reopen=True
+load 1: stale=False graphFile=False composition=False reason= refreshAll=False dirty=0 cacheHit=True reopen=False
+load 2: stale=False graphFile=False composition=False reason= refreshAll=False dirty=0 cacheHit=True reopen=False
+EVENTS
+Deleted C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\bin\Debug\net10.0-windows\WpfProbe.deps.json
+Deleted C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\bin\Debug\net10.0-windows\WpfProbe.dll
+Deleted C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\bin\Debug\net10.0-windows\WpfProbe.pdb
+Deleted C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\MainWindow.g.cs
+Deleted C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\GeneratedInternalTypeHelper.g.cs
+Deleted C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\WpfProbe_MarkupCompile.cache
+Deleted C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\WpfProbe_MarkupCompile.lref
+Deleted C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\WpfProbe.g.resources
+Deleted C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\WpfProbe.GeneratedMSBuildEditorConfig.editorconfig
+Deleted C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\WpfProbe.AssemblyInfoInputs.cache
+Deleted C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\WpfProbe.AssemblyInfo.cs
+Deleted C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\WpfProbe.csproj.CoreCompileInputs.cache
+Deleted C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\WpfProbe.dll
+Deleted C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\refint\WpfProbe.dll
+Deleted C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\WpfProbe.pdb
+Deleted C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\ref\WpfProbe.dll
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows
+Created C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\3dtqz5dy.nnl~
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows
+Created C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\WpfProbe.csproj.FileListAbsolute.txt~RF4e53d7f9.TMP
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows
+Deleted C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\WpfProbe.csproj.FileListAbsolute.txt~RF4e53d7f9.TMP
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows
+Deleted C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\WpfProbe.csproj.FileListAbsolute.txt~RF4e53d7f9.TMP
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\bin\Debug\net10.0-windows
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\refint
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\ref
+Created C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\MainWindow.g.cs
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\MainWindow.g.cs
+Created C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\GeneratedInternalTypeHelper.g.cs
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\GeneratedInternalTypeHelper.g.cs
+Created C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\WpfProbe_MarkupCompile.cache
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\WpfProbe_MarkupCompile.cache
+Created C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\WpfProbe_MarkupCompile.lref
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\WpfProbe_MarkupCompile.lref
+Created C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\WpfProbe_dhookzri_wpftmp.csproj.nuget.g.targets
+Created C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\WpfProbe_dhookzri_wpftmp.csproj.nuget.g.props
+Created C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\WpfProbe_dhookzri_wpftmp.csproj.nuget.dgspec.json
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\WpfProbe_dhookzri_wpftmp.csproj.nuget.g.targets
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\WpfProbe_dhookzri_wpftmp.csproj.nuget.dgspec.json
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\WpfProbe_dhookzri_wpftmp.csproj.nuget.g.props
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\WpfProbe_dhookzri_wpftmp.csproj.nuget.g.targets
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\WpfProbe_dhookzri_wpftmp.csproj.nuget.dgspec.json
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\WpfProbe_dhookzri_wpftmp.csproj.nuget.g.props
+Created C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\WpfProbe_dhookzri_wpftmp.csproj
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\WpfProbe_dhookzri_wpftmp.csproj
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows
+Created C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\WpfProbe_dhookzri_wpftmp.assets.cache
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\WpfProbe_dhookzri_wpftmp.assets.cache
+Created C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\WpfProbe_dhookzri_wpftmp.GeneratedMSBuildEditorConfig.editorconfig
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\WpfProbe_dhookzri_wpftmp.GeneratedMSBuildEditorConfig.editorconfig
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows
+Created C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\wofwvzeu.lhs~
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\wofwvzeu.lhs~
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows
+Created C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\WpfProbe_dhookzri_wpftmp.AssemblyInfo.cs
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\WpfProbe_dhookzri_wpftmp.AssemblyInfo.cs
+Created C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\WpfProbe.dll
+Created C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\WpfProbe.pdb
+Created C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\refint\WpfProbe.dll
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\WpfProbe.dll
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\refint\WpfProbe.dll
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\WpfProbe.pdb
+Deleted C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\WpfProbe_dhookzri_wpftmp.csproj
+Deleted C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\WpfProbe_dhookzri_wpftmp.csproj.nuget.g.props
+Deleted C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\WpfProbe_dhookzri_wpftmp.csproj.nuget.g.targets
+Deleted C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\WpfProbe_dhookzri_wpftmp.csproj.nuget.dgspec.json
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows
+Created C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\MainWindow.baml
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\MainWindow.baml
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\GeneratedInternalTypeHelper.g.cs
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\GeneratedInternalTypeHelper.g.cs
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\WpfProbe_MarkupCompile.cache
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\WpfProbe_MarkupCompile.cache
+Deleted C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\WpfProbe.dll
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows
+Created C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\WpfProbe.g.resources
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\WpfProbe.g.resources
+Created C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\WpfProbe.GeneratedMSBuildEditorConfig.editorconfig
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\WpfProbe.GeneratedMSBuildEditorConfig.editorconfig
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj
+Created C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\c0qoaegd.b01~
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\c0qoaegd.b01~
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows
+Created C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\WpfProbe.AssemblyInfo.cs
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\WpfProbe.AssemblyInfo.cs
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows
+Created C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\xnmpyqd0.gmj~
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\xnmpyqd0.gmj~
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows
+Created C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\WpfProbe.dll
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\WpfProbe.pdb
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\refint
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\refint\WpfProbe.dll
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\WpfProbe.dll
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\refint\WpfProbe.dll
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\WpfProbe.pdb
+Created C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\bin\Debug\net10.0-windows\WpfProbe.deps.json
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\bin\Debug\net10.0-windows\WpfProbe.deps.json
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\bin\Debug\net10.0-windows
+Created C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\bin\Debug\net10.0-windows\WpfProbe.dll
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\bin\Debug\net10.0-windows\WpfProbe.dll
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\bin\Debug\net10.0-windows\WpfProbe.dll
+Created C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\ref\WpfProbe.dll
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\ref\WpfProbe.dll
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\ref\WpfProbe.dll
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\bin\Debug\net10.0-windows
+Created C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\bin\Debug\net10.0-windows\WpfProbe.pdb
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\bin\Debug\net10.0-windows\WpfProbe.pdb
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\bin\Debug\net10.0-windows\WpfProbe.pdb
+Created C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\gyi0vb41.dko~
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\gyi0vb41.dko~
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows
+Created C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\WpfProbe.csproj.FileListAbsolute.txt~RF4e53d921.TMP
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows
+Deleted C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\WpfProbe.csproj.FileListAbsolute.txt~RF4e53d921.TMP
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows
+Deleted C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows\WpfProbe.csproj.FileListAbsolute.txt~RF4e53d921.TMP
+Changed C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\App\obj\Debug\net10.0-windows
+INFORMATION LOG
+Disk watcher started on C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c
+Loaded Roslyn workspace from C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\WpfProbe.slnx (Configuration=(default), Platform=(default), PlatformRaw=(default), TargetFramework=(default), BuildArgs=(none))
+overflow callback: stale=False graphFile=False composition=False reason= refreshAll=True dirty=0 cacheHit=True reopen=False
+overflow load 1 flush: stale=True graphFile=False composition=True reason=> **Note:** A saved `.cs` file appeared or disappeared outside the loaded workspace snapshot. MSBuild decides membership on reload — the file is not guaranteed to enter the workspace. Call `reset_workspace` then `load_workspace` (or `load_workspace` alone — a stale project graph skips the load cache). refreshAll=False dirty=2 cacheHit=True reopen=False
+overflow load 2: stale=False graphFile=False composition=False reason= refreshAll=False dirty=0 cacheHit=False reopen=True
+OVERFLOW LOG
+Disk watcher error (buffer overflow or inotify limit). Next semantic call will re-read known documents from disk, not OpenSolutionAsync.
+workspace_disk_sync composition unknown unrepresentable=0 refreshAll=True paths=(none)
+FINAL LOG
+Disk watcher started on C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c
+Loaded Roslyn workspace from C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\WpfProbe.slnx (Configuration=(default), Platform=(default), PlatformRaw=(default), TargetFramework=(default), BuildArgs=(none))
+Disk watcher error (buffer overflow or inotify limit). Next semantic call will re-read known documents from disk, not OpenSolutionAsync.
+workspace_disk_sync composition unknown unrepresentable=0 refreshAll=True paths=(none)
+workspace_disk_sync updated=0 added=0 removed=0 unchanged=6 unrepresentable=0 refreshAll=True elapsedMs=66 write=FullSuccess
+Disk watcher started on C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c
+Loaded Roslyn workspace from C:\Users\VuDZ\AppData\Local\Temp\RoslynWpfWatching-1417169e44554ddfac07571399b3a09c\WpfProbe.slnx (Configuration=(default), Platform=(default), PlatformRaw=(default), TargetFramework=(default), BuildArgs=(none))
