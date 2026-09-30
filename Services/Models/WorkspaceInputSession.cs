@@ -3,14 +3,20 @@ using System.Collections.Frozen;
 namespace RoslynMcpServer.Services.Models;
 
 /// <summary>
-/// Owns the watcher group's generation and loaded-project membership. Future input revisions
-/// extend this same session; this initial snapshot makes no claim about import coverage.
+/// Owns the watcher group's generation, loaded-project membership, and the evaluated input map.
+/// A later re-evaluation of that map advances <see cref="MembershipRevision"/> on this same generation.
 /// </summary>
 internal sealed class WorkspaceInputSession
 {
     public Guid Generation { get; } = Guid.NewGuid();
 
     public FrozenSet<string> LoadedProjectPaths { get; }
+
+    /// <summary>Evaluated input map for <see cref="Generation"/>. Null until the loaded graph is published.</summary>
+    public WorkspaceInputMap? InputMap { get; private set; }
+
+    /// <summary>Advances when a map is published. This is not a second session generation.</summary>
+    public int MembershipRevision { get; private set; }
 
     public WorkspaceInputSession(IEnumerable<string?> projectFilePaths)
     {
@@ -33,6 +39,25 @@ internal sealed class WorkspaceInputSession
             }
         }
         LoadedProjectPaths = paths.ToFrozenSet(paths.Comparer);
+    }
+
+    /// <summary>
+    /// Stores <paramref name="map"/> when its generation is this session's token.
+    /// A foreign generation is rejected so the session does not adopt another counter.
+    /// </summary>
+    public bool TryPublishInputMap(WorkspaceInputMap map)
+    {
+        ArgumentNullException.ThrowIfNull(map);
+        if (map.Generation != Generation)
+        {
+            return false;
+        }
+
+        return TryRun(() =>
+        {
+            InputMap = map;
+            MembershipRevision++;
+        });
     }
 
     /// <summary>State changes and closure are serialized without acquiring the manager's workspace semaphore.</summary>

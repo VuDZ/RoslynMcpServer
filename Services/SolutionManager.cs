@@ -1972,9 +1972,7 @@ public sealed class SolutionManager
         }
 
         LastDiagnostics = CollectDiagnostics(workspace, capturedDiagnostics);
-        StartDiskWatcherUnderLock(
-            fullPath,
-            workspace.CurrentSolution.Projects.Select(static project => project.FilePath));
+        StartDiskWatcherUnderLock(fullPath, workspace.CurrentSolution);
         _logger.LogInformation(
             "Loaded Roslyn workspace from {Path} (Configuration={Configuration}, Platform={Platform}, PlatformRaw={PlatformRaw}, TargetFramework={TargetFramework}, BuildArgs={BuildArgs})",
             fullPath,
@@ -2209,12 +2207,19 @@ public sealed class SolutionManager
         return false;
     }
 
-    private void StartDiskWatcherUnderLock(string workspaceFilePath, IEnumerable<string?> projectFilePaths)
+    private void StartDiskWatcherUnderLock(string workspaceFilePath, Solution loadedSolution)
     {
         StopDiskWatcherUnderLock();
         // Capture once before enabling events. Deleted and renamed loaded projects still belong
         // to this graph even when their backing files no longer exist. See docs/wpf-temporary-project-watching/README.md.
+        var projectFilePaths = loadedSolution.Projects.Select(static project => project.FilePath);
         var session = new WorkspaceInputSession(projectFilePaths);
+        var inputMap = WorkspaceInputMapBuilder.Build(
+            loadedSolution,
+            session.Generation,
+            workspaceFilePath,
+            loadGraphComplete: !HasBlockingLoadFailure(loadedSolution));
+        session.TryPublishInputMap(inputMap);
         _diskWatcherSession = session;
         var roots = ComputeWatchRoots(workspaceFilePath, session.LoadedProjectPaths);
         foreach (var directory in roots)

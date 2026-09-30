@@ -1,6 +1,6 @@
 # Эпоха 1. Карта входов и принадлежности
 
-Статус: **не начата**. Сложность: средняя; полный MSBuild input scope сложнее.
+Статус: **готово**. Сложность: средняя; полный MSBuild input scope сложнее.
 
 ## Цель
 
@@ -8,7 +8,7 @@
 приравнивая дерево каталогов `.sln` к составу проектов.
 
 Форма общего состояния и pull API уже выбрана в
-[input-state-contract.md](input-state-contract.md). Эта эпоха определяет
+[input-state-contract.md](../input-state-contract.md). Эта эпоха определяет
 источник evidence и модель данных; не проектирует независимую ленту для
 test-build-freshness. Generation совпадает с token WPF watcher-сессии.
 
@@ -48,7 +48,7 @@ test-build-freshness. Generation совпадает с token WPF watcher-сес�
 - Состояние absent walk-up input и возможность появления новых файлов входят
   в evidence. Отсутствие пути в индексе известных документов не подтверждает
   отсутствие membership, особенно для нового `.cs` под SDK project directory.
-- Выбор [W-01](UNRESOLVED.md) закрыт: одна карта ролей C# и обнаруженных не-C#
+- Выбор [W-01](../UNRESOLVED.md) закрыт: одна карта ролей C# и обнаруженных не-C#
   inputs, text sync только пользовательского C#, остальные роли дают уведомление
   и unknown при недостатке evidence. Закрыть W-02 по источнику membership и
   явно проверить полноту supported profile. Неподтверждённые категории/metadata-only

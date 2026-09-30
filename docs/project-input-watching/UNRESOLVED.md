@@ -1,6 +1,6 @@
 # Открытые вопросы наблюдения за входами
 
-Дата: 2026-09-30. Эти вопросы описывают будущую реализацию; runtime не меняется.
+Дата: 2026-10-01. W-02 закрыт эпохой 1. Карта входов публикуется в той же session generation при загрузке. W-03 по-прежнему не выбирает политику восстановления семантики.
 
 ## W-01. Выбор карты и граница синхронизации — закрыт
 
@@ -15,27 +15,49 @@ XAML/resources, AdditionalFiles, analyzer configs и evaluation/restore inputs.
 остальные роли дают уведомление и unknown, пока нет достаточного evidence.
 Source of evidence и полнота профиля остаются W-02, а не повторным выбором W-01.
 
-## W-02. Membership и данные оценки MSBuild
+## W-02. Membership и данные оценки MSBuild — закрыт
 
-Roslyn `Project.Documents` даёт известные документы, но не полный набор
-imports, новых glob-items и custom task inputs. Нужен доказанный источник
-данных и правила для условных/внешних зависимостей и metadata-only references.
+Источник membership — загруженный граф Roslyn после оценки `MSBuildWorkspace`,
+а не отдельный интерпретатор MSBuild. Индексируются фактически присутствующие
+instances: `Project.Documents`, `AdditionalDocuments`, `AnalyzerConfigDocuments`,
+`ProjectReferences`, `MetadataReferences`, `OutputFilePath` / `OutputRefFilePath`.
+Флаг `DocumentInfo.IsGenerated` («side effect of the build») читается с живого
+документа. `FileGlobs`, граф `Import`, входы restore и custom tasks на этой
+публичной поверхности отсутствуют.
 
-Если профиль не покрывает эти случаи, использовать conservative invalidation
-и unknown. Не реализовывать произвольный MSBuild evaluator в рамках watcher.
-Выбор backend и поддерживаемого профиля — результат эпохи 1.
+`TargetFramework` / `TargetFrameworks` читаются только как сигнал полноты
+(тот же разбор элемента, что у `DirectoryBuildPropsReader`), без оценки условий
+и item group. Ровно один объявленный TFM и один загруженный instance этого
+`.csproj` не создают второй instance. Больше одного объявленного TFM при меньшем
+числе instances, либо отсутствие декларации, переводят покрытие всего графа
+в unknown.
 
-Проверить полный набор required categories целевого профиля: XAML/resources,
-AdditionalFiles, analyzer configs, imports/restore inputs и custom tasks.
-Урезанный документный индекс и отсутствие metadata-only reference в Roslyn
-не разрешают complete. Неподтверждённые регионы остаются conservative stale/unknown.
+Поддерживаемый профиль — не полное покрытие целевого графа:
 
-Рекурсивное наблюдение каталогов предков и чужих внешних glob-деревьев не
-является способом закрыть этот вопрос. Внешние paths наблюдаются точечно/
-нерекурсивно; непокрытое появление новых inputs оставляет coverage unknown.
-Для входов другого TFM, не подтверждённых фактически загруженным графом,
-unknown распространяется на весь граф. Два instances одного `.csproj`
-проверяются только при наличии обоих в реальном загруженном графе.
+- Индексируются известные C# документы, additional files, analyzer configs,
+  рёбра project reference между загруженными instances, пути output и
+  кандидаты walk-up (`Directory.Build.props` / `.targets`, `Directory.Packages.props`,
+  `global.json`), включая отсутствующий файл.
+- XAML и resources учитываются только если они уже документы графа; расширение
+  не является ролью. Полнота этих категорий unknown.
+- Imports, restore inputs и custom tasks unknown.
+- Внешний glob: известный файл вне каталога проекта получает точечную
+  нерекурсивную подписку; появление новых соседей unknown. Рекурсивный watcher
+  на чужое дерево не ставится.
+- Metadata reference, которая не является output загруженного проекта и не
+  является сборкой shared framework / NuGet package, не считается загруженным
+  проектом и не даёт complete.
+- `.g.cs`, `*AssemblyInfo.cs` и `*AssemblyAttributes.cs` в Compile не становятся
+  пользовательским входом. Роль `generated` — только при установленном флаге
+  side effect. Если флаг сброшен, роль unknown: design-time оценка SDK оставляет
+  `AssemblyInfo` / `AssemblyAttributes` в `obj` с флагом false.
+- Явный пользовательский `.cs` в `obj` с сброшенным флагом и без такого имени
+  остаётся user input.
+
+Индекс документов не публикуется как полная карта. Неуспешная загрузка тоже
+не публикует индекс как complete. Реальный `load` проекта с
+`TargetFrameworks` `net10.0;net8.0` и `targetFramework=net10.0` дал один
+instance, не два.
 
 ## W-03. Свежесть семантики вне известных C# текстов
 
