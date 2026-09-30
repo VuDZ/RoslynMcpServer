@@ -14,5 +14,6 @@
 | [tool-usage-cut/](tool-usage-cut/README.md) | 9 имён скрыты до v2.0, 4 ушли из lite. Shipped v1.4.11–v1.4.12. Runtime — корневой README |
 | [mcp-plugins/](mcp-plugins/README.md) | Плагины MCP, эпохи 1–7, shipped v1.4.18. Руководство — [samples/RoslynMcpPlugin/README.md](../../samples/RoslynMcpPlugin/README.md) |
 | [test-layout/](test-layout/README.md) | Каталоги `RoslynMcpServer.Tests` по функциональным областям. Перенос выполнен; список файлов — снимок на момент серии |
+| [wpf-temporary-project-watching/](wpf-temporary-project-watching/README.md) | Сборка WPF не сбрасывает кеш Solution из-за `*_wpftmp.csproj`. Закрыто v1.5.1. Runtime — [ARCHITECTURE](../ARCHITECTURE.md), README v1.5.1 |
 
 Process-пакеты (review / арбитраж) лежат в `_archive/` соответствующей темы, не на живой полке.

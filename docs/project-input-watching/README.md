@@ -123,7 +123,7 @@ MSBuild-входов принимается по фактам, без собст
 
 ## Связь с другими планами
 
-- [WPF temporary projects](../wpf-temporary-project-watching/README.md) —
+- [WPF temporary projects](../archive/wpf-temporary-project-watching/README.md) —
   узкое исключение с общим классификатором имени и тем же session token.
   Оно может идти первым; его минимальный session context расширяется этой
   серией, а второй независимый generation/index не создаётся.

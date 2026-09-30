@@ -1,7 +1,7 @@
 # Проверка WPF-фильтра временных проектов
 
-Дата: 2026-10-01. Реализована Epoch 1; версия исходников остаётся `1.5.0`.
-Это отчёт реализации и проверок, не свидетельство выпуска.
+Дата: 2026-10-01. Реализована Epoch 1. Проверки ниже сняты до записи версии.
+Серия закрыта вслед за этим отчётом: поведение — v1.5.1. GitHub Release не создавался.
 
 ## Воспроизведение до изменения production-кода
 
@@ -49,15 +49,15 @@ refresh-all=false, dirty=0. Первый `LoadAsync` с тем же ключом
 
 ## Изменение
 
-- [WorkspaceDiskPathFilter](../../Services/WorkspaceDiskPathFilter.cs) содержит
+- [WorkspaceDiskPathFilter](../../../Services/WorkspaceDiskPathFilter.cs) содержит
   отдельный `IsWpfTemporaryProject`: `.csproj` и окончание basename `_wpftmp`,
   без учёта регистра. `IsProjectGraphFile` сохраняет прежнюю классификацию.
-- [WorkspaceInputSession](../../Services/Models/WorkspaceInputSession.cs) — один
+- [WorkspaceInputSession](../../../Services/Models/WorkspaceInputSession.cs) — один
   владелец generation и нормализованного immutable `FrozenSet` загруженных
   `Project.FilePath`. Та же материализация используется для корней watchers.
   Это минимальная модель общего input-state contract; покрытие imports/revisions
   этим изменением не объявляется реализованным.
-- [SolutionManager](../../Services/SolutionManager.cs) захватывает сессию в каждом
+- [SolutionManager](../../../Services/SolutionManager.cs) захватывает сессию в каждом
   callback до включения событий. Только незагруженный кандидат временного имени
   отбрасывается перед graph-file stale. Deleted/обе стороны Rename используют
   снимок независимо от существования файла. Закрытие сессии и все callback
@@ -143,5 +143,5 @@ publication, автоматического reload и долговременно
 Родительская сборка и 69 перечисленных проверок прошли. Новый независимый
 reviewer вернул **ACCEPT** без обязательных замечаний; отдельный сабагент
 приёмки спецификации вернул **ACCEPTANCE PASSED**. Раунды исправлений не
-потребовались. Реализация и приёмка завершены 2026-10-01; статусы серии и эпохи
-обновлены. Выпуск не выполнен, версия и product README/ARCHITECTURE не изменены.
+потребовались. Реализация и приёмка завершены 2026-10-01. Серия закрыта:
+поведение записано в ARCHITECTURE и product README как v1.5.1. GitHub Release не создавался.

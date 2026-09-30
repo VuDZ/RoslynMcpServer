@@ -117,7 +117,7 @@ semantic flush. Начальный unknown уже заставляет перв�
 при отсутствии production provider/evidence действует always-build fallback,
 а не временная вторая лента событий. Пропуск сборки требует проверенного
 покрытия входов. WPF-исключение с тем же session token —
-[wpf-temporary-project-watching](../wpf-temporary-project-watching/README.md).
+[wpf-temporary-project-watching](../archive/wpf-temporary-project-watching/README.md).
 Код C# в любой эпохе требует полного чтения `docs/code-style.md` перед правками.
 
 Детали параметров, полноты профиля и evidence: [UNRESOLVED.md](UNRESOLVED.md).

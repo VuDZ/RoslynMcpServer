@@ -13,7 +13,6 @@
 
 | Тема | Канон | Статус |
 |---|---|---|
-| WPF: временные проекты и кеш Solution | [wpf-temporary-project-watching/](wpf-temporary-project-watching/README.md) | план, код не начат; одна эпоха, исключение ложной инвалидации от `*_wpftmp.csproj` |
 | Наблюдение за файлами проектов | [project-input-watching/](project-input-watching/README.md) | план, код не начат; три эпохи, внешние/linked/shared входы и независимые события изменений |
 | Актуальность сборки перед DLL-тестами | [test-build-freshness/](test-build-freshness/README.md) | план, код не начат; три эпохи, начальный dirty и подтверждения только в сессии; API и полнота входов открыты |
 | Явный раннер тестов | [test-runner-selection/](test-runner-selection/README.md) | эпоха 1, код не начат; `testRunner=auto\|vstest\|mtp`, молчание = `auto` |

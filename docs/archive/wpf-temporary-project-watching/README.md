@@ -1,6 +1,6 @@
 # WPF: временные проекты и кеш Solution
 
-Дата: 2026-09-30. Статус: **реализовано, приёмка пройдена 2026-10-01; выпуск не выполнен (not shipped)**.
+Дата: 2026-09-30. Статус: **закрыто 2026-10-01**. Поведение записано в [ARCHITECTURE](../../ARCHITECTURE.md) и product README v1.5.1. GitHub Release этим закрытием не создаётся.
 
 Пожелание 1: сборка WPF-проекта создаёт и удаляет `*_wpftmp.csproj`,
 из-за чего следующая загрузка Solution перестаёт попадать в кеш.
@@ -12,9 +12,9 @@
 Проверено по исходникам на commit `045b839`, source version `1.5.0`.
 Версия сервера коллег и воспроизведение на их Solution пока не получены.
 
-- [SolutionManager.QueueDiskPath](../../Services/SolutionManager.cs)
+- [SolutionManager.QueueDiskPath](../../../Services/SolutionManager.cs)
   передаёт события любого проектного файла в `MarkProjectGraphStaleFromGraphFile`.
-- [WorkspaceDiskPathFilter.IsProjectGraphFile](../../Services/WorkspaceDiskPathFilter.cs)
+- [WorkspaceDiskPathFilter.IsProjectGraphFile](../../../Services/WorkspaceDiskPathFilter.cs)
   распознаёт `.csproj` по расширению; членство в Solution не проверяется.
 - `LoadCoreAsync` использует кеш только при `!_projectGraphStale`.
   Событие выставляет stale; фактическое переоткрытие происходит при следующем
@@ -80,7 +80,7 @@
   callback не должен классифицировать старое событие по снимку новой сессии
   или менять её stale-состояние.
 - Владелец и generation этой сессии общие с будущей картой входов по
-  [input-state-contract](../project-input-watching/input-state-contract.md).
+  [input-state-contract](../../project-input-watching/input-state-contract.md).
   WPF-фикс может первым создать минимальный token + `loadedProjectPaths` context;
   watcher-серия расширяет тот же источник, не вводя второго session counter.
 - Сборка может иметь другие причины инвалидировать snapshot. Серия обещает
@@ -111,17 +111,17 @@ refresh-all pending и факт cache hit/reopen. Снимать состоян�
 
 Локальное исправление можно выполнить первым, независимо от двух других серий.
 Общий учёт принадлежности файлов появится в
-[project-input-watching](../project-input-watching/README.md); классификатор
+[project-input-watching](../../project-input-watching/README.md); классификатор
 временных проектов должен переиспользоваться там.
 
 Переиспользование общего предиката имени возможно до закрытия/ship WPF-серии;
 это не разрешение объявить её cache-fix проверенным без собственного baseline.
 
 Автосборка перед DLL-тестами описана отдельно в
-[test-build-freshness](../test-build-freshness/README.md). Публикация generated
+[test-build-freshness](../../test-build-freshness/README.md). Публикация generated
 кода, reload после сборки и analyzer shadow-copy этой серией не меняются.
 Долговременный кеш Solution остаётся в
-[workspace-load-cache](../workspace-load-cache/README.md).
+[workspace-load-cache](../../workspace-load-cache/README.md).
 
 ## Завершение
 

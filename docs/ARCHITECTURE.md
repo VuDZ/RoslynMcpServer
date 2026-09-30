@@ -73,7 +73,7 @@ The current host is stdio and effectively has one MCP session per process. `Solu
 Important consistency rules:
 
 - Unsaved editor buffers are invisible; only content written to disk reaches the server.
-- Changes to `.csproj`, `.sln`, `.slnx`, or `Directory.Build.*` mark the project graph stale. Source text can still synchronize, but references, compile globs, and generated files require `load_workspace` again, or `reset_workspace` followed by `load_workspace`.
+- Changes to `.csproj`, `.sln`, `.slnx`, or `Directory.Build.*` mark the project graph stale. Source text can still synchronize, but references, compile globs, and generated files require `load_workspace` again, or `reset_workspace` followed by `load_workspace`. A WPF markup compile creates and deletes `{ProjectName}_{random}_wpftmp.csproj` beside the real project; that name does not mark the graph stale unless the path is a loaded project. A real project-file change during the same build still does. Watcher overflow is a separate path: it asks for a full re-read and can mark composition stale on the next flush. History: [`docs/archive/wpf-temporary-project-watching/`](archive/wpf-temporary-project-watching/README.md).
 - Relative file paths are resolved against the loaded workspace directory. Before a workspace is loaded they fall back to the process working directory.
 - Workspace operations are serialized by a semaphore. This protects the mutable Roslyn state, but long workspace operations can delay other semantic calls.
 - The file watcher ignores build/VCS directories and suppresses immediate self-write events. Watcher overflow or platform watch limits degrade to a broader refresh; they do not provide editor-buffer synchronization.

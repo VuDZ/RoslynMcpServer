@@ -182,6 +182,10 @@ MCP `tools/list` stays JSON + JSON Schema. Markdown is for JIT help and diagnost
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.5.1
+
+- **WPF temporary projects do not drop the workspace cache** — a markup compile creates and deletes `{ProjectName}_{random}_wpftmp.csproj` next to the real project. The file is still a project graph file, and the watcher ignores it only when that path is not one of the loaded projects. A real `.csproj`, solution, or `Directory.Build.*` change during the build still marks the graph stale. Watcher overflow is unchanged: it asks for a full document re-read and can mark composition stale on the next flush.
+
 ### v1.5.0
 
 - **MCP C# SDK 2.2.0** — the host package moved from 1.3.0. `enable_tool_group` still sends one `tools/list_changed` when the set grows; the batch uses the SDK `DeferChangedEvents` scope. Clients on the `2025-11-25` initialize handshake receive that notification on the session. Clients on `2026-07-28` (the SDK 2.2 default, which this server accepts) receive it only after `subscriptions/listen` with `toolsListChanged`. No separate protocol feature is added on top of the SDK.
@@ -1537,7 +1541,7 @@ cd D:\Devel\YourApp
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.5.0). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.5.1). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 

@@ -5,7 +5,7 @@ alwaysApply: true
 
 # RoslynMcpServer overview
 
-MCP server (stdio) for C# analysis: Roslyn workspaces + ILSpy decompile. TFM `net10.0`, version in `RoslynMcpServer.csproj` (currently **1.5.0**). Package id `RoslynMcpServer`. Self-contained publish for win/osx/linux RIDs.
+MCP server (stdio) for C# analysis: Roslyn workspaces + ILSpy decompile. TFM `net10.0`, version in `RoslynMcpServer.csproj` (currently **1.5.1**). Package id `RoslynMcpServer`. Self-contained publish for win/osx/linux RIDs.
 
 ## Layout
 
@@ -27,6 +27,7 @@ Real-world validation often uses **BrqMover** (`c:\Devel\BrqMover`) — app repo
 
 ## Version history (agent-relevant)
 
+- **1.5.1** — WPF `{ProjectName}_{random}_wpftmp.csproj` create/delete does not mark the project graph stale unless that path is a loaded project. A real project-file change during the build still does
 - **1.5.0** — MCP C# SDK 2.2.0. Group enablement batches `tools/list_changed` with the SDK `DeferChangedEvents` scope. `2025-11-25` sessions receive that notification directly; `2026-07-28` sessions receive it after `subscriptions/listen` (`toolsListChanged`). Plugin projects reference `ModelContextProtocol` 2.2 (`Major.Minor` must match the host assembly)
 - **1.4.19** — disk watcher error and directory-rename callbacks still request a full re-read when the logger throws (`Logger.Log` rethrows a provider failure such as Windows Event Log `ObjectDisposedException`); the callback no longer kills the process
 - **1.4.18** — plugins: `IRoslynMcpPlugin` assemblies load before `Build` from `plugins/<id>/`, the `plugins` key of `RoslynMcp.jsonc`, or `ROSLYN_MCP_PLUGINS` (dev directory shadow-copied); a plugin that cannot be loaded is skipped with `[RoslynMcp] plugin skipped (<id or path>): <reason>` on stderr and in `logs/mcp-*.log` while the host still starts; `get_mcp_server_info` lists loaded plugins and skips, `get_tool_help` reports `Kind`/`Group` `plugin` from the start report; plugin tools are in `tools/list` and `Registered MCP tools`, not in `McpToolCatalog` or `list_tool_groups`, and `lite`/`full` do not filter them
