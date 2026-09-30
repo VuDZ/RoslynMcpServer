@@ -13,5 +13,6 @@
 | [fork-capability-port/](fork-capability-port/README.md) | Этапы 1–7 shipped v1.4.4–v1.4.10. Этап 8 удалён, тесты репозитория на xUnit v2. Runtime — корневой README |
 | [tool-usage-cut/](tool-usage-cut/README.md) | 9 имён скрыты до v2.0, 4 ушли из lite. Shipped v1.4.11–v1.4.12. Runtime — корневой README |
 | [mcp-plugins/](mcp-plugins/README.md) | Плагины MCP, эпохи 1–7, shipped v1.4.18. Руководство — [samples/RoslynMcpPlugin/README.md](../../samples/RoslynMcpPlugin/README.md) |
+| [test-layout/](test-layout/README.md) | Каталоги `RoslynMcpServer.Tests` по функциональным областям. Перенос выполнен; список файлов — снимок на момент серии |
 
 Process-пакеты (review / арбитраж) лежат в `_archive/` соответствующей темы, не на живой полке.
