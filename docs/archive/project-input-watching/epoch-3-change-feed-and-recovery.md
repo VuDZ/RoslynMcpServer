@@ -1,6 +1,6 @@
 # Эпоха 3. События для актуальности сборок и восстановление
 
-Статус: **не начата**. Требует эпохи 2.
+Статус: **готово**. Требует эпохи 2.
 
 ## Цель
 
@@ -39,7 +39,7 @@
 - Сохранять событие, пришедшее во время flush/build. Graph reload, reset,
   смена load key и disposal завершают старую generation; поздний callback
   не может очистить/загрязнить новую сессию как событие её старого индекса.
-- Предоставить consumer API для [test-build-freshness](../test-build-freshness/README.md),
+- Предоставить consumer API для [test-build-freshness](../../test-build-freshness/README.md),
   возвращающий generation, snapshot/membership revisions, revisions путей,
   всех owners/roles, pending state, coverage и причины unknown. Pull не вызывает
   build/reload, не потребляет изменения и не захватывает manager semaphore повторно.

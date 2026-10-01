@@ -4,7 +4,7 @@
 Статус: **исследование восстановления семантики; реализация не выбрана**.
 Этот документ не меняет текущий контракт сервера.
 
-В плане [project-input-watching](../project-input-watching/README.md) принято
+В плане [project-input-watching](../archive/project-input-watching/README.md) принято
 обнаружение изменений C# и не-C# входов и уведомление по ролям. Это планируемое
 поведение, код не начат. Текстовая синхронизация `AdditionalDocument` и
 `AnalyzerConfigDocument`, а также политика восстановления семантического
@@ -196,7 +196,7 @@ backing `.csproj`; учесть shared/linked файлы, один путь в �
 
 ## 7. Связь с другими работами
 
-- [`project-input-watching`](../project-input-watching/README.md) отвечает за
+- [`project-input-watching`](../archive/project-input-watching/README.md) отвечает за
   обнаружение и уведомление по ролям, membership/coverage и собственные записи.
   Эта тема отвечает за возможную синхронизацию не-C# текста и восстановление
   семантики. Новый registry входов для текстовой синхронизации не должен

@@ -50,7 +50,7 @@ fixture; не объявлять весь симптом исправленны�
   новой сессии. Обработчики не читают текущий `Solution` и не берут manager
   semaphore для проверки принадлежности.
 - Использовать единый owner/token по
-  [общему input-state contract](../../project-input-watching/input-state-contract.md).
+  [общему input-state contract](../project-input-watching/input-state-contract.md).
   Минимальный session context вводится здесь при выполнении WPF-фикса первым;
   будущие revisions/coverage дополняют его, а не создают независимую generation.
   Предикат имени общий и доступен watcher-серии независимо от порядка ship.

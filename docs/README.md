@@ -13,7 +13,6 @@
 
 | Тема | Канон | Статус |
 |---|---|---|
-| Наблюдение за файлами проектов | [project-input-watching/](project-input-watching/README.md) | эпоха 1 принята, план и отчёт в [архиве темы](project-input-watching/_archive/epoch-1-input-map.md); эпохи 2–3 не начаты |
 | Актуальность сборки перед DLL-тестами | [test-build-freshness/](test-build-freshness/README.md) | план, код не начат; три эпохи, начальный dirty и подтверждения только в сессии; API и полнота входов открыты |
 | Явный раннер тестов | [test-runner-selection/](test-runner-selection/README.md) | эпоха 1, код не начат; `testRunner=auto\|vstest\|mtp`, молчание = `auto` |
 | Workspace load cache | [workspace-load-cache/](workspace-load-cache/README.md) | post-arbitration spec, не в runtime |

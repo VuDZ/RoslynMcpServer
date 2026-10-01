@@ -1,6 +1,6 @@
 # Наблюдение за файлами проектов, linked и shared входами
 
-Дата: 2026-09-30. Статус: **эпоха 1 принята; эпохи 2–3 не начаты**. Источник evidence — загруженный граф Roslyn; полное покрытие целевого графа не заявлено.
+Дата: 2026-09-30. Статус: **закрыто 2026-10-01**. Поведение записано в [ARCHITECTURE](../../ARCHITECTURE.md) и product README v1.5.2. GitHub Release этим закрытием не создаётся. Полное покрытие целевого графа не заявлено: imports, restore, custom tasks и неподтверждённый другой TFM оставляют coverage unknown. Политика восстановления семантики для не-C# текстов этой серией не выбиралась.
 
 Пожелание 3: отслеживать файлы, принадлежащие проектам загруженного Solution,
 включая внешние проекты и linked/shared файлы. Расположение `.sln` не задаёт
@@ -10,18 +10,18 @@
 
 Проверено на commit `045b839`, source version `1.5.0`:
 
-- [ComputeWatchRoots](../../Services/Workspace/SolutionManager.cs) уже объединяет
+- [ComputeWatchRoots](../../../Services/Workspace/SolutionManager.cs) уже объединяет
   каталог `.sln`/`.csproj` и каталоги загруженных проектов, удаляя вложенные
   дубликаты. Внешние проекты покрыты; это проверяют
-  [SolutionManagerWatchRootsTests](../../RoslynMcpServer.Tests/Workspace/SolutionManagerWatchRootsTests.cs).
+  [SolutionManagerWatchRootsTests](../../../RoslynMcpServer.Tests/Workspace/SolutionManagerWatchRootsTests.cs).
 - Корни не строятся по `Document.FilePath`; внешний linked-файл может не
   попасть ни в один watcher. Физическое размещение проекта этого не решает.
 - `QueueDiskPath` принимает любые `.cs` под корнями, даже не включённые в проект.
   Неизвестный существующий файл затем может пометить композицию как stale.
-- [WorkspaceDocumentDiskSync](../../Services/Workspace/WorkspaceDocumentDiskSync.cs)
+- [WorkspaceDocumentDiskSync](../../../Services/Workspace/WorkspaceDocumentDiskSync.cs)
   ищет первый `DocumentId` по пути. Обновление всех memberships общего файла
   нужно проверить и обеспечить, не полагаясь на первый найденный документ.
-- [WorkspaceDiskPathFilter](../../Services/Workspace/WorkspaceDiskPathFilter.cs)
+- [WorkspaceDiskPathFilter](../../../Services/Workspace/WorkspaceDiskPathFilter.cs)
   исключает `obj`, `bin`, `artifacts` и другие каталоги по имени сегмента.
   Это политика фонового обхода; она не доказывает нерелевантность явного входа.
 
@@ -52,10 +52,10 @@ revisions, owners/roles, membership и coverage. Callback не вызывает 
   конкретное членство подтверждается новой оценкой, а не watcher.
 - Состав проекта не меняется через `AddDocument`/`RemoveDocument` и не
   записывает `<Compile Include>` в backing `.csproj`; сохраняется решение
-  [disk-sync-csproj-mutation](../archive/disk-sync-csproj-mutation/README.md).
+  [disk-sync-csproj-mutation](../disk-sync-csproj-mutation/README.md).
 - Семантическая синхронизация и уведомления о build-input changes независимы.
   Семантический flush не поглощает изменения, нужные для
-  [test-build-freshness](../test-build-freshness/README.md).
+  [test-build-freshness](../../test-build-freshness/README.md).
 - Generated intermediates и outputs текущего build не являются изменением
   исходных входов этого build и не увеличивают их revisions. Путь в `obj`
   и присутствие в Compile сами по себе не доказывают пользовательский вход.
@@ -104,7 +104,7 @@ revisions, owners/roles, membership и coverage. Callback не вызывает 
 непокрытые inputs не считаются нерелевантными.
 
 Текстовая синхронизация `AdditionalDocument` и `AnalyzerConfigDocument`
-остаётся в [non-csharp-input-tracking](../non-csharp-input-tracking/README.md).
+остаётся в [non-csharp-input-tracking](../../non-csharp-input-tracking/README.md).
 Эта серия её не реализует и не выбирает общий reload/build/restore policy для
 semantic reads. Generated/graph роль не обходится обновлением обычного C# текста.
 
@@ -113,10 +113,10 @@ semantic reads. Generated/graph роль не обходится обновле�
 1. [Карта входов и правила принадлежности](_archive/epoch-1-input-map.md) — готово.
    Отчёт: [_archive/epoch-1-results.md](_archive/epoch-1-results.md). Источник
    membership, внешние пути, потенциальные новые файлы и полнота покрытия.
-2. [Watchers и linked/shared синхронизация](epoch-2-watchers-and-shared-sync.md):
-   применить карту к событиям и безопасно обновлять все документы одного пути.
-3. [События для сборок и восстановление покрытия](epoch-3-change-feed-and-recovery.md):
-   собственные записи, revisions, ошибки, общий lifecycle и pull provider.
+2. [Watchers и linked/shared синхронизация](epoch-2-watchers-and-shared-sync.md) — готово.
+   Отчёт: [epoch-2-results.md](epoch-2-results.md).
+3. [События для сборок и восстановление покрытия](epoch-3-change-feed-and-recovery.md) — готово.
+   Отчёт: [epoch-3-results.md](epoch-3-results.md).
 
 Эпоха 1 может быть исследовательской; решение о конкретном backend получения
 MSBuild-входов принимается по фактам, без собственного интерпретатора MSBuild.
@@ -124,15 +124,15 @@ MSBuild-входов принимается по фактам, без собст
 
 ## Связь с другими планами
 
-- [WPF temporary projects](../archive/wpf-temporary-project-watching/README.md) —
+- [WPF temporary projects](../wpf-temporary-project-watching/README.md) —
   узкое исключение с общим классификатором имени и тем же session token.
   Оно может идти первым; его минимальный session context расширяется этой
   серией, а второй независимый generation/index не создаётся.
-- [Non-C# input tracking](../non-csharp-input-tracking/README.md) — исследование
+- [Non-C# input tracking](../../non-csharp-input-tracking/README.md) — исследование
   восстановления семантики и текстовой синхронизации не-C# документов. Решение
   об обнаружении и уведомлении по ролям закреплено в этой серии; восстановление
   семантики остаётся отдельным вопросом.
-- [Workspace load cache Epoch 3](../workspace-load-cache/epoch-3-live-consistency.md)
+- [Workspace load cache Epoch 3](../../workspace-load-cache/epoch-3-live-consistency.md)
   — будущая общая модель покрытия и свежести. Эта серия не вводит disk cache
   и не выбирает вместо неё глобальную политику semantic reads.
 - `ComputeWatchRoots` используется также поиском кода. Новую topology watcher

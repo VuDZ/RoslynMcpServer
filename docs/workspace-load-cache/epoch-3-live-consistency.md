@@ -68,7 +68,7 @@ Trace: E3-03 — ACCEPT; E3-05 — ACCEPT WITH MODIFICATION.
 Coverage map включает project membership regions, walk-up ancestors, explicit
 paths вне roots/в `obj` и locations возможного появления absent inputs.
 Общий источник membership/revisions/coverage —
-[pull-контракт project-input-watching](../project-input-watching/input-state-contract.md).
+[pull-контракт project-input-watching](../archive/project-input-watching/input-state-contract.md).
 Его session token общий с WPF/watchers и build freshness; самостоятельный
 input index или второй session counter эта эпоха не создаёт. Повторный pull
 не потребляет revisions других consumer. Это связь моделей, а не закрытие

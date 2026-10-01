@@ -23,7 +23,7 @@
 ## F-02. Evidence полноты значимых входов
 
 В watcher-серии принято обнаружение не-C# изменений и уведомление по ролям;
-[W-01](../project-input-watching/UNRESOLVED.md) закрыт как выбор общей карты ролей
+[W-01](../archive/project-input-watching/UNRESOLVED.md) закрыт как выбор общей карты ролей
 и границы text sync. Открыт W-02: источник membership и evidence полного профиля.
 Для WPF одних `.cs` недостаточно.
 Учитывать подтверждённые XAML/resources, AdditionalFiles, configs/imports/restore
@@ -62,7 +62,7 @@ snapshot вне scope; точный предел проверяемой стаб
 
 ## F-06. Consumer API и lifecycle — закрыт
 
-Выбран [общий pull-снимок](../project-input-watching/input-state-contract.md),
+Выбран [общий pull-снимок](../archive/project-input-watching/input-state-contract.md),
 а не subscriber на watcher-потоке. Generation, revisions, owners/roles,
 membership, coverage, pending state и unknown reasons читаются без потребления.
 События C#/non-C# сохраняются в сессии до появления consumer и не очищаются

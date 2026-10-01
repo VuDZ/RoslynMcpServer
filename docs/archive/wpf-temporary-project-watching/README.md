@@ -80,7 +80,7 @@
   callback не должен классифицировать старое событие по снимку новой сессии
   или менять её stale-состояние.
 - Владелец и generation этой сессии общие с будущей картой входов по
-  [input-state-contract](../../project-input-watching/input-state-contract.md).
+  [input-state-contract](../project-input-watching/input-state-contract.md).
   WPF-фикс может первым создать минимальный token + `loadedProjectPaths` context;
   watcher-серия расширяет тот же источник, не вводя второго session counter.
 - Сборка может иметь другие причины инвалидировать snapshot. Серия обещает
@@ -111,7 +111,7 @@ refresh-all pending и факт cache hit/reopen. Снимать состоян�
 
 Локальное исправление можно выполнить первым, независимо от двух других серий.
 Общий учёт принадлежности файлов появится в
-[project-input-watching](../../project-input-watching/README.md); классификатор
+[project-input-watching](../project-input-watching/README.md); классификатор
 временных проектов должен переиспользоваться там.
 
 Переиспользование общего предиката имени возможно до закрытия/ship WPF-серии;

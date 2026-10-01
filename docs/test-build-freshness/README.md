@@ -50,7 +50,7 @@ membership revision, Solution, проект, Configuration, Platform, TFM
 текст Roslyn не доказывает, что бинарник был собран из него.
 
 Membership, роли и revisions приходят из одного
-[pull-снимка входов](../project-input-watching/input-state-contract.md).
+[pull-снимка входов](../archive/project-input-watching/input-state-contract.md).
 Build-state хранит подтверждения build context и cursor этого снимка;
 собственный watcher feed, независимо обновляемый input index и второй session
 generation не создаются. Внутреннее размещение общего provider в `SolutionManager`
@@ -112,7 +112,7 @@ semantic flush. Начальный unknown уже заставляет перв�
 3. [Гонки, ошибки и интеграционная приёмка](epoch-3-races-and-acceptance.md).
 
 Общая карта входов и её pull provider приходят из
-[project-input-watching](../project-input-watching/README.md).
+[project-input-watching](../archive/project-input-watching/README.md).
 Эпоху 1 можно проектировать параллельно на закреплённом input-state contract;
 при отсутствии production provider/evidence действует always-build fallback,
 а не временная вторая лента событий. Пропуск сборки требует проверенного

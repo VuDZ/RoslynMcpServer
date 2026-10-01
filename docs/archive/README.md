@@ -15,5 +15,6 @@
 | [mcp-plugins/](mcp-plugins/README.md) | Плагины MCP, эпохи 1–7, shipped v1.4.18. Руководство — [samples/RoslynMcpPlugin/README.md](../../samples/RoslynMcpPlugin/README.md) |
 | [test-layout/](test-layout/README.md) | Каталоги `RoslynMcpServer.Tests` по функциональным областям. Перенос выполнен; список файлов — снимок на момент серии |
 | [wpf-temporary-project-watching/](wpf-temporary-project-watching/README.md) | Сборка WPF не сбрасывает кеш Solution из-за `*_wpftmp.csproj`. Закрыто v1.5.1. Runtime — [ARCHITECTURE](../ARCHITECTURE.md), README v1.5.1 |
+| [project-input-watching/](project-input-watching/README.md) | Watcher следует загруженному графу: linked-файлы, общий `.cs`, pull-снимок входов. Закрыто v1.5.2. Полное покрытие не заявлено. Runtime — [ARCHITECTURE](../ARCHITECTURE.md), README v1.5.2 |
 
 Process-пакеты (review / арбитраж) лежат в `_archive/` соответствующей темы, не на живой полке.

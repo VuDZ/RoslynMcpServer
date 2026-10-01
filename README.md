@@ -182,6 +182,12 @@ MCP `tools/list` stays JSON + JSON Schema. Markdown is for JIT help and diagnost
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.5.2
+
+- **Project inputs outside the solution directory** — the disk watcher follows the loaded graph. Project directories stay recursive. A linked file, and a walk-up `Directory.Build.props`, `Directory.Build.targets`, `Directory.Packages.props`, or `global.json` outside those directories, is a non-recursive watch on that file's own directory. `search_code` roots stay the loaded workspace directory plus project directories.
+- A saved user `.cs` is applied to every project document of that path. A new `.cs` under a project directory still marks the graph composition-stale. The watcher does not add a document and does not write `<Compile Include>` into the project file. Additional files, analyzer configs, and other non-C# inputs are recorded by role and are not copied into the semantic snapshot.
+- Generated outputs of the build that produced them are not input edits. An own write is recognized by the bytes that were saved, including the BOM. A matching echo does not add another revision. An external edit that does not match those bytes stays dirty, including one that arrives immediately. A semantic flush does not clear these revisions. Watcher overflow, a failed watch, a directory rename inside a project directory, or an unconfirmed other target framework leaves coverage unknown until the graph is evaluated again. No callback is not proof that nothing changed.
+
 ### v1.5.1
 
 - **WPF temporary projects do not drop the workspace cache** — a markup compile creates and deletes `{ProjectName}_{random}_wpftmp.csproj` next to the real project. The file is still a project graph file, and the watcher ignores it only when that path is not one of the loaded projects. A real `.csproj`, solution, or `Directory.Build.*` change during the build still marks the graph stale. Watcher overflow is unchanged: it asks for a full document re-read and can mark composition stale on the next flush.
@@ -1541,7 +1547,7 @@ cd D:\Devel\YourApp
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.5.1). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.5.2). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 
