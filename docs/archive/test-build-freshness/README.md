@@ -1,6 +1,6 @@
 # Актуальность сборки перед запуском тестов по DLL
 
-Дата: 2026-09-30. Статус: **эпохи 1–3 выполнены**. На DLL-маршруте три инструмента делят один ensure-шаг, один повтор сборки и очередь внутри процесса. Пропуск сборки не включён. Серию можно убирать в архив темы.
+Дата: 2026-09-30. Статус: **закрыто 2026-10-01**. Поведение записано в [ARCHITECTURE](../../ARCHITECTURE.md) и product README v1.5.3. На DLL-маршруте три инструмента делят один ensure-шаг, один повтор сборки и очередь внутри процесса. Пропуск сборки не включён: у pull-снимка нет хешей содержимого входов. GitHub Release этим закрытием не создаётся.
 
 Пожелание 2: тесты запускаются передачей готовой DLL. Проект должен собираться
 в контексте Solution. Перед тестами MCP проверяет актуальность результата и,
@@ -16,14 +16,14 @@
   Повторный cache-hit `load_workspace` той же сессии сам по себе их не сбрасывает.
 - Изменения во время сборки, её ошибка или отмена сохраняют необходимость сборки.
 - Долговременное сохранение подтверждений и reuse между сессиями — отдельная
-  будущая фича. [Workspace load cache](../workspace-load-cache/README.md)
+  будущая фича. [Workspace load cache](../../workspace-load-cache/README.md)
   кеширует загрузку графа, а не автоматически доказывает актуальность бинарников.
 
 ## Текущее основание
 
 Проверено на commit `045b839`, source version `1.5.0`.
 
-[TestTools](../../Tools/TestTools.cs) уже поддерживает `.csproj` в `workspacePath`
+[TestTools](../../../Tools/TestTools.cs) уже поддерживает `.csproj` в `workspacePath`
 и каталог DLL в `binariesPath`. По `AssemblyName` выбирается тестовая сборка.
 При `noBuild=false` предварительная сборка выполняется через загруженный
 `.sln`/`.slnx` и project target, затем `dotnet test` получает DLL.
@@ -31,9 +31,9 @@
 У `run_test_by_filter` текущий default `noBuild=true`, у двух других test tools
 — `false`; общую политику нельзя внедрить только в один адаптер.
 
-Основа команд уже есть в [DotNetTestArguments](../../Services/Build/DotNetTestArguments.cs)
-и [SolutionProjectTargetResolver](../../Services/Build/SolutionProjectTargetResolver.cs).
-Наличие сборки проверяет [TestAssemblyPathResolver](../../Services/Testing/TestAssemblyPathResolver.cs),
+Основа команд уже есть в [DotNetTestArguments](../../../Services/Build/DotNetTestArguments.cs)
+и [SolutionProjectTargetResolver](../../../Services/Build/SolutionProjectTargetResolver.cs).
+Наличие сборки проверяет [TestAssemblyPathResolver](../../../Services/Testing/TestAssemblyPathResolver.cs),
 но это не проверка её свежести. Прямой `.dll` в `workspacePath` сейчас не
 поддерживается: новый формат входа в этой серии автоматически не обещается.
 
@@ -50,7 +50,7 @@ membership revision, Solution, проект, Configuration, Platform, TFM
 текст Roslyn не доказывает, что бинарник был собран из него.
 
 Membership, роли и revisions приходят из одного
-[pull-снимка входов](../archive/project-input-watching/input-state-contract.md).
+[pull-снимка входов](../project-input-watching/input-state-contract.md).
 Build-state хранит подтверждения build context и cursor этого снимка;
 собственный watcher feed, независимо обновляемый input index и второй session
 generation не создаются. Внутреннее размещение общего provider в `SolutionManager`
@@ -112,12 +112,12 @@ semantic flush. Начальный unknown уже заставляет перв�
 3. [Гонки, ошибки и интеграционная приёмка](epoch-3-races-and-acceptance.md) — выполнена. Отчёт: [epoch-3-results.md](epoch-3-results.md).
 
 Общая карта входов и её pull provider приходят из
-[project-input-watching](../archive/project-input-watching/README.md).
+[project-input-watching](../project-input-watching/README.md).
 Эпоху 1 можно проектировать параллельно на закреплённом input-state contract;
 при отсутствии production provider/evidence действует always-build fallback,
 а не временная вторая лента событий. Пропуск сборки требует проверенного
 покрытия входов. WPF-исключение с тем же session token —
-[wpf-temporary-project-watching](../archive/wpf-temporary-project-watching/README.md).
+[wpf-temporary-project-watching](../wpf-temporary-project-watching/README.md).
 Код C# в любой эпохе требует полного чтения `docs/code-style.md` перед правками.
 
 Детали параметров, полноты профиля и evidence: [UNRESOLVED.md](UNRESOLVED.md).
@@ -129,7 +129,7 @@ semantic flush. Начальный unknown уже заставляет перв�
 по-прежнему требовать нового процесса. Эта серия подтверждает запуск тестов,
 а не снимает ограничения analyzer lifecycle.
 
-[Test runner selection](../test-runner-selection/README.md) остаётся отдельной
+[Test runner selection](../../test-runner-selection/README.md) остаётся отдельной
 осью: DLL-маршрут не расширяет MTP support и не добавляет fallback раннер.
 Команды, timeout, прогресс и разбор build failures должны использовать общий
 production путь. При выпуске обновить descriptions, help, product README,

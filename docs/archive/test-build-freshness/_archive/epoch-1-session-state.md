@@ -7,7 +7,7 @@
 - Ввести независимый session build-state service: ключ build context,
   подтверждённые revisions/fingerprints, output identity и причина dirty/unknown.
   Независимы build proofs, а не источник входов: membership, owners и revisions
-  читать из [общего pull-снимка](../../archive/project-input-watching/input-state-contract.md).
+  читать из [общего pull-снимка](../../project-input-watching/input-state-contract.md).
   Не создавать собственные FSW subscription/feed, input index или session token.
   Ничего не сохранять между процессами.
 - Загрузка/reset/new session generation общего владельца создаёт unknown

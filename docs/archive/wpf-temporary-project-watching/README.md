@@ -118,7 +118,7 @@ refresh-all pending и факт cache hit/reopen. Снимать состоян�
 это не разрешение объявить её cache-fix проверенным без собственного baseline.
 
 Автосборка перед DLL-тестами описана отдельно в
-[test-build-freshness](../../test-build-freshness/README.md). Публикация generated
+[test-build-freshness](../test-build-freshness/README.md). Публикация generated
 кода, reload после сборки и analyzer shadow-copy этой серией не меняются.
 Долговременный кеш Solution остаётся в
 [workspace-load-cache](../../workspace-load-cache/README.md).

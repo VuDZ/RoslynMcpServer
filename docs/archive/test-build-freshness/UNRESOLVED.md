@@ -23,7 +23,7 @@
 ## F-02. Evidence полноты значимых входов — закрыт
 
 Граница evidence — закрытый профиль W-02 в
-[UNRESOLVED наблюдения за входами](../archive/project-input-watching/UNRESOLVED.md).
+[UNRESOLVED наблюдения за входами](../project-input-watching/UNRESOLVED.md).
 Пропуск сборки потребовал бы pull coverage `complete` для dependency scope
 этого build context. Любая неизвестность, пересекающая scope (imports,
 restore inputs, custom tasks, соседи external-glob, metadata reference,
@@ -65,7 +65,7 @@ unknown, пока путь не уникален.
 
 ## F-06. Consumer API и lifecycle — закрыт
 
-Выбран [общий pull-снимок](../archive/project-input-watching/input-state-contract.md),
+Выбран [общий pull-снимок](../project-input-watching/input-state-contract.md),
 а не subscriber на watcher-потоке. Generation, revisions, owners/roles,
 membership, coverage, pending state и unknown reasons читаются без потребления.
 События C#/non-C# сохраняются в сессии до появления consumer и не очищаются

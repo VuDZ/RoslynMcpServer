@@ -55,7 +55,7 @@ revisions, owners/roles, membership и coverage. Callback не вызывает 
   [disk-sync-csproj-mutation](../disk-sync-csproj-mutation/README.md).
 - Семантическая синхронизация и уведомления о build-input changes независимы.
   Семантический flush не поглощает изменения, нужные для
-  [test-build-freshness](../../test-build-freshness/README.md).
+  [test-build-freshness](../test-build-freshness/README.md).
 - Generated intermediates и outputs текущего build не являются изменением
   исходных входов этого build и не увеличивают их revisions. Путь в `obj`
   и присутствие в Compile сами по себе не доказывают пользовательский вход.
