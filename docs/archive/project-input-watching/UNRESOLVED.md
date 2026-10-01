@@ -63,7 +63,7 @@ instance, не два.
 
 Граница серий закреплена: здесь обнаружение и уведомление по ролям;
 текстовая синхронизация дополнительных/config документов остаётся в
-[non-csharp-input-tracking](../../non-csharp-input-tracking/README.md).
+[non-csharp-input-tracking](../non-csharp-input-tracking/README.md).
 Наблюдение не выбирает общий reload/build/restore policy для semantic reads.
 Открытая политика восстановления согласуется с этой темой и
 [workspace-load-cache Epoch 3](../../workspace-load-cache/epoch-3-live-consistency.md).

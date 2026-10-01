@@ -1,13 +1,12 @@
 # Отслеживание не-C# входов Roslyn workspace
 
 Дата исследования: 2026-09-20; граница серий уточнена 2026-09-30; spike и текстовый синк 2026-10-01.
-Статус: **подмена текста уже известного AdditionalDocument и AnalyzerConfigDocument выпущена в 1.5.4**. Вариант D и U-ARB-02 открыты, тему не архивировать.
-Контракт поведения — [ARCHITECTURE](../ARCHITECTURE.md). Ниже остаётся исследование, а не переписанный под факт план.
+Статус: **закрыто 2026-10-01**. Подмена текста уже известного `AdditionalDocument` и `AnalyzerConfigDocument` выпущена в 1.5.4. Политика чтения — доверие watcher между подтверждениями. Вариант D не выбран. Поведение записано в [ARCHITECTURE](../../ARCHITECTURE.md) и product README. GitHub Release этим закрытием не создаётся. Ниже остаётся исследование на момент серии, а не переписанный под факт план.
 
 Обнаружение изменений и уведомление по ролям закрыты серией
-[project-input-watching](../archive/project-input-watching/README.md) и записаны в
-[ARCHITECTURE](../ARCHITECTURE.md). Текстовая синхронизация `AdditionalDocument` и
-`AnalyzerConfigDocument` остаётся здесь. Обнаружение само по себе не обновляет их тексты.
+[project-input-watching](../project-input-watching/README.md) и записаны в
+[ARCHITECTURE](../../ARCHITECTURE.md). Текстовая синхронизация `AdditionalDocument` и
+`AnalyzerConfigDocument` выпущена в 1.5.4. Обнаружение само по себе не обновляет их тексты.
 
 ## 1. Вопрос
 
@@ -32,16 +31,16 @@
 файла. Сохранённый пользовательский `.cs` читается один раз и применяется
 `WithDocumentText` ко всем документам этого пути. Additional files, analyzer configs
 и прочие не-C# входы записываются по ролям и не синхронизируют текст.
-См. [ARCHITECTURE](../ARCHITECTURE.md), Workspace lifecycle.
+См. [ARCHITECTURE](../../ARCHITECTURE.md), Workspace lifecycle.
 
-- [`WorkspaceDocumentDiskSync`](../../Services/Workspace/WorkspaceDocumentDiskSync.cs)
+- [`WorkspaceDocumentDiskSync`](../../../Services/Workspace/WorkspaceDocumentDiskSync.cs)
   читает только `.cs` и `Project.Documents`. `refreshAllDocuments` повторно читает
   известные C# документы и не проверяет `AdditionalDocuments` или `AnalyzerConfigDocuments`.
 - Роли `AdditionalFile` и `AnalyzerConfig` увеличивают input revision для сборки.
   Семантические тулы продолжают читать опубликованный снимок со старым текстом.
 - `update_file_content` сначала ищет обычный `DocumentId`. Не-C# путь пишет файл
   на диск и не обновляет соответствующий Roslyn-документ в памяти.
-  См. [`EditingTools.cs`](../../Tools/EditingTools.cs).
+  См. [`EditingTools.cs`](../../../Tools/EditingTools.cs).
 
 Наблюдатель не покрывает все пути вне объединения каталогов загрузки и проектов.
 Внешний `Import`, linked `AdditionalFile` и родительский `.editorconfig` могут
@@ -163,7 +162,7 @@
 
 Плюсы: единый контракт для C# и не-C# входов. Минусы: наиболее дорогой и
 сложный вариант; пересекается с будущей
-[`workspace-load-cache` Epoch 3](../workspace-load-cache/epoch-3-live-consistency.md),
+[`workspace-load-cache` Epoch 3](../../workspace-load-cache/epoch-3-live-consistency.md),
 где уже описаны роли входов и открытый вопрос о freshness policy. Не стоит
 создавать вторую несовместимую модель без согласования с этой спецификацией.
 
@@ -171,8 +170,10 @@
 выпущены в 1.5.2. Это часть направления B. Spike выбирает текстовую подмену
 варианта C для уже прочитанного `AdditionalDocument` и `AnalyzerConfigDocument`
 и запрещает публиковать её через `TryApplyChanges`. Эта подмена выпущена в
-1.5.4; контракт — [ARCHITECTURE](../ARCHITECTURE.md). Вариант D и общая политика
-semantic reads остаются открытыми вместе с U-ARB-02.
+1.5.4; контракт — [ARCHITECTURE](../../ARCHITECTURE.md). Политика чтения выбрана:
+доверие watcher между подтверждениями. Вариант D и остальные варианты свежести
+записаны в [epoch-3](../../workspace-load-cache/epoch-3-live-consistency.md) и не
+выбраны.
 
 ## 5. Вопросы перед выбором
 
@@ -190,7 +191,7 @@ semantic reads остаются открытыми вместе с U-ARB-02.
    этот сервер сам записал файл и подавил своё событие?
 6. Как проверять корректность на генераторах, учитывая уже известное
    ограничение `find_symbol_definition`: поиск деклараций не индексирует
-   source-generated документы? См. [`ARCHITECTURE.md`](../ARCHITECTURE.md).
+   source-generated документы? См. [`ARCHITECTURE.md`](../../ARCHITECTURE.md).
 
 ## 6. Минимальные сценарии для будущей проверки
 
@@ -209,15 +210,15 @@ semantic reads остаются открытыми вместе с U-ARB-02.
 
 ## 7. Связь с другими работами
 
-- [`project-input-watching`](../archive/project-input-watching/README.md) отвечает за
+- [`project-input-watching`](../project-input-watching/README.md) отвечает за
   обнаружение и уведомление по ролям, membership/coverage и собственные записи.
   Эта тема отвечает за возможную синхронизацию не-C# текста и восстановление
   семантики. Новый registry входов для текстовой синхронизации не должен
   дублировать несовместимую карту watcher-серии.
-- [`disk-sync-csproj-mutation`](../archive/disk-sync-csproj-mutation/README.md) решает
+- [`disk-sync-csproj-mutation`](../disk-sync-csproj-mutation/README.md) решает
   отдельный дефект: `AddDocument`/`RemoveDocument` из disk-sync могут менять
   `.csproj`. Эта тема не должна обходить принятое там ограничение, добавляя
   не-C# документы в `MSBuildWorkspace` через тот же путь.
-- [`workspace-load-cache`](../workspace-load-cache/README.md) проектирует
+- [`workspace-load-cache`](../../workspace-load-cache/README.md) проектирует
   общую модель свежести и покрытия файловых входов. Перед реализацией B–D
   потребуется согласовать терминологию и контракт с её Epoch 3.

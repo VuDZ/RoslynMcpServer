@@ -1,7 +1,7 @@
 # Unresolved arbitration issues
 
-Статус: **normative open gates**. Этот документ сохраняет все нерешённые
-арбитражные вопросы без выбора варианта.
+Статус: **normative open gates**. U-ARB-02 для живой сессии решён: доверие
+watcher между подтверждениями. Остальные вопросы этого файла выбора не имеют.
 
 ## U-ARB-01 — Capture scheduling и durable cadence
 
@@ -16,14 +16,15 @@ workload, capture duration/success и competing writes. Idle не доказыв
 
 ## U-ARB-02 — Live freshness, lost events и availability
 
-Findings: E3-02, E3-04 — UNRESOLVED; связаны C-02, E3-01, E4-02.
+Findings: E3-02, E3-04. Решение владельца 2026-10-01: **доверие watcher между
+подтверждениями**. Текст выбора и три не выбранных варианта (строгая проверка
+на каждый вызов, периодическое подтверждение, последний снимок с
+`freshness=unknown`) — в
+[epoch-3](epoch-3-live-consistency.md#выбранный-контракт-чтения).
 
-Не определены: обнаружение silent lost event на каждом call, stable-tree/
-periodic assumptions, maximum unchanged-call overhead, допустимость
-`freshness=unknown`, разрешённые read operations, отказ обязательных operations,
-совместимость с `Banned`/`Unavailable`, timeout/retry locked inputs.
-Нужны workload measurements и product decision freshness-vs-availability.
-A-WRITE всегда запрещает write/refactoring на stale/unknown.
+Это политика уже работающей живой сессии. Она не активирует дисковый кэш,
+не закрывает измерения U-ARB-03 и не ослабляет A-WRITE и `Banned`/`Unavailable`.
+Тихо потерянное событие остаётся принятой дырой до следующего `load_workspace`.
 
 ## U-ARB-03 — Репрезентативная нагрузка и численный budget
 

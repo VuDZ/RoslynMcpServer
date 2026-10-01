@@ -17,5 +17,6 @@
 | [wpf-temporary-project-watching/](wpf-temporary-project-watching/README.md) | Сборка WPF не сбрасывает кеш Solution из-за `*_wpftmp.csproj`. Закрыто v1.5.1. Runtime — [ARCHITECTURE](../ARCHITECTURE.md), README v1.5.1 |
 | [project-input-watching/](project-input-watching/README.md) | Watcher следует загруженному графу: linked-файлы, общий `.cs`, pull-снимок входов. Закрыто v1.5.2. Полное покрытие не заявлено. Runtime — [ARCHITECTURE](../ARCHITECTURE.md), README v1.5.2 |
 | [test-build-freshness/](test-build-freshness/README.md) | Перед DLL-тестами solution-target сборка, один повтор и очередь внутри процесса. Пропуск сборки не включён. Закрыто v1.5.3. Runtime — [ARCHITECTURE](../ARCHITECTURE.md), README v1.5.3 |
+| [non-csharp-input-tracking/](non-csharp-input-tracking/README.md) | Текст уже известного additional file и analyzer config в семантическом снимке. Чтение доверяет watcher между подтверждениями. Вариант D не выбран. Закрыто v1.5.4. Runtime — [ARCHITECTURE](../ARCHITECTURE.md), README |
 
 Process-пакеты (review / арбитраж) лежат в `_archive/` соответствующей темы, не на живой полке.

@@ -104,7 +104,7 @@ revisions, owners/roles, membership и coverage. Callback не вызывает 
 непокрытые inputs не считаются нерелевантными.
 
 Текстовая синхронизация `AdditionalDocument` и `AnalyzerConfigDocument`
-остаётся в [non-csharp-input-tracking](../../non-csharp-input-tracking/README.md).
+остаётся в [non-csharp-input-tracking](../non-csharp-input-tracking/README.md).
 Эта серия её не реализует и не выбирает общий reload/build/restore policy для
 semantic reads. Generated/graph роль не обходится обновлением обычного C# текста.
 
@@ -128,7 +128,7 @@ MSBuild-входов принимается по фактам, без собст
   узкое исключение с общим классификатором имени и тем же session token.
   Оно может идти первым; его минимальный session context расширяется этой
   серией, а второй независимый generation/index не создаётся.
-- [Non-C# input tracking](../../non-csharp-input-tracking/README.md) — исследование
+- [Non-C# input tracking](../non-csharp-input-tracking/README.md) — исследование
   восстановления семантики и текстовой синхронизации не-C# документов. Решение
   об обнаружении и уведомлении по ролям закреплено в этой серии; восстановление
   семантики остаётся отдельным вопросом.

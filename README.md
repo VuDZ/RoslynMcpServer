@@ -29,6 +29,18 @@ Plugin development and setup: [authoring guide](samples/RoslynMcpPlugin/README.m
 - Build, test, run, format, and NuGet workflows with SDK alignment, timeouts, parsed diagnostics, and context-safe output.
 - `full` and context-saving `lite` tool catalogs, plus in-session tool-group discovery.
 
+## Saved edits and the semantic snapshot
+
+After `load_workspace`, semantic tools trust the file watcher until the next confirmation. A confirmation is another `load_workspace`, or a flush of a save the watcher actually reported. The tools do not hash the tree on every call, and they do not mark the snapshot `freshness=unknown`.
+
+- A saved `.cs` that is already a document is read once and applied to every project document of that path.
+- A saved additional file or analyzer config that is already a document, and is not also an evaluation input, is applied on the published snapshot. XAML, resx, and Razor are recorded by role and are not text-synced.
+- A new or deleted file does not add or remove a document. The project graph is marked stale; call `load_workspace` again. A project file, a solution, or `Directory.Build.*` marks the graph stale the same way.
+- Watcher overflow, a watcher error, or a directory rename asks the next semantic call to re-read known documents and can mark the graph stale.
+- An edit the watcher never reported — a file outside the watch set, or a dropped notification with no error — stays invisible until the next `load_workspace`. Standing coverage gaps (imports, restore inputs, custom tasks) do not by themselves block a read.
+
+The other freshness policies that were considered and not chosen are recorded in [epoch 3](docs/workspace-load-cache/epoch-3-live-consistency.md).
+
 ## Security boundary
 
 This server can read and write files and start `dotnet`/Git child processes with the permissions of its host process. It is **not a sandbox** and does not confine every operation to the loaded workspace.
@@ -1419,6 +1431,18 @@ RoslynMcpServer предоставляет AI-агенту compiler-aware инс
 - Анализ подключённых или явно заданных сборок через ILSpy.
 - Build, test, run, format и NuGet с выравниванием SDK, таймаутами и структурированным выводом.
 - Полный каталог `full` и экономный `lite` с группами tools.
+
+## Сохранённые правки и семантический снимок
+
+После `load_workspace` семантические тулы доверяют файловому наблюдателю до следующего подтверждения. Подтверждение — это ещё один `load_workspace` или flush сохранения, о котором наблюдатель действительно сообщил. На каждом вызове дерево не хешируется, и снимок не помечается `freshness=unknown`.
+
+- Сохранённый `.cs`, который уже есть в графе, читается один раз и применяется ко всем документам этого пути.
+- Сохранённый additional file или analyzer config, который уже есть в графе и не является входом оценки проекта, применяется к опубликованному снимку. XAML, resx и Razor учитываются по роли, их текст не синхронизируется.
+- Новый или удалённый файл документ не добавляет и не удаляет. Граф проекта помечается устаревшим; вызовите `load_workspace` снова. Файл проекта, solution и `Directory.Build.*` помечают граф так же.
+- Переполнение наблюдателя, его ошибка или переименование каталога просят следующий семантический вызов перечитать известные документы и могут пометить граф устаревшим.
+- Правка, о которой наблюдатель не сообщил — файл вне области наблюдения или потерянное уведомление без ошибки, — остаётся невидимой до следующего `load_workspace`. Постоянные дыры покрытия (импорты, входы restore, custom tasks) сами по себе чтение не блокируют.
+
+Остальные политики свежести, которые рассматривались и не выбраны, записаны в [эпохе 3](docs/workspace-load-cache/epoch-3-live-consistency.md).
 
 ## Граница безопасности
 

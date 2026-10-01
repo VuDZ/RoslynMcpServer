@@ -90,8 +90,9 @@ Trace: R-06, E0-02, E0-04, V-03, V-04 — ACCEPT WITH MODIFICATION.
 | [4 — measured directions](epoch-4-measured-optimizations.md) | Независимые metadata/partial/validation/O5/index изменения только после измерений | Разрешение ослабить admission |
 
 До начала production реализации должны быть закрыты применимые feasibility
-blockers U-ARB-04, U-ARB-05 и U-ARB-06. U-ARB-01 и U-ARB-02 остаются явными
-decision gates в Epoch 2/3.
+blockers U-ARB-04, U-ARB-05 и U-ARB-06. U-ARB-01 остаётся decision gate Epoch 2.
+U-ARB-02 для живой сессии решён 2026-10-01: доверие watcher между
+подтверждениями. Это не выпуск дискового кэша.
 
 Trace: R-01, R-02, R-04, R-05, E0-01, E2-01, E2-05, E3-02, E3-04 —
 арбитражные решения и unresolved gates.
