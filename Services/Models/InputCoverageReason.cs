@@ -20,4 +20,12 @@ internal static class InputCoverageReason
     public const string NonDocumentXamlAndResourcesUnknown = "xaml-and-resources-beyond-evaluated-documents-unknown";
 
     public const string WalkUpImportNotProven = "walk-up-file-is-a-candidate-not-a-proven-import";
+
+    public const string WatcherDirectoryMissing = "watcher-directory-missing";
+
+    public const string WatcherStartFailed = "watcher-start-failed";
+
+    public const string WatcherError = "watcher-error";
+
+    public const string DirectoryRenameInsideMembership = "directory-rename-inside-membership-region";
 }

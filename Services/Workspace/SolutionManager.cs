@@ -158,6 +158,10 @@ public sealed class SolutionManager
 
     internal WorkspaceInputSession? DiskWatcherSession => _diskWatcherSession;
 
+    /// <summary>Directories actually being watched, and whether each subscription is recursive.</summary>
+    internal IReadOnlyList<(string Directory, bool IncludeSubdirectories)> DiskWatcherSubscriptions =>
+        _diskWatcherSubscriptions;
+
     /// <summary>Test seam invoked before session admission, allowing delivery to race with session closure.</summary>
     internal Action? BeforeDiskWatcherCallbackForTests { get; set; }
 
@@ -1513,8 +1517,9 @@ public sealed class SolutionManager
         }
 
         var fullPath = Path.GetFullPath(filePath);
-        var documentId = FindDocumentIdForPath(workspace.CurrentSolution, fullPath, _pathComparison);
-        if (documentId is null)
+        var baseSolution = workspace.CurrentSolution;
+        var documentIds = FindUserDocumentIdsForPath(baseSolution, fullPath);
+        if (documentIds.Count == 0)
         {
             _logger.LogDebug("Skip in-memory document update: file not part of loaded workspace ({Path}).", fullPath);
             return RememberWrite(WorkspaceWriteResult.Skipped("not-in-workspace"));
@@ -1528,16 +1533,19 @@ public sealed class SolutionManager
             return RememberWrite(WorkspaceWriteResult.Skipped("missing-on-disk"));
         }
 
-        var baseSolution = workspace.CurrentSolution;
-        var existingDocument = baseSolution.GetDocument(documentId);
+        var existingDocument = baseSolution.GetDocument(documentIds[0]);
         var existingText = existingDocument is null
             ? null
             : await existingDocument.GetTextAsync(cancellationToken).ConfigureAwait(false);
-        // Preserve the file's BOM state: MSBuildWorkspace rewrites the document with this encoding on apply.
+        // One encoding and one text for every membership. MSBuildWorkspace rewrites each document
+        // with SourceText.Encoding; different encodings would flip the linked file's BOM.
         var writeEncoding = SourceTextEncoding.ResolveForWrite(existingText, candidate: null, fullPath);
-        var candidate = baseSolution.WithDocumentText(
-            documentId,
-            SourceText.From(newText, writeEncoding));
+        var shared = SourceText.From(newText, writeEncoding);
+        var candidate = baseSolution;
+        foreach (var documentId in documentIds)
+        {
+            candidate = candidate.WithDocumentText(documentId, shared);
+        }
         var context = CreateVerifiedWriteContext(_solution, baseSolution);
         IReadOnlyList<(string Path, string Text)>? alreadyOnDisk = persistToDisk
             ? null
@@ -1687,6 +1695,14 @@ public sealed class SolutionManager
                 }
 
                 var fullPath = Path.GetFullPath(newDoc.FilePath);
+                if (saved.Any(savedPath => string.Equals(Path.GetFullPath(savedPath), fullPath, _pathComparison)))
+                {
+                    // The same physical file is linked into another project. The first write stored the
+                    // confirmed text. Writing this document again would either repeat that payload or
+                    // replace the file with a different one.
+                    continue;
+                }
+
                 if (IsMissingOnDisk(fullPath))
                 {
                     _logger.LogWarning(
@@ -1791,18 +1807,23 @@ public sealed class SolutionManager
         {
             cancellationToken.ThrowIfCancellationRequested();
             var fullPath = Path.GetFullPath(path);
-            var documentId = FindDocumentIdForPath(current, fullPath, _pathComparison);
-            if (documentId is null)
+            var documentIds = FindUserDocumentIdsForPath(current, fullPath);
+            if (documentIds.Count == 0)
             {
                 return false;
             }
 
-            var existingDocument = current.GetDocument(documentId);
+            var existingDocument = current.GetDocument(documentIds[0]);
             var existingText = existingDocument is null
                 ? null
                 : await existingDocument.GetTextAsync(cancellationToken).ConfigureAwait(false);
             var writeEncoding = SourceTextEncoding.ResolveForWrite(existingText, candidate: null, fullPath);
-            current = current.WithDocumentText(documentId, SourceText.From(text, writeEncoding));
+            var shared = SourceText.From(text, writeEncoding);
+            foreach (var documentId in documentIds)
+            {
+                current = current.WithDocumentText(documentId, shared);
+            }
+
             changed = true;
         }
 
@@ -2035,6 +2056,7 @@ public sealed class SolutionManager
             dirty,
             refreshAll,
             _pathComparison,
+            _diskWatcherSession?.InputMap,
             cancellationToken).ConfigureAwait(false);
 
         if (result.Unrepresentable.Count > 0 || refreshAll)
@@ -2057,7 +2079,7 @@ public sealed class SolutionManager
                 continue;
             }
 
-            if (FindDocumentIdForPath(inputSolution, path, _pathComparison) is not null)
+            if (FindUserDocumentIdsForPath(inputSolution, path).Count > 0)
             {
                 _missingOnDiskPaths.TryAdd(path, 0);
             }
@@ -2095,12 +2117,20 @@ public sealed class SolutionManager
                 continue;
             }
 
-            if (FindDocumentIdForPath(inputSolution, path, _pathComparison) is null)
+            if (FindUserDocumentIdsForPath(inputSolution, path).Count == 0)
             {
                 continue;
             }
 
-            alreadyOnDisk.Add((path, await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false)));
+            var encoding = SourceTextEncoding.ForDiskPath(path);
+            alreadyOnDisk.Add((path, await File.ReadAllTextAsync(path, encoding, cancellationToken).ConfigureAwait(false)));
+        }
+
+        foreach (var path in dirty)
+        {
+            // The apply writes the file again. The existing tick window drops that echo so it is
+            // not stored as another user-input edit. It is not a byte-for-byte own-write proof.
+            SuppressDiskWatchForPath(path);
         }
 
         var rawBase = workspace.CurrentSolution;
@@ -2221,48 +2251,26 @@ public sealed class SolutionManager
             loadGraphComplete: !HasBlockingLoadFailure(loadedSolution));
         session.TryPublishInputMap(inputMap);
         _diskWatcherSession = session;
-        var roots = ComputeWatchRoots(workspaceFilePath, session.LoadedProjectPaths);
-        foreach (var directory in roots)
+        var started = WorkspaceDiskWatcherStarter.Start(
+            inputMap.Watchers,
+            session,
+            onChanged: args => OnDiskWatcherChanged(session, args),
+            onRenamed: args => OnDiskWatcherRenamed(session, args),
+            onError: args => OnDiskWatcherError(session, args),
+            log: LogDiskWatcherStartup);
+        _diskWatchers.AddRange(started.Watchers);
+        _diskWatcherSubscriptions.AddRange(started.Subscriptions);
+    }
+
+    private void LogDiskWatcherStartup(LogLevel level, Exception? exception, string message)
+    {
+        try
         {
-            if (string.IsNullOrWhiteSpace(directory) || !Directory.Exists(directory))
-            {
-                _logger.LogDebug("Disk watcher not started: workspace directory missing ({Path}).", directory);
-                continue;
-            }
-
-            FileSystemWatcher? watcher = null;
-            try
-            {
-                watcher = new FileSystemWatcher(directory)
-                {
-                    IncludeSubdirectories = true,
-                    NotifyFilter = NotifyFilters.FileName
-                        | NotifyFilters.LastWrite
-                        | NotifyFilters.Size
-                        | NotifyFilters.DirectoryName,
-                    Filter = "*.*",
-                };
-
-                if (OperatingSystem.IsWindows())
-                {
-                    watcher.InternalBufferSize = 64 * 1024;
-                }
-
-                watcher.Changed += (_, args) => OnDiskWatcherChanged(session, args);
-                watcher.Created += (_, args) => OnDiskWatcherChanged(session, args);
-                watcher.Deleted += (_, args) => OnDiskWatcherChanged(session, args);
-                watcher.Renamed += (_, args) => OnDiskWatcherRenamed(session, args);
-                watcher.Error += (_, args) => OnDiskWatcherError(session, args);
-                watcher.EnableRaisingEvents = true;
-                _diskWatchers.Add(watcher);
-                watcher = null;
-                _logger.LogInformation("Disk watcher started on {Directory}", directory);
-            }
-            catch (Exception ex)
-            {
-                watcher?.Dispose();
-                _logger.LogWarning(ex, "Disk watcher failed to start for {Directory}. Symbol search stays on the load snapshot until reset_workspace.", directory);
-            }
+            _logger.Log(level, exception, "{Message}", message);
+        }
+        catch (Exception)
+        {
+            // Startup logging must not fail the load. Coverage is already recorded on the session.
         }
     }
 
@@ -2272,6 +2280,7 @@ public sealed class SolutionManager
         // A token check alone would let a callback write new-session state after passing the check.
         _diskWatcherSession?.Close();
         _diskWatcherSession = null;
+        _diskWatcherSubscriptions.Clear();
         if (_diskWatchers.Count == 0)
         {
             return;
@@ -2310,12 +2319,19 @@ public sealed class SolutionManager
         string? newGraphPath = null;
         var accepted = session.TryRun(() =>
         {
-            if (Directory.Exists(e.FullPath) || Directory.Exists(e.OldFullPath))
+            var map = session.InputMap;
+            if (WorkspaceDiskEventClassifier.IsDirectoryRename(e.OldFullPath, e.FullPath, map))
             {
                 _refreshAllDocuments = true;
                 directoryRenamed = true;
+                session.NoteDirectoryRename(
+                    e.OldFullPath,
+                    e.FullPath,
+                    WorkspaceDiskEventClassifier.AffectsMembershipRegion(e.OldFullPath, map)
+                        || WorkspaceDiskEventClassifier.AffectsMembershipRegion(e.FullPath, map));
                 return;
             }
+
             oldGraphPath = QueueDiskPath(session, e.OldFullPath);
             newGraphPath = QueueDiskPath(session, e.FullPath);
         });
@@ -2333,7 +2349,11 @@ public sealed class SolutionManager
     private void OnDiskWatcherError(WorkspaceInputSession session, ErrorEventArgs e)
     {
         BeforeDiskWatcherCallbackForTests?.Invoke();
-        if (!session.TryRun(() => _refreshAllDocuments = true))
+        if (!session.TryRun(() =>
+            {
+                _refreshAllDocuments = true;
+                session.NoteCoverageUnknown(InputCoverageReason.WatcherError);
+            }))
         {
             return;
         }
@@ -2373,7 +2393,7 @@ public sealed class SolutionManager
 
     private string? QueueDiskPath(WorkspaceInputSession session, string? rawPath)
     {
-        if (string.IsNullOrWhiteSpace(rawPath) || WorkspaceDiskPathFilter.IsIgnoredPath(rawPath))
+        if (string.IsNullOrWhiteSpace(rawPath))
         {
             return null;
         }
@@ -2393,13 +2413,59 @@ public sealed class SolutionManager
             return null;
         }
 
+        if (WorkspaceDiskPathFilter.IsWpfTemporaryProject(fullPath)
+            && !session.LoadedProjectPaths.Contains(fullPath))
+        {
+            return null;
+        }
+
+        var map = session.InputMap;
+        if (map is null)
+        {
+            return QueueDiskPathWithoutMap(fullPath);
+        }
+
+        if (WorkspaceDiskPathFilter.IsIgnoredPath(fullPath)
+            && !WorkspaceDiskEventClassifier.ShouldClassifyIgnoredPath(map, fullPath))
+        {
+            return null;
+        }
+
+        var decision = WorkspaceDiskEventClassifier.Classify(fullPath, map);
+        if (decision.ProvenIrrelevant)
+        {
+            return null;
+        }
+
+        session.RecordDiskEvent(decision);
+        if (decision.GraphFile)
+        {
+            MarkProjectGraphStaleFromGraphFile();
+            return decision.CanonicalPath ?? fullPath;
+        }
+
+        if (decision.CompositionStale)
+        {
+            MarkProjectGraphStaleFromComposition();
+        }
+
+        if (decision.DirtyUserSource)
+        {
+            _dirtySourcePaths.TryAdd(decision.CanonicalPath ?? fullPath, 0);
+        }
+
+        return null;
+    }
+
+    private string? QueueDiskPathWithoutMap(string fullPath)
+    {
+        if (WorkspaceDiskPathFilter.IsIgnoredPath(fullPath))
+        {
+            return null;
+        }
+
         if (WorkspaceDiskPathFilter.IsProjectGraphFile(fullPath))
         {
-            if (WorkspaceDiskPathFilter.IsWpfTemporaryProject(fullPath)
-                && !session.LoadedProjectPaths.Contains(fullPath))
-            {
-                return null;
-            }
             MarkProjectGraphStaleFromGraphFile();
             return fullPath;
         }
@@ -2450,25 +2516,21 @@ public sealed class SolutionManager
         _projectGraphStaleFromComposition = false;
     }
 
-    private static DocumentId? FindDocumentIdForPath(
-        Solution solution,
-        string fullFilePath,
-        StringComparison pathComparison)
+    private IReadOnlyList<DocumentId> FindUserDocumentIdsForPath(Solution solution, string fullFilePath)
     {
-        foreach (var project in solution.Projects)
+        var ids = new List<DocumentId>();
+        foreach (var documentId in WorkspaceDocumentDiskSync.FindDocumentIdsForPath(
+            solution,
+            fullFilePath,
+            _pathComparison))
         {
-            foreach (var document in project.Documents)
+            if (WorkspaceDiskEventClassifier.SyncsUserText(_diskWatcherSession?.InputMap, fullFilePath, documentId))
             {
-                var fp = document.FilePath;
-                if (fp is not null
-                    && string.Equals(Path.GetFullPath(fp), fullFilePath, pathComparison))
-                {
-                    return document.Id;
-                }
+                ids.Add(documentId);
             }
         }
 
-        return null;
+        return ids;
     }
 
     private static IReadOnlyList<WorkspaceDiagnostic> CollectDiagnostics(
@@ -2554,6 +2616,7 @@ public sealed class SolutionManager
     private readonly ConcurrentDictionary<string, byte> _dirtySourcePaths;
     private readonly ConcurrentDictionary<string, long> _selfWriteUntilTicks;
     private readonly List<FileSystemWatcher> _diskWatchers = new();
+    private readonly List<(string Directory, bool IncludeSubdirectories)> _diskWatcherSubscriptions = new();
     private WorkspaceInputSession? _diskWatcherSession;
     private readonly ConcurrentDictionary<string, byte> _missingOnDiskPaths;
     private volatile bool _refreshAllDocuments;

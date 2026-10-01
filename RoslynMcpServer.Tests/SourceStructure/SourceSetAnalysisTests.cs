@@ -1017,6 +1017,10 @@ public sealed class SourceSetAnalysisTests
         // event-handler lambdas registered during load. Like the load seam, their assignments live in
         // excluded test projects. TryRun's update parameter is another explicit limit: argument-to-
         // parameter flow is not modeled, although passed lambda bodies are checked at their call sites.
+        // WorkspaceDiskWatcherStarter.Start invokes its four callback parameters (log, onChanged,
+        // onRenamed, onError). Those parameters have no assignment inside the starter, so each is its
+        // own limit. The lambdas SolutionManager passes are still inspected at the call site, which is
+        // why the watcher test seams stay on this inventory.
         // Keep an exact inventory rather than accepting any number of limits; an unexpected blind spot
         // must still fail, and these known limits must not turn into a decided absence of the sync entry.
         var production = ProductionAnalysis.Instance;
@@ -1039,6 +1043,10 @@ public sealed class SourceSetAnalysisTests
             "BeforeDiskWatcherCallbackForTests",
             "AfterDiskWatcherChangeForTests",
             "update",
+            "log",
+            "onChanged",
+            "onRenamed",
+            "onError",
         ];
         Assert.Equal(expectedMembers.Length, reachability.Limits.Count);
         foreach (var member in expectedMembers)
@@ -1046,9 +1054,13 @@ public sealed class SourceSetAnalysisTests
             var limit = Assert.Single(reachability.Limits,
                 candidate => candidate.Text.StartsWith($"`{member}`", StringComparison.Ordinal));
             Assert.Equal(ReachabilityLimitKind.TargetOutsideTheScope, limit.Kind);
-            var sourcePath = member == "update"
-                ? Path.Combine("Services", "Models", "WorkspaceInputSession.cs")
-                : Path.Combine("Services", "Workspace", "SolutionManager.cs");
+            var sourcePath = member switch
+            {
+                "update" => Path.Combine("Services", "Models", "WorkspaceInputSession.cs"),
+                "log" or "onChanged" or "onRenamed" or "onError" =>
+                    Path.Combine("Services", "Workspace", "WorkspaceDiskWatcherStarter.cs"),
+                _ => Path.Combine("Services", "Workspace", "SolutionManager.cs"),
+            };
             Assert.Contains(sourcePath, limit.Text, StringComparison.Ordinal);
         }
         Assert.Contains(reachability.Limits, limit => limit.Text.StartsWith("`AfterPhysicalLoadBeforePrepareAsync`",
