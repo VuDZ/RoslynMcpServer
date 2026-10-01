@@ -54,6 +54,39 @@ internal static class WorkspaceDiskEventClassifier
     }
 
     /// <summary>
+    /// True when a saved edit of <paramref name="fullPath"/> can replace an additional-file or
+    /// analyzer-config document that is already in the loaded graph. An evaluation role on the same
+    /// path is a project-graph change, so the text is left alone. XAML, resx, and Razor are left
+    /// alone because their C# comes from a build. Standing coverage gaps are not a reason to refuse:
+    /// every load reports imports, restore inputs, and custom tasks as unknown, and that must not
+    /// freeze a document the graph already contains.
+    /// </summary>
+    public static bool SyncsNonCSharpDocumentText(WorkspaceInputMap? map, string fullPath)
+    {
+        var canonical = InputPathCanon.TryCanonicalize(fullPath);
+        if (canonical is null || IsBuildGeneratedMarkup(canonical) || map?.Find(canonical) is not { } entry)
+        {
+            return false;
+        }
+
+        var syncable = false;
+        foreach (var occurrence in entry.Occurrences)
+        {
+            if (occurrence.Role == InputRole.EvaluationInput)
+            {
+                return false;
+            }
+
+            if (occurrence.Role is InputRole.AdditionalFile or InputRole.AnalyzerConfig)
+            {
+                syncable = true;
+            }
+        }
+
+        return syncable;
+    }
+
+    /// <summary>
     /// True when <paramref name="fullPath"/> is an explicit input that must not be dropped just
     /// because a path segment is <c>obj</c>, <c>bin</c>, or <c>artifacts</c>.
     /// </summary>
@@ -262,5 +295,13 @@ internal static class WorkspaceDiskEventClassifier
         }
 
         return false;
+    }
+
+    private static bool IsBuildGeneratedMarkup(string fullPath)
+    {
+        var extension = Path.GetExtension(fullPath);
+        return extension.Equals(".xaml", StringComparison.OrdinalIgnoreCase)
+            || extension.Equals(".resx", StringComparison.OrdinalIgnoreCase)
+            || extension.Equals(".razor", StringComparison.OrdinalIgnoreCase);
     }
 }

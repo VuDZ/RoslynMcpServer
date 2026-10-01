@@ -1,14 +1,13 @@
 # Отслеживание не-C# входов Roslyn workspace
 
-Дата исследования: 2026-09-20; граница серий уточнена 2026-09-30.
-Статус: **исследование восстановления семантики; реализация не выбрана**.
-Этот документ не меняет текущий контракт сервера.
+Дата исследования: 2026-09-20; граница серий уточнена 2026-09-30; spike и текстовый синк 2026-10-01.
+Статус: **подмена текста уже известного AdditionalDocument и AnalyzerConfigDocument выпущена в 1.5.4**. Вариант D и U-ARB-02 открыты, тему не архивировать.
+Контракт поведения — [ARCHITECTURE](../ARCHITECTURE.md). Ниже остаётся исследование, а не переписанный под факт план.
 
-В плане [project-input-watching](../archive/project-input-watching/README.md) принято
-обнаружение изменений C# и не-C# входов и уведомление по ролям. Это планируемое
-поведение, код не начат. Текстовая синхронизация `AdditionalDocument` и
-`AnalyzerConfigDocument`, а также политика восстановления семантического
-snapshot остаются в этой теме. Обнаружение само по себе не обновляет их тексты.
+Обнаружение изменений и уведомление по ролям закрыты серией
+[project-input-watching](../archive/project-input-watching/README.md) и записаны в
+[ARCHITECTURE](../ARCHITECTURE.md). Текстовая синхронизация `AdditionalDocument` и
+`AnalyzerConfigDocument` остаётся здесь. Обнаружение само по себе не обновляет их тексты.
 
 ## 1. Вопрос
 
@@ -28,38 +27,50 @@ snapshot остаются в этой теме. Обнаружение само 
 
 ## 2. Подтверждённое текущее поведение
 
-- `SolutionManager` запускает `FileSystemWatcher` на каталоге загруженного
-  `.sln`/`.slnx`/`.csproj` и каталогах загруженных проектов с рекурсией вниз;
-  вложенные дубликаты корней удаляются. `QueueDiskPath` помечает как dirty
-  только `.cs`; для файлов из `IsProjectGraphFile` устанавливает
-  `_projectGraphStale`; остальные события игнорирует.
-  См. [`SolutionManager.cs`](../../Services/Workspace/SolutionManager.cs) и
-  [`WorkspaceDiskPathFilter.cs`](../../Services/Workspace/WorkspaceDiskPathFilter.cs).
-- `IsProjectGraphFile` узнаёт `.csproj`, `.sln`, `.slnx`, `global.json`,
-  `Directory.Build.props`, `Directory.Build.targets` и
-  `Directory.Packages.props`. Произвольный импортированный
-  `.props`/`.targets`, `NuGet.Config` или файл с собственным расширением этим
-  правилом не классифицируется. Это граница **текущего фильтра**, а не список
-  всех входов MSBuild.
-- [`WorkspaceDocumentDiskSync.cs`](../../Services/Workspace/WorkspaceDocumentDiskSync.cs)
-  читает только `.cs` и `Project.Documents`. При переполнении watcher его
-  `refreshAllDocuments` повторно читает известные C# документы, но не проверяет
-  `AdditionalDocuments`, `AnalyzerConfigDocuments` или состав проекта.
-- `update_file_content` сначала ищет обычный `DocumentId`; при его отсутствии
-  пишет файл прямо на диск. Обновление не-C# файла через этот инструмент не
-  обновляет соответствующий Roslyn-документ в памяти.
-  См. [`EditingTools.cs`](../../Tools/EditingTools.cs) и
-  `UpdateDocumentInMemoryUnderLockAsync` в `SolutionManager`.
-- Инструменты чтения файлов обращаются к диску, а `dotnet build` запускает
-  отдельный процесс. Их результат может отражать новый файл, когда
-  семантические инструменты всё ещё работают со старым `Solution`.
+На 1.5.2 watcher строится по карте входов загруженного графа: каталоги проектов
+рекурсивно, linked-файл и walk-up props вне них — нерекурсивная подписка на каталог
+файла. Сохранённый пользовательский `.cs` читается один раз и применяется
+`WithDocumentText` ко всем документам этого пути. Additional files, analyzer configs
+и прочие не-C# входы записываются по ролям и не синхронизируют текст.
+См. [ARCHITECTURE](../ARCHITECTURE.md), Workspace lifecycle.
+
+- [`WorkspaceDocumentDiskSync`](../../Services/Workspace/WorkspaceDocumentDiskSync.cs)
+  читает только `.cs` и `Project.Documents`. `refreshAllDocuments` повторно читает
+  известные C# документы и не проверяет `AdditionalDocuments` или `AnalyzerConfigDocuments`.
+- Роли `AdditionalFile` и `AnalyzerConfig` увеличивают input revision для сборки.
+  Семантические тулы продолжают читать опубликованный снимок со старым текстом.
+- `update_file_content` сначала ищет обычный `DocumentId`. Не-C# путь пишет файл
+  на диск и не обновляет соответствующий Roslyn-документ в памяти.
+  См. [`EditingTools.cs`](../../Tools/EditingTools.cs).
 
 Наблюдатель не покрывает все пути вне объединения каталогов загрузки и проектов.
-Например, внешний `Import`, linked `AdditionalFile` и родительский `.editorconfig` могут
-не дать события этому watcher. Исключённые `bin`/`obj` тоже требуют отдельного
-решения, если в них находится явный вход проекта. Это **возможные разрывы
-покрытия**, а не подтверждение, что каждый такой файл входит в конкретный
-загруженный проект.
+Внешний `Import`, linked `AdditionalFile` и родительский `.editorconfig` могут
+не дать события. Это возможные разрывы покрытия, а не список входов конкретного проекта.
+
+## 2.1. Spike 2026-10-01
+
+Проверено на реальном `MSBuildWorkspace` тестами
+`NonCSharpDocumentTextSyncSpikeTests`. Генератор и диагностика `CS0219` смотрят
+следующую компиляцию снимка, а не текст файла на диске.
+
+- Пока текст документа ещё не читали, первое чтение берёт текущие байты файла.
+  После этого чтения сохранённая правка `AdditionalFile` или `.editorconfig`
+  не меняет ни `GetText`, ни маркер генератора, ни диагностику.
+- `WithAdditionalDocumentText` меняет маркер генератора.
+  `WithAnalyzerConfigDocumentText` поднимает `CS0219` до error.
+  Оба вызова оставляют `.csproj` и сам файл без изменений.
+- `TryApplyChanges` для текста additional file возвращает true, переписывает
+  этот файл и не переписывает `.csproj`. Текущее solution workspace становится
+  новым экземпляром с новым текстом. Опубликованный снимок остаётся прежним
+  объектом со старым текстом: семантические тулы его и читают.
+- `TryApplyChanges` для текста analyzer config бросает
+  `NotSupportedException` («Changing analyzer config documents is not supported»)
+  и не пишет ни файл, ни `.csproj`.
+
+Эта подмена выпущена в 1.5.4. Текст уже известного `AdditionalDocument` или
+`AnalyzerConfigDocument` заменяется на опубликованном снимке тем же проходом,
+что читает `.cs`, без `TryApplyChanges`. Путь с ролью evaluation/graph, новый
+или удалённый файл, XAML/resx/razor и coverage unknown в этот синк не входят.
 
 ## 3. Какие файлы могут быть значимы
 
@@ -136,13 +147,13 @@ snapshot остаются в этой теме. Обнаружение само 
 документ в семантическом снимке. Изменение состава документов и входов MSBuild
 по-прежнему направлять на reload.
 
-Плюсы: генераторы и анализаторы потенциально видят правку известного входа
-без полной повторной загрузки. Минусы: надо доказать, что выбранный путь
-публикации обновляет их результаты, не перезаписывает чужой файл и не мутирует
-backing `.csproj`; учесть shared/linked файлы, один путь в нескольких проектах,
-ошибки чтения и взаимодействие с analyzer shadow-copy. Без такой проверки
-`WithAdditionalDocumentText`/`WithAnalyzerConfigDocumentText` — только API
-для candidate `Solution`, а не готовый безопасный disk-sync.
+Плюсы: генераторы и анализаторы видят правку известного входа без полной
+повторной загрузки. Spike 2026-10-01 это подтвердил для additional file и
+`.editorconfig`: подмена текста меняет следующую компиляцию и не пишет
+`.csproj`. `TryApplyChanges` для этого синка не годится: additional file он
+сохраняет в сам файл и не обновляет опубликованный снимок, analyzer config
+бросает `NotSupportedException`. Остаются shared/linked пути, ошибка чтения
+и роли evaluation/graph на том же пути.
 
 ### D. Полная модель зависимостей и свежести workspace
 
@@ -156,10 +167,12 @@ backing `.csproj`; учесть shared/linked файлы, один путь в �
 где уже описаны роли входов и открытый вопрос о freshness policy. Не стоит
 создавать вторую несовместимую модель без согласования с этой спецификацией.
 
-Обнаружение и уведомление по ролям теперь выбраны в плане `project-input-watching`.
-Это часть направления B, без выбора общего поведения semantic reads.
-Комбинация восстановления и текстовой синхронизации C/D здесь остаётся
-невыбранной; наличие события не означает ни безопасный text sync, ни готовый reload.
+Обнаружение и уведомление по ролям выбраны в `project-input-watching` и
+выпущены в 1.5.2. Это часть направления B. Spike выбирает текстовую подмену
+варианта C для уже прочитанного `AdditionalDocument` и `AnalyzerConfigDocument`
+и запрещает публиковать её через `TryApplyChanges`. Эта подмена выпущена в
+1.5.4; контракт — [ARCHITECTURE](../ARCHITECTURE.md). Вариант D и общая политика
+semantic reads остаются открытыми вместе с U-ARB-02.
 
 ## 5. Вопросы перед выбором
 

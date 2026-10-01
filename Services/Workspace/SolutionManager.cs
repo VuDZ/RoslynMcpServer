@@ -196,6 +196,8 @@ public sealed class SolutionManager
         _analyzerProvenanceCaptureService = analyzerProvenanceCaptureService;
         FileSettings = fileSettings ?? RoslynMcpFileSettings.Empty;
         _dirtySourcePaths = new ConcurrentDictionary<string, byte>(_pathComparer);
+        _dirtyNonCSharpPaths = new ConcurrentDictionary<string, byte>(_pathComparer);
+        _nonCSharpTexts = new Dictionary<string, SourceText>(_pathComparer);
         _missingOnDiskPaths = new ConcurrentDictionary<string, byte>(_pathComparer);
     }
 
@@ -583,6 +585,7 @@ public sealed class SolutionManager
                 cancellationToken)
             .ConfigureAwait(false);
         NoteGraphFileWrite(canonical);
+        await PublishOwnNonCSharpTextAsync(canonical, text, encoding, cancellationToken).ConfigureAwait(false);
     }
 
     internal void WriteTrackedText(string fullPath, string text, Encoding encoding)
@@ -720,6 +723,8 @@ public sealed class SolutionManager
         {
             StopDiskWatcherUnderLock();
             _dirtySourcePaths.Clear();
+            _dirtyNonCSharpPaths.Clear();
+            _nonCSharpTexts.Clear();
             _missingOnDiskPaths.Clear();
             _refreshAllDocuments = false;
             ClearProjectGraphStale();
@@ -1335,7 +1340,11 @@ public sealed class SolutionManager
             return;
         }
 
-        var overlay = PublishInMemorySolution(workspaceSolution);
+        var withNonCSharpTexts = WorkspaceNonCSharpDiskSync.Apply(
+            workspaceSolution,
+            _nonCSharpTexts,
+            _pathComparison);
+        var overlay = PublishInMemorySolution(withNonCSharpTexts);
         SetPublishedSnapshot(overlay);
     }
 
@@ -1411,7 +1420,10 @@ public sealed class SolutionManager
             StaleCount: 0,
             BlockedCount: _publicationState.ExcludedReferences.Count,
             Reason: _publicationState.BanReason);
-        SetPublishedSnapshot(PublishInMemorySolution(workspaceSolution));
+        SetPublishedSnapshot(PublishInMemorySolution(WorkspaceNonCSharpDiskSync.Apply(
+            workspaceSolution,
+            _nonCSharpTexts,
+            _pathComparison)));
     }
 
     private void RestoreSafePublishedSnapshotAfterOptInFailure()
@@ -1992,6 +2004,8 @@ public sealed class SolutionManager
         LoadedTargetFramework = null;
         LoadedBuildArgs = null;
         _dirtySourcePaths.Clear();
+        _dirtyNonCSharpPaths.Clear();
+        _nonCSharpTexts.Clear();
         _missingOnDiskPaths.Clear();
         _refreshAllDocuments = false;
         ClearProjectGraphStale();
@@ -2118,10 +2132,16 @@ public sealed class SolutionManager
         if (workspace is null)
         {
             var stale = _dirtySourcePaths.Keys.ToArray();
+            var staleNonCSharp = _dirtyNonCSharpPaths.Keys.ToArray();
             DuringDiskFlushForTests?.Invoke();
             foreach (var key in stale)
             {
                 _dirtySourcePaths.TryRemove(key, out _);
+            }
+
+            foreach (var key in staleNonCSharp)
+            {
+                _dirtyNonCSharpPaths.TryRemove(key, out _);
             }
 
             _refreshAllDocuments = false;
@@ -2129,7 +2149,12 @@ public sealed class SolutionManager
         }
 
         var refreshAll = _refreshAllDocuments;
-        if (!refreshAll && _dirtySourcePaths.IsEmpty)
+        if (refreshAll)
+        {
+            QueueKnownNonCSharpDocuments(workspace.CurrentSolution);
+        }
+
+        if (!refreshAll && _dirtySourcePaths.IsEmpty && _dirtyNonCSharpPaths.IsEmpty)
         {
             DuringDiskFlushForTests?.Invoke();
             return;
@@ -2145,8 +2170,23 @@ public sealed class SolutionManager
             }
         }
 
+        var dirtyNonCSharp = new List<string>();
+        foreach (var key in _dirtyNonCSharpPaths.Keys)
+        {
+            if (_dirtyNonCSharpPaths.TryRemove(key, out _))
+            {
+                dirtyNonCSharp.Add(key);
+            }
+        }
+
         _refreshAllDocuments = false;
         DuringDiskFlushForTests?.Invoke();
+
+        var nonCSharpChanged = await AbsorbNonCSharpTextsAsync(
+                workspace.CurrentSolution,
+                dirtyNonCSharp,
+                cancellationToken)
+            .ConfigureAwait(false);
 
         var result = await WorkspaceDocumentDiskSync.ApplyAsync(
             workspace.CurrentSolution,
@@ -2203,6 +2243,11 @@ public sealed class SolutionManager
                     started.ElapsedMilliseconds);
             }
 
+            if (nonCSharpChanged)
+            {
+                SetPublishedSolution(workspace.CurrentSolution);
+            }
+
             return;
         }
 
@@ -2243,6 +2288,11 @@ public sealed class SolutionManager
                 result.Added,
                 result.Removed,
                 result.Unrepresentable.Count);
+            if (nonCSharpChanged)
+            {
+                SetPublishedSolution(workspace.CurrentSolution);
+            }
+
             return;
         }
 
@@ -2257,6 +2307,112 @@ public sealed class SolutionManager
             started.ElapsedMilliseconds,
             write.Status);
         LogProcessWorkingSet("document_update");
+    }
+
+    private async Task<bool> AbsorbNonCSharpTextsAsync(
+        Solution solution,
+        IReadOnlyCollection<string> paths,
+        CancellationToken cancellationToken)
+    {
+        if (paths.Count == 0)
+        {
+            return false;
+        }
+
+        var updates = await WorkspaceNonCSharpDiskSync.ReadUpdatesAsync(
+                solution,
+                paths,
+                _pathComparison,
+                cancellationToken)
+            .ConfigureAwait(false);
+        var changed = false;
+        foreach (var update in updates)
+        {
+            if (RememberNonCSharpText(update.Key, update.Value))
+            {
+                changed = true;
+            }
+        }
+
+        if (changed)
+        {
+            _logger.LogInformation("workspace_non_csharp_sync updated={Updated}", updates.Count);
+        }
+
+        return changed;
+    }
+
+    private void QueueKnownNonCSharpDocuments(Solution solution)
+    {
+        var map = _diskWatcherSession?.InputMap;
+        foreach (var project in solution.Projects)
+        {
+            QueueKnownNonCSharpDocuments(map, project.AdditionalDocuments);
+            QueueKnownNonCSharpDocuments(map, project.AnalyzerConfigDocuments);
+        }
+    }
+
+    private void QueueKnownNonCSharpDocuments(WorkspaceInputMap? map, IEnumerable<TextDocument> documents)
+    {
+        foreach (var document in documents)
+        {
+            var fullPath = InputPathCanon.TryCanonicalize(document.FilePath);
+            if (fullPath is null || !WorkspaceDiskEventClassifier.SyncsNonCSharpDocumentText(map, fullPath))
+            {
+                continue;
+            }
+
+            _dirtyNonCSharpPaths.TryAdd(fullPath, 0);
+        }
+    }
+
+    private async Task PublishOwnNonCSharpTextAsync(
+        string canonical,
+        string text,
+        Encoding encoding,
+        CancellationToken cancellationToken)
+    {
+        if (!WorkspaceDiskEventClassifier.SyncsNonCSharpDocumentText(_diskWatcherSession?.InputMap, canonical))
+        {
+            return;
+        }
+
+        // Persist of a C# document calls the writer while the workspace lock is already held, and that
+        // path is not an additional file or analyzer config. Taking the lock here is only for a direct
+        // file write. TryApplyChanges is intentionally not used: it rewrites the additional file and
+        // throws when the text is an analyzer config, and neither result updates the published snapshot.
+        await _workspaceLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            if (_workspace is null
+                || !WorkspaceNonCSharpDiskSync.HasDocument(_workspace.CurrentSolution, canonical, _pathComparison))
+            {
+                return;
+            }
+
+            if (!RememberNonCSharpText(canonical, SourceText.From(text, encoding)))
+            {
+                return;
+            }
+
+            SetPublishedSolution(_workspace.CurrentSolution);
+        }
+        finally
+        {
+            _workspaceLock.Release();
+        }
+    }
+
+    private bool RememberNonCSharpText(string canonical, SourceText text)
+    {
+        if (_nonCSharpTexts.TryGetValue(canonical, out var existing)
+            && string.Equals(existing.ToString(), text.ToString(), StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        _nonCSharpTexts[canonical] = text;
+        return true;
     }
 
     private static void TryAddWatchDirectory(HashSet<string> directories, string? filePath)
@@ -2573,6 +2729,12 @@ public sealed class SolutionManager
             _dirtySourcePaths.TryAdd(canonical, 0);
         }
 
+        if (changeType is not (WatcherChangeTypes.Deleted or WatcherChangeTypes.Renamed)
+            && WorkspaceDiskEventClassifier.SyncsNonCSharpDocumentText(map, canonical))
+        {
+            _dirtyNonCSharpPaths.TryAdd(canonical, 0);
+        }
+
         return null;
     }
 
@@ -2613,11 +2775,25 @@ public sealed class SolutionManager
             if (result.Outcome == ContentReconcileOutcome.Echo)
             {
                 _dirtySourcePaths.TryRemove(result.CanonicalPath, out _);
+                _dirtyNonCSharpPaths.TryRemove(result.CanonicalPath, out _);
             }
-            else if (result.Outcome == ContentReconcileOutcome.Changed
-                && WorkspaceDiskPathFilter.IsCSharpSource(result.CanonicalPath))
+            else if (result.Outcome == ContentReconcileOutcome.LeftPending)
             {
-                _dirtySourcePaths.TryAdd(result.CanonicalPath, 0);
+                _dirtyNonCSharpPaths.TryRemove(result.CanonicalPath, out _);
+            }
+            else if (result.Outcome == ContentReconcileOutcome.Changed)
+            {
+                if (WorkspaceDiskPathFilter.IsCSharpSource(result.CanonicalPath))
+                {
+                    _dirtySourcePaths.TryAdd(result.CanonicalPath, 0);
+                }
+
+                if (WorkspaceDiskEventClassifier.SyncsNonCSharpDocumentText(
+                        session.InputMap,
+                        result.CanonicalPath))
+                {
+                    _dirtyNonCSharpPaths.TryAdd(result.CanonicalPath, 0);
+                }
             }
         }
     }
@@ -2812,6 +2988,8 @@ public sealed class SolutionManager
     private readonly StringComparer _pathComparer =
         OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
     private readonly ConcurrentDictionary<string, byte> _dirtySourcePaths;
+    private readonly ConcurrentDictionary<string, byte> _dirtyNonCSharpPaths;
+    private readonly Dictionary<string, SourceText> _nonCSharpTexts;
     private readonly List<FileSystemWatcher> _diskWatchers = new();
     private readonly List<(string Directory, bool IncludeSubdirectories)> _diskWatcherSubscriptions = new();
     private WorkspaceInputSession? _diskWatcherSession;

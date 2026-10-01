@@ -5,7 +5,7 @@ alwaysApply: true
 
 # RoslynMcpServer overview
 
-MCP server (stdio) for C# analysis: Roslyn workspaces + ILSpy decompile. TFM `net10.0`, version in `RoslynMcpServer.csproj` (currently **1.5.2**). Package id `RoslynMcpServer`. Self-contained publish for win/osx/linux RIDs.
+MCP server (stdio) for C# analysis: Roslyn workspaces + ILSpy decompile. TFM `net10.0`, version in `RoslynMcpServer.csproj` (currently **1.5.4**). Package id `RoslynMcpServer`. Self-contained publish for win/osx/linux RIDs.
 
 ## Layout
 
@@ -27,6 +27,8 @@ Real-world validation often uses **BrqMover** (`c:\Devel\BrqMover`) — app repo
 
 ## Version history (agent-relevant)
 
+- **1.5.4** — saved additional-file and analyzer-config text is applied on the published snapshot (`WithAdditionalDocumentText` / `WithAnalyzerConfigDocumentText`) during the same flush as `.cs`. Not `TryApplyChanges`. XAML, resx, Razor, evaluation-input paths, and new or deleted files stay out. Coverage-unknown does not block a document already in the graph and is not cleared by the replace
+- **1.5.3** — DLL tests share one solution-target `buildPolicy` (`auto` / `always` / `never`) on `run_dotnet_test`, `run_specific_test`, and `run_test_by_filter` when `binariesPath` is set
 - **1.5.2** — disk watcher follows the loaded graph: recursive project directories, non-recursive watches for linked files and walk-up props outside them. One user `.cs` text updates every document of that path. Non-C# inputs are recorded by role and are not text-synced. Own writes match saved bytes, including BOM. Semantic flush does not clear input revisions. `search_code` roots are unchanged
 - **1.5.1** — WPF `{ProjectName}_{random}_wpftmp.csproj` create/delete does not mark the project graph stale unless that path is a loaded project. A real project-file change during the build still does
 - **1.5.0** — MCP C# SDK 2.2.0. Group enablement batches `tools/list_changed` with the SDK `DeferChangedEvents` scope. `2025-11-25` sessions receive that notification directly; `2026-07-28` sessions receive it after `subscriptions/listen` (`toolsListChanged`). Plugin projects reference `ModelContextProtocol` 2.2 (`Major.Minor` must match the host assembly)

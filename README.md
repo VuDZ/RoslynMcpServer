@@ -182,6 +182,11 @@ MCP `tools/list` stays JSON + JSON Schema. Markdown is for JIT help and diagnost
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.5.4
+
+- **Saved additional files and analyzer configs reach the semantic snapshot** — a path that is already an `AdditionalDocument` or `AnalyzerConfigDocument`, and is not also an evaluation input, is read once on the same flush as `.cs` and applied with `WithAdditionalDocumentText` or `WithAnalyzerConfigDocumentText`. The text is reapplied onto the published snapshot. `TryApplyChanges` is not used: it rewrites an additional file and throws for an analyzer config, and neither result updates the published snapshot.
+- One read is applied to every project document of that path. A later `.cs` edit keeps the new text. An own write of the same path updates the snapshot as well. XAML, resx, and Razor stay recorded by role and are not text-synced. A new or deleted non-C# file does not add or remove a document. Standing coverage gaps do not block a document the graph already contains, and this replace does not clear them.
+
 ### v1.5.3
 
 - **DLL tests share one solution-target check** — `run_dotnet_test`, `run_specific_test`, and `run_test_by_filter` take `buildPolicy` (`auto`, `always`, `never`) when `binariesPath` is set. Omit both `buildPolicy` and `noBuild` and the DLL route uses `auto`. `noBuild` is optional: on that route `false` means `always` and `true` means `never`; passing both parameters is an error. `buildPolicy` without `binariesPath` is an error. Without `binariesPath`, omitting `noBuild` still means rebuild for the first two tools and skip for `run_test_by_filter`.
@@ -1555,7 +1560,7 @@ cd D:\Devel\YourApp
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.5.3). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.5.4). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 

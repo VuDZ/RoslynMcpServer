@@ -18,6 +18,7 @@
 | MCP tool surface evolution | [mcp-tool-surface-evolution/](mcp-tool-surface-evolution/README.md) | post-arbitration spec v2; реализация не начата |
 | GitHub binary releases | [github-releases/](github-releases/README.md) | O-01 закрыт; CI + release workflow есть; smoke дистрибутива и O-02/O-03 открыты |
 | Улучшение тестов | [test-improvements/](test-improvements/README.md) | эпохи 1 и 2 выполнены, планы и отчёты в [архиве](test-improvements/_archive/README.md); далее эпоха 3 |
+| Не-C# входы семантики | [non-csharp-input-tracking/](non-csharp-input-tracking/README.md) | синк текста AdditionalDocument и AnalyzerConfigDocument в 1.5.4; D и U-ARB-02 открыты |
 
 ## Contract
 
