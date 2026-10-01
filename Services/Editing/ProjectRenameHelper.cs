@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
+using RoslynMcpServer.Services.Models;
 
 namespace RoslynMcpServer.Services.Editing;
 
@@ -209,11 +210,20 @@ public static class ProjectRenameHelper
 
     public static string Apply(RenamePlan plan)
     {
+        return Apply(plan, inputSession: null, writeText: null);
+    }
+
+    internal static string Apply(
+        RenamePlan plan,
+        WorkspaceInputSession? inputSession,
+        Action<string, string>? writeText)
+    {
         var completed = new List<string>();
         try
         {
             // 1) Move directory + rename csproj while old absolute paths still valid for nothing else
             Directory.Move(plan.OldDirectory, plan.NewDirectory);
+            inputSession?.NoteDirectoryRename(plan.OldDirectory, plan.NewDirectory, affectsMembership: true);
             completed.Add($"Moved directory to `{plan.NewDirectory}`");
 
             var movedCsproj = Path.Combine(plan.NewDirectory, plan.OldProjectFileName);
@@ -230,7 +240,7 @@ public static class ProjectRenameHelper
 
             if (plan.NewCsprojContent is not null)
             {
-                File.WriteAllText(plan.NewProjectPath, plan.NewCsprojContent);
+                WriteText(plan.NewProjectPath, plan.NewCsprojContent, writeText);
                 completed.Add("Wrote updated AssemblyName/RootNamespace in csproj");
             }
 
@@ -240,7 +250,7 @@ public static class ProjectRenameHelper
                 try
                 {
                     // Path may still be absolute (sibling projects / solutions outside moved dir)
-                    File.WriteAllText(edit.Path, edit.NewContent);
+                    WriteText(edit.Path, edit.NewContent, writeText);
                     completed.Add($"{edit.Description}: `{edit.Path}`");
                 }
                 catch (Exception ex)
@@ -296,6 +306,17 @@ public static class ProjectRenameHelper
 
             throw new InvalidOperationException(sb.ToString().TrimEnd(), ex);
         }
+    }
+
+    private static void WriteText(string path, string text, Action<string, string>? writeText)
+    {
+        if (writeText is not null)
+        {
+            writeText(path, text);
+            return;
+        }
+
+        File.WriteAllText(path, text);
     }
 
     internal static bool IsSdkStyle(string csprojText)

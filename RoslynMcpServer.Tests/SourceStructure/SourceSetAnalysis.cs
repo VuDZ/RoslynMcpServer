@@ -75,14 +75,20 @@ internal sealed class SourceSetAnalysis
 
     public SemanticModel ModelFor(SyntaxTree tree)
     {
-        if (_models.TryGetValue(tree, out var cached))
+        // ProductionAnalysis.Instance is one compilation shared by parallel tests. Two walks can
+        // both miss this cache for the same tree. SyntaxTree equality is reference equality, so
+        // the second Add throws, and the exception text is whichever file lost the race.
+        lock (_models)
         {
-            return cached;
-        }
+            if (_models.TryGetValue(tree, out var cached))
+            {
+                return cached;
+            }
 
-        var model = Compilation.GetSemanticModel(tree);
-        _models.Add(tree, model);
-        return model;
+            var model = Compilation.GetSemanticModel(tree);
+            _models.Add(tree, model);
+            return model;
+        }
     }
 
     public SourceFile? FileFor(SyntaxTree tree) => _files.TryGetValue(tree, out var file) ? file : null;

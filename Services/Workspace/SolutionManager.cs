@@ -168,6 +168,12 @@ public sealed class SolutionManager
     /// <summary>Test observer for completed file-change callbacks, including ignored build artifacts.</summary>
     internal Action<FileSystemEventArgs>? AfterDiskWatcherChangeForTests { get; set; }
 
+    /// <summary>
+    /// Test seam invoked after the flush has snapshotted the dirty set, while that flush is still running.
+    /// An event delivered here belongs to this generation and must still be visible when the flush returns.
+    /// </summary>
+    internal Action? DuringDiskFlushForTests { get; set; }
+
     internal WorkspaceWriteResult? LastWriteResult { get; private set; }
 
     internal InProcessAnalyzerAssemblyLoader AnalyzerAssemblyLoader { get; } = new();
@@ -184,7 +190,6 @@ public sealed class SolutionManager
         _analyzerProvenanceCaptureService = analyzerProvenanceCaptureService;
         FileSettings = fileSettings ?? RoslynMcpFileSettings.Empty;
         _dirtySourcePaths = new ConcurrentDictionary<string, byte>(_pathComparer);
-        _selfWriteUntilTicks = new ConcurrentDictionary<string, long>(_pathComparer);
         _missingOnDiskPaths = new ConcurrentDictionary<string, byte>(_pathComparer);
     }
 
@@ -492,8 +497,8 @@ public sealed class SolutionManager
     }
 
     /// <summary>
-    /// Suppresses watcher-driven re-reads of <paramref name="filePath"/> for a short window after this
-    /// process writes the file (avoids reading a torn file). Call before <c>File.WriteAllText</c>.
+    /// Registers an own write before I/O. The watcher callback only queues the path; equal bytes are
+    /// decided later. Elapsed time does not drop the event.
     /// </summary>
     public void SuppressDiskWatchForPath(string filePath)
     {
@@ -502,8 +507,83 @@ public sealed class SolutionManager
             return;
         }
 
-        var fullPath = Path.GetFullPath(filePath);
-        _selfWriteUntilTicks[fullPath] = Environment.TickCount64 + SelfWriteSuppressMs;
+        string fullPath;
+        try
+        {
+            fullPath = Path.GetFullPath(filePath);
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            return;
+        }
+
+        _diskWatcherSession?.BeginOwnWrite(fullPath);
+    }
+
+    /// <summary>
+    /// Pull of the current generation. Does not build, reload, consume changes, or take
+    /// <see cref="_workspaceLock"/> (a caller that already holds it must not deadlock).
+    /// </summary>
+    internal WorkspaceInputSnapshot PullInputSnapshot()
+    {
+        var session = _diskWatcherSession;
+        if (session is null)
+        {
+            return new WorkspaceInputSnapshot(
+                Guid.Empty,
+                snapshotRevision: 0,
+                membershipRevision: 0,
+                Array.Empty<string>(),
+                Array.Empty<LoadedProjectInstance>(),
+                Array.Empty<MembershipRegion>(),
+                Array.Empty<InputPathSnapshot>(),
+                InputCoverage.Unknown,
+                new[] { new InputCoverageGap(InputCoverageReason.LoadIncomplete, InputCoverageScope.WholeGraph) },
+                evidenceSource: null,
+                hasPendingContent: false);
+        }
+
+        return session.Pull();
+    }
+
+    internal void ReconcileInputEvents()
+    {
+        ReconcileInputEventsCore();
+    }
+
+    internal async Task WriteTrackedTextAsync(
+        string fullPath,
+        string text,
+        Encoding encoding,
+        CancellationToken cancellationToken)
+    {
+        var canonical = InputPathCanon.TryCanonicalize(fullPath) ?? fullPath;
+        if (IsInjectedWriteFailure(canonical))
+        {
+            var begun = _diskWatcherSession?.BeginOwnWrite(canonical) == true;
+            if (begun)
+            {
+                _diskWatcherSession!.AbandonOwnWrite(canonical);
+            }
+
+            throw new IOException("injected-file-write-failure:" + canonical);
+        }
+
+        await WorkspaceFilePersistence.WriteTextAsync(
+                _diskWatcherSession,
+                canonical,
+                text,
+                encoding,
+                cancellationToken)
+            .ConfigureAwait(false);
+        NoteGraphFileWrite(canonical);
+    }
+
+    internal void WriteTrackedText(string fullPath, string text, Encoding encoding)
+    {
+        var canonical = InputPathCanon.TryCanonicalize(fullPath) ?? fullPath;
+        WorkspaceFilePersistence.WriteText(_diskWatcherSession, canonical, text, encoding);
+        NoteGraphFileWrite(canonical);
     }
 
     /// <summary>
@@ -634,7 +714,6 @@ public sealed class SolutionManager
         {
             StopDiskWatcherUnderLock();
             _dirtySourcePaths.Clear();
-            _selfWriteUntilTicks.Clear();
             _missingOnDiskPaths.Clear();
             _refreshAllDocuments = false;
             ClearProjectGraphStale();
@@ -1638,8 +1717,10 @@ public sealed class SolutionManager
                 .ConfigureAwait(false);
         }
 
+        BeginRepeatWrites(saved);
         if (TryApplyWorkspaceChanges(workspace, cleaned))
         {
+            CommitRepeatWrites(saved);
             SetPublishedSolution(workspace.CurrentSolution);
             LogProcessWorkingSet("document_update");
             return RememberWrite(new WorkspaceWriteResult
@@ -1654,6 +1735,7 @@ public sealed class SolutionManager
         _logger.LogWarning(
             "TryApplyChanges rejected after preflight. saved={SavedCount}",
             saved.Count);
+        AbandonRepeatWrites(saved);
         return await FinishAfterSideEffectsAsync(
                 workspace,
                 saved,
@@ -1720,19 +1802,11 @@ public sealed class SolutionManager
                     }
                 }
 
-                if (FailNextDocumentWritePath is not null
-                    && (FailNextDocumentWritePath == "*"
-                        || string.Equals(Path.GetFullPath(FailNextDocumentWritePath), fullPath, _pathComparison)))
-                {
-                    FailNextDocumentWritePath = null;
-                    throw new IOException("injected-file-write-failure:" + fullPath);
-                }
-
                 // One operation writes the file twice (persist here, again on TryApplyChanges); both must use the
-                // same encoding, or a BOM added by one is reverted by the other.
+                // same encoding, or a BOM added by one is reverted by the other. The second write is armed
+                // around TryApplyChanges so its echo is compared to these bytes.
                 var writeEncoding = SourceTextEncoding.ResolveForWrite(oldSourceText, newSourceText, fullPath);
-                SuppressDiskWatchForPath(fullPath);
-                await File.WriteAllTextAsync(fullPath, text, writeEncoding, cancellationToken).ConfigureAwait(false);
+                await WriteTrackedTextAsync(fullPath, text, writeEncoding, cancellationToken).ConfigureAwait(false);
                 saved.Add(fullPath);
                 savedTexts.Add((fullPath, text));
                 if (CancelAfterDocumentWrites > 0 && saved.Count >= CancelAfterDocumentWrites)
@@ -1832,11 +1906,20 @@ public sealed class SolutionManager
             return true;
         }
 
+        var paths = new List<string>(savedTexts.Count);
+        foreach (var (path, _) in savedTexts)
+        {
+            paths.Add(Path.GetFullPath(path));
+        }
+
+        BeginRepeatWrites(paths);
         if (!TryApplyWorkspaceChanges(workspace, current))
         {
+            AbandonRepeatWrites(paths);
             return false;
         }
 
+        CommitRepeatWrites(paths);
         return true;
     }
 
@@ -1903,7 +1986,6 @@ public sealed class SolutionManager
         LoadedTargetFramework = null;
         LoadedBuildArgs = null;
         _dirtySourcePaths.Clear();
-        _selfWriteUntilTicks.Clear();
         _missingOnDiskPaths.Clear();
         _refreshAllDocuments = false;
         ClearProjectGraphStale();
@@ -2025,10 +2107,17 @@ public sealed class SolutionManager
     /// </summary>
     private async Task FlushDirtyDocumentsUnderLockAsync(CancellationToken cancellationToken)
     {
+        ReconcileInputEventsCore();
         var workspace = _workspace;
         if (workspace is null)
         {
-            _dirtySourcePaths.Clear();
+            var stale = _dirtySourcePaths.Keys.ToArray();
+            DuringDiskFlushForTests?.Invoke();
+            foreach (var key in stale)
+            {
+                _dirtySourcePaths.TryRemove(key, out _);
+            }
+
             _refreshAllDocuments = false;
             return;
         }
@@ -2036,6 +2125,7 @@ public sealed class SolutionManager
         var refreshAll = _refreshAllDocuments;
         if (!refreshAll && _dirtySourcePaths.IsEmpty)
         {
+            DuringDiskFlushForTests?.Invoke();
             return;
         }
 
@@ -2050,6 +2140,7 @@ public sealed class SolutionManager
         }
 
         _refreshAllDocuments = false;
+        DuringDiskFlushForTests?.Invoke();
 
         var result = await WorkspaceDocumentDiskSync.ApplyAsync(
             workspace.CurrentSolution,
@@ -2124,13 +2215,6 @@ public sealed class SolutionManager
 
             var encoding = SourceTextEncoding.ForDiskPath(path);
             alreadyOnDisk.Add((path, await File.ReadAllTextAsync(path, encoding, cancellationToken).ConfigureAwait(false)));
-        }
-
-        foreach (var path in dirty)
-        {
-            // The apply writes the file again. The existing tick window drops that echo so it is
-            // not stored as another user-input edit. It is not a byte-for-byte own-write proof.
-            SuppressDiskWatchForPath(path);
         }
 
         var rawBase = workspace.CurrentSolution;
@@ -2306,7 +2390,7 @@ public sealed class SolutionManager
     {
         BeforeDiskWatcherCallbackForTests?.Invoke();
         string? graphPath = null;
-        session.TryRun(() => graphPath = QueueDiskPath(session, e.FullPath));
+                session.TryRun(() => graphPath = QueueDiskPath(session, e.FullPath, e.ChangeType));
         LogChangedGraphPath(graphPath);
         AfterDiskWatcherChangeForTests?.Invoke(e);
     }
@@ -2332,8 +2416,8 @@ public sealed class SolutionManager
                 return;
             }
 
-            oldGraphPath = QueueDiskPath(session, e.OldFullPath);
-            newGraphPath = QueueDiskPath(session, e.FullPath);
+            oldGraphPath = QueueDiskPath(session, e.OldFullPath, WatcherChangeTypes.Renamed);
+            newGraphPath = QueueDiskPath(session, e.FullPath, WatcherChangeTypes.Renamed);
         });
         if (accepted && directoryRenamed)
         {
@@ -2349,10 +2433,16 @@ public sealed class SolutionManager
     private void OnDiskWatcherError(WorkspaceInputSession session, ErrorEventArgs e)
     {
         BeforeDiskWatcherCallbackForTests?.Invoke();
+        var overflow = e.GetException() is InternalBufferOverflowException;
         if (!session.TryRun(() =>
             {
                 _refreshAllDocuments = true;
-                session.NoteCoverageUnknown(InputCoverageReason.WatcherError);
+                // FileSystemWatcher raises Error for a full buffer. It does not raise Error for every
+                // event it drops, so silence is not evidence that the graph is unchanged. The lost
+                // paths are not identified, so the gap covers the whole graph.
+                session.NoteCoverageUnknown(
+                    overflow ? InputCoverageReason.WatcherBufferOverflow : InputCoverageReason.WatcherError,
+                    InputCoverageScope.WholeGraph);
             }))
         {
             return;
@@ -2391,7 +2481,7 @@ public sealed class SolutionManager
         }
     }
 
-    private string? QueueDiskPath(WorkspaceInputSession session, string? rawPath)
+    private string? QueueDiskPath(WorkspaceInputSession session, string? rawPath, WatcherChangeTypes changeType)
     {
         if (string.IsNullOrWhiteSpace(rawPath))
         {
@@ -2408,13 +2498,19 @@ public sealed class SolutionManager
             return null;
         }
 
-        if (IsSelfWriteSuppressed(fullPath))
+        if (WorkspaceDiskPathFilter.IsWpfTemporaryProject(fullPath)
+            && !session.LoadedProjectPaths.Contains(fullPath))
         {
             return null;
         }
 
-        if (WorkspaceDiskPathFilter.IsWpfTemporaryProject(fullPath)
-            && !session.LoadedProjectPaths.Contains(fullPath))
+        // A child create, edit, or delete also raises LastWrite (Changed) on the parent
+        // directory. That path already exists and is not a new compile item. Treating it as
+        // potential membership marks the graph composition-stale when a WPF temporary project
+        // appears and when an existing project file is edited. A Created directory can hold
+        // glob items and still goes through classification. Directory renames are classified
+        // before this method runs.
+        if (changeType == WatcherChangeTypes.Changed && Directory.Exists(fullPath))
         {
             return null;
         }
@@ -2422,7 +2518,14 @@ public sealed class SolutionManager
         var map = session.InputMap;
         if (map is null)
         {
-            return QueueDiskPathWithoutMap(fullPath);
+            if (changeType is not (WatcherChangeTypes.Deleted or WatcherChangeTypes.Renamed)
+                && session.OwnWriteDefersContent(fullPath))
+            {
+                session.NotePendingContent(fullPath);
+                return null;
+            }
+
+            return QueueDiskPathWithoutMap(session, fullPath);
         }
 
         if (WorkspaceDiskPathFilter.IsIgnoredPath(fullPath)
@@ -2437,11 +2540,21 @@ public sealed class SolutionManager
             return null;
         }
 
+        var canonical = decision.CanonicalPath ?? fullPath;
+        var structural = changeType is WatcherChangeTypes.Deleted or WatcherChangeTypes.Renamed
+            || decision.CompositionStale;
+        if (!structural && session.OwnWriteDefersContent(canonical))
+        {
+            session.NotePendingContent(canonical);
+            return null;
+        }
+
+        session.NotePendingContent(canonical);
         session.RecordDiskEvent(decision);
         if (decision.GraphFile)
         {
             MarkProjectGraphStaleFromGraphFile();
-            return decision.CanonicalPath ?? fullPath;
+            return canonical;
         }
 
         if (decision.CompositionStale)
@@ -2451,13 +2564,13 @@ public sealed class SolutionManager
 
         if (decision.DirtyUserSource)
         {
-            _dirtySourcePaths.TryAdd(decision.CanonicalPath ?? fullPath, 0);
+            _dirtySourcePaths.TryAdd(canonical, 0);
         }
 
         return null;
     }
 
-    private string? QueueDiskPathWithoutMap(string fullPath)
+    private string? QueueDiskPathWithoutMap(WorkspaceInputSession session, string fullPath)
     {
         if (WorkspaceDiskPathFilter.IsIgnoredPath(fullPath))
         {
@@ -2466,6 +2579,7 @@ public sealed class SolutionManager
 
         if (WorkspaceDiskPathFilter.IsProjectGraphFile(fullPath))
         {
+            session.NotePendingContent(fullPath);
             MarkProjectGraphStaleFromGraphFile();
             return fullPath;
         }
@@ -2475,24 +2589,105 @@ public sealed class SolutionManager
             return null;
         }
 
+        session.NotePendingContent(fullPath);
         _dirtySourcePaths.TryAdd(fullPath, 0);
         return null;
     }
 
-    private bool IsSelfWriteSuppressed(string fullPath)
+    private void ReconcileInputEventsCore()
     {
-        if (!_selfWriteUntilTicks.TryGetValue(fullPath, out var untilTicks))
+        var session = _diskWatcherSession;
+        if (session is null)
+        {
+            return;
+        }
+
+        foreach (var result in WorkspaceInputReconciler.Reconcile(session))
+        {
+            if (result.Outcome == ContentReconcileOutcome.Echo)
+            {
+                _dirtySourcePaths.TryRemove(result.CanonicalPath, out _);
+            }
+            else if (result.Outcome == ContentReconcileOutcome.Changed
+                && WorkspaceDiskPathFilter.IsCSharpSource(result.CanonicalPath))
+            {
+                _dirtySourcePaths.TryAdd(result.CanonicalPath, 0);
+            }
+        }
+    }
+
+    private void BeginRepeatWrites(IReadOnlyList<string> paths)
+    {
+        var session = _diskWatcherSession;
+        if (session is null)
+        {
+            return;
+        }
+
+        foreach (var path in paths)
+        {
+            session.BeginOwnWrite(path);
+        }
+    }
+
+    private void CommitRepeatWrites(IReadOnlyList<string> paths)
+    {
+        var session = _diskWatcherSession;
+        if (session is null)
+        {
+            return;
+        }
+
+        foreach (var path in paths)
+        {
+            try
+            {
+                session.CommitOwnWrite(path, File.ReadAllBytes(path), notifyEvenWhenUnchanged: false);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                session.AbandonOwnWrite(path);
+            }
+        }
+    }
+
+    private void AbandonRepeatWrites(IReadOnlyList<string> paths)
+    {
+        var session = _diskWatcherSession;
+        if (session is null)
+        {
+            return;
+        }
+
+        foreach (var path in paths)
+        {
+            session.AbandonOwnWrite(path);
+        }
+    }
+
+    private bool IsInjectedWriteFailure(string canonicalPath)
+    {
+        if (FailNextDocumentWritePath is null)
         {
             return false;
         }
 
-        if (Environment.TickCount64 < untilTicks)
+        if (FailNextDocumentWritePath == "*"
+            || string.Equals(Path.GetFullPath(FailNextDocumentWritePath), canonicalPath, _pathComparison))
         {
+            FailNextDocumentWritePath = null;
             return true;
         }
 
-        _selfWriteUntilTicks.TryRemove(fullPath, out _);
         return false;
+    }
+
+    private void NoteGraphFileWrite(string canonicalPath)
+    {
+        if (WorkspaceDiskPathFilter.IsProjectGraphFile(canonicalPath))
+        {
+            MarkProjectGraphStaleFromGraphFile();
+        }
     }
 
     private bool IsMissingOnDisk(string fullPath) => _missingOnDiskPaths.ContainsKey(fullPath);
@@ -2597,9 +2792,6 @@ public sealed class SolutionManager
     /// </summary>
     private const long MemoryWarningThresholdBytes = 1500L * 1024 * 1024;
 
-    /// <summary>Ignore FileSystemWatcher events for paths we just wrote (partial-read race).</summary>
-    private const int SelfWriteSuppressMs = 1000;
-
     /// <summary>
     /// Explicit MEF host so MSBuildWorkspace discovers the C# language / project loader
     /// (fixes "language 'C#' is not supported" when using parameterless MSBuildWorkspace.Create()).
@@ -2614,7 +2806,6 @@ public sealed class SolutionManager
     private readonly StringComparer _pathComparer =
         OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
     private readonly ConcurrentDictionary<string, byte> _dirtySourcePaths;
-    private readonly ConcurrentDictionary<string, long> _selfWriteUntilTicks;
     private readonly List<FileSystemWatcher> _diskWatchers = new();
     private readonly List<(string Directory, bool IncludeSubdirectories)> _diskWatcherSubscriptions = new();
     private WorkspaceInputSession? _diskWatcherSession;

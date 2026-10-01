@@ -76,6 +76,28 @@ public sealed class WorkspaceWriteEncodingTests : IDisposable
     }
 
     [Fact]
+    public async Task UpdateDocumentInMemory_echo_does_not_add_a_second_input_revision()
+    {
+        await File.WriteAllTextAsync(_sourcePath, OriginalSourceText, BomFreeUtf8);
+        var manager = await LoadAsync();
+        var session = manager.DiskWatcherSession;
+        Assert.NotNull(session);
+        var before = session.InputRevisionForPath(_sourcePath);
+
+        var result = await manager.UpdateDocumentInMemoryAsync(_sourcePath, EditedSourceText, CancellationToken.None);
+
+        Assert.True(result.IsFullSuccess, result.FormatAdapterMessage("write failed"));
+        var afterWrite = session.InputRevisionForPath(_sourcePath);
+        Assert.True(afterWrite > before);
+        manager.NotifyDiskWatcherChange(
+            session,
+            new FileSystemEventArgs(WatcherChangeTypes.Changed, Path.GetDirectoryName(_sourcePath)!, Path.GetFileName(_sourcePath)));
+        manager.ReconcileInputEvents();
+        Assert.Equal(afterWrite, session.InputRevisionForPath(_sourcePath));
+        Assert.Equal(session.Generation, manager.PullInputSnapshot().Generation);
+    }
+
+    [Fact]
     public async Task UpdateDocumentInMemoryAsync_keeps_bom_of_bom_file()
     {
         await File.WriteAllTextAsync(_sourcePath, OriginalSourceText, Utf8WithBom);

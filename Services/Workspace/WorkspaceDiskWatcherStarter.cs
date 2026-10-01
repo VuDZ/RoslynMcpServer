@@ -11,6 +11,9 @@ namespace RoslynMcpServer.Services.Workspace;
 /// </summary>
 internal static class WorkspaceDiskWatcherStarter
 {
+    /// <summary>Test seam: the next watcher that reaches construction throws before it is enabled.</summary>
+    internal static bool FailNextStartForTests { get; set; }
+
     public static WorkspaceDiskWatcherStartResult Start(
         IReadOnlyList<InputWatcherDescriptor> descriptors,
         WorkspaceInputSession session,
@@ -50,7 +53,9 @@ internal static class WorkspaceDiskWatcherStarter
 
             if (string.IsNullOrWhiteSpace(descriptor.Directory) || !Directory.Exists(descriptor.Directory))
             {
-                session.NoteCoverageUnknown(InputCoverageReason.WatcherDirectoryMissing);
+                session.NoteCoverageUnknown(
+                    InputCoverageReason.WatcherDirectoryMissing,
+                    CoverageScopeFor(descriptor.Directory));
                 log(
                     LogLevel.Debug,
                     null,
@@ -76,6 +81,12 @@ internal static class WorkspaceDiskWatcherStarter
                     watcher.InternalBufferSize = 64 * 1024;
                 }
 
+                if (FailNextStartForTests)
+                {
+                    FailNextStartForTests = false;
+                    throw new IOException("injected-watcher-start-failure");
+                }
+
                 watcher.Changed += (_, args) => onChanged(args);
                 watcher.Created += (_, args) => onChanged(args);
                 watcher.Deleted += (_, args) => onChanged(args);
@@ -90,7 +101,9 @@ internal static class WorkspaceDiskWatcherStarter
             catch (Exception ex)
             {
                 watcher?.Dispose();
-                session.NoteCoverageUnknown(InputCoverageReason.WatcherStartFailed);
+                session.NoteCoverageUnknown(
+                    InputCoverageReason.WatcherStartFailed,
+                    CoverageScopeFor(descriptor.Directory));
                 log(
                     LogLevel.Warning,
                     ex,
@@ -100,5 +113,18 @@ internal static class WorkspaceDiskWatcherStarter
         }
 
         return new WorkspaceDiskWatcherStartResult(watchers, subscriptions);
+    }
+
+    private static InputCoverageScope CoverageScopeFor(string? directory)
+    {
+        if (string.IsNullOrWhiteSpace(directory))
+        {
+            return InputCoverageScope.WholeGraph;
+        }
+
+        var canonical = InputPathCanon.TryCanonicalize(directory);
+        return canonical is null
+            ? InputCoverageScope.WholeGraph
+            : InputCoverageScope.ForPath(canonical);
     }
 }

@@ -61,9 +61,8 @@ public sealed class EditingTools
                     Directory.CreateDirectory(directory);
                 }
 
-                _solutionManager.SuppressDiskWatchForPath(fullPath);
                 // Keep the BOM state of an existing file; a plain write defaults to no BOM and would strip it.
-                await File.WriteAllTextAsync(
+                await _solutionManager.WriteTrackedTextAsync(
                     fullPath,
                     text,
                     SourceTextEncoding.ForDiskPath(fullPath),

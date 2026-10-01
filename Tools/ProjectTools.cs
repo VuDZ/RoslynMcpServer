@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Server;
 using RoslynMcpServer.Diagnostics;
 using RoslynMcpServer.Services;
+using RoslynMcpServer.Services.Workspace;
 
 namespace RoslynMcpServer.Tools;
 
@@ -50,7 +51,10 @@ public sealed class ProjectTools
                 return Task.FromResult(ToolTelemetry.TraceAndReturn(toolName, ProjectRenameHelper.FormatPlan(plan, dryRun: true)));
             }
 
-            var result = ProjectRenameHelper.Apply(plan);
+            var result = ProjectRenameHelper.Apply(
+                plan,
+                _solutionManager.DiskWatcherSession,
+                (path, text) => _solutionManager.WriteTrackedText(path, text, SourceTextEncoding.BomFreeUtf8));
             return ClearWorkspaceAndReturnAsync(toolName, result);
         }
         catch (Exception ex)
@@ -72,7 +76,12 @@ public sealed class ProjectTools
         const string toolName = nameof(AddPackageReference);
         try
         {
-            var message = await ProjectFileHelper.AddPackageReferenceAsync(projectPath, packageId, version, cancellationToken)
+            var message = await ProjectFileHelper.AddPackageReferenceAsync(
+                    projectPath,
+                    packageId,
+                    version,
+                    _solutionManager.WriteTrackedTextAsync,
+                    cancellationToken)
                 .ConfigureAwait(false);
             await _solutionManager.ClearWorkspaceAsync(cancellationToken).ConfigureAwait(false);
             return ToolTelemetry.TraceAndReturn(toolName, message + " Call `load_workspace` to refresh Roslyn state.");
@@ -96,7 +105,11 @@ public sealed class ProjectTools
         const string toolName = nameof(RemovePackageReference);
         try
         {
-            var message = await ProjectFileHelper.RemovePackageReferenceAsync(projectPath, packageId, cancellationToken)
+            var message = await ProjectFileHelper.RemovePackageReferenceAsync(
+                    projectPath,
+                    packageId,
+                    _solutionManager.WriteTrackedTextAsync,
+                    cancellationToken)
                 .ConfigureAwait(false);
             await _solutionManager.ClearWorkspaceAsync(cancellationToken).ConfigureAwait(false);
             return ToolTelemetry.TraceAndReturn(toolName, message + " Call `load_workspace` to refresh Roslyn state.");

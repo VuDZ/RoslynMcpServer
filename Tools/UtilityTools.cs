@@ -1072,9 +1072,8 @@ public sealed class UtilityTools
                             write.FormatAdapterMessage("Patch matched but workspace write was not fully applied.")));
                 }
 
-                _solutionManager.SuppressDiskWatchForPath(fullPath);
                 // Keep the BOM state of an existing file; a plain write defaults to no BOM and would strip it.
-                await File.WriteAllTextAsync(
+                await _solutionManager.WriteTrackedTextAsync(
                     fullPath,
                     updatedRaw,
                     SourceTextEncoding.ForDiskPath(fullPath),

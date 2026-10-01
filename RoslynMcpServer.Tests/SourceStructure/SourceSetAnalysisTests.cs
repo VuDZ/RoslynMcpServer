@@ -1021,6 +1021,8 @@ public sealed class SourceSetAnalysisTests
         // onRenamed, onError). Those parameters have no assignment inside the starter, so each is its
         // own limit. The lambdas SolutionManager passes are still inspected at the call site, which is
         // why the watcher test seams stay on this inventory.
+        // DuringDiskFlushForTests is invoked from the disk flush that the sanitized read calls. Tests
+        // assign it; production does not, so the walk records the same kind of limit as the other seams.
         // Keep an exact inventory rather than accepting any number of limits; an unexpected blind spot
         // must still fail, and these known limits must not turn into a decided absence of the sync entry.
         var production = ProductionAnalysis.Instance;
@@ -1042,6 +1044,7 @@ public sealed class SourceSetAnalysisTests
             "AfterPhysicalLoadBeforePrepareAsync",
             "BeforeDiskWatcherCallbackForTests",
             "AfterDiskWatcherChangeForTests",
+            "DuringDiskFlushForTests",
             "update",
             "log",
             "onChanged",

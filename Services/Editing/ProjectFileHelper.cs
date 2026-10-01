@@ -1,6 +1,7 @@
 using System.Text;
 using System.Xml.Linq;
 using Microsoft.CodeAnalysis;
+using RoslynMcpServer.Services.Workspace;
 
 namespace RoslynMcpServer.Services.Editing;
 
@@ -10,6 +11,7 @@ public static class ProjectFileHelper
         string projectPath,
         string packageId,
         string? version,
+        Func<string, string, Encoding, CancellationToken, Task> writeFile,
         CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(packageId))
@@ -35,7 +37,8 @@ public static class ProjectFileHelper
             if (!string.IsNullOrWhiteSpace(version))
             {
                 existing.SetAttributeValue("Version", version.Trim());
-                await File.WriteAllTextAsync(fullPath, doc.ToString(), cancellationToken).ConfigureAwait(false);
+                await writeFile(fullPath, doc.ToString(), SourceTextEncoding.BomFreeUtf8, cancellationToken)
+                    .ConfigureAwait(false);
                 return $"Updated PackageReference `{packageId}` to version `{version.Trim()}` in `{fullPath}`.";
             }
 
@@ -59,13 +62,15 @@ public static class ProjectFileHelper
         }
 
         itemGroup.Add(new XText(Environment.NewLine + "    "), packageRef, new XText(Environment.NewLine + "  "));
-        await File.WriteAllTextAsync(fullPath, doc.ToString(), cancellationToken).ConfigureAwait(false);
+        await writeFile(fullPath, doc.ToString(), SourceTextEncoding.BomFreeUtf8, cancellationToken)
+            .ConfigureAwait(false);
         return $"Added PackageReference `{packageId}`{(string.IsNullOrWhiteSpace(version) ? string.Empty : $" v{version.Trim()}")} to `{fullPath}`.";
     }
 
     public static async Task<string> RemovePackageReferenceAsync(
         string projectPath,
         string packageId,
+        Func<string, string, Encoding, CancellationToken, Task> writeFile,
         CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(packageId))
@@ -92,7 +97,8 @@ public static class ProjectFileHelper
         }
 
         target.Remove();
-        await File.WriteAllTextAsync(fullPath, doc.ToString(), cancellationToken).ConfigureAwait(false);
+        await writeFile(fullPath, doc.ToString(), SourceTextEncoding.BomFreeUtf8, cancellationToken)
+            .ConfigureAwait(false);
         return $"Removed PackageReference `{packageId}` from `{fullPath}`.";
     }
 }

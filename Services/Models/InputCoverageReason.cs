@@ -27,5 +27,17 @@ internal static class InputCoverageReason
 
     public const string WatcherError = "watcher-error";
 
+    public const string WatcherBufferOverflow = "watcher-buffer-overflow";
+
     public const string DirectoryRenameInsideMembership = "directory-rename-inside-membership-region";
+
+    public const string InputInaccessible = "input-inaccessible";
+
+    public const string InputReadUnstable = "input-read-unstable";
+
+    public const string InputMissing = "input-missing";
+
+    public const string UnknownRoleOrProducer = "unknown-role-or-producer";
+
+    public const string OwnersNotAttributed = "owners-not-attributed";
 }
