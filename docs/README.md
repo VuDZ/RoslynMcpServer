@@ -13,7 +13,7 @@
 
 | Тема | Канон | Статус |
 |---|---|---|
-| Актуальность сборки перед DLL-тестами | [test-build-freshness/](test-build-freshness/README.md) | эпохи 1 и 2 выполнены; эпоха 3 не начата; skip сборки не включён |
+| Актуальность сборки перед DLL-тестами | [test-build-freshness/](test-build-freshness/README.md) | эпохи 1–3 выполнены; skip сборки не включён; серию можно архивировать |
 | Явный раннер тестов | [test-runner-selection/](test-runner-selection/README.md) | эпоха 1, код не начат; `testRunner=auto\|vstest\|mtp`, молчание = `auto` |
 | Workspace load cache | [workspace-load-cache/](workspace-load-cache/README.md) | post-arbitration spec, не в runtime |
 | MCP tool surface evolution | [mcp-tool-surface-evolution/](mcp-tool-surface-evolution/README.md) | post-arbitration spec v2; реализация не начата |

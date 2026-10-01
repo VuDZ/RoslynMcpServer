@@ -13,6 +13,17 @@ namespace RoslynMcpServer.Services.Build;
 /// </summary>
 internal sealed class SessionBuildState
 {
+    public Guid? CurrentGeneration
+    {
+        get
+        {
+            lock (_mutation)
+            {
+                return _generation;
+            }
+        }
+    }
+
     public BuildFreshnessState GetState(ProjectId projectId, BuildContext context)
     {
         return EvaluateReuse(projectId, context).State;
@@ -22,6 +33,14 @@ internal sealed class SessionBuildState
     {
         ArgumentNullException.ThrowIfNull(projectId);
         ArgumentNullException.ThrowIfNull(context);
+        lock (_mutation)
+        {
+            return GetProofCore(projectId, context);
+        }
+    }
+
+    private BuildProof? GetProofCore(ProjectId projectId, BuildContext context)
+    {
         if (!_proofs.TryGetValue(new SlotKey(projectId, context), out var proof))
         {
             return null;
@@ -44,14 +63,25 @@ internal sealed class SessionBuildState
     public int ObservedInputRevision(string path)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        var canonical = Canon(path);
-        return _baseline.TryGetValue(canonical, out var revision) ? revision.InputRevision : 0;
+        lock (_mutation)
+        {
+            var canonical = Canon(path);
+            return _baseline.TryGetValue(canonical, out var revision) ? revision.InputRevision : 0;
+        }
     }
 
     public BuildReuseDecision EvaluateReuse(ProjectId projectId, BuildContext context, string? candidatePath = null)
     {
         ArgumentNullException.ThrowIfNull(projectId);
         ArgumentNullException.ThrowIfNull(context);
+        lock (_mutation)
+        {
+            return EvaluateReuseCore(projectId, context, candidatePath);
+        }
+    }
+
+    private BuildReuseDecision EvaluateReuseCore(ProjectId projectId, BuildContext context, string? candidatePath = null)
+    {
         var blockers = new List<string>();
         var key = new SlotKey(projectId, context);
         if (_building.ContainsKey(key))
@@ -88,6 +118,14 @@ internal sealed class SessionBuildState
     {
         ArgumentNullException.ThrowIfNull(projectId);
         ArgumentNullException.ThrowIfNull(context);
+        lock (_mutation)
+        {
+            return HasProofForDifferentContextCore(projectId, context);
+        }
+    }
+
+    private bool HasProofForDifferentContextCore(ProjectId projectId, BuildContext context)
+    {
         foreach (var pair in _proofs)
         {
             if (pair.Key.ProjectId == projectId && !pair.Key.Context.Equals(context))
@@ -107,6 +145,14 @@ internal sealed class SessionBuildState
     public void Observe(WorkspaceInputSnapshot snapshot)
     {
         ArgumentNullException.ThrowIfNull(snapshot);
+        lock (_mutation)
+        {
+            ObserveCore(snapshot);
+        }
+    }
+
+    private void ObserveCore(WorkspaceInputSnapshot snapshot)
+    {
         if (_generation is null || snapshot.Generation != _generation.Value)
         {
             Adopt(snapshot);
@@ -133,12 +179,20 @@ internal sealed class SessionBuildState
         ArgumentNullException.ThrowIfNull(projectId);
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(snapshot);
+        lock (_mutation)
+        {
+            return BeginBuildCore(projectId, context, snapshot);
+        }
+    }
+
+    private bool BeginBuildCore(ProjectId projectId, BuildContext context, WorkspaceInputSnapshot snapshot)
+    {
         if (_generation is not null && snapshot.Generation != _generation.Value)
         {
             return false;
         }
 
-        Observe(snapshot);
+        ObserveCore(snapshot);
         if (_generation is null || snapshot.Generation != _generation.Value)
         {
             return false;
@@ -169,6 +223,20 @@ internal sealed class SessionBuildState
         ArgumentNullException.ThrowIfNull(targetProjectId);
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(evidence);
+        lock (_mutation)
+        {
+            return TryRecordBuildResultCore(targetProjectId, context, evidence, succeeded, cancelled, outputIdentity);
+        }
+    }
+
+    private bool TryRecordBuildResultCore(
+        ProjectId targetProjectId,
+        BuildContext context,
+        WorkspaceInputSnapshot evidence,
+        bool succeeded,
+        bool cancelled,
+        string? outputIdentity)
+    {
         if (_generation is null
             || evidence.Generation != _generation.Value
             || evidence.MembershipRevision != _membershipRevision)
@@ -215,6 +283,81 @@ internal sealed class SessionBuildState
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(commandName);
         return false;
+    }
+
+    /// <summary>
+    /// Waits until this process can run one operation for the build context.
+    /// The queue is inside this process. It does not stop, wait for, or describe
+    /// a build that was started outside this process. A null budget waits without
+    /// a deadline. <see cref="TimeSpan.Zero"/> does not wait.
+    /// </summary>
+    public async Task<ContextAdmission> EnterContextAsync(
+        ProjectId projectId,
+        BuildContext context,
+        TimeSpan? waitBudget,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(projectId);
+        ArgumentNullException.ThrowIfNull(context);
+        var slot = SlotFor(new SlotKey(projectId, context));
+        if (slot.Gate.Wait(0))
+        {
+            return new ContextAdmission { Acquired = true };
+        }
+
+        if (waitBudget is { } exhausted && exhausted <= TimeSpan.Zero)
+        {
+            return new ContextAdmission();
+        }
+
+        bool acquired;
+        if (waitBudget is null)
+        {
+            await slot.Gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+            acquired = true;
+        }
+        else
+        {
+            acquired = await slot.Gate.WaitAsync(waitBudget.Value, cancellationToken).ConfigureAwait(false);
+        }
+
+        if (!acquired)
+        {
+            return new ContextAdmission();
+        }
+
+        var prior = slot.Last;
+        return new ContextAdmission
+        {
+            Acquired = true,
+            Waited = true,
+            PriorFailed = prior.Failed,
+            PriorConfirmed = prior.Confirmed,
+            PriorGeneration = prior.Generation,
+        };
+    }
+
+    /// <summary>
+    /// Publishes the outcome of the operation that holds the context, then lets the next
+    /// waiter in this process continue. A failed outcome is not that waiter's proof.
+    /// </summary>
+    public void LeaveContext(
+        ProjectId projectId,
+        BuildContext context,
+        bool confirmed,
+        bool failed,
+        Guid generation)
+    {
+        ArgumentNullException.ThrowIfNull(projectId);
+        ArgumentNullException.ThrowIfNull(context);
+        var slot = SlotFor(new SlotKey(projectId, context));
+        slot.Last = new ContextOperationReport
+        {
+            Failed = failed,
+            Confirmed = confirmed,
+            Generation = generation,
+        };
+        slot.Gate.Release();
     }
 
     private void Adopt(WorkspaceInputSnapshot snapshot)
@@ -754,6 +897,20 @@ internal sealed class SessionBuildState
         return InputPathCanon.TryCanonicalize(path) ?? path;
     }
 
+    private ContextSlot SlotFor(SlotKey key)
+    {
+        lock (_contextSlotLookup)
+        {
+            if (!_contextSlots.TryGetValue(key, out var slot))
+            {
+                slot = new ContextSlot();
+                _contextSlots.Add(key, slot);
+            }
+
+            return slot;
+        }
+    }
+
     private readonly record struct SlotKey(ProjectId ProjectId, BuildContext Context);
 
     private readonly record struct PathRevision(int InputRevision);
@@ -773,6 +930,22 @@ internal sealed class SessionBuildState
         Dirty,
     }
 
+    private sealed class ContextSlot
+    {
+        public SemaphoreSlim Gate { get; } = new(1, 1);
+
+        public ContextOperationReport Last { get; set; }
+    }
+
+    private struct ContextOperationReport
+    {
+        public bool Failed { get; set; }
+
+        public bool Confirmed { get; set; }
+
+        public Guid Generation { get; set; }
+    }
+
     private Guid? _generation;
     private int _membershipRevision;
     private WorkspaceInputSnapshot? _latest;
@@ -783,4 +956,13 @@ internal sealed class SessionBuildState
     // TryRecordBuildResult removes the entry. Two builds do not share a baseline.
     private readonly Dictionary<SlotKey, InFlightBuild> _building = new();
     private readonly Dictionary<string, PathRevision> _baseline = new(InputPathCanon.Comparer);
+
+    // Serializes in-process mutations of the dictionaries above. Not held across a CLI process,
+    // and not a gate on builds started outside this process.
+    private readonly object _mutation = new();
+
+    // One semaphore per build context so callers in this process do not overlap on that key.
+    // The lookup lock is not held while a caller waits or while a CLI process runs.
+    private readonly object _contextSlotLookup = new();
+    private readonly Dictionary<SlotKey, ContextSlot> _contextSlots = new();
 }

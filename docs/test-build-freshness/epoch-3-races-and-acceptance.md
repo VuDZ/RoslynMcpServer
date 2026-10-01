@@ -1,6 +1,6 @@
 # Эпоха 3. Гонки, ошибки и интеграционная приёмка
 
-Статус: **не начата**. Требует [эпохи 2](_archive/epoch-2-solution-build-before-tests.md) и общего pull provider watcher-серии.
+Статус: **выполнена** (2026-10-01). Требует [эпохи 2](_archive/epoch-2-solution-build-before-tests.md) и общего pull provider watcher-серии. Пропуск сборки не включён.
 
 ## Цель и работа
 

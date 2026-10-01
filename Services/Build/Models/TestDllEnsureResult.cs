@@ -27,4 +27,10 @@ internal sealed class TestDllEnsureResult
     public bool Cancelled { get; init; }
 
     public bool TimedOut { get; init; }
+
+    /// <summary>
+    /// True when this operation failed to confirm a build. A later caller that waited
+    /// for this context must not start tests from this result.
+    /// </summary>
+    public bool FailedOperation { get; init; }
 }

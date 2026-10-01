@@ -182,6 +182,11 @@ MCP `tools/list` stays JSON + JSON Schema. Markdown is for JIT help and diagnost
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.5.3
+
+- **DLL tests share one solution-target check** — `run_dotnet_test`, `run_specific_test`, and `run_test_by_filter` take `buildPolicy` (`auto`, `always`, `never`) when `binariesPath` is set. Omit both `buildPolicy` and `noBuild` and the DLL route uses `auto`. `noBuild` is optional: on that route `false` means `always` and `true` means `never`; passing both parameters is an error. `buildPolicy` without `binariesPath` is an error. Without `binariesPath`, omitting `noBuild` still means rebuild for the first two tools and skip for `run_test_by_filter`.
+- `auto` and `always` compile with `dotnet build <loaded.sln> -t`, then `dotnet test` the DLL with `--no-build`. `never` starts tests only when the session can prove that DLL is current; otherwise it returns an error and does not start them. The pull does not carry input content hashes yet, so `auto` still builds on a second call. If inputs change after the build and before tests start, one rebuild runs inside the same `timeoutSeconds`. A second miss does not start tests. Two DLL calls with the same project and build context wait on each other inside this process; that wait does not stop a build outside it.
+
 ### v1.5.2
 
 - **Project inputs outside the solution directory** — the disk watcher follows the loaded graph. Project directories stay recursive. A linked file, and a walk-up `Directory.Build.props`, `Directory.Build.targets`, `Directory.Packages.props`, or `global.json` outside those directories, is a non-recursive watch on that file's own directory. `search_code` roots stay the loaded workspace directory plus project directories.
@@ -1058,7 +1063,8 @@ Parses C# syntax, inserts with DocumentEditor, formats the file. Prefer over `ap
 **Parameters:**
 - `workspacePath: string`
 - `timeoutSeconds: int = 300` — process timeout; `0` disables (not recommended). Raise for long integration tests (e.g. 900/1800).
-- `noBuild: bool = false` — pass `--no-build` (after a successful `run_dotnet_build`).
+- `noBuild: bool? = null` — omit means false on the non-DLL route (`--no-build` only when true). With `binariesPath`, `false` means `always` and `true` means `never`; do not pass this together with `buildPolicy`.
+- `buildPolicy: string? = null` — `auto`, `always`, or `never`. Requires `binariesPath`. Omit both this and `noBuild` for `auto`.
 - `noRestore: bool = false` — pass `--no-restore`.
 - `configuration: string? = null` — optional `dotnet test -c` (e.g. `Sit-Debug`). Omit to inherit `load_workspace` (use the same value as `run_dotnet_build` when `noBuild=true`).
 - `platform: string? = null` — optional `-p:Platform=`. Omit to inherit `load_workspace`.
@@ -1078,7 +1084,8 @@ Parses C# syntax, inserts with DocumentEditor, formats the file. Prefer over `ap
 - `className: string?` — e.g. `UserServiceTests` (simple or fully qualified)
 - `methodName: string?` — e.g. `CreateUser_WhenValid_ReturnsOk`
 - `timeoutSeconds: int = 300` — same as `run_dotnet_test`.
-- `noBuild: bool = false` — pass `--no-build`.
+- `noBuild: bool? = null` — omit means false. With `binariesPath`, `false` means `always` and `true` means `never`; do not pass this together with `buildPolicy`.
+- `buildPolicy: string? = null` — same DLL-route policy as `run_dotnet_test`. Requires `binariesPath`.
 - `noRestore: bool = false` — pass `--no-restore`.
 - `configuration: string? = null` — optional `dotnet test -c` (same as `run_dotnet_test`).
 - `platform: string? = null` — optional `-p:Platform=`. Omit to inherit `load_workspace`.
@@ -1099,7 +1106,8 @@ At least one of `className` or `methodName` is required. The tool builds a VSTes
 - `workspacePath: string` — `.csproj`, `.sln`, `.slnx`, or test project directory (same as `run_dotnet_test`).
 - `filter: string` — passed through as `--filter` (e.g. `FullyQualifiedName~MyClass`, `FullyQualifiedName~CreateUser`, `TestCategory=Smoke`). Empty is an error. Do not put method `()`.
 - `timeoutSeconds: int = 300` — same as `run_dotnet_test`.
-- `noBuild: bool = true` — skip rebuild (default **true**, unlike the other test tools).
+- `noBuild: bool? = null` — omit means true on the non-DLL route (default **true**, unlike the other test tools). With `binariesPath`, `false` means `always` and `true` means `never`; do not pass this together with `buildPolicy`.
+- `buildPolicy: string? = null` — same DLL-route policy as `run_dotnet_test`. Requires `binariesPath`.
 - `noRestore: bool = false` — `--no-restore`.
 - `configuration: string? = null` — optional `dotnet test -c`. Omit to inherit `load_workspace`.
 - `platform: string? = null` — optional `-p:Platform=`. Omit to inherit `load_workspace`.
@@ -1547,7 +1555,7 @@ cd D:\Devel\YourApp
 
 ## История agent-tools по версиям
 
-См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.5.2). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+См. английский раздел [Agent tools by version](#agent-tools-by-version) (v1.0.13–v1.5.3). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
 ## Cursor: как заставить агента реально вызывать tools
 
@@ -1927,7 +1935,8 @@ cd D:\Devel\YourApp
 **Параметры:**
 - `workspacePath: string`
 - `timeoutSeconds: int = 300` — таймаут процесса; `0` отключает (не рекомендуется). Для долгих интеграционных поднимайте (900/1800).
-- `noBuild: bool = false` — `--no-build` (после успешного `run_dotnet_build`).
+- `noBuild: bool? = null` — без `binariesPath` пропуск значит false. С `binariesPath` `false` — это `always`, `true` — `never`; вместе с `buildPolicy` не передавать.
+- `buildPolicy: string? = null` — `auto`, `always` или `never`. Нужен `binariesPath`. Если не переданы оба параметра, DLL-маршрут берёт `auto`.
 - `noRestore: bool = false` — `--no-restore`.
 - `configuration: string? = null` — опционально `dotnet test -c` (например `Sit-Debug`). Если не задан — с `load_workspace`.
 - `platform: string? = null` — опционально `-p:Platform=`.
@@ -1947,7 +1956,8 @@ cd D:\Devel\YourApp
 - `className: string?` — например `UserServiceTests`
 - `methodName: string?` — например `CreateUser_WhenValid_ReturnsOk`
 - `timeoutSeconds: int = 300` — как у `run_dotnet_test`.
-- `noBuild: bool = false` — `--no-build`.
+- `noBuild: bool? = null` — без `binariesPath` пропуск значит false. С `binariesPath` `false` — это `always`, `true` — `never`; вместе с `buildPolicy` не передавать.
+- `buildPolicy: string? = null` — та же политика DLL-маршрута, что у `run_dotnet_test`. Нужен `binariesPath`.
 - `noRestore: bool = false` — `--no-restore`.
 - `configuration: string? = null` — опционально `dotnet test -c` (как у `run_dotnet_test`).
 - `platform: string? = null` — опционально `-p:Platform=`.
@@ -1968,7 +1978,8 @@ cd D:\Devel\YourApp
 - `workspacePath: string` — `.csproj`, `.sln`, `.slnx` или каталог тестового проекта (как у `run_dotnet_test`).
 - `filter: string` — передаётся в `--filter` (например `FullyQualifiedName~MyClass`, `FullyQualifiedName~CreateUser`, `TestCategory=Smoke`). Пустой — ошибка. Не ставьте `()` у метода.
 - `timeoutSeconds: int = 300` — как у `run_dotnet_test`.
-- `noBuild: bool = true` — пропуск rebuild (по умолчанию **true**, в отличие от остальных test tools).
+- `noBuild: bool? = null` — без `binariesPath` пропуск значит true (по умолчанию **true**, в отличие от остальных test tools). С `binariesPath` `false` — это `always`, `true` — `never`; вместе с `buildPolicy` не передавать.
+- `buildPolicy: string? = null` — та же политика DLL-маршрута, что у `run_dotnet_test`. Нужен `binariesPath`.
 - `noRestore: bool = false` — `--no-restore`.
 - `configuration: string? = null` — опционально `dotnet test -c`. Если не задан — с `load_workspace`.
 - `platform: string? = null` — опционально `-p:Platform=`.
