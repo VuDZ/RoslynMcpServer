@@ -160,4 +160,22 @@ public static class DotNetConfigurationArguments
         var suffix = FormatPlatformProperty(platform, targetPath);
         return suffix.Length == 0 ? arguments : arguments + suffix;
     }
+
+    /// <summary>
+    /// Returns a leading-space fragment <c> -p:TargetFramework="Name"</c>, or empty when omitted.
+    /// The same string is stored on the build-context key for a DLL-route solution build.
+    /// </summary>
+    public static string FormatTargetFrameworkProperty(string? targetFramework)
+    {
+        var name = Normalize(targetFramework, nameof(targetFramework));
+        return name is null ? string.Empty : $" -p:TargetFramework=\"{name}\"";
+    }
+
+    /// <summary>Appends <c>-p:TargetFramework</c> when set; otherwise returns <paramref name="arguments"/> unchanged.</summary>
+    public static string AppendTargetFramework(string arguments, string? targetFramework)
+    {
+        ArgumentNullException.ThrowIfNull(arguments);
+        var suffix = FormatTargetFrameworkProperty(targetFramework);
+        return suffix.Length == 0 ? arguments : arguments + suffix;
+    }
 }

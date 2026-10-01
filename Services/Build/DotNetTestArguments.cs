@@ -51,6 +51,7 @@ public static class DotNetTestArguments
     /// Incremental <c>dotnet build</c> (no <c>--no-incremental</c>) with the same configuration / platform as the test step
     /// (<c>-p:Configuration</c> on the build; <c>dotnet test</c> still uses <c>-c</c>).
     /// Optional <paramref name="solutionTarget"/> appends <c>-t</c> (loaded <c>.sln</c>/<c>.slnx</c> project target).
+    /// Optional <paramref name="targetFramework"/> appends <c>-p:TargetFramework</c> so the command matches the build-context key.
     /// </summary>
     public static string BuildPreTestBuild(
         string targetPath,
@@ -58,7 +59,8 @@ public static class DotNetTestArguments
         string? configuration = null,
         string? platform = null,
         string? buildArgs = null,
-        string? solutionTarget = null)
+        string? solutionTarget = null,
+        string? targetFramework = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(targetPath);
 
@@ -66,6 +68,7 @@ public static class DotNetTestArguments
         args += DotNetBuildProbe.FormatTargetSwitch(solutionTarget);
         args = DotNetConfigurationArguments.AppendConfigurationProperty(args, configuration);
         args = DotNetConfigurationArguments.AppendPlatform(args, platform, targetPath);
+        args = DotNetConfigurationArguments.AppendTargetFramework(args, targetFramework);
         args = DotNetBuildArguments.Append(args, buildArgs);
         if (noRestore)
         {

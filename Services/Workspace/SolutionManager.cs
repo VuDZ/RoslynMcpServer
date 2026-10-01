@@ -57,6 +57,12 @@ public sealed class SolutionManager
     /// </summary>
     public string? LoadedBuildArgs { get; private set; }
 
+    /// <summary>
+    /// In-process build proofs for this manager. A later pull with a new generation
+    /// or membership revision is adopted in place; the instance is not replaced.
+    /// </summary>
+    internal SessionBuildState SessionBuildState { get; } = new();
+
     // Same-assembly tools and the lifecycle test host read these members.
     // InternalsVisibleTo is only RoslynMcpServer.Tests and RoslynMcpServer.LifecycleTestHost.
     // A plugin assembly does not see them; the public members above are its workspace API.

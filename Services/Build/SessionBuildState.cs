@@ -81,6 +81,25 @@ internal sealed class SessionBuildState
     }
 
     /// <summary>
+    /// True when this project has a proof for a different configuration, platform, TFM,
+    /// build arguments, or output path. That proof does not make this context current.
+    /// </summary>
+    public bool HasProofForDifferentContext(ProjectId projectId, BuildContext context)
+    {
+        ArgumentNullException.ThrowIfNull(projectId);
+        ArgumentNullException.ThrowIfNull(context);
+        foreach (var pair in _proofs)
+        {
+            if (pair.Key.ProjectId == projectId && !pair.Key.Context.Equals(context))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
     /// Applies a pull. The same generation keeps proofs. A new generation, or a membership
     /// revision change, drops unconfirmed scope. Existing revisions are copied, not zeroed,
     /// and are not treated as a new edit on the first view of a generation.
