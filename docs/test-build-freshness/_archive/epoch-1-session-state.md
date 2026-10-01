@@ -1,13 +1,13 @@
 # Эпоха 1. Состояние сборок в текущей сессии
 
-Статус: **не начата**. Сложность: высокая из-за проверки полноты входов.
+Статус: **выполнена** (2026-10-01). Сложность: высокая из-за проверки полноты входов.
 
 ## Цель и работа
 
 - Ввести независимый session build-state service: ключ build context,
   подтверждённые revisions/fingerprints, output identity и причина dirty/unknown.
   Независимы build proofs, а не источник входов: membership, owners и revisions
-  читать из [общего pull-снимка](../archive/project-input-watching/input-state-contract.md).
+  читать из [общего pull-снимка](../../archive/project-input-watching/input-state-contract.md).
   Не создавать собственные FSW subscription/feed, input index или session token.
   Ничего не сохранять между процессами.
 - Загрузка/reset/new session generation общего владельца создаёт unknown
@@ -34,12 +34,12 @@
   coverage: при unknown сохраняется always-build fallback.
 - Определить проверку перед reuse: чтение содержимого/валидирование полного
   supported input set, membership и outputs либо conservative always-build.
-  [F-03](UNRESOLVED.md) закрыть до включения skip; silent missing event должен
+  [F-03](../UNRESOLVED.md) закрыть до включения skip; silent missing event должен
   обнаруживаться проверкой или приводить к отказу от оптимизации.
 - Обычный `run_dotnet_build` может подтверждать состояние через тот же механизм,
   только если известны target, context, input evidence и реальный результат.
   Внешний build и `execute_dotnet_command` не получают доверие по одному имени команды.
-- Уточнить публичный автоматический режим по [F-01](UNRESOLVED.md) и evidence
+- Уточнить публичный автоматический режим по [F-01](../UNRESOLVED.md) и evidence
   полноты входов по F-02. W-01 уже закрыт как выбор одной карты C#/non-C# ролей;
   новый этап исследования этого выбора не требуется. Модель проектировать
   независимо от выбранного имени параметра.

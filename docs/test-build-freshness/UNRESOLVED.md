@@ -1,64 +1,67 @@
 # Открытые вопросы проверки сборки перед DLL-тестами
 
-Дата: 2026-09-30. Согласованное начальное dirty-состояние и session-only
+Дата: 2026-10-01. F-01…F-05 закрыты принятыми решениями. Публичный параметр,
+пропуск сборки и цикл повтора этими решениями не включаются.
+Согласованное начальное dirty-состояние и session-only
 подтверждения закреплены в [README](README.md); повторного согласования не требуют.
 
-## F-01. Автоматический режим и существующий noBuild
+## F-01. Автоматический режим и существующий noBuild — закрыт
 
-Нужно автоматическое ensure-current перед DLL-тестами. Сегодня `noBuild=true`
-явно запрещает предварительный build; при этом default `run_test_by_filter`
-равен true. Отсутствующий bool-аргумент и явно переданный true сейчас внутри
-метода неразличимы. Изменение default само по себе не решает контракт.
+Публичный параметр появится позже, не в модели состояния. `buildPolicy` =
+`auto` | `always` | `never`, по умолчанию `auto` на DLL-маршруте
+(`binariesPath` задан). `noBuild` становится `bool?`, чтобы пропуск
+аргумента был виден. На маршруте без DLL отсутствие параметра сохраняет
+сегодняшний default (`false` у `run_dotnet_test` и `run_specific_test`,
+`true` у `run_test_by_filter`). На DLL-маршруте: оба параметра переданы —
+ошибка; только `noBuild=false` → `always`; только `noBuild=true` →
+`never`; ни один не передан → `auto`. `never` запускает тесты только
+когда состояние `current` и выходы совпадают; иначе отказ, тесты не
+стартуют. Внутренний `dotnet test` на DLL-маршруте всегда получает
+`--no-build`. `buildPolicy` без `binariesPath` — ошибка. Это реализует
+следующая эпоха. Модель состояния от имени параметра не зависит.
 
-Рекомендуемое направление для обсуждения: явная политика `auto` / `always` /
-`never`, где автоматический DLL-маршрут использует `auto`, а принудительный
-запрет на build при dirty/unknown возвращает отказ, а не запускает старую DLL.
-Имя/тип параметра, миграция `noBuild` и поведение при двух одновременно
-переданных параметрах пока не выбраны. Это предложение, не согласованный API.
+## F-02. Evidence полноты значимых входов — закрыт
 
-До публичного включения закрепить одинаковую семантику трёх адаптеров и
-обновить descriptions. Внутренний `--no-build` тестового процесса остаётся:
-он не является запретом отдельной предварительной сборки через Solution.
+Граница evidence — закрытый профиль W-02 в
+[UNRESOLVED наблюдения за входами](../archive/project-input-watching/UNRESOLVED.md).
+Пропуск сборки потребовал бы pull coverage `complete` для dependency scope
+этого build context. Любая неизвестность, пересекающая scope (imports,
+restore inputs, custom tasks, соседи external-glob, metadata reference,
+которая не является выходом загруженного проекта и не является сборкой
+shared framework / NuGet, недосчитанный TFM, XAML/resources, которые ещё
+не документы графа), оставляет always-build. Успешная сборка не превращает
+unknown coverage в complete. Отсутствие пути в индексе документов не
+доказывает, что путь не вход.
 
-## F-02. Evidence полноты значимых входов
+## F-03. Доказательство неизменности между запусками — закрыт
 
-В watcher-серии принято обнаружение не-C# изменений и уведомление по ролям;
-[W-01](../archive/project-input-watching/UNRESOLVED.md) закрыт как выбор общей карты ролей
-и границы text sync. Открыт W-02: источник membership и evidence полного профиля.
-Для WPF одних `.cs` недостаточно.
-Учитывать подтверждённые XAML/resources, AdditionalFiles, configs/imports/restore
-inputs и зависимости; arbitrary custom tasks не получают гарантию без полного
-evidence. Generated intermediates/outputs производящего build не увеличивают
-его input revisions; отдельные подтверждённые роли пути сохраняются.
-Неподдержанный профиль всегда строится через Solution и не получает оптимизацию skip.
+Отдельного хранилища хешей входов нет. Курсор подтверждения хранит
+generation, membership revision, input revisions путей, coverage, pending
+и output identity, которую передал вызывающий. Сравнение этого курсора
+с хешами содержимого входов откладывается, пока общий снимок не несёт
+эти хеши. До тех пор reuse/skip запрещён. Политика хеша semantic read
+не выбирается (workspace-load-cache U-ARB-02 остаётся открытым).
 
-Нет в индексе документов не означает «не input». Новые glob-items/imports,
-неизвестные membership regions и metadata-only references сохраняют
-conservative stale/unknown. Complete не выдаётся по урезанному профилю.
+## F-04. Что действительно подтверждает solution target — закрыт
 
-## F-03. Доказательство неизменности между запусками
+Exit code 0 подтверждает только проект, который был целью вызова, и только
+этот context (Configuration, Platform, TFM, buildArgs, выходной путь), и
+только когда coverage этого scope был complete на старте и на финише,
+input revisions не изменились и output identity снята. Project references,
+соседи с общим файлом и остальная Solution не становятся current.
+`BuildProjectReferences` из exit code не читается. Если выход зависимости —
+вход, чья свежесть неизвестна, цель остаётся unknown.
 
-Отсутствие FSW-события не доказывает неизменность. Нужно выбрать подтверждённую
-проверку входов, состава и outputs перед reuse; metadata-only shortcuts,
-content fingerprints и их бюджеты должны быть обоснованы сценариями.
-Для unknown действует already-agreed build fallback. Выбор live validation
-не означает реализацию долговременного кеша и не меняет глобальный semantic
-read contract из workspace-load-cache.
+## F-05. Граница гонок и retry — закрыт
 
-## F-04. Что действительно подтверждает solution target
-
-Нужны source of evidence для build scope, effective context и результатов
-зависимостей, включая config mappings, disabled project-reference builds,
-metadata-only зависимости и custom outputs. До подтверждения нельзя очищать
-весь dependency closure по exit code 0. Эпоха 1 фиксирует conservative policy;
-эпоха 3 проверяет её на реальной сборке.
-
-## F-05. Граница гонок и retry
-
-Нужны ограниченная retry policy, обработка общих outputs и внешнего build.
-Инвариант уже задан: обнаруженное изменение не очищается старым build и
-не разрешает запуск неподтверждённой DLL. Атомарная сборка из immutable
-snapshot вне scope; точный предел проверяемой стабильности описать в отчёте.
+Здесь только решение; цикл повтора не реализуется (его место — эпоха гонок).
+Один повторный build,
+если revisions или output изменились между успехом и стартом тестов;
+второй сбой — отказ; оба делят один `timeoutSeconds`. Операции MCP с одним
+и тем же ключом context сериализуются на этом ключе. Семафор workspace не
+удерживается на время CLI-процесса. Внешний build и `execute_dotnet_command`
+не являются подтверждениями. Два context с одним выходным путём остаются
+unknown, пока путь не уникален.
 
 ## F-06. Consumer API и lifecycle — закрыт
 
