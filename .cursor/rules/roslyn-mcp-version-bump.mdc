@@ -23,7 +23,7 @@ After a **successful** `run_dotnet_build` / `dotnet test` (and before or with `d
 
 ## After bump
 
-1. Update README «Agent tools by version» (+ RU pointer) when user-visible tools/behavior change.
+1. Update `CHANGELOG.md` when user-visible tools/behavior change. README already links to it; update Reference there when the tool catalog changes.
 2. Sync `AGENTS.md.sample` / expected version hints (`get_mcp_server_info` → new version).
 3. Publish (`publish-and-verify.ps1` or `dotnet publish … -r win-x64`), reload MCP host, confirm **`get_mcp_server_info`** shows the new version.
 

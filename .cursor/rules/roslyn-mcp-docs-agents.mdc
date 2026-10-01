@@ -11,7 +11,8 @@ alwaysApply: true
 |-------|------|
 | MCP tool `[Description]` | Per-tool API: params, caps, anti-patterns |
 | `AGENTS.md.sample` | Session policy only (when / MCP vs host / bans) — copy to app repos as `AGENTS.md` |
-| README «Agent tools by version» + **Reference: MCP Tools** | Human changelog + tool catalog |
+| `CHANGELOG.md` | Human changelog of agent-visible tools and behavior |
+| README **Reference: MCP Tools** | Tool catalog |
 | README Agent Initialization | Short pointer to sample — **not** a full copy of AGENTS |
 
 ## Keep in sync (when tools change)
@@ -19,7 +20,7 @@ alwaysApply: true
 When adding/changing MCP tools, Descriptions, or agent-visible behavior, update **together**:
 
 1. **`AGENTS.md.sample`** — only if session policy changes (init, bans, hybrid search, edit/secrets). Do **not** paste tool params/caps into AGENTS.
-2. **`README.md`** — «Agent tools by version» (semver row) **and** **Reference: MCP Tools** (EN; RU Reference as needed) when the public tool surface changes.
+2. **`CHANGELOG.md`** — semver row when agent-visible behavior changes. **`README.md`** — **Reference: MCP Tools** (EN; RU Reference as needed) when the public tool surface changes. The README keeps a link to the changelog.
 3. **Version** in `RoslynMcpServer.csproj` when shipping tool changes (see `roslyn-mcp-version-bump.mdc`).
 
 Copy `AGENTS.md.sample` → app repo `AGENTS.md` — **no machine-specific paths**.

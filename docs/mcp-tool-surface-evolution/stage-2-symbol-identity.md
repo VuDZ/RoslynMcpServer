@@ -289,7 +289,7 @@ MCP schema и вызовы:
 - ID-only вызовы пяти старых tools валидны.
 - Descriptions пяти старых tools + `get_symbol_info` / `get_symbol_source`
   перечисляют режимы, пример ID-only и предпочтение `symbolId`.
-- README «Agent tools by version» + Reference + `AGENTS.md.sample`:
+- `CHANGELOG.md` + README Reference + `AGENTS.md.sample`:
   lifetime ID, payload `stale-id`, prefer `symbolId`, ID-режим
   `get_method_body` = snapshot, отсутствие точности legacy path-only для
   linked-файла.
