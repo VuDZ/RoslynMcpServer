@@ -147,14 +147,10 @@ public sealed class WpfTemporaryProjectWatchingTests
         using var fixture = new WpfTemporaryProjectFixture();
         var logger = new WorkspaceRecordingLogger();
         var manager = SolutionManagerTestFactory.Create(logger: logger);
+        var foreignSolutionPath = Path.Combine(Path.GetTempPath(), "roslyn-mcp-foreign-" + Guid.NewGuid().ToString("N") + ".slnx");
+        var foreignDelivered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var delivered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        manager.AfterDiskWatcherChangeForTests = args =>
-        {
-            if (string.Equals(args.FullPath, fixture.ProjectPath, StringComparison.OrdinalIgnoreCase))
-            {
-                delivered.TrySetResult();
-            }
-        };
+        var events = new ConcurrentQueue<string>();
         try
         {
             await fixture.BuildAsync();
@@ -163,7 +159,29 @@ public sealed class WpfTemporaryProjectWatchingTests
             {
                 Assert.EndsWith("_wpftmp.csproj", temporaryProject, StringComparison.OrdinalIgnoreCase);
                 Assert.True(File.Exists(temporaryProject), "The temporary compilation must still be active.");
-                Assert.False(manager.ProjectGraphStaleFromGraphFile);
+                Assert.False(manager.ProjectGraphStaleFromGraphFile, string.Join('\n', logger.Messages));
+                // Arm only in the paused build. The hook also runs for rejected or deferred events,
+                // so observing the path alone does not prove that this graph was invalidated.
+                manager.AfterDiskWatcherChangeForTests = args =>
+                {
+                    if (string.Equals(args.FullPath, foreignSolutionPath, StringComparison.OrdinalIgnoreCase))
+                    {
+                        foreignDelivered.TrySetResult();
+                    }
+                    if (string.Equals(args.FullPath, fixture.ProjectPath, StringComparison.OrdinalIgnoreCase))
+                    {
+                        events.Enqueue($"{args.ChangeType} {args.FullPath}: graphFile={manager.ProjectGraphStaleFromGraphFile}");
+                        if (manager.ProjectGraphStaleFromGraphFile)
+                        {
+                            delivered.TrySetResult();
+                        }
+                    }
+                };
+                // Other tests create .sln/.slnx files directly under the shared temporary directory.
+                // The walk-up watcher sees them, but they are not inputs of this WPF graph.
+                await File.WriteAllTextAsync(foreignSolutionPath, "<Solution />");
+                await foreignDelivered.Task.WaitAsync(TimeSpan.FromMinutes(1));
+                Assert.False(manager.ProjectGraphStaleFromGraphFile, string.Join('\n', logger.Messages));
                 await File.AppendAllTextAsync(fixture.ProjectPath, "\n<!-- External edit during WPF temporary compilation. -->\n");
                 try
                 {
@@ -172,7 +190,12 @@ public sealed class WpfTemporaryProjectWatchingTests
                 catch (TimeoutException ex)
                 {
                     throw new TimeoutException("The real project edit was not delivered during paused WPF compilation.\n"
-                        + string.Join('\n', logger.Messages), ex);
+                        + $"graphFile={manager.ProjectGraphStaleFromGraphFile} composition={manager.ProjectGraphStaleFromComposition} "
+                        + $"refreshAll={manager.RefreshAllDocumentsPending} "
+                        + $"deferred={manager.DiskWatcherSession!.OwnWriteDefersContent(fixture.ProjectPath)}\n"
+                        + "EVENTS\n" + string.Join('\n', events)
+                        + "\nCOVERAGE\n" + string.Join('\n', manager.DiskWatcherSession.ObservationUnknownReasons)
+                        + "\nLOG\n" + string.Join('\n', logger.Messages), ex);
                 }
                 Assert.True(manager.ProjectGraphStaleFromGraphFile);
             });
@@ -185,6 +208,7 @@ public sealed class WpfTemporaryProjectWatchingTests
         finally
         {
             await manager.ClearWorkspaceAsync();
+            File.Delete(foreignSolutionPath);
         }
     }
 

@@ -115,6 +115,25 @@ internal static class WorkspaceDiskEventClassifier
     private static DiskEventDecision ClassifyGraphFile(string canonical, WorkspaceInputMap map)
     {
         var known = map.Find(canonical);
+        if (known is null && !map.Regions.Any(region =>
+                WorkspaceDiskPathFilter.IsPathUnderDirectory(canonical, region.Directory, InputPathCanon.Comparison)))
+        {
+            // Point watchers also deliver neighboring files. A foreign solution in a shared ancestor
+            // (for example, %TEMP%) is not an input of this graph just because its extension matches.
+            // Unindexed imports are still unknown; this does not establish their irrelevance.
+            // See docs/archive/project-input-watching/epoch-2-watchers-and-shared-sync.md.
+            return new DiskEventDecision(
+                canonical,
+                provenIrrelevant: false,
+                dirtyUserSource: false,
+                compositionStale: false,
+                graphFile: false,
+                new[]
+                {
+                    new InputPathNotice(canonical, InputRole.Unknown, ProjectId: null, CountsAsInputRevision: false),
+                });
+        }
+
         var notices = known is null
             ? new List<InputPathNotice>
             {

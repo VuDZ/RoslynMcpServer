@@ -177,6 +177,53 @@ public sealed class WorkspaceDiskEventClassificationTests
         Assert.DoesNotContain(roots, root => Same(root, fixture.LinkedDirectory));
     }
 
+    [Theory]
+    [InlineData(".csproj")]
+    [InlineData(".sln")]
+    [InlineData(".slnx")]
+    public void Foreign_graph_file_in_a_point_watched_directory_is_unknown_without_graph_invalidation(string extension)
+    {
+        using var fixture = MapFixture.Create();
+        var session = fixture.Publish();
+        var foreign = Path.Combine(fixture.LinkedDirectory, "Foreign" + extension);
+
+        fixture.Manager.NotifyDiskWatcherChange(session, Change(foreign, WatcherChangeTypes.Created));
+
+        Assert.False(fixture.Manager.ProjectGraphStaleFromGraphFile);
+        Assert.False(fixture.Manager.ProjectGraphStaleFromComposition);
+        Assert.Contains(session.Notices, notice =>
+            Same(notice.CanonicalPath, foreign) && notice.Role == InputRole.Unknown && !notice.CountsAsInputRevision);
+        Assert.Contains(InputCoverageReason.UnknownRoleOrProducer, session.ObservationUnknownReasons);
+    }
+
+    [Theory]
+    [InlineData(".csproj")]
+    [InlineData(".sln")]
+    [InlineData(".slnx")]
+    public void New_graph_file_inside_project_membership_still_invalidates_the_graph(string extension)
+    {
+        using var fixture = MapFixture.Create();
+        var session = fixture.Publish();
+        var graphFile = Path.Combine(fixture.ProjectDirectory, "New" + extension);
+
+        fixture.Manager.NotifyDiskWatcherChange(session, Change(graphFile, WatcherChangeTypes.Created));
+
+        Assert.True(fixture.Manager.ProjectGraphStaleFromGraphFile);
+        Assert.Contains(session.Notices, notice =>
+            Same(notice.CanonicalPath, graphFile) && notice.Role == InputRole.EvaluationInput && notice.CountsAsInputRevision);
+    }
+
+    [Fact]
+    public void Indexed_solution_outside_project_membership_still_invalidates_the_graph()
+    {
+        using var fixture = MapFixture.Create();
+        var session = fixture.Publish();
+
+        fixture.Manager.NotifyDiskWatcherChange(session, Change(fixture.SolutionPath, WatcherChangeTypes.Changed));
+
+        Assert.True(fixture.Manager.ProjectGraphStaleFromGraphFile);
+    }
+
     private static int CountUserNotices(WorkspaceInputSession session, string path, ProjectId projectId)
     {
         return session.Notices.Count(notice =>
