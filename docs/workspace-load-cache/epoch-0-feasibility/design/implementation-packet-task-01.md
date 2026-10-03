@@ -1,6 +1,8 @@
 # Implementation packet E0/task-01 — isolated hydrate host
 
-Producer: task-00. Contract filled; execution **not-run**. Read [design](../design.md),
+Producer: task-00. Contract filled; task-01 execution **accepted (isolated experiment,
+2026-10-03)**; [validation and limits](../evidence/task-01-hydrate-host.md).
+Read [design](../design.md),
 spec, current audit, task-execution and docs/code-style.md in full before C# edits.
 Owner task-01; no shared production file is assigned. Namespace throughout:
 `RoslynMcpServer.Tests.WorkspaceLoadCache`. `ImmutableArray<T>` must be non-default;

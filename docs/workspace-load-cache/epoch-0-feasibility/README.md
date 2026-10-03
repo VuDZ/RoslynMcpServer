@@ -3,9 +3,9 @@
 [Комплект v2](../README.md) · [Каноническая спецификация](spec.md) ·
 [Общие правила задач](../task-execution.md)
 
-Примерная сложность эпохи: **4/5**. Все задания ниже — план работ,
-а не утверждение о shipped behavior. Модель в имени — рекомендация; итоговая
-приёмка выполняется по всей спецификации.
+Примерная сложность эпохи: **4/5**. Статусы ниже отражают выполнение и принятый
+scope каждой задачи; приёмка задачи не утверждает shipped behavior. Модель в
+имени — рекомендация; итоговая приёмка выполняется по всей спецификации.
 
 ## Маршрут и границы
 
@@ -23,8 +23,9 @@ Task-00 проверяет и дополняет audit перед последу
 [task-03](design/implementation-packet-task-03.md),
 [task-04](design/implementation-packet-task-04.md),
 [task-05](design/implementation-packet-task-05.md).
-Перед dispatch task-03 автор task-02 обязан дополнить его пакет observed findings;
-заполненные типы и сигнатуры не заменяют ещё не выполненные эксперименты.
+Task-02 дополнил пакет task-03 observed findings 2026-10-03; положительный dispatch
+остаётся hold по [результатам исследования](evidence/task-02-dependency-admission.md).
+Заполненные типы и сигнатуры не заменяют недоказанные positive admission/equivalence.
 
 ## Пул задач
 
@@ -39,9 +40,13 @@ Task-00 проверяет и дополняет audit перед последу
   Изолированный host experiment проверен; independent reviewer `/root/independent_review`,
   must-fix закрыты. [Evidence и отдельные verdicts](evidence/task-01-hydrate-host.md).
   Production lifecycle и public activation не открыты.
-- [task-02 — dependency-admission-spike](task-02-dependency-admission-spike-Astra.md) — **Astra / high, 5/5**; риск: высокий; planned.
+- [task-02 — dependency-admission-spike](task-02-dependency-admission-spike-Astra.md) — **Astra / high, 5/5**; риск: высокий; **accepted (isolated research, 2026-10-03)**.
   Depends on: [E0/task-00](task-00-current-baseline-and-execution-contract-Astra.md).
   Доказать замкнутость sdk-project-v1 и переносимую analyzer identity на выбранных источниках evidence.
+  Приняты воспроизводимые отрицательные findings и supplement task-03; замкнутость
+  и новый session-bound overlay не доказаны. Independent reviewer `/root/independent_review` — ACCEPT;
+  Release build и main 1132/1132 passed. [Приёмка и ограничения](evidence/task-02-dependency-admission.md#независимая-приёмка).
+  Положительные fixtures task-03 остаются hold; production/public activation не открыты.
 - [task-03 — oracle-fixtures](task-03-oracle-fixtures-Luna.md) — **Luna / medium, 2/5**; риск: средний; planned.
   Depends on: [E0/task-00](task-00-current-baseline-and-execution-contract-Astra.md), [E0/task-01](task-01-hydrate-host-spike-Sol.md), [E0/task-02](task-02-dependency-admission-spike-Astra.md).
   Создать ограниченные фикстуры и ожидаемые данные по уже принятому плану oracle.

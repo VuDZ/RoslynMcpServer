@@ -20,3 +20,10 @@ C# style for this repository is in [docs/code-style.md](docs/code-style.md), rel
 - With Roslyn MCP available, prefer `run_dotnet_build`, `run_specific_test`, and `run_dotnet_test`. If a specialized tool cannot express the required integration environment, use an available runner that can. With another harness, use its supported build/test runner for the same checks. A zero-test run is not a pass; report failures, skips, timeouts, and unavailable integration environments instead of claiming full validation.
 - In subagent workflows, the coordinator owns final build/test validation. Independent review and specification acceptance do not replace running the tests.
 - Preserve exact inventories of known structural-analysis limits. When production changes legitimately add a limit, explain it and update the expected identity and kind; do not merely loosen the count or ignore unexpected limits.
+
+# Task status bookkeeping
+
+- After completing a documented task, update its explicit status in the task file and the parent README or task index before the final response. Record the date, accepted scope, and a link to the validation or acceptance report; a report alone does not replace the task status.
+- Include those status fields and evidence links in the task completion scope even when the implementation packet only lists code and evidence files. These bookkeeping edits must not change requirements, implementation contracts, or activation permissions.
+- Keep task, index, report, and packet execution-status summaries consistent. Mark a task accepted only after its required validation and acceptance; unfinished, blocked, or deferred work must retain an accurate status and reason.
+- In subagent workflows, the coordinator owns the final status updates after integration, review, and validation. Acceptance of an isolated experiment does not imply production readiness, epoch completion, or public activation.

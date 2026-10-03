@@ -199,19 +199,49 @@ for compiling its own tests (task-04 follows task-03).
 
 ## Findings supplement — task-02 required before dispatch
 
-Current evidence status: **not-run / missing raw sdk-project-v1 spike**.
-This is an execution prerequisite, not a missing type/signature contract.
-Task-02 must replace this paragraph with a dated accepted findings inventory:
+Observed and accepted for isolated research 2026-10-03 by task-02;
+independent reviewer `/root/independent_review`: **ACCEPT**. See the
+[acceptance verdict](../evidence/task-02-dependency-admission.md#независимая-приёмка).
+**Positive task-03 fixture dispatch remains on hold.** Reproducible raw experiments
+now exist. Exact commands, runtime paths, per-fixture dispositions, complete
+Razor output locators, SHA-256 inventories, mutation restoration and validation:
+[task-02 evidence](../evidence/task-02-dependency-admission.md). This supplement
+records observations only; the finite fixture contracts above remain unchanged.
 
-- SDK/Roslyn/MSBuild runtime paths/versions and fixture command/raw artifact hashes.
-- Exact instances/edge mappings, GeneratedObj input paths, full Razor generated
-  identities/texts and Marker constant witnessed with a fresh MSBuildWorkspace.
-- Per-fixture observed disposition, reason categories, positive equivalence versus
-  negative admission, including linked source/external import and Razor/Web regions.
-- Required installed packs; encoding byte evidence and after-mutation restoration.
-- Unavailable/failed cases explicitly flagged. A mandatory positive fixture with
-  absent output holds dispatch for that fixture and returns finding to task-00;
-  task-03 must not invent expected output or substitute an easier positive case.
+- Runtime SDK 10.0.300 / MSBuild 18.6.3 / Roslyn 5.9.0, exact global.json pin.
+  Installed NETCore reference packs 10.0.5/10.0.8; net9 unavailable. MultiTarget
+  positive exact mapping/defines and independent graph-edge comparison **not-run**.
+  Linked shared source has two observed compiler memberships; this is not full
+  fresh-vs-hydrate equivalence.
+- Standard GeneratedObj paths observed: `obj/Debug/net10.0/App.AssemblyInfo.cs`,
+  `.NETCoreApp,Version=v10.0.AssemblyAttributes.cs`,
+  `App.GeneratedMSBuildEditorConfig.editorconfig`. Owned generated/import inputs,
+  absent Local.props and empty additional glob passed actual mutation/restoration
+  subchecks. Full BOM/UTF-16/encoding oracle matrix **not-run**.
+- Even standard fixture imports a Target-bearing workload manifest outside
+  `sdk/10.0.300`; literal profile remains unknown. Standard Csc has 8 analyzer DLLs
+  versus 6 TaskOutput DLLs (SDK NetAnalyzers pair missing). Explicit analyzer is
+  also absent from TaskOutput. Restore/toolset/transitive analyzer closure remains
+  unproved; **no supported request or fresh Complete session/gate proof**.
+- Exact Razor fixture has **CS0542**: generated class Marker and member Marker
+  conflict. Three ordinary builds fail as expected; full generated text and
+  `E0Razor.Marker.Marker = "E0RazorMarker"` are observed by fresh MSBuildWorkspace.
+  Report links complete baseline/scoped/restored generated dictionaries and DLL
+  hashes. These are failing-fixture observations, not accepted positive goldens.
+- **Scoped CSS counterexample:** adding Marker.razor.css leaves selected regions
+  and all preexisting input hashes unchanged before build/open, but fresh generated
+  Razor text gains scope attribute `b-6xpslpw42p`. Removing CSS restores complete
+  original generated text. Resolve profile coverage explicitly; task-03 must not
+  silently add CSS globs or rename the invalid fixture.
+- Web inventory includes `.well-known`; separate Web mutation **not-run**.
+  ExternalAsset is linked Content outside project/SDK, not a real NuGet package:
+  the required NuGet static-asset experiment **not-run**. Corrupt/ambiguous portable
+  provenance and new-session gate integration likewise **not-run**.
+
+Focused checks: matrix 14/14 and Razor negative witness 1/1 passed. Coordinator
+final Release solution build passed; main `Category!=AnalyzerLifecycle` 1132/1132
+passed on final code. Research acceptance does not remove the positive dispatch
+holds; task-03 cannot invent missing goldens or substitute easier positive cases.
 
 Validation: builder tests exercise root/path confinement, exact bytes and restore
 after every mutation, plus independent fresh marker check. Coordinator performs

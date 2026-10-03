@@ -1,6 +1,7 @@
 # E0 execution contract — current baseline, experiments and consumers
 
-Статус: **design contract; experiment outcomes not-run**. Это output task-00,
+Статус: **design contract; task-01/task-02 isolated research accepted 2026-10-03;
+positive admission/equivalence не доказаны**. Это output task-00,
 не production implementation, не acceptance эпохи и не новый admission profile.
 Проверяемый current baseline и его ограничения — [audit](current-baseline-audit.md).
 Исторический pin `9867318ddb5294ce144bf024b9a61a1a2e3814c3` / 1.3.21 сохраняется;
@@ -193,8 +194,11 @@ closed path, а не всему процессу. Отдельный synthetic n
 
 ## 6. Reproducible sdk-project-v1 spike — owner task-02
 
-Raw harness/binlogs заявленного в spec spike в текущем repo не найдены.
-Результат сейчас **missing evidence / not-run**, не failed proof и не pass.
+На момент task-00 raw harness/binlogs заявленного в spec spike не были найдены.
+Execution update 2026-10-03: [task-02](evidence/task-02-dependency-admission.md#независимая-приёмка)
+принят как isolated research с воспроизводимыми raw artifacts и отрицательными
+findings. Positive closure/new-session overlay остаются недоказанными, task-03
+positive dispatch — hold. Это обновление статуса, не изменение контрактов ниже.
 Task-02 создаёт isolated fixture roots под task-owned temp directory. Фиксирует
 source HEAD/dirty, process executable/version, `dotnet --info`, `dotnet --list-sdks`,
 MSBuild runtime path/version, Roslyn assembly versions, OS/path comparer, commands,
