@@ -33,9 +33,12 @@ Task-00 проверяет и дополняет audit перед последу
   Сначала сверить текущий production baseline с историческим основанием spec; затем определить оставшуюся delta и план доказательств.
   Audit/design/четыре packets проверены; independent reviewer `/root/contract_review`,
   must-fix закрыты. [Результаты и отдельные verdicts](task-00-execution-report.md).
-- [task-01 — hydrate-host-spike](task-01-hydrate-host-spike-Sol.md) — **Sol / high, 4/5**; риск: средний; planned.
+- [task-01 — hydrate-host-spike](task-01-hydrate-host-spike-Sol.md) — **Sol / high, 4/5**; риск: средний; **accepted (isolated experiment, 2026-10-03)**.
   Depends on: [E0/task-00](task-00-current-baseline-and-execution-contract-Astra.md).
   Подтвердить выбранный AdhocWorkspace и writer .cs на публичных Roslyn API без скрытого DTB.
+  Изолированный host experiment проверен; independent reviewer `/root/independent_review`,
+  must-fix закрыты. [Evidence и отдельные verdicts](evidence/task-01-hydrate-host.md).
+  Production lifecycle и public activation не открыты.
 - [task-02 — dependency-admission-spike](task-02-dependency-admission-spike-Astra.md) — **Astra / high, 5/5**; риск: высокий; planned.
   Depends on: [E0/task-00](task-00-current-baseline-and-execution-contract-Astra.md).
   Доказать замкнутость sdk-project-v1 и переносимую analyzer identity на выбранных источниках evidence.
