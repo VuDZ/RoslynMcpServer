@@ -15,11 +15,24 @@
 текущий code inventory 1.5.4, historical pin 1.3.21 и remaining delta.
 Task-00 проверяет и дополняет audit перед последующими contracts.
 
+Артефакты исполнения task-00 (2026-10-03):
+[аудит](current-baseline-audit.md), [execution contract](design.md),
+[отчёт и ограничения validation](task-00-execution-report.md),
+[результат baseline tests](task-00-test-run.md).
+Пакеты потребителей: [task-01](design/implementation-packet-task-01.md),
+[task-03](design/implementation-packet-task-03.md),
+[task-04](design/implementation-packet-task-04.md),
+[task-05](design/implementation-packet-task-05.md).
+Перед dispatch task-03 автор task-02 обязан дополнить его пакет observed findings;
+заполненные типы и сигнатуры не заменяют ещё не выполненные эксперименты.
+
 ## Пул задач
 
-- [task-00 — current-baseline-and-execution-contract](task-00-current-baseline-and-execution-contract-Astra.md) — **Astra / high, 4/5**; риск: высокий; planned.
+- [task-00 — current-baseline-and-execution-contract](task-00-current-baseline-and-execution-contract-Astra.md) — **Astra / high, 4/5**; риск: высокий; **accepted (docs-only, 2026-10-03)**.
   Depends on: нет.
   Сначала сверить текущий production baseline с историческим основанием spec; затем определить оставшуюся delta и план доказательств.
+  Audit/design/четыре packets проверены; independent reviewer `/root/contract_review`,
+  must-fix закрыты. [Результаты и отдельные verdicts](task-00-execution-report.md).
 - [task-01 — hydrate-host-spike](task-01-hydrate-host-spike-Sol.md) — **Sol / high, 4/5**; риск: средний; planned.
   Depends on: [E0/task-00](task-00-current-baseline-and-execution-contract-Astra.md).
   Подтвердить выбранный AdhocWorkspace и writer .cs на публичных Roslyn API без скрытого DTB.
