@@ -71,9 +71,12 @@ exact inner-instance mapping — gate. Ограниченный одно-TFM р�
 обобщать на другие большие решения.
 
 Численный budget, median/p95, miss overhead, hit-rate и resource limits
-утверждаются до получения результатов. Пока это не сделано, действует
-[U-ARB-03](UNRESOLVED-v2.md#u-arb-03--репрезентативная-нагрузка-и-численный-budget);
-fixture разрешает experiment, но не public activation.
+утверждаются до получения результатов попадания в кеш. Baseline обычной
+загрузки офисного ПК выбран 2026-10-03: отчёт `20260922-120221-bondarev`,
+текст в [epoch-0](epoch-0-feasibility/spec.md#выбранный-baseline-офисного-пк).
+Hit-rate и miss-overhead остаются в
+[U-ARB-03](UNRESOLVED-v2.md#u-arb-03--репрезентативная-нагрузка-и-численный-budget).
+Fixture разрешает experiment, но не public activation.
 Снять текущие задержки на двух закреплённых корпусах:
 [baseline benchmark](baseline-benchmark.md). Отчёт сам gate не закрывает.
 
@@ -83,16 +86,53 @@ Trace: R-06, E0-02, E0-04, V-03, V-04 — ACCEPT WITH MODIFICATION.
 
 | Эпоха | Обязательный результат | Не означает |
 |---|---|---|
-| [0 — feasibility](epoch-0-feasibility.md) | Выбранный production host, capability/write contract, доказанный admission profile, oracle и budget plan | Готовность production hit |
-| [1 — lifecycle](epoch-1-workspace-lifecycle.md) | Общий production lifecycle обычной загрузки и hydrate, безопасные writes, memberships и transition table | Наличие disk generation |
-| [2 — unchanged checkpoint](epoch-2-conservative-disk-cache.md) | Безопасный cross-process hit неизменного supported tree и корректный store | Закрытие O4/O5 или activation |
-| [3 — live consistency](epoch-3-live-consistency.md) | Закрытие O4 после решения freshness gate; RAM/index/cache validity разделены | Обязательную запись generation после каждого edit |
-| [4 — measured directions](epoch-4-measured-optimizations.md) | Независимые metadata/partial/validation/O5/index изменения только после измерений | Разрешение ослабить admission |
+| [0 — feasibility](epoch-0-feasibility/README.md) | Выбранный production host, capability/write contract, доказанный admission profile, oracle и budget plan | Готовность production hit |
+| [1 — lifecycle](epoch-1-workspace-lifecycle/README.md) | Общий production lifecycle обычной загрузки и hydrate, безопасные writes, memberships и transition table | Наличие disk generation |
+| [2 — unchanged checkpoint](epoch-2-conservative-disk-cache/README.md) | Безопасный cross-process hit неизменного supported tree и корректный store | Закрытие O4/O5 или activation |
+| [3 — live consistency](epoch-3-live-consistency/README.md) | Закрытие O4 после решения freshness gate; RAM/index/cache validity разделены | Обязательную запись generation после каждого edit |
+| [4 — measured directions](epoch-4-measured-optimizations/README.md) | Независимые metadata/partial/validation/O5/index изменения только после измерений | Разрешение ослабить admission |
 
-До начала production реализации должны быть закрыты применимые feasibility
-blockers U-ARB-04, U-ARB-05 и U-ARB-06. U-ARB-01 остаётся decision gate Epoch 2.
-U-ARB-02 для живой сессии решён 2026-10-01: доверие watcher между
-подтверждениями. Это не выпуск дискового кэша.
+Ссылки в таблице ведут на карты выполнения. В каждом каталоге:
+
+- `spec.md` — каноническая спецификация эпохи;
+- `README.md` — маршрут, зависимости, статусы и независимая приёмка;
+- `task-NN-task-name-Model.md` — задание с целью, входами, границами правок,
+  конкретным результатом и проверками.
+
+Пул содержит 48 задач: 7 / 8 / 9 / 7 / 17 по эпохам 0–4. Сложность 1–5 и
+суффиксы Astra/Sol/Luna — рекомендации для делегирования. В шапках всех задач
+добавлены рекомендуемый reasoning, риск ошибки с причиной и необходимые
+способности; карты показывают модель/reasoning, сложность и риск. Сложность 1–5
+сохранена для человека; отдельная дублирующая шкала не вводится.
+ID не задаёт порядок
+запуска: он определяется Depends on. Эпоха остаётся единицей общей приёмки.
+[Правила исполнения](task-execution.md) описывают владение общими файлами,
+review/fix и финальную validation координатором. Приёмки требуют отдельных fresh
+sessions без авторства design этой эпохи. Design не принимается без exact
+implementation packets для Sol/Luna потребителей. Реализация задач ещё не запущена.
+Первый вход — [current baseline audit](epoch-0-feasibility/current-baseline-audit.md).
+
+Возврат к U-ARB-03 отложен до технической реализации кеша:
+[E4/task-13](epoch-4-measured-optimizations/task-13-workload-budget-and-series-gate-Astra.md).
+[E4/task-16](epoch-4-measured-optimizations/task-16-workload-budget-and-performance-Sol.md)
+готовит workload/budgets для владельца и после утверждения проводит измерения;
+task-13 принимает результаты независимой сессией.
+Это условие public activation; функциональную реализацию оно не блокирует.
+
+Feasibility-гейты U-ARB-04, U-ARB-05 и U-ARB-06 решены 2026-10-01. U-ARB-01
+решён 2026-10-02: запись поколения до ответа `load_workspace`
+([epoch-2](epoch-2-conservative-disk-cache/spec.md#выбранный-capture-schedule)).
+U-ARB-03 остаётся гейтом public activation.
+U-ARB-02 для живой сессии: доверие watcher между подтверждениями.
+U-ARB-04 — повторная проверка DLL и новый session id
+([epoch-0](epoch-0-feasibility/spec.md#выбранное-admission-overlay)).
+U-ARB-05 — `AdhocWorkspace` и writer только для `.cs`
+([epoch-0](epoch-0-feasibility/spec.md#выбранный-hydrate-host)).
+U-ARB-06 — профиль `sdk-project-v1`
+([epoch-0](epoch-0-feasibility/spec.md#выбранный-admission-profile)),
+2026-10-03 расширен Razor и Web
+([epoch-0](epoch-0-feasibility/spec.md#расширение-профиля-razor-и-web)).
+Ни одно из этих решений не выпускает дисковый кэш.
 
 Trace: R-01, R-02, R-04, R-05, E0-01, E2-01, E2-05, E3-02, E3-04 —
 арбитражные решения и unresolved gates.
@@ -129,11 +169,12 @@ Trace: E0-04, E2-06, H-01 — ACCEPT WITH MODIFICATION; E2-02 — REJECT
 ## 7. Комплект спецификации
 
 - [Контракт](cache-contract.md)
-- [Epoch 0](epoch-0-feasibility.md)
-- [Epoch 1](epoch-1-workspace-lifecycle.md)
-- [Epoch 2](epoch-2-conservative-disk-cache.md)
-- [Epoch 3](epoch-3-live-consistency.md)
-- [Epoch 4](epoch-4-measured-optimizations.md)
+- [Правила выполнения задач](task-execution.md)
+- [Epoch 0](epoch-0-feasibility/spec.md)
+- [Epoch 1](epoch-1-workspace-lifecycle/spec.md)
+- [Epoch 2](epoch-2-conservative-disk-cache/spec.md)
+- [Epoch 3](epoch-3-live-consistency/spec.md)
+- [Epoch 4](epoch-4-measured-optimizations/spec.md)
 - [Verification](verification.md)
 - [Handoff template](handoff-template.md)
 - [Изменения v2](CHANGELOG-v2.md)
@@ -141,3 +182,4 @@ Trace: E0-04, E2-06, H-01 — ACCEPT WITH MODIFICATION; E2-02 — REJECT
 - [Unresolved](UNRESOLVED-v2.md)
 - [Post-arbitration issues](POST-ARBITRATION-ISSUES.md)
 - [Baseline benchmark](baseline-benchmark.md)
+- [BTCPayServer candidate](btcpay-candidate.md)

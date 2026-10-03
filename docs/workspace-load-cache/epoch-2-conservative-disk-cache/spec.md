@@ -1,7 +1,10 @@
 # Epoch 2 — Conservative disk cache: unchanged-restart checkpoint
 
-Статус: **proposed checkpoint**. Требует production lifecycle Epoch 1,
-доказанные U-ARB-04/U-ARB-05/U-ARB-06 для активируемого profile.
+Статус: **proposed checkpoint**. Требует production lifecycle Epoch 1.
+Hydrate host — `AdhocWorkspace`, writer только для `.cs` (U-ARB-05). Admission
+profile — `sdk-project-v1` (U-ARB-06). Overlay после disk hydrate — повторная
+проверка DLL и новый `LoadSessionId` (U-ARB-04). Решения 2026-10-01.
+Capture — запись поколения до ответа `load_workspace` (U-ARB-01, 2026-10-02).
 
 ## Задача
 
@@ -27,13 +30,47 @@ Trace: R-05, E2-04 — ACCEPT WITH MODIFICATION.
    acquire reader ownership для lazy reads, prepare/gate и atomically publish.
 7. Любой failure даёт ordinary load без partial hydrated graph. После успешного
    стабильного ordinary load reusable capture разрешён только при completeness.
-8. Capture schedule не выбирается здесь: foreground/background, response timing,
-   retry и shutdown регулирует U-ARB-01; safety predicate одинаков.
+8. Capture выполняется по выбранному расписанию ниже. Safety predicate тот же:
+   полнота, `unknown` запрещает запись, указатель только после повторной
+   сверки хешей.
 
 «Сомнение → miss» не заменяет доказанный источник неизвестных dependencies.
 
 Trace: E2-01 — ACCEPT WITH MODIFICATION; E2-03 — ACCEPT;
-E2-05 — UNRESOLVED.
+E2-05 — решение владельца 2026-10-02.
+
+## Выбранный capture schedule
+
+Владелец 2026-10-02 выбрал **запись поколения до ответа `load_workspace`**.
+Это ответ U-ARB-01. Disk-hit не включён. Численный budget public activation
+остаётся U-ARB-03.
+
+Замер той ночи на `RoslynMcpServer.sln`: пять проектов, `obj` уже был,
+`OpenSolutionAsync` без binlog, который продукт пишет в том же вызове.
+Два прогона: 1335 мс и 1248 мс, 372 документа, диагностик нет. Первый хеш
+356 файлов `**/*.cs` (3.2 МБ) после open — 220 мс. Повтор набора из 397 путей
+(15 МБ, вместе с assets, analyzer DLL и файлами workspace под `obj`) —
+35–42 мс. 253 metadata DLL (44 МБ) — 51 мс. Manifest на 397 строк — 2 мс
+и 31 КБ. Исходный текст в payload не пишется. За оба окна снимок исходников
+не изменился. Watcher увидел 12–13 событий в `obj`/`bin`: это сама загрузка.
+
+Контракт:
+
+1. После успешной полной обычной загрузки тот же вызов считает хеши входов
+   и публикует атомарный указатель до возврата. Ответ несёт `written` или
+   `failed`.
+2. Успех загрузки от успеха записи не зависит. Отказ preflight байты не
+   меняет. Отмена вызова, reset и shutdown не публикуют недописанный
+   кандидат. Повторной записи после ответа нет: внутри вызова одна попытка.
+3. Новое поколение после каждого edit не пишется. Несовпавшие байты дают
+   miss старого поколения. Следующий capture делает процесс, который снова
+   прошёл полную обычную загрузку.
+4. Сдвиг хешей за время записи выбрасывает кандидата. Частота правок агента
+   внутри этого окна не измерялась. На этом дереве окно — около 0,25 с, и
+   для выбора расписания она не нужна.
+
+Замер — образец решения такого размера. Target workload и пороги median/p95,
+hit-rate и miss-overhead он не утверждает.
 
 ## Store-correctness checkpoint
 
@@ -73,7 +110,7 @@ prepare, publication, first-semantic durations без secret values.
 
 ## Приёмка
 
-- V01–V18/V23 с расширениями из [verification](verification.md).
+- V01–V18/V23 с расширениями из [verification](../verification.md).
 - Positive hit в отдельном PID, strict size/mtime collision test.
 - Known absent becoming present, unknown condition/custom target и membership
   change дают правильный miss reason и ordinary fallback.

@@ -162,7 +162,7 @@
 
 Плюсы: единый контракт для C# и не-C# входов. Минусы: наиболее дорогой и
 сложный вариант; пересекается с будущей
-[`workspace-load-cache` Epoch 3](../../workspace-load-cache/epoch-3-live-consistency.md),
+[`workspace-load-cache` Epoch 3](../../workspace-load-cache/epoch-3-live-consistency/spec.md),
 где уже описаны роли входов и открытый вопрос о freshness policy. Не стоит
 создавать вторую несовместимую модель без согласования с этой спецификацией.
 
@@ -172,7 +172,7 @@
 и запрещает публиковать её через `TryApplyChanges`. Эта подмена выпущена в
 1.5.4; контракт — [ARCHITECTURE](../../ARCHITECTURE.md). Политика чтения выбрана:
 доверие watcher между подтверждениями. Вариант D и остальные варианты свежести
-записаны в [epoch-3](../../workspace-load-cache/epoch-3-live-consistency.md) и не
+записаны в [epoch-3](../../workspace-load-cache/epoch-3-live-consistency/spec.md) и не
 выбраны.
 
 ## 5. Вопросы перед выбором

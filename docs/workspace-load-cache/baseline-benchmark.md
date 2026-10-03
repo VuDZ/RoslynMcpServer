@@ -1,15 +1,17 @@
 # Baseline benchmark — workspace load
 
 Статус: **исполняемый runbook** для снятия текущего baseline. Runtime кеша нет.
-Токен сверки со скриптом: `baseline-benchmark-3`.
+Токен сверки со скриптом: `baseline-benchmark-4`.
 Инструмент: [baseline_bench.py](baseline_bench.py). Его пины, таймауты и правила
 выборки совпадают с этим файлом. Расхождение чинится по этому файлу.
 
-Прогон нужен, чтобы на двух закреплённых публичных деревьях увидеть задержку
+Прогон нужен, чтобы на закреплённых публичных деревьях увидеть задержку
 `load_workspace` и первого `find_symbol_definition` в новом процессе, снять
-один CPU-профиль и оставить отчёт, с которым потом сравнивается кеш.
-Это ещё не закрывает [U-ARB-03](UNRESOLVED-v2.md#u-arb-03--репрезентативная-нагрузка-и-численный-budget):
-численный budget, hit-rate и public activation здесь не утверждаются.
+один профиль managed stack samples и оставить отчёт, с которым потом сравнивается кеш.
+Сам по себе прогон не закрывает [U-ARB-03](UNRESOLVED-v2.md#u-arb-03--репрезентативная-нагрузка-и-численный-budget):
+hit-rate и public activation здесь не утверждаются. Решение владельца
+2026-10-03 отдельно взяло уже снятый отчёт `20260922-120221-bondarev` как
+baseline обычной загрузки офисного ПК. Новый прогон этот выбор не заменяет.
 
 ## Что сделать агенту
 
@@ -37,8 +39,9 @@
 |---|---|---|---|---|
 | `orchard-wide` | `https://github.com/OrchardCMS/OrchardCore.git` | tag `v3.0.1`, SHA `b9c4b2f23e56ef11fbdbd28603c871d1b0fc9deb` | `OrchardCore.slnx` | широкий SDK-style граф, Razor, `Directory.Build.props` |
 | `roslyn-deep` | `https://github.com/dotnet/roslyn.git` | ветка `release/stable`, SHA `013d3a758df6c137497ff37a93f0d4bed103853a` | `src/Compilers/CSharp/Portable/Microsoft.CodeAnalysis.CSharp.csproj` | один толстый проект: parse и первый semantic |
+| `btcpay-web` | `https://github.com/btcpayserver/btcpayserver.git` | tag `v2.4.3`, commit SHA `f78d6c20f0aa184f61eb4533bcf1dee20e366579` | `BTCPayServer/BTCPayServer.csproj` | реальный Web-проект со всеми транзитивными ProjectReference |
 
-Оба дерева публичные, без секретов. Клон — `git fetch --depth 1 origin <sha>`
+Деревья публичные, без секретов. Клон — `git fetch --depth 1 origin <sha>`
 в каталог вне репозитория RoslynMcpServer. После checkout `git rev-parse HEAD`
 обязан совпасть с пином.
 
@@ -46,6 +49,23 @@
 
 - orchard-wide: `ShellSettings`, затем `ManifestConstants`
 - roslyn-deep: `CSharpCompilation`, затем `Binder`
+- btcpay-web: `InvoiceEntity`, затем `StoreData`
+
+`btcpay-web` добавлен 2026-10-03 как кандидат для U-ARB-03. OrchardCore и
+Roslyn не обязательны для целевой нагрузки: владелец подтвердил, что они
+были выбраны случайно. Их старые пины и отчёт сохраняются отдельно.
+Новый корпус сам по себе не закрывает admission или public activation.
+
+У `v2.4.3` аннотированный tag object имеет SHA
+`0279c26ce43be1fed209962a755a77883fac2e9d`; пин выше — SHA commit, который
+возвращает `git rev-parse HEAD`. Загружается основной `.csproj`, включая весь
+граф его ссылок. Полная `btcpayserver.sln`, тесты и PluginPacker в scope
+не входят. Репозиторий не изменяется ради совместимости с профилем.
+
+В этом пине нет `global.json`. Используется SDK из PATH, его версия входит
+в compare key. Проекты используют `net10.0`, Client — `netstandard2.1`.
+Число `.csproj` в inventory относится ко всему клону; число экземпляров в
+ответе load — только к выбранному графу.
 
 Успех semantic — текст с `Found ` и `declaration symbol(s) matching`.
 Время промаха по первому имени в `useful` не входит. Входит время имени,
@@ -77,7 +97,7 @@
 
 - Python 3.11+ (`python` или `py -3`), `git`, `dotnet` в `PATH`.
 - Опубликованный `RoslynMcpServer.exe` (см. выше).
-- `dotnet-trace` в `PATH` желателен (один CPU-профиль на корпус). Если его нет,
+- `dotnet-trace` 10 в `PATH` желателен (один профиль managed stack samples на корпус). Если его нет,
   скрипт пропускает `profiled-warm` и пишет это в отчёт. Ставить его можно
   (`dotnet tool install -g dotnet-trace`) до запуска; в тайминг load это не входит.
 
@@ -153,8 +173,13 @@ Restore (`dotnet restore` на тот же файл, который грузит
 3. Если load `post-restore` так и не стал `success`, корпус останавливается.
    Профиль и warm не запускаются.
 4. `profiled-warm` — один процесс, только если `dotnet-trace` есть в `PATH`.
-   CPU sampling с момента после `initialize` до конца semantic. В median не входит.
-   Рядом пишутся `.nettrace` и `*-trace.txt` (`dotnet-trace report ... topN -n 25`).
+   Профиль `dotnet-sampled-thread-time` с момента после `initialize` до конца
+   semantic. В median не входит. На dotnet-trace 10 `cpu-sampling` относится
+   к `collect-linux`, не Windows `collect`. Managed stack sampling оценивает
+   время по samples; это не измерение kernel CPU time.
+   Рядом пишутся `.nettrace`, `*.trace.log` и `*-trace.txt`
+   (`dotnet-trace report ... topN -n 25`). Outcome профиля указан в отчёте;
+   неуспех профиля не выдаётся за успешный capture.
 5. `warm` — до 10 новых процессов. Файловый кэш ОС не сбрасывается.
    Эти замеры не называть cold. Три неуспеха подряд останавливают серию.
 
@@ -214,8 +239,21 @@ python docs/workspace-load-cache/baseline_bench.py
 py -3 docs/workspace-load-cache/baseline_bench.py
 ```
 
-Повтор одного корпуса после починки SDK: `--corpus orchard-wide` или
-`--corpus roslyn-deep`. Оба корпуса — без флага или `--corpus all`.
+Повтор одного корпуса после починки SDK: `--corpus orchard-wide`,
+`--corpus roslyn-deep` или `--corpus btcpay-web`. Все три корпуса — без
+флага или `--corpus all`.
+
+Только новый кандидат:
+
+```powershell
+python docs/workspace-load-cache/baseline_bench.py --corpus btcpay-web
+```
+
+Клоны держать вне репозитория: `.gitignore` не исключает их C#-файлы из
+SDK Compile glob основного проекта. Скрипт отвергает `--bench-root` внутри
+репозитория до создания каталогов. Для `btcpay-web`
+сохраняются те же таймауты, 10 warm-повторов, отдельный sampled-thread profile,
+новый PID на попытку и запрет включать restore в load/useful.
 
 Каталог с `.git`, чей HEAD не равен пину, скрипт не удаляет. Удалить такой
 каталог можно только когда blocker говорит `refusing to delete` или оборванный

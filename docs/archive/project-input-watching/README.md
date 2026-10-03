@@ -132,7 +132,7 @@ MSBuild-входов принимается по фактам, без собст
   восстановления семантики и текстовой синхронизации не-C# документов. Решение
   об обнаружении и уведомлении по ролям закреплено в этой серии; восстановление
   семантики остаётся отдельным вопросом.
-- [Workspace load cache Epoch 3](../../workspace-load-cache/epoch-3-live-consistency.md)
+- [Workspace load cache Epoch 3](../../workspace-load-cache/epoch-3-live-consistency/spec.md)
   — будущая общая модель покрытия и свежести. Эта серия не вводит disk cache
   и не выбирает вместо неё глобальную политику semantic reads.
 - `ComputeWatchRoots` используется также поиском кода. Новую topology watcher

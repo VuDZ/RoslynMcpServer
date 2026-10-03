@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Normative workspace-load baseline client (baseline-benchmark-3).
+"""Normative workspace-load baseline client (baseline-benchmark-4).
 
 Timing rules and pins live in baseline-benchmark.md. Do not add flags that
 override SHA, timeouts, or which samples enter the median.
@@ -26,7 +26,7 @@ from ctypes import wintypes
 from datetime import datetime, timezone
 from pathlib import Path
 
-SPEC_TOKEN = "baseline-benchmark-3"
+SPEC_TOKEN = "baseline-benchmark-4"
 WARM_ATTEMPTS = 10
 CONSECUTIVE_FAILURES = 3
 RESTORE_TIMEOUT_S = 3600
@@ -34,6 +34,7 @@ LOAD_TIMEOUT_S = 2700
 SEMANTIC_TIMEOUT_S = 1200
 INIT_TIMEOUT_S = 120
 TRACE_READY_S = 45
+TRACE_PROFILE = "dotnet-sampled-thread-time"
 MIN_BENCH_FREE = 20 * 1024**3
 MIN_OUT_FREE = 4 * 1024**3
 RESPONSE_CHAR_CAP = 2_000_000
@@ -74,6 +75,14 @@ CORPORA = (
         "tag": "release/stable",
         "workspace": "src/Compilers/CSharp/Portable/Microsoft.CodeAnalysis.CSharp.csproj",
         "symbols": ("CSharpCompilation", "Binder"),
+    },
+    {
+        "id": "btcpay-web",
+        "url": "https://github.com/btcpayserver/btcpayserver.git",
+        "sha": "f78d6c20f0aa184f61eb4533bcf1dee20e366579",
+        "tag": "v2.4.3",
+        "workspace": "BTCPayServer/BTCPayServer.csproj",
+        "symbols": ("InvoiceEntity", "StoreData"),
     },
 )
 
@@ -758,7 +767,7 @@ def start_trace(pid: int, out_path: Path) -> tuple[subprocess.Popen | None, str]
                 "-p",
                 str(pid),
                 "--profile",
-                "cpu-sampling",
+                TRACE_PROFILE,
                 "-o",
                 str(out_path),
             ],
@@ -771,6 +780,7 @@ def start_trace(pid: int, out_path: Path) -> tuple[subprocess.Popen | None, str]
     except OSError as ex:
         return None, f"failed-to-start: {ex}"
     ready = False
+    trace_lines: list[str] = []
     assert proc.stdout is not None
     deadline = time.monotonic() + TRACE_READY_S
 
@@ -778,8 +788,10 @@ def start_trace(pid: int, out_path: Path) -> tuple[subprocess.Popen | None, str]
         nonlocal ready
         assert proc.stdout is not None
         for line in proc.stdout:
+            trace_lines.append(line.rstrip())
             if "Press " in line or "Output:" in line or out_path.name in line:
                 ready = True
+        write_text(out_path.with_suffix(".trace.log"), "\n".join(trace_lines))
 
     thread = threading.Thread(target=watch, daemon=True)
     thread.start()
@@ -856,6 +868,7 @@ def run_attempt(
         "peakWorkingSetBytes": None,
         "peakPrivateBytes": None,
         "profile": "not-requested",
+        "profileKind": TRACE_PROFILE if profile else None,
         "error": None,
     }
     proc: subprocess.Popen | None = None
@@ -1274,6 +1287,11 @@ def render_section(section: dict) -> str:
         lines.append(f"- {section['stoppedEarly']}")
     if section.get("profileNote"):
         lines.append(f"- {section['profileNote']}")
+    for attempt in section["attempts"]:
+        if attempt["series"] == "profiled-warm":
+            lines.append(
+                f"- Profile: `{attempt.get('profileKind')}` outcome `{attempt.get('profile')}`"
+            )
     inventory = section.get("inventory") or {}
     if inventory:
         lines.extend(
@@ -1354,7 +1372,7 @@ def render_report(meta: dict, sections: list[dict]) -> str:
         f"Spec token: `{SPEC_TOKEN}`.",
         "",
         "U-ARB-03 остаётся открытым. Этот прогон не утверждает численный budget,",
-        "hit-rate и public activation. Медианы двух корпусов не складываются.",
+        "hit-rate и public activation. Медианы разных корпусов не складываются.",
         "",
         "## Host",
         "",
@@ -1391,7 +1409,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--bench-root", type=Path, default=repo.parent / "roslyn-mcp-bench")
     parser.add_argument("--out", type=Path, default=None)
     parser.add_argument("--server", type=Path, default=None)
-    parser.add_argument("--corpus", choices=["all", "orchard-wide", "roslyn-deep"], default="all")
+    parser.add_argument("--corpus", choices=["all", *(c["id"] for c in CORPORA)], default="all")
     return parser.parse_args()
 
 
@@ -1419,6 +1437,9 @@ def main() -> int:
     safe_stamp = re.sub(r"[^A-Za-z0-9._-]+", "-", stamp)
     out_dir = (args.out or (repo / "artifacts" / "workspace-load-baseline" / safe_stamp)).resolve()
     bench_root = args.bench_root.resolve()
+    if bench_root.is_relative_to(repo):
+        print("BLOCKER bench-root must be outside the server repository (SDK Compile glob).", file=sys.stderr)
+        return 1
     out_dir.mkdir(parents=True, exist_ok=True)
     bench_root.mkdir(parents=True, exist_ok=True)
     global _log_path

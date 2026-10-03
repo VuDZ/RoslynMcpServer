@@ -1,5 +1,10 @@
 # Traceability v2
 
+Спецификации эпох находятся в `epoch-N-name/spec.md`; ссылки на карты выполнения
+и task pools — в [README §4](README.md#4-этапы-и-обязательные-результаты).
+Матрицы ниже ссылаются на нормативные секции spec, а не на задания исполнителей.
+Декомпозиция задач не меняет arbitration verdicts и не служит acceptance evidence.
+
 ## 1. Original requirements
 
 | Requirement | Original source | Review findings | Arbitration | Resulting v2 sections |
@@ -19,16 +24,16 @@
 
 | Finding | Verdict | Arbitration requirement | Resulting v2 section |
 |---|---|---|---|
-| R-01 | AWM | Choose host and operation/capability/write matrix | README §4; Epoch 0 §work; Epoch 1 capability; U-ARB-05 |
-| R-02 | AWM | Versioned dependency evidence; unknown rejected before hit | Contract §3.2/§5; Epoch 0; U-ARB-06 |
+| R-01 | AWM | Choose host and operation/capability/write matrix | README §4; Epoch 0 hydrate host; Epoch 1 capability; U-ARB-05 decided 2026-10-01 |
+| R-02 | AWM | Versioned dependency evidence; unknown rejected before hit | Contract §3.2/§5; Epoch 0 profile `sdk-project-v1`; U-ARB-06 decided 2026-10-01; Razor/Web extension 2026-10-03 |
 | R-03 | ACCEPT | Commit/source baseline and A-* lifecycle | README §2; Epoch 0 item 1 |
 | R-04 | AWM | Base/requested-effective overlay/readiness split | README §2; Contract §1/§2/§5 |
 | R-05 | AWM | E2 checkpoint; O4/O5 mandatory for completion | README §1/§4/§5; Epoch 2 |
-| R-06 | AWM | Named workload; required inner instances gate | README §3; Epoch 0; U-ARB-03 |
+| R-06 | AWM | Named workload; required inner instances gate | README §3; Epoch 0; U-ARB-03 ordinary-load reference 2026-10-03; hit-rate still open |
 | C-01 | ACCEPT | Positive/absent/region/target evidence | Contract §3.2/§5; Verification §3 |
 | C-02 | AWM | Discovery→coverage→capture→validation | Contract §5/§6; Verification §4 |
 | C-04 | ACCEPT | Formal completeness independent of diagnostics | Contract §1/§3.3; Verification §3 |
-| C-05 | AWM | Separate source/policy/readiness; no session-ID rebinding | Contract §1/§2/§5; U-ARB-04 |
+| C-05 | AWM | Separate source/policy/readiness; no session-ID rebinding | Contract §1/§2/§5; U-ARB-04 revalidated admission 2026-10-01 |
 | C-06 | AWM | Keep significant hashes; measure build invalidation | Contract §4; Verification §5 |
 | C-07 | AWM | Explicit roots/budget/bounded fallback | Contract §8; Verification V16/V18 |
 | C-08 | AWM | Reader ownership/lazy lifetime/safe cleanup | Contract §7; Epoch 2 store; Verification V17/V18 |
@@ -52,7 +57,7 @@
 | E3-01 | AWM | Exact under-lock workflow and concurrency tests | Contract §6; Epoch 3 locking; Verification §4 |
 | E3-03 | ACCEPT | Role/coverage event classifier | Contract §8; Epoch 3 classifier |
 | E3-05 | AWM | Content-only only for proven document role | Contract §8; Epoch 3 classifier |
-| E3-06 | AWM | Separate RAM freshness/disk validity/cadence | Contract §6; Epoch 3 states; U-ARB-01 |
+| E3-06 | AWM | Separate RAM freshness/disk validity/cadence | Contract §6; Epoch 3 states; U-ARB-01 decided 2026-10-02 |
 | E3-07 | ACCEPT | Watch/probe coverage and limits | Contract §8; Epoch 3 coverage; Verification V19/V22 |
 | E3-08 | AWM | Own-write bytes/hash/revision and pending state | Epoch 1 writes; Epoch 3 own writes; Verification V20/V21 |
 | E4-02 | AWM | Effective mode and producer-reader compatibility | Contract §1/§9; Epoch 4B |
@@ -60,7 +65,7 @@
 | E4-04 | ACCEPT | Discovery coverage distinct from CLI target | Epoch 4A; Verification V24a/V24b |
 | V-02 | AWM | Split V11 reasons and add non-member control | Verification V11a–V11d |
 | V-03 | AWM | Full oracle for supported SG; admission-only rejected | Epoch 0; Verification §1/V04 |
-| V-04 | AWM | Named workload budget/hit-rate before activation | README §3; Verification §5/§6 |
+| V-04 | AWM | Named workload budget/hit-rate before activation | README §3; Verification §5/§6; ordinary-load reference 2026-10-03; hit-rate still open |
 | H-01 | AWM | Five decision authorities and exact next actions | README §5; all epoch handoffs; Handoff §1/§10 |
 
 ## 3. Rejected findings — closed behavior
@@ -76,7 +81,7 @@
 
 | Finding | Verdict | Preserved gate | Resulting v2 section |
 |---|---|---|---|
-| E2-05 | UNRESOLVED | U-ARB-01 capture schedule/cadence | Contract §6; Epoch 2 step 8; UNRESOLVED-v2 |
+| E2-05 | UNRESOLVED | U-ARB-01 capture schedule decided 2026-10-02 | Contract §6; Epoch 2 capture schedule; UNRESOLVED-v2 |
 | E3-02 | UNRESOLVED | U-ARB-02 freshness cadence/overhead | Epoch 3 unresolved contract; UNRESOLVED-v2 |
 | E3-04 | UNRESOLVED | U-ARB-02 stale/unknown availability | Epoch 3 unresolved contract; UNRESOLVED-v2 |
 

@@ -23,7 +23,9 @@ Trace: R-05 — ACCEPT WITH MODIFICATION; E3-02/E3-04 — UNRESOLVED.
 3. cadence durable capture.
 
 Старая несовпадающая disk generation обязана дать miss. Новая generation не
-обязана записываться после каждого edit. Cadence остаётся U-ARB-01.
+обязана записываться после каждого edit. Cadence — запись до ответа
+`load_workspace` после полной обычной загрузки
+([epoch-2](../epoch-2-conservative-disk-cache/spec.md#выбранный-capture-schedule)).
 
 Trace: E3-06 — ACCEPT WITH MODIFICATION.
 
@@ -69,7 +71,7 @@ Trace: E3-03 — ACCEPT; E3-05 — ACCEPT WITH MODIFICATION.
 Coverage map включает project membership regions, walk-up ancestors, explicit
 paths вне roots/в `obj` и locations возможного появления absent inputs.
 Общий источник membership/revisions/coverage —
-[pull-контракт project-input-watching](../archive/project-input-watching/input-state-contract.md).
+[pull-контракт project-input-watching](../../archive/project-input-watching/input-state-contract.md).
 Его session token общий с WPF/watchers и build freshness; самостоятельный
 input index или второй session counter эта эпоха не создаёт. Повторный pull
 не потребляет revisions других consumer. Это связь моделей, а не закрытие
@@ -95,7 +97,7 @@ Trace: E3-08 — ACCEPT WITH MODIFICATION.
 
 Владелец 2026-10-01 выбрал **доверие watcher между подтверждениями**.
 Это политика живой сессии, уже реализованная watcher-ом. Она не активирует
-дисковый кэш загрузки и не закрывает U-ARB-01, U-ARB-03 и приёмку V07–V23.
+дисковый кэш загрузки и не закрывает U-ARB-03 и приёмку V07–V23.
 
 Подтверждение — это `load_workspace` либо flush изменения, которое watcher
 действительно доставил.

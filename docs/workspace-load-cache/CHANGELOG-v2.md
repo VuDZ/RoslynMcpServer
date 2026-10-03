@@ -81,12 +81,38 @@ arbitration файлы не изменены.
 
 ## Preserved unresolved gates
 
-- Capture scheduling/durable cadence не выбраны. [E2-05 — UNRESOLVED;
-  E3-06] → U-ARB-01.
-- Strict/watch/stale-read policy не выбрана. [E3-02, E3-04 — UNRESOLVED]
-  → U-ARB-02.
-- Workload/budget, portable analyzer trust, production host и dependency closure
-  сохранены как U-ARB-03..06, без самостоятельного решения.
+- Capture scheduling на момент v2 не выбран. [E2-05 — UNRESOLVED;
+  E3-06] → U-ARB-01. Решение 2026-10-02 — в разделе ниже.
+- Strict/watch/stale-read policy на момент v2 не выбрана. [E3-02, E3-04 — UNRESOLVED]
+  → U-ARB-02. Решение 2026-10-01 — в разделе ниже.
+- Workload/budget сохранён как U-ARB-03, без самостоятельного решения на
+  момент v2. Production host на момент v2 не был выбран.
+
+## Owner decisions after v2
+
+- U-ARB-02, 2026-10-01: доверие watcher между подтверждениями.
+  [UNRESOLVED-v2](UNRESOLVED-v2.md), [epoch-3](epoch-3-live-consistency/spec.md).
+- U-ARB-06, 2026-10-01: admission profile `sdk-project-v1`.
+  [UNRESOLVED-v2](UNRESOLVED-v2.md), [epoch-0](epoch-0-feasibility/spec.md).
+- U-ARB-04, 2026-10-01: повторная проверка DLL и новый `LoadSessionId`.
+  [UNRESOLVED-v2](UNRESOLVED-v2.md), [epoch-0](epoch-0-feasibility/spec.md).
+- U-ARB-05, 2026-10-01: `AdhocWorkspace` и writer только для `.cs`.
+  [UNRESOLVED-v2](UNRESOLVED-v2.md), [epoch-0](epoch-0-feasibility/spec.md).
+- U-ARB-01, 2026-10-02: запись поколения до ответа `load_workspace`.
+  [UNRESOLVED-v2](UNRESOLVED-v2.md), [epoch-2](epoch-2-conservative-disk-cache/spec.md).
+- 2026-10-03: `sdk-project-v1` расширен `Microsoft.NET.Sdk.Razor` и
+  `Microsoft.NET.Sdk.Web` (глобы `**/*.cshtml`, `**/*.razor`, `wwwroot/**`
+  и хеш DLL `source-generators`). Пакетный статический ассет и свой target
+  остаются `unknown`.
+  [epoch-0](epoch-0-feasibility/spec.md#расширение-профиля-razor-и-web).
+- 2026-10-03: baseline обычной загрузки офисного ПК — отчёт
+  `20260922-120221-bondarev`. Hit-rate и miss-overhead не заданы.
+  [epoch-0](epoch-0-feasibility/spec.md#выбранный-baseline-офисного-пк).
+
+- 2026-10-03: OrchardCore/Roslyn не обязательны для target workload.
+  Проверен кандидат BTCPayServer `v2.4.3`; baseline снят, admission
+  и U-ARB-03 остаются открытыми.
+  [BTCPayServer candidate](btcpay-candidate.md).
 
 ## Closed rejected recommendations
 
@@ -95,9 +121,49 @@ arbitration файлы не изменены.
 - Closed-subset 4C не удалена как «общий interpreter». [E4-01 — REJECT]
 - Fresh MSBuild oracle не заменён same-host oracle. [V-01 — REJECT]
 
+## Организация выполнения — 2026-10-03
+
+Эпохи перенесены в каталоги `epoch-N-name/`, спецификации — в `spec.md`.
+Каждая эпоха получила карту выполнения `README.md` и task-файлы с dependencies,
+оценкой сложности 1–5, моделью Astra/Sol/Luna, границами правок и evidence.
+Общие правила — [task-execution](task-execution.md). Incoming/outgoing ссылки
+обновлены; текст требований эпох сохранён за исключением путей ссылок.
+Архивные локальные спецификации остаются на прежних местах.
+
+U-ARB-03 отложен до технической реализации кеша и вынесен в E4/task-13;
+утверждение budgets всё равно предшествует cache-hit performance results.
+Optional 4A/4B/4D имеют самостоятельную приёмку; обязательный O5 идёт через 4C
+либо иной доказанный механизм. Суффикс модели — рекомендация, не acceptance gate.
+
 ## Migration and runtime impact
 
 Код, public tools, defaults, product docs и версии не изменены. Cache v2 ещё не
 выпущен, поэтому data migration не определена; будущая несовместимая schema даёт
 miss. Evaluation cache обязан иметь namespace/lifetime отдельно от analyzer
 shadow generations.
+
+## Исправления execution pool — 2026-10-03
+
+- Условная optional acceptance разделена на E4/task-12 (4A), task-14 (4B),
+  task-15 (4D), с явными Depends on к соответствующей реализации.
+- Все handoff/acceptance tasks имеют independent-acceptance role и fresh-session
+  constraint: reviewer не автор design эпохи или проверяемой реализации.
+  Модель Astra не является identity исполнителя.
+- E4/task-16 готовит workload/budget/performance evidence; task-13 — отдельный
+  независимый main-scope series gate. Optional activation verdicts туда не входят.
+- У 22 Sol/Luna tasks есть четыре списка типов/files/signatures и явный packet
+  producer. Design не accepted без окончательных implementation packets.
+- E0/task-00 начинается с [current baseline audit](epoch-0-feasibility/current-baseline-audit.md):
+  current source 1.5.4 vs historical 1.3.21, reused paths и remaining delta.
+  Недоступный sdk-project-v1 spike harness отмечен evidence gap; E1/E3 contracts
+  потребляют named audit. Канонические spec.md не переписаны.
+
+## Профиль исполнителя задач — 2026-10-03
+
+Во всех 48 задачах указаны рекомендуемый reasoning, риск ошибки с конкретной
+причиной и необходимые способности из общего словаря. Карты эпох показывают
+модель/reasoning, сложность и риск; модельные суффиксы Luna/Sol/Astra сохранены.
+Оценка сложности 1–5 остаётся для человека; complexity=low/medium/high её
+не дублирует. Риск отражает последствия ошибки, способности — требования
+к исполнителю; они не дают дополнительных permissions и не меняют Depends on.
+Правила и словарь — [task-execution](task-execution.md).

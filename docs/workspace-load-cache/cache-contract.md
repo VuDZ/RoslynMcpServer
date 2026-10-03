@@ -78,9 +78,20 @@ project/TFM context. Порядок hydrate не влияет на выбор.
 - источник expected roots/instances/edges/inputs.
 
 Import не обязан быть Roslyn Document, но отсутствие его evidence запрещает
-reuse. Binlog, resolved Documents/imports, SDK name или evaluation-only не
-считаются полным evidence автоматически. Unknown в любой обязательной категории
-отключает disk-hit всего request.
+reuse. Вне профиля binlog, resolved Documents/imports, имя SDK и evaluation-only
+не считаются полным evidence. Unknown в любой обязательной категории отключает
+disk-hit всего request.
+
+Для профиля `sdk-project-v1` источники категорий зафиксированы в
+[epoch-0](epoch-0-feasibility/spec.md#выбранный-admission-profile): positive import
+и known-absent `Exists` читаются из design-time binlog при `ProjectImports=None`;
+wildcard-регион читается из XML проекта и импортированных props; toolset — это
+каталог SDK по пути `Sdk.props`; пользовательский target — `unknown`.
+С 2026-10-03 к региону проекта добавлены `**/*.cshtml`, `**/*.razor` и
+`wwwroot/**`, а DLL из `source-generators` Razor SDK хешируются как analyzer
+DLL. Статический ассет вне каталога проекта и вне каталога SDK — `unknown`.
+Текст решения — в
+[epoch-0](epoch-0-feasibility/spec.md#расширение-профиля-razor-и-web).
 
 ### 3.3 Completeness
 
@@ -124,12 +135,14 @@ Hydrator должен определить, когда материализую�
 unknown coverage или неподтверждённая связь между consumed bytes и evidence
 запрещают reusable capture.
 
-После hydrate portable provenance реконструируется только разрешённым способом,
-затем выполняются A-LOAD prepare/gate и atomic manager publication. Старый
-session-bound provenance нельзя сделать валидным заменой session ID. Пока
-U-ARB-04 не закрыт, disk base не становится overlay-ready.
+После hydrate portable provenance собирается заново по
+[выбранному admission overlay](epoch-0-feasibility/spec.md#выбранное-admission-overlay):
+новый `LoadSessionId` после повторной проверки DLL. Старый session-bound
+snapshot нельзя сделать валидным заменой session ID, и в gate он не передаётся.
+Несовпадение проверки публикует base graph без overlay.
 
-Trace: C-01, C-02, C-05, E2-01; U-ARB-04/U-ARB-06 preserved.
+Trace: C-01, C-02, C-05, E2-01; U-ARB-04 revalidated admission; U-ARB-06 profile
+`sdk-project-v1`.
 
 ## 6. Lifecycle и атомарность
 
@@ -144,11 +157,13 @@ disposal. Старый workspace другого key автоматически �
 2. atomic manager publication под workspace lock;
 3. filesystem/CLR state, для которого rollback не обещается.
 
-Capture scheduling и durable cadence остаются gate U-ARB-01. Foreground и
-background варианты обязаны применять один safety predicate; ни один вариант
-не является normative до решения.
+Capture пишет поколение до ответа `load_workspace`, после полной обычной
+загрузки. Текст выбора — в
+[epoch-2](epoch-2-conservative-disk-cache/spec.md#выбранный-capture-schedule).
+Указатель публикуется один раз внутри вызова, после повторной сверки хешей.
+Ответ несёт `written` или `failed`. Успех загрузки от записи не зависит.
 
-Trace: C-02, E1-02, E2-05 — UNRESOLVED, E3-06.
+Trace: C-02, E1-02, E2-05 — решение владельца 2026-10-02, E3-06.
 
 ## 7. Store и reader ownership
 
@@ -167,8 +182,8 @@ analyzer shadow generations.
 - Corrupt/oversize/unknown schema/no-space/permissions/competing writer дают
   bounded fallback; project files из cache не восстанавливаются.
 - Cache payload недоверенный: DTO не исполняет команды и сам не разрешает
-  загрузить DLL. Trusted storage/threat model и portable provenance требуются
-  отдельно.
+  загрузить DLL. Повторная проверка DLL, новый session id, user-private каталог
+  и allowlist свойств заданы выбранным admission overlay.
 
 Store-correctness gate и product-activation gate независимы.
 

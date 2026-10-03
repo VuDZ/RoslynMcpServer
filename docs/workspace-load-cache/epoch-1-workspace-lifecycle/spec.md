@@ -11,20 +11,22 @@ hydrator не подтверждает production.
 
 ## Capability и persistence contract
 
-До реализации заполняется следующая матрица:
+До реализации матрица заполнена решением U-ARB-05 от 2026-10-01. Подробности —
+в [epoch-0](../epoch-0-feasibility/spec.md#выбранный-hydrate-host).
 
 | Operation | Host capability | Disk writer | Preflight | Result/failure/partial | Reload |
 |---|---|---|---|---|---|
-| read | TBD by U-ARB-05 | n/a | readiness | explicit | TBD |
-| text edit | TBD | TBD | A-WRITE | saved paths | TBD |
-| add/remove/rename document | TBD | TBD | A-WRITE + project policy | partial paths/errors | TBD |
-| project mutation | TBD | TBD | A-WRITE | partial project/files | TBD |
+| read | `AdhocWorkspace` snapshot | n/a | readiness | explicit | no |
+| text edit | in-memory; `TryApplyChanges` does not write the file | `PersistDocumentChangesAsync` | A-WRITE | saved paths | no |
+| add/remove/rename document | in-memory for an SDK glob | adapter creates or deletes the `.cs` only | A-WRITE; explicit `<Compile Include>` without a glob is unsupported | partial paths/errors; preflight writes nothing | no; unsupported refuses or marks the graph stale |
+| project mutation | Adhoc does not edit the project file | existing `PackageReference` and `rename_project` helpers | A-WRITE | partial project/files | graph stale, next ordinary load |
 | disk reconciliation | in-memory reflection only | none | generation/role | applied/untrusted | no project write |
 
-TBD не разрешает production hydrate. Read-only downgrade, custom writer и
-reload-on-write нельзя выбрать только ради зелёной приёмки.
+Read-only downgrade, a `.csproj` writer and reload-on-write are not the
+chosen contract. Analyzer references stay in memory.
 
-Trace: R-01, E0-01, E1-01 — ACCEPT/ACCEPT WITH MODIFICATION; U-ARB-05.
+Trace: R-01, E0-01, E1-01 — ACCEPT/ACCEPT WITH MODIFICATION; U-ARB-05 decided
+2026-10-01.
 
 ## Lifecycle
 
@@ -75,7 +77,9 @@ Handoff содержит две независимые таблицы:
 
 Documents-only equality и отсутствие temp paths недостаточны. Import может не
 быть Document, но его отсутствие во второй таблице блокирует Epoch 2 profile.
-Portable analyzer provenance остаётся U-ARB-04.
+Portable analyzer provenance выбран в
+[epoch-0](../epoch-0-feasibility/spec.md#выбранное-admission-overlay): новый session id
+после повторной проверки DLL.
 
 Trace: E1-07, R-04, C-05 — ACCEPT WITH MODIFICATION.
 

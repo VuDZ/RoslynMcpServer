@@ -7,7 +7,7 @@ runtime `get_mcp_server_info` = **1.3.29**, не «версия из будущ�
 `SolutionManager.FlushDirtyDocumentsUnderLockAsync` / `ApplyWorkspaceWriteUnderLockAsync`,
 `StructuralRefactoringHelper`, `RefactoringTools`,
 `RoslynMcpServer.Tests/WorkspaceDocumentDiskSyncTests.cs`,
-`docs/workspace-load-cache/epoch-1-workspace-lifecycle.md` (A-WRITE, не в runtime).
+`docs/workspace-load-cache/epoch-1-workspace-lifecycle/spec.md` (A-WRITE, не в runtime).
 
 Цель ревью — опровергнуть предложенную архитектуру, а не улучшить её изложение.
 План и production-код этим каталогом не изменены.
