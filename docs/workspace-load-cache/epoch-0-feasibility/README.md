@@ -47,9 +47,18 @@ Task-02 дополнил пакет task-03 observed findings 2026-10-03; пол
   и новый session-bound overlay не доказаны. Independent reviewer `/root/independent_review` — ACCEPT;
   Release build и main 1132/1132 passed. [Приёмка и ограничения](evidence/task-02-dependency-admission.md#независимая-приёмка).
   Положительные fixtures task-03 остаются hold; production/public activation не открыты.
-- [task-03 — oracle-fixtures](task-03-oracle-fixtures-Luna.md) — **Luna / medium, 2/5**; риск: средний; planned.
+- [task-03 — oracle-fixtures](task-03-oracle-fixtures-Luna.md) — **Luna / medium, 2/5**; риск: средний; **accepted — isolated fixtures, negative expectations only (2026-10-04)**.
   Depends on: [E0/task-00](task-00-current-baseline-and-execution-contract-Astra.md), [E0/task-01](task-01-hydrate-host-spike-Sol.md), [E0/task-02](task-02-dependency-admission-spike-Astra.md).
   Создать ограниченные фикстуры и ожидаемые данные по уже принятому плану oracle.
+  13 фикстур manifest реализованы с honest-unknown admission-ожиданиями и golden-данными
+  из независимых наблюдений task-02 (включая полный Razor generated text и байты obj-входов);
+  positive-ожидания остаются hold. Принятый scope: пять fixture/model/test файлов,
+  13 layouts, restore/cleanup regressions и task/index/evidence bookkeeping.
+  Все R03-01..R03-06 закрыты; последние две стилевые правки завершены координатором.
+  Final Release build exit 0, focused **48/48**, main **1180/1180 passed**, без
+  failures/skips. Fixture-зависимость task-03 для task-04 закрыта; task-04 не
+  выполнялся, positive dispatch остаётся hold по task-02, public activation
+  не разрешена. [Финальная validation и приёмка](evidence/task-03-fixtures.md#финальная-coordinator-validation-и-приёмка-2026-10-04).
 - [task-04 — fresh-msbuild-equivalence](task-04-fresh-msbuild-equivalence-Sol.md) — **Sol / high, 4/5**; риск: высокий; planned.
   Depends on: [E0/task-01](task-01-hydrate-host-spike-Sol.md), [E0/task-02](task-02-dependency-admission-spike-Astra.md), [E0/task-03](task-03-oracle-fixtures-Luna.md), [E0/task-00](task-00-current-baseline-and-execution-contract-Astra.md).
   Сравнить candidate host с независимой свежей MSBuild загрузкой.
