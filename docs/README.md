@@ -30,6 +30,7 @@
 
 | Где | Что лежит |
 |---|---|
+| [build-output/](build-output/README.md) | 2026-10-05: принято для 1.5.5 — silent-вывод сборки и контекст при неуспехе; Release, основной CI 1264/1264 — [валидация](build-output/validation.md) |
 | [archive/](archive/README.md) | Закрытые серии без операторской ценности |
 | `*/_archive/` | Review, ответы, арбитраж, superseded drafts той же темы |
 

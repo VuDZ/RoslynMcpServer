@@ -10,8 +10,6 @@ namespace RoslynMcpServer.Tools;
 
 public sealed class RunTools
 {
-    private readonly ILogger<RunTools> _logger;
-
     public RunTools(ILogger<RunTools> logger)
     {
         _logger = logger;
@@ -19,7 +17,7 @@ public sealed class RunTools
 
     [McpServerTool(Name = "run_dotnet_run", Title = "Run dotnet run")]
     [Description(
-        "Runs dotnet run --project <csproj>. Executes a process. Prefer this over execute_dotnet_command.")]
+        "Builds then runs an executable csproj within one timeout. Preserves application output. Context on failure only.")]
     public async Task<string> RunDotNetRun(
         [Description("Path to an executable .csproj.")]
         string workspacePath,
@@ -35,6 +33,8 @@ public sealed class RunTools
         int maxStderrChars = ProcessOutputExcerpt.DefaultMaxStderrCharacters,
         [Description(DiagnosticReportAttachment.ReportCursorParameterDescription)]
         string? reportCursor = null,
+        [Description(BuildOutputReport.WarningsParameterDescription)]
+        bool includeBuildWarnings = false,
         IProgress<ProgressNotificationValue>? progress = null,
         CancellationToken cancellationToken = default)
     {
@@ -70,7 +70,7 @@ public sealed class RunTools
                 ? WorkspaceRootResolver.ResolveDotNetWorkingDirectory(fullPath)
                 : Path.GetFullPath(workingDirectory);
 
-            var args = new StringBuilder("run --project \"");
+            var args = new StringBuilder("run --no-build --project \"");
             args.Append(fullPath);
             args.Append('"');
 
@@ -81,12 +81,42 @@ public sealed class RunTools
             }
 
             TimeSpan? timeout = timeoutSeconds > 0 ? TimeSpan.FromSeconds(timeoutSeconds) : null;
+            var watch = System.Diagnostics.Stopwatch.StartNew();
+            var cliProgress = McpToolProgressReporter.TryCreate(progress);
+            var buildArguments = DotNetTestArguments.BuildPreTestBuild(fullPath);
+            var build = await CliProgressStep.RunWithMetadataAsync(
+                    buildArguments, workDir, cancellationToken, timeout, cliProgress, CliProgressStep.BuildStage)
+                .ConfigureAwait(false);
+            if (build.TimedOut || build.ExitCode != 0)
+            {
+                return ToolTelemetry.TraceAndReturn(
+                    toolName,
+                    "Application was not started because the build did not succeed."
+                    + Environment.NewLine + Environment.NewLine
+                    + BuildOutputReport.Format(
+                        build.CombinedOutput,
+                        build.ExitCode,
+                        build.RunMetadata + Environment.NewLine + $"- **Command:** `dotnet {buildArguments}`",
+                        includeBuildWarnings,
+                        timedOut: build.TimedOut));
+            }
+
+            timeout = DotNetTestArguments.RemainingTimeout(timeout, watch.Elapsed);
+            if (timeout == TimeSpan.Zero)
+            {
+                return ToolTelemetry.TraceAndReturn(
+                    toolName,
+                    "## dotnet run timed out" + Environment.NewLine
+                    + "Build succeeded, but no time remained to start the application."
+                    + Environment.NewLine + "### Execution context" + Environment.NewLine + build.RunMetadata);
+            }
+
             var run = await CliProgressStep.RunSeparatedAsync(
                     args.ToString(),
                     workDir,
                     timeout,
                     cancellationToken,
-                    McpToolProgressReporter.TryCreate(progress),
+                    cliProgress,
                     CliProgressStep.RunStage)
                 .ConfigureAwait(false);
 
@@ -94,23 +124,8 @@ public sealed class RunTools
             var stderrExcerpt = ProcessOutputExcerpt.BuildStderrExcerpt(run.StdErr, maxStderrChars);
 
             var sb = new StringBuilder();
-            sb.AppendLine(run.ExitCode == 0 && !run.TimedOut ? "## dotnet run succeeded" : "## dotnet run finished");
-            sb.AppendLine();
-            foreach (var line in run.RunMetadata.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries))
-            {
-                sb.AppendLine(line);
-            }
-
-            sb.AppendLine($"- **Command:** `dotnet {args}`");
-            sb.AppendLine($"- **Exit code:** `{run.ExitCode}`");
-            sb.AppendLine($"- **Timed out:** {(run.TimedOut ? "yes" : "no")}");
-            if (!string.IsNullOrEmpty(run.ExceptionType))
-            {
-                sb.AppendLine($"- **Exception:** `{run.ExceptionType}`");
-            }
-
-            sb.AppendLine($"- **Stdout length:** {run.StdOut.Length} chars (excerpt below)");
-            sb.AppendLine($"- **Stderr length:** {run.StdErr.Length} chars (excerpt below)");
+            sb.AppendLine(run.TimedOut ? "## dotnet run timed out"
+                : run.ExitCode == 0 && run.ExceptionType is null ? "## dotnet run succeeded" : "## dotnet run failed");
             sb.AppendLine();
 
             if (!string.IsNullOrEmpty(stdoutExcerpt))
@@ -147,6 +162,30 @@ public sealed class RunTools
                     "> Check stderr tail for progress/errors. For HTTP/proxy issues verify corporate network — not an MCP SDK mismatch.");
             }
 
+            if (includeBuildWarnings)
+            {
+                var warnings = BuildOutputReport.FormatWarnings(build.CombinedOutput);
+                if (warnings.Length > 0)
+                {
+                    sb.AppendLine();
+                    sb.AppendLine(warnings);
+                }
+            }
+
+            if (run.ExitCode != 0 || run.TimedOut || run.ExceptionType is not null)
+            {
+                sb.AppendLine();
+                sb.AppendLine("### Execution context");
+                sb.AppendLine(run.RunMetadata);
+                sb.AppendLine($"- **Command:** `dotnet {args}`");
+                sb.AppendLine($"- **Exit code:** `{run.ExitCode}`");
+                sb.AppendLine($"- **Timed out:** {(run.TimedOut ? "yes" : "no")}");
+                if (run.ExceptionType is not null)
+                {
+                    sb.AppendLine($"- **Exception:** `{run.ExceptionType}`");
+                }
+            }
+
             var text = sb.ToString().TrimEnd();
             var combined = string.IsNullOrEmpty(run.StdErr)
                 ? run.StdOut
@@ -156,7 +195,8 @@ public sealed class RunTools
             var shouldStore = DiagnosticReportAttachment.ClientResponseHasTruncatedExcerpt(text)
                               || run.StdOut.Length > maxStdoutChars
                               || run.StdErr.Length > maxStderrChars;
-            text = DiagnosticReportAttachment.AttachToResponse(text, combined, shouldStore);
+            text = DiagnosticReportAttachment.AttachToResponse(
+                text, build.CombinedOutput + Environment.NewLine + combined, shouldStore);
             return ToolTelemetry.TraceAndReturn(toolName, text);
         }
         catch (OperationCanceledException)
@@ -169,4 +209,6 @@ public sealed class RunTools
             return ToolTelemetry.TraceAndReturn(toolName, $"Failed to run project: {ex.GetType().Name}: {ex.Message}");
         }
     }
+
+    private readonly ILogger<RunTools> _logger;
 }

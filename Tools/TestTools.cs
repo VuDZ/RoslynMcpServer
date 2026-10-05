@@ -41,10 +41,6 @@ public sealed class TestTools
     /// <summary>Historical omit of <c>noBuild</c> on the non-DLL route: skip the rebuild.</summary>
     private const bool FilterTestOmitSkipsRebuild = true;
 
-    private readonly SolutionManager _solutionManager;
-    private readonly ILogger<TestTools> _logger;
-    private readonly TestDllEnsure.Runner? _cliRunner;
-
     public TestTools(SolutionManager solutionManager, ILogger<TestTools> logger)
         : this(solutionManager, logger, cliRunner: null)
     {
@@ -85,6 +81,8 @@ public sealed class TestTools
         int maxOutputChars = 0,
         [Description(DiagnosticReportAttachment.ReportCursorParameterDescription)]
         string? reportCursor = null,
+        [Description(BuildOutputReport.WarningsParameterDescription)]
+        bool includeBuildWarnings = false,
         IProgress<ProgressNotificationValue>? progress = null,
         CancellationToken cancellationToken = default)
     {
@@ -105,6 +103,7 @@ public sealed class TestTools
             includeFullOutput,
             maxOutputChars,
             reportCursor,
+            includeBuildWarnings,
             progress,
             cancellationToken);
     }
@@ -141,6 +140,8 @@ public sealed class TestTools
         int maxOutputChars = 0,
         [Description(DiagnosticReportAttachment.ReportCursorParameterDescription)]
         string? reportCursor = null,
+        [Description(BuildOutputReport.WarningsParameterDescription)]
+        bool includeBuildWarnings = false,
         IProgress<ProgressNotificationValue>? progress = null,
         CancellationToken cancellationToken = default)
     {
@@ -198,6 +199,7 @@ public sealed class TestTools
                     includeFullOutput,
                     maxOutputChars,
                     reportCursor: null,
+                    includeBuildWarnings,
                     progress,
                     cancellationToken)
                 .ConfigureAwait(false);
@@ -248,6 +250,8 @@ public sealed class TestTools
         int maxOutputChars = 0,
         [Description(DiagnosticReportAttachment.ReportCursorParameterDescription)]
         string? reportCursor = null,
+        [Description(BuildOutputReport.WarningsParameterDescription)]
+        bool includeBuildWarnings = false,
         IProgress<ProgressNotificationValue>? progress = null,
         CancellationToken cancellationToken = default)
     {
@@ -285,6 +289,7 @@ public sealed class TestTools
             includeFullOutput,
             maxOutputChars,
             reportCursor: null,
+            includeBuildWarnings,
             progress,
             cancellationToken);
     }
@@ -430,6 +435,7 @@ public sealed class TestTools
         bool includeFullOutput,
         int maxOutputChars,
         string? reportCursor,
+        bool includeBuildWarnings,
         IProgress<ProgressNotificationValue>? progress,
         CancellationToken cancellationToken)
     {
@@ -518,6 +524,7 @@ public sealed class TestTools
                         route.Policy,
                         includeFullOutput,
                         maxOutputChars,
+                        includeBuildWarnings,
                         progress,
                         cancellationToken)
                     .ConfigureAwait(false);
@@ -574,6 +581,7 @@ public sealed class TestTools
             var cliProgress = McpToolProgressReporter.TryCreate(progress);
             int? previousExit = null;
 
+            var buildOutput = string.Empty;
             var preTestBuildArguments = plan.PreTestBuildArguments;
             if (preTestBuildArguments is not null)
             {
@@ -586,48 +594,20 @@ public sealed class TestTools
                     cliProgress,
                     cancellationToken).ConfigureAwait(false);
 
-                if (buildRun.TimedOut)
+                buildOutput = buildRun.CombinedOutput;
+                if (buildRun.TimedOut || buildRun.ExitCode != 0)
                 {
-                    var timedOut = new StringBuilder();
-                    timedOut.AppendLine("## Pre-test build timed out");
-                    timedOut.AppendLine();
-                    timedOut.AppendLine("Tests were not started because `dotnet build` exceeded the tool timeout.");
-                    timedOut.AppendLine();
-                    timedOut.AppendLine(buildRun.RunMetadata);
-                    timedOut.AppendLine(extraMeta);
-                    timedOut.AppendLine();
-                    timedOut.AppendLine(DotNetCliRunner.FormatHangHints(timedOut: true, cancelled: false));
-                    timedOut.AppendLine();
-                    TruncatedProcessLog.AppendLastCharacters(
-                        timedOut, "Console output before kill:", buildRun.CombinedOutput);
-                    var timedOutText = timedOut.ToString().TrimEnd();
-                    timedOutText = DiagnosticReportAttachment.AttachToResponse(
-                        timedOutText,
-                        buildRun.CombinedOutput,
-                        DiagnosticReportAttachment.ClientResponseHasTruncatedExcerpt(timedOutText));
-                    return ToolTelemetry.TraceAndReturn(toolName, timedOutText);
-                }
-
-                if (buildRun.ExitCode != 0)
-                {
-                    var failed = new StringBuilder();
-                    failed.AppendLine("## Pre-test build failed");
-                    failed.AppendLine();
-                    failed.AppendLine("Tests were not started because `dotnet build` failed.");
-                    failed.AppendLine();
-                    failed.AppendLine(buildRun.RunMetadata);
-                    failed.AppendLine(extraMeta);
-                    TruncatedProcessLog.AppendLastCharacters(
-                        failed,
-                        TruncatedProcessLog.BuildPreambleBuildConsoleTail(buildRun.ExitCode),
-                        buildRun.CombinedOutput);
-                    var failedText = failed.ToString().TrimEnd();
-                    failedText = DiagnosticReportAttachment.AttachToResponse(
-                        failedText,
-                        buildRun.CombinedOutput,
-                        DiagnosticReportAttachment.ClientResponseHasTruncatedExcerpt(failedText)
-                        || DiagnosticReportAttachment.IsUnparsedBuildFailure(failedText));
-                    return ToolTelemetry.TraceAndReturn(toolName, failedText);
+                    var buildReport = BuildOutputReport.Format(
+                        buildOutput,
+                        buildRun.ExitCode,
+                        buildRun.RunMetadata + Environment.NewLine + extraMeta,
+                        includeBuildWarnings,
+                        subject: "Pre-test build",
+                        timedOut: buildRun.TimedOut);
+                    return ToolTelemetry.TraceAndReturn(
+                        toolName,
+                        "Tests were not started because the pre-test build did not succeed."
+                        + Environment.NewLine + Environment.NewLine + buildReport);
                 }
 
                 timeout = DotNetTestArguments.RemainingTimeout(timeout, sw.Elapsed);
@@ -639,11 +619,15 @@ public sealed class TestTools
                     exhausted.AppendLine(
                         "Pre-test `dotnet build` succeeded, but no time remained in `timeoutSeconds` to start `dotnet test`.");
                     exhausted.AppendLine();
+                    exhausted.AppendLine("### Execution context");
                     exhausted.AppendLine(buildRun.RunMetadata);
                     exhausted.AppendLine(extraMeta);
                     exhausted.AppendLine();
                     exhausted.AppendLine(DotNetCliRunner.FormatHangHints(timedOut: true, cancelled: false));
-                    return ToolTelemetry.TraceAndReturn(toolName, exhausted.ToString().TrimEnd());
+                    var exhaustedText = exhausted.ToString().TrimEnd();
+                    return ToolTelemetry.TraceAndReturn(
+                        toolName,
+                        includeBuildWarnings ? AppendBuildWarnings(exhaustedText, buildOutput) : exhaustedText);
                 }
 
                 previousExit = buildRun.ExitCode;
@@ -663,6 +647,7 @@ public sealed class TestTools
                 var sb = new StringBuilder();
                 sb.AppendLine("## Test run timed out");
                 sb.AppendLine();
+                sb.AppendLine("### Execution context");
                 sb.AppendLine(run.RunMetadata);
                 sb.AppendLine(extraMeta);
                 sb.AppendLine();
@@ -709,21 +694,31 @@ public sealed class TestTools
                     + "(common after hung restore or locked `obj`).");
                 sb.AppendLine(DotNetCliRunner.FormatHangHints(timedOut: false, cancelled: false));
                 sb.AppendLine();
+                sb.AppendLine("### Execution context");
                 sb.AppendLine(run.RunMetadata);
                 sb.AppendLine(extraMeta);
                 finalMarkdown = sb.ToString().TrimEnd();
             }
             else
             {
-                finalMarkdown = markdown + Environment.NewLine + Environment.NewLine + run.RunMetadata
-                    + Environment.NewLine + extraMeta;
+                finalMarkdown = markdown;
+                if (!IsSuccessfulTestRun(parse, run.ExitCode))
+                {
+                    finalMarkdown += Environment.NewLine + Environment.NewLine + "### Execution context"
+                        + Environment.NewLine + run.RunMetadata + Environment.NewLine + extraMeta;
+                }
+            }
+
+            if (includeBuildWarnings)
+            {
+                finalMarkdown = AppendBuildWarnings(finalMarkdown, buildOutput);
             }
 
             var shouldStore = DiagnosticReportAttachment.ClientResponseHasTruncatedExcerpt(finalMarkdown)
                               || DiagnosticReportAttachment.IsPartialOrUnparsedTestStatus(finalMarkdown);
             finalMarkdown = DiagnosticReportAttachment.AttachToResponse(
                 finalMarkdown,
-                run.CombinedOutput,
+                CombineBuildAndTestOutput(buildOutput, run.CombinedOutput),
                 shouldStore);
             return ToolTelemetry.TraceAndReturn(toolName, finalMarkdown);
         }
@@ -758,6 +753,7 @@ public sealed class TestTools
         TestBuildPolicy policy,
         bool includeFullOutput,
         int maxOutputChars,
+        bool includeBuildWarnings,
         IProgress<ProgressNotificationValue>? progress,
         CancellationToken cancellationToken)
     {
@@ -856,7 +852,8 @@ public sealed class TestTools
                 effectivePlatform,
                 resolvedBinariesPath,
                 includeFullOutput,
-                maxOutputChars));
+                maxOutputChars,
+                includeBuildWarnings));
     }
 
     private TestDllEnsure.Runner CliRunner(ICliProgressReporter? progress)
@@ -908,7 +905,8 @@ public sealed class TestTools
         string? platform,
         string binariesPath,
         bool includeFullOutput,
-        int maxOutputChars)
+        int maxOutputChars,
+        bool includeBuildWarnings)
     {
         var extraMeta = FormatDllMetadata(
             outcome,
@@ -920,13 +918,13 @@ public sealed class TestTools
             maxOutputChars);
         if (!outcome.TestsStarted)
         {
-            return FormatDllStopped(outcome, extraMeta);
+            return FormatDllStopped(outcome, extraMeta, includeBuildWarnings);
         }
 
         var run = outcome.TestRun;
         if (run is null)
         {
-            return FormatDllStopped(outcome, extraMeta);
+            return FormatDllStopped(outcome, extraMeta, includeBuildWarnings);
         }
 
         if (run.TimedOut)
@@ -934,6 +932,7 @@ public sealed class TestTools
             var timedOut = new StringBuilder();
             timedOut.AppendLine("## Test run timed out");
             timedOut.AppendLine();
+            timedOut.AppendLine("### Execution context");
             timedOut.AppendLine(run.RunMetadata);
             timedOut.AppendLine(extraMeta);
             timedOut.AppendLine();
@@ -981,26 +980,35 @@ public sealed class TestTools
                 + "(common after hung restore or locked `obj`).");
             silent.AppendLine(DotNetCliRunner.FormatHangHints(timedOut: false, cancelled: false));
             silent.AppendLine();
+            silent.AppendLine("### Execution context");
             silent.AppendLine(run.RunMetadata);
             silent.AppendLine(extraMeta);
             finalMarkdown = silent.ToString().TrimEnd();
         }
         else
         {
-            finalMarkdown = markdown
-                + Environment.NewLine
-                + Environment.NewLine
-                + run.RunMetadata
-                + Environment.NewLine
-                + extraMeta;
+            finalMarkdown = markdown;
+            if (!IsSuccessfulTestRun(parse, run.ExitCode))
+            {
+                finalMarkdown += Environment.NewLine + Environment.NewLine + "### Execution context"
+                    + Environment.NewLine + run.RunMetadata + Environment.NewLine + extraMeta;
+            }
+        }
+
+        if (includeBuildWarnings && outcome.BuildRun is not null)
+        {
+            finalMarkdown = AppendBuildWarnings(finalMarkdown, outcome.BuildRun.CombinedOutput);
         }
 
         var shouldStore = DiagnosticReportAttachment.ClientResponseHasTruncatedExcerpt(finalMarkdown)
                           || DiagnosticReportAttachment.IsPartialOrUnparsedTestStatus(finalMarkdown);
-        return DiagnosticReportAttachment.AttachToResponse(finalMarkdown, run.CombinedOutput, shouldStore);
+        return DiagnosticReportAttachment.AttachToResponse(
+            finalMarkdown,
+            CombineBuildAndTestOutput(outcome.BuildRun?.CombinedOutput ?? string.Empty, run.CombinedOutput),
+            shouldStore);
     }
 
-    private static string FormatDllStopped(TestDllEnsureResult outcome, string extraMeta)
+    private static string FormatDllStopped(TestDllEnsureResult outcome, string extraMeta, bool includeBuildWarnings)
     {
         var body = new StringBuilder();
         if (outcome.Cancelled)
@@ -1011,57 +1019,31 @@ public sealed class TestTools
             return body.ToString().TrimEnd();
         }
 
-        if (outcome.BuildRun is { TimedOut: true })
+        if (outcome.BuildRun is { } buildRun && (buildRun.TimedOut || buildRun.ExitCode != 0))
         {
-            body.AppendLine("## Pre-test build timed out");
-            body.AppendLine();
-            body.AppendLine(outcome.Error);
-            body.AppendLine();
-            body.AppendLine(outcome.BuildRun.RunMetadata);
-            body.AppendLine(extraMeta);
-            body.AppendLine();
-            body.AppendLine(DotNetCliRunner.FormatHangHints(timedOut: true, cancelled: false));
-            body.AppendLine();
-            TruncatedProcessLog.AppendLastCharacters(
-                body,
-                "Console output before kill:",
-                outcome.BuildRun.CombinedOutput);
-            var timedOutText = body.ToString().TrimEnd();
-            return DiagnosticReportAttachment.AttachToResponse(
-                timedOutText,
-                outcome.BuildRun.CombinedOutput,
-                DiagnosticReportAttachment.ClientResponseHasTruncatedExcerpt(timedOutText));
-        }
-
-        if (outcome.BuildRun is not null && outcome.BuildRun.ExitCode != 0)
-        {
-            body.AppendLine("## Pre-test build failed");
-            body.AppendLine();
-            body.AppendLine(outcome.Error);
-            body.AppendLine();
-            body.AppendLine(outcome.BuildRun.RunMetadata);
-            body.AppendLine(extraMeta);
-            TruncatedProcessLog.AppendLastCharacters(
-                body,
-                TruncatedProcessLog.BuildPreambleBuildConsoleTail(outcome.BuildRun.ExitCode),
-                outcome.BuildRun.CombinedOutput);
-            var failedText = body.ToString().TrimEnd();
-            return DiagnosticReportAttachment.AttachToResponse(
-                failedText,
-                outcome.BuildRun.CombinedOutput,
-                DiagnosticReportAttachment.ClientResponseHasTruncatedExcerpt(failedText)
-                || DiagnosticReportAttachment.IsUnparsedBuildFailure(failedText));
+            return (outcome.Error ?? "Tests were not started.") + Environment.NewLine + Environment.NewLine
+                + BuildOutputReport.Format(
+                    buildRun.CombinedOutput,
+                    buildRun.ExitCode,
+                    buildRun.RunMetadata + Environment.NewLine + extraMeta,
+                    includeBuildWarnings,
+                    subject: "Pre-test build",
+                    timedOut: buildRun.TimedOut);
         }
 
         body.AppendLine(outcome.Error ?? "Error: tests were not started.");
         body.AppendLine();
+        body.AppendLine("### Execution context");
         if (outcome.BuildRun is not null)
         {
             body.AppendLine(outcome.BuildRun.RunMetadata);
         }
 
         body.AppendLine(extraMeta);
-        return body.ToString().TrimEnd();
+        var stoppedText = body.ToString().TrimEnd();
+        return includeBuildWarnings && outcome.BuildRun is not null
+            ? AppendBuildWarnings(stoppedText, outcome.BuildRun.CombinedOutput)
+            : stoppedText;
     }
 
     private static string FormatDllMetadata(
@@ -1099,6 +1081,18 @@ public sealed class TestTools
         return text;
     }
 
+    private static bool IsSuccessfulTestRun(VstestOutputParser.ParseResult parsed, int exitCode) =>
+        exitCode == 0 && parsed.Summary is { Total: > 0, Failed: 0 };
+
+    private static string AppendBuildWarnings(string report, string buildOutput)
+    {
+        var warnings = BuildOutputReport.FormatWarnings(buildOutput);
+        return warnings.Length == 0 ? report : report + Environment.NewLine + Environment.NewLine + warnings;
+    }
+
+    private static string CombineBuildAndTestOutput(string buildOutput, string testOutput) =>
+        buildOutput.Length == 0 ? testOutput : buildOutput + Environment.NewLine + testOutput;
+
     private static bool SameProjectPath(string? left, string right)
     {
         if (string.IsNullOrWhiteSpace(left))
@@ -1118,4 +1112,8 @@ public sealed class TestTools
             return false;
         }
     }
+
+    private readonly SolutionManager _solutionManager;
+    private readonly ILogger<TestTools> _logger;
+    private readonly TestDllEnsure.Runner? _cliRunner;
 }

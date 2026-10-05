@@ -2,6 +2,11 @@
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.5.5
+
+- Build/test/run tools accept `includeBuildWarnings=false`: successful builds return a short status, errors remain visible, and warnings are opt-in. Build failure reports keep full logs accessible via `reportCursor`. The raw command tool applies this policy only to an explicit `build` command.
+- SDK/environment metadata is shown under `Execution context` only on failure, timeout, or an unverified test result. `run_dotnet_run` separates build from application startup (`--no-build`) within one timeout so application stdout/stderr are preserved.
+
 ### v1.5.4
 
 - **Saved additional files and analyzer configs reach the semantic snapshot** — a path that is already an `AdditionalDocument` or `AnalyzerConfigDocument`, and is not also an evaluation input, is read once on the same flush as `.cs` and applied with `WithAdditionalDocumentText` or `WithAnalyzerConfigDocumentText`. The text is reapplied onto the published snapshot. `TryApplyChanges` is not used: it rewrites an additional file and throws for an analyzer config, and neither result updates the published snapshot.

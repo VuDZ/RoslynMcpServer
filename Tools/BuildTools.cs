@@ -10,11 +10,6 @@ namespace RoslynMcpServer.Tools;
 
 public sealed class BuildTools
 {
-    private const int MaxDiagnostics = 20;
-
-    private readonly SolutionManager _solutionManager;
-    private readonly ILogger<BuildTools> _logger;
-
     public BuildTools(SolutionManager solutionManager, ILogger<BuildTools> logger)
     {
         _solutionManager = solutionManager;
@@ -40,6 +35,8 @@ public sealed class BuildTools
         string? projectName = null,
         [Description(DiagnosticReportAttachment.ReportCursorParameterDescription)]
         string? reportCursor = null,
+        [Description(BuildOutputReport.WarningsParameterDescription)]
+        bool includeBuildWarnings = false,
         IProgress<ProgressNotificationValue>? progress = null,
         CancellationToken cancellationToken = default)
     {
@@ -127,103 +124,23 @@ public sealed class BuildTools
                     target: solutionTarget,
                     progress: McpToolProgressReporter.TryCreate(progress))
                 .ConfigureAwait(false);
-            var combined = probe.CombinedOutput;
-            var processExitCode = probe.ExitCode;
-            var runMetadata = probe.RunMetadata;
-            if (probe.TimedOut || probe.BudgetExhausted)
-            {
-                var hang = new StringBuilder();
-                hang.AppendLine(probe.TimedOut ? "## Build timed out" : "## Build probe budget exhausted");
-                hang.AppendLine();
-                AppendRunMetadata(hang, runMetadata, probe.StepsExecuted, effectiveConfiguration, effectivePlatform, probe.NoIncremental, _solutionManager.LoadedBuildArgs, resolvedProjectName, solutionTarget);
-                hang.AppendLine();
-                hang.AppendLine(DotNetCliRunner.FormatHangHints(timedOut: probe.TimedOut, cancelled: false));
-                hang.AppendLine();
-                TruncatedProcessLog.AppendLastCharacters(hang, "Console output:", combined);
-                var hangText = hang.ToString().TrimEnd();
-                hangText = DiagnosticReportAttachment.AttachToResponse(
-                    hangText,
-                    combined,
-                    DiagnosticReportAttachment.ClientResponseHasTruncatedExcerpt(hangText));
-                return ToolTelemetry.TraceAndReturn(nameof(RunDotNetBuild), hangText);
-            }
-
-            var parsed = DotNetBuildDiagnosticParser.Parse(combined);
-            var errorEntries = MergeErrorEntries(
-                workDir,
-                combined,
-                runMetadata,
-                parsed);
-            var warningEntries = DeduplicateDiagnostics(
-                parsed.Where(d => string.Equals(d.Severity, "warning", StringComparison.OrdinalIgnoreCase)));
-
-            var display = new List<DotNetBuildDiagnosticParser.DiagnosticEntry>();
-            display.AddRange(errorEntries.Take(MaxDiagnostics));
-            var remaining = MaxDiagnostics - display.Count;
-            if (remaining > 0)
-            {
-                display.AddRange(warningEntries.Take(remaining));
-            }
-
-            var totalMatched = errorEntries.Count + warningEntries.Count;
-            var truncated = totalMatched > MaxDiagnostics;
-
-            if (errorEntries.Count == 0 && processExitCode == 0)
-            {
-                return ToolTelemetry.TraceAndReturn(
-                    nameof(RunDotNetBuild),
-                    BuildSuccessReport(runMetadata, probe.StepsExecuted, warningEntries, effectiveConfiguration, effectivePlatform, probe.NoIncremental, _solutionManager.LoadedBuildArgs, resolvedProjectName, solutionTarget));
-            }
-
-            if (errorEntries.Count == 0 && processExitCode != 0)
-            {
-                return ToolTelemetry.TraceAndReturn(
-                    nameof(RunDotNetBuild),
-                    BuildFailedWithoutParsedDiagnostics(
-                        runMetadata,
-                        probe.StepsExecuted,
-                        processExitCode,
-                        combined,
-                        effectiveConfiguration,
-                        effectivePlatform,
-                        probe.NoIncremental,
-                        _solutionManager.LoadedBuildArgs,
-                        resolvedProjectName,
-                        solutionTarget));
-            }
-
-            var errSb = new StringBuilder();
-            errSb.AppendLine("## Build failed");
-            errSb.AppendLine();
-            AppendRunMetadata(errSb, runMetadata, probe.StepsExecuted, effectiveConfiguration, effectivePlatform, probe.NoIncremental, _solutionManager.LoadedBuildArgs, resolvedProjectName, solutionTarget);
-            errSb.AppendLine($"Exit code: `{processExitCode}`. Parsed diagnostics (MSBuild + NuGet NU####):");
-            foreach (var d in display)
-            {
-                errSb.AppendLine($"- **{d.Severity}** `{d.Code}` `{d.Location}` — {d.Message}");
-            }
-
-            if (truncated)
-            {
-                errSb.AppendLine();
-                errSb.AppendLine("[!] More than 20 diagnostics reported. Showing the first 20 (errors first) to protect LLM context.");
-            }
-
-            if (totalMatched < CountLikelyIssueLines(combined))
-            {
-                TruncatedProcessLog.AppendLastCharacters(
-                    errSb,
-                    "Additional console output (truncated):",
-                    combined);
-            }
-
-            MsBuildLogHighlighter.AppendKeyLinesSection(errSb, combined);
-            AppendNuGetAuditHintIfNeeded(errSb, combined);
-            var errText = errSb.ToString().TrimEnd();
-            errText = DiagnosticReportAttachment.AttachToResponse(
-                errText,
-                combined,
-                DiagnosticReportAttachment.ClientResponseHasTruncatedExcerpt(errText));
-            return ToolTelemetry.TraceAndReturn(nameof(RunDotNetBuild), errText);
+            var context = new StringBuilder();
+            AppendRunMetadata(context, probe.RunMetadata, probe.StepsExecuted, effectiveConfiguration,
+                effectivePlatform, probe.NoIncremental, _solutionManager.LoadedBuildArgs,
+                resolvedProjectName, solutionTarget);
+            var additionalErrors = SdkMismatchDiagnostics.CreateErrors(
+                workDir, probe.CombinedOutput,
+                SdkMismatchDiagnostics.TryParseDotNetVersionFromMetadata(probe.RunMetadata));
+            return ToolTelemetry.TraceAndReturn(
+                nameof(RunDotNetBuild),
+                BuildOutputReport.Format(
+                    probe.CombinedOutput,
+                    probe.ExitCode,
+                    context.ToString().TrimEnd(),
+                    includeBuildWarnings,
+                    timedOut: probe.TimedOut,
+                    budgetExhausted: probe.BudgetExhausted,
+                    additionalErrors: additionalErrors));
         }
         catch (OperationCanceledException)
         {
@@ -241,123 +158,6 @@ public sealed class BuildTools
         }
     }
 
-    private static string BuildSuccessReport(
-        string runMetadata,
-        IReadOnlyList<string> stepsExecuted,
-        IReadOnlyList<DotNetBuildDiagnosticParser.DiagnosticEntry> warningEntries,
-        string? configuration,
-        string? platform,
-        bool noIncremental,
-        string? buildArgs,
-        string? projectName,
-        string? solutionTarget)
-    {
-        var sb = new StringBuilder();
-        sb.AppendLine("## Build succeeded");
-        sb.AppendLine();
-        AppendRunMetadata(sb, runMetadata, stepsExecuted, configuration, platform, noIncremental, buildArgs, projectName, solutionTarget);
-        sb.AppendLine("No **error** lines matched (MSBuild `path(line,col): error` or NuGet `error NU####`).");
-        sb.AppendLine("Effective build exit is 0 (last `dotnet build` step; restore cannot mask a failed build with no rebuild).");
-        if (warningEntries.Count > 0)
-        {
-            sb.AppendLine();
-            sb.AppendLine("Warnings:");
-            foreach (var d in warningEntries.Take(MaxDiagnostics))
-            {
-                sb.AppendLine($"- **warning** `{d.Code}` `{d.Location}` — {d.Message}");
-            }
-        }
-
-        return sb.ToString().TrimEnd();
-    }
-
-    private static string BuildFailedWithoutParsedDiagnostics(
-        string runMetadata,
-        IReadOnlyList<string> stepsExecuted,
-        int processExitCode,
-        string combined,
-        string? configuration,
-        string? platform,
-        bool noIncremental,
-        string? buildArgs,
-        string? projectName,
-        string? solutionTarget)
-    {
-        var sb = new StringBuilder();
-        sb.AppendLine("## Build failed");
-        sb.AppendLine();
-        AppendRunMetadata(sb, runMetadata, stepsExecuted, configuration, platform, noIncremental, buildArgs, projectName, solutionTarget);
-        sb.AppendLine(
-            $"Exit code: `{processExitCode}`. No lines matched MSBuild `path(line,col): error|warning CODE` or NuGet `error|warning NU####` patterns (including `: error NU####` and embedded NU lines).");
-        sb.AppendLine(
-            "Exit code ≠ 0 with no parsed MSBuild/NU diagnostics. Possible hung restore, wrong SDK pin, locked `obj`, or a failed build step masked by a later restore in older servers (fixed: effective exit prefers build steps).");
-        sb.AppendLine(DotNetCliRunner.FormatHangHints(timedOut: false, cancelled: false));
-        sb.AppendLine(
-            "Steps: minimal build → restore (minimal, then detailed if empty) → build normal → build detailed (within overall probe budget). See sectioned console output below.");
-        MsBuildLogHighlighter.AppendKeyLinesSection(sb, combined);
-        TruncatedProcessLog.AppendLastCharacters(
-            sb,
-            TruncatedProcessLog.BuildPreambleBuildConsoleTail(processExitCode),
-            combined);
-        AppendNuGetAuditHintIfNeeded(sb, combined);
-        var text = sb.ToString().TrimEnd();
-        // Unparsed build failure always keeps a full report when there is output (even if short).
-        return DiagnosticReportAttachment.AttachToResponse(
-            text,
-            combined,
-            shouldStore: !string.IsNullOrEmpty(combined));
-    }
-
-    private static void AppendNuGetAuditHintIfNeeded(StringBuilder sb, string combined)
-    {
-        if (!DotNetBuildDiagnosticParser.OutputSuggestsNuGetAuditFailure(combined))
-        {
-            return;
-        }
-
-        sb.AppendLine();
-        sb.AppendLine(
-            "> **NuGet audit:** failures may be `NU1904`/`NU1903` treated as errors. "
-            + "Adjust `NuGetAuditMode` in `Directory.Build.props` or upgrade vulnerable packages. "
-            + "This tool already re-ran `dotnet restore` and `build -v:normal` when minimal output had no NU lines.");
-    }
-
-    private static List<DotNetBuildDiagnosticParser.DiagnosticEntry> DeduplicateDiagnostics(
-        IEnumerable<DotNetBuildDiagnosticParser.DiagnosticEntry> entries) =>
-        entries
-            .GroupBy(d => (d.Code, d.Location, d.Message))
-            .Select(g => g.First())
-            .ToList();
-
-    private static List<DotNetBuildDiagnosticParser.DiagnosticEntry> MergeErrorEntries(
-        string workDir,
-        string combined,
-        string runMetadata,
-        IReadOnlyList<DotNetBuildDiagnosticParser.DiagnosticEntry> parsed)
-    {
-        var errors = parsed
-            .Where(d => string.Equals(d.Severity, "error", StringComparison.OrdinalIgnoreCase))
-            .ToList();
-
-        var dotnetVersion = SdkMismatchDiagnostics.TryParseDotNetVersionFromMetadata(runMetadata);
-        foreach (var synthetic in SdkMismatchDiagnostics.CreateErrors(workDir, combined, dotnetVersion))
-        {
-            if (errors.All(e => !string.Equals(e.Code, synthetic.Code, StringComparison.Ordinal)
-                                || e.Message != synthetic.Message))
-            {
-                errors.Insert(0, synthetic);
-            }
-        }
-
-        return errors;
-    }
-
-    private static int CountLikelyIssueLines(string combined) =>
-        combined.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries)
-            .Count(l => l.Contains("error", StringComparison.OrdinalIgnoreCase)
-                        || l.Contains("warning", StringComparison.OrdinalIgnoreCase)
-                        || l.Contains("FAILED", StringComparison.OrdinalIgnoreCase));
-
     private static void AppendRunMetadata(
         StringBuilder sb,
         string runMetadata,
@@ -369,7 +169,6 @@ public sealed class BuildTools
         string? projectName,
         string? solutionTarget)
     {
-        sb.AppendLine("### dotnet run");
         foreach (var line in runMetadata.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries))
         {
             sb.AppendLine(line);
@@ -393,4 +192,7 @@ public sealed class BuildTools
 
         sb.AppendLine();
     }
+
+    private readonly SolutionManager _solutionManager;
+    private readonly ILogger<BuildTools> _logger;
 }

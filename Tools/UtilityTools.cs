@@ -1,4 +1,4 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -27,9 +27,6 @@ public sealed class UtilityTools
         ".vs"
     };
 
-    private readonly ILogger<UtilityTools> _logger;
-    private readonly SolutionManager _solutionManager;
-
     public UtilityTools(ILogger<UtilityTools> logger, SolutionManager solutionManager)
     {
         _logger = logger;
@@ -44,10 +41,21 @@ public sealed class UtilityTools
         [Description("Working directory. Omit to use process CWD then nearest global.json root.")] string? workingDirectory = null,
         [Description("Process timeout in seconds. 0 disables timeout.")]
         int timeoutSeconds = DotNetCliRunner.DefaultTimeoutSeconds,
+        [Description(BuildOutputReport.WarningsParameterDescription)]
+        bool includeBuildWarnings = false,
+        [Description(DiagnosticReportAttachment.ReportCursorParameterDescription)]
+        string? reportCursor = null,
         CancellationToken cancellationToken = default)
     {
         try
         {
+            if (!string.IsNullOrWhiteSpace(reportCursor))
+            {
+                return ToolTelemetry.TraceAndReturn(
+                    nameof(ExecuteDotNetCommand),
+                    DiagnosticReportAttachment.FormatChunkResponse(DiagnosticReportStore.TryTakeChunk(reportCursor)));
+            }
+
             if (string.IsNullOrWhiteSpace(command))
             {
                 return ToolTelemetry.TraceAndReturn(nameof(ExecuteDotNetCommand), "Command is empty.");
@@ -68,19 +76,32 @@ public sealed class UtilityTools
             var run = await DotNetCliRunner.RunSeparatedAsync(command.Trim(), workDir, timeout, cancellationToken)
                 .ConfigureAwait(false);
 
+            if (BuildOutputReport.IsBuildCommand(command))
+            {
+                return ToolTelemetry.TraceAndReturn(
+                    nameof(ExecuteDotNetCommand),
+                    BuildOutputReport.Format(
+                        run.StdOut + Environment.NewLine + run.StdErr,
+                        run.ExitCode,
+                        run.RunMetadata + Environment.NewLine + $"- **Command:** `dotnet {command.Trim()}`",
+                        includeBuildWarnings,
+                        timedOut: run.TimedOut));
+            }
+
             var stdoutExcerpt = ProcessOutputExcerpt.BuildStdoutExcerpt(run.StdOut, 6000);
             var stderrExcerpt = ProcessOutputExcerpt.BuildStderrExcerpt(run.StdErr, 2000);
 
             var sb = new StringBuilder();
             sb.AppendLine("## dotnet command");
             sb.AppendLine();
-            foreach (var line in run.RunMetadata.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries))
+            if (run.ExitCode != 0 || run.TimedOut || run.ExceptionType is not null)
             {
-                sb.AppendLine(line);
+                sb.AppendLine("### Execution context");
+                sb.AppendLine(run.RunMetadata);
+                sb.AppendLine($"- **Command:** `dotnet {command.Trim()}`");
+                sb.AppendLine($"- **Exit code:** `{run.ExitCode}`");
             }
 
-            sb.AppendLine($"- **Command:** `dotnet {command.Trim()}`");
-            sb.AppendLine($"- **Exit code:** `{run.ExitCode}`");
             if (run.TimedOut)
             {
                 sb.AppendLine("- **Timed out:** yes (process tree killed)");
@@ -1745,4 +1766,7 @@ public sealed class UtilityTools
             sb.AppendLine($"{new string(' ', currentDepth * 4)}{prefix}{file.Name}");
         }
     }
+
+    private readonly ILogger<UtilityTools> _logger;
+    private readonly SolutionManager _solutionManager;
 }

@@ -139,9 +139,7 @@ public sealed class BuildProgressIntegrationTests
 
             var text = ReadText(result);
             Assert.False(result.IsError ?? false, text);
-            Assert.Contains("Build succeeded", text, StringComparison.Ordinal);
-            Assert.Contains("Steps:", text, StringComparison.Ordinal);
-            Assert.Contains("dotnet build -v:minimal", text, StringComparison.Ordinal);
+            Assert.Equal("## Build succeeded", text);
         }
         finally
         {

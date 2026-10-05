@@ -66,6 +66,58 @@ public sealed class TestToolsDllBuildTests
         Assert.DoesNotContain("-t:", only, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("dotnet", false)]
+    [InlineData("dotnet", true)]
+    [InlineData("specific", false)]
+    [InlineData("specific", true)]
+    [InlineData("filter", false)]
+    [InlineData("filter", true)]
+    public async Task Successful_pre_test_build_only_shows_warnings_when_requested(string tool, bool includeWarnings)
+    {
+        using var tree = new TempTree();
+        var csproj = tree.Write("AppTests.csproj", "<Project />");
+        var runner = new RecordingRunner
+        {
+            BuildOutput = "App.cs(1,1): warning CS0168: Unused variable",
+            TestOutput = "Passed! - Failed: 0, Passed: 1, Skipped: 0, Total: 1",
+        };
+        var tools = Tools(runner);
+        var report = tool switch
+        {
+            "dotnet" => await tools.RunDotNetTest(csproj, includeBuildWarnings: includeWarnings),
+            "specific" => await tools.RunSpecificTest(csproj, className: "Sample", includeBuildWarnings: includeWarnings),
+            _ => await tools.RunTestByFilter(csproj, "FullyQualifiedName~Sample", noBuild: false, includeBuildWarnings: includeWarnings),
+        };
+
+        Assert.Equal(2, runner.Arguments.Count);
+        Assert.Equal(includeWarnings, report.Contains("CS0168", StringComparison.Ordinal));
+        Assert.DoesNotContain("build-meta", report, StringComparison.Ordinal);
+        Assert.DoesNotContain("test-meta", report, StringComparison.Ordinal);
+        Assert.DoesNotContain("Execution context", report, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Failed_pre_test_build_keeps_errors_and_context(bool includeWarnings)
+    {
+        using var tree = new TempTree();
+        var csproj = tree.Write("AppTests.csproj", "<Project />");
+        var runner = new RecordingRunner
+        {
+            BuildExitCode = 1,
+            BuildOutput = "warning CS0168: Unused variable\nerror CS1001: Identifier expected",
+        };
+        var report = await Tools(runner).RunDotNetTest(csproj, includeBuildWarnings: includeWarnings);
+
+        Assert.Single(runner.Arguments);
+        Assert.Contains("CS1001", report, StringComparison.Ordinal);
+        Assert.Contains("### Execution context", report, StringComparison.Ordinal);
+        Assert.Contains("build-meta", report, StringComparison.Ordinal);
+        Assert.Equal(includeWarnings, report.Contains("CS0168", StringComparison.Ordinal));
+    }
+
     [Fact]
     public async Task Three_tools_share_one_session_ensure_and_a_second_auto_call_still_builds()
     {
@@ -92,7 +144,7 @@ public sealed class TestToolsDllBuildTests
         manager.ApplySessionBuildArgs("-p:TreatWarningsAsErrors=false");
         Assert.False(manager.SessionBuildState.TryRecordInvocation("execute_dotnet_command"));
 
-        var runner = new RecordingRunner { BuildOutput = "BUILD-ONLY-LOG", TestOutput = "test-log" };
+        var runner = new RecordingRunner { BuildOutput = "App.cs(1,1): warning CS0168: BUILD-ONLY-LOG", TestOutput = "Passed! - Failed: 0, Passed: 1, Skipped: 0, Total: 1" };
         var tools = new TestTools(manager, NullLogger<TestTools>.Instance, runner.Run);
         var context = new BuildContext("Sit-Debug", "x64", "net10.0", "-p:TreatWarningsAsErrors=false", dll);
 
@@ -103,9 +155,9 @@ public sealed class TestToolsDllBuildTests
             platform: "x64",
             binariesPath: bin);
         AssertSolutionBuildThenDllTest(runner, sln, dll);
-        Assert.Contains("**Freshness:**", first, StringComparison.Ordinal);
-        Assert.Contains("**SolutionTarget:** `AppTests`", first, StringComparison.Ordinal);
-        Assert.Contains(dll, first, StringComparison.Ordinal);
+        Assert.DoesNotContain("Execution context", first, StringComparison.Ordinal);
+        Assert.DoesNotContain("build-meta", first, StringComparison.Ordinal);
+        Assert.DoesNotContain("test-meta", first, StringComparison.Ordinal);
         Assert.DoesNotContain("BUILD-ONLY-LOG", first, StringComparison.Ordinal);
         var proof = manager.SessionBuildState.GetProof(projectId, context);
         Assert.NotNull(proof);
@@ -118,7 +170,9 @@ public sealed class TestToolsDllBuildTests
         AssertSolutionBuildThenDllTest(runner, sln, dll);
 
         runner.Clear();
-        await tools.RunSpecificTest(csproj, className: "Sample", timeoutSeconds: 12, configuration: "Sit-Debug", platform: "x64", binariesPath: bin);
+        var withWarnings = await tools.RunSpecificTest(csproj, className: "Sample", timeoutSeconds: 12, configuration: "Sit-Debug", platform: "x64", binariesPath: bin, includeBuildWarnings: true);
+        Assert.Contains("CS0168", withWarnings, StringComparison.Ordinal);
+        Assert.DoesNotContain("Execution context", withWarnings, StringComparison.Ordinal);
         AssertSolutionBuildThenDllTest(runner, sln, dll);
 
         runner.Clear();

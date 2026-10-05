@@ -188,7 +188,7 @@ Portable OpenCode examples: [`opencode.json.sample`](opencode.json.sample) (`ros
 
 MCP `tools/list` stays JSON + JSON Schema. Markdown is for JIT help and diagnostics.
 
-**Client compatibility:** do not assume the host refreshes tools after `tools/list_changed`. If a newly enabled tool is missing from the client's catalog, restart with `ROSLYN_MCP_TOOL_GROUPS=<group>` (and `ROSLYN_MCP_TOOL_PROFILE=lite`). A `2025-11-25` initialize session receives `tools/list_changed` when the set grows. A `2026-07-28` session receives it only after `subscriptions/listen` with `toolsListChanged`; the server accepts that revision through the MCP C# SDK. Measured minified `tools/list` (UTF-8): full **54 / 43,029**; lite **15 / 16,906**.
+**Client compatibility:** do not assume the host refreshes tools after `tools/list_changed`. If a newly enabled tool is missing from the client's catalog, restart with `ROSLYN_MCP_TOOL_GROUPS=<group>` (and `ROSLYN_MCP_TOOL_PROFILE=lite`). A `2025-11-25` initialize session receives `tools/list_changed` when the set grows. A `2026-07-28` session receives it only after `subscriptions/listen` with `toolsListChanged`; the server accepts that revision through the MCP C# SDK. Measured minified `tools/list` (UTF-8): full **54 / 45,780**; lite **15 / 19,312**.
 
 ## Agent tools by version
 
@@ -576,8 +576,11 @@ Parses C# syntax, inserts with DocumentEditor, formats the file. Prefer over `ap
 - `noIncremental: bool = true` — pass `--no-incremental` on every build step (default). Set `false` only if you explicitly accept MSBuild up-to-date caching.
 - `platform: string? = null` — optional `-p:Platform=` (e.g. `x64`). Omit to inherit `load_workspace` platform.
 - `projectName: string? = null` — optional. When set, `workspacePath` must be a `.sln`/`.slnx`. Builds that project via its solution-folder MSBuild target (`-t:"Folder\Project"`). Match display name, file name, or virtual path.
+- `includeBuildWarnings: bool = false` — include build warnings; default hides them. Errors are always shown.
 
-**Behavior:** Inherits full process env, then pins SDK via `MSBUILD_EXE_PATH`, `MSBuildSDKsPath`, `DOTNET_MSBUILD_SDK_RESOLVER_SDKS_DIR` / `SDKS_VER` / `CLI_DIR`, `DOTNET_ROOT`. On MSBuild path mismatch → **`error MCP_MSBUILD_SDK_MISMATCH`** and `dotnet exec …/10.x/MSBuild.dll /restore`. Escalation: minimal build → pinned restore → restore (detailed if empty) → build normal → build detailed. **Effective exit** = last `dotnet build` step (not restore). Metadata reports `Configuration` / `Platform` / `ProjectName` / `SolutionTarget` / `BuildArgs` / `NoIncremental`. Session `buildArgs` from `load_workspace` are appended to build steps only (not restore). **Key lines** include task `-- FAILED` with project context. No in-process result cache — “cached” greens were MSBuild incremental or exit overwrite. While a step runs, MCP progress heartbeats report the step label, elapsed seconds, and previous exit (no stdout); this is UX only and cannot extend the host `tools/call` timeout.
+**Behavior:** Inherits full process env, then pins SDK via `MSBUILD_EXE_PATH`, `MSBuildSDKsPath`, `DOTNET_MSBUILD_SDK_RESOLVER_SDKS_DIR` / `SDKS_VER` / `CLI_DIR`, `DOTNET_ROOT`. On MSBuild path mismatch → **`error MCP_MSBUILD_SDK_MISMATCH`** and `dotnet exec …/10.x/MSBuild.dll /restore`. Escalation: minimal build → pinned restore → restore (detailed if empty) → build normal → build detailed. **Effective exit** = last `dotnet build` step (not restore). On failure, `Execution context` reports `Configuration` / `Platform` / `ProjectName` / `SolutionTarget` / `BuildArgs` / `NoIncremental`. Session `buildArgs` from `load_workspace` are appended to build steps only (not restore). **Key lines** include task `-- FAILED` with project context. No in-process result cache — “cached” greens were MSBuild incremental or exit overwrite. While a step runs, MCP progress heartbeats report the step label, elapsed seconds, and previous exit (no stdout); this is UX only and cannot extend the host `tools/call` timeout.
+
+**Output:** Successful builds return only `Build succeeded` plus opted-in warnings. Test results and failed-test stdout/stderr are preserved. `Execution context` appears only on failure, timeout, or an unverified test result. Full build failure logs are available through `reportCursor`, including hidden warnings.
 
 </details>
 
@@ -595,8 +598,11 @@ Parses C# syntax, inserts with DocumentEditor, formats the file. Prefer over `ap
 - `binariesPath: string? = null` — optional bin directory containing `{AssemblyName}.dll`. Requires a loaded `.sln`/`.slnx` and a `.csproj` `workspacePath`. When `noBuild=false`, builds that project via the loaded solution `-t` first, then `dotnet test` on the DLL. When `noBuild=true`, the DLL must already exist in that directory.
 - `includeFullOutput: bool = false` — when `true`, include failed-test Standard Output/Error up to 100000 chars per stream. Default `false` uses `maxOutputChars`.
 - `maxOutputChars: int = 0` — per-failure Standard Output budget. `0` = 2500 (head 1600 + tail 700), or 100000 when `includeFullOutput` is true. Capped at 100000. StdErr scales with this.
+- `includeBuildWarnings: bool = false` — include build warnings; default hides them. Errors are always shown.
 
 **Behavior:** When `noBuild=false` and `binariesPath` is omitted, runs incremental `dotnet build` first (same `-c` / platform / session `buildArgs` from `load_workspace`; not the `run_dotnet_build` probe), then `dotnet test --no-build --no-restore`. With `binariesPath`, the compile is `dotnet build <sln> -t` and the test target is the DLL. Parser sees only the test process. `--logger "console;verbosity=normal"`. Summary from `Passed!`, `Test Run Successful` + `Total tests`/`Passed:` (Failed defaults to 0), or `.slnx` fail-only `Total tests` + `Failed:` (Passed inferred as Total − Failed − Skipped), or per-test `  Passed FQN [ms]` / `[1 s]` / `[1 m 28 s]`. Failed-test `Error Message:` is reported multiline (head+tail); Standard Output/Error are separate `StdOut`/`StdErr` blocks (default 2500/1000 chars, head+tail; `includeFullOutput` / `maxOutputChars` raise the cap). The VSTest `Build FAILED` / `0 Error(s)` footer is ignored as a compile result. MSBuild/prune noise ignored; duplicate NU audit lines deduped. Exit 0 without any summary marker → **`Status: partial`** + last 2KB (footer stripped). `run_specific_test` checks the filter matched a test (FQN, method-only xUnit display names, Theory `FQN(args)` Passed/Failed lines). `timeoutSeconds` is the combined budget for build+test. A DLL test also needs `.runtimeconfig.json` / `.deps.json` beside the assembly. While a step runs, MCP progress heartbeats report `dotnet build` / `dotnet test` (no stdout); this is UX only and cannot extend the host `tools/call` timeout.
+
+**Output:** Successful builds return only `Build succeeded` plus opted-in warnings. Test results and failed-test stdout/stderr are preserved. `Execution context` appears only on failure, timeout, or an unverified test result. Full build failure logs are available through `reportCursor`, including hidden warnings.
 
 </details>
 
@@ -616,10 +622,13 @@ Parses C# syntax, inserts with DocumentEditor, formats the file. Prefer over `ap
 - `binariesPath: string? = null` — same as `run_dotnet_test`: bin directory with `{AssemblyName}.dll`; loaded `.sln`/`.slnx` plus `.csproj` `workspacePath`. `noBuild=false` builds via the solution `-t` first.
 - `includeFullOutput: bool = false` — same as `run_dotnet_test`.
 - `maxOutputChars: int = 0` — same as `run_dotnet_test`.
+- `includeBuildWarnings: bool = false` — include build warnings; default hides them. Errors are always shown.
 
 At least one of `className` or `methodName` is required. The tool builds a VSTest-safe `--filter` internally (`FullyQualifiedName~…`, no method `()`, no extra leading `.` on dotted names). After `load_workspace`, Roslyn resolves the type/method FQN when possible. A pass is recognized when VSTest prints only the method name or `Method(args)` — that is not **no matching tests**.
 
 **Model guidance:** use this for TDD red/green loops — do not run the full suite. For a raw VSTest `--filter` (`TestCategory=Smoke`, `FullyQualifiedName~…`) use `run_test_by_filter`. Prefer `className` + short `methodName`. After build, prefer `noBuild=true` for faster filtered re-runs. Same pre-test build split as `run_dotnet_test` when `noBuild=false`. Projects that must be built inside their `.sln` should pass `binariesPath` and a `.csproj` `workspacePath`.
+
+**Output:** Successful builds return only `Build succeeded` plus opted-in warnings. Test results and failed-test stdout/stderr are preserved. `Execution context` appears only on failure, timeout, or an unverified test result. Full build failure logs are available through `reportCursor`, including hidden warnings.
 
 </details>
 
@@ -638,8 +647,11 @@ At least one of `className` or `methodName` is required. The tool builds a VSTes
 - `binariesPath: string? = null` — optional bin directory containing the test DLL. Requires a loaded `.sln`/`.slnx` and a `.csproj` `workspacePath`. Runs `{AssemblyName}.dll` from that directory. When `noBuild=false`, builds the project via the loaded solution `-t` first; when `noBuild=true`, the DLL must already exist.
 - `includeFullOutput: bool = false` — same as `run_dotnet_test`.
 - `maxOutputChars: int = 0` — same as `run_dotnet_test`.
+- `includeBuildWarnings: bool = false` — include build warnings; default hides them. Errors are always shown.
 
 **Behavior:** Same VSTest parser and pre-test build split as `run_dotnet_test` when `binariesPath` is omitted and `noBuild=false`. Does **not** check that the filter needle appears in a test FQN (category filters would false-positive). Prefer `run_specific_test` for one class or method.
+
+**Output:** Successful builds return only `Build succeeded` plus opted-in warnings. Test results and failed-test stdout/stderr are preserved. `Execution context` appears only on failure, timeout, or an unverified test result. Full build failure logs are available through `reportCursor`, including hidden warnings.
 
 </details>
 
@@ -711,11 +723,24 @@ Verify id/version with `search_nuget_registry` first. Clears workspace cache —
 </details>
 
 <details>
+<summary><code>run_dotnet_run</code> — Build and run an executable project.</summary>
+
+**Parameters:** `workspacePath` (.csproj), `arguments`, `workingDirectory`, `timeoutSeconds=120`, `maxStdoutChars=8000`, `maxStderrChars=2000`, `reportCursor`, `includeBuildWarnings=false`.
+
+**Behavior:** Builds first, then runs `dotnet run --no-build --project` within one timeout. Build warnings are hidden by default; opted-in warnings are deduplicated and capped. Application stdout/stderr are preserved under their existing excerpt limits. Errors, timeouts, and process failures include `Execution context`; successful runs omit it. A failed build prevents application startup. `reportCursor` reads the retained full log without restarting either process.
+
+</details>
+
+<details>
 <summary><code>execute_dotnet_command</code> — Runs dotnet {command} in the target directory.</summary>
 
 **Parameters:**
 - `command: string` (e.g., `test`, `add package Moq`)
 - `workingDirectory: string?` (defaults to current directory)
+- `includeBuildWarnings: bool = false` — include build warnings; default hides them. Errors are always shown.
+
+**Build output:** For an explicit `build` command, the same silent mode and failure-only execution context apply. Other commands preserve raw stdout/stderr. `reportCursor: string? = null` retrieves a retained build report without rerunning the command.
+
 </details>
 
 <details>
@@ -1087,7 +1112,7 @@ cd D:\Devel\YourApp
 | `runtime` | `run`, список тестов, сырой `dotnet` | 3 |
 | `operations` | логи, scratchpad, stop | 4 |
 
-`list_tool_groups` / `get_tool_help` / `enable_tool_group` — Markdown-справка и runtime-включение. `tools/list` остаётся JSON Schema. Если клиент не обновляет список после `tools/list_changed`, перезапустите с `ROSLYN_MCP_TOOL_GROUPS=<group>`. Замеры minified UTF-8: full **54 / 43 029**; lite **15 / 16 906**.
+`list_tool_groups` / `get_tool_help` / `enable_tool_group` — Markdown-справка и runtime-включение. `tools/list` остаётся JSON Schema. Если клиент не обновляет список после `tools/list_changed`, перезапустите с `ROSLYN_MCP_TOOL_GROUPS=<group>`. Замеры minified UTF-8: full **54 / 45 780**; lite **15 / 19 312**.
 
 ## История agent-tools по версиям
 
@@ -1460,8 +1485,11 @@ cd D:\Devel\YourApp
 - `noIncremental: bool = true` — `--no-incremental` на каждом build-шаге (по умолчанию). `false` только если явно принимаете up-to-date кэш MSBuild.
 - `platform: string? = null` — опционально `-p:Platform=`. Если не задан — с `load_workspace`.
 - `projectName: string? = null` — опционально. Если задан, `workspacePath` должен быть `.sln`/`.slnx`. Собирает этот проект через MSBuild-таргет виртуального пути в solution (`-t:"Folder\Project"`). Совпадение по display name, имени файла или виртуальному пути.
+- `includeBuildWarnings: bool = false` — показывать предупреждения сборки; по умолчанию скрыты. Ошибки выводятся всегда.
 
 **Поведение:** наследование env + pinning (`MSBUILD_EXE_PATH`, `DOTNET_MSBUILD_SDK_RESOLVER_SDKS_*`). Mismatch → **error `MCP_MSBUILD_SDK_MISMATCH`** + pinned `dotnet exec …/MSBuild.dll /restore`. Цепочка minimal → pinned restore → restore/build detailed. **Итоговый exit** = последний `dotnet build` (не restore). В metadata — `Configuration` / `Platform` / `ProjectName` / `SolutionTarget` / `BuildArgs` / `NoIncremental`. Session `buildArgs` с `load_workspace` добавляются только к build-шагам (не к restore). Внутреннего кэша результатов MCP нет. Пока шаг выполняется, идут MCP progress-heartbeat'ы (метка шага, elapsed, предыдущий exit; без stdout) — это UX, а не обход хост-таймаута `tools/call`.
+
+**Вывод:** успешная сборка возвращает только `Build succeeded` и предупреждения по запросу. Результаты тестов и stdout/stderr упавших тестов сохраняются. `Execution context` появляется при ошибке, таймауте или неподтверждённом результате тестов. Полный лог сбоя сборки доступен через `reportCursor`, включая скрытые предупреждения.
 
 </details>
 
@@ -1479,8 +1507,11 @@ cd D:\Devel\YourApp
 - `binariesPath: string? = null` — каталог bin с `{AssemblyName}.dll`. Нужен loaded `.sln`/`.slnx` и `workspacePath` на `.csproj`. При `noBuild=false` сначала `dotnet build <sln> -t`, затем `dotnet test` по DLL. При `noBuild=true` DLL уже должна лежать в этом каталоге.
 - `includeFullOutput: bool = false` — полный Standard Output/Error упавшего теста до 100000 символов на поток. По умолчанию `false` — бюджет `maxOutputChars`.
 - `maxOutputChars: int = 0` — бюджет StdOut на один failed test. `0` = 2500 (голова 1600 + хвост 700), или 100000 при `includeFullOutput`. Потолок 100000. StdErr масштабируется.
+- `includeBuildWarnings: bool = false` — показывать предупреждения сборки; по умолчанию скрыты. Ошибки выводятся всегда.
 
 **Поведение:** при `noBuild=false` и без `binariesPath` сначала отдельный incremental `dotnet build` (те же `-c` / platform / session `buildArgs` с `load_workspace`), затем `dotnet test --no-build --no-restore` (парсер видит только тест). С `binariesPath` сборка идёт через solution `-t`, цель теста — DLL. Сводка из `Passed!`, `Test Run Successful` + `Total tests`/`Passed:` (Failed=0 если нет строки), или `.slnx` fail-only `Total tests` + `Failed:` (Passed = Total − Failed − Skipped), FQN-строки тестов (`[ms]` / `[1 s]` / `[1 m 28 s]`); `Error Message:` многострочный (head+tail); StdOut/StdErr отдельными блоками (по умолчанию 2500/1000, head+tail; `includeFullOutput` / `maxOutputChars` поднимают лимит); футер VSTest `Build FAILED` / `0 Error(s)` не считается ошибкой компиляции; дедуп NU audit. Без маркеров сводки при exit 0 → **partial** + 2KB лога (футер срезан). `timeoutSeconds` — общий бюджет на build+test. Рядом с DLL нужны `.runtimeconfig.json` / `.deps.json`. Пока шаг выполняется, идут MCP progress-heartbeat'ы (`dotnet build` / `dotnet test`, без stdout) — UX, не обход хост-таймаута `tools/call`.
+
+**Вывод:** успешная сборка возвращает только `Build succeeded` и предупреждения по запросу. Результаты тестов и stdout/stderr упавших тестов сохраняются. `Execution context` появляется при ошибке, таймауте или неподтверждённом результате тестов. Полный лог сбоя сборки доступен через `reportCursor`, включая скрытые предупреждения.
 
 </details>
 
@@ -1500,10 +1531,13 @@ cd D:\Devel\YourApp
 - `binariesPath: string? = null` — как у `run_dotnet_test`: каталог bin с `{AssemblyName}.dll`; loaded `.sln`/`.slnx` и `workspacePath` на `.csproj`. `noBuild=false` собирает через solution `-t`.
 - `includeFullOutput: bool = false` — как у `run_dotnet_test`.
 - `maxOutputChars: int = 0` — как у `run_dotnet_test`.
+- `includeBuildWarnings: bool = false` — показывать предупреждения сборки; по умолчанию скрыты. Ошибки выводятся всегда.
 
 Нужен хотя бы один из `className` / `methodName`. Tool строит VSTest-safe `--filter` (`FullyQualifiedName~…`, без `()` у метода, без лишней ведущей `.` на dotted FQN). После `load_workspace` Roslyn по возможности резолвит FQN типа/метода. Строка `Passed` только с именем метода или `Method(args)` — это успех, не **no matching tests**.
 
 **Для модели:** TDD/фикс бага — этот tool, не полный suite. Сырой VSTest `--filter` (`TestCategory=Smoke`, `FullyQualifiedName~…`) — `run_test_by_filter`. Предпочитайте `className` + короткое `methodName`. После билда предпочитайте `noBuild=true`. При `noBuild=false` — тот же split build/test, что у `run_dotnet_test`. Проекты, которые собираются только внутри своего `.sln`, передавайте с `binariesPath` и `.csproj`.
+
+**Вывод:** успешная сборка возвращает только `Build succeeded` и предупреждения по запросу. Результаты тестов и stdout/stderr упавших тестов сохраняются. `Execution context` появляется при ошибке, таймауте или неподтверждённом результате тестов. Полный лог сбоя сборки доступен через `reportCursor`, включая скрытые предупреждения.
 
 </details>
 
@@ -1522,8 +1556,11 @@ cd D:\Devel\YourApp
 - `binariesPath: string? = null` — каталог bin с test DLL. Нужен loaded `.sln`/`.slnx` и `workspacePath` на `.csproj`. Запускает `{AssemblyName}.dll` из этого каталога. При `noBuild=false` сначала solution `-t`; при `noBuild=true` DLL уже должна существовать.
 - `includeFullOutput: bool = false` — как у `run_dotnet_test`.
 - `maxOutputChars: int = 0` — как у `run_dotnet_test`.
+- `includeBuildWarnings: bool = false` — показывать предупреждения сборки; по умолчанию скрыты. Ошибки выводятся всегда.
 
 **Поведение:** тот же парсер VSTest и split build/test, что у `run_dotnet_test`, если `binariesPath` не задан и `noBuild=false`. Не проверяет, что needle фильтра есть в FQN теста (для `TestCategory` это дало бы ложный no-match). Для одного класса/метода предпочитайте `run_specific_test`.
+
+**Вывод:** успешная сборка возвращает только `Build succeeded` и предупреждения по запросу. Результаты тестов и stdout/stderr упавших тестов сохраняются. `Execution context` появляется при ошибке, таймауте или неподтверждённом результате тестов. Полный лог сбоя сборки доступен через `reportCursor`, включая скрытые предупреждения.
 
 </details>
 
@@ -1593,11 +1630,24 @@ cd D:\Devel\YourApp
 </details>
 
 <details>
+<summary><code>run_dotnet_run</code> — Собрать и запустить исполняемый проект.</summary>
+
+**Параметры:** `workspacePath` (.csproj), `arguments`, `workingDirectory`, `timeoutSeconds=120`, `maxStdoutChars=8000`, `maxStderrChars=2000`, `reportCursor`, `includeBuildWarnings=false`.
+
+**Поведение:** сначала сборка, затем `dotnet run --no-build --project` в пределах общего таймаута. Предупреждения сборки скрыты по умолчанию; при включении удаляются дубли и ограничивается объём. stdout/stderr приложения сохраняются с прежними лимитами фрагментов. `Execution context` выводится при ошибке или таймауте; успешный запуск обходится без шапки. Неуспешная сборка останавливает запуск приложения. `reportCursor` читает сохранённый полный лог без повторного запуска процессов.
+
+</details>
+
+<details>
 <summary><code>execute_dotnet_command</code> — Запускает dotnet {command} в указанной директории.</summary>
 
 **Параметры:**
 - `command: string`
 - `workingDirectory: string?`
+- `includeBuildWarnings: bool = false` — показывать предупреждения сборки; по умолчанию скрыты. Ошибки выводятся всегда.
+
+**Вывод сборки:** для явной команды `build` действуют silent-режим и контекст запуска только при неуспехе. Остальные команды сохраняют сырой stdout/stderr. `reportCursor: string? = null` читает сохранённый отчёт сборки без повторного запуска команды.
+
 </details>
 
 <details>
