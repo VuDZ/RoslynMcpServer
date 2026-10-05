@@ -4,6 +4,8 @@
 не доказан**. Исполнитель `/root/dependency_spike`; отдельный Razor witness —
 `/root/razor_witness`; coordinator `/root` владеет final build/main suite и status.
 Это isolated experiment; production, spec/contract, activation и версии не менялись.
+Harness SDK-resolution fix: **validated locally, 2026-10-05**; повторный CI
+после исправления tests ещё не выполнен (см. supplement ниже).
 
 ## Результат и граница вывода
 
@@ -287,3 +289,26 @@ Base locator: `C:/Users/VuDZ/AppData/Local/Temp/roslyn-dependency-spike/`.
 - `non-sdk-ec1250149ab843a7a33ea0708506d0c6` — `EC6C160323C024A5B337068AE6A89CD743C106F70D02AF532C8F55C7E27A67FD`.
 - `resolution-c4a69359e2804d3ca2b4d415cb3e98fa/artifacts/independent-resolution.json`
   — `6DBF57B83661325316F18DC38CCDBC35F269173158E63943AD6783A169D430EA`.
+
+## SDK resolution assertion fix — 2026-10-05
+
+Статус: **validated locally**. Scope: только
+`DependencyEvidenceRunnerTests.Pinned_sdk_and_pack_reresolution_reads_current_installation_without_loading_analyzers`.
+[CI run 37329352099](https://github.com/VuDZ/RoslynMcpServer/actions/runs/37329352099)
+показал Expected SDK 10.0.401 / Actual SDK 10.0.300. Fixture exact pin был выполнен
+корректно; ошибочным было требование совпадения с MSBuild SDK, зарегистрированным
+в testhost. Assertion теперь независимо получает fixture SDK через CLI
+`dotnet --version` из owned root и сравнивает его путь с `ResolvePinnedPack`.
+Existing missing-SDK refusal, targeting-pack checks и manifest identity checks
+сохранены.
+
+Final Release build exit 0; focused pair **2/2 passed**. Отдельный testhost с
+MSBuild SDK 10.0.201 и fixture SDK 10.0.300: **2/2 passed**, failed 0, skipped 0;
+actual paths сохранены в `TestResults/sdk-split-validation/sdk-split.trx`.
+Полный main suite текущего рабочего дерева (с существовавшими пользовательскими
+изменениями): **1265/1265 passed**. AnalyzerLifecycle не требуется для этой
+test-only правки. [Общий разбор CI и validation](task-01-hydrate-host.md).
+Hosted-runner случай SDK 10.0.401 ещё требует повторного CI.
+
+Принятый isolated research scope task-02, unknown/false disposition, недоказанная
+closure и все production/public activation gates остаются прежними.

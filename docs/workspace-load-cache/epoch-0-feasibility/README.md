@@ -40,9 +40,10 @@ Task-02 дополнил пакет task-03 observed findings 2026-10-03; пол
   Изолированный host experiment проверен; independent reviewer `/root/independent_review`,
   must-fix закрыты. [Evidence и отдельные verdicts](evidence/task-01-hydrate-host.md).
   Production lifecycle и public activation не открыты.
-- CI prerequisite task-01: **validated locally (2026-10-05)** — test-suite устанавливает exact SDK 10.0.300 вместе с latest 10.0.x.
-  Release build, hydrate **53/53**, main **1264/1264**, lifecycle с opt-in **13/13** passed.
-  [Причина падения и validation](evidence/task-01-hydrate-host.md); изменённый workflow на GitHub ещё не выполнен.
+- CI prerequisite task-01/task-02: **SDK installation verified on GitHub; harness fix validated locally (2026-10-05)**.
+  Child build очищает inherited MSBuild SDK overrides; independent SDK assertion использует fixture CLI resolution.
+  Release build, hydrate **54/54**, split-SDK regression **2/2**, main **1265/1265** passed.
+  [Причина падения и validation](evidence/task-01-hydrate-host.md); повторный CI после изменения harness ещё не выполнен.
 - [task-02 — dependency-admission-spike](task-02-dependency-admission-spike-Astra.md) — **Astra / high, 5/5**; риск: высокий; **accepted (isolated research, 2026-10-03)**.
   Depends on: [E0/task-00](task-00-current-baseline-and-execution-contract-Astra.md).
   Доказать замкнутость sdk-project-v1 и переносимую analyzer identity на выбранных источниках evidence.

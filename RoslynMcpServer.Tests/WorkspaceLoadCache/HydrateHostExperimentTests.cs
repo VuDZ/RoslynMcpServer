@@ -24,6 +24,32 @@ public sealed class HydrateHostExperimentTests
     public HydrateHostExperimentTests() => MsBuildBootstrapper.Register();
 
     [Fact]
+    public async Task Ordinary_fixture_build_uses_its_sdk_pin_despite_inherited_msbuild_overrides()
+    {
+        using var fixture = await Fixture.CreateAsync();
+        var start = fixture.CreateBuildStartInfo();
+        var foreignSdk = Path.Combine(fixture.Root, "unrelated-sdk");
+        var overrides = new Dictionary<string, string>
+        {
+            [DotNetSdkEnvironment.MsBuildExePathVariable] = Path.Combine(foreignSdk, "MSBuild.dll"),
+            [DotNetSdkEnvironment.MsBuildExtensionsPathVariable] = foreignSdk,
+            [DotNetSdkEnvironment.MsBuildSdksPathVariable] = Path.Combine(foreignSdk, "Sdks"),
+            [DotNetSdkEnvironment.SdkResolverSdksDirVariable] = Path.Combine(foreignSdk, "Sdks"),
+            [DotNetSdkEnvironment.SdkResolverSdksVerVariable] = "0.0.0",
+            [DotNetSdkEnvironment.SdkResolverCliDirVariable] = foreignSdk,
+        };
+        foreach (var pair in overrides)
+        {
+            start.Environment[pair.Key] = pair.Value;
+        }
+        await fixture.BuildAsync(start);
+        foreach (var name in overrides.Keys)
+        {
+            Assert.False(start.Environment.ContainsKey(name), "The fixture retained an inherited SDK override: " + name);
+        }
+    }
+
+    [Fact]
     public async Task Two_project_value_round_trip_preserves_options_references_and_semantics()
     {
         using var fixture = await Fixture.CreateAsync();
@@ -1122,20 +1148,14 @@ public sealed class HydrateHostExperimentTests
             };
         }
 
-        public async Task BuildAsync()
+        public Task BuildAsync() => BuildAsync(CreateBuildStartInfo());
+
+        public async Task BuildAsync(ProcessStartInfo start)
         {
-            var start = new ProcessStartInfo("dotnet")
-            {
-                WorkingDirectory = Root,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-            };
-            foreach (var argument in new[] { "build", Request.WorkspacePath, "-c", "Debug", "--nologo", "--verbosity", "quiet" })
-            {
-                start.ArgumentList.Add(argument);
-            }
+            // Locator can register a newer SDK than the fixture's exact global.json pin.
+            // Inheriting its overrides mixes that SDK's tasks with the pinned host's assemblies.
+            // https://github.com/VuDZ/RoslynMcpServer/actions/runs/37329352099
+            DotNetSdkEnvironment.ClearMsBuildSdkOverrideVariables(start);
             using var process = Process.Start(start)!;
             var output = process.StandardOutput.ReadToEndAsync();
             var error = process.StandardError.ReadToEndAsync();
@@ -1151,6 +1171,23 @@ public sealed class HydrateHostExperimentTests
             }
             Assert.True(process.ExitCode == 0, "Ordinary fixture build failed:\n" + await output + "\n" + await error);
             AssertProjectBytesUnchanged();
+        }
+
+        public ProcessStartInfo CreateBuildStartInfo()
+        {
+            var start = new ProcessStartInfo("dotnet")
+            {
+                WorkingDirectory = Root,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+            };
+            foreach (var argument in new[] { "build", Request.WorkspacePath, "-c", "Debug", "--nologo", "--verbosity", "quiet" })
+            {
+                start.ArgumentList.Add(argument);
+            }
+            return start;
         }
 
         public void AssertProjectBytesUnchanged()

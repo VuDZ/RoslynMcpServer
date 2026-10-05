@@ -158,8 +158,17 @@ public sealed class DependencyEvidenceRunnerTests
         var fixture = await CreateFixtureAsync("resolution");
         var runtimeSdk = Path.GetDirectoryName(typeof(Microsoft.Build.Evaluation.Project).Assembly.Location)!;
         var dotnetRoot = Directory.GetParent(runtimeSdk)!.Parent!.FullName;
+        // The testhost's registered MSBuild SDK can differ from the fixture's exact SDK pin.
+        // Resolve the fixture through the CLI independently of the in-process assembly location.
+        // https://github.com/VuDZ/RoslynMcpServer/actions/runs/37329352099
+        var sdkVersion = await DependencyEvidenceRunner.RunAsync(
+            fixture.Root, fixture.Artifacts, "sdk-version", ["--version"], default);
+        Assert.True(sdkVersion.ExitCode == 0,
+            "Fixture SDK resolution failed: " + sdkVersion.StandardOutput + sdkVersion.StandardError);
+        var expectedSdk = Path.GetFullPath(Path.Combine(dotnetRoot, "sdk", sdkVersion.StandardOutput.Trim()));
         var first = ResolvePinnedPack(fixture.Root, dotnetRoot);
-        Assert.Equal(Path.GetFullPath(runtimeSdk), first.Sdk);
+        Assert.Equal(expectedSdk, first.Sdk);
+        _output.WriteLine("Registered MSBuild SDK: " + runtimeSdk + "; fixture SDK: " + first.Sdk);
         Assert.True(Directory.Exists(first.Pack));
         var manifest = Path.Combine(first.Sdk, "Microsoft.NETCoreSdk.BundledVersions.props");
         var identityBefore = Convert.ToHexString(SHA256.HashData(await File.ReadAllBytesAsync(manifest)));

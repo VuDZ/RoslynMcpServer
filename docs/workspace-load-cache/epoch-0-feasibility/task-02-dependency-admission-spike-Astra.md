@@ -6,6 +6,7 @@
 - Риск ошибки: **высокий** — Неполный dependency profile способен разрешить reuse при изменившихся значимых входах.
 - Необходимые способности: `архитектурное_мышление`, `анализ_зависимостей`, `семантика_roslyn_msbuild`, `проверка_целостности_данных`.
 - Статус и маршрут: [карта эпохи](README.md).
+- Harness SDK-resolution fix: **validated locally (2026-10-05)** — SDK fixture проверяется через independent CLI resolution вместо runtime assembly SDK; Release build, split-SDK regression 2/2 и main 1265/1265 passed. [Validation и границы](evidence/task-02-dependency-admission.md). Повторный CI после этой правки ещё не выполнен.
 - Статус исполнения: **accepted (isolated research, 2026-10-03)**; приняты изолированные dependency-admission experiments, отрицательные findings и Findings supplement для task-03. Release build и main suite 1132/1132 passed; independent reviewer `/root/independent_review` — ACCEPT. [Validation, приёмка и ограничения](evidence/task-02-dependency-admission.md#независимая-приёмка). Замкнутость профиля, новый session-bound overlay и positive equivalence не доказаны; положительные fixtures task-03 остаются hold. Production/public activation не разрешены.
 - Depends on: [E0/task-00](task-00-current-baseline-and-execution-contract-Astra.md).
 

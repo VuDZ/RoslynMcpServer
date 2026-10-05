@@ -2,8 +2,9 @@
 
 Дата: 2026-10-03 (Europe/Moscow). Статус: **accepted for E0/task-01 isolated
 experiment; final validation passed**.
-CI prerequisite correction: **validated locally, 2026-10-05**; новый запуск
-исправленного workflow на GitHub ещё не выполнен (см. supplement ниже).
+CI prerequisite correction: **SDK installation verified on GitHub, 2026-10-05**.
+Harness SDK isolation correction: **validated locally, 2026-10-05**; повторный CI
+после изменения tests ещё не выполнен (см. supplements ниже).
 Изолированный эксперимент по [task-01](../task-01-hydrate-host-spike-Sol.md)
 и [принятому packet](../design/implementation-packet-task-01.md).
 
@@ -256,6 +257,56 @@ exact pin с `rollForward: disable`. Установка exact SDK закрыва
   подключения к MSBuild BuildHost pipe и был остановлен. Этот failure не считается
   pass; затем отдельно прошёл тот же тест (1/1) и полный lifecycle-набор (13/13).
 
-Изменённый workflow ещё не запускался на GitHub; локальная validation не является
-доказательством выполнения setup-dotnet на hosted runner. Production C# и fixture
-pins в этой правке не изменены.
+На момент этой локальной validation изменённый workflow ещё не запускался на
+GitHub; эта запись не подтверждала выполнение setup-dotnet на hosted runner.
+Последующий run 37329352099 подтвердил наличие pinned SDK, но выявил ошибки
+изолированного test harness (см. следующий supplement). Production C# и fixture
+pins в workflow-правке не изменены.
+
+## Mixed SDK test harness fix — 2026-10-05
+
+Статус: **validated locally**. Scope: `HydrateHostExperimentTests` и SDK-resolution
+assertion в `DependencyEvidenceRunnerTests`; production code, SDK pins,
+implementation contracts и activation permissions не меняются.
+
+[CI run 37329352099](https://github.com/VuDZ/RoslynMcpServer/actions/runs/37329352099)
+на commit `32657732ba9438d52c665afeeac23ba49923fa7f` завершился семью failures:
+шесть прежних build-сценариев теперь доходят до MSB4018 / `ProcessFrameworkReferences`,
+ещё один failure — `Pinned_sdk_and_pack_reresolution_reads_current_installation_without_loading_analyzers`.
+Fixture выбирает SDK 10.0.300 через exact global.json; Locator регистрирует в
+testhost 10.0.401. Child build наследовал MSBuild overrides и импортировал tasks
+из 10.0.401 при pinned CLI host 10.0.300; загрузка `NuGet.Frameworks, Version=7.9.0.0`
+завершалась manifest mismatch 0x80131040. Assertion ошибочно ожидал runtime SDK
+10.0.401 вместо корректно найденного fixture SDK 10.0.300.
+
+Исправления:
+
+- Fixture перед запуском child build вызывает существующий
+  `DotNetSdkEnvironment.ClearMsBuildSdkOverrideVariables`: удаляет шесть override
+  variables, сохраняя остальные inherited infrastructure variables и разрешая CLI
+  выбрать SDK по owned fixture global.json.
+- SDK assertion независимо запускает `dotnet --version` в fixture root через
+  existing sanitized runner и сопоставляет его результат с `ResolvePinnedPack`.
+  Runtime assembly location определяет только корень установки.
+- Regression передаёт отдельный `ProcessStartInfo` с шестью заведомо чужими
+  overrides, выполняет реальную сборку и проверяет их удаление. Global process
+  environment не меняется. Без исправления test воспроизведён как failed 1/1
+  (`Microsoft.NET.Sdk` не найден); после исправления focused pair passed 2/2.
+
+Final validation текущего рабочего дерева, включая существовавшие пользовательские
+изменения, Release, Windows x64:
+
+- Solution build: exit 0; прежние CS8603 (2), CS8601 (1), xUnit1031 (1).
+- `HydrateHostExperimentTests`: **54/54 passed**, включая все шесть CI build failures.
+- Отдельный testhost с bootstrap SDK **10.0.201**, fixture SDK **10.0.300**:
+  regression и independent-resolution test **2/2 passed**, failed 0, skipped 0.
+  TRX `TestResults/sdk-split-validation/sdk-split.trx` сохраняет обе actual SDK
+  paths в StdOut; no-skips script passed.
+- Полный main `Category!=AnalyzerLifecycle`: **1265/1265 passed**, failed 0.
+- AnalyzerLifecycle **not-run / not required** для этой test-only правки:
+  shared workflow, production lifecycle/load/prepare/publication paths и lifecycle
+  host не менялись. Предыдущие 13/13 выше относятся к workflow-правке.
+
+Локально нет SDK 10.0.401: split test подтверждает независимость SDK на реально
+установленных 10.0.201/10.0.300. Точный hosted-runner случай 10.0.401/10.0.300
+ещё требует повторного CI после публикации исправления.
