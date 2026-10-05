@@ -6,6 +6,7 @@
 - Риск ошибки: **средний** — Неверный host experiment может скрыть ограничения записи или decoding до production integration.
 - Необходимые способности: `реализация_по_контракту`, `семантика_roslyn_msbuild`, `проектирование_проверок`, `проверка_целостности_данных`.
 - Статус: **accepted (isolated experiment, 2026-10-03)**; [validation, независимая приёмка и ограничения](evidence/task-01-hydrate-host.md).
+- CI prerequisite fix: **validated locally (2026-10-05)** — установка exact SDK 10.0.300 в test-suite; [причина падения и повторная validation](evidence/task-01-hydrate-host.md). Проверка изменённого workflow на GitHub ещё не выполнена.
 - Маршрут: [карта эпохи](README.md).
 - Depends on: [E0/task-00](task-00-current-baseline-and-execution-contract-Astra.md).
 

@@ -2,6 +2,10 @@
 
 Producer: task-00. Contract filled; task-01 execution **accepted (isolated experiment,
 2026-10-03)**; [validation and limits](../evidence/task-01-hydrate-host.md).
+CI prerequisite correction **validated locally (2026-10-05)**: the shared test workflow
+installs exact SDK 10.0.300 alongside latest 10.0.x; fixture pins and implementation
+contracts remain unchanged. [Failure and revalidation](../evidence/task-01-hydrate-host.md).
+Execution of the updated workflow on GitHub is pending.
 Read [design](../design.md),
 spec, current audit, task-execution and docs/code-style.md in full before C# edits.
 Owner task-01; no shared production file is assigned. Namespace throughout:

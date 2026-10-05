@@ -2,6 +2,8 @@
 
 Дата: 2026-10-03 (Europe/Moscow). Статус: **accepted for E0/task-01 isolated
 experiment; final validation passed**.
+CI prerequisite correction: **validated locally, 2026-10-05**; новый запуск
+исправленного workflow на GitHub ещё не выполнен (см. supplement ниже).
 Изолированный эксперимент по [task-01](../task-01-hydrate-host-spike-Sol.md)
 и [принятому packet](../design/implementation-packet-task-01.md).
 
@@ -221,3 +223,39 @@ Production cache-store, watcher reconciliation, cross-process cache hit,
 полный generator semantic equivalence и production activation этим spike не
 реализованы и не разрешены. Public API representability findings выше требуют
 решения design owner; successful synthetic tests их не устраняют.
+
+## CI SDK fix — 2026-10-05
+
+Scope: исправлена установка SDK в `.github/workflows/test-suite.yml` для обеих
+jobs (`unit`, `lifecycle`): exact `10.0.300` плюс latest `10.0.x`. Статус:
+**validated locally**. Scope исходного isolated experiment и activation permissions
+не изменяются.
+
+[CI run 37148534996](https://github.com/VuDZ/RoslynMcpServer/actions/runs/37148534996)
+на commit `bea9422f3286d8531c05d41a12fe71b9bf6b74d2` завершился шестью failures
+в `HydrateHostExperimentTests.Fixture.BuildAsync()`. В полном выводе присутствуют
+SDK `10.0.303` и `10.0.401`, но отсутствует `10.0.300`; CLI сообщает
+`Requested SDK version: 10.0.300` и `A compatible .NET SDK was not found.`
+Прежний setup `10.0.x` устанавливал latest SDK, а fixture намеренно использует
+exact pin с `rollForward: disable`. Установка exact SDK закрывает prerequisite,
+сохраняя target framework `net10.0` и воспроизводимость экспериментов.
+
+Повторная локальная validation текущего рабочего дерева (включая существовавшие
+пользовательские изменения): Windows x64, SDK `10.0.300`, Release.
+
+- `run_dotnet_build` для `RoslynMcpServer.sln`: exit 0; прежние warnings
+  CS8603 (2), CS8601 (1), xUnit1031 (1).
+- `run_specific_test`, class `HydrateHostExperimentTests`, `noBuild=true`:
+  **53/53 passed**, включая все шесть ранее падавших случаев.
+- `run_test_by_filter`, `Category!=AnalyzerLifecycle`, main test project,
+  `noBuild=true`: **1264/1264 passed**.
+- Полный `Category=AnalyzerLifecycle`, `ROSLYN_MCP_ANALYZER_LIFECYCLE=1`,
+  `--no-build --no-restore`: **13/13 passed**, failed 0, skipped 0.
+  TRX: `TestResults/hydrate-sdk-ci-full/hydrate-sdk-lifecycle-full.trx`.
+  Запуск выполнен вне sandbox: первоначальный sandbox-прогон получил failure
+  подключения к MSBuild BuildHost pipe и был остановлен. Этот failure не считается
+  pass; затем отдельно прошёл тот же тест (1/1) и полный lifecycle-набор (13/13).
+
+Изменённый workflow ещё не запускался на GitHub; локальная validation не является
+доказательством выполнения setup-dotnet на hosted runner. Production C# и fixture
+pins в этой правке не изменены.

@@ -37,7 +37,12 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
         with:
-          dotnet-version: '10.0.x'
+          # Workspace-load experiments pin 10.0.300 with rollForward disabled.
+          # The latest 10.0.x alone failed fixture builds when the runner had 10.0.303/10.0.401:
+          # https://github.com/VuDZ/RoslynMcpServer/actions/runs/37148534996
+          dotnet-version: |
+            10.0.300
+            10.0.x
           cache: true
           cache-dependency-path: |
             **/*.csproj
