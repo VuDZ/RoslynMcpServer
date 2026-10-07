@@ -28,9 +28,12 @@ properties, source comments и remaining mandatory state. Signing flags/csproj/r
 
 ### Последствия выбора
 
-Decision prerequisite S-001 выполнен. Task-00 и сам [S-001](spikes.md) ещё **planned /
-not-run**; positive E0/dependent executable codec/hydrate требуют успешного real
-capability verdict. Неудача эксперимента возвращает scope владельцу, а не превращает
+Decision prerequisite S-001 выполнен. Task-00 accepted, 2026-10-07.
+[S-001](spikes.md) accepted для isolated base-query slice, **round 2, 2026-10-08**:
+[capability и validation](epoch-0-snapshot-roundtrip/evidence/task-08-capability.md),
+[review round 2](epoch-0-snapshot-roundtrip/evidence/task-08-review-round-2.md).
+Positive E0/dependent executable codec/hydrate требуют этого accepted slice;
+capture-ready не присвоен. Неудача эксперимента возвращает scope владельцу, а не превращает
 negative-only harness в выполнение real-positive приёмки.
 
 Вариант A (source-backed точное восстановление) не выбран как обязательный MVP scope;

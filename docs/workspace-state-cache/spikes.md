@@ -1,8 +1,10 @@
 # Открытые эксперименты specification v2
 
-Дата: **2026-10-07**. S-001 и S-002 **not-run**. Они фиксируют вопросы и deadlines
-арбитража; результат и будущий механизм не выбираются этой revision. U-001 решён
-по H-001/H-002 (B), 2026-10-07; capability ещё не проверена.
+Обновлено: **2026-10-08**. S-001 **accepted** для isolated base-query slice, round 2;
+capture-ready не присвоен; S-002 **not-run**.
+[Результат S-001 и validation](epoch-0-snapshot-roundtrip/evidence/task-08-capability.md),
+[review round 2](epoch-0-snapshot-roundtrip/evidence/task-08-review-round-2.md).
+U-001 решён по H-001/H-002 (B), 2026-10-07. Deadlines и требования арбитража сохраняются.
 [Исходное решение](archive/arbitration/spikes.md) содержит rationale insufficiency.
 
 ## S-001 — Capability выбранного real control
@@ -72,6 +74,7 @@ profile либо дополнительный канал; нет any real positi
 S-001 не требует extraction/equality исходного metadata DocumentationProvider.
 Он должен подтвердить supported results/source comments и объявленные external XML
 limitations с documentation-dependent отказом/fallback. Remaining mandatory state,
-metadata properties и real positive требования сохраняются; spike остаётся not-run.
+metadata properties и real positive требования сохраняются; isolated spike accepted
+для base-query slice, round 2, production eligibility не присвоена.
 Точный перенос непубличного strong-name state не prerequisite signing-independent
 slice. [H-002 report](h-002-report.md) фиксирует применение решения, не запуск spike.

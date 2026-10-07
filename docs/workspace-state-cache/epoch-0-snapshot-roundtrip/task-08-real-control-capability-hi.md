@@ -5,14 +5,15 @@
 - Примерная сложность: 4/5; класс `hi`.
 - Риск ошибки: высокий — ложный supported verdict разрешает недоказанный positive capture.
 - Необходимые способности: `семантика_roslyn_msbuild`, `анализ_зависимостей`, `проектирование_проверок`.
-- Статус: **planned / experiment not-run; spec-v2 revised-for-review, 2026-10-07**.
+- Статус: **accepted, 2026-10-08; round 2: T08-R1-001 closed; принятый scope — isolated supported base-query slice**.
 - Depends on: [E0/task-00](task-00-current-seams-and-controls-med.md)
-- Decision prerequisite: [U-001 выбран владельцем](../unresolved.md#u-001--fidelity-положительного-e0); выполнен 2026-10-07 по H-001/H-002 (B); task-00 accepted для docs-only inventory и выбора контроля, [round 2 / validation](evidence/task-00-review-round-2.md), 2026-10-07; experiment остаётся planned/not-run, capture-ready не присвоен.
-- Модель, реализовавшая задачу: —.
-- Модели, проводившие ревью: —.
-- Количество раундов ревью: —.
-- Количество исправлений после ревью: —.
-- Отчёт о реализации, ревью и validation: —.
+- Decision prerequisite: [U-001 выбран владельцем](../unresolved.md#u-001--fidelity-положительного-e0); выполнен 2026-10-07 по H-001/H-002 (B); task-00 accepted для docs-only inventory и выбора контроля, [round 2 / validation](evidence/task-00-review-round-2.md), 2026-10-07; результат эксперимента — [capability report](evidence/task-08-capability.md), 2026-10-08; production capture-ready не присвоен.
+- Модель, реализовавшая задачу: Codex (GPT-6 Astra).
+- Модели, проводившие ревью: Grok 4.7; round 1 и recheck round 2.
+- Количество раундов ревью: 2.
+- Количество исправлений после ревью: 1.
+- Отчёт о реализации, ревью и validation: [capability report](evidence/task-08-capability.md), [validation](evidence/task-08-validation.json), [review round 1](evidence/task-08-review-round-1.md), [round 2 / validation](evidence/task-08-review-round-2.md).
+- Принятый scope: isolated same-process public reconstruction неизменённого RoslynMcpPlugin и project dependency RoslynMcpServer в границе H-001/H-002 (B), supported base-query slice, 2026-10-08. Capture-ready, приёмка эпохи и activation не присвоены.
 
 ## Цель
 
@@ -62,7 +63,7 @@ remaining mandatory state сохраняются; signing flags/csproj/refs не
 Проверки допуска учитывают effective options, attributes и project bindings;
 один symbol query/SignAssembly=false не доказывает независимость. S-001 проверяет
 real positive и excluded/unknown controls; runtime policy ещё не реализована.
-Execution/review statistics остаются незаполненными.
+Execution/review statistics и границы результата записаны в шапке и capability report.
 Применение решения: [H-002 report](../h-002-report.md).
 
 H-002 logging control: проверить явную причину signing-dependent/unknown/excluded,

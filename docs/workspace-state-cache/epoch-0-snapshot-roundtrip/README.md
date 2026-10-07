@@ -1,7 +1,7 @@
 # E0 — Snapshot round-trip: карта выполнения
 
 - Статус плана: **spec-v2 / revised-for-review, 2026-10-07**.
-- Статус исполнения: **task-00 accepted, round 2, 2026-10-07; принятый scope — docs-only inventory seams и выбор real control; остальные задачи planned; приёмка эпохи не выполнена**. [Review/validation](evidence/task-00-review-round-2.md).
+- Статус исполнения: **task-00 accepted, round 2, 2026-10-07; принятый scope — docs-only inventory seams и выбор real control; task-08 accepted, round 2, 2026-10-08 — isolated supported base-query slice; task-01–task-07 planned; приёмка эпохи не выполнена**. [Task-00 review/validation](evidence/task-00-review-round-2.md), [task-08 review/validation](evidence/task-08-review-round-2.md).
 - Зависимость эпохи: предшествующей эпохи нет; после принятия плана E0 preliminary inventory/schema sketch допустимы, positive executable scope требует U-001 и successful S-001.
 - Результат: Рабочий capture → DTO → новый host → semantic query на реальном проекте; первый benchmark восстановления.
 - Канон: [spec.md](spec.md); общий scope — [README серии](../README.md).
@@ -18,7 +18,7 @@
 - [task-06 — Реальный round-trip и .cs edit](task-06-real-cross-process-roundtrip-med.md) — `med`, **planned**; Depends on: [E0/task-05](task-05-isolated-hydrate-hi.md)
 - [task-07 — Бенчмарк isolated restore](task-07-roundtrip-benchmark-med.md) — `med`, **planned**; Depends on: [E0/task-01](task-01-baseline-runner-med.md), [E0/task-06](task-06-real-cross-process-roundtrip-med.md)
 
-- [task-08 — S-001 — capability реального контроля](task-08-real-control-capability-hi.md) — `hi`, **planned**; Depends on: [E0/task-00](task-00-current-seams-and-controls-med.md)
+- [task-08 — S-001 — capability реального контроля](task-08-real-control-capability-hi.md) — `hi`, **accepted / isolated base-query slice, round 2, 2026-10-08**; Depends on: [E0/task-00](task-00-current-seams-and-controls-med.md)
 
 ID не задаёт порядок запуска: его задаёт Depends on. В одной задаче остаётся
 один проверяемый adapter/helper/scenario; независимые изменения возвращаются
@@ -39,12 +39,12 @@ ID не задаёт порядок запуска: его задаёт Depends 
 
 ## Статистика ревью задач
 
-- Охват: task-00 — round 2, 2026-10-07, accepted для docs-only inventory seams и выбора real control; task-01–task-08 planned.
-- Фактические исполнители: task-00 — Grok 4.7.
-- Фактические рецензенты: task-00 — Codex (GPT-6; точный runtime model ID недоступен).
-- Сумма раундов ревью задач: 2.
-- Исправленные замечания задач: 2; task-00 — T00-R1-001 и T00-R1-002 подтверждены recheck.
-- Отчёты: [task-00 round 1](evidence/task-00-review-round-1.md), [round 2 / validation](evidence/task-00-review-round-2.md).
+- Охват: task-00 — round 2, 2026-10-07, accepted для docs-only inventory seams и выбора real control; task-08 — round 2, 2026-10-08, accepted для isolated supported base-query slice; task-01–task-07 planned.
+- Фактические исполнители: task-00 — Grok 4.7; task-08 — Codex (GPT-6; точный runtime model ID недоступен).
+- Фактические рецензенты: task-00 — Codex (GPT-6; точный runtime model ID недоступен); task-08 — Grok 4.7.
+- Сумма раундов ревью задач: 4.
+- Исправленные замечания задач: 3; task-00 — T00-R1-001 и T00-R1-002 подтверждены recheck; task-08 — T08-R1-001 подтверждён round 2.
+- Отчёты: [task-00 round 1](evidence/task-00-review-round-1.md), [round 2 / validation](evidence/task-00-review-round-2.md), [task-08 capability/validation](evidence/task-08-capability.md), [task-08 round 1](evidence/task-08-review-round-1.md), [task-08 round 2 / validation](evidence/task-08-review-round-2.md).
 
 ## Приёмка реализации эпохи
 
@@ -52,7 +52,7 @@ ID не задаёт порядок запуска: его задаёт Depends 
 - Даты ревью: —.
 - Количество раундов ревью: —.
 - Количество исправлений после ревью: —.
-- Итог: не проверено; preliminary inventory task-00 принят, executable реализация не начата.
+- Итог: не проверено; preliminary inventory task-00 принят; isolated task-08 accepted для base-query slice, round 2, 2026-10-08. Cross-process round-trip/codec/hydrate эпохи не выполнены.
 - Принятый scope и дата: —.
 - Финальная validation и benchmark: —.
 - Ограничения и deferred scope: —.
@@ -66,12 +66,12 @@ isolated test не означают принятия реализации. Тр�
 ## Revision scope и gates
 
 **2026-10-07: spec-v2 revised-for-review**, применение arbitration к тексту,
-реализация не начата. [Change ledger](../change-ledger.md) и
+на момент revision реализация не была начата; текущий execution status указан выше. [Change ledger](../change-ledger.md) и
 [revision report](../preparation-report.md) содержат scope/validation evidence.
 Historical review/defense не подменяет arbitration; independent recheck v2 ещё не выполнен.
 U-001 решён [H-001/H-002](../human-decisions.md): external XML exclusion и вариант B
 для strong-name; [применение и validation](../h-002-report.md), 2026-10-07.
-S-001/S-002 учитываются к deadlines и остаются not-run. Closed disputes и optional E3 scope не переоткрываются.
+S-001 accepted 2026-10-08 для isolated base-query slice, round 2; [report](evidence/task-08-capability.md), [review](evidence/task-08-review-round-2.md). S-002 остаётся not-run. Closed disputes и optional E3 scope не переоткрываются.
 
 Task-08/S-001 требует U-001; schema task-02 может подготовить sketch до gate,
 но final acceptance/capture/codec/hydrate positive scope требует successful S-001.

@@ -85,7 +85,10 @@ C# build/test suites без code/config изменений не требуютс
 ## Revision gates и actual artifact
 
 Эта версия применяет arbitration P-001–P-014; disputes не оцениваются повторно.
-U-001 resolved по H-001/H-002 (B), S-001/S-002 — not-run experiments. Positive E0 и dependent
+U-001 resolved по H-001/H-002 (B). S-001 accepted для isolated base-query slice, round 2, 2026-10-08:
+[isolated capability и validation](epoch-0-snapshot-roundtrip/evidence/task-08-capability.md),
+[review round 2](epoch-0-snapshot-roundtrip/evidence/task-08-review-round-2.md).
+Capture-ready не присвоен. S-002 — not-run. Positive E0 и dependent
 codec/hydrate требуют accepted U-001 и successful S-001. E0 schema sketch/inspection
 можно вести раньше; это docs-only preliminary work, не accepted executable schema
 или разрешение выбирать fidelity за владельца. Explicit preliminary части не

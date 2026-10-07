@@ -139,7 +139,8 @@ S-001 проверяет хотя бы один неизменённый real po
 references и заранее выбранными observable results в этом contract. Дополнительно
 проверяются signing-dependent и unknown cases с ordinary fallback/refusal до
 execution/side effects, а также исключённый emit. XML controls H-001 сохраняются.
-Negative-only результат не закрывает positive gate; S-001/S-002 остаются **not-run**.
+Negative-only результат не закрывает positive gate; на дату решения 2026-10-07 S-001/S-002 **not-run**.
+Текущий статус исполнения — в [spikes](spikes.md).
 
 Владелец предпочёл постепенный полезный MVP: signing-dependent проекты могут не
 получить ускорение, но сохраняют ordinary route. Основной риск — ошибочный допуск

@@ -428,3 +428,11 @@ permissions прежние. Archive не изменён, independent review stat
 H-002 дополнен требованием владельца к явным диагностическим логам: stage,
 project/configuration/TFM, operation, signing-dependent/unknown/excluded reason и
 ordinary/refusal route. Required S-001/E1 controls отражены в specs и affected tasks.
+
+## Execution update — 2026-10-08
+
+Исторические not-run отметки выше относятся к применению revision/H-002.
+Task-00 принят 2026-10-07. S-001/task-08 accepted, round 2, 2026-10-08: supported observed
+base-query slice; [review](epoch-0-snapshot-roundtrip/evidence/task-08-review-round-2.md).
+Capture-ready не присвоен, S-002 not-run. Requirements и activation permissions
+не изменены; текущие task/index summaries и status-aware validator синхронизированы.

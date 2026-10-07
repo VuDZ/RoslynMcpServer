@@ -1,0 +1,85 @@
+{
+  "date": "2026-10-08",
+  "status": "passed-on-repeat; task review pending",
+  "controlRevision": "5d4a86c00e84c859ddd008ef2d6a1671a9d9a7c8",
+  "configuration": "Release",
+  "build": {
+    "content": [
+      {
+        "type": "text",
+        "text": "## Build succeeded\r\n\r\n### dotnet run\r\n- **dotnet host:** `C:\\Program Files\\dotnet\\dotnet.exe` (64-bit MCP process)\r\n- **dotnet --version:** `10.0.300` (from working directory)\r\n- **Inherited MSBuildSDKsPath:** `C:\\Program Files\\dotnet\\sdk\\10.0.300\\Sdks`\r\n- **Inherited MSBUILD_EXE_PATH:** `C:\\Program Files\\dotnet\\sdk\\10.0.300\\MSBuild.dll`\r\n- **SDK env action:** `stripped inherited MSBuildSDKsPath / MSBUILD_EXE_PATH / DOTNET_MSBUILD_SDK_RESOLVER_* (host resolves SDK)`\r\n- **WorkingDirectory:** `E:\\Devel\\RoslynMcpServer`\r\n- **DOTNET_CLI_UI_LANGUAGE:** `en-US`\r\n- **Configuration:** Release\r\n- **Platform:** (SDK/solution default)\r\n- **ProjectName:** (none)\r\n- **SolutionTarget:** (none)\r\n- **BuildArgs:** (none)\r\n- **NoIncremental:** `True` (`--no-incremental`)\r\n- **Steps:** dotnet build -v:minimal -p:Configuration=\"Release\" --no-incremental\r\n\r\nNo **error** lines matched (MSBuild `path(line,col): error` or NuGet `error NU####`).\r\nEffective build exit is 0 (last `dotnet build` step; restore cannot mask a failed build with no rebuild).\r\n\r\nWarnings:\r\n- **warning** `CS8603` `E:\\Devel\\RoslynMcpServer\\Services\\Resolve\\NuGetFallbackAssemblyResolver.cs(35,20)` — Possible null reference return. [E:\\Devel\\RoslynMcpServer\\RoslynMcpServer.csproj]\r\n- **warning** `CS8603` `E:\\Devel\\RoslynMcpServer\\Services\\Resolve\\NuGetFallbackAssemblyResolver.cs(53,9)` — Possible null reference return. [E:\\Devel\\RoslynMcpServer\\RoslynMcpServer.csproj]\r\n- **warning** `CS8601` `E:\\Devel\\RoslynMcpServer\\RoslynMcpServer.LifecycleTestHost\\HostSession.cs(1177,34)` — Possible null reference assignment. [E:\\Devel\\RoslynMcpServer\\RoslynMcpServer.LifecycleTestHost\\RoslynMcpServer.LifecycleTestHost.csproj]\r\n- **warning** `xUnit1031` `E:\\Devel\\RoslynMcpServer\\RoslynMcpServer.Tests\\Workspace\\WpfTemporaryProjectCallbackTests.cs(195,32)` — Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031) [E:\\Devel\\RoslynMcpServer\\RoslynMcpServer.Tests\\RoslynMcpServer.Tests.csproj]"
+      }
+    ]
+  },
+  "focused": {
+    "content": [
+      {
+        "type": "text",
+        "text": "## Filtered test run\r\n\r\n**Filter:** `FullyQualifiedName~RealControlCapabilityTests`\r\n**Match:** Caller-supplied VSTest filter\r\n\r\n## Filtered tests passed\r\n\r\nTotal: **13** · Passed: **13** · Failed: **0**\r\n\r\nMatched tests: `RoslynMcpServer.Tests.WorkspaceStateCache.RealControlCapabilityTests.Excluded_operations_refuse_when_no_ordinary_route_is_available', 'RoslynMcpServer.Tests.WorkspaceStateCache.RealControlCapabilityTests.Excluded_operations_route_before_hydrated_execution', 'RoslynMcpServer.Tests.WorkspaceStateCache.RealControlCapabilityTests.Inspect_and_compare_real_control_without_claiming_workspace_readiness', 'RoslynMcpServer.Tests.WorkspaceStateCache.RealControlCapabilityTests.Assembly_attributes_are_checked_before_the_selected_query', 'RoslynMcpServer.Tests.WorkspaceStateCache.RealControlCapabilityTests.Assembly_attributes_are_checked_before_the_selected_query`\r\n\r\n- **dotnet host:** `C:\\Program Files\\dotnet\\dotnet.exe` (64-bit MCP process)\r\n- **dotnet --version:** `10.0.300` (from working directory)\r\n- **Inherited MSBuildSDKsPath:** `C:\\Program Files\\dotnet\\sdk\\10.0.300\\Sdks`\r\n- **Inherited MSBUILD_EXE_PATH:** `C:\\Program Files\\dotnet\\sdk\\10.0.300\\MSBuild.dll`\r\n- **SDK env action:** `stripped inherited MSBuildSDKsPath / MSBUILD_EXE_PATH / DOTNET_MSBUILD_SDK_RESOLVER_* (host resolves SDK)`\r\n- **WorkingDirectory:** `E:\\Devel\\RoslynMcpServer\\RoslynMcpServer.Tests`\r\n- **DOTNET_CLI_UI_LANGUAGE:** `en-US`\r\n- **Configuration:** Release\r\n- **Platform:** (SDK/solution default)\r\n- **BuildArgs:** (none)\r\n- **PreTestBuild:** yes (`dotnet build` then `dotnet test --no-build`)\r\n- **TestOutput:** StdOut 2500 chars, StdErr 1000 chars"
+      }
+    ]
+  },
+  "developmentFailure": {
+    "check": "document checksum equality",
+    "result": "1 failed / 12 passed",
+    "resolution": "Preserve public encoding and checksum algorithm in a fresh file-backed TextLoader; same assertion now passes."
+  },
+  "independentReview": "not-run; task status review; zero rounds and fixes",
+  "analyzerLifecycle": "not-run; no production lifecycle or shared host/build/test configuration changes",
+  "sourceStructure": "included in Category!=AnalyzerLifecycle; no production code changed",
+  "benchmark": "not-run; outside isolated S-001",
+  "artifactCheck": "docs/workspace-state-cache/validation.json",
+  "mainInitialFinalCode": {
+    "content": [
+      {
+        "type": "text",
+        "text": "## Filtered test run\r\n\r\n**Filter:** `Category!=AnalyzerLifecycle`\r\n**Match:** Caller-supplied VSTest filter\r\n\r\n❌ 1 Tests Failed.\r\n\r\nTotal: **1278** · Passed: **1277** · Failed: **1**\r\n\r\n1. **TestName:** `RoslynMcpServer.Tests.Workspace.WorkspaceNonCSharpDiskSyncTests.Saved_additional_file_and_editorconfig_reach_the_published_snapshot`\r\n   **Error:**\r\n\r\n```text\r\nAssert.Equal() Failure: Strings differ\n↓ (pos 1)\nExpected: \"ON\"\nActual:   \"OFF\"\n↑ (pos 1)\r\n```\r\n   **Stack:** at RoslynMcpServer.Tests.Workspace.WorkspaceNonCSharpDiskSyncTests.Saved_additional_file_and_editorconfig_reach_the_published_snapshot() in E:\\Devel\\RoslynMcpServer\\RoslynMcpServer.Tests\\Workspace\\WorkspaceNonCSharpDiskSyncTests.cs:line 124    at RoslynMcpServer.Tests.Workspace.WorkspaceNonCSharpDiskSyncTests.Saved_additional_file_and_editorconfig_reach_the_published_snapshot() in E:\\Devel\\RoslynMcpServer\\RoslynMcpServer.Tests\\Workspace\\WorkspaceNonCSharpDiskSyncTests.cs:line 150 --- End of stack trace from previous location ---   Passed RoslynMcpServer.Tests.Workspace.WorkspaceNonCSharpDiskSyncTests.Apply_updates_every_project_of_one_path_and_leaves_other_documents [4 ms]   Passed RoslynMcpServer.Tests.Workspace.WorkspaceNonCSharpDiskSyncTests.Read_skips_a_missing_file_and_a_path_without_a_document [1 ms]   Passed RoslynMcpServer.Tests.WorkspaceLoadCache.HydrateHostExperimentTests.Disk_and_membership_evidence_changes_refuse_hydration(mutation: \"depth-bound\") [173 ms]   Passed RoslynMcpServer.Tests.WorkspaceLoadCache.OracleFixtureBuilderTests.Fresh_msbuild_reproduces_the_observed_razor_generator_output [5 s]   Passed RoslynMcpServer.Tests.WorkspaceLoadCache.HydrateHostExp...\r\n\r\n2. **TestName:** `RoslynMcpServer.Tests.Workspace.WorkspaceNonCSharpDiskSyncTests.Saved_additional_file_and_editorconfig_reach_the_published_snapshot`\r\n\r\n- **dotnet host:** `C:\\Program Files\\dotnet\\dotnet.exe` (64-bit MCP process)\r\n- **dotnet --version:** `10.0.300` (from working directory)\r\n- **Inherited MSBuildSDKsPath:** `C:\\Program Files\\dotnet\\sdk\\10.0.300\\Sdks`\r\n- **Inherited MSBUILD_EXE_PATH:** `C:\\Program Files\\dotnet\\sdk\\10.0.300\\MSBuild.dll`\r\n- **SDK env action:** `stripped inherited MSBuildSDKsPath / MSBUILD_EXE_PATH / DOTNET_MSBUILD_SDK_RESOLVER_* (host resolves SDK)`\r\n- **SDK from MSBuild log paths:** `10.0.300`\r\n- **WorkingDirectory:** `E:\\Devel\\RoslynMcpServer\\RoslynMcpServer.Tests`\r\n- **DOTNET_CLI_UI_LANGUAGE:** `en-US`\r\n- **Configuration:** Release\r\n- **Platform:** (SDK/solution default)\r\n- **BuildArgs:** (none)\r\n- **PreTestBuild:** skipped (`noBuild=true`)\r\n- **TestOutput:** StdOut 1500 chars, StdErr 600 chars (`maxOutputChars`=1500)"
+      }
+    ]
+  },
+  "failedClassRecheck": {
+    "content": [
+      {
+        "type": "text",
+        "text": "## Filtered test run\r\n\r\n**Filter:** `FullyQualifiedName~WorkspaceNonCSharpDiskSyncTests`\r\n**Match:** Caller-supplied VSTest filter\r\n\r\n## Filtered tests passed\r\n\r\nTotal: **4** · Passed: **4** · Failed: **0**\r\n\r\nMatched tests: `RoslynMcpServer.Tests.Workspace.WorkspaceNonCSharpDiskSyncTests.Syncs_additional_file_and_analyzer_config_but_not_markup_or_evaluation', 'RoslynMcpServer.Tests.Workspace.WorkspaceNonCSharpDiskSyncTests.Saved_additional_file_and_editorconfig_reach_the_published_snapshot', 'RoslynMcpServer.Tests.Workspace.WorkspaceNonCSharpDiskSyncTests.Apply_updates_every_project_of_one_path_and_leaves_other_documents', 'RoslynMcpServer.Tests.Workspace.WorkspaceNonCSharpDiskSyncTests.Read_skips_a_missing_file_and_a_path_without_a_document`\r\n\r\n- **dotnet host:** `C:\\Program Files\\dotnet\\dotnet.exe` (64-bit MCP process)\r\n- **dotnet --version:** `10.0.300` (from working directory)\r\n- **Inherited MSBuildSDKsPath:** `C:\\Program Files\\dotnet\\sdk\\10.0.300\\Sdks`\r\n- **Inherited MSBUILD_EXE_PATH:** `C:\\Program Files\\dotnet\\sdk\\10.0.300\\MSBuild.dll`\r\n- **SDK env action:** `stripped inherited MSBuildSDKsPath / MSBUILD_EXE_PATH / DOTNET_MSBUILD_SDK_RESOLVER_* (host resolves SDK)`\r\n- **WorkingDirectory:** `E:\\Devel\\RoslynMcpServer\\RoslynMcpServer.Tests`\r\n- **DOTNET_CLI_UI_LANGUAGE:** `en-US`\r\n- **Configuration:** Release\r\n- **Platform:** (SDK/solution default)\r\n- **BuildArgs:** (none)\r\n- **PreTestBuild:** skipped (`noBuild=true`)\r\n- **TestOutput:** StdOut 2500 chars, StdErr 1000 chars"
+      }
+    ]
+  },
+  "mainRepeat": {
+    "content": [
+      {
+        "type": "text",
+        "text": "## Filtered test run\r\n\r\n**Filter:** `Category!=AnalyzerLifecycle`\r\n**Match:** Caller-supplied VSTest filter\r\n\r\n## Filtered tests passed\r\n\r\nTotal: **1278** · Passed: **1278** · Failed: **0**\r\n\r\nMatched tests: `RoslynMcpServer.Tests.Navigation.SymbolDeclarationResolverTests.NormalizeFqn_strips_global_and_empty_parens', 'RoslynMcpServer.Tests.Config.MsBuildWorkspacePropertiesPassedArgsTests.MatchesPassedLoadArguments_different_path_misses_cache', 'RoslynMcpServer.Tests.NuGet.NuGetAuditReportParserTests.FormatMarkdownReport_empty', 'RoslynMcpServer.Tests.Workspace.WorkspaceDiskPathFilterTests.IsPathUnderDirectory_does_not_match_prefix_sibling', 'RoslynMcpServer.Tests.Analyzers.SolutionManagerAnalyzerOverlayTests.Exact_inverse_contract_is_covered_by_workspace_write_boundary_tests`\r\n\r\n- **dotnet host:** `C:\\Program Files\\dotnet\\dotnet.exe` (64-bit MCP process)\r\n- **dotnet --version:** `10.0.300` (from working directory)\r\n- **Inherited MSBuildSDKsPath:** `C:\\Program Files\\dotnet\\sdk\\10.0.300\\Sdks`\r\n- **Inherited MSBUILD_EXE_PATH:** `C:\\Program Files\\dotnet\\sdk\\10.0.300\\MSBuild.dll`\r\n- **SDK env action:** `stripped inherited MSBuildSDKsPath / MSBUILD_EXE_PATH / DOTNET_MSBUILD_SDK_RESOLVER_* (host resolves SDK)`\r\n- **SDK from MSBuild log paths:** `10.0.300`\r\n- **WorkingDirectory:** `E:\\Devel\\RoslynMcpServer\\RoslynMcpServer.Tests`\r\n- **DOTNET_CLI_UI_LANGUAGE:** `en-US`\r\n- **Configuration:** Release\r\n- **Platform:** (SDK/solution default)\r\n- **BuildArgs:** (none)\r\n- **PreTestBuild:** skipped (`noBuild=true`)\r\n- **TestOutput:** StdOut 1500 chars, StdErr 600 chars (`maxOutputChars`=1500)"
+      }
+    ]
+  },
+  "summary": {
+    "buildExitCode": 0,
+    "focused": {
+      "total": 13,
+      "passed": 13,
+      "failed": 0
+    },
+    "mainInitial": {
+      "total": 1278,
+      "passed": 1277,
+      "failed": 1
+    },
+    "failedClassRecheck": {
+      "total": 4,
+      "passed": 4,
+      "failed": 0
+    },
+    "mainRepeat": {
+      "total": 1278,
+      "passed": 1278,
+      "failed": 0
+    },
+    "skipped": 0,
+    "timeouts": 0
+  },
+  "limitations": [
+    "One existing disk-sync test failed once; cause not established; unchanged class and full-suite repeats passed.",
+    "Not independent acceptance; no production activation, cross-process codec or benchmark."
+  ]
+}

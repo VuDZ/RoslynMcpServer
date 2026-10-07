@@ -79,9 +79,24 @@ for task in tasks:
     content, index = read(task), read(task.parent / 'README.md')
     for field in fields:
         check(f'- {field}:' in content, f'{task.name}: missing field {field}')
-    for field in fields[7:]:
-        check(f'- {field}: —.' in content, f'{task.name}: fabricated actual value {field}')
-    check(re.search(r'^- Статус: .*planned.*2026-10-07', content, re.M), f'{task.name}: wrong status/date')
+    executed = {
+        'epoch-0-snapshot-roundtrip/task-00-current-seams-and-controls-med.md':
+            ('accepted', '2026-10-07', '2', '2', 'evidence/task-00-review-round-2.md'),
+        'epoch-0-snapshot-roundtrip/task-08-real-control-capability-hi.md':
+            ('accepted', '2026-10-08', '2', '1', 'evidence/task-08-review-round-2.md'),
+    }
+    actual = executed.get(task.relative_to(BASE).as_posix())
+    if actual:
+        status, date, rounds, fixes, evidence = actual
+        check(re.search(r'^- Статус: .*'+status+r'.*'+date, content, re.M), f'{task.name}: wrong actual status/date')
+        check(f'- Количество раундов ревью: {rounds}.' in content, f'{task.name}: wrong review rounds')
+        check(f'- Количество исправлений после ревью: {fixes}.' in content, f'{task.name}: wrong fix count')
+        check(f']({evidence})' in content and (task.parent/evidence).is_file(), f'{task.name}: missing actual evidence')
+        check('- Модель, реализовавшая задачу: —.' not in content, f'{task.name}: missing executor')
+    else:
+        for field in fields[7:]:
+            check(f'- {field}: —.' in content, f'{task.name}: fabricated actual value {field}')
+        check(re.search(r'^- Статус: .*planned.*2026-10-07', content, re.M), f'{task.name}: wrong status/date')
     level = task.stem.split('-')[-1]
     check(level in ('low','med','hi','xhi') and f'класс `{level}`' in content, f'{task.name}: suffix/class mismatch')
     epoch_id = 'E'+task.parent.name.split('-')[1]
@@ -133,7 +148,8 @@ check('RESOLVED — H-001 + H-002; вариант B' in read(BASE / 'unresolved.
 check('## H-002 — Ограниченный strong-name contract MVP' in read(BASE / 'human-decisions.md'), 'H-002 owner decision missing')
 check('signing-dependent/unknown' in read(BASE / 'epoch-0-snapshot-roundtrip/task-08-real-control-capability-hi.md'), 'S-001 H-002 controls missing')
 check('accepted owner decision / applied to requirements' in read(BASE / 'human-decisions.md'), 'H-001 owner decision missing')
-check('S-001 и S-002 **not-run**' in read(BASE / 'spikes.md'), 'Spike open state missing')
+check('S-001 **accepted**' in read(BASE / 'spikes.md'), 'S-001 acceptance state missing')
+check('S-002 **not-run**' in read(BASE / 'spikes.md'), 'S-002 open state missing')
 check('35' in read(BASE / 'README.md') and ']('+'workspace-state-cache/README.md)' in read(ROOT / 'docs/README.md'), 'Root/index routing mismatch')
 check(not (BASE / 'spec-v2').exists(), 'Obsolete spec-v2 directory remains')
 for source in manifest['copied_source_files']:
@@ -152,7 +168,7 @@ for path in BASE.rglob('*'):
             own_whitespace += 1
             errors.append(f'{path.name}:{number}: trailing whitespace')
 
-result = {'date':'2026-10-07','scope':'docs-only revision consistency; not independent review or runtime acceptance',
+result = {'date':'2026-10-08','scope':'artifact consistency after S-001; runtime results in task-08-validation.json; not independent review',
           'protected_original_files':len(original_files),'archived_inputs_verified':current_original == archive_paths
                and not any('snapshot mismatch:' in e or 'beyond link rebasing:' in e for e in errors),
           'historical_snapshot_policy':'original before hashes retained; archived after-link-rebase hashes checked',
@@ -161,10 +177,13 @@ result = {'date':'2026-10-07','scope':'docs-only revision consistency; not indep
           'acyclic':not any('cycle' in e for e in errors),'applied_P_count':len(ids),
           'source_findings_covered':len(source_findings),'arbitration_clusters_covered':len(arb_ids),
           'owner_decisions_applied':['H-001: external XML exclusion','H-002: strong-name B'],'unresolved':[],
-          'resolved_owner_decisions':['U-001: H-001 + H-002, B'],'spikes_not_run':['S-001','S-002'],'new_deferred':[],
+          'resolved_owner_decisions':['U-001: H-001 + H-002, B'],'spikes_not_run':['S-002'],
+          'spikes_executed_review_pending':[],
+          'spikes_accepted':['S-001: isolated base-query slice, round 2, 2026-10-08'],'new_deferred':[],
           'unrelated_tracked_diff_unchanged':hashlib.sha256(diff).hexdigest() == manifest['initial_tracked_diff_sha256'],
           'index_git_diff_check_exit':whitespace.returncode,'revision_trailing_whitespace':own_whitespace,
-          'independent_recheck':'not-run','build_and_tests':'not-run; docs-only','errors':errors,
+          'independent_recheck':'task-00 accepted; task-08 accepted for isolated base-query slice, round 2; specification recheck pending',
+          'build_and_tests':'see epoch-0-snapshot-roundtrip/evidence/task-08-validation.json','errors':errors,
           'status':'passed' if not errors else 'failed'}
 (BASE / 'validation.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n',encoding='utf-8',newline='\n')
 print(json.dumps(result,ensure_ascii=False,indent=2))

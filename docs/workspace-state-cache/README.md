@@ -1,8 +1,9 @@
 # Workspace state cache — specification v2
 
-Статус: **revised-for-review после арбитража, 2026-10-07**. Executable реализация не начата;
+Статус: **revised-for-review после арбитража, 2026-10-07**. Production runtime не изменён;
 E0/task-00 accepted для docs-only inventory seams и выбора real control, 2026-10-07
-([round 2 / validation](epoch-0-snapshot-roundtrip/evidence/task-00-review-round-2.md)); S-001 not-run.
+([round 2 / validation](epoch-0-snapshot-roundtrip/evidence/task-00-review-round-2.md)); S-001 accepted для isolated base-query slice, **round 2, 2026-10-08**
+([capability/validation](epoch-0-snapshot-roundtrip/evidence/task-08-capability.md), [review](epoch-0-snapshot-roundtrip/evidence/task-08-review-round-2.md)); capture-ready и приёмка эпохи не присвоены.
 Runtime, версия и defaults этим пакетом не меняются.
 
 Владелец выбрал постепенное сохранение/восстановление workspace state с индексом
@@ -198,11 +199,11 @@ validation; будущие эпохи не блокируют уже приня�
 - Решения владельца H-001/H-002, 2026-10-07: external XML exclusion и strong-name B
   применены к тексту; U-001 resolved. [Scope и validation](h-002-report.md).
 - Ревью specification v2: модели/даты/раунды/исправления/отчёты —; recheck не выполнен.
-- Ревью задач v2: из 35 задач проверен E0/task-00; round 2, 2026-10-07, accepted для docs-only inventory seams и выбора real control. Рецензент: Codex (GPT-6; точный runtime model ID недоступен); раунды 2, подтверждённые исправления 2. [Report/validation](epoch-0-snapshot-roundtrip/evidence/task-00-review-round-2.md). Остальные 34 задачи planned, не проверены.
+- Ревью задач v2: из 35 задач проверен E0/task-00; round 2, 2026-10-07, accepted для docs-only inventory seams и выбора real control. Рецензент: Codex (GPT-6; точный runtime model ID недоступен); раунды 2, подтверждённые исправления 2. [Report/validation](epoch-0-snapshot-roundtrip/evidence/task-00-review-round-2.md). E0/task-08 round 2, 2026-10-08, рецензент Grok 4.7; accepted для isolated supported base-query slice; раунды 2, подтверждённое исправление 1 (T08-R1-001). [Review/validation](epoch-0-snapshot-roundtrip/evidence/task-08-review-round-2.md). Остальные 33 задачи planned.
 - Приёмка реализации E0–E3: не начата; раунды/исправления —.
 
 Применение P не означает принятия epochs. U-001 закрыт отдельными H-001/H-002;
-S-001/S-002 остаются not-run.
+S-001 accepted для isolated base-query slice, round 2, 2026-10-08; S-002 not-run.
 Plan/task/implementation counts не смешиваются; unknown values остаются `—`.
 Дубли источников и разные models сохраняются по общему стандарту учёта.
 
@@ -234,7 +235,8 @@ changes. [Исходная версия](archive/README.md) и review/defense/ar
 > Negative-only E0 не принимается; successful S-001 остаётся обязательным.
 > Подробности — [decision point](unresolved.md#u-001--fidelity-положительного-e0).
 
-Открытые [S-001/S-002](spikes.md) **not-run**. S-001 следует за U-001; S-002 должен
+[S-001](spikes.md) **accepted** для isolated base-query slice, round 2, 2026-10-08; [результат](epoch-0-snapshot-roundtrip/evidence/task-08-review-round-2.md).
+Capture-ready не присвоен. S-002 **not-run**, должен
 подтвердить import/restore evidence до принятия E1 manifest. Они являются gates,
 не выбранными implementation mechanisms. Новых DEFERRED нет; optional E3 сохраняет
 прежний no-go contract. [Revision blockers](revision-blockers.md) отделены от
@@ -320,3 +322,7 @@ attributes и project bindings входят в admission evidence S-001.
 [round 2 / validation](epoch-0-snapshot-roundtrip/evidence/task-00-review-round-2.md),
 принятый scope — docs-only inventory seams и выбор real control; S-001/S-002 not-run;
 реализация, independent review и public activation этим решением не принимаются.
+
+Текущий execution status на 2026-10-08: isolated S-001 accepted для supported base-query slice,
+round 2; [review](epoch-0-snapshot-roundtrip/evidence/task-08-review-round-2.md).
+Production и public activation не изменены.

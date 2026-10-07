@@ -1,12 +1,12 @@
 {
-  "date": "2026-10-07",
-  "scope": "docs-only revision consistency; not independent review or runtime acceptance",
+  "date": "2026-10-08",
+  "scope": "artifact consistency after S-001; runtime results in task-08-validation.json; not independent review",
   "protected_original_files": 129,
   "archived_inputs_verified": true,
   "historical_snapshot_policy": "original before hashes retained; archived after-link-rebase hashes checked",
-  "markdown_files_checked": 175,
-  "local_links_checked": 1520,
-  "anchors_checked": 76,
+  "markdown_files_checked": 181,
+  "local_links_checked": 1597,
+  "anchors_checked": 78,
   "task_count": 35,
   "epoch_task_counts": {
     "epoch-0-snapshot-roundtrip": 9,
@@ -28,15 +28,18 @@
     "U-001: H-001 + H-002, B"
   ],
   "spikes_not_run": [
-    "S-001",
     "S-002"
+  ],
+  "spikes_executed_review_pending": [],
+  "spikes_accepted": [
+    "S-001: isolated base-query slice, round 2, 2026-10-08"
   ],
   "new_deferred": [],
   "unrelated_tracked_diff_unchanged": true,
   "index_git_diff_check_exit": 0,
   "revision_trailing_whitespace": 0,
-  "independent_recheck": "not-run",
-  "build_and_tests": "not-run; docs-only",
+  "independent_recheck": "task-00 accepted; task-08 accepted for isolated base-query slice, round 2; specification recheck pending",
+  "build_and_tests": "see epoch-0-snapshot-roundtrip/evidence/task-08-validation.json",
   "errors": [],
   "status": "passed"
 }
