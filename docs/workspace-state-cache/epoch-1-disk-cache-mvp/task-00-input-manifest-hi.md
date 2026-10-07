@@ -5,8 +5,8 @@
 - Примерная сложность: 4/5; класс `hi`.
 - Риск ошибки: высокий — неверный graph/binding/publication или cache hit влияет на semantic correctness и записи.
 - Необходимые способности: `семантика_roslyn_msbuild`, `анализ_зависимостей`, `согласованность_компонентов`.
-- Статус: **planned; план ready-for-review, 2026-10-07**.
-- Depends on: [E0/task-07](../epoch-0-snapshot-roundtrip/task-07-roundtrip-benchmark-med.md)
+- Статус: **planned; spec-v2 revised-for-review, 2026-10-07; реализация не начата**.
+- Depends on: [E0/task-07](../epoch-0-snapshot-roundtrip/task-07-roundtrip-benchmark-med.md), [E1/task-11 — S-002](task-11-raw-import-restore-evidence-hi.md)
 - Модель, реализовавшая задачу: —.
 - Модели, проводившие ревью: —.
 - Количество раундов ревью: —.
@@ -43,3 +43,9 @@ Manifest и capture evidence; переиспользовать WorkspaceInputMap
 Дата, принятый scope, evidence и фактические модели обновляются в шапке и
 README эпохи после ревью/validation. Новый существенный вопрос возвращается
 в spec точечной поправкой, а не превращает эту задачу в большой decision packet.
+
+## Уточнения specification v2
+
+Основание: **P-004, P-005, P-006, P-010, P-011, P-012**; [change ledger](../change-ledger.md).
+
+До принятия adapter требуется S-002. Source для каждого import/restore category, instance binding/completeness boundary и incomplete→unsupported задаются по actual evidence; текущая map/snapshot не считаются closure. Captured graph и manifest имеют evidence одной consumed generation, не post-load hash binding. Profile фиксирует environment current comparison, portable health/eligibility и occurrence roles. Applicable ancestor config known absence/project-linked boundaries обязательны до первого hit.

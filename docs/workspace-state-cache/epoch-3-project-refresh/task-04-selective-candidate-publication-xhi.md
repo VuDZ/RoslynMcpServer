@@ -5,7 +5,7 @@
 - Примерная сложность: 5/5; класс `xhi`.
 - Риск ошибки: высокий — неверный graph/binding/publication или cache hit влияет на semantic correctness и записи.
 - Необходимые способности: `анализ_конкурентности`, `семантика_roslyn_msbuild`, `управление_ресурсами`.
-- Статус: **planned; план ready-for-review, 2026-10-07**.
+- Статус: **planned; spec-v2 revised-for-review, 2026-10-07; реализация не начата**.
 - Depends on: [E3/task-02](task-02-project-reopen-adapter-hi.md), [E3/task-03](task-03-membership-change-routing-med.md)
 - Модель, реализовавшая задачу: —.
 - Модели, проводившие ревью: —.

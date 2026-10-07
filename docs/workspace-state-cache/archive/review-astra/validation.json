@@ -1,0 +1,10 @@
+{
+  "prompt_body_verbatim": true,
+  "skill_frontmatter_basic_check": "passed",
+  "skill_lines": 549,
+  "bundled_quick_validate": "unavailable: startup failed with missing PyYAML in both available Python runtimes",
+  "finding_files": 3,
+  "local_links_checked": 25,
+  "target_files_snapshotted": 45,
+  "production_build_and_tests": "not-run: review-only, no code/config changes"
+}

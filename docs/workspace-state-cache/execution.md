@@ -1,6 +1,6 @@
 # Порядок исполнения workspace state cache
 
-Статус: **draft / ready-for-review, 2026-10-07**.
+Статус: **spec-v2 / revised-for-review, 2026-10-07**.
 
 ## Размер задачи и решения
 
@@ -81,3 +81,35 @@ Functional/performance outcomes указываются отдельно; неу�
 Docs-only подготовка плана требует consistency/dependency/link/diff checks;
 C# build/test suites без code/config изменений не требуются. План может быть
 закоммичен как ready-for-review с указанием ещё не проведённого независимого ревью.
+
+## Revision gates и actual artifact
+
+Эта версия применяет arbitration P-001–P-014; disputes не оцениваются повторно.
+U-001 остаётся unresolved, S-001/S-002 — not-run experiments. Positive E0 и dependent
+codec/hydrate требуют accepted U-001 и successful S-001. E0 schema sketch/inspection
+можно вести раньше; это docs-only preliminary work, не accepted executable schema
+или разрешение выбирать fidelity за владельца. Explicit preliminary части не
+создают dependency cycle и не отменяют gates финализации задач.
+
+S-001 выделен в E0/task-08, S-002 — в E1/task-11, чтобы отдельные bounded checks
+не раздули task-00 в большой decision packet. Это decomposition outcomes арбитража,
+не новое исследовательское направление. При negative evidence dependent tasks
+blocked с причиной, без снятия real-positive требований.
+
+E0 task outputs фиксируют ownership/location/version actual DTO/codec/hydrate;
+E1 использует этот executable artifact либо фиксирует перенос/замену и выполняет
+полную нужную suite против поставляемого кода. Location остаётся implementation
+choice; нет зависимости production от Tests assembly и обязательного rewrite.
+
+Production Apply boundary сохраняет единственный reference site
+Workspace.TryApplyChanges в existing SolutionManager wrapper. Public candidate
+construction без второго apply допустим, при соблюдении preflight/publication.
+Весь SourceStructure после production integration и exact limit inventory обязательны.
+
+## Human decision H-001
+
+[H-001](human-decisions.md) принят и применяется к XML части U-001: external metadata
+documentation вне MVP guarantee, source comments сохранены. Strong-name часть
+unresolved; positive S-001/dependent gates остаются. No silent defaults запрещает
+необъявленную потерю remaining required state; принятое XML ограничение явно отражается
+в support/help/outcomes/tests. Docs-only application не означает implementation acceptance.

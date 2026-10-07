@@ -5,7 +5,7 @@
 - Примерная сложность: 4/5; класс `hi`.
 - Риск ошибки: высокий — неверный graph/binding/publication или cache hit влияет на semantic correctness и записи.
 - Необходимые способности: `семантика_roslyn_msbuild`, `анализ_зависимостей`, `согласованность_компонентов`.
-- Статус: **planned; план ready-for-review, 2026-10-07**.
+- Статус: **planned; spec-v2 revised-for-review, 2026-10-07; реализация не начата**.
 - Depends on: [E3/task-00](task-00-single-project-reopen-spike-hi.md), [E3/task-01](task-01-dirty-project-dependency-map-med.md)
 - Модель, реализовавшая задачу: —.
 - Модели, проводившие ревью: —.

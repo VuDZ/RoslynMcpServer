@@ -1,6 +1,6 @@
 # E1 — Первый disk cache MVP: карта выполнения
 
-- Статус плана: **ready-for-review, 2026-10-07**.
+- Статус плана: **spec-v2 / revised-for-review, 2026-10-07**.
 - Статус исполнения: **planned; реализация не начата**.
 - Зависимость эпохи: [E0](../epoch-0-snapshot-roundtrip/README.md), принятый применимый scope и final validation.
 - Результат: Opt-in disk restore в manager, стартовая проверка, текущие watcher’ы, безопасная правка .cs и fallback.
@@ -9,7 +9,7 @@
 
 ## Задачи
 
-- [task-00 — Manifest значимых входов](task-00-input-manifest-hi.md) — `hi`, **planned**; Depends on: [E0/task-07](../epoch-0-snapshot-roundtrip/task-07-roundtrip-benchmark-med.md)
+- [task-00 — Manifest значимых входов](task-00-input-manifest-hi.md) — `hi`, **planned**; Depends on: [E0/task-07](../epoch-0-snapshot-roundtrip/task-07-roundtrip-benchmark-med.md), [E1/task-11 — S-002](task-11-raw-import-restore-evidence-hi.md)
 - [task-01 — Проверка текстовых входов и каталогов](task-01-text-and-directory-probe-med.md) — `med`, **planned**; Depends on: [E1/task-00](task-00-input-manifest-hi.md)
 - [task-02 — Облегчённая проверка бинарей](task-02-binary-fast-probe-med.md) — `med`, **planned**; Depends on: [E1/task-00](task-00-input-manifest-hi.md)
 - [task-03 — Минимальный атомарный store](task-03-atomic-envelope-store-med.md) — `med`, **planned**; Depends on: [E1/task-00](task-00-input-manifest-hi.md)
@@ -20,6 +20,8 @@
 - [task-08 — Правка .cs на hydrated host](task-08-hydrated-csharp-write-hi.md) — `hi`, **planned**; Depends on: [E1/task-07](task-07-existing-watcher-attachment-hi.md)
 - [task-09 — Production restart/failure проверки](task-09-restart-and-failure-integration-med.md) — `med`, **planned**; Depends on: [E1/task-07](task-07-existing-watcher-attachment-hi.md), [E1/task-08](task-08-hydrated-csharp-write-hi.md)
 - [task-10 — Бенчмарк первого MVP](task-10-mvp-benchmark-med.md) — `med`, **planned**; Depends on: [E1/task-09](task-09-restart-and-failure-integration-med.md), [E0/task-01](../epoch-0-snapshot-roundtrip/task-01-baseline-runner-med.md)
+
+- [task-11 — S-002 — actual import/restore evidence](task-11-raw-import-restore-evidence-hi.md) — `hi`, **planned**; Depends on: [E0/task-07](../epoch-0-snapshot-roundtrip/task-07-roundtrip-benchmark-med.md)
 
 ID не задаёт порядок запуска: его задаёт Depends on. В одной задаче остаётся
 один проверяемый adapter/helper/scenario; независимые изменения возвращаются
@@ -40,7 +42,7 @@ ID не задаёт порядок запуска: его задаёт Depends 
 
 ## Статистика ревью задач
 
-- Охват: task-00–task-10; выполненных/проверенных задач пока нет.
+- Охват: task-00–task-11; выполненных/проверенных задач пока нет.
 - Фактические исполнители: —.
 - Фактические рецензенты: —.
 - Сумма раундов ревью задач: —.
@@ -63,3 +65,16 @@ ID не задаёт порядок запуска: его задаёт Depends 
 синхронизирует tasks/index/reports и делает commit. Принятый план и отдельный
 isolated test не означают принятия реализации. Требования следующей эпохи
 не являются условием приёмки уже выполненного scope этой эпохи.
+
+## Revision scope и gates
+
+**2026-10-07: spec-v2 revised-for-review**, применение arbitration к тексту,
+реализация не начата. [Change ledger](../change-ledger.md) и
+[revision report](../preparation-report.md) содержат scope/validation evidence.
+Historical review/defense не подменяет arbitration; independent recheck v2 ещё не выполнен.
+U-001 частично решён [H-001](../human-decisions.md) для external XML; strong-name
+часть unresolved. S-001/S-002 учитываются к deadlines и остаются not-run. Closed disputes и optional E3 scope не переоткрываются.
+
+Task-11/S-002 подтверждает evidence source до принятия task-00 manifest adapter.
+Negative/insufficient report не открывает reusable envelope; при отсутствии
+supported real positive E1 остаётся blocked по manifest scope.

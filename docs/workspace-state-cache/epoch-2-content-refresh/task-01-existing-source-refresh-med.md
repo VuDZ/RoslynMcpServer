@@ -5,7 +5,7 @@
 - Примерная сложность: 3/5; класс `med`.
 - Риск ошибки: средний — неверные inputs, fixtures или измерения искажают результат следующего шага.
 - Необходимые способности: `реализация_по_контракту`, `проектирование_проверок`.
-- Статус: **planned; план ready-for-review, 2026-10-07**.
+- Статус: **planned; spec-v2 revised-for-review, 2026-10-07; реализация не начата**.
 - Depends on: [E2/task-00](task-00-startup-diff-roles-hi.md)
 - Модель, реализовавшая задачу: —.
 - Модели, проводившие ревью: —.
@@ -41,3 +41,9 @@
 Дата, принятый scope, evidence и фактические модели обновляются в шапке и
 README эпохи после ревью/validation. Новый существенный вопрос возвращается
 в spec точечной поправкой, а не превращает эту задачу в большой decision packet.
+
+## Уточнения specification v2
+
+Основание: **P-013**; [change ledger](../change-ledger.md).
+
+Positive source refresh выполняется только в admitted content-only profile; unknown/non-admitted evaluation dependency даёт ordinary fallback. Не анализировать произвольные task bodies и не доверять имени SDK вместо evidence. Supported safe positive case сохраняется.

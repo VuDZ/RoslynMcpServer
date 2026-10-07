@@ -5,7 +5,7 @@
 - Примерная сложность: 3/5; класс `med`.
 - Риск ошибки: средний — неверные inputs, fixtures или измерения искажают результат следующего шага.
 - Необходимые способности: `реализация_по_контракту`, `проектирование_проверок`.
-- Статус: **planned; план ready-for-review, 2026-10-07**.
+- Статус: **planned; spec-v2 revised-for-review, 2026-10-07; реализация не начата**.
 - Depends on: [E2/task-01](task-01-existing-source-refresh-med.md), [E2/task-02](task-02-additional-and-config-refresh-med.md), [E2/task-03](task-03-fresh-metadata-references-med.md)
 - Модель, реализовавшая задачу: —.
 - Модели, проводившие ревью: —.
@@ -41,3 +41,9 @@
 Дата, принятый scope, evidence и фактические модели обновляются в шапке и
 README эпохи после ревью/validation. Новый существенный вопрос возвращается
 в spec точечной поправкой, а не превращает эту задачу в большой decision packet.
+
+## Уточнения specification v2
+
+Основание: **P-004**; [change ledger](../change-ledger.md).
+
+Refreshed capture сохраняет graph/input generation binding с actual consumed bytes. Нельзя закрыть исходный evaluation gap одними новыми post-load hashes; новый envelope допускается только при сохранении принятого binding contract.

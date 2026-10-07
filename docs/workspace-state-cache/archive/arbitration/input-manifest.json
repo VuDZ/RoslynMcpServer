@@ -1,0 +1,402 @@
+[
+  {
+    "path": "docs/workspace-state-cache/benchmark.md",
+    "sha256": "2B157F117E3A0488F89A791B8A8F5D44998D48676A61EA81A193196B2EF25A16"
+  },
+  {
+    "path": "docs/workspace-state-cache/execution.md",
+    "sha256": "335E3BAC845D06DF5FCE752F341742478ADE6D4C58E9A937E34A76506DCBF25A"
+  },
+  {
+    "path": "docs/workspace-state-cache/preparation-report.md",
+    "sha256": "6B1A3AAB9F5F75CF940854346FBC3C518C171386FA11824A0183F1CF84F11918"
+  },
+  {
+    "path": "docs/workspace-state-cache/README.md",
+    "sha256": "4B7A717D253E26DD38DD252B740E49F2DCE9AC8B67014EC3300E381F9677D9DF"
+  },
+  {
+    "path": "docs/workspace-state-cache/defense/.status",
+    "sha256": "D3BE030801B90EA8057D3997D9845C7F850CC7B784450645D5EC2811CC927D7A"
+  },
+  {
+    "path": "docs/workspace-state-cache/defense/coverage.md",
+    "sha256": "FF8FE4F35BE2E685F0E8AC3CF54C6FA34C2CE64E16AEF31A110E9E678B0528A1"
+  },
+  {
+    "path": "docs/workspace-state-cache/defense/finding-ledger.md",
+    "sha256": "599FECA765B700530846AFAA7BC7FF0F81569D2CCD2C6C9AF40C97C23593398A"
+  },
+  {
+    "path": "docs/workspace-state-cache/defense/input-manifest.json",
+    "sha256": "F681ABD49FACDF009DE1B97D11215269E694019E80AD03620A6844EDA9B7D036"
+  },
+  {
+    "path": "docs/workspace-state-cache/defense/positions.json",
+    "sha256": "5644D3751D6B4E0A584D701CFF277CF2765F33F04B7B2FC967CB5D3EA365D34A"
+  },
+  {
+    "path": "docs/workspace-state-cache/defense/README.md",
+    "sha256": "161E9D959CE3673597B2FD7FAD32EF244B63FBEB4DCBEEC09958E70FC8D2B420"
+  },
+  {
+    "path": "docs/workspace-state-cache/defense/relations.md",
+    "sha256": "29E8869C5D711FC2326A17936C3B867EDB0E18EC88BAC50AC963A50D18A03B0E"
+  },
+  {
+    "path": "docs/workspace-state-cache/defense/result.md",
+    "sha256": "D47E1EEBB6942A99A43B1FEEF43F93C7D70DB0A936A0F07BCD85DF7A83CCA2BF"
+  },
+  {
+    "path": "docs/workspace-state-cache/defense/validation.json",
+    "sha256": "7BA9ABDA1DDBDFD582F7D851896FB8CEF525936884F384957313EA46C73A4A99"
+  },
+  {
+    "path": "docs/workspace-state-cache/defense/validation.md",
+    "sha256": "8380EDB57CE7DC8A313DEA0FB23B41581A8FEB4B1888037C71293BE2DE43EC41"
+  },
+  {
+    "path": "docs/workspace-state-cache/defense/findings/review-astra-F-001.md",
+    "sha256": "A475165BD00E08EB7B04627353C466F36B40570F3A20FD5D7DA0FEBCF47E02F1"
+  },
+  {
+    "path": "docs/workspace-state-cache/defense/findings/review-astra-F-002.md",
+    "sha256": "8436799FB94B3117DFA6F001BF188E007F420780F4648D946A380FED4A45A7D2"
+  },
+  {
+    "path": "docs/workspace-state-cache/defense/findings/review-astra-F-003.md",
+    "sha256": "145C6ED83A48899BE73FDDEFC7C8DA09AB1898F0CD2AAE9B7E620B37497D7173"
+  },
+  {
+    "path": "docs/workspace-state-cache/defense/findings/review-ds-F-001.md",
+    "sha256": "7DFD30BDF8D92DB1B06A66C645B3C56188ECDC4B87C469CE1A6030B6A09BB940"
+  },
+  {
+    "path": "docs/workspace-state-cache/defense/findings/review-ds-F-002.md",
+    "sha256": "385211AD3EE820C22DC2E8A0BB0985A1AF46579012DF2950554CE9BD55445881"
+  },
+  {
+    "path": "docs/workspace-state-cache/defense/findings/review-ds-F-003.md",
+    "sha256": "AE9E9D285A354572918A174E0DF787218F3120E53D359E1AA35546B0758AE236"
+  },
+  {
+    "path": "docs/workspace-state-cache/defense/findings/review-ds-F-004.md",
+    "sha256": "FC3DB2D6A187FCC94C60C7DF9E3145B7818CCF0A55DDC5238A62FD55C2154BAC"
+  },
+  {
+    "path": "docs/workspace-state-cache/defense/findings/review-ds-F-005.md",
+    "sha256": "B0C208250D5B1F553D11F4548E17140E6A0F83DBAD2E3769C95E9745C4FFAA94"
+  },
+  {
+    "path": "docs/workspace-state-cache/defense/findings/review-ds-F-006.md",
+    "sha256": "03C101E8F8D99C78A2951982D010E0BD0FA0EA11CD611DD7984823DCBAB96A93"
+  },
+  {
+    "path": "docs/workspace-state-cache/defense/findings/review-ds-F-007.md",
+    "sha256": "DDF15C40670216991F0B1EE5E08D67ADB9CA513469476D55F06BC2FF9025E422"
+  },
+  {
+    "path": "docs/workspace-state-cache/defense/findings/review-ds-F-008.md",
+    "sha256": "9E79BEE87338DD900D6BA57D31DD09D2C266E13E6E15FB7233DC044FB57850B3"
+  },
+  {
+    "path": "docs/workspace-state-cache/defense/findings/review-grok-F-001.md",
+    "sha256": "A28AEF4222E5BFF9306717212DA806E991DDAD1D1243AEFBDF0F50715FA33129"
+  },
+  {
+    "path": "docs/workspace-state-cache/defense/findings/review-grok-F-002.md",
+    "sha256": "90CB271B12EAA3BC7E3DB70CBF849AFD73C47D327DE3535050631A4BDBB9ABE8"
+  },
+  {
+    "path": "docs/workspace-state-cache/defense/findings/review-grok-F-003.md",
+    "sha256": "85B1DBBE2FE409A07AE5580C991575D4AF4B0205CE457BC9CB319E794C7917A6"
+  },
+  {
+    "path": "docs/workspace-state-cache/defense/findings/review-grok-F-004.md",
+    "sha256": "EA97CE87C8353D4DB55D49437DDE42C74ADC579CF8A381F49D1ECC5668BEB257"
+  },
+  {
+    "path": "docs/workspace-state-cache/defense/findings/review-grok-F-005.md",
+    "sha256": "911366566AC0D5C9DC54CBD4C595C031B00157149827F9F9281EFA5A26BD7759"
+  },
+  {
+    "path": "docs/workspace-state-cache/epoch-0-snapshot-roundtrip/README.md",
+    "sha256": "9FE59C30C2E5C408D5785F0B4BB6E69DFFA5D2981D21176E7AD18FAF952497AD"
+  },
+  {
+    "path": "docs/workspace-state-cache/epoch-0-snapshot-roundtrip/spec.md",
+    "sha256": "23B0DA4A260A05282CE75EAD57529FB93EB60A26794035CA2815CF73F4B85D48"
+  },
+  {
+    "path": "docs/workspace-state-cache/epoch-0-snapshot-roundtrip/task-00-current-seams-and-controls-med.md",
+    "sha256": "C0946F60BA09E281252EB68B737343219A075999092C0BE497CFE1DAA4F69ECD"
+  },
+  {
+    "path": "docs/workspace-state-cache/epoch-0-snapshot-roundtrip/task-01-baseline-runner-med.md",
+    "sha256": "13B07D3337AD13EA745790109409476209DF192BDA0E6C3E49D5325F4C8AABD9"
+  },
+  {
+    "path": "docs/workspace-state-cache/epoch-0-snapshot-roundtrip/task-02-snapshot-schema-hi.md",
+    "sha256": "47B74D1D2E08BFB8DDC31D8F07FE96400EFC9AA450A4A277E77B363B75EDA62A"
+  },
+  {
+    "path": "docs/workspace-state-cache/epoch-0-snapshot-roundtrip/task-03-ordinary-capture-med.md",
+    "sha256": "E290E033EBD565ADF0C7C841AEE4A71E0BD83E4637BA04B6536916F1076F237C"
+  },
+  {
+    "path": "docs/workspace-state-cache/epoch-0-snapshot-roundtrip/task-04-snapshot-codec-low.md",
+    "sha256": "80D5CE073A74B24EF9444C6DE5BFC75E2572F2C2818A9F2903D8D386F98AE2B8"
+  },
+  {
+    "path": "docs/workspace-state-cache/epoch-0-snapshot-roundtrip/task-05-isolated-hydrate-hi.md",
+    "sha256": "1CF7133B9C4F95FD5DD36D5427B9A5FDD80AAAFCD5FCBF9101769C19AA4B451C"
+  },
+  {
+    "path": "docs/workspace-state-cache/epoch-0-snapshot-roundtrip/task-06-real-cross-process-roundtrip-med.md",
+    "sha256": "02FE0CAFEDDD3F17CB9AB563D394A18F1CC684037413BC5994A2CADE53DF33D6"
+  },
+  {
+    "path": "docs/workspace-state-cache/epoch-0-snapshot-roundtrip/task-07-roundtrip-benchmark-med.md",
+    "sha256": "BC57899087CB8E895CF353E2DEB34BA674FBB0CDD506D87F2E96036CF3F64B6B"
+  },
+  {
+    "path": "docs/workspace-state-cache/epoch-1-disk-cache-mvp/README.md",
+    "sha256": "3B26A6255B6E23B13AC4821646F88FC2669F52FFB9C46A4B4605A4B9D47A0CA8"
+  },
+  {
+    "path": "docs/workspace-state-cache/epoch-1-disk-cache-mvp/spec.md",
+    "sha256": "116E9E0C81E2C62224AC70A40E4153C56C02CFF5E6CB64B6A3DA04E2EA4CEE83"
+  },
+  {
+    "path": "docs/workspace-state-cache/epoch-1-disk-cache-mvp/task-00-input-manifest-hi.md",
+    "sha256": "B39982DDAFB6185103CC303A203500A5050F0362BFFB518E9250B577D28E5A56"
+  },
+  {
+    "path": "docs/workspace-state-cache/epoch-1-disk-cache-mvp/task-01-text-and-directory-probe-med.md",
+    "sha256": "DC3C1DB874586651FD1F0CE5CE0650CBC73C871CC9C9F81791622335F04FEAE7"
+  },
+  {
+    "path": "docs/workspace-state-cache/epoch-1-disk-cache-mvp/task-02-binary-fast-probe-med.md",
+    "sha256": "F652BCC4FB4FE98E7F3AE52629910A7406F210FAAC0C11856042122A8492356B"
+  },
+  {
+    "path": "docs/workspace-state-cache/epoch-1-disk-cache-mvp/task-03-atomic-envelope-store-med.md",
+    "sha256": "816CD72EAC717DB91B3EE0AE99FB09E1F128AB1430DB58D850F4CEBAEB30C4FF"
+  },
+  {
+    "path": "docs/workspace-state-cache/epoch-1-disk-cache-mvp/task-04-manager-host-ownership-hi.md",
+    "sha256": "B9B8BB44D23703B4F42B6BF3FB0B9E50FCB176A3A84F1510F2A1B16975CA17C5"
+  },
+  {
+    "path": "docs/workspace-state-cache/epoch-1-disk-cache-mvp/task-05-fresh-session-preparation-hi.md",
+    "sha256": "B808E015F66DDD38A2EDEC730BF2DB098B6543F2A9140D57529507DBD555EDE1"
+  },
+  {
+    "path": "docs/workspace-state-cache/epoch-1-disk-cache-mvp/task-06-load-save-and-restore-hi.md",
+    "sha256": "526D7562BF6FA2DD9F652E820F971D6CD28D7EE6FB14F40833FD4BAF6DB91B44"
+  },
+  {
+    "path": "docs/workspace-state-cache/epoch-1-disk-cache-mvp/task-07-existing-watcher-attachment-hi.md",
+    "sha256": "2AF3239AC21A001421F3DDB0F074615467DACF009A1EBE7BDF2DA5F2EAE2106C"
+  },
+  {
+    "path": "docs/workspace-state-cache/epoch-1-disk-cache-mvp/task-08-hydrated-csharp-write-hi.md",
+    "sha256": "81BDEEA908763E9FCDFDEC74A044EFF2FB81670B3415479C79D04B2CEA257499"
+  },
+  {
+    "path": "docs/workspace-state-cache/epoch-1-disk-cache-mvp/task-09-restart-and-failure-integration-med.md",
+    "sha256": "7C184000E1CFAE4BB4F325F1DFAB1764F86421FF18C976DB2EB047757BE6207A"
+  },
+  {
+    "path": "docs/workspace-state-cache/epoch-1-disk-cache-mvp/task-10-mvp-benchmark-med.md",
+    "sha256": "0DC7665AF9F0C7E14158FD247242B12DD813E9D9A34EA2493C2C99A1802E5B93"
+  },
+  {
+    "path": "docs/workspace-state-cache/epoch-2-content-refresh/README.md",
+    "sha256": "F6A495B6BB1184DD8DD851581A8FE9CF167A760C748F8801348F607CD948765C"
+  },
+  {
+    "path": "docs/workspace-state-cache/epoch-2-content-refresh/spec.md",
+    "sha256": "FF93FE6359A910C2A588E4F1D095AAA418F14DA7E23A492410C5A8741D71B0E5"
+  },
+  {
+    "path": "docs/workspace-state-cache/epoch-2-content-refresh/task-00-startup-diff-roles-hi.md",
+    "sha256": "6BAF26B68C169C0A212D879E494E97792E235EE9DBC86BD4103A4D68812CB4B8"
+  },
+  {
+    "path": "docs/workspace-state-cache/epoch-2-content-refresh/task-01-existing-source-refresh-med.md",
+    "sha256": "F91B324DC7416AD268380D62EBBA3565FA396E50ED1CDC9D2CC87CE1E9664FBA"
+  },
+  {
+    "path": "docs/workspace-state-cache/epoch-2-content-refresh/task-02-additional-and-config-refresh-med.md",
+    "sha256": "6A5112675B7EA0C4DBE3978D2CEA95900CB06B2851FC31726CF411CF3297E7F3"
+  },
+  {
+    "path": "docs/workspace-state-cache/epoch-2-content-refresh/task-03-fresh-metadata-references-med.md",
+    "sha256": "3E383D3BFBB62F104F62A1B5DD4B39C0AC5B4E7B399D8745B2A39325E4196C6A"
+  },
+  {
+    "path": "docs/workspace-state-cache/epoch-2-content-refresh/task-04-refreshed-envelope-capture-med.md",
+    "sha256": "4F8C09440FF90C539EE15AEA2714510254DFC464AE86E75B2BB70BA9824F9B12"
+  },
+  {
+    "path": "docs/workspace-state-cache/epoch-2-content-refresh/task-05-content-and-graph-mutations-med.md",
+    "sha256": "8DA66C11F037BF55AE33D96D0FAB76E38C40424DAF397A5B21921AA0E2013316"
+  },
+  {
+    "path": "docs/workspace-state-cache/epoch-2-content-refresh/task-06-content-restart-benchmark-med.md",
+    "sha256": "0F3EB3EB52CADF27FFCC858BAD6B3B61CED5F33CB66AE0FCA5C1574F98016701"
+  },
+  {
+    "path": "docs/workspace-state-cache/epoch-3-project-refresh/README.md",
+    "sha256": "04DC0BFD6361175B5D351DC1CAF39D6DBFC4A005C1E6B9DAF69DA3AEC3FAE640"
+  },
+  {
+    "path": "docs/workspace-state-cache/epoch-3-project-refresh/spec.md",
+    "sha256": "288FD388833C7F0F3E53BDF4845D62ABA2463AB19A63A5663201A899392CC8DD"
+  },
+  {
+    "path": "docs/workspace-state-cache/epoch-3-project-refresh/task-00-single-project-reopen-spike-hi.md",
+    "sha256": "CB4B134B594DE12F14D437491C2A42840BDB5D78323A90B842F2A4F8AFFDA0A4"
+  },
+  {
+    "path": "docs/workspace-state-cache/epoch-3-project-refresh/task-01-dirty-project-dependency-map-med.md",
+    "sha256": "A3C95292048C59B1F5BFB40823ADDA4FA6274FC424A604D2F31B617B04EA5397"
+  },
+  {
+    "path": "docs/workspace-state-cache/epoch-3-project-refresh/task-02-project-reopen-adapter-hi.md",
+    "sha256": "E0D8CEA7ABA95F5D85664721A472C655C5F2EBACFDEA60489EC09663EB399888"
+  },
+  {
+    "path": "docs/workspace-state-cache/epoch-3-project-refresh/task-03-membership-change-routing-med.md",
+    "sha256": "41494C7C293907A82FC7DBEDC5143887F3474EBA07AC698F7F14128386440A75"
+  },
+  {
+    "path": "docs/workspace-state-cache/epoch-3-project-refresh/task-04-selective-candidate-publication-xhi.md",
+    "sha256": "F88BA095DDE3D6430A51B3C4F2F7CAF3ADA1EBACB64998A9D14E35ACB2D37D80"
+  },
+  {
+    "path": "docs/workspace-state-cache/epoch-3-project-refresh/task-05-selective-refresh-regressions-med.md",
+    "sha256": "A91393A90D9AF324105971A1EA6D52B26E7F5ED032C15B3A2476E85D611F4F57"
+  },
+  {
+    "path": "docs/workspace-state-cache/epoch-3-project-refresh/task-06-selective-refresh-benchmark-med.md",
+    "sha256": "1F88F24B5FC6467E2F256F9C097244AF0E6B4E13E3B0E7DA57824015B5CDA786"
+  },
+  {
+    "path": "docs/workspace-state-cache/review/README.md",
+    "sha256": "9911E8056A100724BB106C2B007D4570525DD7FCF45E7735318622B527943638"
+  },
+  {
+    "path": "docs/workspace-state-cache/review-astra/.status",
+    "sha256": "D3BE030801B90EA8057D3997D9845C7F850CC7B784450645D5EC2811CC927D7A"
+  },
+  {
+    "path": "docs/workspace-state-cache/review-astra/coverage.md",
+    "sha256": "94B1A7523A8053FD09A901B30BB7A519E2C47766C5C72CAA03C2F3BB43F2C7F6"
+  },
+  {
+    "path": "docs/workspace-state-cache/review-astra/result.md",
+    "sha256": "2505048E199545A7CF5C4953D7131C959C60FDDE4DE31C9307251FFA6E36E3A1"
+  },
+  {
+    "path": "docs/workspace-state-cache/review-astra/target-snapshot.json",
+    "sha256": "AAEFA8F26FD2C98F62D1A10B4DC98270E73E5686E5474794D4A8D1DDE3694C05"
+  },
+  {
+    "path": "docs/workspace-state-cache/review-astra/validation.json",
+    "sha256": "08A4DF16020CE05B10104584615412F00C08A9402775D5BDC6E0AC5A713F6709"
+  },
+  {
+    "path": "docs/workspace-state-cache/review-astra/validation.md",
+    "sha256": "A07E0F45F6B0391897CF99A70A1F4DFDA05B4E6B390A74350973948A38CB46B8"
+  },
+  {
+    "path": "docs/workspace-state-cache/review-astra/findings/F-001.md",
+    "sha256": "78F0EEF03396962F6719DB69A6A8156773E782BC11F126C7A527FB74EEED1A0E"
+  },
+  {
+    "path": "docs/workspace-state-cache/review-astra/findings/F-002.md",
+    "sha256": "F84472E11A23D89BC5E68AE4822A31E68C73F023F888C431BA16C641441D0040"
+  },
+  {
+    "path": "docs/workspace-state-cache/review-astra/findings/F-003.md",
+    "sha256": "524405F15C50E55AEDE8E519F3B20F07BEA12510E3365354AE774CA104850908"
+  },
+  {
+    "path": "docs/workspace-state-cache/review-ds/.status",
+    "sha256": "D3BE030801B90EA8057D3997D9845C7F850CC7B784450645D5EC2811CC927D7A"
+  },
+  {
+    "path": "docs/workspace-state-cache/review-ds/coverage.md",
+    "sha256": "F0B4DD357A26F367F69D64FB6FD7127175E22362C9292C16D0E6A16DC9D87511"
+  },
+  {
+    "path": "docs/workspace-state-cache/review-ds/result.md",
+    "sha256": "BEEBE16C0A29601D70D1A3F5221DBC213093049F8E2E7B98E51CE0EBCCD03A7C"
+  },
+  {
+    "path": "docs/workspace-state-cache/review-ds/findings/F-001.md",
+    "sha256": "F31E2A6836BD201F976FC534D7F4B3464C9FC1288CC29451C5571F09B9E52B16"
+  },
+  {
+    "path": "docs/workspace-state-cache/review-ds/findings/F-002.md",
+    "sha256": "A4238019797951974E8D303B69C7813081F256BE21B9227A4043B0819B03F554"
+  },
+  {
+    "path": "docs/workspace-state-cache/review-ds/findings/F-003.md",
+    "sha256": "0C1B86FB4CE444FA96085EA3E44756EEB8F567497CE0854632E563B10C9AE3EC"
+  },
+  {
+    "path": "docs/workspace-state-cache/review-ds/findings/F-004.md",
+    "sha256": "3A7DF97C89063F8295B7932CC2787B62DB388BC48CB24A7AD77A5D7C23DAA8EA"
+  },
+  {
+    "path": "docs/workspace-state-cache/review-ds/findings/F-005.md",
+    "sha256": "447F452F8A968021B85C75253150AB47A35CBBF5E0C14B1A45F757038C44FF25"
+  },
+  {
+    "path": "docs/workspace-state-cache/review-ds/findings/F-006.md",
+    "sha256": "3E297DFB2E538C02FFB53843CDDB2A57DEAABF9C9341E2B24F7ECF3A4011CC84"
+  },
+  {
+    "path": "docs/workspace-state-cache/review-ds/findings/F-007.md",
+    "sha256": "55AB4DECB2CABAE60BF60AEDFCE1531BFC12F077E5CCD92A0A157BB73E4487E6"
+  },
+  {
+    "path": "docs/workspace-state-cache/review-ds/findings/F-008.md",
+    "sha256": "7600B036C9DFBDB0E91EB67585288258E5DA2D189A9A55494CBA8D0C5C692C7A"
+  },
+  {
+    "path": "docs/workspace-state-cache/review-grok/.status",
+    "sha256": "5E1F8562208322BA8DBD7567515383AC6EBF909DE2ECA4B674A5BFA781ADCAE4"
+  },
+  {
+    "path": "docs/workspace-state-cache/review-grok/coverage.md",
+    "sha256": "E62EC0BED63C084D120F8DA37D62E7D003A9E4EDD43F4528B7530E38B2FA253D"
+  },
+  {
+    "path": "docs/workspace-state-cache/review-grok/result.md",
+    "sha256": "817A689D570EFA2DCB7348F6D8C3240B48EF578C230FFF4143690B40BB4493AA"
+  },
+  {
+    "path": "docs/workspace-state-cache/review-grok/findings/F-001.md",
+    "sha256": "B2586F8F6A860C9743F6A6EE1067A8C341A3DC0615C82966DD25B283A32E0EEB"
+  },
+  {
+    "path": "docs/workspace-state-cache/review-grok/findings/F-002.md",
+    "sha256": "01AD34CE8B3B804EFA716E96919E5EF53F499C95B20944EE6839B605D1853CEF"
+  },
+  {
+    "path": "docs/workspace-state-cache/review-grok/findings/F-003.md",
+    "sha256": "ED5B82F8543DC80ACC1C504A94029119CBF99C54020E4638FE5AFBAE3FF15529"
+  },
+  {
+    "path": "docs/workspace-state-cache/review-grok/findings/F-004.md",
+    "sha256": "AE7F5239F041B959AD343276A3EE61AE140CD2CA332C5FC53CCD8A92A7462583"
+  },
+  {
+    "path": "docs/workspace-state-cache/review-grok/findings/F-005.md",
+    "sha256": "83A0EFAABC9D076B4F1A399E2EA8F30A3B8FB0DDBB89A4C20FAA435A0C9E3B1F"
+  }
+]

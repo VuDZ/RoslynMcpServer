@@ -1,36 +1,42 @@
 # E2 — Обновление существующих входов
 
-Статус: **draft / ready-for-review, 2026-10-07**. Реализация не начата.
+Статус: **spec-v2 / revised-for-review, 2026-10-07**. Реализация не начата.
 
 Общие границы — [README серии](../README.md), [порядок исполнения](../execution.md),
 [бенчмарки](../benchmark.md). Эти три документа обязательны для ревью эпохи.
 
 ## Результат
 
-Стартовый diff выделяет изменения содержимого существующих входов отдельно
-от изменения состава/настроек проекта. Неизменные graph inputs позволяют
-восстановить base и применить новые тексты без ordinary MSBuild open.
-Для custom targets/conditions, зависящих от source bytes, это правило
-не распространяется автоматически: неподдержанный случай ведёт к fallback.
+Startup diff отличает existing content от graph/membership change. Content-only
+разрешён только при проверяемом finite profile evidence, что изменяемые bytes
+не определяют evaluated graph/options вне выбранного refresh mechanism.
+Known Source role и имя SDK недостаточны. Unknown/non-admitted target/import/
+condition → graph dirty и ordinary fallback. Анализ произвольных task bodies
+не требуется; permanent exclusion всех пользовательских imports не вводится.
+Imports inventory и restored roles не являются сами по себе content-independence proof.
+Supported positive source/additional/config cases должны сохраняться.
 
 ## Правила dirty
 
-- Existing `.cs` content: один read physical path, обновить все memberships,
-  перечитать encoding; semantic consumers получают новый snapshot.
-- Existing AdditionalFiles/analyzer-config text: обновить текущими механизмами,
-  если путь не имеет также evaluation role; генераторы повторно используют
-  актуальные inputs по текущему execution gate. Новые/удалённые configs дают fallback.
-- Изменённый metadata binary: создать свежий reference с текущими bytes и
-  сохранёнными reference properties. Путь/набор references изменился — graph dirty.
-- Analyzer/generator binary: reprepare по текущим lifecycle rules либо ordinary
-  fallback/restart-required; выборочный binary hash не разрешает stale execution.
-- Graph inputs, membership, missing files, неизвестная роль и unreadable inputs:
-  whole-request ordinary load с причиной. Dirty проекты вычисляются по всем
-  владельцам path/region, даже когда обновление выполняется общим fallback.
+- Existing `.cs` content с подтверждённой content-only eligibility: один physical
+  read, все memberships и актуальная encoding; consumers получают новый snapshot.
+- Existing AdditionalFiles/analyzer config content — existing non-CSharp mechanism
+  при той же eligibility, отсутствии evaluation role и допустимом current execution.
+  Новые/удалённые configs дают fallback. Unknown не становится UserInput после hydrate.
+- Changed metadata refresh разрешён только при доказанном сохранении relevant
+  resolution constraints и evaluated inventory выбранного профиля. Same path и
+  даже same assembly identity сами по себе не predicate. Identity/resolution-
+  sensitive или unknown change → ordinary fallback. Supported safe positive metadata
+  refresh обязателен; all-fallback не закрывает заявленную часть E2.
+- Analyzer/generator mutation проходит current reprepare/fallback/restart-required;
+  sample hash не заменяет execution validation. Нет fabricated session provenance.
+- Graph/membership/missing/unreadable/unknown-role inputs → whole-request ordinary
+  load. Dirty set включает всех owners path/region, в том числе shared imports/links.
 
-Не вводить второй live watcher/index. Применяется стартовый diff manifest и
-existing reconcile/publication; неизвестность самого cache-профиля не превращает
-старые standing coverage gaps в новый запрет всех live reads.
+Одна map/session сохраняет evaluation precedence и confirmed producer bindings.
+Нет второго live index. New ancestor config discovery задаётся actual profile
+для project/linked sources; repo root не является универсальной границей.
+Standing live coverage gaps не превращаются в новый blanket read ban.
 
 ## Capture после refresh
 
@@ -38,6 +44,10 @@ existing reconcile/publication; неизвестность самого cache-п
 envelope в рамках успешного load. Частая запись на каждый watcher event и
 background checkpoint scheduler в scope не входят. Неуспех записи нового
 envelope оставляет успешный load и прежний законченный envelope на диске.
+
+Новый capture сохраняет evidence связи graph с фактически consumed generation
+inputs по E1 contract. Одни post-load hashes не устраняют прежний evaluation gap;
+при отсутствии binding usable replacement envelope не записывается.
 
 ## Приёмка
 
@@ -48,3 +58,29 @@ Directory.Build.props, restore/import change и ambiguous role дают fallback
 Mutation сравнивается со свежей ordinary загрузкой по независимым semantic assertions.
 Бенчмарки single/batch content edit → restart и build → restart различают
 фактический hit/miss и реальные изменившиеся inputs.
+
+## Profile и acceptance controls
+
+До принятия content reuse profile заданы traceable eligibility evidence и его
+границы: supported positive existing source mutation без DTB и negative target,
+меняющий DefineConstants/AllowUnsafe из тех же source bytes. Unknown target body
+не анализируется classifier-ом и не считается безопасным по default.
+
+Metadata subset проверяется positive safe content update и negative exact-version
+DLL replacement против fresh ordinary resolution/semantic result. Path/identity
+equality не заменяют этот contract; normal MSBuild resolution не называется
+no-DTB metadata reuse. Accepted U-001 reference semantics сохраняются, пока
+U-001 не выбран, поддерживаемая fidelity не угадывается.
+
+Create/delete ancestor `.editorconfig`/`.globalconfig` и explicit configs сравниваются
+с ordinary discovery; known config content change тестируется отдельно.
+Ни P-013, ни P-014 не меняют mvp-fast threshold/chunks или binary blind spot.
+E1 whole-request fallback остаётся самостоятельным результатом; E2 predicates
+не объявлены его prerequisites.
+
+## XML boundary metadata refresh
+
+[H-001](../human-decisions.md) сохраняется при metadata refresh: external documentation
+text/provider equality не обязательны; source comments и остальные metadata/resolution
+predicates обязательны. XML с evaluation/additional ролью не исключается.
+Strong-name часть U-001 остаётся открытой; H-001 её не закрывает.

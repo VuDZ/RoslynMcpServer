@@ -1,76 +1,86 @@
-# Подготовка нового MVP-плана
+# Отчёт revision после арбитража
 
-Дата: **2026-10-07**. Статус: **docs prepared / ready-for-review**.
-Независимое ревью планов и реализация не начаты.
+Дата: **2026-10-07**. Статус: **specification v2 revised-for-review**.
+Завершён scope редактирования requirements, task contracts и связанных индексов.
+Independent recheck v2 и implementation acceptance не проведены.
 
-## Scope
+## Входы и применение
 
-Подготовлен новый каталог `docs/workspace-state-cache/`:
-четыре канонические specs эпох, четыре execution README, **33 задачи**
-(8 / 11 / 7 / 7), общий scope/маршрут, execution rules, benchmark protocol
-и инструкции ревью. Индексы docs/backlog и отложенная программа ссылаются
-на новый маршрут. Суффиксы задач — `low/med/hi/xhi`.
+Использован приложенный владельцем prompt **Specification Revision After Arbitration**,
+исходная specification, завершённый [арбитраж](archive/arbitration/result.md) и последующее [решение владельца H-001](human-decisions.md).
+Prompt checksum и SHA-256 всех **129** original package files сохраняет
+[input manifest](input-manifest.json). Review/defense использованы как provenance;
+их prescriptions не переигрывают arbitration. [Исходный preparation report](archive/preparation-report.md)
+описывает предыдущую версию и не выдаётся за проверку этой revision.
 
-Шапки сохраняют рекомендованные models/reasoning/сложность/риск/способности,
-dependencies/status и добавляют фактические модели, рецензентов, review rounds,
-fixed findings и evidence. Epoch README раздельно учитывает plan review,
-task reviews и implementation acceptance. Непроверенные значения — `—`.
+Сначала подготовлена отдельная `spec-v2/`, затем по запросу владельца поднята в корень темы; сохранена структура четырёх эпох
+и 33 task IDs. Добавлены два bounded experiment tasks S-001/S-002 по arbitration:
+итого **35**, распределение **9 / 12 / 7 / 7**. Это декомпозиция двух предписанных
+spikes; новые исследования полного SDK/restore closure не добавлены.
 
-Бенчмарки входят в каждую эпоху: ordinary/isolated round-trip; unchanged disk
-hit и miss overhead; edit/build restart; selective project refresh. Один
-benchmark/report не заменяет semantic correctness tests или epoch acceptance.
+[Change ledger](change-ledger.md) фиксирует **14 applied P** и Derived consistency
+changes. Applied означает текст требований, включая open gates; не результат
+эксперимента, reviewer-confirmed fix или разрешение запуска. Все 16 source findings
+сохранили provenance через 15 ARB; два identity sources остаются объединены в P-002.
+Существующие unrelated requirements, thresholds/benchmarks, optional E3 и production
+invariants сохраняются. Нормативные paragraphs описывают behavior/constraints,
+не навязывают будущие private classes и implementation mechanisms.
 
-Прежняя программа и всё её текущее содержимое сохранены в backlog коммитом
-`d4937e5`; [отчёт переноса](../backlog/workspace-load-cache/relocation-report.md).
-Глубокие closure/reuse/metadata/index направления не стали обязательными
-prerequisites нового MVP. Production write/admission/lifecycle инварианты сохранены.
+## Открытые gates и разрешения
 
-## Авторская проверка подготовки
+- [U-001](unresolved.md): XML часть решена H-001, strong-name A/B/C не выбраны; остаточное fidelity решение требуется до positive
+  E0 scope/dependent codec/hydrate. Реальный positive по-прежнему обязателен.
+- [S-001](spikes.md#s-001--capability-выбранного-real-control): not-run, после U-001;
+  capability gate не требует готового полного codec/capture/schema.
+- [S-002](spikes.md#s-002--raw-importrestore-evidence): not-run, до принятия E1 manifest;
+  raw-log source/channel заранее не выбран, path evidence не generation binding.
+- Новых DEFERRED и [REVISION-BLOCKER](revision-blockers.md) нет. Existing optional E3
+  сохраняет свой эксперимент/no-go и не блокирует принятие применимого E1/E2.
 
-Это consistency check автора, **не независимый review round**. Имя модели автора:
-`—` (точный ID не предоставлен контекстом сессии); рецензенты: `—`.
+Реализация всех tasks planned. Revision не меняет public activation/defaults и
+не выдаёт epoch acceptance. Task/epoch/root fields и docs index синхронизированы
+по этому scope; unknown actual model/reviewer/round/fix data остаются `—`.
+Точный model ID редактора контекстом не предоставлен, не выдуман.
 
-Проверяются локальные links/anchors нового пакета, полнота шапок,
-соответствие suffix/class, наличие tasks в epoch README, зависимости и отсутствие
-циклов, counts/states и связь каждой эпохи с benchmark.
+## Авторская consistency validation
 
-Результаты author consistency check:
+Проверка завершённой revision — [validation](validation.md), machine результат —
+[validation.json](validation.json). Reproducible author check:
+`python docs/workspace-state-cache/validate-artifacts.py` из repo root.
 
-- **49 Markdown файлов**: новый пакет и связанные индексы/docs backlinks.
-- **417 локальных links** и **18 anchors**: все проверенные targets существуют.
-- **33 task headers**: обязательные поля есть, фактическое execution/review evidence
-  остаётся `—`; suffix/class и planned state согласованы.
-- **46 dependency edges**: все targets — существующие tasks; граф ацикличен.
-- Counts **8 / 11 / 7 / 7** совпадают с картами эпох и корневым README.
-- Каждая эпоха содержит отдельные plan/task/implementation statistics и benchmark link.
-- `git diff --check` для изменённых docs: exit 0. Та же проверка применяется
-  к окончательно staged пакету перед commit.
+Проверены local links/anchors, task headers/suffix/status, maps/counts/dependency
+cycles, P inventory/source traceability, сохранение unresolved/spike states,
+original file hashes и scope tracked diff. Сохранение unrelated paragraphs также
+проверено сопоставлением v2 с original: изменения ограничены arbitration contracts,
+ссылками и status bookkeeping. Это application/consistency pass, не повторное
+architecture review и не independent review round. Счётчики подтверждённых
+исправлений не увеличиваются по одному лишь applied P.
 
-Проверка не анализирует будущий C# код и не заменяет reviewer verdict. Исторические
-устаревшие code anchors внутри legacy `_archive/` не относятся к новым 417 links;
-их точный scope записан в отчёте переноса.
+## Пределы проверки
 
-## Открытые вопросы для независимого ревью
+До relocation original specification/reviews/defense/arbitration были проверены
+без изменений. Теперь они в archive; только Markdown links и archival notice
+механически обновлены по [relocation manifest](relocation-manifest.json). Historical
+SHA-256 inputs сохранены, current archived hashes проверяются отдельно. Docs index
+маршрутизирует к канону в корне темы; scope — [relocation report](relocation-report.md). Production C#,
+test code и build/test configuration этой revision не менялись. Existing пользовательские
+правки не интегрированы/не приняты этой стадией.
 
-- Достаточно ли мал E1 host/preparation integration scope и можно ли получить
-  real positive capture с известными public API representability ограничениями.
-- Корректны ли practical input profile и обнаружение новых files/import/config,
-  без обещания полноты произвольных MSBuild targets.
-- Startup scan/watch/publication handshake, fresh generator/session binding
-  и hydrated write support требуют review текущих production seams.
-- Binary threshold 16 MiB и edge chunks 64 KiB — proposed defaults для проверки
-  стоимости; blind spot эвристики сохранён явно.
-- Selective reopen E3 остаётся условным направлением с narrow spike/no-go,
-  не условием готовности E1/E2.
+Release build/main suite/AnalyzerLifecycle **not-run / not required** для docs-only
+revision. Runtime disk hits, provider fidelity, source completeness, refresh predicates
+и скорость не проверены; это outputs будущих задач. `.status=completed` означает
+завершённые revision artifacts и author checks, не закрытие U/spikes или production MVP.
 
-Рецензентам не требуется принять эти предположения по авторскому отчёту.
-Проверять specs/tasks/current code и оставлять concrete findings по
-[инструкциям](review/README.md). Review history и статистика сохраняются в каталоге.
+## Применение H-001, 2026-10-07
 
-## Пределы validation
+Зафиксировано прямое решение владельца об external XML documentation exclusion;
+root/epoch specs, affected task contracts, benchmark, gates и validation синхронизированы.
+Остаточное strong-name решение открыто, spikes not-run. Historical input hashes сохранены;
+14 P application trace сохранён, H-001 учитывается отдельно от reviewer-confirmed fixes.
 
-Production C#, test code и build/test configuration в подготовке плана не менялись.
-Release build, main suite и AnalyzerLifecycle **not-run / not required** для
-этого docs-only пакета. Runtime disk hits, semantic equivalence, скорость и
-работоспособность будущих adapters пока не проверены; это outputs будущих задач.
-Existing пользовательские C# правки не включаются в docs commits.
+## Relocation, 2026-10-07
+
+В корне темы размещена актуальная specification v2; original 129 files архивированы.
+Связи active/history, root validator и docs routing исправлены. [Relocation report](relocation-report.md)
+и [validation.json](validation.json) фиксируют final checks. Normative contracts,
+task IDs/counts/dependencies, human decisions и acceptance permissions не изменены.

@@ -5,8 +5,8 @@
 - Примерная сложность: 4/5; класс `hi`.
 - Риск ошибки: высокий — неверный graph/binding/publication или cache hit влияет на semantic correctness и записи.
 - Необходимые способности: `семантика_roslyn_msbuild`, `анализ_зависимостей`, `согласованность_компонентов`.
-- Статус: **planned; план ready-for-review, 2026-10-07**.
-- Depends on: [E0/task-00](task-00-current-seams-and-controls-med.md)
+- Статус: **planned; spec-v2 revised-for-review, 2026-10-07; реализация не начата**.
+- Depends on: [E0/task-00](task-00-current-seams-and-controls-med.md), [E0/task-08 — S-001](task-08-real-control-capability-hi.md)
 - Модель, реализовавшая задачу: —.
 - Модели, проводившие ревью: —.
 - Количество раундов ревью: —.
@@ -41,3 +41,18 @@
 Дата, принятый scope, evidence и фактические модели обновляются в шапке и
 README эпохи после ревью/validation. Новый существенный вопрос возвращается
 в spec точечной поправкой, а не превращает эту задачу в большой decision packet.
+
+## Уточнения specification v2
+
+Основание: **P-001, P-002, P-008, P-010**; [change ledger](../change-ledger.md).
+
+Schema sketch до U-001/S-001 допустим; final executable scope требует их результатов. Три уровня properties описываются отдельно. Artifact ownership/location/version и E1 reuse route фиксируются без обязательного Tests-only размещения. Occurrence roles/all owners и подтверждённые producer bindings имеют source; Unknown сохраняется, generator text/execution provenance не переносится.
+
+## Решение владельца H-001
+
+[H-001](../human-decisions.md): XML documentation provider/text metadata/DLL references
+вне MVP equivalence; source comments загруженных проектов и остальные обязательные
+metadata/options facts сохраняются. Это объявленное исключение, не silent loss.
+Documentation-dependent consumers получают ordinary route либо явный отказ до execution/
+side effects. Применимые controls/compare key отражают эту границу; strong-name
+решение U-001 всё ещё требуется, execution/review statistics остаются незаполненными.

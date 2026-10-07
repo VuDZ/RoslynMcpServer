@@ -1,0 +1,82 @@
+[
+  {
+    "source": "review-astra/F-001",
+    "position": "ACCEPT",
+    "defense_file": "findings/review-astra-F-001.md"
+  },
+  {
+    "source": "review-astra/F-002",
+    "position": "ACCEPT",
+    "defense_file": "findings/review-astra-F-002.md"
+  },
+  {
+    "source": "review-astra/F-003",
+    "position": "ACCEPT",
+    "defense_file": "findings/review-astra-F-003.md"
+  },
+  {
+    "source": "review-ds/F-001",
+    "position": "ACCEPT WITH MODIFICATION",
+    "defense_file": "findings/review-ds-F-001.md"
+  },
+  {
+    "source": "review-ds/F-002",
+    "position": "UNRESOLVED",
+    "defense_file": "findings/review-ds-F-002.md"
+  },
+  {
+    "source": "review-ds/F-003",
+    "position": "ACCEPT WITH MODIFICATION",
+    "defense_file": "findings/review-ds-F-003.md"
+  },
+  {
+    "source": "review-ds/F-004",
+    "position": "ACCEPT WITH MODIFICATION",
+    "defense_file": "findings/review-ds-F-004.md"
+  },
+  {
+    "source": "review-ds/F-005",
+    "position": "ACCEPT WITH MODIFICATION",
+    "defense_file": "findings/review-ds-F-005.md"
+  },
+  {
+    "source": "review-ds/F-006",
+    "position": "ACCEPT WITH MODIFICATION",
+    "defense_file": "findings/review-ds-F-006.md"
+  },
+  {
+    "source": "review-ds/F-007",
+    "position": "ACCEPT WITH MODIFICATION",
+    "defense_file": "findings/review-ds-F-007.md"
+  },
+  {
+    "source": "review-ds/F-008",
+    "position": "ACCEPT",
+    "defense_file": "findings/review-ds-F-008.md"
+  },
+  {
+    "source": "review-grok/F-001",
+    "position": "UNRESOLVED",
+    "defense_file": "findings/review-grok-F-001.md"
+  },
+  {
+    "source": "review-grok/F-002",
+    "position": "ACCEPT WITH MODIFICATION",
+    "defense_file": "findings/review-grok-F-002.md"
+  },
+  {
+    "source": "review-grok/F-003",
+    "position": "ACCEPT",
+    "defense_file": "findings/review-grok-F-003.md"
+  },
+  {
+    "source": "review-grok/F-004",
+    "position": "ACCEPT",
+    "defense_file": "findings/review-grok-F-004.md"
+  },
+  {
+    "source": "review-grok/F-005",
+    "position": "ACCEPT WITH MODIFICATION",
+    "defense_file": "findings/review-grok-F-005.md"
+  }
+]

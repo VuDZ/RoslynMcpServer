@@ -5,7 +5,7 @@
 - Примерная сложность: 4/5; класс `hi`.
 - Риск ошибки: высокий — неверный graph/binding/publication или cache hit влияет на semantic correctness и записи.
 - Необходимые способности: `семантика_roslyn_msbuild`, `анализ_зависимостей`, `согласованность_компонентов`.
-- Статус: **planned; план ready-for-review, 2026-10-07**.
+- Статус: **planned; spec-v2 revised-for-review, 2026-10-07; реализация не начата**.
 - Depends on: [E1/task-06](task-06-load-save-and-restore-hi.md)
 - Модель, реализовавшая задачу: —.
 - Модели, проводившие ревью: —.
@@ -44,3 +44,9 @@ SolutionManager attachment/publication seams, WorkspaceDiskWatcherStarter integr
 Дата, принятый scope, evidence и фактические модели обновляются в шапке и
 README эпохи после ревью/validation. Новый существенный вопрос возвращается
 в spec точечной поправкой, а не превращает эту задачу в большой decision packet.
+
+## Уточнения specification v2
+
+Основание: **P-006, P-010**; [change ledger](../change-ledger.md).
+
+Hydrated map имеет portable health/coverage и occurrence roles/all owners/confirmed producers с новыми IDs. Unknown не повышается из-за пустых diagnostics/default generated flag; evaluation role приоритетна. Fresh watcher failure и execution admission вычисляются заново, единая map сохраняется.

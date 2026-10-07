@@ -1,0 +1,186 @@
+{
+  "date": "2026-10-07",
+  "head": "67564de6c48e6d2eb38c4542fd2ef714910da0b0",
+  "files": [
+    {
+      "path": "docs/workspace-state-cache/benchmark.md",
+      "sha256": "2b157f117e3a0488f89a791b8a8f5d44998d48676a61ea81a193196b2ef25a16"
+    },
+    {
+      "path": "docs/workspace-state-cache/epoch-0-snapshot-roundtrip/README.md",
+      "sha256": "9fe59c30c2e5c408d5785f0b4bb6e69dffa5d2981d21176e7ad18faf952497ad"
+    },
+    {
+      "path": "docs/workspace-state-cache/epoch-0-snapshot-roundtrip/spec.md",
+      "sha256": "23b0da4a260a05282ce75ead57529fb93eb60a26794035ca2815cf73f4b85d48"
+    },
+    {
+      "path": "docs/workspace-state-cache/epoch-0-snapshot-roundtrip/task-00-current-seams-and-controls-med.md",
+      "sha256": "c0946f60ba09e281252eb68b737343219a075999092c0be497cfe1daa4f69ecd"
+    },
+    {
+      "path": "docs/workspace-state-cache/epoch-0-snapshot-roundtrip/task-01-baseline-runner-med.md",
+      "sha256": "13b07d3337ad13ea745790109409476209df192bda0e6c3e49d5325f4c8aabd9"
+    },
+    {
+      "path": "docs/workspace-state-cache/epoch-0-snapshot-roundtrip/task-02-snapshot-schema-hi.md",
+      "sha256": "47b74d1d2e08bfb8ddc31d8f07fe96400efc9aa450a4a277e77b363b75eda62a"
+    },
+    {
+      "path": "docs/workspace-state-cache/epoch-0-snapshot-roundtrip/task-03-ordinary-capture-med.md",
+      "sha256": "e290e033ebd565adf0c7c841aee4a71e0bd83e4637ba04b6536916f1076f237c"
+    },
+    {
+      "path": "docs/workspace-state-cache/epoch-0-snapshot-roundtrip/task-04-snapshot-codec-low.md",
+      "sha256": "80d5ce073a74b24ef9444c6de5bfc75e2572f2c2818a9f2903d8d386f98ae2b8"
+    },
+    {
+      "path": "docs/workspace-state-cache/epoch-0-snapshot-roundtrip/task-05-isolated-hydrate-hi.md",
+      "sha256": "1cf7133b9c4f95fd5dd36d5427b9a5fdd80aaafcd5fcbf9101769c19aa4b451c"
+    },
+    {
+      "path": "docs/workspace-state-cache/epoch-0-snapshot-roundtrip/task-06-real-cross-process-roundtrip-med.md",
+      "sha256": "02fe0cafeddd3f17cb9ab563d394a18f1cc684037413bc5994a2cade53df33d6"
+    },
+    {
+      "path": "docs/workspace-state-cache/epoch-0-snapshot-roundtrip/task-07-roundtrip-benchmark-med.md",
+      "sha256": "bc57899087cb8e895cf353e2deb34ba674fbb0cdd506d87f2e96036cf3f64b6b"
+    },
+    {
+      "path": "docs/workspace-state-cache/epoch-1-disk-cache-mvp/README.md",
+      "sha256": "3b26a6255b6e23b13ac4821646f88fc2669f52ffb9c46a4b4605a4b9d47a0ca8"
+    },
+    {
+      "path": "docs/workspace-state-cache/epoch-1-disk-cache-mvp/spec.md",
+      "sha256": "116e9e0c81e2c62224ac70a40e4153c56c02cff5e6cb64b6a3da04e2ea4cee83"
+    },
+    {
+      "path": "docs/workspace-state-cache/epoch-1-disk-cache-mvp/task-00-input-manifest-hi.md",
+      "sha256": "b39982ddafb6185103cc303a203500a5050f0362bffb518e9250b577d28e5a56"
+    },
+    {
+      "path": "docs/workspace-state-cache/epoch-1-disk-cache-mvp/task-01-text-and-directory-probe-med.md",
+      "sha256": "dc3c1db874586651fd1f0ce5ce0650cbc73c871cc9c9f81791622335f04feae7"
+    },
+    {
+      "path": "docs/workspace-state-cache/epoch-1-disk-cache-mvp/task-02-binary-fast-probe-med.md",
+      "sha256": "f652bcc4fb4fe98e7f3ae52629910a7406f210faac0c11856042122a8492356b"
+    },
+    {
+      "path": "docs/workspace-state-cache/epoch-1-disk-cache-mvp/task-03-atomic-envelope-store-med.md",
+      "sha256": "816cd72eac717db91b3ee0ae99fb09e1f128ab1430db58d850f4cebaeb30c4ff"
+    },
+    {
+      "path": "docs/workspace-state-cache/epoch-1-disk-cache-mvp/task-04-manager-host-ownership-hi.md",
+      "sha256": "b9b8bb44d23703b4f42b6bf3fb0b9e50fcb176a3a84f1510f2a1b16975ca17c5"
+    },
+    {
+      "path": "docs/workspace-state-cache/epoch-1-disk-cache-mvp/task-05-fresh-session-preparation-hi.md",
+      "sha256": "b808e015f66ddd38a2edec730bf2db098b6543f2a9140d57529507dbd555ede1"
+    },
+    {
+      "path": "docs/workspace-state-cache/epoch-1-disk-cache-mvp/task-06-load-save-and-restore-hi.md",
+      "sha256": "526d7562bf6fa2dd9f652e820f971d6cd28d7ee6fb14f40833fd4baf6db91b44"
+    },
+    {
+      "path": "docs/workspace-state-cache/epoch-1-disk-cache-mvp/task-07-existing-watcher-attachment-hi.md",
+      "sha256": "2af3239ac21a001421f3ddb0f074615467dacf009a1ebe7bdf2da5f2eae2106c"
+    },
+    {
+      "path": "docs/workspace-state-cache/epoch-1-disk-cache-mvp/task-08-hydrated-csharp-write-hi.md",
+      "sha256": "81bdeea908763e9fcdfdec74a044eff2fb81670b3415479c79d04b2cea257499"
+    },
+    {
+      "path": "docs/workspace-state-cache/epoch-1-disk-cache-mvp/task-09-restart-and-failure-integration-med.md",
+      "sha256": "7c184000e1cfae4bb4f325f1dfab1764f86421ff18c976db2eb047757be6207a"
+    },
+    {
+      "path": "docs/workspace-state-cache/epoch-1-disk-cache-mvp/task-10-mvp-benchmark-med.md",
+      "sha256": "0dc7665af9f0c7e14158fd247242b12dd813e9d9a34ea2493c2c99a1802e5b93"
+    },
+    {
+      "path": "docs/workspace-state-cache/epoch-2-content-refresh/README.md",
+      "sha256": "f6a495b6bb1184dd8dd851581a8fe9cf167a760c748f8801348f607cd948765c"
+    },
+    {
+      "path": "docs/workspace-state-cache/epoch-2-content-refresh/spec.md",
+      "sha256": "ff93fe6359a910c2a588e4f1d095aaa418f14da7e23a492410c5a8741d71b0e5"
+    },
+    {
+      "path": "docs/workspace-state-cache/epoch-2-content-refresh/task-00-startup-diff-roles-hi.md",
+      "sha256": "6baf26b68c169c0a212d879e494e97792e235ee9dbc86bd4103a4d68812cb4b8"
+    },
+    {
+      "path": "docs/workspace-state-cache/epoch-2-content-refresh/task-01-existing-source-refresh-med.md",
+      "sha256": "f91b324dc7416ad268380d62ebba3565fa396e50ed1cdc9d2cc87ce1e9664fba"
+    },
+    {
+      "path": "docs/workspace-state-cache/epoch-2-content-refresh/task-02-additional-and-config-refresh-med.md",
+      "sha256": "6a5112675b7ea0c4dbe3978d2cea95900cb06b2851fc31726cf411cf3297e7f3"
+    },
+    {
+      "path": "docs/workspace-state-cache/epoch-2-content-refresh/task-03-fresh-metadata-references-med.md",
+      "sha256": "3e383d3bfbb62f104f62a1b5dd4b39c0ac5b4e7b399d8745b2a39325e4196c6a"
+    },
+    {
+      "path": "docs/workspace-state-cache/epoch-2-content-refresh/task-04-refreshed-envelope-capture-med.md",
+      "sha256": "4f8c09440ff90c539ee15aea2714510254dfc464ae86e75b2bb70ba9824f9b12"
+    },
+    {
+      "path": "docs/workspace-state-cache/epoch-2-content-refresh/task-05-content-and-graph-mutations-med.md",
+      "sha256": "8da66c11f037bf55ae33d96d0fab76e38c40424daf397a5b21921aa0e2013316"
+    },
+    {
+      "path": "docs/workspace-state-cache/epoch-2-content-refresh/task-06-content-restart-benchmark-med.md",
+      "sha256": "0f3eb3eb52cadf27ffcc858bad6b3b61ced5f33cb66ae0fca5c1574f98016701"
+    },
+    {
+      "path": "docs/workspace-state-cache/epoch-3-project-refresh/README.md",
+      "sha256": "04dc0bfd6361175b5d351dc1caf39d6dbfc4a005c1e6b9daf69da3aec3fae640"
+    },
+    {
+      "path": "docs/workspace-state-cache/epoch-3-project-refresh/spec.md",
+      "sha256": "288fd388833c7f0f3e53bdf4845d62aba2463ab19a63a5663201a899392cc8dd"
+    },
+    {
+      "path": "docs/workspace-state-cache/epoch-3-project-refresh/task-00-single-project-reopen-spike-hi.md",
+      "sha256": "cb4b134b594de12f14d437491c2a42840bdb5d78323a90b842f2a4f8affda0a4"
+    },
+    {
+      "path": "docs/workspace-state-cache/epoch-3-project-refresh/task-01-dirty-project-dependency-map-med.md",
+      "sha256": "a3c95292048c59b1f5bfb40823adda4fa6274fc424a604d2f31b617b04ea5397"
+    },
+    {
+      "path": "docs/workspace-state-cache/epoch-3-project-refresh/task-02-project-reopen-adapter-hi.md",
+      "sha256": "e0d8cea7aba95f5d85664721a472c655c5f2ebacfdea60489ec09663eb399888"
+    },
+    {
+      "path": "docs/workspace-state-cache/epoch-3-project-refresh/task-03-membership-change-routing-med.md",
+      "sha256": "41494c7c293907a82fc7dbedc5143887f3474eba07ac698f7f14128386440a75"
+    },
+    {
+      "path": "docs/workspace-state-cache/epoch-3-project-refresh/task-04-selective-candidate-publication-xhi.md",
+      "sha256": "f88ba095dde3d6430a51b3c4f2f7caf3ada1ebacb64998a9d14e35acb2d37d80"
+    },
+    {
+      "path": "docs/workspace-state-cache/epoch-3-project-refresh/task-05-selective-refresh-regressions-med.md",
+      "sha256": "a91393a90d9af324105971a1ea6d52b26e7f5ed032c15b3a2476e85d611f4f57"
+    },
+    {
+      "path": "docs/workspace-state-cache/epoch-3-project-refresh/task-06-selective-refresh-benchmark-med.md",
+      "sha256": "1f88f24b5fc6467e2f256f9c097244af0e6b4e13e3b0e7da57824015b5cda786"
+    },
+    {
+      "path": "docs/workspace-state-cache/execution.md",
+      "sha256": "335e3bac845d06df5fce752f341742478ade6d4c58e9a937e34a76506dcbf25a"
+    },
+    {
+      "path": "docs/workspace-state-cache/preparation-report.md",
+      "sha256": "6b1a3aab9f5f75cf940854346fbc3c518c171386fa11824a0183f1cf84f11918"
+    },
+    {
+      "path": "docs/workspace-state-cache/README.md",
+      "sha256": "4b7a717d253e26dd38dd252b740e49f2dce9ac8b67014ec3300e381f9677d9df"
+    }
+  ]
+}

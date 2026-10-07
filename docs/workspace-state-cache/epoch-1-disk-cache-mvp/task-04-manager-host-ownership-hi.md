@@ -5,7 +5,7 @@
 - Примерная сложность: 4/5; класс `hi`.
 - Риск ошибки: высокий — неверный graph/binding/publication или cache hit влияет на semantic correctness и записи.
 - Необходимые способности: `семантика_roslyn_msbuild`, `анализ_зависимостей`, `согласованность_компонентов`.
-- Статус: **planned; план ready-for-review, 2026-10-07**.
+- Статус: **planned; spec-v2 revised-for-review, 2026-10-07; реализация не начата**.
 - Depends on: [E0/task-07](../epoch-0-snapshot-roundtrip/task-07-roundtrip-benchmark-med.md)
 - Модель, реализовавшая задачу: —.
 - Модели, проводившие ревью: —.
@@ -43,3 +43,9 @@ SolutionManager host field/open/diagnostics/resource seams и targeted tests; н
 Дата, принятый scope, evidence и фактические модели обновляются в шапке и
 README эпохи после ревью/validation. Новый существенный вопрос возвращается
 в spec точечной поправкой, а не превращает эту задачу в большой decision packet.
+
+## Уточнения specification v2
+
+Основание: **P-009**; [change ledger](../change-ledger.md).
+
+Host seam не добавляет production Workspace.TryApplyChanges reference site; единственный site остаётся existing SolutionManager.TryApplyWorkspaceChanges. Initial public construction не обязано вызвать apply, но не обходит write/preflight/publication. Проверить весь SourceStructure после integration, exact inventories не ослаблять.

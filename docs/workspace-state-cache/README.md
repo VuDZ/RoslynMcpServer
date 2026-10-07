@@ -1,6 +1,6 @@
-# Workspace state cache — постепенный MVP
+# Workspace state cache — specification v2
 
-Статус: **draft / ready-for-review, 2026-10-07**. Реализация не начата;
+Статус: **revised-for-review после арбитража, 2026-10-07**. Реализация не начата;
 runtime, версия и defaults этим пакетом не меняются.
 
 Владелец выбрал постепенное сохранение/восстановление workspace state с индексом
@@ -27,10 +27,10 @@ refresh и отдельно selective project reopen. Положительный
 
 ## Маршрут
 
-- [E0 — snapshot round-trip](epoch-0-snapshot-roundtrip/README.md): 8 задач;
+- [E0 — snapshot round-trip](epoch-0-snapshot-roundtrip/README.md): 9 задач;
   ordinary capture, минимальный DTO/codec, isolated hydrate, real query/edit,
   baseline и restore benchmark. Production path ещё не меняется.
-- [E1 — disk cache MVP](epoch-1-disk-cache-mvp/README.md): 11 задач;
+- [E1 — disk cache MVP](epoch-1-disk-cache-mvp/README.md): 12 задач;
   input/binary probe, store, host/preparation/load/watch/write integration,
   restart/failure tests и hit/miss benchmark. Это первый полезный production scope.
 - [E2 — content refresh](epoch-2-content-refresh/README.md): 7 задач;
@@ -40,7 +40,7 @@ refresh и отдельно selective project reopen. Положительный
   narrow reopen spike, mapping/adapter/membership/publication, tests и benchmark.
   No-go spike оставляет E1/E2 пригодными и downstream selective scope deferred.
 
-Всего **33 небольшие задачи**. Суффиксы `low/med/hi/xhi` обозначают классы
+Всего **35 небольших задач**: исходные 33 и два отдельно выделенных bounded spikes S-001/S-002. Суффиксы `low/med/hi/xhi` обозначают классы
 сложности, модели и reasoning указаны в шапках. Несколько рекомендованных моделей
 допустимы; их равная пригодность не считается установленной. Новые внешние
 альтернативы проверяются на фактическом scope, а история фиксирует точную модель.
@@ -92,37 +92,86 @@ timestamp и краёв может остаться незамеченным. Ma
 
 ## Поведение первого MVP
 
-Proposed `load_workspace`: `useDiskCache=false`; `forceReload=false`.
-Force обходит RAM и disk и выполняет обычную загрузку. Disabled path сохраняет
-текущий RAM matcher: omitted arguments не очищают existing values. Disk request
-key включает normalized workspace path, фактически effective load properties
-и semantic modes; absent/requested/effective значения фиксируются отдельно.
-Разные графы не объединяются одним hash key. Overlay mode не переносится как
-прежняя активная session: новый PID/new key получает новую session и текущий prepare.
-BuildArgs остаются suffix будущих CLI builds, отдельно от semantic graph identity.
-При `useDiskCache=false` диск не читается и capture/write cache не выполняются.
-Force при включённом disk cache обходит чтение старого состояния, но после
-успешной ordinary загрузки может записать новое стабильное состояние.
+API остаётся proposed до принятия revised spec: `useDiskCache=false`,
+`forceReload=false`. False запрещает disk lookup/capture/write. Force обходит RAM
+и чтение disk state; при включённом cache после успешной ordinary загрузки
+разрешён новый пригодный capture. `reset_workspace` очищает RAM, не disk.
 
-Сначала ordinary load, затем stable base capture до ответа load. На enabled RAM
-hit без валидного capture evidence скрытый force capture не обязателен: ответ
-возвращает `capture=not-attempted` с причиной. При новом PID read/probe/hydrate/
-prepare/publication предшествуют выдаче semantic workspace. Стартовые changes
-в E1 дают ordinary fallback; E2/E3 расширяют reuse по собственным specs.
-Cache failure не отменяет успешную обычную загрузку. `reset_workspace` очищает
-RAM, но не disk. Инвалидация/чистка disk store не требует отдельного GC проекта.
+### Три уровня load properties
 
-Ответ/лог сообщает минимум: `baseGraphSource=ram|disk|msbuild`, effective cache
-policy/validation profile, capture/write outcome, bounded fallback reason и
-число dirty проектов. RAM hit не называется disk hit. `corrupt`, `incompatible`,
+1. **Raw requested** — фактически переданные аргументы с отдельным absent marker.
+2. **Loader globals** — независимо разрешённые до MSBuild open normalized значения
+   по текущему ordinary precedence: explicit → current Loaded* → FileSettings.
+   Отсутствие значения остаётся отсутствием; Configuration/Platform/TFM не
+   угадываются из найденного envelope. Platform `Any CPU` нормализуется как сейчас.
+3. **Evaluated project values** — значения после MSBuild, в том числе defaults
+   и inner-instance context. Они сохраняются для восстановления/audit, но не
+   являются oracle текущего request.
+
+Disk admission сравнивает canonical workspace path и независимо полученные текущие
+loader globals. Cold absent не является wildcard. Project defaults покрываются
+проверкой inputs/environment, не подстановкой saved values. Raw requested-only
+tuple недостаточен при разных FileSettings/inherited globals. Более строгий
+storage partition допустим, если даёт лишь лишние misses. RAM matcher сохраняет
+свой прежний omitted/sticky контракт; disk lookup его не переиспользует.
+
+### Закрытая матрица параметров
+
+- `workspacePath`, Configuration/Platform/TargetFramework — canonical base context
+  по independently resolved loader globals и explicit absence.
+- `shadowCopyInSolutionAnalyzers` — current mode admission и fresh preparation.
+  Separate storage key допустим; sharing clean base допустим только при доказанной
+  parity и обязательной проверке/prepare режима каждого request. Overlay session,
+  provenance и shadow paths в envelope не переносятся.
+- `buildArgs` — suffix будущих CLI builds, вне base graph identity. Current
+  session suffix сохраняется/обновляется по existing rules независимо от disk lookup.
+- `briefOutput`, `logProjectOutputDiagnostics` — presentation/diagnostics, вне base identity.
+- `useDiskCache`, `forceReload` — policy/bypass, вне semantic base identity.
+
+### Load entry и modes
+
+**ExplicitLoad:** `useDiskCache=true` включает предусмотренный supported scope.
+**ConfigFile:** без отдельного opt-in lazy load disk-disabled; lookup/capture/write
+не выполняются, outcome `disabled`/`not-attempted`, current FileSettings globals
+работают. Новый config key и default не вводятся подразумеваемо. Explicit benchmark
+не является evidence ускорения lazy entry; будущее config opt-in — отдельный scope.
+
+Overlay request без подтверждённого fresh binding выполняет whole-request ordinary
+load до publication disk candidate. Этот fallback достаточен для минимального E1;
+обязательный overlay hit и постоянный запрет будущего adapter не вводятся.
+Нельзя фабриковать provenance, удалять references или создавать Unavailable только
+из-за cache attempt для пригодного ordinary request. Настоящие ordinary
+Banned/Unavailable и restart-required сохраняются. Новый PID/key создаёт новую session;
+current sticky RAM behavior остаётся прежним. Overlay-on/off outcomes измеряются отдельно.
+
+### Capture, restore и ответ
+
+Reusable capture выполняется после пригодного ordinary load без blocking failure
+и только при evidence, связывающем graph с manifest input generation. Стабильные
+post-load hashes сами по себе не являются binding. Capture до ответа load
+включён в load latency. На enabled RAM hit без evidence скрытый force capture
+не обязателен: `capture=not-attempted` с причиной. При новом PID read/probe/hydrate/
+fresh prepare/publication предшествуют выдаче semantic workspace. E1 обнаруженные
+changes дают ordinary fallback; E2/E3 расширяют reuse по собственным predicates.
+Cache I/O fault не отменяет успешную ordinary загрузку; незаконченный candidate
+не публикуется, старый законченный envelope не повреждается.
+
+Ответ/лог сообщает `baseGraphSource=ram|disk|msbuild`, effective cache policy,
+validation profile, capture/write outcomes, bounded reason и число dirty проектов,
+а также проверенные portable graph-health/coverage facts и происхождение нужных
+diagnostics. Пустые hydrate diagnostics не повышают Unknown до Complete.
+Fresh watcher/execution/session состояние вычисляется заново; old ban не становится
+fresh admission. RAM hit не называется disk hit. Различаются `corrupt`, `incompatible`,
 `unsupported`, `inputs_changed`, `membership_changed`, `hydrate_failed`,
-`prepare_failed`, `disabled`, `forced` различаются. Diagnostic/log strings в C# — English.
+`prepare_failed`, `disabled`, `forced`. Diagnostic/log strings в C# — English.
 
-Hydrated host проходит действующие write preflight/exact inverse и analyzer
-admission/publication gates. Fresh provenance не фабрикуется из cache DTO.
-Недопустимую execution state нельзя публиковать raw для получения cache hit.
-Same-identity analyzer update сохраняет restart-required политику. Unsupported
-hydrated write operation отвергается до disk I/O с явным ordinary-load маршрутом.
+Hydrated writes проходят current preflight/exact inverse/session/base checks.
+Unsupported existing операции отвергаются до side effects с ordinary-load route.
+Public initial candidate construction допускается, но production
+`Workspace.TryApplyChanges` имеет ровно один reference site в existing manager
+wrapper. Ни construction, ни перенос isolated prototype не обходят publication/write gates.
+
+Rationale: [identity/modes, capture/health и load-entry решения](archive/arbitration/decision-ledger.md).
 
 ## Ревью и исполнение
 
@@ -141,19 +190,107 @@ validation; будущие эпохи не блокируют уже приня�
 
 ## Статистика
 
-- Ревью плана серии: модели/даты/раунды/исправления/отчёты —; не проверено.
-- Ревью планов эпох: охват E0–E3; все не проверены; раунды/исправления —.
-- Ревью задач: охват всех 33 задач; реализация не начата; раунды/исправления —.
-- Приёмка реализации эпох: охват E0–E3; не начата; раунды/исправления —.
+- Исторический review исходной версии: три catalogs, 16 findings; 15 ARB outcomes.
+  [Decision ledger](archive/arbitration/decision-ledger.md) сохраняет source identities.
+- Revision P-001–P-014: применены к тексту; не засчитаны как reviewer-confirmed fixes.
+- Решение владельца H-001, 2026-10-07: external XML exclusion применён к тексту; strong-name часть U-001 открыта.
+- Ревью specification v2: модели/даты/раунды/исправления/отчёты —; recheck не выполнен.
+- Ревью задач v2: охват всех 35 задач; реализация не начата; раунды/исправления —.
+- Приёмка реализации E0–E3: не начата; раунды/исправления —.
 
-Сводка содержит суммы только известных значений по отдельным scope, модели и
-ссылки на исходные reports. Дубли findings объединяются со сохранением provenance;
-plan/task/epoch acceptance числа не смешиваются. Раунды и fixed finding counts
-считаются по общему стандарту. Непроверенные/неизвестные данные не заменяются нулями.
+Применение P не означает принятия epochs или закрытия U-001/S-001/S-002.
+Plan/task/implementation counts не смешиваются; unknown values остаются `—`.
+Дубли источников и разные models сохраняются по общему стандарту учёта.
 
 ## Подготовка пакета
 
-**2026-10-07: docs prepared / ready-for-review.** Scope: новый MVP-маршрут,
-четыре specs/карты эпох, 33 задачи, benchmark и review/accounting инструкции.
-[Проверка подготовки и ограничения](preparation-report.md). Это проверка
-документации автором, не независимое ревью планов и не implementation acceptance.
+**2026-10-07: specification v2 revised-for-review.** Scope: все 14 P-изменений,
+сохранённые original requirements, четыре эпохи и 35 небольших tasks, два
+открытых spikes, один unresolved decision point и traceability.
+[Revision report](preparation-report.md) и [change ledger](change-ledger.md)
+фиксируют проверку и ограничения. U-001 частично решён H-001 (XML), strong-name открыт; positive E0/dependent
+implementation не принимаются до U-001 и successful S-001.
+
+## Revision provenance и открытые gates
+
+Применены P-001–P-014 из завершённого [арбитража](archive/arbitration/result.md).
+[Change ledger](change-ledger.md) перечисляет actual sections и derived consistency
+changes. [Исходная версия](archive/README.md) и review/defense/arbitration перенесены
+в [archive](archive/index.md); ссылки rebased, исторические решения и snapshots
+сохранены. Historical prescriptions не отменяют arbitration outcomes.
+
+> **UNRESOLVED U-001 — fidelity положительного E0**
+>
+> XML-документация бинарных зависимостей исключена из гарантии по H-001;
+> source comments загруженных проектов сохраняются. Открыто решение strong-name:
+> точное восстановление либо явно ограниченная signing/emit семантика.
+> Самостоятельно терять remaining provider state или засчитывать negative-only
+> E0 нельзя. Остаточное решение требуется до positive E0/dependent codec/hydrate.
+> Подробности — [decision point](unresolved.md#u-001--fidelity-положительного-e0).
+
+Открытые [S-001/S-002](spikes.md) **not-run**. S-001 следует за U-001; S-002 должен
+подтвердить import/restore evidence до принятия E1 manifest. Они являются gates,
+не выбранными implementation mechanisms. Новых DEFERRED нет; optional E3 сохраняет
+прежний no-go contract. [Revision blockers](revision-blockers.md) отделены от
+принятого unresolved decision point. Public activation/default/implementation
+permissions revision не расширяет.
+
+## Evaluation context и переносимые input facts
+
+Profile обязан описать significant environment dependencies; capture и lookup
+используют одну совместимую policy и independently current context до reuse.
+Unknown dependency означает unsupported/fallback. Допустим conservative fingerprint
+либо доказанный relevant-variable subset; controlled environment, меняющий ordinary
+semantics, не разрешён автоматически. Raw secrets не сохраняются в envelope/reports.
+SDK/MSBuild/Roslyn/schema fingerprint не означает неизменность каждого SDK файла
+и не возвращает mandatory full installation closure audit.
+
+Для каждого occurrence сохраняются role, все memberships/owners и подтверждённые
+producer bindings с traceable source. Hydrate восстанавливает их в единственной
+input map с новыми IDs через public flags либо доказанные portable facts.
+Unknown не становится UserInput; имя/path-under-obj не заменяет provenance;
+evaluation role имеет приоритет. On-disk generated input не разрешает сериализовать
+generator text или cached execution provenance.
+
+Конкретный evaluated import/restore source открыт до S-002. Current input-map/
+analyzer snapshot не являются готовой closure; ProjectImports=None не доказывает
+отсутствие raw paths. Source contract должен связывать category → event/property →
+actual path → all consumer instances и задавать completeness boundary.
+Incomplete→unsupported; no positive request означает неготовность E1, не успешный detector.
+
+Actual config discovery profile включает presence/known absence для применимых
+`.editorconfig`/`.globalconfig`, explicit config paths и regions. Границы задаются
+для project и linked sources с учётом разной applicability config видов;
+repo/solution root не является универсальным stopping point. Новые/удалённые
+configs обнаруживаются уже до первого E1 hit; unknown discovery даёт fallback.
+Bounded point/region probes допустимы без полного recursive ancestor scan.
+
+## XML-документация бинарных зависимостей — решение H-001
+
+В MVP не гарантируется XML-документация символов metadata/DLL references, включая
+NuGet/framework/manual DLL и собственные проекты, подключённые как бинарь.
+Исходный DocumentationProvider не обязан переноситься; одна эта непрочитываемая
+часть не вызывает capture refusal. Остальные reference/options/semantic invariants
+обязательны. Support profile/help/outcome явно сообщает ограничение.
+
+Комментарии в исходниках загруженных проектов и parse options сохраняют прежний
+contract; ordinary build generation XML не отключается. XML-only documentation
+mutation не обязана давать miss, но actual AdditionalFile/import/config/custom
+input роли не исключаются по расширению. DLL/restore/graph validation сохраняется.
+
+Documentation-dependent queries/analyzers/generators вне supported hydrated scope:
+ordinary route либо явный отказ до execution/side effects. Acceptance включает
+source-comment parity и заявленное внешнее XML ограничение/fallback control.
+Strong-name fidelity остаётся открытой; H-001 её не разрешает.
+
+[Решение владельца, rationale и принятый риск](human-decisions.md#h-001--документация-бинарных-зависимостей-исключена-из-гарантии-mvp).
+
+## Расположение канона и истории
+
+**2026-10-07: канон specification v2 поднят в корень темы** по запросу владельца.
+Четыре эпохи/35 tasks и common contracts находятся здесь; прежний каталог `spec-v2/`
+удалён после переноса всех файлов. [Историческая specification/reviews/defense/arbitration](archive/index.md)
+сохранены в `archive/` с исправленными links. [Relocation report](relocation-report.md)
+фиксирует scope, path/hash mapping и validation; [revision report](preparation-report.md)
+сохраняет application evidence. Статус остаётся revised-for-review, tasks planned,
+strong-name U-001 unresolved и S-001/S-002 not-run. Relocation не acceptance реализации.

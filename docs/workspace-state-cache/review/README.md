@@ -1,6 +1,6 @@
 # Ревью планов workspace state cache
 
-Статус: **ожидает независимого ревью, 2026-10-07**. Отчётов пока нет.
+Статус: **ожидает recheck specification v2, 2026-10-07**. Recheck отчётов пока нет.
 
 ## Вход и scope
 
@@ -52,3 +52,17 @@ Actual model пишется точным доступным именем; неи
 
 После принятия плана эпохи report здесь сохраняется. При archival всей серии
 review history/статистика/ссылки переносятся вместе с ней.
+
+## Recheck после arbitration
+
+Проверять применение [P-001–P-014](../archive/arbitration/proposed-changes.md),
+[change ledger](../change-ledger.md), сохранение requirements и внутреннюю
+согласованность этой версии. Closed disputes не переоткрываются, prescriptions
+исторических review/defense не заменяют решения arbitration. U-001 и spikes не
+закрываются без требуемого decision/evidence. Finding о невозможности механически
+применить решение требует REVISION-BLOCKER, не нового самостоятельного design.
+
+Original review catalogs находятся вне spec-v2 и сохраняют source IDs. Reports
+recheck относятся к новой версии и не меняют historical source files. Applied P
+не становится fixed finding до независимого подтверждения; runtime acceptance
+статистика остаётся отдельно.

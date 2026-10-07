@@ -1,0 +1,1454 @@
+{
+  "date": "2026-10-07",
+  "records": [
+    {
+      "source": "docs/workspace-state-cache/benchmark.md",
+      "destination": "docs/workspace-state-cache/archive/benchmark.md",
+      "kind": "archive",
+      "before_sha256": "2b157f117e3a0488f89a791b8a8f5d44998d48676a61ea81a193196b2ef25a16",
+      "after_link_rebase_sha256": "f6cda62ad983ab363fb8c2da52c310a5fa9c933d8c9a85ed367aaa0bbb26df27"
+    },
+    {
+      "source": "docs/workspace-state-cache/execution.md",
+      "destination": "docs/workspace-state-cache/archive/execution.md",
+      "kind": "archive",
+      "before_sha256": "335e3bac845d06df5fce752f341742478ade6d4c58e9a937e34a76506dcbf25a",
+      "after_link_rebase_sha256": "30a894249dee81802c59f542e3c15ddd30336a5c0b5dd3a1140e4cf9aae6942c"
+    },
+    {
+      "source": "docs/workspace-state-cache/preparation-report.md",
+      "destination": "docs/workspace-state-cache/archive/preparation-report.md",
+      "kind": "archive",
+      "before_sha256": "6b1a3aab9f5f75cf940854346fbc3c518c171386fa11824a0183f1cf84f11918",
+      "after_link_rebase_sha256": "da990e4fb042698f546ad19ff98825e96b98359758b504a295998c7d6233d2e5"
+    },
+    {
+      "source": "docs/workspace-state-cache/README.md",
+      "destination": "docs/workspace-state-cache/archive/README.md",
+      "kind": "archive",
+      "before_sha256": "4b7a717d253e26dd38dd252b740e49f2dce9ac8b67014ec3300e381f9677d9df",
+      "after_link_rebase_sha256": "be972b96e40f52282df5e6251e7f93c6e764c1f5e1758f8bc93846f374f7e959"
+    },
+    {
+      "source": "docs/workspace-state-cache/arbitration/.status",
+      "destination": "docs/workspace-state-cache/archive/arbitration/.status",
+      "kind": "archive",
+      "before_sha256": "5e1f8562208322ba8dbd7567515383ac6ebf909de2eca4b674a5bfa781adcae4",
+      "after_link_rebase_sha256": "5e1f8562208322ba8dbd7567515383ac6ebf909de2eca4b674a5bfa781adcae4"
+    },
+    {
+      "source": "docs/workspace-state-cache/arbitration/decision-ledger.md",
+      "destination": "docs/workspace-state-cache/archive/arbitration/decision-ledger.md",
+      "kind": "archive",
+      "before_sha256": "395c97c69c57b572d8db61d56f52440f044d60b54de679ddd898f72b53884245",
+      "after_link_rebase_sha256": "395c97c69c57b572d8db61d56f52440f044d60b54de679ddd898f72b53884245"
+    },
+    {
+      "source": "docs/workspace-state-cache/arbitration/deferred.md",
+      "destination": "docs/workspace-state-cache/archive/arbitration/deferred.md",
+      "kind": "archive",
+      "before_sha256": "965979843dd0b9611a0bf60259e9c3dff6f67db9b2786141f29c069cdecb79f5",
+      "after_link_rebase_sha256": "965979843dd0b9611a0bf60259e9c3dff6f67db9b2786141f29c069cdecb79f5"
+    },
+    {
+      "source": "docs/workspace-state-cache/arbitration/evidence.md",
+      "destination": "docs/workspace-state-cache/archive/arbitration/evidence.md",
+      "kind": "archive",
+      "before_sha256": "abf9f34806f1ccfecaae36f629308917f3d79a4378731b17a89e88cc6ffc893b",
+      "after_link_rebase_sha256": "215037e5cf6d3afa8516a9e3e149616e794281a322ae8389541fd5b8da01b323"
+    },
+    {
+      "source": "docs/workspace-state-cache/arbitration/finding-registry.md",
+      "destination": "docs/workspace-state-cache/archive/arbitration/finding-registry.md",
+      "kind": "archive",
+      "before_sha256": "34a532bf60e6d3e76831e0e2cb14f93b738aab26d76babcfb897379b135a702c",
+      "after_link_rebase_sha256": "34a532bf60e6d3e76831e0e2cb14f93b738aab26d76babcfb897379b135a702c"
+    },
+    {
+      "source": "docs/workspace-state-cache/arbitration/input-manifest.json",
+      "destination": "docs/workspace-state-cache/archive/arbitration/input-manifest.json",
+      "kind": "archive",
+      "before_sha256": "e506b8df6fe8bf29ff8a37e63c9afbd8e1048031b8facf7637481b6d7bb8b5ec",
+      "after_link_rebase_sha256": "e506b8df6fe8bf29ff8a37e63c9afbd8e1048031b8facf7637481b6d7bb8b5ec"
+    },
+    {
+      "source": "docs/workspace-state-cache/arbitration/proposed-changes.md",
+      "destination": "docs/workspace-state-cache/archive/arbitration/proposed-changes.md",
+      "kind": "archive",
+      "before_sha256": "d24ffbb9d61b6e4ea308bc016af1b6d54fdcae484341fe6eb91d2861f156affa",
+      "after_link_rebase_sha256": "d24ffbb9d61b6e4ea308bc016af1b6d54fdcae484341fe6eb91d2861f156affa"
+    },
+    {
+      "source": "docs/workspace-state-cache/arbitration/README.md",
+      "destination": "docs/workspace-state-cache/archive/arbitration/README.md",
+      "kind": "archive",
+      "before_sha256": "496dc20d084f69d31d3a1befda51bab1a2897a2bb9191ec65a938195652cecc3",
+      "after_link_rebase_sha256": "496dc20d084f69d31d3a1befda51bab1a2897a2bb9191ec65a938195652cecc3"
+    },
+    {
+      "source": "docs/workspace-state-cache/arbitration/result.md",
+      "destination": "docs/workspace-state-cache/archive/arbitration/result.md",
+      "kind": "archive",
+      "before_sha256": "7123441643ac810a882e257a1ebb46a81b440e5c8cb9bac33f2fd4a3bcf49232",
+      "after_link_rebase_sha256": "7123441643ac810a882e257a1ebb46a81b440e5c8cb9bac33f2fd4a3bcf49232"
+    },
+    {
+      "source": "docs/workspace-state-cache/arbitration/spikes.md",
+      "destination": "docs/workspace-state-cache/archive/arbitration/spikes.md",
+      "kind": "archive",
+      "before_sha256": "43fa02ba3a9bebeaa06a45e888275bed3b6491e9bb92e5aecc2d5eb8ba6ffe5a",
+      "after_link_rebase_sha256": "43fa02ba3a9bebeaa06a45e888275bed3b6491e9bb92e5aecc2d5eb8ba6ffe5a"
+    },
+    {
+      "source": "docs/workspace-state-cache/arbitration/unresolved.md",
+      "destination": "docs/workspace-state-cache/archive/arbitration/unresolved.md",
+      "kind": "archive",
+      "before_sha256": "f30525a4003bbd11a2282895cf32d8613fd3811f730337a66673353c8ae11b2b",
+      "after_link_rebase_sha256": "20996b9f7ed0ec7af7e836a38ba8c001c1756b642d96dc5f6f9c4f0c84a175fa"
+    },
+    {
+      "source": "docs/workspace-state-cache/arbitration/validate-artifacts.py",
+      "destination": "docs/workspace-state-cache/archive/arbitration/validate-artifacts.py",
+      "kind": "archive",
+      "before_sha256": "152472c0136751f48a5f182fc95f4ca3d308f726233ecffede1b9da36ec1babf",
+      "after_link_rebase_sha256": "152472c0136751f48a5f182fc95f4ca3d308f726233ecffede1b9da36ec1babf"
+    },
+    {
+      "source": "docs/workspace-state-cache/arbitration/validation.json",
+      "destination": "docs/workspace-state-cache/archive/arbitration/validation.json",
+      "kind": "archive",
+      "before_sha256": "167229a14a47488cacae30b2f77e71d9daab77fbb00b74a68b53342c630e84b1",
+      "after_link_rebase_sha256": "167229a14a47488cacae30b2f77e71d9daab77fbb00b74a68b53342c630e84b1"
+    },
+    {
+      "source": "docs/workspace-state-cache/arbitration/validation.md",
+      "destination": "docs/workspace-state-cache/archive/arbitration/validation.md",
+      "kind": "archive",
+      "before_sha256": "b073b3425d91a89ecd30980ed7a4e3753c0942ec2fca04777b208aa001619ab5",
+      "after_link_rebase_sha256": "b073b3425d91a89ecd30980ed7a4e3753c0942ec2fca04777b208aa001619ab5"
+    },
+    {
+      "source": "docs/workspace-state-cache/defense/.status",
+      "destination": "docs/workspace-state-cache/archive/defense/.status",
+      "kind": "archive",
+      "before_sha256": "d3be030801b90ea8057d3997d9845c7f850cc7b784450645d5ec2811cc927d7a",
+      "after_link_rebase_sha256": "d3be030801b90ea8057d3997d9845c7f850cc7b784450645d5ec2811cc927d7a"
+    },
+    {
+      "source": "docs/workspace-state-cache/defense/coverage.md",
+      "destination": "docs/workspace-state-cache/archive/defense/coverage.md",
+      "kind": "archive",
+      "before_sha256": "ff8fe4f35be2e685f0e8ac3cf54c6fa34c2ce64e16aef31a110e9e678b0528a1",
+      "after_link_rebase_sha256": "9918bbbdcecc04e590fe0aded8c34fe229f2e69d48cabb8d1882d5a5f91c1f42"
+    },
+    {
+      "source": "docs/workspace-state-cache/defense/finding-ledger.md",
+      "destination": "docs/workspace-state-cache/archive/defense/finding-ledger.md",
+      "kind": "archive",
+      "before_sha256": "599feca765b700530846afaa7bc7ff0f81569d2ccd2c6c9af40c97c23593398a",
+      "after_link_rebase_sha256": "599feca765b700530846afaa7bc7ff0f81569d2ccd2c6c9af40c97c23593398a"
+    },
+    {
+      "source": "docs/workspace-state-cache/defense/input-manifest.json",
+      "destination": "docs/workspace-state-cache/archive/defense/input-manifest.json",
+      "kind": "archive",
+      "before_sha256": "f681abd49facdf009de1b97d11215269e694019e80ad03620a6844eda9b7d036",
+      "after_link_rebase_sha256": "f681abd49facdf009de1b97d11215269e694019e80ad03620a6844eda9b7d036"
+    },
+    {
+      "source": "docs/workspace-state-cache/defense/positions.json",
+      "destination": "docs/workspace-state-cache/archive/defense/positions.json",
+      "kind": "archive",
+      "before_sha256": "5644d3751d6b4e0a584d701cff277cf2765f33f04b7b2fc967cb5d3ea365d34a",
+      "after_link_rebase_sha256": "5644d3751d6b4e0a584d701cff277cf2765f33f04b7b2fc967cb5d3ea365d34a"
+    },
+    {
+      "source": "docs/workspace-state-cache/defense/README.md",
+      "destination": "docs/workspace-state-cache/archive/defense/README.md",
+      "kind": "archive",
+      "before_sha256": "161e9d959ce3673597b2fd7fad32ef244b63fbeb4dcbeec09958e70fc8d2b420",
+      "after_link_rebase_sha256": "161e9d959ce3673597b2fd7fad32ef244b63fbeb4dcbeec09958e70fc8d2b420"
+    },
+    {
+      "source": "docs/workspace-state-cache/defense/relations.md",
+      "destination": "docs/workspace-state-cache/archive/defense/relations.md",
+      "kind": "archive",
+      "before_sha256": "29e8869c5d711fc2326a17936c3b867edb0e18ec88bac50ac963a50d18a03b0e",
+      "after_link_rebase_sha256": "29e8869c5d711fc2326a17936c3b867edb0e18ec88bac50ac963a50d18a03b0e"
+    },
+    {
+      "source": "docs/workspace-state-cache/defense/result.md",
+      "destination": "docs/workspace-state-cache/archive/defense/result.md",
+      "kind": "archive",
+      "before_sha256": "d47e1eebb6942a99a43b1feef43f93c7d70db0a936a0f07bcd85df7a83cca2bf",
+      "after_link_rebase_sha256": "d47e1eebb6942a99a43b1feef43f93c7d70db0a936a0f07bcd85df7a83cca2bf"
+    },
+    {
+      "source": "docs/workspace-state-cache/defense/validation.json",
+      "destination": "docs/workspace-state-cache/archive/defense/validation.json",
+      "kind": "archive",
+      "before_sha256": "7ba9abda1ddbdfd582f7d851896fb8cef525936884f384957313ea46c73a4a99",
+      "after_link_rebase_sha256": "7ba9abda1ddbdfd582f7d851896fb8cef525936884f384957313ea46c73a4a99"
+    },
+    {
+      "source": "docs/workspace-state-cache/defense/validation.md",
+      "destination": "docs/workspace-state-cache/archive/defense/validation.md",
+      "kind": "archive",
+      "before_sha256": "8380edb57ce7dc8a313dea0fb23b41581a8feb4b1888037c71293be2de43ec41",
+      "after_link_rebase_sha256": "8380edb57ce7dc8a313dea0fb23b41581a8feb4b1888037c71293be2de43ec41"
+    },
+    {
+      "source": "docs/workspace-state-cache/epoch-0-snapshot-roundtrip/README.md",
+      "destination": "docs/workspace-state-cache/archive/epoch-0-snapshot-roundtrip/README.md",
+      "kind": "archive",
+      "before_sha256": "9fe59c30c2e5c408d5785f0b4bb6e69dffa5d2981d21176e7ad18faf952497ad",
+      "after_link_rebase_sha256": "40cd4a72a20a8f1928f547809c0eaffd830b7644cd22934133783f3a66c717c4"
+    },
+    {
+      "source": "docs/workspace-state-cache/epoch-0-snapshot-roundtrip/spec.md",
+      "destination": "docs/workspace-state-cache/archive/epoch-0-snapshot-roundtrip/spec.md",
+      "kind": "archive",
+      "before_sha256": "23b0da4a260a05282ce75ead57529fb93eb60a26794035ca2815cf73f4b85d48",
+      "after_link_rebase_sha256": "5daf10767e88046b7e25e4eb988af12f9f62f6eb9122064a2e578c625dd89cd2"
+    },
+    {
+      "source": "docs/workspace-state-cache/epoch-0-snapshot-roundtrip/task-00-current-seams-and-controls-med.md",
+      "destination": "docs/workspace-state-cache/archive/epoch-0-snapshot-roundtrip/task-00-current-seams-and-controls-med.md",
+      "kind": "archive",
+      "before_sha256": "c0946f60ba09e281252eb68b737343219a075999092c0be497cfe1daa4f69ecd",
+      "after_link_rebase_sha256": "57f0ae1341183b899417b41c6332adab04ae34be312c7f62d4e57ce6a94f69b9"
+    },
+    {
+      "source": "docs/workspace-state-cache/epoch-0-snapshot-roundtrip/task-01-baseline-runner-med.md",
+      "destination": "docs/workspace-state-cache/archive/epoch-0-snapshot-roundtrip/task-01-baseline-runner-med.md",
+      "kind": "archive",
+      "before_sha256": "13b07d3337ad13ea745790109409476209df192bda0e6c3e49d5325f4c8aabd9",
+      "after_link_rebase_sha256": "964656b8bd8655eac62f8c6763e67efdcbf34f55454dd8d22d328ad70a2e5f23"
+    },
+    {
+      "source": "docs/workspace-state-cache/epoch-0-snapshot-roundtrip/task-02-snapshot-schema-hi.md",
+      "destination": "docs/workspace-state-cache/archive/epoch-0-snapshot-roundtrip/task-02-snapshot-schema-hi.md",
+      "kind": "archive",
+      "before_sha256": "47b74d1d2e08bfb8ddc31d8f07fe96400efc9aa450a4a277e77b363b75eda62a",
+      "after_link_rebase_sha256": "53db0a9bcaec27265638a921bd6991850dd2d46c034f563c6e8e2db60d26de16"
+    },
+    {
+      "source": "docs/workspace-state-cache/epoch-0-snapshot-roundtrip/task-03-ordinary-capture-med.md",
+      "destination": "docs/workspace-state-cache/archive/epoch-0-snapshot-roundtrip/task-03-ordinary-capture-med.md",
+      "kind": "archive",
+      "before_sha256": "e290e033ebd565adf0c7c841aee4a71e0bd83e4637ba04b6536916f1076f237c",
+      "after_link_rebase_sha256": "ce1797e4440e4fab4890590e8d942bd31d0b9ced2376ebaf1bf8463f653b66d9"
+    },
+    {
+      "source": "docs/workspace-state-cache/epoch-0-snapshot-roundtrip/task-04-snapshot-codec-low.md",
+      "destination": "docs/workspace-state-cache/archive/epoch-0-snapshot-roundtrip/task-04-snapshot-codec-low.md",
+      "kind": "archive",
+      "before_sha256": "80d5ce073a74b24ef9444c6de5bfc75e2572f2c2818a9f2903d8d386f98ae2b8",
+      "after_link_rebase_sha256": "bab906053ca733eaa28f61a73090efb788267f2923209f33ef12498e1544010c"
+    },
+    {
+      "source": "docs/workspace-state-cache/epoch-0-snapshot-roundtrip/task-05-isolated-hydrate-hi.md",
+      "destination": "docs/workspace-state-cache/archive/epoch-0-snapshot-roundtrip/task-05-isolated-hydrate-hi.md",
+      "kind": "archive",
+      "before_sha256": "1cf7133b9c4f95fd5dd36d5427b9a5fdd80aaafcd5fcbf9101769c19aa4b451c",
+      "after_link_rebase_sha256": "a72df0d572ee6d6518ddb0018332e45bbf868586b25007856b0946b779665ab7"
+    },
+    {
+      "source": "docs/workspace-state-cache/epoch-0-snapshot-roundtrip/task-06-real-cross-process-roundtrip-med.md",
+      "destination": "docs/workspace-state-cache/archive/epoch-0-snapshot-roundtrip/task-06-real-cross-process-roundtrip-med.md",
+      "kind": "archive",
+      "before_sha256": "02fe0cafeddd3f17cb9ab563d394a18f1cc684037413bc5994a2cade53df33d6",
+      "after_link_rebase_sha256": "26990bef1325e5fe705bec049bec6606dc8445a2798022a6fda13087a42cae78"
+    },
+    {
+      "source": "docs/workspace-state-cache/epoch-0-snapshot-roundtrip/task-07-roundtrip-benchmark-med.md",
+      "destination": "docs/workspace-state-cache/archive/epoch-0-snapshot-roundtrip/task-07-roundtrip-benchmark-med.md",
+      "kind": "archive",
+      "before_sha256": "bc57899087cb8e895cf353e2deb34ba674fbb0cdd506d87f2e96036cf3f64b6b",
+      "after_link_rebase_sha256": "3db00fea97a0f827f5099730122f5ae1b9b2faf56a540f00ee21601e0038573a"
+    },
+    {
+      "source": "docs/workspace-state-cache/epoch-1-disk-cache-mvp/README.md",
+      "destination": "docs/workspace-state-cache/archive/epoch-1-disk-cache-mvp/README.md",
+      "kind": "archive",
+      "before_sha256": "3b26a6255b6e23b13ac4821646f88fc2669f52ffb9c46a4b4605a4b9d47a0ca8",
+      "after_link_rebase_sha256": "3d7761361515468a09b8f66b3682373cb734099867c433ef245839e5ff4c88d1"
+    },
+    {
+      "source": "docs/workspace-state-cache/epoch-1-disk-cache-mvp/spec.md",
+      "destination": "docs/workspace-state-cache/archive/epoch-1-disk-cache-mvp/spec.md",
+      "kind": "archive",
+      "before_sha256": "116e9e0c81e2c62224ac70a40e4153c56c02cff5e6cb64b6a3da04e2ea4cee83",
+      "after_link_rebase_sha256": "116e9e0c81e2c62224ac70a40e4153c56c02cff5e6cb64b6a3da04e2ea4cee83"
+    },
+    {
+      "source": "docs/workspace-state-cache/epoch-1-disk-cache-mvp/task-00-input-manifest-hi.md",
+      "destination": "docs/workspace-state-cache/archive/epoch-1-disk-cache-mvp/task-00-input-manifest-hi.md",
+      "kind": "archive",
+      "before_sha256": "b39982ddafb6185103cc303a203500a5050f0362bffb518e9250b577d28e5a56",
+      "after_link_rebase_sha256": "258c145a1f27d2914feb2baba1d7f8b272f772a1edb49af2ffd84c7a5a90d7e3"
+    },
+    {
+      "source": "docs/workspace-state-cache/epoch-1-disk-cache-mvp/task-01-text-and-directory-probe-med.md",
+      "destination": "docs/workspace-state-cache/archive/epoch-1-disk-cache-mvp/task-01-text-and-directory-probe-med.md",
+      "kind": "archive",
+      "before_sha256": "dc3c1db874586651fd1f0ce5ce0650cbc73c871cc9c9f81791622335f04feae7",
+      "after_link_rebase_sha256": "67e3a93a2128f1b3d76f128f80521c401e25af1f861f3f7510d0033cee43ea4c"
+    },
+    {
+      "source": "docs/workspace-state-cache/epoch-1-disk-cache-mvp/task-02-binary-fast-probe-med.md",
+      "destination": "docs/workspace-state-cache/archive/epoch-1-disk-cache-mvp/task-02-binary-fast-probe-med.md",
+      "kind": "archive",
+      "before_sha256": "f652bcc4fb4fe98e7f3ae52629910a7406f210faac0c11856042122a8492356b",
+      "after_link_rebase_sha256": "67845ddb22118cad74c7f47334dcc7faf777a4803b293bb89878194541d70eca"
+    },
+    {
+      "source": "docs/workspace-state-cache/epoch-1-disk-cache-mvp/task-03-atomic-envelope-store-med.md",
+      "destination": "docs/workspace-state-cache/archive/epoch-1-disk-cache-mvp/task-03-atomic-envelope-store-med.md",
+      "kind": "archive",
+      "before_sha256": "816cd72eac717db91b3ee0ae99fb09e1f128ab1430db58d850f4cebaeb30c4ff",
+      "after_link_rebase_sha256": "c93adcae9e3203277af51ae8bf6912efa77abb6f6b0bb7d19d50fe805bb5f12e"
+    },
+    {
+      "source": "docs/workspace-state-cache/epoch-1-disk-cache-mvp/task-04-manager-host-ownership-hi.md",
+      "destination": "docs/workspace-state-cache/archive/epoch-1-disk-cache-mvp/task-04-manager-host-ownership-hi.md",
+      "kind": "archive",
+      "before_sha256": "b9b8bb44d23703b4f42b6bf3fb0b9e50fcb176a3a84f1510f2a1b16975ca17c5",
+      "after_link_rebase_sha256": "0f871beba65337d9fc66ed6862dd59c6a4715d4e73d7b45d830be56dbab35204"
+    },
+    {
+      "source": "docs/workspace-state-cache/epoch-1-disk-cache-mvp/task-05-fresh-session-preparation-hi.md",
+      "destination": "docs/workspace-state-cache/archive/epoch-1-disk-cache-mvp/task-05-fresh-session-preparation-hi.md",
+      "kind": "archive",
+      "before_sha256": "b808e015f66ddd38a2edec730bf2db098b6543f2a9140d57529507dbd555ede1",
+      "after_link_rebase_sha256": "1ff8272bcfaf91b229ec2be4e57136d66e111a586c6649e551b66f6424a78460"
+    },
+    {
+      "source": "docs/workspace-state-cache/epoch-1-disk-cache-mvp/task-06-load-save-and-restore-hi.md",
+      "destination": "docs/workspace-state-cache/archive/epoch-1-disk-cache-mvp/task-06-load-save-and-restore-hi.md",
+      "kind": "archive",
+      "before_sha256": "526d7562bf6fa2dd9f652e820f971d6cd28d7ee6fb14f40833fd4baf6db91b44",
+      "after_link_rebase_sha256": "c9fe7f77c9d3ae74a06bdf05135693dcfe6c65ab15a4e0422de86c3f1d6d8391"
+    },
+    {
+      "source": "docs/workspace-state-cache/epoch-1-disk-cache-mvp/task-07-existing-watcher-attachment-hi.md",
+      "destination": "docs/workspace-state-cache/archive/epoch-1-disk-cache-mvp/task-07-existing-watcher-attachment-hi.md",
+      "kind": "archive",
+      "before_sha256": "2af3239ac21a001421f3ddb0f074615467dacf009a1ebe7bdf2da5f2eae2106c",
+      "after_link_rebase_sha256": "1c9b647c0aaab79dfc6b26547db330627cb460542fbe2c9a3c1473a080be77d1"
+    },
+    {
+      "source": "docs/workspace-state-cache/epoch-1-disk-cache-mvp/task-08-hydrated-csharp-write-hi.md",
+      "destination": "docs/workspace-state-cache/archive/epoch-1-disk-cache-mvp/task-08-hydrated-csharp-write-hi.md",
+      "kind": "archive",
+      "before_sha256": "81bdeea908763e9fcdfdec74a044eff2fb81670b3415479c79d04b2cea257499",
+      "after_link_rebase_sha256": "a4ac2e788189eb0ebc49d865419d906e6fcd33518a7885ab1d755ffd8d458dfa"
+    },
+    {
+      "source": "docs/workspace-state-cache/epoch-1-disk-cache-mvp/task-09-restart-and-failure-integration-med.md",
+      "destination": "docs/workspace-state-cache/archive/epoch-1-disk-cache-mvp/task-09-restart-and-failure-integration-med.md",
+      "kind": "archive",
+      "before_sha256": "7c184000e1cfae4bb4f325f1dfab1764f86421ff18c976db2eb047757be6207a",
+      "after_link_rebase_sha256": "673385b29c05ba8da1e42ecc0443a202d882c47ce314c5cf7780430747fefb1f"
+    },
+    {
+      "source": "docs/workspace-state-cache/epoch-1-disk-cache-mvp/task-10-mvp-benchmark-med.md",
+      "destination": "docs/workspace-state-cache/archive/epoch-1-disk-cache-mvp/task-10-mvp-benchmark-med.md",
+      "kind": "archive",
+      "before_sha256": "0dc7665af9f0c7e14158fd247242b12dd813e9d9a34ea2493c2c99a1802e5b93",
+      "after_link_rebase_sha256": "22b262ad13875c4c5c7d6b7de12fa2b3ef1bc134ae8e9a5043458c05cdff95f6"
+    },
+    {
+      "source": "docs/workspace-state-cache/epoch-2-content-refresh/README.md",
+      "destination": "docs/workspace-state-cache/archive/epoch-2-content-refresh/README.md",
+      "kind": "archive",
+      "before_sha256": "f6a495b6bb1184dd8dd851581a8fe9cf167a760c748f8801348f607cd948765c",
+      "after_link_rebase_sha256": "088fc911061eb1c54b3c796bda21723330fbc463a809683ee043cb94b3d35a43"
+    },
+    {
+      "source": "docs/workspace-state-cache/epoch-2-content-refresh/spec.md",
+      "destination": "docs/workspace-state-cache/archive/epoch-2-content-refresh/spec.md",
+      "kind": "archive",
+      "before_sha256": "ff93fe6359a910c2a588e4f1d095aaa418f14da7e23a492410c5a8741d71b0e5",
+      "after_link_rebase_sha256": "ff93fe6359a910c2a588e4f1d095aaa418f14da7e23a492410c5a8741d71b0e5"
+    },
+    {
+      "source": "docs/workspace-state-cache/epoch-2-content-refresh/task-00-startup-diff-roles-hi.md",
+      "destination": "docs/workspace-state-cache/archive/epoch-2-content-refresh/task-00-startup-diff-roles-hi.md",
+      "kind": "archive",
+      "before_sha256": "6baf26b68c169c0a212d879e494e97792e235ee9dbc86bd4103a4d68812cb4b8",
+      "after_link_rebase_sha256": "35f540a44d3731d54f983bacc68b05219dc7bf1aaa9fb6b42127cf3d22325c4f"
+    },
+    {
+      "source": "docs/workspace-state-cache/epoch-2-content-refresh/task-01-existing-source-refresh-med.md",
+      "destination": "docs/workspace-state-cache/archive/epoch-2-content-refresh/task-01-existing-source-refresh-med.md",
+      "kind": "archive",
+      "before_sha256": "f91b324dc7416ad268380d62ebba3565fa396e50ed1cdc9d2cc87ce1e9664fba",
+      "after_link_rebase_sha256": "08744bf2a68ff01d3ade4504ab869cc12eb29d35db7c8ec0f02aaa948c5d73b0"
+    },
+    {
+      "source": "docs/workspace-state-cache/epoch-2-content-refresh/task-02-additional-and-config-refresh-med.md",
+      "destination": "docs/workspace-state-cache/archive/epoch-2-content-refresh/task-02-additional-and-config-refresh-med.md",
+      "kind": "archive",
+      "before_sha256": "6a5112675b7ea0c4dbe3978d2cea95900cb06b2851fc31726cf411cf3297e7f3",
+      "after_link_rebase_sha256": "4f540f7395f29a0690e13ebbc85078931d841ef5827f94102b7c97e6e3ef61ff"
+    },
+    {
+      "source": "docs/workspace-state-cache/epoch-2-content-refresh/task-03-fresh-metadata-references-med.md",
+      "destination": "docs/workspace-state-cache/archive/epoch-2-content-refresh/task-03-fresh-metadata-references-med.md",
+      "kind": "archive",
+      "before_sha256": "3e383d3bfbb62f104f62a1b5dd4b39c0ac5b4e7b399d8745b2a39325e4196c6a",
+      "after_link_rebase_sha256": "9db5eeed52ee7ff84c0eb7b0709e9e579154dac46e29a6d6629badac250c3508"
+    },
+    {
+      "source": "docs/workspace-state-cache/epoch-2-content-refresh/task-04-refreshed-envelope-capture-med.md",
+      "destination": "docs/workspace-state-cache/archive/epoch-2-content-refresh/task-04-refreshed-envelope-capture-med.md",
+      "kind": "archive",
+      "before_sha256": "4f8c09440ff90c539ee15aea2714510254dfc464ae86e75b2bb70ba9824f9b12",
+      "after_link_rebase_sha256": "9772f2d87886b6940681194326b5521e211c102338206007e5e255483efc65e5"
+    },
+    {
+      "source": "docs/workspace-state-cache/epoch-2-content-refresh/task-05-content-and-graph-mutations-med.md",
+      "destination": "docs/workspace-state-cache/archive/epoch-2-content-refresh/task-05-content-and-graph-mutations-med.md",
+      "kind": "archive",
+      "before_sha256": "8da66c11f037bf55ae33d96d0fab76e38c40424daf397a5b21921aa0e2013316",
+      "after_link_rebase_sha256": "382bda977b314f7c7e7b81a400885602c870809e913a8996bb6cf8391adaac92"
+    },
+    {
+      "source": "docs/workspace-state-cache/epoch-2-content-refresh/task-06-content-restart-benchmark-med.md",
+      "destination": "docs/workspace-state-cache/archive/epoch-2-content-refresh/task-06-content-restart-benchmark-med.md",
+      "kind": "archive",
+      "before_sha256": "0f3eb3eb52cadf27ffcc858bad6b3b61ced5f33cb66ae0fca5c1574f98016701",
+      "after_link_rebase_sha256": "b0d9801aa6ea86cb84028785b443ab2c5d1d3807e4aa3fb638dad48aa2561eb7"
+    },
+    {
+      "source": "docs/workspace-state-cache/epoch-3-project-refresh/README.md",
+      "destination": "docs/workspace-state-cache/archive/epoch-3-project-refresh/README.md",
+      "kind": "archive",
+      "before_sha256": "04dc0bfd6361175b5d351dc1caf39d6dbfc4a005c1e6b9daf69da3aec3fae640",
+      "after_link_rebase_sha256": "d1d4787d72a895e431e842a0ceb05b47d2a5d7d3da1cb6322b26b4fd1ea0e7b7"
+    },
+    {
+      "source": "docs/workspace-state-cache/epoch-3-project-refresh/spec.md",
+      "destination": "docs/workspace-state-cache/archive/epoch-3-project-refresh/spec.md",
+      "kind": "archive",
+      "before_sha256": "288fd388833c7f0f3e53bdf4845d62aba2463ab19a63a5663201a899392cc8dd",
+      "after_link_rebase_sha256": "288fd388833c7f0f3e53bdf4845d62aba2463ab19a63a5663201a899392cc8dd"
+    },
+    {
+      "source": "docs/workspace-state-cache/epoch-3-project-refresh/task-00-single-project-reopen-spike-hi.md",
+      "destination": "docs/workspace-state-cache/archive/epoch-3-project-refresh/task-00-single-project-reopen-spike-hi.md",
+      "kind": "archive",
+      "before_sha256": "cb4b134b594de12f14d437491c2a42840bdb5d78323a90b842f2a4f8affda0a4",
+      "after_link_rebase_sha256": "5ab4e7385d4db8cad17cc2273006a0616a394f08fafbf86948303b661cc514f6"
+    },
+    {
+      "source": "docs/workspace-state-cache/epoch-3-project-refresh/task-01-dirty-project-dependency-map-med.md",
+      "destination": "docs/workspace-state-cache/archive/epoch-3-project-refresh/task-01-dirty-project-dependency-map-med.md",
+      "kind": "archive",
+      "before_sha256": "a3c95292048c59b1f5bfb40823adda4fa6274fc424a604d2f31b617b04ea5397",
+      "after_link_rebase_sha256": "6e0d53bbea3dd0f4a8965c50ac64ce36d588f0c3e320a84fd4388b48ce808399"
+    },
+    {
+      "source": "docs/workspace-state-cache/epoch-3-project-refresh/task-02-project-reopen-adapter-hi.md",
+      "destination": "docs/workspace-state-cache/archive/epoch-3-project-refresh/task-02-project-reopen-adapter-hi.md",
+      "kind": "archive",
+      "before_sha256": "e0d8cea7aba95f5d85664721a472c655c5f2ebacfdea60489ec09663eb399888",
+      "after_link_rebase_sha256": "f3e68fa214c2d306e5dda1be6593ba4020cffe9e9eb085353e2dd3211afb00e2"
+    },
+    {
+      "source": "docs/workspace-state-cache/epoch-3-project-refresh/task-03-membership-change-routing-med.md",
+      "destination": "docs/workspace-state-cache/archive/epoch-3-project-refresh/task-03-membership-change-routing-med.md",
+      "kind": "archive",
+      "before_sha256": "41494c7c293907a82fc7dbedc5143887f3474eba07ac698f7f14128386440a75",
+      "after_link_rebase_sha256": "c15e6406057779c65eb2de07ba41c878dae46ae704c5b1db63576daf3c79509f"
+    },
+    {
+      "source": "docs/workspace-state-cache/epoch-3-project-refresh/task-04-selective-candidate-publication-xhi.md",
+      "destination": "docs/workspace-state-cache/archive/epoch-3-project-refresh/task-04-selective-candidate-publication-xhi.md",
+      "kind": "archive",
+      "before_sha256": "f88ba095dde3d6430a51b3c4f2f7caf3ada1ebacb64998a9d14e35acb2d37d80",
+      "after_link_rebase_sha256": "e511e4f301cbb1b9e13550a5fca8fc461f0173a68faaeedf1edb750f8558a994"
+    },
+    {
+      "source": "docs/workspace-state-cache/epoch-3-project-refresh/task-05-selective-refresh-regressions-med.md",
+      "destination": "docs/workspace-state-cache/archive/epoch-3-project-refresh/task-05-selective-refresh-regressions-med.md",
+      "kind": "archive",
+      "before_sha256": "a91393a90d9af324105971a1ea6d52b26e7f5ed032c15b3a2476e85d611f4f57",
+      "after_link_rebase_sha256": "dffd7fe17108129b158d56352a04dc08cf3d4f58da52bff46b1ae2b621909c39"
+    },
+    {
+      "source": "docs/workspace-state-cache/epoch-3-project-refresh/task-06-selective-refresh-benchmark-med.md",
+      "destination": "docs/workspace-state-cache/archive/epoch-3-project-refresh/task-06-selective-refresh-benchmark-med.md",
+      "kind": "archive",
+      "before_sha256": "1f88f24b5fc6467e2f256f9c097244af0e6b4e13e3b0e7da57824015b5cda786",
+      "after_link_rebase_sha256": "f74195d6d5df565bb1aace62fbcd074217f39920fb117b2939c895d77bd8328b"
+    },
+    {
+      "source": "docs/workspace-state-cache/review/README.md",
+      "destination": "docs/workspace-state-cache/archive/review/README.md",
+      "kind": "archive",
+      "before_sha256": "9911e8056a100724bb106c2b007d4570525dd7fcf45e7735318622b527943638",
+      "after_link_rebase_sha256": "2241823ef14b967e62bc17f49923d731ce81d936cc5eec05a738f40d9ed10a41"
+    },
+    {
+      "source": "docs/workspace-state-cache/review-astra/.status",
+      "destination": "docs/workspace-state-cache/archive/review-astra/.status",
+      "kind": "archive",
+      "before_sha256": "d3be030801b90ea8057d3997d9845c7f850cc7b784450645d5ec2811cc927d7a",
+      "after_link_rebase_sha256": "d3be030801b90ea8057d3997d9845c7f850cc7b784450645d5ec2811cc927d7a"
+    },
+    {
+      "source": "docs/workspace-state-cache/review-astra/coverage.md",
+      "destination": "docs/workspace-state-cache/archive/review-astra/coverage.md",
+      "kind": "archive",
+      "before_sha256": "94b1a7523a8053fd09a901b30bb7a519e2c47766c5c72caa03c2f3bb43f2c7f6",
+      "after_link_rebase_sha256": "94b1a7523a8053fd09a901b30bb7a519e2c47766c5c72caa03c2f3bb43f2c7f6"
+    },
+    {
+      "source": "docs/workspace-state-cache/review-astra/result.md",
+      "destination": "docs/workspace-state-cache/archive/review-astra/result.md",
+      "kind": "archive",
+      "before_sha256": "2505048e199545a7cf5c4953d7131c959c60fdde4de31c9307251ffa6e36e3a1",
+      "after_link_rebase_sha256": "2505048e199545a7cf5c4953d7131c959c60fdde4de31c9307251ffa6e36e3a1"
+    },
+    {
+      "source": "docs/workspace-state-cache/review-astra/target-snapshot.json",
+      "destination": "docs/workspace-state-cache/archive/review-astra/target-snapshot.json",
+      "kind": "archive",
+      "before_sha256": "aaefa8f26fd2c98f62d1a10b4dc98270e73e5686e5474794d4a8d1dde3694c05",
+      "after_link_rebase_sha256": "aaefa8f26fd2c98f62d1a10b4dc98270e73e5686e5474794d4a8d1dde3694c05"
+    },
+    {
+      "source": "docs/workspace-state-cache/review-astra/validation.json",
+      "destination": "docs/workspace-state-cache/archive/review-astra/validation.json",
+      "kind": "archive",
+      "before_sha256": "08a4df16020ce05b10104584615412f00c08a9402775d5bdc6e0ac5a713f6709",
+      "after_link_rebase_sha256": "08a4df16020ce05b10104584615412f00c08a9402775d5bdc6e0ac5a713f6709"
+    },
+    {
+      "source": "docs/workspace-state-cache/review-astra/validation.md",
+      "destination": "docs/workspace-state-cache/archive/review-astra/validation.md",
+      "kind": "archive",
+      "before_sha256": "a07e0f45f6b0391897cf99a70a1f4dfda05b4e6b390a74350973948a38cb46b8",
+      "after_link_rebase_sha256": "a07e0f45f6b0391897cf99a70a1f4dfda05b4e6b390a74350973948a38cb46b8"
+    },
+    {
+      "source": "docs/workspace-state-cache/review-ds/.status",
+      "destination": "docs/workspace-state-cache/archive/review-ds/.status",
+      "kind": "archive",
+      "before_sha256": "d3be030801b90ea8057d3997d9845c7f850cc7b784450645d5ec2811cc927d7a",
+      "after_link_rebase_sha256": "d3be030801b90ea8057d3997d9845c7f850cc7b784450645d5ec2811cc927d7a"
+    },
+    {
+      "source": "docs/workspace-state-cache/review-ds/coverage.md",
+      "destination": "docs/workspace-state-cache/archive/review-ds/coverage.md",
+      "kind": "archive",
+      "before_sha256": "f0b4dd357a26f367f69d64fb6fd7127175e22362c9292c16d0e6a16dc9d87511",
+      "after_link_rebase_sha256": "f0b4dd357a26f367f69d64fb6fd7127175e22362c9292c16d0e6a16dc9d87511"
+    },
+    {
+      "source": "docs/workspace-state-cache/review-ds/result.md",
+      "destination": "docs/workspace-state-cache/archive/review-ds/result.md",
+      "kind": "archive",
+      "before_sha256": "beebe16c0a29601d70d1a3f5221dbc213093049f8e2e7b98e51ce0ebccd03a7c",
+      "after_link_rebase_sha256": "beebe16c0a29601d70d1a3f5221dbc213093049f8e2e7b98e51ce0ebccd03a7c"
+    },
+    {
+      "source": "docs/workspace-state-cache/review-grok/.status",
+      "destination": "docs/workspace-state-cache/archive/review-grok/.status",
+      "kind": "archive",
+      "before_sha256": "5e1f8562208322ba8dbd7567515383ac6ebf909de2eca4b674a5bfa781adcae4",
+      "after_link_rebase_sha256": "5e1f8562208322ba8dbd7567515383ac6ebf909de2eca4b674a5bfa781adcae4"
+    },
+    {
+      "source": "docs/workspace-state-cache/review-grok/coverage.md",
+      "destination": "docs/workspace-state-cache/archive/review-grok/coverage.md",
+      "kind": "archive",
+      "before_sha256": "e62ec0bed63c084d120f8da37d62e7d003a9e4edd43f4528b7530e38b2fa253d",
+      "after_link_rebase_sha256": "e62ec0bed63c084d120f8da37d62e7d003a9e4edd43f4528b7530e38b2fa253d"
+    },
+    {
+      "source": "docs/workspace-state-cache/review-grok/result.md",
+      "destination": "docs/workspace-state-cache/archive/review-grok/result.md",
+      "kind": "archive",
+      "before_sha256": "817a689d570efa2dcb7348f6d8c3240b48ef578c230fff4143690b40bb4493aa",
+      "after_link_rebase_sha256": "817a689d570efa2dcb7348f6d8c3240b48ef578c230fff4143690b40bb4493aa"
+    },
+    {
+      "source": "docs/workspace-state-cache/spec-v2/.status",
+      "destination": "docs/workspace-state-cache/.status",
+      "kind": "active",
+      "before_sha256": "d3be030801b90ea8057d3997d9845c7f850cc7b784450645d5ec2811cc927d7a",
+      "after_link_rebase_sha256": "d3be030801b90ea8057d3997d9845c7f850cc7b784450645d5ec2811cc927d7a"
+    },
+    {
+      "source": "docs/workspace-state-cache/spec-v2/benchmark.md",
+      "destination": "docs/workspace-state-cache/benchmark.md",
+      "kind": "active",
+      "before_sha256": "4a8fac130f6c7abee94fc87d8e3d8effab2b4ada18351756aa94833e32afc573",
+      "after_link_rebase_sha256": "1a2fed6b9fe52df94661e36d8ba7d81a0b6a099bd2dcc03165306ac6d055feaa"
+    },
+    {
+      "source": "docs/workspace-state-cache/spec-v2/change-ledger.md",
+      "destination": "docs/workspace-state-cache/change-ledger.md",
+      "kind": "active",
+      "before_sha256": "ce5419e8778da8f59eda6bf3f3af37a5c028261dfca1c59f896331bb3646300d",
+      "after_link_rebase_sha256": "05bcff92d1e68990ae2b2edba7f05650ade3ff7bca894a4e4d1777adbcf68d18"
+    },
+    {
+      "source": "docs/workspace-state-cache/spec-v2/deferred.md",
+      "destination": "docs/workspace-state-cache/deferred.md",
+      "kind": "active",
+      "before_sha256": "ae0fd9e1b5219d5dded8711c36f3cf36723bc6a77c2231ae227de12fd29a532c",
+      "after_link_rebase_sha256": "98fbacda4821dd68965df47fb7a5bfabba1bb703225fc1dfb2e3292109f93238"
+    },
+    {
+      "source": "docs/workspace-state-cache/spec-v2/execution.md",
+      "destination": "docs/workspace-state-cache/execution.md",
+      "kind": "active",
+      "before_sha256": "ad4e2261c5ea79db127072f18a5a0b32010eaa779a4714b3355dc3cbf87d86b8",
+      "after_link_rebase_sha256": "4469958ca9a1311c0e2f3ea83279a5995dd5d7649cedf578945afff1c91b5b5c"
+    },
+    {
+      "source": "docs/workspace-state-cache/spec-v2/human-decisions.md",
+      "destination": "docs/workspace-state-cache/human-decisions.md",
+      "kind": "active",
+      "before_sha256": "b0d38b1f3e721c12386f42337e729e2e1d56f13d5bc90afc4b744e1f77df8bdf",
+      "after_link_rebase_sha256": "d9d72fd72147ad58660558b69977b02a5c7783c8c24aa3d1a0a983fadfdc3ee5"
+    },
+    {
+      "source": "docs/workspace-state-cache/spec-v2/input-manifest.json",
+      "destination": "docs/workspace-state-cache/input-manifest.json",
+      "kind": "active",
+      "before_sha256": "9e0e270c3a4fee1ff442993918c74d1a2909e0988429e2a64f8fadc0f1e7f893",
+      "after_link_rebase_sha256": "9e0e270c3a4fee1ff442993918c74d1a2909e0988429e2a64f8fadc0f1e7f893"
+    },
+    {
+      "source": "docs/workspace-state-cache/spec-v2/preparation-report.md",
+      "destination": "docs/workspace-state-cache/preparation-report.md",
+      "kind": "active",
+      "before_sha256": "c22449642ca853d486ed0f39e350633f5dd9600267b98d71669837c4188e4f41",
+      "after_link_rebase_sha256": "8307e48636f4d922a0de799df793c42b32b98dfca3c90e37f57b8f2d38204f20"
+    },
+    {
+      "source": "docs/workspace-state-cache/spec-v2/README.md",
+      "destination": "docs/workspace-state-cache/README.md",
+      "kind": "active",
+      "before_sha256": "11c8fff7fb78bdd2903edf9e5403a20ad875a6a7a16784564bb97a61f2059588",
+      "after_link_rebase_sha256": "0384c77d884444594905f8c103fe070546b2413eac594fd14350a8f25b09b3c7"
+    },
+    {
+      "source": "docs/workspace-state-cache/spec-v2/revision-blockers.md",
+      "destination": "docs/workspace-state-cache/revision-blockers.md",
+      "kind": "active",
+      "before_sha256": "14dccc553bd2ad92bd512e699231f13c0778d6d849088a89a8bdfa38cf7a43ae",
+      "after_link_rebase_sha256": "14dccc553bd2ad92bd512e699231f13c0778d6d849088a89a8bdfa38cf7a43ae"
+    },
+    {
+      "source": "docs/workspace-state-cache/spec-v2/spikes.md",
+      "destination": "docs/workspace-state-cache/spikes.md",
+      "kind": "active",
+      "before_sha256": "db40e56d260a0064653987dfbdd3f6d8bd5ef7ff934e977a58097b970158e538",
+      "after_link_rebase_sha256": "fae01a0f0a1936119f71f0dde5f411e8f45f3ed33186d964d42828ee2b5e751c"
+    },
+    {
+      "source": "docs/workspace-state-cache/spec-v2/unresolved.md",
+      "destination": "docs/workspace-state-cache/unresolved.md",
+      "kind": "active",
+      "before_sha256": "8eb9ee4e9fabdd742723b02a828eb38cb28923cecf7c5408df653012bafd0879",
+      "after_link_rebase_sha256": "3c37c3cc7d56fe37b69e652b2e539a41aee262ad35a72185e18034857fd14c87"
+    },
+    {
+      "source": "docs/workspace-state-cache/spec-v2/validate-artifacts.py",
+      "destination": "docs/workspace-state-cache/validate-artifacts.py",
+      "kind": "active",
+      "before_sha256": "421941583363207fd85594b4ae4a6b9a5614f7af69f0a309a127670c9f52d4cd",
+      "after_link_rebase_sha256": "421941583363207fd85594b4ae4a6b9a5614f7af69f0a309a127670c9f52d4cd"
+    },
+    {
+      "source": "docs/workspace-state-cache/spec-v2/validation.json",
+      "destination": "docs/workspace-state-cache/validation.json",
+      "kind": "active",
+      "before_sha256": "c3ca9ce011fe8155ac0e44497eb7c26b93068747916e71afeff9b7577a099a5b",
+      "after_link_rebase_sha256": "c3ca9ce011fe8155ac0e44497eb7c26b93068747916e71afeff9b7577a099a5b"
+    },
+    {
+      "source": "docs/workspace-state-cache/spec-v2/validation.md",
+      "destination": "docs/workspace-state-cache/validation.md",
+      "kind": "active",
+      "before_sha256": "832755a8810b55c1af3504375ec39f6853f43c269a33235f3937d5fd923558de",
+      "after_link_rebase_sha256": "832755a8810b55c1af3504375ec39f6853f43c269a33235f3937d5fd923558de"
+    },
+    {
+      "source": "docs/workspace-state-cache/spec-v2/epoch-0-snapshot-roundtrip/README.md",
+      "destination": "docs/workspace-state-cache/epoch-0-snapshot-roundtrip/README.md",
+      "kind": "active",
+      "before_sha256": "7fce715b6f7e1a63c9a1eb036c66d7da4f8d19a130f33f6ca9f0126b5f56501b",
+      "after_link_rebase_sha256": "2d98980a70392f4cb44b23ff13cc37907f269fac5f1a2443ce84c8ecd6c84b42"
+    },
+    {
+      "source": "docs/workspace-state-cache/spec-v2/epoch-0-snapshot-roundtrip/spec.md",
+      "destination": "docs/workspace-state-cache/epoch-0-snapshot-roundtrip/spec.md",
+      "kind": "active",
+      "before_sha256": "9f10a0d636f226d40fd0f89b7c27336d431f27a92b3e5518112cb6d8cc623a77",
+      "after_link_rebase_sha256": "a8829a9b0844a5cea4735cae42cc5e6f902859ce31a038f1422936975cc25720"
+    },
+    {
+      "source": "docs/workspace-state-cache/spec-v2/epoch-0-snapshot-roundtrip/task-00-current-seams-and-controls-med.md",
+      "destination": "docs/workspace-state-cache/epoch-0-snapshot-roundtrip/task-00-current-seams-and-controls-med.md",
+      "kind": "active",
+      "before_sha256": "3b77a5d5e2cf506d3ba46af9b0641f8e707793abd4c8ae7bd4d061e2f152931e",
+      "after_link_rebase_sha256": "a87439767adbc1f52c30bd6a46387193422ea9fba9010d00eb376d08c0845b00"
+    },
+    {
+      "source": "docs/workspace-state-cache/spec-v2/epoch-0-snapshot-roundtrip/task-01-baseline-runner-med.md",
+      "destination": "docs/workspace-state-cache/epoch-0-snapshot-roundtrip/task-01-baseline-runner-med.md",
+      "kind": "active",
+      "before_sha256": "77d8078c2ea9f23b904a0b8588ac5277b2031b7b032510f3eaa0478f3464b483",
+      "after_link_rebase_sha256": "a66ca1fd4d92bdc6976f385d5ea76462ce2d11b579f7f321858f9a72e743c66c"
+    },
+    {
+      "source": "docs/workspace-state-cache/spec-v2/epoch-0-snapshot-roundtrip/task-02-snapshot-schema-hi.md",
+      "destination": "docs/workspace-state-cache/epoch-0-snapshot-roundtrip/task-02-snapshot-schema-hi.md",
+      "kind": "active",
+      "before_sha256": "dd3853b9eb467e59964313e13743a3360e9a6b9b352e76c669a8ce34541b975a",
+      "after_link_rebase_sha256": "4792a9e710c44aa94984115abefb863655cf759fce0ad9ceb591709da5845f82"
+    },
+    {
+      "source": "docs/workspace-state-cache/spec-v2/epoch-0-snapshot-roundtrip/task-03-ordinary-capture-med.md",
+      "destination": "docs/workspace-state-cache/epoch-0-snapshot-roundtrip/task-03-ordinary-capture-med.md",
+      "kind": "active",
+      "before_sha256": "76727f9a446225d5d060e4aa7daa4917cff396fb5d7b4e015c131197a5629d1b",
+      "after_link_rebase_sha256": "b5e529532fec22759088339dd9fddd8c7ec193fa96e9a95c3d6d376eced3f983"
+    },
+    {
+      "source": "docs/workspace-state-cache/spec-v2/epoch-0-snapshot-roundtrip/task-04-snapshot-codec-low.md",
+      "destination": "docs/workspace-state-cache/epoch-0-snapshot-roundtrip/task-04-snapshot-codec-low.md",
+      "kind": "active",
+      "before_sha256": "5323f5b7d9cc318b5e37af0cf5d49309f59aab0b32f99382dbe759402a6400a3",
+      "after_link_rebase_sha256": "ff6f207ed159f904e266acba1cde58de9e360cc54ff934f45461e8ef2bc753bd"
+    },
+    {
+      "source": "docs/workspace-state-cache/spec-v2/epoch-0-snapshot-roundtrip/task-05-isolated-hydrate-hi.md",
+      "destination": "docs/workspace-state-cache/epoch-0-snapshot-roundtrip/task-05-isolated-hydrate-hi.md",
+      "kind": "active",
+      "before_sha256": "4bcbb2af13e51807caec0078a58abf79887a9af593b5f43f69c5cd19907a22fc",
+      "after_link_rebase_sha256": "44d44c19ec64ba37165aacf3cd9dba6193dabefac194d4c11a6acdeec105633e"
+    },
+    {
+      "source": "docs/workspace-state-cache/spec-v2/epoch-0-snapshot-roundtrip/task-06-real-cross-process-roundtrip-med.md",
+      "destination": "docs/workspace-state-cache/epoch-0-snapshot-roundtrip/task-06-real-cross-process-roundtrip-med.md",
+      "kind": "active",
+      "before_sha256": "0eb2cc9649b551a35b23ec2f67db845af65224d5a93ece991681c8d9a7373453",
+      "after_link_rebase_sha256": "558fde00c9816c45962f08c4c0efec3ab99fe321512b3ae146a1b37a5ff08902"
+    },
+    {
+      "source": "docs/workspace-state-cache/spec-v2/epoch-0-snapshot-roundtrip/task-07-roundtrip-benchmark-med.md",
+      "destination": "docs/workspace-state-cache/epoch-0-snapshot-roundtrip/task-07-roundtrip-benchmark-med.md",
+      "kind": "active",
+      "before_sha256": "5028a992ed0cbaaf606babf9658d7780e8fb5a285d0761b17d8bf47b23a5b558",
+      "after_link_rebase_sha256": "b954acf6fd67d7d580562287068c6e19219be9096adbe05c43664a92314344d3"
+    },
+    {
+      "source": "docs/workspace-state-cache/spec-v2/epoch-0-snapshot-roundtrip/task-08-real-control-capability-hi.md",
+      "destination": "docs/workspace-state-cache/epoch-0-snapshot-roundtrip/task-08-real-control-capability-hi.md",
+      "kind": "active",
+      "before_sha256": "de1cc74a0197299d1b924b27b53e5b6ed999d6d3f923640e39aad723f516d0bb",
+      "after_link_rebase_sha256": "6d6af3ead46e06053b216931df35b488a259b122e9abcb3ee0d412f510b356ce"
+    },
+    {
+      "source": "docs/workspace-state-cache/spec-v2/epoch-1-disk-cache-mvp/README.md",
+      "destination": "docs/workspace-state-cache/epoch-1-disk-cache-mvp/README.md",
+      "kind": "active",
+      "before_sha256": "c22d1cbd9f63c2497a2dbe95afd6783f1c57bac6201b49ee4b7f12c470df389a",
+      "after_link_rebase_sha256": "3153752b9032e37abfcd8acf318f9bd96845e35bf57dc0bd07354555183aaf72"
+    },
+    {
+      "source": "docs/workspace-state-cache/spec-v2/epoch-1-disk-cache-mvp/spec.md",
+      "destination": "docs/workspace-state-cache/epoch-1-disk-cache-mvp/spec.md",
+      "kind": "active",
+      "before_sha256": "68eb8f60045dde12bcb83a9a6e5552f2ffd6da80bcd7e1dc4d6964ae5c6b6d6f",
+      "after_link_rebase_sha256": "68eb8f60045dde12bcb83a9a6e5552f2ffd6da80bcd7e1dc4d6964ae5c6b6d6f"
+    },
+    {
+      "source": "docs/workspace-state-cache/spec-v2/epoch-1-disk-cache-mvp/task-00-input-manifest-hi.md",
+      "destination": "docs/workspace-state-cache/epoch-1-disk-cache-mvp/task-00-input-manifest-hi.md",
+      "kind": "active",
+      "before_sha256": "bdcbb504abd5d19f28fceda543cba721dc1fb4afb62165ea04889d40b0624370",
+      "after_link_rebase_sha256": "01b443e16bac77b713afbeff122887dd3051ecbc712524d314e59e7a34659ff9"
+    },
+    {
+      "source": "docs/workspace-state-cache/spec-v2/epoch-1-disk-cache-mvp/task-01-text-and-directory-probe-med.md",
+      "destination": "docs/workspace-state-cache/epoch-1-disk-cache-mvp/task-01-text-and-directory-probe-med.md",
+      "kind": "active",
+      "before_sha256": "d59e0c681a6ecaf4a0c1b7d7806f66f1a90f7dffb09ae91dfe542cbc59a78e31",
+      "after_link_rebase_sha256": "8c06f11c30dda85780e2133b6e5b438ffb65d29cd99f515bd7ddacf2a9cbe54a"
+    },
+    {
+      "source": "docs/workspace-state-cache/spec-v2/epoch-1-disk-cache-mvp/task-02-binary-fast-probe-med.md",
+      "destination": "docs/workspace-state-cache/epoch-1-disk-cache-mvp/task-02-binary-fast-probe-med.md",
+      "kind": "active",
+      "before_sha256": "7ddc8730030eb97ef741d551dc068ad72da912d6ab218e69961921631f7f7ef0",
+      "after_link_rebase_sha256": "fded7fdfc1e01e1d37efe4c2e385efd1b170296ed481ae7143c52cbbf3704610"
+    },
+    {
+      "source": "docs/workspace-state-cache/spec-v2/epoch-1-disk-cache-mvp/task-03-atomic-envelope-store-med.md",
+      "destination": "docs/workspace-state-cache/epoch-1-disk-cache-mvp/task-03-atomic-envelope-store-med.md",
+      "kind": "active",
+      "before_sha256": "48aa660a79c30ef9466ea7fd10d96db502cb1051ace5f28ac5e8a3c3bde9fb6b",
+      "after_link_rebase_sha256": "d0ee55837e73c0eaa3345b1dfe244036cb44896be3190968c7846f2b7482f46d"
+    },
+    {
+      "source": "docs/workspace-state-cache/spec-v2/epoch-1-disk-cache-mvp/task-04-manager-host-ownership-hi.md",
+      "destination": "docs/workspace-state-cache/epoch-1-disk-cache-mvp/task-04-manager-host-ownership-hi.md",
+      "kind": "active",
+      "before_sha256": "871513655029da0905bbcd35346cf8c1f19568cd610acda417cc8ceed31bad4d",
+      "after_link_rebase_sha256": "ffb71413f0a0397e3a707120bd059c10fac5e15ef68b208c4456ff7488ed777d"
+    },
+    {
+      "source": "docs/workspace-state-cache/spec-v2/epoch-1-disk-cache-mvp/task-05-fresh-session-preparation-hi.md",
+      "destination": "docs/workspace-state-cache/epoch-1-disk-cache-mvp/task-05-fresh-session-preparation-hi.md",
+      "kind": "active",
+      "before_sha256": "a7d4124f97775c5a8a5b4f502a648aa114a8abaef264c29ff25baa9b2db1b86f",
+      "after_link_rebase_sha256": "9739e64fa961d39d1b65ab3872029abec3a1cf7936e6d84a8e6450e62d978c7b"
+    },
+    {
+      "source": "docs/workspace-state-cache/spec-v2/epoch-1-disk-cache-mvp/task-06-load-save-and-restore-hi.md",
+      "destination": "docs/workspace-state-cache/epoch-1-disk-cache-mvp/task-06-load-save-and-restore-hi.md",
+      "kind": "active",
+      "before_sha256": "8604c6cb34c0428a81a885cd3089ef8b8b62f2c51b68e4533698cfb518573869",
+      "after_link_rebase_sha256": "a555675d37fec189ea1cd350a0a806cc90a799a2d12d9b2a2b397d863e6825e9"
+    },
+    {
+      "source": "docs/workspace-state-cache/spec-v2/epoch-1-disk-cache-mvp/task-07-existing-watcher-attachment-hi.md",
+      "destination": "docs/workspace-state-cache/epoch-1-disk-cache-mvp/task-07-existing-watcher-attachment-hi.md",
+      "kind": "active",
+      "before_sha256": "e1e62f51cb14f73213d4f4502dd32ebadc9d1931ae9854c7b7d39e38bf88a8f9",
+      "after_link_rebase_sha256": "777aa6414456a74c8d8505b33fbcece9a0fb85c007f5c904d9d9ae2e79064e47"
+    },
+    {
+      "source": "docs/workspace-state-cache/spec-v2/epoch-1-disk-cache-mvp/task-08-hydrated-csharp-write-hi.md",
+      "destination": "docs/workspace-state-cache/epoch-1-disk-cache-mvp/task-08-hydrated-csharp-write-hi.md",
+      "kind": "active",
+      "before_sha256": "7aa010bfcbd531fc7996d1354954754d8816292dee40f6731e7efa78697b80c9",
+      "after_link_rebase_sha256": "606781d4f16a83806b3ce3393c6db4ea37ed5c9b1478014b16a19aa30f25695b"
+    },
+    {
+      "source": "docs/workspace-state-cache/spec-v2/epoch-1-disk-cache-mvp/task-09-restart-and-failure-integration-med.md",
+      "destination": "docs/workspace-state-cache/epoch-1-disk-cache-mvp/task-09-restart-and-failure-integration-med.md",
+      "kind": "active",
+      "before_sha256": "8b1f78a39bbb0d4062191a5c4fb3b2fbb161bc4317ee71360f940f7f36eaedef",
+      "after_link_rebase_sha256": "28a1a9265b1fe97df058a818523e8a9ac257f85d3b917600d88a84af57ffb1ef"
+    },
+    {
+      "source": "docs/workspace-state-cache/spec-v2/epoch-1-disk-cache-mvp/task-10-mvp-benchmark-med.md",
+      "destination": "docs/workspace-state-cache/epoch-1-disk-cache-mvp/task-10-mvp-benchmark-med.md",
+      "kind": "active",
+      "before_sha256": "a3c267a5d3e506a2b0a8c8a1a3bb526ee0cf116a74c655d340a85e6a83a275e6",
+      "after_link_rebase_sha256": "57d80006b959e310747be74d7a276a436a97e3235120160e0f79f723004db383"
+    },
+    {
+      "source": "docs/workspace-state-cache/spec-v2/epoch-1-disk-cache-mvp/task-11-raw-import-restore-evidence-hi.md",
+      "destination": "docs/workspace-state-cache/epoch-1-disk-cache-mvp/task-11-raw-import-restore-evidence-hi.md",
+      "kind": "active",
+      "before_sha256": "b136c3e434050161549e0dbc38d6eaac73db1657387111552700a8cbedba2d7e",
+      "after_link_rebase_sha256": "e1c2c6a54e34ae5bbc6cad9a83acd03a40cc3a0e9c46b2a9df762df781143e77"
+    },
+    {
+      "source": "docs/workspace-state-cache/spec-v2/epoch-2-content-refresh/README.md",
+      "destination": "docs/workspace-state-cache/epoch-2-content-refresh/README.md",
+      "kind": "active",
+      "before_sha256": "269162146cfbb43f40cfc6d1f8a06ff5f84fa2042224aa6ca2fc54a1235ee251",
+      "after_link_rebase_sha256": "73e74929fd1e55c57fe129996e697f19414e7b6e55f234c2cb528d8a7f5ebe95"
+    },
+    {
+      "source": "docs/workspace-state-cache/spec-v2/epoch-2-content-refresh/spec.md",
+      "destination": "docs/workspace-state-cache/epoch-2-content-refresh/spec.md",
+      "kind": "active",
+      "before_sha256": "472e69ccaace13d93d5a3d73028b05d28c5ac6a419f6954845a66fb374b138d2",
+      "after_link_rebase_sha256": "472e69ccaace13d93d5a3d73028b05d28c5ac6a419f6954845a66fb374b138d2"
+    },
+    {
+      "source": "docs/workspace-state-cache/spec-v2/epoch-2-content-refresh/task-00-startup-diff-roles-hi.md",
+      "destination": "docs/workspace-state-cache/epoch-2-content-refresh/task-00-startup-diff-roles-hi.md",
+      "kind": "active",
+      "before_sha256": "42cdbb839bf81a9d52c1a63a47448391c91123d343b3ac531c99f8af1a329cf1",
+      "after_link_rebase_sha256": "a249f430bdc449bf976b56019d352a7e7b9b5052289409e69515362fc409951f"
+    },
+    {
+      "source": "docs/workspace-state-cache/spec-v2/epoch-2-content-refresh/task-01-existing-source-refresh-med.md",
+      "destination": "docs/workspace-state-cache/epoch-2-content-refresh/task-01-existing-source-refresh-med.md",
+      "kind": "active",
+      "before_sha256": "a177cb86661376cfa60bcf221ec4a3669805b76862a1ab70cece245ceaa4e249",
+      "after_link_rebase_sha256": "ca4251cd81bf8956b2f56f578f4d4b9d3ebeafd164a8863f34118a9663f4ced3"
+    },
+    {
+      "source": "docs/workspace-state-cache/spec-v2/epoch-2-content-refresh/task-02-additional-and-config-refresh-med.md",
+      "destination": "docs/workspace-state-cache/epoch-2-content-refresh/task-02-additional-and-config-refresh-med.md",
+      "kind": "active",
+      "before_sha256": "7a6fa92c6da4595e6dac504cd81a80e3808e52422a7fb08dad48ac7a8101a252",
+      "after_link_rebase_sha256": "1b5668664eb0880dc8e85fab262d4798b218bd48575bf35845b982dd419f048a"
+    },
+    {
+      "source": "docs/workspace-state-cache/spec-v2/epoch-2-content-refresh/task-03-fresh-metadata-references-med.md",
+      "destination": "docs/workspace-state-cache/epoch-2-content-refresh/task-03-fresh-metadata-references-med.md",
+      "kind": "active",
+      "before_sha256": "df41f6fff6f9a4ecdc3aa75a1d2192531deff40b6e7193d83652235a47c872c1",
+      "after_link_rebase_sha256": "6b7225c3b47f346d8cc30bde4961d720117f078d749ed572fed2e4e3f4423cac"
+    },
+    {
+      "source": "docs/workspace-state-cache/spec-v2/epoch-2-content-refresh/task-04-refreshed-envelope-capture-med.md",
+      "destination": "docs/workspace-state-cache/epoch-2-content-refresh/task-04-refreshed-envelope-capture-med.md",
+      "kind": "active",
+      "before_sha256": "a0296b85c409b4df1f86121d72c89debbc43e980e5764c3d14c1fe27a517f2ce",
+      "after_link_rebase_sha256": "767c0fbd083b0256eb847545bf2ddefecf1ea7943b51921f7eed8404ec820d50"
+    },
+    {
+      "source": "docs/workspace-state-cache/spec-v2/epoch-2-content-refresh/task-05-content-and-graph-mutations-med.md",
+      "destination": "docs/workspace-state-cache/epoch-2-content-refresh/task-05-content-and-graph-mutations-med.md",
+      "kind": "active",
+      "before_sha256": "a3e978bda9be47c6e9801de5988629307336a63c1c224aa89a92b1a6f1d3f838",
+      "after_link_rebase_sha256": "b209facaf0eba2ee55515c0a19ed47df92931027e2fa435a21dfb2bca039bae0"
+    },
+    {
+      "source": "docs/workspace-state-cache/spec-v2/epoch-2-content-refresh/task-06-content-restart-benchmark-med.md",
+      "destination": "docs/workspace-state-cache/epoch-2-content-refresh/task-06-content-restart-benchmark-med.md",
+      "kind": "active",
+      "before_sha256": "12fc74e8d285e46a63aef7c7c9247548d504f474b3503085bf24a2413e1355e1",
+      "after_link_rebase_sha256": "fa6f3a9bbfdad8edfa9f6ff3ea541c6ef558b220a6ba7857f13f424de153a036"
+    },
+    {
+      "source": "docs/workspace-state-cache/spec-v2/epoch-3-project-refresh/README.md",
+      "destination": "docs/workspace-state-cache/epoch-3-project-refresh/README.md",
+      "kind": "active",
+      "before_sha256": "063ee6f1a94f71c1f8a3b5a155e983c351b797b7a51e42a853a4e25b42f443ff",
+      "after_link_rebase_sha256": "018fee1df2e67b5806665ecc8c7546e71f13cb75e436f3db1b431e8b4b2991f0"
+    },
+    {
+      "source": "docs/workspace-state-cache/spec-v2/epoch-3-project-refresh/spec.md",
+      "destination": "docs/workspace-state-cache/epoch-3-project-refresh/spec.md",
+      "kind": "active",
+      "before_sha256": "0b0fe12b149e30b75becdc3011f67cd530d9e9d7fa924d84b41903c06f6b36ef",
+      "after_link_rebase_sha256": "0b0fe12b149e30b75becdc3011f67cd530d9e9d7fa924d84b41903c06f6b36ef"
+    },
+    {
+      "source": "docs/workspace-state-cache/spec-v2/epoch-3-project-refresh/task-00-single-project-reopen-spike-hi.md",
+      "destination": "docs/workspace-state-cache/epoch-3-project-refresh/task-00-single-project-reopen-spike-hi.md",
+      "kind": "active",
+      "before_sha256": "769af1a7cd171a2939dc8beb653eecc1e90a2c4da438937fa57ef69743facf8b",
+      "after_link_rebase_sha256": "3ccff0bb32b72e20a127da6f7a5aba85c54be21ea72d6663ba5082d4ad2709ed"
+    },
+    {
+      "source": "docs/workspace-state-cache/spec-v2/epoch-3-project-refresh/task-01-dirty-project-dependency-map-med.md",
+      "destination": "docs/workspace-state-cache/epoch-3-project-refresh/task-01-dirty-project-dependency-map-med.md",
+      "kind": "active",
+      "before_sha256": "a0e1739d16795ea95a87c10a225c812e7b258982b7528897c2a0303fd9d6d6d2",
+      "after_link_rebase_sha256": "0a528ce5ee1dfebc1b85c3671e766952fd31b5fe83350d844169bebc42daf367"
+    },
+    {
+      "source": "docs/workspace-state-cache/spec-v2/epoch-3-project-refresh/task-02-project-reopen-adapter-hi.md",
+      "destination": "docs/workspace-state-cache/epoch-3-project-refresh/task-02-project-reopen-adapter-hi.md",
+      "kind": "active",
+      "before_sha256": "17f606b2b6d098a338169ec333e33c65bcd0419fd01caa40d1af8171aee3c94b",
+      "after_link_rebase_sha256": "c2ca2c915df87654903dd5de571e393e21d748c0303ac1623fd48486c4ca5c75"
+    },
+    {
+      "source": "docs/workspace-state-cache/spec-v2/epoch-3-project-refresh/task-03-membership-change-routing-med.md",
+      "destination": "docs/workspace-state-cache/epoch-3-project-refresh/task-03-membership-change-routing-med.md",
+      "kind": "active",
+      "before_sha256": "1e8a3404e5cf08e699e9bf4eef222ff7013a5980601568a5ef884e52307a1238",
+      "after_link_rebase_sha256": "55813c338776b99a384a5f7e68172dacd1d40b81eb8d139d0d678619a8272e6f"
+    },
+    {
+      "source": "docs/workspace-state-cache/spec-v2/epoch-3-project-refresh/task-04-selective-candidate-publication-xhi.md",
+      "destination": "docs/workspace-state-cache/epoch-3-project-refresh/task-04-selective-candidate-publication-xhi.md",
+      "kind": "active",
+      "before_sha256": "24208094d344a739d0ba2a582e46e45bac54e3b03eaf696b6be68777878b6cba",
+      "after_link_rebase_sha256": "ed4cb0ac4cd2c4216e58b5e949e7df7fb2957d56cac0c78b44313aa6100e0148"
+    },
+    {
+      "source": "docs/workspace-state-cache/spec-v2/epoch-3-project-refresh/task-05-selective-refresh-regressions-med.md",
+      "destination": "docs/workspace-state-cache/epoch-3-project-refresh/task-05-selective-refresh-regressions-med.md",
+      "kind": "active",
+      "before_sha256": "cd9fddef073f1f5f0441ee5615fec5d587e5064f6d9c3e22c502617291731c65",
+      "after_link_rebase_sha256": "a41c9bb8f9e37dce67f1682de8f329a5053083e180b0646fa1f0ef202f192206"
+    },
+    {
+      "source": "docs/workspace-state-cache/spec-v2/epoch-3-project-refresh/task-06-selective-refresh-benchmark-med.md",
+      "destination": "docs/workspace-state-cache/epoch-3-project-refresh/task-06-selective-refresh-benchmark-med.md",
+      "kind": "active",
+      "before_sha256": "608b2bee3fd8e989b58277df53396f1bcbe16ea3fad70b18b990574dfca10697",
+      "after_link_rebase_sha256": "858b4d7f4321f59c271915a3ce7e17727a2c3e717907cb53d151200d64b8d601"
+    },
+    {
+      "source": "docs/workspace-state-cache/spec-v2/review/README.md",
+      "destination": "docs/workspace-state-cache/review/README.md",
+      "kind": "active",
+      "before_sha256": "19a84314551e99c5f121c1b3de380fabe3839a3fea2685a62276727668278e1c",
+      "after_link_rebase_sha256": "2d40ba928f5ec6f4938a784368bd5e2aee5ab4ac9b910efb752f94b60d81b9d7"
+    },
+    {
+      "source": "docs/workspace-state-cache/review-grok/findings/F-001.md",
+      "destination": "docs/workspace-state-cache/archive/review-grok/findings/F-001.md",
+      "kind": "archive",
+      "before_sha256": "b2586f8f6a860c9743f6a6ee1067a8c341a3dc0615c82966dd25b283a32e0eeb",
+      "after_link_rebase_sha256": "b2586f8f6a860c9743f6a6ee1067a8c341a3dc0615c82966dd25b283a32e0eeb"
+    },
+    {
+      "source": "docs/workspace-state-cache/review-grok/findings/F-002.md",
+      "destination": "docs/workspace-state-cache/archive/review-grok/findings/F-002.md",
+      "kind": "archive",
+      "before_sha256": "01ad34ce8b3b804efa716e96919e5ef53f499c95b20944ee6839b605d1853cef",
+      "after_link_rebase_sha256": "01ad34ce8b3b804efa716e96919e5ef53f499c95b20944ee6839b605d1853cef"
+    },
+    {
+      "source": "docs/workspace-state-cache/review-grok/findings/F-003.md",
+      "destination": "docs/workspace-state-cache/archive/review-grok/findings/F-003.md",
+      "kind": "archive",
+      "before_sha256": "ed5b82f8543dc80acc1c504a94029119cbf99c54020e4638fe5afbae3ff15529",
+      "after_link_rebase_sha256": "ed5b82f8543dc80acc1c504a94029119cbf99c54020e4638fe5afbae3ff15529"
+    },
+    {
+      "source": "docs/workspace-state-cache/review-grok/findings/F-004.md",
+      "destination": "docs/workspace-state-cache/archive/review-grok/findings/F-004.md",
+      "kind": "archive",
+      "before_sha256": "ae7f5239f041b959ad343276a3ee61ae140cd2ca332c5fc53ccd8a92a7462583",
+      "after_link_rebase_sha256": "ae7f5239f041b959ad343276a3ee61ae140cd2ca332c5fc53ccd8a92a7462583"
+    },
+    {
+      "source": "docs/workspace-state-cache/review-grok/findings/F-005.md",
+      "destination": "docs/workspace-state-cache/archive/review-grok/findings/F-005.md",
+      "kind": "archive",
+      "before_sha256": "83a0efaabc9d076b4f1a399e2ea8f30a3b8fb0ddbb89a4c20faa435a0c9e3b1f",
+      "after_link_rebase_sha256": "83a0efaabc9d076b4f1a399e2ea8f30a3b8fb0ddbb89a4c20faa435a0c9e3b1f"
+    },
+    {
+      "source": "docs/workspace-state-cache/review-ds/findings/F-001.md",
+      "destination": "docs/workspace-state-cache/archive/review-ds/findings/F-001.md",
+      "kind": "archive",
+      "before_sha256": "f31e2a6836bd201f976fc534d7f4b3464c9fc1288cc29451c5571f09b9e52b16",
+      "after_link_rebase_sha256": "f31e2a6836bd201f976fc534d7f4b3464c9fc1288cc29451c5571f09b9e52b16"
+    },
+    {
+      "source": "docs/workspace-state-cache/review-ds/findings/F-002.md",
+      "destination": "docs/workspace-state-cache/archive/review-ds/findings/F-002.md",
+      "kind": "archive",
+      "before_sha256": "a4238019797951974e8d303b69c7813081f256be21b9227a4043b0819b03f554",
+      "after_link_rebase_sha256": "a4238019797951974e8d303b69c7813081f256be21b9227a4043b0819b03f554"
+    },
+    {
+      "source": "docs/workspace-state-cache/review-ds/findings/F-003.md",
+      "destination": "docs/workspace-state-cache/archive/review-ds/findings/F-003.md",
+      "kind": "archive",
+      "before_sha256": "0c1b86fb4ce444fa96085ea3e44756eeb8f567497ce0854632e563b10c9ae3ec",
+      "after_link_rebase_sha256": "0c1b86fb4ce444fa96085ea3e44756eeb8f567497ce0854632e563b10c9ae3ec"
+    },
+    {
+      "source": "docs/workspace-state-cache/review-ds/findings/F-004.md",
+      "destination": "docs/workspace-state-cache/archive/review-ds/findings/F-004.md",
+      "kind": "archive",
+      "before_sha256": "3a7df97c89063f8295b7932cc2787b62db388bc48cb24a7ad77a5d7c23daa8ea",
+      "after_link_rebase_sha256": "3a7df97c89063f8295b7932cc2787b62db388bc48cb24a7ad77a5d7c23daa8ea"
+    },
+    {
+      "source": "docs/workspace-state-cache/review-ds/findings/F-005.md",
+      "destination": "docs/workspace-state-cache/archive/review-ds/findings/F-005.md",
+      "kind": "archive",
+      "before_sha256": "447f452f8a968021b85c75253150ab47a35cbbf5e0c14b1a45f757038c44ff25",
+      "after_link_rebase_sha256": "447f452f8a968021b85c75253150ab47a35cbbf5e0c14b1a45f757038c44ff25"
+    },
+    {
+      "source": "docs/workspace-state-cache/review-ds/findings/F-006.md",
+      "destination": "docs/workspace-state-cache/archive/review-ds/findings/F-006.md",
+      "kind": "archive",
+      "before_sha256": "3e297dfb2e538c02ffb53843cddb2a57deaabf9c9341e2b24f7ecf3a4011cc84",
+      "after_link_rebase_sha256": "3e297dfb2e538c02ffb53843cddb2a57deaabf9c9341e2b24f7ecf3a4011cc84"
+    },
+    {
+      "source": "docs/workspace-state-cache/review-ds/findings/F-007.md",
+      "destination": "docs/workspace-state-cache/archive/review-ds/findings/F-007.md",
+      "kind": "archive",
+      "before_sha256": "55ab4decb2cabae60bf60aedfce1531bfc12f077e5ccd92a0a157bb73e4487e6",
+      "after_link_rebase_sha256": "55ab4decb2cabae60bf60aedfce1531bfc12f077e5ccd92a0a157bb73e4487e6"
+    },
+    {
+      "source": "docs/workspace-state-cache/review-ds/findings/F-008.md",
+      "destination": "docs/workspace-state-cache/archive/review-ds/findings/F-008.md",
+      "kind": "archive",
+      "before_sha256": "7600b036c9dfbdb0e91eb67585288258e5da2d189a9a55494cba8d0c5c692c7a",
+      "after_link_rebase_sha256": "7600b036c9dfbdb0e91eb67585288258e5da2d189a9a55494cba8d0c5c692c7a"
+    },
+    {
+      "source": "docs/workspace-state-cache/review-astra/findings/F-001.md",
+      "destination": "docs/workspace-state-cache/archive/review-astra/findings/F-001.md",
+      "kind": "archive",
+      "before_sha256": "78f0eef03396962f6719db69a6a8156773e782bc11f126c7a527fb74eeed1a0e",
+      "after_link_rebase_sha256": "4bde6411aa5d92c2a300cf0d9923a5d908ef5abc4b25a5844e95739b3f8ddbdf"
+    },
+    {
+      "source": "docs/workspace-state-cache/review-astra/findings/F-002.md",
+      "destination": "docs/workspace-state-cache/archive/review-astra/findings/F-002.md",
+      "kind": "archive",
+      "before_sha256": "f84472e11a23d89bc5e68ae4822a31e68c73f023f888c431ba16c641441d0040",
+      "after_link_rebase_sha256": "2f10891a6859cf1326f1ab115e21b8f556caf107fd8cd6899866fee1b85b488c"
+    },
+    {
+      "source": "docs/workspace-state-cache/review-astra/findings/F-003.md",
+      "destination": "docs/workspace-state-cache/archive/review-astra/findings/F-003.md",
+      "kind": "archive",
+      "before_sha256": "524405f15c50e55aede8e519f3b20f07bea12510e3365354ae774ca104850908",
+      "after_link_rebase_sha256": "524405f15c50e55aede8e519f3b20f07bea12510e3365354ae774ca104850908"
+    },
+    {
+      "source": "docs/workspace-state-cache/defense/findings/review-astra-F-001.md",
+      "destination": "docs/workspace-state-cache/archive/defense/findings/review-astra-F-001.md",
+      "kind": "archive",
+      "before_sha256": "a475165bd00e08eb7b04627353c466f36b40570f3a20fd5d7da0febcf47e02f1",
+      "after_link_rebase_sha256": "6790011bc0a57a40c8e8ee63244578639ebc74bb0d8ea9ef1b711859fac9f846"
+    },
+    {
+      "source": "docs/workspace-state-cache/defense/findings/review-astra-F-002.md",
+      "destination": "docs/workspace-state-cache/archive/defense/findings/review-astra-F-002.md",
+      "kind": "archive",
+      "before_sha256": "8436799fb94b3117dfa6f001bf188e007f420780f4648d946a380fed4a45a7d2",
+      "after_link_rebase_sha256": "f68fafc91010da6b32f7645c6ed38e426f980cdd2f8e0b86b5803d66d9693072"
+    },
+    {
+      "source": "docs/workspace-state-cache/defense/findings/review-astra-F-003.md",
+      "destination": "docs/workspace-state-cache/archive/defense/findings/review-astra-F-003.md",
+      "kind": "archive",
+      "before_sha256": "145c6ed83a48899be73fddefc7c8da09ab1898f0cd2aae9b7e620b37497d7173",
+      "after_link_rebase_sha256": "145c6ed83a48899be73fddefc7c8da09ab1898f0cd2aae9b7e620b37497d7173"
+    },
+    {
+      "source": "docs/workspace-state-cache/defense/findings/review-ds-F-001.md",
+      "destination": "docs/workspace-state-cache/archive/defense/findings/review-ds-F-001.md",
+      "kind": "archive",
+      "before_sha256": "7dfd30bdf8d92db1b06a66c645b3c56188ecdc4b87c469ce1a6030b6a09bb940",
+      "after_link_rebase_sha256": "3c9975cc816428ada324305f43ae2c3e150c3c9e0b89b94256f199811d39d514"
+    },
+    {
+      "source": "docs/workspace-state-cache/defense/findings/review-ds-F-002.md",
+      "destination": "docs/workspace-state-cache/archive/defense/findings/review-ds-F-002.md",
+      "kind": "archive",
+      "before_sha256": "385211ad3ee820c22dc2e8a0bb0985a1af46579012df2950554ce9bd55445881",
+      "after_link_rebase_sha256": "694305c1164d04388317433300f80bf5c4aaccb0f3bbf794d77a9acff928b1c0"
+    },
+    {
+      "source": "docs/workspace-state-cache/defense/findings/review-ds-F-003.md",
+      "destination": "docs/workspace-state-cache/archive/defense/findings/review-ds-F-003.md",
+      "kind": "archive",
+      "before_sha256": "ae9e9d285a354572918a174e0df787218f3120e53d359e1aa35546b0758ae236",
+      "after_link_rebase_sha256": "8b400b01e000f9f68d7d373ad4320076c015b48733e24d3dc4de623ca9450ce8"
+    },
+    {
+      "source": "docs/workspace-state-cache/defense/findings/review-ds-F-004.md",
+      "destination": "docs/workspace-state-cache/archive/defense/findings/review-ds-F-004.md",
+      "kind": "archive",
+      "before_sha256": "fc3db2d6a187fcc94c60c7df9e3145b7818ccf0a55ddc5238a62fd55c2154bac",
+      "after_link_rebase_sha256": "42e22968f327a4158592cf487115e3dc5f6be9b4be06ebb6c59be16d67ca2672"
+    },
+    {
+      "source": "docs/workspace-state-cache/defense/findings/review-ds-F-005.md",
+      "destination": "docs/workspace-state-cache/archive/defense/findings/review-ds-F-005.md",
+      "kind": "archive",
+      "before_sha256": "b0c208250d5b1f553d11f4548e17140e6a0f83dbad2e3769c95e9745c4ffaa94",
+      "after_link_rebase_sha256": "a2e0a91478fb860e50d50c97fb4b77700204042d130aace9130145230f172490"
+    },
+    {
+      "source": "docs/workspace-state-cache/defense/findings/review-ds-F-006.md",
+      "destination": "docs/workspace-state-cache/archive/defense/findings/review-ds-F-006.md",
+      "kind": "archive",
+      "before_sha256": "03c101e8f8d99c78a2951982d010e0bd0fa0ea11cd611dd7984823dcbab96a93",
+      "after_link_rebase_sha256": "03c101e8f8d99c78a2951982d010e0bd0fa0ea11cd611dd7984823dcbab96a93"
+    },
+    {
+      "source": "docs/workspace-state-cache/defense/findings/review-ds-F-007.md",
+      "destination": "docs/workspace-state-cache/archive/defense/findings/review-ds-F-007.md",
+      "kind": "archive",
+      "before_sha256": "ddf15c40670216991f0b1ee5e08d67adb9ca513469476d55f06bc2ff9025e422",
+      "after_link_rebase_sha256": "2bac71c0e1862cb6c06e9538a79d74ec3357983e5d7b2a24cb764032014abddc"
+    },
+    {
+      "source": "docs/workspace-state-cache/defense/findings/review-ds-F-008.md",
+      "destination": "docs/workspace-state-cache/archive/defense/findings/review-ds-F-008.md",
+      "kind": "archive",
+      "before_sha256": "9e79bee87338dd900d6ba57d31dd09d2c266e13e6e15fb7233dc044fb57850b3",
+      "after_link_rebase_sha256": "c92f06bfb4f884741245025f20a59283675f57a611f6f6dcd06ecf8e4c75bc1c"
+    },
+    {
+      "source": "docs/workspace-state-cache/defense/findings/review-grok-F-001.md",
+      "destination": "docs/workspace-state-cache/archive/defense/findings/review-grok-F-001.md",
+      "kind": "archive",
+      "before_sha256": "a28aef4222e5bff9306717212da806e991ddad1d1243aefbdf0f50715fa33129",
+      "after_link_rebase_sha256": "ec51ec76b1ec8d395ab2bb04a8a9f25a0e385758294106104c8ddd75656b9d08"
+    },
+    {
+      "source": "docs/workspace-state-cache/defense/findings/review-grok-F-002.md",
+      "destination": "docs/workspace-state-cache/archive/defense/findings/review-grok-F-002.md",
+      "kind": "archive",
+      "before_sha256": "90cb271b12eaa3bc7e3db70cbf849afd73c47d327de3535050631a4bdbb9abe8",
+      "after_link_rebase_sha256": "4b5535690dd6c156e6990396eb405839b2b148c60410d0c867a76f8e90bd73be"
+    },
+    {
+      "source": "docs/workspace-state-cache/defense/findings/review-grok-F-003.md",
+      "destination": "docs/workspace-state-cache/archive/defense/findings/review-grok-F-003.md",
+      "kind": "archive",
+      "before_sha256": "85b1dbbe2fe409a07ae5580c991575d4af4b0205ce457bc9cb319e794c7917a6",
+      "after_link_rebase_sha256": "8a44ffc1b9958c7115e47d744b94e9ecd145accdbbf1313aa78537b1dfca34f5"
+    },
+    {
+      "source": "docs/workspace-state-cache/defense/findings/review-grok-F-004.md",
+      "destination": "docs/workspace-state-cache/archive/defense/findings/review-grok-F-004.md",
+      "kind": "archive",
+      "before_sha256": "ea97ce87c8353d4db55d49437dde42c74adc579cf8a381f49d1ecc5668beb257",
+      "after_link_rebase_sha256": "bfe1fe672ccad6e743cee8ee67f9c6141e3cef30ae68362349fe63d6bb6f0ff3"
+    },
+    {
+      "source": "docs/workspace-state-cache/defense/findings/review-grok-F-005.md",
+      "destination": "docs/workspace-state-cache/archive/defense/findings/review-grok-F-005.md",
+      "kind": "archive",
+      "before_sha256": "911366566ac0d5c9dc54cbd4c595c031b00157149827f9f9281efa5a26bd7759",
+      "after_link_rebase_sha256": "cc577ae3d360b9960f968c0f779b553511ee32abddd6212da7309589978c71ab"
+    },
+    {
+      "source": "docs/workspace-state-cache/arbitration/findings/ARB-001.md",
+      "destination": "docs/workspace-state-cache/archive/arbitration/findings/ARB-001.md",
+      "kind": "archive",
+      "before_sha256": "4e1bd1cc8dd25ef1b8d2c198989c8cc5ab066f7cb7dd37d139d3a5736228d866",
+      "after_link_rebase_sha256": "04da3a376c329f254023a1887626b5af1e9b5f926ca88087d9bebcb7ea0d331e"
+    },
+    {
+      "source": "docs/workspace-state-cache/arbitration/findings/ARB-002.md",
+      "destination": "docs/workspace-state-cache/archive/arbitration/findings/ARB-002.md",
+      "kind": "archive",
+      "before_sha256": "c7b4555ab0ee558a19afaa9876d39472e5bb369d745ccf2a0f08652d4bdf4641",
+      "after_link_rebase_sha256": "d6a33b479512a36ed567156e5bfeb8ad55ff7c33d435b68ef32cba443407fc1e"
+    },
+    {
+      "source": "docs/workspace-state-cache/arbitration/findings/ARB-003.md",
+      "destination": "docs/workspace-state-cache/archive/arbitration/findings/ARB-003.md",
+      "kind": "archive",
+      "before_sha256": "15dd666ade37871f77e94e29562a5d2a53d8879e390e42c722a5e5392cae1268",
+      "after_link_rebase_sha256": "5aa9deb3246f11c134220b8fdfe42c632b75939f922810f3bbc2212df539a885"
+    },
+    {
+      "source": "docs/workspace-state-cache/arbitration/findings/ARB-004.md",
+      "destination": "docs/workspace-state-cache/archive/arbitration/findings/ARB-004.md",
+      "kind": "archive",
+      "before_sha256": "e5f96f65d97196977c19677633e37d1f7e0dab1c1673786a7ec82dc8847fd61a",
+      "after_link_rebase_sha256": "6cf6123bbf08682745cec713cb7814aec0c91c2ec7b987d064a4649b0b58a57e"
+    },
+    {
+      "source": "docs/workspace-state-cache/arbitration/findings/ARB-005.md",
+      "destination": "docs/workspace-state-cache/archive/arbitration/findings/ARB-005.md",
+      "kind": "archive",
+      "before_sha256": "ce952b3db657602ff10a5118c22cfc88972ae182fe36147a22004cfe1c8e118d",
+      "after_link_rebase_sha256": "489b751aecf79ff5870d2bd8734668d7792540748d9b38f73b7a1288394b4ad3"
+    },
+    {
+      "source": "docs/workspace-state-cache/arbitration/findings/ARB-006.md",
+      "destination": "docs/workspace-state-cache/archive/arbitration/findings/ARB-006.md",
+      "kind": "archive",
+      "before_sha256": "8f200e455b222dc9740c15bbc72f8e2eeef4fc07a9e77235778e1e41b02b636d",
+      "after_link_rebase_sha256": "cfbc0098d84f738d4de1849e2c539a215a6a1895faa7f7c1974364f1ec3e3601"
+    },
+    {
+      "source": "docs/workspace-state-cache/arbitration/findings/ARB-007.md",
+      "destination": "docs/workspace-state-cache/archive/arbitration/findings/ARB-007.md",
+      "kind": "archive",
+      "before_sha256": "8aa7eae141645938400f809d02a18ae4c40659c44e1b3322b0b8750694636ccd",
+      "after_link_rebase_sha256": "f753f4c697febea8fea40d9d7186c79ec326aaa6ff22daf3027dac71f08e9ef7"
+    },
+    {
+      "source": "docs/workspace-state-cache/arbitration/findings/ARB-008.md",
+      "destination": "docs/workspace-state-cache/archive/arbitration/findings/ARB-008.md",
+      "kind": "archive",
+      "before_sha256": "e0e0c3c351d6946c46af743111946caa8f0bc784278f08d15831cbfacaa2e9ad",
+      "after_link_rebase_sha256": "309019ba939848836f999ac288d27f9949658048da91446acc32641396b236c2"
+    },
+    {
+      "source": "docs/workspace-state-cache/arbitration/findings/ARB-009.md",
+      "destination": "docs/workspace-state-cache/archive/arbitration/findings/ARB-009.md",
+      "kind": "archive",
+      "before_sha256": "0e93bc80d0eefbfc0ba0b55c8a22924d4216b992d435a8c7233a0153168727b0",
+      "after_link_rebase_sha256": "0e93bc80d0eefbfc0ba0b55c8a22924d4216b992d435a8c7233a0153168727b0"
+    },
+    {
+      "source": "docs/workspace-state-cache/arbitration/findings/ARB-010.md",
+      "destination": "docs/workspace-state-cache/archive/arbitration/findings/ARB-010.md",
+      "kind": "archive",
+      "before_sha256": "a404c5a4d38eb72a953a0ceb4b6e2ecbe23bfd87bab612f6656f6e5f0fbb79b8",
+      "after_link_rebase_sha256": "3cab88b190409650e779a425f0c801162b8798d86700d57438bc73e2a9fdf505"
+    },
+    {
+      "source": "docs/workspace-state-cache/arbitration/findings/ARB-011.md",
+      "destination": "docs/workspace-state-cache/archive/arbitration/findings/ARB-011.md",
+      "kind": "archive",
+      "before_sha256": "a3a9640a8cf1750a9a285f77a20b41bb2cc272cd91f53c8af4fa722b0a2e979c",
+      "after_link_rebase_sha256": "8570cbdbda5b4296eb7cd8e8911dec82f43d77fefb7768454446f504dcdcc0d2"
+    },
+    {
+      "source": "docs/workspace-state-cache/arbitration/findings/ARB-012.md",
+      "destination": "docs/workspace-state-cache/archive/arbitration/findings/ARB-012.md",
+      "kind": "archive",
+      "before_sha256": "7739308b721a4265a763eaf546299153f3ed353270e3975c8bd17a46aa3955bf",
+      "after_link_rebase_sha256": "22729ff96b2e085703cd38442420b483c8cd00df698b7fa38c8ce450c500c7d4"
+    },
+    {
+      "source": "docs/workspace-state-cache/arbitration/findings/ARB-013.md",
+      "destination": "docs/workspace-state-cache/archive/arbitration/findings/ARB-013.md",
+      "kind": "archive",
+      "before_sha256": "b96401851c82ee0de4f78875758e7dfd8d410b3bf2c6ab2b07c6ad43193bf78f",
+      "after_link_rebase_sha256": "927403dc1c841dc44ed333f0ce96493ee52fc76a2a61decef78d42c39f51c633"
+    },
+    {
+      "source": "docs/workspace-state-cache/arbitration/findings/ARB-014.md",
+      "destination": "docs/workspace-state-cache/archive/arbitration/findings/ARB-014.md",
+      "kind": "archive",
+      "before_sha256": "58b322849a28ba23914b39dc2ce9bd79a72540851a13d6dfbe31422543453a61",
+      "after_link_rebase_sha256": "bb3b46d955f7b7e1d01ba8cfea7a9c83be24d82edf662452974fb33ce30a4a19"
+    },
+    {
+      "source": "docs/workspace-state-cache/arbitration/findings/ARB-015.md",
+      "destination": "docs/workspace-state-cache/archive/arbitration/findings/ARB-015.md",
+      "kind": "archive",
+      "before_sha256": "bd2a6fe98c178db08680a7516af12f203deef4a215460303c60f67f2c3867746",
+      "after_link_rebase_sha256": "bd2a6fe98c178db08680a7516af12f203deef4a215460303c60f67f2c3867746"
+    }
+  ],
+  "incoming_files": [
+    "docs/README.md"
+  ],
+  "archive_note_added": "docs/workspace-state-cache/archive/README.md",
+  "rewritten_markdown_files": [
+    "docs/README.md",
+    "docs/workspace-state-cache/archive/benchmark.md",
+    "docs/workspace-state-cache/archive/execution.md",
+    "docs/workspace-state-cache/archive/preparation-report.md",
+    "docs/workspace-state-cache/archive/README.md",
+    "docs/workspace-state-cache/archive/arbitration/evidence.md",
+    "docs/workspace-state-cache/archive/arbitration/unresolved.md",
+    "docs/workspace-state-cache/archive/defense/coverage.md",
+    "docs/workspace-state-cache/archive/epoch-0-snapshot-roundtrip/README.md",
+    "docs/workspace-state-cache/archive/epoch-0-snapshot-roundtrip/spec.md",
+    "docs/workspace-state-cache/archive/epoch-0-snapshot-roundtrip/task-00-current-seams-and-controls-med.md",
+    "docs/workspace-state-cache/archive/epoch-0-snapshot-roundtrip/task-01-baseline-runner-med.md",
+    "docs/workspace-state-cache/archive/epoch-0-snapshot-roundtrip/task-02-snapshot-schema-hi.md",
+    "docs/workspace-state-cache/archive/epoch-0-snapshot-roundtrip/task-03-ordinary-capture-med.md",
+    "docs/workspace-state-cache/archive/epoch-0-snapshot-roundtrip/task-04-snapshot-codec-low.md",
+    "docs/workspace-state-cache/archive/epoch-0-snapshot-roundtrip/task-05-isolated-hydrate-hi.md",
+    "docs/workspace-state-cache/archive/epoch-0-snapshot-roundtrip/task-06-real-cross-process-roundtrip-med.md",
+    "docs/workspace-state-cache/archive/epoch-0-snapshot-roundtrip/task-07-roundtrip-benchmark-med.md",
+    "docs/workspace-state-cache/archive/epoch-1-disk-cache-mvp/README.md",
+    "docs/workspace-state-cache/archive/epoch-1-disk-cache-mvp/task-00-input-manifest-hi.md",
+    "docs/workspace-state-cache/archive/epoch-1-disk-cache-mvp/task-01-text-and-directory-probe-med.md",
+    "docs/workspace-state-cache/archive/epoch-1-disk-cache-mvp/task-02-binary-fast-probe-med.md",
+    "docs/workspace-state-cache/archive/epoch-1-disk-cache-mvp/task-03-atomic-envelope-store-med.md",
+    "docs/workspace-state-cache/archive/epoch-1-disk-cache-mvp/task-04-manager-host-ownership-hi.md",
+    "docs/workspace-state-cache/archive/epoch-1-disk-cache-mvp/task-05-fresh-session-preparation-hi.md",
+    "docs/workspace-state-cache/archive/epoch-1-disk-cache-mvp/task-06-load-save-and-restore-hi.md",
+    "docs/workspace-state-cache/archive/epoch-1-disk-cache-mvp/task-07-existing-watcher-attachment-hi.md",
+    "docs/workspace-state-cache/archive/epoch-1-disk-cache-mvp/task-08-hydrated-csharp-write-hi.md",
+    "docs/workspace-state-cache/archive/epoch-1-disk-cache-mvp/task-09-restart-and-failure-integration-med.md",
+    "docs/workspace-state-cache/archive/epoch-1-disk-cache-mvp/task-10-mvp-benchmark-med.md",
+    "docs/workspace-state-cache/archive/epoch-2-content-refresh/README.md",
+    "docs/workspace-state-cache/archive/epoch-2-content-refresh/task-00-startup-diff-roles-hi.md",
+    "docs/workspace-state-cache/archive/epoch-2-content-refresh/task-01-existing-source-refresh-med.md",
+    "docs/workspace-state-cache/archive/epoch-2-content-refresh/task-02-additional-and-config-refresh-med.md",
+    "docs/workspace-state-cache/archive/epoch-2-content-refresh/task-03-fresh-metadata-references-med.md",
+    "docs/workspace-state-cache/archive/epoch-2-content-refresh/task-04-refreshed-envelope-capture-med.md",
+    "docs/workspace-state-cache/archive/epoch-2-content-refresh/task-05-content-and-graph-mutations-med.md",
+    "docs/workspace-state-cache/archive/epoch-2-content-refresh/task-06-content-restart-benchmark-med.md",
+    "docs/workspace-state-cache/archive/epoch-3-project-refresh/README.md",
+    "docs/workspace-state-cache/archive/epoch-3-project-refresh/task-00-single-project-reopen-spike-hi.md",
+    "docs/workspace-state-cache/archive/epoch-3-project-refresh/task-01-dirty-project-dependency-map-med.md",
+    "docs/workspace-state-cache/archive/epoch-3-project-refresh/task-02-project-reopen-adapter-hi.md",
+    "docs/workspace-state-cache/archive/epoch-3-project-refresh/task-03-membership-change-routing-med.md",
+    "docs/workspace-state-cache/archive/epoch-3-project-refresh/task-04-selective-candidate-publication-xhi.md",
+    "docs/workspace-state-cache/archive/epoch-3-project-refresh/task-05-selective-refresh-regressions-med.md",
+    "docs/workspace-state-cache/archive/epoch-3-project-refresh/task-06-selective-refresh-benchmark-med.md",
+    "docs/workspace-state-cache/archive/review/README.md",
+    "docs/workspace-state-cache/benchmark.md",
+    "docs/workspace-state-cache/change-ledger.md",
+    "docs/workspace-state-cache/deferred.md",
+    "docs/workspace-state-cache/execution.md",
+    "docs/workspace-state-cache/human-decisions.md",
+    "docs/workspace-state-cache/preparation-report.md",
+    "docs/workspace-state-cache/README.md",
+    "docs/workspace-state-cache/spikes.md",
+    "docs/workspace-state-cache/unresolved.md",
+    "docs/workspace-state-cache/epoch-0-snapshot-roundtrip/README.md",
+    "docs/workspace-state-cache/epoch-0-snapshot-roundtrip/spec.md",
+    "docs/workspace-state-cache/epoch-0-snapshot-roundtrip/task-00-current-seams-and-controls-med.md",
+    "docs/workspace-state-cache/epoch-0-snapshot-roundtrip/task-01-baseline-runner-med.md",
+    "docs/workspace-state-cache/epoch-0-snapshot-roundtrip/task-02-snapshot-schema-hi.md",
+    "docs/workspace-state-cache/epoch-0-snapshot-roundtrip/task-03-ordinary-capture-med.md",
+    "docs/workspace-state-cache/epoch-0-snapshot-roundtrip/task-04-snapshot-codec-low.md",
+    "docs/workspace-state-cache/epoch-0-snapshot-roundtrip/task-05-isolated-hydrate-hi.md",
+    "docs/workspace-state-cache/epoch-0-snapshot-roundtrip/task-06-real-cross-process-roundtrip-med.md",
+    "docs/workspace-state-cache/epoch-0-snapshot-roundtrip/task-07-roundtrip-benchmark-med.md",
+    "docs/workspace-state-cache/epoch-0-snapshot-roundtrip/task-08-real-control-capability-hi.md",
+    "docs/workspace-state-cache/epoch-1-disk-cache-mvp/README.md",
+    "docs/workspace-state-cache/epoch-1-disk-cache-mvp/task-00-input-manifest-hi.md",
+    "docs/workspace-state-cache/epoch-1-disk-cache-mvp/task-01-text-and-directory-probe-med.md",
+    "docs/workspace-state-cache/epoch-1-disk-cache-mvp/task-02-binary-fast-probe-med.md",
+    "docs/workspace-state-cache/epoch-1-disk-cache-mvp/task-03-atomic-envelope-store-med.md",
+    "docs/workspace-state-cache/epoch-1-disk-cache-mvp/task-04-manager-host-ownership-hi.md",
+    "docs/workspace-state-cache/epoch-1-disk-cache-mvp/task-05-fresh-session-preparation-hi.md",
+    "docs/workspace-state-cache/epoch-1-disk-cache-mvp/task-06-load-save-and-restore-hi.md",
+    "docs/workspace-state-cache/epoch-1-disk-cache-mvp/task-07-existing-watcher-attachment-hi.md",
+    "docs/workspace-state-cache/epoch-1-disk-cache-mvp/task-08-hydrated-csharp-write-hi.md",
+    "docs/workspace-state-cache/epoch-1-disk-cache-mvp/task-09-restart-and-failure-integration-med.md",
+    "docs/workspace-state-cache/epoch-1-disk-cache-mvp/task-10-mvp-benchmark-med.md",
+    "docs/workspace-state-cache/epoch-1-disk-cache-mvp/task-11-raw-import-restore-evidence-hi.md",
+    "docs/workspace-state-cache/epoch-2-content-refresh/README.md",
+    "docs/workspace-state-cache/epoch-2-content-refresh/task-00-startup-diff-roles-hi.md",
+    "docs/workspace-state-cache/epoch-2-content-refresh/task-01-existing-source-refresh-med.md",
+    "docs/workspace-state-cache/epoch-2-content-refresh/task-02-additional-and-config-refresh-med.md",
+    "docs/workspace-state-cache/epoch-2-content-refresh/task-03-fresh-metadata-references-med.md",
+    "docs/workspace-state-cache/epoch-2-content-refresh/task-04-refreshed-envelope-capture-med.md",
+    "docs/workspace-state-cache/epoch-2-content-refresh/task-05-content-and-graph-mutations-med.md",
+    "docs/workspace-state-cache/epoch-2-content-refresh/task-06-content-restart-benchmark-med.md",
+    "docs/workspace-state-cache/epoch-3-project-refresh/README.md",
+    "docs/workspace-state-cache/epoch-3-project-refresh/task-00-single-project-reopen-spike-hi.md",
+    "docs/workspace-state-cache/epoch-3-project-refresh/task-01-dirty-project-dependency-map-med.md",
+    "docs/workspace-state-cache/epoch-3-project-refresh/task-02-project-reopen-adapter-hi.md",
+    "docs/workspace-state-cache/epoch-3-project-refresh/task-03-membership-change-routing-med.md",
+    "docs/workspace-state-cache/epoch-3-project-refresh/task-04-selective-candidate-publication-xhi.md",
+    "docs/workspace-state-cache/epoch-3-project-refresh/task-05-selective-refresh-regressions-med.md",
+    "docs/workspace-state-cache/epoch-3-project-refresh/task-06-selective-refresh-benchmark-med.md",
+    "docs/workspace-state-cache/review/README.md",
+    "docs/workspace-state-cache/archive/review-astra/findings/F-001.md",
+    "docs/workspace-state-cache/archive/review-astra/findings/F-002.md",
+    "docs/workspace-state-cache/archive/defense/findings/review-astra-F-001.md",
+    "docs/workspace-state-cache/archive/defense/findings/review-astra-F-002.md",
+    "docs/workspace-state-cache/archive/defense/findings/review-ds-F-001.md",
+    "docs/workspace-state-cache/archive/defense/findings/review-ds-F-002.md",
+    "docs/workspace-state-cache/archive/defense/findings/review-ds-F-003.md",
+    "docs/workspace-state-cache/archive/defense/findings/review-ds-F-004.md",
+    "docs/workspace-state-cache/archive/defense/findings/review-ds-F-005.md",
+    "docs/workspace-state-cache/archive/defense/findings/review-ds-F-007.md",
+    "docs/workspace-state-cache/archive/defense/findings/review-ds-F-008.md",
+    "docs/workspace-state-cache/archive/defense/findings/review-grok-F-001.md",
+    "docs/workspace-state-cache/archive/defense/findings/review-grok-F-002.md",
+    "docs/workspace-state-cache/archive/defense/findings/review-grok-F-003.md",
+    "docs/workspace-state-cache/archive/defense/findings/review-grok-F-004.md",
+    "docs/workspace-state-cache/archive/defense/findings/review-grok-F-005.md",
+    "docs/workspace-state-cache/archive/arbitration/findings/ARB-001.md",
+    "docs/workspace-state-cache/archive/arbitration/findings/ARB-002.md",
+    "docs/workspace-state-cache/archive/arbitration/findings/ARB-003.md",
+    "docs/workspace-state-cache/archive/arbitration/findings/ARB-004.md",
+    "docs/workspace-state-cache/archive/arbitration/findings/ARB-005.md",
+    "docs/workspace-state-cache/archive/arbitration/findings/ARB-006.md",
+    "docs/workspace-state-cache/archive/arbitration/findings/ARB-007.md",
+    "docs/workspace-state-cache/archive/arbitration/findings/ARB-008.md",
+    "docs/workspace-state-cache/archive/arbitration/findings/ARB-010.md",
+    "docs/workspace-state-cache/archive/arbitration/findings/ARB-011.md",
+    "docs/workspace-state-cache/archive/arbitration/findings/ARB-012.md",
+    "docs/workspace-state-cache/archive/arbitration/findings/ARB-013.md",
+    "docs/workspace-state-cache/archive/arbitration/findings/ARB-014.md"
+  ],
+  "historical_content_changes": "Markdown link rebasing and archival notice in archive/README.md only; historical JSON/source snapshots unchanged."
+}

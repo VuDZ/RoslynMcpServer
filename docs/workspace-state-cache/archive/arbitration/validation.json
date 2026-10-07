@@ -1,0 +1,198 @@
+{
+  "date": "2026-10-07",
+  "run": "workspace-state-cache-arbitration-2026-10-07",
+  "findings": 16,
+  "clusters": 15,
+  "cluster_outcomes": {
+    "UNRESOLVED": 1,
+    "SPIKE": 2,
+    "ACCEPT WITH MODIFICATION": 6,
+    "ACCEPT": 6
+  },
+  "source_outcomes": {
+    "UNRESOLVED": 1,
+    "SPIKE": 2,
+    "ACCEPT WITH MODIFICATION": 7,
+    "ACCEPT": 6
+  },
+  "corroborated_clusters": 1,
+  "proposed_changes": 14,
+  "protected_files": 100,
+  "changed_inputs": [],
+  "input_inventory_delta": [],
+  "reviewed_snapshot_files": 45,
+  "reviewed_snapshot_mismatches": [],
+  "links_checked": 235,
+  "anchors_checked": 26,
+  "prompt_sha256": "05a8133364756028c661d166c377e054a16c59c80c20ecd4577110ac910f6f1d",
+  "git_diff_check_exit": 0,
+  "production_build_tests": "not-run: arbitration only",
+  "spikes": "not-run",
+  "errors": [],
+  "decisions": [
+    {
+      "arb": "ARB-001",
+      "sources": [
+        "review-grok/F-001"
+      ],
+      "decision": "UNRESOLVED",
+      "changes": [],
+      "corroborated": false
+    },
+    {
+      "arb": "ARB-002",
+      "sources": [
+        "review-ds/F-003"
+      ],
+      "decision": "SPIKE",
+      "changes": [
+        "P-001"
+      ],
+      "corroborated": false
+    },
+    {
+      "arb": "ARB-003",
+      "sources": [
+        "review-ds/F-001",
+        "review-grok/F-005"
+      ],
+      "decision": "ACCEPT WITH MODIFICATION",
+      "changes": [
+        "P-002"
+      ],
+      "corroborated": true
+    },
+    {
+      "arb": "ARB-004",
+      "sources": [
+        "review-ds/F-002"
+      ],
+      "decision": "ACCEPT WITH MODIFICATION",
+      "changes": [
+        "P-003"
+      ],
+      "corroborated": false
+    },
+    {
+      "arb": "ARB-005",
+      "sources": [
+        "review-astra/F-001"
+      ],
+      "decision": "ACCEPT",
+      "changes": [
+        "P-004"
+      ],
+      "corroborated": false
+    },
+    {
+      "arb": "ARB-006",
+      "sources": [
+        "review-astra/F-002"
+      ],
+      "decision": "ACCEPT",
+      "changes": [
+        "P-005"
+      ],
+      "corroborated": false
+    },
+    {
+      "arb": "ARB-007",
+      "sources": [
+        "review-ds/F-004"
+      ],
+      "decision": "ACCEPT WITH MODIFICATION",
+      "changes": [
+        "P-006"
+      ],
+      "corroborated": false
+    },
+    {
+      "arb": "ARB-008",
+      "sources": [
+        "review-ds/F-005"
+      ],
+      "decision": "ACCEPT WITH MODIFICATION",
+      "changes": [
+        "P-007"
+      ],
+      "corroborated": false
+    },
+    {
+      "arb": "ARB-009",
+      "sources": [
+        "review-ds/F-006"
+      ],
+      "decision": "ACCEPT WITH MODIFICATION",
+      "changes": [
+        "P-008"
+      ],
+      "corroborated": false
+    },
+    {
+      "arb": "ARB-010",
+      "sources": [
+        "review-ds/F-007"
+      ],
+      "decision": "ACCEPT WITH MODIFICATION",
+      "changes": [
+        "P-009"
+      ],
+      "corroborated": false
+    },
+    {
+      "arb": "ARB-011",
+      "sources": [
+        "review-ds/F-008"
+      ],
+      "decision": "ACCEPT",
+      "changes": [
+        "P-010"
+      ],
+      "corroborated": false
+    },
+    {
+      "arb": "ARB-012",
+      "sources": [
+        "review-grok/F-002"
+      ],
+      "decision": "SPIKE",
+      "changes": [
+        "P-011"
+      ],
+      "corroborated": false
+    },
+    {
+      "arb": "ARB-013",
+      "sources": [
+        "review-grok/F-003"
+      ],
+      "decision": "ACCEPT",
+      "changes": [
+        "P-012"
+      ],
+      "corroborated": false
+    },
+    {
+      "arb": "ARB-014",
+      "sources": [
+        "review-grok/F-004"
+      ],
+      "decision": "ACCEPT",
+      "changes": [
+        "P-013"
+      ],
+      "corroborated": false
+    },
+    {
+      "arb": "ARB-015",
+      "sources": [
+        "review-astra/F-003"
+      ],
+      "decision": "ACCEPT",
+      "changes": [
+        "P-014"
+      ],
+      "corroborated": false
+    }
+  ]
+}

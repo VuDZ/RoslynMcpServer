@@ -1,6 +1,6 @@
 # E2 — Обновление существующих входов: карта выполнения
 
-- Статус плана: **ready-for-review, 2026-10-07**.
+- Статус плана: **spec-v2 / revised-for-review, 2026-10-07**.
 - Статус исполнения: **planned; реализация не начата**.
 - Зависимость эпохи: [E1](../epoch-1-disk-cache-mvp/README.md), принятый применимый scope и final validation.
 - Результат: Restart после content edits без DTB; graph/membership изменения сохраняют fallback.
@@ -59,3 +59,12 @@ ID не задаёт порядок запуска: его задаёт Depends 
 синхронизирует tasks/index/reports и делает commit. Принятый план и отдельный
 isolated test не означают принятия реализации. Требования следующей эпохи
 не являются условием приёмки уже выполненного scope этой эпохи.
+
+## Revision scope и gates
+
+**2026-10-07: spec-v2 revised-for-review**, применение arbitration к тексту,
+реализация не начата. [Change ledger](../change-ledger.md) и
+[revision report](../preparation-report.md) содержат scope/validation evidence.
+Historical review/defense не подменяет arbitration; independent recheck v2 ещё не выполнен.
+U-001 частично решён [H-001](../human-decisions.md) для external XML; strong-name
+часть unresolved. S-001/S-002 учитываются к deadlines и остаются not-run. Closed disputes и optional E3 scope не переоткрываются.

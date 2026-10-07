@@ -1,6 +1,6 @@
 # Бенчмарки workspace state cache
 
-Статус: **draft / ready-for-review, 2026-10-07**. Числа ускорения ещё не получены.
+Статус: **spec-v2 / revised-for-review, 2026-10-07**. Числа ускорения ещё не получены.
 
 ## Контролы и сравнимость
 
@@ -74,3 +74,25 @@ query; useful median hit меньше forced ordinary median. Miss overhead и s
 profiles, эвристический binary blind spot, skips и not-run cases перечисляются
 как пределы измерения. Functional correctness подтверждается tests/fresh ordinary
 comparison отдельно от скорости.
+
+## Revision compare context и обязательные отдельные outcomes
+
+Compare key различает raw requested/absence, independently merged pre-open loader
+globals и evaluated instance values; mode/effective policy и relevant independently
+validated environment context указываются без raw secrets. U-001 outcome/fidelity
+границы выбранного positive control входят в сравнимость: external XML исключён
+по H-001, strong-name решение ещё требуется. Report не объявляет полную XML-doc
+эквивалентность и сохраняет source-comment assertions.
+
+E1 дополнительно измеряет new-PID overlay-on request без доказанного fresh binding
+как actual ordinary fallback. Overlay-off speedup не обобщается на него. ConfigFile
+без opt-in остаётся disk-disabled; explicit runner не доказывает lazy speedup.
+Negative lazy-control и explicit enabled outcome приводятся отдельно.
+
+E2 metadata benchmark сообщает resolution-preserving eligibility и safe positive
+case отдельно от exact-version/unknown resolution ordinary fallback. No-op/changed
+build не объявляется автоматически safe metadata refresh. All-fallback не выдаётся
+за positive E2 completion. Изменения comparator/model policy требуют нового compare key.
+
+S-001/S-002 нужны к declared deadlines, но не заменяют full E0/E1 semantic tests
+или performance runs. Они not-run в этой revision; старые pass counts не присваиваются.

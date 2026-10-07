@@ -1,0 +1,23 @@
+{
+  "date": "2026-10-07",
+  "findings_processed": 16,
+  "source_counts": {
+    "review-astra": 3,
+    "review-ds": 8,
+    "review-grok": 5
+  },
+  "positions": {
+    "ACCEPT": 6,
+    "ACCEPT WITH MODIFICATION": 8,
+    "REJECT": 0,
+    "UNRESOLVED": 2
+  },
+  "protected_files_checked": 559,
+  "protected_input_changes": [],
+  "reviewed_snapshot_mismatches": [],
+  "local_links_checked": 159,
+  "anchors_checked": 0,
+  "original_tracked_diff_unchanged": true,
+  "errors": [],
+  "production_build_tests": "not-run; defense-only documentation"
+}

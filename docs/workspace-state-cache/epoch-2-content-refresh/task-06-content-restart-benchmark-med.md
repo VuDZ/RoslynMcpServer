@@ -5,7 +5,7 @@
 - Примерная сложность: 3/5; класс `med`.
 - Риск ошибки: средний — неверные inputs, fixtures или измерения искажают результат следующего шага.
 - Необходимые способности: `реализация_по_контракту`, `проектирование_проверок`.
-- Статус: **planned; план ready-for-review, 2026-10-07**.
+- Статус: **planned; spec-v2 revised-for-review, 2026-10-07; реализация не начата**.
 - Depends on: [E2/task-05](task-05-content-and-graph-mutations-med.md)
 - Модель, реализовавшая задачу: —.
 - Модели, проводившие ревью: —.
@@ -43,3 +43,18 @@ Runner scenarios/report; mutations выполняются только на owne
 Дата, принятый scope, evidence и фактические модели обновляются в шапке и
 README эпохи после ревью/validation. Новый существенный вопрос возвращается
 в spec точечной поправкой, а не превращает эту задачу в большой decision packet.
+
+## Уточнения specification v2
+
+Основание: **P-002, P-014**; [change ledger](../change-ledger.md).
+
+Metadata performance scopes явно указывают resolution eligibility и actual hit/fallback; no-op build не означает неизменность resolution. XML exclusion H-001 включён в compare key; strong-name fidelity/context остаётся открытым до остаточного human decision. Первоначальные single/batch/edit/build сценарии сохраняются.
+
+## Решение владельца H-001
+
+[H-001](../human-decisions.md): XML documentation provider/text metadata/DLL references
+вне MVP equivalence; source comments загруженных проектов и остальные обязательные
+metadata/options facts сохраняются. Это объявленное исключение, не silent loss.
+Documentation-dependent consumers получают ordinary route либо явный отказ до execution/
+side effects. Применимые controls/compare key отражают эту границу; strong-name
+решение U-001 всё ещё требуется, execution/review statistics остаются незаполненными.
