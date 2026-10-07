@@ -69,8 +69,9 @@ isolated test не означают принятия реализации. Тр�
 реализация не начата. [Change ledger](../change-ledger.md) и
 [revision report](../preparation-report.md) содержат scope/validation evidence.
 Historical review/defense не подменяет arbitration; independent recheck v2 ещё не выполнен.
-U-001 частично решён [H-001](../human-decisions.md) для external XML; strong-name
-часть unresolved. S-001/S-002 учитываются к deadlines и остаются not-run. Closed disputes и optional E3 scope не переоткрываются.
+U-001 решён [H-001/H-002](../human-decisions.md): external XML exclusion и вариант B
+для strong-name; [применение и validation](../h-002-report.md), 2026-10-07.
+S-001/S-002 учитываются к deadlines и остаются not-run. Closed disputes и optional E3 scope не переоткрываются.
 
 Task-08/S-001 требует U-001; schema task-02 может подготовить sketch до gate,
 но final acceptance/capture/codec/hydrate positive scope требует successful S-001.

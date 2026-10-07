@@ -81,8 +81,10 @@ Compare key различает raw requested/absence, independently merged pre-o
 globals и evaluated instance values; mode/effective policy и relevant independently
 validated environment context указываются без raw secrets. U-001 outcome/fidelity
 границы выбранного positive control входят в сравнимость: external XML исключён
-по H-001, strong-name решение ещё требуется. Report не объявляет полную XML-doc
-эквивалентность и сохраняет source-comment assertions.
+по H-001, strong-name scope ограничен вариантом B по H-002. Report не объявляет
+полную XML-doc/strong-name эквивалентность и сохраняет source-comment assertions.
+Signing-dependent/unknown ordinary fallback не учитывается как cache hit или
+positive hydrate; compare key включает finite supported profile и excluded emit/signing.
 
 E1 дополнительно измеряет new-PID overlay-on request без доказанного fresh binding
 как actual ordinary fallback. Overlay-off speedup не обобщается на него. ConfigFile

@@ -193,12 +193,14 @@ validation; будущие эпохи не блокируют уже приня�
 - Исторический review исходной версии: три catalogs, 16 findings; 15 ARB outcomes.
   [Decision ledger](archive/arbitration/decision-ledger.md) сохраняет source identities.
 - Revision P-001–P-014: применены к тексту; не засчитаны как reviewer-confirmed fixes.
-- Решение владельца H-001, 2026-10-07: external XML exclusion применён к тексту; strong-name часть U-001 открыта.
+- Решения владельца H-001/H-002, 2026-10-07: external XML exclusion и strong-name B
+  применены к тексту; U-001 resolved. [Scope и validation](h-002-report.md).
 - Ревью specification v2: модели/даты/раунды/исправления/отчёты —; recheck не выполнен.
 - Ревью задач v2: охват всех 35 задач; реализация не начата; раунды/исправления —.
 - Приёмка реализации E0–E3: не начата; раунды/исправления —.
 
-Применение P не означает принятия epochs или закрытия U-001/S-001/S-002.
+Применение P не означает принятия epochs. U-001 закрыт отдельными H-001/H-002;
+S-001/S-002 остаются not-run.
 Plan/task/implementation counts не смешиваются; unknown values остаются `—`.
 Дубли источников и разные models сохраняются по общему стандарту учёта.
 
@@ -206,10 +208,11 @@ Plan/task/implementation counts не смешиваются; unknown values ос
 
 **2026-10-07: specification v2 revised-for-review.** Scope: все 14 P-изменений,
 сохранённые original requirements, четыре эпохи и 35 небольших tasks, два
-открытых spikes, один unresolved decision point и traceability.
+открытых spikes, один resolved owner decision point и traceability.
 [Revision report](preparation-report.md) и [change ledger](change-ledger.md)
-фиксируют проверку и ограничения. U-001 частично решён H-001 (XML), strong-name открыт; positive E0/dependent
-implementation не принимаются до U-001 и successful S-001.
+фиксируют проверку и ограничения. U-001 resolved по H-001/H-002 (B); positive E0/dependent
+implementation требуют successful S-001. [H-002 report](h-002-report.md) фиксирует
+принятый 2026-10-07 scope и docs-only validation.
 
 ## Revision provenance и открытые gates
 
@@ -219,20 +222,21 @@ changes. [Исходная версия](archive/README.md) и review/defense/ar
 в [archive](archive/index.md); ссылки rebased, исторические решения и snapshots
 сохранены. Historical prescriptions не отменяют arbitration outcomes.
 
-> **UNRESOLVED U-001 — fidelity положительного E0**
+> **RESOLVED U-001 — H-001/H-002, вариант B, 2026-10-07**
 >
 > XML-документация бинарных зависимостей исключена из гарантии по H-001;
-> source comments загруженных проектов сохраняются. Открыто решение strong-name:
-> точное восстановление либо явно ограниченная signing/emit семантика.
-> Самостоятельно терять remaining provider state или засчитывать negative-only
-> E0 нельзя. Остаточное решение требуется до positive E0/dependent codec/hydrate.
+> source comments загруженных проектов сохраняются. H-002 ограничивает hydrated
+> scope подтверждёнными signing-independent проектами/операциями. Signing-dependent
+> и unknown cases используют ordinary load до операции; emit/signing из hydrated
+> compilation вне MVP scope. Remaining state и correctness сохраняются.
+> Negative-only E0 не принимается; successful S-001 остаётся обязательным.
 > Подробности — [decision point](unresolved.md#u-001--fidelity-положительного-e0).
 
 Открытые [S-001/S-002](spikes.md) **not-run**. S-001 следует за U-001; S-002 должен
 подтвердить import/restore evidence до принятия E1 manifest. Они являются gates,
 не выбранными implementation mechanisms. Новых DEFERRED нет; optional E3 сохраняет
 прежний no-go contract. [Revision blockers](revision-blockers.md) отделены от
-принятого unresolved decision point. Public activation/default/implementation
+resolved owner decision point. Public activation/default/implementation
 permissions revision не расширяет.
 
 ## Evaluation context и переносимые input facts
@@ -281,7 +285,7 @@ input роли не исключаются по расширению. DLL/restor
 Documentation-dependent queries/analyzers/generators вне supported hydrated scope:
 ordinary route либо явный отказ до execution/side effects. Acceptance включает
 source-comment parity и заявленное внешнее XML ограничение/fallback control.
-Strong-name fidelity остаётся открытой; H-001 её не разрешает.
+Strong-name fidelity ограничена отдельным H-002; подробности ниже.
 
 [Решение владельца, rationale и принятый риск](human-decisions.md#h-001--документация-бинарных-зависимостей-исключена-из-гарантии-mvp).
 
@@ -293,4 +297,22 @@ Strong-name fidelity остаётся открытой; H-001 её не разр
 сохранены в `archive/` с исправленными links. [Relocation report](relocation-report.md)
 фиксирует scope, path/hash mapping и validation; [revision report](preparation-report.md)
 сохраняет application evidence. Статус остаётся revised-for-review, tasks planned,
-strong-name U-001 unresolved и S-001/S-002 not-run. Relocation не acceptance реализации.
+на момент relocation strong-name U-001 был unresolved, S-001/S-002 not-run.
+Последующее H-002 закрывает U-001; relocation не acceptance реализации.
+
+## Strong-name — решение H-002
+
+**2026-10-07: accepted owner decision / applied to requirements; U-001 resolved, B.**
+[H-002](human-decisions.md#h-002--ограниченный-strong-name-contract-mvp) разрешает
+подтверждённый signing-independent hydrated scope без точного переноса hidden provider
+state. Signing-dependent и unknown requests используют whole-request ordinary load
+до execution/side effects; невозможность перехода означает явный отказ. Emit/signing
+из hydrated compilation вне первоначального scope. Подписанные внешние references
+не исключаются автоматически; semantic/write correctness и remaining facts обязательны.
+Явные логи объясняют H-002 bypass/capture skip/fallback/refusal: project/configuration,
+operation, причина и ordinary/refusal route; общего cache miss недостаточно.
+Support/help/outcome и compare key описывают ограничения; effective options,
+attributes и project bindings входят в admission evidence S-001.
+
+[Отчёт применения и validation](h-002-report.md). Task-00 planned, S-001/S-002 not-run;
+реализация, independent review и public activation этим решением не принимаются.

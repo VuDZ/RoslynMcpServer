@@ -159,4 +159,26 @@ Source comments загруженных проектов сохраняются. 
 явно обозначает XML ограничение; documentation-dependent запросы и analyzer/generator
 execution идут на ordinary route либо получают явный отказ до side effects.
 Required controls: source-comment parity, объявленная external XML потеря и
-documentation-dependent fallback/refusal. Strong-name разрешения не выданы.
+documentation-dependent fallback/refusal. Strong-name граница принята по H-002 ниже.
+
+## Strong-name boundary H-002
+
+[H-002](../human-decisions.md#h-002--ограниченный-strong-name-contract-mvp) закрывает
+U-001 выбором B. Hydrated scope сохраняет заявленные semantic results, diagnostics
+поддержанных операций и корректность поддержанных writes только в подтверждённом
+signing-independent profile. Signing-dependent/unknown request идёт целиком через
+ordinary load до зависимой операции/side effects; невозможность перехода даёт отказ.
+Emit/signing из hydrated compilation вне первоначального scope. Effective options,
+assembly attributes и project bindings учитываются; подписанная внешняя DLL сама
+по себе не означает unsupported. Flags/csproj/references не меняются ради pass.
+Изменение inputs либо planned write, создающее signing-зависимость/неопределённость,
+требует повторного допуска и ordinary route до зависимого результата или persistence.
+Required controls: реальный supported semantic/write scope и signing-dependent,
+unknown, excluded-emit cases с fallback/refusal до execution/side effects.
+S-001 подтверждает конечный профиль; exact hidden-state fidelity не заявляется.
+Support/help/outcomes и benchmark compare key отражают H-001/H-002 ограничения.
+H-002 bypass/capture skip/fallback/refusal явно логируются: stage, project instance,
+configuration/TFM, operation, конкретная signing-dependent/unknown/excluded причина
+и ordinary/refusal route. Общего cache miss недостаточно; ordinary failure отделён
+от ограничения cache profile, secrets/key contents не выводятся. Обязательны controls
+причины/маршрута в S-001 и actual log records на E1 integration.

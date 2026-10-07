@@ -7,7 +7,8 @@
 
 Проверяются archive inventory и path/hash mapping исходных 129 files, ссылки/anchors
 всего active/archive package и docs index, 35 task headers/suffixes/planned states, зависимости и task maps,
-14 P records/source traceability, explicit U-001/S-001/S-002 open states и diff scope.
+14 P records/source traceability, U-001 resolved по H-001/H-002 (B),
+S-001/S-002 not-run и diff scope.
 Whitespace revision проверяется script по всем собственным text files; tracked
 docs index — `git diff --check -- docs/README.md`.
 
@@ -17,7 +18,7 @@ binding, fresh mode admission/portable health/roles и оба E2 eligibility pre
 Schema sketch не создаёт cycle. Existing corpus/n/timings/fast-binary blind spot,
 optional E3 и runtime permissions не изменены. Это не новое finding adjudication.
 
-XML часть U-001 решена H-001; strong-name fidelity не выбрана, spikes not-run. Independent
+U-001 resolved по H-001/H-002 (B), spikes not-run; [H-002 report](h-002-report.md). Independent
 recheck и C# build/test suites not-run. Completed artifact check не снимает эти gates.
 
 До relocation author check после H-001: passed, 129 original files unchanged,

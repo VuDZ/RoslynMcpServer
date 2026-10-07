@@ -4,9 +4,9 @@
   "protected_original_files": 129,
   "archived_inputs_verified": true,
   "historical_snapshot_policy": "original before hashes retained; archived after-link-rebase hashes checked",
-  "markdown_files_checked": 174,
-  "local_links_checked": 1467,
-  "anchors_checked": 55,
+  "markdown_files_checked": 175,
+  "local_links_checked": 1520,
+  "anchors_checked": 76,
   "task_count": 35,
   "epoch_task_counts": {
     "epoch-0-snapshot-roundtrip": 9,
@@ -20,10 +20,12 @@
   "source_findings_covered": 16,
   "arbitration_clusters_covered": 15,
   "owner_decisions_applied": [
-    "H-001: external XML exclusion"
+    "H-001: external XML exclusion",
+    "H-002: strong-name B"
   ],
-  "unresolved": [
-    "U-001: strong-name"
+  "unresolved": [],
+  "resolved_owner_decisions": [
+    "U-001: H-001 + H-002, B"
   ],
   "spikes_not_run": [
     "S-001",

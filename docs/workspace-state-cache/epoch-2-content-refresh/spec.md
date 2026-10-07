@@ -69,8 +69,8 @@ Mutation сравнивается со свежей ordinary загрузкой 
 Metadata subset проверяется positive safe content update и negative exact-version
 DLL replacement против fresh ordinary resolution/semantic result. Path/identity
 equality не заменяют этот contract; normal MSBuild resolution не называется
-no-DTB metadata reuse. Accepted U-001 reference semantics сохраняются, пока
-U-001 не выбран, поддерживаемая fidelity не угадывается.
+no-DTB metadata reuse. Accepted U-001 reference semantics H-001/H-002 сохраняются;
+refresh не расширяет подтверждённый S-001 scope.
 
 Create/delete ancestor `.editorconfig`/`.globalconfig` и explicit configs сравниваются
 с ordinary discovery; known config content change тестируется отдельно.
@@ -83,4 +83,26 @@ E1 whole-request fallback остаётся самостоятельным рез
 [H-001](../human-decisions.md) сохраняется при metadata refresh: external documentation
 text/provider equality не обязательны; source comments и остальные metadata/resolution
 predicates обязательны. XML с evaluation/additional ролью не исключается.
-Strong-name часть U-001 остаётся открытой; H-001 её не закрывает.
+Strong-name часть U-001 решена H-002; signing-dependent/unknown refresh требует ordinary route.
+
+## Strong-name boundary H-002
+
+[H-002](../human-decisions.md#h-002--ограниченный-strong-name-contract-mvp) закрывает
+U-001 выбором B. Hydrated scope сохраняет заявленные semantic results, diagnostics
+поддержанных операций и корректность поддержанных writes только в подтверждённом
+signing-independent profile. Signing-dependent/unknown request идёт целиком через
+ordinary load до зависимой операции/side effects; невозможность перехода даёт отказ.
+Emit/signing из hydrated compilation вне первоначального scope. Effective options,
+assembly attributes и project bindings учитываются; подписанная внешняя DLL сама
+по себе не означает unsupported. Flags/csproj/references не меняются ради pass.
+Изменение inputs либо planned write, создающее signing-зависимость/неопределённость,
+требует повторного допуска и ordinary route до зависимого результата или persistence.
+Required controls: реальный supported semantic/write scope и signing-dependent,
+unknown, excluded-emit cases с fallback/refusal до execution/side effects.
+S-001 подтверждает конечный профиль; exact hidden-state fidelity не заявляется.
+Support/help/outcomes и benchmark compare key отражают H-001/H-002 ограничения.
+H-002 bypass/capture skip/fallback/refusal явно логируются: stage, project instance,
+configuration/TFM, operation, конкретная signing-dependent/unknown/excluded причина
+и ordinary/refusal route. Общего cache miss недостаточно; ordinary failure отделён
+от ограничения cache profile, secrets/key contents не выводятся. Обязательны controls
+причины/маршрута в S-001 и actual log records на E1 integration.

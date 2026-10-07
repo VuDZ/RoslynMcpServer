@@ -4,7 +4,7 @@
 tasks; не implementation/activation acceptance. Основание — [Proposed Changes](archive/arbitration/proposed-changes.md)
 и [Decision Ledger](archive/arbitration/decision-ledger.md). Original P остаются PROPOSED
 в неизменённом historical input; запрос владельца разрешает подготовить новую версию,
-не присваивает результаты spikes. Последующее human decision H-001 выбирает XML часть U-001; strong-name остаётся открытым.
+не присваивает результаты spikes. Последующие human decisions H-001/H-002 выбирают XML exclusion и strong-name B; U-001 resolved.
 
 Все **14 Status: applied** означают применение предписанного текста, включая
 нормативные open gates P-001/P-011. Частично пропущенных либо blocked P нет.
@@ -41,7 +41,7 @@ Implementation:
 Порядок U-001 → bounded S-001 → accepted executable positive slice. Schema sketch/inspection допустимы раньше, full capture не prerequisite собственного schema. Dependent positive codec/hydrate требуют successful capability. Negative report блокирует positive scope и возвращает его на решение; references не удаляются, negative-only не принят.
 
 Notes:
-S-001 not-run; итог эксперимента не выбран. U-001 unresolved. Отдельный task-08 не заменяет full cross-process round-trip.
+S-001 not-run; итог эксперимента не выбран. U-001 resolved по H-001/H-002 (B). Отдельный task-08 не заменяет full cross-process round-trip.
 
 ## P-002
 
@@ -323,7 +323,7 @@ Reference semantics зависят от U-001. Normal MSBuild resolution не н
 
 [ARB-001](archive/arbitration/findings/ARB-001.md), source
 [review-grok/F-001](archive/review-grok/findings/F-001.md) → [U-001](unresolved.md).
-Arbitration U-001 outcome не имел P; последующее H-001 выбирает XML исключение. Остаточные strong-name A/B/C без выбора, outcome не посчитан reviewer-confirmed fix.
+Arbitration U-001 outcome не имел P; последующее H-001 выбирает XML исключение. Последующее H-002 выбирает strong-name B и закрывает U-001; outcome не посчитан reviewer-confirmed fix.
 U-001 отражён в README/E0/execution/benchmark/affected tasks с deadline.
 Полный trace охватывает 16 source findings и 15 ARB; объединение двух identity
 sources сохранено в P-002. Историческое unresolved defense по overlay не перенесено
@@ -382,7 +382,7 @@ Implementation: provider/text equality внешних metadata/DLL references и
 source comments и remaining reference/options facts сохранены. XML-only документация
 не mandatory validation input; XML с actual другой ролью остаётся обязательным.
 Document-dependent операции/потребители получают ordinary route/refusal до side
-effects, loss отражается в support/help/outcomes и controls. Strong-name unresolved,
+effects, loss отражается в support/help/outcomes и controls. На момент H-001 strong-name unresolved,
 S-001/S-002 not-run; implementation/default/activation permissions прежние.
 
 Derived consistency change — H-001: no-choice wording/compare context/dependent
@@ -405,5 +405,26 @@ Implementation: 129 historical files → archive; 59 v2 files → topic root;
 Markdown references rebased, archive/index и root navigation/report добавлены.
 Historical raw JSON snapshots/scripts сохранены; root validator учитывает pre-move
 input hashes и after-link-rebase snapshots. Reports/commands/status summaries синхронизированы.
-Notes: 35 task IDs/53 dependency edges прежние; U-001 strong-name открыт, S-001/S-002
+Notes: 35 task IDs/53 dependency edges прежние; на момент relocation U-001 strong-name был открыт, S-001/S-002
 not-run. Independent review statistics и implementation/activation permissions прежние.
+
+## H-002 — Решение владельца
+
+Status: applied
+
+Дата: 2026-10-07. Источник: [H-002](human-decisions.md#h-002--ограниченный-strong-name-contract-mvp),
+прямой выбор B владельцем. Accepted scope: подтверждённый signing-independent
+hydrated profile; signing-dependent/unknown → ordinary load до execution/side effects,
+при невозможности перехода → отказ. Emit/signing из hydrated compilation исключены.
+Точное извлечение hidden provider state не prerequisite этого среза; remaining
+state, semantic/write correctness, references и H-001 сохраняются.
+
+Affected: human-decisions/unresolved, root/epoch READMEs, E0/E1/E2 specs, affected
+tasks, spikes/execution/benchmark, revision-blockers, current report summaries,
+docs index, validator/validation.json. [Application report](h-002-report.md).
+U-001 resolved; S-001/S-002 not-run; task statuses, 35 IDs/53 edges и activation
+permissions прежние. Archive не изменён, independent review statistics не увеличены.
+
+H-002 дополнен требованием владельца к явным диагностическим логам: stage,
+project/configuration/TFM, operation, signing-dependent/unknown/excluded reason и
+ordinary/refusal route. Required S-001/E1 controls отражены в specs и affected tasks.

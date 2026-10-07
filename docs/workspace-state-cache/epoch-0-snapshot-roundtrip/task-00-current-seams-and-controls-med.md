@@ -46,4 +46,4 @@ README эпохи после ревью/validation. Новый существе�
 
 Основание: **P-001**; [change ledger](../change-ledger.md).
 
-Зафиксировать actual real control для bounded S-001, известные provider/API refusals и decision deadline U-001. Task остаётся коротким inventory/selection; executable S-001 выполняет отдельный task-08. Недоказанный positive control не объявляется capture-ready.
+Зафиксировать actual real control для bounded S-001, известные provider/API refusals и принятый U-001=B по H-001/H-002. Task остаётся коротким inventory/selection; executable S-001 выполняет отдельный task-08. Недоказанный positive control не объявляется capture-ready.

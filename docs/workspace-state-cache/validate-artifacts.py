@@ -129,7 +129,9 @@ source_findings = set(re.findall(r'review-(?:astra|ds|grok)/F-\d{3}', read(ORIGI
 check(source_findings == set(re.findall(r'review-(?:astra|ds|grok)/F-\d{3}',ledger)), 'Finding provenance mismatch')
 arb_ids = set(re.findall(r'ARB-\d{3}',read(ORIGINAL / 'arbitration/decision-ledger.md')))
 check(arb_ids == set(re.findall(r'ARB-\d{3}',ledger)), 'Arbitration outcome coverage mismatch')
-check('Strong-name вариант не выбран.' in read(BASE / 'unresolved.md'), 'Remaining U-001 no-choice state missing')
+check('RESOLVED — H-001 + H-002; вариант B' in read(BASE / 'unresolved.md'), 'U-001 resolved B state missing')
+check('## H-002 — Ограниченный strong-name contract MVP' in read(BASE / 'human-decisions.md'), 'H-002 owner decision missing')
+check('signing-dependent/unknown' in read(BASE / 'epoch-0-snapshot-roundtrip/task-08-real-control-capability-hi.md'), 'S-001 H-002 controls missing')
 check('accepted owner decision / applied to requirements' in read(BASE / 'human-decisions.md'), 'H-001 owner decision missing')
 check('S-001 и S-002 **not-run**' in read(BASE / 'spikes.md'), 'Spike open state missing')
 check('35' in read(BASE / 'README.md') and ']('+'workspace-state-cache/README.md)' in read(ROOT / 'docs/README.md'), 'Root/index routing mismatch')
@@ -158,7 +160,8 @@ result = {'date':'2026-10-07','scope':'docs-only revision consistency; not indep
           'task_count':len(tasks),'epoch_task_counts':counts,'dependency_edges':sum(map(len,graph.values())),
           'acyclic':not any('cycle' in e for e in errors),'applied_P_count':len(ids),
           'source_findings_covered':len(source_findings),'arbitration_clusters_covered':len(arb_ids),
-          'owner_decisions_applied':['H-001: external XML exclusion'],'unresolved':['U-001: strong-name'],'spikes_not_run':['S-001','S-002'],'new_deferred':[],
+          'owner_decisions_applied':['H-001: external XML exclusion','H-002: strong-name B'],'unresolved':[],
+          'resolved_owner_decisions':['U-001: H-001 + H-002, B'],'spikes_not_run':['S-001','S-002'],'new_deferred':[],
           'unrelated_tracked_diff_unchanged':hashlib.sha256(diff).hexdigest() == manifest['initial_tracked_diff_sha256'],
           'index_git_diff_check_exit':whitespace.returncode,'revision_trailing_whitespace':own_whitespace,
           'independent_recheck':'not-run','build_and_tests':'not-run; docs-only','errors':errors,

@@ -29,8 +29,8 @@ Root README/epoch summaries, docs index, commands root validator и revision rep
 paths/hashes; relocation-manifest делает их проверяемыми после изменения ссылок,
 не подменяя исторические snapshots. Archive index/report — новые navigation records.
 
-H-001 исключает external binary XML documentation из guarantees MVP. Strong-name
-часть U-001 unresolved; S-001/S-002 not-run, optional E3 прежний. Task implementation
+На момент relocation H-001 исключал external binary XML documentation из guarantees MVP,
+strong-name часть U-001 была unresolved (впоследствии решена [H-002](h-002-report.md)); S-001/S-002 not-run, optional E3 прежний. Task implementation
 planned, independent review/fix counters не увеличены. Archive move не означает
 принятия реализации, permission её запуска, изменения default или public activation.
 

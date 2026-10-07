@@ -5,9 +5,9 @@
 и механические consistency changes; новая архитектурная альтернатива редактором
 не выбрана.
 
-Существующий [UNRESOLVED U-001](unresolved.md) позволяет сформулировать остальные
-требования с явным decision gate, но не завершить выбор positive fidelity contract.
+[U-001](unresolved.md) закрыт решениями H-001/H-002 (B), 2026-10-07;
+[применение и validation](h-002-report.md) не заменяют executable capability.
 [S-001/S-002](spikes.md) остаются открытыми экспериментами. Отсутствие revision
 blockers не означает готовности dependent executable scope, acceptance эпох или
-закрытия этих трёх gates. При невозможности следующей правки без нового существенного
+закрытия этих двух experimental gates. При невозможности следующей правки без нового существенного
 выбора фиксируется отдельный REVISION-BLOCKER с affected sections.

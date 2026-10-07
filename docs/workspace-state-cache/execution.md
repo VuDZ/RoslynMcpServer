@@ -85,7 +85,7 @@ C# build/test suites без code/config изменений не требуютс
 ## Revision gates и actual artifact
 
 Эта версия применяет arbitration P-001–P-014; disputes не оцениваются повторно.
-U-001 остаётся unresolved, S-001/S-002 — not-run experiments. Positive E0 и dependent
+U-001 resolved по H-001/H-002 (B), S-001/S-002 — not-run experiments. Positive E0 и dependent
 codec/hydrate требуют accepted U-001 и successful S-001. E0 schema sketch/inspection
 можно вести раньше; это docs-only preliminary work, не accepted executable schema
 или разрешение выбирать fidelity за владельца. Explicit preliminary части не
@@ -110,6 +110,6 @@ construction без второго apply допустим, при соблюде
 
 [H-001](human-decisions.md) принят и применяется к XML части U-001: external metadata
 documentation вне MVP guarantee, source comments сохранены. Strong-name часть
-unresolved; positive S-001/dependent gates остаются. No silent defaults запрещает
+решена H-002 (B); successful S-001/dependent gates остаются. No silent defaults запрещает
 необъявленную потерю remaining required state; принятое XML ограничение явно отражается
 в support/help/outcomes/tests. Docs-only application не означает implementation acceptance.

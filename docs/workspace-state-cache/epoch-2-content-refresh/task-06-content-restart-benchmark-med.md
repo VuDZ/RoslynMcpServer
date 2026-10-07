@@ -48,7 +48,7 @@ README эпохи после ревью/validation. Новый существе�
 
 Основание: **P-002, P-014**; [change ledger](../change-ledger.md).
 
-Metadata performance scopes явно указывают resolution eligibility и actual hit/fallback; no-op build не означает неизменность resolution. XML exclusion H-001 включён в compare key; strong-name fidelity/context остаётся открытым до остаточного human decision. Первоначальные single/batch/edit/build сценарии сохраняются.
+Metadata performance scopes явно указывают resolution eligibility и actual hit/fallback; no-op build не означает неизменность resolution. XML exclusion H-001 включён в compare key; strong-name B по H-002 и actual ordinary fallback входят в compare key. Первоначальные single/batch/edit/build сценарии сохраняются.
 
 ## Решение владельца H-001
 
@@ -56,5 +56,18 @@ Metadata performance scopes явно указывают resolution eligibility �
 вне MVP equivalence; source comments загруженных проектов и остальные обязательные
 metadata/options facts сохраняются. Это объявленное исключение, не silent loss.
 Documentation-dependent consumers получают ordinary route либо явный отказ до execution/
-side effects. Применимые controls/compare key отражают эту границу; strong-name
-решение U-001 всё ещё требуется, execution/review statistics остаются незаполненными.
+side effects. Применимые controls/compare key отражают эту границу.
+
+## Решение владельца H-002
+
+[H-002](../human-decisions.md#h-002--ограниченный-strong-name-contract-mvp), 2026-10-07:
+U-001 решён, выбран B. Поддерживаются только подтверждённые signing-independent
+проекты/операции; signing-dependent и unknown cases используют ordinary load до
+execution/side effects (при невозможности перехода — явный отказ). Emit/signing из
+hydrated compilation вне первоначального scope. Semantic/write correctness и
+remaining mandatory state сохраняются; signing flags/csproj/refs не меняются ради pass.
+Проверки допуска учитывают effective options, attributes и project bindings;
+один symbol query/SignAssembly=false не доказывает независимость. S-001 проверяет
+real positive и excluded/unknown controls; runtime policy ещё не реализована.
+Execution/review statistics остаются незаполненными.
+Применение решения: [H-002 report](../h-002-report.md).

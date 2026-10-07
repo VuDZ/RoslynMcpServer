@@ -1,21 +1,25 @@
 # Открытые эксперименты specification v2
 
 Дата: **2026-10-07**. S-001 и S-002 **not-run**. Они фиксируют вопросы и deadlines
-арбитража; результат и будущий механизм не выбираются этой revision.
+арбитража; результат и будущий механизм не выбираются этой revision. U-001 решён
+по H-001/H-002 (B), 2026-10-07; capability ещё не проверена.
 [Исходное решение](archive/arbitration/spikes.md) содержит rationale insufficiency.
 
 ## S-001 — Capability выбранного real control
 
 Основание: [P-001](change-ledger.md#p-001), [ARB-002](archive/arbitration/findings/ARB-002.md).
 Отдельный bounded scope: [E0/task-08](epoch-0-snapshot-roundtrip/task-08-real-control-capability-hi.md).
-Decision prerequisite: [U-001](unresolved.md#u-001--fidelity-положительного-e0).
+Decision prerequisite: [U-001](unresolved.md#u-001--fidelity-положительного-e0) **resolved / B**, 2026-10-07.
 
 Проверить достижимость ordinary capture/minimal public reconstruction неизменённого
 реального контроля в выбранной fidelity границе. Зафиксировать versions/revision/
 globals/query и U-001 outcome; фактические providers, metadata/project references,
 instance bindings и источник каждого mandatory state. Не удалять refs/переписывать
 csproj ради pass. Сравнить заранее выбранные observable results с ordinary baseline;
-если выбран B, проверить также отказ/fallback excluded операций.
+по выбранному B обязательно проверить ordinary fallback signing-dependent/unknown
+cases и исключение emit/signing из hydrated compilation до execution/side effects.
+При невозможности ordinary route — явный отказ. Нужны actual admission evidence
+и объявленная reconstruction policy; успешный symbol query не доказывает весь scope.
 
 Достаточный положительный результат: один real positive capability verdict с
 однозначными instances и traceable required state, без silent defaults/private
@@ -62,10 +66,12 @@ profile либо дополнительный канал; нет any real positi
 [Selective reopen spike E3/task-00](epoch-3-project-refresh/task-00-single-project-reopen-spike-hi.md)
 сохраняет прежний no-go contract. Он не новый результат арбитража и не prerequisite E1/E2.
 
-## Уточнение S-001 после H-001
+## Уточнение S-001 после H-001/H-002
 
-[XML часть U-001 решена владельцем](human-decisions.md); strong-name часть открыта.
+[U-001 решён владельцем](human-decisions.md): XML исключение H-001 и strong-name B по H-002.
 S-001 не требует extraction/equality исходного metadata DocumentationProvider.
 Он должен подтвердить supported results/source comments и объявленные external XML
 limitations с documentation-dependent отказом/fallback. Remaining mandatory state,
 metadata properties и real positive требования сохраняются; spike остаётся not-run.
+Точный перенос непубличного strong-name state не prerequisite signing-independent
+slice. [H-002 report](h-002-report.md) фиксирует применение решения, не запуск spike.

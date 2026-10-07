@@ -28,8 +28,8 @@ invariants сохраняются. Нормативные paragraphs описы�
 
 ## Открытые gates и разрешения
 
-- [U-001](unresolved.md): XML часть решена H-001, strong-name A/B/C не выбраны; остаточное fidelity решение требуется до positive
-  E0 scope/dependent codec/hydrate. Реальный positive по-прежнему обязателен.
+- [U-001](unresolved.md): resolved по H-001/H-002 (B), 2026-10-07;
+  [H-002 report](h-002-report.md). Реальный positive S-001 по-прежнему обязателен.
 - [S-001](spikes.md#s-001--capability-выбранного-real-control): not-run, после U-001;
   capability gate не требует готового полного codec/capture/schema.
 - [S-002](spikes.md#s-002--raw-importrestore-evidence): not-run, до принятия E1 manifest;
@@ -75,7 +75,8 @@ revision. Runtime disk hits, provider fidelity, source completeness, refresh pre
 
 Зафиксировано прямое решение владельца об external XML documentation exclusion;
 root/epoch specs, affected task contracts, benchmark, gates и validation синхронизированы.
-Остаточное strong-name решение открыто, spikes not-run. Historical input hashes сохранены;
+На момент H-001 остаточное strong-name решение было открыто, spikes not-run;
+последующее H-002 закрывает U-001 без запуска spikes. Historical input hashes сохранены;
 14 P application trace сохранён, H-001 учитывается отдельно от reviewer-confirmed fixes.
 
 ## Relocation, 2026-10-07
