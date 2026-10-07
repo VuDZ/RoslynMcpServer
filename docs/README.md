@@ -15,6 +15,7 @@
 | Тема | Канон | Статус |
 |---|---|---|
 | Явный раннер тестов | [test-runner-selection/](test-runner-selection/README.md) | эпоха 1, код не начат; `testRunner=auto\|vstest\|mtp`, молчание = `auto` |
+| Workspace state cache MVP | [workspace-state-cache/](workspace-state-cache/README.md) | 2026-10-07: четыре эпохи и 33 задачи, ready-for-review; реализация не начата; [проверка подготовки](workspace-state-cache/preparation-report.md) |
 | MCP tool surface evolution | [mcp-tool-surface-evolution/](mcp-tool-surface-evolution/README.md) | post-arbitration spec v2; реализация не начата |
 | GitHub binary releases | [github-releases/](github-releases/README.md) | O-01 закрыт; CI + release workflow есть; smoke дистрибутива и O-02/O-03 открыты |
 | Улучшение тестов | [test-improvements/](test-improvements/README.md) | эпохи 1 и 2 выполнены, планы и отчёты в [архиве](test-improvements/_archive/README.md); далее эпоха 3 |
