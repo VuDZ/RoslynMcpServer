@@ -5,13 +5,15 @@
 - Примерная сложность: 3/5; класс `med`.
 - Риск ошибки: средний — неверные inputs, fixtures или измерения искажают результат следующего шага.
 - Необходимые способности: `реализация_по_контракту`, `проектирование_проверок`.
-- Статус: **planned; spec-v2 revised-for-review, 2026-10-07; реализация не начата**.
+- Статус: **accepted, 2026-10-07; round 2: оба замечания закрыты; принятый scope — docs-only inventory seams и выбор real control; S-001 not-run, capture-ready не присвоен**.
 - Depends on: нет.
-- Модель, реализовавшая задачу: —.
-- Модели, проводившие ревью: —.
-- Количество раундов ревью: —.
-- Количество исправлений после ревью: —.
-- Отчёт о реализации, ревью и validation: —.
+- Модель, реализовавшая задачу: Grok 4.7.
+- Модели, проводившие ревью: Codex (GPT-6 Astra).
+- Количество раундов ревью: 2.
+- Количество исправлений после ревью: 2.
+- Отчёт о реализации, ревью и validation: [implementation evidence](evidence/task-00-controls.md); [review round 1](evidence/task-00-review-round-1.md); [accepted round 2 / validation](evidence/task-00-review-round-2.md).
+
+
 
 ## Цель
 
@@ -29,6 +31,8 @@
 
 - evidence/task-00-controls.md: HEAD/source version, dirty inventory, actual host, workspace path/properties, SDK, ожидаемый символ и поддерживаемый начальный срез
 - Список применимых результатов старого hydrate experiment и конкретных representability gaps.
+
+
 
 ## Проверки
 

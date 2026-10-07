@@ -7,7 +7,7 @@
 - Необходимые способности: `семантика_roslyn_msbuild`, `анализ_зависимостей`, `проектирование_проверок`.
 - Статус: **planned / experiment not-run; spec-v2 revised-for-review, 2026-10-07**.
 - Depends on: [E0/task-00](task-00-current-seams-and-controls-med.md)
-- Decision prerequisite: [U-001 выбран владельцем](../unresolved.md#u-001--fidelity-положительного-e0); выполнен 2026-10-07 по H-001/H-002 (B); task-00 и experiment остаются planned/not-run.
+- Decision prerequisite: [U-001 выбран владельцем](../unresolved.md#u-001--fidelity-положительного-e0); выполнен 2026-10-07 по H-001/H-002 (B); task-00 accepted для docs-only inventory и выбора контроля, [round 2 / validation](evidence/task-00-review-round-2.md), 2026-10-07; experiment остаётся planned/not-run, capture-ready не присвоен.
 - Модель, реализовавшая задачу: —.
 - Модели, проводившие ревью: —.
 - Количество раундов ревью: —.

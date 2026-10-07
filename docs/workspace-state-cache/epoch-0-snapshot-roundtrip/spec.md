@@ -1,6 +1,8 @@
 # E0 — Snapshot round-trip
 
-Статус: **spec-v2 / revised-for-review, 2026-10-07**. Реализация не начата.
+Статус: **spec-v2 / revised-for-review, 2026-10-07**. Executable реализация не начата;
+task-00 accepted для docs-only inventory seams и выбора real control, 2026-10-07
+([round 2 / validation](evidence/task-00-review-round-2.md)); S-001 not-run.
 
 Общие границы — [README серии](../README.md), [порядок исполнения](../execution.md),
 [бенчмарки](../benchmark.md). Эти три документа обязательны для ревью эпохи.

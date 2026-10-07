@@ -1,7 +1,9 @@
 # Workspace state cache — specification v2
 
-Статус: **revised-for-review после арбитража, 2026-10-07**. Реализация не начата;
-runtime, версия и defaults этим пакетом не меняются.
+Статус: **revised-for-review после арбитража, 2026-10-07**. Executable реализация не начата;
+E0/task-00 accepted для docs-only inventory seams и выбора real control, 2026-10-07
+([round 2 / validation](epoch-0-snapshot-roundtrip/evidence/task-00-review-round-2.md)); S-001 not-run.
+Runtime, версия и defaults этим пакетом не меняются.
 
 Владелец выбрал постепенное сохранение/восстановление workspace state с индексом
 оффлайн-изменений и существующими watcher’ами. Прежняя большая программа
@@ -196,7 +198,7 @@ validation; будущие эпохи не блокируют уже приня�
 - Решения владельца H-001/H-002, 2026-10-07: external XML exclusion и strong-name B
   применены к тексту; U-001 resolved. [Scope и validation](h-002-report.md).
 - Ревью specification v2: модели/даты/раунды/исправления/отчёты —; recheck не выполнен.
-- Ревью задач v2: охват всех 35 задач; реализация не начата; раунды/исправления —.
+- Ревью задач v2: из 35 задач проверен E0/task-00; round 2, 2026-10-07, accepted для docs-only inventory seams и выбора real control. Рецензент: Codex (GPT-6; точный runtime model ID недоступен); раунды 2, подтверждённые исправления 2. [Report/validation](epoch-0-snapshot-roundtrip/evidence/task-00-review-round-2.md). Остальные 34 задачи planned, не проверены.
 - Приёмка реализации E0–E3: не начата; раунды/исправления —.
 
 Применение P не означает принятия epochs. U-001 закрыт отдельными H-001/H-002;
@@ -314,5 +316,7 @@ operation, причина и ordinary/refusal route; общего cache miss н�
 Support/help/outcome и compare key описывают ограничения; effective options,
 attributes и project bindings входят в admission evidence S-001.
 
-[Отчёт применения и validation](h-002-report.md). Task-00 planned, S-001/S-002 not-run;
+[Отчёт применения и validation](h-002-report.md). На 2026-10-07 task-00 accepted,
+[round 2 / validation](epoch-0-snapshot-roundtrip/evidence/task-00-review-round-2.md),
+принятый scope — docs-only inventory seams и выбор real control; S-001/S-002 not-run;
 реализация, independent review и public activation этим решением не принимаются.
