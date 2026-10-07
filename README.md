@@ -17,7 +17,7 @@ Typical flow:
 
 `developer request → agent → MCP tool call → Roslyn/MSBuild/ILSpy/dotnet → compact result → agent`
 
-The server is C#-focused. It can read non-C# files and execute selected CLI operations, but it does not provide Python semantic analysis. See [Architecture and constraints](docs/ARCHITECTURE.md) for component boundaries, state, synchronization, and extension rules. Docs index: [docs/README.md](docs/README.md). Planned (not shipped) large-solution load cache: [docs/workspace-load-cache/](docs/workspace-load-cache/README.md).
+The server is C#-focused. It can read non-C# files and execute selected CLI operations, but it does not provide Python semantic analysis. See [Architecture and constraints](docs/ARCHITECTURE.md) for component boundaries, state, synchronization, and extension rules. Docs index: [docs/README.md](docs/README.md). Planned (not shipped) large-solution load cache: [docs/backlog/workspace-load-cache/](docs/backlog/workspace-load-cache/README.md).
 
 Plugin development and setup: [authoring guide](samples/RoslynMcpPlugin/README.md#english-version).
 
@@ -39,7 +39,7 @@ After `load_workspace`, semantic tools trust the file watcher until the next con
 - Watcher overflow, a watcher error, or a directory rename asks the next semantic call to re-read known documents and can mark the graph stale.
 - An edit the watcher never reported — a file outside the watch set, or a dropped notification with no error — stays invisible until the next `load_workspace`. Standing coverage gaps (imports, restore inputs, custom tasks) do not by themselves block a read.
 
-The other freshness policies that were considered and not chosen are recorded in [epoch 3](docs/workspace-load-cache/epoch-3-live-consistency/spec.md).
+The other freshness policies that were considered and not chosen are recorded in [epoch 3](docs/backlog/workspace-load-cache/epoch-3-live-consistency/spec.md).
 
 ## Security boundary
 
@@ -954,7 +954,7 @@ RoslynMcpServer предоставляет AI-агенту compiler-aware инс
 
 `запрос разработчика → агент → MCP tool → Roslyn/MSBuild/ILSpy/dotnet → компактный результат → агент`
 
-Сервер ориентирован на C#. Он умеет читать другие файлы и запускать отдельные CLI-операции, но не выполняет семантический анализ Python. Компоненты, состояние и обязательные ограничения описаны в [Architecture and constraints](docs/ARCHITECTURE.md). Индекс документации: [docs/README.md](docs/README.md). План (ещё не в runtime) кеша загрузки больших решений: [docs/workspace-load-cache/](docs/workspace-load-cache/README.md).
+Сервер ориентирован на C#. Он умеет читать другие файлы и запускать отдельные CLI-операции, но не выполняет семантический анализ Python. Компоненты, состояние и обязательные ограничения описаны в [Architecture and constraints](docs/ARCHITECTURE.md). Индекс документации: [docs/README.md](docs/README.md). План (ещё не в runtime) кеша загрузки больших решений: [docs/backlog/workspace-load-cache/](docs/backlog/workspace-load-cache/README.md).
 
 ## Основные возможности
 
@@ -974,7 +974,7 @@ RoslynMcpServer предоставляет AI-агенту compiler-aware инс
 - Переполнение наблюдателя, его ошибка или переименование каталога просят следующий семантический вызов перечитать известные документы и могут пометить граф устаревшим.
 - Правка, о которой наблюдатель не сообщил — файл вне области наблюдения или потерянное уведомление без ошибки, — остаётся невидимой до следующего `load_workspace`. Постоянные дыры покрытия (импорты, входы restore, custom tasks) сами по себе чтение не блокируют.
 
-Остальные политики свежести, которые рассматривались и не выбраны, записаны в [эпохе 3](docs/workspace-load-cache/epoch-3-live-consistency/spec.md).
+Остальные политики свежести, которые рассматривались и не выбраны, записаны в [эпохе 3](docs/backlog/workspace-load-cache/epoch-3-live-consistency/spec.md).
 
 ## Граница безопасности
 

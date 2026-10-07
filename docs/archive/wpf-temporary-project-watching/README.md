@@ -121,7 +121,7 @@ refresh-all pending и факт cache hit/reopen. Снимать состоян�
 [test-build-freshness](../test-build-freshness/README.md). Публикация generated
 кода, reload после сборки и analyzer shadow-copy этой серией не меняются.
 Долговременный кеш Solution остаётся в
-[workspace-load-cache](../../workspace-load-cache/README.md).
+[workspace-load-cache](../../backlog/workspace-load-cache/README.md).
 
 ## Завершение
 

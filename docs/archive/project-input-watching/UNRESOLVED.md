@@ -66,7 +66,7 @@ instance, не два.
 [non-csharp-input-tracking](../non-csharp-input-tracking/README.md).
 Наблюдение не выбирает общий reload/build/restore policy для semantic reads.
 Открытая политика восстановления согласуется с этой темой и
-[workspace-load-cache Epoch 3](../../workspace-load-cache/epoch-3-live-consistency/spec.md).
+[workspace-load-cache Epoch 3](../../backlog/workspace-load-cache/epoch-3-live-consistency/spec.md).
 Локальное исправление внешних путей и linked memberships не зависит от disk cache.
 
 ## W-04. Версия и WPF-сценарий коллег — закрыт

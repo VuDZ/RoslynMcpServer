@@ -69,7 +69,7 @@
   MSBuild bootstrap в этом наборе. [csproj](../../../../../RoslynMcpServer.csproj)
   уже предоставляет `InternalsVisibleTo` тестовому проекту.
 
-Другие планы, включая [workspace-load-cache](../../../../workspace-load-cache/README.md),
+Другие планы, включая [workspace-load-cache](../../../../backlog/workspace-load-cache/README.md),
 имеют статус proposed и не являются действующим ADR, разрешающим изменить lifecycle
 этой серии. Действующих `AGENTS.md` в workspace/проверенных родительских каталогах
 не найдено; `AGENTS.md.sample` не приравнивается к ним.

@@ -22,7 +22,7 @@ Evidence:
 `ApplySolutionChangesToDiskAsync`). Они делают `Solution.AddDocument`
 (`Services/StructuralRefactoringHelper.cs`) и пишут `.cs` через
 `PersistDocumentChangesAsync`, после чего `cleaned` всё ещё содержит новый
-`DocumentId`. `docs/workspace-load-cache/epoch-1-workspace-lifecycle/spec.md`:
+`DocumentId`. `docs/backlog/workspace-load-cache/epoch-1-workspace-lifecycle/spec.md`:
 external disk reconciliation не пишет `.csproj`; **намеренный** AddDocument
 проходит capability/A-WRITE — это прямо запрещает глобальный C-1.
 Для SDK-style те же тулы уже дают тот же NETSDK1022; §8 выносит «другой способ

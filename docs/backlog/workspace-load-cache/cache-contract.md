@@ -1,0 +1,284 @@
+# Контракт workspace load cache v2
+
+Статус: **normative proposal**. Невыполнимое MUST блокирует admission или public
+activation; оно не заменяется эвристикой.
+
+## 1. Термины и независимые состояния
+
+- **Request identity**: нормализованный workspace path, реально переданные global
+  properties с различием absent/explicit, graph scope и canonical roots,
+  semantic mode.
+- **Compatibility fingerprint**: schema/producer, Roslyn, SDK/MSBuild resolution,
+  ОС/path rules, language/profile и allowlisted significant environment.
+- **Base graph source**: `ram | disk | msbuild`; сообщает происхождение base,
+  но не readiness, overlay или наличие disk generation.
+- **Cache policy** и **overlay mode**: у каждого есть requested/effective value.
+- **Capture status**: `not-attempted | running | succeeded | rejected | failed`.
+- **Write status**: `not-attempted | written | skipped | failed`, с bounded reason.
+- **Validation mode**: фактически применённая гарантия reader.
+- **Semantic readiness**: candidate прошёл prepare/admission и опубликован для
+  semantic tools.
+- **Cache completeness**: доказана полнота roots, instances, edges и compiler
+  inputs для profile.
+- **Generation**: immutable version base/evidence; **publication**: atomic смена
+  manager/store pointer, не filesystem transaction.
+
+Ordinary load health, cache completeness, analyzer-provenance completeness и
+semantic readiness не объединяются в один bool. `cacheHit` не заменяет их.
+
+Trace: R-04, C-04, C-05, E2-03, E4-02 — ACCEPT/ACCEPT WITH MODIFICATION.
+
+## 2. Identity и session semantics
+
+`RequestIdentity` включает:
+
+- абсолютный `.sln`/`.slnx`/`.csproj`;
+- Configuration, Platform, TargetFramework с сохранением `null` против explicit;
+- graph scope и отсортированные canonical selected roots;
+- metadata mode и другие режимы, меняющие semantic graph.
+
+Inner TFM/effective properties принадлежат каждому project instance; outer
+cross-targeting instance не выдаётся за обычный проект. Multi-target target
+workload допускается только с exact instance/edge mapping.
+
+Overlay requested/effective — session state, а не переносимый analyzer result.
+Один base DTO может обслуживать on/off только если prepare/evidence полностью
+разделены. false/omitted на same-key RAM session не отключают активный overlay;
+reset/new key/restart создают новую сессию. Disk hydrate не включает overlay.
+
+`CompatibilityFingerprint` сверяется с **текущим независимо полученным**
+toolset/environment resolution, а не только с сохранённой копией самого себя.
+Изменение или невозможность проверки означает incompatible/unsupported miss.
+Секретные environment values не сохраняются и не логируются.
+
+Trace: R-03, R-04, R-06, C-03 — REJECT (absent/explicit сохранено), C-05.
+
+## 3. Две таблицы snapshot
+
+### 3.1 Semantic hydration DTO
+
+Versioned DTO содержит roots, inner project instances, directed references,
+language/name/assembly/file/output paths, effective properties, полные
+поддержанные parse/compilation options, compile/additional/analyzer-config
+documents, reference properties и portable analyzer identity без shadow paths.
+
+Один physical path может иметь несколько memberships. `path -> all memberships`
+используется для disk sync; query/edit отдельно выбирает детерминированный
+project/TFM context. Порядок hydrate не влияет на выбор.
+
+### 3.2 Dependency/admission evidence
+
+Отдельная versioned таблица содержит:
+
+- positive dependencies;
+- known-absent paths/conditions;
+- bounded regions возможного появления wildcard/negative inputs;
+- target-produced compiler inputs;
+- evidence source и version для каждой категории;
+- источник expected roots/instances/edges/inputs.
+
+Import не обязан быть Roslyn Document, но отсутствие его evidence запрещает
+reuse. Вне профиля binlog, resolved Documents/imports, имя SDK и evaluation-only
+не считаются полным evidence. Unknown в любой обязательной категории отключает
+disk-hit всего request.
+
+Для профиля `sdk-project-v1` источники категорий зафиксированы в
+[epoch-0](epoch-0-feasibility/spec.md#выбранный-admission-profile): positive import
+и known-absent `Exists` читаются из design-time binlog при `ProjectImports=None`;
+wildcard-регион читается из XML проекта и импортированных props; toolset — это
+каталог SDK по пути `Sdk.props`; пользовательский target — `unknown`.
+С 2026-10-03 к региону проекта добавлены `**/*.cshtml`, `**/*.razor` и
+`wwwroot/**`, а DLL из `source-generators` Razor SDK хешируются как analyzer
+DLL. Статический ассет вне каталога проекта и вне каталога SDK — `unknown`.
+Текст решения — в
+[epoch-0](epoch-0-feasibility/spec.md#расширение-профиля-razor-и-web).
+
+### 3.3 Completeness
+
+`CacheCompleteness=true` только если получены все expected roots, inner instances,
+directed edges и compiler inputs. Законно пустой project разрешён явной policy.
+Отсутствие blocking diagnostic не доказывает completeness, а обычный load может
+быть usable при запрещённом capture.
+
+Trace: R-02, C-01, C-04, E0-02, E1-03, E1-07, E2-01.
+
+## 4. Bytes, decoding и generated inputs
+
+Capture берёт base solution без shadow paths, session IDs, переносимых
+`ProjectId` и temp paths. Source/generated text не сериализуется.
+
+Для каждого Document фиксируются effective encoding, BOM handling, fallback,
+null/unspecified representation и write-back policy. Непредставимый случай
+отвергает profile. Oracle сравнивает character sequence, encoding policy,
+semantics и bytes после round-trip edit; checksum только дополнительный сигнал.
+
+Все реально значимые compile/config/provenance inputs, включая explicit `obj`,
+content-hashed. Частая изменчивость не разрешает исключить input. No-op build,
+build и edit+build+restart измеряются по категориям изменившихся bytes.
+
+Trace: C-06, C-09 — ACCEPT WITH MODIFICATION.
+
+## 5. Admission protocol
+
+Порядок обязателен:
+
+`dependency discovery -> establish coverage -> capture/hydrate -> validation
+-> prepare/gate -> publication`.
+
+Для каждой стадии реализация определяет owner, generation, consumed bytes,
+cancellation result и ресурсы. Support profile до hydrate, publication и
+загрузки DLL классифицирует request как `supported | unsupported | unknown`.
+`unknown` означает ordinary load, не partial hit.
+
+Hydrator должен определить, когда материализуются texts, metadata и analyzers,
+какие lazy reads переживают publication и какой lease их защищает. Late input,
+unknown coverage или неподтверждённая связь между consumed bytes и evidence
+запрещают reusable capture.
+
+После hydrate portable provenance собирается заново по
+[выбранному admission overlay](epoch-0-feasibility/spec.md#выбранное-admission-overlay):
+новый `LoadSessionId` после повторной проверки DLL. Старый session-bound
+snapshot нельзя сделать валидным заменой session ID, и в gate он не передаётся.
+Несовпадение проверки публикует base graph без overlay.
+
+Trace: C-01, C-02, C-05, E2-01; U-ARB-04 revalidated admission; U-ARB-06 profile
+`sdk-project-v1`.
+
+## 6. Lifecycle и атомарность
+
+Кандидат строится отдельно. State-transition table реализации обязана покрывать
+same-key refresh, different key, cancellation, load failure и prepare failure:
+old/candidate ownership, loaded key/path, dirty state, admission, publication и
+disposal. Старый workspace другого key автоматически не публикуется как fallback.
+
+Различаются:
+
+1. atomic store pointer для immutable payload;
+2. atomic manager publication под workspace lock;
+3. filesystem/CLR state, для которого rollback не обещается.
+
+Capture пишет поколение до ответа `load_workspace`, после полной обычной
+загрузки. Текст выбора — в
+[epoch-2](epoch-2-conservative-disk-cache/spec.md#выбранный-capture-schedule).
+Указатель публикуется один раз внутри вызова, после повторной сверки хешей.
+Ответ несёт `written` или `failed`. Успех загрузки от записи не зависит.
+
+Trace: C-02, E1-02, E2-05 — решение владельца 2026-10-02, E3-06.
+
+## 7. Store и reader ownership
+
+Evaluation cache хранится в отдельном namespace под
+`LocalApplicationData/RoslynMcpServer/eval-cache/<schema>`. Он не управляет
+analyzer shadow generations.
+
+- Writer создаёт unique immutable generation и atomically публикует manifest
+  pointer после полной записи/schema/size/checksum validation.
+- До public activation выбирается reader protocol: acquire/release, owner
+  identity, pause, crash, PID reuse, heartbeat/эквивалент и cleanup race.
+- Protection действует до последнего payload/lazy read, не только до возврата
+  hydrate.
+- Expiration сама по себе не разрешает deletion. При сомнении cleanup пропускает
+  deletion/new write.
+- Corrupt/oversize/unknown schema/no-space/permissions/competing writer дают
+  bounded fallback; project files из cache не восстанавливаются.
+- Cache payload недоверенный: DTO не исполняет команды и сам не разрешает
+  загрузить DLL. Повторная проверка DLL, новый session id, user-private каталог
+  и allowlist свойств заданы выбранным admission overlay.
+
+Store-correctness gate и product-activation gate независимы.
+
+Trace: C-08, E2-06 — ACCEPT WITH MODIFICATION.
+
+## 8. Scan, probes и events
+
+Profile отдельно задаёт membership roots, walk-up inputs, explicit dependencies,
+negative/potential regions и symlink/junction retarget policy. Solution directory
+не считается автоматически membership root каждого проекта.
+
+Budget включает visited entries, bytes, time, cancellation и I/O concurrency.
+Превышение означает отказ cache probe/ordinary load, не truncated hit. Prune
+ограничивает recursion, но не explicit probes/watch ancestor/`obj` paths.
+
+Event roles:
+
+- `known explicit`;
+- `potential membership/negative`;
+- `proven irrelevant`;
+- `unknown coverage`.
+
+Relevant unknown переводит generation в untrusted/graph-dirty; proven irrelevant
+не вызывает DTB. Content-only допустим только для существующей поддержанной
+Document role при доказанной независимости evaluation/targets от bytes; graph
+role имеет приоритет; missing document не считается applied.
+
+Trace: C-07, E3-03, E3-05, E3-07.
+
+## 9. Public behavior и observability
+
+Предлагаемые параметры остаются opt-in до activation gate:
+
+- `useDiskCache=false`;
+- `forceReload=false`, обходящий RAM и disk.
+
+`reset_workspace` очищает RAM, но не disk. Ответ возвращает bounded:
+
+- requested/effective cache policy;
+- base graph source;
+- effective validation mode;
+- capture status и write status/reason;
+- requested/effective overlay;
+- semantic readiness;
+- graph scope/coverage и fallback reason.
+
+RAM hit не подразумевает disk generation. Переход false→true на RAM hit может
+вернуть `not-attempted: unverified-ram`; скрытый force capture не требуется.
+Reason set включает disabled, forced, absent, incompatible, unsupported,
+inputs_changed, membership_changed, untrusted, corrupt, hydrate_failed,
+prepare_failed и capture/write outcomes.
+
+Trace: E2-03 — ACCEPT; E4-02 — ACCEPT WITH MODIFICATION.
+
+## 10. Принятые уточнения E0/task-02.1 — 2026-10-04
+
+Владелец утвердил [A021-01/02/03 и D021-04/05](epoch-0-feasibility/design/task-02.1-decisions.md).
+Нормативный текст границ — [уточнение epoch-0](epoch-0-feasibility/spec.md#уточнение-профиля-и-provenance--решение-владельца-2026-10-04).
+Для §§2/3.2/5/8 действуют эти конкретные исключения и ограничения:
+
+- exact SDK directory не расширяется; Target-bearing workload imports допустимы
+  только как отдельное finite source-backed extension с independently repeated
+  selection/absence/membership/bytes. Package/custom targets сохраняют отказ;
+- genuine TaskOutput и independently captured SDK-evaluated-item provenance
+  различимы. Нужны exact producer/consumer/conditions/metadata, полный compiler
+  inventory и отсутствие replacement; fictitious task contexts запрещены;
+- начальный positive subset: unchanged package-free framework fixtures/exact
+  installed packs/no downloads/NuGet-reference fallback/overrides. Полный strict source-backed
+  restore/toolset/analyzer closure обязателен, installed-code trust не выбран;
+- fresh revalidation остаётся disk-only, без Open*/DTB/subprocess/restore/loading
+  DTO DLL, создаёт новое session-bound evidence; любой непроверенный significant
+  input отказывает целому request. Complete flag не следует из owner approval;
+- D021-04 требует полный independent exact graph и однозначный new-base rebinding;
+  D021-05 оставляет Razor/Web negative в task-02.1 без расширения CSS/golden.
+
+Другие guarantees, store/publication/lifecycle, default и activation не меняются.
+
+### Уточнение ordered workload selection — 2026-10-04
+
+Принятая A021-03 запрещает NuGet/restore/reference fallback, downloads и overrides;
+SDK выбирается exact pin с `rollForward:disable`. Штатный ordered выбор workload
+manifests по feature-band входит в A021-01 только как доказанный version-specific
+algorithm. Название upstream `FallbackForMissingManifest` не исключает эту ветвь
+и не разрешает произвольный fallback. Для текущей установки отсутствие primary
+`10.0.300`, выбор secondary `10.0.100`, installstate, workloadsets, installer/userlocal
+markers и все более приоритетные положительные/отрицательные selectors входят
+в independent no-build re-resolution, повторный probe и mutation matrix.
+
+### A021-06. Typed envelope — решение владельца 2026-10-04
+
+Для distinct provenance A021-02 full independent fresh consumer bindings
+TaskOutput+SDK-evaluated union представляются в isolated typed envelope. Existing
+production AnalyzerProvenanceSnapshot сохраняет genuine TaskOutput/context/native
+binding semantics; task IDs/SourceProjectId/Confirmed не фабрикуются. Same-session
+Complete snapshot проходит existing gate, затем isolated host обязательно проверяет
+полное source/compiler/DTO/closure union и fresh bindings перед DLL loading.
+Production model/gate unchanged; строгий R07, no-process revalidation и M08/M10
+не ослабляются. Неполный envelope либо неподходящий capture отказывает целиком.

@@ -162,7 +162,7 @@
 
 Плюсы: единый контракт для C# и не-C# входов. Минусы: наиболее дорогой и
 сложный вариант; пересекается с будущей
-[`workspace-load-cache` Epoch 3](../../workspace-load-cache/epoch-3-live-consistency/spec.md),
+[`workspace-load-cache` Epoch 3](../../backlog/workspace-load-cache/epoch-3-live-consistency/spec.md),
 где уже описаны роли входов и открытый вопрос о freshness policy. Не стоит
 создавать вторую несовместимую модель без согласования с этой спецификацией.
 
@@ -172,7 +172,7 @@
 и запрещает публиковать её через `TryApplyChanges`. Эта подмена выпущена в
 1.5.4; контракт — [ARCHITECTURE](../../ARCHITECTURE.md). Политика чтения выбрана:
 доверие watcher между подтверждениями. Вариант D и остальные варианты свежести
-записаны в [epoch-3](../../workspace-load-cache/epoch-3-live-consistency/spec.md) и не
+записаны в [epoch-3](../../backlog/workspace-load-cache/epoch-3-live-consistency/spec.md) и не
 выбраны.
 
 ## 5. Вопросы перед выбором
@@ -219,6 +219,6 @@
   отдельный дефект: `AddDocument`/`RemoveDocument` из disk-sync могут менять
   `.csproj`. Эта тема не должна обходить принятое там ограничение, добавляя
   не-C# документы в `MSBuildWorkspace` через тот же путь.
-- [`workspace-load-cache`](../../workspace-load-cache/README.md) проектирует
+- [`workspace-load-cache`](../../backlog/workspace-load-cache/README.md) проектирует
   общую модель свежести и покрытия файловых входов. Перед реализацией B–D
   потребуется согласовать терминологию и контракт с её Epoch 3.
