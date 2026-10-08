@@ -1,0 +1,22 @@
+### Workspace health
+- **Solution/project:** `E:\Devel\RoslynMcpServer\samples\RoslynMcpPlugin\RoslynMcpPlugin.csproj`
+- **DotNet working directory:** `E:\Devel\RoslynMcpServer\samples\RoslynMcpPlugin`
+- **Projects loaded:** 2
+- **MSBuild Configuration:** (SDK/workspace default)
+- **MSBuild Platform:** (SDK/workspace default)
+- **MSBuild TargetFramework:** (SDK/workspace default)
+- **BuildArgs:** (none)
+- **global.json:** (not found)
+- **Pinned SDK (global.json):** (none)
+- **Resolved SDK directory:** (not resolved)
+- **Restore assets:** ok (2/2 projects have project.assets.json)
+- **Tool profile:** `full`
+- **Startup tool groups:** (none)
+- **Dynamic tool groups:** (none)
+- **Registered MCP tools:** 54 (use `get_mcp_server_info` for binary path)
+
+> **Workflow:** Call `load_workspace` first. Build/test/run via `run_dotnet_build`, `run_dotnet_test`, `run_dotnet_run` — not raw shell `dotnet`. Find usages: `find_usages` / `find_symbol_references` (alias: find_references).
+
+Successfully loaded workspace. Found 2 projects:
+- RoslynMcpPlugin [Worker]
+- RoslynMcpServer [Worker]

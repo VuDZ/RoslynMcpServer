@@ -5,13 +5,13 @@
 - Примерная сложность: 3/5; класс `med`.
 - Риск ошибки: средний — неверные inputs, fixtures или измерения искажают результат следующего шага.
 - Необходимые способности: `реализация_по_контракту`, `проектирование_проверок`.
-- Статус: **planned; spec-v2 revised-for-review, 2026-10-07; реализация не начата**.
+- Статус: **accepted, 2026-10-08; round 3: T01-R1-001 закрыт, журнал прогона в `run.txt`; принятый scope — ordinary baseline runner для контроля `RoslynMcpPlugin.csproj`: новый PID, warmup вне медианы, пять успешных measured attempts; production cache и приёмка эпохи не присвоены**.
 - Depends on: [E0/task-00](task-00-current-seams-and-controls-med.md)
-- Модель, реализовавшая задачу: —.
-- Модели, проводившие ревью: —.
-- Количество раундов ревью: —.
-- Количество исправлений после ревью: —.
-- Отчёт о реализации, ревью и validation: —.
+- Модель, реализовавшая задачу: Grok 4.7.
+- Модели, проводившие ревью: Grok 4.7 (три независимые сессии).
+- Количество раундов ревью: 3.
+- Количество исправлений после ревью: 2.
+- Отчёт о реализации, ревью и validation: [baseline](evidence/task-01-baseline.md); [review round 1](evidence/task-01-review-round-1.md); [review round 2](evidence/task-01-review-round-2.md); [accepted round 3](evidence/task-01-review-round-3.md).
 
 ## Цель
 

@@ -1,0 +1,58 @@
+{
+  "attachedTo": "compare-key.json evaluatedInstance",
+  "timedAttemptsRerun": false,
+  "sameRequest": {
+    "workspace": "E:\\Devel\\RoslynMcpServer\\samples\\RoslynMcpPlugin\\RoslynMcpPlugin.csproj",
+    "rawRequested": {
+      "configuration": "absent",
+      "platform": "absent",
+      "targetFramework": "absent",
+      "buildArgs": "absent",
+      "shadowCopyInSolutionAnalyzers": "absent"
+    }
+  },
+  "loaderGlobalsBeforeOpen": {
+    "process": "fresh",
+    "inheritedLoaded": {
+      "configuration": "absent",
+      "platform": "absent",
+      "targetFramework": "absent",
+      "buildArgs": "absent"
+    },
+    "fileSettings": {
+      "executableJsonc": "absent",
+      "workingDirectoryJsonc": "absent",
+      "configuration": "absent",
+      "platform": "absent",
+      "targetFramework": "absent"
+    },
+    "merged": {
+      "configuration": "absent",
+      "platform": "absent",
+      "targetFramework": "absent",
+      "buildArgs": "absent",
+      "precedence": "passed override, else inherited Loaded* from this process, else RoslynMcp.jsonc (cwd wins over exe)"
+    }
+  },
+  "evaluatedInstance": {
+    "projectFile": "E:\\Devel\\RoslynMcpServer\\samples\\RoslynMcpPlugin\\RoslynMcpPlugin.csproj",
+    "configuration": "Debug",
+    "platform": "AnyCPU",
+    "targetFramework": "net10.0",
+    "targetFrameworks": "",
+    "globalsPassed": "absent",
+    "method": "dotnet msbuild -getProperty; outside load, semantic, and useful",
+    "exitCode": 0
+  },
+  "serverHealthObservation": {
+    "msbuildConfiguration": "(SDK/workspace default)",
+    "msbuildPlatform": "(SDK/workspace default)",
+    "msbuildTargetFramework": "(SDK/workspace default)",
+    "resolvedSdkDirectory": "(not resolved)",
+    "pinnedSdk": "(none)",
+    "role": "load response text; not raw requested, pre-open loader globals, or evaluated instance"
+  },
+  "excludedEmitSigning": "excluded",
+  "previousCompareKeyId": "732e1edef5bc0f2b393f0ce5740ec527d093afc115cc8b3779607f1f77d3c6c4",
+  "compareKeyId": "85163a2486ed8a50a0a0946a344adf27bebcebca386eb4ee372ae756a270884d"
+}

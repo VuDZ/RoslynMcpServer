@@ -2,7 +2,8 @@
 
 Статус: **revised-for-review после арбитража, 2026-10-07**. Production runtime не изменён;
 E0/task-00 accepted для docs-only inventory seams и выбора real control, 2026-10-07
-([round 2 / validation](epoch-0-snapshot-roundtrip/evidence/task-00-review-round-2.md)); S-001 accepted для isolated base-query slice, **round 2, 2026-10-08**
+([round 2 / validation](epoch-0-snapshot-roundtrip/evidence/task-00-review-round-2.md)); E0/task-01 accepted для ordinary baseline runner контроля RoslynMcpPlugin, **round 3, 2026-10-08**
+([review](epoch-0-snapshot-roundtrip/evidence/task-01-review-round-3.md)); S-001 accepted для isolated base-query slice, **round 2, 2026-10-08**
 ([capability/validation](epoch-0-snapshot-roundtrip/evidence/task-08-capability.md), [review](epoch-0-snapshot-roundtrip/evidence/task-08-review-round-2.md)); capture-ready и приёмка эпохи не присвоены.
 Runtime, версия и defaults этим пакетом не меняются.
 
@@ -323,6 +324,8 @@ attributes и project bindings входят в admission evidence S-001.
 принятый scope — docs-only inventory seams и выбор real control; S-001/S-002 not-run;
 реализация, independent review и public activation этим решением не принимаются.
 
-Текущий execution status на 2026-10-08: isolated S-001 accepted для supported base-query slice,
-round 2; [review](epoch-0-snapshot-roundtrip/evidence/task-08-review-round-2.md).
+Текущий execution status на 2026-10-08: E0/task-01 accepted для ordinary baseline runner,
+round 3; [review](epoch-0-snapshot-roundtrip/evidence/task-01-review-round-3.md).
+Isolated S-001 accepted для supported base-query slice, round 2;
+[review](epoch-0-snapshot-roundtrip/evidence/task-08-review-round-2.md).
 Production и public activation не изменены.

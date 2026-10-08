@@ -1,0 +1,102 @@
+{
+  "serverCommit": "442ae060b85be0f4ab641274fe5c8c94d13642d7",
+  "serverFileVersion": "1.5.5.0 (product 1.5.5+442ae060b85be0f4ab641274fe5c8c94d13642d7)",
+  "sourceVersion": "1.5.5",
+  "assemblyVersion": "1.5.5.0",
+  "fileVersion": "1.5.5.0",
+  "os": "Windows-11-10.0.26200-SP0",
+  "cpu": "AMD Ryzen 7 9800X3D 8-Core Processor",
+  "cpuCount": 16,
+  "ramBytes": 100562268160,
+  "workspaceRevision": "442ae060b85be0f4ab641274fe5c8c94d13642d7",
+  "mutationsAtStart": [
+    "M RoslynMcpServer.Tests/WorkspaceLoadCache/DependencyEvidenceRunner.cs",
+    "?? .agents/skills/prepare-github-release/",
+    "?? .cursor/rules/roslyn-mcp.mdc",
+    "?? .zcodeignore",
+    "?? RoslynMcpServer.Tests/WorkspaceLoadCache/DependencyFrameworkSelection.cs",
+    "?? RoslynMcpServer.Tests/WorkspaceLoadCache/DependencyGraphDiscovery.cs",
+    "?? RoslynMcpServer.Tests/WorkspaceLoadCache/DependencyInputProbe.cs",
+    "?? RoslynMcpServer.Tests/WorkspaceLoadCache/DependencyPartialProofTests.cs",
+    "?? RoslynMcpServer.Tests/WorkspaceLoadCache/IndependentWorkspaceOracle.cs",
+    "?? RoslynMcpServer.Tests/WorkspaceLoadCache/IndependentWorkspaceOracleTests.cs",
+    "?? RoslynMcpServer.Tests/WorkspaceLoadCache/Models/DependencyDirectoryObservation.cs",
+    "?? RoslynMcpServer.Tests/WorkspaceLoadCache/Models/DependencyGraphEvidence.cs",
+    "?? RoslynMcpServer.Tests/WorkspaceLoadCache/Models/DependencySelectionEvidence.cs",
+    "?? RoslynMcpServer.Tests/WorkspaceLoadCache/Models/OracleComparison.cs",
+    "?? RoslynMcpServer.Tests/WorkspaceLoadCache/Models/OracleDifference.cs",
+    "?? RoslynMcpServer.Tests/WorkspaceLoadCache/Models/ScenarioOutcome.cs",
+    "?? RoslynMcpServer.Tests/WorkspaceLoadCache/Models/WorkspaceObservation.cs",
+    "?? RoslynMcpServer.Tests/WorkspaceLoadCache/WorkspaceObservationReader.cs",
+    "?? docs/workspace-state-cache/epoch-0-snapshot-roundtrip/evidence/task-01/",
+    "?? iotester.py",
+    "?? scripts/"
+  ],
+  "contentIdentity": "818ef96e131261bdc5d3760a1b9f937a156cfa8e405d8fa1406f247d4fc688c3",
+  "contentIdentityScope": "csproj-and-project-reference-sources",
+  "sdkVersion": "10.0.300",
+  "msbuildVersion": "18.6.3.23102",
+  "msbuildPackage": "18.6.3",
+  "roslynPackage": "5.9.0",
+  "rawRequested": {
+    "configuration": "absent",
+    "platform": "absent",
+    "targetFramework": "absent",
+    "buildArgs": "absent",
+    "shadowCopyInSolutionAnalyzers": "absent"
+  },
+  "loaderGlobalsBeforeOpen": {
+    "process": "fresh",
+    "inheritedLoaded": {
+      "configuration": "absent",
+      "platform": "absent",
+      "targetFramework": "absent",
+      "buildArgs": "absent"
+    },
+    "fileSettings": {
+      "executableJsonc": "absent",
+      "workingDirectoryJsonc": "absent",
+      "configuration": "absent",
+      "platform": "absent",
+      "targetFramework": "absent"
+    },
+    "merged": {
+      "configuration": "absent",
+      "platform": "absent",
+      "targetFramework": "absent",
+      "buildArgs": "absent",
+      "precedence": "passed override, else inherited Loaded* from this process, else RoslynMcp.jsonc (cwd wins over exe)"
+    }
+  },
+  "evaluatedInstance": {
+    "projectFile": "E:\\Devel\\RoslynMcpServer\\samples\\RoslynMcpPlugin\\RoslynMcpPlugin.csproj",
+    "configuration": "Debug",
+    "platform": "AnyCPU",
+    "targetFramework": "net10.0",
+    "targetFrameworks": "",
+    "globalsPassed": "absent"
+  },
+  "serverHealthObservation": {
+    "msbuildConfiguration": "(SDK/workspace default)",
+    "msbuildPlatform": "(SDK/workspace default)",
+    "msbuildTargetFramework": "(SDK/workspace default)",
+    "resolvedSdkDirectory": "(not resolved)",
+    "pinnedSdk": "(none)",
+    "role": "load response text; not raw requested, pre-open loader globals, or evaluated instance"
+  },
+  "semanticMode": "forced-ordinary-baseline",
+  "overlayMode": "off",
+  "binaryPolicy": "not-applicable",
+  "binaryPolicyThreshold": "not-applicable",
+  "binaryPolicyChunks": "not-applicable",
+  "query": "find_symbol_definition:SamplePlugin",
+  "expectFullName": "RoslynMcpPlugin.SamplePlugin",
+  "expectFile": "samples\\RoslynMcpPlugin\\SamplePlugin.cs",
+  "h001": "external-xml-excluded",
+  "h002": "strong-name-variant-B",
+  "excludedEmitSigning": "excluded",
+  "scenario": "forced-ordinary-baseline",
+  "cacheHit": false,
+  "xmlDocEquivalence": false,
+  "strongNameEquivalence": false
+}

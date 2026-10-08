@@ -1,0 +1,32 @@
+{
+  "includedInAttemptTimers": false,
+  "restorePerformed": false,
+  "script": "publish-and-verify.ps1",
+  "configuration": "Release",
+  "rid": "win-x64",
+  "sdk": "10.0.300",
+  "server": "E:\\Devel\\RoslynMcpServer\\bin\\Release\\net10.0\\win-x64\\publish\\RoslynMcpServer.exe",
+  "fileVersion": "1.5.5.0",
+  "productVersion": "1.5.5+442ae060b85be0f4ab641274fe5c8c94d13642d7",
+  "exeLastWriteTime": "2026-10-08T13:13:47.0843902+03:00",
+  "exeBytes": 162816,
+  "note": "Both publishes finished before any timed attempt. Restore was not run. Durations are not added to load, semantic, or useful.",
+  "attempts": [
+    {
+      "startedAt": "2026-10-08T13:13:25.5857473+03:00",
+      "endedAt": "2026-10-08T13:16:03.5742876+03:00",
+      "durationMs": 157986.9,
+      "exitCode": 1,
+      "outcome": "failed",
+      "reason": "MSB3027: publish output stayed locked by RoslynMcpServer.exe PID 33564, which started after the script's initial lock check."
+    },
+    {
+      "startedAt": "2026-10-08T13:17:51.0068614+03:00",
+      "endedAt": "2026-10-08T13:18:06.2238061+03:00",
+      "durationMs": 15215.4,
+      "exitCode": 0,
+      "outcome": "success",
+      "reason": "Second publish-and-verify.ps1 completed. FileVersion of the exe is 1.5.5.0."
+    }
+  ]
+}

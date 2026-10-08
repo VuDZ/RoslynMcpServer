@@ -1,0 +1,24 @@
+[10:18:34] e0-ordinary-baseline-1 workspace=E:\Devel\RoslynMcpServer\samples\RoslynMcpPlugin\RoslynMcpPlugin.csproj
+[10:18:34] server=E:\Devel\RoslynMcpServer\bin\Release\net10.0\win-x64\publish\RoslynMcpServer.exe
+[10:18:34] file cache is not dropped; this is a new-process/warm-files run
+[10:18:35] commit=442ae060b85be0f4ab641274fe5c8c94d13642d7 sdk=10.0.300 source=1.5.5
+[10:18:36] warmup#0: server pid=79256
+[10:18:38] warmup#0: load success in 1536.8 ms projects=2
+[10:18:38] warmup#0: semantic success in 966.1 ms useful=2502.9 ms
+[10:18:39] measured#1: server pid=65268
+[10:18:40] measured#1: load success in 1411.5 ms projects=2
+[10:18:41] measured#1: semantic success in 960.7 ms useful=2372.2 ms
+[10:18:42] measured#2: server pid=68420
+[10:18:43] measured#2: load success in 1418.1 ms projects=2
+[10:18:44] measured#2: semantic success in 970.7 ms useful=2388.8 ms
+[10:18:45] measured#3: server pid=72152
+[10:18:46] measured#3: load success in 1413.5 ms projects=2
+[10:18:47] measured#3: semantic success in 957.1 ms useful=2370.6 ms
+[10:18:48] measured#4: server pid=76124
+[10:18:49] measured#4: load success in 1399.8 ms projects=2
+[10:18:50] measured#4: semantic success in 942.1 ms useful=2341.9 ms
+[10:18:50] measured#5: server pid=50244
+[10:18:52] measured#5: load success in 1415.0 ms projects=2
+[10:18:53] measured#5: semantic success in 919.7 ms useful=2334.7 ms
+[10:18:53] SUMMARY E:\Devel\RoslynMcpServer\docs\workspace-state-cache\epoch-0-snapshot-roundtrip\evidence\task-01\summary.json partial=False
+[10:18:53] COUNTS successes=5 errors=0 timeouts=0
