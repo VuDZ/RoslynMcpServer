@@ -1,7 +1,7 @@
 # E0 — Snapshot round-trip: карта выполнения
 
 - Статус плана: **spec-v2 / revised-for-review, 2026-10-07**.
-- Статус исполнения: **task-00 accepted, round 2, 2026-10-07; принятый scope — docs-only inventory seams и выбор real control; task-01 accepted, round 3, 2026-10-08 — ordinary baseline runner для контроля RoslynMcpPlugin; task-08 accepted, round 2, 2026-10-08 — isolated supported base-query slice; task-02–task-07 planned; приёмка эпохи не выполнена**. [Task-00 review/validation](evidence/task-00-review-round-2.md), [task-01 review/validation](evidence/task-01-review-round-3.md), [task-08 review/validation](evidence/task-08-review-round-2.md).
+- Статус исполнения: **task-00 accepted, round 2, 2026-10-07; принятый scope — docs-only inventory seams и выбор real control; task-01 accepted, round 3, 2026-10-08 — ordinary baseline runner для контроля RoslynMcpPlugin; task-08 accepted, round 2, 2026-10-08 — isolated supported base-query slice; task-02 accepted, round 1, 2026-10-08 — schema v1 и живой isolated ordinary consumer; task-03–task-07 planned; приёмка эпохи не выполнена**. [Task-00 review/validation](evidence/task-00-review-round-2.md), [task-01 review/validation](evidence/task-01-review-round-3.md), [task-08 review/validation](evidence/task-08-review-round-2.md), [task-02 review](evidence/task-02-review-round-1.md), [task-02 final validation](evidence/task-02-validation.md).
 - Зависимость эпохи: предшествующей эпохи нет; после принятия плана E0 preliminary inventory/schema sketch допустимы, positive executable scope требует U-001 и successful S-001.
 - Результат: Рабочий capture → DTO → новый host → semantic query на реальном проекте; первый benchmark восстановления.
 - Канон: [spec.md](spec.md); общий scope — [README серии](../README.md).
@@ -11,7 +11,7 @@
 
 - [task-00 — Актуальные seams и контролы](task-00-current-seams-and-controls-med.md) — `med`, **accepted / docs-only inventory и выбор контроля, 2026-10-07**; Depends on: нет. Evidence: [implementation](evidence/task-00-controls.md), [review round 2 / validation](evidence/task-00-review-round-2.md).
 - [task-01 — Раннер ordinary baseline](task-01-baseline-runner-med.md) — `med`, **accepted / ordinary baseline runner для контроля RoslynMcpPlugin, round 3, 2026-10-08**; Depends on: [E0/task-00](task-00-current-seams-and-controls-med.md). Evidence: [baseline](evidence/task-01-baseline.md), [review round 3 / validation](evidence/task-01-review-round-3.md).
-- [task-02 — Минимальная переносимая schema](task-02-snapshot-schema-hi.md) — `hi`, **planned**; Depends on: [E0/task-00](task-00-current-seams-and-controls-med.md), [E0/task-08 — S-001](task-08-real-control-capability-hi.md)
+- [task-02 — Минимальная переносимая schema](task-02-snapshot-schema-hi.md) — `hi`, **accepted / schema v1 и живой isolated ordinary consumer, round 1, 2026-10-08**; Depends on: [E0/task-00](task-00-current-seams-and-controls-med.md), [E0/task-08 — S-001](task-08-real-control-capability-hi.md). Evidence: [schema](evidence/task-02-schema.md), [review](evidence/task-02-review-round-1.md), [final validation](evidence/task-02-validation.md).
 - [task-03 — Capture ordinary workspace](task-03-ordinary-capture-med.md) — `med`, **planned**; Depends on: [E0/task-02](task-02-snapshot-schema-hi.md), [E0/task-08 — S-001](task-08-real-control-capability-hi.md)
 - [task-04 — Bounded snapshot codec](task-04-snapshot-codec-low.md) — `low`, **planned**; Depends on: [E0/task-02](task-02-snapshot-schema-hi.md), [E0/task-08 — S-001](task-08-real-control-capability-hi.md)
 - [task-05 — Восстановление base host](task-05-isolated-hydrate-hi.md) — `hi`, **planned**; Depends on: [E0/task-03](task-03-ordinary-capture-med.md), [E0/task-04](task-04-snapshot-codec-low.md), [E0/task-08 — S-001](task-08-real-control-capability-hi.md)
@@ -39,12 +39,12 @@ ID не задаёт порядок запуска: его задаёт Depends 
 
 ## Статистика ревью задач
 
-- Охват: task-00 — round 2, 2026-10-07, accepted для docs-only inventory seams и выбора real control; task-01 — round 3, 2026-10-08, accepted для ordinary baseline runner контроля RoslynMcpPlugin; task-08 — round 2, 2026-10-08, accepted для isolated supported base-query slice; task-02–task-07 planned.
-- Фактические исполнители: task-00 — Grok 4.7; task-01 — Grok 4.7; task-08 — Codex (GPT-6; точный runtime model ID недоступен).
-- Фактические рецензенты: task-00 — Codex (GPT-6; точный runtime model ID недоступен); task-01 — Grok 4.7 (три независимые сессии); task-08 — Grok 4.7.
-- Сумма раундов ревью задач: 7.
-- Исправленные замечания задач: 5; task-00 — T00-R1-001 и T00-R1-002 подтверждены recheck; task-01 — T01-R1-001 подтверждён round 2, журнал переименован в `run.txt` и подтверждён round 3; task-08 — T08-R1-001 подтверждён round 2.
-- Отчёты: [task-00 round 1](evidence/task-00-review-round-1.md), [round 2 / validation](evidence/task-00-review-round-2.md), [task-01 baseline](evidence/task-01-baseline.md), [task-01 round 1](evidence/task-01-review-round-1.md), [task-01 round 2](evidence/task-01-review-round-2.md), [task-01 round 3 / validation](evidence/task-01-review-round-3.md), [task-08 capability/validation](evidence/task-08-capability.md), [task-08 round 1](evidence/task-08-review-round-1.md), [task-08 round 2 / validation](evidence/task-08-review-round-2.md).
+- Охват: task-00 — round 2, 2026-10-07, accepted для docs-only inventory seams и выбора real control; task-01 — round 3, 2026-10-08, accepted для ordinary baseline runner контроля RoslynMcpPlugin; task-08 — round 2, 2026-10-08, accepted для isolated supported base-query slice; task-02 — round 1, 2026-10-08, accepted для schema v1 и живого isolated ordinary consumer; task-03–task-07 planned.
+- Фактические исполнители: task-00 — Grok 4.7; task-01 — Grok 4.7; task-08 и task-02 — Codex (GPT-6; точный runtime model ID недоступен).
+- Фактические рецензенты: task-00 — Codex (GPT-6; точный runtime model ID недоступен); task-01 — Grok 4.7 (три независимые сессии); task-08 — Grok 4.7; task-02 — Codex (GPT-6; точный runtime model ID недоступен), независимая сессия.
+- Сумма раундов ревью задач: 8.
+- Исправленные замечания задач: 5; task-00 — T00-R1-001 и T00-R1-002 подтверждены recheck; task-01 — T01-R1-001 подтверждён round 2, журнал переименован в `run.txt` и подтверждён round 3; task-08 — T08-R1-001 подтверждён round 2; task-02 — 0, must-fix замечаний нет.
+- Отчёты: [task-00 round 1](evidence/task-00-review-round-1.md), [round 2 / validation](evidence/task-00-review-round-2.md), [task-01 baseline](evidence/task-01-baseline.md), [task-01 round 1](evidence/task-01-review-round-1.md), [task-01 round 2](evidence/task-01-review-round-2.md), [task-01 round 3 / validation](evidence/task-01-review-round-3.md), [task-08 capability/validation](evidence/task-08-capability.md), [task-08 round 1](evidence/task-08-review-round-1.md), [task-08 round 2 / validation](evidence/task-08-review-round-2.md), [task-02 schema](evidence/task-02-schema.md), [task-02 review](evidence/task-02-review-round-1.md), [task-02 final validation](evidence/task-02-validation.md).
 
 ## Приёмка реализации эпохи
 
@@ -52,7 +52,7 @@ ID не задаёт порядок запуска: его задаёт Depends 
 - Даты ревью: —.
 - Количество раундов ревью: —.
 - Количество исправлений после ревью: —.
-- Итог: не проверено; preliminary inventory task-00 принят; task-01 accepted для ordinary baseline runner, round 3, 2026-10-08; isolated task-08 accepted для base-query slice, round 2, 2026-10-08. Cross-process round-trip/codec/hydrate эпохи не выполнены.
+- Итог: не проверено; preliminary inventory task-00 принят; task-01 accepted для ordinary baseline runner, round 3, 2026-10-08; isolated task-08 accepted для base-query slice, round 2, 2026-10-08; task-02 accepted для schema v1 и живого isolated ordinary consumer, round 1, 2026-10-08 ([validation](evidence/task-02-validation.md)). Cross-process round-trip/codec/hydrate эпохи не выполнены.
 - Принятый scope и дата: —.
 - Финальная validation и benchmark: —.
 - Ограничения и deferred scope: —.

@@ -1,0 +1,33 @@
+namespace RoslynMcpServer.Services.Workspace.StateCache.Models;
+
+/// <summary>Public scalar state and finite construction witnesses; hidden providers are explicitly bounded by the profile.</summary>
+public sealed record SnapshotCompilationOptions(
+    string ConstructionWitness,
+    string OutputKind,
+    string? ModuleName,
+    string? MainTypeName,
+    string? ScriptClassName,
+    string[] Usings,
+    string OptimizationLevel,
+    bool CheckOverflow,
+    bool AllowUnsafe,
+    string? CryptoKeyContainer,
+    string? CryptoKeyFile,
+    byte[] CryptoPublicKey,
+    bool? DelaySign,
+    bool PublicSign,
+    string Platform,
+    string GeneralDiagnosticOption,
+    int WarningLevel,
+    SnapshotNameValue[] SpecificDiagnosticOptions,
+    bool ConcurrentBuild,
+    bool Deterministic,
+    string MetadataImportOptions,
+    string NullableContextOptions,
+    bool ReportSuppressedDiagnostics,
+    string AssemblyIdentityComparer,
+    SnapshotResolver SourceResolver,
+    SnapshotResolver XmlResolver,
+    SnapshotResolver MetadataResolver,
+    string StrongNamePolicy,
+    string SyntaxTreeOptionsPolicy);

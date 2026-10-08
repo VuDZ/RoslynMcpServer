@@ -1,0 +1,90 @@
+{
+  "date": "2026-10-08",
+  "status": "accepted",
+  "scope": "Schema v1 and isolated ordinary consumer; S-001 single-target Debug base-query H-001/H-002",
+  "head": "b57831d6684afe7d1d1d3ae5e703da3a72836bab",
+  "commitCreated": false,
+  "versionBumped": false,
+  "focused": {
+    "total": 7,
+    "passed": 7,
+    "failed": 0,
+    "skipped": 0,
+    "runner": "Implementer run_specific_test; also included in coordinator main suite"
+  },
+  "build": {
+    "content": [
+      {
+        "type": "text",
+        "text": "## Build succeeded\r\n\r\n- **warning** `CS8603` `E:\\Devel\\RoslynMcpServer\\Services\\Resolve\\NuGetFallbackAssemblyResolver.cs(35,20)` — Possible null reference return. [E:\\Devel\\RoslynMcpServer\\RoslynMcpServer.csproj]\r\n- **warning** `CS8603` `E:\\Devel\\RoslynMcpServer\\Services\\Resolve\\NuGetFallbackAssemblyResolver.cs(53,9)` — Possible null reference return. [E:\\Devel\\RoslynMcpServer\\RoslynMcpServer.csproj]\r\n- **warning** `CS8601` `E:\\Devel\\RoslynMcpServer\\RoslynMcpServer.LifecycleTestHost\\HostSession.cs(1177,34)` — Possible null reference assignment. [E:\\Devel\\RoslynMcpServer\\RoslynMcpServer.LifecycleTestHost\\RoslynMcpServer.LifecycleTestHost.csproj]\r\n- **warning** `xUnit1031` `E:\\Devel\\RoslynMcpServer\\RoslynMcpServer.Tests\\Workspace\\WpfTemporaryProjectCallbackTests.cs(195,32)` — Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031) [E:\\Devel\\RoslynMcpServer\\RoslynMcpServer.Tests\\RoslynMcpServer.Tests.csproj]"
+      }
+    ]
+  },
+  "sourceStructure": {
+    "content": [
+      {
+        "type": "text",
+        "text": "## Filtered test run\r\n\r\n**Filter:** `FullyQualifiedName~RoslynMcpServer.Tests.SourceStructure`\r\n**Match:** Caller-supplied VSTest filter\r\n\r\n## Filtered tests passed\r\n\r\nTotal: **123** · Passed: **123** · Failed: **0**\r\n\r\nMatched tests: `RoslynMcpServer.Tests.SourceStructure.SourceSetAnalysisTests.Unresolved_call_makes_reachability_undecidable', 'RoslynMcpServer.Tests.SourceStructure.SourceSetAnalysisTests.Crlf_and_lf_texts_produce_the_same_compilation_and_line_numbers', 'RoslynMcpServer.Tests.SourceStructure.WriteBoundaryChecksTests.Comment_and_string_mention_are_not_call_sites', 'RoslynMcpServer.Tests.SourceStructure.WriteBoundaryChecksTests.Second_call_site_fails', 'RoslynMcpServer.Tests.SourceStructure.SourceSetAnalysisTests.Delegate_assignment_to_a_lambda_body_is_followed`"
+      }
+    ]
+  },
+  "mainSuite": {
+    "content": [
+      {
+        "type": "text",
+        "text": "## Filtered test run\r\n\r\n**Filter:** `Category!=AnalyzerLifecycle`\r\n**Match:** Caller-supplied VSTest filter\r\n\r\n## Filtered tests passed\r\n\r\nTotal: **1285** · Passed: **1285** · Failed: **0**\r\n\r\nMatched tests: `RoslynMcpServer.Tests.TestRunner.TestFilterHelperTests.BuildFilter_methodOnly_shortName_usesLeadingDotContains', 'RoslynMcpServer.Tests.Workspace.WorkspaceDiagnosticFormatterTests.IsBlockingLoadFailure_true_for_wrapped_msbuild_error', 'RoslynMcpServer.Tests.Navigation.SourcePositionHelperTests.TryGetAbsolutePosition_line_past_eof_returns_readable_error', 'RoslynMcpServer.Tests.Search.UtilityToolsSearchScopeTests.ResolveSearchRoots_omitted_directory_includes_external_project_and_solution_directory', 'RoslynMcpServer.Tests.Search.UtilityToolsSearchScopeTests.ResolveSearchRoots_omitted_directory_keeps_loose_file_under_solution_directory_inside_a_root`"
+      }
+    ]
+  },
+  "analyzerLifecycle": {
+    "status": "not-run",
+    "required": false,
+    "reason": "Only inert production DTO added; lifecycle paths/config unchanged"
+  },
+  "review": {
+    "rounds": 1,
+    "verdict": "ACCEPT",
+    "mustFix": 0,
+    "confirmedFixes": 0,
+    "report": "task-02-review-round-1.md"
+  },
+  "documentationChecks": {
+    "status": "passed",
+    "files": 8,
+    "links": 185,
+    "anchors": 8,
+    "sourceWhitespaceFiles": 21,
+    "gitDiffCheckExit": 0,
+    "taskStatusConsistent": true,
+    "errors": []
+  },
+  "preservation": {
+    "preExistingDirtyFileSha256": "1DFE44362B2CBD90ED2A888D94CED5D8D3726AD031F7F8FD5713E0C1985F60F6",
+    "unchanged": true,
+    "headUnchanged": true
+  },
+  "finalCodeSha256": {
+    "Services/Workspace/StateCache/Models/SnapshotAnalyzerReference.cs": "D36EC8A2A416ABD88A4F07A6D51F8FE2711D3E8EE0C4ECE7C8085A1AA6B2FE36",
+    "Services/Workspace/StateCache/Models/SnapshotCaptureResult.cs": "7C3B6C489B9519B5F89693B16C227C13865B76722690ECE8C67FD41F5F870221",
+    "Services/Workspace/StateCache/Models/SnapshotCompilationOptions.cs": "4637D7ADE944B0D1B372F2172F68B19FA7EBAFFC4C01E06141D6374B2BFF0E1C",
+    "Services/Workspace/StateCache/Models/SnapshotDocument.cs": "E6646CBBBF9C82421EE12D6F0179E31953CD167161160D211037F1952C0BD677",
+    "Services/Workspace/StateCache/Models/SnapshotEvaluatedProperties.cs": "44DE562AEDDD329DD3F6E455F2A73124706AA73152C24CF6B34CCB45D7A921A2",
+    "Services/Workspace/StateCache/Models/SnapshotInputOccurrence.cs": "DDBDF3602ECD55688850B2A7C9486F6D878B4093CA429600848B23CA1C6DC174",
+    "Services/Workspace/StateCache/Models/SnapshotInputPath.cs": "A554A9470D65816C9AE6849F28C71EB3206CC24D1EAF8DC2A3670A82E75F27C3",
+    "Services/Workspace/StateCache/Models/SnapshotLoadProperties.cs": "FCE2D02F712E7748F69808162D4E0A955B4E98A8B39EB4C80DB4ACFE5E41DC81",
+    "Services/Workspace/StateCache/Models/SnapshotMetadataReference.cs": "8F83D262DD9E19AF9556A7ECBECFE855182D836755BFD32E0754B74790DB0976",
+    "Services/Workspace/StateCache/Models/SnapshotNameValue.cs": "9C8EBE75AA9ACC06A217848206144510A81481EEB9731002733E0AD9070DB9AF",
+    "Services/Workspace/StateCache/Models/SnapshotParseOptions.cs": "7313997D0AE29EDE912339D4D9AA5F6F5056046746B9461973EDFEA0BE7ABD9F",
+    "Services/Workspace/StateCache/Models/SnapshotProject.cs": "C52769110C31DF1658772C7FCCC447A1EEABAEE3127B3551435D7D40B415D968",
+    "Services/Workspace/StateCache/Models/SnapshotProjectKey.cs": "017E136BACF9C6924FB2443CCF24582976E932D9BCA9EA0A51035087DDA168AA",
+    "Services/Workspace/StateCache/Models/SnapshotProjectReference.cs": "2BEADA430A023E996CFE4A6D854968EEFB411E0DB1CC2A4991FC6479A497E77C",
+    "Services/Workspace/StateCache/Models/SnapshotPropertySet.cs": "573E14A73F6F4BFCFD5AC317C6AED18226AFF0787ECFF5F28A6AC0F0B1CE4A8F",
+    "Services/Workspace/StateCache/Models/SnapshotResolver.cs": "6B56B52C0BEF291EF64A4A1BA5745937840284A34B97BF3B57C260B880F46EE5",
+    "Services/Workspace/StateCache/Models/SnapshotTextMetadata.cs": "16A5943CBD41B066748471E529EE686FA836E9F83AFF0404E9034659CBE90850",
+    "Services/Workspace/StateCache/Models/WorkspaceSnapshot.cs": "329D4B413528AFB491DC7CA995218CC7922D0940A8D261E11FC0BDDFDCCB7ABF",
+    "RoslynMcpServer.Tests/WorkspaceStateCache/RealControlSchemaCapture.cs": "1AD5C2E2A043572198BCAE85E52FCE4E9502E458E6F955F1EE33A328AA81EC43",
+    "RoslynMcpServer.Tests/WorkspaceStateCache/SnapshotOptionsCapture.cs": "FB03D91833232F08BBAC3299A82126B68D5D062ECF89E08BC57ADE38C66A088D",
+    "RoslynMcpServer.Tests/WorkspaceStateCache/SnapshotSchemaTests.cs": "85B3C0EF2381E15622E1438233E9DA5EE5048544696656A1F3F7B0BC0F587FE7"
+  },
+  "observationSha256": "A77728A1DBDCAF79F36B94D839E3A26C46E378C778B09194CE711F0CECD88B48"
+}

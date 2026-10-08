@@ -5,13 +5,13 @@
 - Примерная сложность: 4/5; класс `hi`.
 - Риск ошибки: высокий — неверный graph/binding/publication или cache hit влияет на semantic correctness и записи.
 - Необходимые способности: `семантика_roslyn_msbuild`, `анализ_зависимостей`, `согласованность_компонентов`.
-- Статус: **planned; spec-v2 revised-for-review, 2026-10-07; реализация не начата**.
+- Статус: **accepted, 2026-10-08; round 1, без must-fix замечаний; принятый scope — schema v1 и живой isolated ordinary consumer для S-001 Debug/base-query профиля; reusable capture, codec/hydrate и приёмка эпохи не присвоены**.
 - Depends on: [E0/task-00](task-00-current-seams-and-controls-med.md), [E0/task-08 — S-001](task-08-real-control-capability-hi.md)
-- Модель, реализовавшая задачу: —.
-- Модели, проводившие ревью: —.
-- Количество раундов ревью: —.
-- Количество исправлений после ревью: —.
-- Отчёт о реализации, ревью и validation: —.
+- Модель, реализовавшая задачу: Codex (GPT-6 Astra).
+- Модели, проводившие ревью: Codex (GPT-6 Astra), независимая сессия.
+- Количество раундов ревью: 1.
+- Количество исправлений после ревью: 0.
+- Отчёт о реализации, ревью и validation: [schema](evidence/task-02-schema.md); [review round 1](evidence/task-02-review-round-1.md); [final validation / acceptance](evidence/task-02-validation.md).
 
 ## Цель
 
@@ -67,5 +67,5 @@ remaining mandatory state сохраняются; signing flags/csproj/refs не
 Проверки допуска учитывают effective options, attributes и project bindings;
 один symbol query/SignAssembly=false не доказывает независимость. S-001 проверяет
 real positive и excluded/unknown controls; runtime policy ещё не реализована.
-Execution/review statistics остаются незаполненными.
+Execution/review statistics этого task заполнены в шапке после независимого ревью и final validation.
 Применение решения: [H-002 report](../h-002-report.md).

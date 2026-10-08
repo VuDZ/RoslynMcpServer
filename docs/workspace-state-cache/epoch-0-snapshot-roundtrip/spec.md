@@ -4,7 +4,9 @@
 task-00 accepted для docs-only inventory seams и выбора real control, 2026-10-07
 ([round 2 / validation](evidence/task-00-review-round-2.md)); task-01 accepted для ordinary baseline runner контроля RoslynMcpPlugin, **round 3, 2026-10-08**
 ([review](evidence/task-01-review-round-3.md)); S-001 accepted для isolated base-query slice, **round 2, 2026-10-08**
-([review](evidence/task-08-review-round-2.md)); capture-ready и приёмка эпохи не присвоены.
+([review](evidence/task-08-review-round-2.md)); task-02 accepted для schema v1 и живого isolated
+ordinary consumer, **round 1, 2026-10-08** ([validation](evidence/task-02-validation.md));
+capture-ready и приёмка эпохи не присвоены.
 
 Общие границы — [README серии](../README.md), [порядок исполнения](../execution.md),
 [бенчмарки](../benchmark.md). Эти три документа обязательны для ревью эпохи.

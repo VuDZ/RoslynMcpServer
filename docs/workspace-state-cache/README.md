@@ -4,7 +4,9 @@
 E0/task-00 accepted для docs-only inventory seams и выбора real control, 2026-10-07
 ([round 2 / validation](epoch-0-snapshot-roundtrip/evidence/task-00-review-round-2.md)); E0/task-01 accepted для ordinary baseline runner контроля RoslynMcpPlugin, **round 3, 2026-10-08**
 ([review](epoch-0-snapshot-roundtrip/evidence/task-01-review-round-3.md)); S-001 accepted для isolated base-query slice, **round 2, 2026-10-08**
-([capability/validation](epoch-0-snapshot-roundtrip/evidence/task-08-capability.md), [review](epoch-0-snapshot-roundtrip/evidence/task-08-review-round-2.md)); capture-ready и приёмка эпохи не присвоены.
+([capability/validation](epoch-0-snapshot-roundtrip/evidence/task-08-capability.md), [review](epoch-0-snapshot-roundtrip/evidence/task-08-review-round-2.md)); E0/task-02 accepted для schema v1 и живого isolated
+ordinary consumer, **round 1, 2026-10-08** ([review](epoch-0-snapshot-roundtrip/evidence/task-02-review-round-1.md),
+[final validation](epoch-0-snapshot-roundtrip/evidence/task-02-validation.md)); capture-ready и приёмка эпохи не присвоены.
 Runtime, версия и defaults этим пакетом не меняются.
 
 Владелец выбрал постепенное сохранение/восстановление workspace state с индексом
@@ -200,7 +202,7 @@ validation; будущие эпохи не блокируют уже приня�
 - Решения владельца H-001/H-002, 2026-10-07: external XML exclusion и strong-name B
   применены к тексту; U-001 resolved. [Scope и validation](h-002-report.md).
 - Ревью specification v2: модели/даты/раунды/исправления/отчёты —; recheck не выполнен.
-- Ревью задач v2: из 35 задач проверен E0/task-00; round 2, 2026-10-07, accepted для docs-only inventory seams и выбора real control. Рецензент: Codex (GPT-6; точный runtime model ID недоступен); раунды 2, подтверждённые исправления 2. [Report/validation](epoch-0-snapshot-roundtrip/evidence/task-00-review-round-2.md). E0/task-08 round 2, 2026-10-08, рецензент Grok 4.7; accepted для isolated supported base-query slice; раунды 2, подтверждённое исправление 1 (T08-R1-001). [Review/validation](epoch-0-snapshot-roundtrip/evidence/task-08-review-round-2.md). Остальные 33 задачи planned.
+- Ревью задач v2: из 35 задач приняты четыре E0 tasks. Task-00 — round 2, 2026-10-07, docs-only inventory seams и выбор real control; рецензент Codex (GPT-6; точный runtime model ID недоступен); 2 раунда, 2 подтверждённых исправления ([report/validation](epoch-0-snapshot-roundtrip/evidence/task-00-review-round-2.md)). Task-01 — round 3, 2026-10-08, ordinary baseline runner; рецензент Grok 4.7 (три независимые сессии); 3 раунда, 2 исправления ([review/validation](epoch-0-snapshot-roundtrip/evidence/task-01-review-round-3.md)). Task-08 — round 2, 2026-10-08, isolated supported base-query slice; рецензент Grok 4.7; 2 раунда, 1 исправление T08-R1-001 ([review/validation](epoch-0-snapshot-roundtrip/evidence/task-08-review-round-2.md)). Task-02 — round 1, 2026-10-08, schema v1 и живой isolated ordinary consumer; исполнитель и независимый рецензент Codex (GPT-6; точный runtime model ID недоступен); 1 раунд, 0 исправлений ([review](epoch-0-snapshot-roundtrip/evidence/task-02-review-round-1.md), [final validation](epoch-0-snapshot-roundtrip/evidence/task-02-validation.md)). Сумма: 8 раундов, 5 подтверждённых исправлений. Остальная 31 задача planned.
 - Приёмка реализации E0–E3: не начата; раунды/исправления —.
 
 Применение P не означает принятия epochs. U-001 закрыт отдельными H-001/H-002;
