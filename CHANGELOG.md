@@ -2,6 +2,10 @@
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.5.6
+
+- A saved additional file or `.editorconfig` is still applied on the flush that observed the save when a watcher event arrives during the content read. That read does not hold the session gate, so the event leaves the observation pending; the flush reads the path again a few times and publishes only after the bytes are accepted. A read that stays pending — the file was still changing, unreadable, or missing, or an own write had not finished — is not published. An own write is not waited on inside the flush, because the flush already holds the workspace lock the writer needs to commit.
+
 ### v1.5.5
 
 - Build/test/run tools accept `includeBuildWarnings=false`: successful builds return a short status, errors remain visible, and warnings are opt-in. Build failure reports keep full logs accessible via `reportCursor`. The raw command tool applies this policy only to an explicit `build` command.

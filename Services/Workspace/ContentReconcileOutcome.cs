@@ -7,4 +7,11 @@ internal enum ContentReconcileOutcome
     LeftPending,
     Echo,
     Changed,
+
+    /// <summary>
+    /// The byte read overlapped a newer content event. <c>ApplyContentObservation</c> still
+    /// returns <see cref="LeftPending"/> for that case; only the reconciler promotes it so one
+    /// flush can read the path again without publishing a read it refused.
+    /// </summary>
+    RevisionMoved,
 }

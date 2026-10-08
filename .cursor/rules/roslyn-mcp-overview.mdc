@@ -5,7 +5,7 @@ alwaysApply: true
 
 # RoslynMcpServer overview
 
-MCP server (stdio) for C# analysis: Roslyn workspaces + ILSpy decompile. TFM `net10.0`, version in `RoslynMcpServer.csproj` (currently **1.5.4**). Package id `RoslynMcpServer`. Self-contained publish for win/osx/linux RIDs.
+MCP server (stdio) for C# analysis: Roslyn workspaces + ILSpy decompile. TFM `net10.0`, version in `RoslynMcpServer.csproj` (currently **1.5.6**). Package id `RoslynMcpServer`. Self-contained publish for win/osx/linux RIDs.
 
 ## Layout
 
@@ -27,6 +27,7 @@ Real-world validation often uses **BrqMover** (`c:\Devel\BrqMover`) — app repo
 
 ## Version history (agent-relevant)
 
+- **1.5.6** — a watcher event during the additional-file or `.editorconfig` content read no longer drops that save for the rest of the flush. The flush reads the path again a few times and publishes only after the bytes are accepted. An unstable, unreadable, missing, or still-open own write stays deferred
 - **1.5.4** — saved additional-file and analyzer-config text is applied on the published snapshot (`WithAdditionalDocumentText` / `WithAnalyzerConfigDocumentText`) during the same flush as `.cs`. Not `TryApplyChanges`. XAML, resx, Razor, evaluation-input paths, and new or deleted files stay out. Coverage-unknown does not block a document already in the graph and is not cleared by the replace
 - **1.5.3** — DLL tests share one solution-target `buildPolicy` (`auto` / `always` / `never`) on `run_dotnet_test`, `run_specific_test`, and `run_test_by_filter` when `binariesPath` is set
 - **1.5.2** — disk watcher follows the loaded graph: recursive project directories, non-recursive watches for linked files and walk-up props outside them. One user `.cs` text updates every document of that path. Non-C# inputs are recorded by role and are not text-synced. Own writes match saved bytes, including BOM. Semantic flush does not clear input revisions. `search_code` roots are unchanged

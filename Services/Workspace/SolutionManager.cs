@@ -180,6 +180,12 @@ public sealed class SolutionManager
     /// </summary>
     internal Action? DuringDiskFlushForTests { get; set; }
 
+    /// <summary>
+    /// Test seam invoked on the flush thread after a content event's revision is sampled and before
+    /// the file is read. A newer event delivered here stays pending and is read again by the same flush.
+    /// </summary>
+    internal Action<string>? DuringContentReadForTests { get; set; }
+
     internal WorkspaceWriteResult? LastWriteResult { get; private set; }
 
     internal InProcessAnalyzerAssemblyLoader AnalyzerAssemblyLoader { get; } = new();
@@ -554,9 +560,25 @@ public sealed class SolutionManager
         return session.Pull();
     }
 
+    /// <summary>
+    /// Reads queued content events. A newer event that arrives during the read used to clear the
+    /// non-C# dirty bit and leave this flush on the previous additional-file or <c>.editorconfig</c>
+    /// text. That case is read again, a few times, before anything is published. An unstable,
+    /// unreadable, or missing file, and an own write that has not committed, stay deferred:
+    /// the writer commits under the same lock this flush already holds, so waiting for it here
+    /// would deadlock. A revision that keeps moving until the budget ends is also left pending
+    /// for the next flush, not published from a read the reconciler refused.
+    /// </summary>
     internal void ReconcileInputEvents()
     {
-        ReconcileInputEventsCore();
+        const int MaxRevisionMovedPasses = 4;
+        for (var pass = 0; pass < MaxRevisionMovedPasses; pass++)
+        {
+            if (!ReconcileInputEventsCore())
+            {
+                break;
+            }
+        }
     }
 
     internal async Task WriteTrackedTextAsync(
@@ -1035,6 +1057,25 @@ public sealed class SolutionManager
         var session = new WorkspaceInputSession(projectFilePaths);
         _diskWatcherSession = session;
         return session;
+    }
+
+    /// <summary>
+    /// Stops physical watcher callbacks without closing the session. A callback already queued
+    /// can still run. Tests that move the event revision themselves use this so a real
+    /// <c>FileSystemWatcher</c> event is not a second source of the same path.
+    /// </summary>
+    internal void SilenceDiskWatchersForTests()
+    {
+        foreach (var watcher in _diskWatchers)
+        {
+            try
+            {
+                watcher.EnableRaisingEvents = false;
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+        }
     }
 
     internal void NotifyDiskWatcherChange(WorkspaceInputSession session, FileSystemEventArgs args)
@@ -2127,7 +2168,7 @@ public sealed class SolutionManager
     /// </summary>
     private async Task FlushDirtyDocumentsUnderLockAsync(CancellationToken cancellationToken)
     {
-        ReconcileInputEventsCore();
+        ReconcileInputEvents();
         var workspace = _workspace;
         if (workspace is null)
         {
@@ -2171,8 +2212,15 @@ public sealed class SolutionManager
         }
 
         var dirtyNonCSharp = new List<string>();
-        foreach (var key in _dirtyNonCSharpPaths.Keys)
+        foreach (var key in _dirtyNonCSharpPaths.Keys.ToArray())
         {
+            // A full refresh, or a callback after the last pass, can queue the path again while
+            // its event is still pending. Publishing that read would undo the retry above.
+            if (_diskWatcherSession?.IsPendingContent(key) == true)
+            {
+                continue;
+            }
+
             if (_dirtyNonCSharpPaths.TryRemove(key, out _))
             {
                 dirtyNonCSharp.Add(key);
@@ -2762,24 +2810,34 @@ public sealed class SolutionManager
         return null;
     }
 
-    private void ReconcileInputEventsCore()
+    /// <returns><see langword="true"/> when a path must be read again because its event revision moved.</returns>
+    private bool ReconcileInputEventsCore()
     {
         var session = _diskWatcherSession;
         if (session is null)
         {
-            return;
+            return false;
         }
 
-        foreach (var result in WorkspaceInputReconciler.Reconcile(session))
+        var revisionMoved = false;
+        foreach (var result in WorkspaceInputReconciler.Reconcile(session, DuringContentReadForTests))
         {
             if (result.Outcome == ContentReconcileOutcome.Echo)
             {
                 _dirtySourcePaths.TryRemove(result.CanonicalPath, out _);
                 _dirtyNonCSharpPaths.TryRemove(result.CanonicalPath, out _);
             }
-            else if (result.Outcome == ContentReconcileOutcome.LeftPending)
+            else if (result.Outcome == ContentReconcileOutcome.LeftPending
+                || result.Outcome == ContentReconcileOutcome.RevisionMoved)
             {
+                // The refused observation must not be published. PendingContent stays set, so the
+                // next pass or the next flush can accept the newer event. Removing the dirty bit
+                // here is safe only because a later Changed adds it again before that publish.
                 _dirtyNonCSharpPaths.TryRemove(result.CanonicalPath, out _);
+                if (result.Outcome == ContentReconcileOutcome.RevisionMoved)
+                {
+                    revisionMoved = true;
+                }
             }
             else if (result.Outcome == ContentReconcileOutcome.Changed)
             {
@@ -2796,6 +2854,8 @@ public sealed class SolutionManager
                 }
             }
         }
+
+        return revisionMoved;
     }
 
     private void BeginRepeatWrites(IReadOnlyList<string> paths)

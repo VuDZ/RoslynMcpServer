@@ -150,6 +150,81 @@ public sealed class WorkspaceNonCSharpDiskSyncTests
         Assert.Equal(project.ProjectBytes, await File.ReadAllBytesAsync(project.PathFor("App.csproj")));
     }
 
+    [Fact]
+    public async Task Revision_moved_during_the_content_read_publishes_on_the_same_flush()
+    {
+        await using var project = await SpikeProject.CreateAsync();
+        project.Manager.SilenceDiskWatchersForTests();
+        var loaded = await project.Manager.GetPublishedSolutionAsync();
+        Assert.NotNull(loaded);
+        Assert.Equal("OFF", (await Document(loaded, "payload.txt")!.GetTextAsync()).ToString());
+        var payload = Path.GetFullPath(project.PathFor("payload.txt"));
+        await File.WriteAllTextAsync(payload, "ON", BomFree);
+        Notify(project, "payload.txt");
+        var bumped = false;
+        project.Manager.DuringContentReadForTests = path =>
+        {
+            if (bumped || !string.Equals(path, payload, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            bumped = true;
+            project.Manager.DiskWatcherSession!.NotePendingContent(path);
+        };
+        try
+        {
+            var synced = await project.Manager.GetPublishedSolutionAfterDiskSyncAsync();
+            Assert.NotNull(synced);
+            Assert.True(bumped);
+            Assert.Equal("ON", (await Document(synced, "payload.txt")!.GetTextAsync()).ToString());
+        }
+        finally
+        {
+            project.Manager.DuringContentReadForTests = null;
+        }
+    }
+
+    [Fact]
+    public async Task Revision_that_moves_on_every_read_waits_for_the_next_flush()
+    {
+        await using var project = await SpikeProject.CreateAsync();
+        project.Manager.SilenceDiskWatchersForTests();
+        var loaded = await project.Manager.GetPublishedSolutionAsync();
+        Assert.NotNull(loaded);
+        Assert.Equal("OFF", (await Document(loaded, "payload.txt")!.GetTextAsync()).ToString());
+        var payload = Path.GetFullPath(project.PathFor("payload.txt"));
+        await File.WriteAllTextAsync(payload, "ON", BomFree);
+        Notify(project, "payload.txt");
+        var reads = 0;
+        project.Manager.DuringContentReadForTests = path =>
+        {
+            if (!string.Equals(path, payload, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            reads++;
+            project.Manager.DiskWatcherSession!.NotePendingContent(path);
+        };
+        try
+        {
+            var deferred = await project.Manager.GetPublishedSolutionAfterDiskSyncAsync();
+            Assert.NotNull(deferred);
+            Assert.True(reads > 1);
+            Assert.Equal("OFF", (await Document(deferred, "payload.txt")!.GetTextAsync()).ToString());
+            Assert.True(project.Manager.DiskWatcherSession!.IsPendingContent(payload));
+        }
+        finally
+        {
+            project.Manager.DuringContentReadForTests = null;
+        }
+
+        var synced = await project.Manager.GetPublishedSolutionAfterDiskSyncAsync();
+        Assert.NotNull(synced);
+        Assert.Equal("ON", (await Document(synced, "payload.txt")!.GetTextAsync()).ToString());
+    }
+
     private static TextDocument? Document(Solution solution, string name)
     {
         foreach (var project in solution.Projects)
