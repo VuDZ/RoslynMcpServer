@@ -1,0 +1,16 @@
+mismatched-language-version: Encode accepted (5538 bytes)
+mismatched-language-version: Decode accepted
+  Effective version: CSharp10, payload: CSharp1
+invalid-preprocessor-symbol: Encode accepted (5553 bytes)
+invalid-preprocessor-symbol: Decode accepted
+  Roslyn parse error: error CS8301: Invalid name for a preprocessing symbol; 'NOT A SYMBOL' is not a valid identifier
+metadata-producer-without-output-or-directed-edge: Encode accepted (5730 bytes)
+metadata-producer-without-output-or-directed-edge: Decode accepted
+input-map-missing-all-memberships: Encode accepted (3300 bytes)
+input-map-missing-all-memberships: Decode accepted
+generated-flag-with-user-input-role: Encode accepted (5538 bytes)
+generated-flag-with-user-input-role: Decode accepted
+utf8-with-invalid-preamble: Encode accepted (5543 bytes)
+utf8-with-invalid-preamble: Decode accepted
+null-required-name-on-encode: Encode rejected (NullReferenceException: Object reference not set to an instance of an object.)
+null-required-name-on-encode: Decode rejected (InvalidDataException: The snapshot payload is truncated or malformed.)

@@ -1,0 +1,113 @@
+using System;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using RoslynMcpServer.Services.Workspace.StateCache.Models;
+using RoslynMcpServer.Tests.WorkspaceStateCache;
+
+internal static class Program
+{
+    public static void Main()
+    {
+        var factory = typeof(WorkspaceSnapshotCodecTests).GetMethod("PortableSnapshot", BindingFlags.NonPublic | BindingFlags.Static)!;
+        var snapshot = (WorkspaceSnapshot)factory.Invoke(null, null)!;
+        var codec = typeof(WorkspaceSnapshot).Assembly.GetType("RoslynMcpServer.Services.Workspace.StateCache.WorkspaceSnapshotCodec")!;
+        var encode = codec.GetMethod("Encode")!.CreateDelegate<Func<WorkspaceSnapshot, byte[]>>();
+        var decode = codec.GetMethod("Decode")!.CreateDelegate<DecodeSnapshot>();
+        var project = snapshot.Projects[0];
+
+        Probe("mismatched-language-version", snapshot with
+        {
+            Projects = [project with { ParseOptions = project.ParseOptions with { LanguageVersion = "CSharp1" } }],
+        }, encode, decode);
+        Probe("invalid-preprocessor-symbol", snapshot with
+        {
+            Projects = [project with { ParseOptions = project.ParseOptions with { PreprocessorSymbols = ["NOT A SYMBOL"] } }],
+        }, encode, decode);
+        var producerInput = snapshot.InputPaths[2];
+        Probe("metadata-producer-without-output-or-directed-edge", snapshot with
+        {
+            InputPaths = snapshot.InputPaths.Select(input => ReferenceEquals(input, producerInput)
+                ? input with
+                {
+                    Occurrences = [input.Occurrences[0] with
+                    {
+                        Producer = project.Key,
+                        ProducerSource = "unique-output-and-directed-project-binding",
+                    }],
+                }
+                : input).ToArray(),
+        }, encode, decode);
+        Probe("input-map-missing-all-memberships", snapshot with { InputPaths = [] }, encode, decode);
+        var document = project.Documents[0];
+        Probe("generated-flag-with-user-input-role", snapshot with
+        {
+            Projects = [project with { Documents = [document with { IsGenerated = true }] }],
+        }, encode, decode);
+        Probe("utf8-with-invalid-preamble", snapshot with
+        {
+            Projects = [project with { Documents = [document with
+            {
+                TextMetadata = document.TextMetadata with { EncodingPreamble = [1, 2, 3] },
+            }] }],
+        }, encode, decode);
+        Probe("null-required-name-on-encode", snapshot with
+        {
+            Projects = [project with { Name = null! }],
+        }, encode, decode);
+    }
+
+    private static void Probe(
+        string name,
+        WorkspaceSnapshot snapshot,
+        Func<WorkspaceSnapshot, byte[]> encode,
+        DecodeSnapshot decode)
+    {
+        try
+        {
+            var encoded = encode(snapshot);
+            Console.WriteLine($"{name}: Encode accepted ({encoded.Length} bytes)");
+        }
+        catch (Exception exception)
+        {
+            Console.WriteLine($"{name}: Encode rejected ({exception.GetType().Name}: {exception.Message})");
+        }
+
+        var payload = JsonSerializer.Serialize(snapshot);
+        var checksum = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(payload)));
+        var envelope = Encoding.UTF8.GetBytes(
+            "{\"Schema\":\"workspace-snapshot-envelope-v1\",\"ChecksumAlgorithm\":\"SHA256\",\"Checksum\":\""
+            + checksum + "\",\"Payload\":" + payload + "}");
+        try
+        {
+            var decoded = decode(envelope);
+            Console.WriteLine($"{name}: Decode accepted");
+            var options = decoded.Projects[0].ParseOptions;
+            var reconstructed = new CSharpParseOptions(
+                Enum.Parse<LanguageVersion>(options.SpecifiedLanguageVersion),
+                Enum.Parse<DocumentationMode>(options.DocumentationMode),
+                Enum.Parse<SourceCodeKind>(options.Kind),
+                options.PreprocessorSymbols);
+            if (reconstructed.LanguageVersion.ToString() != options.LanguageVersion)
+            {
+                Console.WriteLine($"  Effective version: {reconstructed.LanguageVersion}, payload: {options.LanguageVersion}");
+            }
+
+            foreach (var error in reconstructed.Errors)
+            {
+                Console.WriteLine($"  Roslyn parse error: {error}");
+            }
+        }
+        catch (Exception exception)
+        {
+            Console.WriteLine($"{name}: Decode rejected ({exception.GetType().Name}: {exception.Message})");
+        }
+    }
+
+    private delegate WorkspaceSnapshot DecodeSnapshot(ReadOnlySpan<byte> bytes);
+}

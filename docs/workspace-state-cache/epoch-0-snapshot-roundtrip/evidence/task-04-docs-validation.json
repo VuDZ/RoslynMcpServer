@@ -1,0 +1,71 @@
+{
+  "date": "2026-10-08",
+  "scope": "artifact consistency after S-001; runtime results in task-08-validation.json; not independent review",
+  "protected_original_files": 129,
+  "archived_inputs_verified": true,
+  "historical_snapshot_policy": "original before hashes retained; archived after-link-rebase hashes checked",
+  "markdown_files_checked": 193,
+  "local_links_checked": 1757,
+  "anchors_checked": 83,
+  "task_count": 35,
+  "epoch_task_counts": {
+    "epoch-0-snapshot-roundtrip": 9,
+    "epoch-1-disk-cache-mvp": 12,
+    "epoch-2-content-refresh": 7,
+    "epoch-3-project-refresh": 7
+  },
+  "dependency_edges": 53,
+  "acyclic": true,
+  "applied_P_count": 14,
+  "source_findings_covered": 16,
+  "arbitration_clusters_covered": 15,
+  "owner_decisions_applied": [
+    "H-001: external XML exclusion",
+    "H-002: strong-name B"
+  ],
+  "unresolved": [],
+  "resolved_owner_decisions": [
+    "U-001: H-001 + H-002, B"
+  ],
+  "spikes_not_run": [
+    "S-002"
+  ],
+  "spikes_executed_review_pending": [],
+  "spikes_accepted": [
+    "S-001: isolated base-query slice, round 2, 2026-10-08"
+  ],
+  "new_deferred": [],
+  "unrelated_tracked_diff_unchanged": true,
+  "index_git_diff_check_exit": 0,
+  "revision_trailing_whitespace": 0,
+  "independent_recheck": "task-00 accepted; task-08 accepted for isolated base-query slice, round 2; specification recheck pending",
+  "build_and_tests": "see epoch-0-snapshot-roundtrip/evidence/task-08-validation.json",
+  "errors": [
+    "docs\\workspace-state-cache\\epoch-0-snapshot-roundtrip\\evidence\\task-01-baseline.md: missing target task-01/",
+    "task-01-baseline-runner-med.md: fabricated actual value Модель, реализовавшая задачу",
+    "task-01-baseline-runner-med.md: fabricated actual value Модели, проводившие ревью",
+    "task-01-baseline-runner-med.md: fabricated actual value Количество раундов ревью",
+    "task-01-baseline-runner-med.md: fabricated actual value Количество исправлений после ревью",
+    "task-01-baseline-runner-med.md: fabricated actual value Отчёт о реализации, ревью и validation",
+    "task-01-baseline-runner-med.md: wrong status/date",
+    "task-02-snapshot-schema-hi.md: fabricated actual value Модель, реализовавшая задачу",
+    "task-02-snapshot-schema-hi.md: fabricated actual value Модели, проводившие ревью",
+    "task-02-snapshot-schema-hi.md: fabricated actual value Количество раундов ревью",
+    "task-02-snapshot-schema-hi.md: fabricated actual value Количество исправлений после ревью",
+    "task-02-snapshot-schema-hi.md: fabricated actual value Отчёт о реализации, ревью и validation",
+    "task-02-snapshot-schema-hi.md: wrong status/date",
+    "task-03-ordinary-capture-med.md: fabricated actual value Модель, реализовавшая задачу",
+    "task-03-ordinary-capture-med.md: fabricated actual value Модели, проводившие ревью",
+    "task-03-ordinary-capture-med.md: fabricated actual value Количество раундов ревью",
+    "task-03-ordinary-capture-med.md: fabricated actual value Количество исправлений после ревью",
+    "task-03-ordinary-capture-med.md: fabricated actual value Отчёт о реализации, ревью и validation",
+    "task-03-ordinary-capture-med.md: wrong status/date",
+    "task-04-snapshot-codec-low.md: fabricated actual value Модель, реализовавшая задачу",
+    "task-04-snapshot-codec-low.md: fabricated actual value Модели, проводившие ревью",
+    "task-04-snapshot-codec-low.md: fabricated actual value Количество раундов ревью",
+    "task-04-snapshot-codec-low.md: fabricated actual value Количество исправлений после ревью",
+    "task-04-snapshot-codec-low.md: fabricated actual value Отчёт о реализации, ревью и validation",
+    "task-04-snapshot-codec-low.md: wrong status/date"
+  ],
+  "status": "failed"
+}
