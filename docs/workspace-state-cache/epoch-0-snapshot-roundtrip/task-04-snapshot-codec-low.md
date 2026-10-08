@@ -5,13 +5,13 @@
 - Примерная сложность: 2/5; класс `low`.
 - Риск ошибки: высокий — ошибка bounds/schema validation допускает некорректный payload или неограниченную allocation.
 - Необходимые способности: `реализация_по_контракту`, `проектирование_проверок`.
-- Статус: **перестановка members MembershipSlot внесена, 2026-10-08; повторное ревью T04-R1-003 не выполнено; accepted scope не присвоен**. [Ревью round 2](evidence/task-04-review-round-2.md), [codec](evidence/task-04-codec.md).
+- Статус: **accepted, round 3, 2026-10-08 — bounded schema-v1 codec в принятом S-001 профиле**. [Ревью round 3](evidence/task-04-review-round-3.md), [final validation](evidence/task-04-validation.md).
 - Depends on: [E0/task-02](task-02-snapshot-schema-hi.md), [E0/task-08 — S-001](task-08-real-control-capability-hi.md)
 - Модель, реализовавшая задачу: Grok 4.7.
-- Модели, проводившие ревью: round 1 — Codex (GPT-6 Sol), независимая сессия; round 2 — Codex (GPT-6; точный runtime model ID недоступен), независимая сессия.
-- Количество раундов ревью: 2.
-- Количество исправлений после ревью: 2 подтверждены round 2 (T04-R1-001/002); перестановка members MembershipSlot внесена, повторным ревью не подтверждена.
-- Отчёт о реализации, ревью и validation: [codec](evidence/task-04-codec.md), [review round 1 / validation](evidence/task-04-review-round-1.md), [review round 2 / validation](evidence/task-04-review-round-2.md).
+- Модели, проводившие ревью: round 1 — Codex (GPT-6 Sol), независимая сессия; round 2 и round 3 — Codex (GPT-6; точный runtime model ID недоступен), независимые сессии.
+- Количество раундов ревью: 3.
+- Количество исправлений после ревью: 3; T04-R1-001/002 подтверждены round 2, T04-R1-003 подтверждён round 3.
+- Отчёт о реализации, ревью и validation: [codec](evidence/task-04-codec.md), [review round 1](evidence/task-04-review-round-1.md), [review round 2](evidence/task-04-review-round-2.md), [review round 3](evidence/task-04-review-round-3.md), [final validation](evidence/task-04-validation.md).
 
 ## Цель
 

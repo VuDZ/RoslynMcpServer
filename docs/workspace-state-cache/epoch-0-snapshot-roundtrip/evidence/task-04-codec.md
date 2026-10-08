@@ -1,10 +1,10 @@
 # E0/task-04 — Bounded snapshot codec
 
 Дата: **2026-10-08**, Europe/Moscow. Исполнитель: Grok 4.7.
-Статус реализации: **перестановка members `MembershipSlot` внесена, 2026-10-08**.
-T04-R1-001/002 закрыты round 2. Повторное ревью остатка T04-R1-003 не выполнено.
-[Ревью round 1](task-04-review-round-1.md), [recheck / validation round 2](task-04-review-round-2.md).
-Accepted scope не присвоен, приёмка эпохи не присвоена. Подтверждённых исправлений после ревью: **2**.
+Статус реализации: **accepted, round 3, 2026-10-08**, bounded schema-v1 codec в принятом S-001 профиле.
+T04-R1-001/002 закрыты round 2; T04-R1-003 закрыт [round 3](task-04-review-round-3.md).
+[Final validation / acceptance](task-04-validation.md); подтверждённых исправлений после ревью: **3**.
+Приёмка эпохи не присвоена.
 Version / AssemblyVersion / FileVersion не менялись (остаётся **1.5.5**).
 
 Принятые входы: [schema v1](task-02-schema.md), [S-001](task-08-capability.md),
@@ -65,7 +65,7 @@ Producer metadata принимается только если единстве�
 
 T04-R1-003. `PayloadByteLimit` стоит перед методами. Поле `_characters` стоит в конце `TextBudget`.
 Порядок инициализации статических полей envelope не менялся.
-Properties `MembershipSlot` стоят перед constructor. Повторное ревью этой перестановки не выполнено;
+Properties `MembershipSlot` стоят перед constructor. Перестановка подтверждена [round 3](task-04-review-round-3.md);
 [round 2](task-04-review-round-2.md) фиксирует прежний порядок.
 
 ## Validation
@@ -86,3 +86,7 @@ Properties `MembershipSlot` стоят перед constructor. Повторно�
 
 AnalyzerLifecycle дополнительно **не запускался**: правка не касается analyzer/shadow-copy,
 load/prepare/publication, lifecycle host и test/build configuration. Hydrate и benchmark не запускались.
+
+Final validation координатора при acceptance: codec **25/25**, SourceStructure **123/123**,
+main **1323/1323** после initial existing editorconfig failure **1322/1323** и class repeat **4/4**;
+[все результаты и ограничения](task-04-validation.md). Codec/tests закоммичены в HEAD 8151286.

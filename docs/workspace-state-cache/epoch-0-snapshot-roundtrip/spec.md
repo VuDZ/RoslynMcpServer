@@ -7,7 +7,7 @@ task-00 accepted для docs-only inventory seams и выбора real control, 
 ([review](evidence/task-08-review-round-2.md)); task-02 accepted для schema v1 и живого isolated
 ordinary consumer, **round 1, 2026-10-08** ([validation](evidence/task-02-validation.md));
 task-03 accepted для ordinary capture выбранного контроля, **round 1, 2026-10-08**
-([validation](evidence/task-03-validation.md)); codec/hydrate и приёмка эпохи не присвоены.
+([validation](evidence/task-03-validation.md)); task-04 accepted для bounded schema-v1 codec, round 3, 2026-10-08 ([validation](evidence/task-04-validation.md)); hydrate и приёмка эпохи не присвоены.
 
 Общие границы — [README серии](../README.md), [порядок исполнения](../execution.md),
 [бенчмарки](../benchmark.md). Эти три документа обязательны для ревью эпохи.
