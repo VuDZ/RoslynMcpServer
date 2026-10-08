@@ -6,6 +6,7 @@
 - Риск ошибки: высокий — ошибка bounds/schema validation допускает некорректный payload или неограниченную allocation.
 - Необходимые способности: `реализация_по_контракту`, `проектирование_проверок`.
 - Статус: **accepted, round 3, 2026-10-08 — bounded schema-v1 codec в принятом S-001 профиле**. [Ревью round 3](evidence/task-04-review-round-3.md), [final validation](evidence/task-04-validation.md).
+- Внешняя приёмка: **passed, 2026-10-08**, подтверждена владельцем. [Общий отчёт task-04/task-05](evidence/task-04-05-external-acceptance.md).
 - Depends on: [E0/task-02](task-02-snapshot-schema-hi.md), [E0/task-08 — S-001](task-08-real-control-capability-hi.md)
 - Модель, реализовавшая задачу: Grok 4.7.
 - Модели, проводившие ревью: round 1 — Codex (GPT-6 Sol), независимая сессия; round 2 и round 3 — Codex (GPT-6; точный runtime model ID недоступен), независимые сессии.

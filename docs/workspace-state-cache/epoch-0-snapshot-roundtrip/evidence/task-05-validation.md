@@ -4,10 +4,12 @@
 model ID недоступен). Принят scope: **isolated schema-v1 Debug base-query hydrate
 adapter/session owner**, новые IDs, current source bytes, fresh owned metadata,
 rebinding всех portable occurrences и H-001/H-002 границы.
-Исполнитель — один subagent; два независимых reviewer sessions.
+Исполнитель — один subagent; три независимые reviewer sessions, включая внешний round 3.
 [Round 1](task-05-review-round-1.md): MUST-FIX T05-R1-001/P2.
 [Round 2](task-05-review-round-2.md): **ACCEPT**, T05-R1-001 **closed / fixed**,
 новых must-fix нет. Подтверждено **1** исправление после ревью.
+Внешний [round 3](task-05-review-round-3.md), Grok 4.7, подтвердил **ACCEPT** без новых must-fix.
+Владелец подтвердил внешнюю приёмку **2026-10-08**; [общий отчёт task-04/task-05](task-04-05-external-acceptance.md).
 
 ## Final code и проверки
 

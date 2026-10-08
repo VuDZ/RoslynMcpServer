@@ -5,6 +5,7 @@ model ID недоступен). Итог: **accepted** для bounded schema-v1 
 S-001 профиле, независимое [ревью round 3](task-04-review-round-3.md).
 T04-R1-001/002/003 закрыты; подтверждено **3** исправления после ревью.
 Codec/tests находятся в HEAD `81512861b5131785cc77de424a4068b8a9c1da4b`.
+Внешняя приёмка task-04 подтверждена владельцем **2026-10-08**; [общий отчёт](task-04-05-external-acceptance.md).
 Hydrate, cross-process round-trip, benchmark и приёмка эпохи этим отчётом не принимаются.
 
 Координатор выполнил Roslyn MCP runners по текущему рабочему дереву, Release:

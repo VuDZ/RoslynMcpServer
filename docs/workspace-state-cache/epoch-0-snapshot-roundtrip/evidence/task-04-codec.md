@@ -4,7 +4,7 @@
 Статус реализации: **accepted, round 3, 2026-10-08**, bounded schema-v1 codec в принятом S-001 профиле.
 T04-R1-001/002 закрыты round 2; T04-R1-003 закрыт [round 3](task-04-review-round-3.md).
 [Final validation / acceptance](task-04-validation.md); подтверждённых исправлений после ревью: **3**.
-Приёмка эпохи не присвоена.
+Внешняя приёмка task-04 подтверждена владельцем 2026-10-08; [общий отчёт](task-04-05-external-acceptance.md). Приёмка эпохи не присвоена.
 Version / AssemblyVersion / FileVersion не менялись (остаётся **1.5.5**).
 
 Принятые входы: [schema v1](task-02-schema.md), [S-001](task-08-capability.md),

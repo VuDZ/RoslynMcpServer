@@ -1,9 +1,9 @@
 # E0/task-05 — Isolated base host hydrate
 
 Дата: **2026-10-08**, Europe/Moscow.
-Исполнитель: Codex (GPT-6; точный runtime model ID недоступен).
+Исполнитель: Codex (GPT-6 Sol), по уточнённым данным task-05.
 Статус реализации: **accepted, round 2, 2026-10-08 — isolated schema-v1 Debug base-query hydrate adapter/session owner, H-001/H-002**. [Review round 2](task-05-review-round-2.md), [final validation](task-05-validation.md).
-T05-R1-001 подтверждён исправленным round 2; подтверждённых исправлений после ревью **1**. Приёмка всей эпохи не присвоена.
+Внешний [round 3](task-05-review-round-3.md), Grok 4.7: ACCEPT, 0 новых must-fix; внешняя приёмка подтверждена владельцем 2026-10-08 ([общий отчёт](task-04-05-external-acceptance.md)). T05-R1-001 подтверждён исправленным round 2; подтверждённых исправлений после ревью **1**. Приёмка всей эпохи не присвоена.
 Dependencies task-03/task-04/task-08 приняты до начала правок; prerequisite acceptance
 зафиксирован координатором в `c78764d` (codec code — `8151286`).
 Version / AssemblyVersion / FileVersion не менялись: **1.5.5 / 1.5.5.0 / 1.5.5.0**.

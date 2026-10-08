@@ -5,13 +5,14 @@
 - Примерная сложность: 4/5; класс `hi`.
 - Риск ошибки: высокий — неверный graph/binding/publication или cache hit влияет на semantic correctness и записи.
 - Необходимые способности: `семантика_roslyn_msbuild`, `анализ_зависимостей`, `согласованность_компонентов`.
-- Статус: **accepted, round 2, 2026-10-08 — isolated schema-v1 Debug base-query hydrate adapter/session owner, H-001/H-002**. [Review round 2](evidence/task-05-review-round-2.md), [final validation](evidence/task-05-validation.md).
+- Статус: **accepted, round 2, 2026-10-08 — isolated schema-v1 Debug base-query hydrate adapter/session owner, H-001/H-002**. Round 3 (2026-10-08) подтвердил ACCEPT без новых must-fix. [Review round 3](evidence/task-05-review-round-3.md), [review round 2](evidence/task-05-review-round-2.md), [final validation](evidence/task-05-validation.md).
+- Внешняя приёмка: **passed, 2026-10-08**, подтверждена владельцем. [Общий отчёт task-04/task-05](evidence/task-04-05-external-acceptance.md).
 - Depends on: [E0/task-03](task-03-ordinary-capture-med.md), [E0/task-04](task-04-snapshot-codec-low.md), [E0/task-08 — S-001](task-08-real-control-capability-hi.md)
-- Модель, реализовавшая задачу: Codex (GPT-6; точный runtime model ID недоступен), subagent; reasoning унаследован от координатора, отдельный runtime режим не подтверждён.
-- Модели, проводившие ревью: round 1 и round 2 — Codex (GPT-6; точный runtime model ID недоступен), две независимые сессии.
-- Количество раундов ревью: 2.
-- Количество исправлений после ревью: 1; T05-R1-001 подтверждён round 2.
-- Отчёт о реализации, ревью и validation: [hydrate](evidence/task-05-hydrate.md), [review round 1](evidence/task-05-review-round-1.md), [review round 2](evidence/task-05-review-round-2.md), [final validation](evidence/task-05-validation.md), [runner outputs](evidence/task-05-validation.json).
+- Модель, реализовавшая задачу: Codex (GPT-6 Sol), subagent; reasoning унаследован от координатора, отдельный runtime режим не подтверждён.
+- Модели, проводившие ревью: round 1 и round 2 — Codex (GPT-6 Sol), две независимые сессии; round 3 — Grok 4.7, отдельная сессия.
+- Количество раундов ревью: 3.
+- Количество исправлений после ревью: 1; T05-R1-001 подтверждён round 2; round 3 новых исправлений не потребовал.
+- Отчёт о реализации, ревью и validation: [hydrate](evidence/task-05-hydrate.md), [review round 1](evidence/task-05-review-round-1.md), [review round 2](evidence/task-05-review-round-2.md), [review round 3](evidence/task-05-review-round-3.md), [final validation](evidence/task-05-validation.md), [runner outputs](evidence/task-05-validation.json).
 
 ## Цель
 
