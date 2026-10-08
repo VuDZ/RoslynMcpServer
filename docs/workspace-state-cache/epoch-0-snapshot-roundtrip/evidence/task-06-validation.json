@@ -1,0 +1,50 @@
+{
+  "date": "2026-10-08",
+  "head": "5678c2b1ce36f9abbc7ff93a541e299b00a1e5c5",
+  "build": {
+    "tool": "run_dotnet_build",
+    "workspace": "RoslynMcpServer.sln",
+    "configuration": "Release",
+    "noIncremental": true,
+    "result": "passed",
+    "warnings": [
+      "existing CS8603 NuGetFallbackAssemblyResolver",
+      "existing CS8601 HostSession",
+      "existing xUnit1031 WpfTemporaryProjectCallbackTests"
+    ]
+  },
+  "focused": {
+    "content": [
+      {
+        "type": "text",
+        "text": "## Filtered test run\r\n\r\n**Filter:** `FullyQualifiedName~CrossProcessRoundtripTests`\r\n**Match:** Class name contains `CrossProcessRoundtripTests`\r\n\r\n## Filtered tests passed\r\n\r\nTotal: **6** · Passed: **6** · Failed: **0**\r\n\r\nMatched tests: `RoslynMcpServer.Tests.WorkspaceStateCache.CrossProcessRoundtripTests.Ordinary_unsupported_controls_refuse_without_a_snapshot', 'RoslynMcpServer.Tests.WorkspaceStateCache.CrossProcessRoundtripTests.Ordinary_unsupported_controls_refuse_without_a_snapshot', 'RoslynMcpServer.Tests.WorkspaceStateCache.CrossProcessRoundtripTests.Ordinary_unsupported_controls_refuse_without_a_snapshot', 'RoslynMcpServer.Tests.WorkspaceStateCache.CrossProcessRoundtripTests.Ordinary_unsupported_controls_refuse_without_a_snapshot', 'RoslynMcpServer.Tests.WorkspaceStateCache.CrossProcessRoundtripTests.Real_control_roundtrip_in_a_new_pid`"
+      }
+    ]
+  },
+  "main": {
+    "content": [
+      {
+        "type": "text",
+        "text": "## Filtered test run\r\n\r\n**Filter:** `Category!=AnalyzerLifecycle`\r\n**Match:** Caller-supplied VSTest filter\r\n\r\n## Filtered tests passed\r\n\r\nTotal: **1358** · Passed: **1358** · Failed: **0**\r\n\r\nMatched tests: `RoslynMcpServer.Tests.Config.RoslynMcpJsoncParserTests.StripComments_allows_line_and_block_comments', 'RoslynMcpServer.Tests.Workspace.SkippedWorkspaceWriteDiskPolicyTests.ShouldWriteSkippedPathToDisk_only_for_unknown_snapshot_paths', 'RoslynMcpServer.Tests.TestRunner.TestFilterHelperTests.BuildFilter_methodOnly_shortName_usesLeadingDotContains', 'RoslynMcpServer.Tests.Logging.ProcessOutputExcerptTests.BuildStdoutExcerpt_uses_head_and_tail_when_long', 'RoslynMcpServer.Tests.AssemblyResolve.DepsJsonAssemblyPathResolverTests.TryResolveFromDepsFile_uses_exact_file_name_only`"
+      }
+    ]
+  },
+  "analyzerLifecycle": "not-run / not required; no production or shared harness/config changes",
+  "independentReview": "Grok 4.7, round 1 ACCEPT, 2026-10-08; 0 must-fix / 0 fixes; task accepted for real new-PID roundtrip and scoped linked .cs edit",
+  "postReviewBuild": {
+    "content": [
+      {
+        "type": "text",
+        "text": "## Build succeeded\r\n\r\n- **warning** `CS8603` `E:\\Devel\\RoslynMcpServer\\Services\\Resolve\\NuGetFallbackAssemblyResolver.cs(35,20)` — Possible null reference return. [E:\\Devel\\RoslynMcpServer\\RoslynMcpServer.csproj]\r\n- **warning** `CS8603` `E:\\Devel\\RoslynMcpServer\\Services\\Resolve\\NuGetFallbackAssemblyResolver.cs(53,9)` — Possible null reference return. [E:\\Devel\\RoslynMcpServer\\RoslynMcpServer.csproj]\r\n- **warning** `CS8601` `E:\\Devel\\RoslynMcpServer\\RoslynMcpServer.LifecycleTestHost\\HostSession.cs(1177,34)` — Possible null reference assignment. [E:\\Devel\\RoslynMcpServer\\RoslynMcpServer.LifecycleTestHost\\RoslynMcpServer.LifecycleTestHost.csproj]\r\n- **warning** `xUnit1031` `E:\\Devel\\RoslynMcpServer\\RoslynMcpServer.Tests\\Workspace\\WpfTemporaryProjectCallbackTests.cs(195,32)` — Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031) [E:\\Devel\\RoslynMcpServer\\RoslynMcpServer.Tests\\RoslynMcpServer.Tests.csproj]"
+      }
+    ]
+  },
+  "postReviewMain": {
+    "content": [
+      {
+        "type": "text",
+        "text": "## Filtered test run\r\n\r\n**Filter:** `Category!=AnalyzerLifecycle`\r\n**Match:** Caller-supplied VSTest filter\r\n\r\n## Filtered tests passed\r\n\r\nTotal: **1358** · Passed: **1358** · Failed: **0**\r\n\r\nMatched tests: `RoslynMcpServer.Tests.TestRunner.DotNetTestArgumentsTests.Build_both_flags_and_filter_in_stable_order', 'RoslynMcpServer.Tests.Analyzers.SolutionManagerAnalyzerOverlayTests.Exact_inverse_contract_is_covered_by_workspace_write_boundary_tests', 'RoslynMcpServer.Tests.Build.DotNetCliRunnerHangTests.FormatHangHints_mentions_timeout_and_zombie_dotnet', 'RoslynMcpServer.Tests.TestRunner.DotNetTestArgumentsTests.BuildPreTestBuild_omits_target_switch_when_solutionTarget_blank', 'RoslynMcpServer.Tests.TestRunner.TestToolsRunTestByFilterTests.RunTestByFilter_rejects_empty_filter`"
+      }
+    ]
+  }
+}

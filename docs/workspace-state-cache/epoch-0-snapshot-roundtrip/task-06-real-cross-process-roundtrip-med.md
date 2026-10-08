@@ -5,13 +5,13 @@
 - Примерная сложность: 3/5; класс `med`.
 - Риск ошибки: средний — неверные inputs, fixtures или измерения искажают результат следующего шага.
 - Необходимые способности: `реализация_по_контракту`, `проектирование_проверок`.
-- Статус: **planned; spec-v2 revised-for-review, 2026-10-07; реализация не начата**.
+- Статус: **accepted, round 1, 2026-10-08 — real new-PID ordinary capture/codec/hydrate и scoped linked .cs edit в H-001/H-002 границе; Release build/main validation passed**. [Отчёт и validation](evidence/task-06-roundtrip.md). [Review round 1](evidence/task-06-review-round-1.md).
 - Depends on: [E0/task-05](task-05-isolated-hydrate-hi.md)
-- Модель, реализовавшая задачу: —.
-- Модели, проводившие ревью: —.
-- Количество раундов ревью: —.
-- Количество исправлений после ревью: —.
-- Отчёт о реализации, ревью и validation: —.
+- Модель, реализовавшая задачу: Codex (GPT-6; точный runtime model ID недоступен), текущая сессия, без subagents.
+- Модели, проводившие ревью: Grok 4.7, независимая сессия, round 1.
+- Количество раундов ревью: 1.
+- Количество исправлений после ревью: 0.
+- Отчёт о реализации, ревью и validation: [roundtrip](evidence/task-06-roundtrip.md), [review round 1](evidence/task-06-review-round-1.md), [runner outputs](evidence/task-06-validation.json), [new-PID observations](evidence/task-06-processes.json).
 
 ## Цель
 
@@ -68,5 +68,5 @@ remaining mandatory state сохраняются; signing flags/csproj/refs не
 Проверки допуска учитывают effective options, attributes и project bindings;
 один symbol query/SignAssembly=false не доказывает независимость. S-001 проверяет
 real positive и excluded/unknown controls; runtime policy ещё не реализована.
-Execution/review statistics остаются незаполненными.
+Актуальные execution/review statistics указаны в шапке задачи.
 Применение решения: [H-002 report](../h-002-report.md).

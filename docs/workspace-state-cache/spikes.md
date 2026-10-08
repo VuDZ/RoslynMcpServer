@@ -1,7 +1,7 @@
 # Открытые эксперименты specification v2
 
 Обновлено: **2026-10-08**. S-001 **accepted** для isolated base-query slice, round 2;
-E0/task-03 accepted для ordinary capture выбранного контроля, round 1; task-04 accepted для bounded codec, round 3; task-05 accepted для isolated schema-v1 Debug base-query hydrate adapter/session owner, H-001/H-002, round 2 ([validation](epoch-0-snapshot-roundtrip/evidence/task-05-validation.md)); cross-process round-trip и приёмка эпохи не выполнены; S-002 **not-run**.
+E0/task-03 accepted для ordinary capture выбранного контроля, round 1; task-04 accepted для bounded codec, round 3; task-05 accepted для isolated schema-v1 Debug base-query hydrate adapter/session owner, H-001/H-002, round 2 ([validation](epoch-0-snapshot-roundtrip/evidence/task-05-validation.md)); cross-process task-06 — accepted, round 1, scope task-06 принят; приёмка эпохи не объявлена; S-002 **not-run**.
 [Результат S-001 и validation](epoch-0-snapshot-roundtrip/evidence/task-08-capability.md),
 [review round 2](epoch-0-snapshot-roundtrip/evidence/task-08-review-round-2.md).
 U-001 решён по H-001/H-002 (B), 2026-10-07. Deadlines и требования арбитража сохраняются.

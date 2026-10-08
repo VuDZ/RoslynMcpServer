@@ -1,0 +1,114 @@
+[
+  {
+    "Control": "real-",
+    "Artifacts": "E:\\Devel\\RoslynMcpServer\\TestResults\\task-06\\real-8544715e6a0a40708bced63403f00e65",
+    "ParentPid": 73460,
+    "ChildPid": 16412,
+    "SnapshotSha256": "B420B6B276317062D338C450091691DA4401C7E4CB4683C35DB99745FD8588C5",
+    "Counters": {
+      "Total": "1",
+      "Passed": "1",
+      "NotExecuted": "0"
+    },
+    "Projects": [
+      {
+        "Name": "RoslynMcpServer",
+        "Documents": 231,
+        "MetadataReferences": 236,
+        "ProjectReferences": 0,
+        "Analyzers": 13
+      },
+      {
+        "Name": "RoslynMcpPlugin",
+        "Documents": 7,
+        "MetadataReferences": 226,
+        "ProjectReferences": 1,
+        "Analyzers": 13
+      }
+    ]
+  },
+  {
+    "Control": "edit-utf8-",
+    "Artifacts": "E:\\Devel\\RoslynMcpServer\\TestResults\\task-06\\edit-utf8-f3b217ba251c48d5b0119bd90c62b461",
+    "ParentPid": 73460,
+    "ChildPid": 21368,
+    "SnapshotSha256": "164823F8142E243DE49FB809E83A86DE9CC0C94CD31CD0BFDF3229B70249938C",
+    "Counters": {
+      "Total": "1",
+      "Passed": "1",
+      "NotExecuted": "0"
+    },
+    "Projects": [
+      {
+        "Name": "App",
+        "Documents": 6,
+        "MetadataReferences": 167,
+        "ProjectReferences": 1,
+        "Analyzers": 8
+      },
+      {
+        "Name": "Library",
+        "Documents": 5,
+        "MetadataReferences": 167,
+        "ProjectReferences": 0,
+        "Analyzers": 8
+      }
+    ]
+  },
+  {
+    "Control": "edit-utf8-bom-",
+    "Artifacts": "E:\\Devel\\RoslynMcpServer\\TestResults\\task-06\\edit-utf8-bom-e8c9a7e1ad404e8eb597bc50d8696e41",
+    "ParentPid": 73460,
+    "ChildPid": 65180,
+    "SnapshotSha256": "DAC653CB8233AE8961B5CD3DE55635D058451BFB7089EF1733CF4DAD459F8C47",
+    "Counters": {
+      "Total": "1",
+      "Passed": "1",
+      "NotExecuted": "0"
+    },
+    "Projects": [
+      {
+        "Name": "App",
+        "Documents": 6,
+        "MetadataReferences": 167,
+        "ProjectReferences": 1,
+        "Analyzers": 8
+      },
+      {
+        "Name": "Library",
+        "Documents": 5,
+        "MetadataReferences": 167,
+        "ProjectReferences": 0,
+        "Analyzers": 8
+      }
+    ]
+  },
+  {
+    "Control": "edit-utf16-bom-",
+    "Artifacts": "E:\\Devel\\RoslynMcpServer\\TestResults\\task-06\\edit-utf16-bom-777802a25d374e308a15b799586a6ed5",
+    "ParentPid": 73460,
+    "ChildPid": 79008,
+    "SnapshotSha256": "87D6050CA3B3F6C8AB08293C50D5F76D0D247F604A0331647AD0048ACF1C2B73",
+    "Counters": {
+      "Total": "1",
+      "Passed": "1",
+      "NotExecuted": "0"
+    },
+    "Projects": [
+      {
+        "Name": "App",
+        "Documents": 6,
+        "MetadataReferences": 167,
+        "ProjectReferences": 1,
+        "Analyzers": 8
+      },
+      {
+        "Name": "Library",
+        "Documents": 5,
+        "MetadataReferences": 167,
+        "ProjectReferences": 0,
+        "Analyzers": 8
+      }
+    ]
+  }
+]

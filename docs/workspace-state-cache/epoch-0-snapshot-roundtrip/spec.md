@@ -7,7 +7,7 @@ task-00 accepted для docs-only inventory seams и выбора real control, 
 ([review](evidence/task-08-review-round-2.md)); task-02 accepted для schema v1 и живого isolated
 ordinary consumer, **round 1, 2026-10-08** ([validation](evidence/task-02-validation.md));
 task-03 accepted для ordinary capture выбранного контроля, **round 1, 2026-10-08**
-([validation](evidence/task-03-validation.md)); task-04 accepted для bounded schema-v1 codec, round 3, 2026-10-08 ([validation](evidence/task-04-validation.md)); task-05 accepted для isolated schema-v1 Debug base-query hydrate adapter/session owner, H-001/H-002, round 2, 2026-10-08 ([validation](evidence/task-05-validation.md)); cross-process round-trip и приёмка эпохи не выполнены.
+([validation](evidence/task-03-validation.md)); task-04 accepted для bounded schema-v1 codec, round 3, 2026-10-08 ([validation](evidence/task-04-validation.md)); task-05 accepted для isolated schema-v1 Debug base-query hydrate adapter/session owner, H-001/H-002, round 2, 2026-10-08 ([validation](evidence/task-05-validation.md)); task-06 реализован и validated для real new-PID roundtrip и scoped linked .cs edit, **accepted, round 1, 2026-10-08** ([evidence](evidence/task-06-roundtrip.md), [review](evidence/task-06-review-round-1.md)); scope task-06 принят; приёмка эпохи не объявлена.
 
 Общие границы — [README серии](../README.md), [порядок исполнения](../execution.md),
 [бенчмарки](../benchmark.md). Эти три документа обязательны для ревью эпохи.
