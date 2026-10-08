@@ -1,7 +1,7 @@
 # Открытые эксперименты specification v2
 
 Обновлено: **2026-10-08**. S-001 **accepted** для isolated base-query slice, round 2;
-capture-ready не присвоен; S-002 **not-run**.
+E0/task-03 accepted для ordinary capture выбранного контроля, round 1; codec/hydrate и приёмка эпохи не присвоены; S-002 **not-run**.
 [Результат S-001 и validation](epoch-0-snapshot-roundtrip/evidence/task-08-capability.md),
 [review round 2](epoch-0-snapshot-roundtrip/evidence/task-08-review-round-2.md).
 U-001 решён по H-001/H-002 (B), 2026-10-07. Deadlines и требования арбитража сохраняются.

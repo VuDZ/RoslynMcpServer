@@ -5,13 +5,13 @@
 - Примерная сложность: 3/5; класс `med`.
 - Риск ошибки: средний — неверные inputs, fixtures или измерения искажают результат следующего шага.
 - Необходимые способности: `реализация_по_контракту`, `проектирование_проверок`.
-- Статус: **planned; spec-v2 revised-for-review, 2026-10-07; реализация не начата**.
+- Статус: **accepted, 2026-10-08; round 1, без must-fix замечаний ревью; после приёмки закрыто расхождение descriptor и live parse options / document identity; принятый scope — ordinary capture schema v1 с уже загруженного контроля RoslynMcpPlugin в Debug/base-query профиле S-001; codec, hydrate и приёмка эпохи не присвоены**.
 - Depends on: [E0/task-02](task-02-snapshot-schema-hi.md), [E0/task-08 — S-001](task-08-real-control-capability-hi.md)
-- Модель, реализовавшая задачу: —.
-- Модели, проводившие ревью: —.
-- Количество раундов ревью: —.
-- Количество исправлений после ревью: —.
-- Отчёт о реализации, ревью и validation: —.
+- Модель, реализовавшая задачу: Grok 4.7.
+- Модели, проводившие ревью: Grok 4.7, независимая сессия.
+- Количество раундов ревью: 1.
+- Количество исправлений после ревью: 0.
+- Отчёт о реализации, ревью и validation: [capture](evidence/task-03-capture.md); [review round 1](evidence/task-03-review-round-1.md); [final validation](evidence/task-03-validation.md).
 
 ## Цель
 
@@ -68,5 +68,5 @@ remaining mandatory state сохраняются; signing flags/csproj/refs не
 Проверки допуска учитывают effective options, attributes и project bindings;
 один symbol query/SignAssembly=false не доказывает независимость. S-001 проверяет
 real positive и excluded/unknown controls; runtime policy ещё не реализована.
-Execution/review statistics остаются незаполненными.
+Execution/review statistics этого task заполнены в шапке после независимого ревью и final validation.
 Применение решения: [H-002 report](../h-002-report.md).

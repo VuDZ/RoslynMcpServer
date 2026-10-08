@@ -33,7 +33,7 @@ Decision prerequisite S-001 выполнен. Task-00 accepted, 2026-10-07.
 [capability и validation](epoch-0-snapshot-roundtrip/evidence/task-08-capability.md),
 [review round 2](epoch-0-snapshot-roundtrip/evidence/task-08-review-round-2.md).
 Positive E0/dependent executable codec/hydrate требуют этого accepted slice;
-capture-ready не присвоен. Неудача эксперимента возвращает scope владельцу, а не превращает
+E0/task-03 accepted для ordinary capture выбранного контроля, round 1, 2026-10-08. Неудача эксперимента возвращает scope владельцу, а не превращает
 negative-only harness в выполнение real-positive приёмки.
 
 Вариант A (source-backed точное восстановление) не выбран как обязательный MVP scope;

@@ -6,7 +6,9 @@ E0/task-00 accepted для docs-only inventory seams и выбора real contro
 ([review](epoch-0-snapshot-roundtrip/evidence/task-01-review-round-3.md)); S-001 accepted для isolated base-query slice, **round 2, 2026-10-08**
 ([capability/validation](epoch-0-snapshot-roundtrip/evidence/task-08-capability.md), [review](epoch-0-snapshot-roundtrip/evidence/task-08-review-round-2.md)); E0/task-02 accepted для schema v1 и живого isolated
 ordinary consumer, **round 1, 2026-10-08** ([review](epoch-0-snapshot-roundtrip/evidence/task-02-review-round-1.md),
-[final validation](epoch-0-snapshot-roundtrip/evidence/task-02-validation.md)); capture-ready и приёмка эпохи не присвоены.
+[final validation](epoch-0-snapshot-roundtrip/evidence/task-02-validation.md)); E0/task-03 accepted для ordinary capture выбранного контроля, **round 1, 2026-10-08**
+([review](epoch-0-snapshot-roundtrip/evidence/task-03-review-round-1.md),
+[final validation](epoch-0-snapshot-roundtrip/evidence/task-03-validation.md)); codec/hydrate и приёмка эпохи не присвоены.
 Runtime, версия и defaults этим пакетом не меняются.
 
 Владелец выбрал постепенное сохранение/восстановление workspace state с индексом
