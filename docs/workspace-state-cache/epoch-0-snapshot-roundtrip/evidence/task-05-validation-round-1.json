@@ -1,0 +1,36 @@
+{
+  "date": "2026-10-08",
+  "stage": "task-05 pre-review round 1 (superseded if code changes)",
+  "build": {
+    "content": [
+      {
+        "type": "text",
+        "text": "## Build succeeded"
+      }
+    ]
+  },
+  "focused": {
+    "content": [
+      {
+        "type": "text",
+        "text": "## Filtered test run\r\n\r\n**Filter:** `FullyQualifiedName~IsolatedWorkspaceHydratorTests`\r\n**Match:** Class name contains `IsolatedWorkspaceHydratorTests`\r\n\r\n## Filtered tests passed\r\n\r\nTotal: **21** · Passed: **21** · Failed: **0**\r\n\r\nMatched tests: `RoslynMcpServer.Tests.WorkspaceStateCache.IsolatedWorkspaceHydratorTests.Linked_path_is_read_once_and_current_bytes_and_text_metadata_reach_every_membership', 'RoslynMcpServer.Tests.WorkspaceStateCache.IsolatedWorkspaceHydratorTests.Linked_path_is_read_once_and_current_bytes_and_text_metadata_reach_every_membership', 'RoslynMcpServer.Tests.WorkspaceStateCache.IsolatedWorkspaceHydratorTests.Linked_path_is_read_once_and_current_bytes_and_text_metadata_reach_every_membership', 'RoslynMcpServer.Tests.WorkspaceStateCache.IsolatedWorkspaceHydratorTests.Linked_path_is_read_once_and_current_bytes_and_text_metadata_reach_every_membership', 'RoslynMcpServer.Tests.WorkspaceStateCache.IsolatedWorkspaceHydratorTests.Workspace_dispose_is_called_before_the_observed_disposal_notification_on_both_owned_paths`"
+      }
+    ]
+  },
+  "sourceStructure": {
+    "content": [
+      {
+        "type": "text",
+        "text": "## Filtered test run\r\n\r\n**Filter:** `FullyQualifiedName~RoslynMcpServer.Tests.SourceStructure`\r\n**Match:** Caller-supplied VSTest filter\r\n\r\n## Filtered tests passed\r\n\r\nTotal: **123** · Passed: **123** · Failed: **0**\r\n\r\nMatched tests: `RoslynMcpServer.Tests.SourceStructure.SourceSetAnalysisTests.Unresolved_call_makes_reachability_undecidable', 'RoslynMcpServer.Tests.SourceStructure.SourceSetAnalysisTests.Crlf_and_lf_texts_produce_the_same_compilation_and_line_numbers', 'RoslynMcpServer.Tests.SourceStructure.WriteBoundaryChecksTests.Comment_and_string_mention_are_not_call_sites', 'RoslynMcpServer.Tests.SourceStructure.WriteBoundaryChecksTests.Second_call_site_fails', 'RoslynMcpServer.Tests.SourceStructure.SourceSetAnalysisTests.Delegate_assignment_to_a_lambda_body_is_followed`"
+      }
+    ]
+  },
+  "main": {
+    "content": [
+      {
+        "type": "text",
+        "text": "## Filtered test run\r\n\r\n**Filter:** `Category!=AnalyzerLifecycle`\r\n**Match:** Caller-supplied VSTest filter\r\n\r\n## Filtered tests passed\r\n\r\nTotal: **1344** · Passed: **1344** · Failed: **0**\r\n\r\nMatched tests: `RoslynMcpServer.Tests.Config.MsBuildWorkspacePropertiesPassedArgsTests.MatchesPassedLoadArguments_different_path_misses_cache', 'RoslynMcpServer.Tests.Logging.HarnessSessionIdTests.Resolve_maps_immediate_parent', 'RoslynMcpServer.Tests.Analyzers.AnalyzerShadowPublicationPlannerTests.Confirmed_overlay_excludes_foreign_and_unconfirmed', 'RoslynMcpServer.Tests.Workspace.WorkspaceNonCSharpDiskSyncTests.Syncs_additional_file_and_analyzer_config_but_not_markup_or_evaluation', 'RoslynMcpServer.Tests.Editing.PatchMatchHelperTests.ReplaceAll_noMatch_returnsNull`"
+      }
+    ]
+  }
+}

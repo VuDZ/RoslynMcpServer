@@ -89,7 +89,7 @@ U-001 resolved по H-001/H-002 (B). S-001 accepted для isolated base-query s
 [isolated capability и validation](epoch-0-snapshot-roundtrip/evidence/task-08-capability.md),
 [review round 2](epoch-0-snapshot-roundtrip/evidence/task-08-review-round-2.md).
 E0/task-03 accepted для ordinary capture выбранного контроля, round 1, 2026-10-08
-([validation](epoch-0-snapshot-roundtrip/evidence/task-03-validation.md)). E0/task-04 accepted для bounded schema-v1 codec, round 3, 2026-10-08 ([validation](epoch-0-snapshot-roundtrip/evidence/task-04-validation.md)); hydrate и приёмка эпохи не присвоены. S-002 — not-run. Positive E0 и dependent
+([validation](epoch-0-snapshot-roundtrip/evidence/task-03-validation.md)). E0/task-04 accepted для bounded schema-v1 codec, round 3, 2026-10-08 ([validation](epoch-0-snapshot-roundtrip/evidence/task-04-validation.md)); E0/task-05 accepted для isolated schema-v1 Debug base-query hydrate adapter/session owner, H-001/H-002, round 2, 2026-10-08 ([validation](epoch-0-snapshot-roundtrip/evidence/task-05-validation.md)); cross-process round-trip и приёмка эпохи не выполнены. S-002 — not-run. Positive E0 и dependent
 codec/hydrate требуют accepted U-001 и successful S-001. E0 schema sketch/inspection
 можно вести раньше; это docs-only preliminary work, не accepted executable schema
 или разрешение выбирать fidelity за владельца. Explicit preliminary части не

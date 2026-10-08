@@ -29,6 +29,8 @@ internal static class WorkspaceSnapshotCodec
 
     internal const int MaximumMemberships = 1_000_000;
 
+    internal static IEqualityComparer<SnapshotProjectKey> ProjectKeyIdentity => ProjectKeyComparer.Instance;
+
     private static int PayloadByteLimit => MaximumBytes - EnvelopeOverhead;
 
     public static byte[] Encode(WorkspaceSnapshot snapshot)

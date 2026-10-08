@@ -5,7 +5,7 @@
 - Примерная сложность: 3/5; класс `med`.
 - Риск ошибки: средний — неверные inputs, fixtures или измерения искажают результат следующего шага.
 - Необходимые способности: `реализация_по_контракту`, `проектирование_проверок`.
-- Статус: **accepted, 2026-10-08; round 1, без must-fix замечаний ревью; после приёмки закрыто расхождение descriptor и live parse options / document identity; принятый scope — ordinary capture schema v1 с уже загруженного контроля RoslynMcpPlugin в Debug/base-query профиле S-001; codec, hydrate и приёмка эпохи не присвоены**.
+- Статус: **accepted, 2026-10-08; round 1, без must-fix замечаний ревью; после приёмки закрыто расхождение descriptor и live parse options / document identity; принятый scope — ordinary capture schema v1 с уже загруженного контроля RoslynMcpPlugin в Debug/base-query профиле S-001; codec и hydrate не входят в scope этой приёмки; приёмка всей эпохи не выполнена**.
 - Depends on: [E0/task-02](task-02-snapshot-schema-hi.md), [E0/task-08 — S-001](task-08-real-control-capability-hi.md)
 - Модель, реализовавшая задачу: Grok 4.7.
 - Модели, проводившие ревью: Grok 4.7, независимая сессия.

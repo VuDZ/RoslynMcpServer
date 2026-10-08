@@ -5,7 +5,7 @@
 - Примерная сложность: 4/5; класс `hi`.
 - Риск ошибки: высокий — неверный graph/binding/publication или cache hit влияет на semantic correctness и записи.
 - Необходимые способности: `семантика_roslyn_msbuild`, `анализ_зависимостей`, `согласованность_компонентов`.
-- Статус: **accepted, 2026-10-08; round 1, без must-fix замечаний; принятый scope — schema v1 и живой isolated ordinary consumer для S-001 Debug/base-query профиля; reusable capture, codec/hydrate и приёмка эпохи не присвоены**.
+- Статус: **accepted, 2026-10-08; round 1, без must-fix замечаний; принятый scope — schema v1 и живой isolated ordinary consumer для S-001 Debug/base-query профиля; reusable capture и codec/hydrate не входят в scope этой приёмки; приёмка всей эпохи не выполнена**.
 - Depends on: [E0/task-00](task-00-current-seams-and-controls-med.md), [E0/task-08 — S-001](task-08-real-control-capability-hi.md)
 - Модель, реализовавшая задачу: Codex (GPT-6 Astra).
 - Модели, проводившие ревью: Codex (GPT-6 Astra), независимая сессия.

@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using RoslynMcpServer.Services.Workspace.StateCache.Models;
@@ -110,6 +111,34 @@ internal static class SnapshotOptionFacts
         return dto;
     }
 
+    public static CSharpParseOptions ReconstructParse(SnapshotParseOptions dto)
+    {
+        var options = new CSharpParseOptions(
+                Enum.Parse<LanguageVersion>(dto.SpecifiedLanguageVersion),
+                Enum.Parse<DocumentationMode>(dto.DocumentationMode),
+                Enum.Parse<SourceCodeKind>(dto.Kind),
+                dto.PreprocessorSymbols)
+            .WithFeatures(dto.Features.Select(pair => KeyValuePair.Create(pair.Name, pair.Value)));
+        Require(options.LanguageVersion.ToString() == dto.LanguageVersion && !options.Errors.Any(),
+            "parse-option-witness-unavailable");
+        return options;
+    }
+
+    public static CSharpCompilationOptions ReconstructCompilation(
+        SnapshotProject project,
+        Microsoft.CodeAnalysis.Workspace workspace)
+    {
+        var dto = project.CompilationOptions;
+        var factory = CommandLineProject.CreateProjectInfo(
+            project.Name,
+            LanguageNames.CSharp,
+            Array.Empty<string>(),
+            dto.MetadataResolver.BaseDirectory!,
+            workspace).CompilationOptions;
+        Require(factory?.MetadataReferenceResolver is not null, "metadata-resolver-factory-witness-unavailable");
+        return Reconstruct(dto, factory.MetadataReferenceResolver);
+    }
+
     private static CSharpCompilationOptions Reconstruct(
         SnapshotCompilationOptions dto,
         MetadataReferenceResolver? metadataResolver)
@@ -190,7 +219,7 @@ internal static class SnapshotOptionFacts
             .Select(pair => new SnapshotNameValue(pair.Key, pair.Value))
             .ToArray();
 
-    private static void Require(bool condition, string reason)
+    private static void Require([DoesNotReturnIf(false)] bool condition, string reason)
     {
         if (!condition)
         {
