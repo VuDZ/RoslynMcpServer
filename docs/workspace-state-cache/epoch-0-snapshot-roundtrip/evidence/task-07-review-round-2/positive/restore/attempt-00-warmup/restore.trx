@@ -1,0 +1,38 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="c62c080c-3e2e-41fb-93b0-5690e1e1f55b" name="VuDZ@VUDZ-PC 2026-10-09 14:06:11" runUser="VUDZ-PC\VuDZ" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-09T14:06:11.0628252+03:00" queuing="2026-10-09T14:06:11.0628253+03:00" start="2026-10-09T14:06:09.1497276+03:00" finish="2026-10-09T14:06:11.0656539+03:00" />
+  <TestSettings name="default" id="ac4bbdbe-06e1-4536-8f24-86032e9a9cdb">
+    <Deployment runDeploymentRoot="VuDZ_VUDZ-PC_2026-10-09_14_06_11" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="fe01ffd7-4591-4573-a859-55e308563451" testId="7d2b14ff-7cf6-c0ed-54d1-d875ef76369f" testName="RoslynMcpServer.Tests.WorkspaceStateCache.IsolatedRestoreBenchmarkTests.Attempt_requires_a_runner_directory" computerName="VUDZ-PC" duration="00:00:01.4041638" startTime="2026-10-09T14:06:09.5901299+03:00" endTime="2026-10-09T14:06:10.9995832+03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="fe01ffd7-4591-4573-a859-55e308563451" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="RoslynMcpServer.Tests.WorkspaceStateCache.IsolatedRestoreBenchmarkTests.Attempt_requires_a_runner_directory" storage="e:\devel\roslynmcpserver\roslynmcpserver.tests\bin\release\net10.0\roslynmcpserver.tests.dll" id="7d2b14ff-7cf6-c0ed-54d1-d875ef76369f">
+      <Execution id="fe01ffd7-4591-4573-a859-55e308563451" />
+      <TestMethod codeBase="E:\Devel\RoslynMcpServer\RoslynMcpServer.Tests\bin\Release\net10.0\RoslynMcpServer.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="RoslynMcpServer.Tests.WorkspaceStateCache.IsolatedRestoreBenchmarkTests" name="Attempt_requires_a_runner_directory" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="7d2b14ff-7cf6-c0ed-54d1-d875ef76369f" executionId="fe01ffd7-4591-4573-a859-55e308563451" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="1" executed="1" passed="1" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.0+00ab0a9ec4 (64-bit .NET 10.0.8)&#xD;
+[xUnit.net 00:00:00.07]   Discovering: RoslynMcpServer.Tests&#xD;
+[xUnit.net 00:00:00.15]   Discovered:  RoslynMcpServer.Tests&#xD;
+[xUnit.net 00:00:00.16]   Starting:    RoslynMcpServer.Tests&#xD;
+[DEBUG] Found MSBuild: .NET Core SDK (10.0.300) at C:\Program Files\dotnet\sdk\10.0.300, VisualStudioRootPath=C:\Program Files\dotnet\sdk\10.0.300&#xD;
+[DEBUG] Found MSBuild: .NET Core SDK (10.0.201) at C:\Program Files\dotnet\sdk\10.0.201, VisualStudioRootPath=C:\Program Files\dotnet\sdk\10.0.201&#xD;
+[DEBUG] Found MSBuild: .NET Core SDK (9.0.314) at C:\Program Files\dotnet\sdk\9.0.314, VisualStudioRootPath=C:\Program Files\dotnet\sdk\9.0.314&#xD;
+[DEBUG] Using MSBuild from: C:\Program Files\dotnet\sdk\10.0.300&#xD;
+[xUnit.net 00:00:01.59]   Finished:    RoslynMcpServer.Tests&#xD;
+</StdOut>
+    </Output>
+  </ResultSummary>
+</TestRun>

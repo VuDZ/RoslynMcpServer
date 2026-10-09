@@ -1,0 +1,9 @@
+Found 1 declaration symbol(s) matching `SamplePlugin`:
+
+Symbol: SamplePlugin
+  Full name: RoslynMcpPlugin.SamplePlugin
+  File: E:\Devel\RoslynMcpServer\samples\RoslynMcpPlugin\SamplePlugin.cs
+  Line: 5
+  Column: 21
+
+> **Note:** A saved `.cs` file appeared or disappeared outside the loaded workspace snapshot. MSBuild decides membership on reload — the file is not guaranteed to enter the workspace. Call `reset_workspace` then `load_workspace` (or `load_workspace` alone — a stale project graph skips the load cache).

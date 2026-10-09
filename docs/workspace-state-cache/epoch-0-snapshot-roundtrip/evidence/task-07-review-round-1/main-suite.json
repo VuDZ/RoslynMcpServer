@@ -1,0 +1,8 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "## Filtered test run\r\n\r\n**Filter:** `Category!=AnalyzerLifecycle`\r\n**Match:** Caller-supplied VSTest filter\r\n\r\n## Filtered tests passed\r\n\r\nTotal: **1359** · Passed: **1359** · Failed: **0**\r\n\r\nMatched tests: `RoslynMcpServer.Tests.Workspace.WorkspaceLoadGuidanceTests.IsRoslynMsBuildBuildHostFailure_detects_type_initializer_exception', 'RoslynMcpServer.Tests.AssemblyResolve.AssemblyReferenceResolverTests.Resolve_uses_assemblyPath_when_file_exists', 'RoslynMcpServer.Tests.TestRunner.TestFilterHelperTests.BuildFilter_methodOnly_shortName_usesLeadingDotContains', 'RoslynMcpServer.Tests.Workspace.WorkspaceHealthReporterTests.HasRestoreAssets_finds_obj_sibling_of_output_bin', 'RoslynMcpServer.Tests.Editing.PatchMatchHelperTests.ReplaceAll_noMatch_returnsNull`"
+    }
+  ]
+}

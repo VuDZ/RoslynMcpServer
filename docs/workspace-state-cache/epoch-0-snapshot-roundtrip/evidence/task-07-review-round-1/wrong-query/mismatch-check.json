@@ -1,0 +1,84 @@
+{
+  "partial": false,
+  "ordinarySuccesses": 5,
+  "restoreSuccesses": 5,
+  "requestedQuery": "IRoslynMcpPlugin",
+  "expectedFullName": "RoslynMcpServer.Plugins.IRoslynMcpPlugin",
+  "pairs": [
+    {
+      "index": 1,
+      "ordinaryDeclaration": {
+        "fullName": "RoslynMcpServer.Plugins.IRoslynMcpPlugin",
+        "file": "E:\\Devel\\RoslynMcpServer\\Plugins\\IRoslynMcpPlugin.cs",
+        "line": 13,
+        "column": 18
+      },
+      "restoreDeclaration": {
+        "fullName": "RoslynMcpPlugin.SamplePlugin",
+        "file": "E:\\Devel\\RoslynMcpServer\\samples\\RoslynMcpPlugin\\SamplePlugin.cs"
+      },
+      "sameCompareKey": true,
+      "restoreIncludedInMedian": true
+    },
+    {
+      "index": 2,
+      "ordinaryDeclaration": {
+        "fullName": "RoslynMcpServer.Plugins.IRoslynMcpPlugin",
+        "file": "E:\\Devel\\RoslynMcpServer\\Plugins\\IRoslynMcpPlugin.cs",
+        "line": 13,
+        "column": 18
+      },
+      "restoreDeclaration": {
+        "fullName": "RoslynMcpPlugin.SamplePlugin",
+        "file": "E:\\Devel\\RoslynMcpServer\\samples\\RoslynMcpPlugin\\SamplePlugin.cs"
+      },
+      "sameCompareKey": true,
+      "restoreIncludedInMedian": true
+    },
+    {
+      "index": 3,
+      "ordinaryDeclaration": {
+        "fullName": "RoslynMcpServer.Plugins.IRoslynMcpPlugin",
+        "file": "E:\\Devel\\RoslynMcpServer\\Plugins\\IRoslynMcpPlugin.cs",
+        "line": 13,
+        "column": 18
+      },
+      "restoreDeclaration": {
+        "fullName": "RoslynMcpPlugin.SamplePlugin",
+        "file": "E:\\Devel\\RoslynMcpServer\\samples\\RoslynMcpPlugin\\SamplePlugin.cs"
+      },
+      "sameCompareKey": true,
+      "restoreIncludedInMedian": true
+    },
+    {
+      "index": 4,
+      "ordinaryDeclaration": {
+        "fullName": "RoslynMcpServer.Plugins.IRoslynMcpPlugin",
+        "file": "E:\\Devel\\RoslynMcpServer\\Plugins\\IRoslynMcpPlugin.cs",
+        "line": 13,
+        "column": 18
+      },
+      "restoreDeclaration": {
+        "fullName": "RoslynMcpPlugin.SamplePlugin",
+        "file": "E:\\Devel\\RoslynMcpServer\\samples\\RoslynMcpPlugin\\SamplePlugin.cs"
+      },
+      "sameCompareKey": true,
+      "restoreIncludedInMedian": true
+    },
+    {
+      "index": 5,
+      "ordinaryDeclaration": {
+        "fullName": "RoslynMcpServer.Plugins.IRoslynMcpPlugin",
+        "file": "E:\\Devel\\RoslynMcpServer\\Plugins\\IRoslynMcpPlugin.cs",
+        "line": 13,
+        "column": 18
+      },
+      "restoreDeclaration": {
+        "fullName": "RoslynMcpPlugin.SamplePlugin",
+        "file": "E:\\Devel\\RoslynMcpServer\\samples\\RoslynMcpPlugin\\SamplePlugin.cs"
+      },
+      "sameCompareKey": true,
+      "restoreIncludedInMedian": true
+    }
+  ]
+}

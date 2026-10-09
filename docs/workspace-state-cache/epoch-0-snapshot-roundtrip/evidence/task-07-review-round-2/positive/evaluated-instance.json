@@ -1,0 +1,10 @@
+{
+  "projectFile": "E:\\Devel\\RoslynMcpServer\\samples\\RoslynMcpPlugin\\RoslynMcpPlugin.csproj",
+  "configuration": "Debug",
+  "platform": "AnyCPU",
+  "targetFramework": "net10.0",
+  "targetFrameworks": "",
+  "globalsPassed": "absent",
+  "method": "dotnet msbuild -getProperty; outside load, semantic, and useful",
+  "exitCode": 0
+}

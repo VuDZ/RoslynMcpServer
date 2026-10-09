@@ -1,0 +1,7 @@
+Found 1 declaration symbol(s) matching `IRoslynMcpPlugin`:
+
+Symbol: IRoslynMcpPlugin
+  Full name: RoslynMcpServer.Plugins.IRoslynMcpPlugin
+  File: E:\Devel\RoslynMcpServer\Plugins\IRoslynMcpPlugin.cs
+  Line: 13
+  Column: 18

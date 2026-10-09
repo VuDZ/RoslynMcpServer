@@ -1,0 +1,6 @@
+{
+  "workspace": "E:\\Devel\\RoslynMcpServer\\TestResults\\task-07-review-absent.csproj",
+  "outcome": "not-present",
+  "includedInMedian": false,
+  "note": "The large candidate is not on this machine. It is not treated as supported and not folded into the control median."
+}

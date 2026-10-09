@@ -1,0 +1,15 @@
+{
+  "role": "large",
+  "pid": 57840,
+  "outcome": "unsupported",
+  "ordinaryLoadMs": 3627.1,
+  "captureMs": 7427.9,
+  "writeMs": null,
+  "captureOverheadMs": 11055,
+  "diskEnvelopeBytes": null,
+  "projectCount": 6,
+  "unsupportedReason": "generator-dependent-scope-unsupported",
+  "peakWorkingSetBytes": 733134848,
+  "peakPrivateBytes": 575815680,
+  "error": "capture refused: generator-dependent-scope-unsupported"
+}

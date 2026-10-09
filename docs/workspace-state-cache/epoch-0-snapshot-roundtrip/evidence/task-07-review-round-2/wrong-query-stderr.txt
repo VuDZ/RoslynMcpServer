@@ -1,0 +1,1 @@
+Refusing a query outside the accepted SamplePlugin control before any measurement. Expected query SamplePlugin, full name RoslynMcpPlugin.SamplePlugin, file samples/RoslynMcpPlugin/SamplePlugin.cs.

@@ -1,0 +1,21 @@
+{
+  "role": "restore",
+  "pid": 81204,
+  "outcome": "success",
+  "readMs": 1.4,
+  "decodeMs": 79.5,
+  "hydrateMs": 1090.2,
+  "queryMs": 185.5,
+  "usefulMs": 1356.6,
+  "diskEnvelopeBytes": 501863,
+  "declaration": {
+    "fullName": "RoslynMcpPlugin.SamplePlugin",
+    "file": "E:\\Devel\\RoslynMcpServer\\samples\\RoslynMcpPlugin\\SamplePlugin.cs"
+  },
+  "queryMissDetail": null,
+  "hydrateIncludesInternalCodecRoundTrip": true,
+  "peakWorkingSetBytes": 269905920,
+  "peakPrivateBytes": 158679040,
+  "error": null,
+  "runId": "0c49a830aadb43e3b2029aa64bd838bc"
+}

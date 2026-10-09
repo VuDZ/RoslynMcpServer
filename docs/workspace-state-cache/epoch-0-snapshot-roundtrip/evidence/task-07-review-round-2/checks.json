@@ -1,0 +1,42 @@
+{
+  "wrongQueryCli": {
+    "exitCode": 1,
+    "noOutputDirectory": true
+  },
+  "staleReceiptZeroTest": {
+    "child": {
+      "dotnetPid": 54844,
+      "exitCode": 0,
+      "timedOut": false,
+      "runId": "3a992cfdd7574365905d574f6372b0b4",
+      "expectedRole": "capture",
+      "receiptPid": null,
+      "trx": {
+        "total": "0",
+        "passed": "0",
+        "failed": "0",
+        "notExecuted": "0"
+      },
+      "stages": null,
+      "stagesFile": null
+    },
+    "reportedOutcome": "error"
+  },
+  "childFailureAdmission": {
+    "nonzeroExit": "error",
+    "timeout": "timeout",
+    "missingTrx": "error",
+    "failedTest": "error",
+    "skippedTest": "error",
+    "staleRunId": "error",
+    "wrongRole": "error",
+    "wrongPid": "error"
+  },
+  "structuredDeclarationAdmission": true,
+  "retainedOriginalLog": {
+    "file": "E:\\Devel\\RoslynMcpServer\\docs\\workspace-state-cache\\epoch-0-snapshot-roundtrip\\evidence\\task-07\\run.txt",
+    "ignored": false,
+    "sha256": "46ec55ebe61529c8e6bb4e07026e38ef6f8a58eeabfc4a59efc66feea15c8a9b",
+    "sameBytesAsOriginalLog": true
+  }
+}

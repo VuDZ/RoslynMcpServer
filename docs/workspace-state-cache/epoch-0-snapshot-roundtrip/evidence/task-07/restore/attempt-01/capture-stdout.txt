@@ -1,0 +1,7 @@
+VSTest version 18.6.0 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+Results File: E:\Devel\RoslynMcpServer\docs\workspace-state-cache\epoch-0-snapshot-roundtrip\evidence\task-07\restore\attempt-01\capture.trx
+
+Passed!  - Failed:     0, Passed:     1, Skipped:     0, Total:     1, Duration: 3 s - RoslynMcpServer.Tests.dll (net10.0)

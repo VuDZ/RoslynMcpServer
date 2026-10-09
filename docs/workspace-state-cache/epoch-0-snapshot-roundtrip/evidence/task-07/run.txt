@@ -1,0 +1,36 @@
+[21:35:58] e0-paired-ordinary-restore-1 workspace=E:\Devel\RoslynMcpServer\samples\RoslynMcpPlugin\RoslynMcpPlugin.csproj
+[21:35:58] file cache is not dropped; this is a new-process/warm-files run
+[21:36:16] e0-paired-ordinary-restore-1 workspace=E:\Devel\RoslynMcpServer\samples\RoslynMcpPlugin\RoslynMcpPlugin.csproj
+[21:36:16] file cache is not dropped; this is a new-process/warm-files run
+[21:36:18] warmup#0: server pid=33968
+[21:36:20] warmup#0: load success in 1425.3 ms projects=2
+[21:36:21] warmup#0: semantic success in 916.2 ms useful=2341.5 ms
+[21:36:21] measured#1: server pid=27172
+[21:36:23] measured#1: load success in 1451.1 ms projects=2
+[21:36:24] measured#1: semantic success in 905.0 ms useful=2356.1 ms
+[21:36:24] measured#2: server pid=76600
+[21:36:26] measured#2: load success in 1427.3 ms projects=2
+[21:36:27] measured#2: semantic success in 889.6 ms useful=2316.9 ms
+[21:36:27] measured#3: server pid=73572
+[21:36:28] measured#3: load success in 1414.0 ms projects=2
+[21:36:29] measured#3: semantic success in 885.6 ms useful=2299.6 ms
+[21:36:30] measured#4: server pid=15688
+[21:36:31] measured#4: load success in 1419.3 ms projects=2
+[21:36:32] measured#4: semantic success in 898.9 ms useful=2318.2 ms
+[21:36:33] measured#5: server pid=64548
+[21:36:34] measured#5: load success in 1442.8 ms projects=2
+[21:36:35] measured#5: semantic success in 881.8 ms useful=2324.6 ms
+[21:36:35] child role=capture dir=attempt-00-warmup
+[21:36:39] child role=restore dir=attempt-00-warmup
+[21:36:42] child role=capture dir=attempt-01
+[21:36:46] child role=restore dir=attempt-01
+[21:36:48] child role=capture dir=attempt-02
+[21:36:52] child role=restore dir=attempt-02
+[21:36:54] child role=capture dir=attempt-03
+[21:36:58] child role=restore dir=attempt-03
+[21:37:00] child role=capture dir=attempt-04
+[21:37:04] child role=restore dir=attempt-04
+[21:37:07] child role=capture dir=attempt-05
+[21:37:10] child role=restore dir=attempt-05
+[21:37:13] child role=large dir=large
+[21:37:25] SUMMARY partial=False

@@ -5,13 +5,13 @@
 - Примерная сложность: 3/5; класс `med`.
 - Риск ошибки: средний — неверные inputs, fixtures или измерения искажают результат следующего шага.
 - Необходимые способности: `реализация_по_контракту`, `проектирование_проверок`.
-- Статус: **planned; spec-v2 revised-for-review, 2026-10-07; реализация не начата**.
+- Статус: **accepted, round 2, 2026-10-09 — bounded SamplePlugin ordinary/isolated restore benchmark runner, child admission, раздельные timings/memory/raw evidence и предложение E1; T07-R1-001/002/003 закрыты; повторные Release build/main и положительный прогон прошли; production readiness и приёмка эпохи не объявлены**. [Отчёт](evidence/task-07-benchmark.md), [review round 2 / validation](evidence/task-07-review-round-2.md).
 - Depends on: [E0/task-01](task-01-baseline-runner-med.md), [E0/task-06](task-06-real-cross-process-roundtrip-med.md)
-- Модель, реализовавшая задачу: —.
-- Модели, проводившие ревью: —.
-- Количество раундов ревью: —.
-- Количество исправлений после ревью: —.
-- Отчёт о реализации, ревью и validation: —.
+- Модель, реализовавшая задачу: Grok 4.7, текущая сессия, без subagents.
+- Модели, проводившие ревью: Codex (GPT-6 Sol), независимая сессия, без subagents.
+- Количество раундов ревью: 2.
+- Количество исправлений после ревью: 3 (T07-R1-001, T07-R1-002, T07-R1-003), подтверждены независимым recheck round 2; открытых must-fix findings: 0.
+- Отчёт о реализации, ревью и validation: [benchmark](evidence/task-07-benchmark.md), [исходный summary](evidence/task-07/summary.json), [review round 1](evidence/task-07-review-round-1.md), [accepted round 2 / validation](evidence/task-07-review-round-2.md), [новый положительный прогон](evidence/task-07-review-round-2/positive/summary.json).
 
 ## Цель
 

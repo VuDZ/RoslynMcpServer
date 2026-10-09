@@ -1,0 +1,6 @@
+{
+  "scripts/workspace-state-cache/roundtrip_benchmark.py": "d746d0165aa0855539243ea372e0e19ea68f1e4e2bbb0b5f027d16c03ba3718a",
+  "RoslynMcpServer.Tests/WorkspaceStateCache/IsolatedRestoreAttempt.cs": "d8f9821bfad64690d3732fe917503e16a4c236c7f62437ee456d2808a49258f5",
+  "RoslynMcpServer.Tests/WorkspaceStateCache/IsolatedRestoreBenchmarkTests.cs": "00c343bcf34510c765adf0906723fee1efa2a8944be422beefb62e22f001f726",
+  "docs/code-style.md": "cbf14105864e83138fae9c9df3944311f379cba164a2e111629f42e270f660d3"
+}

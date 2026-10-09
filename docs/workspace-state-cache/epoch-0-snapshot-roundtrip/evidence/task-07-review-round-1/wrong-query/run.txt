@@ -1,0 +1,34 @@
+[09:57:54] e0-paired-ordinary-restore-1 workspace=E:\Devel\RoslynMcpServer\samples\RoslynMcpPlugin\RoslynMcpPlugin.csproj
+[09:57:54] file cache is not dropped; this is a new-process/warm-files run
+[09:57:57] warmup#0: server pid=71892
+[09:57:58] warmup#0: load success in 1416.8 ms projects=2
+[09:57:59] warmup#0: semantic success in 938.9 ms useful=2355.7 ms
+[09:58:00] measured#1: server pid=2660
+[09:58:01] measured#1: load success in 1410.8 ms projects=2
+[09:58:02] measured#1: semantic success in 873.6 ms useful=2284.4 ms
+[09:58:03] measured#2: server pid=70844
+[09:58:04] measured#2: load success in 1406.0 ms projects=2
+[09:58:05] measured#2: semantic success in 863.6 ms useful=2269.6 ms
+[09:58:05] measured#3: server pid=71524
+[09:58:07] measured#3: load success in 1412.1 ms projects=2
+[09:58:08] measured#3: semantic success in 875.9 ms useful=2288.0 ms
+[09:58:08] measured#4: server pid=81628
+[09:58:10] measured#4: load success in 1406.3 ms projects=2
+[09:58:11] measured#4: semantic success in 859.7 ms useful=2266.0 ms
+[09:58:11] measured#5: server pid=81620
+[09:58:13] measured#5: load success in 1401.2 ms projects=2
+[09:58:14] measured#5: semantic success in 874.7 ms useful=2275.9 ms
+[09:58:14] child role=capture dir=attempt-00-warmup
+[09:58:18] child role=restore dir=attempt-00-warmup
+[09:58:20] child role=capture dir=attempt-01
+[09:58:24] child role=restore dir=attempt-01
+[09:58:26] child role=capture dir=attempt-02
+[09:58:30] child role=restore dir=attempt-02
+[09:58:32] child role=capture dir=attempt-03
+[09:58:36] child role=restore dir=attempt-03
+[09:58:39] child role=capture dir=attempt-04
+[09:58:42] child role=restore dir=attempt-04
+[09:58:45] child role=capture dir=attempt-05
+[09:58:48] child role=restore dir=attempt-05
+[09:58:51] large target not present
+[09:58:51] SUMMARY partial=False

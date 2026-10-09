@@ -1,0 +1,14 @@
+{
+  "workspace": "E:\\Devel\\roslyn-mcp-bench\\clones\\btcpay-web\\BTCPayServer\\BTCPayServer.csproj",
+  "outcome": "unsupported",
+  "includedInMedian": false,
+  "pid": 57840,
+  "dotnetPid": 65444,
+  "timedOut": false,
+  "exitCode": 0,
+  "unsupportedReason": "generator-dependent-scope-unsupported",
+  "captureMs": 7427.9,
+  "ordinaryLoadMs": 3627.1,
+  "error": "capture refused: generator-dependent-scope-unsupported",
+  "note": "Separate from the RoslynMcpPlugin median. An unexpected success is not a supported control and is not a cache hit."
+}

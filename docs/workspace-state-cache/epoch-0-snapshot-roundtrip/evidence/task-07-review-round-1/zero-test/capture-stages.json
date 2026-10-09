@@ -1,0 +1,15 @@
+{
+  "role": "capture",
+  "pid": 65072,
+  "outcome": "success",
+  "ordinaryLoadMs": 1412.2,
+  "captureMs": 1546.7,
+  "writeMs": 75.3,
+  "captureOverheadMs": 3034.2,
+  "diskEnvelopeBytes": 516268,
+  "projectCount": 2,
+  "unsupportedReason": null,
+  "peakWorkingSetBytes": 337149952,
+  "peakPrivateBytes": 201781248,
+  "error": null
+}
