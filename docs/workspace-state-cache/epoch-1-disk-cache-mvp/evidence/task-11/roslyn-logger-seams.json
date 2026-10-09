@@ -1,0 +1,78 @@
+{
+  "date": "2026-10-09",
+  "source": "Roslyn MCP decompiler of local installed Roslyn 5.9 assembly; explaining observation, not consumed-byte proof",
+  "methods": [
+    {
+      "status": "fulfilled",
+      "value": {
+        "request": {
+          "assemblyPath": "E:/Devel/RoslynMcpServer/bin/Release/net10.0/Microsoft.CodeAnalysis.Workspaces.MSBuild.dll",
+          "fullTypeName": "Microsoft.CodeAnalysis.MSBuild.MSBuildProjectLoader",
+          "methodName": "LoadInfoAsync"
+        },
+        "result": {
+          "content": [
+            {
+              "type": "text",
+              "text": "using System;\r\nusing System.Collections.Immutable;\r\nusing System.Runtime.CompilerServices;\r\nusing System.Threading;\r\nusing System.Threading.Tasks;\r\nusing Microsoft.Build.Framework;\r\nusing Microsoft.Extensions.Logging;\r\n\r\nprivate async Task<ImmutableArray<ProjectInfo>> LoadInfoAsync(ImmutableArray<string> projectPaths, ProjectMap? projectMap, IProgress<ProjectLoadProgress>? progress, Microsoft.Build.Framework.ILogger? msbuildLogger, DiagnosticReportingOptions requestedProjectOptions, DiagnosticReportingOptions discoveredProjectOptions, bool preferMetadataForReferencesOfDiscoveredProjects, CancellationToken cancellationToken)\r\n{\r\n\tstring fileName;\r\n\tBinLogPathProvider binaryLogPathProvider = (IsBinaryLogger(msbuildLogger, out fileName) ? new BinLogPathProvider(fileName) : null);\r\n\tImmutableArray<string> knownCommandLineParserLanguages = _knownCommandLineParserLanguages;\r\n\tImmutableDictionary<string, string> properties = Properties;\r\n\tILoggerFactory loggerFactory = _loggerFactory;\r\n\tBuildHostProcessManager buildHostProcessManager = new BuildHostProcessManager(knownCommandLineParserLanguages, properties, binaryLogPathProvider, null, loggerFactory);\r\n\tConfiguredAsyncDisposable _ = buildHostProcessManager.ConfigureAwait(continueOnCapturedContext: false);\r\n\tImmutableArray<ProjectInfo> result;\r\n\ttry\r\n\t{\r\n\t\tBuildHostProjectFileInfoProvider projectFileInfoProvider = new BuildHostProjectFileInfoProvider(buildHostProcessManager, _projectFileExtensionRegistry, _diagnosticReporter, progress);\r\n\t\tresult = await new Worker(_solutionServices, _diagnosticReporter, _pathResolver, _projectFileExtensionRegistry, projectFileInfoProvider, projectPaths, projectMap, progress, requestedProjectOptions, discoveredProjectOptions, preferMetadataForReferencesOfDiscoveredProjects).LoadAsync(cancellationToken).ConfigureAwait(continueOnCapturedContext: false);\r\n\t}\r\n\tfinally\r\n\t{\r\n\t\tIAsyncDisposable asyncDisposable = _ as IAsyncDisposable;\r\n\t\tif (asyncDisposable != null)\r\n\t\t{\r\n\t\t\tawait asyncDisposable.DisposeAsync();\r\n\t\t}\r\n\t}\r\n\treturn result;\r\n}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "status": "fulfilled",
+      "value": {
+        "request": {
+          "assemblyPath": "E:/Devel/RoslynMcpServer/bin/Release/net10.0/Microsoft.CodeAnalysis.Workspaces.MSBuild.dll",
+          "fullTypeName": "Microsoft.CodeAnalysis.MSBuild.MSBuildProjectLoader",
+          "methodName": "IsBinaryLogger"
+        },
+        "result": {
+          "content": [
+            {
+              "type": "text",
+              "text": "using System.Diagnostics.CodeAnalysis;\r\nusing Microsoft.Build.Framework;\r\n\r\nprivate static bool IsBinaryLogger([NotNullWhen(true)] ILogger? logger, out string? fileName)\r\n{\r\n\tif (logger?.GetType().FullName != \"Microsoft.Build.Logging.BinaryLogger\")\r\n\t{\r\n\t\tfileName = null;\r\n\t\treturn false;\r\n\t}\r\n\tfileName = (logger.GetType().GetProperty(\"FileName\")?.GetValue(logger) as string) ?? logger.Parameters;\r\n\treturn true;\r\n}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "status": "fulfilled",
+      "value": {
+        "request": {
+          "assemblyPath": "E:/Devel/RoslynMcpServer/bin/Release/net10.0/BuildHost-netcore/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.dll",
+          "fullTypeName": "Microsoft.CodeAnalysis.MSBuild.ProjectBuildManager",
+          "methodName": ".ctor"
+        },
+        "result": {
+          "content": [
+            {
+              "type": "text",
+              "text": "using System;\r\nusing System.Collections.Generic;\r\nusing Microsoft.Build.Evaluation;\r\nusing Microsoft.Build.Execution;\r\nusing Microsoft.Build.Framework;\r\n\r\npublic ProjectBuildManager(string[] knownCommandLineParserLanguages, Dictionary<string, string> globalProperties, ILogger? msbuildLogger = null, int? maxNodeCount = null)\r\n{\r\n\tKnownCommandLineParserLanguages = knownCommandLineParserLanguages;\r\n\tDictionary<string, string> dictionary = new Dictionary<string, string>(s_defaultGlobalProperties);\r\n\tforeach (KeyValuePair<string, string> globalProperty in globalProperties)\r\n\t{\r\n\t\tdictionary[globalProperty.Key] = globalProperty.Value;\r\n\t}\r\n\tILogger[] array = ((msbuildLogger == null) ? Array.Empty<ILogger>() : new ILogger[1] { msbuildLogger });\r\n\t_projectCollection = new ProjectCollection(dictionary, Array.Empty<ILogger>(), ToolsetDefinitionLocations.Local);\r\n\tBuildParameters buildParameters = new BuildParameters(_projectCollection);\r\n\tILogger[] array2 = array;\r\n\tint num = 0;\r\n\tILogger[] array3 = new ILogger[1 + array2.Length];\r\n\tReadOnlySpan<ILogger> readOnlySpan = new ReadOnlySpan<ILogger>(array2);\r\n\treadOnlySpan.CopyTo(new Span<ILogger>(array3).Slice(num, readOnlySpan.Length));\r\n\tnum += readOnlySpan.Length;\r\n\tarray3[num] = _buildLogger;\r\n\tbuildParameters.Loggers = new global::<>z__ReadOnlyArray<ILogger>(array3);\r\n\tbuildParameters.LogTaskInputs = msbuildLogger != null && msbuildLogger.Verbosity == LoggerVerbosity.Diagnostic;\r\n\tbuildParameters.EnableNodeReuse = false;\r\n\tBuildParameters buildParameters2 = buildParameters;\r\n\tif (maxNodeCount.HasValue)\r\n\t{\r\n\t\tint valueOrDefault = maxNodeCount.GetValueOrDefault();\r\n\t\tbuildParameters2.MaxNodeCount = valueOrDefault;\r\n\t}\r\n\tBuildManager.DefaultBuildManager.BeginBuild(buildParameters2);\r\n}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "status": "fulfilled",
+      "value": {
+        "request": {
+          "assemblyPath": "E:/Devel/RoslynMcpServer/bin/Release/net10.0/BuildHost-netcore/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.dll",
+          "fullTypeName": "Microsoft.CodeAnalysis.MSBuild.ProjectBuildManager",
+          "methodName": "LoadProjectCore"
+        },
+        "result": {
+          "content": [
+            {
+              "type": "text",
+              "text": "using System;\r\nusing System.IO;\r\nusing System.Xml;\r\nusing Microsoft.Build.Construction;\r\nusing Microsoft.Build.Evaluation;\r\n\r\nprivate (Project? project, DiagnosticLog log) LoadProjectCore(string path, Stream readStream, DiagnosticLog log)\r\n{\r\n\ttry\r\n\t{\r\n\t\tusing XmlReader xmlReader = XmlReader.Create(readStream, s_xmlReaderSettings);\r\n\t\tProjectRootElement projectRootElement = ProjectRootElement.Create(xmlReader, _projectCollection);\r\n\t\tprojectRootElement.FullPath = path;\r\n\t\tProjectLoadSettings loadSettings = ProjectLoadSettings.IgnoreMissingImports | ProjectLoadSettings.RejectCircularImports | ProjectLoadSettings.IgnoreEmptyImports | ProjectLoadSettings.DoNotEvaluateElementsWithFalseCondition | ProjectLoadSettings.IgnoreInvalidImports | ProjectLoadSettings.FailOnUnresolvedSdk;\r\n\t\treturn (project: new Project(projectRootElement, null, null, _projectCollection, loadSettings), log: log);\r\n\t}\r\n\tcatch (Exception exception)\r\n\t{\r\n\t\tlog.Add(exception, path);\r\n\t\treturn (project: null, log: log);\r\n\t}\r\n}"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

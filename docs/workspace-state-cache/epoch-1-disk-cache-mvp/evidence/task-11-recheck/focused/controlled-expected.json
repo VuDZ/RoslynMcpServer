@@ -1,0 +1,25 @@
+{
+  "Consumers": [
+    "<owned>\\controlled\\App\\App.csproj",
+    "<owned>\\controlled\\Library\\Library.csproj"
+  ],
+  "Imports": [
+    "Directory.Build.props",
+    "imports/shared.props",
+    "imports/nested.props",
+    "imports/debug.targets",
+    "<owned>\\external\\external.targets"
+  ],
+  "KnownAbsent": [
+    "imports/absent.targets"
+  ],
+  "NuGetConfig": "<owned>\\controlled\\NuGet.Config",
+  "Assets": [
+    "intermediate/App/project.assets.json",
+    "intermediate/Library/project.assets.json"
+  ],
+  "Locks": [
+    "locks/App.lock.json",
+    "locks/Library.lock.json"
+  ]
+}

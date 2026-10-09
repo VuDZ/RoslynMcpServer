@@ -5,7 +5,7 @@
 - Примерная сложность: 4/5; класс `hi`.
 - Риск ошибки: высокий — неверный graph/binding/publication или cache hit влияет на semantic correctness и записи.
 - Необходимые способности: `семантика_roslyn_msbuild`, `анализ_зависимостей`, `согласованность_компонентов`.
-- Статус: **planned; spec-v2 revised-for-review, 2026-10-07; реализация не начата**.
+- Статус: **blocked, 2026-10-09 — S-002 existing channel partial; supported real all-instance manifest и consumed-generation binding не доказаны; DTO/capture adapter не реализован и не принят**. [Dependency evidence и validation](evidence/task-11-recheck-validation.md).
 - Depends on: [E0/task-07](../epoch-0-snapshot-roundtrip/task-07-roundtrip-benchmark-med.md), [E1/task-11 — S-002](task-11-raw-import-restore-evidence-hi.md)
 - Модель, реализовавшая задачу: —.
 - Модели, проводившие ревью: —.

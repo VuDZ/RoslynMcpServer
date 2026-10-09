@@ -1,7 +1,7 @@
 # Открытые эксперименты specification v2
 
-Обновлено: **2026-10-08**. S-001 **accepted** для isolated base-query slice, round 2;
-E0/task-03 accepted для ordinary capture выбранного контроля, round 1; task-04 accepted для bounded codec, round 3; task-05 accepted для isolated schema-v1 Debug base-query hydrate adapter/session owner, H-001/H-002, round 2 ([validation](epoch-0-snapshot-roundtrip/evidence/task-05-validation.md)); cross-process task-06 — accepted, round 1, scope task-06 принят; приёмка эпохи не объявлена; S-002 **not-run**.
+Обновлено: **2026-10-09**. S-001 **accepted** для isolated base-query slice, round 2;
+E0/task-03 accepted для ordinary capture выбранного контроля, round 1; task-04 accepted для bounded codec, round 3; task-05 accepted для isolated schema-v1 Debug base-query hydrate adapter/session owner, H-001/H-002, round 2 ([validation](epoch-0-snapshot-roundtrip/evidence/task-05-validation.md)); cross-process task-06 — accepted, round 1, scope task-06 принят; приёмка эпохи не объявлена; S-002 **accepted bounded partial experiment, round 3, 2026-10-09; manifest readiness blocked** ([review/validation](epoch-1-disk-cache-mvp/evidence/task-11-recheck-validation.md)).
 [Результат S-001 и validation](epoch-0-snapshot-roundtrip/evidence/task-08-capability.md),
 [review round 2](epoch-0-snapshot-roundtrip/evidence/task-08-review-round-2.md).
 U-001 решён по H-001/H-002 (B), 2026-10-07. Deadlines и требования арбитража сохраняются.
@@ -38,6 +38,8 @@ schema/capture опираются на подтверждённый slice. Schem
 раньше; готовый full capture не prerequisite собственного schema design.
 
 ## S-002 — Raw import/restore evidence
+
+Execution update **2026-10-09**: experiment **accepted, round 3**, existing channel **partial**, supported real manifest **insufficient / blocked**. Root/all-instance imports и required config/lock closure не доказаны; P-004 unproven. [Evidence](epoch-1-disk-cache-mvp/evidence/task-11-raw-evidence.md), [final validation](epoch-1-disk-cache-mvp/evidence/task-11-recheck-validation.md).
 
 Основание: [P-011](change-ledger.md#p-011), [ARB-012](archive/arbitration/findings/ARB-012.md).
 Отдельный bounded scope: [E1/task-11](epoch-1-disk-cache-mvp/task-11-raw-import-restore-evidence-hi.md).

@@ -1,0 +1,17 @@
+{
+  "Channel": "partial",
+  "ManifestReadiness": "blocked",
+  "RealSupportedManifest": false,
+  "ControlledMissingImportConsumers": [
+    "<owned>\\controlled\\App\\App.csproj"
+  ],
+  "RealMissingImportConsumers": [
+    "<owned>\\real\\samples\\RoslynMcpPlugin\\RoslynMcpPlugin.csproj"
+  ],
+  "NegativeControls": [
+    "removed-import-events:unsupported",
+    "removed-evaluation-binding:unsupported",
+    "root-only-consumer-cannot-inherit-dependent-imports:unsupported"
+  ],
+  "ConsumedGenerationBinding": "unproven:P-004"
+}

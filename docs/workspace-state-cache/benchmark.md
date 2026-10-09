@@ -96,5 +96,10 @@ case отдельно от exact-version/unknown resolution ordinary fallback. N
 build не объявляется автоматически safe metadata refresh. All-fallback не выдаётся
 за positive E2 completion. Изменения comparator/model policy требуют нового compare key.
 
+Execution update 2026-10-09: S-001 accepted для isolated base-query slice;
+S-002 accepted как bounded partial experiment с manifest readiness blocked
+([validation](epoch-1-disk-cache-mvp/evidence/task-11-recheck-validation.md));
+это не новые performance runs.
+
 S-001/S-002 нужны к declared deadlines, но не заменяют full E0/E1 semantic tests
 или performance runs. Они not-run в этой revision; старые pass counts не присваиваются.

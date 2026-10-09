@@ -1,0 +1,29 @@
+{
+  "CheckedDocuments": 18,
+  "LocalLinksChecked": 418,
+  "MissingLinks": [],
+  "JsonFilesChecked": 9,
+  "JsonErrors": [],
+  "DiffCheckExitCode": 0,
+  "Head": "da557044333e7c0a80ffa8d7ca25462a22be51cd",
+  "SourceIdentity": [
+    {
+      "Path": "E:\\Devel\\RoslynMcpServer\\RoslynMcpServer.Tests\\WorkspaceStateCache\\RawImportEvidenceCapture.cs",
+      "Hash": "29C52C6652218621C395DC0A0DFD7BEBA4D9B30E0545FF858C1522373E68D8C1"
+    },
+    {
+      "Path": "E:\\Devel\\RoslynMcpServer\\RoslynMcpServer.Tests\\WorkspaceStateCache\\RawImportEvidenceFixture.cs",
+      "Hash": "95BD6198981BD8FC816E7704BBB5B1E885F92F900DF5F83F952CD6B9A1022229"
+    },
+    {
+      "Path": "E:\\Devel\\RoslynMcpServer\\RoslynMcpServer.Tests\\WorkspaceStateCache\\RawImportEvidenceTests.cs",
+      "Hash": "B29508143B5E7762B3CE9E6F8683259D4F36CA6DA1B65CB8AEFE36BB6C93A9B3"
+    }
+  ],
+  "unrelatedPreservation": {
+    "count": 21,
+    "changed": []
+  },
+  "date": "2026-10-09",
+  "noCommit": true
+}

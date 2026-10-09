@@ -1,0 +1,48 @@
+{
+  "date": "2026-10-09",
+  "head": "da557044333e7c0a80ffa8d7ca25462a22be51cd",
+  "configuration": "Release",
+  "initialBuild": {
+    "content": [
+      {
+        "type": "text",
+        "text": "## Build succeeded\r\n\r\n- **warning** `CS8603` `E:\\Devel\\RoslynMcpServer\\Services\\Resolve\\NuGetFallbackAssemblyResolver.cs(35,20)` — Possible null reference return. [E:\\Devel\\RoslynMcpServer\\RoslynMcpServer.csproj]\r\n- **warning** `CS8603` `E:\\Devel\\RoslynMcpServer\\Services\\Resolve\\NuGetFallbackAssemblyResolver.cs(53,9)` — Possible null reference return. [E:\\Devel\\RoslynMcpServer\\RoslynMcpServer.csproj]\r\n- **warning** `CS8601` `E:\\Devel\\RoslynMcpServer\\RoslynMcpServer.LifecycleTestHost\\HostSession.cs(1177,34)` — Possible null reference assignment. [E:\\Devel\\RoslynMcpServer\\RoslynMcpServer.LifecycleTestHost\\RoslynMcpServer.LifecycleTestHost.csproj]\r\n- **warning** `xUnit1031` `E:\\Devel\\RoslynMcpServer\\RoslynMcpServer.Tests\\Workspace\\WpfTemporaryProjectCallbackTests.cs(195,32)` — Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031) [E:\\Devel\\RoslynMcpServer\\RoslynMcpServer.Tests\\RoslynMcpServer.Tests.csproj]"
+      }
+    ]
+  },
+  "initialFocused": {
+    "content": [
+      {
+        "type": "text",
+        "text": "## Filtered test run\r\n\r\n**Filter:** `FullyQualifiedName~RawImportEvidenceTests`\r\n**Match:** Class name contains `RawImportEvidenceTests`\r\n\r\n## Filtered tests passed\r\n\r\nTotal: **1** · Passed: **1** · Failed: **0**\r\n\r\nMatched tests: `RoslynMcpServer.Tests.WorkspaceStateCache.RawImportEvidenceTests.Actual_none_channel_is_inspected_before_owned_fixture_cleanup`"
+      }
+    ]
+  },
+  "finalBuild": {
+    "content": [
+      {
+        "type": "text",
+        "text": "## Build succeeded\r\n\r\n- **warning** `CS8603` `E:\\Devel\\RoslynMcpServer\\Services\\Resolve\\NuGetFallbackAssemblyResolver.cs(35,20)` — Possible null reference return. [E:\\Devel\\RoslynMcpServer\\RoslynMcpServer.csproj]\r\n- **warning** `CS8603` `E:\\Devel\\RoslynMcpServer\\Services\\Resolve\\NuGetFallbackAssemblyResolver.cs(53,9)` — Possible null reference return. [E:\\Devel\\RoslynMcpServer\\RoslynMcpServer.csproj]\r\n- **warning** `CS8601` `E:\\Devel\\RoslynMcpServer\\RoslynMcpServer.LifecycleTestHost\\HostSession.cs(1177,34)` — Possible null reference assignment. [E:\\Devel\\RoslynMcpServer\\RoslynMcpServer.LifecycleTestHost\\RoslynMcpServer.LifecycleTestHost.csproj]\r\n- **warning** `xUnit1031` `E:\\Devel\\RoslynMcpServer\\RoslynMcpServer.Tests\\Workspace\\WpfTemporaryProjectCallbackTests.cs(195,32)` — Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031) [E:\\Devel\\RoslynMcpServer\\RoslynMcpServer.Tests\\RoslynMcpServer.Tests.csproj]"
+      }
+    ]
+  },
+  "finalFocused": {
+    "content": [
+      {
+        "type": "text",
+        "text": "## Filtered test run\r\n\r\n**Filter:** `FullyQualifiedName~RawImportEvidenceTests`\r\n**Match:** Class name contains `RawImportEvidenceTests`\r\n\r\n## Filtered tests passed\r\n\r\nTotal: **3** · Passed: **3** · Failed: **0**\r\n\r\nMatched tests: `RoslynMcpServer.Tests.WorkspaceStateCache.RawImportEvidenceTests.Owned_real_copy_accepts_a_single_configuration_build_tree', 'RoslynMcpServer.Tests.WorkspaceStateCache.RawImportEvidenceTests.Owned_real_copy_accepts_a_single_configuration_build_tree', 'RoslynMcpServer.Tests.WorkspaceStateCache.RawImportEvidenceTests.Actual_none_channel_is_inspected_before_owned_fixture_cleanup`"
+      }
+    ]
+  },
+  "filter": "Category!=AnalyzerLifecycle",
+  "main": {
+    "content": [
+      {
+        "type": "text",
+        "text": "## Filtered test run\r\n\r\n**Filter:** `Category!=AnalyzerLifecycle`\r\n**Match:** Caller-supplied VSTest filter\r\n\r\n## Filtered tests passed\r\n\r\nTotal: **1362** · Passed: **1362** · Failed: **0**\r\n\r\nMatched tests: `RoslynMcpServer.Tests.Workspace.MsBuildWorkspacePropertiesTests.MatchesPassedLoadArguments_omitted_does_not_clear_loaded_values', 'RoslynMcpServer.Tests.Logging.TruncatedProcessLogTests.StripTrailingMsBuildOutcome_keeps_payload_that_is_only_the_footer', 'RoslynMcpServer.Tests.Navigation.SourcePositionHelperTests.TryGetAbsolutePosition_line_past_eof_returns_readable_error', 'RoslynMcpServer.Tests.AssemblyResolve.NuGetFallbackAssemblyResolverTests.TryFindAssemblyDll_prefers_bcl_mapped_lib_over_unix_runtime', 'RoslynMcpServer.Tests.Workspace.MsBuildWorkspacePropertiesTests.Create_omits_empty_properties`"
+      }
+    ]
+  },
+  "analyzerLifecycle": "not-run / not required: isolated test-only experiment",
+  "sourceStructure": "Included in full main suite; production C# and structural limits unchanged"
+}

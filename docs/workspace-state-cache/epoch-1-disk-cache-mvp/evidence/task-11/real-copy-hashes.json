@@ -1,0 +1,938 @@
+[
+  {
+    "Path": "Directory.Build.props",
+    "Sha256": "B5372015FF6542E57C0DAB58ADA717EF87EE9F5565E85462BF37AD76515C68C8"
+  },
+  {
+    "Path": "Program.cs",
+    "Sha256": "3A9DCF59F9CC0464342BDB6A5F372495133C3437194C44ACBEBA9A0C4D63A309"
+  },
+  {
+    "Path": "RoslynMcpServer.csproj",
+    "Sha256": "1EA9978DFD288CE4B8F7A161D0CF4134F2E0FFD3BFC163054EBF7581190E2AC4"
+  },
+  {
+    "Path": "Config\\RoslynMcpFileSettings.cs",
+    "Sha256": "68BD67A9D1E684BD765955BF40D1DDA2DC504B7168B3A697FD197183CEE5B489"
+  },
+  {
+    "Path": "Config\\RoslynMcpJsoncParser.cs",
+    "Sha256": "AC938BD346574E84CA7F9E325A22F3B756BD9632BBAA208DAA12BECE99DB0E77"
+  },
+  {
+    "Path": "Diagnostics\\BuildOutputReport.cs",
+    "Sha256": "7D69B5A5C9160C17E2A455CB5721F9EFA856A4A00978CDA091D1B15E393C851D"
+  },
+  {
+    "Path": "Diagnostics\\DotNetBuildDiagnosticParser.cs",
+    "Sha256": "83A26F683294FA3F22E1D931CB5ABB84928255885A4F27DACC79851905C3A2E6"
+  },
+  {
+    "Path": "Diagnostics\\HarnessNameResolver.cs",
+    "Sha256": "32745E4E6B11F210C1F392FC83BC47E20E3056C424D05A527FA4968990B0ABC0"
+  },
+  {
+    "Path": "Diagnostics\\HarnessSessionId.cs",
+    "Sha256": "1C18415250923F577162E0D1EA46C3630A17E686C2D760B98591DF6C2B0FD762"
+  },
+  {
+    "Path": "Diagnostics\\LinuxParentProcess.cs",
+    "Sha256": "42AF929C40529367171A08C99E712C781E60E94D0B31BB6D96FD55233B07D4F9"
+  },
+  {
+    "Path": "Diagnostics\\MacOsParentProcess.cs",
+    "Sha256": "EEA35A567D6858CAD61FA9255B1BFB2EEDD4AD47877391CC68AA545321330B8E"
+  },
+  {
+    "Path": "Diagnostics\\McpInboundProtocolLogger.cs",
+    "Sha256": "F6145253B428907B50A5263D225E1A5826370FFF64A886C31C46F1039FA14F0D"
+  },
+  {
+    "Path": "Diagnostics\\MsBuildBootstrapper.cs",
+    "Sha256": "D2B6B85293DDFA17DC7AE3AB2EB5EB62A79AB8001221E2C013DC1679AFA5A1C4"
+  },
+  {
+    "Path": "Diagnostics\\MsBuildEnvironmentInfo.cs",
+    "Sha256": "0DA99D05C84767BC837F6FEFC40B4D478D2F31406D069BC23F988D57D38216B1"
+  },
+  {
+    "Path": "Diagnostics\\MsBuildInstanceCandidate.cs",
+    "Sha256": "3DA69C9CA8330711C33AD94C96882760EE032CBF54D43AA7F57A3F15F9057D88"
+  },
+  {
+    "Path": "Diagnostics\\MsBuildInstanceSelector.cs",
+    "Sha256": "0C1B0822C458DA8ACC911BD0059FB40B12A6809B9E9F4BA5FD46933270521E20"
+  },
+  {
+    "Path": "Diagnostics\\MsBuildLogHighlighter.cs",
+    "Sha256": "613143B8EE3DB3B02D5876EF5CBC415AF49EE367C5222BA8531475BA4C92505B"
+  },
+  {
+    "Path": "Diagnostics\\NuGetAuditReportParser.cs",
+    "Sha256": "7FADEBAAABF1DA208A850821E6451F891A33CAC75C10D5976A1C5EBECCA56145"
+  },
+  {
+    "Path": "Diagnostics\\ParentProcessProbe.cs",
+    "Sha256": "2450AD7ADDFAE9445891DC2A7BA2C0DF06A3782C5292157A120AB82994DB3108"
+  },
+  {
+    "Path": "Diagnostics\\ParentProcessSnapshot.cs",
+    "Sha256": "58AB09B8ACD9ED00F27CD48F5539B4FFD6568BE9F7ABCF45CE28681E683438D2"
+  },
+  {
+    "Path": "Diagnostics\\ProcessOutputExcerpt.cs",
+    "Sha256": "3ABE8DEB27ECB314BF14EAD5436D4EB347FD6D834751DCB4AF9A69A220CA440C"
+  },
+  {
+    "Path": "Diagnostics\\SdkMismatchDiagnostics.cs",
+    "Sha256": "797005A43D3916FF763B944C0C4DAC6ACCA798DCAA55EADF09AA3C343FA1A555"
+  },
+  {
+    "Path": "Diagnostics\\TestOutputReportOptions.cs",
+    "Sha256": "FBE283761F87DAAC43BCC063908948DB8060CD30FB78B72BB4A13CF5AF6DBA9D"
+  },
+  {
+    "Path": "Diagnostics\\ToolLogAnalyzer.cs",
+    "Sha256": "976E092F8CDCDC98AD4CEAE7FAAB7EB095BF81A300D011F17EBDBF285DC2BBFB"
+  },
+  {
+    "Path": "Diagnostics\\ToolTelemetry.cs",
+    "Sha256": "01129BD1AE70BC3C79F30D77D8AB33D1FB3AF94526A08758F97410F5D63FE20C"
+  },
+  {
+    "Path": "Diagnostics\\TruncatedProcessLog.cs",
+    "Sha256": "0E15123F533F418B397D73276DA2E42B2741BFACA37C37F2E85F3E3A371A91DC"
+  },
+  {
+    "Path": "Diagnostics\\VstestOutputParser.cs",
+    "Sha256": "A83645D426C47B3ADE9459A1F4F93810FE8B49D9EC80B5BF37C9C8DB8A3BB0E3"
+  },
+  {
+    "Path": "Diagnostics\\WindowsParentProcess.cs",
+    "Sha256": "87923A7325180266FA035F873A4CD9B53325BD011AF002BB9B9877447A167C38"
+  },
+  {
+    "Path": "Diagnostics\\WorkspaceDiagnosticFormatter.cs",
+    "Sha256": "32C1F0A47D44D57BBAD1B83D3AE8AB5CB8E3BFAAC4F55A596D22050B5F9CAF42"
+  },
+  {
+    "Path": "Diagnostics\\WorkspaceLoadDiagnosticsReporter.cs",
+    "Sha256": "DB787C71BC7E77CD2E62E056E87CC08986C52562DF9C6F3150B8B0A786A11C48"
+  },
+  {
+    "Path": "Hosting\\McpRuntimeToolCollection.cs",
+    "Sha256": "682F07B851A3405FBA78D71923003E60C039CB084358B284208BFB7B0A033BE9"
+  },
+  {
+    "Path": "Hosting\\McpToolActivationService.cs",
+    "Sha256": "8B013B6D5659FCBDC03B44168EF2D0CCE8D562FE276B409E8CF4DD5A2302AE3E"
+  },
+  {
+    "Path": "Hosting\\McpToolCatalog.cs",
+    "Sha256": "DFC42C6F1F66D3AC1D497B5BC5E245BC1948B95994AAAD917B8286455259B865"
+  },
+  {
+    "Path": "Hosting\\McpToolDescriptor.cs",
+    "Sha256": "A388B70EDB03B67430C477EA263C1F2990364E93DF33BE479A16F6B42BE84010"
+  },
+  {
+    "Path": "Hosting\\McpToolEnableResult.cs",
+    "Sha256": "7A67DB0DBD996423EDF241A1EF94F90ADE2D5FCBE596AEC36391E5B19015B036"
+  },
+  {
+    "Path": "Hosting\\McpToolGroups.cs",
+    "Sha256": "9800429F3A2EFF8D691FE36D645AC6F1C591759320EC116CCD543EB72F0CA75D"
+  },
+  {
+    "Path": "Hosting\\McpToolHelpCatalog.cs",
+    "Sha256": "8A3E2EBEC5283DD80714EA12D8B31FD9FD5BC59274867E3BCC644282C327F083"
+  },
+  {
+    "Path": "Hosting\\McpToolHelpEntry.cs",
+    "Sha256": "9E0D102F3EDF41EF621101D6249DD43D77E8A0C1C2519C182E5E7D6CD842B9BC"
+  },
+  {
+    "Path": "Hosting\\McpToolHelpFormatter.cs",
+    "Sha256": "571A74420BAFB98D47C4EC1CD277B530FEAA8B0CBFC630C1B99337126DE64F9E"
+  },
+  {
+    "Path": "Hosting\\McpToolProfileOptions.cs",
+    "Sha256": "850CD595C48C069B0C096398FE52D34F7B63820FB8006B34B7F02544897A5113"
+  },
+  {
+    "Path": "Hosting\\McpToolRegistry.cs",
+    "Sha256": "5C555F3C3FE4A2CA7E1B208EED788A0F1D7C1513D12A0DC92DCF9BF89E1844A8"
+  },
+  {
+    "Path": "Hosting\\McpToolSurface.cs",
+    "Sha256": "0BC033035A90F3F815E174A9102E58A8A2EC113486FB8F6EC35AD8828E087014"
+  },
+  {
+    "Path": "Hosting\\RoslynMcpServiceCollectionExtensions.cs",
+    "Sha256": "30F366899ACF12917BE86130A3D51F249F75E93388B285F7460A96FD2C29FA65"
+  },
+  {
+    "Path": "Plugins\\IRoslynMcpPlugin.cs",
+    "Sha256": "922F0F38F393E97EEFA7C382971B2CBBCE1B35E229C1740C70E9DDC444E0E887"
+  },
+  {
+    "Path": "Plugins\\PluginAssemblyLoad.cs",
+    "Sha256": "590512CC81BC9524F7FFA906A0C91C5F2C9978B76E0182D121BC7F96EAA3507F"
+  },
+  {
+    "Path": "Plugins\\PluginDiscovery.cs",
+    "Sha256": "A1C06C6AC68842CB7D0249E6AECF05534FCD3C2D6FA1266A1BD3DED2A1C4256D"
+  },
+  {
+    "Path": "Plugins\\PluginDiscoveryResult.cs",
+    "Sha256": "E822EDAEDBE13ED7F59EDBFF3729C0A15E9EFE1A9843C6638F9AFA2F28067893"
+  },
+  {
+    "Path": "Plugins\\PluginDiscoverySkip.cs",
+    "Sha256": "089E37B839464223D7BCB7D40D1B6D88C1F62873336B313AB67C5A324E1EF658"
+  },
+  {
+    "Path": "Plugins\\PluginLoadOutcome.cs",
+    "Sha256": "46B31A4DC0CD4E3708CC6B6D932878F8435D5C666EA6CBA10721F10AC10A5B9F"
+  },
+  {
+    "Path": "Plugins\\PluginLoadPlan.cs",
+    "Sha256": "24C4BFFDBCE4B78A095EA27D32F897C4B5362BF5D57CC5333C37EAEEDD7E4EEE"
+  },
+  {
+    "Path": "Plugins\\PluginManifest.cs",
+    "Sha256": "C15F442FF05A26BBCC822FEF54B7FF3BD02D5B0D401425B1D21F69B28A929FCF"
+  },
+  {
+    "Path": "Plugins\\PluginShadowCopy.cs",
+    "Sha256": "62865EFC006A7F97E49BE3AA77B0528C0A90203E3CE5CE4AAA378DA449C4BAB8"
+  },
+  {
+    "Path": "Plugins\\PluginShadowCopyResult.cs",
+    "Sha256": "9A3AB93C15413CD402149077ADD5145CB9D5D6164E96101408F1EA67E02C91F5"
+  },
+  {
+    "Path": "Plugins\\PluginStartup.cs",
+    "Sha256": "3FA0C38DFA40BA8C696CD304A1C2CC73FC7A41ACB0FF8FE864F32F57AE262BAE"
+  },
+  {
+    "Path": "Plugins\\RoslynMcpPluginContext.cs",
+    "Sha256": "05A68890367E201FB7A5A5721B106CADC1A514289EC1B8051466559E16EACD5E"
+  },
+  {
+    "Path": "Plugins\\RoslynMcpPluginRegistrar.cs",
+    "Sha256": "8C71CC6341A2CA76C09F1E295A5427CB800AA0A31DD5650743826F2B270EF063"
+  },
+  {
+    "Path": "Plugins\\RoslynMcpPluginRegistration.cs",
+    "Sha256": "A55FBA3977C1775858AFCC6D79CEAFBF5E2527E64DB19B2F2004822423336BA5"
+  },
+  {
+    "Path": "Plugins\\RoslynMcpPluginToolHostException.cs",
+    "Sha256": "744DF4734A61A55386079A0A516649473CACBDFB22CD088FBC8829BA4C0C1DB3"
+  },
+  {
+    "Path": "Plugins\\RoslynMcpPluginToolSkip.cs",
+    "Sha256": "64337887130CFB55F7C2730470F5E8E972770456B3AFB19DBFAE3A124DE7B7F9"
+  },
+  {
+    "Path": "Services\\DiagnosticReportStore.cs",
+    "Sha256": "8FDF600305CCC09A834981A57CD326659FCDCB9698DEBC7F00A07E6E5A9183CE"
+  },
+  {
+    "Path": "Services\\GitChangedFilesHelper.cs",
+    "Sha256": "B346867442669F779AA5DA8E078C3BE83DC7C0E4CCF04E4C181D509B0E3B33DD"
+  },
+  {
+    "Path": "Services\\LogTailReader.cs",
+    "Sha256": "B9E4ABFBCD9EF7F792DAAD467464265F0CF129F3C03453B1CF06DCA0EA8CF04C"
+  },
+  {
+    "Path": "Services\\McpServerInfoHelper.cs",
+    "Sha256": "50A38A171905A1C75FEBD758D2FE388CF81E5041E85DF080ABD52B3BED66F175"
+  },
+  {
+    "Path": "Services\\NuGetSearchResultParser.cs",
+    "Sha256": "AE36DE428E33914D2E190E1AE73A2AD6988BCFCF859345EDCB24998247B16B2D"
+  },
+  {
+    "Path": "Services\\RipgrepRunner.cs",
+    "Sha256": "0C9813D5706E4B2A2E1ECC6182E2337B8F77895B6EBB51436FB8F5FB42AB498B"
+  },
+  {
+    "Path": "Tools\\AstTools.cs",
+    "Sha256": "D55AD6C0B958FE4B289D4239C0AFB63874BF02E6A47E91CCF4D31FCCBCA3C84B"
+  },
+  {
+    "Path": "Tools\\BuildTools.cs",
+    "Sha256": "C956305233FF072A5196147E4F6735359D01B65F60967A4C032A32C74398A8F1"
+  },
+  {
+    "Path": "Tools\\CodeAnalysisTools.cs",
+    "Sha256": "F6636E43B84614B13CDD0272D83A80A49E4F59BAB3AADFBA02AE7557AA3CEBFA"
+  },
+  {
+    "Path": "Tools\\CodeFixTools.cs",
+    "Sha256": "173B03FE9A304E0C6FF9860750A598D3C19421DAFA0C161967E303F9F6CAECB7"
+  },
+  {
+    "Path": "Tools\\CodeSkeletonTools.cs",
+    "Sha256": "39ABE8CA8579E65F921E79F99715936471B6FB07DAC9F10118B991D6ED017B90"
+  },
+  {
+    "Path": "Tools\\EditingTools.cs",
+    "Sha256": "105A80997DAA82F9FED71C44879E83001E409DE008FF2221765C61562B2922A1"
+  },
+  {
+    "Path": "Tools\\McpToolProgressReporter.cs",
+    "Sha256": "3E731A11B350781CB1B06029C44F33AA805AB28AB658E3080A51B6008AB5238C"
+  },
+  {
+    "Path": "Tools\\NavigationTools.cs",
+    "Sha256": "8B0DCD57EA0CA3225F0050C3372EB2B7B2E1B6EF6A61E25CFC8BFB785CD83E69"
+  },
+  {
+    "Path": "Tools\\NuGetTools.cs",
+    "Sha256": "6F75751CAE57D5C93B4F6523C9698D68157262C97DA2C718C7000C71EF2123F1"
+  },
+  {
+    "Path": "Tools\\PatchMatchHelper.cs",
+    "Sha256": "CF5C97B23B0A984FB8B4CED70BC475839118CFE3AF96950F9A622F2D23F2E3BD"
+  },
+  {
+    "Path": "Tools\\ProjectTools.cs",
+    "Sha256": "C38DE1784BD1F5F773DFC66FE7F8A8A9C4B42282871B0CDD6DF9D39E198F5A75"
+  },
+  {
+    "Path": "Tools\\RefactoringTools.cs",
+    "Sha256": "B58CA47281885EF99D25CAA9215D55A76500DDA6ACE4C914C9BEF459D38F0E7F"
+  },
+  {
+    "Path": "Tools\\RoslynTools.cs",
+    "Sha256": "130D4435C46AB5204949B2031E349131E254CF928B74B8AA80AB453B09B5CB65"
+  },
+  {
+    "Path": "Tools\\RunTools.cs",
+    "Sha256": "2782D3C9B045154281F1CB16E84340084496BBE0C90B930A3FDB161FA3D66D58"
+  },
+  {
+    "Path": "Tools\\ServerLifecycleTools.cs",
+    "Sha256": "6F61B22280C89248DEA0B708CC65E9F69BD1029C196655488091EB68415F1330"
+  },
+  {
+    "Path": "Tools\\TestTools.cs",
+    "Sha256": "5880C8AA52752759675C1FBF696B7C3C171C6DFA724CF811DCF6CA6E65FA7346"
+  },
+  {
+    "Path": "Tools\\ToolHelpTools.cs",
+    "Sha256": "891812FE1F298F3BAF054E2FAB0D9D6E29EA3850562F1AB30BFF5E1728D83641"
+  },
+  {
+    "Path": "Tools\\UtilityTools.cs",
+    "Sha256": "39AB52D8B3EA2B5C4A1FF5AECC67CE70537004AE6A4F10E7259442E482109E8D"
+  },
+  {
+    "Path": "Tools\\WorkspaceTools.cs",
+    "Sha256": "46882C9B71F450854238A5C8A97690CBCD63D7E5EB0032A091D0DFF0FCA19648"
+  },
+  {
+    "Path": "Properties\\PublishProfiles\\FolderProfile.pubxml",
+    "Sha256": "FF155366E796B2F6419877EBBD3C9CCDA8C040C39008517DD58845F7A096EF68"
+  },
+  {
+    "Path": "Properties\\PublishProfiles\\FolderProfile.pubxml.user",
+    "Sha256": "B1928F287E14CE798005017DF1750EDC31FA2329BFC67E92AB1B03055A74C88B"
+  },
+  {
+    "Path": "samples\\RoslynMcpPlugin\\plugin.json",
+    "Sha256": "C95D737C567E617CF16F1103429E2034788094146C60A343A19A6EA7129B1690"
+  },
+  {
+    "Path": "samples\\RoslynMcpPlugin\\README.md",
+    "Sha256": "BBE09C3E6D9E88910E8633C25CC57E95D809E7C67B3E2C09D237F0C6F972DE67"
+  },
+  {
+    "Path": "samples\\RoslynMcpPlugin\\RoslynMcpPlugin.csproj",
+    "Sha256": "344E26CD08C2D45428131CE4948BADAFC819B14BDA334C8770BC8EC903E89B9C"
+  },
+  {
+    "Path": "samples\\RoslynMcpPlugin\\SamplePlugin.cs",
+    "Sha256": "A11D1AEAE4D2616DA5F3FDB4D3F06EBE685502E65A5F09BAB03FEA47F5A789B2"
+  },
+  {
+    "Path": "samples\\RoslynMcpPlugin\\SampleTools.cs",
+    "Sha256": "9C3B960EF50B09E1D02CCC8B71C532461AF472037A96F457DFACC65AC8055DAC"
+  },
+  {
+    "Path": "Services\\Analyzers\\AnalyzerExecutionGate.cs",
+    "Sha256": "5A60FC4F577CE3B63E6DCDF17870AA09AED2A1F667FE989612EDDCE626A89C11"
+  },
+  {
+    "Path": "Services\\Analyzers\\AnalyzerHostContractCatalog.cs",
+    "Sha256": "B0D19B3D3063AF0118AA9BD3468112C21EF52F0BED032B88BD25CFA1B5B87F78"
+  },
+  {
+    "Path": "Services\\Analyzers\\AnalyzerLoaderContract.cs",
+    "Sha256": "99185EB4319DD91031D685F6B86FA0BC5394CA23592349C49FC3935A52BF0D70"
+  },
+  {
+    "Path": "Services\\Analyzers\\AnalyzerPrivateDependencyInspector.cs",
+    "Sha256": "A2864871160E1FAF1A780876FED56405D125C7EC6B5513723B13CF02145AAA0A"
+  },
+  {
+    "Path": "Services\\Analyzers\\AnalyzerProvenanceCaptureGate.cs",
+    "Sha256": "3D7C686E4C05F94F09F045A26BC04AB329803D25CE2F68E9053E2DEE03086890"
+  },
+  {
+    "Path": "Services\\Analyzers\\AnalyzerProvenanceCaptureService.cs",
+    "Sha256": "9E82D44091E21F7C06C74D460504B28ED7990AC74552DBE6364CB15749406205"
+  },
+  {
+    "Path": "Services\\Analyzers\\AnalyzerReferenceShadowCopier.cs",
+    "Sha256": "1CA4BCB244E251E8AA0319AED130FF59ABB8F55B36B7ECE83F3E57FECF903F39"
+  },
+  {
+    "Path": "Services\\Analyzers\\AnalyzerShadowCacheCleanup.cs",
+    "Sha256": "B5FCD3F602070B11D8E7E9C4E5DE2B7B343F684AF3DA1C5C7A8B1971040F441F"
+  },
+  {
+    "Path": "Services\\Analyzers\\AnalyzerShadowGenerationPublisher.cs",
+    "Sha256": "1FDE4D40AEAD371EF59E8EA5788B100F38BB56A8F67E548C3C7735FFB0B475AE"
+  },
+  {
+    "Path": "Services\\Analyzers\\AnalyzerShadowManifest.cs",
+    "Sha256": "3813B048618DC23849D5D5F7DF2A49E0B8E90DD6A97E3833CB7BEC2B7CA9AEBC"
+  },
+  {
+    "Path": "Services\\Analyzers\\AnalyzerShadowMapping.cs",
+    "Sha256": "BCFA52A209A41F5235FD671B64543917F5C88C8A9D62383D19ACB206D23476C9"
+  },
+  {
+    "Path": "Services\\Analyzers\\AnalyzerShadowPolicy.cs",
+    "Sha256": "7CAB09D8AF0D9C38D90907597C3EEF960A7C45401D0F8C518EF721CFFF2745A7"
+  },
+  {
+    "Path": "Services\\Analyzers\\AnalyzerShadowPublicationPlan.cs",
+    "Sha256": "4D3A6FD537A5D908CF8291B721C8ABDA812888DCE2F816A572BBD4CA3E0632E3"
+  },
+  {
+    "Path": "Services\\Analyzers\\InProcessAnalyzerAssemblyLoader.cs",
+    "Sha256": "4077CE8EFFD4FDF57EDF204373384AFCA63791592AA281BD91BF14FCEDE09186"
+  },
+  {
+    "Path": "Services\\Analyzers\\SemanticPublicationState.cs",
+    "Sha256": "7ADF8A590EC929CFAB51266B0D92B68A86331AD552B4659DF44A9755B0A3E8B8"
+  },
+  {
+    "Path": "Services\\Analyzers\\VirtualReferenceClassifier.cs",
+    "Sha256": "594FA37258DAF14C0345BA9EAA698ABD81BF036BDBE8C4A52085DCBDEF0FFCC4"
+  },
+  {
+    "Path": "Services\\Analyzers\\WorkspaceAnalyzerSanitizer.cs",
+    "Sha256": "564BBC2B3AAAC06D0CBDDB82E74BD881648700C050687D539D6AD590EAE99CD7"
+  },
+  {
+    "Path": "Services\\Build\\CliProgress.cs",
+    "Sha256": "E181AE472C559B16B270967CE2B2F621F1A98C22AF7D9F5FCC9B6BF41CE6ADBC"
+  },
+  {
+    "Path": "Services\\Build\\ContextAdmission.cs",
+    "Sha256": "899F5DBC0E6C61DB01B412DC6B63F2070C196DA96FC933D52166A7EEA851041C"
+  },
+  {
+    "Path": "Services\\Build\\DotNetBuildArguments.cs",
+    "Sha256": "683E51DE3FCCD1EEE50D553656310CA3C958BCAF302028C6B94D19A9348E3918"
+  },
+  {
+    "Path": "Services\\Build\\DotNetBuildProbe.cs",
+    "Sha256": "692F122F2E18F5485B34B537FFE3EDF450D337167471AE7723C619C45DB9843E"
+  },
+  {
+    "Path": "Services\\Build\\DotNetCliRunner.cs",
+    "Sha256": "17D288A9743AF0427E0F06EF0D4EA938C3BE69594B249BE2CEE4A74C19B57CAE"
+  },
+  {
+    "Path": "Services\\Build\\DotNetConfigurationArguments.cs",
+    "Sha256": "986D93E1E470797CDC9ABD649C0E20ABFFE7580E11E59B128AADB2040B3A3BB1"
+  },
+  {
+    "Path": "Services\\Build\\DotNetHostResolver.cs",
+    "Sha256": "BC023728775EC230DCACC5B811725294B7807F80183939415FFD94D988BBC38A"
+  },
+  {
+    "Path": "Services\\Build\\DotNetSdkEnvironment.cs",
+    "Sha256": "6C78BC019968D73817647833DFFC8B63066630A59728118D66EBA8B0BFD9D1A1"
+  },
+  {
+    "Path": "Services\\Build\\DotNetTestArguments.cs",
+    "Sha256": "146FF985AE17FAC9960BAF7459FD88A08D1AB90F6BB1037F119873F4836802B5"
+  },
+  {
+    "Path": "Services\\Build\\GlobalJsonSdkReader.cs",
+    "Sha256": "1E57B8AE76966AB33F349E2663F7E592965BCFBD534126AB74E2EA7525D5A6F1"
+  },
+  {
+    "Path": "Services\\Build\\SessionBuildState.cs",
+    "Sha256": "5B031DE13768853480B7ECEA86A38AD73AEBAD040C85BC74EBA53C916EEA8FF2"
+  },
+  {
+    "Path": "Services\\Build\\SolutionProjectTargetResolver.cs",
+    "Sha256": "6D5F7907D643441A201EDCE4922098624B6253D0BE9C0023BE009E5E60CC6A0E"
+  },
+  {
+    "Path": "Services\\Build\\TestBuildRoute.cs",
+    "Sha256": "355608FD61A185D594C5AFC2F27C2C0CE14691E6E03885431754C7A1E0FC3589"
+  },
+  {
+    "Path": "Services\\Build\\TestDllEnsure.cs",
+    "Sha256": "8AC38DFE3162C5225040D63A63C789F73C89FE82E29FCC098FE19784869D2A86"
+  },
+  {
+    "Path": "Services\\Editing\\AstModificationHelper.cs",
+    "Sha256": "0AF36F530F44DBA5C6862B806F6C7092163012497945912FDC1F644259D9E56C"
+  },
+  {
+    "Path": "Services\\Editing\\CodeFixHelper.cs",
+    "Sha256": "3113B299C26793A5F3D1A2ECF14C29232096E7F13ECC3729307D7C94FD15F56A"
+  },
+  {
+    "Path": "Services\\Editing\\InterfaceImplementationHelper.cs",
+    "Sha256": "CEAF0443A7AC3816FDF26C791D5FE4CD1E25F246B47ED36D575D4C323B9C32F6"
+  },
+  {
+    "Path": "Services\\Editing\\MethodSyntaxHelper.cs",
+    "Sha256": "697A4A90EB54B2F3DA5675E1E981F6D83AE6F3DDE1785C5230BF1DD0FC4B5B3F"
+  },
+  {
+    "Path": "Services\\Editing\\ProjectFileHelper.cs",
+    "Sha256": "E922ED73C106E97EC07DCC34FE3ADF46EBC46DF8D609B0640A0270E512A88598"
+  },
+  {
+    "Path": "Services\\Editing\\ProjectRenameHelper.cs",
+    "Sha256": "43240EFAF72C9587A82F0695551BC0AFCCECA652D56494DAB90C3246A39E6B1A"
+  },
+  {
+    "Path": "Services\\Editing\\RoslynCodeFixBridge.cs",
+    "Sha256": "F95B1D7BB3EEAE36EFC75831BC88FB0078ACC9BEAC4305CFFCCA7E9C4FE27841"
+  },
+  {
+    "Path": "Services\\Editing\\StructuralRefactoringHelper.cs",
+    "Sha256": "D127CFEC6578F9C0B60CCABD603BE7CF116FB0D8712500F7B36D17D419756EA6"
+  },
+  {
+    "Path": "Services\\Editing\\TypeSyntaxHelper.cs",
+    "Sha256": "3D44130B8EFFFFC51698D4F9CC3E29B1F1932F53F2E3F488D5230F6105376D50"
+  },
+  {
+    "Path": "Services\\Models\\DiskEventDecision.cs",
+    "Sha256": "0A4DA27E0C9B6BB9137BCE96615C022051F190171A1AB4D4858C6A1FFB76C25F"
+  },
+  {
+    "Path": "Services\\Models\\InputCategoryEvidence.cs",
+    "Sha256": "2D40B9472E31307DB846BC141D5B691CEDB2B5F38DC4E65A71803A77E917D281"
+  },
+  {
+    "Path": "Services\\Models\\InputCategoryKind.cs",
+    "Sha256": "A7767B722F77185DCCFB936C3250E44FE07E6EC04BB0861E9B6587B01239B8CF"
+  },
+  {
+    "Path": "Services\\Models\\InputCoverage.cs",
+    "Sha256": "FF94BDF709556EDE60E8EBFD36FFD5E2320CD4AD5D3F1A984344879CF7B7AF60"
+  },
+  {
+    "Path": "Services\\Models\\InputCoverageGap.cs",
+    "Sha256": "58E6F744F3CFF267B2A82090E898A6F4682A4CB1526797A17D131E4B9B06F19F"
+  },
+  {
+    "Path": "Services\\Models\\InputCoverageReason.cs",
+    "Sha256": "E9DC9335D938364ACFD4826F123E8CE1FF153436BF595BD23E72CBB94BB26AC3"
+  },
+  {
+    "Path": "Services\\Models\\InputCoverageScope.cs",
+    "Sha256": "BA12B739A36EA7445A6FF70825BDFCB5D7A79D9984EC97F6A9D9EC9F518E254A"
+  },
+  {
+    "Path": "Services\\Models\\InputOccurrence.cs",
+    "Sha256": "A0D954FEABC703EB7C804ACCEA83AA2C710960BC064811B03CC0ECF7C9FD6B15"
+  },
+  {
+    "Path": "Services\\Models\\InputPathConsultation.cs",
+    "Sha256": "CDAC378DCBD281BB1BB5C3EABE457DF2900C3C8BECC84D074F9F7D7474FBE31A"
+  },
+  {
+    "Path": "Services\\Models\\InputPathEntry.cs",
+    "Sha256": "49ADE73C2E2A9996C435FDEA25098BB8A46D814A6176DC1513430C17A5C837DD"
+  },
+  {
+    "Path": "Services\\Models\\InputPathNotice.cs",
+    "Sha256": "49C5E769DA0ACAD90E2496DD1DB60FB125842168233DDA3995A981B0B7B904FD"
+  },
+  {
+    "Path": "Services\\Models\\InputPathSnapshot.cs",
+    "Sha256": "7423B48690E9A5F0CEF9BB69F6BE95EAB0EF3EB7DB2A2D274980CC17085C2EF0"
+  },
+  {
+    "Path": "Services\\Models\\InputRole.cs",
+    "Sha256": "2662104F7C01CF0BAF3C915908B7FF88756C15EF7D91B5E1BBC3EEA55E28D229"
+  },
+  {
+    "Path": "Services\\Models\\InputWatcherDescriptor.cs",
+    "Sha256": "2779F8BE828F9A42C5F93C8E13F67CBB9D918166ABD34FB98190FC3447B6F5C3"
+  },
+  {
+    "Path": "Services\\Models\\LoadedProjectInstance.cs",
+    "Sha256": "48BE00E5D1E0B3899685D177D840F772FFB7A16EB0B356295F0AA69839EB0B8D"
+  },
+  {
+    "Path": "Services\\Models\\MembershipRegion.cs",
+    "Sha256": "C9EA7082C25E0330A72CFE82044EB1DB626FEC970C58571EADEC2E6CDD47E6AF"
+  },
+  {
+    "Path": "Services\\Models\\WorkspaceInputMap.cs",
+    "Sha256": "5A2D790BC8743279D9E8E7724CCA91615C31CD527AA115CA5C2AE920825DD49A"
+  },
+  {
+    "Path": "Services\\Models\\WorkspaceInputSession.cs",
+    "Sha256": "311CEBC5A0CA6325823932479EC9144A1DE8FEDB86A1E266B79C53DD34BD6AE5"
+  },
+  {
+    "Path": "Services\\Models\\WorkspaceInputSnapshot.cs",
+    "Sha256": "3BC0174F3EA0B3B28A0C6C0BE2CE70302D445508779D326468999747EBFA95A7"
+  },
+  {
+    "Path": "Services\\Navigation\\CallGraphHelper.cs",
+    "Sha256": "138E5C9599D0C6E0FFC17207185D734C44F8FB559F8901C47AB24619D07E590C"
+  },
+  {
+    "Path": "Services\\Navigation\\DefinitionLocationFormatter.cs",
+    "Sha256": "92B8491C56399F2193F77BC4B0896C85A5F360F1130CB59F33F0A0239B518282"
+  },
+  {
+    "Path": "Services\\Navigation\\FileDeclarationCollector.cs",
+    "Sha256": "B126C99E09618C727E213FC7703CD3AEDFA7BF5A839D03600FE290E93A707583"
+  },
+  {
+    "Path": "Services\\Navigation\\ImplementationListingFormatter.cs",
+    "Sha256": "1C49D94544D39912EB79230C652AB071C03454BEE10DD460F3D177D4BC8AD9D2"
+  },
+  {
+    "Path": "Services\\Navigation\\NavigationOverflowStore.cs",
+    "Sha256": "F016BA9F963BBAF5083E65522575A8C6CBC68CC9FC1592BD6E4DCB2A5BDF86A4"
+  },
+  {
+    "Path": "Services\\Navigation\\SourcePositionHelper.cs",
+    "Sha256": "7AD4661E9A90223B6B92F2046EF9EA26479553024F2E74CE4980218911410302"
+  },
+  {
+    "Path": "Services\\Navigation\\SymbolDeclarationResolver.cs",
+    "Sha256": "8FB8E0274391D74CBD93CBF9C2A85524061F1F805C57BAE53CDEB9ED09882667"
+  },
+  {
+    "Path": "Services\\Navigation\\SymbolSelectionHelper.cs",
+    "Sha256": "754525D5E457FF3109291A0DE172920CFE179D4D52D455A2587059F2D27B2712"
+  },
+  {
+    "Path": "Services\\Resolve\\AssemblyReferenceResolver.cs",
+    "Sha256": "B8CAC6D342B56620EE5D2CA4F33E0F77BCB5DF053109F6DC597510DC0AD57972"
+  },
+  {
+    "Path": "Services\\Resolve\\BclAssemblyPackageMap.cs",
+    "Sha256": "64EBC12AF5341CF53658E190DEC9D1EBF6EFC225030AD98F4834471E0A73B989"
+  },
+  {
+    "Path": "Services\\Resolve\\DecompilerHost.cs",
+    "Sha256": "154185A94C3C23DDE0CEC6F7B0D5303A2CB2B16325987BD56CBEAFDE73C408C2"
+  },
+  {
+    "Path": "Services\\Resolve\\DepsJsonAssemblyPathResolver.cs",
+    "Sha256": "AD3FB2525803770F9C100E08EDD17502108B8099DD7B68E3366988F58F82E815"
+  },
+  {
+    "Path": "Services\\Resolve\\NuGetFallbackAssemblyResolver.cs",
+    "Sha256": "569DBE4F0CE825DF984B32843DFB9A8CEF52853D7D2A33F8D0535EB233F95130"
+  },
+  {
+    "Path": "Services\\Testing\\TestAssemblyPathResolver.cs",
+    "Sha256": "1B7ED22370AEE231AF24A32EC85BAD6F26F370D10357298AEF87DFDFBB01FA0E"
+  },
+  {
+    "Path": "Services\\Testing\\TestAttributeMatcher.cs",
+    "Sha256": "F849B5033FD50F68CE54A156BCC4F0E329C14862A59AE0740D4E212744272B9E"
+  },
+  {
+    "Path": "Services\\Testing\\TestDiscoveryHelper.cs",
+    "Sha256": "782F3A0FC03B95FCE3EF19C72B0812728B9B44C3076FC582F6848C6F9B0D3B7C"
+  },
+  {
+    "Path": "Services\\Testing\\TestFilterHelper.cs",
+    "Sha256": "5A6262F85738CB476C0777915023E0D7AF1145960C8BEF1F25B5CC65140E0A8B"
+  },
+  {
+    "Path": "Services\\Workspace\\ContentReconcileOutcome.cs",
+    "Sha256": "9D4711F8B85C11A268589036666FA5A1C2C008B50E5C1421E892C8F4F374930C"
+  },
+  {
+    "Path": "Services\\Workspace\\DeclaredTargetFrameworkEvidence.cs",
+    "Sha256": "BF9D7B93ED4C163D5D4FBFA962F63AB4AFC70E94AE1DA2D9AF3503822CE493F0"
+  },
+  {
+    "Path": "Services\\Workspace\\DirectoryBuildPropsReader.cs",
+    "Sha256": "A6F2D3D00B16725ED4496DBCF75C28473D725923C6E5E3D16241B658242AC516"
+  },
+  {
+    "Path": "Services\\Workspace\\InputContentReconcileResult.cs",
+    "Sha256": "245BC429B8BE62A1689C1F17C592CD5F63C8C77A6E5CA7F128E9C7D03EDD0C1C"
+  },
+  {
+    "Path": "Services\\Workspace\\InputPathCanon.cs",
+    "Sha256": "FAE8E202E1B99DEF8B90A8943BBC59BB4DD35FC29EBE9FF9C637271E7805C9D8"
+  },
+  {
+    "Path": "Services\\Workspace\\MsBuildWorkspaceProperties.cs",
+    "Sha256": "202C3357E430CB871FBFBB9E61685031ADE36BDBC1BBF90476C13EE90C914025"
+  },
+  {
+    "Path": "Services\\Workspace\\PersistedPayload.cs",
+    "Sha256": "61743D04770F4FC637106BFCF94E05A5282B870ACF02C40BE2E0F7EEACF5D1FC"
+  },
+  {
+    "Path": "Services\\Workspace\\ProjectOutputDiagnosticsLogger.cs",
+    "Sha256": "0315D92C0DC6A9821B302FF29E62256E81FE13E1CCB00FEF8DF38CC8ED264965"
+  },
+  {
+    "Path": "Services\\Workspace\\RoslynDocumentBuildSideEffect.cs",
+    "Sha256": "D78A84489D76BFDDA6A7D12F90D1B63C9F09EBEF1C182E7248A0C4C928B1045B"
+  },
+  {
+    "Path": "Services\\Workspace\\SolutionConfigurationCatalog.cs",
+    "Sha256": "350A240FF68BB55FFA25428E4E70C2EB8F18B1E9F895AFB436B9E66F893F27EA"
+  },
+  {
+    "Path": "Services\\Workspace\\SolutionManager.cs",
+    "Sha256": "A4A5FA65CBC8BB8B1EBAD7CA6CDD5BC86701107B25B375685B97B375A389FD32"
+  },
+  {
+    "Path": "Services\\Workspace\\SourceTextEncoding.cs",
+    "Sha256": "7A305B55F38D3C45693FDCD8CDB127AB9D99EE71AEAAEBE88F17AC6AC997B732"
+  },
+  {
+    "Path": "Services\\Workspace\\StableFileBytes.cs",
+    "Sha256": "386D4D5D386B2605605D1509D708FE03B947C07CA37D9B1BC76830A1F03D88B2"
+  },
+  {
+    "Path": "Services\\Workspace\\StableFileRead.cs",
+    "Sha256": "5F25E4AB916FC23E6D307EE9045242A73E53880C9D3CE54380FF4A640C7A8BC0"
+  },
+  {
+    "Path": "Services\\Workspace\\WorkspaceDiskEventClassifier.cs",
+    "Sha256": "15A141183D44727FC2DAF9594AB43FD03CE03407CD2135E85E98F7C749CB087A"
+  },
+  {
+    "Path": "Services\\Workspace\\WorkspaceDiskPathFilter.cs",
+    "Sha256": "F659742E3F7B8059296A670597B4AF75EDE2FC90E0E50431F29E534A9B0DA426"
+  },
+  {
+    "Path": "Services\\Workspace\\WorkspaceDiskWatcherStarter.cs",
+    "Sha256": "222E63F74F4C3D5B7383CAC5DF9DC1E41361A81A6F7161EA9CAA332AB4329C77"
+  },
+  {
+    "Path": "Services\\Workspace\\WorkspaceDiskWatcherStartResult.cs",
+    "Sha256": "C600AF36BF97E3542EDFA6865C10E94270BECE1786C9B9C9FE7F47B53D9587DB"
+  },
+  {
+    "Path": "Services\\Workspace\\WorkspaceDocumentDiskSync.cs",
+    "Sha256": "18285BE6D41EB513C43C95420C5CD8A75B7EC88433FCFA966014B4F75CF10D21"
+  },
+  {
+    "Path": "Services\\Workspace\\WorkspaceFilePersistence.cs",
+    "Sha256": "CFF5C161D6D196BD4E98DAED0CB1D4FCF672E49E4DFCAE3F74C08D41E3F76F3B"
+  },
+  {
+    "Path": "Services\\Workspace\\WorkspaceHealthReporter.cs",
+    "Sha256": "B0D2AAEB83B9C7171D3FE5ED8CD2CA6C8E5EF0D0CF3D213F8F49C943F9E71FF5"
+  },
+  {
+    "Path": "Services\\Workspace\\WorkspaceInputMapBuilder.cs",
+    "Sha256": "6746EB2E84C2E4C3EC09B61D0EFA5B0EC71C12100934E5464BFABE62DB28501C"
+  },
+  {
+    "Path": "Services\\Workspace\\WorkspaceInputReconciler.cs",
+    "Sha256": "DA1E72AE77DDED3F74EBF5C3C2D28EDBBBA8BFEAC5FFAA3786AE46CA33600B01"
+  },
+  {
+    "Path": "Services\\Workspace\\WorkspaceLoadGuidance.cs",
+    "Sha256": "F4F6771425C07E36A7378D106EB97F565806B23B448A1917658D2CCC45F142BA"
+  },
+  {
+    "Path": "Services\\Workspace\\WorkspaceLoadPreparationResult.cs",
+    "Sha256": "A61307B17C30751CD016F79D93993200639463DC3AA2C625C4168191F514242F"
+  },
+  {
+    "Path": "Services\\Workspace\\WorkspaceLoadSource.cs",
+    "Sha256": "98F9DB124ED749CBD91F44A447D3890D05E557E7A5E06D87474C1FC3F54DF8C9"
+  },
+  {
+    "Path": "Services\\Workspace\\WorkspaceNonCSharpDiskSync.cs",
+    "Sha256": "41CD4CE287EC255727556E79FAA2E6381381AC557A672FE488D45C6BCA2FC6CC"
+  },
+  {
+    "Path": "Services\\Workspace\\WorkspaceRootResolver.cs",
+    "Sha256": "9BF630CEDD90E1C6CB67764790CD487CD20C322DCA5B8004ABE1845C38BDA8D9"
+  },
+  {
+    "Path": "Services\\Workspace\\WorkspaceWriteBoundary.cs",
+    "Sha256": "C75D7D31FD56EEA81026262A65C1DADD5E92D9A7715B56BCFAB67CF03D51BB7A"
+  },
+  {
+    "Path": "Services\\Workspace\\WorkspaceWriteResult.cs",
+    "Sha256": "8DBC879699A656C58449056F0FA7732D2E063DA5B96BEA78F6E5A5034D21D7C0"
+  },
+  {
+    "Path": "Services\\Build\\Models\\BuildContext.cs",
+    "Sha256": "30BE795D1F16374C84CD270A8E7B00EB5DCFB9AC724CE1616369F4C828CD9C3B"
+  },
+  {
+    "Path": "Services\\Build\\Models\\BuildFreshnessState.cs",
+    "Sha256": "0EED2355FDD226B6DABC3C4B3F3D4D9A2B232C15D9D82245D166CAB51E49FAD4"
+  },
+  {
+    "Path": "Services\\Build\\Models\\BuildInputCursor.cs",
+    "Sha256": "EDCCAF77E949F7A6A3F5182ECC2A3FD811421E09F2A2B882F830848EC0D1AC0F"
+  },
+  {
+    "Path": "Services\\Build\\Models\\BuildPathRevision.cs",
+    "Sha256": "8BD208471B5F1CA06F9DAC6A3068844D188C05645CDE9BB356F20E9ABD700B8B"
+  },
+  {
+    "Path": "Services\\Build\\Models\\BuildProof.cs",
+    "Sha256": "13511833646A36D7C4925CCD349973014CBC48AC1AD3EBA568FE932CFCA9C5A8"
+  },
+  {
+    "Path": "Services\\Build\\Models\\BuildReuseBlocker.cs",
+    "Sha256": "649774AE3386EB19B8DBD5347A25E056C6DA3A143A3554E3E8D1E399E4E38869"
+  },
+  {
+    "Path": "Services\\Build\\Models\\BuildReuseDecision.cs",
+    "Sha256": "FE419E01E7F46A6D8B04598793B84160E4382F162C0BD53BB33BB11E20B34642"
+  },
+  {
+    "Path": "Services\\Build\\Models\\TestBuildPolicy.cs",
+    "Sha256": "99D5E24A36B6E8793DD1BA4D5A72DD7AF6712127875AFF1DED9D4610896C3052"
+  },
+  {
+    "Path": "Services\\Build\\Models\\TestDllEnsureRequest.cs",
+    "Sha256": "FC60BB04C4561C0E5412523BE312A5C3199D0DF53274E498DBEA9E00CD4BA1E8"
+  },
+  {
+    "Path": "Services\\Build\\Models\\TestDllEnsureResult.cs",
+    "Sha256": "D19C2F04756D4503960C832099AA7A74396B192353F4A3B5E40B36BC6C795802"
+  },
+  {
+    "Path": "Services\\Workspace\\StateCache\\IsolatedHydratedSession.cs",
+    "Sha256": "D0CF676ED1539A9BC033C74FD808A22483D7468B0BD6334376F8D59727EC6AA0"
+  },
+  {
+    "Path": "Services\\Workspace\\StateCache\\IsolatedWorkspaceHydrator.cs",
+    "Sha256": "FD6B3E2B6C290B4075FEF7FCCA3FF73969D75D902FF39AA249E13FD14DA5714B"
+  },
+  {
+    "Path": "Services\\Workspace\\StateCache\\OrdinaryWorkspaceCapture.cs",
+    "Sha256": "BE891A01720F76D4B375B5D18E8F19A1EA1EA1D70C5F7E123D2A3AF9505F359F"
+  },
+  {
+    "Path": "Services\\Workspace\\StateCache\\SnapshotDocumentBinding.cs",
+    "Sha256": "80263E81ECB0EFC8A070FC9822FBC2B54E4DC639F1E6BCCAFA8090E0FD222F2D"
+  },
+  {
+    "Path": "Services\\Workspace\\StateCache\\SnapshotOccurrenceBinder.cs",
+    "Sha256": "7D4526EF6068F0D2BE474215819A973BA4D49E0FE25033B99782DB197B2B2C16"
+  },
+  {
+    "Path": "Services\\Workspace\\StateCache\\SnapshotOptionFacts.cs",
+    "Sha256": "E835AE5055B5011B1C13CE9E0CDAD1BA2B30D244E26207AAAA6641C8C5CF2753"
+  },
+  {
+    "Path": "Services\\Workspace\\StateCache\\SnapshotSigningProfile.cs",
+    "Sha256": "9721A02850AD60214C3E3256A991316A653B6E0D35515A289E65D7A70A6C0164"
+  },
+  {
+    "Path": "Services\\Workspace\\StateCache\\WorkspaceSnapshotCodec.cs",
+    "Sha256": "CA6208FD85A28331C9838DA2BB49E1D3ABF66AF5FB43817330915EE22C4C30CB"
+  },
+  {
+    "Path": "Services\\Workspace\\StateCache\\Models\\HydratedInputOccurrence.cs",
+    "Sha256": "C74AB1D1FE9B91B0A000CC0E95A5CA78D1D077E7528E6E09164D13AE1439B0FB"
+  },
+  {
+    "Path": "Services\\Workspace\\StateCache\\Models\\SnapshotAnalyzerReference.cs",
+    "Sha256": "D36EC8A2A416ABD88A4F07A6D51F8FE2711D3E8EE0C4ECE7C8085A1AA6B2FE36"
+  },
+  {
+    "Path": "Services\\Workspace\\StateCache\\Models\\SnapshotCaptureResult.cs",
+    "Sha256": "7C3B6C489B9519B5F89693B16C227C13865B76722690ECE8C67FD41F5F870221"
+  },
+  {
+    "Path": "Services\\Workspace\\StateCache\\Models\\SnapshotCompilationOptions.cs",
+    "Sha256": "4637D7ADE944B0D1B372F2172F68B19FA7EBAFFC4C01E06141D6374B2BFF0E1C"
+  },
+  {
+    "Path": "Services\\Workspace\\StateCache\\Models\\SnapshotDocument.cs",
+    "Sha256": "E6646CBBBF9C82421EE12D6F0179E31953CD167161160D211037F1952C0BD677"
+  },
+  {
+    "Path": "Services\\Workspace\\StateCache\\Models\\SnapshotEvaluatedProperties.cs",
+    "Sha256": "44DE562AEDDD329DD3F6E455F2A73124706AA73152C24CF6B34CCB45D7A921A2"
+  },
+  {
+    "Path": "Services\\Workspace\\StateCache\\Models\\SnapshotInputOccurrence.cs",
+    "Sha256": "DDBDF3602ECD55688850B2A7C9486F6D878B4093CA429600848B23CA1C6DC174"
+  },
+  {
+    "Path": "Services\\Workspace\\StateCache\\Models\\SnapshotInputPath.cs",
+    "Sha256": "A554A9470D65816C9AE6849F28C71EB3206CC24D1EAF8DC2A3670A82E75F27C3"
+  },
+  {
+    "Path": "Services\\Workspace\\StateCache\\Models\\SnapshotLoadProperties.cs",
+    "Sha256": "FCE2D02F712E7748F69808162D4E0A955B4E98A8B39EB4C80DB4ACFE5E41DC81"
+  },
+  {
+    "Path": "Services\\Workspace\\StateCache\\Models\\SnapshotMetadataReference.cs",
+    "Sha256": "8F83D262DD9E19AF9556A7ECBECFE855182D836755BFD32E0754B74790DB0976"
+  },
+  {
+    "Path": "Services\\Workspace\\StateCache\\Models\\SnapshotNameValue.cs",
+    "Sha256": "9C8EBE75AA9ACC06A217848206144510A81481EEB9731002733E0AD9070DB9AF"
+  },
+  {
+    "Path": "Services\\Workspace\\StateCache\\Models\\SnapshotParseOptions.cs",
+    "Sha256": "7313997D0AE29EDE912339D4D9AA5F6F5056046746B9461973EDFEA0BE7ABD9F"
+  },
+  {
+    "Path": "Services\\Workspace\\StateCache\\Models\\SnapshotProject.cs",
+    "Sha256": "C52769110C31DF1658772C7FCCC447A1EEABAEE3127B3551435D7D40B415D968"
+  },
+  {
+    "Path": "Services\\Workspace\\StateCache\\Models\\SnapshotProjectKey.cs",
+    "Sha256": "017E136BACF9C6924FB2443CCF24582976E932D9BCA9EA0A51035087DDA168AA"
+  },
+  {
+    "Path": "Services\\Workspace\\StateCache\\Models\\SnapshotProjectReference.cs",
+    "Sha256": "2BEADA430A023E996CFE4A6D854968EEFB411E0DB1CC2A4991FC6479A497E77C"
+  },
+  {
+    "Path": "Services\\Workspace\\StateCache\\Models\\SnapshotPropertySet.cs",
+    "Sha256": "573E14A73F6F4BFCFD5AC317C6AED18226AFF0787ECFF5F28A6AC0F0B1CE4A8F"
+  },
+  {
+    "Path": "Services\\Workspace\\StateCache\\Models\\SnapshotResolver.cs",
+    "Sha256": "6B56B52C0BEF291EF64A4A1BA5745937840284A34B97BF3B57C260B880F46EE5"
+  },
+  {
+    "Path": "Services\\Workspace\\StateCache\\Models\\SnapshotTextMetadata.cs",
+    "Sha256": "16A5943CBD41B066748471E529EE686FA836E9F83AFF0404E9034659CBE90850"
+  },
+  {
+    "Path": "Services\\Workspace\\StateCache\\Models\\WorkspaceSnapshot.cs",
+    "Sha256": "329D4B413528AFB491DC7CA995218CC7922D0940A8D261E11FC0BDDFDCCB7ABF"
+  }
+]

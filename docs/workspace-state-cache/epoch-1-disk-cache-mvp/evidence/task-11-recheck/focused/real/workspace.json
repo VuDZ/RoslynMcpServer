@@ -1,0 +1,21 @@
+{
+  "Utc": "2026-10-09T12:02:21.254014+00:00",
+  "Pid": 70504,
+  "LoggerParameters": "ProjectImports=None",
+  "LoggerVerbosity": "Normal",
+  "MsBuildAssembly": "15.1.0.0",
+  "MsBuildProduct": "18.6.3\u002Bcaa81fa4971f74880cdab61990cb1b11420939ec",
+  "Roslyn": "5.9.0.0",
+  "SamplePluginSymbolFound": true,
+  "Projects": [
+    {
+      "Name": "RoslynMcpPlugin",
+      "FilePath": "<owned>\\real\\samples\\RoslynMcpPlugin\\RoslynMcpPlugin.csproj"
+    },
+    {
+      "Name": "RoslynMcpServer",
+      "FilePath": "<owned>\\real\\RoslynMcpServer.csproj"
+    }
+  ],
+  "Diagnostics": []
+}

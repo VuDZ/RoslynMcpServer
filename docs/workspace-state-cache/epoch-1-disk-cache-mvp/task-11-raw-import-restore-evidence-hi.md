@@ -5,14 +5,14 @@
 - Примерная сложность: 4/5; класс `hi`.
 - Риск ошибки: высокий — ложный supported verdict разрешает недоказанный positive capture.
 - Необходимые способности: `семантика_roslyn_msbuild`, `анализ_зависимостей`, `проектирование_проверок`.
-- Статус: **planned / experiment not-run; spec-v2 revised-for-review, 2026-10-07**.
+- Статус: **accepted, round 3, 2026-10-09 — bounded test-only actual design-time experiment; existing channel partial, supported real manifest insufficient / task-00 blocked; Release build/main 1362/1362 passed**. [Review/validation](evidence/task-11-recheck-validation.md).
 - Depends on: [E0/task-07](../epoch-0-snapshot-roundtrip/task-07-roundtrip-benchmark-med.md)
 - Decision prerequisite: Принятый применимый E0 scope; результат spike нужен до принятия E1/task-00 и reusable envelope.
-- Модель, реализовавшая задачу: —.
-- Модели, проводившие ревью: —.
-- Количество раундов ревью: —.
-- Количество исправлений после ревью: —.
-- Отчёт о реализации, ревью и validation: —.
+- Модель, реализовавшая задачу: Codex, прежний и новый implementer subagents; унаследованная модель сессии, точный runtime model ID/reasoning не подтверждены инструментами.
+- Модели, проводившие ревью: Codex, отдельные reviewer subagents; исторический round 1, новый initial round 2 и fresh recheck round 3; точный runtime model ID/reasoning не подтверждены инструментами.
+- Количество раундов ревью: 3.
+- Количество исправлений после ревью: 2 (T11-R1-001, T11-R2-001), открытых must-fix: 0.
+- Отчёт о реализации, ревью и validation: [source evidence](evidence/task-11-raw-evidence.md), [продолжение](evidence/task-11-continuation.md), [round 2](evidence/task-11-review-round-2.md), [round 3](evidence/task-11-review-round-3.md), [final validation](evidence/task-11-recheck-validation.md).
 
 ## Цель
 

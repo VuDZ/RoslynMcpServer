@@ -1,6 +1,8 @@
 # E1 — Первый disk cache MVP
 
-Статус: **spec-v2 / revised-for-review, 2026-10-07**. Реализация не начата.
+Статус: **spec-v2 / revised-for-review, 2026-10-07**. Production реализация не начата.
+Execution update 2026-10-09: [task-11 S-002](evidence/task-11-recheck-validation.md)
+accepted как bounded partial experiment; task-00 manifest readiness blocked.
 
 Общие границы — [README серии](../README.md), [порядок исполнения](../execution.md),
 [бенчмарки](../benchmark.md). Эти три документа обязательны для ревью эпохи.
@@ -17,7 +19,10 @@ watcher’ы. Неизменный реальный request даёт disk hit. �
 Manifest ограниченного profile должен покрывать known input bytes и появление/
 удаление потенциальных inputs. Standard absent walk-up и actual imported/restore
 paths не подменяются csproj/Documents. Источник import/restore evidence остаётся
-открытым **S-002 / not-run** до его actual design-time проверки и принятия task-00.
+открытым: **S-002 / partial experiment accepted, manifest readiness blocked**
+([review/validation, 2026-10-09](evidence/task-11-recheck-validation.md));
+actual design-time проверка не доказала supported real manifest. До принятия
+task-00 пригодный source contract остаётся необходимым.
 Current map/analyzer snapshot не считаются готовой closure; None у BinaryLogger
 не доказывает отсутствие raw path events. Второй log/Embed/source collection не
 выбираются заранее. Required category → source event/property → path → all consumer

@@ -68,4 +68,4 @@ isolated test не означают принятия реализации. Тр�
 Historical review/defense не подменяет arbitration; independent recheck v2 ещё не выполнен.
 U-001 решён [H-001/H-002](../human-decisions.md): external XML exclusion и вариант B
 для strong-name; [применение и validation](../h-002-report.md), 2026-10-07.
-S-001/S-002 учитываются к deadlines и остаются not-run. Closed disputes и optional E3 scope не переоткрываются.
+S-001 accepted для isolated base-query slice; S-002 accepted как bounded partial experiment, round 3, 2026-10-09; E1 manifest readiness blocked ([review/validation](../epoch-1-disk-cache-mvp/evidence/task-11-recheck-validation.md)). Closed disputes и optional E3 scope не переоткрываются.
