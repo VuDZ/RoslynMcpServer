@@ -19,6 +19,7 @@
 | MCP tool surface evolution | [mcp-tool-surface-evolution/](mcp-tool-surface-evolution/README.md) | post-arbitration spec v2; реализация не начата |
 | GitHub binary releases | [github-releases/](github-releases/README.md) | O-01 закрыт; CI + release workflow есть; smoke дистрибутива и O-02/O-03 открыты |
 | Улучшение тестов | [test-improvements/](test-improvements/README.md) | эпохи 1 и 2 выполнены, планы и отчёты в [архиве](test-improvements/_archive/README.md); далее эпоха 3 |
+| Архитектурное ревью 2026-10 | [architecture-review/](architecture-review/README.md) | 2026-10-21: 17 находок (P1 — 4, P2 — 5, P3 — 8), все open; 4 вопроса владельцу |
 
 ## Contract
 
