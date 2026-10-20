@@ -474,21 +474,21 @@ public sealed class McpToolCatalogTests(ITestOutputHelper output)
         output.WriteLine($"lite+runtime={liteRuntime.Count}/{liteRuntime.Utf8Bytes}");
         output.WriteLine($"lite+operations={liteOperations.Count}/{liteOperations.Utf8Bytes}");
 
-        AssertRecorded("full", 54, 45780, full);
-        AssertRecorded("lite", 15, 19312, lite);
-        AssertRecorded("lite+files", 23, 24368, liteFiles);
-        AssertRecorded("lite+editing", 23, 24582, liteEditing);
-        AssertRecorded("lite+decompile", 19, 22074, liteDecompile);
-        AssertRecorded("lite+nuget", 21, 22691, liteNuget);
-        AssertRecorded("lite+project", 18, 20832, liteProject);
-        AssertRecorded("lite+runtime", 18, 22050, liteRuntime);
-        AssertRecorded("lite+operations", 19, 21073, liteOperations);
+        AssertRecorded("full", 54, 45807, full);
+        AssertRecorded("lite", 15, 19411, lite);
+        AssertRecorded("lite+files", 23, 24467, liteFiles);
+        AssertRecorded("lite+editing", 23, 24681, liteEditing);
+        AssertRecorded("lite+decompile", 19, 22173, liteDecompile);
+        AssertRecorded("lite+nuget", 21, 22790, liteNuget);
+        AssertRecorded("lite+project", 18, 20931, liteProject);
+        AssertRecorded("lite+runtime", 18, 22149, liteRuntime);
+        AssertRecorded("lite+operations", 19, 21172, liteOperations);
 
         var enabled = MeasureSurface(
             new McpToolProfileOptions { Profile = "lite" },
             activation => activation.EnableGroup("files"));
-        AssertRecorded("lite+enable:files", 23, 24368, enabled);
-        Assert.Equal(24368, MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "files" }).Utf8Bytes);
+        AssertRecorded("lite+enable:files", 23, 24467, enabled);
+        Assert.Equal(24467, MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "files" }).Utf8Bytes);
     }
 
     private static void AssertRecorded(string label, int count, int bytes, (int Count, int Utf8Bytes) actual)
@@ -542,6 +542,22 @@ public sealed class McpToolCatalogTests(ITestOutputHelper output)
         Assert.False(parameter.GetProperty("default").GetBoolean());
         var required = schema.GetProperty("required").EnumerateArray().Select(p => p.GetString());
         Assert.DoesNotContain("includeBuildWarnings", required);
+    }
+
+    [Fact]
+    public void Navigation_schemas_allow_omitting_name_and_definition_exposes_preview()
+    {
+        using var host = BuildHost(new McpToolProfileOptions { Profile = "full" });
+        foreach (var name in new[] { "find_symbol_definition", "find_symbol_references" })
+        {
+            var schema = host.Services.GetServices<McpServerTool>().Single(t => t.ProtocolTool.Name == name)
+                .ProtocolTool.InputSchema;
+            var required = schema.TryGetProperty("required", out var values)
+                ? values.EnumerateArray().Select(p => p.GetString()).ToArray()
+                : Array.Empty<string?>();
+            Assert.DoesNotContain("symbolName", required);
+            Assert.True(schema.GetProperty("properties").TryGetProperty("preview", out _));
+        }
     }
 
     [Fact]

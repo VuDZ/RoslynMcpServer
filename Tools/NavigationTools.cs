@@ -14,9 +14,6 @@ namespace RoslynMcpServer.Tools;
 
 public sealed class NavigationTools
 {
-    private readonly SolutionManager _solutionManager;
-    private readonly ILogger<NavigationTools> _logger;
-
     public NavigationTools(SolutionManager solutionManager, ILogger<NavigationTools> logger)
     {
         _solutionManager = solutionManager;
@@ -25,14 +22,12 @@ public sealed class NavigationTools
 
     [McpServerTool(Name = "find_symbol_references", Title = "Find symbol references")]
     [Description(
-        "Finds semantic references. Requires load_workspace. "
-        + "No filePath: solution-wide name/FQN. "
-        + "filePath alone: unique declaration (case-sensitive; not operator/indexer/local function); several → FQN+line:column error. "
-        + "filePath+line (±column): positional. Optional maxResults/preview/overflowCursor. "
-        + "directOnly (needs filePath): class virtual/override/abstract; cross-project FQN type match. find_usages=name alias.")]
+        "Semantic references; requires load_workspace. No filePath: solution-wide name/FQN. "
+        + "filePath: unique declaration or line position; name optional with line+column. "
+        + "Optional maxResults/preview/overflowCursor. directOnly needs filePath and a class virtual/override/abstract method; cross-project FQN type match.")]
     public async Task<string> FindSymbolReferences(
-        [Description("Simple name or exact FQN (no global::, no ()). Solution-wide case-insensitive; file without line ordinal; +line auto-column needle.")]
-        string symbolName,
+        [Description("Simple name or exact FQN (no global::, no ()). Optional with filePath+line+column. Solution-wide case-insensitive; file without line ordinal; +line auto-column needle.")]
+        string? symbolName = null,
         [Description("Optional .cs. Omit for solution-wide search. Required with line. Without line: unique declaration (error if several).")]
         string? filePath = null,
         [Description("Optional 1-based line. Requires filePath. Resolves the symbol at that position.")]
@@ -61,12 +56,13 @@ public sealed class NavigationTools
                         NavigationOverflowStore.TryTakeChunk(overflowCursor)));
             }
 
-            if (string.IsNullOrWhiteSpace(symbolName))
+            if (string.IsNullOrWhiteSpace(symbolName)
+                && (string.IsNullOrWhiteSpace(filePath) || line is null || column is null))
             {
-                return ToolTelemetry.TraceAndReturn(toolName, "Symbol name is empty.");
+                return ToolTelemetry.TraceAndReturn(toolName, "Error: provide `symbolName`, or `filePath` with both `line` and `column`.");
             }
 
-            var trimmedName = symbolName.Trim();
+            var trimmedName = symbolName?.Trim() ?? string.Empty;
             var resolvedMax = NavigationListingHelper.ResolveMaxResults(
                 maxResults,
                 _solutionManager.FileSettings.MaxResults);
@@ -140,6 +136,10 @@ public sealed class NavigationTools
                 }
 
                 positionAbsolute = position.AbsolutePosition;
+                if (trimmedName.Length == 0)
+                {
+                    trimmedName = positionSymbol.Name;
+                }
             }
             else
             {
@@ -281,16 +281,13 @@ public sealed class NavigationTools
 
     [McpServerTool(Name = "find_symbol_definition", Title = "Find symbol definitions in workspace")]
     [Description(
-        "Finds declarations. Requires load_workspace. "
-        + "Omit filePath/line: solution-wide name (case-insensitive). "
-        + "filePath alone: unique declaration (case-sensitive); all in-source places (partials) "
-        + "with column+full name; several → FQN+line:column error. "
-        + "filePath+line (±column): positional. Optional maxResults/overflowCursor "
-        + "(default 50 or ROSLYN_MCP_MAX_RESULTS, 1–500; not dropped). "
-        + "Not text search.")]
+        "Declarations; requires load_workspace. No filePath: solution-wide name. "
+        + "filePath: unique declaration or line position; name optional with line+column. "
+        + "All source locations, including partials, show column+FQN. "
+        + "Optional preview/maxResults/overflowCursor (default 50 or ROSLYN_MCP_MAX_RESULTS; cap 1–500).")]
     public async Task<string> FindSymbolDefinition(
-        [Description("Name. Solution-wide case-insensitive; file without line ordinal; +line auto-column.")]
-        string symbolName,
+        [Description("Name. Optional with filePath+line+column. Solution-wide case-insensitive; file without line ordinal; +line auto-column.")]
+        string? symbolName = null,
         [Description("Optional .cs. Omit for solution-wide. Required with line. Without line: unique declaration.")]
         string? filePath = null,
         [Description("Optional 1-based line; requires filePath.")]
@@ -299,6 +296,8 @@ public sealed class NavigationTools
         int? column = null,
         [Description("Cap 1–500. Default 50 / ROSLYN_MCP_MAX_RESULTS / RoslynMcp.jsonc max-results; explicit wins.")]
         int? maxResults = null,
+        [Description("True: append source line (max 400 chars). Omit → RoslynMcp.jsonc preview, else false.")]
+        bool? preview = null,
         [Description("Next in-memory overflow chunk; no new search.")]
         string? overflowCursor = null,
         CancellationToken cancellationToken = default)
@@ -315,15 +314,17 @@ public sealed class NavigationTools
                         NavigationOverflowStore.TryTakeChunk(overflowCursor)));
             }
 
-            if (string.IsNullOrWhiteSpace(symbolName))
+            if (string.IsNullOrWhiteSpace(symbolName)
+                && (string.IsNullOrWhiteSpace(filePath) || line is null || column is null))
             {
-                return ToolTelemetry.TraceAndReturn(toolName, "Error: `symbolName` is empty.");
+                return ToolTelemetry.TraceAndReturn(toolName, "Error: provide `symbolName`, or `filePath` with both `line` and `column`.");
             }
 
-            var trimmedName = symbolName.Trim();
+            var trimmedName = symbolName?.Trim() ?? string.Empty;
             var resolvedMax = NavigationListingHelper.ResolveMaxResults(
                 maxResults,
                 _solutionManager.FileSettings.MaxResults);
+            var resolvedPreview = NavigationListingHelper.ResolvePreview(preview, _solutionManager.FileSettings.Preview);
             var hasFilePath = !string.IsNullOrWhiteSpace(filePath);
 
             if (line is not null && !hasFilePath)
@@ -392,6 +393,10 @@ public sealed class NavigationTools
                         cancellationToken).ConfigureAwait(false);
 
                     symbols = [definitionSymbol];
+                    if (trimmedName.Length == 0)
+                    {
+                        trimmedName = definitionSymbol.Name;
+                    }
                 }
                 else
                 {
@@ -452,6 +457,7 @@ public sealed class NavigationTools
             }
 
             var locationLines = new List<string>();
+            var textByDocument = resolvedPreview ? new Dictionary<DocumentId, SourceText>() : null;
             foreach (var symbol in symbols)
             {
                 var sourceLocations = symbol.Locations
@@ -466,7 +472,18 @@ public sealed class NavigationTools
 
                 foreach (var location in sourceLocations)
                 {
-                    locationLines.Add(DefinitionLocationFormatter.FormatLocation(symbol, location) + "\n");
+                    string? previewLine = null;
+                    if (resolvedPreview && textByDocument is not null)
+                    {
+                        previewLine = await GetSourceLineAtAsync(solution, location, textByDocument, cancellationToken)
+                            .ConfigureAwait(false);
+                        if (string.IsNullOrEmpty(previewLine))
+                        {
+                            previewLine = "(source line unavailable)";
+                        }
+                    }
+
+                    locationLines.Add(DefinitionLocationFormatter.FormatLocation(symbol, location, previewLine) + "\n");
                 }
             }
 
@@ -1240,4 +1257,7 @@ public sealed class NavigationTools
                 WorkspaceLoadGuidance.FormatCaughtException(ex, $"Failed: {ex.Message}"));
         }
     }
+
+    private readonly SolutionManager _solutionManager;
+    private readonly ILogger<NavigationTools> _logger;
 }

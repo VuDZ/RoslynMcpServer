@@ -9,13 +9,13 @@ namespace RoslynMcpServer.Services.Navigation;
 /// </summary>
 internal static class DefinitionLocationFormatter
 {
-    public static string FormatLocation(ISymbol symbol, Location location)
+    public static string FormatLocation(ISymbol symbol, Location location, string? previewSourceLine = null)
     {
         ArgumentNullException.ThrowIfNull(symbol);
         ArgumentNullException.ThrowIfNull(location);
 
         var sb = new StringBuilder();
-        AppendLocation(sb, symbol, location);
+        AppendLocation(sb, symbol, location, previewSourceLine);
         return sb.ToString().TrimEnd();
     }
 
@@ -28,7 +28,7 @@ internal static class DefinitionLocationFormatter
         return sb.ToString().TrimEnd();
     }
 
-    public static void AppendLocation(StringBuilder sb, ISymbol symbol, Location location)
+    public static void AppendLocation(StringBuilder sb, ISymbol symbol, Location location, string? previewSourceLine = null)
     {
         ArgumentNullException.ThrowIfNull(sb);
         ArgumentNullException.ThrowIfNull(symbol);
@@ -44,6 +44,11 @@ internal static class DefinitionLocationFormatter
         sb.AppendLine($"  File: {path}");
         sb.AppendLine($"  Line: {linePos.Line + 1}");
         sb.AppendLine($"  Column: {linePos.Character + 1}");
+        if (previewSourceLine is not null)
+        {
+            sb.AppendLine($"  Source: `{NavigationListingHelper.EscapeMdBackticks(NavigationListingHelper.TruncatePreview(previewSourceLine))}`");
+        }
+
         sb.AppendLine();
     }
 

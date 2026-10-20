@@ -188,7 +188,7 @@ Portable OpenCode examples: [`opencode.json.sample`](opencode.json.sample) (`ros
 
 MCP `tools/list` stays JSON + JSON Schema. Markdown is for JIT help and diagnostics.
 
-**Client compatibility:** do not assume the host refreshes tools after `tools/list_changed`. If a newly enabled tool is missing from the client's catalog, restart with `ROSLYN_MCP_TOOL_GROUPS=<group>` (and `ROSLYN_MCP_TOOL_PROFILE=lite`). A `2025-11-25` initialize session receives `tools/list_changed` when the set grows. A `2026-07-28` session receives it only after `subscriptions/listen` with `toolsListChanged`; the server accepts that revision through the MCP C# SDK. Measured minified `tools/list` (UTF-8): full **54 / 45,780**; lite **15 / 19,312**.
+**Client compatibility:** do not assume the host refreshes tools after `tools/list_changed`. If a newly enabled tool is missing from the client's catalog, restart with `ROSLYN_MCP_TOOL_GROUPS=<group>` (and `ROSLYN_MCP_TOOL_PROFILE=lite`). A `2025-11-25` initialize session receives `tools/list_changed` when the set grows. A `2026-07-28` session receives it only after `subscriptions/listen` with `toolsListChanged`; the server accepts that revision through the MCP C# SDK. Measured minified `tools/list` (UTF-8): full **54 / 45,807**; lite **15 / 19,411**.
 
 ## Agent tools by version
 
@@ -386,7 +386,7 @@ There are **54** registered tools in the default `full` profile (see list below)
 <summary><code>find_symbol_references</code> — Finds usages of a type/member across the solution.</summary>
 
 **Parameters:**
-- `symbolName: string` — simple name or exact FQN (`Namespace.Type` / `Namespace.Type.Member`; no `global::`, no `()`); solution-wide search is case-insensitive; with `filePath` and no `line`, match is ordinal case-sensitive; with `filePath`+`line`, also the auto-column needle when `column` is omitted
+- `symbolName: string?` — simple name or exact FQN (`Namespace.Type` / `Namespace.Type.Member`; no `global::`, no `()`); optional with exact `filePath`+`line`+`column`. Solution-wide search is case-insensitive; with `filePath` and no `line`, match is ordinal case-sensitive; required for auto-column when `column` is omitted
 - `filePath: string?` — optional `.cs` file; omit for solution-wide name/FQN search; required when `line` is set; without `line`, select the unique matching declaration in that file (error if several)
 - `line: int?` — optional 1-based line; requires `filePath`; when set, resolve the symbol at that position (declaration or usage)
 - `column: int?` — optional 1-based column; omit to auto-pick the unique matching identifier token on the line
@@ -402,7 +402,7 @@ There are **54** registered tools in the default `full` profile (see list below)
 <summary><code>find_symbol_definition</code> — Semantic lookup: where a type or member is declared (file, line, column, full name) in the loaded solution.</summary>
 
 **Parameters:**
-- `symbolName: string` — class, interface, struct, enum, or member identifier (e.g. `IRunCommand`); solution-wide search is case-insensitive; file without line is ordinal case-sensitive.
+- `symbolName: string?` — class, interface, struct, enum, or member identifier (e.g. `IRunCommand`); optional with exact `filePath`+`line`+`column`; otherwise required. Solution-wide search is case-insensitive; file without line is ordinal case-sensitive.
 - `filePath: string?` — optional; omit for solution-wide name search; without `line`, select the unique matching declaration in that file; required with `line` for positional go-to-definition
 - `line: int?` — optional 1-based line in `filePath` (usage or declaration)
 - `column: int?` — optional 1-based column; omit to auto-pick the unique matching identifier token on the line
@@ -412,6 +412,8 @@ There are **54** registered tools in the default `full` profile (see list below)
 **Behavior:** Locations beyond `maxResults` are stored in-process behind a cursor (not silent drop; not a host `%Temp%` path). Unknown/expired cursor → human error. File+line mode uses the same cursor scheme.
 
 **Model guidance:** after `load_workspace`, use this for “where is X **declared**?” — do **not** answer that with plain-text search or invent a generic tool named `search`. For free-text matches across files, use your client’s built-in **`grep`** tool (not `bash`/`PowerShell` grep). This tool avoids `bin/`/`obj/` and uses Roslyn. **Saved** `.cs` (IDE/git) are applied before search; unsaved buffers are ignored — no `reset_workspace` for ordinary saves. Omit `filePath`/`line` for solution-wide name search; pass `filePath` without `line` for the single declaration in that file (prints every in-source location, including partial parts, each with column and full name); several matches → error with FQN and identifier coordinates; pass `filePath`+`line` to go to the definition of the symbol under that position.
+
+Optional `preview: bool?` appends each definition's source line (up to 400 characters), including overflow chunks. The explicit argument overrides `RoslynMcp.jsonc` `preview`; otherwise the default is false. With exact `filePath`+`line`+`column`, `symbolName` may be omitted.
 </details>
 
 <details>
@@ -1302,7 +1304,7 @@ cd D:\Devel\YourApp
 <summary><code>find_symbol_references</code> — Ищет использования типа/члена по solution.</summary>
 
 **Параметры:**
-- `symbolName: string` — простое имя или точный FQN (`Namespace.Type` / `Namespace.Type.Member`; без `global::`, без `()`); поиск по solution без учёта регистра; при `filePath` без `line` — порядковое сравнение с учётом регистра; при `filePath`+`line` также needle для auto-column без `column`
+- `symbolName: string?` — простое имя или точный FQN (`Namespace.Type` / `Namespace.Type.Member`; без `global::`, без `()`); можно опустить с точными `filePath`+`line`+`column`. Поиск по solution без учёта регистра; при `filePath` без `line` — порядковое сравнение с учётом регистра; для auto-column без `column` имя обязательно
 - `filePath: string?` — опциональный `.cs`; без него — поиск по имени/FQN по solution; обязателен с `line`; без `line` — единственное совпавшее объявление в файле (несколько → ошибка)
 - `line: int?` — опциональная 1-based строка; требует `filePath`; резолвит символ в этой позиции
 - `column: int?` — опциональная 1-based колонка; без неё — единственный identifier token с именем `symbolName` на строке
@@ -1318,7 +1320,7 @@ cd D:\Devel\YourApp
 <summary><code>find_symbol_definition</code> — Семантический поиск: где объявлен тип или член (файл, строка, колонка, полное имя) в загруженном solution.</summary>
 
 **Параметры:**
-- `symbolName: string` — имя класса, интерфейса, struct, enum или члена (например `IRunCommand`); поиск по solution без учёта регистра; файл без строки — с учётом регистра.
+- `symbolName: string?` — имя класса, интерфейса, struct, enum или члена (например `IRunCommand`); можно опустить с точными `filePath`+`line`+`column`; в остальных режимах обязательно. Поиск по solution без учёта регистра; файл без строки — с учётом регистра.
 - `filePath: string?` — опционально; без него — поиск по имени по solution; без `line` — единственное совпавшее объявление в файле; обязателен вместе с `line` для позиционного go-to-definition
 - `line: int?` — опциональная 1-based строка в `filePath` (usage или объявление)
 - `column: int?` — опциональная 1-based колонка; без неё — единственный совпадающий identifier token на строке
@@ -1328,6 +1330,8 @@ cd D:\Devel\YourApp
 **Поведение:** локации сверх `maxResults` хранятся в процессе за cursor (не тихая обрезка; не `%Temp%` на хосте). Неизвестный/истёкший cursor — человекочитаемая ошибка. Режим file+line использует ту же схему cursor.
 
 **Для модели:** после `load_workspace` для «где **объявлен** X?» используй этот tool — не текстовый поиск и не выдуманный tool вроде `search`. Для произвольного текста по файлам — встроенный **`grep`** среды (IDE), не `bash`/PowerShell с grep. Так не лезем в `bin/`/`obj/` и опираемся на Roslyn. **Сохранённые** `.cs` (IDE/git) подмешиваются до поиска; несохранённый буфер игнорируется — `reset_workspace` для обычных save не нужен. Без `filePath`/`line` — поиск по имени по solution; `filePath` без `line` — одно объявление в файле (печатает все исходные места, включая части `partial`, каждое с колонкой и полным именем); несколько совпадений → ошибка с FQN и координатами идентификатора; с `filePath`+`line` — определение символа в этой позиции.
+
+Опциональный `preview: bool?` добавляет строку исходника каждого определения (до 400 символов), включая продолжение за cursor. Явный аргумент важнее `preview` в `RoslynMcp.jsonc`; без настройки — false. С точными `filePath`+`line`+`column` можно опустить `symbolName`.
 </details>
 
 <details>

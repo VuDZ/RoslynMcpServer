@@ -22,19 +22,13 @@ internal static class SourcePositionHelper
         SyntaxNode root,
         SourceText text,
         int line1Based,
-        string symbolName,
+        string? symbolName,
         int? column1Based,
         out PositionResolution resolution,
         out string? error)
     {
         resolution = null!;
         error = null;
-
-        if (string.IsNullOrWhiteSpace(symbolName))
-        {
-            error = "Symbol name is empty.";
-            return false;
-        }
 
         if (column1Based is int column)
         {
@@ -46,6 +40,12 @@ internal static class SourcePositionHelper
             var token = FindIdentifierTokenAt(root, text, absolutePosition);
             resolution = new PositionResolution(line1Based, column, absolutePosition, token);
             return true;
+        }
+
+        if (string.IsNullOrWhiteSpace(symbolName))
+        {
+            error = "Symbol name is required when column is omitted.";
+            return false;
         }
 
         if (!TryGetLine(text, line1Based, out var line, out error))
@@ -250,7 +250,7 @@ internal static class SourcePositionHelper
     /// </summary>
     public static async Task<(ISymbol? Symbol, PositionResolution? Position, string? Error)> ResolveSymbolInDocumentAsync(
         Document document,
-        string symbolName,
+        string? symbolName,
         int line1Based,
         int? column1Based,
         CancellationToken cancellationToken = default)
