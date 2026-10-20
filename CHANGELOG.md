@@ -4,6 +4,7 @@ Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into a
 
 ### Unreleased
 
+- Pin transitive `System.Security.Cryptography.Pkcs` to 10.0.13 (CVE-2026-70162), so ordinary workspace loads no longer fail on its NuGet audit diagnostic.
 - `find_symbol_definition` and `find_symbol_references` accept `filePath` + `line` + `column` without `symbolName`, using the existing positional symbol resolver. Name-based search and automatic column selection still require `symbolName`.
 - `find_symbol_definition` accepts optional `preview`: source text is appended to each definition location, capped at 400 characters, including overflow chunks. Explicit `preview` overrides the JSONC setting; otherwise the default is false.
 
