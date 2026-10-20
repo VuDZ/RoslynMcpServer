@@ -1,0 +1,19 @@
+{
+  "releaseBuild": "passed",
+  "sourceStructure": 123,
+  "defaultSdk401Full": {
+    "passed": 1362,
+    "failed": 1,
+    "skipped": 0
+  },
+  "pinnedSdk300Full": {
+    "passed": 1360,
+    "failed": 3,
+    "skipped": 0
+  },
+  "sdk401Partition": 1362,
+  "sdk300Partition": 1,
+  "partitionInventoryMatchesFull": true,
+  "singleInvocationMainCi": "not green",
+  "formalTaskAcceptance": "pending"
+}

@@ -1,0 +1,155 @@
+{
+  "Status": "incomplete",
+  "Error": "Evaluation or top-level build intervals are missing; unavailable costs are null.",
+  "BaselineWallMs": 12564.1589,
+  "ReaderVersion": "18.9.11+e34a38d2ae1fc26406a317517196e55c68ff83ab",
+  "BinlogCount": 1,
+  "Projects": [
+    {
+      "Key": "<SOLUTION>/SRC/FILES.APP.BACKGROUNDTASKS/FILES.APP.BACKGROUNDTASKS.CSPROJ|Files.App.BackgroundTasks",
+      "FilePath": "SRC/FILES.APP.BACKGROUNDTASKS/FILES.APP.BACKGROUNDTASKS.CSPROJ",
+      "Name": "Files.App.BackgroundTasks",
+      "References": [],
+      "EvaluationMs": null,
+      "OwnBuildMs": 65.7446,
+      "BuildHostOrder": 4,
+      "Markup": false,
+      "MarkupEvidence": []
+    },
+    {
+      "Key": "<SOLUTION>/SRC/FILES.APP.CONTROLS/FILES.APP.CONTROLS.CSPROJ|Files.App.Controls",
+      "FilePath": "SRC/FILES.APP.CONTROLS/FILES.APP.CONTROLS.CSPROJ",
+      "Name": "Files.App.Controls",
+      "References": [],
+      "EvaluationMs": null,
+      "OwnBuildMs": 1376.4146,
+      "BuildHostOrder": 5,
+      "Markup": true,
+      "MarkupEvidence": [
+        "command:XamlCompiler.exe",
+        "message:XamlCompiler.exe"
+      ]
+    },
+    {
+      "Key": "<SOLUTION>/SRC/FILES.APP.CSWIN32/FILES.APP.CSWIN32.CSPROJ|Files.App.CsWin32",
+      "FilePath": "SRC/FILES.APP.CSWIN32/FILES.APP.CSWIN32.CSPROJ",
+      "Name": "Files.App.CsWin32",
+      "References": [
+        "<SOLUTION>/SRC/FILES.SHARED/FILES.SHARED.CSPROJ|Files.Shared"
+      ],
+      "EvaluationMs": null,
+      "OwnBuildMs": 5225.1087,
+      "BuildHostOrder": 6,
+      "Markup": false,
+      "MarkupEvidence": []
+    },
+    {
+      "Key": "<SOLUTION>/SRC/FILES.APP.SERVER/FILES.APP.SERVER.CSPROJ|Files.App.Server",
+      "FilePath": "SRC/FILES.APP.SERVER/FILES.APP.SERVER.CSPROJ",
+      "Name": "Files.App.Server",
+      "References": [
+        "<SOLUTION>/SRC/FILES.APP.CSWIN32/FILES.APP.CSWIN32.CSPROJ|Files.App.CsWin32",
+        "<SOLUTION>/SRC/FILES.SHARED/FILES.SHARED.CSPROJ|Files.Shared"
+      ],
+      "EvaluationMs": null,
+      "OwnBuildMs": 47.8476,
+      "BuildHostOrder": 7,
+      "Markup": false,
+      "MarkupEvidence": []
+    },
+    {
+      "Key": "<SOLUTION>/SRC/FILES.APP.STORAGE/FILES.APP.STORAGE.CSPROJ|Files.App.Storage",
+      "FilePath": "SRC/FILES.APP.STORAGE/FILES.APP.STORAGE.CSPROJ",
+      "Name": "Files.App.Storage",
+      "References": [
+        "<SOLUTION>/SRC/FILES.APP.CSWIN32/FILES.APP.CSWIN32.CSPROJ|Files.App.CsWin32",
+        "<SOLUTION>/SRC/FILES.CORE.STORAGE/FILES.CORE.STORAGE.CSPROJ|Files.Core.Storage",
+        "<SOLUTION>/SRC/FILES.SHARED/FILES.SHARED.CSPROJ|Files.Shared"
+      ],
+      "EvaluationMs": null,
+      "OwnBuildMs": 38.6871,
+      "BuildHostOrder": 8,
+      "Markup": false,
+      "MarkupEvidence": []
+    },
+    {
+      "Key": "<SOLUTION>/SRC/FILES.APP/FILES.APP.CSPROJ|Files.App",
+      "FilePath": "SRC/FILES.APP/FILES.APP.CSPROJ",
+      "Name": "Files.App",
+      "References": [
+        "<SOLUTION>/SRC/FILES.APP.BACKGROUNDTASKS/FILES.APP.BACKGROUNDTASKS.CSPROJ|Files.App.BackgroundTasks",
+        "<SOLUTION>/SRC/FILES.APP.CONTROLS/FILES.APP.CONTROLS.CSPROJ|Files.App.Controls",
+        "<SOLUTION>/SRC/FILES.APP.CSWIN32/FILES.APP.CSWIN32.CSPROJ|Files.App.CsWin32",
+        "<SOLUTION>/SRC/FILES.APP.STORAGE/FILES.APP.STORAGE.CSPROJ|Files.App.Storage",
+        "<SOLUTION>/SRC/FILES.CORE.STORAGE/FILES.CORE.STORAGE.CSPROJ|Files.Core.Storage",
+        "<SOLUTION>/SRC/FILES.SHARED/FILES.SHARED.CSPROJ|Files.Shared"
+      ],
+      "EvaluationMs": null,
+      "OwnBuildMs": 59.692,
+      "BuildHostOrder": 9,
+      "Markup": false,
+      "MarkupEvidence": []
+    },
+    {
+      "Key": "<SOLUTION>/SRC/FILES.CORE.SOURCEGENERATOR/FILES.CORE.SOURCEGENERATOR.CSPROJ|Files.Core.SourceGenerator",
+      "FilePath": "SRC/FILES.CORE.SOURCEGENERATOR/FILES.CORE.SOURCEGENERATOR.CSPROJ",
+      "Name": "Files.Core.SourceGenerator",
+      "References": [],
+      "EvaluationMs": null,
+      "OwnBuildMs": 93.6727,
+      "BuildHostOrder": 1,
+      "Markup": false,
+      "MarkupEvidence": []
+    },
+    {
+      "Key": "<SOLUTION>/SRC/FILES.CORE.STORAGE/FILES.CORE.STORAGE.CSPROJ|Files.Core.Storage",
+      "FilePath": "SRC/FILES.CORE.STORAGE/FILES.CORE.STORAGE.CSPROJ",
+      "Name": "Files.Core.Storage",
+      "References": [],
+      "EvaluationMs": null,
+      "OwnBuildMs": 55.8049,
+      "BuildHostOrder": 2,
+      "Markup": false,
+      "MarkupEvidence": []
+    },
+    {
+      "Key": "<SOLUTION>/SRC/FILES.SHARED/FILES.SHARED.CSPROJ|Files.Shared",
+      "FilePath": "SRC/FILES.SHARED/FILES.SHARED.CSPROJ",
+      "Name": "Files.Shared",
+      "References": [],
+      "EvaluationMs": null,
+      "OwnBuildMs": 32.329,
+      "BuildHostOrder": 3,
+      "Markup": false,
+      "MarkupEvidence": []
+    },
+    {
+      "Key": "<SOLUTION>/TESTS/FILES.APP.UITESTS/FILES.APP.UITESTS.CSPROJ|Files.App.UITests",
+      "FilePath": "TESTS/FILES.APP.UITESTS/FILES.APP.UITESTS.CSPROJ",
+      "Name": "Files.App.UITests",
+      "References": [
+        "<SOLUTION>/SRC/FILES.APP.CONTROLS/FILES.APP.CONTROLS.CSPROJ|Files.App.Controls"
+      ],
+      "EvaluationMs": null,
+      "OwnBuildMs": 3351.8235,
+      "BuildHostOrder": 10,
+      "Markup": true,
+      "MarkupEvidence": [
+        "command:XamlCompiler.exe",
+        "message:XamlCompiler.exe"
+      ]
+    },
+    {
+      "Key": "<SOLUTION>/TESTS/FILES.INTERACTIONTESTS/FILES.INTERACTIONTESTS.CSPROJ|Files.InteractionTests",
+      "FilePath": "TESTS/FILES.INTERACTIONTESTS/FILES.INTERACTIONTESTS.CSPROJ",
+      "Name": "Files.InteractionTests",
+      "References": [],
+      "EvaluationMs": null,
+      "OwnBuildMs": 56.6625,
+      "BuildHostOrder": 11,
+      "Markup": false,
+      "MarkupEvidence": []
+    }
+  ],
+  "Model": null
+}

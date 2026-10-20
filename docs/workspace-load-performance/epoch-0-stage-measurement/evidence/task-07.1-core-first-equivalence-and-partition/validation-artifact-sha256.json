@@ -1,0 +1,13 @@
+{
+  "final-integrity.json": "246d2cc4c52cb52397fc77e290783df3c0a7b9295bb44e76da33c971c89414a8",
+  "final-mcp-validation.json": "a24ebfcea0754a14e7da4133fea006a6efb3ee60596929575489e5265336d3b3",
+  "final-spike-build.log": "87447c2fab6478bd8fba8769ea601f6b1ac0c027981e814ae59f6d1946358ccc",
+  "final-solution-build.log": "87447c2fab6478bd8fba8769ea601f6b1ac0c027981e814ae59f6d1946358ccc",
+  "final-main-validation.log": "70484fdbae41286c7865cf6afa647cba7e5fcabd891145c411f76baf53a52fd2",
+  "final-python-validation.log": "b87b890201f3c94e9f5e31410fe0208ecf6041309b4659a2101820358709185c",
+  "TestResults/task-07.1-main.trx": "889c0261c31e3ad9976f4c696d243d1d3e6cac275c4cbc95bd3bbe609d1ba416",
+  "base-mcp-run-results.json": "d44061451f284ad26827ea7449f8841475976555ca87f536ea8011f3167104cf",
+  "extra-mcp-run-results.json": "051fba32927838f04ccb382510fe31d3919452b1fc4bcf7ad1706ce26cbd903f",
+  "step0-mcp-run-results.json": "485aa8e7c8f49f660a128ca29c116b14cd3a0fbf785eeb6118fd57183bd706ae",
+  "measured-source-sha256.json": "b0f6d99fdf7258a171819b6c458a56633a63d349d9633b7eea02c3da651c52ff"
+}

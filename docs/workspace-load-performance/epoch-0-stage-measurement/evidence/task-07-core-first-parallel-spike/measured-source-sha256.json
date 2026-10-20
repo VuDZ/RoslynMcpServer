@@ -1,0 +1,166 @@
+[
+  {
+    "Path": "spikes/ParallelLoad/calibrate_profile.py",
+    "SHA256": "5A822845E0C53DD291F92552831580F8BC64C65513FF08E7C73F61F95596E939"
+  },
+  {
+    "Path": "spikes/ParallelLoad/check_core_first_analysis.py",
+    "SHA256": "F3620CA1A9691284D505C151D9F1C98AC652E1906448CE1F90309BABB9D8B598"
+  },
+  {
+    "Path": "spikes/ParallelLoad/compare.py",
+    "SHA256": "6FDD793C88F89E9A4A59868CC6A0210BF33D0202AFE143FB66C3E9CDCCC4060E"
+  },
+  {
+    "Path": "spikes/ParallelLoad/CoreFirstAggregator.cs",
+    "SHA256": "9A2FC2D691C0B4B4FC509498C4C42331649431E2B28EA7980E4064ED7EC81E92"
+  },
+  {
+    "Path": "spikes/ParallelLoad/CoreFirstChecks.cs",
+    "SHA256": "098CFDB3EBB11E9B41AFC14ED2DBEE0F0D8A6C17B0490BFABC3A3C4179E624C0"
+  },
+  {
+    "Path": "spikes/ParallelLoad/CoreFirstExperiment.cs",
+    "SHA256": "923BEAA441D52CECA5DEA6E97D16AC18446D397154E96244AEDCF98DAF3E3C5E"
+  },
+  {
+    "Path": "spikes/ParallelLoad/CoreFirstMerger.cs",
+    "SHA256": "FE7D6BC8319FC68ED174E7D4810366F38487D9E0C1761D3370107B920354BE37"
+  },
+  {
+    "Path": "spikes/ParallelLoad/CoreFirstPartition.cs",
+    "SHA256": "F18F05CA89AA08406250171FDB4183B542CD25A7A77F48C16309869C1AF6BED3"
+  },
+  {
+    "Path": "spikes/ParallelLoad/ExternalSampler.cs",
+    "SHA256": "54C340E78D7E7C70871D3FEA7A8AFC341B38C321EA081B3684E62E78E7395F60"
+  },
+  {
+    "Path": "spikes/ParallelLoad/FastProcessSampler.cs",
+    "SHA256": "8F5813C5278DD1EFD851F1B4C361A471F4FC746874396613D4F2375D02CA03F7"
+  },
+  {
+    "Path": "spikes/ParallelLoad/LoadExperiment.cs",
+    "SHA256": "FAB49152E2B70379C5D8C9DEB1247C6A0185E5F0B674EB6EBA6BFA53D2AC6089"
+  },
+  {
+    "Path": "spikes/ParallelLoad/MergeChecks.cs",
+    "SHA256": "FE19616C9DEFA4CDE042CC873B9BBE6DC51679910C15080D2842016D41C122F8"
+  },
+  {
+    "Path": "spikes/ParallelLoad/MsBuildRegistration.cs",
+    "SHA256": "97626CDE4909C85E9FF43641DAB1A59878DA4149629F28694A962C12688F2F2D"
+  },
+  {
+    "Path": "spikes/ParallelLoad/NativeLoadProgress.cs",
+    "SHA256": "6464374032BB259E83F719CF9012F0732620B1341FE16BFF422025A135AC2FC9"
+  },
+  {
+    "Path": "spikes/ParallelLoad/ParallelLoad.csproj",
+    "SHA256": "5D9390980BBF50A902134ACD3C9BB171499E1AE845F645DC228A1A0357AA650B"
+  },
+  {
+    "Path": "spikes/ParallelLoad/PhaseLoadProgress.cs",
+    "SHA256": "91684B8AD445870013ED0F91B11B619A8359E1376F66F778DAA2AB92758C9552"
+  },
+  {
+    "Path": "spikes/ParallelLoad/ProfileChecks.cs",
+    "SHA256": "1AC3DD57EE0026CE12EF9E2628113948BA63156583CBEEFE82E81E4A289AA9D5"
+  },
+  {
+    "Path": "spikes/ParallelLoad/ProfileExperiment.cs",
+    "SHA256": "A8720179C8B84AF766AA4B74E46F488173CD286A886246485F3365DA830AEF6F"
+  },
+  {
+    "Path": "spikes/ParallelLoad/ProfilePartition.cs",
+    "SHA256": "47571FEC01A86E25425593D16BD1E4F25CD2E2878BC01937365CAD31FAC2D951"
+  },
+  {
+    "Path": "spikes/ParallelLoad/ProfileReplayChecks.cs",
+    "SHA256": "602D1BA391BD74B2A9417638C023794A324DF0745F7E2C834F95DE31EBF9F9C3"
+  },
+  {
+    "Path": "spikes/ParallelLoad/Program.cs",
+    "SHA256": "BD6E873D984095B7F611F986EBA7DF68A1D248985A0EF089E8349235CA9546FF"
+  },
+  {
+    "Path": "spikes/ParallelLoad/ProjectCostReplay.cs",
+    "SHA256": "5DAB2F8562A87828AD5160348CA3EF8C8FA96BFCCAA86CEC6C4D2CA3FBAE6A86"
+  },
+  {
+    "Path": "spikes/ParallelLoad/ProjectMerger.cs",
+    "SHA256": "4E69C1117961FB80025424F47A8904E3B87E37A170B0F25B707AA1D956EF35AC"
+  },
+  {
+    "Path": "spikes/ParallelLoad/ProjectPartition.cs",
+    "SHA256": "ED970AD0570C3AA1E0A85EF89745B49AA9AD587AC69F3F54A12659F4FD199B81"
+  },
+  {
+    "Path": "spikes/ParallelLoad/RunOptions.cs",
+    "SHA256": "6E6DF87540BDF6D00EEB871CD479CB32BE09E973A39EC66160111BEE9BFA7278"
+  },
+  {
+    "Path": "spikes/ParallelLoad/SolutionObservation.cs",
+    "SHA256": "64043F85BE0D48901C9F248C993FF5E09750FAE9515BFFA0DB34DE28102DA1B9"
+  },
+  {
+    "Path": "spikes/ParallelLoad/summarize_core_first.py",
+    "SHA256": "A9422AE41EC2925B43CF797B3366B08A20C2753B5CC35E3FE8B9E27D21B4851B"
+  },
+  {
+    "Path": "spikes/ParallelLoad/summarize_profile.py",
+    "SHA256": "E5CD8859E5F09FBF9BB25B74162AFD7B373BEF89A5A7FC5E6416A545FFA40F7E"
+  },
+  {
+    "Path": "spikes/ParallelLoad/task07_obj_inventory.py",
+    "SHA256": "B007974E00983AFE934F11EB85133377779E30F0C0EA586D7321158EC387FB7C"
+  },
+  {
+    "Path": "spikes/ParallelLoad/Bootstrap/GlobalJsonSdkReader.cs",
+    "SHA256": "8DDFCFF60E781CA47115865B8769D35C48A26575EF35C5E6D8F5B629E8E9D8C0"
+  },
+  {
+    "Path": "spikes/ParallelLoad/Bootstrap/MsBuildInstanceSelector.cs",
+    "SHA256": "CDB326AAF17C5B4B447E95DAB0C1243D76D1DC797B5E689914E38259FBD5839C"
+  },
+  {
+    "Path": "spikes/ParallelLoad/Bootstrap/Models/MsBuildInstanceCandidate.cs",
+    "SHA256": "AD7AD437756D31E645FD1EA4E096C9EDD501CE4D7CE92AEABA2912CE19BC7007"
+  },
+  {
+    "Path": "spikes/ParallelLoad/Models/BinlogSession.cs",
+    "SHA256": "BBC1B971F74E49BA6DDB140C8D2B14EC648EA647E5279E6DF7936E356F104D8B"
+  },
+  {
+    "Path": "spikes/ParallelLoad/Models/CoreFirstGroup.cs",
+    "SHA256": "55078697201B480F9A74D89EC4A9CCBC004D3E15E2249273CC52EEF75DDE24FC"
+  },
+  {
+    "Path": "spikes/ParallelLoad/Models/CoreFirstPlan.cs",
+    "SHA256": "F70650FF0037B4DFB38E6DFF15093A11EC9CB3D18E96EE629F0BCD0E0FE87C94"
+  },
+  {
+    "Path": "spikes/ParallelLoad/Models/CostModel.cs",
+    "SHA256": "A31EDBC9B72AB7C9A51DD615CEB4F2C03DF5D3D4606D063D7BB73384750C78FC"
+  },
+  {
+    "Path": "spikes/ParallelLoad/Models/CostProfile.cs",
+    "SHA256": "B5B047F48AB5332489D1384864189AA85FAC38A8D796A07B12BE7698D05A578F"
+  },
+  {
+    "Path": "spikes/ParallelLoad/Models/PartitionPlan.cs",
+    "SHA256": "449D9A4D2FB2B1DC73C5291136B4E60AB99BFAEFCE751C987638A543A52DC21A"
+  },
+  {
+    "Path": "spikes/ParallelLoad/Models/ProcessMetrics.cs",
+    "SHA256": "7F76F091E1EC62F8FF4832FD93E532F2231112895DA66BF02F555B0ABF8D5955"
+  },
+  {
+    "Path": "spikes/ParallelLoad/Models/ProjectBuildInterval.cs",
+    "SHA256": "924AE41923A5137AB300EF8A6C7A0538E1A74952EC80A4F4BC2A9084B9A47AF2"
+  },
+  {
+    "Path": "spikes/ParallelLoad/Models/ProjectCost.cs",
+    "SHA256": "E04523A29C375DE5F4F02CB31EC015582165D147C002A58DC3B8E082DA39AB07"
+  }
+]

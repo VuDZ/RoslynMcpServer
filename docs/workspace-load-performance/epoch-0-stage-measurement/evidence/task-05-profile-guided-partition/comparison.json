@@ -1,0 +1,178 @@
+{
+  "verdict": "no-go",
+  "step": "profile",
+  "calibration": "not-started",
+  "step2": "not-started",
+  "solutions": {
+    "powertoys": {
+      "profileStatus": "failed",
+      "error": "NotSupportedException: The log file format version is 27 with minimum required reader version 18, whereas this version of MSBuild only supports versions up to 26.",
+      "baselineWallMs": 43025.888,
+      "loadStatus": "ok",
+      "uniqueProjects": 248,
+      "diagnosticCount": 3570,
+      "readerVersion": "18.9.11+e34a38d2ae1fc26406a317517196e55c68ff83ab",
+      "binlogs": [
+        {
+          "file": "capture-1.binlog",
+          "bytes": 8187531,
+          "formatVersion": 26,
+          "sha256": "af0e6b7ce5c71006530287e4f64ebb1a86cbe917d0237dc02b865b76e82dac3a"
+        },
+        {
+          "file": "capture-2.binlog",
+          "bytes": 660,
+          "formatVersion": 27,
+          "sha256": "545d1a81018d613a13653d85de4284a373c8e45d10aecb586191b4046e6d94a6"
+        }
+      ],
+      "registration": "<SDK>/10.0.401",
+      "task04Registration": "<SDK>/10.0.401",
+      "registrationChanged": false,
+      "task04BaselineSelfDifferenceCounts": {},
+      "profileLoadSelfDifferenceCounts": {},
+      "task04BaselineToProfileDifferenceCounts": {},
+      "markup": [],
+      "evaluationIntervalsAvailable": 0,
+      "ownBuildMs": null
+    },
+    "files": {
+      "profileStatus": "incomplete",
+      "error": "Evaluation or top-level build intervals are missing; unavailable costs are null.",
+      "baselineWallMs": 12564.1589,
+      "loadStatus": "ok",
+      "uniqueProjects": 11,
+      "diagnosticCount": 15,
+      "readerVersion": "18.9.11+e34a38d2ae1fc26406a317517196e55c68ff83ab",
+      "binlogs": [
+        {
+          "file": "capture-1.binlog",
+          "bytes": 338926,
+          "formatVersion": 26,
+          "sha256": "ef5a70a65901241cbf8a2177ca7c87c39292292e37bf6785209b47bba2ab611c"
+        }
+      ],
+      "registration": "<SDK>/10.0.401",
+      "task04Registration": "<SDK>/10.0.401",
+      "registrationChanged": false,
+      "task04BaselineSelfDifferenceCounts": {},
+      "profileLoadSelfDifferenceCounts": {},
+      "task04BaselineToProfileDifferenceCounts": {},
+      "markup": [
+        {
+          "name": "Files.App.Controls",
+          "evidence": [
+            "command:XamlCompiler.exe",
+            "message:XamlCompiler.exe"
+          ]
+        },
+        {
+          "name": "Files.App.UITests",
+          "evidence": [
+            "command:XamlCompiler.exe",
+            "message:XamlCompiler.exe"
+          ]
+        }
+      ],
+      "evaluationIntervalsAvailable": 0,
+      "ownBuildMs": {
+        "sum": 10403.7872,
+        "median": 59.692,
+        "min": 32.329,
+        "max": 5225.1087
+      }
+    }
+  },
+  "simulation": [
+    {
+      "strategy": "plan",
+      "workers": 2,
+      "status": "unavailable: PowerToys profile failed",
+      "wallMs": null,
+      "speedup": null,
+      "repeatedProjects": null,
+      "sharedCoreSize": null,
+      "repeatedMarkup": null
+    },
+    {
+      "strategy": "plan",
+      "workers": 4,
+      "status": "unavailable: PowerToys profile failed",
+      "wallMs": null,
+      "speedup": null,
+      "repeatedProjects": null,
+      "sharedCoreSize": null,
+      "repeatedMarkup": null
+    },
+    {
+      "strategy": "plan",
+      "workers": 8,
+      "status": "unavailable: PowerToys profile failed",
+      "wallMs": null,
+      "speedup": null,
+      "repeatedProjects": null,
+      "sharedCoreSize": null,
+      "repeatedMarkup": null
+    },
+    {
+      "strategy": "round-robin",
+      "workers": 2,
+      "status": "unavailable: PowerToys profile failed",
+      "wallMs": null,
+      "speedup": null,
+      "repeatedProjects": null,
+      "sharedCoreSize": null,
+      "repeatedMarkup": null
+    },
+    {
+      "strategy": "round-robin",
+      "workers": 4,
+      "status": "unavailable: PowerToys profile failed",
+      "wallMs": null,
+      "speedup": null,
+      "repeatedProjects": null,
+      "sharedCoreSize": null,
+      "repeatedMarkup": null
+    },
+    {
+      "strategy": "round-robin",
+      "workers": 8,
+      "status": "unavailable: PowerToys profile failed",
+      "wallMs": null,
+      "speedup": null,
+      "repeatedProjects": null,
+      "sharedCoreSize": null,
+      "repeatedMarkup": null
+    },
+    {
+      "strategy": "cluster",
+      "workers": 2,
+      "status": "unavailable: PowerToys profile failed",
+      "wallMs": null,
+      "speedup": null,
+      "repeatedProjects": null,
+      "sharedCoreSize": null,
+      "repeatedMarkup": null
+    },
+    {
+      "strategy": "cluster",
+      "workers": 4,
+      "status": "unavailable: PowerToys profile failed",
+      "wallMs": null,
+      "speedup": null,
+      "repeatedProjects": null,
+      "sharedCoreSize": null,
+      "repeatedMarkup": null
+    },
+    {
+      "strategy": "cluster",
+      "workers": 8,
+      "status": "unavailable: PowerToys profile failed",
+      "wallMs": null,
+      "speedup": null,
+      "repeatedProjects": null,
+      "sharedCoreSize": null,
+      "repeatedMarkup": null
+    }
+  ]
+}

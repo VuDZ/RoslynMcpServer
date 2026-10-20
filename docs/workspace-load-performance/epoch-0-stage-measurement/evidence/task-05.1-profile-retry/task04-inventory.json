@@ -1,0 +1,458 @@
+[
+  {
+    "file": "files-baseline-0.json.gz",
+    "sha256": "193d6224abfa7951da0fb54f2f0a6177b27c10adf7827ec2b6d7fcdda31558a4",
+    "groups": [
+      11
+    ],
+    "wallMs": 11385.6339
+  },
+  {
+    "file": "files-baseline-1.json.gz",
+    "sha256": "d636da90d42bfd7ad89b58ccee3a5fe2ad7fd13e5de49276ea0d034edecd0eff",
+    "groups": [
+      11
+    ],
+    "wallMs": 10932.447
+  },
+  {
+    "file": "files-baseline-2.json.gz",
+    "sha256": "cede16716b041be1c0c9a630efcaa9fdaa62231373fa0e0aae65e1fb9dda45a7",
+    "groups": [
+      11
+    ],
+    "wallMs": 10828.7322
+  },
+  {
+    "file": "files-baseline-3.json.gz",
+    "sha256": "aa181d761ebf25c226e70aa4c6dd364c9ca415ed8625e4a2ebc2c7d68789221a",
+    "groups": [
+      11
+    ],
+    "wallMs": 10929.1938
+  },
+  {
+    "file": "files-round-robin-2-0.json.gz",
+    "sha256": "9a3bfbc15ab62e285ceee38406b3d28f75c950582c100a214d9b6eeb4185d19c",
+    "groups": [
+      7,
+      10
+    ],
+    "wallMs": 10905.4952
+  },
+  {
+    "file": "files-round-robin-2-1.json.gz",
+    "sha256": "4ece782ca4f3a1a81b35c388046b14fe427cbe8d1d0f84a707619fca00274382",
+    "groups": [
+      7,
+      10
+    ],
+    "wallMs": 11022.8523
+  },
+  {
+    "file": "files-round-robin-2-2.json.gz",
+    "sha256": "94fbbd614e2472f8f4489537c946e72e9fa5a24f364925891467019771459c41",
+    "groups": [
+      7,
+      10
+    ],
+    "wallMs": 11031.8732
+  },
+  {
+    "file": "files-round-robin-2-3.json.gz",
+    "sha256": "4870c0359bfef9546276a84c0bc7fe8090990e8cf887b6505b9d81c9f35a7c8c",
+    "groups": [
+      7,
+      10
+    ],
+    "wallMs": 11017.9852
+  },
+  {
+    "file": "files-round-robin-4-0.json.gz",
+    "sha256": "295d832fafd76f5a5a9fda3d7ee52b9ba91fffc79d5c6b13a6edf6da4f37466e",
+    "groups": [
+      6,
+      8,
+      4,
+      6
+    ],
+    "wallMs": 9441.1515
+  },
+  {
+    "file": "files-round-robin-4-1.json.gz",
+    "sha256": "ebebade1337c11f75f038978a89f34effd4ec286327248ff780e17c3b20ba221",
+    "groups": [
+      6,
+      8,
+      4,
+      6
+    ],
+    "wallMs": 9296.7567
+  },
+  {
+    "file": "files-round-robin-4-2.json.gz",
+    "sha256": "50667ff35820d160d95e606f9f30433044ad563fdbe1eb2bc53eb3dbe4ad2e48",
+    "groups": [
+      6,
+      8,
+      4,
+      6
+    ],
+    "wallMs": 8508.2035
+  },
+  {
+    "file": "files-round-robin-4-3.json.gz",
+    "sha256": "fd5df93d24998c4ce1fbfdd273d533eed4e6e3b9a6ec8b14d1c5d83af19bd433",
+    "groups": [
+      6,
+      8,
+      4,
+      6
+    ],
+    "wallMs": 8727.1732
+  },
+  {
+    "file": "powertoys-baseline-0.json.gz",
+    "sha256": "98bd6bc0a21765ecccdf7df9344a479edab069efc38654ef863691d91cf29667",
+    "groups": [
+      248
+    ],
+    "wallMs": 41575.3957
+  },
+  {
+    "file": "powertoys-baseline-1.json.gz",
+    "sha256": "065f128d893f47bb54918f19a749b557efc17073f7d1ce647b235ba8d25e6d90",
+    "groups": [
+      248
+    ],
+    "wallMs": 41711.3862
+  },
+  {
+    "file": "powertoys-baseline-2.json.gz",
+    "sha256": "2b61ca1593330b45718cc663fea33f2dbda56e04fc764c526c5f411cd9c03cf3",
+    "groups": [
+      248
+    ],
+    "wallMs": 41471.2549
+  },
+  {
+    "file": "powertoys-baseline-3.json.gz",
+    "sha256": "de1e5ce9d525fd53123f2a8689d4a116793a25a7516d434d192c71dc33fc742c",
+    "groups": [
+      248
+    ],
+    "wallMs": 41919.3575
+  },
+  {
+    "file": "powertoys-baseline-binlog-0.json.gz",
+    "sha256": "ded05a84b2b16f97ac9015e50cfd82477c63e13751fe6778bfbdd94cd40a67d5",
+    "groups": [
+      248
+    ],
+    "wallMs": 40708.7895
+  },
+  {
+    "file": "powertoys-baseline-binlog-1.json.gz",
+    "sha256": "a1a5bb39169d32a0d11d1bff0323ae07a6d051fca0dddff19fb169f10fdfa9df",
+    "groups": [
+      248
+    ],
+    "wallMs": 38716.2107
+  },
+  {
+    "file": "powertoys-baseline-binlog-2.json.gz",
+    "sha256": "ec65d0d91da784aaf5582a3a76c96a31dbcebb1fd9190d7e218ad64ef79079fd",
+    "groups": [
+      248
+    ],
+    "wallMs": 41837.0859
+  },
+  {
+    "file": "powertoys-baseline-binlog-3.json.gz",
+    "sha256": "679becba4496f2fcd0e07bcb2a0469b283318c4e184a60aeddead371445af00c",
+    "groups": [
+      248
+    ],
+    "wallMs": 41806.8271
+  },
+  {
+    "file": "powertoys-cluster-2-0.json.gz",
+    "sha256": "b7c6b94d3a542277922b2784e80c71f08fe88c4e769d46df1fb4cfb171dcbf0e",
+    "groups": [
+      241,
+      9
+    ],
+    "wallMs": 40429.6018
+  },
+  {
+    "file": "powertoys-cluster-2-1.json.gz",
+    "sha256": "4bd9e00837bf5ea9b3a57bc2eedf30a22553b575f0077e4d660eecd4c80d0caf",
+    "groups": [
+      241,
+      9
+    ],
+    "wallMs": 40308.3439
+  },
+  {
+    "file": "powertoys-cluster-2-2.json.gz",
+    "sha256": "ffff56fda6128ecd33933bafa1bef04ef2b1d2fe03376ff1d03772ce4d495459",
+    "groups": [
+      241,
+      9
+    ],
+    "wallMs": 40135.5759
+  },
+  {
+    "file": "powertoys-cluster-2-3.json.gz",
+    "sha256": "b329b625cc3a04b18a0508b03376ec7929736fb74e3a0a534090048a40cd18c3",
+    "groups": [
+      241,
+      9
+    ],
+    "wallMs": 40386.0955
+  },
+  {
+    "file": "powertoys-cluster-4-0.json.gz",
+    "sha256": "fbbe355681c8ff57ec55322eb0df92563b11acb50929086dd18057e7524c3ba3",
+    "groups": [
+      241,
+      5,
+      1,
+      3
+    ],
+    "wallMs": 40438.7335
+  },
+  {
+    "file": "powertoys-cluster-4-1.json.gz",
+    "sha256": "e88b1b1eb9ab98f2b87d6f051a6c1d25a137c1cd74be26274176b7cd2df43db7",
+    "groups": [
+      241,
+      5,
+      1,
+      3
+    ],
+    "wallMs": 40366.8596
+  },
+  {
+    "file": "powertoys-cluster-4-2.json.gz",
+    "sha256": "e2fb70bcca5709c263a703cb308959c0286129873a3f164e75624b5531d71272",
+    "groups": [
+      241,
+      5,
+      1,
+      3
+    ],
+    "wallMs": 37506.5004
+  },
+  {
+    "file": "powertoys-cluster-4-3.json.gz",
+    "sha256": "69f71dd16668705ce28cd716c7b15489c0fbecb52f8fe85816e3b667cd5644d4",
+    "groups": [
+      241,
+      5,
+      1,
+      3
+    ],
+    "wallMs": 40433.1839
+  },
+  {
+    "file": "powertoys-cluster-8-0.json.gz",
+    "sha256": "9b76a1a159de98743b322cbdc6e1e1786fb15557ae28f2224b17b55e7c620f73",
+    "groups": [
+      241,
+      5,
+      0,
+      2,
+      1,
+      1,
+      0,
+      0
+    ],
+    "wallMs": 40995.339
+  },
+  {
+    "file": "powertoys-cluster-8-1.json.gz",
+    "sha256": "cbcbbf4397597e97beef0aaf3aedaac072e92d83f90d283e7cceced7bd72e7e0",
+    "groups": [
+      241,
+      5,
+      0,
+      2,
+      1,
+      1,
+      0,
+      0
+    ],
+    "wallMs": 40597.8284
+  },
+  {
+    "file": "powertoys-cluster-8-2.json.gz",
+    "sha256": "e50fed37dae37057da0074b7caf117e65f0a8d393aa971b42ccc2f8fe4916c05",
+    "groups": [
+      241,
+      5,
+      0,
+      2,
+      1,
+      1,
+      0,
+      0
+    ],
+    "wallMs": 40332.5893
+  },
+  {
+    "file": "powertoys-cluster-8-3.json.gz",
+    "sha256": "7ff61245068858e26cda29759804984925c9c540e6cb847809a525196715867e",
+    "groups": [
+      241,
+      5,
+      0,
+      2,
+      1,
+      1,
+      0,
+      0
+    ],
+    "wallMs": 40385.3373
+  },
+  {
+    "file": "powertoys-round-robin-2-0.json.gz",
+    "sha256": "12f252c7948575f090fb79a143178fd933f1445286e26751cc3bbe79733207ae",
+    "groups": [
+      165,
+      165
+    ],
+    "wallMs": 34021.1633
+  },
+  {
+    "file": "powertoys-round-robin-2-1.json.gz",
+    "sha256": "33cebfc4ba7a28d17a2bd761152c3d86212d4998f9aa2281cca468932de66711",
+    "groups": [
+      165,
+      165
+    ],
+    "wallMs": 34136.8837
+  },
+  {
+    "file": "powertoys-round-robin-2-2.json.gz",
+    "sha256": "5e7cdf44644f5e8d3d03c7fa65b0dc6e8f7f27214c14c3a0e2383bd14b0eadc7",
+    "groups": [
+      165,
+      165
+    ],
+    "wallMs": 33566.4517
+  },
+  {
+    "file": "powertoys-round-robin-2-3.json.gz",
+    "sha256": "ce78f8ce1abb7cf6b02e4a58b0f710d613ca63fa65e6d94cf9d19d0ceefc2b0c",
+    "groups": [
+      165,
+      165
+    ],
+    "wallMs": 33659.719
+  },
+  {
+    "file": "powertoys-round-robin-4-0.json.gz",
+    "sha256": "359058806be9a70ffda16ed5a3f9f87dd54434bd43a9d13e053410ea7a4bdc78",
+    "groups": [
+      117,
+      121,
+      92,
+      93
+    ],
+    "wallMs": 28490.3457
+  },
+  {
+    "file": "powertoys-round-robin-4-1.json.gz",
+    "sha256": "41f9f04a9ccd9bc48fcf1e26ded524be692548e7e8fb5465387790142e542c3e",
+    "groups": [
+      117,
+      121,
+      92,
+      93
+    ],
+    "wallMs": 27635.5662
+  },
+  {
+    "file": "powertoys-round-robin-4-2.json.gz",
+    "sha256": "fc00502d24c494f726b0313b7287e7b364568e3c37a172d6d09d01d7fbc711d8",
+    "groups": [
+      117,
+      121,
+      92,
+      93
+    ],
+    "wallMs": 27324.1514
+  },
+  {
+    "file": "powertoys-round-robin-4-3.json.gz",
+    "sha256": "8bfff85a60f249096610ea80be195faf280b7aff1d136505265d1760edb42901",
+    "groups": [
+      117,
+      121,
+      92,
+      93
+    ],
+    "wallMs": 28280.0742
+  },
+  {
+    "file": "powertoys-round-robin-8-0.json.gz",
+    "sha256": "8810cdef7a5c84b86ae0056c4e7de78e89d430a3303eb7678d467439a689d9ec",
+    "groups": [
+      69,
+      71,
+      46,
+      51,
+      74,
+      82,
+      66,
+      67
+    ],
+    "wallMs": 25642.9818
+  },
+  {
+    "file": "powertoys-round-robin-8-1.json.gz",
+    "sha256": "c3998ac92f8381f8acfc5fc9d6c3bdea9d3238b50299a48c11ae9e45031b5e34",
+    "groups": [
+      69,
+      71,
+      46,
+      51,
+      74,
+      82,
+      66,
+      67
+    ],
+    "wallMs": 24718.0078
+  },
+  {
+    "file": "powertoys-round-robin-8-2.json.gz",
+    "sha256": "a8a0f57737624feb2c1bb6346979dbb9a4968783d074f9d6dddf63f562a996c9",
+    "groups": [
+      69,
+      71,
+      46,
+      51,
+      74,
+      82,
+      66,
+      67
+    ],
+    "wallMs": 23904.2893
+  },
+  {
+    "file": "powertoys-round-robin-8-3.json.gz",
+    "sha256": "7ecfc077e8a72ac98bfb77f594e31ef54bd90bf7adb309a2be694fa095c08ef3",
+    "groups": [
+      69,
+      71,
+      46,
+      51,
+      74,
+      82,
+      66,
+      67
+    ],
+    "wallMs": 26627.9174
+  }
+]

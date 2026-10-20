@@ -1,0 +1,1682 @@
+{
+  "step2": "not-started",
+  "solutions": {
+    "powertoys": {
+      "status": "ok",
+      "projects": 248,
+      "baselineMedianMs": 41711.3862,
+      "profileWallMs": 39611.7346,
+      "loadSolutionMs": 39402.0144,
+      "intervalSumMs": 38946.596300000005,
+      "reconciliationError": 0.011558244088150036,
+      "weightSumMs": 38532.1145,
+      "firstMs": 414.4818,
+      "firstShare": 0.010642311251214525,
+      "weightDistributionMs": {
+        "min": 0,
+        "median": 97.38565,
+        "p90": 377.0003,
+        "max": 1583.4787
+      },
+      "ownBuildMs": 19969.7763,
+      "ownBuildShareOfFullInterval": 0.5127476646784663,
+      "ownBuildShareOfWeight": 0.5138843236853767,
+      "markup": [
+        {
+          "name": "Common.UI.Controls",
+          "evidence": [
+            "command:XamlCompiler.exe",
+            "message:XamlCompiler.exe"
+          ]
+        },
+        {
+          "name": "AdvancedPaste",
+          "evidence": [
+            "command:XamlCompiler.exe",
+            "message:XamlCompiler.exe"
+          ]
+        },
+        {
+          "name": "Microsoft.CmdPal.UI",
+          "evidence": [
+            "command:XamlCompiler.exe",
+            "message:XamlCompiler.exe"
+          ]
+        },
+        {
+          "name": "Microsoft.CmdPal.UI.ManualTests",
+          "evidence": [
+            "command:XamlCompiler.exe",
+            "message:XamlCompiler.exe"
+          ]
+        },
+        {
+          "name": "ColorPickerUI",
+          "evidence": [
+            "command:XamlCompiler.exe",
+            "message:XamlCompiler.exe"
+          ]
+        },
+        {
+          "name": "EnvironmentVariablesUILib",
+          "evidence": [
+            "command:XamlCompiler.exe",
+            "message:XamlCompiler.exe"
+          ]
+        },
+        {
+          "name": "EnvironmentVariables",
+          "evidence": [
+            "command:XamlCompiler.exe",
+            "message:XamlCompiler.exe"
+          ]
+        },
+        {
+          "name": "FancyZonesEditor",
+          "evidence": [
+            "target:MarkupCompilePass1"
+          ]
+        },
+        {
+          "name": "FileLocksmithUI",
+          "evidence": [
+            "command:XamlCompiler.exe",
+            "message:XamlCompiler.exe"
+          ]
+        },
+        {
+          "name": "HostsUILib",
+          "evidence": [
+            "command:XamlCompiler.exe",
+            "message:XamlCompiler.exe"
+          ]
+        },
+        {
+          "name": "Hosts",
+          "evidence": [
+            "command:XamlCompiler.exe",
+            "message:XamlCompiler.exe"
+          ]
+        },
+        {
+          "name": "ImageResizerUI",
+          "evidence": [
+            "command:XamlCompiler.exe",
+            "message:XamlCompiler.exe"
+          ]
+        },
+        {
+          "name": "KeyboardManagerEditorUI",
+          "evidence": [
+            "command:XamlCompiler.exe",
+            "message:XamlCompiler.exe"
+          ]
+        },
+        {
+          "name": "PowerLauncher",
+          "evidence": [
+            "target:MarkupCompilePass1"
+          ]
+        },
+        {
+          "name": "MeasureToolUI",
+          "evidence": [
+            "command:XamlCompiler.exe",
+            "message:XamlCompiler.exe"
+          ]
+        },
+        {
+          "name": "MouseJump.WinUI3",
+          "evidence": [
+            "command:XamlCompiler.exe",
+            "message:XamlCompiler.exe"
+          ]
+        },
+        {
+          "name": "Peek.FilePreviewer",
+          "evidence": [
+            "command:XamlCompiler.exe",
+            "message:XamlCompiler.exe"
+          ]
+        },
+        {
+          "name": "Peek.UI",
+          "evidence": [
+            "command:XamlCompiler.exe",
+            "message:XamlCompiler.exe"
+          ]
+        },
+        {
+          "name": "PowerAccent.UI",
+          "evidence": [
+            "command:XamlCompiler.exe",
+            "message:XamlCompiler.exe"
+          ]
+        },
+        {
+          "name": "PowerDisplay",
+          "evidence": [
+            "command:XamlCompiler.exe",
+            "message:XamlCompiler.exe"
+          ]
+        },
+        {
+          "name": "PowerOCR",
+          "evidence": [
+            "command:XamlCompiler.exe",
+            "message:XamlCompiler.exe"
+          ]
+        },
+        {
+          "name": "RegistryPreviewUILib",
+          "evidence": [
+            "command:XamlCompiler.exe",
+            "message:XamlCompiler.exe"
+          ]
+        },
+        {
+          "name": "RegistryPreview",
+          "evidence": [
+            "command:XamlCompiler.exe",
+            "message:XamlCompiler.exe"
+          ]
+        },
+        {
+          "name": "ShortcutGuide.Ui",
+          "evidence": [
+            "command:XamlCompiler.exe",
+            "message:XamlCompiler.exe"
+          ]
+        },
+        {
+          "name": "WorkspacesEditor",
+          "evidence": [
+            "target:MarkupCompilePass1"
+          ]
+        },
+        {
+          "name": "WorkspacesLauncherUI.UnitTests",
+          "evidence": [
+            "target:MarkupCompilePass1"
+          ]
+        },
+        {
+          "name": "WorkspacesLauncherUI",
+          "evidence": [
+            "target:MarkupCompilePass1"
+          ]
+        },
+        {
+          "name": "PowerToys.QuickAccess",
+          "evidence": [
+            "command:XamlCompiler.exe",
+            "message:XamlCompiler.exe"
+          ]
+        },
+        {
+          "name": "Settings.UI.Controls",
+          "evidence": [
+            "command:XamlCompiler.exe",
+            "message:XamlCompiler.exe"
+          ]
+        },
+        {
+          "name": "PowerToys.Settings",
+          "evidence": [
+            "command:XamlCompiler.exe",
+            "message:XamlCompiler.exe"
+          ]
+        }
+      ],
+      "nullEvaluationCount": 215,
+      "registrationChanged": false,
+      "comparisonVerdict": "identical",
+      "partitions": {
+        "round-robin-2": {
+          "requestedCounts": [
+            181,
+            180
+          ],
+          "closureCounts": [
+            164,
+            164
+          ],
+          "weightMs": [
+            27134.984,
+            26991.8935
+          ],
+          "snapshotCountChecks": [
+            {
+              "file": "powertoys-round-robin-2-0.json.gz",
+              "actualCounts": [
+                165,
+                165
+              ],
+              "matchesGraphClosure": false
+            },
+            {
+              "file": "powertoys-round-robin-2-1.json.gz",
+              "actualCounts": [
+                165,
+                165
+              ],
+              "matchesGraphClosure": false
+            },
+            {
+              "file": "powertoys-round-robin-2-2.json.gz",
+              "actualCounts": [
+                165,
+                165
+              ],
+              "matchesGraphClosure": false
+            },
+            {
+              "file": "powertoys-round-robin-2-3.json.gz",
+              "actualCounts": [
+                165,
+                165
+              ],
+              "matchesGraphClosure": false
+            }
+          ]
+        },
+        "round-robin-4": {
+          "requestedCounts": [
+            91,
+            90,
+            90,
+            90
+          ],
+          "closureCounts": [
+            116,
+            120,
+            92,
+            93
+          ],
+          "weightMs": [
+            20249.0595,
+            21251.1538,
+            14841.2001,
+            14999.6787
+          ],
+          "snapshotCountChecks": [
+            {
+              "file": "powertoys-round-robin-4-0.json.gz",
+              "actualCounts": [
+                117,
+                121,
+                92,
+                93
+              ],
+              "matchesGraphClosure": false
+            },
+            {
+              "file": "powertoys-round-robin-4-1.json.gz",
+              "actualCounts": [
+                117,
+                121,
+                92,
+                93
+              ],
+              "matchesGraphClosure": false
+            },
+            {
+              "file": "powertoys-round-robin-4-2.json.gz",
+              "actualCounts": [
+                117,
+                121,
+                92,
+                93
+              ],
+              "matchesGraphClosure": false
+            },
+            {
+              "file": "powertoys-round-robin-4-3.json.gz",
+              "actualCounts": [
+                117,
+                121,
+                92,
+                93
+              ],
+              "matchesGraphClosure": false
+            }
+          ]
+        },
+        "round-robin-8": {
+          "requestedCounts": [
+            46,
+            45,
+            45,
+            45,
+            45,
+            45,
+            45,
+            45
+          ],
+          "closureCounts": [
+            68,
+            71,
+            46,
+            51,
+            74,
+            81,
+            66,
+            67
+          ],
+          "weightMs": [
+            11586.3549,
+            13479.6598,
+            8973.1103,
+            8330.3385,
+            14416.6148,
+            15131.5615,
+            11652.6588,
+            12051.7848
+          ],
+          "snapshotCountChecks": [
+            {
+              "file": "powertoys-round-robin-8-0.json.gz",
+              "actualCounts": [
+                69,
+                71,
+                46,
+                51,
+                74,
+                82,
+                66,
+                67
+              ],
+              "matchesGraphClosure": false
+            },
+            {
+              "file": "powertoys-round-robin-8-1.json.gz",
+              "actualCounts": [
+                69,
+                71,
+                46,
+                51,
+                74,
+                82,
+                66,
+                67
+              ],
+              "matchesGraphClosure": false
+            },
+            {
+              "file": "powertoys-round-robin-8-2.json.gz",
+              "actualCounts": [
+                69,
+                71,
+                46,
+                51,
+                74,
+                82,
+                66,
+                67
+              ],
+              "matchesGraphClosure": false
+            },
+            {
+              "file": "powertoys-round-robin-8-3.json.gz",
+              "actualCounts": [
+                69,
+                71,
+                46,
+                51,
+                74,
+                82,
+                66,
+                67
+              ],
+              "matchesGraphClosure": false
+            }
+          ]
+        },
+        "cluster-2": {
+          "requestedCounts": [
+            252,
+            109
+          ],
+          "closureCounts": [
+            241,
+            9
+          ],
+          "weightMs": [
+            37690.3612,
+            2819.8964
+          ],
+          "snapshotCountChecks": [
+            {
+              "file": "powertoys-cluster-2-0.json.gz",
+              "actualCounts": [
+                241,
+                9
+              ],
+              "matchesGraphClosure": true
+            },
+            {
+              "file": "powertoys-cluster-2-1.json.gz",
+              "actualCounts": [
+                241,
+                9
+              ],
+              "matchesGraphClosure": true
+            },
+            {
+              "file": "powertoys-cluster-2-2.json.gz",
+              "actualCounts": [
+                241,
+                9
+              ],
+              "matchesGraphClosure": true
+            },
+            {
+              "file": "powertoys-cluster-2-3.json.gz",
+              "actualCounts": [
+                241,
+                9
+              ],
+              "matchesGraphClosure": true
+            }
+          ]
+        },
+        "cluster-4": {
+          "requestedCounts": [
+            252,
+            37,
+            36,
+            36
+          ],
+          "closureCounts": [
+            241,
+            5,
+            1,
+            3
+          ],
+          "weightMs": [
+            37690.3612,
+            2232.7547,
+            76.8884,
+            510.25329999999997
+          ],
+          "snapshotCountChecks": [
+            {
+              "file": "powertoys-cluster-4-0.json.gz",
+              "actualCounts": [
+                241,
+                5,
+                1,
+                3
+              ],
+              "matchesGraphClosure": true
+            },
+            {
+              "file": "powertoys-cluster-4-1.json.gz",
+              "actualCounts": [
+                241,
+                5,
+                1,
+                3
+              ],
+              "matchesGraphClosure": true
+            },
+            {
+              "file": "powertoys-cluster-4-2.json.gz",
+              "actualCounts": [
+                241,
+                5,
+                1,
+                3
+              ],
+              "matchesGraphClosure": true
+            },
+            {
+              "file": "powertoys-cluster-4-3.json.gz",
+              "actualCounts": [
+                241,
+                5,
+                1,
+                3
+              ],
+              "matchesGraphClosure": true
+            }
+          ]
+        },
+        "cluster-8": {
+          "requestedCounts": [
+            252,
+            16,
+            16,
+            16,
+            16,
+            15,
+            15,
+            15
+          ],
+          "closureCounts": [
+            241,
+            5,
+            0,
+            2,
+            1,
+            1,
+            0,
+            0
+          ],
+          "weightMs": [
+            37690.3612,
+            2232.7547,
+            0,
+            174.7578,
+            335.8662,
+            76.5177,
+            0,
+            0
+          ],
+          "snapshotCountChecks": [
+            {
+              "file": "powertoys-cluster-8-0.json.gz",
+              "actualCounts": [
+                241,
+                5,
+                0,
+                2,
+                1,
+                1,
+                0,
+                0
+              ],
+              "matchesGraphClosure": true
+            },
+            {
+              "file": "powertoys-cluster-8-1.json.gz",
+              "actualCounts": [
+                241,
+                5,
+                0,
+                2,
+                1,
+                1,
+                0,
+                0
+              ],
+              "matchesGraphClosure": true
+            },
+            {
+              "file": "powertoys-cluster-8-2.json.gz",
+              "actualCounts": [
+                241,
+                5,
+                0,
+                2,
+                1,
+                1,
+                0,
+                0
+              ],
+              "matchesGraphClosure": true
+            },
+            {
+              "file": "powertoys-cluster-8-3.json.gz",
+              "actualCounts": [
+                241,
+                5,
+                0,
+                2,
+                1,
+                1,
+                0,
+                0
+              ],
+              "matchesGraphClosure": true
+            }
+          ]
+        }
+      },
+      "rawDifferenceCounts": {},
+      "closureReconstructionComplete": false,
+      "models": {
+        "round-robin": {
+          "HostMs": 6014.8984434668255,
+          "Competition": {
+            "2": 0.9587300250362185,
+            "4": 0.9857086579862242,
+            "8": 1.2894552523488845
+          },
+          "Validated": false
+        },
+        "cluster": {
+          "HostMs": 18.380054070218044,
+          "Competition": {
+            "2": 1.0869020298951901,
+            "4": 1.2849460202516674,
+            "8": 1.4101081694090074
+          },
+          "Validated": false
+        }
+      },
+      "validation": {
+        "round-robin-to-cluster": {
+          "cluster-2": {
+            "predictedGroupMs": [
+              42149.77938036694,
+              8718.417789638368
+            ],
+            "measuredGroupMs": [
+              [
+                40075.5649,
+                3151.1399
+              ],
+              [
+                39901.6621,
+                3168.7609
+              ],
+              [
+                40130.7862,
+                3167.5427
+              ]
+            ],
+            "medianGroupAbsoluteError": 0.9038532153050464,
+            "medianWallAbsoluteError": 0.05175758558969043,
+            "wallErrorsByRun": [
+              0.05175758558969043,
+              0.05634144449253255,
+              0.050310332080335335
+            ],
+            "groupErrors": [
+              0.05175758558969043,
+              1.766750466914645,
+              0.05634144449253255,
+              1.7513649861175602,
+              0.050310332080335335,
+              1.7524231290199712
+            ],
+            "passed": false
+          },
+          "cluster-4": {
+            "predictedGroupMs": [
+              43166.61380093488,
+              8215.74408241626,
+              6090.688005045534,
+              6517.859539042867
+            ],
+            "measuredGroupMs": [
+              [
+                40132.8182,
+                2825.4381,
+                826.9064,
+                1044.0444
+              ],
+              [
+                37260.8336,
+                2800.7109,
+                825.2631,
+                1044.5557
+              ],
+              [
+                40209.3132,
+                2794.8013,
+                820.468,
+                1037.1293
+              ]
+            ],
+            "medianGroupAbsoluteError": 3.589745721468246,
+            "medianWallAbsoluteError": 0.07559388393349556,
+            "wallErrorsByRun": [
+              0.07559388393349556,
+              0.15849833807622818,
+              0.07354765266010271
+            ],
+            "groupErrors": [
+              0.07559388393349556,
+              1.9077770567390102,
+              6.365631714841649,
+              5.2428949755804135,
+              0.15849833807622818,
+              1.9334495332653792,
+              6.380298483048053,
+              5.239839138346445,
+              0.07354765266010271,
+              1.9396523045900473,
+              6.423431511095538,
+              5.28451972096716
+            ],
+            "passed": false
+          },
+          "cluster-8": {
+            "predictedGroupMs": [
+              54614.93265573343,
+              8893.935718588484,
+              6014.8984434668255,
+              6240.240806565761,
+              6447.9828791432865,
+              6113.564593629481,
+              6014.8984434668255,
+              6014.8984434668255
+            ],
+            "measuredGroupMs": [
+              [
+                40359.6096,
+                2893.3168,
+                17.2452,
+                1021.8623,
+                880.4252,
+                876.0432,
+                17.1944,
+                21.5888
+              ],
+              [
+                40096.5689,
+                2935.6181,
+                19.6518,
+                1017.3069,
+                863.015,
+                865.5537,
+                17.2489,
+                19.6356
+              ],
+              [
+                40150.0681,
+                2907.8886,
+                16.0237,
+                1046.1434,
+                898.1454,
+                876.7458,
+                16.8248,
+                19.214
+              ]
+            ],
+            "medianGroupAbsoluteError": 6.121201438959833,
+            "medianWallAbsoluteError": 0.36026998807838717,
+            "wallErrorsByRun": [
+              0.35320765480678545,
+              0.36208494028359195,
+              0.36026998807838717
+            ],
+            "groupErrors": [
+              0.35320765480678545,
+              2.07395848203988,
+              347.7868185620825,
+              5.106733565340224,
+              6.323714586024215,
+              5.97861086488598,
+              348.817291877985,
+              277.6119860050964,
+              0.36208494028359195,
+              2.0296637422246726,
+              305.07366467533893,
+              5.134078916171473,
+              6.471460958550299,
+              6.0631834785403615,
+              347.71200154600155,
+              305.3261852689414,
+              0.36026998807838717,
+              2.058554484717359,
+              374.3751283078705,
+              4.964995627335374,
+              6.179219399379305,
+              5.973018397840607,
+              356.5019283121835,
+              312.0476966517553
+            ],
+            "passed": false
+          }
+        },
+        "cluster-to-round-robin": {
+          "round-robin-2": {
+            "predictedGroupMs": [
+              29511.449244843723,
+              29355.923889935006
+            ],
+            "measuredGroupMs": [
+              [
+                30865.4076,
+                33839.4636
+              ],
+              [
+                30574.5158,
+                33273.3568
+              ],
+              [
+                30636.985,
+                33385.6476
+              ]
+            ],
+            "medianGroupAbsoluteError": 0.0808006789853738,
+            "medianWallAbsoluteError": 0.11604382822145028,
+            "wallErrorsByRun": [
+              0.1278984326204355,
+              0.11306065624122054,
+              0.11604382822145028
+            ],
+            "groupErrors": [
+              0.043866530865326256,
+              0.1324944083943753,
+              0.0347696938885383,
+              0.11773482710542134,
+              0.03673781069371798,
+              0.12070227776755756
+            ],
+            "passed": false
+          },
+          "round-robin-4": {
+            "predictedGroupMs": [
+              26037.328472434434,
+              27324.965555136318,
+              19088.521058323866,
+              19292.157504688923
+            ],
+            "measuredGroupMs": [
+              [
+                27275.0213,
+                27355.8098,
+                19327.6417,
+                21387.192
+              ],
+              [
+                26650.2581,
+                27038.603,
+                18480.8652,
+                20982.6447
+              ],
+              [
+                27481.5214,
+                28004.0909,
+                19382.8168,
+                21884.7582
+              ]
+            ],
+            "medianGroupAbsoluteError": 0.028565602287567667,
+            "medianWallAbsoluteError": 0.010590878350346666,
+            "wallErrorsByRun": [
+              0.001127520811454155,
+              0.010590878350346666,
+              0.024250933454286198
+            ],
+            "groupErrors": [
+              0.04537825338253967,
+              0.001127520811454155,
+              0.012371951290680966,
+              0.09795743617540237,
+              0.022999012815022802,
+              0.010590878350346666,
+              0.03288027112084913,
+              0.08056597342617529,
+              0.05255141833470572,
+              0.024250933454286198,
+              0.01518333195390541,
+              0.11846604251314402
+            ],
+            "passed": true
+          },
+          "round-robin-8": {
+            "predictedGroupMs": [
+              16356.393752232301,
+              19026.158458904403,
+              12671.436193108328,
+              11765.058426862593,
+              20347.36635877302,
+              21355.518541135032,
+              16449.88942328598,
+              17012.700256509517
+            ],
+            "measuredGroupMs": [
+              [
+                21084.6627,
+                23195.4364,
+                15894.6649,
+                17066.3405,
+                24161.4343,
+                24320.881,
+                21582.3083,
+                21373.9777
+              ],
+              [
+                20747.1307,
+                22639.3694,
+                16418.4457,
+                17020.433,
+                22928.0781,
+                23546.9247,
+                20139.6464,
+                21061.9858
+              ],
+              [
+                22829.3523,
+                25762.7719,
+                19171.2816,
+                19261.6591,
+                25622.8423,
+                26283.4856,
+                22198.2003,
+                22897.0677
+              ]
+            ],
+            "medianGroupAbsoluteError": 0.20876030660561096,
+            "medianWallAbsoluteError": 0.12192660532589132,
+            "wallErrorsByRun": [
+              0.12192660532589132,
+              0.09306549312849195,
+              0.18749290462696347
+            ],
+            "groupErrors": [
+              0.22425158111576995,
+              0.1797456132834645,
+              0.202786829868409,
+              0.31062793298524694,
+              0.15785767905454942,
+              0.12192660532589132,
+              0.23780676308446683,
+              0.20404613051928477,
+              0.21163104485420242,
+              0.15959856819579066,
+              0.2282195023425191,
+              0.3087685591275737,
+              0.11255682791951847,
+              0.09306549312849195,
+              0.18320862757123793,
+              0.19225563923276795,
+              0.28353667080461575,
+              0.26148635974592455,
+              0.339040735121833,
+              0.38919807656327005,
+              0.20588956835701952,
+              0.18749290462696347,
+              0.25895391513851784,
+              0.25699218435251786
+            ],
+            "passed": false
+          }
+        }
+      },
+      "modelValidated": false,
+      "referenceSimulation": {
+        "round-robin-model/round-robin-2": {
+          "admissible": false,
+          "groupMs": [
+            32030.022333144218,
+            31892.837174496766
+          ],
+          "wallMs": 32030.022333144218,
+          "speedup": 1.3022590420374962,
+          "repeatedProjects": 80,
+          "sharedCoreCount": 80,
+          "sharedCoreWeightShare": 0.40472118393606454,
+          "repeatedMarkup": [
+            "ColorPickerUI",
+            "Common.UI.Controls",
+            "FancyZonesEditor",
+            "ImageResizerUI",
+            "KeyboardManagerEditorUI",
+            "Microsoft.CmdPal.UI",
+            "Peek.FilePreviewer",
+            "PowerToys.Settings",
+            "Settings.UI.Controls",
+            "ShortcutGuide.Ui",
+            "WorkspacesEditor"
+          ]
+        },
+        "cluster-model/round-robin-2": {
+          "admissible": false,
+          "groupMs": [
+            29511.449244843723,
+            29355.923889935006
+          ],
+          "wallMs": 29511.449244843723,
+          "speedup": 1.413396741513393,
+          "repeatedProjects": 80,
+          "sharedCoreCount": 80,
+          "sharedCoreWeightShare": 0.40472118393606454,
+          "repeatedMarkup": [
+            "ColorPickerUI",
+            "Common.UI.Controls",
+            "FancyZonesEditor",
+            "ImageResizerUI",
+            "KeyboardManagerEditorUI",
+            "Microsoft.CmdPal.UI",
+            "Peek.FilePreviewer",
+            "PowerToys.Settings",
+            "Settings.UI.Controls",
+            "ShortcutGuide.Ui",
+            "WorkspacesEditor"
+          ]
+        },
+        "round-robin-model/round-robin-4": {
+          "admissible": false,
+          "groupMs": [
+            25974.57170869503,
+            26962.344736323677,
+            20643.99787694284,
+            20800.211605068376
+          ],
+          "wallMs": 26962.344736323677,
+          "speedup": 1.547023695747292,
+          "repeatedProjects": 173,
+          "sharedCoreCount": 96,
+          "sharedCoreWeightShare": 0.47152362219830934,
+          "repeatedMarkup": [
+            "ColorPickerUI",
+            "Common.UI.Controls",
+            "EnvironmentVariablesUILib",
+            "FancyZonesEditor",
+            "HostsUILib",
+            "ImageResizerUI",
+            "KeyboardManagerEditorUI",
+            "Microsoft.CmdPal.UI",
+            "Peek.FilePreviewer",
+            "PowerLauncher",
+            "PowerToys.Settings",
+            "RegistryPreviewUILib",
+            "Settings.UI.Controls",
+            "ShortcutGuide.Ui",
+            "WorkspacesEditor"
+          ]
+        },
+        "cluster-model/round-robin-4": {
+          "admissible": false,
+          "groupMs": [
+            26037.328472434434,
+            27324.965555136318,
+            19088.521058323866,
+            19292.157504688923
+          ],
+          "wallMs": 27324.965555136318,
+          "speedup": 1.526493642447042,
+          "repeatedProjects": 173,
+          "sharedCoreCount": 96,
+          "sharedCoreWeightShare": 0.47152362219830934,
+          "repeatedMarkup": [
+            "ColorPickerUI",
+            "Common.UI.Controls",
+            "EnvironmentVariablesUILib",
+            "FancyZonesEditor",
+            "HostsUILib",
+            "ImageResizerUI",
+            "KeyboardManagerEditorUI",
+            "Microsoft.CmdPal.UI",
+            "Peek.FilePreviewer",
+            "PowerLauncher",
+            "PowerToys.Settings",
+            "RegistryPreviewUILib",
+            "Settings.UI.Controls",
+            "ShortcutGuide.Ui",
+            "WorkspacesEditor"
+          ]
+        },
+        "round-robin-model/round-robin-8": {
+          "admissible": false,
+          "groupMs": [
+            20954.98462485006,
+            23396.31657245294,
+            17585.3226497077,
+            16756.497176135956,
+            24604.478118417486,
+            25526.369895881988,
+            21040.480536956275,
+            21555.135654005273
+          ],
+          "wallMs": 25526.369895881988,
+          "speedup": 1.6340508411550145,
+          "repeatedProjects": 276,
+          "sharedCoreCount": 100,
+          "sharedCoreWeightShare": 0.49199338126123343,
+          "repeatedMarkup": [
+            "AdvancedPaste",
+            "ColorPickerUI",
+            "Common.UI.Controls",
+            "EnvironmentVariablesUILib",
+            "FancyZonesEditor",
+            "HostsUILib",
+            "ImageResizerUI",
+            "KeyboardManagerEditorUI",
+            "Microsoft.CmdPal.UI",
+            "Peek.FilePreviewer",
+            "PowerLauncher",
+            "PowerToys.Settings",
+            "RegistryPreviewUILib",
+            "Settings.UI.Controls",
+            "ShortcutGuide.Ui",
+            "WorkspacesEditor"
+          ]
+        },
+        "cluster-model/round-robin-8": {
+          "admissible": false,
+          "groupMs": [
+            16356.393752232301,
+            19026.158458904403,
+            12671.436193108328,
+            11765.058426862593,
+            20347.36635877302,
+            21355.518541135032,
+            16449.88942328598,
+            17012.700256509517
+          ],
+          "wallMs": 21355.518541135032,
+          "speedup": 1.9531900440467163,
+          "repeatedProjects": 276,
+          "sharedCoreCount": 100,
+          "sharedCoreWeightShare": 0.49199338126123343,
+          "repeatedMarkup": [
+            "AdvancedPaste",
+            "ColorPickerUI",
+            "Common.UI.Controls",
+            "EnvironmentVariablesUILib",
+            "FancyZonesEditor",
+            "HostsUILib",
+            "ImageResizerUI",
+            "KeyboardManagerEditorUI",
+            "Microsoft.CmdPal.UI",
+            "Peek.FilePreviewer",
+            "PowerLauncher",
+            "PowerToys.Settings",
+            "RegistryPreviewUILib",
+            "Settings.UI.Controls",
+            "ShortcutGuide.Ui",
+            "WorkspacesEditor"
+          ]
+        },
+        "round-robin-model/cluster-2": {
+          "admissible": false,
+          "groupMs": [
+            42149.77938036694,
+            8718.417789638368
+          ],
+          "wallMs": 42149.77938036694,
+          "speedup": 0.9895991583630651,
+          "repeatedProjects": 2,
+          "sharedCoreCount": 2,
+          "sharedCoreWeightShare": 0.05133751743626735,
+          "repeatedMarkup": []
+        },
+        "cluster-model/cluster-2": {
+          "admissible": false,
+          "groupMs": [
+            40984.11014983313,
+            3083.3311753243574
+          ],
+          "wallMs": 40984.11014983313,
+          "speedup": 1.017745317575715,
+          "repeatedProjects": 2,
+          "sharedCoreCount": 2,
+          "sharedCoreWeightShare": 0.05133751743626735,
+          "repeatedMarkup": []
+        },
+        "round-robin-model/cluster-4": {
+          "admissible": false,
+          "groupMs": [
+            43166.61380093488,
+            8215.74408241626,
+            6090.688005045534,
+            6517.859539042867
+          ],
+          "wallMs": 43166.61380093488,
+          "speedup": 0.9662881223983485,
+          "repeatedProjects": 2,
+          "sharedCoreCount": 2,
+          "sharedCoreWeightShare": 0.05133751743626735,
+          "repeatedMarkup": []
+        },
+        "cluster-model/cluster-4": {
+          "admissible": false,
+          "groupMs": [
+            48448.45967985808,
+            2887.3493200334237,
+            117.17749765373634,
+            674.0280012254982
+          ],
+          "wallMs": 48448.45967985808,
+          "speedup": 0.8609434949144741,
+          "repeatedProjects": 2,
+          "sharedCoreCount": 2,
+          "sharedCoreWeightShare": 0.05133751743626735,
+          "repeatedMarkup": []
+        },
+        "round-robin-model/cluster-8": {
+          "admissible": false,
+          "groupMs": [
+            54614.93265573343,
+            8893.935718588484,
+            6014.8984434668255,
+            6240.240806565761,
+            6447.9828791432865,
+            6113.564593629481,
+            6014.8984434668255,
+            6014.8984434668255
+          ],
+          "wallMs": 54614.93265573343,
+          "speedup": 0.7637359266361958,
+          "repeatedProjects": 2,
+          "sharedCoreCount": 2,
+          "sharedCoreWeightShare": 0.05133751743626735,
+          "repeatedMarkup": []
+        },
+        "cluster-model/cluster-8": {
+          "admissible": false,
+          "groupMs": [
+            53165.8662901665,
+            3166.8056968265755,
+            18.380054070218044,
+            264.80745551816347,
+            491.9877265185776,
+            126.27828794460567,
+            18.380054070218044,
+            18.380054070218044
+          ],
+          "wallMs": 53165.8662901665,
+          "speedup": 0.7845519900371658,
+          "repeatedProjects": 2,
+          "sharedCoreCount": 2,
+          "sharedCoreWeightShare": 0.05133751743626735,
+          "repeatedMarkup": []
+        }
+      },
+      "planSimulation": {
+        "round-robin-model/plan-2": {
+          "admissible": false,
+          "groupMs": [
+            27770.51608204872,
+            27812.8068139291
+          ],
+          "wallMs": 27812.8068139291,
+          "wallRatio": 0.6667917167885707,
+          "speedup": 1.499718689992492,
+          "repeatedProjects": 31,
+          "sharedCoreCount": 31,
+          "sharedCoreWeightShare": 0.17897378821502252,
+          "repeatedMarkup": [],
+          "closureCounts": [
+            113,
+            166
+          ]
+        },
+        "cluster-model/plan-2": {
+          "admissible": false,
+          "groupMs": [
+            24682.492322907285,
+            24730.4368757284
+          ],
+          "wallMs": 24730.4368757284,
+          "wallRatio": 0.5928941502243432,
+          "speedup": 1.6866417042934447,
+          "repeatedProjects": 31,
+          "sharedCoreCount": 31,
+          "sharedCoreWeightShare": 0.17897378821502252,
+          "repeatedMarkup": [],
+          "closureCounts": [
+            113,
+            166
+          ]
+        },
+        "round-robin-model/plan-4": {
+          "admissible": false,
+          "groupMs": [
+            23292.475305932567,
+            17967.64805708557,
+            17973.379164364836,
+            17970.190791139714
+          ],
+          "wallMs": 23292.475305932567,
+          "wallRatio": 0.5584200725012722,
+          "speedup": 1.7907665738461107,
+          "repeatedProjects": 71,
+          "sharedCoreCount": 46,
+          "sharedCoreWeightShare": 0.22101558947666886,
+          "repeatedMarkup": [],
+          "closureCounts": [
+            66,
+            74,
+            87,
+            92
+          ]
+        },
+        "cluster-model/plan-4": {
+          "admissible": false,
+          "groupMs": [
+            22541.012323906594,
+            15599.69601659949,
+            15607.166949750437,
+            15603.010663353332
+          ],
+          "wallMs": 22541.012323906594,
+          "wallRatio": 0.5404042967027213,
+          "speedup": 1.850466412094618,
+          "repeatedProjects": 71,
+          "sharedCoreCount": 46,
+          "sharedCoreWeightShare": 0.22101558947666886,
+          "repeatedMarkup": [],
+          "closureCounts": [
+            66,
+            74,
+            87,
+            92
+          ]
+        },
+        "round-robin-model/plan-8": {
+          "admissible": false,
+          "groupMs": [
+            28616.568878910402,
+            15258.402777190484,
+            15201.976860075323,
+            15281.715870261902,
+            15286.758285026212,
+            15194.429549537801,
+            15258.147336104994,
+            15222.803496583638
+          ],
+          "wallMs": 28616.568878910402,
+          "wallRatio": 0.6860613248789704,
+          "speedup": 1.4575956459525135,
+          "repeatedProjects": 121,
+          "sharedCoreCount": 48,
+          "sharedCoreWeightShare": 0.2255143148191361,
+          "repeatedMarkup": [],
+          "closureCounts": [
+            66,
+            34,
+            42,
+            45,
+            49,
+            45,
+            44,
+            44
+          ]
+        },
+        "cluster-model/plan-8": {
+          "admissible": false,
+          "groupMs": [
+            24734.864061757078,
+            10126.788974199715,
+            10065.083345760462,
+            10152.283447880996,
+            10157.79767587747,
+            10056.829841634093,
+            10126.509631771354,
+            10087.858707858672
+          ],
+          "wallMs": 24734.864061757078,
+          "wallRatio": 0.5930002887738379,
+          "speedup": 1.686339819610756,
+          "repeatedProjects": 121,
+          "sharedCoreCount": 48,
+          "sharedCoreWeightShare": 0.2255143148191361,
+          "repeatedMarkup": [],
+          "closureCounts": [
+            66,
+            34,
+            42,
+            45,
+            49,
+            45,
+            44,
+            44
+          ]
+        }
+      }
+    },
+    "files": {
+      "status": "ok",
+      "projects": 11,
+      "baselineMedianMs": 10929.1938,
+      "profileWallMs": 11629.4238,
+      "loadSolutionMs": 11540.3833,
+      "intervalSumMs": 10982.4301,
+      "reconciliationError": 0.04834789152973801,
+      "weightSumMs": 10670.7713,
+      "firstMs": 311.6588,
+      "firstShare": 0.02837794524182767,
+      "weightDistributionMs": {
+        "min": 0,
+        "median": 158.4775,
+        "p90": 3417.2054,
+        "max": 4539.8314
+      },
+      "ownBuildMs": 9527.8507,
+      "ownBuildShareOfFullInterval": 0.8675539578439931,
+      "ownBuildShareOfWeight": 0.8840783327443255,
+      "markup": [
+        {
+          "name": "Files.App.Controls",
+          "evidence": [
+            "command:XamlCompiler.exe",
+            "message:XamlCompiler.exe"
+          ]
+        },
+        {
+          "name": "Files.App.UITests",
+          "evidence": [
+            "command:XamlCompiler.exe",
+            "message:XamlCompiler.exe"
+          ]
+        }
+      ],
+      "nullEvaluationCount": 11,
+      "registrationChanged": false,
+      "comparisonVerdict": "identical",
+      "partitions": {
+        "round-robin-2": {
+          "requestedCounts": [
+            8,
+            8
+          ],
+          "closureCounts": [
+            7,
+            9
+          ],
+          "weightMs": [
+            10052.6456,
+            7253.5659000000005
+          ],
+          "snapshotCountChecks": [
+            {
+              "file": "files-round-robin-2-0.json.gz",
+              "actualCounts": [
+                7,
+                10
+              ],
+              "matchesGraphClosure": false
+            },
+            {
+              "file": "files-round-robin-2-1.json.gz",
+              "actualCounts": [
+                7,
+                10
+              ],
+              "matchesGraphClosure": false
+            },
+            {
+              "file": "files-round-robin-2-2.json.gz",
+              "actualCounts": [
+                7,
+                10
+              ],
+              "matchesGraphClosure": false
+            },
+            {
+              "file": "files-round-robin-2-3.json.gz",
+              "actualCounts": [
+                7,
+                10
+              ],
+              "matchesGraphClosure": false
+            }
+          ]
+        },
+        "round-robin-4": {
+          "requestedCounts": [
+            4,
+            4,
+            4,
+            4
+          ],
+          "closureCounts": [
+            6,
+            7,
+            3,
+            5
+          ],
+          "weightMs": [
+            6635.4402,
+            6973.062,
+            5105.343,
+            5134.9925
+          ],
+          "snapshotCountChecks": [
+            {
+              "file": "files-round-robin-4-0.json.gz",
+              "actualCounts": [
+                6,
+                8,
+                4,
+                6
+              ],
+              "matchesGraphClosure": false
+            },
+            {
+              "file": "files-round-robin-4-1.json.gz",
+              "actualCounts": [
+                6,
+                8,
+                4,
+                6
+              ],
+              "matchesGraphClosure": false
+            },
+            {
+              "file": "files-round-robin-4-2.json.gz",
+              "actualCounts": [
+                6,
+                8,
+                4,
+                6
+              ],
+              "matchesGraphClosure": false
+            },
+            {
+              "file": "files-round-robin-4-3.json.gz",
+              "actualCounts": [
+                6,
+                8,
+                4,
+                6
+              ],
+              "matchesGraphClosure": false
+            }
+          ]
+        },
+        "round-robin-8": {
+          "requestedCounts": [
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2
+          ],
+          "closureCounts": [
+            1,
+            1,
+            1,
+            4,
+            5,
+            7,
+            2,
+            1
+          ],
+          "weightMs": [
+            0,
+            312.2296,
+            135.5129,
+            5009.1237,
+            6635.4402,
+            6973.062,
+            4969.8301,
+            125.8688
+          ],
+          "snapshotCountChecks": []
+        },
+        "cluster-2": {
+          "requestedCounts": [
+            10,
+            6
+          ],
+          "closureCounts": [
+            10,
+            1
+          ],
+          "weightMs": [
+            10544.9025,
+            125.8688
+          ],
+          "snapshotCountChecks": []
+        },
+        "cluster-4": {
+          "requestedCounts": [
+            10,
+            2,
+            2,
+            2
+          ],
+          "closureCounts": [
+            10,
+            0,
+            0,
+            1
+          ],
+          "weightMs": [
+            10544.9025,
+            0,
+            0,
+            125.8688
+          ],
+          "snapshotCountChecks": []
+        },
+        "cluster-8": {
+          "requestedCounts": [
+            10,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            0
+          ],
+          "closureCounts": [
+            10,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0
+          ],
+          "weightMs": [
+            10544.9025,
+            0,
+            0,
+            0,
+            0,
+            0,
+            125.8688,
+            0
+          ],
+          "snapshotCountChecks": []
+        }
+      },
+      "rawDifferenceCounts": {},
+      "closureReconstructionComplete": false
+    }
+  },
+  "modelValidated": false,
+  "verdict": "no-go",
+  "gate": {
+    "baselineMs": 41711.3862,
+    "thresholdMs": 18770.12379,
+    "modelPassed": false,
+    "predictionPassed": false,
+    "step2Authorized": false
+  }
+}

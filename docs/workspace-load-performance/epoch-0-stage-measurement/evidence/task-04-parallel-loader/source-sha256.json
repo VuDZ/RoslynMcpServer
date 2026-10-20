@@ -1,0 +1,18 @@
+{
+  "spikes/ParallelLoad/ExternalSampler.cs": "54c340e78d7e7c70871d3fea7a8afc341b38c321ea081b3684e62e78e7395f60",
+  "spikes/ParallelLoad/FastProcessSampler.cs": "8f5813c5278dd1efd851f1b4c361a471f4fc746874396613d4f2375d02ca03f7",
+  "spikes/ParallelLoad/LoadExperiment.cs": "1011348fce3ad9b32203033bc96a766bdacf62cf41dfc2bac140553d8de1cf58",
+  "spikes/ParallelLoad/MergeChecks.cs": "fe19616c9defa4cde042cc873b9bbe6dc51679910c15080d2842016d41c122f8",
+  "spikes/ParallelLoad/MsBuildRegistration.cs": "97626cde4909c85e9ff43641dab1a59878da4149629f28694a962c12688f2f2d",
+  "spikes/ParallelLoad/Program.cs": "9bddc7249b545cedbf9d8580f0b337727d8da15c2a5bfad7853ae08cbd35c517",
+  "spikes/ParallelLoad/ProjectMerger.cs": "4e69c1117961fb80025424f47a8904e3b87e37a170b0f25b707aa1d956ef35ac",
+  "spikes/ParallelLoad/ProjectPartition.cs": "d13dfcff601e7e0be818ab745a6aa56613eb85f4fef10d4c1dd481be5b7a9e93",
+  "spikes/ParallelLoad/RunOptions.cs": "479481a67f4805d0c1e15c724679fbcedc2cbef838b9eda9bb694bd8dd7cbbd0",
+  "spikes/ParallelLoad/SolutionObservation.cs": "64043f85be0d48901c9f248c993ff5e09750fae9515bffa0db34de28102da1b9",
+  "spikes/ParallelLoad/Bootstrap/GlobalJsonSdkReader.cs": "8ddfcff60e781ca47115865b8769d35c48a26575ef35c5e6d8f5b629e8e9d8c0",
+  "spikes/ParallelLoad/Bootstrap/MsBuildInstanceSelector.cs": "cdb326aaf17c5b4b447e95dab0c1243d76d1dc797b5e689914e38259fbd5839c",
+  "spikes/ParallelLoad/Models/ProcessMetrics.cs": "7f76f091e1ec62f8ff4832fd93e532f2231112895da66bf02f555b0abf8d5955",
+  "spikes/ParallelLoad/Bootstrap/Models/MsBuildInstanceCandidate.cs": "ad7ad437756d31e645fd1ea4e096c9edd501ce4d7ce92aeaba2912ce19bc7007",
+  "spikes/ParallelLoad/ParallelLoad.csproj": "5d9390980bbf50a902134acd3c9bb171499e1ae845f645dc228a1a0357aa650b",
+  "spikes/ParallelLoad/compare.py": "6fdd793c88f89e9a4a59868cc6a0210bf33d0202afe143fb66c3e9cdccc4060e"
+}

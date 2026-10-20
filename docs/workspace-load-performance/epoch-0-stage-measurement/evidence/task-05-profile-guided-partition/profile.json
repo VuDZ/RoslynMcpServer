@@ -1,0 +1,9 @@
+{
+  "Status": "failed",
+  "Error": "NotSupportedException: The log file format version is 27 with minimum required reader version 18, whereas this version of MSBuild only supports versions up to 26.",
+  "BaselineWallMs": 43025.888,
+  "ReaderVersion": "18.9.11+e34a38d2ae1fc26406a317517196e55c68ff83ab",
+  "BinlogCount": 2,
+  "Projects": [],
+  "Model": null
+}

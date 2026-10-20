@@ -1,0 +1,56 @@
+{
+  "date": "2026-10-10",
+  "scope": "Standalone continuation spike and evidence; no production activation",
+  "executionStatus": "implemented",
+  "experimentVerdict": "no-go",
+  "codeTestsAcceptance": "pending required main CI",
+  "commitCreated": false,
+  "attempts": {
+    "step0": 6,
+    "baseMatrix": 44,
+    "isolated": 4,
+    "recursive": 4,
+    "total": 58,
+    "filesRefusedBeforeLoad": 8
+  },
+  "review": {
+    "rounds": 2,
+    "round1": "MUST-FIX: zero-cost model division",
+    "mustFixCount": 1,
+    "fixRounds": 1,
+    "round2": "ACCEPT"
+  },
+  "validation": {
+    "spikeReleaseBuild": "passed",
+    "solutionReleaseBuild": "passed",
+    "checks": {
+      "check-core-first": "passed",
+      "check-merge": "passed",
+      "check-profile": "passed",
+      "check_core_first_continuation.py": "passed",
+      "check_core_first_analysis.py": "passed"
+    },
+    "main": {
+      "configuration": "Release",
+      "filter": "Category!=AnalyzerLifecycle",
+      "sdk": "10.0.401",
+      "total": 1363,
+      "passed": 1362,
+      "failed": 1,
+      "skipped": 0,
+      "sourceStructurePassed": 123,
+      "failure": "RoslynMcpServer.Tests.WorkspaceLoadCache.DependencyPartialProofTests.Framework_selection_matches_installed_pack_files_without_loading_analyzers",
+      "trx": "artifacts/parallel-load/task-07.1-evidence/TestResults/task-07.1-main.trx"
+    },
+    "analyzerLifecycle": "not required: no production/lifecycle changes"
+  },
+  "preservation": {
+    "measuredRuntimeFiles": 43,
+    "changedMeasuredRuntime": 0,
+    "changedComparator": false,
+    "changedObservation": false,
+    "priorTask07EvidenceFiles": 10,
+    "changedPriorTask07Evidence": 0,
+    "preexistingTrackedDiffChangedExceptDocsIndex": false
+  }
+}

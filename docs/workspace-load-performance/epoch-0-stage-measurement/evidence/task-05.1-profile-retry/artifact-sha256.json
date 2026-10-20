@@ -1,0 +1,72 @@
+[
+  {
+    "file": "artifacts/parallel-load/task-05.1-evidence/calibration.log",
+    "bytes": 8760,
+    "sha256": "26dda8c7025e79779453d1da2ef52d0e46235e25c3dd87c88e8eb8330aab41fc"
+  },
+  {
+    "file": "artifacts/parallel-load/task-05.1-evidence/files-restore.log",
+    "bytes": 148,
+    "sha256": "54a429d71a5d6ed30be451995e43961c27abda5442a180ff932f8cd2e16cbc64"
+  },
+  {
+    "file": "artifacts/parallel-load/task-05.1-evidence/files/partitions.json",
+    "bytes": 7738,
+    "sha256": "39b9b2e3b5596169b84afa39ef708d24b62211453628ca6132ee1cf766bada43"
+  },
+  {
+    "file": "artifacts/parallel-load/task-05.1-evidence/files/profile-binlogs/capture-1.binlog",
+    "bytes": 338439,
+    "sha256": "1e4be9968924955aee4847bcde253e2530e0bbe61d62565edfc9f35266ac6ead"
+  },
+  {
+    "file": "artifacts/parallel-load/task-05.1-evidence/files/profile.json",
+    "bytes": 10665,
+    "sha256": "df9e2181514f8a272570e1ca27f24aecbf859949c21e5ea8b916ac3bdbcbf722"
+  },
+  {
+    "file": "artifacts/parallel-load/task-05.1-evidence/files/profile.load.json",
+    "bytes": 867004,
+    "sha256": "1d934d7122b6ad5bd682f2ae7b888ff768fb8498bdc171e8feb1ab54960076bc"
+  },
+  {
+    "file": "artifacts/parallel-load/task-05.1-evidence/main-validation.log",
+    "bytes": 2823,
+    "sha256": "b4a70eef20d84a992854ade876fd49aa1eead8f6ede2fb22a487b3e4ff2d7dc2"
+  },
+  {
+    "file": "artifacts/parallel-load/task-05.1-evidence/powertoys-restore.log",
+    "bytes": 148,
+    "sha256": "54a429d71a5d6ed30be451995e43961c27abda5442a180ff932f8cd2e16cbc64"
+  },
+  {
+    "file": "artifacts/parallel-load/task-05.1-evidence/powertoys/model-profile.json",
+    "bytes": 353325,
+    "sha256": "82e337300908cf193f9b37b28ff0458fd7905cdc12b80bb460928d057885603c"
+  },
+  {
+    "file": "artifacts/parallel-load/task-05.1-evidence/powertoys/partitions.json",
+    "bytes": 229546,
+    "sha256": "080d93663aa5118e5a6567b80b10fa906dcba7069aeb3f6eb527703dcd34330d"
+  },
+  {
+    "file": "artifacts/parallel-load/task-05.1-evidence/powertoys/profile-binlogs/capture-1.binlog",
+    "bytes": 8176850,
+    "sha256": "1092bb1c0db5861895389592b04fa8e8539b9a3ad1ab751ff6fec5e559c41350"
+  },
+  {
+    "file": "artifacts/parallel-load/task-05.1-evidence/powertoys/profile-binlogs/capture-2.binlog",
+    "bytes": 656,
+    "sha256": "8ac8de3e601c0692a25dd1df759c81854ae5d6cea5d05096d9709ee4c782d668"
+  },
+  {
+    "file": "artifacts/parallel-load/task-05.1-evidence/powertoys/profile.json",
+    "bytes": 368924,
+    "sha256": "28d1d72e24ac8175eef0be91dd3eaabb2f8e04067d1dd02c74ec75be8f4844f6"
+  },
+  {
+    "file": "artifacts/parallel-load/task-05.1-evidence/powertoys/profile.load.json",
+    "bytes": 23075651,
+    "sha256": "56fcdd671c93ffe67e01fc9dcb51f573b537b1e6a13c617646d26577c8873eda"
+  }
+]

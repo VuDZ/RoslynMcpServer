@@ -1,0 +1,657 @@
+<#
+.SYNOPSIS
+    Measures load_workspace and the first semantic query of a published RoslynMcpServer
+    on one solution, without any server change (D/E0/task-00 protocol).
+
+.DESCRIPTION
+    Each run starts a fresh server process over stdio, calls load_workspace and then
+    find_symbol_definition, and stops the process. The last run also repeats
+    load_workspace in the same process (RAM hit). Run 1 is warmup.
+
+    Client-side time comes from a Stopwatch around every request. Stage estimates come
+    from lines the server already writes to logs/mcp-*.log next to the exe:
+    the inbound tools/call, "Analyzer provenance capture finished" (ReplayMs), the first
+    "Disk watcher started", "Loaded Roslyn workspace", and "request handler completed".
+    These are estimates from log timestamps, not measured spans.
+
+    Output folder: summary.md, runs.json, and per-run redacted log excerpts and responses.
+    The workspace root is replaced with <repo>, the user profile with <user>, and the
+    machine name with <machine>. Environment variables and file contents are not written.
+
+.PARAMETER Workspace
+    .sln, .slnx or .csproj to load.
+
+.PARAMETER ServerExe
+    Published RoslynMcpServer.exe. Default: bin\Release\net10.0\win-x64\publish next to this repo.
+
+.PARAMETER SymbolName
+    Type name from the solution for the first find_symbol_definition. Omit to skip the query.
+
+.PARAMETER Runs
+    Fresh-process runs, including the warmup run. Default 4.
+
+.PARAMETER AffinityCount
+    Restrict the server to the first N logical CPUs (BuildHost inherits the mask). 0 = no limit.
+
+.PARAMETER Note
+    Free text for the report: cold/warm cache, antivirus state, power plan.
+
+.EXAMPLE
+    .\scripts\Measure-WorkspaceLoad.ps1 -Workspace D:\src\App\App.slnx -SymbolName MainViewModel -Platform x64
+
+.EXAMPLE
+    .\scripts\Measure-WorkspaceLoad.ps1 -Workspace D:\src\App\App.slnx -SymbolName MainViewModel -AffinityCount 4 -Note "4 cores, warm"
+#>
+[CmdletBinding()]
+param(
+    [Parameter(Mandatory = $true)]
+    [string]$Workspace,
+
+    [string]$ServerExe,
+
+    [string]$SymbolName,
+
+    [string]$Configuration,
+
+    [string]$Platform,
+
+    [string]$TargetFramework,
+
+    [ValidateRange(1, 50)]
+    [int]$Runs = 4,
+
+    [switch]$SkipRamHit,
+
+    [switch]$FullOutput,
+
+    [ValidateRange(0, 1024)]
+    [int]$AffinityCount = 0,
+
+    [ValidateRange(10, 86400)]
+    [int]$CallTimeoutSeconds = 3600,
+
+    [ValidateRange(0, 600)]
+    [int]$PauseSeconds = 3,
+
+    [string]$Note = '',
+
+    [string]$OutDirectory
+)
+
+Set-StrictMode -Version 2.0
+$ErrorActionPreference = 'Stop'
+
+$Workspace = [IO.Path]::GetFullPath($Workspace)
+if (-not (Test-Path -LiteralPath $Workspace -PathType Leaf)) {
+    throw "Workspace file not found: $Workspace"
+}
+if (-not $ServerExe) {
+    $ServerExe = Join-Path $PSScriptRoot '..\bin\Release\net10.0\win-x64\publish\RoslynMcpServer.exe'
+}
+$ServerExe = [IO.Path]::GetFullPath($ServerExe)
+if (-not (Test-Path -LiteralPath $ServerExe -PathType Leaf)) {
+    throw "Server exe not found: $ServerExe"
+}
+if (-not $OutDirectory) {
+    $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+    $OutDirectory = Join-Path (Get-Location) ("workspace-load-measure\" + [IO.Path]::GetFileNameWithoutExtension($Workspace) + "-$stamp")
+}
+New-Item -ItemType Directory -Force -Path $OutDirectory | Out-Null
+
+$logDirectory = Join-Path (Split-Path $ServerExe) 'logs'
+$workspaceRoot = Split-Path $Workspace
+$utf8NoBom = New-Object Text.UTF8Encoding($false)
+
+function Get-RedactedText([string]$Text) {
+    if ([string]::IsNullOrEmpty($Text)) { return $Text }
+    $pairs = @(
+        @($workspaceRoot, '<repo>'),
+        @($env:USERPROFILE, '<user>'),
+        @($env:COMPUTERNAME, '<machine>')
+    )
+    foreach ($pair in $pairs) {
+        $value = $pair[0]
+        if ([string]::IsNullOrEmpty($value)) { continue }
+        foreach ($variant in @($value, $value.Replace('\', '\\'), $value.Replace('\', '/'))) {
+            $Text = [regex]::Replace($Text, [regex]::Escape($variant), $pair[1], 'IgnoreCase')
+        }
+    }
+    return $Text
+}
+
+function Get-LogOffsets {
+    $offsets = @{}
+    if (Test-Path -LiteralPath $logDirectory) {
+        foreach ($file in Get-ChildItem -LiteralPath $logDirectory -Filter 'mcp-*.log') {
+            $offsets[$file.FullName] = $file.Length
+        }
+    }
+    return $offsets
+}
+
+function Read-NewLogLines($Offsets) {
+    $lines = New-Object Collections.Generic.List[string]
+    if (-not (Test-Path -LiteralPath $logDirectory)) { return $lines }
+    foreach ($file in Get-ChildItem -LiteralPath $logDirectory -Filter 'mcp-*.log' | Sort-Object Name) {
+        $start = 0L
+        if ($Offsets.ContainsKey($file.FullName)) { $start = [long]$Offsets[$file.FullName] }
+        if ($file.Length -le $start) { continue }
+        $stream = [IO.File]::Open($file.FullName, 'Open', 'Read', 'ReadWrite')
+        try {
+            $null = $stream.Seek($start, 'Begin')
+            $reader = New-Object IO.StreamReader($stream, [Text.Encoding]::UTF8)
+            foreach ($line in ($reader.ReadToEnd() -split "`r?`n")) {
+                if ($line.Length -gt 0) { $lines.Add($line) }
+            }
+        }
+        finally {
+            $stream.Dispose()
+        }
+    }
+    return $lines
+}
+
+$script:proc = $null
+$script:pendingRead = $null
+$script:nextId = 1
+$script:cpuSamples = $null
+$script:lastSampleUtc = [DateTime]::MinValue
+
+function Update-CpuSamples {
+    if ($null -eq $script:cpuSamples) { return }
+    if (([DateTime]::UtcNow - $script:lastSampleUtc).TotalMilliseconds -lt 2000) { return }
+    $script:lastSampleUtc = [DateTime]::UtcNow
+    $snapshot = Get-ProcessTreeCpu $script:proc.Id
+    foreach ($id in $snapshot.Children.Keys) {
+        $script:cpuSamples[$id] = $snapshot.Children[$id]
+    }
+}
+
+function Send-Message($Message) {
+    $json = $Message | ConvertTo-Json -Compress -Depth 20
+    $bytes = $utf8NoBom.GetBytes($json + "`n")
+    $script:proc.StandardInput.BaseStream.Write($bytes, 0, $bytes.Length)
+    $script:proc.StandardInput.BaseStream.Flush()
+}
+
+function Read-Message([DateTime]$Deadline) {
+    while ($true) {
+        if ($null -eq $script:pendingRead) {
+            $script:pendingRead = $script:proc.StandardOutput.ReadLineAsync()
+        }
+        while (-not $script:pendingRead.IsCompleted) {
+            if ([DateTime]::UtcNow -gt $Deadline) { return $null }
+            if ($script:proc.HasExited -and -not $script:pendingRead.IsCompleted) {
+                Start-Sleep -Milliseconds 200
+                if (-not $script:pendingRead.IsCompleted) { return $null }
+            }
+            $null = $script:pendingRead.AsyncWaitHandle.WaitOne(500)
+            Update-CpuSamples
+        }
+        $line = $script:pendingRead.Result
+        $script:pendingRead = $null
+        if ($null -eq $line) { return $null }
+        if ($line.Trim().Length -eq 0) { continue }
+        try {
+            return ($line | ConvertFrom-Json)
+        }
+        catch {
+            continue
+        }
+    }
+}
+
+function Invoke-Request([string]$Method, $Params) {
+    $id = $script:nextId
+    $script:nextId++
+    $request = [ordered]@{ jsonrpc = '2.0'; id = $id; method = $Method }
+    if ($null -ne $Params) { $request.params = $Params }
+    $deadline = [DateTime]::UtcNow.AddSeconds($CallTimeoutSeconds)
+    $watch = [Diagnostics.Stopwatch]::StartNew()
+    Send-Message $request
+    while ($true) {
+        $message = Read-Message $deadline
+        if ($null -eq $message) {
+            $watch.Stop()
+            $state = 'no-response'
+            if ([DateTime]::UtcNow -gt $deadline) { $state = 'timeout' }
+            elseif ($script:proc.HasExited) { $state = 'server-exited' }
+            return [pscustomobject]@{ Id = $id; Ms = $watch.Elapsed.TotalMilliseconds; State = $state; Result = $null; Error = $null }
+        }
+        $names = @($message.PSObject.Properties | ForEach-Object Name)
+        if ($names -contains 'method') {
+            if ($names -contains 'id') {
+                $reply = [ordered]@{ jsonrpc = '2.0'; id = $message.id }
+                if ($message.method -eq 'ping') { $reply.result = @{} }
+                else { $reply.error = @{ code = -32601; message = 'Method not supported by the measurement client' } }
+                Send-Message $reply
+            }
+            continue
+        }
+        if (($names -contains 'id') -and $message.id -eq $id) {
+            $watch.Stop()
+            $state = 'ok'
+            $errorText = $null
+            if ($names -contains 'error') {
+                $state = 'rpc-error'
+                $errorText = [string]$message.error.message
+            }
+            return [pscustomobject]@{ Id = $id; Ms = $watch.Elapsed.TotalMilliseconds; State = $state; Result = $message.result; Error = $errorText }
+        }
+    }
+}
+
+function Get-ToolText($Response) {
+    if ($null -eq $Response.Result) { return '' }
+    $content = $Response.Result.PSObject.Properties['content']
+    if ($null -eq $content) { return '' }
+    $parts = @()
+    foreach ($item in @($content.Value)) {
+        if ($null -ne $item -and $item.PSObject.Properties['text']) { $parts += [string]$item.text }
+    }
+    return ($parts -join "`n")
+}
+
+function Get-ToolIsError($Response) {
+    if ($null -eq $Response.Result) { return $true }
+    $flag = $Response.Result.PSObject.Properties['isError']
+    return ($null -ne $flag -and [bool]$flag.Value)
+}
+
+function Invoke-Tool([string]$Name, $Arguments) {
+    $response = Invoke-Request 'tools/call' ([ordered]@{ name = $Name; arguments = $Arguments })
+    $text = Get-ToolText $response
+    $state = $response.State
+    if ($state -eq 'ok' -and (Get-ToolIsError $response)) { $state = 'tool-error' }
+    return [pscustomobject]@{ Id = $response.Id; Ms = $response.Ms; State = $state; Text = $text; Error = $response.Error }
+}
+
+$linePattern = '^(?<ts>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} [+-]\d{2}:\d{2}) \[(?<lvl>\w{3})\] (?<sid>\[[^\]]+\]) (?<msg>.*)$'
+
+function ConvertTo-LogEntries($Lines, [string]$Marker) {
+    $parsed = New-Object Collections.Generic.List[object]
+    foreach ($line in $Lines) {
+        $m = [regex]::Match($line, $linePattern)
+        if (-not $m.Success) { continue }
+        $parsed.Add([pscustomobject]@{
+            Time = [DateTimeOffset]::ParseExact($m.Groups['ts'].Value, 'yyyy-MM-dd HH:mm:ss.fff zzz', [Globalization.CultureInfo]::InvariantCulture)
+            Level = $m.Groups['lvl'].Value
+            Session = $m.Groups['sid'].Value
+            Message = $m.Groups['msg'].Value
+            Raw = $line
+        })
+    }
+    $session = $null
+    foreach ($entry in $parsed) {
+        if ($entry.Message.Contains($Marker)) { $session = $entry.Session; break }
+    }
+    if ($null -eq $session) { return @() }
+    return @($parsed | Where-Object { $_.Session -eq $session })
+}
+
+function Get-StageEstimate($Entries, [int]$RequestId) {
+    $result = [ordered]@{
+        handlerMs = $null; openMs = $null; replayMs = $null; postOpenMs = $null; watchersMs = $null
+        responseMs = $null; projects = $null; diagLines = $null; workingSetMb = $null
+        captureStatus = $null; msbuildFailures = 0; msbuildWarnings = 0; watcherLines = 0
+    }
+    $start = -1
+    for ($i = 0; $i -lt $Entries.Count; $i++) {
+        if ($Entries[$i].Message -match ('^MCP \u2190 request id=' + $RequestId + ' method=tools/call ')) { $start = $i; break }
+    }
+    if ($start -lt 0) { return [pscustomobject]$result }
+    $t0 = $Entries[$start].Time
+    $capture = $null; $firstWatcher = $null; $loaded = $null; $done = $null
+    for ($i = $start + 1; $i -lt $Entries.Count; $i++) {
+        $e = $Entries[$i]
+        if ($e.Message -match '^MCP \u2190 request id=') { break }
+        if ($null -eq $capture -and $e.Message -match 'Analyzer provenance capture finished: Status="?(?<st>[^",]+)"?.*ReplayMs=(?<r>\d+(?:[.,]\d+)?)') {
+            $capture = $e
+            $result.captureStatus = $Matches['st']
+            $result.replayMs = [double]::Parse($Matches['r'].Replace(',', '.'), [Globalization.CultureInfo]::InvariantCulture)
+        }
+        elseif ($e.Message.StartsWith('Disk watcher started')) {
+            $result.watcherLines++
+            if ($null -eq $firstWatcher) { $firstWatcher = $e }
+        }
+        elseif ($null -eq $loaded -and $e.Message.StartsWith('Loaded Roslyn workspace from')) { $loaded = $e }
+        elseif ($e.Message -match '^MSBuildWorkspace "?Failure') { $result.msbuildFailures++ }
+        elseif ($e.Message -match '^MSBuildWorkspace "?Warning') { $result.msbuildWarnings++ }
+        elseif ($e.Message -match 'working set: (?<ws>\d+(?:[.,]\d+)?) MB \(context: workspace_load\)') {
+            $result.workingSetMb = [double]::Parse($Matches['ws'].Replace(',', '.'), [Globalization.CultureInfo]::InvariantCulture)
+        }
+        elseif ($e.Message -match '^MCP tool LoadWorkspace \| status=.*?projects=(?<p>\d+).*?workspace_diag_lines=(?<d>\d+)') {
+            $result.projects = [int]$Matches['p']
+            $result.diagLines = [int]$Matches['d']
+        }
+        elseif ($e.Message -match "method 'tools/call' request handler completed in (?<ms>\d+(?:[.,]\d+)?)ms") {
+            $done = $e
+            $result.handlerMs = [double]::Parse($Matches['ms'].Replace(',', '.'), [Globalization.CultureInfo]::InvariantCulture)
+            break
+        }
+    }
+    if ($null -ne $capture -and $null -ne $result.replayMs) {
+        $result.openMs = ($capture.Time - $t0).TotalMilliseconds - $result.replayMs
+    }
+    if ($null -ne $capture -and $null -ne $firstWatcher) {
+        $result.postOpenMs = ($firstWatcher.Time - $capture.Time).TotalMilliseconds
+    }
+    if ($null -ne $firstWatcher -and $null -ne $loaded) {
+        $result.watchersMs = ($loaded.Time - $firstWatcher.Time).TotalMilliseconds
+    }
+    if ($null -ne $loaded -and $null -ne $done) {
+        $result.responseMs = ($done.Time - $loaded.Time).TotalMilliseconds
+    }
+    return [pscustomobject]$result
+}
+
+function Get-ProcessTreeCpu([int]$RootId) {
+    $all = @(Get-CimInstance Win32_Process -ErrorAction SilentlyContinue)
+    $byParent = @{}
+    foreach ($p in $all) {
+        $key = [int]$p.ParentProcessId
+        if (-not $byParent.ContainsKey($key)) { $byParent[$key] = New-Object Collections.Generic.List[object] }
+        $byParent[$key].Add($p)
+    }
+    $tree = @{}
+    $queue = New-Object Collections.Generic.Queue[int]
+    $queue.Enqueue($RootId)
+    while ($queue.Count -gt 0) {
+        $parent = $queue.Dequeue()
+        if (-not $byParent.ContainsKey($parent)) { continue }
+        foreach ($child in $byParent[$parent]) {
+            $childId = [int]$child.ProcessId
+            if ($tree.ContainsKey($childId) -or $childId -eq $RootId) { continue }
+            $tree[$childId] = $child
+            $queue.Enqueue($childId)
+        }
+    }
+    $root = $all | Where-Object { [int]$_.ProcessId -eq $RootId } | Select-Object -First 1
+    $rootCpu = 0.0
+    if ($null -ne $root) { $rootCpu = ([double]$root.KernelModeTime + [double]$root.UserModeTime) / 10000 }
+    $children = @{}
+    foreach ($id in $tree.Keys) {
+        $c = $tree[$id]
+        $children[$id] = [pscustomobject]@{
+            Name = [string]$c.Name
+            CpuMs = ([double]$c.KernelModeTime + [double]$c.UserModeTime) / 10000
+        }
+    }
+    return [pscustomobject]@{ RootCpuMs = $rootCpu; Children = $children }
+}
+
+function Measure-ToolCall([string]$Name, $Arguments) {
+    $before = Get-ProcessTreeCpu $script:proc.Id
+    $script:cpuSamples = @{}
+    $script:lastSampleUtc = [DateTime]::MinValue
+    try {
+        $call = Invoke-Tool $Name $Arguments
+    }
+    finally {
+        $after = Get-ProcessTreeCpu $script:proc.Id
+        foreach ($id in $after.Children.Keys) { $script:cpuSamples[$id] = $after.Children[$id] }
+        $merged = [pscustomobject]@{ RootCpuMs = $after.RootCpuMs; Children = $script:cpuSamples }
+        $script:cpuSamples = $null
+    }
+    return [pscustomobject]@{ Call = $call; Cpu = (Get-CpuDelta $before $merged $call.Ms) }
+}
+
+function Get-CpuDelta($Before, $After, [double]$WallMs) {
+    $childCpu = 0.0
+    $names = @()
+    foreach ($id in $After.Children.Keys) {
+        $now = $After.Children[$id]
+        $was = 0.0
+        if ($Before.Children.ContainsKey($id)) { $was = $Before.Children[$id].CpuMs }
+        $childCpu += ($now.CpuMs - $was)
+        $names += $now.Name
+    }
+    $serverCpu = $After.RootCpuMs - $Before.RootCpuMs
+    $cores = $null
+    if ($WallMs -gt 0) { $cores = [Math]::Round(($serverCpu + $childCpu) / $WallMs, 2) }
+    return [pscustomobject]@{
+        serverCpuMs = [Math]::Round($serverCpu)
+        childCpuMs = [Math]::Round($childCpu)
+        busyCores = $cores
+        children = (($names | Sort-Object -Unique) -join ', ')
+    }
+}
+
+function Stop-ServerTree([int]$ProcessId) {
+    $children = @(Get-CimInstance Win32_Process -Filter "ParentProcessId=$ProcessId" -ErrorAction SilentlyContinue | ForEach-Object { [int]$_.ProcessId })
+    try { $script:proc.StandardInput.Close() } catch { }
+    if (-not $script:proc.WaitForExit(20000)) {
+        & taskkill.exe /PID $ProcessId /T /F 2>&1 | Out-Null
+        $null = $script:proc.WaitForExit(5000)
+    }
+    $leftover = 0
+    foreach ($child in $children) {
+        $alive = Get-Process -Id $child -ErrorAction SilentlyContinue
+        if ($null -ne $alive) {
+            $leftover++
+            & taskkill.exe /PID $child /T /F 2>&1 | Out-Null
+        }
+    }
+    return $leftover
+}
+
+function Get-Median($Values) {
+    $sorted = @($Values | Where-Object { $null -ne $_ } | Sort-Object)
+    if ($sorted.Count -eq 0) { return $null }
+    $mid = [int][Math]::Floor($sorted.Count / 2)
+    if ($sorted.Count % 2 -eq 1) { return [double]$sorted[$mid] }
+    return ([double]$sorted[$mid - 1] + [double]$sorted[$mid]) / 2
+}
+
+function Format-Ms($Value) {
+    if ($null -eq $Value) { return 'n/a' }
+    return ([Math]::Round([double]$Value)).ToString([Globalization.CultureInfo]::InvariantCulture)
+}
+
+$loadArguments = [ordered]@{ workspacePath = $Workspace; briefOutput = (-not $FullOutput) }
+if ($Configuration) { $loadArguments.configuration = $Configuration }
+if ($Platform) { $loadArguments.platform = $Platform }
+if ($TargetFramework) { $loadArguments.targetFramework = $TargetFramework }
+
+$affinityMask = 0L
+if ($AffinityCount -gt 0) {
+    $logical = [Environment]::ProcessorCount
+    if ($AffinityCount -gt $logical) { throw "AffinityCount $AffinityCount exceeds $logical logical CPUs" }
+    if ($AffinityCount -gt 63) { throw 'AffinityCount above 63 is not supported by this script' }
+    $affinityMask = ([long]1 -shl $AffinityCount) - 1
+}
+
+$records = New-Object Collections.Generic.List[object]
+
+for ($run = 1; $run -le $Runs; $run++) {
+    $marker = 'measure-' + [Guid]::NewGuid().ToString('N')
+    $offsets = Get-LogOffsets
+    $psi = New-Object Diagnostics.ProcessStartInfo
+    $psi.FileName = $ServerExe
+    $psi.WorkingDirectory = $workspaceRoot
+    $psi.UseShellExecute = $false
+    $psi.RedirectStandardInput = $true
+    $psi.RedirectStandardOutput = $true
+    $psi.RedirectStandardError = $true
+    $psi.StandardOutputEncoding = [Text.Encoding]::UTF8
+    $psi.StandardErrorEncoding = [Text.Encoding]::UTF8
+    $psi.CreateNoWindow = $true
+    if ($psi.EnvironmentVariables.ContainsKey('MCP_LOG_INCOMING_RPC')) { $psi.EnvironmentVariables.Remove('MCP_LOG_INCOMING_RPC') }
+
+    Write-Host "Run $run/$Runs : starting server"
+    $startWatch = [Diagnostics.Stopwatch]::StartNew()
+    $script:proc = [Diagnostics.Process]::Start($psi)
+    $script:pendingRead = $null
+    $script:nextId = 1
+    if ($affinityMask -ne 0) { $script:proc.ProcessorAffinity = [IntPtr]$affinityMask }
+    $stderrTask = $script:proc.StandardError.ReadToEndAsync()
+
+    $record = [ordered]@{
+        run = $run; kind = 'measured'; startupMs = $null; load = $null; find = $null; ramHit = $null
+        loadCpu = $null; findCpu = $null; leftoverChildren = 0; stderrTail = ''
+    }
+    if ($run -eq 1) { $record.kind = 'warmup' }
+
+    $calls = @()
+    try {
+        $init = Invoke-Request 'initialize' ([ordered]@{
+            protocolVersion = '2025-11-25'
+            capabilities = @{}
+            clientInfo = [ordered]@{ name = 'workspace-load-measure'; version = $marker }
+        })
+        $startWatch.Stop()
+        $record.startupMs = $startWatch.Elapsed.TotalMilliseconds
+        if ($init.State -ne 'ok') { throw "initialize failed: $($init.State) $($init.Error)" }
+        Send-Message ([ordered]@{ jsonrpc = '2.0'; method = 'notifications/initialized' })
+
+        Write-Host "Run $run/$Runs : load_workspace"
+        $measuredLoad = Measure-ToolCall 'load_workspace' $loadArguments
+        $load = $measuredLoad.Call
+        $record.loadCpu = $measuredLoad.Cpu
+        $calls += [pscustomobject]@{ Name = 'load'; Call = $load }
+        Write-Host ("Run {0}/{1} : load_workspace {2} in {3} ms" -f $run, $Runs, $load.State, (Format-Ms $load.Ms))
+
+        if ($SymbolName -and $load.State -eq 'ok') {
+            $measuredFind = Measure-ToolCall 'find_symbol_definition' ([ordered]@{ symbolName = $SymbolName })
+            $find = $measuredFind.Call
+            $record.findCpu = $measuredFind.Cpu
+            $calls += [pscustomobject]@{ Name = 'find'; Call = $find }
+            Write-Host ("Run {0}/{1} : find_symbol_definition {2} in {3} ms" -f $run, $Runs, $find.State, (Format-Ms $find.Ms))
+        }
+
+        if ($run -eq $Runs -and -not $SkipRamHit -and $load.State -eq 'ok') {
+            $ram = Invoke-Tool 'load_workspace' $loadArguments
+            $calls += [pscustomobject]@{ Name = 'ramHit'; Call = $ram }
+            Write-Host ("Run {0}/{1} : RAM hit load_workspace {2} in {3} ms" -f $run, $Runs, $ram.State, (Format-Ms $ram.Ms))
+        }
+    }
+    catch {
+        $record.error = Get-RedactedText $_.Exception.Message
+        Write-Warning "Run $run failed: $($record.error)"
+    }
+    finally {
+        $record.leftoverChildren = Stop-ServerTree $script:proc.Id
+    }
+
+    if ($stderrTask.AsyncWaitHandle.WaitOne(5000)) {
+        $stderr = $stderrTask.Result
+        if ($stderr.Length -gt 2000) { $stderr = $stderr.Substring($stderr.Length - 2000) }
+        $record.stderrTail = Get-RedactedText $stderr
+    }
+
+    Start-Sleep -Milliseconds 500
+    $entries = @(ConvertTo-LogEntries @(Read-NewLogLines $offsets) $marker)
+    $record.logSession = $null
+    if ($entries.Count -gt 0) { $record.logSession = $entries[0].Session }
+
+    foreach ($item in $calls) {
+        $call = $item.Call
+        $info = [ordered]@{ clientMs = $call.Ms; state = $call.State; requestId = $call.Id }
+        $stage = Get-StageEstimate $entries $call.Id
+        foreach ($p in $stage.PSObject.Properties) { $info[$p.Name] = $p.Value }
+        $record[$item.Name] = [pscustomobject]$info
+        $responsePath = Join-Path $OutDirectory ("run-{0}-{1}-response.md" -f $run, $item.Name)
+        [IO.File]::WriteAllText($responsePath, (Get-RedactedText $call.Text), $utf8NoBom)
+    }
+
+    $excerpt = New-Object Collections.Generic.List[string]
+    $watcherCount = 0
+    foreach ($entry in $entries) {
+        if ($entry.Message.StartsWith('Disk watcher started')) { $watcherCount++; continue }
+        if ($watcherCount -gt 0) {
+            $excerpt.Add("... $watcherCount 'Disk watcher started' lines omitted ...")
+            $watcherCount = 0
+        }
+        $excerpt.Add((Get-RedactedText $entry.Raw))
+    }
+    [IO.File]::WriteAllLines((Join-Path $OutDirectory "run-$run-log.txt"), $excerpt, $utf8NoBom)
+
+    $records.Add([pscustomobject]$record)
+    if ($run -lt $Runs -and $PauseSeconds -gt 0) { Start-Sleep -Seconds $PauseSeconds }
+}
+
+$cpu = Get-CimInstance Win32_Processor | Select-Object -First 1
+$os = Get-CimInstance Win32_OperatingSystem
+$antivirus = @()
+try {
+    $antivirus = @(Get-CimInstance -Namespace 'root/SecurityCenter2' -ClassName AntiVirusProduct -ErrorAction Stop | ForEach-Object displayName)
+}
+catch { }
+$sdks = @()
+try { $sdks = @(& dotnet --list-sdks 2>$null | ForEach-Object { ($_ -split ' ')[0] }) } catch { }
+
+$environment = [ordered]@{
+    serverVersion = (Get-Item -LiteralPath $ServerExe).VersionInfo.FileVersion
+    os = "$($os.Caption) $($os.Version)"
+    cpu = "$($cpu.Name.Trim()) ($($cpu.NumberOfCores) cores, $($cpu.NumberOfLogicalProcessors) logical)"
+    ramGb = [Math]::Round($os.TotalVisibleMemorySize / 1MB, 1)
+    dotnetSdks = ($sdks -join ', ')
+    antivirus = ($antivirus -join ', ')
+    affinityCount = $AffinityCount
+    workspace = '<repo>\' + (Split-Path $Workspace -Leaf)
+    configuration = $Configuration
+    platform = $Platform
+    targetFramework = $TargetFramework
+    symbolName = $SymbolName
+    runs = $Runs
+    note = $Note
+    startedBy = 'scripts/Measure-WorkspaceLoad.ps1'
+}
+
+$document = [ordered]@{ environment = $environment; runs = $records }
+[IO.File]::WriteAllText((Join-Path $OutDirectory 'runs.json'), ($document | ConvertTo-Json -Depth 8), $utf8NoBom)
+
+$md = New-Object Collections.Generic.List[string]
+$md.Add('# Workspace load measurement')
+$md.Add('')
+foreach ($key in $environment.Keys) { $md.Add("- ${key}: $($environment[$key])") }
+$md.Add('')
+$md.Add('Stage columns are estimates from log timestamps. open = capture line - tools/call - ReplayMs')
+$md.Add('(lock wait, BuildHost start, evaluation, design-time build, IPC, snapshot). post-open = first')
+$md.Add('watcher line - capture line (execution gate, publication, diagnostics, input map).')
+$md.Add('watchers = Loaded line - first watcher line. response = handler completed - Loaded line.')
+$md.Add('')
+$md.Add('| run | kind | call | state | client ms | handler ms | open | replay | post-open | watchers | response | projects | diag lines | MSBuild failures | WS MB |')
+$md.Add('|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|')
+foreach ($r in $records) {
+    foreach ($name in @('load', 'find', 'ramHit')) {
+        $c = $r.$name
+        if ($null -eq $c) { continue }
+        $md.Add(('| {0} | {1} | {2} | {3} | {4} | {5} | {6} | {7} | {8} | {9} | {10} | {11} | {12} | {13} | {14} |' -f
+            $r.run, $r.kind, $name, $c.state, (Format-Ms $c.clientMs), (Format-Ms $c.handlerMs), (Format-Ms $c.openMs),
+            (Format-Ms $c.replayMs), (Format-Ms $c.postOpenMs), (Format-Ms $c.watchersMs), (Format-Ms $c.responseMs),
+            $c.projects, $c.diagLines, $c.msbuildFailures, $c.workingSetMb))
+    }
+}
+$measured = @($records | Where-Object { $_.kind -eq 'measured' -and $null -ne $_.load -and $_.load.state -eq 'ok' })
+$md.Add('')
+$md.Add("Median over measured fresh-process runs (n=$($measured.Count), warmup excluded):")
+$md.Add('')
+foreach ($field in @('clientMs', 'handlerMs', 'openMs', 'replayMs', 'postOpenMs', 'watchersMs', 'responseMs')) {
+    $md.Add("- load $field : " + (Format-Ms (Get-Median @($measured | ForEach-Object { $_.load.$field }))))
+}
+$finds = @($measured | Where-Object { $null -ne $_.find })
+if ($finds.Count -gt 0) {
+    $md.Add('- first find_symbol_definition clientMs : ' + (Format-Ms (Get-Median @($finds | ForEach-Object { $_.find.clientMs }))))
+}
+$md.Add('- server startup to initialize response ms : ' + (Format-Ms (Get-Median @($measured | ForEach-Object { $_.startupMs }))))
+$md.Add('')
+$md.Add('CPU time during the call (Win32_Process kernel+user; child = BuildHost and other descendants;')
+$md.Add('busy cores = total CPU / wall time):')
+$md.Add('')
+$md.Add('| run | call | server CPU ms | child CPU ms | busy cores | children |')
+$md.Add('|---|---|---|---|---|---|')
+foreach ($r in $records) {
+    foreach ($pair in @(@('load', $r.loadCpu), @('find', $r.findCpu))) {
+        $c = $pair[1]
+        if ($null -eq $c) { continue }
+        $md.Add(('| {0} | {1} | {2} | {3} | {4} | {5} |' -f $r.run, $pair[0], $c.serverCpuMs, $c.childCpuMs, $c.busyCores, $c.children))
+    }
+}
+$failed = @($records | Where-Object { $_.PSObject.Properties['error'] -or ($null -ne $_.load -and $_.load.state -ne 'ok') })
+$md.Add("- failed runs: $($failed.Count); leftover child processes killed: $(($records | Measure-Object -Property leftoverChildren -Sum).Sum)")
+[IO.File]::WriteAllLines((Join-Path $OutDirectory 'summary.md'), $md, $utf8NoBom)
+
+Write-Host ''
+Write-Host "Report: $OutDirectory"
+$md | Select-Object -Skip 1 | ForEach-Object { Write-Host $_ }

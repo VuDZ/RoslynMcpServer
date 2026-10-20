@@ -58,6 +58,8 @@
          generated .cs under its obj directory, are not part of the host assembly. -->
     <Compile Remove="samples\**" />
     <None Remove="samples\**" />
+    <Compile Remove="spikes\**" />
+    <None Remove="spikes\**" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="ICSharpCode.Decompiler" Version="10.0.1.8346" />

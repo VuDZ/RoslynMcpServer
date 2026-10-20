@@ -1,0 +1,1301 @@
+{
+  "go": false,
+  "missing": [],
+  "solutions": {
+    "powertoys": {
+      "oracleAvailable": true,
+      "baselineMs": 41536.039,
+      "baselineDifferenceCount": 0,
+      "combinations": {
+        "baseline": {
+          "statusCounts": {
+            "ok": 3
+          },
+          "completeValidRuns": true,
+          "wallMs": 41536.039,
+          "invalidMeasurementReasons": [
+            [],
+            [],
+            []
+          ],
+          "speedup": 1.0,
+          "wallRatio": 1.0,
+          "phase1Ms": null,
+          "phase1FirstProgressMs": null,
+          "phase2FirstProgressMs": null,
+          "criticalGroupMs": 41293.5579,
+          "groupMs": [
+            41293.5579
+          ],
+          "mergeMs": 198.6437,
+          "planningMs": null,
+          "aggregatorPreparationMs": null,
+          "peakMemoryMedian": 1137045504,
+          "peakMemoryMax": 1138257920,
+          "busyCores": 1.4238388258447081,
+          "buildHostCount": 2,
+          "planViolationCount": 0,
+          "equivalence": "identical",
+          "unexplainedCounts": {},
+          "coreCount": null,
+          "coreCostShare": null,
+          "groupCounts": [],
+          "groupCosts": [],
+          "actualCoreCounts": [
+            0,
+            0,
+            0
+          ],
+          "actualGroupProjectCountsIncludingAggregator": [
+            [
+              248
+            ],
+            [
+              248
+            ],
+            [
+              248
+            ]
+          ],
+          "samplerErrors": [
+            [],
+            [],
+            []
+          ],
+          "maxSampleGapMs": 140.6951,
+          "plannerReasons": [
+            null,
+            null,
+            null
+          ],
+          "plannerPredictedMs": [
+            null,
+            null,
+            null
+          ],
+          "plannerPredictedPeakBytes": [
+            null,
+            null,
+            null
+          ],
+          "bypassedReasons": [
+            [],
+            [],
+            []
+          ],
+          "fallbackKinds": [
+            null,
+            null,
+            null
+          ],
+          "wastedParallelMs": [
+            0,
+            0,
+            0
+          ],
+          "searchMs": [
+            null,
+            null,
+            null
+          ],
+          "searchBudgetExpired": [
+            null,
+            null,
+            null
+          ],
+          "postLoadFailureCount": 0,
+          "attemptedUnexplainedCounts": {},
+          "attemptedExplainedCaseCount": 0,
+          "ordinaryFallbackUnexplainedCounts": {},
+          "attemptedStatusCounts": {},
+          "attemptedWallMs": null,
+          "attemptedWallWithPlanningMs": null,
+          "attemptedPhase1Ms": null,
+          "attemptedMergeMs": null,
+          "attemptedCriticalGroupMs": null,
+          "attemptedGroupStatusCounts": {},
+          "outerWallRatioDescriptive": 1.0,
+          "ordinaryFallbackStatusCounts": {},
+          "attemptedPeakMemoryMax": null,
+          "forceParallel": false,
+          "forecastRelativeError": null,
+          "forecastVersusAttemptedRelativeError": null
+        },
+        "cluster-N4": {
+          "statusCounts": {
+            "ok": 3
+          },
+          "completeValidRuns": true,
+          "wallMs": 23305.903199999997,
+          "invalidMeasurementReasons": [
+            [],
+            [],
+            []
+          ],
+          "speedup": 1.7822110837566683,
+          "wallRatio": 0.5611007636043485,
+          "phase1Ms": 4418.6241,
+          "phase1FirstProgressMs": 600.8051,
+          "phase2FirstProgressMs": 530.0148,
+          "criticalGroupMs": 17901.0535,
+          "groupMs": [
+            16920.4522,
+            17042.4469,
+            17901.0535,
+            17386.0451
+          ],
+          "mergeMs": 115.8379,
+          "planningMs": 527.7613,
+          "aggregatorPreparationMs": 5.4966,
+          "peakMemoryMedian": 1892339712,
+          "peakMemoryMax": 1907695616,
+          "busyCores": 4.126090798539649,
+          "buildHostCount": 10,
+          "planViolationCount": 0,
+          "equivalence": "identical",
+          "unexplainedCounts": {},
+          "coreCount": 12,
+          "coreCostShare": 0.08313965952441044,
+          "groupCounts": [
+            58,
+            57,
+            63,
+            58
+          ],
+          "groupCosts": [
+            9409.638100000002,
+            9359.3654,
+            9400.716,
+            9460.210300000002
+          ],
+          "actualCoreCounts": [
+            12,
+            12,
+            12
+          ],
+          "actualGroupProjectCountsIncludingAggregator": [
+            [
+              59,
+              58,
+              64,
+              59
+            ],
+            [
+              59,
+              58,
+              64,
+              59
+            ],
+            [
+              59,
+              58,
+              64,
+              59
+            ]
+          ],
+          "samplerErrors": [
+            [],
+            [],
+            []
+          ],
+          "maxSampleGapMs": 140.9144,
+          "plannerReasons": [
+            null,
+            null,
+            null
+          ],
+          "plannerPredictedMs": [
+            22997.068057517303,
+            22997.8214575173,
+            22986.266957517302
+          ],
+          "plannerPredictedPeakBytes": [
+            2276515840,
+            2276515840,
+            2276515840
+          ],
+          "bypassedReasons": [
+            [],
+            [],
+            []
+          ],
+          "fallbackKinds": [
+            null,
+            null,
+            null
+          ],
+          "wastedParallelMs": [
+            0,
+            0,
+            0
+          ],
+          "searchMs": [
+            398.3442,
+            396.8935,
+            386.3244
+          ],
+          "searchBudgetExpired": [
+            false,
+            false,
+            false
+          ],
+          "postLoadFailureCount": 0,
+          "attemptedUnexplainedCounts": {},
+          "attemptedExplainedCaseCount": 0,
+          "ordinaryFallbackUnexplainedCounts": {},
+          "attemptedStatusCounts": {
+            "ok": 3
+          },
+          "attemptedWallMs": 22789.4282,
+          "attemptedWallWithPlanningMs": 23305.903199999997,
+          "attemptedPhase1Ms": 4418.6241,
+          "attemptedMergeMs": 115.8379,
+          "attemptedCriticalGroupMs": 17901.0535,
+          "attemptedGroupStatusCounts": {
+            "ok": 12
+          },
+          "outerWallRatioDescriptive": 0.5611007636043485,
+          "ordinaryFallbackStatusCounts": {},
+          "attemptedPeakMemoryMax": 1907695616,
+          "forceParallel": false,
+          "forecastRelativeError": -0.013251369828168437,
+          "forecastVersusAttemptedRelativeError": -0.013251369828168437
+        }
+      }
+    },
+    "files": {
+      "oracleAvailable": true,
+      "baselineMs": 10999.5943,
+      "baselineDifferenceCount": 0,
+      "combinations": {
+        "baseline": {
+          "statusCounts": {
+            "ok": 3
+          },
+          "completeValidRuns": true,
+          "wallMs": 10999.5943,
+          "invalidMeasurementReasons": [
+            [],
+            [],
+            []
+          ],
+          "speedup": 1.0,
+          "wallRatio": 1.0,
+          "phase1Ms": null,
+          "phase1FirstProgressMs": null,
+          "phase2FirstProgressMs": null,
+          "criticalGroupMs": 10881.8775,
+          "groupMs": [
+            10881.8775
+          ],
+          "mergeMs": 70.7912,
+          "planningMs": null,
+          "aggregatorPreparationMs": null,
+          "peakMemoryMedian": 210382848,
+          "peakMemoryMax": 213041152,
+          "busyCores": 1.5369885051124113,
+          "buildHostCount": 1,
+          "planViolationCount": 0,
+          "equivalence": "identical",
+          "unexplainedCounts": {},
+          "coreCount": null,
+          "coreCostShare": null,
+          "groupCounts": [],
+          "groupCosts": [],
+          "actualCoreCounts": [
+            0,
+            0,
+            0
+          ],
+          "actualGroupProjectCountsIncludingAggregator": [
+            [
+              11
+            ],
+            [
+              11
+            ],
+            [
+              11
+            ]
+          ],
+          "samplerErrors": [
+            [],
+            [],
+            []
+          ],
+          "maxSampleGapMs": 125.6105,
+          "plannerReasons": [
+            null,
+            null,
+            null
+          ],
+          "plannerPredictedMs": [
+            null,
+            null,
+            null
+          ],
+          "plannerPredictedPeakBytes": [
+            null,
+            null,
+            null
+          ],
+          "bypassedReasons": [
+            [],
+            [],
+            []
+          ],
+          "fallbackKinds": [
+            null,
+            null,
+            null
+          ],
+          "wastedParallelMs": [
+            0,
+            0,
+            0
+          ],
+          "searchMs": [
+            null,
+            null,
+            null
+          ],
+          "searchBudgetExpired": [
+            null,
+            null,
+            null
+          ],
+          "postLoadFailureCount": 0,
+          "attemptedUnexplainedCounts": {},
+          "attemptedExplainedCaseCount": 0,
+          "ordinaryFallbackUnexplainedCounts": {},
+          "attemptedStatusCounts": {},
+          "attemptedWallMs": null,
+          "attemptedWallWithPlanningMs": null,
+          "attemptedPhase1Ms": null,
+          "attemptedMergeMs": null,
+          "attemptedCriticalGroupMs": null,
+          "attemptedGroupStatusCounts": {},
+          "outerWallRatioDescriptive": 1.0,
+          "ordinaryFallbackStatusCounts": {},
+          "attemptedPeakMemoryMax": null,
+          "forceParallel": false,
+          "forecastRelativeError": null,
+          "forecastVersusAttemptedRelativeError": null
+        },
+        "cluster-N2": {
+          "statusCounts": {
+            "ok": 3
+          },
+          "completeValidRuns": true,
+          "wallMs": 11159.8681,
+          "invalidMeasurementReasons": [
+            [],
+            [],
+            []
+          ],
+          "speedup": 0.9856383786471455,
+          "wallRatio": 1.0145708828551976,
+          "phase1Ms": null,
+          "phase1FirstProgressMs": null,
+          "phase2FirstProgressMs": null,
+          "criticalGroupMs": 10979.6091,
+          "groupMs": [
+            10979.6091
+          ],
+          "mergeMs": 73.9663,
+          "planningMs": 62.9346,
+          "aggregatorPreparationMs": null,
+          "peakMemoryMedian": 202305536,
+          "peakMemoryMax": 206184448,
+          "busyCores": 1.5250707257762328,
+          "buildHostCount": 1,
+          "planViolationCount": 0,
+          "equivalence": "identical",
+          "unexplainedCounts": {},
+          "coreCount": 4,
+          "coreCostShare": 0.5636132376614271,
+          "groupCounts": [
+            5,
+            2
+          ],
+          "groupCosts": [
+            785.7628,
+            3730.8878
+          ],
+          "actualCoreCounts": [
+            0,
+            0,
+            0
+          ],
+          "actualGroupProjectCountsIncludingAggregator": [
+            [
+              11
+            ],
+            [
+              11
+            ],
+            [
+              11
+            ]
+          ],
+          "samplerErrors": [
+            [],
+            [],
+            []
+          ],
+          "maxSampleGapMs": 140.0101,
+          "plannerReasons": [
+            "balance-infeasible",
+            "balance-infeasible",
+            "balance-infeasible"
+          ],
+          "plannerPredictedMs": [
+            15493.702815951603,
+            15495.422615951604,
+            15492.864715951602
+          ],
+          "plannerPredictedPeakBytes": [
+            319561728,
+            319561728,
+            319561728
+          ],
+          "bypassedReasons": [
+            [],
+            [],
+            []
+          ],
+          "fallbackKinds": [
+            "pre-load-refusal",
+            "pre-load-refusal",
+            "pre-load-refusal"
+          ],
+          "wastedParallelMs": [
+            0,
+            0,
+            0
+          ],
+          "searchMs": [
+            10.2695,
+            10.0145,
+            10.1274
+          ],
+          "searchBudgetExpired": [
+            false,
+            false,
+            false
+          ],
+          "postLoadFailureCount": 0,
+          "attemptedUnexplainedCounts": {},
+          "attemptedExplainedCaseCount": 0,
+          "ordinaryFallbackUnexplainedCounts": {},
+          "attemptedStatusCounts": {},
+          "attemptedWallMs": null,
+          "attemptedWallWithPlanningMs": null,
+          "attemptedPhase1Ms": null,
+          "attemptedMergeMs": null,
+          "attemptedCriticalGroupMs": null,
+          "attemptedGroupStatusCounts": {},
+          "outerWallRatioDescriptive": 1.0145708828551976,
+          "ordinaryFallbackStatusCounts": {
+            "ok": 3
+          },
+          "attemptedPeakMemoryMax": null,
+          "forceParallel": false,
+          "forecastRelativeError": 0.3883410338829725,
+          "forecastVersusAttemptedRelativeError": null
+        }
+      }
+    },
+    "roslyn": {
+      "oracleAvailable": true,
+      "baselineMs": 43771.1123,
+      "baselineDifferenceCount": 0,
+      "combinations": {
+        "baseline": {
+          "statusCounts": {
+            "ok": 3
+          },
+          "completeValidRuns": true,
+          "wallMs": 43771.1123,
+          "invalidMeasurementReasons": [
+            [],
+            [],
+            []
+          ],
+          "speedup": 1.0,
+          "wallRatio": 1.0,
+          "phase1Ms": null,
+          "phase1FirstProgressMs": null,
+          "phase2FirstProgressMs": null,
+          "criticalGroupMs": 43050.1522,
+          "groupMs": [
+            43050.1522
+          ],
+          "mergeMs": 670.6228,
+          "planningMs": null,
+          "aggregatorPreparationMs": null,
+          "peakMemoryMedian": 1414803456,
+          "peakMemoryMax": 1418809344,
+          "busyCores": 1.4609295352074876,
+          "buildHostCount": 1,
+          "planViolationCount": 0,
+          "equivalence": "identical",
+          "unexplainedCounts": {},
+          "coreCount": null,
+          "coreCostShare": null,
+          "groupCounts": [],
+          "groupCosts": [],
+          "actualCoreCounts": [
+            0,
+            0,
+            0
+          ],
+          "actualGroupProjectCountsIncludingAggregator": [
+            [
+              425
+            ],
+            [
+              425
+            ],
+            [
+              425
+            ]
+          ],
+          "samplerErrors": [
+            [],
+            [],
+            []
+          ],
+          "maxSampleGapMs": 128.3466,
+          "plannerReasons": [
+            null,
+            null,
+            null
+          ],
+          "plannerPredictedMs": [
+            null,
+            null,
+            null
+          ],
+          "plannerPredictedPeakBytes": [
+            null,
+            null,
+            null
+          ],
+          "bypassedReasons": [
+            [],
+            [],
+            []
+          ],
+          "fallbackKinds": [
+            null,
+            null,
+            null
+          ],
+          "wastedParallelMs": [
+            0,
+            0,
+            0
+          ],
+          "searchMs": [
+            null,
+            null,
+            null
+          ],
+          "searchBudgetExpired": [
+            null,
+            null,
+            null
+          ],
+          "postLoadFailureCount": 0,
+          "attemptedUnexplainedCounts": {},
+          "attemptedExplainedCaseCount": 0,
+          "ordinaryFallbackUnexplainedCounts": {},
+          "attemptedStatusCounts": {},
+          "attemptedWallMs": null,
+          "attemptedWallWithPlanningMs": null,
+          "attemptedPhase1Ms": null,
+          "attemptedMergeMs": null,
+          "attemptedCriticalGroupMs": null,
+          "attemptedGroupStatusCounts": {},
+          "outerWallRatioDescriptive": 1.0,
+          "ordinaryFallbackStatusCounts": {},
+          "attemptedPeakMemoryMax": null,
+          "forceParallel": false,
+          "forecastRelativeError": null,
+          "forecastVersusAttemptedRelativeError": null
+        },
+        "cluster-N4": {
+          "statusCounts": {
+            "plan-violation": 3
+          },
+          "completeValidRuns": false,
+          "wallMs": 82265.5093,
+          "invalidMeasurementReasons": [
+            [],
+            [],
+            []
+          ],
+          "speedup": null,
+          "wallRatio": null,
+          "phase1Ms": null,
+          "phase1FirstProgressMs": null,
+          "phase2FirstProgressMs": null,
+          "criticalGroupMs": 42551.1244,
+          "groupMs": [
+            42551.1244
+          ],
+          "mergeMs": 312.4024,
+          "planningMs": 622.6027,
+          "aggregatorPreparationMs": null,
+          "peakMemoryMedian": 1936011264,
+          "peakMemoryMax": 1960673280,
+          "busyCores": 2.137704810878743,
+          "buildHostCount": 6,
+          "planViolationCount": 36,
+          "equivalence": "identical",
+          "unexplainedCounts": {},
+          "coreCount": 85,
+          "coreCostShare": 0.43731090542632417,
+          "groupCounts": [
+            62,
+            51,
+            67,
+            53
+          ],
+          "groupCosts": [
+            8755.593700000001,
+            8790.9369,
+            8697.7258,
+            8187.0331
+          ],
+          "actualCoreCounts": [
+            0,
+            0,
+            0
+          ],
+          "actualGroupProjectCountsIncludingAggregator": [
+            [
+              425
+            ],
+            [
+              425
+            ],
+            [
+              425
+            ]
+          ],
+          "samplerErrors": [
+            [],
+            [],
+            []
+          ],
+          "maxSampleGapMs": 154.7126,
+          "plannerReasons": [
+            null,
+            null,
+            null
+          ],
+          "plannerPredictedMs": [
+            34213.00603415356,
+            34149.16833415355,
+            34128.99623415356
+          ],
+          "plannerPredictedPeakBytes": [
+            2837618688,
+            2837618688,
+            2837618688
+          ],
+          "bypassedReasons": [
+            [],
+            [],
+            []
+          ],
+          "fallbackKinds": [
+            "post-load-failure",
+            "post-load-failure",
+            "post-load-failure"
+          ],
+          "wastedParallelMs": [
+            38556.8219,
+            38803.1587,
+            39064.543
+          ],
+          "searchMs": [
+            495.4377,
+            431.1605,
+            409.1401
+          ],
+          "searchBudgetExpired": [
+            true,
+            false,
+            false
+          ],
+          "postLoadFailureCount": 3,
+          "attemptedUnexplainedCounts": {
+            "ProjectKeys": 9,
+            "ProjectReferences": 9,
+            "Diagnostics": 180
+          },
+          "attemptedExplainedCaseCount": 0,
+          "ordinaryFallbackUnexplainedCounts": {},
+          "attemptedStatusCounts": {
+            "plan-violation": 3
+          },
+          "attemptedWallMs": 38803.1587,
+          "attemptedWallWithPlanningMs": 39425.7614,
+          "attemptedPhase1Ms": 19923.2703,
+          "attemptedMergeMs": 552.86,
+          "attemptedCriticalGroupMs": 18161.3243,
+          "attemptedGroupStatusCounts": {
+            "ok": 12
+          },
+          "outerWallRatioDescriptive": 1.8794475391935608,
+          "ordinaryFallbackStatusCounts": {
+            "ok": 3
+          },
+          "attemptedPeakMemoryMax": 1960673280,
+          "forceParallel": false,
+          "forecastRelativeError": -0.5848908172485653,
+          "forecastVersusAttemptedRelativeError": -0.13383617407694373
+        },
+        "cluster-N8": {
+          "statusCounts": {
+            "ok": 3
+          },
+          "completeValidRuns": true,
+          "wallMs": 42794.5472,
+          "invalidMeasurementReasons": [
+            [],
+            [],
+            []
+          ],
+          "speedup": 1.0228198488801863,
+          "wallRatio": 0.9776892784147959,
+          "phase1Ms": null,
+          "phase1FirstProgressMs": null,
+          "phase2FirstProgressMs": null,
+          "criticalGroupMs": 41373.1843,
+          "groupMs": [
+            41373.1843
+          ],
+          "mergeMs": 683.2186,
+          "planningMs": 682.4574,
+          "aggregatorPreparationMs": null,
+          "peakMemoryMedian": 1409761280,
+          "peakMemoryMax": 1428967424,
+          "busyCores": 1.4417254245997313,
+          "buildHostCount": 1,
+          "planViolationCount": 0,
+          "equivalence": "identical",
+          "unexplainedCounts": {},
+          "coreCount": 102,
+          "coreCostShare": 0.48942669162103963,
+          "groupCounts": [
+            32,
+            30,
+            26,
+            18,
+            29,
+            24,
+            26,
+            31
+          ],
+          "groupCosts": [
+            4189.6846,
+            4231.1568,
+            3681.9901999999997,
+            2156.4512,
+            4416.694599999999,
+            4383.464199999999,
+            3879.7058,
+            4303.145299999999
+          ],
+          "actualCoreCounts": [
+            0,
+            0,
+            0
+          ],
+          "actualGroupProjectCountsIncludingAggregator": [
+            [
+              425
+            ],
+            [
+              425
+            ],
+            [
+              425
+            ]
+          ],
+          "samplerErrors": [
+            [],
+            [],
+            []
+          ],
+          "maxSampleGapMs": 125.6193,
+          "plannerReasons": [
+            "memory-budget",
+            "memory-budget",
+            "memory-budget"
+          ],
+          "plannerPredictedMs": [
+            32032.196043086376,
+            31758.294442653772,
+            31759.73664265377
+          ],
+          "plannerPredictedPeakBytes": [
+            4256428032,
+            4256428032,
+            4256428032
+          ],
+          "bypassedReasons": [
+            [],
+            [],
+            []
+          ],
+          "fallbackKinds": [
+            "pre-load-refusal",
+            "pre-load-refusal",
+            "pre-load-refusal"
+          ],
+          "wastedParallelMs": [
+            0,
+            0,
+            0
+          ],
+          "searchMs": [
+            495.4695,
+            495.4678,
+            495.5735
+          ],
+          "searchBudgetExpired": [
+            true,
+            true,
+            true
+          ],
+          "postLoadFailureCount": 0,
+          "attemptedUnexplainedCounts": {},
+          "attemptedExplainedCaseCount": 0,
+          "ordinaryFallbackUnexplainedCounts": {},
+          "attemptedStatusCounts": {},
+          "attemptedWallMs": null,
+          "attemptedWallWithPlanningMs": null,
+          "attemptedPhase1Ms": null,
+          "attemptedMergeMs": null,
+          "attemptedCriticalGroupMs": null,
+          "attemptedGroupStatusCounts": {},
+          "outerWallRatioDescriptive": 0.9776892784147959,
+          "ordinaryFallbackStatusCounts": {
+            "ok": 3
+          },
+          "attemptedPeakMemoryMax": null,
+          "forceParallel": false,
+          "forecastRelativeError": -0.2578555278497311,
+          "forecastVersusAttemptedRelativeError": null
+        },
+        "cluster-N8-force": {
+          "statusCounts": {
+            "plan-violation": 3
+          },
+          "completeValidRuns": false,
+          "wallMs": 83983.8941,
+          "invalidMeasurementReasons": [
+            [],
+            [],
+            []
+          ],
+          "speedup": null,
+          "wallRatio": null,
+          "phase1Ms": null,
+          "phase1FirstProgressMs": null,
+          "phase2FirstProgressMs": null,
+          "criticalGroupMs": 42158.5777,
+          "groupMs": [
+            42158.5777
+          ],
+          "mergeMs": 271.6524,
+          "planningMs": 684.532,
+          "aggregatorPreparationMs": null,
+          "peakMemoryMedian": 2574159872,
+          "peakMemoryMax": 2592755712,
+          "busyCores": 2.690247962674548,
+          "buildHostCount": 18,
+          "planViolationCount": 24,
+          "equivalence": "identical",
+          "unexplainedCounts": {},
+          "coreCount": 102,
+          "coreCostShare": 0.48942669162103963,
+          "groupCounts": [
+            32,
+            30,
+            26,
+            18,
+            29,
+            24,
+            26,
+            31
+          ],
+          "groupCosts": [
+            4189.6846,
+            4231.1568,
+            3681.9901999999997,
+            2156.4512,
+            4416.694599999999,
+            4383.464199999999,
+            3879.7058,
+            4303.145299999999
+          ],
+          "actualCoreCounts": [
+            0,
+            0,
+            0
+          ],
+          "actualGroupProjectCountsIncludingAggregator": [
+            [
+              425
+            ],
+            [
+              425
+            ],
+            [
+              425
+            ]
+          ],
+          "samplerErrors": [
+            [],
+            [],
+            []
+          ],
+          "maxSampleGapMs": 213.4041,
+          "plannerReasons": [
+            null,
+            null,
+            null
+          ],
+          "plannerPredictedMs": [
+            32027.96524308637,
+            31767.33714265377,
+            31761.727842653767
+          ],
+          "plannerPredictedPeakBytes": [
+            4256428032,
+            4256428032,
+            4256428032
+          ],
+          "bypassedReasons": [
+            [
+              "memory-budget"
+            ],
+            [
+              "memory-budget"
+            ],
+            [
+              "memory-budget"
+            ]
+          ],
+          "fallbackKinds": [
+            "post-load-failure",
+            "post-load-failure",
+            "post-load-failure"
+          ],
+          "wastedParallelMs": [
+            41338.64,
+            40852.7819,
+            38968.7144
+          ],
+          "searchMs": [
+            495.5208,
+            495.4737,
+            495.4912
+          ],
+          "searchBudgetExpired": [
+            true,
+            true,
+            true
+          ],
+          "postLoadFailureCount": 3,
+          "attemptedUnexplainedCounts": {
+            "ProjectKeys": 9,
+            "ProjectReferences": 9,
+            "Diagnostics": 180
+          },
+          "attemptedExplainedCaseCount": 0,
+          "ordinaryFallbackUnexplainedCounts": {},
+          "attemptedStatusCounts": {
+            "plan-violation": 3
+          },
+          "attemptedWallMs": 40852.7819,
+          "attemptedWallWithPlanningMs": 41542.9688,
+          "attemptedPhase1Ms": 22900.8679,
+          "attemptedMergeMs": 507.3751,
+          "attemptedCriticalGroupMs": 17016.2837,
+          "attemptedGroupStatusCounts": {
+            "ok": 24
+          },
+          "outerWallRatioDescriptive": 1.9187059612373616,
+          "ordinaryFallbackStatusCounts": {
+            "ok": 3
+          },
+          "attemptedPeakMemoryMax": 2592755712,
+          "forceParallel": true,
+          "forecastRelativeError": -0.6217448895043107,
+          "forecastVersusAttemptedRelativeError": -0.23531374718087628
+        },
+        "greedy-N4": {
+          "statusCounts": {
+            "plan-violation": 3
+          },
+          "completeValidRuns": false,
+          "wallMs": 84339.7158,
+          "invalidMeasurementReasons": [
+            [],
+            [],
+            []
+          ],
+          "speedup": null,
+          "wallRatio": null,
+          "phase1Ms": null,
+          "phase1FirstProgressMs": null,
+          "phase2FirstProgressMs": null,
+          "criticalGroupMs": 42834.4474,
+          "groupMs": [
+            42834.4474
+          ],
+          "mergeMs": 243.7124,
+          "planningMs": 209.9733,
+          "aggregatorPreparationMs": null,
+          "peakMemoryMedian": 1850216448,
+          "peakMemoryMax": 1940996096,
+          "busyCores": 2.0508576340258426,
+          "buildHostCount": 6,
+          "planViolationCount": 18,
+          "equivalence": "identical",
+          "unexplainedCounts": {},
+          "coreCount": 108,
+          "coreCostShare": 0.5119043769639756,
+          "groupCounts": [
+            56,
+            46,
+            57,
+            51
+          ],
+          "groupCosts": [
+            7287.5678,
+            7288.948299999998,
+            7801.4216000000015,
+            7488.9317
+          ],
+          "actualCoreCounts": [
+            0,
+            0,
+            0
+          ],
+          "actualGroupProjectCountsIncludingAggregator": [
+            [
+              425
+            ],
+            [
+              425
+            ],
+            [
+              425
+            ]
+          ],
+          "samplerErrors": [
+            [],
+            [],
+            []
+          ],
+          "maxSampleGapMs": 139.6489,
+          "plannerReasons": [
+            null,
+            null,
+            null
+          ],
+          "plannerPredictedMs": [
+            35888.587609395276,
+            35882.39280939528,
+            35873.34720939527
+          ],
+          "plannerPredictedPeakBytes": [
+            2837618688,
+            2837618688,
+            2837618688
+          ],
+          "bypassedReasons": [
+            [],
+            [],
+            []
+          ],
+          "fallbackKinds": [
+            "post-load-failure",
+            "post-load-failure",
+            "post-load-failure"
+          ],
+          "wastedParallelMs": [
+            40894.3973,
+            40975.7818,
+            41670.3087
+          ],
+          "searchMs": [
+            17.7271,
+            17.1165,
+            16.6452
+          ],
+          "searchBudgetExpired": [
+            false,
+            false,
+            false
+          ],
+          "postLoadFailureCount": 3,
+          "attemptedUnexplainedCounts": {
+            "ProjectKeys": 9,
+            "ProjectReferences": 9,
+            "Diagnostics": 180
+          },
+          "attemptedExplainedCaseCount": 0,
+          "ordinaryFallbackUnexplainedCounts": {},
+          "attemptedStatusCounts": {
+            "plan-violation": 3
+          },
+          "attemptedWallMs": 40975.7818,
+          "attemptedWallWithPlanningMs": 41185.755099999995,
+          "attemptedPhase1Ms": 23763.3107,
+          "attemptedMergeMs": 558.7423,
+          "attemptedCriticalGroupMs": 16649.7939,
+          "attemptedGroupStatusCounts": {
+            "ok": 12
+          },
+          "outerWallRatioDescriptive": 1.9268351058101854,
+          "ordinaryFallbackStatusCounts": {
+            "ok": 3
+          },
+          "attemptedPeakMemoryMax": 1940996096,
+          "forceParallel": false,
+          "forecastRelativeError": -0.5745492800273904,
+          "forecastVersusAttemptedRelativeError": -0.12876690685233344
+        }
+      }
+    }
+  },
+  "diagnostics": {
+    "diagnostic-powertoys-baseline": {
+      "status": "ok",
+      "equivalent": true,
+      "unexplainedCount": 0,
+      "binlogCount": 2,
+      "wallMs": 42088.1536,
+      "outsideMedians": true,
+      "issues": []
+    },
+    "diagnostic-powertoys-cluster-N4": {
+      "status": "ok",
+      "equivalent": true,
+      "unexplainedCount": 0,
+      "binlogCount": 10,
+      "wallMs": 22062.9083,
+      "outsideMedians": true,
+      "issues": []
+    },
+    "diagnostic-roslyn-baseline": {
+      "status": "ok",
+      "equivalent": true,
+      "unexplainedCount": 0,
+      "binlogCount": 1,
+      "wallMs": 44281.0681,
+      "outsideMedians": true,
+      "issues": []
+    },
+    "diagnostic-roslyn-cluster-N4": {
+      "status": "plan-violation",
+      "equivalent": false,
+      "unexplainedCount": 0,
+      "binlogCount": 6,
+      "wallMs": 84748.8952,
+      "outsideMedians": true,
+      "issues": [
+        "Required diagnostic is not a successful actual parallel N4 load"
+      ]
+    }
+  },
+  "sha256": {
+    "diagnostic-powertoys-baseline.json": "f0775f151ae4ae68758cab28fd818339b9aa80b4215baacc9a66e7e338cf273f",
+    "diagnostic-powertoys-cluster-N4.json": "0db0834fede23c39a7ef8d50b188e3ee811211ecc945dce9cc4169dd559f2d06",
+    "diagnostic-roslyn-baseline.json": "6350fda06167b89047f6ab13cc0adca61b3b068210aaea02b82496d099663ead",
+    "diagnostic-roslyn-cluster-N4.json": "73910db0592e0707e26ae1ea3c3288e230ae84caa95b60657a574dee39b820e0",
+    "files-baseline-0.json": "5e7b717d878fcebe3c584577d05e958f55ab281be87163d44007399c4e992e98",
+    "files-baseline-1.json": "da397a20c8a86fa502f9a91316ef71a990b0d57b7f1dbbeea2dea56b14c157e8",
+    "files-baseline-2.json": "12588ed3b1451c8287a9a4494c9e94eb3fe12aadf4a6b7d9d465cf1ce6066227",
+    "files-baseline-3.json": "506b8b8929073a7f6722fbd6fe20c3e24fc0815c743da3531e316ace01de2625",
+    "files-cluster-N2-0.json": "598db5a4994900c570c3493c0942c7341578b75dc882055aa2b56c428b42c20d",
+    "files-cluster-N2-1.json": "9b1f87e3c2db22d8103a41478e74b16e328a01625c9ff94e1a31c1b9a82191bf",
+    "files-cluster-N2-2.json": "75fbc67e967541d5314b0a11ad8ac5387ea0a717fb8a8655a881cae0e1ea3d76",
+    "files-cluster-N2-3.json": "aa443a628f99655c75ed2ead5024ce35f4e332f48020a79205156ddaa8d6d450",
+    "powertoys-baseline-0.json": "7ac1f1d01c969fb6c0d48501cebf0e0b7911fe002714a3622ebc49c256d2fddf",
+    "powertoys-baseline-1.json": "46b17d24a684bab613fa4530e3b890280d23e839203a4596efd7163427d5cbb6",
+    "powertoys-baseline-2.json": "ae54936be5c0bc4e1eab2833fc07fe7f607c98754518c94a6b94128804dd0c2f",
+    "powertoys-baseline-3.json": "04132a2412ce7416faf54c1785bf08b8529878b2d71646d1e0a62f49dc706c9c",
+    "powertoys-cluster-N4-0.json": "228c26e4d6bdd449abea480b6553b4627ee0a6b0b2bb82c9110459261cf22c95",
+    "powertoys-cluster-N4-1.json": "f93a1d9b7425f967ad682ef734f9de13b8b7aca8be34f8bd0d20af04bdedbbc7",
+    "powertoys-cluster-N4-2.json": "779cc7e51be8c08e8d62c3ba9df83031afb0e9ea767bcf97337261fbb010ccd2",
+    "powertoys-cluster-N4-3.json": "06f0f31485529f1ead64eed5dc98e0ed1abf86fc6e3462cb6042b363c9c79bd9",
+    "roslyn-baseline-0.json": "b1d10992bf2c1a3378ac007a35a210b1d7ef9fb3cbb35428186e3ff10112da49",
+    "roslyn-baseline-1.json": "00423ba86a5941c25b3eecf0acad450949b66723744ff0cde60933dc4b3c5433",
+    "roslyn-baseline-2.json": "3ee815c13b5d5374f314cef7e29cd0c46f98438344ecb88c00ebbfe08602275b",
+    "roslyn-baseline-3.json": "b1275640bb2f32e3ca2662f1f33dbed1ae0955efb9fa46ceb5141c83fc698f33",
+    "roslyn-cluster-N4-0.json": "381fd9bf002b26b4b68528892aba9193dbd33988492b6593fc21745ffc5ddb60",
+    "roslyn-cluster-N4-1.json": "5b388fbfd5b5ce561ea6373f7e65614a68f63e9be6b3135992dbcb1a817e7842",
+    "roslyn-cluster-N4-2.json": "8b76198f198b241c610f5cd617b1f328af26bd5ef4210a87220f8a2b9af2d0b8",
+    "roslyn-cluster-N4-3.json": "e33206038e60bd7c99155d79175c11df2f3df9b42b3907e6cb4d7dba26c55095",
+    "roslyn-cluster-N8-0.json": "bf327d58d39e865c3ae519bf721f15b6a705dac65f0e175a7e0b16fbb705ddeb",
+    "roslyn-cluster-N8-1.json": "9d8f5ff25288bde7238b43aec709fa25e3170abf55824ff7a67f3fa9f42f0383",
+    "roslyn-cluster-N8-2.json": "8ebc5357ae554773a94b8e9235396870f292c4ce37d331f9ccfc53e704534a4d",
+    "roslyn-cluster-N8-3.json": "86d73db3c65243d0bc2d911827c00853898aae702e76682d2c242c220d5845d3",
+    "roslyn-cluster-N8-force-0.json": "ff454a533ad451d436df604a16de39e1e09d1a9879a188243d40c92a731434e5",
+    "roslyn-cluster-N8-force-1.json": "5b4c2a8719c750cb622d7bb60c25744bd272418e4acacccbd9b524a9fe91b584",
+    "roslyn-cluster-N8-force-2.json": "cbf952005fd285882d4c239856f7186b668cddea09b2e53f18bc5181dc06a65b",
+    "roslyn-cluster-N8-force-3.json": "aa178cc9ab5ff6774b8704f5085968bc8ef4a4586d517c9b4f1a267ce161a81d",
+    "roslyn-greedy-N4-0.json": "17fa576871aaedad321c971a7f36cf29262980b912c88529d9cf5984408de670",
+    "roslyn-greedy-N4-1.json": "afb6cea346c42019d46e6632e39a3891e535074186690ec08d3ebae55d5d9dba",
+    "roslyn-greedy-N4-2.json": "1821674fff04e5abae834decc6d214fba64649d4a09289b5efa389cade8c9095",
+    "roslyn-greedy-N4-3.json": "598ec4cb6b8e3f1bfa70119c3217b9d1eb088fd7a32b63e36d2f1a78ee015348"
+  },
+  "gates": {
+    "correctness": false,
+    "speed": true,
+    "refusalOverhead": true,
+    "memory": true
+  },
+  "heldoutPredictionRecordedAtUtc": "2026-10-10T18:16:49Z",
+  "heldoutPredictionSha256": "6e2935a99d6b71f48d5fd167253dcad2cf539e8c5d5a1b80249ce314a3534e67",
+  "heldoutComparison": {
+    "4": {
+      "forecastSourceSha256": "530dd519b8f87a470e865466f687aec1c0aaff36642a17bf1f00eafd82e2cf2d",
+      "predictedMs": 34211.30313415355,
+      "originalReason": null,
+      "observedCombination": "cluster-N4",
+      "attemptedWithPlanningMedianMs": 39425.7614,
+      "outerIncludingFallbackMedianMs": 82265.5093,
+      "errorAgainstAttempted": -0.1322601791489168,
+      "errorAgainstOuter": -0.5841355213714874,
+      "validParallelResult": false,
+      "estimatedPeakBytes": 2837618688,
+      "attemptedPeakMaxBytes": 1960673280,
+      "meaning": "Frozen premeasurement prediction; failed attempted parallel timings are descriptive and do not validate the model or pass correctness gate."
+    },
+    "8": {
+      "forecastSourceSha256": "4d536952fff58af1a18c383254808ed23cf60977575294d2b128534351725e17",
+      "predictedMs": 32032.233043086373,
+      "originalReason": "memory-budget",
+      "observedCombination": "cluster-N8-force",
+      "attemptedWithPlanningMedianMs": 41542.9688,
+      "outerIncludingFallbackMedianMs": 83983.8941,
+      "errorAgainstAttempted": -0.22893731554673166,
+      "errorAgainstOuter": -0.6185907621174906,
+      "validParallelResult": false,
+      "estimatedPeakBytes": 4256428032,
+      "attemptedPeakMaxBytes": 2592755712,
+      "meaning": "Frozen premeasurement prediction; failed attempted parallel timings are descriptive and do not validate the model or pass correctness gate."
+    }
+  }
+}

@@ -1,0 +1,126 @@
+[
+  {
+    "file": "spikes/ParallelLoad/Bootstrap/GlobalJsonSdkReader.cs",
+    "sha256": "8ddfcff60e781ca47115865b8769d35c48a26575ef35c5e6d8f5b629e8e9d8c0"
+  },
+  {
+    "file": "spikes/ParallelLoad/Bootstrap/Models/MsBuildInstanceCandidate.cs",
+    "sha256": "ad7ad437756d31e645fd1ea4e096c9edd501ce4d7ce92aeaba2912ce19bc7007"
+  },
+  {
+    "file": "spikes/ParallelLoad/Bootstrap/MsBuildInstanceSelector.cs",
+    "sha256": "cdb326aaf17c5b4b447e95dab0c1243d76d1dc797b5e689914e38259fbd5839c"
+  },
+  {
+    "file": "spikes/ParallelLoad/calibrate_profile.py",
+    "sha256": "5a822845e0c53dd291f92552831580f8bc64c65513ff08e7c73f61f95596e939"
+  },
+  {
+    "file": "spikes/ParallelLoad/compare.py",
+    "sha256": "6fdd793c88f89e9a4a59868cc6a0210bf33d0202afe143fb66c3e9cdccc4060e"
+  },
+  {
+    "file": "spikes/ParallelLoad/ExternalSampler.cs",
+    "sha256": "54c340e78d7e7c70871d3fea7a8afc341b38c321ea081b3684e62e78e7395f60"
+  },
+  {
+    "file": "spikes/ParallelLoad/FastProcessSampler.cs",
+    "sha256": "8f5813c5278dd1efd851f1b4c361a471f4fc746874396613d4f2375d02ca03f7"
+  },
+  {
+    "file": "spikes/ParallelLoad/LoadExperiment.cs",
+    "sha256": "9cb29d925c97447da8f849d341039ad01b657ada9c41ac8248270fb24f0be181"
+  },
+  {
+    "file": "spikes/ParallelLoad/MergeChecks.cs",
+    "sha256": "fe19616c9defa4cde042cc873b9bbe6dc51679910c15080d2842016d41c122f8"
+  },
+  {
+    "file": "spikes/ParallelLoad/Models/BinlogSession.cs",
+    "sha256": "bbc1b971f74e49ba6ddb140c8d2b14ec648ea647e5279e6df7936e356f104d8b"
+  },
+  {
+    "file": "spikes/ParallelLoad/Models/CostModel.cs",
+    "sha256": "a31edbc9b72ab7c9a51dd615ceb4f2c03df5d3d4606d063d7bb73384750c78fc"
+  },
+  {
+    "file": "spikes/ParallelLoad/Models/CostProfile.cs",
+    "sha256": "b5b047f48ab5332489d1384864189aa85fac38a8d796a07b12be7698d05a578f"
+  },
+  {
+    "file": "spikes/ParallelLoad/Models/PartitionPlan.cs",
+    "sha256": "449d9a4d2fb2b1dc73c5291136b4e60ab99bfaefce751c987638a543a52dc21a"
+  },
+  {
+    "file": "spikes/ParallelLoad/Models/ProcessMetrics.cs",
+    "sha256": "7f76f091e1ec62f8ff4832fd93e532f2231112895da66bf02f555b0abf8d5955"
+  },
+  {
+    "file": "spikes/ParallelLoad/Models/ProjectBuildInterval.cs",
+    "sha256": "924ae41923a5137ab300ef8a6c7a0538e1a74952ec80a4f4bc2a9084b9a47af2"
+  },
+  {
+    "file": "spikes/ParallelLoad/Models/ProjectCost.cs",
+    "sha256": "e04523a29c375de5f4f02cb31ec015582165d147c002a58dc3b8e082da39ab07"
+  },
+  {
+    "file": "spikes/ParallelLoad/MsBuildRegistration.cs",
+    "sha256": "97626cde4909c85e9ff43641dab1a59878da4149629f28694a962c12688f2f2d"
+  },
+  {
+    "file": "spikes/ParallelLoad/NativeLoadProgress.cs",
+    "sha256": "6464374032bb259e83f719cf9012f0732620b1341fe16bff422025a135ac2fc9"
+  },
+  {
+    "file": "spikes/ParallelLoad/ParallelLoad.csproj",
+    "sha256": "5d9390980bbf50a902134acd3c9bb171499e1ae845f645dc228a1a0357aa650b"
+  },
+  {
+    "file": "spikes/ParallelLoad/ProfileChecks.cs",
+    "sha256": "1ac3dd57ee0026ce12ef9e2628113948ba63156583cbeefe82e81e4a289aa9d5"
+  },
+  {
+    "file": "spikes/ParallelLoad/ProfileExperiment.cs",
+    "sha256": "a8720179c8b84af766aa4b74e46f488173cd286a886246485f3365da830aef6f"
+  },
+  {
+    "file": "spikes/ParallelLoad/ProfilePartition.cs",
+    "sha256": "47571fec01a86e25425593d16bd1e4f25cd2e2878bc01937365cad31fac2d951"
+  },
+  {
+    "file": "spikes/ParallelLoad/ProfileReplayChecks.cs",
+    "sha256": "602d1ba391bd74b2a9417638c023794a324df0745f7e2c834f95de31ebf9f9c3"
+  },
+  {
+    "file": "spikes/ParallelLoad/Program.cs",
+    "sha256": "389df47fb3ef6399ebd5cd74ad70a4c30691ef69f1fa0df3806f2f5fffcbcaae"
+  },
+  {
+    "file": "spikes/ParallelLoad/ProjectCostReplay.cs",
+    "sha256": "5dab2f8562a87828ad5160348ca3ef8c8fa96bfccaa86cec6c4d2ca3fbae6a86"
+  },
+  {
+    "file": "spikes/ParallelLoad/ProjectMerger.cs",
+    "sha256": "4e69c1117961fb80025424f47a8904e3b87e37a170b0f25b707aa1d956ef35ac"
+  },
+  {
+    "file": "spikes/ParallelLoad/ProjectPartition.cs",
+    "sha256": "ed970ad0570c3aa1e0a85ef89745b49aa9ad587ac69f3f54a12659f4fd199b81"
+  },
+  {
+    "file": "spikes/ParallelLoad/README.md",
+    "sha256": "4ea121811195e79444055a5ca46e8f29e57ab577a889dab7b7bb9245d3ba8af9"
+  },
+  {
+    "file": "spikes/ParallelLoad/RunOptions.cs",
+    "sha256": "cc28e43e85d1f02a0c09ce91ac2b6ca4e3f8592ea8386753af50eef90fb0e61b"
+  },
+  {
+    "file": "spikes/ParallelLoad/SolutionObservation.cs",
+    "sha256": "64043f85be0d48901c9f248c993ff5e09750fae9515bffa0db34de28102da1b9"
+  },
+  {
+    "file": "spikes/ParallelLoad/summarize_profile.py",
+    "sha256": "e5cd8859e5f09fbf9bb25b74162afd7b373bef89a5a7fc5e6416a545ffa40f7e"
+  }
+]

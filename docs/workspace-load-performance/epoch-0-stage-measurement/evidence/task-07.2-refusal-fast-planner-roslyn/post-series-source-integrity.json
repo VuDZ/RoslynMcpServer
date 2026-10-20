@@ -1,0 +1,10 @@
+{
+  "frozenSourceCount": 50,
+  "changedRuntimeSources": [],
+  "priorEvidenceFileCount": 19,
+  "changedPriorEvidence": [],
+  "byteUnchangedComparator": {
+    "compare.py": true,
+    "SolutionObservation.cs": true
+  }
+}

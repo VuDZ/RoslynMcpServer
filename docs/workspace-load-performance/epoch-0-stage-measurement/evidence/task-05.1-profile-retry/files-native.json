@@ -1,0 +1,29 @@
+{
+  "solutionNativeProjects": 5,
+  "uniqueUnsupportedNativePaths": 5,
+  "unsupportedFailureCallbacks": 5,
+  "msbuildNativeFailureCallbacks": 0,
+  "nativeProgressEvents": 0,
+  "callbacksWithinGaps": 5,
+  "callbacksWithinOwnBuild": 0,
+  "callbacksOutsideBinlogInterval": 0,
+  "firstOccurrenceSpanMs": 2.6259422302246094,
+  "nativeAssociatedGapMsUpperBound": 116.55902862548828,
+  "nativeAttemptMs": null,
+  "timingLimit": "Failure reports completion without attempt start; native progress is absent. Gap bounds include Roslyn/evaluation work and must not be reported as isolated native duration.",
+  "modelAttribution": "Keep the entire inter-build gap, including native activity, in the following C# project weight; the first gap remains host cost.",
+  "associatedGaps": [
+    {
+      "chargedTo": "src/Files.App.Server/Files.App.Server.csproj",
+      "gapMsUpperBound": 116.55902862548828,
+      "failureCallbacks": 5,
+      "nativePaths": [
+        "<solution>\\src\\Files.App.Launcher\\Files.App.Launcher.vcxproj",
+        "<solution>\\src\\Files.App.OpenDialog\\Files.App.OpenDialog.Win32.vcxproj",
+        "<solution>\\src\\Files.App.OpenDialog\\Files.App.OpenDialog.vcxproj",
+        "<solution>\\src\\Files.App.SaveDialog\\Files.App.SaveDialog.Win32.vcxproj",
+        "<solution>\\src\\Files.App.SaveDialog\\Files.App.SaveDialog.vcxproj"
+      ]
+    }
+  ]
+}

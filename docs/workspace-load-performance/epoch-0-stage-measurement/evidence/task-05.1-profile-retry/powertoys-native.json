@@ -1,0 +1,2195 @@
+{
+  "solutionNativeProjects": 113,
+  "uniqueUnsupportedNativePaths": 113,
+  "unsupportedFailureCallbacks": 1014,
+  "msbuildNativeFailureCallbacks": 1252,
+  "nativeProgressEvents": 0,
+  "callbacksWithinGaps": 1005,
+  "callbacksWithinOwnBuild": 0,
+  "callbacksOutsideBinlogInterval": 9,
+  "firstOccurrenceSpanMs": 37719.849824905396,
+  "nativeAssociatedGapMsUpperBound": 13648.429870605469,
+  "nativeAttemptMs": null,
+  "timingLimit": "Failure reports completion without attempt start; native progress is absent. Gap bounds include Roslyn/evaluation work and must not be reported as isolated native duration.",
+  "modelAttribution": "Keep the entire inter-build gap, including native activity, in the following C# project weight; the first gap remains host cost.",
+  "associatedGaps": [
+    {
+      "chargedTo": "src/common/ManagedTelemetry/Telemetry/ManagedTelemetry.csproj",
+      "gapMsUpperBound": 1491.3709163665771,
+      "failureCallbacks": 1,
+      "nativePaths": [
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/common/Common.UI/Common.UI.csproj",
+      "gapMsUpperBound": 114.3949031829834,
+      "failureCallbacks": 7,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/common/FilePreviewCommon/FilePreviewCommon.csproj",
+      "gapMsUpperBound": 111.9990348815918,
+      "failureCallbacks": 6,
+      "nativePaths": [
+        "<solution>\\src\\common\\COMUtils\\COMUtils.vcxproj",
+        "<solution>\\src\\common\\Display\\Display.vcxproj",
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/common/GPOWrapperProjection/GPOWrapperProjection.csproj",
+      "gapMsUpperBound": 88.90199661254883,
+      "failureCallbacks": 1,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/common/LanguageModelProvider/LanguageModelProvider.csproj",
+      "gapMsUpperBound": 76.13515853881836,
+      "failureCallbacks": 2,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/common/ManagedCsWin32/ManagedCsWin32.csproj",
+      "gapMsUpperBound": 165.43221473693848,
+      "failureCallbacks": 4,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/common/UITestAutomation.Next.UnitTests/UITestAutomation.Next.UnitTests.csproj",
+      "gapMsUpperBound": 100.05497932434082,
+      "failureCallbacks": 6,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\Themes\\Themes.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/MouseUtils/MouseJump.Common/MouseJump.Common.csproj",
+      "gapMsUpperBound": 142.40002632141113,
+      "failureCallbacks": 2,
+      "nativePaths": [
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/common/interop/interop-tests/Common.Interop.UnitTests.csproj",
+      "gapMsUpperBound": 91.74299240112305,
+      "failureCallbacks": 13,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\UnitTests-CommonLib\\UnitTests-CommonLib.vcxproj",
+        "<solution>\\src\\common\\UnitTests-CommonUtils\\UnitTests-CommonUtils.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\updating\\UnitTests\\UpdatingUnitTests.vcxproj",
+        "<solution>\\src\\common\\updating\\updating.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/dsc/PowerToys.Settings.DSC.Schema.Generator/PowerToys.Settings.DSC.Schema.Generator.csproj",
+      "gapMsUpperBound": 58.30883979797363,
+      "failureCallbacks": 10,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\Telemetry\\EtwTrace\\EtwTrace.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\notifications\\BackgroundActivatorDLL\\BackgroundActivatorDLL.vcxproj",
+        "<solution>\\src\\common\\notifications\\BackgroundActivator\\BackgroundActivator.vcxproj",
+        "<solution>\\src\\common\\notifications\\notifications.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/dsc/v3/PowerToys.DSC.UnitTests/PowerToys.DSC.UnitTests.csproj",
+      "gapMsUpperBound": 59.11612510681152,
+      "failureCallbacks": 5,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/AdvancedPaste/AdvancedPaste/AdvancedPaste.csproj",
+      "gapMsUpperBound": 101.02415084838867,
+      "failureCallbacks": 10,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/AdvancedPaste/AdvancedPaste.FuzzTests/AdvancedPaste.FuzzTests.csproj",
+      "gapMsUpperBound": 290.33708572387695,
+      "failureCallbacks": 7,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj",
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\AdvancedPaste\\AdvancedPasteModuleInterface\\AdvancedPasteModuleInterface.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/alwaysontop/Tests/AlwaysOnTop.UITests/AlwaysOnTop.UITests.csproj",
+      "gapMsUpperBound": 87.95404434204102,
+      "failureCallbacks": 10,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj",
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\AltWindowCycle\\AltWindowCycle.vcxproj",
+        "<solution>\\src\\modules\\AltWindowCycle\\UnitTests\\AltWindowCycleUnitTests.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj",
+        "<solution>\\src\\modules\\alwaysontop\\AlwaysOnTopModuleInterface\\AlwaysOnTopModuleInterface.vcxproj",
+        "<solution>\\src\\modules\\alwaysontop\\AlwaysOnTop\\AlwaysOnTop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/awake/Awake/Awake.csproj",
+      "gapMsUpperBound": 62.73913383483887,
+      "failureCallbacks": 10,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/awake/Awake.UnitTests/Awake.UnitTests.csproj",
+      "gapMsUpperBound": 89.92195129394531,
+      "failureCallbacks": 7,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj",
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj",
+        "<solution>\\src\\modules\\awake\\AwakeModuleInterface\\AwakeModuleInterface.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/colorPicker/ColorPicker.ModuleServices/ColorPicker.ModuleServices.csproj",
+      "gapMsUpperBound": 56.96511268615723,
+      "failureCallbacks": 7,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj",
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj",
+        "<solution>\\src\\modules\\cmdNotFound\\CmdNotFoundModuleInterface\\CmdNotFoundModuleInterface.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/colorPicker/ColorPickerUI/ColorPickerUI.csproj",
+      "gapMsUpperBound": 67.79098510742188,
+      "failureCallbacks": 6,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj",
+        "<solution>\\src\\modules\\colorPicker\\ColorPicker\\ColorPicker.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/colorPicker/ColorPicker.UITests/ColorPicker.UITests.csproj",
+      "gapMsUpperBound": 90.71183204650879,
+      "failureCallbacks": 6,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj",
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/cmdpal/Microsoft.CmdPal.Common/Microsoft.CmdPal.Common.csproj",
+      "gapMsUpperBound": 84.50007438659668,
+      "failureCallbacks": 8,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj",
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj",
+        "<solution>\\src\\modules\\cmdpal\\CmdPalKeyboardService\\CmdPalKeyboardService.vcxproj",
+        "<solution>\\src\\modules\\cmdpal\\CmdPalModuleInterface\\CmdPalModuleInterface.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/cmdpal/ext/Microsoft.CmdPal.Ext.Actions/Microsoft.CmdPal.Ext.Actions.csproj",
+      "gapMsUpperBound": 120.53704261779785,
+      "failureCallbacks": 5,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\cmdpal\\extensionsdk\\Microsoft.CommandPalette.Extensions\\Microsoft.CommandPalette.Extensions.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/cmdpal/ext/Microsoft.CmdPal.Ext.Apps/Microsoft.CmdPal.Ext.Apps.csproj",
+      "gapMsUpperBound": 90.4550552368164,
+      "failureCallbacks": 8,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/cmdpal/ext/Microsoft.CmdPal.Ext.Bookmark/Microsoft.CmdPal.Ext.Bookmarks.csproj",
+      "gapMsUpperBound": 71.35486602783203,
+      "failureCallbacks": 4,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/cmdpal/ext/Microsoft.CmdPal.Ext.Calc/Microsoft.CmdPal.Ext.Calc.csproj",
+      "gapMsUpperBound": 74.24092292785645,
+      "failureCallbacks": 4,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/cmdpal/ext/Microsoft.CmdPal.Ext.ClipboardHistory/Microsoft.CmdPal.Ext.ClipboardHistory.csproj",
+      "gapMsUpperBound": 87.85486221313477,
+      "failureCallbacks": 5,
+      "nativePaths": [
+        "<solution>\\src\\common\\CalculatorEngineCommon\\CalculatorEngineCommon.vcxproj",
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/cmdpal/ext/Microsoft.CmdPal.Ext.PerformanceMonitor/Microsoft.CmdPal.Ext.PerformanceMonitor.csproj",
+      "gapMsUpperBound": 85.68692207336426,
+      "failureCallbacks": 4,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/cmdpal/ext/Microsoft.CmdPal.Ext.PowerToys/Microsoft.CmdPal.Ext.PowerToys.csproj",
+      "gapMsUpperBound": 78.85503768920898,
+      "failureCallbacks": 4,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/fancyzones/FancyZonesEditorCommon/FancyZonesEditorCommon.csproj",
+      "gapMsUpperBound": 70.94407081604004,
+      "failureCallbacks": 1,
+      "nativePaths": [
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/Workspaces/WorkspacesCsharpLibrary/WorkspacesCsharpLibrary.csproj",
+      "gapMsUpperBound": 50.486087799072266,
+      "failureCallbacks": 1,
+      "nativePaths": [
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/cmdpal/ext/Microsoft.CmdPal.Ext.Registry/Microsoft.CmdPal.Ext.Registry.csproj",
+      "gapMsUpperBound": 60.90998649597168,
+      "failureCallbacks": 7,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/cmdpal/ext/Microsoft.CmdPal.Ext.RemoteDesktop/Microsoft.CmdPal.Ext.RemoteDesktop.csproj",
+      "gapMsUpperBound": 83.85109901428223,
+      "failureCallbacks": 4,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/cmdpal/ext/Microsoft.CmdPal.Ext.Shell/Microsoft.CmdPal.Ext.Shell.csproj",
+      "gapMsUpperBound": 66.70093536376953,
+      "failureCallbacks": 4,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/cmdpal/ext/Microsoft.CmdPal.Ext.System/Microsoft.CmdPal.Ext.System.csproj",
+      "gapMsUpperBound": 75.40297508239746,
+      "failureCallbacks": 4,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/cmdpal/ext/Microsoft.CmdPal.Ext.WebSearch/Microsoft.CmdPal.Ext.WebSearch.csproj",
+      "gapMsUpperBound": 62.82997131347656,
+      "failureCallbacks": 4,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/cmdpal/ext/Microsoft.CmdPal.Ext.WindowsServices/Microsoft.CmdPal.Ext.WindowsServices.csproj",
+      "gapMsUpperBound": 63.939809799194336,
+      "failureCallbacks": 4,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/cmdpal/ext/Microsoft.CmdPal.Ext.WindowsSettings/Microsoft.CmdPal.Ext.WindowsSettings.csproj",
+      "gapMsUpperBound": 65.31000137329102,
+      "failureCallbacks": 4,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/cmdpal/ext/Microsoft.CmdPal.Ext.WindowsTerminal/Microsoft.CmdPal.Ext.WindowsTerminal.csproj",
+      "gapMsUpperBound": 68.5429573059082,
+      "failureCallbacks": 4,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/cmdpal/ext/Microsoft.CmdPal.Ext.WindowWalker/Microsoft.CmdPal.Ext.WindowWalker.csproj",
+      "gapMsUpperBound": 61.89298629760742,
+      "failureCallbacks": 4,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/cmdpal/ext/Microsoft.CmdPal.Ext.WinGet/Microsoft.CmdPal.Ext.WinGet.csproj",
+      "gapMsUpperBound": 61.63191795349121,
+      "failureCallbacks": 4,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/cmdpal/ext/ProcessMonitorExtension/ProcessMonitorExtension.csproj",
+      "gapMsUpperBound": 59.661865234375,
+      "failureCallbacks": 4,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/cmdpal/Tests/Microsoft.CmdPal.Ext.Apps.UnitTests/Microsoft.CmdPal.Ext.Apps.UnitTests.csproj",
+      "gapMsUpperBound": 54.322004318237305,
+      "failureCallbacks": 4,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/cmdpal/Tests/Microsoft.CmdPal.Ext.Bookmarks.UnitTests/Microsoft.CmdPal.Ext.Bookmarks.UnitTests.csproj",
+      "gapMsUpperBound": 101.44686698913574,
+      "failureCallbacks": 4,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/cmdpal/Tests/Microsoft.CmdPal.Ext.Calc.UnitTests/Microsoft.CmdPal.Ext.Calc.UnitTests.csproj",
+      "gapMsUpperBound": 60.63413619995117,
+      "failureCallbacks": 4,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/cmdpal/Tests/Microsoft.CmdPal.Ext.ClipboardHistory.UnitTests/Microsoft.CmdPal.Ext.ClipboardHistory.UnitTests.csproj",
+      "gapMsUpperBound": 63.0650520324707,
+      "failureCallbacks": 5,
+      "nativePaths": [
+        "<solution>\\src\\common\\CalculatorEngineCommon\\CalculatorEngineCommon.vcxproj",
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/cmdpal/Tests/Microsoft.CmdPal.Ext.Indexer.UnitTests/Microsoft.CmdPal.Ext.Indexer.UnitTests.csproj",
+      "gapMsUpperBound": 58.68101119995117,
+      "failureCallbacks": 4,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/cmdpal/Tests/Microsoft.CmdPal.Ext.PerformanceMonitor.UnitTests/Microsoft.CmdPal.Ext.PerformanceMonitor.UnitTests.csproj",
+      "gapMsUpperBound": 58.67409706115723,
+      "failureCallbacks": 4,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/cmdpal/Tests/Microsoft.CmdPal.Ext.PowerToys.UnitTests/Microsoft.CmdPal.Ext.PowerToys.UnitTests.csproj",
+      "gapMsUpperBound": 60.369014739990234,
+      "failureCallbacks": 4,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/cmdpal/Tests/Microsoft.CmdPal.Ext.Registry.UnitTests/Microsoft.CmdPal.Ext.Registry.UnitTests.csproj",
+      "gapMsUpperBound": 59.623003005981445,
+      "failureCallbacks": 5,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/cmdpal/Tests/Microsoft.CmdPal.Ext.RemoteDesktop.UnitTests/Microsoft.CmdPal.Ext.RemoteDesktop.UnitTests.csproj",
+      "gapMsUpperBound": 76.96199417114258,
+      "failureCallbacks": 4,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/cmdpal/Tests/Microsoft.CmdPal.Ext.Shell.UnitTests/Microsoft.CmdPal.Ext.Shell.UnitTests.csproj",
+      "gapMsUpperBound": 59.37790870666504,
+      "failureCallbacks": 4,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/cmdpal/Tests/Microsoft.CmdPal.Ext.System.UnitTests/Microsoft.CmdPal.Ext.System.UnitTests.csproj",
+      "gapMsUpperBound": 77.25095748901367,
+      "failureCallbacks": 4,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/cmdpal/Tests/Microsoft.CmdPal.Ext.TimeDate.UnitTests/Microsoft.CmdPal.Ext.TimeDate.UnitTests.csproj",
+      "gapMsUpperBound": 62.994956970214844,
+      "failureCallbacks": 4,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/cmdpal/Tests/Microsoft.CmdPal.Ext.WebSearch.UnitTests/Microsoft.CmdPal.Ext.WebSearch.UnitTests.csproj",
+      "gapMsUpperBound": 84.48386192321777,
+      "failureCallbacks": 4,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/cmdpal/Tests/Microsoft.CmdPal.Ext.WindowsSettings.UnitTests/Microsoft.CmdPal.Ext.WindowsSettings.UnitTests.csproj",
+      "gapMsUpperBound": 56.4579963684082,
+      "failureCallbacks": 4,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/cmdpal/Tests/Microsoft.CmdPal.Ext.WindowsTerminal.UnitTests/Microsoft.CmdPal.Ext.WindowsTerminal.UnitTests.csproj",
+      "gapMsUpperBound": 57.92093276977539,
+      "failureCallbacks": 4,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/cmdpal/Tests/Microsoft.CmdPal.Ext.WindowWalker.UnitTests/Microsoft.CmdPal.Ext.WindowWalker.UnitTests.csproj",
+      "gapMsUpperBound": 57.91902542114258,
+      "failureCallbacks": 4,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/cmdpal/Tests/Microsoft.CmdPal.Ext.WinGet.UnitTests/Microsoft.CmdPal.Ext.WinGet.UnitTests.csproj",
+      "gapMsUpperBound": 58.83479118347168,
+      "failureCallbacks": 4,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/cmdpal/Tests/Microsoft.CmdPal.UI.ManualTests/Microsoft.CmdPal.UI.ManualTests.csproj",
+      "gapMsUpperBound": 56.845903396606445,
+      "failureCallbacks": 4,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/cmdpal/Tests/Microsoft.CmdPal.UI.UnitTests/Microsoft.CmdPal.UI.UnitTests.csproj",
+      "gapMsUpperBound": 102.40912437438965,
+      "failureCallbacks": 16,
+      "nativePaths": [
+        "<solution>\\src\\common\\CalculatorEngineCommon\\CalculatorEngineCommon.vcxproj",
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\cmdpal\\CmdPalKeyboardService\\CmdPalKeyboardService.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/cmdpal/Tests/Microsoft.CmdPal.UI.ViewModels.UnitTests/Microsoft.CmdPal.UI.ViewModels.UnitTests.csproj",
+      "gapMsUpperBound": 60.50705909729004,
+      "failureCallbacks": 4,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/cmdpal/Tests/Microsoft.CmdPal.UITests/Microsoft.CmdPal.UITests.csproj",
+      "gapMsUpperBound": 62.413930892944336,
+      "failureCallbacks": 4,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/cmdpal/Tests/Microsoft.CommandPalette.Extensions.Toolkit.UnitTests/Microsoft.CommandPalette.Extensions.Toolkit.UnitTests.csproj",
+      "gapMsUpperBound": 51.00202560424805,
+      "failureCallbacks": 5,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/CropAndLock/Tests/CropAndLock.TestApp/CropAndLock.TestApp.csproj",
+      "gapMsUpperBound": 57.142019271850586,
+      "failureCallbacks": 2,
+      "nativePaths": [
+        "<solution>\\src\\modules\\CropAndLock\\CropAndLockModuleInterface\\CropAndLockModuleInterface.vcxproj",
+        "<solution>\\src\\modules\\CropAndLock\\CropAndLock\\CropAndLock.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/EnvironmentVariables/EnvironmentVariablesUILib/EnvironmentVariablesUILib.csproj",
+      "gapMsUpperBound": 64.00895118713379,
+      "failureCallbacks": 1,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/EnvironmentVariables/EnvironmentVariables.UITests/EnvironmentVariables.UITests.csproj",
+      "gapMsUpperBound": 59.834957122802734,
+      "failureCallbacks": 5,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\EnvironmentVariables\\EnvironmentVariablesModuleInterface\\EnvironmentVariablesModuleInterface.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/fancyzones/FancyZonesCLI/FancyZonesCLI.csproj",
+      "gapMsUpperBound": 60.92691421508789,
+      "failureCallbacks": 6,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj",
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\fancyzones\\FancyZones\\FancyZones.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/fancyzones/FancyZones.FuzzTests/FancyZones.FuzzTests.csproj",
+      "gapMsUpperBound": 51.444053649902344,
+      "failureCallbacks": 2,
+      "nativePaths": [
+        "<solution>\\src\\modules\\fancyzones\\FancyZonesLib\\FancyZonesLib.vcxproj",
+        "<solution>\\src\\modules\\fancyzones\\FancyZonesModuleInterface\\FancyZonesModuleInterface.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/fancyzones/FancyZonesEditor.UITests.Next/FancyZonesEditor.UITests.Next.csproj",
+      "gapMsUpperBound": 60.55617332458496,
+      "failureCallbacks": 12,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj",
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/previewpane/BgcodePreviewHandler/BgcodePreviewHandler.csproj",
+      "gapMsUpperBound": 54.39114570617676,
+      "failureCallbacks": 6,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj",
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\fancyzones\\FancyZonesTests\\UnitTests\\UnitTests.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/previewpane/common/PreviewHandlerCommon.csproj",
+      "gapMsUpperBound": 74.24020767211914,
+      "failureCallbacks": 2,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/previewpane/BgcodeThumbnailProvider/BgcodeThumbnailProvider.csproj",
+      "gapMsUpperBound": 51.074981689453125,
+      "failureCallbacks": 3,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/previewpane/GcodePreviewHandler/GcodePreviewHandler.csproj",
+      "gapMsUpperBound": 53.38096618652344,
+      "failureCallbacks": 6,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj",
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\previewpane\\FileExplorerDllExporter\\FileExplorerDllExporter.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/previewpane/GcodeThumbnailProvider/GcodeThumbnailProvider.csproj",
+      "gapMsUpperBound": 54.637908935546875,
+      "failureCallbacks": 5,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj",
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/previewpane/MarkdownPreviewHandler/MarkdownPreviewHandler.csproj",
+      "gapMsUpperBound": 59.909820556640625,
+      "failureCallbacks": 5,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj",
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/previewpane/MonacoPreviewHandler/MonacoPreviewHandler.csproj",
+      "gapMsUpperBound": 52.97112464904785,
+      "failureCallbacks": 6,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj",
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/previewpane/PdfPreviewHandler/PdfPreviewHandler.csproj",
+      "gapMsUpperBound": 54.293155670166016,
+      "failureCallbacks": 6,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj",
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/previewpane/PdfThumbnailProvider/PdfThumbnailProvider.csproj",
+      "gapMsUpperBound": 54.25095558166504,
+      "failureCallbacks": 5,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj",
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/previewpane/QoiPreviewHandler/QoiPreviewHandler.csproj",
+      "gapMsUpperBound": 63.36498260498047,
+      "failureCallbacks": 6,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj",
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\previewpane\\powerpreview\\powerpreview.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/previewpane/QoiThumbnailProvider/QoiThumbnailProvider.csproj",
+      "gapMsUpperBound": 56.20408058166504,
+      "failureCallbacks": 5,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj",
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/previewpane/StlThumbnailProvider/StlThumbnailProvider.csproj",
+      "gapMsUpperBound": 137.74585723876953,
+      "failureCallbacks": 5,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj",
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/previewpane/SvgPreviewHandler/SvgPreviewHandler.csproj",
+      "gapMsUpperBound": 92.6198959350586,
+      "failureCallbacks": 6,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj",
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/previewpane/SvgThumbnailProvider/SvgThumbnailProvider.csproj",
+      "gapMsUpperBound": 69.44894790649414,
+      "failureCallbacks": 6,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj",
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/previewpane/PreviewPane.UITests/PreviewPane.UITests.csproj",
+      "gapMsUpperBound": 54.41880226135254,
+      "failureCallbacks": 5,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj",
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/previewpane/UnitTests-BgcodeThumbnailProvider/Preview.BgcodeThumbnailProvider.UnitTests.csproj",
+      "gapMsUpperBound": 52.25801467895508,
+      "failureCallbacks": 5,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj",
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/previewpane/UnitTests-GcodePreviewHandler/Preview.GcodePreviewHandler.UnitTests.csproj",
+      "gapMsUpperBound": 70.89495658874512,
+      "failureCallbacks": 5,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj",
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/previewpane/UnitTests-GcodeThumbnailProvider/Preview.GcodeThumbnailProvider.UnitTests.csproj",
+      "gapMsUpperBound": 56.61606788635254,
+      "failureCallbacks": 5,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj",
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/previewpane/UnitTests-MarkdownPreviewHandler/Preview.MarkdownPreviewHandler.UnitTests.csproj",
+      "gapMsUpperBound": 56.09703063964844,
+      "failureCallbacks": 5,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj",
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/previewpane/UnitTests-PdfPreviewHandler/Preview.PdfPreviewHandler.UnitTests.csproj",
+      "gapMsUpperBound": 55.190086364746094,
+      "failureCallbacks": 6,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj",
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/previewpane/UnitTests-PdfThumbnailProvider/Preview.PdfThumbnailProvider.UnitTests.csproj",
+      "gapMsUpperBound": 56.5950870513916,
+      "failureCallbacks": 5,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj",
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/previewpane/UnitTests-PreviewHandlerCommon/Preview.PreviewHandlerCommon.UnitTests.csproj",
+      "gapMsUpperBound": 53.218841552734375,
+      "failureCallbacks": 5,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj",
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/previewpane/UnitTests-QoiThumbnailProvider/Preview.QoiThumbnailProvider.UnitTests.csproj",
+      "gapMsUpperBound": 53.07483673095703,
+      "failureCallbacks": 5,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj",
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/previewpane/UnitTests-StlThumbnailProvider/Preview.StlThumbnailProvider.UnitTests.csproj",
+      "gapMsUpperBound": 57.88421630859375,
+      "failureCallbacks": 5,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj",
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/previewpane/UnitTests-SvgPreviewHandler/Preview.SvgPreviewHandler.UnitTests.csproj",
+      "gapMsUpperBound": 59.745073318481445,
+      "failureCallbacks": 6,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj",
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/previewpane/UnitTests-SvgThumbnailProvider/Preview.SvgThumbnailProvider.UnitTests.csproj",
+      "gapMsUpperBound": 54.15081977844238,
+      "failureCallbacks": 6,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj",
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/FileLocksmith/FileLocksmithUI/FileLocksmithUI.csproj",
+      "gapMsUpperBound": 72.23296165466309,
+      "failureCallbacks": 10,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj",
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\FileLocksmith\\FileLocksmithCLI\\FileLocksmithCLI.vcxproj",
+        "<solution>\\src\\modules\\FileLocksmith\\FileLocksmithContextMenu\\FileLocksmithContextMenu.vcxproj",
+        "<solution>\\src\\modules\\FileLocksmith\\FileLocksmithExt\\FileLocksmithExt.vcxproj",
+        "<solution>\\src\\modules\\FileLocksmith\\FileLocksmithLibInterop\\FileLocksmithLibInterop.vcxproj",
+        "<solution>\\src\\modules\\FileLocksmith\\FileLocksmithLib\\FileLocksmithLib.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/FileLocksmith/Tests/FileLocksmith.UITests/FileLocksmith.UITests.csproj",
+      "gapMsUpperBound": 79.26797866821289,
+      "failureCallbacks": 7,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj",
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\FileLocksmith\\FileLocksmithCLI\\tests\\FileLocksmithCLIUnitTests.vcxproj",
+        "<solution>\\src\\modules\\FileLocksmith\\FileLocksmithLibInterop\\FileLocksmithLibInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/Hosts/Hosts/Hosts.csproj",
+      "gapMsUpperBound": 72.7241039276123,
+      "failureCallbacks": 2,
+      "nativePaths": [
+        "<solution>\\src\\modules\\GrabAndMove\\GrabAndMoveModuleInterface\\GrabAndMoveModuleInterface.vcxproj",
+        "<solution>\\src\\modules\\GrabAndMove\\GrabAndMove\\GrabAndMove.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/Hosts/HostsUILib/HostsUILib.csproj",
+      "gapMsUpperBound": 64.13912773132324,
+      "failureCallbacks": 2,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/Hosts/Hosts.FuzzTests/HostsEditor.FuzzTests.csproj",
+      "gapMsUpperBound": 59.770822525024414,
+      "failureCallbacks": 5,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\Hosts\\HostsModuleInterface\\HostsModuleInterface.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/imageresizer/ImageResizerCLI/ImageResizerCLI.csproj",
+      "gapMsUpperBound": 84.76996421813965,
+      "failureCallbacks": 6,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj",
+        "<solution>\\src\\modules\\imageresizer\\dll\\ImageResizerExt.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/imageresizer/tests/ImageResizer.UITests/ImageResizer.UITests.csproj",
+      "gapMsUpperBound": 63.5380744934082,
+      "failureCallbacks": 12,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj",
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\imageresizer\\ImageResizerContextMenu\\ImageResizerContextMenu.vcxproj",
+        "<solution>\\src\\modules\\imageresizer\\ImageResizerLib\\ImageResizerLib.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/keyboardmanager/KeyboardManagerEditorUI.UnitTests/KeyboardManagerEditorUI.UnitTests.csproj",
+      "gapMsUpperBound": 59.91506576538086,
+      "failureCallbacks": 10,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj",
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\keyboardmanager\\KeyboardManagerEditorLibraryWrapper\\KeyboardManagerEditorLibraryWrapper.vcxproj",
+        "<solution>\\src\\modules\\keyboardmanager\\KeyboardManagerEditorLibrary\\KeyboardManagerEditorLibrary.vcxproj",
+        "<solution>\\src\\modules\\keyboardmanager\\KeyboardManagerEditor\\KeyboardManagerEditor.vcxproj",
+        "<solution>\\src\\modules\\keyboardmanager\\common\\KeyboardManagerCommon.vcxproj",
+        "<solution>\\src\\modules\\keyboardmanager\\dll\\KeyboardManager.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/keyboardmanager/Tests/KeyboardManager.UITests/KeyboardManager.UITests.csproj",
+      "gapMsUpperBound": 145.41101455688477,
+      "failureCallbacks": 26,
+      "nativePaths": [
+        "<solution>\\src\\common\\COMUtils\\COMUtils.vcxproj",
+        "<solution>\\src\\common\\Display\\Display.vcxproj",
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\Themes\\Themes.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj",
+        "<solution>\\src\\modules\\keyboardmanager\\KeyboardManagerEditorLibraryWrapper\\KeyboardManagerEditorLibraryWrapper.vcxproj",
+        "<solution>\\src\\modules\\keyboardmanager\\KeyboardManagerEditorLibrary\\KeyboardManagerEditorLibrary.vcxproj",
+        "<solution>\\src\\modules\\keyboardmanager\\KeyboardManagerEditorTest\\KeyboardManagerEditorTest.vcxproj",
+        "<solution>\\src\\modules\\keyboardmanager\\KeyboardManagerEngineLibrary\\KeyboardManagerEngineLibrary.vcxproj",
+        "<solution>\\src\\modules\\keyboardmanager\\KeyboardManagerEngineTest\\KeyboardManagerEngineTest.vcxproj",
+        "<solution>\\src\\modules\\keyboardmanager\\KeyboardManagerEngine\\KeyboardManagerEngine.vcxproj",
+        "<solution>\\src\\modules\\keyboardmanager\\common\\KeyboardManagerCommon.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/launcher/PowerLauncher.Telemetry/PowerLauncher.Telemetry.csproj",
+      "gapMsUpperBound": 50.6589412689209,
+      "failureCallbacks": 1,
+      "nativePaths": [
+        "<solution>\\src\\modules\\launcher\\Microsoft.Launcher\\Microsoft.Launcher.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/launcher/Wox.Infrastructure/Wox.Infrastructure.csproj",
+      "gapMsUpperBound": 63.897132873535156,
+      "failureCallbacks": 1,
+      "nativePaths": [
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/launcher/Plugins/Community.PowerToys.Run.Plugin.UnitConverter/Community.PowerToys.Run.Plugin.UnitConverter.csproj",
+      "gapMsUpperBound": 62.561988830566406,
+      "failureCallbacks": 15,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj",
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/launcher/Plugins/Community.PowerToys.Run.Plugin.ValueGenerator/Community.PowerToys.Run.Plugin.ValueGenerator.csproj",
+      "gapMsUpperBound": 62.67094612121582,
+      "failureCallbacks": 5,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/launcher/Plugins/Community.PowerToys.Run.Plugin.VSCodeWorkspaces/Community.PowerToys.Run.Plugin.VSCodeWorkspaces.csproj",
+      "gapMsUpperBound": 62.49499320983887,
+      "failureCallbacks": 5,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/launcher/Plugins/Community.PowerToys.Run.Plugin.WebSearch/Community.PowerToys.Run.Plugin.WebSearch.csproj",
+      "gapMsUpperBound": 63.48419189453125,
+      "failureCallbacks": 5,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/launcher/Plugins/Microsoft.Plugin.Folder/Microsoft.Plugin.Folder.csproj",
+      "gapMsUpperBound": 56.76007270812988,
+      "failureCallbacks": 5,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/launcher/Plugins/Microsoft.Plugin.Indexer/Microsoft.Plugin.Indexer.csproj",
+      "gapMsUpperBound": 55.61089515686035,
+      "failureCallbacks": 5,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/launcher/Plugins/Microsoft.Plugin.Program/Microsoft.Plugin.Program.csproj",
+      "gapMsUpperBound": 60.10103225708008,
+      "failureCallbacks": 5,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/launcher/Plugins/Microsoft.Plugin.Shell/Microsoft.Plugin.Shell.csproj",
+      "gapMsUpperBound": 57.79409408569336,
+      "failureCallbacks": 5,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/launcher/Plugins/Microsoft.Plugin.Uri/Microsoft.Plugin.Uri.csproj",
+      "gapMsUpperBound": 67.9318904876709,
+      "failureCallbacks": 5,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/launcher/Plugins/Microsoft.Plugin.WindowWalker/Microsoft.Plugin.WindowWalker.csproj",
+      "gapMsUpperBound": 54.221153259277344,
+      "failureCallbacks": 5,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/launcher/Plugins/Microsoft.PowerToys.Run.Plugin.Calculator/Microsoft.PowerToys.Run.Plugin.Calculator.csproj",
+      "gapMsUpperBound": 53.945064544677734,
+      "failureCallbacks": 5,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/launcher/Plugins/Microsoft.PowerToys.Run.Plugin.History/Microsoft.PowerToys.Run.Plugin.History.csproj",
+      "gapMsUpperBound": 53.822994232177734,
+      "failureCallbacks": 5,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/launcher/Plugins/Microsoft.PowerToys.Run.Plugin.OneNote/Microsoft.PowerToys.Run.Plugin.OneNote.csproj",
+      "gapMsUpperBound": 54.733991622924805,
+      "failureCallbacks": 6,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj",
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/launcher/Plugins/Microsoft.PowerToys.Run.Plugin.PowerToys/Microsoft.PowerToys.Run.Plugin.PowerToys.csproj",
+      "gapMsUpperBound": 56.16283416748047,
+      "failureCallbacks": 5,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/launcher/Plugins/Microsoft.PowerToys.Run.Plugin.Registry/Microsoft.PowerToys.Run.Plugin.Registry.csproj",
+      "gapMsUpperBound": 51.88393592834473,
+      "failureCallbacks": 6,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj",
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/launcher/Plugins/Microsoft.PowerToys.Run.Plugin.Service/Microsoft.PowerToys.Run.Plugin.Service.csproj",
+      "gapMsUpperBound": 70.1150894165039,
+      "failureCallbacks": 5,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/launcher/Plugins/Microsoft.PowerToys.Run.Plugin.System/Microsoft.PowerToys.Run.Plugin.System.csproj",
+      "gapMsUpperBound": 56.511878967285156,
+      "failureCallbacks": 5,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/launcher/Plugins/Microsoft.PowerToys.Run.Plugin.TimeDate/Microsoft.PowerToys.Run.Plugin.TimeDate.csproj",
+      "gapMsUpperBound": 56.41007423400879,
+      "failureCallbacks": 5,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/launcher/Plugins/Microsoft.PowerToys.Run.Plugin.WindowsSettings/Microsoft.PowerToys.Run.Plugin.WindowsSettings.csproj",
+      "gapMsUpperBound": 54.65507507324219,
+      "failureCallbacks": 5,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/launcher/Plugins/Microsoft.PowerToys.Run.Plugin.WindowsTerminal/Microsoft.PowerToys.Run.Plugin.WindowsTerminal.csproj",
+      "gapMsUpperBound": 53.13515663146973,
+      "failureCallbacks": 5,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/launcher/Plugins/Community.PowerToys.Run.Plugin.UnitConverter.UnitTest/Community.PowerToys.Run.Plugin.UnitConverter.UnitTest.csproj",
+      "gapMsUpperBound": 55.07802963256836,
+      "failureCallbacks": 5,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/launcher/Plugins/Community.PowerToys.Run.Plugin.ValueGenerator.UnitTests/Community.PowerToys.Run.Plugin.ValueGenerator.UnitTests.csproj",
+      "gapMsUpperBound": 53.495168685913086,
+      "failureCallbacks": 5,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/launcher/Plugins/Microsoft.Plugin.Folder.UnitTests/Microsoft.Plugin.Folder.UnitTests.csproj",
+      "gapMsUpperBound": 56.20288848876953,
+      "failureCallbacks": 5,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/launcher/Plugins/Microsoft.Plugin.Program.UnitTests/Microsoft.Plugin.Program.UnitTests.csproj",
+      "gapMsUpperBound": 58.13908576965332,
+      "failureCallbacks": 5,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/launcher/Plugins/Microsoft.Plugin.Uri.UnitTests/Microsoft.Plugin.Uri.UnitTests.csproj",
+      "gapMsUpperBound": 55.8009147644043,
+      "failureCallbacks": 5,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/launcher/Plugins/Microsoft.Plugin.WindowWalker.UnitTests/Microsoft.Plugin.WindowWalker.UnitTests.csproj",
+      "gapMsUpperBound": 54.312944412231445,
+      "failureCallbacks": 5,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/launcher/Plugins/Microsoft.PowerToys.Run.Plugin.Calculator.UnitTest/Microsoft.PowerToys.Run.Plugin.Calculator.UnitTest.csproj",
+      "gapMsUpperBound": 54.32701110839844,
+      "failureCallbacks": 5,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/launcher/Plugins/Microsoft.PowerToys.Run.Plugin.Registry.UnitTest/Microsoft.PowerToys.Run.Plugin.Registry.UnitTests.csproj",
+      "gapMsUpperBound": 57.48391151428223,
+      "failureCallbacks": 5,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/launcher/Plugins/Microsoft.PowerToys.Run.Plugin.System.UnitTests/Microsoft.PowerToys.Run.Plugin.System.UnitTests.csproj",
+      "gapMsUpperBound": 54.67391014099121,
+      "failureCallbacks": 5,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/launcher/Plugins/Microsoft.PowerToys.Run.Plugin.TimeDate.UnitTests/Microsoft.PowerToys.Run.Plugin.TimeDate.UnitTests.csproj",
+      "gapMsUpperBound": 56.56909942626953,
+      "failureCallbacks": 5,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/launcher/Plugins/Microsoft.PowerToys.Run.Plugin.WindowsTerminal.UnitTests/Microsoft.Plugin.WindowsTerminal.UnitTests.csproj",
+      "gapMsUpperBound": 57.94405937194824,
+      "failureCallbacks": 5,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/launcher/Wox.Test/Wox.Test.csproj",
+      "gapMsUpperBound": 55.4049015045166,
+      "failureCallbacks": 5,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/LightSwitch/LightSwitch.Cli/LightSwitch.Cli.csproj",
+      "gapMsUpperBound": 56.22291564941406,
+      "failureCallbacks": 6,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj",
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/LightSwitch/Tests/LightSwitch.Cli.UnitTests/LightSwitch.Cli.UnitTests.csproj",
+      "gapMsUpperBound": 52.5209903717041,
+      "failureCallbacks": 7,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\LightSwitch\\LightSwitchLib\\LightSwitchLib.vcxproj",
+        "<solution>\\src\\modules\\LightSwitch\\LightSwitchModuleInterface\\LightSwitchModuleInterface.vcxproj",
+        "<solution>\\src\\modules\\LightSwitch\\LightSwitchService\\LightSwitchService.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/LightSwitch/Tests/LightSwitch.UITests.Next/LightSwitch.UITests.Next.csproj",
+      "gapMsUpperBound": 56.15711212158203,
+      "failureCallbacks": 4,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/MeasureTool/MeasureToolUI/MeasureToolUI.csproj",
+      "gapMsUpperBound": 56.9300651550293,
+      "failureCallbacks": 8,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\LightSwitch\\Tests\\LightSwitchService.UnitTests\\LightSwitchService.UnitTests.vcxproj",
+        "<solution>\\src\\modules\\MeasureTool\\MeasureToolCore\\PowerToys.MeasureToolCore.vcxproj",
+        "<solution>\\src\\modules\\MeasureTool\\MeasureToolModuleInterface\\MeasureToolModuleInterface.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/MeasureTool/Tests/ScreenRuler.UITests.Next/ScreenRuler.UITests.Next.csproj",
+      "gapMsUpperBound": 60.986995697021484,
+      "failureCallbacks": 7,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj",
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\MeasureTool\\Tests\\MeasureToolCore.UnitTests\\MeasureToolCore.UnitTests.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/MouseUtils/MouseJump.HotKeys/MouseJump.HotKeys.csproj",
+      "gapMsUpperBound": 53.32183837890625,
+      "failureCallbacks": 12,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\MouseUtils\\AutoHideCursor\\AutoHideCursor.vcxproj",
+        "<solution>\\src\\modules\\MouseUtils\\AutoHideCursor\\AutoHideCursorWorker.vcxproj",
+        "<solution>\\src\\modules\\MouseUtils\\AutoHideCursor\\UnitTests\\AutoHideCursorUnitTests.vcxproj",
+        "<solution>\\src\\modules\\MouseUtils\\CursorWrap\\CursorWrap.vcxproj",
+        "<solution>\\src\\modules\\MouseUtils\\FindMyMouse\\FindMyMouse.vcxproj",
+        "<solution>\\src\\modules\\MouseUtils\\MouseButtonLock\\MouseButtonLock.vcxproj",
+        "<solution>\\src\\modules\\MouseUtils\\MouseHighlighter\\MouseHighlighter.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/MouseUtils/MouseJump.Common.UnitTests/MouseJump.Common.UnitTests.csproj",
+      "gapMsUpperBound": 61.905860900878906,
+      "failureCallbacks": 10,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj",
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\MouseUtils\\MouseButtonLock.FuzzingTest\\MouseButtonLock.FuzzingTest.vcxproj",
+        "<solution>\\src\\modules\\MouseUtils\\MouseButtonLock.UnitTests\\MouseButtonLock.UnitTests.vcxproj",
+        "<solution>\\src\\modules\\MouseUtils\\MouseJump\\MouseJump.vcxproj",
+        "<solution>\\src\\modules\\MouseUtils\\MousePointerCrosshairs\\MousePointerCrosshairs.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/MouseWithoutBorders/App/Helper/MouseWithoutBordersHelper.csproj",
+      "gapMsUpperBound": 54.65197563171387,
+      "failureCallbacks": 5,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/MouseWithoutBorders/App/MouseWithoutBorders.csproj",
+      "gapMsUpperBound": 73.99988174438477,
+      "failureCallbacks": 6,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj",
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/MouseWithoutBorders/App/Service/MouseWithoutBordersService.csproj",
+      "gapMsUpperBound": 74.40805435180664,
+      "failureCallbacks": 6,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj",
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/MouseWithoutBorders/MouseWithoutBorders.UnitTests/MouseWithoutBorders.UnitTests.csproj",
+      "gapMsUpperBound": 61.03515625,
+      "failureCallbacks": 7,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj",
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\MouseWithoutBorders\\ModuleInterface\\MouseWithoutBordersModuleInterface.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/NewPlus/Tests/NewPlus.UITests/NewPlus.UITests.csproj",
+      "gapMsUpperBound": 70.15204429626465,
+      "failureCallbacks": 8,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj",
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\NewPlus\\NewShellExtensionContextMenu.win10\\NewPlus.ShellExtension.win10.vcxproj",
+        "<solution>\\src\\modules\\NewPlus\\NewShellExtensionContextMenu\\NewShellExtensionContextMenu.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/peek/Peek.FilePreviewer/Peek.FilePreviewer.csproj",
+      "gapMsUpperBound": 70.36590576171875,
+      "failureCallbacks": 8,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/peek/Peek.UI/Peek.UI.csproj",
+      "gapMsUpperBound": 137.8929615020752,
+      "failureCallbacks": 5,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/peek/Peek.UITests.Next/Peek.UITests.Next.csproj",
+      "gapMsUpperBound": 65.43898582458496,
+      "failureCallbacks": 6,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj",
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/poweraccent/PowerAccent.Common.UnitTests/PowerAccent.Common.UnitTests.csproj",
+      "gapMsUpperBound": 51.698923110961914,
+      "failureCallbacks": 6,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj",
+        "<solution>\\src\\modules\\peek\\peek\\peek.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/poweraccent/PowerAccent.Core.UnitTests/PowerAccent.Core.UnitTests.csproj",
+      "gapMsUpperBound": 63.32993507385254,
+      "failureCallbacks": 4,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\poweraccent\\PowerAccentKeyboardService\\PowerAccentKeyboardService.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/poweraccent/PowerAccent.UI/PowerAccent.UI.csproj",
+      "gapMsUpperBound": 59.54909324645996,
+      "failureCallbacks": 14,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj",
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj",
+        "<solution>\\src\\modules\\poweraccent\\PowerAccentKeyboardService\\PowerAccentKeyboardService.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/poweraccent/PowerAccent.UITests/PowerAccent.UITests.csproj",
+      "gapMsUpperBound": 60.7600212097168,
+      "failureCallbacks": 7,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj",
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj",
+        "<solution>\\src\\modules\\poweraccent\\PowerAccentKeyboardService\\PowerAccentKeyboardService.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/powerdisplay/PowerDisplay.Cli/PowerDisplay.Cli.csproj",
+      "gapMsUpperBound": 50.37498474121094,
+      "failureCallbacks": 2,
+      "nativePaths": [
+        "<solution>\\src\\modules\\poweraccent\\PowerAccentKeyboardService\\PowerAccentKeyboardService.vcxproj",
+        "<solution>\\src\\modules\\poweraccent\\PowerAccentModuleInterface\\PowerAccentModuleInterface.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/powerdisplay/PowerDisplay.Ipc/PowerDisplay.Ipc.csproj",
+      "gapMsUpperBound": 51.05090141296387,
+      "failureCallbacks": 4,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/powerdisplay/PowerDisplay/PowerDisplay.csproj",
+      "gapMsUpperBound": 60.933828353881836,
+      "failureCallbacks": 8,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/powerdisplay/PowerDisplay.Cli.UnitTests/PowerDisplay.Cli.UnitTests.csproj",
+      "gapMsUpperBound": 74.80788230895996,
+      "failureCallbacks": 7,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj",
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj",
+        "<solution>\\src\\modules\\powerdisplay\\PowerDisplayModuleInterface\\PowerDisplayModuleInterface.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/powerdisplay/PowerDisplay.Contracts.UnitTests/PowerDisplay.Contracts.UnitTests.csproj",
+      "gapMsUpperBound": 53.9400577545166,
+      "failureCallbacks": 4,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/powerdisplay/PowerDisplay.Lib.UnitTests/PowerDisplay.Lib.UnitTests.csproj",
+      "gapMsUpperBound": 52.246809005737305,
+      "failureCallbacks": 4,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/PowerOCR/PowerOCR.Core/PowerOCR.Core.csproj",
+      "gapMsUpperBound": 55.418968200683594,
+      "failureCallbacks": 5,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/PowerOCR/PowerOCR-UITests/PowerOCR.UITests.csproj",
+      "gapMsUpperBound": 59.71193313598633,
+      "failureCallbacks": 7,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj",
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\PowerOCR\\PowerOCRModuleInterface\\PowerOCRModuleInterface.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/PowerOCR/PowerOCR.Core.UnitTests/PowerOCR.Core.UnitTests.csproj",
+      "gapMsUpperBound": 54.09693717956543,
+      "failureCallbacks": 5,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/powerrename/PowerRename.UITests.Next/PowerRename.UITests.Next.csproj",
+      "gapMsUpperBound": 46.67997360229492,
+      "failureCallbacks": 6,
+      "nativePaths": [
+        "<solution>\\src\\modules\\powerrename\\PowerRename.FuzzingTest\\PowerRename.FuzzingTest.vcxproj",
+        "<solution>\\src\\modules\\powerrename\\PowerRenameContextMenu\\PowerRenameContextMenu.vcxproj",
+        "<solution>\\src\\modules\\powerrename\\PowerRenameUILib\\PowerRenameUI.vcxproj",
+        "<solution>\\src\\modules\\powerrename\\dll\\PowerRenameExt.vcxproj",
+        "<solution>\\src\\modules\\powerrename\\lib\\PowerRenameLib.vcxproj",
+        "<solution>\\src\\modules\\powerrename\\testapp\\PowerRenameTest.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/registrypreview/RegistryPreview/RegistryPreview.csproj",
+      "gapMsUpperBound": 55.18603324890137,
+      "failureCallbacks": 6,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj",
+        "<solution>\\src\\modules\\powerrename\\unittests\\PowerRenameLibUnitTests.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/registrypreview/RegistryPreview.FuzzTests/RegistryPreview.FuzzTests.csproj",
+      "gapMsUpperBound": 61.196088790893555,
+      "failureCallbacks": 5,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\registrypreview\\RegistryPreviewExt\\RegistryPreviewExt.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/ShortcutGuide/ShortcutGuide.UnitTests/ShortcutGuide.UnitTests.csproj",
+      "gapMsUpperBound": 64.47887420654297,
+      "failureCallbacks": 6,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj",
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/Workspaces/WorkspacesEditor/WorkspacesEditor.csproj",
+      "gapMsUpperBound": 60.77909469604492,
+      "failureCallbacks": 7,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj",
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ShortcutGuide\\ShortcutGuideModuleInterface\\ShortcutGuideModuleInterface.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/Workspaces/WorkspacesLauncherUI/WorkspacesLauncherUI.csproj",
+      "gapMsUpperBound": 76.30276679992676,
+      "failureCallbacks": 7,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj",
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\Workspaces\\WorkspacesLauncher\\WorkspacesLauncher.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/Workspaces/Tests/Workspaces.TestApp/Workspaces.TestApp.csproj",
+      "gapMsUpperBound": 57.617902755737305,
+      "failureCallbacks": 10,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj",
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\Workspaces\\WorkspacesLib\\WorkspacesLib.vcxproj",
+        "<solution>\\src\\modules\\Workspaces\\WorkspacesModuleInterface\\WorkspacesModuleInterface.vcxproj",
+        "<solution>\\src\\modules\\Workspaces\\WorkspacesSnapshotTool\\WorkspacesSnapshotTool.vcxproj",
+        "<solution>\\src\\modules\\Workspaces\\WorkspacesWindowArranger\\WorkspacesWindowArranger.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/Workspaces/WorkspacesLauncherUI.UnitTests/WorkspacesLauncherUI.UnitTests.csproj",
+      "gapMsUpperBound": 57.14607238769531,
+      "failureCallbacks": 6,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj",
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/modules/ZoomIt/Tests/ZoomIt.UITests/ZoomIt.UITests.csproj",
+      "gapMsUpperBound": 54.43096160888672,
+      "failureCallbacks": 5,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\Workspaces\\WorkspacesLib.UnitTests\\WorkspacesLibUnitTests.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/settings-ui/QuickAccess.UI/PowerToys.QuickAccess.csproj",
+      "gapMsUpperBound": 57.54518508911133,
+      "failureCallbacks": 5,
+      "nativePaths": [
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItBreak\\ZoomItBreak.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItModuleInterface\\ZoomItModuleInterface.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomIt\\ZoomIt.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\unittests\\ZoomItAnimation.UnitTests.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/settings-ui/Settings.UI.Controls/Settings.UI.Controls.csproj",
+      "gapMsUpperBound": 73.92096519470215,
+      "failureCallbacks": 2,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/settings-ui/Settings.UI.Cli/PowerToys.Settings.Cli.csproj",
+      "gapMsUpperBound": 59.06510353088379,
+      "failureCallbacks": 9,
+      "nativePaths": [
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/settings-ui/Settings.UI.XamlIndexBuilder/Settings.UI.XamlIndexBuilder.csproj",
+      "gapMsUpperBound": 50.8270263671875,
+      "failureCallbacks": 6,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj",
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/settings-ui/Settings.UI.UnitTests/Settings.UI.UnitTests.csproj",
+      "gapMsUpperBound": 98.76680374145508,
+      "failureCallbacks": 6,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj",
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    },
+    {
+      "chargedTo": "src/settings-ui/Settings.UITests/Settings.UITests.csproj",
+      "gapMsUpperBound": 72.13401794433594,
+      "failureCallbacks": 6,
+      "nativePaths": [
+        "<solution>\\src\\common\\GPOWrapper\\GPOWrapper.vcxproj",
+        "<solution>\\src\\common\\SettingsAPI\\SettingsAPI.vcxproj",
+        "<solution>\\src\\common\\interop\\PowerToys.Interop.vcxproj",
+        "<solution>\\src\\common\\logger\\logger.vcxproj",
+        "<solution>\\src\\common\\version\\version.vcxproj",
+        "<solution>\\src\\modules\\ZoomIt\\ZoomItSettingsInterop\\ZoomItSettingsInterop.vcxproj"
+      ]
+    }
+  ]
+}

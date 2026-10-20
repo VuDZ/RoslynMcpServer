@@ -1,0 +1,2009 @@
+{
+  "powertoys": {
+    "sdkResolverTimingMs": null,
+    "sdkResolverLimitation": "Diagnostic resolver messages have no paired duration events. Resolver time is included in evaluation; message counts do not measure its duration.",
+    "baselineStreams": [
+      {
+        "input": "capture-1.binlog",
+        "timingJson": "powertoys-ordinary-capture-1-timings.json",
+        "timingSha256": "81d43de4fc7eb2a5e17b5c3c3485c279b64dde33e5c1c230c4e488ef29501572",
+        "formatVersion": 26,
+        "status": "ok",
+        "errors": [],
+        "evaluationProfilerAvailable": false,
+        "sdkProperties": [
+          "MSBuildToolsPath=C:\\Program Files\\dotnet\\sdk\\10.0.401",
+          "MSBuildVersion=18.9.11",
+          "MSBuildSDKsPath=C:\\Program Files\\dotnet\\sdk\\10.0.401\\Sdks",
+          "NETCoreSdkVersion=10.0.401"
+        ],
+        "meaning": "Interval union per project; target exclusive excludes tasks/evaluations/nested project builds; task exclusive excludes evaluations/nested project builds. Evaluation, target and task totals are separate layers, never sum inclusive parent/child durations. Concurrent project service durations are not wall time.",
+        "projectCount": 267
+      },
+      {
+        "input": "capture-2.binlog",
+        "timingJson": "powertoys-ordinary-capture-2-timings.json",
+        "timingSha256": "1468960470c1f27cc33f62f46cb54b6a8d58c277592d2b999534919b75e2de77",
+        "formatVersion": 27,
+        "status": "ok",
+        "errors": [],
+        "evaluationProfilerAvailable": false,
+        "sdkProperties": [],
+        "meaning": "Interval union per project; target exclusive excludes tasks/evaluations/nested project builds; task exclusive excludes evaluations/nested project builds. Evaluation, target and task totals are separate layers, never sum inclusive parent/child durations. Concurrent project service durations are not wall time.",
+        "projectCount": 0
+      }
+    ],
+    "aggregationMeaning": "Union/exclusive durations were computed inside each replay stream. Across distinct BuildHost streams, project service durations are added, never interpreted as union wall. Repeated project paths/TFM contexts remain path aggregates; every stream occurrence is retained.",
+    "meaning": "Evaluation and exclusive target/task layers reported separately; inclusive target/task parents are never added. Across streams, service durations are summed, not asserted to be wall. First-three ordering uses available one-stream appearance or explicitly labeled public callback proxy; otherwise unavailable. Synthetic aggregator/unmatched projects remain separate. Differences are diagnostic context effects, not causal process-start measurements.",
+    "groups": [
+      {
+        "index": 0,
+        "status": "ok",
+        "streams": [
+          {
+            "input": "group-0-1.binlog",
+            "timingJson": "powertoys-parallel-group-0-1-timings.json",
+            "timingSha256": "686726ebbe02e3475eeccedc0660b7e5245a8023945aee9929e04570d131aa42",
+            "formatVersion": 26,
+            "status": "ok",
+            "errors": [],
+            "evaluationProfilerAvailable": false,
+            "sdkProperties": [
+              "MSBuildToolsPath=C:\\Program Files\\dotnet\\sdk\\10.0.401",
+              "MSBuildVersion=18.9.11",
+              "MSBuildSDKsPath=C:\\Program Files\\dotnet\\sdk\\10.0.401\\Sdks",
+              "NETCoreSdkVersion=10.0.401"
+            ],
+            "meaning": "Interval union per project; target exclusive excludes tasks/evaluations/nested project builds; task exclusive excludes evaluations/nested project builds. Evaluation, target and task totals are separate layers, never sum inclusive parent/child durations. Concurrent project service durations are not wall time.",
+            "projectCount": 76
+          },
+          {
+            "input": "group-0-2.binlog",
+            "timingJson": "powertoys-parallel-group-0-2-timings.json",
+            "timingSha256": "6c2c6f2f254f558e9aebafe1c7b2b6366c7c3adb01b4d4f2c0dc2d177ea780a9",
+            "formatVersion": 27,
+            "status": "ok",
+            "errors": [],
+            "evaluationProfilerAvailable": false,
+            "sdkProperties": [],
+            "meaning": "Interval union per project; target exclusive excludes tasks/evaluations/nested project builds; task exclusive excludes evaluations/nested project builds. Evaluation, target and task totals are separate layers, never sum inclusive parent/child durations. Concurrent project service durations are not wall time.",
+            "projectCount": 0
+          }
+        ],
+        "firstThreeAvailable": true,
+        "orderMeaning": "first public progress callback per matched project across this group; callback completion order is a proxy, not exact cross-stream project start order",
+        "sdkProperties": [
+          "MSBuildSDKsPath=C:\\Program Files\\dotnet\\sdk\\10.0.401\\Sdks",
+          "MSBuildToolsPath=C:\\Program Files\\dotnet\\sdk\\10.0.401",
+          "MSBuildVersion=18.9.11",
+          "NETCoreSdkVersion=10.0.401"
+        ],
+        "orderingUnmatchedPathCount": 17,
+        "orderingUnmatchedExamples": [
+          "src/common/UITestAutomation.Next/UITestAutomation.Next.csproj",
+          "src/modules/cmdpal/extensionsdk/Microsoft.CommandPalette.Extensions.Toolkit/Microsoft.CommandPalette.Extensions.Toolkit.csproj",
+          "src/common/ManagedCommon/ManagedCommon.csproj"
+        ],
+        "unmatchedPathCount": 1,
+        "unmatchedFileNames": [
+          "Group.csproj"
+        ],
+        "partitions": {
+          "firstThree": {
+            "projectCount": 3,
+            "positiveAttributedDeltaMs": 282.885,
+            "shareDenominator": "sum of positive deltas of evaluation and exclusive targets/tasks on matched projects in this partition; not total wall residual",
+            "paths": [
+              "src/modules/MeasureTool/Tests/ScreenRuler.UITests.Next/ScreenRuler.UITests.Next.csproj",
+              "src/modules/MouseUtils/MouseUtils.UITests.Next/MouseUtils.UITests.Next.csproj",
+              "src/modules/alwaysontop/Tests/AlwaysOnTop.UITests/AlwaysOnTop.UITests.csproj"
+            ],
+            "layers": {
+              "evaluation": {
+                "netDeltaMs": 103.68339999999999,
+                "positiveDeltaMs": 103.68339999999999,
+                "topIncrements": [
+                  {
+                    "path": "src/modules/MeasureTool/Tests/ScreenRuler.UITests.Next/ScreenRuler.UITests.Next.csproj",
+                    "deltaMs": 71.7152,
+                    "ordinaryMs": 0,
+                    "groupMs": 71.7152
+                  },
+                  {
+                    "path": "src/modules/alwaysontop/Tests/AlwaysOnTop.UITests/AlwaysOnTop.UITests.csproj",
+                    "deltaMs": 18.2925,
+                    "ordinaryMs": 0,
+                    "groupMs": 18.2925
+                  },
+                  {
+                    "path": "src/modules/MouseUtils/MouseUtils.UITests.Next/MouseUtils.UITests.Next.csproj",
+                    "deltaMs": 13.6757,
+                    "ordinaryMs": 0,
+                    "groupMs": 13.6757
+                  }
+                ],
+                "positiveAttributedShare": 0.36652137794510137
+              },
+              "targets": {
+                "netDeltaMs": 24.406399999999998,
+                "positiveDeltaMs": 25.306099999999997,
+                "topIncrements": [
+                  {
+                    "path": "src/modules/MeasureTool/Tests/ScreenRuler.UITests.Next/ScreenRuler.UITests.Next.csproj",
+                    "name": "_GetProjectReferenceTargetFrameworkProperties",
+                    "deltaMs": 1.9516000000000036,
+                    "ordinaryMs": 0.3197,
+                    "groupMs": 2.2713000000000036
+                  },
+                  {
+                    "path": "src/modules/MeasureTool/Tests/ScreenRuler.UITests.Next/ScreenRuler.UITests.Next.csproj",
+                    "name": "FindReferenceAssembliesForReferences",
+                    "deltaMs": 1.6251000000000002,
+                    "ordinaryMs": 1.629,
+                    "groupMs": 3.2541
+                  },
+                  {
+                    "path": "src/modules/MouseUtils/MouseUtils.UITests.Next/MouseUtils.UITests.Next.csproj",
+                    "name": "FindReferenceAssembliesForReferences",
+                    "deltaMs": 1.5917,
+                    "ordinaryMs": 1.4714,
+                    "groupMs": 3.0631
+                  }
+                ],
+                "positiveAttributedShare": 0.08945719992222988
+              },
+              "tasks": {
+                "netDeltaMs": 141.1285,
+                "positiveDeltaMs": 153.8955,
+                "topIncrements": [
+                  {
+                    "path": "src/modules/MeasureTool/Tests/ScreenRuler.UITests.Next/ScreenRuler.UITests.Next.csproj",
+                    "name": "MSBuild",
+                    "deltaMs": 32.2774,
+                    "ordinaryMs": 0.7547999999999999,
+                    "groupMs": 33.0322
+                  },
+                  {
+                    "path": "src/modules/MouseUtils/MouseUtils.UITests.Next/MouseUtils.UITests.Next.csproj",
+                    "name": "ResolveAssemblyReference",
+                    "deltaMs": 24.2173,
+                    "ordinaryMs": 1.601,
+                    "groupMs": 25.8183
+                  },
+                  {
+                    "path": "src/modules/MeasureTool/Tests/ScreenRuler.UITests.Next/ScreenRuler.UITests.Next.csproj",
+                    "name": "Microsoft.Build.Tasks.Git.LocateRepository",
+                    "deltaMs": 17.5844,
+                    "ordinaryMs": 0.2101,
+                    "groupMs": 17.7945
+                  }
+                ],
+                "positiveAttributedShare": 0.5440214221326688
+              }
+            }
+          },
+          "rest": {
+            "projectCount": 72,
+            "positiveAttributedDeltaMs": 3425.9321,
+            "shareDenominator": "sum of positive deltas of evaluation and exclusive targets/tasks on matched projects in this partition; not total wall residual",
+            "layers": {
+              "evaluation": {
+                "netDeltaMs": 1340.8836000000001,
+                "positiveDeltaMs": 1583.8218,
+                "topIncrements": [
+                  {
+                    "path": "src/modules/cmdpal/ext/Microsoft.CmdPal.Ext.PerformanceMonitor/Microsoft.CmdPal.Ext.PerformanceMonitor.csproj",
+                    "deltaMs": 70.1804,
+                    "ordinaryMs": 0,
+                    "groupMs": 70.1804
+                  },
+                  {
+                    "path": "src/modules/cmdpal/Microsoft.CmdPal.Common/Microsoft.CmdPal.Common.csproj",
+                    "deltaMs": 65.2198,
+                    "ordinaryMs": 0,
+                    "groupMs": 65.2198
+                  },
+                  {
+                    "path": "src/modules/cmdpal/Tests/Microsoft.CmdPal.Ext.WindowsSettings.UnitTests/Microsoft.CmdPal.Ext.WindowsSettings.UnitTests.csproj",
+                    "deltaMs": 61.5599,
+                    "ordinaryMs": 0,
+                    "groupMs": 61.5599
+                  }
+                ],
+                "positiveAttributedShare": 0.46230390847501035
+              },
+              "targets": {
+                "netDeltaMs": 296.88169999999997,
+                "positiveDeltaMs": 569.7786,
+                "topIncrements": [
+                  {
+                    "path": "src/modules/cmdpal/Tests/Microsoft.CmdPal.UI.ManualTests/Microsoft.CmdPal.UI.ManualTests.csproj",
+                    "name": "AddMicrosoftWindowsAppSDKPayloadFilesFromComponents",
+                    "deltaMs": 32.650000000000006,
+                    "ordinaryMs": 43.994,
+                    "groupMs": 76.644
+                  },
+                  {
+                    "path": "src/modules/cmdpal/Tests/Microsoft.CmdPal.Ext.WinGet.UnitTests/Microsoft.CmdPal.Ext.WinGet.UnitTests.csproj",
+                    "name": "CsWinRTRemoveWinMDReferences",
+                    "deltaMs": 21.6875,
+                    "ordinaryMs": 0.1171,
+                    "groupMs": 21.8046
+                  },
+                  {
+                    "path": "src/modules/cmdpal/Tests/Microsoft.CmdPal.UI.UnitTests/Microsoft.CmdPal.UI.UnitTests.csproj",
+                    "name": "FindReferenceAssembliesForReferences",
+                    "deltaMs": 20.0568,
+                    "ordinaryMs": 1.924,
+                    "groupMs": 21.9808
+                  }
+                ],
+                "positiveAttributedShare": 0.16631345378970003
+              },
+              "tasks": {
+                "netDeltaMs": 540.3464000000001,
+                "positiveDeltaMs": 1272.3317000000002,
+                "topIncrements": [
+                  {
+                    "path": "src/modules/cmdpal/ext/Microsoft.CmdPal.Ext.System/Microsoft.CmdPal.Ext.System.csproj",
+                    "name": "CsWin32CodeGeneratorTask",
+                    "deltaMs": 199.73739999999998,
+                    "ordinaryMs": 1193.2211,
+                    "groupMs": 1392.9585
+                  },
+                  {
+                    "path": "src/modules/cmdpal/Tests/Microsoft.CmdPal.UI.ManualTests/Microsoft.CmdPal.UI.ManualTests.csproj",
+                    "name": "MSBuild",
+                    "deltaMs": 58.7166,
+                    "ordinaryMs": 30.00829999999999,
+                    "groupMs": 88.72489999999999
+                  },
+                  {
+                    "path": "src/modules/powerdisplay/PowerDisplay.Lib.UnitTests/PowerDisplay.Lib.UnitTests.csproj",
+                    "name": "MSBuild",
+                    "deltaMs": 55.4367,
+                    "ordinaryMs": 3.2885999999999997,
+                    "groupMs": 58.725300000000004
+                  }
+                ],
+                "positiveAttributedShare": 0.3713826377352897
+              }
+            }
+          }
+        }
+      },
+      {
+        "index": 1,
+        "status": "ok",
+        "streams": [
+          {
+            "input": "group-1-1.binlog",
+            "timingJson": "powertoys-parallel-group-1-1-timings.json",
+            "timingSha256": "e82b74929e7c765d0100d5a844ce4f368456f80e368f3284997b9ea56579cf80",
+            "formatVersion": 26,
+            "status": "ok",
+            "errors": [],
+            "evaluationProfilerAvailable": false,
+            "sdkProperties": [
+              "MSBuildToolsPath=C:\\Program Files\\dotnet\\sdk\\10.0.401",
+              "MSBuildVersion=18.9.11",
+              "MSBuildSDKsPath=C:\\Program Files\\dotnet\\sdk\\10.0.401\\Sdks",
+              "NETCoreSdkVersion=10.0.401"
+            ],
+            "meaning": "Interval union per project; target exclusive excludes tasks/evaluations/nested project builds; task exclusive excludes evaluations/nested project builds. Evaluation, target and task totals are separate layers, never sum inclusive parent/child durations. Concurrent project service durations are not wall time.",
+            "projectCount": 78
+          },
+          {
+            "input": "group-1-2.binlog",
+            "timingJson": "powertoys-parallel-group-1-2-timings.json",
+            "timingSha256": "b72d15e045224df0da8ef3f69cc7e15592eac67b5f9f77c60c6d2b70b275694f",
+            "formatVersion": 27,
+            "status": "ok",
+            "errors": [],
+            "evaluationProfilerAvailable": false,
+            "sdkProperties": [],
+            "meaning": "Interval union per project; target exclusive excludes tasks/evaluations/nested project builds; task exclusive excludes evaluations/nested project builds. Evaluation, target and task totals are separate layers, never sum inclusive parent/child durations. Concurrent project service durations are not wall time.",
+            "projectCount": 0
+          }
+        ],
+        "firstThreeAvailable": true,
+        "orderMeaning": "first public progress callback per matched project across this group; callback completion order is a proxy, not exact cross-stream project start order",
+        "sdkProperties": [
+          "MSBuildSDKsPath=C:\\Program Files\\dotnet\\sdk\\10.0.401\\Sdks",
+          "MSBuildToolsPath=C:\\Program Files\\dotnet\\sdk\\10.0.401",
+          "MSBuildVersion=18.9.11",
+          "NETCoreSdkVersion=10.0.401"
+        ],
+        "orderingUnmatchedPathCount": 20,
+        "orderingUnmatchedExamples": [
+          "src/common/ManagedCommon/ManagedCommon.csproj",
+          "src/settings-ui/Settings.UI.Library/Settings.UI.Library.csproj",
+          "src/modules/powerdisplay/PowerDisplay.Models/PowerDisplay.Models.csproj"
+        ],
+        "unmatchedPathCount": 1,
+        "unmatchedFileNames": [
+          "Group.csproj"
+        ],
+        "partitions": {
+          "firstThree": {
+            "projectCount": 3,
+            "positiveAttributedDeltaMs": 472.0851,
+            "shareDenominator": "sum of positive deltas of evaluation and exclusive targets/tasks on matched projects in this partition; not total wall residual",
+            "paths": [
+              "src/dsc/PowerToys.Settings.DSC.Schema.Generator/PowerToys.Settings.DSC.Schema.Generator.csproj",
+              "src/modules/EnvironmentVariables/EnvironmentVariables.UITests/EnvironmentVariables.UITests.csproj",
+              "src/modules/EnvironmentVariables/EnvironmentVariablesUILib.Tests/EnvironmentVariablesUILib.UnitTests.csproj"
+            ],
+            "layers": {
+              "evaluation": {
+                "netDeltaMs": 125.4719,
+                "positiveDeltaMs": 125.4719,
+                "topIncrements": [
+                  {
+                    "path": "src/dsc/PowerToys.Settings.DSC.Schema.Generator/PowerToys.Settings.DSC.Schema.Generator.csproj",
+                    "deltaMs": 62.9594,
+                    "ordinaryMs": 0,
+                    "groupMs": 62.9594
+                  },
+                  {
+                    "path": "src/modules/EnvironmentVariables/EnvironmentVariablesUILib.Tests/EnvironmentVariablesUILib.UnitTests.csproj",
+                    "deltaMs": 43.5061,
+                    "ordinaryMs": 0,
+                    "groupMs": 43.5061
+                  },
+                  {
+                    "path": "src/modules/EnvironmentVariables/EnvironmentVariables.UITests/EnvironmentVariables.UITests.csproj",
+                    "deltaMs": 19.0064,
+                    "ordinaryMs": 0,
+                    "groupMs": 19.0064
+                  }
+                ],
+                "positiveAttributedShare": 0.2657823769485629
+              },
+              "targets": {
+                "netDeltaMs": 41.88190000000001,
+                "positiveDeltaMs": 42.56280000000001,
+                "topIncrements": [
+                  {
+                    "path": "src/modules/EnvironmentVariables/EnvironmentVariablesUILib.Tests/EnvironmentVariablesUILib.UnitTests.csproj",
+                    "name": "FindReferenceAssembliesForReferences",
+                    "deltaMs": 4.9712,
+                    "ordinaryMs": 1.9115,
+                    "groupMs": 6.8827
+                  },
+                  {
+                    "path": "src/modules/EnvironmentVariables/EnvironmentVariables.UITests/EnvironmentVariables.UITests.csproj",
+                    "name": "FindReferenceAssembliesForReferences",
+                    "deltaMs": 4.7048,
+                    "ordinaryMs": 1.2931,
+                    "groupMs": 5.9979
+                  },
+                  {
+                    "path": "src/modules/EnvironmentVariables/EnvironmentVariablesUILib.Tests/EnvironmentVariablesUILib.UnitTests.csproj",
+                    "name": "_HandlePackageFileConflicts",
+                    "deltaMs": 2.0621,
+                    "ordinaryMs": 1.0424999999999995,
+                    "groupMs": 3.1045999999999996
+                  }
+                ],
+                "positiveAttributedShare": 0.09015916833638683
+              },
+              "tasks": {
+                "netDeltaMs": 295.5363,
+                "positiveDeltaMs": 304.05039999999997,
+                "topIncrements": [
+                  {
+                    "path": "src/dsc/PowerToys.Settings.DSC.Schema.Generator/PowerToys.Settings.DSC.Schema.Generator.csproj",
+                    "name": "MSBuild",
+                    "deltaMs": 109.68969999999999,
+                    "ordinaryMs": 4.218500000000001,
+                    "groupMs": 113.9082
+                  },
+                  {
+                    "path": "src/modules/EnvironmentVariables/EnvironmentVariables.UITests/EnvironmentVariables.UITests.csproj",
+                    "name": "MSBuild",
+                    "deltaMs": 45.8358,
+                    "ordinaryMs": 0.9447,
+                    "groupMs": 46.780499999999996
+                  },
+                  {
+                    "path": "src/modules/EnvironmentVariables/EnvironmentVariables.UITests/EnvironmentVariables.UITests.csproj",
+                    "name": "Csc",
+                    "deltaMs": 27.6921,
+                    "ordinaryMs": 1.3551,
+                    "groupMs": 29.0472
+                  }
+                ],
+                "positiveAttributedShare": 0.6440584547150502
+              }
+            }
+          },
+          "rest": {
+            "projectCount": 74,
+            "positiveAttributedDeltaMs": 2477.5231,
+            "shareDenominator": "sum of positive deltas of evaluation and exclusive targets/tasks on matched projects in this partition; not total wall residual",
+            "layers": {
+              "evaluation": {
+                "netDeltaMs": 858.1511,
+                "positiveDeltaMs": 1093.7572,
+                "topIncrements": [
+                  {
+                    "path": "src/modules/fancyzones/editor/FancyZonesEditor/FancyZonesEditor.csproj",
+                    "deltaMs": 70.582,
+                    "ordinaryMs": 0,
+                    "groupMs": 70.582
+                  },
+                  {
+                    "path": "src/modules/Hosts/Hosts.Tests/HostsEditor.UnitTests.csproj",
+                    "deltaMs": 57.1412,
+                    "ordinaryMs": 0,
+                    "groupMs": 57.1412
+                  },
+                  {
+                    "path": "src/modules/imageresizer/tests/ImageResizer.UnitTests.csproj",
+                    "deltaMs": 54.0615,
+                    "ordinaryMs": 0,
+                    "groupMs": 54.0615
+                  }
+                ],
+                "positiveAttributedShare": 0.44147204924143796
+              },
+              "targets": {
+                "netDeltaMs": 6.246999999999848,
+                "positiveDeltaMs": 429.6434999999998,
+                "topIncrements": [
+                  {
+                    "path": "src/modules/EnvironmentVariables/EnvironmentVariables/EnvironmentVariables.csproj",
+                    "name": "AddMicrosoftWindowsAppSDKPayloadFilesFromComponents",
+                    "deltaMs": 55.0108,
+                    "ordinaryMs": 43.8874,
+                    "groupMs": 98.8982
+                  },
+                  {
+                    "path": "src/modules/ShortcutGuide/ShortcutGuide.UnitTests/ShortcutGuide.UnitTests.csproj",
+                    "name": "FindReferenceAssembliesForReferences",
+                    "deltaMs": 30.3523,
+                    "ordinaryMs": 2.46,
+                    "groupMs": 32.8123
+                  },
+                  {
+                    "path": "src/modules/cmdpal/Tests/Microsoft.CmdPal.Ext.PowerToys.UnitTests/Microsoft.CmdPal.Ext.PowerToys.UnitTests.csproj",
+                    "name": "FindReferenceAssembliesForReferences",
+                    "deltaMs": 20.4865,
+                    "ordinaryMs": 2.1667,
+                    "groupMs": 22.6532
+                  }
+                ],
+                "positiveAttributedShare": 0.17341654655006034
+              },
+              "tasks": {
+                "netDeltaMs": -24.935899999999823,
+                "positiveDeltaMs": 954.1224000000002,
+                "topIncrements": [
+                  {
+                    "path": "src/modules/EnvironmentVariables/EnvironmentVariables/EnvironmentVariables.csproj",
+                    "name": "MSBuild",
+                    "deltaMs": 57.797700000000006,
+                    "ordinaryMs": 5.339599999999997,
+                    "groupMs": 63.1373
+                  },
+                  {
+                    "path": "src/modules/ShortcutGuide/ShortcutGuide.Ui/ShortcutGuide.Ui.csproj",
+                    "name": "Exec",
+                    "deltaMs": 53.66520000000003,
+                    "ordinaryMs": 259.6626,
+                    "groupMs": 313.3278
+                  },
+                  {
+                    "path": "src/modules/Workspaces/WorkspacesEditor/WorkspacesEditor.csproj",
+                    "name": "MarkupCompilePass1",
+                    "deltaMs": 50.538700000000006,
+                    "ordinaryMs": 60.3428,
+                    "groupMs": 110.8815
+                  }
+                ],
+                "positiveAttributedShare": 0.3851114042085017
+              }
+            }
+          }
+        }
+      },
+      {
+        "index": 2,
+        "status": "ok",
+        "streams": [
+          {
+            "input": "group-2-1.binlog",
+            "timingJson": "powertoys-parallel-group-2-1-timings.json",
+            "timingSha256": "c597dd6965c3918c76e6a7c1677a7d58c2c81edcb8f8dcc8038a3012dc893064",
+            "formatVersion": 26,
+            "status": "ok",
+            "errors": [],
+            "evaluationProfilerAvailable": false,
+            "sdkProperties": [
+              "MSBuildToolsPath=C:\\Program Files\\dotnet\\sdk\\10.0.401",
+              "MSBuildVersion=18.9.11",
+              "MSBuildSDKsPath=C:\\Program Files\\dotnet\\sdk\\10.0.401\\Sdks",
+              "NETCoreSdkVersion=10.0.401"
+            ],
+            "meaning": "Interval union per project; target exclusive excludes tasks/evaluations/nested project builds; task exclusive excludes evaluations/nested project builds. Evaluation, target and task totals are separate layers, never sum inclusive parent/child durations. Concurrent project service durations are not wall time.",
+            "projectCount": 87
+          },
+          {
+            "input": "group-2-2.binlog",
+            "timingJson": "powertoys-parallel-group-2-2-timings.json",
+            "timingSha256": "e5ef33ee35213ac999c5f60c6bd02f3976a635655acd5ad8cc4777ae7d1b2dc0",
+            "formatVersion": 27,
+            "status": "ok",
+            "errors": [],
+            "evaluationProfilerAvailable": false,
+            "sdkProperties": [],
+            "meaning": "Interval union per project; target exclusive excludes tasks/evaluations/nested project builds; task exclusive excludes evaluations/nested project builds. Evaluation, target and task totals are separate layers, never sum inclusive parent/child durations. Concurrent project service durations are not wall time.",
+            "projectCount": 0
+          }
+        ],
+        "firstThreeAvailable": true,
+        "orderMeaning": "first public progress callback per matched project across this group; callback completion order is a proxy, not exact cross-stream project start order",
+        "sdkProperties": [
+          "MSBuildSDKsPath=C:\\Program Files\\dotnet\\sdk\\10.0.401\\Sdks",
+          "MSBuildToolsPath=C:\\Program Files\\dotnet\\sdk\\10.0.401",
+          "MSBuildVersion=18.9.11",
+          "NETCoreSdkVersion=10.0.401"
+        ],
+        "orderingUnmatchedPathCount": 23,
+        "orderingUnmatchedExamples": [
+          "src/common/UITestAutomation.Next/UITestAutomation.Next.csproj",
+          "src/common/interop/PowerToys.Interop.vcxproj",
+          "src/common/logger/logger.vcxproj"
+        ],
+        "unmatchedPathCount": 1,
+        "unmatchedFileNames": [
+          "Group.csproj"
+        ],
+        "partitions": {
+          "firstThree": {
+            "projectCount": 3,
+            "positiveAttributedDeltaMs": 265.5632,
+            "shareDenominator": "sum of positive deltas of evaluation and exclusive targets/tasks on matched projects in this partition; not total wall residual",
+            "paths": [
+              "src/common/UITestAutomation.Next.UnitTests/UITestAutomation.Next.UnitTests.csproj",
+              "src/common/interop/interop-tests/Common.Interop.UnitTests.csproj",
+              "src/modules/AdvancedPaste/AdvancedPaste.FuzzTests/AdvancedPaste.FuzzTests.csproj"
+            ],
+            "layers": {
+              "evaluation": {
+                "netDeltaMs": 119.0876,
+                "positiveDeltaMs": 119.0876,
+                "topIncrements": [
+                  {
+                    "path": "src/common/UITestAutomation.Next.UnitTests/UITestAutomation.Next.UnitTests.csproj",
+                    "deltaMs": 92.3681,
+                    "ordinaryMs": 0,
+                    "groupMs": 92.3681
+                  },
+                  {
+                    "path": "src/common/interop/interop-tests/Common.Interop.UnitTests.csproj",
+                    "deltaMs": 14.3082,
+                    "ordinaryMs": 0,
+                    "groupMs": 14.3082
+                  },
+                  {
+                    "path": "src/modules/AdvancedPaste/AdvancedPaste.FuzzTests/AdvancedPaste.FuzzTests.csproj",
+                    "deltaMs": 12.4113,
+                    "ordinaryMs": 0,
+                    "groupMs": 12.4113
+                  }
+                ],
+                "positiveAttributedShare": 0.44843412039017455
+              },
+              "targets": {
+                "netDeltaMs": -12.00200000000001,
+                "positiveDeltaMs": 11.314599999999992,
+                "topIncrements": [
+                  {
+                    "path": "src/common/UITestAutomation.Next.UnitTests/UITestAutomation.Next.UnitTests.csproj",
+                    "name": "_GetProjectReferenceTargetFrameworkProperties",
+                    "deltaMs": 1.7484999999999928,
+                    "ordinaryMs": 0.670100000000005,
+                    "groupMs": 2.418599999999998
+                  },
+                  {
+                    "path": "src/modules/AdvancedPaste/AdvancedPaste.FuzzTests/AdvancedPaste.FuzzTests.csproj",
+                    "name": "_HandlePackageFileConflicts",
+                    "deltaMs": 0.9356999999999989,
+                    "ordinaryMs": 1.1358000000000006,
+                    "groupMs": 2.0714999999999995
+                  },
+                  {
+                    "path": "src/common/UITestAutomation.Next.UnitTests/UITestAutomation.Next.UnitTests.csproj",
+                    "name": "GeneratePlatformCompatibleDefineConstants",
+                    "deltaMs": 0.7364999999999999,
+                    "ordinaryMs": 0.4553,
+                    "groupMs": 1.1918
+                  }
+                ],
+                "positiveAttributedShare": 0.04260605385083472
+              },
+              "tasks": {
+                "netDeltaMs": 131.9865,
+                "positiveDeltaMs": 135.161,
+                "topIncrements": [
+                  {
+                    "path": "src/common/UITestAutomation.Next.UnitTests/UITestAutomation.Next.UnitTests.csproj",
+                    "name": "MSBuild",
+                    "deltaMs": 28.5873,
+                    "ordinaryMs": 3.6029000000000035,
+                    "groupMs": 32.190200000000004
+                  },
+                  {
+                    "path": "src/common/UITestAutomation.Next.UnitTests/UITestAutomation.Next.UnitTests.csproj",
+                    "name": "ResolveAssemblyReference",
+                    "deltaMs": 23.767899999999997,
+                    "ordinaryMs": 5.2018,
+                    "groupMs": 28.9697
+                  },
+                  {
+                    "path": "src/common/UITestAutomation.Next.UnitTests/UITestAutomation.Next.UnitTests.csproj",
+                    "name": "Microsoft.Build.Tasks.Git.LocateRepository",
+                    "deltaMs": 19.1927,
+                    "ordinaryMs": 0.2906,
+                    "groupMs": 19.4833
+                  }
+                ],
+                "positiveAttributedShare": 0.5089598257589907
+              }
+            }
+          },
+          "rest": {
+            "projectCount": 83,
+            "positiveAttributedDeltaMs": 2960.6497,
+            "shareDenominator": "sum of positive deltas of evaluation and exclusive targets/tasks on matched projects in this partition; not total wall residual",
+            "layers": {
+              "evaluation": {
+                "netDeltaMs": 1164.4193,
+                "positiveDeltaMs": 1376.0151,
+                "topIncrements": [
+                  {
+                    "path": "src/modules/launcher/Wox.Test/Wox.Test.csproj",
+                    "deltaMs": 53.2248,
+                    "ordinaryMs": 0,
+                    "groupMs": 53.2248
+                  },
+                  {
+                    "path": "src/modules/launcher/Plugins/Microsoft.PowerToys.Run.Plugin.System/Microsoft.PowerToys.Run.Plugin.System.csproj",
+                    "deltaMs": 46.8537,
+                    "ordinaryMs": 0,
+                    "groupMs": 46.8537
+                  },
+                  {
+                    "path": "src/modules/launcher/Plugins/Community.PowerToys.Run.Plugin.ValueGenerator.UnitTests/Community.PowerToys.Run.Plugin.ValueGenerator.UnitTests.csproj",
+                    "deltaMs": 46.3466,
+                    "ordinaryMs": 0,
+                    "groupMs": 46.3466
+                  }
+                ],
+                "positiveAttributedShare": 0.46476795279090266
+              },
+              "targets": {
+                "netDeltaMs": 144.47190000000012,
+                "positiveDeltaMs": 430.4554000000001,
+                "topIncrements": [
+                  {
+                    "path": "src/modules/FileLocksmith/FileLocksmithUI/FileLocksmithUI.csproj",
+                    "name": "AddMicrosoftWindowsAppSDKPayloadFilesFromComponents",
+                    "deltaMs": 34.83959999999999,
+                    "ordinaryMs": 48.127700000000004,
+                    "groupMs": 82.9673
+                  },
+                  {
+                    "path": "src/modules/launcher/Plugins/Microsoft.Plugin.Uri.UnitTests/Microsoft.Plugin.Uri.UnitTests.csproj",
+                    "name": "GetAssemblyAttributes",
+                    "deltaMs": 21.9109,
+                    "ordinaryMs": 0.0783,
+                    "groupMs": 21.9892
+                  },
+                  {
+                    "path": "src/modules/colorPicker/ColorPickerUI.UnitTests/ColorPickerUI.UnitTests.csproj",
+                    "name": "_GetProjectReferenceTargetFrameworkProperties",
+                    "deltaMs": 20.4144,
+                    "ordinaryMs": 0.7010000000000001,
+                    "groupMs": 21.1154
+                  }
+                ],
+                "positiveAttributedShare": 0.14539220901412286
+              },
+              "tasks": {
+                "netDeltaMs": 357.60599999999977,
+                "positiveDeltaMs": 1154.1791999999998,
+                "topIncrements": [
+                  {
+                    "path": "src/modules/FileLocksmith/FileLocksmithUI/FileLocksmithUI.csproj",
+                    "name": "MSBuild",
+                    "deltaMs": 118.8168,
+                    "ordinaryMs": 4.8521,
+                    "groupMs": 123.66890000000001
+                  },
+                  {
+                    "path": "src/modules/keyboardmanager/KeyboardManagerEditorUI/KeyboardManagerEditorUI.csproj",
+                    "name": "Exec",
+                    "deltaMs": 103.74559999999997,
+                    "ordinaryMs": 524.027,
+                    "groupMs": 627.7726
+                  },
+                  {
+                    "path": "src/modules/MouseUtils/MouseJump.WinUI3/MouseJump.WinUI3.csproj",
+                    "name": "MSBuild",
+                    "deltaMs": 53.7121,
+                    "ordinaryMs": 3.6776999999999997,
+                    "groupMs": 57.3898
+                  }
+                ],
+                "positiveAttributedShare": 0.38983983819497453
+              }
+            }
+          }
+        }
+      },
+      {
+        "index": 3,
+        "status": "ok",
+        "streams": [
+          {
+            "input": "group-3-1.binlog",
+            "timingJson": "powertoys-parallel-group-3-1-timings.json",
+            "timingSha256": "0fd97e8673e3cc928236bd8226af16d885db928b9ecfcb1bd53bc5538c4b3583",
+            "formatVersion": 26,
+            "status": "ok",
+            "errors": [],
+            "evaluationProfilerAvailable": false,
+            "sdkProperties": [
+              "MSBuildToolsPath=C:\\Program Files\\dotnet\\sdk\\10.0.401",
+              "MSBuildVersion=18.9.11",
+              "MSBuildSDKsPath=C:\\Program Files\\dotnet\\sdk\\10.0.401\\Sdks",
+              "NETCoreSdkVersion=10.0.401"
+            ],
+            "meaning": "Interval union per project; target exclusive excludes tasks/evaluations/nested project builds; task exclusive excludes evaluations/nested project builds. Evaluation, target and task totals are separate layers, never sum inclusive parent/child durations. Concurrent project service durations are not wall time.",
+            "projectCount": 76
+          },
+          {
+            "input": "group-3-2.binlog",
+            "timingJson": "powertoys-parallel-group-3-2-timings.json",
+            "timingSha256": "5ce6a5f37e65458f29f84ed3f16df421f09bb85975684b2cd32c6b83003316b6",
+            "formatVersion": 27,
+            "status": "ok",
+            "errors": [],
+            "evaluationProfilerAvailable": false,
+            "sdkProperties": [],
+            "meaning": "Interval union per project; target exclusive excludes tasks/evaluations/nested project builds; task exclusive excludes evaluations/nested project builds. Evaluation, target and task totals are separate layers, never sum inclusive parent/child durations. Concurrent project service durations are not wall time.",
+            "projectCount": 0
+          }
+        ],
+        "firstThreeAvailable": true,
+        "orderMeaning": "first public progress callback per matched project across this group; callback completion order is a proxy, not exact cross-stream project start order",
+        "sdkProperties": [
+          "MSBuildSDKsPath=C:\\Program Files\\dotnet\\sdk\\10.0.401\\Sdks",
+          "MSBuildToolsPath=C:\\Program Files\\dotnet\\sdk\\10.0.401",
+          "MSBuildVersion=18.9.11",
+          "NETCoreSdkVersion=10.0.401"
+        ],
+        "orderingUnmatchedPathCount": 17,
+        "orderingUnmatchedExamples": [
+          "src/modules/powerdisplay/PowerDisplay.Models/PowerDisplay.Models.csproj",
+          "src/common/ManagedCommon/ManagedCommon.csproj",
+          "src/common/ManagedTelemetry/Telemetry/ManagedTelemetry.csproj"
+        ],
+        "unmatchedPathCount": 1,
+        "unmatchedFileNames": [
+          "Group.csproj"
+        ],
+        "partitions": {
+          "firstThree": {
+            "projectCount": 3,
+            "positiveAttributedDeltaMs": 373.7682,
+            "shareDenominator": "sum of positive deltas of evaluation and exclusive targets/tasks on matched projects in this partition; not total wall residual",
+            "paths": [
+              "src/dsc/v3/PowerToys.DSC.UnitTests/PowerToys.DSC.UnitTests.csproj",
+              "src/dsc/v3/PowerToys.DSC/PowerToys.DSC.csproj",
+              "src/modules/AdvancedPaste/AdvancedPaste.UITests.Next/AdvancedPaste.UITests.Next.csproj"
+            ],
+            "layers": {
+              "evaluation": {
+                "netDeltaMs": 90.0462,
+                "positiveDeltaMs": 90.675,
+                "topIncrements": [
+                  {
+                    "path": "src/dsc/v3/PowerToys.DSC.UnitTests/PowerToys.DSC.UnitTests.csproj",
+                    "deltaMs": 70.3351,
+                    "ordinaryMs": 0,
+                    "groupMs": 70.3351
+                  },
+                  {
+                    "path": "src/modules/AdvancedPaste/AdvancedPaste.UITests.Next/AdvancedPaste.UITests.Next.csproj",
+                    "deltaMs": 20.3399,
+                    "ordinaryMs": 0,
+                    "groupMs": 20.3399
+                  },
+                  {
+                    "path": "src/dsc/v3/PowerToys.DSC/PowerToys.DSC.csproj",
+                    "deltaMs": -0.6287999999999982,
+                    "ordinaryMs": 28.7581,
+                    "groupMs": 28.1293
+                  }
+                ],
+                "positiveAttributedShare": 0.24259688223877796
+              },
+              "targets": {
+                "netDeltaMs": 15.694499999999989,
+                "positiveDeltaMs": 18.42789999999999,
+                "topIncrements": [
+                  {
+                    "path": "src/modules/AdvancedPaste/AdvancedPaste.UITests.Next/AdvancedPaste.UITests.Next.csproj",
+                    "name": "FindReferenceAssembliesForReferences",
+                    "deltaMs": 2.5669000000000004,
+                    "ordinaryMs": 3.4795,
+                    "groupMs": 6.0464
+                  },
+                  {
+                    "path": "src/dsc/v3/PowerToys.DSC.UnitTests/PowerToys.DSC.UnitTests.csproj",
+                    "name": "_GetProjectReferenceTargetFrameworkProperties",
+                    "deltaMs": 2.128899999999991,
+                    "ordinaryMs": 0.7636999999999965,
+                    "groupMs": 2.8925999999999874
+                  },
+                  {
+                    "path": "src/modules/AdvancedPaste/AdvancedPaste.UITests.Next/AdvancedPaste.UITests.Next.csproj",
+                    "name": "_HandlePackageFileConflicts",
+                    "deltaMs": 0.8957999999999986,
+                    "ordinaryMs": 1.194,
+                    "groupMs": 2.0897999999999985
+                  }
+                ],
+                "positiveAttributedShare": 0.04930301721762309
+              },
+              "tasks": {
+                "netDeltaMs": 249.8638,
+                "positiveDeltaMs": 264.6653,
+                "topIncrements": [
+                  {
+                    "path": "src/dsc/v3/PowerToys.DSC.UnitTests/PowerToys.DSC.UnitTests.csproj",
+                    "name": "MSBuild",
+                    "deltaMs": 118.3965,
+                    "ordinaryMs": 7.8879,
+                    "groupMs": 126.2844
+                  },
+                  {
+                    "path": "src/modules/AdvancedPaste/AdvancedPaste.UITests.Next/AdvancedPaste.UITests.Next.csproj",
+                    "name": "MSBuild",
+                    "deltaMs": 40.782300000000006,
+                    "ordinaryMs": 1.8742,
+                    "groupMs": 42.65650000000001
+                  },
+                  {
+                    "path": "src/dsc/v3/PowerToys.DSC.UnitTests/PowerToys.DSC.UnitTests.csproj",
+                    "name": "Microsoft.Build.Tasks.Git.LocateRepository",
+                    "deltaMs": 18.0168,
+                    "ordinaryMs": 0.2619,
+                    "groupMs": 18.2787
+                  }
+                ],
+                "positiveAttributedShare": 0.708100100543599
+              }
+            }
+          },
+          "rest": {
+            "projectCount": 72,
+            "positiveAttributedDeltaMs": 2782.7312,
+            "shareDenominator": "sum of positive deltas of evaluation and exclusive targets/tasks on matched projects in this partition; not total wall residual",
+            "layers": {
+              "evaluation": {
+                "netDeltaMs": 1091.3445,
+                "positiveDeltaMs": 1304.8592,
+                "topIncrements": [
+                  {
+                    "path": "src/modules/AdvancedPaste/AdvancedPaste/AdvancedPaste.csproj",
+                    "deltaMs": 73.9944,
+                    "ordinaryMs": 0,
+                    "groupMs": 73.9944
+                  },
+                  {
+                    "path": "src/modules/previewpane/UnitTests-BgcodeThumbnailProvider/Preview.BgcodeThumbnailProvider.UnitTests.csproj",
+                    "deltaMs": 48.8765,
+                    "ordinaryMs": 0,
+                    "groupMs": 48.8765
+                  },
+                  {
+                    "path": "src/common/LanguageModelProvider/LanguageModelProvider.csproj",
+                    "deltaMs": 48.12,
+                    "ordinaryMs": 0,
+                    "groupMs": 48.12
+                  }
+                ],
+                "positiveAttributedShare": 0.46891313109940336
+              },
+              "targets": {
+                "netDeltaMs": 137.2128,
+                "positiveDeltaMs": 494.8554,
+                "topIncrements": [
+                  {
+                    "path": "src/modules/AdvancedPaste/AdvancedPaste/AdvancedPaste.csproj",
+                    "name": "AddMicrosoftWindowsAppSDKPayloadFilesFromComponents",
+                    "deltaMs": 44.894099999999995,
+                    "ordinaryMs": 53.2923,
+                    "groupMs": 98.18639999999999
+                  },
+                  {
+                    "path": "src/modules/CropAndLock/Tests/CropAndLock.UITests/CropAndLock.UITests.csproj",
+                    "name": "FindReferenceAssembliesForReferences",
+                    "deltaMs": 22.9813,
+                    "ordinaryMs": 2.0356,
+                    "groupMs": 25.0169
+                  },
+                  {
+                    "path": "src/modules/previewpane/QoiThumbnailProvider/QoiThumbnailProvider.csproj",
+                    "name": "FindReferenceAssembliesForReferences",
+                    "deltaMs": 19.8761,
+                    "ordinaryMs": 1.3305,
+                    "groupMs": 21.2066
+                  }
+                ],
+                "positiveAttributedShare": 0.17783083037269282
+              },
+              "tasks": {
+                "netDeltaMs": 142.63839999999985,
+                "positiveDeltaMs": 983.0165999999999,
+                "topIncrements": [
+                  {
+                    "path": "src/modules/AdvancedPaste/AdvancedPaste.UnitTests/AdvancedPaste.UnitTests.csproj",
+                    "name": "MSBuild",
+                    "deltaMs": 52.249599999999994,
+                    "ordinaryMs": 11.561200000000001,
+                    "groupMs": 63.81079999999999
+                  },
+                  {
+                    "path": "src/modules/poweraccent/PowerAccent.UI/PowerAccent.UI.csproj",
+                    "name": "Exec",
+                    "deltaMs": 49.840799999999945,
+                    "ordinaryMs": 272.5676,
+                    "groupMs": 322.4084
+                  },
+                  {
+                    "path": "src/modules/keyboardmanager/Tests/KeyboardManager.UITests/KeyboardManager.UITests.csproj",
+                    "name": "Exec",
+                    "deltaMs": 49.62160000000003,
+                    "ordinaryMs": 230.4014,
+                    "groupMs": 280.023
+                  }
+                ],
+                "positiveAttributedShare": 0.35325603852790377
+              }
+            }
+          }
+        }
+      }
+    ],
+    "aggregatePositiveAttributedDeltaMs": 13041.1376,
+    "firstThreePositiveAttributedShare": 0.10691563441520624,
+    "positivePartitionTotalsMs": {
+      "firstThree": 1394.3015,
+      "rest": 11646.8361
+    },
+    "positiveLayerTotalsMs": {
+      "evaluation": 5797.3712000000005,
+      "targets": 2022.3442999999997,
+      "tasks": 5221.4221
+    },
+    "positiveLayerShares": {
+      "evaluation": 0.4445448992118602,
+      "targets": 0.1550742245063038,
+      "tasks": 0.400380876281836
+    },
+    "phase1AndFallbackStreams": {
+      "powertoys-parallel-phase1-1-timings.json": {
+        "Status": "ok",
+        "Input": "phase1-1.binlog",
+        "FileFormatVersion": 26,
+        "Errors": [],
+        "SdkProperties": [
+          "MSBuildToolsPath=C:\\Program Files\\dotnet\\sdk\\10.0.401",
+          "MSBuildVersion=18.9.11",
+          "MSBuildSDKsPath=C:\\Program Files\\dotnet\\sdk\\10.0.401\\Sdks",
+          "NETCoreSdkVersion=10.0.401"
+        ],
+        "EvaluationProfilerAvailable": false,
+        "Meaning": "Interval union per project; target exclusive excludes tasks/evaluations/nested project builds; task exclusive excludes evaluations/nested project builds. Evaluation, target and task totals are separate layers, never sum inclusive parent/child durations. Concurrent project service durations are not wall time.",
+        "sha256": "8390b63fb7f1c93b1347e997045e0acd890a82eca1245e7fdbf0c94d042cecc4",
+        "projectCount": 19,
+        "role": "phase1"
+      },
+      "powertoys-parallel-phase1-2-timings.json": {
+        "Status": "ok",
+        "Input": "phase1-2.binlog",
+        "FileFormatVersion": 27,
+        "Errors": [],
+        "SdkProperties": [],
+        "EvaluationProfilerAvailable": false,
+        "Meaning": "Interval union per project; target exclusive excludes tasks/evaluations/nested project builds; task exclusive excludes evaluations/nested project builds. Evaluation, target and task totals are separate layers, never sum inclusive parent/child durations. Concurrent project service durations are not wall time.",
+        "sha256": "39e4b7ebed8645d9378b6c9574afab2a6b0f6702fe4d2072063dea329700035d",
+        "projectCount": 0,
+        "role": "phase1"
+      }
+    },
+    "comparisonSha256": "829d3335a4b23d50cf5a419b87beaa8ff982e8ad46d93095e00df1d5cd7214da"
+  },
+  "roslyn": {
+    "sdkResolverTimingMs": null,
+    "sdkResolverLimitation": "Diagnostic resolver messages have no paired duration events. Resolver time is included in evaluation; message counts do not measure its duration.",
+    "baselineStreams": [
+      {
+        "input": "capture-1.binlog",
+        "timingJson": "roslyn-ordinary-timings.json",
+        "timingSha256": "6f13fbb639b143bc599f8ea4c152789ae98d34cd7d5489ce4cf017eb7b99e041",
+        "formatVersion": 25,
+        "status": "ok",
+        "errors": [],
+        "evaluationProfilerAvailable": false,
+        "sdkProperties": [
+          "MSBuildToolsPath=E:\\Devel\\roslyn-mcp-bench\\clones\\roslyn-deep\\.dotnet\\sdk\\10.0.301",
+          "MSBuildVersion=18.6.4",
+          "MSBuildSDKsPath=E:\\Devel\\roslyn-mcp-bench\\clones\\roslyn-deep\\.dotnet\\sdk\\10.0.301\\Sdks",
+          "NETCoreSdkVersion=10.0.301"
+        ],
+        "meaning": "Interval union per project; target exclusive excludes tasks/evaluations/nested project builds; task exclusive excludes evaluations/nested project builds. Evaluation, target and task totals are separate layers, never sum inclusive parent/child durations. Concurrent project service durations are not wall time.",
+        "projectCount": 318
+      }
+    ],
+    "aggregationMeaning": "Union/exclusive durations were computed inside each replay stream. Across distinct BuildHost streams, project service durations are added, never interpreted as union wall. Repeated project paths/TFM contexts remain path aggregates; every stream occurrence is retained.",
+    "meaning": "Evaluation and exclusive target/task layers reported separately; inclusive target/task parents are never added. Across streams, service durations are summed, not asserted to be wall. First-three ordering uses available one-stream appearance or explicitly labeled public callback proxy; otherwise unavailable. Synthetic aggregator/unmatched projects remain separate. Differences are diagnostic context effects, not causal process-start measurements.",
+    "groups": [
+      {
+        "index": 0,
+        "status": "ok",
+        "streams": [
+          {
+            "input": "group-0-1.binlog",
+            "timingJson": "roslyn-parallel-group-0-1-timings.json",
+            "timingSha256": "84df35a14d12e14d71d2daa145cccea351d13f9fa2285c70e85239d851574d4c",
+            "formatVersion": 25,
+            "status": "ok",
+            "errors": [],
+            "evaluationProfilerAvailable": false,
+            "sdkProperties": [
+              "MSBuildToolsPath=E:\\Devel\\roslyn-mcp-bench\\clones\\roslyn-deep\\.dotnet\\sdk\\10.0.301",
+              "MSBuildVersion=18.6.4",
+              "MSBuildSDKsPath=E:\\Devel\\roslyn-mcp-bench\\clones\\roslyn-deep\\.dotnet\\sdk\\10.0.301\\Sdks",
+              "NETCoreSdkVersion=10.0.301"
+            ],
+            "meaning": "Interval union per project; target exclusive excludes tasks/evaluations/nested project builds; task exclusive excludes evaluations/nested project builds. Evaluation, target and task totals are separate layers, never sum inclusive parent/child durations. Concurrent project service durations are not wall time.",
+            "projectCount": 109
+          }
+        ],
+        "firstThreeAvailable": true,
+        "orderMeaning": "first public progress callback per matched project across this group; callback completion order is a proxy, not exact cross-stream project start order",
+        "sdkProperties": [
+          "MSBuildSDKsPath=E:\\Devel\\roslyn-mcp-bench\\clones\\roslyn-deep\\.dotnet\\sdk\\10.0.301\\Sdks",
+          "MSBuildToolsPath=E:\\Devel\\roslyn-mcp-bench\\clones\\roslyn-deep\\.dotnet\\sdk\\10.0.301",
+          "MSBuildVersion=18.6.4",
+          "NETCoreSdkVersion=10.0.301"
+        ],
+        "orderingUnmatchedPathCount": 50,
+        "orderingUnmatchedExamples": [
+          "src/Test/PdbUtilities/Roslyn.Test.PdbUtilities.csproj",
+          "src/Compilers/Test/Core/Microsoft.CodeAnalysis.Test.Utilities.csproj",
+          "src/Compilers/CSharp/csc/AnyCpu/csc.csproj"
+        ],
+        "unmatchedPathCount": 1,
+        "unmatchedFileNames": [
+          "Group.csproj"
+        ],
+        "partitions": {
+          "firstThree": {
+            "projectCount": 3,
+            "positiveAttributedDeltaMs": 285.57000000000005,
+            "shareDenominator": "sum of positive deltas of evaluation and exclusive targets/tasks on matched projects in this partition; not total wall residual",
+            "paths": [
+              "src/Compilers/Core/MSBuildTaskTests/Microsoft.Build.Tasks.CodeAnalysis.UnitTests.csproj",
+              "src/Compilers/Core/MSBuildTask/MSBuild/Microsoft.Build.Tasks.CodeAnalysis.csproj",
+              "src/Compilers/Core/SdkTaskTests/Microsoft.Build.Tasks.CodeAnalysis.Sdk.UnitTests.csproj"
+            ],
+            "layers": {
+              "evaluation": {
+                "netDeltaMs": 82.3542,
+                "positiveDeltaMs": 82.3542,
+                "topIncrements": [
+                  {
+                    "path": "src/Compilers/Core/MSBuildTaskTests/Microsoft.Build.Tasks.CodeAnalysis.UnitTests.csproj",
+                    "deltaMs": 45.862,
+                    "ordinaryMs": 0,
+                    "groupMs": 45.862
+                  },
+                  {
+                    "path": "src/Compilers/Core/SdkTaskTests/Microsoft.Build.Tasks.CodeAnalysis.Sdk.UnitTests.csproj",
+                    "deltaMs": 31.0918,
+                    "ordinaryMs": 0,
+                    "groupMs": 31.0918
+                  },
+                  {
+                    "path": "src/Compilers/Core/MSBuildTask/MSBuild/Microsoft.Build.Tasks.CodeAnalysis.csproj",
+                    "deltaMs": 5.400400000000005,
+                    "ordinaryMs": 28.292699999999996,
+                    "groupMs": 33.6931
+                  }
+                ],
+                "positiveAttributedShare": 0.2883853345939699
+              },
+              "targets": {
+                "netDeltaMs": -28.612699999999947,
+                "positiveDeltaMs": 23.41750000000005,
+                "topIncrements": [
+                  {
+                    "path": "src/Compilers/Core/MSBuildTaskTests/Microsoft.Build.Tasks.CodeAnalysis.UnitTests.csproj",
+                    "name": "FindReferenceAssembliesForReferences",
+                    "deltaMs": 7.505200000000002,
+                    "ordinaryMs": 32.6705,
+                    "groupMs": 40.1757
+                  },
+                  {
+                    "path": "src/Compilers/Core/MSBuildTaskTests/Microsoft.Build.Tasks.CodeAnalysis.UnitTests.csproj",
+                    "name": "_GetProjectReferenceTargetFrameworkProperties",
+                    "deltaMs": 2.0206000000000452,
+                    "ordinaryMs": 0.9539000000000009,
+                    "groupMs": 2.974500000000046
+                  },
+                  {
+                    "path": "src/Compilers/Core/SdkTaskTests/Microsoft.Build.Tasks.CodeAnalysis.Sdk.UnitTests.csproj",
+                    "name": "FindReferenceAssembliesForReferences",
+                    "deltaMs": 0.8883999999999999,
+                    "ordinaryMs": 1.2736,
+                    "groupMs": 2.162
+                  }
+                ],
+                "positiveAttributedShare": 0.08200266134397886
+              },
+              "tasks": {
+                "netDeltaMs": 131.58020000000002,
+                "positiveDeltaMs": 179.7983,
+                "topIncrements": [
+                  {
+                    "path": "src/Compilers/Core/MSBuildTaskTests/Microsoft.Build.Tasks.CodeAnalysis.UnitTests.csproj",
+                    "name": "MSBuild",
+                    "deltaMs": 91.58760000000001,
+                    "ordinaryMs": 12.7636,
+                    "groupMs": 104.3512
+                  },
+                  {
+                    "path": "src/Compilers/Core/MSBuildTaskTests/Microsoft.Build.Tasks.CodeAnalysis.UnitTests.csproj",
+                    "name": "GetReferenceNearestTargetFrameworkTask",
+                    "deltaMs": 22.674,
+                    "ordinaryMs": 0.2986,
+                    "groupMs": 22.9726
+                  },
+                  {
+                    "path": "src/Compilers/Core/MSBuildTaskTests/Microsoft.Build.Tasks.CodeAnalysis.UnitTests.csproj",
+                    "name": "Microsoft.Build.Tasks.Git.LocateRepository",
+                    "deltaMs": 15.856099999999998,
+                    "ordinaryMs": 0.3993,
+                    "groupMs": 16.255399999999998
+                  }
+                ],
+                "positiveAttributedShare": 0.6296120040620513
+              }
+            }
+          },
+          "rest": {
+            "projectCount": 105,
+            "positiveAttributedDeltaMs": 5794.0437999999995,
+            "shareDenominator": "sum of positive deltas of evaluation and exclusive targets/tasks on matched projects in this partition; not total wall residual",
+            "layers": {
+              "evaluation": {
+                "netDeltaMs": 2303.3426,
+                "positiveDeltaMs": 2391.3369000000002,
+                "topIncrements": [
+                  {
+                    "path": "src/Workspaces/Core/Portable/Microsoft.CodeAnalysis.Workspaces.csproj",
+                    "deltaMs": 375.29780000000005,
+                    "ordinaryMs": 663.1493,
+                    "groupMs": 1038.4471
+                  },
+                  {
+                    "path": "src/RoslynAnalyzers/Microsoft.CodeAnalysis.Analyzers/Core/Microsoft.CodeAnalysis.Analyzers.csproj",
+                    "deltaMs": 172.6187,
+                    "ordinaryMs": 0,
+                    "groupMs": 172.6187
+                  },
+                  {
+                    "path": "src/Features/Core/Portable/Microsoft.CodeAnalysis.Features.csproj",
+                    "deltaMs": 164.3967,
+                    "ordinaryMs": 357.3592,
+                    "groupMs": 521.7559
+                  }
+                ],
+                "positiveAttributedShare": 0.4127233038866569
+              },
+              "targets": {
+                "netDeltaMs": -708.2388000000003,
+                "positiveDeltaMs": 703.3986999999997,
+                "topIncrements": [
+                  {
+                    "path": "src/Razor/src/Compiler/perf/Microbenchmarks/Microsoft.AspNetCore.Razor.Microbenchmarks.Compiler.csproj",
+                    "name": "FindReferenceAssembliesForReferences",
+                    "deltaMs": 27.6513,
+                    "ordinaryMs": 1.4185,
+                    "groupMs": 29.0698
+                  },
+                  {
+                    "path": "src/Razor/src/Razor/test/Microsoft.VisualStudio.LanguageServer.ContainedLanguage.UnitTests/Microsoft.VisualStudio.LanguageServer.ContainedLanguage.UnitTests.csproj",
+                    "name": "FixVSSDKEmbeddableAssemblies",
+                    "deltaMs": 23.1046,
+                    "ordinaryMs": 1.8507,
+                    "groupMs": 24.9553
+                  },
+                  {
+                    "path": "src/Razor/src/Razor/test/Microsoft.AspNetCore.Razor.Test.Common.Tooling/Microsoft.AspNetCore.Razor.Test.Common.Tooling.csproj",
+                    "name": "_HandlePackageFileConflicts",
+                    "deltaMs": 22.5308,
+                    "ordinaryMs": 1.5352999999999999,
+                    "groupMs": 24.0661
+                  }
+                ],
+                "positiveAttributedShare": 0.12140030767458124
+              },
+              "tasks": {
+                "netDeltaMs": 656.0958,
+                "positiveDeltaMs": 2699.3081999999995,
+                "topIncrements": [
+                  {
+                    "path": "src/Workspaces/Core/Portable/Microsoft.CodeAnalysis.Workspaces.csproj",
+                    "name": "MSBuild",
+                    "deltaMs": 367.5757000000002,
+                    "ordinaryMs": 651.8714999999999,
+                    "groupMs": 1019.4472000000001
+                  },
+                  {
+                    "path": "src/Features/Core/Portable/Microsoft.CodeAnalysis.Features.csproj",
+                    "name": "MSBuild",
+                    "deltaMs": 335.4249,
+                    "ordinaryMs": 172.6043,
+                    "groupMs": 508.0292
+                  },
+                  {
+                    "path": "src/LanguageServer/Microsoft.CodeAnalysis.LanguageServer.ProcessHost.UnitTests/Microsoft.CodeAnalysis.LanguageServer.ProcessHost.UnitTests.csproj",
+                    "name": "MSBuild",
+                    "deltaMs": 227.84819999999962,
+                    "ordinaryMs": 84.9226,
+                    "groupMs": 312.7707999999996
+                  }
+                ],
+                "positiveAttributedShare": 0.46587638843876183
+              }
+            }
+          }
+        }
+      },
+      {
+        "index": 1,
+        "status": "ok",
+        "streams": [
+          {
+            "input": "group-1-1.binlog",
+            "timingJson": "roslyn-parallel-group-1-1-timings.json",
+            "timingSha256": "f65cc089fad95aa40ceb6a8d222e19d9206c4f55fcbba143f39bc94806be5b6c",
+            "formatVersion": 25,
+            "status": "ok",
+            "errors": [],
+            "evaluationProfilerAvailable": false,
+            "sdkProperties": [
+              "MSBuildToolsPath=E:\\Devel\\roslyn-mcp-bench\\clones\\roslyn-deep\\.dotnet\\sdk\\10.0.301",
+              "MSBuildVersion=18.6.4",
+              "MSBuildSDKsPath=E:\\Devel\\roslyn-mcp-bench\\clones\\roslyn-deep\\.dotnet\\sdk\\10.0.301\\Sdks",
+              "NETCoreSdkVersion=10.0.301"
+            ],
+            "meaning": "Interval union per project; target exclusive excludes tasks/evaluations/nested project builds; task exclusive excludes evaluations/nested project builds. Evaluation, target and task totals are separate layers, never sum inclusive parent/child durations. Concurrent project service durations are not wall time.",
+            "projectCount": 94
+          }
+        ],
+        "firstThreeAvailable": true,
+        "orderMeaning": "first public progress callback per matched project across this group; callback completion order is a proxy, not exact cross-stream project start order",
+        "sdkProperties": [
+          "MSBuildSDKsPath=E:\\Devel\\roslyn-mcp-bench\\clones\\roslyn-deep\\.dotnet\\sdk\\10.0.301\\Sdks",
+          "MSBuildToolsPath=E:\\Devel\\roslyn-mcp-bench\\clones\\roslyn-deep\\.dotnet\\sdk\\10.0.301",
+          "MSBuildVersion=18.6.4",
+          "NETCoreSdkVersion=10.0.301"
+        ],
+        "orderingUnmatchedPathCount": 42,
+        "orderingUnmatchedExamples": [
+          "src/Compilers/Core/Portable/Microsoft.CodeAnalysis.csproj",
+          "src/Compilers/CSharp/Portable/Microsoft.CodeAnalysis.CSharp.csproj",
+          "src/Compilers/VisualBasic/Portable/Microsoft.CodeAnalysis.VisualBasic.vbproj"
+        ],
+        "unmatchedPathCount": 1,
+        "unmatchedFileNames": [
+          "Group.csproj"
+        ],
+        "partitions": {
+          "firstThree": {
+            "projectCount": 3,
+            "positiveAttributedDeltaMs": 1116.2691999999997,
+            "shareDenominator": "sum of positive deltas of evaluation and exclusive targets/tasks on matched projects in this partition; not total wall residual",
+            "paths": [
+              "src/CodeStyle/CSharp/Tests/Microsoft.CodeAnalysis.CSharp.CodeStyle.UnitTests.csproj",
+              "src/CodeStyle/Core/Analyzers/Microsoft.CodeAnalysis.CodeStyle.csproj",
+              "src/CodeStyle/Core/CodeFixes/Microsoft.CodeAnalysis.CodeStyle.Fixes.csproj"
+            ],
+            "layers": {
+              "evaluation": {
+                "netDeltaMs": 260.52410000000003,
+                "positiveDeltaMs": 260.52410000000003,
+                "topIncrements": [
+                  {
+                    "path": "src/CodeStyle/Core/Analyzers/Microsoft.CodeAnalysis.CodeStyle.csproj",
+                    "deltaMs": 127.4616,
+                    "ordinaryMs": 0,
+                    "groupMs": 127.4616
+                  },
+                  {
+                    "path": "src/CodeStyle/Core/CodeFixes/Microsoft.CodeAnalysis.CodeStyle.Fixes.csproj",
+                    "deltaMs": 84.7061,
+                    "ordinaryMs": 0,
+                    "groupMs": 84.7061
+                  },
+                  {
+                    "path": "src/CodeStyle/CSharp/Tests/Microsoft.CodeAnalysis.CSharp.CodeStyle.UnitTests.csproj",
+                    "deltaMs": 48.3564,
+                    "ordinaryMs": 0,
+                    "groupMs": 48.3564
+                  }
+                ],
+                "positiveAttributedShare": 0.23338823645765744
+              },
+              "targets": {
+                "netDeltaMs": 26.14290000000005,
+                "positiveDeltaMs": 47.18500000000005,
+                "topIncrements": [
+                  {
+                    "path": "src/CodeStyle/CSharp/Tests/Microsoft.CodeAnalysis.CSharp.CodeStyle.UnitTests.csproj",
+                    "name": "ImplicitlyExpandDesignTimeFacades",
+                    "deltaMs": 11.8756,
+                    "ordinaryMs": 3.5608,
+                    "groupMs": 15.4364
+                  },
+                  {
+                    "path": "src/CodeStyle/CSharp/Tests/Microsoft.CodeAnalysis.CSharp.CodeStyle.UnitTests.csproj",
+                    "name": "_GetProjectReferenceTargetFrameworkProperties",
+                    "deltaMs": 3.9818000000000513,
+                    "ordinaryMs": 1.6373,
+                    "groupMs": 5.619100000000051
+                  },
+                  {
+                    "path": "src/CodeStyle/CSharp/Tests/Microsoft.CodeAnalysis.CSharp.CodeStyle.UnitTests.csproj",
+                    "name": "FindReferenceAssembliesForReferences",
+                    "deltaMs": 3.3347999999999995,
+                    "ordinaryMs": 4.1538,
+                    "groupMs": 7.4886
+                  }
+                ],
+                "positiveAttributedShare": 0.04227026957296687
+              },
+              "tasks": {
+                "netDeltaMs": 808.5551999999996,
+                "positiveDeltaMs": 808.5600999999996,
+                "topIncrements": [
+                  {
+                    "path": "src/CodeStyle/CSharp/Tests/Microsoft.CodeAnalysis.CSharp.CodeStyle.UnitTests.csproj",
+                    "name": "MSBuild",
+                    "deltaMs": 638.2069999999995,
+                    "ordinaryMs": 11.9034,
+                    "groupMs": 650.1103999999996
+                  },
+                  {
+                    "path": "src/CodeStyle/CSharp/Tests/Microsoft.CodeAnalysis.CSharp.CodeStyle.UnitTests.csproj",
+                    "name": "ResolveAssemblyReference",
+                    "deltaMs": 32.0606,
+                    "ordinaryMs": 5.8511,
+                    "groupMs": 37.9117
+                  },
+                  {
+                    "path": "src/CodeStyle/CSharp/Tests/Microsoft.CodeAnalysis.CSharp.CodeStyle.UnitTests.csproj",
+                    "name": "GetReferenceNearestTargetFrameworkTask",
+                    "deltaMs": 31.578100000000003,
+                    "ordinaryMs": 0.3588,
+                    "groupMs": 31.9369
+                  }
+                ],
+                "positiveAttributedShare": 0.7243414939693756
+              }
+            }
+          },
+          "rest": {
+            "projectCount": 90,
+            "positiveAttributedDeltaMs": 4191.8166,
+            "shareDenominator": "sum of positive deltas of evaluation and exclusive targets/tasks on matched projects in this partition; not total wall residual",
+            "layers": {
+              "evaluation": {
+                "netDeltaMs": 1623.9498,
+                "positiveDeltaMs": 1753.7912000000001,
+                "topIncrements": [
+                  {
+                    "path": "src/Razor/src/Compiler/Microsoft.AspNetCore.Razor.Language/test/Microsoft.AspNetCore.Razor.Language.UnitTests.csproj",
+                    "deltaMs": 182.1608,
+                    "ordinaryMs": 0,
+                    "groupMs": 182.1608
+                  },
+                  {
+                    "path": "src/Features/Core/Portable/Microsoft.CodeAnalysis.Features.csproj",
+                    "deltaMs": 151.31030000000004,
+                    "ordinaryMs": 357.3592,
+                    "groupMs": 508.6695
+                  },
+                  {
+                    "path": "src/VisualStudio/Core/Def/Microsoft.VisualStudio.LanguageServices.csproj",
+                    "deltaMs": 132.1646,
+                    "ordinaryMs": 32.6543,
+                    "groupMs": 164.8189
+                  }
+                ],
+                "positiveAttributedShare": 0.41838452569704504
+              },
+              "targets": {
+                "netDeltaMs": -351.07910000000004,
+                "positiveDeltaMs": 862.9861999999999,
+                "topIncrements": [
+                  {
+                    "path": "src/Razor/src/Compiler/Microsoft.AspNetCore.Razor.Language/test/Microsoft.AspNetCore.Razor.Language.UnitTests.csproj",
+                    "name": "SplitResourcesByCulture",
+                    "deltaMs": 250.62730000000005,
+                    "ordinaryMs": 83.2213,
+                    "groupMs": 333.84860000000003
+                  },
+                  {
+                    "path": "src/Razor/src/Compiler/Microsoft.AspNetCore.Razor.Language/legacyTest/Microsoft.AspNetCore.Razor.Language.Legacy.UnitTests.csproj",
+                    "name": "SplitResourcesByCulture",
+                    "deltaMs": 102.638,
+                    "ordinaryMs": 25.326299999999996,
+                    "groupMs": 127.96430000000001
+                  },
+                  {
+                    "path": "src/Features/Test/Microsoft.CodeAnalysis.Features.UnitTests.csproj",
+                    "name": "FindReferenceAssembliesForReferences",
+                    "deltaMs": 21.770700000000005,
+                    "ordinaryMs": 3.8514,
+                    "groupMs": 25.622100000000003
+                  }
+                ],
+                "positiveAttributedShare": 0.20587403561501233
+              },
+              "tasks": {
+                "netDeltaMs": 129.60650000000018,
+                "positiveDeltaMs": 1575.0392000000002,
+                "topIncrements": [
+                  {
+                    "path": "src/Features/Core/Portable/Microsoft.CodeAnalysis.Features.csproj",
+                    "name": "MSBuild",
+                    "deltaMs": 323.52279999999996,
+                    "ordinaryMs": 172.6043,
+                    "groupMs": 496.1271
+                  },
+                  {
+                    "path": "src/Workspaces/Core/Portable/Microsoft.CodeAnalysis.Workspaces.csproj",
+                    "name": "MSBuild",
+                    "deltaMs": 115.43810000000019,
+                    "ordinaryMs": 651.8714999999999,
+                    "groupMs": 767.3096
+                  },
+                  {
+                    "path": "src/Features/CSharp/Portable/Microsoft.CodeAnalysis.CSharp.Features.csproj",
+                    "name": "MSBuild",
+                    "deltaMs": 73.6601,
+                    "ordinaryMs": 292.5659,
+                    "groupMs": 366.226
+                  }
+                ],
+                "positiveAttributedShare": 0.37574143868794263
+              }
+            }
+          }
+        }
+      },
+      {
+        "index": 2,
+        "status": "ok",
+        "streams": [
+          {
+            "input": "group-2-1.binlog",
+            "timingJson": "roslyn-parallel-group-2-1-timings.json",
+            "timingSha256": "f2a98e31f88e32f80a69794d20e83fdd001fcf8b37fabf2653f1790f8240da09",
+            "formatVersion": 25,
+            "status": "ok",
+            "errors": [],
+            "evaluationProfilerAvailable": false,
+            "sdkProperties": [
+              "MSBuildToolsPath=E:\\Devel\\roslyn-mcp-bench\\clones\\roslyn-deep\\.dotnet\\sdk\\10.0.301",
+              "MSBuildVersion=18.6.4",
+              "MSBuildSDKsPath=E:\\Devel\\roslyn-mcp-bench\\clones\\roslyn-deep\\.dotnet\\sdk\\10.0.301\\Sdks",
+              "NETCoreSdkVersion=10.0.301"
+            ],
+            "meaning": "Interval union per project; target exclusive excludes tasks/evaluations/nested project builds; task exclusive excludes evaluations/nested project builds. Evaluation, target and task totals are separate layers, never sum inclusive parent/child durations. Concurrent project service durations are not wall time.",
+            "projectCount": 148
+          }
+        ],
+        "firstThreeAvailable": true,
+        "orderMeaning": "first public progress callback per matched project across this group; callback completion order is a proxy, not exact cross-stream project start order",
+        "sdkProperties": [
+          "MSBuildSDKsPath=E:\\Devel\\roslyn-mcp-bench\\clones\\roslyn-deep\\.dotnet\\sdk\\10.0.301\\Sdks",
+          "MSBuildToolsPath=E:\\Devel\\roslyn-mcp-bench\\clones\\roslyn-deep\\.dotnet\\sdk\\10.0.301",
+          "MSBuildVersion=18.6.4",
+          "NETCoreSdkVersion=10.0.301"
+        ],
+        "orderingUnmatchedPathCount": 77,
+        "orderingUnmatchedExamples": [
+          "src/VisualStudio/CodeLens/Microsoft.VisualStudio.LanguageServices.CodeLens.csproj",
+          "src/Test/PdbUtilities/Roslyn.Test.PdbUtilities.csproj",
+          "src/Compilers/Test/Core/Microsoft.CodeAnalysis.Test.Utilities.csproj"
+        ],
+        "unmatchedPathCount": 1,
+        "unmatchedFileNames": [
+          "Group.csproj"
+        ],
+        "partitions": {
+          "firstThree": {
+            "projectCount": 3,
+            "positiveAttributedDeltaMs": 330.502,
+            "shareDenominator": "sum of positive deltas of evaluation and exclusive targets/tasks on matched projects in this partition; not total wall residual",
+            "paths": [
+              "src/Compilers/CSharp/Test/Emit3/Microsoft.CodeAnalysis.CSharp.Emit3.UnitTests.csproj",
+              "src/Compilers/CSharp/Test/EndToEnd/Microsoft.CodeAnalysis.CSharp.EndToEnd.UnitTests.csproj",
+              "src/Compilers/CSharp/Test/Symbol/Microsoft.CodeAnalysis.CSharp.Symbol.UnitTests.csproj"
+            ],
+            "layers": {
+              "evaluation": {
+                "netDeltaMs": 57.1236,
+                "positiveDeltaMs": 57.1236,
+                "topIncrements": [
+                  {
+                    "path": "src/Compilers/CSharp/Test/Emit3/Microsoft.CodeAnalysis.CSharp.Emit3.UnitTests.csproj",
+                    "deltaMs": 43.203,
+                    "ordinaryMs": 0,
+                    "groupMs": 43.203
+                  },
+                  {
+                    "path": "src/Compilers/CSharp/Test/EndToEnd/Microsoft.CodeAnalysis.CSharp.EndToEnd.UnitTests.csproj",
+                    "deltaMs": 7.5591,
+                    "ordinaryMs": 0,
+                    "groupMs": 7.5591
+                  },
+                  {
+                    "path": "src/Compilers/CSharp/Test/Symbol/Microsoft.CodeAnalysis.CSharp.Symbol.UnitTests.csproj",
+                    "deltaMs": 6.3615,
+                    "ordinaryMs": 0,
+                    "groupMs": 6.3615
+                  }
+                ],
+                "positiveAttributedShare": 0.1728388935619149
+              },
+              "targets": {
+                "netDeltaMs": 57.788599999999995,
+                "positiveDeltaMs": 66.0893,
+                "topIncrements": [
+                  {
+                    "path": "src/Compilers/CSharp/Test/Emit3/Microsoft.CodeAnalysis.CSharp.Emit3.UnitTests.csproj",
+                    "name": "GenerateNETCompatibleDefineConstants",
+                    "deltaMs": 14.7264,
+                    "ordinaryMs": 0.4709,
+                    "groupMs": 15.1973
+                  },
+                  {
+                    "path": "src/Compilers/CSharp/Test/Emit3/Microsoft.CodeAnalysis.CSharp.Emit3.UnitTests.csproj",
+                    "name": "_HandlePackageFileConflicts",
+                    "deltaMs": 9.426399999999997,
+                    "ordinaryMs": 0.6490999999999998,
+                    "groupMs": 10.075499999999998
+                  },
+                  {
+                    "path": "src/Compilers/CSharp/Test/Symbol/Microsoft.CodeAnalysis.CSharp.Symbol.UnitTests.csproj",
+                    "name": "FindReferenceAssembliesForReferences",
+                    "deltaMs": 3.2578999999999994,
+                    "ordinaryMs": 3.3429,
+                    "groupMs": 6.6008
+                  }
+                ],
+                "positiveAttributedShare": 0.19996641472668847
+              },
+              "tasks": {
+                "netDeltaMs": 204.9571,
+                "positiveDeltaMs": 207.28910000000002,
+                "topIncrements": [
+                  {
+                    "path": "src/Compilers/CSharp/Test/Emit3/Microsoft.CodeAnalysis.CSharp.Emit3.UnitTests.csproj",
+                    "name": "MSBuild",
+                    "deltaMs": 58.3286,
+                    "ordinaryMs": 1.7244000000000002,
+                    "groupMs": 60.053000000000004
+                  },
+                  {
+                    "path": "src/Compilers/CSharp/Test/Emit3/Microsoft.CodeAnalysis.CSharp.Emit3.UnitTests.csproj",
+                    "name": "GetReferenceNearestTargetFrameworkTask",
+                    "deltaMs": 23.516900000000003,
+                    "ordinaryMs": 0.2248,
+                    "groupMs": 23.7417
+                  },
+                  {
+                    "path": "src/Compilers/CSharp/Test/Symbol/Microsoft.CodeAnalysis.CSharp.Symbol.UnitTests.csproj",
+                    "name": "ResolveAssemblyReference",
+                    "deltaMs": 19.2896,
+                    "ordinaryMs": 4.952999999999999,
+                    "groupMs": 24.2426
+                  }
+                ],
+                "positiveAttributedShare": 0.6271946917113966
+              }
+            }
+          },
+          "rest": {
+            "projectCount": 144,
+            "positiveAttributedDeltaMs": 7297.849700000001,
+            "shareDenominator": "sum of positive deltas of evaluation and exclusive targets/tasks on matched projects in this partition; not total wall residual",
+            "layers": {
+              "evaluation": {
+                "netDeltaMs": 2781.7702,
+                "positiveDeltaMs": 2969.9258,
+                "topIncrements": [
+                  {
+                    "path": "src/Workspaces/Core/Portable/Microsoft.CodeAnalysis.Workspaces.csproj",
+                    "deltaMs": 428.16539999999986,
+                    "ordinaryMs": 663.1493,
+                    "groupMs": 1091.3147
+                  },
+                  {
+                    "path": "src/Features/CSharp/Portable/Microsoft.CodeAnalysis.CSharp.Features.csproj",
+                    "deltaMs": 157.25510000000003,
+                    "ordinaryMs": 301.20219999999995,
+                    "groupMs": 458.4573
+                  },
+                  {
+                    "path": "src/Features/Core/Portable/Microsoft.CodeAnalysis.Features.csproj",
+                    "deltaMs": 153.85410000000002,
+                    "ordinaryMs": 357.3592,
+                    "groupMs": 511.2133
+                  }
+                ],
+                "positiveAttributedShare": 0.4069590252043694
+              },
+              "targets": {
+                "netDeltaMs": -1161.9700999999998,
+                "positiveDeltaMs": 748.2480000000002,
+                "topIncrements": [
+                  {
+                    "path": "src/EditorFeatures/CSharpTest2/Microsoft.CodeAnalysis.CSharp.EditorFeatures2.UnitTests.csproj",
+                    "name": "FindReferenceAssembliesForReferences",
+                    "deltaMs": 26.7332,
+                    "ordinaryMs": 1.5361,
+                    "groupMs": 28.2693
+                  },
+                  {
+                    "path": "src/ExpressionEvaluator/CSharp/Test/ResultProvider/Microsoft.CodeAnalysis.CSharp.ResultProvider.UnitTests.csproj",
+                    "name": "FixVSSDKEmbeddableAssemblies",
+                    "deltaMs": 21.202099999999998,
+                    "ordinaryMs": 1.8935,
+                    "groupMs": 23.095599999999997
+                  },
+                  {
+                    "path": "src/EditorFeatures/TestUtilities2/Microsoft.CodeAnalysis.EditorFeatures.Test.Utilities2.vbproj",
+                    "name": "_SplitProjectReferencesByFileExistence",
+                    "deltaMs": 20.3417,
+                    "ordinaryMs": 0.6453,
+                    "groupMs": 20.987
+                  }
+                ],
+                "positiveAttributedShare": 0.10252992741135791
+              },
+              "tasks": {
+                "netDeltaMs": 1015.2623000000003,
+                "positiveDeltaMs": 3579.6759,
+                "topIncrements": [
+                  {
+                    "path": "src/Workspaces/Core/Portable/Microsoft.CodeAnalysis.Workspaces.csproj",
+                    "name": "MSBuild",
+                    "deltaMs": 421.58230000000015,
+                    "ordinaryMs": 651.8714999999999,
+                    "groupMs": 1073.4538
+                  },
+                  {
+                    "path": "src/Features/Core/Portable/Microsoft.CodeAnalysis.Features.csproj",
+                    "name": "MSBuild",
+                    "deltaMs": 330.03819999999996,
+                    "ordinaryMs": 172.6043,
+                    "groupMs": 502.6425
+                  },
+                  {
+                    "path": "src/VisualStudio/IntegrationTest/Harness/XUnitIntegrationTests/Microsoft.VisualStudio.Extensibility.Testing.Xunit.IntegrationTests.csproj",
+                    "name": "MSBuild",
+                    "deltaMs": 299.8427000000001,
+                    "ordinaryMs": 5.0142000000000015,
+                    "groupMs": 304.8569000000001
+                  }
+                ],
+                "positiveAttributedShare": 0.49051104738427265
+              }
+            }
+          }
+        }
+      },
+      {
+        "index": 3,
+        "status": "ok",
+        "streams": [
+          {
+            "input": "group-3-1.binlog",
+            "timingJson": "roslyn-parallel-group-3-1-timings.json",
+            "timingSha256": "d4d5c0cf1cf569cb3c5f5b62d8dded6c78bd9b5f66090bd730d5cd0c1bef7a03",
+            "formatVersion": 25,
+            "status": "ok",
+            "errors": [],
+            "evaluationProfilerAvailable": false,
+            "sdkProperties": [
+              "MSBuildToolsPath=E:\\Devel\\roslyn-mcp-bench\\clones\\roslyn-deep\\.dotnet\\sdk\\10.0.301",
+              "MSBuildVersion=18.6.4",
+              "MSBuildSDKsPath=E:\\Devel\\roslyn-mcp-bench\\clones\\roslyn-deep\\.dotnet\\sdk\\10.0.301\\Sdks",
+              "NETCoreSdkVersion=10.0.301"
+            ],
+            "meaning": "Interval union per project; target exclusive excludes tasks/evaluations/nested project builds; task exclusive excludes evaluations/nested project builds. Evaluation, target and task totals are separate layers, never sum inclusive parent/child durations. Concurrent project service durations are not wall time.",
+            "projectCount": 132
+          }
+        ],
+        "firstThreeAvailable": true,
+        "orderMeaning": "first public progress callback per matched project across this group; callback completion order is a proxy, not exact cross-stream project start order",
+        "sdkProperties": [
+          "MSBuildSDKsPath=E:\\Devel\\roslyn-mcp-bench\\clones\\roslyn-deep\\.dotnet\\sdk\\10.0.301\\Sdks",
+          "MSBuildToolsPath=E:\\Devel\\roslyn-mcp-bench\\clones\\roslyn-deep\\.dotnet\\sdk\\10.0.301",
+          "MSBuildVersion=18.6.4",
+          "NETCoreSdkVersion=10.0.301"
+        ],
+        "orderingUnmatchedPathCount": 72,
+        "orderingUnmatchedExamples": [
+          "src/Test/PdbUtilities/Roslyn.Test.PdbUtilities.csproj",
+          "src/Compilers/Test/Core/Microsoft.CodeAnalysis.Test.Utilities.csproj",
+          "src/Compilers/Core/Portable/Microsoft.CodeAnalysis.csproj"
+        ],
+        "unmatchedPathCount": 1,
+        "unmatchedFileNames": [
+          "Group.csproj"
+        ],
+        "partitions": {
+          "firstThree": {
+            "projectCount": 3,
+            "positiveAttributedDeltaMs": 296.67159999999996,
+            "shareDenominator": "sum of positive deltas of evaluation and exclusive targets/tasks on matched projects in this partition; not total wall residual",
+            "paths": [
+              "src/Compilers/CSharp/Test/CSharp15/Microsoft.CodeAnalysis.CSharp.CSharp15.UnitTests.csproj",
+              "src/Compilers/CSharp/Test/CommandLine/Microsoft.CodeAnalysis.CSharp.CommandLine.UnitTests.csproj",
+              "src/Compilers/CSharp/Test/Emit2/Microsoft.CodeAnalysis.CSharp.Emit2.UnitTests.csproj"
+            ],
+            "layers": {
+              "evaluation": {
+                "netDeltaMs": 64.7953,
+                "positiveDeltaMs": 64.7953,
+                "topIncrements": [
+                  {
+                    "path": "src/Compilers/CSharp/Test/CSharp15/Microsoft.CodeAnalysis.CSharp.CSharp15.UnitTests.csproj",
+                    "deltaMs": 48.7647,
+                    "ordinaryMs": 0,
+                    "groupMs": 48.7647
+                  },
+                  {
+                    "path": "src/Compilers/CSharp/Test/Emit2/Microsoft.CodeAnalysis.CSharp.Emit2.UnitTests.csproj",
+                    "deltaMs": 8.5571,
+                    "ordinaryMs": 0,
+                    "groupMs": 8.5571
+                  },
+                  {
+                    "path": "src/Compilers/CSharp/Test/CommandLine/Microsoft.CodeAnalysis.CSharp.CommandLine.UnitTests.csproj",
+                    "deltaMs": 7.4735,
+                    "ordinaryMs": 0,
+                    "groupMs": 7.4735
+                  }
+                ],
+                "positiveAttributedShare": 0.21840749165070067
+              },
+              "targets": {
+                "netDeltaMs": 34.18839999999998,
+                "positiveDeltaMs": 35.12139999999998,
+                "topIncrements": [
+                  {
+                    "path": "src/Compilers/CSharp/Test/CommandLine/Microsoft.CodeAnalysis.CSharp.CommandLine.UnitTests.csproj",
+                    "name": "FindReferenceAssembliesForReferences",
+                    "deltaMs": 4.4949,
+                    "ordinaryMs": 2.6062000000000003,
+                    "groupMs": 7.101100000000001
+                  },
+                  {
+                    "path": "src/Compilers/CSharp/Test/Emit2/Microsoft.CodeAnalysis.CSharp.Emit2.UnitTests.csproj",
+                    "name": "FindReferenceAssembliesForReferences",
+                    "deltaMs": 2.466499999999999,
+                    "ordinaryMs": 3.2602,
+                    "groupMs": 5.726699999999999
+                  },
+                  {
+                    "path": "src/Compilers/CSharp/Test/CSharp15/Microsoft.CodeAnalysis.CSharp.CSharp15.UnitTests.csproj",
+                    "name": "FindReferenceAssembliesForReferences",
+                    "deltaMs": 2.3724000000000003,
+                    "ordinaryMs": 2.7075,
+                    "groupMs": 5.0799
+                  }
+                ],
+                "positiveAttributedShare": 0.1183847729273715
+              },
+              "tasks": {
+                "netDeltaMs": 195.16849999999997,
+                "positiveDeltaMs": 196.75489999999996,
+                "topIncrements": [
+                  {
+                    "path": "src/Compilers/CSharp/Test/CSharp15/Microsoft.CodeAnalysis.CSharp.CSharp15.UnitTests.csproj",
+                    "name": "MSBuild",
+                    "deltaMs": 58.06719999999995,
+                    "ordinaryMs": 1.6769999999999998,
+                    "groupMs": 59.74419999999995
+                  },
+                  {
+                    "path": "src/Compilers/CSharp/Test/CSharp15/Microsoft.CodeAnalysis.CSharp.CSharp15.UnitTests.csproj",
+                    "name": "ResolveAssemblyReference",
+                    "deltaMs": 26.658300000000004,
+                    "ordinaryMs": 5.7615,
+                    "groupMs": 32.4198
+                  },
+                  {
+                    "path": "src/Compilers/CSharp/Test/CSharp15/Microsoft.CodeAnalysis.CSharp.CSharp15.UnitTests.csproj",
+                    "name": "GetReferenceNearestTargetFrameworkTask",
+                    "deltaMs": 24.8015,
+                    "ordinaryMs": 0.2127,
+                    "groupMs": 25.014200000000002
+                  }
+                ],
+                "positiveAttributedShare": 0.6632077354219278
+              }
+            }
+          },
+          "rest": {
+            "projectCount": 128,
+            "positiveAttributedDeltaMs": 6715.4946,
+            "shareDenominator": "sum of positive deltas of evaluation and exclusive targets/tasks on matched projects in this partition; not total wall residual",
+            "layers": {
+              "evaluation": {
+                "netDeltaMs": 2751.9325,
+                "positiveDeltaMs": 2833.9211,
+                "topIncrements": [
+                  {
+                    "path": "src/Workspaces/Core/Portable/Microsoft.CodeAnalysis.Workspaces.csproj",
+                    "deltaMs": 359.8357,
+                    "ordinaryMs": 663.1493,
+                    "groupMs": 1022.985
+                  },
+                  {
+                    "path": "src/RoslynAnalyzers/Microsoft.CodeAnalysis.BannedApiAnalyzers/Core/Microsoft.CodeAnalysis.BannedApiAnalyzers.csproj",
+                    "deltaMs": 204.1094,
+                    "ordinaryMs": 0,
+                    "groupMs": 204.1094
+                  },
+                  {
+                    "path": "src/RoslynAnalyzers/Tools/GenerateDocumentationAndConfigFiles/GenerateDocumentationAndConfigFiles.csproj",
+                    "deltaMs": 202.9936,
+                    "ordinaryMs": 0,
+                    "groupMs": 202.9936
+                  }
+                ],
+                "positiveAttributedShare": 0.4219973760383934
+              },
+              "targets": {
+                "netDeltaMs": -1197.4366000000007,
+                "positiveDeltaMs": 759.5107999999993,
+                "topIncrements": [
+                  {
+                    "path": "src/LanguageServer/Microsoft.CommonLanguageServerProtocol.Framework.UnitTests/Microsoft.CommonLanguageServerProtocol.Framework.UnitTests.csproj",
+                    "name": "FindReferenceAssembliesForReferences",
+                    "deltaMs": 33.379799999999996,
+                    "ordinaryMs": 4.823,
+                    "groupMs": 38.202799999999996
+                  },
+                  {
+                    "path": "src/LanguageServer/Microsoft.CommonLanguageServerProtocol.Framework.UnitTests/Microsoft.CommonLanguageServerProtocol.Framework.UnitTests.csproj",
+                    "name": "FixVSSDKEmbeddableAssemblies",
+                    "deltaMs": 24.185499999999998,
+                    "ordinaryMs": 2.6639999999999997,
+                    "groupMs": 26.8495
+                  },
+                  {
+                    "path": "src/NuGet/VS.ExternalAPIs.Roslyn.Package/VS.ExternalAPIs.Roslyn.Package.csproj",
+                    "name": "_HandlePackageFileConflicts",
+                    "deltaMs": 22.9898,
+                    "ordinaryMs": 1.3441,
+                    "groupMs": 24.3339
+                  }
+                ],
+                "positiveAttributedShare": 0.11309826680524758
+              },
+              "tasks": {
+                "netDeltaMs": 782.6925000000009,
+                "positiveDeltaMs": 3122.0627000000004,
+                "topIncrements": [
+                  {
+                    "path": "src/Workspaces/Core/Portable/Microsoft.CodeAnalysis.Workspaces.csproj",
+                    "name": "MSBuild",
+                    "deltaMs": 355.94820000000016,
+                    "ordinaryMs": 651.8714999999999,
+                    "groupMs": 1007.8197
+                  },
+                  {
+                    "path": "src/Features/Core/Portable/Microsoft.CodeAnalysis.Features.csproj",
+                    "name": "MSBuild",
+                    "deltaMs": 326.6738,
+                    "ordinaryMs": 172.6043,
+                    "groupMs": 499.2781
+                  },
+                  {
+                    "path": "src/Features/CSharpTest/Microsoft.CodeAnalysis.CSharp.Features.UnitTests.csproj",
+                    "name": "MSBuild",
+                    "deltaMs": 246.51090000000042,
+                    "ordinaryMs": 3.7606999999999995,
+                    "groupMs": 250.2716000000004
+                  }
+                ],
+                "positiveAttributedShare": 0.464904357156359
+              }
+            }
+          }
+        }
+      }
+    ],
+    "aggregatePositiveAttributedDeltaMs": 26028.217500000002,
+    "firstThreePositiveAttributedShare": 0.0779543508886077,
+    "positivePartitionTotalsMs": {
+      "firstThree": 2029.0127999999997,
+      "rest": 23999.204700000002
+    },
+    "positiveLayerTotalsMs": {
+      "evaluation": 10413.772200000001,
+      "targets": 3245.956899999999,
+      "tasks": 12368.4884
+    },
+    "positiveLayerShares": {
+      "evaluation": 0.40009548099096687,
+      "targets": 0.12470915075148728,
+      "tasks": 0.4751953682575459
+    },
+    "phase1AndFallbackStreams": {
+      "roslyn-parallel-phase1-1-timings.json": {
+        "Status": "ok",
+        "Input": "phase1-1.binlog",
+        "FileFormatVersion": 25,
+        "Errors": [],
+        "SdkProperties": [
+          "MSBuildToolsPath=E:\\Devel\\roslyn-mcp-bench\\clones\\roslyn-deep\\.dotnet\\sdk\\10.0.301",
+          "MSBuildVersion=18.6.4",
+          "MSBuildSDKsPath=E:\\Devel\\roslyn-mcp-bench\\clones\\roslyn-deep\\.dotnet\\sdk\\10.0.301\\Sdks",
+          "NETCoreSdkVersion=10.0.301"
+        ],
+        "EvaluationProfilerAvailable": false,
+        "Meaning": "Interval union per project; target exclusive excludes tasks/evaluations/nested project builds; task exclusive excludes evaluations/nested project builds. Evaluation, target and task totals are separate layers, never sum inclusive parent/child durations. Concurrent project service durations are not wall time.",
+        "sha256": "e4705b836201fc5e6451d0e56d96ad8048c28f165877d66ada904f7eefb12fca",
+        "projectCount": 87,
+        "role": "phase1"
+      },
+      "roslyn-parallel-capture-1-timings.json": {
+        "Status": "ok",
+        "Input": "capture-1.binlog",
+        "FileFormatVersion": 25,
+        "Errors": [],
+        "SdkProperties": [
+          "MSBuildToolsPath=E:\\Devel\\roslyn-mcp-bench\\clones\\roslyn-deep\\.dotnet\\sdk\\10.0.301",
+          "MSBuildVersion=18.6.4",
+          "MSBuildSDKsPath=E:\\Devel\\roslyn-mcp-bench\\clones\\roslyn-deep\\.dotnet\\sdk\\10.0.301\\Sdks",
+          "NETCoreSdkVersion=10.0.301"
+        ],
+        "EvaluationProfilerAvailable": false,
+        "Meaning": "Interval union per project; target exclusive excludes tasks/evaluations/nested project builds; task exclusive excludes evaluations/nested project builds. Evaluation, target and task totals are separate layers, never sum inclusive parent/child durations. Concurrent project service durations are not wall time.",
+        "sha256": "1caa8ce69259942364b6e73e3540cbc2feb19aa77105e57caee60950b3f0d753",
+        "projectCount": 318,
+        "role": "ordinary post-load fallback"
+      }
+    },
+    "comparisonSha256": "d764915f407e2ab81be1c49179a379f16313f45b97a99513b8d3a072e7be0b46"
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "timeMoscow": "2026-10-10T00:59:06.1738200",
+  "cpu": "AMD Ryzen 7 9800X3D 8-Core Processor           ",
+  "cores": 8,
+  "logical": 16,
+  "os": "Microsoft Windows 11 Pro",
+  "version": "10.0.26200",
+  "ramGB": 93.7,
+  "antivirus": [
+    {
+      "displayName": "Kaspersky",
+      "productState": 266240
+    },
+    {
+      "displayName": "Kaspersky",
+      "productState": 266240
+    },
+    {
+      "displayName": "Windows Defender",
+      "productState": 393472
+    }
+  ],
+  "sdks": [
+    "9.0.314",
+    "10.0.201",
+    "10.0.300",
+    "10.0.401"
+  ],
+  "restore": {
+    "filesExit": 0,
+    "powertoysExit": 0
+  },
+  "commits": {
+    "powertoys": "7b6789c576b304c7e1eda8ce571cc1b0afd280ab",
+    "files": "1994d9a4269f5144c70bc67d6a48de4a20616912"
+  }
+}

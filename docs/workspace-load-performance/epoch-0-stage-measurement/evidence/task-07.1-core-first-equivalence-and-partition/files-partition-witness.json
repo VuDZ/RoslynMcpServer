@@ -1,0 +1,69 @@
+{
+  "scope": "Exact finite enumeration for this literal-XML graph and this profile; not a proof for evaluated imports or other solutions",
+  "roots": [
+    "src\\Files.App.Server\\Files.App.Server.csproj",
+    "src\\Files.App\\Files.App.csproj",
+    "tests\\Files.App.UITests\\Files.App.UITests.csproj",
+    "tests\\Files.InteractionTests\\Files.InteractionTests.csproj"
+  ],
+  "totalCost": 10670.7713,
+  "workers": {
+    "2": {
+      "evaluatedAssignments": 16,
+      "feasibleAssignments": 0,
+      "bestBalance": {
+        "balanceRatio": 1.222852109002064,
+        "coreCost": 1552.6247,
+        "coreCount": 2,
+        "groupCosts": [
+          5575.0724,
+          3543.0742
+        ],
+        "assignment": [
+          0,
+          0,
+          1,
+          1
+        ]
+      }
+    },
+    "4": {
+      "evaluatedAssignments": 256,
+      "feasibleAssignments": 0,
+      "bestBalance": {
+        "balanceRatio": 2.445704218004128,
+        "coreCost": 1552.6247,
+        "coreCount": 2,
+        "groupCosts": [
+          5575.0724,
+          3543.0742,
+          0,
+          0
+        ],
+        "assignment": [
+          0,
+          0,
+          1,
+          1
+        ]
+      }
+    }
+  },
+  "sha256": {
+    "Files.slnx": "42cadc33c819915ea456aa7dc7f1c50ba23829566e6e9091d6c991fa3c2cdd3f",
+    "src\\Files.Core.SourceGenerator\\Files.Core.SourceGenerator.csproj": "6ee763c970c46fa293b1db2d176a50d24d408da27923dff40b46b7508ff0687f",
+    "src\\Files.Core.Storage\\Files.Core.Storage.csproj": "a3f3cea7007f33b54f1cdbccb7adfe21fb27dd65ea298f8c4f463bebf4841417",
+    "src\\Files.Shared\\Files.Shared.csproj": "6221d351f08dd78012446382c69c3789f29c05ad53166011f06257e3059dbd87",
+    "src\\Files.App.BackgroundTasks\\Files.App.BackgroundTasks.csproj": "a043b8d13965c3eaca87a2a7c64df11c798db37c1bc5ed715a298398be13caca",
+    "src\\Files.App.Controls\\Files.App.Controls.csproj": "31de63a1197c85b37fb8836c2b71463af6cd8a213c03ce4e4db1bac6838aaadd",
+    "src\\Files.App.CsWin32\\Files.App.CsWin32.csproj": "9ee98b188bc661deb372dc0d3c4556bee254f1c44c9bf5f3d54351a4984b6c30",
+    "src\\Files.App.Server\\Files.App.Server.csproj": "e36240034e2553341b05d145b142af863e6c2fcc7379c506a953352953eea441",
+    "src\\Files.App.Storage\\Files.App.Storage.csproj": "c54733d511b756426fa7d199f2fc0c3f18174293f5223e9439389804211c880d",
+    "src\\Files.App\\Files.App.csproj": "14b647139ac4fd5b2e2e7259c98c6b8b022d3c617a7ea53e7f4eff91f14db8df",
+    "tests\\Files.App.UITests\\Files.App.UITests.csproj": "fc67b107b09067c29eccfe4a515d772fd82252a1bf48d53a6ba21ceefa316deb",
+    "tests\\Files.InteractionTests\\Files.InteractionTests.csproj": "f0d377637a61785f90e42c722e689aa0ffc37ec5a8e4bfc33302497e84e31b10"
+  },
+  "profileSha256": "df9e2181514f8a272570e1ca27f24aecbf859949c21e5ea8b916ac3bdbcbf722",
+  "snapshotSha256": "952524ba201ac52525e747be1f2d7ab1e158f5558ecba4a60eb94c7403bdcb02"
+}
+

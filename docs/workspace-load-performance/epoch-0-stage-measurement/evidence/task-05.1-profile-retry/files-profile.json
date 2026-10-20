@@ -1,0 +1,278 @@
+{
+  "Status": "ok",
+  "Error": null,
+  "BaselineWallMs": 11629.4238,
+  "ReaderVersion": "18.9.11+e34a38d2ae1fc26406a317517196e55c68ff83ab",
+  "BinlogCount": 1,
+  "Projects": [
+    {
+      "Key": "<SOLUTION>/SRC/FILES.APP.BACKGROUNDTASKS/FILES.APP.BACKGROUNDTASKS.CSPROJ|Files.App.BackgroundTasks",
+      "FilePath": "SRC/FILES.APP.BACKGROUNDTASKS/FILES.APP.BACKGROUNDTASKS.CSPROJ",
+      "Name": "Files.App.BackgroundTasks",
+      "References": [],
+      "EvaluationMs": null,
+      "OwnBuildMs": 67.408,
+      "BuildHostOrder": 4,
+      "Markup": false,
+      "MarkupEvidence": [],
+      "WeightMs": 179.1443,
+      "FirstMs": 0
+    },
+    {
+      "Key": "<SOLUTION>/SRC/FILES.APP.CONTROLS/FILES.APP.CONTROLS.CSPROJ|Files.App.Controls",
+      "FilePath": "SRC/FILES.APP.CONTROLS/FILES.APP.CONTROLS.CSPROJ",
+      "Name": "Files.App.Controls",
+      "References": [],
+      "EvaluationMs": null,
+      "OwnBuildMs": 1390.6483,
+      "BuildHostOrder": 5,
+      "Markup": true,
+      "MarkupEvidence": [
+        "command:XamlCompiler.exe",
+        "message:XamlCompiler.exe"
+      ],
+      "WeightMs": 1552.6247,
+      "FirstMs": 0
+    },
+    {
+      "Key": "<SOLUTION>/SRC/FILES.APP.CSWIN32/FILES.APP.CSWIN32.CSPROJ|Files.App.CsWin32",
+      "FilePath": "SRC/FILES.APP.CSWIN32/FILES.APP.CSWIN32.CSPROJ",
+      "Name": "Files.App.CsWin32",
+      "References": [
+        "<SOLUTION>/SRC/FILES.SHARED/FILES.SHARED.CSPROJ|Files.Shared"
+      ],
+      "EvaluationMs": null,
+      "OwnBuildMs": 4422.0108,
+      "BuildHostOrder": 6,
+      "Markup": false,
+      "MarkupEvidence": [],
+      "WeightMs": 4539.8314,
+      "FirstMs": 0
+    },
+    {
+      "Key": "<SOLUTION>/SRC/FILES.APP.SERVER/FILES.APP.SERVER.CSPROJ|Files.App.Server",
+      "FilePath": "SRC/FILES.APP.SERVER/FILES.APP.SERVER.CSPROJ",
+      "Name": "Files.App.Server",
+      "References": [
+        "<SOLUTION>/SRC/FILES.APP.CSWIN32/FILES.APP.CSWIN32.CSPROJ|Files.App.CsWin32",
+        "<SOLUTION>/SRC/FILES.SHARED/FILES.SHARED.CSPROJ|Files.Shared"
+      ],
+      "EvaluationMs": null,
+      "OwnBuildMs": 38.0768,
+      "BuildHostOrder": 7,
+      "Markup": false,
+      "MarkupEvidence": [],
+      "WeightMs": 154.6351,
+      "FirstMs": 0
+    },
+    {
+      "Key": "<SOLUTION>/SRC/FILES.APP.STORAGE/FILES.APP.STORAGE.CSPROJ|Files.App.Storage",
+      "FilePath": "SRC/FILES.APP.STORAGE/FILES.APP.STORAGE.CSPROJ",
+      "Name": "Files.App.Storage",
+      "References": [
+        "<SOLUTION>/SRC/FILES.APP.CSWIN32/FILES.APP.CSWIN32.CSPROJ|Files.App.CsWin32",
+        "<SOLUTION>/SRC/FILES.CORE.STORAGE/FILES.CORE.STORAGE.CSPROJ|Files.Core.Storage",
+        "<SOLUTION>/SRC/FILES.SHARED/FILES.SHARED.CSPROJ|Files.Shared"
+      ],
+      "EvaluationMs": null,
+      "OwnBuildMs": 17.3335,
+      "BuildHostOrder": 8,
+      "Markup": false,
+      "MarkupEvidence": [],
+      "WeightMs": 95.2416,
+      "FirstMs": 0
+    },
+    {
+      "Key": "<SOLUTION>/SRC/FILES.APP/FILES.APP.CSPROJ|Files.App",
+      "FilePath": "SRC/FILES.APP/FILES.APP.CSPROJ",
+      "Name": "Files.App",
+      "References": [
+        "<SOLUTION>/SRC/FILES.APP.BACKGROUNDTASKS/FILES.APP.BACKGROUNDTASKS.CSPROJ|Files.App.BackgroundTasks",
+        "<SOLUTION>/SRC/FILES.APP.CONTROLS/FILES.APP.CONTROLS.CSPROJ|Files.App.Controls",
+        "<SOLUTION>/SRC/FILES.APP.CSWIN32/FILES.APP.CSWIN32.CSPROJ|Files.App.CsWin32",
+        "<SOLUTION>/SRC/FILES.APP.STORAGE/FILES.APP.STORAGE.CSPROJ|Files.App.Storage",
+        "<SOLUTION>/SRC/FILES.CORE.STORAGE/FILES.CORE.STORAGE.CSPROJ|Files.Core.Storage",
+        "<SOLUTION>/SRC/FILES.SHARED/FILES.SHARED.CSPROJ|Files.Shared"
+      ],
+      "EvaluationMs": null,
+      "OwnBuildMs": 46.0872,
+      "BuildHostOrder": 9,
+      "Markup": false,
+      "MarkupEvidence": [],
+      "WeightMs": 158.4775,
+      "FirstMs": 0
+    },
+    {
+      "Key": "<SOLUTION>/SRC/FILES.CORE.SOURCEGENERATOR/FILES.CORE.SOURCEGENERATOR.CSPROJ|Files.Core.SourceGenerator",
+      "FilePath": "SRC/FILES.CORE.SOURCEGENERATOR/FILES.CORE.SOURCEGENERATOR.CSPROJ",
+      "Name": "Files.Core.SourceGenerator",
+      "References": [],
+      "EvaluationMs": null,
+      "OwnBuildMs": 94.053,
+      "BuildHostOrder": 1,
+      "Markup": false,
+      "MarkupEvidence": [],
+      "WeightMs": 0,
+      "FirstMs": 311.6588
+    },
+    {
+      "Key": "<SOLUTION>/SRC/FILES.CORE.STORAGE/FILES.CORE.STORAGE.CSPROJ|Files.Core.Storage",
+      "FilePath": "SRC/FILES.CORE.STORAGE/FILES.CORE.STORAGE.CSPROJ",
+      "Name": "Files.Core.Storage",
+      "References": [],
+      "EvaluationMs": null,
+      "OwnBuildMs": 54.6254,
+      "BuildHostOrder": 2,
+      "Markup": false,
+      "MarkupEvidence": [],
+      "WeightMs": 312.2296,
+      "FirstMs": 0
+    },
+    {
+      "Key": "<SOLUTION>/SRC/FILES.SHARED/FILES.SHARED.CSPROJ|Files.Shared",
+      "FilePath": "SRC/FILES.SHARED/FILES.SHARED.CSPROJ",
+      "Name": "Files.Shared",
+      "References": [],
+      "EvaluationMs": null,
+      "OwnBuildMs": 32.3645,
+      "BuildHostOrder": 3,
+      "Markup": false,
+      "MarkupEvidence": [],
+      "WeightMs": 135.5129,
+      "FirstMs": 0
+    },
+    {
+      "Key": "<SOLUTION>/TESTS/FILES.APP.UITESTS/FILES.APP.UITESTS.CSPROJ|Files.App.UITests",
+      "FilePath": "TESTS/FILES.APP.UITESTS/FILES.APP.UITESTS.CSPROJ",
+      "Name": "Files.App.UITests",
+      "References": [
+        "<SOLUTION>/SRC/FILES.APP.CONTROLS/FILES.APP.CONTROLS.CSPROJ|Files.App.Controls"
+      ],
+      "EvaluationMs": null,
+      "OwnBuildMs": 3315.9042,
+      "BuildHostOrder": 10,
+      "Markup": true,
+      "MarkupEvidence": [
+        "command:XamlCompiler.exe",
+        "message:XamlCompiler.exe"
+      ],
+      "WeightMs": 3417.2054,
+      "FirstMs": 0
+    },
+    {
+      "Key": "<SOLUTION>/TESTS/FILES.INTERACTIONTESTS/FILES.INTERACTIONTESTS.CSPROJ|Files.InteractionTests",
+      "FilePath": "TESTS/FILES.INTERACTIONTESTS/FILES.INTERACTIONTESTS.CSPROJ",
+      "Name": "Files.InteractionTests",
+      "References": [],
+      "EvaluationMs": null,
+      "OwnBuildMs": 49.339,
+      "BuildHostOrder": 11,
+      "Markup": false,
+      "MarkupEvidence": [],
+      "WeightMs": 125.8688,
+      "FirstMs": 0
+    }
+  ],
+  "Model": null,
+  "Sessions": [
+    {
+      "File": "capture-1.binlog",
+      "FormatVersion": 26,
+      "EventCounts": {
+        "BuildMessageEventArgs": 3016,
+        "BuildStartedEventArgs": 1,
+        "LoggersRegisteredEventArgs": 1,
+        "BuildSubmissionStartedEventArgs": 11,
+        "ProjectStartedEventArgs": 55,
+        "TargetStartedEventArgs": 998,
+        "TargetFinishedEventArgs": 998,
+        "TaskStartedEventArgs": 554,
+        "TaskParameterEventArgs": 6944,
+        "TaskFinishedEventArgs": 554,
+        "TargetSkippedEventArgs": 370,
+        "PropertyReassignmentEventArgs": 44,
+        "AssemblyLoadBuildEventArgs": 26,
+        "EnvironmentVariableReadEventArgs": 26,
+        "TaskCommandLineEventArgs": 13,
+        "ProjectFinishedEventArgs": 55,
+        "BuildErrorEventArgs": 4,
+        "BuildFinishedEventArgs": 1
+      },
+      "RecoverableErrors": [],
+      "TopLevelBuilds": 11,
+      "FirstMs": 311.6588,
+      "WeightMs": 10670.7713,
+      "OwnBuildMs": 9527.850699999999,
+      "Intervals": [
+        {
+          "FilePath": "src/Files.Core.SourceGenerator/Files.Core.SourceGenerator.csproj",
+          "PreviousEnd": "2026-10-10T12:42:19.7398132+03:00",
+          "Start": "2026-10-10T12:42:19.957419+03:00",
+          "End": "2026-10-10T12:42:20.051472+03:00"
+        },
+        {
+          "FilePath": "src/Files.Core.Storage/Files.Core.Storage.csproj",
+          "PreviousEnd": "2026-10-10T12:42:20.051472+03:00",
+          "Start": "2026-10-10T12:42:20.3090762+03:00",
+          "End": "2026-10-10T12:42:20.3637016+03:00"
+        },
+        {
+          "FilePath": "src/Files.Shared/Files.Shared.csproj",
+          "PreviousEnd": "2026-10-10T12:42:20.3637016+03:00",
+          "Start": "2026-10-10T12:42:20.46685+03:00",
+          "End": "2026-10-10T12:42:20.4992145+03:00"
+        },
+        {
+          "FilePath": "src/Files.App.BackgroundTasks/Files.App.BackgroundTasks.csproj",
+          "PreviousEnd": "2026-10-10T12:42:20.4992145+03:00",
+          "Start": "2026-10-10T12:42:20.6109508+03:00",
+          "End": "2026-10-10T12:42:20.6783588+03:00"
+        },
+        {
+          "FilePath": "src/Files.App.Controls/Files.App.Controls.csproj",
+          "PreviousEnd": "2026-10-10T12:42:20.6783588+03:00",
+          "Start": "2026-10-10T12:42:20.8403352+03:00",
+          "End": "2026-10-10T12:42:22.2309835+03:00"
+        },
+        {
+          "FilePath": "src/Files.App.CsWin32/Files.App.CsWin32.csproj",
+          "PreviousEnd": "2026-10-10T12:42:22.2309835+03:00",
+          "Start": "2026-10-10T12:42:22.3488041+03:00",
+          "End": "2026-10-10T12:42:26.7708149+03:00"
+        },
+        {
+          "FilePath": "src/Files.App.Server/Files.App.Server.csproj",
+          "PreviousEnd": "2026-10-10T12:42:26.7708149+03:00",
+          "Start": "2026-10-10T12:42:26.8873732+03:00",
+          "End": "2026-10-10T12:42:26.92545+03:00"
+        },
+        {
+          "FilePath": "src/Files.App.Storage/Files.App.Storage.csproj",
+          "PreviousEnd": "2026-10-10T12:42:26.92545+03:00",
+          "Start": "2026-10-10T12:42:27.0033581+03:00",
+          "End": "2026-10-10T12:42:27.0206916+03:00"
+        },
+        {
+          "FilePath": "src/Files.App/Files.App.csproj",
+          "PreviousEnd": "2026-10-10T12:42:27.0206916+03:00",
+          "Start": "2026-10-10T12:42:27.1330819+03:00",
+          "End": "2026-10-10T12:42:27.1791691+03:00"
+        },
+        {
+          "FilePath": "tests/Files.App.UITests/Files.App.UITests.csproj",
+          "PreviousEnd": "2026-10-10T12:42:27.1791691+03:00",
+          "Start": "2026-10-10T12:42:27.2804703+03:00",
+          "End": "2026-10-10T12:42:30.5963745+03:00"
+        },
+        {
+          "FilePath": "tests/Files.InteractionTests/Files.InteractionTests.csproj",
+          "PreviousEnd": "2026-10-10T12:42:30.5963745+03:00",
+          "Start": "2026-10-10T12:42:30.6729043+03:00",
+          "End": "2026-10-10T12:42:30.7222433+03:00"
+        }
+      ]
+    }
+  ],
+  "LoadSolutionMs": 11540.3833,
+  "ReconciliationError": 0.04834789152973801
+}

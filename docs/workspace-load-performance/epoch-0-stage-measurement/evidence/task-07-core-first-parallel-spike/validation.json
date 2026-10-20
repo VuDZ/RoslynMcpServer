@@ -1,0 +1,36 @@
+{
+  "date": "2026-10-10",
+  "status": "implemented",
+  "verdict": "no-go",
+  "review": "ACCEPT",
+  "reviewRounds": 2,
+  "fixRounds": 1,
+  "mustFixResolved": 3,
+  "formalAcceptance": "pending unified green main CI",
+  "matrixProcesses": 40,
+  "spikeReleaseBuild": "passed",
+  "solutionReleaseBuild": "passed",
+  "solutionWarnings": 4,
+  "selfChecks": "passed",
+  "postFixFilesSmoke": "ok; observation identical to measured Files snapshot N2",
+  "main": {
+    "configuration": "Release",
+    "filter": "Category!=AnalyzerLifecycle",
+    "sdk": "10.0.401",
+    "total": 1363,
+    "passed": 1362,
+    "failed": 1,
+    "skipped": 0,
+    "timeout": 0,
+    "aborted": 0,
+    "notExecuted": 0,
+    "failedTest": "RoslynMcpServer.Tests.WorkspaceLoadCache.DependencyPartialProofTests.Framework_selection_matches_installed_pack_files_without_loading_analyzers",
+    "preExistingFailure": true
+  },
+  "sourceStructure": {
+    "passed": 123,
+    "failed": 0
+  },
+  "analyzerLifecycle": "not required; production unchanged",
+  "commit": "not created; mandatory main CI failed"
+}

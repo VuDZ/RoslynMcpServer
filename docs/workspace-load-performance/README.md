@@ -1,0 +1,175 @@
+# Скорость обычной загрузки workspace
+
+Дата: **2026-10-10**. Статус: **production-код не начат; E0/task-00 in progress — [замер публичных прокси](epoch-0-stage-measurement/evidence/task-00-current-version.md) снят, офисный ожидается; E0/task-04 spike реализован, 44 прогона завершены, no-go; формальная приёмка pending единого main CI ([отчёт и validation](epoch-0-stage-measurement/evidence/task-04-parallel-loader-spike.md))**.
+E0/task-05 и task-05.1: **implemented, 2026-10-10 — оба блокера профиля сняты;
+обе направленные калибровки не проходят пороги, диагностические планы не проходят
+gate; no-go, шаг 2 не выполнялся. Scope — standalone spike, профили,
+калибровка/диагностическая симуляция и evidence, без production; формальная
+приёмка code/tests pending единого зелёного main CI: 1362 passed / 1 прежний
+SDK-specific failed ([отчёт и validation](epoch-0-stage-measurement/evidence/task-05.1-profile-retry.md))**.
+E0/task-07: **implemented, 2026-10-10 — шаг 0 и 40 прогонов завершены, no-go; XML N=4 даёт 1,84×, но меняет OutputFilePath/diagnostics, snapshot допускает повторы ROA=false dependencies. Независимое ревью round 2 ACCEPT; scope — standalone spike/evidence, без production; code/tests acceptance pending main CI: 1362 passed / 1 прежний SDK-specific failed** ([результат](epoch-0-stage-measurement/evidence/task-07-core-first-parallel-spike.md), [review/validation](epoch-0-stage-measurement/evidence/task-07-core-first-parallel-spike/validation.md)).
+E0/task-07.1: **implemented, 2026-10-10 — шаг 0 и 52 matrix attempts завершены, no-go; PowerToys equivalent, лучший N=4 depth2 25,228 с против 41,825 с (1,658×), Files cluster N=2/4 невыполнимы при ε=0,15. Независимое ревью round 2 ACCEPT для standalone реализации/evidence; code/tests acceptance pending main CI: 1362 passed / 1 прежний SDK-specific failed / 0 skipped; commit не создан, production и E1 не активированы** ([результат](epoch-0-stage-measurement/evidence/task-07.1-core-first-equivalence-and-partition.md), [review/validation](epoch-0-stage-measurement/evidence/task-07.1-core-first-equivalence-and-partition/validation.md)).
+E0/task-07.2: **implemented, 2026-10-10 — 36 matrix runs и 6 дополнительных load processes, no-go; PowerToys cluster N4 23,306 с против 41,536 с (56,11%), pre-load отказы Files/RoslynN8 ≤105%. Roslyn parallel correctness и универсальный детерминизм deadline-limited N8 не достигнуты. Независимое ревью round 2 ACCEPT для standalone реализации/evidence отрицательного эксперимента; code/tests acceptance pending main CI 1362 passed / 1 прежний SDK-specific failed / 0 skipped; commit не создан, production/E1 не активированы** ([результат](epoch-0-stage-measurement/evidence/task-07.2-refusal-fast-planner-roslyn.md), [validation](epoch-0-stage-measurement/evidence/task-07.2-refusal-fast-planner-roslyn/validation.md)).
+
+Происхождение: решение владельца [H-003](../workspace-state-cache/human-decisions.md#h-003--отсрочка-маршрута-disk-manifest), вариант D.
+
+## Зачем
+
+Сохранение серии в Git, **2026-10-21**: standalone код и компактный evidence
+подготовлены к коммиту по поручению владельца; Release builds и полный main CI
+прошли (**1388/0/0**, SourceStructure 123 passed). Это новый
+[checkpoint](epoch-0-stage-measurement/evidence/commit-2026-10-21.md);
+pending/commit-not-created в записях 2026-10-10 остаются историей того состояния.
+
+Следующий эксперимент по решению владельца **2026-10-21** —
+[E0/task-07.3](epoch-0-stage-measurement/task-07.3-evaluated-load-graph-hi.md),
+**planned**: граф зависимостей загрузки после MSBuild evaluation, один Roslyn N4
+correctness check и только при его успехе — измерение wall с ценой получения графа.
+Отрицательные результаты task-07–task-07.2 сохраняются.
+
+У коллег целевое решение загружается в `load_workspace` несколько минут. Где
+уходит это время, неизвестно. Серия workspace-state-cache мерила только
+SamplePlugin (два проекта, load около 1.4 с) и BTCPay (load 3.6 с), а
+профилирование [E1/task-00.4](../workspace-state-cache/epoch-1-disk-cache-mvp/evidence/task-00.4-ordinary-alternative.md)
+трассировало только процесс сервера, без BuildHost. Без разбивки по стадиям
+нельзя ни выбрать оптимизацию, ни оценить выгоду вариантов
+[C](../workspace-host-process/README.md) и
+[B](../workspace-state-cache/epoch-1b-optimistic-restore/README.md).
+
+## Цель
+
+1. Получить разбивку времени обычной загрузки и первого семантического запроса
+   по стадиям на реальном большом решении, которого нет в этом репозитории.
+2. По этим данным выбрать и реализовать оптимизации, не меняющие результат загрузки.
+
+## Границы
+
+- Результат ordinary load не меняется: graph, options, references, diagnostics,
+  analyzer admission, write boundary и watcher policy прежние. Оптимизация,
+  меняющая наблюдаемый результат, к этой теме не относится.
+- Без disk cache, без изменения или fork Roslyn BuildHost, без новых defaults.
+- Новые записи лога — English, структурированные, по одной на событие. Без
+  содержимого файлов, environment и secrets. Пути проектов уже пишутся в лог;
+  протокол замера описывает их обезличивание перед отправкой.
+- Измерения различают новый PID, RAM hit и первый семантический запрос.
+  Файловый cache ОС не сбрасывается; это фиксируется в отчёте.
+
+## Маршрут
+
+- [E0 — разбивка по стадиям](epoch-0-stage-measurement/README.md): 12 задач (включая task-05.1, bugfix task-06, spike task-07 и его продолжения task-07.1–task-07.3).
+  Замер текущей версии по уже существующим логам, время стадий в production
+  логе, сводка design-time build из уже снимаемого binlog, baseline на реальном решении,
+  spike параллельной загрузки несколькими `MSBuildProjectLoader`.
+- **E1 — оптимизации**: планируется после baseline E0. Задачи заводятся только
+  под подтверждённый hotspot, не больше двух за раз.
+
+Кандидаты E1 — гипотезы, а не план. Каждая выбирается только по evidence E0:
+
+- **Provenance replay и snapshot** заметны в общем времени — один проход replay
+  с отбором нужных событий либо публикация снимка для навигации до конца replay
+  с запретом analyzer execution до его завершения. Второй путь меняет порядок
+  admission и требует отдельного ревью.
+- **Input map и старт watchers** заметны на больших деревьях — построение после
+  публикации или инкрементально. Watcher обязан стартовать до первой disk flush
+  (pitfalls 20 и 29).
+- **Первый семантический запрос** (compilation, generators) — фоновый прогрев
+  compilation после ответа load. Метрика time-to-first-useful должна учитывать
+  паузу агента между вызовами, иначе выгода не видна.
+- **Design-time build внутри BuildHost** доминирует (прокси: 94–98 % load, одно
+  ядро) — сам BuildHost не меняется, но публичный `MSBuildProjectLoader` позволяет
+  запустить несколько BuildHost параллельно. Выгоду и эквивалентность проверяет
+  [E0/task-04](epoch-0-stage-measurement/task-04-parallel-loader-spike-hi.md); при no-go
+  это довод в пользу C и B. Task-04 дала no-go (1,51× при N=4, гонка на общих obj
+  из-за повторных загрузок); [E0/task-05](epoch-0-stage-measurement/task-05-profile-guided-partition-hi.md)
+  проверяет разбивку по профилю стоимости без повторов markup.
+  Task-05 остановлена на шаге 1: второй binlog PowerToys v27 не читается reader
+  до v26, а Files-профиль не содержит evaluation-интервалов. Калибровка и
+  реальные загрузки по плану не начаты; гипотеза speedup не проверена
+  ([результат](epoch-0-stage-measurement/evidence/task-05-profile-guided-partition.md)).
+  Ревью: v27 читается с `AllowForwardCompatibility` (пустая сессия net472),
+  стоимость проекта берётся по разрывам между top-level builds. Тот же reader
+  в provenance capture сервера даёт `Incomplete` на PowerToys. Продолжение —
+  [E0/task-05.1](epoch-0-stage-measurement/task-05.1-profile-retry-hi.md);
+  bugfix сервера — [E0/task-06](epoch-0-stage-measurement/task-06-provenance-forward-compatible-replay-med.md).
+  Task-05.1 закрыла ветку выводом, что повтор ядра публичным API не убрать;
+  2026-10-10 вывод поправлен: `ProjectMap.Create(Solution)` и проект-агрегатор
+  позволяют загрузить ядро один раз, а группы — параллельно поверх него.
+  Проверка — [E0/task-07](epoch-0-stage-measurement/task-07-core-first-parallel-spike-hi.md);
+  порог go снижен владельцем до 75 % baseline при строгой эквивалентности.
+  Task-07: 1,84× при N=4, no-go только по эквивалентности — `SolutionDir` не
+  задан загрузчикам групп, native-проекты не запрошены, snapshot-граф не видит
+  рёбер `ReferenceOutputAssembly=false`. Продолжение —
+  [E0/task-07.1](epoch-0-stage-measurement/task-07.1-core-first-equivalence-and-partition-hi.md):
+  исправления входов загрузки, кластерное разбиение корней, изолированный прогон
+  групп для причины замедления.
+  Task-07.1 завершила standalone эксперимент: эквивалентность восстановлена,
+  cluster N=4 уменьшил ядро с 35 до 12 проектов, но planning сделал wall хуже
+  greedy. Isolated показывает 14–25% общей цены конкуренции; источник большого
+  context residual не установлен. No-go полной матрицы: Files не допускает
+  требуемого баланса при ε=0,15; [результат](epoch-0-stage-measurement/evidence/task-07.1-core-first-equivalence-and-partition.md).
+  Продолжение — [E0/task-07.2](epoch-0-stage-measurement/task-07.2-refusal-fast-planner-roslyn-hi.md):
+  отказ до загрузки по [решению владельца](#решение-владельца-2026-10-10-отказ-параллельной-загрузки),
+  планировщик с бюджетом 500 мс, разложение примерно 5 с прогрева BuildHost по
+  binlog, полный `Roslyn.slnx` с прогнозом до замера; регрессия — PowerToys
+  cluster N=4 и Files (ожидается отказ).
+
+### Решение владельца 2026-10-10: отказ параллельной загрузки
+
+- Отказ от параллельной загрузки **до** запуска BuildHost, когда она бессмысленна
+  или вредна (план не балансируется, прогноз без выигрыша, оценка памяти выше
+  лимита, превышен бюджет планирования), — допустимый исход. Он выполняет
+  обычную загрузку и в пороге считается как обычная загрузка плюс время
+  планирования.
+- Отказ **после** загрузки (`plan-violation`, ошибка или timeout группы) остаётся
+  провалом в пороге spike; в production это дорогой откат.
+- Порог task-07 и task-07.1 этим решением не переписывается: их no-go остаётся
+  в силе, правило действует с task-07.2.
+- OrchardCore как дополнительный корпус отложен; прогон на офисном ПК коллег —
+  позже, вне task-07.2.
+
+## Хранение evidence
+
+Решение о сохранении результатов, **2026-10-21**:
+
+- В Git сохраняются task specifications, отчёты, review/validation, компактные
+  JSON-сводки, параметры/прогнозы до замеров и SHA-256 inventories. Это основания
+  go/no-go и входы продолжений; удаление каталога ломает ссылки и теряет историю
+  уже проверенных гипотез.
+- Перед добавлением task-07.3 весь каталог evidence занимал **2 244 144 bytes,
+  73 файла** (около 2,24 MB). Он сохраняется целиком; отдельное LFS-хранилище или
+  очистка этих небольших файлов сейчас не нужны. Существующие небольшие .gz
+  witnesses остаются частью исторического evidence.
+- Полные snapshots, binlogs, obj inventories, логи и TRX остаются вне Git в
+  ignored `artifacts/`. Только task-07.2 занимает там около **3,88 GB**.
+  Для активного продолжения их сохраняют локально; перед удалением нужного raw
+  evidence его следует архивировать отдельно, записав место хранения и hashes.
+- SHA-256 подтверждает содержимое имеющегося файла, но не восстанавливает
+  утраченный файл. Компактные сводки позволяют проверить опубликованные выводы;
+  полный независимый replay требует исходных артефактов и соответствующего SDK.
+- Старые hash manifests фиксируют конкретный checkpoint. Позднейшие изменения
+  статусов/индексов оформляются новым checkpoint; исторические manifests и
+  результаты замеров не переписываются ради совпадения с текущим README.
+
+## Точка входа
+
+[E0/task-00](epoch-0-stage-measurement/task-00-current-version-log-measurement-low.md).
+Кода не требует: коллеги снимают первые цифры на текущей опубликованной версии.
+Параллельно можно брать [E0/task-01](epoch-0-stage-measurement/task-01-load-stage-timings-med.md).
+
+## Связь с другими темами
+
+- Предложенный в workspace-state-cache E1/task-00.4 замер replay входит в
+  E0/task-01 и E0/task-02 этой темы. Evidence task-00.4 используется как
+  контекст и не переписывается.
+- Baseline E0/task-03 — вход для решений по C и B.
+
+## Учёт
+
+Ведётся по [общему стандарту](../README.md#учёт-задач-ревью-и-статистики).
+
+- Ревью плана темы: модели —, даты —, раунды —, исправления —; итог: не проверено.
+- Ревью E0/task-07.2, 2026-10-10: один исполнитель и два новых независимых рецензента Codex (GPT-6); два раунда, четыре must-fix, один фикс-раунд; финальный ACCEPT standalone реализации/evidence no-go с явными ограничениями корректности/детерминизма и причинного timing. Code/tests acceptance pending main CI; [validation](epoch-0-stage-measurement/evidence/task-07.2-refusal-fast-planner-roslyn/validation.md).
+- Ревью задач: task-04 — Codex (GPT-6), один раунд проверки исполнителем, независимого ревью нет; [отчёт](epoch-0-stage-measurement/evidence/task-04-parallel-loader-spike.md).
+- Приёмка реализации: E0/task-04, 2026-10-10 — standalone spike и 44 замера реализованы, no-go; code/tests acceptance pending единого зелёного main CI из-за SDK-specific теста существующей рабочей копии. Production-оптимизации и E1 не приняты и не активированы; [validation](epoch-0-stage-measurement/evidence/task-04-parallel-loader-spike.md#validation-и-проверка-исполнителем).
+- Ревью и приёмка E0/task-05/task-05.1, 2026-10-10: исходный blocker task-05 снят повтором; профиль и две направленные калибровки завершены с no-go (модель непригодна), диагностические планы не проходят gate, шаг 2 не выполнялся. Task-05 — проверка Codex (GPT-6) и ревью Claude Opus 5.5; task-05.1 — один раунд проверки исполнителем Codex (GPT-6), независимого ревью не было. Scope — standalone spike, профили, калибровка/диагностическая симуляция и evidence; code/tests acceptance pending единого зелёного main CI (1362 passed / 1 прежний SDK-specific failed), production и E1 не активированы; [validation](epoch-0-stage-measurement/evidence/task-05.1-profile-retry.md#эквивалентность-и-validation).
+- Ревью E0/task-07.1, 2026-10-10: один исполнитель и два независимых новых рецензента Codex (GPT-6); два раунда, одно must-fix и один фикс-раунд; финальный ACCEPT для standalone реализации/evidence отрицательного эксперимента. Формальная приёмка code/tests pending main CI; [validation](epoch-0-stage-measurement/evidence/task-07.1-core-first-equivalence-and-partition/validation.md).

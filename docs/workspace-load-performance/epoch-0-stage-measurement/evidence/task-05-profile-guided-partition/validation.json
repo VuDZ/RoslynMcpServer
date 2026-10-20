@@ -1,0 +1,52 @@
+{
+  "date": "2026-10-10",
+  "experiment": "no-go: profile unavailable",
+  "codeAcceptance": "pending unified green main CI",
+  "spikeReleaseBuild": "passed",
+  "checkProfile": "passed: transitive markup ownership, shared core, cycles, complete coverage, invalid profiles; N=2/4/8",
+  "checkMerge": "passed",
+  "planWithIncompleteFilesProfile": {
+    "expectedExitCode": 1,
+    "actualExitCode": 1,
+    "outputCreated": false
+  },
+  "summaryChecks": "passed: graph targets, profile redaction, binlog headers, snapshot comparator",
+  "solutionReleaseBuild": {
+    "status": "passed",
+    "warnings": [
+      "CS8603 NuGetFallbackAssemblyResolver.cs:35",
+      "CS8603 NuGetFallbackAssemblyResolver.cs:53",
+      "CS8601 HostSession.cs:1177",
+      "xUnit1031 WpfTemporaryProjectCallbackTests.cs:195"
+    ]
+  },
+  "sourceStructure": {
+    "configuration": "Release",
+    "filter": "FullyQualifiedName~RoslynMcpServer.Tests.SourceStructure",
+    "passed": 123,
+    "failed": 0,
+    "structuralLimitInventoryChanged": false
+  },
+  "main": {
+    "configuration": "Release",
+    "sdk": "10.0.401",
+    "filter": "Category!=AnalyzerLifecycle",
+    "total": 1363,
+    "passed": 1362,
+    "failed": 1,
+    "skipped": null,
+    "skipNote": "The MCP summary did not report a skipped count; no green CI claim is made.",
+    "failedTests": [
+      "RoslynMcpServer.Tests.WorkspaceLoadCache.DependencyPartialProofTests.Framework_selection_matches_installed_pack_files_without_loading_analyzers"
+    ],
+    "failure": {
+      "expected": ["framework-task-input-closure-unproven"],
+      "actual": ["framework-selection-profile-unproven", "framework-task-input-closure-unproven"],
+      "knownFrom": "task-04"
+    }
+  },
+  "analyzerLifecycle": "not required: no production/lifecycle path or configuration changes",
+  "runner": "MCP run_dotnet_build, run_dotnet_run, run_test_by_filter; Python for saved-data summary",
+  "review": "one executor review; no independent reviewer",
+  "productionActivation": false
+}

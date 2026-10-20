@@ -1,0 +1,65 @@
+{
+  "date": "2026-10-10",
+  "executor": "Codex (GPT-6)",
+  "status": "implemented; formal code/tests acceptance pending main CI",
+  "experimentVerdict": "no-go",
+  "scope": "Standalone ParallelLoad spike, forward-compatible replay, gap profiles, cross-validation, diagnostic plans and evidence; no production activation",
+  "spikeReleaseBuild": { "passed": true, "finalWarnings": 0 },
+  "checkProfile": {
+    "passed": true,
+    "releaseBinaryPassed": true,
+    "checks": [
+      "actual newer empty binlog replays",
+      "actual newer empty binlog preserves recoverable error inventory",
+      "actual project-bearing unknown record fails with ErrorType and RecordKind",
+      "actual overlapping top-level builds fail",
+      "actual sequential binlog first plus weights equals 80ms",
+      "null evaluation accepted; null, negative and NaN weights rejected",
+      "transitive shared markup roots bundled for N=2/4/8",
+      "shared non-markup core, cycles, complete coverage and missing-target rejection"
+    ]
+  },
+  "checkMerge": { "passed": true },
+  "freshProfiles": { "powertoys": "ok: 248 projects", "files": "ok: 11 projects" },
+  "nativeTiming": "No public native progress events; isolated attempt duration unavailable; callback counts and associated inter-build gap upper bounds recorded",
+  "calibrationAnalysis": {
+    "executionPassed": true,
+    "task04Snapshots": 44,
+    "trainingRowsPerDirection": 42,
+    "modelPassed": false,
+    "exactClosureReconstruction": false,
+    "predictionPassed": false,
+    "step2Authorized": false
+  },
+  "solutionReleaseBuild": {
+    "passed": true,
+    "existingWarnings": [
+      "CS8603: NuGetFallbackAssemblyResolver.cs:35",
+      "CS8603: NuGetFallbackAssemblyResolver.cs:53",
+      "CS8601: LifecycleTestHost/HostSession.cs:1177",
+      "xUnit1031: WpfTemporaryProjectCallbackTests.cs:195"
+    ]
+  },
+  "sourceStructure": { "configuration": "Release", "passed": 123, "failed": 0, "inventoryUnchanged": true },
+  "main": {
+    "runner": "MCP run_test_by_filter",
+    "filter": "Category!=AnalyzerLifecycle",
+    "configuration": "Release",
+    "sdk": "10.0.401",
+    "total": 1363,
+    "passed": 1362,
+    "failed": 1,
+    "skipped": 0,
+    "failedTest": "RoslynMcpServer.Tests.WorkspaceLoadCache.DependencyPartialProofTests.Framework_selection_matches_installed_pack_files_without_loading_analyzers",
+    "expected": ["framework-task-input-closure-unproven"],
+    "actual": ["framework-selection-profile-unproven", "framework-task-input-closure-unproven"],
+    "previouslyObservedIn": ["task-04", "task-05"],
+    "excludedTests": [],
+    "mcpReport": "artifacts/parallel-load/task-05.1-evidence/main-validation.log"
+  },
+  "analyzerLifecycle": { "run": false, "reason": "No changes to production load/prepare/publication, analyzer lifecycle, lifecycle host or its configuration" },
+  "review": { "executorRounds": 1, "independentReviewer": false },
+  "productionChanged": false,
+  "rootProjectChangedByTask": false,
+  "publicActivation": false
+}

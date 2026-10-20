@@ -1,0 +1,54 @@
+{
+  "recordedAtUtc": "2026-10-10T17:38:12Z",
+  "phase": "before-first-fresh-baseline",
+  "rules": {
+    "epsilon": 0.15,
+    "gainRefusalRatio": 0.9,
+    "forceBypass": [
+      "no-expected-gain",
+      "memory-budget"
+    ],
+    "baselineWallFormula": "median measured baseline1/2/3",
+    "candidateLimit": 40000,
+    "memoryFormula": "max sampled summed baseline BuildHost working-set peak among measured baseline1/2/3 * (1 + N/4)",
+    "searchBudgetMs": 500,
+    "rounds": 20,
+    "reasonPriority": [
+      "balance-infeasible",
+      "planning-budget",
+      "no-expected-gain",
+      "memory-budget"
+    ],
+    "memoryBudgetBytes": 4000000000,
+    "substantiveWorkCutoffMs": 495,
+    "modelUnavailableOutcome": "Separate failed Status=model-unavailable/GateEligible=false; never a permitted refusal or planning-budget for an admissible plan",
+    "acceptedCandidate": "Evaluation and materialization completed before cutoff; cached plan returned after interruption"
+  },
+  "frozenModel": {
+    "h1Ms": 592.9752,
+    "b": 1.1359945429941485,
+    "c": 1.1756123129598963,
+    "preparationMs": 5.5108,
+    "residualMs": 4947.748723477786,
+    "planning": "actual planning cost of this attempt",
+    "source": "task-07.1-core-first-equivalence-and-partition/summary.json",
+    "sourceSha256": "00E8AAD44143852273F4FAD2DE1D70CDBAEF923C852C433CEA389E33B4BF740C",
+    "mergeMs": 120.3719
+  },
+  "immutableComparator": {
+    "solutionObservationSha256": "64043F85BE0D48901C9F248C993FF5E09750FAE9515BFFA0DB34DE28102DA1B9",
+    "comparePySha256": "6FDD793C88F89E9A4A59868CC6A0210BF33D0202AFE143FB66C3E9CDCCC4060E"
+  },
+  "offline": {
+    "offline-files-plan.json": "F90D708FBC9C6B36952A574632E55BBEA42807A6006B51E4D7A38F23638C08EA",
+    "offline-powertoys-plan-1.json": "5986CD7F53F2E581D27B702CABBA6C83185ACFD447CD5CAD8CF6084DBEE61D89",
+    "offline-binlog-timings.json": "C7674980293F276C03B73F9423D8FE729092343967C7883C39705FC54F440F12",
+    "offline-powertoys-plan-2.json": "549131DF7CAE8C7EF88F3866C83484CFDE6D60189FC79F3D22CE7AD0A6C3F561",
+    "offline-powertoys-fix1-plan-1.json": "E19310523C10F18B9EB033C2E4CF9BAE0C1287807B0C13DA3C2C2F710436F681",
+    "offline-powertoys-fix1-plan-2.json": "1F2C3723032C8A35449E4602090E9C653DF43036DCDF673AAC277C9B7DE3A3FB",
+    "offline-powertoys-fix1-plan-3.json": "3F3F595CFDD1F2C430EF872771A957B9AE60245F644DF7BA4464D09DD2AC04C5",
+    "offline-files-fix1-plan.json": "819DCBD556D7932A0B62BE985AD9D0975B5B35C0167D0A0D7F75C657438D79CA"
+  },
+  "revisedAtUtc": "2026-10-10T17:50:38Z",
+  "reviewFixRound": 1
+}

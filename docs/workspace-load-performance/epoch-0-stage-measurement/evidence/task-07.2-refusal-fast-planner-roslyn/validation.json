@@ -1,0 +1,78 @@
+{
+  "date": "2026-10-10",
+  "status": "implemented",
+  "scope": "standalone spike and evidence; production unchanged",
+  "verdict": "no-go",
+  "matrixRuns": 36,
+  "additionalLoadProcesses": {
+    "prerequisite": 1,
+    "ordinaryProfiles": 3,
+    "parallelDiagnostics": 2
+  },
+  "coordinatorPreLoadLaunchErrors": 4,
+  "review": {
+    "rounds": 2,
+    "mustFixCount": 4,
+    "fixRounds": 1,
+    "implementation": "ACCEPT",
+    "finalEvidence": "ACCEPT",
+    "acceptedScope": "standalone implementation and negative experiment evidence, with stated determinism/causal timing limits"
+  },
+  "limitations": [
+    "Roslyn parallel correctness fails",
+    "Universal identical partition determinism under deadline not achieved for N8",
+    "Full causal decomposition of earlier wall residual unavailable",
+    "Formal code/tests acceptance pending green main CI"
+  ],
+  "validation": {
+    "spikeReleaseBuild": "PASS",
+    "solutionReleaseBuild": "PASS",
+    "selfChecks": [
+      "check-refusal",
+      "check-core-first",
+      "check-profile",
+      "check-merge"
+    ],
+    "pythonChecks": [
+      "check_refusal_analysis.py",
+      "check_core_first_continuation.py",
+      "check_core_first_analysis.py"
+    ],
+    "mainCI": {
+      "configuration": "Release",
+      "filter": "Category!=AnalyzerLifecycle",
+      "sdk": "10.0.401",
+      "passed": 1362,
+      "failed": 1,
+      "skipped": 0,
+      "total": 1363,
+      "sourceStructurePassed": 123,
+      "failure": "RoslynMcpServer.Tests.WorkspaceLoadCache.DependencyPartialProofTests.Framework_selection_matches_installed_pack_files_without_loading_analyzers",
+      "expected": [
+        "framework-task-input-closure-unproven"
+      ],
+      "actual": [
+        "framework-selection-profile-unproven",
+        "framework-task-input-closure-unproven"
+      ],
+      "trx": "artifacts/parallel-load/task-07.2-evidence/TestResults/task-07.2-main.trx"
+    },
+    "analyzerLifecycle": "not required; production/lifecycle paths unchanged",
+    "binlogReplay": {
+      "newRuns": 18,
+      "pass": 18,
+      "priorRoslynOrdinaryReplay": "PASS"
+    },
+    "formalCodeTestAcceptance": "pending green main CI",
+    "commit": null,
+    "productionActivation": false
+  },
+  "runtimeFreeze": {
+    "files": 50,
+    "changed": 0
+  },
+  "priorEvidence": {
+    "files": 19,
+    "changed": 0
+  }
+}

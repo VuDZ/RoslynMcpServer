@@ -1,0 +1,34 @@
+{
+  "CoreFirstChecks.cs": {
+    "measured": "098cfdb3ebb11e9b41afc14ed2dbee0f0d8a6c17b0490bfabc3a3c4179e624c0",
+    "final": "f588e48639450990b7ef6822a33a5bb9ce1b162dcdd4f71e6c3ba142503a5fc0"
+  },
+  "CoreFirstExperiment.cs": {
+    "measured": "923beaa441d52ceca5dea6e97d16ac18446d397154e96244aedcf98daf3e3c5e",
+    "final": "a7c44760d228b48b771d094059ccd0075edf63fa50859d256f42ca64759c83ed"
+  },
+  "CoreFirstGroupExecution.cs": {
+    "measured": null,
+    "final": "7355c8a0035132f7ce98caf2d11a7e5b8e6c372a20455f302b57fd952ee334ac"
+  },
+  "FailureEvidenceCapture.cs": {
+    "measured": null,
+    "final": "2b1de95fa3ef4899b0b9069b41c7914a559cfe19b451c52c234f649d0bd460a7"
+  },
+  "LoadExperiment.cs": {
+    "measured": "fab49152e2b70379c5d8c9deb1247c6a0185e5f0b674eb6eba6bfa53d2ac6089",
+    "final": "f9b2971815c0bd6b76469514564d4f83ef4680c974e9fae55a356a9217af99b4"
+  },
+  "Models/CoreFirstFailureEvidence.cs": {
+    "measured": null,
+    "final": "016f47de44ef167fef8c4777c848f2a94744e0a7baf89fcd8ff9aa46a01e5af3"
+  },
+  "Models/CoreFirstGroup.cs": {
+    "measured": "55078697201b480f9a74d89ec4a9ccbc004d3e15e2249273cc52eef75dde24fc",
+    "final": "c8fa816bf5630ba336bda07d7824e6993986c7e0d4c41349f2b349baada3d86f"
+  },
+  "SamplerFinalization.cs": {
+    "measured": null,
+    "final": "e6619c52d9b6c2371f0d2e39b36d7c94a5590caaee264de36c5c245f2b00d905"
+  }
+}
