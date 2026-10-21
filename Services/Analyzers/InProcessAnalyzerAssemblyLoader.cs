@@ -14,8 +14,15 @@ namespace RoslynMcpServer.Services.Analyzers;
 /// </summary>
 public sealed class InProcessAnalyzerAssemblyLoader : IAnalyzerAssemblyLoader
 {
-    private readonly ConcurrentDictionary<string, Assembly> _loadedByPath = new(StringComparer.OrdinalIgnoreCase);
-    private readonly ConcurrentDictionary<string, Assembly> _loadedByIdentity = new(StringComparer.OrdinalIgnoreCase);
+    internal static readonly StringComparer PathComparer = OperatingSystem.IsWindows()
+        ? StringComparer.OrdinalIgnoreCase
+        : StringComparer.Ordinal;
+
+    // Assembly identity is a CLR name, not a filesystem path, so case stays insignificant on every OS.
+    internal static readonly StringComparer IdentityComparer = StringComparer.OrdinalIgnoreCase;
+
+    private readonly ConcurrentDictionary<string, Assembly> _loadedByPath = new(PathComparer);
+    private readonly ConcurrentDictionary<string, Assembly> _loadedByIdentity = new(IdentityComparer);
     private readonly ConcurrentQueue<DependencyLocationRecord> _dependencyLocations = new();
     private readonly ConcurrentQueue<DependencyResolveAttempt> _resolveAttempts = new();
     private readonly object _resolveHandlerGate = new();
@@ -255,14 +262,13 @@ public sealed class InProcessAnalyzerAssemblyLoader : IAnalyzerAssemblyLoader
 
     private static bool PathsEqual(string left, string right)
     {
-        var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
         try
         {
-            return string.Equals(Path.GetFullPath(left), Path.GetFullPath(right), comparison);
+            return PathComparer.Equals(Path.GetFullPath(left), Path.GetFullPath(right));
         }
         catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
         {
-            return string.Equals(left, right, comparison);
+            return PathComparer.Equals(left, right);
         }
     }
 }

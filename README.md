@@ -66,6 +66,43 @@ The process is local stdio: no backend and no HTTP client of its own. File logs 
 - The **.NET 10 SDK** when building this server from source.
 - Git is strongly recommended for reviewing and reverting agent changes.
 
+## Supported platforms
+
+| RID | Release archive | Support |
+|---|---|---|
+| `win-x64` | `.zip`, self-contained and framework-dependent | Supported |
+| `linux-x64` | `.tar.gz`, self-contained and framework-dependent | Supported |
+| `win-arm64`, `osx-arm64`, `linux-arm64`, `linux-musl-x64` | Present in the project RID list and can be built | Not supported |
+
+Details and the CI contract: [linux-x64 support](docs/linux-x64-support/README.md).
+
+### Install a Linux release
+
+GitHub Releases publishes `RoslynMcpServer-<version>-linux-x64-self-contained.tar.gz` and `RoslynMcpServer-<version>-linux-x64-framework-dependent.tar.gz`. The archive root is `RoslynMCP/`.
+
+```bash
+tar -xzf RoslynMcpServer-<version>-linux-x64-self-contained.tar.gz
+```
+
+The host is `RoslynMCP/RoslynMcpServer`.
+
+- Self-contained needs `libicu` and glibc **2.27** or newer (the .NET 10 baseline for x64).
+- Framework-dependent needs the .NET 10 runtime. Set `DOTNET_ROOT` when that runtime is not in a standard location (`/usr/share/dotnet`, `/usr/lib/dotnet`, or `~/.dotnet`).
+- The project being analyzed needs a .NET SDK. An SDK from distribution packages is best effort.
+
+```json
+{
+  "mcpServers": {
+    "roslyn-mcp-server": {
+      "command": "/absolute/path/to/RoslynMCP/RoslynMcpServer",
+      "env": {
+        "ROSLYN_MCP_WORKSPACE": "/absolute/path/to/YourApp"
+      }
+    }
+  }
+}
+```
+
 ## First setup
 
 Run the **published executable**, not `dotnet run`. The publish is self-contained and ReadyToRun, but intentionally not single-file because Roslyn, MSBuild, analyzers, and BuildHost dependencies are loaded dynamically.
@@ -121,7 +158,7 @@ If tools are missing, call `list_tool_groups`. If workspace loading fails, follo
 
 ### OpenCode installer
 
-After `dotnet publish`, the publish folder contains [`install2opencode.ps1`](install2opencode.ps1) and [`AGENTS.md.sample`](AGENTS.md.sample) next to `RoslynMcpServer.exe`.
+After `dotnet publish`, the publish folder contains [`install2opencode.ps1`](install2opencode.ps1) and [`AGENTS.md.sample`](AGENTS.md.sample) next to the host executable. On Linux, run the script with `pwsh`; bash does not execute it.
 
 From the root of the **project you want to configure** (your application repo):
 
@@ -1002,6 +1039,43 @@ RoslynMcpServer не собирает телеметрию и не переда�
 - **.NET 10 SDK** для сборки самого RoslynMcpServer из исходников.
 - Git настоятельно рекомендуется для review и отката изменений.
 
+## Поддерживаемые платформы
+
+| RID | Архив релиза | Поддержка |
+|---|---|---|
+| `win-x64` | `.zip`, self-contained и framework-dependent | Поддерживается |
+| `linux-x64` | `.tar.gz`, self-contained и framework-dependent | Поддерживается |
+| `win-arm64`, `osx-arm64`, `linux-arm64`, `linux-musl-x64` | Есть в списке RID проекта и собираются | Не поддерживаются |
+
+Подробности и контракт CI: [поддержка linux-x64](docs/linux-x64-support/README.md).
+
+### Установка релиза Linux
+
+GitHub Releases публикует `RoslynMcpServer-<version>-linux-x64-self-contained.tar.gz` и `RoslynMcpServer-<version>-linux-x64-framework-dependent.tar.gz`. Корень архива — `RoslynMCP/`.
+
+```bash
+tar -xzf RoslynMcpServer-<version>-linux-x64-self-contained.tar.gz
+```
+
+Хост — `RoslynMCP/RoslynMcpServer`.
+
+- Self-contained требует `libicu` и glibc **2.27** или новее (базовая линия .NET 10 для x64).
+- Framework-dependent требует runtime .NET 10. Задайте `DOTNET_ROOT`, если runtime стоит не в стандартном месте (`/usr/share/dotnet`, `/usr/lib/dotnet` или `~/.dotnet`).
+- Для анализируемого проекта нужен .NET SDK. SDK из пакетов дистрибутива — best effort.
+
+```json
+{
+  "mcpServers": {
+    "roslyn-mcp-server": {
+      "command": "/absolute/path/to/RoslynMCP/RoslynMcpServer",
+      "env": {
+        "ROSLYN_MCP_WORKSPACE": "/absolute/path/to/YourApp"
+      }
+    }
+  }
+}
+```
+
 ## Первый запуск
 
 Используйте **published executable**, а не `dotnet run`. Publish self-contained и ReadyToRun, но намеренно не single-file: Roslyn, MSBuild, analyzers и BuildHost загружают сборки динамически.
@@ -1055,7 +1129,7 @@ dotnet publish RoslynMcpServer.csproj -c Release -r win-x64
 
 ### Установщик OpenCode
 
-После `dotnet publish` в каталоге publish лежат [`install2opencode.ps1`](install2opencode.ps1) и [`AGENTS.md.sample`](AGENTS.md.sample) рядом с `RoslynMcpServer.exe`.
+После `dotnet publish` в каталоге publish лежат [`install2opencode.ps1`](install2opencode.ps1) и [`AGENTS.md.sample`](AGENTS.md.sample) рядом с исполняемым файлом хоста. На Linux скрипт запускается через `pwsh`, не через bash.
 
 Из корня **целевого проекта** (вашего приложения, не этого репозитория):
 

@@ -62,18 +62,48 @@ public static class MsBuildInstanceSelector
             return FindLatestSdkWithMsBuild(Path.Combine(programFilesX86, "dotnet", "sdk"));
         }
 
-        var dotnetRoot = Environment.GetEnvironmentVariable("DOTNET_ROOT");
+        return FindLatestSdkDirectory(NonWindowsSdkRoots(
+            Environment.GetEnvironmentVariable("DOTNET_ROOT"),
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)));
+    }
+
+    /// <summary>
+    /// SDK folders searched when <c>MSBuildLocator</c> did not register an instance.
+    /// <paramref name="dotnetRoot"/> is first. The fixed paths are the Microsoft install,
+    /// distro packages, and Ubuntu's <c>/usr/lib/dotnet</c>. <paramref name="userProfile"/>
+    /// adds the <c>dotnet-install.sh</c> default <c>~/.dotnet</c>.
+    /// </summary>
+    internal static IReadOnlyList<string> NonWindowsSdkRoots(string? dotnetRoot, string? userProfile)
+    {
+        var roots = new List<string>(5);
         if (!string.IsNullOrWhiteSpace(dotnetRoot))
         {
-            var fromEnv = FindLatestSdkWithMsBuild(Path.Combine(dotnetRoot, "sdk"));
-            if (fromEnv is not null)
+            roots.Add(Path.Combine(dotnetRoot.Trim(), "sdk"));
+        }
+
+        roots.Add("/usr/local/share/dotnet/sdk");
+        roots.Add("/usr/share/dotnet/sdk");
+        roots.Add("/usr/lib/dotnet/sdk");
+        if (!string.IsNullOrWhiteSpace(userProfile))
+        {
+            roots.Add(Path.Combine(userProfile, ".dotnet", "sdk"));
+        }
+
+        return roots;
+    }
+
+    internal static string? FindLatestSdkDirectory(IEnumerable<string> sdkRoots)
+    {
+        foreach (var root in sdkRoots)
+        {
+            var found = FindLatestSdkWithMsBuild(root);
+            if (found is not null)
             {
-                return fromEnv;
+                return found;
             }
         }
 
-        return FindLatestSdkWithMsBuild("/usr/local/share/dotnet/sdk")
-               ?? FindLatestSdkWithMsBuild("/usr/share/dotnet/sdk");
+        return null;
     }
 
     /// <summary>Visual Studio <c>MSBuild\\Current\\Bin\\amd64</c> when discovery only returned x86 SDKs.</summary>

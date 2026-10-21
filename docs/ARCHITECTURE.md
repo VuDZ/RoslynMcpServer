@@ -170,7 +170,7 @@ Prefer cancellation-aware async I/O, minimal diffs, and deterministic helper log
 
 ## Deployment and compatibility
 
-The executable targets .NET 10 and is published self-contained for the RIDs declared in `RoslynMcpServer.csproj`. `PublishReadyToRun` is enabled and `PublishSingleFile` is disabled.
+The executable targets .NET 10 and is published self-contained for the RIDs declared in `RoslynMcpServer.csproj`. Supported release platforms are `win-x64` and `linux-x64`; the other RIDs still build and are not supported ([linux-x64 support](linux-x64-support/README.md)). `PublishReadyToRun` is enabled and `PublishSingleFile` is disabled.
 
 This repository currently has no `global.json`; local SDK selection therefore follows the installed environment. Consumer repositories should normally pin the SDK they require.
 

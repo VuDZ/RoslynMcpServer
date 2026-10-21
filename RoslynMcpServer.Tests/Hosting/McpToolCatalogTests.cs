@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -415,6 +416,10 @@ public sealed class McpToolCatalogTests(ITestOutputHelper output)
         Assert.Contains("- **Startup tool groups:** `files`", info, StringComparison.Ordinal);
         Assert.Contains("- **Dynamic tool groups:** (none)", info, StringComparison.Ordinal);
         Assert.Contains($"- **Registered MCP tools:** {activation.CurrentToolCount}", info, StringComparison.Ordinal);
+        Assert.Contains(
+            $"-r {RuntimeInformation.RuntimeIdentifier}",
+            info,
+            StringComparison.Ordinal);
         Assert.DoesNotContain($"- **Registered MCP tools:** {McpToolCatalog.All.Count}", info, StringComparison.Ordinal);
         Assert.Equal(surface.RegisteredToolCount, activation.CurrentToolCount);
         Assert.Equal(surface.RegisteredToolCount, host.Services.GetServices<McpServerTool>().Count());

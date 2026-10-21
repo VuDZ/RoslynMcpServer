@@ -75,4 +75,56 @@ public sealed class MsBuildInstanceSelectorTests
 
         Assert.Null(MsBuildInstanceSelector.SelectBest(instances, is64BitProcess: true));
     }
+
+    [Fact]
+    public void NonWindows_sdk_roots_include_ubuntu_packages_and_the_user_install()
+    {
+        var roots = MsBuildInstanceSelector.NonWindowsSdkRoots("/opt/dotnet", "/home/builder");
+
+        Assert.Equal(
+            [
+                Path.Combine("/opt/dotnet", "sdk"),
+                "/usr/local/share/dotnet/sdk",
+                "/usr/share/dotnet/sdk",
+                "/usr/lib/dotnet/sdk",
+                Path.Combine("/home/builder", ".dotnet", "sdk"),
+            ],
+            roots);
+    }
+
+    [Fact]
+    public void NonWindows_sdk_roots_skip_blank_environment_and_profile()
+    {
+        var roots = MsBuildInstanceSelector.NonWindowsSdkRoots("  ", null);
+
+        Assert.Equal(
+            ["/usr/local/share/dotnet/sdk", "/usr/share/dotnet/sdk", "/usr/lib/dotnet/sdk"],
+            roots);
+    }
+
+    [Fact]
+    public void FindLatestSdkDirectory_skips_roots_without_msbuild_and_picks_the_highest_folder_name()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "roslyn-mcp-sdk-" + Guid.NewGuid().ToString("N"));
+        var empty = Path.Combine(root, "empty", "sdk");
+        var hit = Path.Combine(root, "hit", "sdk");
+        var older = Path.Combine(hit, "10.0.100");
+        var newer = Path.Combine(hit, "10.0.300");
+        Directory.CreateDirectory(empty);
+        Directory.CreateDirectory(older);
+        Directory.CreateDirectory(newer);
+        File.WriteAllText(Path.Combine(older, "Microsoft.Build.dll"), string.Empty);
+        File.WriteAllText(Path.Combine(newer, "Microsoft.Build.dll"), string.Empty);
+        try
+        {
+            var found = MsBuildInstanceSelector.FindLatestSdkDirectory(
+                [Path.Combine(root, "missing", "sdk"), empty, hit]);
+
+            Assert.Equal(newer, found);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
 }

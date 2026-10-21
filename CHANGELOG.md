@@ -8,6 +8,13 @@ Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into a
 - `find_symbol_definition` and `find_symbol_references` accept `filePath` + `line` + `column` without `symbolName`, using the existing positional symbol resolver. Name-based search and automatic column selection still require `symbolName`.
 - `find_symbol_definition` accepts optional `preview`: source text is appended to each definition location, capped at 400 characters, including overflow chunks. Explicit `preview` overrides the JSONC setting; otherwise the default is false.
 
+### v1.5.7
+
+- On Linux, MSBuild registration and SDK pin resolution also look in `/usr/lib/dotnet` (distribution packages) and `~/.dotnet` (`dotnet-install.sh`), after `DOTNET_ROOT` and the existing `/usr/local/share/dotnet` and `/usr/share/dotnet` locations.
+- Messages for a missing `dotnet` host or an unresolved SDK pin name `Program Files\dotnet` on Windows and `DOTNET_ROOT` or `PATH` on other systems.
+- `get_mcp_server_info` tells you to publish with the RID of the running process, not a fixed `win-x64`.
+- Analyzer path identity follows filesystem case: case-insensitive on Windows, case-sensitive elsewhere. Assembly identity stays case-insensitive on every OS.
+
 ### v1.5.6
 
 - A saved additional file or `.editorconfig` is still applied on the flush that observed the save when a watcher event arrives during the content read. That read does not hold the session gate, so the event leaves the observation pending; the flush reads the path again a few times and publishes only after the bytes are accepted. A read that stays pending — the file was still changing, unreadable, or missing, or an own write had not finished — is not published. An own write is not waited on inside the flush, because the flush already holds the workspace lock the writer needs to commit.

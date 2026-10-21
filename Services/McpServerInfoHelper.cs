@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text;
 using Microsoft.CodeAnalysis;
 using RoslynMcpServer.Config;
@@ -92,7 +93,8 @@ public static class McpServerInfoHelper
         AppendFileSettingsSection(sb, fileSettings, lazyLoadFailure);
 
         sb.AppendLine();
-        sb.AppendLine("After code changes run `dotnet publish -c Release -r win-x64`, then Reload MCP in Cursor.");
+        sb.AppendLine(
+            $"After code changes run `dotnet publish -c Release -r {RuntimeInformation.RuntimeIdentifier}`, then Reload MCP in Cursor.");
         return sb.ToString().TrimEnd();
     }
 

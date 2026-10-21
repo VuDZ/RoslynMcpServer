@@ -28,8 +28,10 @@ O-01 закрыт (`workflow_dispatch` + тег со стороны Actions). O-
   тесты на `push`/`pull_request`, без публикации) и
   [`.github/workflows/release.yml`](../../.github/workflows/release.yml)
   (`workflow_dispatch`; `win-x64` и `linux-x64`, каждый self-contained и
-  framework-dependent). Первый успешный публичный выпуск четырёх архивов
-  этим ещё не подтверждён.
+  framework-dependent). Первый выпуск четырёх архивов —
+  [v1.5.6](https://github.com/VuDZ/RoslynMcpServer/releases/tag/v1.5.6)
+  ([Release 39680548658](https://github.com/VuDZ/RoslynMcpServer/actions/runs/39680548658)).
+  Ручная проверка self-contained без runtime .NET 10 ещё не сделана.
 - В [`RoslynMcpServer.csproj`](../../RoslynMcpServer.csproj) указаны `net10.0`,
   `PublishSelfContained=true`, `PublishSingleFile=false` и
   `PublishReadyToRun=true`. Обычная сборка имеет `SelfContained=false`.

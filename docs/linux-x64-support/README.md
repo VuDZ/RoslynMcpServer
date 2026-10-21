@@ -1,6 +1,6 @@
 # Поддержка linux-x64
 
-Дата: 2026-10-21. Статус: **in progress** — task-01 и task-02 приняты; task-03 — релизная матрица.
+Дата: 2026-10-22. Статус: **in progress** — task-01, task-02 и task-04 приняты. task-03: релиз [v1.5.6](https://github.com/VuDZ/RoslynMcpServer/releases/tag/v1.5.6) опубликован, ручная проверка self-contained без runtime открыта.
 
 Основание: [AR-12](../architecture-review/findings.md#ar-12), решение
 [P-03](../architecture-review/proposals.md#p-03) от 2026-10-21.
@@ -38,8 +38,8 @@
 |---|---|---|---|
 | [task-01](task-01-linux-green-suite-hi.md) | Main suite и lifecycle зелёные на Linux; Windows-only тесты — категорией с точным перечнем | accepted, 2026-10-21: [validation](evidence/task-01-validation.md) | — |
 | [task-02](task-02-ci-linux-matrix-med.md) | Матрица ОС в `test-suite.yml`; Linux блокирует CI и релиз | accepted, 2026-10-21: [CI 39672573581](https://github.com/VuDZ/RoslynMcpServer/actions/runs/39672573581) | task-01 |
-| [task-03](task-03-release-linux-x64-med.md) | Релизная матрица: `linux-x64` self-contained и framework-dependent, `.tar.gz`, smoke | in progress, 2026-10-21 | task-02 |
-| [task-04](task-04-linux-polish-and-docs-low.md) | Поиск SDK, сообщения, README для Linux | planned | — (до первого Linux-релиза) |
+| [task-03](task-03-release-linux-x64-med.md) | Релизная матрица: `linux-x64` self-contained и framework-dependent, `.tar.gz`, smoke | in progress, 2026-10-22: [v1.5.6](https://github.com/VuDZ/RoslynMcpServer/releases/tag/v1.5.6) опубликован ([Release 39680548658](https://github.com/VuDZ/RoslynMcpServer/actions/runs/39680548658)); ручная проверка без runtime открыта | task-02 |
+| [task-04](task-04-linux-polish-and-docs-low.md) | Поиск SDK, сообщения, README для Linux | accepted, 2026-10-22 | — (до первого Linux-релиза) |
 
 Порядок: task-01 → task-02 → task-03. Task-04 независима, но входит в первый
 релиз с Linux. Если включить task-02 раньше task-01, CI станет постоянно красным.

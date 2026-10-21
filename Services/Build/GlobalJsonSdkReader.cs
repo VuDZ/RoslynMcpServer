@@ -1,4 +1,5 @@
 using System.Text.Json;
+using RoslynMcpServer.Diagnostics;
 
 namespace RoslynMcpServer.Services.Build;
 
@@ -123,8 +124,11 @@ public static class GlobalJsonSdkReader
         }
         else
         {
-            yield return "/usr/local/share/dotnet/sdk";
-            yield return "/usr/share/dotnet/sdk";
+            var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            foreach (var root in MsBuildInstanceSelector.NonWindowsSdkRoots(dotnetRoot: null, userProfile))
+            {
+                yield return root;
+            }
         }
     }
 

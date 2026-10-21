@@ -81,8 +81,7 @@ public static class DotNetCliRunner
         using var process = new Process { StartInfo = psi };
         if (!process.Start())
         {
-            throw new InvalidOperationException(
-                $"Failed to start `{dotnet}`. Ensure a 64-bit .NET SDK is installed under Program Files\\dotnet.");
+            throw new InvalidOperationException(FailedToStartDotNetMessage(dotnet));
         }
 
         var stdoutTask = process.StandardOutput.ReadToEndAsync(CancellationToken.None);
@@ -179,8 +178,7 @@ public static class DotNetCliRunner
         using var process = new Process { StartInfo = psi };
         if (!process.Start())
         {
-            throw new InvalidOperationException(
-                $"Failed to start `{dotnet}`. Ensure a 64-bit .NET SDK is installed under Program Files\\dotnet.");
+            throw new InvalidOperationException(FailedToStartDotNetMessage(dotnet));
         }
 
         // Do not cancel pipe reads: redirected stdout does not observe a cancellation token.
@@ -504,8 +502,7 @@ public static class DotNetCliRunner
         }
         else if (!string.IsNullOrEmpty(pin?.PinnedVersion))
         {
-            metadata.AppendLine(
-                $"- **WARNING:** Pinned SDK `{pin.PinnedVersion}` was not found under Program Files\\dotnet\\sdk. Install it or fix rollForward.");
+            metadata.AppendLine(PinnedSdkNotFoundWarning(pin.PinnedVersion));
         }
 
         if (!string.IsNullOrEmpty(pin?.SdksDirectory))
@@ -525,6 +522,32 @@ public static class DotNetCliRunner
         metadata.AppendLine("- **DOTNET_CLI_UI_LANGUAGE:** `en-US`");
         return metadata.ToString().TrimEnd();
     }
+
+    internal static string FailedToStartDotNetMessage(string dotnet, bool windowsInstall)
+    {
+        if (windowsInstall)
+        {
+            return $"Failed to start `{dotnet}`. Ensure a 64-bit .NET SDK is installed under Program Files\\dotnet.";
+        }
+
+        return $"Failed to start `{dotnet}`. Ensure a 64-bit .NET SDK is on PATH or DOTNET_ROOT points at the install.";
+    }
+
+    internal static string FailedToStartDotNetMessage(string dotnet) =>
+        FailedToStartDotNetMessage(dotnet, OperatingSystem.IsWindows());
+
+    internal static string PinnedSdkNotFoundWarning(string pinnedVersion, bool windowsInstall)
+    {
+        if (windowsInstall)
+        {
+            return $"- **WARNING:** Pinned SDK `{pinnedVersion}` was not found under Program Files\\dotnet\\sdk. Install it or fix rollForward.";
+        }
+
+        return $"- **WARNING:** Pinned SDK `{pinnedVersion}` was not found under DOTNET_ROOT or on PATH. Install it or fix rollForward.";
+    }
+
+    internal static string PinnedSdkNotFoundWarning(string pinnedVersion) =>
+        PinnedSdkNotFoundWarning(pinnedVersion, OperatingSystem.IsWindows());
 
     private static async Task<string?> TryGetDotNetSdkVersionAsync(
         string dotnetPath,
