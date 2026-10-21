@@ -7,7 +7,7 @@
 - Риск ошибки: средний — релиз нельзя прогнать локально целиком; ошибка
   в архиве (бит исполнения, состав файлов) видна только пользователю.
 - Необходимые способности: `github_actions`, `powershell`, `dotnet_publish`.
-- Статус: **in progress, 2026-10-21** — матрица, архивы и smoke записаны в `release.yml`. Приёмки нет: workflow Release ещё не запускался, ручная проверка self-contained без runtime не сделана.
+- Статус: **in progress, 2026-10-22** — [Release 39677855727](https://github.com/VuDZ/RoslynMcpServer/actions/runs/39677855727) собрал архивы, но обе pack умерли в smoke: обработчик stderr без runspace. Чтение stderr перенесено в отдельный runspace. Повторного прогона нет; ручная проверка self-contained без runtime не сделана.
 - Depends on: [task-02](task-02-ci-linux-matrix-med.md).
 - Модель, реализовавшая задачу: Grok 4.7 (workflow, без выпуска).
 - Модели, проводившие ревью: —.
