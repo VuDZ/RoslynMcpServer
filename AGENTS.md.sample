@@ -33,7 +33,7 @@ You are a Senior C# Developer and Architect using Roslyn MCP. Follow the policy 
 
 If `workspace-path` is set, the first semantic tool loads that solution and waits. It does not cancel a load already in progress. `get_mcp_server_info` shows which config files were read, the workspace path, and whether the solution is not loaded, loading, or loaded. The first load of a large solution can take minutes.
 
-`load_workspace` compares only arguments you passed. An omitted configuration, platform, or targetFramework is not a change and does not clear the value already loaded from the file or from an earlier call. Passing a different configuration reloads with that configuration and keeps the platform and TFM you did not mention. The same path and no explicit setting differences returns the workspace already loaded.
+`load_workspace` compares only arguments you passed. An omitted configuration, platform, targetFramework, or buildArgs is not a change and does not clear the value already loaded from the file or from an earlier call. Passing a different configuration reloads with that configuration and keeps the platform and TFM you did not mention. The same path and no explicit setting differences returns the workspace already loaded. Whitespace `buildArgs` is the same as omit; `reset_workspace` clears the session, including `buildArgs`.
 
 `ripgrep-path` is used only when `search_code` is called with `useRipgrep: true`. It does not switch the default search. `max-results` and `preview` apply only when the tool argument is omitted.
 
@@ -49,14 +49,14 @@ Skip full init for a one-line read-only answer if `load_workspace` already succe
 ## Search (MCP vs host)
 
 - **Never** shell `grep` / `Select-String` / `find`.
-- **C# symbols** (after `load_workspace`): `find_symbol_definition`, `find_usages` (prefer when only name known), `find_symbol_references` (when you know declaring `filePath`). Both `find_symbol_*` tools accept exact `filePath`+`line`+`column` without `symbolName`; definition also supports `preview`. Interfaces/bases → `find_implementations`, not `find_usages`.
+- **C# symbols** (after `load_workspace`): `find_symbol_definition`, `find_usages` (prefer when only the name is known), `find_symbol_references` (when you know the declaring `filePath`). `find_symbol_definition` and `find_symbol_references` accept exact `filePath`+`line`+`column` without `symbolName`. `find_usages` is name-only. `preview` is optional on definition, references, usages, and implementations: omit it to use `RoslynMcp.jsonc` `preview`. Interfaces/bases → `find_implementations`, not `find_usages`.
 - **Plain text**: host Grep / SemanticSearch OK; also fallback if MCP has no symbol. Default `search_code` is the managed file walk — do not assume ripgrep is installed (`useRipgrep` is opt-in).
 - Layout: `list_directory_tree` or host file tree. Leftover branding token checks: `search_code` with `caseSensitive=true` (see Description).
 
 ## Build, test, run
 
 - **Build / test / run / NuGet audit:** `run_dotnet_build`, `run_dotnet_test` / `run_specific_test` / `run_test_by_filter`, `run_dotnet_run`, `run_nuget_audit` — never raw shell `dotnet` for these. Use `run_specific_test` for one class or method; `run_test_by_filter` for a raw VSTest `--filter` (`TestCategory=Smoke`, `FullyQualifiedName~…`). Read structured errors and Key lines; on `MCP_MSBUILD_SDK_MISMATCH` fix the environment before app code. `run_dotnet_build` defaults to `--no-incremental` (trust over speed); pass `configuration` on multi-config solutions. If MCP build is green but local `dotnet build` is red, compare WorkingDirectory / `Configuration` / `NoIncremental` in the tool metadata — there is no MCP result cache.
-- Build warnings are hidden by default. Pass `includeBuildWarnings=true` to build/test/run tools when inspecting warnings. Successful results omit SDK/environment metadata; failures and unverified test results include `Execution context`. Failed build logs can be read through `reportCursor` without rerunning. `run_dotnet_run` builds then starts the application with `--no-build` within one timeout; application output is preserved.
+- Build warnings are hidden by default. Pass `includeBuildWarnings=true` on `run_dotnet_build`, `run_dotnet_test`, `run_specific_test`, `run_test_by_filter`, `run_dotnet_run`, and `execute_dotnet_command` when inspecting warnings. Successful results omit SDK/environment metadata; failures and unverified test results include `Execution context`. A retained full log is read with `reportCursor` on those same tools and does not rerun the process. `run_dotnet_run` builds then starts the application with `--no-build` within one timeout; application output is preserved.
 - Use `execute_dotnet_command` only when no dedicated MCP tool covers the operation; it is not a substitute for the structured build/test/NuGet tools.
 - **OpenCode:** host MCP call timeout (~60s → `-32001`) is separate from tool `timeoutSeconds` — set server `"timeout": 600000` in `opencode.json` (see `install2opencode.ps1`).
 - **Commit scope:** `get_changed_files` for paths; host/shell `git diff` for the body when allowed (MCP has no full diff).
