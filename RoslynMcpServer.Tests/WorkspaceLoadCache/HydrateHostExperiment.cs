@@ -21,6 +21,12 @@ namespace RoslynMcpServer.Tests.WorkspaceLoadCache;
 /// <summary>Isolated public-API feasibility host; it does not publish through the production manager.</summary>
 internal sealed class HydrateHostExperiment
 {
+    /// <summary>
+    /// Runs immediately before a path is persisted, after the caller's cancellation token was checked.
+    /// A test can wait here until an earlier commit is visible; the next check still honors that token.
+    /// </summary>
+    internal Func<string, CancellationToken, Task>? BeforePersistAsync { get; set; }
+
     public HydrateHostExperiment(ExperimentAnalyzerAdmission? analyzerAdmission = null)
     {
         _analyzerAdmission = analyzerAdmission;
@@ -200,6 +206,12 @@ internal sealed class HydrateHostExperiment
             var plan = await BuildWritePlanAsync(session, current, cleaned, cancellationToken);
             foreach (var item in plan.Where(item => item.Text is not null).Concat(plan.Where(item => item.Text is null)))
             {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (BeforePersistAsync is not null)
+                {
+                    await BeforePersistAsync(item.Path, cancellationToken);
+                }
+
                 cancellationToken.ThrowIfCancellationRequested();
                 if (item.Text is null)
                 {

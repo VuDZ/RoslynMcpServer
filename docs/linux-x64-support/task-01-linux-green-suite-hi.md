@@ -9,13 +9,13 @@
   Linux-баги.
 - Необходимые способности: `csharp`, `проектирование_проверок`,
   `семантика_roslyn_msbuild`, `кроссплатформенные_пути`.
-- Статус: **in progress, 2026-10-21** — код и тесты изменены, приёмка не проведена (см. «Ход выполнения»).
+- Статус: **accepted, 2026-10-21** — main suite и `AnalyzerLifecycle` зелёные на Linux и Windows; отчёт: [evidence/task-01-validation.md](evidence/task-01-validation.md).
 - Depends on: —.
-- Модель, реализовавшая задачу: `claude-opus-5-5` (в процессе).
-- Модели, проводившие ревью: —.
+- Модель, реализовавшая задачу: `claude-opus-5-5` (начало), Grok 4.7 (закрытие открытых падений и приёмка).
+- Модели, проводившие ревью: — (отдельного ревью не было).
 - Количество раундов ревью: —.
 - Количество исправлений после ревью: —.
-- Отчёт о реализации, ревью и validation: —.
+- Отчёт о реализации, ревью и validation: [evidence/task-01-validation.md](evidence/task-01-validation.md).
 
 ## Цель
 
@@ -134,9 +134,19 @@ Linux, SDK 10.0.300, фильтр `Category!=AnalyzerLifecycle&Category!=Require
   `git stash`), хотя в baseline проходил. Наблюдатель записи не успевает
   отменить операцию до конца записи 64 МБ. **Открыто.**
 
-Не выполнено для приёмки:
+### 2026-10-21, Grok 4.7
 
-- полный main suite на Linux после последних правок (только прицельные прогоны);
-- `AnalyzerLifecycle` на Linux после правок;
-- полный main suite и `AnalyzerLifecycle` на Windows;
-- независимое ревью и отчёт по каждому из 23 падений baseline.
+Закрыты оставшиеся падения и проведена приёмка
+([отчёт](evidence/task-01-validation.md)):
+
+- отмена после первой записи больше не зависит от того, что второй файл пишется
+  дольше, чем наблюдатель успевает проснуться;
+- `custom-target` в oracle-фикстуре тоже без `cmd`: `ReadLinesFromFile` /
+  `WriteLinesToFile`;
+- `RoundtripFixture.BuildAsync` ставит `MSBUILDDISABLENODEREUSE=1`, как production;
+- удержания файла в `SupplementalManifestTests` идут через `FileChangeBlocker`;
+- инвентарь `RequiresWindows` регистрирует MSBuild до `GetTypes`.
+
+Linux, SDK 10.0.402 при установленном 10.0.300: main suite 1388/1388, lifecycle 13/13,
+0 failed, 0 skipped. Windows: main suite 1392/1392 (включая 4 `RequiresWindows`),
+lifecycle 13/13, 0 failed, 0 skipped. Отдельного ревью не было.

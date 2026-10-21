@@ -584,8 +584,17 @@ internal static class OracleFixtureBuilder
     private const string ClearedFeedsConfig = "<configuration><packageSources><clear /></packageSources></configuration>\n";
     private const string EditorConfigPromotingCs0219 = "root = true\n[*.cs]\ndotnet_diagnostic.CS0219.severity = error\n";
     private const string WebProgramCs = "public static class Program { public static void Main() { } }\n";
+    // ReadLinesFromFile keeps the project-owned Target, which is the custom-target admission
+    // reason, and copies the input without a shell. cmd/cat is not present on every OS.
     private const string CustomTargetXml =
-        "<Target Name=\"ReadTargetInput\" BeforeTargets=\"CoreCompile\"><Exec Command=\"cmd /c type &quot;$(MSBuildProjectDirectory)\\target-input.txt&quot; &gt; &quot;$(MSBuildProjectDirectory)\\target-output.txt&quot;\" /></Target>";
+        """
+        <Target Name="ReadTargetInput" BeforeTargets="CoreCompile">
+          <ReadLinesFromFile File="$(MSBuildProjectDirectory)/target-input.txt">
+            <Output TaskParameter="Lines" ItemName="_TargetInput" />
+          </ReadLinesFromFile>
+          <WriteLinesToFile File="$(MSBuildProjectDirectory)/target-output.txt" Lines="@(_TargetInput)" Overwrite="true" />
+        </Target>
+        """;
     private const string RazorProjectXml = """
         <Project Sdk="Microsoft.NET.Sdk.Razor">
           <PropertyGroup>

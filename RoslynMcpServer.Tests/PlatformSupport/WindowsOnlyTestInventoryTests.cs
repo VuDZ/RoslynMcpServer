@@ -1,4 +1,5 @@
 using System.Reflection;
+using RoslynMcpServer.Diagnostics;
 using Xunit;
 
 namespace RoslynMcpServer.Tests.PlatformSupport;
@@ -32,11 +33,17 @@ public sealed class WindowsOnlyTestInventoryTests
         Assert.Empty(missing);
     }
 
-    private static IEnumerable<MethodInfo> TestMethods() =>
-        typeof(WindowsOnlyTestInventoryTests).Assembly
+    private static IEnumerable<MethodInfo> TestMethods()
+    {
+        // GetTypes loads every test type, including ones that mention MSBuild. The reference
+        // identity is Microsoft.Build.Framework 15.1.0.0, which is not next to the test dll.
+        // Without the locator the load fails when this test runs before any other registration.
+        MsBuildBootstrapper.Register();
+        return typeof(WindowsOnlyTestInventoryTests).Assembly
             .GetTypes()
             .SelectMany(type => type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
             .Where(method => method.GetCustomAttributes<FactAttribute>(inherit: true).Any());
+    }
 
     private static bool HasWindowsOnlyCategory(MethodInfo method) =>
         method.GetCustomAttributesData()

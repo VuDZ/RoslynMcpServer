@@ -52,6 +52,10 @@ internal sealed class RoundtripFixture : IDisposable
             UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true,
             CreateNoWindow = true, WorkingDirectory = DirectoryPath,
         };
+        // A reused MSBuild node inherits this redirected stdout. ReadToEndAsync then waits until
+        // that node exits, which is how the multitarget build hung for the whole test budget.
+        // DotNetCliRunner sets the same variable on every production invocation.
+        start.Environment["MSBUILDDISABLENODEREUSE"] = "1";
         foreach (var argument in new[] { "build", ProjectPath, "-c", "Debug", "--nologo" })
         {
             start.ArgumentList.Add(argument);

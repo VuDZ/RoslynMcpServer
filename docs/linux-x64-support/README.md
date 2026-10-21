@@ -1,6 +1,6 @@
 # Поддержка linux-x64
 
-Дата: 2026-10-21. Статус: **in progress** — task-01 начата, приёмки нет.
+Дата: 2026-10-21. Статус: **in progress** — task-01 принята, CI и релиз ещё без Linux.
 
 Основание: [AR-12](../architecture-review/findings.md#ar-12), решение
 [P-03](../architecture-review/proposals.md#p-03) от 2026-10-21.
@@ -36,7 +36,7 @@
 
 | Задача | Суть | Статус | Depends on |
 |---|---|---|---|
-| [task-01](task-01-linux-green-suite-hi.md) | Main suite и lifecycle зелёные на Linux; Windows-only тесты — категорией с точным перечнем | in progress, 2026-10-21: Linux 1335/1338, два открытых падения, Windows не проверен | — |
+| [task-01](task-01-linux-green-suite-hi.md) | Main suite и lifecycle зелёные на Linux; Windows-only тесты — категорией с точным перечнем | accepted, 2026-10-21: [validation](evidence/task-01-validation.md) | — |
 | [task-02](task-02-ci-linux-matrix-med.md) | Матрица ОС в `test-suite.yml`; Linux блокирует CI и релиз | planned | task-01 |
 | [task-03](task-03-release-linux-x64-med.md) | Релизная матрица: `linux-x64` self-contained и framework-dependent, `.tar.gz`, smoke | planned | task-02 |
 | [task-04](task-04-linux-polish-and-docs-low.md) | Поиск SDK, сообщения, README для Linux | planned | — (до первого Linux-релиза) |

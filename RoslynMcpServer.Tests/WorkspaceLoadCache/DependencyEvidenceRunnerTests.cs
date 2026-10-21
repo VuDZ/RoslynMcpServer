@@ -247,12 +247,17 @@ public sealed class DependencyEvidenceRunnerTests
         {
             "absent" => "<Import Project=\"Local.props\" Condition=\"Exists('Local.props')\" />",
             "standard" => "<ItemGroup><Compile Remove=\"secret/**/*.cs\"/><AdditionalFiles Include=\"missing-dir/**/*.txt\"/></ItemGroup>",
-            // The hidden input is read by an external process, which the evidence cannot see; an MSBuild
-            // task such as Copy would show up in the binlog and change the scenario.
-            "custom-target" => "<Target Name=\"ReadHiddenInput\" BeforeTargets=\"CoreCompile\">"
-                + "<Exec Condition=\"'$(OS)' == 'Windows_NT'\" Command=\"cmd /c type &amp;quot;$(MSBuildProjectDirectory)\\..\\hidden-input.txt&amp;quot; &amp;gt; &amp;quot;$(MSBuildProjectDirectory)\\target-observation.txt&amp;quot;\"/>"
-                + "<Exec Condition=\"'$(OS)' != 'Windows_NT'\" Command=\"cat &amp;quot;$(MSBuildProjectDirectory)/../hidden-input.txt&amp;quot; &amp;gt; &amp;quot;$(MSBuildProjectDirectory)/target-observation.txt&amp;quot;\"/>"
-                + "</Target>",
+            // The file is not a compile item or an import. ReadLinesFromFile records the read in the
+            // binlog, but replay only keeps imports, the Csc command line, and analyzer task output,
+            // so the closure stays unproven. Exec with cmd/cat is not available on every OS.
+            "custom-target" => """
+                <Target Name="ReadHiddenInput" BeforeTargets="CoreCompile">
+                  <ReadLinesFromFile File="$(MSBuildProjectDirectory)/../hidden-input.txt">
+                    <Output TaskParameter="Lines" ItemName="_HiddenInput" />
+                  </ReadLinesFromFile>
+                  <WriteLinesToFile File="$(MSBuildProjectDirectory)/target-observation.txt" Lines="@(_HiddenInput)" Overwrite="true" />
+                </Target>
+                """,
             "linked" => "<Import Project=\"../common.props\"/><ItemGroup><Compile Include=\"../shared/Shared.cs\" Link=\"Shared.cs\"/><ProjectReference Include=\"../Library/Library.csproj\"/></ItemGroup>",
             "external-asset" => "<ItemGroup><Content Include=\"../external/asset.txt\" Link=\"wwwroot/asset.txt\" CopyToOutputDirectory=\"PreserveNewest\"/></ItemGroup>",
             "escaping-glob" => "<ItemGroup><Compile Include=\"../external/**/*.cs\"/></ItemGroup>",
@@ -288,9 +293,6 @@ public sealed class DependencyEvidenceRunnerTests
         if (scenario == "custom-target")
         {
             await File.WriteAllTextAsync(Path.Combine(root, "hidden-input.txt"), "hidden target input");
-            // XML attribute encoding must preserve the shell's redirection and quoted paths.
-            await File.WriteAllTextAsync(project, projectText.Replace("&amp;quot;", "&quot;", StringComparison.Ordinal)
-                .Replace("&amp;gt;", "&gt;", StringComparison.Ordinal));
         }
         var roots = ImmutableArray.CreateBuilder<string>();
         roots.Add(project);

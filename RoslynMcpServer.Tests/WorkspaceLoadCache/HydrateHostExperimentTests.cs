@@ -259,12 +259,17 @@ public sealed class HydrateHostExperimentTests
         var heldBase = session.Solution;
         var firstText = LibrarySource(37);
         var candidate = WithTextAtPath(heldBase, fixture.LibraryPath, firstText, fixture.Encoding);
-        // The large second payload leaves a bounded observation window after the first file closes.
-        // Cancellation is tied to actual committed bytes rather than to an arbitrary wall-clock delay.
-        candidate = WithTextAtPath(candidate, fixture.SharedPath,
-            "/*" + new string('x', 64 * 1024 * 1024) + "*/ public class SecondPayload { }", fixture.Encoding);
+        candidate = WithTextAtPath(candidate, fixture.SharedPath, "public class SecondPayload { }", fixture.Encoding);
         using var cancellation = new CancellationTokenSource();
         using var observationStop = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+        // Paths are persisted in ordinal order, so Shared.cs is second. A large payload is not a
+        // window: WriteAllBytesAsync can finish it before the observer is scheduled, and on a fast
+        // disk the operation then succeeds with the token still open. Hold the second persist until
+        // the observer cancels from the committed first file, or until that observation gives up.
+        using var persistGate = CancellationTokenSource.CreateLinkedTokenSource(cancellation.Token, observationStop.Token);
+        host.BeforePersistAsync = (path, _) => string.Equals(path, fixture.SharedPath, StringComparison.Ordinal)
+            ? Task.Delay(Timeout.Infinite, persistGate.Token)
+            : Task.CompletedTask;
         var expectedBytes = Bytes(firstText, fixture.Encoding);
         var observed = ObserveCommittedWriteAsync(fixture.LibraryPath, expectedBytes, cancellation, observationStop.Token);
         var result = await host.ApplyAsync(session, heldBase, candidate, session.WriteContext, cancellation.Token);
