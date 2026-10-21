@@ -20,12 +20,18 @@ inside the testhost.
 
 ## Partition contract
 
-Union of filters must be every discovered test; the two jobs must not overlap.
+One OS runs two shards. Within that OS the shards must not overlap. On Windows their union is every discovered test. On Ubuntu `unit` also excludes `RequiresWindows` (the task-01 inventory, four tests). That exclusion is a filter, so those tests are absent from the Linux TRX (`notExecuted` stays 0). Do not put them back into the Linux filter and do not mark them `[Fact(Skip)]`.
 
-| Job | Filter | `ROSLYN_MCP_ANALYZER_LIFECYCLE` |
-|---|---|---|
-| `unit` | `Category!=AnalyzerLifecycle` | unset |
-| `lifecycle` | `Category=AnalyzerLifecycle` | `1` |
+| OS | Shard | Filter | `ROSLYN_MCP_ANALYZER_LIFECYCLE` |
+|---|---|---|---|
+| `windows` | `unit` | `Category!=AnalyzerLifecycle` | unset |
+| `windows` | `lifecycle` | `Category=AnalyzerLifecycle` | `1` |
+| `ubuntu` | `unit` | `Category!=AnalyzerLifecycle&Category!=RequiresWindows` | unset |
+| `ubuntu` | `lifecycle` | `Category=AnalyzerLifecycle` | `1` |
+
+Display names: `unit (windows)`, `lifecycle (windows)`, `unit (ubuntu)`, `lifecycle (ubuntu)`. Artifacts: `trx-unit-windows`, `trx-lifecycle-windows`, `trx-unit-ubuntu`, `trx-lifecycle-ubuntu`. Caller checks in `ci.yml` / `release.yml` are prefixed with `tests /`.
+
+A red job on either OS fails the workflow. Do not put `continue-on-error` back on Ubuntu. The ten consecutive Linux main-suite runs that allowed that are recorded in `docs/linux-x64-support/evidence/task-02-linux-main-ten-runs.md`.
 
 `AnalyzerLifecycleHostTests` is the **only** class carrying `Category=AnalyzerLifecycle`
 (thirteen host methods). `Epoch1SemanticInventoryTests` is source-only, carries no trait, and

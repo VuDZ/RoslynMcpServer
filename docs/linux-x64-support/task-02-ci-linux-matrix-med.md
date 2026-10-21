@@ -7,9 +7,9 @@
 - Риск ошибки: средний — ошибка в фильтре или в проверке skip может тихо
   выключить часть тестов на одной из платформ.
 - Необходимые способности: `github_actions`, `powershell`.
-- Статус: planned.
+- Статус: **in progress, 2026-10-21** — десять локальных прогонов зелёные, `continue-on-error` снят. Приёмки нет: нет ссылки на прогон GitHub Actions четырёх job.
 - Depends on: [task-01](task-01-linux-green-suite-hi.md).
-- Модель, реализовавшая задачу: —.
+- Модель, реализовавшая задачу: Grok 4.7 (матрица, без приёмки).
 - Модели, проводившие ревью: —.
 - Количество раундов ревью: —.
 - Количество исправлений после ревью: —.
@@ -55,3 +55,24 @@
   перечень Windows-only из task-01.
 - Ссылки на 10 зелёных прогонов Linux main suite перед снятием
   `continue-on-error`.
+
+## Ход выполнения
+
+### 2026-10-21, Grok 4.7
+
+`test-suite.yml` гоняет `os × shard`. SDK тот же (`10.0.300` и `10.0.x`): [AR-13](../architecture-review/findings.md#ar-13) всё ещё open, принятого `global.json` нет. `Assert-NoSkippedTests.ps1` не менялся; вызов и каталог результатов идут через `/` и `shell: pwsh`. Фильтр Windows — прежний `Category!=AnalyzerLifecycle`. Фильтр Linux `unit` — `Category!=AnalyzerLifecycle&Category!=RequiresWindows`. `lifecycle` на обеих ОС включает `ROSLYN_MCP_ANALYZER_LIFECYCLE=1`.
+
+Linux-job помечены `continue-on-error`, пока нет десяти зелёных прогонов. Снимать флаг и принимать задачу рано.
+
+Имена job внутри workflow и артефакты:
+
+| Job | Артефакт |
+|---|---|
+| `unit (windows)` | `trx-unit-windows` |
+| `lifecycle (windows)` | `trx-lifecycle-windows` |
+| `unit (ubuntu)` | `trx-unit-ubuntu` |
+| `lifecycle (ubuntu)` | `trx-lifecycle-ubuntu` |
+
+Проверки вызывающего workflow (`ci.yml` и `release.yml`, job `tests`) получают префикс `tests /`. Старые имена `tests / unit` и `tests / lifecycle` пропадают. Если branch protection смотрит на них, владелец обновляет список. `release.yml` эта задача не меняет: job `tests` по-прежнему только вызывает `test-suite.yml`, а `publish` ждёт его целиком.
+
+Серия из десяти прогонов записана в [evidence/task-02-linux-main-ten-runs.md](evidence/task-02-linux-main-ten-runs.md). После неё `continue-on-error` снят: красный Linux-job валит и CI, и релиз. Ссылки на Actions ещё нет, задачу не принимать, пока четыре job не пройдут на `ubuntu-latest` / `windows-latest` и в каждом TRX `notExecuted=0`.
