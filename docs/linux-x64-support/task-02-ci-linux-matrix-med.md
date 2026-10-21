@@ -7,13 +7,13 @@
 - Риск ошибки: средний — ошибка в фильтре или в проверке skip может тихо
   выключить часть тестов на одной из платформ.
 - Необходимые способности: `github_actions`, `powershell`.
-- Статус: **in progress, 2026-10-21** — десять локальных прогонов зелёные, `continue-on-error` снят. Приёмки нет: нет ссылки на прогон GitHub Actions четырёх job.
+- Статус: **accepted, 2026-10-21** — [CI 39672573581](https://github.com/VuDZ/RoslynMcpServer/actions/runs/39672573581), четыре job зелёные, в каждом TRX `notExecuted=0`.
 - Depends on: [task-01](task-01-linux-green-suite-hi.md).
-- Модель, реализовавшая задачу: Grok 4.7 (матрица, без приёмки).
+- Модель, реализовавшая задачу: Grok 4.7.
 - Модели, проводившие ревью: —.
 - Количество раундов ревью: —.
 - Количество исправлений после ревью: —.
-- Отчёт о реализации, ревью и validation: —.
+- Отчёт о реализации, ревью и validation: [evidence/task-02-linux-main-ten-runs.md](evidence/task-02-linux-main-ten-runs.md), прогон [39672573581](https://github.com/VuDZ/RoslynMcpServer/actions/runs/39672573581).
 
 ## Цель
 
@@ -75,4 +75,6 @@ Linux-job помечены `continue-on-error`, пока нет десяти з�
 
 Проверки вызывающего workflow (`ci.yml` и `release.yml`, job `tests`) получают префикс `tests /`. Старые имена `tests / unit` и `tests / lifecycle` пропадают. Если branch protection смотрит на них, владелец обновляет список. `release.yml` эта задача не меняет: job `tests` по-прежнему только вызывает `test-suite.yml`, а `publish` ждёт его целиком.
 
-Серия из десяти прогонов записана в [evidence/task-02-linux-main-ten-runs.md](evidence/task-02-linux-main-ten-runs.md). После неё `continue-on-error` снят: красный Linux-job валит и CI, и релиз. Ссылки на Actions ещё нет, задачу не принимать, пока четыре job не пройдут на `ubuntu-latest` / `windows-latest` и в каждом TRX `notExecuted=0`.
+Серия из десяти прогонов записана в [evidence/task-02-linux-main-ten-runs.md](evidence/task-02-linux-main-ten-runs.md). После неё `continue-on-error` снят.
+
+Прогон [39672573581](https://github.com/VuDZ/RoslynMcpServer/actions/runs/39672573581) на `cbedaaf`: все четыре job зелёные. TRX: `unit (ubuntu)` 1342, `unit (windows)` 1346, оба `lifecycle` по 13. Везде `failed=0` и `notExecuted=0`. Разница unit — четыре теста `RequiresWindows`.

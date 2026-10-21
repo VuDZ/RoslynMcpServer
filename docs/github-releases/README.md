@@ -27,8 +27,9 @@ O-01 закрыт (`workflow_dispatch` + тег со стороны Actions). O-
 - Есть [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) (сборка и
   тесты на `push`/`pull_request`, без публикации) и
   [`.github/workflows/release.yml`](../../.github/workflows/release.yml)
-  (`workflow_dispatch`, `win-x64` self-contained и framework-dependent).
-  Первый успешный публичный выпуск этим ещё не подтверждён.
+  (`workflow_dispatch`; `win-x64` и `linux-x64`, каждый self-contained и
+  framework-dependent). Первый успешный публичный выпуск четырёх архивов
+  этим ещё не подтверждён.
 - В [`RoslynMcpServer.csproj`](../../RoslynMcpServer.csproj) указаны `net10.0`,
   `PublishSelfContained=true`, `PublishSingleFile=false` и
   `PublishReadyToRun=true`. Обычная сборка имеет `SelfContained=false`.
@@ -56,12 +57,12 @@ O-01 закрыт (`workflow_dispatch` + тег со стороны Actions). O-
 
 ### R-02. Платформы
 
-Первый этап поддерживает **Windows x64 (`win-x64`)**.
-2026-10-21: по решению владельца [P-03](../architecture-review/proposals.md#p-03)
-вторая поддерживаемая платформа — `linux-x64`; реализация —
-[linux-x64-support](../linux-x64-support/README.md), этот раздел обновит её task-03.
-Процесс должен допускать добавление других ОС и архитектур без отдельной
-несвязанной схемы выпуска для каждой платформы.
+Поддерживаемые платформы по [P-03](../architecture-review/proposals.md#p-03):
+**Windows x64 (`win-x64`)** и **Linux x64 (`linux-x64`)**. Обе собираются
+в матрице [release.yml](../../.github/workflows/release.yml) на своей ОС
+(`windows-latest` и `ubuntu-latest`). Остальные RID из csproj не входят в
+релиз. Новая платформа — строка матрицы `pack` и строка в
+`Get-ReleaseArchives`; отдельная схема выпуска не заводится.
 
 Долгосрочная цель — расширить поддержку платформ. Точный список, минимальные
 версии ОС и порядок подключения ещё не согласованы. Перечень RID в проекте
@@ -143,8 +144,9 @@ BuildHost. Single-file и Native AOT не являются требования�
 - В описании скачивания рекомендовать self-contained для простой установки;
   framework-dependent предлагать как более компактный вариант при наличии
   .NET 10 Runtime.
-- Zip выпуска получают GitHub Artifact Attestation (SLSA provenance) на job
-  `publish`. Это не Authenticode. TRX из CI не аттестовать.
+- Архивы выпуска (`.zip` и `.tar.gz`) получают GitHub Artifact Attestation
+  (SLSA provenance) на job `release`, после того как все платформы выложили
+  артефакты. Это не Authenticode. TRX из CI не аттестовать.
 - Предусмотреть обслуживание встроенного runtime: нужные обновления .NET
   требуют новой self-contained поставки, даже если код сервера не менялся.
 
@@ -222,11 +224,18 @@ Worktree дополняет ветку отдельной папкой и не �
 
 ### O-03. Совместимость и расширение платформ
 
-Определить проверяемые версии SDK проекта, минимальную ОС, архитектуры
-и среду исполнения smoke-тестов. Для каждой новой платформы подтвердить
-работу обоих вариантов, загрузку проекта и BuildHost; одной кросс-сборки
-недостаточно. Решить порядок подключения RID, перечисленных в проекте,
-и необходимость дополнительных RID.
+2026-10-21, по [P-03](../architecture-review/proposals.md#p-03): проверяемые
+платформы — `win-x64` и `linux-x64`. Для каждой job `pack` гоняет оба
+варианта распакованного архива: процесс, MCP `initialize`, `tools/list` и
+`load_workspace` проекта [`.github/smoke/SmokeApp`](../../.github/smoke/SmokeApp/SmokeApp.csproj)
+через BuildHost. SDK релиза тот же, что у CI (`10.0.300` и последний
+`10.0.x`). Одной кросс-сборки недостаточно: `linux-x64` собирается на
+`ubuntu-latest`.
+
+Ручная проверка self-contained `linux-x64` на машине без runtime .NET 10
+(SDK проекта при этом есть) остаётся за владельцем при первом выпуске.
+Следующий RID — новая строка матрицы, не отдельный workflow. `linux-arm64`,
+`linux-musl-x64` и macOS в этот выпуск не входят.
 
 ### O-04. Интеграция с версиями и обслуживание
 

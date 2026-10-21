@@ -1,6 +1,6 @@
 # Поддержка linux-x64
 
-Дата: 2026-10-21. Статус: **in progress** — task-01 принята; task-02: десять локальных прогонов есть, `continue-on-error` снят, прогона GitHub Actions ещё нет.
+Дата: 2026-10-21. Статус: **in progress** — task-01 и task-02 приняты; task-03 — релизная матрица.
 
 Основание: [AR-12](../architecture-review/findings.md#ar-12), решение
 [P-03](../architecture-review/proposals.md#p-03) от 2026-10-21.
@@ -37,8 +37,8 @@
 | Задача | Суть | Статус | Depends on |
 |---|---|---|---|
 | [task-01](task-01-linux-green-suite-hi.md) | Main suite и lifecycle зелёные на Linux; Windows-only тесты — категорией с точным перечнем | accepted, 2026-10-21: [validation](evidence/task-01-validation.md) | — |
-| [task-02](task-02-ci-linux-matrix-med.md) | Матрица ОС в `test-suite.yml`; Linux блокирует CI и релиз | in progress, 2026-10-21: 10 локальных прогонов зелёные ([evidence](evidence/task-02-linux-main-ten-runs.md)), `continue-on-error` снят; ссылки Actions ещё нет | task-01 |
-| [task-03](task-03-release-linux-x64-med.md) | Релизная матрица: `linux-x64` self-contained и framework-dependent, `.tar.gz`, smoke | planned | task-02 |
+| [task-02](task-02-ci-linux-matrix-med.md) | Матрица ОС в `test-suite.yml`; Linux блокирует CI и релиз | accepted, 2026-10-21: [CI 39672573581](https://github.com/VuDZ/RoslynMcpServer/actions/runs/39672573581) | task-01 |
+| [task-03](task-03-release-linux-x64-med.md) | Релизная матрица: `linux-x64` self-contained и framework-dependent, `.tar.gz`, smoke | in progress, 2026-10-21 | task-02 |
 | [task-04](task-04-linux-polish-and-docs-low.md) | Поиск SDK, сообщения, README для Linux | planned | — (до первого Linux-релиза) |
 
 Порядок: task-01 → task-02 → task-03. Task-04 независима, но входит в первый

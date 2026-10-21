@@ -92,6 +92,28 @@ function Get-CsprojVersion {
     return $version
 }
 
+function Get-ReleaseArchives {
+    param([Parameter(Mandatory = $true)][string]$Version)
+
+    $platforms = @(
+        @{ Rid = 'win-x64'; Extension = 'zip' }
+        @{ Rid = 'linux-x64'; Extension = 'tar.gz' }
+    )
+    $kinds = @('self-contained', 'framework-dependent')
+    $list = @()
+    foreach ($platform in $platforms) {
+        foreach ($kind in $kinds) {
+            $list += [pscustomobject]@{
+                Rid  = $platform.Rid
+                Kind = $kind
+                Name = 'RoslynMcpServer-{0}-{1}-{2}.{3}' -f $Version, $platform.Rid, $kind, $platform.Extension
+            }
+        }
+    }
+
+    return $list
+}
+
 function Get-PreviousReleaseTag {
     param([string]$Sha)
     $tags = @(Invoke-Git @('tag', '--list', 'v*', '--merged', $Sha, '--sort=-version:refname') |
@@ -161,27 +183,44 @@ function ConvertTo-NotesMarkdown {
         [int]$TotalCount,
         [string]$PreviousTag,
         [string]$Version,
-        [string]$ScZip,
-        [string]$FddZip,
+        [object[]]$Archives,
         [string]$RepoSlug
     )
 
     $lines = New-Object System.Collections.Generic.List[string]
     [void]$lines.Add('## Downloads')
     [void]$lines.Add('')
-    [void]$lines.Add(('- **Self-contained** (`{0}`): includes the .NET 10 runtime. Use this unless this machine already has a compatible .NET 10 Runtime.' -f $ScZip))
-    [void]$lines.Add(('- **Framework-dependent** (`{0}`): smaller; requires a .NET 10 Runtime (or SDK 10) for win-x64.' -f $FddZip))
-    [void]$lines.Add('')
     [void]$lines.Add('The server still locates an installed MSBuild/SDK for the **consumer project**. The bundled runtime does not replace that SDK.')
-    if (-not [string]::IsNullOrWhiteSpace($RepoSlug)) {
+    [void]$lines.Add('')
+    $seenRid = @{}
+    foreach ($archive in $Archives) {
+        if ($seenRid.ContainsKey($archive.Rid)) {
+            continue
+        }
+
+        $seenRid[$archive.Rid] = $true
+        [void]$lines.Add(('### {0}' -f $archive.Rid))
         [void]$lines.Add('')
+        foreach ($item in @($Archives | Where-Object { $_.Rid -eq $archive.Rid })) {
+            if ($item.Kind -eq 'self-contained') {
+                [void]$lines.Add(('- **Self-contained** (`{0}`): includes the .NET 10 runtime for {1}. Use this unless this machine already has a compatible .NET 10 Runtime.' -f $item.Name, $item.Rid))
+            }
+            else {
+                [void]$lines.Add(('- **Framework-dependent** (`{0}`): smaller; requires a .NET 10 Runtime (or SDK 10) for {1}.' -f $item.Name, $item.Rid))
+            }
+        }
+
+        [void]$lines.Add('')
+    }
+    if (-not [string]::IsNullOrWhiteSpace($RepoSlug)) {
         [void]$lines.Add('## Provenance')
         [void]$lines.Add('')
-        [void]$lines.Add('Each zip has a GitHub Artifact Attestation from the Release workflow. Optional check (not Authenticode / SmartScreen):')
+        [void]$lines.Add('Each archive has a GitHub Artifact Attestation from the Release workflow. Optional check (not Authenticode / SmartScreen):')
         [void]$lines.Add('')
         [void]$lines.Add('```')
-        [void]$lines.Add(('gh attestation verify {0} -R {1}' -f $ScZip, $RepoSlug))
-        [void]$lines.Add(('gh attestation verify {0} -R {1}' -f $FddZip, $RepoSlug))
+        foreach ($archive in $Archives) {
+            [void]$lines.Add(('gh attestation verify {0} -R {1}' -f $archive.Name, $RepoSlug))
+        }
         [void]$lines.Add('```')
     }
     [void]$lines.Add('')
@@ -268,8 +307,11 @@ if ($previousTag) {
     $docsOnly = ($relevantFiles.Count -eq 0)
 }
 
-$scZip = 'RoslynMcpServer-{0}-win-x64-self-contained.zip' -f $version
-$fddZip = 'RoslynMcpServer-{0}-win-x64-framework-dependent.zip' -f $version
+# Keep this list aligned with the pack matrix in release.yml. A new RID is one
+# row here and one matrix include there; the release job refuses a partial set.
+$archives = @(Get-ReleaseArchives -Version $version)
+$scZip = @($archives | Where-Object { $_.Rid -eq 'win-x64' -and $_.Kind -eq 'self-contained' }).Name
+$fddZip = @($archives | Where-Object { $_.Rid -eq 'win-x64' -and $_.Kind -eq 'framework-dependent' }).Name
 $slug = Get-GitHubRepoSlug
 $runWorkflowUrl = $null
 if ($slug) {
@@ -281,8 +323,7 @@ $notes = ConvertTo-NotesMarkdown `
     -TotalCount $totalCount `
     -PreviousTag $previousTag `
     -Version $version `
-    -ScZip $scZip `
-    -FddZip $fddZip `
+    -Archives $archives `
     -RepoSlug $slug
 
 if ($NotesPath) {
@@ -307,6 +348,7 @@ $result = [ordered]@{
     truncated        = ($totalCount -gt $selected.Count)
     sc_zip           = $scZip
     fdd_zip          = $fddZip
+    archives         = @($archives | ForEach-Object { $_.Name })
     run_workflow_url = $runWorkflowUrl
     relevant_files   = $relevantFiles
     notes            = $notes
@@ -324,6 +366,7 @@ if ($GitHubOutput) {
         "truncated=$($result.truncated)"
         "sc_zip=$scZip"
         "fdd_zip=$fddZip"
+        ('archives={0}' -f (($archives | ForEach-Object { $_.Name }) -join ','))
     ) | Add-Content -LiteralPath $GitHubOutput -Encoding utf8
 }
 

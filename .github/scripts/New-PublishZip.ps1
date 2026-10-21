@@ -8,10 +8,36 @@ param(
     [string]$PublishDir,
     [Parameter(Mandatory = $true)]
     [string]$ZipPath,
-    [string]$RepoRoot
+    [string]$RepoRoot,
+    [ValidateSet('zip', 'tar.gz')]
+    [string]$Format = 'zip',
+    [string]$HostFileName = 'RoslynMcpServer.exe'
 )
 
 $ErrorActionPreference = 'Stop'
+
+function Assert-ArchiveNames {
+    param(
+        [string[]]$Names,
+        [string]$HostFileName
+    )
+
+    $unexpectedRoot = @($Names | Where-Object { $_ -and -not $_.StartsWith('RoslynMCP/') })
+    if ($unexpectedRoot.Count -gt 0) {
+        throw ('Artifact must have root folder RoslynMCP. Unexpected entries: {0}' -f (($unexpectedRoot | Select-Object -First 5) -join ', '))
+    }
+
+    $logs = @($Names | Where-Object { $_ -match '^RoslynMCP/logs(/|$)' })
+    if ($logs.Count -gt 0) {
+        throw ('Artifact must not include publish logs/: {0}' -f (($logs | Select-Object -First 5) -join ', '))
+    }
+
+    foreach ($required in @('RoslynMCP/README.md', 'RoslynMCP/LICENSE', ('RoslynMCP/' + $HostFileName))) {
+        if ($Names -notcontains $required) {
+            throw "Artifact is missing $required"
+        }
+    }
+}
 
 if ([string]::IsNullOrWhiteSpace($RepoRoot)) {
     $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
@@ -48,36 +74,58 @@ try {
     Copy-Item -LiteralPath $readmePath -Destination (Join-Path $payloadDir 'README.md') -Force
     Copy-Item -LiteralPath $licensePath -Destination (Join-Path $payloadDir 'LICENSE') -Force
 
+    $hostInPayload = Join-Path $payloadDir $HostFileName
+    if (-not (Test-Path -LiteralPath $hostInPayload)) {
+        throw "Publish output is missing the host file $HostFileName"
+    }
+
+    if ($Format -eq 'tar.gz' -and -not $IsWindows) {
+        & chmod a+x $hostInPayload
+        if ($LASTEXITCODE -ne 0) {
+            throw "chmod failed for $hostInPayload"
+        }
+    }
+
     if (Test-Path -LiteralPath $ZipPath) {
         Remove-Item -LiteralPath $ZipPath -Force
     }
 
-    Compress-Archive -Path $payloadDir -DestinationPath $ZipPath -CompressionLevel Optimal
-
-    Add-Type -AssemblyName System.IO.Compression.FileSystem
-    $zip = [System.IO.Compression.ZipFile]::OpenRead($ZipPath)
-    try {
-        $names = @(
-            $zip.Entries | ForEach-Object { $_.FullName.Replace('\', '/') }
-        )
-        $unexpectedRoot = @($names | Where-Object { $_ -and -not $_.StartsWith('RoslynMCP/') })
-        if ($unexpectedRoot.Count -gt 0) {
-            throw ('Artifact zip must have root folder RoslynMCP. Unexpected entries: {0}' -f (($unexpectedRoot | Select-Object -First 5) -join ', '))
+    if ($Format -eq 'zip') {
+        Compress-Archive -Path $payloadDir -DestinationPath $ZipPath -CompressionLevel Optimal
+        Add-Type -AssemblyName System.IO.Compression.FileSystem
+        $zip = [System.IO.Compression.ZipFile]::OpenRead($ZipPath)
+        try {
+            $names = @($zip.Entries | ForEach-Object { $_.FullName.Replace('\', '/') })
+            Assert-ArchiveNames $names $HostFileName
         }
-
-        $logs = @($names | Where-Object { $_ -match '^RoslynMCP/logs(/|$)' })
-        if ($logs.Count -gt 0) {
-            throw ('Artifact zip must not include publish logs/: {0}' -f (($logs | Select-Object -First 5) -join ', '))
-        }
-
-        foreach ($required in @('RoslynMCP/README.md', 'RoslynMCP/LICENSE', 'RoslynMCP/RoslynMcpServer.exe')) {
-            if ($names -notcontains $required) {
-                throw "Artifact zip is missing $required"
-            }
+        finally {
+            $zip.Dispose()
         }
     }
-    finally {
-        $zip.Dispose()
+    else {
+        & tar -czf $ZipPath -C $stagingRoot RoslynMCP
+        if ($LASTEXITCODE -ne 0) {
+            throw "tar failed for $ZipPath"
+        }
+
+        $extractRoot = Join-Path $stagingRoot 'extract'
+        New-Item -ItemType Directory -Path $extractRoot -Force | Out-Null
+        & tar -xzf $ZipPath -C $extractRoot
+        if ($LASTEXITCODE -ne 0) {
+            throw "tar extract failed for $ZipPath"
+        }
+
+        $names = @(Get-ChildItem -LiteralPath $extractRoot -Recurse -File -Force | ForEach-Object {
+            $_.FullName.Substring($extractRoot.Length).TrimStart('\', '/').Replace('\', '/')
+        })
+        Assert-ArchiveNames $names $HostFileName
+        $extractedHost = Join-Path $extractRoot ('RoslynMCP/' + $HostFileName)
+        if (-not $IsWindows) {
+            & test -x $extractedHost
+            if ($LASTEXITCODE -ne 0) {
+                throw "Archive host is not executable after extract: $extractedHost"
+            }
+        }
     }
 }
 finally {

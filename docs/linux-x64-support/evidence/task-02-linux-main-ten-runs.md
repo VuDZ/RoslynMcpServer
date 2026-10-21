@@ -33,4 +33,6 @@ dotnet test RoslynMcpServer.sln -c Release --no-restore --verbosity minimal --fi
 
 Прогон того же фильтра по грязному дереву `/mnt/e/Devel/RoslynMcpServer` упал на первом же заходе: `GitChangedFilesHelperTests.RunGitAsync_status_on_this_repo_returns`, `TimeoutException`, helper не вернулся за 30 с. Рядом лежат чужие незакоммиченные файлы, а каталог на 9p. Этот заход не входит в десять. На чистом clone тот же тест уложился во все десять прогонов.
 
-После этой серии `continue-on-error` у Linux-job снят. Ссылки на зелёный прогон четырёх job в GitHub Actions ещё нет: workflow не запушен.
+После этой серии `continue-on-error` у Linux-job снят.
+
+Прогон GitHub Actions [39672573581](https://github.com/VuDZ/RoslynMcpServer/actions/runs/39672573581) (`cbedaaf`): `unit (ubuntu)` 1342, `unit (windows)` 1346, `lifecycle` 13 и 13. Во всех четырёх TRX `notExecuted=0`. Разница unit равна четырём тестам `RequiresWindows`. Локальные 1338 были сняты с более раннего чистого дерева, до этого прогона.

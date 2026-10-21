@@ -27,6 +27,7 @@ jobs:
       sha: ${{ steps.meta.outputs.sha }}
       version: ${{ steps.meta.outputs.version }}
       tag: ${{ steps.meta.outputs.tag }}
+      archives: ${{ steps.meta.outputs.archives }}
       sc_zip: ${{ steps.meta.outputs.sc_zip }}
       fdd_zip: ${{ steps.meta.outputs.fdd_zip }}
     steps:
@@ -54,9 +55,9 @@ jobs:
         id: meta
         shell: pwsh
         run: |
-          .\.github\scripts\Get-ReleaseMetadata.ps1 `
+          ./.github/scripts/Get-ReleaseMetadata.ps1 `
             -CommitRef HEAD `
-            -NotesPath "${{ github.workspace }}\release-notes.md" `
+            -NotesPath "${{ github.workspace }}/release-notes.md" `
             -GitHubOutput $env:GITHUB_OUTPUT
 
       - name: Guard
@@ -85,10 +86,121 @@ jobs:
     with:
       ref: ${{ needs.meta.outputs.sha }}
 
-  publish:
+  pack:
     needs: [meta, tests]
-    runs-on: windows-latest
-    timeout-minutes: 30
+    name: pack (${{ matrix.rid }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # A later RID is another include row plus one entry in Get-ReleaseArchives.
+          - rid: win-x64
+            os: windows-latest
+            format: zip
+            runtime: coreclr.dll
+            host: RoslynMcpServer.exe
+          - rid: linux-x64
+            os: ubuntu-latest
+            format: tar.gz
+            runtime: libcoreclr.so
+            host: RoslynMcpServer
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.meta.outputs.sha }}
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          # Same SDK pair as test-suite.yml. AR-13 is still open: no accepted global.json.
+          dotnet-version: |
+            10.0.300
+            10.0.x
+          cache: true
+          cache-dependency-path: |
+            **/*.csproj
+            Directory.Build.props
+
+      - name: Restore
+        run: dotnet restore RoslynMcpServer.sln
+
+      - name: Publish, pack, and smoke
+        shell: pwsh
+        env:
+          ARCHIVES: ${{ needs.meta.outputs.archives }}
+        run: |
+          $version = '${{ needs.meta.outputs.version }}'
+          $rid = '${{ matrix.rid }}'
+          $format = '${{ matrix.format }}'
+          $runtimeName = '${{ matrix.runtime }}'
+          $hostName = '${{ matrix.host }}'
+          $expected = @($env:ARCHIVES.Split(',') | Where-Object { $_ -like "*-$rid-*" })
+          if ($expected.Count -ne 2) {
+            throw "Release metadata does not list two archives for $rid. Got: $env:ARCHIVES"
+          }
+
+          $root = '${{ github.workspace }}'
+          $project = Join-Path $root '.github/smoke/SmokeApp/SmokeApp.csproj'
+          $zipDir = Join-Path $root 'artifacts/archives'
+          New-Item -ItemType Directory -Path $zipDir -Force | Out-Null
+
+          foreach ($kind in @('self-contained', 'framework-dependent')) {
+            $selfContained = $(if ($kind -eq 'self-contained') { 'true' } else { 'false' })
+            $out = Join-Path $root "artifacts/publish/$rid-$kind"
+            New-Item -ItemType Directory -Path $out -Force | Out-Null
+            dotnet publish RoslynMcpServer.csproj -c Release -r $rid --self-contained $selfContained -o $out --no-restore
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+            $dll = Join-Path $out 'RoslynMcpServer.dll'
+            $info = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($dll)
+            $product = $info.ProductVersion.Split('+', 2)[0].Trim()
+            if ($product -notlike "$version*") {
+              throw "ProductVersion '$($info.ProductVersion)' on $dll does not match csproj Version $version."
+            }
+
+            $runtime = Join-Path $out $runtimeName
+            $hasRuntime = Test-Path -LiteralPath $runtime
+            if ($selfContained -eq 'true' -and -not $hasRuntime) {
+              throw "Self-contained publish is missing ${runtimeName}: $out"
+            }
+            if ($selfContained -eq 'false' -and $hasRuntime) {
+              throw "Framework-dependent publish must not include ${runtimeName}: $out"
+            }
+
+            $archiveName = "RoslynMcpServer-$version-$rid-$kind.$format"
+            if ($expected -notcontains $archiveName) {
+              throw "Packed name $archiveName is not in the release metadata."
+            }
+            $archive = Join-Path $zipDir $archiveName
+            ./.github/scripts/New-PublishZip.ps1 -PublishDir $out -ZipPath $archive -Format $format -HostFileName $hostName
+
+            $smokeRoot = Join-Path $root "artifacts/smoke/$rid-$kind"
+            New-Item -ItemType Directory -Path $smokeRoot -Force | Out-Null
+            if ($format -eq 'zip') {
+              Expand-Archive -LiteralPath $archive -DestinationPath $smokeRoot
+            }
+            else {
+              & tar -xzf $archive -C $smokeRoot
+              if ($LASTEXITCODE -ne 0) { throw "Could not unpack $archive" }
+            }
+            $hostPath = Join-Path $smokeRoot "RoslynMCP/$hostName"
+            ./.github/scripts/Invoke-ReleaseSmoke.ps1 -HostPath $hostPath -ProjectPath $project
+          }
+
+      - name: Upload archives
+        uses: actions/upload-artifact@v7
+        with:
+          name: publish-${{ matrix.rid }}
+          path: artifacts/archives/*
+          if-no-files-found: error
+
+  release:
+    needs: [meta, pack]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: write
       id-token: write
@@ -101,80 +213,55 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
 
+      - name: Download archives
+        uses: actions/download-artifact@v8
+        with:
+          pattern: publish-*
+          path: release-assets
+          merge-multiple: true
+
       - name: Download release notes
         uses: actions/download-artifact@v8
         with:
           name: release-notes
+          path: release-notes
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v5
-        with:
-          dotnet-version: '10.0.x'
-          cache: true
-          cache-dependency-path: |
-            **/*.csproj
-            Directory.Build.props
-
-      - name: Restore
-        run: dotnet restore RoslynMcpServer.sln
-
-      - name: Publish win-x64
+      - name: Require every metadata archive
         shell: pwsh
+        env:
+          ARCHIVES: ${{ needs.meta.outputs.archives }}
         run: |
-          $version = '${{ needs.meta.outputs.version }}'
-          $scOut = Join-Path '${{ github.workspace }}' 'artifacts\publish\win-x64-self-contained'
-          $fddOut = Join-Path '${{ github.workspace }}' 'artifacts\publish\win-x64-framework-dependent'
-          New-Item -ItemType Directory -Path $scOut -Force | Out-Null
-          New-Item -ItemType Directory -Path $fddOut -Force | Out-Null
-
-          dotnet publish RoslynMcpServer.csproj -c Release -r win-x64 --self-contained true -o $scOut --no-restore
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
-          dotnet publish RoslynMcpServer.csproj -c Release -r win-x64 --self-contained false -o $fddOut --no-restore
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
-          $scExe = Join-Path $scOut 'RoslynMcpServer.exe'
-          $fddExe = Join-Path $fddOut 'RoslynMcpServer.exe'
-          foreach ($exe in @($scExe, $fddExe)) {
-            $info = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($exe)
-            $product = $info.ProductVersion.Split('+', 2)[0].Trim()
-            if ($product -notlike "$version*") {
-              throw "ProductVersion '$($info.ProductVersion)' on $exe does not match csproj Version $version."
+          $missing = @()
+          foreach ($name in $env:ARCHIVES.Split(',')) {
+            $found = @(Get-ChildItem -LiteralPath release-assets -Recurse -Filter $name -File)
+            if ($found.Count -ne 1) {
+              $missing += $name
             }
           }
-
-          $scRuntime = Join-Path $scOut 'coreclr.dll'
-          if (-not (Test-Path -LiteralPath $scRuntime)) {
-            throw "Self-contained publish is missing coreclr.dll: $scOut"
+          if ($missing.Count -gt 0) {
+            throw "Release is missing archives: $($missing -join ', ')"
           }
 
-          $fddRuntime = Join-Path $fddOut 'coreclr.dll'
-          if (Test-Path -LiteralPath $fddRuntime) {
-            throw "Framework-dependent publish must not include coreclr.dll: $fddOut"
-          }
-
-          $zipDir = Join-Path '${{ github.workspace }}' 'artifacts\zips'
-          $scZip = Join-Path $zipDir '${{ needs.meta.outputs.sc_zip }}'
-          $fddZip = Join-Path $zipDir '${{ needs.meta.outputs.fdd_zip }}'
-          .\.github\scripts\New-PublishZip.ps1 -PublishDir $scOut -ZipPath $scZip
-          .\.github\scripts\New-PublishZip.ps1 -PublishDir $fddOut -ZipPath $fddZip
-
-      - name: Attest release zips
+      - name: Attest release archives
         uses: actions/attest-build-provenance@v3
         with:
-          subject-path: ${{ github.workspace }}/artifacts/zips/*.zip
+          subject-path: release-assets/*
 
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ARCHIVES: ${{ needs.meta.outputs.archives }}
         shell: pwsh
         run: |
           $tag = '${{ needs.meta.outputs.tag }}'
           $sha = '${{ needs.meta.outputs.sha }}'
           $version = '${{ needs.meta.outputs.version }}'
-          $scZip = Join-Path '${{ github.workspace }}' "artifacts\zips\${{ needs.meta.outputs.sc_zip }}"
-          $fddZip = Join-Path '${{ github.workspace }}' "artifacts\zips\${{ needs.meta.outputs.fdd_zip }}"
-          $notes = Join-Path '${{ github.workspace }}' 'release-notes.md'
+          $notes = Join-Path (Get-Location) 'release-notes/release-notes.md'
+          $files = @()
+          foreach ($name in $env:ARCHIVES.Split(',')) {
+            $found = @(Get-ChildItem -LiteralPath release-assets -Recurse -Filter $name -File)
+            $files += $found[0].FullName
+          }
 
           $tagExists = $false
           & git rev-parse -q --verify "refs/tags/$tag" | Out-Null
@@ -193,7 +280,7 @@ jobs:
               throw "GitHub Release $tag is already published. Refusing to replace it."
             }
 
-            gh release upload $tag $scZip $fddZip --clobber
+            gh release upload $tag @files --clobber
             gh release edit $tag --draft=false --target $sha --title $version --notes-file $notes
             Write-Host "Published existing draft $tag"
             return
@@ -203,4 +290,4 @@ jobs:
             Write-Host "Tag $tag already exists on $sha; creating release from existing tag."
           }
 
-          gh release create $tag $scZip $fddZip --target $sha --title $version --notes-file $notes
+          gh release create $tag @files --target $sha --title $version --notes-file $notes
