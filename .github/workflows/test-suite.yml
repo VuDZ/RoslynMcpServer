@@ -7,7 +7,7 @@ on:
         description: 'Commit SHA to test (empty = caller github.sha)'
         type: string
         required: false
-    10|        default: ''
+        default: ''
 
 permissions:
   contents: read
@@ -17,13 +17,13 @@ jobs:
     name: ${{ matrix.shard }} (${{ matrix.runner }})
     runs-on: ${{ matrix.os }}
     timeout-minutes: ${{ matrix.timeout }}
-    20|    strategy:
+    strategy:
       fail-fast: false
       matrix:
         include:
           - os: windows-latest
             runner: windows
-    30|            shard: unit
+            shard: unit
             timeout: 20
             filter: Category!=AnalyzerLifecycle
           - os: windows-latest
@@ -33,7 +33,7 @@ jobs:
             filter: Category=AnalyzerLifecycle
             lifecycleOptIn: '1'
           - os: ubuntu-latest
-    40|            runner: ubuntu
+            runner: ubuntu
             shard: unit
             timeout: 20
             # RequiresWindows is the task-01 inventory. A filter exclusion is not a TRX skip.
@@ -43,7 +43,7 @@ jobs:
             shard: lifecycle
             timeout: 20
             filter: Category=AnalyzerLifecycle
-    50|            lifecycleOptIn: '1'
+            lifecycleOptIn: '1'
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -53,7 +53,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
         with:
-    60|          # Workspace-load experiments pin 10.0.300 with rollForward disabled.
+          # Workspace-load experiments pin 10.0.300 with rollForward disabled.
           # The latest 10.0.x alone failed fixture builds when the runner had 10.0.303/10.0.401:
           # https://github.com/VuDZ/RoslynMcpServer/actions/runs/37148534996
           # AR-13 is still open: there is no accepted global.json to follow.
@@ -63,7 +63,7 @@ jobs:
           cache: true
           cache-dependency-path: |
             **/*.csproj
-    70|            Directory.Build.props
+            Directory.Build.props
 
       - name: Restore
         run: dotnet restore RoslynMcpServer.sln
@@ -73,7 +73,7 @@ jobs:
       - name: Test
         shell: pwsh
         env:
-    80|          SHARD: ${{ matrix.shard }}-${{ matrix.runner }}
+          SHARD: ${{ matrix.shard }}-${{ matrix.runner }}
           FILTER: ${{ matrix.filter }}
           ROSLYN_MCP_ANALYZER_LIFECYCLE: ${{ matrix.lifecycleOptIn }}
         run: |
@@ -83,7 +83,7 @@ jobs:
             --verbosity normal `
             --logger "trx;LogFileName=$env:SHARD.trx" `
             --results-directory "${{ github.workspace }}/TestResults" `
-    90|            --filter "$env:FILTER"
+            --filter "$env:FILTER"
 
       - name: Fail if any test skipped
         shell: pwsh
@@ -93,6 +93,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-   100|          name: trx-${{ matrix.shard }}-${{ matrix.runner }}
+          name: trx-${{ matrix.shard }}-${{ matrix.runner }}
           path: TestResults/**
           if-no-files-found: error
