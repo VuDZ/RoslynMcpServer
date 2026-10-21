@@ -459,7 +459,9 @@ public static class ProjectRenameHelper
                 continue;
             }
 
-            var pathInSln = match.Groups["path"].Value.Replace('/', '\\');
+            // .sln stores project paths with '\'. Outside Windows '\' is an ordinary file-name character, so the
+            // path would never match the project and the .sln would stay stale; '/' is a separator on every OS.
+            var pathInSln = match.Groups["path"].Value.Replace('\\', '/');
             var resolved = Path.GetFullPath(Path.Combine(solutionDir, pathInSln));
             if (!string.Equals(resolved, oldProjectPath, PathComparison))
             {
@@ -519,7 +521,7 @@ public static class ProjectRenameHelper
             }
 
             var resolved = Path.GetFullPath(
-                Path.Combine(solutionDir, pathAttr.Value.Replace('/', Path.DirectorySeparatorChar)));
+                Path.Combine(solutionDir, pathAttr.Value.Replace('\\', '/')));
             if (!string.Equals(resolved, oldProjectPath, PathComparison))
             {
                 continue;

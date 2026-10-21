@@ -6,6 +6,7 @@ using Xunit;
 
 namespace RoslynMcpServer.Tests.Workspace;
 
+[Trait("Category", TestCategories.RequiresWindows)]
 public sealed class WpfTemporaryProjectWatchingTests
 {
     [WpfFact]

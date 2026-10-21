@@ -127,7 +127,8 @@ public static class SolutionProjectTargetResolver
             var virtualPath = CombineVirtual(folderPath, item.Name);
             result.Add(new ProjectEntry(
                 item.Name,
-                Path.GetFileNameWithoutExtension(item.Path.Replace('/', Path.DirectorySeparatorChar)),
+                // .sln paths use '\', which is not a separator outside Windows; '/' is one on every OS.
+                Path.GetFileNameWithoutExtension(item.Path.Replace('\\', '/')),
                 virtualPath,
                 CombineVirtual(folderPath, SanitizeProjectNameForTarget(item.Name))));
         }
@@ -321,13 +322,13 @@ public static class SolutionProjectTargetResolver
             var displayName = (string?)child.Attribute("Name") ?? (string?)child.Attribute("name");
             if (string.IsNullOrWhiteSpace(displayName))
             {
-                displayName = Path.GetFileNameWithoutExtension(path.Replace('/', Path.DirectorySeparatorChar));
+                displayName = Path.GetFileNameWithoutExtension(path.Replace('\\', '/'));
             }
 
             var virtualPath = CombineVirtual(parentFolderPath, displayName);
             result.Add(new ProjectEntry(
                 displayName,
-                Path.GetFileNameWithoutExtension(path.Replace('/', Path.DirectorySeparatorChar)),
+                Path.GetFileNameWithoutExtension(path.Replace('\\', '/')),
                 virtualPath,
                 CombineVirtual(parentFolderPath, SanitizeProjectNameForTarget(displayName))));
         }

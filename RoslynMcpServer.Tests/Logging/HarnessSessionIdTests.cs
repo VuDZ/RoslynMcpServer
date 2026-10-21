@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime.Versioning;
 using RoslynMcpServer.Diagnostics;
 using Xunit;
 
@@ -62,13 +63,10 @@ public sealed class HarnessSessionIdTests
     }
 
     [Fact]
+    [Trait("Category", TestCategories.RequiresWindows)]
+    [SupportedOSPlatform("windows")]
     public void Windows_reads_this_process_image_and_command_line()
     {
-        if (!OperatingSystem.IsWindows())
-        {
-            return;
-        }
-
         var image = WindowsParentProcess.TryGetImagePath(Environment.ProcessId);
         Assert.False(string.IsNullOrWhiteSpace(image));
         var moduleName = Process.GetCurrentProcess().MainModule?.ModuleName;

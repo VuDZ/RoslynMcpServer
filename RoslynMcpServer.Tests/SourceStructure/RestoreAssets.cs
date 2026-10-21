@@ -27,7 +27,8 @@ internal static class RestoreAssets
         using var document = JsonDocument.Parse(File.ReadAllText(assetsPath));
         var root = document.RootElement;
         if (!root.TryGetProperty("packageFolders", out var packageFolders)
-            || !root.TryGetProperty("targets", out var targets))
+            || !root.TryGetProperty("targets", out var targets)
+            || !root.TryGetProperty("libraries", out var libraries))
         {
             return Array.Empty<string>();
         }
@@ -39,17 +40,22 @@ internal static class RestoreAssets
         var paths = new List<string>();
         foreach (var target in targets.EnumerateObject())
         {
-            CollectCompileAssets(target.Value, roots, paths);
+            CollectCompileAssets(target.Value, libraries, roots, paths);
         }
 
         return paths;
     }
 
-    private static void CollectCompileAssets(JsonElement target, IReadOnlyList<string> packageRoots, List<string> paths)
+    private static void CollectCompileAssets(
+        JsonElement target,
+        JsonElement libraries,
+        IReadOnlyList<string> packageRoots,
+        List<string> paths)
     {
         foreach (var package in target.EnumerateObject())
         {
-            if (!package.Value.TryGetProperty("compile", out var compile))
+            if (!package.Value.TryGetProperty("compile", out var compile)
+                || !TryGetPackageDirectory(libraries, package.Name, out var packageDirectory))
             {
                 continue;
             }
@@ -65,10 +71,32 @@ internal static class RestoreAssets
                 {
                     paths.Add(Path.Combine(
                         root,
-                        package.Name.Replace('/', Path.DirectorySeparatorChar),
+                        packageDirectory.Replace('/', Path.DirectorySeparatorChar),
                         asset.Name.Replace('/', Path.DirectorySeparatorChar)));
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// The package directory relative to a package folder. The target key keeps the id's original case
+    /// (<c>Microsoft.Build.Framework/18.6.3</c>), while NuGet stores the package lower-cased; only
+    /// <c>libraries[*].path</c> names the real directory, which matters on a case-sensitive file system.
+    /// Project references have no package directory and are skipped.
+    /// </summary>
+    private static bool TryGetPackageDirectory(JsonElement libraries, string libraryKey, out string packageDirectory)
+    {
+        packageDirectory = string.Empty;
+        if (!libraries.TryGetProperty(libraryKey, out var library)
+            || !library.TryGetProperty("type", out var type)
+            || type.GetString() != "package"
+            || !library.TryGetProperty("path", out var path)
+            || string.IsNullOrEmpty(path.GetString()))
+        {
+            return false;
+        }
+
+        packageDirectory = path.GetString()!;
+        return true;
     }
 }

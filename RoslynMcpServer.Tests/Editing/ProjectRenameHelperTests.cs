@@ -133,6 +133,34 @@ public sealed class ProjectRenameHelperTests
     }
 
     [Fact]
+    public void Slnx_backslash_project_path_is_updated()
+    {
+        var root = CreateTempRoot();
+        try
+        {
+            WriteSdkProject(Path.Combine(root, "Core", "Core.csproj"), withNameProps: false);
+            File.WriteAllText(
+                Path.Combine(root, "App.slnx"),
+                """
+                <Solution>
+                  <Project Path="Core\Core.csproj" />
+                </Solution>
+                """);
+
+            var plan = ProjectRenameHelper.CreatePlan(Path.Combine(root, "Core", "Core.csproj"), "Core2", root);
+            ProjectRenameHelper.Apply(plan);
+
+            var slnx = File.ReadAllText(Path.Combine(root, "App.slnx"));
+            Assert.Contains("Core2", slnx, StringComparison.Ordinal);
+            Assert.DoesNotContain("Core\\Core.csproj", slnx, StringComparison.Ordinal);
+        }
+        finally
+        {
+            DeleteRoot(root);
+        }
+    }
+
+    [Fact]
     public void Unsupported_layout_hard_fails_without_writes()
     {
         var root = CreateTempRoot();

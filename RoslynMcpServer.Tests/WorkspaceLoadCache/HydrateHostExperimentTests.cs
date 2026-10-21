@@ -221,7 +221,7 @@ public sealed class HydrateHostExperimentTests
         var candidate = WithTextAtPath(heldBase, paths[0], "public class FirstChanged { }", fixture.Encoding);
         candidate = WithTextAtPath(candidate, paths[1], "public class SecondChanged { }", fixture.Encoding);
         var secondBytes = await File.ReadAllBytesAsync(paths[1]);
-        using var blocked = new FileStream(paths[1], FileMode.Open, FileAccess.Read, FileShare.Read);
+        using var blocked = FileChangeBlocker.BlockWrite(paths[1]);
         var result = await host.ApplyAsync(session, heldBase, candidate, session.WriteContext, default);
         Assert.Equal(WorkspaceWriteStatus.PartialPersistence, result.Status);
         Assert.Equal(new[] { paths[0] }, result.SavedPaths);
@@ -817,6 +817,8 @@ public sealed class HydrateHostExperimentTests
         {
             scope = scope.WithFile(SourceFile.ReadFromDisk(path));
         }
+        // The experiment tests use this helper from Support; the rest of Support is not needed to compile them.
+        scope = scope.WithFile(SourceFile.ReadFromDisk(Path.Combine(repository, "RoslynMcpServer.Tests", "Support", "FileChangeBlocker.cs")));
         var analysis = SourceSetAnalysis.Create(scope);
         Assert.True(analysis.IsUsable, string.Join("\n", analysis.InputDiagnostics));
         var diagnostics = new List<string>();

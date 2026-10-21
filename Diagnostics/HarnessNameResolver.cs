@@ -120,7 +120,9 @@ internal static class HarnessNameResolver
             return string.Empty;
         }
 
-        return Path.GetFileNameWithoutExtension(imagePath.Trim());
+        // Same normalization as the command line: the mapping stays a pure string function on every OS,
+        // so Windows parent paths are classified (and tested) the same way on Linux.
+        return Path.GetFileNameWithoutExtension(imagePath.Trim().Replace('\\', '/'));
     }
 
     private static bool IsNodeStem(string stem) =>

@@ -100,7 +100,9 @@ public sealed class RawImportEvidenceTests
         Assert.Equal("Debug", properties.GetProperty("Configuration").GetString());
         Assert.Equal("AnyCPU", properties.GetProperty("Platform").GetString());
         Assert.Equal("net10.0", properties.GetProperty("TargetFramework").GetString());
-        Assert.EndsWith("intermediate\\Library\\project.assets.json", properties.GetProperty("ProjectAssetsFile").GetString());
+        Assert.EndsWith(
+            Path.Combine("intermediate", "Library", "project.assets.json"),
+            properties.GetProperty("ProjectAssetsFile").GetString());
         Assert.EndsWith("locks/Library.lock.json", properties.GetProperty("NuGetLockFilePath").GetString());
         foreach (var suffix in new[] { "Directory.Build.props", "shared.props", "nested.props", "debug.targets", "external.targets" })
         {

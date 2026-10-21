@@ -9,9 +9,9 @@
   Linux-баги.
 - Необходимые способности: `csharp`, `проектирование_проверок`,
   `семантика_roslyn_msbuild`, `кроссплатформенные_пути`.
-- Статус: planned.
+- Статус: **in progress, 2026-10-21** — код и тесты изменены, приёмка не проведена (см. «Ход выполнения»).
 - Depends on: —.
-- Модель, реализовавшая задачу: —.
+- Модель, реализовавшая задачу: `claude-opus-5-5` (в процессе).
 - Модели, проводившие ревью: —.
 - Количество раундов ревью: —.
 - Количество исправлений после ревью: —.
@@ -86,3 +86,57 @@ Linux с тем же SDK, что в CI, без падений и пропуск�
 - Отчёт: для каждого из 23 падений и 2 пропусков baseline — чем закрыто
   (исправление, переделка теста, Windows-only с причиной); итоговый перечень
   Windows-only.
+
+## Ход выполнения
+
+### 2026-10-21, `claude-opus-5-5`
+
+Сделано (требования 1–8):
+
+- A: `.sln` и `.slnx` — пути нормализуются к `/` в
+  `SolutionProjectTargetResolver` (`ListFromSln`, `CollectSlnxProjects`) и
+  `ProjectRenameHelper` (classic `.sln`, `.slnx`). Других мест, читающих пути
+  проектов из `.sln`, нет: `SolutionConfigurationCatalog` читает только
+  конфигурации, остальные проверяют расширение. Новые регрессионные тесты:
+  `ListFromSlnx_backslash_path_without_name_uses_the_file_name`,
+  `Slnx_backslash_project_path_is_updated`.
+- B: `RestoreAssets` берёт каталог пакета из `libraries[*].path`.
+- C: `HarnessNameResolver` (production) нормализует путь образа так же, как
+  командную строку, — тест с Windows-путями проходит на обеих ОС. Эталон Razor
+  переводится под разделитель и перевод строки текущей ОС
+  (`RazorGoldenForCurrentOs`), литерал не тронут. `custom-target`: `cmd /c type`
+  на Windows, `cat` вне Windows. Ожидания путей в `RawImportEvidenceTests` и
+  `FilePath_rejects_paths_outside_the_owned_root` строятся разделителем ОС.
+- D: `Support/FileChangeBlocker` — запрет записи или удаления на обеих ОС
+  (Windows — открытый файл, Unix — права; под root отказывается работать).
+- E: на 2026-10-21 не воспроизводится: в полном прогоне с наблюдателем за
+  сборками дольше 60 с срабатываний нет, `multitarget` прошёл. Гипотеза
+  node reuse проверена отдельно и не подтвердилась. Причина прежних 3 мин не
+  установлена.
+- Категория `RequiresWindows` (`Support/TestCategories.cs`), перечень —
+  `PlatformSupport/WindowsOnlyTestInventoryTests` (4 теста: два WPF,
+  `DotNetHostResolverTests`, `HarnessSessionIdTests.Windows_reads_this_process_image_and_command_line`).
+  Ранние `return` убраны; `TestAssemblyPathResolverTests` переименован в
+  `TryResolve_matches_project_path_case_insensitively_only_on_windows` и
+  проверяет обе ОС. `IsolatedWorkspaceHydratorTests:496` молчаливым проходом
+  не был: Unix-ветка содержит проверки.
+
+Linux, SDK 10.0.300, фильтр `Category!=AnalyzerLifecycle&Category!=RequiresWindows`:
+1335 passed, 3 failed, 0 skipped из 1338. После прогона:
+
+- `HydrateHostExperimentTests.Hydrate_transitive_calls_have_no_open_or_process_with_exact_external_admission_limit` —
+  исправлено (набор исходников теста не включал `FileChangeBlocker`), прогон
+  отдельно зелёный.
+- `WorkspaceNonCSharpDiskSyncTests.Saved_additional_file_and_editorconfig_reach_the_published_snapshot` —
+  отдельно зелёный; в полном прогоне упал по времени. **Открыто:** нестабильность.
+- `HydrateHostExperimentTests.Cancellation_after_first_write_reports_committed_path_and_unapplied_state` —
+  падает стабильно (3 из 3) и **без изменений этой задачи** (проверено на
+  `git stash`), хотя в baseline проходил. Наблюдатель записи не успевает
+  отменить операцию до конца записи 64 МБ. **Открыто.**
+
+Не выполнено для приёмки:
+
+- полный main suite на Linux после последних правок (только прицельные прогоны);
+- `AnalyzerLifecycle` на Linux после правок;
+- полный main suite и `AnalyzerLifecycle` на Windows;
+- независимое ревью и отчёт по каждому из 23 падений baseline.

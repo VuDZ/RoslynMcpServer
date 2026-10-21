@@ -2,6 +2,7 @@ using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.MSBuild;
 using RoslynMcpServer.Diagnostics;
+using RoslynMcpServer.Tests.Support;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -146,8 +147,10 @@ public sealed class OracleFixtureBuilderTests
         await using var fixture = await OracleFixtureBuilder.CreateAsync(FixtureScenario.ProjectGraph, OwnParent(), CancellationToken.None);
         var inside = fixture.FilePath("App/Use.cs");
         Assert.StartsWith(fixture.Root + Path.DirectorySeparatorChar, inside, StringComparison.Ordinal);
-        Assert.Throws<ArgumentException>(() => fixture.FilePath(@"C:\elsewhere\Use.cs"));
-        Assert.Throws<ArgumentException>(() => fixture.FilePath("..\\..\\escaped.cs"));
+        // Built with the separators of the current OS: outside Windows `..\..\escaped.cs` is one file
+        // name inside the root, not an escape.
+        Assert.Throws<ArgumentException>(() => fixture.FilePath(Path.Combine(Path.GetPathRoot(fixture.Root)!, "elsewhere", "Use.cs")));
+        Assert.Throws<ArgumentException>(() => fixture.FilePath(Path.Combine("..", "..", "escaped.cs")));
         Assert.Throws<ArgumentException>(() => fixture.FilePath("a/../../escaped.cs"));
         Assert.Throws<ArgumentException>(() => fixture.FilePath(""));
         Assert.Throws<ArgumentException>(() => fixture.FilePath("   "));
@@ -196,7 +199,7 @@ public sealed class OracleFixtureBuilderTests
     {
         var parent = OwnParent();
         using var cancellation = new CancellationTokenSource();
-        FileStream? heldLock = null;
+        FileChangeBlocker? heldLock = null;
         try
         {
             // The afterFileWritten seam suspends the builder inside its materialization loop,
@@ -213,7 +216,7 @@ public sealed class OracleFixtureBuilderTests
                             return;
                         }
                         cancellation.Cancel();
-                        heldLock = new FileStream(writtenPath, FileMode.Open, FileAccess.Read, FileShare.None);
+                        heldLock = FileChangeBlocker.BlockDelete(writtenPath);
                     },
                     cancellation.Token));
             // Cancellation may surface as OperationCanceledException or its TaskCanceledException
@@ -241,7 +244,7 @@ public sealed class OracleFixtureBuilderTests
         Directory.CreateDirectory(directory);
         var lockedPath = Path.Combine(directory, "locked.txt");
         await File.WriteAllTextAsync(lockedPath, "locked");
-        using (new FileStream(lockedPath, FileMode.Open, FileAccess.Read, FileShare.None))
+        using (FileChangeBlocker.BlockDelete(lockedPath))
         {
             var failure = OracleFixtureBuilder.TryDeleteRoot(directory);
             Assert.NotNull(failure);

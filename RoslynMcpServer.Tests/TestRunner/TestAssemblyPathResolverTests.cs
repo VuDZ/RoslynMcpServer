@@ -230,13 +230,8 @@ public sealed class TestAssemblyPathResolverTests
     }
 
     [Fact]
-    public void TryResolve_matches_project_path_case_insensitively_on_windows()
+    public void TryResolve_matches_project_path_case_insensitively_only_on_windows()
     {
-        if (!OperatingSystem.IsWindows())
-        {
-            return;
-        }
-
         using var dir = new TempDir();
         var csproj = Path.Combine(dir.Path, "Foo.Tests.csproj");
         File.WriteAllText(csproj, "<Project />");
@@ -249,7 +244,8 @@ public sealed class TestAssemblyPathResolverTests
             binariesDirectory: dir.Path,
             projects: [new TestAssemblyPathResolver.ProjectHint(csproj.ToUpperInvariant(), "Foo.Tests")]);
 
-        Assert.True(result.Success);
+        // A case-sensitive file system can hold both spellings as different projects.
+        Assert.Equal(OperatingSystem.IsWindows(), result.Success);
     }
 
     private sealed class TempDir : IDisposable

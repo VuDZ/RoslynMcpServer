@@ -247,7 +247,12 @@ public sealed class DependencyEvidenceRunnerTests
         {
             "absent" => "<Import Project=\"Local.props\" Condition=\"Exists('Local.props')\" />",
             "standard" => "<ItemGroup><Compile Remove=\"secret/**/*.cs\"/><AdditionalFiles Include=\"missing-dir/**/*.txt\"/></ItemGroup>",
-            "custom-target" => "<Target Name=\"ReadHiddenInput\" BeforeTargets=\"CoreCompile\"><Exec Command=\"cmd /c type &amp;quot;$(MSBuildProjectDirectory)\\..\\hidden-input.txt&amp;quot; &amp;gt; &amp;quot;$(MSBuildProjectDirectory)\\target-observation.txt&amp;quot;\"/></Target>",
+            // The hidden input is read by an external process, which the evidence cannot see; an MSBuild
+            // task such as Copy would show up in the binlog and change the scenario.
+            "custom-target" => "<Target Name=\"ReadHiddenInput\" BeforeTargets=\"CoreCompile\">"
+                + "<Exec Condition=\"'$(OS)' == 'Windows_NT'\" Command=\"cmd /c type &amp;quot;$(MSBuildProjectDirectory)\\..\\hidden-input.txt&amp;quot; &amp;gt; &amp;quot;$(MSBuildProjectDirectory)\\target-observation.txt&amp;quot;\"/>"
+                + "<Exec Condition=\"'$(OS)' != 'Windows_NT'\" Command=\"cat &amp;quot;$(MSBuildProjectDirectory)/../hidden-input.txt&amp;quot; &amp;gt; &amp;quot;$(MSBuildProjectDirectory)/target-observation.txt&amp;quot;\"/>"
+                + "</Target>",
             "linked" => "<Import Project=\"../common.props\"/><ItemGroup><Compile Include=\"../shared/Shared.cs\" Link=\"Shared.cs\"/><ProjectReference Include=\"../Library/Library.csproj\"/></ItemGroup>",
             "external-asset" => "<ItemGroup><Content Include=\"../external/asset.txt\" Link=\"wwwroot/asset.txt\" CopyToOutputDirectory=\"PreserveNewest\"/></ItemGroup>",
             "escaping-glob" => "<ItemGroup><Compile Include=\"../external/**/*.cs\"/></ItemGroup>",

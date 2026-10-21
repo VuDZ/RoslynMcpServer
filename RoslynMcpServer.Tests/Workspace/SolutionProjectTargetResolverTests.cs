@@ -83,6 +83,20 @@ public sealed class SolutionProjectTargetResolverTests
     }
 
     [Fact]
+    public void ListFromSlnx_backslash_path_without_name_uses_the_file_name()
+    {
+        const string slnx = """
+            <Solution>
+              <Project Path="lib\My.Project\My.Project.csproj" />
+            </Solution>
+            """;
+
+        var project = Assert.Single(SolutionProjectTargetResolver.ListFromSlnx(slnx));
+        Assert.Equal("My.Project", project.DisplayName);
+        Assert.Equal("My.Project", project.FileNameWithoutExtension);
+    }
+
+    [Fact]
     public void TryResolve_matches_display_name_when_unique()
     {
         var path = WriteTempSln(NestedSln, ".sln");

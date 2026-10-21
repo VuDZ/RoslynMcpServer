@@ -7,12 +7,10 @@ namespace RoslynMcpServer.Tests.Build;
 public sealed class DotNetHostResolverTests
 {
     [Fact]
+    [Trait("Category", TestCategories.RequiresWindows)]
     public void ResolveDotNetExecutable_on_64bit_windows_prefers_program_files_dotnet()
     {
-        if (!Environment.Is64BitProcess || !OperatingSystem.IsWindows())
-        {
-            return;
-        }
+        Assert.True(Environment.Is64BitProcess, "The test project runs as x64.");
 
         var path = DotNetHostResolver.ResolveDotNetExecutable();
         Assert.False(MsBuildInstanceSelector.Is32BitWindowsPath(path));

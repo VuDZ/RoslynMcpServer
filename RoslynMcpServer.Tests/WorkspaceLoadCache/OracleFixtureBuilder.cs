@@ -255,7 +255,7 @@ internal static class OracleFixtureBuilder
             Pairs((Option(app, "NullableContextOptions"), "Enable")),
             characters,
             Utf8BytesOf(characters),
-            Pairs((RazorGeneratedKey, RazorGoldenTemplate.Replace("{fixtureRoot}", root))),
+            Pairs((RazorGeneratedKey, RazorGoldenForCurrentOs(root))),
             Pairs((Constant(app, "E0Razor.Marker.Marker"), "E0RazorMarker")),
             ["CS0219", "CS0542"]);
         return new Manifest(files, ProjectRequest(root, "App/App.csproj"), expected);
@@ -531,6 +531,18 @@ internal static class OracleFixtureBuilder
     private static string Option(string instance, string property) => instance + "|" + property;
 
     private static string Constant(string instance, string member) => instance + "|" + member;
+
+    // The Razor golden was observed on Windows: the source path continues with `\App\` and lines end with
+    // CRLF. The generator writes the separator and Environment.NewLine of the current OS, so only those two
+    // observations are translated; the literal itself stays verbatim.
+    private static string RazorGoldenForCurrentOs(string root)
+    {
+        var separator = Path.DirectorySeparatorChar;
+        return RazorGoldenTemplate
+            .Replace("{fixtureRoot}\\App\\", root + separator + "App" + separator, StringComparison.Ordinal)
+            .Replace("{fixtureRoot}", root, StringComparison.Ordinal)
+            .ReplaceLineEndings(Environment.NewLine);
+    }
 
     private static ImmutableSortedDictionary<string, string> Pairs(params (string Key, string Value)[] entries)
         => entries.ToImmutableSortedDictionary(entry => entry.Key, entry => entry.Value);
