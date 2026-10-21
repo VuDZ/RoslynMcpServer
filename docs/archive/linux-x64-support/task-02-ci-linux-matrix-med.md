@@ -33,7 +33,7 @@
    `shell: pwsh`.
 4. Установка SDK одинакова на обеих ОС (сейчас `10.0.300` и `10.0.x`).
    Если к этому моменту принят `global.json` по
-   [AR-13](../architecture-review/findings.md#ar-13), использовать его.
+   [AR-13](../../architecture-review/findings.md#ar-13), использовать его.
 5. `lifecycle` на Linux включается той же переменной
    `ROSLYN_MCP_ANALYZER_LIFECYCLE=1`.
 6. Обязательность Linux-job включается только после серии из 10 зелёных
@@ -60,7 +60,7 @@
 
 ### 2026-10-21, Grok 4.7
 
-`test-suite.yml` гоняет `os × shard`. SDK тот же (`10.0.300` и `10.0.x`): [AR-13](../architecture-review/findings.md#ar-13) всё ещё open, принятого `global.json` нет. `Assert-NoSkippedTests.ps1` не менялся; вызов и каталог результатов идут через `/` и `shell: pwsh`. Фильтр Windows — прежний `Category!=AnalyzerLifecycle`. Фильтр Linux `unit` — `Category!=AnalyzerLifecycle&Category!=RequiresWindows`. `lifecycle` на обеих ОС включает `ROSLYN_MCP_ANALYZER_LIFECYCLE=1`.
+`test-suite.yml` гоняет `os × shard`. SDK тот же (`10.0.300` и `10.0.x`): [AR-13](../../architecture-review/findings.md#ar-13) всё ещё open, принятого `global.json` нет. `Assert-NoSkippedTests.ps1` не менялся; вызов и каталог результатов идут через `/` и `shell: pwsh`. Фильтр Windows — прежний `Category!=AnalyzerLifecycle`. Фильтр Linux `unit` — `Category!=AnalyzerLifecycle&Category!=RequiresWindows`. `lifecycle` на обеих ОС включает `ROSLYN_MCP_ANALYZER_LIFECYCLE=1`.
 
 Linux-job помечены `continue-on-error`, пока нет десяти зелёных прогонов. Снимать флаг и принимать задачу рано.
 

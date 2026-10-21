@@ -31,7 +31,8 @@ O-01 закрыт (`workflow_dispatch` + тег со стороны Actions). O-
   framework-dependent). Первый выпуск четырёх архивов —
   [v1.5.6](https://github.com/VuDZ/RoslynMcpServer/releases/tag/v1.5.6)
   ([Release 39680548658](https://github.com/VuDZ/RoslynMcpServer/actions/runs/39680548658)).
-  Ручная проверка self-contained без runtime .NET 10 ещё не сделана.
+  Self-contained `linux-x64` распакован в WSL: процесс использовал свой
+  `libcoreclr.so`; `load_workspace` прошёл с `DOTNET_ROOT=/usr/lib/dotnet`.
 - В [`RoslynMcpServer.csproj`](../../RoslynMcpServer.csproj) указаны `net10.0`,
   `PublishSelfContained=true`, `PublishSingleFile=false` и
   `PublishReadyToRun=true`. Обычная сборка имеет `SelfContained=false`.
@@ -234,8 +235,9 @@ Worktree дополняет ветку отдельной папкой и не �
 `10.0.x`). Одной кросс-сборки недостаточно: `linux-x64` собирается на
 `ubuntu-latest`.
 
-Ручная проверка self-contained `linux-x64` на машине без runtime .NET 10
-(SDK проекта при этом есть) остаётся за владельцем при первом выпуске.
+Ручная проверка self-contained `linux-x64` сделана на WSL, где пакет runtime
+установлен: хост 1.5.6 поднял свой `libcoreclr.so` без `dotnet` в `PATH`,
+а `load_workspace` прошёл с `DOTNET_ROOT=/usr/lib/dotnet`.
 Следующий RID — новая строка матрицы, не отдельный workflow. `linux-arm64`,
 `linux-musl-x64` и macOS в этот выпуск не входят.
 

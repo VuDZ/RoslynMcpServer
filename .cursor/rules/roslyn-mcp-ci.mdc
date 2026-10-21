@@ -31,7 +31,7 @@ One OS runs two shards. Within that OS the shards must not overlap. On Windows t
 
 Display names: `unit (windows)`, `lifecycle (windows)`, `unit (ubuntu)`, `lifecycle (ubuntu)`. Artifacts: `trx-unit-windows`, `trx-lifecycle-windows`, `trx-unit-ubuntu`, `trx-lifecycle-ubuntu`. Caller checks in `ci.yml` / `release.yml` are prefixed with `tests /`.
 
-A red job on either OS fails the workflow. Do not put `continue-on-error` back on Ubuntu. The ten consecutive Linux main-suite runs that allowed that are recorded in `docs/linux-x64-support/evidence/task-02-linux-main-ten-runs.md`.
+A red job on either OS fails the workflow. Do not put `continue-on-error` back on Ubuntu. The ten consecutive Linux main-suite runs that allowed that are recorded in `docs/archive/linux-x64-support/evidence/task-02-linux-main-ten-runs.md`.
 
 `AnalyzerLifecycleHostTests` is the **only** class carrying `Category=AnalyzerLifecycle`
 (thirteen host methods). `Epoch1SemanticInventoryTests` is source-only, carries no trait, and

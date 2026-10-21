@@ -41,7 +41,7 @@
 | [AR-09](findings.md#ar-09) | P2 | корректность | `list_projects` читает TFM/OutputType строковым разбором csproj | open |
 | [AR-10](findings.md#ar-10) | P3 | SolutionManager | Концентрация состояния и тестовые хуки в production-пути до интеграции кэша | open |
 | [AR-11](findings.md#ar-11) | P3 | масштабирование | Статическое состояние не упомянуто в инварианте single-session | open |
-| [AR-12](findings.md#ar-12) | P3 | платформы | CI и релиз только Windows при 6 объявленных RID | open — решение принято ([P-03](proposals.md#p-03), 2026-10-21), реализация — [linux-x64-support](../linux-x64-support/README.md) |
+| [AR-12](findings.md#ar-12) | P3 | платформы | CI и релиз только Windows при 6 объявленных RID | open — решение принято ([P-03](proposals.md#p-03), 2026-10-21), реализация — [linux-x64-support](../archive/linux-x64-support/README.md) |
 | [AR-13](findings.md#ar-13) | P3 | сборка | SDK не закреплён; релиз собирается «последним 10.0.x» | open |
 | [AR-14](findings.md#ar-14) | P3 | протокол | Классификация read/write не экспортируется в MCP; у плагинов захардкожено `IsReadOnly = true` | open |
 | [AR-15](findings.md#ar-15) | P3 | tools | `find_symbol_references` по FQN не находит символы из метаданных, хотя описание этого не оговаривает | open |

@@ -7,13 +7,13 @@
 - Риск ошибки: средний — релиз нельзя прогнать локально целиком; ошибка
   в архиве (бит исполнения, состав файлов) видна только пользователю.
 - Необходимые способности: `github_actions`, `powershell`, `dotnet_publish`.
-- Статус: **in progress, 2026-10-22** — [Release 39680548658](https://github.com/VuDZ/RoslynMcpServer/actions/runs/39680548658) опубликовал [v1.5.6](https://github.com/VuDZ/RoslynMcpServer/releases/tag/v1.5.6): четыре архива, smoke обеих платформ и attestation прошли. Ручная проверка self-contained без runtime не сделана.
+- Статус: **accepted, 2026-10-22** — архив [v1.5.6 linux-x64 self-contained](https://github.com/VuDZ/RoslynMcpServer/releases/tag/v1.5.6) скачан и распакован в WSL. Хост стартовал с `PATH=/bin` и без `DOTNET_ROOT`; в `/proc/pid/maps` только свой `libcoreclr.so`. `initialize` и `tools/list` (54 инструмента) прошли. `load_workspace` проекта SmokeApp загрузил 1 проект при `DOTNET_ROOT=/usr/lib/dotnet`: SDK Ubuntu стоит там, а бинарь 1.5.6 этот каталог сам не ищет. Пакет runtime в этом WSL установлен; процесс его не отображал. Отдельного контейнера без пакета не было.
 - Depends on: [task-02](task-02-ci-linux-matrix-med.md).
 - Модель, реализовавшая задачу: Grok 4.7 (workflow, без выпуска).
 - Модели, проводившие ревью: —.
 - Количество раундов ревью: —.
 - Количество исправлений после ревью: —.
-- Отчёт о реализации, ревью и validation: —.
+- Отчёт о реализации, ревью и validation: проверка self-contained записана в статусе выше; прогон Release — [39680548658](https://github.com/VuDZ/RoslynMcpServer/actions/runs/39680548658).
 
 ## Цель
 
@@ -44,14 +44,14 @@
    создание или публикация draft-релиза со всеми архивами. Падение любой
    платформы — релиза нет.
 6. **SDK релиза** закреплён так же, как в task-02
-   ([AR-13](../architecture-review/findings.md#ar-13)).
+   ([AR-13](../../architecture-review/findings.md#ar-13)).
 7. **Smoke опубликованного бинаря** на каждой платформе и для обоих вариантов:
    распакованный архив запускается, отвечает на MCP `initialize` и `tools/list`
    по stdio и выполняет `load_workspace` на маленьком проекте из репозитория
    через BuildHost. Это закрывает требование
-   [O-03](../github-releases/README.md#o-03-совместимость-и-расширение-платформ)
+   [O-03](../../github-releases/README.md#o-03-совместимость-и-расширение-платформ)
    для `linux-x64` и одновременно добавляет недостающий smoke для `win-x64`.
-8. **Документы.** В [github-releases/README.md](../github-releases/README.md)
+8. **Документы.** В [github-releases/README.md](../../github-releases/README.md)
    R-02 и O-03 приводятся к решению P-03; раздел «Текущее состояние»
    обновляется.
 

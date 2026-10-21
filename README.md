@@ -74,7 +74,7 @@ The process is local stdio: no backend and no HTTP client of its own. File logs 
 | `linux-x64` | `.tar.gz`, self-contained and framework-dependent | Supported |
 | `win-arm64`, `osx-arm64`, `linux-arm64`, `linux-musl-x64` | Present in the project RID list and can be built | Not supported |
 
-Details and the CI contract: [linux-x64 support](docs/linux-x64-support/README.md).
+Details and the CI contract: [linux-x64 support](docs/archive/linux-x64-support/README.md).
 
 ### Install a Linux release
 
@@ -1047,7 +1047,7 @@ RoslynMcpServer не собирает телеметрию и не переда�
 | `linux-x64` | `.tar.gz`, self-contained и framework-dependent | Поддерживается |
 | `win-arm64`, `osx-arm64`, `linux-arm64`, `linux-musl-x64` | Есть в списке RID проекта и собираются | Не поддерживаются |
 
-Подробности и контракт CI: [поддержка linux-x64](docs/linux-x64-support/README.md).
+Подробности и контракт CI: [поддержка linux-x64](docs/archive/linux-x64-support/README.md).
 
 ### Установка релиза Linux
 
