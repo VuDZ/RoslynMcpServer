@@ -115,7 +115,7 @@ These tools execute with the permissions and network access of the MCP process. 
 
 ### External assembly inspection
 
-ILSpy-backed tools resolve an exact assembly file from an explicit path, loaded workspace references, `.deps.json`, NuGet cache, or known BCL package mappings. Fuzzy filename matching is intentionally avoided. Full type decompilation has a line limit; large types must be inspected through a skeleton and individual method bodies.
+ILSpy-backed tools resolve an exact assembly file from an explicit path, loaded workspace references, `.deps.json`, NuGet cache, or known BCL package mappings. Fuzzy filename matching is intentionally avoided. That exactness applies to the target assembly only: its dependencies are resolved best-effort. An unresolved dependency does not fail decompilation; its types appear as unknown and the response names the unresolved references. Strict dependency resolution would make whole assemblies unreadable, because packages may reference optional assemblies they do not declare as dependencies (for example, `Microsoft.CodeAnalysis.Workspaces` and SQLitePCLRaw). Full type decompilation has a line limit; large types must be inspected through a skeleton and individual method bodies.
 
 ## Diagnostic and observability model
 

@@ -6,16 +6,21 @@ using ICSharpCode.Decompiler.Metadata;
 
 namespace RoslynMcpServer.Services.Resolve;
 
-/// <summary>Creates <see cref="CSharpDecompiler"/> instances with NuGet-aware assembly resolution.</summary>
+/// <summary>Creates <see cref="DecompilerSession"/> instances with NuGet-aware assembly resolution.</summary>
 public static class DecompilerHost
 {
     private static readonly Regex ResolutionAssemblyName = new(
         @"Failed to resolve assembly:\s*'([^']+)'",
         RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
-    public static CSharpDecompiler Create(string dllPath)
+    public static DecompilerSession Create(string dllPath)
     {
-        var settings = new DecompilerSettings { ThrowOnAssemblyResolveErrors = true };
+        // Dependencies are best-effort. Strict resolution assumed every assembly reference ships with its
+        // package, but some do not: Microsoft.CodeAnalysis.Workspaces references SQLitePCLRaw for an optional
+        // storage service without a NuGet dependency on it, so no method of that assembly could be decompiled.
+        // NuGetFallbackAssemblyResolver returns null for such a reference and records it; the type system
+        // accepts null in either mode, and the setting below only keeps a resolver exception from being fatal.
+        var settings = new DecompilerSettings { ThrowOnAssemblyResolveErrors = false };
         var module = new PEFile(dllPath);
         var targetFramework = module.DetectTargetFrameworkId();
         if (string.IsNullOrWhiteSpace(targetFramework))
@@ -23,6 +28,8 @@ public static class DecompilerHost
             targetFramework = GuessTargetFrameworkFromPath(dllPath) ?? "netstandard2.0";
         }
 
+        // The inner resolver still throws: the NuGet fallback runs on its ResolutionException and records
+        // the reference only when the fallback fails too.
         var inner = new UniversalAssemblyResolver(
             dllPath,
             throwOnError: true,
@@ -37,8 +44,28 @@ public static class DecompilerHost
         inner.AddSearchDirectory(nugetRoot);
         var resolver = new NuGetFallbackAssemblyResolver(inner, nugetRoot);
 
-        return new CSharpDecompiler(module, resolver, settings);
+        return new DecompilerSession(new CSharpDecompiler(module, resolver, settings), resolver);
     }
+
+    /// <summary>
+    /// A one-line note naming unresolved references, capped at <see cref="MaxListedUnresolvedReferences"/>
+    /// names; empty when every reference was resolved.
+    /// </summary>
+    public static string FormatUnresolvedReferencesNote(IReadOnlyList<string> unresolvedReferences)
+    {
+        if (unresolvedReferences.Count == 0)
+        {
+            return string.Empty;
+        }
+
+        var listed = string.Join(", ", unresolvedReferences.Take(MaxListedUnresolvedReferences));
+        var more = unresolvedReferences.Count > MaxListedUnresolvedReferences
+            ? $" and {unresolvedReferences.Count - MaxListedUnresolvedReferences} more"
+            : string.Empty;
+        return $"// Unresolved assembly references, their types are shown as unknown: {listed}{more}.";
+    }
+
+    private const int MaxListedUnresolvedReferences = 10;
 
     public static string GetAssemblyLabel(string? assemblyName, string dllPath) =>
         string.IsNullOrWhiteSpace(assemblyName)
