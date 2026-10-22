@@ -150,5 +150,5 @@ Patch **1.3.29 → 1.3.30** (`Version` / `AssemblyVersion` / `FileVersion`). `Pa
 ## 8. Follow-up (не этот патч)
 
 1. Намеренный `AddDocument` в refactoring-тулах: persist `.cs` + stale + reload **или** безопасный writer, который не дублирует SDK glob. Пока C нельзя включать.
-2. Испорченные чужие `.csproj` (MobsAdmin и т.п.) — ручная правка, MCP не сканирует.
+2. Испорченные чужие `.csproj` (private_project_5 и т.п.) — ручная правка, MCP не сканирует.
 3. Вариант B (overlay-документ) — отдельная спека.

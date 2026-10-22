@@ -60,7 +60,7 @@ public sealed class WorkspaceDiagnosticFormatterTests
     public void Format_nu1701_as_compat_warning_not_failure()
     {
         const string msg =
-            "Msbuild failed when processing the file 'Ucp.Tests.Snippets.csproj' with message: "
+            "Msbuild failed when processing the file 'private_project.Tests.Snippets.csproj' with message: "
             + "warning NU1701: Package 'Microsoft.VisualStudio.SDK' 17.0.32112.339 was restored using "
             + "'.NETFramework,Version=v4.7.2' instead of the project target framework '.NETCoreApp,Version=v10.0'. "
             + "This package may not be fully compatible with your project.";

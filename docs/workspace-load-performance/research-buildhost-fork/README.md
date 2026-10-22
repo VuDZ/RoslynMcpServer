@@ -1,0 +1,68 @@
+# Исследование форка Roslyn BuildHost
+
+Дата: **2026-10-22**. Статус: **planned; реализация форка не начата,
+независимое ревью не проводилось**. Git-ветка продолжения:
+`research/workspace-load-performance`.
+
+Постановка по решению владельца: сохранить результаты офисных замеров и
+исследовать возможности форка BuildHost. Это самостоятельная исследовательская
+ветка темы [производительности](../README.md), а не замена результатов E0
+и не разрешение включить новый загрузчик по умолчанию.
+
+## Отправная точка
+
+- Сервер 1.5.9, офисный baseline: load 49,079 с, из него MSBuild open около 44,9 с;
+  первый поиск 34,175 с. [Результаты](../epoch-0-stage-measurement/task-08-source-search-and-office-results-med.md).
+- Поиск, индексы и compilation выполняются в основном сервере. Форк BuildHost
+  напрямую нацелен на load; [I/O/поиск](../epoch-0-stage-measurement/task-09-first-search-io-and-private-project-profile-hi.md)
+  исследуются отдельно.
+- Предыдущий core-first spike дал ускорение на PowerToys, но не достиг correctness
+  на полном Roslyn. Его no-go сохраняется. [Task-07.3](../epoch-0-stage-measurement/task-07.3-evaluated-load-graph-hi.md)
+  остаётся самостоятельным public-API экспериментом; она не получает разрешения на форк.
+- В существующем BuildHost уже есть ProjectCollection, кеш загруженных проектов
+  и переиспользуемый ProjectBuildManager. Простой запуск долгоживущего процесса
+  или добавление кеша не считается доказанной новой оптимизацией.
+
+## Задачи
+
+- [task-00 — Воспроизводимый форк без изменения поведения](task-00-buildhost-fork-baseline-hi.md) — **planned**.
+- [task-01 — Тайминги запросов и фактический load graph](task-01-buildhost-graph-and-timings-hi.md) — **planned**, после task-00.
+- [task-02 — Направленный эксперимент оптимизации](task-02-buildhost-optimization-spike-hi.md) — **planned**, после task-01.
+
+В активной реализации одновременно не больше двух задач. Сейчас оформлен план,
+новые измерения и реализация не запускались. После каждой задачи обновляются
+её статус, этот индекс и evidence; незавершённая проверка сохраняется как pending.
+
+## Где искать выигрыш
+
+1. Выдача графа из уже выполненной evaluation и наблюдаемых запросов, без отдельной
+   повторной загрузки ради планировщика. Учитывать imported/dynamic references,
+   effective properties, TFM, native entries и запросы output paths.
+2. Пакетная/ограниченно параллельная обработка независимых проектов в общей
+   MSBuild-сессии. Исключать повторы общего ядра и гонки в общих obj/outputs;
+   общий mutable Project нельзя одновременно переключать между TFM.
+3. Устранение измеренных повторов reference/output queries, evaluation и extraction
+   ProjectFileInfo; кешировать только результаты с корректным ключом и временем жизни.
+4. Сокращение RPC и сериализации через пакетные ответы, если их цена подтверждена
+   собственными spans. Остаток между binlog events не объявлять временем IPC.
+5. Анализ targets/tasks: reference resolution, WPF markup, генераторы, SDK/import
+   resolution. SkipCompilerExecution уже используется; нельзя ускорять потерей
+   compiler args, .g.cs, options, references, diagnostics или analyzer evidence.
+6. Переиспользование состояния между загрузками — отдельный эксперимент с invalidation
+   на changes в проектах/imports/SDK/global properties. Не подменять им fresh-process baseline.
+
+Сначала нужен профиль, затем один кандидат за раз. Направления — гипотезы, не
+обещание конкретного speedup. Общая метрика: load + first useful semantic query,
+дополнительно wall каждой стадии, CPU, peak RAM, ошибки и полный результат загрузки.
+
+## Границы
+
+Исторические evidence не переписываются. Изолированный форк не изменяет production
+package references/defaults, analyzer admission, write boundary или watcher policy.
+Изменение RPC потребует согласованного клиента; подмена только host DLL не
+считается достаточной. Путь main остаётся на исходном commit; работа продолжается
+в отдельной Git-ветке, без reset/rebase существующей истории.
+
+В Git: задачи, патчи/минимальный код интеграции, точная upstream revision,
+build-инструкции, компактные сводки и hashes. Полный upstream checkout,
+binlogs, traces, dumps, логи и ZIP — в ignored artifacts или отдельном архиве.

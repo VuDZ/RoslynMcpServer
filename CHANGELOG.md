@@ -8,6 +8,16 @@ Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into a
 - `find_symbol_definition` and `find_symbol_references` accept `filePath` + `line` + `column` without `symbolName`, using the existing positional symbol resolver. Name-based search and automatic column selection still require `symbolName`.
 - `find_symbol_definition` accepts optional `preview`: source text is appended to each definition location, capped at 400 characters, including overflow chunks. Explicit `preview` overrides the JSONC setting; otherwise the default is false.
 
+### v1.5.9
+
+- Name-based declaration search uses Roslyn's source-only lookup instead of scanning referenced assemblies and discarding metadata hits. Per-project timing logs remain available.
+- Provenance replay accepts newer compatible binlog formats from Visual Studio BuildHost. Any recoverable read error still rejects that file's provenance; failed-file counts preserve Failed/Incomplete status even when one file reports several errors. Timing reports show each binlog's format, project count and failures.
+
+### v1.5.8
+
+- Workspace load logs include per-project inclusive design-time build durations, evaluation totals, and the ten most expensive targets and tasks from the existing binlog replay. Missing or partial replay is explicit; overlapping durations are not reported as wall time.
+- Name-based declaration searches log each project's duration and an overall search summary, including cancellation or failure. Measurement reports include these project breakdowns without changing tool responses or search behavior.
+
 ### v1.5.7
 
 - On Linux, MSBuild registration and SDK pin resolution also look in `/usr/lib/dotnet` (distribution packages) and `~/.dotnet` (`dotnet-install.sh`), after `DOTNET_ROOT` and the existing `/usr/local/share/dotnet` and `/usr/share/dotnet` locations.

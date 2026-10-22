@@ -98,3 +98,5 @@ Portable `AGENTS.md` is not enough. Each app should document:
 | `.cursor/rules` (optional) | Integration notes, secret **names** (not values) |
 
 Tool history: RoslynMcpServer README «Agent tools by version».
+
+Server 1.5.9 uses source-only declaration lookup for name-based navigation; metadata-only symbols remain excluded. Newer compatible BuildHost binlogs can be replayed, but skipped or unreadable records still leave provenance incomplete and cannot authorize analyzer overlay publication.

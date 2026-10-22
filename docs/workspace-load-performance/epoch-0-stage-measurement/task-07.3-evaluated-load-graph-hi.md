@@ -130,3 +130,10 @@ Category!=AnalyzerLifecycle по AGENTS.md; SourceStructure входит в об
 Тяжёлые snapshots/binlogs/TRX — в ignored
 `artifacts/parallel-load/task-07.3-evidence/`; в Git — компактные evidence по
 [правилам хранения](../README.md#хранение-evidence).
+
+## Продолжение направления, 2026-10-22
+
+Задача остаётся planned и сохраняет public-API scope. По решению владельца
+создано отдельное [исследование форка BuildHost](../research-buildhost-fork/README.md):
+оно может дать наблюдения о реальном графе и повторной работе, но не считается
+исполнением или успешной приёмкой task-07.3. Прежний no-go task-07.2 сохраняется.

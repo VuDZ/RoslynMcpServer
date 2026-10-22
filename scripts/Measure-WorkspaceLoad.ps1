@@ -13,6 +13,8 @@
     the inbound tools/call, "Analyzer provenance capture finished" (ReplayMs), the first
     "Disk watcher started", "Loaded Roslyn workspace", and "request handler completed".
     These are estimates from log timestamps, not measured spans.
+    Server 1.5.8+ also logs design-time build and declaration-search project timings.
+    The report includes their full data in runs.json and top projects in summary.md.
 
     Output folder: summary.md, runs.json, and per-run redacted log excerpts and responses.
     The workspace root is replaced with <repo>, the user profile with <user>, and the
@@ -294,6 +296,7 @@ function Get-StageEstimate($Entries, [int]$RequestId) {
         handlerMs = $null; openMs = $null; replayMs = $null; postOpenMs = $null; watchersMs = $null
         responseMs = $null; projects = $null; diagLines = $null; workingSetMb = $null
         captureStatus = $null; msbuildFailures = 0; msbuildWarnings = 0; watcherLines = 0
+        designTime = $null; searchProjects = @(); searchSummaries = @(); searchOutsideLoopMs = $null
     }
     $start = -1
     for ($i = 0; $i -lt $Entries.Count; $i++) {
@@ -305,6 +308,19 @@ function Get-StageEstimate($Entries, [int]$RequestId) {
     for ($i = $start + 1; $i -lt $Entries.Count; $i++) {
         $e = $Entries[$i]
         if ($e.Message -match '^MCP \u2190 request id=') { break }
+        if ($e.Message -match '^workspace_(?<kind>load_designtime|search_project|search_summary) (?<json>\{.*\})$') {
+            $timingKind = $Matches['kind']
+            try {
+                $timing = (Get-RedactedText $Matches['json']) | ConvertFrom-Json
+                switch ($timingKind) {
+                    'load_designtime' { $result.designTime = $timing }
+                    'search_project' { $result.searchProjects += $timing }
+                    'search_summary' { $result.searchSummaries += $timing }
+                }
+            }
+            catch { Write-Warning "Cannot parse $timingKind timing for request ${RequestId}: $($_.Exception.Message)" }
+            continue
+        }
         if ($null -eq $capture -and $e.Message -match 'Analyzer provenance capture finished: Status="?(?<st>[^",]+)"?.*ReplayMs=(?<r>\d+(?:[.,]\d+)?)') {
             $capture = $e
             $result.captureStatus = $Matches['st']
@@ -341,6 +357,10 @@ function Get-StageEstimate($Entries, [int]$RequestId) {
     }
     if ($null -ne $loaded -and $null -ne $done) {
         $result.responseMs = ($done.Time - $loaded.Time).TotalMilliseconds
+    }
+    if ($null -ne $result.handlerMs -and $result.searchSummaries.Count -gt 0) {
+        $loopMs = ($result.searchSummaries | Measure-Object -Property elapsedMs -Sum).Sum
+        if ($loopMs -le $result.handlerMs) { $result.searchOutsideLoopMs = $result.handlerMs - $loopMs }
     }
     return [pscustomobject]$result
 }
@@ -635,6 +655,59 @@ if ($finds.Count -gt 0) {
     $md.Add('- first find_symbol_definition clientMs : ' + (Format-Ms (Get-Median @($finds | ForEach-Object { $_.find.clientMs }))))
 }
 $md.Add('- server startup to initialize response ms : ' + (Format-Ms (Get-Median @($measured | ForEach-Object { $_.startupMs }))))
+$md.Add('')
+$md.Add('Project breakdowns (server 1.5.8+; full rows are in runs.json):')
+$md.Add('Design-time project/target/task durations are inclusive and overlap; do not add them as wall time.')
+$md.Add('Binlog coverage may be incomplete. Root evaluations, BuildHost startup and IPC can be outside the logged span.')
+foreach ($r in $records) {
+    $md.Add('')
+    $md.Add("## Run $($r.run) ($($r.kind)) project timings")
+    $md.Add('')
+    if ($null -ne $r.load -and $null -ne $r.load.designTime) {
+        $dt = $r.load.designTime
+        $md.Add("Design-time coverage: $($dt.status); replay failures: $(@($dt.replayFailures) -join ', ').")
+        $md.Add("Measured MSBuild open: $(Format-Ms $dt.openMs) ms; binlog span: $(Format-Ms $dt.binlogSpanMs) ms; unattributed remainder: $(Format-Ms $dt.unattributedOpenMs) ms; reason: $($dt.remainderReason).")
+        $md.Add('Measured MSBuild open excludes manager/workspace setup, replay and snapshot processing; the earlier open column is a broader timestamp estimate.')
+        $md.Add("Logged evaluations: $($dt.loggedEvaluations); inclusive sum: $(Format-Ms $dt.loggedEvaluationMs) ms; maximum: $(Format-Ms $dt.maxLoggedEvaluationMs) ms.")
+        $md.Add("Unmatched starts/finishes: $($dt.unmatchedStarts)/$($dt.unmatchedFinishes); invalid intervals: $($dt.invalidIntervals).")
+        if ($dt.PSObject.Properties['binlogs']) {
+            foreach ($file in @($dt.binlogs)) {
+                $md.Add("Binlog #$($file.ordinal): format $($file.formatVersion), project starts $($file.projectStarts), failures: $(@($file.failures) -join ', ').")
+            }
+        }
+        $md.Add('')
+        $md.Add('| design-time project (top 10, all configurations/TFMs combined) | builds | failed | inclusive sum ms | maximum ms |')
+        $md.Add('|---|---|---|---|---|')
+        foreach ($p in @($dt.projects | Sort-Object totalMs -Descending | Select-Object -First 10)) {
+            $md.Add(('| `{0}` | {1} | {2} | {3} | {4} |' -f $p.project.Replace('|', '\|'), $p.builds, $p.failedBuilds, (Format-Ms $p.totalMs), (Format-Ms $p.maxMs)))
+        }
+        foreach ($kind in @('targets', 'tasks')) {
+            $md.Add('')
+            $md.Add("| $kind (top 10) | calls | inclusive sum ms | maximum ms |")
+            $md.Add('|---|---|---|---|')
+            foreach ($p in @($dt.$kind)) {
+                $md.Add(('| `{0}` | {1} | {2} | {3} |' -f $p.name.Replace('|', '\|'), $p.calls, (Format-Ms $p.totalMs), (Format-Ms $p.maxMs)))
+            }
+        }
+    }
+    else { $md.Add('Design-time breakdown unavailable: no workspace_load_designtime record.') }
+    $md.Add('')
+    if ($null -ne $r.find -and $r.find.searchProjects.Count -gt 0) {
+        foreach ($s in $r.find.searchSummaries) {
+            $md.Add("Search $($s.searchId): $($s.outcome), $(Format-Ms $s.elapsedMs) ms, $($s.completedProjects)/$($s.projects) projects completed.")
+        }
+        $md.Add("Handler time outside measured search loops: $(Format-Ms $r.find.searchOutsideLoopMs) ms (preparation, result formatting and other work).")
+        $md.Add('')
+        $md.Add('| search project (top 10; each attempt separate) | documents | outcome | elapsed ms | declaration candidates |')
+        $md.Add('|---|---|---|---|---|')
+        foreach ($p in @($r.find.searchProjects | Sort-Object elapsedMs -Descending | Select-Object -First 10)) {
+            $path = $p.project
+            if (-not $path) { $path = $p.name }
+            $md.Add(('| `{0}` | {1} | {2} | {3} | {4} |' -f $path.Replace('|', '\|'), $p.documents, $p.outcome, (Format-Ms $p.elapsedMs), $p.matches))
+        }
+    }
+    else { $md.Add('Search project breakdown unavailable: query skipped or no workspace_search_project records.') }
+}
 $md.Add('')
 $md.Add('CPU time during the call (Win32_Process kernel+user; child = BuildHost and other descendants;')
 $md.Add('busy cores = total CPU / wall time):')

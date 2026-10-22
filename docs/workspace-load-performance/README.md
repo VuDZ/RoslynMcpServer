@@ -1,6 +1,8 @@
 # Скорость обычной загрузки workspace
 
-Дата: **2026-10-10**. Статус: **production-код не начат; E0/task-00 in progress — [замер публичных прокси](epoch-0-stage-measurement/evidence/task-00-current-version.md) снят, офисный ожидается; E0/task-04 spike реализован, 44 прогона завершены, no-go; формальная приёмка pending единого main CI ([отчёт и validation](epoch-0-stage-measurement/evidence/task-04-parallel-loader-spike.md))**.
+Дата: **2026-10-22**. Текущий статус: **исследование продолжается в Git-ветке research/workspace-load-performance; production диагностика 1.5.8 и source-only поиск/исправление replay 1.5.9 реализованы и проверены; офисный baseline получен. Исследование форка BuildHost planned, реализация не начата**.
+
+Ниже сохранена история standalone экспериментов 2026-10-10; прежние pending CI и commit-not-created описывают состояние на ту дату.
 E0/task-05 и task-05.1: **implemented, 2026-10-10 — оба блокера профиля сняты;
 обе направленные калибровки не проходят пороги, диагностические планы не проходят
 gate; no-go, шаг 2 не выполнялся. Scope — standalone spike, профили,
@@ -12,6 +14,14 @@ E0/task-07.1: **implemented, 2026-10-10 — шаг 0 и 52 matrix attempts за�
 E0/task-07.2: **implemented, 2026-10-10 — 36 matrix runs и 6 дополнительных load processes, no-go; PowerToys cluster N4 23,306 с против 41,536 с (56,11%), pre-load отказы Files/RoslynN8 ≤105%. Roslyn parallel correctness и универсальный детерминизм deadline-limited N8 не достигнуты. Независимое ревью round 2 ACCEPT для standalone реализации/evidence отрицательного эксперимента; code/tests acceptance pending main CI 1362 passed / 1 прежний SDK-specific failed / 0 skipped; commit не создан, production/E1 не активированы** ([результат](epoch-0-stage-measurement/evidence/task-07.2-refusal-fast-planner-roslyn.md), [validation](epoch-0-stage-measurement/evidence/task-07.2-refusal-fast-planner-roslyn/validation.md)).
 
 Происхождение: решение владельца [H-003](../workspace-state-cache/human-decisions.md#h-003--отсрочка-маршрута-disk-manifest), вариант D.
+
+## Текущее продолжение, 2026-10-22
+
+- [E0/task-00](epoch-0-stage-measurement/task-00-current-version-log-measurement-low.md): офисные измерения получены, результат принят в scope замера по существующим логам.
+- [E0/task-08](epoch-0-stage-measurement/task-08-source-search-and-office-results-med.md): source-only поиск принят, MainViewModel 36,203 → 34,175 с (−5,60%), ответы побайтно совпали; оба binlog читаются.
+- [E0/task-09](epoch-0-stage-measurement/task-09-first-search-io-and-private-project-profile-hi.md): in progress; private_project 12–13 с, секундные I/O retries локально воспроизведены, офисная причина ещё не доказана.
+- [Исследование форка BuildHost](research-buildhost-fork/README.md): три planned задачи — воспроизводимый fork, граф/тайминги, направленная оптимизация. Здесь же перечислены потенциальные пути ускорения и критерии проверки.
+- [Предкоммитная validation](epoch-0-stage-measurement/evidence/commit-2026-10-22.md) фиксирует код, тесты и границы сохранённого checkpoint.
 
 ## Зачем
 
@@ -51,7 +61,11 @@ SamplePlugin (два проекта, load около 1.4 с) и BTCPay (load 3.6
 - Результат ordinary load не меняется: graph, options, references, diagnostics,
   analyzer admission, write boundary и watcher policy прежние. Оптимизация,
   меняющая наблюдаемый результат, к этой теме не относится.
-- Без disk cache, без изменения или fork Roslyn BuildHost, без новых defaults.
+- Исторические E0/task-04–task-07.3 сохраняют границы без fork BuildHost;
+  task-07.3 остаётся public-API экспериментом. По решению владельца 2026-10-22
+  добавлено отдельное [исследование форка](research-buildhost-fork/README.md).
+  Это разрешение на изолированное исследование, без disk cache, production
+  activation и новых defaults.
 - Новые записи лога — English, структурированные, по одной на событие. Без
   содержимого файлов, environment и secrets. Пути проектов уже пишутся в лог;
   протокол замера описывает их обезличивание перед отправкой.
@@ -60,10 +74,12 @@ SamplePlugin (два проекта, load около 1.4 с) и BTCPay (load 3.6
 
 ## Маршрут
 
-- [E0 — разбивка по стадиям](epoch-0-stage-measurement/README.md): 12 задач (включая task-05.1, bugfix task-06, spike task-07 и его продолжения task-07.1–task-07.3).
+- [E0 — разбивка по стадиям](epoch-0-stage-measurement/README.md): 14 задач (включая task-05.1, bugfix task-06, task-07–task-07.3 и поиск task-08/task-09).
   Замер текущей версии по уже существующим логам, время стадий в production
   логе, сводка design-time build из уже снимаемого binlog, baseline на реальном решении,
   spike параллельной загрузки несколькими `MSBuildProjectLoader`.
+- [Исследование форка BuildHost](research-buildhost-fork/README.md): отдельная
+  planned ветка из трёх задач, не подменяет приёмку E0 и production E1.
 - **E1 — оптимизации**: планируется после baseline E0. Задачи заводятся только
   под подтверждённый hotspot, не больше двух за раз.
 
@@ -80,7 +96,7 @@ SamplePlugin (два проекта, load около 1.4 с) и BTCPay (load 3.6
   compilation после ответа load. Метрика time-to-first-useful должна учитывать
   паузу агента между вызовами, иначе выгода не видна.
 - **Design-time build внутри BuildHost** доминирует (прокси: 94–98 % load, одно
-  ядро) — сам BuildHost не меняется, но публичный `MSBuildProjectLoader` позволяет
+  ядро) — в историческом E0 сам BuildHost не меняется, но публичный `MSBuildProjectLoader` позволяет
   запустить несколько BuildHost параллельно. Выгоду и эквивалентность проверяет
   [E0/task-04](epoch-0-stage-measurement/task-04-parallel-loader-spike-hi.md); при no-go
   это довод в пользу C и B. Task-04 дала no-go (1,51× при N=4, гонка на общих obj

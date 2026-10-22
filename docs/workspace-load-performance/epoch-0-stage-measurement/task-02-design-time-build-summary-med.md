@@ -5,13 +5,18 @@
 - Примерная сложность: 3/5; класс `med`.
 - Риск ошибки: средний — правка replay provenance; изменение отбора событий может изменить analyzer admission evidence.
 - Необходимые способности: `семантика_roslyn_msbuild`, `анализ_производительности`, `проектирование_проверок`.
-- Статус: planned.
+- Статус: **partially implemented, 2026-10-22** — по прямому запросу владельца добавлена
+  разбивка design-time build и name-based поиска по проектам; офисные прогоны
+  1.5.8/1.5.9 получены, результаты записаны в task-08. Этот ограниченный scope принят 2026-10-22 после Release build, main CI
+  1409/0/0, AnalyzerLifecycle 13/0/0 и end-to-end; validation —
+  [отчёт](evidence/project-timings-2026-10-22.md). Полное закрытие task-02 и зависимость
+  от структурированных стадий task-01 остаются pending; task-01 этим изменением не реализована.
 - Depends on: [task-01](task-01-load-stage-timings-med.md).
-- Модель, реализовавшая задачу: —.
+- Модель, реализовавшая задачу: Codex (GPT-6), ограниченный scope 2026-10-22.
 - Модели, проводившие ревью: —.
 - Количество раундов ревью: —.
 - Количество исправлений после ревью: —.
-- Отчёт о реализации, ревью и validation: —.
+- Отчёт о реализации, ревью и validation: [проектные тайминги, 2026-10-22](evidence/project-timings-2026-10-22.md).
 
 ## Цель
 
@@ -50,3 +55,12 @@ targets и tasks; второй проход по файлу не добавля�
 
 Validation: правила [эпохи](README.md#общие-правила-эпохи), включая AnalyzerLifecycle.
 Patch bump, строка `CHANGELOG.md`.
+
+## Офисный результат, 2026-10-22
+
+142 проекта; в 1.5.9 replay Complete, оба binlog прочитаны.
+Второй format 27 содержит 49 project starts; в сводке 122 logged evaluations.
+Это не доказывает полноту root evaluation или внутреннюю разбивку open.
+Первый поиск теперь виден по проектам: private_project 12–13 с.
+[Результаты](task-08-source-search-and-office-results-med.md);
+[дальнейший профиль поиска](task-09-first-search-io-and-private-project-profile-hi.md).
