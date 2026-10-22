@@ -14,6 +14,32 @@
 Сервер 1.4.14 пишет старый формат без session id: этот скрипт не выделяет из него
 логи измеряемого процесса. Session id поддерживается начиная с 1.4.16.
 
+## Диагностика первого поиска одной командой (task-10, сервер 1.5.11+)
+
+Этот путь заменяет ручную установку ZIP. Нужны Git-дерево ветки
+`research/workspace-load-performance`, .NET SDK и Windows PowerShell 5.1 или PowerShell 7.
+
+```powershell
+git -C <путь к RoslynMcpServer> switch research/workspace-load-performance
+git -C <путь к RoslynMcpServer> pull --ff-only
+powershell -ExecutionPolicy Bypass -File <путь к RoslynMcpServer>\scripts\Invoke-FirstSearchDiagnostics.ps1 `
+  -Workspace '<путь>\<решение>.sln' -SymbolName <Тип> -Note 'office, warm'
+```
+
+Скрипт публикует сервер из этого дерева в отдельную папку
+`artifacts\first-search-diagnostics\server-<commit>` (Cursor её не использует),
+ставит `dotnet-trace` 10.0.750501 в локальную папку `tools` рядом и запускает
+`Measure-WorkspaceLoad.ps1`: прогрев, три замера, RAM hit и отдельный trace-прогон
+первого поиска. `-Configuration`/`-Platform`/`-TargetFramework` — как в обычном
+`load_workspace`. Без доступа к NuGet: скачать single-file `dotnet-trace.exe`
+(https://aka.ms/dotnet-trace/win-x64) и передать `-TracerExe <путь>`; без trace — `-NoTrace`.
+`-PrepareOnly` только готовит сервер и `dotnet-trace`, не измеряя.
+
+Результаты — в `artifacts\first-search-diagnostics\<решение>-<время>`. Прислать
+`summary.md`: в нём сводка исключений поиска по проектам и итог trace-прогона.
+`run-*-find.nettrace` содержит CPU samples и сообщения исключений с путями файлов;
+его присылать только там, где это допустимо. Условия ниже («Перед запуском») те же.
+
 ## Перед запуском
 
 - Закрыть сборку того же решения в VS/Cursor: параллельный MSBuild искажает время.

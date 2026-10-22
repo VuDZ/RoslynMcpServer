@@ -25,7 +25,7 @@ public sealed class DeclarationSearchTimingTests
         Assert.Equal(2, measured.Symbols.Count);
         Assert.Equal(baseline.Symbols.Select(SymbolDeclarationResolver.GetSymbolFqn),
             measured.Symbols.Select(SymbolDeclarationResolver.GetSymbolFqn));
-        Assert.Equal(3, logger.Messages.Count);
+        Assert.Equal(4, logger.Messages.Count);
         var searchIds = new HashSet<string>();
         foreach (var message in logger.Messages.Take(2))
         {
@@ -53,13 +53,46 @@ public sealed class DeclarationSearchTimingTests
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => SymbolDeclarationResolver.ResolveDeclarationsAsync(
             solution, "Widget", SymbolFilter.Type, logger, new AdvancingTimeProvider(), cancellation.Token));
 
-        Assert.Equal(2, logger.Messages.Count);
+        Assert.Equal(3, logger.Messages.Count);
         using var project = Parse(logger.Messages[0], "workspace_search_project ");
         Assert.Equal("cancelled", project.RootElement.GetProperty("outcome").GetString());
         Assert.Equal(JsonValueKind.Null, project.RootElement.GetProperty("matches").ValueKind);
-        using var summary = Parse(logger.Messages[1], "workspace_search_summary ");
+        using var exceptions = Parse(logger.Messages[1], "workspace_search_exceptions ");
+        Assert.Equal(project.RootElement.GetProperty("searchId").GetString(), exceptions.RootElement.GetProperty("searchId").GetString());
+        using var summary = Parse(logger.Messages[2], "workspace_search_summary ");
         Assert.Equal("cancelled", summary.RootElement.GetProperty("outcome").GetString());
         Assert.Equal(0, summary.RootElement.GetProperty("completedProjects").GetInt32());
+    }
+
+    [Fact]
+    public async Task Unreadable_document_reads_are_attributed_to_their_project()
+    {
+        using var workspace = new AdhocWorkspace();
+        var clean = AddProject(workspace.CurrentSolution, "Clean");
+        var solution = AddProject(clean, "Broken");
+        var broken = solution.Projects.Single(project => project.Name == "Broken");
+        var unreadablePath = Path.Combine(Path.GetTempPath(), "Unreadable.cs");
+        solution = solution.AddDocument(DocumentInfo.Create(
+            DocumentId.CreateNewId(broken.Id),
+            "Unreadable.cs",
+            loader: new UnreadableLoader(unreadablePath),
+            filePath: unreadablePath));
+        var logger = new RecordingLogger();
+
+        var result = await SymbolDeclarationResolver.ResolveDeclarationsAsync(
+            solution, "Widget", SymbolFilter.Type, logger, TimeProvider.System);
+
+        Assert.Equal(2, result.Symbols.Count);
+        using var exceptions = Parse(
+            logger.Messages.Single(message => message.StartsWith("workspace_search_exceptions ", StringComparison.Ordinal)),
+            "workspace_search_exceptions ");
+        var groups = exceptions.RootElement.GetProperty("groups").EnumerateArray().ToList();
+        Assert.DoesNotContain(groups, group => group.GetProperty("project").GetString() == clean.Projects.Single().FilePath);
+        var unreadable = Assert.Single(groups, group => group.GetProperty("project").GetString() == broken.FilePath);
+        Assert.Equal(typeof(IOException).FullName, unreadable.GetProperty("type").GetString());
+        Assert.Contains(unreadablePath, unreadable.GetProperty("detail").GetString(), StringComparison.Ordinal);
+        Assert.Equal(6, unreadable.GetProperty("count").GetInt32());
+        Assert.Equal(6, exceptions.RootElement.GetProperty("attributed").GetInt32());
     }
 
     private static Solution AddProject(Solution solution, string name)
@@ -83,6 +116,13 @@ public sealed class DeclarationSearchTimingTests
         public override long GetTimestamp() => Interlocked.Add(ref _timestamp, 10);
 
         private long _timestamp;
+    }
+
+    /// <summary>Fails every read the way a locked or vanished file does; Roslyn retries it six times.</summary>
+    private sealed class UnreadableLoader(string path) : TextLoader
+    {
+        public override Task<TextAndVersion> LoadTextAndVersionAsync(LoadTextOptions options, CancellationToken cancellationToken) =>
+            throw new IOException($"The process cannot access the file '{path}' because it is being used by another process.");
     }
 
     private sealed class RecordingLogger : ILogger

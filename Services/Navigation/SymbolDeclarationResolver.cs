@@ -216,6 +216,7 @@ internal static class SymbolDeclarationResolver
         var started = timeProvider.GetTimestamp();
         var completedProjects = 0;
         var outcome = "failure";
+        using var exceptions = new SearchExceptionRecorder();
         try
         {
             foreach (var projectId in solution.ProjectIds)
@@ -229,6 +230,7 @@ internal static class SymbolDeclarationResolver
                 var projectStarted = timeProvider.GetTimestamp();
                 var projectOutcome = "failure";
                 int? matches = null;
+                exceptions.CurrentProject = project.FilePath ?? project.Name;
                 try
                 {
                     // The public contract is solution source only; scanning reference assemblies is discarded below.
@@ -247,6 +249,7 @@ internal static class SymbolDeclarationResolver
                 }
                 finally
                 {
+                    exceptions.CurrentProject = null;
                     logger.LogInformation("workspace_search_project {Json:l}", JsonSerializer.Serialize(new
                     {
                         searchId,
@@ -271,6 +274,7 @@ internal static class SymbolDeclarationResolver
         }
         finally
         {
+            logger.LogInformation("workspace_search_exceptions {Json:l}", exceptions.ToJson(searchId));
             logger.LogInformation("workspace_search_summary {Json:l}", JsonSerializer.Serialize(new
             {
                 searchId,

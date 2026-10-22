@@ -15,6 +15,8 @@
     These are estimates from log timestamps, not measured spans.
     Server 1.5.8+ also logs design-time build and declaration-search project timings.
     The report includes their full data in runs.json and top projects in summary.md.
+    Server 1.5.11+ also logs first-chance exceptions raised during the declaration search
+    (type, searched project, file or I/O message, count); summary.md lists the largest groups.
 
     Output folder: summary.md, runs.json, and per-run redacted log excerpts and responses.
     The workspace root is replaced with <repo>, the user profile with <user>, and the
@@ -34,6 +36,12 @@
 
 .PARAMETER AffinityCount
     Restrict the server to the first N logical CPUs (BuildHost inherits the mask). 0 = no limit.
+
+.PARAMETER TracerExe
+    dotnet-trace executable. Adds one run after the measured runs that records CPU samples and
+    runtime exceptions of the first find_symbol_definition into run-N-find.nettrace. The trace
+    ends when the server process exits, so the file also covers shutdown. Its times are reported
+    separately and are not part of the medians. Requires -SymbolName.
 
 .PARAMETER Note
     Free text for the report: cold/warm cache, antivirus state, power plan.
@@ -77,6 +85,8 @@ param(
 
     [string]$Note = '',
 
+    [string]$TracerExe,
+
     [string]$OutDirectory
 )
 
@@ -93,6 +103,12 @@ if (-not $ServerExe) {
 $ServerExe = [IO.Path]::GetFullPath($ServerExe)
 if (-not (Test-Path -LiteralPath $ServerExe -PathType Leaf)) {
     throw "Server exe not found: $ServerExe"
+}
+if ($TracerExe) {
+    if (-not $SymbolName) { throw '-TracerExe needs -SymbolName: the trace covers the first find_symbol_definition.' }
+    $tracerCommand = Get-Command -Name $TracerExe -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($null -eq $tracerCommand) { throw "dotnet-trace not found: $TracerExe" }
+    $TracerExe = $tracerCommand.Source
 }
 if (-not $OutDirectory) {
     $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
@@ -297,6 +313,7 @@ function Get-StageEstimate($Entries, [int]$RequestId) {
         responseMs = $null; projects = $null; diagLines = $null; workingSetMb = $null
         captureStatus = $null; msbuildFailures = 0; msbuildWarnings = 0; watcherLines = 0
         designTime = $null; searchProjects = @(); searchSummaries = @(); searchOutsideLoopMs = $null
+        searchExceptions = @()
     }
     $start = -1
     for ($i = 0; $i -lt $Entries.Count; $i++) {
@@ -308,7 +325,7 @@ function Get-StageEstimate($Entries, [int]$RequestId) {
     for ($i = $start + 1; $i -lt $Entries.Count; $i++) {
         $e = $Entries[$i]
         if ($e.Message -match '^MCP \u2190 request id=') { break }
-        if ($e.Message -match '^workspace_(?<kind>load_designtime|search_project|search_summary) (?<json>\{.*\})$') {
+        if ($e.Message -match '^workspace_(?<kind>load_designtime|search_project|search_summary|search_exceptions) (?<json>\{.*\})$') {
             $timingKind = $Matches['kind']
             try {
                 $timing = (Get-RedactedText $Matches['json']) | ConvertFrom-Json
@@ -316,6 +333,7 @@ function Get-StageEstimate($Entries, [int]$RequestId) {
                     'load_designtime' { $result.designTime = $timing }
                     'search_project' { $result.searchProjects += $timing }
                     'search_summary' { $result.searchSummaries += $timing }
+                    'search_exceptions' { $result.searchExceptions += $timing }
                 }
             }
             catch { Write-Warning "Cannot parse $timingKind timing for request ${RequestId}: $($_.Exception.Message)" }
@@ -468,6 +486,75 @@ function Format-Ms($Value) {
     return ([Math]::Round([double]$Value)).ToString([Globalization.CultureInfo]::InvariantCulture)
 }
 
+function Format-SearchExceptionLines($Summaries) {
+    $lines = New-Object Collections.Generic.List[string]
+    if (@($Summaries).Count -eq 0) {
+        $lines.Add('Search exception summary unavailable: server before 1.5.11 or no workspace_search_exceptions record.')
+        return $lines
+    }
+    foreach ($x in @($Summaries)) {
+        $lines.Add("Search $($x.searchId) first-chance exceptions: $($x.total) total, $($x.attributed) in searched projects, $($x.unattributed) elsewhere in the process; $($x.distinctGroups) groups, $($x.droppedGroups) dropped.")
+        $groups = @($x.groups)
+        if ($groups.Count -eq 0) { continue }
+        $lines.Add('')
+        $lines.Add('| exception (top 20) | searched project | file or I/O message | count | first ms |')
+        $lines.Add('|---|---|---|---|---|')
+        foreach ($g in $groups) {
+            $project = '(none)'
+            if ($g.project) { $project = '`' + ([string]$g.project).Replace('|', '\|') + '`' }
+            $detail = ''
+            if ($g.detail) { $detail = ([string]$g.detail).Replace('|', '\|') -replace '\r?\n', ' ' }
+            $lines.Add(('| `{0}` | {1} | {2} | {3} | {4} |' -f $g.type, $project, $detail, $g.count, (Format-Ms $g.firstMs)))
+        }
+    }
+    return $lines
+}
+
+# dotnet-trace ignores Enter on a redirected console, and a console Ctrl+C cannot be sent to one child
+# process reliably on Windows. The trace therefore ends when the server exits; the runtime still writes
+# method rundown at shutdown, so managed frames keep their names.
+function Start-FirstSearchTrace([int]$ProcessId, [string]$TracePath) {
+    $logPath = "$TracePath.log"
+    $arguments = "collect -p $ProcessId -o `"$TracePath`" --profile dotnet-common,dotnet-sampled-thread-time"
+    $tracer = Start-Process -FilePath $TracerExe -ArgumentList $arguments -NoNewWindow -PassThru `
+        -RedirectStandardOutput $logPath -RedirectStandardError "$logPath.err"
+    $deadline = [DateTime]::UtcNow.AddSeconds(60)
+    while ([DateTime]::UtcNow -lt $deadline) {
+        if ((Test-Path -LiteralPath $logPath) -and (Get-Content -LiteralPath $logPath -Raw) -match 'Output File') {
+            # The session is attached; give the sampler a moment before the measured call.
+            Start-Sleep -Milliseconds 1000
+            return [pscustomobject]@{ Process = $tracer; TracePath = $TracePath; LogPath = $logPath }
+        }
+        if ($tracer.HasExited) { break }
+        Start-Sleep -Milliseconds 200
+    }
+    if (-not $tracer.HasExited) { Stop-Process -Id $tracer.Id -Force -ErrorAction SilentlyContinue }
+    $output = ''
+    foreach ($path in @($logPath, "$logPath.err")) {
+        if (Test-Path -LiteralPath $path) { $output += (Get-Content -LiteralPath $path -Raw) }
+    }
+    throw "dotnet-trace did not attach to the server: $(Get-RedactedText $output)"
+}
+
+function Complete-FirstSearchTrace($Trace) {
+    $state = 'completed'
+    if (-not $Trace.Process.WaitForExit(300000)) {
+        Stop-Process -Id $Trace.Process.Id -Force -ErrorAction SilentlyContinue
+        $state = 'timeout'
+    }
+    $bytes = $null
+    if (Test-Path -LiteralPath $Trace.TracePath) { $bytes = (Get-Item -LiteralPath $Trace.TracePath).Length }
+    if ($state -eq 'completed' -and -not $bytes) { $state = 'no-file' }
+    $output = ''
+    if (Test-Path -LiteralPath $Trace.LogPath) { $output = Get-Content -LiteralPath $Trace.LogPath -Raw }
+    return [pscustomobject]@{
+        file = Split-Path $Trace.TracePath -Leaf
+        bytes = $bytes
+        state = $state
+        tracerOutputTail = (Get-RedactedText ([string]$output).Trim()) -replace '(?s)^.*(.{500})$', '$1'
+    }
+}
+
 $loadArguments = [ordered]@{ workspacePath = $Workspace; briefOutput = (-not $FullOutput) }
 if ($Configuration) { $loadArguments.configuration = $Configuration }
 if ($Platform) { $loadArguments.platform = $Platform }
@@ -482,8 +569,10 @@ if ($AffinityCount -gt 0) {
 }
 
 $records = New-Object Collections.Generic.List[object]
+$totalRuns = $Runs
+if ($TracerExe) { $totalRuns = $Runs + 1 }
 
-for ($run = 1; $run -le $Runs; $run++) {
+for ($run = 1; $run -le $totalRuns; $run++) {
     $marker = 'measure-' + [Guid]::NewGuid().ToString('N')
     $offsets = Get-LogOffsets
     $psi = New-Object Diagnostics.ProcessStartInfo
@@ -498,7 +587,7 @@ for ($run = 1; $run -le $Runs; $run++) {
     $psi.CreateNoWindow = $true
     if ($psi.EnvironmentVariables.ContainsKey('MCP_LOG_INCOMING_RPC')) { $psi.EnvironmentVariables.Remove('MCP_LOG_INCOMING_RPC') }
 
-    Write-Host "Run $run/$Runs : starting server"
+    Write-Host "Run $run/$totalRuns : starting server"
     $startWatch = [Diagnostics.Stopwatch]::StartNew()
     $script:proc = [Diagnostics.Process]::Start($psi)
     $script:pendingRead = $null
@@ -508,9 +597,11 @@ for ($run = 1; $run -le $Runs; $run++) {
 
     $record = [ordered]@{
         run = $run; kind = 'measured'; startupMs = $null; load = $null; find = $null; ramHit = $null
-        loadCpu = $null; findCpu = $null; leftoverChildren = 0; stderrTail = ''
+        loadCpu = $null; findCpu = $null; leftoverChildren = 0; stderrTail = ''; trace = $null
     }
     if ($run -eq 1) { $record.kind = 'warmup' }
+    elseif ($run -gt $Runs) { $record.kind = 'trace' }
+    $trace = $null
 
     $calls = @()
     try {
@@ -524,25 +615,29 @@ for ($run = 1; $run -le $Runs; $run++) {
         if ($init.State -ne 'ok') { throw "initialize failed: $($init.State) $($init.Error)" }
         Send-Message ([ordered]@{ jsonrpc = '2.0'; method = 'notifications/initialized' })
 
-        Write-Host "Run $run/$Runs : load_workspace"
+        Write-Host "Run $run/$totalRuns : load_workspace"
         $measuredLoad = Measure-ToolCall 'load_workspace' $loadArguments
         $load = $measuredLoad.Call
         $record.loadCpu = $measuredLoad.Cpu
         $calls += [pscustomobject]@{ Name = 'load'; Call = $load }
-        Write-Host ("Run {0}/{1} : load_workspace {2} in {3} ms" -f $run, $Runs, $load.State, (Format-Ms $load.Ms))
+        Write-Host ("Run {0}/{1} : load_workspace {2} in {3} ms" -f $run, $totalRuns, $load.State, (Format-Ms $load.Ms))
 
         if ($SymbolName -and $load.State -eq 'ok') {
+            if ($record.kind -eq 'trace') {
+                Write-Host "Run $run/$totalRuns : attaching dotnet-trace"
+                $trace = Start-FirstSearchTrace $script:proc.Id (Join-Path $OutDirectory "run-$run-find.nettrace")
+            }
             $measuredFind = Measure-ToolCall 'find_symbol_definition' ([ordered]@{ symbolName = $SymbolName })
             $find = $measuredFind.Call
             $record.findCpu = $measuredFind.Cpu
             $calls += [pscustomobject]@{ Name = 'find'; Call = $find }
-            Write-Host ("Run {0}/{1} : find_symbol_definition {2} in {3} ms" -f $run, $Runs, $find.State, (Format-Ms $find.Ms))
+            Write-Host ("Run {0}/{1} : find_symbol_definition {2} in {3} ms" -f $run, $totalRuns, $find.State, (Format-Ms $find.Ms))
         }
 
         if ($run -eq $Runs -and -not $SkipRamHit -and $load.State -eq 'ok') {
             $ram = Invoke-Tool 'load_workspace' $loadArguments
             $calls += [pscustomobject]@{ Name = 'ramHit'; Call = $ram }
-            Write-Host ("Run {0}/{1} : RAM hit load_workspace {2} in {3} ms" -f $run, $Runs, $ram.State, (Format-Ms $ram.Ms))
+            Write-Host ("Run {0}/{1} : RAM hit load_workspace {2} in {3} ms" -f $run, $totalRuns, $ram.State, (Format-Ms $ram.Ms))
         }
     }
     catch {
@@ -551,6 +646,10 @@ for ($run = 1; $run -le $Runs; $run++) {
     }
     finally {
         $record.leftoverChildren = Stop-ServerTree $script:proc.Id
+        if ($null -ne $trace) {
+            Write-Host "Run $run/$totalRuns : waiting for dotnet-trace to finish the file"
+            $record.trace = Complete-FirstSearchTrace $trace
+        }
     }
 
     if ($stderrTask.AsyncWaitHandle.WaitOne(5000)) {
@@ -587,7 +686,7 @@ for ($run = 1; $run -le $Runs; $run++) {
     [IO.File]::WriteAllLines((Join-Path $OutDirectory "run-$run-log.txt"), $excerpt, $utf8NoBom)
 
     $records.Add([pscustomobject]$record)
-    if ($run -lt $Runs -and $PauseSeconds -gt 0) { Start-Sleep -Seconds $PauseSeconds }
+    if ($run -lt $totalRuns -and $PauseSeconds -gt 0) { Start-Sleep -Seconds $PauseSeconds }
 }
 
 $cpu = Get-CimInstance Win32_Processor | Select-Object -First 1
@@ -707,6 +806,10 @@ foreach ($r in $records) {
         }
     }
     else { $md.Add('Search project breakdown unavailable: query skipped or no workspace_search_project records.') }
+    if ($null -ne $r.find) {
+        $md.Add('')
+        foreach ($line in (Format-SearchExceptionLines $r.find.searchExceptions)) { $md.Add($line) }
+    }
 }
 $md.Add('')
 $md.Add('CPU time during the call (Win32_Process kernel+user; child = BuildHost and other descendants;')
@@ -720,6 +823,21 @@ foreach ($r in $records) {
         if ($null -eq $c) { continue }
         $md.Add(('| {0} | {1} | {2} | {3} | {4} | {5} |' -f $r.run, $pair[0], $c.serverCpuMs, $c.childCpuMs, $c.busyCores, $c.children))
     }
+}
+$traced = @($records | Where-Object { $_.kind -eq 'trace' })
+if ($traced.Count -gt 0) {
+    $md.Add('')
+    $md.Add('Trace run (CPU samples and runtime exceptions of the first search; not part of the medians):')
+    foreach ($r in $traced) {
+        $findMs = 'n/a'
+        if ($null -ne $r.find) { $findMs = Format-Ms $r.find.clientMs }
+        if ($null -eq $r.trace) {
+            $md.Add("- run $($r.run): no trace file; first search $findMs ms")
+            continue
+        }
+        $md.Add("- run $($r.run): $($r.trace.state), $($r.trace.file), $($r.trace.bytes) bytes; first search with tracing $findMs ms")
+    }
+    $md.Add('- The .nettrace file contains exception messages with file paths; send it only where that is allowed.')
 }
 $failed = @($records | Where-Object { $_.PSObject.Properties['error'] -or ($null -ne $_.load -and $_.load.state -ne 'ok') })
 $md.Add("- failed runs: $($failed.Count); leftover child processes killed: $(($records | Measure-Object -Property leftoverChildren -Sum).Sum)")

@@ -8,6 +8,10 @@ Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into a
 - `find_symbol_definition` and `find_symbol_references` accept `filePath` + `line` + `column` without `symbolName`, using the existing positional symbol resolver. Name-based search and automatic column selection still require `symbolName`.
 - `find_symbol_definition` accepts optional `preview`: source text is appended to each definition location, capped at 400 characters, including overflow chunks. Explicit `preview` overrides the JSONC setting; otherwise the default is false.
 
+### v1.5.11
+
+- Name-based declaration searches log a `workspace_search_exceptions` line: first-chance exceptions raised during the search, grouped by type, searched project and file (or I/O message), with counts and the offset of the first occurrence. Roslyn retries an unreadable document six times with 200 ms pauses and returns no error, so these reads were invisible before. Exceptions raised outside the search's own flow are counted without a project. No stack traces or file contents are logged; tool responses are unchanged.
+
 ### v1.5.10
 
 - ILSpy tools (`explore_assembly`, `decompile_type`, `get_decompiled_class_skeleton`, `get_decompiled_method_body`) no longer fail the whole assembly when a dependency cannot be resolved. Types from such a dependency appear as unknown, and the response ends with a note naming the unresolved references (at most ten). Example: `Microsoft.CodeAnalysis.Workspaces` references SQLitePCLRaw without a NuGet dependency on it, so none of its methods could be decompiled before.
