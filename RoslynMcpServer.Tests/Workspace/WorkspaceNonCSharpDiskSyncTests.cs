@@ -119,8 +119,10 @@ public sealed class WorkspaceNonCSharpDiskSyncTests
         Notify(project, ".editorconfig");
         Notify(project, "MainWindow.xaml");
 
-        var synced = await project.Manager.GetPublishedSolutionAfterDiskSyncAsync();
-        Assert.NotNull(synced);
+        var synced = await FlushUntilSettledAsync(
+            project,
+            async solution => (await Document(solution, "payload.txt")!.GetTextAsync()).ToString() == "ON"
+                && (await Document(solution, ".editorconfig")!.GetTextAsync()).ToString().Contains("severity = error", StringComparison.Ordinal));
         Assert.Equal("ON", (await Document(synced, "payload.txt")!.GetTextAsync()).ToString());
         Assert.Contains("severity = error", (await Document(synced, ".editorconfig")!.GetTextAsync()).ToString(), StringComparison.Ordinal);
         Assert.Equal("OLD", (await Document(synced, "MainWindow.xaml")!.GetTextAsync()).ToString());
@@ -268,6 +270,34 @@ public sealed class WorkspaceNonCSharpDiskSyncTests
             .Where(diagnostic => diagnostic.Id == "CS0219" && diagnostic.Severity >= DiagnosticSeverity.Warning)
             .ToArray();
     }
+
+    /// <summary>
+    /// Flushes until <paramref name="settled"/> holds, at most <see cref="MaxSettleFlushes"/> times, and
+    /// returns the last snapshot. With real watchers on, the inotify event of a write can arrive after the
+    /// flush has read the new text and before it publishes. The path is pending again, and by contract it
+    /// waits for the next flush. A warm test process reaches that window in about a millisecond, so a
+    /// single flush failed about one run in eight when the whole class ran.
+    /// </summary>
+    private static async Task<Solution> FlushUntilSettledAsync(SpikeProject project, Func<Solution, Task<bool>> settled)
+    {
+        Solution? synced = null;
+        for (var flush = 0; flush < MaxSettleFlushes; flush++)
+        {
+            synced = await project.Manager.GetPublishedSolutionAfterDiskSyncAsync();
+            Assert.NotNull(synced);
+            if (await settled(synced))
+            {
+                break;
+            }
+
+            await Task.Delay(SettleDelayMilliseconds);
+        }
+
+        return synced!;
+    }
+
+    private const int MaxSettleFlushes = 20;
+    private const int SettleDelayMilliseconds = 25;
 
     private static void Notify(SpikeProject project, string name)
     {
