@@ -5,6 +5,8 @@ namespace RoslynMcpServer.Services.Resolve;
 
 /// <summary>
 /// Wraps <see cref="UniversalAssemblyResolver"/> and falls back to scanning the NuGet global packages folder.
+/// A reference that neither source resolves is recorded in <see cref="UnresolvedReferences"/> and returned as
+/// <see langword="null"/>, so the decompiler shows its types as unknown instead of failing the whole assembly.
 /// </summary>
 internal sealed class NuGetFallbackAssemblyResolver : IAssemblyResolver
 {
@@ -13,13 +15,25 @@ internal sealed class NuGetFallbackAssemblyResolver : IAssemblyResolver
     private readonly UniversalAssemblyResolver _inner;
     private readonly string _nugetPackagesRoot;
 
+    /// <summary>Unresolved references as <c>Name Version</c>, sorted; complete only after decompilation finished.</summary>
+    public IReadOnlyList<string> UnresolvedReferences
+    {
+        get
+        {
+            lock (_unresolvedReferences)
+            {
+                return _unresolvedReferences.ToList();
+            }
+        }
+    }
+
     public NuGetFallbackAssemblyResolver(UniversalAssemblyResolver inner, string nugetPackagesRoot)
     {
         _inner = inner;
         _nugetPackagesRoot = nugetPackagesRoot;
     }
 
-    public MetadataFile Resolve(IAssemblyReference reference)
+    public MetadataFile? Resolve(IAssemblyReference reference)
     {
         if (ShouldPreferNuGetFallback(reference))
         {
@@ -42,7 +56,12 @@ internal sealed class NuGetFallbackAssemblyResolver : IAssemblyResolver
                 return new PEFile(path);
             }
 
-            throw;
+            lock (_unresolvedReferences)
+            {
+                _unresolvedReferences.Add($"{reference.Name} {reference.Version}");
+            }
+
+            return null;
         }
     }
 
@@ -176,4 +195,6 @@ internal sealed class NuGetFallbackAssemblyResolver : IAssemblyResolver
 
         return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".nuget", "packages");
     }
+
+    private readonly SortedSet<string> _unresolvedReferences = new(StringComparer.OrdinalIgnoreCase);
 }
