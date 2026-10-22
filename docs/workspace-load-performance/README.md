@@ -20,6 +20,7 @@ E0/task-07.2: **implemented, 2026-10-10 — 36 matrix runs и 6 дополнит
 - [E0/task-00](epoch-0-stage-measurement/task-00-current-version-log-measurement-low.md): офисные измерения получены, результат принят в scope замера по существующим логам.
 - [E0/task-08](epoch-0-stage-measurement/task-08-source-search-and-office-results-med.md): source-only поиск принят, MainViewModel 36,203 → 34,175 с (−5,60%), ответы побайтно совпали; оба binlog читаются.
 - [E0/task-09](epoch-0-stage-measurement/task-09-first-search-io-and-private-project-profile-hi.md): in progress; private_project 12–13 с, секундные I/O retries локально воспроизведены, офисная причина ещё не доказана.
+- 2026-10-23, по решению владельца: [E0/task-10](epoch-0-stage-measurement/task-10-first-search-exception-and-trace-diagnostics-med.md) — сводка исключений поиска в сервере и dotnet-trace для офиса; [E0/task-11](epoch-0-stage-measurement/task-11-parallel-project-search-spike-hi.md) — standalone spike параллельного поиска по проектам. Обе planned.
 - [Исследование форка BuildHost](research-buildhost-fork/README.md): три planned задачи — воспроизводимый fork, граф/тайминги, направленная оптимизация. Здесь же перечислены потенциальные пути ускорения и критерии проверки.
 - [Предкоммитная validation](epoch-0-stage-measurement/evidence/commit-2026-10-22.md) фиксирует код, тесты и границы сохранённого checkpoint.
 
@@ -74,7 +75,7 @@ SamplePlugin (два проекта, load около 1.4 с) и BTCPay (load 3.6
 
 ## Маршрут
 
-- [E0 — разбивка по стадиям](epoch-0-stage-measurement/README.md): 14 задач (включая task-05.1, bugfix task-06, task-07–task-07.3 и поиск task-08/task-09).
+- [E0 — разбивка по стадиям](epoch-0-stage-measurement/README.md): 16 задач (включая task-05.1, bugfix task-06, task-07–task-07.3 и поиск task-08–task-11).
   Замер текущей версии по уже существующим логам, время стадий в production
   логе, сводка design-time build из уже снимаемого binlog, baseline на реальном решении,
   spike параллельной загрузки несколькими `MSBuildProjectLoader`.
