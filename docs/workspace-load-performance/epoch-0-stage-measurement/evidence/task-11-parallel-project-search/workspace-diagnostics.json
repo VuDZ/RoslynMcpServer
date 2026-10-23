@@ -1,0 +1,359 @@
+{
+  "load": {
+    "loadMs": 41485.0163,
+    "projects": 434,
+    "documents": 50201,
+    "workspaceFailures": 44,
+    "workingSetMb": 790.05859375
+  },
+  "diagnostics": [
+    {
+      "kind": "Failure",
+      "message": "Msbuild failed when processing the file \u0027src\\VisualStudio\\CSharp\\Impl\\Microsoft.VisualStudio.LanguageServices.CSharp.csproj\u0027 with message: The tag \u0027AbstractOptionPageControl\u0027 does not exist in XML namespace \u0027clr-namespace:Microsoft.VisualStudio.LanguageServices.Implementation.Options;assembly=Microsoft.VisualStudio.LanguageServices.Implementation\u0027. Line 2 Position 5."
+    },
+    {
+      "kind": "Failure",
+      "message": "Msbuild failed when processing the file \u0027src\\VisualStudio\\CSharp\\Impl\\Microsoft.VisualStudio.LanguageServices.CSharp.csproj\u0027 with message: The tag \u0027AbstractOptionPageControl\u0027 does not exist in XML namespace \u0027clr-namespace:Microsoft.VisualStudio.LanguageServices.Implementation.Options;assembly=Microsoft.VisualStudio.LanguageServices.Implementation\u0027. Line 2 Position 5."
+    },
+    {
+      "kind": "Failure",
+      "message": "Msbuild failed when processing the file \u0027src\\VisualStudio\\VisualBasic\\Impl\\Microsoft.VisualStudio.LanguageServices.VisualBasic.vbproj\u0027 with message: The tag \u0027AbstractOptionPageControl\u0027 does not exist in XML namespace \u0027clr-namespace:Microsoft.VisualStudio.LanguageServices.Implementation.Options;assembly=Microsoft.VisualStudio.LanguageServices.Implementation\u0027. Line 2 Position 5."
+    },
+    {
+      "kind": "Warning",
+      "message": "Duplicate source file \u0027src\\RoslynAnalyzers\\Microsoft.CodeAnalysis.AnalyzerUtilities\\PublicAPI.Shipped.txt\u0027 in project \u0027src\\RoslynAnalyzers\\Microsoft.CodeAnalysis.AnalyzerUtilities\\Microsoft.CodeAnalysis.AnalyzerUtilities.csproj\u0027"
+    },
+    {
+      "kind": "Warning",
+      "message": "Duplicate source file \u0027src\\RoslynAnalyzers\\Microsoft.CodeAnalysis.AnalyzerUtilities\\PublicAPI.Unshipped.txt\u0027 in project \u0027src\\RoslynAnalyzers\\Microsoft.CodeAnalysis.AnalyzerUtilities\\Microsoft.CodeAnalysis.AnalyzerUtilities.csproj\u0027"
+    },
+    {
+      "kind": "Warning",
+      "message": "Duplicate source file \u0027src\\RoslynAnalyzers\\Microsoft.CodeAnalysis.BannedApiAnalyzers\\Core\\AnalyzerReleases.Unshipped.md\u0027 in project \u0027src\\RoslynAnalyzers\\Microsoft.CodeAnalysis.BannedApiAnalyzers\\Core\\Microsoft.CodeAnalysis.BannedApiAnalyzers.csproj\u0027"
+    },
+    {
+      "kind": "Warning",
+      "message": "Duplicate source file \u0027src\\RoslynAnalyzers\\Microsoft.CodeAnalysis.BannedApiAnalyzers\\Core\\AnalyzerReleases.Shipped.md\u0027 in project \u0027src\\RoslynAnalyzers\\Microsoft.CodeAnalysis.BannedApiAnalyzers\\Core\\Microsoft.CodeAnalysis.BannedApiAnalyzers.csproj\u0027"
+    },
+    {
+      "kind": "Warning",
+      "message": "Duplicate source file \u0027src\\RoslynAnalyzers\\Microsoft.CodeAnalysis.BannedApiAnalyzers\\CSharp\\AnalyzerReleases.Unshipped.md\u0027 in project \u0027src\\RoslynAnalyzers\\Microsoft.CodeAnalysis.BannedApiAnalyzers\\CSharp\\Microsoft.CodeAnalysis.CSharp.BannedApiAnalyzers.csproj\u0027"
+    },
+    {
+      "kind": "Warning",
+      "message": "Duplicate source file \u0027src\\RoslynAnalyzers\\Microsoft.CodeAnalysis.BannedApiAnalyzers\\CSharp\\AnalyzerReleases.Shipped.md\u0027 in project \u0027src\\RoslynAnalyzers\\Microsoft.CodeAnalysis.BannedApiAnalyzers\\CSharp\\Microsoft.CodeAnalysis.CSharp.BannedApiAnalyzers.csproj\u0027"
+    },
+    {
+      "kind": "Warning",
+      "message": "Duplicate source file \u0027src\\RoslynAnalyzers\\Microsoft.CodeAnalysis.BannedApiAnalyzers\\VisualBasic\\AnalyzerReleases.Unshipped.md\u0027 in project \u0027src\\RoslynAnalyzers\\Microsoft.CodeAnalysis.BannedApiAnalyzers\\VisualBasic\\Microsoft.CodeAnalysis.VisualBasic.BannedApiAnalyzers.vbproj\u0027"
+    },
+    {
+      "kind": "Warning",
+      "message": "Duplicate source file \u0027src\\RoslynAnalyzers\\Microsoft.CodeAnalysis.BannedApiAnalyzers\\VisualBasic\\AnalyzerReleases.Shipped.md\u0027 in project \u0027src\\RoslynAnalyzers\\Microsoft.CodeAnalysis.BannedApiAnalyzers\\VisualBasic\\Microsoft.CodeAnalysis.VisualBasic.BannedApiAnalyzers.vbproj\u0027"
+    },
+    {
+      "kind": "Warning",
+      "message": "Duplicate source file \u0027src\\RoslynAnalyzers\\Microsoft.CodeAnalysis.Analyzers\\Core\\AnalyzerReleases.Unshipped.md\u0027 in project \u0027src\\RoslynAnalyzers\\Microsoft.CodeAnalysis.Analyzers\\Core\\Microsoft.CodeAnalysis.Analyzers.csproj\u0027"
+    },
+    {
+      "kind": "Warning",
+      "message": "Duplicate source file \u0027src\\RoslynAnalyzers\\Microsoft.CodeAnalysis.Analyzers\\Core\\AnalyzerReleases.Shipped.md\u0027 in project \u0027src\\RoslynAnalyzers\\Microsoft.CodeAnalysis.Analyzers\\Core\\Microsoft.CodeAnalysis.Analyzers.csproj\u0027"
+    },
+    {
+      "kind": "Warning",
+      "message": "Duplicate source file \u0027src\\RoslynAnalyzers\\Microsoft.CodeAnalysis.Analyzers\\CSharp\\AnalyzerReleases.Unshipped.md\u0027 in project \u0027src\\RoslynAnalyzers\\Microsoft.CodeAnalysis.Analyzers\\CSharp\\Microsoft.CodeAnalysis.CSharp.Analyzers.csproj\u0027"
+    },
+    {
+      "kind": "Warning",
+      "message": "Duplicate source file \u0027src\\RoslynAnalyzers\\Microsoft.CodeAnalysis.Analyzers\\CSharp\\AnalyzerReleases.Shipped.md\u0027 in project \u0027src\\RoslynAnalyzers\\Microsoft.CodeAnalysis.Analyzers\\CSharp\\Microsoft.CodeAnalysis.CSharp.Analyzers.csproj\u0027"
+    },
+    {
+      "kind": "Warning",
+      "message": "Duplicate source file \u0027src\\RoslynAnalyzers\\Microsoft.CodeAnalysis.Analyzers\\VisualBasic\\AnalyzerReleases.Unshipped.md\u0027 in project \u0027src\\RoslynAnalyzers\\Microsoft.CodeAnalysis.Analyzers\\VisualBasic\\Microsoft.CodeAnalysis.VisualBasic.Analyzers.vbproj\u0027"
+    },
+    {
+      "kind": "Warning",
+      "message": "Duplicate source file \u0027src\\RoslynAnalyzers\\Microsoft.CodeAnalysis.Analyzers\\VisualBasic\\AnalyzerReleases.Shipped.md\u0027 in project \u0027src\\RoslynAnalyzers\\Microsoft.CodeAnalysis.Analyzers\\VisualBasic\\Microsoft.CodeAnalysis.VisualBasic.Analyzers.vbproj\u0027"
+    },
+    {
+      "kind": "Warning",
+      "message": "Duplicate source file \u0027src\\RoslynAnalyzers\\PerformanceSensitiveAnalyzers\\Core\\AnalyzerReleases.Unshipped.md\u0027 in project \u0027src\\RoslynAnalyzers\\PerformanceSensitiveAnalyzers\\Core\\Microsoft.CodeAnalysis.PerformanceSensitiveAnalyzers.csproj\u0027"
+    },
+    {
+      "kind": "Warning",
+      "message": "Duplicate source file \u0027src\\RoslynAnalyzers\\PerformanceSensitiveAnalyzers\\Core\\AnalyzerReleases.Shipped.md\u0027 in project \u0027src\\RoslynAnalyzers\\PerformanceSensitiveAnalyzers\\Core\\Microsoft.CodeAnalysis.PerformanceSensitiveAnalyzers.csproj\u0027"
+    },
+    {
+      "kind": "Warning",
+      "message": "Duplicate source file \u0027src\\RoslynAnalyzers\\PerformanceSensitiveAnalyzers\\CSharp\\Analyzers\\AnalyzerReleases.Unshipped.md\u0027 in project \u0027src\\RoslynAnalyzers\\PerformanceSensitiveAnalyzers\\CSharp\\Analyzers\\Microsoft.CodeAnalysis.CSharp.PerformanceSensitiveAnalyzers.csproj\u0027"
+    },
+    {
+      "kind": "Warning",
+      "message": "Duplicate source file \u0027src\\RoslynAnalyzers\\PerformanceSensitiveAnalyzers\\CSharp\\Analyzers\\AnalyzerReleases.Shipped.md\u0027 in project \u0027src\\RoslynAnalyzers\\PerformanceSensitiveAnalyzers\\CSharp\\Analyzers\\Microsoft.CodeAnalysis.CSharp.PerformanceSensitiveAnalyzers.csproj\u0027"
+    },
+    {
+      "kind": "Warning",
+      "message": "Duplicate source file \u0027src\\RoslynAnalyzers\\PublicApiAnalyzers\\Core\\Analyzers\\AnalyzerReleases.Unshipped.md\u0027 in project \u0027src\\RoslynAnalyzers\\PublicApiAnalyzers\\Core\\Analyzers\\Microsoft.CodeAnalysis.PublicApiAnalyzers.csproj\u0027"
+    },
+    {
+      "kind": "Warning",
+      "message": "Duplicate source file \u0027src\\RoslynAnalyzers\\PublicApiAnalyzers\\Core\\Analyzers\\AnalyzerReleases.Shipped.md\u0027 in project \u0027src\\RoslynAnalyzers\\PublicApiAnalyzers\\Core\\Analyzers\\Microsoft.CodeAnalysis.PublicApiAnalyzers.csproj\u0027"
+    },
+    {
+      "kind": "Warning",
+      "message": "Duplicate source file \u0027src\\RoslynAnalyzers\\Roslyn.Diagnostics.Analyzers\\Core\\AnalyzerReleases.Unshipped.md\u0027 in project \u0027src\\RoslynAnalyzers\\Roslyn.Diagnostics.Analyzers\\Core\\Roslyn.Diagnostics.Analyzers.csproj\u0027"
+    },
+    {
+      "kind": "Warning",
+      "message": "Duplicate source file \u0027src\\RoslynAnalyzers\\Roslyn.Diagnostics.Analyzers\\Core\\AnalyzerReleases.Shipped.md\u0027 in project \u0027src\\RoslynAnalyzers\\Roslyn.Diagnostics.Analyzers\\Core\\Roslyn.Diagnostics.Analyzers.csproj\u0027"
+    },
+    {
+      "kind": "Warning",
+      "message": "Duplicate source file \u0027src\\RoslynAnalyzers\\Roslyn.Diagnostics.Analyzers\\CSharp\\AnalyzerReleases.Unshipped.md\u0027 in project \u0027src\\RoslynAnalyzers\\Roslyn.Diagnostics.Analyzers\\CSharp\\Roslyn.Diagnostics.CSharp.Analyzers.csproj\u0027"
+    },
+    {
+      "kind": "Warning",
+      "message": "Duplicate source file \u0027src\\RoslynAnalyzers\\Roslyn.Diagnostics.Analyzers\\CSharp\\AnalyzerReleases.Shipped.md\u0027 in project \u0027src\\RoslynAnalyzers\\Roslyn.Diagnostics.Analyzers\\CSharp\\Roslyn.Diagnostics.CSharp.Analyzers.csproj\u0027"
+    },
+    {
+      "kind": "Warning",
+      "message": "Duplicate source file \u0027src\\RoslynAnalyzers\\Roslyn.Diagnostics.Analyzers\\VisualBasic\\AnalyzerReleases.Unshipped.md\u0027 in project \u0027src\\RoslynAnalyzers\\Roslyn.Diagnostics.Analyzers\\VisualBasic\\Roslyn.Diagnostics.VisualBasic.Analyzers.vbproj\u0027"
+    },
+    {
+      "kind": "Warning",
+      "message": "Duplicate source file \u0027src\\RoslynAnalyzers\\Roslyn.Diagnostics.Analyzers\\VisualBasic\\AnalyzerReleases.Shipped.md\u0027 in project \u0027src\\RoslynAnalyzers\\Roslyn.Diagnostics.Analyzers\\VisualBasic\\Roslyn.Diagnostics.VisualBasic.Analyzers.vbproj\u0027"
+    },
+    {
+      "kind": "Warning",
+      "message": "Duplicate source file \u0027src\\RoslynAnalyzers\\Text.Analyzers\\Core\\AnalyzerReleases.Unshipped.md\u0027 in project \u0027src\\RoslynAnalyzers\\Text.Analyzers\\Core\\Text.Analyzers.csproj\u0027"
+    },
+    {
+      "kind": "Warning",
+      "message": "Duplicate source file \u0027src\\RoslynAnalyzers\\Text.Analyzers\\Core\\AnalyzerReleases.Shipped.md\u0027 in project \u0027src\\RoslynAnalyzers\\Text.Analyzers\\Core\\Text.Analyzers.csproj\u0027"
+    },
+    {
+      "kind": "Warning",
+      "message": "Duplicate source file \u0027src\\RoslynAnalyzers\\Text.Analyzers\\CSharp\\AnalyzerReleases.Unshipped.md\u0027 in project \u0027src\\RoslynAnalyzers\\Text.Analyzers\\CSharp\\Text.CSharp.Analyzers.csproj\u0027"
+    },
+    {
+      "kind": "Warning",
+      "message": "Duplicate source file \u0027src\\RoslynAnalyzers\\Text.Analyzers\\CSharp\\AnalyzerReleases.Shipped.md\u0027 in project \u0027src\\RoslynAnalyzers\\Text.Analyzers\\CSharp\\Text.CSharp.Analyzers.csproj\u0027"
+    },
+    {
+      "kind": "Warning",
+      "message": "Duplicate source file \u0027src\\RoslynAnalyzers\\Text.Analyzers\\VisualBasic\\AnalyzerReleases.Unshipped.md\u0027 in project \u0027src\\RoslynAnalyzers\\Text.Analyzers\\VisualBasic\\Text.VisualBasic.Analyzers.vbproj\u0027"
+    },
+    {
+      "kind": "Warning",
+      "message": "Duplicate source file \u0027src\\RoslynAnalyzers\\Text.Analyzers\\VisualBasic\\AnalyzerReleases.Shipped.md\u0027 in project \u0027src\\RoslynAnalyzers\\Text.Analyzers\\VisualBasic\\Text.VisualBasic.Analyzers.vbproj\u0027"
+    },
+    {
+      "kind": "Failure",
+      "message": "Cannot open project \u0027src\\RoslynAnalyzers\\Utilities\\Compiler.CSharp\\Analyzer.CSharp.Utilities.shproj\u0027 because the file extension \u0027.shproj\u0027 is not associated with a language."
+    },
+    {
+      "kind": "Failure",
+      "message": "Cannot open project \u0027src\\RoslynAnalyzers\\Utilities\\Compiler\\Analyzer.Utilities.shproj\u0027 because the file extension \u0027.shproj\u0027 is not associated with a language."
+    },
+    {
+      "kind": "Failure",
+      "message": "Cannot open project \u0027src\\RoslynAnalyzers\\Utilities\\FlowAnalysis\\FlowAnalysis.Utilities.shproj\u0027 because the file extension \u0027.shproj\u0027 is not associated with a language."
+    },
+    {
+      "kind": "Failure",
+      "message": "Cannot open project \u0027src\\RoslynAnalyzers\\Utilities\\Refactoring\\Refactoring.Utilities.shproj\u0027 because the file extension \u0027.shproj\u0027 is not associated with a language."
+    },
+    {
+      "kind": "Failure",
+      "message": "Cannot open project \u0027src\\RoslynAnalyzers\\Utilities\\Workspaces\\Workspaces.Utilities.shproj\u0027 because the file extension \u0027.shproj\u0027 is not associated with a language."
+    },
+    {
+      "kind": "Failure",
+      "message": "Cannot open project \u0027src\\Compilers\\Core\\AnalyzerDriver\\AnalyzerDriver.shproj\u0027 because the file extension \u0027.shproj\u0027 is not associated with a language."
+    },
+    {
+      "kind": "Failure",
+      "message": "Cannot open project \u0027src\\Compilers\\CSharp\\csc\\CscCommandLine.shproj\u0027 because the file extension \u0027.shproj\u0027 is not associated with a language."
+    },
+    {
+      "kind": "Failure",
+      "message": "Cannot open project \u0027src\\Compilers\\CSharp\\CSharpAnalyzerDriver\\CSharpAnalyzerDriver.shproj\u0027 because the file extension \u0027.shproj\u0027 is not associated with a language."
+    },
+    {
+      "kind": "Failure",
+      "message": "Cannot open project \u0027src\\Compilers\\Server\\VBCSCompiler\\VBCSCompilerCommandLine.shproj\u0027 because the file extension \u0027.shproj\u0027 is not associated with a language."
+    },
+    {
+      "kind": "Failure",
+      "message": "Cannot open project \u0027src\\Compilers\\VisualBasic\\BasicAnalyzerDriver\\BasicAnalyzerDriver.shproj\u0027 because the file extension \u0027.shproj\u0027 is not associated with a language."
+    },
+    {
+      "kind": "Failure",
+      "message": "Cannot open project \u0027src\\Compilers\\VisualBasic\\vbc\\VbcCommandLine.shproj\u0027 because the file extension \u0027.shproj\u0027 is not associated with a language."
+    },
+    {
+      "kind": "Failure",
+      "message": "Cannot open project \u0027src\\Dependencies\\CodeAnalysis.Debugging\\Microsoft.CodeAnalysis.Debugging.shproj\u0027 because the file extension \u0027.shproj\u0027 is not associated with a language."
+    },
+    {
+      "kind": "Failure",
+      "message": "Cannot open project \u0027src\\Dependencies\\Collections\\Microsoft.CodeAnalysis.Collections.shproj\u0027 because the file extension \u0027.shproj\u0027 is not associated with a language."
+    },
+    {
+      "kind": "Failure",
+      "message": "Cannot open project \u0027src\\Dependencies\\Contracts\\Microsoft.CodeAnalysis.Contracts.shproj\u0027 because the file extension \u0027.shproj\u0027 is not associated with a language."
+    },
+    {
+      "kind": "Failure",
+      "message": "Cannot open project \u0027src\\Dependencies\\PooledObjects\\Microsoft.CodeAnalysis.PooledObjects.shproj\u0027 because the file extension \u0027.shproj\u0027 is not associated with a language."
+    },
+    {
+      "kind": "Failure",
+      "message": "Cannot open project \u0027src\\Dependencies\\Threading\\Microsoft.CodeAnalysis.Threading.shproj\u0027 because the file extension \u0027.shproj\u0027 is not associated with a language."
+    },
+    {
+      "kind": "Failure",
+      "message": "Cannot open project \u0027src\\ExpressionEvaluator\\Core\\Source\\ResultProvider\\ResultProvider.shproj\u0027 because the file extension \u0027.shproj\u0027 is not associated with a language."
+    },
+    {
+      "kind": "Failure",
+      "message": "Cannot open project \u0027src\\ExpressionEvaluator\\CSharp\\Source\\ResultProvider\\CSharpResultProvider.shproj\u0027 because the file extension \u0027.shproj\u0027 is not associated with a language."
+    },
+    {
+      "kind": "Failure",
+      "message": "Cannot open project \u0027src\\ExpressionEvaluator\\VisualBasic\\Source\\ResultProvider\\BasicResultProvider.shproj\u0027 because the file extension \u0027.shproj\u0027 is not associated with a language."
+    },
+    {
+      "kind": "Failure",
+      "message": "Cannot open project \u0027src\\Analyzers\\Core\\Analyzers\\Analyzers.shproj\u0027 because the file extension \u0027.shproj\u0027 is not associated with a language."
+    },
+    {
+      "kind": "Failure",
+      "message": "Cannot open project \u0027src\\Analyzers\\Core\\CodeFixes\\CodeFixes.shproj\u0027 because the file extension \u0027.shproj\u0027 is not associated with a language."
+    },
+    {
+      "kind": "Failure",
+      "message": "Cannot open project \u0027src\\Analyzers\\CSharp\\Analyzers\\CSharpAnalyzers.shproj\u0027 because the file extension \u0027.shproj\u0027 is not associated with a language."
+    },
+    {
+      "kind": "Failure",
+      "message": "Cannot open project \u0027src\\Analyzers\\CSharp\\CodeFixes\\CSharpCodeFixes.shproj\u0027 because the file extension \u0027.shproj\u0027 is not associated with a language."
+    },
+    {
+      "kind": "Failure",
+      "message": "Cannot open project \u0027src\\Analyzers\\CSharp\\Tests\\CSharpAnalyzers.UnitTests.shproj\u0027 because the file extension \u0027.shproj\u0027 is not associated with a language."
+    },
+    {
+      "kind": "Failure",
+      "message": "Cannot open project \u0027src\\Analyzers\\VisualBasic\\Analyzers\\VisualBasicAnalyzers.shproj\u0027 because the file extension \u0027.shproj\u0027 is not associated with a language."
+    },
+    {
+      "kind": "Failure",
+      "message": "Cannot open project \u0027src\\Analyzers\\VisualBasic\\CodeFixes\\VisualBasicCodeFixes.shproj\u0027 because the file extension \u0027.shproj\u0027 is not associated with a language."
+    },
+    {
+      "kind": "Failure",
+      "message": "Cannot open project \u0027src\\Analyzers\\VisualBasic\\Tests\\VisualBasicAnalyzers.UnitTests.shproj\u0027 because the file extension \u0027.shproj\u0027 is not associated with a language."
+    },
+    {
+      "kind": "Failure",
+      "message": "Cannot open project \u0027src\\LanguageServer\\Microsoft.CommonLanguageServerProtocol.Framework\\Microsoft.CommonLanguageServerProtocol.Framework.Shared.shproj\u0027 because the file extension \u0027.shproj\u0027 is not associated with a language."
+    },
+    {
+      "kind": "Failure",
+      "message": "Cannot open project \u0027src\\Razor\\src\\Shared\\Microsoft.AspNetCore.Razor.SharedUtilities\\Microsoft.AspNetCore.Razor.SharedUtilities.shproj\u0027 because the file extension \u0027.shproj\u0027 is not associated with a language."
+    },
+    {
+      "kind": "Warning",
+      "message": "Duplicate source file \u0027src\\Razor\\src\\Razor\\src\\Microsoft.VisualStudio.LanguageServer.ContainedLanguage\\PublicAPI.Shipped.txt\u0027 in project \u0027src\\Razor\\src\\Razor\\src\\Microsoft.VisualStudio.LanguageServer.ContainedLanguage\\Microsoft.VisualStudio.LanguageServer.ContainedLanguage.csproj\u0027"
+    },
+    {
+      "kind": "Warning",
+      "message": "Duplicate source file \u0027src\\Razor\\src\\Razor\\src\\Microsoft.VisualStudio.LanguageServer.ContainedLanguage\\PublicAPI.Unshipped.txt\u0027 in project \u0027src\\Razor\\src\\Razor\\src\\Microsoft.VisualStudio.LanguageServer.ContainedLanguage\\Microsoft.VisualStudio.LanguageServer.ContainedLanguage.csproj\u0027"
+    },
+    {
+      "kind": "Failure",
+      "message": "Cannot open project \u0027src\\Razor\\src\\Razor\\test\\Microsoft.CodeAnalysis.Razor.CohostingShared.UnitTests\\Microsoft.CodeAnalysis.Razor.CohostingShared.UnitTests.shproj\u0027 because the file extension \u0027.shproj\u0027 is not associated with a language."
+    },
+    {
+      "kind": "Failure",
+      "message": "Cannot open project \u0027src\\Razor\\src\\Razor\\src\\Microsoft.CodeAnalysis.Razor.CohostingShared\\Microsoft.CodeAnalysis.Razor.CohostingShared.shproj\u0027 because the file extension \u0027.shproj\u0027 is not associated with a language."
+    },
+    {
+      "kind": "Failure",
+      "message": "Cannot open project \u0027src\\VisualStudio\\IntegrationTest\\Harness\\IntegrationTestServiceShared\\Microsoft.VisualStudio.IntegrationTestService.Shared.shproj\u0027 because the file extension \u0027.shproj\u0027 is not associated with a language."
+    },
+    {
+      "kind": "Failure",
+      "message": "Cannot open project \u0027src\\VisualStudio\\IntegrationTest\\Harness\\IntegrationTestsShared\\Microsoft.VisualStudio.Extensibility.Testing.Xunit.IntegrationTests.Shared.shproj\u0027 because the file extension \u0027.shproj\u0027 is not associated with a language."
+    },
+    {
+      "kind": "Failure",
+      "message": "Cannot open project \u0027src\\VisualStudio\\IntegrationTest\\Harness\\XUnitShared\\Microsoft.VisualStudio.Extensibility.Testing.Xunit.Shared.shproj\u0027 because the file extension \u0027.shproj\u0027 is not associated with a language."
+    },
+    {
+      "kind": "Warning",
+      "message": "Found project reference without a matching metadata reference: src\\Compilers\\CSharp\\csc\\AnyCpu\\csc.csproj"
+    },
+    {
+      "kind": "Warning",
+      "message": "Found project reference without a matching metadata reference: src\\Compilers\\VisualBasic\\vbc\\AnyCpu\\vbc.csproj"
+    },
+    {
+      "kind": "Warning",
+      "message": "Found project reference without a matching metadata reference: src\\Compilers\\Server\\VBCSCompiler\\AnyCpu\\VBCSCompiler.csproj"
+    },
+    {
+      "kind": "Warning",
+      "message": "Found project reference without a matching metadata reference: src\\Compilers\\CSharp\\csc\\AnyCpu\\csc.csproj"
+    },
+    {
+      "kind": "Warning",
+      "message": "Found project reference without a matching metadata reference: src\\Compilers\\VisualBasic\\vbc\\AnyCpu\\vbc.csproj"
+    },
+    {
+      "kind": "Warning",
+      "message": "Found project reference without a matching metadata reference: src\\Compilers\\Server\\VBCSCompiler\\AnyCpu\\VBCSCompiler.csproj"
+    },
+    {
+      "kind": "Warning",
+      "message": "Found project reference without a matching metadata reference: src\\Compilers\\CSharp\\csc\\AnyCpu\\csc.csproj"
+    },
+    {
+      "kind": "Warning",
+      "message": "Found project reference without a matching metadata reference: src\\Compilers\\VisualBasic\\vbc\\AnyCpu\\vbc.csproj"
+    },
+    {
+      "kind": "Warning",
+      "message": "Found project reference without a matching metadata reference: src\\Compilers\\Server\\VBCSCompiler\\AnyCpu\\VBCSCompiler.csproj"
+    },
+    {
+      "kind": "Failure",
+      "message": "Cannot open project \u0027src\\Workspaces\\SharedUtilitiesAndExtensions\\Compiler\\Core\\CompilerExtensions.shproj\u0027 because the file extension \u0027.shproj\u0027 is not associated with a language."
+    },
+    {
+      "kind": "Failure",
+      "message": "Cannot open project \u0027src\\Workspaces\\SharedUtilitiesAndExtensions\\Compiler\\CSharp\\CSharpCompilerExtensions.shproj\u0027 because the file extension \u0027.shproj\u0027 is not associated with a language."
+    },
+    {
+      "kind": "Failure",
+      "message": "Cannot open project \u0027src\\Workspaces\\SharedUtilitiesAndExtensions\\Compiler\\Extensions\\Microsoft.CodeAnalysis.Extensions.shproj\u0027 because the file extension \u0027.shproj\u0027 is not associated with a language."
+    },
+    {
+      "kind": "Failure",
+      "message": "Cannot open project \u0027src\\Workspaces\\SharedUtilitiesAndExtensions\\Compiler\\VisualBasic\\VisualBasicCompilerExtensions.shproj\u0027 because the file extension \u0027.shproj\u0027 is not associated with a language."
+    },
+    {
+      "kind": "Failure",
+      "message": "Cannot open project \u0027src\\Workspaces\\SharedUtilitiesAndExtensions\\Workspace\\Core\\WorkspaceExtensions.shproj\u0027 because the file extension \u0027.shproj\u0027 is not associated with a language."
+    },
+    {
+      "kind": "Failure",
+      "message": "Cannot open project \u0027src\\Workspaces\\SharedUtilitiesAndExtensions\\Workspace\\CSharp\\CSharpWorkspaceExtensions.shproj\u0027 because the file extension \u0027.shproj\u0027 is not associated with a language."
+    },
+    {
+      "kind": "Failure",
+      "message": "Cannot open project \u0027src\\Workspaces\\SharedUtilitiesAndExtensions\\Workspace\\VisualBasic\\VisualBasicWorkspaceExtensions.shproj\u0027 because the file extension \u0027.shproj\u0027 is not associated with a language."
+    }
+  ]
+}
