@@ -75,7 +75,7 @@ SamplePlugin (два проекта, load около 1.4 с) и BTCPay (load 3.6
 
 ## Маршрут
 
-- [E0 — разбивка по стадиям](epoch-0-stage-measurement/README.md): 20 задач (включая task-05.1, bugfix task-06, task-07–task-07.3 и поиск task-08–task-15). 2026-10-23: [E0/task-14](epoch-0-stage-measurement/task-14-roslyn-index-storage-spike-hi.md) — go: persistent storage индексов Roslyn (SQLite) при тёплом кеше сокращает первый поиск на Roslyn.slnx вдвое–вчетверо и пиковую память поиска втрое; [E0/task-15](epoch-0-stage-measurement/task-15-roslyn-index-storage-in-server-med.md) включает его в сервере 1.5.14 (офисный контроль pending).
+- [E0 — разбивка по стадиям](epoch-0-stage-measurement/README.md): 20 задач (включая task-05.1, bugfix task-06, task-07–task-07.3 и поиск task-08–task-15). 2026-10-23: [E0/task-14](epoch-0-stage-measurement/task-14-roslyn-index-storage-spike-hi.md) — go: persistent storage индексов Roslyn (SQLite) при тёплом кеше сокращает первый поиск на Roslyn.slnx вдвое–вчетверо и пиковую память поиска втрое; [E0/task-15](epoch-0-stage-measurement/task-15-roslyn-index-storage-in-server-med.md) включает его в сервере 1.5.14; офис: первый поиск 16,1 → 13,6 с, за день 31,4 → 13,6 с.
   Замер текущей версии по уже существующим логам, время стадий в production
   логе, сводка design-time build из уже снимаемого binlog, baseline на реальном решении,
   spike параллельной загрузки несколькими `MSBuildProjectLoader`.
