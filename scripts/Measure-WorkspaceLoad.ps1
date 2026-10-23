@@ -380,6 +380,9 @@ function Get-StageEstimate($Entries, [int]$RequestId) {
     for ($i = $start + 1; $i -lt $Entries.Count; $i++) {
         $e = $Entries[$i]
         if ($e.Message -match '^MCP \u2190 request id=') { break }
+        # After the handler completed only the background prewarm still belongs to this request window:
+        # it ends after load_workspace returned and before the next request.
+        if ($null -ne $done -and -not $e.Message.StartsWith('workspace_search_prewarm ')) { continue }
         if ($e.Message -match '^workspace_(?<kind>load_designtime|missing_source_files|search_prewarm|search_project|search_summary|search_exceptions) (?<json>\{.*\})$') {
             $timingKind = $Matches['kind']
             try {
@@ -419,7 +422,6 @@ function Get-StageEstimate($Entries, [int]$RequestId) {
         elseif ($e.Message -match "method 'tools/call' request handler completed in (?<ms>\d+(?:[.,]\d+)?)ms") {
             $done = $e
             $result.handlerMs = [double]::Parse($Matches['ms'].Replace(',', '.'), [Globalization.CultureInfo]::InvariantCulture)
-            break
         }
     }
     if ($null -ne $capture -and $null -ne $result.replayMs) {
