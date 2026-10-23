@@ -2,7 +2,8 @@
 
 - Дата: 2026-10-22.
 - Статус: **in progress, 2026-10-24** — форк собран (`forks/roslyn-buildhost`, вариант A), локально
-  эквивалентен оригиналу на `RoslynMcpServer.sln`; Roslyn.slnx, офис, отказные сценарии и ревью pending.
+  эквивалентен оригиналу на `RoslynMcpServer.sln` и на Roslyn.slnx (Windows, 434 проекта, загрузка ×0,999);
+  офисное решение, отказные сценарии и ревью pending.
 - Сложность: hi; риск — несовместимость host/client и изменение состава workspace.
 - Depends on: —.
 - Evidence/validation: [локальная часть](evidence/task-00-fork-baseline.md).
