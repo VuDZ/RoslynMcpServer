@@ -1,5 +1,9 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.FindSymbols;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using System.Runtime;
+using System.Text.Json;
 
 namespace RoslynMcpServer.Services.Navigation;
 
@@ -17,10 +21,19 @@ internal static class SymbolDeclarationResolver
     /// Name with <c>.</c>: exact FQN (<c>Namespace.Type</c> or <c>Namespace.Type.Member</c>);
     /// no <c>global::</c>, no <c>()</c>. FQN miss returns candidates and does not fall back to simple name.
     /// </summary>
+    public static Task<(IReadOnlyList<ISymbol> Symbols, string? Error)> ResolveDeclarationsAsync(
+        Solution solution,
+        string symbolName,
+        SymbolFilter filter,
+        CancellationToken cancellationToken = default) =>
+        ResolveDeclarationsAsync(solution, symbolName, filter, NullLogger.Instance, TimeProvider.System, cancellationToken);
+
     public static async Task<(IReadOnlyList<ISymbol> Symbols, string? Error)> ResolveDeclarationsAsync(
         Solution solution,
         string symbolName,
         SymbolFilter filter,
+        ILogger logger,
+        TimeProvider timeProvider,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(solution);
@@ -48,6 +61,8 @@ internal static class SymbolDeclarationResolver
                 simpleName,
                 ignoreCase: true,
                 filter,
+                logger,
+                timeProvider,
                 cancellationToken)
             .ConfigureAwait(false);
 
@@ -193,26 +208,92 @@ internal static class SymbolDeclarationResolver
         string simpleName,
         bool ignoreCase,
         SymbolFilter filter,
+        ILogger logger,
+        TimeProvider timeProvider,
         CancellationToken cancellationToken)
     {
         var declarations = new List<ISymbol>();
-        foreach (var projectId in solution.ProjectIds)
+        var searchId = Guid.NewGuid();
+        var started = timeProvider.GetTimestamp();
+        var completedProjects = 0;
+        var outcome = "failure";
+        // Process-wide counters: concurrent work in the server adds to them. Under workstation GC the
+        // pauses took 40-46% of the first search on Roslyn.slnx, so the summary records them per search.
+        var gcCollectionsBefore = CountGcCollections();
+        var gcPauseBefore = GC.GetTotalPauseDuration();
+        using var exceptions = new SearchExceptionRecorder();
+        try
         {
-            var project = solution.GetProject(projectId);
-            if (project is null)
+            foreach (var projectId in solution.ProjectIds)
             {
-                continue;
+                var project = solution.GetProject(projectId);
+                if (project is null)
+                {
+                    continue;
+                }
+
+                var projectStarted = timeProvider.GetTimestamp();
+                var projectOutcome = "failure";
+                int? matches = null;
+                exceptions.CurrentProject = project.FilePath ?? project.Name;
+                try
+                {
+                    // The public contract is solution source only; scanning reference assemblies is discarded below.
+                    var found = await SymbolFinder.FindSourceDeclarationsAsync(
+                        project, simpleName, ignoreCase, filter, cancellationToken).ConfigureAwait(false);
+                    var previousCount = declarations.Count;
+                    declarations.AddRange(found);
+                    matches = declarations.Count - previousCount;
+                    completedProjects++;
+                    projectOutcome = "success";
+                }
+                catch (OperationCanceledException)
+                {
+                    projectOutcome = "cancelled";
+                    throw;
+                }
+                finally
+                {
+                    exceptions.CurrentProject = null;
+                    logger.LogInformation("workspace_search_project {Json:l}", JsonSerializer.Serialize(new
+                    {
+                        searchId,
+                        projectId = project.Id.Id,
+                        project = project.FilePath,
+                        name = project.Name,
+                        documents = project.DocumentIds.Count,
+                        elapsedMs = timeProvider.GetElapsedTime(projectStarted).TotalMilliseconds,
+                        outcome = projectOutcome,
+                        matches,
+                    }));
+                }
             }
 
-            var found = await SymbolFinder.FindDeclarationsAsync(
-                project,
-                simpleName,
-                ignoreCase,
-                filter,
-                cancellationToken).ConfigureAwait(false);
-            declarations.AddRange(found);
+            outcome = "success";
+            return declarations;
         }
-
-        return declarations;
+        catch (OperationCanceledException)
+        {
+            outcome = "cancelled";
+            throw;
+        }
+        finally
+        {
+            logger.LogInformation("workspace_search_exceptions {Json:l}", exceptions.ToJson(searchId));
+            logger.LogInformation("workspace_search_summary {Json:l}", JsonSerializer.Serialize(new
+            {
+                searchId,
+                outcome,
+                elapsedMs = timeProvider.GetElapsedTime(started).TotalMilliseconds,
+                projects = solution.ProjectIds.Count,
+                completedProjects,
+                serverGc = GCSettings.IsServerGC,
+                gcPauseMs = (GC.GetTotalPauseDuration() - gcPauseBefore).TotalMilliseconds,
+                gcCollections = CountGcCollections().Zip(gcCollectionsBefore, (after, before) => after - before).ToArray(),
+            }));
+        }
     }
+
+    private static int[] CountGcCollections() =>
+        Enumerable.Range(0, GC.MaxGeneration + 1).Select(GC.CollectionCount).ToArray();
 }

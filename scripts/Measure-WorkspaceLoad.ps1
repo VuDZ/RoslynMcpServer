@@ -13,10 +13,19 @@
     the inbound tools/call, "Analyzer provenance capture finished" (ReplayMs), the first
     "Disk watcher started", "Loaded Roslyn workspace", and "request handler completed".
     These are estimates from log timestamps, not measured spans.
+    Server 1.5.8+ also logs design-time build and declaration-search project timings.
+    The report includes their full data in runs.json and top projects in summary.md.
+    Server 1.5.11+ also logs first-chance exceptions raised during the declaration search
+    (type, searched project, file or I/O message, count); summary.md lists the largest groups.
 
     Output folder: summary.md, runs.json, and per-run redacted log excerpts and responses.
-    The workspace root is replaced with <repo>, the user profile with <user>, and the
+    The Git repository root of the workspace (or the workspace folder outside Git) is replaced
+    with <repo>, this server checkout with <server-repo>, the user profile, user name path
+    segments and DOMAIN\user with <user>, a custom NUGET_PACKAGES folder with <nuget>, and the
     machine name with <machine>. Environment variables and file contents are not written.
+    Afterwards the text files of the report are scanned for absolute paths that are still left
+    (outside Program Files and Windows) and the count is printed with examples. The .nettrace
+    file of a trace run cannot be redacted.
 
 .PARAMETER Workspace
     .sln, .slnx or .csproj to load.
@@ -32,6 +41,12 @@
 
 .PARAMETER AffinityCount
     Restrict the server to the first N logical CPUs (BuildHost inherits the mask). 0 = no limit.
+
+.PARAMETER TracerExe
+    dotnet-trace executable. Adds one run after the measured runs that records CPU samples and
+    runtime exceptions of the first find_symbol_definition into run-N-find.nettrace. The trace
+    ends when the server process exits, so the file also covers shutdown. Its times are reported
+    separately and are not part of the medians. Requires -SymbolName.
 
 .PARAMETER Note
     Free text for the report: cold/warm cache, antivirus state, power plan.
@@ -75,6 +90,8 @@ param(
 
     [string]$Note = '',
 
+    [string]$TracerExe,
+
     [string]$OutDirectory
 )
 
@@ -92,6 +109,12 @@ $ServerExe = [IO.Path]::GetFullPath($ServerExe)
 if (-not (Test-Path -LiteralPath $ServerExe -PathType Leaf)) {
     throw "Server exe not found: $ServerExe"
 }
+if ($TracerExe) {
+    if (-not $SymbolName) { throw '-TracerExe needs -SymbolName: the trace covers the first find_symbol_definition.' }
+    $tracerCommand = Get-Command -Name $TracerExe -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($null -eq $tracerCommand) { throw "dotnet-trace not found: $TracerExe" }
+    $TracerExe = $tracerCommand.Source
+}
 if (-not $OutDirectory) {
     $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
     $OutDirectory = Join-Path (Get-Location) ("workspace-load-measure\" + [IO.Path]::GetFileNameWithoutExtension($Workspace) + "-$stamp")
@@ -101,22 +124,65 @@ New-Item -ItemType Directory -Force -Path $OutDirectory | Out-Null
 $logDirectory = Join-Path (Split-Path $ServerExe) 'logs'
 $workspaceRoot = Split-Path $Workspace
 $utf8NoBom = New-Object Text.UTF8Encoding($false)
+$redactionPairs = @()
+
+# The solution may sit deep inside a monorepo whose projects live above its folder, so the Git
+# repository root is redacted, not only the solution folder. Longer values go first: a repository
+# under the user profile must not be cut by the shorter profile replacement.
+function Get-RedactionPairs([string]$WorkspaceDirectory, [string]$ServerRepository) {
+    $repositoryRoot = $WorkspaceDirectory
+    try {
+        $topLevel = & git -C $WorkspaceDirectory rev-parse --show-toplevel 2>$null
+        if ($LASTEXITCODE -eq 0 -and $topLevel) { $repositoryRoot = [IO.Path]::GetFullPath(([string]$topLevel).Trim()) }
+    }
+    catch { }
+    $pairs = @(
+        @($repositoryRoot, '<repo>'),
+        @($WorkspaceDirectory, '<repo>'),
+        @($ServerRepository, '<server-repo>'),
+        @($env:NUGET_PACKAGES, '<nuget>'),
+        @($env:USERPROFILE, '<user>'),
+        @("$env:USERDOMAIN\$env:USERNAME", '<user>'),
+        @($env:COMPUTERNAME, '<machine>')
+    )
+    return @($pairs | Where-Object { -not [string]::IsNullOrEmpty($_[0]) -and $_[0] -ne '\' } |
+        Sort-Object { $_[0].Length } -Descending)
+}
 
 function Get-RedactedText([string]$Text) {
     if ([string]::IsNullOrEmpty($Text)) { return $Text }
-    $pairs = @(
-        @($workspaceRoot, '<repo>'),
-        @($env:USERPROFILE, '<user>'),
-        @($env:COMPUTERNAME, '<machine>')
-    )
-    foreach ($pair in $pairs) {
-        $value = $pair[0]
-        if ([string]::IsNullOrEmpty($value)) { continue }
+    foreach ($pair in $redactionPairs) {
+        $value = $pair[0].TrimEnd('\', '/')
         foreach ($variant in @($value, $value.Replace('\', '\\'), $value.Replace('\', '/'))) {
             $Text = [regex]::Replace($Text, [regex]::Escape($variant), $pair[1], 'IgnoreCase')
         }
     }
+    # Only as a whole path segment: a short user name also occurs inside unrelated words.
+    if ($env:USERNAME -and $env:USERNAME.Length -ge 2) {
+        $Text = [regex]::Replace($Text, '(?<=[\\/])' + [regex]::Escape($env:USERNAME) + '(?=[\\/])', '<user>', 'IgnoreCase')
+    }
     return $Text
+}
+
+# Absolute paths that survived redaction, outside Program Files and Windows, which name no user data.
+function Find-UnredactedPaths([string]$Directory) {
+    $allowedRoots = @($env:ProgramFiles, ${env:ProgramFiles(x86)}, $env:windir) | Where-Object { $_ } | ForEach-Object { $_.TrimEnd('\') + '\' }
+    # Logs embed JSON, so a path may appear with doubled backslashes in any file.
+    $allowed = @($allowedRoots | ForEach-Object { $_; $_.Replace('\', '\\') })
+    $found = New-Object Collections.Generic.List[string]
+    foreach ($file in @(Get-ChildItem -LiteralPath $Directory -File | Where-Object { $_.Extension -in '.md', '.txt', '.json' })) {
+        $text = [IO.File]::ReadAllText($file.FullName)
+        # Drive paths, and UNC paths in plain or JSON-escaped form (\\server or \\\\server). A UNC path
+        # starts a token; inside one (<repo>\\src, a==\\sqlite3) the backslashes are path separators.
+        $pattern = '(?<![A-Za-z])[A-Za-z]:[\\/][^\s"''<>|,;]*|(?<=^|[\s"''(\[])\\\\(?:\\\\)?[A-Za-z0-9._-]+\\[^\s"''<>|,;]*'
+        foreach ($match in [regex]::Matches($text, $pattern, 'Multiline')) {
+            # Match from the original text: the pattern stops at the space in "Program Files".
+            $rest = $text.Substring($match.Index)
+            if (@($allowed | Where-Object { $rest.StartsWith($_, [StringComparison]::OrdinalIgnoreCase) }).Count -gt 0) { continue }
+            $found.Add("$($file.Name): $($match.Value)")
+        }
+    }
+    return $found
 }
 
 function Get-LogOffsets {
@@ -294,6 +360,8 @@ function Get-StageEstimate($Entries, [int]$RequestId) {
         handlerMs = $null; openMs = $null; replayMs = $null; postOpenMs = $null; watchersMs = $null
         responseMs = $null; projects = $null; diagLines = $null; workingSetMb = $null
         captureStatus = $null; msbuildFailures = 0; msbuildWarnings = 0; watcherLines = 0
+        designTime = $null; searchProjects = @(); searchSummaries = @(); searchOutsideLoopMs = $null
+        searchExceptions = @(); missingSourceFiles = $null
     }
     $start = -1
     for ($i = 0; $i -lt $Entries.Count; $i++) {
@@ -305,6 +373,21 @@ function Get-StageEstimate($Entries, [int]$RequestId) {
     for ($i = $start + 1; $i -lt $Entries.Count; $i++) {
         $e = $Entries[$i]
         if ($e.Message -match '^MCP \u2190 request id=') { break }
+        if ($e.Message -match '^workspace_(?<kind>load_designtime|missing_source_files|search_project|search_summary|search_exceptions) (?<json>\{.*\})$') {
+            $timingKind = $Matches['kind']
+            try {
+                $timing = (Get-RedactedText $Matches['json']) | ConvertFrom-Json
+                switch ($timingKind) {
+                    'load_designtime' { $result.designTime = $timing }
+                    'missing_source_files' { $result.missingSourceFiles = $timing }
+                    'search_project' { $result.searchProjects += $timing }
+                    'search_summary' { $result.searchSummaries += $timing }
+                    'search_exceptions' { $result.searchExceptions += $timing }
+                }
+            }
+            catch { Write-Warning "Cannot parse $timingKind timing for request ${RequestId}: $($_.Exception.Message)" }
+            continue
+        }
         if ($null -eq $capture -and $e.Message -match 'Analyzer provenance capture finished: Status="?(?<st>[^",]+)"?.*ReplayMs=(?<r>\d+(?:[.,]\d+)?)') {
             $capture = $e
             $result.captureStatus = $Matches['st']
@@ -341,6 +424,10 @@ function Get-StageEstimate($Entries, [int]$RequestId) {
     }
     if ($null -ne $loaded -and $null -ne $done) {
         $result.responseMs = ($done.Time - $loaded.Time).TotalMilliseconds
+    }
+    if ($null -ne $result.handlerMs -and $result.searchSummaries.Count -gt 0) {
+        $loopMs = ($result.searchSummaries | Measure-Object -Property elapsedMs -Sum).Sum
+        if ($loopMs -le $result.handlerMs) { $result.searchOutsideLoopMs = $result.handlerMs - $loopMs }
     }
     return [pscustomobject]$result
 }
@@ -448,6 +535,97 @@ function Format-Ms($Value) {
     return ([Math]::Round([double]$Value)).ToString([Globalization.CultureInfo]::InvariantCulture)
 }
 
+function Format-SearchSummaryLine($Summary) {
+    $line = "Search $($Summary.searchId): $($Summary.outcome), $(Format-Ms $Summary.elapsedMs) ms, $($Summary.completedProjects)/$($Summary.projects) projects completed"
+    # GC fields exist from server 1.5.12; the counters are process-wide, so concurrent work adds to them.
+    if ($Summary.PSObject.Properties['serverGc']) {
+        $gcMode = 'workstation'
+        if ($Summary.serverGc) { $gcMode = 'server' }
+        $line += "; $gcMode GC, pauses $(Format-Ms $Summary.gcPauseMs) ms, collections gen0/1/2 $(@($Summary.gcCollections) -join '/')"
+    }
+    return $line + '.'
+}
+
+# Server 1.5.13+ gives documents missing on disk a loader without Roslyn's one-second retries.
+function Format-MissingSourceFilesLines($Record) {
+    if ($null -eq $Record) {
+        return @('Missing source files at load: unavailable (server before 1.5.13 or no workspace_missing_source_files record).')
+    }
+    $lines = @("Missing source files at load: $($Record.documents) documents in $($Record.files) files; fast-fail loaders installed: $($Record.installed); scan $(Format-Ms $Record.elapsedMs) ms.")
+    $paths = @($Record.paths)
+    if ($paths.Count -gt 0) { $lines += 'Missing files (first 10): ' + (($paths | ForEach-Object { '`' + $_ + '`' }) -join ', ') }
+    return $lines
+}
+
+function Format-SearchExceptionLines($Summaries) {
+    $lines = New-Object Collections.Generic.List[string]
+    if (@($Summaries).Count -eq 0) {
+        $lines.Add('Search exception summary unavailable: server before 1.5.11 or no workspace_search_exceptions record.')
+        return $lines
+    }
+    foreach ($x in @($Summaries)) {
+        $lines.Add("Search $($x.searchId) first-chance exceptions: $($x.total) total, $($x.attributed) in searched projects, $($x.unattributed) elsewhere in the process; $($x.distinctGroups) groups, $($x.droppedGroups) dropped.")
+        $groups = @($x.groups)
+        if ($groups.Count -eq 0) { continue }
+        $lines.Add('')
+        $lines.Add('| exception (top 20) | searched project | file or I/O message | count | first ms |')
+        $lines.Add('|---|---|---|---|---|')
+        foreach ($g in $groups) {
+            $project = '(none)'
+            if ($g.project) { $project = '`' + ([string]$g.project).Replace('|', '\|') + '`' }
+            $detail = ''
+            if ($g.detail) { $detail = ([string]$g.detail).Replace('|', '\|') -replace '\r?\n', ' ' }
+            $lines.Add(('| `{0}` | {1} | {2} | {3} | {4} |' -f $g.type, $project, $detail, $g.count, (Format-Ms $g.firstMs)))
+        }
+    }
+    return $lines
+}
+
+# dotnet-trace ignores Enter on a redirected console, and a console Ctrl+C cannot be sent to one child
+# process reliably on Windows. The trace therefore ends when the server exits; the runtime still writes
+# method rundown at shutdown, so managed frames keep their names.
+function Start-FirstSearchTrace([int]$ProcessId, [string]$TracePath) {
+    $logPath = "$TracePath.log"
+    $arguments = "collect -p $ProcessId -o `"$TracePath`" --profile dotnet-common,dotnet-sampled-thread-time"
+    $tracer = Start-Process -FilePath $TracerExe -ArgumentList $arguments -NoNewWindow -PassThru `
+        -RedirectStandardOutput $logPath -RedirectStandardError "$logPath.err"
+    $deadline = [DateTime]::UtcNow.AddSeconds(60)
+    while ([DateTime]::UtcNow -lt $deadline) {
+        if ((Test-Path -LiteralPath $logPath) -and (Get-Content -LiteralPath $logPath -Raw) -match 'Output File') {
+            # The session is attached; give the sampler a moment before the measured call.
+            Start-Sleep -Milliseconds 1000
+            return [pscustomobject]@{ Process = $tracer; TracePath = $TracePath; LogPath = $logPath }
+        }
+        if ($tracer.HasExited) { break }
+        Start-Sleep -Milliseconds 200
+    }
+    if (-not $tracer.HasExited) { Stop-Process -Id $tracer.Id -Force -ErrorAction SilentlyContinue }
+    $output = ''
+    foreach ($path in @($logPath, "$logPath.err")) {
+        if (Test-Path -LiteralPath $path) { $output += (Get-Content -LiteralPath $path -Raw) }
+    }
+    throw "dotnet-trace did not attach to the server: $(Get-RedactedText $output)"
+}
+
+function Complete-FirstSearchTrace($Trace) {
+    $state = 'completed'
+    if (-not $Trace.Process.WaitForExit(300000)) {
+        Stop-Process -Id $Trace.Process.Id -Force -ErrorAction SilentlyContinue
+        $state = 'timeout'
+    }
+    $bytes = $null
+    if (Test-Path -LiteralPath $Trace.TracePath) { $bytes = (Get-Item -LiteralPath $Trace.TracePath).Length }
+    if ($state -eq 'completed' -and -not $bytes) { $state = 'no-file' }
+    $output = ''
+    if (Test-Path -LiteralPath $Trace.LogPath) { $output = Get-Content -LiteralPath $Trace.LogPath -Raw }
+    return [pscustomobject]@{
+        file = Split-Path $Trace.TracePath -Leaf
+        bytes = $bytes
+        state = $state
+        tracerOutputTail = (Get-RedactedText ([string]$output).Trim()) -replace '(?s)^.*(.{500})$', '$1'
+    }
+}
+
 $loadArguments = [ordered]@{ workspacePath = $Workspace; briefOutput = (-not $FullOutput) }
 if ($Configuration) { $loadArguments.configuration = $Configuration }
 if ($Platform) { $loadArguments.platform = $Platform }
@@ -461,9 +639,12 @@ if ($AffinityCount -gt 0) {
     $affinityMask = ([long]1 -shl $AffinityCount) - 1
 }
 
+$redactionPairs = Get-RedactionPairs $workspaceRoot (Split-Path $PSScriptRoot -Parent)
 $records = New-Object Collections.Generic.List[object]
+$totalRuns = $Runs
+if ($TracerExe) { $totalRuns = $Runs + 1 }
 
-for ($run = 1; $run -le $Runs; $run++) {
+for ($run = 1; $run -le $totalRuns; $run++) {
     $marker = 'measure-' + [Guid]::NewGuid().ToString('N')
     $offsets = Get-LogOffsets
     $psi = New-Object Diagnostics.ProcessStartInfo
@@ -478,7 +659,7 @@ for ($run = 1; $run -le $Runs; $run++) {
     $psi.CreateNoWindow = $true
     if ($psi.EnvironmentVariables.ContainsKey('MCP_LOG_INCOMING_RPC')) { $psi.EnvironmentVariables.Remove('MCP_LOG_INCOMING_RPC') }
 
-    Write-Host "Run $run/$Runs : starting server"
+    Write-Host "Run $run/$totalRuns : starting server"
     $startWatch = [Diagnostics.Stopwatch]::StartNew()
     $script:proc = [Diagnostics.Process]::Start($psi)
     $script:pendingRead = $null
@@ -488,9 +669,11 @@ for ($run = 1; $run -le $Runs; $run++) {
 
     $record = [ordered]@{
         run = $run; kind = 'measured'; startupMs = $null; load = $null; find = $null; ramHit = $null
-        loadCpu = $null; findCpu = $null; leftoverChildren = 0; stderrTail = ''
+        loadCpu = $null; findCpu = $null; leftoverChildren = 0; stderrTail = ''; trace = $null
     }
     if ($run -eq 1) { $record.kind = 'warmup' }
+    elseif ($run -gt $Runs) { $record.kind = 'trace' }
+    $trace = $null
 
     $calls = @()
     try {
@@ -504,25 +687,29 @@ for ($run = 1; $run -le $Runs; $run++) {
         if ($init.State -ne 'ok') { throw "initialize failed: $($init.State) $($init.Error)" }
         Send-Message ([ordered]@{ jsonrpc = '2.0'; method = 'notifications/initialized' })
 
-        Write-Host "Run $run/$Runs : load_workspace"
+        Write-Host "Run $run/$totalRuns : load_workspace"
         $measuredLoad = Measure-ToolCall 'load_workspace' $loadArguments
         $load = $measuredLoad.Call
         $record.loadCpu = $measuredLoad.Cpu
         $calls += [pscustomobject]@{ Name = 'load'; Call = $load }
-        Write-Host ("Run {0}/{1} : load_workspace {2} in {3} ms" -f $run, $Runs, $load.State, (Format-Ms $load.Ms))
+        Write-Host ("Run {0}/{1} : load_workspace {2} in {3} ms" -f $run, $totalRuns, $load.State, (Format-Ms $load.Ms))
 
         if ($SymbolName -and $load.State -eq 'ok') {
+            if ($record.kind -eq 'trace') {
+                Write-Host "Run $run/$totalRuns : attaching dotnet-trace"
+                $trace = Start-FirstSearchTrace $script:proc.Id (Join-Path $OutDirectory "run-$run-find.nettrace")
+            }
             $measuredFind = Measure-ToolCall 'find_symbol_definition' ([ordered]@{ symbolName = $SymbolName })
             $find = $measuredFind.Call
             $record.findCpu = $measuredFind.Cpu
             $calls += [pscustomobject]@{ Name = 'find'; Call = $find }
-            Write-Host ("Run {0}/{1} : find_symbol_definition {2} in {3} ms" -f $run, $Runs, $find.State, (Format-Ms $find.Ms))
+            Write-Host ("Run {0}/{1} : find_symbol_definition {2} in {3} ms" -f $run, $totalRuns, $find.State, (Format-Ms $find.Ms))
         }
 
         if ($run -eq $Runs -and -not $SkipRamHit -and $load.State -eq 'ok') {
             $ram = Invoke-Tool 'load_workspace' $loadArguments
             $calls += [pscustomobject]@{ Name = 'ramHit'; Call = $ram }
-            Write-Host ("Run {0}/{1} : RAM hit load_workspace {2} in {3} ms" -f $run, $Runs, $ram.State, (Format-Ms $ram.Ms))
+            Write-Host ("Run {0}/{1} : RAM hit load_workspace {2} in {3} ms" -f $run, $totalRuns, $ram.State, (Format-Ms $ram.Ms))
         }
     }
     catch {
@@ -531,6 +718,10 @@ for ($run = 1; $run -le $Runs; $run++) {
     }
     finally {
         $record.leftoverChildren = Stop-ServerTree $script:proc.Id
+        if ($null -ne $trace) {
+            Write-Host "Run $run/$totalRuns : waiting for dotnet-trace to finish the file"
+            $record.trace = Complete-FirstSearchTrace $trace
+        }
     }
 
     if ($stderrTask.AsyncWaitHandle.WaitOne(5000)) {
@@ -567,7 +758,7 @@ for ($run = 1; $run -le $Runs; $run++) {
     [IO.File]::WriteAllLines((Join-Path $OutDirectory "run-$run-log.txt"), $excerpt, $utf8NoBom)
 
     $records.Add([pscustomobject]$record)
-    if ($run -lt $Runs -and $PauseSeconds -gt 0) { Start-Sleep -Seconds $PauseSeconds }
+    if ($run -lt $totalRuns -and $PauseSeconds -gt 0) { Start-Sleep -Seconds $PauseSeconds }
 }
 
 $cpu = Get-CimInstance Win32_Processor | Select-Object -First 1
@@ -587,8 +778,10 @@ $environment = [ordered]@{
     ramGb = [Math]::Round($os.TotalVisibleMemorySize / 1MB, 1)
     dotnetSdks = ($sdks -join ', ')
     antivirus = ($antivirus -join ', ')
+    # Overrides the server's runtimeconfig; the search lines show the mode the runtime applied.
+    dotnetGcServer = $(if ($null -eq $env:DOTNET_gcServer) { '(unset)' } else { $env:DOTNET_gcServer })
     affinityCount = $AffinityCount
-    workspace = '<repo>\' + (Split-Path $Workspace -Leaf)
+    workspace = Get-RedactedText $Workspace
     configuration = $Configuration
     platform = $Platform
     targetFramework = $TargetFramework
@@ -633,8 +826,73 @@ foreach ($field in @('clientMs', 'handlerMs', 'openMs', 'replayMs', 'postOpenMs'
 $finds = @($measured | Where-Object { $null -ne $_.find })
 if ($finds.Count -gt 0) {
     $md.Add('- first find_symbol_definition clientMs : ' + (Format-Ms (Get-Median @($finds | ForEach-Object { $_.find.clientMs }))))
+    $gcSearches = @($finds | ForEach-Object { @($_.find.searchSummaries) | Select-Object -First 1 } | Where-Object { $_.PSObject.Properties['gcPauseMs'] })
+    if ($gcSearches.Count -gt 0) {
+        $md.Add('- first search GC pause ms : ' + (Format-Ms (Get-Median @($gcSearches | ForEach-Object { $_.gcPauseMs }))))
+    }
 }
 $md.Add('- server startup to initialize response ms : ' + (Format-Ms (Get-Median @($measured | ForEach-Object { $_.startupMs }))))
+$md.Add('')
+$md.Add('Project breakdowns (server 1.5.8+; full rows are in runs.json):')
+$md.Add('Design-time project/target/task durations are inclusive and overlap; do not add them as wall time.')
+$md.Add('Binlog coverage may be incomplete. Root evaluations, BuildHost startup and IPC can be outside the logged span.')
+foreach ($r in $records) {
+    $md.Add('')
+    $md.Add("## Run $($r.run) ($($r.kind)) project timings")
+    $md.Add('')
+    if ($null -ne $r.load -and $null -ne $r.load.designTime) {
+        $dt = $r.load.designTime
+        $md.Add("Design-time coverage: $($dt.status); replay failures: $(@($dt.replayFailures) -join ', ').")
+        $md.Add("Measured MSBuild open: $(Format-Ms $dt.openMs) ms; binlog span: $(Format-Ms $dt.binlogSpanMs) ms; unattributed remainder: $(Format-Ms $dt.unattributedOpenMs) ms; reason: $($dt.remainderReason).")
+        $md.Add('Measured MSBuild open excludes manager/workspace setup, replay and snapshot processing; the earlier open column is a broader timestamp estimate.')
+        $md.Add("Logged evaluations: $($dt.loggedEvaluations); inclusive sum: $(Format-Ms $dt.loggedEvaluationMs) ms; maximum: $(Format-Ms $dt.maxLoggedEvaluationMs) ms.")
+        $md.Add("Unmatched starts/finishes: $($dt.unmatchedStarts)/$($dt.unmatchedFinishes); invalid intervals: $($dt.invalidIntervals).")
+        if ($dt.PSObject.Properties['binlogs']) {
+            foreach ($file in @($dt.binlogs)) {
+                $md.Add("Binlog #$($file.ordinal): format $($file.formatVersion), project starts $($file.projectStarts), failures: $(@($file.failures) -join ', ').")
+            }
+        }
+        $md.Add('')
+        $md.Add('| design-time project (top 10, all configurations/TFMs combined) | builds | failed | inclusive sum ms | maximum ms |')
+        $md.Add('|---|---|---|---|---|')
+        foreach ($p in @($dt.projects | Sort-Object totalMs -Descending | Select-Object -First 10)) {
+            $md.Add(('| `{0}` | {1} | {2} | {3} | {4} |' -f $p.project.Replace('|', '\|'), $p.builds, $p.failedBuilds, (Format-Ms $p.totalMs), (Format-Ms $p.maxMs)))
+        }
+        foreach ($kind in @('targets', 'tasks')) {
+            $md.Add('')
+            $md.Add("| $kind (top 10) | calls | inclusive sum ms | maximum ms |")
+            $md.Add('|---|---|---|---|')
+            foreach ($p in @($dt.$kind)) {
+                $md.Add(('| `{0}` | {1} | {2} | {3} |' -f $p.name.Replace('|', '\|'), $p.calls, (Format-Ms $p.totalMs), (Format-Ms $p.maxMs)))
+            }
+        }
+    }
+    else { $md.Add('Design-time breakdown unavailable: no workspace_load_designtime record.') }
+    if ($null -ne $r.load) {
+        $md.Add('')
+        Format-MissingSourceFilesLines $r.load.missingSourceFiles | ForEach-Object { $md.Add($_) }
+    }
+    $md.Add('')
+    if ($null -ne $r.find -and $r.find.searchProjects.Count -gt 0) {
+        foreach ($s in $r.find.searchSummaries) {
+            $md.Add((Format-SearchSummaryLine $s))
+        }
+        $md.Add("Handler time outside measured search loops: $(Format-Ms $r.find.searchOutsideLoopMs) ms (preparation, result formatting and other work).")
+        $md.Add('')
+        $md.Add('| search project (top 10; each attempt separate) | documents | outcome | elapsed ms | declaration candidates |')
+        $md.Add('|---|---|---|---|---|')
+        foreach ($p in @($r.find.searchProjects | Sort-Object elapsedMs -Descending | Select-Object -First 10)) {
+            $path = $p.project
+            if (-not $path) { $path = $p.name }
+            $md.Add(('| `{0}` | {1} | {2} | {3} | {4} |' -f $path.Replace('|', '\|'), $p.documents, $p.outcome, (Format-Ms $p.elapsedMs), $p.matches))
+        }
+    }
+    else { $md.Add('Search project breakdown unavailable: query skipped or no workspace_search_project records.') }
+    if ($null -ne $r.find) {
+        $md.Add('')
+        foreach ($line in (Format-SearchExceptionLines $r.find.searchExceptions)) { $md.Add($line) }
+    }
+}
 $md.Add('')
 $md.Add('CPU time during the call (Win32_Process kernel+user; child = BuildHost and other descendants;')
 $md.Add('busy cores = total CPU / wall time):')
@@ -648,10 +906,31 @@ foreach ($r in $records) {
         $md.Add(('| {0} | {1} | {2} | {3} | {4} | {5} |' -f $r.run, $pair[0], $c.serverCpuMs, $c.childCpuMs, $c.busyCores, $c.children))
     }
 }
+$traced = @($records | Where-Object { $_.kind -eq 'trace' })
+if ($traced.Count -gt 0) {
+    $md.Add('')
+    $md.Add('Trace run (CPU samples and runtime exceptions of the first search; not part of the medians):')
+    foreach ($r in $traced) {
+        $findMs = 'n/a'
+        if ($null -ne $r.find) { $findMs = Format-Ms $r.find.clientMs }
+        if ($null -eq $r.trace) {
+            $md.Add("- run $($r.run): no trace file; first search $findMs ms")
+            continue
+        }
+        $md.Add("- run $($r.run): $($r.trace.state), $($r.trace.file), $($r.trace.bytes) bytes; first search with tracing $findMs ms")
+    }
+    $md.Add('- The .nettrace file contains exception messages with file paths; send it only where that is allowed.')
+}
 $failed = @($records | Where-Object { $_.PSObject.Properties['error'] -or ($null -ne $_.load -and $_.load.state -ne 'ok') })
 $md.Add("- failed runs: $($failed.Count); leftover child processes killed: $(($records | Measure-Object -Property leftoverChildren -Sum).Sum)")
 [IO.File]::WriteAllLines((Join-Path $OutDirectory 'summary.md'), $md, $utf8NoBom)
 
 Write-Host ''
 Write-Host "Report: $OutDirectory"
+$leftovers = @(Find-UnredactedPaths $OutDirectory)
+if ($leftovers.Count -gt 0) {
+    Write-Warning "$($leftovers.Count) absolute paths were not redacted; review them before sending the report. Examples:"
+    $leftovers | Select-Object -Unique -First 10 | ForEach-Object { Write-Warning "  $_" }
+}
+else { Write-Host 'Redaction check: no absolute paths left in the text files (Program Files and Windows excepted).' }
 $md | Select-Object -Skip 1 | ForEach-Object { Write-Host $_ }

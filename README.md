@@ -231,6 +231,8 @@ MCP `tools/list` stays JSON + JSON Schema. Markdown is for JIT help and diagnost
 
 Version history of agent-visible tools and behavior: [CHANGELOG.md](CHANGELOG.md). Current server version: see `RoslynMcpServer.csproj`.
 
+In 1.5.9, name-based declaration search uses source-only lookup, preserving the exclusion of metadata-only results. Provenance replay reads newer compatible BuildHost binlogs and reports each file's format; any recoverable read error still rejects that file's provenance.
+
 ## Agent Initialization (How to force tool usage)
 
 Even if the MCP is active, AI clients don't always load the tools into the current chat context. Put the **session policy** in the app repo so the agent actually uses Roslyn MCP.

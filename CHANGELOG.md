@@ -8,10 +8,31 @@ Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into a
 - `find_symbol_definition` and `find_symbol_references` accept `filePath` + `line` + `column` without `symbolName`, using the existing positional symbol resolver. Name-based search and automatic column selection still require `symbolName`.
 - `find_symbol_definition` accepts optional `preview`: source text is appended to each definition location, capped at 400 characters, including overflow chunks. Explicit `preview` overrides the JSONC setting; otherwise the default is false.
 
+### v1.5.13
+
+- Documents whose files are missing at load, such as generated files of a native build that has not run, no longer cost about a second per read. Roslyn retries a missing file six times 200 ms apart and then uses empty text; the server now gives such documents the same empty text at once. In the office measurement this was 24 of 31 s of the first name-based search. A file that appears later is read from disk and synced as before, and tool writes never create the missing file. Each load logs a `workspace_missing_source_files` line with the counts and up to ten paths; tool responses are unchanged.
+
+### v1.5.12
+
+- The server runs with server GC (DATAS, the .NET 10 default). On Roslyn.slnx, GC pauses of the first name-based search fell from 8 s to 2 s and load plus first search took 18% less, for 14–19% more working set. `DOTNET_gcServer=0` in the server's environment restores workstation GC. `workspace_search_summary` log lines record the GC mode, pauses and collection counts of each search; tool responses are unchanged.
+
+### v1.5.11
+
+- Name-based declaration searches log a `workspace_search_exceptions` line: first-chance exceptions raised during the search, grouped by type, searched project and file (or I/O message), with counts and the offset of the first occurrence. Roslyn retries an unreadable document six times with 200 ms pauses and returns no error, so these reads were invisible before. Exceptions raised outside the search's own flow are counted without a project. No stack traces or file contents are logged; tool responses are unchanged.
+
 ### v1.5.10
 
 - ILSpy tools (`explore_assembly`, `decompile_type`, `get_decompiled_class_skeleton`, `get_decompiled_method_body`) no longer fail the whole assembly when a dependency cannot be resolved. Types from such a dependency appear as unknown, and the response ends with a note naming the unresolved references (at most ten). Example: `Microsoft.CodeAnalysis.Workspaces` references SQLitePCLRaw without a NuGet dependency on it, so none of its methods could be decompiled before.
-- Versions 1.5.8–1.5.9 were built from the `research/workspace-load-performance` branch and are not part of this line.
+
+### v1.5.9
+
+- Name-based declaration search uses Roslyn's source-only lookup instead of scanning referenced assemblies and discarding metadata hits. Per-project timing logs remain available.
+- Provenance replay accepts newer compatible binlog formats from Visual Studio BuildHost. Any recoverable read error still rejects that file's provenance; failed-file counts preserve Failed/Incomplete status even when one file reports several errors. Timing reports show each binlog's format, project count and failures.
+
+### v1.5.8
+
+- Workspace load logs include per-project inclusive design-time build durations, evaluation totals, and the ten most expensive targets and tasks from the existing binlog replay. Missing or partial replay is explicit; overlapping durations are not reported as wall time.
+- Name-based declaration searches log each project's duration and an overall search summary, including cancellation or failure. Measurement reports include these project breakdowns without changing tool responses or search behavior.
 
 ### v1.5.7
 
