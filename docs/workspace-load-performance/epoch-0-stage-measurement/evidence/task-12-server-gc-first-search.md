@@ -43,7 +43,9 @@ production и офисный контроль не выполнялись.
 [summary.json](task-12-server-gc-first-search/summary.json),
 [environment.json](task-12-server-gc-first-search/environment.json).
 Полные 99 переносимых файлов матрицы — в
-[spikes/ParallelSearch/results/gc-20261023-133122/](../../../../spikes/ParallelSearch/results/gc-20261023-133122/).
+`spikes/ParallelSearch/results/gc-20261023-133122/`. После разбора папка удалена
+из репозитория по решению владельца (2026-10-23). Она есть в истории Git до коммита
+удаления, оригиналы лежат на стенде.
 Transcript с локальными путями оставлен на стенде.
 [SHA-256 всех 100 оригинальных файлов](task-12-server-gc-first-search/raw-sha256.txt)
 включает transcript. Копии сверены побайтно; `.gitattributes` в каталоге результатов
