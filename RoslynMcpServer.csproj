@@ -25,9 +25,9 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageId>RoslynMcpServer</PackageId>
-    <Version>1.5.13</Version>
-    <AssemblyVersion>1.5.13.0</AssemblyVersion>
-    <FileVersion>1.5.13.0</FileVersion>
+    <Version>1.5.14</Version>
+    <AssemblyVersion>1.5.14.0</AssemblyVersion>
+    <FileVersion>1.5.14.0</FileVersion>
     <PackageTags>AI; MCP; server; stdio</PackageTags>
     <Description>An MCP server using the MCP C# SDK.</Description>
   </PropertyGroup>
@@ -91,6 +91,12 @@
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features" Version="5.9.0" />
     <PackageReference Include="Microsoft.CodeAnalysis.Features" Version="5.9.0" />
     <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" Version="5.9.0" />
+    <!-- Roslyn's persistent index storage. Workspaces 5.9.0 references SQLitePCLRaw.batteries_v2 2.3.5.0
+         (key df579d6b11135638) without a NuGet dependency on it; that is the SQLite3MC build, not
+         SQLitePCLRaw 2.x/3.x. Without it every server process rebuilt all indexes; with a warm cache the
+         first search on Roslyn.slnx took 0.52 and 0.22 of the cold time and a third of the memory (task-14).
+         Keep the version equal to Roslyn's reference: RoslynIndexStorageTests fails otherwise. -->
+    <PackageReference Include="SQLite3MC.PCLRaw.bundle" Version="2.3.5" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.8" />
     <PackageReference Include="ModelContextProtocol" Version="2.2.0" />
     <PackageReference Include="Serilog.Extensions.Hosting" Version="10.0.0" />
