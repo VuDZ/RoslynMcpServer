@@ -40,7 +40,14 @@ promotion/demotion ролей, плановое освобождение workspa
 - параметры load (включая пропущенные), sticky analyzer policy, CLI build args
   и build proofs: что нельзя наследовать от другой сессии и что делает host несовместимым;
 - `stop_mcp_server`, `reset_workspace`, `manage_agent_scratchpad`;
-- таймеры, фоновые задачи, watchers, временные каталоги и shadow-copy.
+- таймеры, фоновые задачи, watchers, временные каталоги и shadow-copy;
+- старт процесса в `Program.cs` до построения host: `MsBuildBootstrapper.Register`,
+  принудительная загрузка сборок Roslyn, `PluginStartup.Run`. Что из этого нужно
+  чистому proxy (например, список инструментов plugins для `tools/list`), а что
+  допустимо только в роли host;
+- инструменты по месту исполнения: нужен workspace / запускает процессы (build,
+  test, `execute_dotnet_command`, NuGet) / lifecycle. Зависимость от cwd, сессии
+  и build proofs (`SessionBuildState`).
 
 Для MCP-состояния отдельно проверить negotiated protocol, идентификаторы
 запросов, progress/cancellation, подписки и `enable_tool_group` (`lite` меняется
@@ -54,7 +61,9 @@ promotion/demotion ролей, плановое освобождение workspa
 
 `evidence/task-00-state-inventory.md`: элемент → место в коде → текущая
 семантика → классификация (общий / сессия / идентичность host / конфликт) →
-поведение при смене host и его падении → последствие для U-C-01…U-C-06.
+поведение при смене host и его падении → последствие для U-C-01…U-C-08.
+Отдельная таблица инструментов: инструмент → нужен ли workspace → зависимость
+от cwd/сессии/build proofs → допустимое место исполнения (host, proxy, оба).
 Отдельный список «неизвестно» с причиной. Механизм маршрутизации и точный
 ключ выбирает task-01, инвентаризация их не принимает.
 

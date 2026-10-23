@@ -1,7 +1,8 @@
 # C/E0 — Инвентаризация, дизайн и spike: карта выполнения
 
 - Статус плана: **draft; независимое ревью 2026-10-23 завершено без существенных
-  findings; принято только в scope исследовательского плана, design не принят**.
+  findings; принято только в scope исследовательского плана, design не принят;
+  после ревью добавлены task-05 и сравнение моделей без повторного ревью**.
 - Статус исполнения: **planned; реализация не начата**.
 - Зависимость начала эпохи: нет. Интеграционный task-02 использует
   [D/E0/task-01](../../workspace-load-performance/epoch-0-stage-measurement/task-01-load-stage-timings-med.md).
@@ -14,25 +15,35 @@
   обсуждения, пересборка плана и TDD-подход, без кода и приёмки задач;
   ветка `research/workspace-host-process` от `main` (`22b9924`);
   [отчёт и validation](../evidence/2026-10-23-plan-update.md).
+- Дополнение плана после ревью: **выполнено, 2026-10-23**; принятый scope —
+  task-05, сравнение моделей, зависимости task-01/task-04, без кода и приёмки задач;
+  [отчёт и validation](../evidence/2026-10-23-plan-revision.md).
 
 ## Задачи
 
 - [task-00 — Инвентаризация состояния процесса](task-00-process-state-inventory-med.md) — `med`, **planned**; Depends on: —
-- [task-01 — Архитектурное решение](task-01-architecture-decision-hi.md) — `hi`, **planned**; Depends on: [task-00](task-00-process-state-inventory-med.md), [task-03](task-03-pipe-relay-spike-med.md), [task-04](task-04-proxy-routing-and-recovery-spike-hi.md)
+- [task-01 — Архитектурное решение](task-01-architecture-decision-hi.md) — `hi`, **planned**; Depends on: [task-00](task-00-process-state-inventory-med.md), [task-03](task-03-pipe-relay-spike-med.md), [task-04](task-04-proxy-routing-and-recovery-spike-hi.md), [task-05](task-05-applicability-checks-med.md)
 - [task-02 — Интеграционный spike прокси и host](task-02-bridge-spike-hi.md) — `hi`, **planned**; Depends on: [task-01](task-01-architecture-decision-hi.md), [D/E0/task-01](../../workspace-load-performance/epoch-0-stage-measurement/task-01-load-stage-timings-med.md)
 - [task-03 — Spike транспорта и MCP-фасада](task-03-pipe-relay-spike-med.md) — `med`, **planned**; standalone spike, сервер не меняется; Depends on: —
-- [task-04 — Spike переключения и восстановления](task-04-proxy-routing-and-recovery-spike-hi.md) — `hi`, **planned, добавлен 2026-10-23**; продолжение standalone spike, сервер не меняется; Depends on: [task-03](task-03-pipe-relay-spike-med.md)
+- [task-04 — Spike переключения и восстановления](task-04-proxy-routing-and-recovery-spike-hi.md) — `hi`, **planned, добавлен 2026-10-23**; продолжение standalone spike, сервер не меняется; Depends on: [task-03](task-03-pipe-relay-spike-med.md), [task-05](task-05-applicability-checks-med.md) с решением владельца
+- [task-05 — Проверки применимости](task-05-applicability-checks-med.md) — `med`, **planned, добавлен 2026-10-23 после ревью**; наблюдения за harness и разбор памяти, сервер не меняется; Depends on: —
 
-Task-00 и task-03 независимы. После task-03 идёт task-04; результаты всех трёх
-входят в task-01. Только после design, независимого ревью и выбора владельца
-по U-C-01…U-C-06 начинается task-02. Task-03/task-04 исследуют кандидаты механизмов
+Task-05, task-00 и task-03 независимы; task-05 рекомендуется первым. После
+task-05 владелец решает, продолжать ли тему и какие модели проверять в task-04.
+Task-04 идёт после task-03 и этого решения; результаты всех четырёх входят в
+task-01. Только после design, независимого ревью и выбора владельца
+по U-C-01…U-C-08 начинается task-02. Task-03/task-04 исследуют кандидаты механизмов
 и не принимают production design заранее. Их выполнение требует отдельного
 перехода к реализации: обновление плана 2026-10-23 кода не запускает.
 
 ## Сквозные критерии
 
+- Модель процессов выбрана сравнением ролей в MCP, отдельного host и нулевого
+  варианта на данных task-05; цель «пережить Reload» достижима в выбранной
+  модели или явно снята владельцем.
 - N совместимых клиентов разделяют один тяжёлый workspace; разные проекты и
   несовместимые настройки изолированы. Память учитывает все host и прокси.
+  Чистый proxy не регистрирует MSBuild и не загружает сборки Roslyn и plugins.
 - Proxy чат2 переходит с проекта1 на проект2; чат1 продолжает проект1. При отказе
   proxy-перехода прежняя живая привязка сохраняется. Если проект меняет сам
   `mcp1`-host чат1, он освобождает роль проекта1, а один из оставшихся proxy
@@ -69,14 +80,15 @@ multi-process проверки владения/падений; после desig
 - Количество раундов ревью: 1 (та же проверка, что в сводке темы).
 - Количество исправлений после ревью: 0; findings всех severity — 0.
 - Итог: принято в scope draft-плана исследования. Это не принятие design,
-  задач, реализации эпохи или production activation.
+  задач, реализации эпохи или production activation. Ревью охватывало версию
+  `dc1b1c5`; дополнения того же дня (task-05, сравнение моделей) его не проходили.
 - Отчёты: [result](../review-independent-2026-10-23/result.md),
   [coverage](../review-independent-2026-10-23/coverage.md),
   [учёт и validation](../evidence/2026-10-23-independent-review.md).
 
 ## Статистика ревью задач
 
-- Охват: task-00–task-04; выполненных задач нет.
+- Охват: task-00–task-05; выполненных задач нет.
 - Фактические исполнители: —.
 - Фактические рецензенты: —.
 - Сумма раундов ревью задач: —.
