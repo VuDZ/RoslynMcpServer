@@ -52,7 +52,8 @@
 `spikes/IndexStorage/Invoke-IndexStorageMatrix.ps1`:
 
 - режимы `none`, `cold` и `warm`;
-- перед `cold` удаляется только кеш этого решения в папках `dotnet-*`;
+- перед `cold` удаляется только кеш этого решения в папках `dotnet-*` и `dotnet.exe-*`
+  (`dotnet.exe-*` добавлено после Windows-матрицы 1, см. ниже);
 - `warm` идёт сразу после `cold`, а позиция `none` чередуется;
 - сводка и вердикт строятся по порогам task-14.
 
