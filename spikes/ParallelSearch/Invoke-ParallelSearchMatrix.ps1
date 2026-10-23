@@ -63,62 +63,7 @@ $spikeProject = Join-Path $PSScriptRoot 'ParallelSearch.csproj'
 $spikeDll = Join-Path (Join-Path (Join-Path (Join-Path $PSScriptRoot 'bin') 'Release') 'net10.0') 'ParallelSearch.dll'
 $utf8NoBom = New-Object Text.UTF8Encoding($false)
 
-function Invoke-Native([string]$FilePath, [string[]]$Arguments, [string]$Failure) {
-    & $FilePath @Arguments | Out-Host
-    if ($LASTEXITCODE -ne 0) { throw "$Failure (exit code $LASTEXITCODE)" }
-}
-
-function Get-Median($Values) {
-    $sorted = @($Values | Where-Object { $null -ne $_ } | Sort-Object)
-    if ($sorted.Count -eq 0) { return $null }
-    $mid = [int][Math]::Floor($sorted.Count / 2)
-    if ($sorted.Count % 2 -eq 1) { return [double]$sorted[$mid] }
-    return ([double]$sorted[$mid - 1] + [double]$sorted[$mid]) / 2
-}
-
-function Format-Number($Value, [int]$Digits = 0) {
-    if ($null -eq $Value) { return 'n/a' }
-    return ([Math]::Round([double]$Value, $Digits)).ToString([Globalization.CultureInfo]::InvariantCulture)
-}
-
-function Assert-PinnedSdk([string]$SolutionDirectory) {
-    for ($dir = Get-Item -LiteralPath $SolutionDirectory; $null -ne $dir; $dir = $dir.Parent) {
-        $globalJson = Join-Path $dir.FullName 'global.json'
-        if (-not (Test-Path -LiteralPath $globalJson)) { continue }
-        $json = Get-Content -LiteralPath $globalJson -Raw | ConvertFrom-Json
-        if (-not $json.PSObject.Properties['sdk'] -or -not $json.sdk.PSObject.Properties['version']) { return }
-        $pinned = [string]$json.sdk.version
-        $installed = @(& dotnet --list-sdks | ForEach-Object { ($_ -split ' ')[0] })
-        if ($installed -notcontains $pinned) {
-            throw ("The solution pins .NET SDK $pinned in $globalJson, but dotnet lists: $($installed -join ', '). " +
-                "Install it (for example: winget install Microsoft.DotNet.SDK.10 --version $pinned) and run again.")
-        }
-        return $pinned
-    }
-    return $null
-}
-
-function Get-Environment([string]$SolutionPath) {
-    $info = [ordered]@{
-        solution = Split-Path $SolutionPath -Leaf
-        solutionCommit = (& git -C (Split-Path $SolutionPath) rev-parse HEAD 2>$null)
-        spikeCommit = (& git -C $repo rev-parse --short=12 HEAD 2>$null)
-        logicalProcessors = [Environment]::ProcessorCount
-        os = [Environment]::OSVersion.VersionString
-        dotnetSdks = (@(& dotnet --list-sdks | ForEach-Object { ($_ -split ' ')[0] }) -join ', ')
-        matchName = $MatchName
-        missingName = $MissingName
-        degrees = ($degreeList -join ', ')
-        runs = $Runs
-    }
-    if ([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT) {
-        $cpu = Get-CimInstance Win32_Processor | Select-Object -First 1
-        $os = Get-CimInstance Win32_OperatingSystem
-        $info.cpu = "$($cpu.Name.Trim()) ($($cpu.NumberOfCores) cores)"
-        $info.ramGb = [Math]::Round($os.TotalVisibleMemorySize / 1MB, 1)
-    }
-    return $info
-}
+. (Join-Path $PSScriptRoot 'MatrixCommon.ps1')
 
 function Invoke-Matrix([string]$SolutionPath, [string]$Out) {
     $queries = [ordered]@{ match = $MatchName; missing = $MissingName }
@@ -254,33 +199,18 @@ $Solution = [IO.Path]::GetFullPath($Solution)
 if (-not (Test-Path -LiteralPath $Solution -PathType Leaf)) { throw "Solution not found: $Solution" }
 if ($degreeList -notcontains 1) { throw 'Degrees must include 1: it is the baseline.' }
 
-$pinned = Assert-PinnedSdk (Split-Path $Solution)
-if ($pinned) { Write-Host "Solution pins .NET SDK ${pinned}: installed." }
-Write-Host 'Building the spike (Release)'
-Invoke-Native 'dotnet' @('build', $spikeProject, '-c', 'Release', '-nologo', '-v', 'q') 'Spike build failed'
-Write-Host 'Self-checks'
-Invoke-Native 'dotnet' @($spikeDll, 'check') 'Spike self-checks failed'
-if (-not $SkipRestore) {
-    Write-Host "Restoring $Solution"
-    Invoke-Native 'dotnet' @('restore', $Solution, '-nologo', '-v', 'q') 'Solution restore failed'
-}
+Initialize-Stand $spikeProject $spikeDll $Solution $SkipRestore.IsPresent
 
 if (-not $OutDirectory) {
     # Not under artifacts/: the folder is committed to bring the results to the analysis machine, then removed.
     $OutDirectory = Join-Path (Join-Path $PSScriptRoot 'results') (Get-Date -Format 'yyyyMMdd-HHmmss')
 }
 New-Item -ItemType Directory -Force -Path $OutDirectory | Out-Null
-$environment = Get-Environment $Solution
+$environment = Get-Environment $Solution $repo ([ordered]@{ matchName = $MatchName; missingName = $MissingName; degrees = ($degreeList -join ', '); runs = $Runs })
 [IO.File]::WriteAllText((Join-Path $OutDirectory 'environment.json'), ($environment | ConvertTo-Json), $utf8NoBom)
 
 Invoke-Matrix $Solution $OutDirectory
 Write-Host ''
 Write-Summary $OutDirectory
 Write-Host ''
-Write-Host "Results: $OutDirectory"
-$relative = $OutDirectory
-if ($OutDirectory.StartsWith($repo, [StringComparison]::OrdinalIgnoreCase)) { $relative = $OutDirectory.Substring($repo.Length).TrimStart('\', '/') }
-Write-Host 'To hand the results over for analysis:'
-Write-Host "  git -C `"$repo`" add `"$relative`""
-Write-Host "  git -C `"$repo`" commit -m `"Add task-11 parallel search measurements`""
-Write-Host "  git -C `"$repo`" push"
+Write-HandoverCommands $repo $OutDirectory 'Add task-11 parallel search measurements'

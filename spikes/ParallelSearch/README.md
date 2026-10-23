@@ -43,6 +43,26 @@ Type | Member)` по каждому проекту) и загрузку (MSBuild
 `-SummarizeOnly <папка>` пересчитывает сводку без новых замеров. Пороги вердикта
 зафиксированы в task-11 до измерений и в скрипте не настраиваются.
 
+## Матрица режимов GC (task-12)
+
+Контракт: [task-12](../../docs/workspace-load-performance/epoch-0-stage-measurement/task-12-server-gc-first-search-med.md).
+Стенд и подготовка такие же, как выше. Запуск:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\spikes\ParallelSearch\Invoke-GcModeMatrix.ps1 -Solution D:\src\roslyn\Roslyn.slnx
+```
+
+Скрипт запускает 2 запроса × 2 режима GC (`workstation`, `server`) × DOP 1/4 ×
+(1 прогрев + 5 замеров) = 48 процессов, это порядка 50 минут. Режим задаётся
+переменными окружения дочернего процесса. Если в окружении уже есть другие GC-переменные
+(`DOTNET_GC*`), скрипт остановится. Каждый результат записывает фактический режим GC,
+и сводка не принимает прогон с чужим режимом.
+
+Результаты попадают в `spikes\ParallelSearch\results\gc-<время>`, передаются так же,
+через git. `-GcModes 'workstation,server,server-nodatas'` добавляет server GC без DATAS
+(+24 процесса). `-Degrees`, `-Runs`, `-SkipRestore` и `-SummarizeOnly` работают как
+в матрице task-11.
+
 ## Прочие команды
 
 ```text

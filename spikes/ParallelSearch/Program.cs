@@ -40,7 +40,9 @@ internal static class Program
         int degreeOfParallelism,
         string msbuild)
     {
+        var loadPauseBefore = GC.GetTotalPauseDuration();
         var (solution, load) = await SolutionLoader.LoadAsync(solutionPath).ConfigureAwait(false);
+        var loadGcPauseMs = (GC.GetTotalPauseDuration() - loadPauseBefore).TotalMilliseconds;
         var first = await SearchMeasurement.MeasureAsync(solution, solutionDirectory, name, degreeOfParallelism)
             .ConfigureAwait(false);
         var second = await SearchMeasurement.MeasureAsync(solution, solutionDirectory, name, degreeOfParallelism)
@@ -54,9 +56,12 @@ internal static class Program
             // Only the SDK folder name: the result is committed, and the install path can name the user.
             msbuildSdk = Path.GetFileName(Path.TrimEndingDirectorySeparator(msbuild)),
             runtime = Environment.Version.ToString(),
+            gc = GcReport.DescribeMode(),
             load,
+            loadGcPauseMs,
             firstSearch = first,
             secondSearch = second,
+            final = GcReport.DescribeFinalMemory(),
         };
     }
 
