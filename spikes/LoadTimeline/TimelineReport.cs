@@ -42,6 +42,26 @@ internal static class TimelineReport
         return md.ToString();
     }
 
+    /// <summary>
+    /// Per top-level build in time order: binlog, project file name, the time since the previous top-level
+    /// build of that binlog ended (or since its first event), and the build itself. A join key for the probe.
+    /// </summary>
+    public static string GapsBeforeBuilds(TimelineReader reader)
+    {
+        var lines = new List<string> { "binlog,project,gapBeforeMs,buildMs" };
+        foreach (var (binlog, span) in reader.Spans.OrderBy(pair => pair.Key))
+        {
+            var previousEnd = span.First;
+            foreach (var build in reader.Intervals.Where(item => item.Binlog == binlog && item.Kind == "build" && item.TopLevel).OrderBy(item => item.Start))
+            {
+                lines.Add($"{binlog},{FileName(build.Project)},{Ms((build.Start - previousEnd).TotalMilliseconds)},{Ms(build.Ms)}");
+                previousEnd = build.End > previousEnd ? build.End : previousEnd;
+            }
+        }
+
+        return string.Join('\n', lines);
+    }
+
     private static void AppendBinlog(StringBuilder md, int binlog, (DateTime First, DateTime Last) span, List<TimelineInterval> intervals)
     {
         var spanMs = (span.Last - span.First).TotalMilliseconds;
@@ -137,7 +157,10 @@ internal static class TimelineReport
     }
 
     private static string Label(TimelineInterval? interval) =>
-        interval is null ? "-" : $"{interval.Kind} `{Path.GetFileName(interval.Project)}`";
+        interval is null ? "-" : $"{interval.Kind} `{FileName(interval.Project)}`";
+
+    // A Windows binlog is also read on Linux, where Path.GetFileName does not split at '\'.
+    private static string FileName(string path) => path.Split('\\', '/')[^1];
 
     private static string Ms(double value) => Math.Round(value).ToString(CultureInfo.InvariantCulture);
 }

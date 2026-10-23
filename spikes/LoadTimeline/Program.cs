@@ -66,6 +66,7 @@ internal static class Program
     private static void Evaluate(string solutionPath, string outDirectory)
     {
         File.WriteAllText(Path.Combine(outDirectory, "evaluation.md"), EvaluationProbe.Run(solutionPath));
+        File.WriteAllText(Path.Combine(outDirectory, "evaluation.csv"), "project,evaluations,ms\n" + EvaluationProbe.Csv);
         Console.WriteLine(Path.Combine(outDirectory, "evaluation.md"));
     }
 
@@ -88,6 +89,7 @@ internal static class Program
         }
 
         File.WriteAllText(Path.Combine(outDirectory, "timeline.md"), TimelineReport.Write(reader, clientLoadMs));
+        File.WriteAllText(Path.Combine(outDirectory, "gaps.csv"), TimelineReport.GapsBeforeBuilds(reader));
         Console.WriteLine(Path.Combine(outDirectory, "timeline.md"));
     }
 }

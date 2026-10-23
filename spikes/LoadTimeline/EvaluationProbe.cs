@@ -14,12 +14,16 @@ namespace LoadTimeline;
 /// </summary>
 internal static class EvaluationProbe
 {
+    /// <summary>project file name, evaluations, milliseconds; one line per project of the last run.</summary>
+    public static string Csv { get; private set; } = "";
+
     public static string Run(string solutionPath)
     {
         var solution = SolutionFile.Parse(solutionPath);
         var projects = solution.ProjectsInOrder
             .Where(project => project.ProjectType == SolutionProjectType.KnownToBeMSBuildFormat
-                && project.AbsolutePath.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase))
+                && (project.AbsolutePath.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase)
+                    || project.AbsolutePath.EndsWith(".vbproj", StringComparison.OrdinalIgnoreCase)))
             .Select(project => project.AbsolutePath)
             .ToList();
         using var collection = new ProjectCollection();
@@ -41,12 +45,19 @@ internal static class EvaluationProbe
             }
 
             rows.Add((Path.GetRelativePath(Path.GetDirectoryName(solutionPath)!, path), evaluations, watch.Elapsed.TotalMilliseconds));
+            // Imports stay cached in the collection; only the evaluated projects go, so hundreds fit in memory.
+            foreach (var loaded in collection.GetLoadedProjects(path).ToList())
+            {
+                collection.UnloadProject(loaded);
+            }
         }
+
+        Csv = string.Join('\n', rows.Select(row => $"{row.Project.Split('\\', '/')[^1]},{row.Evaluations},{Math.Round(row.Ms)}"));
 
         var md = new StringBuilder();
         md.AppendLine("# Evaluation probe (BuildHost/task-00a)");
         md.AppendLine();
-        md.AppendLine($"- C# projects: {rows.Count}; evaluations: {rows.Sum(row => row.Evaluations)}; total {Ms(total.Elapsed.TotalMilliseconds)} ms in one ProjectCollection");
+        md.AppendLine($"- C# and VB projects: {rows.Count}; evaluations: {rows.Sum(row => row.Evaluations)}; total {Ms(total.Elapsed.TotalMilliseconds)} ms in one ProjectCollection");
         md.AppendLine("- Separate process and a fresh collection; compare with the binlog gaps only as an estimate.");
         md.AppendLine();
         md.AppendLine("| project (top 15) | evaluations | ms |");
