@@ -8,6 +8,7 @@ namespace BuildHostFork;
 /// <summary>
 /// observe: loads a solution like the server does, with whichever BuildHost sits in BuildHost-netcore next to
 /// this program, and writes the workspace observation, diagnostics, load time and a first search.
+/// load, cancel, kill-host: failure scenarios, see <see cref="FailureScenario"/>.
 /// compare: compares fork runs with original runs of one result folder.
 /// </summary>
 internal static class Program
@@ -23,13 +24,22 @@ internal static class Program
             return 0;
         }
 
+        if (args.Length >= 3 && args[0] is "load" or "cancel" or "kill-host")
+        {
+            var solutionPath = Path.GetFullPath(args[1]);
+            MsBuildRegistration.Register(Path.GetDirectoryName(solutionPath)!);
+            var delayMs = args.Length >= 4 ? int.Parse(args[3], System.Globalization.CultureInfo.InvariantCulture) : 2000;
+            await FailureScenario.RunAsync(args[0], solutionPath, Path.GetFullPath(args[2]), delayMs).ConfigureAwait(false);
+            return 0;
+        }
+
         if (args.Length >= 2 && args[0] == "compare")
         {
             Console.WriteLine(ObservationComparer.Run(Path.GetFullPath(args[1])));
             return 0;
         }
 
-        Console.Error.WriteLine("Usage: observe SOLUTION OUTPUT_JSON [NAME] | compare RESULT_DIRECTORY");
+        Console.Error.WriteLine("Usage: observe SOLUTION OUTPUT_JSON [NAME] | load|cancel|kill-host SOLUTION OUTPUT_JSON [DELAY_MS] | compare RESULT_DIRECTORY");
         return 2;
     }
 
@@ -45,6 +55,7 @@ internal static class Program
         var loadMs = watch.Elapsed.TotalMilliseconds;
         var buildHosts = sampler.Stop();
         var search = await SearchMeasurement.MeasureAsync(solution, Path.GetDirectoryName(solutionPath)!, name, 1).ConfigureAwait(false);
+        var remaining = await sampler.WaitForExitAsync(TimeSpan.FromSeconds(10)).ConfigureAwait(false);
         using var process = Process.GetCurrentProcess();
         var report = new
         {
@@ -54,6 +65,7 @@ internal static class Program
             ClientCpuMs = process.TotalProcessorTime.TotalMilliseconds,
             ClientPeakWorkingSetMb = process.PeakWorkingSet64 / 1048576.0,
             BuildHostProcesses = buildHosts,
+            RemainingBuildHosts = remaining.Length,
             FirstSearch = search,
             Projects = ParallelLoad.SolutionObservation.Capture(solution),
             Diagnostics = diagnostics.Order(StringComparer.Ordinal).ToArray(),

@@ -18,7 +18,8 @@ internal static class SolutionLoader
     public static async Task<(Solution Solution, object Load)> LoadAsync(
         string solutionPath,
         Microsoft.Build.Framework.ILogger? msbuildLogger = null,
-        ICollection<string>? diagnostics = null)
+        ICollection<string>? diagnostics = null,
+        CancellationToken cancellationToken = default)
     {
         var host = MefHostServices.Create(new[]
         {
@@ -46,7 +47,7 @@ internal static class SolutionLoader
             }
         });
         var watch = Stopwatch.StartNew();
-        var solution = await workspace.OpenSolutionAsync(solutionPath, msbuildLogger: msbuildLogger).ConfigureAwait(false);
+        var solution = await workspace.OpenSolutionAsync(solutionPath, msbuildLogger: msbuildLogger, cancellationToken: cancellationToken).ConfigureAwait(false);
         watch.Stop();
         return (solution, new
         {

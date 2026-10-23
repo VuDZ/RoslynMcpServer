@@ -1,0 +1,56 @@
+# Helpers shared by the BuildHost fork scripts. Dot-source it after MatrixCommon.ps1; it defines functions only.
+
+# Builds the fork and the spike, and makes bin-fork: the same spike and client, only BuildHost-netcore replaced
+# by the fork. Returns the paths of both spike copies and the fork version.
+function Initialize-ForkCopy([string]$Repo, [string]$SpikeDirectory) {
+    $forkProject = Join-Path $Repo (Join-Path 'forks' (Join-Path 'roslyn-buildhost' (Join-Path 'build' (Join-Path 'BuildHost' 'BuildHost.Fork.csproj'))))
+    $forkOutput = Join-Path (Split-Path $forkProject) (Join-Path 'bin' (Join-Path 'Release' 'net8.0'))
+    $spikeProject = Join-Path $SpikeDirectory 'BuildHostFork.csproj'
+    $originalBin = Join-Path $SpikeDirectory (Join-Path 'bin' (Join-Path 'Release' 'net10.0'))
+    $forkBin = Join-Path $SpikeDirectory 'bin-fork'
+
+    Write-Host 'Building the BuildHost fork (Release)'
+    Invoke-Native 'dotnet' @('build', $forkProject, '-c', 'Release', '-nologo', '-v', 'q') 'Fork build failed'
+    Write-Host 'Building the spike (Release)'
+    Invoke-Native 'dotnet' @('build', $spikeProject, '-c', 'Release', '-nologo', '-v', 'q') 'Spike build failed'
+
+    if (Test-Path -LiteralPath $forkBin) { Remove-Item -LiteralPath $forkBin -Recurse -Force }
+    Copy-Item -LiteralPath $originalBin -Destination $forkBin -Recurse
+    $forkHostFolder = Join-Path $forkBin 'BuildHost-netcore'
+    Remove-Item -LiteralPath $forkHostFolder -Recurse -Force
+    New-Item -ItemType Directory -Path $forkHostFolder | Out-Null
+    Get-ChildItem -LiteralPath $forkOutput -File | Copy-Item -Destination $forkHostFolder
+    $version = (Get-Item -LiteralPath (Join-Path $forkHostFolder 'Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.dll')).VersionInfo.ProductVersion
+    if ($version -notlike '*fork*') { throw "The fork copy does not hold the fork BuildHost: $version" }
+    Write-Host "Fork BuildHost: $version"
+    return [ordered]@{ originalBin = $originalBin; forkBin = $forkBin; version = $version }
+}
+
+# Runs observe for both sides in alternating order; round 0 is warmup. Writes <side>-round<N>.json and .out.txt.
+function Invoke-ObserveRounds([Collections.IDictionary]$Sides, [string]$Solution, [string]$Name, [int]$Runs, [string]$OutDirectory) {
+    for ($round = 0; $round -le $Runs; $round++) {
+        $order = @('original', 'fork')
+        if ($round % 2 -eq 1) { $order = @('fork', 'original') }
+        foreach ($side in $order) {
+            $label = "$side round $round"
+            if ($round -eq 0) { $label += ' (warmup)' }
+            Write-Host $label
+            $output = Join-Path $OutDirectory "$side-round$round.json"
+            $exitCode = Invoke-Spike $Sides[$side] @('observe', $Solution, $output, $Name) (Join-Path $OutDirectory "$side-round$round.out.txt")
+            if ($exitCode -ne 0 -or -not (Test-Path -LiteralPath $output)) { throw "$label failed (exit code $exitCode); see $side-round$round.out.txt" }
+        }
+    }
+}
+
+# Runs a spike command with its output in a file and returns the exit code. Windows PowerShell 5.1 turns
+# redirected stderr of a native command into a terminating error under ErrorActionPreference=Stop, and a
+# failure scenario is expected to write there.
+function Invoke-Spike([string]$Dll, [string[]]$Arguments, [string]$OutputFile) {
+    $previous = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        & dotnet $Dll @Arguments 2>&1 | ForEach-Object { "$_" } | Out-File -LiteralPath $OutputFile -Encoding utf8
+        return $LASTEXITCODE
+    }
+    finally { $ErrorActionPreference = $previous }
+}
