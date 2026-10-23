@@ -187,8 +187,11 @@ public sealed class SolutionManager
     /// </summary>
     internal Action<string>? DuringContentReadForTests { get; set; }
 
-    /// <summary>Whether a fresh load starts <see cref="SearchIndexPrewarm"/>; <c>ROSLYN_MCP_SEARCH_PREWARM=0</c> turns it off.</summary>
-    internal bool SearchPrewarmEnabled { get; set; } = SearchIndexPrewarm.IsEnabledByEnvironment();
+    /// <summary>
+    /// Whether a fresh load starts <see cref="SearchIndexPrewarm"/>: <c>ROSLYN_MCP_SEARCH_PREWARM</c>, else the
+    /// <c>search-prewarm</c> key of RoslynMcp.jsonc, else on.
+    /// </summary>
+    internal bool SearchPrewarmEnabled { get; set; }
 
     /// <summary>The prewarm of the last fresh load, if one was started; it never faults.</summary>
     internal Task? SearchPrewarmTask { get; private set; }
@@ -208,6 +211,7 @@ public sealed class SolutionManager
         _logger = logger;
         _analyzerProvenanceCaptureService = analyzerProvenanceCaptureService;
         FileSettings = fileSettings ?? RoslynMcpFileSettings.Empty;
+        SearchPrewarmEnabled = SearchIndexPrewarm.IsEnabled(FileSettings.SearchPrewarm);
         _dirtySourcePaths = new ConcurrentDictionary<string, byte>(_pathComparer);
         _dirtyNonCSharpPaths = new ConcurrentDictionary<string, byte>(_pathComparer);
         _nonCSharpTexts = new Dictionary<string, SourceText>(_pathComparer);

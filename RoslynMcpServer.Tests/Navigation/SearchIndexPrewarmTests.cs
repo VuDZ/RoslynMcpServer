@@ -44,6 +44,20 @@ public sealed class SearchIndexPrewarmTests
     }
 
     [Fact]
+    public void Without_the_environment_variable_the_file_setting_decides_and_the_default_is_on()
+    {
+        // The variable is process-wide; a test run that sets it checks the file-setting path elsewhere.
+        if (Environment.GetEnvironmentVariable(SearchIndexPrewarm.EnvironmentVariableName) is not null)
+        {
+            return;
+        }
+
+        Assert.True(SearchIndexPrewarm.IsEnabled(fileSetting: null));
+        Assert.True(SearchIndexPrewarm.IsEnabled(fileSetting: true));
+        Assert.False(SearchIndexPrewarm.IsEnabled(fileSetting: false));
+    }
+
+    [Fact]
     public async Task Fresh_load_prewarms_and_a_later_search_finds_the_same_declarations()
     {
         await using var project = await TempProject.CreateAsync();

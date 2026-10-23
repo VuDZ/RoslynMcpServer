@@ -21,10 +21,19 @@ internal static class SearchIndexPrewarm
     /// <summary>Environment variable that turns the prewarm off when set to 0 or false.</summary>
     public const string EnvironmentVariableName = "ROSLYN_MCP_SEARCH_PREWARM";
 
-    public static bool IsEnabledByEnvironment()
+    /// <summary>
+    /// The environment variable wins over the <c>search-prewarm</c> key of RoslynMcp.jsonc, as for max-results;
+    /// with neither set the prewarm is on. It measured no slowdown of a search right after the load.
+    /// </summary>
+    public static bool IsEnabled(bool? fileSetting)
     {
         var value = Environment.GetEnvironmentVariable(EnvironmentVariableName);
-        return value is null || !(value == "0" || string.Equals(value, "false", StringComparison.OrdinalIgnoreCase));
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            return !(value.Trim() == "0" || string.Equals(value.Trim(), "false", StringComparison.OrdinalIgnoreCase));
+        }
+
+        return fileSetting ?? true;
     }
 
     /// <summary>Never throws: the outcome, including cancellation and failure, goes to one log line.</summary>

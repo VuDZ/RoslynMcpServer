@@ -9,6 +9,8 @@
   // "target-framework": "net10.0",
   // "max-results": 50,
   // "preview": false,
+  // Background index prewarm after a load; ROSLYN_MCP_SEARCH_PREWARM=0 also turns it off.
+  // "search-prewarm": true,
   // "ripgrep-path": "rg",
 
   // Drop-in plugins/<id>/ next to the server works without this key.

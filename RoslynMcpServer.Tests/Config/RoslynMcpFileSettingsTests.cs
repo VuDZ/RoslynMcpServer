@@ -174,6 +174,36 @@ public sealed class RoslynMcpFileSettingsTests : IDisposable
     }
 
     [Fact]
+    public void LoadFromDirectories_search_prewarm_is_known_and_cwd_overrides_exe()
+    {
+        File.WriteAllText(
+            Path.Combine(_exeDir, RoslynMcpFileSettings.FileName),
+            """{ "search-prewarm": true }""");
+        File.WriteAllText(
+            Path.Combine(_cwdDir, RoslynMcpFileSettings.FileName),
+            """{ "search-prewarm": false }""");
+
+        var settings = RoslynMcpFileSettings.LoadFromDirectories(_exeDir, _cwdDir);
+
+        Assert.False(settings.SearchPrewarm);
+        Assert.Empty(settings.UnknownKeys);
+        Assert.Empty(settings.ParseFailures);
+    }
+
+    [Fact]
+    public void LoadFromDirectories_search_prewarm_of_another_type_names_the_key_in_the_failure()
+    {
+        File.WriteAllText(
+            Path.Combine(_cwdDir, RoslynMcpFileSettings.FileName),
+            """{ "search-prewarm": "off" }""");
+
+        var settings = RoslynMcpFileSettings.LoadFromDirectories(_exeDir, _cwdDir);
+
+        Assert.Null(settings.SearchPrewarm);
+        Assert.Contains(settings.ParseFailures, failure => failure.Message == "search-prewarm must be a boolean.");
+    }
+
+    [Fact]
     public void LoadFromDirectories_no_plugins_key_yields_no_explicit_paths()
     {
         File.WriteAllText(

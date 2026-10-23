@@ -10,7 +10,7 @@ Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into a
 
 ### v1.5.15
 
-- After a fresh `load_workspace`, the server builds or validates the syntax indexes of every project in the background, the index part of a first name-based search without its compilation, so a search that comes later finds them ready. A search during the prewarm shares Roslyn's per-document work with it. Reload, `reset_workspace` and a workspace change cancel it; its outcome goes to one `workspace_search_prewarm` log line and never to tool responses. `ROSLYN_MCP_SEARCH_PREWARM=0` turns it off. Measurement scripts gained a pause before the first search and an on/off comparison.
+- After a fresh `load_workspace`, the server builds or validates the syntax indexes of every project in the background, the index part of a first name-based search without its compilation, so a search that comes later finds them ready. A search during the prewarm shares Roslyn's per-document work with it. Reload, `reset_workspace` and a workspace change cancel it; its outcome goes to one `workspace_search_prewarm` log line and never to tool responses. It is on by default; `ROSLYN_MCP_SEARCH_PREWARM=0` or `"search-prewarm": false` in `RoslynMcp.jsonc` turns it off, and the variable wins. Measured: with 30 s between load and search the first search took 0.50–0.55 of the time without prewarm (office solution 13.8 → 6.9 s), and a search right after the load took 0.72–0.75, never longer. Measurement scripts gained a pause before the first search and an on/off comparison.
 
 ### v1.5.14
 
