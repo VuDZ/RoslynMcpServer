@@ -11,7 +11,10 @@
 - Статус: **implemented, 2026-10-23.** Сервер 1.5.13, решение владельца.
   - Main CI 1386/0/0, AnalyzerLifecycle 13/0/0.
   - Мутационная проверка интеграционного теста пройдена.
-  - Офисный контроль и независимое ревью pending; не accepted.
+  - Офисный контроль 1.5.13 пройден 2026-10-23: 76 документов в 2 отсутствующих
+    файлах получили быстрый loader; первый поиск при workstation GC 31,4 → 19,5 с
+    ([офисный прогон](evidence/office-first-search-2026-10-23.md#второй-прогон-сервер-1513-17071718)).
+  - Независимое ревью pending; не accepted.
 - Depends on: [task-09](task-09-first-search-io-and-private-project-profile-hi.md),
   [task-10](task-10-first-search-exception-and-trace-diagnostics-med.md).
 - Модель, реализовавшая задачу: Claude Opus 5.5.

@@ -147,7 +147,7 @@ function Write-Comparison([string]$Root, [string[]]$Modes) {
     $md.Add('')
     $md.Add('Medians over measured fresh-process runs of each mode (warmup, RAM hit and trace runs excluded). Ratios compare with the last mode.')
     $md.Add('')
-    $md.Add('| GC mode | runtime GC in search log | runs | load client ms | first find client ms | ratio | first search GC pause ms | WS after find MB | ratio |')
+    $md.Add('| GC mode | runtime GC in search log | runs | load client ms | first find client ms | ratio | first search GC pause ms | WS after load MB | ratio |')
     $md.Add('|---|---|---|---|---|---|---|---|---|')
     $rows = @(foreach ($mode in $Modes) {
         $document = Get-Content -LiteralPath (Join-Path (Join-Path $Root $mode) 'runs.json') -Raw | ConvertFrom-Json
@@ -159,7 +159,8 @@ function Write-Comparison([string]$Root, [string[]]$Modes) {
             LoadMs = Get-Median @($measured | ForEach-Object { $_.load.clientMs })
             FindMs = Get-Median @($measured | ForEach-Object { $_.find.clientMs })
             PauseMs = Get-Median @($searches | ForEach-Object { $_.gcPauseMs })
-            WorkingSetMb = Get-Median @($measured | ForEach-Object { $_.find.workingSetMb })
+            # The load log line is the only working-set record; nothing measures it after the search.
+            WorkingSetMb = Get-Median @($measured | ForEach-Object { $_.load.workingSetMb })
         }
     })
     $base = $rows[-1]

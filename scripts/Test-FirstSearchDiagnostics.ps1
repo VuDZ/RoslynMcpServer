@@ -24,8 +24,8 @@ function New-Run([string]$Kind, [double]$LoadMs, [double]$FindMs, $ServerGc, [do
     }
     return [ordered]@{
         kind = $Kind
-        load = [ordered]@{ state = 'ok'; clientMs = $LoadMs }
-        find = [ordered]@{ state = 'ok'; clientMs = $FindMs; workingSetMb = $WorkingSetMb; searchSummaries = @($search) }
+        load = [ordered]@{ state = 'ok'; clientMs = $LoadMs; workingSetMb = $WorkingSetMb }
+        find = [ordered]@{ state = 'ok'; clientMs = $FindMs; searchSummaries = @($search) }
     }
 }
 
