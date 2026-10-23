@@ -25,6 +25,7 @@
 
 ## Задачи
 
+- [task-00a — Временная шкала загрузки до форка](task-00a-load-timeline-before-fork-med.md) — **planned, 2026-10-23**, решение владельца: binlog обычной загрузки показывает, где ~18 с из 43 с открытия офисного решения проходят вне сборок и evaluation; решает, нужен ли форк.
 - [task-00 — Воспроизводимый форк без изменения поведения](task-00-buildhost-fork-baseline-hi.md) — **planned**.
 - [task-01 — Тайминги запросов и фактический load graph](task-01-buildhost-graph-and-timings-hi.md) — **planned**, после task-00.
 - [task-02 — Направленный эксперимент оптимизации](task-02-buildhost-optimization-spike-hi.md) — **planned**, после task-01.

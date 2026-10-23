@@ -13,7 +13,10 @@ namespace ParallelSearch;
 /// </summary>
 internal static class SolutionLoader
 {
-    public static async Task<(Solution Solution, object Load)> LoadAsync(string solutionPath)
+    /// <param name="msbuildLogger">Optional MSBuild logger for the design-time builds, such as a binary logger.</param>
+    public static async Task<(Solution Solution, object Load)> LoadAsync(
+        string solutionPath,
+        Microsoft.Build.Framework.ILogger? msbuildLogger = null)
     {
         var host = MefHostServices.Create(new[]
         {
@@ -33,7 +36,7 @@ internal static class SolutionLoader
             }
         });
         var watch = Stopwatch.StartNew();
-        var solution = await workspace.OpenSolutionAsync(solutionPath).ConfigureAwait(false);
+        var solution = await workspace.OpenSolutionAsync(solutionPath, msbuildLogger: msbuildLogger).ConfigureAwait(false);
         watch.Stop();
         return (solution, new
         {
