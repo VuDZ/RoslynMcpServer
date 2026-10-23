@@ -546,6 +546,26 @@ function Format-SearchSummaryLine($Summary) {
     return $line + '.'
 }
 
+# Roslyn's index cache of this solution from any RoslynMcpServer install (server 1.5.14+), before the runs:
+# folders <exe>-<path checksum>\<solution file, first 20 chars>-<path checksum>. With a cache the warmup run
+# is already warm, so the report says whether one existed.
+function Get-IndexCacheState([string]$SolutionPath) {
+    $root = Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) (Join-Path 'Microsoft' (Join-Path 'VisualStudio' (Join-Path 'Roslyn' 'Cache')))
+    $leaf = Split-Path $SolutionPath -Leaf
+    $folders = @()
+    if (Test-Path -LiteralPath $root) {
+        $folders = @(Get-ChildItem -LiteralPath $root -Directory | Where-Object { $_.Name -like 'RoslynMcpServer*' } | ForEach-Object {
+            Get-ChildItem -LiteralPath $_.FullName -Directory | Where-Object {
+                $cut = $_.Name.LastIndexOf('-')
+                $cut -gt 0 -and $leaf.StartsWith($_.Name.Substring(0, $cut), [StringComparison]::OrdinalIgnoreCase)
+            }
+        })
+    }
+    $bytes = 0L
+    foreach ($folder in $folders) { $bytes += [long](Get-ChildItem -LiteralPath $folder.FullName -Recurse -File | Measure-Object -Property Length -Sum).Sum }
+    return "$($folders.Count) folders, $([Math]::Round($bytes / 1MB, 1)) MB"
+}
+
 # Server 1.5.13+ gives documents missing on disk a loader without Roslyn's one-second retries.
 function Format-MissingSourceFilesLines($Record) {
     if ($null -eq $Record) {
@@ -640,6 +660,7 @@ if ($AffinityCount -gt 0) {
 }
 
 $redactionPairs = Get-RedactionPairs $workspaceRoot (Split-Path $PSScriptRoot -Parent)
+$indexCacheBefore = Get-IndexCacheState $Workspace
 $records = New-Object Collections.Generic.List[object]
 $totalRuns = $Runs
 if ($TracerExe) { $totalRuns = $Runs + 1 }
@@ -780,6 +801,8 @@ $environment = [ordered]@{
     antivirus = ($antivirus -join ', ')
     # Overrides the server's runtimeconfig; the search lines show the mode the runtime applied.
     dotnetGcServer = $(if ($null -eq $env:DOTNET_gcServer) { '(unset)' } else { $env:DOTNET_gcServer })
+    indexCacheBefore = $indexCacheBefore
+    indexCacheAfter = Get-IndexCacheState $Workspace
     affinityCount = $AffinityCount
     workspace = Get-RedactedText $Workspace
     configuration = $Configuration
