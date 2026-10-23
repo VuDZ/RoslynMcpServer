@@ -26,7 +26,7 @@
 ## Задачи
 
 - [task-00a — Временная шкала загрузки до форка](task-00a-load-timeline-before-fork-med.md) — **in progress, 2026-10-23**, решение владельца. Roslyn.slnx: 23 из 40 с binlog — вне сборок; ~20 с приходятся на промежутки перед первой сборкой каждого проекта и следуют за стоимостью evaluation (r = 0,67). Кандидат для форка — параллельная предварительная evaluation ([отчёт](evidence/task-00a-load-timeline.md)); офисная шкала pending.
-- [task-00 — Воспроизводимый форк без изменения поведения](task-00-buildhost-fork-baseline-hi.md) — **in progress, 2026-10-24**: форк в `forks/roslyn-buildhost` (вариант A по решению владельца, стиль Roslyn); identical на Roslyn.slnx (Windows, 434 проекта, загрузка ×0,999) и на офисном решении (142 проекта, загрузка ×1,001); отказные сценарии локально совпадают (отмена, убийство host, битые проекты, без перехода на оригинал), Windows-прогон сценариев и ревью pending ([отчёт](evidence/task-00-fork-baseline.md)).
+- [task-00 — Воспроизводимый форк без изменения поведения](task-00-buildhost-fork-baseline-hi.md) — **in progress, 2026-10-24**: форк в `forks/roslyn-buildhost` (вариант A по решению владельца, стиль Roslyn); identical на Roslyn.slnx (Windows, 434 проекта, загрузка ×0,999) и на офисном решении (142 проекта, загрузка ×1,001); отказные сценарии совпадают на Linux и Windows (отмена, убийство host, битые проекты, без перехода на оригинал); независимое ревью pending ([отчёт](evidence/task-00-fork-baseline.md)).
 - [task-01 — Тайминги запросов и фактический load graph](task-01-buildhost-graph-and-timings-hi.md) — **planned**, после task-00.
 - [task-02 — Направленный эксперимент оптимизации](task-02-buildhost-optimization-spike-hi.md) — **planned**, после task-01.
 
