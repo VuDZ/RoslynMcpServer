@@ -6,7 +6,7 @@ $parseTokens = $null
 $parseErrors = $null
 $ast = [Management.Automation.Language.Parser]::ParseFile($measurementScript, [ref]$parseTokens, [ref]$parseErrors)
 if ($parseErrors.Count -ne 0) { throw ($parseErrors | Out-String) }
-foreach ($name in @('Get-RedactedText', 'ConvertTo-LogEntries', 'Get-StageEstimate', 'Format-Ms', 'Format-SearchExceptionLines')) {
+foreach ($name in @('Get-RedactedText', 'ConvertTo-LogEntries', 'Get-StageEstimate', 'Format-Ms', 'Format-SearchSummaryLine', 'Format-SearchExceptionLines')) {
     $definition = $ast.Find({ param($node) $node -is [Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq $name }, $true)
     . ([scriptblock]::Create($definition.Extent.Text))
 }
@@ -25,7 +25,7 @@ function New-Line([int]$Milliseconds, [string]$Message, [string]$Session = '[cli
 
 $dt = @{ status = 'incomplete'; projects = @(@{ project = "$workspaceRoot\App.csproj"; totalMs = 3000 }); replayFailures = @('replay_failed:1:InvalidDataException') } | ConvertTo-Json -Compress -Depth 5
 $project = @{ searchId = 'first'; project = "$workspaceRoot\App.csproj"; name = 'App'; documents = 10; elapsedMs = 1000; outcome = 'success'; matches = 4 } | ConvertTo-Json -Compress
-$summary = @{ searchId = 'first'; elapsedMs = 1010; projects = 1; completedProjects = 1; outcome = 'success' } | ConvertTo-Json -Compress
+$summary = @{ searchId = 'first'; elapsedMs = 1010; projects = 1; completedProjects = 1; outcome = 'success'; serverGc = $true; gcPauseMs = 120.4; gcCollections = @(3, 1, 0) } | ConvertTo-Json -Compress
 $exceptions = @{
     searchId = 'first'; total = 7; attributed = 6; unattributed = 1; distinctGroups = 2; droppedGroups = 0
     groups = @(
@@ -64,6 +64,9 @@ $exceptionLines = @(Format-SearchExceptionLines $find.searchExceptions)
 Assert-Equal 'Search first first-chance exceptions: 7 total, 6 in searched projects, 1 elsewhere in the process; 2 groups, 0 dropped.' $exceptionLines[0] 'Exception headline'
 Assert-Equal "| ``System.IO.IOException`` | ``<repo>\App.csproj`` | The process cannot access the file '<repo>\obj\A\|B.g.cs' | 6 | 12 |" $exceptionLines[4] 'Attributed exception row'
 Assert-Equal '| `System.InvalidOperationException` | (none) |  | 1 | 3 |' $exceptionLines[5] 'Unattributed exception row'
+Assert-Equal 'Search first: success, 1010 ms, 1/1 projects completed; server GC, pauses 120 ms, collections gen0/1/2 3/1/0.' (Format-SearchSummaryLine $find.searchSummaries[0]) 'Search line with GC'
+$oldSummary = '{"searchId":"old","elapsedMs":5,"projects":2,"completedProjects":2,"outcome":"success"}' | ConvertFrom-Json
+Assert-Equal 'Search old: success, 5 ms, 2/2 projects completed.' (Format-SearchSummaryLine $oldSummary) 'Search line before 1.5.12'
 $oldServer = @(Format-SearchExceptionLines @())
 Assert-Equal 'Search exception summary unavailable: server before 1.5.11 or no workspace_search_exceptions record.' $oldServer[0] 'Old server message'
 $ram = Get-StageEstimate $entries 4
@@ -72,4 +75,4 @@ Assert-Equal 0 $ram.searchProjects.Count 'RAM hit must not inherit search timing
 $missing = Get-StageEstimate $entries 99
 Assert-Equal $null $missing.designTime 'Missing record stays unavailable'
 Assert-Equal $null $missing.searchOutsideLoopMs 'Missing search stays unavailable'
-Write-Output 'PASS: session/request isolation, partial replay, project rows, path redaction, search remainder, search exceptions and missing records.'
+Write-Output 'PASS: session/request isolation, partial replay, project rows, path redaction, search remainder, search GC, search exceptions and missing records.'

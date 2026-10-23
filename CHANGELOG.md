@@ -8,6 +8,10 @@ Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into a
 - `find_symbol_definition` and `find_symbol_references` accept `filePath` + `line` + `column` without `symbolName`, using the existing positional symbol resolver. Name-based search and automatic column selection still require `symbolName`.
 - `find_symbol_definition` accepts optional `preview`: source text is appended to each definition location, capped at 400 characters, including overflow chunks. Explicit `preview` overrides the JSONC setting; otherwise the default is false.
 
+### v1.5.12
+
+- The server runs with server GC (DATAS, the .NET 10 default). On Roslyn.slnx, GC pauses of the first name-based search fell from 8 s to 2 s and load plus first search took 18% less, for 14–19% more working set. `DOTNET_gcServer=0` in the server's environment restores workstation GC. `workspace_search_summary` log lines record the GC mode, pauses and collection counts of each search; tool responses are unchanged.
+
 ### v1.5.11
 
 - Name-based declaration searches log a `workspace_search_exceptions` line: first-chance exceptions raised during the search, grouped by type, searched project and file (or I/O message), with counts and the offset of the first occurrence. Roslyn retries an unreadable document six times with 200 ms pauses and returns no error, so these reads were invisible before. Exceptions raised outside the search's own flow are counted without a project. No stack traces or file contents are logged; tool responses are unchanged.

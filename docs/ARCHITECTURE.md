@@ -170,7 +170,7 @@ Prefer cancellation-aware async I/O, minimal diffs, and deterministic helper log
 
 ## Deployment and compatibility
 
-The executable targets .NET 10 and is published self-contained for the RIDs declared in `RoslynMcpServer.csproj`. Supported release platforms are `win-x64` and `linux-x64`; the other RIDs still build and are not supported ([linux-x64 support](archive/linux-x64-support/README.md)). `PublishReadyToRun` is enabled and `PublishSingleFile` is disabled.
+The executable targets .NET 10 and is published self-contained for the RIDs declared in `RoslynMcpServer.csproj`. Supported release platforms are `win-x64` and `linux-x64`; the other RIDs still build and are not supported ([linux-x64 support](archive/linux-x64-support/README.md)). `PublishReadyToRun` is enabled and `PublishSingleFile` is disabled. The server runs with server GC, which uses DATAS by default in .NET 10. On Roslyn.slnx, workstation GC collected every 48 MB of gen0 and promoted the retained syntax trees each time: about 200 gen1 collections and 8 s of pauses per first search. With server GC the pauses were 2 s, and load plus first search took 18% less, for 14–19% more working set ([task-12](workspace-load-performance/epoch-0-stage-measurement/evidence/task-12-server-gc-first-search.md)). `DOTNET_gcServer=0` in the server's environment restores workstation GC without a rebuild. Each `workspace_search_summary` log line records the applied mode, the GC pauses and the collection counts during that search.
 
 This repository currently has no `global.json`; local SDK selection therefore follows the installed environment. Consumer repositories should normally pin the SDK they require.
 

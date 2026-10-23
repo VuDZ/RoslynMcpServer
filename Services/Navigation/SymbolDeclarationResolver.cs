@@ -2,6 +2,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.FindSymbols;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using System.Runtime;
 using System.Text.Json;
 
 namespace RoslynMcpServer.Services.Navigation;
@@ -216,6 +217,10 @@ internal static class SymbolDeclarationResolver
         var started = timeProvider.GetTimestamp();
         var completedProjects = 0;
         var outcome = "failure";
+        // Process-wide counters: concurrent work in the server adds to them. Under workstation GC the
+        // pauses took 40-46% of the first search on Roslyn.slnx, so the summary records them per search.
+        var gcCollectionsBefore = CountGcCollections();
+        var gcPauseBefore = GC.GetTotalPauseDuration();
         using var exceptions = new SearchExceptionRecorder();
         try
         {
@@ -282,7 +287,13 @@ internal static class SymbolDeclarationResolver
                 elapsedMs = timeProvider.GetElapsedTime(started).TotalMilliseconds,
                 projects = solution.ProjectIds.Count,
                 completedProjects,
+                serverGc = GCSettings.IsServerGC,
+                gcPauseMs = (GC.GetTotalPauseDuration() - gcPauseBefore).TotalMilliseconds,
+                gcCollections = CountGcCollections().Zip(gcCollectionsBefore, (after, before) => after - before).ToArray(),
             }));
         }
     }
+
+    private static int[] CountGcCollections() =>
+        Enumerable.Range(0, GC.MaxGeneration + 1).Select(GC.CollectionCount).ToArray();
 }

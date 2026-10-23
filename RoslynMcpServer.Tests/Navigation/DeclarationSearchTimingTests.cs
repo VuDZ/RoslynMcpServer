@@ -1,3 +1,4 @@
+using System.Runtime;
 using System.Text.Json;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.FindSymbols;
@@ -95,6 +96,23 @@ public sealed class DeclarationSearchTimingTests
         Assert.Equal(6, exceptions.RootElement.GetProperty("attributed").GetInt32());
     }
 
+    [Fact]
+    public async Task Summary_records_the_gc_mode_and_collections_during_the_search()
+    {
+        using var workspace = new AdhocWorkspace();
+        var solution = AddProject(workspace.CurrentSolution, "First");
+        var logger = new RecordingLogger();
+        await SymbolDeclarationResolver.ResolveDeclarationsAsync(
+            solution, "Widget", SymbolFilter.Type, logger, new CollectingTimeProvider());
+
+        using var summary = Parse(logger.Messages[^1], "workspace_search_summary ");
+        Assert.Equal(GCSettings.IsServerGC, summary.RootElement.GetProperty("serverGc").GetBoolean());
+        Assert.True(summary.RootElement.GetProperty("gcPauseMs").GetDouble() >= 0);
+        var collections = summary.RootElement.GetProperty("gcCollections").EnumerateArray().Select(item => item.GetInt32()).ToArray();
+        Assert.Equal(GC.MaxGeneration + 1, collections.Length);
+        Assert.True(collections[GC.MaxGeneration] >= 1, $"Forced full collections were not counted: {string.Join(", ", collections)}.");
+    }
+
     private static Solution AddProject(Solution solution, string name)
     {
         var projectId = ProjectId.CreateNewId();
@@ -116,6 +134,16 @@ public sealed class DeclarationSearchTimingTests
         public override long GetTimestamp() => Interlocked.Add(ref _timestamp, 10);
 
         private long _timestamp;
+    }
+
+    /// <summary>Forces a full collection on every timestamp, so collections happen inside the search window.</summary>
+    private sealed class CollectingTimeProvider : TimeProvider
+    {
+        public override long GetTimestamp()
+        {
+            GC.Collect();
+            return base.GetTimestamp();
+        }
     }
 
     /// <summary>Fails every read the way a locked or vanished file does; Roslyn retries it six times.</summary>

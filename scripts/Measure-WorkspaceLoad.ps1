@@ -486,6 +486,17 @@ function Format-Ms($Value) {
     return ([Math]::Round([double]$Value)).ToString([Globalization.CultureInfo]::InvariantCulture)
 }
 
+function Format-SearchSummaryLine($Summary) {
+    $line = "Search $($Summary.searchId): $($Summary.outcome), $(Format-Ms $Summary.elapsedMs) ms, $($Summary.completedProjects)/$($Summary.projects) projects completed"
+    # GC fields exist from server 1.5.12; the counters are process-wide, so concurrent work adds to them.
+    if ($Summary.PSObject.Properties['serverGc']) {
+        $gcMode = 'workstation'
+        if ($Summary.serverGc) { $gcMode = 'server' }
+        $line += "; $gcMode GC, pauses $(Format-Ms $Summary.gcPauseMs) ms, collections gen0/1/2 $(@($Summary.gcCollections) -join '/')"
+    }
+    return $line + '.'
+}
+
 function Format-SearchExceptionLines($Summaries) {
     $lines = New-Object Collections.Generic.List[string]
     if (@($Summaries).Count -eq 0) {
@@ -706,6 +717,8 @@ $environment = [ordered]@{
     ramGb = [Math]::Round($os.TotalVisibleMemorySize / 1MB, 1)
     dotnetSdks = ($sdks -join ', ')
     antivirus = ($antivirus -join ', ')
+    # Overrides the server's runtimeconfig; the search lines show the mode the runtime applied.
+    dotnetGcServer = $(if ($null -eq $env:DOTNET_gcServer) { '(unset)' } else { $env:DOTNET_gcServer })
     affinityCount = $AffinityCount
     workspace = '<repo>\' + (Split-Path $Workspace -Leaf)
     configuration = $Configuration
@@ -752,6 +765,10 @@ foreach ($field in @('clientMs', 'handlerMs', 'openMs', 'replayMs', 'postOpenMs'
 $finds = @($measured | Where-Object { $null -ne $_.find })
 if ($finds.Count -gt 0) {
     $md.Add('- first find_symbol_definition clientMs : ' + (Format-Ms (Get-Median @($finds | ForEach-Object { $_.find.clientMs }))))
+    $gcSearches = @($finds | ForEach-Object { @($_.find.searchSummaries) | Select-Object -First 1 } | Where-Object { $_.PSObject.Properties['gcPauseMs'] })
+    if ($gcSearches.Count -gt 0) {
+        $md.Add('- first search GC pause ms : ' + (Format-Ms (Get-Median @($gcSearches | ForEach-Object { $_.gcPauseMs }))))
+    }
 }
 $md.Add('- server startup to initialize response ms : ' + (Format-Ms (Get-Median @($measured | ForEach-Object { $_.startupMs }))))
 $md.Add('')
@@ -793,7 +810,7 @@ foreach ($r in $records) {
     $md.Add('')
     if ($null -ne $r.find -and $r.find.searchProjects.Count -gt 0) {
         foreach ($s in $r.find.searchSummaries) {
-            $md.Add("Search $($s.searchId): $($s.outcome), $(Format-Ms $s.elapsedMs) ms, $($s.completedProjects)/$($s.projects) projects completed.")
+            $md.Add((Format-SearchSummaryLine $s))
         }
         $md.Add("Handler time outside measured search loops: $(Format-Ms $r.find.searchOutsideLoopMs) ms (preparation, result formatting and other work).")
         $md.Add('')

@@ -14,13 +14,19 @@
     <PublishSelfContained>true</PublishSelfContained>
     <PublishSingleFile>false</PublishSingleFile>
     <PublishReadyToRun>true</PublishReadyToRun>
+    <!-- Server GC (with DATAS, the .NET 10 default) cut GC pauses of the first search on Roslyn.slnx
+         from 8 s to 2 s and load + first search by 18%, for 14-19% more working set
+         (docs/workspace-load-performance/epoch-0-stage-measurement/evidence/task-12-server-gc-first-search.md).
+         Workstation GC collected every 48 MB of gen0 and promoted the retained syntax trees each time.
+         DOTNET_gcServer=0 in the environment restores workstation GC without a rebuild. -->
+    <ServerGarbageCollection>true</ServerGarbageCollection>
     <!-- Set recommended package metadata -->
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageId>RoslynMcpServer</PackageId>
-    <Version>1.5.11</Version>
-    <AssemblyVersion>1.5.11.0</AssemblyVersion>
-    <FileVersion>1.5.11.0</FileVersion>
+    <Version>1.5.12</Version>
+    <AssemblyVersion>1.5.12.0</AssemblyVersion>
+    <FileVersion>1.5.12.0</FileVersion>
     <PackageTags>AI; MCP; server; stdio</PackageTags>
     <Description>An MCP server using the MCP C# SDK.</Description>
   </PropertyGroup>

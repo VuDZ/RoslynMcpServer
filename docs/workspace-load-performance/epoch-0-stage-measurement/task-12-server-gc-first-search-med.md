@@ -12,6 +12,9 @@
   self-checks PASS, численный go (server) на измеренном стенде; 44 Failure загрузки;
   независимое ревью, формальная приёмка и офисный контроль pending**
   ([отчёт и validation](evidence/task-12-server-gc-first-search.md)).
+  По решению владельца server GC включён в сервере 1.5.12 в research-ветке для офисного контроля.
+  Перенос в main — после офисного прогона, независимо от его результата
+  (см. «Включение в research»).
 - Depends on: [task-11](task-11-parallel-project-search-spike-hi.md).
 - Модель, реализовавшая задачу: Claude Opus 5.5.
 - Модели, проводившие ревью: —.
@@ -116,6 +119,37 @@ Production включается только после go.
 Оно сводится к `<ServerGarbageCollection>true</ServerGarbageCollection>`
 в `RoslynMcpServer.csproj`. После включения нужен офисный контроль: офисный стенд
 медленнее и на 6 ядрах, тогда как матрица идёт на 16 потоках.
+
+## Включение в research, 2026-10-23
+
+Решение владельца: включить в research-ветке и проверить на офисных машинах.
+Перенос в main — после офисного прогона, независимо от его результата.
+
+- `RoslynMcpServer.csproj`: `<ServerGarbageCollection>true</ServerGarbageCollection>`,
+  версия 1.5.12. `DOTNET_gcServer=0` в окружении сервера возвращает workstation GC
+  без пересборки: переменная окружения перекрывает runtimeconfig.
+  Это проверено на spike и на опубликованном сервере.
+- `workspace_search_summary` пишет `serverGc`, `gcPauseMs` и `gcCollections` за поиск.
+  Счётчики общие для процесса, поэтому параллельная работа сервера в них тоже попадает.
+- `Measure-WorkspaceLoad.ps1` показывает режим и паузы в строке поиска и медиану пауз.
+  Кроме того, он записывает значение `DOTNET_gcServer` в окружение отчёта.
+- `Invoke-FirstSearchDiagnostics.ps1 -GcModes 'server,workstation'` (по умолчанию)
+  прогоняет одну опубликованную сборку дважды: сначала server, затем workstation
+  через `DOTNET_gcServer=0`. Trace снимается только в первом проходе. Сводка
+  `comparison.md` ставит медианы рядом и показывает фактический режим из лога поиска.
+  Проходы идут последовательно, а не вперемешку. Поэтому дрейф офисной машины
+  (антивирус, кеш диска) за время прогона попадает в разницу режимов.
+- Тесты:
+  - `ServerGcConfigurationTests` проверяет `System.GC.Server` в runtimeconfig сервера;
+  - `DeclarationSearchTimingTests` проверяет поля GC сводки поиска;
+  - `scripts/Test-MeasureWorkspaceLoad.ps1` проверяет строку поиска с GC и без него;
+  - `scripts/Test-FirstSearchDiagnostics.ps1` проверяет `comparison.md`.
+
+Офисный запуск, из обновлённой ветки:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\Invoke-FirstSearchDiagnostics.ps1 -Workspace <путь>\App.sln -SymbolName MainViewModel -Platform x64
+```
 
 ## Запуск
 
