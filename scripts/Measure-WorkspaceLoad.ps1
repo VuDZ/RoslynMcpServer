@@ -361,7 +361,7 @@ function Get-StageEstimate($Entries, [int]$RequestId) {
         responseMs = $null; projects = $null; diagLines = $null; workingSetMb = $null
         captureStatus = $null; msbuildFailures = 0; msbuildWarnings = 0; watcherLines = 0
         designTime = $null; searchProjects = @(); searchSummaries = @(); searchOutsideLoopMs = $null
-        searchExceptions = @()
+        searchExceptions = @(); missingSourceFiles = $null
     }
     $start = -1
     for ($i = 0; $i -lt $Entries.Count; $i++) {
@@ -373,12 +373,13 @@ function Get-StageEstimate($Entries, [int]$RequestId) {
     for ($i = $start + 1; $i -lt $Entries.Count; $i++) {
         $e = $Entries[$i]
         if ($e.Message -match '^MCP \u2190 request id=') { break }
-        if ($e.Message -match '^workspace_(?<kind>load_designtime|search_project|search_summary|search_exceptions) (?<json>\{.*\})$') {
+        if ($e.Message -match '^workspace_(?<kind>load_designtime|missing_source_files|search_project|search_summary|search_exceptions) (?<json>\{.*\})$') {
             $timingKind = $Matches['kind']
             try {
                 $timing = (Get-RedactedText $Matches['json']) | ConvertFrom-Json
                 switch ($timingKind) {
                     'load_designtime' { $result.designTime = $timing }
+                    'missing_source_files' { $result.missingSourceFiles = $timing }
                     'search_project' { $result.searchProjects += $timing }
                     'search_summary' { $result.searchSummaries += $timing }
                     'search_exceptions' { $result.searchExceptions += $timing }
@@ -543,6 +544,17 @@ function Format-SearchSummaryLine($Summary) {
         $line += "; $gcMode GC, pauses $(Format-Ms $Summary.gcPauseMs) ms, collections gen0/1/2 $(@($Summary.gcCollections) -join '/')"
     }
     return $line + '.'
+}
+
+# Server 1.5.13+ gives documents missing on disk a loader without Roslyn's one-second retries.
+function Format-MissingSourceFilesLines($Record) {
+    if ($null -eq $Record) {
+        return @('Missing source files at load: unavailable (server before 1.5.13 or no workspace_missing_source_files record).')
+    }
+    $lines = @("Missing source files at load: $($Record.documents) documents in $($Record.files) files; fast-fail loaders installed: $($Record.installed); scan $(Format-Ms $Record.elapsedMs) ms.")
+    $paths = @($Record.paths)
+    if ($paths.Count -gt 0) { $lines += 'Missing files (first 10): ' + (($paths | ForEach-Object { '`' + $_ + '`' }) -join ', ') }
+    return $lines
 }
 
 function Format-SearchExceptionLines($Summaries) {
@@ -856,6 +868,10 @@ foreach ($r in $records) {
         }
     }
     else { $md.Add('Design-time breakdown unavailable: no workspace_load_designtime record.') }
+    if ($null -ne $r.load) {
+        $md.Add('')
+        Format-MissingSourceFilesLines $r.load.missingSourceFiles | ForEach-Object { $md.Add($_) }
+    }
     $md.Add('')
     if ($null -ne $r.find -and $r.find.searchProjects.Count -gt 0) {
         foreach ($s in $r.find.searchSummaries) {

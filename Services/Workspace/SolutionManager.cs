@@ -2094,6 +2094,7 @@ public sealed class SolutionManager
                     properties,
                     cancellationToken)
                 .ConfigureAwait(false);
+            InstallMissingSourceFileLoaders(workspace, cancellationToken);
         }
         catch (Exception ex) when (WorkspaceLoadGuidance.IsRoslynMsBuildBuildHostFailure(ex))
         {
@@ -2148,6 +2149,30 @@ public sealed class SolutionManager
         LogProcessWorkingSet("workspace_load");
         return publishLoadedSolution ? _solution ?? workspace.CurrentSolution : workspace.CurrentSolution;
     }
+
+    /// <summary>
+    /// Gives documents whose files are missing a loader that fails without Roslyn's one-second retries.
+    /// Runs on the raw workspace before the first publication, so published snapshots and write candidates
+    /// share these loaders. A file that appears later is read from disk by the same loader and synced
+    /// by the disk watcher like any changed document.
+    /// </summary>
+    private void InstallMissingSourceFileLoaders(Microsoft.CodeAnalysis.Workspace workspace, CancellationToken cancellationToken)
+    {
+        var started = Stopwatch.GetTimestamp();
+        var missing = MissingSourceFiles.Find(workspace.CurrentSolution, cancellationToken);
+        var paths = missing.Select(document => document.Path).Distinct(StringComparer.Ordinal).ToArray();
+        var installed = missing.Count == 0 || MissingSourceFiles.TryInstallLoaders(workspace, missing);
+        _logger.LogInformation("workspace_missing_source_files {Json:l}", System.Text.Json.JsonSerializer.Serialize(new
+        {
+            documents = missing.Count,
+            files = paths.Length,
+            installed,
+            elapsedMs = Stopwatch.GetElapsedTime(started).TotalMilliseconds,
+            paths = paths.Take(MissingSourceFilesLogged),
+        }));
+    }
+
+    private const int MissingSourceFilesLogged = 10;
 
     private bool HasBlockingLoadFailure(Solution solution)
     {

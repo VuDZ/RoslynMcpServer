@@ -8,14 +8,17 @@
   или теряет текст файла, который появился после загрузки.
 - Необходимые способности: `семантика_roslyn_msbuild`, `синхронизация_с_диском`,
   `проектирование_проверок`.
-- Статус: **planned, 2026-10-23**, по решению владельца.
+- Статус: **implemented, 2026-10-23.** Сервер 1.5.13, решение владельца.
+  - Main CI 1386/0/0, AnalyzerLifecycle 13/0/0.
+  - Мутационная проверка интеграционного теста пройдена.
+  - Офисный контроль и независимое ревью pending; не accepted.
 - Depends on: [task-09](task-09-first-search-io-and-private-project-profile-hi.md),
   [task-10](task-10-first-search-exception-and-trace-diagnostics-med.md).
-- Модель, реализовавшая задачу: —.
+- Модель, реализовавшая задачу: Claude Opus 5.5.
 - Модели, проводившие ревью: —.
-- Количество раундов ревью: —.
+- Количество раундов ревью: 0.
 - Количество исправлений после ревью: —.
-- Отчёт о реализации, ревью и validation: —.
+- Отчёт о реализации, ревью и validation: [evidence/task-13-missing-source-files.md](evidence/task-13-missing-source-files.md).
 
 ## Вопрос
 
@@ -62,8 +65,9 @@
   на 50 тысячах документов.
 - Ответы инструментов, состав проектов и документов, пути и порядок результатов
   не меняются.
-- Форк Roslyn, reflection по внутренним членам и изменение повторов для BuildHost
-  вне задачи.
+- Форк Roslyn, reflection по внутренним (`internal`) членам и изменение повторов
+  для BuildHost вне задачи. Защищённые члены публичного `Workspace` — контракт Roslyn
+  для наследников; уточнение 2026-10-23, см. «Реализация».
 
 ## Реализация
 
@@ -72,13 +76,29 @@
   документы, чей `FilePath` не существует. Для них заменить loader через
   `Solution.WithDocumentTextLoader` и аналоги для additional/analyzer config documents,
   если они читаются тем же механизмом.
+
+  **Уточнение при реализации, 2026-10-23.** Замену нельзя делать в опубликованном
+  снимке. Инструменты пишут через `ApplySolutionChangesToDiskAsync` с кандидатом
+  от опубликованного снимка. Roslyn 5.9.0 `Workspace.ApplyChangedDocument` считает
+  документ изменённым по ссылке на источник текста, без сравнения содержимого
+  (`TextDocumentState.HasTextChanged`). `MSBuildWorkspace.ApplyDocumentTextChanged`
+  записал бы пустой текст на диск, то есть создал бы отсутствующий файл. Поэтому
+  loader меняется в самом `MSBuildWorkspace` сразу после открытия, до первой
+  публикации:
+  - используются защищённые `Workspace.OnDocumentTextLoaderChanged`,
+    `OnAdditionalDocumentTextLoaderChanged`, `OnAnalyzerConfigDocumentTextLoaderChanged`;
+  - вызов идёт через reflection, потому что у `MSBuildWorkspace` нет доступного
+    конструктора для наследника;
+  - если члены не найдены, loader не меняется, и лог пишет `installed: false`.
 - Новый loader при каждом вызове `LoadTextAndVersionAsync` проверяет существование
   файла:
   - файла нет — бросить `InvalidDataException` с текстом, которым Roslyn описывает
     отсутствующий файл. Roslyn сразу вернёт пустой текст с этим сообщением,
     без повторов: тот же итог, что сейчас после шести попыток;
   - файл появился — делегировать исходному `FileTextLoader` того же пути, кодировки
-    и checksum algorithm.
+    и checksum algorithm. Реализовано как новый `FileTextLoader(path, null)`: кодировка
+    проекта, которую мог передать MSBuildWorkspace, не публична, поэтому определение
+    идёт как у обычного `FileTextLoader`.
 - Если файл создан после загрузки, текст документа должен совпасть с диском после
   обычной синхронизации. Сейчас её делает `WorkspaceDocumentDiskSync` по событию
   watcher. Нужно проверить, что событие Created для известного пути классифицируется

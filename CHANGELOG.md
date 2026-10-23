@@ -8,6 +8,10 @@ Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into a
 - `find_symbol_definition` and `find_symbol_references` accept `filePath` + `line` + `column` without `symbolName`, using the existing positional symbol resolver. Name-based search and automatic column selection still require `symbolName`.
 - `find_symbol_definition` accepts optional `preview`: source text is appended to each definition location, capped at 400 characters, including overflow chunks. Explicit `preview` overrides the JSONC setting; otherwise the default is false.
 
+### v1.5.13
+
+- Documents whose files are missing at load, such as generated files of a native build that has not run, no longer cost about a second per read. Roslyn retries a missing file six times 200 ms apart and then uses empty text; the server now gives such documents the same empty text at once. In the office measurement this was 24 of 31 s of the first name-based search. A file that appears later is read from disk and synced as before, and tool writes never create the missing file. Each load logs a `workspace_missing_source_files` line with the counts and up to ten paths; tool responses are unchanged.
+
 ### v1.5.12
 
 - The server runs with server GC (DATAS, the .NET 10 default). On Roslyn.slnx, GC pauses of the first name-based search fell from 8 s to 2 s and load plus first search took 18% less, for 14–19% more working set. `DOTNET_gcServer=0` in the server's environment restores workstation GC. `workspace_search_summary` log lines record the GC mode, pauses and collection counts of each search; tool responses are unchanged.
