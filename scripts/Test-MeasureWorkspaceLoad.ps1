@@ -6,17 +6,55 @@ $parseTokens = $null
 $parseErrors = $null
 $ast = [Management.Automation.Language.Parser]::ParseFile($measurementScript, [ref]$parseTokens, [ref]$parseErrors)
 if ($parseErrors.Count -ne 0) { throw ($parseErrors | Out-String) }
-foreach ($name in @('Get-RedactedText', 'ConvertTo-LogEntries', 'Get-StageEstimate', 'Format-Ms', 'Format-SearchSummaryLine', 'Format-SearchExceptionLines')) {
+foreach ($name in @('Get-RedactionPairs', 'Get-RedactedText', 'Find-UnredactedPaths', 'ConvertTo-LogEntries', 'Get-StageEstimate', 'Format-Ms', 'Format-SearchSummaryLine', 'Format-SearchExceptionLines')) {
     $definition = $ast.Find({ param($node) $node -is [Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq $name }, $true)
     . ([scriptblock]::Create($definition.Extent.Text))
 }
 $pattern = $ast.Find({ param($node) $node -is [Management.Automation.Language.AssignmentStatementAst] -and $node.Left.Extent.Text -eq '$linePattern' }, $true)
 . ([scriptblock]::Create($pattern.Extent.Text))
 $workspaceRoot = 'C:\Measurement Fixture'
+# Not a Git folder: the workspace folder itself stands for the repository.
+$redactionPairs = Get-RedactionPairs $workspaceRoot 'C:\Tools\RoslynMcpServer'
 
 function Assert-Equal($Expected, $Actual, [string]$Label) {
     if ($Expected -ne $Actual) { throw "${Label}: expected '$Expected', got '$Actual'" }
 }
+
+# A solution deep in a monorepo: projects above its folder are still under the redacted Git root.
+$separator = [IO.Path]::DirectorySeparatorChar
+$repositoryRoot = Split-Path $PSScriptRoot -Parent
+$saved = $redactionPairs
+$redactionPairs = Get-RedactionPairs (Join-Path $repositoryRoot 'scripts') 'C:\Tools\RoslynMcpServer'
+Assert-Equal "<repo>${separator}samples${separator}App.csproj" (Get-RedactedText (Join-Path (Join-Path $repositoryRoot 'samples') 'App.csproj')) 'Git root above the workspace folder'
+$redactionPairs = $saved
+Assert-Equal '<server-repo>\artifacts\server\RoslynMcpServer.exe' (Get-RedactedText 'C:\Tools\RoslynMcpServer\artifacts\server\RoslynMcpServer.exe') 'Server checkout'
+
+$savedUser = $env:USERNAME
+try {
+    $env:USERNAME = 'tester'
+    Assert-Equal 'D:\home\<user>\packages\a.dll; testerish' (Get-RedactedText 'D:\home\tester\packages\a.dll; testerish') 'User name only as a path segment'
+}
+finally { $env:USERNAME = $savedUser }
+
+$scanDirectory = Join-Path ([IO.Path]::GetTempPath()) ('redaction-scan-' + [Guid]::NewGuid().ToString('N'))
+New-Item -ItemType Directory -Path $scanDirectory | Out-Null
+try {
+    [IO.File]::WriteAllText((Join-Path $scanDirectory 'runs.json'), '{"a":"C:\\repos\\mono\\App.csproj","b":"<repo>\\App.csproj"}')
+    $allowedPath = 'C:\Program Files\dotnet\sdk\10.0.402'
+    [IO.File]::WriteAllText((Join-Path $scanDirectory 'run-1-log.txt'),
+        "read \\fileserver\share\a.cs at 12:30; see https://example.org/x; <repo>\\src\\a.cs; cache a==\\sqlite3\\v2; sdk $allowedPath; json {""p"":""$($allowedPath.Replace('\', '\\'))""}")
+    [IO.File]::WriteAllText((Join-Path $scanDirectory 'trace.nettrace'), 'C:\binary\is\not\scanned')
+    $savedProgramFiles = $env:ProgramFiles
+    try {
+        $env:ProgramFiles = 'C:\Program Files'
+        $leftovers = @(Find-UnredactedPaths $scanDirectory | Sort-Object)
+    }
+    finally { $env:ProgramFiles = $savedProgramFiles }
+    Assert-Equal 2 $leftovers.Count "Unredacted paths found: $($leftovers -join '; ')"
+    Assert-Equal 'run-1-log.txt: \\fileserver\share\a.cs' $leftovers[0] 'UNC path'
+    Assert-Equal 'runs.json: C:\\repos\\mono\\App.csproj' $leftovers[1] 'JSON-escaped drive path'
+}
+finally { Remove-Item -LiteralPath $scanDirectory -Recurse -Force }
 
 function New-Line([int]$Milliseconds, [string]$Message, [string]$Session = '[cli-test]') {
     $stamp = ([DateTimeOffset]'2026-10-22T20:00:00+03:00').AddMilliseconds($Milliseconds)
@@ -75,4 +113,4 @@ Assert-Equal 0 $ram.searchProjects.Count 'RAM hit must not inherit search timing
 $missing = Get-StageEstimate $entries 99
 Assert-Equal $null $missing.designTime 'Missing record stays unavailable'
 Assert-Equal $null $missing.searchOutsideLoopMs 'Missing search stays unavailable'
-Write-Output 'PASS: session/request isolation, partial replay, project rows, path redaction, search remainder, search GC, search exceptions and missing records.'
+Write-Output 'PASS: session/request isolation, partial replay, project rows, path redaction (Git root, server checkout, user segment, leftover scan), search remainder, search GC, search exceptions and missing records.'

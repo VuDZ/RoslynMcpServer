@@ -19,8 +19,13 @@
     (type, searched project, file or I/O message, count); summary.md lists the largest groups.
 
     Output folder: summary.md, runs.json, and per-run redacted log excerpts and responses.
-    The workspace root is replaced with <repo>, the user profile with <user>, and the
+    The Git repository root of the workspace (or the workspace folder outside Git) is replaced
+    with <repo>, this server checkout with <server-repo>, the user profile, user name path
+    segments and DOMAIN\user with <user>, a custom NUGET_PACKAGES folder with <nuget>, and the
     machine name with <machine>. Environment variables and file contents are not written.
+    Afterwards the text files of the report are scanned for absolute paths that are still left
+    (outside Program Files and Windows) and the count is printed with examples. The .nettrace
+    file of a trace run cannot be redacted.
 
 .PARAMETER Workspace
     .sln, .slnx or .csproj to load.
@@ -119,22 +124,65 @@ New-Item -ItemType Directory -Force -Path $OutDirectory | Out-Null
 $logDirectory = Join-Path (Split-Path $ServerExe) 'logs'
 $workspaceRoot = Split-Path $Workspace
 $utf8NoBom = New-Object Text.UTF8Encoding($false)
+$redactionPairs = @()
+
+# The solution may sit deep inside a monorepo whose projects live above its folder, so the Git
+# repository root is redacted, not only the solution folder. Longer values go first: a repository
+# under the user profile must not be cut by the shorter profile replacement.
+function Get-RedactionPairs([string]$WorkspaceDirectory, [string]$ServerRepository) {
+    $repositoryRoot = $WorkspaceDirectory
+    try {
+        $topLevel = & git -C $WorkspaceDirectory rev-parse --show-toplevel 2>$null
+        if ($LASTEXITCODE -eq 0 -and $topLevel) { $repositoryRoot = [IO.Path]::GetFullPath(([string]$topLevel).Trim()) }
+    }
+    catch { }
+    $pairs = @(
+        @($repositoryRoot, '<repo>'),
+        @($WorkspaceDirectory, '<repo>'),
+        @($ServerRepository, '<server-repo>'),
+        @($env:NUGET_PACKAGES, '<nuget>'),
+        @($env:USERPROFILE, '<user>'),
+        @("$env:USERDOMAIN\$env:USERNAME", '<user>'),
+        @($env:COMPUTERNAME, '<machine>')
+    )
+    return @($pairs | Where-Object { -not [string]::IsNullOrEmpty($_[0]) -and $_[0] -ne '\' } |
+        Sort-Object { $_[0].Length } -Descending)
+}
 
 function Get-RedactedText([string]$Text) {
     if ([string]::IsNullOrEmpty($Text)) { return $Text }
-    $pairs = @(
-        @($workspaceRoot, '<repo>'),
-        @($env:USERPROFILE, '<user>'),
-        @($env:COMPUTERNAME, '<machine>')
-    )
-    foreach ($pair in $pairs) {
-        $value = $pair[0]
-        if ([string]::IsNullOrEmpty($value)) { continue }
+    foreach ($pair in $redactionPairs) {
+        $value = $pair[0].TrimEnd('\', '/')
         foreach ($variant in @($value, $value.Replace('\', '\\'), $value.Replace('\', '/'))) {
             $Text = [regex]::Replace($Text, [regex]::Escape($variant), $pair[1], 'IgnoreCase')
         }
     }
+    # Only as a whole path segment: a short user name also occurs inside unrelated words.
+    if ($env:USERNAME -and $env:USERNAME.Length -ge 2) {
+        $Text = [regex]::Replace($Text, '(?<=[\\/])' + [regex]::Escape($env:USERNAME) + '(?=[\\/])', '<user>', 'IgnoreCase')
+    }
     return $Text
+}
+
+# Absolute paths that survived redaction, outside Program Files and Windows, which name no user data.
+function Find-UnredactedPaths([string]$Directory) {
+    $allowedRoots = @($env:ProgramFiles, ${env:ProgramFiles(x86)}, $env:windir) | Where-Object { $_ } | ForEach-Object { $_.TrimEnd('\') + '\' }
+    # Logs embed JSON, so a path may appear with doubled backslashes in any file.
+    $allowed = @($allowedRoots | ForEach-Object { $_; $_.Replace('\', '\\') })
+    $found = New-Object Collections.Generic.List[string]
+    foreach ($file in @(Get-ChildItem -LiteralPath $Directory -File | Where-Object { $_.Extension -in '.md', '.txt', '.json' })) {
+        $text = [IO.File]::ReadAllText($file.FullName)
+        # Drive paths, and UNC paths in plain or JSON-escaped form (\\server or \\\\server). A UNC path
+        # starts a token; inside one (<repo>\\src, a==\\sqlite3) the backslashes are path separators.
+        $pattern = '(?<![A-Za-z])[A-Za-z]:[\\/][^\s"''<>|,;]*|(?<=^|[\s"''(\[])\\\\(?:\\\\)?[A-Za-z0-9._-]+\\[^\s"''<>|,;]*'
+        foreach ($match in [regex]::Matches($text, $pattern, 'Multiline')) {
+            # Match from the original text: the pattern stops at the space in "Program Files".
+            $rest = $text.Substring($match.Index)
+            if (@($allowed | Where-Object { $rest.StartsWith($_, [StringComparison]::OrdinalIgnoreCase) }).Count -gt 0) { continue }
+            $found.Add("$($file.Name): $($match.Value)")
+        }
+    }
+    return $found
 }
 
 function Get-LogOffsets {
@@ -579,6 +627,7 @@ if ($AffinityCount -gt 0) {
     $affinityMask = ([long]1 -shl $AffinityCount) - 1
 }
 
+$redactionPairs = Get-RedactionPairs $workspaceRoot (Split-Path $PSScriptRoot -Parent)
 $records = New-Object Collections.Generic.List[object]
 $totalRuns = $Runs
 if ($TracerExe) { $totalRuns = $Runs + 1 }
@@ -720,7 +769,7 @@ $environment = [ordered]@{
     # Overrides the server's runtimeconfig; the search lines show the mode the runtime applied.
     dotnetGcServer = $(if ($null -eq $env:DOTNET_gcServer) { '(unset)' } else { $env:DOTNET_gcServer })
     affinityCount = $AffinityCount
-    workspace = '<repo>\' + (Split-Path $Workspace -Leaf)
+    workspace = Get-RedactedText $Workspace
     configuration = $Configuration
     platform = $Platform
     targetFramework = $TargetFramework
@@ -862,4 +911,10 @@ $md.Add("- failed runs: $($failed.Count); leftover child processes killed: $(($r
 
 Write-Host ''
 Write-Host "Report: $OutDirectory"
+$leftovers = @(Find-UnredactedPaths $OutDirectory)
+if ($leftovers.Count -gt 0) {
+    Write-Warning "$($leftovers.Count) absolute paths were not redacted; review them before sending the report. Examples:"
+    $leftovers | Select-Object -Unique -First 10 | ForEach-Object { Write-Warning "  $_" }
+}
+else { Write-Host 'Redaction check: no absolute paths left in the text files (Program Files and Windows excepted).' }
 $md | Select-Object -Skip 1 | ForEach-Object { Write-Host $_ }
