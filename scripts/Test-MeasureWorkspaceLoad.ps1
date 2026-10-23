@@ -6,7 +6,7 @@ $parseTokens = $null
 $parseErrors = $null
 $ast = [Management.Automation.Language.Parser]::ParseFile($measurementScript, [ref]$parseTokens, [ref]$parseErrors)
 if ($parseErrors.Count -ne 0) { throw ($parseErrors | Out-String) }
-foreach ($name in @('Get-RedactionPairs', 'Get-RedactedText', 'Find-UnredactedPaths', 'ConvertTo-LogEntries', 'Get-StageEstimate', 'Format-Ms', 'Format-SearchSummaryLine', 'Format-MissingSourceFilesLines', 'Format-SearchExceptionLines')) {
+foreach ($name in @('Get-RedactionPairs', 'Get-RedactedText', 'Find-UnredactedPaths', 'ConvertTo-LogEntries', 'Get-StageEstimate', 'Format-Ms', 'Format-SearchSummaryLine', 'Format-MissingSourceFilesLines', 'Format-SearchPrewarmLine', 'Format-SearchExceptionLines')) {
     $definition = $ast.Find({ param($node) $node -is [Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq $name }, $true)
     . ([scriptblock]::Create($definition.Extent.Text))
 }
@@ -96,6 +96,12 @@ $missingLines = @(Format-MissingSourceFilesLines $load.missingSourceFiles)
 Assert-Equal 'Missing source files at load: 12 documents in 2 files; fast-fail loaders installed: True; scan 42 ms.' $missingLines[0] 'Missing source files headline'
 Assert-Equal 'Missing files (first 10): `<repo>\_generated\VersionInfo.cs`, `<repo>\_generated\net472\VersionInfo.cs`' $missingLines[1] 'Redacted missing paths'
 Assert-Equal 'Missing source files at load: unavailable (server before 1.5.13 or no workspace_missing_source_files record).' (@(Format-MissingSourceFilesLines $null))[0] 'Missing source files before 1.5.13'
+$prewarmRecord = [pscustomobject]@{
+    load = [pscustomobject]@{ searchPrewarm = $null }
+    find = [pscustomobject]@{ searchPrewarm = [pscustomobject]@{ outcome = 'success'; elapsedMs = 5432.4; projects = 142; completedProjects = 142 } }
+}
+Assert-Equal 'Search prewarm: success, 5432 ms, 142/142 projects.' (Format-SearchPrewarmLine $prewarmRecord) 'Prewarm ending in the find window'
+Assert-Equal 'Search prewarm: no record (server before 1.5.15, turned off, or still running when the run ended).' (Format-SearchPrewarmLine ([pscustomobject]@{ load = [pscustomobject]@{ searchPrewarm = $null }; find = $null })) 'No prewarm record'
 Assert-Equal 0 $load.searchProjects.Count 'Request boundary'
 $find = Get-StageEstimate $entries 3
 Assert-Equal 1 $find.searchProjects.Count 'Search row count'
@@ -119,4 +125,4 @@ Assert-Equal 0 $ram.searchProjects.Count 'RAM hit must not inherit search timing
 $missing = Get-StageEstimate $entries 99
 Assert-Equal $null $missing.designTime 'Missing record stays unavailable'
 Assert-Equal $null $missing.searchOutsideLoopMs 'Missing search stays unavailable'
-Write-Output 'PASS: session/request isolation, partial replay, project rows, path redaction (Git root, server checkout, user segment, leftover scan), missing source files, search remainder, search GC, search exceptions and missing records.'
+Write-Output 'PASS: session/request isolation, partial replay, project rows, path redaction (Git root, server checkout, user segment, leftover scan), missing source files, search prewarm, search remainder, search GC, search exceptions and missing records.'

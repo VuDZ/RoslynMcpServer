@@ -13,6 +13,7 @@ using Microsoft.Extensions.Logging;
 using RoslynMcpServer.Config;
 using RoslynMcpServer.Diagnostics;
 using RoslynMcpServer.Services.Models;
+using RoslynMcpServer.Services.Navigation;
 using Serilog;
 
 namespace RoslynMcpServer.Services.Workspace;
@@ -185,6 +186,12 @@ public sealed class SolutionManager
     /// the file is read. A newer event delivered here stays pending and is read again by the same flush.
     /// </summary>
     internal Action<string>? DuringContentReadForTests { get; set; }
+
+    /// <summary>Whether a fresh load starts <see cref="SearchIndexPrewarm"/>; <c>ROSLYN_MCP_SEARCH_PREWARM=0</c> turns it off.</summary>
+    internal bool SearchPrewarmEnabled { get; set; } = SearchIndexPrewarm.IsEnabledByEnvironment();
+
+    /// <summary>The prewarm of the last fresh load, if one was started; it never faults.</summary>
+    internal Task? SearchPrewarmTask { get; private set; }
 
     internal WorkspaceWriteResult? LastWriteResult { get; private set; }
 
@@ -743,6 +750,7 @@ public sealed class SolutionManager
         await _workspaceLock.WaitAsync(cancellationToken);
         try
         {
+            CancelSearchPrewarm();
             StopDiskWatcherUnderLock();
             _dirtySourcePaths.Clear();
             _dirtyNonCSharpPaths.Clear();
@@ -2034,6 +2042,7 @@ public sealed class SolutionManager
             return cached;
         }
 
+        CancelSearchPrewarm();
         StopDiskWatcherUnderLock();
         _workspace?.Dispose();
         _workspace = null;
@@ -2147,7 +2156,35 @@ public sealed class SolutionManager
             effectiveTargetFramework ?? "(default)",
             effectiveBuildArgs ?? "(none)");
         LogProcessWorkingSet("workspace_load");
+        if (publishLoadedSolution && _solution is not null)
+        {
+            StartSearchPrewarm(_solution);
+        }
+
         return publishLoadedSolution ? _solution ?? workspace.CurrentSolution : workspace.CurrentSolution;
+    }
+
+    /// <summary>
+    /// Starts <see cref="SearchIndexPrewarm"/> on a freshly published solution. Caller holds the workspace lock.
+    /// Later snapshots share the document states, so the indexes it builds serve them too.
+    /// </summary>
+    private void StartSearchPrewarm(Solution solution)
+    {
+        if (!SearchPrewarmEnabled)
+        {
+            return;
+        }
+
+        var cancellation = new CancellationTokenSource();
+        _searchPrewarmCancellation = cancellation;
+        SearchPrewarmTask = Task.Run(() => SearchIndexPrewarm.RunAsync(solution, _logger, cancellation.Token));
+    }
+
+    /// <summary>Stops the prewarm of the previous load; it must not keep a disposed workspace busy.</summary>
+    private void CancelSearchPrewarm()
+    {
+        _searchPrewarmCancellation?.Cancel();
+        _searchPrewarmCancellation = null;
     }
 
     /// <summary>
@@ -3094,4 +3131,5 @@ public sealed class SolutionManager
     private long _rawWorkspaceRevision;
     private string? _loadedPath;
     private volatile bool _workspaceLoadInProgress;
+    private CancellationTokenSource? _searchPrewarmCancellation;
 }

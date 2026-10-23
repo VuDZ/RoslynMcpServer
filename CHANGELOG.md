@@ -8,6 +8,10 @@ Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into a
 - `find_symbol_definition` and `find_symbol_references` accept `filePath` + `line` + `column` without `symbolName`, using the existing positional symbol resolver. Name-based search and automatic column selection still require `symbolName`.
 - `find_symbol_definition` accepts optional `preview`: source text is appended to each definition location, capped at 400 characters, including overflow chunks. Explicit `preview` overrides the JSONC setting; otherwise the default is false.
 
+### v1.5.15
+
+- After a fresh `load_workspace`, the server builds or validates the syntax indexes of every project in the background, the index part of a first name-based search without its compilation, so a search that comes later finds them ready. A search during the prewarm shares Roslyn's per-document work with it. Reload, `reset_workspace` and a workspace change cancel it; its outcome goes to one `workspace_search_prewarm` log line and never to tool responses. `ROSLYN_MCP_SEARCH_PREWARM=0` turns it off. Measurement scripts gained a pause before the first search and an on/off comparison.
+
 ### v1.5.14
 
 - Roslyn's persistent index storage works: the server ships the SQLite build Roslyn references (`SQLite3MC.PCLRaw.bundle` 2.3.5), so syntax indexes survive a server restart. On Roslyn.slnx a first search with a warm cache took 0.52 (name with a declaration) and 0.22 (absent name) of the cold time, with a third of the search memory; the first run after installation or after changes still indexes as before. Changed files are re-indexed by checksum. The cache lives in LocalApplicationData next to Visual Studio's Roslyn cache, per server path and solution file, and is not created for a project loaded without a solution; see [PRIVACY.md](PRIVACY.md#local-index-cache). An older server without SQLite started from the same path deletes this cache.

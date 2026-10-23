@@ -48,6 +48,10 @@
     ends when the server process exits, so the file also covers shutdown. Its times are reported
     separately and are not part of the medians. Requires -SymbolName.
 
+.PARAMETER FindDelaySeconds
+    Pause between load_workspace and the first find_symbol_definition, like an agent that reads code
+    before it searches. Server 1.5.15+ prewarms the search indexes in that time. Default 0.
+
 .PARAMETER Note
     Free text for the report: cold/warm cache, antivirus state, power plan.
 
@@ -87,6 +91,9 @@ param(
 
     [ValidateRange(0, 600)]
     [int]$PauseSeconds = 3,
+
+    [ValidateRange(0, 600)]
+    [int]$FindDelaySeconds = 0,
 
     [string]$Note = '',
 
@@ -361,7 +368,7 @@ function Get-StageEstimate($Entries, [int]$RequestId) {
         responseMs = $null; projects = $null; diagLines = $null; workingSetMb = $null
         captureStatus = $null; msbuildFailures = 0; msbuildWarnings = 0; watcherLines = 0
         designTime = $null; searchProjects = @(); searchSummaries = @(); searchOutsideLoopMs = $null
-        searchExceptions = @(); missingSourceFiles = $null
+        searchExceptions = @(); missingSourceFiles = $null; searchPrewarm = $null
     }
     $start = -1
     for ($i = 0; $i -lt $Entries.Count; $i++) {
@@ -373,13 +380,15 @@ function Get-StageEstimate($Entries, [int]$RequestId) {
     for ($i = $start + 1; $i -lt $Entries.Count; $i++) {
         $e = $Entries[$i]
         if ($e.Message -match '^MCP \u2190 request id=') { break }
-        if ($e.Message -match '^workspace_(?<kind>load_designtime|missing_source_files|search_project|search_summary|search_exceptions) (?<json>\{.*\})$') {
+        if ($e.Message -match '^workspace_(?<kind>load_designtime|missing_source_files|search_prewarm|search_project|search_summary|search_exceptions) (?<json>\{.*\})$') {
             $timingKind = $Matches['kind']
             try {
                 $timing = (Get-RedactedText $Matches['json']) | ConvertFrom-Json
                 switch ($timingKind) {
                     'load_designtime' { $result.designTime = $timing }
                     'missing_source_files' { $result.missingSourceFiles = $timing }
+                    # Logged when the background prewarm ends: during the load window or the first search.
+                    'search_prewarm' { $result.searchPrewarm = $timing }
                     'search_project' { $result.searchProjects += $timing }
                     'search_summary' { $result.searchSummaries += $timing }
                     'search_exceptions' { $result.searchExceptions += $timing }
@@ -566,6 +575,16 @@ function Get-IndexCacheState([string]$SolutionPath) {
     return "$($folders.Count) folders, $([Math]::Round($bytes / 1MB, 1)) MB"
 }
 
+# Server 1.5.15+ prewarms the search indexes after a load; the record can land in either request window.
+function Format-SearchPrewarmLine($Record) {
+    $prewarm = $null
+    foreach ($name in 'load', 'find') {
+        if ($Record.PSObject.Properties[$name] -and $null -ne $Record.$name -and $null -ne $Record.$name.searchPrewarm) { $prewarm = $Record.$name.searchPrewarm }
+    }
+    if ($null -eq $prewarm) { return 'Search prewarm: no record (server before 1.5.15, turned off, or still running when the run ended).' }
+    return "Search prewarm: $($prewarm.outcome), $(Format-Ms $prewarm.elapsedMs) ms, $($prewarm.completedProjects)/$($prewarm.projects) projects."
+}
+
 # Server 1.5.13+ gives documents missing on disk a loader without Roslyn's one-second retries.
 function Format-MissingSourceFilesLines($Record) {
     if ($null -eq $Record) {
@@ -716,6 +735,10 @@ for ($run = 1; $run -le $totalRuns; $run++) {
         Write-Host ("Run {0}/{1} : load_workspace {2} in {3} ms" -f $run, $totalRuns, $load.State, (Format-Ms $load.Ms))
 
         if ($SymbolName -and $load.State -eq 'ok') {
+            if ($FindDelaySeconds -gt 0) {
+                Write-Host "Run $run/$totalRuns : waiting $FindDelaySeconds s before the first search"
+                Start-Sleep -Seconds $FindDelaySeconds
+            }
             if ($record.kind -eq 'trace') {
                 Write-Host "Run $run/$totalRuns : attaching dotnet-trace"
                 $trace = Start-FirstSearchTrace $script:proc.Id (Join-Path $OutDirectory "run-$run-find.nettrace")
@@ -804,6 +827,8 @@ $environment = [ordered]@{
     indexCacheBefore = $indexCacheBefore
     indexCacheAfter = Get-IndexCacheState $Workspace
     affinityCount = $AffinityCount
+    findDelaySeconds = $FindDelaySeconds
+    searchPrewarmVariable = $(if ($null -eq $env:ROSLYN_MCP_SEARCH_PREWARM) { '(unset)' } else { $env:ROSLYN_MCP_SEARCH_PREWARM })
     workspace = Get-RedactedText $Workspace
     configuration = $Configuration
     platform = $Platform
@@ -894,6 +919,7 @@ foreach ($r in $records) {
     if ($null -ne $r.load) {
         $md.Add('')
         Format-MissingSourceFilesLines $r.load.missingSourceFiles | ForEach-Object { $md.Add($_) }
+        $md.Add((Format-SearchPrewarmLine $r))
     }
     $md.Add('')
     if ($null -ne $r.find -and $r.find.searchProjects.Count -gt 0) {

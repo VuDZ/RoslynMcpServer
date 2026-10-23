@@ -16,6 +16,11 @@ internal static class SolutionManagerTestFactory
             NullLogger<AnalyzerProvenanceCaptureService>.Instance,
             Options.Create(new AnalyzerProvenanceCaptureOptions()),
             TimeProvider.System);
-        return new SolutionManager(logger ?? NullLogger<SolutionManager>.Instance, capture, fileSettings);
+        // Background index prewarm stays off: it would add work and log lines to every loading test.
+        // SearchIndexPrewarmTests turn it on.
+        return new SolutionManager(logger ?? NullLogger<SolutionManager>.Instance, capture, fileSettings)
+        {
+            SearchPrewarmEnabled = false,
+        };
     }
 }
