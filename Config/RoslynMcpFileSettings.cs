@@ -19,6 +19,7 @@ public sealed class RoslynMcpFileSettings
         "target-framework",
         "max-results",
         "preview",
+        "search-prewarm",
         "ripgrep-path",
         "plugins",
     };
@@ -34,6 +35,7 @@ public sealed class RoslynMcpFileSettings
         targetFramework: null,
         maxResults: null,
         preview: null,
+        searchPrewarm: null,
         ripgrepPath: null,
         plugins: Array.Empty<string>(),
         unknownKeys: Array.Empty<string>(),
@@ -50,6 +52,7 @@ public sealed class RoslynMcpFileSettings
         string? targetFramework,
         int? maxResults,
         bool? preview,
+        bool? searchPrewarm,
         string? ripgrepPath,
         IReadOnlyList<string> plugins,
         IReadOnlyList<string> unknownKeys,
@@ -65,6 +68,7 @@ public sealed class RoslynMcpFileSettings
         TargetFramework = targetFramework;
         MaxResults = maxResults;
         Preview = preview;
+        SearchPrewarm = searchPrewarm;
         RipgrepPath = ripgrepPath;
         Plugins = plugins;
         UnknownKeys = unknownKeys;
@@ -84,6 +88,12 @@ public sealed class RoslynMcpFileSettings
     public string? TargetFramework { get; }
     public int? MaxResults { get; }
     public bool? Preview { get; }
+
+    /// <summary>
+    /// <c>search-prewarm</c>: background index prewarm after a load. <c>ROSLYN_MCP_SEARCH_PREWARM</c> wins;
+    /// with neither set the prewarm is on.
+    /// </summary>
+    public bool? SearchPrewarm { get; }
 
     /// <summary>Stored for stage 7; does not switch the default search engine by itself.</summary>
     public string? RipgrepPath { get; }
@@ -186,6 +196,7 @@ public sealed class RoslynMcpFileSettings
             targetFramework: merged.TargetFramework,
             maxResults: merged.MaxResults,
             preview: merged.Preview,
+            searchPrewarm: merged.SearchPrewarm,
             ripgrepPath: merged.RipgrepPath,
             plugins: merged.Plugins ?? Array.Empty<string>(),
             unknownKeys: merged.UnknownKeys,
@@ -225,7 +236,8 @@ public sealed class RoslynMcpFileSettings
             // Wholesale, not key by key: the cwd array replaces the exe array, and an empty cwd array
             // therefore means zero explicit paths instead of falling back to the exe entries.
             plugins: workingDirectory.Plugins ?? executable.Plugins,
-            unknownKeys: unknown);
+            unknownKeys: unknown,
+            searchPrewarm: workingDirectory.SearchPrewarm ?? executable.SearchPrewarm);
     }
 
     private static bool TryReadFile(string path, out PartialSettings settings, out string? error)
@@ -279,6 +291,7 @@ public sealed class RoslynMcpFileSettings
         string? targetFramework = null;
         int? maxResults = null;
         bool? preview = null;
+        bool? searchPrewarm = null;
         string? ripgrepPath = null;
         IReadOnlyList<string>? plugins = null;
         var unknown = new List<string>();
@@ -310,7 +323,10 @@ public sealed class RoslynMcpFileSettings
                     maxResults = ReadPositiveInt(property.Value);
                     break;
                 case "preview":
-                    preview = ReadBool(property.Value);
+                    preview = ReadBool(property.Value, name);
+                    break;
+                case "search-prewarm":
+                    searchPrewarm = ReadBool(property.Value, name);
                     break;
                 case "ripgrep-path":
                     ripgrepPath = ReadString(property.Value);
@@ -330,7 +346,8 @@ public sealed class RoslynMcpFileSettings
             preview,
             ripgrepPath,
             plugins,
-            unknown);
+            unknown,
+            searchPrewarm);
     }
 
     private static string? ReadString(JsonElement element)
@@ -401,7 +418,7 @@ public sealed class RoslynMcpFileSettings
         throw new JsonException("max-results must be a positive integer.");
     }
 
-    private static bool? ReadBool(JsonElement element)
+    private static bool? ReadBool(JsonElement element, string key)
     {
         if (element.ValueKind == JsonValueKind.Null)
         {
@@ -413,7 +430,7 @@ public sealed class RoslynMcpFileSettings
             return element.GetBoolean();
         }
 
-        throw new JsonException("preview must be a boolean.");
+        throw new JsonException($"{key} must be a boolean.");
     }
 
     private static void AddUnique(List<string> target, IReadOnlyList<string> source)
@@ -454,7 +471,8 @@ public sealed class RoslynMcpFileSettings
             bool? preview,
             string? ripgrepPath,
             IReadOnlyList<string>? plugins,
-            IReadOnlyList<string> unknownKeys)
+            IReadOnlyList<string> unknownKeys,
+            bool? searchPrewarm = null)
         {
             WorkspacePath = workspacePath;
             Configuration = configuration;
@@ -465,6 +483,7 @@ public sealed class RoslynMcpFileSettings
             RipgrepPath = ripgrepPath;
             Plugins = plugins;
             UnknownKeys = unknownKeys;
+            SearchPrewarm = searchPrewarm;
         }
 
         public string? WorkspacePath { get; }
@@ -473,6 +492,7 @@ public sealed class RoslynMcpFileSettings
         public string? TargetFramework { get; }
         public int? MaxResults { get; }
         public bool? Preview { get; }
+        public bool? SearchPrewarm { get; }
         public string? RipgrepPath { get; }
 
         /// <summary><see langword="null"/> when the file has no <c>plugins</c> key.</summary>

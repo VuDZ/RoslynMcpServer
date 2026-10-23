@@ -264,6 +264,7 @@ Policy summary (full text in the sample):
   - `ROSLYN_MCP_TOOL_PROFILE` — `full` (default) or `lite` (see **Tool profiles**).
   - `ROSLYN_MCP_TOOL_GROUPS` — comma-separated extra groups for `lite` at startup. Valid: `core`, `files`, `navigation`, `editing`, `decompile`, `nuget`, `project`, `runtime`, `operations` (see **Tool profiles**).
   - `ROSLYN_MCP_LOG_TOOL_OUTPUT=full` — verbose tool response logging.
+  - `ROSLYN_MCP_SEARCH_PREWARM=0` — turn off the background search-index prewarm after a load (1.5.15+, on by default; wins over `RoslynMcp.jsonc` `search-prewarm`). The prewarm logs one `workspace_search_prewarm` line and never changes tool responses.
   - `MCP_LOG_INCOMING_RPC=0` (disable incoming RPC logging).
   - `MCP_LOG_INCOMING_RPC_MAX_CHARS=<N>` (limit payload log length, `0` = unlimited).
 

@@ -11,11 +11,13 @@
        makes the measurement meaningless.
     2. Installs a pinned dotnet-trace into a local tool folder (not globally), unless -NoTrace or
        -TracerExe is given.
-    3. Runs Measure-WorkspaceLoad.ps1 from this tree once per GC mode: warmup, measured fresh-process
-       runs and a RAM hit; the first mode also gets one separate trace run of the first search.
-       Both modes use the same published server: it selects server GC in its runtimeconfig, and
-       DOTNET_gcServer=0 in the server's environment overrides that for the workstation pass.
-       comparison.md puts the medians of the modes side by side.
+    3. Runs Measure-WorkspaceLoad.ps1 from this tree once per variant: GC mode x search prewarm x
+       pause before the first search. Each pass has a warmup, measured fresh-process runs and a RAM
+       hit; the first pass also gets one separate trace run of the first search. All passes use the
+       same published server and differ only in its environment: DOTNET_gcServer=0 forces workstation
+       GC, ROSLYN_MCP_SEARCH_PREWARM=0 turns the index prewarm off (server 1.5.15+).
+       comparison.md puts the medians side by side; a prewarm-on row is compared with the prewarm-off
+       row of the same GC mode and pause.
 
     Nothing is sent anywhere and Cursor settings are not touched. The last lines name the folder
     with results and what to send.
@@ -27,8 +29,14 @@
     Type name for the first find_symbol_definition, for example MainViewModel.
 
 .PARAMETER GcModes
-    Comma-separated GC modes to measure, in this order: server, workstation. Default 'server,workstation'.
-    Server GC needs server 1.5.12 or later; a single mode skips the comparison.
+    Comma-separated GC modes: server, workstation. Default 'server' (server GC from 1.5.12).
+
+.PARAMETER PrewarmModes
+    Comma-separated: on, off. Default 'on,off'. 'off' sets ROSLYN_MCP_SEARCH_PREWARM=0.
+
+.PARAMETER FindDelays
+    Comma-separated seconds between load_workspace and the first search. Default '0,30': a search right
+    after the load, and one after the time an agent spends reading code.
 
 .PARAMETER TracerExe
     Existing dotnet-trace executable, for example a downloaded single-file dotnet-trace.exe.
@@ -63,7 +71,11 @@ param(
     [string]$Note = '',
 
     # A comma-separated string: powershell -File passes "a,b" as one string, not as an array.
-    [string]$GcModes = 'server,workstation',
+    [string]$GcModes = 'server',
+
+    [string]$PrewarmModes = 'on,off',
+
+    [string]$FindDelays = '0,30',
 
     [string]$TracerExe,
 
@@ -128,34 +140,48 @@ function Format-Value($Value, [int]$Digits = 0) {
     return ([Math]::Round([double]$Value, $Digits)).ToString([Globalization.CultureInfo]::InvariantCulture)
 }
 
-# Runs the measurement with DOTNET_gcServer set for the server process tree only; $null leaves the
-# server's runtimeconfig in charge.
-function Invoke-Measurement([hashtable]$Arguments, $GcServer) {
-    $saved = $env:DOTNET_gcServer
+function New-Variant([string]$Gc, [string]$Prewarm, [int]$Delay) {
+    return [pscustomobject]@{ Name = "$Gc-prewarm-$Prewarm-delay-$Delay"; Gc = $Gc; Prewarm = $Prewarm; Delay = $Delay }
+}
+
+# Runs the measurement with the variant's variables set for the server process tree only; $null leaves
+# the server's own default (server GC from its runtimeconfig, prewarm on).
+function Invoke-Measurement([hashtable]$Arguments, $Variant) {
+    $variables = [ordered]@{
+        DOTNET_gcServer = $(if ($Variant.Gc -eq 'workstation') { '0' } else { $null })
+        ROSLYN_MCP_SEARCH_PREWARM = $(if ($Variant.Prewarm -eq 'off') { '0' } else { $null })
+    }
+    $saved = @{}
+    foreach ($key in $variables.Keys) { $saved[$key] = [Environment]::GetEnvironmentVariable($key) }
     try {
-        [Environment]::SetEnvironmentVariable('DOTNET_gcServer', $GcServer)
+        foreach ($key in $variables.Keys) { [Environment]::SetEnvironmentVariable($key, $variables[$key]) }
         & (Join-Path $PSScriptRoot 'Measure-WorkspaceLoad.ps1') @Arguments
     }
     finally {
-        [Environment]::SetEnvironmentVariable('DOTNET_gcServer', $saved)
+        foreach ($key in $saved.Keys) { [Environment]::SetEnvironmentVariable($key, $saved[$key]) }
     }
 }
 
-function Write-Comparison([string]$Root, [string[]]$Modes) {
+function Write-Comparison([string]$Root, $Variants) {
     $md = New-Object Collections.Generic.List[string]
-    $md.Add('# GC mode comparison')
+    $md.Add('# Variant comparison')
     $md.Add('')
-    $md.Add('Medians over measured fresh-process runs of each mode (warmup, RAM hit and trace runs excluded). Ratios compare with the last mode.')
+    $md.Add('Medians over measured fresh-process runs of each variant (warmup, RAM hit and trace runs excluded). A prewarm-on ratio compares with the prewarm-off variant of the same GC mode and pause.')
     $md.Add('')
-    $md.Add('| GC mode | runtime GC in search log | runs | load client ms | first find client ms | ratio | first search GC pause ms | WS after load MB | ratio |')
+    $md.Add('| variant | runtime GC in search log | prewarm success | runs | load client ms | first find client ms | ratio | first search GC pause ms | WS after load MB |')
     $md.Add('|---|---|---|---|---|---|---|---|---|')
-    $rows = @(foreach ($mode in $Modes) {
-        $document = Get-Content -LiteralPath (Join-Path (Join-Path $Root $mode) 'runs.json') -Raw | ConvertFrom-Json
+    $rows = @(foreach ($variant in $Variants) {
+        $document = Get-Content -LiteralPath (Join-Path (Join-Path $Root $variant.Name) 'runs.json') -Raw | ConvertFrom-Json
         $measured = @($document.runs | Where-Object { $_.kind -eq 'measured' -and $null -ne $_.load -and $_.load.state -eq 'ok' -and $null -ne $_.find })
         $searches = @($measured | ForEach-Object { @($_.find.searchSummaries) | Select-Object -First 1 } | Where-Object { $null -ne $_ -and $_.PSObject.Properties['serverGc'] })
         $applied = @($searches | ForEach-Object { if ($_.serverGc) { 'server' } else { 'workstation' } } | Select-Object -Unique)
+        # The prewarm record lands in the load or the find window, whichever it ended in.
+        $prewarmed = @($measured | Where-Object {
+            $run = $_
+            @('load', 'find' | Where-Object { $run.$_.PSObject.Properties['searchPrewarm'] -and $null -ne $run.$_.searchPrewarm -and $run.$_.searchPrewarm.outcome -eq 'success' }).Count -gt 0
+        })
         [pscustomobject]@{
-            Mode = $mode; Applied = ($applied -join ', '); Runs = $measured.Count
+            Variant = $variant; Applied = ($applied -join ', '); Prewarmed = $prewarmed.Count; Runs = $measured.Count
             LoadMs = Get-Median @($measured | ForEach-Object { $_.load.clientMs })
             FindMs = Get-Median @($measured | ForEach-Object { $_.find.clientMs })
             PauseMs = Get-Median @($searches | ForEach-Object { $_.gcPauseMs })
@@ -163,16 +189,14 @@ function Write-Comparison([string]$Root, [string[]]$Modes) {
             WorkingSetMb = Get-Median @($measured | ForEach-Object { $_.load.workingSetMb })
         }
     })
-    $base = $rows[-1]
     foreach ($r in $rows) {
+        $base = @($rows | Where-Object { $_.Variant.Gc -eq $r.Variant.Gc -and $_.Variant.Delay -eq $r.Variant.Delay -and $_.Variant.Prewarm -eq 'off' }) | Select-Object -First 1
         $findRatio = $null
-        $wsRatio = $null
-        if ($base.FindMs) { $findRatio = $r.FindMs / $base.FindMs }
-        if ($base.WorkingSetMb) { $wsRatio = $r.WorkingSetMb / $base.WorkingSetMb }
+        if ($null -ne $base -and $base.FindMs) { $findRatio = $r.FindMs / $base.FindMs }
         $applied = $r.Applied
         if (-not $applied) { $applied = 'n/a (server before 1.5.12)' }
-        $md.Add(('| {0} | {1} | {2} | {3} | {4} | {5} | {6} | {7} | {8} |' -f $r.Mode, $applied, $r.Runs, (Format-Value $r.LoadMs),
-            (Format-Value $r.FindMs), (Format-Value $findRatio 3), (Format-Value $r.PauseMs), (Format-Value $r.WorkingSetMb), (Format-Value $wsRatio 3)))
+        $md.Add(('| {0} | {1} | {2}/{3} | {3} | {4} | {5} | {6} | {7} | {8} |' -f $r.Variant.Name, $applied, $r.Prewarmed, $r.Runs, (Format-Value $r.LoadMs),
+            (Format-Value $r.FindMs), (Format-Value $findRatio 3), (Format-Value $r.PauseMs), (Format-Value $r.WorkingSetMb)))
     }
     [IO.File]::WriteAllLines((Join-Path $Root 'comparison.md'), $md, (New-Object Text.UTF8Encoding($false)))
     $md | ForEach-Object { Write-Host $_ }
@@ -200,12 +224,13 @@ if (-not (Test-Path -LiteralPath $Workspace -PathType Leaf)) { throw "Workspace 
 if ($null -eq (Get-Command dotnet -CommandType Application -ErrorAction SilentlyContinue)) { throw 'dotnet was not found on PATH.' }
 if ($TracerExe -and $NoTrace) { throw 'Use either -TracerExe or -NoTrace.' }
 # $null keeps the server's runtimeconfig (server GC from 1.5.12); '0' forces workstation GC.
-$gcServerValues = @{ server = $null; workstation = '0' }
-$modeList = @($GcModes -split '[,\s]+' | Where-Object { $_ })
-if ($modeList.Count -eq 0) { throw 'GcModes is empty.' }
-foreach ($mode in $modeList) {
-    if (-not $gcServerValues.ContainsKey($mode)) { throw "Unknown GC mode '$mode'. Known: server, workstation." }
-}
+$gcList = @($GcModes -split '[,\s]+' | Where-Object { $_ })
+$prewarmList = @($PrewarmModes -split '[,\s]+' | Where-Object { $_ })
+$delayList = @($FindDelays -split '[,\s]+' | Where-Object { $_ } | ForEach-Object { [int]$_ })
+foreach ($gc in $gcList) { if (@('server', 'workstation') -notcontains $gc) { throw "Unknown GC mode '$gc'. Known: server, workstation." } }
+foreach ($prewarm in $prewarmList) { if (@('on', 'off') -notcontains $prewarm) { throw "Unknown prewarm mode '$prewarm'. Known: on, off." } }
+$variants = @(foreach ($gc in $gcList) { foreach ($prewarm in $prewarmList) { foreach ($delay in $delayList) { New-Variant $gc $prewarm $delay } } })
+if ($variants.Count -eq 0) { throw 'No variant to measure: GcModes, PrewarmModes or FindDelays is empty.' }
 $foreignGc = @(Get-ChildItem Env: | Where-Object { $_.Name -match '^(DOTNET|COMPlus)_(GC|gc)' -and $_.Name -ne 'DOTNET_gcServer' } | ForEach-Object Name)
 if ($foreignGc.Count -gt 0) { throw "GC settings in the environment would apply to every mode: $($foreignGc -join ', '). Remove them and run again." }
 
@@ -233,14 +258,15 @@ $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 $out = Join-Path $root ([IO.Path]::GetFileNameWithoutExtension($Workspace) + "-$stamp")
 
 $index = 0
-foreach ($mode in $modeList) {
+foreach ($variant in $variants) {
     $measure = @{
         Workspace = $Workspace
         ServerExe = $serverExe
         SymbolName = $SymbolName
         Runs = $Runs
-        Note = "$fullNote; $mode GC"
-        OutDirectory = (Join-Path $out $mode)
+        Note = "$fullNote; $($variant.Name)"
+        OutDirectory = (Join-Path $out $variant.Name)
+        FindDelaySeconds = $variant.Delay
     }
     if ($Configuration) { $measure.Configuration = $Configuration }
     if ($Platform) { $measure.Platform = $Platform }
@@ -248,16 +274,16 @@ foreach ($mode in $modeList) {
     # One trace is enough to explain the first search; a second would add a run without new evidence.
     if (-not $NoTrace -and $index -eq 0) { $measure.TracerExe = $TracerExe }
     Write-Host ''
-    Write-Host "== $mode GC =="
-    Invoke-Measurement $measure $gcServerValues[$mode]
+    Write-Host "== $($variant.Name) =="
+    Invoke-Measurement $measure $variant
     $index++
 }
 
 Write-Host ''
-if ($modeList.Count -gt 1) { Write-Comparison $out $modeList }
+if ($variants.Count -gt 1) { Write-Comparison $out $variants }
 Write-Host ''
 Write-Host "Results: $out"
-Write-Host 'Send comparison.md and summary.md of each mode folder. Keep runs.json, run-*-log.txt and run-*-response.md until asked for them.'
+Write-Host 'Send comparison.md and summary.md of each variant folder. Keep runs.json, run-*-log.txt and run-*-response.md until asked for them.'
 if (-not $NoTrace) {
     Write-Host 'The run-*-find.nettrace file holds CPU samples and exception messages with file paths;'
     Write-Host 'send it only where sharing those paths is allowed.'

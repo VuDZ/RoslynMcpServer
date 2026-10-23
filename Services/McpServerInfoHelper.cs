@@ -188,6 +188,7 @@ public static class McpServerInfoHelper
         sb.AppendLine($"- **Merged target-framework:** {(fileSettings.TargetFramework is null ? "(none)" : $"`{fileSettings.TargetFramework}`")}");
         sb.AppendLine($"- **Merged max-results:** {(fileSettings.MaxResults is null ? "(none)" : fileSettings.MaxResults.Value.ToString())}");
         sb.AppendLine($"- **Merged preview:** {(fileSettings.Preview is null ? "(none)" : fileSettings.Preview.Value ? "true" : "false")}");
+        sb.AppendLine($"- **Merged search-prewarm:** {(fileSettings.SearchPrewarm is null ? "(none)" : fileSettings.SearchPrewarm.Value ? "true" : "false")} (ROSLYN_MCP_SEARCH_PREWARM wins; default on)");
         sb.AppendLine($"- **Merged ripgrep-path:** {(fileSettings.RipgrepPath is null ? "(none)" : $"`{fileSettings.RipgrepPath}`")} (stored; unused until search opts in)");
 
         if (!string.IsNullOrWhiteSpace(lazyLoadFailure))
