@@ -67,14 +67,26 @@ $utf8NoBom = New-Object Text.UTF8Encoding($false)
 
 . (Join-Path (Join-Path $spikes 'ParallelSearch') 'MatrixCommon.ps1')
 
-# Roslyn names the folder after the host process and a hash: dotnet-<hash>\<solution file>-<hash>.
+# Roslyn names the folder after the host process and a hash: dotnet.exe-<hash> on Windows, dotnet-<hash>
+# on Linux. The solution folder is <file name>-<hash>, where a long file name is cut ("App - Gui.s-<hash>"
+# for "App - Gui.sln"), so the part before the last '-' must be a prefix of the file name. The first
+# Windows matrix (2026-10-23) looked only for dotnet-*, deleted nothing, and half of its cold runs were warm.
 function Get-SolutionCacheFolders([string]$SolutionPath) {
     $root = Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) (Join-Path 'Microsoft' (Join-Path 'VisualStudio' (Join-Path 'Roslyn' 'Cache')))
     if (-not (Test-Path -LiteralPath $root)) { return @() }
     $leaf = Split-Path $SolutionPath -Leaf
-    return @(Get-ChildItem -LiteralPath $root -Directory -Filter 'dotnet-*' | ForEach-Object {
-        Get-ChildItem -LiteralPath $_.FullName -Directory | Where-Object { $_.Name.StartsWith($leaf + '-', [StringComparison]::OrdinalIgnoreCase) }
+    return @(Get-ChildItem -LiteralPath $root -Directory | Where-Object { $_.Name -match '^dotnet(\.exe)?-' } | ForEach-Object {
+        Get-ChildItem -LiteralPath $_.FullName -Directory | Where-Object {
+            $cut = $_.Name.LastIndexOf('-')
+            $cut -gt 0 -and $leaf.StartsWith($_.Name.Substring(0, $cut), [StringComparison]::OrdinalIgnoreCase)
+        }
     })
+}
+
+# A cold run must start without this solution's cache. Fail loudly instead of measuring a warm run as cold.
+function Clear-SolutionCache([string]$SolutionPath) {
+    foreach ($folder in Get-SolutionCacheFolders $SolutionPath) { Remove-Item -LiteralPath $folder.FullName -Recurse -Force }
+    if (@(Get-SolutionCacheFolders $SolutionPath).Count -gt 0) { throw "The Roslyn cache of $SolutionPath could not be deleted; stop other processes using it." }
 }
 
 function Get-CacheSizeMb([string]$SolutionPath) {
@@ -105,9 +117,7 @@ function Invoke-Matrix([string]$SolutionPath, [string]$Out) {
                 Write-Host $label
                 $dll = $storageDll
                 if ($mode -eq 'none') { $dll = $baselineDll }
-                if ($mode -eq 'cold') {
-                    foreach ($folder in Get-SolutionCacheFolders $SolutionPath) { Remove-Item -LiteralPath $folder.FullName -Recurse -Force }
-                }
+                if ($mode -eq 'cold') { Clear-SolutionCache $SolutionPath }
                 & dotnet $dll measure --solution $SolutionPath --name $queries[$query] --dop 1 --output $file 2>&1 |
                     Out-File -LiteralPath $output -Encoding utf8
                 if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $file)) {
@@ -116,7 +126,10 @@ function Invoke-Matrix([string]$SolutionPath, [string]$Out) {
                 }
                 # The cache size is a fact about this run; keep it next to the spike's own JSON.
                 $cacheMb = $null
-                if ($mode -ne 'none') { $cacheMb = Get-CacheSizeMb $SolutionPath }
+                if ($mode -ne 'none') {
+                    $cacheMb = Get-CacheSizeMb $SolutionPath
+                    if ($cacheMb -eq 0) { Write-Warning "$label left no Roslyn cache: storage did not open, or the cache folder was not found." }
+                }
                 [IO.File]::WriteAllText((Join-Path $Out "$stem.cache.json"), (@{ cacheMb = $cacheMb } | ConvertTo-Json), $utf8NoBom)
                 $run = Get-Content -LiteralPath $file -Raw | ConvertFrom-Json
                 Write-Host ("    load {0} s, first search {1} ms, second {2} ms, cache {3} MB" -f
