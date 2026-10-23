@@ -45,8 +45,8 @@ $Solution = [IO.Path]::GetFullPath($Solution)
 if (-not (Test-Path -LiteralPath $Solution -PathType Leaf)) { throw "Solution not found: $Solution" }
 if (-not $Root) {
     $Root = Split-Path $Solution
-    $topLevel = & git -C $Root rev-parse --show-toplevel 2>$null
-    if ($LASTEXITCODE -eq 0 -and $topLevel) { $Root = [IO.Path]::GetFullPath(([string]$topLevel).Trim()) }
+    $topLevel = Get-GitOutput $Root @('rev-parse', '--show-toplevel')
+    if ($topLevel) { $Root = [IO.Path]::GetFullPath($topLevel) }
 }
 if (-not $OutDirectory) {
     $OutDirectory = Join-Path (Join-Path $PSScriptRoot 'results') ('timeline-' + (Get-Date -Format 'yyyyMMdd-HHmmss'))

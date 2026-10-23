@@ -5,6 +5,21 @@ function Invoke-Native([string]$FilePath, [string[]]$Arguments, [string]$Failure
     if ($LASTEXITCODE -ne 0) { throw "$Failure (exit code $LASTEXITCODE)" }
 }
 
+# First line of a git query, or $null outside Git or without git. Windows PowerShell 5.1 turns stderr of
+# a native command into a terminating error under ErrorActionPreference=Stop even when it is redirected,
+# so a solution kept in another version control system stopped the script.
+function Get-GitOutput([string]$Directory, [string[]]$Arguments) {
+    $previous = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $output = & git -C $Directory @Arguments 2>$null
+        if ($LASTEXITCODE -ne 0 -or $null -eq $output) { return $null }
+        return ([string](@($output)[0])).Trim()
+    }
+    catch { return $null }
+    finally { $ErrorActionPreference = $previous }
+}
+
 function Get-Median($Values) {
     $sorted = @($Values | Where-Object { $null -ne $_ } | Sort-Object)
     if ($sorted.Count -eq 0) { return $null }
@@ -39,8 +54,8 @@ function Assert-PinnedSdk([string]$SolutionDirectory) {
 function Get-Environment([string]$SolutionPath, [string]$Repo, [Collections.IDictionary]$Parameters) {
     $info = [ordered]@{
         solution = Split-Path $SolutionPath -Leaf
-        solutionCommit = (& git -C (Split-Path $SolutionPath) rev-parse HEAD 2>$null)
-        spikeCommit = (& git -C $Repo rev-parse --short=12 HEAD 2>$null)
+        solutionCommit = (Get-GitOutput (Split-Path $SolutionPath) @('rev-parse', 'HEAD'))
+        spikeCommit = (Get-GitOutput $Repo @('rev-parse', '--short=12', 'HEAD'))
         logicalProcessors = [Environment]::ProcessorCount
         os = [Environment]::OSVersion.VersionString
         dotnetSdks = (@(& dotnet --list-sdks | ForEach-Object { ($_ -split ' ')[0] }) -join ', ')
