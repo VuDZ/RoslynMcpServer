@@ -2,6 +2,8 @@
 
 These rules apply to C# code in the repository, including tests. Mandatory conventions keep the code consistent; recommendations require a judgment about the readability of the specific solution.
 
+Code under `forks/` is excluded: it is a copy of an upstream project and follows that project's style and `.editorconfig`, so changes can be sent upstream with a minimal diff. Build files written for the fork itself follow the upstream conventions too.
+
 ## Mandatory conventions
 
 ### Files and types

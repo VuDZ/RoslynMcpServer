@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Builds upstream src/Workspaces/MSBuild/Contracts without Arcade; same assembly name as the package. -->
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <TargetFramework>$(NetRoslynBuildHostNetCoreVersion)</TargetFramework>
+    <AssemblyName>Microsoft.CodeAnalysis.Workspaces.MSBuild.Contracts</AssemblyName>
+    <RootNamespace>Microsoft.CodeAnalysis</RootNamespace>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(UpstreamRoot)src\Workspaces\MSBuild\Contracts\**\*.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost" />
+  </ItemGroup>
+  <Import Project="$(UpstreamRoot)src\Dependencies\Contracts\Microsoft.CodeAnalysis.Contracts.projitems" Label="Shared" />
+</Project>

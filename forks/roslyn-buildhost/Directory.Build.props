@@ -1,0 +1,22 @@
+<Project>
+  <!--
+    Isolates the fork from the repository's own build settings and mirrors the parts of Roslyn's
+    Directory.Build.props that the BuildHost sources rely on. Upstream builds with Arcade; these
+    projects build the same sources with the plain .NET SDK.
+  -->
+  <PropertyGroup>
+    <LangVersion>preview</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Deterministic>true</Deterministic>
+    <!-- The target framework of upstream BuildHost-netcore for the Roslyn 5.9.0 package. -->
+    <NetRoslynBuildHostNetCoreVersion>net8.0</NetRoslynBuildHostNetCoreVersion>
+    <UpstreamRoot>$(MSBuildThisFileDirectory)upstream\</UpstreamRoot>
+    <!-- Same assembly version as the package; the informational version marks the fork in logs and reports. -->
+    <Version>5.9.0</Version>
+    <InformationalVersion>5.9.0-fork+35d9211b841e7613c1d2f8f5af6d628ace696c4c</InformationalVersion>
+    <!-- The SDK would append this repository's commit, which is not the upstream revision. -->
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <NoWarn>$(NoWarn);NU1903</NoWarn>
+  </PropertyGroup>
+</Project>

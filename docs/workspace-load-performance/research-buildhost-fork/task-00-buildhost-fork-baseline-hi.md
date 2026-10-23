@@ -1,10 +1,11 @@
 # BuildHost/task-00 — Воспроизводимый форк без изменения поведения
 
 - Дата: 2026-10-22.
-- Статус: **planned; реализация и независимое ревью не начаты**.
+- Статус: **in progress, 2026-10-24** — форк собран (`forks/roslyn-buildhost`, вариант A), локально
+  эквивалентен оригиналу на `RoslynMcpServer.sln`; Roslyn.slnx, офис, отказные сценарии и ревью pending.
 - Сложность: hi; риск — несовместимость host/client и изменение состава workspace.
 - Depends on: —.
-- Evidence/validation: пока отсутствуют.
+- Evidence/validation: [локальная часть](evidence/task-00-fork-baseline.md).
 - Контекст: [индекс исследования](README.md).
 
 ## Цель и результат

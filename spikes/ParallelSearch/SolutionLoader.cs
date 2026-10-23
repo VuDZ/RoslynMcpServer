@@ -14,9 +14,11 @@ namespace ParallelSearch;
 internal static class SolutionLoader
 {
     /// <param name="msbuildLogger">Optional MSBuild logger for the design-time builds, such as a binary logger.</param>
+    /// <param name="diagnostics">Optional sink for every workspace diagnostic as "Kind: message".</param>
     public static async Task<(Solution Solution, object Load)> LoadAsync(
         string solutionPath,
-        Microsoft.Build.Framework.ILogger? msbuildLogger = null)
+        Microsoft.Build.Framework.ILogger? msbuildLogger = null,
+        ICollection<string>? diagnostics = null)
     {
         var host = MefHostServices.Create(new[]
         {
@@ -33,6 +35,14 @@ internal static class SolutionLoader
             if (args.Diagnostic.Kind == WorkspaceDiagnosticKind.Failure)
             {
                 Interlocked.Increment(ref failures);
+            }
+
+            if (diagnostics is not null)
+            {
+                lock (diagnostics)
+                {
+                    diagnostics.Add(args.Diagnostic.Kind + ": " + args.Diagnostic.Message);
+                }
             }
         });
         var watch = Stopwatch.StartNew();
