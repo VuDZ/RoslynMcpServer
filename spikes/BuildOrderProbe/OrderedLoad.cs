@@ -29,25 +29,28 @@ internal sealed class OrderedLoad
     {
         using var session = new HostSession(solutionPath);
         var load = new OrderedLoad(session, order, workers);
-        var wall = Stopwatch.StartNew();
+        load._wall.Start();
         foreach (var path in SolutionProjects(solutionPath))
         {
             load.Visit(path);
         }
 
-        wall.Stop();
+        load._wall.Stop();
         return new ProbeRun(
             order.ToString(),
             order == LoadOrder.EvaluateAhead ? workers : 0,
+            System.Runtime.GCSettings.IsServerGC,
             Environment.ProcessorCount,
-            wall.Elapsed.TotalMilliseconds,
+            load._wall.Elapsed.TotalMilliseconds,
             load._evaluations.Count,
-            load._evaluationMs.Values.Sum(),
+            load._evaluationSteps.Sum(step => step.DurationMs),
             load._fingerprints.Count,
-            load._buildMs,
+            load._buildSteps.Sum(step => step.DurationMs),
             session.EvaluationsDuringBuilds,
-            load._evaluationMs.Count(pair => !load._evaluated.ContainsKey(pair.Key)),
-            new SortedDictionary<string, string>(load._fingerprints, StringComparer.Ordinal));
+            load._evaluations.Count - load._evaluationSteps.Count(step => step.Thread >= 0),
+            new SortedDictionary<string, string>(load._fingerprints, StringComparer.Ordinal),
+            load._evaluationSteps.OrderBy(step => step.StartMs).ToArray(),
+            load._buildSteps);
     }
 
     private void Visit(string path)
@@ -106,29 +109,30 @@ internal sealed class OrderedLoad
             })
             : Task.FromResult(Evaluate(key)));
 
+    // A project MSBuild cannot load is recorded with thread -1, so the run counts it without a step on the clock.
     private Project? Evaluate(string path)
     {
-        var watch = Stopwatch.StartNew();
+        var start = _wall.Elapsed.TotalMilliseconds;
         var project = _session.Evaluate(path);
-        _evaluationMs[path] = watch.Elapsed.TotalMilliseconds;
-        if (project is not null)
-        {
-            _evaluated[path] = true;
-        }
-
+        var end = _wall.Elapsed.TotalMilliseconds;
+        _evaluationSteps.Add(new TimedStep(path, project is not null && IsMultiTargeting(project), start, end, project is null ? -1 : Environment.CurrentManagedThreadId));
         return project;
     }
 
     private void Build(Project project)
     {
-        var watch = Stopwatch.StartNew();
+        var multiTargeting = IsMultiTargeting(project);
+        var start = _wall.Elapsed.TotalMilliseconds;
         foreach (var (targetFramework, fingerprint) in _session.Build(project))
         {
             _fingerprints[project.FullPath + "|" + targetFramework] = fingerprint;
         }
 
-        _buildMs += watch.Elapsed.TotalMilliseconds;
+        _buildSteps.Add(new TimedStep(project.FullPath, multiTargeting, start, _wall.Elapsed.TotalMilliseconds, Environment.CurrentManagedThreadId));
     }
+
+    private static bool IsMultiTargeting(Project project)
+        => project.GetPropertyValue("TargetFramework").Length == 0 && project.GetPropertyValue("TargetFrameworks").Length > 0;
 
     private static IReadOnlyList<string> ProjectReferences(Project project)
         => project.GetItems("ProjectReference")
@@ -150,8 +154,8 @@ internal sealed class OrderedLoad
     private readonly SemaphoreSlim _workerSlots;
     private readonly HashSet<string> _visited = new(StringComparer.OrdinalIgnoreCase);
     private readonly ConcurrentDictionary<string, Task<Project?>> _evaluations = new(StringComparer.OrdinalIgnoreCase);
-    private readonly ConcurrentDictionary<string, double> _evaluationMs = new(StringComparer.OrdinalIgnoreCase);
-    private readonly ConcurrentDictionary<string, bool> _evaluated = new(StringComparer.OrdinalIgnoreCase);
+    private readonly ConcurrentBag<TimedStep> _evaluationSteps = [];
+    private readonly List<TimedStep> _buildSteps = [];
     private readonly Dictionary<string, string> _fingerprints = new(StringComparer.OrdinalIgnoreCase);
-    private double _buildMs;
+    private readonly Stopwatch _wall = new();
 }

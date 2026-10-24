@@ -1,14 +1,15 @@
 <#
 .SYNOPSIS
     BuildHost/task-02, step 0: builds a solution's projects the way the BuildHost does, in three orders, and
-    checks that the orders build the same results and how long each takes.
+    checks that the orders build the same results, how long each takes, and how the evaluations lay on the clock.
 
 .DESCRIPTION
     client: the 5.9.0 loader's order, a project before the projects it references. references-first: the
     references before the project (part A). evaluate-ahead: references first and the references' root evaluations
-    on worker threads while builds go on one at a time (part B). Every run is a fresh process; round 0 is warmup,
-    the order of the three alternates between rounds. Results go to results\probe-<time>; summary.md has no paths,
-    the run JSON files hold full project paths.
+    on worker threads while builds go on one at a time (part B), once per worker count of -Workers. With
+    -ServerGc, references-first and evaluate-ahead with the most workers also run with the server garbage
+    collector. Every run is a fresh process; round 0 is warmup, and the order of the variants rotates between
+    rounds. Results go to results\probe-<time>; summary.md has no paths, the run JSON files hold full project paths.
 
 .PARAMETER Solution
     Solution to probe, for example Roslyn.slnx or the office solution.
@@ -17,13 +18,16 @@
     Measured rounds after the warmup round. Default 3.
 
 .PARAMETER Workers
-    Worker threads of evaluate-ahead. Default: logical processors minus one.
+    Worker counts of evaluate-ahead. Default: 2, 4 and logical processors minus one.
+
+.PARAMETER ServerGc
+    Also run references-first and evaluate-ahead with the most workers under the server garbage collector.
 
 .PARAMETER SkipRestore
     Do not restore the solution first, for a solution that is already restored.
 
 .EXAMPLE
-    pwsh spikes\BuildOrderProbe\Invoke-BuildOrderProbe.ps1 -Solution D:\src\roslyn\Roslyn.slnx
+    pwsh spikes\BuildOrderProbe\Invoke-BuildOrderProbe.ps1 -Solution D:\src\roslyn\Roslyn.slnx -ServerGc
 #>
 [CmdletBinding()]
 param(
@@ -32,7 +36,9 @@ param(
 
     [int]$Rounds = 3,
 
-    [int]$Workers = [Math]::Max(1, [Environment]::ProcessorCount - 1),
+    [int[]]$Workers = @(2, 4, [Math]::Max(1, [Environment]::ProcessorCount - 1)),
+
+    [switch]$ServerGc,
 
     [string]$OutDirectory,
 
@@ -63,19 +69,37 @@ if (-not $SkipRestore) {
     Invoke-Native 'dotnet' @('restore', $Solution, '-nologo', '-v', 'q') 'Solution restore failed'
 }
 
-$environment = Get-Environment $Solution $repo ([ordered]@{ rounds = $Rounds; workers = $Workers })
+$workerCounts = @($Workers | Where-Object { $_ -ge 1 } | Sort-Object -Unique)
+$environment = Get-Environment $Solution $repo ([ordered]@{ rounds = $Rounds; workers = ($workerCounts -join ', '); serverGc = [bool]$ServerGc })
 [IO.File]::WriteAllText((Join-Path $OutDirectory 'environment.json'), ($environment | ConvertTo-Json), (New-Object Text.UTF8Encoding($false)))
 
-$orders = @('client', 'references-first', 'evaluate-ahead')
+# A variant is an order, its worker count and the garbage collector mode; its name is the file name prefix.
+$variants = New-Object System.Collections.Generic.List[object]
+$variants.Add([pscustomobject]@{ Name = 'client'; Order = 'client'; Workers = 1; ServerGc = $false })
+$variants.Add([pscustomobject]@{ Name = 'references-first'; Order = 'references-first'; Workers = 1; ServerGc = $false })
+foreach ($count in $workerCounts) {
+    $variants.Add([pscustomobject]@{ Name = "evaluate-ahead-w$count"; Order = 'evaluate-ahead'; Workers = $count; ServerGc = $false })
+}
+if ($ServerGc) {
+    $most = $workerCounts[-1]
+    $variants.Add([pscustomobject]@{ Name = 'references-first-servergc'; Order = 'references-first'; Workers = 1; ServerGc = $true })
+    $variants.Add([pscustomobject]@{ Name = "evaluate-ahead-w$most-servergc"; Order = 'evaluate-ahead'; Workers = $most; ServerGc = $true })
+}
+Write-Host "Variants: $(($variants | ForEach-Object { $_.Name }) -join ', '); $($Rounds + 1) rounds"
+
 for ($round = 0; $round -le $Rounds; $round++) {
-    # Rotate the order of the three, so none of them always runs first with the coldest disk cache.
-    $shift = $round % $orders.Count
-    $roundOrders = @($orders[$shift..($orders.Count - 1)]) + @($orders | Select-Object -First $shift)
-    foreach ($order in $roundOrders) {
-        $label = "$order round $round"
+    # Rotate the variants, so none of them always runs first with the coldest disk cache.
+    $shift = $round % $variants.Count
+    $roundVariants = @($variants[$shift..($variants.Count - 1)]) + @($variants | Select-Object -First $shift)
+    foreach ($variant in $roundVariants) {
+        $label = "$($variant.Name) round $round"
         if ($round -eq 0) { $label += ' (warmup)' }
         Write-Host $label
-        Invoke-Native 'dotnet' @($dll, 'run', $order, $Solution, (Join-Path $OutDirectory "$order-round$round.json"), [string]$Workers) "$label failed"
+        if ($variant.ServerGc) { $env:DOTNET_gcServer = '1' }
+        try {
+            Invoke-Native 'dotnet' @($dll, 'run', $variant.Order, $Solution, (Join-Path $OutDirectory "$($variant.Name)-round$round.json"), [string]$variant.Workers) "$label failed"
+        }
+        finally { Remove-Item Env:DOTNET_gcServer -ErrorAction SilentlyContinue }
     }
 }
 
