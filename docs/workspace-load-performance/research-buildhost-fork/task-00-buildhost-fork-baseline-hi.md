@@ -1,11 +1,13 @@
 # BuildHost/task-00 — Воспроизводимый форк без изменения поведения
 
 - Дата: 2026-10-22.
-- Статус: **in progress, 2026-10-24** — форк собран (`forks/roslyn-buildhost`, вариант A), локально
-  эквивалентен оригиналу на `RoslynMcpServer.sln`, на Roslyn.slnx (Windows, 434 проекта, загрузка ×0,999)
-  и на офисном решении (142 проекта, загрузка ×1,001; варианты net472 идут через не форкнутый host);
-  отказные сценарии совпадают с оригиналом на Linux и Windows (отмена, убийство host, битые
-  проекты, без перехода на оригинал); независимое ревью pending.
+- Статус: **in progress, 2026-10-24** — форк собран (`forks/roslyn-buildhost`, вариант A). Независимое
+  ревью (GPT-6.1 Sol, Grok 4.7) проведено, находки исправлены ([разбор](evidence/task-00-review/disposition.md)):
+  сравнение приведено к `compare.py`, sampler ограничен своими процессами, сценарии проверяют исходы.
+  После исправлений identical на `RoslynMcpServer.sln` и Smoke (Linux), отказные сценарии совпадают;
+  ранняя отмена оставляет BuildHost у обеих сторон (поведение upstream). Roslyn.slnx и офис — identical
+  по сравнению до ревью, повтор на Windows с исправленным spike pending; PowerToys не прогонялся
+  (решение владельца pending).
 - Сложность: hi; риск — несовместимость host/client и изменение состава workspace.
 - Depends on: —.
 - Evidence/validation: [локальная часть](evidence/task-00-fork-baseline.md).
