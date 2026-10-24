@@ -6,8 +6,9 @@
   сравнение приведено к `compare.py`, sampler ограничен своими процессами, сценарии проверяют исходы.
   После исправлений identical на `RoslynMcpServer.sln` и Smoke (Linux), отказные сценарии совпадают;
   ранняя отмена оставляет BuildHost у обеих сторон — по решению владельца 2026-10-24 ограничение
-  upstream, исправление в [task-00b](task-00b-early-cancel-buildhost-leak-low.md). Roslyn.slnx и офис —
-  identical по сравнению до ревью, повтор на Windows с исправленным spike pending. Принятый объём
+  upstream, исправление в [task-00b](task-00b-early-cancel-buildhost-leak-low.md). Roslyn.slnx (Windows) —
+  identical и после исправлений (загрузка ×0,992); офис — identical по сравнению до ревью, повтор с
+  исправленным spike и сценарии на Windows pending. Принятый объём
   пункта 4 (решение владельца 2026-10-24): Smoke, `RoslynMcpServer.sln`, Roslyn.slnx и офис, без PowerToys.
 - Сложность: hi; риск — несовместимость host/client и изменение состава workspace.
 - Depends on: —.
