@@ -9,7 +9,7 @@
   [task-00b](task-00b-early-cancel-buildhost-leak-low.md). Ревью раунда 2 (GPT-6, Grok 4.7, DeepSeek Flash):
   регрессии форка нет, находки в проверяющем коде, статусах и публикации исправлены
   ([разбор](evidence/task-00-review/disposition-round-2.md)). Второй BuildHost в офисе — пакетный
-  net472-host у обеих сторон (R2-20). Pending: сценарии на Windows с исправленным spike, приёмка. Принятый объём пункта 4 (решение
+  net472-host у обеих сторон (R2-20). Сценарии на Windows с исправленным spike пройдены. Pending: приёмка. Принятый объём пункта 4 (решение
   владельца 2026-10-24): Smoke, `RoslynMcpServer.sln`, Roslyn.slnx и офис, без PowerToys.
 - Сложность: hi; риск — несовместимость host/client и изменение состава workspace.
 - Depends on: —.
