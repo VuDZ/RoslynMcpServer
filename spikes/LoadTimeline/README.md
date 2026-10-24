@@ -21,3 +21,18 @@ powershell -ExecutionPolicy Bypass -File .\spikes\LoadTimeline\Invoke-LoadTimeli
 попадает в Git. Для разбора достаточно `timeline.md`, `evaluation.md` и `capture.json`,
 их пути даны относительно корня Git-репозитория решения. В binlog полные пути и
 содержимое проектов, его передают, только если это разрешено.
+
+Проба `evaluate` задаёт `SolutionDir` как полный путь к каталогу решения с завершающим
+разделителем. Свойство действует и при evaluation каждого TFM: импорт
+`$(SolutionDir)common.cs.netcore.props` ищется рядом с решением, даже если проект
+лежит в другом каталоге.
+
+Регрессионная проверка для `.sln` и `.slnx`, относительного пути к решению и
+импортов в исходной и двух TFM-evaluation:
+
+```powershell
+.\spikes\LoadTimeline\Test-EvaluationProbe.ps1
+```
+
+Проверка собирает spike в Release и оставляет синтетические входы и результаты
+в ignored-каталоге `results/evaluation-check-<id>`.

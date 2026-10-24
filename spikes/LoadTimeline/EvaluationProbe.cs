@@ -19,6 +19,7 @@ internal static class EvaluationProbe
 
     public static string Run(string solutionPath)
     {
+        solutionPath = Path.GetFullPath(solutionPath);
         var solution = SolutionFile.Parse(solutionPath);
         var projects = solution.ProjectsInOrder
             .Where(project => project.ProjectType == SolutionProjectType.KnownToBeMSBuildFormat
@@ -26,7 +27,14 @@ internal static class EvaluationProbe
                     || project.AbsolutePath.EndsWith(".vbproj", StringComparison.OrdinalIgnoreCase)))
             .Select(project => project.AbsolutePath)
             .ToList();
-        using var collection = new ProjectCollection();
+        // Direct project evaluation has no solution context; imports need the same trailing separator as OpenSolutionAsync.
+        var solutionDirectory = Path.GetDirectoryName(solutionPath)!;
+        using var collection = new ProjectCollection(new Dictionary<string, string>
+        {
+            ["SolutionDir"] = Path.EndsInDirectorySeparator(solutionDirectory)
+                ? solutionDirectory
+                : solutionDirectory + Path.DirectorySeparatorChar,
+        });
         var rows = new List<(string Project, int Evaluations, double Ms)>();
         var total = Stopwatch.StartNew();
         foreach (var path in projects)

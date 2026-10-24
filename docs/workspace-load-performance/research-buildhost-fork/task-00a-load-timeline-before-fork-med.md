@@ -1,13 +1,16 @@
 # BuildHost/task-00a — Временная шкала загрузки до форка
 
 - Дата: 2026-10-23.
-- Статус: **in progress, 2026-10-23.** Roslyn.slnx: ~20 из 40 с загрузки BuildHost тратит до первой сборки
+- Статус: **in progress, 2026-10-24.** Roslyn.slnx: ~20 из 40 с загрузки BuildHost тратит до первой сборки
   каждого проекта; связь с evaluation r = 0,67. Кандидат — параллельная предварительная evaluation
   ([отчёт](evidence/task-00a-load-timeline.md)). Офисная шкала pending. Решение владельца — направление 1 после task-15.
+  Исправлена потеря `SolutionDir` в пробе evaluation; регрессия и полный синтетический
+  прогон проверены ([валидация](evidence/task-00a-solutiondir-fix.md)); нужен повторный офисный прогон.
 - Сложность: med; риск — принять промежутки binlog за IPC без собственных spans.
 - Depends on: —. Выполняется до [task-00](task-00-buildhost-fork-baseline-hi.md):
   результат решает, нужен ли форк и где в нём искать.
-- Evidence/validation: пока отсутствуют.
+- Evidence/validation: [шкала Roslyn.slnx](evidence/task-00a-load-timeline.md),
+  [исправление SolutionDir и валидация](evidence/task-00a-solutiondir-fix.md).
 
 ## Почему до форка
 
