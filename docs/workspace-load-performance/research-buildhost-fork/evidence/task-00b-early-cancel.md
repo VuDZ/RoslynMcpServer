@@ -90,15 +90,15 @@ host, net472 или повторный netcore из-за SDK, стартует �
 - main-набор Linux-шарда (`Category!=AnalyzerLifecycle&Category!=RequiresPinnedSdk&Category!=RequiresWindows`) —
   **1 390 passed, 0 failed, 0 skipped**, включает SourceStructure;
 - `AnalyzerLifecycle` с `ROSLYN_MCP_ANALYZER_LIFECYCLE=1` — **13 passed**: правка в пути загрузки
-  `LoadCoreAsync`.
+  `LoadCoreAsync`;
+- Windows (компьютер владельца), Release: `UnregisteredBuildHostReaperTests` — **12 passed**, включая
+  завершение настоящего пакетного `BuildHost-netcore`; те же три старых предупреждения сборки.
 
 Принято: шаги 2–3 задачи — достижимость ранней отмены в сервере и смягчение в сервере 1.5.16.
 
 Ограничения:
 - попадание отмены именно в окно настройки host через сервер не воспроизводилось: тесты запускают
   пакетный BuildHost сами, а сценарий task-00 идёт мимо сервера;
-- Windows-прогон reaper-тестов после сужения не выполнялся; правило выбора от ОС не зависит, чтение
-  родителя и командной строки на Windows проверено прогоном 1 445 тестов до сужения;
 - в тестовом процессе reaper без ограничения набора id мог бы завершить host соседнего параллельного
   теста; сейчас ни один тест не отменяет настоящую загрузку внутри `LoadCoreAsync`.
 

@@ -9,7 +9,7 @@
 - Сложность: low; риск — завершить процесс, который клиент ещё использует.
 - Depends on: [task-00](task-00-buildhost-fork-baseline-hi.md) (сценарий «отмена сразу после появления host»).
 - Evidence/validation: [отчёт](evidence/task-00b-early-cancel.md) — до приёмки reaper 13/13 и main suite 1445/0
-  (Windows); после сужения reaper 12/12, main suite Linux 1390/0/0, AnalyzerLifecycle 13/13, Release, 2026-10-24.
+  (Windows); после сужения reaper 12/12 (Linux и Windows), main suite Linux 1390/0/0, AnalyzerLifecycle 13/13, Release, 2026-10-24.
 
 ## Что известно
 
