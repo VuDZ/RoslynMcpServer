@@ -4,6 +4,7 @@ using System.Text;
 using System.Xml.Linq;
 using Microsoft.CodeAnalysis;
 using RoslynMcpServer.Diagnostics;
+using RoslynMcpServer.Tests.Support;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -18,6 +19,7 @@ public sealed class DependencyEvidenceRunnerTests
     }
 
     [Theory]
+    [Trait("Category", TestCategories.RequiresPinnedSdk)]
     [InlineData("standard")]
     [InlineData("absent")]
     [InlineData("custom-target")]
@@ -153,6 +155,7 @@ public sealed class DependencyEvidenceRunnerTests
     }
 
     [Fact]
+    [Trait("Category", TestCategories.RequiresPinnedSdk)]
     public async Task Pinned_sdk_and_pack_reresolution_reads_current_installation_without_loading_analyzers()
     {
         var fixture = await CreateFixtureAsync("resolution");
@@ -180,7 +183,7 @@ public sealed class DependencyEvidenceRunnerTests
                 Scope = "Exact pin, default installed targeting pack only; overrides and dynamic dependencies remain unproved." }, default);
         await File.WriteAllTextAsync(Path.Combine(fixture.Root, "global.json"), "{\"sdk\":{\"version\":\"0.0.0\",\"rollForward\":\"disable\"}}");
         Assert.Throws<DirectoryNotFoundException>(() => ResolvePinnedPack(fixture.Root, dotnetRoot));
-        await File.WriteAllTextAsync(Path.Combine(fixture.Root, "global.json"), "{\"sdk\":{\"version\":\"10.0.300\",\"rollForward\":\"disable\"}}");
+        await File.WriteAllTextAsync(Path.Combine(fixture.Root, "global.json"), PinnedSdk.GlobalJson);
         Assert.Equal(first, ResolvePinnedPack(fixture.Root, dotnetRoot));
         _output.WriteLine("Retained independent resolution evidence: " + fixture.Artifacts);
     }
@@ -230,7 +233,7 @@ public sealed class DependencyEvidenceRunnerTests
         Directory.CreateDirectory(app);
         Directory.CreateDirectory(artifacts);
         await File.WriteAllTextAsync(Path.Combine(root, ".dependency-spike-owned"), "sdk-project-v1/e0-1");
-        await File.WriteAllTextAsync(Path.Combine(root, "global.json"), "{\"sdk\":{\"version\":\"10.0.300\",\"rollForward\":\"disable\"}}");
+        await File.WriteAllTextAsync(Path.Combine(root, "global.json"), PinnedSdk.GlobalJson);
         await File.WriteAllTextAsync(Path.Combine(root, "NuGet.Config"), "<configuration><packageSources><clear /></packageSources></configuration>");
         await File.WriteAllTextAsync(Path.Combine(root, "Directory.Build.props"), "<Project><PropertyGroup><DefineConstants>POSITIVE_IMPORT</DefineConstants></PropertyGroup></Project>");
         await File.WriteAllTextAsync(Path.Combine(root, "Directory.Build.targets"), "<Project><PropertyGroup><E0Positive>1</E0Positive></PropertyGroup></Project>");

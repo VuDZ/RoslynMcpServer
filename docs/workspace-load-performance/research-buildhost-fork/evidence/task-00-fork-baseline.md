@@ -272,8 +272,12 @@ Linux, 2 vCPU, SDK 10.0.113; spike на `fa81290` с исправлениями 
   **18 failed, 1 skipped — не pass**. Все падения и пропуск — тесты фикстур `WorkspaceLoadCache`
   (`DependencyEvidenceRunner`, `HydrateHostExperiment`, `DependencyRazorWitness`, `OracleFixtureBuilder`):
   им нужен закреплённый SDK 10.0.300, которого на этой машине нет («Fixture restore failed: 10.0.113»).
-  Тот же набор падает на чистом `main` `5ee2cdd` на этой машине; CI ставит 10.0.300 сам. Полный зелёный
-  прогон — на стенде с SDK 10.0.300 или в GitHub Actions.
+  Тот же набор падает на чистом `main` `5ee2cdd` на этой машине.
+- После решения владельца эти тесты вынесены в категорию `RequiresPinnedSdk` и исключены из main-набора
+  (эксперимент `workspace-load-cache` отложен). Main-набор Linux-шарда
+  (`Category!=AnalyzerLifecycle&Category!=RequiresWindows&Category!=RequiresPinnedSdk`), Release, на коммите
+  этого изменения: **1 375 passed, 0 failed, 0 skipped**. `TMPDIR` указывал на домашний каталог: в `/tmp`
+  (tmpfs 1,9 ГБ) не хватило места для копий плагинов, это не связано с кодом.
 - SourceStructure отдельно не запускался: production C# в этом пакете не менялся (spike и `forks/` в
   сборку сервера не входят); тесты SourceStructure входят в main CI выше.
 - AnalyzerLifecycle не запускался: загрузка, prepare/publication и жизненный цикл анализаторов сервера
@@ -288,11 +292,11 @@ Linux, 2 vCPU, SDK 10.0.113; spike на `fa81290` с исправлениями 
   проверка и возможное смягчение в сервере —
   [task-00b](../task-00b-early-cancel-buildhost-leak-low.md).
 - **Офис** прогоняется заново исправленным spike.
-- **Main CI** с SDK 10.0.300 владелец прогоняет на другой машине; результат дополнит раздел «Проверки».
+- **Тесты, закреплённые на SDK 10.0.300**, исключены из main-набора (категория `RequiresPinnedSdk`),
+  пометка в README эксперимента `workspace-load-cache`.
 
 ## Не выполнено по task-00
 
 - **Повторные прогоны на Windows с исправленным spike:** baseline и сценарии на Roslyn.slnx, baseline
   в офисе (папки host, net472) и пересчёт старых офисных JSON новым `compare`. Новый sampler, CPU
   клиента на конце загрузки и проверки сценариев на Windows ещё не исполнялись.
-- **Main CI с SDK 10.0.300** — результат прогона владельца.

@@ -268,6 +268,12 @@ singleton-регистрации DI.
 **Предложение.** Либо `global.json` в репозитории, либо явная версия SDK в release
 workflow. Цена: низкая.
 
+**2026-10-24.** Сделан второй вариант: `release.yml` перед сборкой пишет в checkout
+`global.json` с SDK 10.0.402 и `rollForward: disable`, `setup-dotnet` ставит ровно его.
+`global.json` в самом репозитории отложен до [AR-18](#ar-18): с нестрогим `rollForward` сервер
+на собственном репозитории выдавал бы ложные ошибки SDK. Тесты фикстур, закреплённых на
+10.0.300, вынесены из main-набора в категорию `RequiresPinnedSdk`, поэтому CI ставит только 10.0.x.
+
 <a id="ar-14"></a>
 ## AR-14 · P3 · Классификация read/write не доходит до протокола
 
@@ -341,3 +347,28 @@ metadata-символах компиляций. Цена: низкая (опис
 | `docs/archive/mcp-plugins/v2/README.md:59` | ссылка на `Services/SolutionManager.cs` (контракт плагинов, на который ссылается ARCHITECTURE) | файл в `Services/Workspace/` |
 | `.cursor/skills/epoch-subagent-loop` vs `.agents/skills/epoch-subagent-loop` | две версии одного скилла | `.cursor` содержит дополнительный раздел приёмки |
 | `docs/README.md` | `docs/code-style.md` не в индексе | — |
+
+<a id="ar-18"></a>
+## AR-18 · P2 · Выбор SDK по `global.json` без `rollForward`
+
+Найдено 2026-10-24 при закрытии [AR-13](#ar-13), вне исходного ревью.
+
+**Доказательство.** `Services/Build/GlobalJsonSdkReader.cs`: `TryGetPinnedSdkVersion` читает
+только `sdk.version`; `TryResolveSdkDirectory` берёт папку SDK с этим номером, иначе папки
+с префиксом «номер + точка», каких у SDK не бывает. `rollForward` и `allowPrerelease` не читаются.
+Результат используют `DotNetSdkEnvironment.ApplyPinnedSdk` (`MSBUILD_EXE_PATH`, пути SDK для
+дочерних `dotnet`), `MsBuildBootstrapper` (MSBuild для загрузки workspace),
+`SdkMismatchDiagnostics` и отчёт о здоровье workspace.
+
+**Последствие** (по чтению кода, не воспроизведено). `global.json` с `"version": "10.0.300", "rollForward": "latestFeature"` на
+машине с 10.0.300 и 10.0.402: хост `dotnet` выбирает 10.0.402, сервер подставляет MSBuild из
+10.0.300 и сообщает об ошибке `MCP_MSBUILD_SDK_MISMATCH` («`dotnet --version` reported 10.0.402
+but global.json pins 10.0.300»). Если указанного номера нет, а `rollForward` разрешает другой, сервер
+закрепление не видит вовсе. Для пользовательских репозиториев с нестрогим `rollForward` (по
+умолчанию `latestPatch`) это ложные ошибки сборки и загрузка другим MSBuild, чем у `dotnet build`.
+
+**Предложение.** Спрашивать выбор у самого хоста: `dotnet --version` в каталоге решения применяет
+все правила `global.json`; результат кэшировать на каталог и путь `global.json` с его временем
+изменения. Либо реализовать правила `rollForward` по документации, что дороже и расходится с
+хостом на краях. Цена: средняя; нужны тесты на политики `disable`, `patch`, `latestPatch`,
+`latestFeature` и отсутствующую версию.

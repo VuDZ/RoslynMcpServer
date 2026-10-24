@@ -42,11 +42,12 @@
 | [AR-10](findings.md#ar-10) | P3 | SolutionManager | Концентрация состояния и тестовые хуки в production-пути до интеграции кэша | open |
 | [AR-11](findings.md#ar-11) | P3 | масштабирование | Статическое состояние не упомянуто в инварианте single-session | open |
 | [AR-12](findings.md#ar-12) | P3 | платформы | CI и релиз только Windows при 6 объявленных RID | open — решение принято ([P-03](proposals.md#p-03), 2026-10-21), реализация — [linux-x64-support](../archive/linux-x64-support/README.md) |
-| [AR-13](findings.md#ar-13) | P3 | сборка | SDK не закреплён; релиз собирается «последним 10.0.x» | open |
+| [AR-13](findings.md#ar-13) | P3 | сборка | SDK не закреплён; релиз собирается «последним 10.0.x» | частично, 2026-10-24: релиз собирается ровно SDK 10.0.402 (`release.yml`); `global.json` в репозитории — после [AR-18](findings.md#ar-18) |
 | [AR-14](findings.md#ar-14) | P3 | протокол | Классификация read/write не экспортируется в MCP; у плагинов захардкожено `IsReadOnly = true` | open |
 | [AR-15](findings.md#ar-15) | P3 | tools | `find_symbol_references` по FQN не находит символы из метаданных, хотя описание этого не оговаривает | open |
 | [AR-16](findings.md#ar-16) | P3 | docs/процесс | Объём process-документации и число мест ручной синхронизации статусов | open — нужно решение ([P-04](proposals.md#p-04)) |
 | [AR-17](findings.md#ar-17) | P3 | docs | Пакет мелких расхождений документации с кодом | open |
+| [AR-18](findings.md#ar-18) | P2 | сборка | Сервер выбирает SDK по `global.json` без учёта `rollForward` и выдаёт ложный `MCP_MSBUILD_SDK_MISMATCH` | open (найдено 2026-10-24) |
 
 Итого: P1 — 4, P2 — 5, P3 — 8.
 

@@ -567,7 +567,7 @@ internal sealed class DependencyEvidenceRunner
             throw new IOException("An observed compiler or import input is unavailable.");
         }
         entries.Add(new EvidenceEntry(category, owner, path, Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))),
-            false, source, "sdk-10.0.300/msbuild-18.6.3", locator));
+            false, source, "sdk-" + PinnedSdk.Version + "/msbuild-18.6.3", locator));
     }
 
     private static void RequireOwnedFixture(string directory)
