@@ -4,8 +4,9 @@
 - Статус: **in progress, 2026-10-25** — шаг 0: по binlog подтверждены повторные evaluation внутри сборок
   (офис — 100 из 102, 5,3 с; Roslyn.slnx — 180 из 250, 4,8 с). Проба `spikes/BuildOrderProbe`, результаты
   identical: «ссылки раньше» — офис −15,9 %, Roslyn.slnx −9,6 % wall пробы; evaluation наперёд — офис ещё −3,7 с
-  (вместе −29,3 %), Roslyn.slnx — без выигрыша. Шаг 0 закончен ([шаг 0](evidence/task-02-step-0.md)); следующий
-  этап — A в форке. Код форка не начат.
+  (вместе −29,3 %), Roslyn.slnx — без выигрыша: одновременные evaluation в одной `ProjectCollection` ждут друг
+  друга, а опережение в один уровень оставляет поток сборок ждать; server GC даёт references-first ещё −8 п. п.
+  Идёт разбор B ([шаг 0](evidence/task-02-step-0.md)); код форка не начат.
 - Сложность: hi; риск — ускорить загрузку ценой неверного workspace.
 - Depends on: [task-01](task-01-buildhost-graph-and-timings-hi.md) (accepted).
 - Evidence/validation: [шаг 0](evidence/task-02-step-0.md); отчёт эксперимента —

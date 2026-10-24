@@ -18,6 +18,17 @@ internal static class StepMetrics
         return total == 0 ? 0 : run.EvaluationSteps.Sum(step => Overlap(step, builds)) / total;
     }
 
+    /// <summary>
+    /// Wall time in which the build thread was not building: waiting for evaluations or running them itself. It is
+    /// the part of the critical path that evaluating ahead can remove.
+    /// </summary>
+    public static double NotBuildingMs(ProbeRun run)
+        => run.WallMs - run.BuildSteps.Sum(step => step.DurationMs);
+
+    /// <summary>Root evaluations the build thread ran itself, because no worker had started them.</summary>
+    public static int EvaluationsOnBuildThread(ProbeRun run)
+        => run.BuildSteps.Count == 0 ? 0 : run.EvaluationSteps.Count(step => step.Thread == run.BuildSteps[0].Thread);
+
     /// <summary>The evaluations' summed time over the time at least one of them ran: the mean number at once.</summary>
     public static double MeanConcurrentEvaluations(ProbeRun run)
     {

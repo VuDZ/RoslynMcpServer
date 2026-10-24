@@ -41,16 +41,18 @@ internal static class ProbeComparer
         text.AppendLine(mismatches.Count == 0
             ? $"- results: **identical** — every run built the same {reference.Fingerprints.Count} project and target framework results as the first client run"
             : $"- results: **differ** in {mismatches.Count} run(s); keys in mismatches-private.json");
-        text.AppendLine().AppendLine("| order | workers | server GC | wall ms (median) | against client | builds ms | root evaluations ms (summed) | evaluations during builds | " +
-            "evaluation time overlapping builds | evaluations at once (mean) | evaluation slowdown, one TFM | evaluation slowdown, multi-TFM | wall per round |");
-        text.AppendLine("|---|---|---|---|---|---|---|---|---|---|---|---|---|");
+        text.AppendLine().AppendLine("| order | workers | server GC | wall ms (median) | against client | builds ms | not building ms | root evaluations ms (summed) | " +
+            "evaluations on build thread | evaluations during builds | evaluation time overlapping builds | evaluations at once (mean) | evaluation slowdown, one TFM | " +
+            "evaluation slowdown, multi-TFM | wall per round |");
+        text.AppendLine("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|");
         foreach (var variant in variants)
         {
             var group = variant.ToArray();
             var wall = Median(group.Select(run => run.WallMs));
             text.AppendLine(
                 $"| {variant.Key.Order} | {(variant.Key.Workers == 0 ? "—" : variant.Key.Workers)} | {(variant.Key.ServerGc ? "yes" : "no")} | {Format(wall)} | {(wall / clientWall).ToString("0.000", CultureInfo.InvariantCulture)} | " +
-                $"{Format(Median(group.Select(run => run.BuildMs)))} | {Format(Median(group.Select(run => run.RootEvaluationMs)))} | " +
+                $"{Format(Median(group.Select(run => run.BuildMs)))} | {Format(Median(group.Select(StepMetrics.NotBuildingMs)))} | " +
+                $"{Format(Median(group.Select(run => run.RootEvaluationMs)))} | {Format(Median(group.Select(run => (double)StepMetrics.EvaluationsOnBuildThread(run))))} | " +
                 $"{string.Join(" / ", group.Select(run => run.EvaluationsDuringBuilds).Distinct())} | " +
                 $"{Percent(Median(group.Select(StepMetrics.EvaluationOverlapWithBuilds)))} | {Ratio(Median(group.Select(StepMetrics.MeanConcurrentEvaluations)))} | " +
                 $"{Ratio(Median(group.Select(run => StepMetrics.EvaluationSlowdown(run, sequential, multiTargeting: false))))} | " +
@@ -58,7 +60,8 @@ internal static class ProbeComparer
                 $"{string.Join(", ", group.Select(run => Format(run.WallMs)))} |");
         }
 
-        text.AppendLine().AppendLine("Builds ms and root evaluations ms add up each build and evaluation; with evaluate-ahead they overlap, and only wall is elapsed time.")
+        text.AppendLine().AppendLine("Builds ms and root evaluations ms add up each build and evaluation; when evaluating ahead they overlap, and only wall is elapsed time.")
+            .AppendLine("Not building ms is wall time the build thread spent waiting for evaluations or running them itself: what evaluating ahead can remove.")
             .AppendLine("Evaluation slowdown is the median, over projects, of a root evaluation's duration against the same project's in the references-first runs without server GC.");
         File.WriteAllText(Path.Combine(directory, "summary.md"), text.ToString());
         if (mismatches.Count > 0)

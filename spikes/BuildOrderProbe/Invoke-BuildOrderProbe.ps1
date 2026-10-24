@@ -6,9 +6,10 @@
 .DESCRIPTION
     client: the 5.9.0 loader's order, a project before the projects it references. references-first: the
     references before the project (part A). evaluate-ahead: references first and the references' root evaluations
-    on worker threads while builds go on one at a time (part B), once per worker count of -Workers. With
-    -ServerGc, references-first and evaluate-ahead with the most workers also run with the server garbage
-    collector. Every run is a fresh process; round 0 is warmup, and the order of the variants rotates between
+    on worker threads while builds go on one at a time (part B), once per worker count of -Workers.
+    evaluate-closure: the whole reference closure evaluated ahead, deepest first, once per worker count of
+    -ClosureWorkers. With -ServerGc, references-first and evaluate-closure with the most workers also run with the
+    server garbage collector. Every run is a fresh process; round 0 is warmup, and the order of the variants rotates between
     rounds. Results go to results\probe-<time>; summary.md has no paths, the run JSON files hold full project paths.
 
 .PARAMETER Solution
@@ -18,10 +19,13 @@
     Measured rounds after the warmup round. Default 3.
 
 .PARAMETER Workers
-    Worker counts of evaluate-ahead. Default: 2, 4 and logical processors minus one.
+    Worker counts of evaluate-ahead. Default: 4; an empty list leaves the variant out.
+
+.PARAMETER ClosureWorkers
+    Worker counts of evaluate-closure. Default: 1 and 2.
 
 .PARAMETER ServerGc
-    Also run references-first and evaluate-ahead with the most workers under the server garbage collector.
+    Also run references-first and evaluate-closure with the most workers under the server garbage collector.
 
 .PARAMETER SkipRestore
     Do not restore the solution first, for a solution that is already restored.
@@ -36,7 +40,9 @@ param(
 
     [int]$Rounds = 3,
 
-    [int[]]$Workers = @(2, 4, [Math]::Max(1, [Environment]::ProcessorCount - 1)),
+    [int[]]$Workers = @(4),
+
+    [int[]]$ClosureWorkers = @(1, 2),
 
     [switch]$ServerGc,
 
@@ -70,7 +76,10 @@ if (-not $SkipRestore) {
 }
 
 $workerCounts = @($Workers | Where-Object { $_ -ge 1 } | Sort-Object -Unique)
-$environment = Get-Environment $Solution $repo ([ordered]@{ rounds = $Rounds; workers = ($workerCounts -join ', '); serverGc = [bool]$ServerGc })
+$closureCounts = @($ClosureWorkers | Where-Object { $_ -ge 1 } | Sort-Object -Unique)
+$environment = Get-Environment $Solution $repo ([ordered]@{
+        rounds = $Rounds; workers = ($workerCounts -join ', '); closureWorkers = ($closureCounts -join ', '); serverGc = [bool]$ServerGc
+    })
 [IO.File]::WriteAllText((Join-Path $OutDirectory 'environment.json'), ($environment | ConvertTo-Json), (New-Object Text.UTF8Encoding($false)))
 
 # A variant is an order, its worker count and the garbage collector mode; its name is the file name prefix.
@@ -80,10 +89,15 @@ $variants.Add([pscustomobject]@{ Name = 'references-first'; Order = 'references-
 foreach ($count in $workerCounts) {
     $variants.Add([pscustomobject]@{ Name = "evaluate-ahead-w$count"; Order = 'evaluate-ahead'; Workers = $count; ServerGc = $false })
 }
+foreach ($count in $closureCounts) {
+    $variants.Add([pscustomobject]@{ Name = "evaluate-closure-w$count"; Order = 'evaluate-closure'; Workers = $count; ServerGc = $false })
+}
 if ($ServerGc) {
-    $most = $workerCounts[-1]
     $variants.Add([pscustomobject]@{ Name = 'references-first-servergc'; Order = 'references-first'; Workers = 1; ServerGc = $true })
-    $variants.Add([pscustomobject]@{ Name = "evaluate-ahead-w$most-servergc"; Order = 'evaluate-ahead'; Workers = $most; ServerGc = $true })
+    if ($closureCounts.Count -gt 0) {
+        $most = $closureCounts[-1]
+        $variants.Add([pscustomobject]@{ Name = "evaluate-closure-w$most-servergc"; Order = 'evaluate-closure'; Workers = $most; ServerGc = $true })
+    }
 }
 Write-Host "Variants: $(($variants | ForEach-Object { $_.Name }) -join ', '); $($Rounds + 1) rounds"
 

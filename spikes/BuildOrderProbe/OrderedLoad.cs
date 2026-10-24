@@ -23,6 +23,10 @@ internal sealed class OrderedLoad
         _session = session;
         _order = order;
         _workerSlots = new SemaphoreSlim(workers, workers);
+        if (order == LoadOrder.EvaluateClosure)
+        {
+            _closure = new ClosureEvaluator(Evaluate, ProjectReferences, workers);
+        }
     }
 
     public static ProbeRun Run(string solutionPath, LoadOrder order, int workers)
@@ -36,18 +40,19 @@ internal sealed class OrderedLoad
         }
 
         load._wall.Stop();
+        load._closure?.Dispose();
         return new ProbeRun(
             order.ToString(),
-            order == LoadOrder.EvaluateAhead ? workers : 0,
+            order is LoadOrder.EvaluateAhead or LoadOrder.EvaluateClosure ? workers : 0,
             System.Runtime.GCSettings.IsServerGC,
             Environment.ProcessorCount,
             load._wall.Elapsed.TotalMilliseconds,
-            load._evaluations.Count,
+            load._evaluationSteps.Count,
             load._evaluationSteps.Sum(step => step.DurationMs),
             load._fingerprints.Count,
             load._buildSteps.Sum(step => step.DurationMs),
             session.EvaluationsDuringBuilds,
-            load._evaluations.Count - load._evaluationSteps.Count(step => step.Thread >= 0),
+            load._evaluationSteps.Count(step => step.Thread < 0),
             new SortedDictionary<string, string>(load._fingerprints, StringComparer.Ordinal),
             load._evaluationSteps.OrderBy(step => step.StartMs).ToArray(),
             load._buildSteps);
@@ -92,9 +97,11 @@ internal sealed class OrderedLoad
     }
 
     // One root evaluation per path. Ahead of time it runs on a worker slot; otherwise on the caller's thread, so the
-    // sequential orders do not pay for thread switches.
+    // sequential orders do not pay for thread switches. The closure order has its own queue.
     private Task<Project?> Evaluation(string path)
-        => _evaluations.GetOrAdd(path, key => _order == LoadOrder.EvaluateAhead
+        => _closure is not null
+            ? Task.FromResult(_closure.Require(path))
+            : _evaluations.GetOrAdd(path, key => _order == LoadOrder.EvaluateAhead
             ? Task.Run(async () =>
             {
                 await _workerSlots.WaitAsync().ConfigureAwait(false);
@@ -152,6 +159,7 @@ internal sealed class OrderedLoad
     private readonly HostSession _session;
     private readonly LoadOrder _order;
     private readonly SemaphoreSlim _workerSlots;
+    private readonly ClosureEvaluator? _closure;
     private readonly HashSet<string> _visited = new(StringComparer.OrdinalIgnoreCase);
     private readonly ConcurrentDictionary<string, Task<Project?>> _evaluations = new(StringComparer.OrdinalIgnoreCase);
     private readonly ConcurrentBag<TimedStep> _evaluationSteps = [];

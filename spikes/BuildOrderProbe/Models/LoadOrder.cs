@@ -22,4 +22,11 @@ internal enum LoadOrder
     /// projects it references start on worker threads while builds go on one at a time (BuildHost/task-02, part B).
     /// </summary>
     EvaluateAhead,
+
+    /// <summary>
+    /// The order of <see cref="ReferencesFirst"/>, and every finished evaluation queues the evaluations of the projects
+    /// it references, so the whole reference closure is evaluated ahead by worker threads, deepest first. When the
+    /// builds reach a project whose evaluation has not started, the build thread evaluates it itself.
+    /// </summary>
+    EvaluateClosure,
 }
