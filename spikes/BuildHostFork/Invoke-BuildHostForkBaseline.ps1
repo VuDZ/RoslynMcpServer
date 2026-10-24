@@ -14,6 +14,12 @@
     first search, client CPU of the load and working set. The script fails when the fork is not shown
     equivalent. The fork must be equivalent before any optimization is measured on it.
 
+    With -Trace (BuildHost/task-01) the fork side also writes a timing trace of its BuildHost and of the
+    loader's operations to trace\fork-round<N>, and trace-summary.md gives the medians of where the load time
+    goes. The original side stays untraced, so the comparison checks that tracing changes nothing and the load
+    ratio shows its overhead. For a solution outside this repository the reports name projects by placeholders;
+    the trace folders themselves hold full paths and stay on the machine.
+
 .PARAMETER Solution
     Solution to load.
 
@@ -25,6 +31,9 @@
 
 .PARAMETER OutDirectory
     Result folder. Default: results\baseline-<time> next to this script (not tracked by Git).
+
+.PARAMETER Trace
+    Trace the fork side's loads (BuildHost/task-01).
 
 .EXAMPLE
     .\spikes\BuildHostFork\Invoke-BuildHostForkBaseline.ps1 -Solution D:\src\roslyn\Roslyn.slnx -Name CSharpCompilationOptions
@@ -41,7 +50,9 @@ param(
 
     [switch]$SkipRestore,
 
-    [string]$OutDirectory
+    [string]$OutDirectory,
+
+    [switch]$Trace
 )
 
 Set-StrictMode -Version 2.0
@@ -69,16 +80,27 @@ if (-not $OutDirectory) {
     $OutDirectory = Join-Path (Join-Path $PSScriptRoot 'results') ('baseline-' + (Get-Date -Format 'yyyyMMdd-HHmmss'))
 }
 New-Item -ItemType Directory -Force -Path $OutDirectory | Out-Null
-$environment = Get-Environment $Solution $repo ([ordered]@{ name = $Name; runs = $Runs; fork = $version })
+$environment = Get-Environment $Solution $repo ([ordered]@{ name = $Name; runs = $Runs; fork = $version; trace = [bool]$Trace })
 [IO.File]::WriteAllText((Join-Path $OutDirectory 'environment.json'), ($environment | ConvertTo-Json), (New-Object Text.UTF8Encoding($false)))
 
 $sides = [ordered]@{ original = (Join-Path $copies.originalBin 'BuildHostFork.dll'); fork = (Join-Path $copies.forkBin 'BuildHostFork.dll') }
-Invoke-ObserveRounds $sides $Solution $Name $Runs $OutDirectory
+$traceRoot = $null
+if ($Trace) { $traceRoot = Join-Path $OutDirectory 'trace' }
+Invoke-ObserveRounds $sides $Solution $Name $Runs $OutDirectory $traceRoot
 
 Write-Host ''
 & dotnet $sides['original'] compare $OutDirectory
 $equivalent = $LASTEXITCODE -eq 0
+if ($Trace) {
+    # A solution outside this public repository may be private: its reports name projects by placeholders.
+    $external = -not $Solution.StartsWith($repo + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)
+    $summaryArguments = @('trace-summary', $OutDirectory)
+    if ($external) { $summaryArguments += 'redact' }
+    Write-Host ''
+    Invoke-Native 'dotnet' (@($sides['original']) + $summaryArguments) 'Trace summary failed'
+}
 Write-Host ''
 Write-Host "Results: $OutDirectory"
 Write-Host 'summary.md is enough for the analysis. It names projects only when it lists differences; the JSON files hold project paths and diagnostics of the solution.'
+if ($Trace) { Write-Host 'With -Trace also trace-summary.md and trace\fork-round<N>\report.md and graph.json; the rest of the trace folders (client.json, buildhost-*.jsonl, names-private.json) holds full paths.' }
 if (-not $equivalent) { throw 'The fork is not shown equivalent to the original; see summary.md.' }

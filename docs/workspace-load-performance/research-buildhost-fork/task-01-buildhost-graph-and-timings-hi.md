@@ -1,10 +1,12 @@
 # BuildHost/task-01 — Тайминги запросов и фактический load graph
 
 - Дата: 2026-10-22.
-- Статус: **planned; реализация и независимое ревью не начаты**.
+- Статус: **in progress, 2026-10-24** — трассировка в форке и отчёт в spike готовы; проверены на фикстуре
+  (14/14) и `RoslynMcpServer.sln` (Linux: identical с трассировкой, часы согласованы, 83 % окна — работа host).
+  Pending: Roslyn.slnx на Windows и офис (прогоны владельца), независимое ревью, приёмка.
 - Сложность: hi; риск — выдать неполный reference graph за граф всех операций загрузки.
 - Depends on: [task-00](task-00-buildhost-fork-baseline-hi.md).
-- Evidence/validation: пока отсутствуют.
+- Evidence/validation: [отчёт](evidence/task-01-graph-and-timings.md).
 
 ## Цель
 

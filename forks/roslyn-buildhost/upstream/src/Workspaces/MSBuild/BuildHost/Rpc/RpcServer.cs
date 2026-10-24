@@ -72,6 +72,8 @@ internal sealed class RpcServer
         string? line;
         while ((line = await _streamReader.TryReadLineOrReturnNullIfCancelledAsync(_shutdownTokenSource.Token).ConfigureAwait(false)) != null)
         {
+            var receivedTimestamp = BuildHostTrace.Timestamp;
+            var requestLength = line.Length;
             Request? request;
 
             try
@@ -84,7 +86,7 @@ internal sealed class RpcServer
                 throw new Exception($"Failure while deserializing '{line}'", innerException: e);
             }
 
-            var runningTask = Task.Run(() => ProcessRequestAsync(request));
+            var runningTask = Task.Run(() => ProcessRequestAsync(request, receivedTimestamp, requestLength));
 
             // We'll add this task to the list of running tasks, and then create a continuation to remove it from the list again; this ensures
             // that we won't try to remove it before it was added in case the task completed by the time we got here.
@@ -109,8 +111,16 @@ internal sealed class RpcServer
         await Task.WhenAll(remainingTasks).ConfigureAwait(false);
     }
 
-    private async Task ProcessRequestAsync(Request request)
+    private async Task ProcessRequestAsync(Request request, long receivedTimestamp, int requestLength)
     {
+        // The span starts when the thread pool runs this request; "received" is when its line was read.
+        using var span = BuildHostTrace.Start("rpc");
+        span?.Set("method", request.Method);
+        span?.Set("requestId", request.Id);
+        span?.Set("target", request.TargetObject);
+        span?.Set("received", receivedTimestamp);
+        span?.Set("requestChars", requestLength);
+
         Response response;
 
         try
@@ -142,14 +152,25 @@ internal sealed class RpcServer
                     arguments[i] = request.Parameters[i].Deserialize(methodParameters[i].ParameterType, JsonSettings.SingleLineSerializerOptions);
             }
 
-            var result = _rpcMethodInvoker.InvokeMethod(rpcTarget, method, arguments, lastParameterIsCancellationToken);
+            if (span is not null && arguments is [string argument, ..])
+                span.Set("argument", argument);
 
-            if (result is Task resultTask)
+            object? result;
+            using (BuildHostTrace.Start("rpc-invoke"))
             {
-                result = await RpcMethodInvoker.GetTaskResultAsync(resultTask, calledMethod: method).ConfigureAwait(false);
+                result = _rpcMethodInvoker.InvokeMethod(rpcTarget, method, arguments, lastParameterIsCancellationToken);
+
+                if (result is Task resultTask)
+                {
+                    result = await RpcMethodInvoker.GetTaskResultAsync(resultTask, calledMethod: method).ConfigureAwait(false);
+                }
             }
 
-            response = new Response { Id = request.Id, Value = result is not null ? JsonSerializer.SerializeToElement(result, JsonSettings.SingleLineSerializerOptions) : null };
+            if (span is not null && result is int resultTarget)
+                span.Set("resultInt", resultTarget);
+
+            using (BuildHostTrace.Start("rpc-serialize"))
+                response = new Response { Id = request.Id, Value = result is not null ? JsonSerializer.SerializeToElement(result, JsonSettings.SingleLineSerializerOptions) : null };
         }
         catch (Exception e)
         {
@@ -159,7 +180,11 @@ internal sealed class RpcServer
             response = new Response { Id = request.Id, ExceptionMessage = $"An exception of type {e.GetType()} was thrown: {e.Message}", ExceptionStackTrace = e.StackTrace };
         }
 
+        span?.Set("failed", response.ExceptionMessage is not null);
+
+        using var send = BuildHostTrace.Start("rpc-send");
         var responseJson = JsonSerializer.Serialize(response, JsonSettings.SingleLineSerializerOptions);
+        send?.Set("responseChars", responseJson.Length);
 
 #if DEBUG
         // Assert we didn't put a newline in this, since if we did the receiving side won't know how to parse it

@@ -7,7 +7,7 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- The same MSBuild registration and MSBuildWorkspace load as the other spikes and the server. -->
-    <Compile Include="../ParallelSearch/MsBuildRegistration.cs;../ParallelSearch/SolutionLoader.cs" />
+    <Compile Include="../ParallelSearch/MsBuildRegistration.cs;../ParallelSearch/SolutionLoader.cs;../ParallelSearch/Models/LoadWindow.cs" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.Build.Locator" Version="1.11.2" />

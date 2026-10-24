@@ -1,7 +1,9 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
+using BuildHostFork.Trace;
 using ParallelSearch;
+using ParallelSearch.Models;
 
 namespace BuildHostFork;
 
@@ -11,6 +13,8 @@ namespace BuildHostFork;
 /// load, cancel, kill-host: failure scenarios, see <see cref="FailureScenario"/>.
 /// compare: compares fork runs with original runs of one result folder; exit code 1 when they are not equivalent.
 /// check: self-checks of compare on synthetic runs.
+/// trace-report, trace-summary: report of one traced load and medians over traced rounds (BuildHost/task-01); observe writes the trace when
+/// ROSLYN_BUILDHOST_TRACE_DIRECTORY is set, see <see cref="ClientTraceFile"/>.
 /// </summary>
 internal static class Program
 {
@@ -44,12 +48,25 @@ internal static class Program
             return equivalent ? 0 : 1;
         }
 
+        if (args.Length >= 2 && args[0] == "trace-report")
+        {
+            var summary = TraceReport.Run(Path.GetFullPath(args[1]), redact: args.Length >= 3 && args[2] == "redact");
+            Console.WriteLine(File.ReadAllText(Path.Combine(Path.GetFullPath(args[1]), "report.md")));
+            return summary.Clock.Violations == 0 && summary.Clock.Unmatched == 0 ? 0 : 1;
+        }
+
+        if (args.Length >= 2 && args[0] == "trace-summary")
+        {
+            Console.WriteLine(TraceRounds.Summarize(Path.GetFullPath(args[1]), redact: args.Length >= 3 && args[2] == "redact"));
+            return 0;
+        }
+
         if (args.Length >= 1 && args[0] == "check")
         {
             return ComparerSelfCheck.Run();
         }
 
-        Console.Error.WriteLine("Usage: observe SOLUTION OUTPUT_JSON [NAME] | load|cancel|kill-host SOLUTION OUTPUT_JSON [DELAY_MS] | compare RESULT_DIRECTORY | check");
+        Console.Error.WriteLine("Usage: observe SOLUTION OUTPUT_JSON [NAME] | load|cancel|kill-host SOLUTION OUTPUT_JSON [DELAY_MS] | compare RESULT_DIRECTORY | trace-report TRACE_DIRECTORY [redact] | trace-summary RESULT_DIRECTORY [redact] | check");
         return 2;
     }
 
@@ -61,8 +78,14 @@ internal static class Program
         var diagnostics = new List<string>();
         using var process = Process.GetCurrentProcess();
         using var sampler = new BuildHostSampler();
+
+        // With ROSLYN_BUILDHOST_TRACE_DIRECTORY set, the fork BuildHost writes its spans there and this load writes
+        // the loader's operations next to them; the original BuildHost ignores the variable.
+        var traceDirectory = ClientTraceFile.TraceDirectory;
+        var recorder = traceDirectory is null ? null : new ProgressRecorder();
+        var window = new LoadWindow();
         var watch = Stopwatch.StartNew();
-        var (solution, _) = await SolutionLoader.LoadAsync(solutionPath, diagnostics: diagnostics).ConfigureAwait(false);
+        var (solution, _) = await SolutionLoader.LoadAsync(solutionPath, diagnostics: diagnostics, progress: recorder, window: window).ConfigureAwait(false);
         var loadMs = watch.Elapsed.TotalMilliseconds;
 
         // Client CPU and memory of the load alone; the first search is measured on its own below.
@@ -87,5 +110,10 @@ internal static class Program
             Diagnostics = diagnostics.Order(StringComparer.Ordinal).ToArray(),
         };
         File.WriteAllText(outputPath, JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true }));
+        if (traceDirectory is not null && recorder is not null)
+        {
+            var failures = diagnostics.Count(diagnostic => diagnostic.StartsWith("Failure:", StringComparison.Ordinal));
+            ClientTraceFile.Write(traceDirectory, solutionPath, (window.OpenStart, window.OpenEnd), recorder.Operations, solution, failures);
+        }
     }
 }

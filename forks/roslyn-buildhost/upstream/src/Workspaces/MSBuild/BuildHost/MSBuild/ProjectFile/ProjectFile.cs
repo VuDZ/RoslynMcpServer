@@ -45,8 +45,19 @@ internal sealed class ProjectFile(
 
         var projectInstances = await buildManager.BuildProjectInstancesAsync(project, log, cancellationToken).ConfigureAwait(false);
 
-        return projectInstances.Select(
-            instance => new ProjectInstanceReader(language, _commandLineProvider, instance, project).CreateProjectFileInfo()).ToArray();
+        return projectInstances.Select(instance =>
+        {
+            using var span = BuildHostTrace.Start("extract", project.FullPath);
+            var info = new ProjectInstanceReader(language, _commandLineProvider, instance, project).CreateProjectFileInfo();
+            if (span is not null)
+            {
+                span.Set("targetFramework", info.TargetFramework);
+                span.Set("documents", info.Documents.Length);
+                span.Set("projectReferences", info.ProjectReferences.Select(reference => (reference.ReferenceOutputAssembly ? "" : "roa=false|") + reference.Path).ToArray());
+            }
+
+            return info;
+        }).ToArray();
     }
 
     public void AddDocument(string filePath, string? logicalPath = null)

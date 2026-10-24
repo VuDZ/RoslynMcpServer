@@ -102,6 +102,8 @@ internal static class TimelineReport
             md.AppendLine($"| `{group.Key.Project}` | {group.Count()} | {Ms(group.Sum(item => item.Ms))} |");
         }
 
+        AppendNestedByTargets(md, nested);
+
         md.AppendLine();
         md.AppendLine("| most evaluated projects | evaluations | inclusive ms |");
         md.AppendLine("|---|---|---|");
@@ -111,6 +113,27 @@ internal static class TimelineReport
         }
 
         md.AppendLine();
+    }
+
+    // A nested build is an MSBuild task call into another project; the ProjectReference protocol asks for a few
+    // targets (GetTargetFrameworks, GetTargetPath and the like), so a project start is not a full build. An empty
+    // target list means the default targets, which would be a full build.
+    private static void AppendNestedByTargets(StringBuilder md, List<TimelineInterval> nested)
+    {
+        md.AppendLine();
+        md.AppendLine("| nested builds by requested targets (BuildHost/task-01) | count | distinct projects | inclusive ms |");
+        md.AppendLine("|---|---|---|---|");
+        foreach (var group in nested.GroupBy(item => RequestedTargets(item.Context)).OrderByDescending(group => group.Count()).Take(15))
+        {
+            md.AppendLine($"| `{group.Key}` | {group.Count()} | {group.Select(item => item.Project).Distinct().Count()} | {Ms(group.Sum(item => item.Ms))} |");
+        }
+    }
+
+    private static string RequestedTargets(string context)
+    {
+        var separator = context.LastIndexOf(" | ", StringComparison.Ordinal);
+        var targets = separator < 0 ? "" : context[(separator + 3)..].Trim();
+        return targets.Length == 0 ? "(default targets)" : targets;
     }
 
     private static List<(DateTime Start, DateTime End)> Union(IEnumerable<TimelineInterval> intervals)

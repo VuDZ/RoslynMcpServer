@@ -21,6 +21,14 @@ BuildHost, что лежит в папке `BuildHost-netcore` рядом с н�
 - Production сервера форк не использует. Эксперименты подключают его явно:
   `spikes/BuildHostFork/Invoke-BuildHostForkBaseline.ps1` сравнивает оригинал и форк на одном решении.
 
+Изменения форка поверх upstream:
+
+- [task-01](../../docs/workspace-load-performance/research-buildhost-fork/task-01-buildhost-graph-and-timings-hi.md):
+  трассировка таймингов. Новый файл `BuildHost/Tracing/BuildHostTrace.cs` и spans в `Program`, `RpcServer`,
+  `AbstractBuildHost`, `ProjectBuildManager`, `ProjectFile`. Включается переменной окружения
+  `ROSLYN_BUILDHOST_TRACE_DIRECTORY` (host пишет `buildhost-<pid>.jsonl` в этот каталог); без неё не создаёт
+  объектов и ничего не пишет. Протокол RPC не меняется.
+
 Сборка:
 
 ```text

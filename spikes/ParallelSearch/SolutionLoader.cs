@@ -4,6 +4,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Formatting;
 using Microsoft.CodeAnalysis.Host.Mef;
 using Microsoft.CodeAnalysis.MSBuild;
+using ParallelSearch.Models;
 
 namespace ParallelSearch;
 
@@ -15,10 +16,14 @@ internal static class SolutionLoader
 {
     /// <param name="msbuildLogger">Optional MSBuild logger for the design-time builds, such as a binary logger.</param>
     /// <param name="diagnostics">Optional sink for every workspace diagnostic as "Kind: message".</param>
+    /// <param name="progress">Optional receiver of the loader's per-project operations and their durations.</param>
+    /// <param name="window">Optional receiver of the Stopwatch timestamps around OpenSolutionAsync.</param>
     public static async Task<(Solution Solution, object Load)> LoadAsync(
         string solutionPath,
         Microsoft.Build.Framework.ILogger? msbuildLogger = null,
         ICollection<string>? diagnostics = null,
+        IProgress<ProjectLoadProgress>? progress = null,
+        LoadWindow? window = null,
         CancellationToken cancellationToken = default)
     {
         var host = MefHostServices.Create(new[]
@@ -47,8 +52,17 @@ internal static class SolutionLoader
             }
         });
         var watch = Stopwatch.StartNew();
-        var solution = await workspace.OpenSolutionAsync(solutionPath, msbuildLogger: msbuildLogger, cancellationToken: cancellationToken).ConfigureAwait(false);
+        if (window is not null)
+        {
+            window.OpenStart = Stopwatch.GetTimestamp();
+        }
+
+        var solution = await workspace.OpenSolutionAsync(solutionPath, msbuildLogger, progress, cancellationToken).ConfigureAwait(false);
         watch.Stop();
+        if (window is not null)
+        {
+            window.OpenEnd = Stopwatch.GetTimestamp();
+        }
         return (solution, new
         {
             loadMs = watch.Elapsed.TotalMilliseconds,

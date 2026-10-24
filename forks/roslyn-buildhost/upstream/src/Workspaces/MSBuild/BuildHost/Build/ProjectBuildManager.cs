@@ -109,11 +109,13 @@ internal sealed class ProjectBuildManager : IDisposable
     {
         Contract.ThrowIfTrue(_disposed);
 
+        using var span = BuildHostTrace.Start("load-project", path);
         var log = new DiagnosticLog();
 
         try
         {
             var loadedProjects = _projectCollection.GetLoadedProjects(path);
+            span?.Set("cached", loadedProjects.Count > 0);
             if (loadedProjects.Count > 0)
             {
                 Debug.Assert(loadedProjects.Count == 1);
@@ -140,6 +142,8 @@ internal sealed class ProjectBuildManager : IDisposable
     private (MSB.Evaluation.Project? project, DiagnosticLog log) LoadProjectCore(
         string path, Stream readStream, DiagnosticLog log)
     {
+        using var span = BuildHostTrace.Start("evaluate", path);
+
         try
         {
             using var xmlReader = XmlReader.Create(readStream, s_xmlReaderSettings);
@@ -163,6 +167,9 @@ internal sealed class ProjectBuildManager : IDisposable
                 toolsVersion: null,
                 _projectCollection,
                 projectLoadSettings);
+
+            if (span is not null)
+                SetEvaluatedContext(span, project);
 
             return (project, log);
         }
@@ -194,6 +201,7 @@ internal sealed class ProjectBuildManager : IDisposable
     {
         // This tries to get the project output path and retrieving the evaluated $(TargetPath) property.
 
+        using var span = BuildHostTrace.Start("output-path", path);
         var (project, _) = await LoadProjectAsync(path, cancellationToken).ConfigureAwait(false);
         return project?.GetPropertyValue(PropertyNames.TargetPath);
     }
@@ -216,6 +224,7 @@ internal sealed class ProjectBuildManager : IDisposable
     {
         Contract.ThrowIfTrue(_disposed);
 
+        using var span = BuildHostTrace.Start("build-project", project.FullPath);
         var targetFrameworkValue = project.GetPropertyValue(PropertyNames.TargetFramework);
         var targetFrameworksValue = project.GetPropertyValue(PropertyNames.TargetFrameworks);
 
@@ -236,12 +245,19 @@ internal sealed class ProjectBuildManager : IDisposable
         var results = new List<MSB.Execution.ProjectInstance>(targetFrameworks.Length);
         foreach (var targetFramework in targetFrameworks)
         {
-            project.SetGlobalProperty(PropertyNames.TargetFramework, targetFramework);
-            project.ReevaluateIfNecessary();
+            using (var reevaluate = BuildHostTrace.Start("reevaluate", project.FullPath))
+            {
+                reevaluate?.Set("targetFramework", targetFramework);
+                project.SetGlobalProperty(PropertyNames.TargetFramework, targetFramework);
+                project.ReevaluateIfNecessary();
+            }
 
             var projectInstance = await BuildProjectInstanceAsync(project, log, cancellationToken).ConfigureAwait(false);
             results.Add(projectInstance);
         }
+
+        using var restore = BuildHostTrace.Start("reevaluate", project.FullPath);
+        restore?.Set("restoresTargetFramework", true);
 
         if (initialGlobalTargetFrameworkValue is null)
         {
@@ -269,9 +285,14 @@ internal sealed class ProjectBuildManager : IDisposable
     private async Task<MSB.Execution.ProjectInstance> BuildProjectInstanceAsync(
         MSB.Evaluation.Project project, string[] requiredTargets, string[] optionalTargets, DiagnosticLog log, CancellationToken cancellationToken)
     {
+        using var span = BuildHostTrace.Start("build-instance", project.FullPath);
+        span?.Set("targetFramework", project.GetPropertyValue(PropertyNames.TargetFramework));
+
         // create a project instance to be executed by build engine.
         // The executed project will hold the final model of the project after execution via msbuild.
-        var projectInstance = project.CreateProjectInstance();
+        MSB.Execution.ProjectInstance projectInstance;
+        using (BuildHostTrace.Start("create-instance", project.FullPath))
+            projectInstance = project.CreateProjectInstance();
 
         // Verify targets
         foreach (var target in requiredTargets)
@@ -300,7 +321,13 @@ internal sealed class ProjectBuildManager : IDisposable
             hostServices: null,
             flags: MSB.Execution.BuildRequestDataFlags.ProvideProjectStateAfterBuild);
 
-        var result = await BuildAsync(buildRequestData, log, cancellationToken).ConfigureAwait(false);
+        MSB.Execution.BuildResult result;
+        using (var build = BuildHostTrace.Start("msbuild-build", project.FullPath))
+        {
+            build?.Set("targets", [.. targets]);
+            result = await BuildAsync(buildRequestData, log, cancellationToken).ConfigureAwait(false);
+            build?.Set("result", result.OverallResult.ToString());
+        }
 
         if (result.OverallResult == MSB.Execution.BuildResultCode.Failure)
         {
@@ -351,5 +378,14 @@ internal sealed class ProjectBuildManager : IDisposable
             // Ensure the log is cleaned up if it's still there no matter if we take an exceptional path or not
             _buildLogger.TryUnregisterLog(submission.SubmissionId);
         }
+    }
+
+    private static void SetEvaluatedContext(BuildHostTrace.Span span, MSB.Evaluation.Project project)
+    {
+        span.Set("imports", project.Imports.Count);
+        span.Set("targetFramework", project.GetPropertyValue(PropertyNames.TargetFramework));
+        span.Set("targetFrameworks", project.GetPropertyValue(PropertyNames.TargetFrameworks));
+        span.Set("configuration", project.GetPropertyValue("Configuration"));
+        span.Set("platform", project.GetPropertyValue("Platform"));
     }
 }

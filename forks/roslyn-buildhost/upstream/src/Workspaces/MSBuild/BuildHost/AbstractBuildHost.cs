@@ -98,7 +98,8 @@ internal abstract class AbstractBuildHost :
                 Logger.LogInformation($"Logging builds to {_binaryLogPath}");
             }
 
-            _buildManager = new ProjectBuildManager(_knownCommandLineParserLanguages, _globalMSBuildProperties, logger, _maxNodeCount);
+            using (BuildHostTrace.Start("create-build-manager"))
+                _buildManager = new ProjectBuildManager(_knownCommandLineParserLanguages, _globalMSBuildProperties, logger, _maxNodeCount);
         }
     }
 

@@ -17,6 +17,8 @@ internal static class Program
         // Note: we should limit the data passed through via command line strings, and pass information through IBuildHost.ConfigureGlobalState whenever possible.
         // This is because otherwise we might run into escaping issues, or command line length limits.
 
+        BuildHostTrace.Initialize();
+
         var logger = new BuildHostLogger(Console.Error);
 
         if (args is not [var pipeName, var cultureName])
@@ -38,7 +40,8 @@ internal static class Program
         logger.LogInformation($"BuildHost Runtime Version: {System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription}");
 
         var pipeServer = NamedPipeUtil.CreateServer(pipeName, PipeDirection.InOut);
-        await pipeServer.WaitForConnectionAsync().ConfigureAwait(false);
+        using (BuildHostTrace.Start("connect"))
+            await pipeServer.WaitForConnectionAsync().ConfigureAwait(false);
 
         RpcServer server;
         AbstractBuildHost buildHost;

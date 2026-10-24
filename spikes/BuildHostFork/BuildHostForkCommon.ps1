@@ -29,7 +29,9 @@ function Initialize-ForkCopy([string]$Repo, [string]$SpikeDirectory) {
 }
 
 # Runs observe for both sides in alternating order; round 0 is warmup. Writes <side>-round<N>.json and .out.txt.
-function Invoke-ObserveRounds([Collections.IDictionary]$Sides, [string]$Solution, [string]$Name, [int]$Runs, [string]$OutDirectory) {
+# With $TraceRoot, the fork side writes its trace (BuildHost/task-01) to $TraceRoot/fork-round<N>; the original
+# BuildHost cannot trace, so the original side stays the untraced reference for the comparison and the overhead.
+function Invoke-ObserveRounds([Collections.IDictionary]$Sides, [string]$Solution, [string]$Name, [int]$Runs, [string]$OutDirectory, [string]$TraceRoot) {
     for ($round = 0; $round -le $Runs; $round++) {
         $order = @('original', 'fork')
         if ($round % 2 -eq 1) { $order = @('fork', 'original') }
@@ -38,7 +40,9 @@ function Invoke-ObserveRounds([Collections.IDictionary]$Sides, [string]$Solution
             if ($round -eq 0) { $label += ' (warmup)' }
             Write-Host $label
             $output = Join-Path $OutDirectory "$side-round$round.json"
-            $exitCode = Invoke-Spike $Sides[$side] @('observe', $Solution, $output, $Name) (Join-Path $OutDirectory "$side-round$round.out.txt")
+            if ($TraceRoot -and $side -eq 'fork') { $env:ROSLYN_BUILDHOST_TRACE_DIRECTORY = Join-Path $TraceRoot "fork-round$round" }
+            try { $exitCode = Invoke-Spike $Sides[$side] @('observe', $Solution, $output, $Name) (Join-Path $OutDirectory "$side-round$round.out.txt") }
+            finally { Remove-Item Env:ROSLYN_BUILDHOST_TRACE_DIRECTORY -ErrorAction SilentlyContinue }
             if ($exitCode -ne 0 -or -not (Test-Path -LiteralPath $output)) { throw "$label failed (exit code $exitCode); see $side-round$round.out.txt" }
         }
     }
