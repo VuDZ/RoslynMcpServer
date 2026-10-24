@@ -15,15 +15,18 @@ namespace RoslynMcpServer.Services.Workspace;
 /// The manager's dispose shuts down registered processes only, so the unregistered one stays a child
 /// of this server. Package commit <c>2624f5c156</c> kills the process on any initialization exception;
 /// that commit is not in 5.9.0.
-/// A host whose id is in the in-use set is left alone, as is a host that is not a descendant of this
-/// process. Another IDE on the machine can load a solution at the same time. A descendant whose
-/// command line cannot be read is not treated as a BuildHost. On macOS the parent and the command
-/// line are not read, so nothing is killed.
+/// Only direct children are candidates: 5.9.0 starts every host (dotnet, the net472 exe, mono) from
+/// this process itself. A BuildHost deeper in the tree belongs to a program this server started for a
+/// tool, such as <c>dotnet run</c> or <c>dotnet test</c>, and that program may still be using it.
+/// A host of another process is left alone too: another IDE on the machine can load a solution at the
+/// same time. A host whose id is in the in-use set is left alone, and a child whose command line cannot
+/// be read is not treated as a BuildHost. On macOS the parent and the command line are not read, so
+/// nothing is killed.
 /// </remarks>
 internal static class UnregisteredBuildHostReaper
 {
     /// <summary>
-    /// Terminates descendant BuildHosts of this process that are not in <paramref name="inUseProcessIds"/>.
+    /// Terminates child BuildHosts of this process that are not in the in-use set.
     /// </summary>
     internal static void Reap(ILogger logger)
     {
@@ -43,9 +46,12 @@ internal static class UnregisteredBuildHostReaper
     {
         ArgumentNullException.ThrowIfNull(logger);
         Dictionary<int, BuildHostProcessObservation> processes;
+        DateTime ownStartTime;
         try
         {
             processes = Capture();
+            using var self = Process.GetCurrentProcess();
+            ownStartTime = self.StartTime;
         }
         catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception)
         {
@@ -57,6 +63,7 @@ internal static class UnregisteredBuildHostReaper
             processes,
             inUseProcessIds ?? NoProcessIds,
             Environment.ProcessId,
+            ownStartTime,
             StartTimeTolerance,
             limitToProcessIds);
         var killed = new List<int>(plan.ProcessIds.Count);
@@ -76,20 +83,21 @@ internal static class UnregisteredBuildHostReaper
                 string.Join(", ", killed));
         }
 
-        if (plan.UnidentifiedDescendants > 0)
+        if (plan.UnidentifiedChildren > 0)
         {
             logger.LogWarning(
-                "Cancelled workspace load: {Count} descendant process(es) had no readable command line and were left running.",
-                plan.UnidentifiedDescendants);
+                "Cancelled workspace load: {Count} child process(es) had no readable command line and were left running.",
+                plan.UnidentifiedChildren);
         }
 
-        return new UnregisteredBuildHostReapPlan(killed, plan.UnidentifiedDescendants);
+        return new UnregisteredBuildHostReapPlan(killed, plan.UnidentifiedChildren);
     }
 
     internal static UnregisteredBuildHostReapPlan Select(
         IReadOnlyDictionary<int, BuildHostProcessObservation> processes,
         IReadOnlySet<int> inUseProcessIds,
         int ownProcessId,
+        DateTime ownStartTime,
         TimeSpan startTimeTolerance,
         IReadOnlySet<int>? limitToProcessIds = null)
     {
@@ -115,7 +123,7 @@ internal static class UnregisteredBuildHostReaper
                 continue;
             }
 
-            if (!IsDescendant(process, processes, ownProcessId, startTimeTolerance))
+            if (!IsChild(process, ownProcessId, ownStartTime, startTimeTolerance))
             {
                 continue;
             }
@@ -154,67 +162,15 @@ internal static class UnregisteredBuildHostReaper
             {
                 using (process)
                 {
-                    if (!TryObserve(process, out var observation) || !map.TryAdd(observation.Id, observation))
+                    if (TryObserve(process, out var observation))
                     {
-                        continue;
+                        map.TryAdd(observation.Id, observation);
                     }
-
-                    IncludeAncestors(map, observation);
                 }
             }
         }
 
         return map;
-    }
-
-    private static void IncludeAncestors(
-        Dictionary<int, BuildHostProcessObservation> map,
-        BuildHostProcessObservation child)
-    {
-        var childStart = child.StartTime;
-        var parentId = child.ParentId;
-        for (var depth = 0; depth < MaxAncestorDepth && parentId is int id; depth++)
-        {
-            if (id == Environment.ProcessId)
-            {
-                return;
-            }
-
-            if (map.TryGetValue(id, out var existing))
-            {
-                if (existing.StartTime > childStart + StartTimeTolerance)
-                {
-                    return;
-                }
-
-                childStart = existing.StartTime;
-                parentId = existing.ParentId;
-                continue;
-            }
-
-            Process? parent = null;
-            try
-            {
-                parent = Process.GetProcessById(id);
-                if (!TryObserve(parent, out var observed)
-                    || observed.StartTime > childStart + StartTimeTolerance)
-                {
-                    return;
-                }
-
-                map[id] = observed;
-                childStart = observed.StartTime;
-                parentId = observed.ParentId;
-            }
-            catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or System.ComponentModel.Win32Exception)
-            {
-                return;
-            }
-            finally
-            {
-                parent?.Dispose();
-            }
-        }
     }
 
     private static bool TryObserve(Process process, out BuildHostProcessObservation observation)
@@ -301,37 +257,14 @@ internal static class UnregisteredBuildHostReaper
             || commandLine.Contains(FrameworkHostAssembly, StringComparison.OrdinalIgnoreCase);
     }
 
-    private static bool IsDescendant(
+    // Windows keeps the parent id after the parent exits, so a process started before this one with the
+    // same parent id belongs to an earlier process that had this id.
+    private static bool IsChild(
         BuildHostProcessObservation process,
-        IReadOnlyDictionary<int, BuildHostProcessObservation> processes,
         int ownProcessId,
+        DateTime ownStartTime,
         TimeSpan startTimeTolerance)
-    {
-        var childStart = process.StartTime;
-        var parentId = process.ParentId;
-        for (var depth = 0; depth < MaxAncestorDepth && parentId is int id; depth++)
-        {
-            if (id == ownProcessId)
-            {
-                return true;
-            }
-
-            if (!processes.TryGetValue(id, out var parent))
-            {
-                return false;
-            }
-
-            if (parent.StartTime > childStart + startTimeTolerance)
-            {
-                return false;
-            }
-
-            childStart = parent.StartTime;
-            parentId = parent.ParentId;
-        }
-
-        return false;
-    }
+        => process.ParentId == ownProcessId && process.StartTime >= ownStartTime - startTimeTolerance;
 
     private static bool NeedsCommandLine(string processName)
         => processName.Equals("dotnet", StringComparison.OrdinalIgnoreCase)
@@ -373,8 +306,6 @@ internal static class UnregisteredBuildHostReaper
 
     internal const string FrameworkHostProcessName = "Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost";
 
-    private const int MaxAncestorDepth = 3;
-
     private static readonly string[] CandidateProcessNames =
     [
         "dotnet",
@@ -385,8 +316,7 @@ internal static class UnregisteredBuildHostReaper
     private static readonly HashSet<int> NoProcessIds = [];
 
     // Windows reports start time exactly. On Linux Process.StartTime is recomputed from a 10 ms tick and can
-    // move by a few milliseconds between reads; 100 ms covers that. A reused id inside the window would have
-    // to wrap the whole pid range.
+    // move by a few milliseconds between reads; 100 ms covers that.
     private static readonly TimeSpan StartTimeTolerance = OperatingSystem.IsWindows()
         ? TimeSpan.Zero
         : TimeSpan.FromMilliseconds(100);

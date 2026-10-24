@@ -10,7 +10,7 @@ Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into a
 
 ### v1.5.16
 
-- A cancelled `load_workspace` (or a cancelled lazy load from `RoslynMcp.jsonc`) no longer leaves a BuildHost process behind. Roslyn 5.9.0 starts that process before it is registered, and cancellation during its startup used to keep it alive until the server exited. The server now terminates only unregistered BuildHost children of its own process. A host another process is using is left alone. macOS still cannot identify those children, so this cleanup runs on Windows and Linux.
+- A cancelled `load_workspace` (or a cancelled lazy load from `RoslynMcp.jsonc`) no longer leaves a BuildHost process behind. Roslyn 5.9.0 starts that process before it is registered, and cancellation during its startup used to keep it alive until the server exited. The server now terminates only unregistered BuildHost processes it started directly. A BuildHost of a program the server started for a tool (`run_dotnet_run`, `run_dotnet_test`) and a host of another process are left alone. macOS still cannot identify those children, so this cleanup runs on Windows and Linux.
 
 ### v1.5.15
 

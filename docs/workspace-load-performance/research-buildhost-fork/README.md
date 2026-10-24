@@ -1,8 +1,8 @@
 # Исследование форка Roslyn BuildHost
 
 Дата: **2026-10-22**. Статус: **in progress, 2026-10-24** — task-00 (воспроизводимый форк без изменения
-поведения) accepted 2026-10-24 после двух раундов ревью; task-00b in progress (смягчение в сервере,
-пакет ещё не вышел); task-01 и task-02 не начаты. Git-ветка
+поведения) accepted 2026-10-24 после двух раундов ревью; task-00a accepted 2026-10-24; task-00b in progress
+(смягчение в сервере принято, пакет ещё не вышел); task-01 и task-02 не начаты. Git-ветка
 продолжения: `research/workspace-load-performance`.
 
 Постановка по решению владельца: сохранить результаты офисных замеров и
@@ -26,13 +26,13 @@
 
 ## Задачи
 
-- [task-00a — Временная шкала загрузки до форка](task-00a-load-timeline-before-fork-med.md) — **implemented, 2026-10-24; приёмка pending**. Roslyn.slnx: ~20 с до первой сборки каждого файла, r = 0,67 ([отчёт](evidence/task-00a-load-timeline.md)). Офисная шкала разобрана: открытие 44,4 с, сборки 17,4 с, не менее 27,0 с вне этих сборок; два перекрывающихся binlog, 1676 workspace Failure, r ≈ 0,36 по общей timestamp-оценке. Приоритет — spans task-01; весь остаток нельзя считать evaluation или IPC ([офисный отчёт](evidence/task-00a-office-timeline-2026-10-24.md)). Исправление `SolutionDir` проверено ([валидация](evidence/task-00a-solutiondir-fix.md)).
+- [task-00a — Временная шкала загрузки до форка](task-00a-load-timeline-before-fork-med.md) — **accepted, 2026-10-24** (решение владельца, [приёмка](evidence/task-00a-office-timeline-2026-10-24.md#приёмка-task-00a-2026-10-24)). Roslyn.slnx: ~20 с до первой сборки каждого файла, r = 0,67 ([отчёт](evidence/task-00a-load-timeline.md)). Офисная шкала разобрана: открытие 44,4 с, сборки 17,4 с, не менее 27,0 с вне этих сборок; два перекрывающихся binlog, 1676 workspace Failure, r ≈ 0,36 по общей timestamp-оценке. Приоритет — spans task-01; весь остаток нельзя считать evaluation или IPC ([офисный отчёт](evidence/task-00a-office-timeline-2026-10-24.md)). Исправление `SolutionDir` проверено ([валидация](evidence/task-00a-solutiondir-fix.md)).
 - [task-00 — Воспроизводимый форк без изменения поведения](task-00-buildhost-fork-baseline-hi.md) — **accepted, 2026-10-24** (решение владельца, [приёмка](evidence/task-00-fork-baseline.md#приёмка-2026-10-24)): форк в `forks/roslyn-buildhost` (вариант A по решению владельца, стиль Roslyn). После ревью раунда 1 ([разбор](evidence/task-00-review/disposition.md)) identical на Smoke, `RoslynMcpServer.sln`, Roslyn.slnx (434 проекта, Windows, загрузка ×0,992) и офисе (142 проекта, ×1,000); сценарии на Linux и Windows пройдены, ранняя отмена оставляет BuildHost у обеих сторон (ограничение upstream, task-00b); PowerToys исключён решением владельца. Ревью раунда 2: регрессии форка нет, находки исправлены ([разбор](evidence/task-00-review/disposition-round-2.md)); второй BuildHost в офисе — пакетный net472-host у обеих сторон; сценарии на Windows с исправленным spike пройдены ([отчёт](evidence/task-00-fork-baseline.md)).
-- [task-00b — Утечка BuildHost при ранней отмене загрузки](task-00b-early-cancel-buildhost-leak-low.md) — **in progress, 2026-10-24**: ранняя отмена в сервере достижима; смягчение в сервере 1.5.16 ([отчёт](evidence/task-00b-early-cancel.md)). Проверка пакетом с `2624f5c156` и сценарий task-00 — pending, на nuget.org всё ещё 5.9.0.
+- [task-00b — Утечка BuildHost при ранней отмене загрузки](task-00b-early-cancel-buildhost-leak-low.md) — **in progress, 2026-10-24**: ранняя отмена в сервере достижима; смягчение в сервере 1.5.16 принято 2026-10-24 после сужения до прямых потомков ([приёмка](evidence/task-00b-early-cancel.md#приёмка-смягчения-в-сервере-2026-10-24)). Проверка пакетом с `2624f5c156` и сценарий task-00 — pending, на nuget.org всё ещё 5.9.0.
 - [task-01 — Тайминги запросов и фактический load graph](task-01-buildhost-graph-and-timings-hi.md) — **planned**, после task-00.
 - [task-02 — Направленный эксперимент оптимизации](task-02-buildhost-optimization-spike-hi.md) — **planned**, после task-01.
 
-В активной реализации одновременно не больше двух задач. Сейчас идёт task-00b (пакетная проверка ещё впереди); измерения task-00a завершены, приёмка pending. После каждой задачи обновляются
+В активной реализации одновременно не больше двух задач. Сейчас task-00b ждёт пакета новее 5.9.0; task-00 и task-00a приняты. После каждой задачи обновляются
 её статус, этот индекс и evidence; незавершённая проверка сохраняется как pending.
 
 ## Где искать выигрыш

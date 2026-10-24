@@ -14,7 +14,7 @@ public sealed class UnregisteredBuildHostReaperTests
     private static readonly DateTime Started = new(2026, 10, 24, 12, 0, 0, DateTimeKind.Local);
 
     [Fact]
-    public void Select_terminates_an_unregistered_descendant_build_host()
+    public void Select_terminates_an_unregistered_child_build_host()
     {
         var plan = Select(new Dictionary<int, BuildHostProcessObservation>
         {
@@ -22,7 +22,7 @@ public sealed class UnregisteredBuildHostReaperTests
         });
 
         Assert.Equal([30], plan.ProcessIds);
-        Assert.Equal(0, plan.UnidentifiedDescendants);
+        Assert.Equal(0, plan.UnidentifiedChildren);
     }
 
     [Fact]
@@ -36,7 +36,7 @@ public sealed class UnregisteredBuildHostReaperTests
             inUse: new HashSet<int> { 30 });
 
         Assert.Empty(plan.ProcessIds);
-        Assert.Equal(0, plan.UnidentifiedDescendants);
+        Assert.Equal(0, plan.UnidentifiedChildren);
     }
 
     [Fact]
@@ -52,7 +52,7 @@ public sealed class UnregisteredBuildHostReaperTests
     }
 
     [Fact]
-    public void Select_leaves_a_descendant_dotnet_that_is_not_a_build_host()
+    public void Select_leaves_a_child_dotnet_that_is_not_a_build_host()
     {
         var plan = Select(new Dictionary<int, BuildHostProcessObservation>
         {
@@ -60,11 +60,11 @@ public sealed class UnregisteredBuildHostReaperTests
         });
 
         Assert.Empty(plan.ProcessIds);
-        Assert.Equal(0, plan.UnidentifiedDescendants);
+        Assert.Equal(0, plan.UnidentifiedChildren);
     }
 
     [Fact]
-    public void Select_counts_a_descendant_with_no_command_line_and_does_not_terminate_it()
+    public void Select_counts_a_child_with_no_command_line_and_does_not_terminate_it()
     {
         var plan = Select(new Dictionary<int, BuildHostProcessObservation>
         {
@@ -72,7 +72,7 @@ public sealed class UnregisteredBuildHostReaperTests
         });
 
         Assert.Empty(plan.ProcessIds);
-        Assert.Equal(1, plan.UnidentifiedDescendants);
+        Assert.Equal(1, plan.UnidentifiedChildren);
     }
 
     [Fact]
@@ -92,58 +92,40 @@ public sealed class UnregisteredBuildHostReaperTests
     }
 
     [Fact]
-    public void Select_terminates_a_host_through_a_launcher()
+    public void Select_leaves_a_build_host_of_a_program_this_process_started()
     {
+        // A tool such as run_dotnet_run starts a program that loads its own workspace; its host may be in use.
         var plan = Select(new Dictionary<int, BuildHostProcessObservation>
         {
-            [20] = Observed(20, OwnProcessId, "dotnet", "dotnet", Started.AddSeconds(1)),
+            [20] = Observed(20, OwnProcessId, "dotnet", "dotnet run --project app.csproj", Started.AddSeconds(1)),
             [30] = Host(30, parentId: 20, Started.AddSeconds(2)),
-        });
-
-        Assert.Equal([30], plan.ProcessIds);
-    }
-
-    [Fact]
-    public void Select_rejects_a_parent_id_reused_by_a_newer_process()
-    {
-        var childStart = Started.AddSeconds(1);
-        var plan = Select(new Dictionary<int, BuildHostProcessObservation>
-        {
-            [20] = Observed(20, OwnProcessId, "dotnet", "dotnet", childStart.AddSeconds(5)),
-            [30] = Host(30, parentId: 20, childStart),
         });
 
         Assert.Empty(plan.ProcessIds);
     }
 
     [Fact]
-    public void Select_accepts_a_parent_start_inside_the_tolerance()
+    public void Select_rejects_a_child_of_an_earlier_process_with_the_same_id()
     {
-        var childStart = Started.AddSeconds(2);
+        var plan = Select(new Dictionary<int, BuildHostProcessObservation>
+        {
+            [30] = Host(30, parentId: OwnProcessId, Started.AddSeconds(-5)),
+        });
+
+        Assert.Empty(plan.ProcessIds);
+    }
+
+    [Fact]
+    public void Select_accepts_a_child_start_inside_the_tolerance()
+    {
         var plan = Select(
             new Dictionary<int, BuildHostProcessObservation>
             {
-                [20] = Observed(20, OwnProcessId, "dotnet", "dotnet", childStart.AddMilliseconds(50)),
-                [30] = Host(30, parentId: 20, childStart),
+                [30] = Host(30, parentId: OwnProcessId, Started.AddMilliseconds(-50)),
             },
             tolerance: TimeSpan.FromMilliseconds(100));
 
         Assert.Equal([30], plan.ProcessIds);
-    }
-
-    [Fact]
-    public void Select_stops_after_three_ancestors()
-    {
-        var plan = Select(new Dictionary<int, BuildHostProcessObservation>
-        {
-            [5] = Observed(5, OwnProcessId, "dotnet", "dotnet", Started.AddSeconds(1)),
-            [4] = Observed(4, 5, "dotnet", "dotnet", Started.AddSeconds(2)),
-            [3] = Observed(3, 4, "dotnet", "dotnet", Started.AddSeconds(3)),
-            [2] = Observed(2, 3, "dotnet", "dotnet", Started.AddSeconds(4)),
-            [30] = Host(30, parentId: 2, Started.AddSeconds(5)),
-        });
-
-        Assert.Empty(plan.ProcessIds);
     }
 
     [Fact]
@@ -167,11 +149,11 @@ public sealed class UnregisteredBuildHostReaperTests
             limitToProcessIds: new HashSet<int> { -1 });
 
         Assert.Empty(plan.ProcessIds);
-        Assert.Equal(0, plan.UnidentifiedDescendants);
+        Assert.Equal(0, plan.UnidentifiedChildren);
     }
 
     [Fact]
-    public void Reap_kills_an_unregistered_descendant_build_host_and_leaves_another_child()
+    public void Reap_kills_an_unregistered_child_build_host_and_leaves_another_child()
     {
         var hostDll = RequirePackagedBuildHost();
         using var bystander = StartBystander();
@@ -228,6 +210,7 @@ public sealed class UnregisteredBuildHostReaperTests
             processes,
             inUse ?? new HashSet<int>(),
             OwnProcessId,
+            Started,
             tolerance ?? TimeSpan.Zero);
 
     private static BuildHostProcessObservation Host(int id, int? parentId, DateTime startTime)

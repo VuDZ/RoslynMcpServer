@@ -1,13 +1,15 @@
 # BuildHost/task-00b — Утечка BuildHost при ранней отмене загрузки
 
 - Дата: 2026-10-24.
-- Статус: **in progress, 2026-10-24** — шаги 2–3 сделаны в сервере 1.5.16
-  ([отчёт](evidence/task-00b-early-cancel.md)). Шаг 1 ждёт пакета новее 5.9.0 с `2624f5c156`:
-  на nuget.org 2026-10-24 последняя версия по-прежнему 5.9.0. Задача не принята: сценарий task-00
-  на Linux и Windows этим пакетом ещё не прогнан.
+- Статус: **in progress, 2026-10-24** — шаги 2–3 (смягчение в сервере 1.5.16) **приняты 2026-10-24**
+  решением владельца, после сужения reaper до прямых потомков
+  ([приёмка](evidence/task-00b-early-cancel.md#приёмка-смягчения-в-сервере-2026-10-24)). Шаг 1 ждёт пакета
+  новее 5.9.0 с `2624f5c156`: на nuget.org 2026-10-24 последняя версия по-прежнему 5.9.0. Задача целиком не
+  принята: сценарий task-00 на Linux и Windows этим пакетом ещё не прогнан.
 - Сложность: low; риск — завершить процесс, который клиент ещё использует.
 - Depends on: [task-00](task-00-buildhost-fork-baseline-hi.md) (сценарий «отмена сразу после появления host»).
-- Evidence/validation: [отчёт](evidence/task-00b-early-cancel.md) — reaper 13/13 и main suite 1445/0, Release, 2026-10-24.
+- Evidence/validation: [отчёт](evidence/task-00b-early-cancel.md) — до приёмки reaper 13/13 и main suite 1445/0
+  (Windows); после сужения reaper 12/12, main suite Linux 1390/0/0, AnalyzerLifecycle 13/13, Release, 2026-10-24.
 
 ## Что известно
 
