@@ -13,7 +13,7 @@
   обновлена до его публикации. GC — workstation.
 - Windows 11 Enterprise, Intel Core i5-9500 (6 ядер), 63,8 ГБ, SDK 9.0.318 и 10.0.402,
   Windows Defender и Kaspersky Endpoint Security.
-- Решение `<офисное решение>.sln`, Platform x64, 142 проекта; запрос `MainViewModel`.
+- Офисное решение (имя не публикуется), Platform x64, 142 проекта; запрос `MainViewModel`.
 - `scripts/Invoke-FirstSearchDiagnostics.ps1`: прогрев, 3 измерения, RAM hit
   и отдельный trace-прогон с dotnet-trace. Версия PowerShell в отчёте не записана.
 
