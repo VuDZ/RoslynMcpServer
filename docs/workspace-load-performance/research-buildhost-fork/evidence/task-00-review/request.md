@@ -20,15 +20,15 @@ docs/workspace-load-performance/research-buildhost-fork/evidence/task-00-review/
 ## Где лежит
 
 Репозиторий: https://github.com/VuDZ/RoslynMcpServer
-Ветка: `research/workspace-load-performance`. Запрос написан при HEAD `39c74f6`.
+Ветка: `research/workspace-load-performance`. Запрос написан при HEAD `0d6cece`.
 Коммиты задачи:
-- `616dbe0` — дословная копия upstream;
-- `7944282` — сборка без Arcade и сравнение;
-- `4273c3e` — baseline на Roslyn.slnx;
-- `46e62dc` — запуск для решений вне Git;
-- `ba19b4e` — офисный baseline;
-- `52d8c59` — сценарии сбоев;
-- `39c74f6` — сценарии сбоев на Windows.
+- `e2e56a9` — дословная копия upstream;
+- `ae5d093` — сборка без Arcade и сравнение;
+- `d493831` — baseline на Roslyn.slnx;
+- `227ae5a` — запуск для решений вне Git;
+- `5692fef` — офисный baseline;
+- `cf87b73` — сценарии сбоев;
+- `0d6cece` — сценарии сбоев на Windows.
 
 Upstream: `dotnet/roslyn`, commit `35d9211b841e7613c1d2f8f5af6d628ace696c4c` (ветка `release/insiders`).
 Из этого коммита собран NuGet-пакет `Microsoft.CodeAnalysis.Workspaces.MSBuild` 5.9.0.

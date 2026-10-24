@@ -1,7 +1,7 @@
 {
   "solution": "Roslyn.slnx",
   "solutionCommit": "013d3a758df6c137497ff37a93f0d4bed103853a",
-  "spikeCommit": "bd20ef9f400d",
+  "spikeCommit": "6174f222cd61",
   "logicalProcessors": 16,
   "os": "Microsoft Windows NT 10.0.26200.0",
   "dotnetSdks": "10.0.301",

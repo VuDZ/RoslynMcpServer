@@ -14,7 +14,7 @@
     сняты, отказов нет, [отчёт](evidence/office-first-search-2026-10-23.md).
     Версия PowerShell в отчёте не записана.
   - В прогоне найдена недоработка обезличивания путей вне папки решения,
-    исправлена в `120f366`.
+    исправлена в `c7dca2e`.
   - Независимого ревью не было; не accepted.
 - Depends on: [task-09](task-09-first-search-io-and-private-project-profile-hi.md).
 - Модель, реализовавшая задачу: claude-opus-5-5.

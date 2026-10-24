@@ -6,7 +6,7 @@
 
 ## Стенд и запуск
 
-- Spike: `bd20ef9f400d`, ветка `research/workspace-load-performance`, перед запуском
+- Spike: `6174f222cd61`, ветка `research/workspace-load-performance`, перед запуском
   проверена актуальность относительно origin.
 - Roslyn: чистый существующий клон `clones/roslyn-deep`, commit
   `013d3a758df6c137497ff37a93f0d4bed103853a`, полный `Roslyn.slnx`, Debug.
