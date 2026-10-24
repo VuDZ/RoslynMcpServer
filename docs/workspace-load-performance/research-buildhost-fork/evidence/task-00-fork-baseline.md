@@ -6,6 +6,7 @@
 
 Независимое ревью: [GPT-6.1 Sol](task-00-review/review-gpt-6-1-sol.md), [Grok 4.7](task-00-review/review-grok-4-7.md),
 разбор и исправления — [disposition.md](task-00-review/disposition.md). Ниже номера находок из разбора.
+Второй раунд ревью исправлений: [запрос](task-00-review/request-round-2.md), отчёты pending.
 
 ## Upstream
 
