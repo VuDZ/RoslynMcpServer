@@ -2116,9 +2116,25 @@ public sealed class SolutionManager
                 WorkspaceLoadGuidance.FormatRoslynMsBuildBuildHostFailureMessage(fullPath),
                 ex);
         }
-        catch
+        catch (Exception ex)
         {
-            workspace.Dispose();
+            // 5.9.0 starts a BuildHost before adding it to BuildHostProcessManager._processes.
+            // Cancellation during ConfigureGlobalStateAsync or FindBestMSBuildAsync skips that
+            // add. The manager disposes only processes it added, and that dispose already ran
+            // before this exception left OpenSolutionAsync, so a process still alive was not
+            // registered. Reap those children after the workspace itself is disposed.
+            try
+            {
+                workspace.Dispose();
+            }
+            finally
+            {
+                if (ex is OperationCanceledException || cancellationToken.IsCancellationRequested)
+                {
+                    UnregisteredBuildHostReaper.Reap(_logger);
+                }
+            }
+
             throw;
         }
 

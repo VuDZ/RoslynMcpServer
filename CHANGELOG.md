@@ -8,6 +8,10 @@ Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into a
 - `find_symbol_definition` and `find_symbol_references` accept `filePath` + `line` + `column` without `symbolName`, using the existing positional symbol resolver. Name-based search and automatic column selection still require `symbolName`.
 - `find_symbol_definition` accepts optional `preview`: source text is appended to each definition location, capped at 400 characters, including overflow chunks. Explicit `preview` overrides the JSONC setting; otherwise the default is false.
 
+### v1.5.16
+
+- A cancelled `load_workspace` (or a cancelled lazy load from `RoslynMcp.jsonc`) no longer leaves a BuildHost process behind. Roslyn 5.9.0 starts that process before it is registered, and cancellation during its startup used to keep it alive until the server exited. The server now terminates only unregistered BuildHost children of its own process. A host another process is using is left alone. macOS still cannot identify those children, so this cleanup runs on Windows and Linux.
+
 ### v1.5.15
 
 - After a fresh `load_workspace`, the server builds or validates the syntax indexes of every project in the background, the index part of a first name-based search without its compilation, so a search that comes later finds them ready. A search during the prewarm shares Roslyn's per-document work with it. Reload, `reset_workspace` and a workspace change cancel it; its outcome goes to one `workspace_search_prewarm` log line and never to tool responses. It is on by default; `ROSLYN_MCP_SEARCH_PREWARM=0` or `"search-prewarm": false` in `RoslynMcp.jsonc` turns it off, and the variable wins. Measured: with 30 s between load and search the first search took 0.50–0.55 of the time without prewarm (office solution 13.8 → 6.9 s), and a search right after the load took 0.72–0.75, never longer. Measurement scripts gained a pause before the first search and an on/off comparison.
