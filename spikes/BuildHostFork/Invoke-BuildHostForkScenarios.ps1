@@ -6,33 +6,44 @@
     All into one result folder, scenarios.md is the summary:
     1. fixture  - a generated solution with a multi-TFM project and failing entries: a project missing on disk,
                   a reference to a missing project, an F# project (no language services in the server),
-                  a C++ project (no language for the workspace) and a project with broken XML. observe for both sides, warmup + one round, compared
-                  like the baseline (fixture-runs/summary.md).
+                  a C++ project (no language for the workspace) and a project with broken XML. observe for both
+                  sides, warmup + three rounds, compared like the baseline (fixture-runs/summary.md); then one
+                  load of each side, whose diagnostics must match line by line.
     2. broken   - a copy of the fork with its BuildHost dll deleted loads the fixture: the load must fail
                   visibly, there is no other BuildHost for the client to fall back to.
-    3. cancel   - both sides load -Solution and cancel -DelayMs after the BuildHost appears.
-    4. kill     - both sides load -Solution and kill the BuildHost -DelayMs after it appears.
-    Every run also checks that no BuildHost process outlives the load (waits up to 10 s, then kills the rest).
+    3. load     - both sides load -Solution undisturbed; the original's load sets the default delay.
+    4. cancel   - both sides load -Solution and cancel -DelayMs after the BuildHost appears.
+    5. kill     - both sides load -Solution and kill the BuildHost -DelayMs after it appears. Upstream ends such
+                  a load either with a connection error or, when the kill lands between requests, by starting
+                  a new BuildHost for the next project and completing; either outcome is accepted on each side.
+    6. early cancel - both sides cancel as soon as the BuildHost appears, while the client still sets it up.
+    Every run also records the BuildHost processes still running 10 s after the load (then kills them).
+
+    The script fails (exit code 1) when a run does not do what its scenario needs (the load ended before the
+    cancel or the kill, an unexpected outcome, a BuildHost from another folder) or when the fork differs from
+    the original: outcome (except after a kill), diagnostics, projects, BuildHost processes left. Processes left the same way on both
+    sides are upstream behavior: reported, not a failure of the fork.
 
 .PARAMETER Solution
-    Solution for cancel and kill; the load must last longer than -DelayMs. Default: RoslynMcpServer.sln of this
-    repository.
+    Solution for load, cancel and kill; it must load for at least a few seconds. Default: RoslynMcpServer.sln of
+    this repository.
 
 .PARAMETER DelayMs
-    Time from the first BuildHost process to the cancellation or the kill. Default 1500.
+    Time from the first BuildHost process to the cancellation or the kill. Default: half of the time the
+    original's undisturbed load runs after its BuildHost appears.
 
 .PARAMETER OutDirectory
     Result folder. Default: results\scenarios-<time> next to this script (not tracked by Git).
 
 .EXAMPLE
-    .\spikes\BuildHostFork\Invoke-BuildHostForkScenarios.ps1 -Solution D:\src\roslyn\Roslyn.slnx -DelayMs 5000
+    .\spikes\BuildHostFork\Invoke-BuildHostForkScenarios.ps1 -Solution D:\src\roslyn\Roslyn.slnx
 #>
 [CmdletBinding()]
 param(
     [string]$Solution,
 
     [ValidateRange(0, 600000)]
-    [int]$DelayMs = 1500,
+    [int]$DelayMs,
 
     [string]$OutDirectory
 )
@@ -48,6 +59,8 @@ $repo = Split-Path $spikes -Parent
 if (-not $Solution) { $Solution = Join-Path $repo 'RoslynMcpServer.sln' }
 $Solution = [IO.Path]::GetFullPath($Solution)
 if (-not (Test-Path -LiteralPath $Solution -PathType Leaf)) { throw "Solution not found: $Solution" }
+# A solution outside this public repository may be private: its name and paths stay out of scenarios.md.
+$external = -not $Solution.StartsWith($repo + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)
 if (-not $OutDirectory) {
     $OutDirectory = Join-Path (Join-Path $PSScriptRoot 'results') ('scenarios-' + (Get-Date -Format 'yyyyMMdd-HHmmss'))
 }
@@ -66,7 +79,8 @@ function Write-Utf8([string]$Path, [string]$Text) {
     [IO.File]::WriteAllText($Path, $Text, (New-Object Text.UTF8Encoding($false)))
 }
 
-# The fixture sits under the repository: empty Directory.Build files stop the repository's own props.
+# The fixture may sit under the repository: empty Directory.Build files stop the repository's own props, and
+# BuildHostFork.csproj keeps results/ out of its own compilation.
 function New-Fixture([string]$Directory) {
     $sdkProject = '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework{0}>{1}</TargetFramework{0}></PropertyGroup>{2}</Project>'
     Write-Utf8 (Join-Path $Directory 'Directory.Build.props') '<Project />'
@@ -95,13 +109,61 @@ function New-Fixture([string]$Directory) {
     return $solution
 }
 
-function Invoke-Scenario([string]$Label, [string]$Dll, [string]$Mode, [string]$Target, [string]$File) {
+# $Expect: completed, canceled, killed (an error, or completed by a new BuildHost) or no-host (the BuildHost dll is missing).
+function Invoke-Scenario([string]$Label, [string]$Side, [string]$Dll, [string]$Mode, [string]$Target, [int]$Delay, [string]$Expect, [string]$File) {
     Write-Host $Label
     $output = Join-Path $OutDirectory "$File.json"
-    $exitCode = Invoke-Spike $Dll @($Mode, $Target, $output, "$DelayMs") (Join-Path $OutDirectory "$File.out.txt")
+    $exitCode = Invoke-Spike $Dll @($Mode, $Target, $output, "$Delay") (Join-Path $OutDirectory "$File.out.txt")
     $result = $null
     if (Test-Path -LiteralPath $output) { $result = Get-Content -LiteralPath $output -Raw | ConvertFrom-Json }
-    return [pscustomobject]@{ Label = $Label; ExitCode = $exitCode; Result = $result }
+    return [pscustomobject]@{
+        Label = $Label; Side = $Side; Mode = $Mode; Expect = $Expect; External = ($Target -eq $Solution -and $external)
+        ExitCode = $exitCode; Result = $result; Problems = (New-Object Collections.Generic.List[string]); Note = ''
+    }
+}
+
+# What a single run must show for its scenario. Processes left after the load are judged per pair, not here.
+function Test-Run($Run) {
+    $r = $Run.Result
+    if ($null -eq $r) { $Run.Problems.Add("no report (exit code $($Run.ExitCode))"); return }
+    $outcomeOk = switch ($Run.Expect) {
+        'completed' { $r.Outcome -eq 'completed' }
+        'canceled' { $r.Outcome -eq 'canceled' }
+        'killed' { $r.Outcome -like 'failed:*' -or ($r.Outcome -eq 'completed' -and $r.BuildHostProcesses.count -ge 2) }
+        'no-host' { $r.Outcome -like 'failed:*could not be found*' }
+    }
+    if (-not $outcomeOk) { $Run.Problems.Add("expected $($Run.Expect)") }
+    if ($Run.Mode -ne 'load' -and $null -eq $r.DisturbedAtMs) {
+        $Run.Problems.Add('not disturbed: the load ended first, inconclusive; use a larger solution or -DelayMs')
+    }
+    $netcore = @(@($r.BuildHostProcesses.hosts) | Where-Object { $_ -like 'netcore: *' })
+    if ($Run.Expect -eq 'no-host') {
+        if ($r.BuildHostProcesses.count -ne 0) { $Run.Problems.Add('a BuildHost started without the fork dll') }
+    }
+    elseif ($netcore.Count -eq 0) { $Run.Problems.Add('no netcore BuildHost observed') }
+    foreach ($hostFolder in $netcore) {
+        if ($hostFolder -ne $r.ExpectedHost) { $Run.Problems.Add("BuildHost from another folder: $hostFolder") }
+    }
+    if ($r.BuildHostProcesses.unidentified -gt 0) { $Run.Problems.Add("$($r.BuildHostProcesses.unidentified) child dotnet process(es) not identified") }
+}
+
+# The fork must do what the original does. A BuildHost left on both sides is upstream behavior, reported only.
+# After a kill the outcome depends on timing in upstream, so one run per side cannot be compared.
+function Test-Pair($Original, $Fork, [bool]$CompareOutcome, [bool]$CompareDiagnostics) {
+    $o = $Original.Result
+    $f = $Fork.Result
+    if ($null -eq $o -or $null -eq $f) { return }
+    if ($CompareOutcome -and $o.Outcome -ne $f.Outcome) { $Fork.Problems.Add('outcome differs from the original') }
+    if ($CompareOutcome -and ($o.Projects -ne $f.Projects -or $o.Documents -ne $f.Documents)) { $Fork.Problems.Add('projects or documents differ from the original') }
+    if ($CompareDiagnostics -and (($o.Diagnostics -join "`n") -ne ($f.Diagnostics -join "`n"))) { $Fork.Problems.Add('diagnostics differ from the original') }
+    if ($o.RemainingBuildHosts -ne $f.RemainingBuildHosts) {
+        $Fork.Problems.Add("BuildHost processes left: fork $($f.RemainingBuildHosts), original $($o.RemainingBuildHosts)")
+    }
+    elseif ($o.RemainingBuildHosts -gt 0) {
+        $note = "$($o.RemainingBuildHosts) BuildHost left on both sides (upstream)"
+        $Original.Note = $note
+        $Fork.Note = $note
+    }
 }
 
 Write-Host 'Fixture'
@@ -109,60 +171,103 @@ $fixture = Join-Path $OutDirectory 'fixture'
 $fixtureSolution = New-Fixture $fixture
 $fixtureResults = Join-Path $OutDirectory 'fixture-runs'
 New-Item -ItemType Directory -Force -Path $fixtureResults | Out-Null
-Invoke-ObserveRounds $sides $fixtureSolution 'Class1' 1 $fixtureResults
-Invoke-Native 'dotnet' @($sides['original'], 'compare', $fixtureResults) 'Fixture comparison failed'
+Invoke-ObserveRounds $sides $fixtureSolution 'Class1' 3 $fixtureResults
+& dotnet $sides['original'] compare $fixtureResults | Out-Host
+$fixtureEquivalent = $LASTEXITCODE -eq 0
 
 Write-Host "Restoring $Solution"
 Invoke-Native 'dotnet' @('restore', $Solution, '-nologo', '-v', 'q') 'Solution restore failed'
-$runs = @(
-    (Invoke-Scenario 'fixture load, original' $sides['original'] 'load' $fixtureSolution 'load-original'),
-    (Invoke-Scenario 'fixture load, fork' $sides['fork'] 'load' $fixtureSolution 'load-fork'),
-    (Invoke-Scenario 'fixture load, fork without its BuildHost dll' (Join-Path $brokenBin 'BuildHostFork.dll') 'load' $fixtureSolution 'broken-fork'),
-    (Invoke-Scenario 'cancel, original' $sides['original'] 'cancel' $Solution 'cancel-original'),
-    (Invoke-Scenario 'cancel, fork' $sides['fork'] 'cancel' $Solution 'cancel-fork'),
-    (Invoke-Scenario 'kill BuildHost, original' $sides['original'] 'kill-host' $Solution 'kill-original'),
-    (Invoke-Scenario 'kill BuildHost, fork' $sides['fork'] 'kill-host' $Solution 'kill-fork')
+$broken = Join-Path $brokenBin 'BuildHostFork.dll'
+$fixtureLoads = @(
+    (Invoke-Scenario 'fixture load, original' 'original' $sides['original'] 'load' $fixtureSolution 0 'completed' 'fixture-load-original'),
+    (Invoke-Scenario 'fixture load, fork' 'fork' $sides['fork'] 'load' $fixtureSolution 0 'completed' 'fixture-load-fork'),
+    (Invoke-Scenario 'fixture load, fork without its BuildHost dll' 'broken' $broken 'load' $fixtureSolution 0 'no-host' 'broken-fork')
 )
+$loads = @(
+    (Invoke-Scenario 'load, original' 'original' $sides['original'] 'load' $Solution 0 'completed' 'load-original'),
+    (Invoke-Scenario 'load, fork' 'fork' $sides['fork'] 'load' $Solution 0 'completed' 'load-fork')
+)
+$delaySource = "-DelayMs"
+if (-not $PSBoundParameters.ContainsKey('DelayMs')) {
+    $probe = $loads[0].Result
+    if ($null -eq $probe -or $probe.Outcome -ne 'completed' -or $null -eq $probe.FirstHostAtMs) { throw 'The undisturbed load of the original failed; pass -DelayMs.' }
+    $DelayMs = [int][Math]::Floor(($probe.LoadMs - $probe.FirstHostAtMs) / 2)
+    $delaySource = 'half of the undisturbed original load after its BuildHost appeared'
+}
+$disturbed = @(
+    (Invoke-Scenario 'cancel, original' 'original' $sides['original'] 'cancel' $Solution $DelayMs 'canceled' 'cancel-original'),
+    (Invoke-Scenario 'cancel, fork' 'fork' $sides['fork'] 'cancel' $Solution $DelayMs 'canceled' 'cancel-fork'),
+    (Invoke-Scenario 'kill BuildHost, original' 'original' $sides['original'] 'kill-host' $Solution $DelayMs 'killed' 'kill-original'),
+    (Invoke-Scenario 'kill BuildHost, fork' 'fork' $sides['fork'] 'kill-host' $Solution $DelayMs 'killed' 'kill-fork'),
+    (Invoke-Scenario 'cancel at BuildHost start, original' 'original' $sides['original'] 'cancel' $Solution 0 'canceled' 'early-cancel-original'),
+    (Invoke-Scenario 'cancel at BuildHost start, fork' 'fork' $sides['fork'] 'cancel' $Solution 0 'canceled' 'early-cancel-fork')
+)
+$runs = @($fixtureLoads) + @($loads) + @($disturbed)
+foreach ($run in $runs) { Test-Run $run }
+Test-Pair $fixtureLoads[0] $fixtureLoads[1] $true $true
+Test-Pair $loads[0] $loads[1] $true $true
+for ($i = 0; $i -lt $disturbed.Count; $i += 2) { Test-Pair $disturbed[$i] $disturbed[$i + 1] ($disturbed[$i].Mode -ne 'kill-host') $false }
 
-# Paths in the summary are relative: the spike folder, the fixture, the solution folder and the user profile.
+# Paths in the summary are relative: the fixture, the spike folder, the solution folder and the user profile,
+# in any letter case and with either separator.
 $redactions = @(@($fixture, '<fixture>'), @($PSScriptRoot, '<spike>'), @((Split-Path $Solution), '<solution>'), @($HOME, '<user>'))
 function Format-Redacted([string]$Text) {
-    foreach ($pair in $redactions) { $Text = $Text.Replace($pair[0], $pair[1]) }
+    foreach ($pair in $redactions) {
+        foreach ($variant in @($pair[0], $pair[0].Replace('\', '/'), $pair[0].Replace('/', '\'))) {
+            $Text = [regex]::Replace($Text, [regex]::Escape($variant), $pair[1], [Text.RegularExpressions.RegexOptions]::IgnoreCase)
+        }
+    }
     return $Text.Replace('|', '\|')
 }
 
+# An error message about a solution outside the repository may name its projects: only the type is kept.
+function Format-Outcome($Run) {
+    $text = Format-Redacted $Run.Result.Outcome
+    if ($Run.External -and $text -match '^failed: ([^:]+):(.*)$' -and $Matches[2] -match '[\\/]') {
+        return "failed: $($Matches[1]) (message with paths not shown)"
+    }
+    return $text
+}
+
+$problems = @($runs | Where-Object { $_.Problems.Count -gt 0 })
+$solutionName = Split-Path $Solution -Leaf
+if ($external) { $solutionName = '(outside this repository, name not shown)' }
 $md = New-Object Text.StringBuilder
 [void]$md.AppendLine('# BuildHost fork failure scenarios (BuildHost/task-00)')
 [void]$md.AppendLine('')
-[void]$md.AppendLine("- fork: $($copies.version); solution for cancel and kill: $(Split-Path $Solution -Leaf); delay after the first BuildHost: $DelayMs ms")
-[void]$md.AppendLine('- fixture equivalence: ' + ((Get-Content -LiteralPath (Join-Path $fixtureResults 'summary.md')) -match '^- equivalence' -replace '^- equivalence: ', ''))
+[void]$md.AppendLine("- fork: $($copies.version); solution for load, cancel and kill: $solutionName")
+[void]$md.AppendLine("- delay after the first BuildHost: $DelayMs ms ($delaySource); early cancel: 0 ms")
+[void]$md.AppendLine('- fixture observe, warmup + 3 rounds: ' + (((Get-Content -LiteralPath (Join-Path $fixtureResults 'summary.md')) -match '^- (fork rounds|result)') -replace '^- ', '' -join '; '))
+$resultText = 'all checks passed'
+if ($problems.Count -gt 0 -or -not $fixtureEquivalent) { $resultText = "FAILED: $($problems.Count) run(s) with problems; fixture equivalent: $fixtureEquivalent" }
+[void]$md.AppendLine("- result: **$resultText**")
 [void]$md.AppendLine('')
-[void]$md.AppendLine('| scenario | exit | outcome | disturbed at ms | load ms | projects | failures / warnings | BuildHosts | left after load |')
-[void]$md.AppendLine('|---|---|---|---|---|---|---|---|---|')
+[void]$md.AppendLine('| scenario | outcome | host seen at ms | disturbed at ms | load ms | projects | failures / warnings | BuildHosts | left after load | check |')
+[void]$md.AppendLine('|---|---|---|---|---|---|---|---|---|---|')
 foreach ($run in $runs) {
+    $check = 'ok'
+    if ($run.Problems.Count -gt 0) { $check = 'FAIL: ' + ($run.Problems -join '; ') }
+    elseif ($run.Note) { $check = $run.Note }
     $r = $run.Result
     if ($null -eq $r) {
-        [void]$md.AppendLine("| $($run.Label) | $($run.ExitCode) | no report | | | | | | |")
+        [void]$md.AppendLine("| $($run.Label) | no report | | | | | | | | $(Format-Redacted $check) |")
         continue
     }
     $failures = @($r.Diagnostics | Where-Object { $_ -like 'Failure:*' }).Count
     $warnings = @($r.Diagnostics | Where-Object { $_ -like 'Warning:*' }).Count
     $hosts = "$($r.BuildHostProcesses.count): " + (@($r.BuildHostProcesses.hosts) -join '; ')
-    [void]$md.AppendLine("| $($run.Label) | $($run.ExitCode) | $(Format-Redacted $r.Outcome) | $(Format-Number $r.DisturbedAtMs) | $(Format-Number $r.LoadMs) | $($r.Projects) | $failures / $warnings | $(Format-Redacted $hosts) | $($r.RemainingBuildHosts) |")
+    [void]$md.AppendLine("| $($run.Label) | $(Format-Outcome $run) | $(Format-Number $r.FirstHostAtMs) | $(Format-Number $r.DisturbedAtMs) | $(Format-Number $r.LoadMs) | $($r.Projects) | $failures / $warnings | $(Format-Redacted $hosts) | $($r.RemainingBuildHosts) | $(Format-Redacted $check) |")
 }
 [void]$md.AppendLine('')
-[void]$md.AppendLine('Fixture diagnostics (fork load; the original load must list the same):')
+[void]$md.AppendLine('Fixture diagnostics (fork load; the check above compares them with the original load line by line):')
 [void]$md.AppendLine('')
-$fixtureLoad = $runs[1].Result
-if ($null -ne $fixtureLoad) {
-    foreach ($diagnostic in $fixtureLoad.Diagnostics) { [void]$md.AppendLine('- ' + (Format-Redacted $diagnostic)) }
+if ($null -ne $fixtureLoads[1].Result) {
+    foreach ($diagnostic in $fixtureLoads[1].Result.Diagnostics) { [void]$md.AppendLine('- ' + (Format-Redacted $diagnostic)) }
 }
-$sameDiagnostics = $null -ne $runs[0].Result -and $null -ne $fixtureLoad -and (($runs[0].Result.Diagnostics -join "`n") -eq ($fixtureLoad.Diagnostics -join "`n"))
-[void]$md.AppendLine('')
-[void]$md.AppendLine("Same fixture diagnostics in both loads: $sameDiagnostics")
 Write-Utf8 (Join-Path $OutDirectory 'scenarios.md') $md.ToString()
 
 Write-Host ''
 Write-Host $md.ToString()
 Write-Host "Results: $OutDirectory"
 Write-Host 'scenarios.md is enough for the analysis; the JSON files hold paths and diagnostics of the solution.'
+if ($problems.Count -gt 0 -or -not $fixtureEquivalent) { exit 1 }

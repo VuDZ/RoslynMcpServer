@@ -5,81 +5,187 @@ using System.Text.Json;
 namespace BuildHostFork;
 
 /// <summary>
-/// Compares the fork runs of a result folder with its original runs, as spikes/ParallelLoad/compare.py does:
-/// a fork value is identical to the first original run, a natural variance when another original run had
-/// the same value, and unexplained otherwise. Round 0 is warmup and only counts for equivalence.
+/// Compares the fork runs of a result folder with its original runs by the rules of spikes/ParallelLoad/compare.py.
+/// The reference is the first measured original run (round 1; round 0 is warmup). Natural variance is only what
+/// differs between original rounds 1 and 2: a difference from the reference is natural when the field, or the
+/// presence of the diagnostic, took the same value in one of those two rounds, and unexplained otherwise. Original
+/// rounds 3+ are checked against the same rule, so an original that is not stable shows up. Stricter than
+/// compare.py: no case-only path exemption, one search answer for every run, and the BuildHost processes of every
+/// run must come from that side's own folder and exit after the load.
 /// </summary>
 internal static class ObservationComparer
 {
-    public static string Run(string directory)
+    /// <returns>The summary, also written to summary.md, and whether the fork is shown equivalent.</returns>
+    public static (string Summary, bool Equivalent) Run(string directory)
     {
         var originals = Load(directory, "original");
         var forks = Load(directory, "fork");
-        if (originals.Count == 0 || forks.Count == 0)
+        var measuredOriginals = originals.Where(run => run.Round > 0).ToList();
+        var measuredForks = forks.Where(run => run.Round > 0).ToList();
+        if (measuredOriginals.Count == 0 || measuredForks.Count == 0)
         {
-            throw new InvalidOperationException("Both original-round*.json and fork-round*.json are needed.");
+            throw new InvalidOperationException("Measured original-round*.json and fork-round*.json (round 1+) are needed.");
         }
 
-        var reference = originals[0].Document.RootElement;
-        var seen = new Dictionary<(string Project, string Field), HashSet<string>>();
-        foreach (var original in originals)
-        {
-            foreach (var (project, field, value) in Fields(original.Document.RootElement))
-            {
-                if (!seen.TryGetValue((project, field), out var values))
-                {
-                    seen[(project, field)] = values = new HashSet<string>(StringComparer.Ordinal);
-                }
+        var reference = measuredOriginals[0];
+        var natural = measuredOriginals.Count > 1 ? Differences(reference.Root, measuredOriginals[1].Root) : [];
+        var allowed = natural.ToDictionary(item => (item.Key, item.Category), item => new[] { item.Before, item.After });
+        var original = Classify(reference, measuredOriginals.Skip(2), allowed);
+        var fork = Classify(reference, measuredForks, allowed);
+        var answers = originals.Concat(forks).Select(run => run.Root.GetProperty("FirstSearch").GetProperty("resultSha256").GetString()).Distinct().Count();
+        var processIssues = originals.Select(run => ("original", run)).Concat(forks.Select(run => ("fork", run))).SelectMany(item => ProcessIssues(item.Item1, item.run)).ToList();
 
-                values.Add(value);
+        var verdict = fork.Unexplained.Count > 0 || answers != 1 ? "different" : fork.Natural > 0 ? "natural variance only" : "identical";
+        var reasons = new List<string>();
+        if (verdict == "different")
+        {
+            reasons.Add("the fork differs from the original");
+        }
+
+        if (original.Unexplained.Count > 0)
+        {
+            reasons.Add("the original is not stable between its own runs");
+        }
+
+        if (processIssues.Count > 0)
+        {
+            reasons.Add("BuildHost process check failed");
+        }
+
+        var text = Summarize(originals, forks, reference, natural, original, fork, answers, verdict, processIssues, reasons);
+        File.WriteAllText(Path.Combine(directory, "summary.md"), text);
+        return (text, reasons.Count == 0);
+    }
+
+    private static List<(int Round, JsonElement Root)> Load(string directory, string side) =>
+        Directory.GetFiles(directory, side + "-round*.json")
+            .Select(path => (Round: int.Parse(Path.GetFileNameWithoutExtension(path)[(side.Length + "-round".Length)..], CultureInfo.InvariantCulture), Path: path))
+            .OrderBy(item => item.Round)
+            .Select(item => (item.Round, JsonDocument.Parse(File.ReadAllText(item.Path)).RootElement))
+            .ToList();
+
+    // compare.py differences(): changed fields of common projects, added or removed projects, and diagnostics in
+    // only one of the runs. Before and After are the JSON values, or presence for project keys and diagnostics.
+    private static List<Difference> Differences(JsonElement left, JsonElement right)
+    {
+        var result = new List<Difference>();
+        var leftProjects = Projects(left);
+        var rightProjects = Projects(right);
+        foreach (var key in leftProjects.Keys.Union(rightProjects.Keys).Order(StringComparer.Ordinal))
+        {
+            if (!leftProjects.TryGetValue(key, out var leftFields) || !rightProjects.TryGetValue(key, out var rightFields))
+            {
+                result.Add(new Difference(key, "ProjectKeys", Presence(leftProjects.ContainsKey(key)), Presence(rightProjects.ContainsKey(key))));
+                continue;
+            }
+
+            foreach (var field in leftFields.Keys.Union(rightFields.Keys).Order(StringComparer.Ordinal))
+            {
+                var before = leftFields.GetValueOrDefault(field);
+                var after = rightFields.GetValueOrDefault(field);
+                if (before != after)
+                {
+                    result.Add(new Difference(key, field, before, after));
+                }
             }
         }
 
-        var originalDiagnostics = originals.Select(run => Diagnostics(run.Document.RootElement)).ToList();
-        var everOriginal = originalDiagnostics.SelectMany(set => set).ToHashSet(StringComparer.Ordinal);
-        var alwaysOriginal = originalDiagnostics.Aggregate((left, right) => left.Intersect(right, StringComparer.Ordinal).ToHashSet(StringComparer.Ordinal));
-        var referenceFields = Fields(reference).ToDictionary(item => (item.Project, item.Field), item => item.Value);
-
-        var unexplained = new List<string>();
-        var natural = 0;
-        foreach (var fork in forks)
+        var leftDiagnostics = Diagnostics(left);
+        var rightDiagnostics = Diagnostics(right);
+        foreach (var message in leftDiagnostics.Union(rightDiagnostics).Where(message => leftDiagnostics.Contains(message) != rightDiagnostics.Contains(message)).Order(StringComparer.Ordinal))
         {
-            var forkFields = Fields(fork.Document.RootElement).ToDictionary(item => (item.Project, item.Field), item => item.Value);
-            foreach (var key in referenceFields.Keys.Union(forkFields.Keys))
-            {
-                forkFields.TryGetValue(key, out var forkValue);
-                referenceFields.TryGetValue(key, out var referenceValue);
-                if (forkValue == referenceValue)
-                {
-                    continue;
-                }
+            result.Add(new Difference(message, "Diagnostics", Presence(leftDiagnostics.Contains(message)), Presence(rightDiagnostics.Contains(message))));
+        }
 
-                if (forkValue is not null && seen.TryGetValue(key, out var values) && values.Contains(forkValue))
+        return result;
+    }
+
+    // compare.py compare(): a difference from the reference is natural when its new value is one of the two values
+    // that field had between original rounds 1 and 2.
+    private static Classification Classify(
+        (int Round, JsonElement Root) reference,
+        IEnumerable<(int Round, JsonElement Root)> runs,
+        Dictionary<(string Key, string Category), string?[]> allowed)
+    {
+        var natural = 0;
+        var unexplained = new List<string>();
+        foreach (var run in runs)
+        {
+            foreach (var difference in Differences(reference.Root, run.Root))
+            {
+                if (allowed.TryGetValue((difference.Key, difference.Category), out var values) && values.Contains(difference.After))
                 {
                     natural++;
                     continue;
                 }
 
-                unexplained.Add($"round {fork.Round}: {key.Item1} {key.Item2}: original {Shorten(referenceValue)}, fork {Shorten(forkValue)}");
+                unexplained.Add($"round {run.Round}: {difference.Key} {difference.Category}: reference {Shorten(difference.Before)}, this run {Shorten(difference.After)}");
             }
-
-            var diagnostics = Diagnostics(fork.Document.RootElement);
-            unexplained.AddRange(diagnostics.Where(message => !everOriginal.Contains(message)).Select(message => $"round {fork.Round}: diagnostic only in fork: {Shorten(message)}"));
-            unexplained.AddRange(alwaysOriginal.Where(message => !diagnostics.Contains(message)).Select(message => $"round {fork.Round}: diagnostic missing in fork: {Shorten(message)}"));
         }
 
-        var answers = originals.Concat(forks).Select(run => run.Document.RootElement.GetProperty("FirstSearch").GetProperty("resultSha256").GetString()).Distinct().Count();
-        var verdict = unexplained.Count > 0 || answers != 1 ? "different" : natural > 0 ? "natural variance only" : "identical";
+        return new Classification(natural, unexplained);
+    }
 
+    // Absent fields belong to results written before the field existed; such runs are not checked for it.
+    private static IEnumerable<string> ProcessIssues(string side, (int Round, JsonElement Root) run)
+    {
+        var label = $"{side} round {run.Round}";
+        if (run.Root.TryGetProperty("RemainingBuildHosts", out var remaining) && remaining.GetInt32() > 0)
+        {
+            yield return $"{label}: {remaining.GetInt32()} BuildHost process(es) still running 10 s after the load";
+        }
+
+        var processes = run.Root.GetProperty("BuildHostProcesses");
+        if (processes.TryGetProperty("unidentified", out var unidentified) && unidentified.GetInt32() > 0)
+        {
+            yield return $"{label}: {unidentified.GetInt32()} child dotnet process(es) with an unreadable command line";
+        }
+
+        if (!run.Root.TryGetProperty("ExpectedHost", out var expected) || !processes.TryGetProperty("hosts", out var hosts))
+        {
+            yield break;
+        }
+
+        var netcore = hosts.EnumerateArray().Select(host => host.GetString() ?? "").Where(host => host.StartsWith("netcore: ", StringComparison.Ordinal)).ToList();
+        if (netcore.Count == 0)
+        {
+            yield return $"{label}: no netcore BuildHost process was observed";
+        }
+
+        foreach (var host in netcore.Where(host => !string.Equals(host, expected.GetString(), StringComparison.OrdinalIgnoreCase)))
+        {
+            yield return $"{label}: BuildHost from another folder: {host}";
+        }
+    }
+
+    private static string Summarize(
+        List<(int Round, JsonElement Root)> originals,
+        List<(int Round, JsonElement Root)> forks,
+        (int Round, JsonElement Root) reference,
+        List<Difference> natural,
+        Classification original,
+        Classification fork,
+        int answers,
+        string verdict,
+        List<string> processIssues,
+        List<string> reasons)
+    {
         var md = new StringBuilder();
         md.AppendLine("# BuildHost fork baseline (BuildHost/task-00)");
         md.AppendLine();
-        md.AppendLine($"- original BuildHost: {originals[0].Document.RootElement.GetProperty("BuildHost").GetString()}; fork: {forks[0].Document.RootElement.GetProperty("BuildHost").GetString()}");
-        md.AppendLine($"- runs: original {originals.Count}, fork {forks.Count} (round 0 is warmup; timings use rounds 1+)");
-        md.AppendLine($"- projects in the first original run: {reference.GetProperty("Projects").EnumerateObject().Count()}");
-        md.AppendLine($"- equivalence: **{verdict}**; natural-variance fields: {natural}; unexplained: {unexplained.Count}; distinct search answers: {answers}");
+        md.AppendLine($"- original BuildHost: {originals[0].Root.GetProperty("BuildHost").GetString()}; fork: {forks[0].Root.GetProperty("BuildHost").GetString()}");
+        md.AppendLine($"- runs: original {originals.Count}, fork {forks.Count}; round 0 is warmup: only its search answer and BuildHost processes are checked, equivalence and timings use rounds 1+");
+        md.AppendLine($"- reference: original round {reference.Round}, {reference.Root.GetProperty("Projects").EnumerateObject().Count()} projects");
+        md.AppendLine(natural.Count > 0 || originals.Count(run => run.Round > 0) > 1
+            ? $"- natural variance (original round 1 against round 2): {natural.Count} difference(s)"
+            : "- natural variance: one measured original round, so every difference is unexplained");
+        md.AppendLine($"- original rounds 3+ against the reference: natural {original.Natural}, unexplained {original.Unexplained.Count}");
+        md.AppendLine($"- fork rounds 1+ against the reference: **{verdict}**; natural {fork.Natural}, unexplained {fork.Unexplained.Count}; distinct search answers in all runs: {answers}");
+        md.AppendLine($"- BuildHost processes (own folder, none left 10 s after the load): {(processIssues.Count == 0 ? "ok" : processIssues.Count + " issue(s)")}");
+        md.AppendLine($"- result: **{(reasons.Count == 0 ? "equivalent" : "not shown equivalent: " + string.Join("; ", reasons))}**");
+        md.AppendLine("- only the captured fields are compared; see the limits of SolutionObservation in the task-00 report");
         md.AppendLine();
-        md.AppendLine("| metric (median) | original | fork | fork / original |");
+        md.AppendLine("| metric (median of rounds 1+) | original | fork | fork / original |");
         md.AppendLine("|---|---|---|---|");
         AppendMetric(md, "load ms", originals, forks, run => run.GetProperty("WallMs").GetDouble());
         AppendMetric(md, "first search ms", originals, forks, run => run.GetProperty("FirstSearch").GetProperty("wallMs").GetDouble());
@@ -87,52 +193,56 @@ internal static class ObservationComparer
         AppendMetric(md, "client peak working set MB", originals, forks, run => run.GetProperty("ClientPeakWorkingSetMb").GetDouble());
         AppendMetric(md, "BuildHost processes", originals, forks, run => run.GetProperty("BuildHostProcesses").GetProperty("count").GetInt32());
         AppendMetric(md, "BuildHost CPU ms (lower bound)", originals, forks, run => run.GetProperty("BuildHostProcesses").GetProperty("cpuMs").GetDouble());
-        AppendMetric(md, "BuildHost peak working set MB", originals, forks, run => run.GetProperty("BuildHostProcesses").GetProperty("peakWorkingSetMb").GetDouble());
-        if (unexplained.Count > 0)
-        {
-            md.AppendLine();
-            md.AppendLine("Unexplained differences (first 30):");
-            md.AppendLine();
-            foreach (var line in unexplained.Take(30))
-            {
-                md.AppendLine("- " + line);
-            }
-        }
-
-        var text = md.ToString();
-        File.WriteAllText(Path.Combine(directory, "summary.md"), text);
-        return text;
+        AppendMetric(md, "largest BuildHost peak working set MB", originals, forks, run => run.GetProperty("BuildHostProcesses").GetProperty("peakWorkingSetMb").GetDouble());
+        md.AppendLine();
+        md.AppendLine("Per-round load ms: original " + Rounds(originals, run => run.GetProperty("WallMs").GetDouble()) + "; fork " + Rounds(forks, run => run.GetProperty("WallMs").GetDouble()));
+        md.AppendLine("Per-round client CPU ms: original " + Rounds(originals, run => run.GetProperty("ClientCpuMs").GetDouble()) + "; fork " + Rounds(forks, run => run.GetProperty("ClientCpuMs").GetDouble()));
+        AppendList(md, "Natural variance of the original (first 30)", natural.Select(item => $"{item.Key} {item.Category}: {Shorten(item.Before)} -> {Shorten(item.After)}"));
+        AppendList(md, "Unexplained differences of the original (first 30)", original.Unexplained);
+        AppendList(md, "Unexplained differences of the fork (first 30)", fork.Unexplained);
+        AppendList(md, "BuildHost process issues (first 30)", processIssues);
+        return md.ToString();
     }
 
-    private static List<(int Round, JsonDocument Document)> Load(string directory, string side) =>
-        Directory.GetFiles(directory, side + "-round*.json")
-            .Select(path => (Round: int.Parse(Path.GetFileNameWithoutExtension(path)[(side.Length + "-round".Length)..], CultureInfo.InvariantCulture), Path: path))
-            .OrderBy(item => item.Round)
-            .Select(item => (item.Round, JsonDocument.Parse(File.ReadAllText(item.Path))))
-            .ToList();
-
-    private static IEnumerable<(string Project, string Field, string Value)> Fields(JsonElement run)
-    {
-        foreach (var project in run.GetProperty("Projects").EnumerateObject())
-        {
-            foreach (var field in project.Value.EnumerateObject())
-            {
-                yield return (project.Name, field.Name, field.Value.GetString() ?? "");
-            }
-        }
-    }
+    private static Dictionary<string, Dictionary<string, string>> Projects(JsonElement run) =>
+        run.GetProperty("Projects").EnumerateObject().ToDictionary(
+            project => project.Name,
+            project => project.Value.EnumerateObject().ToDictionary(field => field.Name, field => field.Value.GetString() ?? "", StringComparer.Ordinal),
+            StringComparer.Ordinal);
 
     private static HashSet<string> Diagnostics(JsonElement run) =>
         run.GetProperty("Diagnostics").EnumerateArray().Select(item => item.GetString() ?? "").ToHashSet(StringComparer.Ordinal);
 
-    private static void AppendMetric(StringBuilder md, string name, List<(int Round, JsonDocument Document)> originals,
-        List<(int Round, JsonDocument Document)> forks, Func<JsonElement, double> read)
+    private static string Presence(bool present) => present ? "present" : "absent";
+
+    private static void AppendMetric(StringBuilder md, string name, List<(int Round, JsonElement Root)> originals,
+        List<(int Round, JsonElement Root)> forks, Func<JsonElement, double> read)
     {
-        var original = Median(originals.Where(run => run.Round > 0).Select(run => read(run.Document.RootElement)));
-        var fork = Median(forks.Where(run => run.Round > 0).Select(run => read(run.Document.RootElement)));
+        var original = Median(originals.Where(run => run.Round > 0).Select(run => read(run.Root)));
+        var fork = Median(forks.Where(run => run.Round > 0).Select(run => read(run.Root)));
         var ratio = original is > 0 && fork is not null ? (fork / original)?.ToString("0.000", CultureInfo.InvariantCulture) : "n/a";
         md.AppendLine($"| {name} | {Format(original)} | {Format(fork)} | {ratio} |");
     }
+
+    private static void AppendList(StringBuilder md, string title, IEnumerable<string> lines)
+    {
+        var items = lines.Take(30).ToList();
+        if (items.Count == 0)
+        {
+            return;
+        }
+
+        md.AppendLine();
+        md.AppendLine(title + ":");
+        md.AppendLine();
+        foreach (var line in items)
+        {
+            md.AppendLine("- " + line);
+        }
+    }
+
+    private static string Rounds(List<(int Round, JsonElement Root)> runs, Func<JsonElement, double> read) =>
+        string.Join(", ", runs.Where(run => run.Round > 0).Select(run => Format(read(run.Root))));
 
     private static double? Median(IEnumerable<double> values)
     {
@@ -148,4 +258,8 @@ internal static class ObservationComparer
     private static string Format(double? value) => value is null ? "n/a" : Math.Round(value.Value).ToString(CultureInfo.InvariantCulture);
 
     private static string Shorten(string? value) => value is null ? "(missing)" : value.Length > 160 ? value[..160] + "…" : value;
+
+    private sealed record Difference(string Key, string Category, string? Before, string? After);
+
+    private sealed record Classification(int Natural, List<string> Unexplained);
 }

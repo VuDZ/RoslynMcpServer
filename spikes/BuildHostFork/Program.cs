@@ -9,10 +9,14 @@ namespace BuildHostFork;
 /// observe: loads a solution like the server does, with whichever BuildHost sits in BuildHost-netcore next to
 /// this program, and writes the workspace observation, diagnostics, load time and a first search.
 /// load, cancel, kill-host: failure scenarios, see <see cref="FailureScenario"/>.
-/// compare: compares fork runs with original runs of one result folder.
+/// compare: compares fork runs with original runs of one result folder; exit code 1 when they are not equivalent.
+/// check: self-checks of compare on synthetic runs.
 /// </summary>
 internal static class Program
 {
+    /// <summary>The BuildHost folder this copy of the spike must use, as <see cref="BuildHostSampler"/> reports it.</summary>
+    public static string ExpectedHost => "netcore: " + Path.Combine(AppContext.BaseDirectory, "BuildHost-netcore");
+
     private static async Task<int> Main(string[] args)
     {
         if (args.Length >= 3 && args[0] == "observe")
@@ -35,11 +39,17 @@ internal static class Program
 
         if (args.Length >= 2 && args[0] == "compare")
         {
-            Console.WriteLine(ObservationComparer.Run(Path.GetFullPath(args[1])));
-            return 0;
+            var (summary, equivalent) = ObservationComparer.Run(Path.GetFullPath(args[1]));
+            Console.WriteLine(summary);
+            return equivalent ? 0 : 1;
         }
 
-        Console.Error.WriteLine("Usage: observe SOLUTION OUTPUT_JSON [NAME] | load|cancel|kill-host SOLUTION OUTPUT_JSON [DELAY_MS] | compare RESULT_DIRECTORY");
+        if (args.Length >= 1 && args[0] == "check")
+        {
+            return ComparerSelfCheck.Run();
+        }
+
+        Console.Error.WriteLine("Usage: observe SOLUTION OUTPUT_JSON [NAME] | load|cancel|kill-host SOLUTION OUTPUT_JSON [DELAY_MS] | compare RESULT_DIRECTORY | check");
         return 2;
     }
 
@@ -49,21 +59,27 @@ internal static class Program
     {
         var buildHost = Path.Combine(AppContext.BaseDirectory, "BuildHost-netcore", "Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.dll");
         var diagnostics = new List<string>();
-        var sampler = new BuildHostSampler();
+        using var process = Process.GetCurrentProcess();
+        using var sampler = new BuildHostSampler();
         var watch = Stopwatch.StartNew();
         var (solution, _) = await SolutionLoader.LoadAsync(solutionPath, diagnostics: diagnostics).ConfigureAwait(false);
         var loadMs = watch.Elapsed.TotalMilliseconds;
+
+        // Client CPU and memory of the load alone; the first search is measured on its own below.
+        process.Refresh();
+        var clientCpuMs = process.TotalProcessorTime.TotalMilliseconds;
+        var clientPeakWorkingSetMb = process.PeakWorkingSet64 / 1048576.0;
         var buildHosts = sampler.Stop();
         var search = await SearchMeasurement.MeasureAsync(solution, Path.GetDirectoryName(solutionPath)!, name, 1).ConfigureAwait(false);
         var remaining = await sampler.WaitForExitAsync(TimeSpan.FromSeconds(10)).ConfigureAwait(false);
-        using var process = Process.GetCurrentProcess();
         var report = new
         {
             Status = "ok",
             BuildHost = FileVersionInfo.GetVersionInfo(buildHost).ProductVersion,
+            ExpectedHost,
             WallMs = loadMs,
-            ClientCpuMs = process.TotalProcessorTime.TotalMilliseconds,
-            ClientPeakWorkingSetMb = process.PeakWorkingSet64 / 1048576.0,
+            ClientCpuMs = clientCpuMs,
+            ClientPeakWorkingSetMb = clientPeakWorkingSetMb,
             BuildHostProcesses = buildHosts,
             RemainingBuildHosts = remaining.Length,
             FirstSearch = search,

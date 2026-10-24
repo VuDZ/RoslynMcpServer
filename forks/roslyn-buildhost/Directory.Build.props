@@ -9,6 +9,9 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
     <Deterministic>true</Deterministic>
+    <!-- As upstream eng/targets/Settings.props: strict compiler semantics and all warning waves for C#. -->
+    <Features>strict</Features>
+    <WarningLevel>9999</WarningLevel>
     <!-- The target framework of upstream BuildHost-netcore for the Roslyn 5.9.0 package. -->
     <NetRoslynBuildHostNetCoreVersion>net8.0</NetRoslynBuildHostNetCoreVersion>
     <UpstreamRoot>$(MSBuildThisFileDirectory)upstream\</UpstreamRoot>

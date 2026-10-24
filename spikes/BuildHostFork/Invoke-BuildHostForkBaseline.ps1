@@ -8,9 +8,11 @@
     MSBuildWorkspace client in both copies is the same package build and starts whichever BuildHost lies
     next to it. Each round runs both sides, alternating which goes first. Round 0 is warmup.
 
-    summary.md: equivalence of every project field and workspace diagnostic (natural variance taken from
-    the original runs), identical first-search answers, and medians of load, first search, client CPU and
-    working set. The fork must be equivalent before any optimization is measured on it.
+    summary.md: equivalence of every captured project field and workspace diagnostic by the rules of
+    spikes/ParallelLoad/compare.py (reference: original round 1; natural variance: original round 1 against
+    round 2), identical first-search answers, the BuildHost processes of each side, and medians of load,
+    first search, client CPU of the load and working set. The script fails when the fork is not shown
+    equivalent. The fork must be equivalent before any optimization is measured on it.
 
 .PARAMETER Solution
     Solution to load.
@@ -75,6 +77,8 @@ Invoke-ObserveRounds $sides $Solution $Name $Runs $OutDirectory
 
 Write-Host ''
 & dotnet $sides['original'] compare $OutDirectory
+$equivalent = $LASTEXITCODE -eq 0
 Write-Host ''
 Write-Host "Results: $OutDirectory"
-Write-Host 'summary.md is enough for the analysis; the JSON files hold project paths and diagnostics of the solution.'
+Write-Host 'summary.md is enough for the analysis. It names projects only when it lists differences; the JSON files hold project paths and diagnostics of the solution.'
+if (-not $equivalent) { throw 'The fork is not shown equivalent to the original; see summary.md.' }

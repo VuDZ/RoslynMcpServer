@@ -9,7 +9,7 @@ namespace BuildHostFork;
 /// Loads a solution and either lets it end on its own (load), cancels it (cancel), or kills the BuildHost
 /// (kill-host) a given time after the first BuildHost appears. The outcome is recorded instead of thrown, so a
 /// broken fork shows up as a failure in the report and not as a missing run, and the BuildHost processes must
-/// exit after the load ends.
+/// exit after the load ends. The script, not this class, decides whether an outcome is the expected one.
 /// </summary>
 internal static class FailureScenario
 {
@@ -19,6 +19,7 @@ internal static class FailureScenario
         using var cancellation = new CancellationTokenSource();
         using var sampler = new BuildHostSampler();
         var watch = Stopwatch.StartNew();
+        var firstHostAt = sampler.FirstHost.ContinueWith(_ => watch.Elapsed.TotalMilliseconds, TaskScheduler.Default);
         var load = SolutionLoader.LoadAsync(solutionPath, diagnostics: diagnostics, cancellationToken: cancellation.Token);
         var disturbance = DisturbAsync(mode, sampler, load, cancellation, delayMs, watch);
 
@@ -32,10 +33,13 @@ internal static class FailureScenario
             Mode = mode,
             DelayMs = delayMs,
             Outcome = finished ? DescribeOutcome(load) : $"no result after {_loadTimeout.TotalSeconds} s",
+            Error = finished && load.IsFaulted ? load.Exception!.ToString() : null,
+            FirstHostAtMs = firstHostAt.IsCompletedSuccessfully ? firstHostAt.Result : (double?)null,
             DisturbedAtMs = disturbance.IsCompleted ? await disturbance.ConfigureAwait(false) : null,
             LoadMs = loadMs,
             Projects = load.IsCompletedSuccessfully ? load.Result.Solution.ProjectIds.Count : (int?)null,
             Documents = load.IsCompletedSuccessfully ? load.Result.Solution.Projects.Sum(project => project.DocumentIds.Count) : (int?)null,
+            ExpectedHost = Program.ExpectedHost,
             BuildHostProcesses = buildHosts,
             RemainingBuildHosts = remaining.Length,
             Diagnostics = Snapshot(diagnostics),
@@ -69,17 +73,7 @@ internal static class FailureScenario
             return watch.Elapsed.TotalMilliseconds;
         }
 
-        try
-        {
-            using var host = Process.GetProcessById(await sampler.FirstHost.ConfigureAwait(false));
-            host.Kill(entireProcessTree: true);
-            return watch.Elapsed.TotalMilliseconds;
-        }
-        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or System.ComponentModel.Win32Exception)
-        {
-            // The host exited before the kill.
-            return null;
-        }
+        return sampler.Kill(await sampler.FirstHost.ConfigureAwait(false)) ? watch.Elapsed.TotalMilliseconds : null;
     }
 
     private static string DescribeOutcome(Task<(Solution Solution, object Load)> load)

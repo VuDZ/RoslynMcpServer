@@ -4,6 +4,8 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <!-- The scenario fixture is generated under results/ with its own sources and obj; keep it out of this build. -->
+    <DefaultItemExcludesInProjectFolder>$(DefaultItemExcludesInProjectFolder);results/**;bin-fork/**;bin-fork-broken/**</DefaultItemExcludesInProjectFolder>
   </PropertyGroup>
   <ItemGroup>
     <!-- The server-equivalent load and search of the other spikes, and the E0 workspace observation. -->

@@ -11,8 +11,11 @@ BuildHost, что лежит в папке `BuildHost-netcore` рядом с н�
 
 - `upstream/` — дословная копия исходников Roslyn на ревизии пакета; наши изменения — отдельными
   коммитами поверх неё.
-- `build/` — проекты для обычного .NET SDK: `Contracts/Contracts.Fork.csproj` и
-  `BuildHost/BuildHost.Fork.csproj` (только netcore, net8.0, `rollForward: Major`, как в пакете).
+- `build/` — проекты для обычного .NET SDK с именами upstream-проектов:
+  `Contracts/Microsoft.CodeAnalysis.Workspaces.MSBuild.Contracts.csproj` и
+  `BuildHost/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.csproj` (только netcore, net8.0,
+  `rollForward: Major`, как в пакете). Имя проекта совпадает с именем сборки: иначе SDK пишет в
+  `deps.json` лишнюю запись `Contracts.Reference`.
 - Код следует стилю и `.editorconfig` Roslyn, а не `docs/code-style.md` этого репозитория: изменения
   должны уходить в upstream с минимальным диффом (см. `AGENTS.md`).
 - Production сервера форк не использует. Эксперименты подключают его явно:
@@ -21,7 +24,7 @@ BuildHost, что лежит в папке `BuildHost-netcore` рядом с н�
 Сборка:
 
 ```text
-dotnet build forks/roslyn-buildhost/build/BuildHost/BuildHost.Fork.csproj -c Release
+dotnet build forks/roslyn-buildhost/build/BuildHost/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.csproj -c Release
 ```
 
 Обновление Roslyn: заново скопировать перечисленные в `UPSTREAM.md` пути с ревизии нового пакета,

@@ -3,7 +3,7 @@
 # Builds the fork and the spike, and makes bin-fork: the same spike and client, only BuildHost-netcore replaced
 # by the fork. Returns the paths of both spike copies and the fork version.
 function Initialize-ForkCopy([string]$Repo, [string]$SpikeDirectory) {
-    $forkProject = Join-Path $Repo (Join-Path 'forks' (Join-Path 'roslyn-buildhost' (Join-Path 'build' (Join-Path 'BuildHost' 'BuildHost.Fork.csproj'))))
+    $forkProject = Join-Path $Repo (Join-Path 'forks' (Join-Path 'roslyn-buildhost' (Join-Path 'build' (Join-Path 'BuildHost' 'Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.csproj'))))
     $forkOutput = Join-Path (Split-Path $forkProject) (Join-Path 'bin' (Join-Path 'Release' 'net8.0'))
     $spikeProject = Join-Path $SpikeDirectory 'BuildHostFork.csproj'
     $originalBin = Join-Path $SpikeDirectory (Join-Path 'bin' (Join-Path 'Release' 'net10.0'))
@@ -13,6 +13,8 @@ function Initialize-ForkCopy([string]$Repo, [string]$SpikeDirectory) {
     Invoke-Native 'dotnet' @('build', $forkProject, '-c', 'Release', '-nologo', '-v', 'q') 'Fork build failed'
     Write-Host 'Building the spike (Release)'
     Invoke-Native 'dotnet' @('build', $spikeProject, '-c', 'Release', '-nologo', '-v', 'q') 'Spike build failed'
+    Write-Host 'Comparer self-checks'
+    Invoke-Native 'dotnet' @((Join-Path $originalBin 'BuildHostFork.dll'), 'check') 'Comparer self-checks failed'
 
     if (Test-Path -LiteralPath $forkBin) { Remove-Item -LiteralPath $forkBin -Recurse -Force }
     Copy-Item -LiteralPath $originalBin -Destination $forkBin -Recurse
