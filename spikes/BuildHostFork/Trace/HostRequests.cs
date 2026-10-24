@@ -8,9 +8,9 @@ internal static class HostRequests
 {
     public static IReadOnlyList<HostRequest> Read(HostTrace host)
     {
-        var sendEnds = host.Spans
+        var sends = host.Spans
             .Where(span => span.Kind == "rpc-send")
-            .ToDictionary(span => span.Parent, span => span.End);
+            .ToDictionary(span => span.Parent);
         var targets = new Dictionary<long, string>();
         var requests = new List<HostRequest>();
         foreach (var span in host.Spans.Where(span => span.Kind == "rpc").OrderBy(span => span.Start))
@@ -26,7 +26,8 @@ internal static class HostRequests
                 path = targets.GetValueOrDefault(requestTarget);
             }
 
-            requests.Add(new HostRequest(span, method, path, span.Number("received") ?? span.Start, sendEnds.GetValueOrDefault(span.Id, span.End)));
+            var send = sends.GetValueOrDefault(span.Id);
+            requests.Add(new HostRequest(span, method, path, span.Number("received") ?? span.Start, send?.Start ?? span.End, send?.End ?? span.End));
         }
 
         return requests;

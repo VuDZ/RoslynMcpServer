@@ -52,7 +52,9 @@ internal static class Program
         {
             var summary = TraceReport.Run(Path.GetFullPath(args[1]), redact: args.Length >= 3 && args[2] == "redact");
             Console.WriteLine(File.ReadAllText(Path.Combine(Path.GetFullPath(args[1]), "report.md")));
-            return summary.Clock.Violations == 0 && summary.Clock.Unmatched == 0 ? 0 : 1;
+
+            // Operations served by an untraced host are listed in the report but do not fail it.
+            return summary.Complete && summary.Clock.Agrees ? 0 : 1;
         }
 
         if (args.Length >= 2 && args[0] == "trace-summary")
@@ -112,8 +114,17 @@ internal static class Program
         File.WriteAllText(outputPath, JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true }));
         if (traceDirectory is not null && recorder is not null)
         {
+            // Like the host's trace, the client's half is best effort: the observation above is already written and
+            // is what the comparison uses, so a trace directory that cannot be written must not fail the run.
             var failures = diagnostics.Count(diagnostic => diagnostic.StartsWith("Failure:", StringComparison.Ordinal));
-            ClientTraceFile.Write(traceDirectory, solutionPath, (window.OpenStart, window.OpenEnd), recorder.Operations, solution, failures);
+            try
+            {
+                ClientTraceFile.Write(traceDirectory, solutionPath, (window.OpenStart, window.OpenEnd), recorder.Operations, solution, failures);
+            }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+            {
+                Console.Error.WriteLine($"Client trace not written: {e.GetType().Name}: {e.Message}");
+            }
         }
     }
 }

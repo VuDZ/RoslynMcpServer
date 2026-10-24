@@ -12,11 +12,13 @@ internal static class HostTraceReader
             .Select(Read)
             .ToArray();
 
-    // A host killed mid-line leaves a truncated last line; the spans before it are still valid.
+    // A host killed mid-line leaves a truncated last line; the spans before it are still valid, and the count of
+    // unreadable lines lets the report mark the trace incomplete instead of silently using what is left.
     private static HostTrace Read(string path)
     {
         HostTrace? header = null;
         var spans = new List<HostSpan>();
+        var unreadable = 0;
         foreach (var line in File.ReadLines(path))
         {
             JsonDocument document;
@@ -26,6 +28,7 @@ internal static class HostTraceReader
             }
             catch (JsonException)
             {
+                unreadable++;
                 continue;
             }
 
@@ -48,7 +51,7 @@ internal static class HostTraceReader
             throw new InvalidDataException($"{path} has no start line.");
         }
 
-        return header with { Spans = spans.OrderBy(span => span.Start).ToArray() };
+        return header with { UnreadableLines = unreadable, Spans = spans.OrderBy(span => span.Start).ToArray() };
     }
 
     private static HostTrace ReadHeader(JsonElement root)
@@ -58,7 +61,7 @@ internal static class HostTraceReader
         var utc = ReadUtc(root, "utc");
         var processStartUtc = ReadUtc(root, "processStartUtc");
         var sinceStart = (long)((utc - processStartUtc).TotalSeconds * frequency);
-        return new HostTrace(root.GetProperty("processId").GetInt32(), frequency, timestamp - sinceStart, []);
+        return new HostTrace(root.GetProperty("processId").GetInt32(), frequency, timestamp - sinceStart, timestamp, 0, []);
     }
 
     private static DateTime ReadUtc(JsonElement root, string name)

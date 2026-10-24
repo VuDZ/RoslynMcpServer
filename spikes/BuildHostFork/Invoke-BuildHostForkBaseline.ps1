@@ -92,7 +92,8 @@ Write-Host ''
 & dotnet $sides['original'] compare $OutDirectory
 $equivalent = $LASTEXITCODE -eq 0
 if ($Trace) {
-    # A solution outside this public repository may be private: its reports name projects by placeholders.
+    # A solution outside this public repository may be private: its reports name projects by placeholders. Paths
+    # outside the solution folder get placeholders in any case.
     $external = -not $Solution.StartsWith($repo + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)
     $summaryArguments = @('trace-summary', $OutDirectory)
     if ($external) { $summaryArguments += 'redact' }

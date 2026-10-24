@@ -16,13 +16,20 @@ namespace Microsoft.CodeAnalysis.MSBuild;
 /// <summary>
 /// Opt-in timing trace of the build host. When the environment variable <see cref="DirectoryVariable"/> names a
 /// directory, every span is written as one JSON line to <c>buildhost-{process id}.jsonl</c> in it. Without the
-/// variable <see cref="Start"/> returns <see langword="null"/> and nothing is allocated or written.
+/// variable <see cref="Start"/> returns <see langword="null"/>, no span is created and nothing is written; the RPC
+/// server still reads <see cref="Timestamp"/> once per request.
 /// </summary>
 /// <remarks>
-/// Timestamps are <see cref="Stopwatch.GetTimestamp"/> values. On Windows (QueryPerformanceCounter) and on Linux
-/// (CLOCK_MONOTONIC) that clock is shared by all processes of the machine, so the client can place these spans
-/// between its own timestamps; the start line records the frequency. The .NET Framework host runs requests in a
-/// separate AppDomain, which is not initialized here, so only the process-level spans appear for it.
+/// <para>Timestamps are <see cref="Stopwatch.GetTimestamp"/> values. On Windows (QueryPerformanceCounter) and on
+/// Linux (CLOCK_MONOTONIC) that clock is shared by all processes of the machine, so the client can place these spans
+/// between its own timestamps; the start line records the frequency.</para>
+/// <para>The trace never changes what the host does or answers. A failure to create or write the file turns the
+/// trace off for the rest of the process and is reported once on stderr: thrown from a span's Dispose inside
+/// RpcServer.ProcessRequestAsync, it would turn a finished request into an error response, and thrown from
+/// <see cref="Initialize"/>, it would stop the host before the client connects.</para>
+/// <para>Only the .NET (netcore) host of this fork is built and traced. The .NET Framework host would run the RPC
+/// server in the default AppDomain and the build host in a separate one that is not initialized here, so it would
+/// write RPC spans without the evaluation and build spans under them.</para>
 /// </remarks>
 internal static class BuildHostTrace
 {
@@ -41,25 +48,36 @@ internal static class BuildHostTrace
         if (string.IsNullOrEmpty(directory))
             return;
 
-        using var process = Process.GetCurrentProcess();
-        Directory.CreateDirectory(directory);
-        var writer = new StreamWriter(Path.Combine(directory, $"buildhost-{process.Id}.jsonl"), append: false, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false))
+        StreamWriter? writer = null;
+        try
         {
-            AutoFlush = true
-        };
+            using var process = Process.GetCurrentProcess();
+            Directory.CreateDirectory(directory);
+            writer = new StreamWriter(Path.Combine(directory, $"buildhost-{process.Id}.jsonl"), append: false, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false))
+            {
+                AutoFlush = true
+            };
 
-        WriteLine(writer, json =>
+            WriteLine(writer, json =>
+            {
+                json.WriteString("event", "start");
+                json.WriteNumber("processId", process.Id);
+                json.WriteNumber("frequency", Stopwatch.Frequency);
+                json.WriteNumber("timestamp", Stopwatch.GetTimestamp());
+                json.WriteString("utc", DateTime.UtcNow);
+                json.WriteString("processStartUtc", process.StartTime.ToUniversalTime());
+                json.WriteString("runtime", RuntimeInformation.FrameworkDescription);
+            });
+
+            s_writer = writer;
+        }
+        catch (Exception e)
         {
-            json.WriteString("event", "start");
-            json.WriteNumber("processId", process.Id);
-            json.WriteNumber("frequency", Stopwatch.Frequency);
-            json.WriteNumber("timestamp", Stopwatch.GetTimestamp());
-            json.WriteString("utc", DateTime.UtcNow);
-            json.WriteString("processStartUtc", process.StartTime.ToUniversalTime());
-            json.WriteString("runtime", RuntimeInformation.FrameworkDescription);
-        });
+            if (writer is not null)
+                CloseQuietly(writer);
 
-        s_writer = writer;
+            ReportFailure(e);
+        }
     }
 
     /// <summary>
@@ -90,6 +108,48 @@ internal static class BuildHostTrace
         lock (s_gate)
         {
             writer.WriteLine(line);
+        }
+    }
+
+    private static void WriteSpanLine(StreamWriter writer, Action<Utf8JsonWriter> writeProperties)
+    {
+        try
+        {
+            WriteLine(writer, writeProperties);
+        }
+        catch (Exception e)
+        {
+            // Only the first failure turns the trace off and reports it; a span closing on another thread at the same
+            // time finds either no writer or a closed one, and its own failure stops here.
+            if (Interlocked.CompareExchange(ref s_writer, null, writer) != writer)
+                return;
+
+            ReportFailure(e);
+            CloseQuietly(writer);
+        }
+    }
+
+    private static void CloseQuietly(StreamWriter writer)
+    {
+        try
+        {
+            writer.Dispose();
+        }
+        catch (Exception)
+        {
+            // The trace is already off; failing to flush the rest of it changes nothing for the host.
+        }
+    }
+
+    private static void ReportFailure(Exception e)
+    {
+        try
+        {
+            Console.Error.WriteLine($"BuildHost trace turned off: {e.GetType().Name}: {e.Message}");
+        }
+        catch (Exception)
+        {
+            // stderr is the host's log channel; a trace failure must not become a host failure through it either.
         }
     }
 
@@ -142,7 +202,7 @@ internal static class BuildHostTrace
             if (writer is null)
                 return;
 
-            WriteLine(writer, json =>
+            WriteSpanLine(writer, json =>
             {
                 json.WriteString("event", "span");
                 json.WriteNumber("id", _id);

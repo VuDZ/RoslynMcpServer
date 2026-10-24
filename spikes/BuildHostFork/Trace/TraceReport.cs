@@ -20,6 +20,15 @@ internal static class TraceReport
             throw new InvalidDataException("A host trace uses another Stopwatch frequency than the client.");
         }
 
+        // Every host of this load starts inside OpenSolutionAsync. A file that started elsewhere is left from another
+        // load in a reused directory; mixing it in would add its spans and match its requests to this load.
+        var foreign = hosts.Where(host => host.TraceStart < client.LoadStart || host.TraceStart > client.LoadEnd).ToArray();
+        if (foreign.Length > 0)
+        {
+            throw new InvalidDataException(
+                $"buildhost-{string.Join(", buildhost-", foreign.Select(host => host.ProcessId))}.jsonl in {directory} started outside the load of {ClientTraceFile.FileName}.");
+        }
+
         var names = new PathNames(Path.GetDirectoryName(client.Solution)!, redact);
         var breakdown = WallBreakdown.Compute(client, hosts);
         var costs = ProjectCosts.Compute(client, hosts);
@@ -30,6 +39,8 @@ internal static class TraceReport
             client.Documents,
             client.WorkspaceFailures,
             hosts.Count,
+            hosts.Sum(host => host.UnreadableLines),
+            hosts.Sum(SpansWithoutParent),
             breakdown,
             ClockCheck.Run(client, hosts),
             ProjectCosts.Repeats(hosts, client.Frequency),
@@ -39,15 +50,20 @@ internal static class TraceReport
             graph.Edges.Count(edge => edge.ReferenceOutputAssembly == false),
             client.SolutionEntries.Count(entry => !entry.Loaded));
 
+        // The report names paths first, so placeholders follow the projects table; report.json gets the same names.
         File.WriteAllText(Path.Combine(directory, "report.md"), Markdown(summary, costs, names, redact ? "(not shown)" : Path.GetFileName(client.Solution)));
-        WriteJson(Path.Combine(directory, "report.json"), summary);
+        var published = summary with
+        {
+            Clock = summary.Clock with { Untraced = summary.Clock.Untraced.Select(operation => operation with { Path = names.Name(operation.Path) }).ToArray() }
+        };
+        WriteJson(Path.Combine(directory, "report.json"), published);
         WriteJson(Path.Combine(directory, "graph.json"), Named(graph, names));
-        if (redact)
+        if (names.Placeholders.Count > 0)
         {
             WriteJson(Path.Combine(directory, "names-private.json"), names.Placeholders);
         }
 
-        return summary;
+        return published;
     }
 
     public static void WriteJson<T>(string path, T value)
@@ -62,6 +78,14 @@ internal static class TraceReport
     public static string Percent(double share)
         => share.ToString("P1", CultureInfo.InvariantCulture);
 
+    // A span whose parent line is missing comes from a host that stopped before closing the parent; the parent's own
+    // time is then in no category, although the breakdown still adds up to the window.
+    private static int SpansWithoutParent(HostTrace host)
+    {
+        var ids = host.Spans.Select(span => span.Id).ToHashSet();
+        return host.Spans.Count(span => span.Parent != 0 && !ids.Contains(span.Parent));
+    }
+
     private static LoadGraph Named(LoadGraph graph, PathNames names)
         => new(
             graph.Nodes.Select(node => node with { Path = names.Name(node.Path) }).ToArray(),
@@ -69,19 +93,32 @@ internal static class TraceReport
 
     private static string Markdown(TraceSummary summary, IReadOnlyList<ProjectCost> costs, PathNames names, string solution)
     {
+        // Projects are named before anything else, so placeholder numbers follow the order of the projects table.
+        var projects = new StringBuilder();
+        AppendProjects(projects, costs, names);
+        var clock = summary.Clock;
+        var untraced = clock.Untraced.Count == 0
+            ? "0"
+            : $"{clock.Untraced.Count} ({string.Join(", ", clock.Untraced.Select(operation => $"{operation.Operation} {names.Name(operation.Path)}"))})";
+
         var text = new StringBuilder();
         text.AppendLine("# Traced load (BuildHost/task-01)").AppendLine();
         text.AppendLine($"- solution: {solution}; wall {Format(summary.WallMs)} ms; {summary.Projects} projects, {summary.Documents} documents, {summary.WorkspaceFailures} workspace failures; {summary.Hosts} traced BuildHost process(es)");
-        var clock = summary.Clock;
-        text.AppendLine($"- clock check: {clock.Matched} requests inside their client operation, {clock.Unmatched} unmatched, {clock.Violations} beyond {clock.ToleranceMs} ms; min lead {Precise(clock.MinLeadMs)} ms, min tail {Precise(clock.MinTailMs)} ms")
-            .AppendLine();
+        text.AppendLine(summary.Complete
+            ? "- trace: complete"
+            : $"- trace: **incomplete**, {summary.UnreadableLines} unreadable line(s), {summary.SpansWithoutParent} span(s) whose parent is missing; the breakdown misses the time of the lost spans");
+        text.AppendLine($"- clock check: {clock.Matched} requests inside their client operation, {clock.OutsideOperation} operation(s) whose requests lie outside them, " +
+            $"{clock.UnclaimedRequests} request(s) outside every operation, {clock.Violations} beyond {clock.ToleranceMs} ms; min lead {Precise(clock.MinLeadMs)} ms, min tail {Precise(clock.MinTailMs)} ms");
+        text.AppendLine($"- operations served by no traced host: {untraced}").AppendLine();
         AppendBreakdown(text, summary);
-        AppendProjects(text, costs, names);
+        text.Append(projects);
         AppendRepeats(text, summary);
         AppendGraph(text, summary);
         text.AppendLine("Host categories are self time: a span minus its child spans. Writing a child span's trace line falls into its parent's self time.")
+            .AppendLine("RPC queue runs from reading the request line to the start of its handling: parsing the request and waiting for a thread pool thread.")
             .AppendLine("Process startup is placed from the wall-clock start time and is an estimate; every other host time is a Stopwatch span.")
-            .AppendLine("Client categories are loader operations with no host span under them: request transport, response parsing and the loader's own work.");
+            .AppendLine("Client categories are loader operations with no host span under them: request transport, response parsing and the loader's own work.")
+            .AppendLine("Placeholder names (project-NNN) are numbered in the order this report names paths, projects table first, and hold for this report only.");
         return text.ToString();
     }
 
@@ -99,7 +136,7 @@ internal static class TraceReport
 
     private static void AppendProjects(StringBuilder text, IReadOnlyList<ProjectCost> costs, PathNames names)
     {
-        text.AppendLine("## Projects by host time (top 15, inclusive ms)").AppendLine();
+        text.AppendLine("## Projects by host time of the columns below (top 15, inclusive ms)").AppendLine();
         text.AppendLine("| project | root evaluation | TFM evaluations | design-time builds | instance | extraction | response (chars) | client Evaluate / Build / Resolve |")
             .AppendLine("|---|---|---|---|---|---|---|---|");
         foreach (var cost in costs.OrderByDescending(cost => cost.HostMs).Take(15))

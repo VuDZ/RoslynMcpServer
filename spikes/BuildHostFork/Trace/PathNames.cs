@@ -2,7 +2,9 @@ namespace BuildHostFork.Trace;
 
 /// <summary>
 /// Names paths for a report: relative to the root when the solution may be published, otherwise a stable placeholder
-/// that keeps only the extension. The placeholder map stays next to the private trace and is never published.
+/// that keeps only the extension. A path outside the root gets a placeholder too, even when the solution may be
+/// published: a project referenced from outside the repository must not reach a report with its full path. The
+/// placeholder map stays next to the private trace and is never published.
 /// </summary>
 internal sealed class PathNames(string root, bool redact)
 {
@@ -18,8 +20,12 @@ internal sealed class PathNames(string root, bool redact)
         var fullPath = Path.GetFullPath(path);
         if (!redact)
         {
+            // GetRelativePath returns the full path for another drive, and a ".." path for a parent folder.
             var relative = Path.GetRelativePath(root, fullPath);
-            return (relative.StartsWith("..", StringComparison.Ordinal) ? fullPath : relative).Replace('\\', '/');
+            if (!Path.IsPathRooted(relative) && relative != ".." && !relative.StartsWith(".." + Path.DirectorySeparatorChar, StringComparison.Ordinal))
+            {
+                return relative.Replace('\\', '/');
+            }
         }
 
         var key = ProjectCosts.PathKey(fullPath);

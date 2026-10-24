@@ -26,8 +26,11 @@ BuildHost, что лежит в папке `BuildHost-netcore` рядом с н�
 - [task-01](../../docs/workspace-load-performance/research-buildhost-fork/task-01-buildhost-graph-and-timings-hi.md):
   трассировка таймингов. Новый файл `BuildHost/Tracing/BuildHostTrace.cs` и spans в `Program`, `RpcServer`,
   `AbstractBuildHost`, `ProjectBuildManager`, `ProjectFile`. Включается переменной окружения
-  `ROSLYN_BUILDHOST_TRACE_DIRECTORY` (host пишет `buildhost-<pid>.jsonl` в этот каталог); без неё не создаёт
-  объектов и ничего не пишет. Протокол RPC не меняется.
+  `ROSLYN_BUILDHOST_TRACE_DIRECTORY` (host пишет `buildhost-<pid>.jsonl` в этот каталог); без неё span не
+  создаются и ничего не пишется, `RpcServer` только читает часы на каждый запрос. Ошибка создания или записи файла
+  выключает трассировку до конца процесса и один раз пишется в stderr; ответ и работа host от неё не меняются.
+  Протокол RPC не меняется. Собирается и трассируется только netcore-host; `BuildHost-net472` в экспериментах —
+  из пакета.
 
 Сборка:
 
