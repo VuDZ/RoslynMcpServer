@@ -1,15 +1,20 @@
 # BuildHost/task-00a — Временная шкала загрузки до форка
 
 - Дата: 2026-10-23.
-- Статус: **in progress, 2026-10-24.** Roslyn.slnx: ~20 из 40 с загрузки BuildHost тратит до первой сборки
-  каждого проекта; связь с evaluation r = 0,67. Кандидат — параллельная предварительная evaluation
-  ([отчёт](evidence/task-00a-load-timeline.md)). Офисная шкала pending. Решение владельца — направление 1 после task-15.
-  Исправлена потеря `SolutionDir` в пробе evaluation; регрессия и полный синтетический
-  прогон проверены ([валидация](evidence/task-00a-solutiondir-fix.md)); нужен повторный офисный прогон.
+- Статус: **implemented, 2026-10-24; приёмка pending.** Измерения Roslyn.slnx и офиса разобраны.
+  Roslyn.slnx: ~20 с до первой сборки файлов, связь с evaluation r = 0,67
+  ([отчёт](evidence/task-00a-load-timeline.md)). Офис: открытие 44,4 с, сборки 17,4 с,
+  не менее 27,0 с вне этих сборок; два перекрывающихся binlog, 1676 workspace Failure,
+  r ≈ 0,36 только при совмещении wall timestamps. Следующий шаг — spans task-01;
+  доминирование evaluation на офисе не доказано
+  ([офисный отчёт и границы валидации](evidence/task-00a-office-timeline-2026-10-24.md)).
+  Исправление `SolutionDir` проверено ([валидация](evidence/task-00a-solutiondir-fix.md)).
+  Решение владельца — направление 1 после task-15.
 - Сложность: med; риск — принять промежутки binlog за IPC без собственных spans.
 - Depends on: —. Выполняется до [task-00](task-00-buildhost-fork-baseline-hi.md):
   результат решает, нужен ли форк и где в нём искать.
 - Evidence/validation: [шкала Roslyn.slnx](evidence/task-00a-load-timeline.md),
+  [офисная шкала 2026-10-24](evidence/task-00a-office-timeline-2026-10-24.md),
   [исправление SolutionDir и валидация](evidence/task-00a-solutiondir-fix.md).
 
 ## Почему до форка
