@@ -47,7 +47,7 @@
 | [AR-15](findings.md#ar-15) | P3 | tools | `find_symbol_references` по FQN не находит символы из метаданных, хотя описание этого не оговаривает | open |
 | [AR-16](findings.md#ar-16) | P3 | docs/процесс | Объём process-документации и число мест ручной синхронизации статусов | open — нужно решение ([P-04](proposals.md#p-04)) |
 | [AR-17](findings.md#ar-17) | P3 | docs | Пакет мелких расхождений документации с кодом | open |
-| [AR-18](findings.md#ar-18) | P2 | сборка | Сервер выбирает SDK по `global.json` без учёта `rollForward` и выдаёт ложный `MCP_MSBUILD_SDK_MISMATCH` | open (найдено 2026-10-24) |
+| [AR-18](findings.md#ar-18) | P2 | сборка | Сервер выбирает SDK по `global.json` без учёта `rollForward` и выдаёт ложный `MCP_MSBUILD_SDK_MISMATCH` | open (найдено 2026-10-24; воспроизведено для `latestFeature` во втором раунде ревью BuildHost/task-00) |
 
 Итого: P1 — 4, P2 — 5, P3 — 8.
 

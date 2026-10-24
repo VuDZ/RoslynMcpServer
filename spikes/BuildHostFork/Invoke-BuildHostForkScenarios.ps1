@@ -14,15 +14,17 @@
     3. load     - both sides load -Solution undisturbed; the original's load sets the default delay.
     4. cancel   - both sides load -Solution and cancel -DelayMs after the BuildHost appears.
     5. kill     - both sides load -Solution and kill the BuildHost -DelayMs after it appears. Upstream ends such
-                  a load either with a connection error or, when the kill lands between requests, by starting
-                  a new BuildHost for the next project and completing; either outcome is accepted on each side.
+                  a load either with a lost connection or, when the kill lands between requests, by starting
+                  a new BuildHost for the next project and completing. Each side may end either way; a completed
+                  load must have started a new BuildHost and match the undisturbed load of its side.
     6. early cancel - both sides cancel as soon as the BuildHost appears, while the client still sets it up.
     Every run also records the BuildHost processes still running 10 s after the load (then kills them).
 
     The script fails (exit code 1) when a run does not do what its scenario needs (the load ended before the
-    cancel or the kill, an unexpected outcome, a BuildHost from another folder) or when the fork differs from
-    the original: outcome (except after a kill), diagnostics, projects, BuildHost processes left. Processes left the same way on both
-    sides are upstream behavior: reported, not a failure of the fork.
+    cancel or the kill, an unexpected outcome, a BuildHost from another folder, a cancel at -DelayMs that left
+    a BuildHost, which means it landed in the client's setup of the host) or when the fork differs from the
+    original: outcome (except after a kill), diagnostics, projects, BuildHost processes left. Processes left the
+    same way on both sides by the early cancel are upstream behavior: reported, not a failure of the fork.
 
 .PARAMETER Solution
     Solution for load, cancel and kill; it must load for at least a few seconds. Default: RoslynMcpServer.sln of
@@ -117,22 +119,28 @@ function Invoke-Scenario([string]$Label, [string]$Side, [string]$Dll, [string]$M
     $result = $null
     if (Test-Path -LiteralPath $output) { $result = Get-Content -LiteralPath $output -Raw | ConvertFrom-Json }
     return [pscustomobject]@{
-        Label = $Label; Side = $Side; Mode = $Mode; Expect = $Expect; External = ($Target -eq $Solution -and $external)
+        Label = $Label; Side = $Side; Mode = $Mode; Delay = $Delay; Expect = $Expect; External = ($Target -eq $Solution -and $external)
         ExitCode = $exitCode; Result = $result; Problems = (New-Object Collections.Generic.List[string]); Note = ''
     }
 }
 
-# What a single run must show for its scenario. Processes left after the load are judged per pair, not here.
-function Test-Run($Run) {
+# How the client reports a BuildHost that went away during a request (the RPC client, or the pipe on Linux and
+# Windows). Any other error after a kill is a problem: it is not explained by the kill.
+$connectionLost = '^failed: (System\.Exception: The server disconnected unexpectedly\.|System\.IO\.IOException: (Connection reset by peer|Broken pipe|Pipe is broken\.|The pipe has been ended\.))'
+
+# What a single run must show for its scenario; $Undisturbed is the undisturbed load of the same side, the measure
+# of a load completed after a kill. Processes left after the load are judged per pair, not here.
+function Test-Run($Run, $Undisturbed) {
     $r = $Run.Result
     if ($null -eq $r) { $Run.Problems.Add("no report (exit code $($Run.ExitCode))"); return }
     $outcomeOk = switch ($Run.Expect) {
         'completed' { $r.Outcome -eq 'completed' }
         'canceled' { $r.Outcome -eq 'canceled' }
-        'killed' { $r.Outcome -like 'failed:*' -or ($r.Outcome -eq 'completed' -and $r.BuildHostProcesses.count -ge 2) }
+        'killed' { $r.Outcome -eq 'completed' -or $r.Outcome -match $connectionLost }
         'no-host' { $r.Outcome -like 'failed:*could not be found*' }
     }
     if (-not $outcomeOk) { $Run.Problems.Add("expected $($Run.Expect)") }
+    if ($Run.Expect -eq 'killed' -and $r.Outcome -eq 'completed') { Test-CompletedAfterKill $Run $Undisturbed }
     if ($Run.Mode -ne 'load' -and $null -eq $r.DisturbedAtMs) {
         $Run.Problems.Add('not disturbed: the load ended first, inconclusive; use a larger solution or -DelayMs')
     }
@@ -147,8 +155,27 @@ function Test-Run($Run) {
     if ($r.BuildHostProcesses.unidentified -gt 0) { $Run.Problems.Add("$($r.BuildHostProcesses.unidentified) child dotnet process(es) not identified") }
 }
 
-# The fork must do what the original does. A BuildHost left on both sides is upstream behavior, reported only.
-# After a kill the outcome depends on timing in upstream, so one run per side cannot be compared.
+# A load that completed after its BuildHost was killed went on with a new host, so it saw one more host than the
+# undisturbed load of its side, and it must have loaded the same workspace. The client reports the exit of the
+# killed host as one workspace failure; apart from that the diagnostics must be those of the undisturbed load.
+function Test-CompletedAfterKill($Run, $Undisturbed) {
+    $r = $Run.Result
+    $u = $Undisturbed.Result
+    if ($null -eq $u -or $u.Outcome -ne 'completed') { $Run.Problems.Add('completed after the kill, but no undisturbed load of this side to compare with'); return }
+    if ($r.BuildHostProcesses.count -le $u.BuildHostProcesses.count) { $Run.Problems.Add('completed after the kill without a new BuildHost') }
+    if ($r.Projects -ne $u.Projects -or $r.Documents -ne $u.Documents) { $Run.Problems.Add('completed after the kill with other projects or documents than the undisturbed load') }
+    $exitPattern = '^Failure: \[BuildHost PID \d+\] The BuildHost process exited'
+    $exits = @($r.Diagnostics | Where-Object { $_ -match $exitPattern })
+    $rest = @($r.Diagnostics | Where-Object { $_ -notmatch $exitPattern })
+    if ($exits.Count -ne 1) { $Run.Problems.Add("completed after the kill with $($exits.Count) BuildHost exit failures, expected 1") }
+    if (($rest -join "`n") -ne (@($u.Diagnostics) -join "`n")) { $Run.Problems.Add('completed after the kill with other diagnostics than the undisturbed load') }
+}
+
+# The fork must do what the original does. After a kill the outcome depends on timing in upstream, so one run per
+# side cannot be compared; each completed one is compared with the undisturbed load of its side instead, and those
+# two are compared with each other. A BuildHost left on both sides by the early cancel is upstream behavior,
+# reported only; left by a cancel at -DelayMs, it means the cancel landed in the same setup window, which makes
+# that scenario a second early cancel instead of a cancel during the load.
 function Test-Pair($Original, $Fork, [bool]$CompareOutcome, [bool]$CompareDiagnostics) {
     $o = $Original.Result
     $f = $Fork.Result
@@ -158,6 +185,9 @@ function Test-Pair($Original, $Fork, [bool]$CompareOutcome, [bool]$CompareDiagno
     if ($CompareDiagnostics -and (($o.Diagnostics -join "`n") -ne ($f.Diagnostics -join "`n"))) { $Fork.Problems.Add('diagnostics differ from the original') }
     if ($o.RemainingBuildHosts -ne $f.RemainingBuildHosts) {
         $Fork.Problems.Add("BuildHost processes left: fork $($f.RemainingBuildHosts), original $($o.RemainingBuildHosts)")
+    }
+    elseif ($o.RemainingBuildHosts -gt 0 -and $Original.Mode -eq 'cancel' -and $Original.Delay -gt 0) {
+        $Fork.Problems.Add('the cancel left a BuildHost on both sides: it landed while the client set the host up, inconclusive; use a larger -DelayMs')
     }
     elseif ($o.RemainingBuildHosts -gt 0) {
         $note = "$($o.RemainingBuildHosts) BuildHost left on both sides (upstream)"
@@ -203,7 +233,8 @@ $disturbed = @(
     (Invoke-Scenario 'cancel at BuildHost start, fork' 'fork' $sides['fork'] 'cancel' $Solution 0 'canceled' 'early-cancel-fork')
 )
 $runs = @($fixtureLoads) + @($loads) + @($disturbed)
-foreach ($run in $runs) { Test-Run $run }
+$undisturbed = @{ original = $loads[0]; fork = $loads[1] }
+foreach ($run in $runs) { Test-Run $run $undisturbed[$run.Side] }
 Test-Pair $fixtureLoads[0] $fixtureLoads[1] $true $true
 Test-Pair $loads[0] $loads[1] $true $true
 for ($i = 0; $i -lt $disturbed.Count; $i += 2) { Test-Pair $disturbed[$i] $disturbed[$i + 1] ($disturbed[$i].Mode -ne 'kill-host') $false }
@@ -220,11 +251,12 @@ function Format-Redacted([string]$Text) {
     return $Text.Replace('|', '\|')
 }
 
-# An error message about a solution outside the repository may name its projects: only the type is kept.
+# An error message about a solution outside the repository may name its projects with or without a path: only
+# the exception type is kept.
 function Format-Outcome($Run) {
     $text = Format-Redacted $Run.Result.Outcome
-    if ($Run.External -and $text -match '^failed: ([^:]+):(.*)$' -and $Matches[2] -match '[\\/]') {
-        return "failed: $($Matches[1]) (message with paths not shown)"
+    if ($Run.External -and $text -match '^failed: ([^:]+):') {
+        return "failed: $($Matches[1]) (message not shown)"
     }
     return $text
 }

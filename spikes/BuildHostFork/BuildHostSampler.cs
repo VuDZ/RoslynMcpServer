@@ -135,7 +135,7 @@ internal sealed class BuildHostSampler : IDisposable
         try
         {
             process = Process.GetProcessById(id);
-            if ((process.StartTime - startTime).Duration() < _startTimeTolerance)
+            if ((process.StartTime - startTime).Duration() <= _startTimeTolerance)
             {
                 return process;
             }
@@ -172,6 +172,13 @@ internal sealed class BuildHostSampler : IDisposable
 
                     if (host == Unidentified)
                     {
+                        // A process that exited between the listing and the read has no command line either; it is
+                        // gone, not unknown, and must not fail the run.
+                        if (HasExited(candidate))
+                        {
+                            continue;
+                        }
+
                         lock (_gate)
                         {
                             _unidentified.Add(candidate.Id);
@@ -184,6 +191,7 @@ internal sealed class BuildHostSampler : IDisposable
                     var peak = candidate.PeakWorkingSet64;
                     lock (_gate)
                     {
+                        _unidentified.Remove(candidate.Id);
                         var previous = _processes.GetValueOrDefault(candidate.Id);
                         _processes[candidate.Id] = (previous.Host ?? host, startTime, Math.Max(previous.CpuMs, cpuMs), Math.Max(previous.PeakWorkingSetBytes, peak));
                     }
@@ -231,6 +239,24 @@ internal sealed class BuildHostSampler : IDisposable
         return false;
     }
 
+    // Access denied means the process is alive but protected, which is exactly what must stay unidentified.
+    private static bool HasExited(Process process)
+    {
+        try
+        {
+            process.Refresh();
+            return process.HasExited;
+        }
+        catch (System.ComponentModel.Win32Exception)
+        {
+            return false;
+        }
+        catch (InvalidOperationException)
+        {
+            return true;
+        }
+    }
+
     // The folder of the BuildHost, which tells the package host from the fork; Unidentified for a dotnet process
     // whose command line cannot be read; null for another dotnet process, such as an MSBuild node.
     private static string? Identify(Process process)
@@ -262,8 +288,10 @@ internal sealed class BuildHostSampler : IDisposable
     private const string Unidentified = "(unidentified)";
     private const int MaxAncestorDepth = 3;
 
-    // On Linux Process.StartTime is derived from the boot time on every read and may move by a few milliseconds.
-    private static readonly TimeSpan _startTimeTolerance = TimeSpan.FromSeconds(1);
+    // The start time tells a process from a newer one that reused its id. Windows reports it exactly. On Linux
+    // Process.StartTime is the boot time plus a start tick of 10 ms, recomputed on every read, so it may move by a
+    // few milliseconds; 100 ms covers that while a reused id within it needs the whole pid range to wrap.
+    private static readonly TimeSpan _startTimeTolerance = OperatingSystem.IsWindows() ? TimeSpan.Zero : TimeSpan.FromMilliseconds(100);
 
     private readonly DateTime _since;
     private readonly Timer _timer;

@@ -360,12 +360,21 @@ metadata-символах компиляций. Цена: низкая (опис
 дочерних `dotnet`), `MsBuildBootstrapper` (MSBuild для загрузки workspace),
 `SdkMismatchDiagnostics` и отчёт о здоровье workspace.
 
-**Последствие** (по чтению кода, не воспроизведено). `global.json` с `"version": "10.0.300", "rollForward": "latestFeature"` на
-машине с 10.0.300 и 10.0.402: хост `dotnet` выбирает 10.0.402, сервер подставляет MSBuild из
-10.0.300 и сообщает об ошибке `MCP_MSBUILD_SDK_MISMATCH` («`dotnet --version` reported 10.0.402
-but global.json pins 10.0.300»). Если указанного номера нет, а `rollForward` разрешает другой, сервер
-закрепление не видит вовсе. Для пользовательских репозиториев с нестрогим `rollForward` (по
-умолчанию `latestPatch`) это ложные ошибки сборки и загрузка другим MSBuild, чем у `dotnet build`.
+**Последствие.** `global.json` с `"version": "10.0.300", "rollForward": "latestFeature"` на машине
+с 10.0.300 и 10.0.402: хост `dotnet` выбирает 10.0.402, сервер подставляет MSBuild из 10.0.300 и
+сообщает об ошибке `MCP_MSBUILD_SDK_MISMATCH` («`dotnet --version` reported 10.0.402 but
+global.json pins 10.0.300»). Воспроизведено на Windows во втором раунде ревью BuildHost/task-00
+([GPT-6](../workspace-load-performance/research-buildhost-fork/evidence/task-00-review/review-gpt-6-round-2.md),
+часть B): вызовы `DotNetSdkEnvironment.TryGetPin` и `SdkMismatchDiagnostics.CreateErrors` из
+собранного сервера; полный MCP-запрос не выполнялся.
+
+Ложная ошибка возникает, когда указанный номер установлен, а политика выбирает другой SDK:
+`latestPatch` при более новом патче той же полосы, `latestFeature`, `latestMinor`, `latestMajor`.
+Если указанного номера нет, а политика разрешает другой, сервер закрепление не видит вовсе и грузит
+не тот MSBuild, что `dotnet build`. Политика по умолчанию — `patch`
+([matching rules](https://learn.microsoft.com/en-us/dotnet/core/tools/global-json#matching-rules)):
+установленный точный номер она оставляет, поэтому `global.json` без `rollForward` ложной ошибки не
+даёт; без этого номера хост берёт последний патч полосы, а сервер закрепление теряет.
 
 **Предложение.** Спрашивать выбор у самого хоста: `dotnet --version` в каталоге решения применяет
 все правила `global.json`; результат кэшировать на каталог и путь `global.json` с его временем

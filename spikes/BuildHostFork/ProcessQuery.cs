@@ -114,7 +114,9 @@ internal static class ProcessQuery
         public IntPtr Buffer;
     }
 
-    // PROCESS_BASIC_INFORMATION; every member is pointer-sized, ExitStatus included, on x86, x64 and ARM64.
+    // PROCESS_BASIC_INFORMATION. ExitStatus (NTSTATUS) and BasePriority (KPRIORITY) are 4 bytes, but the next member
+    // is pointer-aligned, so six pointer-sized slots give the native size and the offset of
+    // InheritedFromUniqueProcessId on x86, x64 and ARM64. Only that member is read; the two 4-byte ones are not.
     [StructLayout(LayoutKind.Sequential)]
     private struct ProcessBasicInformation
     {

@@ -1,15 +1,16 @@
 # BuildHost/task-00 — Воспроизводимый форк без изменения поведения
 
 - Дата: 2026-10-22.
-- Статус: **in progress, 2026-10-24** — форк собран (`forks/roslyn-buildhost`, вариант A). Независимое
-  ревью (GPT-6.1 Sol, Grok 4.7) проведено, находки исправлены ([разбор](evidence/task-00-review/disposition.md)):
-  сравнение приведено к `compare.py`, sampler ограничен своими процессами, сценарии проверяют исходы.
-  После исправлений identical на `RoslynMcpServer.sln` и Smoke (Linux), отказные сценарии совпадают;
-  ранняя отмена оставляет BuildHost у обеих сторон — по решению владельца 2026-10-24 ограничение
-  upstream, исправление в [task-00b](task-00b-early-cancel-buildhost-leak-low.md). Roslyn.slnx (Windows) —
-  identical и после исправлений (загрузка ×0,992); офис — identical по сравнению до ревью, сценарии на Windows
-  после исправлений пройдены; повтор офиса с исправленным spike pending. Принятый объём
-  пункта 4 (решение владельца 2026-10-24): Smoke, `RoslynMcpServer.sln`, Roslyn.slnx и офис, без PowerToys.
+- Статус: **in progress, 2026-10-24** — форк собран (`forks/roslyn-buildhost`, вариант A). Ревью
+  раунда 1 (GPT-6.1 Sol, Grok 4.7) исправлено ([разбор](evidence/task-00-review/disposition.md)); после
+  исправлений identical на Smoke и `RoslynMcpServer.sln` (Linux), Roslyn.slnx (Windows, 434 проекта,
+  загрузка ×0,992) и офисе (142 проекта, ×1,000), сценарии на Linux и Windows пройдены. Ранняя отмена
+  оставляет BuildHost у обеих сторон — по решению владельца ограничение upstream,
+  [task-00b](task-00b-early-cancel-buildhost-leak-low.md). Ревью раунда 2 (GPT-6, Grok 4.7, DeepSeek Flash):
+  регрессии форка нет, находки в проверяющем коде, статусах и публикации исправлены
+  ([разбор](evidence/task-00-review/disposition-round-2.md)). Pending: сценарии на Windows с исправленным
+  spike, вид второго BuildHost в офисе (данные владельца), приёмка. Принятый объём пункта 4 (решение
+  владельца 2026-10-24): Smoke, `RoslynMcpServer.sln`, Roslyn.slnx и офис, без PowerToys.
 - Сложность: hi; риск — несовместимость host/client и изменение состава workspace.
 - Depends on: —.
 - Evidence/validation: [локальная часть](evidence/task-00-fork-baseline.md).
