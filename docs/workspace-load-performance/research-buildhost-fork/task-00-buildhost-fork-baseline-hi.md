@@ -1,7 +1,7 @@
 # BuildHost/task-00 — Воспроизводимый форк без изменения поведения
 
 - Дата: 2026-10-22.
-- Статус: **in progress, 2026-10-24** — форк собран (`forks/roslyn-buildhost`, вариант A). Ревью
+- Статус: **accepted, 2026-10-24**, решение владельца ([приёмка](evidence/task-00-fork-baseline.md#приёмка-2026-10-24)) — форк собран (`forks/roslyn-buildhost`, вариант A). Ревью
   раунда 1 (GPT-6.1 Sol, Grok 4.7) исправлено ([разбор](evidence/task-00-review/disposition.md)); после
   исправлений identical на Smoke и `RoslynMcpServer.sln` (Linux), Roslyn.slnx (Windows, 434 проекта,
   загрузка ×0,992) и офисе (142 проекта, ×1,000), сценарии на Linux и Windows пройдены. Ранняя отмена
@@ -9,7 +9,7 @@
   [task-00b](task-00b-early-cancel-buildhost-leak-low.md). Ревью раунда 2 (GPT-6, Grok 4.7, DeepSeek Flash):
   регрессии форка нет, находки в проверяющем коде, статусах и публикации исправлены
   ([разбор](evidence/task-00-review/disposition-round-2.md)). Второй BuildHost в офисе — пакетный
-  net472-host у обеих сторон (R2-20). Pending: сценарии на Windows с исправленным spike, приёмка. Принятый объём пункта 4 (решение
+  net472-host у обеих сторон (R2-20). Сценарии на Windows с исправленным spike пройдены. Принятый объём пункта 4 (решение
   владельца 2026-10-24): Smoke, `RoslynMcpServer.sln`, Roslyn.slnx и офис, без PowerToys.
 - Сложность: hi; риск — несовместимость host/client и изменение состава workspace.
 - Depends on: —.

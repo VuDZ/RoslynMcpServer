@@ -1,7 +1,7 @@
 # Исследование форка Roslyn BuildHost
 
-Дата: **2026-10-22**. Статус: **in progress, 2026-10-24** — форк собран (task-00), два раунда независимого
-ревью проведены и исправлены; task-00 не принят, task-01 и task-02 не начаты. Git-ветка
+Дата: **2026-10-22**. Статус: **in progress, 2026-10-24** — task-00 (воспроизводимый форк без изменения
+поведения) accepted 2026-10-24 после двух раундов ревью; task-01 и task-02 не начаты. Git-ветка
 продолжения: `research/workspace-load-performance`.
 
 Постановка по решению владельца: сохранить результаты офисных замеров и
@@ -26,12 +26,12 @@
 ## Задачи
 
 - [task-00a — Временная шкала загрузки до форка](task-00a-load-timeline-before-fork-med.md) — **in progress, 2026-10-24**, решение владельца. Roslyn.slnx: 23 из 40 с binlog — вне сборок; ~20 с приходятся на промежутки перед первой сборкой каждого проекта и следуют за стоимостью evaluation (r = 0,67). Кандидат для форка — параллельная предварительная evaluation ([отчёт](evidence/task-00a-load-timeline.md)); исправлена потеря `SolutionDir` в пробе evaluation, регрессия и полный синтетический прогон проверены ([валидация](evidence/task-00a-solutiondir-fix.md)); офисная шкала pending, нужен повторный прогон.
-- [task-00 — Воспроизводимый форк без изменения поведения](task-00-buildhost-fork-baseline-hi.md) — **in progress, 2026-10-24**: форк в `forks/roslyn-buildhost` (вариант A по решению владельца, стиль Roslyn). После ревью раунда 1 ([разбор](evidence/task-00-review/disposition.md)) identical на Smoke, `RoslynMcpServer.sln`, Roslyn.slnx (434 проекта, Windows, загрузка ×0,992) и офисе (142 проекта, ×1,000); сценарии на Linux и Windows пройдены, ранняя отмена оставляет BuildHost у обеих сторон (ограничение upstream, task-00b); PowerToys исключён решением владельца. Ревью раунда 2: регрессии форка нет, находки исправлены ([разбор](evidence/task-00-review/disposition-round-2.md)); второй BuildHost в офисе — пакетный net472-host у обеих сторон; pending: сценарии на Windows с исправленным spike, приёмка ([отчёт](evidence/task-00-fork-baseline.md)).
+- [task-00 — Воспроизводимый форк без изменения поведения](task-00-buildhost-fork-baseline-hi.md) — **accepted, 2026-10-24** (решение владельца, [приёмка](evidence/task-00-fork-baseline.md#приёмка-2026-10-24)): форк в `forks/roslyn-buildhost` (вариант A по решению владельца, стиль Roslyn). После ревью раунда 1 ([разбор](evidence/task-00-review/disposition.md)) identical на Smoke, `RoslynMcpServer.sln`, Roslyn.slnx (434 проекта, Windows, загрузка ×0,992) и офисе (142 проекта, ×1,000); сценарии на Linux и Windows пройдены, ранняя отмена оставляет BuildHost у обеих сторон (ограничение upstream, task-00b); PowerToys исключён решением владельца. Ревью раунда 2: регрессии форка нет, находки исправлены ([разбор](evidence/task-00-review/disposition-round-2.md)); второй BuildHost в офисе — пакетный net472-host у обеих сторон; сценарии на Windows с исправленным spike пройдены ([отчёт](evidence/task-00-fork-baseline.md)).
 - [task-00b — Утечка BuildHost при ранней отмене загрузки](task-00b-early-cancel-buildhost-leak-low.md) — **planned, 2026-10-24**, решение владельца: исправлено в `dotnet/roslyn` `2624f5c156` (клиент, после пакета 5.9.0); проверить новый пакет, до него оценить смягчение в сервере.
 - [task-01 — Тайминги запросов и фактический load graph](task-01-buildhost-graph-and-timings-hi.md) — **planned**, после task-00.
 - [task-02 — Направленный эксперимент оптимизации](task-02-buildhost-optimization-spike-hi.md) — **planned**, после task-01.
 
-В активной реализации одновременно не больше двух задач. Сейчас идут task-00a и task-00. После каждой задачи обновляются
+В активной реализации одновременно не больше двух задач. Сейчас идёт task-00a. После каждой задачи обновляются
 её статус, этот индекс и evidence; незавершённая проверка сохраняется как pending.
 
 ## Где искать выигрыш
