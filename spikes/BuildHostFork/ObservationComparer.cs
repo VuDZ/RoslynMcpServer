@@ -209,6 +209,7 @@ internal static class ObservationComparer
         md.AppendLine($"- runs finished, BuildHost processes recorded, from own folder, none left 10 s after the first search: {(runIssues.Count == 0 ? "ok" : runIssues.Count + " issue(s)")}");
         md.AppendLine($"- result: **{(reasons.Count == 0 ? "equivalent" : "not shown equivalent: " + string.Join("; ", reasons))}**");
         md.AppendLine("- only the captured fields are compared; see the limits of SolutionObservation in the task-00 report");
+        md.AppendLine(ReportOrderLine(originals, forks, reference));
         md.AppendLine();
         md.AppendLine("| metric (median of rounds 1+) | original | fork | fork / original |");
         md.AppendLine("|---|---|---|---|");
@@ -228,6 +229,28 @@ internal static class ObservationComparer
         AppendList(md, "Run and BuildHost process issues (first 30)", runIssues);
         return md.ToString();
     }
+
+    // Informational: Diagnostics is a set for the result, but a fork that reorders builds must also keep the order in
+    // which the loader reports them.
+    private static string ReportOrderLine(
+        List<(int Round, JsonElement Root)> originals,
+        List<(int Round, JsonElement Root)> forks,
+        (int Round, JsonElement Root) reference)
+    {
+        if (ReportOrder(reference.Root) is not { } expected)
+        {
+            return "- diagnostics in report order (not part of the result): not recorded";
+        }
+
+        var otherOriginals = originals.Where(run => run.Round > reference.Round).ToList();
+        var measuredForks = forks.Where(run => run.Round > 0).ToList();
+        var sameOriginals = otherOriginals.Count(run => ReportOrder(run.Root)?.SequenceEqual(expected, StringComparer.Ordinal) == true);
+        var sameForks = measuredForks.Count(run => ReportOrder(run.Root)?.SequenceEqual(expected, StringComparer.Ordinal) == true);
+        return $"- diagnostics in report order (not part of the result), same as the reference: original rounds 2+ {sameOriginals} of {otherOriginals.Count}, fork rounds 1+ {sameForks} of {measuredForks.Count}";
+    }
+
+    private static List<string>? ReportOrder(JsonElement run) =>
+        run.TryGetProperty("DiagnosticsInReportOrder", out var order) ? order.EnumerateArray().Select(Value).ToList() : null;
 
     private static Dictionary<string, Dictionary<string, string>> Projects(JsonElement run) =>
         run.GetProperty("Projects").EnumerateObject().ToDictionary(

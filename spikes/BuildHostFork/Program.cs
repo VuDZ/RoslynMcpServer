@@ -110,6 +110,10 @@ internal static class Program
             FirstSearch = search,
             Projects = ParallelLoad.SolutionObservation.Capture(solution),
             Diagnostics = diagnostics.Order(StringComparer.Ordinal).ToArray(),
+
+            // The comparator reads only Diagnostics; this keeps the order in which the loader reported them, so the
+            // logs of the fork's reordered builds can be checked against upstream by hand.
+            DiagnosticsInReportOrder = diagnostics.ToArray(),
         };
         File.WriteAllText(outputPath, JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true }));
         if (traceDirectory is not null && recorder is not null)

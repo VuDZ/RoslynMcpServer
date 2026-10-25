@@ -7,11 +7,13 @@
     1. fixture  - a generated solution with a multi-TFM project and failing entries: a project missing on disk,
                   a reference to a missing project, an F# project (no language services in the server),
                   a C++ project (no language for the workspace) and a project with broken XML. Its first entry
-                  references the multi-TFM project and a project that warns in its evaluation (a repeated import)
-                  and in its build, so the client builds it before loading them, and with -ReferencesFirst the
-                  fork builds them ahead and must hand over the same diagnostics. observe for both
-                  sides, warmup + three rounds, compared like the baseline (fixture-runs/summary.md); then one
-                  load of each side, whose diagnostics must match line by line.
+                  reaches, through the second, the multi-TFM project and a project that warn in their evaluations
+                  (a repeated import), the latter also in its build and in GetTargetPath, so the client builds
+                  both entries before loading those references, and with -ReferencesFirst the fork builds them
+                  ahead and must hand over the same diagnostics in the same order. observe for both sides,
+                  warmup + three rounds, compared like the baseline (fixture-runs/summary.md, with the report
+                  order of the diagnostics); then one load of each side, whose diagnostics must match line by
+                  line.
     2. broken   - a copy of the fork with its BuildHost dll deleted loads the fixture: the load must fail
                   visibly, there is no other BuildHost for the client to fall back to.
     3. load     - both sides load -Solution undisturbed; the original's load sets the default delay.
@@ -100,15 +102,19 @@ function New-Fixture([string]$Directory) {
     Write-Utf8 (Join-Path $Directory 'Ok/Ok.csproj') ($sdkProject -f '', 'net8.0', '')
     Write-Utf8 (Join-Path $Directory 'Ok/Class1.cs') "namespace Ok;`npublic class Class1 { }`n"
     $okReference = '<ItemGroup><ProjectReference Include="../Ok/Ok.csproj" /></ItemGroup>'
-    Write-Utf8 (Join-Path $Directory 'MultiTfm/MultiTfm.csproj') ($sdkProject -f 's', 'net10.0;net8.0', $okReference)
+    Write-Utf8 (Join-Path $Directory 'MultiTfm/MultiTfm.csproj') ($sdkProject -f 's', 'net10.0;net8.0', ($okReference + '<Import Project="MultiTfm.props" /><Import Project="MultiTfm.props" />'))
+    Write-Utf8 (Join-Path $Directory 'MultiTfm/MultiTfm.props') '<Project />'
     Write-Utf8 (Join-Path $Directory 'MultiTfm/Class1.cs') "namespace MultiTfm;`n#if NET10_0`npublic class Class1 : Ok.Class1 { }`n#else`npublic class Class1 { }`n#endif`n"
-    $noisyBody = '<Import Project="Noisy.props" /><Import Project="Noisy.props" /><Target Name="Noise" BeforeTargets="CoreCompile"><Warning Text="Noisy build warning" /></Target>'
+    $noisyBody = '<Import Project="Noisy.props" /><Import Project="Noisy.props" /><Target Name="Noise" BeforeTargets="CoreCompile"><Warning Text="Noisy build warning" /></Target><Target Name="PathNoise" AfterTargets="GetTargetPath"><Warning Text="Noisy target path warning" /></Target>'
     Write-Utf8 (Join-Path $Directory 'Noisy/Noisy.csproj') ($sdkProject -f '', 'net8.0', $noisyBody)
     Write-Utf8 (Join-Path $Directory 'Noisy/Noisy.props') '<Project />'
     Write-Utf8 (Join-Path $Directory 'Noisy/Class1.cs') "namespace Noisy;`npublic class Class1 { }`n"
     $consumerReferences = '<ItemGroup><ProjectReference Include="../MultiTfm/MultiTfm.csproj" /><ProjectReference Include="../Noisy/Noisy.csproj" /></ItemGroup>'
     Write-Utf8 (Join-Path $Directory 'Consumer/Consumer.csproj') ($sdkProject -f '', 'net10.0', $consumerReferences)
     Write-Utf8 (Join-Path $Directory 'Consumer/Class1.cs') "namespace Consumer;`npublic class Class1 : MultiTfm.Class1 { }`n"
+    # References only Consumer: its build reaches MultiTfm and Noisy through the transitive references.
+    Write-Utf8 (Join-Path $Directory 'Outer/Outer.csproj') ($sdkProject -f '', 'net10.0', '<ItemGroup><ProjectReference Include="../Consumer/Consumer.csproj" /></ItemGroup>')
+    Write-Utf8 (Join-Path $Directory 'Outer/Class1.cs') "namespace Outer;`npublic class Class1 : Consumer.Class1 { }`n"
     $absentReference = '<ItemGroup><ProjectReference Include="../Absent/Absent.csproj" /></ItemGroup>'
     Write-Utf8 (Join-Path $Directory 'DanglingReference/DanglingReference.csproj') ($sdkProject -f '', 'net10.0', $absentReference)
     Write-Utf8 (Join-Path $Directory 'DanglingReference/Class1.cs') "namespace DanglingReference;`npublic class Class1 { }`n"
@@ -118,11 +124,11 @@ function New-Fixture([string]$Directory) {
     # The workspace rejects it by extension before any build.
     Write-Utf8 (Join-Path $Directory 'Unsupported/Unsupported.vcxproj') '<Project><Target Name="Build" /></Project>'
     Write-Utf8 (Join-Path $Directory 'Broken/Broken.csproj') '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup>'
-    $projects = 'Consumer/Consumer.csproj', 'Ok/Ok.csproj', 'MultiTfm/MultiTfm.csproj', 'DanglingReference/DanglingReference.csproj', 'FSharp/FSharp.fsproj', 'Unsupported/Unsupported.vcxproj', 'Broken/Broken.csproj', 'Missing/Missing.csproj'
+    $projects = 'Outer/Outer.csproj', 'Consumer/Consumer.csproj', 'Ok/Ok.csproj', 'MultiTfm/MultiTfm.csproj', 'DanglingReference/DanglingReference.csproj', 'FSharp/FSharp.fsproj', 'Unsupported/Unsupported.vcxproj', 'Broken/Broken.csproj', 'Missing/Missing.csproj'
     $solution = Join-Path $Directory 'Scenarios.slnx'
     Write-Utf8 $solution ("<Solution>`n" + (($projects | ForEach-Object { "  <Project Path=`"$_`" />" }) -join "`n") + "`n</Solution>`n")
     # Only the projects that can be restored; the dangling reference fails restore and stays unrestored on purpose.
-    foreach ($project in 'Ok/Ok.csproj', 'MultiTfm/MultiTfm.csproj', 'Noisy/Noisy.csproj', 'Consumer/Consumer.csproj') {
+    foreach ($project in 'Ok/Ok.csproj', 'MultiTfm/MultiTfm.csproj', 'Noisy/Noisy.csproj', 'Consumer/Consumer.csproj', 'Outer/Outer.csproj') {
         Invoke-Native 'dotnet' @('restore', (Join-Path $Directory $project), '-nologo', '-v', 'q') "Fixture restore failed: $project"
     }
     return $solution
@@ -142,8 +148,9 @@ function Invoke-Scenario([string]$Label, [string]$Side, [string]$Dll, [string]$M
 }
 
 # How the client reports a BuildHost that went away during a request (the RPC client, or the pipe on Linux and
-# Windows). Any other error after a kill is a problem: it is not explained by the kill.
-$connectionLost = '^failed: (System\.Exception: The server disconnected unexpectedly\.|System\.IO\.IOException: (Connection reset by peer|Broken pipe|Pipe is broken\.|The pipe has been ended\.))'
+# Windows; a kill in the middle of writing a response leaves the client a truncated line it cannot deserialize).
+# Any other error after a kill is a problem: it is not explained by the kill.
+$connectionLost = '^failed: (System\.Exception: The server disconnected unexpectedly\.|System\.IO\.IOException: (Connection reset by peer|Broken pipe|Pipe is broken\.|The pipe has been ended\.)|System\.AggregateException: Failed to deserialize response from build host:)'
 
 # What a single run must show for its scenario; $Undisturbed is the undisturbed load of the same side, the measure
 # of a load completed after a kill. Processes left after the load are judged per pair, not here.
@@ -286,7 +293,7 @@ $md = New-Object Text.StringBuilder
 [void]$md.AppendLine('')
 [void]$md.AppendLine("- fork: $($copies.version); references first (BuildHost/task-02 A): $([bool]$ReferencesFirst); solution for load, cancel and kill: $solutionName")
 [void]$md.AppendLine("- delay after the first BuildHost: $DelayMs ms ($delaySource); early cancel: 0 ms")
-[void]$md.AppendLine('- fixture observe, warmup + 3 rounds: ' + (((Get-Content -LiteralPath (Join-Path $fixtureResults 'summary.md')) -match '^- (fork rounds|result)') -replace '^- ', '' -join '; '))
+[void]$md.AppendLine('- fixture observe, warmup + 3 rounds: ' + (((Get-Content -LiteralPath (Join-Path $fixtureResults 'summary.md')) -match '^- (fork rounds|result|diagnostics in report order)') -replace '^- ', '' -join '; '))
 $resultText = 'all checks passed'
 if ($problems.Count -gt 0 -or -not $fixtureEquivalent) { $resultText = "FAILED: $($problems.Count) run(s) with problems; fixture equivalent: $fixtureEquivalent" }
 [void]$md.AppendLine("- result: **$resultText**")

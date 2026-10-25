@@ -101,6 +101,8 @@ internal sealed partial class ProjectBuildManager : IDisposable
         if (maxNodeCount is int nodeCount)
             buildParameters.MaxNodeCount = nodeCount;
 
+        AddReferencesFirstLoggers(buildParameters);
+
         MSB.Execution.BuildManager.DefaultBuildManager.BeginBuild(buildParameters);
     }
 

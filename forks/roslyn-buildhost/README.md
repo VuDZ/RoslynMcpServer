@@ -33,12 +33,15 @@ BuildHost, что лежит в папке `BuildHost-netcore` рядом с н�
   из пакета.
 - [task-02](../../docs/workspace-load-performance/research-buildhost-fork/task-02-buildhost-optimization-spike-hi.md),
   часть A: ссылки собираются раньше проекта. Новый файл `BuildHost/Build/ProjectBuildManager_ReferencesFirst.cs`,
-  `ProjectBuildManager` стал `partial`, `ProjectFile` вызывает `GetProjectInstancesAsync`. Включается переменной
-  окружения `ROSLYN_BUILDHOST_REFERENCES_FIRST=1`; без неё запрос идёт прежним путём. Запрос сборки проекта сначала
-  загружает и собирает ещё не собранные ссылки C#/VB (самые глубокие первыми); первый запрос клиента к такой ссылке
-  получает готовый результат с её DiagnosticLog или её исключением. Известное различие: предупреждения evaluation
-  ссылки, которые upstream показывает через её повторную evaluation внутри сборки ссылающегося проекта, при A не
-  появляются ([этап 1](../../docs/workspace-load-performance/research-buildhost-fork/evidence/task-02-stage-1-references-first.md)).
+  `ProjectBuildManager` стал `partial`, его конструктор вызывает `AddReferencesFirstLoggers`, `ProjectFile` вызывает
+  `GetProjectInstancesAsync`. Включается переменной окружения `ROSLYN_BUILDHOST_REFERENCES_FIRST=1`; без неё
+  логгеры не подключаются и запрос идёт прежним путём. Запрос сборки проекта сначала загружает и собирает ещё не
+  собранные ссылки C#/VB (самые глубокие первыми); первый запрос клиента к такой ссылке получает готовый результат с
+  её исключением, если оно было. Лог каждой сборки при выдаче, в порядке клиента, пишется так, как его записал бы
+  upstream: в этом режиме host записывает ошибки и предупреждения всех evaluation (у `ProjectCollection` логгер
+  только критических событий) и дерево запросов каждой сборки к конфигурациям и вставляет предупреждения
+  evaluation и содержимое первого запуска целей туда, где upstream впервые до них дошёл бы
+  ([этап 1](../../docs/workspace-load-performance/research-buildhost-fork/evidence/task-02-stage-1-references-first.md)).
 
 Сборка:
 
