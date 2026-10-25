@@ -42,6 +42,20 @@ BuildHost, что лежит в папке `BuildHost-netcore` рядом с н�
   только критических событий) и дерево запросов каждой сборки к конфигурациям и вставляет предупреждения
   evaluation и содержимое первого запуска целей туда, где upstream впервые до них дошёл бы
   ([этап 1](../../docs/workspace-load-performance/research-buildhost-fork/evidence/task-02-stage-1-references-first.md)).
+- [task-02](../../docs/workspace-load-performance/research-buildhost-fork/task-02-buildhost-optimization-spike-hi.md),
+  часть B: evaluation наперёд. Новый файл `BuildHost/Build/ProjectBuildManager_EvaluateAhead.cs`; конструктор
+  `ProjectBuildManager` вызывает `InitializeEvaluateAhead`, `LoadProjectAsync` — `WaitForEvaluationAheadAsync` и
+  `OnEvaluatedOnRequest`, `LoadProject` из присланного содержимого — `UnloadEvaluationAhead`, `Dispose` —
+  `StopEvaluateAhead`. Включается переменной `ROSLYN_BUILDHOST_EVALUATE_AHEAD=<число рабочих потоков>`, независимо
+  от A; без неё рабочие потоки не создаются и загрузка идёт прежним путём. Рабочие потоки оценивают в коллекции
+  host и с его настройками ссылки уже оценённых проектов и записи решения; берут первый не начатый проект в
+  прямом порядке DFS от записей решения по уже известным ссылкам. Запрос к проекту, который оценивает рабочий,
+  ждёт эту evaluation; к ещё не начатому — оценивает его сам. Неудачная evaluation наперёд не сохраняется: запрос
+  клиента повторяет её и получает ту же ошибку. Записи решения host берёт, только если в `SolutionDir` ровно один
+  `.sln`/`.slnx` и нет `.slnf`, MSBuild его читает и первый запрос клиента — первая запись, которую клиент
+  отправит этому host (C#/VB, файл есть, по правилам `BuildHostProcessManager.GetKindForProject` — .NET host).
+  Наперёд оцениваются только такие проекты. `ROSLYN_BUILDHOST_EVALUATE_AHEAD_SOLUTION`: `all` (по умолчанию),
+  число записей после последней запрошенной или `off`.
 
 Сборка:
 

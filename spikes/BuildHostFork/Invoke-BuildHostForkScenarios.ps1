@@ -46,6 +46,13 @@
     Run the fork side, the broken copy included, with part A of BuildHost/task-02
     (ROSLYN_BUILDHOST_REFERENCES_FIRST=1).
 
+.PARAMETER EvaluateAhead
+    Run the fork side, the broken copy included, with part B of BuildHost/task-02 on this many worker threads
+    (ROSLYN_BUILDHOST_EVALUATE_AHEAD). Default 0: off.
+
+.PARAMETER EvaluateAheadSolution
+    all (default), a window of entries, or off (ROSLYN_BUILDHOST_EVALUATE_AHEAD_SOLUTION).
+
 .EXAMPLE
     .\spikes\BuildHostFork\Invoke-BuildHostForkScenarios.ps1 -Solution D:\src\roslyn\Roslyn.slnx
 #>
@@ -58,7 +65,13 @@ param(
 
     [string]$OutDirectory,
 
-    [switch]$ReferencesFirst
+    [switch]$ReferencesFirst,
+
+    [ValidateRange(0, 64)]
+    [int]$EvaluateAhead = 0,
+
+    [ValidatePattern('^(all|off|[1-9][0-9]*)$')]
+    [string]$EvaluateAheadSolution = 'all'
 )
 
 Set-StrictMode -Version 2.0
@@ -81,7 +94,7 @@ $OutDirectory = [IO.Path]::GetFullPath($OutDirectory)
 New-Item -ItemType Directory -Force -Path $OutDirectory | Out-Null
 
 $copies = Initialize-ForkCopy $repo $PSScriptRoot
-Set-ForkOptimizations $ReferencesFirst
+Set-ForkOptimizations $ReferencesFirst $EvaluateAhead $EvaluateAheadSolution
 $sides = [ordered]@{ original = (Join-Path $copies.originalBin 'BuildHostFork.dll'); fork = (Join-Path $copies.forkBin 'BuildHostFork.dll') }
 $brokenBin = Join-Path $PSScriptRoot 'bin-fork-broken'
 if (Test-Path -LiteralPath $brokenBin) { Remove-Item -LiteralPath $brokenBin -Recurse -Force }
@@ -291,7 +304,7 @@ if ($external) { $solutionName = '(outside this repository, name not shown)' }
 $md = New-Object Text.StringBuilder
 [void]$md.AppendLine('# BuildHost fork failure scenarios (BuildHost/task-00)')
 [void]$md.AppendLine('')
-[void]$md.AppendLine("- fork: $($copies.version); references first (BuildHost/task-02 A): $([bool]$ReferencesFirst); solution for load, cancel and kill: $solutionName")
+[void]$md.AppendLine("- fork: $($copies.version); references first (BuildHost/task-02 A): $([bool]$ReferencesFirst); evaluate ahead (B): $(if ($EvaluateAhead -gt 0) { "$EvaluateAhead workers, solution entries: $EvaluateAheadSolution" } else { 'off' }); solution for load, cancel and kill: $solutionName")
 [void]$md.AppendLine("- delay after the first BuildHost: $DelayMs ms ($delaySource); early cancel: 0 ms")
 [void]$md.AppendLine('- fixture observe, warmup + 3 rounds: ' + (((Get-Content -LiteralPath (Join-Path $fixtureResults 'summary.md')) -match '^- (fork rounds|result|diagnostics in report order)') -replace '^- ', '' -join '; '))
 $resultText = 'all checks passed'

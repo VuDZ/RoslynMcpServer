@@ -102,6 +102,7 @@ internal sealed partial class ProjectBuildManager : IDisposable
             buildParameters.MaxNodeCount = nodeCount;
 
         AddReferencesFirstLoggers(buildParameters);
+        InitializeEvaluateAhead(allProperties);
 
         MSB.Execution.BuildManager.DefaultBuildManager.BeginBuild(buildParameters);
     }
@@ -116,6 +117,8 @@ internal sealed partial class ProjectBuildManager : IDisposable
 
         try
         {
+            await WaitForEvaluationAheadAsync(path, cancellationToken).ConfigureAwait(false);
+
             var loadedProjects = _projectCollection.GetLoadedProjects(path);
             span?.Set("cached", loadedProjects.Count > 0);
             if (loadedProjects.Count > 0)
@@ -132,7 +135,9 @@ internal sealed partial class ProjectBuildManager : IDisposable
             // is the default if we call the overload with just a stream.
             await stream.CopyToAsync(readStream, bufferSize: 81920, cancellationToken).ConfigureAwait(false);
             readStream.Position = 0;
-            return LoadProjectCore(path, readStream, log);
+            var result = LoadProjectCore(path, readStream, log);
+            OnEvaluatedOnRequest(path, result.project);
+            return result;
         }
         catch (Exception e)
         {
@@ -189,6 +194,7 @@ internal sealed partial class ProjectBuildManager : IDisposable
         var log = new DiagnosticLog();
         try
         {
+            UnloadEvaluationAhead(path);
             return LoadProjectCore(path, readStream, log);
         }
         catch (Exception e)
@@ -213,6 +219,7 @@ internal sealed partial class ProjectBuildManager : IDisposable
         if (_disposed)
             return;
 
+        StopEvaluateAhead();
         MSB.Execution.BuildManager.DefaultBuildManager.EndBuild();
 
         // unload project so collection will release global strings

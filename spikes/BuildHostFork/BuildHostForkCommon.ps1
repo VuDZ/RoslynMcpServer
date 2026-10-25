@@ -6,9 +6,15 @@
 $script:ForkVariables = [ordered]@{}
 
 # BuildHost/task-02 part A: the fork builds the referenced projects first (ROSLYN_BUILDHOST_REFERENCES_FIRST).
-function Set-ForkOptimizations([bool]$ReferencesFirst) {
+# Part B: worker threads evaluate ahead (ROSLYN_BUILDHOST_EVALUATE_AHEAD, the number of workers; 0 leaves it off),
+# with the solution entries as ROSLYN_BUILDHOST_EVALUATE_AHEAD_SOLUTION says: all, a window, or off.
+function Set-ForkOptimizations([bool]$ReferencesFirst, [int]$EvaluateAhead = 0, [string]$EvaluateAheadSolution = 'all') {
     $script:ForkVariables.Clear()
     if ($ReferencesFirst) { $script:ForkVariables['ROSLYN_BUILDHOST_REFERENCES_FIRST'] = '1' }
+    if ($EvaluateAhead -gt 0) {
+        $script:ForkVariables['ROSLYN_BUILDHOST_EVALUATE_AHEAD'] = [string]$EvaluateAhead
+        $script:ForkVariables['ROSLYN_BUILDHOST_EVALUATE_AHEAD_SOLUTION'] = $EvaluateAheadSolution
+    }
 }
 
 # Builds the fork and the spike, and makes bin-fork: the same spike and client, only BuildHost-netcore replaced
