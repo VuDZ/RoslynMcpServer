@@ -24,6 +24,14 @@ internal enum LoadOrder
     EvaluateAhead,
 
     /// <summary>
+    /// <see cref="EvaluateAhead"/>, except that no worker starts an evaluation while a multi-targeting project builds;
+    /// evaluations already running finish. On Roslyn.slnx builds of multi-targeting projects, which reevaluate the
+    /// project for each target framework, stood still while root evaluations ran beside them; this order checks
+    /// whether keeping evaluations away from just those builds gives the gain of part B back (BuildHost/task-02).
+    /// </summary>
+    EvaluateAheadPaused,
+
+    /// <summary>
     /// The order of <see cref="ReferencesFirst"/>, and every finished evaluation queues the evaluations of the projects
     /// it references, so the whole reference closure is evaluated ahead by worker threads, deepest first. When the
     /// builds reach a project whose evaluation has not started, the build thread evaluates it itself.

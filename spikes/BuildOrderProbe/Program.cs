@@ -31,7 +31,7 @@ internal static class Program
             return identical ? 0 : 1;
         }
 
-        Console.Error.WriteLine("Usage: run client|references-first|evaluate-ahead|evaluate-closure SOLUTION OUTPUT_JSON [WORKERS] | compare RESULT_DIRECTORY");
+        Console.Error.WriteLine("Usage: run client|references-first|evaluate-ahead|evaluate-ahead-paused|evaluate-closure SOLUTION OUTPUT_JSON [WORKERS] | compare RESULT_DIRECTORY");
         return 2;
     }
 
@@ -47,6 +47,7 @@ internal static class Program
             "client" => LoadOrder.Client,
             "references-first" => LoadOrder.ReferencesFirst,
             "evaluate-ahead" => LoadOrder.EvaluateAhead,
+            "evaluate-ahead-paused" => LoadOrder.EvaluateAheadPaused,
             "evaluate-closure" => LoadOrder.EvaluateClosure,
             _ => (LoadOrder)(-1),
         };

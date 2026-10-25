@@ -7,6 +7,8 @@
     client: the 5.9.0 loader's order, a project before the projects it references. references-first: the
     references before the project (part A). evaluate-ahead: references first and the references' root evaluations
     on worker threads while builds go on one at a time (part B), once per worker count of -Workers.
+    evaluate-ahead-paused: evaluate-ahead, but no worker starts an evaluation while a multi-targeting project
+    builds, with the same worker counts.
     evaluate-closure: the whole reference closure evaluated ahead, deepest first, once per worker count of
     -ClosureWorkers. With -ServerGc, references-first and evaluate-closure with the most workers also run with the
     server garbage collector. Every run is a fresh process; round 0 is warmup, and the order of the variants rotates between
@@ -19,7 +21,7 @@
     Measured rounds after the warmup round. Default 3.
 
 .PARAMETER Workers
-    Worker counts of evaluate-ahead. Default: 4; an empty list leaves the variant out.
+    Worker counts of evaluate-ahead and evaluate-ahead-paused. Default: 4; an empty list leaves both out.
 
 .PARAMETER ClosureWorkers
     Worker counts of evaluate-closure. Default: 1 and 2.
@@ -88,6 +90,7 @@ $variants.Add([pscustomobject]@{ Name = 'client'; Order = 'client'; Workers = 1;
 $variants.Add([pscustomobject]@{ Name = 'references-first'; Order = 'references-first'; Workers = 1; ServerGc = $false })
 foreach ($count in $workerCounts) {
     $variants.Add([pscustomobject]@{ Name = "evaluate-ahead-w$count"; Order = 'evaluate-ahead'; Workers = $count; ServerGc = $false })
+    $variants.Add([pscustomobject]@{ Name = "evaluate-ahead-paused-w$count"; Order = 'evaluate-ahead-paused'; Workers = $count; ServerGc = $false })
 }
 foreach ($count in $closureCounts) {
     $variants.Add([pscustomobject]@{ Name = "evaluate-closure-w$count"; Order = 'evaluate-closure'; Workers = $count; ServerGc = $false })

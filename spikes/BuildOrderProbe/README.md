@@ -13,6 +13,9 @@
 - `references-first` — ссылки собираются раньше проекта (часть A task-02);
 - `evaluate-ahead` — тот же порядок, и как только проект оценён, корневые evaluation его ссылок идут в
   рабочих потоках, пока сборки выполняются по одной (часть B; опережение — один уровень);
+- `evaluate-ahead-paused` — как `evaluate-ahead`, но пока собирается проект с несколькими TFM, рабочие потоки не
+  начинают новых evaluation (начатые доходят до конца): на Roslyn.slnx стояли именно сборки таких проектов, в
+  которых host переоценивает проект на каждый TFM;
 - `evaluate-closure` — тот же порядок, и каждая законченная evaluation ставит в очередь evaluation своих
   ссылок: рабочие потоки оценивают всё замыкание ссылок, сначала самые глубокие; поток сборок, дошедший до
   проекта, чья evaluation не начиналась, оценивает его сам.
@@ -26,7 +29,7 @@
 pwsh spikes\BuildOrderProbe\Invoke-BuildOrderProbe.ps1 -Solution <путь>\Roslyn.slnx
 ```
 
-Параметры: `-Rounds` (по умолчанию 3); `-Workers` — список числа потоков для `evaluate-ahead`, по умолчанию 4;
+Параметры: `-Rounds` (по умолчанию 3); `-Workers` — список числа потоков для `evaluate-ahead` и `evaluate-ahead-paused`, по умолчанию 4;
 `-ClosureWorkers` — для `evaluate-closure`, по умолчанию 1 и 2; каждое число — отдельный вариант; `-ServerGc` —
 ещё `references-first` и `evaluate-closure` с наибольшим числом потоков под server GC; `-SkipRestore` для уже
 восстановленного решения.

@@ -41,9 +41,10 @@ internal sealed class OrderedLoad
 
         load._wall.Stop();
         load._closure?.Dispose();
+        load._evaluationsOpen.Dispose();
         return new ProbeRun(
             order.ToString(),
-            order is LoadOrder.EvaluateAhead or LoadOrder.EvaluateClosure ? workers : 0,
+            order is LoadOrder.EvaluateAhead or LoadOrder.EvaluateAheadPaused or LoadOrder.EvaluateClosure ? workers : 0,
             System.Runtime.GCSettings.IsServerGC,
             Environment.ProcessorCount,
             load._wall.Elapsed.TotalMilliseconds,
@@ -72,7 +73,7 @@ internal sealed class OrderedLoad
         }
 
         var references = ProjectReferences(project);
-        if (_order == LoadOrder.EvaluateAhead)
+        if (_order is LoadOrder.EvaluateAhead or LoadOrder.EvaluateAheadPaused)
         {
             foreach (var reference in references)
             {
@@ -101,12 +102,15 @@ internal sealed class OrderedLoad
     private Task<Project?> Evaluation(string path)
         => _closure is not null
             ? Task.FromResult(_closure.Require(path))
-            : _evaluations.GetOrAdd(path, key => _order == LoadOrder.EvaluateAhead
+            : _evaluations.GetOrAdd(path, key => _order is LoadOrder.EvaluateAhead or LoadOrder.EvaluateAheadPaused
             ? Task.Run(async () =>
             {
                 await _workerSlots.WaitAsync().ConfigureAwait(false);
                 try
                 {
+                    // Closed only while a multi-targeting project builds in EvaluateAheadPaused. The build thread
+                    // never waits for an evaluation during a build, so a worker held here cannot block it.
+                    _evaluationsOpen.Wait();
                     return Evaluate(key);
                 }
                 finally
@@ -129,10 +133,26 @@ internal sealed class OrderedLoad
     private void Build(Project project)
     {
         var multiTargeting = IsMultiTargeting(project);
-        var start = _wall.Elapsed.TotalMilliseconds;
-        foreach (var (targetFramework, fingerprint) in _session.Build(project))
+        var pause = multiTargeting && _order == LoadOrder.EvaluateAheadPaused;
+        if (pause)
         {
-            _fingerprints[project.FullPath + "|" + targetFramework] = fingerprint;
+            _evaluationsOpen.Reset();
+        }
+
+        var start = _wall.Elapsed.TotalMilliseconds;
+        try
+        {
+            foreach (var (targetFramework, fingerprint) in _session.Build(project))
+            {
+                _fingerprints[project.FullPath + "|" + targetFramework] = fingerprint;
+            }
+        }
+        finally
+        {
+            if (pause)
+            {
+                _evaluationsOpen.Set();
+            }
         }
 
         _buildSteps.Add(new TimedStep(project.FullPath, multiTargeting, start, _wall.Elapsed.TotalMilliseconds, Environment.CurrentManagedThreadId));
@@ -159,6 +179,7 @@ internal sealed class OrderedLoad
     private readonly HostSession _session;
     private readonly LoadOrder _order;
     private readonly SemaphoreSlim _workerSlots;
+    private readonly ManualResetEventSlim _evaluationsOpen = new(initialState: true);
     private readonly ClosureEvaluator? _closure;
     private readonly HashSet<string> _visited = new(StringComparer.OrdinalIgnoreCase);
     private readonly ConcurrentDictionary<string, Task<Project?>> _evaluations = new(StringComparer.OrdinalIgnoreCase);
