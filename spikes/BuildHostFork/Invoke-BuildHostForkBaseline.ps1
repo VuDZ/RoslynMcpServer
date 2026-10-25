@@ -35,6 +35,10 @@
 .PARAMETER Trace
     Trace the fork side's loads (BuildHost/task-01).
 
+.PARAMETER ReferencesFirst
+    Run the fork side with part A of BuildHost/task-02: the fork builds the projects a project references before
+    the project (ROSLYN_BUILDHOST_REFERENCES_FIRST=1). The original side stays the reference of the answer.
+
 .EXAMPLE
     .\spikes\BuildHostFork\Invoke-BuildHostForkBaseline.ps1 -Solution D:\src\roslyn\Roslyn.slnx -Name CSharpCompilationOptions
 #>
@@ -52,7 +56,9 @@ param(
 
     [string]$OutDirectory,
 
-    [switch]$Trace
+    [switch]$Trace,
+
+    [switch]$ReferencesFirst
 )
 
 Set-StrictMode -Version 2.0
@@ -70,6 +76,7 @@ if ($pinned) { Write-Host "Solution pins .NET SDK ${pinned}: installed." }
 
 $copies = Initialize-ForkCopy $repo $PSScriptRoot
 $version = $copies.version
+Set-ForkOptimizations $ReferencesFirst
 
 if (-not $SkipRestore) {
     Write-Host "Restoring $Solution"
@@ -80,7 +87,7 @@ if (-not $OutDirectory) {
     $OutDirectory = Join-Path (Join-Path $PSScriptRoot 'results') ('baseline-' + (Get-Date -Format 'yyyyMMdd-HHmmss'))
 }
 New-Item -ItemType Directory -Force -Path $OutDirectory | Out-Null
-$environment = Get-Environment $Solution $repo ([ordered]@{ name = $Name; runs = $Runs; fork = $version; trace = [bool]$Trace })
+$environment = Get-Environment $Solution $repo ([ordered]@{ name = $Name; runs = $Runs; fork = $version; trace = [bool]$Trace; referencesFirst = [bool]$ReferencesFirst })
 [IO.File]::WriteAllText((Join-Path $OutDirectory 'environment.json'), ($environment | ConvertTo-Json), (New-Object Text.UTF8Encoding($false)))
 
 $sides = [ordered]@{ original = (Join-Path $copies.originalBin 'BuildHostFork.dll'); fork = (Join-Path $copies.forkBin 'BuildHostFork.dll') }

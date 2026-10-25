@@ -43,7 +43,7 @@ internal sealed class ProjectFile(
             return [ProjectFileInfo.CreateEmpty(language, filePath: null)];
         }
 
-        var projectInstances = await buildManager.BuildProjectInstancesAsync(project, log, cancellationToken).ConfigureAwait(false);
+        var projectInstances = await buildManager.GetProjectInstancesAsync(project, log, cancellationToken).ConfigureAwait(false);
 
         return projectInstances.Select(instance =>
         {

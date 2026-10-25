@@ -16,7 +16,7 @@ using MSB = Microsoft.Build;
 
 namespace Microsoft.CodeAnalysis.MSBuild;
 
-internal sealed class ProjectBuildManager : IDisposable
+internal sealed partial class ProjectBuildManager : IDisposable
 {
     private static readonly XmlReaderSettings s_xmlReaderSettings = new()
     {

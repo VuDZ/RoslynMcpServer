@@ -6,7 +6,10 @@
     All into one result folder, scenarios.md is the summary:
     1. fixture  - a generated solution with a multi-TFM project and failing entries: a project missing on disk,
                   a reference to a missing project, an F# project (no language services in the server),
-                  a C++ project (no language for the workspace) and a project with broken XML. observe for both
+                  a C++ project (no language for the workspace) and a project with broken XML. Its first entry
+                  references the multi-TFM project and a project that warns in its evaluation (a repeated import)
+                  and in its build, so the client builds it before loading them, and with -ReferencesFirst the
+                  fork builds them ahead and must hand over the same diagnostics. observe for both
                   sides, warmup + three rounds, compared like the baseline (fixture-runs/summary.md); then one
                   load of each side, whose diagnostics must match line by line.
     2. broken   - a copy of the fork with its BuildHost dll deleted loads the fixture: the load must fail
@@ -37,6 +40,10 @@
 .PARAMETER OutDirectory
     Result folder. Default: results\scenarios-<time> next to this script (not tracked by Git).
 
+.PARAMETER ReferencesFirst
+    Run the fork side, the broken copy included, with part A of BuildHost/task-02
+    (ROSLYN_BUILDHOST_REFERENCES_FIRST=1).
+
 .EXAMPLE
     .\spikes\BuildHostFork\Invoke-BuildHostForkScenarios.ps1 -Solution D:\src\roslyn\Roslyn.slnx
 #>
@@ -47,7 +54,9 @@ param(
     [ValidateRange(0, 600000)]
     [int]$DelayMs,
 
-    [string]$OutDirectory
+    [string]$OutDirectory,
+
+    [switch]$ReferencesFirst
 )
 
 Set-StrictMode -Version 2.0
@@ -70,6 +79,7 @@ $OutDirectory = [IO.Path]::GetFullPath($OutDirectory)
 New-Item -ItemType Directory -Force -Path $OutDirectory | Out-Null
 
 $copies = Initialize-ForkCopy $repo $PSScriptRoot
+Set-ForkOptimizations $ReferencesFirst
 $sides = [ordered]@{ original = (Join-Path $copies.originalBin 'BuildHostFork.dll'); fork = (Join-Path $copies.forkBin 'BuildHostFork.dll') }
 $brokenBin = Join-Path $PSScriptRoot 'bin-fork-broken'
 if (Test-Path -LiteralPath $brokenBin) { Remove-Item -LiteralPath $brokenBin -Recurse -Force }
@@ -92,6 +102,13 @@ function New-Fixture([string]$Directory) {
     $okReference = '<ItemGroup><ProjectReference Include="../Ok/Ok.csproj" /></ItemGroup>'
     Write-Utf8 (Join-Path $Directory 'MultiTfm/MultiTfm.csproj') ($sdkProject -f 's', 'net10.0;net8.0', $okReference)
     Write-Utf8 (Join-Path $Directory 'MultiTfm/Class1.cs') "namespace MultiTfm;`n#if NET10_0`npublic class Class1 : Ok.Class1 { }`n#else`npublic class Class1 { }`n#endif`n"
+    $noisyBody = '<Import Project="Noisy.props" /><Import Project="Noisy.props" /><Target Name="Noise" BeforeTargets="CoreCompile"><Warning Text="Noisy build warning" /></Target>'
+    Write-Utf8 (Join-Path $Directory 'Noisy/Noisy.csproj') ($sdkProject -f '', 'net8.0', $noisyBody)
+    Write-Utf8 (Join-Path $Directory 'Noisy/Noisy.props') '<Project />'
+    Write-Utf8 (Join-Path $Directory 'Noisy/Class1.cs') "namespace Noisy;`npublic class Class1 { }`n"
+    $consumerReferences = '<ItemGroup><ProjectReference Include="../MultiTfm/MultiTfm.csproj" /><ProjectReference Include="../Noisy/Noisy.csproj" /></ItemGroup>'
+    Write-Utf8 (Join-Path $Directory 'Consumer/Consumer.csproj') ($sdkProject -f '', 'net10.0', $consumerReferences)
+    Write-Utf8 (Join-Path $Directory 'Consumer/Class1.cs') "namespace Consumer;`npublic class Class1 : MultiTfm.Class1 { }`n"
     $absentReference = '<ItemGroup><ProjectReference Include="../Absent/Absent.csproj" /></ItemGroup>'
     Write-Utf8 (Join-Path $Directory 'DanglingReference/DanglingReference.csproj') ($sdkProject -f '', 'net10.0', $absentReference)
     Write-Utf8 (Join-Path $Directory 'DanglingReference/Class1.cs') "namespace DanglingReference;`npublic class Class1 { }`n"
@@ -101,11 +118,11 @@ function New-Fixture([string]$Directory) {
     # The workspace rejects it by extension before any build.
     Write-Utf8 (Join-Path $Directory 'Unsupported/Unsupported.vcxproj') '<Project><Target Name="Build" /></Project>'
     Write-Utf8 (Join-Path $Directory 'Broken/Broken.csproj') '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup>'
-    $projects = 'Ok/Ok.csproj', 'MultiTfm/MultiTfm.csproj', 'DanglingReference/DanglingReference.csproj', 'FSharp/FSharp.fsproj', 'Unsupported/Unsupported.vcxproj', 'Broken/Broken.csproj', 'Missing/Missing.csproj'
+    $projects = 'Consumer/Consumer.csproj', 'Ok/Ok.csproj', 'MultiTfm/MultiTfm.csproj', 'DanglingReference/DanglingReference.csproj', 'FSharp/FSharp.fsproj', 'Unsupported/Unsupported.vcxproj', 'Broken/Broken.csproj', 'Missing/Missing.csproj'
     $solution = Join-Path $Directory 'Scenarios.slnx'
     Write-Utf8 $solution ("<Solution>`n" + (($projects | ForEach-Object { "  <Project Path=`"$_`" />" }) -join "`n") + "`n</Solution>`n")
     # Only the projects that can be restored; the dangling reference fails restore and stays unrestored on purpose.
-    foreach ($project in 'Ok/Ok.csproj', 'MultiTfm/MultiTfm.csproj') {
+    foreach ($project in 'Ok/Ok.csproj', 'MultiTfm/MultiTfm.csproj', 'Noisy/Noisy.csproj', 'Consumer/Consumer.csproj') {
         Invoke-Native 'dotnet' @('restore', (Join-Path $Directory $project), '-nologo', '-v', 'q') "Fixture restore failed: $project"
     }
     return $solution
@@ -115,7 +132,7 @@ function New-Fixture([string]$Directory) {
 function Invoke-Scenario([string]$Label, [string]$Side, [string]$Dll, [string]$Mode, [string]$Target, [int]$Delay, [string]$Expect, [string]$File) {
     Write-Host $Label
     $output = Join-Path $OutDirectory "$File.json"
-    $exitCode = Invoke-Spike $Dll @($Mode, $Target, $output, "$Delay") (Join-Path $OutDirectory "$File.out.txt")
+    $exitCode = Invoke-Spike $Dll @($Mode, $Target, $output, "$Delay") (Join-Path $OutDirectory "$File.out.txt") ($Side -ne 'original')
     $result = $null
     if (Test-Path -LiteralPath $output) { $result = Get-Content -LiteralPath $output -Raw | ConvertFrom-Json }
     return [pscustomobject]@{
@@ -267,7 +284,7 @@ if ($external) { $solutionName = '(outside this repository, name not shown)' }
 $md = New-Object Text.StringBuilder
 [void]$md.AppendLine('# BuildHost fork failure scenarios (BuildHost/task-00)')
 [void]$md.AppendLine('')
-[void]$md.AppendLine("- fork: $($copies.version); solution for load, cancel and kill: $solutionName")
+[void]$md.AppendLine("- fork: $($copies.version); references first (BuildHost/task-02 A): $([bool]$ReferencesFirst); solution for load, cancel and kill: $solutionName")
 [void]$md.AppendLine("- delay after the first BuildHost: $DelayMs ms ($delaySource); early cancel: 0 ms")
 [void]$md.AppendLine('- fixture observe, warmup + 3 rounds: ' + (((Get-Content -LiteralPath (Join-Path $fixtureResults 'summary.md')) -match '^- (fork rounds|result)') -replace '^- ', '' -join '; '))
 $resultText = 'all checks passed'
