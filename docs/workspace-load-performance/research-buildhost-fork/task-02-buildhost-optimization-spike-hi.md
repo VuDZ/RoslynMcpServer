@@ -14,7 +14,9 @@
   ([итог шага 0](evidence/task-02-step-0.md#итог-шага-0-для-b)). Этап 1 (A в форке, решение владельца) — in
   progress: Linux `RoslynMcpServer.sln` identical, сценарии task-00 пройдены; на расширенной фикстуре известно одно
   расхождение — предупреждения evaluation ссылок, которые upstream показывает через повторную evaluation, при A не
-  появляются; ждут прогоны владельца, затем точное воспроизведение ([этап 1](evidence/task-02-stage-1-references-first.md)).
+  появляются. Прогоны владельца: Roslyn.slnx identical на двух компьютерах, загрузка ×0,931; офис ×0,906, не
+  identical — именно это расхождение (5 предупреждений); следующий шаг — точное воспроизведение
+  ([этап 1](evidence/task-02-stage-1-references-first.md)).
 - Сложность: hi; риск — ускорить загрузку ценой неверного workspace.
 - Depends on: [task-01](task-01-buildhost-graph-and-timings-hi.md) (accepted).
 - Evidence/validation: [шаг 0](evidence/task-02-step-0.md); отчёт эксперимента —
