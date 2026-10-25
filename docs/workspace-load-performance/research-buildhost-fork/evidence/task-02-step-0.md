@@ -319,11 +319,33 @@ MSBuild SDK из NuGet, — что-то ещё), проба не показыв�
   (кандидаты — блокировка или кеш `ProjectCollection`, разрешение MSBuild SDK из NuGet у Roslyn.slnx).
 - Обычный evaluate-ahead в один уровень на Roslyn.slnx остаётся в пороге task-02 (+0,9 % и −0,4 %).
 
+### Причина сериализации в пробе: `ProjectCollection.LoadProject`, 2026-10-25
+
+Трасса опыта масштабирования (`spikes/BuildOrderProbe/Invoke-EvaluationScaling.ps1`, `RoslynMcpServer.sln`,
+Linux, 2 потока) показала поток, который 1,7 с из 1,8 с ждёт `WaitHandle` прямо внутри
+`ProjectCollection.LoadProject`. Декомпиляция MSBuild (SDK 10.0.113, пакеты 18.6.3 и 18.7.1): `LoadProject(path)`
+берёт блокировку записи коллекции и под ней выполняет `new Project(...)`, то есть всю evaluation. Проба оценивала
+проекты именно так, поэтому evaluation в рабочих потоках одной коллекции шли строго по одной. На Roslyn.slnx
+объединение интервалов evaluation в `evaluate-ahead` равно сумме последовательных (1,00–1,05) — подпись полной
+сериализации.
+
+Host evaluation-ит иначе (`ProjectBuildManager.LoadProjectCore`): `ProjectRootElement.Create` из `XmlReader` и
+`new Project(xml, …, collection, settings)`. Коллекцию он блокирует только при регистрации проекта.
+
+- **Выводы шага 0 о B на Roslyn.slnx относятся к пробе, а не к host:** «evaluation в одной `ProjectCollection`
+  ждут друг друга», «опережение на всё замыкание без выигрыша» и разбор паузы выше. Порядки без рабочих потоков
+  блокировка не затрагивала.
+- **Офис** при той же блокировке перекрывался частично (объединение 0,74 от последовательной суммы); причина пока
+  не ясна.
+- **Проба исправлена:** evaluation теперь как у host, с теми же настройками загрузки. На мини-решении и
+  `RoslynMcpServer.sln` результаты identical.
+- **В опыте масштабирования** путь host с 2 потоками дал ×1,21 к одному потоку, `LoadProject` — ×0,81.
+- **Pending:** опыт масштабирования с трассой и повтор пробы на Roslyn.slnx (домашний компьютер владельца).
+
 ## Pending
 
 - Этап 1: A в форке; этап 2: B — evaluation наперёд в один уровень; замер по task-02.
-- Если B нужна и для решений вроде Roslyn.slnx — найти, что сериализует evaluation друг с другом: снимок стеков
-  одновременных корневых evaluation в `evaluate-ahead` или evaluation наперёд в отдельной `ProjectCollection`
-  (правило паузы на сборки с несколькими TFM проверено и снято, см. выше).
+- Сериализацию evaluation в пробе объяснила `ProjectCollection.LoadProject` (см. выше). Повторить на Roslyn.slnx
+  пробу с evaluation как у host и опыт масштабирования с трассой.
 - Server GC в BuildHost — отдельный кандидат с замером памяти; в пробе не хватает evaluate-ahead под server GC.
 - Реализация A в форке (этап 1), замер по task-02.

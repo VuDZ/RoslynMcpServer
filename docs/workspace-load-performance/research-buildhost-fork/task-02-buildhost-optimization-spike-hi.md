@@ -19,8 +19,11 @@
   записывает ошибки и предупреждения evaluation и дерево запросов каждой сборки и при выдаче в порядке клиента
   пишет лог так, как его записал бы upstream. Этап 1 выполнен 2026-10-25: Roslyn.slnx и офис identical,
   диагностики поэлементно в том же порядке (офис — 1 775), загрузка ×0,928 и ×0,899 к оригиналу, пик памяти не
-  выше +4,4 % ([этап 1](evidence/task-02-stage-1-references-first.md#итог-этапа-1)). Следующий — этап 2 (B), по
-  решению владельца.
+  выше +4,4 % ([этап 1](evidence/task-02-stage-1-references-first.md#итог-этапа-1)). Этап 2 (B) — in progress
+  (решение владельца, 2026-10-25). Вывод шага 0 о B на Roslyn.slnx — артефакт пробы: она evaluation-ила через
+  `ProjectCollection.LoadProject`, который держит блокировку коллекции всю evaluation, а host так не делает; проба
+  исправлена, повтор на Roslyn.slnx — pending
+  ([разбор](evidence/task-02-step-0.md#причина-сериализации-в-пробе-projectcollectionloadproject-2026-10-25)).
 - Сложность: hi; риск — ускорить загрузку ценой неверного workspace.
 - Depends on: [task-01](task-01-buildhost-graph-and-timings-hi.md) (accepted).
 - Evidence/validation: [шаг 0](evidence/task-02-step-0.md); отчёт эксперимента —

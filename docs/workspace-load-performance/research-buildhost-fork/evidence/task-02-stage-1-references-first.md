@@ -222,4 +222,7 @@ evaluation ссылки, у A расходятся уже результаты �
   evaluation наперёд, пока собирается проект с несколькими TFM» проверено пробой и снято: на Roslyn.slnx
   evaluation сериализуются друг с другом, а не со сборками таких проектов
   ([разбор](task-02-step-0.md#после-шага-0-пауза-evaluation-на-сборки-проектов-с-несколькими-tfm-2026-10-25)).
+  Причина — сама проба: `ProjectCollection.LoadProject` держит блокировку коллекции всю evaluation, а host
+  evaluation-ит без неё ([разбор](task-02-step-0.md#причина-сериализации-в-пробе-projectcollectionloadproject-2026-10-25));
+  проба исправлена, повтор на Roslyn.slnx — pending.
 

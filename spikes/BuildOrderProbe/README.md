@@ -4,7 +4,8 @@
 шаг 0.
 
 Проба собирает проекты решения так, как это делает BuildHost 5.9.0: те же глобальные свойства, одна
-`ProjectCollection` без логгеров, один `BuildManager`, design-time build целей `Compile`, `CoreCompile` и
+`ProjectCollection` без логгеров, та же evaluation (файл читается в память, `ProjectRootElement.Create` из
+`XmlReader`, `new Project` с настройками загрузки host), один `BuildManager`, design-time build целей `Compile`, `CoreCompile` и
 `DesignTimeMarkupCompilation`, для проекта с несколькими TFM — переключение `TargetFramework` у общего `Project`
 и возврат в конце. Порядки:
 
@@ -52,6 +53,35 @@ pwsh spikes\BuildOrderProbe\Invoke-BuildOrderProbe.ps1 -Solution <путь>\Rosl
 - ссылка, которая появляется только в сборке или требует других глобальных свойств, в обходе не видна, и её
   вложенная evaluation остаётся и в `references-first`;
 - это не форк и не клиент: RPC, извлечение `ProjectFileInfo` и работа клиента сюда не входят.
+
+До 2026-10-25 проба вызывала `ProjectCollection.LoadProject(path)`. Он держит блокировку записи коллекции на всё
+время evaluation, поэтому evaluation наперёд в одной коллекции шли строго по одной; у host такой блокировки нет.
+Результаты `evaluate-ahead` и `evaluate-closure`, снятые до этой даты (шаг 0 task-02), измеряли эту блокировку, а
+не host; порядки без рабочих потоков она не затрагивала, но шли с настройками загрузки MSBuild по умолчанию.
+
+## Масштабирование evaluation (`Invoke-EvaluationScaling.ps1`)
+
+Отвечает на вопрос, идут ли корневые evaluation одного решения в одном процессе параллельно без сборок рядом.
+Один прогон `references-first` даёт список проектов в порядке host; затем каждый вариант в свежем процессе
+оценивает этот список в выделенных потоках без `BuildManager`: 1 поток (эталон) и для каждого числа из `-Workers`
+(по умолчанию 2 и 4) — путь host в общей коллекции, путь host с коллекцией на поток и, для сравнения,
+`LoadProject` в общей коллекции. `summary.md`: ускорение к одному потоку, сколько evaluation шло одновременно и
+замедление evaluation, взвешенное по времени. Если замедление растёт вместе с одновременностью, evaluation ждут
+друг друга; если это уходит с коллекцией на поток — ждут они что-то в коллекции.
+
+```powershell
+pwsh spikes\BuildOrderProbe\Invoke-EvaluationScaling.ps1 -Solution <путь>\Roslyn.slnx -Trace
+```
+
+`-Trace` — ещё один прогон пути host в общей коллекции с наибольшим числом потоков под `dotnet-trace`
+(сэмплы стеков всех управляемых потоков, ожидающих тоже, и события ожидания блокировок): `trace-shared-w<N>.nettrace`
+и `.speedscope.json`. Нужен глобальный инструмент: `dotnet tool install --global dotnet-trace`. Результаты — в
+`results\scaling-<время>`; `summary.md` без путей, `paths-private.txt`, JSON прогонов и файлы трассы содержат пути
+проектов.
+
+Проверено на `RoslynMcpServer.sln`, Linux, 2 vCPU, 2026-10-25, прогрев и 2 раунда: путь host с 2 потоками ×1,21 к
+одному, `LoadProject` с 2 потоками ×0,81 (медленнее одного потока); в трассе прежнего пути один поток ждал внутри
+`ProjectCollection.LoadProject` 1,7 с из 1,8 с.
 
 Проверено на `RoslynMcpServer.sln`, Linux, 2 vCPU, 2026-10-25: 9 прогонов, результаты identical; вложенных
 evaluation 3 в `client` и 1 в двух других порядках. Время на такой машине шумит и о выигрыше не говорит.

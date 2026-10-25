@@ -1,3 +1,5 @@
+using System.Xml;
+using Microsoft.Build.Construction;
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Exceptions;
 using Microsoft.Build.Execution;
@@ -6,7 +8,7 @@ namespace BuildOrderProbe;
 
 /// <summary>
 /// One project collection and one build manager session set up like the 5.9.0 BuildHost's ProjectBuildManager:
-/// its global properties, no loggers on the collection, design-time builds of Compile, CoreCompile and
+/// its global properties, no loggers on the collection, its way of evaluating a project, design-time builds of Compile, CoreCompile and
 /// DesignTimeMarkupCompilation, and for a multi-targeting project the host's switching of the global TargetFramework
 /// on the shared Project, one build per target framework and a restore at the end.
 /// </summary>
@@ -18,15 +20,7 @@ internal sealed class HostSession : IDisposable
 {
     public HostSession(string solutionPath)
     {
-        // The client passes SolutionDir with a trailing separator; imports such as $(SolutionDir)x.props rely on it.
-        var solutionDirectory = Path.GetDirectoryName(solutionPath)!;
-        var properties = new Dictionary<string, string>(_hostProperties, StringComparer.OrdinalIgnoreCase)
-        {
-            ["SolutionDir"] = Path.EndsInDirectorySeparator(solutionDirectory)
-                ? solutionDirectory
-                : solutionDirectory + Path.DirectorySeparatorChar,
-        };
-        _collection = new ProjectCollection(properties, loggers: [], ToolsetDefinitionLocations.Default);
+        _collection = CreateCollection(solutionPath);
         BuildManager.DefaultBuildManager.BeginBuild(new BuildParameters(_collection)
         {
             Loggers = [_counter],
@@ -37,12 +31,64 @@ internal sealed class HostSession : IDisposable
     /// <summary>Evaluations the build manager ran inside design-time builds; root evaluations are not counted.</summary>
     public int EvaluationsDuringBuilds => _counter.Count;
 
+    /// <summary>A project collection with the host's global properties for the solution and no loggers.</summary>
+    public static ProjectCollection CreateCollection(string solutionPath)
+    {
+        // The client passes SolutionDir with a trailing separator; imports such as $(SolutionDir)x.props rely on it.
+        var solutionDirectory = Path.GetDirectoryName(solutionPath)!;
+        var properties = new Dictionary<string, string>(_hostProperties, StringComparer.OrdinalIgnoreCase)
+        {
+            ["SolutionDir"] = Path.EndsInDirectorySeparator(solutionDirectory)
+                ? solutionDirectory
+                : solutionDirectory + Path.DirectorySeparatorChar,
+        };
+        return new ProjectCollection(properties, loggers: [], ToolsetDefinitionLocations.Default);
+    }
+
     /// <summary>The root evaluation of a project, or null when MSBuild cannot load it.</summary>
     public Project? Evaluate(string path)
+        => Evaluate(_collection, path);
+
+    /// <summary>
+    /// The root evaluation of a project in <paramref name="collection"/> the way ProjectBuildManager.LoadProjectCore
+    /// makes it, or null when MSBuild cannot load it.
+    /// </summary>
+    /// <remarks>
+    /// Not <see cref="ProjectCollection.LoadProject(string)"/>: that holds the collection's write lock for the whole
+    /// evaluation, so evaluations in one collection run one at a time, while the host's path takes the lock only to
+    /// register the project. The host also reads the file itself and uses its own load settings.
+    /// </remarks>
+    public static Project? Evaluate(ProjectCollection collection, string path)
     {
         try
         {
-            return _collection.LoadProject(path);
+            var loaded = collection.GetLoadedProjects(path);
+            if (loaded.Count > 0)
+            {
+                return loaded.First();
+            }
+
+            using var stream = new MemoryStream(File.ReadAllBytes(path));
+            using var xmlReader = XmlReader.Create(stream, _xmlReaderSettings);
+            var xml = ProjectRootElement.Create(xmlReader, collection);
+            xml.FullPath = path;
+            return new Project(xml, globalProperties: null, toolsVersion: null, collection, _hostLoadSettings);
+        }
+        catch (Exception e) when (e is InvalidProjectFileException or XmlException or IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// The root evaluation through <see cref="ProjectCollection.LoadProject(string)"/>, which the probe used before;
+    /// kept to compare the two paths. Null when MSBuild cannot load the project.
+    /// </summary>
+    public static Project? EvaluateWithLoadProject(ProjectCollection collection, string path)
+    {
+        try
+        {
+            return collection.LoadProject(path);
         }
         catch (InvalidProjectFileException)
         {
@@ -120,6 +166,16 @@ internal sealed class HostSession : IDisposable
         ["ContinueOnError"] = "ErrorAndContinue",
         ["ShouldUnsetParentConfigurationAndPlatform"] = "False",
     };
+
+    // ProjectBuildManager.s_xmlReaderSettings and the load settings of its LoadProjectCore in 5.9.0.
+    private static readonly XmlReaderSettings _xmlReaderSettings = new() { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null };
+
+    private static readonly ProjectLoadSettings _hostLoadSettings = ProjectLoadSettings.RejectCircularImports
+        | ProjectLoadSettings.IgnoreEmptyImports
+        | ProjectLoadSettings.IgnoreMissingImports
+        | ProjectLoadSettings.IgnoreInvalidImports
+        | ProjectLoadSettings.DoNotEvaluateElementsWithFalseCondition
+        | ProjectLoadSettings.FailOnUnresolvedSdk;
 
     private readonly ProjectCollection _collection;
     private readonly EvaluationCounter _counter = new();

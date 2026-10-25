@@ -8,6 +8,10 @@ namespace BuildOrderProbe;
 /// <summary>
 /// run: evaluates and builds a solution's projects in one <see cref="LoadOrder"/> and writes a <see cref="ProbeRun"/>.
 /// compare: medians per order over the runs of a result folder, and whether every run built the same results.
+/// evaluate: the root evaluations of the projects listed in a file, one full path per line, on dedicated threads with
+/// no builds, the host's way in one shared project collection (shared) or one per thread (separate), or through
+/// ProjectCollection.LoadProject in one shared collection (load-project); writes a <see cref="ScalingRun"/>.
+/// scaling-compare: speedups and slowdowns over the evaluate runs of a result folder.
 /// </summary>
 internal static class Program
 {
@@ -24,6 +28,24 @@ internal static class Program
             return 0;
         }
 
+        if (args.Length >= 6 && args[0] == "evaluate" && args[5] is "shared" or "separate" or "load-project")
+        {
+            var solutionPath = Path.GetFullPath(args[1]);
+            var paths = File.ReadAllLines(Path.GetFullPath(args[2])).Where(line => line.Length > 0).ToArray();
+            var workers = int.Parse(args[4], System.Globalization.CultureInfo.InvariantCulture);
+            MsBuildRegistration.Register(Path.GetDirectoryName(solutionPath)!);
+            var run = Evaluate(solutionPath, paths, workers, separateCollections: args[5] == "separate", useLoadProject: args[5] == "load-project");
+            File.WriteAllText(Path.GetFullPath(args[3]), JsonSerializer.Serialize(run, _options));
+            Console.WriteLine($"evaluate {args[5]} x{run.Workers}: wall {run.WallMs:0} ms, {run.Evaluations} evaluations {run.Steps.Sum(step => step.DurationMs):0} ms");
+            return 0;
+        }
+
+        if (args.Length >= 2 && args[0] == "scaling-compare")
+        {
+            Console.WriteLine(ScalingComparer.Run(Path.GetFullPath(args[1])));
+            return 0;
+        }
+
         if (args.Length >= 2 && args[0] == "compare")
         {
             var (summary, identical) = ProbeComparer.Run(Path.GetFullPath(args[1]));
@@ -31,7 +53,8 @@ internal static class Program
             return identical ? 0 : 1;
         }
 
-        Console.Error.WriteLine("Usage: run client|references-first|evaluate-ahead|evaluate-ahead-paused|evaluate-closure SOLUTION OUTPUT_JSON [WORKERS] | compare RESULT_DIRECTORY");
+        Console.Error.WriteLine("Usage: run client|references-first|evaluate-ahead|evaluate-ahead-paused|evaluate-closure SOLUTION OUTPUT_JSON [WORKERS] | compare RESULT_DIRECTORY | " +
+            "evaluate SOLUTION PATHS_FILE OUTPUT_JSON WORKERS shared|separate|load-project | scaling-compare RESULT_DIRECTORY");
         return 2;
     }
 
@@ -39,6 +62,10 @@ internal static class Program
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static ProbeRun Run(string solutionPath, LoadOrder order, int workers)
         => OrderedLoad.Run(solutionPath, order, workers);
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static ScalingRun Evaluate(string solutionPath, IReadOnlyList<string> paths, int workers, bool separateCollections, bool useLoadProject)
+        => EvaluationScaling.Run(solutionPath, paths, workers, separateCollections, useLoadProject);
 
     private static bool TryParseOrder(string text, out LoadOrder order)
     {

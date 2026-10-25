@@ -59,6 +59,10 @@ internal sealed class OrderedLoad
             load._buildSteps);
     }
 
+    /// <summary>A project with TargetFrameworks and no TargetFramework, which the host builds once per target framework.</summary>
+    public static bool IsMultiTargeting(Project project)
+        => project.GetPropertyValue("TargetFramework").Length == 0 && project.GetPropertyValue("TargetFrameworks").Length > 0;
+
     private void Visit(string path)
     {
         if (!_visited.Add(path))
@@ -157,9 +161,6 @@ internal sealed class OrderedLoad
 
         _buildSteps.Add(new TimedStep(project.FullPath, multiTargeting, start, _wall.Elapsed.TotalMilliseconds, Environment.CurrentManagedThreadId));
     }
-
-    private static bool IsMultiTargeting(Project project)
-        => project.GetPropertyValue("TargetFramework").Length == 0 && project.GetPropertyValue("TargetFrameworks").Length > 0;
 
     private static IReadOnlyList<string> ProjectReferences(Project project)
         => project.GetItems("ProjectReference")
