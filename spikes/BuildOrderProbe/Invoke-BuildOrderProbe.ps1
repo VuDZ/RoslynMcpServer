@@ -12,7 +12,9 @@
     evaluate-closure: the whole reference closure evaluated ahead, deepest first, once per worker count of
     -ClosureWorkers. evaluate-closure-preorder: the same, but a worker takes the project the build thread will ask for
     first, with the same worker counts. evaluate-solution-preorder: evaluate-closure-preorder with every project of
-    the solution queued at the start, with the same worker counts. -ClosureOrders picks which of the three run. With -ServerGc, references-first and evaluate-closure with the most workers also run with the
+    the solution queued at the start, with the same worker counts, and once more for each window of -Windows: only
+    the entries up to that many after the one the build thread visits are queued. -ClosureOrders picks which of the
+    three run. With -ServerGc, references-first and evaluate-closure with the most workers also run with the
     server garbage collector. Every run is a fresh process; round 0 is warmup, and the order of the variants rotates between
     rounds. Results go to results\probe-<time>; summary.md has no paths, the run JSON files hold full project paths.
 
@@ -31,6 +33,10 @@
 .PARAMETER ClosureOrders
     Which of evaluate-closure, evaluate-closure-preorder and evaluate-solution-preorder run with -ClosureWorkers.
     Default: all three.
+
+.PARAMETER Windows
+    Windows of evaluate-solution-preorder, each one more variant beside the one that queues every entry at the start.
+    Default: none.
 
 .PARAMETER ServerGc
     Also run references-first and evaluate-closure with the most workers under the server garbage collector.
@@ -53,6 +59,8 @@ param(
     [string[]]$ClosureWorkers = @('1', '2'),
 
     [string[]]$ClosureOrders = @('evaluate-closure', 'evaluate-closure-preorder', 'evaluate-solution-preorder'),
+
+    [string[]]$Windows = @(),
 
     [switch]$ServerGc,
 
@@ -90,32 +98,39 @@ $closureCounts = @(ConvertTo-Counts $ClosureWorkers | Where-Object { $_ -ge 1 } 
 # pwsh -File passes a comma-separated list as one string.
 $knownClosureOrders = @('evaluate-closure', 'evaluate-closure-preorder', 'evaluate-solution-preorder')
 $closureOrderNames = @($ClosureOrders | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+$windowCounts = @(ConvertTo-Counts $Windows | Where-Object { $_ -ge 1 } | Sort-Object -Unique)
 foreach ($name in $closureOrderNames) {
     if ($knownClosureOrders -notcontains $name) { throw "Unknown closure order '$name'; known: $($knownClosureOrders -join ', ')" }
 }
 $environment = Get-Environment $Solution $repo ([ordered]@{
-        rounds = $Rounds; workers = ($workerCounts -join ', '); closureWorkers = ($closureCounts -join ', '); closureOrders = ($closureOrderNames -join ', '); serverGc = [bool]$ServerGc
+        rounds = $Rounds; workers = ($workerCounts -join ', '); closureWorkers = ($closureCounts -join ', '); closureOrders = ($closureOrderNames -join ', '); windows = ($windowCounts -join ', '); serverGc = [bool]$ServerGc
     })
 [IO.File]::WriteAllText((Join-Path $OutDirectory 'environment.json'), ($environment | ConvertTo-Json), (New-Object Text.UTF8Encoding($false)))
 
-# A variant is an order, its worker count and the garbage collector mode; its name is the file name prefix.
+# A variant is an order, its worker count, its window (0: none or all entries) and the garbage collector mode; its
+# name is the file name prefix.
 $variants = New-Object System.Collections.Generic.List[object]
-$variants.Add([pscustomobject]@{ Name = 'client'; Order = 'client'; Workers = 1; ServerGc = $false })
-$variants.Add([pscustomobject]@{ Name = 'references-first'; Order = 'references-first'; Workers = 1; ServerGc = $false })
+$variants.Add([pscustomobject]@{ Name = 'client'; Order = 'client'; Workers = 1; Window = 0; ServerGc = $false })
+$variants.Add([pscustomobject]@{ Name = 'references-first'; Order = 'references-first'; Workers = 1; Window = 0; ServerGc = $false })
 foreach ($count in $workerCounts) {
-    $variants.Add([pscustomobject]@{ Name = "evaluate-ahead-w$count"; Order = 'evaluate-ahead'; Workers = $count; ServerGc = $false })
-    $variants.Add([pscustomobject]@{ Name = "evaluate-ahead-paused-w$count"; Order = 'evaluate-ahead-paused'; Workers = $count; ServerGc = $false })
+    $variants.Add([pscustomobject]@{ Name = "evaluate-ahead-w$count"; Order = 'evaluate-ahead'; Workers = $count; Window = 0; ServerGc = $false })
+    $variants.Add([pscustomobject]@{ Name = "evaluate-ahead-paused-w$count"; Order = 'evaluate-ahead-paused'; Workers = $count; Window = 0; ServerGc = $false })
 }
 foreach ($count in $closureCounts) {
     foreach ($name in $knownClosureOrders | Where-Object { $closureOrderNames -contains $_ }) {
-        $variants.Add([pscustomobject]@{ Name = "$name-w$count"; Order = $name; Workers = $count; ServerGc = $false })
+        $variants.Add([pscustomobject]@{ Name = "$name-w$count"; Order = $name; Workers = $count; Window = 0; ServerGc = $false })
+        if ($name -eq 'evaluate-solution-preorder') {
+            foreach ($window in $windowCounts) {
+                $variants.Add([pscustomobject]@{ Name = "$name-w$count-k$window"; Order = $name; Workers = $count; Window = $window; ServerGc = $false })
+            }
+        }
     }
 }
 if ($ServerGc) {
-    $variants.Add([pscustomobject]@{ Name = 'references-first-servergc'; Order = 'references-first'; Workers = 1; ServerGc = $true })
+    $variants.Add([pscustomobject]@{ Name = 'references-first-servergc'; Order = 'references-first'; Workers = 1; Window = 0; ServerGc = $true })
     if ($closureCounts.Count -gt 0) {
         $most = $closureCounts[-1]
-        $variants.Add([pscustomobject]@{ Name = "evaluate-closure-w$most-servergc"; Order = 'evaluate-closure'; Workers = $most; ServerGc = $true })
+        $variants.Add([pscustomobject]@{ Name = "evaluate-closure-w$most-servergc"; Order = 'evaluate-closure'; Workers = $most; Window = 0; ServerGc = $true })
     }
 }
 Write-Host "Variants: $(($variants | ForEach-Object { $_.Name }) -join ', '); $($Rounds + 1) rounds"
@@ -130,7 +145,7 @@ for ($round = 0; $round -le $Rounds; $round++) {
         Write-Host $label
         if ($variant.ServerGc) { $env:DOTNET_gcServer = '1' }
         try {
-            Invoke-Native 'dotnet' @($dll, 'run', $variant.Order, $Solution, (Join-Path $OutDirectory "$($variant.Name)-round$round.json"), [string]$variant.Workers) "$label failed"
+            Invoke-Native 'dotnet' @($dll, 'run', $variant.Order, $Solution, (Join-Path $OutDirectory "$($variant.Name)-round$round.json"), [string]$variant.Workers, [string]$variant.Window) "$label failed"
         }
         finally { Remove-Item Env:DOTNET_gcServer -ErrorAction SilentlyContinue }
     }

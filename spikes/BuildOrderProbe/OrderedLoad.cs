@@ -33,26 +33,31 @@ internal sealed class OrderedLoad
         }
     }
 
-    public static ProbeRun Run(string solutionPath, LoadOrder order, int workers)
+    public static ProbeRun Run(string solutionPath, LoadOrder order, int workers, int window)
     {
         using var session = new HostSession(solutionPath);
         var solutionProjects = SolutionProjects(solutionPath).ToArray();
         var load = new OrderedLoad(session, order, workers, solutionProjects);
+        var gcPause = GC.GetTotalPauseDuration();
+        var gcCollections = Enumerable.Range(0, 3).Select(GC.CollectionCount).ToArray();
         load._wall.Start();
-        if (order == LoadOrder.EvaluateSolutionPreorder)
+        var queued = 0;
+        for (var i = 0; i < solutionProjects.Length; i++)
         {
-            foreach (var path in solutionProjects)
+            if (order == LoadOrder.EvaluateSolutionPreorder)
             {
-                load._closure!.Schedule(path);
+                for (var end = window == 0 ? solutionProjects.Length : Math.Min(solutionProjects.Length, i + window + 1); queued < end; queued++)
+                {
+                    load._closure!.Schedule(solutionProjects[queued]);
+                }
             }
-        }
 
-        foreach (var path in solutionProjects)
-        {
-            load.Visit(path);
+            load.Visit(solutionProjects[i]);
         }
 
         load._wall.Stop();
+        var gcPauseMs = (GC.GetTotalPauseDuration() - gcPause).TotalMilliseconds;
+        var gcCollectionsDuring = Enumerable.Range(0, 3).Select(generation => GC.CollectionCount(generation) - gcCollections[generation]).ToArray();
         load._closure?.Dispose();
         load._evaluationsOpen.Dispose();
         return new ProbeRun(
@@ -60,6 +65,7 @@ internal sealed class OrderedLoad
             order is LoadOrder.EvaluateAhead or LoadOrder.EvaluateAheadPaused or LoadOrder.EvaluateClosure or LoadOrder.EvaluateClosurePreorder or LoadOrder.EvaluateSolutionPreorder
                 ? workers
                 : 0,
+            order == LoadOrder.EvaluateSolutionPreorder ? window : 0,
             System.Runtime.GCSettings.IsServerGC,
             Environment.ProcessorCount,
             load._wall.Elapsed.TotalMilliseconds,
@@ -69,6 +75,9 @@ internal sealed class OrderedLoad
             load._buildSteps.Sum(step => step.DurationMs),
             session.EvaluationsDuringBuilds,
             load._evaluationSteps.Count(step => step.Thread < 0),
+            gcPauseMs,
+            gcCollectionsDuring,
+            Process.GetCurrentProcess().PeakWorkingSet64 / (1024.0 * 1024.0),
             new SortedDictionary<string, string>(load._fingerprints, StringComparer.Ordinal),
             load._evaluationSteps.OrderBy(step => step.StartMs).ToArray(),
             load._buildSteps);

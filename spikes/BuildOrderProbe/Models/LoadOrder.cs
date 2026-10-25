@@ -51,6 +51,8 @@ internal enum LoadOrder
     /// workers learn of a solution entry no other project references only when the build thread reaches it, and the
     /// build thread evaluated those itself while the workers stood idle (about 200 of 318 on Roslyn.slnx). The
     /// BuildHost is not told the solution's projects, only SolutionDir; this order measures what knowing them gives.
+    /// With a window, only the entries up to that many after the one the build thread visits are queued, as a host
+    /// that knew the solution could queue them after each request of the client.
     /// </summary>
     EvaluateSolutionPreorder,
 }

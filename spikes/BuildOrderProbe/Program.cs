@@ -21,8 +21,9 @@ internal static class Program
         {
             var solutionPath = Path.GetFullPath(args[2]);
             var workers = args.Length >= 5 ? int.Parse(args[4], System.Globalization.CultureInfo.InvariantCulture) : Math.Max(1, Environment.ProcessorCount - 1);
+            var window = args.Length >= 6 ? int.Parse(args[5], System.Globalization.CultureInfo.InvariantCulture) : 0;
             MsBuildRegistration.Register(Path.GetDirectoryName(solutionPath)!);
-            var run = Run(solutionPath, order, workers);
+            var run = Run(solutionPath, order, workers, window);
             File.WriteAllText(Path.GetFullPath(args[3]), JsonSerializer.Serialize(run, _options));
             Console.WriteLine($"{run.Order}: wall {run.WallMs:0} ms, {run.Builds} builds {run.BuildMs:0} ms, {run.RootEvaluations} root evaluations {run.RootEvaluationMs:0} ms, {run.EvaluationsDuringBuilds} evaluations during builds");
             return 0;
@@ -53,15 +54,15 @@ internal static class Program
             return identical ? 0 : 1;
         }
 
-        Console.Error.WriteLine("Usage: run client|references-first|evaluate-ahead|evaluate-ahead-paused|evaluate-closure|evaluate-closure-preorder|evaluate-solution-preorder SOLUTION OUTPUT_JSON [WORKERS] | compare RESULT_DIRECTORY | " +
+        Console.Error.WriteLine("Usage: run client|references-first|evaluate-ahead|evaluate-ahead-paused|evaluate-closure|evaluate-closure-preorder|evaluate-solution-preorder SOLUTION OUTPUT_JSON [WORKERS] [WINDOW] | compare RESULT_DIRECTORY | " +
             "evaluate SOLUTION PATHS_FILE OUTPUT_JSON WORKERS shared|separate|load-project | scaling-compare RESULT_DIRECTORY");
         return 2;
     }
 
     // MSBuild types must not be loaded before MSBuildLocator registration; this method is JIT-compiled after it.
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static ProbeRun Run(string solutionPath, LoadOrder order, int workers)
-        => OrderedLoad.Run(solutionPath, order, workers);
+    private static ProbeRun Run(string solutionPath, LoadOrder order, int workers, int window)
+        => OrderedLoad.Run(solutionPath, order, workers, window);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static ScalingRun Evaluate(string solutionPath, IReadOnlyList<string> paths, int workers, bool separateCollections, bool useLoadProject)

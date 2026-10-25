@@ -25,8 +25,11 @@
   исправлена ([разбор](evidence/task-02-step-0.md#причина-сериализации-в-пробе-projectcollectionloadproject-2026-10-25)).
   С evaluation как у host B выигрывает на обоих решениях: замыкание — Roslyn.slnx −6 %, офис −19…−20 % к A. Поток
   сборок по-прежнему сам оценивает записи решения, на которые никто не ссылается: host не знает их заранее, клиент
-  передаёт только `SolutionDir`. Потолок этого знания меряет `evaluate-solution-preorder` — pending
-  ([pre-order и корни решения](evidence/task-02-step-0.md#pre-order-замыкания-и-корни-решения-2026-10-25)).
+  передаёт только `SolutionDir`. Потолок этого знания (`evaluate-solution-preorder`, Roslyn.slnx дома): простой
+  потока сборок 0,27 с вместо 5 с, wall −10 % к A, но сборки удлиняются на 3,6–4,9 с и после конца всех
+  evaluation; гипотеза — память, проба дополнена метриками GC и окном записей, прогон pending
+  ([pre-order и корни решения](evidence/task-02-step-0.md#pre-order-замыкания-и-корни-решения-2026-10-25),
+  [все записи в очереди](evidence/task-02-step-0.md#все-записи-решения-в-очереди-roslynslnx-домашний-компьютер-2026-10-25)).
 - Сложность: hi; риск — ускорить загрузку ценой неверного workspace.
 - Depends on: [task-01](task-01-buildhost-graph-and-timings-hi.md) (accepted).
 - Evidence/validation: [шаг 0](evidence/task-02-step-0.md); отчёт эксперимента —
