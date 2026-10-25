@@ -72,6 +72,14 @@ internal static class Program
         return 2;
     }
 
+    /// <summary>
+    /// The global property in which the client tells the fork BuildHost which solution it loads (BuildHost/task-02
+    /// part B). Both sides get it: the fork takes it out before any evaluation, the original keeps it as an ordinary
+    /// property that no project reads, so an identical result also shows that it changes nothing.
+    /// </summary>
+    internal static IDictionary<string, string> SolutionProperties(string solutionPath)
+        => new Dictionary<string, string> { ["RoslynMcpSolutionPath"] = Path.GetFullPath(solutionPath) };
+
     // MSBuild types must not be loaded before MSBuildLocator registration; this method is JIT-compiled after it.
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static async Task ObserveAsync(string solutionPath, string outputPath, string name)
@@ -87,7 +95,8 @@ internal static class Program
         var recorder = traceDirectory is null ? null : new ProgressRecorder();
         var window = new LoadWindow();
         var watch = Stopwatch.StartNew();
-        var (solution, _) = await SolutionLoader.LoadAsync(solutionPath, diagnostics: diagnostics, progress: recorder, window: window).ConfigureAwait(false);
+        var (solution, _) = await SolutionLoader.LoadAsync(
+            solutionPath, diagnostics: diagnostics, progress: recorder, window: window, properties: SolutionProperties(solutionPath)).ConfigureAwait(false);
         var loadMs = watch.Elapsed.TotalMilliseconds;
 
         // Client CPU and memory of the load alone; the first search is measured on its own below.

@@ -20,7 +20,8 @@ internal static class FailureScenario
         using var sampler = new BuildHostSampler();
         var watch = Stopwatch.StartNew();
         var firstHostAt = sampler.FirstHost.ContinueWith(_ => watch.Elapsed.TotalMilliseconds, TaskScheduler.Default);
-        var load = SolutionLoader.LoadAsync(solutionPath, diagnostics: diagnostics, cancellationToken: cancellation.Token);
+        var load = SolutionLoader.LoadAsync(
+            solutionPath, diagnostics: diagnostics, properties: Program.SolutionProperties(solutionPath), cancellationToken: cancellation.Token);
         var disturbance = DisturbAsync(mode, sampler, load, cancellation, delayMs, watch);
 
         // A client that waits forever for a killed host is a result too, not a reason to hang the script.

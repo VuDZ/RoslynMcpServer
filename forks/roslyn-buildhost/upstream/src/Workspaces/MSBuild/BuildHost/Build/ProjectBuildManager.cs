@@ -73,6 +73,8 @@ internal sealed partial class ProjectBuildManager : IDisposable
         foreach (var kvp in globalProperties)
             allProperties[kvp.Key] = kvp.Value;
 
+        InitializeEvaluateAhead(allProperties);
+
         // Pass in the binlog (if any) to the ProjectCollection to ensure evaluation results are included in it.
         //
         // We do not need to include the _buildLogger in the ProjectCollection - it just collects the
@@ -102,7 +104,6 @@ internal sealed partial class ProjectBuildManager : IDisposable
             buildParameters.MaxNodeCount = nodeCount;
 
         AddReferencesFirstLoggers(buildParameters);
-        InitializeEvaluateAhead(allProperties);
 
         MSB.Execution.BuildManager.DefaultBuildManager.BeginBuild(buildParameters);
     }

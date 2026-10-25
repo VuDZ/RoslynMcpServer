@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Xml;
@@ -33,12 +34,15 @@ namespace Microsoft.CodeAnalysis.MSBuild;
 /// <para>The project collection holds an evaluation made ahead, so the loader's load of that path gets the same
 /// project, as it gets a project the host loaded before. An evaluation that fails ahead is not kept: the loader's own
 /// load evaluates the project again and reports the same failure in its log.</para>
-/// <para>The loader passes only the property SolutionDir, not the solution. The host takes the solution entries only
-/// when SolutionDir holds exactly one .sln or .slnx file and no .slnf file, MSBuild reads it, and the loader's first
-/// request is the first entry the loader would send to this host: a C# or Visual Basic project that exists and that
-/// the loader's BuildHostProcessManager.GetKindForProject gives to the .NET host. Otherwise only references are
-/// evaluated ahead. <see cref="EvaluateAheadSolutionVariable"/> sets how many entries after the latest requested one
-/// are queued (all of them by default), or turns the entries off.</para>
+/// <para>The loader does not tell the host which solution it loads. The host's own client passes it as the global
+/// property <see cref="SolutionPathProperty"/>: the .sln, .slnx or .slnf file it opened. The host takes that property
+/// out of the global properties before the project collection is created, whether or not this mode is on, so no
+/// evaluation sees it. It reads the solution as the loader does, a solution filter through its JSON, and takes the
+/// entries when the loader's first request is the first entry the loader would send to this host: a C# or Visual
+/// Basic project that exists and that the loader's BuildHostProcessManager.GetKindForProject gives to the .NET host.
+/// Otherwise, and without the property, only references are evaluated ahead.
+/// <see cref="EvaluateAheadSolutionVariable"/> sets how many entries after the latest requested one are queued (all
+/// of them by default), or turns the entries off.</para>
 /// <para>Only C# and Visual Basic projects that exist on disk and that the loader would send to this host are
 /// evaluated ahead.</para>
 /// </remarks>
@@ -50,6 +54,11 @@ internal sealed partial class ProjectBuildManager
     /// <c>all</c> (the default), a number of entries after the latest requested one, or <c>off</c>.
     /// </summary>
     public const string EvaluateAheadSolutionVariable = "ROSLYN_BUILDHOST_EVALUATE_AHEAD_SOLUTION";
+
+    /// <summary>
+    /// The global property in which the host's client passes the solution or solution filter it loads.
+    /// </summary>
+    public const string SolutionPathProperty = "RoslynMcpSolutionPath";
 
     private static readonly int s_evaluateAheadWorkers =
         int.TryParse(Environment.GetEnvironmentVariable(EvaluateAheadVariable), NumberStyles.None, CultureInfo.InvariantCulture, out var workers) ? workers : 0;
@@ -75,18 +84,24 @@ internal sealed partial class ProjectBuildManager
     private readonly CancellationTokenSource _aheadStop = new();
     private readonly List<Thread> _aheadWorkers = [];
 
-    private string? _solutionDirectory;
+    private string? _solutionPath;
     private bool _aheadStarted;
     private string[] _solutionEntries = [];
     private Dictionary<string, int> _solutionEntryIndexes = new(PathUtilities.Comparer);
     private int _queuedSolutionEntries;
 
+    /// <summary>
+    /// Takes <see cref="SolutionPathProperty"/> out of the global properties the project collection gets.
+    /// </summary>
     private void InitializeEvaluateAhead(Dictionary<string, string> globalProperties)
     {
-        if (s_evaluateAheadWorkers <= 0)
+        // MSBuild compares property names ignoring case.
+        var key = globalProperties.Keys.FirstOrDefault(name => string.Equals(name, SolutionPathProperty, StringComparison.OrdinalIgnoreCase));
+        if (key is null)
             return;
 
-        globalProperties.TryGetValue("SolutionDir", out _solutionDirectory);
+        _solutionPath = globalProperties[key];
+        globalProperties.Remove(key);
     }
 
     /// <summary>
@@ -217,32 +232,28 @@ internal sealed partial class ProjectBuildManager
     }
 
     /// <summary>
-    /// The C# and Visual Basic entries of the solution in SolutionDir, in solution order, and why they were or were not
-    /// taken.
+    /// The C# and Visual Basic entries of the solution the client passed, in solution order, and why they were or were
+    /// not taken.
     /// </summary>
     private (string[] Entries, string Reason) ReadSolutionEntries(string firstPath)
     {
         if (s_evaluateAheadSolutionWindow is null)
             return ([], "off");
 
-        if (RoslynString.IsNullOrEmpty(_solutionDirectory) || !Directory.Exists(_solutionDirectory))
-            return ([], "no SolutionDir");
+        if (RoslynString.IsNullOrEmpty(_solutionPath))
+            return ([], "no solution property");
 
         try
         {
-            // Not a search pattern: on Windows "*.sln" also matches .slnx and .slnf files.
-            var files = Directory.EnumerateFiles(_solutionDirectory).ToArray();
-            if (files.Any(file => HasExtension(file, ".slnf")))
-                return ([], "solution filter in SolutionDir");
+            var solutionPath = Path.GetFullPath(_solutionPath);
+            HashSet<string>? filter = null;
+            if (HasExtension(solutionPath, ".slnf"))
+                (solutionPath, filter) = ReadSolutionFilter(solutionPath);
 
-            var solutions = files.Where(file => HasExtension(file, ".sln") || HasExtension(file, ".slnx")).ToArray();
-            if (solutions.Length != 1)
-                return ([], solutions.Length + " solutions in SolutionDir");
-
-            var entries = MSB.Construction.SolutionFile.Parse(solutions[0]).ProjectsInOrder
+            var entries = MSB.Construction.SolutionFile.Parse(solutionPath).ProjectsInOrder
                 .Where(project => project.ProjectType != MSB.Construction.SolutionProjectType.SolutionFolder)
                 .Select(project => Path.GetFullPath(project.AbsolutePath))
-                .Where(IsLoadableProjectPath)
+                .Where(path => (filter is null || filter.Contains(path)) && IsLoadableProjectPath(path))
                 .Distinct(PathUtilities.Comparer)
                 .ToArray();
 
@@ -256,6 +267,30 @@ internal sealed partial class ProjectBuildManager
         {
             return ([], "unreadable: " + e.GetType().Name);
         }
+    }
+
+    /// <summary>
+    /// The solution a solution filter names and the full paths of its projects, read as the 5.9.0 loader's
+    /// SolutionFilterReader reads them: the solution relative to the filter, the projects relative to the solution.
+    /// </summary>
+    private static (string SolutionPath, HashSet<string> Projects) ReadSolutionFilter(string filterPath)
+    {
+        using var document = JsonDocument.Parse(File.ReadAllText(filterPath));
+        var solution = document.RootElement.GetProperty("solution");
+        var solutionPath = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(filterPath)!, ToLocalSeparators(solution.GetProperty("path").GetString()!)));
+        var solutionDirectory = Path.GetDirectoryName(solutionPath)!;
+
+        var projects = new HashSet<string>(PathUtilities.Comparer);
+        foreach (var project in solution.GetProperty("projects").EnumerateArray())
+        {
+            if (project.GetString() is { } path)
+                projects.Add(Path.GetFullPath(Path.Combine(solutionDirectory, ToLocalSeparators(path))));
+        }
+
+        return (solutionPath, projects);
+
+        static string ToLocalSeparators(string path)
+            => path.Replace('\\', Path.DirectorySeparatorChar);
     }
 
     private void QueueSolutionEntriesAfter(string path)

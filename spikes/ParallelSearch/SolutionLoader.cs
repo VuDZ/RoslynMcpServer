@@ -18,12 +18,14 @@ internal static class SolutionLoader
     /// <param name="diagnostics">Optional sink for every workspace diagnostic as "Kind: message".</param>
     /// <param name="progress">Optional receiver of the loader's per-project operations and their durations.</param>
     /// <param name="window">Optional receiver of the Stopwatch timestamps around OpenSolutionAsync.</param>
+    /// <param name="properties">Optional global MSBuild properties for the workspace, which the loader passes to the BuildHost.</param>
     public static async Task<(Solution Solution, object Load)> LoadAsync(
         string solutionPath,
         Microsoft.Build.Framework.ILogger? msbuildLogger = null,
         ICollection<string>? diagnostics = null,
         IProgress<ProjectLoadProgress>? progress = null,
         LoadWindow? window = null,
+        IDictionary<string, string>? properties = null,
         CancellationToken cancellationToken = default)
     {
         var host = MefHostServices.Create(new[]
@@ -34,7 +36,7 @@ internal static class SolutionLoader
             Assembly.Load(new AssemblyName("Microsoft.CodeAnalysis.Features")),
             Assembly.Load(new AssemblyName("Microsoft.CodeAnalysis.CSharp.Features")),
         });
-        var workspace = MSBuildWorkspace.Create(host);
+        var workspace = properties is null ? MSBuildWorkspace.Create(host) : MSBuildWorkspace.Create(properties, host);
         var failures = 0;
         workspace.RegisterWorkspaceFailedHandler(args =>
         {

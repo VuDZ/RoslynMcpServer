@@ -33,10 +33,12 @@
   +7 %. Предложение для этапа 2 — замыкание в прямом порядке, 4 потока, все записи решения с первого запроса;
   искать ли решение по `SolutionDir` — решение владельца
   ([pre-order и корни решения](evidence/task-02-step-0.md#pre-order-замыкания-и-корни-решения-2026-10-25),
-  [итог B](evidence/task-02-step-0.md#итог-b-после-шага-0-2026-10-25)). Решение владельца: записи решения
-  брать, только если в `SolutionDir` ровно один `.sln`/`.slnx` и выполнены остальные условия. B в форке
-  (`ROSLYN_BUILDHOST_EVALUATE_AHEAD`): Linux — `RoslynMcpServer.sln` и фикстура identical, сценарии task-00 с A + B
-  и с одной B пройдены; прогоны владельца на Windows — pending
+  [итог B](evidence/task-02-step-0.md#итог-b-после-шага-0-2026-10-25)). B в форке
+  (`ROSLYN_BUILDHOST_EVALUATE_AHEAD`). Первая версия угадывала решение по `SolutionDir` (ровно один
+  `.sln`/`.slnx`, нет `.slnf`) и на Roslyn.slnx его не приняла: рядом лежат три `.slnf`; дома A + B identical,
+  ×0,899 к оригиналу, но без записей решения. Решение владельца (2026-10-26): решение передаёт клиент host
+  глобальным свойством `RoslynMcpSolutionPath` (`.sln`, `.slnx` или `.slnf`), host забирает его до любой
+  evaluation; угадывание убрано. Linux-проверки — в отчёте; прогоны владельца на Windows — pending
   ([этап 2](evidence/task-02-stage-2-evaluate-ahead.md)).
 - Сложность: hi; риск — ускорить загрузку ценой неверного workspace.
 - Depends on: [task-01](task-01-buildhost-graph-and-timings-hi.md) (accepted).
