@@ -53,7 +53,7 @@ internal static class Program
             return identical ? 0 : 1;
         }
 
-        Console.Error.WriteLine("Usage: run client|references-first|evaluate-ahead|evaluate-ahead-paused|evaluate-closure|evaluate-closure-preorder SOLUTION OUTPUT_JSON [WORKERS] | compare RESULT_DIRECTORY | " +
+        Console.Error.WriteLine("Usage: run client|references-first|evaluate-ahead|evaluate-ahead-paused|evaluate-closure|evaluate-closure-preorder|evaluate-solution-preorder SOLUTION OUTPUT_JSON [WORKERS] | compare RESULT_DIRECTORY | " +
             "evaluate SOLUTION PATHS_FILE OUTPUT_JSON WORKERS shared|separate|load-project | scaling-compare RESULT_DIRECTORY");
         return 2;
     }
@@ -77,6 +77,7 @@ internal static class Program
             "evaluate-ahead-paused" => LoadOrder.EvaluateAheadPaused,
             "evaluate-closure" => LoadOrder.EvaluateClosure,
             "evaluate-closure-preorder" => LoadOrder.EvaluateClosurePreorder,
+            "evaluate-solution-preorder" => LoadOrder.EvaluateSolutionPreorder,
             _ => (LoadOrder)(-1),
         };
         return Enum.IsDefined(order);

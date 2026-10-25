@@ -11,7 +11,8 @@
     builds, with the same worker counts.
     evaluate-closure: the whole reference closure evaluated ahead, deepest first, once per worker count of
     -ClosureWorkers. evaluate-closure-preorder: the same, but a worker takes the project the build thread will ask for
-    first, with the same worker counts. With -ServerGc, references-first and evaluate-closure with the most workers also run with the
+    first, with the same worker counts. evaluate-solution-preorder: evaluate-closure-preorder with every project of
+    the solution queued at the start, with the same worker counts. -ClosureOrders picks which of the three run. With -ServerGc, references-first and evaluate-closure with the most workers also run with the
     server garbage collector. Every run is a fresh process; round 0 is warmup, and the order of the variants rotates between
     rounds. Results go to results\probe-<time>; summary.md has no paths, the run JSON files hold full project paths.
 
@@ -25,7 +26,11 @@
     Worker counts of evaluate-ahead and evaluate-ahead-paused. Default: 4; an empty list leaves both out.
 
 .PARAMETER ClosureWorkers
-    Worker counts of evaluate-closure. Default: 1 and 2.
+    Worker counts of evaluate-closure, evaluate-closure-preorder and evaluate-solution-preorder. Default: 1 and 2.
+
+.PARAMETER ClosureOrders
+    Which of evaluate-closure, evaluate-closure-preorder and evaluate-solution-preorder run with -ClosureWorkers.
+    Default: all three.
 
 .PARAMETER ServerGc
     Also run references-first and evaluate-closure with the most workers under the server garbage collector.
@@ -46,6 +51,8 @@ param(
     [string[]]$Workers = @('4'),
 
     [string[]]$ClosureWorkers = @('1', '2'),
+
+    [string[]]$ClosureOrders = @('evaluate-closure', 'evaluate-closure-preorder', 'evaluate-solution-preorder'),
 
     [switch]$ServerGc,
 
@@ -80,8 +87,14 @@ if (-not $SkipRestore) {
 
 $workerCounts = @(ConvertTo-Counts $Workers | Where-Object { $_ -ge 1 } | Sort-Object -Unique)
 $closureCounts = @(ConvertTo-Counts $ClosureWorkers | Where-Object { $_ -ge 1 } | Sort-Object -Unique)
+# pwsh -File passes a comma-separated list as one string.
+$knownClosureOrders = @('evaluate-closure', 'evaluate-closure-preorder', 'evaluate-solution-preorder')
+$closureOrderNames = @($ClosureOrders | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+foreach ($name in $closureOrderNames) {
+    if ($knownClosureOrders -notcontains $name) { throw "Unknown closure order '$name'; known: $($knownClosureOrders -join ', ')" }
+}
 $environment = Get-Environment $Solution $repo ([ordered]@{
-        rounds = $Rounds; workers = ($workerCounts -join ', '); closureWorkers = ($closureCounts -join ', '); serverGc = [bool]$ServerGc
+        rounds = $Rounds; workers = ($workerCounts -join ', '); closureWorkers = ($closureCounts -join ', '); closureOrders = ($closureOrderNames -join ', '); serverGc = [bool]$ServerGc
     })
 [IO.File]::WriteAllText((Join-Path $OutDirectory 'environment.json'), ($environment | ConvertTo-Json), (New-Object Text.UTF8Encoding($false)))
 
@@ -94,8 +107,9 @@ foreach ($count in $workerCounts) {
     $variants.Add([pscustomobject]@{ Name = "evaluate-ahead-paused-w$count"; Order = 'evaluate-ahead-paused'; Workers = $count; ServerGc = $false })
 }
 foreach ($count in $closureCounts) {
-    $variants.Add([pscustomobject]@{ Name = "evaluate-closure-w$count"; Order = 'evaluate-closure'; Workers = $count; ServerGc = $false })
-    $variants.Add([pscustomobject]@{ Name = "evaluate-closure-preorder-w$count"; Order = 'evaluate-closure-preorder'; Workers = $count; ServerGc = $false })
+    foreach ($name in $knownClosureOrders | Where-Object { $closureOrderNames -contains $_ }) {
+        $variants.Add([pscustomobject]@{ Name = "$name-w$count"; Order = $name; Workers = $count; ServerGc = $false })
+    }
 }
 if ($ServerGc) {
     $variants.Add([pscustomobject]@{ Name = 'references-first-servergc'; Order = 'references-first'; Workers = 1; ServerGc = $true })

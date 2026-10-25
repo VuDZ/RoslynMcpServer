@@ -27,7 +27,7 @@ internal sealed class OrderedLoad
         {
             _closure = new ClosureEvaluator(Evaluate, ProjectReferences, workers);
         }
-        else if (order == LoadOrder.EvaluateClosurePreorder)
+        else if (order is LoadOrder.EvaluateClosurePreorder or LoadOrder.EvaluateSolutionPreorder)
         {
             _closure = new ClosureEvaluator(Evaluate, ProjectReferences, workers, traversalRoots);
         }
@@ -39,6 +39,14 @@ internal sealed class OrderedLoad
         var solutionProjects = SolutionProjects(solutionPath).ToArray();
         var load = new OrderedLoad(session, order, workers, solutionProjects);
         load._wall.Start();
+        if (order == LoadOrder.EvaluateSolutionPreorder)
+        {
+            foreach (var path in solutionProjects)
+            {
+                load._closure!.Schedule(path);
+            }
+        }
+
         foreach (var path in solutionProjects)
         {
             load.Visit(path);
@@ -49,7 +57,9 @@ internal sealed class OrderedLoad
         load._evaluationsOpen.Dispose();
         return new ProbeRun(
             order.ToString(),
-            order is LoadOrder.EvaluateAhead or LoadOrder.EvaluateAheadPaused or LoadOrder.EvaluateClosure or LoadOrder.EvaluateClosurePreorder ? workers : 0,
+            order is LoadOrder.EvaluateAhead or LoadOrder.EvaluateAheadPaused or LoadOrder.EvaluateClosure or LoadOrder.EvaluateClosurePreorder or LoadOrder.EvaluateSolutionPreorder
+                ? workers
+                : 0,
             System.Runtime.GCSettings.IsServerGC,
             Environment.ProcessorCount,
             load._wall.Elapsed.TotalMilliseconds,

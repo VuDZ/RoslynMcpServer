@@ -45,4 +45,12 @@ internal enum LoadOrder
     /// evaluated them itself (about 200 of 318 on Roslyn.slnx).
     /// </summary>
     EvaluateClosurePreorder,
+
+    /// <summary>
+    /// <see cref="EvaluateClosurePreorder"/> with every project of the solution queued at the start. Without that, the
+    /// workers learn of a solution entry no other project references only when the build thread reaches it, and the
+    /// build thread evaluated those itself while the workers stood idle (about 200 of 318 on Roslyn.slnx). The
+    /// BuildHost is not told the solution's projects, only SolutionDir; this order measures what knowing them gives.
+    /// </summary>
+    EvaluateSolutionPreorder,
 }
