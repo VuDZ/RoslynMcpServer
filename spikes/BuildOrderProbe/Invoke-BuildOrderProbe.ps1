@@ -10,7 +10,8 @@
     evaluate-ahead-paused: evaluate-ahead, but no worker starts an evaluation while a multi-targeting project
     builds, with the same worker counts.
     evaluate-closure: the whole reference closure evaluated ahead, deepest first, once per worker count of
-    -ClosureWorkers. With -ServerGc, references-first and evaluate-closure with the most workers also run with the
+    -ClosureWorkers. evaluate-closure-preorder: the same, but a worker takes the project the build thread will ask for
+    first, with the same worker counts. With -ServerGc, references-first and evaluate-closure with the most workers also run with the
     server garbage collector. Every run is a fresh process; round 0 is warmup, and the order of the variants rotates between
     rounds. Results go to results\probe-<time>; summary.md has no paths, the run JSON files hold full project paths.
 
@@ -94,6 +95,7 @@ foreach ($count in $workerCounts) {
 }
 foreach ($count in $closureCounts) {
     $variants.Add([pscustomobject]@{ Name = "evaluate-closure-w$count"; Order = 'evaluate-closure'; Workers = $count; ServerGc = $false })
+    $variants.Add([pscustomobject]@{ Name = "evaluate-closure-preorder-w$count"; Order = 'evaluate-closure-preorder'; Workers = $count; ServerGc = $false })
 }
 if ($ServerGc) {
     $variants.Add([pscustomobject]@{ Name = 'references-first-servergc'; Order = 'references-first'; Workers = 1; ServerGc = $true })

@@ -4,23 +4,28 @@ using Microsoft.Build.Evaluation;
 namespace BuildOrderProbe;
 
 /// <summary>
-/// Root evaluations of the whole reference closure ahead of the builds (<see cref="Models.LoadOrder.EvaluateClosure"/>).
-/// Every finished evaluation queues the projects it references; worker threads take the most recently queued first,
-/// so the expansion goes deep first like the post-order builds that need it. A caller that needs a project whose
-/// evaluation has not started runs it on its own thread instead of waiting behind the queue.
+/// Root evaluations of the whole reference closure ahead of the builds (<see cref="Models.LoadOrder.EvaluateClosure"/>
+/// and <see cref="Models.LoadOrder.EvaluateClosurePreorder"/>). Every finished evaluation queues the projects it
+/// references. Without traversal roots, worker threads take the most recently queued first, so the expansion goes
+/// deep first. With them, a worker takes the first queued project not started yet in the depth-first pre-order from
+/// the roots over the references known so far: the order in which the build thread will ask for them. A caller that
+/// needs a project whose evaluation has not started runs it on its own thread instead of waiting behind the queue.
 /// </summary>
 /// <remarks>
-/// Probe runs showed that root evaluations in one project collection run as if one at a time: evaluating ahead pays
-/// only if the evaluations happen while the builds run, not by having many of them at once. Each project's
-/// references are read before its evaluation is handed out, because the build thread later switches its
-/// TargetFramework and the Project must not be read on another thread then.
+/// Each project's references are read before its evaluation is handed out, because the build thread later switches
+/// its TargetFramework and the Project must not be read on another thread then.
 /// </remarks>
 internal sealed class ClosureEvaluator : IDisposable
 {
-    public ClosureEvaluator(Func<string, Project?> evaluate, Func<Project, IReadOnlyList<string>> references, int workers)
+    public ClosureEvaluator(
+        Func<string, Project?> evaluate,
+        Func<Project, IReadOnlyList<string>> references,
+        int workers,
+        IReadOnlyList<string>? traversalRoots = null)
     {
         _evaluate = evaluate;
         _references = references;
+        _traversalRoots = traversalRoots;
         for (var i = 0; i < workers; i++)
         {
             _workers.Add(Task.Factory.StartNew(Work, TaskCreationOptions.LongRunning));
@@ -71,7 +76,14 @@ internal sealed class ClosureEvaluator : IDisposable
                 return;
             }
 
-            if (_pending.TryPop(out var path) && _states[path].TryStart())
+            if (_traversalRoots is not null)
+            {
+                if (NextInTraversal() is { } next)
+                {
+                    Run(next, _states[next]);
+                }
+            }
+            else if (_pending.TryPop(out var path) && _states[path].TryStart())
             {
                 Run(path, _states[path]);
             }
@@ -93,10 +105,45 @@ internal sealed class ClosureEvaluator : IDisposable
             return;
         }
 
+        _knownReferences[path] = references;
         evaluation.Result.SetResult(project);
         foreach (var reference in references)
         {
             Schedule(reference);
+        }
+    }
+
+    // The depth-first pre-order of the build thread's traversal over the references known so far, from the roots
+    // that are queued; returns the first queued project not started yet, already marked started. A project whose
+    // evaluation has not finished has no known references, so the walk does not go below it.
+    private string? NextInTraversal()
+    {
+        lock (_traversalLock)
+        {
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var stack = new Stack<string>(_traversalRoots!.Reverse());
+            while (stack.TryPop(out var path))
+            {
+                if (!seen.Add(path) || !_states.TryGetValue(path, out var evaluation))
+                {
+                    continue;
+                }
+
+                if (evaluation.TryStart())
+                {
+                    return path;
+                }
+
+                if (_knownReferences.TryGetValue(path, out var references))
+                {
+                    for (var i = references.Count - 1; i >= 0; i--)
+                    {
+                        stack.Push(references[i]);
+                    }
+                }
+            }
+
+            return null;
         }
     }
 
@@ -111,6 +158,9 @@ internal sealed class ClosureEvaluator : IDisposable
 
     private readonly Func<string, Project?> _evaluate;
     private readonly Func<Project, IReadOnlyList<string>> _references;
+    private readonly IReadOnlyList<string>? _traversalRoots;
+    private readonly ConcurrentDictionary<string, IReadOnlyList<string>> _knownReferences = new(StringComparer.OrdinalIgnoreCase);
+    private readonly object _traversalLock = new();
     private readonly List<Task> _workers = [];
     private readonly ConcurrentDictionary<string, Evaluation> _states = new(StringComparer.OrdinalIgnoreCase);
     private readonly ConcurrentStack<string> _pending = new();
