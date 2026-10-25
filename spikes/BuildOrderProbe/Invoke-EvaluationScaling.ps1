@@ -44,7 +44,7 @@ param(
 
     [int]$Rounds = 3,
 
-    [int[]]$Workers = @(2, 4),
+    [string[]]$Workers = @('2', '4'),
 
     [switch]$Trace,
 
@@ -81,7 +81,7 @@ if (-not $SkipRestore) {
     Invoke-Native 'dotnet' @('restore', $Solution, '-nologo', '-v', 'q') 'Solution restore failed'
 }
 
-$workerCounts = @($Workers | Where-Object { $_ -ge 2 } | Sort-Object -Unique)
+$workerCounts = @(ConvertTo-Counts $Workers | Where-Object { $_ -ge 2 } | Sort-Object -Unique)
 $environment = Get-Environment $Solution $repo ([ordered]@{ rounds = $Rounds; workers = ($workerCounts -join ', '); trace = [bool]$Trace })
 [IO.File]::WriteAllText((Join-Path $OutDirectory 'environment.json'), ($environment | ConvertTo-Json), (New-Object Text.UTF8Encoding($false)))
 

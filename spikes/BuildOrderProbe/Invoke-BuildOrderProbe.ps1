@@ -42,9 +42,9 @@ param(
 
     [int]$Rounds = 3,
 
-    [int[]]$Workers = @(4),
+    [string[]]$Workers = @('4'),
 
-    [int[]]$ClosureWorkers = @(1, 2),
+    [string[]]$ClosureWorkers = @('1', '2'),
 
     [switch]$ServerGc,
 
@@ -77,8 +77,8 @@ if (-not $SkipRestore) {
     Invoke-Native 'dotnet' @('restore', $Solution, '-nologo', '-v', 'q') 'Solution restore failed'
 }
 
-$workerCounts = @($Workers | Where-Object { $_ -ge 1 } | Sort-Object -Unique)
-$closureCounts = @($ClosureWorkers | Where-Object { $_ -ge 1 } | Sort-Object -Unique)
+$workerCounts = @(ConvertTo-Counts $Workers | Where-Object { $_ -ge 1 } | Sort-Object -Unique)
+$closureCounts = @(ConvertTo-Counts $ClosureWorkers | Where-Object { $_ -ge 1 } | Sort-Object -Unique)
 $environment = Get-Environment $Solution $repo ([ordered]@{
         rounds = $Rounds; workers = ($workerCounts -join ', '); closureWorkers = ($closureCounts -join ', '); serverGc = [bool]$ServerGc
     })

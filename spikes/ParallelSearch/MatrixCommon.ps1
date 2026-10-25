@@ -28,6 +28,12 @@ function Get-Median($Values) {
     return ([double]$sorted[$mid - 1] + [double]$sorted[$mid]) / 2
 }
 
+# A list of counts from a [string[]] parameter. In a PowerShell session -Workers 1,2 binds two strings, but through
+# pwsh -File it binds the single string "1,2", which an [int[]] parameter turns into 12; both forms split here.
+function ConvertTo-Counts([string[]]$Values) {
+    return @($Values | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne '' } | ForEach-Object { [int]$_ })
+}
+
 function Format-Number($Value, [int]$Digits = 0) {
     if ($null -eq $Value) { return 'n/a' }
     return ([Math]::Round([double]$Value, $Digits)).ToString([Globalization.CultureInfo]::InvariantCulture)
