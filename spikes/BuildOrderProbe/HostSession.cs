@@ -1,6 +1,8 @@
 using System.Xml;
 using Microsoft.Build.Construction;
+using Microsoft.Build.Definition;
 using Microsoft.Build.Evaluation;
+using Microsoft.Build.Evaluation.Context;
 using Microsoft.Build.Exceptions;
 using Microsoft.Build.Execution;
 
@@ -59,26 +61,19 @@ internal sealed class HostSession : IDisposable
     /// register the project. The host also reads the file itself and uses its own load settings.
     /// </remarks>
     public static Project? Evaluate(ProjectCollection collection, string path)
-    {
-        try
-        {
-            var loaded = collection.GetLoadedProjects(path);
-            if (loaded.Count > 0)
-            {
-                return loaded.First();
-            }
+        => Evaluate(collection, path, xml => new Project(xml, globalProperties: null, toolsVersion: null, collection, _hostLoadSettings));
 
-            using var stream = new MemoryStream(File.ReadAllBytes(path));
-            using var xmlReader = XmlReader.Create(stream, _xmlReaderSettings);
-            var xml = ProjectRootElement.Create(xmlReader, collection);
-            xml.FullPath = path;
-            return new Project(xml, globalProperties: null, toolsVersion: null, collection, _hostLoadSettings);
-        }
-        catch (Exception e) when (e is InvalidProjectFileException or XmlException or IOException or UnauthorizedAccessException)
+    /// <summary>
+    /// The root evaluation the host's way in this session's collection, in <paramref name="context"/>; null evaluates
+    /// in a context of its own, as the host does. Null when MSBuild cannot load the project.
+    /// </summary>
+    public Project? Evaluate(string path, EvaluationContext? context)
+        => Evaluate(_collection, path, xml => Project.FromProjectRootElement(xml, new ProjectOptions
         {
-            return null;
-        }
-    }
+            ProjectCollection = _collection,
+            LoadSettings = _hostLoadSettings,
+            EvaluationContext = context,
+        }));
 
     /// <summary>
     /// The root evaluation through <see cref="ProjectCollection.LoadProject(string)"/>, which the probe used before;
@@ -135,7 +130,8 @@ internal sealed class HostSession : IDisposable
         _collection.Dispose();
     }
 
-    private static string BuildInstance(Project project)
+    /// <summary>A design-time build of the project's current configuration, as its fingerprint.</summary>
+    internal static string BuildInstance(Project project)
     {
         var instance = project.CreateProjectInstance();
         if (!instance.Targets.ContainsKey("Compile") || !instance.Targets.ContainsKey("CoreCompile"))
@@ -152,6 +148,28 @@ internal sealed class HostSession : IDisposable
         var request = new BuildRequestData(instance, [.. targets], hostServices: null, BuildRequestDataFlags.ProvideProjectStateAfterBuild);
         var result = BuildManager.DefaultBuildManager.BuildRequest(request);
         return BuildFingerprint.Of(result.OverallResult, result.ProjectStateAfterBuild ?? instance);
+    }
+
+    private static Project? Evaluate(ProjectCollection collection, string path, Func<ProjectRootElement, Project> create)
+    {
+        try
+        {
+            var loaded = collection.GetLoadedProjects(path);
+            if (loaded.Count > 0)
+            {
+                return loaded.First();
+            }
+
+            using var stream = new MemoryStream(File.ReadAllBytes(path));
+            using var xmlReader = XmlReader.Create(stream, _xmlReaderSettings);
+            var xml = ProjectRootElement.Create(xmlReader, collection);
+            xml.FullPath = path;
+            return create(xml);
+        }
+        catch (Exception e) when (e is InvalidProjectFileException or XmlException or IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
     }
 
     // ProjectBuildManager.s_defaultGlobalProperties of the .NET host in 5.9.0.

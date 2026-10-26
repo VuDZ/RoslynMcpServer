@@ -13,6 +13,9 @@ namespace BuildOrderProbe;
 /// ProjectCollection.LoadProject in one shared collection (load-project); writes a <see cref="ScalingRun"/>.
 /// scaling-compare: speedups and slowdowns over the evaluate runs of a result folder.
 /// check-globs: reproduces why recording item elements before a build can change the later FileGlobs response.
+/// sdk-cache: loads a solution with references first and times each kind of host evaluation in one evaluation context
+/// mode, optionally attributing SDK resolution time from MSBuild's events; writes a <see cref="SdkCacheRun"/>.
+/// sdk-cache-compare: medians, equivalence and attribution over the sdk-cache runs of a result folder.
 /// </summary>
 internal static class Program
 {
@@ -29,6 +32,25 @@ internal static class Program
             File.WriteAllText(outputPath, json);
             Console.WriteLine(json);
             return 0;
+        }
+
+        if (args.Length >= 4 && args[0] == "sdk-cache" && Enum.TryParse<SdkCacheMode>(args[3], ignoreCase: true, out var mode))
+        {
+            var solutionPath = Path.GetFullPath(args[1]);
+            var events = args.Length >= 5 && args[4] == "events";
+            MsBuildRegistration.Register(Path.GetDirectoryName(solutionPath)!);
+            var run = SdkCache(solutionPath, mode, events);
+            File.WriteAllText(Path.GetFullPath(args[2]), JsonSerializer.Serialize(run, _options));
+            var phases = string.Join(", ", run.Phases.Select(phase => $"{phase.Key} {phase.Value.Count}x {phase.Value.Ms:0} ms"));
+            Console.WriteLine($"sdk-cache {run.Mode}{(events ? " events" : "")}: wall {run.WallMs:0} ms; {phases}");
+            return 0;
+        }
+
+        if (args.Length >= 2 && args[0] == "sdk-cache-compare")
+        {
+            var (summary, identical) = SdkCacheComparer.Run(Path.GetFullPath(args[1]));
+            Console.WriteLine(summary);
+            return identical ? 0 : 1;
         }
 
         if (args.Length >= 4 && args[0] == "run" && TryParseOrder(args[1], out var order))
@@ -69,7 +91,8 @@ internal static class Program
         }
 
         Console.Error.WriteLine("Usage: run client|references-first|evaluate-ahead|evaluate-ahead-paused|evaluate-closure|evaluate-closure-preorder|evaluate-solution-preorder SOLUTION OUTPUT_JSON [WORKERS] [WINDOW] | compare RESULT_DIRECTORY | " +
-            "evaluate SOLUTION PATHS_FILE OUTPUT_JSON WORKERS shared|separate|load-project | scaling-compare RESULT_DIRECTORY | check-globs SOLUTION OUTPUT_JSON");
+            "evaluate SOLUTION PATHS_FILE OUTPUT_JSON WORKERS shared|separate|load-project | scaling-compare RESULT_DIRECTORY | check-globs SOLUTION OUTPUT_JSON | " +
+            "sdk-cache SOLUTION OUTPUT_JSON isolated|project|solution [events] | sdk-cache-compare RESULT_DIRECTORY");
         return 2;
     }
 
@@ -81,6 +104,10 @@ internal static class Program
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static ScalingRun Evaluate(string solutionPath, IReadOnlyList<string> paths, int workers, bool separateCollections, bool useLoadProject)
         => EvaluationScaling.Run(solutionPath, paths, workers, separateCollections, useLoadProject);
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static SdkCacheRun SdkCache(string solutionPath, SdkCacheMode mode, bool events)
+        => SdkCacheProbe.Run(solutionPath, mode, events);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static RecordItemElementsRun CheckGlobs()

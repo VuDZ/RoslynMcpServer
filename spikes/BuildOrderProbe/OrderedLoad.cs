@@ -186,14 +186,14 @@ internal sealed class OrderedLoad
         _buildSteps.Add(new TimedStep(project.FullPath, multiTargeting, start, _wall.Elapsed.TotalMilliseconds, Environment.CurrentManagedThreadId));
     }
 
-    private static IReadOnlyList<string> ProjectReferences(Project project)
+    internal static IReadOnlyList<string> ProjectReferences(Project project)
         => project.GetItems("ProjectReference")
             .Select(item => Path.GetFullPath(Path.Combine(project.DirectoryPath, item.EvaluatedInclude)))
             .Where(path => IsLoadable(path) && File.Exists(path))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToArray();
 
-    private static IEnumerable<string> SolutionProjects(string solutionPath)
+    internal static IEnumerable<string> SolutionProjects(string solutionPath)
         => SolutionFile.Parse(solutionPath).ProjectsInOrder
             .Where(project => project.ProjectType == SolutionProjectType.KnownToBeMSBuildFormat && IsLoadable(project.AbsolutePath))
             .Select(project => Path.GetFullPath(project.AbsolutePath));

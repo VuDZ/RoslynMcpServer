@@ -488,3 +488,78 @@ RPC captures: два original controls и каждый вариант. `rpc-*-ra
 `rpc-*-glob-sets.txt` — сравнение с сортировкой только двух glob-наборов; прочие различия завершают скрипт
 ошибкой. Как раньше, raw JSON/traces содержат пути решения и не публикуются без редактирования.
 Порог офиса ≥10 % к A+B ещё не проверен; task-04 остаётся in progress, production-профиль прежний.
+
+## Кандидат C: общий кеш SDK resolution — проба, 2026-10-26
+
+**Гипотеза.** В [CPU-профиле](task-04/getallglobs-cpu.json) поздней evaluation `GetAllGlobs` на Roslyn.slnx
+52 % времени уходит в workload SDK resolver, 36 % — в загрузку workload-манифестов. Host не передаёт
+`EvaluationContext`, поэтому каждая evaluation получает свой и теряет состояние resolver. Та же цена, вероятно,
+есть у evaluation при смене TFM (26 % окна в [трассе A+B+GC9](task-04/servergc9-trace-fork.md)) и у корневых
+evaluation. Профиль это не меряет: в нём только `GetAllGlobs`.
+
+**Что установлено декомпиляцией** `Microsoft.Build.dll` 18.6.4.27133 (SDK 10.0.301) и
+`Microsoft.NET.Sdk.WorkloadMSBuildSdkResolver.dll` того же SDK:
+
+- Без контекста каждая evaluation получает новый `EvaluationContext` с новым `CachingSdkResolverService`.
+  Состояние workload resolver (`CachedState` с загруженными манифестами) хранится в
+  `SdkResolverContext.State` этого сервиса, поэтому манифесты загружаются заново в каждой evaluation.
+- `SharingPolicy.SharedSDKCache` делит между evaluation одного контекста только сервис SDK resolver.
+  `ContextForNewProject` даёт каждой следующей evaluation новый `CachingFileSystemWrapper`. Файл, созданный
+  сборкой, поздняя evaluation по-прежнему видит. Контрпример с `marker.txt`, отвергший ранний Record, этот режим
+  не затрагивает: он не меняет момент evaluation.
+- Ограничение корректности. `CachingSdkResolverService` кеширует результат по submission ID и **имени** SDK,
+  без пути проекта и версии; при другой версии он только предупреждает (`ReferencingMultipleVersionsOfTheSameSdk`).
+  `CachedState` workload resolver запоминает `global.json` первой evaluation. Поэтому общий контекст безопасен,
+  только пока все его evaluation разрешили бы каждый SDK одинаково. В пределах одного проекта это так, пока
+  SDK references не зависят от TFM. В решении это требует одного `global.json` и одинаковых входов resolver.
+  Вариант «контекст на проект» опирается на меньшее допущение, чем вариант «контекст на решение».
+- Публичный API покрывает все evaluation host: `Project.FromProjectRootElement` с `ProjectOptions.EvaluationContext`,
+  `ReevaluateIfNecessary(EvaluationContext)`, `GetAllGlobs(EvaluationContext)`.
+
+**Проба** `BuildOrderProbe sdk-cache` (код стенда, форк и сервер не менялись). Порядок — references-first. Шаги
+host меряются отдельно: корневая evaluation, design-time build, evaluation при смене TFM и возврате, первый
+`GetAllGlobs`. Режимы: `isolated` (как host 5.9.0), `project` (один `SharedSDKCache` на проект), `solution` (один
+на прогон). Отпечатки сравниваются для каждого шага:
+
+- корневая и восстановленная evaluation: imports по порядку, свойства, items с метаданными;
+- сборки: прежний `BuildFingerprint`;
+- globs: include по порядку, Excludes/Removes отсортированы, как в task-04.
+
+Отдельный прогон со слушателем событий `Microsoft-Build` складывает время `CachedSdkResolverServiceResolveSdk`
+по видам шагов и `SdkResolverResolveSdk` по resolver. Этот прогон медленнее остальных, его время с ними не
+сравнивается.
+
+**Linux, 2 vCPU** (корректность; время на этой машине шумит):
+
+- `RoslynMcpServer.sln` (5 проектов, single-TFM):
+  - SDK 10.0.113 / MSBuild 18.0.36: прогрев + три раунда;
+  - SDK 10.0.301 / MSBuild 18.6.4: прогрев + два раунда;
+  - итог: **identical** во всех режимах, 15 отпечатков.
+- Генерированная фикстура: проект `netstandard2.0;net10.0` и ссылающийся на него проект; прогрев + два раунда.
+  **Identical**, 8 отпечатков, включая сборки обоих TFM и восстановленную evaluation.
+- Доля SDK resolution на Linux мала:
+  - корневые evaluation — 8–9 %, `GetAllGlobs` — 3–9 %, сборки — меньше 1 %;
+  - workload resolver — 90–150 мс на весь прогон, из них около 80 мс — первая загрузка, которую кеш не снимает;
+  - в режимах `project` и `solution` SDK resolution в `GetAllGlobs` — 0 мс; из 44 разрешений из кеша 26 и 38
+    против 11 у `isolated`.
+- Выигрыш по wall не отличим от шума (×0,98–1,02; на фикстуре ×0,94–0,96).
+- Почему Linux не отвечает на вопрос о выигрыше. На Linux повторное разрешение стоит около 1 мс. В профиле
+  Windows workload resolver — около 13 мс на каждую позднюю evaluation (4263 мс на 318 проектов). Evaluation
+  Roslyn.slnx там лёгкие, около 26 мс, поэтому та же цена resolver даёт половину.
+
+**Следующий замер — владелец, Windows, Roslyn.slnx и офисное решение:**
+
+```powershell
+pwsh spikes\BuildOrderProbe\Invoke-SdkCacheProbe.ps1 -Solution <путь-к-решению>
+```
+
+Прогрев + три раунда трёх режимов с чередованием, затем по одной атрибуции на режим. Скрипт падает, если отпечатки
+расходятся. Для разбора нужны `summary.md` и `environment.json`: путей в них нет. Решение о кандидате C — по этим
+данным:
+
+- **go к реализации в форке** — если доля SDK resolution в evaluation при смене TFM и `GetAllGlobs` на Windows
+  такая же, как в профиле, а режим `project` даёт выигрыш, который в A + B может дать офисные ≥10 %. Реализация —
+  отдельным переключателем, с полным RPC-сравнением и проверкой решения с разными `global.json`;
+- **закрыть кандидата** — если Windows подтвердит Linux.
+
+Сырые прогоны лежат вне репозитория, в `~/tmp/sdkcache/` на машине агента.

@@ -1,5 +1,31 @@
 # BuildOrderProbe — порядок сборок и evaluation наперёд (spike)
 
+## Общий кеш SDK resolution (`Invoke-SdkCacheProbe.ps1`, task-04)
+
+`sdk-cache SOLUTION OUTPUT_JSON isolated|project|solution [events]` загружает решение как host с A:
+references-first, корневая evaluation, design-time build, смена `TargetFramework` и возврат у multi-TFM проекта,
+затем первый `GetAllGlobs` с его поздней evaluation. Каждый шаг меряется отдельно. Режим задаёт контекст evaluation:
+
+- `isolated` — без контекста, как host 5.9.0;
+- `project` — один `SharedSDKCache` на проект;
+- `solution` — один `SharedSDKCache` на прогон.
+
+`SharedSDKCache` делит результаты и состояние SDK resolver, включая загруженные workload-манифесты, но не кеш
+файловой системы. С `events` слушатель событий MSBuild складывает время SDK resolution по видам шагов и по
+resolver. Такой прогон медленнее, его время с остальными не сравнивается.
+
+Отпечатки сравниваются для каждого шага: корневая и восстановленная evaluation, сборки, globs.
+`sdk-cache-compare DIR` пишет `summary.md` без путей и `mismatches-private.json`; при расхождении отпечатков
+команда завершается с кодом 1.
+
+```powershell
+pwsh spikes\BuildOrderProbe\Invoke-SdkCacheProbe.ps1 -Solution <путь>\Roslyn.slnx
+```
+
+Параметры: `-Rounds` (по умолчанию 3, плюс прогрев), `-OutDirectory`, `-SkipRestore`. Результаты — в
+`results\sdk-cache-<время>`. Контракт и выводы —
+[отчёт task-04](../../docs/workspace-load-performance/research-buildhost-fork/evidence/task-04-projectfileinfo-extraction.md#кандидат-c-общий-кеш-sdk-resolution--проба-2026-10-26).
+
 ## Проверка `RecordEvaluatedItemElements` (task-04)
 
 `check-globs SOLUTION OUTPUT_JSON` выбирает SDK решения и на отдельной генерируемой фикстуре проверяет,

@@ -11,6 +11,9 @@
   около 1,7 против 1,45 ГБ владелец счёл приемлемым. Release build, main 1467/0/0 (serial), включая 123
   SourceStructure, и сценарии сбоев пройдены. Офисный порог ≥10 % и production-активация — pending
   ([валидация и отчёт](evidence/task-04-projectfileinfo-extraction.md#следующий-эксперимент-gc-только-в-host-2026-10-26)).
+  Кандидат C — общий кеш SDK resolution (`SharedSDKCache`): проба в стенде, на Linux identical во всех режимах,
+  выигрыш на этой машине не измерим. Ждёт замера владельца на Windows
+  ([проба](evidence/task-04-projectfileinfo-extraction.md#кандидат-c-общий-кеш-sdk-resolution--проба-2026-10-26)).
 - Сложность: hi; риск — сократить извлечение ценой неполного или иного `ProjectFileInfo`.
 - Сопутствующее исправление, 2026-10-26: matrix/baseline/scenarios разрешают относительные `Solution` и
   `OutDirectory` от location PowerShell; автоматический каталог без `OutDirectory` сохранён и проверен
