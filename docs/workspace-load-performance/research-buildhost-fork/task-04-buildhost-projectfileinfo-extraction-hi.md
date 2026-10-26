@@ -20,7 +20,11 @@
   C реализован в форке (переключатель, по умолчанию выключен): контекст на проект и проверка версий SDK. На
   Linux identical в матрице, полные RPC совпадают, фикстура с разными версиями SDK и `global.json` пройдена,
   сценарии сбоев и SourceStructure пройдены. Windows, Release: main 1467/1467, AnalyzerLifecycle 13/13.
-  Матрица порогов на Windows — pending ([реализация](evidence/task-04-projectfileinfo-extraction.md#кандидат-c-в-форке-2026-10-26)).
+  ([реализация](evidence/task-04-projectfileinfo-extraction.md#кандидат-c-в-форке-2026-10-26)). Матрица дома,
+  Roslyn.slnx: identical, полные RPC совпадают; к A+B загрузка ×0,819, load + first query ×0,879, CPU host
+  ×0,834, память без изменений. Смена TFM ×0,575, поздний GetAllGlobs ×0,44, сборки не медленнее. Порог
+  Roslyn.slnx выполнен; офисный порог ≥10 % — pending
+  ([матрица](evidence/task-04-projectfileinfo-extraction.md#матрица-c-roslynslnx-домашний-компьютер-2026-10-27)).
 - Сложность: hi; риск — сократить извлечение ценой неполного или иного `ProjectFileInfo`.
 - Сопутствующее исправление, 2026-10-26: matrix/baseline/scenarios разрешают относительные `Solution` и
   `OutDirectory` от location PowerShell; автоматический каталог без `OutDirectory` сохранён и проверен
