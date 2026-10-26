@@ -84,7 +84,8 @@ $repo = Split-Path $spikes -Parent
 . (Join-Path (Join-Path $spikes 'ParallelSearch') 'MatrixCommon.ps1')
 . (Join-Path $PSScriptRoot 'BuildHostForkCommon.ps1')
 
-$Solution = [IO.Path]::GetFullPath($Solution)
+# PowerShell's location can differ from the process directory used by .NET and the child host.
+$Solution = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Solution)
 if (-not (Test-Path -LiteralPath $Solution -PathType Leaf)) { throw "Solution not found: $Solution" }
 $pinned = Assert-PinnedSdk (Split-Path $Solution)
 if ($pinned) { Write-Host "Solution pins .NET SDK ${pinned}: installed." }
@@ -101,6 +102,7 @@ if (-not $SkipRestore) {
 if (-not $OutDirectory) {
     $OutDirectory = Join-Path (Join-Path $PSScriptRoot 'results') ('baseline-' + (Get-Date -Format 'yyyyMMdd-HHmmss'))
 }
+$OutDirectory = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($OutDirectory)
 New-Item -ItemType Directory -Force -Path $OutDirectory | Out-Null
 $environment = Get-Environment $Solution $repo ([ordered]@{ name = $Name; runs = $Runs; fork = $version; trace = [bool]$Trace; referencesFirst = [bool]$ReferencesFirst
         evaluateAhead = $EvaluateAhead; evaluateAheadSolution = $(if ($EvaluateAhead -gt 0) { $EvaluateAheadSolution } else { '' })

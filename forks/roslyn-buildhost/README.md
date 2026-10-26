@@ -38,6 +38,13 @@ BuildHost, что лежит в папке `BuildHost-netcore` рядом с н�
   выключает трассировку до конца процесса и один раз пишется в stderr; ответ и работа host от неё не меняются.
   Протокол RPC не меняется. Собирается и трассируется только netcore-host; `BuildHost-net472` в экспериментах —
   из пакета.
+- [task-04](../../docs/workspace-load-performance/research-buildhost-fork/task-04-buildhost-projectfileinfo-extraction-hi.md),
+  шаг 0: под-span в `ProjectInstanceReader` внутри `extract`: аргументы компилятора и их fallback, свойства,
+  документы с метаданными, additional/editorconfig, остальные элементы, `GetAllGlobs` и создание результата со
+  ссылками на проекты. В span — счётчики готовых элементов, для globs ещё patterns и число импортов текущего
+  `Project`; TFM результата — у родительского `extract`. Расчёт полей и его порядок сохранены. Включается той же
+  `ROSLYN_BUILDHOST_TRACE_DIRECTORY`; без трассы счётчики не вычисляются. `trace-report` и `trace-summary` стенда
+  показывают части отдельными категориями собственного времени; родительский `extract` остаётся остатком.
 - [task-02](../../docs/workspace-load-performance/research-buildhost-fork/task-02-buildhost-optimization-spike-hi.md),
   часть A: ссылки собираются раньше проекта. Новый файл `BuildHost/Build/ProjectBuildManager_ReferencesFirst.cs`,
   `ProjectBuildManager` стал `partial`, его конструктор вызывает `InitializeReferencesFirst` и

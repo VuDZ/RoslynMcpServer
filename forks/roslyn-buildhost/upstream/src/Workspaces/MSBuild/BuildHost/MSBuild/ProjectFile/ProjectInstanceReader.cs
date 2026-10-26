@@ -45,6 +45,7 @@ internal readonly struct ProjectInstanceReader
     {
         var commandLineArgs = TryGetCommandLineArgs(_projectInstance);
 
+        using var propertiesSpan = BuildHostTrace.Start("extract-properties", _projectFullPath);
         var outputFilePath = _projectInstance.ReadPropertyString(PropertyNames.TargetPath);
         if (!RoslynString.IsNullOrWhiteSpace(outputFilePath))
         {
@@ -86,20 +87,35 @@ internal readonly struct ProjectInstanceReader
         var targetFrameworkIdentifier = _projectInstance.ReadPropertyString(PropertyNames.TargetFrameworkIdentifier);
 
         var targetFrameworkVersion = _projectInstance.ReadPropertyString(PropertyNames.TargetFrameworkVersion);
+        propertiesSpan?.Set("targetFramework", targetFramework);
+        propertiesSpan?.Dispose();
 
-        var docs = _projectInstance.GetDocuments()
-            .Where(IsNotTemporaryGeneratedFile)
-            .Select(MakeDocumentFileInfo)
-            .ToArray();
+        DocumentFileInfo[] docs;
+        using (var span = BuildHostTrace.Start("extract-documents", _projectFullPath))
+        {
+            docs = _projectInstance.GetDocuments()
+                .Where(IsNotTemporaryGeneratedFile)
+                .Select(MakeDocumentFileInfo)
+                .ToArray();
+            span?.Set("documents", docs.Length);
+        }
 
-        var additionalDocs = _projectInstance.GetAdditionalFiles()
-            .Select(MakeNonSourceFileDocumentFileInfo)
-            .ToArray();
+        DocumentFileInfo[] additionalDocs;
+        DocumentFileInfo[] analyzerConfigDocs;
+        using (var span = BuildHostTrace.Start("extract-additional-editorconfig", _projectFullPath))
+        {
+            additionalDocs = _projectInstance.GetAdditionalFiles()
+                .Select(MakeNonSourceFileDocumentFileInfo)
+                .ToArray();
 
-        var analyzerConfigDocs = _projectInstance.GetEditorConfigFiles()
-            .Select(MakeNonSourceFileDocumentFileInfo)
-            .ToArray();
+            analyzerConfigDocs = _projectInstance.GetEditorConfigFiles()
+                .Select(MakeNonSourceFileDocumentFileInfo)
+                .ToArray();
+            span?.Set("additionalDocuments", additionalDocs.Length);
+            span?.Set("analyzerConfigDocuments", analyzerConfigDocs.Length);
+        }
 
+        using var itemsSpan = BuildHostTrace.Start("extract-items", _projectFullPath);
         var packageReferences = _projectInstance.GetPackageReferences();
 
         // Do not pass metadata references if we have command line args that already specify them.
@@ -116,9 +132,25 @@ internal readonly struct ProjectInstanceReader
             checksumAlgorithm = _projectInstance.ReadPropertyString(PropertyNames.PdbChecksumAlgorithm);
         }
 
-        var fileGlobs = Project?.GetAllGlobs().Select(GetFileGlobs).ToArray() ?? [];
+        itemsSpan?.Set("packageReferences", packageReferences.Length);
+        itemsSpan?.Set("metadataReferences", metadataReferences.Length);
+        itemsSpan?.Set("projectCapabilities", projectCapabilities.Length);
+        itemsSpan?.Set("contentFiles", contentFileInfo.Length);
+        itemsSpan?.Dispose();
 
-        return new ProjectFileInfo()
+        FileGlobs[] fileGlobs;
+        using (var span = BuildHostTrace.Start("extract-globs", _projectFullPath))
+        {
+            fileGlobs = Project?.GetAllGlobs().Select(GetFileGlobs).ToArray() ?? [];
+            span?.Set("fileGlobs", fileGlobs.Length);
+            span?.Set("includes", fileGlobs.Sum(glob => glob.Includes.Length));
+            span?.Set("excludes", fileGlobs.Sum(glob => glob.Excludes.Length));
+            span?.Set("removes", fileGlobs.Sum(glob => glob.Removes.Length));
+            span?.Set("imports", Project?.Imports.Count ?? 0);
+        }
+
+        using var resultSpan = BuildHostTrace.Start("extract-result", _projectFullPath);
+        var info = new ProjectFileInfo()
         {
             Language = Language,
             FilePath = _projectFullPath,
@@ -144,6 +176,8 @@ internal readonly struct ProjectInstanceReader
             ContentFilePaths = contentFileInfo,
             FileGlobs = fileGlobs
         };
+        resultSpan?.Set("projectReferences", info.ProjectReferences.Length);
+        return info;
 
         static FileGlobs GetFileGlobs(MSB.Evaluation.GlobResult g)
         {
@@ -170,9 +204,14 @@ internal readonly struct ProjectInstanceReader
             return [];
         }
 
-        var commandLineArgs = _commandLineProvider.GetCompilerCommandLineArgs(project)
-            .Select(item => item.ItemSpec)
-            .ToArray();
+        string[] commandLineArgs;
+        using (var span = BuildHostTrace.Start("extract-compiler-args", _projectFullPath))
+        {
+            commandLineArgs = _commandLineProvider.GetCompilerCommandLineArgs(project)
+                .Select(item => item.ItemSpec)
+                .ToArray();
+            span?.Set("arguments", commandLineArgs.Length);
+        }
 
         if (commandLineArgs.Length == 0)
         {
@@ -180,7 +219,9 @@ internal readonly struct ProjectInstanceReader
             // was not successful. In that case, try to read the command-line args from
             // the ProjectInstance that we have. This is a best effort to provide something
             // meaningful for the user, though it will likely be incomplete.
+            using var span = BuildHostTrace.Start("extract-fallback-args", _projectFullPath);
             commandLineArgs = _commandLineProvider.ReadCommandLineArgs(project);
+            span?.Set("arguments", commandLineArgs.Length);
         }
 
         return commandLineArgs;

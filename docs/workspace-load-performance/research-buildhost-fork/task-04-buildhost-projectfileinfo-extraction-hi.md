@@ -1,8 +1,19 @@
 # BuildHost/task-04 — Извлечение ProjectFileInfo в host
 
 - Дата: 2026-10-26.
-- Статус: **in progress, 2026-10-26** — постановка по решению владельца; шаг 0 не начат.
+- Статус: **in progress, 2026-10-26** — инструментирование шага 0 выполнено: части `extract`, счётчики и категории
+  `trace-summary`; трассовая фикстура 74/74, Linux `RoslynMcpServer.sln` identical с трассой, Release build и
+  AnalyzerLifecycle 13/13, полный main 1467/0/0 без параллелизма коллекций (обычный запуск воспроизводит сбой
+  теста атрибуции исключений). Windows Roslyn.slnx: A + B с трассой и без identical, globs — 8,39 с (21,6 % окна),
+  повторные обращения между TFM — лишь 24 мс за загрузку. Офисные матрицы обоих решений получены: A + B
+  identical, но новая разбивка extraction отсутствует (в Roslyn JSONL по 434 `extract` и 0 `extract-*` на раунд).
+  Правки для повторного замера передаются через Git по решению владельца; окончательный итог шага 0 и порог go — pending.
+  Кандидат и production-активация не начаты
+  ([отчёт](evidence/task-04-projectfileinfo-extraction.md)).
 - Сложность: hi; риск — сократить извлечение ценой неполного или иного `ProjectFileInfo`.
+- Сопутствующее исправление, 2026-10-26: matrix/baseline/scenarios разрешают относительные `Solution` и
+  `OutDirectory` от location PowerShell; автоматический каталог без `OutDirectory` сохранён и проверен
+  ([проверка](evidence/task-04-projectfileinfo-extraction.md#исправление-относительных-путей-стенда-2026-10-26)).
 - Depends on: [task-02](task-02-buildhost-optimization-spike-hi.md) (выполнен, A + B — go),
   [task-03](task-03-buildhost-fork-server-integration-hi.md) (accepted: форк с A + B — production BuildHost сервера).
 

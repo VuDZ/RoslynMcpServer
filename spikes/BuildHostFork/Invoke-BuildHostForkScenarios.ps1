@@ -83,14 +83,15 @@ $repo = Split-Path $spikes -Parent
 . (Join-Path $PSScriptRoot 'BuildHostForkCommon.ps1')
 
 if (-not $Solution) { $Solution = Join-Path $repo 'RoslynMcpServer.sln' }
-$Solution = [IO.Path]::GetFullPath($Solution)
+# PowerShell's location can differ from the process directory used by .NET and the child host.
+$Solution = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Solution)
 if (-not (Test-Path -LiteralPath $Solution -PathType Leaf)) { throw "Solution not found: $Solution" }
 # A solution outside this public repository may be private: its name and paths stay out of scenarios.md.
 $external = -not $Solution.StartsWith($repo + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)
 if (-not $OutDirectory) {
     $OutDirectory = Join-Path (Join-Path $PSScriptRoot 'results') ('scenarios-' + (Get-Date -Format 'yyyyMMdd-HHmmss'))
 }
-$OutDirectory = [IO.Path]::GetFullPath($OutDirectory)
+$OutDirectory = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($OutDirectory)
 New-Item -ItemType Directory -Force -Path $OutDirectory | Out-Null
 
 $copies = Initialize-ForkCopy $repo $PSScriptRoot

@@ -88,7 +88,8 @@ $definitions = @{
 }
 $Variants = @($Variants | Select-Object -Unique)
 
-$Solution = [IO.Path]::GetFullPath($Solution)
+# PowerShell's location can differ from the process directory used by .NET and the child host.
+$Solution = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Solution)
 if (-not (Test-Path -LiteralPath $Solution -PathType Leaf)) { throw "Solution not found: $Solution" }
 $pinned = Assert-PinnedSdk (Split-Path $Solution)
 if ($pinned) { Write-Host "Solution pins .NET SDK ${pinned}: installed." }
@@ -105,6 +106,7 @@ if (-not $SkipRestore) {
 if (-not $OutDirectory) {
     $OutDirectory = Join-Path (Join-Path $PSScriptRoot 'results') ('matrix-' + (Get-Date -Format 'yyyyMMdd-HHmmss'))
 }
+$OutDirectory = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($OutDirectory)
 New-Item -ItemType Directory -Force -Path $OutDirectory | Out-Null
 foreach ($variant in $Variants) {
     # A reused -OutDirectory still holds the runs and trace of an earlier matrix; the comparison would read them too.

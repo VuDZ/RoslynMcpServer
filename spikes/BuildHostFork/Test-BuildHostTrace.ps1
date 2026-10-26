@@ -43,11 +43,18 @@ function New-TraceFixture([string]$Directory) {
     $sdkProject = '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework{0}>{1}</TargetFramework{0}></PropertyGroup>{2}</Project>'
     Write-Utf8 (Join-Path $Directory 'Directory.Build.props') '<Project />'
     Write-Utf8 (Join-Path $Directory 'Directory.Build.targets') '<Project />'
-    $libImport = '<ItemGroup><Compile Remove="net8/**" /></ItemGroup><Import Project="tfm-$(TargetFramework).props" Condition="Exists(''tfm-$(TargetFramework).props'')" />'
+    $libImport = '<ItemGroup><Compile Remove="net8/**" /><AdditionalFiles Include="extra.txt" /><EditorConfigFiles Include="settings.editorconfig" /><Content Include="content.txt" /><ProjectCapability Include="TraceFixture" /></ItemGroup><Import Project="tfm-$(TargetFramework).props" Condition="Exists(''tfm-$(TargetFramework).props'')" />'
     Write-Utf8 (Join-Path $Directory 'Lib/Lib.csproj') ($sdkProject -f 's', 'net10.0;net8.0', $libImport)
     Write-Utf8 (Join-Path $Directory 'Lib/tfm-net8.0.props') '<Project><ItemGroup><Compile Include="net8/Net8Only.cs" /></ItemGroup></Project>'
     Write-Utf8 (Join-Path $Directory 'Lib/Class1.cs') "namespace Lib;`npublic class Class1 { }`n"
     Write-Utf8 (Join-Path $Directory 'Lib/net8/Net8Only.cs') "namespace Lib;`ninternal static class Net8Only { }`n"
+    Write-Utf8 (Join-Path $Directory 'Lib/extra.txt') 'additional file'
+    Write-Utf8 (Join-Path $Directory 'Lib/settings.editorconfig') "root = true`n"
+    Write-Utf8 (Join-Path $Directory 'Lib/content.txt') 'content file'
+    # A failed build with no compiler items forces the best-effort command line reader.
+    $stopCompile = '<Target Name="StopBeforeCompiler" BeforeTargets="CoreCompile"><Error Text="Fixture stops before compiler arguments are produced" /></Target>'
+    Write-Utf8 (Join-Path $Directory 'Fallback/Fallback.csproj') ($sdkProject -f '', 'net10.0', $stopCompile)
+    Write-Utf8 (Join-Path $Directory 'Fallback/Class1.cs') "namespace Fallback;`npublic class Class1 { }`n"
     Write-Utf8 (Join-Path $Directory 'Tool/Tool.csproj') ($sdkProject -f '', 'net10.0', '')
     Write-Utf8 (Join-Path $Directory 'Tool/Program.cs') "namespace Tool;`npublic static class Entry { }`n"
     Write-Utf8 (Join-Path $Directory 'Native/Native.proj') ($sdkProject -f '', 'net10.0', '')
@@ -59,8 +66,8 @@ function New-TraceFixture([string]$Directory) {
     Write-Utf8 (Join-Path $Directory 'Second/Class1.cs') "namespace Second;`npublic class Class1 { }`n"
     $solution = Join-Path $Directory 'Trace.slnx'
     Write-Utf8 (Join-Path $Directory 'Cpp/Cpp.vcxproj') '<Project />'
-    Write-Utf8 $solution "<Solution>`n  <Project Path=`"App/App.csproj`" />`n  <Project Path=`"Lib/Lib.csproj`" />`n  <Project Path=`"Second/Second.csproj`" />`n  <Project Path=`"Cpp/Cpp.vcxproj`" />`n</Solution>`n"
-    foreach ($project in 'App/App.csproj', 'Second/Second.csproj') {
+    Write-Utf8 $solution "<Solution>`n  <Project Path=`"App/App.csproj`" />`n  <Project Path=`"Lib/Lib.csproj`" />`n  <Project Path=`"Second/Second.csproj`" />`n  <Project Path=`"Fallback/Fallback.csproj`" />`n  <Project Path=`"Cpp/Cpp.vcxproj`" />`n</Solution>`n"
+    foreach ($project in 'App/App.csproj', 'Second/Second.csproj', 'Fallback/Fallback.csproj') {
         Invoke-Native 'dotnet' @('restore', (Join-Path $Directory $project), '-nologo', '-v', 'q') "Fixture restore failed: $project"
     }
     return $solution
@@ -116,6 +123,31 @@ $libExtracts = @(Get-Spans 'extract' 'Lib.csproj')
 $net8 = @($libExtracts | Where-Object { $_.targetFramework -eq 'net8.0' })[0].documents
 $net10 = @($libExtracts | Where-Object { $_.targetFramework -eq 'net10.0' })[0].documents
 Assert-Trace ($net8 -eq $net10 + 1) "the conditional import adds a document to net8.0 only ($net8 against $net10)"
+$parts = @('extract-compiler-args', 'extract-properties', 'extract-documents', 'extract-additional-editorconfig', 'extract-items', 'extract-globs', 'extract-result')
+foreach ($extract in @($spans | Where-Object { $_.kind -eq 'extract' })) {
+    $children = @($spans | Where-Object { $_.parent -eq $extract.id })
+    foreach ($part in $parts) {
+        $child = @($children | Where-Object { $_.kind -eq $part })
+        Assert-Trace ($child.Count -eq 1 -and $child[0].start -ge $extract.start -and $child[0].end -le $extract.end) "$part occurs once inside extraction of $(Split-Path $extract.path -Leaf) / $($extract.targetFramework)"
+    }
+    $documents = @($children | Where-Object { $_.kind -eq 'extract-documents' })[0]
+    $references = @($children | Where-Object { $_.kind -eq 'extract-result' })[0]
+    Assert-Trace ($documents.documents -eq $extract.documents -and $references.projectReferences -eq @($extract.projectReferences).Count) 'extraction counts agree with the returned document and reference counts'
+}
+$fallback = @(Get-Spans 'extract-fallback-args' 'Fallback.csproj')
+$compiler = @(Get-Spans 'extract-compiler-args' 'Fallback.csproj')
+Assert-Trace ($fallback.Count -eq 1 -and $fallback[0].arguments -gt 0 -and $compiler.Count -eq 1 -and $compiler[0].arguments -eq 0) 'empty compiler items invoke and time the fallback reader separately'
+$extra = @(Get-Spans 'extract-additional-editorconfig' 'Lib.csproj')
+$items = @(Get-Spans 'extract-items' 'Lib.csproj')
+$globs = @(Get-Spans 'extract-globs' 'Lib.csproj')
+Assert-Trace (@($extra | Where-Object { $_.additionalDocuments -ne 1 -or $_.analyzerConfigDocuments -lt 1 }).Count -eq 0 -and $extra.Count -eq 2) 'additional and editorconfig documents have nonzero counts for both target frameworks'
+Assert-Trace (@($items | Where-Object { $_.contentFiles -ne 1 -or $_.projectCapabilities -lt 1 }).Count -eq 0 -and $items.Count -eq 2) 'other item counts include content and capabilities for both target frameworks'
+Assert-Trace (@($globs | Where-Object { $_.fileGlobs -ne 0 -or $_.includes -ne 0 -or $_.imports -lt 1 }).Count -eq 0 -and $globs.Count -eq 2) 'both Lib extractions read globs from the restored outer project, whose glob results are empty'
+$appGlobs = @(Get-Spans 'extract-globs' 'App.csproj')
+Assert-Trace ($appGlobs.Count -eq 1 -and $appGlobs[0].fileGlobs -gt 0 -and $appGlobs[0].includes -gt 0 -and $appGlobs[0].imports -gt 0) 'the single-target project has nonzero glob, pattern and import counts'
+$total = ($report.Breakdown.PSObject.Properties.Value | Measure-Object -Sum).Sum
+Assert-Trace ([Math]::Abs($total - $report.WallMs) -lt 0.001) 'the exclusive breakdown, including extraction children, adds up to the load window'
+Assert-Trace ($null -ne $report.Breakdown.PSObject.Properties['host: extraction / GetAllGlobs'] -and $null -ne $report.Breakdown.PSObject.Properties['host: extraction / fallback arguments']) 'the report exposes glob and fallback time as separate categories'
 Assert-Trace ((Get-Edges 'App.csproj' 'Tool.csproj' 'evaluated ProjectReference item' | Where-Object { $_.ReferenceOutputAssembly -eq $false }).Count -eq 1) 'App -> Tool is an item with ReferenceOutputAssembly=false'
 Assert-Trace ((Get-Edges 'App.csproj' 'Tool.csproj' 'client load during Resolve').Count -eq 1) 'Tool, outside the solution, is loaded while App resolves its references'
 Assert-Trace ((Get-Edges 'App.csproj' 'Lib.csproj' 'client load during Resolve').Count -eq 1) 'Lib is loaded while App resolves its references, before its own solution entry'

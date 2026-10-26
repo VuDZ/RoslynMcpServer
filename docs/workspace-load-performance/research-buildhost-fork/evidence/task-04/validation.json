@@ -1,0 +1,68 @@
+[
+  {
+    "file": "task-04-lifecycle.trx",
+    "sha256": "b52dfda399ab266945ebc3fb956f2a9bfb9a1ee7931214650846ea351977a49b",
+    "total": 13,
+    "passed": 13,
+    "failed": 0,
+    "skipped": 0,
+    "sourceStructurePassed": 0,
+    "failedTests": []
+  },
+  {
+    "file": "task-04-main-retry.trx",
+    "sha256": "539f3bbf4bc0e379a44a00b55bf8497f318c98a16523f4e747dbf634a8697d69",
+    "total": 1467,
+    "passed": 1466,
+    "failed": 1,
+    "skipped": 0,
+    "sourceStructurePassed": 123,
+    "failedTests": [
+      "RoslynMcpServer.Tests.Navigation.DeclarationSearchTimingTests.Unreadable_document_reads_are_attributed_to_their_project"
+    ]
+  },
+  {
+    "file": "task-04-main-serial.trx",
+    "sha256": "aea3f7830a62b437ec25a998225b34a0de1c12accbcf6cfd533486413b3cb1f3",
+    "total": 1467,
+    "passed": 1467,
+    "failed": 0,
+    "skipped": 0,
+    "sourceStructurePassed": 123,
+    "failedTests": []
+  },
+  {
+    "file": "task-04-main-unrestricted.trx",
+    "sha256": "fdfdd31a372f8e462f60d3b1ea3f78c5dee0ce177c8ab69f3bddd8b7680d9168",
+    "total": 1467,
+    "passed": 1466,
+    "failed": 1,
+    "skipped": 0,
+    "sourceStructurePassed": 123,
+    "failedTests": [
+      "RoslynMcpServer.Tests.Navigation.DeclarationSearchTimingTests.Unreadable_document_reads_are_attributed_to_their_project"
+    ]
+  },
+  {
+    "file": "task-04-main.trx",
+    "sha256": "72582d16af3e5b1c913cb43554e1ff457a4273114bdd18fdd9cec0febc7a64df",
+    "total": 1467,
+    "passed": 1466,
+    "failed": 1,
+    "skipped": 0,
+    "sourceStructurePassed": 123,
+    "failedTests": [
+      "RoslynMcpServer.Tests.Navigation.DeclarationSearchTimingTests.Unreadable_document_reads_are_attributed_to_their_project"
+    ]
+  },
+  {
+    "file": "task-04-path-fix-main.trx",
+    "sha256": "8d0939f743367bf225e9bc82bb82bb3332275fad0980afb2f805183ab6d4a643",
+    "total": 1467,
+    "passed": 1467,
+    "failed": 0,
+    "skipped": 0,
+    "sourceStructurePassed": 123,
+    "failedTests": []
+  }
+]
