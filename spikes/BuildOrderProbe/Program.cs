@@ -12,11 +12,25 @@ namespace BuildOrderProbe;
 /// no builds, the host's way in one shared project collection (shared) or one per thread (separate), or through
 /// ProjectCollection.LoadProject in one shared collection (load-project); writes a <see cref="ScalingRun"/>.
 /// scaling-compare: speedups and slowdowns over the evaluate runs of a result folder.
+/// check-globs: reproduces why recording item elements before a build can change the later FileGlobs response.
 /// </summary>
 internal static class Program
 {
     private static int Main(string[] args)
     {
+        if (args.Length >= 3 && args[0] == "check-globs")
+        {
+            var solutionPath = Path.GetFullPath(args[1]);
+            var outputPath = Path.GetFullPath(args[2]);
+            MsBuildRegistration.Register(Path.GetDirectoryName(solutionPath)!);
+            var result = CheckGlobs();
+            var json = JsonSerializer.Serialize(result, _options);
+            Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
+            File.WriteAllText(outputPath, json);
+            Console.WriteLine(json);
+            return 0;
+        }
+
         if (args.Length >= 4 && args[0] == "run" && TryParseOrder(args[1], out var order))
         {
             var solutionPath = Path.GetFullPath(args[2]);
@@ -55,7 +69,7 @@ internal static class Program
         }
 
         Console.Error.WriteLine("Usage: run client|references-first|evaluate-ahead|evaluate-ahead-paused|evaluate-closure|evaluate-closure-preorder|evaluate-solution-preorder SOLUTION OUTPUT_JSON [WORKERS] [WINDOW] | compare RESULT_DIRECTORY | " +
-            "evaluate SOLUTION PATHS_FILE OUTPUT_JSON WORKERS shared|separate|load-project | scaling-compare RESULT_DIRECTORY");
+            "evaluate SOLUTION PATHS_FILE OUTPUT_JSON WORKERS shared|separate|load-project | scaling-compare RESULT_DIRECTORY | check-globs SOLUTION OUTPUT_JSON");
         return 2;
     }
 
@@ -67,6 +81,10 @@ internal static class Program
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static ScalingRun Evaluate(string solutionPath, IReadOnlyList<string> paths, int workers, bool separateCollections, bool useLoadProject)
         => EvaluationScaling.Run(solutionPath, paths, workers, separateCollections, useLoadProject);
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static RecordItemElementsRun CheckGlobs()
+        => RecordItemElementsProbe.Run();
 
     private static bool TryParseOrder(string text, out LoadOrder order)
     {

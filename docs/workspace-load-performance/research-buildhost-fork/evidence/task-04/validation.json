@@ -64,5 +64,25 @@
     "skipped": 0,
     "sourceStructurePassed": 123,
     "failedTests": []
+  },
+  {
+    "file": "task-04-step0-final-main.trx",
+    "sha256": "cb9f65e0f97f643798f55f65d3f092436f894b93d4ec48546874855a7343cf34",
+    "total": 1467,
+    "passed": 1467,
+    "failed": 0,
+    "skipped": 0,
+    "sourceStructurePassed": 123,
+    "failedTests": []
+  },
+  {
+    "file": "task-04-step0-main.trx",
+    "sha256": "cab8b84858f8d08a6f80a53216ee08b65bac4ea681faa88fd3dbd7b479908dde",
+    "total": 1467,
+    "passed": 1467,
+    "failed": 0,
+    "skipped": 0,
+    "sourceStructurePassed": 123,
+    "failedTests": []
   }
 ]

@@ -1,5 +1,18 @@
 # BuildOrderProbe — порядок сборок и evaluation наперёд (spike)
 
+## Проверка `RecordEvaluatedItemElements` (task-04)
+
+`check-globs SOLUTION OUTPUT_JSON` выбирает SDK решения и на отдельной генерируемой фикстуре проверяет,
+что предварительная запись item elements меняет `GetAllGlobs`, если design-time build изменила вход условия
+`Exists`. Состав документов результата сборки у двух вариантов одинаковый, `Project.IsDirty` — false, но
+globs различаются. Команда завершается ошибкой, если контрпример перестал воспроизводиться; это проверка
+семантики API, а не замер производительности или сравнение полных RPC-ответов host.
+
+```powershell
+dotnet build spikes/BuildOrderProbe -c Release
+dotnet spikes/BuildOrderProbe/bin/Release/net10.0/BuildOrderProbe.dll check-globs <Roslyn.slnx> <output.json>
+```
+
 Контракт: [BuildHost/task-02](../../docs/workspace-load-performance/research-buildhost-fork/task-02-buildhost-optimization-spike-hi.md),
 шаг 0.
 
