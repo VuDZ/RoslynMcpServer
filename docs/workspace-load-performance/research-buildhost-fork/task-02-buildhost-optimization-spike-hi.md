@@ -1,7 +1,12 @@
 # BuildHost/task-02 — Повторные evaluation и упреждающая работа в host
 
 - Дата: 2026-10-22; постановка переписана 2026-10-25 по решению владельца.
-- Статус: **in progress, 2026-10-25** — шаг 0: по binlog подтверждены повторные evaluation внутри сборок
+- Статус: **выполнен, 2026-10-26; приёмка владельца — pending.** Итог по порогам: A — go, B — go (пик памяти host
+  в офисе +11,0 %, по решению владельца не стоп-фактор), A + B — go и принимается как сочетание: все варианты
+  identical на Roslyn.slnx (два компьютера) и офисном решении; к форку без оптимизаций A + B ×0,732 (офис), ×0,835
+  и ×0,816 (Roslyn.slnx), быстрее каждой части везде, пик памяти host не выше +9,1 %
+  ([отчёт эксперимента](evidence/task-02-optimization-spike.md)). Production включение — отдельное решение.
+- История этапов: шаг 0: по binlog подтверждены повторные evaluation внутри сборок
   (офис — 100 из 102, 5,3 с; Roslyn.slnx — 180 из 250, 4,8 с). Проба `spikes/BuildOrderProbe`, результаты
   identical: «ссылки раньше» — офис −15,9 %, Roslyn.slnx −9,6 % wall пробы; evaluation наперёд — офис ещё −3,7 с
   (вместе −29,3 %), Roslyn.slnx — без выигрыша: одновременные evaluation в одной `ProjectCollection` ждут друг
@@ -47,12 +52,14 @@
   ([итог этапа 2](evidence/task-02-stage-2-evaluate-ahead.md#итог-этапа-2)). Этап 3 (замер) — in progress,
   2026-10-26: стенд `Invoke-BuildHostForkMatrix.ps1` (оригинал, форк без оптимизаций, A, B, A + B, A + B с трассой
   в одном прогоне), Linux-проверка identical. Roslyn.slnx дома: все варианты identical, к форку без оптимизаций
-  A ×0,932, B ×0,857, A + B ×0,816, пик памяти host не выше +5,3 %, цена трассы не видна. Pending — офисный
-  компьютер ([этап 3](evidence/task-02-stage-3-matrix.md)).
+  A ×0,932, B ×0,857, A + B ×0,816, пик памяти host не выше +5,3 %, цена трассы не видна. Этап 3 выполнен
+  2026-10-26: офисный компьютер, все варианты identical; офис — A ×0,898, B ×0,838, A + B ×0,732; Roslyn.slnx —
+  ×0,927, ×0,855, ×0,835 ([этап 3](evidence/task-02-stage-3-matrix.md#итог-этапа-3)).
 - Сложность: hi; риск — ускорить загрузку ценой неверного workspace.
 - Depends on: [task-01](task-01-buildhost-graph-and-timings-hi.md) (accepted).
-- Evidence/validation: [шаг 0](evidence/task-02-step-0.md); отчёт эксперимента —
-  `evidence/task-02-optimization-spike.md` (будет).
+- Evidence/validation: [шаг 0](evidence/task-02-step-0.md), [этап 1](evidence/task-02-stage-1-references-first.md),
+  [этап 2](evidence/task-02-stage-2-evaluate-ahead.md), [этап 3](evidence/task-02-stage-3-matrix.md); отчёт
+  эксперимента — [evidence/task-02-optimization-spike.md](evidence/task-02-optimization-spike.md).
 
 ## Что меняется и почему
 
