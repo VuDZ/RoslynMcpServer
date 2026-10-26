@@ -1,8 +1,9 @@
 # BuildHost/task-04 — Извлечение ProjectFileInfo
 
 Дата: 2026-10-26. **In progress: шаг 0 выполнен, включая повторные офисные матрицы с новой инструментацией.**
-Предварительный `RecordEvaluatedItemElements` — no-go по корректности; совместимый кандидат пока не реализован.
-Пороги для следующего кандидата зафиксированы в конце отчёта. Production-поведение extraction сохранено.
+Предварительный `RecordEvaluatedItemElements` — no-go по корректности. В стенде реализован эксперимент
+**server GC + ConserveMemory=9 только в host**; вычисления `ProjectFileInfo` сохранены, полный RPC проверен.
+Квалификация кандидата по офисным порогам и production-активация ещё не выполнены.
 
 ## Объём изменения
 
@@ -356,7 +357,134 @@ extraction осталось лишь около 0,30 и 0,13 с; повторы 
 Load + first useful query учитывается отдельно по каждому раунду. Пик памяти host и клиента **+10 % —
 ориентир**, как решил владелец; отклонения записываются явно. Production-активация остаётся отдельным решением.
 
-**Task-04 остаётся in progress:** совместимый кандидат ещё не реализован. Следующий узкий шаг — найти способ
-удешевить позднюю evaluation/получение globs, сохранив наблюдаемые после build входы, либо доказать безопасное
-окно для параллельного выполнения. Перед изменением вычисления поля нужно полное сравнение ответа host;
-пройденная проба контрпримера не заменяет это сравнение и не означает приёмку всей задачи.
+**Task-04 остаётся in progress.** Следующий эксперимент сохраняет позднюю evaluation и все её входы;
+результаты поиска и область проверки приведены ниже. Это не приёмка всей задачи и не production-активация.
+
+
+## Следующий эксперимент: GC только в host, 2026-10-26
+
+[CPU-профиль](task-04/getallglobs-cpu.json) снят через `dotnet-trace`, профиль
+`dotnet-sampled-thread-time`: отдельная `HostSession`, проекты Roslyn.slnx в порядке решения, вызов
+`GetAllGlobs` после design-time builds, SDK 10.0.301 / MSBuild 18.6.4, runtime 10.0.13. Это диагностическая
+проба, не A+B-матрица. На 318 проектах секундомер дал **8175 мс**, sampled thread time — **8188 мс**;
+98,6 % samples проходят через `Reevaluate`, 54,1 % — SDK resolution, 52,1 % — workload SDK resolver,
+36,4 % — загрузку workload-манифестов. Стек `PollGC` присутствует в 15,5 % samples. Это вложенные доли,
+их нельзя складывать или выдавать за отдельно измеренные GC pauses.
+
+Общий `EvaluationContext`/`SharedSDKCache` не включён: `CachingSdkResolverService` кеширует по submission ID
+и имени SDK, тогда как resolver получает ещё путь проекта, SDK version и другие входы. Это не доказательство
+совпадения resolution для разных проектов. Общий файловый кеш также может скрыть созданные build файлы.
+Изменять эти границы ради ускорения нельзя без дополнительного доказательства совместимости.
+
+Выбран эксперимент, сохраняющий алгоритм и момент чтения: отдельная копия `bin-fork-gc`, в runtimeconfig
+**только netcore BuildHost** добавлены `System.GC.Server=true` и `System.GC.ConserveMemory=9`. Клиент,
+net472-host, DLL форка, `ProjectLoadSettings`, global properties и вычисления extraction не меняются.
+Настройка через runtimeconfig также не добавляет GC-переменные в окружение MSBuild. По
+[документации .NET](https://learn.microsoft.com/dotnet/core/runtime-config/garbage-collector)
+`ConserveMemory` уменьшает heap ценой более частых collections; значение 9 — самый сильный режим экономии.
+Это настройка опытной копии, не новая настройка production-сервера.
+
+`Invoke-BuildHostForkMatrix.ps1` принимает opt-in варианты `fork-ab-gc` и `fork-ab-gc-trace`; прежние пять
+вариантов и автоматический каталог результатов сохранены. GC-копию создаёт `Initialize-GcForkCopy`,
+проверяющий путь удаления и конфликтующие overrides Server/ConserveMemory. В сценариях тот же профиль
+включается `-ServerGc`, независимо от A/B. Без этих вариантов/переключателя GC форка прежний.
+
+### Полный ответ ProjectFileInfo
+
+В `spikes/BuildHostFork/Rpc/` добавлен последовательный клиент исходного named-pipe JSON протокола:
+`rpc-capture HOST_DLL SOLUTION OUTPUT_JSON`. Он читает C#/VB записи решения и ссылки на C#/VB проекты,
+запрашивает полный массив `GetProjectFileInfosAsync` и диагностики, проверяет завершение host и только
+после этого записывает результат. Параметры runtime launch совпадают с Roslyn: `--roll-forward LatestMajor`,
+`DOTNET_ROLL_FORWARD_TO_PRERELEASE=1`, без наследованного `MSBUILD_EXE_PATH`. Культура контрольных RPC — en-US.
+Это отдельная проверка netcore-контракта; она не воспроизводит выбор net472-host и все операции workspace.
+Прежний `ObservationComparer` не изменён и остаётся обязательным.
+
+`rpc-compare LEFT RIGHT` сравнивает **все** JSON-поля, отсутствие/null/пустую строку, регистр и порядок
+массивов, включая диагностики. Literal ordered-array comparison **не identical даже между двумя original**:
+MSBuild формирует `Excludes` через `ToImmutableHashSet`, а порядок exclude/remove patterns меняется между
+процессами. Сырые ответы и raw differences сохранены. Отдельный явный режим
+`rpc-compare LEFT RIGHT glob-sets` сортирует только `FileGlobs.Excludes`/`Removes` по ordinal, сохраняя
+дубликаты и регистр. Includes, порядок glob results, документы, folders, references и все остальные массивы
+остаются упорядоченными. Никакого преобразования ответа host нет.
+
+[Полная Roslyn.slnx](task-04/servergc9-rpc.json): пакетный host, повтор пакетного host, A+B и A+B+GC9 —
+по **318 проектов, 434 ProjectFileInfo, 1363 glob results**, 24 имени поля в объединении ответов, по 3
+host diagnostics. После сортировки только двух glob-наборов **0 отличий во всех полях** у каждой стороны.
+Raw comparisons: 4420 отличающихся значений у original-repeat, 4741 у A+B и 4608 у A+B+GC9; все эти
+различия исчезают исключительно при указанной сортировке. Это семантическое совпадение полных ответов,
+а не заявление о побайтово одинаковых JSON. Workspace failures (44 в Roslyn) остаются отдельной метрикой.
+
+`rpc-check` — **31 self-check**, включая изменение каждого из 24 полей, nested folders, порядок glob arrays,
+missing/null/empty, изменение glob pattern. `Test-ProjectFileInfo.ps1` — **23 assertions + 3 полных сравнения**:
+build создаёт marker, начальные документы не содержат After.cs, поздние globs содержат after/**/*.cs у
+original, original-repeat, A+B и GC9; проверены Link/folders, additional/editorconfig/content и capability.
+Все проверки пройдены. Фикстура генерируется заново, marker удаляется перед каждым независимым запуском.
+
+### Контроль замера
+
+Предварительные серии `task-04-servergc`, `task-04-servergc4` и timed rounds `task-04-servergc9` **исключены
+из оценки эффекта GC**: общий `Invoke-ObserveRounds` применяет `ForkVariables` только к стороне `fork`,
+и их контроль фактически имел A/B off. Значения −25 % и 1,45 → 1,71 ГБ из предварительного сообщения не
+изолируют GC. [Причина и замена](task-04/discarded-gc-controls.json). Данные не скрыты и не переименованы
+в корректный контроль. У последней серии пригодны отдельные парные traces и RPC: там `Invoke-Spike(..., true)`
+явно применял A+B к обеим fork-сторонам.
+
+Квалифицирующая домашняя серия — `task-04-servergc9-ab`: на каждой стороне каждого раунда явно применены
+**A=true, B=4, solution entries=all**, один и тот же host DLL (SHA-256 в receipt). Прогрев + три измеренных
+fresh-process раунда, чередование порядка, без трассы; конфигурация каждого запуска сохранена отдельно.
+Процессор Ryzen 7 9800X3D (8 cores / 16 logical), 93,7 GiB RAM, Windows 11, публичная Roslyn.slnx
+013d3a758df6c137497ff37a93f0d4bed103853a, SDK 10.0.301, runtime 10.0.13.
+
+[Итог исправленной серии](task-04/servergc9-ab-summary.md) и [метрики/конфигурации всех раундов](task-04/servergc9-run-metrics.json):
+**загрузка 39012 → 36669 мс (−6,0 %)**. Медиана суммы load + first useful query каждого раунда —
+**56635 → 54080 мс (−4,5 %)**; первый поиск отдельно — 17425 → 17418 мс (−0,04 %).
+Пик host **1518 → 1725 MB (+13,6 %)**, клиента 755 → 732 MB (−3,2 %).
+Host CPU (нижняя граница sampler) **61156 → 68828 мс (+12,5 %)**: ускорение wall получено с большей
+ценой CPU. Workspace **identical**, natural/unexplained differences — 0, диагностики в исходном порядке
+совпадают, ответы первого поиска одинаковы, чужих/оставшихся host нет. Домашний критерий Roslyn.slnx
+«не медленнее более чем на 2 %» пройден; это не проверка офисного критерия ≥10 %.
+
+Единственная **диагностическая** пара трасс с A+B на обеих сторонах:
+[A+B](task-04/servergc9-trace-original.md) → [A+B+GC9](task-04/servergc9-trace-fork.md):
+окно 39199 → 35995 мс, `GetAllGlobs` **8663 → 8232 мс (−5,0 %)**, design-time builds 11130 → 9738 мс,
+TFM evaluation 9854 → 9460 мс. Ускорение распределено по host, оно не приписывается целиком globs.
+Обе трассы complete, 636 согласованных запросов, 0 вне допуска; snapshots workspace, диагностики и первый
+поиск совпадают. По одной паре нельзя подтверждать устойчивую долю ускорения именно `GetAllGlobs`.
+
+Владелец 2026-10-26 счёл расход порядка **1,7 против 1,45 ГБ приемлемым**. Это согласование диапазона памяти,
+а не разрешение активировать профиль в production и не приёмка офисного порога скорости.
+
+### Итоговая валидация стенда
+
+- Release build форка и spike — без warnings/errors; Release solution build — успешен с прежними
+  CS8603, CS8601 и xUnit1031 в неизменённых файлах.
+- Полный main с CI-фильтром `Category!=AnalyzerLifecycle&Category!=RequiresPinnedSdk`, Release,
+  `xUnit.ParallelizeTestCollections=false`: **1467 passed / 0 failed / 0 skipped**, включая
+  **123 SourceStructure**, 4 мин 22 с. TRX `task-04-gc-main.trx`, hash и счётчики —
+  [validation.json](task-04/validation.json). Причина serial execution прежняя: process-wide first-chance
+  recorder в неизменённом тесте; обычный parallel main в этой итерации повторно не запускался.
+- `Test-ProjectFileInfo.ps1` полностью прошёл в PowerShell 7 **и Windows PowerShell 5.1**;
+  [receipt](task-04/servergc9-checks.json). У обоих проверена поздняя файловая condition после build.
+- Маленькая матрица `fork-ab,fork-ab-gc,fork-ab-gc-trace` — все workspace и полные RPC совпадают
+  с указанным учётом glob set order; traces complete.
+- [Сценарии task-00 с A+B+GC9](task-04/servergc9-scenarios.md): **all checks passed**, включая missing,
+  broken XML, unsupported language, удалённый host DLL, cancellation и kill. Early cancel оставляет по
+  одному host у обеих сторон — прежнее ограничение upstream; runner фиксирует и завершает их.
+  Дополнительно полные RPC на этой failure-фикстуре: **9 проектов, 10 ProjectFileInfo, 3 empty**,
+  по 10 diagnostics — совпадают после сортировки только двух glob-наборов, остальные массивы упорядочены.
+- Production C#/runtimeconfig не менялись; изменён только стенд. `AnalyzerLifecycle` в этой итерации
+  повторно не запускался, прежний 13/13 сохранён. Linux GC9 и офисные пороги ещё не проверены.
+
+### Воспроизведение на офисном компьютере
+
+После получения коммита выполнить для Roslyn.slnx и затем для офисного решения (подставить свой путь):
+
+```powershell
+.\spikes\BuildHostFork\Invoke-BuildHostForkMatrix.ps1 -Solution <путь-к-решению> -Variants fork-ab,fork-ab-gc,fork-ab-gc-trace
+```
+
+Каталог задавать не нужно. Runner сохраняет matrix/summary/trace-summary и после замеров сам делает полные
+RPC captures: два original controls и каждый вариант. `rpc-*-raw.txt` сохраняет строгие отличия,
+`rpc-*-glob-sets.txt` — сравнение с сортировкой только двух glob-наборов; прочие различия завершают скрипт
+ошибкой. Как раньше, raw JSON/traces содержат пути решения и не публикуются без редактирования.
+Порог офиса ≥10 % к A+B ещё не проверен; task-04 остаётся in progress, production-профиль прежний.

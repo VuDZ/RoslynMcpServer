@@ -32,6 +32,7 @@ function Initialize-ForkCopy([string]$Repo, [string]$SpikeDirectory) {
     Invoke-Native 'dotnet' @('build', $spikeProject, '-c', 'Release', '-nologo', '-v', 'q') 'Spike build failed'
     Write-Host 'Comparer self-checks'
     Invoke-Native 'dotnet' @((Join-Path $originalBin 'BuildHostFork.dll'), 'check') 'Comparer self-checks failed'
+    Invoke-Native 'dotnet' @((Join-Path $originalBin 'BuildHostFork.dll'), 'rpc-check') 'RPC comparer self-checks failed'
 
     if (Test-Path -LiteralPath $forkBin) { Remove-Item -LiteralPath $forkBin -Recurse -Force }
     Copy-Item -LiteralPath $originalBin -Destination $forkBin -Recurse
@@ -43,6 +44,24 @@ function Initialize-ForkCopy([string]$Repo, [string]$SpikeDirectory) {
     if ($version -notlike '*fork*') { throw "The fork copy does not hold the fork BuildHost: $version" }
     Write-Host "Fork BuildHost: $version"
     return [ordered]@{ originalBin = $originalBin; forkBin = $forkBin; version = $version }
+}
+
+# Experimental task-04 runtime settings, confined to a separate netcore BuildHost copy. The client keeps its GC.
+function Initialize-GcForkCopy([string]$ForkBin) {
+    foreach ($name in @('DOTNET_gcServer', 'COMPlus_gcServer', 'DOTNET_GCConserveMemory', 'COMPlus_GCConserveMemory')) {
+        if ($null -ne [Environment]::GetEnvironmentVariable($name)) { throw "Unset $name before the GC experiment: it can override runtimeconfig.json." }
+    }
+    $parent = Split-Path ([IO.Path]::GetFullPath($ForkBin)) -Parent
+    $directory = [IO.Path]::GetFullPath((Join-Path $parent 'bin-fork-gc'))
+    if ((Split-Path $directory -Parent) -ne $parent -or (Split-Path $directory -Leaf) -ne 'bin-fork-gc') { throw "Unexpected GC copy path: $directory" }
+    if (Test-Path -LiteralPath $directory) { Remove-Item -LiteralPath $directory -Recurse -Force }
+    Copy-Item -LiteralPath $ForkBin -Destination $directory -Recurse
+    $configPath = Join-Path $directory 'BuildHost-netcore/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.runtimeconfig.json'
+    $config = Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json
+    $config.runtimeOptions.configProperties | Add-Member -MemberType NoteProperty -Name 'System.GC.Server' -Value $true -Force
+    $config.runtimeOptions.configProperties | Add-Member -MemberType NoteProperty -Name 'System.GC.ConserveMemory' -Value 9 -Force
+    [IO.File]::WriteAllText($configPath, ($config | ConvertTo-Json -Depth 10), (New-Object Text.UTF8Encoding($false)))
+    return $directory
 }
 
 # Runs observe for both sides in alternating order; round 0 is warmup. Writes <side>-round<N>.json and .out.txt.

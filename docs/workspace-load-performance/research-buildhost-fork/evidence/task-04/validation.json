@@ -84,5 +84,15 @@
     "skipped": 0,
     "sourceStructurePassed": 123,
     "failedTests": []
+  },
+  {
+    "file": "task-04-gc-main.trx",
+    "sha256": "ef79128a996ea986a1a09f44ec1d60b0de94befedc261926e52d5e3e27945bb2",
+    "total": 1467,
+    "passed": 1467,
+    "failed": 0,
+    "skipped": 0,
+    "sourceStructurePassed": 123,
+    "failedTests": []
   }
 ]

@@ -6,13 +6,15 @@
 .DESCRIPTION
     The same stand as Invoke-BuildHostForkBaseline.ps1: the spike is built once, bin-fork holds the fork in
     BuildHost-netcore, and every load is a fresh client process. The variants differ only in the environment of the
-    fork side:
+    fork side (the GC variants also change the runtimeconfig of their separate host copy):
 
       fork            no optimizations: the time reference of the task-02 thresholds
       fork-a          part A, references first (ROSLYN_BUILDHOST_REFERENCES_FIRST)
       fork-b          part B, evaluation ahead (ROSLYN_BUILDHOST_EVALUATE_AHEAD)
       fork-ab         A and B
       fork-ab-trace   A and B with the timing trace of BuildHost/task-01, against fork-ab for the cost of tracing
+      fork-ab-gc      A and B, server GC with ConserveMemory=9 in the host only (task-04 experiment)
+      fork-ab-gc-trace  the same GC experiment with the trace
 
     Each round runs every side once; the order is rotated by one side per round, so no side always goes first or
     always follows the same one. Round 0 is warmup.
@@ -35,7 +37,8 @@
     Result folder. Default: results\matrix-<time> next to this script (not tracked by Git).
 
 .PARAMETER Variants
-    Fork variants to run, in the order of the table. Default: all five.
+    Fork variants to run, in the order of the table. Default: the original five; GC variants are opt-in.
+    With a GC variant, full netcore ProjectFileInfo RPC captures and comparisons follow the timed rounds.
 
 .PARAMETER EvaluateAhead
     Worker threads of part B in the variants with B. Default 4.
@@ -61,7 +64,7 @@ param(
 
     [string]$OutDirectory,
 
-    [ValidateSet('fork', 'fork-a', 'fork-b', 'fork-ab', 'fork-ab-trace')]
+    [ValidateSet('fork', 'fork-a', 'fork-b', 'fork-ab', 'fork-ab-trace', 'fork-ab-gc', 'fork-ab-gc-trace')]
     [string[]]$Variants = @('fork', 'fork-a', 'fork-b', 'fork-ab', 'fork-ab-trace'),
 
     [ValidateRange(1, 64)]
@@ -85,6 +88,8 @@ $definitions = @{
     'fork-b' = @{ referencesFirst = $false; evaluateAhead = $EvaluateAhead; trace = $false }
     'fork-ab' = @{ referencesFirst = $true; evaluateAhead = $EvaluateAhead; trace = $false }
     'fork-ab-trace' = @{ referencesFirst = $true; evaluateAhead = $EvaluateAhead; trace = $true }
+    'fork-ab-gc' = @{ referencesFirst = $true; evaluateAhead = $EvaluateAhead; trace = $false }
+    'fork-ab-gc-trace' = @{ referencesFirst = $true; evaluateAhead = $EvaluateAhead; trace = $true }
 }
 $Variants = @($Variants | Select-Object -Unique)
 
@@ -97,6 +102,10 @@ if ($pinned) { Write-Host "Solution pins .NET SDK ${pinned}: installed." }
 $copies = Initialize-ForkCopy $repo $PSScriptRoot
 $originalDll = Join-Path $copies.originalBin 'BuildHostFork.dll'
 $forkDll = Join-Path $copies.forkBin 'BuildHostFork.dll'
+$gcDll = $null
+if (@($Variants | Where-Object { $_ -like 'fork-ab-gc*' }).Count -gt 0) {
+    $gcDll = Join-Path (Initialize-GcForkCopy $copies.forkBin) 'BuildHostFork.dll'
+}
 
 if (-not $SkipRestore) {
     Write-Host "Restoring $Solution"
@@ -138,9 +147,35 @@ for ($round = 0; $round -le $Runs; $round++) {
 
         $prefix = if ($fork) { 'fork' } else { 'original' }
         $output = Join-Path $directory "$prefix-round$round.json"
-        try { $exitCode = Invoke-Spike $(if ($fork) { $forkDll } else { $originalDll }) @('observe', $Solution, $output, $Name) (Join-Path $directory "$prefix-round$round.out.txt") $fork }
+        $dll = if ($side -like 'fork-ab-gc*') { $gcDll } elseif ($fork) { $forkDll } else { $originalDll }
+        try { $exitCode = Invoke-Spike $dll @('observe', $Solution, $output, $Name) (Join-Path $directory "$prefix-round$round.out.txt") $fork }
         finally { Remove-Item Env:ROSLYN_BUILDHOST_TRACE_DIRECTORY -ErrorAction SilentlyContinue }
         if ($exitCode -ne 0 -or -not (Test-Path -LiteralPath $output)) { throw "$label failed (exit code $exitCode); see $output" }
+    }
+}
+
+# These are separate correctness loads, after all timing rounds. Raw captures retain every field and array order.
+if ($gcDll) {
+    $rpcOriginal = Join-Path $OutDirectory 'rpc-original.json'
+    foreach ($side in @('original', 'original-repeat') + $Variants) {
+        $fork = $side -notlike 'original*'
+        $dll = if ($side -like 'fork-ab-gc*') { $gcDll } elseif ($fork) { $forkDll } else { $originalDll }
+        if ($fork) {
+            $definition = $definitions[$side]
+            Set-ForkOptimizations $definition.referencesFirst $definition.evaluateAhead $EvaluateAheadSolution
+        }
+        $directory = if ($fork) { Join-Path $OutDirectory $side } else { $OutDirectory }
+        $output = if ($fork) { Join-Path $directory 'rpc.json' } else { Join-Path $directory "rpc-$side.json" }
+        $hostDll = Join-Path (Split-Path $dll) 'BuildHost-netcore/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.dll'
+        Write-Host "Full RPC capture: $side"
+        $exitCode = Invoke-Spike $dll @('rpc-capture', $hostDll, $Solution, $output) (Join-Path $directory "rpc-$side.out.txt") $fork
+        if ($exitCode -ne 0) { throw "RPC capture failed: $side (exit code $exitCode)" }
+        if ($side -eq 'original') { continue }
+        # Upstream hash sets change Excludes/Removes order even between the two original controls.
+        & dotnet $originalDll rpc-compare $rpcOriginal $output | Out-File -LiteralPath (Join-Path $directory "rpc-$side-raw.txt") -Encoding utf8
+        if ($LASTEXITCODE -notin @(0, 1)) { throw "Raw RPC comparison failed: $side" }
+        & dotnet $originalDll rpc-compare $rpcOriginal $output glob-sets | Out-File -LiteralPath (Join-Path $directory "rpc-$side-glob-sets.txt") -Encoding utf8
+        if ($LASTEXITCODE -ne 0) { throw "Full RPC fields differ beyond glob set order: $side" }
     }
 }
 
@@ -158,5 +193,5 @@ foreach ($variant in $Variants | Where-Object { $definitions[$_].trace }) {
 }
 Write-Host ''
 Write-Host "Results: $OutDirectory"
-Write-Host 'matrix.md and <variant>\summary.md are enough for the analysis; fork-ab-trace\trace-summary.md shows where the time goes. The JSON files and the trace folders hold project paths of the solution.'
+Write-Host 'matrix.md and <variant>\summary.md compare the workspace; <variant>\trace-summary.md shows where the time goes. GC variants also write rpc-*-raw.txt and rpc-*-glob-sets.txt. JSON and trace files hold project paths.'
 if (-not $equivalent) { throw 'A fork variant is not shown equivalent to the original; see matrix.md.' }

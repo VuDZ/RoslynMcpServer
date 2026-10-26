@@ -1,15 +1,16 @@
 # BuildHost/task-04 — Извлечение ProjectFileInfo в host
 
 - Дата: 2026-10-26.
-- Статус: **in progress, 2026-10-26; шаг 0 выполнен** — новая разбивка есть в повторных офисных матрицах на
-  commit 15dbfa6, оба решения identical. `GetAllGlobs` — 18,60 с / 22,0 % окна Roslyn.slnx и 10,00 с / 31,8 %
-  офисного решения (98,4–98,8 % полного extraction); на домашней Roslyn.slnx — 8,39 с / 21,6 %.
-  Повторы между TFM — 45 мс и 0 соответственно. Причина первого дорогого вызова — дополнительная evaluation
-  MSBuild. Ранний `RecordEvaluatedItemElements` проверен изолированной пробой и отвергнут: меняет globs после
-  design-time build даже при `IsDirty=false`. Release build и main 1467/0/0 (последовательно), включая 123
-  SourceStructure, пройдены; прежние фикстура 74/74, Linux identical и AnalyzerLifecycle 13/13 сохранены.
-  Пороги следующего кандидата зафиксированы; совместимый production-кандидат и его активация не реализованы
-  ([отчёт](evidence/task-04-projectfileinfo-extraction.md)).
+- Статус: **in progress, 2026-10-26; шаг 0 выполнен, GC9 — эксперимент в стенде**.
+  Принятый объём: разбивка extraction и повторные офисные данные; production extraction прежний.
+  Поздний GetAllGlobs вызывает дополнительную evaluation; ранний Record отвергнут контрпримером.
+  Новый профиль — server GC + ConserveMemory=9 только в опытной копии host. На домашней Roslyn.slnx
+  против A+B: загрузка −6,0 %, load + first query −4,5 %, host 1518 → 1725 MB (+13,6 %), CPU +12,5 %.
+  Одна диагностическая пара: GetAllGlobs 8663 → 8232 мс. Полные RPC 434 результатов совпадают по всем
+  полям с учётом естественного порядка Excludes/Removes; raw comparisons сохранены. Диапазон памяти
+  около 1,7 против 1,45 ГБ владелец счёл приемлемым. Release build, main 1467/0/0 (serial), включая 123
+  SourceStructure, и сценарии сбоев пройдены. Офисный порог ≥10 % и production-активация — pending
+  ([валидация и отчёт](evidence/task-04-projectfileinfo-extraction.md#следующий-эксперимент-gc-только-в-host-2026-10-26)).
 - Сложность: hi; риск — сократить извлечение ценой неполного или иного `ProjectFileInfo`.
 - Сопутствующее исправление, 2026-10-26: matrix/baseline/scenarios разрешают относительные `Solution` и
   `OutDirectory` от location PowerShell; автоматический каталог без `OutDirectory` сохранён и проверен

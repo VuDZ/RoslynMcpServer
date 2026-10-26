@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
+using BuildHostFork.Rpc;
 using BuildHostFork.Trace;
 using ParallelSearch;
 using ParallelSearch.Models;
@@ -17,6 +18,7 @@ namespace BuildHostFork;
 /// check: self-checks of compare on synthetic runs.
 /// trace-report, trace-summary: report of one traced load and medians over traced rounds (BuildHost/task-01); observe writes the trace when
 /// ROSLYN_BUILDHOST_TRACE_DIRECTORY is set, see <see cref="ClientTraceFile"/>.
+/// rpc-capture, rpc-compare, rpc-check: the complete netcore ProjectFileInfo protocol, independent of workspace projection.
 /// </summary>
 internal static class Program
 {
@@ -25,6 +27,24 @@ internal static class Program
 
     private static async Task<int> Main(string[] args)
     {
+        if (args.Length == 4 && args[0] == "rpc-capture")
+        {
+            var solutionPath = Path.GetFullPath(args[2]);
+            MsBuildRegistration.Register(Path.GetDirectoryName(solutionPath)!);
+            await CaptureRpcAsync(Path.GetFullPath(args[1]), solutionPath, Path.GetFullPath(args[3])).ConfigureAwait(false);
+            return 0;
+        }
+
+        if (args.Length is 3 or 4 && args[0] == "rpc-compare" && (args.Length == 3 || args[3] == "glob-sets"))
+        {
+            return ProjectFileInfoComparison.Run(Path.GetFullPath(args[1]), Path.GetFullPath(args[2]), globSets: args.Length == 4);
+        }
+
+        if (args is ["rpc-check"])
+        {
+            return ProjectFileInfoComparison.SelfCheck();
+        }
+
         if (args.Length >= 3 && args[0] == "observe")
         {
             var solutionPath = Path.GetFullPath(args[1]);
@@ -77,7 +97,7 @@ internal static class Program
             return ComparerSelfCheck.Run();
         }
 
-        Console.Error.WriteLine("Usage: observe SOLUTION OUTPUT_JSON [NAME] | load|cancel|kill-host SOLUTION OUTPUT_JSON [DELAY_MS] | compare RESULT_DIRECTORY | matrix RESULT_DIRECTORY VARIANT... | trace-report TRACE_DIRECTORY [redact] | trace-summary RESULT_DIRECTORY [redact] | check");
+        Console.Error.WriteLine("Usage: observe SOLUTION OUTPUT_JSON [NAME] | load|cancel|kill-host SOLUTION OUTPUT_JSON [DELAY_MS] | compare RESULT_DIRECTORY | matrix RESULT_DIRECTORY VARIANT... | trace-report TRACE_DIRECTORY [redact] | trace-summary RESULT_DIRECTORY [redact] | check | rpc-capture HOST_DLL SOLUTION OUTPUT_JSON | rpc-compare LEFT_JSON RIGHT_JSON [glob-sets] | rpc-check");
         return 2;
     }
 
@@ -88,6 +108,10 @@ internal static class Program
     /// </summary>
     internal static IDictionary<string, string> SolutionProperties(string solutionPath)
         => new Dictionary<string, string> { ["RoslynMcpSolutionPath"] = Path.GetFullPath(solutionPath) };
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static Task CaptureRpcAsync(string hostPath, string solutionPath, string outputPath)
+        => ProjectFileInfoCapture.RunAsync(hostPath, solutionPath, outputPath);
 
     // MSBuild types must not be loaded before MSBuildLocator registration; this method is JIT-compiled after it.
     [MethodImpl(MethodImplOptions.NoInlining)]

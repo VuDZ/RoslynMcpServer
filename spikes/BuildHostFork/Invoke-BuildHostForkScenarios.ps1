@@ -53,6 +53,9 @@
 .PARAMETER EvaluateAheadSolution
     all (default), a window of entries, or off (ROSLYN_BUILDHOST_EVALUATE_AHEAD_SOLUTION).
 
+.PARAMETER ServerGc
+    Task-04 experiment: server GC with ConserveMemory=9 in a separate copy of the fork host. Default off.
+
 .EXAMPLE
     .\spikes\BuildHostFork\Invoke-BuildHostForkScenarios.ps1 -Solution D:\src\roslyn\Roslyn.slnx
 #>
@@ -71,7 +74,9 @@ param(
     [int]$EvaluateAhead = 0,
 
     [ValidatePattern('^(all|off|[1-9][0-9]*)$')]
-    [string]$EvaluateAheadSolution = 'all'
+    [string]$EvaluateAheadSolution = 'all',
+
+    [switch]$ServerGc
 )
 
 Set-StrictMode -Version 2.0
@@ -95,6 +100,7 @@ $OutDirectory = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFro
 New-Item -ItemType Directory -Force -Path $OutDirectory | Out-Null
 
 $copies = Initialize-ForkCopy $repo $PSScriptRoot
+if ($ServerGc) { $copies.forkBin = Initialize-GcForkCopy $copies.forkBin }
 Set-ForkOptimizations $ReferencesFirst $EvaluateAhead $EvaluateAheadSolution
 $sides = [ordered]@{ original = (Join-Path $copies.originalBin 'BuildHostFork.dll'); fork = (Join-Path $copies.forkBin 'BuildHostFork.dll') }
 $brokenBin = Join-Path $PSScriptRoot 'bin-fork-broken'
@@ -306,6 +312,7 @@ $md = New-Object Text.StringBuilder
 [void]$md.AppendLine('# BuildHost fork failure scenarios (BuildHost/task-00)')
 [void]$md.AppendLine('')
 [void]$md.AppendLine("- fork: $($copies.version); references first (BuildHost/task-02 A): $([bool]$ReferencesFirst); evaluate ahead (B): $(if ($EvaluateAhead -gt 0) { "$EvaluateAhead workers, solution entries: $EvaluateAheadSolution" } else { 'off' }); solution for load, cancel and kill: $solutionName")
+[void]$md.AppendLine("- experimental server GC with ConserveMemory=9 in netcore host only: $([bool]$ServerGc)")
 [void]$md.AppendLine("- delay after the first BuildHost: $DelayMs ms ($delaySource); early cancel: 0 ms")
 [void]$md.AppendLine('- fixture observe, warmup + 3 rounds: ' + (((Get-Content -LiteralPath (Join-Path $fixtureResults 'summary.md')) -match '^- (fork rounds|result|diagnostics in report order)') -replace '^- ', '' -join '; '))
 $resultText = 'all checks passed'
