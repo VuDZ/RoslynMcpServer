@@ -46,8 +46,9 @@
   +11,5 % и +13,4 % — выше порога +10 %; A + B быстрее каждой части на всех решениях и в пределах порога памяти
   ([итог этапа 2](evidence/task-02-stage-2-evaluate-ahead.md#итог-этапа-2)). Этап 3 (замер) — in progress,
   2026-10-26: стенд `Invoke-BuildHostForkMatrix.ps1` (оригинал, форк без оптимизаций, A, B, A + B, A + B с трассой
-  в одном прогоне), Linux-проверка identical; прогоны владельца pending
-  ([этап 3](evidence/task-02-stage-3-matrix.md)).
+  в одном прогоне), Linux-проверка identical. Roslyn.slnx дома: все варианты identical, к форку без оптимизаций
+  A ×0,932, B ×0,857, A + B ×0,816, пик памяти host не выше +5,3 %, цена трассы не видна. Pending — офисный
+  компьютер ([этап 3](evidence/task-02-stage-3-matrix.md)).
 - Сложность: hi; риск — ускорить загрузку ценой неверного workspace.
 - Depends on: [task-01](task-01-buildhost-graph-and-timings-hi.md) (accepted).
 - Evidence/validation: [шаг 0](evidence/task-02-step-0.md); отчёт эксперимента —
