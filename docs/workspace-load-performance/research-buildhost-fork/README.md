@@ -3,7 +3,8 @@
 Дата: **2026-10-22**. Статус: **in progress, 2026-10-26** — task-00 (воспроизводимый форк без изменения
 поведения) accepted 2026-10-24 после двух раундов ревью; task-00a accepted 2026-10-24; task-00b in progress
 (смягчение в сервере принято, пакет ещё не вышел); task-01 accepted 2026-10-24; task-02 выполнен, приёмка владельца pending;
-task-03 accepted 2026-10-26 ([валидация и приёмка](evidence/task-03-server-integration.md#приёмка-2026-10-26)). Git-ветка
+task-03 accepted 2026-10-26 ([валидация и приёмка](evidence/task-03-server-integration.md#приёмка-2026-10-26));
+task-04 accepted 2026-10-27 ([приёмка](evidence/task-04-projectfileinfo-extraction.md#приёмка-2026-10-27)). Git-ветка
 продолжения: `research/workspace-load-performance`.
 
 Постановка по решению владельца: сохранить результаты офисных замеров и
