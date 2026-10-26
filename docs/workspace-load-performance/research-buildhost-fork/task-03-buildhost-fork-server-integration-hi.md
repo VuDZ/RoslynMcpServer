@@ -1,9 +1,10 @@
 # BuildHost/task-03 — Форк BuildHost с A + B в сервере
 
 - Дата: 2026-10-26.
-- Статус: **in progress, 2026-10-26** — постановка по решению владельца; интеграция сделана, Linux-проверки сборки,
-  publish, pack и загрузки сервером пройдены; полный main-набор и `AnalyzerLifecycle` — pending, их прогоняет
-  владелец (здесь — OOM машины) ([отчёт](evidence/task-03-server-integration.md)).
+- Статус: **accepted, 2026-10-26** — интеграция форка с A + B по умолчанию проверена: Linux build/publish/pack,
+  Windows Release build и publish, main-набор 1467/0/0 (включая SourceStructure 123/0/0), `AnalyzerLifecycle`
+  13/0/0. Roslyn.slnx на Windows: ответ без изменений, медиана `load_workspace` 54,13 → 44,73 с к 1.5.16
+  ([приёмка и отчёт](evidence/task-03-server-integration.md#приёмка-2026-10-26)).
 - Сложность: hi; риск — production загрузка любым решением идёт через форк, а не через host из пакета.
 - Depends on: [task-02](task-02-buildhost-optimization-spike-hi.md) (выполнен, итог go для A + B).
 
