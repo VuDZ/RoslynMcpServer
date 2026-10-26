@@ -918,5 +918,22 @@ Production включение C (сервер передаёт `RoslynMcpSharedS
 | `load_workspace` `RoslynMcpServer.sln` собранным сервером через MCP stdio, трасса BuildHost, по умолчанию | 5 проектов; `get_mcp_server_info`: «shared SDK resolution cache on»; 5 `evaluate-globs`, ни одного `evaluate-isolated`; A и B на месте (`evaluate-ahead-start`, 4 `evaluate-ahead`, 2 `build-ahead`) |
 | то же с `ROSLYN_MCP_BUILDHOST_OPTIMIZATIONS=0` | 5 проектов; «… off»; ни одного span A, B и C |
 
-**Не выполнено здесь** (память машины): полный main-набор и `AnalyzerLifecycle` — владелец, Windows, Release.
-Приёмка task-04 — после них.
+Полный main-набор и `AnalyzerLifecycle` здесь не помещаются в память, их прогнал владелец на Windows (ниже).
+
+## Приёмка, 2026-10-27
+
+Владелец, Windows, Release, `285c6a5`:
+- сборка успешна, 3 прежних предупреждения;
+- main (`Category!=AnalyzerLifecycle&Category!=RequiresPinnedSdk`): **1467/1467**;
+- `AnalyzerLifecycle` (`ROSLYN_MCP_ANALYZER_LIFECYCLE=1`): **13/13**;
+- ошибок и пропусков нет.
+
+**task-04 accepted** в объёме:
+- шаг 0 — разбивка extraction;
+- кандидат C — общий кеш SDK resolution на проект, в сервере включён по умолчанию.
+
+Вне принятого объёма:
+- GC9 (server GC + ConserveMemory=9) остаётся экспериментом стенда, production-профиль host прежний;
+- подбор числа рабочих потоков B — этап настройки;
+- общий кеш между проектами (группировка по входам resolver) — возможный следующий кандидат;
+- перенос в `main` — по правилу squash и отдельному решению.

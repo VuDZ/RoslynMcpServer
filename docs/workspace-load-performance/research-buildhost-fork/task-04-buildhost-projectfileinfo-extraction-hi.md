@@ -1,7 +1,10 @@
 # BuildHost/task-04 — Извлечение ProjectFileInfo в host
 
 - Дата: 2026-10-26.
-- Статус: **in progress, 2026-10-26; шаг 0 выполнен, GC9 — эксперимент в стенде**.
+- Статус: **accepted, 2026-10-27** — шаг 0 и кандидат C, включённый в сервере по умолчанию. Windows Release на
+  `285c6a5`: main 1467/1467, AnalyzerLifecycle 13/13, сборка с 3 прежними предупреждениями. GC9 остаётся
+  экспериментом стенда, в production не включён
+  ([приёмка](evidence/task-04-projectfileinfo-extraction.md#приёмка-2026-10-27)). История задачи:
   Принятый объём: разбивка extraction и повторные офисные данные; production extraction прежний.
   Поздний GetAllGlobs вызывает дополнительную evaluation; ранний Record отвергнут контрпримером.
   Новый профиль — server GC + ConserveMemory=9 только в опытной копии host. На домашней Roslyn.slnx
@@ -34,7 +37,7 @@
   пороги и проверки ([RPC и итог C](evidence/task-04-projectfileinfo-extraction.md#полные-rpc-c-на-офисном-решении-2026-10-27)).
   Решение владельца 2026-10-27: C включён в сервере по умолчанию тем же выключателем, что A и B; task-04
   принимается в этом объёме. Linux: build, 161 точечный тест с SourceStructure, загрузка сервером с трассой — C
-  включён, при выключенных оптимизациях нет. Main-набор и AnalyzerLifecycle на Windows — pending, после них — accepted
+  включён, при выключенных оптимизациях нет. Windows: main 1467/1467, AnalyzerLifecycle 13/13 — accepted
   ([включение](evidence/task-04-projectfileinfo-extraction.md#production-включение-c-2026-10-27)).
 - Сложность: hi; риск — сократить извлечение ценой неполного или иного `ProjectFileInfo`.
 - Сопутствующее исправление, 2026-10-26: matrix/baseline/scenarios разрешают относительные `Solution` и
