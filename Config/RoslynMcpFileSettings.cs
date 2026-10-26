@@ -104,7 +104,7 @@ public sealed class RoslynMcpFileSettings
     public bool? SearchPrewarm { get; }
 
     /// <summary>
-    /// <c>buildhost-optimizations</c>: references first and evaluation ahead in the forked BuildHost.
+    /// <c>buildhost-optimizations</c>: references first, evaluation ahead and the shared SDK resolution cache in the forked BuildHost.
     /// <c>ROSLYN_MCP_BUILDHOST_OPTIMIZATIONS</c> wins; with neither set they are on.
     /// </summary>
     public bool? BuildHostOptimizations { get; }

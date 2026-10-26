@@ -196,7 +196,7 @@ public sealed class SolutionManager
 
     /// <summary>
     /// The optimizations of the forked BuildHost for this manager's loads: <c>ROSLYN_MCP_BUILDHOST_OPTIMIZATIONS</c>
-    /// and <c>ROSLYN_MCP_BUILDHOST_EVALUATE_AHEAD_WORKERS</c>, else the RoslynMcp.jsonc keys, else both parts on.
+    /// and <c>ROSLYN_MCP_BUILDHOST_EVALUATE_AHEAD_WORKERS</c>, else the RoslynMcp.jsonc keys, else all on.
     /// </summary>
     internal BuildHostOptimizationSettings BuildHostOptimizationSettings { get; set; }
 

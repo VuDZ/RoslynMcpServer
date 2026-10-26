@@ -31,8 +31,11 @@
   Стенд: RPC-сравнение на Windows выводит такие пути отдельным счётчиком, добавлен `-RpcOnly`
   ([решения и стенд](evidence/task-04-projectfileinfo-extraction.md#решения-владельца-по-офисной-матрице-и-правка-стенда-2026-10-27)).
   Полные RPC на офисе: `fork-ab` и `fork-abc` identical, у обоих те же 28 путей с другим регистром. C прошёл все
-  пороги и проверки. Приёмка task-04 и production включение C — решение владельца, pending
-  ([RPC и итог C](evidence/task-04-projectfileinfo-extraction.md#полные-rpc-c-на-офисном-решении-2026-10-27)).
+  пороги и проверки ([RPC и итог C](evidence/task-04-projectfileinfo-extraction.md#полные-rpc-c-на-офисном-решении-2026-10-27)).
+  Решение владельца 2026-10-27: C включён в сервере по умолчанию тем же выключателем, что A и B; task-04
+  принимается в этом объёме. Linux: build, 161 точечный тест с SourceStructure, загрузка сервером с трассой — C
+  включён, при выключенных оптимизациях нет. Main-набор и AnalyzerLifecycle на Windows — pending, после них — accepted
+  ([включение](evidence/task-04-projectfileinfo-extraction.md#production-включение-c-2026-10-27)).
 - Сложность: hi; риск — сократить извлечение ценой неполного или иного `ProjectFileInfo`.
 - Сопутствующее исправление, 2026-10-26: matrix/baseline/scenarios разрешают относительные `Solution` и
   `OutDirectory` от location PowerShell; автоматический каталог без `OutDirectory` сохранён и проверен

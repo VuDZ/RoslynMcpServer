@@ -193,7 +193,7 @@ public static class McpServerInfoHelper
         sb.AppendLine($"- **Merged buildhost-optimizations:** {(fileSettings.BuildHostOptimizations is null ? "(none)" : fileSettings.BuildHostOptimizations.Value ? "true" : "false")} (ROSLYN_MCP_BUILDHOST_OPTIMIZATIONS wins; default on)");
         sb.AppendLine($"- **Merged buildhost-evaluate-ahead-workers:** {(fileSettings.BuildHostEvaluateAheadWorkers is null ? "(none)" : fileSettings.BuildHostEvaluateAheadWorkers.Value.ToString())} (ROSLYN_MCP_BUILDHOST_EVALUATE_AHEAD_WORKERS wins; default {BuildHostOptimizations.DefaultEvaluateAheadWorkers}; 0 turns evaluation ahead off)");
         var buildHost = BuildHostOptimizations.Resolve(fileSettings.BuildHostOptimizations, fileSettings.BuildHostEvaluateAheadWorkers);
-        sb.AppendLine($"- **BuildHost optimizations in effect:** references first {(buildHost.ReferencesFirst ? "on" : "off")}, evaluation ahead {(buildHost.EvaluateAheadWorkers > 0 ? $"{buildHost.EvaluateAheadWorkers} worker(s)" : "off")}");
+        sb.AppendLine($"- **BuildHost optimizations in effect:** references first {(buildHost.ReferencesFirst ? "on" : "off")}, evaluation ahead {(buildHost.EvaluateAheadWorkers > 0 ? $"{buildHost.EvaluateAheadWorkers} worker(s)" : "off")}, shared SDK resolution cache {(buildHost.SharedSdkCache ? "on" : "off")}");
         sb.AppendLine($"- **Merged ripgrep-path:** {(fileSettings.RipgrepPath is null ? "(none)" : $"`{fileSettings.RipgrepPath}`")} (stored; unused until search opts in)");
 
         if (!string.IsNullOrWhiteSpace(lazyLoadFailure))

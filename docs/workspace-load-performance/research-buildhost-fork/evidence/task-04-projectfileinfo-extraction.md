@@ -893,3 +893,30 @@ C ничего к ним не добавляет.
 - офис: −9,9 %, принят владельцем.
 
 Production включение C (сервер передаёт `RoslynMcpSharedSdkCache=1`) — отдельное решение владельца, как в task-03.
+
+## Production включение C, 2026-10-27
+
+**Решение владельца, 2026-10-27:** C включается в сервере, task-04 принимается в этом объёме.
+
+**Что изменено.**
+- `BuildHostOptimizations.ForWorkspace` всегда передаёт host `RoslynMcpSharedSdkCache`, рядом с переключателями A
+  и B: 1 по умолчанию, 0 при выключенных оптимизациях.
+- Отдельной настройки у C нет, его выключает тот же `buildhost-optimizations` / `ROSLYN_MCP_BUILDHOST_OPTIMIZATIONS`.
+- `BuildHostOptimizationSettings.SharedSdkCache`.
+- `get_mcp_server_info` показывает итоговое значение.
+- Тесты настроек проверяют, что C включён по умолчанию и выключается вместе с A и B. `ForWorkspace` передаёт
+  все три переключателя.
+- Форк не менялся.
+- README, CHANGELOG и README форка обновлены.
+
+**Linux.**
+
+| проверка | результат |
+|---|---|
+| Release build решения | 0 ошибок, 3 прежних предупреждения |
+| `BuildHostOptimizationsTests`, `RoslynMcpFileSettingsTests`, `McpServerInfo*`, `SourceStructure` | 161 passed |
+| `load_workspace` `RoslynMcpServer.sln` собранным сервером через MCP stdio, трасса BuildHost, по умолчанию | 5 проектов; `get_mcp_server_info`: «shared SDK resolution cache on»; 5 `evaluate-globs`, ни одного `evaluate-isolated`; A и B на месте (`evaluate-ahead-start`, 4 `evaluate-ahead`, 2 `build-ahead`) |
+| то же с `ROSLYN_MCP_BUILDHOST_OPTIMIZATIONS=0` | 5 проектов; «… off»; ни одного span A, B и C |
+
+**Не выполнено здесь** (память машины): полный main-набор и `AnalyzerLifecycle` — владелец, Windows, Release.
+Приёмка task-04 — после них.

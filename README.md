@@ -265,7 +265,7 @@ Policy summary (full text in the sample):
   - `ROSLYN_MCP_TOOL_GROUPS` — comma-separated extra groups for `lite` at startup. Valid: `core`, `files`, `navigation`, `editing`, `decompile`, `nuget`, `project`, `runtime`, `operations` (see **Tool profiles**).
   - `ROSLYN_MCP_LOG_TOOL_OUTPUT=full` — verbose tool response logging.
   - `ROSLYN_MCP_SEARCH_PREWARM=0` — turn off the background search-index prewarm after a load (1.5.15+, on by default; wins over `RoslynMcp.jsonc` `search-prewarm`). The prewarm logs one `workspace_search_prewarm` line and never changes tool responses.
-  - `ROSLYN_MCP_BUILDHOST_OPTIMIZATIONS=0` — load projects without the optimizations of the server's BuildHost (on by default; wins over `RoslynMcp.jsonc` `buildhost-optimizations`). The server ships a fork of Roslyn's BuildHost that builds referenced projects first and evaluates projects ahead on worker threads; the loaded workspace is the same, the load is shorter.
+  - `ROSLYN_MCP_BUILDHOST_OPTIMIZATIONS=0` — load projects without the optimizations of the server's BuildHost (on by default; wins over `RoslynMcp.jsonc` `buildhost-optimizations`). The server ships a fork of Roslyn's BuildHost that builds referenced projects first, evaluates projects ahead on worker threads and shares one SDK resolution cache between the evaluations of a project; the loaded workspace is the same, the load is shorter.
   - `ROSLYN_MCP_BUILDHOST_EVALUATE_AHEAD_WORKERS=<N>` — worker threads of that evaluation ahead (default 4; `0` turns off only it; wins over `buildhost-evaluate-ahead-workers`).
   - `MCP_LOG_INCOMING_RPC=0` (disable incoming RPC logging).
   - `MCP_LOG_INCOMING_RPC_MAX_CHARS=<N>` (limit payload log length, `0` = unlimited).
@@ -1177,7 +1177,7 @@ cd D:\Devel\YourApp
 - Основной лог: `logs/mcp-*.log` (относительно `AppContext.BaseDirectory`).
 - Включено логирование входящих JSON-RPC сообщений (`MCP_LOG_INCOMING_RPC`, `MCP_LOG_INCOMING_RPC_MAX_CHARS`).
 - **Ответы tools:** в лог пишется однострочная сводка и отдельные строки warning/error (без полного дублирования ответа MCP). `ROSLYN_MCP_LOG_TOOL_OUTPUT=full` — полный текст ответов tools.
-- Переменные: `ROSLYN_MCP_WORKSPACE` (корень репо для MSBuild/SDK), `ROSLYN_MCP_TOOL_PROFILE` (`full`/`lite`), `ROSLYN_MCP_TOOL_GROUPS` (`core`, `files`, `navigation`, `editing`, `decompile`, `nuget`, `project`, `runtime`, `operations`; см. **Профили инструментов**), `ROSLYN_MCP_LOG_TOOL_OUTPUT=full`, `ROSLYN_MCP_BUILDHOST_OPTIMIZATIONS=0` (загрузка без оптимизаций BuildHost сервера: ссылки раньше проекта и evaluation наперёд; по умолчанию включены, побеждает `buildhost-optimizations` в `RoslynMcp.jsonc`), `ROSLYN_MCP_BUILDHOST_EVALUATE_AHEAD_WORKERS=<N>` (потоки evaluation наперёд, по умолчанию 4, `0` выключает только её).
+- Переменные: `ROSLYN_MCP_WORKSPACE` (корень репо для MSBuild/SDK), `ROSLYN_MCP_TOOL_PROFILE` (`full`/`lite`), `ROSLYN_MCP_TOOL_GROUPS` (`core`, `files`, `navigation`, `editing`, `decompile`, `nuget`, `project`, `runtime`, `operations`; см. **Профили инструментов**), `ROSLYN_MCP_LOG_TOOL_OUTPUT=full`, `ROSLYN_MCP_BUILDHOST_OPTIMIZATIONS=0` (загрузка без оптимизаций BuildHost сервера: ссылки раньше проекта, evaluation наперёд и общий кеш SDK resolution проекта; по умолчанию включены, побеждает `buildhost-optimizations` в `RoslynMcp.jsonc`), `ROSLYN_MCP_BUILDHOST_EVALUATE_AHEAD_WORKERS=<N>` (потоки evaluation наперёд, по умолчанию 4, `0` выключает только её).
 
 ## Reference: MCP Tools
 

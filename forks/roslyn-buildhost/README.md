@@ -23,8 +23,8 @@ BuildHost, что лежит в папке `BuildHost-netcore` рядом с н�
   `build/BuildHostFork.targets`, который импортирует `RoslynMcpServer.csproj`, собирает форк вместе с сервером и
   подменяет им элементы `Content` пакета, так что build, publish и pack получают одни и те же файлы, вместе с
   `License.txt` и `THIRD-PARTY-NOTICES.txt` Roslyn. Сборка падает, если версия пакета
-  `Microsoft.CodeAnalysis.Workspaces.MSBuild` не 5.9.0. A и B сервер включает глобальными свойствами workspace
-  `RoslynMcpReferencesFirst` и `RoslynMcpEvaluateAhead`: host забирает их до evaluation, как `RoslynMcpSolutionPath`,
+  `Microsoft.CodeAnalysis.Workspaces.MSBuild` не 5.9.0. A, B и C сервер включает глобальными свойствами workspace
+  `RoslynMcpReferencesFirst`, `RoslynMcpEvaluateAhead` и `RoslynMcpSharedSdkCache`: host забирает их до evaluation, как `RoslynMcpSolutionPath`,
   и они побеждают переменные окружения форка. Эксперименты подключают форк явно: `spikes/BuildHostFork/Invoke-BuildHostForkBaseline.ps1`
   сравнивает оригинал и форк на одном решении, их сторона оригинала — host из пакета.
 
@@ -87,7 +87,8 @@ BuildHost, что лежит в папке `BuildHost-netcore` рядом с н�
 
   Включается глобальным свойством `RoslynMcpSharedSdkCache=1` или, без него, переменной окружения
   `ROSLYN_BUILDHOST_SHARED_SDK_CACHE=1`, независимо от A и B. Без них проект создаётся прежним конструктором,
-  evaluation идут без контекста, `EvaluateForGlobs` ничего не делает. Сервер свойство пока не передаёт.
+  evaluation идут без контекста, `EvaluateForGlobs` ничего не делает. Сервер передаёт свойство всегда, вместе с
+  переключателями A и B: 1 по умолчанию, 0 при выключенных оптимизациях.
 
   Как работает:
   - все evaluation одного проекта получают один `EvaluationContext` с `SharingPolicy.SharedSDKCache`: корневая,

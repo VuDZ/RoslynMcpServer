@@ -8,22 +8,22 @@ namespace RoslynMcpServer.Tests.Workspace;
 public sealed class BuildHostOptimizationsTests
 {
     [Fact]
-    public void Resolve_with_nothing_set_turns_both_parts_on_with_the_default_workers()
+    public void Resolve_with_nothing_set_turns_all_optimizations_on_with_the_default_workers()
     {
         var settings = BuildHostOptimizations.Resolve(fileEnabled: null, fileWorkers: null, enabledValue: null, workersValue: null);
 
-        Assert.Equal(new BuildHostOptimizationSettings(ReferencesFirst: true, EvaluateAheadWorkers: 4), settings);
+        Assert.Equal(new BuildHostOptimizationSettings(ReferencesFirst: true, EvaluateAheadWorkers: 4, SharedSdkCache: true), settings);
     }
 
     [Theory]
     [InlineData("0")]
     [InlineData("false")]
     [InlineData(" FALSE ")]
-    public void Resolve_environment_off_wins_over_the_file_and_turns_both_parts_off(string value)
+    public void Resolve_environment_off_wins_over_the_file_and_turns_all_optimizations_off(string value)
     {
         var settings = BuildHostOptimizations.Resolve(fileEnabled: true, fileWorkers: 8, enabledValue: value, workersValue: "8");
 
-        Assert.Equal(new BuildHostOptimizationSettings(ReferencesFirst: false, EvaluateAheadWorkers: 0), settings);
+        Assert.Equal(new BuildHostOptimizationSettings(ReferencesFirst: false, EvaluateAheadWorkers: 0, SharedSdkCache: false), settings);
     }
 
     [Fact]
@@ -31,15 +31,15 @@ public sealed class BuildHostOptimizationsTests
     {
         var settings = BuildHostOptimizations.Resolve(fileEnabled: false, fileWorkers: null, enabledValue: "1", workersValue: null);
 
-        Assert.Equal(new BuildHostOptimizationSettings(ReferencesFirst: true, EvaluateAheadWorkers: 4), settings);
+        Assert.Equal(new BuildHostOptimizationSettings(ReferencesFirst: true, EvaluateAheadWorkers: 4, SharedSdkCache: true), settings);
     }
 
     [Fact]
-    public void Resolve_file_off_turns_both_parts_off()
+    public void Resolve_file_off_turns_all_optimizations_off()
     {
         var settings = BuildHostOptimizations.Resolve(fileEnabled: false, fileWorkers: 8, enabledValue: null, workersValue: null);
 
-        Assert.Equal(new BuildHostOptimizationSettings(ReferencesFirst: false, EvaluateAheadWorkers: 0), settings);
+        Assert.Equal(new BuildHostOptimizationSettings(ReferencesFirst: false, EvaluateAheadWorkers: 0, SharedSdkCache: false), settings);
     }
 
     [Theory]
@@ -53,6 +53,7 @@ public sealed class BuildHostOptimizationsTests
         var settings = BuildHostOptimizations.Resolve(fileEnabled: null, fileWorkers, enabledValue: null, workersValue);
 
         Assert.True(settings.ReferencesFirst);
+        Assert.True(settings.SharedSdkCache);
         Assert.Equal(expected, settings.EvaluateAheadWorkers);
     }
 
@@ -65,7 +66,7 @@ public sealed class BuildHostOptimizationsTests
         var path = Path.Combine(Path.GetTempPath(), "repo", fileName);
         var requested = new Dictionary<string, string> { ["Configuration"] = "Release" };
 
-        var properties = BuildHostOptimizations.ForWorkspace(requested, path, new BuildHostOptimizationSettings(true, 4));
+        var properties = BuildHostOptimizations.ForWorkspace(requested, path, new BuildHostOptimizationSettings(true, 4, true));
 
         Assert.Equal("Release", properties["Configuration"]);
         Assert.Equal(Path.GetFullPath(path), properties[BuildHostOptimizations.SolutionPathProperty]);
@@ -78,25 +79,31 @@ public sealed class BuildHostOptimizationsTests
         var properties = BuildHostOptimizations.ForWorkspace(
             new Dictionary<string, string>(),
             Path.Combine(Path.GetTempPath(), "App.csproj"),
-            new BuildHostOptimizationSettings(true, 4));
+            new BuildHostOptimizationSettings(true, 4, true));
 
         Assert.False(properties.ContainsKey(BuildHostOptimizations.SolutionPathProperty));
     }
 
     [Theory]
-    [InlineData(true, 4, "1", "4")]
-    [InlineData(true, 0, "1", "0")]
-    [InlineData(false, 0, "0", "0")]
-    public void ForWorkspace_always_passes_both_switches_so_the_process_environment_does_not_decide(
-        bool referencesFirst, int workers, string expectedReferencesFirst, string expectedWorkers)
+    [InlineData(true, 4, true, "1", "4", "1")]
+    [InlineData(true, 0, true, "1", "0", "1")]
+    [InlineData(false, 0, false, "0", "0", "0")]
+    public void ForWorkspace_always_passes_every_switch_so_the_process_environment_does_not_decide(
+        bool referencesFirst,
+        int workers,
+        bool sharedSdkCache,
+        string expectedReferencesFirst,
+        string expectedWorkers,
+        string expectedSharedSdkCache)
     {
         var properties = BuildHostOptimizations.ForWorkspace(
             new Dictionary<string, string>(),
             Path.Combine(Path.GetTempPath(), "App.sln"),
-            new BuildHostOptimizationSettings(referencesFirst, workers));
+            new BuildHostOptimizationSettings(referencesFirst, workers, sharedSdkCache));
 
         Assert.Equal(expectedReferencesFirst, properties[BuildHostOptimizations.ReferencesFirstProperty]);
         Assert.Equal(expectedWorkers, properties[BuildHostOptimizations.EvaluateAheadProperty]);
+        Assert.Equal(expectedSharedSdkCache, properties[BuildHostOptimizations.SharedSdkCacheProperty]);
     }
 
     // The server build replaces the package's BuildHost-netcore with forks/roslyn-buildhost, and the tests get the

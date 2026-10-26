@@ -7,7 +7,10 @@ namespace RoslynMcpServer.Services.Workspace;
 /// Switches the optimizations of the forked BuildHost that this server ships in BuildHost-netcore: part A builds the
 /// projects a project references before it, part B evaluates projects ahead on worker threads. Both keep the loaded
 /// workspace identical to the package's BuildHost and shortened the load by 16-27 % against the fork without them
-/// (docs/workspace-load-performance/research-buildhost-fork/evidence/task-02-optimization-spike.md).
+/// (docs/workspace-load-performance/research-buildhost-fork/evidence/task-02-optimization-spike.md). Candidate C lets
+/// the evaluations of one project share one SDK resolution cache instead of loading the workload manifests again for
+/// each; on top of A and B it shortened the load by another 10-18 % with the same workspace and host response
+/// (docs/workspace-load-performance/research-buildhost-fork/evidence/task-04-projectfileinfo-extraction.md).
 /// </summary>
 /// <remarks>
 /// The switches go to the BuildHost as global properties of the workspace, which the MSBuildWorkspace client passes
@@ -17,7 +20,7 @@ namespace RoslynMcpServer.Services.Workspace;
 /// </remarks>
 internal static class BuildHostOptimizations
 {
-    /// <summary>Environment variable that turns both optimizations off when set to 0 or false.</summary>
+    /// <summary>Environment variable that turns all optimizations off when set to 0 or false.</summary>
     public const string EnabledEnvironmentVariableName = "ROSLYN_MCP_BUILDHOST_OPTIMIZATIONS";
 
     /// <summary>Environment variable with the worker threads of part B; 0 turns only part B off.</summary>
@@ -39,9 +42,12 @@ internal static class BuildHostOptimizations
     /// <summary>The fork's switch of part B: the worker threads, 0 off.</summary>
     public const string EvaluateAheadProperty = "RoslynMcpEvaluateAhead";
 
+    /// <summary>The fork's switch of candidate C, the shared SDK resolution cache: 1 on, 0 off.</summary>
+    public const string SharedSdkCacheProperty = "RoslynMcpSharedSdkCache";
+
     /// <summary>
     /// The environment variables win over the RoslynMcp.jsonc keys <c>buildhost-optimizations</c> and
-    /// <c>buildhost-evaluate-ahead-workers</c>, as for search-prewarm; with neither set both parts are on with
+    /// <c>buildhost-evaluate-ahead-workers</c>, as for search-prewarm; with neither set all optimizations are on, with
     /// <see cref="DefaultEvaluateAheadWorkers"/> workers. A worker count that is not a non-negative integer is ignored.
     /// </summary>
     public static BuildHostOptimizationSettings Resolve(bool? fileEnabled, int? fileWorkers) =>
@@ -58,13 +64,13 @@ internal static class BuildHostOptimizations
             : !(enabledValue.Trim() == "0" || string.Equals(enabledValue.Trim(), "false", StringComparison.OrdinalIgnoreCase));
         if (!enabled)
         {
-            return new BuildHostOptimizationSettings(ReferencesFirst: false, EvaluateAheadWorkers: 0);
+            return new BuildHostOptimizationSettings(ReferencesFirst: false, EvaluateAheadWorkers: 0, SharedSdkCache: false);
         }
 
         var workers = int.TryParse(workersValue?.Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out var parsed)
             ? parsed
             : fileWorkers ?? DefaultEvaluateAheadWorkers;
-        return new BuildHostOptimizationSettings(ReferencesFirst: true, EvaluateAheadWorkers: workers);
+        return new BuildHostOptimizationSettings(ReferencesFirst: true, EvaluateAheadWorkers: workers, SharedSdkCache: true);
     }
 
     /// <summary>
@@ -83,6 +89,7 @@ internal static class BuildHostOptimizations
         {
             [ReferencesFirstProperty] = settings.ReferencesFirst ? "1" : "0",
             [EvaluateAheadProperty] = settings.EvaluateAheadWorkers.ToString(CultureInfo.InvariantCulture),
+            [SharedSdkCacheProperty] = settings.SharedSdkCache ? "1" : "0",
         };
         var extension = Path.GetExtension(fullPath);
         if (extension.Equals(".sln", StringComparison.OrdinalIgnoreCase)
