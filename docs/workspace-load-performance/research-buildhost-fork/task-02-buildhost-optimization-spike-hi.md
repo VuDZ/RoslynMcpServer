@@ -38,8 +38,10 @@
   `.sln`/`.slnx`, нет `.slnf`) и на Roslyn.slnx его не приняла: рядом лежат три `.slnf`; дома A + B identical,
   ×0,899 к оригиналу, но без записей решения. Решение владельца (2026-10-26): решение передаёт клиент host
   глобальным свойством `RoslynMcpSolutionPath` (`.sln`, `.slnx` или `.slnf`), host забирает его до любой
-  evaluation; угадывание убрано. Linux-проверки — в отчёте; прогоны владельца на Windows — pending
-  ([этап 2](evidence/task-02-stage-2-evaluate-ahead.md)).
+  evaluation; угадывание убрано. Linux-проверки — в отчёте. Офисный компьютер, A + B, 4 потока, с трассой
+  (2026-10-26): Roslyn.slnx и офис identical, записи решения взяты, корневая evaluation на потоке запросов почти
+  исчезла; загрузка ×0,783 и ×0,742 к оригиналу (A — ×0,928 и ×0,899), пик памяти host +8,8 % и +2,2 %. Pending —
+  только B и домашний компьютер ([этап 2](evidence/task-02-stage-2-evaluate-ahead.md)).
 - Сложность: hi; риск — ускорить загрузку ценой неверного workspace.
 - Depends on: [task-01](task-01-buildhost-graph-and-timings-hi.md) (accepted).
 - Evidence/validation: [шаг 0](evidence/task-02-step-0.md); отчёт эксперимента —
