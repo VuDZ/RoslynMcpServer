@@ -3,7 +3,9 @@
 - Статус плана: **draft; независимое ревью 2026-10-23 завершено без существенных
   findings; принято только в scope исследовательского плана, design не принят;
   после ревью добавлены task-05 и сравнение моделей без повторного ревью**.
-- Статус исполнения: **planned; реализация не начата**.
+- Статус исполнения: **in progress; task-00 completed, 2026-10-26, docs-only;
+  task-01–task-05 planned, код не начат**. Принятый scope task-00 — инвентаризация
+  состояния и этапов инструментов; [результат и validation](evidence/task-00-state-inventory.md).
 - Зависимость начала эпохи: нет. Интеграционный task-02 использует
   [D/E0/task-01](../../workspace-load-performance/epoch-0-stage-measurement/task-01-load-stage-timings-med.md).
 - Результат при продолжении shared-режима: принятая владельцем архитектура и
@@ -26,7 +28,7 @@
 
 ## Задачи
 
-- [task-00 — Инвентаризация состояния процесса](task-00-process-state-inventory-med.md) — `med`, **planned**; Depends on: —
+- [task-00 — Инвентаризация состояния процесса](task-00-process-state-inventory-med.md) — `med`, **completed, 2026-10-26, docs-only**; инвентаризация состояния и этапов 54 tools, [validation](evidence/task-00-state-inventory.md); Depends on: —
 - [task-01 — Архитектурное решение](task-01-architecture-decision-hi.md) — `hi`, **planned**; Depends on: [task-00](task-00-process-state-inventory-med.md), [task-03](task-03-pipe-relay-spike-med.md), [task-04](task-04-proxy-routing-and-recovery-spike-hi.md), [task-05](task-05-applicability-checks-med.md)
 - [task-02 — Интеграционный spike прокси и host](task-02-bridge-spike-hi.md) — `hi`, **planned**; Depends on: [task-01](task-01-architecture-decision-hi.md), [D/E0/task-01](../../workspace-load-performance/epoch-0-stage-measurement/task-01-load-stage-timings-med.md)
 - [task-03 — Spike транспорта и MCP-фасада](task-03-pipe-relay-spike-med.md) — `med`, **planned**; standalone spike, сервер не меняется; Depends on: —
@@ -42,7 +44,9 @@ task-01. Только после design, независимого ревью и 
 перехода к реализации: обновление плана 2026-10-23 кода не запускает.
 Если владелец выбирает нулевой вариант, task-02 и E1 shared-режима не запускаются;
 невыполненные задачи получают статус deferred с причиной и ссылкой на решение.
-Это не приёмка реализации shared-режима. До такого решения все шесть задач planned.
+Это не приёмка реализации shared-режима. Task-00 завершён как docs-only
+инвентаризация; task-01–task-05 остаются planned. Завершение task-00 не заменяет
+решение владельца после task-05 и не запускает зависимые spike.
 
 ## Сквозные критерии
 
@@ -108,12 +112,12 @@ multi-process проверки владения/падений; после desig
 
 ## Статистика ревью задач
 
-- Охват: task-00–task-05; выполненных задач нет.
-- Фактические исполнители: —.
-- Фактические рецензенты: —.
-- Сумма раундов ревью задач: —.
-- Исправленные замечания задач: —.
-- Отчёты: —.
+- Охват: task-00–task-05; task-00 completed, 2026-10-26, docs-only; остальные planned.
+- Фактические исполнители: task-00 — Codex, точный ID модели недоступен.
+- Фактические рецензенты: независимого ревью задач не было; task-00 — самопроверка.
+- Сумма раундов независимого ревью задач: 0.
+- Исправленные замечания независимого ревью задач: 0.
+- Отчёты: [task-00 — инвентаризация и validation](evidence/task-00-state-inventory.md).
 
 ## Приёмка реализации эпохи
 
@@ -121,7 +125,9 @@ multi-process проверки владения/падений; после desig
 - Даты ревью: —.
 - Количество раундов ревью: —.
 - Количество исправлений после ревью: —.
-- Итог: не проверено; реализация не начата.
+- Итог: приёмки эпохи нет; task-00 завершён в scope docs-only инвентаризации,
+  код и spike не начаты. [Проверки task-00](evidence/task-00-state-inventory.md)
+  не являются приёмкой design или реализации эпохи.
 - Принятый scope и дата: —.
 - Финальная validation и замеры: —.
 - Ограничения: —.

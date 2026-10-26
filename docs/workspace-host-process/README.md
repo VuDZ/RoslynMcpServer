@@ -1,10 +1,12 @@
 # Долгоживущий процесс workspace
 
-Создано: **2026-10-09**. Обновлено: **2026-10-23**.
+Создано: **2026-10-09**. Обновлено: **2026-10-26**.
 Статус: **scope согласован; draft-план прошёл независимое ревью 2026-10-23
 без существенных findings; после ревью дополнен task-05, сравнением моделей и
 границей маршрутизации без повторного ревью; design и реализация не приняты,
-код не начат**.
+код не начат; task-00 completed 2026-10-26 в scope docs-only инвентаризации**.
+Принятый scope task-00 — состояние процесса и этапы инструментов;
+[результат и validation](epoch-0-design-and-spike/evidence/task-00-state-inventory.md).
 Происхождение: решение владельца H-003 из обсуждения workspace-state-cache, вариант C.
 Черновики H-003/варианта B находятся в отдельном рабочем контексте cache и не
 входят в эту ветку; для реализации C они не являются неявной зависимостью.
@@ -335,9 +337,10 @@ Fake load не доказывает корректность Roslyn/SDK/ОС: н
 ## Точка входа
 
 [E0/task-05](epoch-0-design-and-spike/task-05-applicability-checks-med.md) —
-проверки применимости: от них зависят выбор модели и объём task-04. Параллельно
-можно вести [E0/task-00](epoch-0-design-and-spike/task-00-process-state-inventory-med.md) —
-инвентаризацию состояния, общего для процесса, без кода, — тему
+проверки применимости: от них зависят выбор модели и объём task-04.
+[E0/task-00](epoch-0-design-and-spike/task-00-process-state-inventory-med.md)
+завершён 2026-10-26: [инвентаризация и validation](epoch-0-design-and-spike/evidence/task-00-state-inventory.md).
+Параллельно task-05 можно вести тему
 [D](../workspace-load-performance/README.md) и spike транспорта
 [E0/task-03](epoch-0-design-and-spike/task-03-pipe-relay-spike-med.md): MCP-фасад
 нужен и модели ролей, и отдельному host.
@@ -370,10 +373,15 @@ Fake load не доказывает корректность Roslyn/SDK/ОС: н
   применимость сценариев по моделям, исходный контроль без B, этапы build/test
   и условие потери workspace при Reload; [отчёт и validation](evidence/2026-10-23-plan-consistency.md).
   Выбор модели и статусы исполнения E0 не изменены; отдельного независимого ревью нет.
-- Ревью задач: —.
+- Task-00: **completed, 2026-10-26, docs-only**; принятый scope — инвентаризация
+  состояния процесса, классификация и этапы 54 built-in tools, без выбора design;
+  [результат и validation](epoch-0-design-and-spike/evidence/task-00-state-inventory.md).
+  Исполнитель — Codex, точный ID модели недоступен; независимых раундов ревью 0,
+  исправлений по независимому ревью 0; выполнена самопроверка.
+- Ревью задач: независимое ревью не проводилось.
 - Приёмка реализации: —.
 - Обновление scope, TDD-подхода и выделение ветки: **выполнено, 2026-10-23**,
   только документация; `research/workspace-host-process` от `main` (`22b9924`);
-  [validation](evidence/2026-10-23-plan-update.md). Все задачи E0 остаются planned
-  (task-05 добавлен позже, тоже planned);
+  [validation](evidence/2026-10-23-plan-update.md). На ту дату все задачи E0 planned;
+  актуально на 2026-10-26: task-00 completed docs-only, task-01–task-05 planned;
   независимое ревью draft-плана завершено (см. выше); приёмка реализации не проводилась.
