@@ -14,7 +14,8 @@
   Кандидат C — общий кеш SDK resolution (`SharedSDKCache`), проба в стенде. Linux: identical, выигрыш не
   измерим. Дома, Roslyn.slnx: identical (1199 отпечатков), SDK resolution — 45–50 % каждой evaluation;
   один контекст на решение — wall ×0,773, смена TFM ×0,632, globs ×0,589; контекст на проект — ×0,898.
-  Итог пробы — go к реализации в форке с группировкой по входам resolver и проверкой версий SDK
+  Офис: identical (426), SDK resolution 35–36 %; globs ×0,645 (project) и ×0,686 (solution).
+  Итог пробы — go к реализации в форке: сначала контекст на проект с проверкой версий SDK
   ([проба](evidence/task-04-projectfileinfo-extraction.md#кандидат-c-общий-кеш-sdk-resolution--проба-2026-10-26)).
 - Сложность: hi; риск — сократить извлечение ценой неполного или иного `ProjectFileInfo`.
 - Сопутствующее исправление, 2026-10-26: matrix/baseline/scenarios разрешают относительные `Solution` и
