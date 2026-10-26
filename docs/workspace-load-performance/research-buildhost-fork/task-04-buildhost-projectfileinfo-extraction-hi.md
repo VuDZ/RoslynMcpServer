@@ -23,8 +23,11 @@
   ([реализация](evidence/task-04-projectfileinfo-extraction.md#кандидат-c-в-форке-2026-10-26)). Матрица дома,
   Roslyn.slnx: identical, полные RPC совпадают; к A+B загрузка ×0,819, load + first query ×0,879, CPU host
   ×0,834, память без изменений. Смена TFM ×0,575, поздний GetAllGlobs ×0,44, сборки не медленнее. Порог
-  Roslyn.slnx выполнен; офисный порог ≥10 % — pending
-  ([матрица](evidence/task-04-projectfileinfo-extraction.md#матрица-c-roslynslnx-домашний-компьютер-2026-10-27)).
+  Roslyn.slnx выполнен ([матрица](evidence/task-04-projectfileinfo-extraction.md#матрица-c-roslynslnx-домашний-компьютер-2026-10-27)).
+  Офис: identical, загрузка ×0,901 — на 9,9 % при пороге 10 %; load + first query ×0,971. Полные RPC
+  остановились на `fork-ab`: регистр одной папки, следствие порядка загрузки A + B, не C; RPC `fork-abc` не
+  сняты. Решения владельца по порогу и регистру путей — pending
+  ([матрица](evidence/task-04-projectfileinfo-extraction.md#матрица-c-офисное-решение-офисный-компьютер-2026-10-27)).
 - Сложность: hi; риск — сократить извлечение ценой неполного или иного `ProjectFileInfo`.
 - Сопутствующее исправление, 2026-10-26: matrix/baseline/scenarios разрешают относительные `Solution` и
   `OutDirectory` от location PowerShell; автоматический каталог без `OutDirectory` сохранён и проверен
