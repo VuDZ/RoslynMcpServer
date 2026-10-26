@@ -12,6 +12,8 @@ namespace BuildHostFork;
 /// this program, and writes the workspace observation, diagnostics, load time and a first search.
 /// load, cancel, kill-host: failure scenarios, see <see cref="FailureScenario"/>.
 /// compare: compares fork runs with original runs of one result folder; exit code 1 when they are not equivalent.
+/// matrix: compares every fork variant of a matrix result folder with its original runs and writes matrix.md, see
+/// <see cref="MatrixSummary"/>; exit code 1 when a variant is not equivalent.
 /// check: self-checks of compare on synthetic runs.
 /// trace-report, trace-summary: report of one traced load and medians over traced rounds (BuildHost/task-01); observe writes the trace when
 /// ROSLYN_BUILDHOST_TRACE_DIRECTORY is set, see <see cref="ClientTraceFile"/>.
@@ -43,7 +45,14 @@ internal static class Program
 
         if (args.Length >= 2 && args[0] == "compare")
         {
-            var (summary, equivalent) = ObservationComparer.Run(Path.GetFullPath(args[1]));
+            var (summary, equivalent, _) = ObservationComparer.Run(Path.GetFullPath(args[1]));
+            Console.WriteLine(summary);
+            return equivalent ? 0 : 1;
+        }
+
+        if (args.Length >= 3 && args[0] == "matrix")
+        {
+            var (summary, equivalent) = MatrixSummary.Run(Path.GetFullPath(args[1]), args[2..]);
             Console.WriteLine(summary);
             return equivalent ? 0 : 1;
         }
@@ -68,7 +77,7 @@ internal static class Program
             return ComparerSelfCheck.Run();
         }
 
-        Console.Error.WriteLine("Usage: observe SOLUTION OUTPUT_JSON [NAME] | load|cancel|kill-host SOLUTION OUTPUT_JSON [DELAY_MS] | compare RESULT_DIRECTORY | trace-report TRACE_DIRECTORY [redact] | trace-summary RESULT_DIRECTORY [redact] | check");
+        Console.Error.WriteLine("Usage: observe SOLUTION OUTPUT_JSON [NAME] | load|cancel|kill-host SOLUTION OUTPUT_JSON [DELAY_MS] | compare RESULT_DIRECTORY | matrix RESULT_DIRECTORY VARIANT... | trace-report TRACE_DIRECTORY [redact] | trace-summary RESULT_DIRECTORY [redact] | check");
         return 2;
     }
 

@@ -16,10 +16,14 @@ namespace BuildHostFork;
 /// </summary>
 internal static class ObservationComparer
 {
-    /// <returns>The summary, also written to summary.md, and whether the fork is shown equivalent.</returns>
-    public static (string Summary, bool Equivalent) Run(string directory)
+    /// <param name="directory">The folder with fork-round*.json; summary.md is written there.</param>
+    /// <param name="originalDirectory">The folder with original-round*.json when it is not <paramref name="directory"/>:
+    /// a matrix run keeps one set of original runs for all its fork variants.</param>
+    /// <returns>The summary, also written to summary.md, whether the fork is shown equivalent, and the verdict on the
+    /// fork's answer alone: identical, natural variance only, or different.</returns>
+    public static (string Summary, bool Equivalent, string Verdict) Run(string directory, string? originalDirectory = null)
     {
-        var originals = Load(directory, "original");
+        var originals = Load(originalDirectory ?? directory, "original");
         var forks = Load(directory, "fork");
         var measuredOriginals = originals.Where(run => run.Round > 0).ToList();
         var measuredForks = forks.Where(run => run.Round > 0).ToList();
@@ -60,15 +64,28 @@ internal static class ObservationComparer
 
         var text = Summarize(originals, forks, reference, natural, original, fork, answers, verdict, runIssues, reasons);
         File.WriteAllText(Path.Combine(directory, "summary.md"), text);
-        return (text, reasons.Count == 0);
+        return (text, reasons.Count == 0, verdict);
     }
 
-    private static List<(int Round, JsonElement Root)> Load(string directory, string side) =>
+    internal static List<(int Round, JsonElement Root)> Load(string directory, string side) =>
         Directory.GetFiles(directory, side + "-round*.json")
             .Select(path => (Round: int.Parse(Path.GetFileNameWithoutExtension(path)[(side.Length + "-round".Length)..], CultureInfo.InvariantCulture), Path: path))
             .OrderBy(item => item.Round)
             .Select(item => (item.Round, JsonDocument.Parse(File.ReadAllText(item.Path)).RootElement))
             .ToList();
+
+    internal static double? Median(IEnumerable<double> values)
+    {
+        var sorted = values.Order().ToArray();
+        if (sorted.Length == 0)
+        {
+            return null;
+        }
+
+        return sorted.Length % 2 == 1 ? sorted[sorted.Length / 2] : (sorted[sorted.Length / 2 - 1] + sorted[sorted.Length / 2]) / 2;
+    }
+
+    internal static string Format(double? value) => value is null ? "n/a" : Math.Round(value.Value).ToString(CultureInfo.InvariantCulture);
 
     // compare.py differences(): changed fields of projects, added or removed projects, and diagnostics in only one of
     // the runs. Before and After are the JSON values (null when absent), or presence for project keys and diagnostics.
@@ -296,19 +313,6 @@ internal static class ObservationComparer
 
     private static string Rounds(List<(int Round, JsonElement Root)> runs, Func<JsonElement, double> read) =>
         string.Join(", ", runs.Where(run => run.Round > 0).Select(run => Format(read(run.Root))));
-
-    private static double? Median(IEnumerable<double> values)
-    {
-        var sorted = values.Order().ToArray();
-        if (sorted.Length == 0)
-        {
-            return null;
-        }
-
-        return sorted.Length % 2 == 1 ? sorted[sorted.Length / 2] : (sorted[sorted.Length / 2 - 1] + sorted[sorted.Length / 2]) / 2;
-    }
-
-    private static string Format(double? value) => value is null ? "n/a" : Math.Round(value.Value).ToString(CultureInfo.InvariantCulture);
 
     private static string Shorten(string? value) => value is null ? "(missing)" : value.Length > 160 ? value[..160] + "…" : value;
 

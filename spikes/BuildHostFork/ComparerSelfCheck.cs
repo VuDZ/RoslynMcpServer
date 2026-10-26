@@ -116,7 +116,7 @@ internal static class ComparerSelfCheck
         {
             Write(directory, "original", originalValues, adjust);
             Write(directory, "fork", forkValues, adjust);
-            var (summary, actualEquivalent) = ObservationComparer.Run(directory);
+            var (summary, actualEquivalent, _) = ObservationComparer.Run(directory);
             var passed = summary.Contains($"**{verdict}**", StringComparison.Ordinal) && actualEquivalent == equivalent;
             Console.WriteLine($"{(passed ? "pass" : "FAIL")}: {name}");
             if (!passed)
