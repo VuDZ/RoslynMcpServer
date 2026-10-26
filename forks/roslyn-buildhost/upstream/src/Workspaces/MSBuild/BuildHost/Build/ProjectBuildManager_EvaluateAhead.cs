@@ -20,8 +20,9 @@ namespace Microsoft.CodeAnalysis.MSBuild;
 /// <summary>
 /// Opt-in evaluations ahead (fork, BuildHost/task-02 part B). The 5.9.0 loader sends its requests one at a time, and
 /// the host evaluates each project only when the loader asks for it, while the evaluations of the projects it will
-/// ask for next could run beside the current build. When the environment variable <see cref="EvaluateAheadVariable"/>
-/// is a number of worker threads, those threads evaluate ahead, in the host's project collection and with the host's
+/// ask for next could run beside the current build. When the global property <see cref="EvaluateAheadProperty"/> or,
+/// without it, the environment variable <see cref="EvaluateAheadVariable"/> is a number of worker threads, those
+/// threads evaluate ahead, in the host's project collection and with the host's
 /// settings, every project the evaluations so far reference, and the entries of the solution being loaded. A request
 /// for a project that a worker is evaluating waits for that evaluation instead of starting a second one; a request
 /// for a project no worker has started evaluates it on the request's thread, as without this mode.
@@ -60,8 +61,14 @@ internal sealed partial class ProjectBuildManager
     /// </summary>
     public const string SolutionPathProperty = "RoslynMcpSolutionPath";
 
-    private static readonly int s_evaluateAheadWorkers =
-        int.TryParse(Environment.GetEnvironmentVariable(EvaluateAheadVariable), NumberStyles.None, CultureInfo.InvariantCulture, out var workers) ? workers : 0;
+    /// <summary>
+    /// The global property in which the host's client sets the worker threads of this mode for its workspace, 0 for
+    /// off; it wins over <see cref="EvaluateAheadVariable"/>, which is process-wide. Taken out with
+    /// <see cref="SolutionPathProperty"/>.
+    /// </summary>
+    public const string EvaluateAheadProperty = "RoslynMcpEvaluateAhead";
+
+    private int _evaluateAheadWorkers = ParseWorkers(Environment.GetEnvironmentVariable(EvaluateAheadVariable));
 
     private static readonly int? s_evaluateAheadSolutionWindow = Environment.GetEnvironmentVariable(EvaluateAheadSolutionVariable) switch
     {
@@ -91,18 +98,34 @@ internal sealed partial class ProjectBuildManager
     private int _queuedSolutionEntries;
 
     /// <summary>
-    /// Takes <see cref="SolutionPathProperty"/> out of the global properties the project collection gets.
+    /// Takes <see cref="EvaluateAheadProperty"/> and <see cref="SolutionPathProperty"/> out of the global properties
+    /// the project collection gets.
     /// </summary>
     private void InitializeEvaluateAhead(Dictionary<string, string> globalProperties)
     {
-        // MSBuild compares property names ignoring case.
-        var key = globalProperties.Keys.FirstOrDefault(name => string.Equals(name, SolutionPathProperty, StringComparison.OrdinalIgnoreCase));
-        if (key is null)
-            return;
+        if (TakeGlobalProperty(globalProperties, EvaluateAheadProperty) is { } workers)
+            _evaluateAheadWorkers = ParseWorkers(workers);
 
-        _solutionPath = globalProperties[key];
-        globalProperties.Remove(key);
+        _solutionPath = TakeGlobalProperty(globalProperties, SolutionPathProperty);
     }
+
+    /// <summary>
+    /// Removes a property that only this host reads and returns its value, so that no evaluation sees it.
+    /// </summary>
+    private static string? TakeGlobalProperty(Dictionary<string, string> globalProperties, string name)
+    {
+        // MSBuild compares property names ignoring case.
+        var key = globalProperties.Keys.FirstOrDefault(key => string.Equals(key, name, StringComparison.OrdinalIgnoreCase));
+        if (key is null)
+            return null;
+
+        var value = globalProperties[key];
+        globalProperties.Remove(key);
+        return value;
+    }
+
+    private static int ParseWorkers(string? value)
+        => int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var workers) ? workers : 0;
 
     /// <summary>
     /// Called before the host loads <paramref name="path"/>: waits for a worker that is evaluating it, or marks it
@@ -110,7 +133,7 @@ internal sealed partial class ProjectBuildManager
     /// </summary>
     private async Task WaitForEvaluationAheadAsync(string path, CancellationToken cancellationToken)
     {
-        if (s_evaluateAheadWorkers <= 0)
+        if (_evaluateAheadWorkers <= 0)
             return;
 
         Task? running;
@@ -146,7 +169,7 @@ internal sealed partial class ProjectBuildManager
     /// </summary>
     private void OnEvaluatedOnRequest(string path, MSB.Evaluation.Project? project)
     {
-        if (s_evaluateAheadWorkers <= 0 || project is null)
+        if (_evaluateAheadWorkers <= 0 || project is null)
             return;
 
         var references = GetAheadReferencePaths(project);
@@ -167,7 +190,7 @@ internal sealed partial class ProjectBuildManager
     /// </summary>
     private void UnloadEvaluationAhead(string path)
     {
-        if (s_evaluateAheadWorkers <= 0)
+        if (_evaluateAheadWorkers <= 0)
             return;
 
         Task? running;
@@ -194,7 +217,7 @@ internal sealed partial class ProjectBuildManager
 
     private void StopEvaluateAhead()
     {
-        if (s_evaluateAheadWorkers <= 0)
+        if (_evaluateAheadWorkers <= 0)
             return;
 
         // A worker in the middle of an evaluation finishes it first.
@@ -210,7 +233,7 @@ internal sealed partial class ProjectBuildManager
         using (var span = BuildHostTrace.Start("evaluate-ahead-start", firstPath))
         {
             var (entries, reason) = ReadSolutionEntries(firstPath);
-            span?.Set("workers", s_evaluateAheadWorkers);
+            span?.Set("workers", _evaluateAheadWorkers);
             span?.Set("solution", reason);
             span?.Set("entries", entries.Length);
 
@@ -219,7 +242,7 @@ internal sealed partial class ProjectBuildManager
                 _solutionEntryIndexes[entries[i]] = i;
         }
 
-        for (var i = 0; i < s_evaluateAheadWorkers; i++)
+        for (var i = 0; i < _evaluateAheadWorkers; i++)
         {
             var worker = new Thread(EvaluateAheadWorker)
             {

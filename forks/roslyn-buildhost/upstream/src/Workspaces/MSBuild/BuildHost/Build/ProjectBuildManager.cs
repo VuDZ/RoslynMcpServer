@@ -73,6 +73,7 @@ internal sealed partial class ProjectBuildManager : IDisposable
         foreach (var kvp in globalProperties)
             allProperties[kvp.Key] = kvp.Value;
 
+        InitializeReferencesFirst(allProperties);
         InitializeEvaluateAhead(allProperties);
 
         // Pass in the binlog (if any) to the ProjectCollection to ensure evaluation results are included in it.

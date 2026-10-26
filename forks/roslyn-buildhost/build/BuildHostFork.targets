@@ -1,0 +1,77 @@
+<Project>
+  <!--
+    Imported by the server project (BuildHost/task-03): the BuildHost-netcore folder that the
+    Microsoft.CodeAnalysis.Workspaces.MSBuild package copies next to the client gets the build of this fork instead.
+    The client starts whichever BuildHost lies in that folder, so the replacement is at the level of Content items:
+    build, publish and the dotnet tool pack all take the same files, and projects that reference the server get them
+    through its copy-to-output items. BuildHost-net472 stays from the package.
+  -->
+  <PropertyGroup>
+    <BuildHostForkProject>$(MSBuildThisFileDirectory)BuildHost\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.csproj</BuildHostForkProject>
+    <!--
+      The package version whose client speaks the protocol of the forked sources (UPSTREAM.md). A server that moves to
+      another package version needs the fork rebased first, so the build stops instead of mixing the two.
+    -->
+    <BuildHostForkPackageVersion>5.9.0</BuildHostForkPackageVersion>
+    <!--
+      NETSDK1150 forbids a self-contained executable to reference a framework-dependent one, because the referenced
+      executable would run on the referencing one's runtime. The BuildHost is a separate process that the client
+      starts with dotnet on the shared runtime, as the package's BuildHost-netcore; the fork is its only executable
+      reference.
+    -->
+    <ValidateExecutableReferencesMatchSelfContained>false</ValidateExecutableReferencesMatchSelfContained>
+  </PropertyGroup>
+
+  <!--
+    Only for real builds: a design-time build, as MSBuildWorkspace or an IDE loads the server, would otherwise list the
+    fork's projects as references of the server and load them into the workspace.
+  -->
+  <ItemGroup Condition="'$(DesignTimeBuild)' != 'true'">
+    <!--
+      Builds and restores the fork with the server; OutputItemType hands its TargetPath to the target below. The
+      command line of a server build or publish does not reach the fork: -o sets OutputPath for every project it
+      builds, and the target takes every file of the fork's own output folder; -r and self-contained publishing are
+      for the server, while the BuildHost runs on the shared runtime like the package's (rollForward Major).
+    -->
+    <ProjectReference Include="$(BuildHostForkProject)"
+                      ReferenceOutputAssembly="false"
+                      Private="false"
+                      OutputItemType="BuildHostForkTargetPath"
+                      GlobalPropertiesToRemove="OutputPath;OutDir;_CommandLineDefinedOutputPath;RuntimeIdentifier;_CommandLineDefinedRuntimeIdentifier;SelfContained;_CommandLineDefinedSelfContained" />
+  </ItemGroup>
+
+  <Target Name="UseBuildHostFork"
+          BeforeTargets="AssignTargetPaths"
+          DependsOnTargets="ResolveProjectReferences"
+          Condition="'$(DesignTimeBuild)' != 'true'">
+    <ItemGroup>
+      <_PackageBuildHostNetCore Include="@(Content)"
+                                Condition="'%(Content.NuGetPackageId)' == 'Microsoft.CodeAnalysis.Workspaces.MSBuild' and $([System.String]::Copy('%(Content.TargetPath)').Replace('\', '/').StartsWith('BuildHost-netcore/'))" />
+      <_PackageBuildHostNetCoreVersion Include="%(_PackageBuildHostNetCore.NuGetPackageVersion)" />
+    </ItemGroup>
+    <Error Condition="'@(_PackageBuildHostNetCore)' == ''"
+           Text="No BuildHost-netcore content of Microsoft.CodeAnalysis.Workspaces.MSBuild was found to replace with the fork; the package layout changed." />
+    <Error Condition="'@(_PackageBuildHostNetCoreVersion)' != '$(BuildHostForkPackageVersion)'"
+           Text="Microsoft.CodeAnalysis.Workspaces.MSBuild @(_PackageBuildHostNetCoreVersion) does not match the BuildHost fork, which is built from the sources of $(BuildHostForkPackageVersion); rebase forks/roslyn-buildhost first." />
+    <Error Condition="'@(BuildHostForkTargetPath)' == ''" Text="The BuildHost fork produced no output." />
+
+    <PropertyGroup>
+      <_BuildHostForkOutputDirectory>@(BuildHostForkTargetPath->'%(RootDir)%(Directory)')</_BuildHostForkOutputDirectory>
+    </PropertyGroup>
+    <ItemGroup>
+      <_BuildHostForkFile Include="$(_BuildHostForkOutputDirectory)*.dll;$(_BuildHostForkOutputDirectory)*.pdb;$(_BuildHostForkOutputDirectory)*.json" />
+      <!-- The fork is built from modified Roslyn sources; their MIT license and notices go with the binaries. -->
+      <_BuildHostForkFile Include="$(MSBuildThisFileDirectory)..\upstream\License.txt;$(MSBuildThisFileDirectory)..\upstream\THIRD-PARTY-NOTICES.txt" />
+      <Content Remove="@(_PackageBuildHostNetCore)" />
+      <!--
+        Always, not PreserveNewest: an output folder that already holds the package's files from an earlier build may
+        have them newer than the fork's, and PreserveNewest would keep them.
+      -->
+      <Content Include="@(_BuildHostForkFile)"
+               Link="BuildHost-netcore/%(Filename)%(Extension)"
+               TargetPath="BuildHost-netcore/%(Filename)%(Extension)"
+               CopyToOutputDirectory="Always"
+               Pack="false" />
+    </ItemGroup>
+  </Target>
+</Project>

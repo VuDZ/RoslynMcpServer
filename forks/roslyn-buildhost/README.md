@@ -18,8 +18,15 @@ BuildHost, что лежит в папке `BuildHost-netcore` рядом с н�
   `deps.json` лишнюю запись `Contracts.Reference`.
 - Код следует стилю и `.editorconfig` Roslyn, а не `docs/code-style.md` этого репозитория: изменения
   должны уходить в upstream с минимальным диффом (см. `AGENTS.md`).
-- Production сервера форк не использует. Эксперименты подключают его явно:
-  `spikes/BuildHostFork/Invoke-BuildHostForkBaseline.ps1` сравнивает оригинал и форк на одном решении.
+- Сервер использует форк как свой `BuildHost-netcore`
+  ([task-03](../../docs/workspace-load-performance/research-buildhost-fork/task-03-buildhost-fork-server-integration-hi.md)):
+  `build/BuildHostFork.targets`, который импортирует `RoslynMcpServer.csproj`, собирает форк вместе с сервером и
+  подменяет им элементы `Content` пакета, так что build, publish и pack получают одни и те же файлы, вместе с
+  `License.txt` и `THIRD-PARTY-NOTICES.txt` Roslyn. Сборка падает, если версия пакета
+  `Microsoft.CodeAnalysis.Workspaces.MSBuild` не 5.9.0. A и B сервер включает глобальными свойствами workspace
+  `RoslynMcpReferencesFirst` и `RoslynMcpEvaluateAhead`: host забирает их до evaluation, как `RoslynMcpSolutionPath`,
+  и они побеждают переменные окружения форка. Эксперименты подключают форк явно: `spikes/BuildHostFork/Invoke-BuildHostForkBaseline.ps1`
+  сравнивает оригинал и форк на одном решении, их сторона оригинала — host из пакета.
 
 Изменения форка поверх upstream:
 
@@ -33,8 +40,10 @@ BuildHost, что лежит в папке `BuildHost-netcore` рядом с н�
   из пакета.
 - [task-02](../../docs/workspace-load-performance/research-buildhost-fork/task-02-buildhost-optimization-spike-hi.md),
   часть A: ссылки собираются раньше проекта. Новый файл `BuildHost/Build/ProjectBuildManager_ReferencesFirst.cs`,
-  `ProjectBuildManager` стал `partial`, его конструктор вызывает `AddReferencesFirstLoggers`, `ProjectFile` вызывает
-  `GetProjectInstancesAsync`. Включается переменной окружения `ROSLYN_BUILDHOST_REFERENCES_FIRST=1`; без неё
+  `ProjectBuildManager` стал `partial`, его конструктор вызывает `InitializeReferencesFirst` и
+  `AddReferencesFirstLoggers`, `ProjectFile` вызывает `GetProjectInstancesAsync`. Включается глобальным свойством
+  `RoslynMcpReferencesFirst=1` (так включает сервер; host забирает свойство до evaluation) или, без него, переменной
+  окружения `ROSLYN_BUILDHOST_REFERENCES_FIRST=1`; без них
   логгеры не подключаются и запрос идёт прежним путём. Запрос сборки проекта сначала загружает и собирает ещё не
   собранные ссылки C#/VB (самые глубокие первыми); первый запрос клиента к такой ссылке получает готовый результат с
   её исключением, если оно было. Лог каждой сборки при выдаче, в порядке клиента, пишется так, как его записал бы
@@ -46,7 +55,8 @@ BuildHost, что лежит в папке `BuildHost-netcore` рядом с н�
   часть B: evaluation наперёд. Новый файл `BuildHost/Build/ProjectBuildManager_EvaluateAhead.cs`; конструктор
   `ProjectBuildManager` вызывает `InitializeEvaluateAhead`, `LoadProjectAsync` — `WaitForEvaluationAheadAsync` и
   `OnEvaluatedOnRequest`, `LoadProject` из присланного содержимого — `UnloadEvaluationAhead`, `Dispose` —
-  `StopEvaluateAhead`. Включается переменной `ROSLYN_BUILDHOST_EVALUATE_AHEAD=<число рабочих потоков>`, независимо
+  `StopEvaluateAhead`. Включается глобальным свойством `RoslynMcpEvaluateAhead=<число рабочих потоков>` или, без
+  него, переменной `ROSLYN_BUILDHOST_EVALUATE_AHEAD=<число рабочих потоков>`, независимо
   от A; без неё рабочие потоки не создаются и загрузка идёт прежним путём. Рабочие потоки оценивают в коллекции
   host и с его настройками ссылки уже оценённых проектов и записи решения; берут первый не начатый проект в
   прямом порядке DFS от записей решения по уже известным ссылкам. Запрос к проекту, который оценивает рабочий,

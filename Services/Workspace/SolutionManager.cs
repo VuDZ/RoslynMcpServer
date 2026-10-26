@@ -14,6 +14,7 @@ using RoslynMcpServer.Config;
 using RoslynMcpServer.Diagnostics;
 using RoslynMcpServer.Services.Models;
 using RoslynMcpServer.Services.Navigation;
+using RoslynMcpServer.Services.Workspace.Models;
 using Serilog;
 
 namespace RoslynMcpServer.Services.Workspace;
@@ -193,6 +194,12 @@ public sealed class SolutionManager
     /// </summary>
     internal bool SearchPrewarmEnabled { get; set; }
 
+    /// <summary>
+    /// The optimizations of the forked BuildHost for this manager's loads: <c>ROSLYN_MCP_BUILDHOST_OPTIMIZATIONS</c>
+    /// and <c>ROSLYN_MCP_BUILDHOST_EVALUATE_AHEAD_WORKERS</c>, else the RoslynMcp.jsonc keys, else both parts on.
+    /// </summary>
+    internal BuildHostOptimizationSettings BuildHostOptimizationSettings { get; set; }
+
     /// <summary>The prewarm of the last fresh load, if one was started; it never faults.</summary>
     internal Task? SearchPrewarmTask { get; private set; }
 
@@ -212,6 +219,9 @@ public sealed class SolutionManager
         _analyzerProvenanceCaptureService = analyzerProvenanceCaptureService;
         FileSettings = fileSettings ?? RoslynMcpFileSettings.Empty;
         SearchPrewarmEnabled = SearchIndexPrewarm.IsEnabled(FileSettings.SearchPrewarm);
+        BuildHostOptimizationSettings = BuildHostOptimizations.Resolve(
+            FileSettings.BuildHostOptimizations,
+            FileSettings.BuildHostEvaluateAheadWorkers);
         _dirtySourcePaths = new ConcurrentDictionary<string, byte>(_pathComparer);
         _dirtyNonCSharpPaths = new ConcurrentDictionary<string, byte>(_pathComparer);
         _nonCSharpTexts = new Dictionary<string, SourceText>(_pathComparer);
@@ -2083,9 +2093,12 @@ public sealed class SolutionManager
             effectiveConfiguration,
             effectivePlatform,
             effectiveTargetFramework);
-        var workspace = properties.Count == 0
+        // The fork's switches and the solution path go to this workspace's BuildHost only; the requested properties
+        // stay as they are for provenance and the load cache.
+        var workspaceProperties = BuildHostOptimizations.ForWorkspace(properties, fullPath, BuildHostOptimizationSettings);
+        var workspace = workspaceProperties.Count == 0
             ? MSBuildWorkspace.Create(MsBuildHostServices)
-            : MSBuildWorkspace.Create(properties, MsBuildHostServices);
+            : MSBuildWorkspace.Create(workspaceProperties, MsBuildHostServices);
         var capturedDiagnostics = new List<WorkspaceDiagnostic>();
         workspace.RegisterWorkspaceFailedHandler(e =>
         {

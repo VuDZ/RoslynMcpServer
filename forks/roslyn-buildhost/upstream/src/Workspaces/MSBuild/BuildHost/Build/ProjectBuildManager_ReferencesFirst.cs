@@ -19,7 +19,8 @@ namespace Microsoft.CodeAnalysis.MSBuild;
 /// loads the projects that project references. The design-time build then calls GetTargetFrameworks and
 /// GetTargetPath on each reference, finds no configuration of it in the build manager, and MSBuild evaluates the
 /// reference again inside the build, although the host evaluates it with the same global properties when the loader
-/// asks for it. When the environment variable <see cref="ReferencesFirstVariable"/> is 1, a build request first
+/// asks for it. When the global property <see cref="ReferencesFirstProperty"/> or, without it, the environment
+/// variable <see cref="ReferencesFirstVariable"/> is 1, a build request first
 /// loads and builds every referenced project that has not been built yet, references of references first, and keeps
 /// those results until the loader asks for them; the calls from the requested build then reach existing
 /// configurations.
@@ -48,7 +49,13 @@ internal sealed partial class ProjectBuildManager
 {
     public const string ReferencesFirstVariable = "ROSLYN_BUILDHOST_REFERENCES_FIRST";
 
-    private static readonly bool s_buildReferencesFirst = Environment.GetEnvironmentVariable(ReferencesFirstVariable) == "1";
+    /// <summary>
+    /// The global property in which the host's client turns this mode on (1) or off for its workspace; it wins over
+    /// <see cref="ReferencesFirstVariable"/>, which is process-wide. Taken out before the project collection is created.
+    /// </summary>
+    public const string ReferencesFirstProperty = "RoslynMcpReferencesFirst";
+
+    private bool _buildReferencesFirst = Environment.GetEnvironmentVariable(ReferencesFirstVariable) == "1";
 
     private readonly SemaphoreSlim _referencesFirstGate = new(initialCount: 1);
 
@@ -77,9 +84,15 @@ internal sealed partial class ProjectBuildManager
     /// </summary>
     private readonly Dictionary<int, HashSet<string>> _calledTargets = [];
 
+    private void InitializeReferencesFirst(Dictionary<string, string> globalProperties)
+    {
+        if (TakeGlobalProperty(globalProperties, ReferencesFirstProperty) is { } value)
+            _buildReferencesFirst = value == "1";
+    }
+
     private void AddReferencesFirstLoggers(MSB.Execution.BuildParameters buildParameters)
     {
-        if (!s_buildReferencesFirst)
+        if (!_buildReferencesFirst)
             return;
 
         buildParameters.Loggers = [.. buildParameters.Loggers, _buildEventRecorder.CreateLogger()];
@@ -94,7 +107,7 @@ internal sealed partial class ProjectBuildManager
     public async Task<MSB.Execution.ProjectInstance[]> GetProjectInstancesAsync(
         MSB.Evaluation.Project project, DiagnosticLog log, CancellationToken cancellationToken)
     {
-        if (!s_buildReferencesFirst)
+        if (!_buildReferencesFirst)
             return await BuildProjectInstancesAsync(project, log, cancellationToken).ConfigureAwait(false);
 
         using (await _referencesFirstGate.DisposableWaitAsync(cancellationToken).ConfigureAwait(false))

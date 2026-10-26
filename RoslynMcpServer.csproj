@@ -109,4 +109,10 @@
     <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.13" />
     <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
   </ItemGroup>
+  <!-- BuildHost-netcore is the fork from forks/roslyn-buildhost, not the package's host
+       (docs/workspace-load-performance/research-buildhost-fork/task-03-buildhost-fork-server-integration-hi.md).
+       A design-time build does nothing with it, so a copy of this project without forks/ still loads into a
+       workspace; a real build without it fails on the missing import. -->
+  <Import Project="forks\roslyn-buildhost\build\BuildHostFork.targets"
+          Condition="'$(DesignTimeBuild)' != 'true' or Exists('forks\roslyn-buildhost\build\BuildHostFork.targets')" />
 </Project>
