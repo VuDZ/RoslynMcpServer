@@ -28,7 +28,8 @@
     fork-ab-trace\trace-summary.md where the load time goes. Without the fork side the ratios are to fork-ab, the
     reference of the task-04 candidates. The GC and C variants are followed by full RPC captures of the original twice
     and of every variant, compared field by field (rpc-*-raw.txt, rpc-*-glob-sets.txt). The script fails when a
-    variant is not shown equivalent or its RPC answer differs beyond the order of glob excludes and removes.
+    variant is not shown equivalent or its RPC answer differs beyond the order of glob excludes and removes and, on
+    Windows, the letter case of paths; every variant is compared before it fails.
 
 .PARAMETER Solution
     Solution to load.
@@ -45,6 +46,10 @@
 .PARAMETER Variants
     Fork variants to run, in the order of the table. Default: the original five; GC variants are opt-in.
     With a GC variant, full netcore ProjectFileInfo RPC captures and comparisons follow the timed rounds.
+
+.PARAMETER RpcOnly
+    Only the full RPC captures and comparisons of the original and of every listed variant, without timed rounds
+    and without matrix.md.
 
 .PARAMETER EvaluateAhead
     Worker threads of part B in the variants with B. Default 4.
@@ -72,6 +77,8 @@ param(
 
     [ValidateSet('fork', 'fork-a', 'fork-b', 'fork-ab', 'fork-ab-trace', 'fork-ab-gc', 'fork-ab-gc-trace', 'fork-abc', 'fork-abc-trace')]
     [string[]]$Variants = @('fork', 'fork-a', 'fork-b', 'fork-ab', 'fork-ab-trace'),
+
+    [switch]$RpcOnly,
 
     [ValidateRange(1, 64)]
     [int]$EvaluateAhead = 4,
@@ -137,7 +144,7 @@ $environment = Get-Environment $Solution $repo ([ordered]@{ name = $Name; runs =
 [IO.File]::WriteAllText((Join-Path $OutDirectory 'environment.json'), ($environment | ConvertTo-Json), (New-Object Text.UTF8Encoding($false)))
 
 $sides = @('original') + $Variants
-for ($round = 0; $round -le $Runs; $round++) {
+for ($round = 0; -not $RpcOnly -and $round -le $Runs; $round++) {
     $first = $round % $sides.Count
     $order = @($sides[$first..($sides.Count - 1)]) + @(if ($first -gt 0) { $sides[0..($first - 1)] })
     foreach ($side in $order) {
@@ -163,7 +170,8 @@ for ($round = 0; $round -le $Runs; $round++) {
 }
 
 # These are separate correctness loads, after all timing rounds. Raw captures retain every field and array order.
-if (@($Variants | Where-Object { $definitions[$_].rpc }).Count -gt 0) {
+$rpcFailures = @()
+if ($RpcOnly -or @($Variants | Where-Object { $definitions[$_].rpc }).Count -gt 0) {
     $rpcOriginal = Join-Path $OutDirectory 'rpc-original.json'
     foreach ($side in @('original', 'original-repeat') + $Variants) {
         $fork = $side -notlike 'original*'
@@ -183,8 +191,16 @@ if (@($Variants | Where-Object { $definitions[$_].rpc }).Count -gt 0) {
         & dotnet $originalDll rpc-compare $rpcOriginal $output | Out-File -LiteralPath (Join-Path $directory "rpc-$side-raw.txt") -Encoding utf8
         if ($LASTEXITCODE -notin @(0, 1)) { throw "Raw RPC comparison failed: $side" }
         & dotnet $originalDll rpc-compare $rpcOriginal $output glob-sets | Out-File -LiteralPath (Join-Path $directory "rpc-$side-glob-sets.txt") -Encoding utf8
-        if ($LASTEXITCODE -ne 0) { throw "Full RPC fields differ beyond glob set order: $side" }
+        if ($LASTEXITCODE -eq 1) { $rpcFailures += $side } elseif ($LASTEXITCODE -ne 0) { throw "RPC comparison failed: $side" }
     }
+}
+
+if ($RpcOnly) {
+    Write-Host ''
+    Write-Host "Results: $OutDirectory"
+    Write-Host 'rpc-*-glob-sets.txt holds each comparison; JSON files hold project paths.'
+    if ($rpcFailures.Count -gt 0) { throw "Full RPC fields differ beyond glob set order and path case: $($rpcFailures -join ', ')" }
+    return
 }
 
 Write-Host ''
@@ -203,3 +219,4 @@ Write-Host ''
 Write-Host "Results: $OutDirectory"
 Write-Host 'matrix.md and <variant>\summary.md compare the workspace; <variant>\trace-summary.md shows where the time goes. GC and C variants also write rpc-*-raw.txt and rpc-*-glob-sets.txt. JSON and trace files hold project paths.'
 if (-not $equivalent) { throw 'A fork variant is not shown equivalent to the original; see matrix.md.' }
+if ($rpcFailures.Count -gt 0) { throw "Full RPC fields differ beyond glob set order and path case: $($rpcFailures -join ', ')" }
