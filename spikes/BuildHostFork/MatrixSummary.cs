@@ -8,12 +8,11 @@ namespace BuildHostFork;
 /// matrix: the result folder of Invoke-BuildHostForkMatrix.ps1 (BuildHost/task-02, stage 3), with the original runs
 /// at its top and each fork variant in a subfolder of its own. Every variant is compared with the same original runs
 /// and gets its own summary.md; matrix.md puts the medians of all sides side by side, as ratios to the original and
-/// to the fork without optimizations, against which the thresholds of task-02 are set.
+/// to a time reference: the fork without optimizations, against which the thresholds of task-02 are set, or, in a
+/// matrix without it, A + B, against which the candidates of task-04 are set.
 /// </summary>
 internal static class MatrixSummary
 {
-    private const string TimeReference = "fork";
-
     /// <param name="directory">The matrix result folder; matrix.md is written there.</param>
     /// <param name="variants">The variant subfolders in the order of the table.</param>
     /// <returns>The text of matrix.md and whether every variant is shown equivalent to the original.</returns>
@@ -58,7 +57,8 @@ internal static class MatrixSummary
     private static string Summarize(List<Row> rows, List<string> notEquivalent)
     {
         var original = rows[0];
-        var reference = rows.FirstOrDefault(row => row.Side == TimeReference);
+        var (timeReference, meaning) = _timeReferences.FirstOrDefault(candidate => rows.Any(row => row.Side == candidate.Side));
+        var reference = rows.FirstOrDefault(row => row.Side == timeReference);
         var md = new StringBuilder();
         md.AppendLine("# BuildHost fork matrix (BuildHost/task-02, stage 3)");
         md.AppendLine();
@@ -66,10 +66,10 @@ internal static class MatrixSummary
         md.AppendLine("- answer: each variant against the original runs by the rules of task-00, details in <variant>/summary.md");
         md.AppendLine($"- result: **{(notEquivalent.Count == 0 ? "all variants equivalent" : "not shown equivalent: " + string.Join(", ", notEquivalent))}**");
         md.AppendLine(reference is null
-            ? $"- no `{TimeReference}` side, so there are no ratios to the fork without optimizations"
-            : $"- `/ {TimeReference}`: ratio to the fork without optimizations, the reference of the task-02 thresholds");
+            ? $"- no {string.Join(" or ", _timeReferences.Select(candidate => $"`{candidate.Side}`"))} side, so there are no ratios to a time reference"
+            : $"- `/ {timeReference}`: ratio to {meaning}");
         md.AppendLine();
-        md.AppendLine($"| side | answer | load ms | / original | / {TimeReference} | BuildHost CPU / {TimeReference} | BuildHost peak / {TimeReference} | client CPU / {TimeReference} | client peak / {TimeReference} |");
+        md.AppendLine($"| side | answer | load ms | / original | / {timeReference} | BuildHost CPU / {timeReference} | BuildHost peak / {timeReference} | client CPU / {timeReference} | client peak / {timeReference} |");
         md.AppendLine("|---|---|---|---|---|---|---|---|---|");
         foreach (var row in rows)
         {
@@ -101,4 +101,10 @@ internal static class MatrixSummary
         double? ClientCpuMs,
         double? ClientPeakMb,
         List<double> LoadsMs);
+
+    private static readonly (string Side, string Meaning)[] _timeReferences =
+    [
+        ("fork", "the fork without optimizations, the reference of the task-02 thresholds"),
+        ("fork-ab", "A + B, the reference of the task-04 thresholds"),
+    ];
 }

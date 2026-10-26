@@ -75,6 +75,7 @@ internal sealed partial class ProjectBuildManager : IDisposable
 
         InitializeReferencesFirst(allProperties);
         InitializeEvaluateAhead(allProperties);
+        InitializeSharedSdkCache(allProperties);
 
         // Pass in the binlog (if any) to the ProjectCollection to ensure evaluation results are included in it.
         //
@@ -170,12 +171,7 @@ internal sealed partial class ProjectBuildManager : IDisposable
                 | MSB.Evaluation.ProjectLoadSettings.DoNotEvaluateElementsWithFalseCondition
                 | MSB.Evaluation.ProjectLoadSettings.FailOnUnresolvedSdk;
 
-            var project = new MSB.Evaluation.Project(
-                xml,
-                globalProperties: null,
-                toolsVersion: null,
-                _projectCollection,
-                projectLoadSettings);
+            var project = CreateProject(xml, projectLoadSettings);
 
             if (span is not null)
                 SetEvaluatedContext(span, project);
@@ -260,7 +256,7 @@ internal sealed partial class ProjectBuildManager : IDisposable
             {
                 reevaluate?.Set("targetFramework", targetFramework);
                 project.SetGlobalProperty(PropertyNames.TargetFramework, targetFramework);
-                project.ReevaluateIfNecessary();
+                ReevaluateIfNecessary(project);
             }
 
             var projectInstance = await BuildProjectInstanceAsync(project, log, cancellationToken).ConfigureAwait(false);
@@ -279,7 +275,7 @@ internal sealed partial class ProjectBuildManager : IDisposable
             project.SetGlobalProperty(PropertyNames.TargetFramework, initialGlobalTargetFrameworkValue);
         }
 
-        project.ReevaluateIfNecessary();
+        ReevaluateIfNecessary(project);
 
         return results.ToArray();
     }

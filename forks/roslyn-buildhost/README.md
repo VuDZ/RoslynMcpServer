@@ -76,6 +76,32 @@ BuildHost, что лежит в папке `BuildHost-netcore` рядом с н�
   `BuildHostProcessManager.GetKindForProject` — .NET host); без свойства — только ссылки. Наперёд оцениваются
   только такие проекты. `ROSLYN_BUILDHOST_EVALUATE_AHEAD_SOLUTION`: `all` (по умолчанию),
   число записей после последней запрошенной или `off`.
+- [task-04](../../docs/workspace-load-performance/research-buildhost-fork/task-04-buildhost-projectfileinfo-extraction-hi.md),
+  кандидат C: общий кеш SDK resolution на проект. Новый файл `BuildHost/Build/ProjectBuildManager_SharedSdkCache.cs`.
+  Где он подключён:
+  - конструктор `ProjectBuildManager` вызывает `InitializeSharedSdkCache`;
+  - `LoadProjectCore` создаёт проект через `CreateProject`;
+  - смена `TargetFramework` и возврат (в `BuildProjectInstancesAsync` и `RestoreGlobalTargetFramework` части A)
+    идут через `ReevaluateIfNecessary(project)`;
+  - `ProjectFile.GetProjectFileInfosAsync` после сборок вызывает `EvaluateForGlobs`.
+
+  Включается глобальным свойством `RoslynMcpSharedSdkCache=1` или, без него, переменной окружения
+  `ROSLYN_BUILDHOST_SHARED_SDK_CACHE=1`, независимо от A и B. Без них проект создаётся прежним конструктором,
+  evaluation идут без контекста, `EvaluateForGlobs` ничего не делает. Сервер свойство пока не передаёт.
+
+  Как работает:
+  - все evaluation одного проекта получают один `EvaluationContext` с `SharingPolicy.SharedSDKCache`: корневая,
+    при смене TFM, при возврате и поздняя evaluation первого `GetAllGlobs`. Общие у них только сервис SDK
+    resolver, его результаты и состояние resolver (workload-манифесты). Кеш файловой системы у каждой evaluation
+    свой;
+  - позднюю evaluation `GetAllGlobs` host делает сразу после сборок проекта, до чтения `ProjectFileInfo`, —
+    там, где её сделал бы первый `GetAllGlobs`;
+  - сервис кеширует результат только по имени SDK. Поэтому после каждой evaluation в общем контексте host
+    проверяет, что каждый SDK-import получил результат, разрешённый для того же имени, версии и минимальной
+    версии. Если нет, проект оценивается заново без контекста и больше кеш не делит. Отброшенная evaluation до
+    клиента не доходит: сборка видит только ту evaluation, из которой создана.
+
+  Трасса: `evaluate-globs` (поздняя evaluation в общем контексте) и `evaluate-isolated` (повтор без контекста).
 
 Сборка:
 

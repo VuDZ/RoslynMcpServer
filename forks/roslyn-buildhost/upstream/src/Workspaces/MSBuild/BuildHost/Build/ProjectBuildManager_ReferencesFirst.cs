@@ -323,7 +323,7 @@ internal sealed partial class ProjectBuildManager
             .Distinct(PathUtilities.Comparer)
             .ToArray();
 
-    private static void RestoreGlobalTargetFramework(MSB.Evaluation.Project project, string? initialGlobalTargetFramework)
+    private void RestoreGlobalTargetFramework(MSB.Evaluation.Project project, string? initialGlobalTargetFramework)
     {
         project.GlobalProperties.TryGetValue(PropertyNames.TargetFramework, out var current);
         if (current == initialGlobalTargetFramework)
@@ -334,7 +334,7 @@ internal sealed partial class ProjectBuildManager
         else
             project.SetGlobalProperty(PropertyNames.TargetFramework, initialGlobalTargetFramework);
 
-        project.ReevaluateIfNecessary();
+        ReevaluateIfNecessary(project);
     }
 
     private sealed record PreparedBuild(MSB.Execution.ProjectInstance[]? Instances, RecordedBuild Build, ExceptionDispatchInfo? Exception);

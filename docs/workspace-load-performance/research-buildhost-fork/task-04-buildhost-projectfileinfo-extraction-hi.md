@@ -17,6 +17,10 @@
   Офис: identical (426), SDK resolution 35–36 %; globs ×0,645 (project) и ×0,686 (solution).
   Итог пробы — go к реализации в форке: сначала контекст на проект с проверкой версий SDK
   ([проба](evidence/task-04-projectfileinfo-extraction.md#кандидат-c-общий-кеш-sdk-resolution--проба-2026-10-26)).
+  C реализован в форке (переключатель, по умолчанию выключен): контекст на проект и проверка версий SDK. На
+  Linux identical в матрице, полные RPC совпадают, фикстура с разными версиями SDK и `global.json` пройдена,
+  сценарии сбоев и SourceStructure пройдены. Main-набор, AnalyzerLifecycle и матрица порогов на Windows —
+  pending ([реализация](evidence/task-04-projectfileinfo-extraction.md#кандидат-c-в-форке-2026-10-26)).
 - Сложность: hi; риск — сократить извлечение ценой неполного или иного `ProjectFileInfo`.
 - Сопутствующее исправление, 2026-10-26: matrix/baseline/scenarios разрешают относительные `Solution` и
   `OutDirectory` от location PowerShell; автоматический каталог без `OutDirectory` сохранён и проверен

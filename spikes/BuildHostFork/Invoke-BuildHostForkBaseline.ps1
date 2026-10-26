@@ -48,6 +48,10 @@
     The solution entries part B evaluates ahead: all (default), a number of entries after the latest requested one,
     or off (ROSLYN_BUILDHOST_EVALUATE_AHEAD_SOLUTION).
 
+.PARAMETER SharedSdkCache
+    Run the fork side with candidate C of BuildHost/task-04: the evaluations of each project share one SDK
+    resolution cache (ROSLYN_BUILDHOST_SHARED_SDK_CACHE=1).
+
 .EXAMPLE
     .\spikes\BuildHostFork\Invoke-BuildHostForkBaseline.ps1 -Solution D:\src\roslyn\Roslyn.slnx -Name CSharpCompilationOptions
 #>
@@ -73,7 +77,9 @@ param(
     [int]$EvaluateAhead = 0,
 
     [ValidatePattern('^(all|off|[1-9][0-9]*)$')]
-    [string]$EvaluateAheadSolution = 'all'
+    [string]$EvaluateAheadSolution = 'all',
+
+    [switch]$SharedSdkCache
 )
 
 Set-StrictMode -Version 2.0
@@ -92,7 +98,7 @@ if ($pinned) { Write-Host "Solution pins .NET SDK ${pinned}: installed." }
 
 $copies = Initialize-ForkCopy $repo $PSScriptRoot
 $version = $copies.version
-Set-ForkOptimizations $ReferencesFirst $EvaluateAhead $EvaluateAheadSolution
+Set-ForkOptimizations $ReferencesFirst $EvaluateAhead $EvaluateAheadSolution $SharedSdkCache
 
 if (-not $SkipRestore) {
     Write-Host "Restoring $Solution"
@@ -105,7 +111,7 @@ if (-not $OutDirectory) {
 $OutDirectory = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($OutDirectory)
 New-Item -ItemType Directory -Force -Path $OutDirectory | Out-Null
 $environment = Get-Environment $Solution $repo ([ordered]@{ name = $Name; runs = $Runs; fork = $version; trace = [bool]$Trace; referencesFirst = [bool]$ReferencesFirst
-        evaluateAhead = $EvaluateAhead; evaluateAheadSolution = $(if ($EvaluateAhead -gt 0) { $EvaluateAheadSolution } else { '' })
+        evaluateAhead = $EvaluateAhead; evaluateAheadSolution = $(if ($EvaluateAhead -gt 0) { $EvaluateAheadSolution } else { '' }); sharedSdkCache = [bool]$SharedSdkCache
     })
 [IO.File]::WriteAllText((Join-Path $OutDirectory 'environment.json'), ($environment | ConvertTo-Json), (New-Object Text.UTF8Encoding($false)))
 

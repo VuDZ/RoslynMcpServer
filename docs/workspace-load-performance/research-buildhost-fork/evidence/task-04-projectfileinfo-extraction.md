@@ -654,3 +654,65 @@ evaluation в основном идут на рабочих потоках B: в
 **Открытый вопрос.** С общим кешем design-time builds медленнее: дома ×1,085–1,104, в офисе ×1,038–1,078.
 Причину проба не показывает: память не выросла, кеш файловой системы не делится. Итог покажет матрица
 кандидата по полной загрузке; если эффект подтвердится, его нужно объяснить до go.
+
+## Кандидат C в форке, 2026-10-26
+
+**Реализация.** Новый файл `BuildHost/Build/ProjectBuildManager_SharedSdkCache.cs`, точечные правки в
+`ProjectBuildManager`, `RestoreGlobalTargetFramework` части A и `ProjectFile`
+([README форка](../../../../forks/roslyn-buildhost/README.md)).
+
+- **Включение.** Переключатель `RoslynMcpSharedSdkCache=1` (глобальное свойство) или
+  `ROSLYN_BUILDHOST_SHARED_SDK_CACHE=1`, по умолчанию выключен. Сервер свойство не передаёт: production-включение
+  — отдельное решение.
+- **Контекст на проект.** Корневая evaluation, смена TFM и возврат, поздняя evaluation `GetAllGlobs` делят один
+  `SharedSDKCache`. Позднюю evaluation host делает сразу после сборок проекта, в момент, где её сделал бы первый
+  `GetAllGlobs`. Файлов между этими моментами никто не пишет.
+- **Проверка версий SDK.** После каждой evaluation в общем контексте каждый SDK-import должен получить результат,
+  разрешённый для того же имени, версии и минимальной версии. Иначе проект оценивается заново без контекста и
+  дальше идёт путём upstream. Отброшенная evaluation до клиента не доходит.
+- **Выключенный C — прежний путь.** Тот же конструктор `Project`, `ReevaluateIfNecessary()` без контекста,
+  `GetAllGlobs` в `ProjectInstanceReader`.
+
+**Проверки на Linux** (2 vCPU, SDK 10.0.113):
+
+- Release build форка, стенда и решения — без новых предупреждений; `SourceStructure` — **123/0/0**.
+- `Test-ProjectFileInfo.ps1` — все проверки пройдены. Стороны: original, original-repeat, A + B, GC9 и A + B + C.
+  Новая фикстура — локальный NuGet-фид с `RoslynMcp.FixtureSdk` 1.0.0 и 2.0.0, каждая версия добавляет свои
+  документы:
+  - проект `Versions` просит 1.0.0 под TFM `one` и 2.0.0 под `two`;
+  - проекты `Left` и `Right` закрепляют разные версии своими `global.json`.
+
+  У всех сторон `one=V1, two=V2` и `Left=V1, Right=V2`; полные RPC совпадают с original с учётом только порядка
+  Excludes/Removes.
+- По трассе A + B + C на этой фикстуре: у `Versions` ровно одна повторная evaluation без контекста (TFM `two`),
+  дальше — путь upstream; `Left` и `Right` делят кеш.
+- **Отрицательная проверка.** С отключённой проверкой версий `Versions` под TFM `two` получает `V1.cs`: фикстура
+  ловит ошибку, от которой защищает проверка.
+- Клиент RPC стенда на Unix не находил pipe host: `NamedPipeUtil` Roslyn слушает `/tmp/<имя>`, а голое имя .NET
+  ищет как `/tmp/CoreFxPipe_<имя>`. Клиент теперь передаёт полный путь, как `MSBuildWorkspace`. До этого
+  `rpc-capture` проверялся только на Windows.
+- Матрица `RoslynMcpServer.sln`, прогрев + два раунда: `fork-ab`, `fork-abc`, `fork-abc-trace` — **все
+  identical**. Полные RPC всех вариантов и повтора original совпадают с учётом порядка Excludes/Removes.
+  В трассе нет ни одной повторной evaluation без контекста; поздняя evaluation в общем контексте — 851 мс, 18,7 %
+  окна. Время на этой машине о пороге не говорит.
+- Сценарии task-00 с A + B + C (`-SharedSdkCache`): **all checks passed**, диагностика в порядке выдачи совпадает.
+- `Test-BuildHostTrace.ps1` — пройден.
+- `MatrixSummary`: если в матрице нет стороны `fork`, отношения считаются к `fork-ab`, опорной точке порогов
+  task-04.
+
+**Не выполнено здесь.** На этой машине полный main-набор и `AnalyzerLifecycle` не помещаются в память. Нужен
+прогон владельца на Windows: production-код форка изменён, хотя C по умолчанию выключен. Матрица порогов — там же.
+
+**Следующий замер — владелец, Windows**, сначала Roslyn.slnx, затем офисное решение:
+
+```powershell
+.\spikes\BuildHostFork\Invoke-BuildHostForkMatrix.ps1 -Solution <путь-к-решению> -Variants fork-ab,fork-abc,fork-abc-trace
+```
+
+Пороги к `fork-ab`, прогрев + три раунда:
+- офисная загрузка быстрее не менее чем на 10 %; Roslyn.slnx — не медленнее более чем на 2 %;
+- identical, полные RPC без отличий сверх порядка glob-наборов;
+- память +10 % — ориентир.
+
+Для разбора нужны `matrix.md`, `summary.md` вариантов и `fork-abc-trace/trace-summary.md`. Из офисного прогона —
+только `matrix.md` и `summary.md`.

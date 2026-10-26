@@ -37,7 +37,13 @@ internal sealed class BuildHostClient : IAsyncDisposable
         start.ArgumentList.Add(pipeName);
         start.ArgumentList.Add("en-US");
         var process = Process.Start(start) ?? throw new InvalidOperationException("BuildHost did not start.");
-        var pipe = new NamedPipeClientStream(".", pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
+        // On Unix the host's NamedPipeUtil listens on /tmp/<name>, while a bare name would make .NET connect to
+        // /tmp/CoreFxPipe_<name>; MSBuildWorkspace's client passes the full path for the same reason.
+        var pipe = new NamedPipeClientStream(
+            ".",
+            OperatingSystem.IsWindows() ? pipeName : Path.Combine("/tmp", pipeName),
+            PipeDirection.InOut,
+            PipeOptions.Asynchronous);
         var stdout = process.StandardOutput.ReadToEndAsync();
         var stderr = process.StandardError.ReadToEndAsync();
         try

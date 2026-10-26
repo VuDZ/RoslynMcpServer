@@ -8,8 +8,11 @@ $script:ForkVariables = [ordered]@{}
 # BuildHost/task-02 part A: the fork builds the referenced projects first (ROSLYN_BUILDHOST_REFERENCES_FIRST).
 # Part B: worker threads evaluate ahead (ROSLYN_BUILDHOST_EVALUATE_AHEAD, the number of workers; 0 leaves it off),
 # with the solution entries as ROSLYN_BUILDHOST_EVALUATE_AHEAD_SOLUTION says: all, a window, or off.
-function Set-ForkOptimizations([bool]$ReferencesFirst, [int]$EvaluateAhead = 0, [string]$EvaluateAheadSolution = 'all') {
+# BuildHost/task-04 candidate C: the evaluations of each project share one SDK resolution cache
+# (ROSLYN_BUILDHOST_SHARED_SDK_CACHE).
+function Set-ForkOptimizations([bool]$ReferencesFirst, [int]$EvaluateAhead = 0, [string]$EvaluateAheadSolution = 'all', [bool]$SharedSdkCache = $false) {
     $script:ForkVariables.Clear()
+    if ($SharedSdkCache) { $script:ForkVariables['ROSLYN_BUILDHOST_SHARED_SDK_CACHE'] = '1' }
     if ($ReferencesFirst) { $script:ForkVariables['ROSLYN_BUILDHOST_REFERENCES_FIRST'] = '1' }
     if ($EvaluateAhead -gt 0) {
         $script:ForkVariables['ROSLYN_BUILDHOST_EVALUATE_AHEAD'] = [string]$EvaluateAhead

@@ -56,6 +56,10 @@
 .PARAMETER ServerGc
     Task-04 experiment: server GC with ConserveMemory=9 in a separate copy of the fork host. Default off.
 
+.PARAMETER SharedSdkCache
+    Run the fork side, the broken copy included, with candidate C of BuildHost/task-04: the evaluations of each
+    project share one SDK resolution cache (ROSLYN_BUILDHOST_SHARED_SDK_CACHE=1).
+
 .EXAMPLE
     .\spikes\BuildHostFork\Invoke-BuildHostForkScenarios.ps1 -Solution D:\src\roslyn\Roslyn.slnx
 #>
@@ -76,7 +80,9 @@ param(
     [ValidatePattern('^(all|off|[1-9][0-9]*)$')]
     [string]$EvaluateAheadSolution = 'all',
 
-    [switch]$ServerGc
+    [switch]$ServerGc,
+
+    [switch]$SharedSdkCache
 )
 
 Set-StrictMode -Version 2.0
@@ -101,7 +107,7 @@ New-Item -ItemType Directory -Force -Path $OutDirectory | Out-Null
 
 $copies = Initialize-ForkCopy $repo $PSScriptRoot
 if ($ServerGc) { $copies.forkBin = Initialize-GcForkCopy $copies.forkBin }
-Set-ForkOptimizations $ReferencesFirst $EvaluateAhead $EvaluateAheadSolution
+Set-ForkOptimizations $ReferencesFirst $EvaluateAhead $EvaluateAheadSolution $SharedSdkCache
 $sides = [ordered]@{ original = (Join-Path $copies.originalBin 'BuildHostFork.dll'); fork = (Join-Path $copies.forkBin 'BuildHostFork.dll') }
 $brokenBin = Join-Path $PSScriptRoot 'bin-fork-broken'
 if (Test-Path -LiteralPath $brokenBin) { Remove-Item -LiteralPath $brokenBin -Recurse -Force }
@@ -313,6 +319,7 @@ $md = New-Object Text.StringBuilder
 [void]$md.AppendLine('')
 [void]$md.AppendLine("- fork: $($copies.version); references first (BuildHost/task-02 A): $([bool]$ReferencesFirst); evaluate ahead (B): $(if ($EvaluateAhead -gt 0) { "$EvaluateAhead workers, solution entries: $EvaluateAheadSolution" } else { 'off' }); solution for load, cancel and kill: $solutionName")
 [void]$md.AppendLine("- experimental server GC with ConserveMemory=9 in netcore host only: $([bool]$ServerGc)")
+[void]$md.AppendLine("- shared SDK resolution cache per project (BuildHost/task-04 C): $([bool]$SharedSdkCache)")
 [void]$md.AppendLine("- delay after the first BuildHost: $DelayMs ms ($delaySource); early cancel: 0 ms")
 [void]$md.AppendLine('- fixture observe, warmup + 3 rounds: ' + (((Get-Content -LiteralPath (Join-Path $fixtureResults 'summary.md')) -match '^- (fork rounds|result|diagnostics in report order)') -replace '^- ', '' -join '; '))
 $resultText = 'all checks passed'

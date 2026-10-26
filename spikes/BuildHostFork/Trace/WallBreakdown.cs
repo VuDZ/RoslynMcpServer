@@ -36,6 +36,8 @@ internal static class WallBreakdown
         {
             "evaluate" => "host: evaluation (root)",
             "reevaluate" => "host: evaluation (TFM switch)",
+            "evaluate-globs" => "host: extraction / GetAllGlobs evaluation, shared SDK cache",
+            "evaluate-isolated" => "host: evaluation again without the shared SDK cache",
             "msbuild-build" => "host: design-time build",
             "create-instance" => "host: project instance",
             "extract" => "host: ProjectFileInfo extraction",

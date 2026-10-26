@@ -44,6 +44,7 @@ internal sealed class ProjectFile(
         }
 
         var projectInstances = await buildManager.GetProjectInstancesAsync(project, log, cancellationToken).ConfigureAwait(false);
+        buildManager.EvaluateForGlobs(project);
 
         return projectInstances.Select(instance =>
         {

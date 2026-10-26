@@ -15,6 +15,9 @@
       fork-ab-trace   A and B with the timing trace of BuildHost/task-01, against fork-ab for the cost of tracing
       fork-ab-gc      A and B, server GC with ConserveMemory=9 in the host only (task-04 experiment)
       fork-ab-gc-trace  the same GC experiment with the trace
+      fork-abc        A, B and candidate C of task-04: one SDK resolution cache per project
+                      (ROSLYN_BUILDHOST_SHARED_SDK_CACHE)
+      fork-abc-trace  A, B and C with the trace
 
     Each round runs every side once; the order is rotated by one side per round, so no side always goes first or
     always follows the same one. Round 0 is warmup.
@@ -22,7 +25,10 @@
     The original runs go to the top of the result folder, each variant to a subfolder of its own. matrix.md holds the
     answer of every variant against the original by the rules of task-00 and the medians of all sides, as ratios to
     the original and to the fork without optimizations; <variant>\summary.md holds each comparison in full, and
-    fork-ab-trace\trace-summary.md where the load time goes. The script fails when a variant is not shown equivalent.
+    fork-ab-trace\trace-summary.md where the load time goes. Without the fork side the ratios are to fork-ab, the
+    reference of the task-04 candidates. The GC and C variants are followed by full RPC captures of the original twice
+    and of every variant, compared field by field (rpc-*-raw.txt, rpc-*-glob-sets.txt). The script fails when a
+    variant is not shown equivalent or its RPC answer differs beyond the order of glob excludes and removes.
 
 .PARAMETER Solution
     Solution to load.
@@ -64,7 +70,7 @@ param(
 
     [string]$OutDirectory,
 
-    [ValidateSet('fork', 'fork-a', 'fork-b', 'fork-ab', 'fork-ab-trace', 'fork-ab-gc', 'fork-ab-gc-trace')]
+    [ValidateSet('fork', 'fork-a', 'fork-b', 'fork-ab', 'fork-ab-trace', 'fork-ab-gc', 'fork-ab-gc-trace', 'fork-abc', 'fork-abc-trace')]
     [string[]]$Variants = @('fork', 'fork-a', 'fork-b', 'fork-ab', 'fork-ab-trace'),
 
     [ValidateRange(1, 64)]
@@ -83,13 +89,15 @@ $repo = Split-Path $spikes -Parent
 . (Join-Path $PSScriptRoot 'BuildHostForkCommon.ps1')
 
 $definitions = @{
-    'fork' = @{ referencesFirst = $false; evaluateAhead = 0; trace = $false }
-    'fork-a' = @{ referencesFirst = $true; evaluateAhead = 0; trace = $false }
-    'fork-b' = @{ referencesFirst = $false; evaluateAhead = $EvaluateAhead; trace = $false }
-    'fork-ab' = @{ referencesFirst = $true; evaluateAhead = $EvaluateAhead; trace = $false }
-    'fork-ab-trace' = @{ referencesFirst = $true; evaluateAhead = $EvaluateAhead; trace = $true }
-    'fork-ab-gc' = @{ referencesFirst = $true; evaluateAhead = $EvaluateAhead; trace = $false }
-    'fork-ab-gc-trace' = @{ referencesFirst = $true; evaluateAhead = $EvaluateAhead; trace = $true }
+    'fork' = @{ referencesFirst = $false; evaluateAhead = 0; sharedSdkCache = $false; trace = $false; rpc = $false }
+    'fork-a' = @{ referencesFirst = $true; evaluateAhead = 0; sharedSdkCache = $false; trace = $false; rpc = $false }
+    'fork-b' = @{ referencesFirst = $false; evaluateAhead = $EvaluateAhead; sharedSdkCache = $false; trace = $false; rpc = $false }
+    'fork-ab' = @{ referencesFirst = $true; evaluateAhead = $EvaluateAhead; sharedSdkCache = $false; trace = $false; rpc = $false }
+    'fork-ab-trace' = @{ referencesFirst = $true; evaluateAhead = $EvaluateAhead; sharedSdkCache = $false; trace = $true; rpc = $false }
+    'fork-ab-gc' = @{ referencesFirst = $true; evaluateAhead = $EvaluateAhead; sharedSdkCache = $false; trace = $false; rpc = $true }
+    'fork-ab-gc-trace' = @{ referencesFirst = $true; evaluateAhead = $EvaluateAhead; sharedSdkCache = $false; trace = $true; rpc = $true }
+    'fork-abc' = @{ referencesFirst = $true; evaluateAhead = $EvaluateAhead; sharedSdkCache = $true; trace = $false; rpc = $true }
+    'fork-abc-trace' = @{ referencesFirst = $true; evaluateAhead = $EvaluateAhead; sharedSdkCache = $true; trace = $true; rpc = $true }
 }
 $Variants = @($Variants | Select-Object -Unique)
 
@@ -141,7 +149,7 @@ for ($round = 0; $round -le $Runs; $round++) {
         if ($fork) {
             $directory = Join-Path $OutDirectory $side
             $definition = $definitions[$side]
-            Set-ForkOptimizations $definition.referencesFirst $definition.evaluateAhead $EvaluateAheadSolution
+            Set-ForkOptimizations $definition.referencesFirst $definition.evaluateAhead $EvaluateAheadSolution $definition.sharedSdkCache
             if ($definition.trace) { $env:ROSLYN_BUILDHOST_TRACE_DIRECTORY = Join-Path $directory (Join-Path 'trace' "fork-round$round") }
         }
 
@@ -155,14 +163,14 @@ for ($round = 0; $round -le $Runs; $round++) {
 }
 
 # These are separate correctness loads, after all timing rounds. Raw captures retain every field and array order.
-if ($gcDll) {
+if (@($Variants | Where-Object { $definitions[$_].rpc }).Count -gt 0) {
     $rpcOriginal = Join-Path $OutDirectory 'rpc-original.json'
     foreach ($side in @('original', 'original-repeat') + $Variants) {
         $fork = $side -notlike 'original*'
         $dll = if ($side -like 'fork-ab-gc*') { $gcDll } elseif ($fork) { $forkDll } else { $originalDll }
         if ($fork) {
             $definition = $definitions[$side]
-            Set-ForkOptimizations $definition.referencesFirst $definition.evaluateAhead $EvaluateAheadSolution
+            Set-ForkOptimizations $definition.referencesFirst $definition.evaluateAhead $EvaluateAheadSolution $definition.sharedSdkCache
         }
         $directory = if ($fork) { Join-Path $OutDirectory $side } else { $OutDirectory }
         $output = if ($fork) { Join-Path $directory 'rpc.json' } else { Join-Path $directory "rpc-$side.json" }
@@ -193,5 +201,5 @@ foreach ($variant in $Variants | Where-Object { $definitions[$_].trace }) {
 }
 Write-Host ''
 Write-Host "Results: $OutDirectory"
-Write-Host 'matrix.md and <variant>\summary.md compare the workspace; <variant>\trace-summary.md shows where the time goes. GC variants also write rpc-*-raw.txt and rpc-*-glob-sets.txt. JSON and trace files hold project paths.'
+Write-Host 'matrix.md and <variant>\summary.md compare the workspace; <variant>\trace-summary.md shows where the time goes. GC and C variants also write rpc-*-raw.txt and rpc-*-glob-sets.txt. JSON and trace files hold project paths.'
 if (-not $equivalent) { throw 'A fork variant is not shown equivalent to the original; see matrix.md.' }
