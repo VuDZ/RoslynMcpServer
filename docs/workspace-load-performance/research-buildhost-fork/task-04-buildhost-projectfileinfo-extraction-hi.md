@@ -19,8 +19,8 @@
   ([проба](evidence/task-04-projectfileinfo-extraction.md#кандидат-c-общий-кеш-sdk-resolution--проба-2026-10-26)).
   C реализован в форке (переключатель, по умолчанию выключен): контекст на проект и проверка версий SDK. На
   Linux identical в матрице, полные RPC совпадают, фикстура с разными версиями SDK и `global.json` пройдена,
-  сценарии сбоев и SourceStructure пройдены. Main-набор, AnalyzerLifecycle и матрица порогов на Windows —
-  pending ([реализация](evidence/task-04-projectfileinfo-extraction.md#кандидат-c-в-форке-2026-10-26)).
+  сценарии сбоев и SourceStructure пройдены. Windows, Release: main 1467/1467, AnalyzerLifecycle 13/13.
+  Матрица порогов на Windows — pending ([реализация](evidence/task-04-projectfileinfo-extraction.md#кандидат-c-в-форке-2026-10-26)).
 - Сложность: hi; риск — сократить извлечение ценой неполного или иного `ProjectFileInfo`.
 - Сопутствующее исправление, 2026-10-26: matrix/baseline/scenarios разрешают относительные `Solution` и
   `OutDirectory` от location PowerShell; автоматический каталог без `OutDirectory` сохранён и проверен
