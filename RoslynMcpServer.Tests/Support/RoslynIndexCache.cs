@@ -41,7 +41,51 @@ internal static class RoslynIndexCache
     internal static void DeleteOnLoadAndExit()
     {
         Delete();
+        DeleteFoldersOfEndedProcesses();
         AppDomain.CurrentDomain.ProcessExit += (_, _) => Delete();
+    }
+
+    /// <summary>
+    /// A test process killed without ProcessExit (out of memory, a hang timeout) leaves its Unix cache folder
+    /// behind; every process has a new folder, so nobody else would delete it.
+    /// </summary>
+    private static void DeleteFoldersOfEndedProcesses()
+    {
+        if (_processBase is null)
+        {
+            return;
+        }
+
+        foreach (var folder in Directory.GetDirectories(Path.GetDirectoryName(_processBase)!, ProcessBasePrefix + "*"))
+        {
+            var parts = Path.GetFileName(folder)[ProcessBasePrefix.Length..].Split('-');
+            if (!int.TryParse(parts[0], out var processId) || processId == Environment.ProcessId || IsRunning(processId))
+            {
+                continue;
+            }
+
+            try
+            {
+                Directory.Delete(folder, recursive: true);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                // Another test process may be deleting the same folder.
+            }
+        }
+
+        static bool IsRunning(int processId)
+        {
+            try
+            {
+                using var process = System.Diagnostics.Process.GetProcessById(processId);
+                return !process.HasExited;
+            }
+            catch (ArgumentException)
+            {
+                return false;
+            }
+        }
     }
 
     private static void Delete()
@@ -68,7 +112,7 @@ internal static class RoslynIndexCache
         if (!OperatingSystem.IsWindows())
         {
             // Linux takes LocalApplicationData from XDG_DATA_HOME, macOS from HOME (~/Library/Application Support).
-            _processBase = Path.Combine(Path.GetTempPath(), "RoslynMcpIndexCache-" + Environment.ProcessId + "-" + Guid.NewGuid().ToString("N"));
+            _processBase = Path.Combine(Path.GetTempPath(), ProcessBasePrefix + Environment.ProcessId + "-" + Guid.NewGuid().ToString("N"));
             var dataHome = Environment.GetEnvironmentVariable("XDG_DATA_HOME");
             var home = Environment.GetEnvironmentVariable("HOME");
             Environment.SetEnvironmentVariable("XDG_DATA_HOME", _processBase);
@@ -96,6 +140,8 @@ internal static class RoslynIndexCache
 
     private static string ReadStaticString(Type type, string name) =>
         (string)type.GetField(name, BindingFlags.Static | BindingFlags.NonPublic)!.GetValue(null)!;
+
+    private const string ProcessBasePrefix = "RoslynMcpIndexCache-";
 
     private static string? _processBase;
 }

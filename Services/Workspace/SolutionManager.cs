@@ -2273,7 +2273,7 @@ public sealed class SolutionManager
         bool? installed = missing.Count == 0 ? null : MissingSourceFiles.TryInstallLoaders(workspace, missing, out failure);
         if (failure is not null)
         {
-            _logger.LogWarning("Missing source files keep Roslyn's retrying loader: {Failure}", failure);
+            _logger.LogWarning("Some or all missing source files keep Roslyn's retrying loader: {Failure}", failure);
         }
 
         _logger.LogInformation("workspace_missing_source_files {Json:l}", System.Text.Json.JsonSerializer.Serialize(new

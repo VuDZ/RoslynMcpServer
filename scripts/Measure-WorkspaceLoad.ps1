@@ -176,7 +176,13 @@ function Get-RedactedText([string]$Text) {
     foreach ($pair in $redactionPairs) {
         $value = $pair[0].TrimEnd('\', '/')
         $slashed = $value.Replace('\', '/')
-        foreach ($variant in @($value, $value.Replace('\', '\\'), $slashed, (ConvertTo-JsonEscapedText $value), (ConvertTo-JsonEscapedText $slashed))) {
+        $variants = @($value, $value.Replace('\', '\\'), $slashed)
+        # IgnoreCase cannot match И against и: escape each case form of the value separately.
+        foreach ($form in @($value, $value.ToUpperInvariant(), $value.ToLowerInvariant()) | Select-Object -Unique) {
+            $variants += (ConvertTo-JsonEscapedText $form)
+            $variants += (ConvertTo-JsonEscapedText $form.Replace('\', '/'))
+        }
+        foreach ($variant in $variants) {
             $Text = [regex]::Replace($Text, [regex]::Escape($variant), $pair[1], 'IgnoreCase')
         }
     }
@@ -663,18 +669,34 @@ function Start-FirstSearchTrace([int]$ProcessId, [string]$TracePath) {
         if ($tracer.HasExited) { break }
         Start-Sleep -Milliseconds 200
     }
-    if (-not $tracer.HasExited) { Stop-Process -Id $tracer.Id -Force -ErrorAction SilentlyContinue }
+    if (-not $tracer.HasExited) {
+        Stop-Process -Id $tracer.Id -Force -ErrorAction SilentlyContinue
+        [void]$tracer.WaitForExit(5000)
+    }
     $output = ''
     foreach ($path in @($logPath, "$logPath.err")) {
         if (Test-Path -LiteralPath $path) { $output += (Get-Content -LiteralPath $path -Raw) }
     }
+    Protect-TraceLogs $logPath
     throw "dotnet-trace did not attach to the server: $(Get-RedactedText $output)"
+}
+
+# dotnet-trace prints the full paths of the server and of the trace file; both logs stay in the result folder.
+# A file still held (a tracer that has not quite exited, an antivirus scan) must not end the run: the summary of
+# every measured run is written after the loop, and the leftover scan still reports what stayed unredacted.
+function Protect-TraceLogs([string]$LogPath) {
+    foreach ($path in @($LogPath, "$LogPath.err")) {
+        if (-not (Test-Path -LiteralPath $path)) { continue }
+        try { [IO.File]::WriteAllText($path, (Get-RedactedText ([IO.File]::ReadAllText($path))), $utf8NoBom) }
+        catch { Write-Warning "Could not redact ${path}: $($_.Exception.Message)" }
+    }
 }
 
 function Complete-FirstSearchTrace($Trace) {
     $state = 'completed'
     if (-not $Trace.Process.WaitForExit(300000)) {
         Stop-Process -Id $Trace.Process.Id -Force -ErrorAction SilentlyContinue
+        [void]$Trace.Process.WaitForExit(5000)
         $state = 'timeout'
     }
     $bytes = $null
@@ -682,12 +704,7 @@ function Complete-FirstSearchTrace($Trace) {
     if ($state -eq 'completed' -and -not $bytes) { $state = 'no-file' }
     $output = ''
     if (Test-Path -LiteralPath $Trace.LogPath) { $output = Get-Content -LiteralPath $Trace.LogPath -Raw }
-    # dotnet-trace prints the full paths of the server and of the trace file; both logs stay in the result folder.
-    foreach ($path in @($Trace.LogPath, "$($Trace.LogPath).err")) {
-        if (Test-Path -LiteralPath $path) {
-            [IO.File]::WriteAllText($path, (Get-RedactedText ([IO.File]::ReadAllText($path))), $utf8NoBom)
-        }
-    }
+    Protect-TraceLogs $Trace.LogPath
     return [pscustomobject]@{
         file = Split-Path $Trace.TracePath -Leaf
         bytes = $bytes

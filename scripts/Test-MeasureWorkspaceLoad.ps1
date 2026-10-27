@@ -36,6 +36,9 @@ $redactionPairs = Get-RedactionPairs "C:\Users\$cyrillicUser\source\R&D App" 'C:
 $escapedRecord = '{"project":"C:\\Users\\\u0418\u0432\u0430\u043D\u043E\u0432\\source\\R\u0026D App\\App.csproj"}'
 Assert-Equal '{"project":"<repo>\\App.csproj"}' (Get-RedactedText $escapedRecord) 'JSON-escaped non-ASCII and & in a path'
 Assert-Equal '<repo>\App.csproj' ((Get-RedactedText $escapedRecord) | ConvertFrom-Json).project 'Parsed record after redaction'
+# Another tool lower-cased the path: \u0438 does not match \u0418 under IgnoreCase, so case forms are escaped too.
+$lowerRecord = '{"project":"C:\\Users\\\u0438\u0432\u0430\u043D\u043E\u0432\\source\\r\u0026d app\\App.csproj"}'
+Assert-Equal '{"project":"<repo>\\App.csproj"}' (Get-RedactedText $lowerRecord) 'JSON-escaped path in another letter case'
 Assert-Equal "<repo>\App.csproj" (Get-RedactedText "C:\Users\$cyrillicUser\source\R&D App\App.csproj") 'Plain non-ASCII path'
 $redactionPairs = $saved
 
