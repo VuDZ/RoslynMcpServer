@@ -3,6 +3,7 @@
 Контракт: [BuildHost-исследование](../../docs/workspace-load-performance/research-buildhost-fork/README.md),
 [task-00](../../docs/workspace-load-performance/research-buildhost-fork/task-00-buildhost-fork-baseline-hi.md).
 Источник и хеши: [UPSTREAM.md](UPSTREAM.md).
+Документы исследования и отчёты по ссылкам ниже лежат в Git-ветке `research/workspace-load-performance`; в `main` их нет.
 
 Форк процесса BuildHost, которым `MSBuildWorkspace` из Roslyn 5.9.0 загружает проекты.
 Клиент (`Microsoft.CodeAnalysis.Workspaces.MSBuild.dll` в сервере) не форкается: он запускает тот
