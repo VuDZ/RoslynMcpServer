@@ -1,0 +1,14 @@
+{
+  "solution": "Roslyn.slnx",
+  "solutionCommit": "013d3a758df6c137497ff37a93f0d4bed103853a",
+  "spikeCommit": "f442b0adf6ad",
+  "logicalProcessors": 6,
+  "os": "Microsoft Windows NT 10.0.26200.0",
+  "dotnetSdks": "9.0.318, 10.0.301, 10.0.402",
+  "rounds": 3,
+  "workers": "4",
+  "closureWorkers": "2, 4",
+  "serverGc": false,
+  "cpu": "Intel(R) Core(TM) i5-9500 CPU @ 3.00GHz (6 cores)",
+  "ramGb": 63.8
+}

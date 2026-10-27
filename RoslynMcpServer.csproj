@@ -16,8 +16,7 @@
     <PublishReadyToRun>true</PublishReadyToRun>
     <!-- Server GC (with DATAS, the .NET 10 default) cut GC pauses of the first search on Roslyn.slnx
          from 8 s to 2 s and load + first search by 18%, for 14-19% more working set
-         (branch research/workspace-load-performance,
-         docs/workspace-load-performance/epoch-0-stage-measurement/evidence/task-12-server-gc-first-search.md).
+         (docs/workspace-load-performance/epoch-0-stage-measurement/evidence/task-12-server-gc-first-search.md).
          Workstation GC collected every 48 MB of gen0 and promoted the retained syntax trees each time.
          DOTNET_gcServer=0 in the environment restores workstation GC without a rebuild. -->
     <ServerGarbageCollection>true</ServerGarbageCollection>
@@ -110,7 +109,7 @@
     <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
   </ItemGroup>
   <!-- BuildHost-netcore is the fork from forks/roslyn-buildhost, not the package's host
-       (branch research/workspace-load-performance, docs/workspace-load-performance/research-buildhost-fork/task-03-buildhost-fork-server-integration-hi.md).
+       (docs/workspace-load-performance/research-buildhost-fork/task-03-buildhost-fork-server-integration-hi.md).
        A design-time build does nothing with it, so a copy of this project without forks/ still loads into a
        workspace; a real build without it fails on the missing import. -->
   <Import Project="forks\roslyn-buildhost\build\BuildHostFork.targets"

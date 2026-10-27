@@ -364,7 +364,7 @@ metadata-символах компиляций. Цена: низкая (опис
 с 10.0.300 и 10.0.402: хост `dotnet` выбирает 10.0.402, сервер подставляет MSBuild из 10.0.300 и
 сообщает об ошибке `MCP_MSBUILD_SDK_MISMATCH` («`dotnet --version` reported 10.0.402 but
 global.json pins 10.0.300»). Воспроизведено на Windows во втором раунде ревью BuildHost/task-00
-([GPT-6](../workspace-load-performance/research-buildhost-fork/evidence/task-00-review/review-gpt-6-round-2.md) в ветке `research/workspace-load-performance`,
+([GPT-6](../workspace-load-performance/research-buildhost-fork/evidence/task-00-review/review-gpt-6-round-2.md),
 часть B): вызовы `DotNetSdkEnvironment.TryGetPin` и `SdkMismatchDiagnostics.CreateErrors` из
 собранного сервера; полный MCP-запрос не выполнялся.
 

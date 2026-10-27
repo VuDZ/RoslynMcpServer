@@ -1,0 +1,13 @@
+{
+  "solution": "Roslyn.slnx",
+  "solutionCommit": "013d3a758df6c137497ff37a93f0d4bed103853a",
+  "spikeCommit": "e8784d0d8108",
+  "logicalProcessors": 16,
+  "os": "Microsoft Windows NT 10.0.26200.0",
+  "dotnetSdks": "10.0.301",
+  "rounds": 3,
+  "workers": "2, 4, 15",
+  "serverGc": true,
+  "cpu": "AMD Ryzen 7 9800X3D 8-Core Processor (8 cores)",
+  "ramGb": 93.7
+}

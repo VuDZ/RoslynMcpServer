@@ -23,9 +23,8 @@ vsdbg вне VS/VS Code лицензией не разрешён): запуск 
 - Гонка watcher/flush в `WorkspaceNonCSharpDiskSyncTests`: остановка меняет
   тайминги; хватает логгера и тестовых хуков `DuringContentReadForTests` /
   `DuringDiskFlushForTests`, цикл «лог → сборка → прогон» — минуты.
-- Офисные I/O-задержки первого поиска (workspace-load-performance E0/task-09,
-  ветка `research/workspace-load-performance`): на машинах коллег не будет
-  отладчика и агента; нужен `dotnet-trace` с событиями исключений.
+- Офисные I/O-задержки первого поиска ([workspace-load-performance E0/task-09](../workspace-load-performance/epoch-0-stage-measurement/task-09-first-search-io-and-private-project-profile-hi.md)):
+  на машинах коллег не будет отладчика и агента; нужен `dotnet-trace` с событиями исключений.
 - Зависания: стеки и дампы дают `dotnet-stack` и `dotnet-dump` из командной строки.
 - Поведение Roslyn: хватило декомпиляции и изолированного probe.
 

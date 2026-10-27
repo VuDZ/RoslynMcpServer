@@ -7,10 +7,10 @@ namespace RoslynMcpServer.Services.Workspace;
 /// Switches the optimizations of the forked BuildHost that this server ships in BuildHost-netcore: part A builds the
 /// projects a project references before it, part B evaluates projects ahead on worker threads. Both keep the loaded
 /// workspace identical to the package's BuildHost and shortened the load by 16-27 % against the fork without them
-/// (branch research/workspace-load-performance, docs/workspace-load-performance/research-buildhost-fork/evidence/task-02-optimization-spike.md). Candidate C lets
+/// (docs/workspace-load-performance/research-buildhost-fork/evidence/task-02-optimization-spike.md). Candidate C lets
 /// the evaluations of one project share one SDK resolution cache instead of loading the workload manifests again for
 /// each; on top of A and B it shortened the load by another 10-18 % with the same workspace and host response
-/// (branch research/workspace-load-performance, docs/workspace-load-performance/research-buildhost-fork/evidence/task-04-projectfileinfo-extraction.md).
+/// (docs/workspace-load-performance/research-buildhost-fork/evidence/task-04-projectfileinfo-extraction.md).
 /// </summary>
 /// <remarks>
 /// The switches go to the BuildHost as global properties of the workspace, which the MSBuildWorkspace client passes

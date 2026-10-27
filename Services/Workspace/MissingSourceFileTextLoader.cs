@@ -11,8 +11,7 @@ namespace RoslynMcpServer.Services.Workspace;
 /// Roslyn 5.9.0 retries every <see cref="IOException"/>, including <see cref="FileNotFoundException"/>,
 /// six times 200 ms apart and then returns empty text. A generated file linked into many projects costs
 /// about one second per project and per read: 24 of 31 s of a first search in the office
-/// (branch research/workspace-load-performance,
-/// docs/workspace-load-performance/epoch-0-stage-measurement/evidence/office-first-search-2026-10-23.md).
+/// (docs/workspace-load-performance/epoch-0-stage-measurement/evidence/office-first-search-2026-10-23.md).
 /// <see cref="InvalidDataException"/> is not retried and yields the same empty text.
 /// </remarks>
 internal sealed class MissingSourceFileTextLoader(string path) : TextLoader

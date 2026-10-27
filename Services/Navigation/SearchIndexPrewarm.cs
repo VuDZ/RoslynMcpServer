@@ -13,10 +13,10 @@ namespace RoslynMcpServer.Services.Navigation;
 /// </summary>
 /// <remarks>
 /// On the office solution this part was 5.5 s of a 13.6 s first search with a warm index cache and 8.4 s
-/// with a cold one (task-16 on branch research/workspace-load-performance). A search that starts while the
-/// prewarm runs shares the document texts and syntax trees with it, and uses every index the prewarm has
-/// already stored. Roslyn does not deduplicate an index both are computing at the same moment, so that one
-/// may be built twice.
+/// with a cold one (docs/workspace-load-performance/epoch-0-stage-measurement/evidence/task-16-search-index-prewarm.md).
+/// A search that starts while the prewarm runs shares the document texts and syntax trees with it, and uses
+/// every index the prewarm has already stored. Roslyn does not deduplicate an index both are computing at the
+/// same moment, so that one may be built twice.
 /// </remarks>
 internal static class SearchIndexPrewarm
 {
