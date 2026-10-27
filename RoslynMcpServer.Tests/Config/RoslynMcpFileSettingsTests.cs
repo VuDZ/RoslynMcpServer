@@ -174,6 +174,70 @@ public sealed class RoslynMcpFileSettingsTests : IDisposable
     }
 
     [Fact]
+    public void LoadFromDirectories_search_prewarm_is_known_and_cwd_overrides_exe()
+    {
+        File.WriteAllText(
+            Path.Combine(_exeDir, RoslynMcpFileSettings.FileName),
+            """{ "search-prewarm": true }""");
+        File.WriteAllText(
+            Path.Combine(_cwdDir, RoslynMcpFileSettings.FileName),
+            """{ "search-prewarm": false }""");
+
+        var settings = RoslynMcpFileSettings.LoadFromDirectories(_exeDir, _cwdDir);
+
+        Assert.False(settings.SearchPrewarm);
+        Assert.Empty(settings.UnknownKeys);
+        Assert.Empty(settings.ParseFailures);
+    }
+
+    [Fact]
+    public void LoadFromDirectories_search_prewarm_of_another_type_names_the_key_in_the_failure()
+    {
+        File.WriteAllText(
+            Path.Combine(_cwdDir, RoslynMcpFileSettings.FileName),
+            """{ "search-prewarm": "off" }""");
+
+        var settings = RoslynMcpFileSettings.LoadFromDirectories(_exeDir, _cwdDir);
+
+        Assert.Null(settings.SearchPrewarm);
+        Assert.Contains(settings.ParseFailures, failure => failure.Message == "search-prewarm must be a boolean.");
+    }
+
+    [Fact]
+    public void LoadFromDirectories_cwd_buildhost_keys_override_exe_one_by_one()
+    {
+        File.WriteAllText(
+            Path.Combine(_exeDir, RoslynMcpFileSettings.FileName),
+            """{ "buildhost-optimizations": false, "buildhost-evaluate-ahead-workers": 2 }""");
+        File.WriteAllText(
+            Path.Combine(_cwdDir, RoslynMcpFileSettings.FileName),
+            """{ "buildhost-evaluate-ahead-workers": 0 }""");
+
+        var settings = RoslynMcpFileSettings.LoadFromDirectories(_exeDir, _cwdDir);
+
+        Assert.False(settings.BuildHostOptimizations);
+        Assert.Equal(0, settings.BuildHostEvaluateAheadWorkers);
+        Assert.Empty(settings.UnknownKeys);
+        Assert.Empty(settings.ParseFailures);
+    }
+
+    [Theory]
+    [InlineData("-1")]
+    [InlineData("\"4\"")]
+    [InlineData("1.5")]
+    public void LoadFromDirectories_buildhost_workers_that_are_not_a_non_negative_integer_fail_the_file(string value)
+    {
+        File.WriteAllText(
+            Path.Combine(_cwdDir, RoslynMcpFileSettings.FileName),
+            $$"""{ "buildhost-evaluate-ahead-workers": {{value}} }""");
+
+        var settings = RoslynMcpFileSettings.LoadFromDirectories(_exeDir, _cwdDir);
+
+        Assert.Null(settings.BuildHostEvaluateAheadWorkers);
+        Assert.Contains(settings.ParseFailures, failure => failure.Message == "buildhost-evaluate-ahead-workers must be a non-negative integer.");
+    }
+
+    [Fact]
     public void LoadFromDirectories_no_plugins_key_yields_no_explicit_paths()
     {
         File.WriteAllText(

@@ -6,7 +6,10 @@
 - Примерная сложность: 4/5; класс `hi`.
 - Риск ошибки: высокий — compilation references не равны load dependencies; бесплатный граф из уже выполненного baseline может скрыть цену первой загрузки.
 - Необходимые способности: `семантика_roslyn_msbuild`, `проектирование_проверок`, `анализ_производительности`.
-- Статус: **planned, 2026-10-21; план записан по решению владельца, реализация и независимое ревью не начаты**.
+- Статус: **cancelled, 2026-10-27 (решение владельца) — superseded [исследованием форка BuildHost](../research-buildhost-fork/README.md)**.
+  Порядок загрузки и evaluation наперёд теперь делает сам host (A + B + C, task-02–task-04 форка):
+  на Roslyn.slnx и офисном решении загрузка identical и быстрее без параллельных `MSBuildProjectLoader`.
+  Реализация не начиналась; план ниже сохранён как история. Прежний статус: planned, 2026-10-21.
 - Depends on: [task-07.2](task-07.2-refusal-fast-planner-roslyn-hi.md).
 - Модель, реализовавшая задачу: —.
 - Модели, проводившие ревью: —.
@@ -130,3 +133,10 @@ Category!=AnalyzerLifecycle по AGENTS.md; SourceStructure входит в об
 Тяжёлые snapshots/binlogs/TRX — в ignored
 `artifacts/parallel-load/task-07.3-evidence/`; в Git — компактные evidence по
 [правилам хранения](../README.md#хранение-evidence).
+
+## Продолжение направления, 2026-10-22
+
+Задача остаётся planned и сохраняет public-API scope. По решению владельца
+создано отдельное [исследование форка BuildHost](../research-buildhost-fork/README.md):
+оно может дать наблюдения о реальном графе и повторной работе, но не считается
+исполнением или успешной приёмкой task-07.3. Прежний no-go task-07.2 сохраняется.

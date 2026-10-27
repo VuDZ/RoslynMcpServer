@@ -5,6 +5,8 @@ using Microsoft.CodeAnalysis;
 using RoslynMcpServer.Config;
 using RoslynMcpServer.Hosting;
 using RoslynMcpServer.Plugins;
+using RoslynMcpServer.Services.Navigation;
+using RoslynMcpServer.Services.Workspace;
 
 namespace RoslynMcpServer.Services;
 
@@ -188,6 +190,16 @@ public static class McpServerInfoHelper
         sb.AppendLine($"- **Merged target-framework:** {(fileSettings.TargetFramework is null ? "(none)" : $"`{fileSettings.TargetFramework}`")}");
         sb.AppendLine($"- **Merged max-results:** {(fileSettings.MaxResults is null ? "(none)" : fileSettings.MaxResults.Value.ToString())}");
         sb.AppendLine($"- **Merged preview:** {(fileSettings.Preview is null ? "(none)" : fileSettings.Preview.Value ? "true" : "false")}");
+        sb.AppendLine($"- **Merged search-prewarm:** {(fileSettings.SearchPrewarm is null ? "(none)" : fileSettings.SearchPrewarm.Value ? "true" : "false")} (ROSLYN_MCP_SEARCH_PREWARM wins; default on)");
+        var prewarmEnvironment = Environment.GetEnvironmentVariable(SearchIndexPrewarm.EnvironmentVariableName);
+        var prewarmSource = !string.IsNullOrWhiteSpace(prewarmEnvironment) ? "environment"
+            : fileSettings.SearchPrewarm is not null ? "RoslynMcp.jsonc"
+            : "default";
+        sb.AppendLine($"- **Search prewarm in effect:** {(SearchIndexPrewarm.IsEnabled(fileSettings.SearchPrewarm, prewarmEnvironment) ? "on" : "off")} ({prewarmSource})");
+        sb.AppendLine($"- **Merged buildhost-optimizations:** {(fileSettings.BuildHostOptimizations is null ? "(none)" : fileSettings.BuildHostOptimizations.Value ? "true" : "false")} (ROSLYN_MCP_BUILDHOST_OPTIMIZATIONS wins; default on)");
+        sb.AppendLine($"- **Merged buildhost-evaluate-ahead-workers:** {(fileSettings.BuildHostEvaluateAheadWorkers is null ? "(none)" : fileSettings.BuildHostEvaluateAheadWorkers.Value.ToString())} (ROSLYN_MCP_BUILDHOST_EVALUATE_AHEAD_WORKERS wins; default {BuildHostOptimizations.DefaultEvaluateAheadWorkers}; 0 turns evaluation ahead off)");
+        var buildHost = BuildHostOptimizations.Resolve(fileSettings.BuildHostOptimizations, fileSettings.BuildHostEvaluateAheadWorkers);
+        sb.AppendLine($"- **BuildHost optimizations in effect:** references first {(buildHost.ReferencesFirst ? "on" : "off")}, evaluation ahead {(buildHost.EvaluateAheadWorkers > 0 ? $"{buildHost.EvaluateAheadWorkers} worker(s)" : "off")}, shared SDK resolution cache {(buildHost.SharedSdkCache ? "on" : "off")}");
         sb.AppendLine($"- **Merged ripgrep-path:** {(fileSettings.RipgrepPath is null ? "(none)" : $"`{fileSettings.RipgrepPath}`")} (stored; unused until search opts in)");
 
         if (!string.IsNullOrWhiteSpace(lazyLoadFailure))

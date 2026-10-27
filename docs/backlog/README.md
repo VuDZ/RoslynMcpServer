@@ -12,6 +12,9 @@
   исследования остаются на будущее. [Проверка](workspace-load-cache/relocation-report.md).
   Новый маршрут — [workspace state cache MVP](../workspace-state-cache/README.md),
   **ready-for-review; реализация не начата**.
+- [Инструменты отладчика через MCP](debugger-tools.md) — **deferred,
+  2026-10-22**. Решение владельца: не строить, пока не накопятся 2–3 случая,
+  где отладчик дал бы больше `dotnet-trace`/`dotnet-stack`/`dotnet-dump` и логов.
 
 Актуальные планы перечисляются в [индексе docs](../README.md).
 Учёт моделей и ревью ведётся по [общему стандарту](../README.md#учёт-задач-ревью-и-статистики).

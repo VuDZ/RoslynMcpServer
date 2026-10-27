@@ -25,25 +25,16 @@ internal static class LinuxParentProcess
         return new ParentProcessSnapshot(imagePath, commandLine);
     }
 
-    internal static int TryGetParentProcessId()
+    internal static int TryGetParentProcessId() => ReadParentProcessId(SelfStatusPath);
+
+    internal static int TryGetParentProcessId(int processId)
     {
-        if (!File.Exists(SelfStatusPath))
+        if (processId <= 0)
         {
             return 0;
         }
 
-        foreach (var line in File.ReadLines(SelfStatusPath))
-        {
-            if (!line.StartsWith("PPid:", StringComparison.Ordinal))
-            {
-                continue;
-            }
-
-            var value = line.AsSpan("PPid:".Length).Trim();
-            return int.TryParse(value, out var pid) ? pid : 0;
-        }
-
-        return 0;
+        return ReadParentProcessId($"/proc/{processId}/status");
     }
 
     internal static string? TryGetImagePath(int processId)
@@ -79,6 +70,34 @@ internal static class LinuxParentProcess
         }
 
         return Encoding.UTF8.GetString(bytes).Replace('\0', ' ').Trim();
+    }
+
+    private static int ReadParentProcessId(string statusPath)
+    {
+        if (!File.Exists(statusPath))
+        {
+            return 0;
+        }
+
+        try
+        {
+            foreach (var line in File.ReadLines(statusPath))
+            {
+                if (!line.StartsWith("PPid:", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                var value = line.AsSpan("PPid:".Length).Trim();
+                return int.TryParse(value, out var pid) ? pid : 0;
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return 0;
+        }
+
+        return 0;
     }
 
     private const string SelfStatusPath = "/proc/self/status";

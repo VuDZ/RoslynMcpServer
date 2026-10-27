@@ -1,0 +1,15 @@
+{
+  "MsBuildVersion": "18.9.15.50611",
+  "BuildDocuments": [
+    "before\\Before.cs"
+  ],
+  "OriginalGlobs": [
+    "after/**/*.cs",
+    "before/**/*.cs"
+  ],
+  "RecordedGlobs": [
+    "before/**/*.cs"
+  ],
+  "OriginalDirtyAfterBuild": false,
+  "RecordedDirtyAfterBuild": false
+}

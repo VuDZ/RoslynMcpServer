@@ -14,10 +14,14 @@ namespace RoslynMcpServer.Tools;
 
 public sealed class NavigationTools
 {
-    public NavigationTools(SolutionManager solutionManager, ILogger<NavigationTools> logger)
+    public NavigationTools(
+        SolutionManager solutionManager,
+        ILogger<NavigationTools> logger,
+        TimeProvider? timeProvider = null)
     {
         _solutionManager = solutionManager;
         _logger = logger;
+        _timeProvider = timeProvider ?? TimeProvider.System;
     }
 
     [McpServerTool(Name = "find_symbol_references", Title = "Find symbol references")]
@@ -963,7 +967,8 @@ public sealed class NavigationTools
         CancellationToken cancellationToken)
     {
         var (result, _) = await WorkspaceAnalyzerSanitizer.WithSanitizedRetryAsync(
-            sol => SymbolDeclarationResolver.ResolveDeclarationsAsync(sol, trimmedName, filter, cancellationToken),
+            sol => SymbolDeclarationResolver.ResolveDeclarationsAsync(
+                sol, trimmedName, filter, _logger, _timeProvider, cancellationToken),
             () => _solutionManager.GetSanitizedPublishedSolution(),
             solution,
             cancellationToken).ConfigureAwait(false);
@@ -1260,4 +1265,5 @@ public sealed class NavigationTools
 
     private readonly SolutionManager _solutionManager;
     private readonly ILogger<NavigationTools> _logger;
+    private readonly TimeProvider _timeProvider;
 }

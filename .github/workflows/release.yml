@@ -112,13 +112,18 @@ jobs:
         with:
           ref: ${{ needs.meta.outputs.sha }}
 
+      # AR-13: one exact SDK builds the release, so a rebuild of the same tag uses the same compiler and
+      # targets. Only the release checkout gets this global.json: the server reads global.json to choose
+      # MSBuild and does not honor rollForward yet (AR-18), so a permissive pin in the repository would make
+      # it report false SDK mismatches. Raise the version here when a newer SDK is wanted.
+      - name: Pin the release SDK
+        shell: pwsh
+        run: Set-Content -LiteralPath global.json -Value '{"sdk":{"version":"10.0.402","rollForward":"disable"}}'
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
         with:
-          # Same SDK pair as test-suite.yml. AR-13 is still open: no accepted global.json.
-          dotnet-version: |
-            10.0.300
-            10.0.x
+          global-json-file: global.json
           cache: true
           cache-dependency-path: |
             **/*.csproj

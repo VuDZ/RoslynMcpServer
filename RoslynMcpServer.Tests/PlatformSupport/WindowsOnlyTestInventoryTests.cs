@@ -1,5 +1,5 @@
 using System.Reflection;
-using RoslynMcpServer.Diagnostics;
+using RoslynMcpServer.Tests.Support;
 using Xunit;
 
 namespace RoslynMcpServer.Tests.PlatformSupport;
@@ -13,49 +13,22 @@ public sealed class WindowsOnlyTestInventoryTests
     [Fact]
     public void Windows_only_category_matches_the_reviewed_list()
     {
-        var actual = TestMethods()
-            .Where(HasWindowsOnlyCategory)
-            .Select(Name)
-            .Order(StringComparer.Ordinal)
-            .ToArray();
-
-        Assert.Equal(_expected.Order(StringComparer.Ordinal).ToArray(), actual);
+        Assert.Equal(
+            _expected.Order(StringComparer.Ordinal).ToArray(),
+            TestCategoryInventory.Names(TestCategories.RequiresWindows));
     }
 
     [Fact]
     public void Every_WPF_fact_is_in_the_windows_only_category()
     {
-        var missing = TestMethods()
-            .Where(method => method.GetCustomAttribute<WpfFactAttribute>() is not null && !HasWindowsOnlyCategory(method))
-            .Select(Name)
+        var missing = TestCategoryInventory.TestMethods()
+            .Where(method => method.GetCustomAttribute<WpfFactAttribute>() is not null
+                && !TestCategoryInventory.HasCategory(method, TestCategories.RequiresWindows))
+            .Select(TestCategoryInventory.Name)
             .ToArray();
 
         Assert.Empty(missing);
     }
-
-    private static IEnumerable<MethodInfo> TestMethods()
-    {
-        // GetTypes loads every test type, including ones that mention MSBuild. The reference
-        // identity is Microsoft.Build.Framework 15.1.0.0, which is not next to the test dll.
-        // Without the locator the load fails when this test runs before any other registration.
-        MsBuildBootstrapper.Register();
-        return typeof(WindowsOnlyTestInventoryTests).Assembly
-            .GetTypes()
-            .SelectMany(type => type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
-            .Where(method => method.GetCustomAttributes<FactAttribute>(inherit: true).Any());
-    }
-
-    private static bool HasWindowsOnlyCategory(MethodInfo method) =>
-        method.GetCustomAttributesData()
-            .Concat(method.DeclaringType!.GetCustomAttributesData())
-            .Any(IsWindowsOnlyCategory);
-
-    // xUnit v2 TraitAttribute exposes its name and value only as constructor arguments.
-    private static bool IsWindowsOnlyCategory(CustomAttributeData attribute) =>
-        attribute.AttributeType == typeof(TraitAttribute)
-        && attribute.ConstructorArguments is [{ Value: "Category" }, { Value: TestCategories.RequiresWindows }];
-
-    private static string Name(MethodInfo method) => method.DeclaringType!.Name + "." + method.Name;
 
     private static readonly string[] _expected =
     [

@@ -78,7 +78,7 @@ public sealed class VstestOutputParserTests
         Assert.Equal(method, result.PassedTestNames[0]);
 
         const string filter =
-            "FullyQualifiedName~Kaspersky.Ucp.AvangateNewOrderNotificationTests."
+            "FullyQualifiedName~private_project.AvangateNewOrderNotificationTests."
             + "AvangateNewOrderNotification_MixedB2cB2bOrder_PurchasingContextSkippedLicenseSubscriptionsSaved";
         Assert.True(VstestOutputParser.FilterMatchedAnyTest(filter, output, result.PassedTestNames));
 
@@ -87,7 +87,7 @@ public sealed class VstestOutputParserTests
             0,
             output,
             filter,
-            "Roslyn-resolved FQN `Kaspersky.Ucp.AvangateNewOrderNotificationTests."
+            "Roslyn-resolved FQN `private_project.AvangateNewOrderNotificationTests."
             + "AvangateNewOrderNotification_MixedB2cB2bOrder_PurchasingContextSkippedLicenseSubscriptionsSaved`",
             requireFilterMatch: true);
         Assert.Contains("Filtered tests passed", md, StringComparison.Ordinal);

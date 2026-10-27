@@ -168,7 +168,8 @@ public sealed class CodeAnalysisTools
 
             var dllPath = resolved.DllPath!;
             cancellationToken.ThrowIfCancellationRequested();
-            var decompiler = DecompilerHost.Create(dllPath);
+            var session = DecompilerHost.Create(dllPath);
+            var decompiler = session.Decompiler;
 
             var visibleTopLevelTypes = decompiler.TypeSystem.MainModule.TopLevelTypeDefinitions
                 .Where(static typeDef => IsVisibleClassOrInterface(typeDef))
@@ -208,7 +209,10 @@ public sealed class CodeAnalysisTools
                 sb.AppendLine();
             }
 
-            return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(ExploreAssembly), sb.ToString().TrimEnd()));
+            return Task.FromResult(
+                ToolTelemetry.TraceAndReturn(
+                    nameof(ExploreAssembly),
+                    AppendUnresolvedReferencesNote(sb.ToString().TrimEnd(), session)));
         }
         catch (OperationCanceledException)
         {
@@ -252,7 +256,8 @@ public sealed class CodeAnalysisTools
 
             var dllPath = resolved.DllPath!;
             cancellationToken.ThrowIfCancellationRequested();
-            var decompiler = DecompilerHost.Create(dllPath);
+            var session = DecompilerHost.Create(dllPath);
+            var decompiler = session.Decompiler;
             var typeInfo = decompiler.TypeSystem.MainModule.Compilation.FindType(new FullTypeName(fullTypeName));
             var typeDefinition = typeInfo?.GetDefinition();
             if (typeDefinition is null)
@@ -290,7 +295,10 @@ public sealed class CodeAnalysisTools
                         $"Error: The requested type is too large ({lineCount} lines) to be fully decompiled into the context window. Please use `GetDecompiledClassSkeleton` to view its structure, and `GetDecompiledMethodBody` to inspect specific methods."));
             }
 
-            return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(DecompileType), code.TrimEnd()));
+            return Task.FromResult(
+                ToolTelemetry.TraceAndReturn(
+                    nameof(DecompileType),
+                    AppendUnresolvedReferencesNote(code.TrimEnd(), session)));
         }
         catch (OperationCanceledException)
         {
@@ -332,7 +340,8 @@ public sealed class CodeAnalysisTools
 
             var dllPath = resolved.DllPath!;
             cancellationToken.ThrowIfCancellationRequested();
-            var decompiler = DecompilerHost.Create(dllPath);
+            var session = DecompilerHost.Create(dllPath);
+            var decompiler = session.Decompiler;
             var typeInfo = decompiler.TypeSystem.MainModule.Compilation.FindType(new FullTypeName(fullTypeName));
             var typeDefinition = typeInfo?.GetDefinition();
             if (typeDefinition is null)
@@ -437,7 +446,10 @@ public sealed class CodeAnalysisTools
             }
 
             sb.AppendLine("}");
-            return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(GetDecompiledClassSkeleton), sb.ToString().TrimEnd()));
+            return Task.FromResult(
+                ToolTelemetry.TraceAndReturn(
+                    nameof(GetDecompiledClassSkeleton),
+                    AppendUnresolvedReferencesNote(sb.ToString().TrimEnd(), session)));
         }
         catch (OperationCanceledException)
         {
@@ -484,7 +496,8 @@ public sealed class CodeAnalysisTools
 
             var dllPath = resolved.DllPath!;
             cancellationToken.ThrowIfCancellationRequested();
-            var decompiler = DecompilerHost.Create(dllPath);
+            var session = DecompilerHost.Create(dllPath);
+            var decompiler = session.Decompiler;
             var typeInfo = decompiler.TypeSystem.MainModule.Compilation.FindType(new FullTypeName(fullTypeName));
             var typeDefinition = typeInfo?.GetDefinition();
             if (typeDefinition is null)
@@ -533,7 +546,10 @@ public sealed class CodeAnalysisTools
             }
 
             var payload = string.Join($"{Environment.NewLine}{Environment.NewLine}---{Environment.NewLine}{Environment.NewLine}", chunks);
-            return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(GetDecompiledMethodBody), payload));
+            return Task.FromResult(
+                ToolTelemetry.TraceAndReturn(
+                    nameof(GetDecompiledMethodBody),
+                    AppendUnresolvedReferencesNote(payload, session)));
         }
         catch (OperationCanceledException)
         {
@@ -566,6 +582,12 @@ public sealed class CodeAnalysisTools
             ? DecompilerHost.FormatResolveError(ex, Path.GetFullPath(assemblyPath.Trim()), null)
             : ex.Message;
         return $"{preamble} from `{dllHint}`: {detail}";
+    }
+
+    private static string AppendUnresolvedReferencesNote(string payload, DecompilerSession session)
+    {
+        var note = DecompilerHost.FormatUnresolvedReferencesNote(session.UnresolvedReferences);
+        return note.Length == 0 ? payload : $"{payload}{Environment.NewLine}{Environment.NewLine}{note}";
     }
 
     private static bool IsCompilerGeneratedName(string value)

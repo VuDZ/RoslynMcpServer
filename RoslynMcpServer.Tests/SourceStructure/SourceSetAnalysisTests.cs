@@ -1025,6 +1025,8 @@ public sealed class SourceSetAnalysisTests
         // assign it; production does not, so the walk records the same kind of limit as the other seams.
         // duringRead is the content-read seam passed into the reconciler. Argument-to-parameter flow
         // is not modeled, so the walk does not follow DuringContentReadForTests through that parameter.
+        // beforeProject is the search prewarm's per-project seam: a fresh load starts the prewarm, which
+        // invokes the parameter; SolutionManager passes BeforeSearchPrewarmProjectForTests, which only tests set.
         // Keep an exact inventory rather than accepting any number of limits; an unexpected blind spot
         // must still fail, and these known limits must not turn into a decided absence of the sync entry.
         var production = ProductionAnalysis.Instance;
@@ -1053,6 +1055,7 @@ public sealed class SourceSetAnalysisTests
             "onChanged",
             "onRenamed",
             "onError",
+            "beforeProject",
         ];
         Assert.Equal(expectedMembers.Length, reachability.Limits.Count);
         foreach (var member in expectedMembers)
@@ -1064,6 +1067,7 @@ public sealed class SourceSetAnalysisTests
             {
                 "update" => Path.Combine("Services", "Models", "WorkspaceInputSession.cs"),
                 "duringRead" => Path.Combine("Services", "Workspace", "WorkspaceInputReconciler.cs"),
+                "beforeProject" => Path.Combine("Services", "Navigation", "SearchIndexPrewarm.cs"),
                 "log" or "onChanged" or "onRenamed" or "onError" =>
                     Path.Combine("Services", "Workspace", "WorkspaceDiskWatcherStarter.cs"),
                 _ => Path.Combine("Services", "Workspace", "SolutionManager.cs"),

@@ -1,0 +1,122 @@
+[
+  {
+    "run": "office-pc-roslyn",
+    "round": 0,
+    "reportComplete": true,
+    "clockAgrees": true,
+    "extractionCategories": [
+      "host: ProjectFileInfo extraction"
+    ],
+    "rawHostFiles": 1,
+    "rawExtracts": 434,
+    "rawExtractionParts": 0,
+    "reportSha256": "5490a7a3afb9fe4b5b96883ce2672319a32a86c0f7f4b56df54d64e04f47f624",
+    "rawHostSha256": [
+      "a9aa9f6f88e88e80a9e082245e5d99add0e531183a844632a48a1825b404e6c2"
+    ]
+  },
+  {
+    "run": "office-pc-roslyn",
+    "round": 1,
+    "reportComplete": true,
+    "clockAgrees": true,
+    "extractionCategories": [
+      "host: ProjectFileInfo extraction"
+    ],
+    "rawHostFiles": 1,
+    "rawExtracts": 434,
+    "rawExtractionParts": 0,
+    "reportSha256": "ff3da3fd74cb62096537c06016e278ebda876d3772829c87202a45ff19529264",
+    "rawHostSha256": [
+      "d428eb57d8e51eeaa6c5fa3d1ce815f1992bcb7f6821901b29189281c9339ae3"
+    ]
+  },
+  {
+    "run": "office-pc-roslyn",
+    "round": 2,
+    "reportComplete": true,
+    "clockAgrees": true,
+    "extractionCategories": [
+      "host: ProjectFileInfo extraction"
+    ],
+    "rawHostFiles": 1,
+    "rawExtracts": 434,
+    "rawExtractionParts": 0,
+    "reportSha256": "3f10622fcee877ecc51f5ed584c8fa6d66c411c78f0dd3033401384591583390",
+    "rawHostSha256": [
+      "76cae28b5c24c45940aa42d653ce77451318bcca54c4759507ae59fdf828f5f0"
+    ]
+  },
+  {
+    "run": "office-pc-roslyn",
+    "round": 3,
+    "reportComplete": true,
+    "clockAgrees": true,
+    "extractionCategories": [
+      "host: ProjectFileInfo extraction"
+    ],
+    "rawHostFiles": 1,
+    "rawExtracts": 434,
+    "rawExtractionParts": 0,
+    "reportSha256": "e2eb58408e5b2b2e95bc0838bb9fd0552ff04a7c279d016c6fe151c513d9217c",
+    "rawHostSha256": [
+      "defe647eb0b446f7ac071c042f3880bc0292c364368e3dea0adebca2dd82692d"
+    ]
+  },
+  {
+    "run": "office-solution",
+    "round": 0,
+    "reportComplete": true,
+    "clockAgrees": true,
+    "extractionCategories": [
+      "host: ProjectFileInfo extraction"
+    ],
+    "rawHostFiles": 0,
+    "rawExtracts": 0,
+    "rawExtractionParts": 0,
+    "reportSha256": "7e816faeb0c7bc1935ed5d3ff1d27c49d73d4d0969f4e5e753136404e2926828",
+    "rawHostSha256": []
+  },
+  {
+    "run": "office-solution",
+    "round": 1,
+    "reportComplete": true,
+    "clockAgrees": true,
+    "extractionCategories": [
+      "host: ProjectFileInfo extraction"
+    ],
+    "rawHostFiles": 0,
+    "rawExtracts": 0,
+    "rawExtractionParts": 0,
+    "reportSha256": "d122046d4fc57b22f26c5f681dce672958086e1107680cb35145465fee0dedd9",
+    "rawHostSha256": []
+  },
+  {
+    "run": "office-solution",
+    "round": 2,
+    "reportComplete": true,
+    "clockAgrees": true,
+    "extractionCategories": [
+      "host: ProjectFileInfo extraction"
+    ],
+    "rawHostFiles": 0,
+    "rawExtracts": 0,
+    "rawExtractionParts": 0,
+    "reportSha256": "03dc27096beea4abaee19251b21ff36333f705427737a7c5e99eb0a4b2ca2956",
+    "rawHostSha256": []
+  },
+  {
+    "run": "office-solution",
+    "round": 3,
+    "reportComplete": true,
+    "clockAgrees": true,
+    "extractionCategories": [
+      "host: ProjectFileInfo extraction"
+    ],
+    "rawHostFiles": 0,
+    "rawExtracts": 0,
+    "rawExtractionParts": 0,
+    "reportSha256": "dd9f363c27e173ba225334f183fffe3032875c73cdbd4164302e1f93539ae355",
+    "rawHostSha256": []
+  }
+]

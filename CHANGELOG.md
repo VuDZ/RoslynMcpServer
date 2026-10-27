@@ -2,11 +2,57 @@
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
-### Unreleased
+### v1.5.17
 
+- Workspace loads are shorter: the server's `BuildHost-netcore` is now a fork of Roslyn 5.9.0's BuildHost (`forks/roslyn-buildhost`) that builds the projects a project references before it, so each project is evaluated once, and evaluates the solution's projects ahead on four worker threads while builds run one at a time. Measured against the unchanged BuildHost, with the same loaded workspace and diagnostics in the same order: an office solution loaded in 0.73 of the time, Roslyn.slnx in 0.82–0.84, with up to 9% more BuildHost memory. `ROSLYN_MCP_BUILDHOST_OPTIMIZATIONS=0` or `"buildhost-optimizations": false` in `RoslynMcp.jsonc` turns them off; `ROSLYN_MCP_BUILDHOST_EVALUATE_AHEAD_WORKERS` or `buildhost-evaluate-ahead-workers` sets the workers, `0` turns off only the evaluation ahead. The .NET Framework BuildHost is unchanged. `get_mcp_server_info` shows the setting in effect.
+- The BuildHost fork also shares one SDK resolution cache between the evaluations of a project (its own, one per TargetFramework switch and the one that collects file globs), so the workload SDK resolver no longer loads its manifests again for each. On top of the two optimizations above, with the same workspace and the same BuildHost response: an office solution loads in 0.90 of the time, Roslyn.slnx in 0.82, with less BuildHost CPU and the same memory; against the unchanged BuildHost that is 0.66 for both. An import that asks for another version of an SDK than the cached one is evaluated again without the cache. The same `buildhost-optimizations` switch turns it off.
+- Fixes from the review of the first-search work (1.5.11–1.5.15):
+  - On a case-sensitive file system a missing `foo.cs` no longer empties an existing `Foo.cs` linked by another project: Roslyn passes a changed loader to every document with the same path ignoring case, so the fast loader for missing files now skips such paths. A failure to install that loader no longer fails the load; the `workspace_missing_source_files` line gains `available`, and `installed` is null when no document needed it.
+  - Reload, `reset_workspace` and a workspace change wait up to 10 s for the cancelled search prewarm, so its `workspace_search_prewarm` line no longer appears after the clear or inside the next load. An `OperationCanceledException` that is not the prewarm's own cancellation is logged as a failure. `get_mcp_server_info` shows the prewarm in effect and where it comes from.
+  - The first-search exception summary serializes outside its lock, which the handler of every exception in the process waits on.
+  - `Measure-WorkspaceLoad.ps1` redacts paths in the form the server's JSON writes them (`\uXXXX` for non-ASCII and `&`), which left a Cyrillic user folder or `R&D` folder in `runs.json` and `summary.md`; dotnet-trace logs are redacted and scanned too, and a log file that is still held no longer ends the run. GC pauses and collection counts are labelled process-wide and cumulative.
+  - Tests no longer delete the shared Roslyn index cache of `dotnet`, which on Linux and macOS is the cache of every running framework-dependent server; the test process keeps its cache in its own temporary folder. The lifecycle test host runs without the search prewarm. [PRIVACY.md](PRIVACY.md#local-index-cache) names the macOS folder and the shared `dotnet` folder.
 - Pin transitive `System.Security.Cryptography.Pkcs` to 10.0.13 (CVE-2026-70162), so ordinary workspace loads no longer fail on its NuGet audit diagnostic.
 - `find_symbol_definition` and `find_symbol_references` accept `filePath` + `line` + `column` without `symbolName`, using the existing positional symbol resolver. Name-based search and automatic column selection still require `symbolName`.
 - `find_symbol_definition` accepts optional `preview`: source text is appended to each definition location, capped at 400 characters, including overflow chunks. Explicit `preview` overrides the JSONC setting; otherwise the default is false.
+
+### v1.5.16
+
+- A cancelled `load_workspace` (or a cancelled lazy load from `RoslynMcp.jsonc`) no longer leaves a BuildHost process behind. Roslyn 5.9.0 starts that process before it is registered, and cancellation during its startup used to keep it alive until the server exited. The server now terminates only unregistered BuildHost processes it started directly. A BuildHost of a program the server started for a tool (`run_dotnet_run`, `run_dotnet_test`) and a host of another process are left alone. macOS still cannot identify those children, so this cleanup runs on Windows and Linux.
+
+### v1.5.15
+
+- After a fresh `load_workspace`, the server builds or validates the syntax indexes of every project in the background, the index part of a first name-based search without its compilation, so a search that comes later finds them ready. A search during the prewarm shares Roslyn's per-document work with it. Reload, `reset_workspace` and a workspace change cancel it; its outcome goes to one `workspace_search_prewarm` log line and never to tool responses. It is on by default; `ROSLYN_MCP_SEARCH_PREWARM=0` or `"search-prewarm": false` in `RoslynMcp.jsonc` turns it off, and the variable wins. Measured: with 30 s between load and search the first search took 0.50–0.55 of the time without prewarm (office solution 13.8 → 6.9 s), and a search right after the load took 0.72–0.75, never longer. Measurement scripts gained a pause before the first search and an on/off comparison.
+
+### v1.5.14
+
+- Roslyn's persistent index storage works: the server ships the SQLite build Roslyn references (`SQLite3MC.PCLRaw.bundle` 2.3.5), so syntax indexes survive a server restart. On Roslyn.slnx a first search with a warm cache took 0.52 (name with a declaration) and 0.22 (absent name) of the cold time, with a third of the search memory; the first run after installation or after changes still indexes as before. Changed files are re-indexed by checksum. The cache lives in LocalApplicationData next to Visual Studio's Roslyn cache, per server path and solution file, and is not created for a project loaded without a solution; see [PRIVACY.md](PRIVACY.md#local-index-cache). An older server without SQLite started from the same path deletes this cache.
+
+### v1.5.13
+
+- Documents whose files are missing at load, such as generated files of a native build that has not run, no longer cost about a second per read. Roslyn retries a missing file six times 200 ms apart and then uses empty text; the server now gives such documents the same empty text at once. In the office measurement this was 24 of 31 s of the first name-based search. A file that appears later is read from disk and synced as before, and tool writes never create the missing file. Each load logs a `workspace_missing_source_files` line with the counts and up to ten paths; tool responses are unchanged.
+
+### v1.5.12
+
+- The server runs with server GC (DATAS, the .NET 10 default). On Roslyn.slnx, GC pauses of the first name-based search fell from 8 s to 2 s and load plus first search took 18% less, for 14–19% more working set. `DOTNET_gcServer=0` in the server's environment restores workstation GC. `workspace_search_summary` log lines record the GC mode, pauses and collection counts of each search; tool responses are unchanged.
+
+### v1.5.11
+
+- Name-based declaration searches log a `workspace_search_exceptions` line: first-chance exceptions raised during the search, grouped by type, searched project and file (or I/O message), with counts and the offset of the first occurrence. Roslyn retries an unreadable document six times with 200 ms pauses and returns no error, so these reads were invisible before. Exceptions raised outside the search's own flow are counted without a project. No stack traces or file contents are logged; tool responses are unchanged.
+
+### v1.5.10
+
+- ILSpy tools (`explore_assembly`, `decompile_type`, `get_decompiled_class_skeleton`, `get_decompiled_method_body`) no longer fail the whole assembly when a dependency cannot be resolved. Types from such a dependency appear as unknown, and the response ends with a note naming the unresolved references (at most ten). Example: `Microsoft.CodeAnalysis.Workspaces` references SQLitePCLRaw without a NuGet dependency on it, so none of its methods could be decompiled before.
+
+### v1.5.9
+
+- Name-based declaration search uses Roslyn's source-only lookup instead of scanning referenced assemblies and discarding metadata hits. Per-project timing logs remain available.
+- Provenance replay accepts newer compatible binlog formats from Visual Studio BuildHost. Any recoverable read error still rejects that file's provenance; failed-file counts preserve Failed/Incomplete status even when one file reports several errors. Timing reports show each binlog's format, project count and failures.
+
+### v1.5.8
+
+- Workspace load logs include per-project inclusive design-time build durations, evaluation totals, and the ten most expensive targets and tasks from the existing binlog replay. Missing or partial replay is explicit; overlapping durations are not reported as wall time.
+- Name-based declaration searches log each project's duration and an overall search summary, including cancellation or failure. Measurement reports include these project breakdowns without changing tool responses or search behavior.
 
 ### v1.5.7
 

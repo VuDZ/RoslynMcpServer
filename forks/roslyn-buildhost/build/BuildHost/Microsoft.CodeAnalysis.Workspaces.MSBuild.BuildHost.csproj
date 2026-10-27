@@ -1,0 +1,69 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Builds upstream src/Workspaces/MSBuild/BuildHost (netcore only) without Arcade. The output replaces the
+    BuildHost-netcore folder of Microsoft.CodeAnalysis.Workspaces.MSBuild 5.9.0: same assembly names, target
+    framework and roll-forward, so the unchanged MSBuildWorkspace client starts it the same way.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>$(NetRoslynBuildHostNetCoreVersion)</TargetFramework>
+    <AssemblyName>Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost</AssemblyName>
+    <RootNamespace>Microsoft.CodeAnalysis</RootNamespace>
+    <DefineConstants>$(DefineConstants);MSBUILDWORKSPACE_BUILDHOST</DefineConstants>
+    <UseAppHost>false</UseAppHost>
+    <SelfContained>false</SelfContained>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <RollForward>Major</RollForward>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <EnableDefaultEmbeddedResourceItems>false</EnableDefaultEmbeddedResourceItems>
+    <BuildHostSource>$(UpstreamRoot)src\Workspaces\MSBuild\BuildHost\</BuildHostSource>
+    <CompilersSource>$(UpstreamRoot)src\Compilers\</CompilersSource>
+    <!-- The oldest MSBuild compatible with net8.0, as upstream; only its reference assemblies are used. -->
+    <MsbuildReferenceVersion>17.11.48</MsbuildReferenceVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(BuildHostSource)**\*.cs" />
+    <Compile Include="$(CompilersSource)Core\Portable\FileSystem\PathKind.cs" />
+    <Compile Include="$(CompilersSource)Core\Portable\FileSystem\PathUtilities.cs" />
+    <Compile Include="$(CompilersSource)Core\Portable\FileSystem\FileUtilities.cs" />
+    <Compile Include="$(CompilersSource)Core\Portable\InternalUtilities\CompilerOptionParseUtilities.cs" />
+    <Compile Include="$(CompilersSource)Core\Portable\InternalUtilities\ConcurrentSet.cs" />
+    <Compile Include="$(CompilersSource)Core\Portable\InternalUtilities\Debug.cs" />
+    <Compile Include="$(CompilersSource)Core\Portable\InternalUtilities\Hash.cs" />
+    <Compile Include="$(CompilersSource)Core\Portable\InternalUtilities\FileNameUtilities.cs" />
+    <Compile Include="$(CompilersSource)Core\Portable\InternalUtilities\PerformanceSensitiveAttribute.cs" />
+    <Compile Include="$(CompilersSource)Core\Portable\InternalUtilities\PlatformInformation.cs" />
+    <Compile Include="$(CompilersSource)Core\Portable\InternalUtilities\RoslynString.cs" />
+    <Compile Include="$(CompilersSource)Core\Portable\InternalUtilities\NoMessagePumpSyncContext.cs" />
+    <Compile Include="$(CompilersSource)Core\Portable\InternalUtilities\SpecializedSyncContext.cs" />
+    <Compile Include="$(CompilersSource)Core\Portable\InternalUtilities\SemaphoreSlimExtensions.cs" />
+    <Compile Include="$(CompilersSource)Core\Portable\Symbols\LanguageNames.cs" />
+    <Compile Include="$(CompilersSource)Shared\NamedPipeUtil.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Upstream uses Arcade's GenerateSource; the SDK's strongly typed resources give the same class. -->
+    <EmbeddedResource Include="$(BuildHostSource)WorkspaceMSBuildBuildHostResources.resx"
+                      LogicalName="Microsoft.CodeAnalysis.WorkspaceMSBuildBuildHostResources.resources"
+                      Generator="MSBuild:Compile"
+                      StronglyTypedFileName="$(IntermediateOutputPath)WorkspaceMSBuildBuildHostResources.Designer.cs"
+                      StronglyTypedLanguage="CSharp"
+                      StronglyTypedNamespace="Microsoft.CodeAnalysis"
+                      StronglyTypedClassName="WorkspaceMSBuildBuildHostResources" />
+  </ItemGroup>
+  <ItemGroup>
+    <!--
+      As upstream's PackageDownloadAndReference: reference MSBuild's reference assemblies directly, so neither
+      MSBuild nor its package closure lands in the output or deps.json; MSBuildLocator supplies MSBuild at run time.
+    -->
+    <PackageDownload Include="Microsoft.Build;Microsoft.Build.Framework;Microsoft.Build.Tasks.Core;Microsoft.Build.Utilities.Core" Version="[$(MsbuildReferenceVersion)]" />
+    <Reference Include="$(NuGetPackageRoot)microsoft.build\$(MsbuildReferenceVersion)\ref\net8.0\Microsoft.Build.dll" Private="false" />
+    <Reference Include="$(NuGetPackageRoot)microsoft.build.framework\$(MsbuildReferenceVersion)\ref\net8.0\Microsoft.Build.Framework.dll" Private="false" />
+    <Reference Include="$(NuGetPackageRoot)microsoft.build.tasks.core\$(MsbuildReferenceVersion)\ref\net8.0\Microsoft.Build.Tasks.Core.dll" Private="false" />
+    <Reference Include="$(NuGetPackageRoot)microsoft.build.utilities.core\$(MsbuildReferenceVersion)\ref\net8.0\Microsoft.Build.Utilities.Core.dll" Private="false" />
+    <PackageReference Include="Microsoft.Build.Locator" Version="1.10.2" PrivateAssets="all" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Contracts\Microsoft.CodeAnalysis.Workspaces.MSBuild.Contracts.csproj" />
+  </ItemGroup>
+</Project>

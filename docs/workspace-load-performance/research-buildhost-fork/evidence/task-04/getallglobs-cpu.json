@@ -1,0 +1,45 @@
+{
+  "date": "2026-10-26",
+  "scope": "Diagnostic standalone HostSession, solution order, GetAllGlobs after design-time builds; not the A+B performance matrix",
+  "solution": "Roslyn.slnx",
+  "sdk": "10.0.301",
+  "msbuildFileVersion": "18.6.4.27133",
+  "runtime": ".NET 10.0.13",
+  "projects": 318,
+  "stopwatchGetAllGlobsMs": 8174.8378,
+  "sampledGetAllGlobsMs": 8188.014458290272,
+  "profile": "dotnet-sampled-thread-time",
+  "rowsAreInclusiveAndOverlap": true,
+  "methods": [
+    {
+      "method": "Microsoft.Build.il!Microsoft.Build.Evaluation.Project+ProjectImpl.Reevaluate(class Microsoft.Build.BackEnd.Logging.ILoggingService,value class Microsoft.Build.Evaluation.ProjectLoadSettings,class Microsoft.Build.Evaluation.Context.EvaluationContext)",
+      "sampledInclusiveMs": 8070.382,
+      "sampledSharePercent": 98.563
+    },
+    {
+      "method": "Microsoft.Build.il!Microsoft.Build.BackEnd.SdkResolution.CachingSdkResolverService.ResolveSdk(int32,class Microsoft.Build.Framework.SdkReference,class Microsoft.Build.BackEnd.Logging.LoggingContext,class Microsoft.Build.Construction.ElementLocation,class System.String,class System.String,bool,bool,bool)",
+      "sampledInclusiveMs": 4432.693,
+      "sampledSharePercent": 54.136
+    },
+    {
+      "method": "Microsoft.NET.Sdk.WorkloadMSBuildSdkResolver.il!Microsoft.NET.Sdk.WorkloadMSBuildSdkResolver.WorkloadSdkResolver.Resolve(class Microsoft.Build.Framework.SdkReference,class Microsoft.Build.Framework.SdkResolverContext,class Microsoft.Build.Framework.SdkResultFactory)",
+      "sampledInclusiveMs": 4263.075,
+      "sampledSharePercent": 52.065
+    },
+    {
+      "method": "Microsoft.NET.Sdk.WorkloadMSBuildSdkResolver.il!Microsoft.NET.Sdk.WorkloadMSBuildSdkResolver.CachingWorkloadResolver.Resolve(class System.String,class System.String,class System.String,class System.String,class System.String)",
+      "sampledInclusiveMs": 4236.195,
+      "sampledSharePercent": 51.737
+    },
+    {
+      "method": "Microsoft.NET.Sdk.WorkloadManifestReader.il!Microsoft.NET.Sdk.WorkloadManifestReader.WorkloadResolver.LoadManifestsFromProvider(class Microsoft.NET.Sdk.WorkloadManifestReader.IWorkloadManifestProvider)",
+      "sampledInclusiveMs": 2978.212,
+      "sampledSharePercent": 36.373
+    },
+    {
+      "method": "System.Private.CoreLib.il!System.Threading.Thread.<PollGC>g__PollGCWorker|70_0()",
+      "sampledInclusiveMs": 1272.704,
+      "sampledSharePercent": 15.544
+    }
+  ]
+}
