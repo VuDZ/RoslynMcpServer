@@ -11,6 +11,7 @@ using Microsoft.CodeAnalysis.Text;
 using RoslynMcpServer.Diagnostics;
 using RoslynMcpServer.Services.Workspace;
 using RoslynMcpServer.Tests.SourceStructure;
+using RoslynMcpServer.Tests.Support;
 using Xunit;
 
 namespace RoslynMcpServer.Tests.WorkspaceLoadCache;
@@ -24,6 +25,7 @@ public sealed class HydrateHostExperimentTests
     public HydrateHostExperimentTests() => MsBuildBootstrapper.Register();
 
     [Fact]
+    [Trait("Category", TestCategories.RequiresPinnedSdk)]
     public async Task Ordinary_fixture_build_uses_its_sdk_pin_despite_inherited_msbuild_overrides()
     {
         using var fixture = await Fixture.CreateAsync();
@@ -88,6 +90,7 @@ public sealed class HydrateHostExperimentTests
     }
 
     [Fact]
+    [Trait("Category", TestCategories.RequiresPinnedSdk)]
     public async Task Sdk_glob_edit_add_rename_remove_build_and_keep_project_bytes()
     {
         using var fixture = await Fixture.CreateAsync();
@@ -130,6 +133,7 @@ public sealed class HydrateHostExperimentTests
     }
 
     [Theory]
+    [Trait("Category", TestCategories.RequiresPinnedSdk)]
     [InlineData("utf8")]
     [InlineData("utf8-bom")]
     [InlineData("utf16-bom")]
@@ -309,6 +313,7 @@ public sealed class HydrateHostExperimentTests
     }
 
     [Fact]
+    [Trait("Category", TestCategories.RequiresPinnedSdk)]
     public async Task Reconciliation_updates_all_roles_from_disk_without_persistence_or_dtb()
     {
         using var fixture = await Fixture.CreateAsync(includeOtherRoles: true);
@@ -680,6 +685,7 @@ public sealed class HydrateHostExperimentTests
     }
 
     [Fact]
+    [Trait("Category", TestCategories.RequiresPinnedSdk)]
     public async Task Ordinary_open_negative_witness_observes_open_and_raw_logger_artifact()
     {
         using var fixture = await Fixture.CreateAsync();
@@ -822,8 +828,11 @@ public sealed class HydrateHostExperimentTests
         {
             scope = scope.WithFile(SourceFile.ReadFromDisk(path));
         }
-        // The experiment tests use this helper from Support; the rest of Support is not needed to compile them.
-        scope = scope.WithFile(SourceFile.ReadFromDisk(Path.Combine(repository, "RoslynMcpServer.Tests", "Support", "FileChangeBlocker.cs")));
+        // The experiment tests use these helpers from Support; the rest of Support is not needed to compile them.
+        foreach (var helper in new[] { "FileChangeBlocker.cs", "TestCategories.cs", "TestCategoryInventory.cs" })
+        {
+            scope = scope.WithFile(SourceFile.ReadFromDisk(Path.Combine(repository, "RoslynMcpServer.Tests", "Support", helper)));
+        }
         var analysis = SourceSetAnalysis.Create(scope);
         Assert.True(analysis.IsUsable, string.Join("\n", analysis.InputDiagnostics));
         var diagnostics = new List<string>();
@@ -1003,7 +1012,7 @@ public sealed class HydrateHostExperimentTests
                 Directory.CreateDirectory(fixture.LibraryDirectory);
                 Directory.CreateDirectory(Path.Combine(root, "App"));
                 await File.WriteAllTextAsync(Path.Combine(root, "global.json"),
-                    "{\"sdk\":{\"version\":\"10.0.300\",\"rollForward\":\"disable\"}}", new UTF8Encoding(false));
+                    PinnedSdk.GlobalJson, new UTF8Encoding(false));
                 await File.WriteAllTextAsync(Path.Combine(root, "NuGet.Config"),
                     "<configuration><packageSources><clear /></packageSources></configuration>", new UTF8Encoding(false));
                 var explicitProperties = explicitCompile ? "<EnableDefaultCompileItems>false</EnableDefaultCompileItems>" : "";

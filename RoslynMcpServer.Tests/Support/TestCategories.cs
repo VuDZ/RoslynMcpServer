@@ -8,4 +8,11 @@ internal static class TestCategories
     /// list is pinned by <c>WindowsOnlyTestInventoryTests</c>.
     /// </summary>
     internal const string RequiresWindows = "RequiresWindows";
+
+    /// <summary>
+    /// The test builds a fixture with the exact SDK of the deferred workspace-load-cache experiment
+    /// (<c>WorkspaceLoadCache.PinnedSdk</c>). The main suite and CI exclude it until the experiment resumes;
+    /// the exact list is pinned by <c>PinnedSdkTestInventoryTests</c>.
+    /// </summary>
+    internal const string RequiresPinnedSdk = "RequiresPinnedSdk";
 }

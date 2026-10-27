@@ -16,6 +16,16 @@ scope и не означают активное продолжение или pr
 Требования v2 сохранены для возможного будущего возвращения и не являются
 автоматическими prerequisites нового MVP.
 
+**Тесты эксперимента отключены в main-наборе** (решение владельца 2026-10-24). Тесты фикстур
+epoch-0 в `RoslynMcpServer.Tests/WorkspaceLoadCache`, которые собирают проекты ровно SDK 10.0.300
+(`PinnedSdk.Version`, `rollForward: disable`), помечены категорией `RequiresPinnedSdk`; CI и
+`AGENTS.md` её исключают, точный список закреплён в `PinnedSdkTestInventoryTests`. Их ожидаемые
+результаты сняты на этом SDK, более новый их не заменяет. При возобновлении эксперимента:
+поставить SDK 10.0.300 и запустить `dotnet test RoslynMcpServer.Tests -c Release --filter
+Category=RequiresPinnedSdk`; вернуть категорию в main-набор или переснять доказательства на новом
+SDK — решение при возобновлении. Остальные тесты `WorkspaceLoadCache` SDK не закрепляют и остаются
+в main-наборе.
+
 Исторический статус спецификации: **post-arbitration specification, proposed, не реализовано**.
 Канон отложенной программы v2. Runtime не меняется. Исторический v1, доарбитражный draft,
 review, ответы и арбитраж — в [_archive/](_archive/README.md).

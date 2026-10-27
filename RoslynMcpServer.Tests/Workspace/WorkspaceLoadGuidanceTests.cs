@@ -57,11 +57,11 @@ public sealed class WorkspaceLoadGuidanceTests
     {
         var diagnostics = new[]
         {
-            "Failure: Msbuild failed when processing the file 'D:\\m\\src\\product\\kavkis\\Autotests\\_sln_kart\\generated\\Foo.csproj' with message: The \"ResolvePackageAssets\" task was not given a value for the required parameter \"TargetFramework\".",
+            "Failure: Msbuild failed when processing the file 'D:\\m\\src\\product\\private_project\\Autotests\\_sln_private\\generated\\Foo.csproj' with message: The \"ResolvePackageAssets\" task was not given a value for the required parameter \"TargetFramework\".",
         };
 
         var message = WorkspaceLoadGuidance.FormatMissingTargetFrameworkWorkspaceLoadMessage(
-            @"D:\m\src\product\kavkis\Autotests\_sln_kart\ide_kart_m_src.sln",
+            @"D:\m\src\product\private_project\Autotests\_sln_private\private_solution.sln",
             diagnostics,
             configuration: null,
             platform: null);
@@ -138,11 +138,11 @@ public sealed class WorkspaceLoadGuidanceTests
     {
         var diagnostics = new[]
         {
-            "Failure: Msbuild failed when processing the file 'D:\\m\\src\\product\\kavkis\\Autotests\\_sln_kart\\generated\\Foo.csproj' with message: The \"ResolvePackageAssets\" task was not given a value for the required parameter \"TargetFramework\".",
+            "Failure: Msbuild failed when processing the file 'D:\\m\\src\\product\\private_project\\Autotests\\_sln_private\\generated\\Foo.csproj' with message: The \"ResolvePackageAssets\" task was not given a value for the required parameter \"TargetFramework\".",
         };
 
         var message = WorkspaceLoadGuidance.FormatMissingTargetFrameworkWorkspaceLoadMessage(
-            @"D:\m\src\product\kavkis\Autotests\_sln_kart\ide_kart_m_src.sln",
+            @"D:\m\src\product\private_project\Autotests\_sln_private\private_solution.sln",
             diagnostics,
             configuration: null,
             platform: null);
@@ -177,13 +177,13 @@ public sealed class WorkspaceLoadGuidanceTests
     public void FormatRoslynMsBuildBuildHostFailureMessage_is_not_sdk_mismatch()
     {
         var message = WorkspaceLoadGuidance.FormatRoslynMsBuildBuildHostFailureMessage(
-            @"J:\Proj\kav - GuiTestAppBl.sln");
+            @"C:\Src\Sample Desktop App.sln");
 
         Assert.Contains("VS 2026 / MSBuild 18 BuildHost", message, StringComparison.Ordinal);
         Assert.Contains("XMakeElements", message, StringComparison.Ordinal);
         Assert.Contains("This is not", message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("MCP_MSBUILD_SDK_MISMATCH", message, StringComparison.Ordinal);
-        Assert.Contains("GuiTestAppBl.sln", message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Sample Desktop App.sln", message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("1.0.35", message, StringComparison.Ordinal);
         Assert.Contains("SDK-style", message, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("Successfully loaded", message, StringComparison.Ordinal);

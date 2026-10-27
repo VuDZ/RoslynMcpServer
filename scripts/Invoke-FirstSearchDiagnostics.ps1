@@ -166,9 +166,9 @@ function Write-Comparison([string]$Root, $Variants) {
     $md = New-Object Collections.Generic.List[string]
     $md.Add('# Variant comparison')
     $md.Add('')
-    $md.Add('Medians over measured fresh-process runs of each variant (warmup, RAM hit and trace runs excluded). A prewarm-on ratio compares with the prewarm-off variant of the same GC mode and pause.')
+    $md.Add('Medians over measured fresh-process runs of each variant (warmup, RAM hit and trace runs excluded). A prewarm-on ratio compares with the prewarm-off variant of the same GC mode and pause. GC pauses are counted for the whole process, so a prewarm still running during the first search adds its collections. A GC-mode comparison needs -GcModes server,workstation; the default runs server GC only.')
     $md.Add('')
-    $md.Add('| variant | runtime GC in search log | prewarm success | runs | load client ms | first find client ms | ratio | first search GC pause ms | WS after load MB |')
+    $md.Add('| variant | runtime GC in search log | prewarm success | runs | load client ms | first find client ms | ratio | process GC pause during first search ms | WS after load MB |')
     $md.Add('|---|---|---|---|---|---|---|---|---|')
     $rows = @(foreach ($variant in $Variants) {
         $document = Get-Content -LiteralPath (Join-Path (Join-Path $Root $variant.Name) 'runs.json') -Raw | ConvertFrom-Json

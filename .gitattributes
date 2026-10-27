@@ -1,3 +1,4 @@
 # Preserve bytes recorded in experiment SHA-256 inventories.
 docs/workspace-load-performance/** -text
 spikes/ParallelLoad/** -text
+forks/roslyn-buildhost/upstream/** -text

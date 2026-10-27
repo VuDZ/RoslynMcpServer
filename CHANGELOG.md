@@ -2,11 +2,23 @@
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
-### Unreleased
+### v1.5.17
 
+- Workspace loads are shorter: the server's `BuildHost-netcore` is now a fork of Roslyn 5.9.0's BuildHost (`forks/roslyn-buildhost`) that builds the projects a project references before it, so each project is evaluated once, and evaluates the solution's projects ahead on four worker threads while builds run one at a time. Measured against the unchanged BuildHost, with the same loaded workspace and diagnostics in the same order: an office solution loaded in 0.73 of the time, Roslyn.slnx in 0.82–0.84, with up to 9% more BuildHost memory. `ROSLYN_MCP_BUILDHOST_OPTIMIZATIONS=0` or `"buildhost-optimizations": false` in `RoslynMcp.jsonc` turns them off; `ROSLYN_MCP_BUILDHOST_EVALUATE_AHEAD_WORKERS` or `buildhost-evaluate-ahead-workers` sets the workers, `0` turns off only the evaluation ahead. The .NET Framework BuildHost is unchanged. `get_mcp_server_info` shows the setting in effect.
+- The BuildHost fork also shares one SDK resolution cache between the evaluations of a project (its own, one per TargetFramework switch and the one that collects file globs), so the workload SDK resolver no longer loads its manifests again for each. On top of the two optimizations above, with the same workspace and the same BuildHost response: an office solution loads in 0.90 of the time, Roslyn.slnx in 0.82, with less BuildHost CPU and the same memory; against the unchanged BuildHost that is 0.66 for both. An import that asks for another version of an SDK than the cached one is evaluated again without the cache. The same `buildhost-optimizations` switch turns it off.
+- Fixes from the review of the first-search work (1.5.11–1.5.15):
+  - On a case-sensitive file system a missing `foo.cs` no longer empties an existing `Foo.cs` linked by another project: Roslyn passes a changed loader to every document with the same path ignoring case, so the fast loader for missing files now skips such paths. A failure to install that loader no longer fails the load; the `workspace_missing_source_files` line gains `available`, and `installed` is null when no document needed it.
+  - Reload, `reset_workspace` and a workspace change wait up to 10 s for the cancelled search prewarm, so its `workspace_search_prewarm` line no longer appears after the clear or inside the next load. An `OperationCanceledException` that is not the prewarm's own cancellation is logged as a failure. `get_mcp_server_info` shows the prewarm in effect and where it comes from.
+  - The first-search exception summary serializes outside its lock, which the handler of every exception in the process waits on.
+  - `Measure-WorkspaceLoad.ps1` redacts paths in the form the server's JSON writes them (`\uXXXX` for non-ASCII and `&`), which left a Cyrillic user folder or `R&D` folder in `runs.json` and `summary.md`; dotnet-trace logs are redacted and scanned too, and a log file that is still held no longer ends the run. GC pauses and collection counts are labelled process-wide and cumulative.
+  - Tests no longer delete the shared Roslyn index cache of `dotnet`, which on Linux and macOS is the cache of every running framework-dependent server; the test process keeps its cache in its own temporary folder. The lifecycle test host runs without the search prewarm. [PRIVACY.md](PRIVACY.md#local-index-cache) names the macOS folder and the shared `dotnet` folder.
 - Pin transitive `System.Security.Cryptography.Pkcs` to 10.0.13 (CVE-2026-70162), so ordinary workspace loads no longer fail on its NuGet audit diagnostic.
 - `find_symbol_definition` and `find_symbol_references` accept `filePath` + `line` + `column` without `symbolName`, using the existing positional symbol resolver. Name-based search and automatic column selection still require `symbolName`.
 - `find_symbol_definition` accepts optional `preview`: source text is appended to each definition location, capped at 400 characters, including overflow chunks. Explicit `preview` overrides the JSONC setting; otherwise the default is false.
+
+### v1.5.16
+
+- A cancelled `load_workspace` (or a cancelled lazy load from `RoslynMcp.jsonc`) no longer leaves a BuildHost process behind. Roslyn 5.9.0 starts that process before it is registered, and cancellation during its startup used to keep it alive until the server exited. The server now terminates only unregistered BuildHost processes it started directly. A BuildHost of a program the server started for a tool (`run_dotnet_run`, `run_dotnet_test`) and a host of another process are left alone. macOS still cannot identify those children, so this cleanup runs on Windows and Linux.
 
 ### v1.5.15
 

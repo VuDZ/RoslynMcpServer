@@ -35,7 +35,7 @@ public sealed class MissingSourceFileTests
 
             var missing = MissingSourceFiles.Find(workspace.CurrentSolution, CancellationToken.None);
             Assert.Equal(new[] { missingId, retriedId }, missing.Select(document => document.Id));
-            Assert.True(MissingSourceFiles.TryInstallLoaders(workspace, missing.Where(document => document.Id == missingId).ToArray()));
+            Assert.True(MissingSourceFiles.TryInstallLoaders(workspace, missing.Where(document => document.Id == missingId).ToArray(), out _));
 
             var watch = Stopwatch.StartNew();
             var fast = await workspace.CurrentSolution.GetDocument(missingId)!.GetTextAsync();
@@ -67,7 +67,8 @@ public sealed class MissingSourceFileTests
             var documentId = AddFileDocument(workspace, project.Id, path);
             Assert.True(MissingSourceFiles.TryInstallLoaders(
                 workspace,
-                MissingSourceFiles.Find(workspace.CurrentSolution, CancellationToken.None)));
+                MissingSourceFiles.Find(workspace.CurrentSolution, CancellationToken.None),
+                out _));
 
             await File.WriteAllTextAsync(path, GeneratedSource);
 
@@ -77,6 +78,84 @@ public sealed class MissingSourceFileTests
         {
             Directory.Delete(root, recursive: true);
         }
+    }
+
+    [Fact]
+    public async Task Missing_path_that_differs_only_in_case_from_an_existing_file_keeps_its_loader()
+    {
+        var root = CreateRoot();
+        try
+        {
+            var existingPath = Path.Combine(root, "Shared", "Foo.cs");
+            var missingPath = Path.Combine(root, "Shared", "foo.cs");
+            Directory.CreateDirectory(Path.GetDirectoryName(existingPath)!);
+            await File.WriteAllTextAsync(existingPath, GeneratedSource);
+            if (File.Exists(missingPath))
+            {
+                // A case-insensitive file system: both paths name the existing file.
+                return;
+            }
+
+            using var workspace = new AdhocWorkspace();
+            var existingId = AddFileDocument(workspace, workspace.AddProject("Left", LanguageNames.CSharp).Id, existingPath);
+            AddFileDocument(workspace, workspace.AddProject("Right", LanguageNames.CSharp).Id, missingPath);
+
+            // Roslyn relates documents by path ignoring case and would pass a new loader of foo.cs to Foo.cs.
+            var missing = MissingSourceFiles.Find(workspace.CurrentSolution, CancellationToken.None);
+            Assert.Empty(missing);
+
+            Assert.True(MissingSourceFiles.TryInstallLoaders(workspace, missing, out _));
+            Assert.Equal(GeneratedSource, (await workspace.CurrentSolution.GetDocument(existingId)!.GetTextAsync()).ToString());
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task Missing_additional_and_analyzer_config_files_get_the_fast_loader()
+    {
+        MsBuildBootstrapper.Register();
+        var root = CreateRoot();
+        var logger = new WorkspaceRecordingLogger();
+        var manager = SolutionManagerTestFactory.Create(logger: logger);
+        try
+        {
+            var projectPath = Path.Combine(root, "App.csproj");
+            await File.WriteAllTextAsync(projectPath, ProjectWithMissingNonCompileItems, BomFree);
+            await File.WriteAllTextAsync(Path.Combine(root, "Class1.cs"), "namespace App; public static class Class1 { }", BomFree);
+            await manager.LoadAndPrepareAsync(projectPath, shadowCopyInSolutionAnalyzers: false, CancellationToken.None);
+
+            var line = Assert.Single(logger.Messages, message => message.StartsWith("workspace_missing_source_files ", StringComparison.Ordinal));
+            Assert.Contains("\"available\":true", line, StringComparison.Ordinal);
+            Assert.Contains("\"installed\":true", line, StringComparison.Ordinal);
+            var published = await manager.GetPublishedSolutionAsync();
+            Assert.NotNull(published);
+            var project = Assert.Single(published.Projects);
+            var additional = Assert.Single(project.AdditionalDocuments, document => IsAt(document, Path.Combine(root, "missing.json")));
+            var analyzerConfig = Assert.Single(project.AnalyzerConfigDocuments, document => IsAt(document, Path.Combine(root, "missing.editorconfig")));
+
+            var watch = Stopwatch.StartNew();
+            Assert.Equal(string.Empty, (await additional.GetTextAsync()).ToString());
+            Assert.Equal(string.Empty, (await analyzerConfig.GetTextAsync()).ToString());
+            Assert.True(watch.Elapsed < TimeSpan.FromMilliseconds(500), $"Missing non-compile items took {watch.Elapsed.TotalMilliseconds} ms.");
+        }
+        finally
+        {
+            await manager.ClearWorkspaceAsync();
+            try
+            {
+                Directory.Delete(root, recursive: true);
+            }
+            catch (IOException)
+            {
+                // A locked file only affects cleanup of a temporary directory.
+            }
+        }
+
+        static bool IsAt(TextDocument document, string path) =>
+            string.Equals(document.FilePath, Path.GetFullPath(path), StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -196,6 +275,18 @@ public sealed class MissingSourceFileTests
           </PropertyGroup>
           <ItemGroup>
             <Compile Include="Generated\VersionInfo.cs" />
+          </ItemGroup>
+        </Project>
+        """;
+
+    private const string ProjectWithMissingNonCompileItems = """
+        <Project Sdk="Microsoft.NET.Sdk">
+          <PropertyGroup>
+            <TargetFramework>net10.0</TargetFramework>
+          </PropertyGroup>
+          <ItemGroup>
+            <AdditionalFiles Include="missing.json" />
+            <EditorConfigFiles Include="missing.editorconfig" />
           </ItemGroup>
         </Project>
         """;

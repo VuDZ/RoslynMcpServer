@@ -505,15 +505,15 @@ public sealed class TestDiscoveryHelperTests
             var workspace = new AdhocWorkspace();
             AddCSharpProject(
                 workspace,
-                name: "Ucp.Tests",
-                assemblyName: "Ucp.Tests",
-                csprojPath: Path.Combine(Path.GetTempPath(), "Ucp.Tests.csproj"),
+                name: "private_project.Tests",
+                assemblyName: "private_project.Tests",
+                csprojPath: Path.Combine(Path.GetTempPath(), "private_project.Tests.csproj"),
                 documentName: "AllSoftOrderCompletedValidationTests.cs",
                 source: """
                     using Xunit;
                     using System;
 
-                    namespace Ucp.Tests;
+                    namespace private_project.Tests;
 
                     public class AllSoftOrderCompletedValidationTests
                     {

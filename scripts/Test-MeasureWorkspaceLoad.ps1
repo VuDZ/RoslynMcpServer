@@ -6,7 +6,7 @@ $parseTokens = $null
 $parseErrors = $null
 $ast = [Management.Automation.Language.Parser]::ParseFile($measurementScript, [ref]$parseTokens, [ref]$parseErrors)
 if ($parseErrors.Count -ne 0) { throw ($parseErrors | Out-String) }
-foreach ($name in @('Get-RedactionPairs', 'Get-RedactedText', 'Find-UnredactedPaths', 'ConvertTo-LogEntries', 'Get-StageEstimate', 'Format-Ms', 'Format-SearchSummaryLine', 'Format-MissingSourceFilesLines', 'Format-SearchPrewarmLine', 'Format-SearchExceptionLines')) {
+foreach ($name in @('Get-RedactionPairs', 'ConvertTo-JsonEscapedText', 'Get-RedactedText', 'Find-UnredactedPaths', 'ConvertTo-LogEntries', 'Get-StageEstimate', 'Format-Ms', 'Format-SearchSummaryLine', 'Format-MissingSourceFilesLines', 'Format-SearchPrewarmLine', 'Format-SearchExceptionLines')) {
     $definition = $ast.Find({ param($node) $node -is [Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq $name }, $true)
     . ([scriptblock]::Create($definition.Extent.Text))
 }
@@ -28,6 +28,19 @@ $redactionPairs = Get-RedactionPairs (Join-Path $repositoryRoot 'scripts') 'C:\T
 Assert-Equal "<repo>${separator}samples${separator}App.csproj" (Get-RedactedText (Join-Path (Join-Path $repositoryRoot 'samples') 'App.csproj')) 'Git root above the workspace folder'
 $redactionPairs = $saved
 Assert-Equal '<server-repo>\artifacts\server\RoslynMcpServer.exe' (Get-RedactedText 'C:\Tools\RoslynMcpServer\artifacts\server\RoslynMcpServer.exe') 'Server checkout'
+
+# A Cyrillic user folder and '&' in a folder name, as the server's System.Text.Json writes them (\uXXXX).
+# Built from char codes: Windows PowerShell 5.1 reads a script without BOM in the ANSI code page.
+$cyrillicUser = -join [char[]](0x0418, 0x0432, 0x0430, 0x043D, 0x043E, 0x0432)
+$redactionPairs = Get-RedactionPairs "C:\Users\$cyrillicUser\source\R&D App" 'C:\Tools\RoslynMcpServer'
+$escapedRecord = '{"project":"C:\\Users\\\u0418\u0432\u0430\u043D\u043E\u0432\\source\\R\u0026D App\\App.csproj"}'
+Assert-Equal '{"project":"<repo>\\App.csproj"}' (Get-RedactedText $escapedRecord) 'JSON-escaped non-ASCII and & in a path'
+Assert-Equal '<repo>\App.csproj' ((Get-RedactedText $escapedRecord) | ConvertFrom-Json).project 'Parsed record after redaction'
+# Another tool lower-cased the path: \u0438 does not match \u0418 under IgnoreCase, so case forms are escaped too.
+$lowerRecord = '{"project":"C:\\Users\\\u0438\u0432\u0430\u043D\u043E\u0432\\source\\r\u0026d app\\App.csproj"}'
+Assert-Equal '{"project":"<repo>\\App.csproj"}' (Get-RedactedText $lowerRecord) 'JSON-escaped path in another letter case'
+Assert-Equal "<repo>\App.csproj" (Get-RedactedText "C:\Users\$cyrillicUser\source\R&D App\App.csproj") 'Plain non-ASCII path'
+$redactionPairs = $saved
 
 $savedUser = $env:USERNAME
 try {
@@ -100,6 +113,8 @@ $missingLines = @(Format-MissingSourceFilesLines $load.missingSourceFiles)
 Assert-Equal 'Missing source files at load: 12 documents in 2 files; fast-fail loaders installed: True; scan 42 ms.' $missingLines[0] 'Missing source files headline'
 Assert-Equal 'Missing files (first 10): `<repo>\_generated\VersionInfo.cs`, `<repo>\_generated\net472\VersionInfo.cs`' $missingLines[1] 'Redacted missing paths'
 Assert-Equal 'Missing source files at load: unavailable (server before 1.5.13 or no workspace_missing_source_files record).' (@(Format-MissingSourceFilesLines $null))[0] 'Missing source files before 1.5.13'
+$noneMissing = [pscustomobject]@{ documents = 0; files = 0; available = $false; installed = $null; elapsedMs = 3.2; paths = @() }
+Assert-Equal 'Missing source files at load: 0 documents in 0 files; fast-fail loaders installed: none needed (Roslyn members not found); scan 3 ms.' (@(Format-MissingSourceFilesLines $noneMissing))[0] 'No missing files, members not found'
 $prewarmRecord = [pscustomobject]@{
     load = [pscustomobject]@{ searchPrewarm = $null }
     find = [pscustomobject]@{ searchPrewarm = [pscustomobject]@{ outcome = 'success'; elapsedMs = 5432.4; projects = 142; completedProjects = 142 } }
@@ -118,7 +133,7 @@ $exceptionLines = @(Format-SearchExceptionLines $find.searchExceptions)
 Assert-Equal 'Search first first-chance exceptions: 7 total, 6 in searched projects, 1 elsewhere in the process; 2 groups, 0 dropped.' $exceptionLines[0] 'Exception headline'
 Assert-Equal "| ``System.IO.IOException`` | ``<repo>\App.csproj`` | The process cannot access the file '<repo>\obj\A\|B.g.cs' | 6 | 12 |" $exceptionLines[4] 'Attributed exception row'
 Assert-Equal '| `System.InvalidOperationException` | (none) |  | 1 | 3 |' $exceptionLines[5] 'Unattributed exception row'
-Assert-Equal 'Search first: success, 1010 ms, 1/1 projects completed; server GC, pauses 120 ms, collections gen0/1/2 3/1/0.' (Format-SearchSummaryLine $find.searchSummaries[0]) 'Search line with GC'
+Assert-Equal 'Search first: success, 1010 ms, 1/1 projects completed; server GC, process-wide pauses 120 ms, cumulative collections gen0/1/2 3/1/0.' (Format-SearchSummaryLine $find.searchSummaries[0]) 'Search line with GC'
 $oldSummary = '{"searchId":"old","elapsedMs":5,"projects":2,"completedProjects":2,"outcome":"success"}' | ConvertFrom-Json
 Assert-Equal 'Search old: success, 5 ms, 2/2 projects completed.' (Format-SearchSummaryLine $oldSummary) 'Search line before 1.5.12'
 $oldServer = @(Format-SearchExceptionLines @())

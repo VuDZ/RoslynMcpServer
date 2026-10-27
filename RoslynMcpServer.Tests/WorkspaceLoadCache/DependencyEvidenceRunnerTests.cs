@@ -4,6 +4,7 @@ using System.Text;
 using System.Xml.Linq;
 using Microsoft.CodeAnalysis;
 using RoslynMcpServer.Diagnostics;
+using RoslynMcpServer.Tests.Support;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -18,6 +19,7 @@ public sealed class DependencyEvidenceRunnerTests
     }
 
     [Theory]
+    [Trait("Category", TestCategories.RequiresPinnedSdk)]
     [InlineData("standard")]
     [InlineData("absent")]
     [InlineData("custom-target")]
@@ -26,11 +28,64 @@ public sealed class DependencyEvidenceRunnerTests
     [InlineData("web")]
     [InlineData("external-asset")]
     [InlineData("escaping-glob")]
-    [InlineData("multi-target")]
     [InlineData("empty")]
+    public Task Real_build_and_dtb_observations_do_not_authorize_unproven_closure(string scenario) =>
+        AssertClosureIsUnprovenAsync(scenario);
+
+    // These fixtures need not restore or build, so their refusal holds with or without the pinned SDK: they stay in
+    // the main suite. Without the SDK the other scenarios fail on the required restore.
+    [Theory]
+    [InlineData("multi-target")]
     [InlineData("missing-reference")]
     [InlineData("non-sdk")]
-    public async Task Real_build_and_dtb_observations_do_not_authorize_unproven_closure(string scenario)
+    public Task Unrestorable_fixtures_do_not_authorize_unproven_closure(string scenario) =>
+        AssertClosureIsUnprovenAsync(scenario);
+
+    [Fact]
+    [Trait("Category", TestCategories.RequiresPinnedSdk)]
+    public async Task Pinned_sdk_and_pack_reresolution_reads_current_installation_without_loading_analyzers()
+    {
+        var fixture = await CreateFixtureAsync("resolution");
+        var runtimeSdk = Path.GetDirectoryName(typeof(Microsoft.Build.Evaluation.Project).Assembly.Location)!;
+        var dotnetRoot = Directory.GetParent(runtimeSdk)!.Parent!.FullName;
+        // The testhost's registered MSBuild SDK can differ from the fixture's exact SDK pin.
+        // Resolve the fixture through the CLI independently of the in-process assembly location.
+        // https://github.com/VuDZ/RoslynMcpServer/actions/runs/37329352099
+        var sdkVersion = await DependencyEvidenceRunner.RunAsync(
+            fixture.Root, fixture.Artifacts, "sdk-version", ["--version"], default);
+        Assert.True(sdkVersion.ExitCode == 0,
+            "Fixture SDK resolution failed: " + sdkVersion.StandardOutput + sdkVersion.StandardError);
+        var expectedSdk = Path.GetFullPath(Path.Combine(dotnetRoot, "sdk", sdkVersion.StandardOutput.Trim()));
+        var first = ResolvePinnedPack(fixture.Root, dotnetRoot);
+        Assert.Equal(expectedSdk, first.Sdk);
+        _output.WriteLine("Registered MSBuild SDK: " + runtimeSdk + "; fixture SDK: " + first.Sdk);
+        Assert.True(Directory.Exists(first.Pack));
+        var manifest = Path.Combine(first.Sdk, "Microsoft.NETCoreSdk.BundledVersions.props");
+        var identityBefore = Convert.ToHexString(SHA256.HashData(await File.ReadAllBytesAsync(manifest)));
+        var second = ResolvePinnedPack(fixture.Root, dotnetRoot);
+        Assert.Equal(first, second);
+        Assert.Equal(identityBefore, Convert.ToHexString(SHA256.HashData(await File.ReadAllBytesAsync(manifest))));
+        await DependencyEvidenceRunner.WriteJsonAsync(Path.Combine(fixture.Artifacts, "independent-resolution.json"),
+            new { first.Sdk, first.Pack, Manifest = manifest, Sha256 = identityBefore,
+                Scope = "Exact pin, default installed targeting pack only; overrides and dynamic dependencies remain unproved." }, default);
+        await File.WriteAllTextAsync(Path.Combine(fixture.Root, "global.json"), "{\"sdk\":{\"version\":\"0.0.0\",\"rollForward\":\"disable\"}}");
+        Assert.Throws<DirectoryNotFoundException>(() => ResolvePinnedPack(fixture.Root, dotnetRoot));
+        await File.WriteAllTextAsync(Path.Combine(fixture.Root, "global.json"), PinnedSdk.GlobalJson);
+        Assert.Equal(first, ResolvePinnedPack(fixture.Root, dotnetRoot));
+        _output.WriteLine("Retained independent resolution evidence: " + fixture.Artifacts);
+    }
+
+    [Fact]
+    public async Task Foreign_directory_is_rejected_before_any_process_or_write()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "dependency-spike-unowned-" + Guid.NewGuid().ToString("N"));
+        var project = Path.Combine(root, "App.csproj");
+        var request = new ExperimentRequest(project, null, null, null, [project], "full", false);
+        await Assert.ThrowsAsync<ArgumentException>(() => new DependencyEvidenceRunner().InspectAsync(request, root, default));
+        Assert.False(Directory.Exists(root));
+    }
+
+    private async Task AssertClosureIsUnprovenAsync(string scenario)
     {
         var fixture = await CreateFixtureAsync(scenario);
         _output.WriteLine("Retained private raw evidence: " + fixture.Artifacts);
@@ -152,49 +207,6 @@ public sealed class DependencyEvidenceRunnerTests
         await SaveManifestAsync(fixture.Root, fixture.Artifacts);
     }
 
-    [Fact]
-    public async Task Pinned_sdk_and_pack_reresolution_reads_current_installation_without_loading_analyzers()
-    {
-        var fixture = await CreateFixtureAsync("resolution");
-        var runtimeSdk = Path.GetDirectoryName(typeof(Microsoft.Build.Evaluation.Project).Assembly.Location)!;
-        var dotnetRoot = Directory.GetParent(runtimeSdk)!.Parent!.FullName;
-        // The testhost's registered MSBuild SDK can differ from the fixture's exact SDK pin.
-        // Resolve the fixture through the CLI independently of the in-process assembly location.
-        // https://github.com/VuDZ/RoslynMcpServer/actions/runs/37329352099
-        var sdkVersion = await DependencyEvidenceRunner.RunAsync(
-            fixture.Root, fixture.Artifacts, "sdk-version", ["--version"], default);
-        Assert.True(sdkVersion.ExitCode == 0,
-            "Fixture SDK resolution failed: " + sdkVersion.StandardOutput + sdkVersion.StandardError);
-        var expectedSdk = Path.GetFullPath(Path.Combine(dotnetRoot, "sdk", sdkVersion.StandardOutput.Trim()));
-        var first = ResolvePinnedPack(fixture.Root, dotnetRoot);
-        Assert.Equal(expectedSdk, first.Sdk);
-        _output.WriteLine("Registered MSBuild SDK: " + runtimeSdk + "; fixture SDK: " + first.Sdk);
-        Assert.True(Directory.Exists(first.Pack));
-        var manifest = Path.Combine(first.Sdk, "Microsoft.NETCoreSdk.BundledVersions.props");
-        var identityBefore = Convert.ToHexString(SHA256.HashData(await File.ReadAllBytesAsync(manifest)));
-        var second = ResolvePinnedPack(fixture.Root, dotnetRoot);
-        Assert.Equal(first, second);
-        Assert.Equal(identityBefore, Convert.ToHexString(SHA256.HashData(await File.ReadAllBytesAsync(manifest))));
-        await DependencyEvidenceRunner.WriteJsonAsync(Path.Combine(fixture.Artifacts, "independent-resolution.json"),
-            new { first.Sdk, first.Pack, Manifest = manifest, Sha256 = identityBefore,
-                Scope = "Exact pin, default installed targeting pack only; overrides and dynamic dependencies remain unproved." }, default);
-        await File.WriteAllTextAsync(Path.Combine(fixture.Root, "global.json"), "{\"sdk\":{\"version\":\"0.0.0\",\"rollForward\":\"disable\"}}");
-        Assert.Throws<DirectoryNotFoundException>(() => ResolvePinnedPack(fixture.Root, dotnetRoot));
-        await File.WriteAllTextAsync(Path.Combine(fixture.Root, "global.json"), "{\"sdk\":{\"version\":\"10.0.300\",\"rollForward\":\"disable\"}}");
-        Assert.Equal(first, ResolvePinnedPack(fixture.Root, dotnetRoot));
-        _output.WriteLine("Retained independent resolution evidence: " + fixture.Artifacts);
-    }
-
-    [Fact]
-    public async Task Foreign_directory_is_rejected_before_any_process_or_write()
-    {
-        var root = Path.Combine(Path.GetTempPath(), "dependency-spike-unowned-" + Guid.NewGuid().ToString("N"));
-        var project = Path.Combine(root, "App.csproj");
-        var request = new ExperimentRequest(project, null, null, null, [project], "full", false);
-        await Assert.ThrowsAsync<ArgumentException>(() => new DependencyEvidenceRunner().InspectAsync(request, root, default));
-        Assert.False(Directory.Exists(root));
-    }
-
     private static (string Sdk, string Pack) ResolvePinnedPack(string fixtureRoot, string dotnetRoot)
     {
         using var document = System.Text.Json.JsonDocument.Parse(File.ReadAllText(Path.Combine(fixtureRoot, "global.json")));
@@ -230,7 +242,7 @@ public sealed class DependencyEvidenceRunnerTests
         Directory.CreateDirectory(app);
         Directory.CreateDirectory(artifacts);
         await File.WriteAllTextAsync(Path.Combine(root, ".dependency-spike-owned"), "sdk-project-v1/e0-1");
-        await File.WriteAllTextAsync(Path.Combine(root, "global.json"), "{\"sdk\":{\"version\":\"10.0.300\",\"rollForward\":\"disable\"}}");
+        await File.WriteAllTextAsync(Path.Combine(root, "global.json"), PinnedSdk.GlobalJson);
         await File.WriteAllTextAsync(Path.Combine(root, "NuGet.Config"), "<configuration><packageSources><clear /></packageSources></configuration>");
         await File.WriteAllTextAsync(Path.Combine(root, "Directory.Build.props"), "<Project><PropertyGroup><DefineConstants>POSITIVE_IMPORT</DefineConstants></PropertyGroup></Project>");
         await File.WriteAllTextAsync(Path.Combine(root, "Directory.Build.targets"), "<Project><PropertyGroup><E0Positive>1</E0Positive></PropertyGroup></Project>");

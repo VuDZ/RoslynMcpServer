@@ -57,6 +57,13 @@ public sealed class SearchExceptionRecorderTests
 
         using var json = JsonDocument.Parse(recorder.ToJson(Guid.Empty));
         Assert.Equal(0, json.RootElement.GetProperty("attributed").GetInt32());
+        // Still counted: a recorder that dropped other flows would pass the check above.
+        Assert.True(json.RootElement.GetProperty("unattributed").GetInt32() >= 1);
+        Assert.Contains(
+            json.RootElement.GetProperty("groups").EnumerateArray(),
+            group => group.GetProperty("type").GetString() == typeof(IOException).FullName
+                && group.GetProperty("project").ValueKind == JsonValueKind.Null
+                && group.GetProperty("detail").GetString() == "elsewhere");
     }
 
     [Fact]

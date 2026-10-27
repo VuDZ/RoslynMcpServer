@@ -300,6 +300,7 @@ public sealed class OracleFixtureBuilderTests
     }
 
     [FreshMsBuildRazorFact]
+    [Trait("Category", TestCategories.RequiresPinnedSdk)]
     public async Task Fresh_msbuild_reproduces_the_observed_razor_generator_output()
     {
         var parent = OwnParent();
@@ -406,7 +407,7 @@ public sealed class OracleFixtureBuilderTests
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "dotnet"),
         };
         return roots.Any(root => !string.IsNullOrWhiteSpace(root)
-            && Directory.Exists(Path.Combine(root, "sdk", "10.0.300"))
+            && Directory.Exists(Path.Combine(root, "sdk", PinnedSdk.Version))
             && Directory.Exists(Path.Combine(root, "shared", "Microsoft.AspNetCore.App")));
     }
 
@@ -420,7 +421,7 @@ public sealed class OracleFixtureBuilderTests
         {
             if (!PinnedSdkWithAspNetCoreIsInstalled())
             {
-                Skip = "The pinned SDK 10.0.300 or the local ASP.NET Core framework prerequisite is unavailable.";
+                Skip = $"The pinned SDK {PinnedSdk.Version} or the local ASP.NET Core framework prerequisite is unavailable.";
             }
         }
     }

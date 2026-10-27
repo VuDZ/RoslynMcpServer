@@ -14,7 +14,9 @@ namespace RoslynMcpServer.Services.Navigation;
 /// <remarks>
 /// On the office solution this part was 5.5 s of a 13.6 s first search with a warm index cache and 8.4 s
 /// with a cold one (task-16 on branch research/workspace-load-performance). A search that starts while the
-/// prewarm runs shares Roslyn's per-document state with it.
+/// prewarm runs shares the document texts and syntax trees with it, and uses every index the prewarm has
+/// already stored. Roslyn does not deduplicate an index both are computing at the same moment, so that one
+/// may be built twice.
 /// </remarks>
 internal static class SearchIndexPrewarm
 {
@@ -25,19 +27,34 @@ internal static class SearchIndexPrewarm
     /// The environment variable wins over the <c>search-prewarm</c> key of RoslynMcp.jsonc, as for max-results;
     /// with neither set the prewarm is on. It measured no slowdown of a search right after the load.
     /// </summary>
-    public static bool IsEnabled(bool? fileSetting)
+    public static bool IsEnabled(bool? fileSetting) =>
+        IsEnabled(fileSetting, Environment.GetEnvironmentVariable(EnvironmentVariableName));
+
+    /// <summary>Same as <see cref="IsEnabled(bool?)"/> with the value of the environment variable passed in.</summary>
+    internal static bool IsEnabled(bool? fileSetting, string? environmentValue)
     {
-        var value = Environment.GetEnvironmentVariable(EnvironmentVariableName);
-        if (!string.IsNullOrWhiteSpace(value))
+        if (!string.IsNullOrWhiteSpace(environmentValue))
         {
-            return !(value.Trim() == "0" || string.Equals(value.Trim(), "false", StringComparison.OrdinalIgnoreCase));
+            var value = environmentValue.Trim();
+            return !(value == "0" || string.Equals(value, "false", StringComparison.OrdinalIgnoreCase));
         }
 
         return fileSetting ?? true;
     }
 
     /// <summary>Never throws: the outcome, including cancellation and failure, goes to one log line.</summary>
-    public static async Task RunAsync(Solution solution, ILogger logger, CancellationToken cancellationToken)
+    public static Task RunAsync(Solution solution, ILogger logger, CancellationToken cancellationToken) =>
+        RunAsync(solution, logger, beforeProject: null, cancellationToken);
+
+    /// <summary>
+    /// Same as <see cref="RunAsync(Solution, ILogger, CancellationToken)"/>; <paramref name="beforeProject"/>
+    /// runs before each project, so a test can hold the prewarm in the middle of its work.
+    /// </summary>
+    internal static async Task RunAsync(
+        Solution solution,
+        ILogger logger,
+        Func<CancellationToken, Task>? beforeProject,
+        CancellationToken cancellationToken)
     {
         var started = Stopwatch.GetTimestamp();
         var completedProjects = 0;
@@ -48,6 +65,11 @@ internal static class SearchIndexPrewarm
             foreach (var project in solution.Projects)
             {
                 cancellationToken.ThrowIfCancellationRequested();
+                if (beforeProject is not null)
+                {
+                    await beforeProject(cancellationToken).ConfigureAwait(false);
+                }
+
                 await SymbolFinder.FindSourceDeclarationsAsync(
                         project,
                         AbsentName,
@@ -60,7 +82,7 @@ internal static class SearchIndexPrewarm
 
             outcome = "success";
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             outcome = "cancelled";
         }

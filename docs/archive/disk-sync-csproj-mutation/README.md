@@ -232,13 +232,13 @@ flowchart TD
 (A1-01), но там записано как «явный `<Compile Include>` дублировал SDK glob»,
 без указания, **кто** его написал.
 
-### 3.4. Чужой репозиторий `MobsAdmin.Web.Tests` (2026-09-18)
+### 3.4. Чужой репозиторий `private_project_5.Tests` (2026-09-18)
 
 ```
-14:21:29  tools/call load_workspace  (C:\Repos\kavkis\KAVKISTools\mobsadmin\mobs-admin.sln)
-14:21:34.797  Project graph file changed on disk: ...\MobsAdmin.Web.Tests.csproj
+14:21:29  tools/call load_workspace  (C:\Repos\private_project\Tools\private_project_5\private_project_5.sln)
+14:21:34.797  Project graph file changed on disk: ...\private_project_5.Tests.csproj
 14:21:34.815  workspace_disk_sync updated=0 added=1 removed=0 unchanged=0 write="FullSuccess"
-14:22:17  NETSDK1022 ... duplicate items were: 'SectionRouteChromeTests.cs' [MobsAdmin.Web.Tests.csproj]
+14:22:17  NETSDK1022 ... duplicate items were: 'SectionRouteChromeTests.cs' [private_project_5.Tests.csproj]
 ```
 
 Этот случай окончательно снимает версию про «хук этого репозитория»: MCP

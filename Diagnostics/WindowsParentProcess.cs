@@ -45,13 +45,33 @@ internal static class WindowsParentProcess
             return 0;
         }
 
-        var parentId = info.InheritedFromUniqueProcessId.ToInt64();
-        if (parentId <= 0 || parentId > int.MaxValue)
+        return ParentIdOrZero(info.InheritedFromUniqueProcessId);
+    }
+
+    /// <summary>Parent id of <paramref name="process"/>, or 0 when it cannot be read. The id may have been reused.</summary>
+    internal static int TryReadParentProcessId(Process process)
+    {
+        ArgumentNullException.ThrowIfNull(process);
+        try
+        {
+            var info = default(ProcessBasicInformation);
+            var status = NtQueryInformationProcess(
+                process.Handle,
+                ProcessBasicInformationClass,
+                ref info,
+                Marshal.SizeOf<ProcessBasicInformation>(),
+                out _);
+            if (status != 0)
+            {
+                return 0;
+            }
+
+            return ParentIdOrZero(info.InheritedFromUniqueProcessId);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception)
         {
             return 0;
         }
-
-        return (int)parentId;
     }
 
     internal static string? TryGetImagePath(int processId)
@@ -95,6 +115,17 @@ internal static class WindowsParentProcess
         {
             _ = CloseHandle(handle);
         }
+    }
+
+    private static int ParentIdOrZero(IntPtr parent)
+    {
+        var parentId = parent.ToInt64();
+        if (parentId <= 0 || parentId > int.MaxValue)
+        {
+            return 0;
+        }
+
+        return (int)parentId;
     }
 
     private static string? ReadCommandLine(IntPtr processHandle)

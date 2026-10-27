@@ -25,9 +25,9 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageId>RoslynMcpServer</PackageId>
-    <Version>1.5.15</Version>
-    <AssemblyVersion>1.5.15.0</AssemblyVersion>
-    <FileVersion>1.5.15.0</FileVersion>
+    <Version>1.5.17</Version>
+    <AssemblyVersion>1.5.17.0</AssemblyVersion>
+    <FileVersion>1.5.17.0</FileVersion>
     <PackageTags>AI; MCP; server; stdio</PackageTags>
     <Description>An MCP server using the MCP C# SDK.</Description>
   </PropertyGroup>
@@ -67,6 +67,10 @@
     <None Remove="samples\**" />
     <Compile Remove="spikes\**" />
     <None Remove="spikes\**" />
+    <!-- Upstream forks build with their own projects and are not part of the host assembly. -->
+    <Compile Remove="forks\**" />
+    <None Remove="forks\**" />
+    <EmbeddedResource Remove="forks\**" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="ICSharpCode.Decompiler" Version="10.0.1.8346" />
@@ -105,4 +109,10 @@
     <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.13" />
     <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
   </ItemGroup>
+  <!-- BuildHost-netcore is the fork from forks/roslyn-buildhost, not the package's host
+       (branch research/workspace-load-performance, docs/workspace-load-performance/research-buildhost-fork/task-03-buildhost-fork-server-integration-hi.md).
+       A design-time build does nothing with it, so a copy of this project without forks/ still loads into a
+       workspace; a real build without it fails on the missing import. -->
+  <Import Project="forks\roslyn-buildhost\build\BuildHostFork.targets"
+          Condition="'$(DesignTimeBuild)' != 'true' or Exists('forks\roslyn-buildhost\build\BuildHostFork.targets')" />
 </Project>
