@@ -12,6 +12,8 @@
   self-checks PASS; численный no-go на измеренном стенде, 44 диагностики Failure
   при каждой загрузке; формальная приёмка реализации и независимое ревью pending
   ([отчёт и ограничения](evidence/task-11-parallel-project-search.md))**.
+- Закрытие, 2026-10-27: **завершена, no-go принят** (решение владельца). Независимого ревью spike не было.
+  Причина no-go — паузы workstation GC, продолжение — [task-12](task-12-server-gc-first-search-med.md).
 - Depends on: [task-08](task-08-source-search-and-office-results-med.md).
 - Модель, реализовавшая задачу: —.
 - Модели, проводившие ревью: —.

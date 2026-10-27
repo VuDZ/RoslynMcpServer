@@ -11,6 +11,9 @@
   main CI 1426/0/0, SourceStructure 123, AnalyzerLifecycle 13/0/0 и end-to-end PASS.
   Свежая полная загрузка PowerToys с opt-in overlay остаётся manual pending;
   [отчёт и границы приёмки](evidence/task-06-provenance-forward-compatible-replay.md).
+- Закрытие, 2026-10-27: **accepted в объёме automated validation** (решение владельца). Ручная полная загрузка
+  PowerToys с opt-in overlay отменена: PowerToys исключён из корпуса замеров решением владельца
+  ([task-00 форка](../research-buildhost-fork/README.md#задачи)).
 - Depends on: —.
 
 Это production bugfix, найденный в [ревью task-05](evidence/task-05-profile-guided-partition.md#ревью-2026-10-10-claude-opus-55),
