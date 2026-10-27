@@ -203,6 +203,9 @@ public sealed class SolutionManager
     /// <summary>The prewarm of the last fresh load, if one was started; it never faults.</summary>
     internal Task? SearchPrewarmTask { get; private set; }
 
+    /// <summary>Test seam: runs before each project of the search prewarm, so a test can hold it mid-work.</summary>
+    internal Func<CancellationToken, Task>? BeforeSearchPrewarmProjectForTests { get; set; }
+
     internal WorkspaceWriteResult? LastWriteResult { get; private set; }
 
     internal InProcessAnalyzerAssemblyLoader AnalyzerAssemblyLoader { get; } = new();
@@ -764,7 +767,7 @@ public sealed class SolutionManager
         await _workspaceLock.WaitAsync(cancellationToken);
         try
         {
-            CancelSearchPrewarm();
+            await StopSearchPrewarmAsync().ConfigureAwait(false);
             StopDiskWatcherUnderLock();
             _dirtySourcePaths.Clear();
             _dirtyNonCSharpPaths.Clear();
@@ -2056,7 +2059,7 @@ public sealed class SolutionManager
             return cached;
         }
 
-        CancelSearchPrewarm();
+        await StopSearchPrewarmAsync().ConfigureAwait(false);
         StopDiskWatcherUnderLock();
         _workspace?.Dispose();
         _workspace = null;
@@ -2209,33 +2212,75 @@ public sealed class SolutionManager
         }
 
         var cancellation = new CancellationTokenSource();
+        var beforeProject = BeforeSearchPrewarmProjectForTests;
         _searchPrewarmCancellation = cancellation;
-        SearchPrewarmTask = Task.Run(() => SearchIndexPrewarm.RunAsync(solution, _logger, cancellation.Token));
+        SearchPrewarmTask = Task.Run(() => SearchIndexPrewarm.RunAsync(solution, _logger, beforeProject, cancellation.Token));
     }
 
-    /// <summary>Stops the prewarm of the previous load; it must not keep a disposed workspace busy.</summary>
-    private void CancelSearchPrewarm()
+    /// <summary>
+    /// Stops the prewarm of the previous load and waits for it, so its log line lands before the clear or the
+    /// next load. Caller holds the workspace lock; the prewarm never takes it.
+    /// </summary>
+    /// <remarks>
+    /// Cancelling without the wait let the cancelled prewarm write <c>workspace_search_prewarm</c> after
+    /// "workspace cleared" or in the middle of the next load, where it read as a line of the new load.
+    /// Roslyn checks the token between documents, so the wait is short; the bound only keeps a stuck
+    /// prewarm from holding the lock.
+    /// </remarks>
+    private async Task StopSearchPrewarmAsync()
     {
-        _searchPrewarmCancellation?.Cancel();
+        var cancellation = _searchPrewarmCancellation;
         _searchPrewarmCancellation = null;
+        if (cancellation is null)
+        {
+            return;
+        }
+
+        cancellation.Cancel();
+        if (SearchPrewarmTask is { } prewarm)
+        {
+            try
+            {
+                await prewarm.WaitAsync(_searchPrewarmStopTimeout).ConfigureAwait(false);
+            }
+            catch (TimeoutException)
+            {
+                _logger.LogWarning(
+                    "Search prewarm did not stop within {Seconds} s; its log line may follow this point.",
+                    _searchPrewarmStopTimeout.TotalSeconds);
+                return;
+            }
+        }
+
+        // A prewarm that missed the bound may still read the token; only a finished one releases it.
+        cancellation.Dispose();
     }
 
     /// <summary>
     /// Gives documents whose files are missing a loader that fails without Roslyn's one-second retries.
     /// Runs on the raw workspace before the first publication, so published snapshots and write candidates
     /// share these loaders. A file that appears later is read from disk by the same loader and synced
-    /// by the disk watcher like any changed document.
+    /// by the disk watcher like any changed document. The log line keeps <c>available</c> apart from
+    /// <c>installed</c>, which is null when there was nothing to install, so a load without missing files still
+    /// shows that a Roslyn update disabled the mechanism.
     /// </summary>
     private void InstallMissingSourceFileLoaders(Microsoft.CodeAnalysis.Workspace workspace, CancellationToken cancellationToken)
     {
         var started = Stopwatch.GetTimestamp();
         var missing = MissingSourceFiles.Find(workspace.CurrentSolution, cancellationToken);
         var paths = missing.Select(document => document.Path).Distinct(StringComparer.Ordinal).ToArray();
-        var installed = missing.Count == 0 || MissingSourceFiles.TryInstallLoaders(workspace, missing);
+        string? failure = null;
+        bool? installed = missing.Count == 0 ? null : MissingSourceFiles.TryInstallLoaders(workspace, missing, out failure);
+        if (failure is not null)
+        {
+            _logger.LogWarning("Missing source files keep Roslyn's retrying loader: {Failure}", failure);
+        }
+
         _logger.LogInformation("workspace_missing_source_files {Json:l}", System.Text.Json.JsonSerializer.Serialize(new
         {
             documents = missing.Count,
             files = paths.Length,
+            available = MissingSourceFiles.IsAvailable,
             installed,
             elapsedMs = Stopwatch.GetElapsedTime(started).TotalMilliseconds,
             paths = paths.Take(MissingSourceFilesLogged),
@@ -3135,6 +3180,7 @@ public sealed class SolutionManager
     /// </summary>
     private static readonly HostServices MsBuildHostServices = MefHostServices.Create(
         LoadMefAssemblies());
+    private static readonly TimeSpan _searchPrewarmStopTimeout = TimeSpan.FromSeconds(10);
     private readonly ILogger<SolutionManager> _logger;
     private readonly AnalyzerProvenanceCaptureService _analyzerProvenanceCaptureService;
     private readonly SemaphoreSlim _workspaceLock = new(1, 1);

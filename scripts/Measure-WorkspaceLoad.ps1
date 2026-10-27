@@ -156,17 +156,35 @@ function Get-RedactionPairs([string]$WorkspaceDirectory, [string]$ServerReposito
         Sort-Object { $_[0].Length } -Descending)
 }
 
+# The server writes its JSON records with the default System.Text.Json encoder: every character outside
+# printable ASCII and each of " & ' + < > ` becomes \uXXXX. C:\Users\<Cyrillic name>\R&D is logged as
+# C:\\Users\\\u0418...\\R\u0026D, which the plain and doubled-backslash forms do not match, so the path
+# survived redaction and reached runs.json and summary.md in clear text after ConvertFrom-Json.
+function ConvertTo-JsonEscapedText([string]$Text) {
+    $builder = New-Object Text.StringBuilder
+    foreach ($character in $Text.ToCharArray()) {
+        $code = [int]$character
+        if ($character -eq '\') { [void]$builder.Append('\\') }
+        elseif ($code -lt 0x20 -or $code -gt 0x7E -or '"&''+<>`'.IndexOf($character) -ge 0) { [void]$builder.Append('\u' + $code.ToString('X4')) }
+        else { [void]$builder.Append($character) }
+    }
+    return $builder.ToString()
+}
+
 function Get-RedactedText([string]$Text) {
     if ([string]::IsNullOrEmpty($Text)) { return $Text }
     foreach ($pair in $redactionPairs) {
         $value = $pair[0].TrimEnd('\', '/')
-        foreach ($variant in @($value, $value.Replace('\', '\\'), $value.Replace('\', '/'))) {
+        $slashed = $value.Replace('\', '/')
+        foreach ($variant in @($value, $value.Replace('\', '\\'), $slashed, (ConvertTo-JsonEscapedText $value), (ConvertTo-JsonEscapedText $slashed))) {
             $Text = [regex]::Replace($Text, [regex]::Escape($variant), $pair[1], 'IgnoreCase')
         }
     }
     # Only as a whole path segment: a short user name also occurs inside unrelated words.
     if ($env:USERNAME -and $env:USERNAME.Length -ge 2) {
-        $Text = [regex]::Replace($Text, '(?<=[\\/])' + [regex]::Escape($env:USERNAME) + '(?=[\\/])', '<user>', 'IgnoreCase')
+        foreach ($variant in @($env:USERNAME, (ConvertTo-JsonEscapedText $env:USERNAME)) | Select-Object -Unique) {
+            $Text = [regex]::Replace($Text, '(?<=[\\/])' + [regex]::Escape($variant) + '(?=[\\/])', '<user>', 'IgnoreCase')
+        }
     }
     return $Text
 }
@@ -177,7 +195,7 @@ function Find-UnredactedPaths([string]$Directory) {
     # Logs embed JSON, so a path may appear with doubled backslashes in any file.
     $allowed = @($allowedRoots | ForEach-Object { $_; $_.Replace('\', '\\') })
     $found = New-Object Collections.Generic.List[string]
-    foreach ($file in @(Get-ChildItem -LiteralPath $Directory -File | Where-Object { $_.Extension -in '.md', '.txt', '.json' })) {
+    foreach ($file in @(Get-ChildItem -LiteralPath $Directory -File | Where-Object { $_.Extension -in '.md', '.txt', '.json', '.log', '.err' })) {
         $text = [IO.File]::ReadAllText($file.FullName)
         # Drive paths, and UNC paths in plain or JSON-escaped form (\\server or \\\\server). A UNC path
         # starts a token; inside one (<repo>\\src, a==\\sqlite3) the backslashes are path separators.
@@ -552,7 +570,8 @@ function Format-SearchSummaryLine($Summary) {
     if ($Summary.PSObject.Properties['serverGc']) {
         $gcMode = 'workstation'
         if ($Summary.serverGc) { $gcMode = 'server' }
-        $line += "; $gcMode GC, pauses $(Format-Ms $Summary.gcPauseMs) ms, collections gen0/1/2 $(@($Summary.gcCollections) -join '/')"
+        # Collection counts are cumulative: a gen2 collection also counts in gen0 and gen1.
+        $line += "; $gcMode GC, process-wide pauses $(Format-Ms $Summary.gcPauseMs) ms, cumulative collections gen0/1/2 $(@($Summary.gcCollections) -join '/')"
     }
     return $line + '.'
 }
@@ -592,7 +611,11 @@ function Format-MissingSourceFilesLines($Record) {
     if ($null -eq $Record) {
         return @('Missing source files at load: unavailable (server before 1.5.13 or no workspace_missing_source_files record).')
     }
-    $lines = @("Missing source files at load: $($Record.documents) documents in $($Record.files) files; fast-fail loaders installed: $($Record.installed); scan $(Format-Ms $Record.elapsedMs) ms.")
+    # Servers after 1.5.16: installed is null when no document needed a loader; available false means a Roslyn update
+    # removed the members the loaders are installed through.
+    $installed = if ($null -eq $Record.installed) { 'none needed' } else { $Record.installed }
+    $availability = if ($Record.PSObject.Properties['available'] -and -not $Record.available) { ' (Roslyn members not found)' } else { '' }
+    $lines = @("Missing source files at load: $($Record.documents) documents in $($Record.files) files; fast-fail loaders installed: $installed$availability; scan $(Format-Ms $Record.elapsedMs) ms.")
     $paths = @($Record.paths)
     if ($paths.Count -gt 0) { $lines += 'Missing files (first 10): ' + (($paths | ForEach-Object { '`' + $_ + '`' }) -join ', ') }
     return $lines
@@ -659,6 +682,12 @@ function Complete-FirstSearchTrace($Trace) {
     if ($state -eq 'completed' -and -not $bytes) { $state = 'no-file' }
     $output = ''
     if (Test-Path -LiteralPath $Trace.LogPath) { $output = Get-Content -LiteralPath $Trace.LogPath -Raw }
+    # dotnet-trace prints the full paths of the server and of the trace file; both logs stay in the result folder.
+    foreach ($path in @($Trace.LogPath, "$($Trace.LogPath).err")) {
+        if (Test-Path -LiteralPath $path) {
+            [IO.File]::WriteAllText($path, (Get-RedactedText ([IO.File]::ReadAllText($path))), $utf8NoBom)
+        }
+    }
     return [pscustomobject]@{
         file = Split-Path $Trace.TracePath -Leaf
         bytes = $bytes

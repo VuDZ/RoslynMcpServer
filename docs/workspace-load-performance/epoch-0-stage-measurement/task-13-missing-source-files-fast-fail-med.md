@@ -14,13 +14,13 @@
   - Офисный контроль 1.5.13 пройден 2026-10-23: 76 документов в 2 отсутствующих
     файлах получили быстрый loader; первый поиск при workstation GC 31,4 → 19,5 с
     ([офисный прогон](evidence/office-first-search-2026-10-23.md#второй-прогон-сервер-1513-17071718)).
-  - Независимое ревью pending; не accepted.
+  - Ревью раунда 1, 2026-10-27: требуются исправления; исправления внесены, раунд 2 pending; не accepted ([отчёт ревью](evidence/first-search-review-2026-10-27.md)).
 - Depends on: [task-09](task-09-first-search-io-and-private-project-profile-hi.md),
   [task-10](task-10-first-search-exception-and-trace-diagnostics-med.md).
 - Модель, реализовавшая задачу: Claude Opus 5.5.
-- Модели, проводившие ревью: —.
-- Количество раундов ревью: 0.
-- Количество исправлений после ревью: —.
+- Модели, проводившие ревью: claude-opus-5-5, новая сессия, раунд 1 2026-10-27 — требуются исправления; исправления внесены, раунд 2 pending ([отчёт ревью](evidence/first-search-review-2026-10-27.md)).
+- Количество раундов ревью: 1 (раунд 2 pending).
+- Количество исправлений после ревью: — (до перепроверки раундом 2).
 - Отчёт о реализации, ревью и validation: [evidence/task-13-missing-source-files.md](evidence/task-13-missing-source-files.md).
 
 ## Вопрос

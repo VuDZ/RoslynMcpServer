@@ -35,33 +35,43 @@ internal sealed class SearchExceptionRecorder : IDisposable
     /// </summary>
     public string ToJson(Guid searchId)
     {
+        // Only the copy happens under the lock: the handler of every exception in the process waits on it,
+        // and the first serialization of these types loads and reflects over them.
+        List<(GroupKey Key, int Count, double FirstMs)> entries;
+        int attributed;
+        int unattributed;
+        int droppedGroups;
         lock (_groups)
         {
-            var groups = _groups
-                .Select(pair => (Key: pair.Key, Group: pair.Value))
-                .OrderByDescending(entry => entry.Group.Count)
-                .ThenBy(entry => entry.Group.FirstMs)
-                .Take(MaxLoggedGroups)
-                .Select(entry => new
-                {
-                    type = entry.Key.Type,
-                    project = entry.Key.Project,
-                    detail = entry.Key.Detail,
-                    count = entry.Group.Count,
-                    firstMs = entry.Group.FirstMs,
-                })
-                .ToList();
-            return JsonSerializer.Serialize(new
-            {
-                searchId,
-                total = _attributed + _unattributed,
-                attributed = _attributed,
-                unattributed = _unattributed,
-                distinctGroups = _groups.Count,
-                droppedGroups = _droppedGroups,
-                groups,
-            });
+            entries = _groups.Select(pair => (pair.Key, pair.Value.Count, pair.Value.FirstMs)).ToList();
+            attributed = _attributed;
+            unattributed = _unattributed;
+            droppedGroups = _droppedGroups;
         }
+
+        var groups = entries
+            .OrderByDescending(entry => entry.Count)
+            .ThenBy(entry => entry.FirstMs)
+            .Take(MaxLoggedGroups)
+            .Select(entry => new
+            {
+                type = entry.Key.Type,
+                project = entry.Key.Project,
+                detail = entry.Key.Detail,
+                count = entry.Count,
+                firstMs = entry.FirstMs,
+            })
+            .ToList();
+        return JsonSerializer.Serialize(new
+        {
+            searchId,
+            total = attributed + unattributed,
+            attributed,
+            unattributed,
+            distinctGroups = entries.Count,
+            droppedGroups,
+            groups,
+        });
     }
 
     public void Dispose() => AppDomain.CurrentDomain.FirstChanceException -= OnFirstChanceException;

@@ -28,7 +28,9 @@ internal sealed class HostSession
             NullLogger<AnalyzerProvenanceCaptureService>.Instance,
             Options.Create(new AnalyzerProvenanceCaptureOptions()),
             TimeProvider.System);
-        return new SolutionManager(NullLogger<SolutionManager>.Instance, capture);
+        // The lifecycle scenarios check analyzer state, not search; a background prewarm would only add
+        // reads and an index cache for every scenario solution.
+        return new SolutionManager(NullLogger<SolutionManager>.Instance, capture) { SearchPrewarmEnabled = false };
     }
 
     public async Task<HostResponse> ExecuteAsync(HostCommand command, CancellationToken cancellationToken)
