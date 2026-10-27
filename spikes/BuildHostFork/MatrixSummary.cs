@@ -8,8 +8,9 @@ namespace BuildHostFork;
 /// matrix: the result folder of Invoke-BuildHostForkMatrix.ps1 (BuildHost/task-02, stage 3), with the original runs
 /// at its top and each fork variant in a subfolder of its own. Every variant is compared with the same original runs
 /// and gets its own summary.md; matrix.md puts the medians of all sides side by side, as ratios to the original and
-/// to a time reference: the fork without optimizations, against which the thresholds of task-02 are set, or, in a
-/// matrix without it, A + B, against which the candidates of task-04 are set.
+/// to a time reference: the fork without optimizations, against which the thresholds of task-02 are set; in a matrix
+/// without it, A + B, against which the candidates of task-04 are set; without both, A + B + C, the production BuildHost
+/// against which the settings of task-05 are set.
 /// </summary>
 internal static class MatrixSummary
 {
@@ -106,5 +107,6 @@ internal static class MatrixSummary
     [
         ("fork", "the fork without optimizations, the reference of the task-02 thresholds"),
         ("fork-ab", "A + B, the reference of the task-04 thresholds"),
+        ("fork-abc", "A + B + C, the production BuildHost and the reference of the task-05 thresholds"),
     ];
 }

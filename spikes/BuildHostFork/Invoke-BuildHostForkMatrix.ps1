@@ -18,6 +18,10 @@
       fork-abc        A, B and candidate C of task-04: one SDK resolution cache per project
                       (ROSLYN_BUILDHOST_SHARED_SDK_CACHE)
       fork-abc-trace  A, B and C with the trace
+      fork-abc-gc     A, B and C with the GC experiment of task-04 (BuildHost/task-05)
+      fork-ac         A and C without evaluation ahead, for the build time next to B (BuildHost/task-05)
+      fork-ac-trace   A and C with the trace
+      fork-abc-w<N>   A, B and C with N workers of part B, one per value of -EvaluateAheadWorkers (BuildHost/task-05)
 
     Each round runs every side once; the order is rotated by one side per round, so no side always goes first or
     always follows the same one. Round 0 is warmup.
@@ -26,7 +30,8 @@
     answer of every variant against the original by the rules of task-00 and the medians of all sides, as ratios to
     the original and to the fork without optimizations; <variant>\summary.md holds each comparison in full, and
     fork-ab-trace\trace-summary.md where the load time goes. Without the fork side the ratios are to fork-ab, the
-    reference of the task-04 candidates. The GC and C variants are followed by full RPC captures of the original twice
+    reference of the task-04 candidates, and without both to fork-abc, the production BuildHost and the reference of
+    task-05. The GC and C variants are followed by full RPC captures of the original twice
     and of every variant, compared field by field (rpc-*-raw.txt, rpc-*-glob-sets.txt). The script fails when a
     variant is not shown equivalent or its RPC answer differs beyond the order of glob excludes and removes and, on
     Windows, the letter case of paths; every variant is compared before it fails.
@@ -54,6 +59,10 @@
 .PARAMETER EvaluateAhead
     Worker threads of part B in the variants with B. Default 4.
 
+.PARAMETER EvaluateAheadWorkers
+    Adds a variant fork-abc-w<N> for each value: A, B and C with N workers of part B, measured in the same rounds as
+    the listed variants. For the worker count of BuildHost/task-05.
+
 .PARAMETER EvaluateAheadSolution
     The solution entries part B evaluates ahead: all (default), a number of entries after the latest requested one,
     or off.
@@ -75,7 +84,7 @@ param(
 
     [string]$OutDirectory,
 
-    [ValidateSet('fork', 'fork-a', 'fork-b', 'fork-ab', 'fork-ab-trace', 'fork-ab-gc', 'fork-ab-gc-trace', 'fork-abc', 'fork-abc-trace')]
+    [ValidateSet('fork', 'fork-a', 'fork-b', 'fork-ab', 'fork-ab-trace', 'fork-ab-gc', 'fork-ab-gc-trace', 'fork-abc', 'fork-abc-trace', 'fork-abc-gc', 'fork-ac', 'fork-ac-trace')]
     [string[]]$Variants = @('fork', 'fork-a', 'fork-b', 'fork-ab', 'fork-ab-trace'),
 
     [switch]$RpcOnly,
@@ -84,7 +93,10 @@ param(
     [int]$EvaluateAhead = 4,
 
     [ValidatePattern('^(all|off|[1-9][0-9]*)$')]
-    [string]$EvaluateAheadSolution = 'all'
+    [string]$EvaluateAheadSolution = 'all',
+
+    [ValidateRange(1, 64)]
+    [int[]]$EvaluateAheadWorkers = @()
 )
 
 Set-StrictMode -Version 2.0
@@ -95,18 +107,30 @@ $repo = Split-Path $spikes -Parent
 . (Join-Path (Join-Path $spikes 'ParallelSearch') 'MatrixCommon.ps1')
 . (Join-Path $PSScriptRoot 'BuildHostForkCommon.ps1')
 
+# gc: the variant runs on the separate host copy with the GC experiment of task-04. rpc: the run ends with full RPC
+# captures of every side, because the variant changes how the host collects ProjectFileInfo or runs on another GC.
 $definitions = @{
-    'fork' = @{ referencesFirst = $false; evaluateAhead = 0; sharedSdkCache = $false; trace = $false; rpc = $false }
-    'fork-a' = @{ referencesFirst = $true; evaluateAhead = 0; sharedSdkCache = $false; trace = $false; rpc = $false }
-    'fork-b' = @{ referencesFirst = $false; evaluateAhead = $EvaluateAhead; sharedSdkCache = $false; trace = $false; rpc = $false }
-    'fork-ab' = @{ referencesFirst = $true; evaluateAhead = $EvaluateAhead; sharedSdkCache = $false; trace = $false; rpc = $false }
-    'fork-ab-trace' = @{ referencesFirst = $true; evaluateAhead = $EvaluateAhead; sharedSdkCache = $false; trace = $true; rpc = $false }
-    'fork-ab-gc' = @{ referencesFirst = $true; evaluateAhead = $EvaluateAhead; sharedSdkCache = $false; trace = $false; rpc = $true }
-    'fork-ab-gc-trace' = @{ referencesFirst = $true; evaluateAhead = $EvaluateAhead; sharedSdkCache = $false; trace = $true; rpc = $true }
-    'fork-abc' = @{ referencesFirst = $true; evaluateAhead = $EvaluateAhead; sharedSdkCache = $true; trace = $false; rpc = $true }
-    'fork-abc-trace' = @{ referencesFirst = $true; evaluateAhead = $EvaluateAhead; sharedSdkCache = $true; trace = $true; rpc = $true }
+    'fork' = @{ referencesFirst = $false; evaluateAhead = 0; sharedSdkCache = $false; trace = $false; rpc = $false; gc = $false }
+    'fork-a' = @{ referencesFirst = $true; evaluateAhead = 0; sharedSdkCache = $false; trace = $false; rpc = $false; gc = $false }
+    'fork-b' = @{ referencesFirst = $false; evaluateAhead = $EvaluateAhead; sharedSdkCache = $false; trace = $false; rpc = $false; gc = $false }
+    'fork-ab' = @{ referencesFirst = $true; evaluateAhead = $EvaluateAhead; sharedSdkCache = $false; trace = $false; rpc = $false; gc = $false }
+    'fork-ab-trace' = @{ referencesFirst = $true; evaluateAhead = $EvaluateAhead; sharedSdkCache = $false; trace = $true; rpc = $false; gc = $false }
+    'fork-ab-gc' = @{ referencesFirst = $true; evaluateAhead = $EvaluateAhead; sharedSdkCache = $false; trace = $false; rpc = $true; gc = $true }
+    'fork-ab-gc-trace' = @{ referencesFirst = $true; evaluateAhead = $EvaluateAhead; sharedSdkCache = $false; trace = $true; rpc = $true; gc = $true }
+    'fork-abc' = @{ referencesFirst = $true; evaluateAhead = $EvaluateAhead; sharedSdkCache = $true; trace = $false; rpc = $true; gc = $false }
+    'fork-abc-trace' = @{ referencesFirst = $true; evaluateAhead = $EvaluateAhead; sharedSdkCache = $true; trace = $true; rpc = $true; gc = $false }
+    'fork-abc-gc' = @{ referencesFirst = $true; evaluateAhead = $EvaluateAhead; sharedSdkCache = $true; trace = $false; rpc = $true; gc = $true }
+    'fork-ac' = @{ referencesFirst = $true; evaluateAhead = 0; sharedSdkCache = $true; trace = $false; rpc = $false; gc = $false }
+    'fork-ac-trace' = @{ referencesFirst = $true; evaluateAhead = 0; sharedSdkCache = $true; trace = $true; rpc = $false; gc = $false }
 }
-$Variants = @($Variants | Select-Object -Unique)
+# The sides of this run: the listed variants and one per worker count. A separate list, since -Variants keeps its
+# ValidateSet for every later assignment.
+$selected = @($Variants)
+foreach ($workers in @($EvaluateAheadWorkers | Select-Object -Unique)) {
+    $definitions["fork-abc-w$workers"] = @{ referencesFirst = $true; evaluateAhead = $workers; sharedSdkCache = $true; trace = $false; rpc = $false; gc = $false }
+    $selected += "fork-abc-w$workers"
+}
+$selected = @($selected | Select-Object -Unique)
 
 # PowerShell's location can differ from the process directory used by .NET and the child host.
 $Solution = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Solution)
@@ -118,7 +142,7 @@ $copies = Initialize-ForkCopy $repo $PSScriptRoot
 $originalDll = Join-Path $copies.originalBin 'BuildHostFork.dll'
 $forkDll = Join-Path $copies.forkBin 'BuildHostFork.dll'
 $gcDll = $null
-if (@($Variants | Where-Object { $_ -like 'fork-ab-gc*' }).Count -gt 0) {
+if (@($selected | Where-Object { $definitions[$_].gc }).Count -gt 0) {
     $gcDll = Join-Path (Initialize-GcForkCopy $copies.forkBin) 'BuildHostFork.dll'
 }
 
@@ -132,18 +156,18 @@ if (-not $OutDirectory) {
 }
 $OutDirectory = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($OutDirectory)
 New-Item -ItemType Directory -Force -Path $OutDirectory | Out-Null
-foreach ($variant in $Variants) {
+foreach ($variant in $selected) {
     # A reused -OutDirectory still holds the runs and trace of an earlier matrix; the comparison would read them too.
     $variantDirectory = Join-Path $OutDirectory $variant
     if (Test-Path -LiteralPath $variantDirectory) { Remove-Item -LiteralPath $variantDirectory -Recurse -Force }
     New-Item -ItemType Directory -Path $variantDirectory | Out-Null
 }
-$environment = Get-Environment $Solution $repo ([ordered]@{ name = $Name; runs = $Runs; fork = $copies.version; variants = ($Variants -join ', ')
-        evaluateAhead = $EvaluateAhead; evaluateAheadSolution = $EvaluateAheadSolution
+$environment = Get-Environment $Solution $repo ([ordered]@{ name = $Name; runs = $Runs; fork = $copies.version; variants = ($selected -join ', ')
+        evaluateAhead = $EvaluateAhead; evaluateAheadSolution = $EvaluateAheadSolution; evaluateAheadWorkers = (@($EvaluateAheadWorkers) -join ', ')
     })
 [IO.File]::WriteAllText((Join-Path $OutDirectory 'environment.json'), ($environment | ConvertTo-Json), (New-Object Text.UTF8Encoding($false)))
 
-$sides = @('original') + $Variants
+$sides = @('original') + $selected
 for ($round = 0; -not $RpcOnly -and $round -le $Runs; $round++) {
     $first = $round % $sides.Count
     $order = @($sides[$first..($sides.Count - 1)]) + @(if ($first -gt 0) { $sides[0..($first - 1)] })
@@ -162,7 +186,7 @@ for ($round = 0; -not $RpcOnly -and $round -le $Runs; $round++) {
 
         $prefix = if ($fork) { 'fork' } else { 'original' }
         $output = Join-Path $directory "$prefix-round$round.json"
-        $dll = if ($side -like 'fork-ab-gc*') { $gcDll } elseif ($fork) { $forkDll } else { $originalDll }
+        $dll = if ($fork -and $definitions[$side].gc) { $gcDll } elseif ($fork) { $forkDll } else { $originalDll }
         try { $exitCode = Invoke-Spike $dll @('observe', $Solution, $output, $Name) (Join-Path $directory "$prefix-round$round.out.txt") $fork }
         finally { Remove-Item Env:ROSLYN_BUILDHOST_TRACE_DIRECTORY -ErrorAction SilentlyContinue }
         if ($exitCode -ne 0 -or -not (Test-Path -LiteralPath $output)) { throw "$label failed (exit code $exitCode); see $output" }
@@ -171,11 +195,11 @@ for ($round = 0; -not $RpcOnly -and $round -le $Runs; $round++) {
 
 # These are separate correctness loads, after all timing rounds. Raw captures retain every field and array order.
 $rpcFailures = @()
-if ($RpcOnly -or @($Variants | Where-Object { $definitions[$_].rpc }).Count -gt 0) {
+if ($RpcOnly -or @($selected | Where-Object { $definitions[$_].rpc }).Count -gt 0) {
     $rpcOriginal = Join-Path $OutDirectory 'rpc-original.json'
-    foreach ($side in @('original', 'original-repeat') + $Variants) {
+    foreach ($side in @('original', 'original-repeat') + $selected) {
         $fork = $side -notlike 'original*'
-        $dll = if ($side -like 'fork-ab-gc*') { $gcDll } elseif ($fork) { $forkDll } else { $originalDll }
+        $dll = if ($fork -and $definitions[$side].gc) { $gcDll } elseif ($fork) { $forkDll } else { $originalDll }
         if ($fork) {
             $definition = $definitions[$side]
             Set-ForkOptimizations $definition.referencesFirst $definition.evaluateAhead $EvaluateAheadSolution $definition.sharedSdkCache
@@ -204,9 +228,9 @@ if ($RpcOnly) {
 }
 
 Write-Host ''
-& dotnet $originalDll matrix $OutDirectory @Variants
+& dotnet $originalDll matrix $OutDirectory @selected
 $equivalent = $LASTEXITCODE -eq 0
-foreach ($variant in $Variants | Where-Object { $definitions[$_].trace }) {
+foreach ($variant in $selected | Where-Object { $definitions[$_].trace }) {
     # As in the baseline: a solution outside this public repository may be private, so its reports name projects by
     # placeholders.
     $external = -not $Solution.StartsWith($repo + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)
