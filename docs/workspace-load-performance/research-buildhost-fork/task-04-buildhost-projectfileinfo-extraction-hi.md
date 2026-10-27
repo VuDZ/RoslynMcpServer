@@ -4,7 +4,8 @@
 - Статус: **accepted, 2026-10-27** — шаг 0 и кандидат C, включённый в сервере по умолчанию. Windows Release на
   `285c6a5`: main 1467/1467, AnalyzerLifecycle 13/13, сборка с 3 прежними предупреждениями. GC9 остаётся
   экспериментом стенда, в production не включён
-  ([приёмка](evidence/task-04-projectfileinfo-extraction.md#приёмка-2026-10-27)). История задачи:
+  ([приёмка](evidence/task-04-projectfileinfo-extraction.md#приёмка-2026-10-27)); на A + B + C закрыт как no-go в
+  [task-05](task-05-buildhost-tuning-med.md), 2026-10-28. История задачи:
   Принятый объём: разбивка extraction и повторные офисные данные; production extraction прежний.
   Поздний GetAllGlobs вызывает дополнительную evaluation; ранний Record отвергнут контрпримером.
   Новый профиль — server GC + ConserveMemory=9 только в опытной копии host. На домашней Roslyn.slnx
