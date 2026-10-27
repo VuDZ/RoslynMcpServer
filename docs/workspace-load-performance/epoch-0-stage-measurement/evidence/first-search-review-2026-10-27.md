@@ -123,7 +123,10 @@ task-15 — 3, task-16 — 7. Раундов ревью — 2 у каждой з
 - main (`Category!=AnalyzerLifecycle&Category!=RequiresWindows&Category!=RequiresPinnedSdk`) — **1426/0/0**;
 - `AnalyzerLifecycle` — **13/0/0** на `7de0982`; правки после раунда 2 не трогают путь lifecycle (текст
   предупреждения, тестовая поддержка кеша, скрипты), поэтому набор не повторялся;
-- self-check PowerShell 7 — PASS; Windows PowerShell 5.1 и Windows-прогон не выполнялись.
+- self-check PowerShell 7 — PASS.
+- Windows, владелец, `9f83832` (код приёмки и план task-05): Release build — успешно, 3 прежних предупреждения;
+  main (`Category!=AnalyzerLifecycle&Category!=RequiresPinnedSdk`) — **1480/1480**; `AnalyzerLifecycle` — **13/13**;
+  оба self-check в Windows PowerShell 5.1.26100 — PASS.
 
 ## Приёмка, 2026-10-27
 
