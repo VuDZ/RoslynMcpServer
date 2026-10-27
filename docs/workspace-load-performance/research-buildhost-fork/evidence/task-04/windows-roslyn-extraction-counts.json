@@ -1,0 +1,323 @@
+[
+  {
+    "round": 1,
+    "extracts": 434,
+    "paths": 318,
+    "multiTfmPaths": 114,
+    "extractionMs": 8784.759199999993,
+    "globMs": 8572.421800000002,
+    "emptyGlobResults": 136,
+    "emptyGlobMs": 1328.6271,
+    "repeatedPathGlobMs": 23.756999999999994,
+    "multiTfmGlobMs": 2188.752399999998,
+    "singleTfmGlobMs": 6383.6694000000025,
+    "examplesByGlobMs": [
+      {
+        "documents": 690,
+        "tfm": "netstandard2.0",
+        "imports": 198,
+        "globs": 14,
+        "includes": 14,
+        "excludes": 24,
+        "removes": 0,
+        "ms": 168.9282,
+        "variants": 1
+      },
+      {
+        "documents": 861,
+        "tfm": "net10.0",
+        "imports": 199,
+        "globs": 15,
+        "includes": 15,
+        "excludes": 24,
+        "removes": 0,
+        "ms": 155.8272,
+        "variants": 1
+      },
+      {
+        "documents": 912,
+        "tfm": "netstandard2.0",
+        "imports": 201,
+        "globs": 15,
+        "includes": 15,
+        "excludes": 24,
+        "removes": 0,
+        "ms": 142.9845,
+        "variants": 1
+      },
+      {
+        "documents": 877,
+        "tfm": "netstandard2.0",
+        "imports": 199,
+        "globs": 14,
+        "includes": 14,
+        "excludes": 24,
+        "removes": 0,
+        "ms": 132.9783,
+        "variants": 1
+      },
+      {
+        "documents": 872,
+        "tfm": "netstandard2.0",
+        "imports": 200,
+        "globs": 15,
+        "includes": 15,
+        "excludes": 24,
+        "removes": 0,
+        "ms": 121.0325,
+        "variants": 1
+      },
+      {
+        "documents": 874,
+        "tfm": "netstandard2.0",
+        "imports": 201,
+        "globs": 15,
+        "includes": 15,
+        "excludes": 24,
+        "removes": 0,
+        "ms": 109.8913,
+        "variants": 1
+      },
+      {
+        "documents": 186,
+        "tfm": "net10.0",
+        "imports": 128,
+        "globs": 7,
+        "includes": 7,
+        "excludes": 0,
+        "removes": 0,
+        "ms": 104.07,
+        "variants": 2
+      },
+      {
+        "documents": 873,
+        "tfm": "netstandard2.0",
+        "imports": 200,
+        "globs": 15,
+        "includes": 15,
+        "excludes": 24,
+        "removes": 0,
+        "ms": 100.1253,
+        "variants": 1
+      }
+    ],
+    "importRange": [
+      119.0,
+      215.0
+    ]
+  },
+  {
+    "round": 2,
+    "extracts": 434,
+    "paths": 318,
+    "multiTfmPaths": 114,
+    "extractionMs": 8486.527100000001,
+    "globMs": 8246.502700000001,
+    "emptyGlobResults": 136,
+    "emptyGlobMs": 1249.4670000000003,
+    "repeatedPathGlobMs": 30.519400000000008,
+    "multiTfmGlobMs": 2128.111099999999,
+    "singleTfmGlobMs": 6118.391599999999,
+    "examplesByGlobMs": [
+      {
+        "documents": 861,
+        "tfm": "net10.0",
+        "imports": 199,
+        "globs": 15,
+        "includes": 15,
+        "excludes": 24,
+        "removes": 0,
+        "ms": 155.0061,
+        "variants": 1
+      },
+      {
+        "documents": 912,
+        "tfm": "netstandard2.0",
+        "imports": 201,
+        "globs": 15,
+        "includes": 15,
+        "excludes": 24,
+        "removes": 0,
+        "ms": 135.1831,
+        "variants": 1
+      },
+      {
+        "documents": 872,
+        "tfm": "netstandard2.0",
+        "imports": 200,
+        "globs": 15,
+        "includes": 15,
+        "excludes": 24,
+        "removes": 0,
+        "ms": 128.9267,
+        "variants": 1
+      },
+      {
+        "documents": 186,
+        "tfm": "net10.0",
+        "imports": 128,
+        "globs": 7,
+        "includes": 7,
+        "excludes": 0,
+        "removes": 0,
+        "ms": 121.9412,
+        "variants": 2
+      },
+      {
+        "documents": 873,
+        "tfm": "netstandard2.0",
+        "imports": 200,
+        "globs": 15,
+        "includes": 15,
+        "excludes": 24,
+        "removes": 0,
+        "ms": 115.6518,
+        "variants": 1
+      },
+      {
+        "documents": 900,
+        "tfm": "netstandard2.0",
+        "imports": 201,
+        "globs": 15,
+        "includes": 15,
+        "excludes": 24,
+        "removes": 0,
+        "ms": 115.0831,
+        "variants": 1
+      },
+      {
+        "documents": 877,
+        "tfm": "netstandard2.0",
+        "imports": 199,
+        "globs": 14,
+        "includes": 14,
+        "excludes": 24,
+        "removes": 0,
+        "ms": 106.9589,
+        "variants": 1
+      },
+      {
+        "documents": 874,
+        "tfm": "netstandard2.0",
+        "imports": 201,
+        "globs": 15,
+        "includes": 15,
+        "excludes": 24,
+        "removes": 0,
+        "ms": 94.3699,
+        "variants": 1
+      }
+    ],
+    "importRange": [
+      119.0,
+      215.0
+    ]
+  },
+  {
+    "round": 3,
+    "extracts": 434,
+    "paths": 318,
+    "multiTfmPaths": 114,
+    "extractionMs": 8593.127599999993,
+    "globMs": 8389.422099999996,
+    "emptyGlobResults": 136,
+    "emptyGlobMs": 1275.7211999999997,
+    "repeatedPathGlobMs": 21.358600000000013,
+    "multiTfmGlobMs": 2142.9679999999994,
+    "singleTfmGlobMs": 6246.454099999998,
+    "examplesByGlobMs": [
+      {
+        "documents": 872,
+        "tfm": "netstandard2.0",
+        "imports": 200,
+        "globs": 15,
+        "includes": 15,
+        "excludes": 24,
+        "removes": 0,
+        "ms": 149.301,
+        "variants": 1
+      },
+      {
+        "documents": 912,
+        "tfm": "netstandard2.0",
+        "imports": 201,
+        "globs": 15,
+        "includes": 15,
+        "excludes": 24,
+        "removes": 0,
+        "ms": 129.7113,
+        "variants": 1
+      },
+      {
+        "documents": 874,
+        "tfm": "netstandard2.0",
+        "imports": 201,
+        "globs": 15,
+        "includes": 15,
+        "excludes": 24,
+        "removes": 0,
+        "ms": 124.9324,
+        "variants": 1
+      },
+      {
+        "documents": 877,
+        "tfm": "netstandard2.0",
+        "imports": 199,
+        "globs": 14,
+        "includes": 14,
+        "excludes": 24,
+        "removes": 0,
+        "ms": 117.1597,
+        "variants": 1
+      },
+      {
+        "documents": 861,
+        "tfm": "net10.0",
+        "imports": 199,
+        "globs": 15,
+        "includes": 15,
+        "excludes": 24,
+        "removes": 0,
+        "ms": 111.7259,
+        "variants": 1
+      },
+      {
+        "documents": 186,
+        "tfm": "net10.0",
+        "imports": 128,
+        "globs": 7,
+        "includes": 7,
+        "excludes": 0,
+        "removes": 0,
+        "ms": 110.6626,
+        "variants": 2
+      },
+      {
+        "documents": 873,
+        "tfm": "netstandard2.0",
+        "imports": 200,
+        "globs": 15,
+        "includes": 15,
+        "excludes": 24,
+        "removes": 0,
+        "ms": 104.9287,
+        "variants": 1
+      },
+      {
+        "documents": 900,
+        "tfm": "netstandard2.0",
+        "imports": 201,
+        "globs": 15,
+        "includes": 15,
+        "excludes": 24,
+        "removes": 0,
+        "ms": 100.1584,
+        "variants": 1
+      }
+    ],
+    "importRange": [
+      119.0,
+      215.0
+    ]
+  }
+]

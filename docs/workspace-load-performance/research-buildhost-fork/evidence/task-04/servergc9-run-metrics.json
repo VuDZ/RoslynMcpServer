@@ -1,0 +1,375 @@
+{
+  "environment": {
+    "solution": "Roslyn.slnx",
+    "solutionCommit": "013d3a758df6c137497ff37a93f0d4bed103853a",
+    "spikeCommit": "f52d7d3c7f8b",
+    "logicalProcessors": 16,
+    "os": "Microsoft Windows NT 10.0.26200.0",
+    "dotnetSdks": "9.0.314, 10.0.201, 10.0.300, 10.0.301, 10.0.401, 10.0.402",
+    "runs": 3,
+    "baseline": "A+B, no GC override",
+    "candidate": "A+B, server GC, ConserveMemory=9",
+    "applyForkEnvironmentOnBothSides": true,
+    "forkEnvironment": {
+      "ROSLYN_BUILDHOST_REFERENCES_FIRST": "1",
+      "ROSLYN_BUILDHOST_EVALUATE_AHEAD": "4",
+      "ROSLYN_BUILDHOST_EVALUATE_AHEAD_SOLUTION": "all"
+    },
+    "hostDllSha256": "57B42F966BF0D11C5145B286C1FA2F3A6B837ECDD87143F2E21DED62B7F5D10A",
+    "cpu": "AMD Ryzen 7 9800X3D 8-Core Processor (8 cores)",
+    "ramGb": 93.7
+  },
+  "reference": "original means A+B without GC override, fork means A+B plus server GC and ConserveMemory=9",
+  "postprocessing": "Configuration receipts were moved into configurations/ after a metadata filename collided with the observation glob. The original comparer was rerun unchanged and passed. The eight observations were not changed.",
+  "medians": {
+    "original": {
+      "wallMs": 39011.8075,
+      "firstQueryMs": 17424.6707,
+      "loadPlusFirstQueryMs": 56634.8006,
+      "hostPeakMb": 1518.30859375,
+      "clientPeakMb": 755.48828125,
+      "hostCpuMsLowerBound": 61156.25,
+      "clientCpuMs": 6593.75
+    },
+    "fork": {
+      "wallMs": 36669.4273,
+      "firstQueryMs": 17418.153,
+      "loadPlusFirstQueryMs": 54079.5634,
+      "hostPeakMb": 1725.49609375,
+      "clientPeakMb": 731.58984375,
+      "hostCpuMsLowerBound": 68828.125,
+      "clientCpuMs": 6781.25
+    }
+  },
+  "ratios": {
+    "wallMs": 0.9399571475892267,
+    "firstQueryMs": 0.9996259498895437,
+    "loadPlusFirstQueryMs": 0.9548822071777542,
+    "hostPeakMb": 1.1364594133583064,
+    "clientPeakMb": 0.9683668984772886,
+    "hostCpuMsLowerBound": 1.1254471129279509,
+    "clientCpuMs": 1.028436018957346
+  },
+  "rounds": [
+    {
+      "side": "original",
+      "round": 0,
+      "sha256": "e5a86da8aa74529dc596a74048582ededb4a6b9cbbfd70493998cda2c8b73214",
+      "wallMs": 35569.6673,
+      "firstQueryMs": 16328.7485,
+      "loadPlusFirstQueryMs": 51898.4158,
+      "firstQueryHash": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+      "hostPeakMb": 1515.5703125,
+      "clientPeakMb": 758.73046875,
+      "hostCpuMsLowerBound": 55718.75,
+      "clientCpuMs": 6390.625,
+      "remainingHosts": 0,
+      "unidentifiedHosts": 0,
+      "configuration": {
+        "side": "original",
+        "round": 0,
+        "applyForkEnvironment": true,
+        "forkEnvironment": {
+          "ROSLYN_BUILDHOST_REFERENCES_FIRST": "1",
+          "ROSLYN_BUILDHOST_EVALUATE_AHEAD": "4",
+          "ROSLYN_BUILDHOST_EVALUATE_AHEAD_SOLUTION": "all"
+        },
+        "runtimeconfig": {
+          "runtimeOptions": {
+            "tfm": "net8.0",
+            "rollForward": "Major",
+            "framework": {
+              "name": "Microsoft.NETCore.App",
+              "version": "8.0.0"
+            },
+            "configProperties": {
+              "System.Reflection.Metadata.MetadataUpdater.IsSupported": false,
+              "System.Runtime.Serialization.EnableUnsafeBinaryFormatterSerialization": false
+            }
+          }
+        }
+      }
+    },
+    {
+      "side": "original",
+      "round": 1,
+      "sha256": "b4e9ed87a36e8ea560732be6cd3476e9bf7b5211d526ceaf7ab44483133a3c97",
+      "wallMs": 38868.5179,
+      "firstQueryMs": 17255.6882,
+      "loadPlusFirstQueryMs": 56124.206099999996,
+      "firstQueryHash": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+      "hostPeakMb": 1512.43359375,
+      "clientPeakMb": 754.50390625,
+      "hostCpuMsLowerBound": 61156.25,
+      "clientCpuMs": 6593.75,
+      "remainingHosts": 0,
+      "unidentifiedHosts": 0,
+      "configuration": {
+        "side": "original",
+        "round": 1,
+        "applyForkEnvironment": true,
+        "forkEnvironment": {
+          "ROSLYN_BUILDHOST_REFERENCES_FIRST": "1",
+          "ROSLYN_BUILDHOST_EVALUATE_AHEAD": "4",
+          "ROSLYN_BUILDHOST_EVALUATE_AHEAD_SOLUTION": "all"
+        },
+        "runtimeconfig": {
+          "runtimeOptions": {
+            "tfm": "net8.0",
+            "rollForward": "Major",
+            "framework": {
+              "name": "Microsoft.NETCore.App",
+              "version": "8.0.0"
+            },
+            "configProperties": {
+              "System.Reflection.Metadata.MetadataUpdater.IsSupported": false,
+              "System.Runtime.Serialization.EnableUnsafeBinaryFormatterSerialization": false
+            }
+          }
+        }
+      }
+    },
+    {
+      "side": "original",
+      "round": 2,
+      "sha256": "c968af0f7ee317372989a3641cd8ecb82a40ec0e6ff9de3a1d896017db0f876d",
+      "wallMs": 39210.1299,
+      "firstQueryMs": 17424.6707,
+      "loadPlusFirstQueryMs": 56634.8006,
+      "firstQueryHash": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+      "hostPeakMb": 1522.73046875,
+      "clientPeakMb": 755.48828125,
+      "hostCpuMsLowerBound": 62390.625,
+      "clientCpuMs": 6687.5,
+      "remainingHosts": 0,
+      "unidentifiedHosts": 0,
+      "configuration": {
+        "side": "original",
+        "round": 2,
+        "applyForkEnvironment": true,
+        "forkEnvironment": {
+          "ROSLYN_BUILDHOST_REFERENCES_FIRST": "1",
+          "ROSLYN_BUILDHOST_EVALUATE_AHEAD": "4",
+          "ROSLYN_BUILDHOST_EVALUATE_AHEAD_SOLUTION": "all"
+        },
+        "runtimeconfig": {
+          "runtimeOptions": {
+            "tfm": "net8.0",
+            "rollForward": "Major",
+            "framework": {
+              "name": "Microsoft.NETCore.App",
+              "version": "8.0.0"
+            },
+            "configProperties": {
+              "System.Reflection.Metadata.MetadataUpdater.IsSupported": false,
+              "System.Runtime.Serialization.EnableUnsafeBinaryFormatterSerialization": false
+            }
+          }
+        }
+      }
+    },
+    {
+      "side": "original",
+      "round": 3,
+      "sha256": "07d47328daaab9f8cadd6cc189d98186ba72ebb63270e492c673798d12a93f4b",
+      "wallMs": 39011.8075,
+      "firstQueryMs": 17718.4699,
+      "loadPlusFirstQueryMs": 56730.277400000006,
+      "firstQueryHash": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+      "hostPeakMb": 1518.30859375,
+      "clientPeakMb": 760.40234375,
+      "hostCpuMsLowerBound": 61015.625,
+      "clientCpuMs": 6406.25,
+      "remainingHosts": 0,
+      "unidentifiedHosts": 0,
+      "configuration": {
+        "side": "original",
+        "round": 3,
+        "applyForkEnvironment": true,
+        "forkEnvironment": {
+          "ROSLYN_BUILDHOST_REFERENCES_FIRST": "1",
+          "ROSLYN_BUILDHOST_EVALUATE_AHEAD": "4",
+          "ROSLYN_BUILDHOST_EVALUATE_AHEAD_SOLUTION": "all"
+        },
+        "runtimeconfig": {
+          "runtimeOptions": {
+            "tfm": "net8.0",
+            "rollForward": "Major",
+            "framework": {
+              "name": "Microsoft.NETCore.App",
+              "version": "8.0.0"
+            },
+            "configProperties": {
+              "System.Reflection.Metadata.MetadataUpdater.IsSupported": false,
+              "System.Runtime.Serialization.EnableUnsafeBinaryFormatterSerialization": false
+            }
+          }
+        }
+      }
+    },
+    {
+      "side": "fork",
+      "round": 0,
+      "sha256": "b2124b5d042d6c57504e8fcc2dea8dbe249ce27a6bbc4ad96af9f5c199309263",
+      "wallMs": 32777.1595,
+      "firstQueryMs": 16546.435,
+      "loadPlusFirstQueryMs": 49323.59450000001,
+      "firstQueryHash": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+      "hostPeakMb": 1681.57421875,
+      "clientPeakMb": 755.69140625,
+      "hostCpuMsLowerBound": 60671.875,
+      "clientCpuMs": 6421.875,
+      "remainingHosts": 0,
+      "unidentifiedHosts": 0,
+      "configuration": {
+        "side": "fork",
+        "round": 0,
+        "applyForkEnvironment": true,
+        "forkEnvironment": {
+          "ROSLYN_BUILDHOST_REFERENCES_FIRST": "1",
+          "ROSLYN_BUILDHOST_EVALUATE_AHEAD": "4",
+          "ROSLYN_BUILDHOST_EVALUATE_AHEAD_SOLUTION": "all"
+        },
+        "runtimeconfig": {
+          "runtimeOptions": {
+            "tfm": "net8.0",
+            "rollForward": "Major",
+            "framework": {
+              "name": "Microsoft.NETCore.App",
+              "version": "8.0.0"
+            },
+            "configProperties": {
+              "System.Reflection.Metadata.MetadataUpdater.IsSupported": false,
+              "System.Runtime.Serialization.EnableUnsafeBinaryFormatterSerialization": false,
+              "System.GC.Server": true,
+              "System.GC.ConserveMemory": 9
+            }
+          }
+        }
+      }
+    },
+    {
+      "side": "fork",
+      "round": 1,
+      "sha256": "d1c778de993cc7cbba28e130ea011209fcc14901e0a0a779e1d03cbc53b56291",
+      "wallMs": 37106.8659,
+      "firstQueryMs": 17799.2205,
+      "loadPlusFirstQueryMs": 54906.0864,
+      "firstQueryHash": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+      "hostPeakMb": 1727.65625,
+      "clientPeakMb": 731.58984375,
+      "hostCpuMsLowerBound": 67359.375,
+      "clientCpuMs": 6781.25,
+      "remainingHosts": 0,
+      "unidentifiedHosts": 0,
+      "configuration": {
+        "side": "fork",
+        "round": 1,
+        "applyForkEnvironment": true,
+        "forkEnvironment": {
+          "ROSLYN_BUILDHOST_REFERENCES_FIRST": "1",
+          "ROSLYN_BUILDHOST_EVALUATE_AHEAD": "4",
+          "ROSLYN_BUILDHOST_EVALUATE_AHEAD_SOLUTION": "all"
+        },
+        "runtimeconfig": {
+          "runtimeOptions": {
+            "tfm": "net8.0",
+            "rollForward": "Major",
+            "framework": {
+              "name": "Microsoft.NETCore.App",
+              "version": "8.0.0"
+            },
+            "configProperties": {
+              "System.Reflection.Metadata.MetadataUpdater.IsSupported": false,
+              "System.Runtime.Serialization.EnableUnsafeBinaryFormatterSerialization": false,
+              "System.GC.Server": true,
+              "System.GC.ConserveMemory": 9
+            }
+          }
+        }
+      }
+    },
+    {
+      "side": "fork",
+      "round": 2,
+      "sha256": "557433dcc141da45e4f40783a413d861ec5ad947d7b364d3ab84a95346435906",
+      "wallMs": 36669.4273,
+      "firstQueryMs": 17410.1361,
+      "loadPlusFirstQueryMs": 54079.5634,
+      "firstQueryHash": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+      "hostPeakMb": 1725.49609375,
+      "clientPeakMb": 758.89453125,
+      "hostCpuMsLowerBound": 68828.125,
+      "clientCpuMs": 6968.75,
+      "remainingHosts": 0,
+      "unidentifiedHosts": 0,
+      "configuration": {
+        "side": "fork",
+        "round": 2,
+        "applyForkEnvironment": true,
+        "forkEnvironment": {
+          "ROSLYN_BUILDHOST_REFERENCES_FIRST": "1",
+          "ROSLYN_BUILDHOST_EVALUATE_AHEAD": "4",
+          "ROSLYN_BUILDHOST_EVALUATE_AHEAD_SOLUTION": "all"
+        },
+        "runtimeconfig": {
+          "runtimeOptions": {
+            "tfm": "net8.0",
+            "rollForward": "Major",
+            "framework": {
+              "name": "Microsoft.NETCore.App",
+              "version": "8.0.0"
+            },
+            "configProperties": {
+              "System.Reflection.Metadata.MetadataUpdater.IsSupported": false,
+              "System.Runtime.Serialization.EnableUnsafeBinaryFormatterSerialization": false,
+              "System.GC.Server": true,
+              "System.GC.ConserveMemory": 9
+            }
+          }
+        }
+      }
+    },
+    {
+      "side": "fork",
+      "round": 3,
+      "sha256": "12caf6b1eb42e9f1f80fb5cd9021005b0a5e2934922e4ab368648f7b927ef91f",
+      "wallMs": 36069.6256,
+      "firstQueryMs": 17418.153,
+      "loadPlusFirstQueryMs": 53487.7786,
+      "firstQueryHash": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+      "hostPeakMb": 1720.34375,
+      "clientPeakMb": 725.58203125,
+      "hostCpuMsLowerBound": 69406.25,
+      "clientCpuMs": 6546.875,
+      "remainingHosts": 0,
+      "unidentifiedHosts": 0,
+      "configuration": {
+        "side": "fork",
+        "round": 3,
+        "applyForkEnvironment": true,
+        "forkEnvironment": {
+          "ROSLYN_BUILDHOST_REFERENCES_FIRST": "1",
+          "ROSLYN_BUILDHOST_EVALUATE_AHEAD": "4",
+          "ROSLYN_BUILDHOST_EVALUATE_AHEAD_SOLUTION": "all"
+        },
+        "runtimeconfig": {
+          "runtimeOptions": {
+            "tfm": "net8.0",
+            "rollForward": "Major",
+            "framework": {
+              "name": "Microsoft.NETCore.App",
+              "version": "8.0.0"
+            },
+            "configProperties": {
+              "System.Reflection.Metadata.MetadataUpdater.IsSupported": false,
+              "System.Runtime.Serialization.EnableUnsafeBinaryFormatterSerialization": false,
+              "System.GC.Server": true,
+              "System.GC.ConserveMemory": 9
+            }
+          }
+        }
+      }
+    }
+  ]
+}

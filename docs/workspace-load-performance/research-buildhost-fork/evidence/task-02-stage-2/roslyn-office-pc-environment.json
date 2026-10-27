@@ -1,0 +1,17 @@
+{
+  "solution": "Roslyn.slnx",
+  "solutionCommit": "013d3a758df6c137497ff37a93f0d4bed103853a",
+  "spikeCommit": "d5d487cc1a90",
+  "logicalProcessors": 6,
+  "os": "Microsoft Windows NT 10.0.26200.0",
+  "dotnetSdks": "9.0.318, 10.0.301, 10.0.402",
+  "name": "NoSuchDeclarationName7d3f2a",
+  "runs": 3,
+  "fork": "5.9.0-fork+35d9211b841e7613c1d2f8f5af6d628ace696c4c",
+  "trace": true,
+  "referencesFirst": true,
+  "evaluateAhead": 4,
+  "evaluateAheadSolution": "all",
+  "cpu": "Intel(R) Core(TM) i5-9500 CPU @ 3.00GHz (6 cores)",
+  "ramGb": 63.8
+}

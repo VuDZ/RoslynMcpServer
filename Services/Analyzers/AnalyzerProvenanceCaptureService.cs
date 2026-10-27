@@ -200,7 +200,9 @@ public sealed class AnalyzerProvenanceCaptureService
 
         try
         {
+            var openStarted = _timeProvider.GetTimestamp();
             await OpenWorkspaceAsync(workspace, fullPath, binaryLogger, cancellationToken).ConfigureAwait(false);
+            var openDuration = _timeProvider.GetElapsedTime(openStarted);
 
             var binlogPaths = Directory
                 .EnumerateFiles(tempDirectory, BinlogSearchPattern, SearchOption.TopDirectoryOnly)
@@ -238,20 +240,82 @@ public sealed class AnalyzerProvenanceCaptureService
             }
 
             _logger.LogInformation(
-                "Analyzer provenance capture finished: Status={Status}, Files={FileCount}, Bytes={Bytes}, ReplayMs={ReplayMs:F1}, ProjectContexts={ProjectContexts}, AnalyzerItems={AnalyzerItems}, ConfirmedBindings={ConfirmedBindings}",
+                "Analyzer provenance capture finished: Status={Status}, Files={FileCount}, Bytes={Bytes}, ReplayMs={ReplayMs:F1}, ProjectContexts={ProjectContexts}, AnalyzerItems={AnalyzerItems}, ConfirmedBindings={ConfirmedBindings}, MaxFormatVersion={MaxFormatVersion}, FailureCodes={FailureCodes}",
                 snapshot.Status,
                 snapshot.Metrics.FileCount,
                 snapshot.Metrics.TotalBytes,
                 snapshot.Metrics.ReplayDuration.TotalMilliseconds,
                 snapshot.Metrics.ProjectContextCount,
                 snapshot.Metrics.AnalyzerItemCount,
-                snapshot.Metrics.ConfirmedBindingCount);
+                snapshot.Metrics.ConfirmedBindingCount,
+                replay.Timings.MaxFormatVersion,
+                string.Join(";", snapshot.FailureCodes));
+            _logger.LogInformation(
+                "workspace_load_designtime {Json:l}",
+                replay.Timings.ToJson(openDuration.TotalMilliseconds, replay.FailureCodes));
             return snapshot;
         }
         finally
         {
             await DeleteDirectoryWithRetryAsync(tempDirectory).ConfigureAwait(false);
         }
+    }
+
+    internal static AnalyzerProvenanceReplayResult ReplayAll(
+        IReadOnlyList<string> binlogPaths,
+        CancellationToken cancellationToken)
+    {
+        var timings = new DesignTimeBuildTimings();
+        if (binlogPaths.Count == 0)
+        {
+            return new AnalyzerProvenanceReplayResult(
+                AnalyzerProvenanceCaptureStatus.Failed,
+                [],
+                [],
+                ["missing_binlog"],
+                timings);
+        }
+
+        var contexts = ImmutableArray.CreateBuilder<AnalyzerProvenanceProjectContext>();
+        var items = ImmutableArray.CreateBuilder<CapturedAnalyzerProvenanceItem>();
+        var failures = ImmutableArray.CreateBuilder<string>();
+        var failedFiles = 0;
+        for (var index = 0; index < binlogPaths.Count; index++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var fileFailures = new List<string>();
+            int? formatVersion = null;
+            try
+            {
+                var replay = ReplayOne(binlogPaths[index], index, timings, fileFailures, out formatVersion, cancellationToken);
+                if (fileFailures.Count == 0)
+                {
+                    contexts.AddRange(replay.Contexts);
+                    items.AddRange(replay.Items);
+                }
+            }
+            catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
+            {
+                fileFailures.Add($"replay_failed:{index}:{ex.GetType().Name}");
+            }
+            finally
+            {
+                timings.RecordBinlog(index, formatVersion, fileFailures);
+            }
+            if (fileFailures.Count > 0)
+            {
+                failedFiles++;
+                failures.AddRange(fileFailures);
+            }
+        }
+
+        var status = failedFiles switch
+        {
+            0 => AnalyzerProvenanceCaptureStatus.Complete,
+            _ when failedFiles == binlogPaths.Count => AnalyzerProvenanceCaptureStatus.Failed,
+            _ => AnalyzerProvenanceCaptureStatus.Incomplete,
+        };
+        return new AnalyzerProvenanceReplayResult(status, contexts.ToImmutable(), items.ToImmutable(), failures.ToImmutable(), timings);
     }
 
     private static async Task OpenWorkspaceAsync(
@@ -288,7 +352,7 @@ public sealed class AnalyzerProvenanceCaptureService
         string fullPath,
         IReadOnlyDictionary<string, string> requestedGlobalProperties,
         Solution solution,
-        ReplayOutcome replay,
+        AnalyzerProvenanceReplayResult replay,
         int fileCount,
         long totalBytes,
         TimeSpan replayDuration)
@@ -346,46 +410,6 @@ public sealed class AnalyzerProvenanceCaptureService
             metrics);
     }
 
-    private static ReplayOutcome ReplayAll(
-        IReadOnlyList<string> binlogPaths,
-        CancellationToken cancellationToken)
-    {
-        if (binlogPaths.Count == 0)
-        {
-            return new ReplayOutcome(
-                AnalyzerProvenanceCaptureStatus.Failed,
-                [],
-                [],
-                ["missing_binlog"]);
-        }
-
-        var contexts = ImmutableArray.CreateBuilder<AnalyzerProvenanceProjectContext>();
-        var items = ImmutableArray.CreateBuilder<CapturedAnalyzerProvenanceItem>();
-        var failures = ImmutableArray.CreateBuilder<string>();
-        for (var index = 0; index < binlogPaths.Count; index++)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            try
-            {
-                var replay = ReplayOne(binlogPaths[index], index, cancellationToken);
-                contexts.AddRange(replay.Contexts);
-                items.AddRange(replay.Items);
-            }
-            catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
-            {
-                failures.Add($"replay_failed:{index}:{ex.GetType().Name}");
-            }
-        }
-
-        var status = failures.Count switch
-        {
-            0 => AnalyzerProvenanceCaptureStatus.Complete,
-            _ when failures.Count == binlogPaths.Count => AnalyzerProvenanceCaptureStatus.Failed,
-            _ => AnalyzerProvenanceCaptureStatus.Incomplete,
-        };
-        return new ReplayOutcome(status, contexts.ToImmutable(), items.ToImmutable(), failures.ToImmutable());
-    }
-
     private void ApplyFailureSeam(IReadOnlyList<string> binlogPaths)
     {
         var failureMode = (AnalyzerProvenanceCaptureFailureMode)Interlocked.Exchange(
@@ -427,11 +451,20 @@ public sealed class AnalyzerProvenanceCaptureService
     private static ReplayFileOutcome ReplayOne(
         string binlogPath,
         int binlogOrdinal,
+        DesignTimeBuildTimings timings,
+        ICollection<string> failures,
+        out int? formatVersion,
         CancellationToken cancellationToken)
     {
+        formatVersion = null;
         var contexts = new List<RawProjectContext>();
         var items = new List<RawAnalyzerItem>();
-        var replay = new BinaryLogReplayEventSource();
+        // BuildHost-net472 can use a newer VS MSBuild than the reader SDK (format 27 vs 26).
+        // Unknown records remain a file failure: incomplete provenance must never admit an overlay.
+        var replay = new BinaryLogReplayEventSource { AllowForwardCompatibility = true };
+        replay.RecoverableReadError += error => failures.Add(
+            $"replay_recoverable:{binlogOrdinal}:{error.ErrorType}:{error.RecordKind}");
+        replay.AnyEventRaised += (_, args) => timings.Observe(binlogOrdinal, args);
         replay.ProjectStarted += (_, args) =>
         {
             if (args.BuildEventContext is null || string.IsNullOrWhiteSpace(args.ProjectFile))
@@ -484,7 +517,17 @@ public sealed class AnalyzerProvenanceCaptureService
             FileShare.Read,
             bufferSize: 4096,
             FileOptions.SequentialScan);
-        replay.Replay(stream, cancellationToken);
+        try
+        {
+            replay.Replay(stream, cancellationToken);
+        }
+        finally
+        {
+            if (replay.FileFormatVersion > 0)
+            {
+                formatVersion = replay.FileFormatVersion;
+            }
+        }
         cancellationToken.ThrowIfCancellationRequested();
 
         var immutableContexts = contexts
@@ -860,12 +903,6 @@ public sealed class AnalyzerProvenanceCaptureService
     private sealed record ReplayFileOutcome(
         ImmutableArray<AnalyzerProvenanceProjectContext> Contexts,
         ImmutableArray<CapturedAnalyzerProvenanceItem> Items);
-
-    private sealed record ReplayOutcome(
-        AnalyzerProvenanceCaptureStatus Status,
-        ImmutableArray<AnalyzerProvenanceProjectContext> Contexts,
-        ImmutableArray<CapturedAnalyzerProvenanceItem> Items,
-        ImmutableArray<string> FailureCodes);
 
     private enum ProjectSelectionStatus
     {

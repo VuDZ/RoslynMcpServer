@@ -1,0 +1,15 @@
+{
+  "solution": "Roslyn.slnx",
+  "solutionCommit": "013d3a758df6c137497ff37a93f0d4bed103853a",
+  "spikeCommit": "dbe9e4b61482",
+  "logicalProcessors": 16,
+  "os": "Microsoft Windows NT 10.0.26200.0",
+  "dotnetSdks": "10.0.301",
+  "name": "CSharpCompilationOptions",
+  "runs": 3,
+  "fork": "5.9.0-fork+35d9211b841e7613c1d2f8f5af6d628ace696c4c",
+  "trace": false,
+  "referencesFirst": true,
+  "cpu": "AMD Ryzen 7 9800X3D 8-Core Processor (8 cores)",
+  "ramGb": 93.7
+}

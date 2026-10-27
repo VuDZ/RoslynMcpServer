@@ -8,6 +8,7 @@ using System.Text.Json;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.MSBuild;
 using RoslynMcpServer.Diagnostics;
+using RoslynMcpServer.Tests.Support;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -26,6 +27,7 @@ public sealed class DependencyRazorWitnessTests
     }
 
     [Fact]
+    [Trait("Category", TestCategories.RequiresPinnedSdk)]
     public async Task Scoped_css_changes_fresh_Razor_output_without_changing_selected_source_regions()
     {
         var fixture = new Fixture();
@@ -34,7 +36,7 @@ public sealed class DependencyRazorWitnessTests
         {
             await fixture.CreateAsync();
             await fixture.RunAsync("sdk-version", "--version");
-            Assert.Equal("10.0.300", File.ReadAllText(fixture.Artifact("sdk-version.stdout.txt")).Trim());
+            Assert.Equal(PinnedSdk.Version, File.ReadAllText(fixture.Artifact("sdk-version.stdout.txt")).Trim());
             await fixture.RunAsync("sdk-info", "--info");
             await fixture.RunAsync("sdk-list", "--list-sdks");
             await fixture.RunAsync("restore", "restore", fixture.ProjectPath, "--configfile", fixture.PathFor("NuGet.config"));
@@ -324,7 +326,7 @@ public sealed class DependencyRazorWitnessTests
 
         private static readonly SortedDictionary<string, string> _originalFiles = new(StringComparer.Ordinal)
         {
-            ["global.json"] = "{\"sdk\":{\"version\":\"10.0.300\",\"rollForward\":\"disable\"}}\n",
+            ["global.json"] = PinnedSdk.GlobalJson + "\n",
             ["NuGet.config"] = "<configuration><packageSources><clear /></packageSources></configuration>\n",
             ["App/App.csproj"] = """
                 <Project Sdk="Microsoft.NET.Sdk.Razor">

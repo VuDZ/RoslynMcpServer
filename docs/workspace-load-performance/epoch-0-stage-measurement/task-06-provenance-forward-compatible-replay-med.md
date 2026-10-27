@@ -5,7 +5,15 @@
 - Примерная сложность: 3/5; класс `med`.
 - Риск ошибки: средний — capture fail-closed; если recoverable read error посчитать успехом, `Complete` появится у неполного replay и разрешит opt-in overlay по неполным данным.
 - Необходимые способности: `семантика_roslyn_msbuild`, `проектирование_проверок`.
-- Статус: planned.
+- Статус: **implemented, automated validation accepted, 2026-10-22** — production replay исправлен
+  вместе с переходом поиска на source-only API. Реальные сохранённые два binlog PowerToys
+  (форматы до 27) читаются с `Complete`, 5729 contexts / 2188 analyzer items;
+  main CI 1426/0/0, SourceStructure 123, AnalyzerLifecycle 13/0/0 и end-to-end PASS.
+  Свежая полная загрузка PowerToys с opt-in overlay остаётся manual pending;
+  [отчёт и границы приёмки](evidence/task-06-provenance-forward-compatible-replay.md).
+- Закрытие, 2026-10-27: **accepted в объёме automated validation** (решение владельца). Ручная полная загрузка
+  PowerToys с opt-in overlay отменена: PowerToys исключён из корпуса замеров решением владельца
+  ([task-00 форка](../research-buildhost-fork/README.md#задачи)).
 - Depends on: —.
 
 Это production bugfix, найденный в [ревью task-05](evidence/task-05-profile-guided-partition.md#ревью-2026-10-10-claude-opus-55),
@@ -98,3 +106,13 @@ NotSupportedException: The log file format version is 27 with minimum required r
   входит в lifecycle. Известный SDK-specific сбой незакоммиченной работы
   workspace-load-cache называется поимённо и не выдаётся за зелёный прогон.
 - Отчёт — `evidence/task-06-provenance-forward-compatible-replay.md`.
+
+## Офисная проверка, 2026-10-22
+
+Сервер 1.5.9, пакет 22:15:22: во всех четырёх запусках Complete, failures=[].
+Binlog #0 format 26 / 2833 starts; binlog #1 format 27 / 49 starts.
+Получены 2882 contexts, 804 analyzer items, 285 confirmed bindings.
+Это дополнительное подтверждение исправления reader на содержательном втором
+файле. Свежий PowerToys load с opt-in overlay остаётся manual pending;
+офисная обычная загрузка не подменяет эту ручную проверку.
+[Подробности](evidence/task-06-provenance-forward-compatible-replay.md#офисная-проверка-159--2026-10-22).

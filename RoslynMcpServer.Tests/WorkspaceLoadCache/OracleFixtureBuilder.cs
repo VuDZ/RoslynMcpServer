@@ -580,7 +580,7 @@ internal static class OracleFixtureBuilder
     private const string WebSdk = "Microsoft.NET.Sdk.Web";
     private const string Net10Properties =
         "<PropertyGroup><TargetFramework>net10.0</TargetFramework><Nullable>enable</Nullable><LangVersion>14</LangVersion></PropertyGroup>";
-    private const string SdkPinJson = "{\"sdk\":{\"version\":\"10.0.300\",\"rollForward\":\"disable\"}}\n";
+    private const string SdkPinJson = PinnedSdk.GlobalJson + "\n";
     private const string ClearedFeedsConfig = "<configuration><packageSources><clear /></packageSources></configuration>\n";
     private const string EditorConfigPromotingCs0219 = "root = true\n[*.cs]\ndotnet_diagnostic.CS0219.severity = error\n";
     private const string WebProgramCs = "public static class Program { public static void Main() { } }\n";

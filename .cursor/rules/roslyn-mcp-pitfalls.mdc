@@ -5,6 +5,8 @@ alwaysApply: true
 
 # Known pitfalls (do not reintroduce)
 
+- **Newer BuildHost binlogs** — BuildHost-net472 uses Visual Studio MSBuild, which can write a newer format than the registered SDK reader. Replay with `AllowForwardCompatibility=true` and subscribe to `RecoverableReadError`. Any such error rejects the file's provenance; count failed files rather than error records. Format mismatch alone is not a failure. Per-binlog version, project starts and failures are in measurement reports.
+
 1. **Relative paths vs CWD** — Cursor often starts MCP with CWD = user home. Relative `filePath` without workspace resolve → wrong/missing files. Fix: `ResolvePathAgainstWorkspace`.
 
 2. **`search_code` without directory** — scanning from home hangs forever. Default to loaded workspace directory; default extension filter `.cs`; add scan timeout.

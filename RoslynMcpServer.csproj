@@ -14,13 +14,19 @@
     <PublishSelfContained>true</PublishSelfContained>
     <PublishSingleFile>false</PublishSingleFile>
     <PublishReadyToRun>true</PublishReadyToRun>
+    <!-- Server GC (with DATAS, the .NET 10 default) cut GC pauses of the first search on Roslyn.slnx
+         from 8 s to 2 s and load + first search by 18%, for 14-19% more working set
+         (docs/workspace-load-performance/epoch-0-stage-measurement/evidence/task-12-server-gc-first-search.md).
+         Workstation GC collected every 48 MB of gen0 and promoted the retained syntax trees each time.
+         DOTNET_gcServer=0 in the environment restores workstation GC without a rebuild. -->
+    <ServerGarbageCollection>true</ServerGarbageCollection>
     <!-- Set recommended package metadata -->
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageId>RoslynMcpServer</PackageId>
-    <Version>1.5.7</Version>
-    <AssemblyVersion>1.5.7.0</AssemblyVersion>
-    <FileVersion>1.5.7.0</FileVersion>
+    <Version>1.5.17</Version>
+    <AssemblyVersion>1.5.17.0</AssemblyVersion>
+    <FileVersion>1.5.17.0</FileVersion>
     <PackageTags>AI; MCP; server; stdio</PackageTags>
     <Description>An MCP server using the MCP C# SDK.</Description>
   </PropertyGroup>
@@ -60,6 +66,10 @@
     <None Remove="samples\**" />
     <Compile Remove="spikes\**" />
     <None Remove="spikes\**" />
+    <!-- Upstream forks build with their own projects and are not part of the host assembly. -->
+    <Compile Remove="forks\**" />
+    <None Remove="forks\**" />
+    <EmbeddedResource Remove="forks\**" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="ICSharpCode.Decompiler" Version="10.0.1.8346" />
@@ -84,6 +94,12 @@
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features" Version="5.9.0" />
     <PackageReference Include="Microsoft.CodeAnalysis.Features" Version="5.9.0" />
     <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" Version="5.9.0" />
+    <!-- Roslyn's persistent index storage. Workspaces 5.9.0 references SQLitePCLRaw.batteries_v2 2.3.5.0
+         (key df579d6b11135638) without a NuGet dependency on it; that is the SQLite3MC build, not
+         SQLitePCLRaw 2.x/3.x. Without it every server process rebuilt all indexes; with a warm cache the
+         first search on Roslyn.slnx took 0.52 and 0.22 of the cold time and a third of the memory (task-14).
+         Keep the version equal to Roslyn's reference: RoslynIndexStorageTests fails otherwise. -->
+    <PackageReference Include="SQLite3MC.PCLRaw.bundle" Version="2.3.5" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.8" />
     <PackageReference Include="ModelContextProtocol" Version="2.2.0" />
     <PackageReference Include="Serilog.Extensions.Hosting" Version="10.0.0" />
@@ -92,4 +108,10 @@
     <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.13" />
     <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
   </ItemGroup>
+  <!-- BuildHost-netcore is the fork from forks/roslyn-buildhost, not the package's host
+       (docs/workspace-load-performance/research-buildhost-fork/task-03-buildhost-fork-server-integration-hi.md).
+       A design-time build does nothing with it, so a copy of this project without forks/ still loads into a
+       workspace; a real build without it fails on the missing import. -->
+  <Import Project="forks\roslyn-buildhost\build\BuildHostFork.targets"
+          Condition="'$(DesignTimeBuild)' != 'true' or Exists('forks\roslyn-buildhost\build\BuildHostFork.targets')" />
 </Project>

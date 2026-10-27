@@ -467,7 +467,9 @@ public sealed class GitChangedFilesHelperTests
         var current = new DirectoryInfo(AppContext.BaseDirectory);
         while (current is not null)
         {
-            if (Directory.Exists(Path.Combine(current.FullName, ".git")))
+            // In a linked worktree .git is a file that points at the main repository.
+            var gitEntry = Path.Combine(current.FullName, ".git");
+            if (Directory.Exists(gitEntry) || File.Exists(gitEntry))
             {
                 return current.FullName;
             }

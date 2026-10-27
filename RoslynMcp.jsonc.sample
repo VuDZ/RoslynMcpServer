@@ -9,6 +9,13 @@
   // "target-framework": "net10.0",
   // "max-results": 50,
   // "preview": false,
+  // Background index prewarm after a load; ROSLYN_MCP_SEARCH_PREWARM=0 also turns it off.
+  // "search-prewarm": true,
+  // Faster loads in the server's BuildHost: references built first and evaluation ahead on worker threads;
+  // ROSLYN_MCP_BUILDHOST_OPTIMIZATIONS=0 also turns them off. 0 workers turns off only the evaluation ahead
+  // (ROSLYN_MCP_BUILDHOST_EVALUATE_AHEAD_WORKERS).
+  // "buildhost-optimizations": true,
+  // "buildhost-evaluate-ahead-workers": 4,
   // "ripgrep-path": "rg",
 
   // Drop-in plugins/<id>/ next to the server works without this key.

@@ -1,0 +1,13 @@
+{
+  "reason": "Invoke-ObserveRounds applies ForkVariables only on the side named fork. The original side ran the fork without A+B; the candidate ran A+B and GC. Excluded from GC-only thresholds and ratios.",
+  "directories": [
+    "task-04-servergc",
+    "task-04-servergc4",
+    "task-04-servergc9"
+  ],
+  "usableFromLastDirectory": [
+    "paired diagnostic traces: Invoke-Spike explicitly passed true on both sides",
+    "full RPC: both fork sides explicitly passed true; package controls false"
+  ],
+  "replacement": "task-04-servergc9-ab, explicit Invoke-Spike(..., true) for every side and per-round configuration receipts"
+}

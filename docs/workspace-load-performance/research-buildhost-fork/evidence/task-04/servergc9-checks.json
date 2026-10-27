@@ -1,0 +1,37 @@
+{
+  "rpcSelfChecks": 31,
+  "fixtureAssertions": 23,
+  "fixtureFullComparisons": 3,
+  "fixtureDirectory": "rpc-check-2cb3f6ed82b148149f64fd2c02d303d0",
+  "rpcFixtureLogSha256": "023d7af33a9d02ecdeb36994f9f4afbf671895cfdecf7580f8b0cd7d8df6c9e9",
+  "matrixFixture": "task-04-gc-fixture",
+  "matrixVariants": [
+    "fork-ab",
+    "fork-ab-gc",
+    "fork-ab-gc-trace"
+  ],
+  "matrixResult": "all variants equivalent; full RPC glob-set comparison passes including original control repeat",
+  "scenarios": "all checks passed, A+B+GC9; early cancel leaves one host on each side, runner cleans them up",
+  "failureRpc": {
+    "original": {
+      "sha256": "e25c4ce22a502fa2ac9c3d2e9e29fd7ea93577052bd5e2b74f822f99d3766622",
+      "projects": 9,
+      "infos": 10,
+      "empty": 3,
+      "diagnostics": 10
+    },
+    "gc": {
+      "sha256": "054857cd1c472c620709879925236eb7a8108875558a159d8ccb211450ee2960",
+      "projects": 9,
+      "infos": 10,
+      "empty": 3,
+      "diagnostics": 10
+    },
+    "comparison": "identical after sorting only glob Excludes/Removes; all other arrays ordered"
+  },
+  "windowsPowerShell51": {
+    "result": "passed, 23 fixture assertions and 3 full comparisons; 31 RPC self-checks and 19 existing comparer self-checks",
+    "fixtureDirectory": "rpc-check-a59531195b644c69a12b196e3610f028",
+    "logSha256": "25f4045b3cd64b80307e0054afbeca96f09c52941a136673c06c45c8469f91c4"
+  }
+}

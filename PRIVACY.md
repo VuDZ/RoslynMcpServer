@@ -17,6 +17,23 @@ a remote product-telemetry channel.
 MCP parameters are logged locally by default; see the Logs section in
 [README.md](README.md#logs).
 
+## Local index cache
+
+From 1.5.14 Roslyn keeps the syntax indexes of loaded solutions in a SQLite
+database on the local disk, as Visual Studio does, so a restarted server does not
+re-parse unchanged files. The cache lives under
+`%LOCALAPPDATA%\Microsoft\VisualStudio\Roslyn\Cache\` on Windows,
+`~/.local/share/Microsoft/VisualStudio/Roslyn/Cache/` on Linux (or `$XDG_DATA_HOME`)
+and `~/Library/Application Support/Microsoft/VisualStudio/Roslyn/Cache/` on macOS,
+in a folder named after the executable of the process and its path, with one
+subfolder per solution file. A server started as `dotnet RoslynMcpServer.dll` is
+named after `dotnet`, so every framework-dependent server version and every other
+Roslyn-based tool started through the same `dotnet` share that folder.
+It holds names and locations of declarations from your source code, never leaves
+the machine, and is not cleaned up automatically. Deleting the folder is safe; the
+next search rebuilds it. A workspace opened from a single project file without a
+solution has no cache.
+
 ## When network is used
 
 The process talks to the network only as a side effect of an explicit MCP tool

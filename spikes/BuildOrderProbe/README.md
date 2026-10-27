@@ -1,0 +1,137 @@
+# BuildOrderProbe — порядок сборок и evaluation наперёд (spike)
+
+## Общий кеш SDK resolution (`Invoke-SdkCacheProbe.ps1`, task-04)
+
+`sdk-cache SOLUTION OUTPUT_JSON isolated|project|solution [events]` загружает решение как host с A:
+references-first, корневая evaluation, design-time build, смена `TargetFramework` и возврат у multi-TFM проекта,
+затем первый `GetAllGlobs` с его поздней evaluation. Каждый шаг меряется отдельно. Режим задаёт контекст evaluation:
+
+- `isolated` — без контекста, как host 5.9.0;
+- `project` — один `SharedSDKCache` на проект;
+- `solution` — один `SharedSDKCache` на прогон.
+
+`SharedSDKCache` делит результаты и состояние SDK resolver, включая загруженные workload-манифесты, но не кеш
+файловой системы. С `events` слушатель событий MSBuild складывает время SDK resolution по видам шагов и по
+resolver. Такой прогон медленнее, его время с остальными не сравнивается.
+
+Отпечатки сравниваются для каждого шага: корневая и восстановленная evaluation, сборки, globs.
+`sdk-cache-compare DIR` пишет `summary.md` без путей и `mismatches-private.json`; при расхождении отпечатков
+команда завершается с кодом 1.
+
+```powershell
+pwsh spikes\BuildOrderProbe\Invoke-SdkCacheProbe.ps1 -Solution <путь>\Roslyn.slnx
+```
+
+Параметры: `-Rounds` (по умолчанию 3, плюс прогрев), `-OutDirectory`, `-SkipRestore`. Результаты — в
+`results\sdk-cache-<время>`. Контракт и выводы —
+[отчёт task-04](../../docs/workspace-load-performance/research-buildhost-fork/evidence/task-04-projectfileinfo-extraction.md#кандидат-c-общий-кеш-sdk-resolution--проба-2026-10-26).
+
+## Проверка `RecordEvaluatedItemElements` (task-04)
+
+`check-globs SOLUTION OUTPUT_JSON` выбирает SDK решения и на отдельной генерируемой фикстуре проверяет,
+что предварительная запись item elements меняет `GetAllGlobs`, если design-time build изменила вход условия
+`Exists`. Состав документов результата сборки у двух вариантов одинаковый, `Project.IsDirty` — false, но
+globs различаются. Команда завершается ошибкой, если контрпример перестал воспроизводиться; это проверка
+семантики API, а не замер производительности или сравнение полных RPC-ответов host.
+
+```powershell
+dotnet build spikes/BuildOrderProbe -c Release
+dotnet spikes/BuildOrderProbe/bin/Release/net10.0/BuildOrderProbe.dll check-globs <Roslyn.slnx> <output.json>
+```
+
+Контракт: [BuildHost/task-02](../../docs/workspace-load-performance/research-buildhost-fork/task-02-buildhost-optimization-spike-hi.md),
+шаг 0.
+
+Проба собирает проекты решения так, как это делает BuildHost 5.9.0: те же глобальные свойства, одна
+`ProjectCollection` без логгеров, та же evaluation (файл читается в память, `ProjectRootElement.Create` из
+`XmlReader`, `new Project` с настройками загрузки host), один `BuildManager`, design-time build целей `Compile`, `CoreCompile` и
+`DesignTimeMarkupCompilation`, для проекта с несколькими TFM — переключение `TargetFramework` у общего `Project`
+и возврат в конце. Порядки:
+
+- `client` — как клиент 5.9.0: проект собирается раньше, чем загружены проекты, на которые он ссылается;
+  design-time build, дошедшая до ещё не собранной ссылки, заставляет MSBuild оценить её заново;
+- `references-first` — ссылки собираются раньше проекта (часть A task-02);
+- `evaluate-ahead` — тот же порядок, и как только проект оценён, корневые evaluation его ссылок идут в
+  рабочих потоках, пока сборки выполняются по одной (часть B; опережение — один уровень);
+- `evaluate-ahead-paused` — как `evaluate-ahead`, но пока собирается проект с несколькими TFM, рабочие потоки не
+  начинают новых evaluation (начатые доходят до конца): на Roslyn.slnx стояли именно сборки таких проектов, в
+  которых host переоценивает проект на каждый TFM;
+- `evaluate-closure` — тот же порядок, и каждая законченная evaluation ставит в очередь evaluation своих
+  ссылок: рабочие потоки оценивают всё замыкание ссылок, сначала самые глубокие; поток сборок, дошедший до
+  проекта, чья evaluation не начиналась, оценивает его сам;
+- `evaluate-closure-preorder` — как `evaluate-closure`, но рабочий берёт первый не начатый проект в прямом порядке
+  DFS от записей решения по уже известным ссылкам, то есть тот, который поток сборок попросит первым;
+- `evaluate-solution-preorder` — как `evaluate-closure-preorder`, но все проекты решения ставятся в очередь с
+  начала прогона. Без этого рабочие узнают о записи решения, на которую никто не ссылается, только когда до неё
+  доходит поток сборок, и он оценивает такие записи сам. Host списка проектов решения не получает (клиент передаёт
+  только `SolutionDir`), поэтому вариант меряет, что дало бы это знание. С окном `-Windows` в очереди только
+  записи не дальше заданного числа после той, которую посещает поток сборок: так мог бы ставить их host, знающий
+  решение, после каждого запроса клиента.
+
+Каждый прогон — отдельный процесс; прогрев и `-Rounds` раундов, порядок трёх вариантов меняется от раунда к
+раунду. `compare` проверяет, что все прогоны собрали одно и то же: для каждого проекта и TFM — хеш результата,
+целевого пути и извлекаемых workspace items (аргументы компилятора, Compile, ReferencePath, ProjectReference,
+анализаторы, AdditionalFiles, editorconfig) в их порядке.
+
+```powershell
+pwsh spikes\BuildOrderProbe\Invoke-BuildOrderProbe.ps1 -Solution <путь>\Roslyn.slnx
+```
+
+Параметры: `-Rounds` (по умолчанию 3); `-Workers` — список числа потоков для `evaluate-ahead` и `evaluate-ahead-paused`, по умолчанию 4;
+`-ClosureWorkers` — для `evaluate-closure`, `evaluate-closure-preorder` и `evaluate-solution-preorder`, по умолчанию 1 и 2; каждое число — отдельный вариант;
+`-ClosureOrders` — какие из этих трёх порядков запускать, по умолчанию все; `-Windows` — окна для
+`evaluate-solution-preorder`, каждое — ещё один вариант, по умолчанию нет; `-ServerGc` —
+ещё `references-first` и `evaluate-closure` с наибольшим числом потоков под server GC; `-SkipRestore` для уже
+восстановленного решения.
+
+Кроме времени, `summary.md` показывает, как evaluation легли на часы прогона: какая доля их времени
+перекрывалась со сборками, сколько их шло одновременно в среднем и во сколько раз evaluation проекта дольше той
+же evaluation в `references-first` — отдельно для проектов с одним и с несколькими TFM; время, когда поток сборок
+не собирал (ждал evaluation или делал её сам), и сколько evaluation он сделал сам. Высокая одновременность при
+большом замедлении и без выигрыша значит, что evaluation ждут друг друга, а не идут рядом со сборками. Ещё в
+сводке паузы GC и число сборок мусора по поколениям за wall прогона и пик рабочего набора процесса.
+
+Решение с `global.json` требует закреплённого SDK, скрипт это
+проверяет. Результаты — в `spikes\BuildOrderProbe\results\probe-<время>`, эта папка не попадает в Git. Для
+разбора достаточно `summary.md` и `environment.json`: в них нет путей. JSON прогонов и
+`mismatches-private.json` содержат полные пути проектов.
+
+Пределы:
+- порядок обхода — записи решения и ProjectReference корневой evaluation в глубину; клиент берёт ссылки из
+  результата сборки по каждому TFM, поэтому обход — приближение клиентского порядка, одинаковое во всех
+  прогонах;
+- ссылка, которая появляется только в сборке или требует других глобальных свойств, в обходе не видна, и её
+  вложенная evaluation остаётся и в `references-first`;
+- это не форк и не клиент: RPC, извлечение `ProjectFileInfo` и работа клиента сюда не входят.
+
+До 2026-10-25 проба вызывала `ProjectCollection.LoadProject(path)`. Он держит блокировку записи коллекции на всё
+время evaluation, поэтому evaluation наперёд в одной коллекции шли строго по одной; у host такой блокировки нет.
+Результаты `evaluate-ahead` и `evaluate-closure`, снятые до этой даты (шаг 0 task-02), измеряли эту блокировку, а
+не host; порядки без рабочих потоков она не затрагивала, но шли с настройками загрузки MSBuild по умолчанию.
+
+## Масштабирование evaluation (`Invoke-EvaluationScaling.ps1`)
+
+Отвечает на вопрос, идут ли корневые evaluation одного решения в одном процессе параллельно без сборок рядом.
+Один прогон `references-first` даёт список проектов в порядке host; затем каждый вариант в свежем процессе
+оценивает этот список в выделенных потоках без `BuildManager`: 1 поток (эталон) и для каждого числа из `-Workers`
+(по умолчанию 2 и 4) — путь host в общей коллекции, путь host с коллекцией на поток и, для сравнения,
+`LoadProject` в общей коллекции. `summary.md`: ускорение к одному потоку, сколько evaluation шло одновременно и
+замедление evaluation, взвешенное по времени. Если замедление растёт вместе с одновременностью, evaluation ждут
+друг друга; если это уходит с коллекцией на поток — ждут они что-то в коллекции.
+
+```powershell
+pwsh spikes\BuildOrderProbe\Invoke-EvaluationScaling.ps1 -Solution <путь>\Roslyn.slnx -Trace
+```
+
+`-Trace` — ещё один прогон пути host в общей коллекции с наибольшим числом потоков под `dotnet-trace`
+(сэмплы стеков всех управляемых потоков, ожидающих тоже, и события ожидания блокировок): `trace-shared-w<N>.nettrace`
+и `.speedscope.json`. Нужен глобальный инструмент: `dotnet tool install --global dotnet-trace`. Результаты — в
+`results\scaling-<время>`; `summary.md` без путей, `paths-private.txt`, JSON прогонов и файлы трассы содержат пути
+проектов.
+
+Проверено на `RoslynMcpServer.sln`, Linux, 2 vCPU, 2026-10-25, прогрев и 2 раунда: путь host с 2 потоками ×1,21 к
+одному, `LoadProject` с 2 потоками ×0,81 (медленнее одного потока); в трассе прежнего пути один поток ждал внутри
+`ProjectCollection.LoadProject` 1,7 с из 1,8 с.
+
+Проверено на `RoslynMcpServer.sln`, Linux, 2 vCPU, 2026-10-25: 9 прогонов, результаты identical; вложенных
+evaluation 3 в `client` и 1 в двух других порядках. Время на такой машине шумит и о выигрыше не говорит.

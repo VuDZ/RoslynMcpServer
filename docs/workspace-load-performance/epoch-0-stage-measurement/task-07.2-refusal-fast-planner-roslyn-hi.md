@@ -8,6 +8,7 @@
 - Статус: implemented, 2026-10-10; 36 matrix runs и шесть дополнительных load processes завершены, no-go; независимое ревью round 2 ACCEPT для standalone реализации/evidence отрицательного эксперимента. Корректность Roslyn и универсальный детерминизм deadline-limited N8 не достигнуты; production/E1 не активированы. Формальная приёмка code/tests pending main CI (1362 passed / 1 прежний SDK-specific failed / 0 skipped), commit не создан; [validation](evidence/task-07.2-refusal-fast-planner-roslyn/validation.md).
 - Depends on: [task-07.1](task-07.1-core-first-equivalence-and-partition-hi.md).
 - Новый checkpoint, 2026-10-21: runtime не менялся; Release builds и main CI перед сохранением в Git прошли (1388 passed / 0 failed / 0 skipped). Исторический статус 2026-10-10 выше не переписывает no-go; [сохранение серии и validation](evidence/commit-2026-10-21.md). Продолжение — [planned task-07.3](task-07.3-evaluated-load-graph-hi.md).
+- Закрытие, 2026-10-27: **завершена, no-go принят** (решение владельца); ожидание main CI снято тем же checkpoint 2026-10-21, последний main — Windows 1467/1467 на `285c6a5`. Продолжение task-07.3 отменено как superseded исследованием форка BuildHost.
 - Модель, реализовавшая задачу: один сабагент Codex (GPT-6, модель сессии унаследована), включая все фиксы.
 - Модели, проводившие ревью: два независимых новых сабагента Codex (GPT-6); round 2 проверил runtime до замеров и итоговый evidence после серии.
 - Количество раундов ревью: 2; финальный ACCEPT, 2026-10-10.

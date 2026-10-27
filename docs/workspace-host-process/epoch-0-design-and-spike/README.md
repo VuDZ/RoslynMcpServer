@@ -6,6 +6,9 @@
 - Статус исполнения: **in progress; task-00 completed, 2026-10-26, docs-only;
   task-01–task-05 planned, код не начат**. Принятый scope task-00 — инвентаризация
   состояния и этапов инструментов; [результат и validation](evidence/task-00-state-inventory.md).
+- Актуализация task-00: **completed, 2026-10-28**; база main `4e5e9f9` / 1.5.17,
+  S01–S42 и прежние 54 tools; [влияние изменений и validation](evidence/task-00-impact-2026-10-28.md).
+  Task-01–task-05 planned, production host/proxy не реализован.
 - Зависимость начала эпохи: нет. Интеграционный task-02 использует
   [D/E0/task-01](../../workspace-load-performance/epoch-0-stage-measurement/task-01-load-stage-timings-med.md).
 - Результат при продолжении shared-режима: принятая владельцем архитектура и
@@ -28,7 +31,7 @@
 
 ## Задачи
 
-- [task-00 — Инвентаризация состояния процесса](task-00-process-state-inventory-med.md) — `med`, **completed, 2026-10-26, docs-only**; инвентаризация состояния и этапов 54 tools, [validation](evidence/task-00-state-inventory.md); Depends on: —
+- [task-00 — Инвентаризация состояния процесса](task-00-process-state-inventory-med.md) — `med`, **completed, 2026-10-26; актуализировано 2026-10-28, docs-only**; S01–S42 и этапы 54 tools, [исходный отчёт](evidence/task-00-state-inventory.md), [поправки и validation](evidence/task-00-impact-2026-10-28.md); Depends on: —
 - [task-01 — Архитектурное решение](task-01-architecture-decision-hi.md) — `hi`, **planned**; Depends on: [task-00](task-00-process-state-inventory-med.md), [task-03](task-03-pipe-relay-spike-med.md), [task-04](task-04-proxy-routing-and-recovery-spike-hi.md), [task-05](task-05-applicability-checks-med.md)
 - [task-02 — Интеграционный spike прокси и host](task-02-bridge-spike-hi.md) — `hi`, **planned**; Depends on: [task-01](task-01-architecture-decision-hi.md), [D/E0/task-01](../../workspace-load-performance/epoch-0-stage-measurement/task-01-load-stage-timings-med.md)
 - [task-03 — Spike транспорта и MCP-фасада](task-03-pipe-relay-spike-med.md) — `med`, **planned**; standalone spike, сервер не меняется; Depends on: —
@@ -118,6 +121,8 @@ multi-process проверки владения/падений; после desig
 - Сумма раундов независимого ревью задач: 0.
 - Исправленные замечания независимого ревью задач: 0.
 - Отчёты: [task-00 — инвентаризация и validation](evidence/task-00-state-inventory.md).
+  Актуализация 2026-10-28 — тот же исполнитель, 0 независимых раундов;
+  [влияние новой базы и validation](evidence/task-00-impact-2026-10-28.md).
 
 ## Приёмка реализации эпохи
 
