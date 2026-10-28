@@ -48,8 +48,9 @@ workspace теряется; возможность сохранить проце
 Server / Workstation GC. Синтетические 20 MCP (8 + 8 двух descriptor, 4 пустых)
 дали 2606,4 MiB private bytes; это не состав прежних 10–20 ГБ.
 В Codex app-server MCP и detached child находятся в Job с kill-on-close;
-breakaway запрещён, выход/crash app-server завершил всех. Desktop Reload и
-закрытие чата пока not-run. [Scope и первичные данные](epoch-0-design-and-spike/evidence/task-05-applicability.md).
+breakaway запрещён, выход/crash app-server завершил всех. Reload Window недоступен
+в production Codex; закрытие чата и выход/crash desktop пока not-run.
+[Scope и первичные данные](epoch-0-design-and-spike/evidence/task-05-applicability.md).
 
 Подтверждение на настоящих subagent Codex Desktop: два агента загрузили тот же
 workspace Release, завершились, а два отдельных MCP **1.5.16** остались живы

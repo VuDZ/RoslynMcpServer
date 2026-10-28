@@ -6,7 +6,8 @@
   `DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP` не спасаются. Breakaway возвращает
   Win32 error 5. Это отрицательный результат для такого способа автозапуска host.
 - Это измерение `mcpServerStatus/list`, выхода stdio app-server и crash app-server.
-  Закрытие desktop-чата и Reload окна **не проверены**; поведение на них не объявлено тем же.
+  Закрытие desktop-чата **не проверено**; Reload Window недоступен в production
+  меню Codex. Поведение на закрытии чата не объявлено тем же.
 - **Реальные сабагенты Codex Desktop воспроизвели удержание MCP:** два агента
   добавили два отдельных MCP, загрузили один workspace и завершились; оба MCP
   остались живы минимум 121 с после подтверждённого `completed`, суммарно
@@ -174,11 +175,20 @@ production-утечка или дефект Codex по одному этому �
 
 | Harness × ОС | Закрытие чата | Reload окна | Штатный выход UI | Crash UI |
 |---|---|---|---|---|
-| Codex Desktop × Windows | not-run | not-run | not-run | not-run |
+| Codex Desktop × Windows | not-run | unavailable (production menu) | not-run | not-run |
 | Cursor 3.27.12 × Windows | not-run | not-run | not-run | not-run |
 | Claude Code × Windows | unavailable | unavailable | unavailable | unavailable |
 | Codex / Cursor / Claude Code × WSL Linux | unavailable | unavailable | unavailable | unavailable |
 | Все три × macOS | unavailable | unavailable | unavailable | unavailable |
+
+**Уточнение доступности Reload, 2026-10-28.** По сообщению владельца пункта нет
+в меню. Read-only проверка установленного `app.asar`, модуль
+`.vite/build/main-BPBEjAxi.js`: `Reload Window` включается по `allowWindowReload`,
+а флаг включён только при build flavor, отличном от Prod.
+[Факты проверки](task-05-data/codex-reload-availability.json).
+Предложение автора выполнить Reload до этой проверки было ошибкой.
+Production Reload отмечен unavailable, не pending и не pass. Следующий ручной
+замер — штатный выход и повторный запуск; исходный снимок PID/workspace сохранён.
 
 Для Codex нет автоматизации UI: доступный
 [computer-use SKILL.md](C:/Users/VuDZ/.codex/plugins/cache/openai-bundled/computer-use/26.1021.31345/skills/computer-use/SKILL.md)
@@ -348,7 +358,7 @@ production. Для наглядности, если условно взять `p
 
 | Unknown | Причина | Получатель |
 |---|---|---|
-| Desktop close/reload/quit/crash | Ручной прогон не выполнен | Этот task-05 |
+| Desktop close/quit/crash; Reload других harness | Ручной прогон не выполнен; Reload Codex production недоступен | Этот task-05 |
 | MCP на чат/окно; обобщение subagent | Для subagent есть лишь n=2; чаты/окна не наблюдались | Этот task-05 |
 | Состав прежних 20+ MCP | Нет исторических per-PID memory снимков | Task-05 при повторении ситуации |
 | Автозапуск host вне Job | Стандартные detach/breakaway не проходят | Task-04 после решения владельца |
@@ -383,7 +393,7 @@ production. Для наглядности, если условно взять `p
 - AnalyzerLifecycle отдельно не запускался: production lifecycle и его тестовая
   конфигурация не менялись. Pinned-SDK категория исключена как в актуальном CI.
 - Markdown ссылки/anchors, отсутствие production diff, diff whitespace и состав
-  переносимого evidence: **PASS**, проверены 140 локальных ссылок/anchors.
+  переносимого evidence: **PASS**, проверены 141 локальных ссылок/anchors.
   Evidence self-check подтвердил 6 GC runs, 30 точек, 20 cohort PID,
   2 inventories и 7 lifecycle cases; JSON проверен на запрещённые поля.
   Desktop неизвестные выше

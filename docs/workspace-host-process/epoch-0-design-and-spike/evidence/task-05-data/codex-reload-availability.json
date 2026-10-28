@@ -1,0 +1,13 @@
+{
+  "method": "Read-only inspection of installed app.asar menu implementation; no UI automation",
+  "releaseCondition": "allowWindowReload is true only when buildFlavor is not Prod",
+  "observation": "User reports no Reload item in the installed app menu",
+  "conclusion": "Reload unavailable in production menu; not a passed lifecycle test",
+  "quitShortcutSource": "https://learn.chatgpt.com/docs/app/commands",
+  "date": "2026-10-28",
+  "inclusionFlag": "allowWindowReload",
+  "menuLabel": "Reload Window",
+  "module": ".vite/build/main-BPBEjAxi.js",
+  "installedPackage": "OpenAI.Codex_26.1021.3705.0_x64__2p2nqsd0c76g0",
+  "itemCondition": "Reload Window is included in the menu only when allowWindowReload is true"
+}

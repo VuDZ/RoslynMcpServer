@@ -6,10 +6,11 @@
 - Риск ошибки: средний — ложный вывод о жизни процессов под harness или о составе памяти направит выбор модели и объём task-04 не туда.
 - Необходимые способности: `проектирование_проверок`, `анализ_производительности`.
 - Статус: **in progress, 2026-10-28**; выполнены memory/GC/cohort замеры,
-  Windows/WSL controls и Codex app-server lifecycle. Desktop close/reload/quit/crash
+  Windows/WSL controls и Codex app-server lifecycle. Desktop close/quit/crash
   и количество MCP на чат/окно не проверены; задача целиком не принята.
   Два реальных subagent проверены: 1 → 3 MCP, оба новых живы минимум 121 с
   после `completed` агентов; подключённый сервер 1.5.16.
+  Reload Window в production Codex недоступен, это не pass; остальные harness не проверены.
   Принятого scope реализации/activation нет; production не менялся.
 - Depends on: —.
 - Модель, реализовавшая задачу: `gpt-6.1-sol` (Codex; ID по metadata harness).

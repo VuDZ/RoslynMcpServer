@@ -12,7 +12,8 @@
   Task-01–task-04 planned; task-05 in progress, production host/proxy не реализован.
   [Task-05: memory/GC, cohort и Codex app-server controls](evidence/task-05-applicability.md);
   два реальных subagent дали 1 → 3 MCP, живы ≥121 с после completed;
-  desktop lifecycle и число MCP на чат/окно not-run, задача целиком не принята.
+  desktop close/quit/crash и число MCP на чат/окно not-run; Reload production Codex
+  недоступен, задача целиком не принята.
 - Зависимость начала эпохи: нет. Интеграционный task-02 использует
   [D/E0/task-01](../../workspace-load-performance/epoch-0-stage-measurement/task-01-load-stage-timings-med.md).
 - Результат при продолжении shared-режима: принятая владельцем архитектура и
