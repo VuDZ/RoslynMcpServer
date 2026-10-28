@@ -1,0 +1,20 @@
+{
+  "platform": "Linux",
+  "ownerUid": 1000,
+  "otherUid": 65534,
+  "unixDomainSocketObserved": true,
+  "socketMode": "0o755",
+  "ownerBefore": {
+    "handshakeAccepted": true
+  },
+  "otherUser": {
+    "handshakeAccepted": false,
+    "exceptionType": "PermissionError",
+    "errno": 13
+  },
+  "ownerAfter": {
+    "handshakeAccepted": true
+  },
+  "status": "pass",
+  "ownedHostExited": true
+}

@@ -14,6 +14,9 @@ Task-05 **completed, 2026-10-28, в уточнённом владельцем и
 [данные и validation](epoch-0-design-and-spike/evidence/task-05-applicability.md),
 [изменение scope и проверка завершения](evidence/2026-10-28-task-05-scope.md).
 Политика MCP на чат/окно и UI-матрица клиентов в scope темы не входят.
+Task-03 **completed, 2026-10-28**: standalone SDK-фасад/локальный транспорт без
+Roslyn, обе модели host и две версии MCP на Windows/WSL; Release build и main
+suite 1432/1432, [результат и validation](epoch-0-design-and-spike/evidence/task-03-pipe-relay-spike.md).
 Происхождение: решение владельца H-003 из обсуждения workspace-state-cache, вариант C.
 Черновики H-003/варианта B находятся в отдельном рабочем контексте cache и не
 входят в эту ветку; для реализации C они не являются неявной зависимостью.
@@ -61,8 +64,8 @@ workspace Release, завершились, а два отдельных MCP **1.
 Это не закрытие desktop-чата или Reload и не восстановление состава прежних 20+ MCP.
 
 **Решение владельца: pending.** Ни отдельный host, ни модель ролей не выбраны
-по этому отчёту. Task-05 завершён в уточнённом scope; task-04 остаётся planned
-до task-03 и явного выбора проверяемых моделей; стандартный detached child не считается доказанным
+по этому отчёту. Task-05 и task-03 завершены в своих исследовательских scope;
+task-04 остаётся planned до явного выбора проверяемых моделей; стандартный detached child не считается доказанным
 способом пережить harness. Отложенный HTTP-вариант этим не возобновлён.
 
 ## Граница клиентского поведения, уточнение 2026-10-28
@@ -399,10 +402,11 @@ Fake load не доказывает корректность Roslyn/SDK/ОС: н
 модели и объём task-04.
 [E0/task-00](epoch-0-design-and-spike/task-00-process-state-inventory-med.md)
 завершён 2026-10-26: [инвентаризация и validation](epoch-0-design-and-spike/evidence/task-00-state-inventory.md).
-Независимо от выбора модели можно вести тему
-[D](../workspace-load-performance/README.md) и spike транспорта
-[E0/task-03](epoch-0-design-and-spike/task-03-pipe-relay-spike-med.md): MCP-фасад
-нужен и модели ролей, и отдельному host.
+[E0/task-03](epoch-0-design-and-spike/task-03-pipe-relay-spike-med.md) завершён:
+SDK-фасад и транспорт проверены для обеих моделей;
+[результат](epoch-0-design-and-spike/evidence/task-03-pipe-relay-spike.md).
+Следующий механизм spike — task-04 после выбора моделей владельцем.
+Тема [D](../workspace-load-performance/README.md) остаётся независимой.
 
 ## Связь с другими темами
 
@@ -450,10 +454,14 @@ Fake load не доказывает корректность Roslyn/SDK/ОС: н
   (1 major, 2 minor, 2 suggestion), все исправлены, в том числе утечка sanitized
   snapshot в коде (1.5.18); [результат](review-task-00-2026-10-28/result.md),
   [validation](evidence/2026-10-28-task-00-review-fixes.md). Остальные задачи —
-  не проверялись.
-- Приёмка реализации: —.
+  независимое ревью не проходили.
+- Task-03: **completed, 2026-10-28**, standalone SDK-фасад/транспорт без Roslyn,
+  Windows/WSL, обе модели host и две версии MCP. Исполнитель — Codex, точный ID
+  модели запуска недоступен; независимое ревью, раунды и исправления — `—`.
+  [Результат и validation](epoch-0-design-and-spike/evidence/task-03-pipe-relay-spike.md).
+- Приёмка реализации эпохи: —.
 - Обновление scope, TDD-подхода и выделение ветки: **выполнено, 2026-10-23**,
   только документация; `research/workspace-host-process` от `main` (`22b9924`);
   [validation](evidence/2026-10-23-plan-update.md). На ту дату все задачи E0 planned;
-  на 2026-10-26: task-00 completed docs-only, остальные planned; на 2026-10-28 task-05 completed в уточнённом scope (см. отчёт выше);
+  на 2026-10-26: task-00 completed docs-only, остальные planned; на 2026-10-28 task-05 completed в уточнённом scope и task-03 completed как standalone spike (см. отчёты выше);
   независимое ревью draft-плана завершено (см. выше); приёмка реализации не проводилась.

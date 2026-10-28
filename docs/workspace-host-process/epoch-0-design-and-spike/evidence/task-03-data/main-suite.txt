@@ -1,0 +1,10 @@
+## Filtered test run
+
+**Filter:** `Category!=AnalyzerLifecycle&Category!=RequiresPinnedSdk`
+**Match:** Caller-supplied VSTest filter
+
+## Filtered tests passed
+
+Total: **1432** · Passed: **1432** · Failed: **0**
+
+Matched tests: `RoslynMcpServer.Tests.Build.DotNetCliRunnerEnvironmentTests.Missing_processor_architecture_is_filled_only_on_Windows', 'RoslynMcpServer.Tests.Analyzers.InProcessAnalyzerAssemblyLoaderPathTests.Path_keys_ignore_case_only_on_Windows', 'RoslynMcpServer.Tests.Editing.ProjectRenameHelperTests.Slnx_backslash_project_path_is_updated', 'RoslynMcpServer.Tests.Editing.ProjectRenameHelperTests.Relative_ProjectReference_is_updated', 'RoslynMcpServer.Tests.Editing.ProjectRenameHelperTests.Old_style_csproj_is_explicitly_unsupported`

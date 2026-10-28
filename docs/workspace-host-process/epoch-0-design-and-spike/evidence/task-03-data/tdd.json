@@ -1,0 +1,36 @@
+{
+  "date": "2026-10-28",
+  "buildBeforeRed": "Release build via run_dotnet_build: succeeded",
+  "redCommand": "dotnet spikes/PipeRelay/bin/Release/net10.0/PipeRelay.dll verify all",
+  "redExitCode": 1,
+  "redImplementation": "Two independently hosted counters without forwarding; child processes owned by StdioClientTransport",
+  "redFailures": [
+    "Forwarding must use the same host counter; received independent counters.",
+    "Cancellation must reach the shared host, not remain in a separate proxy counter.",
+    "Host death must fail remote execution, not run the tool locally."
+  ],
+  "intermediateGreen": [
+    "PASS forwarding",
+    "PASS isolation",
+    "PASS disconnect"
+  ],
+  "environmentFailuresExcludedFromRed": [
+    "CurrentUserOnly access denied inside the restricted Windows sandbox; same-user control repeated outside sandbox",
+    "Preliminary WSL command quoting failure before the program started"
+  ],
+  "spikeRegressions": [
+    {
+      "id": "C03-01",
+      "before": "Client wait was cancelled while shared host still reported cancelled=0, active=1; packet observation showed cancellation reached frontend after explicit client notification",
+      "fix": "Map internal request id and explicitly await host notifications/cancelled delivery",
+      "regression": "SessionChecks.Cancellation: two clients reuse id 888/progress token same; exactly one host operation cancelled, other completes with 20 progress reports"
+    },
+    {
+      "id": "C03-02",
+      "before": "Unix owner handshake accepted, nobody denied, next owner connection reset",
+      "fix": "Create the next listening instance before serving a short-lived accepted connection",
+      "regression": "check_unix_access.py: owner UID 1000 -> nobody UID 65534 -> owner UID 1000; final native socket and cleanup assertions"
+    }
+  ],
+  "finalResults": "windows.json, linux.json, linux-access.json"
+}

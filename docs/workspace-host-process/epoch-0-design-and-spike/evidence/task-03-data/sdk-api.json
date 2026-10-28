@@ -1,0 +1,21 @@
+{
+  "baseCommit": "378159fac6f2a9605e246eb9eb8b21ce34593de4",
+  "package": "ModelContextProtocol 2.2.0",
+  "coreSha256": "b1752096ea9d2f38ba88e467f04aea43fb300d9a54d881c165f62b69028ee3ab",
+  "verification": "Roslyn MCP explore_assembly, decompile_type and get_decompiled_method_body against installed net10.0 DLL",
+  "signatures": [
+    "McpServer.Create(ITransport, McpServerOptions, ILoggerFactory?, IServiceProvider?)",
+    "StreamServerTransport(Stream inputStream, Stream outputStream, string? serverName, ILoggerFactory?)",
+    "StreamClientTransport(Stream serverInput, Stream serverOutput, ILoggerFactory?)",
+    "McpClient.CreateAsync(IClientTransport, McpClientOptions, ILoggerFactory?, CancellationToken)",
+    "McpServerTool.Create(Delegate, McpServerToolCreateOptions?)",
+    "McpSession.SendRequestAsync<TParams,TResult>(string, TParams, JsonSerializerOptions?, RequestId, CancellationToken)",
+    "McpSession.SendNotificationAsync<TParams>(string,TParams,JsonSerializerOptions?,CancellationToken)"
+  ],
+  "observations": [
+    "ToolCollection belongs to each frontend McpServer instance; SDK sends its list changes",
+    "2026-07-28 uses per-request metadata/server discovery and subscriptions/listen",
+    "Host connection uses an independent 2025-11-25 internal MCP session",
+    "Request/progress identifiers are mapped per call; cancellation delivery is explicitly awaited"
+  ]
+}
