@@ -2,6 +2,10 @@
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.5.18
+
+- `reset_workspace` frees the previous solution, and a fresh `load_workspace` no longer keeps it while it builds the new one. The cached search snapshot (the published solution without unresolved analyzer references) was keyed by the solution it came from and outlived the workspace, so the whole old graph stayed in memory until the next search.
+
 ### v1.5.17
 
 - Workspace loads are shorter: the server's `BuildHost-netcore` is now a fork of Roslyn 5.9.0's BuildHost (`forks/roslyn-buildhost`) that builds the projects a project references before it, so each project is evaluated once, and evaluates the solution's projects ahead on four worker threads while builds run one at a time. Measured against the unchanged BuildHost, with the same loaded workspace and diagnostics in the same order: an office solution loaded in 0.73 of the time, Roslyn.slnx in 0.82–0.84, with up to 9% more BuildHost memory. `ROSLYN_MCP_BUILDHOST_OPTIMIZATIONS=0` or `"buildhost-optimizations": false` in `RoslynMcp.jsonc` turns them off; `ROSLYN_MCP_BUILDHOST_EVALUATE_AHEAD_WORKERS` or `buildhost-evaluate-ahead-workers` sets the workers, `0` turns off only the evaluation ahead. The .NET Framework BuildHost is unchanged. `get_mcp_server_info` shows the setting in effect.
