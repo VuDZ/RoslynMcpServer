@@ -11,7 +11,8 @@ production-код темы не начат; task-00 completed 2026-10-26 в scop
 S01–S42, 54 tools; [влияние обновления и validation](epoch-0-design-and-spike/evidence/task-00-impact-2026-10-28.md).
 Task-05 **in progress, 2026-10-28**: изолированный probe, память/GC и группа 20 MCP
 на 1.5.18, Windows/WSL controls, настоящий Codex app-server. Desktop lifecycle и
-MCP на чат/окно/subagent ещё не проверены; принятого scope задачи нет;
+MCP на чат/окно ещё не проверены; принятого scope задачи нет;
+два настоящих subagent дали 1 → 3 MCP, новые живы ≥121 с после completed;
 [данные и validation](epoch-0-design-and-spike/evidence/task-05-applicability.md).
 Происхождение: решение владельца H-003 из обсуждения workspace-state-cache, вариант C.
 Черновики H-003/варианта B находятся в отдельном рабочем контексте cache и не
@@ -49,6 +50,12 @@ Server / Workstation GC. Синтетические 20 MCP (8 + 8 двух descr
 В Codex app-server MCP и detached child находятся в Job с kill-on-close;
 breakaway запрещён, выход/crash app-server завершил всех. Desktop Reload и
 закрытие чата пока not-run. [Scope и первичные данные](epoch-0-design-and-spike/evidence/task-05-applicability.md).
+
+Подтверждение на настоящих subagent Codex Desktop: два агента загрузили тот же
+workspace Release, завершились, а два отдельных MCP **1.5.16** остались живы
+минимум 121 с после подтверждённого completed, 435,5 MiB private bytes вместе.
+После замера они явно остановлены координатором; исходный worker сохранён.
+Это не закрытие desktop-чата или Reload и не восстановление состава прежних 20+ MCP.
 
 **Решение владельца: pending.** Ни отдельный host, ни модель ролей не выбраны
 по этому промежуточному отчёту. Task-04 остаётся planned до завершения требуемых
@@ -402,7 +409,7 @@ Fake load не доказывает корректность Roslyn/SDK/ОС: н
   граница маршрутизации; [отчёт и validation](evidence/2026-10-23-plan-revision.md).
   Независимое ревью дополнений не проводилось.
 - Task-05: **in progress, 2026-10-28**; исполнитель `gpt-6.1-sol` (Codex).
-  Замеры/controls выполнены, desktop lifecycle и счётчик MCP pending; независимое
+  Замеры/controls и n=2 реальных subagent выполнены; desktop lifecycle и MCP на чат/окно pending; независимое
   ревью —, раунды —, исправления —; [отчёт](epoch-0-design-and-spike/evidence/task-05-applicability.md).
 - Согласование дополнений: **выполнено, 2026-10-23**, только документация:
   применимость сценариев по моделям, исходный контроль без B, этапы build/test

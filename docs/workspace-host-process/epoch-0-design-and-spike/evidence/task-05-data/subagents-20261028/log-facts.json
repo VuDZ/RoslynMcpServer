@@ -1,0 +1,52 @@
+[
+  {
+    "session": "codex-fpcb",
+    "tools": [
+      {
+        "time": "2026-10-28 16:25:18.697 +03:00",
+        "name": "get_mcp_server_info",
+        "workspace": null,
+        "configuration": null
+      },
+      {
+        "time": "2026-10-28 16:25:22.324 +03:00",
+        "name": "load_workspace",
+        "workspace": "E:\\Devel\\RoslynMcpServer-workspace-host-process\\RoslynMcpServer.sln",
+        "configuration": "Release"
+      },
+      {
+        "time": "2026-10-28 16:25:34.408 +03:00",
+        "name": "get_mcp_server_info",
+        "workspace": null,
+        "configuration": null
+      }
+    ],
+    "threadSource": "subagent",
+    "projects": 5
+  },
+  {
+    "session": "codex-2bft",
+    "tools": [
+      {
+        "time": "2026-10-28 16:25:31.066 +03:00",
+        "name": "get_mcp_server_info",
+        "workspace": null,
+        "configuration": null
+      },
+      {
+        "time": "2026-10-28 16:25:35.789 +03:00",
+        "name": "load_workspace",
+        "workspace": "E:\\Devel\\RoslynMcpServer-workspace-host-process\\RoslynMcpServer.sln",
+        "configuration": "Release"
+      },
+      {
+        "time": "2026-10-28 16:25:48.559 +03:00",
+        "name": "get_mcp_server_info",
+        "workspace": null,
+        "configuration": null
+      }
+    ],
+    "threadSource": "subagent",
+    "projects": 5
+  }
+]

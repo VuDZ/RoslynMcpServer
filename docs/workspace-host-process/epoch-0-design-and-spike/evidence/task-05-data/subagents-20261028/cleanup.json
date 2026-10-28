@@ -1,0 +1,25 @@
+{
+  "utc": "2026-10-28T13:35:16.8729591+00:00",
+  "remainingCount": 1,
+  "cleanup": [
+    {
+      "exited": true,
+      "action": "explicit-cleanup-after-observation",
+      "pid": 59328
+    },
+    {
+      "exited": true,
+      "action": "explicit-cleanup-after-observation",
+      "pid": 59412
+    }
+  ],
+  "remainingProcesses": [
+    {
+      "version": "1.5.16.0",
+      "started": "2026-10-27T22:43:07.6503381Z",
+      "workingSet": 345030656,
+      "pid": 56052,
+      "privateBytes": 232259584
+    }
+  ]
+}

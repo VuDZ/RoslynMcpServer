@@ -1,0 +1,67 @@
+{
+  "date": "2026-10-28",
+  "repositoryBase": "723e6f3",
+  "os": "Windows 11 26200 x64",
+  "harness": "Codex Desktop 26.1021.3705.0 / codex-cli 0.164.0-alpha.11.1",
+  "actualMcpVersion": "1.5.16.0",
+  "productionSourceVersion": "1.5.18",
+  "method": "Two authorized collaboration.spawn_agent tasks; each called get_mcp_server_info, load_workspace Release, get_mcp_server_info; then slept 45 seconds and completed. Coordinator observed Get-Process counters every two seconds.",
+  "agents": [
+    {
+      "name": "mcp_lifetime_a",
+      "readyUtc": "2026-10-28T13:25:34Z",
+      "statusBeforePostWindow": "completed",
+      "projects": 5
+    },
+    {
+      "name": "mcp_lifetime_b",
+      "readyUtc": "2026-10-28T13:25:48Z",
+      "statusBeforePostWindow": "completed",
+      "projects": 5
+    }
+  ],
+  "workspace": "E:/Devel/RoslynMcpServer-workspace-host-process/RoslynMcpServer.sln",
+  "configuration": "Release",
+  "beforeCount": 1,
+  "duringCount": 3,
+  "postCount": 3,
+  "newPids": [
+    59328,
+    59412
+  ],
+  "activeSamples": 76,
+  "postSamples": 61,
+  "postWindowFirstUtc": "2026-10-28T13:28:58.8192639+00:00",
+  "postWindowLastUtc": "2026-10-28T13:31:00.1068926+00:00",
+  "postWindowSeconds": 121.287629,
+  "newProcessesAtLastSample": [
+    {
+      "pid": 59328,
+      "started": "2026-10-28T13:25:03.7776893Z",
+      "privateBytes": 232378368,
+      "workingSet": 312729600,
+      "cpuSeconds": 3.359375,
+      "path": "e:\\Devel\\RoslynMcpServer\\bin\\Release\\net10.0\\win-x64\\publish\\RoslynMcpServer.exe",
+      "version": "1.5.16.0"
+    },
+    {
+      "pid": 59412,
+      "started": "2026-10-28T13:25:26.4253898Z",
+      "privateBytes": 224231424,
+      "workingSet": 311046144,
+      "cpuSeconds": 3.125,
+      "path": "e:\\Devel\\RoslynMcpServer\\bin\\Release\\net10.0\\win-x64\\publish\\RoslynMcpServer.exe",
+      "version": "1.5.16.0"
+    }
+  ],
+  "newPrivateBytesTotal": 456609792,
+  "newWorkingSetTotal": 623775744,
+  "limits": [
+    "Agent completed status is not desktop chat closure or archive",
+    "Two agents only; no universal MCP count inferred",
+    "No child lifetime instrumentation in this real Roslyn observation",
+    "Actual configured server is 1.5.16, not the 1.5.18 memory control",
+    "Historical distribution of the original 20+ MCP remains unavailable"
+  ],
+  "cleanup": "Only the two new PIDs were explicitly stopped after measurement, with PID/start-time/path guards. Original worker preserved."
+}

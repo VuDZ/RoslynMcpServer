@@ -1,0 +1,15 @@
+{
+  "utc": "2026-10-28T13:24:26.7729486+00:00",
+  "processes": [
+    {
+      "version": "1.5.16.0",
+      "workingSet": 346189824,
+      "privateBytes": 233410560,
+      "started": "2026-10-28T01:43:07.6503381+03:00",
+      "path": "e:\\Devel\\RoslynMcpServer\\bin\\Release\\net10.0\\win-x64\\publish\\RoslynMcpServer.exe",
+      "pid": 56052
+    }
+  ],
+  "phase": "before-subagents",
+  "processCount": 1
+}

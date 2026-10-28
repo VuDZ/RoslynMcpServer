@@ -11,7 +11,8 @@
   S01–S42 и прежние 54 tools; [влияние изменений и validation](evidence/task-00-impact-2026-10-28.md).
   Task-01–task-04 planned; task-05 in progress, production host/proxy не реализован.
   [Task-05: memory/GC, cohort и Codex app-server controls](evidence/task-05-applicability.md);
-  desktop lifecycle и число MCP на чат/окно/subagent not-run, задача целиком не принята.
+  два реальных subagent дали 1 → 3 MCP, живы ≥121 с после completed;
+  desktop lifecycle и число MCP на чат/окно not-run, задача целиком не принята.
 - Зависимость начала эпохи: нет. Интеграционный task-02 использует
   [D/E0/task-01](../../workspace-load-performance/epoch-0-stage-measurement/task-01-load-stage-timings-med.md).
 - Результат при продолжении shared-режима: принятая владельцем архитектура и
@@ -39,7 +40,7 @@
 - [task-02 — Интеграционный spike прокси и host](task-02-bridge-spike-hi.md) — `hi`, **planned**; Depends on: [task-01](task-01-architecture-decision-hi.md), [D/E0/task-01](../../workspace-load-performance/epoch-0-stage-measurement/task-01-load-stage-timings-med.md)
 - [task-03 — Spike транспорта и MCP-фасада](task-03-pipe-relay-spike-med.md) — `med`, **planned**; standalone spike, сервер не меняется; Depends on: —
 - [task-04 — Spike переключения и восстановления](task-04-proxy-routing-and-recovery-spike-hi.md) — `hi`, **planned, добавлен 2026-10-23**; продолжение standalone spike, сервер не меняется; Depends on: [task-03](task-03-pipe-relay-spike-med.md), [task-05](task-05-applicability-checks-med.md) с решением владельца
-- [task-05 — Проверки применимости](task-05-applicability-checks-med.md) — `med`, **in progress, 2026-10-28**; изолированный probe, memory/GC/cohort и Codex app-server controls выполнены; desktop lifecycle и счётчик MCP not-run, [scope и validation](evidence/task-05-applicability.md); Depends on: —
+- [task-05 — Проверки применимости](task-05-applicability-checks-med.md) — `med`, **in progress, 2026-10-28**; probe, memory/GC/cohort, Codex app-server и два настоящих subagent проверены (1 → 3 MCP; новые живы ≥121 с после completed); desktop lifecycle и MCP на чат/окно not-run, [scope и validation](evidence/task-05-applicability.md); Depends on: —
 
 Task-05, task-00 и task-03 независимы; task-05 рекомендуется первым. После
 task-05 владелец решает, продолжать ли тему и какие модели проверять в task-04.
