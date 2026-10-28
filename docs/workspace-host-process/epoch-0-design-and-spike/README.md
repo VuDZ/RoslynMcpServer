@@ -140,6 +140,8 @@ MCP 2025-11-25 и 2026-07-28: по 10 cold/recovery повторов на вер
 Release build и main suite 1432/1432 прошли. Независимое ревью — отдельный
 Codex `/root/task04_research_review`, точный model ID недоступен; 2 раунда,
 4 исправления подтверждены; [result](../review-task-04-2026-10-28/result.md).
+Раунд 3 — `claude-opus-5-5`, 2026-10-28: 8 замечаний (2 major), 7 закрыты в документах,
+F-01/F-08 переданы task-01; [result](../review-task-04-round-3-2026-10-28/result.md).
 Следующий шаг — task-01; приёмка design/эпохи и production activation не объявлены.
 
 ## Статистика ревью задач
@@ -151,17 +153,18 @@ Codex `/root/task04_research_review`, точный model ID недоступен
   Task-03 и task-04 — Codex, точные model ID запусков недоступны.
 - Фактические рецензенты: task-00, task-03, task-05 — `claude-opus-5-5` (Claude Code),
   2026-10-28; task-03 и task-05 — одним совместным ревью.
-  Task-04 — отдельная сессия Codex `/root/task04_research_review`, точный model ID недоступен.
-- Сумма раундов независимого ревью задач: 5 (по одному на task-00, task-03, task-05; два на task-04).
-- Исправленные замечания независимого ревью задач: 18 (task-00 — 5; task-05 — 4,
-  F-01–F-04; task-03 — 5, F-05–F-09; task-04 — 4, F-01–F-04).
+  Task-04 — отдельная сессия Codex `/root/task04_research_review`, точный model ID недоступен (раунды 1–2);
+  раунд 3 — `claude-opus-5-5`, 2026-10-28.
+- Сумма раундов независимого ревью задач: 6 (по одному на task-00, task-03, task-05; три на task-04).
+- Исправленные замечания независимого ревью задач: 25 (task-00 — 5; task-05 — 4,
+  F-01–F-04; task-03 — 5, F-05–F-09; task-04 — 4, F-01–F-04 раундов 1–2, и 7 раунда 3).
 - Отчёты: [task-00 — инвентаризация и validation](evidence/task-00-state-inventory.md).
   Актуализация 2026-10-28 — тот же исполнитель;
   [влияние новой базы и validation](evidence/task-00-impact-2026-10-28.md).
   [Ревью task-00](../review-task-00-2026-10-28/result.md),
   [validation исправлений](../evidence/2026-10-28-task-00-review-fixes.md).
   [Ревью task-03 и task-05](../review-task-03-05-2026-10-28/result.md), [validation исправлений](../evidence/2026-10-28-task-03-05-review-fixes.md).
-  [Task-04: результат и validation](evidence/task-04-routing-and-recovery-spike.md), [ревью](../review-task-04-2026-10-28/result.md).
+  [Task-04: результат и validation](evidence/task-04-routing-and-recovery-spike.md), [ревью](../review-task-04-2026-10-28/result.md), [ревью раунда 3](../review-task-04-round-3-2026-10-28/result.md), [validation исправлений](../evidence/2026-10-28-task-04-review-fixes.md).
 
 ## Приёмка реализации эпохи
 

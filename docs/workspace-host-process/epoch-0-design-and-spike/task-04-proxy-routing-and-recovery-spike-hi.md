@@ -8,10 +8,10 @@
 - Статус: completed, 2026-10-28; принят standalone spike выделенного host без Roslyn на Windows/WSL, две версии MCP; [результат, ревью и validation](evidence/task-04-routing-and-recovery-spike.md).
 - Depends on: [task-03](task-03-pipe-relay-spike-med.md), [task-05](task-05-applicability-checks-med.md) с решением владельца о проверяемых моделях.
 - Модель, реализовавшая задачу: Codex; точный model ID запуска недоступен.
-- Модели, проводившие ревью: Codex, отдельная сессия `/root/task04_research_review`; точный model ID недоступен.
-- Количество раундов ревью: 2.
-- Количество исправлений после ревью: 4, подтверждены повторным ревью.
-- Отчёт о реализации, ревью и validation: [результат](evidence/task-04-routing-and-recovery-spike.md), [независимое ревью](../review-task-04-2026-10-28/result.md), [финальная validation](evidence/task-04-data/validation-final.json).
+- Модели, проводившие ревью: раунды 1–2 — Codex, отдельная сессия `/root/task04_research_review`, точный model ID недоступен; раунд 3 — `claude-opus-5-5` (Claude Code), 2026-10-28.
+- Количество раундов ревью: 3.
+- Количество исправлений после ревью: 11 — 4 в раундах 1–2 (подтверждены повторным ревью) и 7 в раунде 3, только документы; F-07 раунда 3 не применялось.
+- Отчёт о реализации, ревью и validation: [результат](evidence/task-04-routing-and-recovery-spike.md), [независимое ревью, раунды 1–2](../review-task-04-2026-10-28/result.md), [ревью, раунд 3](../review-task-04-round-3-2026-10-28/result.md), [исправления раунда 3](../evidence/2026-10-28-task-04-review-fixes.md), [финальная validation](evidence/task-04-data/validation-final.json).
 
 ## Цель
 

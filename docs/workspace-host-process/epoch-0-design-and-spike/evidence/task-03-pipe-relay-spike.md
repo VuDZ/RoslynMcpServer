@@ -222,12 +222,12 @@ nobody denied, следующий owner получил connection reset. При�
 
 | Вопрос | Почему не решён | Получатель |
 |---|---|---|
-| Автозапуск, владение ключом, handoff, поколения при recovery | Здесь fixed host, роль задаёт runner | Task-04 |
-| Удержание host после EOF / действия harness | Транспортный spike не определяет lifecycle policy; ограничения task-05 сохранены | Task-04 / task-01 |
+| Автозапуск, владение ключом, handoff, поколения при recovery | Здесь fixed host, роль задаёт runner | Task-04 — для выделенного host проверено ([результат](task-04-routing-and-recovery-spike.md)); handoff отложен вместе с моделью ролей |
+| Удержание host после EOF / действия harness | Транспортный spike не определяет lifecycle policy; ограничения task-05 сохранены | Task-04 — host выходит сам после ухода всех proxy ([результат](task-04-routing-and-recovery-spike.md)); политика — task-01 |
 | Полная production identity, plugins и размещение этапов tools | Проверены только три fake-инструмента и build identity spike | Task-01 по task-00 |
-| Где теряется fire-and-forget отмена SDK (C03-01) | SDK шлёт cancel без ожидания; потеря не трассирована | Task-04 |
-| Путь Unix socket от `TMPDIR` и лимит его длины (ревью F-07) | `PipeStream.GetPipePath` = `Path.GetTempPath()` + `CoreFxPipe_` + имя; разный `TMPDIR` разводит процессы, путь ≤ 108 байт на Linux / 104 на macOS; абсолютное имя поддерживается | Task-04: канал и lock от одного каталога пользователя, не зависящего от `TMPDIR` |
-| Проверка peer UID `CurrentUserOnly` на Linux (ревью F-06) | Отказ получен правами файла сокета | Task-04: сокет `0777` или umask 0, либо каталог `0700` |
+| Где теряется fire-and-forget отмена SDK (C03-01) | SDK шлёт cancel без ожидания; в task-04 автоматическая отмена до host не дошла ни разу (C04-04), место потери не трассировано | Task-01: явная доставка отмены с ожиданием |
+| Путь Unix socket от `TMPDIR` и лимит его длины (ревью F-07) | `PipeStream.GetPipePath` = `Path.GetTempPath()` + `CoreFxPipe_` + имя; разный `TMPDIR` разводит процессы, путь ≤ 108 байт на Linux / 104 на macOS; абсолютное имя поддерживается | Task-04 — закрыто: канал и lock под одним явным root, `TMPDIR` не участвует ([результат](task-04-routing-and-recovery-spike.md)); выбор root — task-01 |
+| Проверка peer UID `CurrentUserOnly` на Linux (ревью F-06) | Отказ получен правами файла сокета | Task-04 — закрыто: при сокете `0777` чужой UID отвергнут peer-проверкой ([результат](task-04-routing-and-recovery-spike.md)) |
 | Реальные Roslyn RAM, свежесть, analyzer lifecycle, нагрузка | Roslyn отсутствует | Task-02 после design |
 | macOS / реальный UI-harness | Среда macOS отсутствует; обязательный контроль — SDK-клиент | Непроверено; не pass |
 

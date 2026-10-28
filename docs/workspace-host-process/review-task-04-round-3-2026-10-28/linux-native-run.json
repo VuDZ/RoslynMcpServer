@@ -1,0 +1,357 @@
+{
+ "reviewer": "claude-opus-5-5",
+ "date": "2026-10-28",
+ "commit": "33b1d8d",
+ "command": "dotnet spikes/PipeRelay/bin/Release/net10.0/PipeRelay.dll routing-checks all",
+ "os": "Ubuntu 26.04.1 LTS",
+ "runtime": "10.0.13",
+ "identity": "5F6F99DFA5C268F4CFCE9F98C217B6F31C9933E682083BFC14F22257C6D1882C",
+ "records": 32,
+ "exitCode": 0,
+ "error": null,
+ "events": {
+  "owner": 76,
+  "initialization": 76,
+  "load-start": 72,
+  "load-failure": 4,
+  "connected": 1527,
+  "disconnected": 1321,
+  "connection-error": 753,
+  "cancel-received": 8,
+  "lease-rejected": 2,
+  "fatal": 0
+ },
+ "coldRecoveryConnectedPerGeneration": [
+  {
+   "protocol": "2025-11-25",
+   "round": 0,
+   "connectedPerGeneration": [
+    56,
+    20
+   ]
+  },
+  {
+   "protocol": "2025-11-25",
+   "round": 1,
+   "connectedPerGeneration": [
+    37,
+    28
+   ]
+  },
+  {
+   "protocol": "2025-11-25",
+   "round": 2,
+   "connectedPerGeneration": [
+    50,
+    25
+   ]
+  },
+  {
+   "protocol": "2025-11-25",
+   "round": 3,
+   "connectedPerGeneration": [
+    40,
+    29
+   ]
+  },
+  {
+   "protocol": "2025-11-25",
+   "round": 4,
+   "connectedPerGeneration": [
+    39,
+    27
+   ]
+  },
+  {
+   "protocol": "2025-11-25",
+   "round": 5,
+   "connectedPerGeneration": [
+    33,
+    21
+   ]
+  },
+  {
+   "protocol": "2025-11-25",
+   "round": 6,
+   "connectedPerGeneration": [
+    31,
+    30
+   ]
+  },
+  {
+   "protocol": "2025-11-25",
+   "round": 7,
+   "connectedPerGeneration": [
+    39,
+    37
+   ]
+  },
+  {
+   "protocol": "2025-11-25",
+   "round": 8,
+   "connectedPerGeneration": [
+    40,
+    24
+   ]
+  },
+  {
+   "protocol": "2025-11-25",
+   "round": 9,
+   "connectedPerGeneration": [
+    37,
+    22
+   ]
+  },
+  {
+   "protocol": "2026-07-28",
+   "round": 0,
+   "connectedPerGeneration": [
+    38,
+    22
+   ]
+  },
+  {
+   "protocol": "2026-07-28",
+   "round": 1,
+   "connectedPerGeneration": [
+    37,
+    23
+   ]
+  },
+  {
+   "protocol": "2026-07-28",
+   "round": 2,
+   "connectedPerGeneration": [
+    37,
+    21
+   ]
+  },
+  {
+   "protocol": "2026-07-28",
+   "round": 3,
+   "connectedPerGeneration": [
+    37,
+    21
+   ]
+  },
+  {
+   "protocol": "2026-07-28",
+   "round": 4,
+   "connectedPerGeneration": [
+    39,
+    20
+   ]
+  },
+  {
+   "protocol": "2026-07-28",
+   "round": 5,
+   "connectedPerGeneration": [
+    37,
+    29
+   ]
+  },
+  {
+   "protocol": "2026-07-28",
+   "round": 6,
+   "connectedPerGeneration": [
+    37,
+    30
+   ]
+  },
+  {
+   "protocol": "2026-07-28",
+   "round": 7,
+   "connectedPerGeneration": [
+    44,
+    29
+   ]
+  },
+  {
+   "protocol": "2026-07-28",
+   "round": 8,
+   "connectedPerGeneration": [
+    31,
+    20
+   ]
+  },
+  {
+   "protocol": "2026-07-28",
+   "round": 9,
+   "connectedPerGeneration": [
+    34,
+    29
+   ]
+  }
+ ],
+ "authorRawConnectedPerGeneration": {
+  "linux": [
+   [
+    19,
+    10
+   ],
+   [
+    19,
+    10
+   ],
+   [
+    19,
+    10
+   ],
+   [
+    19,
+    10
+   ],
+   [
+    19,
+    19
+   ],
+   [
+    19,
+    19
+   ],
+   [
+    19,
+    10
+   ],
+   [
+    19,
+    10
+   ],
+   [
+    19,
+    10
+   ],
+   [
+    19,
+    10
+   ],
+   [
+    19,
+    10
+   ],
+   [
+    19,
+    10
+   ],
+   [
+    16,
+    10
+   ],
+   [
+    19,
+    10
+   ],
+   [
+    19,
+    19
+   ],
+   [
+    19,
+    19
+   ],
+   [
+    19,
+    10
+   ],
+   [
+    19,
+    19
+   ],
+   [
+    19,
+    19
+   ],
+   [
+    20,
+    11
+   ]
+  ],
+  "windows": [
+   [
+    17,
+    10
+   ],
+   [
+    18,
+    10
+   ],
+   [
+    14,
+    10
+   ],
+   [
+    18,
+    10
+   ],
+   [
+    16,
+    10
+   ],
+   [
+    17,
+    10
+   ],
+   [
+    17,
+    10
+   ],
+   [
+    17,
+    10
+   ],
+   [
+    17,
+    10
+   ],
+   [
+    17,
+    10
+   ],
+   [
+    17,
+    10
+   ],
+   [
+    17,
+    10
+   ],
+   [
+    18,
+    10
+   ],
+   [
+    10,
+    10
+   ],
+   [
+    18,
+    10
+   ],
+   [
+    18,
+    10
+   ],
+   [
+    18,
+    10
+   ],
+   [
+    18,
+    10
+   ],
+   [
+    19,
+    10
+   ],
+   [
+    18,
+    10
+   ]
+  ]
+ },
+ "fixtureRootsLeftInTmp": {
+  "count": 32,
+  "sizeMiB": 144,
+  "note": "removed by reviewer after the run"
+ }
+}

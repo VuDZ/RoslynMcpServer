@@ -1,0 +1,11 @@
+# routing-checks probe, Linux native (Ubuntu 26.04.1, .NET 10.0.13), commit 33b1d8d + review-probe.patch, 2026-10-28
+PROBE inflight 2025-11-25: A slow(1s) answered before B load released=False; waited 6012 ms; answered after 6214 ms; isError=
+PROBE recovery-after-kill 2025-11-25 attempt 1: isError=True Host unavailable; request was not retried. Outcome may be unknown.
+PROBE recovery-after-kill 2025-11-25 attempt 2: isError= {"descriptor":"K","value":{"count":1,"hostPid":667571,"generation":"245b1fb5-b7ca-41cf-97ee-65ddcebb
+PROBE recovery-after-kill 2025-11-25 attempt 3: isError= {"descriptor":"K","value":{"count":2,"hostPid":667571,"generation":"245b1fb5-b7ca-41cf-97ee-65ddcebb
+PROBE forward-errors: System.IO.IOException: Shared startup cooldown; make a new explicit attempt after two seconds.
+PROBE inflight 2026-07-28: A slow(1s) answered before B load released=False; waited 6000 ms; answered after 6192 ms; isError=
+PROBE recovery-after-kill 2026-07-28 attempt 1: isError=True Host unavailable; request was not retried. Outcome may be unknown.
+PROBE recovery-after-kill 2026-07-28 attempt 2: isError=True Host unavailable; request was not retried. Outcome may be unknown.
+PROBE recovery-after-kill 2026-07-28 attempt 3: isError=True Host unavailable; request was not retried. Outcome may be unknown.
+PROBE forward-errors: System.IO.IOException: Shared startup cooldown; make a new explicit attempt after two seconds. | System.IO.IOException: Shared startup cooldown; make a new explicit attempt after two seconds. | System.IO.IOException: Shared startup cooldown; make a new explicit attempt after two seconds.

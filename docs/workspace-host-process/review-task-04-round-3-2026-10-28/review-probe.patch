@@ -1,0 +1,67 @@
+--- spikes/PipeRelay/Checks/RoutingChecks.cs	2026-10-28 21:08:26.373657425 +0100
++++ spikes/PipeRelay/Checks/RoutingChecks.cs	2026-10-28 21:12:18.497408043 +0100
+@@ -50,6 +50,12 @@
+                 continue;
+             }
+ 
++            if (selected == "probe")
++            {
++                await ReviewProbe(protocol);
++                continue;
++            }
++
+             if (selected == "startup")
+             {
+                 await StartupDeaths(protocol, results);
+@@ -544,6 +550,51 @@
+         Console.WriteLine($"PASS boundaries {protocol}");
+     }
+ 
++    private static async Task ReviewProbe(string protocol)
++    {
++        await using (var fixture = new RoutingFixture())
++        {
++            var a = new RouteOptions(fixture.Root, "A");
++            var release = Path.Combine(fixture.Root, "b-load-release");
++            var b = new RouteOptions(fixture.Root, "B", LoadBarrier: release);
++            var client = await fixture.Open(fixture.Config(a), protocol);
++            await Count(client, fixture.Token);
++            var progress = 0;
++            var pending = client.CallToolAsync("slow", new Dictionary<string, object?> { ["seconds"] = 1 },
++                progress: new InlineProgress(_ => Interlocked.Increment(ref progress)), cancellationToken: fixture.Token).AsTask();
++            await fixture.Until(() => Volatile.Read(ref progress) > 0);
++            var watch = System.Diagnostics.Stopwatch.StartNew();
++            var switching = client.CallToolAsync("switch", new Dictionary<string, object?> { ["optionsFile"] = fixture.Config(b) },
++                cancellationToken: fixture.Token).AsTask();
++            var winner = await Task.WhenAny(pending, Task.Delay(6000, fixture.Token));
++            var beforeRelease = winner == pending;
++            var waited = watch.ElapsedMilliseconds;
++            File.WriteAllText(release, "release");
++            await switching;
++            var result = await pending;
++            Console.WriteLine($"PROBE inflight {protocol}: A slow(1s) answered before B load released={beforeRelease}; waited {waited} ms; answered after {watch.ElapsedMilliseconds} ms; isError={result.IsError}");
++        }
++
++        await using (var fixture = new RoutingFixture())
++        {
++            var k = new RouteOptions(fixture.Root, "K");
++            var client = await fixture.Open(fixture.Config(k), protocol);
++            await Count(client, fixture.Token);
++            await fixture.KillOwner(k);
++            await Task.Delay(300, fixture.Token);
++            for (var attempt = 1; attempt <= 3; attempt++)
++            {
++                var value = await client.CallToolAsync("count", cancellationToken: fixture.Token);
++                var text = string.Join("", value.Content.OfType<TextContentBlock>().Select(c => c.Text));
++                Console.WriteLine($"PROBE recovery-after-kill {protocol} attempt {attempt}: isError={value.IsError} {text[..Math.Min(100, text.Length)]}");
++            }
++
++            var lastError = fixture.Events().Where(e => e.GetProperty("name").GetString() == "forward-error")
++                .Select(e => e.GetProperty("data").GetString()!.Split('\n')[0]).ToArray();
++            Console.WriteLine("PROBE forward-errors: " + string.Join(" | ", lastError));
++        }
++    }
++
+     private static async Task<JsonElement> Count(McpClient client, CancellationToken cancellationToken) =>
+         SpikeChecks.Read(await client.CallToolAsync("count", cancellationToken: cancellationToken));
+ 
