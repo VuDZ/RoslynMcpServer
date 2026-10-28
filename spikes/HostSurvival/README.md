@@ -49,7 +49,12 @@ python spikes/HostSurvival/codex_lifecycle.py --codex C:/path/to/codex.exe --out
 Проверка через две секунды после выхода harness даёт верхнюю границу времени
 завершения MCP, а не точную задержку kill. Timeout probe — десять минут.
 
-## Ручные события desktop harness
+## Дополнительные ручные события desktop harness
+
+Историческая инструкция для расширенного прогона. По
+[уточнению scope от 2026-10-28](../../docs/workspace-host-process/evidence/2026-10-28-task-05-scope.md)
+сравнение клиентов и MCP на чат/окно не входят в task-05; выполнять эту матрицу
+для завершения задачи не требуется.
 
 Для каждого события нужен новый каталог, например `artifacts/host-survival/manual-reload`.
 Во временной MCP-конфигурации harness зарегистрировать:
