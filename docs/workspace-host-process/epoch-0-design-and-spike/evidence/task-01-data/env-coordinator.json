@@ -1,0 +1,19 @@
+﻿{
+    "utc":  "2026-10-28T21:48:22.3912250+00:00",
+    "pid":  52584,
+    "parentKind":  "dotnet-msbuild-child",
+    "variables":  [
+                      {
+                          "name":  "CODEX_THREAD_ID",
+                          "present":  false
+                      },
+                      {
+                          "name":  "CODEX_SESSION_ID",
+                          "present":  false
+                      },
+                      {
+                          "name":  "CODEX_TOOL_CALL_ID",
+                          "present":  false
+                      }
+                  ]
+}

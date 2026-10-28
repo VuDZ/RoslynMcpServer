@@ -1,0 +1,19 @@
+Names-only probe, 2026-10-29. These files were created only in ignored artifacts.
+
+--- EnvProbe.proj ---
+<Project>
+  <Target Name="Probe">
+    <Exec Command="powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;$(MSBuildThisFileDirectory)EnvProbe.ps1&quot; -OutputFile &quot;$(MSBuildThisFileDirectory)$(ProbeLabel).json&quot;" />
+  </Target>
+</Project>
+
+--- EnvProbe.ps1 ---
+param([string]$OutputFile)
+$ErrorActionPreference = 'Stop'
+$names = @('CODEX_THREAD_ID', 'CODEX_SESSION_ID', 'CODEX_TOOL_CALL_ID')
+$presence = @($names | ForEach-Object {
+    [pscustomobject]@{ name = $_; present = $null -ne [Environment]::GetEnvironmentVariable($_) }
+})
+$result = [pscustomobject]@{ utc = [DateTimeOffset]::UtcNow.ToString('o'); pid = $PID; parentKind = 'dotnet-msbuild-child'; variables = $presence }
+$result | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $OutputFile -Encoding utf8
+Write-Output 'Environment names-only probe completed.'

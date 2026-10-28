@@ -1,6 +1,6 @@
 # Долгоживущий процесс workspace
 
-Создано: **2026-10-09**. Обновлено: **2026-10-28**.
+Создано: **2026-10-09**. Обновлено: **2026-10-29**.
 Статус: **scope согласован; draft-план прошёл независимое ревью 2026-10-23
 без существенных findings; после ревью дополнен task-05, сравнением моделей и
 границей маршрутизации без повторного ревью; design и реализация не приняты,
@@ -450,7 +450,13 @@ SDK-фасад и транспорт проверены для обеих мод
 [результат](epoch-0-design-and-spike/evidence/task-03-pipe-relay-spike.md).
 Task-04 — **completed, 2026-10-28**, принят standalone spike выделенного host без Roslyn;
 [результат, ревью и validation](epoch-0-design-and-spike/evidence/task-04-routing-and-recovery-spike.md).
-Следующий шаг — task-01, архитектурное решение на результатах task-00/task-03/task-04/task-05.
+Task-01 — **in progress, 2026-10-29, docs-only**:
+[проект архитектурного решения](design.md),
+[основания, ревью и validation](epoch-0-design-and-spike/evidence/task-01-architecture-decision.md).
+Рекомендован выделенный host; технический проект прошёл независимое ревью:
+2 раунда, 3 подтверждённых исправления,
+[result](review-task-01-2026-10-29/result.md). Выбор владельца O-01…O-04 pending.
+Task-02 не начат.
 Тема [D](../workspace-load-performance/README.md) остаётся независимой.
 
 ## Связь с другими темами
@@ -505,7 +511,11 @@ Task-04 — **completed, 2026-10-28**, принят standalone spike выдел�
   Codex и **2026-10-28, раунд 3**, `claude-opus-5-5`: 8 замечаний (2 major, 4 minor,
   2 suggestion), 7 закрыты в документах, F-07 (код runner) не применялось;
   [результат](review-task-04-round-3-2026-10-28/result.md), [validation](evidence/2026-10-28-task-04-review-fixes.md).
-  Task-01/task-02 независимое ревью результата не проходили.
+  Task-01 — **2026-10-29, раунды 1–2**, Codex `/root/task01_research_review`,
+  точный model ID недоступен; 3 подтверждённых исправления, технический проект принят;
+  [result](review-task-01-2026-10-29/result.md). Выбор владельца pending.
+  Сумма известных раундов задач — **8**, исправлений — **28** (подробности в README E0).
+  Task-02 независимое ревью результата не проходил.
 - Task-03: **completed, 2026-10-28**, standalone SDK-фасад/транспорт без Roslyn,
   Windows/WSL, обе модели host и две версии MCP. Исполнитель — Codex, точный ID
   модели запуска недоступен; независимое ревью — `claude-opus-5-5`, раунд 1,
@@ -519,7 +529,12 @@ Task-04 — **completed, 2026-10-28**, принят standalone spike выдел�
   [результат](review-task-04-round-3-2026-10-28/result.md), [validation](evidence/2026-10-28-task-04-review-fixes.md).
   Release build/main 1432/1432 прошли;
   [результат и validation](epoch-0-design-and-spike/evidence/task-04-routing-and-recovery-spike.md),
-  [ревью](review-task-04-2026-10-28/result.md). Следующий шаг — task-01.
+  [ревью](review-task-04-2026-10-28/result.md). Task-01 начат 2026-10-29.
+- Task-01: **in progress, 2026-10-29, docs-only**; исполнитель Codex, точный model ID недоступен.
+  [Проект design](design.md), [отчёт](epoch-0-design-and-spike/evidence/task-01-architecture-decision.md).
+  Технический проект принят независимым сабагентом Codex: 2 раунда, 3 исправления,
+  [result](review-task-01-2026-10-29/result.md). После fixes применён research-task-authoring.
+  Готово к выбору владельца O-01…O-04; task-02 не начат.
 - Приёмка реализации эпохи: —.
 - Обновление scope, TDD-подхода и выделение ветки: **выполнено, 2026-10-23**,
   только документация; `research/workspace-host-process` от `main` (`22b9924`);

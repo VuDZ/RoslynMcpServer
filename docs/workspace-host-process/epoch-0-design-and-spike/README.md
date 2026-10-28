@@ -4,12 +4,12 @@
   findings; принято только в scope исследовательского плана, design не принят;
   после ревью добавлены task-05 и сравнение моделей без повторного ревью**.
 - Статус исполнения: **in progress; task-00 completed, 2026-10-26, docs-only;
-  task-01/task-02 planned; task-04 completed, 2026-10-28; task-03 completed, 2026-10-28; task-05 completed, 2026-10-28, isolated probe;
+  task-01 in progress, 2026-10-29, docs-only; task-02 planned; task-04 completed, 2026-10-28; task-03 completed, 2026-10-28; task-05 completed, 2026-10-28, isolated probe;
   production-код темы не начат**. Принятый scope task-00 — инвентаризация
   состояния и этапов инструментов; [результат и validation](evidence/task-00-state-inventory.md).
 - Актуализация task-00: **completed, 2026-10-28**; база main `4e5e9f9` / 1.5.17,
   S01–S42 и прежние 54 tools; [влияние изменений и validation](evidence/task-00-impact-2026-10-28.md).
-  Task-01/task-02 planned; task-04 completed, 2026-10-28; task-03 completed, 2026-10-28; task-05 completed, production host/proxy не реализован.
+  Task-01 in progress, 2026-10-29; task-02 planned; task-04 completed, 2026-10-28; task-03 completed, 2026-10-28; task-05 completed, production host/proxy не реализован.
   [Task-05: memory/GC, cohort и ограничения запуска](evidence/task-05-applicability.md)
   завершён в уточнённом владельцем исследовательском scope;
   [основание и validation](../evidence/2026-10-28-task-05-scope.md).
@@ -37,7 +37,7 @@
 ## Задачи
 
 - [task-00 — Инвентаризация состояния процесса](task-00-process-state-inventory-med.md) — `med`, **completed, 2026-10-26; актуализировано 2026-10-28, docs-only**; S01–S42 и этапы 54 tools, [исходный отчёт](evidence/task-00-state-inventory.md), [поправки и validation](evidence/task-00-impact-2026-10-28.md); Depends on: —
-- [task-01 — Архитектурное решение](task-01-architecture-decision-hi.md) — `hi`, **planned**; Depends on: [task-00](task-00-process-state-inventory-med.md), [task-03](task-03-pipe-relay-spike-med.md), [task-04](task-04-proxy-routing-and-recovery-spike-hi.md), [task-05](task-05-applicability-checks-med.md)
+- [task-01 — Архитектурное решение](task-01-architecture-decision-hi.md) — `hi`, **in progress, 2026-10-29, docs-only; техническое ревью принято, выбор владельца pending**; [design](../design.md), [отчёт](evidence/task-01-architecture-decision.md); Depends on: [task-00](task-00-process-state-inventory-med.md), [task-03](task-03-pipe-relay-spike-med.md), [task-04](task-04-proxy-routing-and-recovery-spike-hi.md), [task-05](task-05-applicability-checks-med.md)
 - [task-02 — Интеграционный spike прокси и host](task-02-bridge-spike-hi.md) — `hi`, **planned**; Depends on: [task-01](task-01-architecture-decision-hi.md), [D/E0/task-01](../../workspace-load-performance/epoch-0-stage-measurement/task-01-load-stage-timings-med.md)
 - [task-03 — Spike транспорта и MCP-фасада](task-03-pipe-relay-spike-med.md) — `med`, **completed, 2026-10-28**; standalone SDK-фасад без Roslyn, обе модели host, две версии MCP, Windows/WSL; [результат и validation](evidence/task-03-pipe-relay-spike.md); Depends on: —
 - [task-04 — Spike переключения и восстановления](task-04-proxy-routing-and-recovery-spike-hi.md) — `hi`, **completed, 2026-10-28**; принят standalone spike выделенного host без Roslyn, Windows/WSL, две версии MCP; [результат, ревью и validation](evidence/task-04-routing-and-recovery-spike.md); Depends on: [task-03](task-03-pipe-relay-spike-med.md), [task-05](task-05-applicability-checks-med.md) с решением владельца
@@ -55,7 +55,7 @@ task-01. Только после design, независимого ревью и 
 Если владелец выбирает нулевой вариант, task-02 и E1 shared-режима не запускаются;
 невыполненные задачи получают статус deferred с причиной и ссылкой на решение.
 Это не приёмка реализации shared-режима. Task-00 завершён как docs-only
-инвентаризация; task-01/task-02 остаются planned; task-04 completed, 2026-10-28; task-03 completed, 2026-10-28, task-05 completed. Завершение task-00 не заменяет
+инвентаризация; task-01 in progress, 2026-10-29; task-02 planned; task-04 completed, 2026-10-28; task-03 completed, 2026-10-28, task-05 completed. Завершение task-00 не заменяет
 решение владельца после task-05 и не запускает зависимые spike.
 
 ## Сквозные критерии
@@ -142,22 +142,35 @@ Codex `/root/task04_research_review`, точный model ID недоступен
 4 исправления подтверждены; [result](../review-task-04-2026-10-28/result.md).
 Раунд 3 — `claude-opus-5-5`, 2026-10-28: 8 замечаний (2 major), 7 закрыты в документах,
 F-01/F-08 переданы task-01; [result](../review-task-04-round-3-2026-10-28/result.md).
-Следующий шаг — task-01; приёмка design/эпохи и production activation не объявлены.
+Task-01 начат 2026-10-29; приёмка design/эпохи и production activation не объявлены.
+
+## Выполнение task-01, 2026-10-29
+
+**In progress, docs-only; готово к выбору владельца.** Подготовлен [проект design](../design.md),
+[основания и validation](evidence/task-01-architecture-decision.md).
+Независимое research-task-review в отдельном сабагенте Codex `/root/task01_research_review`:
+**2 раунда, 3 подтверждённых исправления; технический проект принят**;
+[result](../review-task-01-2026-10-29/result.md).
+После fixes применён research-task-authoring. Выбор владельца O-01…O-04 pending;
+task-02 не начат, приёмки эпохи нет.
 
 ## Статистика ревью задач
 
 - Охват: task-00–task-05; task-00 completed, 2026-10-26, docs-only;
-  task-05 completed, 2026-10-28; task-01/task-02 planned; task-04 completed, 2026-10-28; task-03 completed, 2026-10-28.
+  task-05 completed, 2026-10-28; task-01 in progress, 2026-10-29; task-02 planned; task-04 completed, 2026-10-28; task-03 completed, 2026-10-28.
 - Фактические исполнители: task-00 — Codex, точный ID модели недоступен.
   Task-05 — `gpt-6.1-sol` (Codex; metadata harness).
   Task-03 и task-04 — Codex, точные model ID запусков недоступны.
+  Task-01 — Codex, точный model ID недоступен, docs-only проект для владельца.
 - Фактические рецензенты: task-00, task-03, task-05 — `claude-opus-5-5` (Claude Code),
   2026-10-28; task-03 и task-05 — одним совместным ревью.
   Task-04 — отдельная сессия Codex `/root/task04_research_review`, точный model ID недоступен (раунды 1–2);
   раунд 3 — `claude-opus-5-5`, 2026-10-28.
-- Сумма раундов независимого ревью задач: 6 (по одному на task-00, task-03, task-05; три на task-04).
-- Исправленные замечания независимого ревью задач: 25 (task-00 — 5; task-05 — 4,
-  F-01–F-04; task-03 — 5, F-05–F-09; task-04 — 4, F-01–F-04 раундов 1–2, и 7 раунда 3).
+  Task-01 — Codex `/root/task01_research_review`, точный model ID недоступен,
+  2026-10-29, раунды 1–2.
+- Сумма раундов независимого ревью задач: 8 (по одному на task-00, task-03, task-05; три на task-04; два на task-01).
+- Исправленные замечания независимого ревью задач: 28 (task-00 — 5; task-05 — 4,
+  F-01–F-04; task-03 — 5, F-05–F-09; task-04 — 4, F-01–F-04 раундов 1–2, и 7 раунда 3; task-01 — 3, F-01–F-03).
 - Отчёты: [task-00 — инвентаризация и validation](evidence/task-00-state-inventory.md).
   Актуализация 2026-10-28 — тот же исполнитель;
   [влияние новой базы и validation](evidence/task-00-impact-2026-10-28.md).
@@ -165,6 +178,8 @@ F-01/F-08 переданы task-01; [result](../review-task-04-round-3-2026-10-2
   [validation исправлений](../evidence/2026-10-28-task-00-review-fixes.md).
   [Ревью task-03 и task-05](../review-task-03-05-2026-10-28/result.md), [validation исправлений](../evidence/2026-10-28-task-03-05-review-fixes.md).
   [Task-04: результат и validation](evidence/task-04-routing-and-recovery-spike.md), [ревью](../review-task-04-2026-10-28/result.md), [ревью раунда 3](../review-task-04-round-3-2026-10-28/result.md), [validation исправлений](../evidence/2026-10-28-task-04-review-fixes.md).
+  [Task-01: проект, review и validation](evidence/task-01-architecture-decision.md),
+  [независимое ревью](../review-task-01-2026-10-29/result.md).
 
 ## Приёмка реализации эпохи
 

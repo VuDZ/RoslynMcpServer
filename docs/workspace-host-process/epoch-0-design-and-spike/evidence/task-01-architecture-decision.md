@@ -1,0 +1,163 @@
+# Task-01 — архитектурное решение
+
+## Главное
+
+- **In progress, 2026-10-29, docs-only; готово к выбору владельца.** [Design](../../design.md) выделенного host прошёл техническое ревью на базе task-00/03/04/05 и ревью task-04 раунда 3.
+- Выделенный host рекомендован против нулевого варианта; idle unload и роли сопоставлены отдельно без обещания измеренной экономии production RAM.
+- Описаны descriptor/key, session/workspace split, switch вне gate, shared retry, no replay, reset/stop, CLI/proof boundaries, shadow image и controlled-stop publish.
+- Все S01–S42 и 54 public built-in tools имеют размещение/решение; счёт и локальные ссылки независимо проверены.
+- Новых production defects этой задачей не подтверждено. Найденные в task-04 дефекты не объявлены исправленным кодом: их принимающие контракты и проверки включены в design.
+- Research-task-review в сабагенте: **2 раунда, 3 подтверждённых исправления**, новых must-fix нет. Выбор владельца O-01…O-04 pending, task-02 и production activation не начаты.
+
+## База и scope
+
+До работы: чистая ветка `research/workspace-host-process`, `33b1d8d`.
+`git pull --ff-only origin research/workspace-host-process` обновил её до
+**`b2a7b80c253b63ffe5259d0b3c307547550921d9`**.
+Production версия **1.5.18**, SDK ModelContextProtocol **2.2.0**, target .NET 10.
+Между этими commit изменились документы и evidence/review task-04, production не менялся.
+Перечитаны изменённые task/README/evidence и новые findings F-01…F-08.
+
+Исполнитель — Codex, точный model ID текущей сессии недоступен.
+Это проект решения для владельца, без C#, тестов, версии, publish или конфигурации MCP.
+Текущий MSBuild/Roslyn process исследователя не использован как production shared-реализация.
+
+## Проверка SDK и исходников
+
+Проверена установленная сборка
+`bin/Release/net10.0/ModelContextProtocol.Core.dll`, SHA-256:
+`B1752096EA9D2F38BA88E467F04AEA43FB300D9A54D881C165F62B69028EE3AB`.
+Через Roslyn MCP выполнены `list_tool_groups`, `get_tool_help(decompile_type)`,
+`explore_assembly`, `decompile_type`, `get_decompiled_class_skeleton`,
+`get_decompiled_method_body`. Load workspace для absolute assemblyPath не требовался.
+
+Подтверждены:
+
+- `McpServer.Create(ITransport, McpServerOptions, ILoggerFactory?, IServiceProvider?)` создаёт SDK server с переданными options/provider.
+- `ModelContextProtocol.Protocol.StreamClientTransport` принимает два Stream и logger factory; начальный неверный namespace `Client` исправлен после inventory.
+- `StreamServerTransport` читает NDJSON и имеет отдельный send lock; новый generic tool-level cap не добавляется, preface/control DTO ограничиваются приложением отдельно.
+- `DelegatingMcpServerTool` сохраняет ProtocolTool/Metadata и позволяет переопределить `InvokeAsync(RequestContext<CallToolRequestParams>, CancellationToken)`.
+- `McpSession.SendRequestAsync<TParameters,TResult>` принимает явный RequestId и cancellation token. Корреляция остаётся на SDK, а session/generation guard — у приложения.
+
+Полный `decompile_type(McpServer)` отказал по лимиту 815 строк; вместо этого
+проверен нужный метод Create. Это не отказ исполнения или pass runtime-сценария.
+Автоматический cancel SDK заново не трассировался: факт fire-and-forget и наблюдаемые
+ограничения взяты с их оговорками из task-03/04, design требует явную доставку.
+
+Ключевые текущие факты перепроверены в коде:
+
+| Факт | Исходник |
+|---|---|
+| Старт регистрирует MSBuild, Roslyn, cwd/config и plugins до stdio. | [Program.cs:15](../../../../Program.cs#L15), [Program.cs:96](../../../../Program.cs#L96) |
+| Core DI смешивает activation и singleton manager. | [RegisterCore:60](../../../../Hosting/RoslynMcpServiceCollectionExtensions.cs#L60) |
+| Omitted defaults берутся из прежних Loaded*, build args отдельно. | [SolutionManager:893](../../../../Services/Workspace/SolutionManager.cs#L893) |
+| Fresh load освобождает старый graph до нового open. | [SolutionManager:2076](../../../../Services/Workspace/SolutionManager.cs#L2076) |
+| DLL test зависит от graph, BuildContext и PullSnapshot delegate. | [TestTools:741](../../../../Tools/TestTools.cs#L741), [TestDllEnsureRequest](../../../../Services/Build/Models/TestDllEnsureRequest.cs) |
+| Exit=0 не даёт input-content proof. | [SessionBuildState:8](../../../../Services/Build/SessionBuildState.cs#L8) |
+| Plugin API разрешает собственные singleton services. | [IRoslynMcpPlugin](../../../../Plugins/IRoslynMcpPlugin.cs), [context](../../../../Plugins/RoslynMcpPluginContext.cs) |
+| Publish уже завершает source holders. | [publish-and-verify.ps1:48](../../../../publish-and-verify.ps1#L48) |
+
+Дополнительный поиск вне таблиц: `SetCurrentDirectory`, `SetEnvironmentVariable`,
+`AppContext.SetSwitch`, `Console.Set*`, `[ThreadStatic]`, `AsyncLocal`, `AssemblyResolve`
+в production C# без forks/spikes/tests/samples. Найдены startup cwd, search recorder
+и analyzer resolver; нового неучтённого process-state механизма не обнаружено.
+Этот текстовый поиск не доказывает изоляцию произвольного plugin кода.
+
+Непроверенные OS API сверены по первичным источникам:
+[FileStream.Lock](https://learn.microsoft.com/en-us/dotnet/api/system.io.filestream.lock?view=net-10.0),
+[Win32 byte-range locks](https://learn.microsoft.com/en-us/windows/win32/fileio/locking-and-unlocking-byte-ranges-in-files),
+[Linux flock manual](https://www.man7.org/linux/man-pages/man2/flock.2.html).
+Apple archived manual недоступен через web timeout; macOS не заявлена проверенной.
+Design не подменяет Linux `fcntl` семантикой `flock`.
+
+## Соответствие и известные ограничения
+
+U-C-01 — descriptor/defaults; U-C-02 — DI/stores; U-C-03 — switch/load/retry;
+U-C-04 — locks/start/closing/publish; U-C-05 — facade/protocol/cancel;
+U-C-06 — host grace и отложенная выгрузка; U-C-07 — сравнение;
+U-C-08 — 54 tools и build/test stages. Каждый раздел design даёт рекомендацию,
+альтернативу и риск. Проверяемые последовательности перечислены в разделе 11.
+
+Из ревью task-04 раунда 3 приняты: F-01 load вне binding gate; F-02 раздельные
+connect/handshake/initialize budgets; F-03 failure-only cooldown и not-sent/unknown;
+F-04 один lock descriptor на process/key Linux; F-05 explicit observed-failure retry;
+F-08 manifest всех файлов и новая image instance вместо повреждённой.
+F-07 об удалении runner temp остаётся прежним неприменённым suggestion task-04;
+его исправление не требуется для docs-only design и не засчитывается в fixes.
+
+V-01…V-04 design имеют получателей task-02/E1: настоящий Roslyn, macOS/ACL,
+payload/budget/output gates, manifest/runtime toolset. V-05 — отложенное исследование
+GC/idle после выбора модели. Никакая из этих проверок не объявлена выполненной.
+Свежих memory/latency измерений нет; числа task-03/05 явно сохранены на старой базе.
+
+## Независимое ревью
+
+Рецензент — отдельная сессия Codex `/root/task01_research_review`, точный model ID
+недоступен. [Результат](../../review-task-01-2026-10-29/result.md),
+[coverage](../../review-task-01-2026-10-29/coverage.md).
+Раунд 1: **требуются исправления**, два major и одно minor.
+Раунд 2: **техническое содержимое проекта принято**, F-01…F-03 закрыты,
+новых must-fix нет. Подтверждены **3** исправления; выбор владельца не подменён.
+
+| ID | Ответ автора / исправление | Перепроверка |
+|---|---|---|
+| F-01 | Убран новый generic 16 MiB logical cap; сохранены SDK/tool-specific ограничения и добавлен >16 MiB/escaping parity test task-02. | Закрыто, раунд 2. |
+| F-02 | Exact volatile-name preflight отклоняет context до key/launch; MSBuild env не меняется молча. Task-02 получает настоящий descriptor-pair go/no-go до серий механизмов. | Закрыто, раунд 2; V-06 не выполнен. |
+| F-03 | Gate ограничен lifetime proxy; abandoned activity record блокирует takeover/proof до проверки writers, даже после host restart. Назначен SIGKILL/orphan regression task-02. | Закрыто, раунд 2. |
+
+После этих исправлений design и отчёт оформлены по **research-task-authoring**:
+go/no-go перед механизмами, нулевой вариант и простое улучшение отдельно,
+известные OS/SDK primitives, «Главное», traceable findings и получатели V-01…V-06.
+Дополнительно уточнены session display options, локальное владение cursor remainder,
+Job/tree kill и явное сохранение workspace при idle подключённых proxy.
+Приёмка владельцем O-01…O-04 фиксируется отдельно; техническое ревью её не заменяет.
+
+## Names-only MCP probe после F-02
+
+2026-10-29 выполнен `execute_dotnet_command` реально подключённого MCP **1.5.16.0**,
+без load workspace и без изменения его конфигурации. В отдельном ignored `.proj`
+target Exec вызвал PowerShell, читающий только факт наличия трёх имён. Значения не
+читались в вывод, не хешировались и не сохранялись. Probe не является проектом
+production, тестом или новым runtime механизмом.
+
+```text
+msbuild artifacts/workspace-host-process/task-01/EnvProbe.proj -t:Probe -p:ProbeLabel=coordinator -v:minimal -nologo
+```
+
+У child CLI координатора и независимо у child CLI рецензента
+**CODEX_THREAD_ID/SESSION_ID/TOOL_CALL_ID отсутствуют**. В обеих сессиях
+`get_mcp_server_info` сообщил 1.5.16.0 и отсутствие workspace; это два names-only
+наблюдения из разных сессий Codex, не инвентаризация PID MCP-пары.
+Исходники runner сохраняют эти env names; его специальная SDK sanitation касается
+других имён ([DotNetSdkEnvironment](../../../../Services/Build/DotNetSdkEnvironment.cs#L33)).
+Это узкое наблюдение дочернего CLI реального MCP, а не shell Codex.
+Оно не измеряет полный environment родителя, точный descriptor пары либо shared
+загрузку 1.5.18. V-06 не закрыт этим probe.
+[Данные координатора](task-01-data/env-coordinator.json),
+[данные рецензента](task-01-data/env-reviewer.json),
+[полный source probe для воспроизведения](task-01-data/env-probe-source.txt).
+
+## Validation
+
+Предварительная проверка 2026-10-29: **214** локальных links/anchors в шести
+созданных/изменённых Markdown, broken=0. Имена пересчитаны непосредственно из
+`McpToolCatalog.Build`: **54/54**, пропущено/дубликатов 0. Mapping task-00 — **42/42**
+S01–S42. `git diff --check` — PASS. После fixes независимый reviewer проверил
+**229** локальных links/anchors семи primary Markdown, broken=0, и подтвердил
+54/54 tools и 42/42 states. Финальная проверка всего documentation пакета — ниже.
+Зависимости task-01/task-02 не изменены; task-01 in progress, owner choice pending.
+В task-02 исправлены прежние противоречия уже принятым решениям владельца:
+обычный proxy может загружать assemblies, RAM reuse требует живого контрольного
+клиента, validation filter приведён к актуальному AGENTS.md.
+Build/main suite/SourceStructure/AnalyzerLifecycle не запускаются: код не меняется.
+Это соответствует docs-only проверкам task-01 и AGENTS.md.
+
+Финальная проверка после review/fixes и bookkeeping: **267** локальных ссылок/anchors
+в **9** Markdown, broken=0; **54/54** имён без пропусков/повторов, **42/42** S-строк.
+Проверены также существование source line anchors, три primary data файла и отсутствие
+изменений вне `docs/`; [машинная сводка](task-01-data/validation.json).
+`git diff --check` — PASS; стадия перед commit проверяется также staged diff.
+Task/index/topic/docs статусы согласованы: технический проект прошёл 2 раунда/3 fixes,
+задача **in progress, ready for owner**, task-02 planned. Выполнения task-02,
+приёмки эпохи и production activation нет. Единственный оставшийся шаг task-01 —
+явный выбор владельца O-01…O-04, требуемый заданием; за владельца он не записан.
