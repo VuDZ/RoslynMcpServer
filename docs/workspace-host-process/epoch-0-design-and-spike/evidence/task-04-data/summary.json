@@ -1,0 +1,116 @@
+{
+  "windows": {
+    "utc": "2026-10-28T19:39:02.3506934+00:00",
+    "identity": "40D61B51C7DA415E90DE414D576D02EF8DDD6171DBA5EB18F0F51EAD28EAD009",
+    "os": "Microsoft Windows 10.0.26200",
+    "runtime": "10.0.13",
+    "records": 32,
+    "coldRounds": 20,
+    "recoveryRounds": 20,
+    "maxLoadsPerGeneration": 1,
+    "allWaiters": [
+      {
+        "protocol": "2025-11-25",
+        "cancelledWaiterIds": [
+          1,
+          2
+        ],
+        "endedWaiters": 3
+      },
+      {
+        "protocol": "2026-07-28",
+        "cancelledWaiterIds": [
+          1,
+          2
+        ],
+        "endedWaiters": 3
+      }
+    ],
+    "events": {
+      "frontend-eof": 294,
+      "launch": 78,
+      "spawned": 78,
+      "image-published": 48,
+      "owner": 76,
+      "initialization": 76,
+      "ready": 72,
+      "connected": 658,
+      "load-start": 72,
+      "load-waiter": 474,
+      "load-success": 68,
+      "load-waiter-ended": 474,
+      "disconnected": 452,
+      "closing-candidate": 50,
+      "closing": 48,
+      "exit": 48,
+      "lease-released": 48,
+      "connection-error": 30,
+      "cancel-received": 10,
+      "load-failure": 4,
+      "forward-error": 24,
+      "effect": 2,
+      "runner-killed-before-ready": 2,
+      "lease-rejected": 2,
+      "controlled-crash": 2,
+      "admission-closed": 2,
+      "hello-rejected": 2
+    }
+  },
+  "linux": {
+    "utc": "2026-10-28T19:38:10.1790084+00:00",
+    "identity": "13CC69DF2EC3303DCD3B45E4423DD242BC91CFAFEFC3AF5E246CA3A5C0F660B1",
+    "os": "Ubuntu 24.04.4 LTS",
+    "runtime": "10.0.13",
+    "records": 32,
+    "coldRounds": 20,
+    "recoveryRounds": 20,
+    "maxLoadsPerGeneration": 1,
+    "allWaiters": [
+      {
+        "protocol": "2025-11-25",
+        "cancelledWaiterIds": [
+          1,
+          2
+        ],
+        "endedWaiters": 3
+      },
+      {
+        "protocol": "2026-07-28",
+        "cancelledWaiterIds": [
+          1,
+          2
+        ],
+        "endedWaiters": 3
+      }
+    ],
+    "events": {
+      "owner": 76,
+      "initialization": 76,
+      "ready": 72,
+      "connected": 759,
+      "disconnected": 553,
+      "connection-error": 179,
+      "load-start": 72,
+      "load-waiter": 474,
+      "load-success": 68,
+      "load-waiter-ended": 474,
+      "frontend-eof": 294,
+      "closing-candidate": 50,
+      "closing": 48,
+      "exit": 48,
+      "lease-released": 48,
+      "launch": 78,
+      "spawned": 78,
+      "image-published": 48,
+      "load-failure": 4,
+      "cancel-received": 8,
+      "forward-error": 24,
+      "effect": 2,
+      "runner-killed-before-ready": 2,
+      "lease-rejected": 2,
+      "controlled-crash": 2,
+      "admission-closed": 2,
+      "hello-rejected": 2
+    }
+  }
+}

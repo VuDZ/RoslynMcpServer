@@ -7,6 +7,7 @@ using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using PipeRelay.Transport;
 using PipeRelay.Transport.Models;
+using PipeRelay.Routing;
 
 namespace PipeRelay;
 
@@ -14,9 +15,10 @@ internal sealed class Facade : IAsyncDisposable
 {
     public McpServerPrimitiveCollection<McpServerTool> Tools { get; }
 
-    public Facade(CounterState? local, string pipeName)
+    public Facade(CounterState? local, string pipeName, RoutingSession? routing = null)
     {
         _local = local;
+        _routing = routing;
         _pipeName = pipeName;
         _remote = new Lazy<Task<McpClient>>(Connect);
         _extra = McpServerTool.Create((Func<string>)(() => "Session-local extra"), new() { Name = "extra" });
@@ -28,6 +30,14 @@ internal sealed class Facade : IAsyncDisposable
                 new() { Name = "slow" }),
             McpServerTool.Create((Func<string>)Toggle, new() { Name = "toggle" }),
         };
+        if (routing is not null)
+        {
+            Tools.Add(McpServerTool.Create((Func<string, CancellationToken, Task<CallToolResult>>)routing.Switch,
+                new() { Name = "switch" }));
+            Tools.Add(McpServerTool.Create((Func<string, CancellationToken, Task<CallToolResult>>)((replyBarrier, token) =>
+                Forward("effect", new Dictionary<string, object?> { ["replyBarrier"] = replyBarrier }, null, token)),
+                new() { Name = "effect" }));
+        }
     }
 
     public async ValueTask DisposeAsync()
@@ -87,6 +97,11 @@ internal sealed class Facade : IAsyncDisposable
     private async Task<CallToolResult> Forward(string name, IReadOnlyDictionary<string, object?>? arguments,
         IProgress<ProgressNotificationValue>? progress, CancellationToken cancellationToken)
     {
+        if (_routing is not null)
+        {
+            return await _routing.Forward(name, arguments, progress, cancellationToken);
+        }
+
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         deadline.CancelAfter(TimeSpan.FromSeconds(15));
         try
@@ -115,7 +130,7 @@ internal sealed class Facade : IAsyncDisposable
             }
             catch (OperationCanceledException) when (deadline.IsCancellationRequested)
             {
-                // Explicitly await cancellation delivery; cancelling the local wait alone left the SDK 2.2 host running.
+                // SDK 2.2 sends cancellation without awaiting delivery; await a bounded send before returning.
                 // Evidence: docs/workspace-host-process/epoch-0-design-and-spike/evidence/task-03-pipe-relay-spike.md#c03-01
                 using var sendDeadline = new CancellationTokenSource(TimeSpan.FromSeconds(2));
                 await client.SendNotificationAsync("notifications/cancelled",
@@ -163,6 +178,7 @@ internal sealed class Facade : IAsyncDisposable
     private static CallToolResult Text(string text) => new() { Content = [new TextContentBlock { Text = text }] };
 
     private readonly CounterState? _local;
+    private readonly RoutingSession? _routing;
     private readonly string _pipeName;
     private readonly Lazy<Task<McpClient>> _remote;
     private readonly McpServerTool _extra;

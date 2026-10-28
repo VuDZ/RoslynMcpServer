@@ -1,6 +1,6 @@
 namespace PipeRelay.Transport;
 
-internal sealed class BoundedStream(Stream inner) : Stream
+internal sealed class BoundedStream(Stream inner, Action? cancelledReceived = null, Action? endOfInput = null) : Stream
 {
     public override bool CanRead => inner.CanRead;
     public override bool CanSeek => false;
@@ -20,14 +20,26 @@ internal sealed class BoundedStream(Stream inner) : Stream
     public override int Read(byte[] buffer, int offset, int count)
     {
         var read = inner.Read(buffer, offset, count);
+        if (read == 0)
+        {
+            endOfInput?.Invoke();
+        }
+
         Check(buffer.AsSpan(offset, read), ref _readBytes);
+        Observe(buffer.AsSpan(offset, read));
         return read;
     }
 
     public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
     {
         var read = await inner.ReadAsync(buffer, cancellationToken);
+        if (read == 0)
+        {
+            endOfInput?.Invoke();
+        }
+
         Check(buffer.Span[..read], ref _readBytes);
+        Observe(buffer.Span[..read]);
         return read;
     }
 
@@ -74,6 +86,34 @@ internal sealed class BoundedStream(Stream inner) : Stream
         }
     }
 
+    private void Observe(ReadOnlySpan<byte> bytes)
+    {
+        if (cancelledReceived is null)
+        {
+            return;
+        }
+
+        foreach (var value in bytes)
+        {
+            if (value == '\n')
+            {
+                using var message = System.Text.Json.JsonDocument.Parse(_line.ToArray());
+                if (message.RootElement.TryGetProperty("method", out var method)
+                    && method.GetString() == "notifications/cancelled")
+                {
+                    cancelledReceived();
+                }
+
+                _line.Clear();
+            }
+            else
+            {
+                _line.Add(value);
+            }
+        }
+    }
+
     private int _readBytes;
     private int _writeBytes;
+    private readonly List<byte> _line = [];
 }

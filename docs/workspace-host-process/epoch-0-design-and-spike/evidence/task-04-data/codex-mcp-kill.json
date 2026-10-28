@@ -1,0 +1,51 @@
+[
+  {
+    "event": "mcp-kill",
+    "harnessPid": 62932,
+    "discovery": "pending at resources/list; no model or thread created",
+    "beforeEvent": [
+      {
+        "pid": 30564,
+        "kind": "ordinary",
+        "mode": "child",
+        "alive": true
+      },
+      {
+        "pid": 57464,
+        "kind": "detached",
+        "mode": "child",
+        "alive": true
+      },
+      {
+        "pid": 60892,
+        "kind": "hold",
+        "mode": "serve",
+        "alive": true
+      }
+    ],
+    "eventUtc": "2026-10-28T18:41:45.526506+00:00",
+    "backendAliveAfterMcpKill": true,
+    "afterEvent": [
+      {
+        "pid": 30564,
+        "kind": "ordinary",
+        "mode": "child",
+        "alive": true
+      },
+      {
+        "pid": 57464,
+        "kind": "detached",
+        "mode": "child",
+        "alive": true
+      },
+      {
+        "pid": 60892,
+        "kind": "hold",
+        "mode": "serve",
+        "alive": false
+      }
+    ],
+    "cleanupComplete": true,
+    "codexVersion": "codex-cli 0.164.0-alpha.11.1"
+  }
+]

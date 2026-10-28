@@ -448,7 +448,9 @@ Fake load не доказывает корректность Roslyn/SDK/ОС: н
 [E0/task-03](epoch-0-design-and-spike/task-03-pipe-relay-spike-med.md) завершён:
 SDK-фасад и транспорт проверены для обеих моделей;
 [результат](epoch-0-design-and-spike/evidence/task-03-pipe-relay-spike.md).
-Следующий механизм spike — task-04 после выбора моделей владельцем.
+Task-04 — **completed, 2026-10-28**, принят standalone spike выделенного host без Roslyn;
+[результат, ревью и validation](epoch-0-design-and-spike/evidence/task-04-routing-and-recovery-spike.md).
+Следующий шаг — task-01, архитектурное решение на результатах task-00/task-03/task-04/task-05.
 Тема [D](../workspace-load-performance/README.md) остаётся независимой.
 
 ## Связь с другими темами
@@ -499,16 +501,22 @@ SDK-фасад и транспорт проверены для обеих мод
   [validation](evidence/2026-10-28-task-00-review-fixes.md). Task-03 и task-05 —
   **2026-10-28, раунд 1**, `claude-opus-5-5`, одно совместное ревью; 9 замечаний
   (3 major, 4 minor, 2 suggestion), все исправлены в документах; код не менялся;
-  [результат](review-task-03-05-2026-10-28/result.md), [validation](evidence/2026-10-28-task-03-05-review-fixes.md). Остальные задачи
-  независимое ревью не проходили.
+  [результат](review-task-03-05-2026-10-28/result.md), [validation](evidence/2026-10-28-task-03-05-review-fixes.md). Task-01/task-02
+  независимое ревью результата не проходили.
 - Task-03: **completed, 2026-10-28**, standalone SDK-фасад/транспорт без Roslyn,
   Windows/WSL, обе модели host и две версии MCP. Исполнитель — Codex, точный ID
   модели запуска недоступен; независимое ревью — `claude-opus-5-5`, раунд 1,
   5 исправлений (см. «Ревью задач»).
   [Результат и validation](epoch-0-design-and-spike/evidence/task-03-pipe-relay-spike.md).
+- Task-04: **completed, 2026-10-28**, принят standalone spike выделенного host без Roslyn,
+  Windows/WSL, две версии MCP. Исполнитель — Codex, точный model ID недоступен.
+  Независимый рецензент — Codex `/root/task04_research_review`, точный model ID недоступен;
+  2 раунда, 4 исправления подтверждены. Release build/main 1432/1432 прошли;
+  [результат и validation](epoch-0-design-and-spike/evidence/task-04-routing-and-recovery-spike.md),
+  [ревью](review-task-04-2026-10-28/result.md). Следующий шаг — task-01.
 - Приёмка реализации эпохи: —.
 - Обновление scope, TDD-подхода и выделение ветки: **выполнено, 2026-10-23**,
   только документация; `research/workspace-host-process` от `main` (`22b9924`);
   [validation](evidence/2026-10-23-plan-update.md). На ту дату все задачи E0 planned;
-  на 2026-10-26: task-00 completed docs-only, остальные planned; на 2026-10-28 task-05 completed в уточнённом scope и task-03 completed как standalone spike (см. отчёты выше);
+  на 2026-10-26: task-00 completed docs-only, остальные planned; на 2026-10-28 task-05 completed в уточнённом scope, task-03 и task-04 completed как standalone spike (см. отчёты выше);
   независимое ревью draft-плана завершено (см. выше); приёмка реализации не проводилась.

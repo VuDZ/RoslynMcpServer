@@ -1,0 +1,18 @@
+{
+  "build": {
+    "content": [
+      {
+        "type": "text",
+        "text": "## Build succeeded\r\n\r\n- **warning** `CS8603` `E:\\Devel\\RoslynMcpServer-workspace-host-process\\Services\\Resolve\\NuGetFallbackAssemblyResolver.cs(72,9)` — Possible null reference return. [E:\\Devel\\RoslynMcpServer-workspace-host-process\\RoslynMcpServer.csproj]\r\n- **warning** `CS8601` `E:\\Devel\\RoslynMcpServer-workspace-host-process\\RoslynMcpServer.LifecycleTestHost\\HostSession.cs(1179,34)` — Possible null reference assignment. [E:\\Devel\\RoslynMcpServer-workspace-host-process\\RoslynMcpServer.LifecycleTestHost\\RoslynMcpServer.LifecycleTestHost.csproj]\r\n- **warning** `xUnit1031` `E:\\Devel\\RoslynMcpServer-workspace-host-process\\RoslynMcpServer.Tests\\Workspace\\WpfTemporaryProjectCallbackTests.cs(195,32)` — Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031) [E:\\Devel\\RoslynMcpServer-workspace-host-process\\RoslynMcpServer.Tests\\RoslynMcpServer.Tests.csproj]"
+      }
+    ]
+  },
+  "main": {
+    "content": [
+      {
+        "type": "text",
+        "text": "## Filtered test run\r\n\r\n**Filter:** `Category!=AnalyzerLifecycle&Category!=RequiresPinnedSdk`\r\n**Match:** Caller-supplied VSTest filter\r\n\r\n## Filtered tests passed\r\n\r\nTotal: **1432** · Passed: **1432** · Failed: **0**\r\n\r\nMatched tests: `RoslynMcpServer.Tests.Workspace.SkippedWorkspaceWriteDiskPolicyTests.ShouldWriteSkippedPathToDisk_only_for_unknown_snapshot_paths', 'RoslynMcpServer.Tests.Logging.HarnessSessionIdTests.Resolve_maps_immediate_parent', 'RoslynMcpServer.Tests.Analyzers.SolutionManagerAnalyzerOverlayTests.Exact_inverse_contract_is_covered_by_workspace_write_boundary_tests', 'RoslynMcpServer.Tests.TestRunner.TestFilterHelperTests.BuildFilter_methodOnly_shortName_usesLeadingDotContains', 'RoslynMcpServer.Tests.Workspace.WorkspaceHealthReporterTests.HasRestoreAssets_finds_obj_sibling_of_output_bin`"
+      }
+    ]
+  }
+}

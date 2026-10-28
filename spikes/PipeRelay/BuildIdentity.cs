@@ -5,12 +5,11 @@ namespace PipeRelay;
 
 internal static class BuildIdentity
 {
-    public static string Value { get; } = Compute();
+    public static string Value { get; } = Compute(AppContext.BaseDirectory);
 
-    private static string Compute()
+    public static string Compute(string directory)
     {
         using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-        var directory = AppContext.BaseDirectory;
         var appHost = OperatingSystem.IsWindows() ? "PipeRelay.exe" : "PipeRelay";
         foreach (var path in Directory.EnumerateFiles(directory)
             .Where(path => Path.GetExtension(path) == ".dll" || Path.GetFileName(path) == appHost)

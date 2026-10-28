@@ -1,0 +1,305 @@
+{
+  "utc": "2026-10-28T19:26:20.6581062+00:00",
+  "os": "Microsoft Windows 10.0.26200",
+  "runtime": "10.0.13",
+  "identity": "167B64DC936E6971BB69BCE3292F6435ECB66043390249884F08585C66E58778",
+  "selected": "lifecycle",
+  "results": [],
+  "error": "System.InvalidOperationException: Unexpected tool error: Host unavailable; request was not retried. Outcome may be unknown.\r\n   at PipeRelay.SpikeChecks.Require(Boolean condition, String message) in E:\\Devel\\RoslynMcpServer-workspace-host-process\\spikes\\PipeRelay\\SpikeChecks.cs:line 113\r\n   at PipeRelay.SpikeChecks.Read(CallToolResult result) in E:\\Devel\\RoslynMcpServer-workspace-host-process\\spikes\\PipeRelay\\SpikeChecks.cs:line 105\r\n   at PipeRelay.Checks.RoutingChecks.Count(McpClient client, CancellationToken cancellationToken) in E:\\Devel\\RoslynMcpServer-workspace-host-process\\spikes\\PipeRelay\\Checks\\RoutingChecks.cs:line 534\r\n   at PipeRelay.Checks.RoutingChecks.Lifecycle(String protocol, List\u00601 results) in E:\\Devel\\RoslynMcpServer-workspace-host-process\\spikes\\PipeRelay\\Checks\\RoutingChecks.cs:line 442\r\n   at PipeRelay.Checks.RoutingChecks.Lifecycle(String protocol, List\u00601 results) in E:\\Devel\\RoslynMcpServer-workspace-host-process\\spikes\\PipeRelay\\Checks\\RoutingChecks.cs:line 457\r\n   at PipeRelay.Checks.RoutingChecks.RunMatrix(String selected, List\u00601 results) in E:\\Devel\\RoslynMcpServer-workspace-host-process\\spikes\\PipeRelay\\Checks\\RoutingChecks.cs:line 43\r\n   at PipeRelay.Checks.RoutingChecks.Run(String selected) in E:\\Devel\\RoslynMcpServer-workspace-host-process\\spikes\\PipeRelay\\Checks\\RoutingChecks.cs:line 17",
+  "failedFixture": {
+    "utc": "2026-10-28T19:26:20.6497488\u002B00:00",
+    "root": "E:\\Devel\\RoslynMcpServer-workspace-host-process\\spikes\\PipeRelay\\bin\\Release\\net10.0\\r4-c4e53e71",
+    "events": [
+      {
+        "utc": "2026-10-28T19:26:19.316208\u002B00:00",
+        "pid": 50452,
+        "uptimeMs": 255926093,
+        "key": "e376b7c1623fbe050e7e6b9bbca3caf9526d3bb8c8cbd4b9f79e89281f85071a",
+        "descriptor": "lifecycle",
+        "ticks": 639288123711138444,
+        "name": "forward-error",
+        "generation": "00000000-0000-0000-0000-000000000000",
+        "data": "System.OperationCanceledException: The operation was canceled.\r\n   at System.Threading.CancellationToken.ThrowOperationCanceledException()\r\n   at System.Threading.CancellationToken.ThrowIfCancellationRequested()\r\n   at PipeRelay.Routing.HostDiscovery.TryConnect(RouteOptions options, RouteFiles files, CancellationToken cancellationToken) in E:\\Devel\\RoslynMcpServer-workspace-host-process\\spikes\\PipeRelay\\Routing\\HostDiscovery.cs:line 104\r\n   at PipeRelay.Routing.HostDiscovery.Open(RouteOptions options, CancellationToken cancellationToken) in E:\\Devel\\RoslynMcpServer-workspace-host-process\\spikes\\PipeRelay\\Routing\\HostDiscovery.cs:line 20\r\n   at PipeRelay.Routing.RoutingSession.Forward(String name, IReadOnlyDictionary\u00602 arguments, IProgress\u00601 progress, CancellationToken cancellationToken) in E:\\Devel\\RoslynMcpServer-workspace-host-process\\spikes\\PipeRelay\\Routing\\RoutingSession.cs:line 82"
+      },
+      {
+        "utc": "2026-10-28T19:26:19.3343114\u002B00:00",
+        "pid": 50452,
+        "uptimeMs": 255926109,
+        "key": "e376b7c1623fbe050e7e6b9bbca3caf9526d3bb8c8cbd4b9f79e89281f85071a",
+        "descriptor": "lifecycle",
+        "ticks": 639288123711138444,
+        "name": "frontend-eof",
+        "generation": "00000000-0000-0000-0000-000000000000",
+        "data": null
+      },
+      {
+        "utc": "2026-10-28T19:26:08.4825883\u002B00:00",
+        "pid": 50796,
+        "uptimeMs": 255915265,
+        "key": "e376b7c1623fbe050e7e6b9bbca3caf9526d3bb8c8cbd4b9f79e89281f85071a",
+        "descriptor": "lifecycle",
+        "ticks": 639288123683993793,
+        "name": "owner",
+        "generation": "786455ed-2de2-4382-958a-5971ac204f5d",
+        "data": null
+      },
+      {
+        "utc": "2026-10-28T19:26:08.4911107\u002B00:00",
+        "pid": 50796,
+        "uptimeMs": 255915265,
+        "key": "e376b7c1623fbe050e7e6b9bbca3caf9526d3bb8c8cbd4b9f79e89281f85071a",
+        "descriptor": "lifecycle",
+        "ticks": 639288123683993793,
+        "name": "initialization",
+        "generation": "786455ed-2de2-4382-958a-5971ac204f5d",
+        "data": null
+      },
+      {
+        "utc": "2026-10-28T19:26:08.4932959\u002B00:00",
+        "pid": 50796,
+        "uptimeMs": 255915281,
+        "key": "e376b7c1623fbe050e7e6b9bbca3caf9526d3bb8c8cbd4b9f79e89281f85071a",
+        "descriptor": "lifecycle",
+        "ticks": 639288123683993793,
+        "name": "ready",
+        "generation": "786455ed-2de2-4382-958a-5971ac204f5d",
+        "data": null
+      },
+      {
+        "utc": "2026-10-28T19:26:08.5042779\u002B00:00",
+        "pid": 50796,
+        "uptimeMs": 255915281,
+        "key": "e376b7c1623fbe050e7e6b9bbca3caf9526d3bb8c8cbd4b9f79e89281f85071a",
+        "descriptor": "lifecycle",
+        "ticks": 639288123683993793,
+        "name": "connected",
+        "generation": "786455ed-2de2-4382-958a-5971ac204f5d",
+        "data": null
+      },
+      {
+        "utc": "2026-10-28T19:26:08.6024692\u002B00:00",
+        "pid": 50796,
+        "uptimeMs": 255915390,
+        "key": "e376b7c1623fbe050e7e6b9bbca3caf9526d3bb8c8cbd4b9f79e89281f85071a",
+        "descriptor": "lifecycle",
+        "ticks": 639288123683993793,
+        "name": "load-start",
+        "generation": "786455ed-2de2-4382-958a-5971ac204f5d",
+        "data": null
+      },
+      {
+        "utc": "2026-10-28T19:26:08.6029789\u002B00:00",
+        "pid": 50796,
+        "uptimeMs": 255915390,
+        "key": "e376b7c1623fbe050e7e6b9bbca3caf9526d3bb8c8cbd4b9f79e89281f85071a",
+        "descriptor": "lifecycle",
+        "ticks": 639288123683993793,
+        "name": "load-waiter",
+        "generation": "786455ed-2de2-4382-958a-5971ac204f5d",
+        "data": null
+      },
+      {
+        "utc": "2026-10-28T19:26:08.7619081\u002B00:00",
+        "pid": 50796,
+        "uptimeMs": 255915546,
+        "key": "e376b7c1623fbe050e7e6b9bbca3caf9526d3bb8c8cbd4b9f79e89281f85071a",
+        "descriptor": "lifecycle",
+        "ticks": 639288123683993793,
+        "name": "load-success",
+        "generation": "786455ed-2de2-4382-958a-5971ac204f5d",
+        "data": null
+      },
+      {
+        "utc": "2026-10-28T19:26:08.7996628\u002B00:00",
+        "pid": 50796,
+        "uptimeMs": 255915578,
+        "key": "e376b7c1623fbe050e7e6b9bbca3caf9526d3bb8c8cbd4b9f79e89281f85071a",
+        "descriptor": "lifecycle",
+        "ticks": 639288123683993793,
+        "name": "connected",
+        "generation": "786455ed-2de2-4382-958a-5971ac204f5d",
+        "data": null
+      },
+      {
+        "utc": "2026-10-28T19:26:08.8352743\u002B00:00",
+        "pid": 50796,
+        "uptimeMs": 255915609,
+        "key": "e376b7c1623fbe050e7e6b9bbca3caf9526d3bb8c8cbd4b9f79e89281f85071a",
+        "descriptor": "lifecycle",
+        "ticks": 639288123683993793,
+        "name": "disconnected",
+        "generation": "786455ed-2de2-4382-958a-5971ac204f5d",
+        "data": null
+      },
+      {
+        "utc": "2026-10-28T19:26:08.8626815\u002B00:00",
+        "pid": 50796,
+        "uptimeMs": 255915640,
+        "key": "e376b7c1623fbe050e7e6b9bbca3caf9526d3bb8c8cbd4b9f79e89281f85071a",
+        "descriptor": "lifecycle",
+        "ticks": 639288123683993793,
+        "name": "disconnected",
+        "generation": "786455ed-2de2-4382-958a-5971ac204f5d",
+        "data": null
+      },
+      {
+        "utc": "2026-10-28T19:26:09.8669592\u002B00:00",
+        "pid": 50796,
+        "uptimeMs": 255916640,
+        "key": "e376b7c1623fbe050e7e6b9bbca3caf9526d3bb8c8cbd4b9f79e89281f85071a",
+        "descriptor": "lifecycle",
+        "ticks": 639288123683993793,
+        "name": "closing-candidate",
+        "generation": "786455ed-2de2-4382-958a-5971ac204f5d",
+        "data": null
+      },
+      {
+        "utc": "2026-10-28T19:26:10.0493389\u002B00:00",
+        "pid": 50796,
+        "uptimeMs": 255916828,
+        "key": "e376b7c1623fbe050e7e6b9bbca3caf9526d3bb8c8cbd4b9f79e89281f85071a",
+        "descriptor": "lifecycle",
+        "ticks": 639288123683993793,
+        "name": "connected",
+        "generation": "786455ed-2de2-4382-958a-5971ac204f5d",
+        "data": null
+      },
+      {
+        "utc": "2026-10-28T19:26:10.0886851\u002B00:00",
+        "pid": 50796,
+        "uptimeMs": 255916875,
+        "key": "e376b7c1623fbe050e7e6b9bbca3caf9526d3bb8c8cbd4b9f79e89281f85071a",
+        "descriptor": "lifecycle",
+        "ticks": 639288123683993793,
+        "name": "disconnected",
+        "generation": "786455ed-2de2-4382-958a-5971ac204f5d",
+        "data": null
+      },
+      {
+        "utc": "2026-10-28T19:26:11.0945706\u002B00:00",
+        "pid": 50796,
+        "uptimeMs": 255917875,
+        "key": "e376b7c1623fbe050e7e6b9bbca3caf9526d3bb8c8cbd4b9f79e89281f85071a",
+        "descriptor": "lifecycle",
+        "ticks": 639288123683993793,
+        "name": "closing-candidate",
+        "generation": "786455ed-2de2-4382-958a-5971ac204f5d",
+        "data": null
+      },
+      {
+        "utc": "2026-10-28T19:26:11.0948366\u002B00:00",
+        "pid": 50796,
+        "uptimeMs": 255917875,
+        "key": "e376b7c1623fbe050e7e6b9bbca3caf9526d3bb8c8cbd4b9f79e89281f85071a",
+        "descriptor": "lifecycle",
+        "ticks": 639288123683993793,
+        "name": "closing",
+        "generation": "786455ed-2de2-4382-958a-5971ac204f5d",
+        "data": null
+      },
+      {
+        "utc": "2026-10-28T19:26:11.2925985\u002B00:00",
+        "pid": 50796,
+        "uptimeMs": 255918078,
+        "key": "e376b7c1623fbe050e7e6b9bbca3caf9526d3bb8c8cbd4b9f79e89281f85071a",
+        "descriptor": "lifecycle",
+        "ticks": 639288123683993793,
+        "name": "admission-closed",
+        "generation": "786455ed-2de2-4382-958a-5971ac204f5d",
+        "data": null
+      },
+      {
+        "utc": "2026-10-28T19:26:11.3142968\u002B00:00",
+        "pid": 50796,
+        "uptimeMs": 255918093,
+        "key": "e376b7c1623fbe050e7e6b9bbca3caf9526d3bb8c8cbd4b9f79e89281f85071a",
+        "descriptor": "lifecycle",
+        "ticks": 639288123683993793,
+        "name": "exit",
+        "generation": "786455ed-2de2-4382-958a-5971ac204f5d",
+        "data": null
+      },
+      {
+        "utc": "2026-10-28T19:26:11.3144049\u002B00:00",
+        "pid": 50796,
+        "uptimeMs": 255918093,
+        "key": "e376b7c1623fbe050e7e6b9bbca3caf9526d3bb8c8cbd4b9f79e89281f85071a",
+        "descriptor": "lifecycle",
+        "ticks": 639288123683993793,
+        "name": "lease-released",
+        "generation": "786455ed-2de2-4382-958a-5971ac204f5d",
+        "data": null
+      },
+      {
+        "utc": "2026-10-28T19:26:08.8517164\u002B00:00",
+        "pid": 65428,
+        "uptimeMs": 255915625,
+        "key": "e376b7c1623fbe050e7e6b9bbca3caf9526d3bb8c8cbd4b9f79e89281f85071a",
+        "descriptor": "lifecycle",
+        "ticks": 639288123677898221,
+        "name": "frontend-eof",
+        "generation": "00000000-0000-0000-0000-000000000000",
+        "data": null
+      },
+      {
+        "utc": "2026-10-28T19:26:10.078162\u002B00:00",
+        "pid": 65932,
+        "uptimeMs": 255916859,
+        "key": "e376b7c1623fbe050e7e6b9bbca3caf9526d3bb8c8cbd4b9f79e89281f85071a",
+        "descriptor": "lifecycle",
+        "ticks": 639288123698677432,
+        "name": "frontend-eof",
+        "generation": "00000000-0000-0000-0000-000000000000",
+        "data": null
+      },
+      {
+        "utc": "2026-10-28T19:26:08.3863224\u002B00:00",
+        "pid": 70452,
+        "uptimeMs": 255915171,
+        "key": "e376b7c1623fbe050e7e6b9bbca3caf9526d3bb8c8cbd4b9f79e89281f85071a",
+        "descriptor": "lifecycle",
+        "ticks": 639288123675491985,
+        "name": "image-published",
+        "generation": "00000000-0000-0000-0000-000000000000",
+        "data": "167B64DC936E6971BB69BCE3292F6435ECB66043390249884F08585C66E58778"
+      },
+      {
+        "utc": "2026-10-28T19:26:08.3981633\u002B00:00",
+        "pid": 70452,
+        "uptimeMs": 255915171,
+        "key": "e376b7c1623fbe050e7e6b9bbca3caf9526d3bb8c8cbd4b9f79e89281f85071a",
+        "descriptor": "lifecycle",
+        "ticks": 639288123675491985,
+        "name": "launch",
+        "generation": "00000000-0000-0000-0000-000000000000",
+        "data": null
+      },
+      {
+        "utc": "2026-10-28T19:26:08.4030645\u002B00:00",
+        "pid": 70452,
+        "uptimeMs": 255915187,
+        "key": "e376b7c1623fbe050e7e6b9bbca3caf9526d3bb8c8cbd4b9f79e89281f85071a",
+        "descriptor": "lifecycle",
+        "ticks": 639288123675491985,
+        "name": "spawned",
+        "generation": "00000000-0000-0000-0000-000000000000",
+        "data": {
+          "pid": 50796,
+          "ticks": 639288123683993793
+        }
+      },
+      {
+        "utc": "2026-10-28T19:26:08.8266449\u002B00:00",
+        "pid": 70452,
+        "uptimeMs": 255915609,
+        "key": "e376b7c1623fbe050e7e6b9bbca3caf9526d3bb8c8cbd4b9f79e89281f85071a",
+        "descriptor": "lifecycle",
+        "ticks": 639288123675491985,
+        "name": "frontend-eof",
+        "generation": "00000000-0000-0000-0000-000000000000",
+        "data": null
+      }
+    ],
+    "leaked": []
+  }
+}

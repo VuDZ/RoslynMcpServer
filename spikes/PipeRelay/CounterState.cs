@@ -19,9 +19,9 @@ internal sealed class CounterState
 
     public async Task<string> Slow(int seconds, IProgress<ProgressNotificationValue> progress, CancellationToken cancellationToken)
     {
-        if (seconds is < 1 or > 10)
+        if (seconds is < 1 or > 120)
         {
-            throw new ArgumentOutOfRangeException(nameof(seconds), "Duration must be between 1 and 10 seconds.");
+            throw new ArgumentOutOfRangeException(nameof(seconds), "Duration must be between 1 and 120 seconds.");
         }
 
         Interlocked.Increment(ref _active);

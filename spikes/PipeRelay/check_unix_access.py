@@ -86,10 +86,15 @@ finally:
             time.sleep(0.02)
         facts = socket_path.stat()
         assert stat.S_ISSOCK(facts.st_mode) and facts.st_uid == owner_uid
+        if "--world-socket" in sys.argv:
+            socket_path.chmod(0o777)
+            facts = socket_path.stat()
         before, rejected, after = probe(owner_uid), probe(other_uid), probe(owner_uid)
         assert before["handshakeAccepted"] and not rejected["handshakeAccepted"] and after["handshakeAccepted"], json.dumps({"before":before,"other":rejected,"after":after,"mode":oct(stat.S_IMODE(facts.st_mode))})
         result = {"platform": "Linux", "ownerUid": owner_uid, "otherUid": other_uid,
+                  "identity": identity.hexdigest().upper(),
                   "unixDomainSocketObserved": True, "socketMode": oct(stat.S_IMODE(facts.st_mode)),
+                  "peerUidControl": "--world-socket" in sys.argv,
                   "ownerBefore": before, "otherUser": rejected, "ownerAfter": after, "status": "pass"}
     finally:
         if host.poll() is None:

@@ -2,8 +2,10 @@
 
 import argparse
 import json
+import os
 from pathlib import Path
 import queue
+import signal
 import subprocess
 import threading
 import time
@@ -67,7 +69,18 @@ def run(codex, output, event):
             assert all(record["alive"] for record in observation["beforeEvent"]), "Processes must be alive at the event"
         observation["eventUtc"] = datetime.now(timezone.utc).isoformat()
         started = time.monotonic()
-        if event in ("stdio-eof", "discovery-completed"):
+        if event == "mcp-kill":
+            mcp = next(record for record in starts.values() if record["mode"] == "serve")
+            assert alive(mcp["pid"]), "The recorded MCP must still be alive before termination"
+            # Only the MCP is terminated: backend lifetime must not substitute for MCP lifetime.
+            os.kill(mcp["pid"], signal.SIGTERM)
+            time.sleep(2)
+            assert process.poll() is None, "Codex backend must remain alive during this observation"
+            observation["backendAliveAfterMcpKill"] = True
+            observation["afterEvent"] = [dict(record, alive=alive(pid)) for pid, record in starts.items()]
+            assert not alive(mcp["pid"]), "The MCP must have exited"
+            return observation
+        elif event in ("stdio-eof", "discovery-completed"):
             process.stdin.close()
         else:
             process.kill()
@@ -89,17 +102,21 @@ def run(codex, output, event):
         while any(alive(int(path.stem)) for path in directory.glob("*.jsonl")) and time.monotonic() < deadline:
             time.sleep(0.1)
         assert not any(alive(int(path.stem)) for path in directory.glob("*.jsonl")), "All probe processes must stop"
+        observation["cleanupComplete"] = True
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--codex", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument("--event", choices=["mcp-kill"])
     args = parser.parse_args()
     args.out = args.out.resolve()
     args.out.mkdir(parents=True, exist_ok=False)
     results = []
-    for event in ("discovery-completed", "stdio-eof", "harness-kill"):
+    version = subprocess.run([str(args.codex), "--version"], capture_output=True, text=True, timeout=5, check=True).stdout.strip()
+    for event in ([args.event] if args.event else ("discovery-completed", "stdio-eof", "harness-kill")):
         results.append(run(args.codex, args.out, event))
+        results[-1]["codexVersion"] = version
         write(args.out / "codex-lifecycle.json", results)
         print(f"Codex {event} observed", flush=True)

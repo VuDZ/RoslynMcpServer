@@ -1,0 +1,24 @@
+{
+  "date": "2026-10-28",
+  "baseCommit": "07224d1a8e49627aded77fb401d4c7059a9f3ef9",
+  "serverVersion": "1.5.18",
+  "filter": "Category!=AnalyzerLifecycle&Category!=RequiresPinnedSdk",
+  "configuration": "Release",
+  "build": {
+    "content": [
+      {
+        "type": "text",
+        "text": "## Build succeeded"
+      }
+    ]
+  },
+  "main": {
+    "content": [
+      {
+        "type": "text",
+        "text": "## Filtered test run\r\n\r\n**Filter:** `Category!=AnalyzerLifecycle&Category!=RequiresPinnedSdk`\r\n**Match:** Caller-supplied VSTest filter\r\n\r\n## Filtered tests passed\r\n\r\nTotal: **1432** · Passed: **1432** · Failed: **0**\r\n\r\nMatched tests: `RoslynMcpServer.Tests.AssemblyResolve.AssemblyReferenceResolverTests.Resolve_uses_assemblyPath_when_file_exists', 'RoslynMcpServer.Tests.Logging.TruncatedProcessLogTests.StripTrailingMsBuildOutcome_keeps_payload_that_is_only_the_footer', 'RoslynMcpServer.Tests.TestRunner.TestFilterHelperTests.BuildFilter_methodOnly_shortName_usesLeadingDotContains', 'RoslynMcpServer.Tests.Navigation.SourcePositionHelperTests.TryGetAbsolutePosition_line_past_eof_returns_readable_error', 'RoslynMcpServer.Tests.Navigation.CodeSkeletonToolsTests.GetCodeSkeleton_returns_friendly_message_when_path_missing`"
+      }
+    ]
+  },
+  "analyzerLifecycle": "not required: standalone spike; production lifecycle and configuration unchanged"
+}

@@ -1,0 +1,1297 @@
+{
+  "utc": "2026-10-28T18:38:15.5682613+00:00",
+  "os": "Ubuntu 24.04.4 LTS",
+  "runtime": "10.0.13",
+  "identity": "981C9DB4D0BA057DB5BC66509FE0AB8F555E7133B7A6C64614B054E3DDFA8F95",
+  "selected": "startup",
+  "results": [
+    {
+      "scenario": "launcher-host-death-and-crash-loop",
+      "protocol": "2025-11-25",
+      "events": [
+        {
+          "utc": "2026-10-28T18:37:53.8953218\u002B00:00",
+          "pid": 568,
+          "key": "d5a0226b4071a1ccebc39afaad6a69a3d1c2934034d24699d2db843c0e6618ff",
+          "descriptor": "host-before-ready",
+          "ticks": 550,
+          "name": "owner",
+          "generation": "782ee72a-6706-4ee8-82cb-7595161d15ff",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:37:53.9031548\u002B00:00",
+          "pid": 568,
+          "key": "d5a0226b4071a1ccebc39afaad6a69a3d1c2934034d24699d2db843c0e6618ff",
+          "descriptor": "host-before-ready",
+          "ticks": 550,
+          "name": "initialization",
+          "generation": "782ee72a-6706-4ee8-82cb-7595161d15ff",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:37:53.9459116\u002B00:00",
+          "pid": 374,
+          "key": "d5a0226b4071a1ccebc39afaad6a69a3d1c2934034d24699d2db843c0e6618ff",
+          "descriptor": "host-before-ready",
+          "ticks": 291,
+          "name": "runner-killed-before-ready",
+          "generation": "782ee72a-6706-4ee8-82cb-7595161d15ff",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:37:56.5774169\u002B00:00",
+          "pid": 582,
+          "key": "d5a0226b4071a1ccebc39afaad6a69a3d1c2934034d24699d2db843c0e6618ff",
+          "descriptor": "host-before-ready",
+          "ticks": 818,
+          "name": "owner",
+          "generation": "4be2ac59-af88-453a-84b3-e7a66da1174b",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:37:56.5847914\u002B00:00",
+          "pid": 582,
+          "key": "d5a0226b4071a1ccebc39afaad6a69a3d1c2934034d24699d2db843c0e6618ff",
+          "descriptor": "host-before-ready",
+          "ticks": 818,
+          "name": "initialization",
+          "generation": "4be2ac59-af88-453a-84b3-e7a66da1174b",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:37:56.5885178\u002B00:00",
+          "pid": 582,
+          "key": "d5a0226b4071a1ccebc39afaad6a69a3d1c2934034d24699d2db843c0e6618ff",
+          "descriptor": "host-before-ready",
+          "ticks": 818,
+          "name": "ready",
+          "generation": "4be2ac59-af88-453a-84b3-e7a66da1174b",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:37:56.5974695\u002B00:00",
+          "pid": 582,
+          "key": "d5a0226b4071a1ccebc39afaad6a69a3d1c2934034d24699d2db843c0e6618ff",
+          "descriptor": "host-before-ready",
+          "ticks": 818,
+          "name": "connected",
+          "generation": "4be2ac59-af88-453a-84b3-e7a66da1174b",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:37:56.7087997\u002B00:00",
+          "pid": 582,
+          "key": "d5a0226b4071a1ccebc39afaad6a69a3d1c2934034d24699d2db843c0e6618ff",
+          "descriptor": "host-before-ready",
+          "ticks": 818,
+          "name": "load-start",
+          "generation": "4be2ac59-af88-453a-84b3-e7a66da1174b",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:37:56.8613745\u002B00:00",
+          "pid": 582,
+          "key": "d5a0226b4071a1ccebc39afaad6a69a3d1c2934034d24699d2db843c0e6618ff",
+          "descriptor": "host-before-ready",
+          "ticks": 818,
+          "name": "load-success",
+          "generation": "4be2ac59-af88-453a-84b3-e7a66da1174b",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:02.4115505\u002B00:00",
+          "pid": 582,
+          "key": "d5a0226b4071a1ccebc39afaad6a69a3d1c2934034d24699d2db843c0e6618ff",
+          "descriptor": "host-before-ready",
+          "ticks": 818,
+          "name": "disconnected",
+          "generation": "4be2ac59-af88-453a-84b3-e7a66da1174b",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:03.4165208\u002B00:00",
+          "pid": 582,
+          "key": "d5a0226b4071a1ccebc39afaad6a69a3d1c2934034d24699d2db843c0e6618ff",
+          "descriptor": "host-before-ready",
+          "ticks": 818,
+          "name": "exit",
+          "generation": "4be2ac59-af88-453a-84b3-e7a66da1174b",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:37:53.8091421\u002B00:00",
+          "pid": 548,
+          "key": "d5a0226b4071a1ccebc39afaad6a69a3d1c2934034d24699d2db843c0e6618ff",
+          "descriptor": "host-before-ready",
+          "ticks": 493,
+          "name": "image-published",
+          "generation": "00000000-0000-0000-0000-000000000000",
+          "data": "981C9DB4D0BA057DB5BC66509FE0AB8F555E7133B7A6C64614B054E3DDFA8F95"
+        },
+        {
+          "utc": "2026-10-28T18:37:53.8181776\u002B00:00",
+          "pid": 548,
+          "key": "d5a0226b4071a1ccebc39afaad6a69a3d1c2934034d24699d2db843c0e6618ff",
+          "descriptor": "host-before-ready",
+          "ticks": 493,
+          "name": "launch",
+          "generation": "00000000-0000-0000-0000-000000000000",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:37:53.8201114\u002B00:00",
+          "pid": 548,
+          "key": "d5a0226b4071a1ccebc39afaad6a69a3d1c2934034d24699d2db843c0e6618ff",
+          "descriptor": "host-before-ready",
+          "ticks": 493,
+          "name": "spawned",
+          "generation": "00000000-0000-0000-0000-000000000000",
+          "data": {
+            "pid": 568,
+            "ticks": 550
+          }
+        },
+        {
+          "utc": "2026-10-28T18:37:56.5053675\u002B00:00",
+          "pid": 548,
+          "key": "d5a0226b4071a1ccebc39afaad6a69a3d1c2934034d24699d2db843c0e6618ff",
+          "descriptor": "host-before-ready",
+          "ticks": 493,
+          "name": "launch",
+          "generation": "00000000-0000-0000-0000-000000000000",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:37:56.5063117\u002B00:00",
+          "pid": 548,
+          "key": "d5a0226b4071a1ccebc39afaad6a69a3d1c2934034d24699d2db843c0e6618ff",
+          "descriptor": "host-before-ready",
+          "ticks": 493,
+          "name": "spawned",
+          "generation": "00000000-0000-0000-0000-000000000000",
+          "data": {
+            "pid": 582,
+            "ticks": 818
+          }
+        },
+        {
+          "utc": "2026-10-28T18:38:02.3926779\u002B00:00",
+          "pid": 548,
+          "key": "d5a0226b4071a1ccebc39afaad6a69a3d1c2934034d24699d2db843c0e6618ff",
+          "descriptor": "host-before-ready",
+          "ticks": 493,
+          "name": "frontend-eof",
+          "generation": "00000000-0000-0000-0000-000000000000",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:00.0903352\u002B00:00",
+          "pid": 618,
+          "key": "efa003beaa435d13982c2d970802c7c8d4cef21a98caeddc011c9bf5a34dd259",
+          "descriptor": "before-lease",
+          "ticks": 913,
+          "name": "owner",
+          "generation": "35ad07fb-4b94-4831-85e8-7b18210a7b50",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:00.099457\u002B00:00",
+          "pid": 618,
+          "key": "efa003beaa435d13982c2d970802c7c8d4cef21a98caeddc011c9bf5a34dd259",
+          "descriptor": "before-lease",
+          "ticks": 913,
+          "name": "initialization",
+          "generation": "35ad07fb-4b94-4831-85e8-7b18210a7b50",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:00.5857807\u002B00:00",
+          "pid": 618,
+          "key": "efa003beaa435d13982c2d970802c7c8d4cef21a98caeddc011c9bf5a34dd259",
+          "descriptor": "before-lease",
+          "ticks": 913,
+          "name": "ready",
+          "generation": "35ad07fb-4b94-4831-85e8-7b18210a7b50",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:00.5935691\u002B00:00",
+          "pid": 618,
+          "key": "efa003beaa435d13982c2d970802c7c8d4cef21a98caeddc011c9bf5a34dd259",
+          "descriptor": "before-lease",
+          "ticks": 913,
+          "name": "connected",
+          "generation": "35ad07fb-4b94-4831-85e8-7b18210a7b50",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:00.6829449\u002B00:00",
+          "pid": 618,
+          "key": "efa003beaa435d13982c2d970802c7c8d4cef21a98caeddc011c9bf5a34dd259",
+          "descriptor": "before-lease",
+          "ticks": 913,
+          "name": "connected",
+          "generation": "35ad07fb-4b94-4831-85e8-7b18210a7b50",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:00.6838189\u002B00:00",
+          "pid": 618,
+          "key": "efa003beaa435d13982c2d970802c7c8d4cef21a98caeddc011c9bf5a34dd259",
+          "descriptor": "before-lease",
+          "ticks": 913,
+          "name": "disconnected",
+          "generation": "35ad07fb-4b94-4831-85e8-7b18210a7b50",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:00.6994787\u002B00:00",
+          "pid": 618,
+          "key": "efa003beaa435d13982c2d970802c7c8d4cef21a98caeddc011c9bf5a34dd259",
+          "descriptor": "before-lease",
+          "ticks": 913,
+          "name": "load-start",
+          "generation": "35ad07fb-4b94-4831-85e8-7b18210a7b50",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:00.8499786\u002B00:00",
+          "pid": 618,
+          "key": "efa003beaa435d13982c2d970802c7c8d4cef21a98caeddc011c9bf5a34dd259",
+          "descriptor": "before-lease",
+          "ticks": 913,
+          "name": "load-success",
+          "generation": "35ad07fb-4b94-4831-85e8-7b18210a7b50",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:02.3967492\u002B00:00",
+          "pid": 618,
+          "key": "efa003beaa435d13982c2d970802c7c8d4cef21a98caeddc011c9bf5a34dd259",
+          "descriptor": "before-lease",
+          "ticks": 913,
+          "name": "disconnected",
+          "generation": "35ad07fb-4b94-4831-85e8-7b18210a7b50",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:03.4517348\u002B00:00",
+          "pid": 618,
+          "key": "efa003beaa435d13982c2d970802c7c8d4cef21a98caeddc011c9bf5a34dd259",
+          "descriptor": "before-lease",
+          "ticks": 913,
+          "name": "exit",
+          "generation": "35ad07fb-4b94-4831-85e8-7b18210a7b50",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:00.1499773\u002B00:00",
+          "pid": 655,
+          "key": "efa003beaa435d13982c2d970802c7c8d4cef21a98caeddc011c9bf5a34dd259",
+          "descriptor": "before-lease",
+          "ticks": 1175,
+          "name": "lease-rejected",
+          "generation": "00000000-0000-0000-0000-000000000000",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:00.0638853\u002B00:00",
+          "pid": 634,
+          "key": "efa003beaa435d13982c2d970802c7c8d4cef21a98caeddc011c9bf5a34dd259",
+          "descriptor": "before-lease",
+          "ticks": 1124,
+          "name": "launch",
+          "generation": "00000000-0000-0000-0000-000000000000",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:00.0718542\u002B00:00",
+          "pid": 634,
+          "key": "efa003beaa435d13982c2d970802c7c8d4cef21a98caeddc011c9bf5a34dd259",
+          "descriptor": "before-lease",
+          "ticks": 1124,
+          "name": "spawned",
+          "generation": "00000000-0000-0000-0000-000000000000",
+          "data": {
+            "pid": 655,
+            "ticks": 1175
+          }
+        },
+        {
+          "utc": "2026-10-28T18:38:02.3899595\u002B00:00",
+          "pid": 634,
+          "key": "efa003beaa435d13982c2d970802c7c8d4cef21a98caeddc011c9bf5a34dd259",
+          "descriptor": "before-lease",
+          "ticks": 1124,
+          "name": "frontend-eof",
+          "generation": "00000000-0000-0000-0000-000000000000",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:37:57.4386079\u002B00:00",
+          "pid": 598,
+          "key": "efa003beaa435d13982c2d970802c7c8d4cef21a98caeddc011c9bf5a34dd259",
+          "descriptor": "before-lease",
+          "ticks": 855,
+          "name": "image-published",
+          "generation": "00000000-0000-0000-0000-000000000000",
+          "data": "981C9DB4D0BA057DB5BC66509FE0AB8F555E7133B7A6C64614B054E3DDFA8F95"
+        },
+        {
+          "utc": "2026-10-28T18:37:57.4480001\u002B00:00",
+          "pid": 598,
+          "key": "efa003beaa435d13982c2d970802c7c8d4cef21a98caeddc011c9bf5a34dd259",
+          "descriptor": "before-lease",
+          "ticks": 855,
+          "name": "launch",
+          "generation": "00000000-0000-0000-0000-000000000000",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:37:57.4499302\u002B00:00",
+          "pid": 598,
+          "key": "efa003beaa435d13982c2d970802c7c8d4cef21a98caeddc011c9bf5a34dd259",
+          "descriptor": "before-lease",
+          "ticks": 855,
+          "name": "spawned",
+          "generation": "00000000-0000-0000-0000-000000000000",
+          "data": {
+            "pid": 618,
+            "ticks": 913
+          }
+        },
+        {
+          "utc": "2026-10-28T18:37:52.6712067\u002B00:00",
+          "pid": 507,
+          "key": "58f4a12405a501f623bfbb32ab5de8b7d8eabc54bb849b623e29a6834901b169",
+          "descriptor": "startup",
+          "ticks": 427,
+          "name": "owner",
+          "generation": "d4a5e828-9580-483e-b60b-ea29d7b04423",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:37:52.678289\u002B00:00",
+          "pid": 507,
+          "key": "58f4a12405a501f623bfbb32ab5de8b7d8eabc54bb849b623e29a6834901b169",
+          "descriptor": "startup",
+          "ticks": 427,
+          "name": "initialization",
+          "generation": "d4a5e828-9580-483e-b60b-ea29d7b04423",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:37:52.9454312\u002B00:00",
+          "pid": 507,
+          "key": "58f4a12405a501f623bfbb32ab5de8b7d8eabc54bb849b623e29a6834901b169",
+          "descriptor": "startup",
+          "ticks": 427,
+          "name": "ready",
+          "generation": "d4a5e828-9580-483e-b60b-ea29d7b04423",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:37:52.9542289\u002B00:00",
+          "pid": 507,
+          "key": "58f4a12405a501f623bfbb32ab5de8b7d8eabc54bb849b623e29a6834901b169",
+          "descriptor": "startup",
+          "ticks": 427,
+          "name": "connected",
+          "generation": "d4a5e828-9580-483e-b60b-ea29d7b04423",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:37:53.0651503\u002B00:00",
+          "pid": 507,
+          "key": "58f4a12405a501f623bfbb32ab5de8b7d8eabc54bb849b623e29a6834901b169",
+          "descriptor": "startup",
+          "ticks": 427,
+          "name": "load-start",
+          "generation": "d4a5e828-9580-483e-b60b-ea29d7b04423",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:37:53.2185719\u002B00:00",
+          "pid": 507,
+          "key": "58f4a12405a501f623bfbb32ab5de8b7d8eabc54bb849b623e29a6834901b169",
+          "descriptor": "startup",
+          "ticks": 427,
+          "name": "load-success",
+          "generation": "d4a5e828-9580-483e-b60b-ea29d7b04423",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:02.4179993\u002B00:00",
+          "pid": 507,
+          "key": "58f4a12405a501f623bfbb32ab5de8b7d8eabc54bb849b623e29a6834901b169",
+          "descriptor": "startup",
+          "ticks": 427,
+          "name": "disconnected",
+          "generation": "d4a5e828-9580-483e-b60b-ea29d7b04423",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:03.4723601\u002B00:00",
+          "pid": 507,
+          "key": "58f4a12405a501f623bfbb32ab5de8b7d8eabc54bb849b623e29a6834901b169",
+          "descriptor": "startup",
+          "ticks": 427,
+          "name": "exit",
+          "generation": "d4a5e828-9580-483e-b60b-ea29d7b04423",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:02.3953722\u002B00:00",
+          "pid": 522,
+          "key": "58f4a12405a501f623bfbb32ab5de8b7d8eabc54bb849b623e29a6834901b169",
+          "descriptor": "startup",
+          "ticks": 439,
+          "name": "frontend-eof",
+          "generation": "00000000-0000-0000-0000-000000000000",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:37:52.5841596\u002B00:00",
+          "pid": 483,
+          "key": "58f4a12405a501f623bfbb32ab5de8b7d8eabc54bb849b623e29a6834901b169",
+          "descriptor": "startup",
+          "ticks": 366,
+          "name": "image-published",
+          "generation": "00000000-0000-0000-0000-000000000000",
+          "data": "981C9DB4D0BA057DB5BC66509FE0AB8F555E7133B7A6C64614B054E3DDFA8F95"
+        },
+        {
+          "utc": "2026-10-28T18:37:52.5939468\u002B00:00",
+          "pid": 483,
+          "key": "58f4a12405a501f623bfbb32ab5de8b7d8eabc54bb849b623e29a6834901b169",
+          "descriptor": "startup",
+          "ticks": 366,
+          "name": "launch",
+          "generation": "00000000-0000-0000-0000-000000000000",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:37:52.5960901\u002B00:00",
+          "pid": 483,
+          "key": "58f4a12405a501f623bfbb32ab5de8b7d8eabc54bb849b623e29a6834901b169",
+          "descriptor": "startup",
+          "ticks": 366,
+          "name": "spawned",
+          "generation": "00000000-0000-0000-0000-000000000000",
+          "data": {
+            "pid": 507,
+            "ticks": 427
+          }
+        },
+        {
+          "utc": "2026-10-28T18:38:02.3959956\u002B00:00",
+          "pid": 727,
+          "key": "532e79c3e2ba5725cba7fe70cd4ca93acad045ddec3644463b6fb32b800d8379",
+          "descriptor": "crash-loop",
+          "ticks": 1260,
+          "name": "frontend-eof",
+          "generation": "00000000-0000-0000-0000-000000000000",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:02.3945243\u002B00:00",
+          "pid": 674,
+          "key": "532e79c3e2ba5725cba7fe70cd4ca93acad045ddec3644463b6fb32b800d8379",
+          "descriptor": "crash-loop",
+          "ticks": 1255,
+          "name": "frontend-eof",
+          "generation": "00000000-0000-0000-0000-000000000000",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:02.3952235\u002B00:00",
+          "pid": 724,
+          "key": "532e79c3e2ba5725cba7fe70cd4ca93acad045ddec3644463b6fb32b800d8379",
+          "descriptor": "crash-loop",
+          "ticks": 1260,
+          "name": "frontend-eof",
+          "generation": "00000000-0000-0000-0000-000000000000",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:02.3957655\u002B00:00",
+          "pid": 728,
+          "key": "532e79c3e2ba5725cba7fe70cd4ca93acad045ddec3644463b6fb32b800d8379",
+          "descriptor": "crash-loop",
+          "ticks": 1260,
+          "name": "frontend-eof",
+          "generation": "00000000-0000-0000-0000-000000000000",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:02.3942703\u002B00:00",
+          "pid": 671,
+          "key": "532e79c3e2ba5725cba7fe70cd4ca93acad045ddec3644463b6fb32b800d8379",
+          "descriptor": "crash-loop",
+          "ticks": 1255,
+          "name": "frontend-eof",
+          "generation": "00000000-0000-0000-0000-000000000000",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:02.3943927\u002B00:00",
+          "pid": 673,
+          "key": "532e79c3e2ba5725cba7fe70cd4ca93acad045ddec3644463b6fb32b800d8379",
+          "descriptor": "crash-loop",
+          "ticks": 1255,
+          "name": "frontend-eof",
+          "generation": "00000000-0000-0000-0000-000000000000",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:02.3968899\u002B00:00",
+          "pid": 726,
+          "key": "532e79c3e2ba5725cba7fe70cd4ca93acad045ddec3644463b6fb32b800d8379",
+          "descriptor": "crash-loop",
+          "ticks": 1260,
+          "name": "frontend-eof",
+          "generation": "00000000-0000-0000-0000-000000000000",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:02.3968931\u002B00:00",
+          "pid": 725,
+          "key": "532e79c3e2ba5725cba7fe70cd4ca93acad045ddec3644463b6fb32b800d8379",
+          "descriptor": "crash-loop",
+          "ticks": 1260,
+          "name": "frontend-eof",
+          "generation": "00000000-0000-0000-0000-000000000000",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:01.6925704\u002B00:00",
+          "pid": 861,
+          "key": "532e79c3e2ba5725cba7fe70cd4ca93acad045ddec3644463b6fb32b800d8379",
+          "descriptor": "crash-loop",
+          "ticks": 1329,
+          "name": "owner",
+          "generation": "6d39afc9-bed5-4029-a960-f43c293aed8c",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:01.7005973\u002B00:00",
+          "pid": 861,
+          "key": "532e79c3e2ba5725cba7fe70cd4ca93acad045ddec3644463b6fb32b800d8379",
+          "descriptor": "crash-loop",
+          "ticks": 1329,
+          "name": "initialization",
+          "generation": "6d39afc9-bed5-4029-a960-f43c293aed8c",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:01.700716\u002B00:00",
+          "pid": 861,
+          "key": "532e79c3e2ba5725cba7fe70cd4ca93acad045ddec3644463b6fb32b800d8379",
+          "descriptor": "crash-loop",
+          "ticks": 1329,
+          "name": "controlled-crash",
+          "generation": "6d39afc9-bed5-4029-a960-f43c293aed8c",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:01.6024193\u002B00:00",
+          "pid": 675,
+          "key": "532e79c3e2ba5725cba7fe70cd4ca93acad045ddec3644463b6fb32b800d8379",
+          "descriptor": "crash-loop",
+          "ticks": 1255,
+          "name": "image-published",
+          "generation": "00000000-0000-0000-0000-000000000000",
+          "data": "981C9DB4D0BA057DB5BC66509FE0AB8F555E7133B7A6C64614B054E3DDFA8F95"
+        },
+        {
+          "utc": "2026-10-28T18:38:01.6121124\u002B00:00",
+          "pid": 675,
+          "key": "532e79c3e2ba5725cba7fe70cd4ca93acad045ddec3644463b6fb32b800d8379",
+          "descriptor": "crash-loop",
+          "ticks": 1255,
+          "name": "launch",
+          "generation": "00000000-0000-0000-0000-000000000000",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:01.614116\u002B00:00",
+          "pid": 675,
+          "key": "532e79c3e2ba5725cba7fe70cd4ca93acad045ddec3644463b6fb32b800d8379",
+          "descriptor": "crash-loop",
+          "ticks": 1255,
+          "name": "spawned",
+          "generation": "00000000-0000-0000-0000-000000000000",
+          "data": {
+            "pid": 861,
+            "ticks": 1329
+          }
+        },
+        {
+          "utc": "2026-10-28T18:38:02.3929974\u002B00:00",
+          "pid": 675,
+          "key": "532e79c3e2ba5725cba7fe70cd4ca93acad045ddec3644463b6fb32b800d8379",
+          "descriptor": "crash-loop",
+          "ticks": 1255,
+          "name": "frontend-eof",
+          "generation": "00000000-0000-0000-0000-000000000000",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:02.3953651\u002B00:00",
+          "pid": 672,
+          "key": "532e79c3e2ba5725cba7fe70cd4ca93acad045ddec3644463b6fb32b800d8379",
+          "descriptor": "crash-loop",
+          "ticks": 1255,
+          "name": "frontend-eof",
+          "generation": "00000000-0000-0000-0000-000000000000",
+          "data": null
+        }
+      ]
+    },
+    {
+      "scenario": "launcher-host-death-and-crash-loop",
+      "protocol": "2026-07-28",
+      "events": [
+        {
+          "utc": "2026-10-28T18:38:04.2627516\u002B00:00",
+          "pid": 877,
+          "key": "43f9688bc8e7e08ec8fb080b88d9ca248b09c2dbb890082128dee2c026ca9a6d",
+          "descriptor": "startup",
+          "ticks": 1540,
+          "name": "image-published",
+          "generation": "00000000-0000-0000-0000-000000000000",
+          "data": "981C9DB4D0BA057DB5BC66509FE0AB8F555E7133B7A6C64614B054E3DDFA8F95"
+        },
+        {
+          "utc": "2026-10-28T18:38:04.2734035\u002B00:00",
+          "pid": 877,
+          "key": "43f9688bc8e7e08ec8fb080b88d9ca248b09c2dbb890082128dee2c026ca9a6d",
+          "descriptor": "startup",
+          "ticks": 1540,
+          "name": "launch",
+          "generation": "00000000-0000-0000-0000-000000000000",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:04.2752447\u002B00:00",
+          "pid": 877,
+          "key": "43f9688bc8e7e08ec8fb080b88d9ca248b09c2dbb890082128dee2c026ca9a6d",
+          "descriptor": "startup",
+          "ticks": 1540,
+          "name": "spawned",
+          "generation": "00000000-0000-0000-0000-000000000000",
+          "data": {
+            "pid": 896,
+            "ticks": 1595
+          }
+        },
+        {
+          "utc": "2026-10-28T18:38:04.3413653\u002B00:00",
+          "pid": 896,
+          "key": "43f9688bc8e7e08ec8fb080b88d9ca248b09c2dbb890082128dee2c026ca9a6d",
+          "descriptor": "startup",
+          "ticks": 1595,
+          "name": "owner",
+          "generation": "552a9971-4269-4a03-b324-ed7d02ef05da",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:04.3482565\u002B00:00",
+          "pid": 896,
+          "key": "43f9688bc8e7e08ec8fb080b88d9ca248b09c2dbb890082128dee2c026ca9a6d",
+          "descriptor": "startup",
+          "ticks": 1595,
+          "name": "initialization",
+          "generation": "552a9971-4269-4a03-b324-ed7d02ef05da",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:04.5741236\u002B00:00",
+          "pid": 896,
+          "key": "43f9688bc8e7e08ec8fb080b88d9ca248b09c2dbb890082128dee2c026ca9a6d",
+          "descriptor": "startup",
+          "ticks": 1595,
+          "name": "ready",
+          "generation": "552a9971-4269-4a03-b324-ed7d02ef05da",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:04.5851449\u002B00:00",
+          "pid": 896,
+          "key": "43f9688bc8e7e08ec8fb080b88d9ca248b09c2dbb890082128dee2c026ca9a6d",
+          "descriptor": "startup",
+          "ticks": 1595,
+          "name": "connected",
+          "generation": "552a9971-4269-4a03-b324-ed7d02ef05da",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:04.6842876\u002B00:00",
+          "pid": 896,
+          "key": "43f9688bc8e7e08ec8fb080b88d9ca248b09c2dbb890082128dee2c026ca9a6d",
+          "descriptor": "startup",
+          "ticks": 1595,
+          "name": "load-start",
+          "generation": "552a9971-4269-4a03-b324-ed7d02ef05da",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:04.8315722\u002B00:00",
+          "pid": 896,
+          "key": "43f9688bc8e7e08ec8fb080b88d9ca248b09c2dbb890082128dee2c026ca9a6d",
+          "descriptor": "startup",
+          "ticks": 1595,
+          "name": "load-success",
+          "generation": "552a9971-4269-4a03-b324-ed7d02ef05da",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:14.2710701\u002B00:00",
+          "pid": 896,
+          "key": "43f9688bc8e7e08ec8fb080b88d9ca248b09c2dbb890082128dee2c026ca9a6d",
+          "descriptor": "startup",
+          "ticks": 1595,
+          "name": "disconnected",
+          "generation": "552a9971-4269-4a03-b324-ed7d02ef05da",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:15.3036133\u002B00:00",
+          "pid": 896,
+          "key": "43f9688bc8e7e08ec8fb080b88d9ca248b09c2dbb890082128dee2c026ca9a6d",
+          "descriptor": "startup",
+          "ticks": 1595,
+          "name": "exit",
+          "generation": "552a9971-4269-4a03-b324-ed7d02ef05da",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:14.2471039\u002B00:00",
+          "pid": 909,
+          "key": "43f9688bc8e7e08ec8fb080b88d9ca248b09c2dbb890082128dee2c026ca9a6d",
+          "descriptor": "startup",
+          "ticks": 1604,
+          "name": "frontend-eof",
+          "generation": "00000000-0000-0000-0000-000000000000",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:08.1492747\u002B00:00",
+          "pid": 964,
+          "key": "dcd39245d3f6e1394535b625d6f0f238d95afd72b485a3c59f47d0cfd901e864",
+          "descriptor": "host-before-ready",
+          "ticks": 1975,
+          "name": "owner",
+          "generation": "21ba29df-b0fb-42f4-9d99-9806d36cdbb8",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:08.1581889\u002B00:00",
+          "pid": 964,
+          "key": "dcd39245d3f6e1394535b625d6f0f238d95afd72b485a3c59f47d0cfd901e864",
+          "descriptor": "host-before-ready",
+          "ticks": 1975,
+          "name": "initialization",
+          "generation": "21ba29df-b0fb-42f4-9d99-9806d36cdbb8",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:08.1616123\u002B00:00",
+          "pid": 964,
+          "key": "dcd39245d3f6e1394535b625d6f0f238d95afd72b485a3c59f47d0cfd901e864",
+          "descriptor": "host-before-ready",
+          "ticks": 1975,
+          "name": "ready",
+          "generation": "21ba29df-b0fb-42f4-9d99-9806d36cdbb8",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:08.1692128\u002B00:00",
+          "pid": 964,
+          "key": "dcd39245d3f6e1394535b625d6f0f238d95afd72b485a3c59f47d0cfd901e864",
+          "descriptor": "host-before-ready",
+          "ticks": 1975,
+          "name": "connected",
+          "generation": "21ba29df-b0fb-42f4-9d99-9806d36cdbb8",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:08.2721283\u002B00:00",
+          "pid": 964,
+          "key": "dcd39245d3f6e1394535b625d6f0f238d95afd72b485a3c59f47d0cfd901e864",
+          "descriptor": "host-before-ready",
+          "ticks": 1975,
+          "name": "load-start",
+          "generation": "21ba29df-b0fb-42f4-9d99-9806d36cdbb8",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:08.4194043\u002B00:00",
+          "pid": 964,
+          "key": "dcd39245d3f6e1394535b625d6f0f238d95afd72b485a3c59f47d0cfd901e864",
+          "descriptor": "host-before-ready",
+          "ticks": 1975,
+          "name": "load-success",
+          "generation": "21ba29df-b0fb-42f4-9d99-9806d36cdbb8",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:14.2624805\u002B00:00",
+          "pid": 964,
+          "key": "dcd39245d3f6e1394535b625d6f0f238d95afd72b485a3c59f47d0cfd901e864",
+          "descriptor": "host-before-ready",
+          "ticks": 1975,
+          "name": "disconnected",
+          "generation": "21ba29df-b0fb-42f4-9d99-9806d36cdbb8",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:15.3037468\u002B00:00",
+          "pid": 964,
+          "key": "dcd39245d3f6e1394535b625d6f0f238d95afd72b485a3c59f47d0cfd901e864",
+          "descriptor": "host-before-ready",
+          "ticks": 1975,
+          "name": "exit",
+          "generation": "21ba29df-b0fb-42f4-9d99-9806d36cdbb8",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:05.489277\u002B00:00",
+          "pid": 374,
+          "key": "dcd39245d3f6e1394535b625d6f0f238d95afd72b485a3c59f47d0cfd901e864",
+          "descriptor": "host-before-ready",
+          "ticks": 291,
+          "name": "runner-killed-before-ready",
+          "generation": "b4353d85-56c1-49ca-9069-e572c28db632",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:05.4649597\u002B00:00",
+          "pid": 951,
+          "key": "dcd39245d3f6e1394535b625d6f0f238d95afd72b485a3c59f47d0cfd901e864",
+          "descriptor": "host-before-ready",
+          "ticks": 1707,
+          "name": "owner",
+          "generation": "b4353d85-56c1-49ca-9069-e572c28db632",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:05.4713892\u002B00:00",
+          "pid": 951,
+          "key": "dcd39245d3f6e1394535b625d6f0f238d95afd72b485a3c59f47d0cfd901e864",
+          "descriptor": "host-before-ready",
+          "ticks": 1707,
+          "name": "initialization",
+          "generation": "b4353d85-56c1-49ca-9069-e572c28db632",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:05.3836384\u002B00:00",
+          "pid": 931,
+          "key": "dcd39245d3f6e1394535b625d6f0f238d95afd72b485a3c59f47d0cfd901e864",
+          "descriptor": "host-before-ready",
+          "ticks": 1653,
+          "name": "image-published",
+          "generation": "00000000-0000-0000-0000-000000000000",
+          "data": "981C9DB4D0BA057DB5BC66509FE0AB8F555E7133B7A6C64614B054E3DDFA8F95"
+        },
+        {
+          "utc": "2026-10-28T18:38:05.3930908\u002B00:00",
+          "pid": 931,
+          "key": "dcd39245d3f6e1394535b625d6f0f238d95afd72b485a3c59f47d0cfd901e864",
+          "descriptor": "host-before-ready",
+          "ticks": 1653,
+          "name": "launch",
+          "generation": "00000000-0000-0000-0000-000000000000",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:05.3948679\u002B00:00",
+          "pid": 931,
+          "key": "dcd39245d3f6e1394535b625d6f0f238d95afd72b485a3c59f47d0cfd901e864",
+          "descriptor": "host-before-ready",
+          "ticks": 1653,
+          "name": "spawned",
+          "generation": "00000000-0000-0000-0000-000000000000",
+          "data": {
+            "pid": 951,
+            "ticks": 1707
+          }
+        },
+        {
+          "utc": "2026-10-28T18:38:08.0745258\u002B00:00",
+          "pid": 931,
+          "key": "dcd39245d3f6e1394535b625d6f0f238d95afd72b485a3c59f47d0cfd901e864",
+          "descriptor": "host-before-ready",
+          "ticks": 1653,
+          "name": "launch",
+          "generation": "00000000-0000-0000-0000-000000000000",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:08.0754575\u002B00:00",
+          "pid": 931,
+          "key": "dcd39245d3f6e1394535b625d6f0f238d95afd72b485a3c59f47d0cfd901e864",
+          "descriptor": "host-before-ready",
+          "ticks": 1653,
+          "name": "spawned",
+          "generation": "00000000-0000-0000-0000-000000000000",
+          "data": {
+            "pid": 964,
+            "ticks": 1975
+          }
+        },
+        {
+          "utc": "2026-10-28T18:38:14.2420411\u002B00:00",
+          "pid": 931,
+          "key": "dcd39245d3f6e1394535b625d6f0f238d95afd72b485a3c59f47d0cfd901e864",
+          "descriptor": "host-before-ready",
+          "ticks": 1653,
+          "name": "frontend-eof",
+          "generation": "00000000-0000-0000-0000-000000000000",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:14.2447021\u002B00:00",
+          "pid": 1056,
+          "key": "09d2ad77854d69099fd3643550e8efea9f9c74a6a982fc562d8d4085a0310abd",
+          "descriptor": "crash-loop",
+          "ticks": 2410,
+          "name": "frontend-eof",
+          "generation": "00000000-0000-0000-0000-000000000000",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:14.2439395\u002B00:00",
+          "pid": 1050,
+          "key": "09d2ad77854d69099fd3643550e8efea9f9c74a6a982fc562d8d4085a0310abd",
+          "descriptor": "crash-loop",
+          "ticks": 2410,
+          "name": "frontend-eof",
+          "generation": "00000000-0000-0000-0000-000000000000",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:14.2451788\u002B00:00",
+          "pid": 1052,
+          "key": "09d2ad77854d69099fd3643550e8efea9f9c74a6a982fc562d8d4085a0310abd",
+          "descriptor": "crash-loop",
+          "ticks": 2410,
+          "name": "frontend-eof",
+          "generation": "00000000-0000-0000-0000-000000000000",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:14.2435258\u002B00:00",
+          "pid": 1057,
+          "key": "09d2ad77854d69099fd3643550e8efea9f9c74a6a982fc562d8d4085a0310abd",
+          "descriptor": "crash-loop",
+          "ticks": 2410,
+          "name": "frontend-eof",
+          "generation": "00000000-0000-0000-0000-000000000000",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:13.2753851\u002B00:00",
+          "pid": 1231,
+          "key": "09d2ad77854d69099fd3643550e8efea9f9c74a6a982fc562d8d4085a0310abd",
+          "descriptor": "crash-loop",
+          "ticks": 2487,
+          "name": "owner",
+          "generation": "8ef7ecb3-fb6d-4456-b33b-91aac6db06a4",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:13.2842505\u002B00:00",
+          "pid": 1231,
+          "key": "09d2ad77854d69099fd3643550e8efea9f9c74a6a982fc562d8d4085a0310abd",
+          "descriptor": "crash-loop",
+          "ticks": 2487,
+          "name": "initialization",
+          "generation": "8ef7ecb3-fb6d-4456-b33b-91aac6db06a4",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:13.2843777\u002B00:00",
+          "pid": 1231,
+          "key": "09d2ad77854d69099fd3643550e8efea9f9c74a6a982fc562d8d4085a0310abd",
+          "descriptor": "crash-loop",
+          "ticks": 2487,
+          "name": "controlled-crash",
+          "generation": "8ef7ecb3-fb6d-4456-b33b-91aac6db06a4",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:14.2446406\u002B00:00",
+          "pid": 1053,
+          "key": "09d2ad77854d69099fd3643550e8efea9f9c74a6a982fc562d8d4085a0310abd",
+          "descriptor": "crash-loop",
+          "ticks": 2410,
+          "name": "frontend-eof",
+          "generation": "00000000-0000-0000-0000-000000000000",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:14.2464757\u002B00:00",
+          "pid": 1054,
+          "key": "09d2ad77854d69099fd3643550e8efea9f9c74a6a982fc562d8d4085a0310abd",
+          "descriptor": "crash-loop",
+          "ticks": 2410,
+          "name": "frontend-eof",
+          "generation": "00000000-0000-0000-0000-000000000000",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:14.2438786\u002B00:00",
+          "pid": 1051,
+          "key": "09d2ad77854d69099fd3643550e8efea9f9c74a6a982fc562d8d4085a0310abd",
+          "descriptor": "crash-loop",
+          "ticks": 2410,
+          "name": "frontend-eof",
+          "generation": "00000000-0000-0000-0000-000000000000",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:14.2438299\u002B00:00",
+          "pid": 1049,
+          "key": "09d2ad77854d69099fd3643550e8efea9f9c74a6a982fc562d8d4085a0310abd",
+          "descriptor": "crash-loop",
+          "ticks": 2410,
+          "name": "frontend-eof",
+          "generation": "00000000-0000-0000-0000-000000000000",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:14.2465632\u002B00:00",
+          "pid": 1055,
+          "key": "09d2ad77854d69099fd3643550e8efea9f9c74a6a982fc562d8d4085a0310abd",
+          "descriptor": "crash-loop",
+          "ticks": 2410,
+          "name": "frontend-eof",
+          "generation": "00000000-0000-0000-0000-000000000000",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:13.1785486\u002B00:00",
+          "pid": 1058,
+          "key": "09d2ad77854d69099fd3643550e8efea9f9c74a6a982fc562d8d4085a0310abd",
+          "descriptor": "crash-loop",
+          "ticks": 2411,
+          "name": "image-published",
+          "generation": "00000000-0000-0000-0000-000000000000",
+          "data": "981C9DB4D0BA057DB5BC66509FE0AB8F555E7133B7A6C64614B054E3DDFA8F95"
+        },
+        {
+          "utc": "2026-10-28T18:38:13.1883225\u002B00:00",
+          "pid": 1058,
+          "key": "09d2ad77854d69099fd3643550e8efea9f9c74a6a982fc562d8d4085a0310abd",
+          "descriptor": "crash-loop",
+          "ticks": 2411,
+          "name": "launch",
+          "generation": "00000000-0000-0000-0000-000000000000",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:13.1905259\u002B00:00",
+          "pid": 1058,
+          "key": "09d2ad77854d69099fd3643550e8efea9f9c74a6a982fc562d8d4085a0310abd",
+          "descriptor": "crash-loop",
+          "ticks": 2411,
+          "name": "spawned",
+          "generation": "00000000-0000-0000-0000-000000000000",
+          "data": {
+            "pid": 1231,
+            "ticks": 2487
+          }
+        },
+        {
+          "utc": "2026-10-28T18:38:14.243231\u002B00:00",
+          "pid": 1058,
+          "key": "09d2ad77854d69099fd3643550e8efea9f9c74a6a982fc562d8d4085a0310abd",
+          "descriptor": "crash-loop",
+          "ticks": 2411,
+          "name": "frontend-eof",
+          "generation": "00000000-0000-0000-0000-000000000000",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:11.7157611\u002B00:00",
+          "pid": 1033,
+          "key": "4aef3bbc0efa91e8d4b15744c8033ab97fe6a950bb5dcef2631fcb24ec3f26bc",
+          "descriptor": "before-lease",
+          "ticks": 2331,
+          "name": "lease-rejected",
+          "generation": "00000000-0000-0000-0000-000000000000",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:11.6260173\u002B00:00",
+          "pid": 1013,
+          "key": "4aef3bbc0efa91e8d4b15744c8033ab97fe6a950bb5dcef2631fcb24ec3f26bc",
+          "descriptor": "before-lease",
+          "ticks": 2279,
+          "name": "launch",
+          "generation": "00000000-0000-0000-0000-000000000000",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:11.6339576\u002B00:00",
+          "pid": 1013,
+          "key": "4aef3bbc0efa91e8d4b15744c8033ab97fe6a950bb5dcef2631fcb24ec3f26bc",
+          "descriptor": "before-lease",
+          "ticks": 2279,
+          "name": "spawned",
+          "generation": "00000000-0000-0000-0000-000000000000",
+          "data": {
+            "pid": 1033,
+            "ticks": 2331
+          }
+        },
+        {
+          "utc": "2026-10-28T18:38:14.2391234\u002B00:00",
+          "pid": 1013,
+          "key": "4aef3bbc0efa91e8d4b15744c8033ab97fe6a950bb5dcef2631fcb24ec3f26bc",
+          "descriptor": "before-lease",
+          "ticks": 2279,
+          "name": "frontend-eof",
+          "generation": "00000000-0000-0000-0000-000000000000",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:08.986943\u002B00:00",
+          "pid": 980,
+          "key": "4aef3bbc0efa91e8d4b15744c8033ab97fe6a950bb5dcef2631fcb24ec3f26bc",
+          "descriptor": "before-lease",
+          "ticks": 2011,
+          "name": "image-published",
+          "generation": "00000000-0000-0000-0000-000000000000",
+          "data": "981C9DB4D0BA057DB5BC66509FE0AB8F555E7133B7A6C64614B054E3DDFA8F95"
+        },
+        {
+          "utc": "2026-10-28T18:38:08.9979459\u002B00:00",
+          "pid": 980,
+          "key": "4aef3bbc0efa91e8d4b15744c8033ab97fe6a950bb5dcef2631fcb24ec3f26bc",
+          "descriptor": "before-lease",
+          "ticks": 2011,
+          "name": "launch",
+          "generation": "00000000-0000-0000-0000-000000000000",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:09.0001446\u002B00:00",
+          "pid": 980,
+          "key": "4aef3bbc0efa91e8d4b15744c8033ab97fe6a950bb5dcef2631fcb24ec3f26bc",
+          "descriptor": "before-lease",
+          "ticks": 2011,
+          "name": "spawned",
+          "generation": "00000000-0000-0000-0000-000000000000",
+          "data": {
+            "pid": 1000,
+            "ticks": 2068
+          }
+        },
+        {
+          "utc": "2026-10-28T18:38:11.6501458\u002B00:00",
+          "pid": 1000,
+          "key": "4aef3bbc0efa91e8d4b15744c8033ab97fe6a950bb5dcef2631fcb24ec3f26bc",
+          "descriptor": "before-lease",
+          "ticks": 2068,
+          "name": "owner",
+          "generation": "c0574359-b4bb-482d-897f-b69d65b2cb83",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:11.6588597\u002B00:00",
+          "pid": 1000,
+          "key": "4aef3bbc0efa91e8d4b15744c8033ab97fe6a950bb5dcef2631fcb24ec3f26bc",
+          "descriptor": "before-lease",
+          "ticks": 2068,
+          "name": "initialization",
+          "generation": "c0574359-b4bb-482d-897f-b69d65b2cb83",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:12.1438213\u002B00:00",
+          "pid": 1000,
+          "key": "4aef3bbc0efa91e8d4b15744c8033ab97fe6a950bb5dcef2631fcb24ec3f26bc",
+          "descriptor": "before-lease",
+          "ticks": 2068,
+          "name": "ready",
+          "generation": "c0574359-b4bb-482d-897f-b69d65b2cb83",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:12.1513875\u002B00:00",
+          "pid": 1000,
+          "key": "4aef3bbc0efa91e8d4b15744c8033ab97fe6a950bb5dcef2631fcb24ec3f26bc",
+          "descriptor": "before-lease",
+          "ticks": 2068,
+          "name": "connected",
+          "generation": "c0574359-b4bb-482d-897f-b69d65b2cb83",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:12.2424346\u002B00:00",
+          "pid": 1000,
+          "key": "4aef3bbc0efa91e8d4b15744c8033ab97fe6a950bb5dcef2631fcb24ec3f26bc",
+          "descriptor": "before-lease",
+          "ticks": 2068,
+          "name": "connected",
+          "generation": "c0574359-b4bb-482d-897f-b69d65b2cb83",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:12.2438853\u002B00:00",
+          "pid": 1000,
+          "key": "4aef3bbc0efa91e8d4b15744c8033ab97fe6a950bb5dcef2631fcb24ec3f26bc",
+          "descriptor": "before-lease",
+          "ticks": 2068,
+          "name": "disconnected",
+          "generation": "c0574359-b4bb-482d-897f-b69d65b2cb83",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:12.2593682\u002B00:00",
+          "pid": 1000,
+          "key": "4aef3bbc0efa91e8d4b15744c8033ab97fe6a950bb5dcef2631fcb24ec3f26bc",
+          "descriptor": "before-lease",
+          "ticks": 2068,
+          "name": "load-start",
+          "generation": "c0574359-b4bb-482d-897f-b69d65b2cb83",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:12.4068757\u002B00:00",
+          "pid": 1000,
+          "key": "4aef3bbc0efa91e8d4b15744c8033ab97fe6a950bb5dcef2631fcb24ec3f26bc",
+          "descriptor": "before-lease",
+          "ticks": 2068,
+          "name": "load-success",
+          "generation": "c0574359-b4bb-482d-897f-b69d65b2cb83",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:14.251058\u002B00:00",
+          "pid": 1000,
+          "key": "4aef3bbc0efa91e8d4b15744c8033ab97fe6a950bb5dcef2631fcb24ec3f26bc",
+          "descriptor": "before-lease",
+          "ticks": 2068,
+          "name": "disconnected",
+          "generation": "c0574359-b4bb-482d-897f-b69d65b2cb83",
+          "data": null
+        },
+        {
+          "utc": "2026-10-28T18:38:15.2791785\u002B00:00",
+          "pid": 1000,
+          "key": "4aef3bbc0efa91e8d4b15744c8033ab97fe6a950bb5dcef2631fcb24ec3f26bc",
+          "descriptor": "before-lease",
+          "ticks": 2068,
+          "name": "exit",
+          "generation": "c0574359-b4bb-482d-897f-b69d65b2cb83",
+          "data": null
+        }
+      ]
+    }
+  ]
+}

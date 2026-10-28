@@ -1,4 +1,5 @@
 using ModelContextProtocol.Server;
+using PipeRelay.Routing;
 
 namespace PipeRelay;
 
@@ -9,12 +10,27 @@ internal static class Program
         try
         {
             var mode = args.FirstOrDefault() ?? "auto";
+            if (mode is "route" or "routed-host")
+            {
+                return await RoutingProgram.Run(mode, args[1]);
+            }
+
+            if (mode == "routing-checks")
+            {
+                return await PipeRelay.Checks.RoutingChecks.Run(args.ElementAtOrDefault(1) ?? "all");
+            }
             if (mode == "verify")
             {
+                if (args.ElementAtOrDefault(1) == "recovery-red")
+                {
+                    await PipeRelay.Checks.RoutingChecks.LegacyRecovery();
+                    return 0;
+                }
+
                 return await SpikeChecks.Run(args.ElementAtOrDefault(1) ?? "all");
             }
 
-            using var lifetime = new CancellationTokenSource(TimeSpan.FromMinutes(3));
+            using var lifetime = new CancellationTokenSource();
             var pipe = args.ElementAtOrDefault(1) ?? "pr-" + BuildIdentity.Value[..16];
             var ready = args.ElementAtOrDefault(2);
             if (mode is not ("auto" or "direct" or "host"))
@@ -56,7 +72,7 @@ internal static class Program
         }
         catch (Exception exception)
         {
-            Console.Error.WriteLine($"{exception.GetType().Name}: {exception.Message}");
+            Console.Error.WriteLine(exception);
             return 1;
         }
     }

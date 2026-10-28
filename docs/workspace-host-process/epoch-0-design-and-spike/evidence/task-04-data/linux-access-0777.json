@@ -1,0 +1,22 @@
+{
+  "platform": "Linux",
+  "ownerUid": 1000,
+  "otherUid": 65534,
+  "identity": "13CC69DF2EC3303DCD3B45E4423DD242BC91CFAFEFC3AF5E246CA3A5C0F660B1",
+  "unixDomainSocketObserved": true,
+  "socketMode": "0o777",
+  "peerUidControl": true,
+  "ownerBefore": {
+    "handshakeAccepted": true
+  },
+  "otherUser": {
+    "handshakeAccepted": false,
+    "exceptionType": "ConnectionResetError",
+    "errno": 104
+  },
+  "ownerAfter": {
+    "handshakeAccepted": true
+  },
+  "status": "pass",
+  "ownedHostExited": true
+}

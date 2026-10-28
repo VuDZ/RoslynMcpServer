@@ -27,11 +27,9 @@ dotnet spikes/PipeRelay/bin/Release/net10.0/PipeRelay.dll verify all
 - `direct` — контрольный счётчик напрямую по stdio без IPC.
 
 Без аргументов используется `auto` с именем канала из identity сборки.
-Выбор владельца, автозапуск, promotion и recovery входят в task-04.
-Процессы стенда имеют страховочный TTL три минуты. Fixture останавливает свои
-процессы раньше; убитый host проверяется на exit, SDK-клиенты освобождаются.
+Новый режим task-04 описан ниже. TTL процесса снят; deadlines и cleanup принадлежат runner.
 
-Три инструмента фасада: `count`, `slow(seconds=1..10)`, `toggle`.
+Три инструмента фиксированного фасада: `count`, `slow(seconds=1..120)`, `toggle`.
 `toggle` меняет только свою коллекцию и показывает диагностический inventory
 сборок/GC/PID; включаемый `extra` выполняется локально. Roslyn и MSBuild отсутствуют.
 Чаты в стенде не являются сущностями или идентификаторами подключения.
@@ -58,3 +56,36 @@ Windows-контроль проверяет owner-only DACL и отказ под
 
 Метод измерений, границы handshake/фреймов, найденные проблемы, результаты и
 ограничения для task-04 — в [отчёте](../../docs/workspace-host-process/epoch-0-design-and-spike/evidence/task-03-pipe-relay-spike.md).
+
+## Маршрутизация и recovery (task-04)
+
+```powershell
+dotnet spikes/PipeRelay/bin/Release/net10.0/PipeRelay.dll routing-checks all
+```
+
+`quick` сокращает cold/recovery с 10 до 1 повторов на версию MCP.
+Raw полной серии — `bin/Release/net10.0/routing-result.json`, события включают cleanup.
+Это отдельный режим; старые fixed-host проверки task-03 сохранены как контроль.
+`verify recovery-red` ожидаемо завершается с кодом 1: фиксированный фасад не восстанавливается.
+
+- `route <options.json>` — stdio-фасад с автоматическим discovery, `switch(optionsFile)` и `effect(replyBarrier)`.
+- `routed-host <options.json>` — внутренний дочерний host из проверенной теневой копии.
+- Options: абсолютный `Root`, эффективный `Descriptor`, `Context`; остальные поля `RouteOptions` управляют только fake load и barriers runner.
+
+Root задаётся fixture, на Unix имеет 0700 и не зависит от TMPDIR.
+Канал и locks строятся от одного root; Unix absolute socket path ограничен 103 байтами.
+Host живёт до последнего подключения плюс 1 с grace; до первого подключения ждёт 8 с.
+Shared load не отменяется отдельным waiter; при подключённых proxy продолжается и без waiter.
+Неуспешный load кешируется в поколении, startup failure даёт общий cooldown 2 с.
+MCP 2026 subscriptions отменяются по настоящему EOF. Runner использует собственные процессы
+и `StreamClientTransport`: SDK stdio cleanup может подменить EOF убийством дерева.
+macOS не поддержан этим контролем FileStream.Lock. GC — обычный runtime default
+стенда; замеры памяти task-03 не повторяются и не переносятся на новые процессы.
+
+Linux peer-UID контроль при открытом всем сокете:
+
+```sh
+python3 spikes/PipeRelay/check_unix_access.py /absolute/path/PipeRelay.dll /absolute/path/access.json 1000 --world-socket
+```
+
+Контракт, найденные ограничения и данные — в [task-04](../../docs/workspace-host-process/epoch-0-design-and-spike/evidence/task-04-routing-and-recovery-spike.md).

@@ -1,0 +1,56 @@
+{
+  "utc": "2026-10-28T19:02:13.2105897+00:00",
+  "os": "Microsoft Windows 10.0.26200",
+  "runtime": "10.0.13",
+  "identity": "BE060E401C9BAE243B1CEDE1ABE95CC4553C5669406B0FB5D8877543A074CC76",
+  "selected": "boundaries",
+  "results": [],
+  "error": "System.InvalidOperationException: Unexpected tool error: Host unavailable; request was not retried. Outcome may be unknown.\r\n   at PipeRelay.SpikeChecks.Require(Boolean condition, String message) in E:\\Devel\\RoslynMcpServer-workspace-host-process\\spikes\\PipeRelay\\SpikeChecks.cs:line 113\r\n   at PipeRelay.SpikeChecks.Read(CallToolResult result) in E:\\Devel\\RoslynMcpServer-workspace-host-process\\spikes\\PipeRelay\\SpikeChecks.cs:line 105\r\n   at PipeRelay.Checks.RoutingChecks.Count(McpClient client, CancellationToken cancellationToken) in E:\\Devel\\RoslynMcpServer-workspace-host-process\\spikes\\PipeRelay\\Checks\\RoutingChecks.cs:line 499\r\n   at PipeRelay.Checks.RoutingChecks.Boundaries(String protocol, List\u00601 results) in E:\\Devel\\RoslynMcpServer-workspace-host-process\\spikes\\PipeRelay\\Checks\\RoutingChecks.cs:line 436\r\n   at PipeRelay.Checks.RoutingChecks.Boundaries(String protocol, List\u00601 results) in E:\\Devel\\RoslynMcpServer-workspace-host-process\\spikes\\PipeRelay\\Checks\\RoutingChecks.cs:line 495\r\n   at PipeRelay.Checks.RoutingChecks.RunMatrix(String selected, List\u00601 results) in E:\\Devel\\RoslynMcpServer-workspace-host-process\\spikes\\PipeRelay\\Checks\\RoutingChecks.cs:line 34\r\n   at PipeRelay.Checks.RoutingChecks.Run(String selected) in E:\\Devel\\RoslynMcpServer-workspace-host-process\\spikes\\PipeRelay\\Checks\\RoutingChecks.cs:line 17",
+  "failedFixture": {
+    "utc": "2026-10-28T19:02:13.2034119\u002B00:00",
+    "root": "E:\\Devel\\RoslynMcpServer-workspace-host-process\\spikes\\PipeRelay\\bin\\Release\\net10.0\\r4-276a4761",
+    "events": [
+      {
+        "utc": "2026-10-28T19:02:11.5330939\u002B00:00",
+        "pid": 18200,
+        "key": "042c6407060ce282d2141426464e1284c157a1c7b02d6d90f544982d698437f3",
+        "descriptor": "boundary",
+        "ticks": 639288109308918835,
+        "name": "forward-error",
+        "generation": "00000000-0000-0000-0000-000000000000",
+        "data": "System.IO.IOException: This request joined a failed startup attempt; it cannot launch another one.\r\n   at PipeRelay.Routing.HostDiscovery.Open(RouteOptions options, CancellationToken cancellationToken) in E:\\Devel\\RoslynMcpServer-workspace-host-process\\spikes\\PipeRelay\\Routing\\HostDiscovery.cs:line 50\r\n   at PipeRelay.Routing.RoutingSession.Forward(String name, IReadOnlyDictionary\u00602 arguments, IProgress\u00601 progress, CancellationToken cancellationToken) in E:\\Devel\\RoslynMcpServer-workspace-host-process\\spikes\\PipeRelay\\Routing\\RoutingSession.cs:line 82"
+      },
+      {
+        "utc": "2026-10-28T19:02:11.8749949\u002B00:00",
+        "pid": 18200,
+        "key": "042c6407060ce282d2141426464e1284c157a1c7b02d6d90f544982d698437f3",
+        "descriptor": "boundary",
+        "ticks": 639288109308918835,
+        "name": "frontend-eof",
+        "generation": "00000000-0000-0000-0000-000000000000",
+        "data": null
+      },
+      {
+        "utc": "2026-10-28T19:02:11.8554393\u002B00:00",
+        "pid": 49780,
+        "key": "042c6407060ce282d2141426464e1284c157a1c7b02d6d90f544982d698437f3",
+        "descriptor": "boundary",
+        "ticks": 639288109310679610,
+        "name": "forward-error",
+        "generation": "00000000-0000-0000-0000-000000000000",
+        "data": "System.IO.IOException: This request joined a failed startup attempt; it cannot launch another one.\r\n   at PipeRelay.Routing.HostDiscovery.Open(RouteOptions options, CancellationToken cancellationToken) in E:\\Devel\\RoslynMcpServer-workspace-host-process\\spikes\\PipeRelay\\Routing\\HostDiscovery.cs:line 50\r\n   at PipeRelay.Routing.RoutingSession.Forward(String name, IReadOnlyDictionary\u00602 arguments, IProgress\u00601 progress, CancellationToken cancellationToken) in E:\\Devel\\RoslynMcpServer-workspace-host-process\\spikes\\PipeRelay\\Routing\\RoutingSession.cs:line 82"
+      },
+      {
+        "utc": "2026-10-28T19:02:11.8765288\u002B00:00",
+        "pid": 49780,
+        "key": "042c6407060ce282d2141426464e1284c157a1c7b02d6d90f544982d698437f3",
+        "descriptor": "boundary",
+        "ticks": 639288109310679610,
+        "name": "frontend-eof",
+        "generation": "00000000-0000-0000-0000-000000000000",
+        "data": null
+      }
+    ],
+    "leaked": []
+  }
+}

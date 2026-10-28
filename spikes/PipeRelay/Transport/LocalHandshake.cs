@@ -6,7 +6,10 @@ namespace PipeRelay.Transport;
 
 internal static class LocalHandshake
 {
-    public static async Task<Handshake> Read(Stream stream, CancellationToken cancellationToken)
+    public static Task<Handshake> Read(Stream stream, CancellationToken cancellationToken) =>
+        ReadValue<Handshake>(stream, cancellationToken);
+
+    public static async Task<T> ReadValue<T>(Stream stream, CancellationToken cancellationToken)
     {
         var header = new byte[4];
         await stream.ReadExactlyAsync(header, cancellationToken);
@@ -18,11 +21,14 @@ internal static class LocalHandshake
 
         var body = new byte[length];
         await stream.ReadExactlyAsync(body, cancellationToken);
-        return JsonSerializer.Deserialize<Handshake>(body)
+        return JsonSerializer.Deserialize<T>(body)
             ?? throw new InvalidDataException("Handshake is missing.");
     }
 
     public static async Task Write(Stream stream, Handshake handshake, CancellationToken cancellationToken)
+        => await WriteValue(stream, handshake, cancellationToken);
+
+    public static async Task WriteValue<T>(Stream stream, T handshake, CancellationToken cancellationToken)
     {
         var body = JsonSerializer.SerializeToUtf8Bytes(handshake);
         if (body.Length > 4096)
