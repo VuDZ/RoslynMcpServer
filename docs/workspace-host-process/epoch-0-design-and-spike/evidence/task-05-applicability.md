@@ -6,8 +6,9 @@
   `DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP` не спасаются. Breakaway возвращает
   Win32 error 5. Это отрицательный результат для такого способа автозапуска host.
 - Это измерение `mcpServerStatus/list`, выхода stdio app-server и crash app-server.
-  Закрытие desktop-чата **не проверено**; Reload Window недоступен в production
-  меню Codex. Поведение на закрытии чата не объявлено тем же.
+  Ручной выход/перезапуск Codex Desktop завершил прежний MCP; после запуска
+  workspace в этом чате не загружен. Desktop close/crash и дети при desktop-выходе
+  **не проверены**; Reload Window недоступен в production меню Codex.
 - **Реальные сабагенты Codex Desktop воспроизвели удержание MCP:** два агента
   добавили два отдельных MCP, загрузили один workspace и завершились; оба MCP
   остались живы минимум 121 с после подтверждённого `completed`, суммарно
@@ -28,8 +29,8 @@
   в design. Обещание «пережить Reload» и автоматический отдельный host пока
   **не проходят go**. Выбор модели владельцем для task-04 остаётся открытым.
 - **Статус: in progress, 2026-10-28.** Замеры памяти и доступные process controls
-  выполнены; два реальных subagent проверены. Desktop lifecycle и число MCP
-  на чат/окно остаются незакрытой частью task-05.
+  выполнены; два реальных subagent и состояние MCP до/после ручного перезапуска
+  проверены. Полная desktop-матрица и число MCP на чат/окно остаются незакрытыми.
 
 ## База, среда и воспроизводимость
 
@@ -169,13 +170,49 @@ Reload, выход приложения и ordinary/detached child под эти
 не инструментировались. Контракт lifetime остаётся вопросом U-C-07; новая
 production-утечка или дефект Codex по одному этому наблюдению не объявлены.
 
+### Ручной выход и перезапуск Codex Desktop, дополнение 2026-10-28
+
+Владелец получил инструкцию выполнить Ctrl+Q, затем запустить Codex и вернуться
+в этот чат; после этого сообщил «перезапустил». Само нажатие и момент выхода
+не инструментировались. Это один ручной before/after замер на той же Windows
+26200, Codex Desktop 26.1021.3705.0 / backend 0.164.0-alpha.11.1, MCP 1.5.16.0.
+
+До действия, **17:19:19.701 МСК**, был один MCP **56052**, parent **33188**,
+старт 2026-10-28 01:43:07.650 МСК; загружены пять проектов этого решения,
+Release. Снимок первоначально готовился для Reload; Reload не выполнялся,
+поскольку production-пункт меню недоступен. Перед полным выходом процесс
+не перезапускался и workspace не сбрасывался.
+
+После возврата, **17:38:00.357 МСК**, PID 56052 отсутствует; живы два новых MCP
+**45500** и **46100**, старт **17:35:11.300 / 17:35:09.803**, parent **59364**.
+Проверка backend в 17:39:31 подтвердила: старого 33188 нет, новый 59364
+стартовал в 17:34:57.068; основной процесс desktop — в 17:34:55.245.
+До проверки состояния `load_workspace` не вызывался.
+`get_mcp_server_info` в **17:38:09.166**: **Workspace loaded: no**, load source
+`not loaded`, full profile, plugins=none. Связь tool session `codex-h6sa`
+с одним из двух PID отдельно не установлена.
+
+**Прежний MCP и его workspace не пережили сообщённый выход/перезапуск.**
+Это не проверка сохранения host при одном лишь отключении клиента. Нет точной
+задержки завершения и различения EOF/сигнала/kill: внешний непрерывный монитор
+не работал, shutdown/EOF marker старой session в выбранном окне лога не найден.
+Ordinary/detached children к этому desktop-событию не подключались. Снимок двух
+новых MCP не устанавливает правило количества процессов на чат или окно.
+Эти новые рабочие процессы координатор не останавливал.
+
+[Условия и ограничения](task-05-data/desktop-quit-20261028/summary.json),
+[до](task-05-data/desktop-quit-20261028/before.json),
+[после](task-05-data/desktop-quit-20261028/after.json),
+[backend](task-05-data/desktop-quit-20261028/backend.json),
+[whitelisted лог](task-05-data/desktop-quit-20261028/log-facts.json).
+
 ### Полнота требуемой harness-матрицы
 
 `not-run` означает отсутствие наблюдения, а не pass или отрицательный результат.
 
 | Harness × ОС | Закрытие чата | Reload окна | Штатный выход UI | Crash UI |
 |---|---|---|---|---|
-| Codex Desktop × Windows | not-run | unavailable (production menu) | not-run | not-run |
+| Codex Desktop × Windows | not-run | unavailable (production menu) | MCP до/после проверен; дети и сигнал not-run | not-run |
 | Cursor 3.27.12 × Windows | not-run | not-run | not-run | not-run |
 | Claude Code × Windows | unavailable | unavailable | unavailable | unavailable |
 | Codex / Cursor / Claude Code × WSL Linux | unavailable | unavailable | unavailable | unavailable |
@@ -187,8 +224,8 @@ production-утечка или дефект Codex по одному этому �
 а флаг включён только при build flavor, отличном от Prod.
 [Факты проверки](task-05-data/codex-reload-availability.json).
 Предложение автора выполнить Reload до этой проверки было ошибкой.
-Production Reload отмечен unavailable, не pending и не pass. Следующий ручной
-замер — штатный выход и повторный запуск; исходный снимок PID/workspace сохранён.
+Production Reload отмечен unavailable, не pending и не pass. Ручной выход
+и повторный запуск описаны выше; исходный снимок PID/workspace сохранён.
 
 Для Codex нет автоматизации UI: доступный
 [computer-use SKILL.md](C:/Users/VuDZ/.codex/plugins/cache/openai-bundled/computer-use/26.1021.31345/skills/computer-use/SKILL.md)
@@ -358,7 +395,7 @@ production. Для наглядности, если условно взять `p
 
 | Unknown | Причина | Получатель |
 |---|---|---|
-| Desktop close/quit/crash; Reload других harness | Ручной прогон не выполнен; Reload Codex production недоступен | Этот task-05 |
+| Desktop close/crash; сигнал и дети при quit; Reload других harness | Для quit есть лишь ручной before/after MCP; Reload Codex production недоступен | Этот task-05 |
 | MCP на чат/окно; обобщение subagent | Для subagent есть лишь n=2; чаты/окна не наблюдались | Этот task-05 |
 | Состав прежних 20+ MCP | Нет исторических per-PID memory снимков | Task-05 при повторении ситуации |
 | Автозапуск host вне Job | Стандартные detach/breakaway не проходят | Task-04 после решения владельца |
@@ -384,6 +421,10 @@ production. Для наглядности, если условно взять `p
   137 снимков, из них 61 в окне после completed длиной 121,288 с; PID и start time
   сохранены. Cleanup остановил только два созданных MCP, исходный worker сохранён.
   Изменены только docs/data; C# и probe не менялись, build/test повторно не требуются.
+- Ручной выход/перезапуск desktop: **PASS наблюдения до/после**, старые MCP
+  и backend отсутствуют, новые PID/start times сохранены; info до load подтвердил
+  отсутствие workspace. EOF/kill, время завершения и ordinary/detached children
+  для этого события не проверены. Дополнение docs/data; задача целиком не принята.
 - Найденные ошибки самого стенда исправлены: размещение Linux-копии внутри
   исключённого spikes, проверка exited process через GetExitCodeProcess,
   поддержка discovery методов. Предварительные неуспешные запуски не объявлены
@@ -393,7 +434,8 @@ production. Для наглядности, если условно взять `p
 - AnalyzerLifecycle отдельно не запускался: production lifecycle и его тестовая
   конфигурация не менялись. Pinned-SDK категория исключена как в актуальном CI.
 - Markdown ссылки/anchors, отсутствие production diff, diff whitespace и состав
-  переносимого evidence: **PASS**, проверены 141 локальных ссылок/anchors.
+  переносимого evidence: **PASS**; после desktop-дополнения проверены 144 локальные
+  ссылки/anchors в task, отчёте и трёх индексах, пять новых JSON и их взаимные ссылки.
   Evidence self-check подтвердил 6 GC runs, 30 точек, 20 cohort PID,
   2 inventories и 7 lifecycle cases; JSON проверен на запрещённые поля.
   Desktop неизвестные выше

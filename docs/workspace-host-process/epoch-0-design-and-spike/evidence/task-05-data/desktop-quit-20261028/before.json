@@ -1,0 +1,21 @@
+{
+  "utc": "2026-10-28T14:19:19.7012860+00:00",
+  "phase": "before-user-desktop-reload",
+  "processes": [
+    {
+      "pid": 56052,
+      "parentPid": 33188,
+      "started": "2026-10-27T22:43:07.6503381Z",
+      "privateBytes": 232144896,
+      "workingSet": 344805376,
+      "path": "e:\\Devel\\RoslynMcpServer\\bin\\Release\\net10.0\\win-x64\\publish\\RoslynMcpServer.exe",
+      "version": "1.5.16.0"
+    }
+  ],
+  "processCount": 1,
+  "workspace": "E:/Devel/RoslynMcpServer-workspace-host-process/RoslynMcpServer.sln",
+  "configuration": "Release",
+  "loadedProjects": 5,
+  "stateSource": "get_mcp_server_info immediately before this snapshot",
+  "repositoryBase": "a8beb59e9e90b9af3c5e293be9cb422354f46287"
+}

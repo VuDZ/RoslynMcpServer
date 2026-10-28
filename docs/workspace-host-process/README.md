@@ -10,8 +10,9 @@ production-код темы не начат; task-00 completed 2026-10-26 в scop
 Актуализация task-00 **completed, 2026-10-28**: база main `4e5e9f9` / 1.5.17,
 S01–S42, 54 tools; [влияние обновления и validation](epoch-0-design-and-spike/evidence/task-00-impact-2026-10-28.md).
 Task-05 **in progress, 2026-10-28**: изолированный probe, память/GC и группа 20 MCP
-на 1.5.18, Windows/WSL controls, настоящий Codex app-server. Desktop lifecycle и
-MCP на чат/окно ещё не проверены; принятого scope задачи нет;
+на 1.5.18, Windows/WSL controls, настоящий Codex app-server. Ручной quit/restart:
+прежний MCP завершён, workspace не загружен; desktop close/crash, сигнал/дети
+при quit и MCP на чат/окно ещё не проверены; принятого scope задачи нет;
 два настоящих subagent дали 1 → 3 MCP, новые живы ≥121 с после completed;
 [данные и validation](epoch-0-design-and-spike/evidence/task-05-applicability.md).
 Происхождение: решение владельца H-003 из обсуждения workspace-state-cache, вариант C.
@@ -49,7 +50,9 @@ Server / Workstation GC. Синтетические 20 MCP (8 + 8 двух descr
 дали 2606,4 MiB private bytes; это не состав прежних 10–20 ГБ.
 В Codex app-server MCP и detached child находятся в Job с kill-on-close;
 breakaway запрещён, выход/crash app-server завершил всех. Reload Window недоступен
-в production Codex; закрытие чата и выход/crash desktop пока not-run.
+в production Codex. После ручного выхода/перезапуска desktop прежний MCP
+завершён, workspace в этом чате не загружен; EOF/kill и дети при desktop-выходе,
+закрытие чата и crash desktop пока not-run.
 [Scope и первичные данные](epoch-0-design-and-spike/evidence/task-05-applicability.md).
 
 Подтверждение на настоящих subagent Codex Desktop: два агента загрузили тот же

@@ -1,0 +1,40 @@
+{
+  "date": "2026-10-28",
+  "os": "Windows 11 build 26200",
+  "harness": "Codex Desktop 26.1021.3705.0",
+  "backendVersion": "0.164.0-alpha.11.1",
+  "mcpVersion": "1.5.16.0",
+  "repositoryBase": "e07e0cf",
+  "event": "User-reported desktop quit/restart following Ctrl+Q instruction",
+  "userReport": "перезапустил",
+  "actionObservation": "Manual action not instrumented; exact input and shutdown time not independently captured",
+  "originalBaselinePurpose": "Desktop reload; no reload occurred because production menu omits it",
+  "before": "before.json",
+  "after": "after.json",
+  "backendObservation": "backend.json",
+  "logFacts": "log-facts.json",
+  "observations": {
+    "oldMcpPid": 56052,
+    "oldMcpAbsentAfter": true,
+    "oldBackendPid": 33188,
+    "oldBackendAbsentAfter": true,
+    "newBackendPid": 59364,
+    "newMcpPids": [
+      45500,
+      46100
+    ],
+    "afterMcpCount": 2,
+    "currentChatWorkspaceLoaded": false,
+    "workspaceLoadRequestedAfterRestart": false,
+    "shutdownOrEofLogMarkerFound": false
+  },
+  "conclusion": "Original MCP/workspace did not survive the reported desktop quit/restart. The MCP serving the current chat reports no loaded workspace; the other new worker was not queried.",
+  "limits": [
+    "One manual before/after observation; no continuously running external monitor",
+    "No precise shutdown delay, signal, EOF ordering or kill API established",
+    "Ordinary and detached child processes not attached for this desktop event",
+    "Which of the two new MCP PIDs serves the current chat not established",
+    "After count does not establish one MCP per chat or window",
+    "This is not a desktop crash or close-chat test and does not accept the whole task"
+  ]
+}

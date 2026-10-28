@@ -1,0 +1,36 @@
+{
+  "capturedAt": "2026-10-28T14:38:00.3566826Z",
+  "processes": [
+    {
+      "pid": 45500,
+      "parentPid": 59364,
+      "started": "2026-10-28T14:35:11.2999937Z",
+      "privateBytes": 29302784,
+      "workingSet": 58413056,
+      "path": "e:\\Devel\\RoslynMcpServer\\bin\\Release\\net10.0\\win-x64\\publish\\RoslynMcpServer.exe",
+      "version": "1.5.16.0"
+    },
+    {
+      "pid": 46100,
+      "parentPid": 59364,
+      "started": "2026-10-28T14:35:09.8030811Z",
+      "privateBytes": 29646848,
+      "workingSet": 58638336,
+      "path": "e:\\Devel\\RoslynMcpServer\\bin\\Release\\net10.0\\win-x64\\publish\\RoslynMcpServer.exe",
+      "version": "1.5.16.0"
+    }
+  ],
+  "processCount": 2,
+  "workspaceInfo": {
+    "observedAt": "2026-10-28T14:38:09.166+00:00",
+    "tool": "get_mcp_server_info",
+    "workspaceLoaded": false,
+    "loadSource": "not loaded",
+    "profile": "full",
+    "plugins": [],
+    "workingDirectory": "E:\\Devel\\RoslynMcpServer-workspace-host-process",
+    "session": "codex-h6sa",
+    "sessionPidMapping": "not established; process inventory has two MCP workers",
+    "workspaceLoadRequestedAfterRestart": false
+  }
+}

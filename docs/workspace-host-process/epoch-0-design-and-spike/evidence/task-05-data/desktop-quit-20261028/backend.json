@@ -1,0 +1,26 @@
+{
+  "capturedAt": "2026-10-28T14:39:31.3354305Z",
+  "backends": [
+    {
+      "pid": 33188,
+      "alive": false
+    },
+    {
+      "pid": 59364,
+      "alive": true,
+      "name": "codex",
+      "started": "2026-10-28T14:34:57.0676672Z",
+      "path": "C:\\Users\\VuDZ\\AppData\\Local\\OpenAI\\Codex\\bin\\2993767bd1dfb009\\codex.exe"
+    }
+  ],
+  "desktopWindows": [
+    {
+      "pid": 66532,
+      "name": "ChatGPT",
+      "started": "2026-10-28T14:34:55.2453622Z",
+      "path": "C:\\Program Files\\WindowsApps\\OpenAI.Codex_26.1021.3705.0_x64__2p2nqsd0c76g0\\app\\ChatGPT.exe",
+      "binaryFileVersion": "156.0.8078.48",
+      "package": "OpenAI.Codex_26.1021.3705.0_x64__2p2nqsd0c76g0"
+    }
+  ]
+}

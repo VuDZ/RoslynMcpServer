@@ -1,0 +1,78 @@
+{
+  "log": "E:\\Devel\\RoslynMcpServer\\bin\\Release\\net10.0\\win-x64\\publish\\logs\\mcp-20261028.log",
+  "windowStart": "2026-10-28T17:19:00+03:00",
+  "windowEnd": "2026-10-28T17:38:10+03:00",
+  "selection": "Allowlisted initialize and info/load call names plus old-session shutdown/EOF markers; no request params or metadata retained",
+  "facts": [
+    {
+      "localTimestamp": "2026-10-28 17:19:16.590 +03:00",
+      "session": "codex-2jmy",
+      "method": "tools/call",
+      "tool": "get_mcp_server_info"
+    },
+    {
+      "localTimestamp": "2026-10-28 17:35:01.333 +03:00",
+      "session": "codex-jx7d",
+      "method": "initialize"
+    },
+    {
+      "localTimestamp": "2026-10-28 17:35:02.397 +03:00",
+      "session": "codex-bxtr",
+      "method": "initialize"
+    },
+    {
+      "localTimestamp": "2026-10-28 17:35:07.940 +03:00",
+      "session": "codex-xfzc",
+      "method": "initialize"
+    },
+    {
+      "localTimestamp": "2026-10-28 17:35:10.241 +03:00",
+      "session": "codex-kbpa",
+      "method": "initialize"
+    },
+    {
+      "localTimestamp": "2026-10-28 17:35:10.254 +03:00",
+      "session": "codex-kjt8",
+      "method": "initialize"
+    },
+    {
+      "localTimestamp": "2026-10-28 17:35:10.423 +03:00",
+      "session": "codex-dzse",
+      "method": "initialize"
+    },
+    {
+      "localTimestamp": "2026-10-28 17:35:11.278 +03:00",
+      "session": "codex-gc7n",
+      "method": "initialize"
+    },
+    {
+      "localTimestamp": "2026-10-28 17:35:11.656 +03:00",
+      "session": "codex-h6sa",
+      "method": "initialize"
+    },
+    {
+      "localTimestamp": "2026-10-28 17:35:11.763 +03:00",
+      "session": "codex-n7j8",
+      "method": "initialize"
+    },
+    {
+      "localTimestamp": "2026-10-28 17:35:12.160 +03:00",
+      "session": "codex-hayp",
+      "method": "initialize"
+    },
+    {
+      "localTimestamp": "2026-10-28 17:35:12.770 +03:00",
+      "session": "codex-rtxx",
+      "method": "initialize"
+    },
+    {
+      "localTimestamp": "2026-10-28 17:38:09.166 +03:00",
+      "session": "codex-h6sa",
+      "method": "tools/call",
+      "tool": "get_mcp_server_info"
+    }
+  ],
+  "oldSession": "codex-2jmy",
+  "oldSessionShutdownOrEofMarkers": [],
+  "note": "Initialization records do not measure concurrent process count or identify which PID served this chat."
+}
