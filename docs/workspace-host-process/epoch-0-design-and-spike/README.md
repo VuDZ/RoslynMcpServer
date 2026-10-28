@@ -125,23 +125,27 @@ Scope результата — standalone транспорт/MCP-фасад бе
 [Результат, C03-01/C03-02 и validation](evidence/task-03-pipe-relay-spike.md).
 Release build solution и main suite 1432/1432 прошли; production не менялся.
 Task-04 остаётся planned до явного выбора проверяемых моделей владельцем.
-Независимое ревью task-03 не проводилось; его счётчики остаются `—`.
+Независимое ревью task-03 и task-05 — 2026-10-28, раунд 1, 9 исправлений;
+[результат](../review-task-03-05-2026-10-28/result.md).
 
 ## Статистика ревью задач
 
 - Охват: task-00–task-05; task-00 completed, 2026-10-26, docs-only;
   task-05 completed, 2026-10-28; task-01/task-02/task-04 planned; task-03 completed, 2026-10-28.
 - Фактические исполнители: task-00 — Codex, точный ID модели недоступен.
-  Task-05 — `gpt-6.1-sol` (Codex; metadata harness), независимого ревью пока нет.
-  Task-03 — Codex, точный model ID запуска недоступен; независимого ревью нет.
-- Фактические рецензенты: task-00 — `claude-opus-5-5` (Claude Code), 2026-10-28.
-- Сумма раундов независимого ревью задач: 1 (task-00).
-- Исправленные замечания независимого ревью задач: 5 (task-00, F-01–F-05).
+  Task-05 — `gpt-6.1-sol` (Codex; metadata harness).
+  Task-03 — Codex, точный model ID запуска недоступен.
+- Фактические рецензенты: task-00, task-03, task-05 — `claude-opus-5-5` (Claude Code),
+  2026-10-28; task-03 и task-05 — одним совместным ревью.
+- Сумма раундов независимого ревью задач: 3 (по одному на task-00, task-03, task-05).
+- Исправленные замечания независимого ревью задач: 14 (task-00 — 5; task-05 — 4,
+  F-01–F-04; task-03 — 5, F-05–F-09).
 - Отчёты: [task-00 — инвентаризация и validation](evidence/task-00-state-inventory.md).
   Актуализация 2026-10-28 — тот же исполнитель;
   [влияние новой базы и validation](evidence/task-00-impact-2026-10-28.md).
   [Ревью task-00](../review-task-00-2026-10-28/result.md),
   [validation исправлений](../evidence/2026-10-28-task-00-review-fixes.md).
+  [Ревью task-03 и task-05](../review-task-03-05-2026-10-28/result.md), [validation исправлений](../evidence/2026-10-28-task-03-05-review-fixes.md).
 
 ## Приёмка реализации эпохи
 

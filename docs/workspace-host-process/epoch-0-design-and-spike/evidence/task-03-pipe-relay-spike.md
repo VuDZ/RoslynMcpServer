@@ -10,17 +10,21 @@
 - В Windows proxy после работы занимает **19,9–21,9 MiB private / 53,3–55,6 MiB
   working set**, с Workstation GC; сборок Roslyn/MSBuild/production-сервисов нет.
   Это измеренный SDK-стенд, а не обещание размера production proxy.
+  **Это столько же, сколько пустой сервер 1.5.18** из task-05: 18,4 / 61,0 MiB
+  (Workstation), 23,3 / 59,8 (Server). Чистый proxy без Roslyn экономит единицы MiB
+  на процесс; сохранять ли это требование, решает владелец ([ревью F-05](../../review-task-03-05-2026-10-28/result.md)).
 - Windows `count`: p50 **0,39–0,45 мс** через фасад против **0,12–0,14 мс**
   напрямую. Это одна серия по 200 вызовов на вариант; сравнение моделей
   по такой разнице не принимается.
 - **C03-01:** token-only отмена в первоначальном forwarding оставляла host
-  работать. Явная доставка cancel с внутренним id исправила стенд; точная
-  SDK-причина не установлена и передана в task-01.
+  работать. Явная доставка cancel с внутренним id исправила стенд. SDK 2.2 сам
+  шлёт cancel, но fire-and-forget; место потери трассирует task-04.
 - **C03-02:** короткое Unix-соединение могло оставить следующего владельца
   без listener. Исправлено сохранением следующего instance до обслуживания
   принятого; regression «владелец → nobody → владелец» проходит.
 - Windows: owner-only DACL и отказ anonymous identity. Linux: наблюдён настоящий
-  Unix socket, UID 65534 получает `EACCES`, UID 1000 сохраняет доступ.
+  Unix socket, UID 65534 получает `EACCES` от прав файла сокета, UID 1000 сохраняет
+  доступ; проверка peer UID в `CurrentUserOnly` на Linux не выполнялась ([F-06](#unknowns-и-передача-дальше)).
   macOS и реальный UI-harness не проверялись.
 - **Рекомендация:** сохранить SDK-фасад и стандартный локальный транспорт
   как основу task-04 для обеих shared-моделей. Выбор модели владельцем остаётся
@@ -32,7 +36,7 @@
 Изменения — только `spikes/PipeRelay/` и документы этой задачи.
 Проект не включён в solution, CI или publish; корневой csproj исключает `spikes/**`.
 Исполнитель — Codex; точный model ID текущего запуска недоступен.
-Независимое ревью: модели, раунды и исправления — `—`.
+Независимое ревью — `claude-opus-5-5`, 2026-10-28, раунд 1; [результат](../../review-task-03-05-2026-10-28/result.md), [исправления](../../evidence/2026-10-28-task-03-05-review-fixes.md).
 
 Дата — **2026-10-28**. Windows 11 / kernel build 26200, x64, 16 logical CPU;
 SDK 10.0.402, runtime 10.0.13. Linux — WSL Ubuntu 24.04.4,
@@ -128,7 +132,11 @@ Windows ACL: успешный доступ владельца, чтение DACL
 [WindowsAccessCheck](../../../../spikes/PipeRelay/Checks/WindowsAccessCheck.cs:11).
 Linux: реальный socket `/tmp/CoreFxPipe_<key>`, mode `0755`, owner UID 1000;
 UID 65534 не может выполнить handshake (`PermissionError`, errno 13), затем
-UID 1000 снова выполняет handshake. Root используется только тестовым driver для
+UID 1000 снова выполняет handshake. Отказ приходит из `connect()` по правам файла
+сокета (`0755` при umask 022), до сервера. Проверка peer UID в .NET
+(`NamedPipeServerStream.HandleAcceptedSocket` → `GetPeerID` при `CurrentUserOnly`)
+и ветка `CounterHost.cs:262` на Linux не выполнялись; при umask 000 защита держится
+только на ней ([ревью F-06](../../review-task-03-05-2026-10-28/result.md)). Root используется только тестовым driver для
 выбора существующих UID и cleanup своих объектов.
 [Скрипт](../../../../spikes/PipeRelay/check_unix_access.py:15),
 [linux-access.json](task-03-data/linux-access.json).
@@ -167,6 +175,15 @@ MiB=1048576 байт; полные per-PID значения и assembly inventor
 Это не нижняя граница всех возможных proxy. Отсутствие Roslyn/MSBuild проверено
 runtime inventory и отсутствием их project/package references; DI production не используется.
 
+**Сравнение с пустым сервером** ([ревью F-05](../../review-task-03-05-2026-10-28/result.md)). Пустой 1.5.18 в task-05
+на той же Windows: 18,4 MiB private / 61,0 MiB WS с Workstation GC и 23,3 / 59,8 с Server GC.
+Proxy стенда — 19,9–21,9 / 53,3–55,6. Сборки Roslyn — mapped images, общие между
+процессами, и приватной памяти почти не добавляют. Отказ от MSBuild/Roslyn/plugins
+в proxy экономит единицы MiB на процесс. Оговорки: plugins=none, моменты замера разные
+(пустой через 10 с, proxy после нагрузки). Режим GC фиксируется при старте процесса:
+в модели ролей proxy, ставший host, сохраняет свой GC, поэтому там нужен Server GC
+во всех процессах (около +5 MiB private на proxy); отдельный host может их смешивать.
+
 ## TDD и найденные проблемы
 
 Release build исходного стенда прошёл. До forwarding два процесса держали
@@ -183,9 +200,11 @@ host сообщал `cancelled=0, active=1`; наблюдение входяще
 внутренний request id и ожидаемая отправка `notifications/cancelled` перед выходом
 из forwarding. [Код](../../../../spikes/PipeRelay/Facade.cs:118),
 [regression](../../../../spikes/PipeRelay/Checks/SessionChecks.cs:92).
-Статус: spike fixed; точная причина внутри SDK не локализована, production-дефект
-репозитория не объявлен. Получатель/владелец дальнейшей проверки SDK-причины — task-01;
-task-04 сохраняет явную корреляцию и доставку отмены. Общая отмена не сводится
+Статус: spike fixed; production-дефект репозитория не объявлен. По ревью
+([F-08](../../review-task-03-05-2026-10-28/result.md)): SDK 2.2 сам отправляет `notifications/cancelled` при отмене токена
+(`McpSessionHandler.RegisterCancellation`), но не ожидает отправку, и её ошибки
+не видны; точное место потери не трассировано. Получатель дальнейшей проверки —
+task-04 (трассировка внутреннего канала при отмене); task-01 требует явной доставки отмены. Общая отмена не сводится
 к отмене локального `Task`/ожидания.
 
 <a id="c03-02"></a>
@@ -206,9 +225,16 @@ nobody denied, следующий owner получил connection reset. При�
 | Автозапуск, владение ключом, handoff, поколения при recovery | Здесь fixed host, роль задаёт runner | Task-04 |
 | Удержание host после EOF / действия harness | Транспортный spike не определяет lifecycle policy; ограничения task-05 сохранены | Task-04 / task-01 |
 | Полная production identity, plugins и размещение этапов tools | Проверены только три fake-инструмента и build identity spike | Task-01 по task-00 |
-| Причина C03-01 внутри SDK | Установлено наблюдение и рабочая явная доставка, не причина библиотеки | Task-01 |
+| Где теряется fire-and-forget отмена SDK (C03-01) | SDK шлёт cancel без ожидания; потеря не трассирована | Task-04 |
+| Путь Unix socket от `TMPDIR` и лимит его длины (ревью F-07) | `PipeStream.GetPipePath` = `Path.GetTempPath()` + `CoreFxPipe_` + имя; разный `TMPDIR` разводит процессы, путь ≤ 108 байт на Linux / 104 на macOS; абсолютное имя поддерживается | Task-04: канал и lock от одного каталога пользователя, не зависящего от `TMPDIR` |
+| Проверка peer UID `CurrentUserOnly` на Linux (ревью F-06) | Отказ получен правами файла сокета | Task-04: сокет `0777` или umask 0, либо каталог `0700` |
 | Реальные Roslyn RAM, свежесть, analyzer lifecycle, нагрузка | Roslyn отсутствует | Task-02 после design |
 | macOS / реальный UI-harness | Среда macOS отсутствует; обязательный контроль — SDK-клиент | Непроверено; не pass |
+
+Значения стенда не переносятся в production ([ревью F-09](../../review-task-03-05-2026-10-28/result.md)): deadline пересылки
+15 с (load, build и test идут минуты; нужен бюджет по инструменту и liveness по
+progress), `Lazy<Task<McpClient>>` навсегда запоминает неудачное подключение (proxy,
+стартовавший раньше host, не подключится), TTL процесса 3 минуты. Task-04 их заменяет.
 
 Состояние фасада необходимо отделять от workspace в обеих shared-моделях.
 Task-03 не выбрал ни роли, ни отдельный host: его результаты подходят обеим.
@@ -231,4 +257,4 @@ Task-04 получает рабочую основу и два учтённых 
 - Самопроверка: **154** локальные ссылки/anchors, восемь fresh generation,
   **2400** samples, identity обеих финальных сборок, privacy evidence и согласованность
   статусов/Depends on — **PASS**; `git diff --check` — **PASS**.
-  Независимого ревью задачи нет; приёмка эпохи не объявлена.
+  Независимое ревью — [раунд 1](../../review-task-03-05-2026-10-28/result.md); приёмка эпохи не объявлена.

@@ -21,7 +21,9 @@ production activation не выбирались. Проверки и огран�
    нужны метаданные plugin tools, а сейчас они есть только как `MethodInfo`
    загруженных сборок (S23); `get_code_skeleton` и `get_method_body` без
    workspace всё равно требуют Roslyn-парсер. Источник метаданных и допустимость
-   синтаксического Roslyn в proxy решает task-01.
+   синтаксического Roslyn в proxy решает task-01. Поправка 2026-10-28: по замерам
+   task-03/task-05 чистый proxy экономит единицы MiB на процесс; сохранять ли
+   требование, решает владелец ([ревью F-05](../../review-task-03-05-2026-10-28/result.md)).
 2. **Demotion не делает процесс лёгким.** Locator/MEF, analyzer- и
    plugin-сборки, resolver, DI singletons, heap Server GC и static stores остаются
    (S08, S09, S16, S23, S38). Это довод в сравнении моделей task-01, а не деталь.

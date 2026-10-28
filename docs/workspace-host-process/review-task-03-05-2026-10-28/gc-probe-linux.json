@@ -1,0 +1,269 @@
+{
+ "date": "2026-10-28",
+ "server": "1.5.18 (bin/Release, HEAD 65bbc94)",
+ "os": "Linux 7.0.0-34-generic, 3 GiB RAM",
+ "runtime": "10.0.13",
+ "workspace": "RoslynMcpServer.sln, Release, full profile",
+ "method": "/proc/<pid>/status VmRSS/RssAnon/RssFile; startup hook GC.GetGCMemoryInfo; forced = 2x GC.Collect(2, Forced, blocking, compacting) + LOH CompactOnce; aggressive = GC.Collect(2, GCCollectionMode.Aggressive)",
+ "n": "1 run per GC mode",
+ "serverGc": {
+  "processStatusMiB": [
+   {
+    "stage": "empty-10s",
+    "VmRSS": 86.72265625,
+    "RssAnon": 12.4609375,
+    "RssFile": 60.859375
+   },
+   {
+    "stage": "empty-forced",
+    "VmRSS": 89.16796875,
+    "RssAnon": 14.0078125,
+    "RssFile": 60.94921875
+   },
+   {
+    "stage": "loaded-10s",
+    "VmRSS": 299.765625,
+    "RssAnon": 159.9375,
+    "RssFile": 87.17578125
+   },
+   {
+    "stage": "after-query",
+    "VmRSS": 329.4453125,
+    "RssAnon": 160.96484375,
+    "RssFile": 90.7734375
+   },
+   {
+    "stage": "idle-30s",
+    "VmRSS": 332.14453125,
+    "RssAnon": 162.3046875,
+    "RssFile": 90.8359375
+   },
+   {
+    "stage": "loaded-forced",
+    "VmRSS": 333.09765625,
+    "RssAnon": 163.23046875,
+    "RssFile": 90.8359375
+   },
+   {
+    "stage": "reset-idle-30s",
+    "VmRSS": 332.77734375,
+    "RssAnon": 162.80078125,
+    "RssFile": 90.8359375
+   },
+   {
+    "stage": "reset-forced",
+    "VmRSS": 297.66796875,
+    "RssAnon": 127.703125,
+    "RssFile": 90.8046875
+   },
+   {
+    "stage": "reset-aggressive",
+    "VmRSS": 233.27734375,
+    "RssAnon": 63.2890625,
+    "RssFile": 90.8046875
+   },
+   {
+    "stage": "reset-aggressive-20s",
+    "VmRSS": 233.2734375,
+    "RssAnon": 63.28515625,
+    "RssFile": 90.8046875
+   }
+  ],
+  "gcInfoMiB": [
+   {
+    "stage": "before-forced",
+    "serverGc": true,
+    "gen2Count": 0,
+    "heapSizeMiB": 0.9458160400390625,
+    "committedMiB": 3.41015625,
+    "totalMemoryMiB": 1.6790390014648438
+   },
+   {
+    "stage": "after-forced",
+    "serverGc": true,
+    "gen2Count": 2,
+    "heapSizeMiB": 1.51226806640625,
+    "committedMiB": 4.9140625,
+    "totalMemoryMiB": 1.0862350463867188
+   },
+   {
+    "stage": "before-forced",
+    "serverGc": true,
+    "gen2Count": 3,
+    "heapSizeMiB": 63.272544860839844,
+    "committedMiB": 94.91796875,
+    "totalMemoryMiB": 86.21512603759766
+   },
+   {
+    "stage": "after-forced",
+    "serverGc": true,
+    "gen2Count": 5,
+    "heapSizeMiB": 67.55461883544922,
+    "committedMiB": 94.953125,
+    "totalMemoryMiB": 66.68111419677734
+   },
+   {
+    "stage": "before-forced",
+    "serverGc": true,
+    "gen2Count": 5,
+    "heapSizeMiB": 67.55461883544922,
+    "committedMiB": 94.953125,
+    "totalMemoryMiB": 67.41542053222656
+   },
+   {
+    "stage": "after-forced",
+    "serverGc": true,
+    "gen2Count": 7,
+    "heapSizeMiB": 25.245208740234375,
+    "committedMiB": 89.7734375,
+    "totalMemoryMiB": 25.178009033203125
+   },
+   {
+    "stage": "before-aggressive",
+    "serverGc": true,
+    "gen2Count": 7,
+    "heapSizeMiB": 25.245208740234375,
+    "committedMiB": 89.7734375,
+    "totalMemoryMiB": 25.19549560546875
+   },
+   {
+    "stage": "after-aggressive",
+    "serverGc": true,
+    "gen2Count": 8,
+    "heapSizeMiB": 25.244667053222656,
+    "committedMiB": 25.27734375,
+    "totalMemoryMiB": 25.16545867919922
+   }
+  ]
+ },
+ "workstationGc": {
+  "processStatusMiB": [
+   {
+    "stage": "empty-10s",
+    "VmRSS": 89.28125,
+    "RssAnon": 14.703125,
+    "RssFile": 61.1640625
+   },
+   {
+    "stage": "empty-forced",
+    "VmRSS": 92.3984375,
+    "RssAnon": 16.9375,
+    "RssFile": 61.234375
+   },
+   {
+    "stage": "loaded-10s",
+    "VmRSS": 223.37109375,
+    "RssAnon": 91.984375,
+    "RssFile": 84.046875
+   },
+   {
+    "stage": "after-query",
+    "VmRSS": 292.6328125,
+    "RssAnon": 128.66796875,
+    "RssFile": 89.140625
+   },
+   {
+    "stage": "idle-30s",
+    "VmRSS": 298.29296875,
+    "RssAnon": 132.8515625,
+    "RssFile": 89.328125
+   },
+   {
+    "stage": "loaded-forced",
+    "VmRSS": 299.99609375,
+    "RssAnon": 134.52734375,
+    "RssFile": 89.328125
+   },
+   {
+    "stage": "reset-idle-30s",
+    "VmRSS": 299.265625,
+    "RssAnon": 133.6484375,
+    "RssFile": 89.328125
+   },
+   {
+    "stage": "reset-forced",
+    "VmRSS": 265.30078125,
+    "RssAnon": 99.69140625,
+    "RssFile": 89.296875
+   },
+   {
+    "stage": "reset-aggressive",
+    "VmRSS": 225.25390625,
+    "RssAnon": 59.609375,
+    "RssFile": 89.296875
+   },
+   {
+    "stage": "reset-aggressive-20s",
+    "VmRSS": 225.25,
+    "RssAnon": 59.60546875,
+    "RssFile": 89.296875
+   }
+  ],
+  "gcInfoMiB": [
+   {
+    "stage": "before-forced",
+    "serverGc": false,
+    "gen2Count": 0,
+    "heapSizeMiB": 0,
+    "committedMiB": 0,
+    "totalMemoryMiB": 5.952728271484375
+   },
+   {
+    "stage": "after-forced",
+    "serverGc": false,
+    "gen2Count": 2,
+    "heapSizeMiB": 2.7073211669921875,
+    "committedMiB": 8.1484375,
+    "totalMemoryMiB": -0.329376220703125
+   },
+   {
+    "stage": "before-forced",
+    "serverGc": false,
+    "gen2Count": 5,
+    "heapSizeMiB": 52.20812225341797,
+    "committedMiB": 66.1640625,
+    "totalMemoryMiB": 53.60466766357422
+   },
+   {
+    "stage": "after-forced",
+    "serverGc": false,
+    "gen2Count": 7,
+    "heapSizeMiB": 49.41290283203125,
+    "committedMiB": 66.28125,
+    "totalMemoryMiB": 48.90076446533203
+   },
+   {
+    "stage": "before-forced",
+    "serverGc": false,
+    "gen2Count": 7,
+    "heapSizeMiB": 49.41290283203125,
+    "committedMiB": 66.28125,
+    "totalMemoryMiB": 49.31311798095703
+   },
+   {
+    "stage": "after-forced",
+    "serverGc": false,
+    "gen2Count": 9,
+    "heapSizeMiB": 20.2442626953125,
+    "committedMiB": 60.20703125,
+    "totalMemoryMiB": 20.203819274902344
+   },
+   {
+    "stage": "before-aggressive",
+    "serverGc": false,
+    "gen2Count": 9,
+    "heapSizeMiB": 20.2442626953125,
+    "committedMiB": 60.20703125,
+    "totalMemoryMiB": 20.221282958984375
+   },
+   {
+    "stage": "after-aggressive",
+    "serverGc": false,
+    "gen2Count": 10,
+    "heapSizeMiB": 20.22972869873047,
+    "committedMiB": 20.25390625,
+    "totalMemoryMiB": 20.199844360351562
+   }
+  ]
+ }
+}

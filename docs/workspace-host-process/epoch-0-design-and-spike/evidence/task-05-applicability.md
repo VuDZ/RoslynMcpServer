@@ -13,20 +13,26 @@
   Исторический состав процессов восстановить нельзя. Перед экспериментами найден
   один живой рабочий MCP 1.5.16; для контроля создана отдельная группа 20 MCP 1.5.18.
 - Пустой 1.5.18: медиана working set **59,8 / 61,0 MiB** и private bytes
-  **23,3 / 18,4 MiB** для Server / Workstation GC. «18 МБ» нельзя считать working set текущего сервера.
+  **23,3 / 18,4 MiB** для Server / Workstation GC. «18 МБ» нельзя считать working set текущего сервера;
+  оно совпадает с Workstation private bytes и, вероятно, было private bytes или private WS
+  (колонка «Память» диспетчера задач).
 - Пустой сервер уже загрузил шесть сборок Roslyn, `Microsoft.Build.Locator` и
   decompiler. Он не является реализацией чистого proxy без этих зависимостей.
 - На малом решении минутный idle не вернул память. Reset + ещё минута также
-  оставили большую часть private bytes; это не доказательство новой утечки.
+  оставили большую часть private bytes, но **после reset GC не запускался**, и замер
+  не отвечает, сколько возвращает выгрузка. Проверка ревью (Linux, 1.5.18): reset +
+  `GC.Collect(2, GCCollectionMode.Aggressive)` возвращает около 2/3 прироста от загрузки
+  ([F-01](../../review-task-03-05-2026-10-28/result.md)).
 - В синтетической группе восемь + восемь совместимых загрузок и четыре пустых
   процесса: **2606,4 MiB private bytes**, сумма working set **4096,9 MiB**.
   Это не воспроизведение прежних 10–20 ГБ и не замер физической экономии RAM.
 - **Проверенный запуск Codex app-server на Windows ограничен Job:** при его
   выходе/crash завершаются MCP и detached child, breakaway возвращает error 5.
   Это ограничение данного запуска для task-04, не запрет всех способов создать host.
-- Рекомендация: продолжать независимый task-03 и разделение session/workspace
-  в design. Выбор модели владельцем для task-04 остаётся открытым; механизм
-  удержания host проверяет task-04.
+- Рекомендация, дополнена по ревью F-02: idle unload с явным GC — первым и для
+  любой модели; для task-04 оставить обе shared-модели; цель «пережить Reload»
+  для Codex снять как недостижимую в любой модели. Выбор моделей — за владельцем;
+  [подробно](#рекомендация-по-моделям-после-ревью).
 - Связь чата и MCP-процесса определяется клиентом. UI-матрица и MCP на чат/окно
   исключены владельцем из задачи; сохранённые дополнительные наблюдения не являются
   универсальным контрактом клиентов и не блокируют завершение task-05.
@@ -35,8 +41,8 @@
 
 База production: `b4d4b682cb786952d355221bc7a4180bb85f15b6`, сервер **1.5.18.0**.
 Ветка `research/workspace-host-process`; production-код, solution и publish не менялись.
-Исполнитель — Codex, `gpt-6.1-sol` по metadata harness. Независимого ревью нет;
-его раунды и исправления остаются `—`, не нулём.
+Исполнитель — Codex, `gpt-6.1-sol` по metadata harness. Независимое ревью —
+`claude-opus-5-5`, 2026-10-28, раунд 1; [результат](../../review-task-03-05-2026-10-28/result.md), [исправления](../../evidence/2026-10-28-task-03-05-review-fixes.md).
 
 Дата всех новых наблюдений — **2026-10-28**, timestamps первичных файлов UTC.
 Windows 11 build 26200, 16 logical CPU, 93,7 GiB RAM, SDK 10.0.402,
@@ -229,10 +235,9 @@ UI-события не отождествляются с EOF, смертью п�
 Production Reload отмечен unavailable, не pending и не pass. Ручной выход
 и повторный запуск описаны выше; исходный снимок PID/workspace сохранён.
 
-Для Codex нет автоматизации UI: доступный
-[computer-use SKILL.md](C:/Users/VuDZ/.codex/plugins/cache/openai-bundled/computer-use/26.1021.31345/skills/computer-use/SKILL.md)
-отсылает к [guidance.md](C:/Users/VuDZ/.codex/plugins/cache/openai-bundled/computer-use/26.1021.31345/docs/guidance.md)
-с прямым правилом: «Do not automate the ChatGPT desktop app UI
+Для Codex нет автоматизации UI: `SKILL.md` встроенного plugin computer-use
+(openai-bundled, версия 26.1021.31345, локальный кеш plugins Codex) отсылает
+к его `docs/guidance.md` с прямым правилом: «Do not automate the ChatGPT desktop app UI
 or Codex CLI or Codex extensions within Windows apps». Проверки через CLI/API
 это ограничение не обходят и desktop-события не заменяют. Ручная последовательность
 подготовлена в README probe. В Cursor дополнительно нет авторизованного тестового
@@ -320,7 +325,17 @@ idle — 160,56–226,56 MiB. На n=3 и таком разбросе резул
 В этом контроле Workstation уменьшает private пустого процесса примерно на
 4,8 MiB и медиану после idle на 15,7 MiB, но пустой working set не уменьшился.
 Минута idle не освобождает workspace; reset не возвращает private к свежим 23/18 MiB.
-Это наблюдение committed memory, а не проверка достижимости managed объектов.
+Это наблюдение committed memory без GC, а не проверка достижимости managed объектов:
+после reset сборка мусора сама не запускается.
+
+**Проверка ревью, 2026-10-28** ([F-01](../../review-task-03-05-2026-10-28/result.md), [данные](../../review-task-03-05-2026-10-28/gc-probe-linux.json)).
+Linux, 1.5.18, то же решение Release, по одному прогону на режим; anon RSS из
+`/proc/<pid>/status`, GC вызывает startup hook. Server GC: после загрузки 163 MiB,
+reset + 30 с — 163 (ни одной gen2), forced compacting GC — 128,
+`GCCollectionMode.Aggressive` — **63**; пустой процесс — 12–14. Workstation:
+134 → 100 → **60**. Живой managed heap после reset и GC — 20–25 MiB против
+1,5–2,7 у пустого: часть состояния переживает reset, причина не разобрана.
+Linux-счётчики не равны Windows private bytes; сравниваются доли.
 Известный дефект удержания sanitized snapshot исправлен в 1.5.18 и имеет
 [отдельный regression/validation](../../evidence/2026-10-28-task-00-review-fixes.md).
 Новой production-утечки этот эксперимент не доказывает; новых production bugs не зарегистрировано.
@@ -332,7 +347,7 @@ Inventory двумя отдельными hook-запусками подтвер
 `Microsoft.CodeAnalysis.Workspaces.MSBuild` ещё нет; plugins нет.
 [Server inventory](task-05-data/assemblies-gc1.json),
 [Workstation inventory](task-05-data/assemblies-gc0.json).
-Это согласуется с bootstrap [Program.cs](../../../../Program.cs:16), eager
+Это согласуется с bootstrap [Program.cs](../../../../Program.cs:15), eager
 Roslyn load до stdio transport и [plugin discovery до provider](../../../../Program.cs:96).
 Default Server GC задан в [csproj](../../../../RoslynMcpServer.csproj:22).
 Reset [очищает ссылки и Dispose workspace](../../../../Services/Workspace/SolutionManager.cs:768),
@@ -373,8 +388,10 @@ production. Для наглядности, если условно взять `p
 возможности схлопывания совместимых копий, а не реализованную экономию.
 
 Оценка idle unload предполагает, что все 16 имеют право выгрузиться, а CLR
-возвращает память как после нового запуска. Измеренный reset этому не равен:
-в root-контроле server private после idle/reset — 161,3 → 154,7 MiB.
+возвращает память как после нового запуска. Reset без GC этому не равен:
+в root-контроле server private после idle/reset — 161,3 → 154,7 MiB. С aggressive GC,
+по проверке ревью, возвращается около 2/3 прироста; остаток на малом решении —
+порядка 45–50 MiB сверх пустого процесса. Верхнюю границу выше читать с этой поправкой.
 Активные дубликаты idle unload не устраняет. При разных проектах или
 несовместимых параметрах общая доля дубликатов может быть нулевой.
 Ускорение холодного старта внешним вариантом B ни одной модели не приписано.
@@ -400,11 +417,30 @@ production. Для наглядности, если условно взять `p
 | Удержание host при отключении подключения | Проверен конкретный запуск; собственного host-прототипа ещё нет | Task-04, затем task-01 |
 | Состав прежних 20+ MCP | Нет исторических per-PID memory снимков | Task-05 при повторении ситуации |
 | Автозапуск host вне Job | Стандартные detach/breakaway не проходят | Task-04 после решения владельца |
+| Жив ли detached child после смерти своего MCP внутри Job Codex (backend жив) | Проверялись только выход и kill app-server | Task-04, один прогон в Codex app-server |
+| Что держит 20–25 MiB живого heap после reset и GC | Найдено ревью, gcdump не снимался | Design idle unload |
 | Реальная экономия и конкуренция клиентов | Shared-код ещё отсутствует | Task-02 после design |
 | Память/latency чистого proxy и demotion | Нет такого процесса | Task-04 / task-02 |
 
 В [README темы](../../README.md) записано **решение владельца pending**,
 не выбор автора отчёта. Task-04 и зависимые design/activation автоматически не запускаются.
+
+### Рекомендация по моделям после ревью
+
+Добавлено по [ревью F-02](../../review-task-03-05-2026-10-28/result.md); выбор — за владельцем.
+
+- **Нулевой вариант с idle unload проверять первым:** выгрузка workspace по простою
+  с явным aggressive GC. Наблюдаемое накопление в Codex — простаивающие MCP
+  завершённых сабагентов; idle unload адресует его при любой модели и нужен
+  shared-моделям как idle policy host.
+- **Обе shared-модели оставить для task-04.** Они нужны только для одновременно
+  активных дубликатов. Job Codex ограничивает отдельный host жизнью backend, но,
+  по семантике Job, не запрещает ему пережить свой MCP; это проверяется одним прогоном.
+  Модель ролей дешевеет, если владелец снимет требование чистого proxy
+  ([ревью F-05](../../review-task-03-05-2026-10-28/result.md)).
+- **Цель «пережить Reload» для Codex снять:** Reload в production нет, выход
+  приложения завершает весь Job вместе с detached child. Это верно для любой модели;
+  для Cursor не проверено.
 
 ## Validation
 
@@ -442,4 +478,4 @@ production. Для наглядности, если условно взять `p
   Исключённые из scope UI-сценарии остаются not-run и не являются долгом task-05.
   Изменение границ и проверка завершения — в
   [отчёте об уточнении](../../evidence/2026-10-28-task-05-scope.md).
-  Независимого ревью task-05 и приёмки эпохи нет.
+  Приёмки эпохи нет; независимое ревью — [раунд 1](../../review-task-03-05-2026-10-28/result.md).
