@@ -1,0 +1,9 @@
+{"utc":"2026-10-28T11:26:48.5312799+00:00","pid":54600,"name":"start","data":{"mode":"serve","kind":null,"job":{"inJob":true,"limitFlags":8192}}}
+{"utc":"2026-10-28T11:26:48.5685845+00:00","pid":54600,"name":"child-start","data":{"kind":"ordinary","pid":62716}}
+{"utc":"2026-10-28T11:26:48.5756108+00:00","pid":54600,"name":"child-start","data":{"kind":"detached","pid":65868,"error":0}}
+{"utc":"2026-10-28T11:26:48.5782511+00:00","pid":54600,"name":"child-start","data":{"kind":"breakaway","pid":null,"error":5}}
+{"utc":"2026-10-28T11:26:48.5815382+00:00","pid":54600,"name":"request","data":{"method":"initialize"}}
+{"utc":"2026-10-28T11:26:48.5848154+00:00","pid":54600,"name":"request","data":{"method":"notifications/initialized"}}
+{"utc":"2026-10-28T11:26:48.5850623+00:00","pid":54600,"name":"request","data":{"method":"tools/list"}}
+{"utc":"2026-10-28T11:26:48.5870549+00:00","pid":54600,"name":"request","data":{"method":"resources/list"}}
+{"utc":"2026-10-28T11:26:48.5874793+00:00","pid":54600,"name":"request","data":{"method":"resources/templates/list"}}

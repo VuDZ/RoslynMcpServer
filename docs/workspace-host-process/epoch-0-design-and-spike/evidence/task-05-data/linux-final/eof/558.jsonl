@@ -1,0 +1,9 @@
+{"utc":"2026-10-28T11:32:58.5556002+00:00","pid":558,"name":"start","data":{"mode":"serve","kind":null,"job":{"platform":"unix","session":557,"processGroup":557}}}
+{"utc":"2026-10-28T11:32:58.6442102+00:00","pid":558,"name":"child-start","data":{"kind":"ordinary","pid":568}}
+{"utc":"2026-10-28T11:32:58.6497222+00:00","pid":558,"name":"child-start","data":{"kind":"setsid","pid":569}}
+{"utc":"2026-10-28T11:32:58.6562145+00:00","pid":558,"name":"request","data":{"method":"initialize"}}
+{"utc":"2026-10-28T11:32:58.6628986+00:00","pid":558,"name":"request","data":{"method":"resources/list"}}
+{"utc":"2026-10-28T11:32:58.6681691+00:00","pid":558,"name":"request","data":{"method":"prompts/list"}}
+{"utc":"2026-10-28T11:32:58.6716822+00:00","pid":558,"name":"request","data":{"method":"unsupported"}}
+{"utc":"2026-10-28T11:33:00.6803482+00:00","pid":558,"name":"stdin-eof","data":null}
+{"utc":"2026-10-28T11:33:00.6846648+00:00","pid":558,"name":"process-exit","data":null}

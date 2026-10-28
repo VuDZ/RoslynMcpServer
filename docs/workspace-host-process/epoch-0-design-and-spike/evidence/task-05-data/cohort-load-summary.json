@@ -1,0 +1,117 @@
+{
+  "method": "Whitelisted load success counters from the cohort time interval, same 1.5.18 build output log",
+  "loads": [
+    {
+      "session": "cli-4cvt",
+      "requestTime": "2026-10-28 14:05:37.599 +03:00",
+      "workspace": "E:\\Devel\\RoslynMcpServer-workspace-host-process\\RoslynMcpServer.sln",
+      "projectCount": 5,
+      "workspaceDiagnosticLines": 0
+    },
+    {
+      "session": "cli-by9g",
+      "requestTime": "2026-10-28 14:05:39.536 +03:00",
+      "workspace": "E:\\Devel\\RoslynMcpServer-workspace-host-process\\RoslynMcpServer.sln",
+      "projectCount": 5,
+      "workspaceDiagnosticLines": 0
+    },
+    {
+      "session": "cli-t2dm",
+      "requestTime": "2026-10-28 14:05:41.499 +03:00",
+      "workspace": "E:\\Devel\\RoslynMcpServer-workspace-host-process\\RoslynMcpServer.sln",
+      "projectCount": 5,
+      "workspaceDiagnosticLines": 0
+    },
+    {
+      "session": "cli-t9dh",
+      "requestTime": "2026-10-28 14:05:43.477 +03:00",
+      "workspace": "E:\\Devel\\RoslynMcpServer-workspace-host-process\\RoslynMcpServer.sln",
+      "projectCount": 5,
+      "workspaceDiagnosticLines": 0
+    },
+    {
+      "session": "cli-k9t8",
+      "requestTime": "2026-10-28 14:05:45.485 +03:00",
+      "workspace": "E:\\Devel\\RoslynMcpServer-workspace-host-process\\RoslynMcpServer.sln",
+      "projectCount": 5,
+      "workspaceDiagnosticLines": 0
+    },
+    {
+      "session": "cli-n5vz",
+      "requestTime": "2026-10-28 14:05:47.528 +03:00",
+      "workspace": "E:\\Devel\\RoslynMcpServer-workspace-host-process\\RoslynMcpServer.sln",
+      "projectCount": 5,
+      "workspaceDiagnosticLines": 0
+    },
+    {
+      "session": "cli-aggd",
+      "requestTime": "2026-10-28 14:05:49.558 +03:00",
+      "workspace": "E:\\Devel\\RoslynMcpServer-workspace-host-process\\RoslynMcpServer.sln",
+      "projectCount": 5,
+      "workspaceDiagnosticLines": 0
+    },
+    {
+      "session": "cli-4by4",
+      "requestTime": "2026-10-28 14:05:51.620 +03:00",
+      "workspace": "E:\\Devel\\RoslynMcpServer-workspace-host-process\\RoslynMcpServer.sln",
+      "projectCount": 5,
+      "workspaceDiagnosticLines": 0
+    },
+    {
+      "session": "cli-jv5m",
+      "requestTime": "2026-10-28 14:05:53.679 +03:00",
+      "workspace": "E:\\Devel\\RoslynMcpServer-workspace-host-process\\samples\\RoslynMcpPlugin\\RoslynMcpPlugin.csproj",
+      "projectCount": 2,
+      "workspaceDiagnosticLines": 0
+    },
+    {
+      "session": "cli-gw4p",
+      "requestTime": "2026-10-28 14:05:55.480 +03:00",
+      "workspace": "E:\\Devel\\RoslynMcpServer-workspace-host-process\\samples\\RoslynMcpPlugin\\RoslynMcpPlugin.csproj",
+      "projectCount": 2,
+      "workspaceDiagnosticLines": 0
+    },
+    {
+      "session": "cli-sw5s",
+      "requestTime": "2026-10-28 14:05:57.294 +03:00",
+      "workspace": "E:\\Devel\\RoslynMcpServer-workspace-host-process\\samples\\RoslynMcpPlugin\\RoslynMcpPlugin.csproj",
+      "projectCount": 2,
+      "workspaceDiagnosticLines": 0
+    },
+    {
+      "session": "cli-dq4b",
+      "requestTime": "2026-10-28 14:05:59.134 +03:00",
+      "workspace": "E:\\Devel\\RoslynMcpServer-workspace-host-process\\samples\\RoslynMcpPlugin\\RoslynMcpPlugin.csproj",
+      "projectCount": 2,
+      "workspaceDiagnosticLines": 0
+    },
+    {
+      "session": "cli-m3tf",
+      "requestTime": "2026-10-28 14:06:00.970 +03:00",
+      "workspace": "E:\\Devel\\RoslynMcpServer-workspace-host-process\\samples\\RoslynMcpPlugin\\RoslynMcpPlugin.csproj",
+      "projectCount": 2,
+      "workspaceDiagnosticLines": 0
+    },
+    {
+      "session": "cli-kg2n",
+      "requestTime": "2026-10-28 14:06:02.801 +03:00",
+      "workspace": "E:\\Devel\\RoslynMcpServer-workspace-host-process\\samples\\RoslynMcpPlugin\\RoslynMcpPlugin.csproj",
+      "projectCount": 2,
+      "workspaceDiagnosticLines": 0
+    },
+    {
+      "session": "cli-nb3f",
+      "requestTime": "2026-10-28 14:06:04.606 +03:00",
+      "workspace": "E:\\Devel\\RoslynMcpServer-workspace-host-process\\samples\\RoslynMcpPlugin\\RoslynMcpPlugin.csproj",
+      "projectCount": 2,
+      "workspaceDiagnosticLines": 0
+    },
+    {
+      "session": "cli-e7mz",
+      "requestTime": "2026-10-28 14:06:06.414 +03:00",
+      "workspace": "E:\\Devel\\RoslynMcpServer-workspace-host-process\\samples\\RoslynMcpPlugin\\RoslynMcpPlugin.csproj",
+      "projectCount": 2,
+      "workspaceDiagnosticLines": 0
+    }
+  ]
+}

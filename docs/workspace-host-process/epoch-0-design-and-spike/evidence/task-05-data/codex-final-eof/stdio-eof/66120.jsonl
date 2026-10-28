@@ -1,0 +1,9 @@
+{"utc":"2026-10-28T11:26:51.7736387+00:00","pid":66120,"name":"start","data":{"mode":"serve","kind":"hold","job":{"inJob":true,"limitFlags":8192}}}
+{"utc":"2026-10-28T11:26:51.8089222+00:00","pid":66120,"name":"child-start","data":{"kind":"ordinary","pid":60336}}
+{"utc":"2026-10-28T11:26:51.8156783+00:00","pid":66120,"name":"child-start","data":{"kind":"detached","pid":55144,"error":0}}
+{"utc":"2026-10-28T11:26:51.8180715+00:00","pid":66120,"name":"child-start","data":{"kind":"breakaway","pid":null,"error":5}}
+{"utc":"2026-10-28T11:26:51.8213063+00:00","pid":66120,"name":"request","data":{"method":"initialize"}}
+{"utc":"2026-10-28T11:26:51.8245114+00:00","pid":66120,"name":"request","data":{"method":"notifications/initialized"}}
+{"utc":"2026-10-28T11:26:51.8247585+00:00","pid":66120,"name":"request","data":{"method":"tools/list"}}
+{"utc":"2026-10-28T11:26:51.8268488+00:00","pid":66120,"name":"request","data":{"method":"resources/list"}}
+{"utc":"2026-10-28T11:26:51.8269637+00:00","pid":66120,"name":"discovery-hold","data":null}

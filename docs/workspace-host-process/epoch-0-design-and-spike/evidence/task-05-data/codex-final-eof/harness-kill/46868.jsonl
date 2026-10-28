@@ -1,0 +1,10 @@
+{"utc":"2026-10-28T11:26:55.1068268+00:00","pid":46868,"name":"start","data":{"mode":"serve","kind":"hold","job":{"inJob":true,"limitFlags":8192}}}
+{"utc":"2026-10-28T11:26:55.1424653+00:00","pid":46868,"name":"child-start","data":{"kind":"ordinary","pid":63072}}
+{"utc":"2026-10-28T11:26:55.1492791+00:00","pid":46868,"name":"child-start","data":{"kind":"detached","pid":66396,"error":0}}
+{"utc":"2026-10-28T11:26:55.1518882+00:00","pid":46868,"name":"child-start","data":{"kind":"breakaway","pid":null,"error":5}}
+{"utc":"2026-10-28T11:26:55.1551364+00:00","pid":46868,"name":"request","data":{"method":"initialize"}}
+{"utc":"2026-10-28T11:26:55.1584747+00:00","pid":46868,"name":"request","data":{"method":"notifications/initialized"}}
+{"utc":"2026-10-28T11:26:55.158915+00:00","pid":46868,"name":"request","data":{"method":"tools/list"}}
+{"utc":"2026-10-28T11:26:55.1609103+00:00","pid":46868,"name":"request","data":{"method":"resources/templates/list"}}
+{"utc":"2026-10-28T11:26:55.1613465+00:00","pid":46868,"name":"request","data":{"method":"resources/list"}}
+{"utc":"2026-10-28T11:26:55.1614523+00:00","pid":46868,"name":"discovery-hold","data":null}

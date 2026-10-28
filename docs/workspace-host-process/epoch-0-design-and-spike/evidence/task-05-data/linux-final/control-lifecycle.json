@@ -1,0 +1,22 @@
+[
+  {
+    "event": "eof",
+    "pid": 558,
+    "exitMs": 15.4,
+    "exitCode": 0,
+    "childrenAlive": {
+      "568": true,
+      "569": true
+    }
+  },
+  {
+    "event": "parent-kill",
+    "pid": 598,
+    "exitMs": 3.5,
+    "exitCode": -9,
+    "childrenAlive": {
+      "608": true,
+      "609": true
+    }
+  }
+]

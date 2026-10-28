@@ -1,0 +1,276 @@
+{
+  "synthetic": true,
+  "serverVersion": "1.5.18.0 (product 1.5.18+b4d4b682cb786952d355221bc7a4180bb85f15b6)",
+  "serverGc": true,
+  "profile": "full",
+  "processes": [
+    {
+      "index": 0,
+      "pid": 49876,
+      "workspace": "E:\\Devel\\RoslynMcpServer-workspace-host-process\\RoslynMcpServer.sln",
+      "loadArguments": {
+        "configuration": "Release",
+        "briefOutput": true
+      },
+      "idleSeconds": 89.8,
+      "stage": "cohort-idle",
+      "utc": "2026-10-28T11:07:09.084750+00:00",
+      "workingSet": 241876992,
+      "privateBytes": 150048768
+    },
+    {
+      "index": 1,
+      "pid": 58428,
+      "workspace": "E:\\Devel\\RoslynMcpServer-workspace-host-process\\RoslynMcpServer.sln",
+      "loadArguments": {
+        "configuration": "Release",
+        "briefOutput": true
+      },
+      "idleSeconds": 87.9,
+      "stage": "cohort-idle",
+      "utc": "2026-10-28T11:07:09.084837+00:00",
+      "workingSet": 287375360,
+      "privateBytes": 201474048
+    },
+    {
+      "index": 2,
+      "pid": 46464,
+      "workspace": "E:\\Devel\\RoslynMcpServer-workspace-host-process\\RoslynMcpServer.sln",
+      "loadArguments": {
+        "configuration": "Release",
+        "briefOutput": true
+      },
+      "idleSeconds": 85.9,
+      "stage": "cohort-idle",
+      "utc": "2026-10-28T11:07:09.084882+00:00",
+      "workingSet": 273211392,
+      "privateBytes": 186945536
+    },
+    {
+      "index": 3,
+      "pid": 61324,
+      "workspace": "E:\\Devel\\RoslynMcpServer-workspace-host-process\\RoslynMcpServer.sln",
+      "loadArguments": {
+        "configuration": "Release",
+        "briefOutput": true
+      },
+      "idleSeconds": 83.9,
+      "stage": "cohort-idle",
+      "utc": "2026-10-28T11:07:09.084919+00:00",
+      "workingSet": 272957440,
+      "privateBytes": 187666432
+    },
+    {
+      "index": 4,
+      "pid": 59716,
+      "workspace": "E:\\Devel\\RoslynMcpServer-workspace-host-process\\RoslynMcpServer.sln",
+      "loadArguments": {
+        "configuration": "Release",
+        "briefOutput": true
+      },
+      "idleSeconds": 81.9,
+      "stage": "cohort-idle",
+      "utc": "2026-10-28T11:07:09.084956+00:00",
+      "workingSet": 269221888,
+      "privateBytes": 181882880
+    },
+    {
+      "index": 5,
+      "pid": 45916,
+      "workspace": "E:\\Devel\\RoslynMcpServer-workspace-host-process\\RoslynMcpServer.sln",
+      "loadArguments": {
+        "configuration": "Release",
+        "briefOutput": true
+      },
+      "idleSeconds": 79.9,
+      "stage": "cohort-idle",
+      "utc": "2026-10-28T11:07:09.084994+00:00",
+      "workingSet": 284315648,
+      "privateBytes": 195497984
+    },
+    {
+      "index": 6,
+      "pid": 59004,
+      "workspace": "E:\\Devel\\RoslynMcpServer-workspace-host-process\\RoslynMcpServer.sln",
+      "loadArguments": {
+        "configuration": "Release",
+        "briefOutput": true
+      },
+      "idleSeconds": 77.8,
+      "stage": "cohort-idle",
+      "utc": "2026-10-28T11:07:09.085030+00:00",
+      "workingSet": 294440960,
+      "privateBytes": 205799424
+    },
+    {
+      "index": 7,
+      "pid": 45792,
+      "workspace": "E:\\Devel\\RoslynMcpServer-workspace-host-process\\RoslynMcpServer.sln",
+      "loadArguments": {
+        "configuration": "Release",
+        "briefOutput": true
+      },
+      "idleSeconds": 75.8,
+      "stage": "cohort-idle",
+      "utc": "2026-10-28T11:07:09.085066+00:00",
+      "workingSet": 275525632,
+      "privateBytes": 187764736
+    },
+    {
+      "index": 8,
+      "pid": 37348,
+      "workspace": "E:\\Devel\\RoslynMcpServer-workspace-host-process\\samples\\RoslynMcpPlugin\\RoslynMcpPlugin.csproj",
+      "loadArguments": {
+        "configuration": "Release",
+        "briefOutput": true
+      },
+      "idleSeconds": 73.9,
+      "stage": "cohort-idle",
+      "utc": "2026-10-28T11:07:09.085102+00:00",
+      "workingSet": 232075264,
+      "privateBytes": 143196160
+    },
+    {
+      "index": 9,
+      "pid": 61436,
+      "workspace": "E:\\Devel\\RoslynMcpServer-workspace-host-process\\samples\\RoslynMcpPlugin\\RoslynMcpPlugin.csproj",
+      "loadArguments": {
+        "configuration": "Release",
+        "briefOutput": true
+      },
+      "idleSeconds": 72.1,
+      "stage": "cohort-idle",
+      "utc": "2026-10-28T11:07:09.085139+00:00",
+      "workingSet": 236318720,
+      "privateBytes": 148721664
+    },
+    {
+      "index": 10,
+      "pid": 58228,
+      "workspace": "E:\\Devel\\RoslynMcpServer-workspace-host-process\\samples\\RoslynMcpPlugin\\RoslynMcpPlugin.csproj",
+      "loadArguments": {
+        "configuration": "Release",
+        "briefOutput": true
+      },
+      "idleSeconds": 70.3,
+      "stage": "cohort-idle",
+      "utc": "2026-10-28T11:07:09.085175+00:00",
+      "workingSet": 231002112,
+      "privateBytes": 143245312
+    },
+    {
+      "index": 11,
+      "pid": 47696,
+      "workspace": "E:\\Devel\\RoslynMcpServer-workspace-host-process\\samples\\RoslynMcpPlugin\\RoslynMcpPlugin.csproj",
+      "loadArguments": {
+        "configuration": "Release",
+        "briefOutput": true
+      },
+      "idleSeconds": 68.4,
+      "stage": "cohort-idle",
+      "utc": "2026-10-28T11:07:09.085213+00:00",
+      "workingSet": 220532736,
+      "privateBytes": 130506752
+    },
+    {
+      "index": 12,
+      "pid": 55440,
+      "workspace": "E:\\Devel\\RoslynMcpServer-workspace-host-process\\samples\\RoslynMcpPlugin\\RoslynMcpPlugin.csproj",
+      "loadArguments": {
+        "configuration": "Release",
+        "briefOutput": true
+      },
+      "idleSeconds": 66.6,
+      "stage": "cohort-idle",
+      "utc": "2026-10-28T11:07:09.085252+00:00",
+      "workingSet": 232271872,
+      "privateBytes": 144752640
+    },
+    {
+      "index": 13,
+      "pid": 43176,
+      "workspace": "E:\\Devel\\RoslynMcpServer-workspace-host-process\\samples\\RoslynMcpPlugin\\RoslynMcpPlugin.csproj",
+      "loadArguments": {
+        "configuration": "Release",
+        "briefOutput": true
+      },
+      "idleSeconds": 64.8,
+      "stage": "cohort-idle",
+      "utc": "2026-10-28T11:07:09.085288+00:00",
+      "workingSet": 230219776,
+      "privateBytes": 142127104
+    },
+    {
+      "index": 14,
+      "pid": 39504,
+      "workspace": "E:\\Devel\\RoslynMcpServer-workspace-host-process\\samples\\RoslynMcpPlugin\\RoslynMcpPlugin.csproj",
+      "loadArguments": {
+        "configuration": "Release",
+        "briefOutput": true
+      },
+      "idleSeconds": 63.0,
+      "stage": "cohort-idle",
+      "utc": "2026-10-28T11:07:09.085330+00:00",
+      "workingSet": 233771008,
+      "privateBytes": 144269312
+    },
+    {
+      "index": 15,
+      "pid": 35892,
+      "workspace": "E:\\Devel\\RoslynMcpServer-workspace-host-process\\samples\\RoslynMcpPlugin\\RoslynMcpPlugin.csproj",
+      "loadArguments": {
+        "configuration": "Release",
+        "briefOutput": true
+      },
+      "idleSeconds": 61.2,
+      "stage": "cohort-idle",
+      "utc": "2026-10-28T11:07:09.085367+00:00",
+      "workingSet": 230572032,
+      "privateBytes": 142655488
+    },
+    {
+      "index": 16,
+      "pid": 55144,
+      "workspace": null,
+      "loadArguments": null,
+      "idleSeconds": 60.9,
+      "stage": "cohort-idle",
+      "utc": "2026-10-28T11:07:09.085401+00:00",
+      "workingSet": 62611456,
+      "privateBytes": 24186880
+    },
+    {
+      "index": 17,
+      "pid": 59356,
+      "workspace": null,
+      "loadArguments": null,
+      "idleSeconds": 60.6,
+      "stage": "cohort-idle",
+      "utc": "2026-10-28T11:07:09.085437+00:00",
+      "workingSet": 62566400,
+      "privateBytes": 24137728
+    },
+    {
+      "index": 18,
+      "pid": 31728,
+      "workspace": null,
+      "loadArguments": null,
+      "idleSeconds": 60.3,
+      "stage": "cohort-idle",
+      "utc": "2026-10-28T11:07:09.085475+00:00",
+      "workingSet": 62885888,
+      "privateBytes": 24481792
+    },
+    {
+      "index": 19,
+      "pid": 27356,
+      "workspace": null,
+      "loadArguments": null,
+      "idleSeconds": 60.0,
+      "stage": "cohort-idle",
+      "utc": "2026-10-28T11:07:09.085527+00:00",
+      "workingSet": 62164992,
+      "privateBytes": 23666688
+    }
+  ]
+}

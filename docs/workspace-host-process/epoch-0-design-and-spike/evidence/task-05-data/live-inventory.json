@@ -1,0 +1,36 @@
+{
+  "utc": "2026-10-28T11:38:32.4263707+00:00",
+  "method": "One Get-Process enumeration; PrivateMemorySize64/WorkingSet64",
+  "os": "Microsoft Windows NT 10.0.26200.0",
+  "processCount": 1,
+  "processes": [
+    {
+      "pid": 56052,
+      "started": "2026-10-28T01:43:07.6503381+03:00",
+      "privateBytes": 234418176,
+      "workingSet": 347201536,
+      "serverVersion": "1.5.16.0",
+      "path": "e:\\Devel\\RoslynMcpServer\\bin\\Release\\net10.0\\win-x64\\publish\\RoslynMcpServer.exe",
+      "workspace": "E:/Devel/RoslynMcpServer-workspace-host-process/RoslynMcpServer.sln",
+      "stateVerifiedByMcpInfo": true,
+      "idleSeconds": null
+    }
+  ],
+  "knownSession": {
+    "harnessSessionId": "codex-2jmy",
+    "configuration": "Release",
+    "profile": "full",
+    "projects": 5,
+    "omittedLoadArguments": [
+      "platform",
+      "targetFramework",
+      "buildArgs"
+    ],
+    "loadedStateSource": "get_mcp_server_info",
+    "loadParametersSource": "log whitelist 2026-10-28 01:48:32.812 +03:00",
+    "idleReason": "Active validation session; no uninterrupted idle interval established",
+    "plugins": [],
+    "harness": "Codex Desktop 26.1021.3705.0 / codex-cli 0.164.0-alpha.11.1",
+    "pid": 56052
+  }
+}

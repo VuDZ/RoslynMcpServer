@@ -1,0 +1,57 @@
+{
+  "files": [
+    "mcp-20261015.log",
+    "mcp-20261016.log",
+    "mcp-20261017.log",
+    "mcp-20261018.log",
+    "mcp-20261019.log",
+    "mcp-20261020.log",
+    "mcp-20261021.log",
+    "mcp-20261022.log",
+    "mcp-20261023.log",
+    "mcp-20261024.log",
+    "mcp-20261025.log",
+    "mcp-20261026.log",
+    "mcp-20261027.log",
+    "mcp-20261028.log"
+  ],
+  "distinctTokens": 3608,
+  "harnessTokenCounts": {
+    "cursor": 18,
+    "codex": 3580,
+    "cli": 3,
+    "dsh": 7
+  },
+  "tokensWithLoadRequests": 182,
+  "liveSessionLogFacts": [
+    {
+      "token": "codex-2jmy",
+      "first": "2026-10-28 01:43:07.943 +03:00",
+      "loads": [
+        {
+          "utcOffsetTime": "2026-10-28 01:48:32.812 +03:00",
+          "arguments": {
+            "workspacePath": "E:/Devel/RoslynMcpServer-workspace-host-process/RoslynMcpServer.sln",
+            "configuration": "Release",
+            "briefOutput": true
+          },
+          "buildArgsPresent": false
+        }
+      ],
+      "versions": [
+        "1.5.16.0"
+      ],
+      "last": "2026-10-28 14:05:59.230 +03:00",
+      "lastTool": {
+        "utcOffsetTime": "2026-10-28 13:45:46.137 +03:00",
+        "name": "run_dotnet_build"
+      }
+    }
+  ],
+  "limits": [
+    "Not a concurrent process count",
+    "Four-character suffix collisions are possible",
+    "Requests do not prove successful load",
+    "Historical memory counters are unavailable"
+  ]
+}

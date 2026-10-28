@@ -1,0 +1,8 @@
+{"utc":"2026-10-28T11:26:44.1328752+00:00","pid":18696,"name":"start","data":{"mode":"serve","kind":null,"job":{"inJob":true,"limitFlags":10240}}}
+{"utc":"2026-10-28T11:26:44.1677446+00:00","pid":18696,"name":"child-start","data":{"kind":"ordinary","pid":42624}}
+{"utc":"2026-10-28T11:26:44.1743321+00:00","pid":18696,"name":"child-start","data":{"kind":"detached","pid":59404,"error":0}}
+{"utc":"2026-10-28T11:26:44.1804853+00:00","pid":18696,"name":"child-start","data":{"kind":"breakaway","pid":49924,"error":0}}
+{"utc":"2026-10-28T11:26:44.1836582+00:00","pid":18696,"name":"request","data":{"method":"initialize"}}
+{"utc":"2026-10-28T11:26:44.1869021+00:00","pid":18696,"name":"request","data":{"method":"resources/list"}}
+{"utc":"2026-10-28T11:26:44.1888279+00:00","pid":18696,"name":"request","data":{"method":"prompts/list"}}
+{"utc":"2026-10-28T11:26:44.1893222+00:00","pid":18696,"name":"request","data":{"method":"unsupported"}}

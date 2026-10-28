@@ -1,0 +1,266 @@
+{
+  "utc": "2026-10-28T10:49:25.637839+00:00",
+  "baseCommit": "b4d4b682cb786952d355221bc7a4180bb85f15b6",
+  "serverVersion": "1.5.18.0 (product 1.5.18+b4d4b682cb786952d355221bc7a4180bb85f15b6)",
+  "server": "E:\\Devel\\RoslynMcpServer-workspace-host-process\\bin\\Release\\net10.0\\RoslynMcpServer.exe",
+  "workspace": "E:\\Devel\\RoslynMcpServer-workspace-host-process\\RoslynMcpServer.sln",
+  "profile": "full",
+  "prewarm": "default on",
+  "method": "GetProcessMemoryInfo WorkingSetSize/PrivateUsage; server PID only",
+  "settleSeconds": 10,
+  "idleSeconds": 60,
+  "runs": [
+    {
+      "run": 1,
+      "requestedServerGc": true,
+      "projectCount": 5,
+      "samples": [
+        {
+          "stage": "empty-10s",
+          "utc": "2026-10-28T10:49:36.481487+00:00",
+          "pid": 35864,
+          "workingSet": 63512576,
+          "privateBytes": 24559616
+        },
+        {
+          "stage": "loaded-10s",
+          "utc": "2026-10-28T10:49:48.218573+00:00",
+          "pid": 35864,
+          "workingSet": 279322624,
+          "privateBytes": 184549376
+        },
+        {
+          "stage": "after-query",
+          "utc": "2026-10-28T10:49:49.273224+00:00",
+          "pid": 35864,
+          "workingSet": 312303616,
+          "privateBytes": 190820352
+        },
+        {
+          "stage": "idle-60s",
+          "utc": "2026-10-28T10:50:49.273490+00:00",
+          "pid": 35864,
+          "workingSet": 362078208,
+          "privateBytes": 237568000
+        },
+        {
+          "stage": "reset-idle-60s",
+          "utc": "2026-10-28T10:51:49.279072+00:00",
+          "pid": 35864,
+          "workingSet": 353755136,
+          "privateBytes": 229314560
+        }
+      ]
+    },
+    {
+      "run": 1,
+      "requestedServerGc": false,
+      "projectCount": 5,
+      "samples": [
+        {
+          "stage": "empty-10s",
+          "utc": "2026-10-28T10:51:59.605332+00:00",
+          "pid": 56780,
+          "workingSet": 63950848,
+          "privateBytes": 19333120
+        },
+        {
+          "stage": "loaded-10s",
+          "utc": "2026-10-28T10:52:11.688715+00:00",
+          "pid": 56780,
+          "workingSet": 235950080,
+          "privateBytes": 137367552
+        },
+        {
+          "stage": "after-query",
+          "utc": "2026-10-28T10:52:13.112562+00:00",
+          "pid": 56780,
+          "workingSet": 280596480,
+          "privateBytes": 149172224
+        },
+        {
+          "stage": "idle-60s",
+          "utc": "2026-10-28T10:53:13.113168+00:00",
+          "pid": 56780,
+          "workingSet": 284319744,
+          "privateBytes": 152731648
+        },
+        {
+          "stage": "reset-idle-60s",
+          "utc": "2026-10-28T10:54:13.120415+00:00",
+          "pid": 56780,
+          "workingSet": 276402176,
+          "privateBytes": 142528512
+        }
+      ]
+    },
+    {
+      "run": 2,
+      "requestedServerGc": false,
+      "projectCount": 5,
+      "samples": [
+        {
+          "stage": "empty-10s",
+          "utc": "2026-10-28T10:54:23.436117+00:00",
+          "pid": 47108,
+          "workingSet": 64225280,
+          "privateBytes": 19587072
+        },
+        {
+          "stage": "loaded-10s",
+          "utc": "2026-10-28T10:54:35.306999+00:00",
+          "pid": 47108,
+          "workingSet": 240844800,
+          "privateBytes": 142635008
+        },
+        {
+          "stage": "after-query",
+          "utc": "2026-10-28T10:54:36.768898+00:00",
+          "pid": 47108,
+          "workingSet": 291139584,
+          "privateBytes": 160456704
+        },
+        {
+          "stage": "idle-60s",
+          "utc": "2026-10-28T10:55:36.769302+00:00",
+          "pid": 47108,
+          "workingSet": 292052992,
+          "privateBytes": 160481280
+        },
+        {
+          "stage": "reset-idle-60s",
+          "utc": "2026-10-28T10:56:36.777009+00:00",
+          "pid": 47108,
+          "workingSet": 283992064,
+          "privateBytes": 150990848
+        }
+      ]
+    },
+    {
+      "run": 2,
+      "requestedServerGc": true,
+      "projectCount": 5,
+      "samples": [
+        {
+          "stage": "empty-10s",
+          "utc": "2026-10-28T10:56:47.135595+00:00",
+          "pid": 44552,
+          "workingSet": 62570496,
+          "privateBytes": 24260608
+        },
+        {
+          "stage": "loaded-10s",
+          "utc": "2026-10-28T10:56:59.046162+00:00",
+          "pid": 44552,
+          "workingSet": 221995008,
+          "privateBytes": 130134016
+        },
+        {
+          "stage": "after-query",
+          "utc": "2026-10-28T10:57:00.564944+00:00",
+          "pid": 44552,
+          "workingSet": 295788544,
+          "privateBytes": 173944832
+        },
+        {
+          "stage": "idle-60s",
+          "utc": "2026-10-28T10:58:00.565348+00:00",
+          "pid": 44552,
+          "workingSet": 292454400,
+          "privateBytes": 168361984
+        },
+        {
+          "stage": "reset-idle-60s",
+          "utc": "2026-10-28T10:59:00.572305+00:00",
+          "pid": 44552,
+          "workingSet": 286334976,
+          "privateBytes": 162234368
+        }
+      ]
+    },
+    {
+      "run": 3,
+      "requestedServerGc": true,
+      "projectCount": 5,
+      "samples": [
+        {
+          "stage": "empty-10s",
+          "utc": "2026-10-28T10:59:10.893059+00:00",
+          "pid": 59660,
+          "workingSet": 62656512,
+          "privateBytes": 24383488
+        },
+        {
+          "stage": "loaded-10s",
+          "utc": "2026-10-28T10:59:22.628940+00:00",
+          "pid": 59660,
+          "workingSet": 222744576,
+          "privateBytes": 130281472
+        },
+        {
+          "stage": "after-query",
+          "utc": "2026-10-28T10:59:23.824129+00:00",
+          "pid": 59660,
+          "workingSet": 293199872,
+          "privateBytes": 171892736
+        },
+        {
+          "stage": "idle-60s",
+          "utc": "2026-10-28T11:00:23.824728+00:00",
+          "pid": 59660,
+          "workingSet": 292450304,
+          "privateBytes": 169152512
+        },
+        {
+          "stage": "reset-idle-60s",
+          "utc": "2026-10-28T11:01:23.831573+00:00",
+          "pid": 59660,
+          "workingSet": 284844032,
+          "privateBytes": 160337920
+        }
+      ]
+    },
+    {
+      "run": 3,
+      "requestedServerGc": false,
+      "projectCount": 5,
+      "samples": [
+        {
+          "stage": "empty-10s",
+          "utc": "2026-10-28T11:01:34.142383+00:00",
+          "pid": 51536,
+          "workingSet": 63393792,
+          "privateBytes": 18702336
+        },
+        {
+          "stage": "loaded-10s",
+          "utc": "2026-10-28T11:01:45.824398+00:00",
+          "pid": 51536,
+          "workingSet": 238243840,
+          "privateBytes": 139788288
+        },
+        {
+          "stage": "after-query",
+          "utc": "2026-10-28T11:01:46.979354+00:00",
+          "pid": 51536,
+          "workingSet": 283279360,
+          "privateBytes": 151949312
+        },
+        {
+          "stage": "idle-60s",
+          "utc": "2026-10-28T11:02:46.979772+00:00",
+          "pid": 51536,
+          "workingSet": 285601792,
+          "privateBytes": 152203264
+        },
+        {
+          "stage": "reset-idle-60s",
+          "utc": "2026-10-28T11:03:46.987295+00:00",
+          "pid": 51536,
+          "workingSet": 276578304,
+          "privateBytes": 143364096
+        }
+      ]
+    }
+  ]
+}

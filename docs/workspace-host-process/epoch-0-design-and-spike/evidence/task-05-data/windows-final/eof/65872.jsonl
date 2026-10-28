@@ -1,0 +1,6 @@
+{"utc":"2026-10-28T11:26:40.0030226+00:00","pid":65872,"name":"start","data":{"mode":"child","kind":"detached","job":{"inJob":true,"limitFlags":10240}}}
+{"utc":"2026-10-28T11:26:40.0322859+00:00","pid":65872,"name":"heartbeat","data":null}
+{"utc":"2026-10-28T11:26:41.0379953+00:00","pid":65872,"name":"heartbeat","data":null}
+{"utc":"2026-10-28T11:26:42.0469332+00:00","pid":65872,"name":"heartbeat","data":null}
+{"utc":"2026-10-28T11:26:43.0575816+00:00","pid":65872,"name":"heartbeat","data":null}
+{"utc":"2026-10-28T11:26:44.0681752+00:00","pid":65872,"name":"process-exit","data":null}

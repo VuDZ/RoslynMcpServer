@@ -1,0 +1,10 @@
+{"utc":"2026-10-28T11:26:39.9358819+00:00","pid":65096,"name":"start","data":{"mode":"serve","kind":null,"job":{"inJob":true,"limitFlags":10240}}}
+{"utc":"2026-10-28T11:26:39.9710643+00:00","pid":65096,"name":"child-start","data":{"kind":"ordinary","pid":58796}}
+{"utc":"2026-10-28T11:26:39.9779283+00:00","pid":65096,"name":"child-start","data":{"kind":"detached","pid":65872,"error":0}}
+{"utc":"2026-10-28T11:26:39.983661+00:00","pid":65096,"name":"child-start","data":{"kind":"breakaway","pid":34084,"error":0}}
+{"utc":"2026-10-28T11:26:39.9872574+00:00","pid":65096,"name":"request","data":{"method":"initialize"}}
+{"utc":"2026-10-28T11:26:39.9904387+00:00","pid":65096,"name":"request","data":{"method":"resources/list"}}
+{"utc":"2026-10-28T11:26:39.9924393+00:00","pid":65096,"name":"request","data":{"method":"prompts/list"}}
+{"utc":"2026-10-28T11:26:39.9929859+00:00","pid":65096,"name":"request","data":{"method":"unsupported"}}
+{"utc":"2026-10-28T11:26:41.9972741+00:00","pid":65096,"name":"stdin-eof","data":null}
+{"utc":"2026-10-28T11:26:41.9979552+00:00","pid":65096,"name":"process-exit","data":null}

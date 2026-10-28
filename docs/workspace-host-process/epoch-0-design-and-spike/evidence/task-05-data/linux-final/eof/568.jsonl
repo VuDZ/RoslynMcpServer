@@ -1,0 +1,6 @@
+{"utc":"2026-10-28T11:32:58.6813524+00:00","pid":568,"name":"start","data":{"mode":"child","kind":"ordinary","job":{"platform":"unix","session":557,"processGroup":557}}}
+{"utc":"2026-10-28T11:32:58.717827+00:00","pid":568,"name":"heartbeat","data":null}
+{"utc":"2026-10-28T11:32:59.724687+00:00","pid":568,"name":"heartbeat","data":null}
+{"utc":"2026-10-28T11:33:00.7301136+00:00","pid":568,"name":"heartbeat","data":null}
+{"utc":"2026-10-28T11:33:01.7356674+00:00","pid":568,"name":"heartbeat","data":null}
+{"utc":"2026-10-28T11:33:02.7417666+00:00","pid":568,"name":"process-exit","data":null}

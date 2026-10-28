@@ -1,0 +1,154 @@
+[
+  {
+    "event": "discovery-completed",
+    "harnessPid": 30708,
+    "discovery": {
+      "data": [
+        {
+          "name": "host_survival",
+          "runtimeStatus": null,
+          "pluginId": null,
+          "httpOrigin": null,
+          "serverInfo": {
+            "name": "host-survival-probe",
+            "title": null,
+            "version": "1",
+            "description": null,
+            "icons": null,
+            "websiteUrl": null
+          },
+          "serverCapabilities": {
+            "prompts": {},
+            "resources": {},
+            "tools": {}
+          },
+          "toolListMeta": null,
+          "tools": {},
+          "toolsError": null,
+          "resources": [],
+          "resourceTemplates": [],
+          "authStatus": "unsupported"
+        }
+      ],
+      "nextCursor": null
+    },
+    "beforeEvent": [
+      {
+        "pid": 54600,
+        "kind": null,
+        "mode": "serve",
+        "alive": false
+      },
+      {
+        "pid": 62716,
+        "kind": "ordinary",
+        "mode": "child",
+        "alive": false
+      },
+      {
+        "pid": 65868,
+        "kind": "detached",
+        "mode": "child",
+        "alive": false
+      }
+    ],
+    "eventUtc": "2026-10-28T11:26:49.589873+00:00",
+    "harnessExitMs": 10.5,
+    "afterEvent": [
+      {
+        "pid": 54600,
+        "alive": false
+      },
+      {
+        "pid": 62716,
+        "alive": false
+      },
+      {
+        "pid": 65868,
+        "alive": false
+      }
+    ]
+  },
+  {
+    "event": "stdio-eof",
+    "harnessPid": 42664,
+    "discovery": "pending at resources/list; no model or thread created",
+    "beforeEvent": [
+      {
+        "pid": 55144,
+        "kind": "detached",
+        "mode": "child",
+        "alive": true
+      },
+      {
+        "pid": 60336,
+        "kind": "ordinary",
+        "mode": "child",
+        "alive": true
+      },
+      {
+        "pid": 66120,
+        "kind": "hold",
+        "mode": "serve",
+        "alive": true
+      }
+    ],
+    "eventUtc": "2026-10-28T11:26:52.922563+00:00",
+    "harnessExitMs": 10.3,
+    "afterEvent": [
+      {
+        "pid": 55144,
+        "alive": false
+      },
+      {
+        "pid": 60336,
+        "alive": false
+      },
+      {
+        "pid": 66120,
+        "alive": false
+      }
+    ]
+  },
+  {
+    "event": "harness-kill",
+    "harnessPid": 48076,
+    "discovery": "pending at resources/list; no model or thread created",
+    "beforeEvent": [
+      {
+        "pid": 46868,
+        "kind": "hold",
+        "mode": "serve",
+        "alive": true
+      },
+      {
+        "pid": 63072,
+        "kind": "ordinary",
+        "mode": "child",
+        "alive": true
+      },
+      {
+        "pid": 66396,
+        "kind": "detached",
+        "mode": "child",
+        "alive": true
+      }
+    ],
+    "eventUtc": "2026-10-28T11:26:56.253485+00:00",
+    "harnessExitMs": 7.9,
+    "afterEvent": [
+      {
+        "pid": 46868,
+        "alive": false
+      },
+      {
+        "pid": 63072,
+        "alive": false
+      },
+      {
+        "pid": 66396,
+        "alive": false
+      }
+    ]
+  }
+]
