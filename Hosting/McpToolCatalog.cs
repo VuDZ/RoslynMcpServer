@@ -256,6 +256,13 @@ public static class McpToolCatalog
             InLiteCore = inLiteCore,
             IsReadOnly = readOnly,
             ExecutesProcess = executesProcess,
+            RequiresWorkspace = hostType == typeof(NavigationTools)
+                || hostType == typeof(AstTools)
+                || hostType == typeof(CodeFixTools)
+                || hostType == typeof(RefactoringTools)
+                || name is "load_workspace" or "get_class_skeleton" or "get_diagnostics_for_file"
+                    or "list_projects" or "get_project_graph" or "get_test_list" or "rename_symbol"
+                    or "generate_test_method_stub",
         };
     }
 

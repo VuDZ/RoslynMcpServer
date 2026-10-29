@@ -1,6 +1,6 @@
 # Privacy
 
-RoslynMcpServer does not collect telemetry or transmit user data automatically.
+RoslynMcpServer does not transmit usage statistics or user data automatically.
 
 Network access occurs only when explicitly requested by the user or MCP client
 through functionality that requires access to an external service.
@@ -8,14 +8,38 @@ through functionality that requires access to an external service.
 ## Scope
 
 The server is a local stdio process. It has no backend, no analytics SDK, and
-no HTTP client of its own. Serilog writes rolling files under `logs/` next to
-the executable. The internal `ToolTelemetry` helper is that local file log, not
+no HTTP client of its own. Serilog writes rolling files under `logs/` in the
+server's per-user state directory, or in `ROSLYN_MCP_LOG_DIR` when set. The internal `ToolTelemetry` helper is that local file log, not
 a remote product-telemetry channel.
 
 `load_workspace`, symbol search, diagnostics, AST edits, ILSpy decompile, and
 `get_changed_files` (`git status --porcelain`) stay on the machine. Incoming
 MCP parameters are logged locally by default; see the Logs section in
 [README.md](README.md#logs).
+
+## Local usage records
+
+Usage collection is enabled by default and writes only to the local `usage/`
+directory. The default roots are `%LOCALAPPDATA%\RoslynMcpServer\` on Windows,
+`$XDG_STATE_HOME/roslyn-mcp/` (or `~/.local/state/roslyn-mcp/`) on Linux,
+and `~/Library/Application Support/RoslynMcpServer/` on macOS.
+`ROSLYN_MCP_HOME` can override that root; `ROSLYN_MCP_LOG_DIR` changes only
+text logs.
+
+Records contain process/client identity, tool names and timings, workspace
+paths and load properties, and memory/activity measurements. Workspace paths
+and cwd are plain text. Records contain no tool arguments, response text,
+symbol names, environment values, or command lines. Nothing is uploaded.
+
+Set `ROSLYN_MCP_USAGE=0` (or `false`) before launching the server to disable
+collection. Files rotate at 32 MiB and expire after 60 days. Deleting the
+`usage/` files is safe; an enabled collector creates new files.
+
+The optional `scripts/Measure-McpUsage.ps1` analyzer runs locally and produces
+JSON/Markdown aggregates with per-machine workspace labels such as `K1`.
+Raw files stay with their owner or in private storage; only these aggregates
+are suitable for sharing or committing. Collection on colleagues' machines
+requires their agreement.
 
 ## Local index cache
 

@@ -1,0 +1,77 @@
+{
+  "date": "2026-10-30",
+  "timezone": "Europe/Moscow",
+  "version": "1.5.19",
+  "change_base": "7b5dfea",
+  "status": "implementation_validated_real_harness_smoke_pending",
+  "windows": {
+    "sdk": "10.0.402",
+    "configuration": "Release",
+    "build": "passed",
+    "main_filter": "Category!=AnalyzerLifecycle&Category!=RequiresPinnedSdk",
+    "main_total": 1485,
+    "main_passed": 1485,
+    "main_skipped": 0,
+    "lifecycle_total": 13,
+    "lifecycle_passed": 13,
+    "lifecycle_skipped": 0
+  },
+  "linux": {
+    "platform": "Ubuntu24.04 WSL",
+    "sdk": "10.0.113",
+    "configuration": "Release",
+    "build": "passed",
+    "main_filter": "Category!=AnalyzerLifecycle&Category!=RequiresWindows&Category!=RequiresPinnedSdk",
+    "main_total": 1481,
+    "main_passed": 1481,
+    "main_skipped": 0,
+    "lifecycle_total": 13,
+    "lifecycle_passed": 13,
+    "lifecycle_skipped": 0,
+    "source_manifest_sha256": "5e1466c2cbe5b8270f817ed68a610b6a4c4495dbeeb689dc5d09f7166619f682",
+    "matched_changed_csharp_files": 33,
+    "source_eol_note": "32 raw SHA256 matches; Program.cs matches after LF normalization. Baseline EOL retained before commit; normalized content unchanged."
+  },
+  "powershell": {
+    "analyzer_scenarios": 40,
+    "analyzer_assertions": 117,
+    "publish_path_checks": 9,
+    "publish_path_engines": [
+      "PowerShell7",
+      "WindowsPowerShell5.1"
+    ],
+    "linux_runtime_tested": false
+  },
+  "integration": {
+    "status": "passed",
+    "target": "self-contained win-x64 EXE",
+    "checks": 822,
+    "records": 41,
+    "processes": 2,
+    "loads": 5,
+    "completed_calls": 11,
+    "analyzer_checked": true,
+    "protocols": [
+      "2025-11-25",
+      "2026-07-28"
+    ],
+    "real_harness_launches_tested": false
+  },
+  "review": {
+    "user_directories": "ACCEPT",
+    "collector": "ACCEPT",
+    "analyzer": "ACCEPT"
+  },
+  "catalog": {
+    "full_tools": 54,
+    "full_utf8_bytes": 45848,
+    "lite_tools": 15,
+    "lite_utf8_bytes": 19411,
+    "operations_utf8_bytes": 21213
+  },
+  "pending": [
+    "Real Claude Code/Codex/Cursor/dsh smoke",
+    "Owner OpenCode smoke",
+    "Real data collection and strategy decision"
+  ]
+}

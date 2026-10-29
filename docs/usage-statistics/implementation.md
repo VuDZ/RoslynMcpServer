@@ -1,0 +1,104 @@
+# Реализация статистики использования и каталога пользователя
+
+Дата: **2026-10-30**, Europe/Moscow. Ветка: `usage-statistics`. Версия: **1.5.19**.
+Статус: **код реализован и автоматизированно проверен; проверки настоящих harness и реальный сбор ещё не выполнены**.
+
+Согласованные решения: коммит `7b5dfea`. Требования:
+[usage-statistics](README.md), [user-data-directory](../user-data-directory/README.md).
+Формат: [schema.md](schema.md). Машиночитаемый результат: [validation.json](validation.json).
+
+## Принятый scope реализации
+
+- Постоянные конфигурационные/state-каталоги Windows, Linux и macOS; `ROSLYN_MCP_HOME`
+  и отдельный `ROSLYN_MCP_LOG_DIR`. Пути вычисляются без создания каталогов.
+- Конфиг exe → user → cwd; drop-in plugins exe → user → configured → environment,
+  первый прошедший проверку ID. Прежние overloads сохранены.
+- Единый путь логгера, log tools и информации сервера; publish helper показывает
+  действительный путь. Старый скрипт измерения load явно задаёт свой каталог логов.
+- Локальный JSONL v1: activity, load/cache/lazy/reset, память процесса и BuildHost.
+  Producers не делают file/process I/O; bounded queue, межпроцессный writer lease,
+  ротация 32 MiB, retention 60 дней и ограничение shutdown 1 с.
+- `tool_start`/call ID сохраняют незавершённые вызовы. SDK identity поддерживается
+  для legacy initialize и discovery/request metadata ревизии 2026-07-28.
+- Канонические фактически удерживаемые ключи; missing/failed/cancelled состояния
+  учитываются явно. Неопознанный BuildHost даёт unknown, а не ноль.
+- PowerShell-анализатор считает M1–M6/M3r для всех T, учитывает baseline fresh opens,
+  gaps и unknown fields. Экспорт содержит K/P-метки вместо raw workspace/process IDs.
+  Численные пороги и автоматический выбор стратегии отсутствуют.
+- Исходный трёхпараметровый CLR-конструктор `SolutionManager` сохранён;
+  дополнительная зависимость collector вводится отдельным overload.
+
+## Делегирование и review
+
+Три исполнителя реализовали каталоги, collector и анализатор в разделённых файлах.
+Четвёртая задача проверила настоящий процесс и writer через stdio.
+Независимые проверки каталогов, collector и анализатора завершились **ACCEPT** после
+исправления находок. Координатор интегрировал Program, документацию, версию,
+publish helper, проверил diff и выполнил итоговые suites.
+
+Существенные закрытые случаи: SDK discovery без initialize; unknown BuildHost;
+неполные state transitions; unknown lazy/restore semantics; baseline fresh opening
+не начисляет дополнительную перезагрузку прежнего ключа; M3r пересчитывает
+surviving largest copy после выгрузки.
+
+## Итоговая validation
+
+- **Windows SDK 10.0.402:** Release solution build — PASS.
+- **Windows main:** `Category!=AnalyzerLifecycle&Category!=RequiresPinnedSdk`,
+  **1485/1485 PASS**, без skips.
+- **Windows lifecycle:** opt-in `ROSLYN_MCP_ANALYZER_LIFECYCLE=1`,
+  `Category=AnalyzerLifecycle`, **13/13 PASS**, без skips.
+- **Ubuntu 24.04 WSL, SDK 10.0.113:** isolated restore и Release build — PASS.
+- **Linux main:** `Category!=AnalyzerLifecycle&Category!=RequiresWindows&Category!=RequiresPinnedSdk`,
+  **1481/1481 PASS**, без skips.
+- **Linux lifecycle:** тот же opt-in, **13/13 PASS**, без skips.
+- SourceStructure включён в итоговый main на обеих ОС; известный inventory limits
+  не ослаблялся. Generated `artifacts/` исключён из Compile/package и соответствующего
+  production source scope, чтобы integration fixture не становился кодом сервера.
+- **PowerShell 7:** `Test-McpUsage.ps1` — **40 сценариев / 117 assertions PASS**.
+- **Publish paths:** **9 checks PASS** как в PowerShell 7, так и Windows PowerShell 5.1.
+- **Изолированный self-contained win-x64 publish:** PASS, версия файла 1.5.19.0.
+- **Настоящий published EXE + stdio + analyzer:** **822 checks PASS**,
+  41 событие, 2 параллельных процесса в одном usage-каталоге, 5 попыток load,
+  11 завершённых вызовов. Покрыты lazy/cache/fresh/reset/error/reload/stop,
+  opt-out, недоступные usage/HOME, чистый JSON-RPC stdout и отсутствие raw paths/keys
+  в JSON/Markdown экспорте.
+- Git whitespace и сопоставление SHA256 **33 изменённых C# файлов** с Linux snapshot — PASS.
+  Перед commit сохранены исходные EOL неизменённых строк Program.cs/project/gitignore;
+  нормализованное содержимое идентично проверенному. 32 C# raw hashes совпадают,
+  Program.cs совпадает после LF normalization.
+
+Каталог по-прежнему содержит 54 full / 15 lite tools. Из-за уточнения описания
+`read_log_tail` full tools/list стал 45 848 UTF-8 bytes, lite — 19 411,
+lite+operations — 21 213; точные release snapshots обновлены по измерению.
+
+## Локальные evidence
+
+- Windows lifecycle: `artifacts/validation/windows-lifecycle/windows-lifecycle-final.trx`.
+- Linux: `artifacts/usage-linux/7b4d8b719d4d4e6dbec0bb63ff0f1c1b/results-20261029T223209Z-10480/`;
+  там logs, TRX и exit codes. Source manifest SHA256:
+  `5e1466c2cbe5b8270f817ed68a610b6a4c4495dbeeb689dc5d09f7166619f682`.
+- Published protocol probe: `artifacts/usage-integration/812496cb65504aa9aedc88e85ee1a9c9/`.
+- Publication: `artifacts/usage-publish/win-x64/`.
+
+Evidence остаётся в ignored artifacts; это собственные synthetic/integration данные,
+а не корпус проектов коллег. Ненулевые и без skips TRX проверены отдельно.
+Предыдущие неуспешные прогоны сохранены: исправлялись fixture layout/SDK protocol
+assumption, byte snapshots и подготовка Linux Git/NuGet окружения. Успешный Linux
+прогон выполнен на неизменном C# snapshot.
+
+## Границы приёмки и следующий этап
+
+Автоматизированный scope реализации принят. Настоящие запуски Claude Code, Codex,
+Cursor и dsh ещё требуют проверки исполнителем; OpenCode — владельцем, как в
+спецификации. Наличие CLI в PATH не считается проверкой harness.
+Существующие активные установки MCP не заменялись.
+
+Linux C# проверен в WSL; Linux PowerShell runtime и macOS runtime недоступны.
+В build остаются предупреждения существующего кода и рекомендации xUnit-анализатора;
+warning-free build не заявляется.
+
+До сбора нужно завершить harness smoke. Затем — локальный сбор 2 недели–месяц,
+промежуточный прогон через 2–3 дня и выбор стратегии владельцем по результатам.
+Реальные данные и нагрузочный профиль анализатора оцениваются в этом прогоне;
+экономия памяти и latency будущей выгрузки не объявлены измеренным эффектом.

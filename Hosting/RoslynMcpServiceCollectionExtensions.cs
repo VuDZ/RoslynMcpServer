@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 using ModelContextProtocol.Server;
 using RoslynMcpServer.Config;
 using RoslynMcpServer.Diagnostics;
+using RoslynMcpServer.Diagnostics.UsageStatistics;
 using RoslynMcpServer.Services;
 
 namespace RoslynMcpServer.Hosting;
@@ -34,6 +35,8 @@ public static class RoslynMcpServiceCollectionExtensions
         var surface = McpToolCatalog.CreateSurface(profileOptions ?? McpToolProfileOptions.FromEnvironment());
         var toolCollection = new McpRuntimeToolCollection();
         RegisterCore(services, surface, toolCollection);
+        services.TryAddSingleton<UsageStatisticsService>();
+        services.AddHostedService(provider => provider.GetRequiredService<UsageStatisticsService>());
 
         // Must run before McpServerOptionsSetup so SDK TryAdd uses this instance.
         services.Configure<McpServerOptions>(o => o.ToolCollection = toolCollection);
@@ -44,6 +47,7 @@ public static class RoslynMcpServiceCollectionExtensions
                 o.ServerInstructions = McpToolHelpCatalog.ServerInstructions;
                 o.ToolCollection = toolCollection;
                 McpInboundProtocolLogger.Register(o);
+                UsageStatisticsFilters.Register(o);
             })
             .WithStdioServerTransport();
 

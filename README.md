@@ -52,12 +52,12 @@ This server can read and write files and start `dotnet`/Git child processes with
 
 ## Privacy
 
-RoslynMcpServer does not collect telemetry or transmit user data automatically.
+RoslynMcpServer does not transmit usage statistics or user data automatically.
 
 Network access occurs only when explicitly requested by the user or MCP client
 through functionality that requires access to an external service.
 
-The process is local stdio: no backend and no HTTP client of its own. File logs stay next to the executable. NuGet/registry traffic happens only when an MCP tool runs `dotnet` against a feed (`search_nuget_registry`, outdated/vulnerable listing, restore as part of build/test/run). Those calls send package ids and restore metadata, not source or prompts. Details: [PRIVACY.md](PRIVACY.md).
+The process is local stdio: no backend and no HTTP client of its own. File logs and local usage records stay in the server's per-user data directories. NuGet/registry traffic happens only when an MCP tool runs `dotnet` against a feed (`search_nuget_registry`, outdated/vulnerable listing, restore as part of build/test/run). Those calls send package ids and restore metadata, not source or prompts. Details: [PRIVACY.md](PRIVACY.md).
 
 ## Prerequisites
 
@@ -225,7 +225,7 @@ Portable OpenCode examples: [`opencode.json.sample`](opencode.json.sample) (`ros
 
 MCP `tools/list` stays JSON + JSON Schema. Markdown is for JIT help and diagnostics.
 
-**Client compatibility:** do not assume the host refreshes tools after `tools/list_changed`. If a newly enabled tool is missing from the client's catalog, restart with `ROSLYN_MCP_TOOL_GROUPS=<group>` (and `ROSLYN_MCP_TOOL_PROFILE=lite`). A `2025-11-25` initialize session receives `tools/list_changed` when the set grows. A `2026-07-28` session receives it only after `subscriptions/listen` with `toolsListChanged`; the server accepts that revision through the MCP C# SDK. Measured minified `tools/list` (UTF-8): full **54 / 45,807**; lite **15 / 19,411**.
+**Client compatibility:** do not assume the host refreshes tools after `tools/list_changed`. If a newly enabled tool is missing from the client's catalog, restart with `ROSLYN_MCP_TOOL_GROUPS=<group>` (and `ROSLYN_MCP_TOOL_PROFILE=lite`). A `2025-11-25` initialize session receives `tools/list_changed` when the set grows. A `2026-07-28` session receives it only after `subscriptions/listen` with `toolsListChanged`; the server accepts that revision through the MCP C# SDK. Measured minified `tools/list` (UTF-8): full **54 / 45,848**; lite **15 / 19,411**.
 
 ## Agent tools by version
 
@@ -246,7 +246,7 @@ Even if the MCP is active, AI clients don't always load the tools into the curre
 Policy summary (full text in the sample):
 
 - Verify the server with `get_mcp_server_info`; inspect missing `lite` tools with `list_tool_groups` / `enable_tool_group`
-- Optional `RoslynMcp.jsonc` (exe directory, then cwd; cwd wins). Set `ROSLYN_MCP_WORKSPACE` to the repo root at startup so cwd is not the user profile. See `RoslynMcp.jsonc.sample` and `AGENTS.md.sample`
+- Optional `RoslynMcp.jsonc` (exe directory, per-user configuration directory, then cwd; cwd wins). Set `ROSLYN_MCP_WORKSPACE` to the repo root at startup so cwd is not the user profile. See `RoslynMcp.jsonc.sample` and `AGENTS.md.sample`
 - `load_workspace` before symbol / build / decompile work (or rely on config `workspace-path`); prefer `.sln` / `.slnx`; compares only arguments you passed
 - Missing `Compile` target on load → retry with `targetFramework` (inner TFM); not SDK mismatch
 - VS 2026 BuildHost / `XMakeElements` → not SDK mismatch; need MCP 1.0.35+ or a single SDK-style `.csproj`
@@ -255,8 +255,18 @@ Policy summary (full text in the sample):
 - IDE: host edit/write; headless: MCP `apply_patch` / AST tools
 - Secrets: never paste PAT/passwords; app README must document run target / sample args
 
+## Per-user data
+
+Configuration and drop-in plugins survive an npx package update. Configuration is merged in order: executable directory, per-user configuration directory, then process cwd. Plugin discovery checks executable drop-ins, user drop-ins, configured paths, then `ROSLYN_MCP_PLUGINS`; the first validated plugin ID wins.
+
+- Windows: `%LOCALAPPDATA%\RoslynMcpServer\`.
+- Linux: `$XDG_CONFIG_HOME/roslyn-mcp/` (default `~/.config/roslyn-mcp/`) for configuration/plugins; `$XDG_STATE_HOME/roslyn-mcp/` (default `~/.local/state/roslyn-mcp/`) for logs/usage.
+- macOS: `~/Library/Application Support/RoslynMcpServer/`.
+
+`ROSLYN_MCP_HOME` overrides both roots: `RoslynMcp.jsonc`, `plugins/`, `logs/`, and `usage/` sit inside it. `ROSLYN_MCP_LOG_DIR` overrides only text logs and takes priority over `ROSLYN_MCP_HOME`. Overrides must be absolute paths. `get_mcp_server_info` shows the resolved paths. Existing exe-local config and plugins remain supported.
+
 ## Logs
-- **Main log:** `logs/mcp-*.log` (relative to `AppContext.BaseDirectory`).
+- **Main log:** `logs/mcp-*.log` under the per-user state directory, or `ROSLYN_MCP_LOG_DIR`.
 - Global incoming JSON-RPC logging is enabled by default.
 - **Tool output:** logged as a one-line summary plus separate warning/error lines (not a duplicated full MCP response). Set `ROSLYN_MCP_LOG_TOOL_OUTPUT=full` to log entire tool responses at Information level.
 - Environment Variables:
@@ -269,6 +279,12 @@ Policy summary (full text in the sample):
   - `ROSLYN_MCP_BUILDHOST_EVALUATE_AHEAD_WORKERS=<N>` — worker threads of that evaluation ahead (default 4; `0` turns off only it; wins over `buildhost-evaluate-ahead-workers`).
   - `MCP_LOG_INCOMING_RPC=0` (disable incoming RPC logging).
   - `MCP_LOG_INCOMING_RPC_MAX_CHARS=<N>` (limit payload log length, `0` = unlimited).
+
+## Local usage statistics
+
+Usage collection is enabled by default. Set `ROSLYN_MCP_USAGE=0` (or `false`) before starting the server to disable it. Local `usage/usage-YYYYMMDD-N.jsonl` files record process/client identity, workspace paths and load properties, tool names/timings, and memory/activity snapshots. They contain no tool arguments, result text, environment values, or command lines. Files rotate at 32 MiB and expire after 60 days; deleting them is safe, and an enabled collector creates new records. Nothing is uploaded.
+
+Run `pwsh ./scripts/Measure-McpUsage.ps1 -InputDirectory <usage-directory> -Machine <label> -OutputPath <report-prefix>` to write JSON and Markdown reports. Pass directory and label arrays for multiple machines. Reports replace workspace identities with per-machine labels such as `K1`; share reports, keeping raw files private. All timeout variants are reported; the owner chooses a strategy from the results. Check the analyzer with `pwsh ./scripts/Test-McpUsage.ps1`. See [the schema](docs/usage-statistics/schema.md) and [privacy](PRIVACY.md).
 
 ## Reference: MCP Tools
 
@@ -1164,7 +1180,7 @@ cd D:\Devel\YourApp
 Кратко для модели:
 
 - проверить сервер через `get_mcp_server_info`; отсутствующие `lite`-tools — через `list_tool_groups` / `enable_tool_group`
-- опциональный `RoslynMcp.jsonc` (каталог exe, затем cwd; cwd перекрывает). `ROSLYN_MCP_WORKSPACE` в начале процесса ставит cwd на корень репо — без него cwd часто домашний каталог, и файл проекта читается не оттуда. Ключи: `workspace-path`, `configuration`, `platform`, `target-framework`, `max-results`, `preview`, `ripgrep-path`. Нет файла — вызывайте `load_workspace` сами. Первый семантический tool при `workspace-path` грузит решение и ждёт; чужую загрузку не отменяет. `load_workspace` сравнивает только переданные аргументы (опущенные не сбрасывают уже загруженные). Sample: `RoslynMcp.jsonc.sample`
+- опциональный `RoslynMcp.jsonc` (каталог exe, пользовательский каталог конфигурации, затем cwd; cwd перекрывает). `ROSLYN_MCP_WORKSPACE` в начале процесса ставит cwd на корень репо — без него cwd часто домашний каталог, и файл проекта читается не оттуда. Ключи: `workspace-path`, `configuration`, `platform`, `target-framework`, `max-results`, `preview`, `ripgrep-path`. Нет файла — вызывайте `load_workspace` сами. Первый семантический tool при `workspace-path` грузит решение и ждёт; чужую загрузку не отменяет. `load_workspace` сравнивает только переданные аргументы (опущенные не сбрасывают уже загруженные). Sample: `RoslynMcp.jsonc.sample`
 - после `load_workspace` (или lazy из jsonc) объявления C# — MCP `find_symbol_definition` / `find_usages`, не текстовый поиск и не выдуманный `search`
 - нет target `Compile` при load — повторить с `targetFramework` (inner TFM); это не SDK mismatch
 - VS 2026 BuildHost / `XMakeElements` — это не SDK mismatch; нужен MCP 1.0.35+ или один SDK-style `.csproj`
@@ -1173,11 +1189,27 @@ cd D:\Devel\YourApp
 - запись файлов — IDE: нативные правки; headless: MCP `apply_patch` / AST
 - полный текст политики — в `AGENTS.md.sample`
 
+## Каталог пользователя
+
+Конфиг и drop-in plugins хранятся вне заменяемого каталога пакета npx. Источники конфига: каталог exe → пользовательский каталог → cwd. Порядок plugins: `exe/plugins` → пользовательские `plugins/` → конфиг → `ROSLYN_MCP_PLUGINS`; первый прошедший проверку ID имеет приоритет.
+
+- Windows: `%LOCALAPPDATA%\RoslynMcpServer\`.
+- Linux: `$XDG_CONFIG_HOME/roslyn-mcp/` (по умолчанию `~/.config/roslyn-mcp/`) для конфига/plugins; `$XDG_STATE_HOME/roslyn-mcp/` (по умолчанию `~/.local/state/roslyn-mcp/`) для логов/статистики.
+- macOS: `~/Library/Application Support/RoslynMcpServer/`.
+
+`ROSLYN_MCP_HOME` задаёт общий корень с `RoslynMcp.jsonc`, `plugins/`, `logs/` и `usage/`. `ROSLYN_MCP_LOG_DIR` имеет приоритет для текстовых логов и не меняет место статистики. Переопределения — абсолютные пути. Фактические пути видны в `get_mcp_server_info`. Конфиг и plugins рядом с exe по-прежнему читаются.
+
 ## Логи
-- Основной лог: `logs/mcp-*.log` (относительно `AppContext.BaseDirectory`).
+- Основной лог: `logs/mcp-*.log` в пользовательском каталоге состояния либо в `ROSLYN_MCP_LOG_DIR`.
 - Включено логирование входящих JSON-RPC сообщений (`MCP_LOG_INCOMING_RPC`, `MCP_LOG_INCOMING_RPC_MAX_CHARS`).
 - **Ответы tools:** в лог пишется однострочная сводка и отдельные строки warning/error (без полного дублирования ответа MCP). `ROSLYN_MCP_LOG_TOOL_OUTPUT=full` — полный текст ответов tools.
 - Переменные: `ROSLYN_MCP_WORKSPACE` (корень репо для MSBuild/SDK), `ROSLYN_MCP_TOOL_PROFILE` (`full`/`lite`), `ROSLYN_MCP_TOOL_GROUPS` (`core`, `files`, `navigation`, `editing`, `decompile`, `nuget`, `project`, `runtime`, `operations`; см. **Профили инструментов**), `ROSLYN_MCP_LOG_TOOL_OUTPUT=full`, `ROSLYN_MCP_BUILDHOST_OPTIMIZATIONS=0` (загрузка без оптимизаций BuildHost сервера: ссылки раньше проекта, evaluation наперёд и общий кеш SDK resolution проекта; по умолчанию включены, побеждает `buildhost-optimizations` в `RoslynMcp.jsonc`), `ROSLYN_MCP_BUILDHOST_EVALUATE_AHEAD_WORKERS=<N>` (потоки evaluation наперёд, по умолчанию 4, `0` выключает только её).
+
+## Локальная статистика использования
+
+Сбор включён по умолчанию; `ROSLYN_MCP_USAGE=0` (или `false`) перед запуском отключает его. В `usage/usage-YYYYMMDD-N.jsonl` пишутся сведения о процессе и клиенте, пути workspace и параметры загрузки, имена и время инструментов, снимки памяти и активности. Аргументы/ответы инструментов, среда и командные строки не записываются. Ротация — 32 MiB, хранение — 60 дней. Файлы можно удалить; включённый сборщик создаёт новые. Автоматической передачи нет.
+
+`pwsh ./scripts/Measure-McpUsage.ps1 -InputDirectory <каталог-usage> -Machine <метка> -OutputPath <префикс-отчёта>` создаёт JSON и Markdown; для нескольких машин передайте массивы каталогов и меток. В отчёте ключи заменены метками `K1`, `K2` в пределах машины. Передавайте агрегаты, сырые файлы остаются приватными. Численные пороги заранее не задаются: стратегия выбирается по результатам. Проверка анализатора — `pwsh ./scripts/Test-McpUsage.ps1`. [Схема](docs/usage-statistics/schema.md), [приватность](PRIVACY.md).
 
 ## Reference: MCP Tools
 

@@ -30,6 +30,33 @@ function Resolve-DotNetX64 {
     throw "64-bit dotnet.exe not found under Program Files\dotnet. Install the .NET 10 x64 SDK."
 }
 
+function Get-RoslynMcpLogDirectory {
+    function Get-AbsolutePath([string]$Value) {
+        if ([string]::IsNullOrWhiteSpace($Value)) { return $null }
+        try {
+            $pathRoot = [IO.Path]::GetPathRoot($Value)
+            $fullyQualified = [IO.Path]::IsPathRooted($Value) -and (
+                [IO.Path]::DirectorySeparatorChar -eq '/' -or ($pathRoot.Length -gt 1 -and -not $pathRoot.EndsWith(':')))
+            if ($fullyQualified) { return [IO.Path]::GetFullPath($Value) }
+        }
+        catch { return $null }
+        return $null
+    }
+
+    $explicitLog = Get-AbsolutePath $env:ROSLYN_MCP_LOG_DIR
+    if ($explicitLog) { return $explicitLog }
+    $serverHome = Get-AbsolutePath $env:ROSLYN_MCP_HOME
+    if ($serverHome) { return Join-Path $serverHome 'logs' }
+    $localData = Get-AbsolutePath $env:LOCALAPPDATA
+    if (-not $localData) {
+        $localData = [Environment]::GetFolderPath([Environment+SpecialFolder]::LocalApplicationData)
+    }
+    if (-not $localData) {
+        $localData = Join-Path ([Environment]::GetFolderPath([Environment+SpecialFolder]::UserProfile)) 'AppData/Local'
+    }
+    return Join-Path $localData 'RoslynMcpServer/logs'
+}
+
 function Test-PathUnderRoot {
     param(
         [string]$Path,
@@ -240,7 +267,7 @@ Write-Host ""
 Write-Host "Next steps:"
 Write-Host "  1. Cursor -> MCP -> Reload RoslynMcpServer (old PIDs were stopped before publish)"
 Write-Host "  2. Call get_mcp_server_info (expect >= $ExpectedMinTools tools, version $fileVersion)"
-Write-Host "  3. Logs: $PublishDir\logs\mcp-*.log"
+Write-Host ("  3. Logs: {0}" -f (Join-Path (Get-RoslynMcpLogDirectory) 'mcp-*.log'))
 Write-Host "  4. Artifact zip: $zipPath"
 
 exit 0

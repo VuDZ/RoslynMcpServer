@@ -745,6 +745,8 @@ for ($run = 1; $run -le $totalRuns; $run++) {
     $psi.StandardOutputEncoding = [Text.Encoding]::UTF8
     $psi.StandardErrorEncoding = [Text.Encoding]::UTF8
     $psi.CreateNoWindow = $true
+    # Keep this benchmark's log offsets valid for both old and per-user-log server versions.
+    $psi.EnvironmentVariables['ROSLYN_MCP_LOG_DIR'] = $logDirectory
     if ($psi.EnvironmentVariables.ContainsKey('MCP_LOG_INCOMING_RPC')) { $psi.EnvironmentVariables.Remove('MCP_LOG_INCOMING_RPC') }
 
     Write-Host "Run $run/$totalRuns : starting server"

@@ -2,6 +2,11 @@
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.5.19
+
+- Configuration, drop-in plugins and text logs now use stable per-user directories outside the npx installation cache. Config sources merge executable → user → cwd; plugin discovery keeps the first validated ID. `ROSLYN_MCP_HOME` overrides both user roots and `ROSLYN_MCP_LOG_DIR` overrides text logs.
+- Local usage statistics record process/workspace activity and memory without tool arguments or result text. Collection is enabled by default and disabled with `ROSLYN_MCP_USAGE=0`; raw records stay local, rotate at 32 MiB and expire after 60 days. `scripts/Measure-McpUsage.ps1` produces anonymized per-machine JSON/Markdown reports for all timeout variants, with synthetic checks in `scripts/Test-McpUsage.ps1`.
+
 ### v1.5.18
 
 - `reset_workspace` frees the previous solution, and a fresh `load_workspace` no longer keeps it while it builds the new one. The cached search snapshot (the published solution without unresolved analyzer references) was keyed by the solution it came from and outlived the workspace, so the whole old graph stayed in memory until the next search.

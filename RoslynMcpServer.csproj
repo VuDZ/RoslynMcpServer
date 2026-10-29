@@ -24,9 +24,9 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageId>RoslynMcpServer</PackageId>
-    <Version>1.5.18</Version>
-    <AssemblyVersion>1.5.18.0</AssemblyVersion>
-    <FileVersion>1.5.18.0</FileVersion>
+    <Version>1.5.19</Version>
+    <AssemblyVersion>1.5.19.0</AssemblyVersion>
+    <FileVersion>1.5.19.0</FileVersion>
     <PackageTags>AI; MCP; server; stdio</PackageTags>
     <Description>An MCP server using the MCP C# SDK.</Description>
   </PropertyGroup>
@@ -64,6 +64,9 @@
          generated .cs under its obj directory, are not part of the host assembly. -->
     <Compile Remove="samples\**" />
     <None Remove="samples\**" />
+    <!-- Local integration fixtures and generated reports are not host sources or package content. -->
+    <Compile Remove="artifacts\**" />
+    <None Remove="artifacts\**" />
     <Compile Remove="spikes\**" />
     <None Remove="spikes\**" />
     <!-- Upstream forks build with their own projects and are not part of the host assembly. -->

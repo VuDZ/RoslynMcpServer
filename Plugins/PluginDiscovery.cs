@@ -1,13 +1,13 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Text.Json;
+using RoslynMcpServer.Config;
 
 namespace RoslynMcpServer.Plugins;
 
 /// <summary>
-/// Turns the three plugin sources into load plans without opening a plugin assembly: the drop-in
-/// subdirectories next to the host, the <c>plugins</c> key of the settings files, and the environment
-/// variable.
+/// Turns the ordered plugin sources into load plans without opening a plugin assembly: host and user
+/// drop-in directories, the <c>plugins</c> key of the settings files, then the environment variable.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -46,7 +46,16 @@ public static class PluginDiscovery
         string baseDirectory,
         IReadOnlyList<string> configuredPaths,
         string? environmentPaths,
-        Version hostVersion)
+        Version hostVersion) =>
+        Discover(baseDirectory, configuredPaths, environmentPaths, hostVersion, userPluginDirectory: null);
+
+    /// <summary>Discovers host drop-ins, user drop-ins, configured paths and environment paths, in that order.</summary>
+    public static PluginDiscoveryResult Discover(
+        string baseDirectory,
+        IReadOnlyList<string> configuredPaths,
+        string? environmentPaths,
+        Version hostVersion,
+        string? userPluginDirectory)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(baseDirectory);
         ArgumentNullException.ThrowIfNull(configuredPaths);
@@ -54,9 +63,22 @@ public static class PluginDiscovery
 
         var pass = new DiscoveryPass(hostVersion);
 
-        foreach (var pluginDirectory in EnumerateDropInDirectories(baseDirectory, pass.Skipped))
+        var hostDropInRoot = Path.Combine(baseDirectory, DropInDirectoryName);
+        foreach (var pluginDirectory in EnumerateDropInDirectories(hostDropInRoot, pass.Skipped))
         {
             pass.AddDropIn(pluginDirectory);
+        }
+
+        if (!string.IsNullOrWhiteSpace(userPluginDirectory)
+            && !string.Equals(
+                Path.GetFullPath(userPluginDirectory),
+                Path.GetFullPath(hostDropInRoot),
+                OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal))
+        {
+            foreach (var pluginDirectory in EnumerateDropInDirectories(userPluginDirectory, pass.Skipped))
+            {
+                pass.AddDropIn(pluginDirectory);
+            }
         }
 
         foreach (var configuredPath in configuredPaths)
@@ -85,19 +107,23 @@ public static class PluginDiscovery
         string baseDirectory,
         IReadOnlyList<string> configuredPaths,
         Version hostVersion) =>
-        Discover(baseDirectory, configuredPaths, Environment.GetEnvironmentVariable(EnvironmentVariableName), hostVersion);
+        Discover(
+            baseDirectory,
+            configuredPaths,
+            Environment.GetEnvironmentVariable(EnvironmentVariableName),
+            hostVersion,
+            ServerUserDirectories.FromEnvironment().PluginDirectory);
 
     /// <summary>
-    /// Immediate subdirectories of <c>{baseDirectory}/plugins</c>, in ordinal name order. Nested
+    /// Immediate subdirectories of a drop-in root, in ordinal name order. Nested
     /// directories are dependencies of their plugin, not plugins of their own.
     /// </summary>
     /// <remarks>
     /// A missing drop-in directory is a normal layout with no drop-ins, not an error. A directory the host
     /// cannot list is reported as a skip rather than silently dropped.
     /// </remarks>
-    private static IReadOnlyList<string> EnumerateDropInDirectories(string baseDirectory, List<PluginDiscoverySkip> skipped)
+    private static IReadOnlyList<string> EnumerateDropInDirectories(string dropInRoot, List<PluginDiscoverySkip> skipped)
     {
-        var dropInRoot = Path.Combine(baseDirectory, DropInDirectoryName);
         if (!Directory.Exists(dropInRoot))
         {
             return [];

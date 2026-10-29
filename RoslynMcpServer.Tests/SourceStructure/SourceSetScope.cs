@@ -118,6 +118,7 @@ internal sealed class SourceSetScope
         segment.StartsWith('.')
         || string.Equals(segment, "bin", StringComparison.OrdinalIgnoreCase)
         || string.Equals(segment, "obj", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(segment, "artifacts", StringComparison.OrdinalIgnoreCase)
         // Standalone experiments and upstream forks are explicitly removed from the host Compile items.
         || string.Equals(segment, "spikes", StringComparison.OrdinalIgnoreCase)
         || string.Equals(segment, "forks", StringComparison.OrdinalIgnoreCase)

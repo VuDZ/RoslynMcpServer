@@ -399,8 +399,8 @@ During development, it is more convenient to connect the build output directly:
 }
 ```
 
-Settings are read beside the server and from the process working directory;
-the working directory's value takes precedence for the same key.
+Settings are read beside the server, from the per-user configuration directory,
+then from the process working directory; later sources override the same key.
 See [RoslynMcp.jsonc.sample](../../RoslynMcp.jsonc.sample).
 You can specify a directory containing the manifest or the entry DLL path.
 For a DLL path, the file name must match `entry` in the adjacent manifest.
@@ -408,8 +408,8 @@ A development directory name such as `net10.0` does not have to match `id`.
 Use absolute paths: relative paths are resolved against the process working
 directory, which may differ from the settings file's directory.
 
-Sources are processed in this order: drop-in directories, the `plugins` array,
-then the environment variable. The first source that passes validation claims
+Sources are processed in this order: executable drop-in directories, per-user
+drop-in directories, the `plugins` array, then the environment variable. The first source that passes validation claims
 the `id`; a repeated identifier is skipped with a reason.
 The server does not search for plugins by scanning arbitrary locations
 in the working directory or user profile.
@@ -899,8 +899,8 @@ public sealed class SampleTools
 }
 ```
 
-Файл настроек читается рядом с сервером и из рабочего каталога процесса;
-значение ключа из рабочего каталога имеет приоритет. Пример конфигурации —
+Файл настроек читается рядом с сервером, из пользовательского каталога конфигурации,
+затем из рабочего каталога процесса; следующий источник перекрывает тот же ключ. Пример конфигурации —
 [RoslynMcp.jsonc.sample](../../RoslynMcp.jsonc.sample).
 Можно указывать каталог с манифестом или путь к основной DLL. Во втором случае
 имя файла должно совпадать с `entry` соседнего манифеста.
@@ -908,7 +908,7 @@ public sealed class SampleTools
 Используйте абсолютные пути: относительные разрешаются от рабочего каталога
 процесса, который может отличаться от каталога настроек.
 
-Источники обрабатываются в порядке: drop-in, массив `plugins`, переменная
+Источники обрабатываются в порядке: drop-in рядом с exe, пользовательские drop-in, массив `plugins`, переменная
 окружения. Первый прошедший проверки источник занимает `id`; повторное
 объявление того же идентификатора пропускается с указанием причины.
 Сервер не ищет плагины произвольным обходом рабочего каталога или профиля
@@ -976,7 +976,7 @@ PDB плагина копируется вместе с DLL. Отладчик с
 копирования или регистрации приводят к пропуску плагина. Этап запуска
 `PluginStartup` записывает в stderr строку
 `[RoslynMcp] plugin skipped (<id или путь>): <причина>`.
-После `host.Build()` та же строка попадает в `logs/mcp-*.log` рядом с сервером.
+После `host.Build()` та же строка попадает в `logs/mcp-*.log` в пользовательском каталоге состояния либо в `ROSLYN_MCP_LOG_DIR`.
 Сам загрузчик до вызова `Register` возвращает причину; в stderr её выводит
 именно этап запуска. При отказе регистрации stderr также содержит
 сообщение `plugin '<id>' was not loaded` от регистратора.

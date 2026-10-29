@@ -479,7 +479,7 @@ public sealed class McpToolCatalogTests(ITestOutputHelper output)
         output.WriteLine($"lite+runtime={liteRuntime.Count}/{liteRuntime.Utf8Bytes}");
         output.WriteLine($"lite+operations={liteOperations.Count}/{liteOperations.Utf8Bytes}");
 
-        AssertRecorded("full", 54, 45807, full);
+        AssertRecorded("full", 54, 45848, full);
         AssertRecorded("lite", 15, 19411, lite);
         AssertRecorded("lite+files", 23, 24467, liteFiles);
         AssertRecorded("lite+editing", 23, 24681, liteEditing);
@@ -487,7 +487,7 @@ public sealed class McpToolCatalogTests(ITestOutputHelper output)
         AssertRecorded("lite+nuget", 21, 22790, liteNuget);
         AssertRecorded("lite+project", 18, 20931, liteProject);
         AssertRecorded("lite+runtime", 18, 22149, liteRuntime);
-        AssertRecorded("lite+operations", 19, 21172, liteOperations);
+        AssertRecorded("lite+operations", 19, 21213, liteOperations);
 
         var enabled = MeasureSurface(
             new McpToolProfileOptions { Profile = "lite" },

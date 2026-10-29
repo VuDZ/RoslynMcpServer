@@ -52,10 +52,8 @@ public static class McpServerInfoHelper
         var assembly = Assembly.GetExecutingAssembly();
         var exePath = Environment.ProcessPath ?? assembly.Location;
         var exeTime = File.Exists(exePath) ? File.GetLastWriteTime(exePath) : (DateTime?)null;
-        var logDir = Path.Combine(AppContext.BaseDirectory, "logs");
-        var latestLog = Directory.Exists(logDir)
-            ? Directory.EnumerateFiles(logDir, "mcp-*.log").OrderByDescending(File.GetLastWriteTimeUtc).FirstOrDefault()
-            : null;
+        var directories = ServerUserDirectories.FromEnvironment();
+        var latestLog = FindLatestLog(directories.LogDirectory);
 
         var sb = new StringBuilder();
         sb.AppendLine("## Roslyn MCP server info");
@@ -69,6 +67,10 @@ public static class McpServerInfoHelper
 
         sb.AppendLine($"- **Base directory:** `{AppContext.BaseDirectory}`");
         sb.AppendLine($"- **Process working directory:** `{Environment.CurrentDirectory}`");
+        sb.AppendLine($"- **User configuration directory:** `{directories.ConfigurationDirectory}`");
+        sb.AppendLine($"- **User plugin directory:** `{directories.PluginDirectory}`");
+        sb.AppendLine($"- **Log directory:** `{directories.LogDirectory}`");
+        sb.AppendLine($"- **Usage directory:** `{directories.UsageDirectory}`");
         sb.AppendLine($"- **Tool profile:** `{activation.Profile}`");
         sb.AppendLine($"- **Startup tool groups:** {activation.FormatStartupGroupsMarkdown()}");
         sb.AppendLine($"- **Dynamic tool groups:** {activation.FormatDynamicGroupsMarkdown()}");
@@ -111,6 +113,11 @@ public static class McpServerInfoHelper
         if (pluginStartup is null)
         {
             return;
+        }
+
+        foreach (var directory in pluginStartup.DropInDirectories)
+        {
+            sb.AppendLine($"- **Plugin drop-in source:** `{directory}`");
         }
 
         if (pluginStartup.IsEmpty)
@@ -167,6 +174,8 @@ public static class McpServerInfoHelper
 
         sb.AppendLine("- **RoslynMcp.jsonc (exe):** "
             + FormatFileProbe(fileSettings.ExecutableFilePath, fileSettings.ExecutableFilePresent));
+        sb.AppendLine("- **RoslynMcp.jsonc (user):** "
+            + FormatFileProbe(fileSettings.UserFilePath, fileSettings.UserFilePresent));
         sb.AppendLine("- **RoslynMcp.jsonc (cwd):** "
             + FormatFileProbe(fileSettings.WorkingDirectoryFilePath, fileSettings.WorkingDirectoryFilePresent));
 
@@ -207,6 +216,22 @@ public static class McpServerInfoHelper
             sb.AppendLine("- **Lazy load failure:** see report below");
             sb.AppendLine();
             sb.AppendLine(lazyLoadFailure.TrimEnd());
+        }
+    }
+
+    private static string? FindLatestLog(string directory)
+    {
+        try
+        {
+            return Directory.Exists(directory)
+                ? Directory.EnumerateFiles(directory, "mcp-*.log")
+                    .OrderByDescending(File.GetLastWriteTimeUtc)
+                    .FirstOrDefault()
+                : null;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return null;
         }
     }
 

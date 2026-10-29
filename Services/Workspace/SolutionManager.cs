@@ -12,6 +12,8 @@ using Microsoft.CodeAnalysis.Text;
 using Microsoft.Extensions.Logging;
 using RoslynMcpServer.Config;
 using RoslynMcpServer.Diagnostics;
+using RoslynMcpServer.Diagnostics.UsageStatistics;
+using RoslynMcpServer.Diagnostics.UsageStatistics.Models;
 using RoslynMcpServer.Services.Models;
 using RoslynMcpServer.Services.Navigation;
 using RoslynMcpServer.Services.Workspace.Models;
@@ -217,11 +219,21 @@ public sealed class SolutionManager
         ILogger<SolutionManager> logger,
         AnalyzerProvenanceCaptureService analyzerProvenanceCaptureService,
         RoslynMcpFileSettings? fileSettings = null)
+        : this(logger, analyzerProvenanceCaptureService, fileSettings, null)
+    {
+    }
+
+    public SolutionManager(
+        ILogger<SolutionManager> logger,
+        AnalyzerProvenanceCaptureService analyzerProvenanceCaptureService,
+        RoslynMcpFileSettings? fileSettings,
+        UsageStatisticsService? usage)
     {
         ArgumentNullException.ThrowIfNull(logger);
         ArgumentNullException.ThrowIfNull(analyzerProvenanceCaptureService);
 
         _logger = logger;
+        _usage = usage;
         _analyzerProvenanceCaptureService = analyzerProvenanceCaptureService;
         FileSettings = fileSettings ?? RoslynMcpFileSettings.Empty;
         SearchPrewarmEnabled = SearchIndexPrewarm.IsEnabled(FileSettings.SearchPrewarm);
@@ -356,6 +368,7 @@ public sealed class SolutionManager
 
     public Solution? GetCurrentSolution()
     {
+        _usage?.MarkCurrentSolutionAccess();
         // Stored snapshot only. Overlay is prepared at load/enable/refresh and reapplied from the in-memory
         // mapping at mutation points (edit / flush / post-apply). This getter does not copy analyzer files,
         // hash generations, or recompute the overlay.
@@ -459,6 +472,7 @@ public sealed class SolutionManager
     /// </summary>
     public async Task EnsureWorkspaceFromConfigAsync(CancellationToken cancellationToken = default)
     {
+        _usage?.MarkWorkspaceRequired();
         if (_solution is not null)
         {
             return;
@@ -510,6 +524,7 @@ public sealed class SolutionManager
     /// </summary>
     public Solution? GetSanitizedPublishedSolution()
     {
+        _usage?.MarkWorkspaceRequired();
         _workspaceLock.Wait();
         try
         {
@@ -767,9 +782,31 @@ public sealed class SolutionManager
     /// </summary>
     public async Task ClearWorkspaceAsync(CancellationToken cancellationToken = default)
     {
+        var attempt = _usage is null ? null : new UsageResetAttempt();
+        try
+        {
+            await ClearWorkspaceCoreAsync(attempt, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            if (attempt is { Recorded: false })
+            {
+                var resident = _usage!.WorkspaceKey;
+                _usage.RecordReset(resident, resident, attempt.Started, success: false);
+            }
+        }
+    }
+
+    private async Task ClearWorkspaceCoreAsync(UsageResetAttempt? usageAttempt, CancellationToken cancellationToken)
+    {
         await _workspaceLock.WaitAsync(cancellationToken);
         try
         {
+            if (usageAttempt is not null)
+            {
+                usageAttempt.OldKey = GetUsageWorkspaceKey();
+            }
+
             await StopSearchPrewarmAsync().ConfigureAwait(false);
             StopDiskWatcherUnderLock();
             _dirtySourcePaths.Clear();
@@ -780,6 +817,7 @@ public sealed class SolutionManager
             ClearProjectGraphStale();
             _workspace?.Dispose();
             _workspace = null;
+            _usage?.ClearResidentWorkspace();
             _solution = null;
             ForgetSanitizedPublishedSolution();
             _lastPublishedWriteContext = null;
@@ -804,9 +842,19 @@ public sealed class SolutionManager
             LastLazyLoadFailureReport = null;
             LastDiagnostics = Array.Empty<WorkspaceDiagnostic>();
             _logger.LogInformation("Roslyn workspace cleared (MSBuildWorkspace disposed).");
+            if (usageAttempt is not null)
+            {
+                usageAttempt.Success = true;
+            }
         }
         finally
         {
+            if (usageAttempt is not null)
+            {
+                _usage!.RecordReset(usageAttempt.OldKey, GetUsageWorkspaceKey(), usageAttempt.Started, usageAttempt.Success);
+                usageAttempt.Recorded = true;
+            }
+
             _workspaceLock.Release();
         }
     }
@@ -865,6 +913,46 @@ public sealed class SolutionManager
         string? buildArgs = null,
         WorkspaceLoadSource loadSource = WorkspaceLoadSource.ExplicitLoad)
     {
+        var attempt = _usage?.BeginLoad(
+            solutionOrProjectPath,
+            configuration ?? LoadedConfiguration ?? FileSettings.Configuration,
+            platform ?? LoadedPlatform ?? FileSettings.Platform,
+            targetFramework ?? LoadedTargetFramework ?? FileSettings.TargetFramework,
+            loadSource);
+        try
+        {
+            return await LoadAndPrepareCoreAsync(
+                    solutionOrProjectPath,
+                    shadowCopyInSolutionAnalyzers,
+                    cancellationToken,
+                    configuration,
+                    platform,
+                    targetFramework,
+                    buildArgs,
+                    loadSource,
+                    attempt)
+                .ConfigureAwait(false);
+        }
+        finally
+        {
+            if (attempt is { Recorded: false })
+            {
+                _usage!.RecordLoad(attempt, success: false);
+            }
+        }
+    }
+
+    private async Task<WorkspaceLoadPreparationResult> LoadAndPrepareCoreAsync(
+        string solutionOrProjectPath,
+        bool shadowCopyInSolutionAnalyzers,
+        CancellationToken cancellationToken,
+        string? configuration,
+        string? platform,
+        string? targetFramework,
+        string? buildArgs,
+        WorkspaceLoadSource loadSource,
+        UsageLoadAttempt? usageAttempt)
+    {
         if (string.IsNullOrWhiteSpace(solutionOrProjectPath))
         {
             throw new ArgumentException("Solution or project path cannot be empty.", nameof(solutionOrProjectPath));
@@ -884,7 +972,18 @@ public sealed class SolutionManager
         var normalizedTargetFramework = DotNetConfigurationArguments.Normalize(targetFramework, nameof(targetFramework));
         var normalizedBuildArgs = DotNetBuildArguments.Normalize(buildArgs);
 
+        if (usageAttempt is not null)
+        {
+            usageAttempt.WaitStarted = Stopwatch.GetTimestamp();
+        }
+
         await _workspaceLock.WaitAsync(cancellationToken);
+        if (usageAttempt is not null)
+        {
+            usageAttempt.WaitMilliseconds = Stopwatch.GetElapsedTime(usageAttempt.WaitStarted!.Value).TotalMilliseconds;
+            usageAttempt.GraphStale = _projectGraphStale;
+        }
+
         _workspaceLoadInProgress = true;
         try
         {
@@ -913,6 +1012,11 @@ public sealed class SolutionManager
                 ?? LoadedTargetFramework
                 ?? fileTargetFramework;
             var effectiveBuildArgs = buildArgsPassed ? normalizedBuildArgs : LoadedBuildArgs;
+            if (usageAttempt is not null)
+            {
+                usageAttempt.RequestedKey = UsageWorkspaceKey.Create(
+                    fullPath, effectiveConfiguration, effectivePlatform, effectiveTargetFramework);
+            }
 
             var publishedBeforeBoundary = _solution;
             Solution solution;
@@ -932,6 +1036,10 @@ public sealed class SolutionManager
                         publishLoadedSolution: !shadowCopyInSolutionAnalyzers,
                         cancellationToken)
                     .ConfigureAwait(false);
+                if (usageAttempt is not null)
+                {
+                    usageAttempt.CacheHit = LastLoadWasCacheHit;
+                }
             }
             catch
             {
@@ -1004,12 +1112,33 @@ public sealed class SolutionManager
                 throw;
             }
         }
+        catch
+        {
+            if (usageAttempt is not null)
+            {
+                usageAttempt.Faulted = true;
+            }
+
+            throw;
+        }
         finally
         {
+            if (usageAttempt is not null)
+            {
+                usageAttempt.ResidentKey = GetUsageWorkspaceKey();
+                usageAttempt.ResidentCaptured = true;
+                usageAttempt.Projects = _workspace?.CurrentSolution.ProjectIds.Count ?? 0;
+                usageAttempt.Published = _solution is not null && !HasBlockingLoadFailure(_solution);
+                _usage!.RecordLoad(usageAttempt, !usageAttempt.Faulted && usageAttempt.Published);
+            }
+
             _workspaceLoadInProgress = false;
             _workspaceLock.Release();
         }
     }
+
+    private string? GetUsageWorkspaceKey() =>
+        _workspace is null ? null : UsageWorkspaceKey.Create(_loadedPath, LoadedConfiguration, LoadedPlatform, LoadedTargetFramework);
 
     /// <summary>
     /// Waits until <paramref name="filePath"/> appears in the watcher dirty set, or <paramref name="timeout"/> elapses.
@@ -2077,6 +2206,7 @@ public sealed class SolutionManager
         StopDiskWatcherUnderLock();
         _workspace?.Dispose();
         _workspace = null;
+        _usage?.ClearResidentWorkspace();
         _solution = null;
         ForgetSanitizedPublishedSolution();
         _loadedPath = null;
@@ -3197,6 +3327,7 @@ public sealed class SolutionManager
         LoadMefAssemblies());
     private static readonly TimeSpan _searchPrewarmStopTimeout = TimeSpan.FromSeconds(10);
     private readonly ILogger<SolutionManager> _logger;
+    private readonly UsageStatisticsService? _usage;
     private readonly AnalyzerProvenanceCaptureService _analyzerProvenanceCaptureService;
     private readonly SemaphoreSlim _workspaceLock = new(1, 1);
     private readonly StringComparison _pathComparison =

@@ -1,4 +1,4 @@
-# Build artifacts
+﻿# Build artifacts
 bin/
 obj/
 artifacts/
@@ -23,6 +23,7 @@ packages/
 
 # Logs and diagnostics
 *.log
+usage-*.jsonl
 mcp-usage/
 *.tlog
 *.tmp

@@ -16,6 +16,9 @@ public sealed class McpToolDescriptor
     public required bool IsReadOnly { get; init; }
     public required bool ExecutesProcess { get; init; }
 
+    /// <summary>Whether the tool requires the semantic workspace, before any runtime lazy load.</summary>
+    public bool RequiresWorkspace { get; init; }
+
     /// <summary>Compact classification for help: read, write, or process.</summary>
     public string Classification
     {

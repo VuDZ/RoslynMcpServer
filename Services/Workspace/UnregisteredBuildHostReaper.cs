@@ -143,6 +143,13 @@ internal static class UnregisteredBuildHostReaper
         return new UnregisteredBuildHostReapPlan(ids, unidentified);
     }
 
+    /// <summary>Observes direct child BuildHosts without terminating or modifying them.</summary>
+    internal static UnregisteredBuildHostReapPlan CaptureChildProcesses()
+    {
+        using var self = Process.GetCurrentProcess();
+        return Select(Capture(), NoProcessIds, self.Id, self.StartTime, StartTimeTolerance);
+    }
+
     private static Dictionary<int, BuildHostProcessObservation> Capture()
     {
         var map = new Dictionary<int, BuildHostProcessObservation>();

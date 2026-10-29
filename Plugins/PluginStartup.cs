@@ -50,7 +50,17 @@ public static class PluginStartup
         RoslynMcpFileSettings settings,
         string baseDirectory,
         string? environmentPaths,
-        TextWriter stderr)
+        TextWriter stderr) =>
+        Run(services, settings, baseDirectory, environmentPaths, stderr, userPluginDirectory: null);
+
+    /// <summary>Runs the plugin startup pass with a separately resolved per-user drop-in directory.</summary>
+    public static Report Run(
+        IServiceCollection services,
+        RoslynMcpFileSettings settings,
+        string baseDirectory,
+        string? environmentPaths,
+        TextWriter stderr,
+        string? userPluginDirectory)
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(settings);
@@ -60,7 +70,12 @@ public static class PluginStartup
         var loaded = new List<LoadedPlugin>();
         var skipped = new List<SkippedPlugin>();
 
-        var discovery = PluginDiscovery.Discover(baseDirectory, settings.Plugins, environmentPaths, HostVersion());
+        var discovery = PluginDiscovery.Discover(
+            baseDirectory,
+            settings.Plugins,
+            environmentPaths,
+            HostVersion(),
+            userPluginDirectory);
         RecordSkips(discovery.Skipped, stderr, skipped);
 
         var copies = PluginShadowCopy.Copy(discovery.Plans);
@@ -84,6 +99,10 @@ public static class PluginStartup
         {
             Loaded = [.. loaded],
             Skipped = [.. skipped],
+            DropInDirectories = string.IsNullOrWhiteSpace(userPluginDirectory)
+                ? [Path.Combine(baseDirectory, PluginDiscovery.DropInDirectoryName)]
+                : [.. new[] { Path.Combine(baseDirectory, PluginDiscovery.DropInDirectoryName), userPluginDirectory }
+                    .Distinct(OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal)],
         };
 
         // Tool host types are created from this provider on every agent call, so the report travels to the
@@ -200,6 +219,9 @@ public static class PluginStartup
     {
         /// <summary>Report of a pass that read no plugin source: no loaded plugin and no skip.</summary>
         public static Report Empty { get; } = new();
+
+        /// <summary>Drop-in roots inspected by this pass, including roots that held no plugin.</summary>
+        public IReadOnlyList<string> DropInDirectories { get; init; } = [];
 
         /// <summary>Loaded plugins, in load order.</summary>
         public IReadOnlyList<LoadedPlugin> Loaded { get; init; } = [];

@@ -9,6 +9,7 @@ using Microsoft.CodeAnalysis.FindSymbols;
 using Microsoft.CodeAnalysis.Rename;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Server;
+using RoslynMcpServer.Config;
 using RoslynMcpServer.Diagnostics;
 using RoslynMcpServer.Services;
 
@@ -336,7 +337,7 @@ public sealed class UtilityTools
     [McpServerTool(Name = "read_log_tail", Title = "ReadLogTail")]
     [Description("Reads the tail of a log file. Omit filePath to read the latest MCP server log.")]
     public async Task<string> ReadLogTail(
-        [Description("Path to the log file. Omit for the latest logs/mcp-*.log.")] string? filePath = null,
+        [Description("Path to the log file. Omit for the latest mcp-*.log in the resolved log directory.")] string? filePath = null,
         [Description("Lines to return from the end.")] int lastNLines = 200,
         [Description("Case-insensitive keyword filter applied before the tail.")] string? filterKeyword = null,
         CancellationToken cancellationToken = default)
@@ -1514,7 +1515,7 @@ public sealed class UtilityTools
     }
 
     [McpServerTool(Name = "tail_tool_log", Title = "TailToolLog")]
-    [Description("Reads the latest MCP server log under logs/mcp-*.log.")]
+    [Description("Reads the latest MCP server log from the resolved user log directory.")]
     public async Task<string> TailToolLog(
         [Description("Lines to return from the end.")] int lastNLines = 200,
         [Description("Case-insensitive keyword filter applied before the tail.")] string? filterKeyword = null,
@@ -1522,7 +1523,7 @@ public sealed class UtilityTools
     {
         try
         {
-            var logsDirectory = Path.Combine(AppContext.BaseDirectory, "logs");
+            var logsDirectory = ServerUserDirectories.FromEnvironment().LogDirectory;
             if (!Directory.Exists(logsDirectory))
             {
                 return ToolTelemetry.TraceAndReturn(nameof(TailToolLog), $"Error: Logs directory not found: `{logsDirectory}`");

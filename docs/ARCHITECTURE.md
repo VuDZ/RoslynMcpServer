@@ -121,7 +121,7 @@ ILSpy-backed tools resolve an exact assembly file from an explicit path, loaded 
 
 Tools return human-readable Markdown rather than raw compiler or process logs. Parsers classify MSBuild, NuGet, workspace-load, and VSTest output, while fallbacks include bounded head/tail excerpts when a known format cannot be recognized.
 
-Serilog writes rolling files under `logs/` next to the executable:
+Serilog writes rolling files under the server's per-user state directory, or `ROSLYN_MCP_LOG_DIR` when set:
 
 - incoming JSON-RPC logging is enabled by default and can be disabled with `MCP_LOG_INCOMING_RPC=0`;
 - parameter logging is capped by `MCP_LOG_INCOMING_RPC_MAX_CHARS`;
@@ -129,6 +129,21 @@ Serilog writes rolling files under `logs/` next to the executable:
 - `ROSLYN_MCP_LOG_TOOL_OUTPUT=full` logs complete tool responses.
 
 Logs can contain repository paths, source fragments, command arguments, and MCP parameters. Do not pass secrets in prompts or tool arguments, and apply normal access controls and retention rules to the log directory. The server does not send product telemetry or workspace contents to a remote service of its own; network use is limited to explicit MCP tool calls that invoke `dotnet` against a configured feed (see [PRIVACY.md](../PRIVACY.md)).
+
+From 1.5.19 the stable roots are `%LOCALAPPDATA%\RoslynMcpServer\` on Windows,
+`XDG_CONFIG_HOME/roslyn-mcp` for configuration/plugins and `XDG_STATE_HOME/roslyn-mcp`
+for logs/usage on Linux, and `~/Library/Application Support/RoslynMcpServer` on macOS.
+`ROSLYN_MCP_HOME` overrides both roots. Config sources merge exe → user → cwd;
+plugin discovery checks exe drop-ins → user drop-ins → configured paths → environment,
+keeping the first validated ID.
+
+The optional local usage collector is on by default (`ROSLYN_MCP_USAGE=0` disables it).
+A bounded queue separates tool/workspace state updates from process probes and disk I/O.
+JSONL records include raw workspace paths but no tool arguments/results. A cross-process
+lease serializes append and rotation; failures leave sequence gaps and never replace a tool
+result. Client identity is captured from legacy initialize or revision 2026-07-28 request
+metadata. The analyzer emits per-machine anonymized aggregates, not automatic strategy
+decisions. See [usage schema](usage-statistics/schema.md) and [PRIVACY.md](../PRIVACY.md).
 
 ## Architectural constraints
 

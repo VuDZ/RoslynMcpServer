@@ -1,10 +1,12 @@
-using Microsoft.CodeAnalysis.CSharp;
+﻿using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Formatting;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using RoslynMcpServer.Config;
 using RoslynMcpServer.Diagnostics;
+using RoslynMcpServer.Diagnostics.UsageStatistics;
 using RoslynMcpServer.Hosting;
 using RoslynMcpServer.Plugins;
 using RoslynMcpServer.Tools;
@@ -37,7 +39,8 @@ var builder = Host.CreateApplicationBuilder(args);
 
 builder.Logging.ClearProviders();
 
-var logPath = Path.Combine(AppContext.BaseDirectory, "logs", "mcp-.log");
+var userDirectories = ServerUserDirectories.FromEnvironment();
+var logPath = Path.Combine(userDirectories.LogDirectory, "mcp-.log");
 var sessionId = HarnessSessionId.CreateForCurrentProcess();
 builder.Services.AddSerilog((_, configuration) =>
 {
@@ -53,7 +56,7 @@ builder.Services.AddSerilog((_, configuration) =>
             outputTemplate: HarnessSessionId.LogOutputTemplate);
 });
 
-// Optional RoslynMcp.jsonc (exe directory, then process cwd). Read after ROSLYN_MCP_WORKSPACE
+// Optional RoslynMcp.jsonc (exe, user directory, then cwd). Read after ROSLYN_MCP_WORKSPACE
 // may have switched cwd to the repo root.
 var fileSettings = RoslynMcpServer.Config.RoslynMcpFileSettings.LoadFromDefaultLocations();
 builder.Services.AddSingleton(fileSettings);
@@ -98,7 +101,8 @@ try
         fileSettings,
         AppContext.BaseDirectory,
         Environment.GetEnvironmentVariable(PluginDiscovery.EnvironmentVariableName),
-        Console.Error);
+        Console.Error,
+        userPluginDirectory: userDirectories.PluginDirectory);
 }
 catch (Exception ex)
 {
@@ -117,7 +121,21 @@ var activation = host.Services.GetRequiredService<McpToolActivationService>();
 Console.Error.WriteLine(
     $"[RoslynMcp] session={sessionId}; tool profile={activation.Profile}; startup groups={activation.FormatStartupGroupsDisplay()}; dynamic groups={activation.FormatDynamicGroupsDisplay()}; registered tools={activation.CurrentToolCount}");
 
-await host.RunAsync();
+using (host)
+{
+    var usageStatistics = host.Services.GetRequiredService<UsageStatisticsService>();
+    try
+    {
+        await host.StartAsync();
+        await host.WaitForShutdownAsync();
+    }
+    catch
+    {
+        usageStatistics.SetExitReason("exception");
+        await host.StopAsync();
+        throw;
+    }
+}
 
 static void ApplyOptionalWorkspaceRootFromEnvironment()
 {

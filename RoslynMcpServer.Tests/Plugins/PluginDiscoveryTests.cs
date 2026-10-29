@@ -569,6 +569,68 @@ public sealed class PluginDiscoveryTests : IDisposable
         Assert.True(plan.UsesShadowCopy);
     }
 
+    [Fact]
+    public void Host_drop_in_wins_over_user_drop_in_and_both_explicit_sources()
+    {
+        var hostPlugin = CreateDropInPlugin(PluginId);
+        var userRoot = Path.Combine(_root, "user-plugins");
+        var userPlugin = CreatePlugin(Path.Combine(userRoot, PluginId), PluginId, EntryFileName, "1.0.0");
+        var configured = CreatePlugin(Path.Combine(_root, "configured"), PluginId, EntryFileName, "1.0.0");
+        var environment = CreatePlugin(Path.Combine(_root, "environment"), PluginId, EntryFileName, "1.0.0");
+
+        var result = PluginDiscovery.Discover(_root, [configured], environment, _hostVersion, userRoot);
+
+        Assert.Equal(hostPlugin, Assert.Single(result.Plans).Directory);
+        Assert.Equal(3, result.Skipped.Count);
+        Assert.Contains(result.Skipped, skip => skip.SourcePath == userPlugin);
+    }
+
+    [Fact]
+    public void User_drop_in_wins_over_explicit_sources_after_an_invalid_host_drop_in()
+    {
+        CreateDropInPlugin(PluginId, minHostVersion: "2.0.0");
+        var userRoot = Path.Combine(_root, "user-plugins");
+        var userPlugin = CreatePlugin(Path.Combine(userRoot, PluginId), PluginId, EntryFileName, "1.0.0");
+        var configured = CreatePlugin(Path.Combine(_root, "configured"), PluginId, EntryFileName, "1.0.0");
+        var environment = CreatePlugin(Path.Combine(_root, "environment"), PluginId, EntryFileName, "1.0.0");
+
+        var result = PluginDiscovery.Discover(_root, [configured], environment, _hostVersion, userRoot);
+
+        var plan = Assert.Single(result.Plans);
+        Assert.Equal(userPlugin, plan.Directory);
+        Assert.False(plan.UsesShadowCopy);
+        Assert.Equal(3, result.Skipped.Count);
+    }
+
+    [Fact]
+    public void A_shared_host_and_user_drop_in_root_is_scanned_once()
+    {
+        var plugin = CreateDropInPlugin(PluginId);
+
+        var result = PluginDiscovery.Discover(
+            _root,
+            [],
+            environmentPaths: null,
+            _hostVersion,
+            Path.Combine(_root, PluginDiscovery.DropInDirectoryName, "."));
+
+        Assert.Equal(plugin, Assert.Single(result.Plans).Directory);
+        Assert.Empty(result.Skipped);
+    }
+
+    [Fact]
+    public void Missing_or_non_directory_user_drop_in_root_does_not_stop_discovery()
+    {
+        var plugin = CreateDropInPlugin(PluginId);
+        var notDirectory = Path.Combine(_root, "not-a-directory");
+        File.WriteAllText(notDirectory, "file");
+
+        var result = PluginDiscovery.Discover(_root, [], environmentPaths: null, _hostVersion, notDirectory);
+
+        Assert.Equal(plugin, Assert.Single(result.Plans).Directory);
+        Assert.Empty(result.Skipped);
+    }
+
     /// <summary>Discovers with the drop-in root of this test and no other source unless one is passed.</summary>
     private PluginDiscoveryResult Discover(
         IReadOnlyList<string>? configuredPaths = null,

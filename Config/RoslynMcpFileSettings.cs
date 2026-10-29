@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 namespace RoslynMcpServer.Config;
 
 /// <summary>
-/// Optional <c>RoslynMcp.jsonc</c> settings (exe directory then process cwd; cwd wins).
+/// Optional <c>RoslynMcp.jsonc</c> settings (exe, per-user directory, then process cwd; cwd wins).
 /// Not a fork <c>WorkspaceConfig</c> and does not publish a raw MSBuild solution.
 /// </summary>
 public sealed class RoslynMcpFileSettings
@@ -29,6 +29,8 @@ public sealed class RoslynMcpFileSettings
     public static RoslynMcpFileSettings Empty { get; } = new(
         executableFilePath: null,
         workingDirectoryFilePath: null,
+        userFilePath: null,
+        userFilePresent: false,
         executableFilePresent: false,
         workingDirectoryFilePresent: false,
         workspacePath: null,
@@ -48,6 +50,8 @@ public sealed class RoslynMcpFileSettings
     private RoslynMcpFileSettings(
         string? executableFilePath,
         string? workingDirectoryFilePath,
+        string? userFilePath,
+        bool userFilePresent,
         bool executableFilePresent,
         bool workingDirectoryFilePresent,
         string? workspacePath,
@@ -66,6 +70,8 @@ public sealed class RoslynMcpFileSettings
     {
         ExecutableFilePath = executableFilePath;
         WorkingDirectoryFilePath = workingDirectoryFilePath;
+        UserFilePath = userFilePath;
+        UserFilePresent = userFilePresent;
         ExecutableFilePresent = executableFilePresent;
         WorkingDirectoryFilePresent = workingDirectoryFilePresent;
         WorkspacePath = workspacePath;
@@ -85,6 +91,8 @@ public sealed class RoslynMcpFileSettings
 
     public string? ExecutableFilePath { get; }
     public string? WorkingDirectoryFilePath { get; }
+    public string? UserFilePath { get; }
+    public bool UserFilePresent { get; }
     public bool ExecutableFilePresent { get; }
     public bool WorkingDirectoryFilePresent { get; }
 
@@ -127,7 +135,7 @@ public sealed class RoslynMcpFileSettings
     public IReadOnlyList<string> UnknownKeys { get; }
     public IReadOnlyList<RoslynMcpConfigParseFailure> ParseFailures { get; }
 
-    public bool HasAnyFile => ExecutableFilePresent || WorkingDirectoryFilePresent;
+    public bool HasAnyFile => ExecutableFilePresent || UserFilePresent || WorkingDirectoryFilePresent;
 
     /// <summary>
     /// Absolute path for lazy load when <see cref="WorkspacePath"/> is set.
@@ -150,66 +158,45 @@ public sealed class RoslynMcpFileSettings
     {
         var exeDir = AppContext.BaseDirectory;
         var cwd = Environment.CurrentDirectory;
-        return LoadFromDirectories(exeDir, cwd, logger);
+        return LoadFromDirectories(exeDir, cwd, ServerUserDirectories.FromEnvironment().ConfigurationDirectory, logger);
     }
 
     public static RoslynMcpFileSettings LoadFromDirectories(
         string? executableDirectory,
         string? workingDirectory,
-        ILogger? logger = null)
+        ILogger? logger = null) =>
+        LoadFromDirectories(executableDirectory, workingDirectory, userDirectory: null, logger);
+
+    /// <summary>Reads each distinct file once and merges exe, user and cwd settings in priority order.</summary>
+    public static RoslynMcpFileSettings LoadFromDirectories(
+        string? executableDirectory,
+        string? workingDirectory,
+        string? userDirectory,
+        ILogger? logger)
     {
-        var exePath = string.IsNullOrWhiteSpace(executableDirectory)
-            ? null
-            : Path.Combine(executableDirectory, FileName);
-        var cwdPath = string.IsNullOrWhiteSpace(workingDirectory)
-            ? null
-            : Path.Combine(workingDirectory, FileName);
-
-        PartialSettings? exe = null;
-        PartialSettings? cwd = null;
+        var exePath = GetSettingsPath(executableDirectory);
+        var userPath = GetSettingsPath(userDirectory);
+        var cwdPath = GetSettingsPath(workingDirectory);
         var failures = new List<RoslynMcpConfigParseFailure>();
+        var cache = new Dictionary<string, PartialSettings?>(
+            OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
 
-        if (exePath is not null && File.Exists(exePath))
-        {
-            if (TryReadFile(exePath, out var partial, out var error))
-            {
-                exe = partial;
-            }
-            else
-            {
-                failures.Add(new RoslynMcpConfigParseFailure(exePath, error ?? "Unknown parse error."));
-                logger?.LogWarning("RoslynMcp.jsonc failed to parse at {Path}: {Error}", exePath, error);
-            }
-        }
-
-        if (cwdPath is not null
-            && File.Exists(cwdPath)
-            && !PathsEqual(cwdPath, exePath))
-        {
-            if (TryReadFile(cwdPath, out var partial, out var error))
-            {
-                cwd = partial;
-            }
-            else
-            {
-                failures.Add(new RoslynMcpConfigParseFailure(cwdPath, error ?? "Unknown parse error."));
-                logger?.LogWarning("RoslynMcp.jsonc failed to parse at {Path}: {Error}", cwdPath, error);
-            }
-        }
-
-        var merged = Merge(exe, cwd);
+        var exe = Read(exePath, out var exePresent);
+        var user = Read(userPath, out var userPresent);
+        var cwd = Read(cwdPath, out var cwdPresent);
+        var merged = Merge(Merge(exe, user), cwd);
         foreach (var key in merged.UnknownKeys)
         {
             logger?.LogWarning("RoslynMcp.jsonc unknown key ignored: {Key}", key);
         }
 
-        var exePresent = exePath is not null && File.Exists(exePath);
-        var cwdPresent = cwdPath is not null && File.Exists(cwdPath);
         return new RoslynMcpFileSettings(
             executableFilePath: exePath,
             workingDirectoryFilePath: cwdPath,
+            userFilePath: userPath,
+            userFilePresent: userPresent && !PathsEqual(userPath, exePath),
             executableFilePresent: exePresent,
-            workingDirectoryFilePresent: cwdPresent && !PathsEqual(cwdPath, exePath),
+            workingDirectoryFilePresent: cwdPresent && !PathsEqual(cwdPath, exePath) && !PathsEqual(cwdPath, userPath),
             workspacePath: merged.WorkspacePath,
             configuration: merged.Configuration,
             platform: merged.Platform,
@@ -223,6 +210,34 @@ public sealed class RoslynMcpFileSettings
             plugins: merged.Plugins ?? Array.Empty<string>(),
             unknownKeys: merged.UnknownKeys,
             parseFailures: failures);
+
+        PartialSettings? Read(string? path, out bool present)
+        {
+            present = path is not null && File.Exists(path);
+            if (!present)
+            {
+                return null;
+            }
+
+            if (cache.TryGetValue(path!, out var cached))
+            {
+                return cached;
+            }
+
+            PartialSettings? settings = null;
+            if (TryReadFile(path!, out var partial, out var error))
+            {
+                settings = partial;
+            }
+            else
+            {
+                failures.Add(new RoslynMcpConfigParseFailure(path!, error ?? "Unknown parse error."));
+                logger?.LogWarning("RoslynMcp.jsonc failed to parse at {Path}: {Error}", path, error);
+            }
+
+            cache[path!] = settings;
+            return settings;
+        }
     }
 
     /// <summary>Test/helper: merge two already-parsed partial objects (cwd overrides exe).</summary>
@@ -262,6 +277,23 @@ public sealed class RoslynMcpFileSettings
             searchPrewarm: workingDirectory.SearchPrewarm ?? executable.SearchPrewarm,
             buildHostOptimizations: workingDirectory.BuildHostOptimizations ?? executable.BuildHostOptimizations,
             buildHostEvaluateAheadWorkers: workingDirectory.BuildHostEvaluateAheadWorkers ?? executable.BuildHostEvaluateAheadWorkers);
+    }
+
+    private static string? GetSettingsPath(string? directory)
+    {
+        if (string.IsNullOrWhiteSpace(directory))
+        {
+            return null;
+        }
+
+        try
+        {
+            return Path.GetFullPath(Path.Combine(directory, FileName));
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            return null;
+        }
     }
 
     private static bool TryReadFile(string path, out PartialSettings settings, out string? error)
