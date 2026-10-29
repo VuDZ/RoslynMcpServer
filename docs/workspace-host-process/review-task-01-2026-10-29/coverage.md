@@ -1,3 +1,66 @@
+# Покрытие C/E0/task-01 — узкий раунд 9
+
+## Scope и версия
+
+2026-10-29, Codex `/root/task01_research_review`, точный model ID unavailable. База `9f1fe65`, source 1.5.18. Проверены только R8-F01/R8-F02 и связанные output regressions; старые evidence/source/runtime целиком повторно не перечитывались. Executor `gpt-6.1-sol` по уточнению владельца не присвоен reviewer. Hashes нового среза — [result](result.md).
+
+## Что прочитано и сопоставлено
+
+- Design §2 private intent и created/reused правила, §7 shared/private recovery и его связь с reset/unbound, сценарии 24/25.
+- Author ACCEPT обоих IDs в owner-context evidence; новые regression requirements task-02/task-06.
+- Проверены отрицательные ветви: failed fresh не заменяет intent; успешная замена сохраняет старые call references; reset не является возвратом в shared, но не воскрешает сброшенные properties. Другой resolved key — отдельный выбор, startup flag распространяет private на новые keys.
+- Для shared successor проверены creator exit, новое generation/receipt, проверка explicit/sticky policy до execution, отсутствие старого proof и единственный startup owner. Private recovery не использует общий discovery slot.
+- Для output подтверждено сохранение owner clarification: дополнительный reuse block только explicit reused load, не creator load и не semantic response, включая вызов, который сам инициировал recovery. Cached/brief не скрывают block.
+
+Новых противоречий в затронутом slice не найдено. Достаточность документации подтверждена; runtime implementation correctness остаётся task-06/task-02. Полного повторного аудита всех прежних решений/находок этот узкий проход не содержит.
+
+## Docs checks и история
+
+Локальные paths/heading/explicit/source-line anchors 17 Markdown проверены после записи: **495**, broken 0. Whitespace diff check — PASS. Primary контракты/код не редактировались. Original review catalogs не менялись. Provisional counters/status/validation координатора не приняты за новые owner решения.
+
+История до раунда 9 оставлена в suffix **дословно**, включая headings и hashes; previous whole-file hashes: result `DA814589AF391A190FC5A7D77B7937985DF66BBA360AB8B3C8EB113139E54AF5`, coverage `3F71DC28B18EB928767B496B77902B6735A674AA1A136BD9F02F4B4A4CC7A89A`. Обе проверки exact suffix дали true. `.status` completed записан последним и завершает только reviewer round 9.
+
+## Не выполнялось
+
+Runtime fresh/reset/recovery/receipts, environment/FS/lease/CLI/latency и production/test/build runs — **not run**: запрос docs-only, production/tests/settings не менялись. Полный повтор historical evidence, broad SourceStructure audit и новый обход всех источников не требовались для этой узкой правки. Task-06/task-02/новые задачи не запускались, commit/push не выполнялись.
+
+Итог: **+2 fixes**, task-01 **9 rounds / 14 unique fixes**; R8-F01 и R8-F02 закрыты. Приёмки task-01/эпохи/O-01…O-04 и production activation нет. O-05 выбран владельцем; его техническая реализация не объявлена выполненной.
+
+## История — дословное покрытие до раунда 9
+
+# Покрытие ревью C/E0/task-01 — раунд 8
+
+## Раунд 8, 2026-10-29
+
+Scope — docs-only решение владельца O-05 о небольшом WorkspaceKey, creator context, PRIVATE HOST fresh и reuse-only блоке load. Само решение принято как вход; задача проверки — его последствия и полнота текста. Reviewer Codex `/root/task01_research_review`, точный model ID unavailable. База `9f1fe6584c0c67085a12121b7744840f23e129ac`, production 1.5.18. Hashes среза — в [result](result.md).
+
+### Прочитано
+
+Полностью owner-context evidence, новый §2 design и task-06; изменённые §10–12, task-01/task-02, topic/epoch/docs index diffs. Для независимой проверки просмотрены неизменённые lifecycle §3/4/6/7/8/9 и их активные ссылки на descriptor/context/private scope. Мелкие финальные авторские уточнения учтены: timeout settings отделены от нового forceFresh, preface больше не требует env digest; historical anchor alias сохранён. Provisional 7/12 и pending-review до финального учёта не приняты за ошибку.
+
+Пять source claims сверены в WorkspaceTools LoadWorkspace/ResetWorkspace, MsBuildWorkspaceProperties.Create, SolutionManager effective defaults/LastLoadWasCacheHit/cache path/ClearWorkspaceAsync. C# не менялся; style не оценивался. `git diff b2a7b80 HEAD` по production/tests roots пуст, код по-прежнему 1.5.18. Никакого вызова ещё не существующего forceFresh либо нового runtime experiment не было.
+
+### Независимый completeness probe
+
+`rg` по всему активному design на descriptor/context/env/policy/namespace/scope/private/owner, затем отдельный поиск `unbound`, `своего сохранённого descriptor`, `canonical`, `strict` вне нового §2. Старые canonical/strict упоминания в исторических reviews не считаются текущим контрактом. Проба дала две обязательные lifecycle связи: soft reset→unbound с потерянным tool-only private intent (R8-F01), и shared generation recovery без правила выбора нового creator context (R8-F02). Эти findings не оспаривают сам отказ от env hash.
+
+Проверены дополнительные края: owner capability вместо PID, explicit fresh retries/новый intent, no ordinary fallback, старые calls после switch, namespace/image/source proof, captured receipt, explicit/sticky overlay, общие outputs, cached/brief и created/reused race. Новых findings по этим частям не сформировано; runtime feasibility из одного текста не выводится.
+
+### Docs checks
+
+- Входной срез: **17 Markdown / 466 local links/anchors, broken 0**; paths, heading/explicit aliases и source line bounds.
+- Table-only §5 против Core/Group entries каталога: 54/54, unique 54, missing/extra 0. §10: 42 unique S01…S42.
+- Dependency shape и scope activation не меняются O-05: task-06 остаётся planned input до завершения task-01, task-02 planned. O-05 выбран, O-01…O-04 отложены.
+- Свой новый текст проверен после записи; первичные docs, original review catalogs и код не редактировались. История до раунда 8 сохранена дословно в suffix файлов. Предыдущие whole-file hashes: result `8672764320CFC5B5EEC5D215B6E6B784ED45A4B5059422DC39F74927A147FE1A`, coverage `ECD93E22E5A7EF7AD17A68B0C72E26B03EA1FF5B1D1302B2FBD2801ED1426540`.
+
+### Что не запускалось
+
+Build/main/SourceStructure/AnalyzerLifecycle, environment/lease/reset/recovery/fresh/runtime эксперименты — not run: C#/tests/build settings не менялись, scope docs-only. Task-06/task-02 и новые tasks не запускались. Web-проверки этого прохода не требовались/не выполнялись; чужие исторические passes не считаются новыми.
+
+Итог: **R8-F01 и R8-F02 — major, open**, автор ACCEPT, следующий технический diff — раунд 9. Число закрытых исправлений остаётся 12; новых подтверждённых fixes в этом раунде 0. `.status` completed относится к завершению reviewer round 8 и записывается последним. Commit/push не выполнялись.
+
+## История покрытия раундов 1–2, 4 и 6–7 — дословный срез
+
 # Покрытие ревью C/E0/task-01 — раунды 1–2, 4 и 6–7
 
 ## Раунд 7, 2026-10-29

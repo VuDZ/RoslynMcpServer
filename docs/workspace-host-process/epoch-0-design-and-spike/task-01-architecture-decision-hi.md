@@ -5,12 +5,12 @@
 - Примерная сложность: 4/5; класс `hi`.
 - Риск ошибки: высокий — ошибка в модели сессий, жизненном цикле или безопасности канала проявится только в долгой работе нескольких клиентов.
 - Необходимые способности: `согласованность_компонентов`, `анализ_требований`, `планирование_реализации`.
-- Статус: in progress, 2026-10-29; docs-only исправления раунда 5/R6-N01 перепроверены в раундах 6–7; выбор владельца отложен, task-06 planned до окончательного выбора, task-02 не начат.
+- Статус: in progress, 2026-10-29; O-05 выбран владельцем: небольшой key/private fresh/reuse-only load output; редакция перепроверена в раундах 8–9. O-01…O-04 отложены, task-06 planned, task-02 не начат.
 - Depends on: [task-00](task-00-process-state-inventory-med.md), [task-03](task-03-pipe-relay-spike-med.md), [task-04](task-04-proxy-routing-and-recovery-spike-hi.md), [task-05](task-05-applicability-checks-med.md); окончательный выбор также ждёт [task-06](task-06-environment-and-deployment-preflight-med.md).
 - Модель, реализовавшая задачу: GPT Sol-6.1 (`gpt-6.1-sol`), Codex; уточнено владельцем 2026-10-29.
-- Модели, проводившие ревью: Codex, отдельная сессия `/root/task01_research_review`, точный model ID недоступен (раунды 1–2, 4, 6–7); Grok 4.7, session ID недоступен (раунд 3); `claude-opus-5-5`, Claude Code (раунд 5).
-- Количество раундов ревью: 7.
-- Количество исправлений после ревью: 12 (Codex/F-01…F-03 подтверждены в раунде 2; independent/F-01…F-03 — в раунде 4; r5/F-01…F-05 — в раунде 6; R6-N01 — в раунде 7).
+- Модели, проводившие ревью: Codex, отдельная сессия `/root/task01_research_review`, точный model ID недоступен (раунды 1–2, 4, 6–9); Grok 4.7, session ID недоступен (раунд 3); `claude-opus-5-5`, Claude Code (раунд 5).
+- Количество раундов ревью: 9.
+- Количество исправлений после ревью: 14 (Codex/F-01…F-03 подтверждены в раунде 2; independent/F-01…F-03 — в раунде 4; r5/F-01…F-05 — в раунде 6; R6-N01 — в раунде 7; R8-F01/R8-F02 — в раунде 9).
 - Отчёт о реализации, ревью и validation: [проект design](../design.md), [отчёт](evidence/task-01-architecture-decision.md).
 
 ## Цель
@@ -40,15 +40,21 @@ POSIX `fcntl` lock на Linux снимается закрытием любого
 один дескриптор на процесс и ключ (F-04); явный retry отказавшей общей загрузки без
 отключения всех клиентов (F-05); identity по всем файлам теневого образа и его пересоздание (F-08).
 
-Из [раунда 5](../review-task-01-round-5-2026-10-29/result.md): O-05 задаёт canonical
-host environment и цену parity до O-01; rendezvous/storage разделены; O-02 сравнивает
+Из [раунда 5](../review-task-01-round-5-2026-10-29/result.md): предложенный тогда O-05
+canonical/strict заменён решением владельца ниже; rendezvous/storage разделены; O-02 сравнивает
 soft reset и global retire с учётом обычных рецептов AGENTS.md.sample; identity costs
 входят в budgets; существующий Linux launcher допускает reuse только после audit.
 В раунде 6 также найден и в раунде 7 закрыт R6-N01: shared identity требует
 immutable publication/use lease до OS CreateProcess; поздний hash уже запущенного
 mutable proxy недостаточен. Startup boundary и initialize budget проверяет task-06.
 Предварительную применимость этих вариантов проверяет task-06, затем владелец
-выбирает модель/политики; подготовка draft до этой проверки остаётся допустимой.
+выбирает оставшиеся модель/политики; подготовка draft до этой проверки допустима.
+
+Выбор владельца 2026-10-29 по O-05: WorkspaceKey=absolute path/Configuration/Platform/
+TFM, host наследует контекст создателя. --force_fresh создаёт private host только для
+инициатора; tool argument forceFresh позволяет агенту сделать это без harness restart.
+Фактические параметры/инструкция в load выводятся дополнительно только при reused
+attachment, не у создателя нового host. [Основание и validation](../evidence/2026-10-29-task-01-owner-context.md).
 
 Обязательные разделы:
 
@@ -127,8 +133,9 @@ mutable proxy недостаточен. Startup boundary и initialize budget п
 - Модель выбрана сравнением на данных task-05, а не по умолчанию; host не
   переживает клиентов (цель «пережить Reload» снята владельцем 2026-10-28).
 - Каждый конфликт из task-00 имеет решение или вынесен владельцу.
-- Публичные параметры и успешные результаты анализа, default-режим и write
-  boundary сохранены; изменения lifecycle/диагностики shared-режима перечислены.
+- Default-режим и write boundary сохранены. В shared отдельно перечислены выбранные
+  владельцем добавления forceFresh/--force_fresh и reuse-only ответ load, а также
+  граница parity общего host context. Остальные успешные результаты анализа прежние.
 - Сценарии «10 прокси / один проект», переход чат2 на проект2 при живом чат1,
   отказ перехода, падение host и смерть кандидата/запускающего процесса до
   readiness имеют проверяемые последовательности состояний и критерии отсутствия

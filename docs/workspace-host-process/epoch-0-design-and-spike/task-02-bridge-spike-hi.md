@@ -5,8 +5,8 @@
 - Примерная сложность: 4/5; класс `hi`.
 - Риск ошибки: высокий — разделение session/workspace и восстановление могут нарушить публикацию, lifecycle analyzers или изоляцию проектов.
 - Необходимые способности: `согласованность_компонентов`, `проектирование_проверок`, `анализ_производительности`.
-- Статус: planned; план обновлён 2026-10-29 по раунду 5, реализация не начата.
-- Depends on: [task-01](task-01-architecture-decision-hi.md) с выбором владельца после [task-06](task-06-environment-and-deployment-preflight-med.md), включая O-02/O-05; [D/E0/task-01](../../workspace-load-performance/epoch-0-stage-measurement/task-01-load-stage-timings-med.md).
+- Статус: planned; план обновлён 2026-10-29 по решению владельца O-05; реализация не начата.
+- Depends on: [task-01](task-01-architecture-decision-hi.md) с оставшимися решениями владельца после [task-06](task-06-environment-and-deployment-preflight-med.md); O-05 выбран, O-01…O-04 отложены; [D/E0/task-01](../../workspace-load-performance/epoch-0-stage-measurement/task-01-load-stage-timings-med.md).
 - Модель, реализовавшая задачу: —.
 - Модели, проводившие ревью: —.
 - Количество раундов ревью: —.
@@ -54,8 +54,10 @@ Roslyn. Команды и результаты до/после — в evidence. 
 До окончательного выбора модели go/no-go среды/storage выполняет
 [task-06](task-06-environment-and-deployment-preflight-med.md). Здесь повторить
 его контроль на реализации: совместимые реальные пары Codex/Windows и Claude Code/Linux
-одного checkout, полный descriptor и names-only причины mismatch. Canonical environment
-должен действительно передаваться host/MSBuild, CLI proxy сохраняет исходную среду.
+одного checkout, WorkspaceKey path/Configuration/Platform/TFM и отдельный namespace/
+image admission. Разные session environments не дробят WorkspaceKey. Host сохраняет
+контекст инициатора; CLI proxy — собственную среду. Reused load показывает actual
+context и инструкцию fresh; создатель нового host дополнительный блок не получает.
 No-go возвращается владельцу; synthetic N=10 не заменяет отрицательную применимость.
 
 Контроль — SamplePlugin и второй небольшой отличимый проект; по возможности
@@ -82,7 +84,8 @@ No-go возвращается владельцу; synthetic N=10 не заме�
    MCP-сессии не переинициализируются, cwd A и его descriptor не меняются.
 3. Отказ загрузки проекта2 сохраняет прежнюю привязку чат2 к живому A. Проверить
    переход с незавершённым запросом по правилам design, а также несовместимые
-   Configuration/Platform/TFM/analyzer policy и session defaults/build args.
+   Configuration/Platform/TFM и session defaults/build args. Иная analyzer policy
+   не расширяет WorkspaceKey: проверить явный context-mismatch/fresh без изменения A.
    Тот же переход и отказ проверить через optional workspacePath обоих
    `list_projects` и `get_project_graph`: read-часть не вызывает LoadAsync чужого
    path в A. Для своего key проверить cache hit/graph-stale refresh, для omitted
@@ -97,6 +100,21 @@ No-go возвращается владельцу; synthetic N=10 не заме�
 5. **Только отдельный host.** Чат1 первым инициирует запуск host проекта1,
    затем переключается на проект2. Host проекта1 продолжает обслуживать чат2/чат3
    без handoff и новой ordinary-загрузки; привязки и поколения не подменяются.
+
+**Private fresh и ответ load:** реализовать сценарии 22–23 design. CLI --force_fresh
+и tool argument forceFresh создают host, не workspace внутри proxy. Shared сосед
+не затрагивается; private не discoverable другим proxy и не становится общим.
+Проверить repeat load, explicit новый fresh, failure/cancel, private recovery/EOF,
+created/reused race и отсутствие reuse block у создателя. Reused cached/brief load
+содержит actual context/инструкцию; отсутствующие global properties и env secrets
+не превращаются в выдуманные значения или raw dumps.
+Сценарий 24: tool-only private intent переживает reset defaults/unbind, hard retire
+и cleanup host отдельно от binding. Explicit/config lazy load того же resolved key
+не возвращается в shared, не восстанавливая при этом сброшенные load defaults.
+Сценарий 25: старый creator ушёл, shared host crashed, surviving proxy имеют разные
+contexts. Новый startup winner задаёт новый контекст, остальные проверяют policy
+receipt до исполнения; created/reused и последующий load output отражают новый
+generation. Не объявлять новую среду восстановленной старой и не replay-ить calls.
 
 **Падение и восстановление:**
 
@@ -175,9 +193,10 @@ manifest и совместимым prelaunch/use-lease/cleanup протокол�
 
 - Без флага: полный main suite без изменений ожиданий; запуск по stdio прежний.
 - С флагом: сценарии выше проходят; успешные результаты анализа совпадают с
-  in-process режимом на том же контроле и effective graph environment. Если владелец
-  выбрал canonical-v1, отдельно сравнивается raw ordinary и явно записывается цена
-  O-05: проект, зависящий от исключённых переменных, не выдаётся за parity pass.
+  in-process режимом на том же контроле и effective host context. Для O-05 отдельно
+  показать проект, зависящий от environment: shared context первого создателя может
+  отличаться от ordinary второго proxy, а forceFresh использует контекст инициатора.
+  Полная environment parity не является критерием допуска reuse.
   Ошибки recovery/lifecycle соответствуют
   design и не скрываются сравнением только успешных ответов.
 - Канал недоступен другому пользователю ОС (проверка на доступной платформе;

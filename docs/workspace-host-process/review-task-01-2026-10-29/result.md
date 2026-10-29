@@ -1,3 +1,82 @@
+# Ревью C/E0/task-01 — раунд 9, исправления R8-F01/R8-F02
+
+## Главное
+
+**Раунд 9: R8-F01 и R8-F02 закрыты; новых must-fix в затронутом lifecycle/output контракте нет.** Подтверждены **2 дополнительных исправления**, всего task-01 — **9 раундов / 14 уникальных исправлений**. Это узкая техническая проверка двух fixes, не принятие task-01 целиком, эпохи, O-01…O-04, task-06/task-02 или production activation. O-05 остаётся решением владельца.
+
+Reviewer — та же сессия Codex `/root/task01_research_review`, точный model ID unavailable. Исполнитель task-01/правок — GPT Sol-6.1 (`gpt-6.1-sol`) по уточнению владельца. Дата **2026-10-29**, база `9f1fe6584c0c67085a12121b7744840f23e129ac`, source 1.5.18. Проверенный срез:
+
+- design SHA-256 `2CE206826550E16AE6174AD7A194EB84BDFA1B5D05F1444D74012459FA7B9C56`;
+- [owner-context evidence](../evidence/2026-10-29-task-01-owner-context.md) SHA-256 `E17277131B9FB0FEF82ECBCB9DF347879445C9D0C77FE3537E0996D5E7D19485`;
+- task-02 SHA-256 `C6A2511F9C78F90216659BD46E71C91DBDAD118228A6CE5984C049FCDA96C278`;
+- task-06 SHA-256 `7241EBAD13EEA135DDFC9E2E19D30F6224DB2A232AB5BC79B8EF28EB84C5F909`.
+
+## Перепроверка
+
+| ID | Исходная severity | Подтверждённое исправление и regression | Итог раунда 9 |
+|---|---|---|---|
+| R8-F01 | major | [Design:129–140](../design.md#L129) задаёт `PrivateScopeIntentByWorkspaceKey` отдельно от binding/SessionLoadContext, до конца proxy session. Только успешный fresh commit создаёт/заменяет intent, failed fresh его не меняет. Soft reset/unbind, hard retire и host cleanup не стирают owner scope/capability. Explicit/config lazy того же **resolved key** идёт в private даже без старого binding/host; сброшенные defaults не восстанавливаются, другой resolved key не получает старые свойства. Startup flag требует private для всех новых keys. [Сценарий 24](../design.md#L913) и task-02/task-06 отдельно проверяют tool-only fresh→reset→explicit/config lazy, hard retire и cleanup. | **Закрыто в design.** |
+| R8-F02 | major | [Design:656–670](../design.md#L656) отделяет сохранённые WorkspaceKey/namespace/scope от фактов умершего host. Новый shared generation принимает context победителя **нового** startup attempt; E2/E3 не выдаётся за восстановленный E1. Receipt/created-reused определяются заново, actual binding/info обновлены; explicit/sticky policy проверяется до исполнения, старые tickets/proofs не переносятся. Private recovery использует owner intent. [Сценарий 25](../design.md#L914) и принимающие tasks проверяют creator exit→host crash при разных contexts, один owner/load, policy mismatch, receipts и output. | **Закрыто в design.** |
+
+Проверена output regression: ни semantic response, ни creator нового shared/private host не получают дополнительный reuse block. Он появляется только на следующем **explicit load_workspace** у reused клиента и сохраняется для cached/brief load; несовместимая policy отклоняется до tool execution. Это не обещание environment parity и не возврат env hash. Private fresh не становится ordinary/in-process workspace и не изолирует общие disk outputs.
+
+Прежний verdict раунда 8 и оба open тогда findings сохранены ниже **дословно**; их закрытие относится к этому раунду 9. Runtime сценарии 24/25 ещё не выполнялись и не объявлены passes. Финальные status/counters/validation и сводку эпохи вносит координатор; их итог не меняет открытые разрешения владельца.
+
+Охват и docs checks — [coverage](coverage.md). Дальнейшая работа только в отдельно разрешённом scope; task-01 остаётся in progress, task-06/task-02 planned.
+
+## История — дословный отчёт до раунда 9
+
+# Ревью C/E0/task-01 — раунд 8, решение владельца O-05
+
+## Главное
+
+**Вердикт раунда 8: требуются исправления.** Выбор владельца — небольшой WorkspaceKey, контекст создателя host и PRIVATE HOST для forceFresh — принят как вход проверки и не оспаривается. В исполнении этого решения не определены две границы lifecycle: сохранение private intent через reset/unbound (**R8-F01, major**) и контекст нового shared generation после recovery (**R8-F02, major**).
+
+Новых исправлений в этом раунде не подтверждено. Исторический итог до него — **7 раундов / 12 исправлений**; после фиксации этого прохода — **8 раундов / 12 подтверждённых исправлений**, два новых open findings. Автор согласился с обоими; правки проверяются отдельным раундом 9. O-05 выбран владельцем, O-01…O-04 остаются отложенными; task-01 in progress, task-06/task-02 planned и не запущены. Production activation не разрешена.
+
+Reviewer — та же сессия Codex `/root/task01_research_review`, точный model ID **unavailable**. Исполнитель task-01/правок по уточнению владельца — GPT Sol-6.1 (`gpt-6.1-sol`). Дата: **2026-10-29**. База `9f1fe6584c0c67085a12121b7744840f23e129ac`, source 1.5.18. Проверенный рабочий срез:
+
+- design SHA-256 `2DEF81F1990FD7A0E42CEE5011249E7364C0FE26D6C7143EC641E5DCD0F19EBA`;
+- [owner context evidence](../evidence/2026-10-29-task-01-owner-context.md) SHA-256 `8DD6A770FCD12F431DC38982E150918CD64125D7D69BA9C269AF1DCFB1A70391`;
+- task-02 SHA-256 `D01C7287D6FEE4B8198E9D025E7FD7F283D4BBBE612EDE97226A36C78767A8FB`;
+- task-06 SHA-256 `BCECCB0253138999D215B04142148C95769C14E35127E2A447DE9D08F8BA5435`.
+
+## Findings
+
+| ID | Severity | Где | Что не так | Что сделать |
+|---|---|---|---|---|
+| R8-F01 | major | [fresh:121–126](../design.md#L121), [reset:617–620](../design.md#L617), [scenario 23](../design.md#L886) | Для tool-only forceFresh без startup flag private сохраняется только как текущая привязка. Но soft reset очищает defaults, делает инициатора unbound и может завершить его единственный private host. Следующий обычный/config lazy load уже не имеет текущего private binding; отдельное owner/private intent state не задано. Поэтому допустимая реализация возвращает proxy в shared без явного желания пользователя, хотя §2 обещает отсутствие такого возврата при omitted/false. Crash recovery указан, но reset/hard-retire→unbound путь им не покрыт. | Хранить private intent/owner capability отдельно от binding, loaded defaults и host liveness; явно задать его lifetime при живом proxy и reset/retire/host EOF. Обычный повторный load данного WorkspaceKey после reset должен сохранять согласованную private-изоляцию, без shared fallback; новый explicit fresh по-прежнему создаёт новый instance. Указать, когда intent прекращается. Добавить tool-only fresh→reset→load/config lazy и hard-retire/cleanup сценарии, не подменяя их startup --force_fresh. |
+| R8-F02 | major | [creator context:85–96](../design.md#L85), [receipt:136–150](../design.md#L136), [recovery:643–649](../design.md#L643) | Вне нового §2 recovery всё ещё идёт «для своего сохранённого descriptor». После удаления env/settings из key это не определяет, кто задаёт фактический контекст нового generation. Пример: A создал host в E1, A ушёл, B(E2)/C(E3) остались; host затем упал. Не задано, получает ли successor E1, E2 или E3, как обновляется receipt/origin, и какие explicit/sticky policy ожидания проверяются до возобновления tool. Это пробел применения правила «контекст создателя», а не требование вернуть env hash или обещать parity. | Явно задать creator как победителя startup attempt нового shared generation, принятие его контекста и отсутствие обещания восстановить старую среду. Сохранённый key/scope отделить от receipts/context facts умершего generation; обновить receipt/created-vs-reused и проверить sticky/explicit policy до исполнения. Старый host при уходе только creator продолжает прежний контекст. При несовместимой policy — явный отказ/fresh guidance без скрытой мутации. Дополнительный block остаётся только в explicit reused load, semantic result менять не требуется. Добавить creator-exit→host-crash recovery при различных contexts B/C с одной attempt и корректными receipt flags. |
+
+**Ответ автора:** ACCEPT для обоих. Планируется хранить per-WorkspaceKey private intent до конца proxy session отдельно от binding/defaults; новый shared generation получит контекст победителя нового startup attempt и новый receipt с проверкой policy до исполнения. В раунде 8 это **не перепроверено и не засчитано исправлением**.
+
+## Что проверено и не опровергнуто
+
+- WorkspaceKey действительно ограничен path/Configuration/Platform/TFM; env parity явно не обещана. Это согласованный владельцем tradeoff, не finding.
+- Namespace/code/schema/plugin admission, prelaunch image proof R6-N01, analyzer/write gates не отменены уменьшением workspace key. Private scope/capability не объявлен обходом этих проверок.
+- Created/reused отделены от cached и first physical load; launch loser — reused. Дополнительные actual parameters/instruction не выдаются создателю нового shared/private host; cached/brief reused load сохраняет их. Это последнее уточнение владельца отражено в task-01/task-02/task-06 и evidence.
+- Receipt привязан к generation/epoch load response; явная несовместимая policy не должна менять общий host. Fresh реализуется будущим отдельным процессом и не называется ordinary/in-process workspace.
+- Один explicit fresh intent сохраняет instance id на startup retries; новый intent даёт новый instance. Failure/cancel до commit сохраняет старую живую привязку. Private crash не уходит в shared по описанной ветви; неполнота reset/recovery рассмотрена выше.
+- Private workspace не изолирует файлы/bin/obj: этот предел и прежние output gates сохранены. Успех proxy CLI не объявлен proof host context.
+
+## Source spot-check
+
+| Claim | Итог | Source |
+|---|---|---|
+| forceFresh ещё отсутствует в production load API | подтверждено; нельзя считать добавление реализованным | [WorkspaceTools:35–52](../../../Tools/WorkspaceTools.cs#L35) |
+| Configuration/Platform/TFM — существующие MSBuild global properties | подтверждено; null не означает автоматически Debug/единый TFM | [MsBuildWorkspaceProperties:6–34](../../../Services/Workspace/MsBuildWorkspaceProperties.cs#L6) |
+| Omitted defaults берутся из loaded/file state отдельно от buildArgs | подтверждено; в shared нужен свой session context | [SolutionManager:895–915](../../../Services/Workspace/SolutionManager.cs#L895) |
+| cached описывает reuse graph, не авторство процесса host | подтверждено; старый flag нельзя использовать как created/reused | [SolutionManager:79–80](../../../Services/Workspace/SolutionManager.cs#L79), [cache hit:2068](../../../Services/Workspace/SolutionManager.cs#L2068) |
+| reset очищает loaded/policy graph state; config lazy load после него возможен | подтверждено; новый private intent должен храниться вне этих полей | [ClearWorkspaceAsync:768–805](../../../Services/Workspace/SolutionManager.cs#L768), [ResetWorkspace:312–324](../../../Tools/WorkspaceTools.cs#L312) |
+
+## Validation и дальнейший шаг
+
+Независимый поиск lifecycle/descriptor/context вне §2 дал R8-F01/F02. Пересчитаны table-only 54/54 tools без пропусков/повторов и 42/42 S-строк. В проверенном входном срезе **17 Markdown / 466 локальных links/anchors, broken 0**; полный охват — [coverage](coverage.md). Код/tests/build settings не менялись; runtime и новые задачи не запускались.
+
+Автору внести две правки, затем вернуть новый срез тому же reviewer на раунд 9. Owner choice O-05 не переоткрывается; принимается полнота его будущего исполнения. История ниже сохранена **дословным прежним содержимым**, без переписывания старых verdicts, hashes и headings.
+
+## История раундов 1–2, 4 и 6–7 — дословный срез
+
 # Ревью результата C/E0/task-01 — раунды 1–2, 4 и 6–7
 
 ## Главное

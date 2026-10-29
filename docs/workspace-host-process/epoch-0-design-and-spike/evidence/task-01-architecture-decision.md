@@ -2,13 +2,13 @@
 
 ## Главное
 
-- **In progress, 2026-10-29, docs-only; выбор владельца отложен.** После раунда 5 уточнены [design](../../design.md), варианты среды/reset и deployment; исправления перепроверены в раундах 6–7.
+- **In progress, 2026-10-29, docs-only.** O-05 выбран владельцем: небольшой key/private fresh/reuse-only output. [Новая редакция и validation](../../evidence/2026-10-29-task-01-owner-context.md) перепроверена в раундах 8–9; O-01…O-04 отложены.
 - Выделенный host рекомендован против нулевого варианта; idle unload и роли сопоставлены отдельно без обещания измеренной экономии production RAM.
 - Описаны descriptor/key, session/workspace split, switch вне gate, shared retry, no replay, reset/stop, CLI/proof boundaries, shadow image и controlled-stop publish.
 - Все S01–S42 и 54 public built-in tools имеют размещение/решение; счёт и локальные ссылки независимо проверены.
 - Новых production defects этой задачей не подтверждено. Найденные в task-04 дефекты не объявлены исправленным кодом: их принимающие контракты и проверки включены в design.
-- **7 раундов, 12 подтверждённых исправлений**: прежние 6, пять r5/F-* и новый major R6-N01 о startup identity. [Ответы и validation](../../evidence/2026-10-29-task-01-round-5-response.md). Task-02 и production activation не начаты.
-- Для окончательного O-01 добавлен planned task-06: реальные совместимые пары Codex/Windows и Claude Code/Linux, roots/identity/launcher preflight. O-05 — новое открытое решение об environment parity; пересмотренный O-02 также не принят.
+- **9 раундов, 14 подтверждённых исправлений**: прежние 6, пять r5/F-*, R6-N01 и R8-F01/R8-F02. [Ответы и validation](../../evidence/2026-10-29-task-01-round-5-response.md). Task-02 и production activation не начаты.
+- Для окончательного O-01 добавлен planned task-06: реальные совместимые пары Codex/Windows и Claude Code/Linux, roots/identity/launcher preflight. O-05 выбран владельцем позже в тот же день; пересмотренный O-02 не принят.
 
 ## База и scope
 
@@ -219,3 +219,14 @@ Windows controlled-stop ещё не доказывает эту границу; 
 Итог task-01 — **7 раундов / 12 fixes**; `claude-opus-5-5` повторно эту версию
 не проверял. После fixes применён research-task-authoring: go/no-go до выбора,
 нулевой вариант сохранён, L-01 имеет owner, task/index/report согласованы.
+
+## Решение владельца O-05 после раунда 7, 2026-10-29
+
+На базе `9f1fe65` владелец выбрал WorkspaceKey path/Configuration/Platform/TFM,
+контекст создателя host и новый private host только для инициатора по force_fresh.
+Последнее уточнение: actual context/инструкция в load выводятся дополнительно
+только при подключении к существующему host, а не у создателя нового.
+[Выбор, последствия и validation](../../evidence/2026-10-29-task-01-owner-context.md).
+Прежние отчёты раундов 5–7 описывают срез до этого решения. Раунд 8 выявил
+R8-F01/R8-F02 major, исправления подтверждены в раунде 9; общий счёт 9/14. Task-01 in progress, task-06/task-02 planned. Новый output и
+forceFresh не реализованы в production; O-01…O-04 и epoch acceptance не выбраны.

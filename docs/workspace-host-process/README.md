@@ -105,9 +105,10 @@ Workspace после закрытия клиента не удерживаетс
 основной кандидат, но не принятый design: task-01 сравнивает её с отдельным
 host и нулевым вариантом ([сравниваемые модели](#сравниваемые-модели-и-проверки-применимости-2026-10-23)).
 
-Публичные имена и параметры инструментов, успешные результаты анализа и
-default-режим сохраняются. Диагностика host/proxy, ошибки восстановления и
-семантика lifecycle-инструментов уточняются в design и документируются явно.
+Default-режим и прежние имена инструментов сохраняются. Явное дополнение владельца
+2026-10-29 для shared: forceFresh/--force_fresh, reused-only actual context и
+инструкция в load_workspace; граница parity среды описана в [O-05](#o-05-context).
+Остальные результаты анализа, ошибки recovery и lifecycle уточняются в design.
 
 Сейчас сервер поднимает ровно один stdio-транспорт
 (`RoslynMcpServiceCollectionExtensions.AddRoslynMcpServerTools`), а общие сервисы
@@ -125,7 +126,8 @@ default-режим сохраняются. Диагностика host/proxy, о
 - Изменение cwd в runtime, изолированные ветви `Solution` внутри процесса,
   перенос прогретого Roslyn между процессами и OS fork вне scope. Роль host
   может перейти другому MCP; без миграции RAM новый владелец делает ordinary load.
-- Разные чаты/PID не разделяют совместимые workspace. Различия harness и его
+- Разные чаты/PID сами по себе не разделяют совместимые workspace; исключение —
+  явно выбранный private fresh по [O-05](#o-05-context). Различия harness и его
   настроек учитываются через контракт совместимости, а не через идентификатор чата.
 - Disk cache здесь нет. Холодный старт host — обычная загрузка; его ускоряет
   отдельный отложенный вариант B (optimistic restore), вне этой research-ветки.
@@ -171,10 +173,10 @@ default-режим сохраняются. Диагностика host/proxy, о
 
 ### Совместимость и обнаружение
 
-Новый прокси находит host по нормализованному дескриптору совместимости:
-пользователь ОС, идентичность сборки сервера, стартовый рабочий контекст,
-путь workspace и значимые параметры/настройки. Точный состав и правила для
-пропущенных параметров — U-C-01; настройки другого клиента не наследуются молча.
+По уточнению владельца 2026-10-29 новый proxy находит host по небольшому WorkspaceKey
+path/Configuration/Platform/TFM и отдельному namespace пользователя/сборки/протокола.
+Environment/cwd/settings — общий контекст создателя; reused load показывает actual
+context и инструкцию private fresh ([O-05](#o-05-context)). Правила omitted — U-C-01.
 Версия пакета или hash только apphost exe не считаются достаточным доказательством
 идентичности всей сборки: design учитывает изменяемые DLL и плагины.
 
@@ -406,22 +408,32 @@ Task-00 инвентаризирует этапы, task-01 определяет 
   в host, какие локально в proxy (proxy — обычный процесс без workspace); влияние
   тяжёлых запросов одного клиента на остальных.
 
-### Предложения после раунда 5, 2026-10-29
+### Решение владельца O-05, 2026-10-29
 
-Это **не решения владельца**. [Design](design.md) предлагает O-05 canonical host
-environment вместо raw inherited environment, с явной ценой для проектов, читающих
-исключённые session/terminal inputs. CLI proxy сохраняет исходную среду. Альтернатива
-strict сохраняет parity inputs, но не обещает схлопнуть разные session contexts.
-O-02 пересмотрен в пользу soft reset/новой epoch с сохранением процесса; hard retire
-нужен по restart-required или неисправимому admission. Перезагрузка graph всё равно
-может быть дорогой. Оба варианта требуют выбора владельца и замеров.
+<a id="o-05-context"></a>
+**Выбрано:** WorkspaceKey = absolute path + Configuration + Platform + TFM.
+Environment/cwd/toolset/settings — контекст создателя host, не дополнительные
+workspace keys. Namespace текущего пользователя и проверка verified image/plugin/
+protocol остаются отдельной границей admission; они не заменяются совпадением пути.
+Полная parity индивидуальной среды proxy не обещается; CLI сохраняет свою среду.
 
-До окончательного O-01 добавлен [task-06](epoch-0-design-and-spike/task-06-environment-and-deployment-preflight-med.md):
-совместимые пары Codex/Windows и Claude Code/Linux, environment parity, два filesystem
-root, startup identity до CreateProcess, её стоимость и audit launcher reuse.
-Windows controlled-stop publish ещё не доказывает startup boundary. Выполнение не начато; прежние probes
-и пара разных checkout из раунда 5 не заменяют этот go/no-go. O-01…O-04 отложены,
-O-05 открыт; task-02 не запускается. [Замечания](review-task-01-round-5-2026-10-29/result.md).
+--force_fresh создаёт **новый private host только для инициирующего proxy**.
+Он не публикуется для остальных и не заменяет shared host. Для агента планируется
+load_workspace(forceFresh=true) с тем же результатом; повторный обычный load
+сохраняет private. Proxy остаётся proxy без in-process workspace.
+
+**Уточнение вывода:** дополнительный actual context и инструкция forceFresh в
+load_workspace появляются только у MCP, присоединившегося к существующему host.
+Создатель нового host этого блока не получает. Reused/created — происхождение
+attachment, не cached load; cached/brief output не скрывают блок у reused клиента.
+Path/global properties/toolset/cwd/config origin/policy показываются фактически,
+без env values/credentials и без заявления о доказанной environment parity.
+[Решение, границы и validation](evidence/2026-10-29-task-01-owner-context.md).
+
+Прежние варианты canonical-v1/strict после раунда 5 заменены этим решением.
+O-02 (soft reset против global retire) всё ещё открыт; reload graph может быть дорогим.
+O-01…O-04 отложены до обсуждения. Task-06 planned: reuse/private/output и storage/
+startup identity до окончательного O-01. Task-02 не начат, design целиком не принят.
 
 <a id="l-01-launcher"></a>
 **L-01 — внешний Linux launcher включает вложенные RID outputs.** Open, 2026-10-29;
@@ -481,9 +493,10 @@ Task-01 — **in progress, 2026-10-29, docs-only**:
 [проект архитектурного решения](design.md),
 [основания, ревью и validation](epoch-0-design-and-spike/evidence/task-01-architecture-decision.md).
 Выделенный host остаётся кандидатом после task-06; текущие documentation fixes перепроверены:
-7 раундов, 12 подтверждённых исправлений,
+9 раундов, 14 подтверждённых исправлений,
 [result](review-task-01-2026-10-29/result.md). 2026-10-29 владелец отложил O-01…O-04 до отдельных ревью.
-Task-06 planned до окончательного выбора; task-02 не начат. O-05 открыт.
+Task-06 planned до окончательного O-01; task-02 не начат. O-05 выбран владельцем;
+[новая редакция и validation](evidence/2026-10-29-task-01-owner-context.md).
 Тема [D](../workspace-load-performance/README.md) остаётся независимой.
 
 ## Связь с другими темами
@@ -538,16 +551,17 @@ Task-06 planned до окончательного выбора; task-02 не н�
   Codex и **2026-10-28, раунд 3**, `claude-opus-5-5`: 8 замечаний (2 major, 4 minor,
   2 suggestion), 7 закрыты в документах, F-07 (код runner) не применялось;
   [результат](review-task-04-round-3-2026-10-28/result.md), [validation](evidence/2026-10-28-task-04-review-fixes.md).
-  Task-01 — **2026-10-29, раунды 1–2, 4, 6–7**, Codex `/root/task01_research_review`,
+  Task-01 — **2026-10-29, раунды 1–2, 4, 6–9**, Codex `/root/task01_research_review`,
   точный model ID недоступен; **раунд 3**, Grok 4.7; **раунд 5**, `claude-opus-5-5`.
-  Всего 12 подтверждённых исправлений;
+  Всего 14 подтверждённых исправлений;
   [Codex](review-task-01-2026-10-29/result.md),
   [независимый Grok](review-task-01-independent-2026-10-29/result.md),
   [ответ и validation раунда 3](evidence/2026-10-29-task-01-independent-review-response.md),
   [раунд 5](review-task-01-round-5-2026-10-29/result.md),
-  [ответ и validation раундов 5–7](evidence/2026-10-29-task-01-round-5-response.md).
+  [ответ и validation раундов 5–7](evidence/2026-10-29-task-01-round-5-response.md),
+  [решение O-05 и validation раундов 8–9](evidence/2026-10-29-task-01-owner-context.md).
   Выбор владельца отложен, 2026-10-29.
-  Сумма известных раундов задач — **13**, исправлений — **37** (подробности в README E0).
+  Сумма известных раундов задач — **16**, исправлений — **39** (подробности в README E0).
   Task-02/task-06 planned, независимого ревью результата не проходили.
 - Task-03: **completed, 2026-10-28**, standalone SDK-фасад/транспорт без Roslyn,
   Windows/WSL, обе модели host и две версии MCP. Исполнитель — Codex, точный ID
@@ -566,12 +580,15 @@ Task-06 planned до окончательного выбора; task-02 не н�
 - Task-01: **in progress, 2026-10-29, docs-only**; исполнитель GPT Sol-6.1 (`gpt-6.1-sol`), Codex; уточнено владельцем.
   [Проект design](design.md), [отчёт](epoch-0-design-and-spike/evidence/task-01-architecture-decision.md).
   Исправления независимых ревью Grok/Claude и нового R6-N01 перепроверены Codex:
-  всего 7 раундов, 12 исправлений,
+  всего 9 раундов, 14 исправлений,
   [result](review-task-01-2026-10-29/result.md),
   [ответ на раунд 3](evidence/2026-10-29-task-01-independent-review-response.md),
-  [ответ и validation раундов 5–7](evidence/2026-10-29-task-01-round-5-response.md).
+  [ответ и validation раундов 5–7](evidence/2026-10-29-task-01-round-5-response.md),
+  [решение O-05 и validation раундов 8–9](evidence/2026-10-29-task-01-owner-context.md).
   После fixes применён research-task-authoring.
-  Выбор владельца O-01…O-04 отложен до отдельных ревью, 2026-10-29; O-05 открыт.
+  Выбор владельца O-01…O-04 отложен, 2026-10-29; O-05 выбран:
+  небольшой key/private fresh/reuse-only load output;
+  [решение и validation](evidence/2026-10-29-task-01-owner-context.md).
   Task-06 planned, 2026-10-29: preflight среды/storage/startup identity до O-01;
   task-02 не начат. [План и validation](evidence/2026-10-29-task-01-round-5-response.md).
 - Приёмка реализации эпохи: —.

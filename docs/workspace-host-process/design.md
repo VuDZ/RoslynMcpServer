@@ -1,17 +1,17 @@
 # Выделенный workspace host: проект архитектурного решения
 
 Дата: **2026-10-29**. База: `b2a7b80`, сервер **1.5.18**, MCP SDK **2.2.0**.
-Статус: **proposed; исправления раунда 5 и R6-N01 перепроверены в раундах 6–7; выбор владельца отложен, preflight task-06 planned**.
+Статус: **proposed; O-05 выбран владельцем 2026-10-29: небольшой WorkspaceKey, приватный fresh и reuse-only диагностика; редакция перепроверена в раундах 8–9. O-01…O-04 отложены, task-06 planned**.
 Результат [E0/task-01](epoch-0-design-and-spike/task-01-architecture-decision-hi.md).
 Границы темы и решения владельца — в [README](README.md).
 Факты действующего сервера ниже отделены от предлагаемого контракта shared-режима.
 
 ## Главное
 
-- Кандидат — **opt-in выделенный host на совместимый ключ**; default остаётся автономным stdio. До выбора O-01 нужны preflight task-06 и решение о среде O-05. Роли, handoff, promotion/demotion, HTTP и restore RAM отложены.
+- Кандидат — **opt-in выделенный host**; default остаётся автономным stdio. До окончательного O-01 нужен preflight task-06. O-05 выбран владельцем: общий контекст host и явный private fresh. Роли, handoff, promotion/demotion, HTTP и restore RAM отложены.
 - Дублирование настоящего workspace подтверждено task-05. Экономия production shared-режима ещё не измерена; task-02 сравнит все процессы при N=1/N=10, включая цену отдельного host.
 - Proxy — обычный сервер с Roslyn/plugins, но без загруженного workspace. Его MCP-сессия, activation, defaults, CLI и отчёты остаются локальными.
-- В ключ входят graph inputs, полный image manifest и версия политики среды. Предлагается canonical host environment с явной ценой parity (O-05); CLI proxy сохраняет свою полную среду. Проверяются Codex/Windows и Claude Code/Linux.
+- WorkspaceKey содержит path/Configuration/Platform/TFM; environment не хешируется для выбора workspace. Image/plugin/protocol admission проверяется отдельно. `--force_fresh`/`load_workspace(forceFresh=true)` создаёт отдельный host только для инициатора. Reused load сообщает actual context и инструкцию; создатель нового host дополнительный блок не получает.
 - Switch, включая path-варианты `list_projects`/`get_project_graph`, готовит B вне gate привязки. Отказ B сохраняет живой A; metadata writes общего graph меняют epoch и запрещают прежние tickets/proofs всех сессий.
 - Shared load имеет один attempt и независимых waiter. После отказа следующий явный `load_workspace` клиента, уже получившего этот отказ, может открыть одну новую попытку без отключения всех клиентов.
 - Предлагается обычный reset через общую epoch invalidation, с сохранением процесса host; retire — при подтверждённом restart-required или неисправимом admission. Перезагрузка graph всё равно стоит ordinary load; вариант O-02 требует выбора владельца.
@@ -55,74 +55,131 @@ Task-03 измерил p50 Windows `count` 0,39–0,45 мс через фаса�
 
 ## 2. Совместимость и стартовый контекст — U-C-01
 
-`HostKey = SHA256(canonical descriptor v1)`. Каноническая сериализация задаёт
-порядок полей, длины UTF-8 строк, явный `null` и порядок списков; hash строки JSON
-с произвольным порядком свойств не используется. При handshake сравниваются полный
-ключ и все поля дескриптора, а не только имя канала.
+Решение владельца **2026-10-29, O-05**: обычное обнаружение использует небольшой
+ключ workspace, без хеша inherited environment и без автоматического разделения
+по session/terminal metadata. Все факты ниже — контракт будущей реализации.
 
-| Поле | Правило v1 |
-|---|---|
-| User / namespace | Windows SID или effective UID Unix; версия внутреннего протокола и локальный rendezvous root. |
-| Server image | SHA-256 манифеста всех копируемых файлов server/RID/native/BuildHost bundle. |
-| Runtime / toolset | ОС, архитектура, фактические runtime/GC mode и зарегистрированные MSBuild instance path/version. |
-| Startup context | Абсолютные начальный cwd и effective cwd после `ROSLYN_MCP_WORKSPACE`; исходный executable/config origin. |
-| Workspace | Абсолютный путь `.sln`/`.slnx`/`.csproj`, нормализованный относительно cwd клиента. |
-| Load properties | Эффективные Configuration, canonical Platform, TargetFramework; отсутствие остаётся отдельным `null`. |
-| Host settings | Analyzer overlay policy, prewarm, BuildHost A/B/C/workers, provenance options и trace/window settings. |
-| Environment | Policy id и digest фактической effective environment host по O-05. |
-| Plugins | Упорядоченные исходные пути, полные content manifests и принятый набор registrations/schemas. |
-| Configuration | Эффективная проекция настроек host и источников SDK selection, включая найденные `global.json`. |
+`WorkspaceKey = (absolute workspace path, Configuration, canonical Platform, TFM)`.
+Путь допускает `.sln`, `.slnx` и `.csproj`; defaults разрешаются по правилам ниже.
+`null` остаётся «global property не передано», не подменяется предполагаемым Debug.
+Каноническая сериализация задаёт порядок полей, длины UTF-8 строк, явный `null` и
+порядок списков. Разные checkout имеют разные абсолютные пути.
 
-### Политика environment — O-05
+От ключа workspace отделены namespace и идентичность исполняемого кода:
+текущий SID/effective UID, версия внутреннего протокола и полный verified server/
+plugin image contract проверяются до attach. Совпадение WorkspaceKey не разрешает
+вызовы между разными сборками/схемами tools или обход ACL. MSBuild/runtime facts,
+cwd, environment и host settings относятся к зафиксированному контексту host,
+а не создают дополнительные workspace keys. Image proof §2/§9 и analyzer/write
+admission сохраняются; O-05 не отменяет их.
 
-Полный inherited environment сохраняет inputs MSBuild, но дробит host по session/
-terminal/login metadata. В [раунде 5](review-task-01-round-5-2026-10-29/result.md)
-найдены 11 различающихся значений у двух настоящих MCP Claude Code/Linux.
-Пара работала в разных checkout: PWD/CLAUDE_PROJECT_DIR сами по себе не доказывают
-ложное разделение совместимых клиентов. Остальные наблюдённые session/terminal
-различия выявляют пробел правила с тремя CODEX именами. Старый blanket preflight
-«есть CODEX ID → отказ» заменён следующими **вариантами для владельца**.
+`HostKey = SHA256(compatibility namespace, WorkspaceKey, instance scope)`.
+Обычный scope — `shared`. Для явного отдельного host scope содержит новый случайный
+owner-bound instance id. Ниже «один host на key» означает HostKey: несколько
+приватных экземпляров одного WorkspaceKey разрешены только по явному fresh.
+При handshake сравниваются WorkspaceKey, namespace, scope и HostGeneration;
+PID/имя канала не являются доказательством совпадения.
 
-Рекомендуемый вариант — `canonical-v1`. До bootstrap host строится копия среды:
+<a id="политика-environment--o-05"></a>
+### Контекст host и O-05
 
-| Класс | Правило effective environment host |
-|---|---|
-| Harness correlation/messaging | Удалить families `CODEX_THREAD_*`, `CODEX_SESSION_*`, `CODEX_TOOL_CALL_*`, `CLAUDE_CODE_SESSION_*`, `CLAUDE_CODE_MESSAGING_*`, точное `AI_AGENT`. |
-| Terminal/login transport | Удалить `TMUX*`, `TERM_PROGRAM*`, `TERM_SESSION_*`, `XDG_SESSION_*`, точные `TERM`, `COLORTERM`, `STY`, `WINDOWID`, `OLDPWD`, `SSH_CLIENT`, `SSH_CONNECTION`, `SSH_TTY`. |
-| Working directory | `PWD` задать из зафиксированного effective cwd; не наследовать его spelling из shell. |
-| Project/configuration/credentials и прочие inputs | Сохранить; `CLAUDE_PROJECT_DIR` не является session id и остаётся path input с обычной нормализацией абсолютного пути. |
+Host наследует среду, cwd и effective host settings инициатора создания.
+Последующее подключение не меняет этот контекст. Proxy/его CLI сохраняют собственную
+среду. Автоматическая очистка session/terminal variables (`canonical-v1`) и полный
+environment digest (`strict`) **не выбраны владельцем** и не являются контрактом v1.
+Имена чатов, PID и terminal/login metadata не дробят обычный WorkspaceKey.
 
-Имена families заданы полностью, без удаления всех `CODEX_*`/`CLAUDE_*` или всех
-неизвестных переменных. В Windows сравнение имён case-insensitive, в Unix — ordinal;
-значения оставшихся переменных точные. Policy id, правила нормализации и digest
-**всей полученной** среды входят в key. Именно эту среду получают host, MSBuild
-и его children. Изменяемые значения не остаются скрыто доступными evaluation.
-Proxy/его CLI сохраняют исходный environment. До O-05 эта политика не активируется.
-SSH_AUTH_SOCK/SSH_AGENT_PID/SSH_ASKPASS и TERMINFO/TERMINFO_DIRS сохраняются:
-connection metadata не приравнивается ко всем SSH credentials или terminal config.
+Цена решения: общий workspace не обещает воспроизвести индивидуальную среду каждого
+proxy. Проект/custom task/plugin может читать произвольные переменные; отсутствие
+различий в показанных параметрах не доказывает environment parity. CLI proxy и
+Roslyn host могут различаться по скрытому input. Это осознанный предел O-05:
+агент видит фактический контекст при reuse и при необходимости запрашивает fresh.
+Журналы MSBuild не объявляются универсальным detector прямых Environment reads.
+Успех CLI по-прежнему не создаёт build proof без проверок host (§6).
 
-Цена canonical-v1 — **явное отклонение от ordinary parity** для проекта или plugin,
-который читает удалённые/нормализованные имена. Для такого проекта выбирают ordinary
-либо отдельно согласованный стабильный evaluation context. Нельзя обещать обнаружить
-все такие чтения по MSBuild log: прямые Environment reads custom tasks/child processes
-не считаются покрытыми без доказательства. Проверка logging в task-06 исследовательская,
-не автоматическое разрешение игнорировать inputs. Альтернатива `strict` сохраняет
-полную среду и parity inputs, но для различающихся session/terminal значений не обещает
-схлопывание; для такого harness владелец может выбрать нулевой вариант.
+В [раунде 5](review-task-01-round-5-2026-10-29/result.md) наблюдались 11 различий среды
+двух MCP Claude Code/Linux в разных checkout. Эти данные не доказывают совпадение
+workspace keys; прежние варианты canonical/strict сохранены в историческом ответе
+на ревью, но заменены настоящим решением владельца.
 
-Различия оставшихся inputs считаются несовместимостью, а не тихим успешным shared hit.
-На явном `get_mcp_server_info` диагностика показывает policy, имена преобразованных
-inputs и names-only причины расхождения с найденными кандидатами того же workspace
-family. Сравнение с живым кандидатом идёт по защищённому локальному каналу, fingerprints
-сравниваются в памяти; env values/per-variable hashes не пишутся в logs/metadata.
-Поиск ограничен trusted discovery metadata, без опроса всех PID, P2P и постоянного
-обмена списками соседей; недоступный кандидат помечается unverifiable.
+### Явный отдельный host — `--force_fresh`
 
-**Go/no-go до выбора O-01:** [task-06](epoch-0-design-and-spike/task-06-environment-and-deployment-preflight-med.md)
-проверяет proposed policy/key на настоящих совместимых парах Codex/Windows и
-Claude Code/Linux с одинаковыми cwd/workspace/image/options, отдельно от разных
-checkout. Измерения раунда 5 и прежние names-only Codex probes этот контроль не
-закрывают. No-go возвращается владельцу до task-02; synthetic N=10 не заменяет его.
+В экспериментальном shared-режиме `--force_fresh` при запуске MCP выбирает
+**новый приватный host**, а не автономную загрузку workspace внутри proxy.
+Host доступен только инициирующему proxy, не публикуется как общий кандидат и не
+заменяет существующий shared host. Другие клиенты остаются на прежнем экземпляре.
+Ключ workspace прежний; новый instance scope отделяет ownership/discovery/locks.
+Private endpoint проверяет owner-bound capability, а не только PID.
+
+Чтобы агент мог выполнить инструкцию без изменения harness config/перезапуска MCP,
+планируется аргумент `load_workspace(forceFresh=true)`. Он создаёт новый private
+instance и переключает только вызывающий proxy после успешного load. Отказ/отмена
+сохраняет прежнюю живую привязку. Один explicit fresh intent имеет один instance id
+на все свои startup retries; следующий explicit fresh создаёт другой instance.
+Это дополнительный opt-in аргумент будущего spike, сейчас его в production нет.
+
+После успешного fresh omitted/false не возвращает тот же proxy обратно в shared:
+повторный load текущего WorkspaceKey переиспользует его private host. Startup flag
+делает private также новые workspace bindings этой сессии; он не пересоздаёт host
+на каждом cached load. Crash recovery сохраняет private scope/owner и создаёт новое
+HostGeneration, не присоединяется к общему host. Другие proxy не восстанавливают
+этот private instance. После ухода owner действуют startup allowance/closing grace §7.
+Несколько fresh увеличивают RAM; общие файлы/outputs всё равно защищаются gates §6.
+
+Private intent хранится в proxy **отдельно от binding и SessionLoadContext**:
+`PrivateScopeIntentByWorkspaceKey` содержит owner/instance scope и capability для
+успешно выбранных private keys. Запись появляется только при успешном fresh commit;
+новый successful fresh того же key заменяет её после сохранения старых call references.
+Reset defaults/unbind, soft reset, hard retire и cleanup host эту запись не удаляют.
+Она живёт до завершения proxy session; секрет capability не пишется в discovery/logs.
+При следующем explicit/config lazy load, разрешившемся в этот же WorkspaceKey,
+proxy использует private intent, даже если ни прежнего binding, ни host уже нет.
+Новый generation создаётся только для owner. Intent не восстанавливает очищенные
+load defaults и не подменяет правила разрешения аргументов: если они дают другой
+WorkspaceKey, это другой выбор; startup flag требует private для всех новых keys.
+Reset не является командой возврата в shared. Failed fresh не меняет прежний intent.
+
+### Ответ `load_workspace` при подключении к существующему host
+
+**Уточнение владельца:** дополнительный блок параметров и инструкция выводятся
+только если текущий proxy **переиспользовал host**, созданный другим инициатором.
+Создатель нового shared/private host этот дополнительный блок не получает.
+Обычный результат load сохраняется в обоих случаях; речь только о новом reuse block.
+
+Признак `created`/`reused` относится к происхождению текущей привязки этого proxy,
+подтверждённому startup attempt/handshake, а не к `cached=true` и не к факту MSBuild
+load. Проигравший гонку создания — reused. У proxy, присоединившегося к чужому host,
+блок присутствует при каждом успешном explicit load текущей привязки, включая cache
+hit; `briefOutput=true` его не скрывает. После recovery признак определяется заново.
+
+Блок берётся из фактического host receipt той же generation/epoch, что ответ load:
+
+- абсолютный workspace path, effective Configuration/Platform/TFM global properties;
+- для отсутствующего global property — явное «не передано MSBuild; project defaults»,
+  без выдуманного единого Debug/TFM для всех проектов;
+- server image/version, runtime/SDK/MSBuild, startup cwd и config origin;
+- действующие analyzer/overlay policy и host settings, влияющие на load;
+- HostGeneration/WorkspaceEpoch, reuse mode и факт, что inherited environment
+  принадлежит создателю host и не был заменён средой этого proxy;
+- отдельно session-only buildArgs, чтобы не представить их общим параметром host.
+
+Сырые env values, credentials и полные command lines не выводятся. Блок не утверждает
+полное совпадение environments. Инструкция агенту на английском: проверить actual
+context против ожидаемого; при различии вызвать `load_workspace` с теми же нужными
+path/Configuration/Platform/TFM и `forceFresh=true`. Он создаст отдельный host только
+для этой сессии; общий host/соседи не сбрасываются. Нельзя советовать reset общего
+host или только повторный обычный load как способ гарантировать изоляцию.
+
+При reuse явно запрошенную несовместимую host policy нельзя молча проигнорировать: attach/load
+возвращает context-mismatch с actual context и той же инструкцией, не меняя прежнюю
+привязку. False/omitted overlay после sticky true своей сессии трактуется по правилам
+ниже, а не как новое требование отключить overlay. Schema/plugin/image mismatch
+остаётся отказом admission; fresh не является разрешением обойти эти проверки.
+
+**Go/no-go до O-01:** [task-06](epoch-0-design-and-spike/task-06-environment-and-deployment-preflight-med.md)
+проверяет простые keys/reuse разных session environments, отдельный private fresh,
+created/reused ветви ответа на Codex/Windows и Claude Code/Linux, а также storage/
+startup identity. Это не доказательство универсальной parity проектов.
 
 Пути следуют [InputPathCanon](../../Services/Workspace/InputPathCanon.cs#L3):
 `Path.GetFullPath`, Windows OrdinalIgnoreCase, Unix Ordinal. Для ключа Windows
@@ -160,10 +217,12 @@ Mutable source без такого доказательства получает
 Действующий Windows controlled-stop publish сам по себе не доказывает prelaunch
 lease: task-06 проверяет наличие этой границы или фиксирует no-go до O-01.
 
-Host запускается с cwd инициатора, средой выбранной политики O-05 и теми же эффективными host options.
-Он проверяет фактические MSBuild/runtime/plugin facts до readiness.
-Если новый `global.json` уже не позволяет воспроизвести закреплённый toolset proxy,
-вызов получает mismatch с действием restart proxy; чужой host не подменяет его выбор.
+Новый host запускается с cwd, исходной средой и effective host options инициатора.
+Он проверяет фактические MSBuild/runtime/plugin facts до readiness. Поздний клиент
+принимает закреплённый контекст host по O-05, а не меняет SDK под себя. Изменение
+global.json на диске не превращает уже закреплённый SDK в новый; actual toolset
+сообщается в reused load. Для иного стартового контекста нужен fresh/restart;
+никакой host не объявляет несовпавший фактический toolset успешно воспроизведённым.
 Full image manifest не заменяет analyzer admission: байты проектных analyzers
 меняются независимо от сборки сервера и проверяются прежним gate.
 
@@ -184,16 +243,18 @@ Load TFM автоматически не добавляется обычному
 defaults другой сессии. Explicit load failure не фиксирует новые defaults.
 Успешный load одного ключа с новыми CLI-only args меняет только свой контекст.
 
-Overlay — свойство совместимости host: первый true создаёт overlay key; false/omitted
-при уже включённом overlay **своей сессии и том же workspace** сохраняет sticky policy.
-При переходе на другой workspace начинается policy явного аргумента, по умолчанию false,
-как при fresh reopen текущего manager. Смена прочих graph inputs также начинает fresh policy.
-Получить false после sticky true на том же graph можно через reset этой сессии/ключа.
-Policy чужого host не наследуется. Mapping/provenance GUID не передаются как готовое разрешение.
+Overlay — неизменяемая политика созданного host, не дополнительное поле
+WorkspaceKey. True при создании включает overlay; false/omitted после sticky true
+той же сессии/graph сохраняет его. На другом workspace запрос начинает policy
+явного аргумента, default false. Если выбранный общий host не может выполнить
+запрошенную policy, нужен явный mismatch/fresh, а не изменение policy соседей.
+Reset очищает sticky request своей сессии, но не переключает политику живого host
+для других клиентов. Mapping/provenance GUID не передаются как готовое разрешение.
 
-Альтернатива — passed-arguments matcher текущего manager — отвергнута: omitted не
-проверяет совместимость клиентов. Риск строгого descriptor — лишние host; сужать
-его можно только после проверки семантики исключаемых inputs.
+Полный inherited descriptor отвергнут владельцем как правило выбора workspace:
+он дробит общий host по служебной среде. Риск небольшого ключа — иной host context;
+reuse block делает известные параметры явными, fresh даёт изоляцию, но не detector
+всех скрытых inputs. Эти границы проверяют task-06/task-02.
 
 ## 3. Владение, транспорт и безопасность — U-C-04/U-C-05
 
@@ -257,8 +318,9 @@ peer-UID validation; Windows проверяет owner/current SID и pipe DACL.
 и не существующий `SolutionManager.LoadSessionId`. Последний сохраняется как отдельная
 граница analyzer/write/input state. Старые DTO/tickets не принимаются при несовпадении любой границы.
 
-До SDK идёт length-prefixed preface v1: полный key, descriptor digests, generation
-ответа, session correlation и согласованные limits. Максимум 16 KiB; сырые environment
+До SDK идёт length-prefixed preface v1: полный HostKey/WorkspaceKey, namespace/image
+facts, instance scope, generation ответа, session correlation и limits. Environment
+digest в нём не проверяется. Максимум 16 KiB; сырые environment
 и конфиги в нём не передаются. Затем `StreamServerTransport`/`StreamClientTransport`
 и отдельная SDK MCP-сессия 2025-11-25 на каждом подключении proxy. Это не новый
 самописный JSON-RPC dispatcher. Поля private RPC проверяются как недоверенные входы.
@@ -593,6 +655,19 @@ latency соседей, число physical load/retire; цена вариант
 
 Crash host: все привязанные in-flight host calls получают отказ; следующий отдельный
 вызов проходит discovery/single-flight для **своего сохранённого descriptor**.
+Здесь сохраняются WorkspaceKey, namespace и instance scope, но не обещание восстановить
+чужой environment/cwd/settings после смерти процесса. Для shared новый host получает
+контекст proxy, **выигравшего новый startup attempt**. Если создатель прежнего host A
+ушёл, B(E2) или C(E3) могут стать новым создателем; их контекст не выдаётся за старый E1.
+Победитель сохраняет created receipt; остальные получают reused receipt нового
+generation. Перед возобновлением допустимого вызова каждый proxy проверяет actual
+receipt и свои explicit/sticky host-policy требования; несовместимость даёт
+context-mismatch/fresh guidance до исполнения. Старые tickets/proofs не переносятся.
+Изменение неключевого environment принимается по O-05, без обещания detector всех
+inputs. Actual context обновляется в binding/get_mcp_server_info; дополнительный
+reuse block появляется только в следующем explicit load_workspace у reused клиента,
+не добавляется в semantic response и не выводится новому создателю.
+Private recovery использует сохранённый owner intent §2, не общий discovery slot.
 Восстановление не меняет внешний MCP initialize и не запускает workspace в каждом proxy.
 Нет автономного background restart loop. При смерти launcher/host до readiness
 одна группа уже ожидающих вызовов получает startup failure; следующий вызов после
@@ -602,7 +677,8 @@ cooldown может открыть следующую attempt. Если конк
 ### Бюджеты, ошибки и cooldown
 
 Значения ниже — **предлагаемые инженерные limits**, не результаты Roslyn-замера.
-Task-02 проверяет их и приводит измерения; новые публичные параметры не добавляются.
+Task-02 проверяет их и приводит измерения; публичные настройки этих timeout не
+добавляются. Выбранный forceFresh описан отдельно в §2.
 
 | Стадия | Предлагаемый предел |
 |---|---|
@@ -786,7 +862,7 @@ Single-file всего сервера запрещён действующей а
 | Строки | Владелец и решение |
 |---|---|
 | S01, S08, S09, S16, S23, S24, S29, S38 | Process/image/toolset/loader identity; только hard retire заканчивает CLR history. |
-| S02, S03, S07 | Отдельные DI границы host/session/request; effective provenance options в descriptor. |
+| S02, S03, S07 | Отдельные DI границы host/session/request; effective provenance options — закреплённый host context. |
 | S04, S05, S06, S13, S14 | Proxy startup/defaults/CLI state; host получает только подтверждённые inputs. |
 | S10, S11, S12, S15, S18, S36, S39 | Общий manager, publication/write/watch/prewarm/load; epoch invalidation сохраняет admission. |
 | S17 | Per-session proof state в host и shared output admission; CLI/gates живут в proxy. |
@@ -796,7 +872,7 @@ Single-file всего сервера запрещён действующей а
 | S31 | Soft reset инвалидирует epoch; hard retire по restart-required/неисправимому admission, stop завершает свой proxy. |
 | S32 | Различены server image, plugin copy и analyzer generations; use leases до cleanup. |
 | S33 | Request CLI/rg/git в proxy; host lifetime не является токеном их процессов. |
-| S34, S35 | Fork settings и trace/window в descriptor; BuildHost не передаёт RAM cache новому host. |
+| S34, S35 | Fork settings и trace/window в host context/reuse receipt; BuildHost не передаёт RAM cache новому host. |
 | S37 | Persistent Roslyn index — общий диск; не workspace restore и не build proof. |
 | S41 | Один manager/load owner в host; reaper трогает только его проверенных BuildHost children. |
 | S42 | Decompiler refs — per-call; NuGet lookup cache не превращается в session proof. |
@@ -811,7 +887,7 @@ Single-file всего сервера запрещён действующей а
 Это критерии design, а не уже полученные passes. Сначала воспроизводимый red нужного
 поведения, затем минимальный green и обязательная validation AGENTS.md.
 
-1. Десять cold proxy одного descriptor: lease до первого MSBuild open, одна physical attempt; разные cwd/env/config/TFM/analyzer policy дают предсказуемые отдельные keys.
+1. Десять cold proxy одного WorkspaceKey/namespace: lease до первого MSBuild open, одна physical attempt независимо от session env. Другие path/Configuration/Platform/TFM выбирают другой WorkspaceKey; несовместимая image/schema не проходит admission. Host context не меняется при attach; policy mismatch даёт actual context/fresh guidance без скрытой смены graph.
 2. A → B при удерживаемой загрузке B: вызов A отвечает до release B; оставшийся A proxy сохраняет PID/generation/epoch. Отказ/cancel B не меняет A/defaults.
 3. Kill готового host сразу после startup, без 2,1 с задержки: нет ложного cooldown успешного запуска; десять следующих вызовов дают один новый owner/load. B продолжает работать.
 4. Смерть launcher до/после lease и host до ready: один heavy owner; один failure для admitted cohort; после failure явный retry без очереди.
@@ -832,6 +908,10 @@ Single-file всего сервера запрещён действующей а
 19. `get_changed_files` при загруженном A и известных изменённых файлах сохраняет heuristic tests как ordinary. Switch на B во время git не меняет snapshot подсказок; без graph список пуст. Kill host между git result и heuristic не скрывает недоступность под видом пустого списка.
 20. Рецепты AGENTS.md.sample reset→load после rename/изменения состава/generated при N=10: latency соседнего запроса, physical-load/retire counts, join одинаковых reset и новый reset после publication. Soft reset не выдаётся за бесплатный refresh и не replay-ит записи.
 21. Storage отдельно от rendezvous: `/tmp` tmpfs/noexec не получает image/log payload; StorageRoot tmpfs/noexec, ENOSPC и source mutation дают bounded failure без partial launch. Обновление source между CreateProcess/bootstrap и первым shared call запрещено verified lease; raw mutable worker без доказательства отвечает deployment-unverified и не присваивает старому коду новый disk hash. Отдельно измерить guarded startup/identity/hash/copy/cache-hit и проверить reused launcher image с совместимым lease и полным file set.
+22. Proxy A создаёт shared host — reuse block отсутствует. B присоединяется — actual context и actionable forceFresh инструкция присутствуют, также на cached/briefOutput load. Проигравший launch race получает reused block независимо от cached flag. Для отсутствующих global properties не выдумываются Debug/TFM; env secrets не попадают в ответ.
+23. B вызывает load_workspace(forceFresh=true): создаётся private host с тем же WorkspaceKey, новый instance scope и одна attempt на explicit intent. A и обычный C остаются на shared. Обычный следующий load B сохраняет private; следующий explicit fresh создаёт новый private. Failure/cancel до commit сохраняет B на прежнем живом host. Private owner/capability исключают attach C, crash recovery не уходит в shared, EOF owner завершает private по grace. Повторить для startup --force_fresh; proxy не получает in-process workspace.
+24. Tool-only fresh без startup flag: reset очищает defaults и делает proxy unbound; прежний private host может завершиться. Следующий explicit load с тем же resolved WorkspaceKey и отдельно config lazy load того же key создают/reuse только private по сохранённому intent. Повторить после hard retire/host cleanup. Failed fresh intent не меняет предыдущий выбор; другой resolved WorkspaceKey не получает старые load defaults.
+25. Shared A(E1) создал host, B(E2)/C(E3) attached. A отключается, затем host crash. Управляемо дать B или C выиграть startup: один новый owner/load, его фактический контекст нового generation, created у победителя/reused у остальных. До исполнения проверить sticky/explicit policy mismatch, отсутствие старых proofs, актуальный info и reuse-only load block. Ни semantic call, ни creator load не получают новый reuse block.
 
 По коду task-02 обязательны SourceStructure, Release solution build, полная main suite
 с актуальными исключениями `AnalyzerLifecycle`/`RequiresPinnedSdk` (на Linux также
@@ -844,20 +924,20 @@ opt-in `ROSLYN_MCP_EXPERIMENTAL_WORKSPACE_HOST=1`; default не входит в 
 
 | ID | Рекомендация / получатель |
 |---|---|
-| O-01 | После task-06 и O-05 выбрать выделенный host против нулевого варианта; роли/HTTP остаются отложенными. |
+| O-01 | После task-06 выбрать выделенный host против нулевого варианта с учётом выбранного O-05; роли/HTTP остаются отложенными. |
 | O-02 | Рекомендуется soft reset + coordinated reload; hard retire только при restart-required/неисправимом admission. Альтернатива — global retire на каждый reset с ценой для соседей (§7). Stop — свой proxy. |
 | O-03 | Принять controlled-stop publish holders; uninterrupted hot publish живых proxy не включать. |
 | O-04 | До индивидуального audit ограничить shared plugins=none/Sample, с явным отказом для остальных. |
-| O-05 | Выбрать canonical-v1 с явным отклонением environment parity либо strict/ordinary с ограничением схлопывания; до выбора политика не активируется (§2). |
+| O-05 | **Выбрано владельцем 2026-10-29:** WorkspaceKey=path/Configuration/Platform/TFM, контекст создателя host; fresh создаёт private только для инициатора. Actual context/инструкция в load — только для reused attachment, не для создателя. Namespace/image/admission проверки сохраняются; production activation не разрешена. |
 | V-01 | Task-02: настоящий Roslyn single-flight, session split, write/analyzer admission, graph reload и stage RPC. Fake load этого не доказывает. |
 | V-02 | Task-06/task-02: FS/permissions/noexec/space двух roots; macOS primitive/peer credentials остаются непроверенными до среды. |
 | V-03 | Task-06: identity costs; task-02: attach/reset latency, payload parity, output gates/abandoned writer, нагрузка/RAM. Числа не SLA. |
 | V-04 | Task-06/E1: полный server/plugin file set, launcher reuse и совместимый lease; runtime/toolset проверяются task-02. |
 | V-05 | После исследования: aggressive GC/остаточный heap/idle unload по отдельному решению владельца. |
-| V-06 | Task-06 до O-01: точный descriptor/среда совместимых реальных пар Codex/Windows и Claude Code/Linux; no-go возвращает решение владельцу. Task-02 подтверждает на реализации. |
+| V-06 | Task-06 до O-01: небольшой key при разных session env, actual context/reuse-only output и private fresh на реальных парах Codex/Windows и Claude Code/Linux. Нет заявления универсальной parity; task-02 подтверждает на реализации. |
 
 U-C-01…U-C-08 имеют предложенные ответы в разделах 1–10; статус owner decision
-по O-01…O-04 остаётся отложенным с 2026-10-29; O-05 добавлен как новое открытое решение после раунда 5. Результат независимого ревью и исправления фиксируются
+по O-01…O-04 остаётся отложенным с 2026-10-29; O-05 выбран владельцем в scope §2. Результат независимого ревью и исправления фиксируются
 в [отчёте task-01](epoch-0-design-and-spike/evidence/task-01-architecture-decision.md).
 Новых production bugs при этой docs-only работе не подтверждено. Дефекты spike из
 ревью task-04 F-01–F-05/F-08 получают контракты разделов 2–4/7/9 и regressions раздела 11;
