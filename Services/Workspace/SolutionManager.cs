@@ -161,6 +161,9 @@ public sealed class SolutionManager
 
     internal bool HasPublishedSemanticSnapshot => _solution is not null;
 
+    /// <summary>The published solution the cached sanitized search snapshot was built from; null when nothing is cached.</summary>
+    internal Solution? SanitizedSnapshotSource => _sanitizedPublishedSolutionSource;
+
     /// <summary>True when a watcher error or a directory rename asked the next flush to re-read every known document.</summary>
     internal bool RefreshAllDocumentsPending => _refreshAllDocuments;
 
@@ -778,6 +781,7 @@ public sealed class SolutionManager
             _workspace?.Dispose();
             _workspace = null;
             _solution = null;
+            ForgetSanitizedPublishedSolution();
             _lastPublishedWriteContext = null;
             LastWriteResult = null;
             NoteRawWorkspaceRevision();
@@ -1663,6 +1667,16 @@ public sealed class SolutionManager
         return sanitized;
     }
 
+    // The cache is keyed by the reference of the published solution and nothing else invalidates it.
+    // Once the workspace is disposed it would still root the whole previous graph (projects, syntax trees,
+    // compilations) until the next sanitized request: reset_workspace would free nothing, and a fresh load
+    // would build the new graph while the old one stays reachable.
+    private void ForgetSanitizedPublishedSolution()
+    {
+        _sanitizedPublishedSolution = null;
+        _sanitizedPublishedSolutionSource = null;
+    }
+
     /// <summary>
     /// Must be called with <see cref="_workspaceLock"/> held.
     /// </summary>
@@ -2064,6 +2078,7 @@ public sealed class SolutionManager
         _workspace?.Dispose();
         _workspace = null;
         _solution = null;
+        ForgetSanitizedPublishedSolution();
         _loadedPath = null;
         LoadedConfiguration = null;
         LoadedPlatform = null;
