@@ -6,7 +6,7 @@
 - Риск ошибки: высокий — разделение session/workspace и восстановление могут нарушить публикацию, lifecycle analyzers или изоляцию проектов.
 - Необходимые способности: `согласованность_компонентов`, `проектирование_проверок`, `анализ_производительности`.
 - Статус: planned; план обновлён 2026-10-29 по решению владельца O-05; реализация не начата.
-- Depends on: [task-01](task-01-architecture-decision-hi.md) с оставшимися решениями владельца после [task-06](task-06-environment-and-deployment-preflight-med.md); O-03/O-05 выбраны, O-01/O-02/O-04 открыты; [D/E0/task-01](../../workspace-load-performance/epoch-0-stage-measurement/task-01-load-stage-timings-med.md).
+- Depends on: [task-01](task-01-architecture-decision-hi.md) с оставшимися решениями владельца после [task-06](task-06-environment-and-deployment-preflight-med.md); O-03/O-04/O-05 выбраны, O-01/O-02 открыты; [D/E0/task-01](../../workspace-load-performance/epoch-0-stage-measurement/task-01-load-stage-timings-med.md).
 - Модель, реализовавшая задачу: —.
 - Модели, проводившие ревью: —.
 - Количество раундов ревью: —.
@@ -32,7 +32,8 @@ spike и не откладываются до rollout. Транспорт, фа�
 Workspace и тяжёлые данные создаются только при роли host, которая может быть
 совмещена с фасадом своего чата. Proxy — обычный серверный процесс без workspace
 ([решение владельца 2026-10-28](../README.md#сравниваемые-модели-и-проверки-применимости-2026-10-23)): проверить, что он не загружает
-workspace; проверить изоляцию plugins и tool activation.
+workspace; проверить изоляцию tool activation. Реальная поддержка plugins отложена
+владельцем в O-04; API/audits plugins не являются целью первого spike.
 Уточнение плана 2026-10-29 по этому уже принятому решению: наличие Roslyn/MSBuild/plugin
 assemblies в proxy допустимо; проверяется отсутствие загруженного workspace и изоляция
 activation/plugin state. [Проект design task-01](../design.md) пока не принят владельцем.
@@ -60,7 +61,9 @@ image admission. Разные session environments не дробят WorkspaceKe
 context и инструкцию fresh; создатель нового host дополнительный блок не получает.
 No-go возвращается владельцу; synthetic N=10 не заменяет отрицательную применимость.
 
-Контроль — SamplePlugin и второй небольшой отличимый проект; по возможности
+Контроль workspace — sample project и второй небольшой отличимый проект; runtime
+plugins=none. SamplePlugin можно использовать отдельно как лёгкий контроль
+регистрации/маршрутизации, без обязательной поддержки реальных plugins. По возможности
 повторить на большом решении коллег. Наличие большого решения и результаты
 замера фиксируются; недоступность не заменяется вымышленным pass.
 

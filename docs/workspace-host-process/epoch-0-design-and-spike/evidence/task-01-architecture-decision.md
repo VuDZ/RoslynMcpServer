@@ -2,7 +2,7 @@
 
 ## Главное
 
-- **In progress, 2026-10-29, docs-only.** O-05 выбран владельцем: небольшой key/private fresh/reuse-only output. [Новая редакция и validation](../../evidence/2026-10-29-task-01-owner-context.md) перепроверена в раундах 8–9; O-03 dev publish выбран, O-01/O-02/O-04 открыты.
+- **In progress, 2026-10-29, docs-only.** O-05 выбран владельцем: небольшой key/private fresh/reuse-only output. [Новая редакция и validation](../../evidence/2026-10-29-task-01-owner-context.md) перепроверена в раундах 8–9; O-03 dev publish выбран, O-04 plugins отложены; O-01/O-02 открыты.
 - Выделенный host рекомендован против нулевого варианта; idle unload и роли сопоставлены отдельно без обещания измеренной экономии production RAM.
 - Описаны descriptor/key, session/workspace split, switch вне gate, shared retry, no replay, reset/stop, CLI/proof boundaries, shadow image и controlled-stop publish.
 - Все S01–S42 и 54 public built-in tools имеют размещение/решение; счёт и локальные ссылки независимо проверены.
@@ -249,3 +249,13 @@ reviewed slice. Task-01 in progress, task-02/task-06 planned; counters 9/14 пр
 Изменений скрипта и запуска publish/kill нет. Это запись после раунда 9; counters
 9/14 прежние. O-03/O-05 выбраны, O-01/O-02/O-04 открыты; task-01 in progress,
 task-02/task-06 planned. Startup identity task-06 остаётся отдельной проверкой.
+
+## O-04: поддержка plugins отложена, 2026-10-29
+
+На базе `ed614a2` владелец отложил реальные plugins. Основной spike plugins=none,
+Sample — возможный контроль. Одинаковые startup inputs обычно дают одинаковый набор;
+loader сейчас читает exe/cwd config/drop-in/env при startup, не по пути позднего load.
+Multi-client singleton state — отдельная отложенная совместимость.
+[Решение, source сверка и validation](../../evidence/2026-10-29-task-01-plugins-deferred.md).
+Код/API/config не менялись, нового ревью нет, counters 9/14 прежние. O-03/O-04/O-05
+выбраны в указанном scope, O-01/O-02 открыты; task-01 in progress, task-02/task-06 planned.

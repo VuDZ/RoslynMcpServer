@@ -1,7 +1,7 @@
 # Выделенный workspace host: проект архитектурного решения
 
 Дата: **2026-10-29**. База: `b2a7b80`, сервер **1.5.18**, MCP SDK **2.2.0**.
-Статус: **proposed; O-05 выбран владельцем 2026-10-29: небольшой WorkspaceKey, приватный fresh и reuse-only диагностика; редакция O-05 перепроверена в раундах 8–9. O-03 dev publish выбран; O-01/O-02/O-04 открыты, task-06 planned**.
+Статус: **proposed; O-05 выбран владельцем 2026-10-29: небольшой WorkspaceKey, приватный fresh и reuse-only диагностика; редакция O-05 перепроверена в раундах 8–9. O-03 dev publish выбран, O-04 plugins отложены; O-01/O-02 открыты, task-06 planned**.
 Результат [E0/task-01](epoch-0-design-and-spike/task-01-architecture-decision-hi.md).
 Границы темы и решения владельца — в [README](README.md).
 Факты действующего сервера ниже отделены от предлагаемого контракта shared-режима.
@@ -410,15 +410,28 @@ Graph-stale reload того же key сериализован и создаёт 
 старый RAM graph не обещается всем клиентам: нужен явный retry/reset.
 Недопустимо обойти write gate выдачей старого snapshot после reset/reload.
 
-Plugins — отдельная граница пригодности. Текущий API допускает arbitrary services,
-static state и обращения к manager ([IRoslynMcpPlugin](../../Plugins/IRoslynMcpPlugin.cs#L5)).
-Сериализация plugin calls не изолирует его singleton state. Для task-02 допустимы
-plugins=none и проверенный SamplePlugin; прочие plugins до индивидуального audit
-дают явный unsupported shared, без скрытого per-proxy workspace fallback.
-Metadata/DI API plugins не меняются; отдельный manifest чистого proxy не вводится.
-Audit обязан подтвердить отсутствие load workspace в proxy startup/constructors,
-session leaks и несогласованных manager mutations. Проверенные plugin tools с workspace
-исполняются в host, неизвестные локально не запускаются по догадке.
+**O-04, выбор владельца 2026-10-29: реальная поддержка plugins отложена.**
+Основной task-02 выполняется с plugins=none; SamplePlugin можно сохранить как лёгкий
+контроль регистрации/маршрутизации, без обязательства поддержать произвольные plugins.
+Прочие plugins в экспериментальном shared дают явный unsupported, без молчаливого
+отключения plugin и без per-proxy workspace fallback. Ordinary plugin mode прежний.
+Редизайн metadata/DI API и индивидуальные audits не включаются в первый spike.
+
+Различие наборов не считается обычным ожидаемым сценарием. При одинаковых источниках,
+версии файлов и успешном startup наборы должны совпадать. Но текущий loader читает
+drop-in рядом с exe, конфиг из exe/cwd и ROSLYN_MCP_PLUGINS один раз при старте
+([PluginDiscovery](../../Plugins/PluginDiscovery.cs#L24), [Program](../../Program.cs#L58));
+load_workspace не перечитывает plugins по новому пути решения. Разные startup cwd/
+launch env или обновление между запусками могут дать разные наборы/версии. Это
+source-level возможности, не измеренная частота расхождений у владельца.
+
+Отдельный от состава вопрос — совместимость **одинакового** plugin с несколькими
+клиентами. API допускает arbitrary services/static state/manager access
+([IRoslynMcpPlugin](../../Plugins/IRoslynMcpPlugin.cs#L5)); сериализация calls не
+разделяет singleton state клиентов. Позже audit проверит отсутствие load workspace
+в proxy startup/constructors, session leaks и несогласованных manager mutations.
+Проверенные workspace tools будут исполняться в host; неизвестные не маршрутизируются
+локально по догадке. Это отложенная совместимость, не найденный production bug.
 
 Альтернативы держать session gate на весь load и делить activation/overflow singletons
 отвергнуты по task-00 и F-01 ревью task-04. Риск — непроверенные plugins и общий CPU;
@@ -929,7 +942,7 @@ Single-file всего сервера запрещён действующей а
 8. Analyzer V1 → V2 той же identity: restart proxy и soft reset не объявляются CLR unload. После подтверждённого restart-required hard reset retires host, новый generation исполняет V2 с прежним provenance/publication/write gate. Нет теневых путей на диске проекта.
 9. Реальные build/project-test/DLL-test stages до/во время/после host kill и switch: фактический CLI result отдельно от confirmation, output gates переживают host crash, нет proof/replay другого generation.
 10. Оба MCP protocols: activation/list_changed/listen, одинаковые IDs/progress tokens соседей, backend cancellation и поздний ответ A после switch. Effect-before-crash оставляет один side effect.
-11. Plugin none/Sample: первое tools/list одинаково с ordinary; constructor/startup не грузит workspace proxy. Неаудированный plugin явно отклоняет shared attachment.
+11. Первый spike — plugins=none. Sample — допустимый лёгкий контроль tools/list/маршрутизации и отсутствия workspace в proxy startup; поддержка реальных plugins отложена владельцем. Неподдерживаемый plugin явно отклоняет shared attachment, ordinary не меняется.
 12. Полные server/native/plugin manifests, изменённый deps.json, partial/corrupt image, source publish holders и очистка активного image. Другой UID/SID отвергнут даже при ослабленных правах socket; macOS сначала проверяет lock/ACL, иначе disabled.
 13. RAM reuse требует **другого живого proxy**, пока первый отключается; новый клиент в пределах grace — отдельная гонка. Saved `.cs` видны, graph stale/generated/write boundary прежние. После ухода всех клиентов повторный load cold.
 14. Память N=1/N=10 и latency одинакового semantic query под тяжёлой работой соседей: не меньше пяти повторов сессии 2, все host/proxy/children, GC/runtime/index/prewarm и bases записаны. Отдельно сравнивается ordinary и shared.
@@ -959,7 +972,7 @@ opt-in `ROSLYN_MCP_EXPERIMENTAL_WORKSPACE_HOST=1`; default не входит в 
 | O-01 | После task-06 выбрать выделенный host против нулевого варианта с учётом выбранного O-05; роли/HTTP остаются отложенными. |
 | O-02 | **Открыт по решению владельца 2026-10-29.** Сравнить общую soft reset/epoch invalidation, global retire и локальный reset инициатора с последующим private host (§7). Detach против завершения MCP, freshness соседей, discovery и RAM ещё требуют решения. |
 | O-03 | **Выбрано владельцем 2026-10-29:** dev-only publish с текущим kill MCP из RepoRoot/PublishDir; прерывание допустимо, при respawn harness — возможен отказ и ручная остановка. Скрипт/launcher ради hot update не усложнять; область — текущий checkout, прежняя обработка unknown path сохраняется. |
-| O-04 | До индивидуального audit ограничить shared plugins=none/Sample, с явным отказом для остальных. |
+| O-04 | **Выбрано владельцем 2026-10-29:** реальную поддержку plugins отложить; первый spike без них, Sample — возможный контроль. Неподдерживаемые shared plugins отклоняются явно, ordinary прежний. Частое различие наборов не предполагается; multi-client state — отдельный отложенный вопрос. |
 | O-05 | **Выбрано владельцем 2026-10-29:** WorkspaceKey=path/Configuration/Platform/TFM, контекст создателя host; fresh создаёт private только для инициатора. Actual context/инструкция в load — только для reused attachment, не для создателя. Namespace/image/admission проверки сохраняются; production activation не разрешена. |
 | V-01 | Task-02: настоящий Roslyn single-flight, session split, write/analyzer admission, graph reload и stage RPC. Fake load этого не доказывает. |
 | V-02 | Task-06/task-02: FS/permissions/noexec/space двух roots; macOS primitive/peer credentials остаются непроверенными до среды. |
@@ -969,7 +982,7 @@ opt-in `ROSLYN_MCP_EXPERIMENTAL_WORKSPACE_HOST=1`; default не входит в 
 | V-06 | Task-06 до O-01: небольшой key при разных session env, actual context/reuse-only output и private fresh на реальных парах Codex/Windows и Claude Code/Linux. Нет заявления универсальной parity; task-02 подтверждает на реализации. |
 
 U-C-01…U-C-08 имеют предложенные ответы в разделах 1–10; статус owner decision
-по O-01/O-02/O-04 остаётся открытым; O-03/O-05 выбраны владельцем 2026-10-29 в scope §9/§2. Результат независимого ревью и исправления фиксируются
+по O-01/O-02 остаётся открытым; O-03/O-04/O-05 выбраны владельцем 2026-10-29 в scope §9/§4/§2. Результат независимого ревью и исправления фиксируются
 в [отчёте task-01](epoch-0-design-and-spike/evidence/task-01-architecture-decision.md).
 Новых production bugs при этой docs-only работе не подтверждено. Дефекты spike из
 ревью task-04 F-01–F-05/F-08 получают контракты разделов 2–4/7/9 и regressions раздела 11;

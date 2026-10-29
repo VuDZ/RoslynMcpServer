@@ -432,7 +432,7 @@ Path/global properties/toolset/cwd/config origin/policy показываются
 
 Прежние варианты canonical-v1/strict после раунда 5 заменены этим решением.
 O-02 всё ещё открыт; reload graph может быть дорогим. Дополнительный вариант ниже.
-O-01/O-02/O-04 отложены до обсуждения; O-03 выбран ниже. Task-06 planned: reuse/private/output и storage/
+O-01/O-02 открыты; O-03/O-04 выбраны ниже. Task-06 planned: reuse/private/output и storage/
 startup identity до окончательного O-01. Task-02 не начат, design целиком не принят.
 
 <a id="o-02-reset-options"></a>
@@ -451,6 +451,16 @@ publish и попытаться обновить. При автоматичес�
 harness допустим отказ; владелец при необходимости вручную остановит harness/MCP.
 Скрипт, launcher и непрерывное обновление ради этого не дорабатываются. Другие
 checkout/установки не входят в область остановки. [Решение и validation](evidence/2026-10-29-task-01-dev-publish.md).
+
+<a id="o-04-plugins-deferred"></a>
+**O-04 — выбрано, 2026-10-29:** реальную поддержку plugins отложить. Первый shared
+spike без них; Sample — возможный лёгкий контроль, без редизайна plugin API и audit
+всех плагинов. Неподдерживаемый plugin даёт явный отказ shared, ordinary остаётся.
+При общих неизменившихся настройках наборы обычно совпадают; частые расхождения не
+предполагаются. Сейчас loader фиксирует exe/cwd config, drop-in и env при startup,
+а не перечитывает plugins при load_workspace. Multi-client singleton state — другой
+вопрос, проверка совместимости передана последующему E1 scope.
+[Решение и source сверка](evidence/2026-10-29-task-01-plugins-deferred.md).
 
 <a id="l-01-launcher"></a>
 **L-01 — внешний Linux launcher включает вложенные RID outputs.** Open, 2026-10-29;
@@ -512,7 +522,7 @@ Task-01 — **in progress, 2026-10-29, docs-only**:
 Выделенный host остаётся кандидатом после task-06; текущие documentation fixes перепроверены:
 9 раундов, 14 подтверждённых исправлений,
 [result](review-task-01-2026-10-29/result.md). 2026-10-29 владелец отложил O-01…O-04 до отдельных ревью.
-Task-06 planned до окончательного O-01; task-02 не начат. O-03/O-05 выбраны владельцем;
+Task-06 planned до окончательного O-01; task-02 не начат. O-03/O-04/O-05 выбраны владельцем;
 [новая редакция и validation](evidence/2026-10-29-task-01-owner-context.md).
 Тема [D](../workspace-load-performance/README.md) остаётся независимой.
 
@@ -603,7 +613,7 @@ Task-06 planned до окончательного O-01; task-02 не начат.
   [ответ и validation раундов 5–7](evidence/2026-10-29-task-01-round-5-response.md),
   [решение O-05 и validation раундов 8–9](evidence/2026-10-29-task-01-owner-context.md).
   После fixes применён research-task-authoring.
-  Выбор владельца O-01/O-02/O-04 отложен, 2026-10-29; O-03/O-05 выбраны:
+  O-01/O-02 открыты, 2026-10-29; O-03/O-04/O-05 выбраны:
   небольшой key/private fresh/reuse-only load output;
   [решение и validation](evidence/2026-10-29-task-01-owner-context.md).
   Task-06 planned, 2026-10-29: preflight среды/storage/startup identity до O-01;
