@@ -230,3 +230,12 @@ Windows controlled-stop ещё не доказывает эту границу; 
 Прежние отчёты раундов 5–7 описывают срез до этого решения. Раунд 8 выявил
 R8-F01/R8-F02 major, исправления подтверждены в раунде 9; общий счёт 9/14. Task-01 in progress, task-06/task-02 planned. Новый output и
 forceFresh не реализованы в production; O-01…O-04 и epoch acceptance не выбраны.
+
+## O-02 оставлен открытым, 2026-10-29
+
+На базе `5346559` владелец попросил сохранить локальный reset как дополнительный
+вариант: вызывающий MCP покидает host, остальные работают с текущим workspace,
+следующий load инициатора создаёт private host. Detach против завершения MCP и
+freshness/discovery/RAM ещё не выбраны. [Запись и validation](../../evidence/2026-10-29-task-01-reset-options.md).
+Это каталогизация альтернативы после раунда 9, не выбранная семантика и не новый
+reviewed slice. Task-01 in progress, task-02/task-06 planned; counters 9/14 прежние.

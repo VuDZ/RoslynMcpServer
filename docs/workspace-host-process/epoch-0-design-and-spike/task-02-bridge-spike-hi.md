@@ -132,11 +132,16 @@ generation. Не объявлять новую среду восстановле
    неопределённого исхода проверяются вместе с настоящими инструментами.
 5. Reset/stop и restart-required после обновления analyzer проходят по design;
    перезапуск прокси не объявляется обновлением загруженного в host analyzer.
-   Для предложенного O-02 soft reset сохраняет host при живом соседе и меняет epoch,
+   **O-02 остаётся открытым; реализуется только выбранная владельцем семантика.**
+   Для варианта soft reset host сохраняется при живом соседе и меняет epoch,
    hard retire применяется по подтверждённому restart-required/неисправимому admission.
    При N=10 повторить reset→load после rename/изменения состава/generated; измерить
    latency соседей и physical-load/retire counts. Timeout drain до clear возвращает
    busy; одинаковые invalidation coalesce, запоздавший reset не сбрасывает новую publication.
+   Новый кандидат владельца — локальный reset с уходом инициатора в private host:
+   отдельно оценить отсутствие reset-эффекта на соседей, RAM/discovery и причины
+   общего graph refresh. Detach или завершение MCP ещё не выбраны; не реализовывать
+   этот вариант вместе с остальными до решения O-02.
 6. Add/remove package и применённый rename при двух клиентах меняют общую
    WorkspaceEpoch и запрещают прежние tickets/proof state всех сессий, даже при
    потерянном notification. Старый proxy CLI может завершиться без подтверждения

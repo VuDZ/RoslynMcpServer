@@ -1,7 +1,7 @@
 # Выделенный workspace host: проект архитектурного решения
 
 Дата: **2026-10-29**. База: `b2a7b80`, сервер **1.5.18**, MCP SDK **2.2.0**.
-Статус: **proposed; O-05 выбран владельцем 2026-10-29: небольшой WorkspaceKey, приватный fresh и reuse-only диагностика; редакция перепроверена в раундах 8–9. O-01…O-04 отложены, task-06 planned**.
+Статус: **proposed; O-05 выбран владельцем 2026-10-29: небольшой WorkspaceKey, приватный fresh и reuse-only диагностика; редакция O-05 перепроверена в раундах 8–9. O-01…O-04 отложены, task-06 planned**.
 Результат [E0/task-01](epoch-0-design-and-spike/task-01-architecture-decision-hi.md).
 Границы темы и решения владельца — в [README](README.md).
 Факты действующего сервера ниже отделены от предлагаемого контракта shared-режима.
@@ -653,6 +653,26 @@ outputs, но не после каждого build/обычного save. Час
 CLR и может прервать соседние calls. Task-02 измеряет частый reset→load при N=10,
 latency соседей, число physical load/retire; цена вариантов не считается измеренной заранее.
 
+**Третий вариант O-02 — локальный reset инициатора, предложение владельца
+2026-10-29; решение оставлено открытым.** Вызывающий MCP покидает прежний host,
+а остальные продолжают работу с его текущим workspace. Следующий load инициатора
+должен создать новый private host по O-05. Если прежний host больше никому не нужен,
+он завершается по обычным call-reference/closing-grace правилам. Сам факт такого
+reset не требует общей очистки graph, смены epoch или рассылки reset соседям.
+
+Способ «отключить MCP» ещё не выбран: можно разорвать binding, сохранив stdio proxy,
+либо буквально завершить MCP-процесс. Во втором случае повторный запуск зависит от
+harness, а обычный новый proxy снова может найти прежний shared host; нужен отдельный
+способ сохранить намерение fresh. Это не решено одним завершением процесса.
+
+Цена варианта: дополнительные private workspace/RAM, старый host остаётся кандидатом
+для обычных подключений. «Текущий слепок» не означает разрешение игнорировать disk
+changes: watchers/freshness/write gates сохраняются. Какие причины reset требуют
+обновления общего graph независимо от локального detach — отдельный открытый вопрос,
+особенно package/rename/generated. Исключать старый host из discovery или замораживать
+его snapshot этим предложением не решено. Это вариант для сравнения с общей очисткой
+и global retire, а не новая обязательная семантика reset; реализация не начинается.
+
 Crash host: все привязанные in-flight host calls получают отказ; следующий отдельный
 вызов проходит discovery/single-flight для **своего сохранённого descriptor**.
 Здесь сохраняются WorkspaceKey, namespace и instance scope, но не обещание восстановить
@@ -925,7 +945,7 @@ opt-in `ROSLYN_MCP_EXPERIMENTAL_WORKSPACE_HOST=1`; default не входит в 
 | ID | Рекомендация / получатель |
 |---|---|
 | O-01 | После task-06 выбрать выделенный host против нулевого варианта с учётом выбранного O-05; роли/HTTP остаются отложенными. |
-| O-02 | Рекомендуется soft reset + coordinated reload; hard retire только при restart-required/неисправимом admission. Альтернатива — global retire на каждый reset с ценой для соседей (§7). Stop — свой proxy. |
+| O-02 | **Открыт по решению владельца 2026-10-29.** Сравнить общую soft reset/epoch invalidation, global retire и локальный reset инициатора с последующим private host (§7). Detach против завершения MCP, freshness соседей, discovery и RAM ещё требуют решения. |
 | O-03 | Принять controlled-stop publish holders; uninterrupted hot publish живых proxy не включать. |
 | O-04 | До индивидуального audit ограничить shared plugins=none/Sample, с явным отказом для остальных. |
 | O-05 | **Выбрано владельцем 2026-10-29:** WorkspaceKey=path/Configuration/Platform/TFM, контекст создателя host; fresh создаёт private только для инициатора. Actual context/инструкция в load — только для reused attachment, не для создателя. Namespace/image/admission проверки сохраняются; production activation не разрешена. |

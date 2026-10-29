@@ -431,9 +431,18 @@ Path/global properties/toolset/cwd/config origin/policy показываются
 [Решение, границы и validation](evidence/2026-10-29-task-01-owner-context.md).
 
 Прежние варианты canonical-v1/strict после раунда 5 заменены этим решением.
-O-02 (soft reset против global retire) всё ещё открыт; reload graph может быть дорогим.
+O-02 всё ещё открыт; reload graph может быть дорогим. Дополнительный вариант ниже.
 O-01…O-04 отложены до обсуждения. Task-06 planned: reuse/private/output и storage/
 startup identity до окончательного O-01. Task-02 не начат, design целиком не принят.
+
+<a id="o-02-reset-options"></a>
+**O-02 — оставить открытым, 2026-10-29.** Владелец предложил локальный reset:
+вызывающий MCP покидает прежний host, остальные продолжают работу с текущим workspace.
+Следующий load инициатора создаёт private host; если у прежнего не осталось клиентов/
+call references, он завершается по grace. Detach или завершение MCP-процесса ещё не
+выбраны. Сохраняются вопросы freshness соседей после disk changes, discovery и RAM.
+Этот вариант сравнивается с общей soft reset и global retire, не выбран вместо них.
+[Предложение, статус и validation](evidence/2026-10-29-task-01-reset-options.md).
 
 <a id="l-01-launcher"></a>
 **L-01 — внешний Linux launcher включает вложенные RID outputs.** Open, 2026-10-29;
