@@ -1,7 +1,7 @@
 # Выделенный workspace host: проект архитектурного решения
 
 Дата: **2026-10-29**. База: `b2a7b80`, сервер **1.5.18**, MCP SDK **2.2.0**.
-Статус: **proposed; O-05 выбран владельцем 2026-10-29: небольшой WorkspaceKey, приватный fresh и reuse-only диагностика; редакция O-05 перепроверена в раундах 8–9. O-02 global retire, O-03 dev publish выбраны, O-04 plugins отложены; O-01 открыт. Task-06 completed в сокращённом preflight scope Linux/Windows, 2 раунда / 5 исправлений; механизмы переданы task-02, prelaunch proof обязателен до shared admission/activation**.
+Статус: **proposed; O-05 выбран владельцем 2026-10-29: небольшой WorkspaceKey, приватный fresh и reuse-only диагностика; редакция O-05 перепроверена в раундах 8–9. O-02 global retire, O-03 dev publish выбраны, O-04 plugins отложены; O-01 открыт. Task-06 completed в сокращённом preflight scope Linux/Windows, 2 раунда / 5 исправлений; механизмы переданы task-02. O-06 выбран: происхождение кода обеспечивают действующие схемы развёртывания, совместимость proxy/host — identity из памяти процесса**.
 Результат [E0/task-01](epoch-0-design-and-spike/task-01-architecture-decision-hi.md).
 Границы темы и решения владельца — в [README](README.md).
 Факты действующего сервера ниже отделены от предлагаемого контракта shared-режима.
@@ -16,7 +16,7 @@
 - Shared load имеет один attempt и независимых waiter. После отказа следующий явный `load_workspace` клиента, уже получившего этот отказ, может открыть одну новую попытку без отключения всех клиентов.
 - `reset_workspace` при binding завершает общий host (global retire, O-02 выбран владельцем 2026-10-29): соседи теряют прогрев, чистое чтение прерывается с просьбой повторить, начатые load/prepare/записи завершаются в drain budget с явным исходом либо неопределённостью эффектов. Metadata readOnly не доказывает чистоту. О перезапуске агент узнаёт из ответа. Выбор оправдан редкостью reset; graph-stale load не меняет процесс.
 - Падение host не убивает CLI в живом proxy. Успех CLI и подтверждение build proof — разные результаты; доказательства не переносятся в новое поколение.
-- Socket/locks отделены от storage image/logs: Unix images не помещаются в `/tmp`. Launcher snapshot допускает reuse после audit. O-03 выбран: dev publish сохраняет текущую остановку MCP из каталога разработки; при respawn со стороны harness допустим отказ и ручная остановка harness.
+- Socket/locks отделены от storage image/logs: Unix images не помещаются в `/tmp`. Reuse snapshot launcher отклонён аудитом task-06; host строит свой образ. O-06 выбран: отдельного prelaunch proof нет — смешанную сборку под живым proxy исключают O-03 (Windows) и snapshot launcher (Linux), совместимость proxy/host проверяется по identity из памяти процесса. O-03 выбран: dev publish сохраняет текущую остановку MCP из каталога разработки; при respawn со стороны harness допустим отказ и ручная остановка harness.
 - Design допускает task-02 только после независимого ревью и выбора владельца. macOS, общий Roslyn, произвольные plugins и численные бюджеты требуют проверок, перечисленных в конце.
 
 ## 1. Выбор модели — U-C-07
@@ -200,24 +200,30 @@ temp не копируются. Конфигурация читается из *
 Перед запуском проверяются исходный и скопированный манифесты; движущийся source
 даёт bounded failure без исполнения смешанной сборки.
 
-Shared допускается только при доказанной immutable publication/use lease bundle,
-непрерывно действующей **до OS CreateProcess**, включая первоначальную загрузку
-exe/server assemblies. Startup guard до MSBuild/Roslyn/plugins закрепляет image
-identity **один раз на процесс/образ** из замороженного bundle или audited publisher
-manifest (§9), без полного повторного hash на каждом attach/RPC. Guard должен связать
-manifest с фактически запускаемым image; lock, взятый лишь в managed Program после
-загрузки exe/server assemblies, не доказывает эту границу.
+**Происхождение исполняемого кода — решение владельца O-06, 2026-10-29.** Отдельного
+prelaunch proof и нового bootstrap нет. Что proxy не исполняет смешанную сборку, обеспечивают
+действующие схемы развёртывания — те же, что защищают ordinary-режим сегодня:
 
-Mutable source без такого доказательства получает `deployment-unverified` при
-попытке shared и требует restart через verified image; default ordinary сохраняется.
-Поздний hash при первом shared call не может присвоить новым файлам identity уже
-исполняемого старого CLR кода. mtime/size и MVID также не заменяют content proof.
-Изменение закреплённого source требует restart proxy. При создании копии hash
-считается вместе с копированием и сверяется с закреплённым manifest.
-Действующий Windows controlled-stop publish сам по себе не доказывает prelaunch
-lease. Task-06 фиксирует provenance как unverified; по сокращению scope владельцем
-2026-10-29 механизм проверяет task-02 **до shared admission/activation**. Отсутствие
-proof означает deployment-unverified и restart через verified image, не поздний disk hash.
+- Windows: publish по O-03 останавливает MCP из каталога разработки и отказывает, если они
+  не завершились; исходный bundle не меняется под живым proxy.
+- Linux: proxy стартует из snapshot launcher, который после публикации не меняется.
+  Манифест и права только на чтение в snapshot превращают это соглашение в проверяемое
+  ([L-01](README.md#l-01-launcher)).
+
+Совместимость proxy и host проверяется по тому, что реально загружено, а не по диску:
+версия внутреннего протокола, hash каталога инструментов вместе со schemas и MVID
+загруженной сборки сервера, вычисленные в памяти процесса. Host сообщает ту же identity
+при handshake; расхождение — отказ attach с указанием перезапустить proxy. Поздний disk
+hash как identity исполняемого кода не используется. Host работает из собственного
+образа в StorageRoot (§9): hash считается при копировании из каталога proxy и сверяется
+до запуска; движущийся source даёт bounded failure.
+
+Остаточный риск принят: при нарушении схемы развёртывания — ручной замене файлов под
+живым proxy — ещё не загруженные сборки могут оказаться из новой версии, как и в
+ordinary-режиме сегодня. Проверка по памяти ловит расхождение протокола и каталога, но
+не любые различия кода. Отвергнутая альтернатива — verified bootstrap на обеих ОС
+(неизменяемый образ и lease до запуска процесса): формально строже, но добавляет новый
+компонент развёртывания ради риска, который уже закрыт процессом publish.
 
 Новый host запускается с cwd, исходной средой и effective host options инициатора.
 Он проверяет фактические MSBuild/runtime/plugin facts до readiness. Поздний клиент
@@ -270,7 +276,7 @@ reuse block делает известные параметры явными, fre
 с отдельными runtime/storage подкаталогами. Путь StorageRoot сам по себе не меняет
 graph identity; используемый host сообщает фактическую image/log location.
 
-Оба root создаются с owner-only доступом: DACL SID владельца на Windows, mode 0700 и
+Оба root создаются с owner-only доступом: на Windows — защищённый DACL только с SID владельца, без наследования (родительский LocalAppData наследует ACE песочницы Codex, в том числе FullControl для capability SID, — task-06), mode 0700 и
 проверенный UID на Unix. Lock/config files — 0600 на Unix. Проверяются существующие
 roots, владельцы и отсутствие reparse/symlink подмены; открытия фиксируют проверенные
 объекты, а не повторяют незащищённый path check. При невозможности проверки — отказ shared.
@@ -851,8 +857,8 @@ Staging без владельца можно убрать после той же
 ### Варианты развёртывания
 
 Обычный Windows proxy исполняется из исходного publish. Он удерживает managed DLL;
-копия одного host этого не исправляет. Допуск такого proxy к shared требует ещё
-доказанной startup boundary §2; controlled-stop script не заменяет prelaunch lease.
+копия одного host этого не исправляет. По O-06 (§2) такой proxy допускается к shared:
+исходники под ним не меняются, потому что publish сначала останавливает MCP.
 **Решение владельца O-03, 2026-10-29:** publish с остановкой — только сценарий
 разработки. Сохраняется текущая схема: завершить все обнаруженные копии MCP из
 **текущего каталога разработки/его publish**, проверить выход и попытаться обновить.
@@ -875,16 +881,11 @@ proxy, он завершается по обычным lifetime правилам
 На Linux у владельца уже есть внешний launcher `~/.local/share/roslyn-mcp/launch.sh`:
 по [замеру раунда 5](review-task-01-round-5-2026-10-29/linux-env-and-image-probe.json)
 proxy стартует из snapshot в `~/.cache/roslyn-mcp/snapshots/<hash>` с shared flock.
-При доказанном полном контракте вторая копия **не обязательна**: task-02/E1 проверяют полный publisher manifest,
-owner/FS/permissions, immutable publication от момента до CreateProcess, content identity, config origin и
-совместимый use-lease/cleanup протокол для launcher/proxy/host. В частности, flock
-нельзя считать совместимым с независимым fcntl lock на другом файле. При подтверждении
-контракта host использует ту же instance и берёт свой lease до потери lease launcher.
-Имя каталога `<hash>` и наличие любого flock сами по себе доказательством не являются.
-Если reuse audit не пройден, собственная копия в StorageRoot допустима только при
-доказанном происхождении proxy по §2. Иначе shared отклоняется до restart через
-verified image; копия host не легализует неизвестный proxy. Чужие snapshot/launcher
-cleanup не изменяются и не удаляются новым reaper.
+Аудит task-06 отклонил reuse этого snapshot как образа host: identity — size/mtime двух
+файлов, манифеста нет, неизменяемость держится на соглашении. Host строит собственную
+копию в StorageRoot. Сам proxy по O-06 (§2) из snapshot допускается: snapshot после
+публикации не меняется, а манифест и права только на чтение — рекомендации L-01.
+Чужие snapshot/launcher cleanup не изменяются и не удаляются новым reaper.
 
 Замеренный snapshot включает вложенные RID outputs: 2.0G/4868 файлов против
 93M/392 файлов выбранного build output. Это отдельный [L-01](README.md#l-01-launcher),
@@ -902,11 +903,7 @@ README и AGENTS.md.sample должны объяснять reset/stop/restart-re
 
 Альтернатива стабильного launcher/versioned payload могла бы сохранить живые proxy
 при обновлении исходного bundle, но добавляет packaging/process lifetime механизм.
-Ради hot update она пока не включена в scope. Task-06 фиксирует startup provenance
-обычного deployment как unverified. По сокращению scope владельцем механизм получает
-task-02: доказать prelaunch boundary proxy и host до shared admission/activation,
-иначе технический no-go. Поздний hash DLL и собственный host image этого не заменяют;
-новая схема обновления автоматически не включается. O-03 не отменяет эту проверку.
+Ради hot update она пока не включена в scope; по O-06 отвергнут и verified bootstrap (§2).
 Single-file всего сервера запрещён действующей архитектурой dynamic loading.
 Потеря MCP-сессий при dev publish принята владельцем в O-03; обычное использование
 не получает требования непрерывного обновления из этого сценария разработки.
@@ -963,7 +960,7 @@ Single-file всего сервера запрещён действующей а
 18. Для add/remove package и применённого rename при двух клиентах: до mutation подготовлен ticket/proof state клиента 2 и идёт его proxy CLI. После mutation epoch увеличена, оба клиента invalidated, прежние tickets/proofs отклонены даже при потерянном notification; завершившийся старый CLI не подтвердил новый graph. Конкурентные следующие load дали одну attempt; rename loaded path не подменил старый key. Dry-run rename epoch не меняет; partial write/clear failure оставляют admission fail-closed.
 19. `get_changed_files` при загруженном A и известных изменённых файлах сохраняет heuristic tests как ordinary. Switch на B во время git не меняет snapshot подсказок; без graph список пуст. Kill host между git result и heuristic не скрывает недоступность под видом пустого списка.
 20. Рецепт AGENTS.md.sample reset→load при N=10: одна physical attempt нового generation на всех, latency и число прерванных вызовов соседей записаны. Cold load после reset не выдаётся за дефект; replay записей нет.
-21. Storage отдельно от rendezvous: `/tmp` tmpfs/noexec не получает image/log payload; StorageRoot tmpfs/noexec, ENOSPC и source mutation дают bounded failure без partial launch. Обновление source между CreateProcess/bootstrap и первым shared call запрещено verified lease; raw mutable worker без доказательства отвечает deployment-unverified и не присваивает старому коду новый disk hash. Отдельно измерить guarded startup/identity/hash/copy/cache-hit и проверить reused launcher image с совместимым lease и полным file set.
+21. Storage отдельно от rendezvous: `/tmp` tmpfs/noexec не получает image/log payload; StorageRoot tmpfs/noexec, ENOSPC и source mutation дают bounded failure без partial launch. Proxy и host с разной in-memory identity (протокол, каталог/schemas, MVID сборки сервера) не соединяются: отказ attach с указанием перезапустить proxy; disk hash после старта не используется. Отдельно измерить attach/hash/copy/cache-hit.
 22. Proxy A создаёт shared host — reuse block отсутствует. B присоединяется — actual context и actionable forceFresh инструкция присутствуют, также на cached/briefOutput load. Проигравший launch race получает reused block независимо от cached flag. Для отсутствующих global properties не выдумываются Debug/TFM; env secrets не попадают в ответ.
 23. B вызывает load_workspace(forceFresh=true): создаётся private host с тем же WorkspaceKey, новый instance scope и одна attempt на explicit intent. A и обычный C остаются на shared. Обычный следующий load B сохраняет private; следующий explicit fresh создаёт новый private. Failure/cancel до commit сохраняет B на прежнем живом host. Private owner/capability исключают attach C, crash recovery не уходит в shared, EOF owner завершает private по grace. Повторить для startup --force_fresh; proxy не получает in-process workspace.
 24. Tool-only fresh без startup flag: reset очищает defaults и делает proxy unbound; прежний private host может завершиться. Следующий explicit load с тем же resolved WorkspaceKey и отдельно config lazy load того же key создают/reuse только private по сохранённому intent. Повторить после retire/host cleanup. Failed fresh intent не меняет предыдущий выбор; другой resolved WorkspaceKey не получает старые load defaults.
@@ -985,15 +982,16 @@ opt-in `ROSLYN_MCP_EXPERIMENTAL_WORKSPACE_HOST=1`; default не входит в 
 | O-03 | **Выбрано владельцем 2026-10-29:** dev-only publish с текущим kill MCP из RepoRoot/PublishDir; прерывание допустимо, при respawn harness — возможен отказ и ручная остановка. Скрипт/launcher ради hot update не усложнять; область — текущий checkout, прежняя обработка unknown path сохраняется. |
 | O-04 | **Выбрано владельцем 2026-10-29:** поддержку plugins отложить; первый spike без них, Sample — возможный контроль. Будущий список — global config + config выбранного solution/project, не startup cwd (P-01). Неподдерживаемый shared plugin отклоняется явно, ordinary прежний; multi-client state проверяется позже. |
 | O-05 | **Выбрано владельцем 2026-10-29:** WorkspaceKey=path/Configuration/Platform/TFM, контекст создателя host; fresh создаёт private только для инициатора. Actual context/инструкция в load — только для reused attachment, не для создателя. Namespace/image/admission проверки сохраняются; production activation не разрешена. |
+| O-06 | **Выбрано владельцем 2026-10-29:** отдельного prelaunch proof и verified bootstrap нет. Смешанную сборку под живым proxy исключают O-03 (Windows) и snapshot launcher (Linux, L-01 — манифест и права только на чтение); совместимость proxy/host — identity из памяти процесса (§2). Остаточный риск ручной подмены файлов принят. |
 | V-01 | Task-02: настоящий Roslyn single-flight, session split, write/analyzer admission, graph reload и stage RPC. Fake load этого не доказывает. |
 | V-02 | Task-06/task-02: FS/permissions/noexec/space двух roots; macOS primitive/peer credentials остаются непроверенными до среды. |
 | V-03 | Task-06: identity costs; task-02: attach/reset latency, payload parity, output gates/abandoned writer, нагрузка/RAM. Числа не SLA. |
-| V-04 | Task-06: phase costs и launcher audit (reuse no-go); task-02: полный server file set и prelaunch proof proxy/host до shared admission; plugins отложены E1. Runtime/toolset проверяются task-02. |
+| V-04 | Task-06: phase costs и launcher audit (reuse no-go); task-02: полный server file set образа host и in-memory identity proxy/host по O-06; plugins отложены E1. Runtime/toolset проверяются task-02. |
 | V-05 | После исследования: aggressive GC/остаточный heap/idle unload по отдельному решению владельца. |
-| V-06 | Task-06 до O-01: наблюдаемые входы реальных пар Codex/Windows и Claude Code/Linux, факты ФС, phase costs и env counterexample. По сокращению scope actual context/reuse-only output, private fresh и startup guard проверяет task-02 на реализации; guard обязателен до shared admission/activation. Универсальной parity нет. |
+| V-06 | Task-06 до O-01: наблюдаемые входы реальных пар Codex/Windows и Claude Code/Linux, факты ФС, phase costs и env counterexample. По сокращению scope actual context/reuse-only output, private fresh и in-memory identity proxy/host (O-06) проверяет task-02 на реализации. Универсальной parity нет. |
 
 U-C-01…U-C-08 имеют предложенные ответы в разделах 1–10; статус owner decision
-по O-01 остаётся открытым; O-02/O-03/O-04/O-05 выбраны владельцем 2026-10-29 в scope §7/§9/§4/§2. Результат независимого ревью и исправления фиксируются
+по O-01 остаётся открытым; O-02/O-03/O-04/O-05/O-06 выбраны владельцем 2026-10-29 в scope §7/§9/§4/§2/§2. Результат независимого ревью и исправления фиксируются
 в [отчёте task-01](epoch-0-design-and-spike/evidence/task-01-architecture-decision.md).
 Новых production bugs при этой docs-only работе не подтверждено. Дефекты spike из
 ревью task-04 F-01–F-05/F-08 получают контракты разделов 2–4/7/9 и regressions раздела 11;

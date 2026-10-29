@@ -285,3 +285,19 @@ global config и местоположением выбранного solution/pr
 Запись и уточнение — `claude-opus-5-5` (Claude Code), docs-only; нового независимого
 ревью нет, counters 9/14 прежние. O-02/O-03/O-04/O-05 выбраны, O-01 открыт;
 task-01 in progress, task-02/task-06 in progress, замеры завершены, повторное ревью ожидается. Build/tests и runtime не запускались.
+
+## O-06 выбран, 2026-10-29
+
+По итогам task-06 требование R6-N01 — доказанная неизменяемость bundle proxy до запуска
+процесса — оказалось невыполнимым на обеих реальных схемах: MCP Codex на Windows
+исполняются из in-place publish, snapshot launcher на Linux не прошёл аудит. Владелец
+выбрал **действующие схемы развёртывания вместо prelaunch proof**: смешанную сборку под
+живым proxy исключают O-03 (Windows) и неизменяемый после публикации snapshot launcher
+(Linux). Совместимость proxy и host проверяется по identity из памяти процесса:
+протокол, каталог/schemas, MVID загруженной сборки сервера. Verified bootstrap отвергнут.
+Попутно уточнён §3: Windows-корни создаются с защищённым DACL только владельца.
+[Решение, варианты и DACL](../../evidence/2026-10-29-task-01-deployment-provenance-decision.md).
+
+Запись — `claude-opus-5-5` (Claude Code), docs-only; нового независимого ревью нет,
+счётчики task-01 прежние. O-02…O-06 выбраны, O-01 открыт; task-01 in progress,
+task-02 planned. Build/tests и runtime не запускались.

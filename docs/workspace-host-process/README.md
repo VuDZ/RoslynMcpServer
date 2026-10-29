@@ -431,7 +431,7 @@ Path/global properties/toolset/cwd/config origin/policy показываются
 [Решение, границы и validation](evidence/2026-10-29-task-01-owner-context.md).
 
 Прежние варианты canonical-v1/strict после раунда 5 заменены этим решением.
-O-02/O-03/O-04 выбраны ниже; O-01 открыт. Task-06 completed, 2026-10-29: Linux/Claude Code и Windows/Codex приняты в сокращённом preflight scope, 2 раунда / 5 подтверждённых исправлений; объём сокращён, механизмы перенесены в task-02; [отчёт task-06](epoch-0-design-and-spike/evidence/task-06-environment-and-deployment-preflight.md).
+O-02/O-03/O-04/O-06 выбраны ниже; O-01 открыт. Task-06 completed, 2026-10-29: Linux/Claude Code и Windows/Codex приняты в сокращённом preflight scope, 2 раунда / 5 подтверждённых исправлений; объём сокращён, механизмы перенесены в task-02; [отчёт task-06](epoch-0-design-and-spike/evidence/task-06-environment-and-deployment-preflight.md).
 Task-02 не начат, design целиком не принят.
 
 <a id="o-02-reset-options"></a>
@@ -469,6 +469,17 @@ workspace использовать проектный источник ново�
 P-01 для E1; текущий loader пока работает по прежним правилам.
 [Решение и source сверка](evidence/2026-10-29-task-01-plugins-deferred.md).
 
+<a id="o-06-provenance"></a>
+**O-06 — выбрано, 2026-10-29: действующие схемы развёртывания вместо prelaunch proof.**
+Task-06 показал, что требование R6-N01 невыполнимо ни на одной реальной схеме: на
+Windows MCP исполняются из in-place publish, snapshot launcher на Linux не прошёл аудит.
+Отдельного доказательства и нового bootstrap нет: смешанную сборку под живым proxy
+исключают O-03 (Windows) и неизменяемый после публикации snapshot launcher (Linux).
+Совместимость proxy и host — по identity из памяти процесса: протокол, каталог/schemas,
+MVID загруженной сборки сервера. Ручная подмена файлов под живым proxy — принятый
+остаточный риск, как и в ordinary. Windows-корни — защищённый DACL только владельца.
+[решение](evidence/2026-10-29-task-01-deployment-provenance-decision.md).
+
 <a id="l-01-launcher"></a>
 **L-01 — внешний Linux launcher включает вложенные RID outputs.** Open, 2026-10-29;
 owner — сопровождающий Linux launcher владельца, `~/.local/share/roslyn-mcp/launch.sh`
@@ -481,6 +492,8 @@ owner — сопровождающий Linux launcher владельца, `~/.lo
 identity snapshot — size/mtime двух файлов без манифеста; согласованность копии
 проверяется только по ним же; lease `flock` на fd 9 наследуется всеми потомками .NET,
 включая `setsid`. Reuse snapshot — no-go, host строит свой образ.
+По O-06 snapshot служит гарантией развёртывания proxy на Linux; рекомендации владельцу
+launcher — хранить манифест snapshot и ставить права только на чтение после публикации.
 [Аудит](epoch-0-design-and-spike/evidence/task-06-environment-and-deployment-preflight.md#7-аудит-launcher).
 
 ## Маршрут
@@ -606,7 +619,7 @@ Task-06 completed, 2026-10-29: Linux/Claude Code и Windows/Codex приняты
   реальные пары MCP, MSBuild counterexample, факты ФС, identity phase costs, launcher audit.
   Исполнители `claude-opus-5-5` / `gpt-6.1-sol`; независимый Codex
   `/root/task01_research_review`, model ID недоступен: 2 раунда / 5 исправлений.
-  Release build/main Windows 1432/1432; guarded provenance — task-02 до shared admission.
+  Release build/main Windows 1432/1432; prelaunch provenance заменён решением O-06 (схемы развёртывания + identity из памяти).
   [Результат](epoch-0-design-and-spike/evidence/task-06-environment-and-deployment-preflight.md),
   [ревью](review-task-06-2026-10-29/result.md),
   [validation](evidence/2026-10-29-task-06-windows-review-fixes.md).
@@ -633,7 +646,8 @@ Task-06 completed, 2026-10-29: Linux/Claude Code и Windows/Codex приняты
   [ответ и validation раундов 5–7](evidence/2026-10-29-task-01-round-5-response.md),
   [решение O-05 и validation раундов 8–9](evidence/2026-10-29-task-01-owner-context.md).
   После fixes применён research-task-authoring.
-  O-01 открыт, 2026-10-29; O-02/O-03/O-04/O-05 выбраны, O-02 — global retire
+  O-01 открыт, 2026-10-29; O-02…O-06 выбраны, O-06 — действующие схемы развёртывания
+  вместо prelaunch proof ([решение](evidence/2026-10-29-task-01-deployment-provenance-decision.md)), O-02 — global retire
   ([решение](evidence/2026-10-29-task-01-reset-decision.md)); O-05 —
   небольшой key/private fresh/reuse-only load output;
   [решение и validation](evidence/2026-10-29-task-01-owner-context.md).

@@ -6,7 +6,7 @@
 - Риск ошибки: высокий — разделение session/workspace и восстановление могут нарушить публикацию, lifecycle analyzers или изоляцию проектов.
 - Необходимые способности: `согласованность_компонентов`, `проектирование_проверок`, `анализ_производительности`.
 - Статус: planned; план обновлён 2026-10-29 по решению владельца O-05; реализация не начата.
-- Depends on: [task-01](task-01-architecture-decision-hi.md) с оставшимися решениями владельца после [task-06](task-06-environment-and-deployment-preflight-med.md); O-02/O-03/O-04/O-05 выбраны, O-01 открыт; [D/E0/task-01](../../workspace-load-performance/epoch-0-stage-measurement/task-01-load-stage-timings-med.md).
+- Depends on: [task-01](task-01-architecture-decision-hi.md) с оставшимися решениями владельца после [task-06](task-06-environment-and-deployment-preflight-med.md); O-02…O-06 выбраны, O-01 открыт; [D/E0/task-01](../../workspace-load-performance/epoch-0-stage-measurement/task-01-load-stage-timings-med.md).
 - Модель, реализовавшая задачу: —.
 - Модели, проводившие ревью: —.
 - Количество раундов ревью: —.
@@ -55,11 +55,11 @@ Roslyn. Команды и результаты до/после — в evidence. 
 До окончательного выбора модели go/no-go среды/storage выполняет
 [task-06](task-06-environment-and-deployment-preflight-med.md). Здесь повторить
 его контроль на реализации. Решением владельца 2026-10-29 прототипы механизмов task-06 —
-receipt created/reused, private fresh, отказы storage, prelaunch identity lease, сценарии 24–25 —
-перенесены сюда и выполняются здесь впервые. Prelaunch provenance proxy/host остаётся
-unverified на обеих ОС: доказать границу до CreateProcess **до первого shared admission/activation**,
-иначе deployment-unverified/restart через verified image. Свой host image не легализует
-неизвестный proxy, поздний disk hash не доказывает старый исполняемый код.
+receipt created/reused, private fresh, отказы storage, сценарии 24–25 — перенесены сюда и
+выполняются здесь впервые. Prelaunch proof по решению владельца O-06 не нужен: смешанную
+сборку под живым proxy исключают O-03 и snapshot launcher. Проверить in-memory identity
+proxy/host (протокол, каталог/schemas, MVID загруженной сборки сервера): расхождение даёт
+отказ attach с указанием перезапустить proxy, disk hash после старта не используется.
 Reuse launcher snapshot — no-go по аудиту
 [task-06](evidence/task-06-environment-and-deployment-preflight.md#7-аудит-launcher). Проверить: совместимые реальные пары Codex/Windows и Claude Code/Linux
 одного checkout, WorkspaceKey path/Configuration/Platform/TFM и отдельный namespace/
@@ -189,14 +189,11 @@ workspace и короткой паузы перед завершением host 
 пока остальные N−1 выполняют тяжёлые запросы, в сравнении с N=1 и с обычным режимом.
 
 **Deployment:** отдельно проверить RendezvousRoot/StorageRoot, tmpfs/noexec/space и
-ENOSPC; никаких images/logs в `/tmp`. Проверить immutable lease до CreateProcess:
-обновление source между startup/bootstrap и первым shared call запрещается verified
-deployment; raw mutable proxy без proof отвечает deployment-unverified и требует
-restart через verified image. Поздний hash не присваивает старому коду новую identity.
-Замерить guarded startup в initialize budget harness, image copy/hash/verify и cached
-attach; time-to-first-useful отсчитывается от запуска процесса. Stat stamps не
-заменяют content identity. Повторно использовать launcher snapshot только с audited
-manifest и совместимым prelaunch/use-lease/cleanup протоколом.
+ENOSPC; никаких images/logs в `/tmp`. На Windows корень создаётся с защищённым DACL
+только владельца, без наследования; существующий корень с чужим ACE, включая унаследованный
+ACE песочницы Codex, отклоняется. Замерить image copy/hash/verify и cached attach;
+time-to-first-useful отсчитывается от запуска процесса. Stat stamps не заменяют content
+identity образа host. Snapshot launcher как образ host не используется (аудит task-06).
 
 ## Конкретный результат
 
