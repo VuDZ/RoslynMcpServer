@@ -2,7 +2,7 @@
 
 ## Главное
 
-- **In progress, 2026-10-29, docs-only.** O-05 выбран владельцем: небольшой key/private fresh/reuse-only output. [Новая редакция и validation](../../evidence/2026-10-29-task-01-owner-context.md) перепроверена в раундах 8–9; O-01…O-04 отложены.
+- **In progress, 2026-10-29, docs-only.** O-05 выбран владельцем: небольшой key/private fresh/reuse-only output. [Новая редакция и validation](../../evidence/2026-10-29-task-01-owner-context.md) перепроверена в раундах 8–9; O-03 dev publish выбран, O-01/O-02/O-04 открыты.
 - Выделенный host рекомендован против нулевого варианта; idle unload и роли сопоставлены отдельно без обещания измеренной экономии production RAM.
 - Описаны descriptor/key, session/workspace split, switch вне gate, shared retry, no replay, reset/stop, CLI/proof boundaries, shadow image и controlled-stop publish.
 - Все S01–S42 и 54 public built-in tools имеют размещение/решение; счёт и локальные ссылки независимо проверены.
@@ -239,3 +239,13 @@ forceFresh не реализованы в production; O-01…O-04 и epoch accep
 freshness/discovery/RAM ещё не выбраны. [Запись и validation](../../evidence/2026-10-29-task-01-reset-options.md).
 Это каталогизация альтернативы после раунда 9, не выбранная семантика и не новый
 reviewed slice. Task-01 in progress, task-02/task-06 planned; counters 9/14 прежние.
+
+## O-03 выбран владельцем, 2026-10-29
+
+На базе `4cdc1b7` владелец выбрал текущую схему dev publish: завершать копии MCP из
+текущего каталога разработки, пытаться обновить, при respawn harness допускать
+отказ и ручную остановку. Непрерывное обновление/новый launcher не требуются.
+[Решение, source сверка и validation](../../evidence/2026-10-29-task-01-dev-publish.md).
+Изменений скрипта и запуска publish/kill нет. Это запись после раунда 9; counters
+9/14 прежние. O-03/O-05 выбраны, O-01/O-02/O-04 открыты; task-01 in progress,
+task-02/task-06 planned. Startup identity task-06 остаётся отдельной проверкой.

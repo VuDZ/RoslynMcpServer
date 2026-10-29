@@ -6,7 +6,7 @@
 - Риск ошибки: высокий — разделение session/workspace и восстановление могут нарушить публикацию, lifecycle analyzers или изоляцию проектов.
 - Необходимые способности: `согласованность_компонентов`, `проектирование_проверок`, `анализ_производительности`.
 - Статус: planned; план обновлён 2026-10-29 по решению владельца O-05; реализация не начата.
-- Depends on: [task-01](task-01-architecture-decision-hi.md) с оставшимися решениями владельца после [task-06](task-06-environment-and-deployment-preflight-med.md); O-05 выбран, O-01…O-04 отложены; [D/E0/task-01](../../workspace-load-performance/epoch-0-stage-measurement/task-01-load-stage-timings-med.md).
+- Depends on: [task-01](task-01-architecture-decision-hi.md) с оставшимися решениями владельца после [task-06](task-06-environment-and-deployment-preflight-med.md); O-03/O-05 выбраны, O-01/O-02/O-04 открыты; [D/E0/task-01](../../workspace-load-performance/epoch-0-stage-measurement/task-01-load-stage-timings-med.md).
 - Модель, реализовавшая задачу: —.
 - Модели, проводившие ревью: —.
 - Количество раундов ревью: —.

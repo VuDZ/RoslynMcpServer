@@ -1,7 +1,7 @@
 # Выделенный workspace host: проект архитектурного решения
 
 Дата: **2026-10-29**. База: `b2a7b80`, сервер **1.5.18**, MCP SDK **2.2.0**.
-Статус: **proposed; O-05 выбран владельцем 2026-10-29: небольшой WorkspaceKey, приватный fresh и reuse-only диагностика; редакция O-05 перепроверена в раундах 8–9. O-01…O-04 отложены, task-06 planned**.
+Статус: **proposed; O-05 выбран владельцем 2026-10-29: небольшой WorkspaceKey, приватный fresh и reuse-only диагностика; редакция O-05 перепроверена в раундах 8–9. O-03 dev publish выбран; O-01/O-02/O-04 открыты, task-06 planned**.
 Результат [E0/task-01](epoch-0-design-and-spike/task-01-architecture-decision-hi.md).
 Границы темы и решения владельца — в [README](README.md).
 Факты действующего сервера ниже отделены от предлагаемого контракта shared-режима.
@@ -16,7 +16,7 @@
 - Shared load имеет один attempt и независимых waiter. После отказа следующий явный `load_workspace` клиента, уже получившего этот отказ, может открыть одну новую попытку без отключения всех клиентов.
 - Предлагается обычный reset через общую epoch invalidation, с сохранением процесса host; retire — при подтверждённом restart-required или неисправимом admission. Перезагрузка graph всё равно стоит ordinary load; вариант O-02 требует выбора владельца.
 - Падение host не убивает CLI в живом proxy. Успех CLI и подтверждение build proof — разные результаты; доказательства не переносятся в новое поколение.
-- Socket/locks отделены от storage image/logs: Unix images не помещаются в `/tmp`. Проверенный launcher snapshot может переиспользоваться после audit, иначе создаётся проверенная копия в storage; Windows publish останавливает holders источника.
+- Socket/locks отделены от storage image/logs: Unix images не помещаются в `/tmp`. Launcher snapshot допускает reuse после audit. O-03 выбран: dev publish сохраняет текущую остановку MCP из каталога разработки; при respawn со стороны harness допустим отказ и ручная остановка harness.
 - Design допускает task-02 только после независимого ревью и выбора владельца. macOS, общий Roslyn, произвольные plugins и численные бюджеты требуют проверок, перечисленных в конце.
 
 ## 1. Выбор модели — U-C-07
@@ -829,14 +829,24 @@ Staging без владельца можно убрать после той же
 Обычный Windows proxy исполняется из исходного publish. Он удерживает managed DLL;
 копия одного host этого не исправляет. Допуск такого proxy к shared требует ещё
 доказанной startup boundary §2; controlled-stop script не заменяет prelaunch lease.
-Рекомендация по обновлению — **плановая
-остановка holders источника перед in-place publish**, как уже делает
-[`publish-and-verify.ps1`](../../publish-and-verify.ps1#L48) по pitfall 13.
-Процедура явно сообщает, что завершит соответствующие MCP-сессии; проверяет фактический
-выход holders и только затем меняет файлы. `-SkipKill` не выдаёт locked publish за успех.
-Shadow host не выбирается для kill только по общему имени executable: он может обслуживать
-другой живой proxy. Если ушли все его proxy, host завершится по grace.
-Перезапуск клиента после publish не сохраняет RAM старого host по обещанию этой темы.
+**Решение владельца O-03, 2026-10-29:** publish с остановкой — только сценарий
+разработки. Сохраняется текущая схема: завершить все обнаруженные копии MCP из
+**текущего каталога разработки/его publish**, проверить выход и попытаться обновить.
+Другие checkout/установки не входят в эту формулировку. Текущий
+[`publish-and-verify.ps1`](../../publish-and-verify.ps1#L48) уже фильтрует executable
+paths по RepoRoot/PublishDir (unknown path считает потенциальным holder), завершает
+найденные процессы и ограниченно проверяет, что они ушли. Это не проверка cwd процесса.
+`-SkipKill` не выдаёт locked publish за успех.
+
+По наблюдению владельца dsh автоматически перезапускает MCP; другие harness тоже
+могут удерживать/возвращать процессы. Не требуется бороться с ними постоянным kill
+loop: отказ publish допустим, владелец при необходимости вручную останавливает
+harness/MCP и повторяет публикацию. Непрерывность сессий, автоматическая миграция и
+новый launcher/versioned packaging ради dev publish не входят в scope. Скрипт этой
+docs-only записью не меняется. Shadow host вне каталогов скрипта не становится
+основанием расширить kill до всех одноимённых процессов компьютера; потеряв всех
+proxy, он завершается по обычным lifetime правилам. Прерывание работы разработки
+при publish принято; сохранение прогрева после него не обещается.
 
 На Linux у владельца уже есть внешний launcher `~/.local/share/roslyn-mcp/launch.sh`:
 по [замеру раунда 5](review-task-01-round-5-2026-10-29/linux-env-and-image-probe.json)
@@ -870,10 +880,12 @@ README и AGENTS.md.sample должны объяснять reset/stop/restart-re
 при обновлении исходного bundle, но добавляет packaging/process lifetime механизм.
 Ради hot update она пока не включена в scope. Отдельно task-06 обязан доказать
 startup identity обычного deployment: если prelaunch boundary отсутствует,
-потребуется пересмотр deployment/O-03 до выбора O-01, а не позднее хеширование DLL.
+task-06 фиксирует технический no-go до O-01, а не поздно хеширует DLL и не включает
+новую схему обновления автоматически. Выбор dev publish O-03 сам по себе не доказывает
+startup identity и не отменяет эту отдельную проверку.
 Single-file всего сервера запрещён действующей архитектурой dynamic loading.
-Риск выбранного простого пути — потеря MCP-сессий при dogfood publish; принять его
-должен владелец (O-03). Если требуется непрерывный hot publish, сначала пересматривается этот раздел.
+Потеря MCP-сессий при dev publish принята владельцем в O-03; обычное использование
+не получает требования непрерывного обновления из этого сценария разработки.
 
 ## 10. Покрытие состояния task-00
 
@@ -946,7 +958,7 @@ opt-in `ROSLYN_MCP_EXPERIMENTAL_WORKSPACE_HOST=1`; default не входит в 
 |---|---|
 | O-01 | После task-06 выбрать выделенный host против нулевого варианта с учётом выбранного O-05; роли/HTTP остаются отложенными. |
 | O-02 | **Открыт по решению владельца 2026-10-29.** Сравнить общую soft reset/epoch invalidation, global retire и локальный reset инициатора с последующим private host (§7). Detach против завершения MCP, freshness соседей, discovery и RAM ещё требуют решения. |
-| O-03 | Принять controlled-stop publish holders; uninterrupted hot publish живых proxy не включать. |
+| O-03 | **Выбрано владельцем 2026-10-29:** dev-only publish с текущим kill MCP из RepoRoot/PublishDir; прерывание допустимо, при respawn harness — возможен отказ и ручная остановка. Скрипт/launcher ради hot update не усложнять; область — текущий checkout, прежняя обработка unknown path сохраняется. |
 | O-04 | До индивидуального audit ограничить shared plugins=none/Sample, с явным отказом для остальных. |
 | O-05 | **Выбрано владельцем 2026-10-29:** WorkspaceKey=path/Configuration/Platform/TFM, контекст создателя host; fresh создаёт private только для инициатора. Actual context/инструкция в load — только для reused attachment, не для создателя. Namespace/image/admission проверки сохраняются; production activation не разрешена. |
 | V-01 | Task-02: настоящий Roslyn single-flight, session split, write/analyzer admission, graph reload и stage RPC. Fake load этого не доказывает. |
@@ -957,7 +969,7 @@ opt-in `ROSLYN_MCP_EXPERIMENTAL_WORKSPACE_HOST=1`; default не входит в 
 | V-06 | Task-06 до O-01: небольшой key при разных session env, actual context/reuse-only output и private fresh на реальных парах Codex/Windows и Claude Code/Linux. Нет заявления универсальной parity; task-02 подтверждает на реализации. |
 
 U-C-01…U-C-08 имеют предложенные ответы в разделах 1–10; статус owner decision
-по O-01…O-04 остаётся отложенным с 2026-10-29; O-05 выбран владельцем в scope §2. Результат независимого ревью и исправления фиксируются
+по O-01/O-02/O-04 остаётся открытым; O-03/O-05 выбраны владельцем 2026-10-29 в scope §9/§2. Результат независимого ревью и исправления фиксируются
 в [отчёте task-01](epoch-0-design-and-spike/evidence/task-01-architecture-decision.md).
 Новых production bugs при этой docs-only работе не подтверждено. Дефекты spike из
 ревью task-04 F-01–F-05/F-08 получают контракты разделов 2–4/7/9 и regressions раздела 11;

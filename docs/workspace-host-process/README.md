@@ -432,7 +432,7 @@ Path/global properties/toolset/cwd/config origin/policy показываются
 
 Прежние варианты canonical-v1/strict после раунда 5 заменены этим решением.
 O-02 всё ещё открыт; reload graph может быть дорогим. Дополнительный вариант ниже.
-O-01…O-04 отложены до обсуждения. Task-06 planned: reuse/private/output и storage/
+O-01/O-02/O-04 отложены до обсуждения; O-03 выбран ниже. Task-06 planned: reuse/private/output и storage/
 startup identity до окончательного O-01. Task-02 не начат, design целиком не принят.
 
 <a id="o-02-reset-options"></a>
@@ -443,6 +443,14 @@ call references, он завершается по grace. Detach или заве�
 выбраны. Сохраняются вопросы freshness соседей после disk changes, discovery и RAM.
 Этот вариант сравнивается с общей soft reset и global retire, не выбран вместо них.
 [Предложение, статус и validation](evidence/2026-10-29-task-01-reset-options.md).
+
+<a id="o-03-dev-publish"></a>
+**O-03 — выбрано, 2026-10-29:** publish с остановкой — сценарий разработки.
+Сохраняется текущая схема: остановить найденные MCP из текущего каталога разработки/
+publish и попытаться обновить. При автоматическом respawn со стороны dsh/другого
+harness допустим отказ; владелец при необходимости вручную остановит harness/MCP.
+Скрипт, launcher и непрерывное обновление ради этого не дорабатываются. Другие
+checkout/установки не входят в область остановки. [Решение и validation](evidence/2026-10-29-task-01-dev-publish.md).
 
 <a id="l-01-launcher"></a>
 **L-01 — внешний Linux launcher включает вложенные RID outputs.** Open, 2026-10-29;
@@ -504,7 +512,7 @@ Task-01 — **in progress, 2026-10-29, docs-only**:
 Выделенный host остаётся кандидатом после task-06; текущие documentation fixes перепроверены:
 9 раундов, 14 подтверждённых исправлений,
 [result](review-task-01-2026-10-29/result.md). 2026-10-29 владелец отложил O-01…O-04 до отдельных ревью.
-Task-06 planned до окончательного O-01; task-02 не начат. O-05 выбран владельцем;
+Task-06 planned до окончательного O-01; task-02 не начат. O-03/O-05 выбраны владельцем;
 [новая редакция и validation](evidence/2026-10-29-task-01-owner-context.md).
 Тема [D](../workspace-load-performance/README.md) остаётся независимой.
 
@@ -595,7 +603,7 @@ Task-06 planned до окончательного O-01; task-02 не начат.
   [ответ и validation раундов 5–7](evidence/2026-10-29-task-01-round-5-response.md),
   [решение O-05 и validation раундов 8–9](evidence/2026-10-29-task-01-owner-context.md).
   После fixes применён research-task-authoring.
-  Выбор владельца O-01…O-04 отложен, 2026-10-29; O-05 выбран:
+  Выбор владельца O-01/O-02/O-04 отложен, 2026-10-29; O-03/O-05 выбраны:
   небольшой key/private fresh/reuse-only load output;
   [решение и validation](evidence/2026-10-29-task-01-owner-context.md).
   Task-06 planned, 2026-10-29: preflight среды/storage/startup identity до O-01;
