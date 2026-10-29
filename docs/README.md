@@ -20,8 +20,8 @@
 | MCP tool surface evolution | [mcp-tool-surface-evolution/](mcp-tool-surface-evolution/README.md) | post-arbitration spec v2; реализация не начата |
 | GitHub binary releases | [github-releases/](github-releases/README.md) | O-01 закрыт; CI + release workflow есть; smoke дистрибутива и O-02/O-03 открыты |
 | Улучшение тестов | [test-improvements/](test-improvements/README.md) | эпохи 1 и 2 выполнены, планы и отчёты в [архиве](test-improvements/_archive/README.md); далее эпоха 3 |
-| Статистика использования MCP | [usage-statistics/](usage-statistics/README.md) | 2026-10-29: черновик спецификации логирования и инструмента подсчёта для ревью владельца; код не начат. Данные нужны для решения по дублированию памяти копиями MCP (исследование общего host заморожено в `research/workspace-host-process`) |
-| Каталог пользователя сервера | [user-data-directory/](user-data-directory/README.md) | 2026-10-29: задача записана, код не начат. Постоянный каталог для логов, глобального `RoslynMcp.jsonc` и plugins: при npx-обновлении каталог установки заменяется целиком |
+| Статистика использования MCP | [usage-statistics/](usage-statistics/README.md) | Спецификация согласована владельцем 2026-10-29 после ревью Codex и Grok; [ответ на ревью](usage-statistics/review-response.md). O-03 закрыт 2026-10-30: численные пороги заранее не задаются, стратегия выбирается по результатам сбора; [решение](usage-statistics/README.md#критерии-решения). Код не начат. Исследование общего host заморожено в `research/workspace-host-process` |
+| Каталог пользователя сервера | [user-data-directory/](user-data-directory/README.md) | 2026-10-29: решения O-01…O-04 согласованы владельцем, код не начат. Приняты порядок источников конфига и plugins, пользовательские логи по умолчанию, `ROSLYN_MCP_HOME` и `ROSLYN_MCP_LOG_DIR`; [решения](user-data-directory/README.md#решения-владельца) |
 | Архитектурное ревью 2026-10 | [architecture-review/](architecture-review/README.md) | 2026-10-21: 17 находок (P1 — 4, P2 — 5, P3 — 8), все open; 4 вопроса владельцу, P-03 решён 2026-10-21 |
 
 ## Contract
