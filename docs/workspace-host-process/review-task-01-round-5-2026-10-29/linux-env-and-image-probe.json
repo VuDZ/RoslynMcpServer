@@ -1,0 +1,37 @@
+{
+  "date": "2026-10-29",
+  "reviewer": "claude-opus-5-5 (Claude Code)",
+  "base": "e9de5ee",
+  "host": {
+    "os": "Ubuntu 26.04.1, Linux 7.0.0-34-generic, native",
+    "tmp_mount": "tmpfs, 1.9G, rw,nosuid,nodev"
+  },
+  "mcp_environment": {
+    "harness": "Claude Code CLI, two separate sessions in tmux over SSH",
+    "processes": "two live RoslynMcpServer processes; each parent is a separate claude process; each was launched by the owner's launcher ~/.local/share/roslyn-mcp/launch.sh",
+    "method": "Read /proc/<pid>/environ. Values hashed with SHA-256 in memory and compared between the two processes. No values or hashes are stored.",
+    "variable_count": [40, 40],
+    "same_name_set": true,
+    "names_with_differing_values": [
+      "AI_AGENT",
+      "CLAUDE_CODE_MESSAGING_SOCKET",
+      "CLAUDE_CODE_MESSAGING_TOKEN",
+      "CLAUDE_CODE_SESSION_ID",
+      "CLAUDE_PROJECT_DIR",
+      "OLDPWD",
+      "PWD",
+      "SSH_CLIENT",
+      "SSH_CONNECTION",
+      "TMUX",
+      "XDG_SESSION_ID"
+    ],
+    "codex_preflight_names_present": false,
+    "note": "CLAUDE_PROJECT_DIR and PWD differ because the two sessions run in different checkouts (main repo and worktree). The other names differ per harness session or per terminal/login session."
+  },
+  "server_image": {
+    "build_output_snapshot": {"size": "93M", "files": 392, "sha256_all_files_seconds": 0.98, "cache": "first read, likely cold"},
+    "single_rid_publish_folder": {"size": "303M", "files": 774, "sha256_all_files_seconds": 0.26, "cache": "warm"},
+    "launcher_snapshot_with_nested_rid_outputs": {"size": "2.0G", "files": 4868, "sha256_all_files_seconds": 15.11, "cache": "first read, likely cold"},
+    "runtimeconfig": "System.GC.Server=true"
+  }
+}
