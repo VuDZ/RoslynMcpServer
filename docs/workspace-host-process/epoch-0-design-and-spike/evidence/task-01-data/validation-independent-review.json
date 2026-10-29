@@ -1,0 +1,23 @@
+{
+  "date": "2026-10-29",
+  "base": "d54a93adc781439ea586a1eff5016c5a51aef947",
+  "markdownFiles": 12,
+  "localLinks": 335,
+  "broken": [],
+  "catalogTools": 54,
+  "mappedTools": 54,
+  "missingTools": [],
+  "duplicateTools": [],
+  "mappedStates": 42,
+  "missingStates": [],
+  "changesOutsideDocs": [],
+  "originalReviewUnchanged": true,
+  "originalReviewSHA256": {
+    "result.md": "0BC8659DA6597551F2B6D49EAEF72EB43D5046190DD5A3887548806482757654",
+    "coverage.md": "322EF135CF913DDF795A0DA947D6E406832CD05E0197FE5EDB71B6518EBABACB"
+  },
+  "confirmedIndependentFixes": 3,
+  "task01ReviewRounds": 4,
+  "task01ConfirmedFixes": 6,
+  "runtimeValidation": "not run; docs only"
+}

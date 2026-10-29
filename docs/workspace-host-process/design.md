@@ -1,7 +1,7 @@
 # Выделенный workspace host: проект архитектурного решения
 
 Дата: **2026-10-29**. База: `b2a7b80`, сервер **1.5.18**, MCP SDK **2.2.0**.
-Статус: **proposed; техническое ревью принято, 2026-10-29; выбор владельца отложен до отдельных ревью**.
+Статус: **proposed; исправления по независимому ревью подтверждены технической перепроверкой, 2026-10-29; выбор владельца отложен**.
 Результат [E0/task-01](epoch-0-design-and-spike/task-01-architecture-decision-hi.md).
 Границы темы и решения владельца — в [README](README.md).
 Факты действующего сервера ниже отделены от предлагаемого контракта shared-режима.
@@ -12,7 +12,7 @@
 - Дублирование настоящего workspace подтверждено task-05. Экономия production shared-режима ещё не измерена; task-02 сравнит все процессы при N=1/N=10, включая цену отдельного host.
 - Proxy — обычный сервер с Roslyn/plugins, но без загруженного workspace. Его MCP-сессия, activation, defaults, CLI и отчёты остаются локальными.
 - В ключ входят graph inputs, полный image manifest и стартовый контекст. Контекст с известными volatile harness IDs в environment отклоняет shared до создания key; task-02 сначала проверяет точный descriptor на настоящей MCP-паре.
-- Switch готовит B вне gate привязки; запросы A продолжают получать ответы. Короткий commit меняет только будущие вызовы; отказ B сохраняет живой A.
+- Switch, включая path-варианты `list_projects`/`get_project_graph`, готовит B вне gate привязки. Отказ B сохраняет живой A; metadata writes общего graph меняют epoch и запрещают прежние tickets/proofs всех сессий.
 - Shared load имеет один attempt и независимых waiter. После отказа следующий явный `load_workspace` клиента, уже получившего этот отказ, может открыть одну новую попытку без отключения всех клиентов.
 - Предлагаемая lifecycle-семантика: `stop_mcp_server` завершает только свой proxy; `reset_workspace` выводит из обслуживания **общий host этого ключа**, включая его analyzer CLR. Это видимое всем изменение требует выбора владельца.
 - Падение host не убивает CLI в живом proxy. Успех CLI и подтверждение build proof — разные результаты; доказательства не переносятся в новое поколение.
@@ -265,6 +265,28 @@ key/generation/epoch. Host передаёт proxy весь ограниченн�
 ни один proxy не владеет workspace. Смерть proxy не передаёт роль другому proxy.
 Reset/switch одной сессии упорядочены, но не блокируют выдачу уже готового результата.
 
+### Инструменты с аргументом workspacePath
+
+`list_projects` и `get_project_graph` сейчас вызывают `LoadAsync`, если передан
+непустой workspacePath ([UtilityTools](../../Tools/UtilityTools.cs#L1412)). Поэтому
+их нельзя пересылать целиком в текущий host как безусловные read-only операции.
+В shared proxy сначала разрешает путь и defaults своей сессии по разделу 2.
+Если полученный key отличается от текущего, он проходит тот же attach/load/commit
+A → B, что `load_workspace`, включая успешную загрузку до commit и сохранение A
+при отказе/cancel B. Только после этого read-часть исполняется на B по закреплённому
+call reference. У оставшегося на A клиента сохраняются path, generation, epoch и policy.
+
+Если key совпал, разрешён coordinated load/refresh этого key: cache hit читает
+текущий published graph, graph-stale reopen проходит single-flight раздела 7.
+Переключение policy по чужому Loaded* запрещено, sticky правила раздела 2 сохраняются.
+На host вызывается read-часть без повторного `LoadAsync(workspacePath)` и без
+возможности заменить его descriptor. Omitted workspacePath читает только уже
+выбранный graph; unbound без явного path сохраняет нынешний ответ «No workspace loaded»,
+не начинает новую lazy load ради этих двух инструментов. `get_test_list` остаётся
+отдельным semantic reader со своей прежней lazy/disk-sync семантикой.
+
+### Общая admission и plugins
+
 Тяжёлые read-запросы используют snapshots и могут идти параллельно; write boundary
 остаётся единственной точкой persist/preflight. Host admission запрещает смену graph
 во время commit записи; reload/reset сначала прекращают admission старой epoch и
@@ -302,12 +324,14 @@ session leaks и несогласованных manager mutations. Провер�
 | `get_mcp_server_info`, `stop_mcp_server` | Proxy: локальные факты/stop; remote facts info явно подписаны. |
 | `get_class_skeleton`, `get_diagnostics_for_file`, `find_symbol_definition`, `find_usages`, `find_symbol_references`, `find_implementations`, `get_call_graph` | Host: published snapshot; owned cursor continuation обслуживается по своему origin. |
 | `add_using`, `add_method_to_class`, `update_method_body`, `get_code_fixes`, `apply_code_fix`, `rename_symbol`, `generate_test_method_stub` | Host: semantic/write boundary исходной epoch. |
-| `list_projects`, `get_project_graph`, `get_test_list` | Host: опубликованный graph и disk sync. |
+| `list_projects`, `get_project_graph` | Proxy: optional-path attach/switch или same-key refresh по §4; host: read-часть выбранного graph без неявного LoadAsync. |
+| `get_test_list` | Host: опубликованный graph и disk sync. |
 | `get_file_content`, `read_file_range`, `get_method_body` | Proxy: абсолютный путь от захваченного workspace directory либо cwd. |
 | `get_code_skeleton`, `list_directory_tree` | Proxy: путь от cwd как сейчас, parser допустим. |
-| `search_code`, `get_changed_files` | Host разрешает omitted graph roots/anchor; proxy исполняет disk/rg/git с готовыми путями. |
+| `search_code` | Host разрешает omitted graph roots; proxy исполняет disk/rg с готовыми путями. |
+| `get_changed_files` | Proxy исполняет git; host исходного call snapshot разрешает omitted anchor и вычисляет test suggestions по полученным путям. |
 | `update_file_content`, `apply_patch` | При binding — host с прежним tracked write gate; unbound — прежний standalone disk path proxy. |
-| `rename_project`, `add_package_reference`, `remove_package_reference` | При binding — host, включая graph invalidation; unbound disk path допустим лишь там, где он уже поддержан. |
+| `rename_project`, `add_package_reference`, `remove_package_reference` | При binding — host с общей epoch invalidation по §7; unbound disk path допустим лишь там, где он уже поддержан. |
 | `explore_assembly`, `decompile_type`, `get_decompiled_class_skeleton`, `get_decompiled_method_body` | Explicit assemblyPath — proxy; assemblyName — host resolution и decompile, без переноса Roslyn handles. |
 | `run_dotnet_build`, `run_dotnet_test`, `run_specific_test`, `run_test_by_filter` | Этапы раздела 6: session defaults в proxy, graph/proofs в host, CLI/result в proxy. |
 | `run_dotnet_run`, `execute_dotnet_command`, `run_format` | Proxy: cwd/env и child lifetime исходного вызова; disk effects общие. |
@@ -320,6 +344,18 @@ session leaks и несогласованных manager mutations. Провер�
 Альтернатива пересылать весь каталог отвергнута из-за cwd/CLI/session state;
 перенести весь TestTools в proxy нельзя из-за semantic filter и DLL admission.
 Риск выбора по стадиям — пропустить скрытый manager access; task-02 проверяет каждую строку.
+
+`get_changed_files` сохраняет и Git paths, и **Suggested test projects (heuristic)**:
+сейчас [SuggestTestProjects](../../Services/GitChangedFilesHelper.cs#L93) читает
+`solution.Projects` и документы. При приёме вызова host закрепляет snapshot/call
+reference исходного binding; proxy выполняет git с захваченным anchor, затем передаёт
+разобранные относительные пути этому же host. Host вычисляет heuristic по закреплённому
+snapshot; proxy форматирует готовый список прежним способом. Switch proxy на B во
+время git не заменяет snapshot A. Явный git workspacePath другого repo сам по себе
+не запускает attach/switch: heuristic использует graph исходного binding, как сейчас.
+Без graph список пуст и host не создаётся. Потеря host до получения heuristic при
+ранее закреплённом graph даёт явную ошибку полноты с сохранённым результатом git,
+без молчаливой замены неизвестного списка пустым и без повторного запуска git.
 
 ## 6. Build/test, CLI и доказательства
 
@@ -395,6 +431,39 @@ Host состояния: `Starting → ReadyEmpty → Loading(attempt) → Ready
 `LoadFailed(attempt)`. `Closing` терминален для admission; следующее владение получает
 новый generation. Graph reload — новая attempt/epoch внутри того же владения.
 Readiness транспорта отличается от успешной загрузки workspace.
+
+### Очистка graph после project/package mutations
+
+`add_package_reference`, `remove_package_reference` и применённый `rename_project`
+сейчас вызывают [ClearWorkspaceAsync](../../Tools/ProjectTools.cs#L86). Это общий
+эффект при binding, даже если изменённый projectPath не входит в активный graph;
+dry-run rename его не вызывает. Private исполнение этих методов проходит host
+coordinator, а не обходит его прямым вызовом нынешнего adapter целиком.
+
+1. До возможной записи coordinator закрывает admission старой epoch и согласует другие уже принятые semantic/write операции; proxy CLI не ждёт/не получает cancellation от этого drain.
+2. Перед первым возможным disk effect увеличивается `WorkspaceEpoch`. Все session tickets, write contexts и DLL-proof state прежней epoch становятся недействительными; per-session `SessionBuildState` заменяются пустыми экземплярами. Одного последующего `Observe` или очистки полей manager недостаточно.
+3. Host выполняет mutation и clear под этим admission. Всем привязанным proxy посылается invalidation с key, generation, новой epoch и причиной. Потерянное уведомление не разрешает старый ticket: каждый stage RPC проверяет epoch на host.
+4. Успешный clear переводит key в `Invalidated(epoch)`: path/Loaded*/mapping manager очищены, но descriptor host и defaults каждой proxy session сохранены отдельно. Следующая допустимая load/prepare этого key — одна общая attempt через раздел 7, с его закреплённой analyzer policy, а не тихий `LoadAsync` первого клиента.
+5. До load старые semantic/build-proof stages отклоняются как workspace-invalidated. Конфигурационный lazy load допустим лишь когда собственный контекст клиента разрешается в тот же descriptor; иначе требуется явный load, без подмены проекта остальных сессий.
+
+Уже запущенный proxy CLI может завершиться; подтверждение его старого ticket после
+шага 2 запрещено, в том числе после следующего load и в том же HostGeneration.
+Output gates и abandoned-writer records не очищаются от этой invalidation.
+После частичной записи, cancellation или ошибки clear старый graph/proof не
+объявляется пригодным: admission остаётся закрытым до завершённого cleanup/reload
+либо retire host. Эпоха не откатывается, disk effects не replay.
+
+HostGeneration при такой очистке не меняется, CLR analyzer assemblies не выгружаются;
+это отличается от общего retire по `reset_workspace` ниже. Новый load по-прежнему
+проверяет analyzer admission; restart-required требует retire host.
+После успешной mutation/clear ответ вызывающему сохраняет прежнее указание вызвать
+`load_workspace`. Отказ очистки не выдаётся за успешно очищенный cache.
+Если rename переместил сам loaded `.csproj`, исходный key не меняет путь на месте:
+load нового пути проходит attach/switch к другому key; вызов старого пути может
+отказать. Rename только проекта внутри сохранённой `.sln` допускает reload её
+прежнего key с новой epoch. Остальные сессии не перенаправляются на новый путь молча.
+
+### Общая загрузка и lifetime
 
 Один shared Task load принадлежит host lifetime, а не токену первого клиента.
 Отмена одного waiter прекращает его ожидание. При отмене всех waiter, пока proxy
@@ -637,6 +706,9 @@ Single-file всего сервера запрещён действующей а
 14. Память N=1/N=10 и latency одинакового semantic query под тяжёлой работой соседей: не меньше пяти повторов сессии 2, все host/proxy/children, GC/runtime/index/prewarm и bases записаны. Отдельно сравнивается ordinary и shared.
 15. До этих серий — точный descriptor двух настоящих MCP motivating harness и names-only проверка volatile inputs; результат go/no-go по разделу 2. Positive synthetic pair не заменяет этот контроль применимости.
 16. Payload parity >16 MiB/JSON escaping и proxy SIGKILL с продолжающимся CLI: нет нового cap; abandoned activity блокирует DLL-route takeover/proof даже в новом host generation, пока завершение writers не подтверждено.
+17. Для обоих `list_projects`/`get_project_graph`: два клиента A; один вызывает инструмент с path B. При удерживаемом load B другой продолжает A с прежними generation/epoch/policy. После успешного commit только инициатор использует B; failed/cancel B сохраняет A. Same-key path проверяет coordinated cache hit/graph-stale refresh, omitted unbound не запускает load. На A не было LoadAsync чужого path.
+18. Для add/remove package и применённого rename при двух клиентах: до mutation подготовлен ticket/proof state клиента 2 и идёт его proxy CLI. После mutation epoch увеличена, оба клиента invalidated, прежние tickets/proofs отклонены даже при потерянном notification; завершившийся старый CLI не подтвердил новый graph. Конкурентные следующие load дали одну attempt; rename loaded path не подменил старый key. Dry-run rename epoch не меняет; partial write/clear failure оставляют admission fail-closed.
+19. `get_changed_files` при загруженном A и известных изменённых файлах сохраняет heuristic tests как ordinary. Switch на B во время git не меняет snapshot подсказок; без graph список пуст. Kill host между git result и heuristic не скрывает недоступность под видом пустого списка.
 
 По коду task-02 обязательны SourceStructure, Release solution build, полная main suite
 с актуальными исключениями `AnalyzerLifecycle`/`RequiresPinnedSdk` (на Linux также

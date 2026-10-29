@@ -148,9 +148,14 @@ Task-01 начат 2026-10-29; приёмка design/эпохи и production ac
 
 **In progress, docs-only; выбор владельца отложен до отдельных ревью.** Подготовлен [проект design](../design.md),
 [основания и validation](evidence/task-01-architecture-decision.md).
-Независимое research-task-review в отдельном сабагенте Codex `/root/task01_research_review`:
-**2 раунда, 3 подтверждённых исправления; технический проект принят**;
+Research-task-review в сабагенте Codex `/root/task01_research_review`, раунды 1–2:
+3 подтверждённых исправления;
 [result](../review-task-01-2026-10-29/result.md).
+Раунд 3 — [независимый Grok 4.7](../review-task-01-independent-2026-10-29/result.md)
+на базе `d54a93a`: blocker/major/minor. Все три приняты и исправлены в design;
+[ответ автора](../evidence/2026-10-29-task-01-independent-review-response.md).
+Раунд 4 — Codex подтвердил ещё 3 исправления, новых must-fix по diff нет.
+**Итого task-01: 4 раунда / 6 исправлений; текущий технический проект перепроверен.**
 После fixes применён research-task-authoring. 2026-10-29 владелец отложил O-01…O-04 до отдельных ревью;
 task-02 не начат, приёмки эпохи нет.
 
@@ -167,10 +172,11 @@ task-02 не начат, приёмки эпохи нет.
   Task-04 — отдельная сессия Codex `/root/task04_research_review`, точный model ID недоступен (раунды 1–2);
   раунд 3 — `claude-opus-5-5`, 2026-10-28.
   Task-01 — Codex `/root/task01_research_review`, точный model ID недоступен,
-  2026-10-29, раунды 1–2.
-- Сумма раундов независимого ревью задач: 8 (по одному на task-00, task-03, task-05; три на task-04; два на task-01).
-- Исправленные замечания независимого ревью задач: 28 (task-00 — 5; task-05 — 4,
-  F-01–F-04; task-03 — 5, F-05–F-09; task-04 — 4, F-01–F-04 раундов 1–2, и 7 раунда 3; task-01 — 3, F-01–F-03).
+  2026-10-29, раунды 1–2 и 4; Grok 4.7, session ID недоступен, раунд 3.
+- Сумма раундов независимого ревью задач: 10 (по одному на task-00, task-03, task-05; три на task-04; четыре на task-01).
+- Исправленные замечания независимого ревью задач: 31 (task-00 — 5; task-05 — 4,
+  F-01–F-04; task-03 — 5, F-05–F-09; task-04 — 4, F-01–F-04 раундов 1–2, и 7 раунда 3;
+  task-01 — 6: Codex/F-01–F-03 и independent/F-01–F-03).
 - Отчёты: [task-00 — инвентаризация и validation](evidence/task-00-state-inventory.md).
   Актуализация 2026-10-28 — тот же исполнитель;
   [влияние новой базы и validation](evidence/task-00-impact-2026-10-28.md).
@@ -179,7 +185,9 @@ task-02 не начат, приёмки эпохи нет.
   [Ревью task-03 и task-05](../review-task-03-05-2026-10-28/result.md), [validation исправлений](../evidence/2026-10-28-task-03-05-review-fixes.md).
   [Task-04: результат и validation](evidence/task-04-routing-and-recovery-spike.md), [ревью](../review-task-04-2026-10-28/result.md), [ревью раунда 3](../review-task-04-round-3-2026-10-28/result.md), [validation исправлений](../evidence/2026-10-28-task-04-review-fixes.md).
   [Task-01: проект, review и validation](evidence/task-01-architecture-decision.md),
-  [независимое ревью](../review-task-01-2026-10-29/result.md).
+  [ревью Codex](../review-task-01-2026-10-29/result.md),
+  [независимое ревью Grok](../review-task-01-independent-2026-10-29/result.md),
+  [ответ и validation](../evidence/2026-10-29-task-01-independent-review-response.md).
 
 ## Приёмка реализации эпохи
 

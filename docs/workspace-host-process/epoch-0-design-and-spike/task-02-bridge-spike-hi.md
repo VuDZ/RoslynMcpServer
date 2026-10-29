@@ -84,6 +84,10 @@ harness с одинаковыми workspace/эффективными настр�
 3. Отказ загрузки проекта2 сохраняет прежнюю привязку чат2 к живому A. Проверить
    переход с незавершённым запросом по правилам design, а также несовместимые
    Configuration/Platform/TFM/analyzer policy и session defaults/build args.
+   Тот же переход и отказ проверить через optional workspacePath обоих
+   `list_projects` и `get_project_graph`: read-часть не вызывает LoadAsync чужого
+   path в A. Для своего key проверить cache hit/graph-stale refresh, для omitted
+   path у unbound list/graph — отсутствие новой lazy load.
 4. **Только модель ролей.** Чат1 запускает `mcp1`, который сам держит проект1
    и обслуживает `mcp2`/`mcp3` из чат2/чат3. Чат1 загружает проект2: `mcp1`
    сообщает release проекта1,
@@ -111,6 +115,11 @@ harness с одинаковыми workspace/эффективными настр�
    неопределённого исхода проверяются вместе с настоящими инструментами.
 5. Reset/stop и restart-required после обновления analyzer проходят по design;
    перезапуск прокси не объявляется обновлением загруженного в host analyzer.
+6. Add/remove package и применённый rename при двух клиентах меняют общую
+   WorkspaceEpoch и запрещают прежние tickets/proof state всех сессий, даже при
+   потерянном notification. Старый proxy CLI может завершиться без подтверждения
+   нового graph; конкурентный reload одного key — одна attempt. Dry-run rename
+   не инвалидирует epoch; partial write/clear failure остаются fail-closed.
 
 **Build/test и CLI:** проверить размещение этапов по design: разрешение проекта
 и session defaults, admission/build proofs, запуск CLI и обработку результата,
@@ -121,6 +130,11 @@ harness с одинаковыми workspace/эффективными настр�
 
 Для доказательства одной загрузки нужны наблюдаемые счётчики/события MSBuild open,
 а не только один PID в конце. Для гонок — управляемые барьеры, не только задержки.
+
+**Git и graph heuristic:** `get_changed_files` сохраняет Suggested test projects
+по исходному snapshot и результату git, включая switch во время git; без graph
+список пуст. Kill host перед вычислением heuristic не скрывается под видом пустого
+списка. Детальные контракты и проверки — сценарии 17–19 раздела 11 design.
 
 **Память и задержка:** сравнить N=1 и N=10 совместимых клиентов в обычном и общем
 режимах на одинаковых контроле и нагрузке. Зафиксировать память всех прокси и

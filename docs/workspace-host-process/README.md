@@ -453,8 +453,8 @@ Task-04 — **completed, 2026-10-28**, принят standalone spike выдел�
 Task-01 — **in progress, 2026-10-29, docs-only**:
 [проект архитектурного решения](design.md),
 [основания, ревью и validation](epoch-0-design-and-spike/evidence/task-01-architecture-decision.md).
-Рекомендован выделенный host; технический проект прошёл независимое ревью:
-2 раунда, 3 подтверждённых исправления,
+Рекомендован выделенный host; текущий технический проект перепроверен после независимого ревью:
+4 раунда, 6 подтверждённых исправлений,
 [result](review-task-01-2026-10-29/result.md). 2026-10-29 владелец отложил O-01…O-04 до отдельных ревью.
 Task-02 не начат.
 Тема [D](../workspace-load-performance/README.md) остаётся независимой.
@@ -511,10 +511,13 @@ Task-02 не начат.
   Codex и **2026-10-28, раунд 3**, `claude-opus-5-5`: 8 замечаний (2 major, 4 minor,
   2 suggestion), 7 закрыты в документах, F-07 (код runner) не применялось;
   [результат](review-task-04-round-3-2026-10-28/result.md), [validation](evidence/2026-10-28-task-04-review-fixes.md).
-  Task-01 — **2026-10-29, раунды 1–2**, Codex `/root/task01_research_review`,
-  точный model ID недоступен; 3 подтверждённых исправления, технический проект принят;
-  [result](review-task-01-2026-10-29/result.md). Выбор владельца отложен до отдельных ревью, 2026-10-29.
-  Сумма известных раундов задач — **8**, исправлений — **28** (подробности в README E0).
+  Task-01 — **2026-10-29, раунды 1–2 и 4**, Codex `/root/task01_research_review`,
+  точный model ID недоступен; **раунд 3**, Grok 4.7. Всего 6 подтверждённых исправлений;
+  [Codex](review-task-01-2026-10-29/result.md),
+  [независимый Grok](review-task-01-independent-2026-10-29/result.md),
+  [ответ и validation](evidence/2026-10-29-task-01-independent-review-response.md).
+  Выбор владельца отложен, 2026-10-29.
+  Сумма известных раундов задач — **10**, исправлений — **31** (подробности в README E0).
   Task-02 независимое ревью результата не проходил.
 - Task-03: **completed, 2026-10-28**, standalone SDK-фасад/транспорт без Roslyn,
   Windows/WSL, обе модели host и две версии MCP. Исполнитель — Codex, точный ID
@@ -532,8 +535,10 @@ Task-02 не начат.
   [ревью](review-task-04-2026-10-28/result.md). Task-01 начат 2026-10-29.
 - Task-01: **in progress, 2026-10-29, docs-only**; исполнитель Codex, точный model ID недоступен.
   [Проект design](design.md), [отчёт](epoch-0-design-and-spike/evidence/task-01-architecture-decision.md).
-  Технический проект принят независимым сабагентом Codex: 2 раунда, 3 исправления,
-  [result](review-task-01-2026-10-29/result.md). После fixes применён research-task-authoring.
+  Технический проект перепроверен Codex после независимого Grok: всего 4 раунда, 6 исправлений,
+  [result](review-task-01-2026-10-29/result.md),
+  [ответ на независимое ревью](evidence/2026-10-29-task-01-independent-review-response.md).
+  После fixes применён research-task-authoring.
   Выбор владельца O-01…O-04 отложен до отдельных ревью, 2026-10-29; task-02 не начат.
 - Приёмка реализации эпохи: —.
 - Обновление scope, TDD-подхода и выделение ветки: **выполнено, 2026-10-23**,
