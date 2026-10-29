@@ -1,0 +1,72 @@
+{
+  "date": "2026-10-29",
+  "executor": "claude-opus-5-5 (Claude Code)",
+  "harness": "Claude Code 2.1.312 CLI, Linux",
+  "method": "Two headless `claude -p --model haiku --allowedTools mcp__roslyn__get_mcp_server_info --no-session-persistence` started concurrently from the worktree root; each MCP sampled from /proc while alive. The interactive session's own MCP added as a third member. Environment values hashed in memory only; neither values nor hashes stored.",
+  "members": [
+    {
+      "pid": 680361,
+      "parent": "claude -p Call the roslyn MCP tool get_mcp_server_info once ",
+      "cwd": "/home/vudz/projects/RoslynMcpServer-workspace-host-process",
+      "image": "/home/vudz/.cache/roslyn-mcp/snapshots/9bc5bbf7706d/RoslynMcpServer.dll",
+      "euid": 1000,
+      "fd9": "/home/vudz/.cache/roslyn-mcp/snapshots/9bc5bbf7706d/.complete",
+      "env_count": 45
+    },
+    {
+      "pid": 680368,
+      "parent": "claude -p Call the roslyn MCP tool get_mcp_server_info once ",
+      "cwd": "/home/vudz/projects/RoslynMcpServer-workspace-host-process",
+      "image": "/home/vudz/.cache/roslyn-mcp/snapshots/9bc5bbf7706d/RoslynMcpServer.dll",
+      "euid": 1000,
+      "fd9": "/home/vudz/.cache/roslyn-mcp/snapshots/9bc5bbf7706d/.complete",
+      "env_count": 45
+    },
+    {
+      "pid": 637162,
+      "parent": "interactive claude (this session)",
+      "cwd": "/home/vudz/projects/RoslynMcpServer-workspace-host-process",
+      "image": "/home/vudz/.cache/roslyn-mcp/snapshots/9bc5bbf7706d/RoslynMcpServer.dll",
+      "euid": 1000,
+      "fd9": "/home/vudz/.cache/roslyn-mcp/snapshots/9bc5bbf7706d/.complete",
+      "env_count": 40
+    }
+  ],
+  "same_checkout_cwd": true,
+  "same_image_directory": true,
+  "same_euid": true,
+  "get_mcp_server_info_both_headless": "v1.5.17.0, base directory snapshots/9bc5bbf7706d, cwd = worktree root, profile full, plugins none, RoslynMcp.jsonc absent in exe and cwd, no merged load settings",
+  "env_names_present_in_only_some_members": [
+    "CLAUDE_CODE_EXECPATH",
+    "CLAUDE_CODE_SESSION_ATTENDED",
+    "CLAUDE_EFFORT",
+    "CLAUDE_PID",
+    "GIT_EDITOR"
+  ],
+  "env_names_with_differing_values_all_three": [
+    "CLAUDE_CODE_ENTRYPOINT",
+    "CLAUDE_CODE_EXECPATH",
+    "CLAUDE_CODE_MESSAGING_SOCKET",
+    "CLAUDE_CODE_MESSAGING_TOKEN",
+    "CLAUDE_CODE_SESSION_ATTENDED",
+    "CLAUDE_CODE_SESSION_ID",
+    "CLAUDE_EFFORT",
+    "CLAUDE_PID",
+    "GIT_EDITOR",
+    "OLDPWD"
+  ],
+  "env_names_with_differing_values_headless_pair": [
+    "CLAUDE_CODE_MESSAGING_SOCKET",
+    "CLAUDE_CODE_MESSAGING_TOKEN",
+    "CLAUDE_CODE_SESSION_ID"
+  ],
+  "negative_control_other_checkout": {
+    "pid": 182744,
+    "cwd": "/home/vudz/projects/RoslynMcpServer",
+    "image": "/home/vudz/.cache/roslyn-mcp/snapshots/c5791082d76f/RoslynMcpServer.dll",
+    "differs_in": [
+      "workspace path (another checkout)",
+      "server image (older launcher snapshot)"
+    ]
+  }
+}

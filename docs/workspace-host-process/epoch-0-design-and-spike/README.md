@@ -4,12 +4,12 @@
   findings; принято только в scope исследовательского плана, design не принят;
   после ревью добавлены task-05 и сравнение моделей без повторного ревью**.
 - Статус исполнения: **in progress; task-00 completed, 2026-10-26, docs-only;
-  task-01 in progress, 2026-10-29, docs-only; task-02/task-06 planned; task-04 completed, 2026-10-28; task-03 completed, 2026-10-28; task-05 completed, 2026-10-28, isolated probe;
+  task-01 in progress, 2026-10-29, docs-only; task-02 planned; task-06 in progress, 2026-10-29; task-04 completed, 2026-10-28; task-03 completed, 2026-10-28; task-05 completed, 2026-10-28, isolated probe;
   production-код темы не начат**. Принятый scope task-00 — инвентаризация
   состояния и этапов инструментов; [результат и validation](evidence/task-00-state-inventory.md).
 - Актуализация task-00: **completed, 2026-10-28**; база main `4e5e9f9` / 1.5.17,
   S01–S42 и прежние 54 tools; [влияние изменений и validation](evidence/task-00-impact-2026-10-28.md).
-  Task-01 in progress, 2026-10-29; task-02/task-06 planned; task-04 completed, 2026-10-28; task-03 completed, 2026-10-28; task-05 completed, production host/proxy не реализован.
+  Task-01 in progress, 2026-10-29; task-02 planned; task-06 in progress, 2026-10-29; task-04 completed, 2026-10-28; task-03 completed, 2026-10-28; task-05 completed, production host/proxy не реализован.
   [Task-05: memory/GC, cohort и ограничения запуска](evidence/task-05-applicability.md)
   завершён в уточнённом владельцем исследовательском scope;
   [основание и validation](../evidence/2026-10-28-task-05-scope.md).
@@ -42,7 +42,7 @@
 - [task-03 — Spike транспорта и MCP-фасада](task-03-pipe-relay-spike-med.md) — `med`, **completed, 2026-10-28**; standalone SDK-фасад без Roslyn, обе модели host, две версии MCP, Windows/WSL; [результат и validation](evidence/task-03-pipe-relay-spike.md); Depends on: —
 - [task-04 — Spike переключения и восстановления](task-04-proxy-routing-and-recovery-spike-hi.md) — `hi`, **completed, 2026-10-28**; принят standalone spike выделенного host без Roslyn, Windows/WSL, две версии MCP; [результат, ревью и validation](evidence/task-04-routing-and-recovery-spike.md); Depends on: [task-03](task-03-pipe-relay-spike-med.md), [task-05](task-05-applicability-checks-med.md) с решением владельца
 - [task-05 — Проверки применимости](task-05-applicability-checks-med.md) — `med`, **completed, 2026-10-28, в уточнённом владельцем исследовательском scope**; память/GC/cohort и ограничения запуска host; [результат](evidence/task-05-applicability.md), [scope и validation](../evidence/2026-10-28-task-05-scope.md); Depends on: —
-- [task-06 — Preflight среды и развёртывания](task-06-environment-and-deployment-preflight-med.md) — `med`, **planned, 2026-10-29; проверка выбранного O-05 до окончательного O-01**; Depends on: [task-04](task-04-proxy-routing-and-recovery-spike-hi.md), [task-05](task-05-applicability-checks-med.md)
+- [task-06 — Preflight среды и развёртывания](task-06-environment-and-deployment-preflight-med.md) — `med`, **in progress, 2026-10-29; Linux/Claude Code выполнен, пара Codex/Windows ждёт данных владельца; объём сокращён, механизмы перенесены в task-02**; [отчёт](evidence/task-06-environment-and-deployment-preflight.md); Depends on: [task-04](task-04-proxy-routing-and-recovery-spike-hi.md), [task-05](task-05-applicability-checks-med.md)
 
 Task-05, task-00 и task-03 независимы; task-05 рекомендуется первым. После
 task-05 владелец решает, продолжать ли тему и какие модели проверять в task-04.
@@ -56,7 +56,7 @@ task-01. Только после design, независимого ревью и 
 Если владелец выбирает нулевой вариант, task-02 и E1 shared-режима не запускаются;
 невыполненные задачи получают статус deferred с причиной и ссылкой на решение.
 Это не приёмка реализации shared-режима. Task-00 завершён как docs-only
-инвентаризация; task-01 in progress, 2026-10-29; task-02/task-06 planned; task-04 completed, 2026-10-28; task-03 completed, 2026-10-28, task-05 completed. Завершение task-00 не заменяет
+инвентаризация; task-01 in progress, 2026-10-29; task-02 planned; task-06 in progress, 2026-10-29; task-04 completed, 2026-10-28; task-03 completed, 2026-10-28, task-05 completed. Завершение task-00 не заменяет
 решение владельца после task-05 и не запускает зависимые spike.
 
 Уточнение после [раунда 5](../review-task-01-round-5-2026-10-29/result.md): task-06
@@ -198,7 +198,7 @@ Linux и Windows; правила для соседей добавлены в des
 [решение](../evidence/2026-10-29-task-01-reset-decision.md).
 
 - Охват: task-00–task-06; task-00 completed, 2026-10-26, docs-only;
-  task-05 completed, 2026-10-28; task-01 in progress, 2026-10-29; task-02/task-06 planned; task-04 completed, 2026-10-28; task-03 completed, 2026-10-28.
+  task-05 completed, 2026-10-28; task-01 in progress, 2026-10-29; task-02 planned; task-06 in progress, 2026-10-29; task-04 completed, 2026-10-28; task-03 completed, 2026-10-28.
 - Фактические исполнители: task-00 — Codex, точный ID модели недоступен.
   Task-05 — `gpt-6.1-sol` (Codex; metadata harness).
   Task-03 и task-04 — Codex, точные model ID запусков недоступны.

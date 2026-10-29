@@ -89,3 +89,18 @@ python3 spikes/PipeRelay/check_unix_access.py /absolute/path/PipeRelay.dll /abso
 ```
 
 Контракт, найденные ограничения и данные — в [task-04](../../docs/workspace-host-process/epoch-0-design-and-spike/evidence/task-04-routing-and-recovery-spike.md).
+
+## Стоимость identity образа (task-06)
+
+```sh
+dotnet spikes/PipeRelay/bin/Release/net10.0/PipeRelay.dll identity-bench <source> <scratch> <out.json> <runs> [excluded top-level dir...]
+```
+
+Замер для одного file set сервера: stat-скан, полный SHA-256 манифест, копирование
+с хешем и fsync, повторный хеш копии, повторное использование записанного манифеста.
+Каждый замер выполняется `runs` раз в холодном и тёплом кеше. На Linux холодный кеш
+даёт `posix_fadvise(DONTNEED)` по каждому исходному файлу, без root; на других ОС
+только тёплый. Проба меняет один байт копии и восстанавливает mtime: stat-штамп
+совпадает, хеш — нет. Scratch, отдельный от source, удаляется после замера; кладите
+его на дисковую файловую систему, а не в tmpfs `/tmp`.
+Результаты — в [task-06](../../docs/workspace-host-process/epoch-0-design-and-spike/evidence/task-06-environment-and-deployment-preflight.md).

@@ -15,6 +15,11 @@ internal static class Program
                 return await RoutingProgram.Run(mode, args[1]);
             }
 
+            if (mode == "identity-bench")
+            {
+                return PipeRelay.Preflight.IdentityBench.Run(args);
+            }
+
             if (mode == "routing-checks")
             {
                 return await PipeRelay.Checks.RoutingChecks.Run(args.ElementAtOrDefault(1) ?? "all");

@@ -1,0 +1,80 @@
+{
+  "Source": "/home/vudz/projects/RoslynMcpServer/bin/Release/net10.0",
+  "ExcludedTopLevel": [
+    "linux-arm64",
+    "linux-musl-x64",
+    "linux-x64",
+    "logs",
+    "osx-arm64",
+    "win-arm64",
+    "win-x64"
+  ],
+  "Files": 231,
+  "Bytes": 111069385,
+  "Runtime": ".NET 10.0.13",
+  "Os": "Ubuntu 26.04.1 LTS",
+  "GcMode": "workstation",
+  "ProcessorCount": 2,
+  "ColdMethod": "posix_fadvise(DONTNEED) on every source file",
+  "Samples": [
+    {
+      "Cache": "cold",
+      "Run": 1,
+      "StatScanMs": 0.8581,
+      "ManifestHashMs": 679.9512,
+      "CopyWithHashMs": 2622.2506,
+      "VerifyCopyMs": 105.2654,
+      "ManifestReuseMs": 15.198
+    },
+    {
+      "Cache": "cold",
+      "Run": 2,
+      "StatScanMs": 0.6153,
+      "ManifestHashMs": 757.1686,
+      "CopyWithHashMs": 2731.2125,
+      "VerifyCopyMs": 96.6117,
+      "ManifestReuseMs": 3.6603
+    },
+    {
+      "Cache": "cold",
+      "Run": 3,
+      "StatScanMs": 0.6129,
+      "ManifestHashMs": 682.7178,
+      "CopyWithHashMs": 2516.4565,
+      "VerifyCopyMs": 96.1432,
+      "ManifestReuseMs": 1.5621
+    },
+    {
+      "Cache": "warm",
+      "Run": 1,
+      "StatScanMs": 0.4536,
+      "ManifestHashMs": 99.5724,
+      "CopyWithHashMs": 2227.1743,
+      "VerifyCopyMs": 95.2592,
+      "ManifestReuseMs": 1.6101
+    },
+    {
+      "Cache": "warm",
+      "Run": 2,
+      "StatScanMs": 0.4341,
+      "ManifestHashMs": 99.6801,
+      "CopyWithHashMs": 2227.6832,
+      "VerifyCopyMs": 95.2264,
+      "ManifestReuseMs": 1.3959
+    },
+    {
+      "Cache": "warm",
+      "Run": 3,
+      "StatScanMs": 0.4952,
+      "ManifestHashMs": 102.4523,
+      "CopyWithHashMs": 2010.0885,
+      "VerifyCopyMs": 97.025,
+      "ManifestReuseMs": 2.1698
+    }
+  ],
+  "StaleStat": {
+    "File": "BuildHost-net472/Microsoft.Bcl.AsyncInterfaces.dll",
+    "StatStampEqual": true,
+    "ContentHashEqual": false
+  }
+}

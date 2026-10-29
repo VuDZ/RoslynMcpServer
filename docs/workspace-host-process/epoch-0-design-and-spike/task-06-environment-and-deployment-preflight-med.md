@@ -5,13 +5,13 @@
 - Примерная сложность: 3/5; класс `med`.
 - Риск ошибки: средний — несопоставимая пара процессов или неполный manifest даст ложную применимость shared-режима.
 - Необходимые способности: `проектирование_проверок`, `анализ_требований`, `анализ_производительности`.
-- Статус: planned, 2026-10-29; план уточнён по выбранному владельцем O-05, preflight до окончательного O-01, выполнение не начато.
+- Статус: in progress, 2026-10-29; Linux/Claude Code выполнен, пара Codex/Windows ждёт данных владельца; объём сокращён владельцем — пункты 2, 3 (кроме MSBuild-контрпримера), 5 и сценарии 24–25 перенесены в task-02.
 - Depends on: [task-04](task-04-proxy-routing-and-recovery-spike-hi.md), [task-05](task-05-applicability-checks-med.md).
-- Модель, реализовавшая задачу: —.
+- Модель, реализовавшая задачу: `claude-opus-5-5` (Claude Code).
 - Модели, проводившие ревью: —.
 - Количество раундов ревью: —.
 - Количество исправлений после ревью: —.
-- Отчёт о реализации, ревью и validation: —.
+- Отчёт о реализации, ревью и validation: [отчёт](evidence/task-06-environment-and-deployment-preflight.md).
 
 ## Цель
 
@@ -34,6 +34,11 @@
 Внешний Linux launcher не редактировать: [L-01](../README.md#l-01-launcher) имеет отдельного владельца.
 
 ## Что сделать
+
+**Сокращение объёма, решение владельца 2026-10-29:** пункты 2, 3 (кроме
+MSBuild-контрпримера), 5 и дополнительные сценарии 24–25 — прототипы механизмов;
+они перенесены в [task-02](task-02-bridge-spike-hi.md) и выполняются там один раз
+на настоящем Roslyn. Здесь остаются пункты 1, 4 (факты среды), 6, 7 и контрпример.
 
 1. **Go/no-go reuse.** На Codex/Windows и Claude Code/Linux получить по два настоящих MCP одного checkout с одинаковыми path/Configuration/Platform/TFM и namespace/image admission. Разные session environments не должны дробить WorkspaceKey. Проверить negative controls разных checkout и каждого load property; не выдавать их за совместимую пару.
 2. На лёгком стенде воспроизвести created/reused receipt, cache hit и launch race. Создатель нового shared/private host не получает дополнительный reuse block. Присоединившийся proxy получает actual path/global properties/toolset/cwd/config origin/host policy и инструкцию forceFresh также при cached/brief load. Не выдумывать значения отсутствующих global properties и не сохранять env values/credentials; environment parity помечена unverified.

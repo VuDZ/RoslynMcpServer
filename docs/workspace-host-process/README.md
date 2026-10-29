@@ -431,8 +431,8 @@ Path/global properties/toolset/cwd/config origin/policy показываются
 [Решение, границы и validation](evidence/2026-10-29-task-01-owner-context.md).
 
 Прежние варианты canonical-v1/strict после раунда 5 заменены этим решением.
-O-02/O-03/O-04 выбраны ниже; O-01 открыт. Task-06 planned: reuse/private/output и storage/
-startup identity до окончательного O-01. Task-02 не начат, design целиком не принят.
+O-02/O-03/O-04 выбраны ниже; O-01 открыт. Task-06 in progress, 2026-10-29: Linux/Claude Code выполнен, пара Codex/Windows ждёт данных владельца; объём сокращён, механизмы перенесены в task-02; [отчёт task-06](epoch-0-design-and-spike/evidence/task-06-environment-and-deployment-preflight.md).
+Task-02 не начат, design целиком не принят.
 
 <a id="o-02-reset-options"></a>
 **O-02 — выбрано, 2026-10-29: global retire.** Reset редок: в Linux-логах за неделю
@@ -475,6 +475,11 @@ owner — сопровождающий Linux launcher владельца, `~/.lo
 не новый локальный замер. Task-06 проверяет file set/reuse и передаёт исправление
 владельцу launcher; скрипт здесь не читался/не менялся. Нельзя просто исключить
 все subdirectories: runtime/native/BuildHost/plugin dependencies должны сохраниться.
+Аудит task-06, 2026-10-29, read-only: собственный file set сервера — 105,9 МиБ / 231 файл;
+identity snapshot — size/mtime двух файлов без манифеста; согласованность копии
+проверяется только по ним же; lease `flock` на fd 9 наследуется всеми потомками .NET,
+включая `setsid`. Reuse snapshot — no-go, host строит свой образ.
+[Аудит](epoch-0-design-and-spike/evidence/task-06-environment-and-deployment-preflight.md#7-аудит-launcher).
 
 ## Маршрут
 
@@ -527,7 +532,7 @@ Task-01 — **in progress, 2026-10-29, docs-only**:
 Выделенный host остаётся кандидатом после task-06; текущие documentation fixes перепроверены:
 9 раундов, 14 подтверждённых исправлений,
 [result](review-task-01-2026-10-29/result.md). 2026-10-29 владелец отложил O-01…O-04 до отдельных ревью.
-Task-06 planned до окончательного O-01; task-02 не начат. O-03/O-04/O-05 выбраны владельцем;
+Task-06 in progress, 2026-10-29: Linux/Claude Code выполнен, пара Codex/Windows ждёт данных владельца; объём сокращён, механизмы перенесены в task-02 ([отчёт task-06](epoch-0-design-and-spike/evidence/task-06-environment-and-deployment-preflight.md)); task-02 не начат. O-03/O-04/O-05 выбраны владельцем;
 [новая редакция и validation](evidence/2026-10-29-task-01-owner-context.md).
 Тема [D](../workspace-load-performance/README.md) остаётся независимой.
 
@@ -594,7 +599,7 @@ Task-06 planned до окончательного O-01; task-02 не начат.
   [решение O-05 и validation раундов 8–9](evidence/2026-10-29-task-01-owner-context.md).
   Выбор владельца отложен, 2026-10-29.
   Сумма известных раундов задач — **16**, исправлений — **39** (подробности в README E0).
-  Task-02/task-06 planned, независимого ревью результата не проходили.
+  Task-02 planned, task-06 in progress; независимого ревью результата не проходили.
 - Task-03: **completed, 2026-10-28**, standalone SDK-фасад/транспорт без Roslyn,
   Windows/WSL, обе модели host и две версии MCP. Исполнитель — Codex, точный ID
   модели запуска недоступен; независимое ревью — `claude-opus-5-5`, раунд 1,
@@ -622,8 +627,8 @@ Task-06 planned до окончательного O-01; task-02 не начат.
   ([решение](evidence/2026-10-29-task-01-reset-decision.md)); O-05 —
   небольшой key/private fresh/reuse-only load output;
   [решение и validation](evidence/2026-10-29-task-01-owner-context.md).
-  Task-06 planned, 2026-10-29: preflight среды/storage/startup identity до O-01;
-  task-02 не начат. [План и validation](evidence/2026-10-29-task-01-round-5-response.md).
+  Task-06 in progress, 2026-10-29: Linux/Claude Code выполнен, пара Codex/Windows ждёт данных владельца; объём сокращён, механизмы перенесены в task-02;
+  [отчёт task-06](epoch-0-design-and-spike/evidence/task-06-environment-and-deployment-preflight.md). Task-02 не начат. [План и validation](evidence/2026-10-29-task-01-round-5-response.md).
 - Приёмка реализации эпохи: —.
 - Обновление scope, TDD-подхода и выделение ветки: **выполнено, 2026-10-23**,
   только документация; `research/workspace-host-process` от `main` (`22b9924`);

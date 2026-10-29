@@ -1,0 +1,33 @@
+{
+  "date": "2026-10-29",
+  "executor": "claude-opus-5-5 (Claude Code)",
+  "base": "c67283e",
+  "host": "Ubuntu 26.04.1, Linux 7.0.0-34-generic, native, euid 1000, .NET SDK 10.0.113, runtime 10.0.13",
+  "storage": {
+    "rendezvous_candidate": {"path": "/tmp", "fstype": "tmpfs", "options": "rw,nosuid,nodev", "noexec": false, "owner_mode": "root 1777", "available": "1.9G"},
+    "storage_candidate": {"path": "~/.cache (XDG_CACHE_HOME unset)", "fstype": "ext4", "noexec": false, "owner_mode": "vudz 700", "available": "17G"},
+    "existing_launcher_cache": {"path": "~/.cache/roslyn-mcp", "fstype": "ext4", "owner_mode": "vudz 775", "note": "group-writable, protected only by the 700 parent"},
+    "xdg_runtime_dir": {"path": "/run/user/1000", "fstype": "tmpfs", "owner_mode": "vudz 700", "available": "385M"},
+    "socket_path_bytes_euid_1000_full_key": {"pipe": 93, "socket": 95, "host.sock": 98, "limit": 103}
+  },
+  "launcher_audit": {
+    "source": "~/.local/share/roslyn-mcp/launch.sh, read-only; not in the repository",
+    "selected_source": "newest of bin/{Release,Debug}/net10.0 and */publish under the fixed main repository path, independent of cwd",
+    "snapshot_identity": "sha1 of source path plus size/mtime of RoslynMcpServer.dll and RoslynMcpServer.deps.json; no content manifest",
+    "copy_consistency": "only the same two files are re-stamped after rsync; other files may change mid-copy undetected",
+    "immutability": "convention only; snapshot directories stay user-writable, no read-only bits, no stored manifest",
+    "use_lease": "flock LOCK_SH on <snapshot>/.complete via bash fd 9, inherited through exec by dotnet",
+    "lease_inheritance": "verified: children started by .NET Process.Start, directly and through setsid, inherit fd 9 and therefore the shared flock",
+    "cleanup": "flock -n -x on other snapshots' .complete, then rm -rf; .tmp.* removed after 30 minutes",
+    "config_origin": "snapshot directory (copy of the build output); cwd config as usual",
+    "observed_mcp": "running MCP reports 1.5.17 from snapshot 9bc5bbf7706d; the snapshot is the newest main build output (RoslynMcpServer.dll 2026-10-27); a fresh launcher run reused it. get_mcp_server_info \"Binary modified\" is the dotnet host mtime, not the server image",
+    "file_set": "launcher copies nested <rid> server outputs: 2.0G/4868 files; the server's own file set without them: 105.9 MiB/231 files (see identity-bench-linux.json)"
+  },
+  "msbuild_environment_counterexample": {
+    "fixture": "SDK project with <Compile Include=\"Extra.cs\" Condition=\"'$(PROBE_FEATURE)' == '1'\" />",
+    "command": "PROBE_FEATURE=<v> dotnet msbuild Probe.csproj -getItem:Compile",
+    "PROBE_FEATURE=0": ["Common.cs"],
+    "PROBE_FEATURE=1": ["Common.cs", "Extra.cs"],
+    "meaning": "same path and global properties, different inherited environment, different compile graph"
+  }
+}

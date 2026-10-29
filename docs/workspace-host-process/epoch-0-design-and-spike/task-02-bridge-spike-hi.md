@@ -54,7 +54,10 @@ Roslyn. Команды и результаты до/после — в evidence. 
 
 До окончательного выбора модели go/no-go среды/storage выполняет
 [task-06](task-06-environment-and-deployment-preflight-med.md). Здесь повторить
-его контроль на реализации: совместимые реальные пары Codex/Windows и Claude Code/Linux
+его контроль на реализации. Решением владельца 2026-10-29 прототипы механизмов task-06 —
+receipt created/reused, private fresh, отказы storage, prelaunch identity lease, сценарии 24–25 —
+перенесены сюда и выполняются здесь впервые; reuse launcher snapshot — no-go по аудиту
+[task-06](evidence/task-06-environment-and-deployment-preflight.md#7-аудит-launcher). Проверить: совместимые реальные пары Codex/Windows и Claude Code/Linux
 одного checkout, WorkspaceKey path/Configuration/Platform/TFM и отдельный namespace/
 image admission. Разные session environments не дробят WorkspaceKey. Host сохраняет
 контекст инициатора; CLI proxy — собственную среду. Reused load показывает actual
@@ -111,7 +114,7 @@ plugins=none. SamplePlugin можно использовать отдельно 
 created/reused race и отсутствие reuse block у создателя. Reused cached/brief load
 содержит actual context/инструкцию; отсутствующие global properties и env secrets
 не превращаются в выдуманные значения или raw dumps.
-Сценарий 24: tool-only private intent переживает reset defaults/unbind, hard retire
+Сценарий 24: tool-only private intent переживает reset defaults/unbind, retire
 и cleanup host отдельно от binding. Explicit/config lazy load того же resolved key
 не возвращается в shared, не восстанавливая при этом сброшенные load defaults.
 Сценарий 25: старый creator ушёл, shared host crashed, surviving proxy имеют разные
