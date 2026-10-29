@@ -264,3 +264,19 @@ Multi-client singleton state — отдельная отложенная сов�
 global config и местоположением выбранного solution/project, а не cwd запуска.
 Отложенный gap P-01 передан E1; [требование, текущий source и validation](../../evidence/2026-10-29-task-01-plugins-deferred.md#p-01-источники-плагинов-по-выбранному-workspace).
 Поддержка plugins по-прежнему отложена, loader и конфигурация не менялись.
+
+## O-02 выбран, 2026-10-29
+
+На базе `ecb930b` владелец выбрал O-02 = **global retire**: по логам reset крайне редок
+(Linux, Claude Code — 0 вызовов из 468 tool calls за 2026-10-21…28; Windows, два
+компьютера основной разработки — 4 вызова около двух недель назад), поэтому нужен самый
+надёжный, а не самый сложный путь. Soft reset и локальный reset в private host отвергнуты.
+По вопросу владельца в design §7 добавлены правила для соседей: read-only вызовы
+отменяются сразу с явной просьбой повторить, без outcome-unknown; принятые записи
+завершаются в drain budget; proxy CLI не прерывается и не получает proof; следующий
+вызов ждёт одну загрузку нового generation и один раз сообщает о перезапуске.
+[Решение, данные и сравнение](../../evidence/2026-10-29-task-01-reset-decision.md).
+
+Запись и уточнение — `claude-opus-5-5` (Claude Code), docs-only; нового независимого
+ревью нет, counters 9/14 прежние. O-02/O-03/O-04/O-05 выбраны, O-01 открыт;
+task-01 in progress, task-02/task-06 planned. Build/tests и runtime не запускались.

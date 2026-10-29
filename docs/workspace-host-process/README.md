@@ -431,18 +431,19 @@ Path/global properties/toolset/cwd/config origin/policy показываются
 [Решение, границы и validation](evidence/2026-10-29-task-01-owner-context.md).
 
 Прежние варианты canonical-v1/strict после раунда 5 заменены этим решением.
-O-02 всё ещё открыт; reload graph может быть дорогим. Дополнительный вариант ниже.
-O-01/O-02 открыты; O-03/O-04 выбраны ниже. Task-06 planned: reuse/private/output и storage/
+O-02/O-03/O-04 выбраны ниже; O-01 открыт. Task-06 planned: reuse/private/output и storage/
 startup identity до окончательного O-01. Task-02 не начат, design целиком не принят.
 
 <a id="o-02-reset-options"></a>
-**O-02 — оставить открытым, 2026-10-29.** Владелец предложил локальный reset:
-вызывающий MCP покидает прежний host, остальные продолжают работу с текущим workspace.
-Следующий load инициатора создаёт private host; если у прежнего не осталось клиентов/
-call references, он завершается по grace. Detach или завершение MCP-процесса ещё не
-выбраны. Сохраняются вопросы freshness соседей после disk changes, discovery и RAM.
-Этот вариант сравнивается с общей soft reset и global retire, не выбран вместо них.
-[Предложение, статус и validation](evidence/2026-10-29-task-01-reset-options.md).
+**O-02 — выбрано, 2026-10-29: global retire.** Reset редок: в Linux-логах за неделю
+нет ни одного вызова, на двух Windows-компьютерах основной разработки — 4 вызова около
+двух недель назад. Поэтому выбран самый надёжный путь: shared `reset_workspace`
+завершает общий host, следующий вызов поднимает новый generation одной загрузкой.
+Read-only вызовы соседей прерываются сразу с просьбой повторить, принятые записи
+завершаются, proxy CLI не прерывается, следующий вызов сообщает агенту о перезапуске.
+Soft reset и предложенный ранее локальный reset в private host
+([запись варианта](evidence/2026-10-29-task-01-reset-options.md)) отвергнуты.
+[Решение, данные и правила для соседей](evidence/2026-10-29-task-01-reset-decision.md).
 
 <a id="o-03-dev-publish"></a>
 **O-03 — выбрано, 2026-10-29:** publish с остановкой — сценарий разработки.
@@ -617,7 +618,8 @@ Task-06 planned до окончательного O-01; task-02 не начат.
   [ответ и validation раундов 5–7](evidence/2026-10-29-task-01-round-5-response.md),
   [решение O-05 и validation раундов 8–9](evidence/2026-10-29-task-01-owner-context.md).
   После fixes применён research-task-authoring.
-  O-01/O-02 открыты, 2026-10-29; O-03/O-04/O-05 выбраны:
+  O-01 открыт, 2026-10-29; O-02/O-03/O-04/O-05 выбраны, O-02 — global retire
+  ([решение](evidence/2026-10-29-task-01-reset-decision.md)); O-05 —
   небольшой key/private fresh/reuse-only load output;
   [решение и validation](evidence/2026-10-29-task-01-owner-context.md).
   Task-06 planned, 2026-10-29: preflight среды/storage/startup identity до O-01;

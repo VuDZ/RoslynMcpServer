@@ -5,7 +5,7 @@
 - Примерная сложность: 4/5; класс `hi`.
 - Риск ошибки: высокий — ошибка в модели сессий, жизненном цикле или безопасности канала проявится только в долгой работе нескольких клиентов.
 - Необходимые способности: `согласованность_компонентов`, `анализ_требований`, `планирование_реализации`.
-- Статус: in progress, 2026-10-29; O-05 выбран владельцем: небольшой key/private fresh/reuse-only load output; редакция O-05 перепроверена в раундах 8–9. O-03 dev publish выбран, O-04 plugins отложены; O-01/O-02 открыты, task-06 planned, task-02 не начат.
+- Статус: in progress, 2026-10-29; O-05 выбран владельцем: небольшой key/private fresh/reuse-only load output; редакция O-05 перепроверена в раундах 8–9. O-02 global retire и O-03 dev publish выбраны, O-04 plugins отложены; O-01 открыт, task-06 planned, task-02 не начат.
 - Depends on: [task-00](task-00-process-state-inventory-med.md), [task-03](task-03-pipe-relay-spike-med.md), [task-04](task-04-proxy-routing-and-recovery-spike-hi.md), [task-05](task-05-applicability-checks-med.md); окончательный выбор также ждёт [task-06](task-06-environment-and-deployment-preflight-med.md).
 - Модель, реализовавшая задачу: GPT Sol-6.1 (`gpt-6.1-sol`), Codex; уточнено владельцем 2026-10-29.
 - Модели, проводившие ревью: Codex, отдельная сессия `/root/task01_research_review`, точный model ID недоступен (раунды 1–2, 4, 6–9); Grok 4.7, session ID недоступен (раунд 3); `claude-opus-5-5`, Claude Code (раунд 5).
@@ -140,10 +140,12 @@ O-03 выбран владельцем 2026-10-29: dev publish сохраняе�
 каталога разработки; при respawn harness допустим отказ и ручная остановка, без
 нового launcher/kill loop. [Решение и validation](../evidence/2026-10-29-task-01-dev-publish.md).
 
-O-02 оставлен владельцем открытым 2026-10-29. К общей очистке и global retire
-добавлен локальный reset инициатора с последующим private host, без сброса workspace
-соседей. Способ отключения MCP и границы свежести/discovery/RAM не выбраны;
-[запись предложения](../evidence/2026-10-29-task-01-reset-options.md).
+O-02 сначала оставлен открытым с вариантом локального reset
+([запись](../evidence/2026-10-29-task-01-reset-options.md)), затем 2026-10-29 выбран
+владельцем: global retire, так как reset крайне редок по логам Linux и Windows.
+Правила для соседей — немедленная отмена read-only с просьбой повторить, завершение
+принятых записей, уведомление о перезапуске — в design §7;
+[решение](../evidence/2026-10-29-task-01-reset-decision.md).
 
 ## Проверки
 

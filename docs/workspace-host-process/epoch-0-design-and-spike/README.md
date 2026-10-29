@@ -37,8 +37,8 @@
 ## Задачи
 
 - [task-00 — Инвентаризация состояния процесса](task-00-process-state-inventory-med.md) — `med`, **completed, 2026-10-26; актуализировано 2026-10-28, docs-only**; S01–S42 и этапы 54 tools, [исходный отчёт](evidence/task-00-state-inventory.md), [поправки и validation](evidence/task-00-impact-2026-10-28.md); Depends on: —
-- [task-01 — Архитектурное решение](task-01-architecture-decision-hi.md) — `hi`, **in progress, 2026-10-29, docs-only; O-05 выбран: небольшой key/private fresh/reuse-only output; редакция O-05 перепроверена в раундах 8–9; O-03 выбран, O-04 plugins отложены; O-01/O-02 открыты**; [design](../design.md), [отчёт](evidence/task-01-architecture-decision.md); Depends on: [task-00](task-00-process-state-inventory-med.md), [task-03](task-03-pipe-relay-spike-med.md), [task-04](task-04-proxy-routing-and-recovery-spike-hi.md), [task-05](task-05-applicability-checks-med.md), до окончательного выбора — [task-06](task-06-environment-and-deployment-preflight-med.md)
-- [task-02 — Интеграционный spike прокси и host](task-02-bridge-spike-hi.md) — `hi`, **planned**; Depends on: [task-01](task-01-architecture-decision-hi.md) с оставшимися решениями владельца после [task-06](task-06-environment-and-deployment-preflight-med.md); O-03/O-04/O-05 выбраны, O-01/O-02 открыты; [D/E0/task-01](../../workspace-load-performance/epoch-0-stage-measurement/task-01-load-stage-timings-med.md)
+- [task-01 — Архитектурное решение](task-01-architecture-decision-hi.md) — `hi`, **in progress, 2026-10-29, docs-only; O-05 выбран: небольшой key/private fresh/reuse-only output; редакция O-05 перепроверена в раундах 8–9; O-02 global retire и O-03 выбраны, O-04 plugins отложены; O-01 открыт**; [design](../design.md), [отчёт](evidence/task-01-architecture-decision.md); Depends on: [task-00](task-00-process-state-inventory-med.md), [task-03](task-03-pipe-relay-spike-med.md), [task-04](task-04-proxy-routing-and-recovery-spike-hi.md), [task-05](task-05-applicability-checks-med.md), до окончательного выбора — [task-06](task-06-environment-and-deployment-preflight-med.md)
+- [task-02 — Интеграционный spike прокси и host](task-02-bridge-spike-hi.md) — `hi`, **planned**; Depends on: [task-01](task-01-architecture-decision-hi.md) с оставшимися решениями владельца после [task-06](task-06-environment-and-deployment-preflight-med.md); O-02/O-03/O-04/O-05 выбраны, O-01 открыт; [D/E0/task-01](../../workspace-load-performance/epoch-0-stage-measurement/task-01-load-stage-timings-med.md)
 - [task-03 — Spike транспорта и MCP-фасада](task-03-pipe-relay-spike-med.md) — `med`, **completed, 2026-10-28**; standalone SDK-фасад без Roslyn, обе модели host, две версии MCP, Windows/WSL; [результат и validation](evidence/task-03-pipe-relay-spike.md); Depends on: —
 - [task-04 — Spike переключения и восстановления](task-04-proxy-routing-and-recovery-spike-hi.md) — `hi`, **completed, 2026-10-28**; принят standalone spike выделенного host без Roslyn, Windows/WSL, две версии MCP; [результат, ревью и validation](evidence/task-04-routing-and-recovery-spike.md); Depends on: [task-03](task-03-pipe-relay-spike-med.md), [task-05](task-05-applicability-checks-med.md) с решением владельца
 - [task-05 — Проверки применимости](task-05-applicability-checks-med.md) — `med`, **completed, 2026-10-28, в уточнённом владельцем исследовательском scope**; память/GC/cohort и ограничения запуска host; [результат](evidence/task-05-applicability.md), [scope и validation](../evidence/2026-10-28-task-05-scope.md); Depends on: —
@@ -62,7 +62,7 @@ task-01. Только после design, независимого ревью и 
 Уточнение после [раунда 5](../review-task-01-round-5-2026-10-29/result.md): task-06
 идёт **до окончательного выбора** task-01. Он использует proposed design как вход,
 а не зависит от завершённого task-01; цикла зависимостей нет. Позже 2026-10-29 O-05 выбран владельцем:
-небольшой key/private fresh/reuse-only output. O-02 ещё не выбран;
+небольшой key/private fresh/reuse-only output. O-02 выбран позже: global retire;
 [решение и validation](../evidence/2026-10-29-task-01-owner-context.md). Task-06 planned, task-02 по-прежнему не начат.
 
 ## Сквозные критерии
@@ -193,6 +193,9 @@ O-02 оставлен владельцем открытым 2026-10-29; доба
 инициатора с последующим private host, при сохранении workspace остальных клиентов.
 [Предложение и validation](../evidence/2026-10-29-task-01-reset-options.md).
 Это запись альтернативы после раунда 9, без выбора/реализации и нового ревью.
+Затем 2026-10-29 владелец выбрал O-02 = global retire: reset крайне редок по логам
+Linux и Windows; правила для соседей добавлены в design §7, без нового ревью;
+[решение](../evidence/2026-10-29-task-01-reset-decision.md).
 
 - Охват: task-00–task-06; task-00 completed, 2026-10-26, docs-only;
   task-05 completed, 2026-10-28; task-01 in progress, 2026-10-29; task-02/task-06 planned; task-04 completed, 2026-10-28; task-03 completed, 2026-10-28.

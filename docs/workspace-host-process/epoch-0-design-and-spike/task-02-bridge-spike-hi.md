@@ -6,7 +6,7 @@
 - Риск ошибки: высокий — разделение session/workspace и восстановление могут нарушить публикацию, lifecycle analyzers или изоляцию проектов.
 - Необходимые способности: `согласованность_компонентов`, `проектирование_проверок`, `анализ_производительности`.
 - Статус: planned; план обновлён 2026-10-29 по решению владельца O-05; реализация не начата.
-- Depends on: [task-01](task-01-architecture-decision-hi.md) с оставшимися решениями владельца после [task-06](task-06-environment-and-deployment-preflight-med.md); O-03/O-04/O-05 выбраны, O-01/O-02 открыты; [D/E0/task-01](../../workspace-load-performance/epoch-0-stage-measurement/task-01-load-stage-timings-med.md).
+- Depends on: [task-01](task-01-architecture-decision-hi.md) с оставшимися решениями владельца после [task-06](task-06-environment-and-deployment-preflight-med.md); O-02/O-03/O-04/O-05 выбраны, O-01 открыт; [D/E0/task-01](../../workspace-load-performance/epoch-0-stage-measurement/task-01-load-stage-timings-med.md).
 - Модель, реализовавшая задачу: —.
 - Модели, проводившие ревью: —.
 - Количество раундов ревью: —.
@@ -135,16 +135,13 @@ generation. Не объявлять новую среду восстановле
    неопределённого исхода проверяются вместе с настоящими инструментами.
 5. Reset/stop и restart-required после обновления analyzer проходят по design;
    перезапуск прокси не объявляется обновлением загруженного в host analyzer.
-   **O-02 остаётся открытым; реализуется только выбранная владельцем семантика.**
-   Для варианта soft reset host сохраняется при живом соседе и меняет epoch,
-   hard retire применяется по подтверждённому restart-required/неисправимому admission.
-   При N=10 повторить reset→load после rename/изменения состава/generated; измерить
-   latency соседей и physical-load/retire counts. Timeout drain до clear возвращает
-   busy; одинаковые invalidation coalesce, запоздавший reset не сбрасывает новую publication.
-   Новый кандидат владельца — локальный reset с уходом инициатора в private host:
-   отдельно оценить отсутствие reset-эффекта на соседей, RAM/discovery и причины
-   общего graph refresh. Detach или завершение MCP ещё не выбраны; не реализовывать
-   этот вариант вместе с остальными до решения O-02.
+   O-02 выбран владельцем 2026-10-29: shared reset — global retire host
+   ([решение](../evidence/2026-10-29-task-01-reset-decision.md)). Проверить при
+   двух клиентах: длительный поиск соседа отменяется сразу с текстом «прерван reset
+   другой сессии, повторите», без outcome-unknown; принятая запись завершается;
+   proxy CLI не прерывается и не получает proof; следующий вызов соседа ждёт одну
+   загрузку нового generation и один раз сообщает о перезапуске. При N=10 reset→load
+   даёт одну physical attempt; replay нет.
 6. Add/remove package и применённый rename при двух клиентах меняют общую
    WorkspaceEpoch и запрещают прежние tickets/proof state всех сессий, даже при
    потерянном notification. Старый proxy CLI может завершиться без подтверждения
