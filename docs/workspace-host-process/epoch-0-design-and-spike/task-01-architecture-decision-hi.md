@@ -5,12 +5,12 @@
 - Примерная сложность: 4/5; класс `hi`.
 - Риск ошибки: высокий — ошибка в модели сессий, жизненном цикле или безопасности канала проявится только в долгой работе нескольких клиентов.
 - Необходимые способности: `согласованность_компонентов`, `анализ_требований`, `планирование_реализации`.
-- Статус: in progress, 2026-10-29; O-05 выбран владельцем: небольшой key/private fresh/reuse-only load output; редакция O-05 перепроверена в раундах 8–9. O-02 global retire и O-03 dev publish выбраны, O-04 plugins отложены; O-01 открыт, task-06 planned, task-02 не начат.
+- Статус: in progress, 2026-10-29; O-05 выбран владельцем: небольшой key/private fresh/reuse-only load output; редакция O-05 перепроверена в раундах 8–9. O-02 global retire и O-03 dev publish выбраны, O-04 plugins отложены; O-01 открыт, task-06 completed в сокращённом preflight scope, task-02 не начат.
 - Depends on: [task-00](task-00-process-state-inventory-med.md), [task-03](task-03-pipe-relay-spike-med.md), [task-04](task-04-proxy-routing-and-recovery-spike-hi.md), [task-05](task-05-applicability-checks-med.md); окончательный выбор также ждёт [task-06](task-06-environment-and-deployment-preflight-med.md).
 - Модель, реализовавшая задачу: GPT Sol-6.1 (`gpt-6.1-sol`), Codex; уточнено владельцем 2026-10-29.
-- Модели, проводившие ревью: Codex, отдельная сессия `/root/task01_research_review`, точный model ID недоступен (раунды 1–2, 4, 6–9); Grok 4.7, session ID недоступен (раунд 3); `claude-opus-5-5`, Claude Code (раунд 5).
-- Количество раундов ревью: 9.
-- Количество исправлений после ревью: 14 (Codex/F-01…F-03 подтверждены в раунде 2; independent/F-01…F-03 — в раунде 4; r5/F-01…F-05 — в раунде 6; R6-N01 — в раунде 7; R8-F01/R8-F02 — в раунде 9).
+- Модели, проводившие ревью: Codex, отдельная сессия `/root/task01_research_review`, точный model ID недоступен (раунды 1–2, 4, 6–11); Grok 4.7, session ID недоступен (раунд 3); `claude-opus-5-5`, Claude Code (раунд 5).
+- Количество раундов ревью: 11.
+- Количество исправлений после ревью: 15 (Codex/F-01…F-03 подтверждены в раунде 2; independent/F-01…F-03 — в раунде 4; r5/F-01…F-05 — в раунде 6; R6-N01 — в раунде 7; R8-F01/R8-F02 — в раунде 9; R10-F01 — в раунде 11).
 - Отчёт о реализации, ревью и validation: [проект design](../design.md), [отчёт](evidence/task-01-architecture-decision.md).
 
 ## Цель
@@ -143,8 +143,9 @@ O-03 выбран владельцем 2026-10-29: dev publish сохраняе�
 O-02 сначала оставлен открытым с вариантом локального reset
 ([запись](../evidence/2026-10-29-task-01-reset-options.md)), затем 2026-10-29 выбран
 владельцем: global retire, так как reset крайне редок по логам Linux и Windows.
-Правила для соседей — немедленная отмена read-only с просьбой повторить, завершение
-принятых записей, уведомление о перезапуске — в design §7;
+Правила для соседей — отмена чистых read-стадий с просьбой повторить, drain
+load/prepare/MSBuild и принятых записей с явным исходом либо неопределённостью эффектов,
+уведомление о перезапуске — в design §7. Metadata readOnly не доказывает чистоту;
 [решение](../evidence/2026-10-29-task-01-reset-decision.md).
 
 ## Проверки

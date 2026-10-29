@@ -2,13 +2,17 @@
 
 ## Главное
 
-- **In progress, 2026-10-29, docs-only.** O-05 выбран владельцем: небольшой key/private fresh/reuse-only output. [Новая редакция и validation](../../evidence/2026-10-29-task-01-owner-context.md) перепроверена в раундах 8–9; O-03 dev publish выбран, O-04 plugins отложены; O-01/O-02 открыты.
+- **Актуализация 2026-10-29 после обновления до `7882c161`:** task-06 completed в сокращённом preflight scope, F01–F05 подтверждены раундом 2. В task-01 R10-F01 про readOnly metadata/load effects исправлен и подтверждён раундом 11; global retire сохранён. Итого task-01 **11 раундов / 15 исправлений**, O-01 открыт; [ответ и validation](../../evidence/2026-10-29-task-06-windows-review-fixes.md).
+
+- **In progress, 2026-10-29, docs-only.** O-05 выбран владельцем: небольшой key/private fresh/reuse-only output. [Новая редакция и validation](../../evidence/2026-10-29-task-01-owner-context.md) перепроверена в раундах 8–9; O-02 global retire и O-03 dev publish выбраны, O-04 plugins отложены; O-01 открыт.
 - Выделенный host рекомендован против нулевого варианта; idle unload и роли сопоставлены отдельно без обещания измеренной экономии production RAM.
 - Описаны descriptor/key, session/workspace split, switch вне gate, shared retry, no replay, reset/stop, CLI/proof boundaries, shadow image и controlled-stop publish.
 - Все S01–S42 и 54 public built-in tools имеют размещение/решение; счёт и локальные ссылки независимо проверены.
 - Новых production defects этой задачей не подтверждено. Найденные в task-04 дефекты не объявлены исправленным кодом: их принимающие контракты и проверки включены в design.
-- **9 раундов, 14 подтверждённых исправлений**: прежние 6, пять r5/F-*, R6-N01 и R8-F01/R8-F02. [Ответы и validation](../../evidence/2026-10-29-task-01-round-5-response.md). Task-02 и production activation не начаты.
-- Для окончательного O-01 добавлен planned task-06: реальные совместимые пары Codex/Windows и Claude Code/Linux, roots/identity/launcher preflight. O-05 выбран владельцем позже в тот же день; пересмотренный O-02 не принят.
+- **11 раундов, 15 подтверждённых исправлений**: прежние 6, пять r5/F-*, R6-N01 R8-F01/R8-F02 и R10-F01. [Ответы и validation](../../evidence/2026-10-29-task-01-round-5-response.md). Task-02 и production activation не начаты.
+- Task-06 завершил наблюдения реальных пар Linux/Windows, roots/identity phase costs и launcher audit; принят сокращённый scope, 2 раунда / 5 подтверждённых исправлений. Прототипы механизмов перенесены владельцем в task-02, prelaunch proof остаётся unverified и обязателен до shared admission/activation. O-01 пока не выбран.
+
+> Разделы ниже до O-02 — история последовательных срезов. Актуальный статус, scope и validation дополнения Windows приведены в «Главное» и новом отчёте исправлений.
 
 ## База и scope
 
@@ -271,12 +275,13 @@ global config и местоположением выбранного solution/pr
 (Linux, Claude Code — 0 вызовов из 468 tool calls за 2026-10-21…28; Windows, два
 компьютера основной разработки — 4 вызова около двух недель назад), поэтому нужен самый
 надёжный, а не самый сложный путь. Soft reset и локальный reset в private host отвергнуты.
-По вопросу владельца в design §7 добавлены правила для соседей: read-only вызовы
-отменяются сразу с явной просьбой повторить, без outcome-unknown; принятые записи
+По вопросу владельца в design §7 добавлены правила для соседей: чистые read-стадии
+отменяются с просьбой повторить, load/prepare/MSBuild и записи завершаются в budget
+с явным исходом либо неопределённостью эффектов (R10-F01: metadata readOnly не доказывает чистоту); принятые записи
 завершаются в drain budget; proxy CLI не прерывается и не получает proof; следующий
 вызов ждёт одну загрузку нового generation и один раз сообщает о перезапуске.
 [Решение, данные и сравнение](../../evidence/2026-10-29-task-01-reset-decision.md).
 
 Запись и уточнение — `claude-opus-5-5` (Claude Code), docs-only; нового независимого
 ревью нет, counters 9/14 прежние. O-02/O-03/O-04/O-05 выбраны, O-01 открыт;
-task-01 in progress, task-02/task-06 planned. Build/tests и runtime не запускались.
+task-01 in progress, task-02/task-06 in progress, замеры завершены, повторное ревью ожидается. Build/tests и runtime не запускались.

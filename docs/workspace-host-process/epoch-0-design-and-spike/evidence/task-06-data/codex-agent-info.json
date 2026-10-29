@@ -1,0 +1,23 @@
+{
+  "processId": 54104,
+  "method": "Real Codex subagent",
+  "sharedParentProcessId": 59364,
+  "infoCompletedAtUtc": "2026-10-29T16:26:21Z",
+  "stopCompletedAtUtc": "2026-10-29T16:32:24Z",
+  "getMcpServerInfoResponse": {
+    "content": [
+      {
+        "type": "text",
+        "text": "## Roslyn MCP server info\r\n\r\n- **Assembly:** `RoslynMcpServer` v1.5.16.0\r\n- **Process path:** `e:\\Devel\\RoslynMcpServer\\bin\\Release\\net10.0\\win-x64\\publish\\RoslynMcpServer.exe`\r\n- **Binary modified (local):** 2026-10-24T19:15:51.6701623+03:00\r\n- **Base directory:** `e:\\Devel\\RoslynMcpServer\\bin\\Release\\net10.0\\win-x64\\publish\\`\r\n- **Process working directory:** `E:\\Devel\\RoslynMcpServer-workspace-host-process`\r\n- **Tool profile:** `full`\r\n- **Startup tool groups:** (none)\r\n- **Dynamic tool groups:** (none)\r\n- **Registered MCP tools:** 54\r\n- **Latest log file:** `e:\\Devel\\RoslynMcpServer\\bin\\Release\\net10.0\\win-x64\\publish\\logs\\mcp-20261029.log`\r\n- **Plugins:** (none)\r\n- **Workspace loaded:** no\r\n- **Workspace load source:** not loaded\r\n- **RoslynMcp.jsonc (exe):** `e:\\Devel\\RoslynMcpServer\\bin\\Release\\net10.0\\win-x64\\publish\\RoslynMcp.jsonc` (absent)\r\n- **RoslynMcp.jsonc (cwd):** `E:\\Devel\\RoslynMcpServer-workspace-host-process\\RoslynMcp.jsonc` (absent)\r\n- **Merged workspace-path:** (none)\r\n- **Merged configuration:** (none)\r\n- **Merged platform:** (none)\r\n- **Merged target-framework:** (none)\r\n- **Merged max-results:** (none)\r\n- **Merged preview:** (none)\r\n- **Merged search-prewarm:** (none) (ROSLYN_MCP_SEARCH_PREWARM wins; default on)\r\n- **Merged ripgrep-path:** (none) (stored; unused until search opts in)\r\n\r\nAfter code changes run `dotnet publish -c Release -r win-x64`, then Reload MCP in Cursor."
+      }
+    ]
+  },
+  "stopMcpServerResponse": {
+    "content": [
+      {
+        "type": "text",
+        "text": "## MCP server stopping\n\nThis process will exit shortly so the host can rebuild binaries without file locks and restart MCP.\n\n**Suggested workflow**\n1. Wait until MCP tools disconnect.\n2. From a terminal: `dotnet build` on RoslynMcpServer (or your solution).\n3. In Cursor: MCP → Restart for this server (or reload the window).\n\n**Without killing the process:** saved `.cs` already sync into symbol search. For generated `obj` / `.csproj` graph only: `reset_workspace`, then `load_workspace`."
+      }
+    ]
+  }
+}

@@ -1,3 +1,140 @@
+# Ревью C/E0/task-01 — раунд 11, R10-F01
+
+## Главное
+
+**R10-F01 закрыт в документации; новых must-fix в затронутом slice нет.**
+Подтверждено одно дополнительное исправление: task-01 — **11 раундов / 15 fixes**.
+Owner choice O-02 global retire сохранён. Отмена и outcome зависят от фактической
+стадии, а не metadata readOnly; предшествовавшие effects не скрываются, replay нет.
+
+Согласован перенос task-06 механизмов в task-02: prelaunch provenance обеих ОС
+остаётся unverified и обязательным gate **до shared admission/activation**. Ни своя
+копия host, ни late hash, ни результат Windows pair не снимают этого условия.
+Это узкий review fix и scope transfer, не acceptance task-01 целиком, O-01, эпохи
+или запуска task-02. [Task-06 round2](../review-task-06-2026-10-29/result.md)
+учитывает свои пять fixes отдельно.
+
+2026-10-29, reviewer — та же отдельная сессия Codex `/root/task01_research_review`,
+точный model ID **unavailable**. Исполнитель исправлений — `gpt-6.1-sol` по
+уточнению владельца. HEAD `7882c161ada2fa11df93287047ab90e6a6693b23` + current diff,
+production 1.5.18 unchanged. SHA-256 входов до final bookkeeping:
+
+- [design](../design.md): `A60B4088D49488A8A3CA0F223483C4A094607F6FF6501D9A684BA65E252F8CDC`;
+- [O-02 evidence](../evidence/2026-10-29-task-01-reset-decision.md):
+  `1E28A15F3DB84CBE3A9AA00768ACFDDFDFAC28352E648EA26CCCE097DC5C50B5`;
+- [task-02](../epoch-0-design-and-spike/task-02-bridge-spike-hi.md):
+  `43E7A4A7F6A53E34ADC706E2027BD76BF66A3D869CD6C5526ED1391C68AE7481`.
+
+## Перепроверка
+
+| ID | Исходная severity | Подтверждённый fix | Итог |
+|---|---|---|---|
+| R10-F01 | major | Design §7 различает чистое чтение после load/prepare и начатые effectful load/prepare/MSBuild, включая readOnly list/graph/semantic вызов. Чистую стадию можно отменить; отсутствие effects утверждается только без предшествовавших эффектных стадий. Остальные стадии получают drain budget и фактический исход/uncertainty при forced stop; уже завершённые effects не скрываются. Строка Retire/drain теперь включает load/prepare/MSBuild/writes до 30 с. O-02 evidence, summaries/§12 и task-02 scenario5/design scenario7 согласованы. | **Закрыт.** Реализация/regressions остаются task-02. |
+
+Source premise перепроверена по неизменённым каталогу, explicit list/graph load,
+semantic lazy getter и MSBuild capture chain round10: readOnly не runtime barrier.
+Новый текст больше этого не предполагает. Task-02 явно получает reset во время
+explicit readOnly list/graph load и semantic lazy load/prepare, admission closure,
+drain/outcome, запрет ложного no-effects и replay. Обычный pure-read cancellation
+и независимый proxy CLI прежние.
+
+Поиск других unconditional readOnly/no-effects и старого scope receiver в affected
+docs нашёл остаточную budget строку. Координатор исправил её в этом же техническом
+срезе до closure; это тот же R10-F01, не отдельное исправление. Publisher manifest
+receiver §9 исправлен на task-02/E1; граница до CreateProcess не ослаблена. Проверены
+S01–S42, source/table 54 tools и 7-node dependency DAG без цикла. Статусные summaries
+синхронизированы как current либо явно historical; final counters — координатору.
+
+Build/runtime/MCP reviewer не запускал; production/C# primary docs не менял.
+Независимые links/diff checks и ограничения — [coverage round11](coverage.md).
+
+## История round10
+
+История round10 и ранее ниже сохранена **дословно**. SHA-256 прежних целых файлов:
+result `BE68E1686647238B38F0CFA94174434D48BA12B1DE615AC4EF6B7C4B8F65A88B`,
+coverage `56267B62B865D7AFD4CB9498241C57588AF0A2D4B87A582F4EBCC0F9BBB4924C`.
+Её open R10-F01 отражает прежний срез.
+
+---
+
+# Ревью C/E0/task-01 — раунд 10, O-02 global retire
+
+## Главное
+
+**Раунд 10: нужен must-fix R10-F01 (major).** Выбор владельца O-02 global retire
+не оспаривается. Новая запись неверно выводит отсутствие побочных эффектов из
+`readOnly` каталога для всего вызова: перед чтением могут исполниться lazy/explicit
+load и MSBuild prepare. Немедленная отмена чистого чтения допустима; обещание
+«побочных эффектов нет» для всех стадий не доказано.
+
+Это узкая независимая проверка новой записи O-02, а не повторная приёмка task-01.
+Текущий учёт: **10 раундов / 14 подтверждённых исправлений**, новый R10-F01 открыт.
+Прежние 14 fixes не отменены. Отдельный task-06 round 1 имеет свои F01–F05 и
+не получает шестой finding из этого риска. Primary docs/C# reviewer не менял.
+O-01, приёмка task-01 целиком/эпохи и activation не выбираются этим review.
+
+Дата **2026-10-29**, reviewer — та же сессия Codex `/root/task01_research_review`,
+точный model ID **unavailable**. Новая O-02 запись исполнена `claude-opus-5-5`
+по сообщению в ней; это не меняет identity прежнего исполнителя task-01
+`gpt-6.1-sol`, уточнённого владельцем. Применён
+[research-task-review](../../../.agents/skills/research-task-review/SKILL.md).
+
+Проверенный HEAD **`7882c161ada2fa11df93287047ab90e6a6693b23`**, production 1.5.18.
+Срез зафиксирован Git blob IDs, чтобы последующие fixes координатора не смешивались
+с исходным finding:
+
+- [O-02 decision](../evidence/2026-10-29-task-01-reset-decision.md):
+  `8cdf8a3465cad1a57c1ec2eac1da087811b65af8`;
+- [design](../design.md): `0e3f65318ba0981ba89674d9e93e86d5970caef6`;
+- [McpToolCatalog.cs](../../../Hosting/McpToolCatalog.cs):
+  `07b1fb1bbf79e59f22807ae4fec0bc9ec496eb74`.
+
+## Finding
+
+| ID | Severity | Где | Что не так | Что сделать |
+|---|---|---|---|---|
+| R10-F01 | major | [O-02 decision](../evidence/2026-10-29-task-01-reset-decision.md):38–42; [design](../design.md):661 | Каталожный `readOnly` объявлен доказательством отсутствия effects и основанием всегда отвечать без outcome-unknown при reset. Но помеченные readOnly инструменты имеют lazy/explicit MSBuild load/prepare перед read-stage. Они меняют lifecycle state, могут исполнять targets/generators и создавать outputs. При reset после начала этих стадий фраза «побочных эффектов нет» ложна; каталог не доказывает, на какой стадии застал reset. | Разделить effectful load/prepare/admission и pure-read stage. Сохранить немедленную отмену чистого чтения с просьбой повторить, но для начатых эффектных стадий описать фактическое stage/outcome без blanket no-effects и без replay. Проверить reset во время lazy/explicit load/prepare отдельно от уже читающего snapshot запроса. Получатели: task-01/O-02 contract clarification и task-02 regression; владелец — координатор. |
+
+## Source proof и независимый probe
+
+1. [McpToolCatalog.cs](../../../Hosting/McpToolCatalog.cs):215–216 помечает
+   `list_projects`/`get_project_graph` `readOnly:true`.
+   [McpToolDescriptor.cs](../../../Hosting/McpToolDescriptor.cs):16–29 хранит это как
+   классификацию help read/write/process; runtime запрета effects здесь нет.
+2. [UtilityTools.cs](../../../Tools/UtilityTools.cs):1420, 1485 вызывает
+   `LoadAsync(workspacePath, cancellationToken)` при explicit path этих инструментов.
+   Тот же method-level readOnly охватывает ветвь с загрузкой и ветвь чистого чтения.
+3. [NavigationTools.cs](../../../Tools/NavigationTools.cs):112 вызывает
+   `GetSanitizedPublishedSolutionAsync`; [SolutionManager.cs](../../../Services/Workspace/SolutionManager.cs):441–443
+   сначала выполняет `EnsureWorkspaceFromConfigAsync`, то есть lazy load возможен
+   даже у semantic read без explicit path.
+4. Load boundary достигает [SolutionManager.cs](../../../Services/Workspace/SolutionManager.cs):2134
+   `OpenAndCaptureAsync`; [AnalyzerProvenanceCaptureService.cs](../../../Services/Analyzers/AnalyzerProvenanceCaptureService.cs):195–204,
+   321–341 открывает MSBuild graph с BinaryLogger. Произвольный MSBuild не становится
+   безэффектным из-за категории вызывающего инструмента. Даже observation path
+   уже имеет запись capture; отсутствие пользовательских generated/target effects
+   данным флагом не доказано.
+
+Независимый поиск `readOnly`/`IsReadOnly`, caller trace read → lazy/explicit load →
+MSBuild open опроверг именно предпосылку «каталог доказывает отсутствие эффектов».
+Нового runtime counterexample не требовалось: future shared/reset implementation
+пока отсутствует. Это риск предложенного контракта, не утверждение о реализованном
+production shared bug. Связь с уже разделёнными load/read стадиями design проверена.
+
+Координатор принял R10-F01 и предложил stage-aware wording; на исходном срезе fix
+ещё не проверен. После отдельной правки — повторная проверка тем же reviewer,
+раунд 11. Build/tests/MCP/runtime не запускались.
+
+## История
+
+Раунд 9 и вся предшествующая история ниже сохранены **дословно**.
+SHA-256 прежних целых файлов: result
+`5639EB41F765248CEF5D44287F0E8D076C69399F884050B7E9F04C9631958F67`, coverage
+`941F0FE5EFD32D13C147FA500449167D0D6FB619023766DFAAF9AF3203E72617`.
+Проверены exact suffix hashes. [Покрытие раунда 10](coverage.md).
+
+---
+
 # Ревью C/E0/task-01 — раунд 9, исправления R8-F01/R8-F02
 
 ## Главное

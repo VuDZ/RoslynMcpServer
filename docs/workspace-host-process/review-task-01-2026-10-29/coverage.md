@@ -1,3 +1,98 @@
+# Покрытие C/E0/task-01 — узкий раунд 11
+
+## Главное
+
+**R10-F01 закрыт; новых must-fix нет.** 2026-10-29, тот же Codex
+`/root/task01_research_review`, model ID unavailable. Task-01 11 rounds / 15 fixes;
+счётчики координатор интегрирует после verdict. [Hashes/fix](result.md).
+
+## Проверено
+
+Повторно прочитаны актуальные research-task-review/AGENTS и docs bookkeeping.
+Scope — новая O-02 запись/author response, design §7 stage table/budgets/recovery,
+summaries и scenarios, task-02 regression receiver, согласование task-06 scope
+transfer в §§2/9/12. Исторические evidence/source/runtime целиком не переаудировались.
+Содержимое round10 и предыдущих rounds сохранено exact suffix.
+
+Source claims round10 повторно сопоставлены с неизменёнными McpToolCatalog,
+UtilityTools explicit path loads, NavigationTools/SolutionManager config lazy
+load и AnalyzerProvenanceCaptureService MSBuild open. Metadata не доказывает
+no-effects: теперь это прямо требуется учитывать по фактической стадии.
+
+Независимый residual search unconditional readOnly cancellation/no-effects и
+старых task-06 prelaunch receivers нашёл budget Retire/drain; он исправлен
+координатором до closure вместе с §9 receiver. Load/prepare effects до pure-read
+стадии не скрыты; failed/forced stop имеет явную uncertainty без replay, admission
+закрыт. Owner global retire и обычный CLI result/confirmation split сохранены.
+
+В связанном review task-06: current primary Markdown 11 файлов, 352 links/anchors,
+broken0; source/table-only §5 names54/54; §10 S01–S42 ровно42; header dependency
+DAG7 acyclic. Task01 ждёт task06, task06 не зависит от завершённого task01.
+Согласование переноса startup guard не означает proof/pass или activation.
+Новые prefix links и exact history hashes проверены; git diff --check exit0.
+
+## Ограничения и статус
+
+Только docs contract acceptance R10-F01. Task-02 проверит runtime reset при
+effectful stages; build/tests/MCP reviewer не запускал. Стиль C# не оценивался,
+primary docs/C# reviewer не менял. Отдельные Windows build/main доказательства
+рассмотрены в task-06 round2 и не выданы за реализацию shared reset.
+Окончательные статусы/индексы/counters обновляет координатор; O-01 и task-01/эпоха
+целиком не принимаются. Commit/push/новые задачи не выполнялись.
+
+Round10 ниже сохранён побайтно; предыдущие whole-file hashes — в result.
+`.status` completed записывается последним и завершает только reviewer round11.
+
+---
+
+# Покрытие C/E0/task-01 — узкий раунд 10
+
+## Главное
+
+2026-10-29, Codex `/root/task01_research_review`, точный model ID unavailable.
+HEAD `7882c161ada2fa11df93287047ab90e6a6693b23`, production 1.5.18.
+**R10-F01 major открыт:** `readOnly` не доказывает no-effects всего вызова,
+включающего load/prepare. Owner choice global retire сохраняется.
+[Finding, source proof и hashes](result.md).
+
+## Scope и прочитанное
+
+По отдельному запросу координатора в авторизованном review текущего pull проверены
+новая `2026-10-29-task-01-reset-decision.md` полностью и затронутые design reset/
+drain/outcome clauses, существующее разделение explicit load/read и получатель
+task-02. Исходные task/epoch/topic и AGENTS/bookkeeping/research-task-review
+прочитаны в связанном review task-06; исторические task-01 evidence и runtime
+полностью повторно не перечитывались. Round 9 принят только как неизменяемая история.
+
+Функциональный source probe: McpToolCatalog и McpToolDescriptor, explicit list/graph
+в UtilityTools, semantic getter в NavigationTools, lazy/published/load boundary
+SolutionManager, MSBuild open/capture AnalyzerProvenanceCaptureService.
+`rg` на `readOnly`, `IsReadOnly`, `LoadAsync`, `EnsureWorkspaceFromConfigAsync`,
+`GetSanitizedPublishedSolutionAsync`, `OpenAndCaptureAsync` и `OpenWorkspaceAsync`
+проверил flags и достижимость effectful boundary, без test/spike/fork подмены source.
+
+Не оценивался стиль C#, C#/primary docs не редактировались. Новые процессы, runtime,
+production MCP, builds/tests и полный исторический re-review не запускались:
+это узкая проверка docs-only контракта, не его implementation validation.
+Windows runtime additions task-06 в R10-F01 не используются. SourceStructure/main
+suite координатор выполняет в своём scope, этот verdict их не заменяет.
+
+## Проверки и история
+
+Git blob IDs входов зафиксированы в result. Новый finding отдельно от task-06
+F01–F05, прежних Codex/independent/r5/R6/R8 IDs. Координатор принял его для правки;
+closure пока не объявлено. Получатели — task-01/O-02 и task-02 stage cancellation
+regression, O-01/activation не выбираются.
+
+Результат и coverage раунда 9 с историей оставлены exact suffix без переписывания;
+SHA-256 прежних файлов записаны в result. Проверка suffix hashes и local file links
+нового prefix выполнена до marker; `git diff --check` — exit0. Исторические anchors/
+числа/статусы не «актуализируются» этим prepend. `.status` completed записан последним,
+обозначает завершение reviewer round 10 с открытым must-fix. Счётчики/индексы
+primary package обновляет координатор после review/fix integration.
+
+---
+
 # Покрытие C/E0/task-01 — узкий раунд 9
 
 ## Scope и версия

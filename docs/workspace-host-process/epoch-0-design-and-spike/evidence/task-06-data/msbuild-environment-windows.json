@@ -1,0 +1,33 @@
+{
+  "collectedUtc": "2026-10-29T16:35:46.195908+00:00",
+  "method": "Two fresh MSBuild processes; identical path/global properties, one fixture environment variable changed.",
+  "projectXml": "<Project Sdk=\"Microsoft.NET.Sdk\">\n  <PropertyGroup>\n    <TargetFramework>net10.0</TargetFramework>\n    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>\n  </PropertyGroup>\n  <ItemGroup>\n    <Compile Include=\"Common.cs\" />\n    <Compile Include=\"Extra.cs\" Condition=\"'$(PROBE_FEATURE)' == '1'\" />\n  </ItemGroup>\n</Project>\n",
+  "arguments": [
+    "dotnet",
+    "msbuild",
+    "E:\\Devel\\RoslynMcpServer-workspace-host-process\\artifacts\\workspace-host-process\\task-06-windows\\environment-fixture\\Probe.csproj",
+    "-nologo",
+    "-getItem:Compile",
+    "-p:Configuration=Release",
+    "-p:Platform=AnyCPU",
+    "-p:TargetFramework=net10.0"
+  ],
+  "samples": [
+    {
+      "PROBE_FEATURE": "0",
+      "compileItems": [
+        "Common.cs"
+      ],
+      "exitCode": 0
+    },
+    {
+      "PROBE_FEATURE": "1",
+      "compileItems": [
+        "Common.cs",
+        "Extra.cs"
+      ],
+      "exitCode": 0
+    }
+  ],
+  "note": "No full environment values are stored. PROBE_FEATURE is public fixture input. This is a graph-input counterexample, not an implementation of shared host."
+}

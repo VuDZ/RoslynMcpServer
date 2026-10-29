@@ -1,0 +1,1 @@
+{"failures":0,"results":[{"name":"existing-scratch-and-output-survive","passed":true},{"name":"scratch-inside-source-is-refused","passed":true},{"name":"scratch-containing-source-is-refused","passed":true},{"name":"output-inside-source-is-refused","passed":true},{"name":"existing-output-is-preserved","passed":true}]}

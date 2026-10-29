@@ -4,12 +4,12 @@
   findings; принято только в scope исследовательского плана, design не принят;
   после ревью добавлены task-05 и сравнение моделей без повторного ревью**.
 - Статус исполнения: **in progress; task-00 completed, 2026-10-26, docs-only;
-  task-01 in progress, 2026-10-29, docs-only; task-02 planned; task-06 in progress, 2026-10-29; task-04 completed, 2026-10-28; task-03 completed, 2026-10-28; task-05 completed, 2026-10-28, isolated probe;
+  task-01 in progress, 2026-10-29, docs-only; task-02 planned; task-06 completed, 2026-10-29; task-04 completed, 2026-10-28; task-03 completed, 2026-10-28; task-05 completed, 2026-10-28, isolated probe;
   production-код темы не начат**. Принятый scope task-00 — инвентаризация
   состояния и этапов инструментов; [результат и validation](evidence/task-00-state-inventory.md).
 - Актуализация task-00: **completed, 2026-10-28**; база main `4e5e9f9` / 1.5.17,
   S01–S42 и прежние 54 tools; [влияние изменений и validation](evidence/task-00-impact-2026-10-28.md).
-  Task-01 in progress, 2026-10-29; task-02 planned; task-06 in progress, 2026-10-29; task-04 completed, 2026-10-28; task-03 completed, 2026-10-28; task-05 completed, production host/proxy не реализован.
+  Task-01 in progress, 2026-10-29; task-02 planned; task-06 completed, 2026-10-29; task-04 completed, 2026-10-28; task-03 completed, 2026-10-28; task-05 completed, production host/proxy не реализован.
   [Task-05: memory/GC, cohort и ограничения запуска](evidence/task-05-applicability.md)
   завершён в уточнённом владельцем исследовательском scope;
   [основание и validation](../evidence/2026-10-28-task-05-scope.md).
@@ -42,7 +42,7 @@
 - [task-03 — Spike транспорта и MCP-фасада](task-03-pipe-relay-spike-med.md) — `med`, **completed, 2026-10-28**; standalone SDK-фасад без Roslyn, обе модели host, две версии MCP, Windows/WSL; [результат и validation](evidence/task-03-pipe-relay-spike.md); Depends on: —
 - [task-04 — Spike переключения и восстановления](task-04-proxy-routing-and-recovery-spike-hi.md) — `hi`, **completed, 2026-10-28**; принят standalone spike выделенного host без Roslyn, Windows/WSL, две версии MCP; [результат, ревью и validation](evidence/task-04-routing-and-recovery-spike.md); Depends on: [task-03](task-03-pipe-relay-spike-med.md), [task-05](task-05-applicability-checks-med.md) с решением владельца
 - [task-05 — Проверки применимости](task-05-applicability-checks-med.md) — `med`, **completed, 2026-10-28, в уточнённом владельцем исследовательском scope**; память/GC/cohort и ограничения запуска host; [результат](evidence/task-05-applicability.md), [scope и validation](../evidence/2026-10-28-task-05-scope.md); Depends on: —
-- [task-06 — Preflight среды и развёртывания](task-06-environment-and-deployment-preflight-med.md) — `med`, **in progress, 2026-10-29; Linux/Claude Code выполнен, пара Codex/Windows ждёт данных владельца; объём сокращён, механизмы перенесены в task-02**; [отчёт](evidence/task-06-environment-and-deployment-preflight.md); Depends on: [task-04](task-04-proxy-routing-and-recovery-spike-hi.md), [task-05](task-05-applicability-checks-med.md)
+- [task-06 — Preflight среды и развёртывания](task-06-environment-and-deployment-preflight-med.md) — `med`, **completed, 2026-10-29; Linux/Claude Code и Windows/Codex приняты в сокращённом preflight scope, 2 раунда / 5 подтверждённых исправлений; объём сокращён, механизмы перенесены в task-02**; [отчёт](evidence/task-06-environment-and-deployment-preflight.md); Depends on: [task-04](task-04-proxy-routing-and-recovery-spike-hi.md), [task-05](task-05-applicability-checks-med.md)
 
 Task-05, task-00 и task-03 независимы; task-05 рекомендуется первым. После
 task-05 владелец решает, продолжать ли тему и какие модели проверять в task-04.
@@ -56,14 +56,14 @@ task-01. Только после design, независимого ревью и 
 Если владелец выбирает нулевой вариант, task-02 и E1 shared-режима не запускаются;
 невыполненные задачи получают статус deferred с причиной и ссылкой на решение.
 Это не приёмка реализации shared-режима. Task-00 завершён как docs-only
-инвентаризация; task-01 in progress, 2026-10-29; task-02 planned; task-06 in progress, 2026-10-29; task-04 completed, 2026-10-28; task-03 completed, 2026-10-28, task-05 completed. Завершение task-00 не заменяет
+инвентаризация; task-01 in progress, 2026-10-29; task-02 planned; task-06 completed, 2026-10-29; task-04 completed, 2026-10-28; task-03 completed, 2026-10-28, task-05 completed. Завершение task-00 не заменяет
 решение владельца после task-05 и не запускает зависимые spike.
 
 Уточнение после [раунда 5](../review-task-01-round-5-2026-10-29/result.md): task-06
 идёт **до окончательного выбора** task-01. Он использует proposed design как вход,
 а не зависит от завершённого task-01; цикла зависимостей нет. Позже 2026-10-29 O-05 выбран владельцем:
 небольшой key/private fresh/reuse-only output. O-02 выбран позже: global retire;
-[решение и validation](../evidence/2026-10-29-task-01-owner-context.md). Task-06 planned, task-02 по-прежнему не начат.
+[решение и validation](../evidence/2026-10-29-task-01-owner-context.md). Task-06 completed в сокращённом preflight scope, 2026-10-29, task-02 по-прежнему не начат.
 
 ## Сквозные критерии
 
@@ -170,11 +170,11 @@ identity pin; раунд 7 подтвердил исправление prelaunch
 После выбора владельца раунд 8 нашёл R8-F01/R8-F02 major: private intent терялся при
 reset/unbind и не был определён новый shared creator context при recovery. Оба
 исправления подтверждены в раунде 9; новых must-fix в затронутом slice нет.
-**Итого task-01: 9 раундов / 14 исправлений.**
+**Итого task-01: 11 раундов / 15 исправлений.** Раунд 10 выявил R10-F01 про эффекты load/prepare у readOnly; раунд 11 подтвердил phase-aware contract и budget без смены owner choice global retire.
 [Ответ и validation раундов 5–7](../evidence/2026-10-29-task-01-round-5-response.md).
 После fixes применён research-task-authoring. 2026-10-29 владелец отложил O-01…O-04;
 O-05 выбран владельцем, редакция O-05 перепроверена в раундах 8–9;
-[решение и validation](../evidence/2026-10-29-task-01-owner-context.md). Task-06 planned до выбора O-01, task-02 не начат, приёмки эпохи нет.
+[решение и validation](../evidence/2026-10-29-task-01-owner-context.md). Task-06 completed в сокращённом preflight scope, 2026-10-29 до выбора O-01, task-02 не начат, приёмки эпохи нет.
 
 O-03 выбран владельцем 2026-10-29: текущая схема dev publish с остановкой копий MCP
 из каталога разработки, без обеспечения непрерывной работы или борьбы с respawn
@@ -198,22 +198,23 @@ Linux и Windows; правила для соседей добавлены в des
 [решение](../evidence/2026-10-29-task-01-reset-decision.md).
 
 - Охват: task-00–task-06; task-00 completed, 2026-10-26, docs-only;
-  task-05 completed, 2026-10-28; task-01 in progress, 2026-10-29; task-02 planned; task-06 in progress, 2026-10-29; task-04 completed, 2026-10-28; task-03 completed, 2026-10-28.
+  task-05 completed, 2026-10-28; task-01 in progress, 2026-10-29; task-02 planned; task-06 completed, 2026-10-29; task-04 completed, 2026-10-28; task-03 completed, 2026-10-28.
 - Фактические исполнители: task-00 — Codex, точный ID модели недоступен.
   Task-05 — `gpt-6.1-sol` (Codex; metadata harness).
   Task-03 и task-04 — Codex, точные model ID запусков недоступны.
   Task-01 — GPT Sol-6.1 (`gpt-6.1-sol`), Codex; уточнено владельцем 2026-10-29, docs-only проект.
+  Task-06 — `claude-opus-5-5` (Linux), `gpt-6.1-sol` (Windows/исправления).
 - Фактические рецензенты: task-00, task-03, task-05 — `claude-opus-5-5` (Claude Code),
   2026-10-28; task-03 и task-05 — одним совместным ревью.
   Task-04 — отдельная сессия Codex `/root/task04_research_review`, точный model ID недоступен (раунды 1–2);
   раунд 3 — `claude-opus-5-5`, 2026-10-28.
   Task-01 — Codex `/root/task01_research_review`, точный model ID недоступен,
-  2026-10-29, раунды 1–2, 4, 6–9; Grok 4.7, session ID недоступен, раунд 3;
-  `claude-opus-5-5`, Claude Code, раунд 5. Task-02/task-06 не имеют ревью результата.
-- Сумма раундов независимого ревью задач: 16 (по одному на task-00, task-03, task-05; три на task-04; девять на task-01).
-- Исправленные замечания независимого ревью задач: 39 (task-00 — 5; task-05 — 4,
+  2026-10-29, раунды 1–2, 4, 6–11; Grok 4.7, session ID недоступен, раунд 3;
+  `claude-opus-5-5`, Claude Code, раунд 5. Task-06: раунды 1–2 той же независимой сессии Codex, 5 подтверждённых исправлений. Task-02 ревью результата не имеет.
+- Сумма раундов независимого ревью задач: 20 (по одному на task-00, task-03, task-05; три на task-04; одиннадцать на task-01; два на task-06).
+- Исправленные замечания независимого ревью задач: 45 (task-00 — 5; task-05 — 4,
   F-01–F-04; task-03 — 5, F-05–F-09; task-04 — 4, F-01–F-04 раундов 1–2, и 7 раунда 3;
-  task-01 — 14: Codex/F-01–F-03, independent/F-01–F-03, r5/F-01–F-05, R6-N01, R8-F01/R8-F02).
+  task-01 — 15: Codex/F-01–F-03, independent/F-01–F-03, r5/F-01–F-05, R6-N01, R8-F01/R8-F02, R10-F01; task-06 — 5, F01–F05).
 - Отчёты: [task-00 — инвентаризация и validation](evidence/task-00-state-inventory.md).
   Актуализация 2026-10-28 — тот же исполнитель;
   [влияние новой базы и validation](evidence/task-00-impact-2026-10-28.md).
@@ -228,6 +229,19 @@ Linux и Windows; правила для соседей добавлены в des
   [раунд 5](../review-task-01-round-5-2026-10-29/result.md),
   [ответ и validation раундов 5–7](../evidence/2026-10-29-task-01-round-5-response.md),
   [O-05 и validation раундов 8–9](../evidence/2026-10-29-task-01-owner-context.md).
+
+## Выполнение task-06, 2026-10-29
+
+**Completed в сокращённом владельцем preflight scope.** Linux/Claude Code и
+Windows/Codex: наблюдаемые входы реальных пар, MSBuild counterexample, факты ФС,
+identity phase costs и read-only launcher audit. Release build/main на Windows
+1432/1432; отдельно spike checks red 5 failures → green 5 passed.
+Независимое ревью: 2 раунда, F01–F05 подтверждены. Guarded prelaunch provenance
+обеих ОС остаётся unverified и обязателен в task-02 до shared admission/activation.
+O-01 открыт, task-02 planned; это не приёмка design, реализации эпохи или rollout.
+[Результат](evidence/task-06-environment-and-deployment-preflight.md),
+[ревью](../review-task-06-2026-10-29/result.md),
+[validation и task-01 R10-F01](../evidence/2026-10-29-task-06-windows-review-fixes.md).
 
 ## Приёмка реализации эпохи
 

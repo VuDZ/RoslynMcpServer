@@ -1,0 +1,62 @@
+{
+  "capturedAt": "2026-10-29T19:41:24.8936755+03:00",
+  "purpose": "Isolated staging probe on the same NTFS volume as the proposed LocalAppData StorageRoot; no production root was created.",
+  "stagingPath": "C:\\Users\\VuDZ\\AppData\\Local\\RoslynMcpServer\\WorkspaceHostPreflight-e823a140300444c8b8dae16ac75810dd",
+  "volume": "C:",
+  "owner": "VUDZ-PC\\VuDZ",
+  "access": [
+    {
+      "IdentityReference": {
+        "Value": "VUDZ-PC\\CodexSandboxUsers"
+      },
+      "FileSystemRights": 1179817,
+      "AccessControlType": 0,
+      "IsInherited": true
+    },
+    {
+      "IdentityReference": {
+        "BinaryLength": 40,
+        "AccountDomainSid": null,
+        "Value": "S-1-15-3-2968813833-811790644-2202111208-3784096404-1081847329-2708967783-1438471679"
+      },
+      "FileSystemRights": 2032127,
+      "AccessControlType": 0,
+      "IsInherited": true
+    },
+    {
+      "IdentityReference": {
+        "BinaryLength": 40,
+        "AccountDomainSid": null,
+        "Value": "S-1-15-3-2968813833-811790644-2202111208-3784096404-1081847329-2708967783-1438471679"
+      },
+      "FileSystemRights": 268435456,
+      "AccessControlType": 0,
+      "IsInherited": true
+    },
+    {
+      "IdentityReference": {
+        "Value": "VUDZ-PC\\VuDZ"
+      },
+      "FileSystemRights": 2032127,
+      "AccessControlType": 0,
+      "IsInherited": true
+    },
+    {
+      "IdentityReference": {
+        "Value": "NT AUTHORITY\\SYSTEM"
+      },
+      "FileSystemRights": 2032127,
+      "AccessControlType": 0,
+      "IsInherited": true
+    },
+    {
+      "IdentityReference": {
+        "Value": "BUILTIN\\Administrators"
+      },
+      "FileSystemRights": 2032127,
+      "AccessControlType": 0,
+      "IsInherited": true
+    }
+  ],
+  "cleanup": "Only this newly created empty probe parent is removed; benchmark owns its unique child."
+}

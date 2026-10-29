@@ -431,7 +431,7 @@ Path/global properties/toolset/cwd/config origin/policy показываются
 [Решение, границы и validation](evidence/2026-10-29-task-01-owner-context.md).
 
 Прежние варианты canonical-v1/strict после раунда 5 заменены этим решением.
-O-02/O-03/O-04 выбраны ниже; O-01 открыт. Task-06 in progress, 2026-10-29: Linux/Claude Code выполнен, пара Codex/Windows ждёт данных владельца; объём сокращён, механизмы перенесены в task-02; [отчёт task-06](epoch-0-design-and-spike/evidence/task-06-environment-and-deployment-preflight.md).
+O-02/O-03/O-04 выбраны ниже; O-01 открыт. Task-06 completed, 2026-10-29: Linux/Claude Code и Windows/Codex приняты в сокращённом preflight scope, 2 раунда / 5 подтверждённых исправлений; объём сокращён, механизмы перенесены в task-02; [отчёт task-06](epoch-0-design-and-spike/evidence/task-06-environment-and-deployment-preflight.md).
 Task-02 не начат, design целиком не принят.
 
 <a id="o-02-reset-options"></a>
@@ -439,8 +439,10 @@ Task-02 не начат, design целиком не принят.
 нет ни одного вызова, на двух Windows-компьютерах основной разработки — 4 вызова около
 двух недель назад. Поэтому выбран самый надёжный путь: shared `reset_workspace`
 завершает общий host, следующий вызов поднимает новый generation одной загрузкой.
-Read-only вызовы соседей прерываются сразу с просьбой повторить, принятые записи
-завершаются, proxy CLI не прерывается, следующий вызов сообщает агенту о перезапуске.
+Чистые read-стадии соседей отменяются с просьбой повторить; load/prepare/MSBuild и
+принятые записи завершаются в drain budget с явным исходом либо неопределённостью
+эффектов. Metadata readOnly не доказывает чистоту. Proxy CLI не прерывается,
+следующий вызов сообщает агенту о перезапуске.
 Soft reset и предложенный ранее локальный reset в private host
 ([запись варианта](evidence/2026-10-29-task-01-reset-options.md)) отвергнуты.
 [Решение, данные и правила для соседей](evidence/2026-10-29-task-01-reset-decision.md).
@@ -530,9 +532,9 @@ Task-01 — **in progress, 2026-10-29, docs-only**:
 [проект архитектурного решения](design.md),
 [основания, ревью и validation](epoch-0-design-and-spike/evidence/task-01-architecture-decision.md).
 Выделенный host остаётся кандидатом после task-06; текущие documentation fixes перепроверены:
-9 раундов, 14 подтверждённых исправлений,
+11 раундов, 15 подтверждённых исправлений,
 [result](review-task-01-2026-10-29/result.md). 2026-10-29 владелец отложил O-01…O-04 до отдельных ревью.
-Task-06 in progress, 2026-10-29: Linux/Claude Code выполнен, пара Codex/Windows ждёт данных владельца; объём сокращён, механизмы перенесены в task-02 ([отчёт task-06](epoch-0-design-and-spike/evidence/task-06-environment-and-deployment-preflight.md)); task-02 не начат. O-03/O-04/O-05 выбраны владельцем;
+Task-06 completed, 2026-10-29: Linux/Claude Code и Windows/Codex приняты в сокращённом preflight scope, 2 раунда / 5 подтверждённых исправлений; объём сокращён, механизмы перенесены в task-02 ([отчёт task-06](epoch-0-design-and-spike/evidence/task-06-environment-and-deployment-preflight.md)); task-02 не начат. O-03/O-04/O-05 выбраны владельцем;
 [новая редакция и validation](evidence/2026-10-29-task-01-owner-context.md).
 Тема [D](../workspace-load-performance/README.md) остаётся независимой.
 
@@ -588,9 +590,9 @@ Task-06 in progress, 2026-10-29: Linux/Claude Code выполнен, пара Co
   Codex и **2026-10-28, раунд 3**, `claude-opus-5-5`: 8 замечаний (2 major, 4 minor,
   2 suggestion), 7 закрыты в документах, F-07 (код runner) не применялось;
   [результат](review-task-04-round-3-2026-10-28/result.md), [validation](evidence/2026-10-28-task-04-review-fixes.md).
-  Task-01 — **2026-10-29, раунды 1–2, 4, 6–9**, Codex `/root/task01_research_review`,
+  Task-01 — **2026-10-29, раунды 1–2, 4, 6–11**, Codex `/root/task01_research_review`,
   точный model ID недоступен; **раунд 3**, Grok 4.7; **раунд 5**, `claude-opus-5-5`.
-  Всего 14 подтверждённых исправлений;
+  Всего 15 подтверждённых исправлений;
   [Codex](review-task-01-2026-10-29/result.md),
   [независимый Grok](review-task-01-independent-2026-10-29/result.md),
   [ответ и validation раунда 3](evidence/2026-10-29-task-01-independent-review-response.md),
@@ -598,8 +600,16 @@ Task-06 in progress, 2026-10-29: Linux/Claude Code выполнен, пара Co
   [ответ и validation раундов 5–7](evidence/2026-10-29-task-01-round-5-response.md),
   [решение O-05 и validation раундов 8–9](evidence/2026-10-29-task-01-owner-context.md).
   Выбор владельца отложен, 2026-10-29.
-  Сумма известных раундов задач — **16**, исправлений — **39** (подробности в README E0).
-  Task-02 planned, task-06 in progress; независимого ревью результата не проходили.
+  Сумма известных раундов задач — **20**, исправлений — **45** (подробности в README E0).
+  Task-02 planned без ревью результата; task-06 completed в сокращённом scope, раунды 1–2, 5 подтверждённых исправлений.
+- Task-06: **completed, 2026-10-29**, принят сокращённый preflight scope Linux/Windows:
+  реальные пары MCP, MSBuild counterexample, факты ФС, identity phase costs, launcher audit.
+  Исполнители `claude-opus-5-5` / `gpt-6.1-sol`; независимый Codex
+  `/root/task01_research_review`, model ID недоступен: 2 раунда / 5 исправлений.
+  Release build/main Windows 1432/1432; guarded provenance — task-02 до shared admission.
+  [Результат](epoch-0-design-and-spike/evidence/task-06-environment-and-deployment-preflight.md),
+  [ревью](review-task-06-2026-10-29/result.md),
+  [validation](evidence/2026-10-29-task-06-windows-review-fixes.md).
 - Task-03: **completed, 2026-10-28**, standalone SDK-фасад/транспорт без Roslyn,
   Windows/WSL, обе модели host и две версии MCP. Исполнитель — Codex, точный ID
   модели запуска недоступен; независимое ревью — `claude-opus-5-5`, раунд 1,
@@ -617,7 +627,7 @@ Task-06 in progress, 2026-10-29: Linux/Claude Code выполнен, пара Co
 - Task-01: **in progress, 2026-10-29, docs-only**; исполнитель GPT Sol-6.1 (`gpt-6.1-sol`), Codex; уточнено владельцем.
   [Проект design](design.md), [отчёт](epoch-0-design-and-spike/evidence/task-01-architecture-decision.md).
   Исправления независимых ревью Grok/Claude и нового R6-N01 перепроверены Codex:
-  всего 9 раундов, 14 исправлений,
+  всего 11 раундов, 15 исправлений,
   [result](review-task-01-2026-10-29/result.md),
   [ответ на раунд 3](evidence/2026-10-29-task-01-independent-review-response.md),
   [ответ и validation раундов 5–7](evidence/2026-10-29-task-01-round-5-response.md),
@@ -627,7 +637,7 @@ Task-06 in progress, 2026-10-29: Linux/Claude Code выполнен, пара Co
   ([решение](evidence/2026-10-29-task-01-reset-decision.md)); O-05 —
   небольшой key/private fresh/reuse-only load output;
   [решение и validation](evidence/2026-10-29-task-01-owner-context.md).
-  Task-06 in progress, 2026-10-29: Linux/Claude Code выполнен, пара Codex/Windows ждёт данных владельца; объём сокращён, механизмы перенесены в task-02;
+  Task-06 completed, 2026-10-29: Linux/Claude Code и Windows/Codex приняты в сокращённом preflight scope, 2 раунда / 5 подтверждённых исправлений; объём сокращён, механизмы перенесены в task-02;
   [отчёт task-06](epoch-0-design-and-spike/evidence/task-06-environment-and-deployment-preflight.md). Task-02 не начат. [План и validation](evidence/2026-10-29-task-01-round-5-response.md).
 - Приёмка реализации эпохи: —.
 - Обновление scope, TDD-подхода и выделение ветки: **выполнено, 2026-10-23**,

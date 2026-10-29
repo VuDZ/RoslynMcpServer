@@ -1,0 +1,85 @@
+{
+  "collectedUtc": "2026-10-29T16:32:00.2076523Z",
+  "platform": "Windows",
+  "currentUserSid": "S-1-5-21-1133224382-2499715904-315576901-1001",
+  "localApplicationData": "C:\\Users\\VuDZ\\AppData\\Local",
+  "volume": {
+    "name": "C:\\",
+    "format": "NTFS",
+    "type": "Fixed",
+    "availableBytes": 788758437888,
+    "totalBytes": 1999230726144
+  },
+  "existingParent": {
+    "path": "C:\\Users\\VuDZ\\AppData\\Local",
+    "owner": "VUDZ-PC\\VuDZ",
+    "reparsePoint": false,
+    "accessRules": [
+      {
+        "identity": "VUDZ-PC\\CodexSandboxUsers",
+        "rights": "ReadAndExecute, Synchronize",
+        "type": "Allow",
+        "inherited": true
+      },
+      {
+        "identity": "S-1-15-3-2968813833-811790644-2202111208-3784096404-1081847329-2708967783-1438471679",
+        "rights": "FullControl",
+        "type": "Allow",
+        "inherited": true
+      },
+      {
+        "identity": "S-1-15-3-2968813833-811790644-2202111208-3784096404-1081847329-2708967783-1438471679",
+        "rights": "268435456",
+        "type": "Allow",
+        "inherited": true
+      },
+      {
+        "identity": "VUDZ-PC\\VuDZ",
+        "rights": "FullControl",
+        "type": "Allow",
+        "inherited": true
+      },
+      {
+        "identity": "NT AUTHORITY\\SYSTEM",
+        "rights": "FullControl",
+        "type": "Allow",
+        "inherited": true
+      },
+      {
+        "identity": "BUILTIN\\Administrators",
+        "rights": "FullControl",
+        "type": "Allow",
+        "inherited": true
+      }
+    ]
+  },
+  "candidateRoots": [
+    {
+      "path": "C:\\Users\\VuDZ\\AppData\\Local\\RoslynMcpServer\\WorkspaceHosts\\v1\\runtime",
+      "exists": false
+    },
+    {
+      "path": "C:\\Users\\VuDZ\\AppData\\Local\\RoslynMcpServer\\WorkspaceHosts\\v1\\storage",
+      "exists": false
+    }
+  ],
+  "rootsNote": "Candidate roots are not created/audited here. Parent filesystem/ACL facts only; actual root ACL/admission/failure tests belong to task-02.",
+  "processes": [
+    {
+      "pid": 45500,
+      "parentPid": 59364,
+      "created": "2026-10-28T17:35:11.299993+03:00",
+      "image": "e:\\Devel\\RoslynMcpServer\\bin\\Release\\net10.0\\win-x64\\publish\\RoslynMcpServer.exe",
+      "ownerSid": "S-1-5-21-1133224382-2499715904-315576901-1001",
+      "ownerStatus": 0
+    },
+    {
+      "pid": 54104,
+      "parentPid": 59364,
+      "created": "2026-10-29T19:26:09.922914+03:00",
+      "image": "e:\\Devel\\RoslynMcpServer\\bin\\Release\\net10.0\\win-x64\\publish\\RoslynMcpServer.exe",
+      "ownerSid": "S-1-5-21-1133224382-2499715904-315576901-1001",
+      "ownerStatus": 0
+    }
+  ]
+}

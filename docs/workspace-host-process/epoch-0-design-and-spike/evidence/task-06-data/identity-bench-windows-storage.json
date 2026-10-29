@@ -1,0 +1,53 @@
+{
+  "Source": "E:\\Devel\\RoslynMcpServer-workspace-host-process\\bin\\Release\\net10.0",
+  "ExcludedTopLevel": [
+    "linux-arm64",
+    "linux-musl-x64",
+    "linux-x64",
+    "logs",
+    "osx-arm64",
+    "win-arm64",
+    "win-x64"
+  ],
+  "Files": 231,
+  "Bytes": 111181807,
+  "Runtime": ".NET 10.0.13",
+  "Os": "Microsoft Windows 10.0.26200",
+  "GcMode": "workstation",
+  "ProcessorCount": 16,
+  "ColdMethod": "unavailable: warm samples only",
+  "Samples": [
+    {
+      "Cache": "warm",
+      "Run": 1,
+      "StatScanMs": 0.9302,
+      "ManifestHashMs": 84.1766,
+      "CopyWithHashMs": 268.3384,
+      "VerifyCopyMs": 106.5657,
+      "ManifestReuseMs": 5.4836
+    },
+    {
+      "Cache": "warm",
+      "Run": 2,
+      "StatScanMs": 0.69,
+      "ManifestHashMs": 82.8438,
+      "CopyWithHashMs": 256.225,
+      "VerifyCopyMs": 104.987,
+      "ManifestReuseMs": 1.346
+    },
+    {
+      "Cache": "warm",
+      "Run": 3,
+      "StatScanMs": 0.6549,
+      "ManifestHashMs": 86.4051,
+      "CopyWithHashMs": 248.3485,
+      "VerifyCopyMs": 103.6711,
+      "ManifestReuseMs": 2.4098
+    }
+  ],
+  "StaleStat": {
+    "File": "BuildHost-net472\\Microsoft.Bcl.AsyncInterfaces.dll",
+    "StatStampEqual": true,
+    "ContentHashEqual": false
+  }
+}

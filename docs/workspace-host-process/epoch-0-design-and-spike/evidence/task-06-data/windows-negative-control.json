@@ -1,0 +1,14 @@
+{
+  "method": "Controlled CLI MCP, not a third Codex chat; same published executable, different checkout cwd.",
+  "pid": 57824,
+  "serverInfo": "## Roslyn MCP server info\r\n\r\n- **Assembly:** `RoslynMcpServer` v1.5.16.0\r\n- **Process path:** `E:\\Devel\\RoslynMcpServer\\bin\\Release\\net10.0\\win-x64\\publish\\RoslynMcpServer.exe`\r\n- **Binary modified (local):** 2026-10-24T19:15:51.6701623+03:00\r\n- **Base directory:** `E:\\Devel\\RoslynMcpServer\\bin\\Release\\net10.0\\win-x64\\publish\\`\r\n- **Process working directory:** `E:\\Devel\\RoslynMcpServer`\r\n- **Tool profile:** `full`\r\n- **Startup tool groups:** (none)\r\n- **Dynamic tool groups:** (none)\r\n- **Registered MCP tools:** 54\r\n- **Latest log file:** `E:\\Devel\\RoslynMcpServer\\bin\\Release\\net10.0\\win-x64\\publish\\logs\\mcp-20261029.log`\r\n- **Plugins:** (none)\r\n- **Workspace loaded:** no\r\n- **Workspace load source:** not loaded\r\n- **RoslynMcp.jsonc (exe):** `E:\\Devel\\RoslynMcpServer\\bin\\Release\\net10.0\\win-x64\\publish\\RoslynMcp.jsonc` (absent)\r\n- **RoslynMcp.jsonc (cwd):** `E:\\Devel\\RoslynMcpServer\\RoslynMcp.jsonc` (absent)\r\n- **Merged workspace-path:** (none)\r\n- **Merged configuration:** (none)\r\n- **Merged platform:** (none)\r\n- **Merged target-framework:** (none)\r\n- **Merged max-results:** (none)\r\n- **Merged preview:** (none)\r\n- **Merged search-prewarm:** (none) (ROSLYN_MCP_SEARCH_PREWARM wins; default on)\r\n- **Merged ripgrep-path:** (none) (stored; unused until search opts in)\r\n\r\nAfter code changes run `dotnet publish -c Release -r win-x64`, then Reload MCP in Cursor.",
+  "candidateWorkspacePath": "E:/Devel/RoslynMcpServer/RoslynMcpServer.sln",
+  "candidateLoadProperties": {
+    "Configuration": null,
+    "Platform": null,
+    "TFM": null
+  },
+  "elapsedSpawnInitializeAndInfoMs": 210.84099996369332,
+  "startupNote": "CLI baseline only; not the future guarded startup or a harness initialize budget.",
+  "exitCodeAfterStdioClose": 0
+}

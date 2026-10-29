@@ -1,7 +1,7 @@
 # Выделенный workspace host: проект архитектурного решения
 
 Дата: **2026-10-29**. База: `b2a7b80`, сервер **1.5.18**, MCP SDK **2.2.0**.
-Статус: **proposed; O-05 выбран владельцем 2026-10-29: небольшой WorkspaceKey, приватный fresh и reuse-only диагностика; редакция O-05 перепроверена в раундах 8–9. O-02 global retire, O-03 dev publish выбраны, O-04 plugins отложены; O-01 открыт, task-06 planned**.
+Статус: **proposed; O-05 выбран владельцем 2026-10-29: небольшой WorkspaceKey, приватный fresh и reuse-only диагностика; редакция O-05 перепроверена в раундах 8–9. O-02 global retire, O-03 dev publish выбраны, O-04 plugins отложены; O-01 открыт. Task-06 completed в сокращённом preflight scope Linux/Windows, 2 раунда / 5 исправлений; механизмы переданы task-02, prelaunch proof обязателен до shared admission/activation**.
 Результат [E0/task-01](epoch-0-design-and-spike/task-01-architecture-decision-hi.md).
 Границы темы и решения владельца — в [README](README.md).
 Факты действующего сервера ниже отделены от предлагаемого контракта shared-режима.
@@ -14,7 +14,7 @@
 - WorkspaceKey содержит path/Configuration/Platform/TFM; environment не хешируется для выбора workspace. Image/plugin/protocol admission проверяется отдельно. `--force_fresh`/`load_workspace(forceFresh=true)` создаёт отдельный host только для инициатора. Reused load сообщает actual context и инструкцию; создатель нового host дополнительный блок не получает.
 - Switch, включая path-варианты `list_projects`/`get_project_graph`, готовит B вне gate привязки. Отказ B сохраняет живой A; metadata writes общего graph меняют epoch и запрещают прежние tickets/proofs всех сессий.
 - Shared load имеет один attempt и независимых waiter. После отказа следующий явный `load_workspace` клиента, уже получившего этот отказ, может открыть одну новую попытку без отключения всех клиентов.
-- `reset_workspace` при binding завершает общий host (global retire, O-02 выбран владельцем 2026-10-29): соседи теряют прогрев, их read-only вызовы прерываются сразу с просьбой повторить, принятые записи завершаются, о перезапуске агент узнаёт из ответа. Выбор оправдан редкостью reset; обновление после изменений на диске идёт через graph-stale load без смены процесса.
+- `reset_workspace` при binding завершает общий host (global retire, O-02 выбран владельцем 2026-10-29): соседи теряют прогрев, чистое чтение прерывается с просьбой повторить, начатые load/prepare/записи завершаются в drain budget с явным исходом либо неопределённостью эффектов. Metadata readOnly не доказывает чистоту. О перезапуске агент узнаёт из ответа. Выбор оправдан редкостью reset; graph-stale load не меняет процесс.
 - Падение host не убивает CLI в живом proxy. Успех CLI и подтверждение build proof — разные результаты; доказательства не переносятся в новое поколение.
 - Socket/locks отделены от storage image/logs: Unix images не помещаются в `/tmp`. Launcher snapshot допускает reuse после audit. O-03 выбран: dev publish сохраняет текущую остановку MCP из каталога разработки; при respawn со стороны harness допустим отказ и ручная остановка harness.
 - Design допускает task-02 только после независимого ревью и выбора владельца. macOS, общий Roslyn, произвольные plugins и численные бюджеты требуют проверок, перечисленных в конце.
@@ -215,7 +215,9 @@ Mutable source без такого доказательства получает
 Изменение закреплённого source требует restart proxy. При создании копии hash
 считается вместе с копированием и сверяется с закреплённым manifest.
 Действующий Windows controlled-stop publish сам по себе не доказывает prelaunch
-lease: task-06 проверяет наличие этой границы или фиксирует no-go до O-01.
+lease. Task-06 фиксирует provenance как unverified; по сокращению scope владельцем
+2026-10-29 механизм проверяет task-02 **до shared admission/activation**. Отсутствие
+proof означает deployment-unverified и restart через verified image, не поздний disk hash.
 
 Новый host запускается с cwd, исходной средой и effective host options инициатора.
 Он проверяет фактические MSBuild/runtime/plugin facts до readiness. Поздний клиент
@@ -658,7 +660,8 @@ server notifications модели в harness не показываются. Prox
 
 | Состояние вызова соседа | Обработка | Ответ агенту |
 |---|---|---|
-| Read-only host call: поиск, навигация, диагностика | Отменяется сразу, без drain budget; ожидание кооперативной отмены Roslyn входит в budget retire. | Явная ошибка: вызов прерван `reset_workspace` другой сессии, побочных эффектов нет, workspace перезагружается, вызов нужно повторить. Это не outcome-unknown: признак `readOnly` инструмента берётся из каталога. Proxy сам не повторяет вызов. |
+| Чистая read-стадия host call после завершения load/prepare, без записи/запуска внешних процессов | Отменяется сразу; ожидание кооперативной отмены входит в budget retire. | Вызов прерван `reset_workspace` другой сессии, повторите после загрузки. Отсутствие эффектов можно утверждать только для доказанно чистой стадии и при отсутствии предшествовавших effectful стадий этого вызова. Proxy не повторяет вызов. |
+| Load/prepare/MSBuild внутри любого host call, включая инструмент с metadata `readOnly` | Новое admission закрыто; уже начатая effectful стадия завершается в drain budget. Остаток чистого чтения можно отменить. | Фактический исход стадии; при принудительном завершении/неизвестном исходе — явная неопределённость эффектов и просьба проверить результат. Metadata `readOnly` не доказывает отсутствие эффектов: explicit/lazy load может создавать binlog и запускать MSBuild tasks/generators. Завершённые эффекты также не скрываются. Автоматического replay нет. |
 | Write call: правка, rename, code fix | Admission новых записей закрыт; уже принятая запись завершается в пределах drain budget. | Обычный результат. Если budget исчерпан — outcome-unknown с указанием проверить файлы на диске. |
 | Proxy CLI: build/test | Процесс не прерывается retire. | Фактический результат CLI и отдельно: host перезапущен, confirmation/freshness proof не выдан (§6). |
 | Следующий вызов после retire | Discovery и одна shared attempt нового generation; вызов ждёт её в своём deadline. | Обычный результат с однократным на сессию и generation уведомлением: host перезапущен после reset другой сессии, workspace перезагружен за N с. |
@@ -732,7 +735,7 @@ Task-02 проверяет их и приводит измерения; публ
 | Semantic call | Прежний call cancellation; дополнительного общего 15 с / 2 мин IPC timeout нет. |
 | CLI | Нынешний timeout инструмента включает stage RPC, gates, build/test и cleanup по прежним правилам. |
 | Cancellation delivery | Отдельные 2 с с независимым токеном. |
-| Retire/drain | Read-only calls отменяются сразу; принятые записи — до 30 с, затем host завершает собственный процесс. |
+| Retire/drain | Чистые read-стадии отменяются сразу; начатые effectful load/prepare/MSBuild и записи drain-ятся до 30 с с фактическим исходом либо явной неопределённостью эффектов, затем host завершает свой процесс. Metadata readOnly не определяет эту классификацию. |
 | Нет первого / последнего клиента | 30 с startup allowance / 1 с closing grace. |
 | Internal NDJSON | Те же logical payloads, что принимает внешний SDK; нового общего size cap нет. |
 
@@ -872,7 +875,7 @@ proxy, он завершается по обычным lifetime правилам
 На Linux у владельца уже есть внешний launcher `~/.local/share/roslyn-mcp/launch.sh`:
 по [замеру раунда 5](review-task-01-round-5-2026-10-29/linux-env-and-image-probe.json)
 proxy стартует из snapshot в `~/.cache/roslyn-mcp/snapshots/<hash>` с shared flock.
-Тогда вторая копия **не обязательна**: task-06/E1 проверяют полный publisher manifest,
+При доказанном полном контракте вторая копия **не обязательна**: task-02/E1 проверяют полный publisher manifest,
 owner/FS/permissions, immutable publication от момента до CreateProcess, content identity, config origin и
 совместимый use-lease/cleanup протокол для launcher/proxy/host. В частности, flock
 нельзя считать совместимым с независимым fcntl lock на другом файле. При подтверждении
@@ -899,11 +902,11 @@ README и AGENTS.md.sample должны объяснять reset/stop/restart-re
 
 Альтернатива стабильного launcher/versioned payload могла бы сохранить живые proxy
 при обновлении исходного bundle, но добавляет packaging/process lifetime механизм.
-Ради hot update она пока не включена в scope. Отдельно task-06 обязан доказать
-startup identity обычного deployment: если prelaunch boundary отсутствует,
-task-06 фиксирует технический no-go до O-01, а не поздно хеширует DLL и не включает
-новую схему обновления автоматически. Выбор dev publish O-03 сам по себе не доказывает
-startup identity и не отменяет эту отдельную проверку.
+Ради hot update она пока не включена в scope. Task-06 фиксирует startup provenance
+обычного deployment как unverified. По сокращению scope владельцем механизм получает
+task-02: доказать prelaunch boundary proxy и host до shared admission/activation,
+иначе технический no-go. Поздний hash DLL и собственный host image этого не заменяют;
+новая схема обновления автоматически не включается. O-03 не отменяет эту проверку.
 Single-file всего сервера запрещён действующей архитектурой dynamic loading.
 Потеря MCP-сессий при dev publish принята владельцем в O-03; обычное использование
 не получает требования непрерывного обновления из этого сценария разработки.
@@ -946,7 +949,7 @@ Single-file всего сервера запрещён действующей а
 4. Смерть launcher до/после lease и host до ready: один heavy owner; один failure для admitted cohort; после failure явный retry без очереди.
 5. Shared load failure при подключённых клиентах: старые lazy calls получают тот же failure; новый explicit load с observed failure id даёт одну attempt. Cancel одного/всех waiter подтверждён backend counters.
 6. EOF/SIGKILL последнего proxy, reconnect до Closing и во время Closing: нет двух владельцев, host сам выходит на Unix, lease освобождён только после завершения работ/процесса. PID reuse и stale/corrupt metadata не дают kill/takeover чужого процесса.
-7. Shared reset при двух клиентах, активном длительном поиске, записи и proxy CLI: новое host generation, старые tickets/proofs запрещены. Поиск соседа отменён сразу с текстом «прерван reset другой сессии, повторите», без outcome-unknown; принятая запись завершена; CLI не убит из-за retire; следующий вызов соседа несёт однократное уведомление о перезапуске. Replay нет. Ответ reset называет общий эффект. Повторный reset не закрывает преемника. Stop одного proxy оставляет другого.
+7. Shared reset при двух клиентах, активном поиске, записи и proxy CLI: новое host generation, старые tickets/proofs запрещены. Чистая read-стадия соседа отменена с просьбой повторить. Отдельно reset во время explicit load readOnly list/graph и lazy load/prepare semantic read: drain budget и фактический исход/неопределённость эффектов, без ложного «побочных эффектов нет» по metadata. Принятая запись завершена; CLI не убит; следующий вызов сообщает о перезапуске. Replay нет. Reset называет общий эффект; повторный reset не закрывает преемника. Stop proxy оставляет другого.
 8. Analyzer V1 → V2 той же identity: restart proxy не объявляется CLR unload. Shared reset retires host, новый generation исполняет V2 с прежним provenance/publication/write gate. Нет теневых путей на диске проекта.
 9. Реальные build/project-test/DLL-test stages до/во время/после host kill и switch: фактический CLI result отдельно от confirmation, output gates переживают host crash, нет proof/replay другого generation.
 10. Оба MCP protocols: activation/list_changed/listen, одинаковые IDs/progress tokens соседей, backend cancellation и поздний ответ A после switch. Effect-before-crash оставляет один side effect.
@@ -978,16 +981,16 @@ opt-in `ROSLYN_MCP_EXPERIMENTAL_WORKSPACE_HOST=1`; default не входит в 
 | ID | Рекомендация / получатель |
 |---|---|
 | O-01 | После task-06 выбрать выделенный host против нулевого варианта с учётом выбранного O-05; роли/HTTP остаются отложенными. |
-| O-02 | **Выбрано владельцем 2026-10-29:** shared reset — global retire host; read-only вызовы соседей прерываются с просьбой повторить, записи завершаются, следующий вызов ждёт cold load и сообщает о перезапуске. Основание — редкость reset в логах Linux и Windows; soft reset и локальный reset отвергнуты (§7). При частом reset — пересмотр. |
+| O-02 | **Выбрано владельцем 2026-10-29:** shared reset — global retire host; чистые read-стадии соседей прерываются с просьбой повторить, начатые load/prepare/записи drain-ятся с явным исходом/неопределённостью эффектов, следующий вызов ждёт cold load и сообщает о перезапуске. Metadata readOnly не определяет наличие эффектов (§7). Основание — редкость reset; soft/локальный reset отвергнуты. При частом reset — пересмотр. |
 | O-03 | **Выбрано владельцем 2026-10-29:** dev-only publish с текущим kill MCP из RepoRoot/PublishDir; прерывание допустимо, при respawn harness — возможен отказ и ручная остановка. Скрипт/launcher ради hot update не усложнять; область — текущий checkout, прежняя обработка unknown path сохраняется. |
 | O-04 | **Выбрано владельцем 2026-10-29:** поддержку plugins отложить; первый spike без них, Sample — возможный контроль. Будущий список — global config + config выбранного solution/project, не startup cwd (P-01). Неподдерживаемый shared plugin отклоняется явно, ordinary прежний; multi-client state проверяется позже. |
 | O-05 | **Выбрано владельцем 2026-10-29:** WorkspaceKey=path/Configuration/Platform/TFM, контекст создателя host; fresh создаёт private только для инициатора. Actual context/инструкция в load — только для reused attachment, не для создателя. Namespace/image/admission проверки сохраняются; production activation не разрешена. |
 | V-01 | Task-02: настоящий Roslyn single-flight, session split, write/analyzer admission, graph reload и stage RPC. Fake load этого не доказывает. |
 | V-02 | Task-06/task-02: FS/permissions/noexec/space двух roots; macOS primitive/peer credentials остаются непроверенными до среды. |
 | V-03 | Task-06: identity costs; task-02: attach/reset latency, payload parity, output gates/abandoned writer, нагрузка/RAM. Числа не SLA. |
-| V-04 | Task-06/E1: полный server/plugin file set, launcher reuse и совместимый lease; runtime/toolset проверяются task-02. |
+| V-04 | Task-06: phase costs и launcher audit (reuse no-go); task-02: полный server file set и prelaunch proof proxy/host до shared admission; plugins отложены E1. Runtime/toolset проверяются task-02. |
 | V-05 | После исследования: aggressive GC/остаточный heap/idle unload по отдельному решению владельца. |
-| V-06 | Task-06 до O-01: небольшой key при разных session env, actual context/reuse-only output и private fresh на реальных парах Codex/Windows и Claude Code/Linux. Нет заявления универсальной parity; task-02 подтверждает на реализации. |
+| V-06 | Task-06 до O-01: наблюдаемые входы реальных пар Codex/Windows и Claude Code/Linux, факты ФС, phase costs и env counterexample. По сокращению scope actual context/reuse-only output, private fresh и startup guard проверяет task-02 на реализации; guard обязателен до shared admission/activation. Универсальной parity нет. |
 
 U-C-01…U-C-08 имеют предложенные ответы в разделах 1–10; статус owner decision
 по O-01 остаётся открытым; O-02/O-03/O-04/O-05 выбраны владельцем 2026-10-29 в scope §7/§9/§4/§2. Результат независимого ревью и исправления фиксируются

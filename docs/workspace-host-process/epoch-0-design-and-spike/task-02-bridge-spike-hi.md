@@ -56,7 +56,11 @@ Roslyn. Команды и результаты до/после — в evidence. 
 [task-06](task-06-environment-and-deployment-preflight-med.md). Здесь повторить
 его контроль на реализации. Решением владельца 2026-10-29 прототипы механизмов task-06 —
 receipt created/reused, private fresh, отказы storage, prelaunch identity lease, сценарии 24–25 —
-перенесены сюда и выполняются здесь впервые; reuse launcher snapshot — no-go по аудиту
+перенесены сюда и выполняются здесь впервые. Prelaunch provenance proxy/host остаётся
+unverified на обеих ОС: доказать границу до CreateProcess **до первого shared admission/activation**,
+иначе deployment-unverified/restart через verified image. Свой host image не легализует
+неизвестный proxy, поздний disk hash не доказывает старый исполняемый код.
+Reuse launcher snapshot — no-go по аудиту
 [task-06](evidence/task-06-environment-and-deployment-preflight.md#7-аудит-launcher). Проверить: совместимые реальные пары Codex/Windows и Claude Code/Linux
 одного checkout, WorkspaceKey path/Configuration/Platform/TFM и отдельный namespace/
 image admission. Разные session environments не дробят WorkspaceKey. Host сохраняет
@@ -140,8 +144,13 @@ generation. Не объявлять новую среду восстановле
    перезапуск прокси не объявляется обновлением загруженного в host analyzer.
    O-02 выбран владельцем 2026-10-29: shared reset — global retire host
    ([решение](../evidence/2026-10-29-task-01-reset-decision.md)). Проверить при
-   двух клиентах: длительный поиск соседа отменяется сразу с текстом «прерван reset
-   другой сессии, повторите», без outcome-unknown; принятая запись завершается;
+   двух клиентах: чистая read-стадия поиска соседа отменяется с просьбой повторить;
+   отдельно reset во время explicit load у readOnly list_projects/get_project_graph
+   и lazy load/prepare у semantic read. Metadata readOnly не заменяет фазовую
+   классификацию: MSBuild/tasks/generators/binlog могут иметь эффекты. Проверить
+   drain budget и фактический исход/явную неопределённость при forced stop, отсутствие
+   ложного «побочных эффектов нет» и replay, admission закрыт до смены generation.
+   Уже начатая запись завершается;
    proxy CLI не прерывается и не получает proof; следующий вызов соседа ждёт одну
    загрузку нового generation и один раз сообщает о перезапуске. При N=10 reset→load
    даёт одну physical attempt; replay нет.
