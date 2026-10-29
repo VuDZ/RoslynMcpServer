@@ -1,22 +1,22 @@
 # Выделенный workspace host: проект архитектурного решения
 
 Дата: **2026-10-29**. База: `b2a7b80`, сервер **1.5.18**, MCP SDK **2.2.0**.
-Статус: **proposed; исправления по независимому ревью подтверждены технической перепроверкой, 2026-10-29; выбор владельца отложен**.
+Статус: **proposed; исправления раунда 5 и R6-N01 перепроверены в раундах 6–7; выбор владельца отложен, preflight task-06 planned**.
 Результат [E0/task-01](epoch-0-design-and-spike/task-01-architecture-decision-hi.md).
 Границы темы и решения владельца — в [README](README.md).
 Факты действующего сервера ниже отделены от предлагаемого контракта shared-режима.
 
 ## Главное
 
-- Рекомендация — **opt-in выделенный host на совместимый ключ**; default остаётся автономным stdio. Роли, handoff, promotion/demotion, HTTP и restore RAM не нужны выбранной модели.
+- Кандидат — **opt-in выделенный host на совместимый ключ**; default остаётся автономным stdio. До выбора O-01 нужны preflight task-06 и решение о среде O-05. Роли, handoff, promotion/demotion, HTTP и restore RAM отложены.
 - Дублирование настоящего workspace подтверждено task-05. Экономия production shared-режима ещё не измерена; task-02 сравнит все процессы при N=1/N=10, включая цену отдельного host.
 - Proxy — обычный сервер с Roslyn/plugins, но без загруженного workspace. Его MCP-сессия, activation, defaults, CLI и отчёты остаются локальными.
-- В ключ входят graph inputs, полный image manifest и стартовый контекст. Контекст с известными volatile harness IDs в environment отклоняет shared до создания key; task-02 сначала проверяет точный descriptor на настоящей MCP-паре.
+- В ключ входят graph inputs, полный image manifest и версия политики среды. Предлагается canonical host environment с явной ценой parity (O-05); CLI proxy сохраняет свою полную среду. Проверяются Codex/Windows и Claude Code/Linux.
 - Switch, включая path-варианты `list_projects`/`get_project_graph`, готовит B вне gate привязки. Отказ B сохраняет живой A; metadata writes общего graph меняют epoch и запрещают прежние tickets/proofs всех сессий.
 - Shared load имеет один attempt и независимых waiter. После отказа следующий явный `load_workspace` клиента, уже получившего этот отказ, может открыть одну новую попытку без отключения всех клиентов.
-- Предлагаемая lifecycle-семантика: `stop_mcp_server` завершает только свой proxy; `reset_workspace` выводит из обслуживания **общий host этого ключа**, включая его analyzer CLR. Это видимое всем изменение требует выбора владельца.
+- Предлагается обычный reset через общую epoch invalidation, с сохранением процесса host; retire — при подтверждённом restart-required или неисправимом admission. Перезагрузка graph всё равно стоит ordinary load; вариант O-02 требует выбора владельца.
 - Падение host не убивает CLI в живом proxy. Успех CLI и подтверждение build proof — разные результаты; доказательства не переносятся в новое поколение.
-- Windows publish использует остановку proxy, удерживающих обновляемые исходные DLL. Непрерывное обновление этих DLL при живых proxy не обещается; новый bootstrap не предлагается. Host работает из immutable shadow image.
+- Socket/locks отделены от storage image/logs: Unix images не помещаются в `/tmp`. Проверенный launcher snapshot может переиспользоваться после audit, иначе создаётся проверенная копия в storage; Windows publish останавливает holders источника.
 - Design допускает task-02 только после независимого ревью и выбора владельца. macOS, общий Roslyn, произвольные plugins и численные бюджеты требуют проверок, перечисленных в конце.
 
 ## 1. Выбор модели — U-C-07
@@ -32,7 +32,7 @@
 |---|---|---|---|
 | Нулевой: текущий stdio | Каждый клиент держит собственный workspace. | IPC отсутствует; поведение известно. | Сохранить default и контроль task-02. |
 | Простое улучшение нулевого: idle unload + GC | Убирает часть памяти idle, оставляет активные дубликаты. | Нужны таймер и повторные загрузки. | Отложено владельцем; вернуться при выборе нулевого варианта. |
-| Выделенный host | N proxy и один workspace на ключ. | Нужны IPC, session split и recovery. | Рекомендуется для task-02. |
+| Выделенный host | N proxy и один workspace на ключ. | Нужны IPC, session split и recovery. | Кандидат после task-06 и выбора O-02/O-05. |
 | Роли в MCP | Может сэкономить один proxy на ключ. | Добавляет handoff, demotion и ограничения CLR. | Отложено до измеримого ущерба N=1 или harness-блокера. |
 
 В task-05 измерена синтетическая группа 20 MCP: 2606,4 MiB private bytes на Windows,
@@ -69,41 +69,60 @@ Task-03 измерил p50 Windows `count` 0,39–0,45 мс через фаса�
 | Workspace | Абсолютный путь `.sln`/`.slnx`/`.csproj`, нормализованный относительно cwd клиента. |
 | Load properties | Эффективные Configuration, canonical Platform, TargetFramework; отсутствие остаётся отдельным `null`. |
 | Host settings | Analyzer overlay policy, prewarm, BuildHost A/B/C/workers, provenance options и trace/window settings. |
-| Environment | Digest полного снимка eligible startup environment после preflight ниже. |
+| Environment | Policy id и digest фактической effective environment host по O-05. |
 | Plugins | Упорядоченные исходные пути, полные content manifests и принятый набор registrations/schemas. |
 | Configuration | Эффективная проекция настроек host и источников SDK selection, включая найденные `global.json`. |
 
-Состав среды выбран консервативно: MSBuild imports/conditions могут читать любую
-переменную. **До вычисления key** preflight проверяет наличие `CODEX_THREAD_ID`,
-`CODEX_SESSION_ID`, `CODEX_TOOL_CALL_ID`. Наличие любого из этих имён, даже с пустым
-значением, делает startup context **ineligible shared**: явный отказ до host launch,
-без создания отдельного host для каждого ID и без fallback в локальный workspace.
-Эти три имени найдены в shell автора/рецензента; это не доказывает их наличие у MCP.
-Их нельзя молча убрать только из hash, оставив разные значения доступными MSBuild.
+### Политика environment — O-05
 
-Для такого контекста допустим ordinary либо заранее выбранная пользователем стабильная
-startup environment без volatile IDs. Сервер сам не меняет окружение проекта и не
-заимствует значения первого host. Проект, которому нужны эти переменные, остаётся
-в ordinary до отдельного решения о его effective evaluation context.
-Известный список v1 — точные три имени, без широких `CODEX_*`/`SESSION_*` фильтров.
-Новые volatile names добавляются после names-only проверки harness, а не по сходству имени.
-Произвольное пользовательское env-свойство считается semantic input, пока не доказано обратное.
+Полный inherited environment сохраняет inputs MSBuild, но дробит host по session/
+terminal/login metadata. В [раунде 5](review-task-01-round-5-2026-10-29/result.md)
+найдены 11 различающихся значений у двух настоящих MCP Claude Code/Linux.
+Пара работала в разных checkout: PWD/CLAUDE_PROJECT_DIR сами по себе не доказывают
+ложное разделение совместимых клиентов. Остальные наблюдённые session/terminal
+различия выявляют пробел правила с тремя CODEX именами. Старый blanket preflight
+«есть CODEX ID → отказ» заменён следующими **вариантами для владельца**.
 
-Для eligible среды имена сортируются; Windows environment names сравниваются без
-учёта регистра и канонизируются одинаково, Unix — ordinal, значения сохраняются точно.
-Значения не пишутся в discovery/logs; hash не считается защитой секрета от того же user.
-В v1 нет непроверенного allowlist «только PATH/DOTNET_*». Это может консервативно разделить
-процессы с иной средой, включая разные startup profile variables. Runtime activation
-и session defaults сами по себе key не меняют. Внутренне генерируемые IDs в env не внедряются.
+Рекомендуемый вариант — `canonical-v1`. До bootstrap host строится копия среды:
 
-**Go/no-go до интеграции:** task-02 начинает с двух настоящих MCP motivating harness
-и вычисляет точный proposed descriptor, а не только env subset. При одинаковых workspace/
-эффективных настройках сравниваются keys и names-only причины расхождений; значения
-credentials/env не публикуются. Если различие вызвано volatile session/PID input либо
-preflight отвергает запуск, нельзя объявлять схлопывание этого harness или переходить
-к rollout на основании synthetic N=10. Результат возвращается владельцу для изменения
-startup context/дизайна или выбора нулевого варианта. Подтверждение пары для 1.5.18
-с этим descriptor в данной docs-only задаче ещё не получено.
+| Класс | Правило effective environment host |
+|---|---|
+| Harness correlation/messaging | Удалить families `CODEX_THREAD_*`, `CODEX_SESSION_*`, `CODEX_TOOL_CALL_*`, `CLAUDE_CODE_SESSION_*`, `CLAUDE_CODE_MESSAGING_*`, точное `AI_AGENT`. |
+| Terminal/login transport | Удалить `TMUX*`, `TERM_PROGRAM*`, `TERM_SESSION_*`, `XDG_SESSION_*`, точные `TERM`, `COLORTERM`, `STY`, `WINDOWID`, `OLDPWD`, `SSH_CLIENT`, `SSH_CONNECTION`, `SSH_TTY`. |
+| Working directory | `PWD` задать из зафиксированного effective cwd; не наследовать его spelling из shell. |
+| Project/configuration/credentials и прочие inputs | Сохранить; `CLAUDE_PROJECT_DIR` не является session id и остаётся path input с обычной нормализацией абсолютного пути. |
+
+Имена families заданы полностью, без удаления всех `CODEX_*`/`CLAUDE_*` или всех
+неизвестных переменных. В Windows сравнение имён case-insensitive, в Unix — ordinal;
+значения оставшихся переменных точные. Policy id, правила нормализации и digest
+**всей полученной** среды входят в key. Именно эту среду получают host, MSBuild
+и его children. Изменяемые значения не остаются скрыто доступными evaluation.
+Proxy/его CLI сохраняют исходный environment. До O-05 эта политика не активируется.
+SSH_AUTH_SOCK/SSH_AGENT_PID/SSH_ASKPASS и TERMINFO/TERMINFO_DIRS сохраняются:
+connection metadata не приравнивается ко всем SSH credentials или terminal config.
+
+Цена canonical-v1 — **явное отклонение от ordinary parity** для проекта или plugin,
+который читает удалённые/нормализованные имена. Для такого проекта выбирают ordinary
+либо отдельно согласованный стабильный evaluation context. Нельзя обещать обнаружить
+все такие чтения по MSBuild log: прямые Environment reads custom tasks/child processes
+не считаются покрытыми без доказательства. Проверка logging в task-06 исследовательская,
+не автоматическое разрешение игнорировать inputs. Альтернатива `strict` сохраняет
+полную среду и parity inputs, но для различающихся session/terminal значений не обещает
+схлопывание; для такого harness владелец может выбрать нулевой вариант.
+
+Различия оставшихся inputs считаются несовместимостью, а не тихим успешным shared hit.
+На явном `get_mcp_server_info` диагностика показывает policy, имена преобразованных
+inputs и names-only причины расхождения с найденными кандидатами того же workspace
+family. Сравнение с живым кандидатом идёт по защищённому локальному каналу, fingerprints
+сравниваются в памяти; env values/per-variable hashes не пишутся в logs/metadata.
+Поиск ограничен trusted discovery metadata, без опроса всех PID, P2P и постоянного
+обмена списками соседей; недоступный кандидат помечается unverifiable.
+
+**Go/no-go до выбора O-01:** [task-06](epoch-0-design-and-spike/task-06-environment-and-deployment-preflight-med.md)
+проверяет proposed policy/key на настоящих совместимых парах Codex/Windows и
+Claude Code/Linux с одинаковыми cwd/workspace/image/options, отдельно от разных
+checkout. Измерения раунда 5 и прежние names-only Codex probes этот контроль не
+закрывают. No-go возвращается владельцу до task-02; synthetic N=10 не заменяет его.
 
 Пути следуют [InputPathCanon](../../Services/Workspace/InputPathCanon.cs#L3):
 `Path.GetFullPath`, Windows OrdinalIgnoreCase, Unix Ordinal. Для ключа Windows
@@ -124,7 +143,24 @@ temp не копируются. Конфигурация читается из *
 Перед запуском проверяются исходный и скопированный манифесты; движущийся source
 даёт bounded failure без исполнения смешанной сборки.
 
-Host запускается с cwd/environment инициатора и теми же эффективными host options.
+Shared допускается только при доказанной immutable publication/use lease bundle,
+непрерывно действующей **до OS CreateProcess**, включая первоначальную загрузку
+exe/server assemblies. Startup guard до MSBuild/Roslyn/plugins закрепляет image
+identity **один раз на процесс/образ** из замороженного bundle или audited publisher
+manifest (§9), без полного повторного hash на каждом attach/RPC. Guard должен связать
+manifest с фактически запускаемым image; lock, взятый лишь в managed Program после
+загрузки exe/server assemblies, не доказывает эту границу.
+
+Mutable source без такого доказательства получает `deployment-unverified` при
+попытке shared и требует restart через verified image; default ordinary сохраняется.
+Поздний hash при первом shared call не может присвоить новым файлам identity уже
+исполняемого старого CLR кода. mtime/size и MVID также не заменяют content proof.
+Изменение закреплённого source требует restart proxy. При создании копии hash
+считается вместе с копированием и сверяется с закреплённым manifest.
+Действующий Windows controlled-stop publish сам по себе не доказывает prelaunch
+lease: task-06 проверяет наличие этой границы или фиксирует no-go до O-01.
+
+Host запускается с cwd инициатора, средой выбранной политики O-05 и теми же эффективными host options.
 Он проверяет фактические MSBuild/runtime/plugin facts до readiness.
 Если новый `global.json` уже не позволяет воспроизвести закреплённый toolset proxy,
 вызов получает mismatch с действием restart proxy; чужой host не подменяет его выбор.
@@ -161,16 +197,32 @@ Policy чужого host не наследуется. Mapping/provenance GUID н
 
 ## 3. Владение, транспорт и безопасность — U-C-04/U-C-05
 
-Windows root: `LocalApplicationData/RoslynMcpServer/WorkspaceHosts/v1`.
-Unix root: `/tmp/roslyn-mcp-<euid>/v1` на локальной файловой системе, независимо от `TMPDIR`.
-Root создаётся с owner-only доступом: DACL SID владельца на Windows, mode 0700 и
-проверенный UID на Unix. Lock/config files — 0600 на Unix. Проверяются существующий
-root, владельцы и отсутствие reparse/symlink подмены; открытия фиксируют проверенные
+Есть два корня. **RendezvousRoot** на Unix — `/tmp/roslyn-mcp-<euid>/v1`, независимо
+от TMPDIR: только locks, socket, bounded discovery/activity metadata. Image/staging/logs
+туда не попадают. **StorageRoot** на Linux — `${XDG_CACHE_HOME}/roslyn-mcp/workspace-hosts/v1`,
+по умолчанию `~/.cache/roslyn-mcp/workspace-hosts/v1`; относительный XDG_CACHE_HOME
+игнорируется по [XDG specification](https://specifications.freedesktop.org/basedir/latest/).
+На macOS StorageRoot — user cache `~/Library/Caches/RoslynMcpServer/WorkspaceHosts/v1`.
+На Windows оба namespace находятся под `LocalApplicationData/RoslynMcpServer/WorkspaceHosts/v1`,
+с отдельными runtime/storage подкаталогами. Путь StorageRoot сам по себе не меняет
+graph identity; используемый host сообщает фактическую image/log location.
+
+Оба root создаются с owner-only доступом: DACL SID владельца на Windows, mode 0700 и
+проверенный UID на Unix. Lock/config files — 0600 на Unix. Проверяются существующие
+roots, владельцы и отсутствие reparse/symlink подмены; открытия фиксируют проверенные
 объекты, а не повторяют незащищённый path check. При невозможности проверки — отказ shared.
-Root на сетевом filesystem не поддерживается. Угроза — другой OS user; код того же
+Сетевой filesystem не поддерживается. Storage проверяет actual backing FS: tmpfs/ramfs
+и noexec для executable image отклоняются до копирования. Одно имя `.cache` не доказывает
+дисковое размещение. До staging проверяется available space относительно размера
+планируемого образа; ENOSPC во время copy остаётся явным отказом с cleanup только своего
+staging, без partial launch и без fallback в `/tmp`. Успешный preflight не резервирует место.
+Rendezvous допускает memory-backed/noexec FS: исполняемых образов там нет; очистка
+его активных lock/metadata запрещена до завершения владельцев, boot-old записи не reused.
+Непроверенная platform FS проверка остаётся task-06/task-02, не pass по названию каталога.
+Угроза — другой OS user; код того же
 пользователя уже имеет доступ к исходникам/процессам и не считается sandboxed.
 
-Под root лежат `<full-key>/launch.lock`, `host.lock`, bounded metadata и socket.
+Под RendezvousRoot лежат `<full-key>/launch.lock`, `host.lock`, bounded metadata и socket.
 Lock-файлы не unlink/replace во время работы и cleanup; иной inode означал бы второго владельца.
 Windows pipe name содержит namespace/user/key digest; Unix — абсолютный socket path
 под тем же root. До запуска проверяется предел **103 UTF-8 байта** для полного Unix path;
@@ -320,7 +372,7 @@ session leaks и несогласованных manager mutations. Провер�
 | Инструменты | Место и граница |
 |---|---|
 | `list_tool_groups`, `get_tool_help`, `enable_tool_group` | Proxy: metadata и activation этого endpoint. |
-| `load_workspace`, `reset_workspace` | Proxy: defaults/switch; host: load или общий retire по разделу 7. |
+| `load_workspace`, `reset_workspace` | Proxy: defaults/switch; host: load, soft reset или reason-bound hard retire по разделу 7. |
 | `get_mcp_server_info`, `stop_mcp_server` | Proxy: локальные факты/stop; remote facts info явно подписаны. |
 | `get_class_skeleton`, `get_diagnostics_for_file`, `find_symbol_definition`, `find_usages`, `find_symbol_references`, `find_implementations`, `get_call_graph` | Host: published snapshot; owned cursor continuation обслуживается по своему origin. |
 | `add_using`, `add_method_to_class`, `update_method_body`, `get_code_fixes`, `apply_code_fix`, `rename_symbol`, `generate_test_method_stub` | Host: semantic/write boundary исходной epoch. |
@@ -444,7 +496,7 @@ coordinator, а не обходит его прямым вызовом ныне�
 2. Перед первым возможным disk effect увеличивается `WorkspaceEpoch`. Все session tickets, write contexts и DLL-proof state прежней epoch становятся недействительными; per-session `SessionBuildState` заменяются пустыми экземплярами. Одного последующего `Observe` или очистки полей manager недостаточно.
 3. Host выполняет mutation и clear под этим admission. Всем привязанным proxy посылается invalidation с key, generation, новой epoch и причиной. Потерянное уведомление не разрешает старый ticket: каждый stage RPC проверяет epoch на host.
 4. Успешный clear переводит key в `Invalidated(epoch)`: path/Loaded*/mapping manager очищены, но descriptor host и defaults каждой proxy session сохранены отдельно. Следующая допустимая load/prepare этого key — одна общая attempt через раздел 7, с его закреплённой analyzer policy, а не тихий `LoadAsync` первого клиента.
-5. До load старые semantic/build-proof stages отклоняются как workspace-invalidated. Конфигурационный lazy load допустим лишь когда собственный контекст клиента разрешается в тот же descriptor; иначе требуется явный load, без подмены проекта остальных сессий.
+5. Старые semantic/build-proof tickets отклоняются как workspace-invalidated. До исполнения нового вызова bound proxy может присоединиться к одной prepare/load своего сохранённого key; новые tickets выдаются после publication. Unbound использует только собственный explicit/config lazy load. Это восстановление до исполнения, без replay и смены descriptor остальных сессий.
 
 Уже запущенный proxy CLI может завершиться; подтверждение его старого ticket после
 шага 2 запрещено, в том числе после следующего load и в том же HostGeneration.
@@ -454,7 +506,7 @@ Output gates и abandoned-writer records не очищаются от этой i
 либо retire host. Эпоха не откатывается, disk effects не replay.
 
 HostGeneration при такой очистке не меняется, CLR analyzer assemblies не выгружаются;
-это отличается от общего retire по `reset_workspace` ниже. Новый load по-прежнему
+это не hard retire по `reset_workspace` ниже. Новый load по-прежнему
 проверяет analyzer admission; restart-required требует retire host.
 После успешной mutation/clear ответ вызывающему сохраняет прежнее указание вызвать
 `load_workspace`. Отказ очистки не выдаётся за успешно очищенный cache.
@@ -499,22 +551,45 @@ Harness может принудительно убить дерево/Job, вк�
 подключениями: это crash/recovery, а не гарантия непрерывной доступности.
 Возможность пережить EOF одного proxy не означает пережить полный выход harness.
 
-**`reset_workspace` в shared** — explicit retire текущего общего host. До первого
-load без binding он только очищает свою session. При binding он закрывает admission
-ключа, уведомляет все proxy об invalidation, даёт активным операциям drain budget,
-завершает host и ждёт освобождения lease. Это затрагивает все его сессии; ответ
-называет key/generation и общий эффект. Инициатор очищает loaded defaults/buildArgs
-и остаётся unbound, file defaults как сейчас допускают следующий lazy load.
-Остальные сохраняют свои defaults/descriptor и восстанавливаются на следующем
-явном вызове. Повторный retire уже закрывающегося generation идемпотентен и не
-закрывает преемника. Повторно доставлять прерванные tool calls нельзя.
+**`reset_workspace` в shared — предлагаемый вариант O-02: обычный soft reset.**
+Он использует общую epoch invalidation выше: закрыть admission, дождаться других
+принятых semantic/write calls, clear graph и proofs, уведомить proxy, оставить
+`Invalidated(new epoch)`. HostGeneration/CLR сохраняются, пока есть подключённые
+клиенты. Если drain за 30 с не завершён, reset возвращает busy до clear/epoch change;
+он не убивает работающий host только ради deadline. После начала clear ошибка
+оставляет admission fail-closed по общему протоколу.
+
+Reset не запускает eager load. Следующий bound workspace request или explicit load
+входит в одну shared attempt. Reset со ссылкой на уже invalidated исходную epoch либо
+на её ещё не опубликованного преемника присоединяется к тому же сбросу, без очереди
+из N reload; запоздавший reset не очищает уже опубликованного преемника.
+Новый reset, принятый после новой publication и с её epoch, может потребовать ещё одну
+загрузку: её ненужность не доказана.
+Инициатор после успешного reset очищает свои loaded defaults/buildArgs и становится
+unbound; file defaults по-прежнему допускают его config lazy load. Остальные сохраняют
+свои descriptor/defaults и заново проходят prepare. Если после detach инициатора
+подключений не осталось, обычная grace может завершить host до следующего load.
+
+**Hard retire** тем же reset допускается при подтверждённом host restart-required
+analyzer либо неисправимом состоянии admission/cleanup. Host хранит этот reason до
+выхода процесса; ответ/info явно указывают общий эффект и новое поколение после restart.
+Обычный отказ загрузки проекта остаётся shared LoadFailed с explicit retry, а не
+поводом автоматически менять процесс. Если same-identity update обнаружен лишь при
+следующем load, он сначала возвращает restart-required; повторный reset выполняет retire.
+Retire закрывает admission, уведомляет proxy, drain-ит работы и завершает host;
+повторный retire относится только к исходному generation и не закрывает преемника.
+Hard retire может прервать calls с неопределённым исходом; replay запрещён.
 
 **`stop_mcp_server` в shared** — прежний ответ с последующим stop только своего
 stdio proxy. Он освобождает connection; остальных не останавливает.
-Restart-required analyzer указывает действие shared reset → новый load/host generation;
-обычный restart proxy при живом host analyzer не обновляет. Default reset/stop сохраняют
-нынешнюю in-process семантику. Выбор global retire вместо in-process clear упрощает
-restart CLR и failure recovery, но сбрасывает общий прогрев; это решение владельца O-02.
+Обычный restart proxy при живом host analyzer не обновляет. Default reset/stop сохраняют
+нынешнюю in-process семантику. Soft reset сохраняет процесс, **не обещает сохранения
+прогрева уничтоженного graph**: следующий ordinary load может стоить минуты.
+В AGENTS.md.sample reset рекомендуют после rename, изменения состава `.cs` и generated
+outputs, но не после каждого build/обычного save. Частота реальных reset не измерена.
+Альтернатива O-02 — прежний global retire на каждый reset: проще, но сбрасывает также
+CLR и может прервать соседние calls. Task-02 измеряет частый reset→load при N=10,
+latency соседей, число physical load/retire; цена вариантов не считается измеренной заранее.
 
 Crash host: все привязанные in-flight host calls получают отказ; следующий отдельный
 вызов проходит discovery/single-flight для **своего сохранённого descriptor**.
@@ -531,17 +606,27 @@ Task-02 проверяет их и приводит измерения; новы
 
 | Стадия | Предлагаемый предел |
 |---|---|
+| Guarded startup identity | До 30 с на pinned manifest/validation, до SDK facade start; результат кешируется на процесс/образ. |
 | OS connect | 5 с на попытку. |
 | Preface handshake | Отдельные 5 с после connect. |
 | Internal MCP initialize | Отдельные 15 с после handshake. |
-| Discovery/start/readiness | Общие 30 с, включая ожидание launch/host locks. |
+| Discovery/start/readiness | Общие 30 с на shared call, включая locks, image copy/hash/verify и MCP readiness. |
 | Physical load/prepare | 10 минут на общую attempt, отдельно от discovery. |
 | Semantic call | Прежний call cancellation; дополнительного общего 15 с / 2 мин IPC timeout нет. |
 | CLI | Нынешний timeout инструмента включает stage RPC, gates, build/test и cleanup по прежним правилам. |
 | Cancellation delivery | Отдельные 2 с с независимым токеном. |
-| Retire/drain | 30 с, затем host завершает собственный процесс. |
+| Soft reset drain / hard retire | 30 с; soft reset до clear возвращает busy, hard retire после budget завершает свой host. |
 | Нет первого / последнего клиента | 30 с startup allowance / 1 с closing grace. |
 | Internal NDJSON | Те же logical payloads, что принимает внешний SDK; нового общего size cap нет. |
+
+Startup identity должна уложиться также в budget MCP initialize конкретного harness;
+30 с не разрешают превысить его. Она включается в time-to-first-useful от запуска
+процесса. Discovery/copy/verify ограничены ещё и **оставшимся бюджетом вызова**;
+существующий CLI timeout не продлевается. Отдельно логируются identity, lock wait,
+image copy/verify, initialize и cached reuse: elapsed, files, bytes, cache mode.
+Task-06 измеряет guarded startup и cold/warm identity, task-02 — весь attach и
+time-to-first-useful. Непроверенный запуск нельзя легализовать поздним hash.
+Ни stat cache, ни истечение бюджета не разрешают непроверенную identity/partial image.
 
 Стандартный SDK NDJSON не получает дополнительного ограничения целого сообщения.
 Preface и private control DTO остаются ограниченными; существующие tool-specific
@@ -597,7 +682,8 @@ tool deadline. Cancellation отправляется явно с ожидани�
 Ошибка доставки cancellation фиксируется; повтор записи из неё не следует.
 
 Proxy пишет свои lifecycle/CLI/request логи в исходный `exe/logs`, как сейчас.
-Host пишет process/start/load/lease события в `root/<key>/logs`, а не внутрь immutable image.
+Host пишет process/start/load/lease события в `StorageRoot/logs/<key>`, вне immutable image;
+RendezvousRoot log payload не хранит. Retention сохраняет ограничение rolling logs.
 Запись host содержит собственный host id и переданный proxy harness session id,
 internal call id, key digest, generation/epoch, startup/load attempt и стадию отказа.
 Harness id исходного proxy определяется непосредственным parent по pitfall 26;
@@ -616,7 +702,8 @@ optional host section с source/key/generation/workspace/load state и прич�
 
 ## 9. Shadow image, публикация и cleanup
 
-Host работает только из проверенного immutable image под user root, вне repo/publish.
+Host работает из проверенного immutable image в **StorageRoot**, вне изменяемого
+repo/publish; rendezvous `/tmp` используется только для малого runtime state (§3).
 Уникальный staging → проверка полного manifest → атомарный rename → запуск.
 Image публикуется под своим image digest, а не только workspace key; несколько keys
 одной сборки могут использовать один image. Повреждённый existing image не используется:
@@ -624,6 +711,14 @@ Image публикуется под своим image digest, а не тольк�
 содержимым. Уже исполняемый каталог не чинится/перезаписывается на месте.
 Если исходный bundle больше недоступен или сам не совпадает, явная ошибка без fallback.
 Новая image instance не меняет content identity и не разрешает второго владельца key.
+
+Проверка source identity выполняется по pinned manifest (§2). Новая копия хешируется
+при чтении/копировании, до публикации сверяется её полный manifest; повторный полный
+hash на каждом attach не нужен для уже проверенного immutable image под use lease.
+Обычный каталог с одними совпавшими stat stamps таким образом не признаётся trusted.
+Все эти фазы входят в identity/discovery budgets §7; превышение даёт явный отказ.
+Изменённые bytes с прежними size/mtime должны быть пойманы при первоначальной проверке/
+создании image; проверенный image далее нельзя менять в обход immutable/use-lease контракта.
 
 Каждый proxy/host, использующий image, держит отдельный OS use lease на эту instance.
 Cleanup получает exclusive creation/cleanup lock и подтверждает отсутствие всех use
@@ -633,8 +728,12 @@ Staging без владельца можно убрать после той же
 доступа безопаснее удаления активного каталога. Analyzer/plugin generation cleanup
 остаётся своим существующим контрактом; новый reaper не чистит их по возрасту.
 
-Обычный proxy продолжает исполняться из исходного publish. На Windows он удерживает
-managed DLL; копия одного host этого не исправляет. Рекомендация v1 — **плановая
+### Варианты развёртывания
+
+Обычный Windows proxy исполняется из исходного publish. Он удерживает managed DLL;
+копия одного host этого не исправляет. Допуск такого proxy к shared требует ещё
+доказанной startup boundary §2; controlled-stop script не заменяет prelaunch lease.
+Рекомендация по обновлению — **плановая
 остановка holders источника перед in-place publish**, как уже делает
 [`publish-and-verify.ps1`](../../publish-and-verify.ps1#L48) по pitfall 13.
 Процедура явно сообщает, что завершит соответствующие MCP-сессии; проверяет фактический
@@ -643,7 +742,27 @@ Shadow host не выбирается для kill только по общему
 другой живой proxy. Если ушли все его proxy, host завершится по grace.
 Перезапуск клиента после publish не сохраняет RAM старого host по обещанию этой темы.
 
-Новый proxy закрепляет новый server manifest и получает иной key; старый host не
+На Linux у владельца уже есть внешний launcher `~/.local/share/roslyn-mcp/launch.sh`:
+по [замеру раунда 5](review-task-01-round-5-2026-10-29/linux-env-and-image-probe.json)
+proxy стартует из snapshot в `~/.cache/roslyn-mcp/snapshots/<hash>` с shared flock.
+Тогда вторая копия **не обязательна**: task-06/E1 проверяют полный publisher manifest,
+owner/FS/permissions, immutable publication от момента до CreateProcess, content identity, config origin и
+совместимый use-lease/cleanup протокол для launcher/proxy/host. В частности, flock
+нельзя считать совместимым с независимым fcntl lock на другом файле. При подтверждении
+контракта host использует ту же instance и берёт свой lease до потери lease launcher.
+Имя каталога `<hash>` и наличие любого flock сами по себе доказательством не являются.
+Если reuse audit не пройден, собственная копия в StorageRoot допустима только при
+доказанном происхождении proxy по §2. Иначе shared отклоняется до restart через
+verified image; копия host не легализует неизвестный proxy. Чужие snapshot/launcher
+cleanup не изменяются и не удаляются новым reaper.
+
+Замеренный snapshot включает вложенные RID outputs: 2.0G/4868 файлов против
+93M/392 файлов выбранного build output. Это отдельный [L-01](README.md#l-01-launcher),
+владелец — сопровождающий Linux launcher. Исправление скрипта вне этого checkout
+сюда не включается. Task-06 проверяет deployment file set по runtime/publish dependencies,
+а не исключает все подкаталоги: native/BuildHost/plugin зависимости должны сохраниться.
+
+Новый verified proxy закрепляет новый server manifest и получает иной key; старый host не
 объявляется совместимым по одной версии 1.5.18. Живой старый proxy продолжает работу
 со своей старой сборкой только пока его каталог не обновляется. E1 проверит publish
 holder detection, expected tool count, protocol initialize и log origin из обеих директорий.
@@ -653,7 +772,9 @@ README и AGENTS.md.sample должны объяснять reset/stop/restart-re
 
 Альтернатива стабильного launcher/versioned payload могла бы сохранить живые proxy
 при обновлении исходного bundle, но добавляет packaging/process lifetime механизм.
-Она не нужна для нынешнего publish с остановкой holders и пока отвергнута.
+Ради hot update она пока не включена в scope. Отдельно task-06 обязан доказать
+startup identity обычного deployment: если prelaunch boundary отсутствует,
+потребуется пересмотр deployment/O-03 до выбора O-01, а не позднее хеширование DLL.
 Single-file всего сервера запрещён действующей архитектурой dynamic loading.
 Риск выбранного простого пути — потеря MCP-сессий при dogfood publish; принять его
 должен владелец (O-03). Если требуется непрерывный hot publish, сначала пересматривается этот раздел.
@@ -664,7 +785,7 @@ Single-file всего сервера запрещён действующей а
 
 | Строки | Владелец и решение |
 |---|---|
-| S01, S08, S09, S16, S23, S24, S29, S38 | Process/image/toolset/loader identity; reset host заканчивает его CLR history. |
+| S01, S08, S09, S16, S23, S24, S29, S38 | Process/image/toolset/loader identity; только hard retire заканчивает CLR history. |
 | S02, S03, S07 | Отдельные DI границы host/session/request; effective provenance options в descriptor. |
 | S04, S05, S06, S13, S14 | Proxy startup/defaults/CLI state; host получает только подтверждённые inputs. |
 | S10, S11, S12, S15, S18, S36, S39 | Общий manager, publication/write/watch/prewarm/load; epoch invalidation сохраняет admission. |
@@ -672,7 +793,7 @@ Single-file всего сервера запрещён действующей а
 | S19, S20, S21, S22, S25, S26, S40 | Сессия/вызов proxy; host correlation и process-wide counters подписаны явно. |
 | S27, S28 | Owned payload/cursor; proxy TTL и происхождение сохраняются после switch. |
 | S30 | Scratchpad исходного cwd в proxy; общий файл и межпроцессные эффекты прежние. |
-| S31 | Shared reset retires host; stop завершает свой proxy. |
+| S31 | Soft reset инвалидирует epoch; hard retire по restart-required/неисправимому admission, stop завершает свой proxy. |
 | S32 | Различены server image, plugin copy и analyzer generations; use leases до cleanup. |
 | S33 | Request CLI/rg/git в proxy; host lifetime не является токеном их процессов. |
 | S34, S35 | Fork settings и trace/window в descriptor; BuildHost не передаёт RAM cache новому host. |
@@ -696,19 +817,21 @@ Single-file всего сервера запрещён действующей а
 4. Смерть launcher до/после lease и host до ready: один heavy owner; один failure для admitted cohort; после failure явный retry без очереди.
 5. Shared load failure при подключённых клиентах: старые lazy calls получают тот же failure; новый explicit load с observed failure id даёт одну attempt. Cancel одного/всех waiter подтверждён backend counters.
 6. EOF/SIGKILL последнего proxy, reconnect до Closing и во время Closing: нет двух владельцев, host сам выходит на Unix, lease освобождён только после завершения работ/процесса. PID reuse и stale/corrupt metadata не дают kill/takeover чужого процесса.
-7. Shared reset при двух клиентах, активном read/write и proxy CLI: новое host generation, старые tickets/proofs запрещены, CLI не убит из-за host retirement. Stop одного proxy оставляет другого.
-8. Analyzer V1 → V2 той же identity: restart proxy недостаточен; reset host и новый load исполняют V2 с прежним provenance/publication/write gate. Нет теневых путей на диске проекта.
+7. Soft reset при двух клиентах, активном read/write и proxy CLI: прежний HostGeneration при живом соседе, новая WorkspaceEpoch, старые tickets/proofs запрещены. Другие принятые calls завершаются до clear; drain timeout до clear возвращает busy без убийства host. Stop одного proxy оставляет другого.
+8. Analyzer V1 → V2 той же identity: restart proxy и soft reset не объявляются CLR unload. После подтверждённого restart-required hard reset retires host, новый generation исполняет V2 с прежним provenance/publication/write gate. Нет теневых путей на диске проекта.
 9. Реальные build/project-test/DLL-test stages до/во время/после host kill и switch: фактический CLI result отдельно от confirmation, output gates переживают host crash, нет proof/replay другого generation.
 10. Оба MCP protocols: activation/list_changed/listen, одинаковые IDs/progress tokens соседей, backend cancellation и поздний ответ A после switch. Effect-before-crash оставляет один side effect.
 11. Plugin none/Sample: первое tools/list одинаково с ordinary; constructor/startup не грузит workspace proxy. Неаудированный plugin явно отклоняет shared attachment.
 12. Полные server/native/plugin manifests, изменённый deps.json, partial/corrupt image, source publish holders и очистка активного image. Другой UID/SID отвергнут даже при ослабленных правах socket; macOS сначала проверяет lock/ACL, иначе disabled.
 13. RAM reuse требует **другого живого proxy**, пока первый отключается; новый клиент в пределах grace — отдельная гонка. Saved `.cs` видны, graph stale/generated/write boundary прежние. После ухода всех клиентов повторный load cold.
 14. Память N=1/N=10 и latency одинакового semantic query под тяжёлой работой соседей: не меньше пяти повторов сессии 2, все host/proxy/children, GC/runtime/index/prewarm и bases записаны. Отдельно сравнивается ordinary и shared.
-15. До этих серий — точный descriptor двух настоящих MCP motivating harness и names-only проверка volatile inputs; результат go/no-go по разделу 2. Positive synthetic pair не заменяет этот контроль применимости.
+15. До выбора модели — preflight task-06 для пар Codex/Windows и Claude Code/Linux в одинаковом checkout; task-02 повторяет этот контроль на реализации. Positive synthetic pair и пара разных checkout не заменяют контроль применимости.
 16. Payload parity >16 MiB/JSON escaping и proxy SIGKILL с продолжающимся CLI: нет нового cap; abandoned activity блокирует DLL-route takeover/proof даже в новом host generation, пока завершение writers не подтверждено.
 17. Для обоих `list_projects`/`get_project_graph`: два клиента A; один вызывает инструмент с path B. При удерживаемом load B другой продолжает A с прежними generation/epoch/policy. После успешного commit только инициатор использует B; failed/cancel B сохраняет A. Same-key path проверяет coordinated cache hit/graph-stale refresh, omitted unbound не запускает load. На A не было LoadAsync чужого path.
 18. Для add/remove package и применённого rename при двух клиентах: до mutation подготовлен ticket/proof state клиента 2 и идёт его proxy CLI. После mutation epoch увеличена, оба клиента invalidated, прежние tickets/proofs отклонены даже при потерянном notification; завершившийся старый CLI не подтвердил новый graph. Конкурентные следующие load дали одну attempt; rename loaded path не подменил старый key. Dry-run rename epoch не меняет; partial write/clear failure оставляют admission fail-closed.
 19. `get_changed_files` при загруженном A и известных изменённых файлах сохраняет heuristic tests как ordinary. Switch на B во время git не меняет snapshot подсказок; без graph список пуст. Kill host между git result и heuristic не скрывает недоступность под видом пустого списка.
+20. Рецепты AGENTS.md.sample reset→load после rename/изменения состава/generated при N=10: latency соседнего запроса, physical-load/retire counts, join одинаковых reset и новый reset после publication. Soft reset не выдаётся за бесплатный refresh и не replay-ит записи.
+21. Storage отдельно от rendezvous: `/tmp` tmpfs/noexec не получает image/log payload; StorageRoot tmpfs/noexec, ENOSPC и source mutation дают bounded failure без partial launch. Обновление source между CreateProcess/bootstrap и первым shared call запрещено verified lease; raw mutable worker без доказательства отвечает deployment-unverified и не присваивает старому коду новый disk hash. Отдельно измерить guarded startup/identity/hash/copy/cache-hit и проверить reused launcher image с совместимым lease и полным file set.
 
 По коду task-02 обязательны SourceStructure, Release solution build, полная main suite
 с актуальными исключениями `AnalyzerLifecycle`/`RequiresPinnedSdk` (на Linux также
@@ -721,19 +844,20 @@ opt-in `ROSLYN_MCP_EXPERIMENTAL_WORKSPACE_HOST=1`; default не входит в 
 
 | ID | Рекомендация / получатель |
 |---|---|
-| O-01 | Выбрать выделенный host против нулевого варианта для task-02; роли/HTTP остаются отложенными. |
-| O-02 | Принять global retire shared reset и proxy-only stop; объявить reset способом обновить analyzer CLR. |
+| O-01 | После task-06 и O-05 выбрать выделенный host против нулевого варианта; роли/HTTP остаются отложенными. |
+| O-02 | Рекомендуется soft reset + coordinated reload; hard retire только при restart-required/неисправимом admission. Альтернатива — global retire на каждый reset с ценой для соседей (§7). Stop — свой proxy. |
 | O-03 | Принять controlled-stop publish holders; uninterrupted hot publish живых proxy не включать. |
 | O-04 | До индивидуального audit ограничить shared plugins=none/Sample, с явным отказом для остальных. |
+| O-05 | Выбрать canonical-v1 с явным отклонением environment parity либо strict/ordinary с ограничением схлопывания; до выбора политика не активируется (§2). |
 | V-01 | Task-02: настоящий Roslyn single-flight, session split, write/analyzer admission, graph reload и stage RPC. Fake load этого не доказывает. |
-| V-02 | Task-02: macOS primitive/peer credentials и безопасные filesystem opens. Среды macOS здесь нет. |
-| V-03 | Task-02: реальные бюджеты, payload parity, output closure/gates и abandoned writer, нагрузка/RAM. Числа не measured SLA. |
-| V-04 | Task-02/E1: реконструкция полного server/plugin image и runtime/toolset facts из опубликованного RID bundle. |
+| V-02 | Task-06/task-02: FS/permissions/noexec/space двух roots; macOS primitive/peer credentials остаются непроверенными до среды. |
+| V-03 | Task-06: identity costs; task-02: attach/reset latency, payload parity, output gates/abandoned writer, нагрузка/RAM. Числа не SLA. |
+| V-04 | Task-06/E1: полный server/plugin file set, launcher reuse и совместимый lease; runtime/toolset проверяются task-02. |
 | V-05 | После исследования: aggressive GC/остаточный heap/idle unload по отдельному решению владельца. |
-| V-06 | Task-02 первым: точный descriptor настоящей MCP-пары; volatile preflight/mismatch возвращает применимость владельцу до механизма/rollout. |
+| V-06 | Task-06 до O-01: точный descriptor/среда совместимых реальных пар Codex/Windows и Claude Code/Linux; no-go возвращает решение владельцу. Task-02 подтверждает на реализации. |
 
 U-C-01…U-C-08 имеют предложенные ответы в разделах 1–10; статус owner decision
-до O-01…O-04 остаётся pending; 2026-10-29 владелец отложил этот выбор до отдельных ревью. Результат независимого ревью и исправления фиксируются
+по O-01…O-04 остаётся отложенным с 2026-10-29; O-05 добавлен как новое открытое решение после раунда 5. Результат независимого ревью и исправления фиксируются
 в [отчёте task-01](epoch-0-design-and-spike/evidence/task-01-architecture-decision.md).
 Новых production bugs при этой docs-only работе не подтверждено. Дефекты spike из
 ревью task-04 F-01–F-05/F-08 получают контракты разделов 2–4/7/9 и regressions раздела 11;

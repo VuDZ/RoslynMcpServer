@@ -5,8 +5,8 @@
 - Примерная сложность: 4/5; класс `hi`.
 - Риск ошибки: высокий — разделение session/workspace и восстановление могут нарушить публикацию, lifecycle analyzers или изоляцию проектов.
 - Необходимые способности: `согласованность_компонентов`, `проектирование_проверок`, `анализ_производительности`.
-- Статус: planned; план обновлён 2026-10-23, реализация не начата.
-- Depends on: [task-01](task-01-architecture-decision-hi.md) с выбором владельца; [D/E0/task-01](../../workspace-load-performance/epoch-0-stage-measurement/task-01-load-stage-timings-med.md).
+- Статус: planned; план обновлён 2026-10-29 по раунду 5, реализация не начата.
+- Depends on: [task-01](task-01-architecture-decision-hi.md) с выбором владельца после [task-06](task-06-environment-and-deployment-preflight-med.md), включая O-02/O-05; [D/E0/task-01](../../workspace-load-performance/epoch-0-stage-measurement/task-01-load-stage-timings-med.md).
 - Модель, реализовавшая задачу: —.
 - Модели, проводившие ревью: —.
 - Количество раундов ревью: —.
@@ -51,13 +51,12 @@ Roslyn. Команды и результаты до/после — в evidence. 
 
 ## Сценарии
 
-Перед матрицей механизмов — go/no-go из [design, раздел 2](../design.md#2-совместимость-и-стартовый-контекст--u-c-01):
-после принятия design проверить точный descriptor двух настоящих MCP motivating
-harness с одинаковыми workspace/эффективными настройками. Сохранять keys и names-only
-причины mismatch без environment values. Volatile preflight rejection либо различие
-из-за session/PID inputs возвращает применимость владельцу; synthetic N=10 не
-разрешает проигнорировать отрицательный результат. Контракт этого шага пока proposed
-вместе с task-01, окончательный выбор владельца остаётся зависимостью задачи.
+До окончательного выбора модели go/no-go среды/storage выполняет
+[task-06](task-06-environment-and-deployment-preflight-med.md). Здесь повторить
+его контроль на реализации: совместимые реальные пары Codex/Windows и Claude Code/Linux
+одного checkout, полный descriptor и names-only причины mismatch. Canonical environment
+должен действительно передаваться host/MSBuild, CLI proxy сохраняет исходную среду.
+No-go возвращается владельцу; synthetic N=10 не заменяет отрицательную применимость.
 
 Контроль — SamplePlugin и второй небольшой отличимый проект; по возможности
 повторить на большом решении коллег. Наличие большого решения и результаты
@@ -115,6 +114,11 @@ harness с одинаковыми workspace/эффективными настр�
    неопределённого исхода проверяются вместе с настоящими инструментами.
 5. Reset/stop и restart-required после обновления analyzer проходят по design;
    перезапуск прокси не объявляется обновлением загруженного в host analyzer.
+   Для предложенного O-02 soft reset сохраняет host при живом соседе и меняет epoch,
+   hard retire применяется по подтверждённому restart-required/неисправимому admission.
+   При N=10 повторить reset→load после rename/изменения состава/generated; измерить
+   latency соседей и physical-load/retire counts. Timeout drain до clear возвращает
+   busy; одинаковые invalidation coalesce, запоздавший reset не сбрасывает новую publication.
 6. Add/remove package и применённый rename при двух клиентах меняют общую
    WorkspaceEpoch и запрещают прежние tickets/proof state всех сессий, даже при
    потерянном notification. Старый proxy CLI может завершиться без подтверждения
@@ -149,6 +153,16 @@ workspace и короткой паузы перед завершением host 
 **Конкуренция клиентов:** задержка одинакового semantic query одного клиента,
 пока остальные N−1 выполняют тяжёлые запросы, в сравнении с N=1 и с обычным режимом.
 
+**Deployment:** отдельно проверить RendezvousRoot/StorageRoot, tmpfs/noexec/space и
+ENOSPC; никаких images/logs в `/tmp`. Проверить immutable lease до CreateProcess:
+обновление source между startup/bootstrap и первым shared call запрещается verified
+deployment; raw mutable proxy без proof отвечает deployment-unverified и требует
+restart через verified image. Поздний hash не присваивает старому коду новую identity.
+Замерить guarded startup в initialize budget harness, image copy/hash/verify и cached
+attach; time-to-first-useful отсчитывается от запуска процесса. Stat stamps не
+заменяют content identity. Повторно использовать launcher snapshot только с audited
+manifest и совместимым prelaunch/use-lease/cleanup протоколом.
+
 ## Конкретный результат
 
 - Минимальные host и MCP-фасад за флагом; тесты общих сценариев и сценариев
@@ -161,7 +175,10 @@ workspace и короткой паузы перед завершением host 
 
 - Без флага: полный main suite без изменений ожиданий; запуск по stdio прежний.
 - С флагом: сценарии выше проходят; успешные результаты анализа совпадают с
-  in-process режимом на том же контроле. Ошибки recovery/lifecycle соответствуют
+  in-process режимом на том же контроле и effective graph environment. Если владелец
+  выбрал canonical-v1, отдельно сравнивается raw ordinary и явно записывается цена
+  O-05: проект, зависящий от исключённых переменных, не выдаётся за parity pass.
+  Ошибки recovery/lifecycle соответствуют
   design и не скрываются сравнением только успешных ответов.
 - Канал недоступен другому пользователю ОС (проверка на доступной платформе;
   непроверенные платформы перечислены).

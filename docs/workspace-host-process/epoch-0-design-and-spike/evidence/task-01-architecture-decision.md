@@ -2,12 +2,13 @@
 
 ## Главное
 
-- **In progress, 2026-10-29, docs-only; выбор владельца отложен.** После независимого ревью Grok 4.7 в [design](../../design.md) внесены исправления; техническая перепроверка их подтвердила.
+- **In progress, 2026-10-29, docs-only; выбор владельца отложен.** После раунда 5 уточнены [design](../../design.md), варианты среды/reset и deployment; исправления перепроверены в раундах 6–7.
 - Выделенный host рекомендован против нулевого варианта; idle unload и роли сопоставлены отдельно без обещания измеренной экономии production RAM.
 - Описаны descriptor/key, session/workspace split, switch вне gate, shared retry, no replay, reset/stop, CLI/proof boundaries, shadow image и controlled-stop publish.
 - Все S01–S42 и 54 public built-in tools имеют размещение/решение; счёт и локальные ссылки независимо проверены.
 - Новых production defects этой задачей не подтверждено. Найденные в task-04 дефекты не объявлены исправленным кодом: их принимающие контракты и проверки включены в design.
-- Всего **4 раунда, 6 подтверждённых исправлений**: прежние Codex/F-01…F-03 и независимые Grok independent/F-01…F-03. Последние blocker/major/minor приняты автором и подтверждены Codex в раунде 4. Task-02 и production activation не начаты.
+- **7 раундов, 12 подтверждённых исправлений**: прежние 6, пять r5/F-* и новый major R6-N01 о startup identity. [Ответы и validation](../../evidence/2026-10-29-task-01-round-5-response.md). Task-02 и production activation не начаты.
+- Для окончательного O-01 добавлен planned task-06: реальные совместимые пары Codex/Windows и Claude Code/Linux, roots/identity/launcher preflight. O-05 — новое открытое решение об environment parity; пересмотренный O-02 также не принят.
 
 ## База и scope
 
@@ -18,7 +19,7 @@ Production версия **1.5.18**, SDK ModelContextProtocol **2.2.0**, target .
 Между этими commit изменились документы и evidence/review task-04, production не менялся.
 Перечитаны изменённые task/README/evidence и новые findings F-01…F-08.
 
-Исполнитель — Codex, точный model ID текущей сессии недоступен.
+Исполнитель — GPT Sol-6.1 (`gpt-6.1-sol`), Codex; уточнено владельцем 2026-10-29.
 Это проект решения для владельца, без C#, тестов, версии, publish или конфигурации MCP.
 Текущий MSBuild/Roslyn process исследователя не использован как production shared-реализация.
 
@@ -188,3 +189,33 @@ Independent/F-01 blocker, F-02 major, F-03 minor — **ACCEPT** после св�
 подтвердил все три исправления; новых must-fix по этому diff нет. Grok повторно
 эту версию не проверял. Полный учёт task-01: **4 раунда / 6 fixes**, исходные ID
 различены префиксами каталогов. Выбор O-01…O-04 остаётся отложенным, task-02 planned.
+
+## Раунд 5: среда, reset и deployment
+
+`git pull --ff-only origin research/workspace-host-process` обновил ветку
+с `e9de5ee` до **`6abad7c`**, добавив только каталог review раунда 5;
+production по-прежнему 1.5.18. Все четыре файла каталога прочитаны, не меняются.
+
+[Ответ на F-01…F-05 и validation](../../evidence/2026-10-29-task-01-round-5-response.md):
+ACCEPT F-02/F-05; PARTIALLY ACCEPT F-01/F-03/F-04 с конкретными границами доказательств
+и рецептов. Proposed O-05 задаёт actual host environment; O-02 рекомендует soft reset
+с сохранением процесса, не бесплатный reload graph; roots и identity budgets разделены.
+[L-01](../../README.md#l-01-launcher) сохраняет owner внешнего launcher/RID bloat.
+
+[Task-06](../task-06-environment-and-deployment-preflight-med.md) добавлен перед
+окончательным выбором task-01: он использует draft как гипотезу и не зависит от его
+завершения. Это изменение плана после раунда 5, а не подтверждение preflight или
+повторная приёмка всего плана E0. Task-06 и task-02 не запущены. Владельцем ещё
+не выбраны O-01…O-04 и новый O-05.
+
+Codex `/root/task01_research_review` в раунде 6 подтвердил все пять r5/F-* fixes
+и нашёл новый R6-N01: hash при первом shared call не доказывал identity уже
+загруженного proxy. ACCEPT; теперь требуется immutable publication/use lease до
+OS CreateProcess, а неподтверждённый mutable deployment отклоняет shared.
+Windows controlled-stop ещё не доказывает эту границу; её проверяет task-06.
+Раунд 7 подтвердил исправление R6-N01, новых must-fix в проверенном diff нет.
+[Срезы ревью](../../review-task-01-2026-10-29/result.md),
+[финальная docs validation](task-01-data/validation-round-5.json).
+Итог task-01 — **7 раундов / 12 fixes**; `claude-opus-5-5` повторно эту версию
+не проверял. После fixes применён research-task-authoring: go/no-go до выбора,
+нулевой вариант сохранён, L-01 имеет owner, task/index/report согласованы.

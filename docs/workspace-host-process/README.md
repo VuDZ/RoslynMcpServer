@@ -406,12 +406,39 @@ Task-00 инвентаризирует этапы, task-01 определяет 
   в host, какие локально в proxy (proxy — обычный процесс без workspace); влияние
   тяжёлых запросов одного клиента на остальных.
 
+### Предложения после раунда 5, 2026-10-29
+
+Это **не решения владельца**. [Design](design.md) предлагает O-05 canonical host
+environment вместо raw inherited environment, с явной ценой для проектов, читающих
+исключённые session/terminal inputs. CLI proxy сохраняет исходную среду. Альтернатива
+strict сохраняет parity inputs, но не обещает схлопнуть разные session contexts.
+O-02 пересмотрен в пользу soft reset/новой epoch с сохранением процесса; hard retire
+нужен по restart-required или неисправимому admission. Перезагрузка graph всё равно
+может быть дорогой. Оба варианта требуют выбора владельца и замеров.
+
+До окончательного O-01 добавлен [task-06](epoch-0-design-and-spike/task-06-environment-and-deployment-preflight-med.md):
+совместимые пары Codex/Windows и Claude Code/Linux, environment parity, два filesystem
+root, startup identity до CreateProcess, её стоимость и audit launcher reuse.
+Windows controlled-stop publish ещё не доказывает startup boundary. Выполнение не начато; прежние probes
+и пара разных checkout из раунда 5 не заменяют этот go/no-go. O-01…O-04 отложены,
+O-05 открыт; task-02 не запускается. [Замечания](review-task-01-round-5-2026-10-29/result.md).
+
+<a id="l-01-launcher"></a>
+**L-01 — внешний Linux launcher включает вложенные RID outputs.** Open, 2026-10-29;
+owner — сопровождающий Linux launcher владельца, `~/.local/share/roslyn-mcp/launch.sh`
+вне этого checkout. Snapshot 2.0G/4868 файлов против 93M/392 выбранного build output —
+[наблюдение раунда 5](review-task-01-round-5-2026-10-29/linux-env-and-image-probe.json),
+не новый локальный замер. Task-06 проверяет file set/reuse и передаёт исправление
+владельцу launcher; скрипт здесь не читался/не менялся. Нельзя просто исключить
+все subdirectories: runtime/native/BuildHost/plugin dependencies должны сохраниться.
+
 ## Маршрут
 
 - [E0 — инвентаризация, дизайн и spike](epoch-0-design-and-spike/README.md):
-  6 задач. Task-05 — проверки применимости и разбор памяти; task-00 —
+  7 задач. Task-05 — проверки применимости и разбор памяти; task-00 —
   инвентаризация; task-03 — транспорт и MCP-фасад; task-04 — переключение,
   координация и восстановление без Roslyn для моделей, оставленных после task-05;
+  task-06 — дополнительный go/no-go среды/deployment перед окончательным task-01;
   task-01 — выбор модели и design по результатам; task-02 — интеграционный spike с Roslyn.
 - **E1 — production opt-in**: планируется после E0 и выбора владельца. Ожидаемый
   состав: включение режима (env или `RoslynMcp.jsonc`), обнаружение и запуск host,
@@ -453,10 +480,10 @@ Task-04 — **completed, 2026-10-28**, принят standalone spike выдел�
 Task-01 — **in progress, 2026-10-29, docs-only**:
 [проект архитектурного решения](design.md),
 [основания, ревью и validation](epoch-0-design-and-spike/evidence/task-01-architecture-decision.md).
-Рекомендован выделенный host; текущий технический проект перепроверен после независимого ревью:
-4 раунда, 6 подтверждённых исправлений,
+Выделенный host остаётся кандидатом после task-06; текущие documentation fixes перепроверены:
+7 раундов, 12 подтверждённых исправлений,
 [result](review-task-01-2026-10-29/result.md). 2026-10-29 владелец отложил O-01…O-04 до отдельных ревью.
-Task-02 не начат.
+Task-06 planned до окончательного выбора; task-02 не начат. O-05 открыт.
 Тема [D](../workspace-load-performance/README.md) остаётся независимой.
 
 ## Связь с другими темами
@@ -511,14 +538,17 @@ Task-02 не начат.
   Codex и **2026-10-28, раунд 3**, `claude-opus-5-5`: 8 замечаний (2 major, 4 minor,
   2 suggestion), 7 закрыты в документах, F-07 (код runner) не применялось;
   [результат](review-task-04-round-3-2026-10-28/result.md), [validation](evidence/2026-10-28-task-04-review-fixes.md).
-  Task-01 — **2026-10-29, раунды 1–2 и 4**, Codex `/root/task01_research_review`,
-  точный model ID недоступен; **раунд 3**, Grok 4.7. Всего 6 подтверждённых исправлений;
+  Task-01 — **2026-10-29, раунды 1–2, 4, 6–7**, Codex `/root/task01_research_review`,
+  точный model ID недоступен; **раунд 3**, Grok 4.7; **раунд 5**, `claude-opus-5-5`.
+  Всего 12 подтверждённых исправлений;
   [Codex](review-task-01-2026-10-29/result.md),
   [независимый Grok](review-task-01-independent-2026-10-29/result.md),
-  [ответ и validation](evidence/2026-10-29-task-01-independent-review-response.md).
+  [ответ и validation раунда 3](evidence/2026-10-29-task-01-independent-review-response.md),
+  [раунд 5](review-task-01-round-5-2026-10-29/result.md),
+  [ответ и validation раундов 5–7](evidence/2026-10-29-task-01-round-5-response.md).
   Выбор владельца отложен, 2026-10-29.
-  Сумма известных раундов задач — **10**, исправлений — **31** (подробности в README E0).
-  Task-02 независимое ревью результата не проходил.
+  Сумма известных раундов задач — **13**, исправлений — **37** (подробности в README E0).
+  Task-02/task-06 planned, независимого ревью результата не проходили.
 - Task-03: **completed, 2026-10-28**, standalone SDK-фасад/транспорт без Roslyn,
   Windows/WSL, обе модели host и две версии MCP. Исполнитель — Codex, точный ID
   модели запуска недоступен; независимое ревью — `claude-opus-5-5`, раунд 1,
@@ -533,13 +563,17 @@ Task-02 не начат.
   Release build/main 1432/1432 прошли;
   [результат и validation](epoch-0-design-and-spike/evidence/task-04-routing-and-recovery-spike.md),
   [ревью](review-task-04-2026-10-28/result.md). Task-01 начат 2026-10-29.
-- Task-01: **in progress, 2026-10-29, docs-only**; исполнитель Codex, точный model ID недоступен.
+- Task-01: **in progress, 2026-10-29, docs-only**; исполнитель GPT Sol-6.1 (`gpt-6.1-sol`), Codex; уточнено владельцем.
   [Проект design](design.md), [отчёт](epoch-0-design-and-spike/evidence/task-01-architecture-decision.md).
-  Технический проект перепроверен Codex после независимого Grok: всего 4 раунда, 6 исправлений,
+  Исправления независимых ревью Grok/Claude и нового R6-N01 перепроверены Codex:
+  всего 7 раундов, 12 исправлений,
   [result](review-task-01-2026-10-29/result.md),
-  [ответ на независимое ревью](evidence/2026-10-29-task-01-independent-review-response.md).
+  [ответ на раунд 3](evidence/2026-10-29-task-01-independent-review-response.md),
+  [ответ и validation раундов 5–7](evidence/2026-10-29-task-01-round-5-response.md).
   После fixes применён research-task-authoring.
-  Выбор владельца O-01…O-04 отложен до отдельных ревью, 2026-10-29; task-02 не начат.
+  Выбор владельца O-01…O-04 отложен до отдельных ревью, 2026-10-29; O-05 открыт.
+  Task-06 planned, 2026-10-29: preflight среды/storage/startup identity до O-01;
+  task-02 не начат. [План и validation](evidence/2026-10-29-task-01-round-5-response.md).
 - Приёмка реализации эпохи: —.
 - Обновление scope, TDD-подхода и выделение ветки: **выполнено, 2026-10-23**,
   только документация; `research/workspace-host-process` от `main` (`22b9924`);

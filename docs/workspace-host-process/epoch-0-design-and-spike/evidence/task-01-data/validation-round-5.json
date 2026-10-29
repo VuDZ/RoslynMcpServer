@@ -1,0 +1,109 @@
+{
+  "date": "2026-10-29",
+  "base": "6abad7ce3e35f269c54f6b84d653792a20f47b08",
+  "serverVersion": "1.5.18",
+  "branch": "research/workspace-host-process",
+  "executor": {
+    "model": "gpt-6.1-sol",
+    "source": "Owner clarification, 2026-10-29"
+  },
+  "scope": "Docs-only response to round 5 and R6-N01; proposed design and planned preflight; no activation",
+  "linksAndInventory": {
+    "date": "2026-10-29",
+    "base": "6abad7ce3e35f269c54f6b84d653792a20f47b08",
+    "markdownFiles": 16,
+    "localLinks": 453,
+    "broken": [],
+    "catalogTools": 54,
+    "mappedTools": 54,
+    "missingTools": [],
+    "duplicateTools": [],
+    "mappedStates": 42,
+    "missingStates": [],
+    "changesOutsideDocs": []
+  },
+  "diffCheck": "pass",
+  "dependencyHeadersMatchIndex": true,
+  "taskNodes": 7,
+  "acyclic": true,
+  "dependencies": {
+    "docs/workspace-host-process/epoch-0-design-and-spike/task-00-process-state-inventory-med.md": [],
+    "docs/workspace-host-process/epoch-0-design-and-spike/task-01-architecture-decision-hi.md": [
+      "docs/workspace-host-process/epoch-0-design-and-spike/task-00-process-state-inventory-med.md",
+      "docs/workspace-host-process/epoch-0-design-and-spike/task-03-pipe-relay-spike-med.md",
+      "docs/workspace-host-process/epoch-0-design-and-spike/task-04-proxy-routing-and-recovery-spike-hi.md",
+      "docs/workspace-host-process/epoch-0-design-and-spike/task-05-applicability-checks-med.md",
+      "docs/workspace-host-process/epoch-0-design-and-spike/task-06-environment-and-deployment-preflight-med.md"
+    ],
+    "docs/workspace-host-process/epoch-0-design-and-spike/task-02-bridge-spike-hi.md": [
+      "docs/workspace-host-process/epoch-0-design-and-spike/task-01-architecture-decision-hi.md",
+      "docs/workspace-host-process/epoch-0-design-and-spike/task-06-environment-and-deployment-preflight-med.md",
+      "docs/workspace-load-performance/epoch-0-stage-measurement/task-01-load-stage-timings-med.md"
+    ],
+    "docs/workspace-host-process/epoch-0-design-and-spike/task-03-pipe-relay-spike-med.md": [],
+    "docs/workspace-host-process/epoch-0-design-and-spike/task-04-proxy-routing-and-recovery-spike-hi.md": [
+      "docs/workspace-host-process/epoch-0-design-and-spike/task-03-pipe-relay-spike-med.md",
+      "docs/workspace-host-process/epoch-0-design-and-spike/task-05-applicability-checks-med.md"
+    ],
+    "docs/workspace-host-process/epoch-0-design-and-spike/task-05-applicability-checks-med.md": [],
+    "docs/workspace-host-process/epoch-0-design-and-spike/task-06-environment-and-deployment-preflight-med.md": [
+      "docs/workspace-host-process/epoch-0-design-and-spike/task-04-proxy-routing-and-recovery-spike-hi.md",
+      "docs/workspace-host-process/epoch-0-design-and-spike/task-05-applicability-checks-med.md"
+    ]
+  },
+  "sourceReview": [
+    {
+      "path": "docs/workspace-host-process/review-task-01-round-5-2026-10-29/.status",
+      "workingSha256": "5e1f8562208322ba8dbd7567515383ac6ebf909de2eca4b674a5bfa781adcae4",
+      "headBlob": "6ab9fedbf2df520772552b2e8522a20d0c01806f",
+      "unchanged": true
+    },
+    {
+      "path": "docs/workspace-host-process/review-task-01-round-5-2026-10-29/coverage.md",
+      "workingSha256": "f210025a2d8ccd2c1ebeef5e6d359d30faa6b71578ed540a3957c9f6ff0cf6e9",
+      "headBlob": "f96b50c89ef647912baeb72c698e10a6bf4fd710",
+      "unchanged": true
+    },
+    {
+      "path": "docs/workspace-host-process/review-task-01-round-5-2026-10-29/linux-env-and-image-probe.json",
+      "workingSha256": "2a420ab2067be2d190561527a6422974e7d806894fa2804bd245853e2235eed3",
+      "headBlob": "865ec1ff7014bb180e51c06a7417b7fe204211e9",
+      "unchanged": true
+    },
+    {
+      "path": "docs/workspace-host-process/review-task-01-round-5-2026-10-29/result.md",
+      "workingSha256": "81532d4601ce90488febc7955005338a442aea07993a54677e07fc4ec805619e",
+      "headBlob": "feedee3003058f146994f1a088b391d35c2b3435",
+      "unchanged": true
+    }
+  ],
+  "review": {
+    "task01Rounds": 7,
+    "task01ConfirmedFixes": 12,
+    "newConfirmedFixes": [
+      "r5/F-01",
+      "r5/F-02",
+      "r5/F-03",
+      "r5/F-04",
+      "r5/F-05",
+      "R6-N01"
+    ],
+    "newFixConfirmationRounds": [
+      6,
+      7
+    ],
+    "epochTaskRounds": 13,
+    "epochTaskConfirmedFixes": 37
+  },
+  "status": {
+    "task01": "in progress; owner choices deferred/open",
+    "task02": "planned",
+    "task06": "planned",
+    "design": "proposed",
+    "epochAccepted": false
+  },
+  "notRun": [
+    "task-06 runtime preflight",
+    "Build/main/SourceStructure/AnalyzerLifecycle: no C#/test/build changes"
+  ]
+}
