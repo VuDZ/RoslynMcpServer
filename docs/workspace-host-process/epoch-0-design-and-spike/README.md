@@ -37,7 +37,7 @@
 ## Задачи
 
 - [task-00 — Инвентаризация состояния процесса](task-00-process-state-inventory-med.md) — `med`, **completed, 2026-10-26; актуализировано 2026-10-28, docs-only**; S01–S42 и этапы 54 tools, [исходный отчёт](evidence/task-00-state-inventory.md), [поправки и validation](evidence/task-00-impact-2026-10-28.md); Depends on: —
-- [task-01 — Архитектурное решение](task-01-architecture-decision-hi.md) — `hi`, **in progress, 2026-10-29, docs-only; техническое ревью принято, выбор владельца pending**; [design](../design.md), [отчёт](evidence/task-01-architecture-decision.md); Depends on: [task-00](task-00-process-state-inventory-med.md), [task-03](task-03-pipe-relay-spike-med.md), [task-04](task-04-proxy-routing-and-recovery-spike-hi.md), [task-05](task-05-applicability-checks-med.md)
+- [task-01 — Архитектурное решение](task-01-architecture-decision-hi.md) — `hi`, **in progress, 2026-10-29, docs-only; техническое ревью принято, выбор владельца отложен до отдельных ревью**; [design](../design.md), [отчёт](evidence/task-01-architecture-decision.md); Depends on: [task-00](task-00-process-state-inventory-med.md), [task-03](task-03-pipe-relay-spike-med.md), [task-04](task-04-proxy-routing-and-recovery-spike-hi.md), [task-05](task-05-applicability-checks-med.md)
 - [task-02 — Интеграционный spike прокси и host](task-02-bridge-spike-hi.md) — `hi`, **planned**; Depends on: [task-01](task-01-architecture-decision-hi.md), [D/E0/task-01](../../workspace-load-performance/epoch-0-stage-measurement/task-01-load-stage-timings-med.md)
 - [task-03 — Spike транспорта и MCP-фасада](task-03-pipe-relay-spike-med.md) — `med`, **completed, 2026-10-28**; standalone SDK-фасад без Roslyn, обе модели host, две версии MCP, Windows/WSL; [результат и validation](evidence/task-03-pipe-relay-spike.md); Depends on: —
 - [task-04 — Spike переключения и восстановления](task-04-proxy-routing-and-recovery-spike-hi.md) — `hi`, **completed, 2026-10-28**; принят standalone spike выделенного host без Roslyn, Windows/WSL, две версии MCP; [результат, ревью и validation](evidence/task-04-routing-and-recovery-spike.md); Depends on: [task-03](task-03-pipe-relay-spike-med.md), [task-05](task-05-applicability-checks-med.md) с решением владельца
@@ -146,12 +146,12 @@ Task-01 начат 2026-10-29; приёмка design/эпохи и production ac
 
 ## Выполнение task-01, 2026-10-29
 
-**In progress, docs-only; готово к выбору владельца.** Подготовлен [проект design](../design.md),
+**In progress, docs-only; выбор владельца отложен до отдельных ревью.** Подготовлен [проект design](../design.md),
 [основания и validation](evidence/task-01-architecture-decision.md).
 Независимое research-task-review в отдельном сабагенте Codex `/root/task01_research_review`:
 **2 раунда, 3 подтверждённых исправления; технический проект принят**;
 [result](../review-task-01-2026-10-29/result.md).
-После fixes применён research-task-authoring. Выбор владельца O-01…O-04 pending;
+После fixes применён research-task-authoring. 2026-10-29 владелец отложил O-01…O-04 до отдельных ревью;
 task-02 не начат, приёмки эпохи нет.
 
 ## Статистика ревью задач

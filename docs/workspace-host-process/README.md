@@ -455,7 +455,7 @@ Task-01 — **in progress, 2026-10-29, docs-only**:
 [основания, ревью и validation](epoch-0-design-and-spike/evidence/task-01-architecture-decision.md).
 Рекомендован выделенный host; технический проект прошёл независимое ревью:
 2 раунда, 3 подтверждённых исправления,
-[result](review-task-01-2026-10-29/result.md). Выбор владельца O-01…O-04 pending.
+[result](review-task-01-2026-10-29/result.md). 2026-10-29 владелец отложил O-01…O-04 до отдельных ревью.
 Task-02 не начат.
 Тема [D](../workspace-load-performance/README.md) остаётся независимой.
 
@@ -513,7 +513,7 @@ Task-02 не начат.
   [результат](review-task-04-round-3-2026-10-28/result.md), [validation](evidence/2026-10-28-task-04-review-fixes.md).
   Task-01 — **2026-10-29, раунды 1–2**, Codex `/root/task01_research_review`,
   точный model ID недоступен; 3 подтверждённых исправления, технический проект принят;
-  [result](review-task-01-2026-10-29/result.md). Выбор владельца pending.
+  [result](review-task-01-2026-10-29/result.md). Выбор владельца отложен до отдельных ревью, 2026-10-29.
   Сумма известных раундов задач — **8**, исправлений — **28** (подробности в README E0).
   Task-02 независимое ревью результата не проходил.
 - Task-03: **completed, 2026-10-28**, standalone SDK-фасад/транспорт без Roslyn,
@@ -534,7 +534,7 @@ Task-02 не начат.
   [Проект design](design.md), [отчёт](epoch-0-design-and-spike/evidence/task-01-architecture-decision.md).
   Технический проект принят независимым сабагентом Codex: 2 раунда, 3 исправления,
   [result](review-task-01-2026-10-29/result.md). После fixes применён research-task-authoring.
-  Готово к выбору владельца O-01…O-04; task-02 не начат.
+  Выбор владельца O-01…O-04 отложен до отдельных ревью, 2026-10-29; task-02 не начат.
 - Приёмка реализации эпохи: —.
 - Обновление scope, TDD-подхода и выделение ветки: **выполнено, 2026-10-23**,
   только документация; `research/workspace-host-process` от `main` (`22b9924`);
