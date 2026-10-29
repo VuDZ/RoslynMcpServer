@@ -417,6 +417,18 @@ Graph-stale reload того же key сериализован и создаёт 
 отключения plugin и без per-proxy workspace fallback. Ordinary plugin mode прежний.
 Редизайн metadata/DI API и индивидуальные audits не включаются в первый spike.
 
+**Уточнение владельца O-04, 2026-10-29:** будущий список plugins определяется
+**глобальным конфигом и конфигом по местоположению выбранного решения**, независимо
+от cwd запуска MCP. Для `.sln`/`.slnx` это каталог самого решения; для project-only
+workspace — каталог выбранного `.csproj`. При A → B проектный источник определяется
+для B, а не остаётся от стартового cwd/A. Пока workspace неизвестен, его проектный
+список не угадывается по cwd. Правила merge/дубликатов, разрешение относительных
+plugin paths и момент регистрации tools — часть отложенной реализации E1.
+Точный путь глобального конфига этим уточнением не меняется/не назначается.
+
+Это **требуемое будущее поведение**, а не факт действующего loader. Gap P-01 и
+принимающий E1 scope записаны в [отчёте O-04](evidence/2026-10-29-task-01-plugins-deferred.md#p-01-источники-плагинов-по-выбранному-workspace).
+
 Различие наборов не считается обычным ожидаемым сценарием. При одинаковых источниках,
 версии файлов и успешном startup наборы должны совпадать. Но текущий loader читает
 drop-in рядом с exe, конфиг из exe/cwd и ROSLYN_MCP_PLUGINS один раз при старте
@@ -972,7 +984,7 @@ opt-in `ROSLYN_MCP_EXPERIMENTAL_WORKSPACE_HOST=1`; default не входит в 
 | O-01 | После task-06 выбрать выделенный host против нулевого варианта с учётом выбранного O-05; роли/HTTP остаются отложенными. |
 | O-02 | **Открыт по решению владельца 2026-10-29.** Сравнить общую soft reset/epoch invalidation, global retire и локальный reset инициатора с последующим private host (§7). Detach против завершения MCP, freshness соседей, discovery и RAM ещё требуют решения. |
 | O-03 | **Выбрано владельцем 2026-10-29:** dev-only publish с текущим kill MCP из RepoRoot/PublishDir; прерывание допустимо, при respawn harness — возможен отказ и ручная остановка. Скрипт/launcher ради hot update не усложнять; область — текущий checkout, прежняя обработка unknown path сохраняется. |
-| O-04 | **Выбрано владельцем 2026-10-29:** реальную поддержку plugins отложить; первый spike без них, Sample — возможный контроль. Неподдерживаемые shared plugins отклоняются явно, ordinary прежний. Частое различие наборов не предполагается; multi-client state — отдельный отложенный вопрос. |
+| O-04 | **Выбрано владельцем 2026-10-29:** поддержку plugins отложить; первый spike без них, Sample — возможный контроль. Будущий список — global config + config выбранного solution/project, не startup cwd (P-01). Неподдерживаемый shared plugin отклоняется явно, ordinary прежний; multi-client state проверяется позже. |
 | O-05 | **Выбрано владельцем 2026-10-29:** WorkspaceKey=path/Configuration/Platform/TFM, контекст создателя host; fresh создаёт private только для инициатора. Actual context/инструкция в load — только для reused attachment, не для создателя. Namespace/image/admission проверки сохраняются; production activation не разрешена. |
 | V-01 | Task-02: настоящий Roslyn single-flight, session split, write/analyzer admission, graph reload и stage RPC. Fake load этого не доказывает. |
 | V-02 | Task-06/task-02: FS/permissions/noexec/space двух roots; macOS primitive/peer credentials остаются непроверенными до среды. |

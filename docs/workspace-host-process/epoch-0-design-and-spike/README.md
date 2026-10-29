@@ -184,6 +184,8 @@ harness. [Решение и validation](../evidence/2026-10-29-task-01-dev-publi
 O-04 выбран владельцем 2026-10-29: реальную поддержку plugins отложить, первый
 spike без них, Sample — возможный контроль. [Решение и source сверка](../evidence/2026-10-29-task-01-plugins-deferred.md).
 Это запись scope после раунда 9, без нового независимого ревью и plugin API changes.
+Дополнение O-04: требуемый будущий список — global config плюс config по выбранному
+solution/project, не startup cwd; реализация P-01 передана E1 вместе с plugins.
 
 ## Статистика ревью задач
 

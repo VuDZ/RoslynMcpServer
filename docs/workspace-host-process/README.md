@@ -460,6 +460,10 @@ spike без них; Sample — возможный лёгкий контроль
 предполагаются. Сейчас loader фиксирует exe/cwd config, drop-in и env при startup,
 а не перечитывает plugins при load_workspace. Multi-client singleton state — другой
 вопрос, проверка совместимости передана последующему E1 scope.
+**Требуемое поведение после уточнения владельца:** читать список из global config
+и конфига рядом с выбранным solution/project, независимо от startup cwd. При смене
+workspace использовать проектный источник нового пути. Это отложенное изменение
+P-01 для E1; текущий loader пока работает по прежним правилам.
 [Решение и source сверка](evidence/2026-10-29-task-01-plugins-deferred.md).
 
 <a id="l-01-launcher"></a>

@@ -259,3 +259,8 @@ Multi-client singleton state — отдельная отложенная сов�
 [Решение, source сверка и validation](../../evidence/2026-10-29-task-01-plugins-deferred.md).
 Код/API/config не менялись, нового ревью нет, counters 9/14 прежние. O-03/O-04/O-05
 выбраны в указанном scope, O-01/O-02 открыты; task-01 in progress, task-02/task-06 planned.
+
+После `e3163b6` владелец уточнил O-04: требуемый список plugins должен определяться
+global config и местоположением выбранного solution/project, а не cwd запуска.
+Отложенный gap P-01 передан E1; [требование, текущий source и validation](../../evidence/2026-10-29-task-01-plugins-deferred.md#p-01-источники-плагинов-по-выбранному-workspace).
+Поддержка plugins по-прежнему отложена, loader и конфигурация не менялись.
