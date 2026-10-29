@@ -16,22 +16,37 @@ internal static class IdentityBench
 {
     /// <summary>
     /// <c>identity-bench &lt;source&gt; &lt;scratch&gt; &lt;output.json&gt; &lt;runs&gt; [excluded top-level directory...]</c>.
-    /// The scratch directory receives staging copies and is deleted afterwards.
+    /// A new owned subdirectory of scratch receives staging copies and is deleted afterwards.
+    /// Source and scratch must be disjoint; an existing output is never overwritten.
     /// </summary>
     public static int Run(string[] args)
     {
+        if (args.Length < 5 || !int.TryParse(args[4], out var runs) || runs <= 0)
+        {
+            throw new ArgumentException("Expected source, scratch parent, new output path and a positive run count.");
+        }
+
         var source = Path.GetFullPath(args[1]);
-        var scratch = Path.GetFullPath(args[2]);
-        var runs = int.Parse(args[4]);
+        var scratchParent = Path.TrimEndingDirectorySeparator(Path.GetFullPath(args[2]));
+        var output = Path.GetFullPath(args[3]);
+        ValidatePaths(source, scratchParent, output);
         var excluded = args.Skip(5).ToHashSet(StringComparer.Ordinal);
         var files = ListFiles(source, excluded);
+        if (!files.Any(file => file.EndsWith(".dll", StringComparison.Ordinal) && new FileInfo(Path.Combine(source, file)).Length > 0))
+        {
+            throw new ArgumentException("The source file set must contain a non-empty DLL for the stale-stat probe.");
+        }
+
+        Directory.CreateDirectory(scratchParent);
+        var scratch = Path.Combine(scratchParent, "identity-run-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(scratch);
-        var manifestPath = Path.Combine(scratch, "manifest.json");
-        File.WriteAllText(manifestPath, JsonSerializer.Serialize(Hash(source, files)));
-        var samples = new List<IdentitySample>();
         try
         {
-            foreach (var cache in new[] { "cold", "warm" })
+            var manifestPath = Path.Combine(scratch, "manifest.json");
+            File.WriteAllText(manifestPath, JsonSerializer.Serialize(Hash(source, files)));
+            var samples = new List<IdentitySample>();
+            var cacheModes = OperatingSystem.IsLinux() ? new[] { "cold-advised", "warm" } : new[] { "warm" };
+            foreach (var cache in cacheModes)
             {
                 for (var run = 1; run <= runs; run++)
                 {
@@ -44,15 +59,50 @@ internal static class IdentityBench
                 files.Sum(file => new FileInfo(Path.Combine(source, file)).Length),
                 RuntimeInformation.FrameworkDescription, RuntimeInformation.OSDescription,
                 GCSettings.IsServerGC ? "server" : "workstation", Environment.ProcessorCount,
-                OperatingSystem.IsLinux() ? "posix_fadvise(DONTNEED) on every source file" : "none: warm only",
+                OperatingSystem.IsLinux()
+                    ? "posix_fadvise(DONTNEED), return checked; advisory only, residency not verified"
+                    : "unavailable: warm samples only",
                 samples, ProbeStaleStat(source, scratch, files));
-            File.WriteAllText(args[3], JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true }));
+            Directory.CreateDirectory(Path.GetDirectoryName(output)!);
+            using var reportStream = new FileStream(output, FileMode.CreateNew, FileAccess.Write);
+            JsonSerializer.Serialize(reportStream, report, new JsonSerializerOptions { WriteIndented = true });
             return 0;
         }
         finally
         {
+            if (Path.GetDirectoryName(scratch) != scratchParent
+                || (File.GetAttributes(scratch) & FileAttributes.ReparsePoint) != 0)
+            {
+                throw new InvalidOperationException("Refusing to clean an unowned benchmark directory.");
+            }
+
             Directory.Delete(scratch, recursive: true);
         }
+    }
+
+    private static void ValidatePaths(string source, string scratchParent, string output)
+    {
+        if (!Directory.Exists(source))
+        {
+            throw new DirectoryNotFoundException("The benchmark source directory does not exist.");
+        }
+
+        if (IsWithin(scratchParent, source) || IsWithin(source, scratchParent))
+        {
+            throw new ArgumentException("Source and scratch parent directories must not overlap.");
+        }
+
+        if (IsWithin(output, source) || File.Exists(output) || Directory.Exists(output))
+        {
+            throw new ArgumentException("The output must be a new file outside the source directory.");
+        }
+    }
+
+    private static bool IsWithin(string path, string root)
+    {
+        var relative = Path.GetRelativePath(root, path);
+        return relative == "." || (!Path.IsPathRooted(relative)
+            && relative != ".." && !relative.StartsWith(".." + Path.DirectorySeparatorChar, StringComparison.Ordinal));
     }
 
     private static List<string> ListFiles(string source, HashSet<string> excluded) => Directory
@@ -65,19 +115,19 @@ internal static class IdentityBench
     private static IdentitySample Measure(string source, string scratch, List<string> files, string manifestPath,
         string cache, int run)
     {
-        if (cache == "cold")
+        if (cache == "cold-advised")
         {
             Evict(source, files);
         }
 
         var stat = Time(() => StatStamp(source, files));
-        if (cache == "cold")
+        if (cache == "cold-advised")
         {
             Evict(source, files);
         }
 
         var manifest = Time(() => Hash(source, files));
-        if (cache == "cold")
+        if (cache == "cold-advised")
         {
             Evict(source, files);
         }
@@ -142,7 +192,7 @@ internal static class IdentityBench
                     output.Write(buffer, 0, read);
                 }
 
-                // Durability matters for a published image: a crash must not leave a renamed partial copy.
+                // Include the cost of flushing file contents; this benchmark does not publish an image.
                 output.Flush(flushToDisk: true);
             }
 
@@ -182,7 +232,8 @@ internal static class IdentityBench
     /// </summary>
     private static StaleStatProbe ProbeStaleStat(string source, string scratch, List<string> files)
     {
-        var file = files.First(name => name.EndsWith(".dll", StringComparison.Ordinal));
+        var file = files.First(name => name.EndsWith(".dll", StringComparison.Ordinal)
+            && new FileInfo(Path.Combine(source, name)).Length > 0);
         var copy = Path.Combine(scratch, "stale-" + Path.GetFileName(file));
         File.Copy(Path.Combine(source, file), copy);
         var before = new FileInfo(copy);
@@ -209,7 +260,7 @@ internal static class IdentityBench
     }
 
     /// <summary>
-    /// Drops clean page-cache pages of the source files without root, so a "cold" sample reads the disk.
+    /// Requests eviction of clean pages without root. Successful advice does not prove a cold cache.
     /// </summary>
     private static void Evict(string root, List<string> files)
     {
@@ -221,7 +272,11 @@ internal static class IdentityBench
         foreach (var file in files)
         {
             using var stream = File.OpenRead(Path.Combine(root, file));
-            PosixFadvise(stream.SafeFileHandle.DangerousGetHandle().ToInt32(), 0, 0, FadviseDontNeed);
+            var result = PosixFadvise(stream.SafeFileHandle.DangerousGetHandle().ToInt32(), 0, 0, FadviseDontNeed);
+            if (result != 0)
+            {
+                throw new IOException($"posix_fadvise(DONTNEED) failed with error {result}.");
+            }
         }
     }
 

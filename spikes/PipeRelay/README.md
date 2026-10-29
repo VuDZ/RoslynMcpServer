@@ -98,9 +98,24 @@ dotnet spikes/PipeRelay/bin/Release/net10.0/PipeRelay.dll identity-bench <source
 
 Замер для одного file set сервера: stat-скан, полный SHA-256 манифест, копирование
 с хешем и fsync, повторный хеш копии, повторное использование записанного манифеста.
-Каждый замер выполняется `runs` раз в холодном и тёплом кеше. На Linux холодный кеш
-даёт `posix_fadvise(DONTNEED)` по каждому исходному файлу, без root; на других ОС
-только тёплый. Проба меняет один байт копии и восстанавливает mtime: stat-штамп
-совпадает, хеш — нет. Scratch, отдельный от source, удаляется после замера; кладите
-его на дисковую файловую систему, а не в tmpfs `/tmp`.
+На Windows выполняются только `runs` тёплых замеров; cold cache не проверен.
+На Linux дополнительно выполняется серия `cold-advised`: `posix_fadvise(DONTNEED)`
+с проверкой return code, без root. Успешный advisory-вызов не доказывает освобождение
+страниц; гарантированно холодный кеш этот режим не измеряет. Проба меняет один байт
+копии и восстанавливает mtime: stat-штамп совпадает, хеш — нет.
+`scratch` — родитель для нового `identity-run-<UUID>`; удаляется только этот дочерний
+каталог, существующее содержимое родителя сохраняется. Source и scratch не должны
+включать друг друга. Output — новый файл вне source, существующий файл не заменяется.
+Кладите staging на дисковую файловую систему, а не в tmpfs `/tmp`.
+Benchmark измеряет отдельные фазы, без atomic publication, prelaunch guard и проверки
+полного initialize budget harness.
+
+Поведенческий контроль сохранности scratch/output и запрета пересекающихся путей:
+
+```powershell
+dotnet spikes/PipeRelay/bin/Release/net10.0/PipeRelay.dll identity-checks artifacts/workspace-host-process/task-06-checks
+```
+
+Runner создаёт собственный уникальный fixture, проверяет пять контрактов и удаляет
+только его; ожидается exit code 0. Red/green записаны в отчёте task-06.
 Результаты — в [task-06](../../docs/workspace-host-process/epoch-0-design-and-spike/evidence/task-06-environment-and-deployment-preflight.md).

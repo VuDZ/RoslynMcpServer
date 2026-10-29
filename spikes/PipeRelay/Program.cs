@@ -20,6 +20,11 @@ internal static class Program
                 return PipeRelay.Preflight.IdentityBench.Run(args);
             }
 
+            if (mode == "identity-checks")
+            {
+                return PipeRelay.Preflight.IdentityBenchChecks.Run(args[1]);
+            }
+
             if (mode == "routing-checks")
             {
                 return await PipeRelay.Checks.RoutingChecks.Run(args.ElementAtOrDefault(1) ?? "all");
