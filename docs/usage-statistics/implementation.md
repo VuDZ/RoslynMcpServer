@@ -191,7 +191,8 @@ junction/reparse point и недоступные метаданные сохра
 Реальная Windows junction-регрессия: три падения до исправления и три успешных варианта
 после. Release build, main **1509/1509** (весь SourceStructure), lifecycle **13/13** — PASS.
 [Отчёт и границы проверки](../disk-watcher-inotify/windows-review.md#исправление-1524).
-Linux 1.5.24 этим исправлением не проверялся; приёмка всего пакета не заявляется.
+Linux 1.5.24 проверен отдельно: build, SourceStructure 123/123, main 1502/1502, lifecycle 13/13 —
+[disk-watcher-inotify](../disk-watcher-inotify/README.md#исправление-f-win-001--1524); приёмка всего пакета не заявляется.
 
 ## Границы приёмки и следующий этап
 

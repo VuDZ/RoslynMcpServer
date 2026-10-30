@@ -123,7 +123,7 @@ watcher на junction, рекурсивный watcher ниже junction и то�
 
 Evidence исправления: `artifacts/junction-fix-1.5.24/` — red/green, build, целевые тесты,
 первый и финальный main, source SHA256 и `lifecycle/junction-1524-lifecycle.trx`.
-Linux 1.5.24, Linux symlink-вариант и macOS в этом исправлении не прогонялись;
-ранее приведённые результаты Linux относятся к 1.5.23. Подключённый Codex MCP не переключался.
+Linux symlink-вариант регрессией и macOS в этом исправлении не прогонялись. Linux 1.5.24
+проверен отдельно — [disk-watcher-inotify](README.md#исправление-f-win-001--1524). Подключённый Codex MCP не переключался.
 
 **Verdict по F-WIN-001: fixed, подтверждено регрессией и Windows suites.**

@@ -1,6 +1,6 @@
 # Disk watcher и лимит inotify на Linux
 
-Создано: **2026-10-30**. Статус: **решения O-01…O-05 приняты владельцем 2026-10-30; реализованы в 1.5.23 и проверены на Linux 2026-10-30, включая main через MCP в Claude Code с загруженным решением — [реализация](#реализация-1523); F-WIN-001 исправлен в 1.5.24 и проверен на Windows — [регрессия и validation](windows-review.md#исправление-1524); Linux-проверки выше относятся к 1.5.23**.
+Создано: **2026-10-30**. Статус: **решения O-01…O-05 приняты владельцем 2026-10-30; реализованы в 1.5.23 и проверены на Linux 2026-10-30, включая main через MCP в Claude Code с загруженным решением — [реализация](#реализация-1523); F-WIN-001 исправлен в 1.5.24 и проверен на Windows — [регрессия и validation](windows-review.md#исправление-1524); Linux 1.5.24 проверен — [исправление](#исправление-f-win-001--1524)**.
 Источник: [Claude Code smoke статистики использования, D-03](../usage-statistics/claude-code-smoke.md#d-03-загруженное-решение-занимает-почти-весь-лимит-inotify).
 
 ## Проблема
@@ -104,7 +104,7 @@ pack, SDK). `RoslynMcpServer.csproj` лежит в корне репозитор
 ## Реализация 1.5.23
 
 Дата: **2026-10-30**. Статус: **O-01…O-05 реализованы и проверены на Linux, включая подключённый
-Claude Code; F-WIN-001 исправлен в 1.5.24 и проверен на Windows — [регрессия и validation](windows-review.md#исправление-1524); Linux-проверки выше относятся к 1.5.23**.
+Claude Code; F-WIN-001 исправлен в 1.5.24 и проверен на Windows — [регрессия и validation](windows-review.md#исправление-1524); Linux 1.5.24 проверен — [исправление](#исправление-f-win-001--1524)**.
 
 - [ImmutableInputRoots](../../Services/Workspace/ImmutableInputRoots.cs) читает
   `packageFolders` из `obj/project.assets.json` проектов потоковым разбором и строит
@@ -172,4 +172,6 @@ Windows main **1506/1506**, lifecycle **13/13**, анализатор **50/167**
 в трёх вариантах воспроизвела дефект до исправления и прошла после него.
 Release build, main **1509/1509** (с SourceStructure) и opt-in lifecycle **13/13** — PASS.
 [Полный scope, red/green и ограничения](windows-review.md#исправление-1524),
-[машиночитаемая validation](windows-validation.json). Linux 1.5.24 в этом прогоне не проверялся.
+[машиночитаемая validation](windows-validation.json).
+
+Linux 1.5.24 проверен 2026-10-30: Release build, SourceStructure **123/123**, main **1502/1502**, lifecycle **13/13**, `Test-McpUsage.ps1` **50/167** — PASS без skips; опубликованные две копии — по 5 watcher и 6 экземпляров inotify, отказов нет. Ручная проверка .NET на Linux: рекурсивный `FileSystemWatcher` не доставляет изменения за symlink-каталогом, а symlink имеет `ReparsePoint`, поэтому исправление действует и на Linux.
