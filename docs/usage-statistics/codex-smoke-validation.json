@@ -1,0 +1,183 @@
+{
+  "date": "2026-10-30",
+  "timezone": "Europe/Moscow",
+  "version": "1.5.21",
+  "harness": "codex",
+  "process_count": 3,
+  "scope": "Parent and two subagent MCPs for this chat; other-cwd startup processes excluded",
+  "records": 85,
+  "event_counts": {
+    "start": 3,
+    "client": 3,
+    "mem": 37,
+    "tool_start": 18,
+    "tool": 18,
+    "load": 5,
+    "reset": 1
+  },
+  "completed_calls": 18,
+  "failed_calls": 0,
+  "sequence_gaps": 0,
+  "unfinished_calls": 0,
+  "fresh_loads": 4,
+  "cache_hits": 1,
+  "load_seconds": [
+    1.4799656,
+    1.4991607000000002,
+    1.9800417,
+    0.009582199999999999,
+    1.0711362000000002
+  ],
+  "peak_overlapping_calls_across_processes": 3,
+  "overlapping_call_seconds_across_processes": 12.51455,
+  "processes": [
+    {
+      "process": "P1",
+      "role": "parent",
+      "records": 39,
+      "completed_calls": 8,
+      "peak_overlapping_calls": 1,
+      "memory_samples": 17,
+      "complete_memory_samples": 17,
+      "peak_process_private_gib": 0.3137359619140625,
+      "peak_buildhost_private_gib": 0.000457763671875,
+      "right_censored": true
+    },
+    {
+      "process": "P2",
+      "role": "subagent",
+      "records": 23,
+      "completed_calls": 5,
+      "peak_overlapping_calls": 1,
+      "memory_samples": 10,
+      "complete_memory_samples": 10,
+      "peak_process_private_gib": 0.2896308898925781,
+      "peak_buildhost_private_gib": 0.0,
+      "right_censored": true
+    },
+    {
+      "process": "P3",
+      "role": "subagent",
+      "records": 23,
+      "completed_calls": 5,
+      "peak_overlapping_calls": 1,
+      "memory_samples": 10,
+      "complete_memory_samples": 10,
+      "peak_process_private_gib": 0.22713851928710938,
+      "peak_buildhost_private_gib": 0.0,
+      "right_censored": true
+    }
+  ],
+  "start": "2026-10-30T12:22:38.7856995+00:00",
+  "snapshot_end": "2026-10-30T12:35:41.7924532+00:00",
+  "observation_seconds": 783.006754,
+  "input_sha256": "9106d8877139e2b439bcb03fb05a97bf38930a9d801147bf7d4994e10d88af63",
+  "tests": {
+    "main_passed": 1487,
+    "lifecycle_passed": 13,
+    "lifecycle_skipped": 0,
+    "agent_instrumentation_passed": 5,
+    "agent_writer_passed": 3,
+    "agent_memory_passed": 2
+  },
+  "status": "codex_windows_smoke_passed",
+  "runtime_binary": "artifacts/usage-dogfood/server-1.5.21-20261030/RoslynMcpServer.exe",
+  "report_json": "artifacts/usage-dogfood/codex-parallel-20261030-6f06aee0ae/report.json",
+  "report_markdown": "artifacts/usage-dogfood/codex-parallel-20261030-6f06aee0ae/report.md",
+  "duplication": {
+    "mean_gib": 0.2558595202512912,
+    "gib_hours": 0.05564574990277656,
+    "active_overlap_hours": 0.003399999936421712
+  },
+  "thresholds": [
+    {
+      "unknown_cost_episodes": 0,
+      "residual_duplicate_mean_gib": 0.1607499775913822,
+      "residual_duplicate_gib_hours": 0.034960798179960825,
+      "known_reload_episodes": 0,
+      "idle_gib_hours": 0.02260280730715724,
+      "reload_metrics_available": true,
+      "residual_metrics_available": true,
+      "reload_episodes": 0,
+      "known_reload_seconds": 0.0,
+      "idle_mean_gib": 0.10392785512003798,
+      "minutes": 5,
+      "estimated_reload_seconds": 0.0
+    },
+    {
+      "unknown_cost_episodes": 0,
+      "residual_duplicate_mean_gib": 0.2558595202512912,
+      "residual_duplicate_gib_hours": 0.05564574990277656,
+      "known_reload_episodes": 0,
+      "idle_gib_hours": 0.0,
+      "reload_metrics_available": true,
+      "residual_metrics_available": true,
+      "reload_episodes": 0,
+      "known_reload_seconds": 0.0,
+      "idle_mean_gib": 0.0,
+      "minutes": 15,
+      "estimated_reload_seconds": 0.0
+    },
+    {
+      "unknown_cost_episodes": 0,
+      "residual_duplicate_mean_gib": 0.2558595202512912,
+      "residual_duplicate_gib_hours": 0.05564574990277656,
+      "known_reload_episodes": 0,
+      "idle_gib_hours": 0.0,
+      "reload_metrics_available": true,
+      "residual_metrics_available": true,
+      "reload_episodes": 0,
+      "known_reload_seconds": 0.0,
+      "idle_mean_gib": 0.0,
+      "minutes": 30,
+      "estimated_reload_seconds": 0.0
+    },
+    {
+      "unknown_cost_episodes": 0,
+      "residual_duplicate_mean_gib": 0.2558595202512912,
+      "residual_duplicate_gib_hours": 0.05564574990277656,
+      "known_reload_episodes": 0,
+      "idle_gib_hours": 0.0,
+      "reload_metrics_available": true,
+      "residual_metrics_available": true,
+      "reload_episodes": 0,
+      "known_reload_seconds": 0.0,
+      "idle_mean_gib": 0.0,
+      "minutes": 60,
+      "estimated_reload_seconds": 0.0
+    }
+  ],
+  "data_quality": {
+    "gap_hours": 0.0,
+    "memory_metrics_available": true,
+    "start": "2026-10-30T12:22:38.7850000+00:00",
+    "left_censored_processes": 0,
+    "gap_count": 0,
+    "end": "2026-10-30T12:35:41.7920000+00:00",
+    "usable_hours": 0.2174855555428399,
+    "warnings": {
+      "incomplete_workspace_transitions": 0,
+      "clock_regressions": 0,
+      "missing_call_fields": 0,
+      "duplicate_records": 0,
+      "unknown_workspace_requirement": 0,
+      "processes_without_memory": 0,
+      "incomplete_snapshots": 0,
+      "sequence_gaps": 0,
+      "heartbeat_gaps": 0,
+      "torn_tails": 0,
+      "unsupported_version_events": 0,
+      "unknown_reset_outcomes": 0,
+      "invalid_call_intervals": 0,
+      "malformed_records": 0
+    },
+    "right_censored_processes": 3
+  },
+  "measured_median_fresh_load_seconds": 1.48956315,
+  "limits": [
+    "Controlled 13-minute sample, not a representative long-term corpus",
+    "No overlapping calls within one MCP process were observed in this Codex run",
+    "Live process lifetimes are right-censored",
+    "Linux 1.5.21 and other harnesses were not rerun"
+  ]
+}

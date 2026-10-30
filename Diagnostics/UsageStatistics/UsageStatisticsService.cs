@@ -188,22 +188,6 @@ public sealed class UsageStatisticsService : IHostedService, IDisposable
         }
     }
 
-    internal void MarkCurrentSolutionAccess()
-    {
-        if (_currentCall.Value is { } call && !McpToolCatalog.All.Any(tool => tool.Name == call.Name))
-        {
-            call.RequiresWorkspace = true;
-        }
-    }
-
-    internal void MarkWorkspaceRequired()
-    {
-        if (_currentCall.Value is { } call)
-        {
-            call.RequiresWorkspace = true;
-        }
-    }
-
     internal void RecordClient(string? name, string? version, string? protocol)
     {
         lock (_gate)
@@ -232,7 +216,6 @@ public sealed class UsageStatisticsService : IHostedService, IDisposable
         }
 
         var call = _currentCall.Value;
-        MarkWorkspaceRequired();
         var origin = source == WorkspaceLoadSource.ConfigFile
             ? "lazy"
             : call?.Name is "list_projects" or "get_project_graph" ? "path" : "explicit";

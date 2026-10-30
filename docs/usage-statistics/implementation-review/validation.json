@@ -1,0 +1,75 @@
+{
+  "date": "2026-10-30",
+  "timezone": "Europe/Moscow",
+  "version": "1.5.20",
+  "status": "fixes_validated_not_package_acceptance",
+  "findings": {
+    "F-001": "fixed",
+    "F-002": "fixed",
+    "F-003": "resolved_specification_clarification_runtime_unchanged"
+  },
+  "windows": {
+    "sdk": "10.0.402",
+    "configuration": "Release",
+    "build": "passed",
+    "main_passed": 1486,
+    "main_total": 1486,
+    "main_skipped": 0,
+    "lifecycle_passed": 13,
+    "lifecycle_total": 13,
+    "lifecycle_skipped": 0
+  },
+  "linux": {
+    "platform": "Ubuntu24.04 WSL",
+    "sdk": "10.0.113",
+    "configuration": "Release",
+    "build": "passed",
+    "main_passed": 1482,
+    "main_total": 1482,
+    "main_skipped": 0,
+    "lifecycle_passed": 13,
+    "lifecycle_total": 13,
+    "lifecycle_skipped": 0,
+    "matched_csharp_files": 706,
+    "source_manifest_sha256": "5dc2f465990a3a314dbc5539fa79b15c6d64f4a04df79f41d729ee577dd5d401"
+  },
+  "focused": {
+    "usage_statistics_passed": 35,
+    "source_structure_passed": 123
+  },
+  "powershell": {
+    "analyzer_scenarios": 49,
+    "analyzer_assertions": 161,
+    "linux_runtime_tested": false
+  },
+  "integration": {
+    "target": "self-contained win-x64 EXE",
+    "file_version": "1.5.20.0",
+    "checks": 822,
+    "records": 41,
+    "processes": 2,
+    "loads": 5,
+    "completed_calls": 11,
+    "analyzer_checked": true,
+    "real_harness_launches_tested": false
+  },
+  "static_review": "no_findings",
+  "whitespace": "passed",
+  "pending": [
+    "Real harness smoke",
+    "Real data collection and strategy decision",
+    "Linux PowerShell and macOS runtime checks"
+  ],
+  "f003_follow_up": {
+    "date": "2026-10-30",
+    "scope": "documentation_only",
+    "runtime_changed": false,
+    "analyzer_scenarios": 49,
+    "analyzer_assertions": 161
+  },
+  "follow_up": {
+    "version": "1.5.21",
+    "status": "codex_windows_smoke_passed",
+    "report": "../codex-smoke.md"
+  }
+}

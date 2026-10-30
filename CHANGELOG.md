@@ -2,6 +2,15 @@
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.5.21
+
+- Usage statistics and text-log summaries no longer mark successful test calls as failures because their VSTest output contains `Failed: 0` or `Failed: **0**`. Non-zero failures and partial or error responses remain unsuccessful.
+
+### v1.5.20
+
+- Usage statistics now mark a tool as requiring a workspace only when the catalog says so or the call actually performs a lazy load. Reading an already loaded snapshot no longer inflates estimated reload costs.
+- Usage reports keep observation gaps local to each process. Healthy processes still contribute idle memory and observation time; duplicate-memory estimates exclude only workspace keys with an unobserved live copy.
+
 ### v1.5.19
 
 - Configuration, drop-in plugins and text logs now use stable per-user directories outside the npx installation cache. Config sources merge executable → user → cwd; plugin discovery keeps the first validated ID. `ROSLYN_MCP_HOME` overrides both user roots and `ROSLYN_MCP_LOG_DIR` overrides text logs.

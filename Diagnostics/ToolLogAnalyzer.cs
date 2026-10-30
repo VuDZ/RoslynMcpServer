@@ -47,8 +47,12 @@ public static class ToolLogAnalyzer
             return "status=partial | tests";
         }
 
+        // Successful VSTest summaries contain Failed: 0, including Markdown counters.
         if (text.StartsWith("Error", StringComparison.OrdinalIgnoreCase)
-            || text.Contains("Failed:", StringComparison.OrdinalIgnoreCase))
+            || System.Text.RegularExpressions.Regex.IsMatch(
+                text,
+                @"Failed:(?!\s*(?:\*\*)?0(?:\*\*)?(?=\s|,|·|$))",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant))
         {
             return "status=error";
         }

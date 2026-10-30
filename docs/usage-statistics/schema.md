@@ -16,7 +16,7 @@
 - `client`: `name`, `version`, `protocol`; legacy initialize либо request metadata ревизии 2026-07-28. Повтор одной идентичности не дублируется.
 - `tool_start`: `call`, `name`, `start_ts`, `workspace_key`, `requires_workspace`.
 - `tool`: те же поля идентичности вызова, `duration_ms`, `success`, `lazy_load`.
-- `load`: `requested_key`, `workspace_key` после попытки, `success`, `cache_hit`,
+- `load`: `call`, `start_ts`, `requested_key`, `workspace_key` после попытки, `success`, `cache_hit`,
   `source`, `graph_stale`, `duration_ms`, `lock_wait_ms`, `projects`.
 - `reset`: прежний `workspace_key`, `resident_key` после попытки, `success`,
   `start_ts`, `seconds_since_load`.
@@ -28,6 +28,13 @@
 Отдельное `tool_start` сохраняет начало вызова, который не успеет записать `tool`
 перед kill; `call` связывает начало и конец внутри процесса. Ключ в событии инструмента
 относится к началу вызова. Lazy load и его ключ дополнительно видны в `load`.
+У `tool` поле `ts` фиксирует завершение, а `duration_ms` измеряется монотонными часами.
+Событие `load` записывается после попытки: `start_ts` — её начало, `ts` — время записи
+результата; `duration_ms` исключает `lock_wait_ms`. `call` связывает загрузку с вызовом
+инструмента и равен null для попытки вне такого вызова. Отдельного `load_start` нет;
+при прерывании процесса сохраняется `tool_start`, если попытка шла внутри инструмента.
+Длительности в JSONL — фактические измерения; M2 в агрегированном отчёте — оценка
+дополнительных загрузок от будущей выгрузки по таймауту.
 Неуспешный reset не означает выгрузку: используется `resident_key`.
 
 Ключ — канонический кортеж пути и фактически удерживаемых Configuration, Platform,

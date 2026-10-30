@@ -368,7 +368,6 @@ public sealed class SolutionManager
 
     public Solution? GetCurrentSolution()
     {
-        _usage?.MarkCurrentSolutionAccess();
         // Stored snapshot only. Overlay is prepared at load/enable/refresh and reapplied from the in-memory
         // mapping at mutation points (edit / flush / post-apply). This getter does not copy analyzer files,
         // hash generations, or recompute the overlay.
@@ -472,7 +471,6 @@ public sealed class SolutionManager
     /// </summary>
     public async Task EnsureWorkspaceFromConfigAsync(CancellationToken cancellationToken = default)
     {
-        _usage?.MarkWorkspaceRequired();
         if (_solution is not null)
         {
             return;
@@ -524,7 +522,6 @@ public sealed class SolutionManager
     /// </summary>
     public Solution? GetSanitizedPublishedSolution()
     {
-        _usage?.MarkWorkspaceRequired();
         _workspaceLock.Wait();
         try
         {

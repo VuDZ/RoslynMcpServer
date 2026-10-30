@@ -70,8 +70,8 @@ function Add-Point($Timeline, [double]$Time, [int]$Order, [string]$Kind, $Model,
     $Timeline[$Time].Add(@{ order = $Order; kind = $Kind; model = $Model; data = $Data })
 }
 
-function Add-Range($Ranges, [double]$Start, [double]$End) {
-    if ($End -gt $Start) { $Ranges.Add(@{ start = $Start; end = $End }) }
+function Add-Range($Ranges, [double]$Start, [double]$End, [bool]$UnknownResidency = $false) {
+    if ($End -gt $Start) { $Ranges.Add(@{ start = $Start; end = $End; unknown_residency = $UnknownResidency }) }
 }
 
 function Merge-Ranges($Ranges) {
@@ -84,6 +84,30 @@ function Merge-Ranges($Ranges) {
         elseif ($range.end -gt $current.end) { $current.end = [double]$range.end }
     }
     if ($null -ne $current) { $current }
+}
+
+function Get-GapKeys($Model, $Range) {
+    $keys = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    $previousKey = $null
+    foreach ($row in $Model.rows) {
+        if ($row._time -gt $Range.end) { break }
+        if ($row.v -ne 1) { continue }
+        if ($row._time -lt $Range.start) {
+            if ($row.ev -eq 'mem' -and $row.Contains('workspace_key') -and (Test-WorkspaceValue $row.workspace_key)) {
+                $previousKey = $row.workspace_key
+            }
+            elseif ($row.ev -eq 'load' -and $row._transition_valid) { $previousKey = $row.workspace_key }
+            elseif ($row.ev -eq 'reset' -and $row._transition_valid) { $previousKey = $row.resident_key }
+            continue
+        }
+        foreach ($field in @('workspace_key', 'resident_key', 'requested_key')) {
+            if ($row.Contains($field) -and $null -ne $row[$field] -and (Test-WorkspaceValue $row[$field])) {
+                [void]$keys.Add([string]$row[$field])
+            }
+        }
+    }
+    if ($null -ne $previousKey) { [void]$keys.Add([string]$previousKey) }
+    return ,$keys
 }
 
 function Get-Median($Values) {
@@ -275,15 +299,18 @@ function Measure-Machine([string]$Label, $Rows, $Warnings) {
             $Warnings.processes_without_memory++
         }
         else {
-            Add-Range $model.gaps $model.start $model.snapshots[0]._time
+            if ($model.snapshots[0]._time - $model.start -gt 120) {
+                Add-Range $model.gaps $model.start $model.snapshots[0]._time
+                $Warnings.heartbeat_gaps++
+            }
             for ($i = 1; $i -lt $model.snapshots.Count; $i++) {
                 if ($model.snapshots[$i]._time - $model.snapshots[$i - 1]._time -gt 120) {
-                    Add-Range $model.gaps $model.snapshots[$i - 1]._time $model.snapshots[$i]._time
+                    Add-Range $model.gaps $model.snapshots[$i - 1]._time $model.snapshots[$i]._time $true
                     $Warnings.heartbeat_gaps++
                 }
             }
             if ($model.end - $model.snapshots[-1]._time -gt 120) {
-                Add-Range $model.gaps $model.snapshots[-1]._time $model.end
+                Add-Range $model.gaps $model.snapshots[-1]._time $model.end $true
                 $Warnings.heartbeat_gaps++
             }
         }
@@ -293,7 +320,7 @@ function Measure-Machine([string]$Label, $Rows, $Warnings) {
         foreach ($sequenceRow in @($ordered | Sort-Object seq)) {
             if ($null -ne $previousSequenceTime -and $sequenceRow._time -lt $previousSequenceTime) {
                 $Warnings.clock_regressions++
-                Add-Range $model.gaps $model.start $model.end
+                Add-Range $model.gaps $model.start $model.end $true
                 break
             }
             $previousSequenceTime = $sequenceRow._time
@@ -301,14 +328,17 @@ function Measure-Machine([string]$Label, $Rows, $Warnings) {
         foreach ($row in $ordered) {
             while ($snapshotIndex -lt $model.snapshots.Count -and $model.snapshots[$snapshotIndex]._time -lt $row._time) { $snapshotIndex++ }
             $gap = $row.v -ne 1
+            $unknownResidency = $row.v -ne 1
             $gapStart = if ($null -ne $previous) { $previous._time } else { $model.start }
             if ($null -ne $previous -and $row.seq -ne $previous.seq + 1) {
                 $gap = $true
                 $Warnings.sequence_gaps++
+                $unknownResidency = $true
             }
             if ($row.ev -eq 'mem' -and -not $row.Contains('_snapshot_valid')) {
                 $gap = $true
                 $Warnings.incomplete_snapshots++
+                if (-not $row.Contains('workspace_key') -or -not (Test-WorkspaceValue $row.workspace_key)) { $unknownResidency = $true }
             }
             if ($row.v -eq 1 -and $row.ev -in @('load', 'reset')) {
                 $residentField = if ($row.ev -eq 'load') { 'workspace_key' } else { 'resident_key' }
@@ -319,11 +349,12 @@ function Measure-Machine([string]$Label, $Rows, $Warnings) {
                     if (-not $gap) { $gapStart = $row._time }
                     $gap = $true
                     $Warnings.incomplete_workspace_transitions++
+                    $unknownResidency = $true
                 }
             }
             if ($gap) {
                 $gapEnd = if ($snapshotIndex -lt $model.snapshots.Count) { $model.snapshots[$snapshotIndex]._time } else { $model.end }
-                Add-Range $model.gaps $gapStart $gapEnd
+                Add-Range $model.gaps $gapStart $gapEnd $unknownResidency
             }
             $previous = $row
         }
@@ -334,6 +365,7 @@ function Measure-Machine([string]$Label, $Rows, $Warnings) {
             alive = $false; key = $null; loaded_at = $model.start; memory = $null
             known_calls = 0; sampled_calls = 0; idle_start = $model.start; activity_known = $false
             retained = $retained; policy_known = $false; has_loaded = $false; in_gap = $false
+            uncertain_keys = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
         }
         $models.Add($model)
         Add-Point $timeline $model.start 0 'life_start' $model $null
@@ -342,6 +374,11 @@ function Measure-Machine([string]$Label, $Rows, $Warnings) {
             $allGaps.Add($range)
             Add-Point $timeline $range.start 95 'gap_start' $model $null
             Add-Point $timeline $range.end -1 'gap_end' $model $null
+        }
+        foreach ($range in @(Merge-Ranges @($model.gaps | Where-Object { $_.unknown_residency }))) {
+            # Observed boundary/request keys remain possible copies until a trustworthy recovery snapshot.
+            Add-Point $timeline $range.start 94 'unknown_keys_start' $model (Get-GapKeys $model $range)
+            Add-Point $timeline $range.end -2 'unknown_keys_end' $model $null
         }
         foreach ($row in $ordered) {
             if ($row.v -ne 1 -or $row.ev -in @('tool', 'tool_start')) { continue }
@@ -381,19 +418,25 @@ function Measure-Machine([string]$Label, $Rows, $Warnings) {
     $subagentCandidates = 0
     $subagentByKey = [Collections.Generic.Dictionary[string, int]]::new([StringComparer]::Ordinal)
     $previousTime = $null
-    $gapIndex = 0
     foreach ($entry in $timeline.GetEnumerator()) {
         $time = [double]$entry.Key
         if ($null -ne $previousTime -and $time -gt $previousTime) {
-            while ($gapIndex -lt $gaps.Count -and $gaps[$gapIndex].end -le $previousTime) { $gapIndex++ }
-            $inGap = $gapIndex -lt $gaps.Count -and $gaps[$gapIndex].start -lt $time -and $gaps[$gapIndex].end -gt $previousTime
             $alive = @($models | Where-Object { $_.state.alive })
-            if (-not $inGap -and $alive.Count -gt 0 -and @($alive | Where-Object { $null -eq $_.state.memory }).Count -eq 0) {
+            $usable = @($alive | Where-Object { -not $_.state.in_gap -and $null -ne $_.state.memory })
+            if ($usable.Count -gt 0) {
                 $seconds = $time - $previousTime
                 $middle = ($time + $previousTime) / 2
                 $observationSeconds += $seconds
                 $byKey = [Collections.Generic.Dictionary[string, object]]::new([StringComparer]::Ordinal)
+                $incompleteKeys = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
                 foreach ($model in $alive) {
+                    $state = $model.state
+                    if ($state.in_gap -or $null -eq $state.memory) {
+                        if ($null -ne $state.key) { [void]$incompleteKeys.Add($state.key) }
+                        foreach ($candidate in $state.uncertain_keys) { [void]$incompleteKeys.Add($candidate) }
+                    }
+                }
+                foreach ($model in $usable) {
                     $state = $model.state
                     if ($null -eq $state.key) { continue }
                     if (-not $byKey.ContainsKey($state.key)) { $byKey[$state.key] = [Collections.Generic.List[object]]::new() }
@@ -408,6 +451,7 @@ function Measure-Machine([string]$Label, $Rows, $Warnings) {
                 }
                 $overlap = $false
                 foreach ($key in $byKey.Keys) {
+                    if ($incompleteKeys.Contains($key)) { continue }
                     $copies = $byKey[$key]
                     $countKey = [string]$copies.Count
                     if (-not $copyDistribution.ContainsKey($countKey)) { $copyDistribution[$countKey] = 0.0 }
@@ -438,6 +482,8 @@ function Measure-Machine([string]$Label, $Rows, $Warnings) {
                 'life_end' { $state.alive = $false }
                 'gap_start' { $state.policy_known = $false; $state.in_gap = $true }
                 'gap_end' { $state.in_gap = $false }
+                'unknown_keys_start' { $state.uncertain_keys = $point.data }
+                'unknown_keys_end' { $state.uncertain_keys = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal) }
                 'call_start' {
                     $call = $point.data
                     # An opening already required by the baseline does not restore the old key first.
@@ -522,6 +568,9 @@ function Measure-Machine([string]$Label, $Rows, $Warnings) {
                                     $state.idle_start = if ($state.activity_known) { [Math]::Max($state.idle_start, $anchor) } else { $anchor }
                                 }
                             } else {
+                                if ($row.Contains('workspace_key') -and (Test-WorkspaceValue $row.workspace_key)) {
+                                    Set-Resident $state $row.workspace_key $false $time
+                                }
                                 $state.memory = $null
                                 $state.policy_known = $false
                             }
@@ -702,7 +751,7 @@ $results = @($machines.Keys | Sort-Object | ForEach-Object {
 })
 $report = [ordered]@{
     schema_version = 1
-    method = 'Per-machine; piecewise-constant memory snapshots; half-open call intervals; gaps excluded; reload costs are estimates.'
+    method = 'Per-process memory coverage; machine hours are its union; incomplete duplicate groups omitted per key; piecewise-constant snapshots; half-open calls; estimated reload costs.'
     strategy = 'Owner decision from measured results; no fixed benefit or latency thresholds.'
     machines = $results
 }
@@ -715,7 +764,8 @@ $markdown = [Collections.Generic.List[string]]::new()
 $markdown.Add('# MCP usage statistics')
 $markdown.Add('')
 $markdown.Add('Each machine is evaluated separately. Workspace labels are local to its report. Raw paths and keys are not exported.')
-$markdown.Add('Memory values use the last valid snapshot. Missing observations are excluded; a missing exit gives a lower lifetime bound.')
+$markdown.Add('Memory values use the last valid snapshot. Gaps exclude their process; duplicate groups with an incomplete copy are omitted. A missing exit gives a lower lifetime bound.')
+$markdown.Add('Usable hours are the union of usable process observations. Reported gap hours can overlap those hours when another process remains observable.')
 $markdown.Add('Reload costs are estimates from median successful fresh loads. The report does not select a strategy.')
 foreach ($result in $results) {
     $markdown.Add('')

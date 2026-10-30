@@ -7,7 +7,7 @@ internal sealed class UsageToolCall
     internal required DateTimeOffset Started { get; init; }
     internal required long Timestamp { get; init; }
     internal string? WorkspaceKey { get; init; }
-    internal bool RequiresWorkspace { get; set; }
+    internal bool RequiresWorkspace { get; init; }
     internal bool LazyLoad { get; set; }
     internal UsageToolCall? Parent { get; init; }
 }

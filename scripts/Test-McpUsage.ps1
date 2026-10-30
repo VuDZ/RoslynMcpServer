@@ -451,9 +451,112 @@ try {
         $report = Invoke-Case ('unknown-transition-' + $transitionCase)
         Assert-Equal 1 $report.machines[0].observation.warnings.incomplete_workspace_transitions ('Incomplete transition is reported: ' + $transitionCase)
         Assert-Near (1 / 60) $report.machines[0].observation.gap_hours ('Only transition-to-recovery interval is a gap: ' + $transitionCase)
-        Assert-Near (9 / 60) $report.machines[0].observation.usable_hours ('Unknown residency is excluded from denominator: ' + $transitionCase)
+        Assert-Near (10 / 60) $report.machines[0].observation.usable_hours ('Healthy peer preserves the observation denominator: ' + $transitionCase)
         Assert-Near (3 / 60) $report.machines[0].duplication.gib_hours ('Unknown residency does not extend old-key duplicates: ' + $transitionCase)
     }
+
+    New-Tape
+    Add-Process -Process healthy-idle -Key 'PRIVATE:/healthy.sln'
+    Add-Process -Process healthy-busy -Key 'PRIVATE:/healthy.sln' -Calls @(@{ start = 0; end = 600 })
+    Add-Process -Process incomplete -Key 'PRIVATE:/other.sln' -Calls @(@{ start = 0; end = 600 })
+    @($script:events | Where-Object { $_.row.proc -eq 'incomplete' -and $_.row.ev -eq 'mem' -and $_.second -eq 420 })[0].skip = 1
+    $report = Invoke-Case 'process-local-sequence-gap'
+    Assert-Near (5 / 60) (Get-Timeout $report).idle_gib_hours 'A peer sequence gap does not remove healthy idle memory'
+    Assert-Near (10 / 60) $report.machines[0].observation.usable_hours 'Machine coverage is the union of usable processes'
+    Assert-Near (1 / 60) $report.machines[0].observation.gap_hours 'A peer sequence gap remains visible separately'
+    Assert-Near (10 / 60) $report.machines[0].duplication.gib_hours 'A peer gap on another key does not remove healthy duplicates'
+    Assert-Near (5 / 60) (Get-Timeout $report).residual_duplicate_gib_hours 'A peer gap on another key does not remove healthy residual duplicates'
+    Assert-Equal 1 $report.machines[0].observation.warnings.sequence_gaps 'Process-local sequence loss is still diagnosed'
+
+    New-Tape
+    Add-Process -Process healthy-idle -Key 'PRIVATE:/healthy.sln'
+    Add-Process -Process healthy-busy -Key 'PRIVATE:/healthy.sln' -Calls @(@{ start = 0; end = 600 })
+    Add-Process -Process incomplete -Key 'PRIVATE:/other.sln' -Calls @(@{ start = 0; end = 600 })
+    foreach ($event in $script:events) {
+        if ($event.row.proc -eq 'incomplete' -and $event.row.ev -eq 'mem') { $event.row.buildhost_bytes = $null }
+    }
+    $report = Invoke-Case 'process-local-null-buildhost'
+    Assert-Near (5 / 60) (Get-Timeout $report).idle_gib_hours 'Unknown peer BuildHost does not remove healthy idle memory'
+    Assert-Near (10 / 60) $report.machines[0].observation.usable_hours 'A process without usable memory cannot darken healthy coverage'
+    Assert-Near (10 / 60) $report.machines[0].observation.gap_hours 'A fully missing process remains in gap diagnostics'
+    Assert-Near (10 / 60) $report.machines[0].duplication.gib_hours 'Unrelated healthy duplicate keys survive a fully missing process'
+    Assert-Near (5 / 60) (Get-Timeout $report).residual_duplicate_gib_hours 'Unrelated healthy residual duplicates survive a fully missing process'
+    Assert-Equal 1 $report.machines[0].observation.warnings.processes_without_memory 'The unusable process is diagnosed once'
+
+    New-Tape
+    Add-Process -Process healthy-idle
+    Add-Process -Process incomplete-busy -Calls @(@{ start = 0; end = 600 })
+    @($script:events | Where-Object { $_.row.proc -eq 'incomplete-busy' -and $_.row.ev -eq 'mem' -and $_.second -eq 420 })[0].skip = 1
+    $report = Invoke-Case 'shared-key-sequence-gap'
+    Assert-Near (5 / 60) (Get-Timeout $report).idle_gib_hours 'Healthy M1 continues during a same-key peer gap'
+    Assert-Near (10 / 60) $report.machines[0].observation.usable_hours 'Same-key uncertainty does not remove healthy machine coverage'
+    Assert-Near (9 / 60) $report.machines[0].duplication.gib_hours 'M3 omits a same-key group while one copy has a sequence gap'
+    Assert-Near (9 / 60) (Get-Timeout $report 15).residual_duplicate_gib_hours 'M3r omits the same-key group during a peer gap'
+    Assert-Near (5 / 60) (Get-Timeout $report).residual_duplicate_gib_hours 'The shorter policy retains only its known pre-eviction overlap'
+
+    New-Tape
+    Add-Process -Process healthy-busy -Calls @(@{ start = 0; end = 600 })
+    Add-Process -Process incomplete-busy -Calls @(@{ start = 0; end = 600 })
+    @($script:events | Where-Object { $_.row.proc -eq 'incomplete-busy' -and $_.row.ev -eq 'mem' -and $_.second -eq 240 })[0].row.buildhost_bytes = $null
+    $report = Invoke-Case 'shared-key-null-memory'
+    Assert-Near (10 / 60) $report.machines[0].observation.usable_hours 'A healthy busy peer preserves the denominator'
+    Assert-Near (2 / 60) $report.machines[0].observation.gap_hours 'An incomplete snapshot leaves its original recovery gap'
+    Assert-Near (8 / 60) $report.machines[0].duplication.gib_hours 'M3 requires all live copies of its key to be observable'
+    Assert-Near (8 / 60) $report.machines[0].duplication.active_overlap_hours 'M3a requires all live copies of its key to be observable'
+    Assert-Near (8 / 60) (Get-Timeout $report).residual_duplicate_gib_hours 'M3r requires all live copies of its key to be observable'
+
+    New-Tape
+    Add-Process
+    $script:events = [Collections.Generic.List[object]]@($script:events | Where-Object {
+        -not ($_.row.ev -eq 'mem' -and $_.second -eq 0)
+    })
+    $report = Invoke-Case 'short-first-snapshot'
+    Assert-Near (9 / 60) $report.machines[0].observation.usable_hours 'A process contributes only after its first memory snapshot'
+    Assert-Near 0 $report.machines[0].observation.gap_hours 'A first snapshot within two intervals is not a gap'
+    Assert-Equal 0 $report.machines[0].observation.gap_count 'Ordinary startup does not create a gap record'
+    Assert-Near (5 / 60) (Get-Timeout $report).idle_gib_hours 'First snapshot timing does not fabricate an idle tail'
+
+    foreach ($warmupSeconds in @(60, 120, 180)) {
+        New-Tape
+        Add-Process -Process healthy-idle -Key 'PRIVATE:/healthy.sln'
+        Add-Process -Process healthy-busy -Key 'PRIVATE:/healthy.sln' -Calls @(@{ start = 0; end = 600 })
+        Add-Process -Process starting-peer -Key 'PRIVATE:/other.sln' -Calls @(@{ start = 0; end = 600 })
+        $script:events = [Collections.Generic.List[object]]@($script:events | Where-Object {
+            -not ($_.row.proc -eq 'starting-peer' -and $_.row.ev -eq 'mem' -and $_.second -lt $warmupSeconds)
+        })
+        $report = Invoke-Case ('peer-first-snapshot-' + $warmupSeconds)
+        $expectedGapHours = if ($warmupSeconds -gt 120) { $warmupSeconds / 3600.0 } else { 0 }
+        Assert-Near $expectedGapHours $report.machines[0].observation.gap_hours ('Only startup longer than two intervals is a gap: ' + $warmupSeconds)
+        Assert-Near (10 / 60) $report.machines[0].observation.usable_hours ('A starting peer does not delay healthy coverage: ' + $warmupSeconds)
+        Assert-Near (5 / 60) (Get-Timeout $report).idle_gib_hours ('A starting peer does not remove healthy idle memory: ' + $warmupSeconds)
+        Assert-Near (10 / 60) $report.machines[0].duplication.gib_hours ('A starting peer on another key does not remove healthy duplicates: ' + $warmupSeconds)
+    }
+
+    New-Tape
+    Add-Process -Process transitioning -Key 'PRIVATE:/first.sln'
+    Add-Process -Process first-copy-a -Key 'PRIVATE:/first.sln' -Calls @(@{ start = 0; end = 600 })
+    Add-Process -Process first-copy-b -Key 'PRIVATE:/first.sln' -Calls @(@{ start = 0; end = 600 })
+    Add-Process -Process target-copy-a -Key 'PRIVATE:/target.sln' -Calls @(@{ start = 0; end = 600 })
+    Add-Process -Process target-copy-b -Key 'PRIVATE:/target.sln' -Calls @(@{ start = 0; end = 600 })
+    Add-Process -Process unrelated-copy-a -Key 'PRIVATE:/unrelated.sln' -Calls @(@{ start = 0; end = 600 })
+    Add-Process -Process unrelated-copy-b -Key 'PRIVATE:/unrelated.sln' -Calls @(@{ start = 0; end = 600 })
+    $script:events = [Collections.Generic.List[object]]@($script:events | Where-Object {
+        -not ($_.row.proc -eq 'transitioning' -and $_.row.ev -eq 'mem' -and $_.second -eq 180)
+    })
+    Add-Event 'transitioning' 180 'load' @{ requested_key = 'PRIVATE:/target.sln'; success = $true; cache_hit = $false; duration_ms = 1 }
+    foreach ($event in $script:events) {
+        if ($event.row.proc -eq 'transitioning' -and $event.row.ev -eq 'mem' -and $event.second -ge 240) {
+            $event.row.workspace_key = 'PRIVATE:/target.sln'
+        }
+    }
+    $report = Invoke-Case 'unknown-transition-key-candidates'
+    Assert-Near (10 / 60) $report.machines[0].observation.usable_hours 'Unknown transition does not darken healthy peers'
+    Assert-Near (1 / 60) $report.machines[0].observation.gap_hours 'Unknown transition retains its process-local recovery gap'
+    Assert-Near (37 / 60) $report.machines[0].duplication.gib_hours 'Both possible transition keys are gated while an unrelated healthy key keeps contributing'
+    Assert-Near (37 / 60) (Get-Timeout $report 15).residual_duplicate_gib_hours 'Residual duplicate gating preserves the independent key'
+    Assert-Near (10 / 60) $report.machines[0].duplication.active_overlap_hours 'Independent healthy overlap remains observable during an ambiguous transition'
+    $originalKey = @($report.machines[0].workspaces | Where-Object { $_.successful_loads -eq 3 })[0]
+    Assert-Near (12 / 60) $originalKey.duplicate_gib_hours 'An unknown copy cannot disappear from the old-key duplicate gate'
 
     "PASS: $script:cases scenarios; $script:assertions assertions."
 }

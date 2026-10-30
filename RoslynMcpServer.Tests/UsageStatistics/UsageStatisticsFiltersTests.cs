@@ -1,5 +1,4 @@
 using System.IO.Pipelines;
-using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -25,7 +24,7 @@ public sealed class UsageStatisticsFiltersTests
         var builder = Host.CreateApplicationBuilder();
         builder.Logging.ClearProviders();
         builder.Services.AddSingleton(usage);
-        builder.Services.AddRoslynMcpServerTools();
+        builder.Services.AddRoslynMcpServerTools(new McpToolProfileOptions { Profile = "full" });
         using var host = builder.Build();
         await usage.StartAsync(CancellationToken.None);
         using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(45));
@@ -65,6 +64,23 @@ public sealed class UsageStatisticsFiltersTests
                 cancellationToken: cancellation.Token);
             Assert.False(failure.IsError ?? false);
             Assert.Contains(failure.Content.OfType<TextContentBlock>(), content => content.Text.StartsWith("Error:"));
+
+            await client.CallToolAsync(
+                "decompile_type",
+                new Dictionary<string, object?>
+                {
+                    ["assemblyName"] = "private-argument-sentinel",
+                    ["fullTypeName"] = "PrivateArgumentSentinel.Type",
+                },
+                cancellationToken: cancellation.Token);
+            await client.CallToolAsync(
+                "decompile_type",
+                new Dictionary<string, object?>
+                {
+                    ["assemblyPath"] = Path.Combine(files.Root, "private-argument-sentinel.dll"),
+                    ["fullTypeName"] = "PrivateArgumentSentinel.Type",
+                },
+                cancellationToken: cancellation.Token);
         }
         finally
         {
@@ -85,23 +101,42 @@ public sealed class UsageStatisticsFiltersTests
             && item.GetProperty("name").GetString() == "usage-integration"));
         Assert.Equal(protocolVersion, clientEvent.GetProperty("protocol").GetString());
         var calls = events.Where(item => item.GetProperty("ev").GetString() == "tool").ToArray();
-        Assert.Equal(2, calls.Length);
+        Assert.Equal(4, calls.Length);
         Assert.True(calls.Single(item => item.GetProperty("name").GetString() == "get_tool_help").GetProperty("success").GetBoolean());
         Assert.False(calls.Single(item => item.GetProperty("name").GetString() == "read_file_range").GetProperty("success").GetBoolean());
-        Assert.All(calls, item => Assert.False(item.GetProperty("requires_workspace").GetBoolean()));
+        Assert.Equal(2, calls.Count(item => item.GetProperty("name").GetString() == "decompile_type"));
+        Assert.All(calls, item =>
+        {
+            Assert.False(item.GetProperty("requires_workspace").GetBoolean());
+            Assert.False(item.GetProperty("lazy_load").GetBoolean());
+        });
+        Assert.All(events.Where(item => item.GetProperty("ev").GetString() == "tool_start"),
+            item => Assert.False(item.GetProperty("requires_workspace").GetBoolean()));
         Assert.DoesNotContain(events, item => item.GetRawText().Contains("private-argument-sentinel"));
+        Assert.DoesNotContain(events, item => item.GetRawText().Contains("PrivateArgumentSentinel"));
         Assert.DoesNotContain(events, item => item.TryGetProperty("arguments", out _));
     }
 
     [Fact]
-    public void Decompiler_requires_workspace_only_without_an_explicit_assembly_path()
+    public void Test_outcomes_distinguish_zero_failure_counters_from_errors()
     {
-        var descriptor = McpToolCatalog.All.Single(tool => tool.Name == "decompile_type");
-        Assert.True(UsageStatisticsFilters.UsesWorkspace(descriptor, new CallToolRequestParams { Name = descriptor.Name }));
-        Assert.False(UsageStatisticsFilters.UsesWorkspace(descriptor, new CallToolRequestParams
+        // Summary samples in theory display names would resemble extra test-run summaries.
+        (string Text, bool Success)[] samples =
+        [
+            ("Passed! - Failed: 0, Passed: 13, Skipped: 0, Total: 13", true),
+            ("## Filtered tests passed\nTotal: **1486** · Passed: **1486** · Failed: **0**", true),
+            ("## dotnet command\n### StdOut\n```text\nPassed! - Failed: 0, Passed: 13\n```", true),
+            ("Total: **2** · Passed: **1** · Failed: **1**", false),
+            ("Failed! - Failed: 10, Passed: 0, Total: 10", false),
+            ("Failed: 01", false),
+            ("Failed: Unable to enumerate tests.", false),
+            ("Failed: 0, Passed: 1\nFailed: 1, Passed: 0", false),
+            ("Error: Failed: 0", false),
+            ("**Status:** partial\nFailed: **0**", false),
+        ];
+        foreach (var sample in samples)
         {
-            Name = descriptor.Name,
-            Arguments = new Dictionary<string, JsonElement> { ["assemblyPath"] = JsonSerializer.SerializeToElement("example.dll") },
-        }));
+            Assert.Equal(sample.Success, UsageStatisticsFilters.IsSuccessfulText(sample.Text));
+        }
     }
 }

@@ -4,6 +4,8 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using RoslynMcpServer.Config;
 using RoslynMcpServer.Diagnostics.UsageStatistics;
+using RoslynMcpServer.Hosting;
+using RoslynMcpServer.Tools;
 using Xunit;
 
 namespace RoslynMcpServer.Tests.UsageStatistics;
@@ -85,8 +87,10 @@ public sealed class UsageWorkspaceInstrumentationTests
             && item.GetProperty("resident_key").ValueKind == JsonValueKind.Null);
     }
 
-    [Fact]
-    public async Task Config_lazy_load_and_plugin_reads_mark_the_call_as_workspace_dependent()
+    [Theory]
+    [InlineData("run_specific_test")]
+    [InlineData("plugin_semantic")]
+    public async Task Config_lazy_load_marks_builtin_or_plugin_calls_but_loaded_reads_keep_the_catalog_bit(string toolName)
     {
         using var files = new UsageTestFiles();
         files.CreateProject();
@@ -99,9 +103,11 @@ public sealed class UsageWorkspaceInstrumentationTests
         await usage.StartAsync(CancellationToken.None);
         try
         {
-            var call = usage.BeginTool("plugin_semantic", requiresWorkspace: false);
-            Assert.NotNull(await manager.GetPublishedSolutionAsync());
-            usage.EndTool(call, success: true);
+            var call = usage.BeginTool(toolName, requiresWorkspace: false);
+            var tools = new TestTools(manager, NullLogger<TestTools>.Instance);
+            var result = await tools.RunSpecificTest(files.ProjectPath, className: "UsageMissingTest", maxOutputChars: -1);
+            Assert.Contains("Error: `maxOutputChars` must be >= 0.", result);
+            usage.EndTool(call, success: false);
             var direct = usage.BeginTool("plugin_direct", requiresWorkspace: false);
             Assert.NotNull(manager.GetCurrentSolution());
             usage.EndTool(direct, success: true);
@@ -117,13 +123,65 @@ public sealed class UsageWorkspaceInstrumentationTests
         Assert.Equal("lazy", load.GetProperty("source").GetString());
         Assert.True(load.GetProperty("success").GetBoolean());
         var tool = Assert.Single(events.Where(item => item.GetProperty("ev").GetString() == "tool"
-            && item.GetProperty("name").GetString() == "plugin_semantic"));
+            && item.GetProperty("name").GetString() == toolName));
         Assert.True(tool.GetProperty("lazy_load").GetBoolean());
         Assert.True(tool.GetProperty("requires_workspace").GetBoolean());
         var directTool = Assert.Single(events.Where(item => item.GetProperty("ev").GetString() == "tool"
             && item.GetProperty("name").GetString() == "plugin_direct"));
-        Assert.True(directTool.GetProperty("requires_workspace").GetBoolean());
+        Assert.False(directTool.GetProperty("requires_workspace").GetBoolean());
         Assert.False(directTool.GetProperty("lazy_load").GetBoolean());
+    }
+
+    [Fact]
+    public async Task Loaded_snapshot_access_and_explicit_load_keep_the_catalog_bit()
+    {
+        using var files = new UsageTestFiles();
+        files.CreateProject();
+        using var usage = new UsageStatisticsService(files.UsageDirectory);
+        var manager = CreateManager(usage);
+        await usage.StartAsync(CancellationToken.None);
+        try
+        {
+            var loadCall = usage.BeginTool("plugin_load", requiresWorkspace: false);
+            await manager.LoadAsync(files.ProjectPath, CancellationToken.None);
+            usage.EndTool(loadCall, success: true);
+            string[] toolNames = ["run_specific_test", "run_dotnet_test", "run_test_by_filter", "decompile_type", "plugin_direct"];
+            foreach (var name in toolNames)
+            {
+                var descriptor = McpToolCatalog.All.FirstOrDefault(tool => tool.Name == name);
+                Assert.False(descriptor?.RequiresWorkspace ?? false);
+                var call = usage.BeginTool(name, descriptor?.RequiresWorkspace ?? false);
+                if (name == "run_specific_test")
+                {
+                    var tools = new TestTools(manager, NullLogger<TestTools>.Instance);
+                    var result = await tools.RunSpecificTest(files.ProjectPath, className: "UsageMissingTest", maxOutputChars: -1);
+                    Assert.Contains("Error: `maxOutputChars` must be >= 0.", result);
+                }
+
+                await manager.EnsureWorkspaceFromConfigAsync();
+                Assert.NotNull(await manager.GetPublishedSolutionAfterDiskSyncAsync());
+                Assert.NotNull(await manager.GetSanitizedPublishedSolutionAsync());
+                Assert.NotNull(manager.GetSanitizedPublishedSolution());
+                Assert.NotNull(manager.GetCurrentSolution());
+                usage.EndTool(call, success: name != "run_specific_test");
+            }
+        }
+        finally
+        {
+            await manager.ClearWorkspaceAsync();
+            await usage.StopAsync(CancellationToken.None);
+        }
+
+        var events = files.ReadEvents();
+        var load = Assert.Single(events, item => item.GetProperty("ev").GetString() == "load");
+        Assert.Equal("explicit", load.GetProperty("source").GetString());
+        var calls = events.Where(item => item.GetProperty("ev").GetString() == "tool").ToArray();
+        Assert.Equal(6, calls.Length);
+        Assert.All(calls, item =>
+        {
+            Assert.False(item.GetProperty("requires_workspace").GetBoolean());
+            Assert.False(item.GetProperty("lazy_load").GetBoolean());
+        });
     }
 
     private static SolutionManager CreateManager(UsageStatisticsService usage, RoslynMcpFileSettings? settings = null) =>

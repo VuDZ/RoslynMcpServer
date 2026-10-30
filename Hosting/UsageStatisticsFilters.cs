@@ -46,7 +46,8 @@ internal static class UsageStatisticsFilters
             var usage = (context.Services ?? context.Server.Services)?.GetService<UsageStatisticsService>();
             var name = context.Params?.Name ?? "unknown";
             var descriptor = McpToolCatalog.All.FirstOrDefault(tool => tool.Name == name);
-            var call = usage?.BeginTool(name, UsesWorkspace(descriptor, context.Params));
+            // See docs/usage-statistics/README.md: snapshot access does not widen the catalog classification.
+            var call = usage?.BeginTool(name, descriptor?.RequiresWorkspace ?? false);
             var success = false;
             try
             {
@@ -59,20 +60,6 @@ internal static class UsageStatisticsFilters
                 usage?.EndTool(call, success && !cancellationToken.IsCancellationRequested);
             }
         });
-    }
-
-    internal static bool UsesWorkspace(McpToolDescriptor? descriptor, CallToolRequestParams? parameters)
-    {
-        if (descriptor?.Group != McpToolGroups.Decompile)
-        {
-            return descriptor?.RequiresWorkspace ?? false;
-        }
-
-        var hasExplicitAssemblyPath = parameters?.Arguments is { } arguments
-            && arguments.TryGetValue("assemblyPath", out var path)
-            && path.ValueKind == JsonValueKind.String
-            && !string.IsNullOrWhiteSpace(path.GetString());
-        return !hasExplicitAssemblyPath;
     }
 
     internal static bool IsSuccessfulText(string? text)
