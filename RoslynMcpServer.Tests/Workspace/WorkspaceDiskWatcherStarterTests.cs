@@ -1,4 +1,6 @@
 using System.Collections.Concurrent;
+using System.Diagnostics;
+using System.Runtime.Versioning;
 using Xunit;
 
 namespace RoslynMcpServer.Tests.Workspace;
@@ -51,6 +53,62 @@ public sealed class WorkspaceDiskWatcherStarterTests
         finally
         {
             DisposeWatchers(started.Watchers);
+            TryDelete(root);
+        }
+    }
+
+    [Theory]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    [InlineData(false, true)]
+    [Trait("Category", TestCategories.RequiresWindows)]
+    [SupportedOSPlatform("windows")]
+    public async Task Descriptor_across_a_junction_keeps_its_watcher_and_delivers_changes(bool recursive, bool nested)
+    {
+        var root = Path.GetFullPath(Path.Combine(Path.GetTempPath(), "RoslynMcpWatcherJunction-" + Guid.NewGuid().ToString("N")));
+        var projectDir = Path.Combine(root, "project");
+        var external = Path.Combine(root, "external");
+        var junction = Path.Combine(projectDir, "linked");
+        var childPath = nested ? Path.Combine("src", "child") : string.Empty;
+        var targetDirectory = Path.Combine(external, childPath);
+        var watchedDirectory = Path.Combine(junction, childPath);
+        Directory.CreateDirectory(projectDir);
+        Directory.CreateDirectory(targetDirectory);
+        WorkspaceDiskWatcherStartResult? started = null;
+        try
+        {
+            await CreateJunctionAsync(junction, external);
+            var session = new WorkspaceInputSession(Array.Empty<string>());
+            var seen = new ConcurrentBag<string>();
+            started = WorkspaceDiskWatcherStarter.Start(
+                new[]
+                {
+                    new InputWatcherDescriptor(projectDir, IncludeSubdirectories: true, Array.Empty<string>(), new[] { InputRole.UserInput }, "parent"),
+                    new InputWatcherDescriptor(watchedDirectory, recursive, Array.Empty<string>(), new[] { InputRole.UserInput }, "junction"),
+                },
+                session,
+                onChanged: args => seen.Add(args.FullPath),
+                onRenamed: _ => { },
+                onError: _ => { },
+                log: (_, _, _) => { });
+
+            Assert.Equal(2, started.Watchers.Count);
+            Assert.Contains(started.Subscriptions, subscription =>
+                Same(subscription.Directory, watchedDirectory) && subscription.IncludeSubdirectories == recursive);
+            Assert.Empty(started.Failures);
+
+            await File.WriteAllTextAsync(Path.Combine(targetDirectory, "Changed.cs"), "class Changed {}");
+            var expectedPath = Path.Combine(watchedDirectory, "Changed.cs");
+            Assert.True(await WaitUntil(() => Contains(seen, expectedPath)), "The watcher across the junction did not deliver the file change.");
+        }
+        finally
+        {
+            DisposeWatchers(started?.Watchers ?? Array.Empty<FileSystemWatcher>());
+            if (Directory.Exists(junction))
+            {
+                Directory.Delete(junction);
+            }
+
             TryDelete(root);
         }
     }
@@ -209,6 +267,28 @@ public sealed class WorkspaceDiskWatcherStarterTests
             DisposeWatchers(started.Watchers);
             TryDelete(root);
         }
+    }
+
+    private static async Task CreateJunctionAsync(string path, string target)
+    {
+        var start = new ProcessStartInfo("cmd.exe")
+        {
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+        };
+        foreach (var argument in new[] { "/d", "/c", "mklink", "/J", path, target })
+        {
+            start.ArgumentList.Add(argument);
+        }
+
+        using var process = Process.Start(start)!;
+        var stdout = process.StandardOutput.ReadToEndAsync();
+        var stderr = process.StandardError.ReadToEndAsync();
+        await process.WaitForExitAsync();
+        Assert.True(process.ExitCode == 0, await stdout + await stderr);
+        Assert.True((File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0, "The fixture must create a real directory junction.");
     }
 
     private static bool Contains(ConcurrentBag<string> seen, string path)

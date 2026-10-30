@@ -1,6 +1,6 @@
 # Disk watcher и лимит inotify на Linux
 
-Создано: **2026-10-30**. Статус: **решения O-01…O-05 приняты владельцем 2026-10-30; реализованы в 1.5.23 и проверены на Linux 2026-10-30, включая main через MCP в Claude Code с загруженным решением — [реализация](#реализация-1523); Windows-прогон впереди**.
+Создано: **2026-10-30**. Статус: **решения O-01…O-05 приняты владельцем 2026-10-30; реализованы в 1.5.23 и проверены на Linux 2026-10-30, включая main через MCP в Claude Code с загруженным решением — [реализация](#реализация-1523); F-WIN-001 исправлен в 1.5.24 и проверен на Windows — [регрессия и validation](windows-review.md#исправление-1524); Linux-проверки выше относятся к 1.5.23**.
 Источник: [Claude Code smoke статистики использования, D-03](../usage-statistics/claude-code-smoke.md#d-03-загруженное-решение-занимает-почти-весь-лимит-inotify).
 
 ## Проблема
@@ -104,7 +104,7 @@ pack, SDK). `RoslynMcpServer.csproj` лежит в корне репозитор
 ## Реализация 1.5.23
 
 Дата: **2026-10-30**. Статус: **O-01…O-05 реализованы и проверены на Linux, включая подключённый
-Claude Code; Windows-прогон впереди**.
+Claude Code; F-WIN-001 исправлен в 1.5.24 и проверен на Windows — [регрессия и validation](windows-review.md#исправление-1524); Linux-проверки выше относятся к 1.5.23**.
 
 - [ImmutableInputRoots](../../Services/Workspace/ImmutableInputRoots.cs) читает
   `packageFolders` из `obj/project.assets.json` проектов потоковым разбором и строит
@@ -160,4 +160,16 @@ Validation на Linux (SDK 10.0.113, Release):
 86 падений из-за исчерпания inotify. Событие `load` в статистике: `harness=claude`,
 `watchers=5`, `watcher_failures=0`.
 
-Впереди: Windows main и lifecycle.
+Windows main **1506/1506**, lifecycle **13/13**, анализатор **50/167**, published stdio **823 checks PASS**.
+[Windows review 1.5.23](windows-review.md) воспроизвёл **F-WIN-001** — потерю событий
+вложенного junction-проекта. Finding исправлен в 1.5.24, см. следующий раздел.
+[Машиночитаемая validation](windows-validation.json).
+
+## Исправление F-WIN-001 — 1.5.24
+
+2026-10-30: **fixed**, проверено на Windows. Покрытие подписки не предполагается через
+промежуточный reparse point или при ошибке чтения метаданных. Настоящая junction-регрессия
+в трёх вариантах воспроизвела дефект до исправления и прошла после него.
+Release build, main **1509/1509** (с SourceStructure) и opt-in lifecycle **13/13** — PASS.
+[Полный scope, red/green и ограничения](windows-review.md#исправление-1524),
+[машиночитаемая validation](windows-validation.json). Linux 1.5.24 в этом прогоне не проверялся.

@@ -71,7 +71,40 @@ internal static class WorkspaceDiskWatcherStarter
     }
 
     private static bool IsCovered(string directory, IReadOnlyList<string> startedRecursive) =>
-        startedRecursive.Any(root => WorkspaceDiskPathFilter.IsPathUnderDirectory(directory, root, InputPathCanon.Comparison));
+        startedRecursive.Any(root => IsCoveredBy(directory, root));
+
+    private static bool IsCoveredBy(string directory, string root)
+    {
+        if (!WorkspaceDiskPathFilter.IsPathUnderDirectory(directory, root, InputPathCanon.Comparison))
+        {
+            return false;
+        }
+
+        // Recursive watchers do not traverse junctions or symlinks: lexical containment loses events.
+        // See docs/disk-watcher-inotify/windows-review.md (F-WIN-001).
+        try
+        {
+            var ancestor = Path.TrimEndingDirectorySeparator(Path.GetFullPath(root));
+            for (DirectoryInfo? current = new(directory); current is not null; current = current.Parent)
+            {
+                if (InputPathCanon.Comparer.Equals(Path.TrimEndingDirectorySeparator(current.FullName), ancestor))
+                {
+                    return true;
+                }
+
+                if ((current.Attributes & FileAttributes.ReparsePoint) != 0)
+                {
+                    return false;
+                }
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return false;
+        }
+
+        return false;
+    }
 
     private static FileSystemWatcher? TryStart(
         InputWatcherDescriptor descriptor,

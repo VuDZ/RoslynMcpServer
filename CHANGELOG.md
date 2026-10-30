@@ -2,6 +2,10 @@
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.5.24
+
+- A nested project or external input reached through a directory junction or symbolic link keeps its own disk watcher. Recursive watcher deduplication now checks every intervening directory and keeps the subscription if filesystem metadata cannot establish coverage.
+
 ### v1.5.23
 
 - A loaded solution no longer starts a disk watcher for every NuGet package and SDK directory it references. Package folders listed by `project.assets.json` and the `sdk`, `packs` and `shared` directories of the dotnet root behind the registered MSBuild are treated as immutable; a change inside an existing package version is picked up after `reset_workspace`. Other external inputs are still watched.

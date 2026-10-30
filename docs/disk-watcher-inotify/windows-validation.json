@@ -1,0 +1,168 @@
+{
+  "date": "2026-10-30",
+  "timezone": "Europe/Moscow",
+  "version": "1.5.23",
+  "commit": "056d46a2e529924543b30a5786bfb657aa86b1e4",
+  "status": "F-WIN-001 fixed in 1.5.24; original 1.5.23 review and measurements retained",
+  "os": "windows",
+  "sdk": "10.0.402",
+  "powershell": "7.6.5",
+  "review": {
+    "findings": [
+      {
+        "id": "F-WIN-001",
+        "priority": "P2",
+        "title": "Recursive ancestor does not cover a project through a junction",
+        "file": "Services/Workspace/WorkspaceDiskWatcherStarter.cs",
+        "line": 73,
+        "control_parent_events": 0,
+        "control_child_events": 1,
+        "actual_starter": {
+          "descriptors": 2,
+          "started": 1,
+          "failures": 0,
+          "callbacks_for_linked_project": 0,
+          "errors": 0,
+          "observation_seconds": 8
+        },
+        "status": "fixed in 1.5.24"
+      }
+    ]
+  },
+  "validation": {
+    "release_solution_build": "PASS",
+    "main_initial": {
+      "total": 1506,
+      "passed": 1505,
+      "failed": 1,
+      "failure": "UsageWorkspaceInstrumentationTests.Loaded_snapshot_access_and_explicit_load_keep_the_catalog_bit",
+      "cause": "Not established"
+    },
+    "failed_class_recheck": {
+      "total": 5,
+      "passed": 5,
+      "failed": 0
+    },
+    "main_final": {
+      "filter": "Category!=AnalyzerLifecycle&Category!=RequiresPinnedSdk",
+      "total": 1506,
+      "passed": 1506,
+      "failed": 0,
+      "skipped": 0,
+      "includes_all_source_structure": true
+    },
+    "lifecycle": {
+      "total": 13,
+      "passed": 13,
+      "failed": 0,
+      "skipped": 0,
+      "opt_in": "ROSLYN_MCP_ANALYZER_LIFECYCLE=1"
+    },
+    "powershell_analyzer": {
+      "scenarios": 50,
+      "assertions": 167,
+      "result": "PASS"
+    },
+    "self_contained_win_x64_publish": {
+      "result": "PASS",
+      "file_version": "1.5.23.0"
+    },
+    "published_stdio_probe": {
+      "result": "PASS",
+      "checks": 823,
+      "records": 41,
+      "processes": 2,
+      "loads": 5,
+      "completed_calls": 11,
+      "analyzer_checked": true
+    }
+  },
+  "evidence": {
+    "root": "artifacts/watcher-review-1.5.23/",
+    "publish": "artifacts/usage-dogfood/server-1.5.23-20261030-windows-review/",
+    "protocol_probe": "artifacts/usage-integration/7dfcf09dd0fe4612ae77e4e6fbcd9de4/"
+  },
+  "limits": [
+    "F-WIN-001 fixed in 1.5.24; original failing 1.5.23 witness preserved above",
+    "Connected Codex MCP remains 1.5.21.0",
+    "Linux symlink variant and macOS not checked here",
+    "Initial main failure retained; cause not established",
+    "Remaining harness checks and long-term collection are not accepted by this review"
+  ],
+  "fix_validation": {
+    "date": "2026-10-30",
+    "version": "1.5.24",
+    "scope": "Preserve watchers across intermediate directory reparse points; retain subscriptions if coverage metadata cannot be read",
+    "junction_regression": {
+      "category": "RequiresWindows",
+      "fixture": "Real NTFS junction created with mklink /J",
+      "variants": [
+        "recursive at junction",
+        "recursive below junction",
+        "point below junction"
+      ],
+      "red": {
+        "total": 3,
+        "passed": 0,
+        "failed": 3
+      },
+      "green": {
+        "total": 3,
+        "passed": 3,
+        "failed": 0
+      }
+    },
+    "release_solution_build": "PASS; existing warnings only",
+    "watcher_class": {
+      "total": 8,
+      "passed": 8,
+      "failed": 0
+    },
+    "watcher_and_inventory": {
+      "total": 10,
+      "passed": 10,
+      "failed": 0
+    },
+    "main_initial": {
+      "total": 1509,
+      "passed": 1508,
+      "failed": 1,
+      "cause": "New RequiresWindows method absent from exact WindowsOnlyTestInventoryTests list; inventory updated with reason"
+    },
+    "main_final": {
+      "filter": "Category!=AnalyzerLifecycle&Category!=RequiresPinnedSdk",
+      "total": 1509,
+      "passed": 1509,
+      "failed": 0,
+      "skipped": 0,
+      "includes_all_source_structure": true
+    },
+    "lifecycle": {
+      "total": 13,
+      "passed": 13,
+      "failed": 0,
+      "skipped": 0,
+      "opt_in": "ROSLYN_MCP_ANALYZER_LIFECYCLE=1"
+    },
+    "evidence": "artifacts/junction-fix-1.5.24/",
+    "limits": [
+      "Linux 1.5.24, Linux symlink variant and macOS not checked here",
+      "Connected Codex MCP remains unchanged; overall usage-statistics acceptance not claimed"
+    ],
+    "self_contained_win_x64_publish": {
+      "result": "PASS",
+      "file_version": "1.5.24.0",
+      "path": "artifacts/usage-dogfood/server-1.5.24-20261030-junction-fix/"
+    },
+    "published_stdio_probe": {
+      "result": "PASS",
+      "checks": 822,
+      "records": 41,
+      "processes": 2,
+      "loads": 5,
+      "completed_calls": 11,
+      "analyzer_checked": true,
+      "evidence": "artifacts/usage-integration/cc79370745ff44e8aa1cc04fa0c1f181/"
+    }
+  }
+}
