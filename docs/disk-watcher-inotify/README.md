@@ -1,6 +1,6 @@
 # Disk watcher и лимит inotify на Linux
 
-Создано: **2026-10-30**. Статус: **решения O-01…O-05 приняты владельцем 2026-10-30; реализованы в 1.5.23 и автоматизированно проверены на Linux 2026-10-30 — [реализация](#реализация-1523); проверка в подключённом harness и Windows впереди**.
+Создано: **2026-10-30**. Статус: **решения O-01…O-05 приняты владельцем 2026-10-30; реализованы в 1.5.23 и проверены на Linux 2026-10-30, включая main через MCP в Claude Code с загруженным решением — [реализация](#реализация-1523); Windows-прогон впереди**.
 Источник: [Claude Code smoke статистики использования, D-03](../usage-statistics/claude-code-smoke.md#d-03-загруженное-решение-занимает-почти-весь-лимит-inotify).
 
 ## Проблема
@@ -103,8 +103,8 @@ pack, SDK). `RoslynMcpServer.csproj` лежит в корне репозитор
 
 ## Реализация 1.5.23
 
-Дата: **2026-10-30**. Статус: **O-01…O-05 реализованы и автоматизированно проверены на
-Linux; проверка через MCP в подключённом harness и Windows-прогон впереди**.
+Дата: **2026-10-30**. Статус: **O-01…O-05 реализованы и проверены на Linux, включая подключённый
+Claude Code; Windows-прогон впереди**.
 
 - [ImmutableInputRoots](../../Services/Workspace/ImmutableInputRoots.cs) читает
   `packageFolders` из `obj/project.assets.json` проектов потоковым разбором и строит
@@ -152,5 +152,12 @@ Validation на Linux (SDK 10.0.113, Release):
 Локальные evidence: `~/tmp/watchers-1523-final-170134/` (logs и TRX),
 `~/tmp/watcher-probe-ze8ii3xq/` (логи и usage двух копий).
 
-Впереди: подключить 1.5.23 к harness и повторить main через MCP с загруженным решением;
-Windows main и lifecycle.
+Через MCP в Claude Code 2.1.314 (сессия перезапущена, launcher владельца, 1.5.23.0):
+после `load_workspace` Release `get_mcp_server_info` показал `Disk watchers: 5 (1 recursive)`;
+у процесса MCP 6 экземпляров inotify, у всех процессов пользователя — 8 из 128. Main
+`Category!=AnalyzerLifecycle&Category!=RequiresWindows&Category!=RequiresPinnedSdk` через
+`run_test_by_filter` при загруженном решении — **1502/1502 PASS**; в 1.5.21 тот же прогон дал
+86 падений из-за исчерпания inotify. Событие `load` в статистике: `harness=claude`,
+`watchers=5`, `watcher_failures=0`.
+
+Впереди: Windows main и lifecycle.
