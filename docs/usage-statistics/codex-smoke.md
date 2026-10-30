@@ -75,9 +75,9 @@ filter. Добавлен один regression test с **10 входами**: ус
 
 ## Evidence
 
-- [Итоговый Markdown](../../artifacts/usage-dogfood/codex-parallel-20261030-6f06aee0ae/report.md)
-  и [JSON](../../artifacts/usage-dogfood/codex-parallel-20261030-6f06aee0ae/report.json).
-- [Сводка событий и concurrency](../../artifacts/usage-dogfood/codex-parallel-20261030-6f06aee0ae/session-summary.json).
+- Итоговые Markdown и JSON: `artifacts/usage-dogfood/codex-parallel-20261030-6f06aee0ae/report.md`
+  и `report.json` в том же каталоге.
+- Сводка событий и concurrency: `artifacts/usage-dogfood/codex-parallel-20261030-6f06aee0ae/session-summary.json`.
 - Результаты MCP: `artifacts/usage-dogfood/actual-codex-validation/`;
   lifecycle TRX: `artifacts/usage-dogfood/validation-1.5.21/lifecycle/codex-parallel-lifecycle.trx`.
 - Исходный прогон с дефектом: `artifacts/usage-dogfood/codex-session-20261030-f714c6084e/`.
@@ -86,4 +86,5 @@ filter. Добавлен один regression test с **10 входами**: ус
 
 Локальные evidence находятся в ignored artifacts; сырой JSONL не коммитится.
 Повторные C# build/main и lifecycle выполнены на Windows. Linux 1.5.21, Linux PowerShell,
-macOS и Claude Code/Cursor/dsh/OpenCode не проверялись этим прогоном.
+macOS и Claude Code/Cursor/dsh/OpenCode не проверялись этим прогоном. Linux 1.5.21, Linux
+PowerShell и Claude Code позже проверены отдельно — [Claude Code smoke](claude-code-smoke.md).

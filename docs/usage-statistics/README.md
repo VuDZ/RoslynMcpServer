@@ -1,7 +1,7 @@
 # Статистика использования MCP
 
 Создано: **2026-10-29**. Статус: **спецификация согласована владельцем 2026-10-29 после ревью Codex и Grok
-([ответ](review-response.md)); O-03 закрыт решением владельца 2026-10-30 — выбор стратегии по результатам сбора; реализована версия 1.5.21; F-001 и F-002 исправлены и автоматизированно проверены 2026-10-30, F-003 закрыт уточнением измерений и модели M2 — [implementation-review](implementation-review/result.md#уточнение-f-003); Codex на Windows проверен контролируемым прогоном — [smoke и статистика](codex-smoke.md); остальные harness и длительный сбор впереди — [отчёт](implementation.md)**.
+([ответ](review-response.md)); O-03 закрыт решением владельца 2026-10-30 — выбор стратегии по результатам сбора; реализована версия 1.5.21; F-001 и F-002 исправлены и автоматизированно проверены 2026-10-30, F-003 закрыт уточнением измерений и модели M2 — [implementation-review](implementation-review/result.md#уточнение-f-003); Codex на Windows проверен контролируемым прогоном — [smoke и статистика](codex-smoke.md); Claude Code на Linux проверен 2026-10-30 — [smoke](claude-code-smoke.md), до сбора нужно исправить D-01 (ложный `cli`) и D-02 (тест пишет в каталог пользователя); Cursor, dsh, OpenCode и длительный сбор впереди — [отчёт](implementation.md)**.
 
 Тема собирает данные о реальном использовании сервера, чтобы выбрать, как бороться
 с дублированием памяти между копиями MCP: общий workspace host, шаренный MCP (роли),
@@ -59,9 +59,11 @@
 
 ## Что уже есть в логах
 
-- Текстовый лог Serilog: `<каталог exe>/logs/mcp-YYYYMMDD.log`, один файл на день для
-  всех процессов из этого каталога (`shared: true`), хранится 14 файлов
-  ([Program.cs](../../Program.cs#L40)).
+- Текстовый лог Serilog: `<каталог логов>/mcp-YYYYMMDD.log`, один файл на день для
+  всех процессов с этим каталогом (`shared: true`), хранится 14 файлов
+  ([Program.cs](../../Program.cs#L43)). До 1.5.19 каталог логов — `<каталог exe>/logs`,
+  с 1.5.19 — `logs/` [каталога пользователя](../user-data-directory/README.md) или
+  `ROSLYN_MCP_LOG_DIR`.
 - Тег процесса `[harness-xxxx]`: имя harness по непосредственному родителю и случайный
   суффикс ([HarnessSessionId](../../Diagnostics/HarnessSessionId.cs),
   [HarnessNameResolver](../../Diagnostics/HarnessNameResolver.cs)). Распознаются cursor,
@@ -72,13 +74,13 @@
 - Итог каждого инструмента: краткая сводка, длина ответа, выделенные строки ответа
   ([ToolTelemetry](../../Diagnostics/ToolTelemetry.cs)).
 - Working set при `workspace_load` и `workspace_load_cached`
-  ([SolutionManager](../../Services/Workspace/SolutionManager.cs#L3126)), события
+  ([SolutionManager](../../Services/Workspace/SolutionManager.cs#L2336)), события
   `workspace_search_prewarm` и `workspace_load_designtime`.
 
 Чего нет: выхода процесса, начала вызова, длительности загрузки как отдельного события,
 ключа workspace в каждом вызове, периодических снимков памяти, памяти BuildHost.
-Лог лежит в каталоге exe: на Windows при in-place publish это каталог publish, на Linux
-launcher держит общий каталог логов. Текст лога содержит параметры и фрагменты
+До 1.5.19 лог лежал в каталоге exe: на Windows при in-place publish это каталог publish,
+на Linux launcher держит общий каталог логов. Текст лога содержит параметры и фрагменты
 ответов — пути, код, имена проектов, — поэтому с чужих проектов его собирать нельзя.
 
 ## Поток статистики
@@ -332,7 +334,7 @@ M5 — эвристика. На Windows root- и subagent-MCP Codex — дети
 
 1. Ревью этой спецификации владельцем — выполнено 2026-10-29. O-03 закрыт 2026-10-30:
    численные пороги заранее не задаются, стратегия выбирается по результатам сбора.
-2. Код логирования реализован и автоматизированно проверен 2026-10-30 ([отчёт](implementation.md)). F-001 и F-002 исправлены в версии 1.5.20 ([проверки](implementation-review/result.md#исправления-1520)); F-003 закрыт [уточнением M2](implementation-review/result.md#уточнение-f-003). Codex/Windows проверен в версии 1.5.21 ([smoke и статистика](codex-smoke.md)); проверки остальных harness до длительного сбора ещё предстоят. Scope: после или вместе с [каталогом пользователя](../user-data-directory/README.md): схема, запись, fail-open, тесты; раздел в `PRIVACY.md` и README;
+2. Код логирования реализован и автоматизированно проверен 2026-10-30 ([отчёт](implementation.md)). F-001 и F-002 исправлены в версии 1.5.20 ([проверки](implementation-review/result.md#исправления-1520)); F-003 закрыт [уточнением M2](implementation-review/result.md#уточнение-f-003). Codex/Windows проверен в версии 1.5.21 ([smoke и статистика](codex-smoke.md)). Claude Code/Linux проверен в 1.5.21 2026-10-30 ([smoke](claude-code-smoke.md)): сабагенты переиспользуют MCP родителя; до сбора исправить D-01 и D-02, D-03 вынесен в [disk-watcher-inotify](../disk-watcher-inotify/README.md). Проверки Cursor, dsh и OpenCode до длительного сбора ещё предстоят. Scope: после или вместе с [каталогом пользователя](../user-data-directory/README.md): схема, запись, fail-open, тесты; раздел в `PRIVACY.md` и README;
    версия и publish. Проверка по harness.
 3. Скрипт подсчёта реализован; 49 синтетических сценариев / 161 проверка пройдены 2026-10-30 ([исправления и проверки](implementation-review/result.md#исправления-1520)).
 4. Сбор от двух недель до месяца на машинах владельца (Linux и Windows), при согласии — у коллег.

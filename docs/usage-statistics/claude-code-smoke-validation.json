@@ -1,0 +1,61 @@
+{
+  "date": "2026-10-30",
+  "timezone": "UTC",
+  "version": "1.5.21",
+  "harness": "claude-code",
+  "harness_version": "2.1.314",
+  "recorded_harness": "cli",
+  "os": "linux",
+  "sdk": {
+    "cli_runs": "10.0.113",
+    "mcp_runs": "10.0.301"
+  },
+  "scope": "Parent and two subagents of one Claude Code session; test-host and health-check processes excluded",
+  "process_count": 1,
+  "subagents": 2,
+  "subagent_mcp_processes": 0,
+  "records": 45,
+  "event_counts": {
+    "start": 1,
+    "client": 1,
+    "mem": 13,
+    "tool_start": 14,
+    "tool": 14,
+    "load": 1,
+    "reset": 1
+  },
+  "sequence_gaps": 0,
+  "completed_calls": 14,
+  "unsuccessful_calls": 1,
+  "unsuccessful_call_reason": "main suite with 86 inotify failures",
+  "unfinished_calls": 0,
+  "fresh_loads": 1,
+  "cache_hits": 0,
+  "fresh_load_seconds": 5.3223446,
+  "reset_seconds_since_load": 415.2575623,
+  "peak_overlapping_calls_in_process": 3,
+  "overlapping_call_seconds_in_process": 43.1,
+  "peak_process_private_gib": 0.3435516357421875,
+  "peak_working_set_gib": 0.49736785888671875,
+  "peak_buildhost_count": 0,
+  "complete_memory_samples": 13,
+  "validation": {
+    "release_build_cli": "PASS",
+    "main_cli": { "filter": "Category!=AnalyzerLifecycle&Category!=RequiresWindows&Category!=RequiresPinnedSdk", "total": 1483, "passed": 1483, "failed": 0, "skipped": 0 },
+    "test_mcp_usage_pwsh": { "pwsh": "7.6.8", "scenarios": 49, "assertions": 161, "result": "PASS" },
+    "release_build_mcp": "PASS",
+    "main_mcp_workspace_loaded": { "total": 1483, "passed": 1397, "failed": 86, "cause": "inotify max_user_instances 128 exhausted; MCP held 110" },
+    "main_mcp_after_reset": { "total": 1483, "passed": 1483, "failed": 0 },
+    "subagent_tests": [
+      { "class": "UsageWorkspaceInstrumentationTests", "passed": 5, "failed": 0 },
+      { "class": "UsageJsonlWriterTests", "passed": 3, "failed": 0 },
+      { "class": "UsageMemorySamplerTests", "passed": 2, "failed": 0 }
+    ],
+    "measure_mcp_usage": { "result": "PASS", "raw_paths_in_export": 0 }
+  },
+  "defects": [
+    { "id": "D-01", "title": "Native Claude Code is recorded as cli", "blocks_collection": true },
+    { "id": "D-02", "title": "PluginStartupTests writes to the real user directory", "blocks_collection": true },
+    { "id": "D-03", "title": "Loaded workspace uses 109 inotify watchers of 128", "blocks_collection": false, "task": "docs/disk-watcher-inotify/README.md" }
+  ]
+}
