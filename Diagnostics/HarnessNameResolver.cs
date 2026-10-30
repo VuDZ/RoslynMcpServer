@@ -23,7 +23,7 @@ internal static class HarnessNameResolver
             return Cursor;
         }
 
-        if (IsNamedExecutable(stem, Claude))
+        if (IsNamedExecutable(stem, Claude) || IsNativeClaudeImage(parentImagePath))
         {
             return Claude;
         }
@@ -123,6 +123,20 @@ internal static class HarnessNameResolver
         // Same normalization as the command line: the mapping stays a pure string function on every OS,
         // so Windows parent paths are classified (and tested) the same way on Linux.
         return Path.GetFileNameWithoutExtension(imagePath.Trim().Replace('\\', '/'));
+    }
+
+    private static bool IsNativeClaudeImage(string? imagePath)
+    {
+        var normalized = imagePath?.Trim().Replace('\\', '/');
+        if (normalized is null)
+        {
+            return false;
+        }
+
+        // Native Claude resolves to claude/versions/<version>, whose file name has no harness name.
+        var fileName = Path.GetFileName(normalized);
+        return Version.TryParse(fileName, out _)
+            && normalized.EndsWith("/claude/versions/" + fileName, StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool IsNodeStem(string stem) =>

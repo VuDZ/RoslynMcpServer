@@ -57,5 +57,13 @@
     { "id": "D-01", "title": "Native Claude Code is recorded as cli", "blocks_collection": true },
     { "id": "D-02", "title": "PluginStartupTests writes to the real user directory", "blocks_collection": true },
     { "id": "D-03", "title": "Loaded workspace uses 109 inotify watchers of 128", "blocks_collection": false, "task": "docs/disk-watcher-inotify/README.md" }
-  ]
+  ],
+  "followup": {
+    "version": "1.5.22",
+    "validation": "followup-validation.json",
+    "D-01": "Fixed in resolver; native Linux Claude Code recheck pending",
+    "D-02": "Child HOME isolated; stdio regression checks log and usage directories",
+    "D-03": "Separate task; unchanged by this fix",
+    "historical_evidence": "The 1.5.21 measurements and recorded_harness above remain unchanged"
+  }
 }

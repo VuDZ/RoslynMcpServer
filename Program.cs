@@ -1,4 +1,4 @@
-﻿using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Formatting;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Extensions.DependencyInjection;
@@ -132,7 +132,15 @@ using (host)
     catch
     {
         usageStatistics.SetExitReason("exception");
-        await host.StopAsync();
+        try
+        {
+            await host.StopAsync();
+        }
+        catch
+        {
+            // Shutdown can fail too; preserve the original host failure.
+        }
+
         throw;
     }
 }

@@ -1,3 +1,5 @@
+using System.Text.RegularExpressions;
+
 namespace RoslynMcpServer.Diagnostics;
 
 /// <summary>Parses MCP tool text responses into compact log lines (file sink).</summary>
@@ -49,10 +51,7 @@ public static class ToolLogAnalyzer
 
         // Successful VSTest summaries contain Failed: 0, including Markdown counters.
         if (text.StartsWith("Error", StringComparison.OrdinalIgnoreCase)
-            || System.Text.RegularExpressions.Regex.IsMatch(
-                text,
-                @"Failed:(?!\s*(?:\*\*)?0(?:\*\*)?(?=\s|,|·|$))",
-                System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant))
+            || _failureMarkerRegex.IsMatch(text))
         {
             return "status=error";
         }
@@ -181,4 +180,8 @@ public static class ToolLogAnalyzer
 
         return lines;
     }
+
+    private static readonly Regex _failureMarkerRegex = new(
+        @"Failed:(?!\s*(?:\*\*)?0(?:\*\*)?(?=\s|,|·|$))",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 }

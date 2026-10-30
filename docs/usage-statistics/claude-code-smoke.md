@@ -1,8 +1,10 @@
 # Claude Code smoke и статистика на Linux
 
 Дата: **2026-10-30**. Ветка: `usage-statistics`. Версия: **1.5.21**.
-Статус: **сбор и протокол работают на Linux с Claude Code; D-01 и D-02 нужно
-закрыть до длительного сбора, D-03 записан отдельной задачей**. Проверки Cursor и dsh
+Статус: **сбор и протокол работают на Linux с Claude Code; D-01/D-02 и мелкие
+замечания исправлены в 1.5.22 и проверены автоматизированно, повторный native Linux
+smoke ещё нужен; D-03 записан отдельной задачей**.
+[Исправления и validation 1.5.22](implementation.md#исправления-ревью-1522). Проверки Cursor и dsh
 и проверка OpenCode владельцем этим прогоном не закрываются.
 [Машиночитаемое подтверждение](claude-code-smoke-validation.json).
 
@@ -79,6 +81,10 @@ heartbeat-разрывов и неполных переходов нет; мед
 
 ### D-01. Native Claude Code распознаётся как `cli`
 
+Исправлено в коде 1.5.22: resolver учитывает путь `claude/versions/<версия>`.
+Ниже — исходное наблюдение 1.5.21; повторная проверка на настоящем native Linux Claude
+Code после обновления ещё нужна.
+
 Native-установка Claude Code на Linux — бинарник
 `~/.local/share/claude/versions/2.1.314`. [HarnessNameResolver](../../Diagnostics/HarnessNameResolver.cs)
 у не-node родителя смотрит только на имя образа (`2.1.314`) и возвращает `cli`.
@@ -88,6 +94,10 @@ Native-установка Claude Code на Linux — бинарник
 health-check `claude mcp get`. Windows и macOS native-установки этим прогоном не проверялись.
 
 ### D-02. Тест пишет в настоящий каталог пользователя
+
+Исправлено в 1.5.22: дочерний процесс получает временный `ROSLYN_MCP_HOME`;
+stdio-тест проверяет каталоги логов/usage и наличие текстового лога в нём.
+Ниже — исходное наблюдение 1.5.21; остальные запуски настоящего entrypoint также проверены.
 
 `PluginStartupTests` запускает настоящий сервер и убирает из окружения все
 `ROSLYN_MCP_*` ([PluginStartupTests.cs](../../RoslynMcpServer.Tests/Plugins/PluginStartupTests.cs#L691)),
@@ -112,7 +122,8 @@ reference packs и SDK. На Linux каждый watcher — отдельный �
 
 ## Замечания ревью кода 1.5.21
 
-Не блокируют сбор:
+Не блокировали сбор; все три замечания исправлены в 1.5.22
+([проверки](implementation.md#исправления-ревью-1522)). Исходные замечания к 1.5.21:
 
 - [Program.cs](../../Program.cs) получил UTF-8 BOM, которого нет в `main`; при этом
   [implementation.md](implementation.md#исходная-validation-1519) утверждает

@@ -1,7 +1,7 @@
 # Критика реализации 1.5.19
 
 Дата: **2026-10-30**. Норма: [README.md](../README.md), [schema.md](../schema.md).
-Исходный код ревью: ветка `usage-statistics`, версия **1.5.19**. Текущая реализация: **1.5.21**. Validation: [implementation.md](../implementation.md).
+Исходный код ревью: ветка `usage-statistics`, версия **1.5.19**. Текущая реализация: **1.5.22**. Validation: [implementation.md](../implementation.md).
 
 ## Verdict
 
@@ -24,7 +24,7 @@
 - Ключ: фактически удерживаемые Configuration, Platform, TargetFramework; пропуск — токен `-1`; `Any CPU` = `AnyCPU`; Windows-путь в одном регистре; symlink не раскрывается. Неуспешный load и отменённый reset оставляют прежний ключ.
 - Память: Windows private bytes, Linux `RssAnon` + `VmSwap`, BuildHost тем же правилом, что reaper; неизвестный ребёнок — null, не ноль; снимок без GC.
 - `tool_start` хранит оборванный вызов. Агрегаты заменяют ключи на `K1`, `K2`. Численных порогов и автовыбора стратегии нет.
-- Codex/Windows проверен в 1.5.21 ([отчёт](../codex-smoke.md)); остальные harness и macOS runtime остаются вне выполненного scope.
+- Codex/Windows и Claude Code/Linux проверены в 1.5.21 ([Codex](../codex-smoke.md), [Claude Code](../claude-code-smoke.md)); Cursor/dsh/OpenCode и macOS runtime остаются вне выполненного scope.
 
 ## Исправления 1.5.20
 
@@ -74,8 +74,9 @@
 - Published protocol probe: `artifacts/usage-integration/17db3aafcc954cd08211dc1d16f4432f/`.
 - Publish: `artifacts/usage-review-publish/win-x64/`.
 
-Настоящие Claude Code/Codex/Cursor/dsh/OpenCode harness, Linux PowerShell runtime,
-macOS runtime и реальный сбор этим исправлением не проверялись и не запускались.
+На этапе исправления 1.5.20 настоящие harness, Linux PowerShell runtime, macOS runtime
+и длительный сбор не запускались. Позднее Codex/Windows, Claude Code/Linux и Linux
+PowerShell проверены отдельно; см. [общий отчёт](../implementation.md).
 Существующие установки MCP не заменялись. В build остаются прежние предупреждения.
 
 ## Уточнение F-003

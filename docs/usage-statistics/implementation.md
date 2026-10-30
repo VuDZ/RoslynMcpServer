@@ -1,11 +1,11 @@
 # Реализация статистики использования и каталога пользователя
 
-Дата: **2026-10-30**, Europe/Moscow. Ветка: `usage-statistics`. Текущая версия: **1.5.21**.
-Статус: **код реализован и автоматизированно проверен; Codex/Windows и Claude Code/Linux проверены контролируемыми прогонами; до сбора исправить D-01 и D-02 из [Claude Code smoke](claude-code-smoke.md); Cursor, dsh, OpenCode и длительный сбор впереди**.
+Дата: **2026-10-30**, Europe/Moscow. Ветка: `usage-statistics`. Текущая версия: **1.5.22**.
+Статус: **код реализован и автоматизированно проверен; Codex/Windows и Claude Code/Linux проверены контролируемыми прогонами; D-01/D-02 и мелкие замечания из [Claude Code smoke](claude-code-smoke.md) исправлены в 1.5.22, автоматизированные проверки пройдены; повторный native Linux smoke ещё нужен; Cursor, dsh, OpenCode и длительный сбор впереди**.
 
 Согласованные решения: коммит `7b5dfea`. Требования:
 [usage-statistics](README.md), [user-data-directory](../user-data-directory/README.md).
-Формат: [schema.md](schema.md). Машиночитаемые результаты: [исходная 1.5.19](validation.json) и [исправления 1.5.20](implementation-review/validation.json), [Codex/Windows 1.5.21](codex-smoke-validation.json).
+Формат: [schema.md](schema.md). Машиночитаемые результаты: [исходная 1.5.19](validation.json) и [исправления 1.5.20](implementation-review/validation.json), [Codex/Windows 1.5.21](codex-smoke-validation.json), [Claude Code/Linux 1.5.21](claude-code-smoke-validation.json) и [исправления 1.5.22](followup-validation.json).
 
 ## Принятый scope реализации
 
@@ -64,9 +64,11 @@ surviving largest copy после выгрузки.
   opt-out, недоступные usage/HOME, чистый JSON-RPC stdout и отсутствие raw paths/keys
   в JSON/Markdown экспорте.
 - Git whitespace и сопоставление SHA256 **33 изменённых C# файлов** с Linux snapshot — PASS.
-  Перед commit сохранены исходные EOL неизменённых строк Program.cs/project/gitignore;
-  нормализованное содержимое идентично проверенному. 32 C# raw hashes совпадают,
-  Program.cs совпадает после LF normalization.
+  Нормализованное содержимое идентично проверенному. 32 C# raw hashes совпадают,
+  Program.cs совпадает после LF normalization. Эта проверка сравнивала Windows/Linux
+  snapshots, но не кодировку и EOL с `main`: добавленный BOM и смешанные EOL Program.cs
+  тогда пропущены. Прежнее утверждение о сохранении исходных EOL было неточным;
+  BOM и CRLF исправлены в 1.5.22, см. ниже.
 
 Каталог по-прежнему содержит 54 full / 15 lite tools. Из-за уточнения описания
 `read_log_tail` full tools/list стал 45 848 UTF-8 bytes, lite — 19 411,
@@ -125,6 +127,53 @@ D-02 (`PluginStartupTests` пишет в настоящий каталог по�
 [disk-watcher-inotify](../disk-watcher-inotify/README.md)), а также три небольших
 замечания ревью кода. Подробности: [Claude Code smoke](claude-code-smoke.md).
 
+## Исправления ревью 1.5.22
+
+Дата: **2026-10-30**. Обработан свежий Linux-отчёт из коммита `75fba73`.
+Статус: **D-01/D-02 и три мелких замечания исправлены в коде и проверены
+автоматизированно; повторный native Linux smoke после обновления ещё нужен**.
+Машиночитаемое подтверждение: [followup-validation.json](followup-validation.json).
+
+- **D-01.** `HarnessNameResolver` узнаёт native image `claude/versions/<версия>`;
+  произвольные соседние пути и нечисловые имена не считаются Claude. По-прежнему
+  учитывается только непосредственный родитель, командная строка не-node не читается.
+  Добавлены шесть вариантов регрессии, два воспроизвели ложный `cli` до исправления.
+- **D-02.** Настоящий entrypoint в `PluginStartupTests` получает собственный временный
+  `ROSLYN_MCP_HOME` после удаления унаследованных overrides. Stdio-тест проверяет
+  фактические каталоги логов/usage через server info и текстовый лог в этом HOME.
+  Другой запуск entrypoint, `ProgramHostFailureTests`, также задаёт временные HOME/logs;
+  специализированные lifecycle/witness hosts не запускают collector.
+- **Мелкие замечания.** В Program.cs удалён случайный UTF-8 BOM; окончания строк
+  приведены к CRLF, как в `main`. C# правки выполнены через MCP; существующий BOM
+  удалён отдельно, поскольку MCP сохраняет исходную кодировку. Regex классификатора
+  вынесен в статическое поле без изменения шаблона и параметров. Вторичное исключение
+  `StopAsync` больше не скрывает исходное исключение хоста.
+- Регрессия shutdown запускает настоящий entrypoint с тестовым плагином: его
+  `StartAsync` и `StopAsync` бросают разные исключения. До исправления тест падал,
+  после него подтверждены вызов StopAsync и сохранение исходного исключения.
+
+Проверки Windows, SDK 10.0.402, финальный код **1.5.22**:
+
+- Release solution build — **PASS**, новых предупреждений нет.
+- Целевые resolver/plugin/startup tests — **39/39 PASS**.
+- Main `Category!=AnalyzerLifecycle&Category!=RequiresPinnedSdk` — **1494/1494 PASS**,
+  без skips; весь SourceStructure входит в набор, inventory limits не ослаблен.
+- Opt-in lifecycle `ROSLYN_MCP_ANALYZER_LIFECYCLE=1` — **13/13 PASS**, без skips.
+- Реальный framework-dependent DLL + stdio + analyzer — **822 checks PASS**:
+  41 событие, 2 процесса, 5 попыток load, 11 завершённых вызовов.
+
+Первый main при одновременно запущенном protocol probe дал **1492/1494**:
+`UsageWorkspaceInstrumentationTests` не получил load-событий,
+`UsageStatisticsFiltersTests` не согласовал protocol 2026-07-28. Два класса отдельно
+дали **8/8**, затем полный main без параллельного probe — **1494/1494**.
+Причина первого сбоя не установлена; исходный результат сохранён, а не заменён PASS.
+
+Локальные evidence: `artifacts/usage-followup-1.5.22/` (build, red/green, целевые тесты,
+первый main, повтор и `lifecycle/followup-1522-final-lifecycle.trx`);
+protocol probe — `artifacts/usage-integration/e9f0b1283d54462db506f013c0507318/`.
+Работающий MCP Codex остаётся 1.5.21; установки и подключения этим исправлением
+не переключались. D-03 не менялся: это отдельная задача inotify.
+
 ## Границы приёмки и следующий этап
 
 Первоначальная validation 1.5.19 была оспорена точечно. F-001 и F-002 исправлены
@@ -132,18 +181,18 @@ D-02 (`PluginStartupTests` пишет в настоящий каталог по�
 F-003 закрыт уточнением спецификации после обсуждения измерений и модели M2; код и формат JSONL сохранены. Исправления не объявляют приёмку всего пакета.
 Настоящий Codex на Windows проверен в 1.5.21 ([smoke и статистика](codex-smoke.md)).
 Claude Code на Linux проверен в 1.5.21 ([smoke](claude-code-smoke.md)); его D-01 и D-02
-нужно исправить до сбора, после исправления D-01 повторить проверку имени harness.
+исправлены в 1.5.22; до сбора нужно повторить native Linux smoke и проверку имени harness.
 Cursor и dsh ещё требуют проверки исполнителем; OpenCode — владельцем, как в
 спецификации. Наличие CLI в PATH не считается проверкой harness.
 Установка MCP Claude Code владельца на Linux переключена на сборку этой ветки
 (`ROSLYN_MCP_REPO`); другие установки не заменялись.
 
 Linux C# проверен в WSL (1.5.19/1.5.20) и на native Linux (1.5.21); Linux PowerShell
-проверен в 1.5.21. macOS runtime недоступен.
+проверен в 1.5.21. macOS runtime в этих прогонах не проверялся.
 В build остаются предупреждения существующего кода и рекомендации xUnit-анализатора;
 warning-free build не заявляется.
 
-До длительного сбора нужно исправить D-01 и D-02 и завершить проверки остальных harness. После этого — локальный сбор 2 недели–месяц,
+До длительного сбора нужно подтвердить исправления D-01/D-02 в native Linux smoke и завершить проверки остальных harness. После этого — локальный сбор 2 недели–месяц,
 промежуточный прогон через 2–3 дня и выбор стратегии владельцем по результатам.
 Реальные данные и нагрузочный профиль анализатора оцениваются в этом прогоне;
 экономия памяти и latency будущей выгрузки не объявлены измеренным эффектом.

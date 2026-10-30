@@ -1,0 +1,101 @@
+{
+  "date": "2026-10-30",
+  "version": "1.5.22",
+  "review_commit": "75fba73",
+  "os": "windows",
+  "sdk": "10.0.402",
+  "status": "Fixes validated automatically; native Linux Claude Code recheck pending",
+  "fixes": {
+    "D-01": "Recognize native claude/versions/<version> parent image",
+    "D-02": "Isolate PluginStartupTests child HOME and verify actual log/usage directories",
+    "minor_review": [
+      "Remove Program.cs UTF-8 BOM and restore CRLF",
+      "Cache failure-marker regex",
+      "Preserve original host failure if StopAsync fails"
+    ],
+    "D-03": "Unchanged; separate docs/disk-watcher-inotify task"
+  },
+  "validation": {
+    "release_solution_build": "PASS; existing warnings only",
+    "host_failure_red": {
+      "total": 1,
+      "failed": 1,
+      "reason": "StopAsync masked the startup exception"
+    },
+    "native_claude_red": {
+      "total": 28,
+      "passed": 26,
+      "failed": 2
+    },
+    "focused_final": {
+      "total": 39,
+      "passed": 39,
+      "failed": 0,
+      "skipped": 0
+    },
+    "main_initial": {
+      "total": 1494,
+      "passed": 1492,
+      "failed": 2,
+      "concurrent_protocol_probe": true,
+      "failures": [
+        "UsageWorkspaceInstrumentationTests.Load_cache_failed_load_and_cancelled_reset_keep_the_correct_resident_key",
+        "UsageStatisticsFiltersTests.Real_protocol_filters_capture_client_identity_and_legacy_tool_errors_without_arguments (2026-07-28)"
+      ],
+      "cause": "Not established"
+    },
+    "failed_classes_recheck": {
+      "total": 8,
+      "passed": 8,
+      "failed": 0
+    },
+    "main_final": {
+      "filter": "Category!=AnalyzerLifecycle&Category!=RequiresPinnedSdk",
+      "total": 1494,
+      "passed": 1494,
+      "failed": 0,
+      "skipped": 0,
+      "includes_all_source_structure": true
+    },
+    "lifecycle_final": {
+      "opt_in": "ROSLYN_MCP_ANALYZER_LIFECYCLE=1",
+      "total": 13,
+      "passed": 13,
+      "failed": 0,
+      "skipped": 0
+    },
+    "framework_dependent_stdio_probe": {
+      "result": "PASS",
+      "checks": 822,
+      "records": 41,
+      "processes": 2,
+      "loads": 5,
+      "completed_calls": 11,
+      "analyzer_checked": true
+    },
+    "source_encoding": {
+      "Program.cs": {
+        "utf8_bom": false,
+        "line_endings": "CRLF",
+        "matches_main_encoding_and_eol": true
+      }
+    },
+    "diff_check": "PASS with cr-at-eol; preserves tracked CRLF",
+    "local_markdown_links": {
+      "checked": 126,
+      "missing": 0
+    }
+  },
+  "evidence": {
+    "tool_responses": "artifacts/usage-followup-1.5.22/",
+    "lifecycle_trx": "artifacts/usage-followup-1.5.22/lifecycle/followup-1522-final-lifecycle.trx",
+    "protocol_probe": "artifacts/usage-integration/e9f0b1283d54462db506f013c0507318/"
+  },
+  "limits": [
+    "Native Linux Claude Code recheck of 1.5.22 pending; 1.5.21 Linux results preserved separately",
+    "Cursor and dsh checks, owner OpenCode check and long-term collection pending",
+    "macOS runtime not checked",
+    "Current Codex MCP remains 1.5.21; no harness configuration changed",
+    "Initial main failures retained; their cause is not established"
+  ]
+}

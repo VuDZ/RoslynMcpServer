@@ -178,6 +178,6 @@
     "Controlled 13-minute sample, not a representative long-term corpus",
     "No overlapping calls within one MCP process were observed in this Codex run",
     "Live process lifetimes are right-censored",
-    "Linux 1.5.21 and other harnesses were not rerun"
+    "Linux and other harnesses were outside this Windows run; later Claude Code/Linux and Linux PowerShell evidence is in claude-code-smoke-validation.json"
   ]
 }

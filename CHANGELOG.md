@@ -2,6 +2,11 @@
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.5.22
+
+- Native Claude Code installations whose executable resolves to `claude/versions/<version>` are now identified as `claude` in session tags and usage statistics.
+- If host startup or shutdown fails, a second failure in `StopAsync` no longer replaces the original exception.
+
 ### v1.5.21
 
 - Usage statistics and text-log summaries no longer mark successful test calls as failures because their VSTest output contains `Failed: 0` or `Failed: **0**`. Non-zero failures and partial or error responses remain unsuccessful.

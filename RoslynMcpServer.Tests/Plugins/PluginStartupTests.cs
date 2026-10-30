@@ -381,6 +381,14 @@ public sealed class PluginStartupTests : IDisposable
         var content = call.GetProperty("content").EnumerateArray().ToArray();
         Assert.Equal(NoWorkspaceMessage, Assert.Single(content).GetProperty("text").GetString());
 
+        var info = await client.RequestAsync(4, "tools/call", new { name = "get_mcp_server_info", arguments = new { } });
+        var infoText = Assert.Single(info.GetProperty("content").EnumerateArray()).GetProperty("text").GetString();
+        var userDirectory = Path.Combine(workingDirectory, "user");
+        var logDirectory = Path.Combine(userDirectory, "logs");
+        Assert.Contains($"- **Log directory:** `{logDirectory}`", infoText, StringComparison.Ordinal);
+        Assert.Contains($"- **Usage directory:** `{Path.Combine(userDirectory, "usage")}`", infoText, StringComparison.Ordinal);
+        Assert.NotEmpty(Directory.EnumerateFiles(logDirectory, LogFileSearchPattern));
+
         // The transport carries protocol frames only: every line stdout delivered is one JSON-RPC message.
         Assert.Empty(client.NonProtocolStdoutLines);
     }
@@ -661,8 +669,8 @@ public sealed class PluginStartupTests : IDisposable
         }
 
         /// <summary>
-        /// Starts the host entry point with the plugin sources of <paramref name="pluginPaths"/>, which is the
-        /// only ROSLYN_MCP_* value of that child environment.
+        /// Starts the host entry point with the plugin sources of <paramref name="pluginPaths"/>
+        /// and an isolated user directory under <paramref name="workingDirectory"/>.
         /// </summary>
         public static HostProcessClient Start(string hostEntryPath, string workingDirectory, string pluginPaths)
         {
@@ -688,9 +696,8 @@ public sealed class PluginStartupTests : IDisposable
                 StandardInputEncoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false),
             };
 
-            // The child environment inherits the variables of this test run, and a profile or a workspace root
-            // of the machine running the tests would change what the process reads. Only the plugin variable
-            // of this test is left in place.
+            // Inherited overrides could change plugin discovery or workspace loading. After clearing them,
+            // isolate persistence too: the default HOME would pollute the user's real logs and usage corpus.
             foreach (var name in startInfo.Environment.Keys
                          .Where(name => name.StartsWith("ROSLYN_MCP_", StringComparison.OrdinalIgnoreCase))
                          .ToArray())
@@ -699,6 +706,7 @@ public sealed class PluginStartupTests : IDisposable
             }
 
             startInfo.Environment[PluginDiscovery.EnvironmentVariableName] = pluginPaths;
+            startInfo.Environment["ROSLYN_MCP_HOME"] = Path.Combine(workingDirectory, "user");
 
             var process = new Process { StartInfo = startInfo };
             if (!process.Start())
