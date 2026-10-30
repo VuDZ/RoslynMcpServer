@@ -52,6 +52,7 @@ public static class MsBuildBootstrapper
         if (fromGlobalJson is not null)
         {
             MSBuildLocator.RegisterMSBuildPath(fromGlobalJson);
+            MsBuildEnvironmentInfo.SelectedMsBuildPath = fromGlobalJson;
             var pinned = GlobalJsonSdkReader.TryGetPinnedSdkVersion(startupSearchDir) ?? "(unknown)";
             MsBuildEnvironmentInfo.RegistrationSummary =
                 $"RegisterMSBuildPath (global.json SDK {pinned}): {fromGlobalJson}";
@@ -70,6 +71,7 @@ public static class MsBuildBootstrapper
             var instance = instances.First(i =>
                 string.Equals(i.MSBuildPath, selected.Value.MSBuildPath, StringComparison.OrdinalIgnoreCase));
             MSBuildLocator.RegisterInstance(instance);
+            MsBuildEnvironmentInfo.SelectedMsBuildPath = instance.MSBuildPath;
             MsBuildEnvironmentInfo.RegistrationSummary =
                 $"RegisterInstance: {instance.Name} ({instance.Version}) at {instance.MSBuildPath}";
             Console.Error.WriteLine($"[DEBUG] Using MSBuild from: {instance.MSBuildPath}");
@@ -81,6 +83,7 @@ public static class MsBuildBootstrapper
         if (sdkDir is not null)
         {
             MSBuildLocator.RegisterMSBuildPath(sdkDir);
+            MsBuildEnvironmentInfo.SelectedMsBuildPath = sdkDir;
             MsBuildEnvironmentInfo.RegistrationSummary = $"RegisterMSBuildPath: {sdkDir}";
             Console.Error.WriteLine($"[DEBUG] Using MSBuild from .NET SDK: {sdkDir}");
             MsBuildEnvironmentInfo.RefreshRegisteredInstance();
@@ -91,6 +94,7 @@ public static class MsBuildBootstrapper
         if (vsMsBuild is not null)
         {
             MSBuildLocator.RegisterMSBuildPath(vsMsBuild);
+            MsBuildEnvironmentInfo.SelectedMsBuildPath = vsMsBuild;
             MsBuildEnvironmentInfo.RegistrationSummary = $"RegisterMSBuildPath (VS): {vsMsBuild}";
             Console.Error.WriteLine($"[DEBUG] Using MSBuild from Visual Studio: {vsMsBuild}");
             MsBuildEnvironmentInfo.RefreshRegisteredInstance();
@@ -108,7 +112,7 @@ public static class MsBuildBootstrapper
         }
 
         Console.Error.WriteLine("[WARN] No compatible MSBuild from QueryVisualStudioInstances; falling back to RegisterDefaults.");
-        MSBuildLocator.RegisterDefaults();
+        MsBuildEnvironmentInfo.SelectedMsBuildPath = MSBuildLocator.RegisterDefaults().MSBuildPath;
         MsBuildEnvironmentInfo.RegistrationSummary = "RegisterDefaults (fallback)";
         MsBuildEnvironmentInfo.RefreshRegisteredInstance();
     }

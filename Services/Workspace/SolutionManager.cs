@@ -175,6 +175,12 @@ public sealed class SolutionManager
     internal IReadOnlyList<(string Directory, bool IncludeSubdirectories)> DiskWatcherSubscriptions =>
         _diskWatcherSubscriptions;
 
+    /// <summary>
+    /// Immutable summary of the current watcher session, replaced as a whole, so diagnostics can read it without
+    /// the workspace lock.
+    /// </summary>
+    internal WorkspaceDiskWatcherStatus DiskWatcherStatus => _diskWatcherStatus;
+
     /// <summary>Test seam invoked before session admission, allowing delivery to race with session closure.</summary>
     internal Action? BeforeDiskWatcherCallbackForTests { get; set; }
 
@@ -1126,6 +1132,8 @@ public sealed class SolutionManager
                 usageAttempt.ResidentCaptured = true;
                 usageAttempt.Projects = _workspace?.CurrentSolution.ProjectIds.Count ?? 0;
                 usageAttempt.Published = _solution is not null && !HasBlockingLoadFailure(_solution);
+                usageAttempt.Watchers = _diskWatcherStatus.Started;
+                usageAttempt.WatcherFailures = _diskWatcherStatus.Failures.Count;
                 _usage!.RecordLoad(usageAttempt, !usageAttempt.Faulted && usageAttempt.Published);
             }
 
@@ -2820,11 +2828,15 @@ public sealed class SolutionManager
         // to this graph even when their backing files no longer exist. See docs/wpf-temporary-project-watching/README.md.
         var projectFilePaths = loadedSolution.Projects.Select(static project => project.FilePath);
         var session = new WorkspaceInputSession(projectFilePaths);
+        var immutableRoots = ImmutableInputRoots.Discover(
+            loadedSolution.Projects.Select(static project => project.FilePath),
+            MsBuildEnvironmentInfo.SelectedMsBuildPath);
         var inputMap = WorkspaceInputMapBuilder.Build(
             loadedSolution,
             session.Generation,
             workspaceFilePath,
-            loadGraphComplete: !HasBlockingLoadFailure(loadedSolution));
+            loadGraphComplete: !HasBlockingLoadFailure(loadedSolution),
+            immutableRoots);
         session.TryPublishInputMap(inputMap);
         _diskWatcherSession = session;
         var started = WorkspaceDiskWatcherStarter.Start(
@@ -2836,6 +2848,10 @@ public sealed class SolutionManager
             log: LogDiskWatcherStartup);
         _diskWatchers.AddRange(started.Watchers);
         _diskWatcherSubscriptions.AddRange(started.Subscriptions);
+        _diskWatcherStatus = new WorkspaceDiskWatcherStatus(
+            started.Watchers.Count,
+            started.Subscriptions.Count(static subscription => subscription.IncludeSubdirectories),
+            started.Failures);
     }
 
     private void LogDiskWatcherStartup(LogLevel level, Exception? exception, string message)
@@ -2857,6 +2873,7 @@ public sealed class SolutionManager
         _diskWatcherSession?.Close();
         _diskWatcherSession = null;
         _diskWatcherSubscriptions.Clear();
+        _diskWatcherStatus = WorkspaceDiskWatcherStatus.None;
         if (_diskWatchers.Count == 0)
         {
             return;
@@ -3337,6 +3354,7 @@ public sealed class SolutionManager
     private readonly List<FileSystemWatcher> _diskWatchers = new();
     private readonly List<(string Directory, bool IncludeSubdirectories)> _diskWatcherSubscriptions = new();
     private WorkspaceInputSession? _diskWatcherSession;
+    private WorkspaceDiskWatcherStatus _diskWatcherStatus = WorkspaceDiskWatcherStatus.None;
     private readonly ConcurrentDictionary<string, byte> _missingOnDiskPaths;
     private volatile bool _refreshAllDocuments;
     private volatile bool _projectGraphStale;

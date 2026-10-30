@@ -3,8 +3,97 @@ using Xunit;
 
 namespace RoslynMcpServer.Tests.Workspace;
 
+[Collection("DiskWatcherStartSeam")]
 public sealed class WorkspaceDiskWatcherStarterTests
 {
+    [Fact]
+    public async Task Point_and_nested_recursive_descriptors_inside_a_started_recursive_watcher_are_covered()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "RoslynMcpWatcherCovered-" + Guid.NewGuid().ToString("N"));
+        var projectDir = Path.Combine(root, "project");
+        var nestedProject = Path.Combine(projectDir, "tests");
+        var objDir = Path.Combine(projectDir, "obj", "Release");
+        var external = Path.Combine(root, "external");
+        Directory.CreateDirectory(nestedProject);
+        Directory.CreateDirectory(objDir);
+        Directory.CreateDirectory(external);
+        var objFile = Path.Combine(objDir, "App.AssemblyInfo.cs");
+
+        var descriptors = new[]
+        {
+            new InputWatcherDescriptor(objDir, IncludeSubdirectories: false, new[] { objFile }, new[] { InputRole.Generated }, "point"),
+            new InputWatcherDescriptor(nestedProject, IncludeSubdirectories: true, Array.Empty<string>(), new[] { InputRole.UserInput }, "nested"),
+            new InputWatcherDescriptor(projectDir, IncludeSubdirectories: true, Array.Empty<string>(), new[] { InputRole.UserInput }, "membership"),
+            new InputWatcherDescriptor(projectDir, IncludeSubdirectories: false, Array.Empty<string>(), new[] { InputRole.EvaluationInput }, "same"),
+            new InputWatcherDescriptor(external, IncludeSubdirectories: false, Array.Empty<string>(), new[] { InputRole.EvaluationInput }, "external"),
+        };
+        var session = new WorkspaceInputSession(Array.Empty<string>());
+        var seen = new ConcurrentBag<string>();
+        var started = WorkspaceDiskWatcherStarter.Start(
+            descriptors,
+            session,
+            onChanged: args => seen.Add(args.FullPath),
+            onRenamed: _ => { },
+            onError: _ => { },
+            log: (_, _, _) => { });
+        try
+        {
+            Assert.Equal(2, started.Watchers.Count);
+            Assert.Contains(started.Subscriptions, subscription =>
+                Same(subscription.Directory, projectDir) && subscription.IncludeSubdirectories);
+            Assert.Contains(started.Subscriptions, subscription =>
+                Same(subscription.Directory, external) && !subscription.IncludeSubdirectories);
+            Assert.Empty(started.Failures);
+
+            await File.WriteAllTextAsync(objFile, "// generated");
+            Assert.True(await WaitUntil(() => Contains(seen, objFile)), "The recursive project watcher did not deliver the obj file.");
+        }
+        finally
+        {
+            DisposeWatchers(started.Watchers);
+            TryDelete(root);
+        }
+    }
+
+    [Fact]
+    public void Point_descriptor_stays_when_the_covering_recursive_watcher_fails()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "RoslynMcpWatcherCoverFailed-" + Guid.NewGuid().ToString("N"));
+        var objDir = Path.Combine(root, "obj");
+        Directory.CreateDirectory(objDir);
+        var session = new WorkspaceInputSession(Array.Empty<string>());
+        WorkspaceDiskWatcherStarter.FailNextStartForTests = true;
+        WorkspaceDiskWatcherStartResult? started = null;
+        try
+        {
+            started = WorkspaceDiskWatcherStarter.Start(
+                new[]
+                {
+                    new InputWatcherDescriptor(objDir, IncludeSubdirectories: false, Array.Empty<string>(), new[] { InputRole.Generated }, "point"),
+                    new InputWatcherDescriptor(root, IncludeSubdirectories: true, Array.Empty<string>(), new[] { InputRole.UserInput }, "membership"),
+                },
+                session,
+                onChanged: _ => { },
+                onRenamed: _ => { },
+                onError: _ => { },
+                log: (_, _, _) => { });
+
+            var subscription = Assert.Single(started.Subscriptions);
+            Assert.True(Same(subscription.Directory, objDir));
+            Assert.False(subscription.IncludeSubdirectories);
+            var failure = Assert.Single(started.Failures);
+            Assert.True(Same(failure.Directory, root));
+            Assert.Equal("injected-watcher-start-failure", failure.Reason);
+            Assert.Contains(InputCoverageReason.WatcherStartFailed, session.ObservationUnknownReasons);
+        }
+        finally
+        {
+            WorkspaceDiskWatcherStarter.FailNextStartForTests = false;
+            DisposeWatchers(started?.Watchers ?? Array.Empty<FileSystemWatcher>());
+            TryDelete(root);
+        }
+    }
+
     [Fact]
     public async Task Non_recursive_watcher_sees_the_file_and_not_a_foreign_nested_tree()
     {

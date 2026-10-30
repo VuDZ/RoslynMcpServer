@@ -15,6 +15,8 @@ internal sealed class UsageLoadAttempt
     internal bool GraphStale { get; set; }
     internal bool Published { get; set; }
     internal int Projects { get; set; }
+    internal int? Watchers { get; set; }
+    internal int? WatcherFailures { get; set; }
     internal long? WaitStarted { get; set; }
     internal double? WaitMilliseconds { get; set; }
     internal Stopwatch Elapsed { get; } = Stopwatch.StartNew();

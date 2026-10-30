@@ -558,6 +558,24 @@ try {
     $originalKey = @($report.machines[0].workspaces | Where-Object { $_.successful_loads -eq 3 })[0]
     Assert-Near (12 / 60) $originalKey.duplicate_gib_hours 'An unknown copy cannot disappear from the old-key duplicate gate'
 
+    New-Tape
+    Add-Process -Process 'legacy'
+    Add-Process -Process 'many' -Key 'PRIVATE:/src/Many.sln'
+    Add-Process -Process 'limited' -Key 'PRIVATE:/src/Limited.sln'
+    foreach ($event in $script:events) {
+        if ($event.row.ev -ne 'load') { continue }
+        if ($event.row.proc -eq 'many') { $event.row.watchers = 109; $event.row.watcher_failures = 0 }
+        if ($event.row.proc -eq 'limited') { $event.row.watchers = 26; $event.row.watcher_failures = 3 }
+    }
+    $report = Invoke-Case 'disk-watchers'
+    $watchers = $report.machines[0].disk_watchers
+    Assert-Equal 2 $watchers.known_loads 'Loads with watcher fields'
+    Assert-Equal 1 $watchers.unknown_loads 'A load before the watcher fields is unknown, not zero'
+    Assert-Near 67.5 $watchers.median_watchers 'Median watchers per successful load'
+    Assert-Near 109 $watchers.max_watchers 'Maximum watchers per successful load'
+    Assert-Equal 1 $watchers.loads_with_failures 'Loads with watcher start failures'
+    Assert-Near 3 $watchers.watcher_failures 'Total watcher start failures'
+
     "PASS: $script:cases scenarios; $script:assertions assertions."
 }
 finally {

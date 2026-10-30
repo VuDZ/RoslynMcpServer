@@ -10,11 +10,16 @@ namespace RoslynMcpServer.Services.Workspace;
 /// </summary>
 internal static class WorkspaceInputMapBuilder
 {
+    /// <param name="immutableRoots">
+    /// Canonical roots from <see cref="ImmutableInputRoots"/>. Inputs under them stay in the map but get no point
+    /// watcher; <see langword="null"/> watches every input as before.
+    /// </param>
     public static WorkspaceInputMap Build(
         Solution solution,
         Guid generation,
         string? loadedWorkspacePath,
-        bool loadGraphComplete)
+        bool loadGraphComplete,
+        IReadOnlyList<string>? immutableRoots = null)
     {
         ArgumentNullException.ThrowIfNull(solution);
 
@@ -34,7 +39,7 @@ internal static class WorkspaceInputMapBuilder
             .Select(pair => new InputPathEntry(pair.Key, pair.Value))
             .ToArray();
         var regions = CreateRegions(instances);
-        var watchers = CreateWatchers(regions, paths, projectDirectories);
+        var watchers = CreateWatchers(regions, paths, projectDirectories, immutableRoots ?? Array.Empty<string>());
         var multiTarget = MultiTargetCoverage(instances);
         var reasons = CoverageReasons(loadGraphComplete, multiTarget, metadataOnly);
         var categories = CreateCategories(solution, instances, paths, metadataOnly, multiTarget);
@@ -349,7 +354,8 @@ internal static class WorkspaceInputMapBuilder
     private static InputWatcherDescriptor[] CreateWatchers(
         IReadOnlyList<MembershipRegion> regions,
         IReadOnlyList<InputPathEntry> paths,
-        IReadOnlyList<string> projectDirectories)
+        IReadOnlyList<string> projectDirectories,
+        IReadOnlyList<string> immutableRoots)
     {
         var seeds = new List<WatcherSeed>();
         foreach (var region in regions)
@@ -363,6 +369,13 @@ internal static class WorkspaceInputMapBuilder
         foreach (var entry in paths)
         {
             if (!NeedsPointSubscription(entry, projectDirectories))
+            {
+                continue;
+            }
+
+            // A package or SDK file under an exact immutable root does not change in place; one watcher per
+            // package directory used to take most of the Linux inotify instance limit.
+            if (ImmutableInputRoots.Contains(immutableRoots, entry.CanonicalPath))
             {
                 continue;
             }

@@ -19,6 +19,13 @@ public static class MsBuildEnvironmentInfo
 
     public static string? RegisteredVisualStudioRootPath { get; set; }
 
+    /// <summary>
+    /// MSBuild directory that <see cref="MsBuildBootstrapper"/> passed to the locator, or <see langword="null"/> when
+    /// another component registered MSBuild first. Microsoft.Build.Locator 1.11 exposes no registered-instance
+    /// property, so <see cref="RegisteredMsBuildPath"/> stays empty and cannot be used to find the dotnet root.
+    /// </summary>
+    public static string? SelectedMsBuildPath { get; set; }
+
     public static string? ProcessDescription { get; set; }
 
     public static string? RegistrationSummary { get; set; }

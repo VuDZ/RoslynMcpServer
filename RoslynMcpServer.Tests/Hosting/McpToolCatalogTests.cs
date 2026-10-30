@@ -8,6 +8,7 @@ using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using RoslynMcpServer.Hosting;
 using RoslynMcpServer.Services;
+using RoslynMcpServer.Services.Workspace.Models;
 using RoslynMcpServer.Tools;
 using Xunit;
 using Xunit.Abstractions;
@@ -423,6 +424,34 @@ public sealed class McpToolCatalogTests(ITestOutputHelper output)
         Assert.DoesNotContain($"- **Registered MCP tools:** {McpToolCatalog.All.Count}", info, StringComparison.Ordinal);
         Assert.Equal(surface.RegisteredToolCount, activation.CurrentToolCount);
         Assert.Equal(surface.RegisteredToolCount, host.Services.GetServices<McpServerTool>().Count());
+    }
+
+    [Fact]
+    public void Server_info_reports_disk_watchers_and_caps_the_listed_failures()
+    {
+        using var host = BuildHost(new McpToolProfileOptions { Profile = "full" });
+        var activation = host.Services.GetRequiredService<McpToolActivationService>();
+        var failures = Enumerable.Range(1, 7)
+            .Select(index => ($"/watched/dir{index}", "inotify limit reached"))
+            .ToArray();
+
+        var info = McpServerInfoHelper.BuildInfoMarkdown(
+            loadedSolution: null,
+            activation,
+            fileSettings: null,
+            WorkspaceLoadSource.None,
+            loadInProgress: false,
+            lazyLoadFailure: null,
+            pluginStartup: null,
+            new WorkspaceDiskWatcherStatus(3, 1, failures));
+        var withoutStatus = McpServerInfoHelper.BuildInfoMarkdown(loadedSolution: null, activation);
+
+        Assert.Contains("- **Disk watchers:** 3 (1 recursive)", info, StringComparison.Ordinal);
+        Assert.Contains("- **Disk watcher start failures:** 7", info, StringComparison.Ordinal);
+        Assert.Contains("- **Disk watcher failed:** `/watched/dir5` — inotify limit reached", info, StringComparison.Ordinal);
+        Assert.DoesNotContain("`/watched/dir6`", info, StringComparison.Ordinal);
+        Assert.Contains("- **Disk watcher failures not listed:** 2 (see the server log)", info, StringComparison.Ordinal);
+        Assert.DoesNotContain("Disk watcher", withoutStatus, StringComparison.Ordinal);
     }
 
     [Fact]

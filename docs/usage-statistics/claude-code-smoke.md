@@ -110,7 +110,7 @@ stdio-тест проверяет каталоги логов/usage и нали�
 
 ### D-03. Загруженное решение занимает почти весь лимит inotify
 
-Не регрессия ветки: [WorkspaceDiskWatcherStarter](../../Services/Workspace/WorkspaceDiskWatcherStarter.cs#L69)
+Не регрессия ветки: [WorkspaceDiskWatcherStarter](../../Services/Workspace/WorkspaceDiskWatcherStarter.cs)
 создаёт `FileSystemWatcher` на каждый входной каталог, включая каталоги пакетов NuGet,
 reference packs и SDK. На Linux каждый watcher — отдельный экземпляр inotify. Для этого
 решения — **109 watcher**, у процесса MCP **110 экземпляров** при
@@ -118,7 +118,7 @@ reference packs и SDK. На Linux каждый watcher — отдельный �
 около 16. После `reset_workspace` у процесса 1 экземпляр, и тот же main проходит.
 
 Для статистики это ограничение Linux-копий: вторая копия с загруженным решением
-останется без watcher. Сбор это не блокирует; задача записана отдельно:
+останется без watcher. Сбор это не блокирует; задача записана отдельно и реализована в 1.5.23 (109 → 5 watcher):
 [disk-watcher-inotify](../disk-watcher-inotify/README.md).
 
 ## Замечания ревью кода 1.5.21

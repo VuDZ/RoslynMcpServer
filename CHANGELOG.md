@@ -2,6 +2,14 @@
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.5.23
+
+- A loaded solution no longer starts a disk watcher for every NuGet package and SDK directory it references. Package folders listed by `project.assets.json` and the `sdk`, `packs` and `shared` directories of the dotnet root behind the registered MSBuild are treated as immutable; a change inside an existing package version is picked up after `reset_workspace`. Other external inputs are still watched.
+- Directories already covered by a started recursive project watcher, such as `bin`/`obj` and nested project directories, no longer get their own watcher. On Linux each watcher is an inotify instance and the default user limit is 128; the server's own solution went from 109 watchers to 5: one recursive repository watcher and point watchers on the four ancestor directories searched for `Directory.Build.*` and `global.json`.
+- The MSBuild directory chosen at startup is now recorded for the dotnet root lookup. Microsoft.Build.Locator 1.11 has no registered-instance property, so the previously captured registered path was always empty.
+- `get_mcp_server_info` shows the number of disk watchers and the directories whose watcher failed to start, with the reason. Usage `load` events record `watchers` and `watcher_failures`, and the usage report summarizes them per machine.
+- The Linux install notes describe raising `fs.inotify.max_user_instances`.
+
 ### v1.5.22
 
 - Native Claude Code installations whose executable resolves to `claude/versions/<version>` are now identified as `claude` in session tags and usage statistics.

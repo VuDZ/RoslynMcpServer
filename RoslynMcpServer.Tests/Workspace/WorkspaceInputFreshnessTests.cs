@@ -11,6 +11,7 @@ namespace RoslynMcpServer.Tests.Workspace;
 /// Build-freshness pull, own-write bytes, and coverage recovery.
 /// A matching byte read is not proof that the watcher delivered every intermediate change.
 /// </summary>
+[Collection("DiskWatcherStartSeam")]
 public sealed class WorkspaceInputFreshnessTests
 {
     [Fact]

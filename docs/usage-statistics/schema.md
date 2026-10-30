@@ -17,7 +17,11 @@
 - `tool_start`: `call`, `name`, `start_ts`, `workspace_key`, `requires_workspace`.
 - `tool`: те же поля идентичности вызова, `duration_ms`, `success`, `lazy_load`.
 - `load`: `call`, `start_ts`, `requested_key`, `workspace_key` после попытки, `success`, `cache_hit`,
-  `source`, `graph_stale`, `duration_ms`, `lock_wait_ms`, `projects`.
+  `source`, `graph_stale`, `duration_ms`, `lock_wait_ms`, `projects`; с 1.5.23 — `watchers` и
+  `watcher_failures`: число запущенных disk watcher и отказов их старта у удерживаемого
+  workspace после попытки ([disk-watcher-inotify](../disk-watcher-inotify/README.md), O-04).
+  Добавленные поля, `v` остаётся 1; у более старых строк их нет, и анализатор считает такие
+  загрузки неизвестными, а не нулевыми. `null` — попытка не дошла до снятия состояния.
 - `reset`: прежний `workspace_key`, `resident_key` после попытки, `success`,
   `start_ts`, `seconds_since_load`.
 - `mem`: удерживаемый `workspace_key`, `active_calls`, `idle_seconds`,

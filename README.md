@@ -89,6 +89,7 @@ The host is `RoslynMCP/RoslynMcpServer`.
 - Self-contained needs `libicu` and glibc **2.27** or newer (the .NET 10 baseline for x64).
 - Framework-dependent needs the .NET 10 runtime. Set `DOTNET_ROOT` when that runtime is not in a standard location (`/usr/share/dotnet`, `/usr/lib/dotnet`, or `~/.dotnet`).
 - The project being analyzed needs a .NET SDK. An SDK from distribution packages is best effort.
+- A loaded solution keeps disk watchers, and on Linux each one is an inotify instance. `fs.inotify.max_user_instances` defaults to 128 for all processes of the user, so several MCP copies, an IDE and `dotnet watch` can reach it; `get_mcp_server_info` then lists the watcher start failures. Raise the limit persistently: `echo 'fs.inotify.max_user_instances = 1024' | sudo tee /etc/sysctl.d/90-inotify.conf && sudo sysctl --system`.
 
 ```json
 {
@@ -1035,6 +1036,7 @@ tar -xzf RoslynMcpServer-<version>-linux-x64-self-contained.tar.gz
 - Self-contained требует `libicu` и glibc **2.27** или новее (базовая линия .NET 10 для x64).
 - Framework-dependent требует runtime .NET 10. Задайте `DOTNET_ROOT`, если runtime стоит не в стандартном месте (`/usr/share/dotnet`, `/usr/lib/dotnet` или `~/.dotnet`).
 - Для анализируемого проекта нужен .NET SDK. SDK из пакетов дистрибутива — best effort.
+- Загруженное решение держит disk watcher, и на Linux каждый из них — отдельный экземпляр inotify. `fs.inotify.max_user_instances` по умолчанию равен 128 на все процессы пользователя, поэтому несколько копий MCP, IDE и `dotnet watch` могут его исчерпать; тогда `get_mcp_server_info` показывает отказы старта watcher. Постоянно поднять лимит: `echo 'fs.inotify.max_user_instances = 1024' | sudo tee /etc/sysctl.d/90-inotify.conf && sudo sysctl --system`.
 
 ```json
 {

@@ -5,6 +5,7 @@ using Microsoft.Extensions.Options;
 using RoslynMcpServer.Config;
 using RoslynMcpServer.Diagnostics.UsageStatistics;
 using RoslynMcpServer.Hosting;
+using RoslynMcpServer.Services.Workspace.Models;
 using RoslynMcpServer.Tools;
 using Xunit;
 
@@ -37,11 +38,14 @@ public sealed class UsageWorkspaceInstrumentationTests
         var manager = CreateManager(usage);
         await usage.StartAsync(CancellationToken.None);
         string? resident = null;
+        var watchers = WorkspaceDiskWatcherStatus.None;
         try
         {
             await manager.LoadAsync(files.ProjectPath, CancellationToken.None, "Release", "Any CPU", "net10.0");
             resident = usage.WorkspaceKey;
             Assert.NotNull(resident);
+            watchers = manager.DiskWatcherStatus;
+            Assert.True(watchers.Started > 0);
             await manager.LoadAsync(files.ProjectPath, CancellationToken.None);
             Assert.Equal(resident, usage.WorkspaceKey);
 
@@ -67,7 +71,10 @@ public sealed class UsageWorkspaceInstrumentationTests
         Assert.Equal(3, loads.Length);
         Assert.True(loads[0].GetProperty("success").GetBoolean());
         Assert.False(loads[0].GetProperty("cache_hit").GetBoolean());
+        Assert.Equal(watchers.Started, loads[0].GetProperty("watchers").GetInt32());
+        Assert.Equal(watchers.Failures.Count, loads[0].GetProperty("watcher_failures").GetInt32());
         Assert.True(loads[1].GetProperty("cache_hit").GetBoolean());
+        Assert.Equal(watchers.Started, loads[1].GetProperty("watchers").GetInt32());
         Assert.Equal(resident, loads[1].GetProperty("requested_key").GetString());
         Assert.False(loads[2].GetProperty("success").GetBoolean());
         Assert.Equal(resident, loads[2].GetProperty("workspace_key").GetString());

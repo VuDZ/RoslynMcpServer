@@ -7,6 +7,7 @@ using RoslynMcpServer.Hosting;
 using RoslynMcpServer.Plugins;
 using RoslynMcpServer.Services.Navigation;
 using RoslynMcpServer.Services.Workspace;
+using RoslynMcpServer.Services.Workspace.Models;
 
 namespace RoslynMcpServer.Services;
 
@@ -47,6 +48,21 @@ public static class McpServerInfoHelper
         bool loadInProgress,
         string? lazyLoadFailure,
         PluginStartup.Report? pluginStartup)
+        => BuildInfoMarkdown(loadedSolution, activation, fileSettings, loadSource, loadInProgress, lazyLoadFailure, pluginStartup, diskWatchers: null);
+
+    /// <inheritdoc cref="BuildInfoMarkdown(Solution?, McpToolActivationService, RoslynMcpFileSettings?, WorkspaceLoadSource, bool, string?, PluginStartup.Report?)"/>
+    /// <param name="diskWatchers">
+    /// Watchers of the current workspace session; <see langword="null"/> keeps the watcher lines out of the text.
+    /// </param>
+    public static string BuildInfoMarkdown(
+        Solution? loadedSolution,
+        McpToolActivationService activation,
+        RoslynMcpFileSettings? fileSettings,
+        WorkspaceLoadSource loadSource,
+        bool loadInProgress,
+        string? lazyLoadFailure,
+        PluginStartup.Report? pluginStartup,
+        WorkspaceDiskWatcherStatus? diskWatchers)
     {
         ArgumentNullException.ThrowIfNull(activation);
         var assembly = Assembly.GetExecutingAssembly();
@@ -93,6 +109,7 @@ public static class McpServerInfoHelper
         }
 
         sb.AppendLine($"- **Workspace load source:** {FormatLoadSource(loadSource, loadedSolution is not null, loadInProgress)}");
+        AppendDiskWatchersSection(sb, diskWatchers);
 
         AppendFileSettingsSection(sb, fileSettings, lazyLoadFailure);
 
@@ -140,6 +157,37 @@ public static class McpServerInfoHelper
             sb.AppendLine($"- **Plugin skipped `{skip.Plugin}`:** {skip.Reason}");
         }
     }
+
+    /// <summary>
+    /// Appends the watcher count and up to <see cref="MaxListedWatcherFailures"/> failed directories with their
+    /// reason. A Linux inotify limit fails dozens of directories with one message, so the rest are only counted.
+    /// </summary>
+    private static void AppendDiskWatchersSection(StringBuilder sb, WorkspaceDiskWatcherStatus? diskWatchers)
+    {
+        if (diskWatchers is null)
+        {
+            return;
+        }
+
+        sb.AppendLine($"- **Disk watchers:** {diskWatchers.Started} ({diskWatchers.Recursive} recursive)");
+        if (diskWatchers.Failures.Count == 0)
+        {
+            return;
+        }
+
+        sb.AppendLine($"- **Disk watcher start failures:** {diskWatchers.Failures.Count}");
+        foreach (var failure in diskWatchers.Failures.Take(MaxListedWatcherFailures))
+        {
+            sb.AppendLine($"- **Disk watcher failed:** `{failure.Directory}` — {failure.Reason}");
+        }
+
+        if (diskWatchers.Failures.Count > MaxListedWatcherFailures)
+        {
+            sb.AppendLine($"- **Disk watcher failures not listed:** {diskWatchers.Failures.Count - MaxListedWatcherFailures} (see the server log)");
+        }
+    }
+
+    private const int MaxListedWatcherFailures = 5;
 
     private static string FormatLoadSource(WorkspaceLoadSource source, bool hasSolution, bool loadInProgress)
     {

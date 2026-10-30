@@ -261,6 +261,8 @@ public sealed class UsageStatisticsService : IHostedService, IDisposable
                 ["duration_ms"] = Math.Max(0, attempt.Elapsed.Elapsed.TotalMilliseconds - wait),
                 ["lock_wait_ms"] = wait,
                 ["projects"] = attempt.Projects,
+                ["watchers"] = attempt.Watchers,
+                ["watcher_failures"] = attempt.WatcherFailures,
             });
             attempt.Recorded = true;
         }

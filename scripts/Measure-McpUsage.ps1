@@ -649,8 +649,26 @@ function Measure-Machine([string]$Label, $Rows, $Warnings) {
             failed_resets = ($_.Group.failed_resets | Measure-Object -Sum).Sum
         }
     })
+    # Watcher fields were added to load in 1.5.23; older rows count as unknown, not as zero watchers.
+    $successfulLoads = @($totalRows | Where-Object {
+        $_.v -eq 1 -and $_.ev -eq 'load' -and $_.Contains('success') -and $_.success -eq $true
+    })
+    $watcherLoads = @($successfulLoads | Where-Object {
+        $null -ne (Get-Number $_ 'watchers') -and $null -ne (Get-Number $_ 'watcher_failures')
+    })
+    $watcherCounts = @($watcherLoads | ForEach-Object { Get-Number $_ 'watchers' })
+    $watcherFailures = @($watcherLoads | ForEach-Object { Get-Number $_ 'watcher_failures' })
+    $diskWatchers = @{
+        known_loads = $watcherLoads.Count
+        unknown_loads = $successfulLoads.Count - $watcherLoads.Count
+        median_watchers = Get-Median $watcherCounts
+        max_watchers = if ($watcherCounts.Count) { ($watcherCounts | Measure-Object -Maximum).Maximum } else { $null }
+        loads_with_failures = @($watcherFailures | Where-Object { $_ -gt 0 }).Count
+        watcher_failures = if ($watcherFailures.Count) { ($watcherFailures | Measure-Object -Sum).Sum } else { $null }
+    }
     return @{
         machine = $Label
+        disk_watchers = $diskWatchers
         observation = @{
             start = if ($models.Count) { Format-Time (($models.start | Measure-Object -Minimum).Minimum) } else { $null }
             end = if ($models.Count) { Format-Time (($models.end | Measure-Object -Maximum).Maximum) } else { $null }
@@ -785,6 +803,11 @@ foreach ($result in $results) {
     $duplicateText = if ($null -eq $result.duplication.gib_hours) { 'unknown' } else { ([double]$result.duplication.gib_hours).ToString('0.###', [Globalization.CultureInfo]::InvariantCulture) }
     $markdown.Add('')
     $markdown.Add('Duplicate memory: ' + $duplicateText + ' GiB·h. Subagent candidates are a same-harness heuristic, not verified parentage.')
+    $watchers = $result.disk_watchers
+    $medianWatchers = if ($null -eq $watchers.median_watchers) { 'unknown' } else { ([double]$watchers.median_watchers).ToString('0.#', [Globalization.CultureInfo]::InvariantCulture) }
+    $maxWatchers = if ($null -eq $watchers.max_watchers) { 'unknown' } else { [string]$watchers.max_watchers }
+    $markdown.Add(('Disk watchers per successful load: median {0}, max {1}; loads with start failures: {2} of {3}; loads without watcher fields: {4}.' -f
+        $medianWatchers, $maxWatchers, $watchers.loads_with_failures, $watchers.known_loads, $watchers.unknown_loads))
     $markdown.Add('Detailed workspace, process, harness, tool and data-quality aggregates are in the accompanying JSON.')
 }
 [IO.File]::WriteAllLines($absoluteOutput + '.md', $markdown, [Text.UTF8Encoding]::new($false))
