@@ -61,7 +61,21 @@
   "followup": {
     "version": "1.5.22",
     "validation": "followup-validation.json",
-    "D-01": "Fixed in resolver; native Linux Claude Code recheck pending",
+    "D-01": "Fixed in resolver; native Linux Claude Code recheck of 1.5.22 passed",
+    "native_linux_recheck": {
+      "date": "2026-10-30",
+      "commit": "7e5e71c",
+      "version": "1.5.22",
+      "harness_version": "2.1.314",
+      "recorded_harness": "claude",
+      "process_count": 1,
+      "subagents": 1,
+      "subagent_mcp_processes": 0,
+      "completed_calls": 6,
+      "unsuccessful_calls": 1,
+      "unsuccessful_call_reason": "run_specific_test HarnessSessionIdTests 27/28; the failed test is RequiresWindows and is excluded from the Linux main filter",
+      "previous_process_exit_recorded": true
+    },
     "D-02": "Child HOME isolated; stdio regression checks log and usage directories",
     "D-03": "Separate task; unchanged by this fix",
     "historical_evidence": "The 1.5.21 measurements and recorded_harness above remain unchanged"

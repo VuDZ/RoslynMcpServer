@@ -31,6 +31,6 @@ F-001/F-002 и ждать решения по F-003.
 после исправления отдельного дефекта `Failed: 0` → `success=false`.
 Затем выполнен [Claude Code/Linux smoke 1.5.21](../claude-code-smoke.md), включая Linux
 PowerShell; D-01/D-02 исправлены в [1.5.22](../implementation.md#исправления-ревью-1522),
-повторный native Linux smoke ещё нужен. Cursor, dsh, OpenCode и длительный сбор остаются
+повторный native Linux smoke 1.5.22 подтвердил `harness=claude`. Cursor, dsh, OpenCode и длительный сбор остаются
 впереди. Закрытие findings не объявляет приёмку всего пакета и не включает автоматический
 выбор стратегии.

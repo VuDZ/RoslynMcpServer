@@ -4,7 +4,7 @@
   "review_commit": "75fba73",
   "os": "windows",
   "sdk": "10.0.402",
-  "status": "Fixes validated automatically; native Linux Claude Code recheck pending",
+  "status": "Fixes validated automatically; native Linux Claude Code recheck passed (claude-code-smoke-validation.json)",
   "fixes": {
     "D-01": "Recognize native claude/versions/<version> parent image",
     "D-02": "Isolate PluginStartupTests child HOME and verify actual log/usage directories",
@@ -92,7 +92,7 @@
     "protocol_probe": "artifacts/usage-integration/e9f0b1283d54462db506f013c0507318/"
   },
   "limits": [
-    "Native Linux Claude Code recheck of 1.5.22 pending; 1.5.21 Linux results preserved separately",
+    "Native Linux Claude Code recheck of 1.5.22 passed separately (harness=claude); 1.5.21 Linux results preserved separately",
     "Cursor and dsh checks, owner OpenCode check and long-term collection pending",
     "macOS runtime not checked",
     "Current Codex MCP remains 1.5.21; no harness configuration changed",

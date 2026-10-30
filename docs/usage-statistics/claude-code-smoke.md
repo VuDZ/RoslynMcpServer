@@ -2,8 +2,9 @@
 
 Дата: **2026-10-30**. Ветка: `usage-statistics`. Версия: **1.5.21**.
 Статус: **сбор и протокол работают на Linux с Claude Code; D-01/D-02 и мелкие
-замечания исправлены в 1.5.22 и проверены автоматизированно, повторный native Linux
-smoke ещё нужен; D-03 записан отдельной задачей**.
+замечания исправлены в 1.5.22 и проверены автоматизированно; повторный native Linux
+smoke 1.5.22 подтвердил `harness=claude` — [повторная проверка](#повторная-проверка-1522);
+D-03 записан отдельной задачей**.
 [Исправления и validation 1.5.22](implementation.md#исправления-ревью-1522). Проверки Cursor и dsh
 и проверка OpenCode владельцем этим прогоном не закрываются.
 [Машиночитаемое подтверждение](claude-code-smoke-validation.json).
@@ -82,8 +83,8 @@ heartbeat-разрывов и неполных переходов нет; мед
 ### D-01. Native Claude Code распознаётся как `cli`
 
 Исправлено в коде 1.5.22: resolver учитывает путь `claude/versions/<версия>`.
-Ниже — исходное наблюдение 1.5.21; повторная проверка на настоящем native Linux Claude
-Code после обновления ещё нужна.
+Настоящий native Linux Claude Code с 1.5.22 записан как `claude` —
+[повторная проверка](#повторная-проверка-1522). Ниже — исходное наблюдение 1.5.21.
 
 Native-установка Claude Code на Linux — бинарник
 `~/.local/share/claude/versions/2.1.314`. [HarnessNameResolver](../../Diagnostics/HarnessNameResolver.cs)
@@ -132,6 +133,29 @@ reference packs и SDK. На Linux каждый watcher — отдельный �
   с полным именем пространства имён, без статического поля.
 - В [Program.cs](../../Program.cs) исключение `host.StopAsync()` внутри `catch` заменит
   исходное исключение хоста.
+
+## Повторная проверка 1.5.22
+
+Дата: **2026-10-30**. Статус: **D-01 подтверждён исправленным на native Linux Claude Code**.
+
+`dotnet publish -c Release -r linux-x64` коммита `7e5e71c` — файл **1.5.22.0**; launcher
+владельца взял его после перезапуска сессии Claude Code 2.1.314. `get_mcp_server_info`
+показал 1.5.22.0 и прежние каталоги логов и `usage/`.
+
+- Все события нового процесса записаны с `harness=claude` и `ver=1.5.22`; предыдущий
+  процесс 1.5.21 при перезапуске сессии записал `exit`.
+- Родитель: `get_mcp_server_info`, свежий `load_workspace` Release (5 проектов),
+  `find_symbol_references`. Сабагент: `get_mcp_server_info`, `find_symbol_references`
+  (14 ссылок) и `run_specific_test` для `HarnessSessionIdTests`.
+- Вызовы сабагента попали в тот же процесс, что и вызовы родителя: один `start`,
+  непрерывные `call` 1–6; поиск родителя и `get_mcp_server_info` сабагента выполнялись
+  одновременно.
+- `HarnessSessionIdTests` — **27/28**: упал `Windows_reads_this_process_image_and_command_line`
+  с `DllNotFoundException: kernel32.dll`. Тест помечен `RequiresWindows` и на Linux
+  исключается фильтром main; `run_specific_test` категории не фильтрует, поэтому это не
+  дефект. Вызов записан как `success=false`, что соответствует результату.
+
+После проверки решение выгружено (`reset_workspace`), чтобы MCP не держал inotify (D-03).
 
 ## Evidence
 

@@ -1,7 +1,7 @@
 # Реализация статистики использования и каталога пользователя
 
 Дата: **2026-10-30**, Europe/Moscow. Ветка: `usage-statistics`. Текущая версия: **1.5.22**.
-Статус: **код реализован и автоматизированно проверен; Codex/Windows и Claude Code/Linux проверены контролируемыми прогонами; D-01/D-02 и мелкие замечания из [Claude Code smoke](claude-code-smoke.md) исправлены в 1.5.22, автоматизированные проверки пройдены; повторный native Linux smoke ещё нужен; Cursor, dsh, OpenCode и длительный сбор впереди**.
+Статус: **код реализован и автоматизированно проверен; Codex/Windows и Claude Code/Linux проверены контролируемыми прогонами; D-01/D-02 и мелкие замечания из [Claude Code smoke](claude-code-smoke.md) исправлены в 1.5.22, автоматизированные проверки пройдены; повторный native Linux smoke подтвердил `harness=claude`; Cursor, dsh, OpenCode и длительный сбор впереди**.
 
 Согласованные решения: коммит `7b5dfea`. Требования:
 [usage-statistics](README.md), [user-data-directory](../user-data-directory/README.md).
@@ -131,7 +131,8 @@ D-02 (`PluginStartupTests` пишет в настоящий каталог по�
 
 Дата: **2026-10-30**. Обработан свежий Linux-отчёт из коммита `75fba73`.
 Статус: **D-01/D-02 и три мелких замечания исправлены в коде и проверены
-автоматизированно; повторный native Linux smoke после обновления ещё нужен**.
+автоматизированно; повторный native Linux smoke 1.5.22 подтвердил `harness=claude` —
+[повторная проверка](claude-code-smoke.md#повторная-проверка-1522)**.
 Машиночитаемое подтверждение: [followup-validation.json](followup-validation.json).
 
 - **D-01.** `HarnessNameResolver` узнаёт native image `claude/versions/<версия>`;
@@ -181,7 +182,7 @@ protocol probe — `artifacts/usage-integration/e9f0b1283d54462db506f013c0507318
 F-003 закрыт уточнением спецификации после обсуждения измерений и модели M2; код и формат JSONL сохранены. Исправления не объявляют приёмку всего пакета.
 Настоящий Codex на Windows проверен в 1.5.21 ([smoke и статистика](codex-smoke.md)).
 Claude Code на Linux проверен в 1.5.21 ([smoke](claude-code-smoke.md)); его D-01 и D-02
-исправлены в 1.5.22; до сбора нужно повторить native Linux smoke и проверку имени harness.
+исправлены в 1.5.22; повторный native Linux smoke подтвердил имя harness `claude`.
 Cursor и dsh ещё требуют проверки исполнителем; OpenCode — владельцем, как в
 спецификации. Наличие CLI в PATH не считается проверкой harness.
 Установка MCP Claude Code владельца на Linux переключена на сборку этой ветки
