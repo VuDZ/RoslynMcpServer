@@ -44,8 +44,7 @@
 - `plugins/` — drop-in plugins пользователя;
 - `logs/` — текстовые логи;
 - `usage/` — поток статистики использования (спецификация — ветка `usage-statistics`,
-  `docs/usage-statistics/README.md`);
-- `tia/` — сохранённый граф rapid TIA, файл на solution ([rapid-tia](../rapid-tia/README.md), R-12).
+  `docs/usage-statistics/README.md`).
 
 Каталог exe остаётся источником, как сейчас, ради обратной совместимости.
 
