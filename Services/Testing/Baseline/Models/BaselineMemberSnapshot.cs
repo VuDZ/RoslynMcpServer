@@ -3,6 +3,8 @@ namespace RoslynMcpServer.Services.Testing.Baseline.Models;
 internal sealed record BaselineMemberSnapshot(BaselineMemberKey Key, string SyntaxHash, bool IsPartial)
 {
     internal bool IsTestMethod { get; init; }
+    /// <summary>Test-type recognition on a type declaration, independent of root narrowing eligibility.</summary>
+    internal bool IsTestType { get; init; }
     internal bool IsOwnTestClassRoot { get; init; }
     internal bool IsExtensionMethod { get; init; }
     /// <summary>Preserves test identity while forbidding test-only narrowing for inheritance barriers.</summary>

@@ -67,7 +67,11 @@ internal static class BaselineDocumentSnapshotBuilder
                 .Any(attribute => AttributeName(attribute) is "TestClass" or "TestFixture");
             // Inherited roots are shared; R-17 (docs/rapid-tia/README.md) favors extra expansion on simple-name matches.
             var blocksNarrowing = parts.Any(type => type.Modifiers.Any(SyntaxKind.AbstractKeyword))
-                || baseTypeNames.Contains(parts.First().Identifier.ValueText);
+                || baseTypeNames.Contains(parts.First().Identifier.ValueText)
+                // Nested code can read private outer state, so its tests also forbid outer-only narrowing under R-17.
+                || parts.SelectMany(type => type.Members).Any(member => member.Kind() is SyntaxKind.ClassDeclaration
+                    or SyntaxKind.StructDeclaration or SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration
+                    or SyntaxKind.InterfaceDeclaration);
             var contracts = parts.SelectMany(type => type.BaseList?.Types.Select(baseType => SimpleName(baseType.Type)) ?? [])
                 .ToHashSet(StringComparer.Ordinal);
             var overloadedNames = methods.GroupBy(method => method.Identifier.ValueText).Where(group => group.Count() > 1)
@@ -94,6 +98,7 @@ internal static class BaselineDocumentSnapshotBuilder
         var isExtension = declaration is MethodDeclarationSyntax extension
             && extension.ParameterList.Parameters.FirstOrDefault()?.Modifiers.Any(SyntaxKind.ThisKeyword) == true;
         var isRoot = false;
+        var isTestType = false;
         string? contextHash = null;
         var containingType = factsByType.GetValueOrDefault(snapshot.Key.ContainingTypePath);
         if (containingType is { IsTestType: true, BlocksNarrowing: false })
@@ -120,12 +125,14 @@ internal static class BaselineDocumentSnapshotBuilder
 
         if (declaration is TypeDeclarationSyntax type && factsByType.TryGetValue(DeclaredTypePath(type), out var ownType))
         {
-            isRoot = ownType.HasOwnTests && !ownType.BlocksNarrowing;
+            isTestType = ownType.IsTestType;
+            isRoot = ownType.HasOwnTests && !ownType.BlocksNarrowing && !snapshot.IsPartial;
         }
 
         return snapshot with
         {
             IsTestMethod = isTest,
+            IsTestType = isTestType,
             IsOwnTestClassRoot = isRoot,
             IsExtensionMethod = isExtension,
             BlocksNarrowing = isTest && containingType?.BlocksNarrowing == true,

@@ -12,6 +12,8 @@ internal static class BaselineDocumentChangeDetector
     {
         var before = baseline.Members.GroupBy(member => member.Key).ToDictionary(group => group.Key, group => group.ToArray());
         var after = current.Members.GroupBy(member => member.Key).ToDictionary(group => group.Key, group => group.ToArray());
+        var baselineTypes = TypesByPath(baseline);
+        var currentTypes = TypesByPath(current);
         var memberChanges = ImmutableArray.CreateBuilder<BaselineDocumentChange>();
         var ambiguous = false;
         var ambiguousChanged = false;
@@ -27,7 +29,8 @@ internal static class BaselineDocumentChangeDetector
                 continue;
             }
 
-            AddMemberChanges(memberChanges, oldMembers.SingleOrDefault(), newMembers.SingleOrDefault());
+            AddMemberChanges(memberChanges, oldMembers.SingleOrDefault(), newMembers.SingleOrDefault(),
+                addedRootAllowed: newMembers.Length == 1 && AddedRootAllowed(newMembers[0], baselineTypes, currentTypes));
         }
 
         var changes = OutsideChanges(baseline, current);
@@ -55,7 +58,8 @@ internal static class BaselineDocumentChangeDetector
     private static void AddMemberChanges(
         ImmutableArray<BaselineDocumentChange>.Builder changes,
         BaselineMemberSnapshot? baseline,
-        BaselineMemberSnapshot? current)
+        BaselineMemberSnapshot? current,
+        bool addedRootAllowed)
     {
         if (current == null)
         {
@@ -76,13 +80,41 @@ internal static class BaselineDocumentChangeDetector
         }
 
         // R-17 (docs/rapid-tia/README.md): promoting a helper must not hide its possible callers outside this test class.
-        var root = current.IsOwnTestClassRoot && (baseline == null || baseline.IsOwnTestClassRoot
+        var root = current.IsOwnTestClassRoot && (baseline == null ? addedRootAllowed : baseline.IsOwnTestClassRoot
             && (current.InitializerContextHash == null || current.InitializerContextHash == baseline.InitializerContextHash));
         var blocksNarrowing = current.IsTestMethod && (current.BlocksNarrowing
             || baseline != null && (!baseline.IsTestMethod || baseline.BlocksNarrowing));
         changes.Add(new BaselineDocumentChange(
             baseline == null ? BaselineChangeKind.MemberAdded : BaselineChangeKind.MemberModified,
             BaselineChangeReason.MemberSyntax, current.Key, current.IsTestMethod, root, blocksNarrowing));
+    }
+
+    private static Dictionary<string, BaselineMemberSnapshot[]> TypesByPath(BaselineDocumentSnapshot snapshot) =>
+        snapshot.Members.Where(member => IsType(member.Key.Kind)).GroupBy(TypePath)
+            .ToDictionary(group => group.Key, group => group.ToArray(), StringComparer.Ordinal);
+
+    private static string TypePath(BaselineMemberSnapshot member) =>
+        (member.Key.ContainingTypePath.Length == 0 ? "" : member.Key.ContainingTypePath + ".")
+        + member.Key.Name + "`" + member.Key.Arity;
+
+    // R-17 (docs/rapid-tia/README.md): old helpers and unseen partial parts can execute new roots outside this test class.
+    private static bool AddedRootAllowed(
+        BaselineMemberSnapshot member,
+        Dictionary<string, BaselineMemberSnapshot[]> baselineTypes,
+        Dictionary<string, BaselineMemberSnapshot[]> currentTypes)
+    {
+        var isType = IsType(member.Key.Kind);
+        if (isType && member.IsPartial)
+        {
+            return false;
+        }
+
+        var path = isType ? TypePath(member) : member.Key.ContainingTypePath;
+        if (baselineTypes.TryGetValue(path, out var baselineParts))
+        {
+            return baselineParts.Any(type => type.IsTestType);
+        }
+        return currentTypes.TryGetValue(path, out var currentParts) && currentParts.All(type => !type.IsPartial);
     }
 
     private static ImmutableArray<BaselineDocumentChange>.Builder OutsideChanges(
