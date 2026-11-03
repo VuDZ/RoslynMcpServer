@@ -143,6 +143,8 @@ public sealed class SolutionManager
     /// <see cref="_workspaceLock"/> is still held.
     /// </summary>
     internal Func<CancellationToken, Task>? AfterPhysicalLoadBeforePrepareAsync { get; set; }
+    internal Action? BeforeDiskWatcherStartForTests { get; set; }
+    internal Action? AfterDiskWatcherStartForTests { get; set; }
 
     /// <summary>Test seam: next workspace apply returns false without calling Roslyn.</summary>
     internal bool FailNextTryApplyChanges { get; set; }
@@ -2195,11 +2197,6 @@ public sealed class SolutionManager
             provenanceSnapshot,
             LoadSessionId,
             AnalyzerAssemblyLoader);
-        if (publishLoadedSolution)
-        {
-            _publicationState = SemanticPublicationState.NoOverlay;
-            SetPublishedSolution(workspace.CurrentSolution);
-        }
         LoadedConfiguration = effectiveConfiguration;
         LoadedPlatform = effectivePlatform;
         LoadedPlatformRaw = effectivePlatformRaw;
@@ -2215,6 +2212,13 @@ public sealed class SolutionManager
 
         LastDiagnostics = CollectDiagnostics(workspace, capturedDiagnostics);
         StartDiskWatcherUnderLock(fullPath, workspace.CurrentSolution);
+        // Baseline capture must not outrun observation: startup events/gaps are journaled before publication.
+        // See docs/rapid-tia/epoch-1-project-level/evidence/task-03-review-round-2.md (R2-002).
+        if (publishLoadedSolution)
+        {
+            _publicationState = SemanticPublicationState.NoOverlay;
+            SetPublishedSolution(workspace.CurrentSolution);
+        }
         _logger.LogInformation(
             "Loaded Roslyn workspace from {Path} (Configuration={Configuration}, Platform={Platform}, PlatformRaw={PlatformRaw}, TargetFramework={TargetFramework}, BuildArgs={BuildArgs})",
             fullPath,
@@ -2709,7 +2713,7 @@ public sealed class SolutionManager
         // Capture once before enabling events. Deleted and renamed loaded projects still belong
         // to this graph even when their backing files no longer exist. See docs/wpf-temporary-project-watching/README.md.
         var projectFilePaths = loadedSolution.Projects.Select(static project => project.FilePath);
-        var session = new WorkspaceInputSession(projectFilePaths);
+        var session = new WorkspaceInputSession(projectFilePaths, Baseline.NoteObservationGap);
         var inputMap = WorkspaceInputMapBuilder.Build(
             loadedSolution,
             session.Generation,
@@ -2717,6 +2721,7 @@ public sealed class SolutionManager
             loadGraphComplete: !HasBlockingLoadFailure(loadedSolution));
         session.TryPublishInputMap(inputMap);
         _diskWatcherSession = session;
+        BeforeDiskWatcherStartForTests?.Invoke();
         var started = WorkspaceDiskWatcherStarter.Start(
             inputMap.Watchers,
             session,
@@ -2726,6 +2731,7 @@ public sealed class SolutionManager
             log: LogDiskWatcherStartup);
         _diskWatchers.AddRange(started.Watchers);
         _diskWatcherSubscriptions.AddRange(started.Subscriptions);
+        AfterDiskWatcherStartForTests?.Invoke();
     }
 
     private void LogDiskWatcherStartup(LogLevel level, Exception? exception, string message)

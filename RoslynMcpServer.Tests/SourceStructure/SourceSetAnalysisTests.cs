@@ -1048,6 +1048,10 @@ public sealed class SourceSetAnalysisTests
         string[] expectedMembers =
         [
             "AfterPhysicalLoadBeforePrepareAsync",
+            // Deterministic watcher-start boundaries and the admitted gap callback are supplied outside this scope.
+            "BeforeDiskWatcherStartForTests",
+            "AfterDiskWatcherStartForTests",
+            "onObservationGap",
             "BeforeDiskWatcherCallbackForTests",
             "AfterDiskWatcherChangeForTests",
             "DuringDiskFlushForTests",
@@ -1069,7 +1073,7 @@ public sealed class SourceSetAnalysisTests
             Assert.Equal(ReachabilityLimitKind.TargetOutsideTheScope, limit.Kind);
             var sourcePath = member switch
             {
-                "update" => Path.Combine("Services", "Models", "WorkspaceInputSession.cs"),
+                "update" or "onObservationGap" => Path.Combine("Services", "Models", "WorkspaceInputSession.cs"),
                 "duringRead" => Path.Combine("Services", "Workspace", "WorkspaceInputReconciler.cs"),
                 "beforeProject" => Path.Combine("Services", "Navigation", "SearchIndexPrewarm.cs"),
                 "beforeRead" or "beforeCommit" => Path.Combine("Services", "Testing", "Baseline", "BaselineSession.cs"),

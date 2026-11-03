@@ -74,8 +74,9 @@ internal sealed class WorkspaceInputSession
         }
     }
 
-    public WorkspaceInputSession(IEnumerable<string?> projectFilePaths)
+    public WorkspaceInputSession(IEnumerable<string?> projectFilePaths, Action? onObservationGap = null)
     {
+        _onObservationGap = onObservationGap;
         var paths = new HashSet<string>(OperatingSystem.IsWindows()
             ? StringComparer.OrdinalIgnoreCase
             : StringComparer.Ordinal);
@@ -224,6 +225,7 @@ internal sealed class WorkspaceInputSession
             }
 
             RememberGap(reason, scope, GapOrigin.Runtime);
+            _onObservationGap?.Invoke();
             Touch();
         }
     }
@@ -265,6 +267,9 @@ internal sealed class WorkspaceInputSession
 
             RememberPath(_directoryRenamePaths, oldPath);
             RememberPath(_directoryRenamePaths, newPath);
+            // Admission and gap propagation share closure: a retired watcher cannot invalidate the next baseline.
+            // Direct rename_project calls use this path too. See docs/rapid-tia/epoch-1-project-level/evidence/task-03-review-round-2.md.
+            _onObservationGap?.Invoke();
             if (affectsMembership)
             {
                 var scope = DirectoryRenameScope(oldPath, newPath);
@@ -949,6 +954,7 @@ internal sealed class WorkspaceInputSession
     }
 
     private readonly object _gate = new();
+    private readonly Action? _onObservationGap;
     private bool _closed;
     private readonly List<TrackedGap> _gaps = new();
     private readonly List<InputPathNotice> _notices = new();

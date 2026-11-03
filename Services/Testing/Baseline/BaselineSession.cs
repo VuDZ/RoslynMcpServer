@@ -45,6 +45,7 @@ internal sealed class BaselineSession
             if (!InputPathCanon.Comparer.Equals(_pendingWorkspacePath, canonical))
             {
                 _pendingWrites.Clear();
+                _pendingObservationGap = false;
             }
             _pendingWorkspacePath = canonical;
         }
@@ -85,6 +86,7 @@ internal sealed class BaselineSession
                 }
                 _pendingWrites.Clear();
                 _pendingWorkspacePath = null;
+                _pendingObservationGap = false;
                 return;
             }
 
@@ -95,6 +97,7 @@ internal sealed class BaselineSession
             }
             _pendingWrites.Clear();
             _pendingWorkspacePath = null;
+            _pendingObservationGap = false;
             work = new CaptureWork(solution, inventory, _generation, _publishedAtUtc,
                 BeforeReadForTests, BeforeCommitForTests);
             _captureCancellation = work.Cancellation;
@@ -121,6 +124,23 @@ internal sealed class BaselineSession
                 || InputPathCanon.Comparer.Equals(_workspacePath, _pendingWorkspacePath)))
             {
                 RecordWriteUnderLock(canonical);
+            }
+        }
+    }
+
+    internal void NoteObservationGap()
+    {
+        lock (_gate)
+        {
+            if (_pendingWorkspacePath != null)
+            {
+                _pendingObservationGap = true;
+            }
+            if (_workspacePath != null && (_pendingWorkspacePath == null
+                || InputPathCanon.Comparer.Equals(_workspacePath, _pendingWorkspacePath)))
+            {
+                _requiresFullScan = true;
+                FreezePendingUnderLock();
             }
         }
     }
@@ -161,7 +181,9 @@ internal sealed class BaselineSession
         _versions.Clear();
         _touched.Clear();
         _rescanPaths.Clear();
-        _requiresFullScan = false;
+        // Watcher startup may fail before the first publication; preserve that gap only for this load identity.
+        // See docs/rapid-tia/epoch-1-project-level/evidence/task-03-review-round-2.md.
+        _requiresFullScan = _pendingObservationGap;
         foreach (var entry in inventory)
         {
             _documents.Add(entry.Key, new BaselineDocumentState(entry.Key, BaselineDocumentStatus.Pending, null));
@@ -172,6 +194,10 @@ internal sealed class BaselineSession
                 _pendingByPath.Add(entry.Key.DocumentPath, pending);
             }
             pending.Add(entry.Key);
+        }
+        if (_requiresFullScan)
+        {
+            FreezePendingUnderLock();
         }
     }
 
@@ -402,6 +428,7 @@ internal sealed class BaselineSession
     private readonly HashSet<string> _pendingWrites = new(InputPathCanon.Comparer);
     private string? _workspacePath;
     private string? _pendingWorkspacePath;
+    private bool _pendingObservationGap;
     private long _generation;
     private DateTime _publishedAtUtc;
     private bool _requiresFullScan;

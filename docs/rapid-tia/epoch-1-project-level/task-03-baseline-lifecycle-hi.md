@@ -5,13 +5,13 @@
 - Примерная сложность: 4/5; класс `hi`.
 - Риск ошибки: высокий — гонка между ленивым чтением текста и правкой на диске молча принимает правку за baseline; ошибка в reload/reset стирает историю изменений.
 - Необходимые способности: `анализ_конкурентности`, `управление_ресурсами`, `семантика_roslyn_msbuild`, `проектирование_проверок`.
-- Статус: **reopened, 2026-11-03** — [ревью приёмки, раунд 2](evidence/task-03-review-round-2.md): MUST-FIX R2-001, R2-002 (потеря наблюдения не отмечается; baseline публикуется раньше запуска watcher); до подтверждения исправлений задача не принята. Scope прежний: сессионный baseline и поколения, фон после публикации, write/mtime guards, сохранение Known/touched при reload/reset и rescan после разрыва наблюдения; без графа и публичной активации.
+- Статус: **accepted, 2026-11-03** — повторная приёмка после R2-001/R2-002/R3-001, [раунд 4 — ACCEPT](evidence/task-03-review-round-4.md), [финальная validation](evidence/task-03-final-validation-round-4.md). Scope: baseline сессии, поколения и безопасная фиксация после старта watcher; передача потери наблюдения, сохранение Known и Unknown для Pending, reload/reset и консервативный rescan; без графа и публичной активации.
 - Depends on: [task-01](task-01-baseline-snapshot-model-med.md).
 - Модель, реализовавшая задачу: Codex, прежний исполнитель эпохи (точный runtime model ID средой не предоставлен).
-- Модели, проводившие ревью: Codex, независимая сессия (точный runtime model ID средой не предоставлен); Claude Opus 5.5 (`claude-opus-5-5`), раунд 2.
-- Количество раундов ревью: **2**.
-- Количество исправлений после ревью: **0**; R2-001, R2-002 открыты.
-- Отчёт о реализации, ревью и validation: [отчёт](task-03-implementation-report.md), [раунд 1](evidence/task-03-review-round-1.md), [validation до раунда 2](evidence/task-03-final-validation.md), [раунд 2 — MUST-FIX](evidence/task-03-review-round-2.md).
+- Модели, проводившие ревью: Codex, три независимые сессии (раунды 1, 3, 4; точный runtime model ID недоступен); Claude Opus 5.5 (`claude-opus-5-5`), раунд 2.
+- Количество раундов ревью: **4**.
+- Количество исправлений после ревью: **3** — R2-001, R2-002, R3-001 подтверждены закрытыми раундом 4.
+- Отчёт о реализации, ревью и validation: [отчёт](task-03-implementation-report.md#повторная-приёмка-после-раунда-4), [раунд 1](evidence/task-03-review-round-1.md), [раунд 2 — MUST-FIX](evidence/task-03-review-round-2.md), [раунд 3 — MUST-FIX](evidence/task-03-review-round-3.md), [раунд 4 — ACCEPT](evidence/task-03-review-round-4.md), [финальная validation](evidence/task-03-final-validation-round-4.md).
 
 ## Цель
 
