@@ -3,7 +3,7 @@
 - Дата: 2026-11-03.
 - Исполнитель: прежний исполнитель эпохи Codex; точный runtime model ID средой не предоставлен.
 - Scope: сессионный baseline, его публикация/чтение в фоне, поколения и журнал путей; интеграция с реальными MCP writes, disk watcher, reload/reset. Без графа, project mapping и публичного инструмента.
-- Состояние: **accepted, 2026-11-03** после [независимого ревью](evidence/task-03-review-round-1.md) и [финальной validation координатора](evidence/task-03-final-validation.md). Принятый scope: baseline сессии, безопасная фиксация текстов/поколений и журнал/кандидаты путей; без графа, project mapping и публичного инструмента.
+- Состояние: **reopened, 2026-11-03** — [ревью приёмки, раунд 2](evidence/task-03-review-round-2.md): MUST-FIX R2-001, R2-002. Приёмка по раунду 1 ниже снята этим ревью. Scope: baseline сессии, безопасная фиксация текстов/поколений и журнал/кандидаты путей; без графа, project mapping и публичного инструмента.
 
 ## Модель и интеграция
 
@@ -166,5 +166,5 @@ IDE API для создания/редактирования файлов нед
 - AnalyzerLifecycle выполнен координатором через MCP runtime runner с `--environment ROSLYN_MCP_ANALYZER_LIFECYCLE=1`, поскольку специализированные test API не принимают env. Уникальный TRX проверен отдельно: total=executed=passed=13, failed=notExecuted=error=timeout=aborted=0.
 - Шесть новых xUnit2031 warnings устранены эквивалентными API assertions перед финальной сборкой. Остались три прежних предупреждения в файлах вне задачи. Linux suite и отдельный GC probe не запускались; source review подтверждает отсутствие Solution в завершённом состоянии, а R-15 лог сохраняет честную отмену без ожидания.
 - Инвентарь SourceStructure сохраняет прежние 11 и ровно два новых limits: beforeRead/beforeCommit, TargetOutsideTheScope, source BaselineSession.cs. Проверка точных identities/kinds/paths не ослаблялась.
-- В [task-08](task-08-estimate-tool-hi.md#вход-из-принятой-task-03) добавлена справка о фактическом входе RequiresFullScan/TouchedPaths: C# candidates после gap не доказывают полноту наблюдения всех входов. Будущий потребитель учитывает этот факт в существующей обработке Not covered/консервативного расширения; код task-08 не начат.
+- В [task-08](task-08-estimate-tool-hi.md#вход-из-task-03) добавлена справка о фактическом входе RequiresFullScan/TouchedPaths: C# candidates после gap не доказывают полноту наблюдения всех входов. Будущий потребитель учитывает этот факт в существующей обработке Not covered/консервативного расширения; код task-08 не начат.
 - Версия 1.5.18 сохранена. Task-04 и следующие задачи не реализовывались; эпоха целиком не принята. Известная стоимость fallback — повторное сравнение C# candidates после разрыва наблюдения; список содержит возможные пути, а не обещание точного журнала всех записей.
