@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using RoslynMcpServer.Services.Testing.Baseline.Models;
 using Xunit;
 
@@ -7,34 +8,186 @@ namespace RoslynMcpServer.Tests.Testing;
 public sealed class BaselineRenameJournalTests
 {
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task Real_git_add_and_commit_do_not_invalidate_baseline_or_journal_git_paths(bool commit)
+    [InlineData(false, null)]
+    [InlineData(true, null)]
+    [InlineData(false, "artifacts")]
+    [InlineData(true, "artifacts")]
+    [InlineData(false, "bin")]
+    [InlineData(true, "bin")]
+    public async Task Real_git_add_and_commit_do_not_invalidate_baseline_or_journal_git_paths(bool commit, string? ignoredAncestor)
     {
         await using var fixture = new BaselineLifecycleFixture();
-        await Git(fixture.Root, "init --initial-branch=main");
-        await File.WriteAllTextAsync(Path.Combine(fixture.Root, ".gitignore"), "bin/\nobj/\n");
-        await fixture.LoadAsync();
+        var project = ignoredAncestor == null ? fixture.ProjectPath : WorkspaceUnder(fixture, ignoredAncestor);
+        var directory = Path.GetDirectoryName(project)!;
+        await Git(directory, "init --initial-branch=main");
+        await File.WriteAllTextAsync(Path.Combine(directory, ".gitignore"), "bin/\nobj/\n");
+        await fixture.Manager.LoadAsync(project);
         await fixture.Manager.Baseline.CaptureTask.WaitAsync(_timeout);
-        await Git(fixture.Root, "add -A");
+        if (ignoredAncestor != null)
+        {
+            // Isolate rename admission: existing Changed/Created classification under such ancestors is outside this contract.
+            fixture.Manager.SilenceDiskWatchersForTests();
+        }
+        await Git(directory, "add -A");
         if (commit)
         {
-            await Git(fixture.Root,
+            await Git(directory,
                 "-c user.name=BaselineTests -c user.email=baseline@example.invalid -c commit.gpgsign=false commit -m baseline");
         }
         // Git objects are read-only on Windows; leave the temporary fixture removable after failed assertions too.
-        foreach (var file in Directory.EnumerateFiles(Path.Combine(fixture.Root, ".git", "objects"), "*", SearchOption.AllDirectories))
+        foreach (var file in Directory.EnumerateFiles(Path.Combine(directory, ".git", "objects"), "*", SearchOption.AllDirectories))
         {
             File.SetAttributes(file, FileAttributes.Normal);
         }
         // Exercise the admitted rename deterministically as well as performing the real Git operation.
-        var gitDirectory = Path.Combine(fixture.Root, ".git");
+        var gitDirectory = Path.Combine(directory, ".git");
         fixture.Manager.NotifyDiskWatcherRename(fixture.Manager.DiskWatcherSession!,
             new RenamedEventArgs(WatcherChangeTypes.Renamed, gitDirectory, "index", "index.lock"));
         var view = fixture.Manager.Baseline.GetSnapshot();
         Assert.False(view.RequiresFullScan);
         Assert.DoesNotContain(view.TouchedPaths,
             path => WorkspaceDiskPathFilter.IsPathUnderDirectory(path, gitDirectory, InputPathCanon.Comparison));
+    }
+
+    [Theory]
+    [InlineData("artifacts")]
+    [InlineData("bin")]
+    public async Task Ignored_ancestor_source_rename_is_received_by_native_watcher_and_journaled(string ancestor)
+    {
+        await using var fixture = new BaselineLifecycleFixture();
+        var project = WorkspaceUnder(fixture, ancestor);
+        var directory = Path.GetDirectoryName(project)!;
+        var original = Path.Combine(directory, "A.cs");
+        var renamed = Path.Combine(directory, "C.cs");
+        await fixture.Manager.LoadAsync(project);
+        await fixture.Manager.Baseline.CaptureTask.WaitAsync(_timeout);
+        var session = fixture.Manager.DiskWatcherSession!;
+        AssertKnown(fixture.Manager.Baseline.GetSnapshot(), original);
+        var before = session.EventRevision(original);
+        File.Move(original, renamed);
+        Assert.True(await WaitUntil(() => session.EventRevision(original) > before && session.EventRevision(renamed) > 0),
+            "Native watcher did not admit both sides of the source rename.");
+        var view = fixture.Manager.Baseline.GetSnapshot();
+        Assert.Contains(original, view.TouchedPaths, InputPathCanon.Comparer);
+        Assert.Contains(renamed, view.TouchedPaths, InputPathCanon.Comparer);
+        Assert.False(view.RequiresFullScan);
+    }
+
+    [Theory]
+    [InlineData("artifacts", "Sub")]
+    [InlineData("bin", "Sub")]
+    [InlineData("artifacts", "obj/Sub")]
+    [InlineData("bin", "obj/Sub")]
+    public async Task Ignored_ancestor_directory_rename_is_received_by_native_watcher_and_marks_gap(string ancestor, string subdirectory)
+    {
+        await using var fixture = new BaselineLifecycleFixture();
+        var project = WorkspaceUnder(fixture, ancestor);
+        var directory = Path.GetDirectoryName(project)!;
+        var original = Path.GetFullPath(Path.Combine(directory, subdirectory));
+        var renamed = original + "2";
+        Directory.CreateDirectory(original);
+        File.Move(Path.Combine(directory, "A.cs"), Path.Combine(original, "A.cs"));
+        var projectText = await File.ReadAllTextAsync(project);
+        var include = Path.GetRelativePath(directory, Path.Combine(original, "A.cs"));
+        await File.WriteAllTextAsync(project,
+            projectText.Replace("Include=\"A.cs\"", $"Include=\"{include}\"", StringComparison.Ordinal));
+        await fixture.Manager.LoadAsync(project);
+        await fixture.Manager.Baseline.CaptureTask.WaitAsync(_timeout);
+        var session = fixture.Manager.DiskWatcherSession!;
+        AssertKnown(fixture.Manager.Baseline.GetSnapshot(), Path.Combine(original, "A.cs"));
+        Directory.Move(original, renamed);
+        Assert.True(await WaitUntil(() => session.DirectoryRenamePaths.Contains(renamed, InputPathCanon.Comparer)),
+            "Native watcher did not admit the directory rename.");
+        Assert.True(fixture.Manager.Baseline.GetSnapshot().RequiresFullScan);
+    }
+
+    [Theory]
+    [InlineData(null, "rename")]
+    [InlineData(null, "save")]
+    [InlineData(null, "both")]
+    [InlineData("artifacts", "rename")]
+    [InlineData("artifacts", "save")]
+    [InlineData("artifacts", "both")]
+    [InlineData("bin", "rename")]
+    [InlineData("bin", "save")]
+    [InlineData("bin", "both")]
+    public async Task Mapped_ignored_input_renames_preserve_both_endpoints(string? ancestor, string scenario)
+    {
+        await using var fixture = new BaselineLifecycleFixture();
+        var project = ancestor == null ? fixture.ProjectPath : WorkspaceUnder(fixture, ancestor);
+        var directory = Path.Combine(Path.GetDirectoryName(project)!, "obj");
+        Directory.CreateDirectory(directory);
+        var manual = Path.Combine(directory, "Manual.cs");
+        var moved = Path.Combine(directory, "Moved.cs");
+        await File.WriteAllTextAsync(manual, "class Manual {}");
+        File.SetLastWriteTimeUtc(manual, DateTime.UtcNow.AddDays(-1));
+        var mapped = "<Compile Include=\"obj/Manual.cs\" />";
+        if (scenario == "both")
+        {
+            await File.WriteAllTextAsync(moved, "class Moved {}");
+            File.SetLastWriteTimeUtc(moved, DateTime.UtcNow.AddDays(-1));
+            mapped += "<Compile Include=\"obj/Moved.cs\" />";
+        }
+        var projectText = await File.ReadAllTextAsync(project);
+        await File.WriteAllTextAsync(project,
+            projectText.Replace("<ItemGroup>", "<ItemGroup>" + mapped, StringComparison.Ordinal));
+        await fixture.Manager.LoadAsync(project);
+        await fixture.Manager.Baseline.CaptureTask.WaitAsync(_timeout);
+        fixture.Manager.SilenceDiskWatchersForTests();
+        var session = fixture.Manager.DiskWatcherSession!;
+        Assert.NotNull(session.InputMap!.Find(manual));
+        var original = scenario == "save" ? manual + ".tmp" : manual;
+        var renamed = scenario == "save" ? manual : moved;
+        var initial = fixture.Manager.Baseline.GetSnapshot();
+        AssertKnown(initial, manual);
+        Assert.DoesNotContain(original, initial.TouchedPaths, InputPathCanon.Comparer);
+        Assert.DoesNotContain(renamed, initial.TouchedPaths, InputPathCanon.Comparer);
+        if (scenario == "save")
+        {
+            await File.WriteAllTextAsync(original, "class Manual { int Updated; }");
+            Assert.Null(session.InputMap.Find(original));
+        }
+        if (scenario == "both")
+        {
+            Assert.NotNull(session.InputMap.Find(renamed));
+            AssertKnown(initial, renamed);
+        }
+        File.Move(original, renamed, overwrite: true);
+        fixture.Manager.NotifyDiskWatcherRename(session,
+            new RenamedEventArgs(WatcherChangeTypes.Renamed, directory, Path.GetFileName(renamed), Path.GetFileName(original)));
+        var view = fixture.Manager.Baseline.GetSnapshot();
+        Assert.Contains(original, view.TouchedPaths, InputPathCanon.Comparer);
+        Assert.Contains(renamed, view.TouchedPaths, InputPathCanon.Comparer);
+        Assert.False(view.RequiresFullScan);
+    }
+
+    [Fact]
+    public async Task Mapped_git_input_rename_preserves_the_unmapped_destination()
+    {
+        await using var fixture = new BaselineLifecycleFixture();
+        var directory = Path.Combine(fixture.Root, ".git");
+        Directory.CreateDirectory(directory);
+        var original = Path.Combine(directory, "Manual.cs");
+        var renamed = Path.Combine(directory, "Moved.cs");
+        await File.WriteAllTextAsync(original, "class Manual {}");
+        File.SetLastWriteTimeUtc(original, DateTime.UtcNow.AddDays(-1));
+        var project = await File.ReadAllTextAsync(fixture.ProjectPath);
+        await File.WriteAllTextAsync(fixture.ProjectPath,
+            project.Replace("<ItemGroup>", "<ItemGroup><Compile Include=\".git/Manual.cs\" />", StringComparison.Ordinal));
+        await fixture.LoadAsync();
+        await fixture.Manager.Baseline.CaptureTask.WaitAsync(_timeout);
+        fixture.Manager.SilenceDiskWatchersForTests();
+        var initial = fixture.Manager.Baseline.GetSnapshot();
+        AssertKnown(initial, original);
+        Assert.DoesNotContain(original, initial.TouchedPaths, InputPathCanon.Comparer);
+        Assert.DoesNotContain(renamed, initial.TouchedPaths, InputPathCanon.Comparer);
+        File.Move(original, renamed);
+        fixture.Manager.NotifyDiskWatcherRename(fixture.Manager.DiskWatcherSession!,
+            new RenamedEventArgs(WatcherChangeTypes.Renamed, directory, "Moved.cs", "Manual.cs"));
+        var view = fixture.Manager.Baseline.GetSnapshot();
+        Assert.Contains(original, view.TouchedPaths, InputPathCanon.Comparer);
+        Assert.Contains(renamed, view.TouchedPaths, InputPathCanon.Comparer);
+        Assert.False(view.RequiresFullScan);
     }
 
     [Theory]
@@ -146,6 +299,38 @@ public sealed class BaselineRenameJournalTests
                 Assert.Single(view.Documents, current => current.Key == document.Key).Snapshot);
             Assert.Contains(document.Key.DocumentPath, view.TouchedPaths, InputPathCanon.Comparer);
         }
+    }
+
+    private static void AssertKnown(BaselineSessionSnapshot snapshot, string path)
+    {
+        var document = Assert.Single(snapshot.Documents,
+            document => InputPathCanon.Comparer.Equals(document.Key.DocumentPath, path));
+        Assert.Equal(BaselineDocumentStatus.Known, document.Status);
+    }
+
+    private static string WorkspaceUnder(BaselineLifecycleFixture fixture, string ancestor)
+    {
+        var directory = Path.Combine(fixture.Root, ancestor, "Repo");
+        Directory.CreateDirectory(directory);
+        foreach (var name in new[] { "A.cs", "B.cs", "App.csproj" })
+        {
+            File.Copy(Path.Combine(fixture.Root, name), Path.Combine(directory, name));
+        }
+        return Path.Combine(directory, "App.csproj");
+    }
+
+    private static async Task<bool> WaitUntil(Func<bool> condition)
+    {
+        var started = Stopwatch.StartNew();
+        while (started.Elapsed < _timeout)
+        {
+            if (condition())
+            {
+                return true;
+            }
+            await Task.Delay(20);
+        }
+        return condition();
     }
 
     private static async Task Git(string directory, string arguments)

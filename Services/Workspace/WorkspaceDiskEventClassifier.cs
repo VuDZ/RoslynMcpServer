@@ -111,6 +111,24 @@ internal static class WorkspaceDiskEventClassifier
         return IsExistingOrIndexedDirectory(oldPath, map) || IsExistingOrIndexedDirectory(newPath, map);
     }
 
+    /// <summary>A mapped endpoint or descendant makes both sides of its rename relevant to the baseline.</summary>
+    public static bool HasMappedRenamePath(string? oldPath, string? newPath, WorkspaceInputMap? map)
+    {
+        if (map == null)
+        {
+            return false;
+        }
+        var oldCanonical = InputPathCanon.TryCanonicalize(oldPath);
+        var newCanonical = InputPathCanon.TryCanonicalize(newPath);
+        if (map.Find(oldCanonical) != null || map.Find(newCanonical) != null)
+        {
+            return true;
+        }
+        return map.Paths.Any(entry =>
+            (oldCanonical != null && WorkspaceDiskPathFilter.IsPathUnderDirectory(entry.CanonicalPath, oldCanonical, InputPathCanon.Comparison))
+            || (newCanonical != null && WorkspaceDiskPathFilter.IsPathUnderDirectory(entry.CanonicalPath, newCanonical, InputPathCanon.Comparison)));
+    }
+
     /// <summary>
     /// The path is a membership region, lies inside one, or is an ancestor of one.
     /// </summary>

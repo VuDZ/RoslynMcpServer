@@ -24,6 +24,22 @@ public static class WorkspaceDiskPathFilter
         return false;
     }
 
+    /// <summary>With a workspace directory, ignores only its descendants; null preserves the legacy whole-path filter.</summary>
+    internal static bool IsIgnoredPath(string? fullPath, string? workspaceDirectory)
+    {
+        var canonical = InputPathCanon.TryCanonicalize(fullPath);
+        if (canonical == null)
+        {
+            return true;
+        }
+        if (workspaceDirectory == null)
+        {
+            return IsIgnoredPath(canonical);
+        }
+        return IsPathUnderDirectory(canonical, workspaceDirectory, InputPathCanon.Comparison)
+            && IsIgnoredPath(Path.GetRelativePath(workspaceDirectory, canonical));
+    }
+
     public static bool IsCSharpSource(string? fullPath)
     {
         if (string.IsNullOrWhiteSpace(fullPath))

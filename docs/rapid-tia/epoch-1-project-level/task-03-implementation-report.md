@@ -3,7 +3,7 @@
 - Дата: 2026-11-03.
 - Исполнитель: прежний исполнитель эпохи Codex; точный runtime model ID средой не предоставлен.
 - Scope: сессионный baseline, его публикация/чтение в фоне, поколения и журнал путей; интеграция с реальными MCP writes, disk watcher, reload/reset. Без графа, project mapping и публичного инструмента.
-- Состояние: **reopened, 2026-11-03** — [ревью приёмки, раунд 9](evidence/task-03-review-round-9.md): MUST-FIX R9-001, [приёмка раунда 8 снята](#возврат-после-раунда-9). Scope: baseline сессии, поколения и журнал, корректное directory evidence, продолжение захвата при предпубликационном gap и устойчивые тестовые предусловия. Без графа, task-04 реализации и публичного инструмента. Исторические приёмки/неудачные прогоны ниже сохранены; актуальна повторная приёмка в конце.
+- Состояние: **accepted, 2026-11-04** — R9-001 подтверждён закрытым [раундом10](evidence/task-03-review-round-10.md), [финальная validation](evidence/task-03-final-validation-round-10.md). Scope: сессионный baseline и поколения, безопасная фиксация, корректный rename journal относительно solution root с приоритетом карты входов. Прочие события не менялись; без графа, task-04 реализации и публичного инструмента. Исторические приёмки и возвраты ниже сохранены, актуален итог в конце.
 
 ## Модель и интеграция
 
@@ -290,3 +290,45 @@ Windows main той же первой заморозки: **1687 executed, 1686 
 - Дата: 2026-11-03. [Раунд 9](evidence/task-03-review-round-9.md), Claude Opus 5.5, вердикт **MUST-FIX**: приёмка раунда 8 снята. Результаты её validation остаются историей.
 - R9-001: исправление R5-003 теряет переименования. В репозитории внутри каталога с игнорируемым именем из журнала пропадает переименованный файл, а переименование каталога не поднимает разрыв; под `obj` пропадает явный вход из карты.
 - История task-03: **9 раундов, 8 исправлений**; R9-001 открыт.
+
+## Реализация R9-001 — rename journal относительно workspace root
+
+Дата: 2026-11-04. База bfbe27c, прежний исполнитель эпохи Codex, точный runtime model ID неизвестен. Scope — только [R9-001](evidence/task-03-review-round-9.md); итоговую приёмку и счётчики обновляет координатор после review/validation.
+
+### Причина и исправление
+
+Глобальный IsIgnoredPath учитывал bin/artifacts выше активного workspace и безусловно исключал endpoints под obj, хотя путь был явно известен карте. Новый internal root-relative overload повторно использует тот же набор ignored names, но смотрит только на descendants directory загруженного solution/csproj. Сам root, его ancestors и paths outside root не наследуют игнорируемое имя общего префикса. Public legacy overload не менялся.
+
+WorkspaceInputSession хранит immutable WorkspaceDirectory, захваченный при создании watcher session. Это root файла, переданного load, а не ближайший project/search root. OnDiskWatcherRenamed использует эту session-фактуру внутри прежнего admission/closure gate, а не позднее изменяемый LoadedPath. Тестовые sessions без root сохраняют legacy fallback.
+
+Карта имеет приоритет: если endpoint или его mapped descendant известен, baseline сохраняет оба конца перехода, включая unmapped tmp/new counterpart. Это отдельный HasMappedRenamePath, который не использует Consult.Unknown: Unknown мог быть следствием ignored ancestor, и не доказывает map membership. Strict HasDirectoryRenameEvidence сохранён отдельно; mapped extensionless FILE по equality не превращается в directory gap.
+
+Mapped transitions записываются до прежней semantic классификации, чтобы та не скрыла unmapped counterpart внутри .git/obj. Для остальных rename paths QueueDiskPath получает отдельный recordBaselineWrite admission. Обычные Create/Changed/Delete используют прежний default, прежняя semantic classification/map/session revisions и refresh-эвристика не менялись. Root-relative policy применяется только к baseline rename journal/gap; task04 filtering не реализован.
+
+### TDD и проверенные сценарии
+
+Все tests написаны до production fix. Первый [RED](evidence/task-03-review-round-9-red.md): **29 выполнено,16 passed,13 failed**. Затем до поведения добавлены ещё3 cases — два native directory renames под obj с mapped descendants и explicit mapped .git input→unmapped destination; усилены явные Known/fresh-journal предусловия. Расширенный **32/16/16**. Отдельный native subset — **6/0/6**: EventRevision/DirectoryRenamePaths receipt уже подтверждён, failures находятся в journal/gap assertions, не в delivery timeouts. MCP выводит только первые5 failures, поэтому оба фактических отчёта сохранены.
+
+Два ancestor roots — artifacts и bin. Native .cs rename даёт оба пути, native directory rename поднимает gap; obj directory descendants также сохраняют наблюдение. Mapped obj transitions проверены в трёх расположениях (обычный root/artifacts/bin) и трёх вариантах (mapped old, mapped new при tmp save, оба mapped). Настоящие File.Move/overwrite выполняются на диске; явная доставка callback изолирует именно Renamed. Изменяемые C# данные имеют контролируемый прошлый mtime, Known status и пустой journal для endpoints до операции, поэтому timestamp rejection не может ложно покрыть потерю rename.
+
+Git add/commit table расширена на оба ancestor roots. В новых строках native watchers подавлены, затем доставляется metadata rename index.lock→index; реальные Git операции и file cleanup сохранены. Старые Git guards обычного root остаются native. Это честно ограниченная проверка rename-only контракта: прежние Changed/Created callbacks под ignored ancestor могут пройти Consult.Unknown и журналировать .git. Их поведение не менялось; не утверждается фильтрация всех native Git events. Шесть ignored сегментов вне карты, direct rename_project и остальные R5 guards сохранены. После production fix новые cases не добавлялись.
+
+### GREEN и передача
+
+[Focused GREEN](evidence/task-03-review-round-9-green.md): **491/491**, Windows Release, MCP build+test. Основной каталог405 (прежние385 +20 новых), дополнительно86 legacy classification/path/freshness/WPF guards. Все123 SourceStructure выполнены; строгий inventory16 identities/kinds/paths без изменений, новых limits нет. Три напечатанных предупреждения прежние, вне задачи.
+
+После GREEN выполнены только mandatory call formatting и XML clarification null-root fallback, без semantic changes; **CODE FROZEN** сообщён после этой доводки. Финальные Windows build/main, три Linux main и AnalyzerLifecycle выполняет координатор на окончательных исходниках. StartDiskWatcher session construction относится к load path, поэтому lifecycle проверка включена в родительский план. Исполнитель не запускал runtime на parent Linux roots.
+
+Изменены ровно5 C# файлов: Services/Models/WorkspaceInputSession.cs; Services/Workspace/WorkspaceDiskPathFilter.cs; Services/Workspace/WorkspaceDiskEventClassifier.cs; Services/Workspace/SolutionManager.cs; RoslynMcpServer.Tests/Testing/BaselineRenameJournalTests.cs. Дополнен настоящий report, добавлены task-03-review-round-9-red.md/-green.md. Старые evidence не переписывались.
+
+R5-002 не переисследовался: прежний WSL trace и контролируемые mtime эксперименты не устанавливают причину потерянного KVM failure рецензента. Это ограничение сохранено, новое исправление ему не приписывается. Версия1.5.18, task/spec/README/status, task04+, посторонний untracked .agents/skills/prepare-github-release/ не менялись. IDE file edit API недоступен; применён разрешённый локальный fallback без Roslyn MCP apply_patch/update_file_content. Commit/push, финальное review, acceptance и bookkeeping остаются у координатора.
+
+## Повторная приёмка после раунда 10
+
+- Дата: 2026-11-04. [Раунд10 — ACCEPT](evidence/task-03-review-round-10.md): R9-001 закрыт. Всего task-03 **10 раундов, 9 исправленных уникальных замечаний** — R2-001/R2-002/R3-001, R5-001…R5-004, R7-001, R9-001. Codex: независимые сессии1,3,4,6,7,8,10; Claude Opus5.5:2,5,9. Точный runtime model ID Codex недоступен.
+- [Финальная validation координатора](evidence/task-03-final-validation-round-10.md): обе Release solution build успешны, Windows focused **491/491**, Windows main **1707/1707**, Windows opted-in AnalyzerLifecycle **13/13**. Три последовательных полных Linux main на окончательном коде — **1703/1703 каждый**. Падений и пропусков нет; counters всех трёх TRX и lifecycle подтверждены отдельно.
+- [Linux logs/counters](evidence/task-03-final-validation-round-10-linux/summary.json), полная сборка и source manifest сохранены. Все5 C# файлов сверены по SHA-256 между Windows/Linux и с финальной сборкой. После неё менялись только docs/status. SourceStructure strict inventory16 с прежними identities/kinds/paths сохранён, новых limits нет.
+- Session.WorkspaceDirectory — неизменяемая база root-relative helper, captured до EnableEvents. Mapped endpoint/descendant сохраняет обе стороны rename, включая tmp save. Старый global overload WorkspaceDiskPathFilter и semantic classification/revisions прочих событий сохранены. Native .cs/directory проверки и real File.Move guards подтверждают поведение, metadata Git guards изолируют rename-handler; фильтрация всех Changed/Created Git callbacks не объявляется результатом R9-001.
+- Для будущей task-04 доступен internal overload WorkspaceDiskPathFilter.IsIgnoredPath(path, workspaceDirectory); его вызов не заменяет map authority. Реализация task-04 не начиналась, переданные в раунде9 требования по build-output фильтрации сохранены.
+- Три build warning прежние, вне задачи. Linux AnalyzerLifecycle и отдельный GC probe не запускались. KVM-причина старого R5-002 остаётся неизвестной, WSL evidence не выдаётся за её доказательство; согласно раунду9 это не новый блокер и не дополнительное исправление.
+- Версия1.5.18 сохранена. Остальные задачи не реализованы, эпоха целиком не принята, публичная активация не добавлялась. Посторонний untracked .agents/skills/prepare-github-release/ не включён.

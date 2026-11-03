@@ -14,6 +14,9 @@ internal sealed class WorkspaceInputSession
 
     public FrozenSet<string> LoadedProjectPaths { get; }
 
+    /// <summary>Directory of the loaded solution/project file, fixed for this callback generation.</summary>
+    public string? WorkspaceDirectory { get; }
+
     /// <summary>Evaluated input map for <see cref="Generation"/>. Null until the loaded graph is published.</summary>
     public WorkspaceInputMap? InputMap { get; private set; }
 
@@ -74,9 +77,13 @@ internal sealed class WorkspaceInputSession
         }
     }
 
-    public WorkspaceInputSession(IEnumerable<string?> projectFilePaths, Action? onObservationGap = null)
+    public WorkspaceInputSession(
+        IEnumerable<string?> projectFilePaths,
+        Action? onObservationGap = null,
+        string? workspaceDirectory = null)
     {
         _onObservationGap = onObservationGap;
+        WorkspaceDirectory = InputPathCanon.TryCanonicalize(workspaceDirectory);
         var paths = new HashSet<string>(OperatingSystem.IsWindows()
             ? StringComparer.OrdinalIgnoreCase
             : StringComparer.Ordinal);

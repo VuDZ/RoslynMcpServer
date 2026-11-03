@@ -2713,7 +2713,10 @@ public sealed class SolutionManager
         // Capture once before enabling events. Deleted and renamed loaded projects still belong
         // to this graph even when their backing files no longer exist. See docs/wpf-temporary-project-watching/README.md.
         var projectFilePaths = loadedSolution.Projects.Select(static project => project.FilePath);
-        var session = new WorkspaceInputSession(projectFilePaths, Baseline.NoteObservationGap);
+        var session = new WorkspaceInputSession(
+            projectFilePaths,
+            Baseline.NoteObservationGap,
+            workspaceDirectory: Path.GetDirectoryName(workspaceFilePath));
         var inputMap = WorkspaceInputMapBuilder.Build(
             loadedSolution,
             session.Generation,
@@ -2792,10 +2795,17 @@ public sealed class SolutionManager
         var accepted = session.TryRun(() =>
         {
             var map = session.InputMap;
-            var oldBaselinePath = WorkspaceDiskPathFilter.IsIgnoredPath(e.OldFullPath) ? null : e.OldFullPath;
-            var newBaselinePath = WorkspaceDiskPathFilter.IsIgnoredPath(e.FullPath) ? null : e.FullPath;
+            // Ancestor directory names do not hide workspace inputs; map authority also preserves a temporary-save endpoint.
+            // Consult.Unknown is insufficient here because it can come from an ancestor named artifacts/bin.
+            // See docs/rapid-tia/epoch-1-project-level/evidence/task-03-review-round-9.md (R9-001).
+            var mappedRename = WorkspaceDiskEventClassifier.HasMappedRenamePath(e.OldFullPath, e.FullPath, map);
+            var oldBaselinePath = mappedRename || !WorkspaceDiskPathFilter.IsIgnoredPath(e.OldFullPath, session.WorkspaceDirectory)
+                ? e.OldFullPath : null;
+            var newBaselinePath = mappedRename || !WorkspaceDiskPathFilter.IsIgnoredPath(e.FullPath, session.WorkspaceDirectory)
+                ? e.FullPath : null;
             var confirmedDirectory = WorkspaceDiskEventClassifier.HasDirectoryRenameEvidence(oldBaselinePath, newBaselinePath, map);
-            if (WorkspaceDiskEventClassifier.IsDirectoryRename(e.OldFullPath, e.FullPath, map))
+            var directoryRename = WorkspaceDiskEventClassifier.IsDirectoryRename(e.OldFullPath, e.FullPath, map);
+            if (mappedRename || directoryRename)
             {
                 if (oldBaselinePath != null)
                 {
@@ -2805,6 +2815,9 @@ public sealed class SolutionManager
                 {
                     Baseline.RecordWrite(newBaselinePath);
                 }
+            }
+            if (directoryRename)
+            {
                 _refreshAllDocuments = true;
                 directoryRenamed = true;
                 // The refresh heuristic also accepts extensionless files; that cannot justify an irreversible baseline gap.
@@ -2824,8 +2837,16 @@ public sealed class SolutionManager
                 Baseline.NoteObservationGap();
             }
 
-            oldGraphPath = QueueDiskPath(session, e.OldFullPath, WatcherChangeTypes.Renamed);
-            newGraphPath = QueueDiskPath(session, e.FullPath, WatcherChangeTypes.Renamed);
+            oldGraphPath = QueueDiskPath(
+                session,
+                e.OldFullPath,
+                WatcherChangeTypes.Renamed,
+                recordBaselineWrite: !mappedRename && oldBaselinePath != null);
+            newGraphPath = QueueDiskPath(
+                session,
+                e.FullPath,
+                WatcherChangeTypes.Renamed,
+                recordBaselineWrite: !mappedRename && newBaselinePath != null);
         });
         if (accepted && directoryRenamed)
         {
@@ -2889,7 +2910,11 @@ public sealed class SolutionManager
         }
     }
 
-    private string? QueueDiskPath(WorkspaceInputSession session, string? rawPath, WatcherChangeTypes changeType)
+    private string? QueueDiskPath(
+        WorkspaceInputSession session,
+        string? rawPath,
+        WatcherChangeTypes changeType,
+        bool recordBaselineWrite = true)
     {
         if (string.IsNullOrWhiteSpace(rawPath))
         {
@@ -2933,7 +2958,7 @@ public sealed class SolutionManager
                 return null;
             }
 
-            return QueueDiskPathWithoutMap(session, fullPath);
+            return QueueDiskPathWithoutMap(session, fullPath, recordBaselineWrite);
         }
 
         if (WorkspaceDiskPathFilter.IsIgnoredPath(fullPath)
@@ -2949,7 +2974,7 @@ public sealed class SolutionManager
         }
 
         var canonical = decision.CanonicalPath ?? fullPath;
-        if (changeType != WatcherChangeTypes.Renamed || !WorkspaceDiskPathFilter.IsIgnoredPath(canonical))
+        if (recordBaselineWrite)
         {
             Baseline.RecordWrite(canonical);
         }
@@ -2988,7 +3013,7 @@ public sealed class SolutionManager
         return null;
     }
 
-    private string? QueueDiskPathWithoutMap(WorkspaceInputSession session, string fullPath)
+    private string? QueueDiskPathWithoutMap(WorkspaceInputSession session, string fullPath, bool recordBaselineWrite)
     {
         if (WorkspaceDiskPathFilter.IsIgnoredPath(fullPath))
         {
@@ -2997,7 +3022,10 @@ public sealed class SolutionManager
 
         if (WorkspaceDiskPathFilter.IsProjectGraphFile(fullPath))
         {
-            Baseline.RecordWrite(fullPath);
+            if (recordBaselineWrite)
+            {
+                Baseline.RecordWrite(fullPath);
+            }
             session.NotePendingContent(fullPath);
             MarkProjectGraphStaleFromGraphFile();
             return fullPath;
@@ -3008,7 +3036,10 @@ public sealed class SolutionManager
             return null;
         }
 
-        Baseline.RecordWrite(fullPath);
+        if (recordBaselineWrite)
+        {
+            Baseline.RecordWrite(fullPath);
+        }
         session.NotePendingContent(fullPath);
         _dirtySourcePaths.TryAdd(fullPath, 0);
         return null;

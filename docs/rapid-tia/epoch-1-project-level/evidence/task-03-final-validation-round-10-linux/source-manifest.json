@@ -1,0 +1,7 @@
+{
+  "RoslynMcpServer.Tests/Testing/BaselineRenameJournalTests.cs": "5a8389aac28247f28565ac4da4927d287d7e35b0614d2bee5a6faf00037f0c90",
+  "Services/Models/WorkspaceInputSession.cs": "7e7967403032958b732b89d76b649ee49a57867d48a335b57191ab861d1bc4cc",
+  "Services/Workspace/SolutionManager.cs": "01daa516bcb26660945e77d0e2fcc5ed82c9b7dc6ca690a08698ee9f112c299d",
+  "Services/Workspace/WorkspaceDiskEventClassifier.cs": "2982741759d19fea47f3df46553a1cf58ab78f912b913a549bc8885bfe34118a",
+  "Services/Workspace/WorkspaceDiskPathFilter.cs": "bc0c7068230e66663e190bd76754d7c809113691e2a0feeab11331f83a894e83"
+}

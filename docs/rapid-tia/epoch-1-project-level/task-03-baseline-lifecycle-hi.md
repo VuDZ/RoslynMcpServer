@@ -5,13 +5,13 @@
 - Примерная сложность: 4/5; класс `hi`.
 - Риск ошибки: высокий — гонка между ленивым чтением текста и правкой на диске молча принимает правку за baseline; ошибка в reload/reset стирает историю изменений.
 - Необходимые способности: `анализ_конкурентности`, `управление_ресурсами`, `семантика_roslyn_msbuild`, `проектирование_проверок`.
-- Статус: **reopened, 2026-11-03** — [ревью приёмки, раунд 9](evidence/task-03-review-round-9.md): MUST-FIX R9-001 (переименования пропадают из журнала); до подтверждения исправления задача не принята. Scope прежний: сессионный baseline и поколения, безопасная фиксация после старта watcher, настоящие разрывы наблюдения и захват при предпубликационном gap, Known/Unknown и rescan; устойчивые тестовые предусловия. Без графа и публичной активации.
+- Статус: **accepted, 2026-11-04** — R9-001 закрыт, [раунд10 — ACCEPT](evidence/task-03-review-round-10.md), [финальная validation](evidence/task-03-final-validation-round-10.md). Scope: сессионный baseline, поколения и безопасная фиксация, rename journal с map authority и ignored-сегментами только ниже solution root, сохранение Known/Unknown и rescan. Прочие watcher events сохранены; без графа и публичной активации.
 - Depends on: [task-01](task-01-baseline-snapshot-model-med.md).
 - Модель, реализовавшая задачу: Codex, прежний исполнитель эпохи (точный runtime model ID средой не предоставлен).
-- Модели, проводившие ревью: Codex, шесть независимых сессий (раунды 1, 3, 4, 6, 7, 8; точный runtime model ID недоступен); Claude Opus 5.5 (`claude-opus-5-5`), раунды 2, 5 и 9.
-- Количество раундов ревью: **9**.
-- Количество исправлений после ревью: **8** — R2-001, R2-002, R3-001, R5-001…R5-004, R7-001. Повторные доработки R5-001/R5-002 не считаются новыми замечаниями; R9-001 открыт.
-- Отчёт о реализации, ревью и validation: [отчёт](task-03-implementation-report.md#возврат-после-раунда-9), [раунд 5 — MUST-FIX](evidence/task-03-review-round-5.md), [раунд 6 — условный ACCEPT](evidence/task-03-review-round-6.md), [validation до раунда 7](evidence/task-03-validation-before-round-7.md), [раунд 7 — MUST-FIX](evidence/task-03-review-round-7.md), [раунд 8 — ACCEPT](evidence/task-03-review-round-8.md), [validation до раунда 9](evidence/task-03-final-validation-round-8.md), [раунд 9 — MUST-FIX](evidence/task-03-review-round-9.md). Предыдущие раунды и исходные результаты сохранены в отчёте.
+- Модели, проводившие ревью: Codex, семь независимых сессий (раунды 1, 3, 4, 6, 7, 8, 10; точный runtime model ID недоступен); Claude Opus 5.5 (`claude-opus-5-5`), раунды 2, 5 и 9.
+- Количество раундов ревью: **10**.
+- Количество исправлений после ревью: **9** — R2-001, R2-002, R3-001, R5-001…R5-004, R7-001, R9-001. Повторные доработки прежних ID не пересчитываются; открытых блокеров task-03 нет. Причина старого KVM failure R5-002 не установлена, это неблокирующее ограничение раунда9.
+- Отчёт о реализации, ревью и validation: [отчёт](task-03-implementation-report.md#повторная-приёмка-после-раунда-10), [раунд9 — MUST-FIX](evidence/task-03-review-round-9.md), [RED R9-001](evidence/task-03-review-round-9-red.md), [GREEN](evidence/task-03-review-round-9-green.md), [раунд10 — ACCEPT](evidence/task-03-review-round-10.md), [финальная validation](evidence/task-03-final-validation-round-10.md). Предыдущая история сохранена в отчёте.
 
 ## Цель
 
