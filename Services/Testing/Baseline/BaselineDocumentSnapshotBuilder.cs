@@ -63,11 +63,10 @@ internal static class BaselineDocumentSnapshotBuilder
         _ => declaration,
     };
 
-    // Enum values, storage layout and initializer execution depend on order, including same-document partial parts.
+    // Order affects enum values, layout, initializers, record PrintMembers and property serialization, even across partial parts.
     private static string DeclarationOrder(MemberDeclarationSyntax declaration, Dictionary<string, int> nextOrderByType)
     {
-        if (declaration is not (BaseFieldDeclarationSyntax or EnumMemberDeclarationSyntax
-            or PropertyDeclarationSyntax { Initializer: not null }))
+        if (declaration is not (BaseFieldDeclarationSyntax or EnumMemberDeclarationSyntax or PropertyDeclarationSyntax))
         {
             return string.Empty;
         }

@@ -272,6 +272,12 @@ public sealed class BaselineDocumentSnapshotBuilderTests
         "class C { static int B { get; } = A + 1; static int A = 1; }", "A")]
     [InlineData("partial class C { static int A = 1; } partial class C { static int B = A + 1; }",
         "partial class C { static int B = A + 1; } partial class C { static int A = 1; }", "A")]
+    [InlineData("record R { public int A { get; init; } public int B { get; init; } }",
+        "record R { public int B { get; init; } public int A { get; init; } }", "A")]
+    [InlineData("struct S { int A { get; set; } long B { get; set; } }",
+        "struct S { long B { get; set; } int A { get; set; } }", "A")]
+    [InlineData("class D { public int A { get; set; } public int B { get; set; } }",
+        "class D { public int B { get; set; } public int A { get; set; } }", "A")]
     public void Meaningful_declaration_order_changes_member_hash(string beforeSource, string afterSource, string memberName)
     {
         var before = Snapshot(beforeSource);
@@ -290,10 +296,12 @@ public sealed class BaselineDocumentSnapshotBuilderTests
     [Theory]
     [InlineData("class C { void M() {} int x = 1; void N() {} }",
         "class C { void N() {} int x = 1; void M() {} }")]
-    [InlineData("class C { int P { get; set; } int x = 1; int Q { get; set; } }",
-        "class C { int Q { get; set; } int x = 1; int P { get; set; } }")]
     [InlineData("class C { class A { int a; } int x = 1; class B { int b; } }",
         "class C { class B { int b; } int x = 1; class A { int a; } }")]
+    [InlineData("class C { int this[int i] => i; int x = 1; int this[string s] => s.Length; }",
+        "class C { int this[string s] => s.Length; int x = 1; int this[int i] => i; }")]
+    [InlineData("class C { event System.Action A { add {} remove {} } int x = 1; event System.Action B { add {} remove {} } }",
+        "class C { event System.Action B { add {} remove {} } int x = 1; event System.Action A { add {} remove {} } }")]
     public void Reordering_members_without_meaningful_order_keeps_hashes_by_key(string beforeSource, string afterSource)
     {
         var before = Snapshot(beforeSource);
