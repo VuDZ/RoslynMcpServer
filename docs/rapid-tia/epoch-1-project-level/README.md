@@ -1,7 +1,7 @@
 # Эпоха 1 — уровень 0 и инструмент `estimate_affected_tests`
 
 - Статус плана: **задачи заведены 2026-10-30; ревью плана 2026-10-31 принято** ([Grok, раунд 1](review-grok.md), [Grok, раунд 2](review-grok-round-2.md), [перепроверка Grok](review-grok-round-2-recheck.md), [перепроверка Codex](review-codex.md#перепроверка-исправлений), ответы автора: [раунд 1](review-round-1-responses.md), [раунд 2](review-round-2-responses.md)). Эпоха целиком не принята.
-- Статус исполнения: **in progress**; task-01 — внутренняя модель и чистый builder снимка одного C# документа ([отчёт](task-01-implementation-report.md)) — 2026-11-03 возвращена на исправление по [ревью приёмки, раунд 3](evidence/task-01-review-round-3.md) (MUST-FIX R3-001). Остальные задачи не начаты; эпоха целиком не принята.
+- Статус исполнения: **in progress**; 2026-11-03 повторно принята task-01 — внутренняя модель и чистый builder снимка одного C# документа, после исправлений R3-001/R3-002 ([отчёт](task-01-implementation-report.md), [раунд 4 — ACCEPT](evidence/task-01-review-round-4.md), [validation](evidence/task-01-final-validation-round-4.md)). Остальные задачи не начаты; эпоха целиком не принята.
 - Зависимость эпохи: нет.
 - Результат: подсказка о затронутых тестах на уровне проектов с момента загрузки,
   baseline-снимок с фиксацией текстов, состав ответа с новыми и изменёнными тестами,
@@ -22,7 +22,7 @@
 Промежуточные задачи делают внутренние сервисы; инструмент появляется в `core` одной
 задачей, когда уже даёт ответ.
 
-- [task-01 — Модель baseline-снимка](task-01-baseline-snapshot-model-med.md) — `med`, **reopened, 2026-11-03** — [раунд 3](evidence/task-01-review-round-3.md): MUST-FIX R3-001; scope — модель и чистый builder одного документа; [отчёт](task-01-implementation-report.md); Depends on: —
+- [task-01 — Модель baseline-снимка](task-01-baseline-snapshot-model-med.md) — `med`, **accepted, 2026-11-03**, раунд 4; scope — модель и чистый builder одного документа; [отчёт/validation](task-01-implementation-report.md#повторная-приёмка-после-раунда-3); Depends on: —
 - [task-02 — Сравнение с baseline-снимком](task-02-change-detection-med.md) — `med`, **planned**; Depends on: [task-01](task-01-baseline-snapshot-model-med.md)
 - [task-03 — Жизненный цикл baseline в сессии](task-03-baseline-lifecycle-hi.md) — `hi`, **planned**; Depends on: [task-01](task-01-baseline-snapshot-model-med.md)
 - [task-04 — Уровень 0: путь → проекты](task-04-level0-path-mapping-med.md) — `med`, **planned**; Depends on: —
@@ -79,10 +79,10 @@ Codex, 2026-10-31: раунд 1 — оценка из чата по версии
 
 ## Статистика ревью задач
 
-- Охват: task-01, 2026-11-03; Codex, две независимые сессии, точные runtime model ID средой не предоставлены; Claude Opus 5.5, раунд 3. По остальным задачам ревью не проводилось (`—`).
-- Сумма раундов ревью задач: **3**, частично — только task-01.
-- Исправленные замечания задач: **2**, R1-001/R1-002, подтверждены в раунде 2; R3-001/R3-002 открыты; частично — только task-01.
-- Отчёты: [реализация и приёмка task-01](task-01-implementation-report.md), [раунд 1](evidence/task-01-review-round-1.md), [раунд 2 — ACCEPT](evidence/task-01-review-round-2.md), [раунд 3 — MUST-FIX](evidence/task-01-review-round-3.md), [финальная validation](evidence/task-01-final-validation.md).
+- Охват: task-01, 2026-11-03; Codex, три независимые сессии (раунды 1, 2, 4; точные runtime model ID средой не предоставлены); Claude Opus 5.5, раунд 3. По остальным задачам ревью не проводилось (`—`).
+- Сумма раундов ревью задач: **4**, частично — только task-01.
+- Исправленные замечания задач: **4** — R1-001/R1-002 подтверждены в раунде 2, R3-001/R3-002 в раунде 4; R3-003 передан task-02, не блокирует task-01 и не входит в счётчик; частично — только task-01.
+- Отчёты: [реализация и приёмка task-01](task-01-implementation-report.md), [раунд 1](evidence/task-01-review-round-1.md), [раунд 2](evidence/task-01-review-round-2.md), [раунд 3](evidence/task-01-review-round-3.md), [раунд 4 — ACCEPT](evidence/task-01-review-round-4.md), [финальная validation после исправлений](evidence/task-01-final-validation-round-4.md).
 
 ## Приёмка реализации эпохи
 

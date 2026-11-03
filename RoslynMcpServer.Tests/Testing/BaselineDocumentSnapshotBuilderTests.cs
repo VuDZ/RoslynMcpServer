@@ -257,6 +257,56 @@ public sealed class BaselineDocumentSnapshotBuilderTests
         Assert.NotEqual(before.TextChecksum, after.TextChecksum);
     }
 
+    [Theory]
+    [InlineData("enum E { A, B }", "enum E { B, A }", "A")]
+    [InlineData("class C { static int A = 1; static int B = A + 1; }",
+        "class C { static int B = A + 1; static int A = 1; }", "A")]
+    [InlineData("struct S { int a; long b; }", "struct S { long b; int a; }", "a")]
+    [InlineData("struct S { event System.Action A; event System.Action B; }",
+        "struct S { event System.Action B; event System.Action A; }", "A")]
+    [InlineData("class C { static event System.Action A = Create(1); static event System.Action B = Create(2); }",
+        "class C { static event System.Action B = Create(2); static event System.Action A = Create(1); }", "A")]
+    [InlineData("class C { static int A { get; } = 1; static int B { get; } = A + 1; }",
+        "class C { static int B { get; } = A + 1; static int A { get; } = 1; }", "A")]
+    [InlineData("class C { static int A = 1; static int B { get; } = A + 1; }",
+        "class C { static int B { get; } = A + 1; static int A = 1; }", "A")]
+    [InlineData("partial class C { static int A = 1; } partial class C { static int B = A + 1; }",
+        "partial class C { static int B = A + 1; } partial class C { static int A = 1; }", "A")]
+    public void Meaningful_declaration_order_changes_member_hash(string beforeSource, string afterSource, string memberName)
+    {
+        var before = Snapshot(beforeSource);
+        var after = Snapshot(afterSource);
+        Assert.False(before.HasUnparseableContent);
+        Assert.False(after.HasUnparseableContent);
+        var beforeByKey = before.Members.GroupBy(member => member.Key).ToDictionary(group => group.Key, group => group.Count());
+        var afterByKey = after.Members.GroupBy(member => member.Key).ToDictionary(group => group.Key, group => group.Count());
+        Assert.Equal(beforeByKey.Count, afterByKey.Count);
+        Assert.All(beforeByKey, entry => Assert.Equal(entry.Value, afterByKey[entry.Key]));
+        var movedMember = Assert.Single(before.Members.Where(member => member.Key.Name == memberName));
+        var afterMember = Assert.Single(after.Members.Where(member => member.Key == movedMember.Key));
+        Assert.NotEqual(movedMember.SyntaxHash, afterMember.SyntaxHash);
+    }
+
+    [Theory]
+    [InlineData("class C { void M() {} int x = 1; void N() {} }",
+        "class C { void N() {} int x = 1; void M() {} }")]
+    [InlineData("class C { int P { get; set; } int x = 1; int Q { get; set; } }",
+        "class C { int Q { get; set; } int x = 1; int P { get; set; } }")]
+    [InlineData("class C { class A { int a; } int x = 1; class B { int b; } }",
+        "class C { class B { int b; } int x = 1; class A { int a; } }")]
+    public void Reordering_members_without_meaningful_order_keeps_hashes_by_key(string beforeSource, string afterSource)
+    {
+        var before = Snapshot(beforeSource);
+        var after = Snapshot(afterSource);
+        var afterByKey = after.Members.ToDictionary(member => member.Key);
+        Assert.Equal(before.Members.Length, afterByKey.Count);
+        Assert.All(before.Members, member => Assert.Equal(member, afterByKey[member.Key]));
+        Assert.Equal(before.ImportsAndNamespacesHash, after.ImportsAndNamespacesHash);
+        Assert.Equal(before.GlobalUsingsHash, after.GlobalUsingsHash);
+        Assert.Equal(before.AssemblyAndModuleAttributesHash, after.AssemblyAndModuleAttributesHash);
+        Assert.Equal(before.DirectivesHash, after.DirectivesHash);
+    }
+
     private static BaselineDocumentSnapshot Snapshot(string source) =>
         BaselineDocumentSnapshotBuilder.Build(CSharpSyntaxTree.ParseText(source));
 

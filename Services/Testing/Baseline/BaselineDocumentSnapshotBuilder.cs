@@ -15,6 +15,7 @@ internal static class BaselineDocumentSnapshotBuilder
     {
         var root = (CompilationUnitSyntax)tree.GetRoot();
         var members = ImmutableArray.CreateBuilder<BaselineMemberSnapshot>();
+        var nextOrderByType = new Dictionary<string, int>(StringComparer.Ordinal);
         foreach (var declaration in root.DescendantNodes().OfType<MemberDeclarationSyntax>())
         {
             if (declaration is BaseNamespaceDeclarationSyntax)
@@ -23,7 +24,8 @@ internal static class BaselineDocumentSnapshotBuilder
             }
 
             var syntax = DeclarationSurface(declaration);
-            var hash = Hash(NamespaceScopePath(declaration) + ":" + Canonical(syntax));
+            var hash = Hash(NamespaceScopePath(declaration) + ":"
+                + DeclarationOrder(declaration, nextOrderByType) + ":" + Canonical(syntax));
             var isPartial = declaration.ChildTokens().Any(token => token.IsKind(SyntaxKind.PartialKeyword));
             foreach (var name in Names(declaration))
             {
@@ -60,6 +62,21 @@ internal static class BaselineDocumentSnapshotBuilder
         EnumDeclarationSyntax enumeration => enumeration.WithMembers(default),
         _ => declaration,
     };
+
+    // Enum values, storage layout and initializer execution depend on order, including same-document partial parts.
+    private static string DeclarationOrder(MemberDeclarationSyntax declaration, Dictionary<string, int> nextOrderByType)
+    {
+        if (declaration is not (BaseFieldDeclarationSyntax or EnumMemberDeclarationSyntax
+            or PropertyDeclarationSyntax { Initializer: not null }))
+        {
+            return string.Empty;
+        }
+
+        var typePath = Key(declaration, string.Empty).ContainingTypePath;
+        nextOrderByType.TryGetValue(typePath, out var order);
+        nextOrderByType[typePath] = order + 1;
+        return order.ToString(System.Globalization.CultureInfo.InvariantCulture);
+    }
 
     private static BaselineMemberKey Key(MemberDeclarationSyntax declaration, string name)
     {
@@ -135,6 +152,7 @@ internal static class BaselineDocumentSnapshotBuilder
                 // Disabled text is trivia, but edits there must survive trivia removal (rapid-tia/README.md).
                 foreach (var token in SyntaxFactory.ParseTokens(trivia.ToFullString()))
                 {
+                    // ParseTokens adds an artificial EOF; hashing it made comment-only edits in empty inactive branches visible.
                     if (!token.IsKind(SyntaxKind.EndOfFileToken))
                     {
                         AppendToken(builder, token);
