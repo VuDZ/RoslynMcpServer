@@ -1,7 +1,7 @@
 # Эпоха 1 — уровень 0 и инструмент `estimate_affected_tests`
 
 - Статус плана: **задачи заведены 2026-10-30; ревью плана 2026-10-31 принято** ([Grok, раунд 1](review-grok.md), [Grok, раунд 2](review-grok-round-2.md), [перепроверка Grok](review-grok-round-2-recheck.md), [перепроверка Codex](review-codex.md#перепроверка-исправлений), ответы автора: [раунд 1](review-round-1-responses.md), [раунд 2](review-round-2-responses.md)). Эпоха целиком не принята.
-- Статус исполнения: **in progress**; 2026-11-03 приняты task-01 (модель снимка, [раунд 6](evidence/task-01-review-round-6.md)) и task-02 (чистое сравнение снимков и признаки тестовых ролей, [отчёт](task-02-implementation-report.md), [ревью](evidence/task-02-review-round-1.md), [validation](evidence/task-02-final-validation.md)). Передача R3-003/R5-002 реализована в task-02. Остальные задачи не начаты, эпоха целиком не принята.
+- Статус исполнения: **in progress**; 2026-11-03 принята task-01 (модель снимка, [раунд 6](evidence/task-01-review-round-6.md)); task-02 (чистое сравнение снимков и признаки тестовых ролей, [отчёт](task-02-implementation-report.md)) возвращена на исправление по [ревью приёмки, раунд 2](evidence/task-02-review-round-2.md) (MUST-FIX R2-001, R2-002). Передача R3-003/R5-002 реализована в task-02. Остальные задачи не начаты, эпоха целиком не принята.
 - Зависимость эпохи: нет.
 - Результат: подсказка о затронутых тестах на уровне проектов с момента загрузки,
   baseline-снимок с фиксацией текстов, состав ответа с новыми и изменёнными тестами,
@@ -23,7 +23,7 @@
 задачей, когда уже даёт ответ.
 
 - [task-01 — Модель baseline-снимка](task-01-baseline-snapshot-model-med.md) — `med`, **accepted, 2026-11-03**, раунд 6; scope — модель и чистый builder одного документа; [отчёт/validation](task-01-implementation-report.md#повторная-приёмка-после-раунда-5); Depends on: —
-- [task-02 — Сравнение с baseline-снимком](task-02-change-detection-med.md) — `med`, **accepted, 2026-11-03**; scope — сравнение снимков и синтаксические признаки тестовых ролей; [отчёт/validation](task-02-implementation-report.md#приёмка-координатором); Depends on: [task-01](task-01-baseline-snapshot-model-med.md)
+- [task-02 — Сравнение с baseline-снимком](task-02-change-detection-med.md) — `med`, **reopened, 2026-11-03** — [раунд 2](evidence/task-02-review-round-2.md): MUST-FIX R2-001, R2-002; scope — сравнение снимков и синтаксические признаки тестовых ролей; [отчёт](task-02-implementation-report.md); Depends on: [task-01](task-01-baseline-snapshot-model-med.md)
 - [task-03 — Жизненный цикл baseline в сессии](task-03-baseline-lifecycle-hi.md) — `hi`, **planned**; Depends on: [task-01](task-01-baseline-snapshot-model-med.md)
 - [task-04 — Уровень 0: путь → проекты](task-04-level0-path-mapping-med.md) — `med`, **planned**; Depends on: —
 - [task-05 — Состав ответа](task-05-response-composition-med.md) — `med`, **planned**; Depends on: [task-02](task-02-change-detection-med.md), [task-04](task-04-level0-path-mapping-med.md)
@@ -79,10 +79,10 @@ Codex, 2026-10-31: раунд 1 — оценка из чата по версии
 
 ## Статистика ревью задач
 
-- Охват: task-01 и task-02, 2026-11-03. Task-01: Codex, четыре независимые сессии (раунды 1, 2, 4, 6), Claude Opus 5.5 (раунды 3 и 5); task-02: Codex, независимая сессия (раунд 1). Точные runtime model ID Codex средой не предоставлены. По остальным задачам ревью не проводилось (`—`).
-- Сумма раундов ревью задач: **7**, частично — task-01: 6, task-02: 1; остальные задачи `—`.
-- Исправленные замечания задач: **5**, частично — task-01: 5 (R1-001/R1-002, R3-001/R3-002, R5-001), task-02: 0. Передача R3-003/R5-002 не входит в счётчик task-01; реализована в принятой task-02.
-- Отчёты: [реализация и приёмка task-01](task-01-implementation-report.md), [раунд 1](evidence/task-01-review-round-1.md), [раунд 2](evidence/task-01-review-round-2.md), [раунд 3](evidence/task-01-review-round-3.md), [раунд 4](evidence/task-01-review-round-4.md), [раунд 5](evidence/task-01-review-round-5.md), [раунд 6 — ACCEPT](evidence/task-01-review-round-6.md), [финальная validation](evidence/task-01-final-validation-round-6.md). Task-02: [отчёт](task-02-implementation-report.md), [раунд 1 — ACCEPT](evidence/task-02-review-round-1.md), [финальная validation](evidence/task-02-final-validation.md).
+- Охват: task-01 и task-02, 2026-11-03. Task-01: Codex, четыре независимые сессии (раунды 1, 2, 4, 6), Claude Opus 5.5 (раунды 3 и 5); task-02: Codex, независимая сессия (раунд 1), Claude Opus 5.5 (раунд 2). Точные runtime model ID Codex средой не предоставлены. По остальным задачам ревью не проводилось (`—`).
+- Сумма раундов ревью задач: **8**, частично — task-01: 6, task-02: 2; остальные задачи `—`.
+- Исправленные замечания задач: **5**, частично — task-01: 5 (R1-001/R1-002, R3-001/R3-002, R5-001), task-02: 0, R2-001…R2-004 открыты. Передача R3-003/R5-002 не входит в счётчик task-01; реализована в task-02.
+- Отчёты: [реализация и приёмка task-01](task-01-implementation-report.md), [раунд 1](evidence/task-01-review-round-1.md), [раунд 2](evidence/task-01-review-round-2.md), [раунд 3](evidence/task-01-review-round-3.md), [раунд 4](evidence/task-01-review-round-4.md), [раунд 5](evidence/task-01-review-round-5.md), [раунд 6 — ACCEPT](evidence/task-01-review-round-6.md), [финальная validation](evidence/task-01-final-validation-round-6.md). Task-02: [отчёт](task-02-implementation-report.md), [раунд 1 — ACCEPT](evidence/task-02-review-round-1.md), [раунд 2 — MUST-FIX](evidence/task-02-review-round-2.md), [validation до раунда 2](evidence/task-02-final-validation.md).
 
 ## Приёмка реализации эпохи
 

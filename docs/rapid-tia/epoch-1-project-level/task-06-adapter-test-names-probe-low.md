@@ -31,7 +31,7 @@ generic классов. [TestFilterHelper](../../../Services/Testing/TestFilterH
 ## Конкретный результат
 
 - Маленькие тестовые проекты-фикстуры (вне solution сервера или в каталоге фикстур
-  тестов) с вложенным классом, generic-классом, `Theory`/`TestCase`/`DataRow` с
+  тестов) с вложенным классом, generic-классом, тестом, унаследованным из базового класса, `Theory`/`TestCase`/`DataRow` с
   параметрами.
 - Сохранённые логи `dotnet test --list-tests` и прогона с фильтром — для
   юнит-тестов task-07 без живого `dotnet test`.
