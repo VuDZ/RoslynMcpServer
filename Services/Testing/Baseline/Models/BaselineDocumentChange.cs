@@ -5,4 +5,5 @@ internal sealed record BaselineDocumentChange(
     BaselineChangeReason Reason,
     BaselineMemberKey? Key = null,
     bool IsTestMethod = false,
-    bool IsOwnTestClassRoot = false);
+    bool IsOwnTestClassRoot = false,
+    bool BlocksNarrowing = false);

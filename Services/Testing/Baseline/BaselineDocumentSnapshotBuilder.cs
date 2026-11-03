@@ -17,15 +17,10 @@ internal static class BaselineDocumentSnapshotBuilder
         var members = ImmutableArray.CreateBuilder<BaselineMemberSnapshot>();
         var nextOrderByType = new Dictionary<string, int>(StringComparer.Ordinal);
         var declarations = root.DescendantNodes().OfType<MemberDeclarationSyntax>().ToArray();
-        var testTypes = TestTypePaths(declarations);
-        var overloadsByType = declarations.OfType<MethodDeclarationSyntax>()
-            .GroupBy(method => Key(method, string.Empty).ContainingTypePath)
-            .ToDictionary(group => group.Key, group => group.GroupBy(method => method.Identifier.ValueText)
-                .Where(methods => methods.Count() > 1).Select(methods => methods.Key).ToHashSet(StringComparer.Ordinal),
-                StringComparer.Ordinal);
-        var contractsByType = declarations.OfType<TypeDeclarationSyntax>().GroupBy(DeclaredTypePath)
-            .ToDictionary(group => group.Key, group => group.SelectMany(type => type.BaseList?.Types
-                .Select(baseType => SimpleName(baseType.Type)) ?? []).ToHashSet(StringComparer.Ordinal), StringComparer.Ordinal);
+        var baseTypeNames = root.DescendantNodes().OfType<BaseListSyntax>().SelectMany(list => list.Types)
+            .Select(baseType => SimpleName(baseType.Type)).Where(name => name.Length > 0)
+            .ToImmutableHashSet(StringComparer.Ordinal);
+        var factsByType = TestTypeFactsByPath(declarations, baseTypeNames);
         foreach (var declaration in declarations)
         {
             if (declaration is BaseNamespaceDeclarationSyntax)
@@ -40,7 +35,7 @@ internal static class BaselineDocumentSnapshotBuilder
             foreach (var name in Names(declaration))
             {
                 var snapshot = new BaselineMemberSnapshot(Key(declaration, name), hash, isPartial);
-                members.Add(WithRoles(snapshot, declaration, testTypes, contractsByType, overloadsByType));
+                members.Add(WithRoles(snapshot, declaration, factsByType));
             }
         }
 
@@ -54,16 +49,34 @@ internal static class BaselineDocumentSnapshotBuilder
             Hash(string.Concat(root.AttributeLists.Select(Canonical))),
             Hash(DirectiveContent(root)),
             tree.GetDiagnostics().Any(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error),
-            members.ToImmutable());
+            members.ToImmutable())
+        {
+            BaseTypeNames = baseTypeNames,
+        };
     }
 
-    private static HashSet<string> TestTypePaths(IEnumerable<MemberDeclarationSyntax> declarations) =>
-        declarations.OfType<MethodDeclarationSyntax>().Where(IsTestMethod)
-            .Select(method => Key(method, string.Empty).ContainingTypePath)
-            .Concat(declarations.OfType<TypeDeclarationSyntax>()
-                .Where(type => type.AttributeLists.SelectMany(list => list.Attributes)
-                    .Any(attribute => AttributeName(attribute) is "TestClass" or "TestFixture"))
-                .Select(DeclaredTypePath)).ToHashSet(StringComparer.Ordinal);
+    private static Dictionary<string, TestTypeFacts> TestTypeFactsByPath(
+        IEnumerable<MemberDeclarationSyntax> declarations, ImmutableHashSet<string> baseTypeNames)
+    {
+        var result = new Dictionary<string, TestTypeFacts>(StringComparer.Ordinal);
+        foreach (var parts in declarations.OfType<TypeDeclarationSyntax>().GroupBy(DeclaredTypePath))
+        {
+            var methods = parts.SelectMany(type => type.Members).OfType<MethodDeclarationSyntax>().ToArray();
+            var hasOwnTests = methods.Any(IsTestMethod);
+            var markedAsTestType = parts.SelectMany(type => type.AttributeLists).SelectMany(list => list.Attributes)
+                .Any(attribute => AttributeName(attribute) is "TestClass" or "TestFixture");
+            // Inherited roots are shared; R-17 (docs/rapid-tia/README.md) favors extra expansion on simple-name matches.
+            var blocksNarrowing = parts.Any(type => type.Modifiers.Any(SyntaxKind.AbstractKeyword))
+                || baseTypeNames.Contains(parts.First().Identifier.ValueText);
+            var contracts = parts.SelectMany(type => type.BaseList?.Types.Select(baseType => SimpleName(baseType.Type)) ?? [])
+                .ToHashSet(StringComparer.Ordinal);
+            var overloadedNames = methods.GroupBy(method => method.Identifier.ValueText).Where(group => group.Count() > 1)
+                .Select(group => group.Key).ToHashSet(StringComparer.Ordinal);
+            result.Add(parts.Key, new TestTypeFacts(hasOwnTests || markedAsTestType, hasOwnTests,
+                blocksNarrowing, contracts, overloadedNames));
+        }
+        return result;
+    }
 
     private static string DeclaredTypePath(TypeDeclarationSyntax type)
     {
@@ -75,36 +88,39 @@ internal static class BaselineDocumentSnapshotBuilder
     private static BaselineMemberSnapshot WithRoles(
         BaselineMemberSnapshot snapshot,
         MemberDeclarationSyntax declaration,
-        HashSet<string> testTypes,
-        Dictionary<string, HashSet<string>> contractsByType,
-        Dictionary<string, HashSet<string>> overloadsByType)
+        Dictionary<string, TestTypeFacts> factsByType)
     {
         var isTest = declaration is MethodDeclarationSyntax method && IsTestMethod(method);
         var isExtension = declaration is MethodDeclarationSyntax extension
             && extension.ParameterList.Parameters.FirstOrDefault()?.Modifiers.Any(SyntaxKind.ThisKeyword) == true;
         var isRoot = false;
         string? contextHash = null;
-        if (testTypes.Contains(snapshot.Key.ContainingTypePath))
+        var containingType = factsByType.GetValueOrDefault(snapshot.Key.ContainingTypePath);
+        if (containingType is { IsTestType: true, BlocksNarrowing: false })
         {
-            isRoot = declaration is ConstructorDeclarationSyntax
+            isRoot = declaration is ConstructorDeclarationSyntax constructor && !constructor.Modifiers.Any(SyntaxKind.StaticKeyword)
                 || declaration is MethodDeclarationSyntax lifecycle && IsLifecycleMethod(lifecycle,
-                    contractsByType.GetValueOrDefault(snapshot.Key.ContainingTypePath) ?? [],
-                    hasOverloads: overloadsByType.GetValueOrDefault(snapshot.Key.ContainingTypePath)
-                        ?.Contains(lifecycle.Identifier.ValueText) == true);
+                    containingType.Contracts, hasOverloads: containingType.OverloadedNames.Contains(lifecycle.Identifier.ValueText));
             // Constants can be inlined into other classes; they are not executed test-class initialization roots.
             if (declaration is BaseFieldDeclarationSyntax field && !field.Modifiers.Any(SyntaxKind.ConstKeyword))
             {
-                isRoot = field.Declaration.Variables.Any(variable => variable.Identifier.ValueText == snapshot.Key.Name
-                    && variable.Initializer != null);
-                // Preserve the context before an initializer exists, so introducing one can be recognized as a new root.
+                isRoot = IsPrivateStaticOrInstance(field.Modifiers)
+                    && field.Declaration.Variables.Any(variable => variable.Identifier.ValueText == snapshot.Key.Name
+                        && variable.Initializer != null);
+                // Track declaration context separately from the initializer; the detector also checks the baseline role.
                 contextHash = Hash(Canonical(field.WithDeclaration(field.Declaration.WithVariables(
                     SyntaxFactory.SeparatedList(field.Declaration.Variables.Select(variable => variable.WithInitializer(null)))))));
             }
             else if (declaration is PropertyDeclarationSyntax property)
             {
-                isRoot = property.Initializer != null;
+                isRoot = property.Initializer != null && IsPrivateStaticOrInstance(property.Modifiers);
                 contextHash = Hash(Canonical(property.WithInitializer(null).WithSemicolonToken(default)));
             }
+        }
+
+        if (declaration is TypeDeclarationSyntax type && factsByType.TryGetValue(DeclaredTypePath(type), out var ownType))
+        {
+            isRoot = ownType.HasOwnTests && !ownType.BlocksNarrowing;
         }
 
         return snapshot with
@@ -112,9 +128,15 @@ internal static class BaselineDocumentSnapshotBuilder
             IsTestMethod = isTest,
             IsOwnTestClassRoot = isRoot,
             IsExtensionMethod = isExtension,
+            BlocksNarrowing = isTest && containingType?.BlocksNarrowing == true,
             InitializerContextHash = contextHash,
         };
     }
+
+    // R-17: static state can escape the test class unless access is private-only; private protected also escapes.
+    private static bool IsPrivateStaticOrInstance(SyntaxTokenList modifiers) => !modifiers.Any(SyntaxKind.StaticKeyword)
+        || !modifiers.Any(token => token.IsKind(SyntaxKind.PublicKeyword) || token.IsKind(SyntaxKind.ProtectedKeyword)
+            || token.IsKind(SyntaxKind.InternalKeyword));
 
     private static bool IsTestMethod(MethodDeclarationSyntax method) => method.AttributeLists
         .SelectMany(list => list.Attributes).Any(attribute => TestAttributeMatcher.IsTestAttributeSyntaxName(attribute.Name.ToString()));
@@ -159,6 +181,7 @@ internal static class BaselineDocumentSnapshotBuilder
         SimpleNameSyntax simple => simple.Identifier.ValueText,
         QualifiedNameSyntax qualified => qualified.Right.Identifier.ValueText,
         AliasQualifiedNameSyntax qualified => qualified.Name.Identifier.ValueText,
+        PredefinedTypeSyntax predefined => predefined.Keyword.ValueText,
         _ => "",
     };
 
@@ -287,4 +310,11 @@ internal static class BaselineDocumentSnapshotBuilder
 
     // Hash UTF-16 code units so the checksum preserves the exact text, including unpaired surrogates.
     private static string Hash(string text) => Convert.ToHexString(SHA256.HashData(MemoryMarshal.AsBytes(text.AsSpan())));
+
+    private sealed record TestTypeFacts(
+        bool IsTestType,
+        bool HasOwnTests,
+        bool BlocksNarrowing,
+        HashSet<string> Contracts,
+        HashSet<string> OverloadedNames);
 }

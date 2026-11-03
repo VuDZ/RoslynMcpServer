@@ -210,15 +210,15 @@ public sealed class BaselineDocumentChangeDetectorTests
     }
 
     [Theory]
-    [InlineData("void Run() {}", "[Fact] void Run() {}", true)]
-    [InlineData("[Fact] void Run() {}", "void Run() {}", false)]
-    [InlineData("[CustomFact] int Run() => 1;", "[CustomFact] int Run() => 2;", false)]
+    [InlineData("void Run() {}", "[Fact] void Run() {}", true, true)]
+    [InlineData("[Fact] void Run() {}", "void Run() {}", false, false)]
+    [InlineData("[CustomFact] int Run() => 1;", "[CustomFact] int Run() => 2;", false, false)]
     public void Test_role_uses_current_syntax_and_custom_attribute_hierarchies_are_not_guessed(
-        string beforeMember, string afterMember, bool isTest)
+        string beforeMember, string afterMember, bool isTest, bool blocks)
     {
         var before = Snapshot("class C { " + beforeMember + " }");
         var after = Snapshot("class C { " + afterMember + " }");
-        AssertChanges(before, after, Member(BaselineChangeKind.MemberModified, Find(after, "Run"), test: isTest));
+        AssertChanges(before, after, Member(BaselineChangeKind.MemberModified, Find(after, "Run"), test: isTest, blocks: blocks));
     }
 
     [Fact]
@@ -232,7 +232,6 @@ public sealed class BaselineDocumentChangeDetectorTests
 
     [Theory]
     [InlineData("C() { Work(1); }", "C() { Work(2); }", ".ctor")]
-    [InlineData("static C() { Work(1); }", "static C() { Work(2); }", ".cctor")]
     [InlineData("int value = 1;", "int value = 2;", "value")]
     [InlineData("int Value { get; } = 1;", "int Value { get; } = 2;", "Value")]
     public void Own_constructor_and_initializer_changes_are_test_class_roots(
@@ -305,11 +304,12 @@ public sealed class BaselineDocumentChangeDetectorTests
         "class C { [Fact] void Test() {} int value = 1; }", "value")]
     [InlineData("class C { [Fact] void Test() {} int Value { get; } }",
         "class C { [Fact] void Test() {} int Value { get; } = 1; }", "Value")]
-    public void Introducing_an_own_initializer_marks_the_new_root(string beforeSource, string afterSource, string name)
+    public void Introducing_an_initializer_on_an_existing_member_does_not_allow_narrowing(
+        string beforeSource, string afterSource, string name)
     {
         var before = Snapshot(beforeSource);
         var after = Snapshot(afterSource);
-        AssertChanges(before, after, Member(BaselineChangeKind.MemberModified, Find(after, name), root: true));
+        AssertChanges(before, after, Member(BaselineChangeKind.MemberModified, Find(after, name)));
     }
 
     [Theory]
@@ -356,8 +356,8 @@ public sealed class BaselineDocumentChangeDetectorTests
         Assert.Single(snapshot.Members.Where(member => member.Key.Name == name));
 
     private static BaselineDocumentChange Member(
-        BaselineChangeKind kind, BaselineMemberSnapshot member, bool test = false, bool root = false) =>
-        new(kind, BaselineChangeReason.MemberSyntax, member.Key, test, root);
+        BaselineChangeKind kind, BaselineMemberSnapshot member, bool test = false, bool root = false, bool blocks = false) =>
+        new(kind, BaselineChangeReason.MemberSyntax, member.Key, test, root, blocks);
 
     private static BaselineDocumentChange Scope(BaselineChangeKind kind, BaselineChangeReason reason) => new(kind, reason);
 

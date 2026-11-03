@@ -75,11 +75,14 @@ internal static class BaselineDocumentChangeDetector
             return;
         }
 
-        var root = current.IsOwnTestClassRoot && (baseline == null || current.InitializerContextHash == null
-            || current.InitializerContextHash == baseline.InitializerContextHash);
+        // R-17 (docs/rapid-tia/README.md): promoting a helper must not hide its possible callers outside this test class.
+        var root = current.IsOwnTestClassRoot && (baseline == null || baseline.IsOwnTestClassRoot
+            && (current.InitializerContextHash == null || current.InitializerContextHash == baseline.InitializerContextHash));
+        var blocksNarrowing = current.IsTestMethod && (current.BlocksNarrowing
+            || baseline != null && (!baseline.IsTestMethod || baseline.BlocksNarrowing));
         changes.Add(new BaselineDocumentChange(
             baseline == null ? BaselineChangeKind.MemberAdded : BaselineChangeKind.MemberModified,
-            BaselineChangeReason.MemberSyntax, current.Key, current.IsTestMethod, root));
+            BaselineChangeReason.MemberSyntax, current.Key, current.IsTestMethod, root, blocksNarrowing));
     }
 
     private static ImmutableArray<BaselineDocumentChange>.Builder OutsideChanges(

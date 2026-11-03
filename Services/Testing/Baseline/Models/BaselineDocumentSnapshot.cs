@@ -9,4 +9,8 @@ internal sealed record BaselineDocumentSnapshot(
     string AssemblyAndModuleAttributesHash,
     string DirectivesHash,
     bool HasUnparseableContent,
-    ImmutableArray<BaselineMemberSnapshot> Members);
+    ImmutableArray<BaselineMemberSnapshot> Members)
+{
+    /// <summary>Base-list type names without qualification or generic arity, for conservative inheritance checks.</summary>
+    internal ImmutableHashSet<string> BaseTypeNames { get; init; } = ImmutableHashSet<string>.Empty;
+}
