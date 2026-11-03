@@ -1,7 +1,7 @@
 # Эпоха 1 — уровень 0 и инструмент `estimate_affected_tests`
 
-- Статус плана: **задачи заведены 2026-10-30; ревью плана 2026-10-31 принято** ([Grok, раунд 1](review-grok.md), [Grok, раунд 2](review-grok-round-2.md), [перепроверка Grok](review-grok-round-2-recheck.md), [перепроверка Codex](review-codex.md#перепроверка-исправлений), ответы автора: [раунд 1](review-round-1-responses.md), [раунд 2](review-round-2-responses.md)). Реализация не принята.
-- Статус исполнения: **planned, код не начат**.
+- Статус плана: **задачи заведены 2026-10-30; ревью плана 2026-10-31 принято** ([Grok, раунд 1](review-grok.md), [Grok, раунд 2](review-grok-round-2.md), [перепроверка Grok](review-grok-round-2-recheck.md), [перепроверка Codex](review-codex.md#перепроверка-исправлений), ответы автора: [раунд 1](review-round-1-responses.md), [раунд 2](review-round-2-responses.md)). Эпоха целиком не принята.
+- Статус исполнения: **in progress**; 2026-11-03 принята task-01 — внутренняя модель и чистый builder снимка одного C# документа ([отчёт](task-01-implementation-report.md), [ревью](evidence/task-01-review-round-2.md), [validation](evidence/task-01-final-validation.md)). Остальные задачи не начаты; эпоха целиком не принята.
 - Зависимость эпохи: нет.
 - Результат: подсказка о затронутых тестах на уровне проектов с момента загрузки,
   baseline-снимок с фиксацией текстов, состав ответа с новыми и изменёнными тестами,
@@ -22,7 +22,7 @@
 Промежуточные задачи делают внутренние сервисы; инструмент появляется в `core` одной
 задачей, когда уже даёт ответ.
 
-- [task-01 — Модель baseline-снимка](task-01-baseline-snapshot-model-med.md) — `med`, **planned**; Depends on: —
+- [task-01 — Модель baseline-снимка](task-01-baseline-snapshot-model-med.md) — `med`, **accepted, 2026-11-03**; scope — модель и чистый builder одного документа; [отчёт/validation](task-01-implementation-report.md#приёмка-координатором); Depends on: —
 - [task-02 — Сравнение с baseline-снимком](task-02-change-detection-med.md) — `med`, **planned**; Depends on: [task-01](task-01-baseline-snapshot-model-med.md)
 - [task-03 — Жизненный цикл baseline в сессии](task-03-baseline-lifecycle-hi.md) — `hi`, **planned**; Depends on: [task-01](task-01-baseline-snapshot-model-med.md)
 - [task-04 — Уровень 0: путь → проекты](task-04-level0-path-mapping-med.md) — `med`, **planned**; Depends on: —
@@ -78,10 +78,10 @@ Codex, 2026-10-31: раунд 1 — оценка из чата по версии
 
 ## Статистика ревью задач
 
-- Охват: —.
-- Сумма раундов ревью задач: —.
-- Исправленные замечания задач: —.
-- Отчёты: —.
+- Охват: task-01, 2026-11-03; Codex, две независимые сессии, точные runtime model ID средой не предоставлены. По остальным задачам ревью не проводилось (`—`).
+- Сумма раундов ревью задач: **2**, частично — только task-01.
+- Исправленные замечания задач: **2**, R1-001/R1-002, подтверждены в раунде 2; частично — только task-01.
+- Отчёты: [реализация и приёмка task-01](task-01-implementation-report.md), [раунд 1](evidence/task-01-review-round-1.md), [раунд 2 — ACCEPT](evidence/task-01-review-round-2.md), [финальная validation](evidence/task-01-final-validation.md).
 
 ## Приёмка реализации эпохи
 
