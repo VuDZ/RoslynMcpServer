@@ -1027,6 +1027,8 @@ public sealed class SourceSetAnalysisTests
         // is not modeled, so the walk does not follow DuringContentReadForTests through that parameter.
         // beforeProject is the search prewarm's per-project seam: a fresh load starts the prewarm, which
         // invokes the parameter; SolutionManager passes BeforeSearchPrewarmProjectForTests, which only tests set.
+        // beforeRead/beforeCommit are baseline capture-work constructor parameters. Delegate argument flow is not
+        // modeled; these test-only barriers therefore remain explicit limits while publication lambdas are inspected.
         // Keep an exact inventory rather than accepting any number of limits; an unexpected blind spot
         // must still fail, and these known limits must not turn into a decided absence of the sync entry.
         var production = ProductionAnalysis.Instance;
@@ -1056,6 +1058,8 @@ public sealed class SourceSetAnalysisTests
             "onRenamed",
             "onError",
             "beforeProject",
+            "beforeRead",
+            "beforeCommit",
         ];
         Assert.Equal(expectedMembers.Length, reachability.Limits.Count);
         foreach (var member in expectedMembers)
@@ -1068,6 +1072,7 @@ public sealed class SourceSetAnalysisTests
                 "update" => Path.Combine("Services", "Models", "WorkspaceInputSession.cs"),
                 "duringRead" => Path.Combine("Services", "Workspace", "WorkspaceInputReconciler.cs"),
                 "beforeProject" => Path.Combine("Services", "Navigation", "SearchIndexPrewarm.cs"),
+                "beforeRead" or "beforeCommit" => Path.Combine("Services", "Testing", "Baseline", "BaselineSession.cs"),
                 "log" or "onChanged" or "onRenamed" or "onError" =>
                     Path.Combine("Services", "Workspace", "WorkspaceDiskWatcherStarter.cs"),
                 _ => Path.Combine("Services", "Workspace", "SolutionManager.cs"),

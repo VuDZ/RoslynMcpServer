@@ -14,6 +14,7 @@ using RoslynMcpServer.Config;
 using RoslynMcpServer.Diagnostics;
 using RoslynMcpServer.Services.Models;
 using RoslynMcpServer.Services.Navigation;
+using RoslynMcpServer.Services.Testing.Baseline;
 using RoslynMcpServer.Services.Workspace.Models;
 using Serilog;
 
@@ -64,6 +65,8 @@ public sealed class SolutionManager
     /// or membership revision is adopted in place; the instance is not replaced.
     /// </summary>
     internal SessionBuildState SessionBuildState { get; } = new();
+
+    internal BaselineSession Baseline { get; } = new();
 
     // Same-assembly tools and the lifecycle test host read these members.
     // InternalsVisibleTo is only RoslynMcpServer.Tests and RoslynMcpServer.LifecycleTestHost.
@@ -558,6 +561,7 @@ public sealed class SolutionManager
             return;
         }
 
+        Baseline.RecordWrite(fullPath);
         _diskWatcherSession?.BeginOwnWrite(fullPath);
     }
 
@@ -626,6 +630,7 @@ public sealed class SolutionManager
             throw new IOException("injected-file-write-failure:" + canonical);
         }
 
+        Baseline.RecordWrite(canonical);
         await WorkspaceFilePersistence.WriteTextAsync(
                 _diskWatcherSession,
                 canonical,
@@ -640,6 +645,7 @@ public sealed class SolutionManager
     internal void WriteTrackedText(string fullPath, string text, Encoding encoding)
     {
         var canonical = InputPathCanon.TryCanonicalize(fullPath) ?? fullPath;
+        Baseline.RecordWrite(canonical);
         WorkspaceFilePersistence.WriteText(_diskWatcherSession, canonical, text, encoding);
         NoteGraphFileWrite(canonical);
     }
@@ -770,6 +776,7 @@ public sealed class SolutionManager
         await _workspaceLock.WaitAsync(cancellationToken);
         try
         {
+            Baseline.Interrupt(_logger);
             await StopSearchPrewarmAsync().ConfigureAwait(false);
             StopDiskWatcherUnderLock();
             _dirtySourcePaths.Clear();
@@ -951,6 +958,10 @@ public sealed class SolutionManager
 
             if (!shadowCopyInSolutionAnalyzers)
             {
+                if (_solution != null)
+                {
+                    Baseline.Publish(fullPath, _solution, DateTime.UtcNow, _logger);
+                }
                 return new WorkspaceLoadPreparationResult(solution, LastShadowCopyResults);
             }
 
@@ -1528,7 +1539,12 @@ public sealed class SolutionManager
 
     private void SetPublishedSnapshot(Solution overlay)
     {
+        var publishedAtUtc = DateTime.UtcNow;
         _solution = overlay;
+        if (_workspaceLoadInProgress && _loadedPath != null)
+        {
+            Baseline.Publish(_loadedPath, overlay, publishedAtUtc, _logger);
+        }
         var context = CreateVerifiedWriteContext(overlay, _workspace?.CurrentSolution);
         _lastPublishedWriteContext = context;
         try
@@ -2075,6 +2091,7 @@ public sealed class SolutionManager
 
         await StopSearchPrewarmAsync().ConfigureAwait(false);
         StopDiskWatcherUnderLock();
+        Baseline.BeginLoad(fullPath, _logger);
         _workspace?.Dispose();
         _workspace = null;
         _solution = null;
@@ -2771,6 +2788,8 @@ public sealed class SolutionManager
             var map = session.InputMap;
             if (WorkspaceDiskEventClassifier.IsDirectoryRename(e.OldFullPath, e.FullPath, map))
             {
+                Baseline.RecordWrite(e.OldFullPath);
+                Baseline.RecordWrite(e.FullPath);
                 _refreshAllDocuments = true;
                 directoryRenamed = true;
                 session.NoteDirectoryRename(
@@ -2906,6 +2925,7 @@ public sealed class SolutionManager
         }
 
         var canonical = decision.CanonicalPath ?? fullPath;
+        Baseline.RecordWrite(canonical);
         var structural = changeType is WatcherChangeTypes.Deleted or WatcherChangeTypes.Renamed
             || decision.CompositionStale;
         if (!structural && session.OwnWriteDefersContent(canonical))
@@ -2950,6 +2970,7 @@ public sealed class SolutionManager
 
         if (WorkspaceDiskPathFilter.IsProjectGraphFile(fullPath))
         {
+            Baseline.RecordWrite(fullPath);
             session.NotePendingContent(fullPath);
             MarkProjectGraphStaleFromGraphFile();
             return fullPath;
@@ -2960,6 +2981,7 @@ public sealed class SolutionManager
             return null;
         }
 
+        Baseline.RecordWrite(fullPath);
         session.NotePendingContent(fullPath);
         _dirtySourcePaths.TryAdd(fullPath, 0);
         return null;
