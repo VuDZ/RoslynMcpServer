@@ -1,0 +1,70 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  DeadlockWitnessHost -> /home/runner/roslyn-mcp-rapid-tia-r5-20261103/RoslynMcpServer.Tests/SourceStructure/DeadlockWitnessHost/bin/Release/net10.0/DeadlockWitnessHost.dll
+  Microsoft.CodeAnalysis.Workspaces.MSBuild.Contracts -> /home/runner/roslyn-mcp-rapid-tia-r5-20261103/forks/roslyn-buildhost/build/Contracts/bin/Release/net8.0/Microsoft.CodeAnalysis.Workspaces.MSBuild.Contracts.dll
+  Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost -> /home/runner/roslyn-mcp-rapid-tia-r5-20261103/forks/roslyn-buildhost/build/BuildHost/bin/Release/net8.0/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.dll
+/home/runner/roslyn-mcp-rapid-tia-r5-20261103/Services/Resolve/NuGetFallbackAssemblyResolver.cs(72,9): warning CS8603: Possible null reference return. [/home/runner/roslyn-mcp-rapid-tia-r5-20261103/RoslynMcpServer.csproj]
+  RoslynMcpServer -> /home/runner/roslyn-mcp-rapid-tia-r5-20261103/bin/Release/net10.0/RoslynMcpServer.dll
+  RoslynMcpServer.LifecycleTestHost -> /home/runner/roslyn-mcp-rapid-tia-r5-20261103/RoslynMcpServer.LifecycleTestHost/bin/Release/net10.0/RoslynMcpServer.LifecycleTestHost.dll
+  RoslynMcpPlugin -> /home/runner/roslyn-mcp-rapid-tia-r5-20261103/samples/RoslynMcpPlugin/bin/Release/net10.0/RoslynMcpPlugin.dll
+/home/runner/roslyn-mcp-rapid-tia-r5-20261103/RoslynMcpServer.Tests/Workspace/WpfTemporaryProjectCallbackTests.cs(195,32): warning xUnit1031: Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031) [/home/runner/roslyn-mcp-rapid-tia-r5-20261103/RoslynMcpServer.Tests/RoslynMcpServer.Tests.csproj]
+  RoslynMcpServer.Tests -> /home/runner/roslyn-mcp-rapid-tia-r5-20261103/RoslynMcpServer.Tests/bin/Release/net10.0/RoslynMcpServer.Tests.dll
+Test run for /home/runner/roslyn-mcp-rapid-tia-r5-20261103/RoslynMcpServer.Tests/bin/Release/net10.0/RoslynMcpServer.Tests.dll (.NETCoreApp,Version=v10.0)
+VSTest version 18.0.2 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.0+00ab0a9ec4 (64-bit .NET 10.0.14)
+[xUnit.net 00:00:00.11]   Discovering: RoslynMcpServer.Tests
+[xUnit.net 00:00:00.34]   Discovered:  RoslynMcpServer.Tests
+[xUnit.net 00:00:00.38]   Starting:    RoslynMcpServer.Tests
+[DEBUG] Found MSBuild: .NET Core SDK (10.0.114) at /usr/lib/dotnet/sdk/10.0.114, VisualStudioRootPath=/usr/lib/dotnet/sdk/10.0.114
+[DEBUG] Using MSBuild from: /usr/lib/dotnet/sdk/10.0.114
+[xUnit.net 00:00:02.25]     RoslynMcpServer.Tests.Testing.BaselineObservationGapTests.Startup_gap_survives_first_publication(missingDirectory: False) [FAIL]
+[xUnit.net 00:00:02.25]       Assert.All() Failure: 2 out of 2 items in the collection did not pass.
+[xUnit.net 00:00:02.25]       [0]: Item:  BaselineDocumentState { Key = BaselineDocumentKey { ProjectPath = /tmp/RoslynMcpBaseline-fd657440fa244c738f088303a5a1de64/Other/Other.csproj, ProjectContext = Other#0, DocumentPath = /tmp/RoslynMcpBaseline-fd657440fa244c738f088303a5a1de64/Other/A.cs, LogicalPath = A.cs, Occurrence = 0 }, Status = Unknown, Snapshot =  }
+[xUnit.net 00:00:02.25]            Error: CreatedNow=2026-11-03T20:32:41.5374729Z; FirstMtime=2026-11-03T20:37:41.5373861Z; Now=2026-11-03T20:32:43.3160147Z; FullScan=True; Captures=Gap workspace= pendingWorkspace=/tmp/RoslynMcpBaseline-fd657440fa244c738f088303a5a1de64/Other/Other.csproj;Timestamp path=/tmp/RoslynMcpBaseline-fd657440fa244c738f088303a5a1de64/Other/A.cs mtime=2026-11-03T20:37:41.5373861Z published=2026-11-03T20:32:43.3009259Z rejected=True;Timestamp path=/tmp/RoslynMcpBaseline-fd657440fa244c738f088303a5a1de64/Other/B.cs mtime=2026-11-03T20:37:41.5374678Z published=2026-11-03T20:32:43.3009259Z rejected=True
+[xUnit.net 00:00:02.25]       [1]: Item:  BaselineDocumentState { Key = BaselineDocumentKey { ProjectPath = /tmp/RoslynMcpBaseline-fd657440fa244c738f088303a5a1de64/Other/Other.csproj, ProjectContext = Other#0, DocumentPath = /tmp/RoslynMcpBaseline-fd657440fa244c738f088303a5a1de64/Other/B.cs, LogicalPath = B.cs, Occurrence = 0 }, Status = Unknown, Snapshot =  }
+[xUnit.net 00:00:02.25]            Error: CreatedNow=2026-11-03T20:32:41.5374729Z; FirstMtime=2026-11-03T20:37:41.5373861Z; Now=2026-11-03T20:32:43.3160147Z; FullScan=True; Captures=Gap workspace= pendingWorkspace=/tmp/RoslynMcpBaseline-fd657440fa244c738f088303a5a1de64/Other/Other.csproj;Timestamp path=/tmp/RoslynMcpBaseline-fd657440fa244c738f088303a5a1de64/Other/A.cs mtime=2026-11-03T20:37:41.5373861Z published=2026-11-03T20:32:43.3009259Z rejected=True;Timestamp path=/tmp/RoslynMcpBaseline-fd657440fa244c738f088303a5a1de64/Other/B.cs mtime=2026-11-03T20:37:41.5374678Z published=2026-11-03T20:32:43.3009259Z rejected=True
+[xUnit.net 00:00:02.25]       Stack Trace:
+[xUnit.net 00:00:02.25]         /home/runner/roslyn-mcp-rapid-tia-r5-20261103/RoslynMcpServer.Tests/Testing/BaselineObservationGapTests.cs(85,0): at RoslynMcpServer.Tests.Testing.BaselineObservationGapTests.Startup_gap_survives_first_publication(Boolean missingDirectory)
+[xUnit.net 00:00:02.25]         /home/runner/roslyn-mcp-rapid-tia-r5-20261103/RoslynMcpServer.Tests/Testing/BaselineObservationGapTests.cs(85,0): at RoslynMcpServer.Tests.Testing.BaselineObservationGapTests.Startup_gap_survives_first_publication(Boolean missingDirectory)
+[xUnit.net 00:00:02.25]         --- End of stack trace from previous location ---
+  Failed RoslynMcpServer.Tests.Testing.BaselineObservationGapTests.Startup_gap_survives_first_publication(missingDirectory: False) [1 s]
+  Error Message:
+   Assert.All() Failure: 2 out of 2 items in the collection did not pass.
+[0]: Item:  BaselineDocumentState { Key = BaselineDocumentKey { ProjectPath = /tmp/RoslynMcpBaseline-fd657440fa244c738f088303a5a1de64/Other/Other.csproj, ProjectContext = Other#0, DocumentPath = /tmp/RoslynMcpBaseline-fd657440fa244c738f088303a5a1de64/Other/A.cs, LogicalPath = A.cs, Occurrence = 0 }, Status = Unknown, Snapshot =  }
+     Error: CreatedNow=2026-11-03T20:32:41.5374729Z; FirstMtime=2026-11-03T20:37:41.5373861Z; Now=2026-11-03T20:32:43.3160147Z; FullScan=True; Captures=Gap workspace= pendingWorkspace=/tmp/RoslynMcpBaseline-fd657440fa244c738f088303a5a1de64/Other/Other.csproj;Timestamp path=/tmp/RoslynMcpBaseline-fd657440fa244c738f088303a5a1de64/Other/A.cs mtime=2026-11-03T20:37:41.5373861Z published=2026-11-03T20:32:43.3009259Z rejected=True;Timestamp path=/tmp/RoslynMcpBaseline-fd657440fa244c738f088303a5a1de64/Other/B.cs mtime=2026-11-03T20:37:41.5374678Z published=2026-11-03T20:32:43.3009259Z rejected=True
+[1]: Item:  BaselineDocumentState { Key = BaselineDocumentKey { ProjectPath = /tmp/RoslynMcpBaseline-fd657440fa244c738f088303a5a1de64/Other/Other.csproj, ProjectContext = Other#0, DocumentPath = /tmp/RoslynMcpBaseline-fd657440fa244c738f088303a5a1de64/Other/B.cs, LogicalPath = B.cs, Occurrence = 0 }, Status = Unknown, Snapshot =  }
+     Error: CreatedNow=2026-11-03T20:32:41.5374729Z; FirstMtime=2026-11-03T20:37:41.5373861Z; Now=2026-11-03T20:32:43.3160147Z; FullScan=True; Captures=Gap workspace= pendingWorkspace=/tmp/RoslynMcpBaseline-fd657440fa244c738f088303a5a1de64/Other/Other.csproj;Timestamp path=/tmp/RoslynMcpBaseline-fd657440fa244c738f088303a5a1de64/Other/A.cs mtime=2026-11-03T20:37:41.5373861Z published=2026-11-03T20:32:43.3009259Z rejected=True;Timestamp path=/tmp/RoslynMcpBaseline-fd657440fa244c738f088303a5a1de64/Other/B.cs mtime=2026-11-03T20:37:41.5374678Z published=2026-11-03T20:32:43.3009259Z rejected=True
+  Stack Trace:
+     at RoslynMcpServer.Tests.Testing.BaselineObservationGapTests.Startup_gap_survives_first_publication(Boolean missingDirectory) in /home/runner/roslyn-mcp-rapid-tia-r5-20261103/RoslynMcpServer.Tests/Testing/BaselineObservationGapTests.cs:line 85
+   at RoslynMcpServer.Tests.Testing.BaselineObservationGapTests.Startup_gap_survives_first_publication(Boolean missingDirectory) in /home/runner/roslyn-mcp-rapid-tia-r5-20261103/RoslynMcpServer.Tests/Testing/BaselineObservationGapTests.cs:line 85
+--- End of stack trace from previous location ---
+[xUnit.net 00:00:02.99]     RoslynMcpServer.Tests.Testing.BaselineObservationGapTests.Startup_gap_survives_first_publication(missingDirectory: True) [FAIL]
+[xUnit.net 00:00:02.99]       Assert.All() Failure: 2 out of 2 items in the collection did not pass.
+[xUnit.net 00:00:02.99]       [0]: Item:  BaselineDocumentState { Key = BaselineDocumentKey { ProjectPath = /tmp/RoslynMcpBaseline-1fcbf5fe53434d9092996cafb222887b/Other/Other.csproj, ProjectContext = Other#0, DocumentPath = /tmp/RoslynMcpBaseline-1fcbf5fe53434d9092996cafb222887b/Other/A.cs, LogicalPath = A.cs, Occurrence = 0 }, Status = Unknown, Snapshot =  }
+[xUnit.net 00:00:02.99]            Error: CreatedNow=2026-11-03T20:32:43.3386122Z; FirstMtime=2026-11-03T20:37:43.3386014Z; Now=2026-11-03T20:32:44.0840955Z; FullScan=True; Captures=Gap workspace= pendingWorkspace=/tmp/RoslynMcpBaseline-1fcbf5fe53434d9092996cafb222887b/Other/Other.csproj;Timestamp path=/tmp/RoslynMcpBaseline-1fcbf5fe53434d9092996cafb222887b/Other/A.cs mtime=2026-11-03T20:37:43.3386014Z published=2026-11-03T20:32:44.0834532Z rejected=True;Timestamp path=/tmp/RoslynMcpBaseline-1fcbf5fe53434d9092996cafb222887b/Other/B.cs mtime=2026-11-03T20:37:43.3386100Z published=2026-11-03T20:32:44.0834532Z rejected=True
+[xUnit.net 00:00:02.99]       [1]: Item:  BaselineDocumentState { Key = BaselineDocumentKey { ProjectPath = /tmp/RoslynMcpBaseline-1fcbf5fe53434d9092996cafb222887b/Other/Other.csproj, ProjectContext = Other#0, DocumentPath = /tmp/RoslynMcpBaseline-1fcbf5fe53434d9092996cafb222887b/Other/B.cs, LogicalPath = B.cs, Occurrence = 0 }, Status = Unknown, Snapshot =  }
+[xUnit.net 00:00:02.99]            Error: CreatedNow=2026-11-03T20:32:43.3386122Z; FirstMtime=2026-11-03T20:37:43.3386014Z; Now=2026-11-03T20:32:44.0840955Z; FullScan=True; Captures=Gap workspace= pendingWorkspace=/tmp/RoslynMcpBaseline-1fcbf5fe53434d9092996cafb222887b/Other/Other.csproj;Timestamp path=/tmp/RoslynMcpBaseline-1fcbf5fe53434d9092996cafb222887b/Other/A.cs mtime=2026-11-03T20:37:43.3386014Z published=2026-11-03T20:32:44.0834532Z rejected=True;Timestamp path=/tmp/RoslynMcpBaseline-1fcbf5fe53434d9092996cafb222887b/Other/B.cs mtime=2026-11-03T20:37:43.3386100Z published=2026-11-03T20:32:44.0834532Z rejected=True
+[xUnit.net 00:00:02.99]       Stack Trace:
+[xUnit.net 00:00:03.00]         /home/runner/roslyn-mcp-rapid-tia-r5-20261103/RoslynMcpServer.Tests/Testing/BaselineObservationGapTests.cs(85,0): at RoslynMcpServer.Tests.Testing.BaselineObservationGapTests.Startup_gap_survives_first_publication(Boolean missingDirectory)
+[xUnit.net 00:00:03.00]         /home/runner/roslyn-mcp-rapid-tia-r5-20261103/RoslynMcpServer.Tests/Testing/BaselineObservationGapTests.cs(85,0): at RoslynMcpServer.Tests.Testing.BaselineObservationGapTests.Startup_gap_survives_first_publication(Boolean missingDirectory)
+[xUnit.net 00:00:03.00]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:03.00]   Finished:    RoslynMcpServer.Tests
+  Failed RoslynMcpServer.Tests.Testing.BaselineObservationGapTests.Startup_gap_survives_first_publication(missingDirectory: True) [748 ms]
+  Error Message:
+   Assert.All() Failure: 2 out of 2 items in the collection did not pass.
+[0]: Item:  BaselineDocumentState { Key = BaselineDocumentKey { ProjectPath = /tmp/RoslynMcpBaseline-1fcbf5fe53434d9092996cafb222887b/Other/Other.csproj, ProjectContext = Other#0, DocumentPath = /tmp/RoslynMcpBaseline-1fcbf5fe53434d9092996cafb222887b/Other/A.cs, LogicalPath = A.cs, Occurrence = 0 }, Status = Unknown, Snapshot =  }
+     Error: CreatedNow=2026-11-03T20:32:43.3386122Z; FirstMtime=2026-11-03T20:37:43.3386014Z; Now=2026-11-03T20:32:44.0840955Z; FullScan=True; Captures=Gap workspace= pendingWorkspace=/tmp/RoslynMcpBaseline-1fcbf5fe53434d9092996cafb222887b/Other/Other.csproj;Timestamp path=/tmp/RoslynMcpBaseline-1fcbf5fe53434d9092996cafb222887b/Other/A.cs mtime=2026-11-03T20:37:43.3386014Z published=2026-11-03T20:32:44.0834532Z rejected=True;Timestamp path=/tmp/RoslynMcpBaseline-1fcbf5fe53434d9092996cafb222887b/Other/B.cs mtime=2026-11-03T20:37:43.3386100Z published=2026-11-03T20:32:44.0834532Z rejected=True
+[1]: Item:  BaselineDocumentState { Key = BaselineDocumentKey { ProjectPath = /tmp/RoslynMcpBaseline-1fcbf5fe53434d9092996cafb222887b/Other/Other.csproj, ProjectContext = Other#0, DocumentPath = /tmp/RoslynMcpBaseline-1fcbf5fe53434d9092996cafb222887b/Other/B.cs, LogicalPath = B.cs, Occurrence = 0 }, Status = Unknown, Snapshot =  }
+     Error: CreatedNow=2026-11-03T20:32:43.3386122Z; FirstMtime=2026-11-03T20:37:43.3386014Z; Now=2026-11-03T20:32:44.0840955Z; FullScan=True; Captures=Gap workspace= pendingWorkspace=/tmp/RoslynMcpBaseline-1fcbf5fe53434d9092996cafb222887b/Other/Other.csproj;Timestamp path=/tmp/RoslynMcpBaseline-1fcbf5fe53434d9092996cafb222887b/Other/A.cs mtime=2026-11-03T20:37:43.3386014Z published=2026-11-03T20:32:44.0834532Z rejected=True;Timestamp path=/tmp/RoslynMcpBaseline-1fcbf5fe53434d9092996cafb222887b/Other/B.cs mtime=2026-11-03T20:37:43.3386100Z published=2026-11-03T20:32:44.0834532Z rejected=True
+  Stack Trace:
+     at RoslynMcpServer.Tests.Testing.BaselineObservationGapTests.Startup_gap_survives_first_publication(Boolean missingDirectory) in /home/runner/roslyn-mcp-rapid-tia-r5-20261103/RoslynMcpServer.Tests/Testing/BaselineObservationGapTests.cs:line 85
+   at RoslynMcpServer.Tests.Testing.BaselineObservationGapTests.Startup_gap_survives_first_publication(Boolean missingDirectory) in /home/runner/roslyn-mcp-rapid-tia-r5-20261103/RoslynMcpServer.Tests/Testing/BaselineObservationGapTests.cs:line 85
+--- End of stack trace from previous location ---
+
+Test Run Failed.
+Total tests: 2
+     Failed: 2
+ Total time: 3.4677 Seconds

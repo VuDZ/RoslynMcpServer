@@ -60,7 +60,7 @@ internal sealed class BaselineLifecycleFixture : IAsyncDisposable
     internal string LinkedSolution()
     {
         var shared = Path.Combine(Root, "Shared.cs");
-        File.WriteAllText(shared, """
+        WriteBaselineSource(shared, """
             class Shared
             {
             #if FIRST
@@ -85,8 +85,8 @@ internal sealed class BaselineLifecycleFixture : IAsyncDisposable
     private static string CreateProject(string directory, string name, string? shared = null, string defines = "")
     {
         Directory.CreateDirectory(directory);
-        File.WriteAllText(Path.Combine(directory, "A.cs"), "partial class C { partial void Run(); }");
-        File.WriteAllText(Path.Combine(directory, "B.cs"), "partial class C { partial void Run() {} }");
+        WriteBaselineSource(Path.Combine(directory, "A.cs"), "partial class C { partial void Run(); }");
+        WriteBaselineSource(Path.Combine(directory, "B.cs"), "partial class C { partial void Run() {} }");
         var path = Path.Combine(directory, name + ".csproj");
         var linked = shared == null ? "" : "<Compile Include=\"" + System.Security.SecurityElement.Escape(shared) + "\" Link=\"Shared.cs\" />";
         File.WriteAllText(path, $$"""
@@ -104,5 +104,13 @@ internal sealed class BaselineLifecycleFixture : IAsyncDisposable
             </Project>
             """);
         return path;
+    }
+
+    private static void WriteBaselineSource(string path, string source)
+    {
+        File.WriteAllText(path, source);
+        // Known baseline scenarios require preexisting files even when UTC moves backward during load.
+        // Timestamp/event tests override this explicitly. See docs/rapid-tia/epoch-1-project-level/evidence/task-03-review-round-5.md (R5-002).
+        File.SetLastWriteTimeUtc(path, DateTime.UtcNow.AddDays(-1));
     }
 }

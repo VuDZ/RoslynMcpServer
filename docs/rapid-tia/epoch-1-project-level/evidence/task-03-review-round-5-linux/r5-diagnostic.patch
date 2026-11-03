@@ -1,0 +1,79 @@
+diff --git a/RoslynMcpServer.Tests/Testing/BaselineSessionIntegrationTests.cs b/RoslynMcpServer.Tests/Testing/BaselineSessionIntegrationTests.cs
+index 19c0393..a487522 100644
+--- a/RoslynMcpServer.Tests/Testing/BaselineSessionIntegrationTests.cs
++++ b/RoslynMcpServer.Tests/Testing/BaselineSessionIntegrationTests.cs
+@@ -195,16 +195,19 @@ public sealed class BaselineSessionIntegrationTests
+         await using var fixture = new BaselineLifecycleFixture();
+         using var gate = new BaselineCaptureGate(fixture.FirstPath);
+         fixture.Manager.Baseline.BeforeReadForTests = gate.WaitAsync;
++        var created = $"CreatedNow={DateTime.UtcNow:O}; CreatedFirstMtime={File.GetLastWriteTimeUtc(fixture.FirstPath):O}; CreatedSecondMtime={File.GetLastWriteTimeUtc(fixture.SecondPath):O}";
+         await fixture.LoadAsync();
+         var initial = fixture.Manager.Baseline.GetSnapshot();
+         await gate.Entered.WaitAsync(_timeout);
++        var loaded = $"LoadedNow={DateTime.UtcNow:O}; LoadedFirstMtime={File.GetLastWriteTimeUtc(fixture.FirstPath):O}; LoadedSecondMtime={File.GetLastWriteTimeUtc(fixture.SecondPath):O}";
+         await fixture.LoadAsync();
+         Assert.True(fixture.Manager.LastLoadWasCacheHit);
+         Assert.Equal(initial.Generation, fixture.Manager.Baseline.GetSnapshot().Generation);
+         gate.Release();
+         await fixture.Manager.Baseline.CaptureTask.WaitAsync(_timeout);
+-        Assert.All(fixture.Manager.Baseline.GetSnapshot().Documents,
+-            document => Assert.Equal(BaselineDocumentStatus.Known, document.Status));
++        var view = fixture.Manager.Baseline.GetSnapshot();
++        var diagnostic = $"{created}; {loaded}; CurrentNow={DateTime.UtcNow:O}; FullScan={view.RequiresFullScan}; Published={view.PublishedAtUtc:O}; FirstMtime={File.GetLastWriteTimeUtc(fixture.FirstPath):O}; SecondMtime={File.GetLastWriteTimeUtc(fixture.SecondPath):O}; WorkerFailure={fixture.Manager.Baseline.DiagnosticFailure}; Reasons={string.Join(";", fixture.Manager.DiskWatcherSession!.ObservationUnknownReasons)}; Touched={string.Join(";", view.TouchedPaths)}; Renames={string.Join(";", fixture.Manager.DiagnosticRenames)}";
++        Assert.All(view.Documents, document => Assert.True(document.Status == BaselineDocumentStatus.Known, diagnostic));
+     }
+ 
+     [Fact]
+diff --git a/Services/Testing/Baseline/BaselineSession.cs b/Services/Testing/Baseline/BaselineSession.cs
+index f04252d..a130fb4 100644
+--- a/Services/Testing/Baseline/BaselineSession.cs
++++ b/Services/Testing/Baseline/BaselineSession.cs
+@@ -8,6 +8,8 @@ namespace RoslynMcpServer.Services.Testing.Baseline;
+ 
+ internal sealed class BaselineSession
+ {
++    internal string? DiagnosticFailure { get; private set; }
++
+     internal Task CaptureTask
+     {
+         get
+@@ -216,8 +218,9 @@ internal sealed class BaselineSession
+         {
+             outcome = "cancelled";
+         }
+-        catch (Exception)
++        catch (Exception ex)
+         {
++            DiagnosticFailure = ex.ToString();
+             outcome = "failure";
+             lock (_gate)
+             {
+diff --git a/Services/Workspace/SolutionManager.cs b/Services/Workspace/SolutionManager.cs
+index 4443c79..63d235d 100644
+--- a/Services/Workspace/SolutionManager.cs
++++ b/Services/Workspace/SolutionManager.cs
+@@ -142,6 +142,8 @@ public sealed class SolutionManager
+     /// Test seam invoked after physical load/cache lookup and before opt-in prepare while
+     /// <see cref="_workspaceLock"/> is still held.
+     /// </summary>
++    internal System.Collections.Concurrent.ConcurrentQueue<string> DiagnosticRenames { get; } = new();
++
+     internal Func<CancellationToken, Task>? AfterPhysicalLoadBeforePrepareAsync { get; set; }
+     internal Action? BeforeDiskWatcherStartForTests { get; set; }
+     internal Action? AfterDiskWatcherStartForTests { get; set; }
+@@ -2776,6 +2778,7 @@ public sealed class SolutionManager
+ 
+     private void OnDiskWatcherChanged(WorkspaceInputSession session, FileSystemEventArgs e)
+     {
++        DiagnosticRenames.Enqueue("CHANGE " + e.ChangeType + " " + e.FullPath);
+         BeforeDiskWatcherCallbackForTests?.Invoke();
+         string? graphPath = null;
+                 session.TryRun(() => graphPath = QueueDiskPath(session, e.FullPath, e.ChangeType));
+@@ -2785,6 +2788,7 @@ public sealed class SolutionManager
+ 
+     private void OnDiskWatcherRenamed(WorkspaceInputSession session, RenamedEventArgs e)
+     {
++        DiagnosticRenames.Enqueue(e.OldFullPath + " -> " + e.FullPath);
+         BeforeDiskWatcherCallbackForTests?.Invoke();
+         var directoryRenamed = false;
+         string? oldGraphPath = null;

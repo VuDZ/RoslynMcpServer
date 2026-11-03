@@ -21,6 +21,7 @@ public sealed class WorkspaceInputWatcherDeliveryTests : IClassFixture<Workspace
         var session = _fixture.Session;
         var beforeApp = session.InputRevisionFor(_fixture.AppId);
         var beforeOther = session.InputRevisionFor(_fixture.OtherId);
+        var beforeEvent = session.EventRevision(_fixture.SharedPath);
         var updated = """
             public class SharedFile
             {
@@ -35,8 +36,8 @@ public sealed class WorkspaceInputWatcherDeliveryTests : IClassFixture<Workspace
             """;
         await File.WriteAllTextAsync(_fixture.SharedPath, updated, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 
-        var delivered = await _fixture.Manager.WaitForDirtySourceAsync(_fixture.SharedPath, TimeSpan.FromSeconds(8));
-        Assert.True(delivered.Delivered, "FileSystemWatcher did not deliver the linked file outside every project directory.");
+        Assert.True(await WaitUntil(() => session.EventRevision(_fixture.SharedPath) > beforeEvent),
+            "FileSystemWatcher did not deliver the linked file outside every project directory.");
 
         var solution = await _fixture.Manager.GetPublishedSolutionAfterDiskSyncAsync();
         Assert.NotNull(solution);
@@ -165,8 +166,9 @@ public sealed class WorkspaceInputWatcherDeliveryTests : IClassFixture<Workspace
 
         Directory.Move(area, moved);
         Assert.True(
-            await WaitUntil(() => session.ObservationUnknownReasons.Contains(InputCoverageReason.DirectoryRenameInsideMembership)),
-            "Directory rename did not mark coverage unknown.");
+            // A previous fact can leave the reason set; only this unique path pair proves receipt of the new rename.
+            await WaitUntil(() => Contains(session.DirectoryRenamePaths, area) && Contains(session.DirectoryRenamePaths, moved)),
+            "Directory rename was not admitted for the new path pair.");
 
         var solution = await _fixture.Manager.GetPublishedSolutionAfterDiskSyncAsync();
         Assert.NotNull(solution);
@@ -183,10 +185,10 @@ public sealed class WorkspaceInputWatcherDeliveryTests : IClassFixture<Workspace
     {
         var session = _fixture.Session;
         var before = session.InputRevisionFor(_fixture.AppId);
+        var beforeEvent = session.EventRevision(_fixture.ManualPath);
         await File.WriteAllTextAsync(_fixture.ManualPath, "public class ManualInput { public int FromDisk; }");
-        var delivered = await _fixture.Manager.WaitForDirtySourceAsync(_fixture.ManualPath, TimeSpan.FromSeconds(8));
-        Assert.True(delivered.Delivered, "Explicit input under obj was not delivered.");
-        Assert.True(session.InputRevisionFor(_fixture.AppId) > before);
+        Assert.True(await WaitUntil(() => session.EventRevision(_fixture.ManualPath) > beforeEvent),
+            "Explicit input under obj was not delivered.");
 
         var solution = await _fixture.Manager.GetPublishedSolutionAfterDiskSyncAsync();
         Assert.NotNull(solution);
@@ -194,6 +196,7 @@ public sealed class WorkspaceInputWatcherDeliveryTests : IClassFixture<Workspace
             .SelectMany(project => project.Documents)
             .Single(document => Same(document.FilePath, _fixture.ManualPath));
         Assert.Contains("FromDisk", (await manual.GetTextAsync()).ToString(), StringComparison.Ordinal);
+        Assert.True(session.InputRevisionFor(_fixture.AppId) > before);
 
         var afterManual = session.InputRevisionFor(_fixture.AppId);
         await File.AppendAllTextAsync(_fixture.AssemblyInfoPath, Environment.NewLine + "// again");
@@ -262,14 +265,34 @@ public sealed class WorkspaceInputWatcherDeliveryTests : IClassFixture<Workspace
     }
 
     [Fact]
+    public async Task Pre_read_directory_rename_then_semantic_sync_preserves_bom_and_project_files()
+    {
+        foreach (var document in await PublishedDocuments())
+        {
+            _ = await document.GetSyntaxTreeAsync();
+        }
+        await Directory_rename_inside_a_membership_region_stays_unknown_after_re_read();
+        Assert.True(_fixture.Session.OwnWriteDefersContent(_fixture.ProgramPath));
+        Assert.DoesNotContain(_fixture.Manager.GetPendingDirtySourcePaths(), path => Same(path, _fixture.ProgramPath));
+        await Semantic_sync_preserves_bom_and_project_files();
+        // The standing reason now exists and the cached text changed; a second rename must await its own receipt.
+        await Directory_rename_inside_a_membership_region_stays_unknown_after_re_read();
+    }
+
+    [Fact]
     public async Task Semantic_sync_preserves_bom_and_project_files()
     {
+        var session = _fixture.Session;
+        var beforeBom = session.EventRevision(_fixture.BomPath);
+        var beforeProgram = session.EventRevision(_fixture.ProgramPath);
         await File.WriteAllTextAsync(_fixture.BomPath, "public class BomFile { public int After; }", new UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
         await File.WriteAllTextAsync(_fixture.ProgramPath, "public class Program { public int BomFreeAfter; }", new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
-        var bomDelivered = await _fixture.Manager.WaitForDirtySourceAsync(_fixture.BomPath, TimeSpan.FromSeconds(8));
-        var programDelivered = await _fixture.Manager.WaitForDirtySourceAsync(_fixture.ProgramPath, TimeSpan.FromSeconds(8));
-        Assert.True(bomDelivered.Delivered, "FileSystemWatcher did not deliver BomFile.cs.");
-        Assert.True(programDelivered.Delivered, "FileSystemWatcher did not deliver Program.cs.");
+        // A preceding refresh may arm own-write bytes; admitted events then wait for reconciliation, without a dirty marker.
+        // See docs/rapid-tia/epoch-1-project-level/evidence/task-03-review-round-5.md (R5-001).
+        Assert.True(await WaitUntil(() => session.EventRevision(_fixture.BomPath) > beforeBom),
+            "FileSystemWatcher did not deliver BomFile.cs.");
+        Assert.True(await WaitUntil(() => session.EventRevision(_fixture.ProgramPath) > beforeProgram),
+            "FileSystemWatcher did not deliver Program.cs.");
 
         var solution = await _fixture.Manager.GetPublishedSolutionAfterDiskSyncAsync();
         Assert.NotNull(solution);

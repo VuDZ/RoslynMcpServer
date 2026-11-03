@@ -105,6 +105,12 @@ internal static class WorkspaceDiskEventClassifier
         return LooksLikeDirectory(oldPath, map) || LooksLikeDirectory(newPath, map);
     }
 
+    /// <summary>Stronger evidence for an irreversible observation gap; a file without an extension is insufficient.</summary>
+    public static bool HasDirectoryRenameEvidence(string? oldPath, string? newPath, WorkspaceInputMap? map)
+    {
+        return IsExistingOrIndexedDirectory(oldPath, map) || IsExistingOrIndexedDirectory(newPath, map);
+    }
+
     /// <summary>
     /// The path is a membership region, lies inside one, or is an ancestor of one.
     /// </summary>
@@ -261,6 +267,18 @@ internal static class WorkspaceDiskEventClassifier
         }
 
         return notices;
+    }
+
+    private static bool IsExistingOrIndexedDirectory(string? rawPath, WorkspaceInputMap? map)
+    {
+        var fullPath = InputPathCanon.TryCanonicalize(rawPath);
+        if (fullPath == null)
+        {
+            return false;
+        }
+        return Directory.Exists(fullPath) || map != null && map.Paths.Any(entry =>
+            !InputPathCanon.Comparer.Equals(entry.CanonicalPath, fullPath)
+            && WorkspaceDiskPathFilter.IsPathUnderDirectory(entry.CanonicalPath, fullPath, InputPathCanon.Comparison));
     }
 
     private static bool LooksLikeDirectory(string? rawPath, WorkspaceInputMap? map)

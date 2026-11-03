@@ -1,0 +1,386 @@
+diff --git a/RoslynMcpServer.Tests/Testing/BaselineObservationGapTests.cs b/RoslynMcpServer.Tests/Testing/BaselineObservationGapTests.cs
+index 4582721a..1ab3c4ad 100644
+--- a/RoslynMcpServer.Tests/Testing/BaselineObservationGapTests.cs
++++ b/RoslynMcpServer.Tests/Testing/BaselineObservationGapTests.cs
+@@ -46,12 +46,22 @@ public sealed class BaselineObservationGapTests
+     public async Task Startup_gap_survives_first_publication(bool missingDirectory)
+     {
+         await using var fixture = new BaselineLifecycleFixture();
+-        var moved = fixture.Root + "-moved";
++        var project = fixture.OtherProject();
++        File.SetLastWriteTimeUtc(Path.Combine(Path.GetDirectoryName(project)!, "A.cs"), DateTime.UtcNow.AddMinutes(5));
++        File.SetLastWriteTimeUtc(Path.Combine(Path.GetDirectoryName(project)!, "B.cs"), DateTime.UtcNow.AddMinutes(5));
++        var created = $"CreatedNow={DateTime.UtcNow:O}; FirstMtime={File.GetLastWriteTimeUtc(Path.Combine(Path.GetDirectoryName(project)!, "A.cs")):O}";
++        var external = Path.Combine(fixture.Root, "External");
++        Directory.CreateDirectory(external);
++        await File.WriteAllTextAsync(Path.Combine(external, "input.txt"), "input");
++        var projectText = await File.ReadAllTextAsync(project);
++        await File.WriteAllTextAsync(project, projectText.Replace("</Project>",
++            "<ItemGroup><AdditionalFiles Include=\"../External/input.txt\" /></ItemGroup></Project>", StringComparison.Ordinal));
+         fixture.Manager.BeforeDiskWatcherStartForTests = () =>
+         {
+             if (missingDirectory)
+             {
+-                Directory.Move(fixture.Root, moved);
++                // Remove an external point-watch directory; C# baseline files stay available throughout capture.
++                Directory.Delete(external, recursive: true);
+             }
+             else
+             {
+@@ -60,22 +70,19 @@ public sealed class BaselineObservationGapTests
+         };
+         try
+         {
+-            await fixture.LoadAsync();
++            await fixture.Manager.LoadAsync(project);
+         }
+         finally
+         {
+             WorkspaceDiskWatcherStarter.FailNextStartForTests = false;
+-            if (Directory.Exists(moved))
+-            {
+-                Directory.Move(moved, fixture.Root);
+-            }
+         }
+         await fixture.Manager.Baseline.CaptureTask.WaitAsync(_timeout);
+         Assert.Contains(missingDirectory ? InputCoverageReason.WatcherDirectoryMissing : InputCoverageReason.WatcherStartFailed,
+             fixture.Manager.DiskWatcherSession!.ObservationUnknownReasons);
+         var view = fixture.Manager.Baseline.GetSnapshot();
+         Assert.True(view.RequiresFullScan);
+-        Assert.All(view.Documents, document => Assert.Equal(BaselineDocumentStatus.Unknown, document.Status));
++        var diagnostic = $"{created}; Now={DateTime.UtcNow:O}; FullScan={view.RequiresFullScan}; Captures={string.Join(";", fixture.Manager.Baseline.DiagnosticCapture)}";
++        Assert.All(view.Documents, document => Assert.True(document.Status == BaselineDocumentStatus.Known, diagnostic));
+     }
+ 
+     [Fact]
+@@ -144,7 +151,25 @@ public sealed class BaselineObservationGapTests
+         await fixture.Manager.Baseline.CaptureTask.WaitAsync(_timeout);
+         var view = fixture.Manager.Baseline.GetSnapshot();
+         Assert.True(view.RequiresFullScan);
+-        Assert.All(view.Documents, document => Assert.Equal(BaselineDocumentStatus.Unknown, document.Status));
++        Assert.All(view.Documents, document => Assert.Equal(BaselineDocumentStatus.Known, document.Status));
++    }
++
++    [Fact]
++    public async Task Prepublication_gap_still_rejects_an_already_journaled_write()
++    {
++        await using var fixture = new BaselineLifecycleFixture();
++        fixture.Manager.AfterDiskWatcherStartForTests = () =>
++        {
++            fixture.Manager.SilenceDiskWatchersForTests();
++            fixture.Manager.DiskWatcherSession!.NoteCoverageUnknown(InputCoverageReason.WatcherBufferOverflow);
++            fixture.Deliver(fixture.FirstPath);
++        };
++        await fixture.LoadAsync();
++        await fixture.Manager.Baseline.CaptureTask.WaitAsync(_timeout);
++        var view = fixture.Manager.Baseline.GetSnapshot();
++        Assert.True(view.RequiresFullScan);
++        Assert.Equal(BaselineDocumentStatus.Unknown, Find(view, fixture.FirstPath).Status);
++        Assert.Equal(BaselineDocumentStatus.Known, Find(view, fixture.SecondPath).Status);
+     }
+ 
+     [Fact]
+diff --git a/RoslynMcpServer.Tests/Testing/BaselineSessionIntegrationTests.cs b/RoslynMcpServer.Tests/Testing/BaselineSessionIntegrationTests.cs
+index 19c03937..b8e6a110 100644
+--- a/RoslynMcpServer.Tests/Testing/BaselineSessionIntegrationTests.cs
++++ b/RoslynMcpServer.Tests/Testing/BaselineSessionIntegrationTests.cs
+@@ -193,6 +193,11 @@ public sealed class BaselineSessionIntegrationTests
+     public async Task Cached_load_does_not_interrupt_an_unfinished_capture()
+     {
+         await using var fixture = new BaselineLifecycleFixture();
++        // Keep this cache-generation guard independent of wall-clock adjustments that can make creation mtimes future-dated.
++        // Timestamp rejection is tested separately. See docs/rapid-tia/epoch-1-project-level/evidence/task-03-review-round-5.md (R5-002).
++        var timestamp = DateTime.UtcNow.AddDays(-1);
++        File.SetLastWriteTimeUtc(fixture.FirstPath, timestamp);
++        File.SetLastWriteTimeUtc(fixture.SecondPath, timestamp);
+         using var gate = new BaselineCaptureGate(fixture.FirstPath);
+         fixture.Manager.Baseline.BeforeReadForTests = gate.WaitAsync;
+         await fixture.LoadAsync();
+diff --git a/RoslynMcpServer.Tests/Workspace/WorkspaceInputWatcherDeliveryTests.cs b/RoslynMcpServer.Tests/Workspace/WorkspaceInputWatcherDeliveryTests.cs
+index 9c4b2f6e..870d51c1 100644
+--- a/RoslynMcpServer.Tests/Workspace/WorkspaceInputWatcherDeliveryTests.cs
++++ b/RoslynMcpServer.Tests/Workspace/WorkspaceInputWatcherDeliveryTests.cs
+@@ -21,6 +21,7 @@ public sealed class WorkspaceInputWatcherDeliveryTests : IClassFixture<Workspace
+         var session = _fixture.Session;
+         var beforeApp = session.InputRevisionFor(_fixture.AppId);
+         var beforeOther = session.InputRevisionFor(_fixture.OtherId);
++        var beforeEvent = session.EventRevision(_fixture.SharedPath);
+         var updated = """
+             public class SharedFile
+             {
+@@ -35,8 +36,8 @@ public sealed class WorkspaceInputWatcherDeliveryTests : IClassFixture<Workspace
+             """;
+         await File.WriteAllTextAsync(_fixture.SharedPath, updated, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+ 
+-        var delivered = await _fixture.Manager.WaitForDirtySourceAsync(_fixture.SharedPath, TimeSpan.FromSeconds(8));
+-        Assert.True(delivered.Delivered, "FileSystemWatcher did not deliver the linked file outside every project directory.");
++        Assert.True(await WaitUntil(() => session.EventRevision(_fixture.SharedPath) > beforeEvent),
++            "FileSystemWatcher did not deliver the linked file outside every project directory.");
+ 
+         var solution = await _fixture.Manager.GetPublishedSolutionAfterDiskSyncAsync();
+         Assert.NotNull(solution);
+@@ -183,10 +184,10 @@ public sealed class WorkspaceInputWatcherDeliveryTests : IClassFixture<Workspace
+     {
+         var session = _fixture.Session;
+         var before = session.InputRevisionFor(_fixture.AppId);
++        var beforeEvent = session.EventRevision(_fixture.ManualPath);
+         await File.WriteAllTextAsync(_fixture.ManualPath, "public class ManualInput { public int FromDisk; }");
+-        var delivered = await _fixture.Manager.WaitForDirtySourceAsync(_fixture.ManualPath, TimeSpan.FromSeconds(8));
+-        Assert.True(delivered.Delivered, "Explicit input under obj was not delivered.");
+-        Assert.True(session.InputRevisionFor(_fixture.AppId) > before);
++        Assert.True(await WaitUntil(() => session.EventRevision(_fixture.ManualPath) > beforeEvent),
++            "Explicit input under obj was not delivered.");
+ 
+         var solution = await _fixture.Manager.GetPublishedSolutionAfterDiskSyncAsync();
+         Assert.NotNull(solution);
+@@ -194,6 +195,7 @@ public sealed class WorkspaceInputWatcherDeliveryTests : IClassFixture<Workspace
+             .SelectMany(project => project.Documents)
+             .Single(document => Same(document.FilePath, _fixture.ManualPath));
+         Assert.Contains("FromDisk", (await manual.GetTextAsync()).ToString(), StringComparison.Ordinal);
++        Assert.True(session.InputRevisionFor(_fixture.AppId) > before);
+ 
+         var afterManual = session.InputRevisionFor(_fixture.AppId);
+         await File.AppendAllTextAsync(_fixture.AssemblyInfoPath, Environment.NewLine + "// again");
+@@ -261,15 +263,33 @@ public sealed class WorkspaceInputWatcherDeliveryTests : IClassFixture<Workspace
+         Assert.Equal(expected, _fixture.Map.SearchRoots);
+     }
+ 
++    [Fact]
++    public async Task Pre_read_directory_rename_then_semantic_sync_preserves_bom_and_project_files()
++    {
++        foreach (var document in await PublishedDocuments())
++        {
++            _ = await document.GetSyntaxTreeAsync();
++        }
++        await Directory_rename_inside_a_membership_region_stays_unknown_after_re_read();
++        Assert.True(_fixture.Session.OwnWriteDefersContent(_fixture.ProgramPath));
++        Assert.DoesNotContain(_fixture.Manager.GetPendingDirtySourcePaths(), path => Same(path, _fixture.ProgramPath));
++        await Semantic_sync_preserves_bom_and_project_files();
++    }
++
+     [Fact]
+     public async Task Semantic_sync_preserves_bom_and_project_files()
+     {
++        var session = _fixture.Session;
++        var beforeBom = session.EventRevision(_fixture.BomPath);
++        var beforeProgram = session.EventRevision(_fixture.ProgramPath);
+         await File.WriteAllTextAsync(_fixture.BomPath, "public class BomFile { public int After; }", new UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
+         await File.WriteAllTextAsync(_fixture.ProgramPath, "public class Program { public int BomFreeAfter; }", new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+-        var bomDelivered = await _fixture.Manager.WaitForDirtySourceAsync(_fixture.BomPath, TimeSpan.FromSeconds(8));
+-        var programDelivered = await _fixture.Manager.WaitForDirtySourceAsync(_fixture.ProgramPath, TimeSpan.FromSeconds(8));
+-        Assert.True(bomDelivered.Delivered, "FileSystemWatcher did not deliver BomFile.cs.");
+-        Assert.True(programDelivered.Delivered, "FileSystemWatcher did not deliver Program.cs.");
++        // A preceding refresh may arm own-write bytes; admitted events then wait for reconciliation, without a dirty marker.
++        // See docs/rapid-tia/epoch-1-project-level/evidence/task-03-review-round-5.md (R5-001).
++        Assert.True(await WaitUntil(() => session.EventRevision(_fixture.BomPath) > beforeBom),
++            "FileSystemWatcher did not deliver BomFile.cs.");
++        Assert.True(await WaitUntil(() => session.EventRevision(_fixture.ProgramPath) > beforeProgram),
++            "FileSystemWatcher did not deliver Program.cs.");
+ 
+         var solution = await _fixture.Manager.GetPublishedSolutionAfterDiskSyncAsync();
+         Assert.NotNull(solution);
+diff --git a/Services/Models/WorkspaceInputSession.cs b/Services/Models/WorkspaceInputSession.cs
+index 1996ab93..ef32dd28 100644
+--- a/Services/Models/WorkspaceInputSession.cs
++++ b/Services/Models/WorkspaceInputSession.cs
+@@ -256,7 +256,7 @@ internal sealed class WorkspaceInputSession
+         }
+     }
+ 
+-    public void NoteDirectoryRename(string? oldPath, string? newPath, bool affectsMembership)
++    public void NoteDirectoryRename(string? oldPath, string? newPath, bool affectsMembership, bool confirmedDirectory = true)
+     {
+         lock (_gate)
+         {
+@@ -269,7 +269,10 @@ internal sealed class WorkspaceInputSession
+             RememberPath(_directoryRenamePaths, newPath);
+             // Admission and gap propagation share closure: a retired watcher cannot invalidate the next baseline.
+             // Direct rename_project calls use this path too. See docs/rapid-tia/epoch-1-project-level/evidence/task-03-review-round-2.md.
+-            _onObservationGap?.Invoke();
++            if (confirmedDirectory)
++            {
++                _onObservationGap?.Invoke();
++            }
+             if (affectsMembership)
+             {
+                 var scope = DirectoryRenameScope(oldPath, newPath);
+diff --git a/Services/Testing/Baseline/BaselineSession.cs b/Services/Testing/Baseline/BaselineSession.cs
+index f04252d7..b648acfa 100644
+--- a/Services/Testing/Baseline/BaselineSession.cs
++++ b/Services/Testing/Baseline/BaselineSession.cs
+@@ -8,6 +8,8 @@ namespace RoslynMcpServer.Services.Testing.Baseline;
+ 
+ internal sealed class BaselineSession
+ {
++    internal System.Collections.Concurrent.ConcurrentQueue<string> DiagnosticCapture { get; } = new();
++
+     internal Task CaptureTask
+     {
+         get
+@@ -132,6 +134,7 @@ internal sealed class BaselineSession
+     {
+         lock (_gate)
+         {
++            DiagnosticCapture.Enqueue($"Gap workspace={_workspacePath} pendingWorkspace={_pendingWorkspacePath}");
+             if (_pendingWorkspacePath != null)
+             {
+                 _pendingObservationGap = true;
+@@ -181,8 +184,8 @@ internal sealed class BaselineSession
+         _versions.Clear();
+         _touched.Clear();
+         _rescanPaths.Clear();
+-        // Watcher startup may fail before the first publication; preserve that gap only for this load identity.
+-        // See docs/rapid-tia/epoch-1-project-level/evidence/task-03-review-round-2.md.
++        // A startup gap requires rescanning, but must not discard the first baseline before any capture can run.
++        // Journaled writes still invalidate individual paths. See docs/rapid-tia/epoch-1-project-level/evidence/task-03-review-round-5.md (R5-004).
+         _requiresFullScan = _pendingObservationGap;
+         foreach (var entry in inventory)
+         {
+@@ -195,10 +198,6 @@ internal sealed class BaselineSession
+             }
+             pending.Add(entry.Key);
+         }
+-        if (_requiresFullScan)
+-        {
+-            FreezePendingUnderLock();
+-        }
+     }
+ 
+     private async Task CaptureAsync(CaptureWork work, ILogger logger)
+@@ -216,8 +215,9 @@ internal sealed class BaselineSession
+         {
+             outcome = "cancelled";
+         }
+-        catch (Exception)
++        catch (Exception ex)
+         {
++            DiagnosticCapture.Enqueue("WorkerFailure=" + ex);
+             outcome = "failure";
+             lock (_gate)
+             {
+@@ -271,7 +271,7 @@ internal sealed class BaselineSession
+         Document? document = null;
+         try
+         {
+-            if (UntrustedTimestamp(entry.Key.DocumentPath, work.PublishedAtUtc))
++            if (DiagnosticUntrustedTimestamp(entry.Key.DocumentPath, work.PublishedAtUtc))
+             {
+                 MarkUnknown(work.Generation, entry.Key);
+                 return;
+@@ -288,7 +288,7 @@ internal sealed class BaselineSession
+             {
+                 await work.BeforeCommit(entry.Key, work.Token).ConfigureAwait(false);
+             }
+-            if (UntrustedTimestamp(entry.Key.DocumentPath, work.PublishedAtUtc))
++            if (DiagnosticUntrustedTimestamp(entry.Key.DocumentPath, work.PublishedAtUtc))
+             {
+                 MarkUnknown(work.Generation, entry.Key);
+                 return;
+@@ -357,6 +357,13 @@ internal sealed class BaselineSession
+         _pendingByPath.Clear();
+     }
+ 
++    private bool DiagnosticUntrustedTimestamp(string path, DateTime publishedAtUtc)
++    {
++        var untrusted = UntrustedTimestamp(path, publishedAtUtc);
++        DiagnosticCapture.Enqueue($"Timestamp path={path} mtime={File.GetLastWriteTimeUtc(path):O} published={publishedAtUtc:O} rejected={untrusted}");
++        return untrusted;
++    }
++
+     private static bool UntrustedTimestamp(string path, DateTime publishedAtUtc) =>
+         !File.Exists(path) || File.GetLastWriteTimeUtc(path) > publishedAtUtc;
+ 
+diff --git a/Services/Workspace/SolutionManager.cs b/Services/Workspace/SolutionManager.cs
+index 4443c791..13ea916f 100644
+--- a/Services/Workspace/SolutionManager.cs
++++ b/Services/Workspace/SolutionManager.cs
+@@ -2792,20 +2792,38 @@ public sealed class SolutionManager
+         var accepted = session.TryRun(() =>
+         {
+             var map = session.InputMap;
++            var oldBaselinePath = WorkspaceDiskPathFilter.IsIgnoredPath(e.OldFullPath) ? null : e.OldFullPath;
++            var newBaselinePath = WorkspaceDiskPathFilter.IsIgnoredPath(e.FullPath) ? null : e.FullPath;
++            var confirmedDirectory = WorkspaceDiskEventClassifier.HasDirectoryRenameEvidence(oldBaselinePath, newBaselinePath, map);
+             if (WorkspaceDiskEventClassifier.IsDirectoryRename(e.OldFullPath, e.FullPath, map))
+             {
+-                Baseline.RecordWrite(e.OldFullPath);
+-                Baseline.RecordWrite(e.FullPath);
++                if (oldBaselinePath != null)
++                {
++                    Baseline.RecordWrite(oldBaselinePath);
++                }
++                if (newBaselinePath != null)
++                {
++                    Baseline.RecordWrite(newBaselinePath);
++                }
+                 _refreshAllDocuments = true;
+                 directoryRenamed = true;
++                // The refresh heuristic also accepts extensionless files; that cannot justify an irreversible baseline gap.
++                // Ignore metadata renames such as .git/index.lock -> index. See docs/rapid-tia/epoch-1-project-level/evidence/task-03-review-round-5.md (R5-003).
+                 session.NoteDirectoryRename(
+                     e.OldFullPath,
+                     e.FullPath,
+                     WorkspaceDiskEventClassifier.AffectsMembershipRegion(e.OldFullPath, map)
+-                        || WorkspaceDiskEventClassifier.AffectsMembershipRegion(e.FullPath, map));
++                        || WorkspaceDiskEventClassifier.AffectsMembershipRegion(e.FullPath, map),
++                    confirmedDirectory: confirmedDirectory);
+                 return;
+             }
+ 
++            // A vanished dotted directory can still have mapped descendants even when the legacy refresh heuristic declines it.
++            if (confirmedDirectory)
++            {
++                Baseline.NoteObservationGap();
++            }
++
+             oldGraphPath = QueueDiskPath(session, e.OldFullPath, WatcherChangeTypes.Renamed);
+             newGraphPath = QueueDiskPath(session, e.FullPath, WatcherChangeTypes.Renamed);
+         });
+@@ -2931,7 +2949,10 @@ public sealed class SolutionManager
+         }
+ 
+         var canonical = decision.CanonicalPath ?? fullPath;
+-        Baseline.RecordWrite(canonical);
++        if (changeType != WatcherChangeTypes.Renamed || !WorkspaceDiskPathFilter.IsIgnoredPath(canonical))
++        {
++            Baseline.RecordWrite(canonical);
++        }
+         var structural = changeType is WatcherChangeTypes.Deleted or WatcherChangeTypes.Renamed
+             || decision.CompositionStale;
+         if (!structural && session.OwnWriteDefersContent(canonical))
+diff --git a/Services/Workspace/WorkspaceDiskEventClassifier.cs b/Services/Workspace/WorkspaceDiskEventClassifier.cs
+index f44264c6..2719c0f2 100644
+--- a/Services/Workspace/WorkspaceDiskEventClassifier.cs
++++ b/Services/Workspace/WorkspaceDiskEventClassifier.cs
+@@ -105,6 +105,12 @@ internal static class WorkspaceDiskEventClassifier
+         return LooksLikeDirectory(oldPath, map) || LooksLikeDirectory(newPath, map);
+     }
+ 
++    /// <summary>Stronger evidence for an irreversible observation gap; a file without an extension is insufficient.</summary>
++    public static bool HasDirectoryRenameEvidence(string? oldPath, string? newPath, WorkspaceInputMap? map)
++    {
++        return IsExistingOrIndexedDirectory(oldPath, map) || IsExistingOrIndexedDirectory(newPath, map);
++    }
++
+     /// <summary>
+     /// The path is a membership region, lies inside one, or is an ancestor of one.
+     /// </summary>
+@@ -263,6 +269,18 @@ internal static class WorkspaceDiskEventClassifier
+         return notices;
+     }
+ 
++    private static bool IsExistingOrIndexedDirectory(string? rawPath, WorkspaceInputMap? map)
++    {
++        var fullPath = InputPathCanon.TryCanonicalize(rawPath);
++        if (fullPath == null)
++        {
++            return false;
++        }
++        return Directory.Exists(fullPath) || map != null && map.Paths.Any(entry =>
++            !InputPathCanon.Comparer.Equals(entry.CanonicalPath, fullPath)
++            && WorkspaceDiskPathFilter.IsPathUnderDirectory(entry.CanonicalPath, fullPath, InputPathCanon.Comparison));
++    }
++
+     private static bool LooksLikeDirectory(string? rawPath, WorkspaceInputMap? map)
+     {
+         var fullPath = InputPathCanon.TryCanonicalize(rawPath);

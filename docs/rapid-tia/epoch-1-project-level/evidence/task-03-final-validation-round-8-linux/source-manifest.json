@@ -1,0 +1,11 @@
+{
+  "RoslynMcpServer.Tests/Testing/BaselineLifecycleFixture.cs": "865a956425b00675ea6fa6d4482e2ee623ee427391ae8d962f5213605ec37ff8",
+  "RoslynMcpServer.Tests/Testing/BaselineObservationGapTests.cs": "b7546375f406f1be7c0335b6d0e0b57ea4611505462eb9b4b893ffb122e11bf6",
+  "RoslynMcpServer.Tests/Testing/BaselineRenameJournalTests.cs": "c60ccfbee7598e0f31737bebe935f594d6d0a3b9b82bc77fca46f51ae732daef",
+  "RoslynMcpServer.Tests/Testing/BaselineSessionIntegrationTests.cs": "f8ad47d53ef3caa2b82260a9cef2cdcaf75945dfbe2603857a10a68c43aa66da",
+  "RoslynMcpServer.Tests/Workspace/WorkspaceInputWatcherDeliveryTests.cs": "4ff10b16ab8344e1ec217f5fd0f7c52364b416c046e741fdd8e95dce5d88ad17",
+  "Services/Models/WorkspaceInputSession.cs": "a77dea077ae372d862f8c69c6c821f45d2c5c56784790c957cd528dce8472971",
+  "Services/Testing/Baseline/BaselineSession.cs": "c2b8209041e34a06bb10fc0ace97ae4feb5d8501a5564b0e48bc82d2516877ad",
+  "Services/Workspace/SolutionManager.cs": "8164326ce33d0320d5a5eb579eb5b74a2dd5c2df08fb89bb1ba8f0f7af4c2ffd",
+  "Services/Workspace/WorkspaceDiskEventClassifier.cs": "01b4390954e16339921b715b2b04cf156bbe351f545249d24d5b8c7e718db362"
+}

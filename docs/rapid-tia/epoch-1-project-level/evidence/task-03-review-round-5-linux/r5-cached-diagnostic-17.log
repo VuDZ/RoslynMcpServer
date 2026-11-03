@@ -1,0 +1,38 @@
+Test run for /home/runner/roslyn-mcp-rapid-tia-r5-20261103/RoslynMcpServer.Tests/bin/Release/net10.0/RoslynMcpServer.Tests.dll (.NETCoreApp,Version=v10.0)
+VSTest version 18.0.2 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.0+00ab0a9ec4 (64-bit .NET 10.0.13)
+[xUnit.net 00:00:00.09]   Discovering: RoslynMcpServer.Tests
+[xUnit.net 00:00:00.24]   Discovered:  RoslynMcpServer.Tests
+[xUnit.net 00:00:00.26]   Starting:    RoslynMcpServer.Tests
+[DEBUG] Found MSBuild: .NET Core SDK (10.0.113) at /usr/lib/dotnet/sdk/10.0.113, VisualStudioRootPath=/usr/lib/dotnet/sdk/10.0.113
+[DEBUG] Using MSBuild from: /usr/lib/dotnet/sdk/10.0.113
+[xUnit.net 00:00:01.75]     RoslynMcpServer.Tests.Testing.BaselineSessionIntegrationTests.Cached_load_does_not_interrupt_an_unfinished_capture [FAIL]
+[xUnit.net 00:00:01.75]       Assert.All() Failure: 2 out of 2 items in the collection did not pass.
+[xUnit.net 00:00:01.75]       [0]: Item:  BaselineDocumentState { Key = BaselineDocumentKey { ProjectPath = /tmp/RoslynMcpBaseline-f116b73898c94ea3afcb4d84ec6bcddb/App.csproj, ProjectContext = App#0, DocumentPath = /tmp/RoslynMcpBaseline-f116b73898c94ea3afcb4d84ec6bcddb/A.cs, LogicalPath = A.cs, Occurrence = 0 }, Status = Unknown, Snapshot =  }
+[xUnit.net 00:00:01.75]            Error: FullScan=False; Published=2026-11-03T20:13:40.0544589Z; FirstMtime=2026-11-03T20:13:40.3953089Z; SecondMtime=2026-11-03T20:13:40.3953089Z; WorkerFailure=; Reasons=imports-not-in-evaluated-graph;restore-inputs-not-in-evaluated-graph;custom-tasks-not-in-evaluated-graph;external-glob-completeness-unknown;xaml-and-resources-beyond-evaluated-documents-unknown;walk-up-file-is-a-candidate-not-a-proven-import; Touched=/tmp/RoslynMcpBaseline-f116b73898c94ea3afcb4d84ec6bcddb/B.cs;/tmp/RoslynMcpBaseline-f116b73898c94ea3afcb4d84ec6bcddb/A.cs; Renames=
+[xUnit.net 00:00:01.75]       [1]: Item:  BaselineDocumentState { Key = BaselineDocumentKey { ProjectPath = /tmp/RoslynMcpBaseline-f116b73898c94ea3afcb4d84ec6bcddb/App.csproj, ProjectContext = App#0, DocumentPath = /tmp/RoslynMcpBaseline-f116b73898c94ea3afcb4d84ec6bcddb/B.cs, LogicalPath = B.cs, Occurrence = 0 }, Status = Unknown, Snapshot =  }
+[xUnit.net 00:00:01.75]            Error: FullScan=False; Published=2026-11-03T20:13:40.0544589Z; FirstMtime=2026-11-03T20:13:40.3953089Z; SecondMtime=2026-11-03T20:13:40.3953089Z; WorkerFailure=; Reasons=imports-not-in-evaluated-graph;restore-inputs-not-in-evaluated-graph;custom-tasks-not-in-evaluated-graph;external-glob-completeness-unknown;xaml-and-resources-beyond-evaluated-documents-unknown;walk-up-file-is-a-candidate-not-a-proven-import; Touched=/tmp/RoslynMcpBaseline-f116b73898c94ea3afcb4d84ec6bcddb/B.cs;/tmp/RoslynMcpBaseline-f116b73898c94ea3afcb4d84ec6bcddb/A.cs; Renames=
+[xUnit.net 00:00:01.75]       Stack Trace:
+[xUnit.net 00:00:01.75]         /home/runner/roslyn-mcp-rapid-tia-r5-20261103/RoslynMcpServer.Tests/Testing/BaselineSessionIntegrationTests.cs(208,0): at RoslynMcpServer.Tests.Testing.BaselineSessionIntegrationTests.Cached_load_does_not_interrupt_an_unfinished_capture()
+[xUnit.net 00:00:01.75]         /home/runner/roslyn-mcp-rapid-tia-r5-20261103/RoslynMcpServer.Tests/Testing/BaselineSessionIntegrationTests.cs(208,0): at RoslynMcpServer.Tests.Testing.BaselineSessionIntegrationTests.Cached_load_does_not_interrupt_an_unfinished_capture()
+[xUnit.net 00:00:01.75]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:01.76]   Finished:    RoslynMcpServer.Tests
+  Failed RoslynMcpServer.Tests.Testing.BaselineSessionIntegrationTests.Cached_load_does_not_interrupt_an_unfinished_capture [1 s]
+  Error Message:
+   Assert.All() Failure: 2 out of 2 items in the collection did not pass.
+[0]: Item:  BaselineDocumentState { Key = BaselineDocumentKey { ProjectPath = /tmp/RoslynMcpBaseline-f116b73898c94ea3afcb4d84ec6bcddb/App.csproj, ProjectContext = App#0, DocumentPath = /tmp/RoslynMcpBaseline-f116b73898c94ea3afcb4d84ec6bcddb/A.cs, LogicalPath = A.cs, Occurrence = 0 }, Status = Unknown, Snapshot =  }
+     Error: FullScan=False; Published=2026-11-03T20:13:40.0544589Z; FirstMtime=2026-11-03T20:13:40.3953089Z; SecondMtime=2026-11-03T20:13:40.3953089Z; WorkerFailure=; Reasons=imports-not-in-evaluated-graph;restore-inputs-not-in-evaluated-graph;custom-tasks-not-in-evaluated-graph;external-glob-completeness-unknown;xaml-and-resources-beyond-evaluated-documents-unknown;walk-up-file-is-a-candidate-not-a-proven-import; Touched=/tmp/RoslynMcpBaseline-f116b73898c94ea3afcb4d84ec6bcddb/B.cs;/tmp/RoslynMcpBaseline-f116b73898c94ea3afcb4d84ec6bcddb/A.cs; Renames=
+[1]: Item:  BaselineDocumentState { Key = BaselineDocumentKey { ProjectPath = /tmp/RoslynMcpBaseline-f116b73898c94ea3afcb4d84ec6bcddb/App.csproj, ProjectContext = App#0, DocumentPath = /tmp/RoslynMcpBaseline-f116b73898c94ea3afcb4d84ec6bcddb/B.cs, LogicalPath = B.cs, Occurrence = 0 }, Status = Unknown, Snapshot =  }
+     Error: FullScan=False; Published=2026-11-03T20:13:40.0544589Z; FirstMtime=2026-11-03T20:13:40.3953089Z; SecondMtime=2026-11-03T20:13:40.3953089Z; WorkerFailure=; Reasons=imports-not-in-evaluated-graph;restore-inputs-not-in-evaluated-graph;custom-tasks-not-in-evaluated-graph;external-glob-completeness-unknown;xaml-and-resources-beyond-evaluated-documents-unknown;walk-up-file-is-a-candidate-not-a-proven-import; Touched=/tmp/RoslynMcpBaseline-f116b73898c94ea3afcb4d84ec6bcddb/B.cs;/tmp/RoslynMcpBaseline-f116b73898c94ea3afcb4d84ec6bcddb/A.cs; Renames=
+  Stack Trace:
+     at RoslynMcpServer.Tests.Testing.BaselineSessionIntegrationTests.Cached_load_does_not_interrupt_an_unfinished_capture() in /home/runner/roslyn-mcp-rapid-tia-r5-20261103/RoslynMcpServer.Tests/Testing/BaselineSessionIntegrationTests.cs:line 208
+   at RoslynMcpServer.Tests.Testing.BaselineSessionIntegrationTests.Cached_load_does_not_interrupt_an_unfinished_capture() in /home/runner/roslyn-mcp-rapid-tia-r5-20261103/RoslynMcpServer.Tests/Testing/BaselineSessionIntegrationTests.cs:line 208
+--- End of stack trace from previous location ---
+
+Test Run Failed.
+Total tests: 1
+     Failed: 1
+ Total time: 2.1622 Seconds

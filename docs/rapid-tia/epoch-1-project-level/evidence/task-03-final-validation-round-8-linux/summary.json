@@ -1,0 +1,77 @@
+[
+  {
+    "run": 1,
+    "exitCode": 0,
+    "filter": "Category!=AnalyzerLifecycle&Category!=RequiresPinnedSdk&Category!=RequiresWindows",
+    "counters": {
+      "total": "1683",
+      "executed": "1683",
+      "passed": "1683",
+      "failed": "0",
+      "error": "0",
+      "timeout": "0",
+      "aborted": "0",
+      "inconclusive": "0",
+      "passedButRunAborted": "0",
+      "notRunnable": "0",
+      "notExecuted": "0",
+      "disconnected": "0",
+      "warning": "0",
+      "completed": "0",
+      "inProgress": "0",
+      "pending": "0"
+    },
+    "log": "/home/runner/roslyn-mcp-rapid-tia-r5-final-r7-20261103/artifacts/task-03-r8-linux-1793738719312-1.log",
+    "trx": "/home/runner/roslyn-mcp-rapid-tia-r5-final-r7-20261103/TestResults/task-03-r8-linux-1793738719312-1/main.trx"
+  },
+  {
+    "run": 2,
+    "exitCode": 0,
+    "filter": "Category!=AnalyzerLifecycle&Category!=RequiresPinnedSdk&Category!=RequiresWindows",
+    "counters": {
+      "total": "1683",
+      "executed": "1683",
+      "passed": "1683",
+      "failed": "0",
+      "error": "0",
+      "timeout": "0",
+      "aborted": "0",
+      "inconclusive": "0",
+      "passedButRunAborted": "0",
+      "notRunnable": "0",
+      "notExecuted": "0",
+      "disconnected": "0",
+      "warning": "0",
+      "completed": "0",
+      "inProgress": "0",
+      "pending": "0"
+    },
+    "log": "/home/runner/roslyn-mcp-rapid-tia-r5-final-r7-20261103/artifacts/task-03-r8-linux-1793738719312-2.log",
+    "trx": "/home/runner/roslyn-mcp-rapid-tia-r5-final-r7-20261103/TestResults/task-03-r8-linux-1793738719312-2/main.trx"
+  },
+  {
+    "run": 3,
+    "exitCode": 0,
+    "filter": "Category!=AnalyzerLifecycle&Category!=RequiresPinnedSdk&Category!=RequiresWindows",
+    "counters": {
+      "total": "1683",
+      "executed": "1683",
+      "passed": "1683",
+      "failed": "0",
+      "error": "0",
+      "timeout": "0",
+      "aborted": "0",
+      "inconclusive": "0",
+      "passedButRunAborted": "0",
+      "notRunnable": "0",
+      "notExecuted": "0",
+      "disconnected": "0",
+      "warning": "0",
+      "completed": "0",
+      "inProgress": "0",
+      "pending": "0"
+    },
+    "log": "/home/runner/roslyn-mcp-rapid-tia-r5-final-r7-20261103/artifacts/task-03-r8-linux-1793738719312-3.log",
+    "trx": "/home/runner/roslyn-mcp-rapid-tia-r5-final-r7-20261103/TestResults/task-03-r8-linux-1793738719312-3/main.trx"
+  }
+]

@@ -181,8 +181,8 @@ internal sealed class BaselineSession
         _versions.Clear();
         _touched.Clear();
         _rescanPaths.Clear();
-        // Watcher startup may fail before the first publication; preserve that gap only for this load identity.
-        // See docs/rapid-tia/epoch-1-project-level/evidence/task-03-review-round-2.md.
+        // A startup gap requires rescanning, but must not discard the first baseline before any capture can run.
+        // Journaled writes still invalidate individual paths. See docs/rapid-tia/epoch-1-project-level/evidence/task-03-review-round-5.md (R5-004).
         _requiresFullScan = _pendingObservationGap;
         foreach (var entry in inventory)
         {
@@ -194,10 +194,6 @@ internal sealed class BaselineSession
                 _pendingByPath.Add(entry.Key.DocumentPath, pending);
             }
             pending.Add(entry.Key);
-        }
-        if (_requiresFullScan)
-        {
-            FreezePendingUnderLock();
         }
     }
 

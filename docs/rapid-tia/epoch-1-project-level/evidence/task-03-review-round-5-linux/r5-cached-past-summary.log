@@ -1,0 +1,159 @@
+Controlled-past attempt 1 exit=0 log=/home/runner/roslyn-mcp-rapid-tia-r5-20261103/r5-cached-past-01.log
+  Passed RoslynMcpServer.Tests.Testing.BaselineSessionIntegrationTests.Cached_load_does_not_interrupt_an_unfinished_capture [1 s]
+
+Test Run Successful.
+Total tests: 1
+     Passed: 1
+ Total time: 3.3333 Seconds
+
+Controlled-past attempt 2 exit=0 log=/home/runner/roslyn-mcp-rapid-tia-r5-20261103/r5-cached-past-02.log
+  Passed RoslynMcpServer.Tests.Testing.BaselineSessionIntegrationTests.Cached_load_does_not_interrupt_an_unfinished_capture [1 s]
+
+Test Run Successful.
+Total tests: 1
+     Passed: 1
+ Total time: 2.2532 Seconds
+
+Controlled-past attempt 3 exit=0 log=/home/runner/roslyn-mcp-rapid-tia-r5-20261103/r5-cached-past-03.log
+  Passed RoslynMcpServer.Tests.Testing.BaselineSessionIntegrationTests.Cached_load_does_not_interrupt_an_unfinished_capture [1 s]
+
+Test Run Successful.
+Total tests: 1
+     Passed: 1
+ Total time: 2.2605 Seconds
+
+Controlled-past attempt 4 exit=0 log=/home/runner/roslyn-mcp-rapid-tia-r5-20261103/r5-cached-past-04.log
+  Passed RoslynMcpServer.Tests.Testing.BaselineSessionIntegrationTests.Cached_load_does_not_interrupt_an_unfinished_capture [1 s]
+
+Test Run Successful.
+Total tests: 1
+     Passed: 1
+ Total time: 2.2997 Seconds
+
+Controlled-past attempt 5 exit=0 log=/home/runner/roslyn-mcp-rapid-tia-r5-20261103/r5-cached-past-05.log
+  Passed RoslynMcpServer.Tests.Testing.BaselineSessionIntegrationTests.Cached_load_does_not_interrupt_an_unfinished_capture [1 s]
+
+Test Run Successful.
+Total tests: 1
+     Passed: 1
+ Total time: 2.2386 Seconds
+
+Controlled-past attempt 6 exit=0 log=/home/runner/roslyn-mcp-rapid-tia-r5-20261103/r5-cached-past-06.log
+  Passed RoslynMcpServer.Tests.Testing.BaselineSessionIntegrationTests.Cached_load_does_not_interrupt_an_unfinished_capture [1 s]
+
+Test Run Successful.
+Total tests: 1
+     Passed: 1
+ Total time: 2.2813 Seconds
+
+Controlled-past attempt 7 exit=0 log=/home/runner/roslyn-mcp-rapid-tia-r5-20261103/r5-cached-past-07.log
+  Passed RoslynMcpServer.Tests.Testing.BaselineSessionIntegrationTests.Cached_load_does_not_interrupt_an_unfinished_capture [1 s]
+
+Test Run Successful.
+Total tests: 1
+     Passed: 1
+ Total time: 2.3320 Seconds
+
+Controlled-past attempt 8 exit=0 log=/home/runner/roslyn-mcp-rapid-tia-r5-20261103/r5-cached-past-08.log
+  Passed RoslynMcpServer.Tests.Testing.BaselineSessionIntegrationTests.Cached_load_does_not_interrupt_an_unfinished_capture [1 s]
+
+Test Run Successful.
+Total tests: 1
+     Passed: 1
+ Total time: 2.4785 Seconds
+
+Controlled-past attempt 9 exit=0 log=/home/runner/roslyn-mcp-rapid-tia-r5-20261103/r5-cached-past-09.log
+  Passed RoslynMcpServer.Tests.Testing.BaselineSessionIntegrationTests.Cached_load_does_not_interrupt_an_unfinished_capture [1 s]
+
+Test Run Successful.
+Total tests: 1
+     Passed: 1
+ Total time: 2.4606 Seconds
+
+Controlled-past attempt 10 exit=0 log=/home/runner/roslyn-mcp-rapid-tia-r5-20261103/r5-cached-past-10.log
+  Passed RoslynMcpServer.Tests.Testing.BaselineSessionIntegrationTests.Cached_load_does_not_interrupt_an_unfinished_capture [1 s]
+
+Test Run Successful.
+Total tests: 1
+     Passed: 1
+ Total time: 2.4675 Seconds
+
+Controlled-past attempt 11 exit=0 log=/home/runner/roslyn-mcp-rapid-tia-r5-20261103/r5-cached-past-11.log
+  Passed RoslynMcpServer.Tests.Testing.BaselineSessionIntegrationTests.Cached_load_does_not_interrupt_an_unfinished_capture [1 s]
+
+Test Run Successful.
+Total tests: 1
+     Passed: 1
+ Total time: 2.4144 Seconds
+
+Controlled-past attempt 12 exit=0 log=/home/runner/roslyn-mcp-rapid-tia-r5-20261103/r5-cached-past-12.log
+  Passed RoslynMcpServer.Tests.Testing.BaselineSessionIntegrationTests.Cached_load_does_not_interrupt_an_unfinished_capture [1 s]
+
+Test Run Successful.
+Total tests: 1
+     Passed: 1
+ Total time: 2.3992 Seconds
+
+Controlled-past attempt 13 exit=0 log=/home/runner/roslyn-mcp-rapid-tia-r5-20261103/r5-cached-past-13.log
+  Passed RoslynMcpServer.Tests.Testing.BaselineSessionIntegrationTests.Cached_load_does_not_interrupt_an_unfinished_capture [1 s]
+
+Test Run Successful.
+Total tests: 1
+     Passed: 1
+ Total time: 2.2547 Seconds
+
+Controlled-past attempt 14 exit=0 log=/home/runner/roslyn-mcp-rapid-tia-r5-20261103/r5-cached-past-14.log
+  Passed RoslynMcpServer.Tests.Testing.BaselineSessionIntegrationTests.Cached_load_does_not_interrupt_an_unfinished_capture [1 s]
+
+Test Run Successful.
+Total tests: 1
+     Passed: 1
+ Total time: 2.2497 Seconds
+
+Controlled-past attempt 15 exit=0 log=/home/runner/roslyn-mcp-rapid-tia-r5-20261103/r5-cached-past-15.log
+  Passed RoslynMcpServer.Tests.Testing.BaselineSessionIntegrationTests.Cached_load_does_not_interrupt_an_unfinished_capture [1 s]
+
+Test Run Successful.
+Total tests: 1
+     Passed: 1
+ Total time: 2.3528 Seconds
+
+Controlled-past attempt 16 exit=0 log=/home/runner/roslyn-mcp-rapid-tia-r5-20261103/r5-cached-past-16.log
+  Passed RoslynMcpServer.Tests.Testing.BaselineSessionIntegrationTests.Cached_load_does_not_interrupt_an_unfinished_capture [1 s]
+
+Test Run Successful.
+Total tests: 1
+     Passed: 1
+ Total time: 2.1185 Seconds
+
+Controlled-past attempt 17 exit=0 log=/home/runner/roslyn-mcp-rapid-tia-r5-20261103/r5-cached-past-17.log
+  Passed RoslynMcpServer.Tests.Testing.BaselineSessionIntegrationTests.Cached_load_does_not_interrupt_an_unfinished_capture [1 s]
+
+Test Run Successful.
+Total tests: 1
+     Passed: 1
+ Total time: 2.0797 Seconds
+
+Controlled-past attempt 18 exit=0 log=/home/runner/roslyn-mcp-rapid-tia-r5-20261103/r5-cached-past-18.log
+  Passed RoslynMcpServer.Tests.Testing.BaselineSessionIntegrationTests.Cached_load_does_not_interrupt_an_unfinished_capture [1 s]
+
+Test Run Successful.
+Total tests: 1
+     Passed: 1
+ Total time: 2.0869 Seconds
+
+Controlled-past attempt 19 exit=0 log=/home/runner/roslyn-mcp-rapid-tia-r5-20261103/r5-cached-past-19.log
+  Passed RoslynMcpServer.Tests.Testing.BaselineSessionIntegrationTests.Cached_load_does_not_interrupt_an_unfinished_capture [1 s]
+
+Test Run Successful.
+Total tests: 1
+     Passed: 1
+ Total time: 2.1748 Seconds
+
+Controlled-past attempt 20 exit=0 log=/home/runner/roslyn-mcp-rapid-tia-r5-20261103/r5-cached-past-20.log
+  Passed RoslynMcpServer.Tests.Testing.BaselineSessionIntegrationTests.Cached_load_does_not_interrupt_an_unfinished_capture [1 s]
+
+Test Run Successful.
+Total tests: 1
+     Passed: 1
+ Total time: 2.2528 Seconds

@@ -256,7 +256,7 @@ internal sealed class WorkspaceInputSession
         }
     }
 
-    public void NoteDirectoryRename(string? oldPath, string? newPath, bool affectsMembership)
+    public void NoteDirectoryRename(string? oldPath, string? newPath, bool affectsMembership, bool confirmedDirectory = true)
     {
         lock (_gate)
         {
@@ -269,7 +269,10 @@ internal sealed class WorkspaceInputSession
             RememberPath(_directoryRenamePaths, newPath);
             // Admission and gap propagation share closure: a retired watcher cannot invalidate the next baseline.
             // Direct rename_project calls use this path too. See docs/rapid-tia/epoch-1-project-level/evidence/task-03-review-round-2.md.
-            _onObservationGap?.Invoke();
+            if (confirmedDirectory)
+            {
+                _onObservationGap?.Invoke();
+            }
             if (affectsMembership)
             {
                 var scope = DirectoryRenameScope(oldPath, newPath);

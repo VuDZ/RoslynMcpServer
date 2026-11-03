@@ -1,0 +1,24 @@
+Test run for /home/runner/roslyn-mcp-rapid-tia-r5-final-20261103/RoslynMcpServer.Tests/bin/Release/net10.0/RoslynMcpServer.Tests.dll (.NETCoreApp,Version=v10.0)
+VSTest version 18.0.2 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:01:48.12]     RoslynMcpServer.Tests.Testing.BaselineObservationGapTests.Startup_gap_survives_first_publication(missingDirectory: False) [FAIL]
+  Failed RoslynMcpServer.Tests.Testing.BaselineObservationGapTests.Startup_gap_survives_first_publication(missingDirectory: False) [1 s]
+  Error Message:
+   Assert.All() Failure: 2 out of 2 items in the collection did not pass.
+[0]: Item:  BaselineDocumentState { Key = BaselineDocumentKey { ProjectPath = /tmp/RoslynMcpBaseline-da2c7e7e088441b1afc887d2154c697c/Other/Other.csproj, ProjectContext = Other#0, DocumentPath = /tmp/RoslynMcpBaseline-da2c7e7e088441b1afc887d2154c697c/Other/A.cs, LogicalPath = A.cs, Occurrence = 0 }, Status = Unknown, Snapshot =  }
+     Error: Assert.Equal() Failure: Values differ
+            Expected: Known
+            Actual:   Unknown
+[1]: Item:  BaselineDocumentState { Key = BaselineDocumentKey { ProjectPath = /tmp/RoslynMcpBaseline-da2c7e7e088441b1afc887d2154c697c/Other/Other.csproj, ProjectContext = Other#0, DocumentPath = /tmp/RoslynMcpBaseline-da2c7e7e088441b1afc887d2154c697c/Other/B.cs, LogicalPath = B.cs, Occurrence = 0 }, Status = Unknown, Snapshot =  }
+     Error: Assert.Equal() Failure: Values differ
+            Expected: Known
+            Actual:   Unknown
+  Stack Trace:
+     at RoslynMcpServer.Tests.Testing.BaselineObservationGapTests.Startup_gap_survives_first_publication(Boolean missingDirectory) in /home/runner/roslyn-mcp-rapid-tia-r5-final-20261103/RoslynMcpServer.Tests/Testing/BaselineObservationGapTests.cs:line 81
+   at RoslynMcpServer.Tests.Testing.BaselineObservationGapTests.Startup_gap_survives_first_publication(Boolean missingDirectory) in /home/runner/roslyn-mcp-rapid-tia-r5-final-20261103/RoslynMcpServer.Tests/Testing/BaselineObservationGapTests.cs:line 81
+--- End of stack trace from previous location ---
+Results File: /home/runner/roslyn-mcp-rapid-tia-r5-final-20261103/TestResults/task-03-r6-linux-1793737548207-1/main.trx
+
+Failed!  - Failed:     1, Passed:  1682, Skipped:     0, Total:  1683, Duration: 1 m 54 s - RoslynMcpServer.Tests.dll (net10.0)

@@ -1,0 +1,48 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  DeadlockWitnessHost -> /home/runner/roslyn-mcp-rapid-tia-r5-20261103/RoslynMcpServer.Tests/SourceStructure/DeadlockWitnessHost/bin/Release/net10.0/DeadlockWitnessHost.dll
+  Microsoft.CodeAnalysis.Workspaces.MSBuild.Contracts -> /home/runner/roslyn-mcp-rapid-tia-r5-20261103/forks/roslyn-buildhost/build/Contracts/bin/Release/net8.0/Microsoft.CodeAnalysis.Workspaces.MSBuild.Contracts.dll
+  Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost -> /home/runner/roslyn-mcp-rapid-tia-r5-20261103/forks/roslyn-buildhost/build/BuildHost/bin/Release/net8.0/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.dll
+  RoslynMcpServer -> /home/runner/roslyn-mcp-rapid-tia-r5-20261103/bin/Release/net10.0/RoslynMcpServer.dll
+  RoslynMcpServer.LifecycleTestHost -> /home/runner/roslyn-mcp-rapid-tia-r5-20261103/RoslynMcpServer.LifecycleTestHost/bin/Release/net10.0/RoslynMcpServer.LifecycleTestHost.dll
+  RoslynMcpPlugin -> /home/runner/roslyn-mcp-rapid-tia-r5-20261103/samples/RoslynMcpPlugin/bin/Release/net10.0/RoslynMcpPlugin.dll
+/home/runner/roslyn-mcp-rapid-tia-r5-20261103/RoslynMcpServer.Tests/Workspace/WpfTemporaryProjectCallbackTests.cs(195,32): warning xUnit1031: Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031) [/home/runner/roslyn-mcp-rapid-tia-r5-20261103/RoslynMcpServer.Tests/RoslynMcpServer.Tests.csproj]
+  RoslynMcpServer.Tests -> /home/runner/roslyn-mcp-rapid-tia-r5-20261103/RoslynMcpServer.Tests/bin/Release/net10.0/RoslynMcpServer.Tests.dll
+Test run for /home/runner/roslyn-mcp-rapid-tia-r5-20261103/RoslynMcpServer.Tests/bin/Release/net10.0/RoslynMcpServer.Tests.dll (.NETCoreApp,Version=v10.0)
+VSTest version 18.0.2 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.0+00ab0a9ec4 (64-bit .NET 10.0.13)
+[xUnit.net 00:00:00.16]   Discovering: RoslynMcpServer.Tests
+[xUnit.net 00:00:00.38]   Discovered:  RoslynMcpServer.Tests
+[xUnit.net 00:00:00.40]   Starting:    RoslynMcpServer.Tests
+[DEBUG] Found MSBuild: .NET Core SDK (10.0.113) at /usr/lib/dotnet/sdk/10.0.113, VisualStudioRootPath=/usr/lib/dotnet/sdk/10.0.113
+[DEBUG] Using MSBuild from: /usr/lib/dotnet/sdk/10.0.113
+[xUnit.net 00:00:02.05]     RoslynMcpServer.Tests.Testing.BaselineSessionIntegrationTests.Cached_load_does_not_interrupt_an_unfinished_capture [FAIL]
+[xUnit.net 00:00:02.05]       Assert.All() Failure: 2 out of 2 items in the collection did not pass.
+[xUnit.net 00:00:02.05]       [0]: Item:  BaselineDocumentState { Key = BaselineDocumentKey { ProjectPath = /tmp/RoslynMcpBaseline-032975faf93a4fbf829fc3aca5392370/App.csproj, ProjectContext = App#0, DocumentPath = /tmp/RoslynMcpBaseline-032975faf93a4fbf829fc3aca5392370/A.cs, LogicalPath = A.cs, Occurrence = 0 }, Status = Unknown, Snapshot =  }
+[xUnit.net 00:00:02.05]            Error: CreatedNow=2026-11-03T20:18:39.6800722Z; CreatedFirstMtime=2026-11-03T20:23:39.6799700Z; CreatedSecondMtime=2026-11-03T20:23:39.6800651Z; LoadedNow=2026-11-03T20:18:41.2480220Z; LoadedFirstMtime=2026-11-03T20:23:39.6799700Z; LoadedSecondMtime=2026-11-03T20:23:39.6800651Z; CurrentNow=2026-11-03T20:18:41.2559799Z; FullScan=False; Published=2026-11-03T20:18:41.2363812Z; FirstMtime=2026-11-03T20:23:39.6799700Z; SecondMtime=2026-11-03T20:23:39.6800651Z; WorkerFailure=; Reasons=imports-not-in-evaluated-graph;restore-inputs-not-in-evaluated-graph;custom-tasks-not-in-evaluated-graph;external-glob-completeness-unknown;xaml-and-resources-beyond-evaluated-documents-unknown;walk-up-file-is-a-candidate-not-a-proven-import; Touched=/tmp/RoslynMcpBaseline-032975faf93a4fbf829fc3aca5392370/A.cs;/tmp/RoslynMcpBaseline-032975faf93a4fbf829fc3aca5392370/B.cs; Renames=
+[xUnit.net 00:00:02.05]       [1]: Item:  BaselineDocumentState { Key = BaselineDocumentKey { ProjectPath = /tmp/RoslynMcpBaseline-032975faf93a4fbf829fc3aca5392370/App.csproj, ProjectContext = App#0, DocumentPath = /tmp/RoslynMcpBaseline-032975faf93a4fbf829fc3aca5392370/B.cs, LogicalPath = B.cs, Occurrence = 0 }, Status = Unknown, Snapshot =  }
+[xUnit.net 00:00:02.05]            Error: CreatedNow=2026-11-03T20:18:39.6800722Z; CreatedFirstMtime=2026-11-03T20:23:39.6799700Z; CreatedSecondMtime=2026-11-03T20:23:39.6800651Z; LoadedNow=2026-11-03T20:18:41.2480220Z; LoadedFirstMtime=2026-11-03T20:23:39.6799700Z; LoadedSecondMtime=2026-11-03T20:23:39.6800651Z; CurrentNow=2026-11-03T20:18:41.2559799Z; FullScan=False; Published=2026-11-03T20:18:41.2363812Z; FirstMtime=2026-11-03T20:23:39.6799700Z; SecondMtime=2026-11-03T20:23:39.6800651Z; WorkerFailure=; Reasons=imports-not-in-evaluated-graph;restore-inputs-not-in-evaluated-graph;custom-tasks-not-in-evaluated-graph;external-glob-completeness-unknown;xaml-and-resources-beyond-evaluated-documents-unknown;walk-up-file-is-a-candidate-not-a-proven-import; Touched=/tmp/RoslynMcpBaseline-032975faf93a4fbf829fc3aca5392370/A.cs;/tmp/RoslynMcpBaseline-032975faf93a4fbf829fc3aca5392370/B.cs; Renames=
+[xUnit.net 00:00:02.05]       Stack Trace:
+[xUnit.net 00:00:02.05]         /home/runner/roslyn-mcp-rapid-tia-r5-20261103/RoslynMcpServer.Tests/Testing/BaselineSessionIntegrationTests.cs(212,0): at RoslynMcpServer.Tests.Testing.BaselineSessionIntegrationTests.Cached_load_does_not_interrupt_an_unfinished_capture()
+[xUnit.net 00:00:02.05]         /home/runner/roslyn-mcp-rapid-tia-r5-20261103/RoslynMcpServer.Tests/Testing/BaselineSessionIntegrationTests.cs(212,0): at RoslynMcpServer.Tests.Testing.BaselineSessionIntegrationTests.Cached_load_does_not_interrupt_an_unfinished_capture()
+[xUnit.net 00:00:02.05]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:02.06]   Finished:    RoslynMcpServer.Tests
+  Failed RoslynMcpServer.Tests.Testing.BaselineSessionIntegrationTests.Cached_load_does_not_interrupt_an_unfinished_capture [1 s]
+  Error Message:
+   Assert.All() Failure: 2 out of 2 items in the collection did not pass.
+[0]: Item:  BaselineDocumentState { Key = BaselineDocumentKey { ProjectPath = /tmp/RoslynMcpBaseline-032975faf93a4fbf829fc3aca5392370/App.csproj, ProjectContext = App#0, DocumentPath = /tmp/RoslynMcpBaseline-032975faf93a4fbf829fc3aca5392370/A.cs, LogicalPath = A.cs, Occurrence = 0 }, Status = Unknown, Snapshot =  }
+     Error: CreatedNow=2026-11-03T20:18:39.6800722Z; CreatedFirstMtime=2026-11-03T20:23:39.6799700Z; CreatedSecondMtime=2026-11-03T20:23:39.6800651Z; LoadedNow=2026-11-03T20:18:41.2480220Z; LoadedFirstMtime=2026-11-03T20:23:39.6799700Z; LoadedSecondMtime=2026-11-03T20:23:39.6800651Z; CurrentNow=2026-11-03T20:18:41.2559799Z; FullScan=False; Published=2026-11-03T20:18:41.2363812Z; FirstMtime=2026-11-03T20:23:39.6799700Z; SecondMtime=2026-11-03T20:23:39.6800651Z; WorkerFailure=; Reasons=imports-not-in-evaluated-graph;restore-inputs-not-in-evaluated-graph;custom-tasks-not-in-evaluated-graph;external-glob-completeness-unknown;xaml-and-resources-beyond-evaluated-documents-unknown;walk-up-file-is-a-candidate-not-a-proven-import; Touched=/tmp/RoslynMcpBaseline-032975faf93a4fbf829fc3aca5392370/A.cs;/tmp/RoslynMcpBaseline-032975faf93a4fbf829fc3aca5392370/B.cs; Renames=
+[1]: Item:  BaselineDocumentState { Key = BaselineDocumentKey { ProjectPath = /tmp/RoslynMcpBaseline-032975faf93a4fbf829fc3aca5392370/App.csproj, ProjectContext = App#0, DocumentPath = /tmp/RoslynMcpBaseline-032975faf93a4fbf829fc3aca5392370/B.cs, LogicalPath = B.cs, Occurrence = 0 }, Status = Unknown, Snapshot =  }
+     Error: CreatedNow=2026-11-03T20:18:39.6800722Z; CreatedFirstMtime=2026-11-03T20:23:39.6799700Z; CreatedSecondMtime=2026-11-03T20:23:39.6800651Z; LoadedNow=2026-11-03T20:18:41.2480220Z; LoadedFirstMtime=2026-11-03T20:23:39.6799700Z; LoadedSecondMtime=2026-11-03T20:23:39.6800651Z; CurrentNow=2026-11-03T20:18:41.2559799Z; FullScan=False; Published=2026-11-03T20:18:41.2363812Z; FirstMtime=2026-11-03T20:23:39.6799700Z; SecondMtime=2026-11-03T20:23:39.6800651Z; WorkerFailure=; Reasons=imports-not-in-evaluated-graph;restore-inputs-not-in-evaluated-graph;custom-tasks-not-in-evaluated-graph;external-glob-completeness-unknown;xaml-and-resources-beyond-evaluated-documents-unknown;walk-up-file-is-a-candidate-not-a-proven-import; Touched=/tmp/RoslynMcpBaseline-032975faf93a4fbf829fc3aca5392370/A.cs;/tmp/RoslynMcpBaseline-032975faf93a4fbf829fc3aca5392370/B.cs; Renames=
+  Stack Trace:
+     at RoslynMcpServer.Tests.Testing.BaselineSessionIntegrationTests.Cached_load_does_not_interrupt_an_unfinished_capture() in /home/runner/roslyn-mcp-rapid-tia-r5-20261103/RoslynMcpServer.Tests/Testing/BaselineSessionIntegrationTests.cs:line 212
+   at RoslynMcpServer.Tests.Testing.BaselineSessionIntegrationTests.Cached_load_does_not_interrupt_an_unfinished_capture() in /home/runner/roslyn-mcp-rapid-tia-r5-20261103/RoslynMcpServer.Tests/Testing/BaselineSessionIntegrationTests.cs:line 212
+--- End of stack trace from previous location ---
+
+Test Run Failed.
+Total tests: 1
+     Failed: 1
+ Total time: 2.5403 Seconds

@@ -1,0 +1,241 @@
+Natural startup diagnostic repeats: 30 runs, 60 executed/passed, 0 failed. Original main failure did not reproduce naturally.
+
+r6-startup-diagnostic-01.log
+  Passed RoslynMcpServer.Tests.Testing.BaselineObservationGapTests.Startup_gap_survives_first_publication(missingDirectory: True) [679 ms]
+
+Test Run Successful.
+Total tests: 2
+     Passed: 2
+ Total time: 3.0790 Seconds
+
+r6-startup-diagnostic-02.log
+  Passed RoslynMcpServer.Tests.Testing.BaselineObservationGapTests.Startup_gap_survives_first_publication(missingDirectory: True) [663 ms]
+
+Test Run Successful.
+Total tests: 2
+     Passed: 2
+ Total time: 2.9725 Seconds
+
+r6-startup-diagnostic-03.log
+  Passed RoslynMcpServer.Tests.Testing.BaselineObservationGapTests.Startup_gap_survives_first_publication(missingDirectory: True) [680 ms]
+
+Test Run Successful.
+Total tests: 2
+     Passed: 2
+ Total time: 3.0050 Seconds
+
+r6-startup-diagnostic-04.log
+  Passed RoslynMcpServer.Tests.Testing.BaselineObservationGapTests.Startup_gap_survives_first_publication(missingDirectory: True) [704 ms]
+
+Test Run Successful.
+Total tests: 2
+     Passed: 2
+ Total time: 3.0146 Seconds
+
+r6-startup-diagnostic-05.log
+  Passed RoslynMcpServer.Tests.Testing.BaselineObservationGapTests.Startup_gap_survives_first_publication(missingDirectory: True) [689 ms]
+
+Test Run Successful.
+Total tests: 2
+     Passed: 2
+ Total time: 3.0061 Seconds
+
+r6-startup-diagnostic-06.log
+  Passed RoslynMcpServer.Tests.Testing.BaselineObservationGapTests.Startup_gap_survives_first_publication(missingDirectory: True) [708 ms]
+
+Test Run Successful.
+Total tests: 2
+     Passed: 2
+ Total time: 3.0824 Seconds
+
+r6-startup-diagnostic-07.log
+  Passed RoslynMcpServer.Tests.Testing.BaselineObservationGapTests.Startup_gap_survives_first_publication(missingDirectory: True) [717 ms]
+
+Test Run Successful.
+Total tests: 2
+     Passed: 2
+ Total time: 3.1511 Seconds
+
+r6-startup-diagnostic-08.log
+  Passed RoslynMcpServer.Tests.Testing.BaselineObservationGapTests.Startup_gap_survives_first_publication(missingDirectory: True) [756 ms]
+
+Test Run Successful.
+Total tests: 2
+     Passed: 2
+ Total time: 3.3098 Seconds
+
+r6-startup-diagnostic-09.log
+  Passed RoslynMcpServer.Tests.Testing.BaselineObservationGapTests.Startup_gap_survives_first_publication(missingDirectory: True) [663 ms]
+
+Test Run Successful.
+Total tests: 2
+     Passed: 2
+ Total time: 2.9619 Seconds
+
+r6-startup-diagnostic-10.log
+  Passed RoslynMcpServer.Tests.Testing.BaselineObservationGapTests.Startup_gap_survives_first_publication(missingDirectory: True) [644 ms]
+
+Test Run Successful.
+Total tests: 2
+     Passed: 2
+ Total time: 2.8640 Seconds
+
+r6-startup-diagnostic-11.log
+  Passed RoslynMcpServer.Tests.Testing.BaselineObservationGapTests.Startup_gap_survives_first_publication(missingDirectory: True) [759 ms]
+
+Test Run Successful.
+Total tests: 2
+     Passed: 2
+ Total time: 3.1175 Seconds
+
+r6-startup-diagnostic-12.log
+  Passed RoslynMcpServer.Tests.Testing.BaselineObservationGapTests.Startup_gap_survives_first_publication(missingDirectory: True) [667 ms]
+
+Test Run Successful.
+Total tests: 2
+     Passed: 2
+ Total time: 3.2393 Seconds
+
+r6-startup-diagnostic-13.log
+  Passed RoslynMcpServer.Tests.Testing.BaselineObservationGapTests.Startup_gap_survives_first_publication(missingDirectory: True) [720 ms]
+
+Test Run Successful.
+Total tests: 2
+     Passed: 2
+ Total time: 3.1311 Seconds
+
+r6-startup-diagnostic-14.log
+  Passed RoslynMcpServer.Tests.Testing.BaselineObservationGapTests.Startup_gap_survives_first_publication(missingDirectory: True) [751 ms]
+
+Test Run Successful.
+Total tests: 2
+     Passed: 2
+ Total time: 3.1716 Seconds
+
+r6-startup-diagnostic-15.log
+  Passed RoslynMcpServer.Tests.Testing.BaselineObservationGapTests.Startup_gap_survives_first_publication(missingDirectory: True) [741 ms]
+
+Test Run Successful.
+Total tests: 2
+     Passed: 2
+ Total time: 3.1584 Seconds
+
+r6-startup-diagnostic-16.log
+  Passed RoslynMcpServer.Tests.Testing.BaselineObservationGapTests.Startup_gap_survives_first_publication(missingDirectory: True) [715 ms]
+
+Test Run Successful.
+Total tests: 2
+     Passed: 2
+ Total time: 3.0698 Seconds
+
+r6-startup-diagnostic-17.log
+  Passed RoslynMcpServer.Tests.Testing.BaselineObservationGapTests.Startup_gap_survives_first_publication(missingDirectory: True) [673 ms]
+
+Test Run Successful.
+Total tests: 2
+     Passed: 2
+ Total time: 3.0067 Seconds
+
+r6-startup-diagnostic-18.log
+  Passed RoslynMcpServer.Tests.Testing.BaselineObservationGapTests.Startup_gap_survives_first_publication(missingDirectory: True) [709 ms]
+
+Test Run Successful.
+Total tests: 2
+     Passed: 2
+ Total time: 3.1389 Seconds
+
+r6-startup-diagnostic-19.log
+  Passed RoslynMcpServer.Tests.Testing.BaselineObservationGapTests.Startup_gap_survives_first_publication(missingDirectory: True) [706 ms]
+
+Test Run Successful.
+Total tests: 2
+     Passed: 2
+ Total time: 3.0679 Seconds
+
+r6-startup-diagnostic-20.log
+  Passed RoslynMcpServer.Tests.Testing.BaselineObservationGapTests.Startup_gap_survives_first_publication(missingDirectory: True) [731 ms]
+
+Test Run Successful.
+Total tests: 2
+     Passed: 2
+ Total time: 3.0647 Seconds
+
+r6-startup-diagnostic-21.log
+  Passed RoslynMcpServer.Tests.Testing.BaselineObservationGapTests.Startup_gap_survives_first_publication(missingDirectory: True) [804 ms]
+
+Test Run Successful.
+Total tests: 2
+     Passed: 2
+ Total time: 3.1901 Seconds
+
+r6-startup-diagnostic-22.log
+  Passed RoslynMcpServer.Tests.Testing.BaselineObservationGapTests.Startup_gap_survives_first_publication(missingDirectory: True) [750 ms]
+
+Test Run Successful.
+Total tests: 2
+     Passed: 2
+ Total time: 3.3320 Seconds
+
+r6-startup-diagnostic-23.log
+  Passed RoslynMcpServer.Tests.Testing.BaselineObservationGapTests.Startup_gap_survives_first_publication(missingDirectory: True) [721 ms]
+
+Test Run Successful.
+Total tests: 2
+     Passed: 2
+ Total time: 3.1412 Seconds
+
+r6-startup-diagnostic-24.log
+  Passed RoslynMcpServer.Tests.Testing.BaselineObservationGapTests.Startup_gap_survives_first_publication(missingDirectory: True) [759 ms]
+
+Test Run Successful.
+Total tests: 2
+     Passed: 2
+ Total time: 2.9946 Seconds
+
+r6-startup-diagnostic-25.log
+  Passed RoslynMcpServer.Tests.Testing.BaselineObservationGapTests.Startup_gap_survives_first_publication(missingDirectory: True) [703 ms]
+
+Test Run Successful.
+Total tests: 2
+     Passed: 2
+ Total time: 3.1141 Seconds
+
+r6-startup-diagnostic-26.log
+  Passed RoslynMcpServer.Tests.Testing.BaselineObservationGapTests.Startup_gap_survives_first_publication(missingDirectory: True) [669 ms]
+
+Test Run Successful.
+Total tests: 2
+     Passed: 2
+ Total time: 3.0441 Seconds
+
+r6-startup-diagnostic-27.log
+  Passed RoslynMcpServer.Tests.Testing.BaselineObservationGapTests.Startup_gap_survives_first_publication(missingDirectory: True) [744 ms]
+
+Test Run Successful.
+Total tests: 2
+     Passed: 2
+ Total time: 2.9968 Seconds
+
+r6-startup-diagnostic-28.log
+  Passed RoslynMcpServer.Tests.Testing.BaselineObservationGapTests.Startup_gap_survives_first_publication(missingDirectory: True) [733 ms]
+
+Test Run Successful.
+Total tests: 2
+     Passed: 2
+ Total time: 3.0977 Seconds
+
+r6-startup-diagnostic-29.log
+  Passed RoslynMcpServer.Tests.Testing.BaselineObservationGapTests.Startup_gap_survives_first_publication(missingDirectory: True) [686 ms]
+
+Test Run Successful.
+Total tests: 2
+     Passed: 2
+ Total time: 3.2449 Seconds
+
+r6-startup-diagnostic-30.log
+  Passed RoslynMcpServer.Tests.Testing.BaselineObservationGapTests.Startup_gap_survives_first_publication(missingDirectory: True) [717 ms]
+
+Test Run Successful.
+Total tests: 2
+     Passed: 2
+ Total time: 3.1156 Seconds

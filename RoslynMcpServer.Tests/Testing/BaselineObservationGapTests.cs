@@ -46,12 +46,19 @@ public sealed class BaselineObservationGapTests
     public async Task Startup_gap_survives_first_publication(bool missingDirectory)
     {
         await using var fixture = new BaselineLifecycleFixture();
-        var moved = fixture.Root + "-moved";
+        var project = fixture.OtherProject();
+        var external = Path.Combine(fixture.Root, "External");
+        Directory.CreateDirectory(external);
+        await File.WriteAllTextAsync(Path.Combine(external, "input.txt"), "input");
+        var projectText = await File.ReadAllTextAsync(project);
+        await File.WriteAllTextAsync(project, projectText.Replace("</Project>",
+            "<ItemGroup><AdditionalFiles Include=\"../External/input.txt\" /></ItemGroup></Project>", StringComparison.Ordinal));
         fixture.Manager.BeforeDiskWatcherStartForTests = () =>
         {
             if (missingDirectory)
             {
-                Directory.Move(fixture.Root, moved);
+                // Remove an external point-watch directory; C# baseline files stay available throughout capture.
+                Directory.Delete(external, recursive: true);
             }
             else
             {
@@ -60,22 +67,18 @@ public sealed class BaselineObservationGapTests
         };
         try
         {
-            await fixture.LoadAsync();
+            await fixture.Manager.LoadAsync(project);
         }
         finally
         {
             WorkspaceDiskWatcherStarter.FailNextStartForTests = false;
-            if (Directory.Exists(moved))
-            {
-                Directory.Move(moved, fixture.Root);
-            }
         }
         await fixture.Manager.Baseline.CaptureTask.WaitAsync(_timeout);
         Assert.Contains(missingDirectory ? InputCoverageReason.WatcherDirectoryMissing : InputCoverageReason.WatcherStartFailed,
             fixture.Manager.DiskWatcherSession!.ObservationUnknownReasons);
         var view = fixture.Manager.Baseline.GetSnapshot();
         Assert.True(view.RequiresFullScan);
-        Assert.All(view.Documents, document => Assert.Equal(BaselineDocumentStatus.Unknown, document.Status));
+        Assert.All(view.Documents, document => Assert.Equal(BaselineDocumentStatus.Known, document.Status));
     }
 
     [Fact]
@@ -89,14 +92,14 @@ public sealed class BaselineObservationGapTests
             entered.SetResult();
             Assert.True(release.Wait(_timeout));
         };
+        BaselineSessionSnapshot? afterStartup = null;
+        fixture.Manager.AfterDiskWatcherStartForTests = () => afterStartup = fixture.Manager.Baseline.GetSnapshot();
         var loading = Task.Run(fixture.LoadAsync);
         BaselineSessionSnapshot beforeStartup;
-        DateTime startupBoundary;
         try
         {
             await entered.Task.WaitAsync(_timeout);
             beforeStartup = fixture.Manager.Baseline.GetSnapshot();
-            startupBoundary = DateTime.UtcNow;
         }
         finally
         {
@@ -106,8 +109,17 @@ public sealed class BaselineObservationGapTests
         await fixture.Manager.Baseline.CaptureTask.WaitAsync(_timeout);
         Assert.Null(beforeStartup.WorkspacePath);
         Assert.Empty(beforeStartup.Documents);
+        Assert.Equal(default(DateTime), beforeStartup.PublishedAtUtc);
+        // UTC can move backward; hook snapshots prove publication order without comparing wall-clock readings.
+        // See docs/rapid-tia/epoch-1-project-level/task-03-implementation-report.md (R7-001).
+        Assert.NotNull(afterStartup);
+        Assert.Null(afterStartup.WorkspacePath);
+        Assert.Empty(afterStartup.Documents);
+        Assert.Equal(default(DateTime), afterStartup.PublishedAtUtc);
         var view = fixture.Manager.Baseline.GetSnapshot();
-        Assert.True(view.PublishedAtUtc >= startupBoundary);
+        Assert.NotNull(view.WorkspacePath);
+        Assert.NotEqual(default(DateTime), view.PublishedAtUtc);
+        Assert.Equal(2, view.Documents.Length);
         Assert.All(view.Documents, document => Assert.Equal(BaselineDocumentStatus.Known, document.Status));
     }
 
@@ -144,7 +156,25 @@ public sealed class BaselineObservationGapTests
         await fixture.Manager.Baseline.CaptureTask.WaitAsync(_timeout);
         var view = fixture.Manager.Baseline.GetSnapshot();
         Assert.True(view.RequiresFullScan);
-        Assert.All(view.Documents, document => Assert.Equal(BaselineDocumentStatus.Unknown, document.Status));
+        Assert.All(view.Documents, document => Assert.Equal(BaselineDocumentStatus.Known, document.Status));
+    }
+
+    [Fact]
+    public async Task Prepublication_gap_still_rejects_an_already_journaled_write()
+    {
+        await using var fixture = new BaselineLifecycleFixture();
+        fixture.Manager.AfterDiskWatcherStartForTests = () =>
+        {
+            fixture.Manager.SilenceDiskWatchersForTests();
+            fixture.Manager.DiskWatcherSession!.NoteCoverageUnknown(InputCoverageReason.WatcherBufferOverflow);
+            fixture.Deliver(fixture.FirstPath);
+        };
+        await fixture.LoadAsync();
+        await fixture.Manager.Baseline.CaptureTask.WaitAsync(_timeout);
+        var view = fixture.Manager.Baseline.GetSnapshot();
+        Assert.True(view.RequiresFullScan);
+        Assert.Equal(BaselineDocumentStatus.Unknown, Find(view, fixture.FirstPath).Status);
+        Assert.Equal(BaselineDocumentStatus.Known, Find(view, fixture.SecondPath).Status);
     }
 
     [Fact]

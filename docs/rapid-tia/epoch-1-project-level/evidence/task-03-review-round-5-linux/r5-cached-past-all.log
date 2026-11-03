@@ -1,0 +1,428 @@
+===== r5-cached-past-01.log =====
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  DeadlockWitnessHost -> /home/runner/roslyn-mcp-rapid-tia-r5-20261103/RoslynMcpServer.Tests/SourceStructure/DeadlockWitnessHost/bin/Release/net10.0/DeadlockWitnessHost.dll
+  Microsoft.CodeAnalysis.Workspaces.MSBuild.Contracts -> /home/runner/roslyn-mcp-rapid-tia-r5-20261103/forks/roslyn-buildhost/build/Contracts/bin/Release/net8.0/Microsoft.CodeAnalysis.Workspaces.MSBuild.Contracts.dll
+  Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost -> /home/runner/roslyn-mcp-rapid-tia-r5-20261103/forks/roslyn-buildhost/build/BuildHost/bin/Release/net8.0/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.dll
+  RoslynMcpServer -> /home/runner/roslyn-mcp-rapid-tia-r5-20261103/bin/Release/net10.0/RoslynMcpServer.dll
+  RoslynMcpServer.LifecycleTestHost -> /home/runner/roslyn-mcp-rapid-tia-r5-20261103/RoslynMcpServer.LifecycleTestHost/bin/Release/net10.0/RoslynMcpServer.LifecycleTestHost.dll
+  RoslynMcpPlugin -> /home/runner/roslyn-mcp-rapid-tia-r5-20261103/samples/RoslynMcpPlugin/bin/Release/net10.0/RoslynMcpPlugin.dll
+/home/runner/roslyn-mcp-rapid-tia-r5-20261103/RoslynMcpServer.Tests/Workspace/WpfTemporaryProjectCallbackTests.cs(195,32): warning xUnit1031: Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031) [/home/runner/roslyn-mcp-rapid-tia-r5-20261103/RoslynMcpServer.Tests/RoslynMcpServer.Tests.csproj]
+  RoslynMcpServer.Tests -> /home/runner/roslyn-mcp-rapid-tia-r5-20261103/RoslynMcpServer.Tests/bin/Release/net10.0/RoslynMcpServer.Tests.dll
+Test run for /home/runner/roslyn-mcp-rapid-tia-r5-20261103/RoslynMcpServer.Tests/bin/Release/net10.0/RoslynMcpServer.Tests.dll (.NETCoreApp,Version=v10.0)
+VSTest version 18.0.2 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.0+00ab0a9ec4 (64-bit .NET 10.0.13)
+[xUnit.net 00:00:00.24]   Discovering: RoslynMcpServer.Tests
+[xUnit.net 00:00:00.61]   Discovered:  RoslynMcpServer.Tests
+[xUnit.net 00:00:00.64]   Starting:    RoslynMcpServer.Tests
+[DEBUG] Found MSBuild: .NET Core SDK (10.0.113) at /usr/lib/dotnet/sdk/10.0.113, VisualStudioRootPath=/usr/lib/dotnet/sdk/10.0.113
+[DEBUG] Using MSBuild from: /usr/lib/dotnet/sdk/10.0.113
+[xUnit.net 00:00:02.64]   Finished:    RoslynMcpServer.Tests
+  Passed RoslynMcpServer.Tests.Testing.BaselineSessionIntegrationTests.Cached_load_does_not_interrupt_an_unfinished_capture [1 s]
+
+Test Run Successful.
+Total tests: 1
+     Passed: 1
+ Total time: 3.3333 Seconds
+
+
+===== r5-cached-past-02.log =====
+Test run for /home/runner/roslyn-mcp-rapid-tia-r5-20261103/RoslynMcpServer.Tests/bin/Release/net10.0/RoslynMcpServer.Tests.dll (.NETCoreApp,Version=v10.0)
+VSTest version 18.0.2 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.0+00ab0a9ec4 (64-bit .NET 10.0.13)
+[xUnit.net 00:00:00.09]   Discovering: RoslynMcpServer.Tests
+[xUnit.net 00:00:00.24]   Discovered:  RoslynMcpServer.Tests
+[xUnit.net 00:00:00.25]   Starting:    RoslynMcpServer.Tests
+[DEBUG] Found MSBuild: .NET Core SDK (10.0.113) at /usr/lib/dotnet/sdk/10.0.113, VisualStudioRootPath=/usr/lib/dotnet/sdk/10.0.113
+[DEBUG] Using MSBuild from: /usr/lib/dotnet/sdk/10.0.113
+[xUnit.net 00:00:01.85]   Finished:    RoslynMcpServer.Tests
+  Passed RoslynMcpServer.Tests.Testing.BaselineSessionIntegrationTests.Cached_load_does_not_interrupt_an_unfinished_capture [1 s]
+
+Test Run Successful.
+Total tests: 1
+     Passed: 1
+ Total time: 2.2532 Seconds
+
+
+===== r5-cached-past-03.log =====
+Test run for /home/runner/roslyn-mcp-rapid-tia-r5-20261103/RoslynMcpServer.Tests/bin/Release/net10.0/RoslynMcpServer.Tests.dll (.NETCoreApp,Version=v10.0)
+VSTest version 18.0.2 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.0+00ab0a9ec4 (64-bit .NET 10.0.13)
+[xUnit.net 00:00:00.09]   Discovering: RoslynMcpServer.Tests
+[xUnit.net 00:00:00.24]   Discovered:  RoslynMcpServer.Tests
+[xUnit.net 00:00:00.26]   Starting:    RoslynMcpServer.Tests
+[DEBUG] Found MSBuild: .NET Core SDK (10.0.113) at /usr/lib/dotnet/sdk/10.0.113, VisualStudioRootPath=/usr/lib/dotnet/sdk/10.0.113
+[DEBUG] Using MSBuild from: /usr/lib/dotnet/sdk/10.0.113
+[xUnit.net 00:00:01.84]   Finished:    RoslynMcpServer.Tests
+  Passed RoslynMcpServer.Tests.Testing.BaselineSessionIntegrationTests.Cached_load_does_not_interrupt_an_unfinished_capture [1 s]
+
+Test Run Successful.
+Total tests: 1
+     Passed: 1
+ Total time: 2.2605 Seconds
+
+
+===== r5-cached-past-04.log =====
+Test run for /home/runner/roslyn-mcp-rapid-tia-r5-20261103/RoslynMcpServer.Tests/bin/Release/net10.0/RoslynMcpServer.Tests.dll (.NETCoreApp,Version=v10.0)
+VSTest version 18.0.2 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.0+00ab0a9ec4 (64-bit .NET 10.0.13)
+[xUnit.net 00:00:00.10]   Discovering: RoslynMcpServer.Tests
+[xUnit.net 00:00:00.25]   Discovered:  RoslynMcpServer.Tests
+[xUnit.net 00:00:00.27]   Starting:    RoslynMcpServer.Tests
+[DEBUG] Found MSBuild: .NET Core SDK (10.0.113) at /usr/lib/dotnet/sdk/10.0.113, VisualStudioRootPath=/usr/lib/dotnet/sdk/10.0.113
+[DEBUG] Using MSBuild from: /usr/lib/dotnet/sdk/10.0.113
+[xUnit.net 00:00:01.91]   Finished:    RoslynMcpServer.Tests
+  Passed RoslynMcpServer.Tests.Testing.BaselineSessionIntegrationTests.Cached_load_does_not_interrupt_an_unfinished_capture [1 s]
+
+Test Run Successful.
+Total tests: 1
+     Passed: 1
+ Total time: 2.2997 Seconds
+
+
+===== r5-cached-past-05.log =====
+Test run for /home/runner/roslyn-mcp-rapid-tia-r5-20261103/RoslynMcpServer.Tests/bin/Release/net10.0/RoslynMcpServer.Tests.dll (.NETCoreApp,Version=v10.0)
+VSTest version 18.0.2 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.0+00ab0a9ec4 (64-bit .NET 10.0.13)
+[xUnit.net 00:00:00.10]   Discovering: RoslynMcpServer.Tests
+[xUnit.net 00:00:00.27]   Discovered:  RoslynMcpServer.Tests
+[xUnit.net 00:00:00.29]   Starting:    RoslynMcpServer.Tests
+[DEBUG] Found MSBuild: .NET Core SDK (10.0.113) at /usr/lib/dotnet/sdk/10.0.113, VisualStudioRootPath=/usr/lib/dotnet/sdk/10.0.113
+[DEBUG] Using MSBuild from: /usr/lib/dotnet/sdk/10.0.113
+[xUnit.net 00:00:01.85]   Finished:    RoslynMcpServer.Tests
+  Passed RoslynMcpServer.Tests.Testing.BaselineSessionIntegrationTests.Cached_load_does_not_interrupt_an_unfinished_capture [1 s]
+
+Test Run Successful.
+Total tests: 1
+     Passed: 1
+ Total time: 2.2386 Seconds
+
+
+===== r5-cached-past-06.log =====
+Test run for /home/runner/roslyn-mcp-rapid-tia-r5-20261103/RoslynMcpServer.Tests/bin/Release/net10.0/RoslynMcpServer.Tests.dll (.NETCoreApp,Version=v10.0)
+VSTest version 18.0.2 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.0+00ab0a9ec4 (64-bit .NET 10.0.13)
+[xUnit.net 00:00:00.09]   Discovering: RoslynMcpServer.Tests
+[xUnit.net 00:00:00.24]   Discovered:  RoslynMcpServer.Tests
+[xUnit.net 00:00:00.27]   Starting:    RoslynMcpServer.Tests
+[DEBUG] Found MSBuild: .NET Core SDK (10.0.113) at /usr/lib/dotnet/sdk/10.0.113, VisualStudioRootPath=/usr/lib/dotnet/sdk/10.0.113
+[DEBUG] Using MSBuild from: /usr/lib/dotnet/sdk/10.0.113
+[xUnit.net 00:00:01.88]   Finished:    RoslynMcpServer.Tests
+  Passed RoslynMcpServer.Tests.Testing.BaselineSessionIntegrationTests.Cached_load_does_not_interrupt_an_unfinished_capture [1 s]
+
+Test Run Successful.
+Total tests: 1
+     Passed: 1
+ Total time: 2.2813 Seconds
+
+
+===== r5-cached-past-07.log =====
+Test run for /home/runner/roslyn-mcp-rapid-tia-r5-20261103/RoslynMcpServer.Tests/bin/Release/net10.0/RoslynMcpServer.Tests.dll (.NETCoreApp,Version=v10.0)
+VSTest version 18.0.2 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.0+00ab0a9ec4 (64-bit .NET 10.0.13)
+[xUnit.net 00:00:00.09]   Discovering: RoslynMcpServer.Tests
+[xUnit.net 00:00:00.24]   Discovered:  RoslynMcpServer.Tests
+[xUnit.net 00:00:00.26]   Starting:    RoslynMcpServer.Tests
+[DEBUG] Found MSBuild: .NET Core SDK (10.0.113) at /usr/lib/dotnet/sdk/10.0.113, VisualStudioRootPath=/usr/lib/dotnet/sdk/10.0.113
+[DEBUG] Using MSBuild from: /usr/lib/dotnet/sdk/10.0.113
+[xUnit.net 00:00:01.93]   Finished:    RoslynMcpServer.Tests
+  Passed RoslynMcpServer.Tests.Testing.BaselineSessionIntegrationTests.Cached_load_does_not_interrupt_an_unfinished_capture [1 s]
+
+Test Run Successful.
+Total tests: 1
+     Passed: 1
+ Total time: 2.3320 Seconds
+
+
+===== r5-cached-past-08.log =====
+Test run for /home/runner/roslyn-mcp-rapid-tia-r5-20261103/RoslynMcpServer.Tests/bin/Release/net10.0/RoslynMcpServer.Tests.dll (.NETCoreApp,Version=v10.0)
+VSTest version 18.0.2 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.0+00ab0a9ec4 (64-bit .NET 10.0.13)
+[xUnit.net 00:00:00.10]   Discovering: RoslynMcpServer.Tests
+[xUnit.net 00:00:00.26]   Discovered:  RoslynMcpServer.Tests
+[xUnit.net 00:00:00.28]   Starting:    RoslynMcpServer.Tests
+[DEBUG] Found MSBuild: .NET Core SDK (10.0.113) at /usr/lib/dotnet/sdk/10.0.113, VisualStudioRootPath=/usr/lib/dotnet/sdk/10.0.113
+[DEBUG] Using MSBuild from: /usr/lib/dotnet/sdk/10.0.113
+[xUnit.net 00:00:02.02]   Finished:    RoslynMcpServer.Tests
+  Passed RoslynMcpServer.Tests.Testing.BaselineSessionIntegrationTests.Cached_load_does_not_interrupt_an_unfinished_capture [1 s]
+
+Test Run Successful.
+Total tests: 1
+     Passed: 1
+ Total time: 2.4785 Seconds
+
+
+===== r5-cached-past-09.log =====
+Test run for /home/runner/roslyn-mcp-rapid-tia-r5-20261103/RoslynMcpServer.Tests/bin/Release/net10.0/RoslynMcpServer.Tests.dll (.NETCoreApp,Version=v10.0)
+VSTest version 18.0.2 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.0+00ab0a9ec4 (64-bit .NET 10.0.13)
+[xUnit.net 00:00:00.10]   Discovering: RoslynMcpServer.Tests
+[xUnit.net 00:00:00.27]   Discovered:  RoslynMcpServer.Tests
+[xUnit.net 00:00:00.29]   Starting:    RoslynMcpServer.Tests
+[DEBUG] Found MSBuild: .NET Core SDK (10.0.113) at /usr/lib/dotnet/sdk/10.0.113, VisualStudioRootPath=/usr/lib/dotnet/sdk/10.0.113
+[DEBUG] Using MSBuild from: /usr/lib/dotnet/sdk/10.0.113
+[xUnit.net 00:00:02.01]   Finished:    RoslynMcpServer.Tests
+  Passed RoslynMcpServer.Tests.Testing.BaselineSessionIntegrationTests.Cached_load_does_not_interrupt_an_unfinished_capture [1 s]
+
+Test Run Successful.
+Total tests: 1
+     Passed: 1
+ Total time: 2.4606 Seconds
+
+
+===== r5-cached-past-10.log =====
+Test run for /home/runner/roslyn-mcp-rapid-tia-r5-20261103/RoslynMcpServer.Tests/bin/Release/net10.0/RoslynMcpServer.Tests.dll (.NETCoreApp,Version=v10.0)
+VSTest version 18.0.2 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.0+00ab0a9ec4 (64-bit .NET 10.0.13)
+[xUnit.net 00:00:00.12]   Discovering: RoslynMcpServer.Tests
+[xUnit.net 00:00:00.29]   Discovered:  RoslynMcpServer.Tests
+[xUnit.net 00:00:00.32]   Starting:    RoslynMcpServer.Tests
+[DEBUG] Found MSBuild: .NET Core SDK (10.0.113) at /usr/lib/dotnet/sdk/10.0.113, VisualStudioRootPath=/usr/lib/dotnet/sdk/10.0.113
+[DEBUG] Using MSBuild from: /usr/lib/dotnet/sdk/10.0.113
+[xUnit.net 00:00:02.04]   Finished:    RoslynMcpServer.Tests
+  Passed RoslynMcpServer.Tests.Testing.BaselineSessionIntegrationTests.Cached_load_does_not_interrupt_an_unfinished_capture [1 s]
+
+Test Run Successful.
+Total tests: 1
+     Passed: 1
+ Total time: 2.4675 Seconds
+
+
+===== r5-cached-past-11.log =====
+Test run for /home/runner/roslyn-mcp-rapid-tia-r5-20261103/RoslynMcpServer.Tests/bin/Release/net10.0/RoslynMcpServer.Tests.dll (.NETCoreApp,Version=v10.0)
+VSTest version 18.0.2 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.0+00ab0a9ec4 (64-bit .NET 10.0.13)
+[xUnit.net 00:00:00.11]   Discovering: RoslynMcpServer.Tests
+[xUnit.net 00:00:00.29]   Discovered:  RoslynMcpServer.Tests
+[xUnit.net 00:00:00.31]   Starting:    RoslynMcpServer.Tests
+[DEBUG] Found MSBuild: .NET Core SDK (10.0.113) at /usr/lib/dotnet/sdk/10.0.113, VisualStudioRootPath=/usr/lib/dotnet/sdk/10.0.113
+[DEBUG] Using MSBuild from: /usr/lib/dotnet/sdk/10.0.113
+[xUnit.net 00:00:01.98]   Finished:    RoslynMcpServer.Tests
+  Passed RoslynMcpServer.Tests.Testing.BaselineSessionIntegrationTests.Cached_load_does_not_interrupt_an_unfinished_capture [1 s]
+
+Test Run Successful.
+Total tests: 1
+     Passed: 1
+ Total time: 2.4144 Seconds
+
+
+===== r5-cached-past-12.log =====
+Test run for /home/runner/roslyn-mcp-rapid-tia-r5-20261103/RoslynMcpServer.Tests/bin/Release/net10.0/RoslynMcpServer.Tests.dll (.NETCoreApp,Version=v10.0)
+VSTest version 18.0.2 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.0+00ab0a9ec4 (64-bit .NET 10.0.13)
+[xUnit.net 00:00:00.11]   Discovering: RoslynMcpServer.Tests
+[xUnit.net 00:00:00.27]   Discovered:  RoslynMcpServer.Tests
+[xUnit.net 00:00:00.29]   Starting:    RoslynMcpServer.Tests
+[DEBUG] Found MSBuild: .NET Core SDK (10.0.113) at /usr/lib/dotnet/sdk/10.0.113, VisualStudioRootPath=/usr/lib/dotnet/sdk/10.0.113
+[DEBUG] Using MSBuild from: /usr/lib/dotnet/sdk/10.0.113
+[xUnit.net 00:00:01.97]   Finished:    RoslynMcpServer.Tests
+  Passed RoslynMcpServer.Tests.Testing.BaselineSessionIntegrationTests.Cached_load_does_not_interrupt_an_unfinished_capture [1 s]
+
+Test Run Successful.
+Total tests: 1
+     Passed: 1
+ Total time: 2.3992 Seconds
+
+
+===== r5-cached-past-13.log =====
+Test run for /home/runner/roslyn-mcp-rapid-tia-r5-20261103/RoslynMcpServer.Tests/bin/Release/net10.0/RoslynMcpServer.Tests.dll (.NETCoreApp,Version=v10.0)
+VSTest version 18.0.2 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.0+00ab0a9ec4 (64-bit .NET 10.0.13)
+[xUnit.net 00:00:00.10]   Discovering: RoslynMcpServer.Tests
+[xUnit.net 00:00:00.24]   Discovered:  RoslynMcpServer.Tests
+[xUnit.net 00:00:00.26]   Starting:    RoslynMcpServer.Tests
+[DEBUG] Found MSBuild: .NET Core SDK (10.0.113) at /usr/lib/dotnet/sdk/10.0.113, VisualStudioRootPath=/usr/lib/dotnet/sdk/10.0.113
+[DEBUG] Using MSBuild from: /usr/lib/dotnet/sdk/10.0.113
+[xUnit.net 00:00:01.83]   Finished:    RoslynMcpServer.Tests
+  Passed RoslynMcpServer.Tests.Testing.BaselineSessionIntegrationTests.Cached_load_does_not_interrupt_an_unfinished_capture [1 s]
+
+Test Run Successful.
+Total tests: 1
+     Passed: 1
+ Total time: 2.2547 Seconds
+
+
+===== r5-cached-past-14.log =====
+Test run for /home/runner/roslyn-mcp-rapid-tia-r5-20261103/RoslynMcpServer.Tests/bin/Release/net10.0/RoslynMcpServer.Tests.dll (.NETCoreApp,Version=v10.0)
+VSTest version 18.0.2 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.0+00ab0a9ec4 (64-bit .NET 10.0.13)
+[xUnit.net 00:00:00.10]   Discovering: RoslynMcpServer.Tests
+[xUnit.net 00:00:00.25]   Discovered:  RoslynMcpServer.Tests
+[xUnit.net 00:00:00.27]   Starting:    RoslynMcpServer.Tests
+[DEBUG] Found MSBuild: .NET Core SDK (10.0.113) at /usr/lib/dotnet/sdk/10.0.113, VisualStudioRootPath=/usr/lib/dotnet/sdk/10.0.113
+[DEBUG] Using MSBuild from: /usr/lib/dotnet/sdk/10.0.113
+[xUnit.net 00:00:01.83]   Finished:    RoslynMcpServer.Tests
+  Passed RoslynMcpServer.Tests.Testing.BaselineSessionIntegrationTests.Cached_load_does_not_interrupt_an_unfinished_capture [1 s]
+
+Test Run Successful.
+Total tests: 1
+     Passed: 1
+ Total time: 2.2497 Seconds
+
+
+===== r5-cached-past-15.log =====
+Test run for /home/runner/roslyn-mcp-rapid-tia-r5-20261103/RoslynMcpServer.Tests/bin/Release/net10.0/RoslynMcpServer.Tests.dll (.NETCoreApp,Version=v10.0)
+VSTest version 18.0.2 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.0+00ab0a9ec4 (64-bit .NET 10.0.13)
+[xUnit.net 00:00:00.10]   Discovering: RoslynMcpServer.Tests
+[xUnit.net 00:00:00.25]   Discovered:  RoslynMcpServer.Tests
+[xUnit.net 00:00:00.27]   Starting:    RoslynMcpServer.Tests
+[DEBUG] Found MSBuild: .NET Core SDK (10.0.113) at /usr/lib/dotnet/sdk/10.0.113, VisualStudioRootPath=/usr/lib/dotnet/sdk/10.0.113
+[DEBUG] Using MSBuild from: /usr/lib/dotnet/sdk/10.0.113
+[xUnit.net 00:00:01.96]   Finished:    RoslynMcpServer.Tests
+  Passed RoslynMcpServer.Tests.Testing.BaselineSessionIntegrationTests.Cached_load_does_not_interrupt_an_unfinished_capture [1 s]
+
+Test Run Successful.
+Total tests: 1
+     Passed: 1
+ Total time: 2.3528 Seconds
+
+
+===== r5-cached-past-16.log =====
+Test run for /home/runner/roslyn-mcp-rapid-tia-r5-20261103/RoslynMcpServer.Tests/bin/Release/net10.0/RoslynMcpServer.Tests.dll (.NETCoreApp,Version=v10.0)
+VSTest version 18.0.2 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.0+00ab0a9ec4 (64-bit .NET 10.0.13)
+[xUnit.net 00:00:00.10]   Discovering: RoslynMcpServer.Tests
+[xUnit.net 00:00:00.24]   Discovered:  RoslynMcpServer.Tests
+[xUnit.net 00:00:00.26]   Starting:    RoslynMcpServer.Tests
+[DEBUG] Found MSBuild: .NET Core SDK (10.0.113) at /usr/lib/dotnet/sdk/10.0.113, VisualStudioRootPath=/usr/lib/dotnet/sdk/10.0.113
+[DEBUG] Using MSBuild from: /usr/lib/dotnet/sdk/10.0.113
+[xUnit.net 00:00:01.72]   Finished:    RoslynMcpServer.Tests
+  Passed RoslynMcpServer.Tests.Testing.BaselineSessionIntegrationTests.Cached_load_does_not_interrupt_an_unfinished_capture [1 s]
+
+Test Run Successful.
+Total tests: 1
+     Passed: 1
+ Total time: 2.1185 Seconds
+
+
+===== r5-cached-past-17.log =====
+Test run for /home/runner/roslyn-mcp-rapid-tia-r5-20261103/RoslynMcpServer.Tests/bin/Release/net10.0/RoslynMcpServer.Tests.dll (.NETCoreApp,Version=v10.0)
+VSTest version 18.0.2 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.0+00ab0a9ec4 (64-bit .NET 10.0.13)
+[xUnit.net 00:00:00.09]   Discovering: RoslynMcpServer.Tests
+[xUnit.net 00:00:00.23]   Discovered:  RoslynMcpServer.Tests
+[xUnit.net 00:00:00.25]   Starting:    RoslynMcpServer.Tests
+[DEBUG] Found MSBuild: .NET Core SDK (10.0.113) at /usr/lib/dotnet/sdk/10.0.113, VisualStudioRootPath=/usr/lib/dotnet/sdk/10.0.113
+[DEBUG] Using MSBuild from: /usr/lib/dotnet/sdk/10.0.113
+[xUnit.net 00:00:01.71]   Finished:    RoslynMcpServer.Tests
+  Passed RoslynMcpServer.Tests.Testing.BaselineSessionIntegrationTests.Cached_load_does_not_interrupt_an_unfinished_capture [1 s]
+
+Test Run Successful.
+Total tests: 1
+     Passed: 1
+ Total time: 2.0797 Seconds
+
+
+===== r5-cached-past-18.log =====
+Test run for /home/runner/roslyn-mcp-rapid-tia-r5-20261103/RoslynMcpServer.Tests/bin/Release/net10.0/RoslynMcpServer.Tests.dll (.NETCoreApp,Version=v10.0)
+VSTest version 18.0.2 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.0+00ab0a9ec4 (64-bit .NET 10.0.13)
+[xUnit.net 00:00:00.09]   Discovering: RoslynMcpServer.Tests
+[xUnit.net 00:00:00.23]   Discovered:  RoslynMcpServer.Tests
+[xUnit.net 00:00:00.25]   Starting:    RoslynMcpServer.Tests
+[DEBUG] Found MSBuild: .NET Core SDK (10.0.113) at /usr/lib/dotnet/sdk/10.0.113, VisualStudioRootPath=/usr/lib/dotnet/sdk/10.0.113
+[DEBUG] Using MSBuild from: /usr/lib/dotnet/sdk/10.0.113
+[xUnit.net 00:00:01.71]   Finished:    RoslynMcpServer.Tests
+  Passed RoslynMcpServer.Tests.Testing.BaselineSessionIntegrationTests.Cached_load_does_not_interrupt_an_unfinished_capture [1 s]
+
+Test Run Successful.
+Total tests: 1
+     Passed: 1
+ Total time: 2.0869 Seconds
+
+
+===== r5-cached-past-19.log =====
+Test run for /home/runner/roslyn-mcp-rapid-tia-r5-20261103/RoslynMcpServer.Tests/bin/Release/net10.0/RoslynMcpServer.Tests.dll (.NETCoreApp,Version=v10.0)
+VSTest version 18.0.2 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.0+00ab0a9ec4 (64-bit .NET 10.0.13)
+[xUnit.net 00:00:00.09]   Discovering: RoslynMcpServer.Tests
+[xUnit.net 00:00:00.23]   Discovered:  RoslynMcpServer.Tests
+[xUnit.net 00:00:00.25]   Starting:    RoslynMcpServer.Tests
+[DEBUG] Found MSBuild: .NET Core SDK (10.0.113) at /usr/lib/dotnet/sdk/10.0.113, VisualStudioRootPath=/usr/lib/dotnet/sdk/10.0.113
+[DEBUG] Using MSBuild from: /usr/lib/dotnet/sdk/10.0.113
+[xUnit.net 00:00:01.80]   Finished:    RoslynMcpServer.Tests
+  Passed RoslynMcpServer.Tests.Testing.BaselineSessionIntegrationTests.Cached_load_does_not_interrupt_an_unfinished_capture [1 s]
+
+Test Run Successful.
+Total tests: 1
+     Passed: 1
+ Total time: 2.1748 Seconds
+
+
+===== r5-cached-past-20.log =====
+Test run for /home/runner/roslyn-mcp-rapid-tia-r5-20261103/RoslynMcpServer.Tests/bin/Release/net10.0/RoslynMcpServer.Tests.dll (.NETCoreApp,Version=v10.0)
+VSTest version 18.0.2 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.0+00ab0a9ec4 (64-bit .NET 10.0.13)
+[xUnit.net 00:00:00.10]   Discovering: RoslynMcpServer.Tests
+[xUnit.net 00:00:00.25]   Discovered:  RoslynMcpServer.Tests
+[xUnit.net 00:00:00.27]   Starting:    RoslynMcpServer.Tests
+[DEBUG] Found MSBuild: .NET Core SDK (10.0.113) at /usr/lib/dotnet/sdk/10.0.113, VisualStudioRootPath=/usr/lib/dotnet/sdk/10.0.113
+[DEBUG] Using MSBuild from: /usr/lib/dotnet/sdk/10.0.113
+[xUnit.net 00:00:01.85]   Finished:    RoslynMcpServer.Tests
+  Passed RoslynMcpServer.Tests.Testing.BaselineSessionIntegrationTests.Cached_load_does_not_interrupt_an_unfinished_capture [1 s]
+
+Test Run Successful.
+Total tests: 1
+     Passed: 1
+ Total time: 2.2528 Seconds

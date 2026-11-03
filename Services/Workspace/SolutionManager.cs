@@ -2792,18 +2792,36 @@ public sealed class SolutionManager
         var accepted = session.TryRun(() =>
         {
             var map = session.InputMap;
+            var oldBaselinePath = WorkspaceDiskPathFilter.IsIgnoredPath(e.OldFullPath) ? null : e.OldFullPath;
+            var newBaselinePath = WorkspaceDiskPathFilter.IsIgnoredPath(e.FullPath) ? null : e.FullPath;
+            var confirmedDirectory = WorkspaceDiskEventClassifier.HasDirectoryRenameEvidence(oldBaselinePath, newBaselinePath, map);
             if (WorkspaceDiskEventClassifier.IsDirectoryRename(e.OldFullPath, e.FullPath, map))
             {
-                Baseline.RecordWrite(e.OldFullPath);
-                Baseline.RecordWrite(e.FullPath);
+                if (oldBaselinePath != null)
+                {
+                    Baseline.RecordWrite(oldBaselinePath);
+                }
+                if (newBaselinePath != null)
+                {
+                    Baseline.RecordWrite(newBaselinePath);
+                }
                 _refreshAllDocuments = true;
                 directoryRenamed = true;
+                // The refresh heuristic also accepts extensionless files; that cannot justify an irreversible baseline gap.
+                // Ignore metadata renames such as .git/index.lock -> index. See docs/rapid-tia/epoch-1-project-level/evidence/task-03-review-round-5.md (R5-003).
                 session.NoteDirectoryRename(
                     e.OldFullPath,
                     e.FullPath,
                     WorkspaceDiskEventClassifier.AffectsMembershipRegion(e.OldFullPath, map)
-                        || WorkspaceDiskEventClassifier.AffectsMembershipRegion(e.FullPath, map));
+                        || WorkspaceDiskEventClassifier.AffectsMembershipRegion(e.FullPath, map),
+                    confirmedDirectory: confirmedDirectory);
                 return;
+            }
+
+            // A vanished dotted directory can still have mapped descendants even when the legacy refresh heuristic declines it.
+            if (confirmedDirectory)
+            {
+                Baseline.NoteObservationGap();
             }
 
             oldGraphPath = QueueDiskPath(session, e.OldFullPath, WatcherChangeTypes.Renamed);
@@ -2931,7 +2949,10 @@ public sealed class SolutionManager
         }
 
         var canonical = decision.CanonicalPath ?? fullPath;
-        Baseline.RecordWrite(canonical);
+        if (changeType != WatcherChangeTypes.Renamed || !WorkspaceDiskPathFilter.IsIgnoredPath(canonical))
+        {
+            Baseline.RecordWrite(canonical);
+        }
         var structural = changeType is WatcherChangeTypes.Deleted or WatcherChangeTypes.Renamed
             || decision.CompositionStale;
         if (!structural && session.OwnWriteDefersContent(canonical))
