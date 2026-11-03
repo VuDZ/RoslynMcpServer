@@ -16,7 +16,17 @@ internal static class BaselineDocumentSnapshotBuilder
         var root = (CompilationUnitSyntax)tree.GetRoot();
         var members = ImmutableArray.CreateBuilder<BaselineMemberSnapshot>();
         var nextOrderByType = new Dictionary<string, int>(StringComparer.Ordinal);
-        foreach (var declaration in root.DescendantNodes().OfType<MemberDeclarationSyntax>())
+        var declarations = root.DescendantNodes().OfType<MemberDeclarationSyntax>().ToArray();
+        var testTypes = TestTypePaths(declarations);
+        var overloadsByType = declarations.OfType<MethodDeclarationSyntax>()
+            .GroupBy(method => Key(method, string.Empty).ContainingTypePath)
+            .ToDictionary(group => group.Key, group => group.GroupBy(method => method.Identifier.ValueText)
+                .Where(methods => methods.Count() > 1).Select(methods => methods.Key).ToHashSet(StringComparer.Ordinal),
+                StringComparer.Ordinal);
+        var contractsByType = declarations.OfType<TypeDeclarationSyntax>().GroupBy(DeclaredTypePath)
+            .ToDictionary(group => group.Key, group => group.SelectMany(type => type.BaseList?.Types
+                .Select(baseType => SimpleName(baseType.Type)) ?? []).ToHashSet(StringComparer.Ordinal), StringComparer.Ordinal);
+        foreach (var declaration in declarations)
         {
             if (declaration is BaseNamespaceDeclarationSyntax)
             {
@@ -29,7 +39,8 @@ internal static class BaselineDocumentSnapshotBuilder
             var isPartial = declaration.ChildTokens().Any(token => token.IsKind(SyntaxKind.PartialKeyword));
             foreach (var name in Names(declaration))
             {
-                members.Add(new BaselineMemberSnapshot(Key(declaration, name), hash, isPartial));
+                var snapshot = new BaselineMemberSnapshot(Key(declaration, name), hash, isPartial);
+                members.Add(WithRoles(snapshot, declaration, testTypes, contractsByType, overloadsByType));
             }
         }
 
@@ -45,6 +56,111 @@ internal static class BaselineDocumentSnapshotBuilder
             tree.GetDiagnostics().Any(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error),
             members.ToImmutable());
     }
+
+    private static HashSet<string> TestTypePaths(IEnumerable<MemberDeclarationSyntax> declarations) =>
+        declarations.OfType<MethodDeclarationSyntax>().Where(IsTestMethod)
+            .Select(method => Key(method, string.Empty).ContainingTypePath)
+            .Concat(declarations.OfType<TypeDeclarationSyntax>()
+                .Where(type => type.AttributeLists.SelectMany(list => list.Attributes)
+                    .Any(attribute => AttributeName(attribute) is "TestClass" or "TestFixture"))
+                .Select(DeclaredTypePath)).ToHashSet(StringComparer.Ordinal);
+
+    private static string DeclaredTypePath(TypeDeclarationSyntax type)
+    {
+        var parentPath = Key(type, string.Empty).ContainingTypePath;
+        return (parentPath.Length == 0 ? "" : parentPath + ".") + type.Identifier.ValueText
+            + "`" + (type.TypeParameterList?.Parameters.Count ?? 0);
+    }
+
+    private static BaselineMemberSnapshot WithRoles(
+        BaselineMemberSnapshot snapshot,
+        MemberDeclarationSyntax declaration,
+        HashSet<string> testTypes,
+        Dictionary<string, HashSet<string>> contractsByType,
+        Dictionary<string, HashSet<string>> overloadsByType)
+    {
+        var isTest = declaration is MethodDeclarationSyntax method && IsTestMethod(method);
+        var isExtension = declaration is MethodDeclarationSyntax extension
+            && extension.ParameterList.Parameters.FirstOrDefault()?.Modifiers.Any(SyntaxKind.ThisKeyword) == true;
+        var isRoot = false;
+        string? contextHash = null;
+        if (testTypes.Contains(snapshot.Key.ContainingTypePath))
+        {
+            isRoot = declaration is ConstructorDeclarationSyntax
+                || declaration is MethodDeclarationSyntax lifecycle && IsLifecycleMethod(lifecycle,
+                    contractsByType.GetValueOrDefault(snapshot.Key.ContainingTypePath) ?? [],
+                    hasOverloads: overloadsByType.GetValueOrDefault(snapshot.Key.ContainingTypePath)
+                        ?.Contains(lifecycle.Identifier.ValueText) == true);
+            // Constants can be inlined into other classes; they are not executed test-class initialization roots.
+            if (declaration is BaseFieldDeclarationSyntax field && !field.Modifiers.Any(SyntaxKind.ConstKeyword))
+            {
+                isRoot = field.Declaration.Variables.Any(variable => variable.Identifier.ValueText == snapshot.Key.Name
+                    && variable.Initializer != null);
+                // Preserve the context before an initializer exists, so introducing one can be recognized as a new root.
+                contextHash = Hash(Canonical(field.WithDeclaration(field.Declaration.WithVariables(
+                    SyntaxFactory.SeparatedList(field.Declaration.Variables.Select(variable => variable.WithInitializer(null)))))));
+            }
+            else if (declaration is PropertyDeclarationSyntax property)
+            {
+                isRoot = property.Initializer != null;
+                contextHash = Hash(Canonical(property.WithInitializer(null).WithSemicolonToken(default)));
+            }
+        }
+
+        return snapshot with
+        {
+            IsTestMethod = isTest,
+            IsOwnTestClassRoot = isRoot,
+            IsExtensionMethod = isExtension,
+            InitializerContextHash = contextHash,
+        };
+    }
+
+    private static bool IsTestMethod(MethodDeclarationSyntax method) => method.AttributeLists
+        .SelectMany(list => list.Attributes).Any(attribute => TestAttributeMatcher.IsTestAttributeSyntaxName(attribute.Name.ToString()));
+
+    private static bool IsLifecycleMethod(MethodDeclarationSyntax method, HashSet<string> contracts, bool hasOverloads)
+    {
+        if (method.AttributeLists.SelectMany(list => list.Attributes).Any(attribute => AttributeName(attribute) is
+            "SetUp" or "TearDown" or "OneTimeSetUp" or "OneTimeTearDown"
+            or "TestInitialize" or "TestCleanup" or "ClassInitialize" or "ClassCleanup"))
+        {
+            return true;
+        }
+
+        // A name alone cannot select a lifecycle implementation over competing helpers without semantic binding.
+        if (method.ParameterList.Parameters.Count != 0 || method.TypeParameterList?.Parameters.Count > 0
+            || method.Modifiers.Any(SyntaxKind.StaticKeyword)
+            || hasOverloads && method.ExplicitInterfaceSpecifier == null)
+        {
+            return false;
+        }
+
+        var explicitContract = method.ExplicitInterfaceSpecifier == null
+            ? null : SimpleName(method.ExplicitInterfaceSpecifier.Name);
+        return method.Identifier.ValueText switch
+        {
+            "InitializeAsync" => contracts.Contains("IAsyncLifetime") && explicitContract is null or "IAsyncLifetime",
+            "DisposeAsync" => contracts.Contains("IAsyncLifetime") && explicitContract is null or "IAsyncLifetime"
+                || contracts.Contains("IAsyncDisposable") && explicitContract is null or "IAsyncDisposable",
+            "Dispose" => contracts.Contains("IDisposable") && explicitContract is null or "IDisposable",
+            _ => false,
+        };
+    }
+
+    private static string AttributeName(AttributeSyntax attribute)
+    {
+        var name = SimpleName(attribute.Name);
+        return name.EndsWith("Attribute", StringComparison.Ordinal) ? name[..^"Attribute".Length] : name;
+    }
+
+    private static string SimpleName(TypeSyntax type) => type switch
+    {
+        SimpleNameSyntax simple => simple.Identifier.ValueText,
+        QualifiedNameSyntax qualified => qualified.Right.Identifier.ValueText,
+        AliasQualifiedNameSyntax qualified => qualified.Name.Identifier.ValueText,
+        _ => "",
+    };
 
     private static SyntaxList<MemberDeclarationSyntax> NamespaceSurfaces(SyntaxList<MemberDeclarationSyntax> members) =>
         SyntaxFactory.List(members.OfType<BaseNamespaceDeclarationSyntax>().Select(declaration =>
