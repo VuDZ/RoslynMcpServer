@@ -1,4 +1,5 @@
 using Microsoft.CodeAnalysis;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using RoslynMcpServer.Diagnostics;
 using RoslynMcpServer.Tools;
@@ -13,7 +14,7 @@ internal sealed class BaselineLifecycleFixture : IAsyncDisposable
     internal string SecondPath { get; }
     internal SolutionManager Manager { get; }
 
-    internal BaselineLifecycleFixture()
+    internal BaselineLifecycleFixture(ILogger<SolutionManager>? logger = null)
     {
         MsBuildBootstrapper.Register();
         Root = Path.Combine(Path.GetTempPath(), "RoslynMcpBaseline-" + Guid.NewGuid().ToString("N"));
@@ -21,7 +22,7 @@ internal sealed class BaselineLifecycleFixture : IAsyncDisposable
         ProjectPath = CreateProject(Root, "App");
         FirstPath = Path.Combine(Root, "A.cs");
         SecondPath = Path.Combine(Root, "B.cs");
-        Manager = SolutionManagerTestFactory.Create();
+        Manager = SolutionManagerTestFactory.Create(logger: logger);
     }
 
     public async ValueTask DisposeAsync()

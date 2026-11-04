@@ -1,0 +1,87 @@
+After load: RequiresFullScan=False; ObservationCoverage=Unknown; SourceEventRevision=0; Subscriptions=17.
+Touched:
+Coverage reasons: imports-not-in-evaluated-graph
+restore-inputs-not-in-evaluated-graph
+custom-tasks-not-in-evaluated-graph
+external-glob-completeness-unknown
+xaml-and-resources-beyond-evaluated-documents-unknown
+walk-up-file-is-a-candidate-not-a-proven-import
+Observed events:
+Workspace log: workspace_missing_source_files {"documents":0,"files":0,"available":true,"installed":null,"elapsedMs":0.1806,"paths":[]}
+Disk watcher started on /tmp/RoslynMcpBaseline-9da99c4c25ab442e9a562c06c3ec9064
+Disk watcher started on /tmp/RoslynMcpBaseline-9da99c4c25ab442e9a562c06c3ec9064/bin/Debug/net10.0
+Disk watcher started on /tmp/RoslynMcpBaseline-9da99c4c25ab442e9a562c06c3ec9064/obj/Debug/net10.0/ref
+Disk watcher started on /tmp/RoslynMcpBaseline-9da99c4c25ab442e9a562c06c3ec9064/obj/Debug/net10.0
+Disk watcher started on /usr/lib/dotnet/sdk/10.0.114/Sdks/Microsoft.NET.Sdk/analyzers/build/config
+Disk watcher started on /usr/lib/dotnet/packs/Microsoft.NETCore.App.Ref/10.0.14/ref/net10.0
+Disk watcher started on /tmp
+Disk watcher started on /
+Disk watcher started on /usr/lib/dotnet/sdk/10.0.114/Sdks/Microsoft.NET.Sdk/analyzers/build
+Disk watcher started on /usr/lib/dotnet/sdk/10.0.114/Sdks/Microsoft.NET.Sdk/analyzers
+Disk watcher started on /usr/lib/dotnet/sdk/10.0.114/Sdks/Microsoft.NET.Sdk
+Disk watcher started on /usr/lib/dotnet/sdk/10.0.114/Sdks
+Disk watcher started on /usr/lib/dotnet/sdk/10.0.114
+Disk watcher started on /usr/lib/dotnet/sdk
+Disk watcher started on /usr/lib/dotnet
+Disk watcher started on /usr/lib
+Disk watcher started on /usr
+Loaded Roslyn workspace from /tmp/RoslynMcpBaseline-9da99c4c25ab442e9a562c06c3ec9064/App.csproj (Configuration=(default), Platform=(default), PlatformRaw=(default), TargetFramework=(default), BuildArgs=(none))
+Exceptions:
+After silence, before write: RequiresFullScan=False; ObservationCoverage=Unknown; SourceEventRevision=0; Subscriptions=17.
+Touched:
+Coverage reasons: imports-not-in-evaluated-graph
+restore-inputs-not-in-evaluated-graph
+custom-tasks-not-in-evaluated-graph
+external-glob-completeness-unknown
+xaml-and-resources-beyond-evaluated-documents-unknown
+walk-up-file-is-a-candidate-not-a-proven-import
+Observed events:
+Workspace log: workspace_missing_source_files {"documents":0,"files":0,"available":true,"installed":null,"elapsedMs":0.1806,"paths":[]}
+Disk watcher started on /tmp/RoslynMcpBaseline-9da99c4c25ab442e9a562c06c3ec9064
+Disk watcher started on /tmp/RoslynMcpBaseline-9da99c4c25ab442e9a562c06c3ec9064/bin/Debug/net10.0
+Disk watcher started on /tmp/RoslynMcpBaseline-9da99c4c25ab442e9a562c06c3ec9064/obj/Debug/net10.0/ref
+Disk watcher started on /tmp/RoslynMcpBaseline-9da99c4c25ab442e9a562c06c3ec9064/obj/Debug/net10.0
+Disk watcher started on /usr/lib/dotnet/sdk/10.0.114/Sdks/Microsoft.NET.Sdk/analyzers/build/config
+Disk watcher started on /usr/lib/dotnet/packs/Microsoft.NETCore.App.Ref/10.0.14/ref/net10.0
+Disk watcher started on /tmp
+Disk watcher started on /
+Disk watcher started on /usr/lib/dotnet/sdk/10.0.114/Sdks/Microsoft.NET.Sdk/analyzers/build
+Disk watcher started on /usr/lib/dotnet/sdk/10.0.114/Sdks/Microsoft.NET.Sdk/analyzers
+Disk watcher started on /usr/lib/dotnet/sdk/10.0.114/Sdks/Microsoft.NET.Sdk
+Disk watcher started on /usr/lib/dotnet/sdk/10.0.114/Sdks
+Disk watcher started on /usr/lib/dotnet/sdk/10.0.114
+Disk watcher started on /usr/lib/dotnet/sdk
+Disk watcher started on /usr/lib/dotnet
+Disk watcher started on /usr/lib
+Disk watcher started on /usr
+Loaded Roslyn workspace from /tmp/RoslynMcpBaseline-9da99c4c25ab442e9a562c06c3ec9064/App.csproj (Configuration=(default), Platform=(default), PlatformRaw=(default), TargetFramework=(default), BuildArgs=(none))
+Exceptions:
+After write, before capture release: RequiresFullScan=False; ObservationCoverage=Unknown; SourceEventRevision=0; Subscriptions=17.
+Touched:
+Coverage reasons: imports-not-in-evaluated-graph
+restore-inputs-not-in-evaluated-graph
+custom-tasks-not-in-evaluated-graph
+external-glob-completeness-unknown
+xaml-and-resources-beyond-evaluated-documents-unknown
+walk-up-file-is-a-candidate-not-a-proven-import
+Observed events:
+Workspace log: workspace_missing_source_files {"documents":0,"files":0,"available":true,"installed":null,"elapsedMs":0.1806,"paths":[]}
+Disk watcher started on /tmp/RoslynMcpBaseline-9da99c4c25ab442e9a562c06c3ec9064
+Disk watcher started on /tmp/RoslynMcpBaseline-9da99c4c25ab442e9a562c06c3ec9064/bin/Debug/net10.0
+Disk watcher started on /tmp/RoslynMcpBaseline-9da99c4c25ab442e9a562c06c3ec9064/obj/Debug/net10.0/ref
+Disk watcher started on /tmp/RoslynMcpBaseline-9da99c4c25ab442e9a562c06c3ec9064/obj/Debug/net10.0
+Disk watcher started on /usr/lib/dotnet/sdk/10.0.114/Sdks/Microsoft.NET.Sdk/analyzers/build/config
+Disk watcher started on /usr/lib/dotnet/packs/Microsoft.NETCore.App.Ref/10.0.14/ref/net10.0
+Disk watcher started on /tmp
+Disk watcher started on /
+Disk watcher started on /usr/lib/dotnet/sdk/10.0.114/Sdks/Microsoft.NET.Sdk/analyzers/build
+Disk watcher started on /usr/lib/dotnet/sdk/10.0.114/Sdks/Microsoft.NET.Sdk/analyzers
+Disk watcher started on /usr/lib/dotnet/sdk/10.0.114/Sdks/Microsoft.NET.Sdk
+Disk watcher started on /usr/lib/dotnet/sdk/10.0.114/Sdks
+Disk watcher started on /usr/lib/dotnet/sdk/10.0.114
+Disk watcher started on /usr/lib/dotnet/sdk
+Disk watcher started on /usr/lib/dotnet
+Disk watcher started on /usr/lib
+Disk watcher started on /usr
+Loaded Roslyn workspace from /tmp/RoslynMcpBaseline-9da99c4c25ab442e9a562c06c3ec9064/App.csproj (Configuration=(default), Platform=(default), PlatformRaw=(default), TargetFramework=(default), BuildArgs=(none))
+Exceptions:

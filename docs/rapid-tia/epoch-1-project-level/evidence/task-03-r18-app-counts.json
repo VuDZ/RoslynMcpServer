@@ -1,0 +1,12 @@
+{
+  "runner": "Roslyn MCP execute_dotnet_command",
+  "configuration": "Release",
+  "filter": "FullyQualifiedName~BaselineDirectoryDisappearanceTests.Real_project_root_guard_count_excludes_standalone_non_csharp_ancestor_chains",
+  "total": 1,
+  "executed": 1,
+  "passed": 1,
+  "failed": 0,
+  "skipped": 0,
+  "stdout": "Planned descriptors: 13; actual watchers: 12; extra roots: 0.\r\nExtra: \r\nUnsupported:",
+  "trx": "artifacts/task-03-r18-app-counts/app-counts.trx"
+}

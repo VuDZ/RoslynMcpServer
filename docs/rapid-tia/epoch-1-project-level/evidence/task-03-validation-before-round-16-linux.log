@@ -1,0 +1,49 @@
+Test run for /home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/RoslynMcpServer.Tests/bin/Release/net10.0/RoslynMcpServer.Tests.dll (.NETCoreApp,Version=v10.0)
+VSTest version 18.0.2 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:09.91]     RoslynMcpServer.Tests.Plugins.PluginStartupTests.Help_of_a_loaded_plugin_tool_comes_from_the_start_report [FAIL]
+  Failed RoslynMcpServer.Tests.Plugins.PluginStartupTests.Help_of_a_loaded_plugin_tool_comes_from_the_start_report [149 ms]
+  Error Message:
+   System.IO.IOException : The configured user limit (128) on the number of inotify instances has been reached, or the per-process limit on the number of open file descriptors has been reached.
+  Stack Trace:
+     at System.IO.FileSystemWatcher.StartRaisingEvents()
+   at Microsoft.Extensions.FileProviders.Physical.PhysicalFilesWatcher.TryEnableFileSystemWatcher()
+   at Microsoft.Extensions.FileProviders.Physical.PhysicalFilesWatcher.CreateFileChangeToken(String filter)
+   at Microsoft.Extensions.FileProviders.PhysicalFileProvider.Watch(String filter)
+   at Microsoft.Extensions.Configuration.FileConfigurationProvider.<.ctor>b__1_0()
+   at Microsoft.Extensions.Primitives.ChangeToken.ChangeTokenRegistration`1..ctor(Func`1 changeTokenProducer, Action`1 changeTokenConsumer, TState state)
+   at Microsoft.Extensions.Primitives.ChangeToken.OnChange(Func`1 changeTokenProducer, Action changeTokenConsumer)
+   at Microsoft.Extensions.Configuration.FileConfigurationProvider..ctor(FileConfigurationSource source)
+   at Microsoft.Extensions.Configuration.Json.JsonConfigurationProvider..ctor(JsonConfigurationSource source)
+   at Microsoft.Extensions.Configuration.Json.JsonConfigurationSource.Build(IConfigurationBuilder builder)
+   at Microsoft.Extensions.Configuration.ConfigurationManager.AddSource(IConfigurationSource source)
+   at Microsoft.Extensions.Configuration.ConfigurationManager.ConfigurationSources.Add(IConfigurationSource source)
+   at Microsoft.Extensions.Configuration.ConfigurationManager.Microsoft.Extensions.Configuration.IConfigurationBuilder.Add(IConfigurationSource source)
+   at Microsoft.Extensions.Configuration.ConfigurationExtensions.Add[TSource](IConfigurationBuilder builder, Action`1 configureSource)
+   at Microsoft.Extensions.Configuration.JsonConfigurationExtensions.AddJsonFile(IConfigurationBuilder builder, Action`1 configureSource)
+   at Microsoft.Extensions.Configuration.JsonConfigurationExtensions.AddJsonFile(IConfigurationBuilder builder, IFileProvider provider, String path, Boolean optional, Boolean reloadOnChange)
+   at Microsoft.Extensions.Configuration.JsonConfigurationExtensions.AddJsonFile(IConfigurationBuilder builder, String path, Boolean optional, Boolean reloadOnChange)
+   at Microsoft.Extensions.Hosting.HostingHostBuilderExtensions.ApplyDefaultAppConfiguration(HostBuilderContext hostingContext, IConfigurationBuilder appConfigBuilder, String[] args)
+   at Microsoft.Extensions.Hosting.HostApplicationBuilder..ctor(HostApplicationBuilderSettings settings)
+   at Microsoft.Extensions.Hosting.HostApplicationBuilder..ctor(String[] args)
+   at Microsoft.Extensions.Hosting.HostApplicationBuilder..ctor()
+   at Microsoft.Extensions.Hosting.Host.CreateApplicationBuilder()
+   at RoslynMcpServer.Tests.Plugins.PluginStartupTests.StartHost(String profile, String baseDirectory, String environmentPaths, Action`1 configureServices) in /home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/RoslynMcpServer.Tests/Plugins/PluginStartupTests.cs:line 399
+   at RoslynMcpServer.Tests.Plugins.PluginStartupTests.Help_of_a_loaded_plugin_tool_comes_from_the_start_report() in /home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/RoslynMcpServer.Tests/Plugins/PluginStartupTests.cs:line 214
+--- End of stack trace from previous location ---
+[xUnit.net 00:00:17.92]     RoslynMcpServer.Tests.Testing.BaselineSessionIntegrationTests.Timestamp_guard_works_without_any_watcher_event [FAIL]
+  Failed RoslynMcpServer.Tests.Testing.BaselineSessionIntegrationTests.Timestamp_guard_works_without_any_watcher_event [695 ms]
+  Error Message:
+   Assert.DoesNotContain() Failure: Item found in collection
+                                                                      ↓ (pos 1)
+Collection: ["/tmp/RoslynMcpBaseline-70b2e7b989fe480283bf7103c84"···, "/tmp/RoslynMcpBaseline-70b2e7b989fe480283bf7103c84"···]
+Found:      "/tmp/RoslynMcpBaseline-70b2e7b989fe480283bf7103c84"···
+  Stack Trace:
+     at RoslynMcpServer.Tests.Testing.BaselineSessionIntegrationTests.Timestamp_guard_works_without_any_watcher_event() in /home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/RoslynMcpServer.Tests/Testing/BaselineSessionIntegrationTests.cs:line 72
+   at RoslynMcpServer.Tests.Testing.BaselineSessionIntegrationTests.Timestamp_guard_works_without_any_watcher_event() in /home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/RoslynMcpServer.Tests/Testing/BaselineSessionIntegrationTests.cs:line 75
+--- End of stack trace from previous location ---
+Results File: /home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/TestResults/task-03-r15-linux-1793795195078-1/main.trx
+
+Failed!  - Failed:     2, Passed:  1736, Skipped:     0, Total:  1738, Duration: 1 m 36 s - RoslynMcpServer.Tests.dll (net10.0)

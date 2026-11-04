@@ -2914,7 +2914,8 @@ public sealed class SolutionManager
         WorkspaceInputSession session,
         string? rawPath,
         WatcherChangeTypes changeType,
-        bool recordBaselineWrite = true)
+        bool recordBaselineWrite = true,
+        bool expandDeletedDescendants = true)
     {
         if (string.IsNullOrWhiteSpace(rawPath))
         {
@@ -2931,9 +2932,48 @@ public sealed class SolutionManager
             return null;
         }
 
+        var map = session.InputMap;
+        if (map is not null
+            && expandDeletedDescendants
+            && changeType == WatcherChangeTypes.Deleted
+            && map.Find(fullPath) is not { Present: true })
+        {
+            // A directory move can arrive only as Deleted, without child events or Renamed.
+            // Expand mapped descendants without a gap: recursive deletion already delivers those same paths.
+            // Only a file present at load rules out descendants; an optional candidate can name a directory.
+            // See docs/rapid-tia/epoch-1-project-level/evidence/task-03-review-round-18.md (R14-001).
+            var mappedDescendants = false;
+            var directoryPath = Path.TrimEndingDirectorySeparator(fullPath);
+            foreach (var entry in map.Paths)
+            {
+                if (!InputPathCanon.Comparer.Equals(entry.CanonicalPath, directoryPath)
+                    && WorkspaceDiskPathFilter.IsPathUnderDirectory(entry.CanonicalPath, directoryPath, InputPathCanon.Comparison))
+                {
+                    mappedDescendants = true;
+                    // This pass already includes nested candidates; expanding each one again duplicates subtree work.
+                    QueueDiskPath(
+                        session,
+                        entry.CanonicalPath,
+                        changeType,
+                        recordBaselineWrite,
+                        expandDeletedDescendants: false);
+                }
+            }
+            // Keep classification and revisions unchanged; only the baseline journal excludes ignored unmapped paths.
+            recordBaselineWrite &= mappedDescendants || !WorkspaceDiskPathFilter.IsIgnoredPath(fullPath, session.WorkspaceDirectory);
+        }
+
         if (WorkspaceDiskPathFilter.IsWpfTemporaryProject(fullPath)
             && !session.LoadedProjectPaths.Contains(fullPath))
         {
+            // A mapped Compile document can have this filename too. Admit only its Deleted baseline fact;
+            // keep WPF semantic suppression, including mapless and actual temporary-project behavior.
+            // See docs/rapid-tia/epoch-1-project-level/evidence/task-03-review-round-19.md (R14-001).
+            if (recordBaselineWrite && changeType == WatcherChangeTypes.Deleted
+                && map?.Find(fullPath)?.Occurrences.Any(static occurrence => occurrence.DocumentId is not null) == true)
+            {
+                Baseline.RecordWrite(fullPath);
+            }
             return null;
         }
 
@@ -2948,7 +2988,6 @@ public sealed class SolutionManager
             return null;
         }
 
-        var map = session.InputMap;
         if (map is null)
         {
             if (changeType is not (WatcherChangeTypes.Deleted or WatcherChangeTypes.Renamed)

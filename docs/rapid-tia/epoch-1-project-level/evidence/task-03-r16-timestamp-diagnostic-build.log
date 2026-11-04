@@ -1,0 +1,22 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  Microsoft.CodeAnalysis.Workspaces.MSBuild.Contracts -> /home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/forks/roslyn-buildhost/build/Contracts/bin/Debug/net8.0/Microsoft.CodeAnalysis.Workspaces.MSBuild.Contracts.dll
+  DeadlockWitnessHost -> /home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/RoslynMcpServer.Tests/SourceStructure/DeadlockWitnessHost/bin/Release/net10.0/DeadlockWitnessHost.dll
+  Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost -> /home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/forks/roslyn-buildhost/build/BuildHost/bin/Debug/net8.0/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.dll
+/home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/Services/Resolve/NuGetFallbackAssemblyResolver.cs(72,9): warning CS8603: Possible null reference return. [/home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/RoslynMcpServer.csproj]
+  RoslynMcpServer -> /home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/bin/Release/net10.0/RoslynMcpServer.dll
+  RoslynMcpPlugin -> /home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/samples/RoslynMcpPlugin/bin/Release/net10.0/RoslynMcpPlugin.dll
+/home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/RoslynMcpServer.LifecycleTestHost/HostSession.cs(1179,34): warning CS8601: Possible null reference assignment. [/home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/RoslynMcpServer.LifecycleTestHost/RoslynMcpServer.LifecycleTestHost.csproj]
+  RoslynMcpServer.LifecycleTestHost -> /home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/RoslynMcpServer.LifecycleTestHost/bin/Release/net10.0/RoslynMcpServer.LifecycleTestHost.dll
+/home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/RoslynMcpServer.Tests/Workspace/WpfTemporaryProjectCallbackTests.cs(195,32): warning xUnit1031: Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031) [/home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/RoslynMcpServer.Tests/RoslynMcpServer.Tests.csproj]
+  RoslynMcpServer.Tests -> /home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/RoslynMcpServer.Tests/bin/Release/net10.0/RoslynMcpServer.Tests.dll
+
+Build succeeded.
+
+/home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/Services/Resolve/NuGetFallbackAssemblyResolver.cs(72,9): warning CS8603: Possible null reference return. [/home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/RoslynMcpServer.csproj]
+/home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/RoslynMcpServer.LifecycleTestHost/HostSession.cs(1179,34): warning CS8601: Possible null reference assignment. [/home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/RoslynMcpServer.LifecycleTestHost/RoslynMcpServer.LifecycleTestHost.csproj]
+/home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/RoslynMcpServer.Tests/Workspace/WpfTemporaryProjectCallbackTests.cs(195,32): warning xUnit1031: Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031) [/home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/RoslynMcpServer.Tests/RoslynMcpServer.Tests.csproj]
+    3 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:11.64

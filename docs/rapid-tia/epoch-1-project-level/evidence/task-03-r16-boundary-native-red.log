@@ -1,0 +1,30 @@
+  DeadlockWitnessHost -> /home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/RoslynMcpServer.Tests/SourceStructure/DeadlockWitnessHost/bin/Release/net10.0/DeadlockWitnessHost.dll
+  Microsoft.CodeAnalysis.Workspaces.MSBuild.Contracts -> /home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/forks/roslyn-buildhost/build/Contracts/bin/Release/net8.0/Microsoft.CodeAnalysis.Workspaces.MSBuild.Contracts.dll
+  Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost -> /home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/forks/roslyn-buildhost/build/BuildHost/bin/Release/net8.0/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.dll
+  RoslynMcpServer -> /home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/bin/Release/net10.0/RoslynMcpServer.dll
+  RoslynMcpServer.LifecycleTestHost -> /home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/RoslynMcpServer.LifecycleTestHost/bin/Release/net10.0/RoslynMcpServer.LifecycleTestHost.dll
+  RoslynMcpPlugin -> /home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/samples/RoslynMcpPlugin/bin/Release/net10.0/RoslynMcpPlugin.dll
+/home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/RoslynMcpServer.Tests/Workspace/WpfTemporaryProjectCallbackTests.cs(195,32): warning xUnit1031: Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031) [/home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/RoslynMcpServer.Tests/RoslynMcpServer.Tests.csproj]
+  RoslynMcpServer.Tests -> /home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/RoslynMcpServer.Tests/bin/Release/net10.0/RoslynMcpServer.Tests.dll
+Test run for /home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/RoslynMcpServer.Tests/bin/Release/net10.0/RoslynMcpServer.Tests.dll (.NETCoreApp,Version=v10.0)
+VSTest version 18.0.2 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:10.22]     RoslynMcpServer.Tests.Testing.BaselineDirectoryDisappearanceTests.Linked_source_keeps_lifetime_coverage_through_a_pure_output_parent_boundary [FAIL]
+  Failed RoslynMcpServer.Tests.Testing.BaselineDirectoryDisappearanceTests.Linked_source_keeps_lifetime_coverage_through_a_pure_output_parent_boundary [9 s]
+  Error Message:
+   Mapped descendant was omitted without a baseline gap. Native sequence:
+Renamed /tmp/RoslynMcpBaseline-bec1c174e5374f7dbc78996ed816f8ef/External/Shared -> /tmp/RoslynMcpBaseline-bec1c174e5374f7dbc78996ed816f8ef/Detached
+  Stack Trace:
+     at RoslynMcpServer.Tests.Testing.BaselineDirectoryDisappearanceTests.MoveAndAssert(BaselineLifecycleFixture fixture, String source, String destination, String originalDirectory) in /home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/RoslynMcpServer.Tests/Testing/BaselineDirectoryDisappearanceTests.cs:line 247
+   at RoslynMcpServer.Tests.Testing.BaselineDirectoryDisappearanceTests.Linked_source_keeps_lifetime_coverage_through_a_pure_output_parent_boundary() in /home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/RoslynMcpServer.Tests/Testing/BaselineDirectoryDisappearanceTests.cs:line 215
+   at RoslynMcpServer.Tests.Testing.BaselineDirectoryDisappearanceTests.Linked_source_keeps_lifetime_coverage_through_a_pure_output_parent_boundary() in /home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/RoslynMcpServer.Tests/Testing/BaselineDirectoryDisappearanceTests.cs:line 215
+--- End of stack trace from previous location ---
+  Standard Output Messages:
+ Renamed /tmp/RoslynMcpBaseline-bec1c174e5374f7dbc78996ed816f8ef/External/Shared -> /tmp/RoslynMcpBaseline-bec1c174e5374f7dbc78996ed816f8ef/Detached
+
+
+Results File: /home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/TestResults/task-03-r16-boundary-native-red/boundary-red.trx
+
+Failed!  - Failed:     1, Passed:     0, Skipped:     0, Total:     1, Duration: 9 s - RoslynMcpServer.Tests.dll (net10.0)

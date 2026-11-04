@@ -1,0 +1,38 @@
+{
+  "exitCode": 1,
+  "counters": {
+    "total": "1751",
+    "executed": "1751",
+    "passed": "1750",
+    "failed": "1",
+    "error": "0",
+    "timeout": "0",
+    "aborted": "0",
+    "inconclusive": "0",
+    "passedButRunAborted": "0",
+    "notRunnable": "0",
+    "notExecuted": "0",
+    "disconnected": "0",
+    "warning": "0",
+    "completed": "0",
+    "inProgress": "0",
+    "pending": "0"
+  },
+  "observedPeakInotifyInstances": 120,
+  "peakProcesses": [
+    {
+      "pid": 522,
+      "name": "dotnet",
+      "instances": 120
+    }
+  ],
+  "maxUserInstances": "128",
+  "failed": [
+    {
+      "testName": "RoslynMcpServer.Tests.Workspace.WorkspaceInputWatcherDeliveryTests.Explicit_obj_input_is_synced_and_generated_outputs_do_not_bump_input_revisions",
+      "output": "\n      \n        \n          Assert.Contains() Failure: Filter not matched in collection\nCollection: [InputPathNotice { CanonicalPath = /tmp/RoslynMcpInputWatch-0ef37efa2ef84d72ab61072d2b4f7f94/walk/mid/low/app/Area386fbe8cf29540c19ddae726196089d6, Role = PotentialMembership, ProjectId = (ProjectId, #27460807-4cbc-4349-b771-4dd22e976a1d - /tmp/RoslynMcpInputWatch-0ef37efa2ef84d72ab61072d2b4f7f94/walk/mid/low/app/App.csproj), CountsAsInputRevision = False }, InputPathNotice { CanonicalPath = /tmp/RoslynMcpInputWatch-0ef37efa2ef84d72ab61072d2b4f7f94/walk/mid/low/app/Area386fbe8cf29540c19ddae726196089d6/Inside.cs, Role = PotentialMembership, ProjectId = (ProjectId, #27460807-4cbc-4349-b771-4dd22e976a1d - /tmp/RoslynMcpInputWatch-0ef37efa2ef84d72ab61072d2b4f7f94/walk/mid/low/app/App.csproj), CountsAsInputRevision = False }, InputPathNotice { CanonicalPath = /tmp/RoslynMcpInputWatch-0ef37efa2ef84d72ab61072d2b4f7f94/walk/mid/low/app/Program.cs, Role = UserInput, ProjectId = (ProjectId, #27460807-4cbc-4349-b771-4dd22e976a1d - /tmp/RoslynMcpInputWatch-0ef37efa2ef84d72ab61072d2b4f7f94/walk/mid/low/app/App.csproj), CountsAsInputRevision = True }, InputPathNotice { CanonicalPath = /tmp/RoslynMcpInputWatch-0ef37efa2ef84d72ab61072d2b4f7f94/walk/mid/low/app/BomFile.cs, Role = UserInput, ProjectId = (ProjectId, #27460807-4cbc-4349-b771-4dd22e976a1d - /tmp/RoslynMcpInputWatch-0ef37efa2ef84d72ab61072d2b4f7f94/walk/mid/low/app/App.csproj), CountsAsInputRevision = True }, InputPathNotice { CanonicalPath = /tmp/RoslynMcpInputWatch-0ef37efa2ef84d72ab61072d2b4f7f94/walk/Directory.Build.props, Role = EvaluationInput, ProjectId = (ProjectId, #27460807-4cbc-4349-b771-4dd22e976a1d - /tmp/RoslynMcpInputWatch-0ef37efa2ef84d72ab61072d2b4f7f94/walk/mid/low/app/App.csproj), CountsAsInputRevision = True }, \u00b7\u00b7\u00b7]\n             at RoslynMcpServer.Tests.Workspace.WorkspaceInputWatcherDeliveryTests.Explicit_obj_input_is_synced_and_generated_outputs_do_not_bump_input_revisions() in /home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/RoslynMcpServer.Tests/Workspace/WorkspaceInputWatcherDeliveryTests.cs:line 228\n--- End of stack trace from previous location ---\n        \n      \n    "
+    }
+  ],
+  "log": "/home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/artifacts/task-03-r16-timestamp-diagnostic-main.log",
+  "trx": "/home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/TestResults/task-03-r16-timestamp-diagnostic-main/main.trx"
+}

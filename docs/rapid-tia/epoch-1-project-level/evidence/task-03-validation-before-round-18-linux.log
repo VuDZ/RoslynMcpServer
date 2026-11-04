@@ -1,0 +1,286 @@
+Test run for /home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/RoslynMcpServer.Tests/bin/Release/net10.0/RoslynMcpServer.Tests.dll (.NETCoreApp,Version=v10.0)
+VSTest version 18.0.2 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:12.20]     RoslynMcpServer.Tests.Hosting.McpToolCatalogTests.Surface_sizes_match_recorded_release_numbers [FAIL]
+  Failed RoslynMcpServer.Tests.Hosting.McpToolCatalogTests.Surface_sizes_match_recorded_release_numbers [21 ms]
+  Error Message:
+   System.IO.IOException : The configured user limit (128) on the number of inotify instances has been reached, or the per-process limit on the number of open file descriptors has been reached.
+  Stack Trace:
+     at System.IO.FileSystemWatcher.StartRaisingEvents()
+   at Microsoft.Extensions.FileProviders.Physical.PhysicalFilesWatcher.TryEnableFileSystemWatcher()
+   at Microsoft.Extensions.FileProviders.Physical.PhysicalFilesWatcher.CreateFileChangeToken(String filter)
+   at Microsoft.Extensions.FileProviders.PhysicalFileProvider.Watch(String filter)
+   at Microsoft.Extensions.Configuration.FileConfigurationProvider.<.ctor>b__1_0()
+   at Microsoft.Extensions.Primitives.ChangeToken.ChangeTokenRegistration`1..ctor(Func`1 changeTokenProducer, Action`1 changeTokenConsumer, TState state)
+   at Microsoft.Extensions.Primitives.ChangeToken.OnChange(Func`1 changeTokenProducer, Action changeTokenConsumer)
+   at Microsoft.Extensions.Configuration.FileConfigurationProvider..ctor(FileConfigurationSource source)
+   at Microsoft.Extensions.Configuration.Json.JsonConfigurationProvider..ctor(JsonConfigurationSource source)
+   at Microsoft.Extensions.Configuration.Json.JsonConfigurationSource.Build(IConfigurationBuilder builder)
+   at Microsoft.Extensions.Configuration.ConfigurationManager.AddSource(IConfigurationSource source)
+   at Microsoft.Extensions.Configuration.ConfigurationManager.ConfigurationSources.Add(IConfigurationSource source)
+   at Microsoft.Extensions.Configuration.ConfigurationManager.Microsoft.Extensions.Configuration.IConfigurationBuilder.Add(IConfigurationSource source)
+   at Microsoft.Extensions.Configuration.ConfigurationExtensions.Add[TSource](IConfigurationBuilder builder, Action`1 configureSource)
+   at Microsoft.Extensions.Configuration.JsonConfigurationExtensions.AddJsonFile(IConfigurationBuilder builder, Action`1 configureSource)
+   at Microsoft.Extensions.Configuration.JsonConfigurationExtensions.AddJsonFile(IConfigurationBuilder builder, IFileProvider provider, String path, Boolean optional, Boolean reloadOnChange)
+   at Microsoft.Extensions.Configuration.JsonConfigurationExtensions.AddJsonFile(IConfigurationBuilder builder, String path, Boolean optional, Boolean reloadOnChange)
+   at Microsoft.Extensions.Hosting.HostingHostBuilderExtensions.ApplyDefaultAppConfiguration(HostBuilderContext hostingContext, IConfigurationBuilder appConfigBuilder, String[] args)
+   at Microsoft.Extensions.Hosting.HostApplicationBuilder..ctor(HostApplicationBuilderSettings settings)
+   at Microsoft.Extensions.Hosting.HostApplicationBuilder..ctor(String[] args)
+   at Microsoft.Extensions.Hosting.HostApplicationBuilder..ctor()
+   at Microsoft.Extensions.Hosting.Host.CreateApplicationBuilder()
+   at RoslynMcpServer.Tests.Hosting.McpToolCatalogTests.BuildHost(McpToolProfileOptions options) in /home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/RoslynMcpServer.Tests/Hosting/McpToolCatalogTests.cs:line 656
+   at RoslynMcpServer.Tests.Hosting.McpToolCatalogTests.MeasureSurface(McpToolProfileOptions options, Action`1 after) in /home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/RoslynMcpServer.Tests/Hosting/McpToolCatalogTests.cs:line 644
+   at RoslynMcpServer.Tests.Hosting.McpToolCatalogTests.Surface_sizes_match_recorded_release_numbers() in /home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/RoslynMcpServer.Tests/Hosting/McpToolCatalogTests.cs:line 463
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:12.24]     RoslynMcpServer.Tests.Hosting.McpToolCatalogTests.Every_registered_tool_has_a_non_empty_description [FAIL]
+[xUnit.net 00:00:12.25]     RoslynMcpServer.Tests.Hosting.McpToolCatalogTests.Startup_groups_appear_in_first_sdk_tool_list [FAIL]
+[xUnit.net 00:00:12.25]     RoslynMcpServer.Tests.Hosting.McpToolCatalogTests.Minified_tools_list_sizes_are_within_epoch2_budgets [FAIL]
+[xUnit.net 00:00:12.25]     RoslynMcpServer.Tests.Hosting.McpToolCatalogTests.Public_tool_schemas_preserve_required_default_and_type [FAIL]
+[xUnit.net 00:00:12.25]     RoslynMcpServer.Tests.Hosting.McpToolCatalogTests.Navigation_schemas_allow_omitting_name_and_definition_exposes_preview [FAIL]
+  Failed RoslynMcpServer.Tests.Hosting.McpToolCatalogTests.Every_registered_tool_has_a_non_empty_description [< 1 ms]
+  Error Message:
+   System.IO.IOException : The configured user limit (128) on the number of inotify instances has been reached, or the per-process limit on the number of open file descriptors has been reached.
+  Stack Trace:
+     at System.IO.FileSystemWatcher.StartRaisingEvents()
+   at Microsoft.Extensions.FileProviders.Physical.PhysicalFilesWatcher.TryEnableFileSystemWatcher()
+   at Microsoft.Extensions.FileProviders.Physical.PhysicalFilesWatcher.CreateFileChangeToken(String filter)
+   at Microsoft.Extensions.FileProviders.PhysicalFileProvider.Watch(String filter)
+   at Microsoft.Extensions.Configuration.FileConfigurationProvider.<.ctor>b__1_0()
+   at Microsoft.Extensions.Primitives.ChangeToken.ChangeTokenRegistration`1..ctor(Func`1 changeTokenProducer, Action`1 changeTokenConsumer, TState state)
+   at Microsoft.Extensions.Primitives.ChangeToken.OnChange(Func`1 changeTokenProducer, Action changeTokenConsumer)
+   at Microsoft.Extensions.Configuration.FileConfigurationProvider..ctor(FileConfigurationSource source)
+   at Microsoft.Extensions.Configuration.Json.JsonConfigurationProvider..ctor(JsonConfigurationSource source)
+   at Microsoft.Extensions.Configuration.Json.JsonConfigurationSource.Build(IConfigurationBuilder builder)
+   at Microsoft.Extensions.Configuration.ConfigurationManager.AddSource(IConfigurationSource source)
+   at Microsoft.Extensions.Configuration.ConfigurationManager.ConfigurationSources.Add(IConfigurationSource source)
+   at Microsoft.Extensions.Configuration.ConfigurationManager.Microsoft.Extensions.Configuration.IConfigurationBuilder.Add(IConfigurationSource source)
+   at Microsoft.Extensions.Configuration.ConfigurationExtensions.Add[TSource](IConfigurationBuilder builder, Action`1 configureSource)
+   at Microsoft.Extensions.Configuration.JsonConfigurationExtensions.AddJsonFile(IConfigurationBuilder builder, Action`1 configureSource)
+   at Microsoft.Extensions.Configuration.JsonConfigurationExtensions.AddJsonFile(IConfigurationBuilder builder, IFileProvider provider, String path, Boolean optional, Boolean reloadOnChange)
+   at Microsoft.Extensions.Configuration.JsonConfigurationExtensions.AddJsonFile(IConfigurationBuilder builder, String path, Boolean optional, Boolean reloadOnChange)
+   at Microsoft.Extensions.Hosting.HostingHostBuilderExtensions.ApplyDefaultAppConfiguration(HostBuilderContext hostingContext, IConfigurationBuilder appConfigBuilder, String[] args)
+   at Microsoft.Extensions.Hosting.HostApplicationBuilder..ctor(HostApplicationBuilderSettings settings)
+   at Microsoft.Extensions.Hosting.HostApplicationBuilder..ctor(String[] args)
+   at Microsoft.Extensions.Hosting.HostApplicationBuilder..ctor()
+   at Microsoft.Extensions.Hosting.Host.CreateApplicationBuilder()
+   at RoslynMcpServer.Tests.Hosting.McpToolCatalogTests.BuildHost(McpToolProfileOptions options) in /home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/RoslynMcpServer.Tests/Hosting/McpToolCatalogTests.cs:line 656
+   at RoslynMcpServer.Tests.Hosting.McpToolCatalogTests.Every_registered_tool_has_a_non_empty_description() in /home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/RoslynMcpServer.Tests/Hosting/McpToolCatalogTests.cs:line 523
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Failed RoslynMcpServer.Tests.Hosting.McpToolCatalogTests.Startup_groups_appear_in_first_sdk_tool_list [< 1 ms]
+  Error Message:
+   System.IO.IOException : The configured user limit (128) on the number of inotify instances has been reached, or the per-process limit on the number of open file descriptors has been reached.
+  Stack Trace:
+     at System.IO.FileSystemWatcher.StartRaisingEvents()
+   at Microsoft.Extensions.FileProviders.Physical.PhysicalFilesWatcher.TryEnableFileSystemWatcher()
+   at Microsoft.Extensions.FileProviders.Physical.PhysicalFilesWatcher.CreateFileChangeToken(String filter)
+   at Microsoft.Extensions.FileProviders.PhysicalFileProvider.Watch(String filter)
+   at Microsoft.Extensions.Configuration.FileConfigurationProvider.<.ctor>b__1_0()
+   at Microsoft.Extensions.Primitives.ChangeToken.ChangeTokenRegistration`1..ctor(Func`1 changeTokenProducer, Action`1 changeTokenConsumer, TState state)
+   at Microsoft.Extensions.Primitives.ChangeToken.OnChange(Func`1 changeTokenProducer, Action changeTokenConsumer)
+   at Microsoft.Extensions.Configuration.FileConfigurationProvider..ctor(FileConfigurationSource source)
+   at Microsoft.Extensions.Configuration.Json.JsonConfigurationProvider..ctor(JsonConfigurationSource source)
+   at Microsoft.Extensions.Configuration.Json.JsonConfigurationSource.Build(IConfigurationBuilder builder)
+   at Microsoft.Extensions.Configuration.ConfigurationManager.AddSource(IConfigurationSource source)
+   at Microsoft.Extensions.Configuration.ConfigurationManager.ConfigurationSources.Add(IConfigurationSource source)
+   at Microsoft.Extensions.Configuration.ConfigurationManager.Microsoft.Extensions.Configuration.IConfigurationBuilder.Add(IConfigurationSource source)
+   at Microsoft.Extensions.Configuration.ConfigurationExtensions.Add[TSource](IConfigurationBuilder builder, Action`1 configureSource)
+   at Microsoft.Extensions.Configuration.JsonConfigurationExtensions.AddJsonFile(IConfigurationBuilder builder, Action`1 configureSource)
+   at Microsoft.Extensions.Configuration.JsonConfigurationExtensions.AddJsonFile(IConfigurationBuilder builder, IFileProvider provider, String path, Boolean optional, Boolean reloadOnChange)
+   at Microsoft.Extensions.Configuration.JsonConfigurationExtensions.AddJsonFile(IConfigurationBuilder builder, String path, Boolean optional, Boolean reloadOnChange)
+   at Microsoft.Extensions.Hosting.HostingHostBuilderExtensions.ApplyDefaultAppConfiguration(HostBuilderContext hostingContext, IConfigurationBuilder appConfigBuilder, String[] args)
+   at Microsoft.Extensions.Hosting.HostApplicationBuilder..ctor(HostApplicationBuilderSettings settings)
+   at Microsoft.Extensions.Hosting.HostApplicationBuilder..ctor(String[] args)
+   at Microsoft.Extensions.Hosting.HostApplicationBuilder..ctor()
+   at Microsoft.Extensions.Hosting.Host.CreateApplicationBuilder()
+   at RoslynMcpServer.Tests.Hosting.McpToolCatalogTests.BuildHost(McpToolProfileOptions options) in /home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/RoslynMcpServer.Tests/Hosting/McpToolCatalogTests.cs:line 656
+   at RoslynMcpServer.Tests.Hosting.McpToolCatalogTests.Startup_groups_appear_in_first_sdk_tool_list() in /home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/RoslynMcpServer.Tests/Hosting/McpToolCatalogTests.cs:line 389
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Failed RoslynMcpServer.Tests.Hosting.McpToolCatalogTests.Minified_tools_list_sizes_are_within_epoch2_budgets [1 ms]
+  Error Message:
+   System.IO.IOException : The configured user limit (128) on the number of inotify instances has been reached, or the per-process limit on the number of open file descriptors has been reached.
+  Stack Trace:
+     at System.IO.FileSystemWatcher.StartRaisingEvents()
+   at Microsoft.Extensions.FileProviders.Physical.PhysicalFilesWatcher.TryEnableFileSystemWatcher()
+   at Microsoft.Extensions.FileProviders.Physical.PhysicalFilesWatcher.CreateFileChangeToken(String filter)
+   at Microsoft.Extensions.FileProviders.PhysicalFileProvider.Watch(String filter)
+   at Microsoft.Extensions.Configuration.FileConfigurationProvider.<.ctor>b__1_0()
+   at Microsoft.Extensions.Primitives.ChangeToken.ChangeTokenRegistration`1..ctor(Func`1 changeTokenProducer, Action`1 changeTokenConsumer, TState state)
+   at Microsoft.Extensions.Primitives.ChangeToken.OnChange(Func`1 changeTokenProducer, Action changeTokenConsumer)
+   at Microsoft.Extensions.Configuration.FileConfigurationProvider..ctor(FileConfigurationSource source)
+   at Microsoft.Extensions.Configuration.Json.JsonConfigurationProvider..ctor(JsonConfigurationSource source)
+   at Microsoft.Extensions.Configuration.Json.JsonConfigurationSource.Build(IConfigurationBuilder builder)
+   at Microsoft.Extensions.Configuration.ConfigurationManager.AddSource(IConfigurationSource source)
+   at Microsoft.Extensions.Configuration.ConfigurationManager.ConfigurationSources.Add(IConfigurationSource source)
+   at Microsoft.Extensions.Configuration.ConfigurationManager.Microsoft.Extensions.Configuration.IConfigurationBuilder.Add(IConfigurationSource source)
+   at Microsoft.Extensions.Configuration.ConfigurationExtensions.Add[TSource](IConfigurationBuilder builder, Action`1 configureSource)
+   at Microsoft.Extensions.Configuration.JsonConfigurationExtensions.AddJsonFile(IConfigurationBuilder builder, Action`1 configureSource)
+   at Microsoft.Extensions.Configuration.JsonConfigurationExtensions.AddJsonFile(IConfigurationBuilder builder, IFileProvider provider, String path, Boolean optional, Boolean reloadOnChange)
+   at Microsoft.Extensions.Configuration.JsonConfigurationExtensions.AddJsonFile(IConfigurationBuilder builder, String path, Boolean optional, Boolean reloadOnChange)
+   at Microsoft.Extensions.Hosting.HostingHostBuilderExtensions.ApplyDefaultAppConfiguration(HostBuilderContext hostingContext, IConfigurationBuilder appConfigBuilder, String[] args)
+   at Microsoft.Extensions.Hosting.HostApplicationBuilder..ctor(HostApplicationBuilderSettings settings)
+   at Microsoft.Extensions.Hosting.HostApplicationBuilder..ctor(String[] args)
+   at Microsoft.Extensions.Hosting.HostApplicationBuilder..ctor()
+   at Microsoft.Extensions.Hosting.Host.CreateApplicationBuilder()
+   at RoslynMcpServer.Tests.Hosting.McpToolCatalogTests.BuildHost(McpToolProfileOptions options) in /home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/RoslynMcpServer.Tests/Hosting/McpToolCatalogTests.cs:line 656
+   at RoslynMcpServer.Tests.Hosting.McpToolCatalogTests.Minified_tools_list_sizes_are_within_epoch2_budgets() in /home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/RoslynMcpServer.Tests/Hosting/McpToolCatalogTests.cs:line 440
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Failed RoslynMcpServer.Tests.Hosting.McpToolCatalogTests.Public_tool_schemas_preserve_required_default_and_type [2 ms]
+  Error Message:
+   System.IO.IOException : The configured user limit (128) on the number of inotify instances has been reached, or the per-process limit on the number of open file descriptors has been reached.
+  Stack Trace:
+     at System.IO.FileSystemWatcher.StartRaisingEvents()
+   at Microsoft.Extensions.FileProviders.Physical.PhysicalFilesWatcher.TryEnableFileSystemWatcher()
+   at Microsoft.Extensions.FileProviders.Physical.PhysicalFilesWatcher.CreateFileChangeToken(String filter)
+   at Microsoft.Extensions.FileProviders.PhysicalFileProvider.Watch(String filter)
+   at Microsoft.Extensions.Configuration.FileConfigurationProvider.<.ctor>b__1_0()
+   at Microsoft.Extensions.Primitives.ChangeToken.ChangeTokenRegistration`1..ctor(Func`1 changeTokenProducer, Action`1 changeTokenConsumer, TState state)
+   at Microsoft.Extensions.Primitives.ChangeToken.OnChange(Func`1 changeTokenProducer, Action changeTokenConsumer)
+   at Microsoft.Extensions.Configuration.FileConfigurationProvider..ctor(FileConfigurationSource source)
+   at Microsoft.Extensions.Configuration.Json.JsonConfigurationProvider..ctor(JsonConfigurationSource source)
+   at Microsoft.Extensions.Configuration.Json.JsonConfigurationSource.Build(IConfigurationBuilder builder)
+   at Microsoft.Extensions.Configuration.ConfigurationManager.AddSource(IConfigurationSource source)
+   at Microsoft.Extensions.Configuration.ConfigurationManager.ConfigurationSources.Add(IConfigurationSource source)
+   at Microsoft.Extensions.Configuration.ConfigurationManager.Microsoft.Extensions.Configuration.IConfigurationBuilder.Add(IConfigurationSource source)
+   at Microsoft.Extensions.Configuration.ConfigurationExtensions.Add[TSource](IConfigurationBuilder builder, Action`1 configureSource)
+   at Microsoft.Extensions.Configuration.JsonConfigurationExtensions.AddJsonFile(IConfigurationBuilder builder, Action`1 configureSource)
+   at Microsoft.Extensions.Configuration.JsonConfigurationExtensions.AddJsonFile(IConfigurationBuilder builder, IFileProvider provider, String path, Boolean optional, Boolean reloadOnChange)
+   at Microsoft.Extensions.Configuration.JsonConfigurationExtensions.AddJsonFile(IConfigurationBuilder builder, String path, Boolean optional, Boolean reloadOnChange)
+   at Microsoft.Extensions.Hosting.HostingHostBuilderExtensions.ApplyDefaultAppConfiguration(HostBuilderContext hostingContext, IConfigurationBuilder appConfigBuilder, String[] args)
+   at Microsoft.Extensions.Hosting.HostApplicationBuilder..ctor(HostApplicationBuilderSettings settings)
+   at Microsoft.Extensions.Hosting.HostApplicationBuilder..ctor(String[] args)
+   at Microsoft.Extensions.Hosting.HostApplicationBuilder..ctor()
+   at Microsoft.Extensions.Hosting.Host.CreateApplicationBuilder()
+   at RoslynMcpServer.Tests.Hosting.McpToolCatalogTests.BuildHost(McpToolProfileOptions options) in /home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/RoslynMcpServer.Tests/Hosting/McpToolCatalogTests.cs:line 656
+   at RoslynMcpServer.Tests.Hosting.McpToolCatalogTests.Public_tool_schemas_preserve_required_default_and_type() in /home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/RoslynMcpServer.Tests/Hosting/McpToolCatalogTests.cs:line 571
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Failed RoslynMcpServer.Tests.Hosting.McpToolCatalogTests.Navigation_schemas_allow_omitting_name_and_definition_exposes_preview [< 1 ms]
+  Error Message:
+   System.IO.IOException : The configured user limit (128) on the number of inotify instances has been reached, or the per-process limit on the number of open file descriptors has been reached.
+  Stack Trace:
+     at System.IO.FileSystemWatcher.StartRaisingEvents()
+   at Microsoft.Extensions.FileProviders.Physical.PhysicalFilesWatcher.TryEnableFileSystemWatcher()
+   at Microsoft.Extensions.FileProviders.Physical.PhysicalFilesWatcher.CreateFileChangeToken(String filter)
+   at Microsoft.Extensions.FileProviders.PhysicalFileProvider.Watch(String filter)
+   at Microsoft.Extensions.Configuration.FileConfigurationProvider.<.ctor>b__1_0()
+   at Microsoft.Extensions.Primitives.ChangeToken.ChangeTokenRegistration`1..ctor(Func`1 changeTokenProducer, Action`1 changeTokenConsumer, TState state)
+   at Microsoft.Extensions.Primitives.ChangeToken.OnChange(Func`1 changeTokenProducer, Action changeTokenConsumer)
+   at Microsoft.Extensions.Configuration.FileConfigurationProvider..ctor(FileConfigurationSource source)
+   at Microsoft.Extensions.Configuration.Json.JsonConfigurationProvider..ctor(JsonConfigurationSource source)
+   at Microsoft.Extensions.Configuration.Json.JsonConfigurationSource.Build(IConfigurationBuilder builder)
+   at Microsoft.Extensions.Configuration.ConfigurationManager.AddSource(IConfigurationSource source)
+   at Microsoft.Extensions.Configuration.ConfigurationManager.ConfigurationSources.Add(IConfigurationSource source)
+   at Microsoft.Extensions.Configuration.ConfigurationManager.Microsoft.Extensions.Configuration.IConfigurationBuilder.Add(IConfigurationSource source)
+   at Microsoft.Extensions.Configuration.ConfigurationExtensions.Add[TSource](IConfigurationBuilder builder, Action`1 configureSource)
+   at Microsoft.Extensions.Configuration.JsonConfigurationExtensions.AddJsonFile(IConfigurationBuilder builder, Action`1 configureSource)
+   at Microsoft.Extensions.Configuration.JsonConfigurationExtensions.AddJsonFile(IConfigurationBuilder builder, IFileProvider provider, String path, Boolean optional, Boolean reloadOnChange)
+   at Microsoft.Extensions.Configuration.JsonConfigurationExtensions.AddJsonFile(IConfigurationBuilder builder, String path, Boolean optional, Boolean reloadOnChange)
+   at Microsoft.Extensions.Hosting.HostingHostBuilderExtensions.ApplyDefaultAppConfiguration(HostBuilderContext hostingContext, IConfigurationBuilder appConfigBuilder, String[] args)
+   at Microsoft.Extensions.Hosting.HostApplicationBuilder..ctor(HostApplicationBuilderSettings settings)
+   at Microsoft.Extensions.Hosting.HostApplicationBuilder..ctor(String[] args)
+   at Microsoft.Extensions.Hosting.HostApplicationBuilder..ctor()
+   at Microsoft.Extensions.Hosting.Host.CreateApplicationBuilder()
+   at RoslynMcpServer.Tests.Hosting.McpToolCatalogTests.BuildHost(McpToolProfileOptions options) in /home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/RoslynMcpServer.Tests/Hosting/McpToolCatalogTests.cs:line 656
+   at RoslynMcpServer.Tests.Hosting.McpToolCatalogTests.Navigation_schemas_allow_omitting_name_and_definition_exposes_preview() in /home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/RoslynMcpServer.Tests/Hosting/McpToolCatalogTests.cs:line 555
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:12.26]     RoslynMcpServer.Tests.Hosting.McpToolCatalogTests.Options_are_registered_for_the_resolved_surface [FAIL]
+  Failed RoslynMcpServer.Tests.Hosting.McpToolCatalogTests.Options_are_registered_for_the_resolved_surface [< 1 ms]
+  Error Message:
+   System.IO.IOException : The configured user limit (128) on the number of inotify instances has been reached, or the per-process limit on the number of open file descriptors has been reached.
+  Stack Trace:
+     at System.IO.FileSystemWatcher.StartRaisingEvents()
+   at Microsoft.Extensions.FileProviders.Physical.PhysicalFilesWatcher.TryEnableFileSystemWatcher()
+   at Microsoft.Extensions.FileProviders.Physical.PhysicalFilesWatcher.CreateFileChangeToken(String filter)
+   at Microsoft.Extensions.FileProviders.PhysicalFileProvider.Watch(String filter)
+   at Microsoft.Extensions.Configuration.FileConfigurationProvider.<.ctor>b__1_0()
+   at Microsoft.Extensions.Primitives.ChangeToken.ChangeTokenRegistration`1..ctor(Func`1 changeTokenProducer, Action`1 changeTokenConsumer, TState state)
+   at Microsoft.Extensions.Primitives.ChangeToken.OnChange(Func`1 changeTokenProducer, Action changeTokenConsumer)
+   at Microsoft.Extensions.Configuration.FileConfigurationProvider..ctor(FileConfigurationSource source)
+   at Microsoft.Extensions.Configuration.Json.JsonConfigurationProvider..ctor(JsonConfigurationSource source)
+   at Microsoft.Extensions.Configuration.Json.JsonConfigurationSource.Build(IConfigurationBuilder builder)
+   at Microsoft.Extensions.Configuration.ConfigurationManager.AddSource(IConfigurationSource source)
+   at Microsoft.Extensions.Configuration.ConfigurationManager.ConfigurationSources.Add(IConfigurationSource source)
+   at Microsoft.Extensions.Configuration.ConfigurationManager.Microsoft.Extensions.Configuration.IConfigurationBuilder.Add(IConfigurationSource source)
+   at Microsoft.Extensions.Configuration.ConfigurationExtensions.Add[TSource](IConfigurationBuilder builder, Action`1 configureSource)
+   at Microsoft.Extensions.Configuration.JsonConfigurationExtensions.AddJsonFile(IConfigurationBuilder builder, Action`1 configureSource)
+   at Microsoft.Extensions.Configuration.JsonConfigurationExtensions.AddJsonFile(IConfigurationBuilder builder, IFileProvider provider, String path, Boolean optional, Boolean reloadOnChange)
+   at Microsoft.Extensions.Configuration.JsonConfigurationExtensions.AddJsonFile(IConfigurationBuilder builder, String path, Boolean optional, Boolean reloadOnChange)
+   at Microsoft.Extensions.Hosting.HostingHostBuilderExtensions.ApplyDefaultAppConfiguration(HostBuilderContext hostingContext, IConfigurationBuilder appConfigBuilder, String[] args)
+   at Microsoft.Extensions.Hosting.HostApplicationBuilder..ctor(HostApplicationBuilderSettings settings)
+   at Microsoft.Extensions.Hosting.HostApplicationBuilder..ctor(String[] args)
+   at Microsoft.Extensions.Hosting.HostApplicationBuilder..ctor()
+   at Microsoft.Extensions.Hosting.Host.CreateApplicationBuilder()
+   at RoslynMcpServer.Tests.Hosting.McpToolCatalogTests.BuildHost(McpToolProfileOptions options) in /home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/RoslynMcpServer.Tests/Hosting/McpToolCatalogTests.cs:line 656
+   at RoslynMcpServer.Tests.Hosting.McpToolCatalogTests.Options_are_registered_for_the_resolved_surface() in /home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/RoslynMcpServer.Tests/Hosting/McpToolCatalogTests.cs:line 431
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:14.24]     RoslynMcpServer.Tests.Build.BuildProgressIntegrationTests.Run_dotnet_build_live_build_matches_the_with_progress_result_when_no_token_is_sent [FAIL]
+[xUnit.net 00:00:14.24]     RoslynMcpServer.Tests.Build.BuildProgressIntegrationTests.Run_dotnet_build_reports_protocol_progress_for_a_live_build [FAIL]
+  Failed RoslynMcpServer.Tests.Build.BuildProgressIntegrationTests.Run_dotnet_build_live_build_matches_the_with_progress_result_when_no_token_is_sent [3 ms]
+  Error Message:
+   System.IO.IOException : The configured user limit (128) on the number of inotify instances has been reached, or the per-process limit on the number of open file descriptors has been reached.
+  Stack Trace:
+     at System.IO.FileSystemWatcher.StartRaisingEvents()
+   at Microsoft.Extensions.FileProviders.Physical.PhysicalFilesWatcher.TryEnableFileSystemWatcher()
+   at Microsoft.Extensions.FileProviders.Physical.PhysicalFilesWatcher.CreateFileChangeToken(String filter)
+   at Microsoft.Extensions.FileProviders.PhysicalFileProvider.Watch(String filter)
+   at Microsoft.Extensions.Configuration.FileConfigurationProvider.<.ctor>b__1_0()
+   at Microsoft.Extensions.Primitives.ChangeToken.ChangeTokenRegistration`1..ctor(Func`1 changeTokenProducer, Action`1 changeTokenConsumer, TState state)
+   at Microsoft.Extensions.Primitives.ChangeToken.OnChange(Func`1 changeTokenProducer, Action changeTokenConsumer)
+   at Microsoft.Extensions.Configuration.FileConfigurationProvider..ctor(FileConfigurationSource source)
+   at Microsoft.Extensions.Configuration.Json.JsonConfigurationProvider..ctor(JsonConfigurationSource source)
+   at Microsoft.Extensions.Configuration.Json.JsonConfigurationSource.Build(IConfigurationBuilder builder)
+   at Microsoft.Extensions.Configuration.ConfigurationManager.AddSource(IConfigurationSource source)
+   at Microsoft.Extensions.Configuration.ConfigurationManager.ConfigurationSources.Add(IConfigurationSource source)
+   at Microsoft.Extensions.Configuration.ConfigurationManager.Microsoft.Extensions.Configuration.IConfigurationBuilder.Add(IConfigurationSource source)
+   at Microsoft.Extensions.Configuration.ConfigurationExtensions.Add[TSource](IConfigurationBuilder builder, Action`1 configureSource)
+   at Microsoft.Extensions.Configuration.JsonConfigurationExtensions.AddJsonFile(IConfigurationBuilder builder, Action`1 configureSource)
+   at Microsoft.Extensions.Configuration.JsonConfigurationExtensions.AddJsonFile(IConfigurationBuilder builder, IFileProvider provider, String path, Boolean optional, Boolean reloadOnChange)
+   at Microsoft.Extensions.Configuration.JsonConfigurationExtensions.AddJsonFile(IConfigurationBuilder builder, String path, Boolean optional, Boolean reloadOnChange)
+   at Microsoft.Extensions.Hosting.HostingHostBuilderExtensions.ApplyDefaultAppConfiguration(HostBuilderContext hostingContext, IConfigurationBuilder appConfigBuilder, String[] args)
+   at Microsoft.Extensions.Hosting.HostApplicationBuilder..ctor(HostApplicationBuilderSettings settings)
+   at Microsoft.Extensions.Hosting.HostApplicationBuilder..ctor(String[] args)
+   at Microsoft.Extensions.Hosting.HostApplicationBuilder..ctor()
+   at Microsoft.Extensions.Hosting.Host.CreateApplicationBuilder()
+   at RoslynMcpServer.Tests.Build.BuildProgressIntegrationTests.BuildLiteHost() in /home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/RoslynMcpServer.Tests/Build/BuildProgressIntegrationTests.cs:line 231
+   at RoslynMcpServer.Tests.Build.BuildProgressIntegrationTests.Run_dotnet_build_live_build_matches_the_with_progress_result_when_no_token_is_sent() in /home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/RoslynMcpServer.Tests/Build/BuildProgressIntegrationTests.cs:line 98
+--- End of stack trace from previous location ---
+  Failed RoslynMcpServer.Tests.Build.BuildProgressIntegrationTests.Run_dotnet_build_reports_protocol_progress_for_a_live_build [2 ms]
+  Error Message:
+   System.IO.IOException : The configured user limit (128) on the number of inotify instances has been reached, or the per-process limit on the number of open file descriptors has been reached.
+  Stack Trace:
+     at System.IO.FileSystemWatcher.StartRaisingEvents()
+   at Microsoft.Extensions.FileProviders.Physical.PhysicalFilesWatcher.TryEnableFileSystemWatcher()
+   at Microsoft.Extensions.FileProviders.Physical.PhysicalFilesWatcher.CreateFileChangeToken(String filter)
+   at Microsoft.Extensions.FileProviders.PhysicalFileProvider.Watch(String filter)
+   at Microsoft.Extensions.Configuration.FileConfigurationProvider.<.ctor>b__1_0()
+   at Microsoft.Extensions.Primitives.ChangeToken.ChangeTokenRegistration`1..ctor(Func`1 changeTokenProducer, Action`1 changeTokenConsumer, TState state)
+   at Microsoft.Extensions.Primitives.ChangeToken.OnChange(Func`1 changeTokenProducer, Action changeTokenConsumer)
+   at Microsoft.Extensions.Configuration.FileConfigurationProvider..ctor(FileConfigurationSource source)
+   at Microsoft.Extensions.Configuration.Json.JsonConfigurationProvider..ctor(JsonConfigurationSource source)
+   at Microsoft.Extensions.Configuration.Json.JsonConfigurationSource.Build(IConfigurationBuilder builder)
+   at Microsoft.Extensions.Configuration.ConfigurationManager.AddSource(IConfigurationSource source)
+   at Microsoft.Extensions.Configuration.ConfigurationManager.ConfigurationSources.Add(IConfigurationSource source)
+   at Microsoft.Extensions.Configuration.ConfigurationManager.Microsoft.Extensions.Configuration.IConfigurationBuilder.Add(IConfigurationSource source)
+   at Microsoft.Extensions.Configuration.ConfigurationExtensions.Add[TSource](IConfigurationBuilder builder, Action`1 configureSource)
+   at Microsoft.Extensions.Configuration.JsonConfigurationExtensions.AddJsonFile(IConfigurationBuilder builder, Action`1 configureSource)
+   at Microsoft.Extensions.Configuration.JsonConfigurationExtensions.AddJsonFile(IConfigurationBuilder builder, IFileProvider provider, String path, Boolean optional, Boolean reloadOnChange)
+   at Microsoft.Extensions.Configuration.JsonConfigurationExtensions.AddJsonFile(IConfigurationBuilder builder, String path, Boolean optional, Boolean reloadOnChange)
+   at Microsoft.Extensions.Hosting.HostingHostBuilderExtensions.ApplyDefaultAppConfiguration(HostBuilderContext hostingContext, IConfigurationBuilder appConfigBuilder, String[] args)
+   at Microsoft.Extensions.Hosting.HostApplicationBuilder..ctor(HostApplicationBuilderSettings settings)
+   at Microsoft.Extensions.Hosting.HostApplicationBuilder..ctor(String[] args)
+   at Microsoft.Extensions.Hosting.HostApplicationBuilder..ctor()
+   at Microsoft.Extensions.Hosting.Host.CreateApplicationBuilder()
+   at RoslynMcpServer.Tests.Build.BuildProgressIntegrationTests.BuildLiteHost() in /home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/RoslynMcpServer.Tests/Build/BuildProgressIntegrationTests.cs:line 231
+   at RoslynMcpServer.Tests.Build.BuildProgressIntegrationTests.Run_dotnet_build_reports_protocol_progress_for_a_live_build() in /home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/RoslynMcpServer.Tests/Build/BuildProgressIntegrationTests.cs:line 23
+--- End of stack trace from previous location ---
+Results File: /home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/TestResults/task-03-r17-linux-1793797078753-1/main.trx
+
+Failed!  - Failed:     9, Passed:  1745, Skipped:     0, Total:  1754, Duration: 2 m 4 s - RoslynMcpServer.Tests.dll (net10.0)

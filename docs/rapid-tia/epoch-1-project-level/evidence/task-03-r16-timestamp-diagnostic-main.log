@@ -1,0 +1,16 @@
+Test run for /home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/RoslynMcpServer.Tests/bin/Release/net10.0/RoslynMcpServer.Tests.dll (.NETCoreApp,Version=v10.0)
+VSTest version 18.0.2 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:11.30]     RoslynMcpServer.Tests.Workspace.WorkspaceInputWatcherDeliveryTests.Explicit_obj_input_is_synced_and_generated_outputs_do_not_bump_input_revisions [FAIL]
+  Failed RoslynMcpServer.Tests.Workspace.WorkspaceInputWatcherDeliveryTests.Explicit_obj_input_is_synced_and_generated_outputs_do_not_bump_input_revisions [60 ms]
+  Error Message:
+   Assert.Contains() Failure: Filter not matched in collection
+Collection: [InputPathNotice { CanonicalPath = /tmp/RoslynMcpInputWatch-0ef37efa2ef84d72ab61072d2b4f7f94/walk/mid/low/app/Area386fbe8cf29540c19ddae726196089d6, Role = PotentialMembership, ProjectId = (ProjectId, #27460807-4cbc-4349-b771-4dd22e976a1d - /tmp/RoslynMcpInputWatch-0ef37efa2ef84d72ab61072d2b4f7f94/walk/mid/low/app/App.csproj), CountsAsInputRevision = False }, InputPathNotice { CanonicalPath = /tmp/RoslynMcpInputWatch-0ef37efa2ef84d72ab61072d2b4f7f94/walk/mid/low/app/Area386fbe8cf29540c19ddae726196089d6/Inside.cs, Role = PotentialMembership, ProjectId = (ProjectId, #27460807-4cbc-4349-b771-4dd22e976a1d - /tmp/RoslynMcpInputWatch-0ef37efa2ef84d72ab61072d2b4f7f94/walk/mid/low/app/App.csproj), CountsAsInputRevision = False }, InputPathNotice { CanonicalPath = /tmp/RoslynMcpInputWatch-0ef37efa2ef84d72ab61072d2b4f7f94/walk/mid/low/app/Program.cs, Role = UserInput, ProjectId = (ProjectId, #27460807-4cbc-4349-b771-4dd22e976a1d - /tmp/RoslynMcpInputWatch-0ef37efa2ef84d72ab61072d2b4f7f94/walk/mid/low/app/App.csproj), CountsAsInputRevision = True }, InputPathNotice { CanonicalPath = /tmp/RoslynMcpInputWatch-0ef37efa2ef84d72ab61072d2b4f7f94/walk/mid/low/app/BomFile.cs, Role = UserInput, ProjectId = (ProjectId, #27460807-4cbc-4349-b771-4dd22e976a1d - /tmp/RoslynMcpInputWatch-0ef37efa2ef84d72ab61072d2b4f7f94/walk/mid/low/app/App.csproj), CountsAsInputRevision = True }, InputPathNotice { CanonicalPath = /tmp/RoslynMcpInputWatch-0ef37efa2ef84d72ab61072d2b4f7f94/walk/Directory.Build.props, Role = EvaluationInput, ProjectId = (ProjectId, #27460807-4cbc-4349-b771-4dd22e976a1d - /tmp/RoslynMcpInputWatch-0ef37efa2ef84d72ab61072d2b4f7f94/walk/mid/low/app/App.csproj), CountsAsInputRevision = True }, ···]
+  Stack Trace:
+     at RoslynMcpServer.Tests.Workspace.WorkspaceInputWatcherDeliveryTests.Explicit_obj_input_is_synced_and_generated_outputs_do_not_bump_input_revisions() in /home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/RoslynMcpServer.Tests/Workspace/WorkspaceInputWatcherDeliveryTests.cs:line 228
+--- End of stack trace from previous location ---
+Results File: /home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/TestResults/task-03-r16-timestamp-diagnostic-main/main.trx
+
+Failed!  - Failed:     1, Passed:  1750, Skipped:     0, Total:  1751, Duration: 1 m 55 s - RoslynMcpServer.Tests.dll (net10.0)

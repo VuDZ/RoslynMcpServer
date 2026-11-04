@@ -1,0 +1,5 @@
+{
+  "Services/Workspace/SolutionManager.cs": "ceaa2a9638eee451fe221ef71ad01091e780a2be3e48932625c315c09989258c",
+  "Services/Workspace/WorkspaceDiskWatcherStarter.cs": "a05bf4aa149d749d4eb31054abab3235848b2071b073bb583ebb928cdc463052",
+  "RoslynMcpServer.Tests/Testing/BaselineDirectoryDisappearanceTests.cs": "61623758cb812b9db3fb8ca060fdf25110ef4d7b4d06e72f0dac82c2e1fd680b"
+}

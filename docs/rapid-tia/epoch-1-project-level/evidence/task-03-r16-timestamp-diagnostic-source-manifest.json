@@ -1,0 +1,9 @@
+{
+  "Services/Workspace/SolutionManager.cs": "ceaa2a9638eee451fe221ef71ad01091e780a2be3e48932625c315c09989258c",
+  "Services/Workspace/WorkspaceDiskWatcherStarter.cs": "46966f439590758e4272fafef5cc3546efe42765dda2bf78e4a7bc285928e099",
+  "RoslynMcpServer.Tests/Testing/BaselineDirectoryDisappearanceTests.cs": "d59451661b7e9afb7ae119026dfdb19b33ed72ec044fc4239536f3b98fd2f0f2",
+  "RoslynMcpServer.Tests/Workspace/WorkspaceDiskWatcherStarterTests.cs": "dc02bbabb6c17ce91c1149cc4a67afed5327bcc49f0aeaf752b79ebb7327d5ae",
+  "RoslynMcpServer.Tests/Support/WorkspaceRecordingLogger.cs": "15967916b46bab43a12b285982f2b07027aabf940702375ec98b8e3b684b11e9",
+  "RoslynMcpServer.Tests/Testing/BaselineLifecycleFixture.cs": "6c8d740d82aa806868a4a297ca5b636d34e87ff5829fa6633236d77e3f56e03c",
+  "RoslynMcpServer.Tests/Testing/BaselineSessionIntegrationTests.cs": "bb54b4561aa797cf5d62d544e4f2db516edc2f6701bc45830b951069f77e1e6d"
+}

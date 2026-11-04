@@ -216,6 +216,17 @@ public sealed class WorkspaceInputWatcherDeliveryTests : IClassFixture<Workspace
             await WaitUntil(() => session.Notices.Any(notice =>
                 Same(notice.CanonicalPath, _fixture.MysteryPath) && notice.Role == InputRole.Unknown)),
             "Unknown provenance under obj was ignored.");
+        if (!string.IsNullOrWhiteSpace(_fixture.OutputPath))
+        {
+            // Different watcher paths are delivered independently; another notice does not acknowledge the output event.
+            // See docs/rapid-tia/epoch-1-project-level/evidence/task-03-validation-before-round-17.md.
+            Assert.True(
+                await WaitUntil(() => session.Notices.Any(notice =>
+                    Same(notice.CanonicalPath, _fixture.OutputPath)
+                    && notice.Role == InputRole.Output
+                    && !notice.CountsAsInputRevision)),
+                "The output event was not recorded as a non-input role.");
+        }
         Assert.Equal(afterManual, session.InputRevisionFor(_fixture.AppId));
         Assert.Contains(session.Notices, notice =>
             Same(notice.CanonicalPath, _fixture.AssemblyInfoPath) && !notice.CountsAsInputRevision);

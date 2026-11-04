@@ -1,13 +1,20 @@
+using System.Collections.Concurrent;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using RoslynMcpServer.Services.Testing.Baseline;
 using RoslynMcpServer.Services.Testing.Baseline.Models;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace RoslynMcpServer.Tests.Testing;
 
 public sealed class BaselineSessionIntegrationTests
 {
+    public BaselineSessionIntegrationTests(ITestOutputHelper output)
+    {
+        _output = output;
+    }
+
     [Fact]
     public async Task External_edit_before_first_read_is_unknown_and_immediately_touched()
     {
@@ -60,19 +67,43 @@ public sealed class BaselineSessionIntegrationTests
     [Fact]
     public async Task Timestamp_guard_works_without_any_watcher_event()
     {
-        await using var fixture = new BaselineLifecycleFixture();
+        var logger = new WorkspaceRecordingLogger();
+        await using var fixture = new BaselineLifecycleFixture(logger);
+        var events = new ConcurrentQueue<string>();
+        fixture.Manager.AfterDiskWatcherChangeForTests = args => events.Enqueue(args.ChangeType + " " + args.FullPath);
         using var gate = new BaselineCaptureGate(fixture.FirstPath);
         fixture.Manager.Baseline.BeforeReadForTests = gate.WaitAsync;
         await fixture.LoadAsync();
         var initial = fixture.Manager.Baseline.GetSnapshot();
+        _output.WriteLine(Describe("After load", initial));
+        Assert.False(initial.RequiresFullScan, Describe("After load", initial));
         await gate.Entered.WaitAsync(_timeout);
         fixture.Manager.SilenceDiskWatchersForTests();
+        var beforeWrite = fixture.Manager.Baseline.GetSnapshot();
+        _output.WriteLine(Describe("After silence, before write", beforeWrite));
+        Assert.False(beforeWrite.RequiresFullScan, Describe("After silence, before write", beforeWrite));
+        Assert.DoesNotContain(fixture.FirstPath, beforeWrite.TouchedPaths, InputPathCanon.Comparer);
         await File.WriteAllTextAsync(fixture.FirstPath, "partial class C { partial void Changed(); }");
         File.SetLastWriteTimeUtc(fixture.FirstPath, initial.PublishedAtUtc.AddMinutes(1));
-        Assert.DoesNotContain(fixture.FirstPath, fixture.Manager.Baseline.GetSnapshot().TouchedPaths, InputPathCanon.Comparer);
+        var afterWrite = fixture.Manager.Baseline.GetSnapshot();
+        _output.WriteLine(Describe("After write, before capture release", afterWrite));
+        Assert.DoesNotContain(fixture.FirstPath, afterWrite.TouchedPaths, InputPathCanon.Comparer);
         gate.Release();
         await fixture.Manager.Baseline.CaptureTask.WaitAsync(_timeout);
         AssertUnknown(fixture.Manager.Baseline.GetSnapshot(), fixture.FirstPath);
+
+        string Describe(string phase, BaselineSessionSnapshot snapshot)
+        {
+            var session = fixture.Manager.DiskWatcherSession!;
+            return $"{phase}: RequiresFullScan={snapshot.RequiresFullScan}; ObservationCoverage={session.ObservationCoverage}; "
+                + $"SourceEventRevision={session.EventRevision(fixture.FirstPath)}; Subscriptions={fixture.Manager.DiskWatcherSubscriptions.Count}."
+                + Environment.NewLine + "Touched: " + string.Join(Environment.NewLine, snapshot.TouchedPaths)
+                + Environment.NewLine + "Coverage reasons: " + string.Join(Environment.NewLine, session.ObservationUnknownReasons)
+                + Environment.NewLine + "Directory renames: " + string.Join(Environment.NewLine, session.DirectoryRenamePaths)
+                + Environment.NewLine + "Observed events: " + string.Join(Environment.NewLine, events)
+                + Environment.NewLine + "Workspace log: " + string.Join(Environment.NewLine, logger.Messages)
+                + Environment.NewLine + "Exceptions: " + string.Join(Environment.NewLine, logger.Exceptions.Select(exception => exception.ToString()));
+        }
     }
 
     [Fact]
@@ -391,5 +422,6 @@ public sealed class BaselineSessionIntegrationTests
         Assert.Null(document.Snapshot);
     }
 
+    private readonly ITestOutputHelper _output;
     private static readonly TimeSpan _timeout = TimeSpan.FromSeconds(30);
 }

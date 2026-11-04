@@ -1,0 +1,19 @@
+Test run for /home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/RoslynMcpServer.Tests/bin/Release/net10.0/RoslynMcpServer.Tests.dll (.NETCoreApp,Version=v10.0)
+VSTest version 18.0.2 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:16.19]     RoslynMcpServer.Tests.Testing.BaselineSessionIntegrationTests.Timestamp_guard_works_without_any_watcher_event [FAIL]
+  Failed RoslynMcpServer.Tests.Testing.BaselineSessionIntegrationTests.Timestamp_guard_works_without_any_watcher_event [678 ms]
+  Error Message:
+   Assert.DoesNotContain() Failure: Item found in collection
+                                                                      ↓ (pos 1)
+Collection: ["/tmp/RoslynMcpBaseline-d139a247bc2a4ca99bf370a0b07"···, "/tmp/RoslynMcpBaseline-d139a247bc2a4ca99bf370a0b07"···]
+Found:      "/tmp/RoslynMcpBaseline-d139a247bc2a4ca99bf370a0b07"···
+  Stack Trace:
+     at RoslynMcpServer.Tests.Testing.BaselineSessionIntegrationTests.Timestamp_guard_works_without_any_watcher_event() in /home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/RoslynMcpServer.Tests/Testing/BaselineSessionIntegrationTests.cs:line 72
+   at RoslynMcpServer.Tests.Testing.BaselineSessionIntegrationTests.Timestamp_guard_works_without_any_watcher_event() in /home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/RoslynMcpServer.Tests/Testing/BaselineSessionIntegrationTests.cs:line 75
+--- End of stack trace from previous location ---
+Results File: /home/runner/roslyn-mcp-rapid-tia-r14-final-20261104/TestResults/task-03-r16-linux-1793795980826-1/main.trx
+
+Failed!  - Failed:     1, Passed:  1750, Skipped:     0, Total:  1751, Duration: 1 m 27 s - RoslynMcpServer.Tests.dll (net10.0)

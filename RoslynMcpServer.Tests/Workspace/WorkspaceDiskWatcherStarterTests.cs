@@ -1,4 +1,6 @@
 using System.Collections.Concurrent;
+using System.ComponentModel;
+using System.Reflection;
 using Xunit;
 
 namespace RoslynMcpServer.Tests.Workspace;
@@ -119,6 +121,169 @@ public sealed class WorkspaceDiskWatcherStarterTests
         {
             DisposeWatchers(started.Watchers);
             TryDelete(root);
+        }
+    }
+
+    [Theory]
+    [InlineData("MetadataDependency", false, false)]
+    [InlineData("Output", false, false)]
+    [InlineData("MetadataDependency,Output", false, false)]
+    [InlineData("UserInput", false, true)]
+    [InlineData("Generated", false, true)]
+    [InlineData("AdditionalFile", false, false)]
+    [InlineData("AnalyzerConfig", false, false)]
+    [InlineData("EvaluationInput", false, false)]
+    [InlineData("Unknown", false, true)]
+    [InlineData("PotentialMembership", false, true)]
+    [InlineData("", false, true)]
+    [InlineData("MetadataDependency,UserInput", false, true)]
+    [InlineData("MetadataDependency", true, true)]
+    public void Root_lifetime_guards_preserve_csharp_baseline_membership_and_conservative_roles(
+        string roleNames,
+        bool recursive,
+        bool expectedGuard)
+    {
+        var root = Path.Combine(Path.GetTempPath(), "RoslynMcpWatcherRoles-" + Guid.NewGuid().ToString("N"));
+        var parent = Path.Combine(root, "unwatched");
+        var leaf = Path.Combine(parent, "leaf");
+        Directory.CreateDirectory(leaf);
+        var roles = roleNames.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(Enum.Parse<InputRole>).ToArray();
+        var descriptors = new[]
+        {
+            new InputWatcherDescriptor(root, false, Array.Empty<string>(), new[] { InputRole.MetadataDependency }, "parent boundary"),
+            new InputWatcherDescriptor(leaf, recursive, Array.Empty<string>(), roles, "root lifetime scope"),
+        };
+        var started = WorkspaceDiskWatcherStarter.Start(
+            descriptors,
+            new WorkspaceInputSession(Array.Empty<string>()),
+            onChanged: _ => { },
+            onRenamed: _ => { },
+            onError: _ => { },
+            log: (_, _, _) => { });
+        try
+        {
+            Assert.Contains(started.Watchers, watcher => Same(watcher.Path, leaf) && watcher.IncludeSubdirectories == recursive);
+            Assert.Contains(started.Watchers, watcher => Same(watcher.Path, root) && !watcher.IncludeSubdirectories);
+            Assert.Equal(expectedGuard ? 1 : 0, started.Watchers.Count(watcher => Same(watcher.Path, parent)));
+        }
+        finally
+        {
+            DisposeWatchers(started.Watchers);
+            TryDelete(root);
+        }
+    }
+
+    [Theory]
+    [InlineData("MetadataDependency")]
+    [InlineData("Output")]
+    [InlineData("AdditionalFile")]
+    [InlineData("AnalyzerConfig")]
+    [InlineData("EvaluationInput")]
+    public void Eligible_descendant_keeps_ancestor_guard_through_a_non_csharp_boundary(string boundaryRole)
+    {
+        var root = Path.Combine(Path.GetTempPath(), "RoslynMcpWatcherBoundary-" + Guid.NewGuid().ToString("N"));
+        var external = Path.Combine(root, "External");
+        var shared = Path.Combine(external, "Shared");
+        var sourceDirectory = Path.Combine(shared, "Sub");
+        Directory.CreateDirectory(sourceDirectory);
+        var descriptors = new[]
+        {
+            new InputWatcherDescriptor(root, false, Array.Empty<string>(), new[] { InputRole.EvaluationInput }, "ancestor boundary"),
+            new InputWatcherDescriptor(shared, false, Array.Empty<string>(), new[] { Enum.Parse<InputRole>(boundaryRole) }, "metadata boundary"),
+            new InputWatcherDescriptor(sourceDirectory, false, Array.Empty<string>(), new[] { InputRole.UserInput }, "linked source"),
+        };
+        var started = WorkspaceDiskWatcherStarter.Start(
+            descriptors,
+            new WorkspaceInputSession(Array.Empty<string>()),
+            onChanged: _ => { },
+            onRenamed: _ => { },
+            onError: _ => { },
+            log: (_, _, _) => { });
+        try
+        {
+            Assert.Contains(started.Subscriptions, subscription => Same(subscription.Directory, shared));
+            Assert.Contains(started.Subscriptions, subscription =>
+                Same(subscription.Directory, external) && !subscription.IncludeSubdirectories);
+            Assert.Single(started.Subscriptions, subscription => Same(subscription.Directory, shared));
+        }
+        finally
+        {
+            DisposeWatchers(started.Watchers);
+            TryDelete(root);
+        }
+    }
+
+    [Theory]
+    [InlineData(true, false, null, false)]
+    [InlineData(true, true, null, false)]
+    [InlineData(false, false, null, false)]
+    [InlineData(false, true, null, false)]
+    [InlineData(true, false, "overflow", false)]
+    [InlineData(true, false, "rename", false)]
+    [InlineData(true, false, null, true)]
+    [InlineData(true, true, null, true)]
+    public void Root_error_routes_deleted_or_gap_without_clearing_prior_gaps_or_bypassing_session_closure(
+        bool missingRoot,
+        bool overflow,
+        string? priorGap,
+        bool closed)
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "RoslynMcpWatcherError-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        var gap = false;
+        var session = new WorkspaceInputSession(Array.Empty<string>(), () => gap = true);
+        var changes = new List<FileSystemEventArgs>();
+        var started = WorkspaceDiskWatcherStarter.Start(
+            new[] { new InputWatcherDescriptor(directory, false, Array.Empty<string>(), new[] { InputRole.UserInput }, "root error") },
+            session,
+            onChanged: args => session.TryRun(() => changes.Add(args)),
+            onRenamed: _ => { },
+            onError: args => session.NoteCoverageUnknown(args.GetException() is InternalBufferOverflowException
+                ? InputCoverageReason.WatcherBufferOverflow : InputCoverageReason.WatcherError),
+            log: (_, _, _) => { });
+        try
+        {
+            foreach (var watcher in started.Watchers)
+            {
+                watcher.EnableRaisingEvents = false;
+            }
+            if (missingRoot)
+            {
+                Directory.Delete(directory);
+            }
+            if (priorGap == "overflow")
+            {
+                session.NoteCoverageUnknown(InputCoverageReason.WatcherBufferOverflow);
+            }
+            else if (priorGap == "rename")
+            {
+                session.NoteDirectoryRename(directory, directory + "-moved", affectsMembership: true);
+            }
+            if (closed)
+            {
+                session.Close();
+            }
+            var rootWatcher = Assert.Single(started.Watchers, watcher => Same(watcher.Path, directory));
+            var error = overflow ? (Exception)new InternalBufferOverflowException("injected-overflow") : new Win32Exception(5);
+            // Raise the framework event through the real registered starter handler, independently of native timing.
+            typeof(FileSystemWatcher).GetMethod("OnError", BindingFlags.Instance | BindingFlags.NonPublic)!
+                .Invoke(rootWatcher, new object[] { new ErrorEventArgs(error) });
+            Assert.Equal(priorGap is not null || !closed && (!missingRoot || overflow), gap);
+            if (missingRoot && !overflow && !closed)
+            {
+                var change = Assert.Single(changes);
+                Assert.Equal(WatcherChangeTypes.Deleted, change.ChangeType);
+                Assert.True(Same(directory, change.FullPath));
+            }
+            else
+            {
+                Assert.Empty(changes);
+            }
+        }
+        finally
+        {
+            DisposeWatchers(started.Watchers);
+            TryDelete(directory);
         }
     }
 
