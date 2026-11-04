@@ -24,7 +24,7 @@ public static class WorkspaceDiskPathFilter
         return false;
     }
 
-    /// <summary>With a workspace directory, ignores only its descendants; null preserves the legacy whole-path filter.</summary>
+    /// <summary>Excludes the canonical common prefix with the workspace; null preserves the legacy whole-path filter.</summary>
     internal static bool IsIgnoredPath(string? fullPath, string? workspaceDirectory)
     {
         var canonical = InputPathCanon.TryCanonicalize(fullPath);
@@ -32,12 +32,31 @@ public static class WorkspaceDiskPathFilter
         {
             return true;
         }
-        if (workspaceDirectory == null)
+        var workspace = InputPathCanon.TryCanonicalize(workspaceDirectory);
+        if (workspace == null)
         {
             return IsIgnoredPath(canonical);
         }
-        return IsPathUnderDirectory(canonical, workspaceDirectory, InputPathCanon.Comparison)
-            && IsIgnoredPath(Path.GetRelativePath(workspaceDirectory, canonical));
+
+        // Sibling projects still have ignored segments; only the shared prefix is exempt, including across UNC shares.
+        // See docs/rapid-tia/epoch-1-project-level/evidence/task-03-review-round-11.md (R11-001).
+        char[] separators = [Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar];
+        var pathSegments = canonical.Split(separators, StringSplitOptions.RemoveEmptyEntries);
+        var workspaceSegments = workspace.Split(separators, StringSplitOptions.RemoveEmptyEntries);
+        var commonLength = 0;
+        while (commonLength < pathSegments.Length && commonLength < workspaceSegments.Length
+            && InputPathCanon.Comparer.Equals(pathSegments[commonLength], workspaceSegments[commonLength]))
+        {
+            commonLength++;
+        }
+        for (var i = commonLength; i < pathSegments.Length; i++)
+        {
+            if (_ignoredDirectoryNames.Contains(pathSegments[i]))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static bool IsCSharpSource(string? fullPath)

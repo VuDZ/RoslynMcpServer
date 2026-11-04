@@ -55,6 +55,35 @@ public sealed class WorkspaceDiskPathFilterTests
         Assert.False(WorkspaceDiskPathFilter.IsCSharpSource(null));
     }
 
+    [Theory]
+    [InlineData("artifacts/Repo/build", "artifacts/Repo/src/App/obj/index", true)]
+    [InlineData("artifacts/Repo/build", "artifacts/Repo/src/App/A.cs", false)]
+    [InlineData("bin/Repo", "bin/Repo/src/A.cs", false)]
+    [InlineData("artifacts/Repo/build", "artifacts/Repo/build/obj/index", true)]
+    [InlineData("artifacts/Repo", "artifacts/Repo", false)]
+    [InlineData("Repo/build", "Repo/build-other/obj/index", true)]
+    [InlineData("Repo/obj", "Repo/obj/src/A.cs", false)]
+    public void Workspace_filter_checks_segments_after_the_common_prefix(string directory, string path, bool expected)
+    {
+        var root = Path.Combine(Path.GetTempPath(), "RoslynMcpPathScope");
+        Assert.Equal(
+            expected,
+            WorkspaceDiskPathFilter.IsIgnoredPath(
+                Path.GetFullPath(Path.Combine(root, path)),
+                Path.GetFullPath(Path.Combine(root, directory))));
+    }
+
+    [Theory]
+    [Trait("Category", "RequiresWindows")]
+    [InlineData(@"C:\artifacts\Repo\build", @"c:\ARTIFACTS\Repo\src\App\A.cs", false)]
+    [InlineData(@"C:\artifacts\Repo\build", @"D:\artifacts\Repo\A.cs", true)]
+    [InlineData(@"\\artifacts\first\build", @"\\artifacts\second\src\A.cs", false)]
+    [InlineData(@"\\artifacts\share\build", @"\\artifacts\share\obj\index", true)]
+    public void Workspace_filter_respects_windows_roots_without_filesystem_access(string directory, string path, bool expected)
+    {
+        Assert.Equal(expected, WorkspaceDiskPathFilter.IsIgnoredPath(path, directory));
+    }
+
     [Fact]
     public void IsProjectGraphFile_matches_msbuild_and_global_json()
     {

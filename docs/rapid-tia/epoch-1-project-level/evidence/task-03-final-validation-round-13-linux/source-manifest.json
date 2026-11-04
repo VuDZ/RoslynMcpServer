@@ -1,0 +1,6 @@
+{
+  "RoslynMcpServer.Tests/Testing/BaselineNestedSolutionRenameTests.cs": "bdc2a4a4518e7811481e8d0c9fd6ca81cbfef39f8e8af1d97eefd376f468dae9",
+  "RoslynMcpServer.Tests/Workspace/WorkspaceDiskPathFilterTests.cs": "07de28787b1610517a432685473ead71330c6315a65c4e95cc399cab171af095",
+  "Services/Workspace/WorkspaceDiskPathFilter.cs": "5884dc6c16517e5508bdd98362467a95f3af270a7dfc36e20a66025611a57f5f",
+  "RoslynMcpServer.Tests/PlatformSupport/WindowsOnlyTestInventoryTests.cs": "131f20720c97d12ec60888909a6e1ecea149a8c824d176bd5380da7aceda22d6"
+}

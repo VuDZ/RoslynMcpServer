@@ -36,6 +36,8 @@ public sealed class WindowsOnlyTestInventoryTests
         "HarnessSessionIdTests.Windows_reads_this_process_image_and_command_line",
         // The 64-bit host under Program Files exists only on Windows.
         "DotNetHostResolverTests.ResolveDotNetExecutable_on_64bit_windows_prefers_program_files_dotnet",
+        // Drive letters, UNC roots, and case-insensitive path semantics are specific to Windows.
+        "WorkspaceDiskPathFilterTests.Workspace_filter_respects_windows_roots_without_filesystem_access",
         // A real WPF build needs the Windows Desktop SDK.
         "WpfTemporaryProjectWatchingTests.Real_WPF_build_preserves_the_cached_graph_after_flush_and_repeated_loads",
         "WpfTemporaryProjectWatchingTests.Real_project_edit_delivered_during_WPF_build_still_invalidates_the_graph",

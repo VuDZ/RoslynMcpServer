@@ -1,0 +1,20 @@
+Test run for /home/runner/roslyn-mcp-rapid-tia-r11-final-20261104/RoslynMcpServer.Tests/bin/Release/net10.0/RoslynMcpServer.Tests.dll (.NETCoreApp,Version=v10.0)
+VSTest version 18.0.2 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:09.40]     RoslynMcpServer.Tests.PlatformSupport.WindowsOnlyTestInventoryTests.Windows_only_category_matches_the_reviewed_list [FAIL]
+  Failed RoslynMcpServer.Tests.PlatformSupport.WindowsOnlyTestInventoryTests.Windows_only_category_matches_the_reviewed_list [60 ms]
+  Error Message:
+   Assert.Equal() Failure: Collections differ
+                                                                                                                             ↓ (pos 2)
+Expected: ["DotNetHostResolverTests.ResolveDotNetExecutable_on"···, "HarnessSessionIdTests.Windows_reads_this_process_i"···, "WpfTemporaryProjectWatchingTests.Real_WPF_build_pr"···, "WpfTemporaryProjectWatchingTests.Real_project_edit"···]
+Actual:   ["DotNetHostResolverTests.ResolveDotNetExecutable_on"···, "HarnessSessionIdTests.Windows_reads_this_process_i"···, "WorkspaceDiskPathFilterTests.Workspace_filter_resp"···, "WpfTemporaryProjectWatchingTests.Real_WPF_build_pr"···, "WpfTemporaryProjectWatchingTests.Real_project_edit"···]
+                                                                                                                             ↑ (pos 2)
+  Stack Trace:
+     at RoslynMcpServer.Tests.PlatformSupport.WindowsOnlyTestInventoryTests.Windows_only_category_matches_the_reviewed_list() in /home/runner/roslyn-mcp-rapid-tia-r11-final-20261104/RoslynMcpServer.Tests/PlatformSupport/WindowsOnlyTestInventoryTests.cs:line 16
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+Results File: /home/runner/roslyn-mcp-rapid-tia-r11-final-20261104/TestResults/task-03-r12-linux-1793752419672-1/main.trx
+
+Failed!  - Failed:     1, Passed:  1718, Skipped:     0, Total:  1719, Duration: 1 m 26 s - RoslynMcpServer.Tests.dll (net10.0)

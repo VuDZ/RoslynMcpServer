@@ -3,7 +3,7 @@
 - Дата: 2026-11-03.
 - Исполнитель: прежний исполнитель эпохи Codex; точный runtime model ID средой не предоставлен.
 - Scope: сессионный baseline, его публикация/чтение в фоне, поколения и журнал путей; интеграция с реальными MCP writes, disk watcher, reload/reset. Без графа, project mapping и публичного инструмента.
-- Состояние: **reopened, 2026-11-04** — [ревью приёмки, раунд 11](evidence/task-03-review-round-11.md): MUST-FIX R11-001, [приёмка раунда 10 снята](#возврат-после-раунда-11). Scope: сессионный baseline и поколения, безопасная фиксация, корректный rename journal относительно solution root с приоритетом карты входов. Прочие события не менялись; без графа, task-04 реализации и публичного инструмента. Исторические приёмки и возвраты ниже сохранены, актуален раздел в конце.
+- Состояние: **accepted, 2026-11-04** — [раунд13 — ACCEPT](evidence/task-03-review-round-13.md), [финальная validation](evidence/task-03-final-validation-round-13.md), [актуальная приёмка](#повторная-приёмка-после-раунда-13). R11-001 закрыт. Приняты сессионный baseline, поколения, безопасная фиксация и rename journal с common-prefix filter и приоритетом карты входов. Прочие watcher events сохранены; без графа, task-04 реализации и публичного инструмента. Исторические приёмки и возвраты ниже сохранены.
 
 ## Модель и интеграция
 
@@ -338,3 +338,53 @@ R5-002 не переисследовался: прежний WSL trace и кон
 - Дата: 2026-11-04. [Раунд 11](evidence/task-03-review-round-11.md), Claude Opus 5.5, вердикт **MUST-FIX**: приёмка раунда 10 снята. Результаты её validation остаются историей. R9-001 подтверждён закрытым.
 - R11-001: при solution в подкаталоге `bin`, `obj`, `node_modules` и `.git` соседних каталогов больше не игнорируются. Переименование каталога там навсегда поднимает `RequiresFullScan`, а `git add` и `git commit` пишут `.git` в журнал. Тесты не теряются.
 - История task-03: **11 раундов, 9 исправлений**; R11-001 открыт.
+
+## Реализация R11-001 — ignored segments после общего префикса
+
+Дата: 2026-11-04. База 6bedfcf, прежний исполнитель эпохи Codex; точный runtime model ID неизвестен. Scope — только [R11-001](evidence/task-03-review-round-11.md), без task04 implementation. Приёмка и счётчики остаются у координатора.
+
+### Причина и минимальная правка
+
+Двухаргументный WorkspaceDiskPathFilter.IsIgnoredPath делал outside-root path безусловно неигнорируемым. Когда load принимает build/All.slnx, paths src/App/obj, src/App/node_modules и root/.git находятся вне build и обходят фильтр. Исправлен только этот production helper: canonical target/workspace разбиваются на platform segments, совпавшее начало исключается с OS-aware InputPathCanon.Comparer, оставшиеся target segments проверяются прежним ignored set.
+
+Literal common-prefix comparison выражает контракт напрямую, включая общий server segment разных UNC shares. Pure path guards покрывают drive/case, разные drives, общую UNC server часть с разными shares, sibling boundary и root itself, без UNC/network I/O. Nullable/invalid workspace directory сохраняет legacy whole-path fallback. Существующий public one-argument overload не менялся.
+
+R9 map authority/both endpoints, strict directory evidence, immutable session root/admission, прочие watcher events и document sync не менялись. Исправление не реализует path mapping или build-output selection будущей task04. Неизвестная KVM-причина старого R5-002 не переисследовалась; WSL evidence не выдаётся за её доказательство.
+
+### TDD и native границы
+
+Все новые20 cases написаны до поведения:9 native и11 pure path guards. [Первый RED](evidence/task-03-review-round-11-red.md) — 20 выполнено,10 passed,10 failed. Отдельный native повтор9/3/6 выявил harness boundary: cross-parent node_modules/.staging/pkg→node_modules/pkg не дал ожидаемый Renamed receipt на Windows и завершился timeout. Это не засчитано behavioral RED, production не менялся. Final fixture использует same-parent .staging/pkg→pkg2; повтор двух ignored-directory rows до production fix дал **2/0/2**, оба failures на Assert.False(RequiresFullScan) после успешного native receipt. Остальные native failures — journal/gap assertions, guards сохранялись зелёными. Полные выводы и хронология сохранены; MCP показывает первые5 failures.
+
+Native layout build/All.slnx с src/App покрывает obj directory rename, node_modules directory rename и obj file rename. Layout с root project покрывает реальные Git add/commit при включённом watcher и Directory.Move внутри .git. Последняя операция не называется Git rebase, node_modules операция не называется npm install; частота подобных действий в реальных инструментах не измерялась. Во всех final native cases отсутствуют Silence/Notify injection; Session.DirectoryRenamePaths/EventRevision доказывают receipt до baseline assertions.
+
+Три native guards той же раскладки: source directory rename поднимает gap, .cs rename даёт оба journal paths, explicit obj/Manual.cs rename сохраняет map authority. Контролируемые прошлые mtimes и Known/fresh-journal assertions исключают ложное покрытие по timestamp rejection. Старые R9 artifact/bin и mapped old/new/tmp guards не менялись и входят в final focused.
+
+### GREEN и передача
+
+[Focused GREEN](evidence/task-03-review-round-11-green.md): **511/511**, Windows Release, specialized Roslyn MCP build+test; прежние491 +20 новых, все123 SourceStructure. Strict inventory16 identities/kinds/paths без изменений. Четыре новых Windows-only pure path cases помечены RequiresWindows и не заявляются Linux coverage. Final incremental build напечатал прежний CS8603; full build warnings проверяет координатор.
+
+**CODE FROZEN** сообщён немедленно после GREEN, code/style cleanup завершён до него; после freeze — только docs. Изменены3 C# файла: Services/Workspace/WorkspaceDiskPathFilter.cs; RoslynMcpServer.Tests/Workspace/WorkspaceDiskPathFilterTests.cs; новый RoslynMcpServer.Tests/Testing/BaselineNestedSolutionRenameTests.cs. Дополнен report, добавлены task-03-review-round-11-red.md/-green.md, старые evidence сохранены.
+
+Final Windows build/main, три Linux main, lifecycle по применимости, fresh review, status/bookkeeping и commit/push выполняет координатор. Исполнитель не запускал runtime на parent Linux roots. Версия1.5.18, spec/README/status, task04+, посторонний untracked .agents/skills/prepare-github-release/ не менялись; commit/push не выполнялись. IDE file edit API недоступен, применён разрешённый local filesystem fallback без Roslyn MCP apply_patch/update_file_content.
+
+
+### Поздняя точная Windows-only inventory доработка
+
+После первоначального freeze3 C# файлов и review12 полный main обнаружил пропущенную reviewed identity: Linux1718/1719 и Windows1726/1727, единственное падение Windows_only_category_matches_the_reviewed_list. Production/native failures не было. [Parent evidence до раунда13](evidence/task-03-validation-before-round-13.md) и [дополнение RED](evidence/task-03-review-round-11-red.md) сохраняют эту фазу; первоначальный focused511 не включал PlatformSupport inventory.
+
+В WindowsOnlyTestInventoryTests.cs добавлены только ожидаемая WorkspaceDiskPathFilterTests.Workspace_filter_respects_windows_roots_without_filesystem_access и English why-comment о Windows drive/UNC/case semantics. Это одна identity с4 theory rows; reviewed inventory теперь5 методов. Строгий Assert.Equal и категории не менялись. Production code не менялся. Нового finding ID или дополнительного behavior fix эта bookkeeping доработка не вводит.
+
+[Relevant focused GREEN](evidence/task-03-review-round-11-green.md): **28/28**, Windows Release MCP build+test, filter FullyQualifiedName~WindowsOnlyTestInventoryTests|FullyQualifiedName~WorkspaceDiskPathFilterTests. Отдельный искусственный RED не нужен: оба реальных full-main failures предшествовали изменению. MCP напечатал существующий xUnit1031 в WpfTemporaryProjectCallbackTests.cs:195.
+
+**CODE FROZEN повторно сообщён немедленно после GREEN28/28.** Final C# overlay4 файла: Services/Workspace/WorkspaceDiskPathFilter.cs; RoslynMcpServer.Tests/Workspace/WorkspaceDiskPathFilterTests.cs; RoslynMcpServer.Tests/Testing/BaselineNestedSolutionRenameTests.cs; RoslynMcpServer.Tests/PlatformSupport/WindowsOnlyTestInventoryTests.cs. Далее только docs. Финальные build/main,3 Linux main, lifecycle по применимости, review13 и acceptance/bookkeeping/commit/push остаются у координатора. Версия1.5.18 и остальные границы задачи сохранены, runtime model ID неизвестен.
+
+## Повторная приёмка после раунда 13
+
+- Дата: 2026-11-04. [Раунд13 — ACCEPT](evidence/task-03-review-round-13.md): R11-001 закрыт. Task-03: **13 раундов, 10 исправленных уникальных замечаний** — R2-001/R2-002/R3-001, R5-001…R5-004, R7-001, R9-001, R11-001. Codex: независимые сессии1,3,4,6,7,8,10,12,13; Claude Opus5.5:2,5,9,11. Runtime model ID Codex недоступен.
+- [Финальная validation координатора](evidence/task-03-final-validation-round-13.md): обе Release solution build успешны, Windows focused **513/513**, весь SourceStructure123; полный Windows main **1727/1727**, opted-in AnalyzerLifecycle **13/13**. Три последовательных полных Linux main — **1719/1719 каждый**, без падений и пропусков. Все TRX counters Linux и lifecycle проверены отдельно.
+- [Полные Linux логи и counters](evidence/task-03-final-validation-round-13-linux/summary.json), build output и source manifest сохранены. Все4 изменённых C# файла сверены Windows/Linux по SHA-256 с финальной сборкой и после прогонов; далее только docs/status. Strict SourceStructure inventory16 identities/kinds/paths сохранён, новых limits нет.
+- R11-001: helper исключает только общий начальный набор canonical segments; оставшиеся target segments проверяются и за пределами solution directory. Native obj/node_modules/.git guards и реальные git add/commit при активных watchers не дают ложного gap/journal; source directory/source file/mapped obj сохраняют нужное наблюдение. Map priority/R9 ancestor-root guards и прочие события не менялись. Task-04 ещё не реализована.
+- [Предварительные main failures](evidence/task-03-validation-before-round-13.md) не скрыты: Win1726/1727 и Linux1718/1719 из-за одной пропущенной exact Windows-only inventory identity. Запись добавлена, strict equality/categories сохранены; это часть R11-001, не новый finding ID. Все финальные наборы повторены после доработки.
+- Первая cross-parent node_modules fixture имела receipt timeout, исключённый из behavioral RED; corrected same-parent native rows дали2/0/2 после receipt до production fix. Directory.Move внутри .git не выдаётся за Git rebase, node_modules move — за npm install. [RED/GREEN](evidence/task-03-review-round-11-red.md) сохраняют фазовую историю. Прежнее поведение Changed/Created под ignored ancestor остаётся границей task-04; фильтрация всех таких Git events не заявляется.
+- Три build warning прежние, вне задачи. Windows AnalyzerLifecycle повторён как дополнительный regression check watcher filtering; load/publication code на этом раунде не менялся. Linux AnalyzerLifecycle и отдельный GC probe не запускались. KVM-причина старого R5-002 неизвестна, согласно review11 это не новый блокер.
+- Версия1.5.18 сохранена. Остальные задачи не реализованы, эпоха целиком не принята, публичная активация не добавлялась. Посторонний untracked .agents/skills/prepare-github-release/ не включён.
