@@ -3,7 +3,7 @@
 - Дата: 2026-11-03.
 - Исполнитель: прежний исполнитель эпохи Codex; точный runtime model ID средой не предоставлен.
 - Scope: сессионный baseline, его публикация/чтение в фоне, поколения и журнал путей; интеграция с реальными MCP writes, disk watcher, reload/reset. Без графа, project mapping и публичного инструмента.
-- Состояние: **accepted, 2026-11-04** — [раунд13 — ACCEPT](evidence/task-03-review-round-13.md), [финальная validation](evidence/task-03-final-validation-round-13.md), [актуальная приёмка](#повторная-приёмка-после-раунда-13). R11-001 закрыт. Приняты сессионный baseline, поколения, безопасная фиксация и rename journal с common-prefix filter и приоритетом карты входов. Прочие watcher events сохранены; без графа, task-04 реализации и публичного инструмента. Исторические приёмки и возвраты ниже сохранены.
+- Состояние: **reopened, 2026-11-04** — [ревью приёмки, раунд 14](evidence/task-03-review-round-14.md): MUST-FIX R14-001, [приёмка раунда 13 снята](#возврат-после-раунда-14). R11-001 закрыт. Scope: сессионный baseline и поколения, безопасная фиксация, journal с common-prefix filter и приоритетом карты входов; без графа, task-04 реализации и публичного инструмента. Исторические приёмки и возвраты ниже сохранены.
 
 ## Модель и интеграция
 
@@ -388,3 +388,9 @@ Final Windows build/main, три Linux main, lifecycle по применимос
 - Первая cross-parent node_modules fixture имела receipt timeout, исключённый из behavioral RED; corrected same-parent native rows дали2/0/2 после receipt до production fix. Directory.Move внутри .git не выдаётся за Git rebase, node_modules move — за npm install. [RED/GREEN](evidence/task-03-review-round-11-red.md) сохраняют фазовую историю. Прежнее поведение Changed/Created под ignored ancestor остаётся границей task-04; фильтрация всех таких Git events не заявляется.
 - Три build warning прежние, вне задачи. Windows AnalyzerLifecycle повторён как дополнительный regression check watcher filtering; load/publication code на этом раунде не менялся. Linux AnalyzerLifecycle и отдельный GC probe не запускались. KVM-причина старого R5-002 неизвестна, согласно review11 это не новый блокер.
 - Версия1.5.18 сохранена. Остальные задачи не реализованы, эпоха целиком не принята, публичная активация не добавлялась. Посторонний untracked .agents/skills/prepare-github-release/ не включён.
+
+## Возврат после раунда 14
+
+- Дата: 2026-11-04. [Раунд 14](evidence/task-03-review-round-14.md), Claude Opus 5.5, вердикт **MUST-FIX**: приёмка раунда 13 снята. Результаты её validation остаются историей. R11-001 подтверждён закрытым, три полных main на Linux — 1719/1719.
+- R14-001: каталог, исчезнувший без `Renamed`, даёт в журнале только свой путь, а флаг опущен, поэтому известный вход под ним выглядит неизменённым. На настоящем watcher Linux это каталог, вынесенный за пределы дерева, и перенос сразу после создания нового родителя; для подключённых ссылкой каталогов нет и признака устаревшего графа. Для Windows последовательность подставлена, настоящий запуск требуется от исполнителя. Это не регрессия R11-001.
+- История task-03: **14 раундов, 10 исправлений**; R14-001 открыт.
