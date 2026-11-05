@@ -1,0 +1,28 @@
+  Determining projects to restore...
+  Restored /home/runner/roslyn-mcp-rapid-tia-r21-final-20261105/RoslynMcpServer.Tests/SourceStructure/DeadlockWitnessHost/DeadlockWitnessHost.csproj (in 135 ms).
+  Restored /home/runner/roslyn-mcp-rapid-tia-r21-final-20261105/forks/roslyn-buildhost/build/Contracts/Microsoft.CodeAnalysis.Workspaces.MSBuild.Contracts.csproj (in 197 ms).
+  Restored /home/runner/roslyn-mcp-rapid-tia-r21-final-20261105/forks/roslyn-buildhost/build/BuildHost/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.csproj (in 228 ms).
+  Restored /home/runner/roslyn-mcp-rapid-tia-r21-final-20261105/samples/RoslynMcpPlugin/RoslynMcpPlugin.csproj (in 484 ms).
+  Restored /home/runner/roslyn-mcp-rapid-tia-r21-final-20261105/RoslynMcpServer.Tests/RoslynMcpServer.Tests.csproj (in 485 ms).
+  Restored /home/runner/roslyn-mcp-rapid-tia-r21-final-20261105/RoslynMcpServer.LifecycleTestHost/RoslynMcpServer.LifecycleTestHost.csproj (in 484 ms).
+  Restored /home/runner/roslyn-mcp-rapid-tia-r21-final-20261105/RoslynMcpServer.csproj (in 588 ms).
+  Microsoft.CodeAnalysis.Workspaces.MSBuild.Contracts -> /home/runner/roslyn-mcp-rapid-tia-r21-final-20261105/forks/roslyn-buildhost/build/Contracts/bin/Debug/net8.0/Microsoft.CodeAnalysis.Workspaces.MSBuild.Contracts.dll
+  DeadlockWitnessHost -> /home/runner/roslyn-mcp-rapid-tia-r21-final-20261105/RoslynMcpServer.Tests/SourceStructure/DeadlockWitnessHost/bin/Release/net10.0/DeadlockWitnessHost.dll
+  Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost -> /home/runner/roslyn-mcp-rapid-tia-r21-final-20261105/forks/roslyn-buildhost/build/BuildHost/bin/Debug/net8.0/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.dll
+/home/runner/roslyn-mcp-rapid-tia-r21-final-20261105/Services/Resolve/NuGetFallbackAssemblyResolver.cs(72,9): warning CS8603: Possible null reference return. [/home/runner/roslyn-mcp-rapid-tia-r21-final-20261105/RoslynMcpServer.csproj]
+  RoslynMcpServer -> /home/runner/roslyn-mcp-rapid-tia-r21-final-20261105/bin/Release/net10.0/RoslynMcpServer.dll
+  RoslynMcpPlugin -> /home/runner/roslyn-mcp-rapid-tia-r21-final-20261105/samples/RoslynMcpPlugin/bin/Release/net10.0/RoslynMcpPlugin.dll
+/home/runner/roslyn-mcp-rapid-tia-r21-final-20261105/RoslynMcpServer.LifecycleTestHost/HostSession.cs(1179,34): warning CS8601: Possible null reference assignment. [/home/runner/roslyn-mcp-rapid-tia-r21-final-20261105/RoslynMcpServer.LifecycleTestHost/RoslynMcpServer.LifecycleTestHost.csproj]
+  RoslynMcpServer.LifecycleTestHost -> /home/runner/roslyn-mcp-rapid-tia-r21-final-20261105/RoslynMcpServer.LifecycleTestHost/bin/Release/net10.0/RoslynMcpServer.LifecycleTestHost.dll
+/home/runner/roslyn-mcp-rapid-tia-r21-final-20261105/RoslynMcpServer.Tests/Workspace/WpfTemporaryProjectCallbackTests.cs(195,32): warning xUnit1031: Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031) [/home/runner/roslyn-mcp-rapid-tia-r21-final-20261105/RoslynMcpServer.Tests/RoslynMcpServer.Tests.csproj]
+  RoslynMcpServer.Tests -> /home/runner/roslyn-mcp-rapid-tia-r21-final-20261105/RoslynMcpServer.Tests/bin/Release/net10.0/RoslynMcpServer.Tests.dll
+
+Build succeeded.
+
+/home/runner/roslyn-mcp-rapid-tia-r21-final-20261105/Services/Resolve/NuGetFallbackAssemblyResolver.cs(72,9): warning CS8603: Possible null reference return. [/home/runner/roslyn-mcp-rapid-tia-r21-final-20261105/RoslynMcpServer.csproj]
+/home/runner/roslyn-mcp-rapid-tia-r21-final-20261105/RoslynMcpServer.LifecycleTestHost/HostSession.cs(1179,34): warning CS8601: Possible null reference assignment. [/home/runner/roslyn-mcp-rapid-tia-r21-final-20261105/RoslynMcpServer.LifecycleTestHost/RoslynMcpServer.LifecycleTestHost.csproj]
+/home/runner/roslyn-mcp-rapid-tia-r21-final-20261105/RoslynMcpServer.Tests/Workspace/WpfTemporaryProjectCallbackTests.cs(195,32): warning xUnit1031: Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031) [/home/runner/roslyn-mcp-rapid-tia-r21-final-20261105/RoslynMcpServer.Tests/RoslynMcpServer.Tests.csproj]
+    3 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:08.28

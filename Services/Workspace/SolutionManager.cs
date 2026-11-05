@@ -2942,21 +2942,23 @@ public sealed class SolutionManager
             // Expand mapped descendants without a gap: recursive deletion already delivers those same paths.
             // Only a file present at load rules out descendants; an optional candidate can name a directory.
             // See docs/rapid-tia/epoch-1-project-level/evidence/task-03-review-round-18.md (R14-001).
-            var mappedDescendants = false;
-            var directoryPath = Path.TrimEndingDirectorySeparator(fullPath);
-            foreach (var entry in map.Paths)
+            var mappedDescendants = map.HasMappedDescendants(fullPath);
+            if (mappedDescendants)
             {
-                if (!InputPathCanon.Comparer.Equals(entry.CanonicalPath, directoryPath)
-                    && WorkspaceDiskPathFilter.IsPathUnderDirectory(entry.CanonicalPath, directoryPath, InputPathCanon.Comparison))
+                var directoryPath = Path.TrimEndingDirectorySeparator(fullPath);
+                foreach (var entry in map.Paths)
                 {
-                    mappedDescendants = true;
-                    // This pass already includes nested candidates; expanding each one again duplicates subtree work.
-                    QueueDiskPath(
-                        session,
-                        entry.CanonicalPath,
-                        changeType,
-                        recordBaselineWrite,
-                        expandDeletedDescendants: false);
+                    if (!InputPathCanon.Comparer.Equals(entry.CanonicalPath, directoryPath)
+                        && WorkspaceDiskPathFilter.IsPathUnderDirectory(entry.CanonicalPath, directoryPath, InputPathCanon.Comparison))
+                    {
+                        // This pass already includes nested candidates; expanding each one again duplicates subtree work.
+                        QueueDiskPath(
+                            session,
+                            entry.CanonicalPath,
+                            changeType,
+                            recordBaselineWrite,
+                            expandDeletedDescendants: false);
+                    }
                 }
             }
             // Keep classification and revisions unchanged; only the baseline journal excludes ignored unmapped paths.

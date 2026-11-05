@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using Microsoft.CodeAnalysis;
 using RoslynMcpServer.Services;
 
@@ -90,6 +91,10 @@ internal sealed class WorkspaceInputMap
         {
             _paths[entry.CanonicalPath] = entry;
         }
+        // Index strict ancestors once: empty deletions must not turn a large map into watcher backlog and overflow.
+        // See docs/rapid-tia/epoch-1-project-level/evidence/task-03-review-round-21.md (R21-001).
+        _ancestorDirectories = CreateAncestorDirectories(_paths.Keys);
+        _externalInputDirectories = CreateExternalInputDirectories();
     }
 
     public InputPathEntry? Find(string? path)
@@ -101,6 +106,13 @@ internal sealed class WorkspaceInputMap
         }
 
         return _paths.TryGetValue(canonical, out var entry) ? entry : null;
+    }
+
+    /// <summary>Tests strict mapped ancestry; an exact entry alone does not establish descendants.</summary>
+    public bool HasMappedDescendants(string? path)
+    {
+        var canonical = InputPathCanon.TryCanonicalize(path);
+        return canonical is not null && _ancestorDirectories.Contains(Path.TrimEndingDirectorySeparator(canonical));
     }
 
     public IReadOnlyList<LoadedProjectInstance> InstancesForFile(string? projectFilePath)
@@ -167,37 +179,41 @@ internal sealed class WorkspaceInputMap
     private bool IsSiblingOfExternalInput(string canonicalPath)
     {
         var directory = Path.GetDirectoryName(canonicalPath);
-        if (string.IsNullOrEmpty(directory))
-        {
-            return false;
-        }
+        return !string.IsNullOrEmpty(directory) && _externalInputDirectories.Contains(directory);
+    }
 
+    private static FrozenSet<string> CreateAncestorDirectories(IEnumerable<string> paths)
+    {
+        var directories = new HashSet<string>(InputPathCanon.Comparer);
+        foreach (var path in paths)
+        {
+            var directory = Path.GetDirectoryName(Path.TrimEndingDirectorySeparator(path));
+            while (!string.IsNullOrEmpty(directory) && directories.Add(directory))
+            {
+                directory = Path.GetDirectoryName(directory);
+            }
+        }
+        return directories.ToFrozenSet(InputPathCanon.Comparer);
+    }
+
+    private FrozenSet<string> CreateExternalInputDirectories()
+    {
+        var directories = new HashSet<string>(InputPathCanon.Comparer);
         foreach (var entry in _paths.Values)
         {
+            // Preserve the consultation rule, including empty occurrences and mixed evaluation/input roles.
             if (entry.Occurrences.All(static occurrence => occurrence.Role == InputRole.EvaluationInput))
             {
                 continue;
             }
-
-            var entryDirectory = Path.GetDirectoryName(entry.CanonicalPath);
-            if (string.IsNullOrEmpty(entryDirectory)
-                || !InputPathCanon.Comparer.Equals(entryDirectory, directory))
+            var directory = Path.GetDirectoryName(entry.CanonicalPath);
+            if (!string.IsNullOrEmpty(directory) && !Regions.Any(region =>
+                WorkspaceDiskPathFilter.IsPathUnderDirectory(entry.CanonicalPath, region.Directory, InputPathCanon.Comparison)))
             {
-                continue;
+                directories.Add(directory);
             }
-
-            if (Regions.Any(region => WorkspaceDiskPathFilter.IsPathUnderDirectory(
-                    entry.CanonicalPath,
-                    region.Directory,
-                    InputPathCanon.Comparison)))
-            {
-                continue;
-            }
-
-            return true;
         }
-
-        return false;
+        return directories.ToFrozenSet(InputPathCanon.Comparer);
     }
 
     private static bool HasIntermediateOrOutputSegment(string canonicalPath)
@@ -216,4 +232,6 @@ internal sealed class WorkspaceInputMap
     }
 
     private readonly Dictionary<string, InputPathEntry> _paths;
+    private readonly FrozenSet<string> _ancestorDirectories;
+    private readonly FrozenSet<string> _externalInputDirectories;
 }

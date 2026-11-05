@@ -1,0 +1,5 @@
+{
+  "RoslynMcpServer.Tests/Testing/BaselineDeletedPathCostTests.cs": "626e1da2a1429fd3d1c8b492d302d7733f5669104bd9f7a9d9b7062781f122fc",
+  "Services/Models/WorkspaceInputMap.cs": "1b8cb63471a5de0553c53add9a95a519eaddbd2248f8273e114d82d1d5eee8f4",
+  "Services/Workspace/SolutionManager.cs": "d0c010285fdf1e4634c257d2f5c5216fb2a16730545f7c5f6b0fe44f4596341a"
+}
