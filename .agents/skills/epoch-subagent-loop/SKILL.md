@@ -38,7 +38,7 @@ Replacing the implementer inside an epoch is an incident, not a round. It is all
 
 ## Implementer constraints
 
-- Edit with the IDE. Do not use MCP `apply_patch` / `update_file_content`.
+- Edit with Roslyn MCP or native editing tools. Do not use Computer Use or the IDE UI for code edits.
 - Do not commit. Do not start the next epoch.
 - Do not rewrite the epoch spec. A one-line status flip to done is allowed only after the parent says the review accepted.
 - Touch only files the epoch lists, plus tests that fail because those files changed.
