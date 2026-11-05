@@ -8,10 +8,10 @@
 - Статус: **accepted, 2026-11-05**; scope — проба фактических имён четырёх VSTest-адаптеров, 28 фильтров, replay-каталог и нормативная передача в task-07; [validation](evidence/task-06-final-validation.md).
 - Depends on: —.
 - Модель, реализовавшая задачу: Codex (точный runtime model ID средой не предоставлен).
-- Модели, проводившие ревью: Codex, независимая сессия (точный runtime model ID средой не предоставлен).
+- Модели, проводившие ревью: Codex, независимая сессия (точный runtime model ID средой не предоставлен); Claude Opus 5.5, второй рецензент того же раунда.
 - Количество раундов ревью: **1**, [ACCEPT по R-18](evidence/task-06-review-round-1.md).
-- Количество исправлений после ревью: **0**; MUST-FIX нет, ограничения T06-L01–L03 сохранены.
-- Отчёт о реализации, ревью и validation: [отчёт](task-06-implementation-report.md), [фактические имена](evidence/task-06-adapter-names.md), [ревью](evidence/task-06-review-round-1.md), [validation](evidence/task-06-final-validation.md).
+- Количество исправлений после ревью: **0**; MUST-FIX нет, ограничения T06-L01–L03 сохранены; T06-C1 ([второй рецензент](evidence/task-06-review-round-1-claude.md)) передано в task-07.
+- Отчёт о реализации, ревью и validation: [отчёт](task-06-implementation-report.md), [фактические имена](evidence/task-06-adapter-names.md), [ревью](evidence/task-06-review-round-1.md), [второй рецензент](evidence/task-06-review-round-1-claude.md), [validation](evidence/task-06-final-validation.md).
 
 ## Цель
 

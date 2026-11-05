@@ -87,4 +87,5 @@ derived-классов и Linux. AnalyzerLifecycle не запускался: е
 - [Ревью](evidence/task-06-review-round-1.md): **1 раунд, 0 исправлений**, ACCEPT; MUST-FIX нет, ограничения T06-L01–L03 сохранены.
 - [Validation координатора](evidence/task-06-final-validation.md): четыре независимых fixture-прогона по **5/5**, Release solution build PASS, main **1874/1874**; collector и offline raw/catalog replay PASS. В packet 16 positive selections/20 passed cases и 12 ожидаемых zero-match, не засчитанных как pass.
 - Точечная нормативная правка «Ответа инструмента» принята до task-07: runtime-имена из measured evidence и проект целиком с причиной при неизвестной concrete generic/inherited identity.
+- [Второй рецензент раунда 1 — ACCEPT](evidence/task-06-review-round-1-claude.md): 28 фильтров повторены на Linux с тем же результатом. NUnit-фикстура с аргументами конструктора даёт FQN `Ns.Class("a").M`, и фильтры по таблице выбирают 0; условие T06-C1 передано в task-07, норма программы дополнена.
 - После freeze C#/csproj не менялись. Версия сохранена; Linux, MTP и новые версии адаптеров не проверялись.
