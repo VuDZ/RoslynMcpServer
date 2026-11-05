@@ -1,0 +1,17 @@
+## dotnet command
+
+
+### StdOut
+```text
+Test run for E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\NUnit\bin\Release\net10.0\AdapterNames.NUnit.dll (.NETCoreApp,Version=v10.0)
+The following Tests are available:
+Logging Vstest Diagnostics in file: E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\artifacts\nunit.discovery.log
+    Generic
+    Inherited
+    Nested
+    Rows(1)
+    Rows(2)
+```
+
+### StdErr
+(empty)

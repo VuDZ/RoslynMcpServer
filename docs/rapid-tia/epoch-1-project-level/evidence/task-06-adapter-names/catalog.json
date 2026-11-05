@@ -1,0 +1,703 @@
+{
+  "Captured": "2026-11-05",
+  "Baseline": "422e90b",
+  "RuntimeModelId": "unknown",
+  "Sdk": "10.0.402",
+  "Runtime": "10.0.13",
+  "VstestConsole": "18.7.0-release-26505-111",
+  "Configuration": "Release",
+  "Adapters": [
+    {
+      "Adapter": "xunit-v2",
+      "Project": "spikes/AdapterTestNames/XunitV2/XunitV2.csproj",
+      "PackageReferences": [
+        "Microsoft.NET.Test.Sdk/17.14.1",
+        "xunit/2.9.3",
+        "xunit.runner.visualstudio/3.1.0"
+      ],
+      "ResolvedPackages": [
+        "Microsoft.CodeCoverage/17.14.1",
+        "Microsoft.NET.Test.Sdk/17.14.1",
+        "Microsoft.TestPlatform.ObjectModel/17.14.1",
+        "Microsoft.TestPlatform.TestHost/17.14.1",
+        "Newtonsoft.Json/13.0.3",
+        "xunit.abstractions/2.0.3",
+        "xunit.analyzers/1.18.0",
+        "xunit.assert/2.9.3",
+        "xunit.core/2.9.3",
+        "xunit.extensibility.core/2.9.3",
+        "xunit.extensibility.execution/2.9.3",
+        "xunit.runner.visualstudio/3.1.0",
+        "xunit/2.9.3"
+      ],
+      "DiscoveryOriginalSha256": "F0F874DFDA896BFDD9BFB2B353D5E060871AA1629AB2F9C5E4EA3C3CCA851A89",
+      "RawDiscovery": "xunit-v2.raw-discovery.txt",
+      "DiscoveryTotal": 5,
+      "Cases": [
+        {
+          "Id": "b90fa96f-87b9-aca2-a6d7-e775887303aa",
+          "FullyQualifiedName": "AdapterNames.Xunit.ClosedGenericTests.Generic",
+          "DisplayName": "AdapterNames.Xunit.ClosedGenericTests.Generic",
+          "ExecutorUri": "executor://xunit/VsTestRunner3/netcore/"
+        },
+        {
+          "Id": "232ef2ee-24a0-4ab8-03c9-7e78db1f031c",
+          "FullyQualifiedName": "AdapterNames.Xunit.InheritedTests.Inherited",
+          "DisplayName": "AdapterNames.Xunit.InheritedTests.Inherited",
+          "ExecutorUri": "executor://xunit/VsTestRunner3/netcore/"
+        },
+        {
+          "Id": "0c9b451b-0880-4369-0940-0d670d816a25",
+          "FullyQualifiedName": "AdapterNames.Xunit.ParameterTests.Rows",
+          "DisplayName": "AdapterNames.Xunit.ParameterTests.Rows(value: 1)",
+          "ExecutorUri": "executor://xunit/VsTestRunner3/netcore/"
+        },
+        {
+          "Id": "ffc4ca2c-bf16-eafa-f1ec-aa5894a30ef2",
+          "FullyQualifiedName": "AdapterNames.Xunit.ParameterTests.Rows",
+          "DisplayName": "AdapterNames.Xunit.ParameterTests.Rows(value: 2)",
+          "ExecutorUri": "executor://xunit/VsTestRunner3/netcore/"
+        },
+        {
+          "Id": "99a3e3ef-f0f4-800a-f870-6467db4252b9",
+          "FullyQualifiedName": "AdapterNames.Xunit.Outer+Inner.Nested",
+          "DisplayName": "AdapterNames.Xunit.Outer+Inner.Nested",
+          "ExecutorUri": "executor://xunit/VsTestRunner3/netcore/"
+        }
+      ],
+      "Filters": [
+        {
+          "Probe": "nested-source",
+          "Filter": "FullyQualifiedName~AdapterNames.Xunit.Outer.Inner.Nested",
+          "ExpectedTotal": 0,
+          "Total": 0,
+          "Executed": 0,
+          "Passed": 0,
+          "Failed": 0,
+          "Interpretation": "zero-match; negative probe, not a test pass",
+          "Results": []
+        },
+        {
+          "Probe": "nested",
+          "Filter": "FullyQualifiedName~AdapterNames.Xunit.Outer+Inner.Nested",
+          "ExpectedTotal": 1,
+          "Total": 1,
+          "Executed": 1,
+          "Passed": 1,
+          "Failed": 0,
+          "Interpretation": "positive selection; all selected cases passed",
+          "Results": [
+            {
+              "TestCaseId": "99a3e3ef-f0f4-800a-f870-6467db4252b9",
+              "DisplayName": "AdapterNames.Xunit.Outer+Inner.Nested",
+              "Outcome": "Passed",
+              "DiscoveredFullyQualifiedName": "AdapterNames.Xunit.Outer+Inner.Nested"
+            }
+          ]
+        },
+        {
+          "Probe": "generic-source",
+          "Filter": "FullyQualifiedName~AdapterNames.Xunit.GenericTests<T>.Generic",
+          "ExpectedTotal": 0,
+          "Total": 0,
+          "Executed": 0,
+          "Passed": 0,
+          "Failed": 0,
+          "Interpretation": "zero-match; negative probe, not a test pass",
+          "Results": []
+        },
+        {
+          "Probe": "generic",
+          "Filter": "FullyQualifiedName~AdapterNames.Xunit.ClosedGenericTests.Generic",
+          "ExpectedTotal": 1,
+          "Total": 1,
+          "Executed": 1,
+          "Passed": 1,
+          "Failed": 0,
+          "Interpretation": "positive selection; all selected cases passed",
+          "Results": [
+            {
+              "TestCaseId": "b90fa96f-87b9-aca2-a6d7-e775887303aa",
+              "DisplayName": "AdapterNames.Xunit.ClosedGenericTests.Generic",
+              "Outcome": "Passed",
+              "DiscoveredFullyQualifiedName": "AdapterNames.Xunit.ClosedGenericTests.Generic"
+            }
+          ]
+        },
+        {
+          "Probe": "inherited-owner",
+          "Filter": "FullyQualifiedName~AdapterNames.Xunit.InheritedBase.Inherited",
+          "ExpectedTotal": 0,
+          "Total": 0,
+          "Executed": 0,
+          "Passed": 0,
+          "Failed": 0,
+          "Interpretation": "zero-match; negative probe, not a test pass",
+          "Results": []
+        },
+        {
+          "Probe": "inherited",
+          "Filter": "FullyQualifiedName~AdapterNames.Xunit.InheritedTests.Inherited",
+          "ExpectedTotal": 1,
+          "Total": 1,
+          "Executed": 1,
+          "Passed": 1,
+          "Failed": 0,
+          "Interpretation": "positive selection; all selected cases passed",
+          "Results": [
+            {
+              "TestCaseId": "232ef2ee-24a0-4ab8-03c9-7e78db1f031c",
+              "DisplayName": "AdapterNames.Xunit.InheritedTests.Inherited",
+              "Outcome": "Passed",
+              "DiscoveredFullyQualifiedName": "AdapterNames.Xunit.InheritedTests.Inherited"
+            }
+          ]
+        },
+        {
+          "Probe": "parameters",
+          "Filter": "FullyQualifiedName~AdapterNames.Xunit.ParameterTests.Rows",
+          "ExpectedTotal": 2,
+          "Total": 2,
+          "Executed": 2,
+          "Passed": 2,
+          "Failed": 0,
+          "Interpretation": "positive selection; all selected cases passed",
+          "Results": [
+            {
+              "TestCaseId": "0c9b451b-0880-4369-0940-0d670d816a25",
+              "DisplayName": "AdapterNames.Xunit.ParameterTests.Rows(value: 1)",
+              "Outcome": "Passed",
+              "DiscoveredFullyQualifiedName": "AdapterNames.Xunit.ParameterTests.Rows"
+            },
+            {
+              "TestCaseId": "ffc4ca2c-bf16-eafa-f1ec-aa5894a30ef2",
+              "DisplayName": "AdapterNames.Xunit.ParameterTests.Rows(value: 2)",
+              "Outcome": "Passed",
+              "DiscoveredFullyQualifiedName": "AdapterNames.Xunit.ParameterTests.Rows"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Adapter": "xunit-v3",
+      "Project": "spikes/AdapterTestNames/XunitV3/XunitV3.csproj",
+      "PackageReferences": [
+        "Microsoft.NET.Test.Sdk/17.14.1",
+        "xunit.v3.mtp-off/3.2.2",
+        "xunit.runner.visualstudio/3.1.5"
+      ],
+      "ResolvedPackages": [
+        "Microsoft.Bcl.AsyncInterfaces/6.0.0",
+        "Microsoft.CodeCoverage/17.14.1",
+        "Microsoft.NET.Test.Sdk/17.14.1",
+        "Microsoft.TestPlatform.ObjectModel/17.14.1",
+        "Microsoft.TestPlatform.TestHost/17.14.1",
+        "Microsoft.Win32.Registry/5.0.0",
+        "Newtonsoft.Json/13.0.3",
+        "xunit.analyzers/1.27.0",
+        "xunit.runner.visualstudio/3.1.5",
+        "xunit.v3.assert/3.2.2",
+        "xunit.v3.common/3.2.2",
+        "xunit.v3.core.mtp-off/3.2.2",
+        "xunit.v3.extensibility.core/3.2.2",
+        "xunit.v3.mtp-off/3.2.2",
+        "xunit.v3.runner.common/3.2.2",
+        "xunit.v3.runner.inproc.console/3.2.2"
+      ],
+      "DiscoveryOriginalSha256": "C4214679E8648F247B2943AEE4A64C2FDC7F950B7159DA4F118E8FF4337BE59E",
+      "RawDiscovery": "xunit-v3.raw-discovery.txt",
+      "DiscoveryTotal": 5,
+      "Cases": [
+        {
+          "Id": "daf71b1b-1445-1bd4-e11d-5dc86f555635",
+          "FullyQualifiedName": "AdapterNames.Xunit.ClosedGenericTests.Generic",
+          "DisplayName": "AdapterNames.Xunit.ClosedGenericTests.Generic",
+          "ExecutorUri": "executor://xunit/VsTestRunner3/netcore/"
+        },
+        {
+          "Id": "5177afde-2e4c-2365-5ab3-5e6f987c0a19",
+          "FullyQualifiedName": "AdapterNames.Xunit.InheritedTests.Inherited",
+          "DisplayName": "AdapterNames.Xunit.InheritedTests.Inherited",
+          "ExecutorUri": "executor://xunit/VsTestRunner3/netcore/"
+        },
+        {
+          "Id": "d3be8e3e-f608-0e8a-ce10-47bbf11594aa",
+          "FullyQualifiedName": "AdapterNames.Xunit.ParameterTests.Rows",
+          "DisplayName": "AdapterNames.Xunit.ParameterTests.Rows(value: 1)",
+          "ExecutorUri": "executor://xunit/VsTestRunner3/netcore/"
+        },
+        {
+          "Id": "376d4f33-2bc6-746d-36cc-162d7d626ee9",
+          "FullyQualifiedName": "AdapterNames.Xunit.ParameterTests.Rows",
+          "DisplayName": "AdapterNames.Xunit.ParameterTests.Rows(value: 2)",
+          "ExecutorUri": "executor://xunit/VsTestRunner3/netcore/"
+        },
+        {
+          "Id": "0824a87e-0481-45b2-eeb3-2de52b37ac7e",
+          "FullyQualifiedName": "AdapterNames.Xunit.Outer+Inner.Nested",
+          "DisplayName": "AdapterNames.Xunit.Outer+Inner.Nested",
+          "ExecutorUri": "executor://xunit/VsTestRunner3/netcore/"
+        }
+      ],
+      "Filters": [
+        {
+          "Probe": "nested-source",
+          "Filter": "FullyQualifiedName~AdapterNames.Xunit.Outer.Inner.Nested",
+          "ExpectedTotal": 0,
+          "Total": 0,
+          "Executed": 0,
+          "Passed": 0,
+          "Failed": 0,
+          "Interpretation": "zero-match; negative probe, not a test pass",
+          "Results": []
+        },
+        {
+          "Probe": "nested",
+          "Filter": "FullyQualifiedName~AdapterNames.Xunit.Outer+Inner.Nested",
+          "ExpectedTotal": 1,
+          "Total": 1,
+          "Executed": 1,
+          "Passed": 1,
+          "Failed": 0,
+          "Interpretation": "positive selection; all selected cases passed",
+          "Results": [
+            {
+              "TestCaseId": "0824a87e-0481-45b2-eeb3-2de52b37ac7e",
+              "DisplayName": "AdapterNames.Xunit.Outer+Inner.Nested",
+              "Outcome": "Passed",
+              "DiscoveredFullyQualifiedName": "AdapterNames.Xunit.Outer+Inner.Nested"
+            }
+          ]
+        },
+        {
+          "Probe": "generic-source",
+          "Filter": "FullyQualifiedName~AdapterNames.Xunit.GenericTests<T>.Generic",
+          "ExpectedTotal": 0,
+          "Total": 0,
+          "Executed": 0,
+          "Passed": 0,
+          "Failed": 0,
+          "Interpretation": "zero-match; negative probe, not a test pass",
+          "Results": []
+        },
+        {
+          "Probe": "generic",
+          "Filter": "FullyQualifiedName~AdapterNames.Xunit.ClosedGenericTests.Generic",
+          "ExpectedTotal": 1,
+          "Total": 1,
+          "Executed": 1,
+          "Passed": 1,
+          "Failed": 0,
+          "Interpretation": "positive selection; all selected cases passed",
+          "Results": [
+            {
+              "TestCaseId": "daf71b1b-1445-1bd4-e11d-5dc86f555635",
+              "DisplayName": "AdapterNames.Xunit.ClosedGenericTests.Generic",
+              "Outcome": "Passed",
+              "DiscoveredFullyQualifiedName": "AdapterNames.Xunit.ClosedGenericTests.Generic"
+            }
+          ]
+        },
+        {
+          "Probe": "inherited-owner",
+          "Filter": "FullyQualifiedName~AdapterNames.Xunit.InheritedBase.Inherited",
+          "ExpectedTotal": 0,
+          "Total": 0,
+          "Executed": 0,
+          "Passed": 0,
+          "Failed": 0,
+          "Interpretation": "zero-match; negative probe, not a test pass",
+          "Results": []
+        },
+        {
+          "Probe": "inherited",
+          "Filter": "FullyQualifiedName~AdapterNames.Xunit.InheritedTests.Inherited",
+          "ExpectedTotal": 1,
+          "Total": 1,
+          "Executed": 1,
+          "Passed": 1,
+          "Failed": 0,
+          "Interpretation": "positive selection; all selected cases passed",
+          "Results": [
+            {
+              "TestCaseId": "5177afde-2e4c-2365-5ab3-5e6f987c0a19",
+              "DisplayName": "AdapterNames.Xunit.InheritedTests.Inherited",
+              "Outcome": "Passed",
+              "DiscoveredFullyQualifiedName": "AdapterNames.Xunit.InheritedTests.Inherited"
+            }
+          ]
+        },
+        {
+          "Probe": "parameters",
+          "Filter": "FullyQualifiedName~AdapterNames.Xunit.ParameterTests.Rows",
+          "ExpectedTotal": 2,
+          "Total": 2,
+          "Executed": 2,
+          "Passed": 2,
+          "Failed": 0,
+          "Interpretation": "positive selection; all selected cases passed",
+          "Results": [
+            {
+              "TestCaseId": "376d4f33-2bc6-746d-36cc-162d7d626ee9",
+              "DisplayName": "AdapterNames.Xunit.ParameterTests.Rows(value: 2)",
+              "Outcome": "Passed",
+              "DiscoveredFullyQualifiedName": "AdapterNames.Xunit.ParameterTests.Rows"
+            },
+            {
+              "TestCaseId": "d3be8e3e-f608-0e8a-ce10-47bbf11594aa",
+              "DisplayName": "AdapterNames.Xunit.ParameterTests.Rows(value: 1)",
+              "Outcome": "Passed",
+              "DiscoveredFullyQualifiedName": "AdapterNames.Xunit.ParameterTests.Rows"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Adapter": "nunit",
+      "Project": "spikes/AdapterTestNames/NUnit/NUnit.csproj",
+      "PackageReferences": [
+        "Microsoft.NET.Test.Sdk/17.14.1",
+        "NUnit/4.3.2",
+        "NUnit3TestAdapter/5.0.0"
+      ],
+      "ResolvedPackages": [
+        "Microsoft.ApplicationInsights/2.22.0",
+        "Microsoft.CodeCoverage/17.14.1",
+        "Microsoft.NET.Test.Sdk/17.14.1",
+        "Microsoft.Testing.Extensions.Telemetry/1.5.3",
+        "Microsoft.Testing.Extensions.TrxReport.Abstractions/1.5.3",
+        "Microsoft.Testing.Extensions.VSTestBridge/1.5.3",
+        "Microsoft.Testing.Platform.MSBuild/1.5.3",
+        "Microsoft.Testing.Platform/1.5.3",
+        "Microsoft.TestPlatform.ObjectModel/17.14.1",
+        "Microsoft.TestPlatform.TestHost/17.14.1",
+        "Newtonsoft.Json/13.0.3",
+        "NUnit/4.3.2",
+        "NUnit3TestAdapter/5.0.0"
+      ],
+      "DiscoveryOriginalSha256": "5AE2E381719634C3E6448C0DAEA3172D7F6621FBDF8DDFEB88FC87492E562474",
+      "RawDiscovery": "nunit.raw-discovery.txt",
+      "DiscoveryTotal": 5,
+      "Cases": [
+        {
+          "Id": "b5c03621-6982-fa00-f408-e2074605c807",
+          "FullyQualifiedName": "AdapterNames.NUnit.GenericTests<Int32>.Generic",
+          "DisplayName": "Generic",
+          "ExecutorUri": "executor://NUnit3TestExecutor"
+        },
+        {
+          "Id": "070cd30a-9f40-723b-241c-684d55b03b7d",
+          "FullyQualifiedName": "AdapterNames.NUnit.InheritedTests.Inherited",
+          "DisplayName": "Inherited",
+          "ExecutorUri": "executor://NUnit3TestExecutor"
+        },
+        {
+          "Id": "34670153-1eb6-fc0d-f923-2c0a515c7d05",
+          "FullyQualifiedName": "AdapterNames.NUnit.Outer+Inner.Nested",
+          "DisplayName": "Nested",
+          "ExecutorUri": "executor://NUnit3TestExecutor"
+        },
+        {
+          "Id": "796ed5c7-8ba5-96fe-3c50-3b5763762d5e",
+          "FullyQualifiedName": "AdapterNames.NUnit.ParameterTests.Rows(1)",
+          "DisplayName": "Rows(1)",
+          "ExecutorUri": "executor://NUnit3TestExecutor"
+        },
+        {
+          "Id": "b17c8437-2aab-5dc7-20f6-f3cdcbb9b7dd",
+          "FullyQualifiedName": "AdapterNames.NUnit.ParameterTests.Rows(2)",
+          "DisplayName": "Rows(2)",
+          "ExecutorUri": "executor://NUnit3TestExecutor"
+        }
+      ],
+      "Filters": [
+        {
+          "Probe": "nested-source",
+          "Filter": "FullyQualifiedName~AdapterNames.NUnit.Outer.Inner.Nested",
+          "ExpectedTotal": 0,
+          "Total": 0,
+          "Executed": 0,
+          "Passed": 0,
+          "Failed": 0,
+          "Interpretation": "zero-match; negative probe, not a test pass",
+          "Results": []
+        },
+        {
+          "Probe": "nested",
+          "Filter": "FullyQualifiedName~AdapterNames.NUnit.Outer+Inner.Nested",
+          "ExpectedTotal": 1,
+          "Total": 1,
+          "Executed": 1,
+          "Passed": 1,
+          "Failed": 0,
+          "Interpretation": "positive selection; all selected cases passed",
+          "Results": [
+            {
+              "TestCaseId": "34670153-1eb6-fc0d-f923-2c0a515c7d05",
+              "DisplayName": "Nested",
+              "Outcome": "Passed",
+              "DiscoveredFullyQualifiedName": "AdapterNames.NUnit.Outer+Inner.Nested"
+            }
+          ]
+        },
+        {
+          "Probe": "generic-source",
+          "Filter": "FullyQualifiedName~AdapterNames.NUnit.GenericTests<T>.Generic",
+          "ExpectedTotal": 0,
+          "Total": 0,
+          "Executed": 0,
+          "Passed": 0,
+          "Failed": 0,
+          "Interpretation": "zero-match; negative probe, not a test pass",
+          "Results": []
+        },
+        {
+          "Probe": "generic",
+          "Filter": "FullyQualifiedName~AdapterNames.NUnit.GenericTests<Int32>.Generic",
+          "ExpectedTotal": 1,
+          "Total": 1,
+          "Executed": 1,
+          "Passed": 1,
+          "Failed": 0,
+          "Interpretation": "positive selection; all selected cases passed",
+          "Results": [
+            {
+              "TestCaseId": "b5c03621-6982-fa00-f408-e2074605c807",
+              "DisplayName": "Generic",
+              "Outcome": "Passed",
+              "DiscoveredFullyQualifiedName": "AdapterNames.NUnit.GenericTests<Int32>.Generic"
+            }
+          ]
+        },
+        {
+          "Probe": "inherited-owner",
+          "Filter": "FullyQualifiedName~AdapterNames.NUnit.InheritedBase.Inherited",
+          "ExpectedTotal": 0,
+          "Total": 0,
+          "Executed": 0,
+          "Passed": 0,
+          "Failed": 0,
+          "Interpretation": "zero-match; negative probe, not a test pass",
+          "Results": []
+        },
+        {
+          "Probe": "inherited",
+          "Filter": "FullyQualifiedName~AdapterNames.NUnit.InheritedTests.Inherited",
+          "ExpectedTotal": 1,
+          "Total": 1,
+          "Executed": 1,
+          "Passed": 1,
+          "Failed": 0,
+          "Interpretation": "positive selection; all selected cases passed",
+          "Results": [
+            {
+              "TestCaseId": "070cd30a-9f40-723b-241c-684d55b03b7d",
+              "DisplayName": "Inherited",
+              "Outcome": "Passed",
+              "DiscoveredFullyQualifiedName": "AdapterNames.NUnit.InheritedTests.Inherited"
+            }
+          ]
+        },
+        {
+          "Probe": "parameters",
+          "Filter": "FullyQualifiedName~AdapterNames.NUnit.ParameterTests.Rows",
+          "ExpectedTotal": 2,
+          "Total": 2,
+          "Executed": 2,
+          "Passed": 2,
+          "Failed": 0,
+          "Interpretation": "positive selection; all selected cases passed",
+          "Results": [
+            {
+              "TestCaseId": "b17c8437-2aab-5dc7-20f6-f3cdcbb9b7dd",
+              "DisplayName": "Rows(2)",
+              "Outcome": "Passed",
+              "DiscoveredFullyQualifiedName": "AdapterNames.NUnit.ParameterTests.Rows(2)"
+            },
+            {
+              "TestCaseId": "796ed5c7-8ba5-96fe-3c50-3b5763762d5e",
+              "DisplayName": "Rows(1)",
+              "Outcome": "Passed",
+              "DiscoveredFullyQualifiedName": "AdapterNames.NUnit.ParameterTests.Rows(1)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Adapter": "mstest",
+      "Project": "spikes/AdapterTestNames/MSTest/MSTest.csproj",
+      "PackageReferences": [
+        "Microsoft.NET.Test.Sdk/17.14.1",
+        "MSTest.TestFramework/3.8.3",
+        "MSTest.TestAdapter/3.8.3"
+      ],
+      "ResolvedPackages": [
+        "Microsoft.ApplicationInsights/2.22.0",
+        "Microsoft.CodeCoverage/17.14.1",
+        "Microsoft.NET.Test.Sdk/17.14.1",
+        "Microsoft.Testing.Extensions.Telemetry/1.6.3",
+        "Microsoft.Testing.Extensions.TrxReport.Abstractions/1.6.3",
+        "Microsoft.Testing.Extensions.VSTestBridge/1.6.3",
+        "Microsoft.Testing.Platform.MSBuild/1.6.3",
+        "Microsoft.Testing.Platform/1.6.3",
+        "Microsoft.TestPlatform.ObjectModel/17.14.1",
+        "Microsoft.TestPlatform.TestHost/17.14.1",
+        "MSTest.Analyzers/3.8.3",
+        "MSTest.TestAdapter/3.8.3",
+        "MSTest.TestFramework/3.8.3",
+        "Newtonsoft.Json/13.0.3"
+      ],
+      "DiscoveryOriginalSha256": "F0225C9D2889EA62295F84BC6B5A16F7585633679BD631E6FE066DA3B897F713",
+      "RawDiscovery": "mstest.raw-discovery.txt",
+      "DiscoveryTotal": 5,
+      "Cases": [
+        {
+          "Id": "66a83f6c-7c97-5912-3d33-8c04c2556fe6",
+          "FullyQualifiedName": "AdapterNames.MSTest.ClosedGenericTests.Generic",
+          "DisplayName": "Generic",
+          "ExecutorUri": "executor://MSTestAdapter/v2"
+        },
+        {
+          "Id": "912a53e3-2286-7eeb-c9a9-a988b5fd6d3f",
+          "FullyQualifiedName": "AdapterNames.MSTest.InheritedTests.Inherited",
+          "DisplayName": "Inherited",
+          "ExecutorUri": "executor://MSTestAdapter/v2"
+        },
+        {
+          "Id": "9d30170e-08dd-e504-34be-f931594c21f5",
+          "FullyQualifiedName": "AdapterNames.MSTest.ParameterTests.Rows",
+          "DisplayName": "Rows (1)",
+          "ExecutorUri": "executor://MSTestAdapter/v2"
+        },
+        {
+          "Id": "f5d405d8-a8ec-6d59-d5d7-b58208b3424d",
+          "FullyQualifiedName": "AdapterNames.MSTest.ParameterTests.Rows",
+          "DisplayName": "Rows (2)",
+          "ExecutorUri": "executor://MSTestAdapter/v2"
+        },
+        {
+          "Id": "3714ed00-d06d-87f2-90b9-1f28f5109d5f",
+          "FullyQualifiedName": "AdapterNames.MSTest.Outer+Inner.Nested",
+          "DisplayName": "Nested",
+          "ExecutorUri": "executor://MSTestAdapter/v2"
+        }
+      ],
+      "Filters": [
+        {
+          "Probe": "nested-source",
+          "Filter": "FullyQualifiedName~AdapterNames.MSTest.Outer.Inner.Nested",
+          "ExpectedTotal": 0,
+          "Total": 0,
+          "Executed": 0,
+          "Passed": 0,
+          "Failed": 0,
+          "Interpretation": "zero-match; negative probe, not a test pass",
+          "Results": []
+        },
+        {
+          "Probe": "nested",
+          "Filter": "FullyQualifiedName~AdapterNames.MSTest.Outer+Inner.Nested",
+          "ExpectedTotal": 1,
+          "Total": 1,
+          "Executed": 1,
+          "Passed": 1,
+          "Failed": 0,
+          "Interpretation": "positive selection; all selected cases passed",
+          "Results": [
+            {
+              "TestCaseId": "3714ed00-d06d-87f2-90b9-1f28f5109d5f",
+              "DisplayName": "Nested",
+              "Outcome": "Passed",
+              "DiscoveredFullyQualifiedName": "AdapterNames.MSTest.Outer+Inner.Nested"
+            }
+          ]
+        },
+        {
+          "Probe": "generic-source",
+          "Filter": "FullyQualifiedName~AdapterNames.MSTest.GenericTests<T>.Generic",
+          "ExpectedTotal": 0,
+          "Total": 0,
+          "Executed": 0,
+          "Passed": 0,
+          "Failed": 0,
+          "Interpretation": "zero-match; negative probe, not a test pass",
+          "Results": []
+        },
+        {
+          "Probe": "generic",
+          "Filter": "FullyQualifiedName~AdapterNames.MSTest.ClosedGenericTests.Generic",
+          "ExpectedTotal": 1,
+          "Total": 1,
+          "Executed": 1,
+          "Passed": 1,
+          "Failed": 0,
+          "Interpretation": "positive selection; all selected cases passed",
+          "Results": [
+            {
+              "TestCaseId": "66a83f6c-7c97-5912-3d33-8c04c2556fe6",
+              "DisplayName": "Generic",
+              "Outcome": "Passed",
+              "DiscoveredFullyQualifiedName": "AdapterNames.MSTest.ClosedGenericTests.Generic"
+            }
+          ]
+        },
+        {
+          "Probe": "inherited-owner",
+          "Filter": "FullyQualifiedName~AdapterNames.MSTest.InheritedBase.Inherited",
+          "ExpectedTotal": 0,
+          "Total": 0,
+          "Executed": 0,
+          "Passed": 0,
+          "Failed": 0,
+          "Interpretation": "zero-match; negative probe, not a test pass",
+          "Results": []
+        },
+        {
+          "Probe": "inherited",
+          "Filter": "FullyQualifiedName~AdapterNames.MSTest.InheritedTests.Inherited",
+          "ExpectedTotal": 1,
+          "Total": 1,
+          "Executed": 1,
+          "Passed": 1,
+          "Failed": 0,
+          "Interpretation": "positive selection; all selected cases passed",
+          "Results": [
+            {
+              "TestCaseId": "912a53e3-2286-7eeb-c9a9-a988b5fd6d3f",
+              "DisplayName": "Inherited",
+              "Outcome": "Passed",
+              "DiscoveredFullyQualifiedName": "AdapterNames.MSTest.InheritedTests.Inherited"
+            }
+          ]
+        },
+        {
+          "Probe": "parameters",
+          "Filter": "FullyQualifiedName~AdapterNames.MSTest.ParameterTests.Rows",
+          "ExpectedTotal": 2,
+          "Total": 2,
+          "Executed": 2,
+          "Passed": 2,
+          "Failed": 0,
+          "Interpretation": "positive selection; all selected cases passed",
+          "Results": [
+            {
+              "TestCaseId": "9d30170e-08dd-e504-34be-f931594c21f5",
+              "DisplayName": "Rows (1)",
+              "Outcome": "Passed",
+              "DiscoveredFullyQualifiedName": "AdapterNames.MSTest.ParameterTests.Rows"
+            },
+            {
+              "TestCaseId": "f5d405d8-a8ec-6d59-d5d7-b58208b3424d",
+              "DisplayName": "Rows (2)",
+              "Outcome": "Passed",
+              "DiscoveredFullyQualifiedName": "AdapterNames.MSTest.ParameterTests.Rows"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,52 @@
+Probe: nested-source; filter: FullyQualifiedName~AdapterNames.Xunit.Outer.Inner.Nested
+Original TRX: spikes/AdapterTestNames/artifacts/xunit-v3/nested-source.trx
+Original TRX SHA256: 27515D71BE2145C452F5A705E5044AC6C006E3E3E2B299C42C1EF70E49E7649D
+  <ResultSummary outcome="Completed">
+    <Counters total="0" executed="0" passed="0" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+
+Probe: nested; filter: FullyQualifiedName~AdapterNames.Xunit.Outer+Inner.Nested
+Original TRX: spikes/AdapterTestNames/artifacts/xunit-v3/nested.trx
+Original TRX SHA256: 8533EF33FAF63DD9DA7FED34EC59DE40580A79A29CD8573B0E0B9678FE5320F5
+    <UnitTestResult executionId="0d3c6446-896e-49f2-95be-cc87f1af9d5a" testId="0824a87e-0481-45b2-eeb3-2de52b37ac7e" testName="AdapterNames.Xunit.Outer+Inner.Nested" computerName="VUDZ-PC" duration="00:00:00.0088127" startTime="2026-11-05T22:38:41.7514888+03:00" endTime="2026-11-05T22:38:41.7681759+03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="0d3c6446-896e-49f2-95be-cc87f1af9d5a" />
+      <TestMethod codeBase="E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\XunitV3\bin\Release\net10.0\XunitV3.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="AdapterNames.Xunit.Outer+Inner" name="Nested" />
+  <ResultSummary outcome="Completed">
+    <Counters total="1" executed="1" passed="1" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+
+Probe: generic-source; filter: FullyQualifiedName~AdapterNames.Xunit.GenericTests<T>.Generic
+Original TRX: spikes/AdapterTestNames/artifacts/xunit-v3/generic-source.trx
+Original TRX SHA256: C97EBC5503FAEDA02FFD00207007D8B76FE80E25C12622B36E5E11796E2CFF69
+  <ResultSummary outcome="Completed">
+    <Counters total="0" executed="0" passed="0" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+
+Probe: generic; filter: FullyQualifiedName~AdapterNames.Xunit.ClosedGenericTests.Generic
+Original TRX: spikes/AdapterTestNames/artifacts/xunit-v3/generic.trx
+Original TRX SHA256: 724E477A9495FA671C07EB13AD60C22E6DA70D0CD0FD9648B9F33FC37BF5C351
+    <UnitTestResult executionId="77006933-2647-4cf2-92e9-3c7ace793e8d" testId="daf71b1b-1445-1bd4-e11d-5dc86f555635" testName="AdapterNames.Xunit.ClosedGenericTests.Generic" computerName="VUDZ-PC" duration="00:00:00.0116998" startTime="2026-11-05T22:38:50.2847489+03:00" endTime="2026-11-05T22:38:50.3034556+03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="77006933-2647-4cf2-92e9-3c7ace793e8d" />
+      <TestMethod codeBase="E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\XunitV3\bin\Release\net10.0\XunitV3.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="AdapterNames.Xunit.ClosedGenericTests" name="Generic" />
+  <ResultSummary outcome="Completed">
+    <Counters total="1" executed="1" passed="1" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+
+Probe: inherited-owner; filter: FullyQualifiedName~AdapterNames.Xunit.InheritedBase.Inherited
+Original TRX: spikes/AdapterTestNames/artifacts/xunit-v3/inherited-owner.trx
+Original TRX SHA256: 73C5D7E1AAD931E97B96FEDC5C816F4691BC379677EA0BC3548B0682B6B5D131
+  <ResultSummary outcome="Completed">
+    <Counters total="0" executed="0" passed="0" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+
+Probe: inherited; filter: FullyQualifiedName~AdapterNames.Xunit.InheritedTests.Inherited
+Original TRX: spikes/AdapterTestNames/artifacts/xunit-v3/inherited.trx
+Original TRX SHA256: 3BCAE121FCF9704943A59D36E07CD2BB2E2D4DE3F61145342D4E8BA76B02F3AB
+    <UnitTestResult executionId="bf9c7e14-9be3-49c4-a83a-908fe7c78884" testId="5177afde-2e4c-2365-5ab3-5e6f987c0a19" testName="AdapterNames.Xunit.InheritedTests.Inherited" computerName="VUDZ-PC" duration="00:00:00.0119080" startTime="2026-11-05T22:39:00.8799207+03:00" endTime="2026-11-05T22:39:00.8985720+03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="bf9c7e14-9be3-49c4-a83a-908fe7c78884" />
+      <TestMethod codeBase="E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\XunitV3\bin\Release\net10.0\XunitV3.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="AdapterNames.Xunit.InheritedTests" name="Inherited" />
+  <ResultSummary outcome="Completed">
+    <Counters total="1" executed="1" passed="1" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+
+Probe: parameters; filter: FullyQualifiedName~AdapterNames.Xunit.ParameterTests.Rows
+Original TRX: spikes/AdapterTestNames/artifacts/xunit-v3/parameters.trx
+Original TRX SHA256: D6C6D5780103226A9A59B9824260659EF4E413C2173391536825498BA8C93CD9
+    <UnitTestResult executionId="f6c6dcc0-3fbb-42c1-8717-8f05b5e3c603" testId="376d4f33-2bc6-746d-36cc-162d7d626ee9" testName="AdapterNames.Xunit.ParameterTests.Rows(value: 2)" computerName="VUDZ-PC" duration="00:00:00.0002732" startTime="2026-11-05T22:37:03.1029663+03:00" endTime="2026-11-05T22:37:03.1032810+03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="f6c6dcc0-3fbb-42c1-8717-8f05b5e3c603" />
+    <UnitTestResult executionId="32794615-7304-4af8-9427-3f639bc9e31f" testId="d3be8e3e-f608-0e8a-ce10-47bbf11594aa" testName="AdapterNames.Xunit.ParameterTests.Rows(value: 1)" computerName="VUDZ-PC" duration="00:00:00.0088332" startTime="2026-11-05T22:37:03.0836975+03:00" endTime="2026-11-05T22:37:03.0993637+03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="32794615-7304-4af8-9427-3f639bc9e31f" />
+      <TestMethod codeBase="E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\XunitV3\bin\Release\net10.0\XunitV3.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="AdapterNames.Xunit.ParameterTests" name="Rows" />
+      <TestMethod codeBase="E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\XunitV3\bin\Release\net10.0\XunitV3.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="AdapterNames.Xunit.ParameterTests" name="Rows" />
+  <ResultSummary outcome="Completed">
+    <Counters total="2" executed="2" passed="2" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+

@@ -1,0 +1,180 @@
+Captured 2026-11-05 through Roslyn MCP execute_dotnet_command.
+Working directory: E:/Devel/RoslynMcpServer-rapid-tia/spikes/AdapterTestNames
+Configuration: Release; --no-build --no-restore on every probe.
+Negative zero-match probes are expected filter failures, not test passes.
+
+nested-source
+dotnet test NUnit/NUnit.csproj -c Release --no-build --no-restore --filter "FullyQualifiedName~AdapterNames.NUnit.Outer.Inner.Nested" --logger "console;verbosity=normal" --logger "trx;LogFileName=nested-source.trx" --results-directory artifacts/nunit
+
+## dotnet command
+
+
+### StdOut
+```text
+Test run for E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\NUnit\bin\Release\net10.0\AdapterNames.NUnit.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+NUnit Adapter 5.0.0.0: Test execution started
+Running selected tests in E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\NUnit\bin\Release\net10.0\AdapterNames.NUnit.dll
+   NUnit3TestExecutor discovered 0 of 0 NUnit test cases using Current Discovery mode, Explicit run
+NUnit Adapter 5.0.0.0: Test execution complete
+No test matches the given testcase filter `FullyQualifiedName~AdapterNames.NUnit.Outer.Inner.Nested` in E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\NUnit\bin\Release\net10.0\AdapterNames.NUnit.dll
+
+Results File: E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\artifacts\nunit\nested-source.trx
+```
+
+### StdErr
+(empty)
+
+nested
+dotnet test NUnit/NUnit.csproj -c Release --no-build --no-restore --filter "FullyQualifiedName~AdapterNames.NUnit.Outer+Inner.Nested" --logger "console;verbosity=normal" --logger "trx;LogFileName=nested.trx" --results-directory artifacts/nunit
+
+## dotnet command
+
+
+### StdOut
+```text
+Test run for E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\NUnit\bin\Release\net10.0\AdapterNames.NUnit.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+NUnit Adapter 5.0.0.0: Test execution started
+Running selected tests in E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\NUnit\bin\Release\net10.0\AdapterNames.NUnit.dll
+   NUnit3TestExecutor discovered 1 of 1 NUnit test cases using Current Discovery mode, Non-Explicit run
+NUnit Adapter 5.0.0.0: Test execution complete
+  Passed Nested [1 ms]
+
+Test Run Successful.
+Total tests: 1
+     Passed: 1
+ Total time: 0.5234 Seconds
+Results File: E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\artifacts\nunit\nested.trx
+```
+
+### StdErr
+(empty)
+
+generic-source
+dotnet test NUnit/NUnit.csproj -c Release --no-build --no-restore --filter "FullyQualifiedName~AdapterNames.NUnit.GenericTests<T>.Generic" --logger "console;verbosity=normal" --logger "trx;LogFileName=generic-source.trx" --results-directory artifacts/nunit
+
+## dotnet command
+
+
+### StdOut
+```text
+Test run for E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\NUnit\bin\Release\net10.0\AdapterNames.NUnit.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+NUnit Adapter 5.0.0.0: Test execution started
+Running selected tests in E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\NUnit\bin\Release\net10.0\AdapterNames.NUnit.dll
+   NUnit3TestExecutor discovered 0 of 0 NUnit test cases using Current Discovery mode, Explicit run
+NUnit Adapter 5.0.0.0: Test execution complete
+No test matches the given testcase filter `FullyQualifiedName~AdapterNames.NUnit.GenericTests<T>.Generic` in E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\NUnit\bin\Release\net10.0\AdapterNames.NUnit.dll
+
+Results File: E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\artifacts\nunit\generic-source.trx
+```
+
+### StdErr
+(empty)
+
+generic
+dotnet test NUnit/NUnit.csproj -c Release --no-build --no-restore --filter "FullyQualifiedName~AdapterNames.NUnit.GenericTests<Int32>.Generic" --logger "console;verbosity=normal" --logger "trx;LogFileName=generic.trx" --results-directory artifacts/nunit
+
+## dotnet command
+
+
+### StdOut
+```text
+Test run for E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\NUnit\bin\Release\net10.0\AdapterNames.NUnit.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+NUnit Adapter 5.0.0.0: Test execution started
+Running selected tests in E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\NUnit\bin\Release\net10.0\AdapterNames.NUnit.dll
+   NUnit3TestExecutor discovered 1 of 1 NUnit test cases using Current Discovery mode, Non-Explicit run
+NUnit Adapter 5.0.0.0: Test execution complete
+  Passed Generic [3 ms]
+
+Test Run Successful.
+Total tests: 1
+     Passed: 1
+ Total time: 0.4954 Seconds
+Results File: E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\artifacts\nunit\generic.trx
+```
+
+### StdErr
+(empty)
+
+inherited-owner
+dotnet test NUnit/NUnit.csproj -c Release --no-build --no-restore --filter "FullyQualifiedName~AdapterNames.NUnit.InheritedBase.Inherited" --logger "console;verbosity=normal" --logger "trx;LogFileName=inherited-owner.trx" --results-directory artifacts/nunit
+
+## dotnet command
+
+
+### StdOut
+```text
+Test run for E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\NUnit\bin\Release\net10.0\AdapterNames.NUnit.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+NUnit Adapter 5.0.0.0: Test execution started
+Running selected tests in E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\NUnit\bin\Release\net10.0\AdapterNames.NUnit.dll
+   NUnit3TestExecutor discovered 0 of 0 NUnit test cases using Current Discovery mode, Explicit run
+NUnit Adapter 5.0.0.0: Test execution complete
+No test matches the given testcase filter `FullyQualifiedName~AdapterNames.NUnit.InheritedBase.Inherited` in E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\NUnit\bin\Release\net10.0\AdapterNames.NUnit.dll
+
+Results File: E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\artifacts\nunit\inherited-owner.trx
+```
+
+### StdErr
+(empty)
+
+inherited
+dotnet test NUnit/NUnit.csproj -c Release --no-build --no-restore --filter "FullyQualifiedName~AdapterNames.NUnit.InheritedTests.Inherited" --logger "console;verbosity=normal" --logger "trx;LogFileName=inherited.trx" --results-directory artifacts/nunit
+
+## dotnet command
+
+
+### StdOut
+```text
+Test run for E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\NUnit\bin\Release\net10.0\AdapterNames.NUnit.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+NUnit Adapter 5.0.0.0: Test execution started
+Running selected tests in E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\NUnit\bin\Release\net10.0\AdapterNames.NUnit.dll
+   NUnit3TestExecutor discovered 1 of 1 NUnit test cases using Current Discovery mode, Non-Explicit run
+NUnit Adapter 5.0.0.0: Test execution complete
+  Passed Inherited [3 ms]
+
+Test Run Successful.
+Total tests: 1
+     Passed: 1
+ Total time: 0.4899 Seconds
+Results File: E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\artifacts\nunit\inherited.trx
+```
+
+### StdErr
+(empty)
+
+parameters
+dotnet test NUnit/NUnit.csproj -c Release --no-build --no-restore --filter "FullyQualifiedName~AdapterNames.NUnit.ParameterTests.Rows" --logger "console;verbosity=normal" --logger "trx;LogFileName=parameters.trx" --results-directory artifacts/nunit
+
+## dotnet command
+
+
+### StdOut
+```text
+Test run for E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\NUnit\bin\Release\net10.0\AdapterNames.NUnit.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+NUnit Adapter 5.0.0.0: Test execution started
+Running selected tests in E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\NUnit\bin\Release\net10.0\AdapterNames.NUnit.dll
+   NUnit3TestExecutor discovered 2 of 2 NUnit test cases using Current Discovery mode, Non-Explicit run
+NUnit Adapter 5.0.0.0: Test execution complete
+  Passed Rows(1) [2 ms]
+  Passed Rows(2) [< 1 ms]
+
+Test Run Successful.
+Total tests: 2
+     Passed: 2
+ Total time: 0.5222 Seconds
+Results File: E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\artifacts\nunit\parameters.trx
+```
+
+### StdErr
+(empty)
+
+Unfiltered verification via Roslyn MCP run_dotnet_test (same project, Release, noBuild=true, noRestore=true):
+## All tests passed successfully!
+
+Total: **5** · Passed: **5** · Failed: **0**

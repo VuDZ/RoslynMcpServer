@@ -1,0 +1,181 @@
+Captured 2026-11-05 through Roslyn MCP execute_dotnet_command.
+Working directory: E:/Devel/RoslynMcpServer-rapid-tia/spikes/AdapterTestNames
+Configuration: Release; --no-build --no-restore on every probe.
+Negative zero-match probes are expected filter failures, not test passes.
+
+nested-source
+dotnet test XunitV3/XunitV3.csproj -c Release --no-build --no-restore --filter "FullyQualifiedName~AdapterNames.Xunit.Outer.Inner.Nested" --logger "console;verbosity=normal" --logger "trx;LogFileName=nested-source.trx" --results-directory artifacts/xunit-v3
+
+## dotnet command
+
+
+### StdOut
+```text
+Test run for E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\XunitV3\bin\Release\net10.0\XunitV3.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.13)
+[xUnit.net 00:00:00.14]   Discovering: XunitV3
+[xUnit.net 00:00:00.32]   Discovered:  XunitV3
+No test matches the given testcase filter `FullyQualifiedName~AdapterNames.Xunit.Outer.Inner.Nested` in E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\XunitV3\bin\Release\net10.0\XunitV3.dll
+
+Results File: E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\artifacts\xunit-v3\nested-source.trx
+```
+
+### StdErr
+(empty)
+
+nested
+dotnet test XunitV3/XunitV3.csproj -c Release --no-build --no-restore --filter "FullyQualifiedName~AdapterNames.Xunit.Outer+Inner.Nested" --logger "console;verbosity=normal" --logger "trx;LogFileName=nested.trx" --results-directory artifacts/xunit-v3
+
+## dotnet command
+
+
+### StdOut
+```text
+Test run for E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\XunitV3\bin\Release\net10.0\XunitV3.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.13)
+[xUnit.net 00:00:00.15]   Discovering: XunitV3
+[xUnit.net 00:00:00.33]   Discovered:  XunitV3
+[xUnit.net 00:00:00.49]   Starting:    XunitV3
+[xUnit.net 00:00:00.57]   Finished:    XunitV3 (ID = '3fa1a6729caa290bc68b2975af85c8d20c30ce1c4fc8ebd711c0bdcb0c93dded')
+  Passed AdapterNames.Xunit.Outer+Inner.Nested [8 ms]
+
+Test Run Successful.
+Total tests: 1
+     Passed: 1
+ Total time: 0.9744 Seconds
+Results File: E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\artifacts\xunit-v3\nested.trx
+```
+
+### StdErr
+(empty)
+
+generic-source
+dotnet test XunitV3/XunitV3.csproj -c Release --no-build --no-restore --filter "FullyQualifiedName~AdapterNames.Xunit.GenericTests<T>.Generic" --logger "console;verbosity=normal" --logger "trx;LogFileName=generic-source.trx" --results-directory artifacts/xunit-v3
+
+## dotnet command
+
+
+### StdOut
+```text
+Test run for E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\XunitV3\bin\Release\net10.0\XunitV3.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.13)
+[xUnit.net 00:00:00.15]   Discovering: XunitV3
+[xUnit.net 00:00:00.32]   Discovered:  XunitV3
+No test matches the given testcase filter `FullyQualifiedName~AdapterNames.Xunit.GenericTests<T>.Generic` in E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\XunitV3\bin\Release\net10.0\XunitV3.dll
+
+Results File: E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\artifacts\xunit-v3\generic-source.trx
+```
+
+### StdErr
+(empty)
+
+generic
+dotnet test XunitV3/XunitV3.csproj -c Release --no-build --no-restore --filter "FullyQualifiedName~AdapterNames.Xunit.ClosedGenericTests.Generic" --logger "console;verbosity=normal" --logger "trx;LogFileName=generic.trx" --results-directory artifacts/xunit-v3
+
+## dotnet command
+
+
+### StdOut
+```text
+Test run for E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\XunitV3\bin\Release\net10.0\XunitV3.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.13)
+[xUnit.net 00:00:00.14]   Discovering: XunitV3
+[xUnit.net 00:00:00.32]   Discovered:  XunitV3
+[xUnit.net 00:00:00.48]   Starting:    XunitV3
+[xUnit.net 00:00:00.56]   Finished:    XunitV3 (ID = '3fa1a6729caa290bc68b2975af85c8d20c30ce1c4fc8ebd711c0bdcb0c93dded')
+  Passed AdapterNames.Xunit.ClosedGenericTests.Generic [11 ms]
+
+Test Run Successful.
+Total tests: 1
+     Passed: 1
+ Total time: 0.9678 Seconds
+Results File: E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\artifacts\xunit-v3\generic.trx
+```
+
+### StdErr
+(empty)
+
+inherited-owner
+dotnet test XunitV3/XunitV3.csproj -c Release --no-build --no-restore --filter "FullyQualifiedName~AdapterNames.Xunit.InheritedBase.Inherited" --logger "console;verbosity=normal" --logger "trx;LogFileName=inherited-owner.trx" --results-directory artifacts/xunit-v3
+
+## dotnet command
+
+
+### StdOut
+```text
+Test run for E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\XunitV3\bin\Release\net10.0\XunitV3.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.13)
+[xUnit.net 00:00:00.28]   Discovering: XunitV3
+[xUnit.net 00:00:00.79]   Discovered:  XunitV3
+No test matches the given testcase filter `FullyQualifiedName~AdapterNames.Xunit.InheritedBase.Inherited` in E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\XunitV3\bin\Release\net10.0\XunitV3.dll
+
+Results File: E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\artifacts\xunit-v3\inherited-owner.trx
+```
+
+### StdErr
+(empty)
+
+inherited
+dotnet test XunitV3/XunitV3.csproj -c Release --no-build --no-restore --filter "FullyQualifiedName~AdapterNames.Xunit.InheritedTests.Inherited" --logger "console;verbosity=normal" --logger "trx;LogFileName=inherited.trx" --results-directory artifacts/xunit-v3
+
+## dotnet command
+
+
+### StdOut
+```text
+Test run for E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\XunitV3\bin\Release\net10.0\XunitV3.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.13)
+[xUnit.net 00:00:00.17]   Discovering: XunitV3
+[xUnit.net 00:00:00.37]   Discovered:  XunitV3
+[xUnit.net 00:00:00.53]   Starting:    XunitV3
+[xUnit.net 00:00:00.61]   Finished:    XunitV3 (ID = '3fa1a6729caa290bc68b2975af85c8d20c30ce1c4fc8ebd711c0bdcb0c93dded')
+  Passed AdapterNames.Xunit.InheritedTests.Inherited [11 ms]
+
+Test Run Successful.
+Total tests: 1
+     Passed: 1
+ Total time: 1.1797 Seconds
+Results File: E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\artifacts\xunit-v3\inherited.trx
+```
+
+### StdErr
+(empty)
+
+parameters
+dotnet test XunitV3/XunitV3.csproj -c Release --no-build --no-restore --filter "FullyQualifiedName~AdapterNames.Xunit.ParameterTests.Rows" --logger "console;verbosity=normal" --logger "trx;LogFileName=parameters.trx" --results-directory artifacts/xunit-v3
+
+## dotnet command
+
+
+### StdOut
+```text
+Test run for E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\XunitV3\bin\Release\net10.0\XunitV3.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.13)
+[xUnit.net 00:00:00.17]   Discovering: XunitV3
+[xUnit.net 00:00:00.34]   Discovered:  XunitV3
+[xUnit.net 00:00:00.50]   Starting:    XunitV3
+[xUnit.net 00:00:00.58]   Finished:    XunitV3 (ID = '3fa1a6729caa290bc68b2975af85c8d20c30ce1c4fc8ebd711c0bdcb0c93dded')
+  Passed AdapterNames.Xunit.ParameterTests.Rows(value: 1) [8 ms]
+  Passed AdapterNames.Xunit.ParameterTests.Rows(value: 2) [< 1 ms]
+
+Test Run Successful.
+Total tests: 2
+     Passed: 2
+ Total time: 1.0063 Seconds
+Results File: E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\artifacts\xunit-v3\parameters.trx
+```
+
+### StdErr
+(empty)
+
+Unfiltered verification via Roslyn MCP run_dotnet_test (same project, Release, noBuild=true, noRestore=true):
+## All tests passed successfully!
+
+Total: **5** · Passed: **5** · Failed: **0**

@@ -1,0 +1,152 @@
+Captured 2026-11-05 through Roslyn MCP execute_dotnet_command.
+Working directory: E:/Devel/RoslynMcpServer-rapid-tia/spikes/AdapterTestNames
+Configuration: Release; --no-build --no-restore on every probe.
+Negative zero-match probes are expected filter failures, not test passes.
+
+nested-source
+dotnet test MSTest/MSTest.csproj -c Release --no-build --no-restore --filter "FullyQualifiedName~AdapterNames.MSTest.Outer.Inner.Nested" --logger "console;verbosity=normal" --logger "trx;LogFileName=nested-source.trx" --results-directory artifacts/mstest
+
+## dotnet command
+
+
+### StdOut
+```text
+Test run for E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\MSTest\bin\Release\net10.0\MSTest.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+No test matches the given testcase filter `FullyQualifiedName~AdapterNames.MSTest.Outer.Inner.Nested` in E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\MSTest\bin\Release\net10.0\MSTest.dll
+
+Results File: E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\artifacts\mstest\nested-source.trx
+```
+
+### StdErr
+(empty)
+
+nested
+dotnet test MSTest/MSTest.csproj -c Release --no-build --no-restore --filter "FullyQualifiedName~AdapterNames.MSTest.Outer+Inner.Nested" --logger "console;verbosity=normal" --logger "trx;LogFileName=nested.trx" --results-directory artifacts/mstest
+
+## dotnet command
+
+
+### StdOut
+```text
+Test run for E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\MSTest\bin\Release\net10.0\MSTest.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+  Passed Nested [2 ms]
+
+Test Run Successful.
+Total tests: 1
+     Passed: 1
+ Total time: 0.5576 Seconds
+Results File: E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\artifacts\mstest\nested.trx
+```
+
+### StdErr
+(empty)
+
+generic-source
+dotnet test MSTest/MSTest.csproj -c Release --no-build --no-restore --filter "FullyQualifiedName~AdapterNames.MSTest.GenericTests<T>.Generic" --logger "console;verbosity=normal" --logger "trx;LogFileName=generic-source.trx" --results-directory artifacts/mstest
+
+## dotnet command
+
+
+### StdOut
+```text
+Test run for E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\MSTest\bin\Release\net10.0\MSTest.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+No test matches the given testcase filter `FullyQualifiedName~AdapterNames.MSTest.GenericTests<T>.Generic` in E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\MSTest\bin\Release\net10.0\MSTest.dll
+
+Results File: E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\artifacts\mstest\generic-source.trx
+```
+
+### StdErr
+(empty)
+
+generic
+dotnet test MSTest/MSTest.csproj -c Release --no-build --no-restore --filter "FullyQualifiedName~AdapterNames.MSTest.ClosedGenericTests.Generic" --logger "console;verbosity=normal" --logger "trx;LogFileName=generic.trx" --results-directory artifacts/mstest
+
+## dotnet command
+
+
+### StdOut
+```text
+Test run for E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\MSTest\bin\Release\net10.0\MSTest.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+  Passed Generic [2 ms]
+
+Test Run Successful.
+Total tests: 1
+     Passed: 1
+ Total time: 0.4640 Seconds
+Results File: E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\artifacts\mstest\generic.trx
+```
+
+### StdErr
+(empty)
+
+inherited-owner
+dotnet test MSTest/MSTest.csproj -c Release --no-build --no-restore --filter "FullyQualifiedName~AdapterNames.MSTest.InheritedBase.Inherited" --logger "console;verbosity=normal" --logger "trx;LogFileName=inherited-owner.trx" --results-directory artifacts/mstest
+
+## dotnet command
+
+
+### StdOut
+```text
+Test run for E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\MSTest\bin\Release\net10.0\MSTest.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+No test matches the given testcase filter `FullyQualifiedName~AdapterNames.MSTest.InheritedBase.Inherited` in E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\MSTest\bin\Release\net10.0\MSTest.dll
+
+Results File: E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\artifacts\mstest\inherited-owner.trx
+```
+
+### StdErr
+(empty)
+
+inherited
+dotnet test MSTest/MSTest.csproj -c Release --no-build --no-restore --filter "FullyQualifiedName~AdapterNames.MSTest.InheritedTests.Inherited" --logger "console;verbosity=normal" --logger "trx;LogFileName=inherited.trx" --results-directory artifacts/mstest
+
+## dotnet command
+
+
+### StdOut
+```text
+Test run for E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\MSTest\bin\Release\net10.0\MSTest.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+  Passed Inherited [2 ms]
+
+Test Run Successful.
+Total tests: 1
+     Passed: 1
+ Total time: 0.4751 Seconds
+Results File: E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\artifacts\mstest\inherited.trx
+```
+
+### StdErr
+(empty)
+
+parameters
+dotnet test MSTest/MSTest.csproj -c Release --no-build --no-restore --filter "FullyQualifiedName~AdapterNames.MSTest.ParameterTests.Rows" --logger "console;verbosity=normal" --logger "trx;LogFileName=parameters.trx" --results-directory artifacts/mstest
+
+## dotnet command
+
+
+### StdOut
+```text
+Test run for E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\MSTest\bin\Release\net10.0\MSTest.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+  Passed Rows (1) [2 ms]
+  Passed Rows (2) [< 1 ms]
+
+Test Run Successful.
+Total tests: 2
+     Passed: 2
+ Total time: 0.4597 Seconds
+Results File: E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\artifacts\mstest\parameters.trx
+```
+
+### StdErr
+(empty)
+
+Unfiltered verification via Roslyn MCP run_dotnet_test (same project, Release, noBuild=true, noRestore=true):
+## All tests passed successfully!
+
+Total: **5** · Passed: **5** · Failed: **0**

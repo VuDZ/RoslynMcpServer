@@ -1,0 +1,52 @@
+Probe: nested-source; filter: FullyQualifiedName~AdapterNames.MSTest.Outer.Inner.Nested
+Original TRX: spikes/AdapterTestNames/artifacts/mstest/nested-source.trx
+Original TRX SHA256: EFDD30B354F7400B090F4B03F1F700FBBE797642C00CC384E248BFBF0CF1B5D1
+  <ResultSummary outcome="Completed">
+    <Counters total="0" executed="0" passed="0" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+
+Probe: nested; filter: FullyQualifiedName~AdapterNames.MSTest.Outer+Inner.Nested
+Original TRX: spikes/AdapterTestNames/artifacts/mstest/nested.trx
+Original TRX SHA256: 97B883D5A5F5E4D57D40208AB52388470189DC2F403CCEC3358F760C3BCEBDCF
+    <UnitTestResult executionId="9755628b-dad4-4b96-9449-561431879f87" testId="3714ed00-d06d-87f2-90b9-1f28f5109d5f" testName="Nested" computerName="VUDZ-PC" duration="00:00:00.0028749" startTime="2026-11-05T22:39:31.7145793+03:00" endTime="2026-11-05T22:39:31.7298415+03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="9755628b-dad4-4b96-9449-561431879f87" />
+      <TestMethod codeBase="E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\MSTest\bin\Release\net10.0\MSTest.dll" adapterTypeName="executor://mstestadapter/v2" className="AdapterNames.MSTest.Outer+Inner" name="Nested" />
+  <ResultSummary outcome="Completed">
+    <Counters total="1" executed="1" passed="1" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+
+Probe: generic-source; filter: FullyQualifiedName~AdapterNames.MSTest.GenericTests<T>.Generic
+Original TRX: spikes/AdapterTestNames/artifacts/mstest/generic-source.trx
+Original TRX SHA256: 6D834C6873FBFAD1ADC3954ECB218594BBB6774F4EFB43E49301EEA17A3E1BC3
+  <ResultSummary outcome="Completed">
+    <Counters total="0" executed="0" passed="0" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+
+Probe: generic; filter: FullyQualifiedName~AdapterNames.MSTest.ClosedGenericTests.Generic
+Original TRX: spikes/AdapterTestNames/artifacts/mstest/generic.trx
+Original TRX SHA256: EC584AA4CC9664D9244E2BA89D6C0FD44AAED2ECA67E5A965DC03FD14BF09A28
+    <UnitTestResult executionId="1a031d92-cf51-489e-ad1f-eb6dac758e45" testId="66a83f6c-7c97-5912-3d33-8c04c2556fe6" testName="Generic" computerName="VUDZ-PC" duration="00:00:00.0027456" startTime="2026-11-05T22:39:40.4465542+03:00" endTime="2026-11-05T22:39:40.4619316+03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="1a031d92-cf51-489e-ad1f-eb6dac758e45" />
+      <TestMethod codeBase="E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\MSTest\bin\Release\net10.0\MSTest.dll" adapterTypeName="executor://mstestadapter/v2" className="AdapterNames.MSTest.ClosedGenericTests" name="Generic" />
+  <ResultSummary outcome="Completed">
+    <Counters total="1" executed="1" passed="1" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+
+Probe: inherited-owner; filter: FullyQualifiedName~AdapterNames.MSTest.InheritedBase.Inherited
+Original TRX: spikes/AdapterTestNames/artifacts/mstest/inherited-owner.trx
+Original TRX SHA256: B6E7C34CF4C37ED52FDA41724CE286A83B21C16B3F8333637508D11E7097A117
+  <ResultSummary outcome="Completed">
+    <Counters total="0" executed="0" passed="0" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+
+Probe: inherited; filter: FullyQualifiedName~AdapterNames.MSTest.InheritedTests.Inherited
+Original TRX: spikes/AdapterTestNames/artifacts/mstest/inherited.trx
+Original TRX SHA256: A8213D418D5786C5BAE800768D4764A43C6F7CB01B8B3DDD1F6C726BE9ACCD99
+    <UnitTestResult executionId="a26cd8c7-65b8-4103-9895-cbc3fd0ffb7e" testId="912a53e3-2286-7eeb-c9a9-a988b5fd6d3f" testName="Inherited" computerName="VUDZ-PC" duration="00:00:00.0022832" startTime="2026-11-05T22:39:47.8391586+03:00" endTime="2026-11-05T22:39:47.8550682+03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="a26cd8c7-65b8-4103-9895-cbc3fd0ffb7e" />
+      <TestMethod codeBase="E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\MSTest\bin\Release\net10.0\MSTest.dll" adapterTypeName="executor://mstestadapter/v2" className="AdapterNames.MSTest.InheritedTests" name="Inherited" />
+  <ResultSummary outcome="Completed">
+    <Counters total="1" executed="1" passed="1" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+
+Probe: parameters; filter: FullyQualifiedName~AdapterNames.MSTest.ParameterTests.Rows
+Original TRX: spikes/AdapterTestNames/artifacts/mstest/parameters.trx
+Original TRX SHA256: 768F034E6CDF6D5C1797C8029E6F6ECE8008B94C0E10522F0F14ACF1F7AF608C
+    <UnitTestResult executionId="4b4bb643-7f90-471f-adb0-f31bd184ad13" testId="9d30170e-08dd-e504-34be-f931594c21f5" testName="Rows (1)" computerName="VUDZ-PC" duration="00:00:00.0026889" startTime="2026-11-05T22:37:14.4751327+03:00" endTime="2026-11-05T22:37:14.4929338+03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="4b4bb643-7f90-471f-adb0-f31bd184ad13" />
+    <UnitTestResult executionId="28995dd4-290b-4447-b7c9-ad09c6c22362" testId="f5d405d8-a8ec-6d59-d5d7-b58208b3424d" testName="Rows (2)" computerName="VUDZ-PC" duration="00:00:00.0003896" startTime="2026-11-05T22:37:14.4962979+03:00" endTime="2026-11-05T22:37:14.4975065+03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="28995dd4-290b-4447-b7c9-ad09c6c22362" />
+      <TestMethod codeBase="E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\MSTest\bin\Release\net10.0\MSTest.dll" adapterTypeName="executor://mstestadapter/v2" className="AdapterNames.MSTest.ParameterTests" name="Rows" />
+      <TestMethod codeBase="E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\MSTest\bin\Release\net10.0\MSTest.dll" adapterTypeName="executor://mstestadapter/v2" className="AdapterNames.MSTest.ParameterTests" name="Rows" />
+  <ResultSummary outcome="Completed">
+    <Counters total="2" executed="2" passed="2" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+

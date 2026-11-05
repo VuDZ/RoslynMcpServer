@@ -1,0 +1,17 @@
+## dotnet command
+
+
+### StdOut
+```text
+Test run for E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\MSTest\bin\Release\net10.0\MSTest.dll (.NETCoreApp,Version=v10.0)
+The following Tests are available:
+Logging Vstest Diagnostics in file: E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\artifacts\mstest.discovery.log
+    Generic
+    Inherited
+    Rows (1)
+    Rows (2)
+    Nested
+```
+
+### StdErr
+(empty)

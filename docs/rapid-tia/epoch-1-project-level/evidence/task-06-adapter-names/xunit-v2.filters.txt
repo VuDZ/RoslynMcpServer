@@ -1,0 +1,181 @@
+Captured 2026-11-05 through Roslyn MCP execute_dotnet_command.
+Working directory: E:/Devel/RoslynMcpServer-rapid-tia/spikes/AdapterTestNames
+Configuration: Release; --no-build --no-restore on every probe.
+Negative zero-match probes are expected filter failures, not test passes.
+
+nested-source
+dotnet test XunitV2/XunitV2.csproj -c Release --no-build --no-restore --filter "FullyQualifiedName~AdapterNames.Xunit.Outer.Inner.Nested" --logger "console;verbosity=normal" --logger "trx;LogFileName=nested-source.trx" --results-directory artifacts/xunit-v2
+
+## dotnet command
+
+
+### StdOut
+```text
+Test run for E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\XunitV2\bin\Release\net10.0\XunitV2.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.0+00ab0a9ec4 (64-bit .NET 10.0.13)
+[xUnit.net 00:00:00.06]   Discovering: XunitV2
+[xUnit.net 00:00:00.09]   Discovered:  XunitV2
+No test matches the given testcase filter `FullyQualifiedName~AdapterNames.Xunit.Outer.Inner.Nested` in E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\XunitV2\bin\Release\net10.0\XunitV2.dll
+
+Results File: E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\artifacts\xunit-v2\nested-source.trx
+```
+
+### StdErr
+(empty)
+
+nested
+dotnet test XunitV2/XunitV2.csproj -c Release --no-build --no-restore --filter "FullyQualifiedName~AdapterNames.Xunit.Outer+Inner.Nested" --logger "console;verbosity=normal" --logger "trx;LogFileName=nested.trx" --results-directory artifacts/xunit-v2
+
+## dotnet command
+
+
+### StdOut
+```text
+Test run for E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\XunitV2\bin\Release\net10.0\XunitV2.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.0+00ab0a9ec4 (64-bit .NET 10.0.13)
+[xUnit.net 00:00:00.06]   Discovering: XunitV2
+[xUnit.net 00:00:00.09]   Discovered:  XunitV2
+[xUnit.net 00:00:00.11]   Starting:    XunitV2
+[xUnit.net 00:00:00.14]   Finished:    XunitV2
+  Passed AdapterNames.Xunit.Outer+Inner.Nested [2 ms]
+
+Test Run Successful.
+Total tests: 1
+     Passed: 1
+ Total time: 0.5289 Seconds
+Results File: E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\artifacts\xunit-v2\nested.trx
+```
+
+### StdErr
+(empty)
+
+generic-source
+dotnet test XunitV2/XunitV2.csproj -c Release --no-build --no-restore --filter "FullyQualifiedName~AdapterNames.Xunit.GenericTests<T>.Generic" --logger "console;verbosity=normal" --logger "trx;LogFileName=generic-source.trx" --results-directory artifacts/xunit-v2
+
+## dotnet command
+
+
+### StdOut
+```text
+Test run for E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\XunitV2\bin\Release\net10.0\XunitV2.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.0+00ab0a9ec4 (64-bit .NET 10.0.13)
+[xUnit.net 00:00:00.06]   Discovering: XunitV2
+[xUnit.net 00:00:00.09]   Discovered:  XunitV2
+No test matches the given testcase filter `FullyQualifiedName~AdapterNames.Xunit.GenericTests<T>.Generic` in E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\XunitV2\bin\Release\net10.0\XunitV2.dll
+
+Results File: E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\artifacts\xunit-v2\generic-source.trx
+```
+
+### StdErr
+(empty)
+
+generic
+dotnet test XunitV2/XunitV2.csproj -c Release --no-build --no-restore --filter "FullyQualifiedName~AdapterNames.Xunit.ClosedGenericTests.Generic" --logger "console;verbosity=normal" --logger "trx;LogFileName=generic.trx" --results-directory artifacts/xunit-v2
+
+## dotnet command
+
+
+### StdOut
+```text
+Test run for E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\XunitV2\bin\Release\net10.0\XunitV2.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.0+00ab0a9ec4 (64-bit .NET 10.0.13)
+[xUnit.net 00:00:00.05]   Discovering: XunitV2
+[xUnit.net 00:00:00.08]   Discovered:  XunitV2
+[xUnit.net 00:00:00.10]   Starting:    XunitV2
+[xUnit.net 00:00:00.14]   Finished:    XunitV2
+  Passed AdapterNames.Xunit.ClosedGenericTests.Generic [4 ms]
+
+Test Run Successful.
+Total tests: 1
+     Passed: 1
+ Total time: 0.5214 Seconds
+Results File: E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\artifacts\xunit-v2\generic.trx
+```
+
+### StdErr
+(empty)
+
+inherited-owner
+dotnet test XunitV2/XunitV2.csproj -c Release --no-build --no-restore --filter "FullyQualifiedName~AdapterNames.Xunit.InheritedBase.Inherited" --logger "console;verbosity=normal" --logger "trx;LogFileName=inherited-owner.trx" --results-directory artifacts/xunit-v2
+
+## dotnet command
+
+
+### StdOut
+```text
+Test run for E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\XunitV2\bin\Release\net10.0\XunitV2.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.0+00ab0a9ec4 (64-bit .NET 10.0.13)
+[xUnit.net 00:00:00.06]   Discovering: XunitV2
+[xUnit.net 00:00:00.09]   Discovered:  XunitV2
+No test matches the given testcase filter `FullyQualifiedName~AdapterNames.Xunit.InheritedBase.Inherited` in E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\XunitV2\bin\Release\net10.0\XunitV2.dll
+
+Results File: E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\artifacts\xunit-v2\inherited-owner.trx
+```
+
+### StdErr
+(empty)
+
+inherited
+dotnet test XunitV2/XunitV2.csproj -c Release --no-build --no-restore --filter "FullyQualifiedName~AdapterNames.Xunit.InheritedTests.Inherited" --logger "console;verbosity=normal" --logger "trx;LogFileName=inherited.trx" --results-directory artifacts/xunit-v2
+
+## dotnet command
+
+
+### StdOut
+```text
+Test run for E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\XunitV2\bin\Release\net10.0\XunitV2.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.0+00ab0a9ec4 (64-bit .NET 10.0.13)
+[xUnit.net 00:00:00.06]   Discovering: XunitV2
+[xUnit.net 00:00:00.09]   Discovered:  XunitV2
+[xUnit.net 00:00:00.11]   Starting:    XunitV2
+[xUnit.net 00:00:00.15]   Finished:    XunitV2
+  Passed AdapterNames.Xunit.InheritedTests.Inherited [4 ms]
+
+Test Run Successful.
+Total tests: 1
+     Passed: 1
+ Total time: 0.5630 Seconds
+Results File: E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\artifacts\xunit-v2\inherited.trx
+```
+
+### StdErr
+(empty)
+
+parameters
+dotnet test XunitV2/XunitV2.csproj -c Release --no-build --no-restore --filter "FullyQualifiedName~AdapterNames.Xunit.ParameterTests.Rows" --logger "console;verbosity=normal" --logger "trx;LogFileName=parameters.trx" --results-directory artifacts/xunit-v2
+
+## dotnet command
+
+
+### StdOut
+```text
+Test run for E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\XunitV2\bin\Release\net10.0\XunitV2.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.0+00ab0a9ec4 (64-bit .NET 10.0.13)
+[xUnit.net 00:00:00.07]   Discovering: XunitV2
+[xUnit.net 00:00:00.10]   Discovered:  XunitV2
+[xUnit.net 00:00:00.13]   Starting:    XunitV2
+[xUnit.net 00:00:00.16]   Finished:    XunitV2
+  Passed AdapterNames.Xunit.ParameterTests.Rows(value: 1) [3 ms]
+  Passed AdapterNames.Xunit.ParameterTests.Rows(value: 2) [< 1 ms]
+
+Test Run Successful.
+Total tests: 2
+     Passed: 2
+ Total time: 0.5590 Seconds
+Results File: E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\artifacts\xunit-v2\parameters.trx
+```
+
+### StdErr
+(empty)
+
+Unfiltered verification via Roslyn MCP run_dotnet_test (same project, Release, noBuild=true, noRestore=true):
+## All tests passed successfully!
+
+Total: **5** · Passed: **5** · Failed: **0**

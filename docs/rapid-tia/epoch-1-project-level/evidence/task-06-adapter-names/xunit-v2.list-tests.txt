@@ -1,0 +1,17 @@
+## dotnet command
+
+
+### StdOut
+```text
+Test run for E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\XunitV2\bin\Release\net10.0\XunitV2.dll (.NETCoreApp,Version=v10.0)
+The following Tests are available:
+Logging Vstest Diagnostics in file: E:\Devel\RoslynMcpServer-rapid-tia\spikes\AdapterTestNames\artifacts\xunit-v2.discovery.log
+    AdapterNames.Xunit.ClosedGenericTests.Generic
+    AdapterNames.Xunit.InheritedTests.Inherited
+    AdapterNames.Xunit.ParameterTests.Rows(value: 1)
+    AdapterNames.Xunit.ParameterTests.Rows(value: 2)
+    AdapterNames.Xunit.Outer+Inner.Nested
+```
+
+### StdErr
+(empty)
