@@ -8,10 +8,10 @@
 - Статус: **accepted, 2026-11-05**; scope — внутренний mapper уровня 0 «путь → проекты → тестовые проекты», транзитивное расширение, stale/reload и фильтрация вывода сборки; [validation](evidence/task-04-final-validation.md).
 - Depends on: —.
 - Модель, реализовавшая задачу: Codex (точный runtime model ID средой не предоставлен).
-- Модели, проводившие ревью: Codex, независимая сессия (точный runtime model ID средой не предоставлен).
+- Модели, проводившие ревью: Codex, независимая сессия (точный runtime model ID средой не предоставлен); Claude Opus 5.5 (`claude-opus-5-5`), второй рецензент раунда 1.
 - Количество раундов ревью: **1**, [ACCEPT по R-18](evidence/task-04-review-round-1.md).
-- Количество исправлений после ревью: **0**; MUST-FIX нет, ограничения L01–L05 записаны в ревью.
-- Отчёт о реализации, ревью и validation: [отчёт](task-04-implementation-report.md), [ревью](evidence/task-04-review-round-1.md), [финальная validation](evidence/task-04-final-validation.md).
+- Количество исправлений после ревью: **0**; MUST-FIX нет, ограничения L01–L05 записаны в ревью; T04-C1 и T04-C2 ([второй рецензент](evidence/task-04-review-round-1-claude.md)) переданы в task-05 и task-08.
+- Отчёт о реализации, ревью и validation: [отчёт](task-04-implementation-report.md), [ревью](evidence/task-04-review-round-1.md), [второй рецензент](evidence/task-04-review-round-1-claude.md), [финальная validation](evidence/task-04-final-validation.md).
 
 ## Цель
 

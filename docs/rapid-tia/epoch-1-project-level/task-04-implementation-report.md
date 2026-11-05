@@ -47,3 +47,4 @@
 - Ревью: **1 раунд, 0 исправлений**, [ACCEPT](evidence/task-04-review-round-1.md); MUST-FIX нет. Ограничения T04-R1-L01–L05 сохранены без нового раунда по R-18.
 - [Финальная validation координатора](evidence/task-04-final-validation.md): Windows Release build PASS; focused **54/54**, SourceStructure **123/123**, main CI suite **1837/1837**. Изменений кода и тестов после этих прогонов не было.
 - Версия сохранена; Linux/WSL, performance benchmark и AnalyzerLifecycle не запускались, основания и границы указаны в validation.
+- [Второй рецензент раунда 1 — ACCEPT](evidence/task-04-review-round-1-claude.md): Linux main 1829/1829, реальный поток без потери тестов. Новый файл в каталоге проекта даёт все тесты (T04-C1), а совет reload повторяется после reload (T04-C2): оба условия по решению владельца переданы в task-05 и task-08. Полная пересборка без правок даёт все тесты, это записанное ограничение (T04-C3).
