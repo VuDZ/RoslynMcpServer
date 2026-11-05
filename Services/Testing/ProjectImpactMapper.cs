@@ -12,7 +12,8 @@ internal static class ProjectImpactMapper
 {
     /// <summary>
     /// Uses the map and stale state of the same loaded solution after disk synchronization.
-    /// Reload must supply the refreshed solution/map and the cleared stale flag.
+    /// Reload must supply the refreshed solution/map and both current watcher stale flags.
+    /// Membership changes require reload; only graph-file changes select every test project.
     /// </summary>
     internal static async Task<ProjectImpactResult> MapAsync(
         Solution solution,
@@ -20,6 +21,7 @@ internal static class ProjectImpactMapper
         IEnumerable<string> changedPaths,
         string? loadedWorkspacePath,
         bool projectGraphStale,
+        bool projectGraphStaleFromGraphFile,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(solution);
@@ -28,8 +30,9 @@ internal static class ProjectImpactMapper
         cancellationToken.ThrowIfCancellationRequested();
 
         var projects = new HashSet<ProjectId>();
+        var paths = new Dictionary<string, ProjectPathImpact>(InputPathCanon.Comparer);
         var notCovered = new HashSet<string>(InputPathCanon.Comparer);
-        var requiresReload = projectGraphStale;
+        var requiresReload = projectGraphStale || projectGraphStaleFromGraphFile;
         var workspacePath = InputPathCanon.TryCanonicalize(loadedWorkspacePath ?? solution.FilePath);
         var workspaceDirectory = workspacePath is null ? null : Path.GetDirectoryName(workspacePath);
         foreach (var rawPath in changedPaths)
@@ -49,18 +52,18 @@ internal static class ProjectImpactMapper
             {
                 continue;
             }
-            var owners = ProjectsForPath(solution, inputMap, entry, path, out var newSource);
+            var owners = ProjectsForPath(solution, inputMap, entry, path);
+            paths[path] = new ProjectPathImpact(path, owners);
             projects.UnionWith(owners);
-            requiresReload |= newSource;
             if (owners.Count == 0
-                && !(projectGraphStale && WorkspaceDiskPathFilter.IsProjectGraphFile(path)))
+                && !(projectGraphStaleFromGraphFile && WorkspaceDiskPathFilter.IsProjectGraphFile(path)))
             {
                 notCovered.Add(path);
             }
         }
 
         var testProjects = await FindTestProjectsAsync(solution, cancellationToken).ConfigureAwait(false);
-        var expanded = projectGraphStale
+        var expanded = projectGraphStaleFromGraphFile
             ? solution.ProjectIds.Where(testProjects.Contains).ToArray()
             : ExpandProjects(solution, projects, testProjects);
         return new ProjectImpactResult(
@@ -68,7 +71,11 @@ internal static class ProjectImpactMapper
             expanded,
             notCovered.Order(InputPathCanon.Comparer).ToArray(),
             requiresReload,
-            projectGraphStale);
+            requiresReload)
+        {
+            Paths = paths.Values.OrderBy(static impact => impact.Path, InputPathCanon.Comparer).ToArray(),
+            ProjectGraphStaleFromGraphFile = projectGraphStaleFromGraphFile,
+        };
     }
 
     /// <summary>Tests in each project itself, plus every transitively dependent test project.</summary>
@@ -99,10 +106,8 @@ internal static class ProjectImpactMapper
         Solution solution,
         WorkspaceInputMap inputMap,
         InputPathEntry? entry,
-        string path,
-        out bool newSource)
+        string path)
     {
-        newSource = false;
         var documents = solution.GetDocumentIdsWithFilePath(path);
         if (documents.Length > 0)
         {
@@ -118,7 +123,9 @@ internal static class ProjectImpactMapper
             return [];
         }
 
-        newSource = true;
+        // An absent source may be deleted or excluded by Compile Remove after reload, not a new compile item.
+        // Watcher state supplies reload advice; nearest-project ownership still covers deletions.
+        // See docs/rapid-tia/epoch-1-project-level/task-05-response-composition-med.md (T04-C2).
         var candidates = inputMap.Projects
             .Where(project => project.FilePath is not null)
             .Select(project => (project.Id, Directory: Path.GetDirectoryName(project.FilePath!)!))

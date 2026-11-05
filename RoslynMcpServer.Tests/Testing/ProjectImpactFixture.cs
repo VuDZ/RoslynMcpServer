@@ -55,7 +55,10 @@ internal sealed class ProjectImpactFixture : IDisposable
     internal Task<ProjectImpactResult> MapAsync(params string[] paths) => MapWithStateAsync(false, paths);
 
     internal Task<ProjectImpactResult> MapWithStateAsync(bool stale, params string[] paths) =>
-        ProjectImpactMapper.MapAsync(Solution, BuildMap(), paths, SolutionPath, stale, CancellationToken.None);
+        MapWithStateAsync(stale, stale, paths);
+
+    internal Task<ProjectImpactResult> MapWithStateAsync(bool stale, bool graphFileStale, params string[] paths) =>
+        ProjectImpactMapper.MapAsync(Solution, BuildMap(), paths, SolutionPath, stale, graphFileStale, CancellationToken.None);
 
     internal WorkspaceInputMap BuildMap() =>
         WorkspaceInputMapBuilder.Build(Solution, Guid.NewGuid(), SolutionPath, loadGraphComplete: true);
@@ -72,6 +75,20 @@ internal sealed class ProjectImpactFixture : IDisposable
     {
         var document = Solution.GetProject(Specs)!.Documents.Single();
         Solution = Solution.WithDocumentText(document.Id, SourceText.From(source));
+    }
+
+    internal void ReplaceSource(ProjectId project, string path, string source)
+    {
+        var document = Solution.GetDocumentIdsWithFilePath(path).FirstOrDefault(id => id.ProjectId == project);
+        if (document is null)
+        {
+            AddSource(project, path, source);
+        }
+        else
+        {
+            File.WriteAllText(path, source);
+            Solution = Solution.WithDocumentText(document, SourceText.From(source));
+        }
     }
 
     internal void WriteBuildProjects()

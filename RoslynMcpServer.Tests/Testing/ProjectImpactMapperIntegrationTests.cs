@@ -36,7 +36,7 @@ public sealed class ProjectImpactMapperIntegrationTests
                 Assert.Null(map.Find(path));
             });
             var output = await ProjectImpactMapper.MapAsync(solution, map, outputPaths,
-                fixture.SolutionPath, manager.ProjectGraphStale, CancellationToken.None);
+                fixture.SolutionPath, manager.ProjectGraphStale, manager.ProjectGraphStaleFromGraphFile, CancellationToken.None);
             Assert.Empty(output.ProjectIds);
             Assert.Empty(output.TestProjectIds);
             Assert.Empty(output.NotCoveredPaths);
@@ -45,7 +45,7 @@ public sealed class ProjectImpactMapperIntegrationTests
 
             Assert.NotNull(map.Find(fixture.ObjInputPath));
             var input = await ProjectImpactMapper.MapAsync(solution, map, [fixture.ObjInputPath],
-                fixture.SolutionPath, manager.ProjectGraphStale, CancellationToken.None);
+                fixture.SolutionPath, manager.ProjectGraphStale, manager.ProjectGraphStaleFromGraphFile, CancellationToken.None);
             Assert.Equal(["Library"], ProjectNames(solution, input.ProjectIds));
             Assert.Equal(["Specs"], ProjectNames(solution, input.TestProjectIds));
             Assert.Empty(input.NotCoveredPaths);
@@ -80,7 +80,7 @@ public sealed class ProjectImpactMapperIntegrationTests
             Assert.DoesNotContain(solution.GetProjectDependencyGraph()
                 .GetProjectsThatTransitivelyDependOnThisProject(isolated.Id), id => solution.GetProject(id)!.Name == "Specs");
             var before = await ProjectImpactMapper.MapAsync(solution, session.InputMap!, [specsPath],
-                fixture.SolutionPath, manager.ProjectGraphStale, CancellationToken.None);
+                fixture.SolutionPath, manager.ProjectGraphStale, manager.ProjectGraphStaleFromGraphFile, CancellationToken.None);
             Assert.Equal(["Isolated", "Specs"], ProjectNames(solution, before.TestProjectIds));
             Assert.True(before.ProjectGraphStale);
             Assert.True(before.RequiresReload);
@@ -91,13 +91,13 @@ public sealed class ProjectImpactMapperIntegrationTests
             Assert.False(manager.ProjectGraphStale);
             var map = manager.DiskWatcherSession!.InputMap!;
             var after = await ProjectImpactMapper.MapAsync(reloaded, map, [specsPath],
-                fixture.SolutionPath, manager.ProjectGraphStale, CancellationToken.None);
+                fixture.SolutionPath, manager.ProjectGraphStale, manager.ProjectGraphStaleFromGraphFile, CancellationToken.None);
             Assert.Equal(["Specs"], ProjectNames(reloaded, after.TestProjectIds));
             Assert.False(after.ProjectGraphStale);
             Assert.False(after.RequiresReload);
             var isolatedSource = Path.Combine(fixture.Root, "Isolated", "Cases.cs");
             var dependency = await ProjectImpactMapper.MapAsync(reloaded, map, [isolatedSource],
-                fixture.SolutionPath, manager.ProjectGraphStale, CancellationToken.None);
+                fixture.SolutionPath, manager.ProjectGraphStale, manager.ProjectGraphStaleFromGraphFile, CancellationToken.None);
             Assert.Equal(["Isolated", "Specs"], ProjectNames(reloaded, dependency.TestProjectIds));
         }
         finally

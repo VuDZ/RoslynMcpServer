@@ -8,4 +8,8 @@ internal sealed record ProjectImpactResult(
     IReadOnlyList<ProjectId> TestProjectIds,
     IReadOnlyList<string> NotCoveredPaths,
     bool RequiresReload,
-    bool ProjectGraphStale);
+    bool ProjectGraphStale)
+{
+    internal IReadOnlyList<ProjectPathImpact> Paths { get; init; } = [];
+    internal bool ProjectGraphStaleFromGraphFile { get; init; }
+}

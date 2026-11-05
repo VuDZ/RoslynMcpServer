@@ -53,11 +53,11 @@ public sealed class ProjectImpactMapperTests
     {
         using var fixture = new ProjectImpactFixture();
         var path = Path.Combine(fixture.AppDirectory, "sub", "Fresh.cs");
-        var result = await fixture.MapAsync(path);
+        var result = await fixture.MapWithStateAsync(true, false, path);
         AssertIds([fixture.App], result.ProjectIds);
         AssertIds([fixture.Specs], result.TestProjectIds);
         Assert.True(result.RequiresReload);
-        Assert.False(result.ProjectGraphStale);
+        Assert.True(result.ProjectGraphStale);
         Assert.Empty(result.NotCoveredPaths);
     }
 
@@ -66,7 +66,7 @@ public sealed class ProjectImpactMapperTests
     {
         using var fixture = new ProjectImpactFixture();
         var path = Path.Combine(fixture.Root, "outside", "Fresh.cs");
-        var result = await fixture.MapAsync(path);
+        var result = await fixture.MapWithStateAsync(true, false, path);
         Assert.Empty(result.ProjectIds);
         Assert.Empty(result.TestProjectIds);
         Assert.Equal([path], result.NotCoveredPaths);
@@ -195,7 +195,7 @@ public sealed class ProjectImpactMapperTests
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => ProjectImpactMapper.MapAsync(
-            fixture.Solution, fixture.BuildMap(), [fixture.DataPath], fixture.SolutionPath, false, cancellation.Token));
+            fixture.Solution, fixture.BuildMap(), [fixture.DataPath], fixture.SolutionPath, false, false, cancellation.Token));
     }
 
     private static void AssertIds(IEnumerable<ProjectId> expected, IReadOnlyList<ProjectId> actual)
