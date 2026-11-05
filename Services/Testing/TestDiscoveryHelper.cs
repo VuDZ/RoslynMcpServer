@@ -188,7 +188,7 @@ public static class TestDiscoveryHelper
         return await Formatter.FormatAsync(changed, cancellationToken: cancellationToken).ConfigureAwait(false);
     }
 
-    private static bool HasTestAttribute(MethodDeclarationSyntax method, SemanticModel model)
+    internal static bool HasTestAttribute(MethodDeclarationSyntax method, SemanticModel model)
     {
         foreach (var attrList in method.AttributeLists)
         {
