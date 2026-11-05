@@ -3,7 +3,7 @@
 - Дата: 2026-11-03.
 - Исполнитель: прежний исполнитель эпохи Codex; точный runtime model ID средой не предоставлен.
 - Scope: сессионный baseline, его публикация/чтение в фоне, поколения и журнал путей; интеграция с реальными MCP writes, disk watcher, reload/reset. Без графа, project mapping и публичного инструмента.
-- Состояние: **accepted, 2026-11-05** — R21-001 закрыт, R14-001 сохранён; [раунд22 — ACCEPT](evidence/task-03-review-round-22.md), [финальная validation](evidence/task-03-final-validation-round-22.md). Scope: сессионный baseline, поколения, безопасная фиксация, журнал входов исчезнувшего каталога и lifetime-защита C# baseline/membership с derived ancestors; пустой Deleted без обхода карты. Ограничения раунда21 сохранены. Без графа, реализации task-04 и публичного инструмента; исторические приёмки и возвраты сохранены.
+- Состояние: **accepted, 2026-11-05** — R21-001 закрыт, R14-001 сохранён; [раунд22 — ACCEPT](evidence/task-03-review-round-22.md), [финальная validation](evidence/task-03-final-validation-round-22.md), [приёмка второго рецензента](evidence/task-03-review-round-22-claude.md). Scope: сессионный baseline, поколения, безопасная фиксация, журнал входов исчезнувшего каталога и lifetime-защита C# baseline/membership с derived ancestors; пустой Deleted без обхода карты. Ограничения раунда21 сохранены. Без графа, реализации task-04 и публичного инструмента; исторические приёмки и возвраты сохранены.
 
 ## Модель и интеграция
 
@@ -524,11 +524,12 @@ Related firstGREEN173/173 включал все123SourceStructure. Actual Window
 
 ## Повторная приёмка после раунда 21
 
-- Дата: 2026-11-05. [Независимый раунд22 — ACCEPT](evidence/task-03-review-round-22.md); R21-001 закрыт, R14-001 сохранён. Task-03: **22 раунда, 12 уникальных исправлений**; Codex16 независимых сессий, Claude Opus5.5 —6. Точный runtime model ID Codex недоступен.
+- Дата: 2026-11-05. [Независимый раунд22 — ACCEPT](evidence/task-03-review-round-22.md); R21-001 закрыт, R14-001 сохранён. Task-03: **22 раунда, 12 уникальных исправлений**; Codex16 независимых сессий, Claude Opus5.5 —7. Точный runtime model ID Codex недоступен.
 - Scope исправления: WorkspaceInputMap строит immutable strict-ancestor и external-input-parent sets один раз; SolutionManager перечисляет потомков только известного ancestor. Фильтр baseline journal остаётся вне gate; другие события и text sync не меняются. Новый BaselineDeletedPathCostTests содержит13 runtime/native cases.
 - RED: runtime counting7/0/7 на Windows и Linux до production; native Windows node_modules50/200 даёт прямой InternalBufferOverflowException. WSL native before3/3 прошёл без gap, это не называется локальным Linux RED. Сравнения с1b617c4 выполнены на обеих ОС.
 - [Финальная validation координатора](evidence/task-03-final-validation-round-22.md): Release solution build на обеих ОС, Windows focused611/611 (SourceStructure123, exact inventory16 неизменен), main1800/1800; три Linux main1792/1792 каждый; opted-in AnalyzerLifecycle13/13 на обеих ОС. Финальный трёхфайловый SHA-256 manifest сверён, source freeze сохранён.
 - Windows obj2000/5000 имеет overflow и на1b617c4, и после fix: это измерение прежнего ограничения, а не no-gap контракт. Node_modules50/200 сохраняют строгие no-gap/no-journal проверки. Отдельно записаны время Directory.Delete и callback tail; измерения единичные, статистическая частота и универсальная скорость не заявляются.
 - Ограничения из раунда21 и передачи task-08 остаются: внешний non-C# каталог с собственным watcher может исчезнуть молча, после удаления/восстановления требуется reload устаревшего графа, inotify128 может дать startup gap средним solution. Причины прежних timestamp/KVM R5-002 не установлены. Отдельный GC probe не запускался. Версия1.5.18 сохранена, task-04+ не начинались, эпоха целиком и публичная активация не принимаются.
 
+- [Второй рецензент раунда 22 — ACCEPT](evidence/task-03-review-round-22-claude.md): три Linux main 1792/1792 на чистом `063f1c7`, R21-001 закрыт на Linux, прежние проверки сохранены. Записанные границы, задачу не возвращают ([R-18](../README.md#решения-владельца-2026-10-29)): цена конструктора карты и цена события от числа проектов, массовое удаление из `obj`, несовпадение хэша тестового файла в манифесте.
 - Доказательства R21-001: [RED](evidence/task-03-review-round-21-red.md), [GREEN](evidence/task-03-review-round-21-green.md), [Windows/Linux before/after и1b617c4](evidence/task-03-review-round-21-measurements.md), [компактные исходные rows/counters](evidence/task-03-r21-measurements.json).
