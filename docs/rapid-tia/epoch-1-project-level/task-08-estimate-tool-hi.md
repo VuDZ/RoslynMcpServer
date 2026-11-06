@@ -5,13 +5,13 @@
 - Примерная сложность: 4/5; класс `hi`.
 - Риск ошибки: высокий — публичная поверхность в `core`: формулировки ответа и описания определяют, будет ли агент принимать подсказку за гарантию.
 - Необходимые способности: `согласованность_компонентов`, `архитектурное_мышление`, `проектирование_проверок`, `get_mcp_server_info`.
-- Статус: **accepted, 2026-11-06**; scope — estimate-only инструмент `core/lite`, baseline/current интеграция, runtime inventory T07-C1 и формат ответа. [Validation](evidence/task-08-final-validation.md), [живые проверки](evidence/task-08-live-validation.md); `run` и граф вне scope.
+- Статус: **reopened, 2026-11-06** — решение владельца: третий, последний по R-18 раунд по [R2-001](evidence/task-08-review-round-2-claude.md#r2-001--после-настоящего-reload-ответ-навсегда-все-тестовые-проекты-целиком) (после настоящего reload ответ навсегда «все тестовые проекты целиком»). Прежняя приёмка 2026-11-06 (estimate-only инструмент `core/lite`, baseline/current интеграция, runtime inventory T07-C1 и формат ответа; [validation](evidence/task-08-final-validation.md), [живые проверки](evidence/task-08-live-validation.md)) приостановлена до закрытия R2-001; `run` и граф вне scope.
 - Depends on: [task-03](task-03-baseline-lifecycle-hi.md), [task-05](task-05-response-composition-med.md), [task-07](task-07-run-plan-med.md).
 - Модель, реализовавшая задачу: Codex (точный runtime model ID средой не предоставлен), `/root/task08_implementer`.
-- Модели, проводившие ревью: Codex (точные runtime model ID средой не предоставлены), независимые `/root/task08_review_round1` и `/root/task08_review_round2`.
-- Количество раундов ревью: **2**; [раунд 2 — ACCEPT](evidence/task-08-review-round-2.md).
-- Количество исправлений после ревью: **3**, R1-001/R1-002/R1-003 закрыты; два pre-review audit guards учитываются отдельно.
-- Отчёт о реализации, ревью и validation: [отчёт](task-08-implementation-report.md), [RED](evidence/task-08-red.md), [review RED](evidence/task-08-review-round-1-red.md), [ACCEPT](evidence/task-08-review-round-2.md), [validation](evidence/task-08-final-validation.md).
+- Модели, проводившие ревью: Codex (точные runtime model ID средой не предоставлены), независимые `/root/task08_review_round1` и `/root/task08_review_round2`; Claude Opus 5.5, второй рецензент раунда 2.
+- Количество раундов ревью: **2**; [раунд 2 — ACCEPT Codex](evidence/task-08-review-round-2.md), [второй рецензент — MUST-FIX R2-001](evidence/task-08-review-round-2-claude.md); раунд 3 — последний.
+- Количество исправлений после ревью: **3**, R1-001/R1-002/R1-003 закрыты, R2-001 открыто; два pre-review audit guards учитываются отдельно.
+- Отчёт о реализации, ревью и validation: [отчёт](task-08-implementation-report.md), [RED](evidence/task-08-red.md), [review RED](evidence/task-08-review-round-1-red.md), [ACCEPT](evidence/task-08-review-round-2.md), [второй рецензент раунда 2](evidence/task-08-review-round-2-claude.md), [validation](evidence/task-08-final-validation.md).
 
 ## Цель
 
@@ -91,6 +91,21 @@ R21-001 закрыт: пустой Deleted не обходит карту; ма�
   (измерено вторым рецензентом), их отдельно помечать не нужно.
 
 Лимит и критерий возврата — [R-18](../README.md#решения-владельца-2026-10-29).
+
+## Раунд 3: R2-001 (решение владельца)
+
+[Второй рецензент раунда 2](evidence/task-08-review-round-2-claude.md#r2-001--после-настоящего-reload-ответ-навсегда-все-тестовые-проекты-целиком):
+настоящий reload того же solution поднимает `RequiresFullScan`, и инструмент до загрузки другого solution отвечает
+«все тестовые проекты целиком», в том числе после отката всех правок. Исправить; способ выбирает исполнитель.
+
+- Обычный reload того же solution не расширяет ответ до всех тестовых проектов; возможная незамеченная правка не-C#
+  входа за время reload — строка в «Not covered». C#-документы сравниваются заново, как сейчас.
+- Расширение всех тестовых проектов остаётся только для настоящих разрывов наблюдения (переполнение или ошибка watcher,
+  сбой запуска, настоящее переименование каталога, ошибка снимка); reload его не сбрасывает.
+- Регрессии на настоящем watcher и настоящем, не кешированном reload: после reload по совету инструмента (новый `.cs`,
+  правка `.csproj`) независимый тестовый проект не попадает в план, правка теста снова даёт фильтр, после отката план пуст.
+
+Это последний раунд по [R-18](../README.md#решения-владельца-2026-10-29); дальше решает владелец.
 
 ## Порядок работы — TDD (R-16)
 

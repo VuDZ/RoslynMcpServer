@@ -2,7 +2,7 @@
 
 - Дата: **2026-11-06** (Europe/Moscow); база `14fe3ee`, ветка `rapid-tia`.
 - Исполнитель: Codex, сессия `/root/task08_implementer`; точный runtime model ID неизвестен, средой не предоставлен.
-- Статус: **accepted, 2026-11-06**; [раунд 2 — ACCEPT](evidence/task-08-review-round-2.md), [финальная validation координатора](evidence/task-08-final-validation.md), [живые проверки](evidence/task-08-live-validation.md).
+- Статус: **reopened, 2026-11-06** — [R2-001 второго рецензента](evidence/task-08-review-round-2-claude.md), раунд 3 по решению владельца; прежняя приёмка: [раунд 2 — ACCEPT](evidence/task-08-review-round-2.md), [финальная validation координатора](evidence/task-08-final-validation.md), [живые проверки](evidence/task-08-live-validation.md).
 - Scope: `estimate_affected_tests` в `core`/`lite`, baseline/current интеграция, проектная оценка, runtime-инвентарь T07-C1, формат ответа и подробности, публичная документация и каталог. Флаг `run`, граф и task-09+ вне scope.
 - Версия: после зелёной Release-сборки замороженного C# координатор разрешил minor bump **1.5.18 → 1.6.0**. `Version=1.6.0`, `AssemblyVersion=1.6.0.0`, `FileVersion=1.6.0.0` изменены вместе; PackageVersion не менялась. Последующая финальная validation выполняется на этой версии.
 - Первоначальный RED: [evidence координатора](evidence/task-08-red.md). Поздние два RED → GREEN: [отдельный отчёт](evidence/task-08-additional-red-green.md).
