@@ -225,7 +225,7 @@ Portable OpenCode examples: [`opencode.json.sample`](opencode.json.sample) (`ros
 
 MCP `tools/list` stays JSON + JSON Schema. Markdown is for JIT help and diagnostics.
 
-**Client compatibility:** do not assume the host refreshes tools after `tools/list_changed`. If a newly enabled tool is missing from the client's catalog, restart with `ROSLYN_MCP_TOOL_GROUPS=<group>` (and `ROSLYN_MCP_TOOL_PROFILE=lite`). A `2025-11-25` initialize session receives `tools/list_changed` when the set grows. A `2026-07-28` session receives it only after `subscriptions/listen` with `toolsListChanged`; the server accepts that revision through the MCP C# SDK. Measured minified `tools/list` (UTF-8): full **55 / 46,574**; lite **16 / 20,178**.
+**Client compatibility:** do not assume the host refreshes tools after `tools/list_changed`. If a newly enabled tool is missing from the client's catalog, restart with `ROSLYN_MCP_TOOL_GROUPS=<group>` (and `ROSLYN_MCP_TOOL_PROFILE=lite`). A `2025-11-25` initialize session receives `tools/list_changed` when the set grows. A `2026-07-28` session receives it only after `subscriptions/listen` with `toolsListChanged`; the server accepts that revision through the MCP C# SDK. Measured minified `tools/list` (UTF-8): full **55 / 46,902**; lite **16 / 20,506**.
 
 ## Agent tools by version
 
@@ -567,7 +567,7 @@ Parses C# syntax, inserts with DocumentEditor, formats the file. Prefer over `ap
 
 Requires `load_workspace`. `includeDetails: bool = false` adds the complete changed-member and current planned-test lists. Saved disk and MCP edits are synchronized before comparison. The response begins with a warning, gives a VSTest filter or whole-project plan with reasons for each test project, lists concrete `Not covered` limitations and compilation errors, and states `project-level result only`.
 
-The baseline survives reload/reset of the same solution. Unknown baselines, observation gaps and unknown runtime names expand conservatively; the observation-gap limitation persists after reload. This tool estimates only. Run a filter with `run_test_by_filter`, or a whole project with `run_dotnet_test`. It never replaces the full test suite or CI.
+The baseline survives reload/reset of the same solution. Unknown baselines, observation gaps and unknown runtime names expand conservatively; the observation-gap limitation persists after reload. `run: true` builds and runs the selected projects sequentially using the configuration/platform from `load_workspace`. `timeoutSeconds` (default 300; 0 disables it) applies to each build or test process. Failures and timeouts do not stop later projects; MCP cancellation kills the current process tree and skips later projects. Without `run`, execute a filter with `run_test_by_filter` or a whole project with `run_dotnet_test`. It never replaces the full test suite or CI.
 </details>
 
 <details>
@@ -1153,7 +1153,7 @@ cd D:\Devel\YourApp
 | `runtime` | `run`, список тестов, сырой `dotnet` | 3 |
 | `operations` | логи, scratchpad, stop | 4 |
 
-`list_tool_groups` / `get_tool_help` / `enable_tool_group` — Markdown-справка и runtime-включение. `tools/list` остаётся JSON Schema. Если клиент не обновляет список после `tools/list_changed`, перезапустите с `ROSLYN_MCP_TOOL_GROUPS=<group>`. Замеры minified UTF-8: full **55 / 46 574**; lite **16 / 20 178**.
+`list_tool_groups` / `get_tool_help` / `enable_tool_group` — Markdown-справка и runtime-включение. `tools/list` остаётся JSON Schema. Если клиент не обновляет список после `tools/list_changed`, перезапустите с `ROSLYN_MCP_TOOL_GROUPS=<group>`. Замеры minified UTF-8: full **55 / 46 902**; lite **16 / 20 506**.
 
 ## История agent-tools по версиям
 
@@ -1475,7 +1475,7 @@ cd D:\Devel\YourApp
 
 Нужен `load_workspace`. `includeDetails: bool = false` добавляет полный список изменённых членов и текущих тестов плана. Перед сравнением подтягиваются сохранённые правки на диске и через MCP. Ответ начинается с предупреждения, даёт VSTest-фильтр или проект целиком с причинами, конкретные ограничения `Not covered`, ошибки компиляции и состояние `project-level result only`.
 
-Baseline сохраняется при reload/reset того же solution. Неизвестный baseline, разрыв наблюдения и неизвестные runtime-имена дают консервативное расширение; оговорка о разрыве остаётся после reload. Инструмент только оценивает: фильтр запускается через `run_test_by_filter`, проект целиком — через `run_dotnet_test`. Полный suite и CI остаются обязательными.
+Baseline сохраняется при reload/reset того же solution. Неизвестный baseline, разрыв наблюдения и неизвестные runtime-имена дают консервативное расширение; оговорка о разрыве остаётся после reload. `run: true` собирает и последовательно запускает выбранные проекты с конфигурацией/платформой из `load_workspace`. `timeoutSeconds` (по умолчанию 300; 0 отключает) относится к каждому процессу сборки или тестов. Ошибки и таймауты не останавливают следующие проекты; отмена MCP убивает текущее дерево процессов и пропускает остальные проекты. Без `run` фильтр запускается через `run_test_by_filter`, проект целиком — через `run_dotnet_test`. Полный suite и CI остаются обязательными.
 </details>
 
 <details>

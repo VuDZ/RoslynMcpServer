@@ -5,13 +5,13 @@
 - Примерная сложность: 4/5; класс `hi`.
 - Риск ошибки: высокий — прогон на старых бинарниках показывает зелёный результат для непроверенной правки; убитый процесс принимается за упавшие тесты.
 - Необходимые способности: `согласованность_компонентов`, `анализ_конкурентности`, `проектирование_проверок`, `run_dotnet_test`, `run_test_by_filter`.
-- Статус: **planned; реализация не начата**.
+- Статус: **accepted, 2026-11-06**; scope — VSTest `run`, общий структурированный исполнитель, свежая сборка, отдельные исходы/таймауты, MCP-отмена с остановкой дерева и ограниченный диагностический вывод; [финальная validation](evidence/task-09-final-validation.md).
 - Depends on: [task-08](task-08-estimate-tool-hi.md).
-- Модель, реализовавшая задачу: —.
-- Модели, проводившие ревью: —.
-- Количество раундов ревью: —.
-- Количество исправлений после ревью: —.
-- Отчёт о реализации, ревью и validation: —.
+- Модель, реализовавшая задачу: Codex (точный runtime model ID средой не предоставлен), `/root/task09_implementer`; тот же исполнитель исправил R1-001.
+- Модели, проводившие ревью: Codex (точный runtime model ID средой не предоставлен), независимые `/root/task09_review_round1` и `/root/task09_review_round2`.
+- Количество раундов ревью: **2**; [раунд 1 — MUST-FIX](evidence/task-09-review-round-1.md), [раунд 2 — ACCEPT](evidence/task-09-review-round-2.md).
+- Количество исправлений после ревью: **1**, R1-001 закрыто; поздние pre-review guards и коррекции fixtures записаны отдельно.
+- Отчёт о реализации, ревью и validation: [отчёт](task-09-implementation-report.md), [RED](evidence/task-09-red.md), [R1 RED](evidence/task-09-review-round-1-red.md), [R1 GREEN](evidence/task-09-review-round-1-green.md), [ACCEPT](evidence/task-09-review-round-2.md), [финальная validation](evidence/task-09-final-validation.md).
 
 ## Цель
 

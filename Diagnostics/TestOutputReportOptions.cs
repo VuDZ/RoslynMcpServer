@@ -52,6 +52,8 @@ public readonly record struct TestOutputReportOptions(bool IncludeFullOutput, in
         }
     }
 
+    internal bool SuppressOutputOptionHints { get; init; }
+
     public string FormatMetadata()
     {
         var extra = IncludeFullOutput ? " (`includeFullOutput`)" : string.Empty;

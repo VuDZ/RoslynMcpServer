@@ -173,7 +173,7 @@ public static class McpToolCatalog
             Core<NavigationTools>("find_symbol_definition", readOnly: true),
             Core<NavigationTools>("find_usages", readOnly: true),
             Core<BuildTools>("run_dotnet_build", readOnly: false, executesProcess: true),
-            Core<TestTools>("estimate_affected_tests", readOnly: true),
+            Core<TestTools>("estimate_affected_tests", readOnly: false, executesProcess: true),
             Core<TestTools>("run_dotnet_test", readOnly: false, executesProcess: true),
             Core<TestTools>("run_specific_test", readOnly: false, executesProcess: true),
             Core<TestTools>("run_test_by_filter", readOnly: false, executesProcess: true),

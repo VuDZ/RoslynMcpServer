@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
+using RoslynMcpServer.Diagnostics;
 
 namespace RoslynMcpServer.Services.Build;
 
@@ -403,16 +404,106 @@ public static class DotNetCliRunner
 
     private static void TryKillProcessTree(Process process)
     {
+        List<Process> descendants = [];
         try
         {
             if (!process.HasExited)
             {
+                // VSTest hosts exit on parent shutdown and can orphan children before Kill(true) finds them.
+                try
+                {
+                    descendants = CaptureDescendants(process);
+                }
+                catch (Exception exception) when (exception is InvalidOperationException or System.ComponentModel.Win32Exception)
+                {
+                    // Still terminate the root when a descendant snapshot is unavailable.
+                }
+                for (var index = descendants.Count - 1; index >= 0; index--)
+                {
+                    try
+                    {
+                        descendants[index].Kill(entireProcessTree: true);
+                    }
+                    catch (Exception exception) when (exception is InvalidOperationException or System.ComponentModel.Win32Exception)
+                    {
+                        // A descendant may already have exited with its parent.
+                    }
+                }
                 process.Kill(entireProcessTree: true);
             }
         }
         catch
         {
-            // best effort
+            // Best effort when the process exits concurrently or termination is denied.
+        }
+        finally
+        {
+            foreach (var descendant in descendants)
+            {
+                descendant.Dispose();
+            }
+        }
+    }
+
+    private static List<Process> CaptureDescendants(Process root)
+    {
+        var descendants = new List<Process>();
+        if (!OperatingSystem.IsWindows())
+        {
+            return descendants;
+        }
+
+        var rootStarted = root.StartTime;
+        var processes = Process.GetProcesses();
+        try
+        {
+            var children = new Dictionary<int, List<Process>>();
+            foreach (var process in processes)
+            {
+                var parentId = WindowsParentProcess.TryReadParentProcessId(process);
+                if (!children.TryGetValue(parentId, out var siblings))
+                {
+                    children[parentId] = siblings = [];
+                }
+                siblings.Add(process);
+            }
+            var pending = new Queue<(int Id, DateTime Started)>();
+            var visited = new HashSet<int> { root.Id };
+            pending.Enqueue((root.Id, rootStarted));
+            while (pending.TryDequeue(out var parent))
+            {
+                if (!children.TryGetValue(parent.Id, out var directChildren))
+                {
+                    continue;
+                }
+                foreach (var child in directChildren)
+                {
+                    try
+                    {
+                        var childStarted = child.StartTime;
+                        if (visited.Add(child.Id) && childStarted >= parent.Started)
+                        {
+                            descendants.Add(child);
+                            pending.Enqueue((child.Id, childStarted));
+                        }
+                    }
+                    catch (Exception exception) when (exception is InvalidOperationException or System.ComponentModel.Win32Exception)
+                    {
+                        // Process exit can race the descendant snapshot.
+                    }
+                }
+            }
+            return descendants;
+        }
+        finally
+        {
+            foreach (var process in processes)
+            {
+                if (!descendants.Contains(process))
+                {
+                    process.Dispose();
+                }
+            }
         }
     }
 

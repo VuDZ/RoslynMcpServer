@@ -53,14 +53,19 @@ public sealed class TestTools
         _cliRunner = cliRunner;
     }
 
-    [McpServerTool(Name = "estimate_affected_tests", Title = "Estimate affected tests", ReadOnly = true)]
+    [McpServerTool(Name = "estimate_affected_tests", Title = "Estimate affected tests", ReadOnly = false)]
     [Description(
         "Rapid test impact analysis (approximate). Estimates tests affected by changes since load: changed/new tests by name, "
         + "other changes by dependent test project. A hint, not a guarantee: reflection, data files, process launches and source generators "
-        + "can hide tests; extra tests may be included. Never replaces the full test suite or CI before accepting or committing. Requires load_workspace.")]
+        + "can hide tests; extra tests may be included. run=true builds and runs the selected projects sequentially. "
+        + "Never replaces the full test suite or CI before accepting or committing. Requires load_workspace.")]
     public async Task<string> EstimateAffectedTests(
         [Description("Include the complete changed-member and selected-test lists. Default false returns a summary and run plans.")]
         bool includeDetails = false,
+        [Description("Build and run the selected test projects. Default false estimates only.")]
+        bool run = false,
+        [Description("Timeout in seconds for each build or test process. 0 disables timeout.")]
+        int timeoutSeconds = DotNetCliRunner.DefaultTimeoutSeconds,
         CancellationToken cancellationToken = default)
     {
         const string toolName = nameof(EstimateAffectedTests);
@@ -80,7 +85,14 @@ public sealed class TestTools
             var estimate = await TestImpactEstimator.EstimateAsync(
                 solution, inputMap, _solutionManager.Baseline.GetSnapshot(), _solutionManager.GetLoadedWorkspacePath(),
                 _solutionManager.ProjectGraphStale, _solutionManager.ProjectGraphStaleFromGraphFile, cancellationToken).ConfigureAwait(false);
-            return Finish(TestImpactFormatter.Format(solution, estimate, includeDetails));
+            var outcomes = run
+                ? await RunAffectedTestsAsync(solution, estimate, timeoutSeconds, cancellationToken).ConfigureAwait(false)
+                : null;
+            var body = TestImpactFormatter.Format(solution, estimate, includeDetails, outcomes,
+                run ? _solutionManager.WithDiskSyncNotes("State: project-level result only.") : null);
+            return run
+                ? ToolTelemetry.TraceAndReturn(toolName, TestImpactFormatter.Warning + Environment.NewLine + body)
+                : Finish(body);
         }
         catch (OperationCanceledException)
         {
@@ -94,7 +106,8 @@ public sealed class TestTools
 
         string Finish(string body) => ToolTelemetry.TraceAndReturn(toolName,
             TestImpactFormatter.Warning + Environment.NewLine + _solutionManager.WithDiskSyncNotes(body)
-            + Environment.NewLine + "State: project-level result only.");
+            + Environment.NewLine + "State: project-level result only."
+            + (run ? Environment.NewLine + "Not covered: no execution report is available for this request." : string.Empty));
     }
 
     [McpServerTool(Name = "run_dotnet_test", Title = "Run dotnet test")]
@@ -462,6 +475,53 @@ public sealed class TestTools
         }
     }
 
+    private async Task<IReadOnlyDictionary<ProjectId, DotNetTestResult>> RunAffectedTestsAsync(
+        Solution solution,
+        Services.Testing.Models.TestImpactEstimate estimate,
+        int timeoutSeconds,
+        CancellationToken cancellationToken)
+    {
+        var results = new Dictionary<ProjectId, DotNetTestResult>();
+        var executor = new DotNetTestExecutor(CliRunner(progress: null));
+        var cancelled = false;
+        foreach (var projectPlan in estimate.Plans.OrderBy(
+            plan => solution.GetProject(plan.ProjectId)?.FilePath, StringComparer.Ordinal))
+        {
+            if (cancelled || cancellationToken.IsCancellationRequested)
+            {
+                results[projectPlan.ProjectId] = new(TestProcessOutcome.NotRun);
+                continue;
+            }
+
+            var project = solution.GetProject(projectPlan.ProjectId)!;
+            try
+            {
+                var targetPath = project.FilePath!;
+                var platform = DotNetConfigurationArguments.CoalescePlatformForTarget(
+                    null, _solutionManager.LoadedPlatformRaw, _solutionManager.LoadedPlatform, targetPath);
+                var plan = DotNetTestArguments.BuildPlan(targetPath, projectPlan.Filter, noBuild: false,
+                    configuration: _solutionManager.LoadedConfiguration, platform: platform,
+                    buildArgs: _solutionManager.LoadedBuildArgs);
+                var result = await executor.ExecuteAsync(plan,
+                    WorkspaceRootResolver.ResolveDotNetWorkingDirectory(targetPath),
+                    timeoutSeconds > 0 ? TimeSpan.FromSeconds(timeoutSeconds) : null,
+                    timeoutPerProcess: true, cancellationToken).ConfigureAwait(false);
+                results[projectPlan.ProjectId] = result;
+                cancelled = result.Outcome == TestProcessOutcome.Cancelled;
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(exception, "Affected test run failed for {ProjectPath}", project.FilePath);
+                results[projectPlan.ProjectId] = new(TestProcessOutcome.NotRun, Error: exception.Message);
+            }
+        }
+
+        _logger.LogInformation("Rapid TIA run: {Outcomes}", string.Join("; ", results.Select(result =>
+            (solution.GetProject(result.Key)?.FilePath ?? result.Key.ToString()).Replace('\r', ' ').Replace('\n', ' ')
+            + "=" + result.Value.OutcomeText)));
+        return results;
+    }
+
     private async Task<string> ExecuteDotnetTestAsync(
         string toolName,
         string workspacePath,
@@ -621,23 +681,17 @@ public sealed class TestTools
             extraMeta += Environment.NewLine + outputOptions.FormatMetadata();
 
             TimeSpan? timeout = timeoutSeconds > 0 ? TimeSpan.FromSeconds(timeoutSeconds) : null;
-            var sw = System.Diagnostics.Stopwatch.StartNew();
             var cliProgress = McpToolProgressReporter.TryCreate(progress);
-            int? previousExit = null;
-
-            var buildOutput = string.Empty;
-            var preTestBuildArguments = plan.PreTestBuildArguments;
-            if (preTestBuildArguments is not null)
+            var execution = await new DotNetTestExecutor(CliRunner(cliProgress)).ExecuteAsync(
+                plan, workDir, timeout, timeoutPerProcess: false, cancellationToken).ConfigureAwait(false);
+            if (execution.Outcome == TestProcessOutcome.Cancelled
+                || execution.Outcome == TestProcessOutcome.NotRun && cancellationToken.IsCancellationRequested)
             {
-                var buildRun = await RunCliAsync(
-                    preTestBuildArguments,
-                    workDir,
-                    timeout,
-                    previousExit: null,
-                    CliProgressStep.BuildStage,
-                    cliProgress,
-                    cancellationToken).ConfigureAwait(false);
-
+                throw new OperationCanceledException(cancellationToken);
+            }
+            var buildOutput = string.Empty;
+            if (execution.BuildRun is { } buildRun)
+            {
                 buildOutput = buildRun.CombinedOutput;
                 if (buildRun.TimedOut || buildRun.ExitCode != 0)
                 {
@@ -654,8 +708,7 @@ public sealed class TestTools
                         + Environment.NewLine + Environment.NewLine + buildReport);
                 }
 
-                timeout = DotNetTestArguments.RemainingTimeout(timeout, sw.Elapsed);
-                if (timeout == TimeSpan.Zero)
+                if (execution.TestRun is null)
                 {
                     var exhausted = new StringBuilder();
                     exhausted.AppendLine("## Test run timed out");
@@ -674,17 +727,9 @@ public sealed class TestTools
                         includeBuildWarnings ? AppendBuildWarnings(exhaustedText, buildOutput) : exhaustedText);
                 }
 
-                previousExit = buildRun.ExitCode;
             }
 
-            var run = await RunCliAsync(
-                plan.TestArguments,
-                workDir,
-                timeout,
-                previousExit,
-                CliProgressStep.TestStage,
-                cliProgress,
-                cancellationToken).ConfigureAwait(false);
+            var run = execution.TestRun!;
 
             if (run.TimedOut)
             {
@@ -706,7 +751,7 @@ public sealed class TestTools
                 return ToolTelemetry.TraceAndReturn(toolName, timedOutText);
             }
 
-            var parse = VstestOutputParser.Parse(run.CombinedOutput, run.ExitCode);
+            var parse = execution.Parsed!;
             var markdown = VstestOutputParser.BuildMarkdownReport(
                 parse,
                 run.ExitCode,

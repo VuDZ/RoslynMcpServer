@@ -1,5 +1,6 @@
 using System.Text;
 using Microsoft.CodeAnalysis;
+using RoslynMcpServer.Diagnostics;
 using RoslynMcpServer.Services.Testing.Models;
 
 namespace RoslynMcpServer.Services.Testing;
@@ -8,7 +9,12 @@ internal static class TestImpactFormatter
 {
     internal const string Warning = "Approximate result (rapid TIA): not a substitute for the full test suite or CI.";
 
-    internal static string Format(Solution solution, TestImpactEstimate estimate, bool includeDetails)
+    internal static string Format(
+        Solution solution,
+        TestImpactEstimate estimate,
+        bool includeDetails,
+        IReadOnlyDictionary<ProjectId, DotNetTestResult>? runs = null,
+        string? runState = null)
     {
         var changes = estimate.Documents.SelectMany(document => document.Changes is null
             ? (document.Current?.Members ?? []).Select(member => (document.Path, member.Key))
@@ -23,18 +29,14 @@ internal static class TestImpactFormatter
             body.Append("Run: `").Append(project.FilePath ?? project.Name).Append('`');
             body.AppendLine(plan.Filter is null ? " whole project (project-level)." : " with filter `" + plan.Filter + "`");
             body.AppendLine("Reasons: " + string.Join("; ", plan.Reasons));
-        }
-        if (estimate.NotCovered.Count == 0)
-        {
-            body.AppendLine("Not covered: none.");
-        }
-        else
-        {
-            body.AppendLine("Not covered:");
-            foreach (var limitation in estimate.NotCovered)
+            if (runs is not null)
             {
-                body.AppendLine("- " + limitation);
+                AppendRun(body, runs[plan.ProjectId], plan.Filter);
             }
+        }
+        if (runs is null)
+        {
+            AppendNotCovered(body, estimate.NotCovered);
         }
         if (estimate.CompilationErrors.Count > 0)
         {
@@ -69,6 +71,59 @@ internal static class TestImpactFormatter
                 }
             }
         }
+        if (runs is not null)
+        {
+            if (runs.Count == 0)
+            {
+                body.AppendLine("No test processes selected.");
+            }
+            body.AppendLine(runState ?? "State: project-level result only.");
+            AppendNotCovered(body, estimate.NotCovered);
+        }
         return body.ToString().TrimEnd();
+    }
+
+    private static void AppendNotCovered(StringBuilder body, IReadOnlyList<string> limitations)
+    {
+        if (limitations.Count == 0)
+        {
+            body.AppendLine("Not covered: none.");
+            return;
+        }
+        body.AppendLine("Not covered:");
+        foreach (var limitation in limitations)
+        {
+            body.AppendLine("- " + limitation);
+        }
+    }
+
+    private static void AppendRun(StringBuilder body, DotNetTestResult result, string? filter)
+    {
+        body.AppendLine("Outcome: " + result.OutcomeText);
+        if (result.Parsed?.Summary is { } summary)
+        {
+            body.AppendLine($"Total: {summary.Total}; Passed: {summary.Passed}; Failed: {summary.Failed}; Skipped: {summary.Skipped}.");
+        }
+        if (result.Outcome == TestProcessOutcome.BuildFailed && result.BuildRun is { } build)
+        {
+            body.AppendLine(BuildOutputReport.Format(build.CombinedOutput, build.ExitCode, build.RunMetadata,
+                includeBuildWarnings: false, subject: "Pre-test build", attachFullReport: false));
+        }
+        if (result.Outcome == TestProcessOutcome.Failed && result.TestRun is { } test)
+        {
+            var outputOptions = new TestOutputReportOptions(false, 0) { SuppressOutputOptionHints = true };
+            body.AppendLine(VstestOutputParser.BuildMarkdownReport(result.Parsed!, test.ExitCode, test.CombinedOutput,
+                filter, filterDescription: null, requireFilterMatch: false, outputOptions));
+        }
+        if (result.Outcome is TestProcessOutcome.TimedOut or TestProcessOutcome.Cancelled)
+        {
+            body.AppendLine(DotNetCliRunner.FormatHangHints(
+                timedOut: result.Outcome == TestProcessOutcome.TimedOut,
+                cancelled: result.Outcome == TestProcessOutcome.Cancelled));
+        }
+        if (result.Error is { } error)
+        {
+            body.AppendLine(error[..Math.Min(error.Length, 2500)]);
+        }
     }
 }

@@ -19,7 +19,8 @@ internal static class BuildOutputReport
         string subject = "Build",
         bool timedOut = false,
         bool budgetExhausted = false,
-        IReadOnlyList<DotNetBuildDiagnosticParser.DiagnosticEntry>? additionalErrors = null)
+        IReadOnlyList<DotNetBuildDiagnosticParser.DiagnosticEntry>? additionalErrors = null,
+        bool attachFullReport = true)
     {
         var diagnostics = ParseDiagnostics(output)
             .Concat(additionalErrors ?? [])
@@ -64,10 +65,9 @@ internal static class BuildOutputReport
         }
 
         var text = sb.ToString().TrimEnd();
-        return DiagnosticReportAttachment.AttachToResponse(
-            text,
-            output,
-            !succeeded || visible.Count > MaxDiagnostics);
+        return attachFullReport
+            ? DiagnosticReportAttachment.AttachToResponse(text, output, !succeeded || visible.Count > MaxDiagnostics)
+            : text;
     }
 
     public static string FormatWarnings(string output)

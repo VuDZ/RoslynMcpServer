@@ -66,8 +66,8 @@ public static class McpToolHelpCatalog
             ["estimate_affected_tests"] = new()
             {
                 Prerequisites = "Requires load_workspace. Approximate selection never replaces the full suite or CI.",
-                Workflow = "Estimates changes since the first load of this solution in this process. Saved disk and MCP edits are synchronized first. includeDetails lists changed members and current planned tests. Returns a VSTest filter or a whole-project plan with reasons for each selected test project.",
-                Pitfalls = "Project-level result only. Unknown baselines, observation gaps and unmeasured runtime identities expand conservatively. Reload of the same solution preserves the baseline and any observation-gap limitation. This release estimates only; execute each plan with a test runner.",
+                Workflow = "Estimates changes since the first load of this solution in this process. Saved disk and MCP edits are synchronized first. includeDetails lists changed members and current planned tests. Returns a VSTest filter or a whole-project plan with reasons. run=true builds and runs selected projects sequentially using the loaded configuration/platform; timeoutSeconds applies to each build or test process.",
+                Pitfalls = "Project-level result only. Unknown baselines, observation gaps and unmeasured runtime identities expand conservatively. Reload of the same solution preserves the baseline and any observation-gap limitation. Failed builds, tests and timeouts do not stop later projects; MCP cancellation kills the current process tree and skips later projects.",
                 RelatedTools = ["run_test_by_filter", "run_dotnet_test", "load_workspace"],
             },
             ["get_code_skeleton"] = new()
