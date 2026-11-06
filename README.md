@@ -194,7 +194,7 @@ Restart OpenCode or reload MCP servers after running the script.
 
 ## Tool profiles
 
-Default is **`full`** (every public tool). A **`lite`** session starts with the 15-tool core so local models spend less context on `tools/list`. Extra groups can be added at process start or, on clients that honor `notifications/tools/list_changed`, during the session.
+Default is **`full`** (every public tool). A **`lite`** session starts with the 16-tool core so local models spend less context on `tools/list`. Extra groups can be added at process start or, on clients that honor `notifications/tools/list_changed`, during the session.
 
 | Variable | Values | Effect |
 | --- | --- | --- |
@@ -207,7 +207,7 @@ Portable OpenCode examples: [`opencode.json.sample`](opencode.json.sample) (`ros
 
 | Group | Intent | Tools |
 | --- | --- | ---: |
-| `core` | Workspace, symbol lookup, build, test, help | 15 (lite default) |
+| `core` | Workspace, symbol lookup, build, test, help | 16 (lite default) |
 | `files` | Disk read, search, patch, `get_code_skeleton` | 8 |
 | `navigation` | Type hierarchy, references from a known declaration, call graph | 3 |
 | `editing` | AST edits, code fixes, format, rename | 8 |
@@ -225,7 +225,7 @@ Portable OpenCode examples: [`opencode.json.sample`](opencode.json.sample) (`ros
 
 MCP `tools/list` stays JSON + JSON Schema. Markdown is for JIT help and diagnostics.
 
-**Client compatibility:** do not assume the host refreshes tools after `tools/list_changed`. If a newly enabled tool is missing from the client's catalog, restart with `ROSLYN_MCP_TOOL_GROUPS=<group>` (and `ROSLYN_MCP_TOOL_PROFILE=lite`). A `2025-11-25` initialize session receives `tools/list_changed` when the set grows. A `2026-07-28` session receives it only after `subscriptions/listen` with `toolsListChanged`; the server accepts that revision through the MCP C# SDK. Measured minified `tools/list` (UTF-8): full **54 / 45,807**; lite **15 / 19,411**.
+**Client compatibility:** do not assume the host refreshes tools after `tools/list_changed`. If a newly enabled tool is missing from the client's catalog, restart with `ROSLYN_MCP_TOOL_GROUPS=<group>` (and `ROSLYN_MCP_TOOL_PROFILE=lite`). A `2025-11-25` initialize session receives `tools/list_changed` when the set grows. A `2026-07-28` session receives it only after `subscriptions/listen` with `toolsListChanged`; the server accepts that revision through the MCP C# SDK. Measured minified `tools/list` (UTF-8): full **55 / 46,574**; lite **16 / 20,178**.
 
 ## Agent tools by version
 
@@ -285,7 +285,7 @@ Policy summary (full text in the sample):
 
 When a tool accepts `filePath`, relative values are resolved against the loaded workspace root after `load_workspace`; if no workspace is loaded, fallback is `Environment.CurrentDirectory`.
 
-There are **54** registered tools in the default `full` profile (see list below). A `lite` profile starts with **15** core tools; extra groups use `ROSLYN_MCP_TOOL_GROUPS` or `enable_tool_group`. Nine attributed methods stay out of `tools/list` until v2 and are not callable: `remove_using`, `organize_usings`, `add_property_to_class`, `add_field_to_class`, `add_type_to_class_bases`, `remove_member`, `implement_interface`, `extract_interface`, `move_type_to_new_file`.
+There are **55** registered tools in the default `full` profile (see list below). A `lite` profile starts with **16** core tools; extra groups use `ROSLYN_MCP_TOOL_GROUPS` or `enable_tool_group`. Nine attributed methods stay out of `tools/list` until v2 and are not callable: `remove_using`, `organize_usings`, `add_property_to_class`, `add_field_to_class`, `add_type_to_class_bases`, `remove_member`, `implement_interface`, `extract_interface`, `move_type_to_new_file`.
 
 ### Workspace / Roslyn
 
@@ -561,6 +561,14 @@ Parses C# syntax, inserts with DocumentEditor, formats the file. Prefer over `ap
 </details>
 
 ### Build / Test / CLI
+
+<details>
+<summary><code>estimate_affected_tests</code> — Approximate test selection since the solution was loaded.</summary>
+
+Requires `load_workspace`. `includeDetails: bool = false` adds the complete changed-member and current planned-test lists. Saved disk and MCP edits are synchronized before comparison. The response begins with a warning, gives a VSTest filter or whole-project plan with reasons for each test project, lists concrete `Not covered` limitations and compilation errors, and states `project-level result only`.
+
+The baseline survives reload/reset of the same solution. Unknown baselines, observation gaps and unknown runtime names expand conservatively; the observation-gap limitation persists after reload. This tool estimates only. Run a filter with `run_test_by_filter`, or a whole project with `run_dotnet_test`. It never replaces the full test suite or CI.
+</details>
 
 <details>
 <summary><code>run_dotnet_build</code> — Runs dotnet build and returns a compact diagnostic summary.</summary>
@@ -886,7 +894,7 @@ Runs `git` with a 180s deadline and up to 3s to stop the process. Use host `git 
 
 **Parameters:** *(none)*
 
-Use after `dotnet publish` to verify the MCP host picked up the new binary. Expect the `Version` from `RoslynMcpServer.csproj`, **54** tools on `full`, or **15** on `lite`.
+Use after `dotnet publish` to verify the MCP host picked up the new binary. Expect the `Version` from `RoslynMcpServer.csproj`, **55** tools on `full`, or **16** on `lite`.
 
 </details>
 
@@ -1122,7 +1130,7 @@ cd D:\Devel\YourApp
 
 ## Профили инструментов
 
-По умолчанию **`full`** (все публичные тулы). **`lite`** стартует с 15 core-тулов. Дополнительные группы — при старте процесса или, если клиент обрабатывает `notifications/tools/list_changed`, во время сессии.
+По умолчанию **`full`** (все публичные тулы). **`lite`** стартует с 16 core-тулов. Дополнительные группы — при старте процесса или, если клиент обрабатывает `notifications/tools/list_changed`, во время сессии.
 
 | Переменная | Значения | Эффект |
 | --- | --- | --- |
@@ -1135,7 +1143,7 @@ cd D:\Devel\YourApp
 
 | Группа | Назначение | Тулов |
 | --- | --- | ---: |
-| `core` | workspace, поиск символов, build, test, help | 15 (lite по умолчанию) |
+| `core` | workspace, поиск символов, build, test, help | 16 (lite по умолчанию) |
 | `files` | чтение/поиск/патч с диска, `get_code_skeleton` | 8 |
 | `navigation` | иерархия типов, ссылки по известному объявлению, граф вызовов | 3 |
 | `editing` | AST, code fixes, format, rename | 8 |
@@ -1145,7 +1153,7 @@ cd D:\Devel\YourApp
 | `runtime` | `run`, список тестов, сырой `dotnet` | 3 |
 | `operations` | логи, scratchpad, stop | 4 |
 
-`list_tool_groups` / `get_tool_help` / `enable_tool_group` — Markdown-справка и runtime-включение. `tools/list` остаётся JSON Schema. Если клиент не обновляет список после `tools/list_changed`, перезапустите с `ROSLYN_MCP_TOOL_GROUPS=<group>`. Замеры minified UTF-8: full **54 / 45 780**; lite **15 / 19 312**.
+`list_tool_groups` / `get_tool_help` / `enable_tool_group` — Markdown-справка и runtime-включение. `tools/list` остаётся JSON Schema. Если клиент не обновляет список после `tools/list_changed`, перезапустите с `ROSLYN_MCP_TOOL_GROUPS=<group>`. Замеры minified UTF-8: full **55 / 46 574**; lite **16 / 20 178**.
 
 ## История agent-tools по версиям
 
@@ -1192,7 +1200,7 @@ cd D:\Devel\YourApp
 - `fixIndex` — индекс (0-based) из `get_code_fixes` для `apply_code_fix`.
 - `path` — файл `.cs` или каталог для `get_code_skeleton` (абсолютный путь; с диска, workspace не обязателен).
 
-Зарегистрировано **54** инструмента в профиле `full` (список ниже). Профиль `lite` стартует с **15** core-тулов; остальные группы — `ROSLYN_MCP_TOOL_GROUPS` или `enable_tool_group`. Девять методов с атрибутом не входят в `tools/list` до v2 и не вызываются: `remove_using`, `organize_usings`, `add_property_to_class`, `add_field_to_class`, `add_type_to_class_bases`, `remove_member`, `implement_interface`, `extract_interface`, `move_type_to_new_file`.
+Зарегистрировано **55** инструментов в профиле `full` (список ниже). Профиль `lite` стартует с **16** core-тулов; остальные группы — `ROSLYN_MCP_TOOL_GROUPS` или `enable_tool_group`. Девять методов с атрибутом не входят в `tools/list` до v2 и не вызываются: `remove_using`, `organize_usings`, `add_property_to_class`, `add_field_to_class`, `add_type_to_class_bases`, `remove_member`, `implement_interface`, `extract_interface`, `move_type_to_new_file`.
 
 ### Workspace / Roslyn
 
@@ -1461,6 +1469,14 @@ cd D:\Devel\YourApp
 </details>
 
 ### Build / Test / CLI
+
+<details>
+<summary><code>estimate_affected_tests</code> — Приблизительная оценка затронутых тестов с момента загрузки solution.</summary>
+
+Нужен `load_workspace`. `includeDetails: bool = false` добавляет полный список изменённых членов и текущих тестов плана. Перед сравнением подтягиваются сохранённые правки на диске и через MCP. Ответ начинается с предупреждения, даёт VSTest-фильтр или проект целиком с причинами, конкретные ограничения `Not covered`, ошибки компиляции и состояние `project-level result only`.
+
+Baseline сохраняется при reload/reset того же solution. Неизвестный baseline, разрыв наблюдения и неизвестные runtime-имена дают консервативное расширение; оговорка о разрыве остаётся после reload. Инструмент только оценивает: фильтр запускается через `run_test_by_filter`, проект целиком — через `run_dotnet_test`. Полный suite и CI остаются обязательными.
+</details>
 
 <details>
 <summary><code>run_dotnet_build</code> — Запускает dotnet build и возвращает компактную сводку.</summary>
@@ -1784,7 +1800,7 @@ cd D:\Devel\YourApp
 
 **Параметры:** *(нет)*
 
-После `dotnet publish` — проверка, что MCP подхватил новый бинарник. Ожидайте `Version` из `RoslynMcpServer.csproj`, **54** tools в `full` или **15** в `lite`.
+После `dotnet publish` — проверка, что MCP подхватил новый бинарник. Ожидайте `Version` из `RoslynMcpServer.csproj`, **55** tools в `full` или **16** в `lite`.
 
 </details>
 

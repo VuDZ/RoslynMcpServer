@@ -5,13 +5,13 @@
 - Примерная сложность: 4/5; класс `hi`.
 - Риск ошибки: высокий — публичная поверхность в `core`: формулировки ответа и описания определяют, будет ли агент принимать подсказку за гарантию.
 - Необходимые способности: `согласованность_компонентов`, `архитектурное_мышление`, `проектирование_проверок`, `get_mcp_server_info`.
-- Статус: **planned; реализация не начата**.
+- Статус: **accepted, 2026-11-06**; scope — estimate-only инструмент `core/lite`, baseline/current интеграция, runtime inventory T07-C1 и формат ответа. [Validation](evidence/task-08-final-validation.md), [живые проверки](evidence/task-08-live-validation.md); `run` и граф вне scope.
 - Depends on: [task-03](task-03-baseline-lifecycle-hi.md), [task-05](task-05-response-composition-med.md), [task-07](task-07-run-plan-med.md).
-- Модель, реализовавшая задачу: —.
-- Модели, проводившие ревью: —.
-- Количество раундов ревью: —.
-- Количество исправлений после ревью: —.
-- Отчёт о реализации, ревью и validation: —.
+- Модель, реализовавшая задачу: Codex (точный runtime model ID средой не предоставлен), `/root/task08_implementer`.
+- Модели, проводившие ревью: Codex (точные runtime model ID средой не предоставлены), независимые `/root/task08_review_round1` и `/root/task08_review_round2`.
+- Количество раундов ревью: **2**; [раунд 2 — ACCEPT](evidence/task-08-review-round-2.md).
+- Количество исправлений после ревью: **3**, R1-001/R1-002/R1-003 закрыты; два pre-review audit guards учитываются отдельно.
+- Отчёт о реализации, ревью и validation: [отчёт](task-08-implementation-report.md), [RED](evidence/task-08-red.md), [review RED](evidence/task-08-review-round-1-red.md), [ACCEPT](evidence/task-08-review-round-2.md), [validation](evidence/task-08-final-validation.md).
 
 ## Цель
 

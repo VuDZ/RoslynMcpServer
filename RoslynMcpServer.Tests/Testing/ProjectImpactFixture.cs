@@ -77,6 +77,9 @@ internal sealed class ProjectImpactFixture : IDisposable
         Solution = Solution.WithDocumentText(document.Id, SourceText.From(source));
     }
 
+    internal void AddProjectReference(ProjectId project, ProjectId dependency) =>
+        Solution = Solution.AddProjectReference(project, new ProjectReference(dependency));
+
     internal void ReplaceSource(ProjectId project, string path, string source)
     {
         var document = Solution.GetDocumentIdsWithFilePath(path).FirstOrDefault(id => id.ProjectId == project);

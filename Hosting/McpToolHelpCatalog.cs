@@ -63,6 +63,13 @@ public static class McpToolHelpCatalog
                 Pitfalls = "Saved .cs edits sync without reset. Do not use this to restart a rebuilt MCP binary — use stop_mcp_server.",
                 RelatedTools = ["load_workspace", "stop_mcp_server"],
             },
+            ["estimate_affected_tests"] = new()
+            {
+                Prerequisites = "Requires load_workspace. Approximate selection never replaces the full suite or CI.",
+                Workflow = "Estimates changes since the first load of this solution in this process. Saved disk and MCP edits are synchronized first. includeDetails lists changed members and current planned tests. Returns a VSTest filter or a whole-project plan with reasons for each selected test project.",
+                Pitfalls = "Project-level result only. Unknown baselines, observation gaps and unmeasured runtime identities expand conservatively. Reload of the same solution preserves the baseline and any observation-gap limitation. This release estimates only; execute each plan with a test runner.",
+                RelatedTools = ["run_test_by_filter", "run_dotnet_test", "load_workspace"],
+            },
             ["get_code_skeleton"] = new()
             {
                 Workflow = "Pass a .cs file or a directory (recursive, skips bin/obj/Test/Tests, at most 20 files). No workspace required.",

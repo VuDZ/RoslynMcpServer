@@ -145,6 +145,33 @@ internal sealed class BaselineSession
         }
     }
 
+    internal static ImmutableArray<(BaselineDocumentKey Key, DocumentId Id)> Inventory(Solution solution)
+    {
+        var result = ImmutableArray.CreateBuilder<(BaselineDocumentKey Key, DocumentId Id)>();
+        var projectOccurrences = new Dictionary<(string Path, string Name), int>();
+        foreach (var project in solution.Projects.Where(project => project.Language == LanguageNames.CSharp)
+            .OrderBy(project => project.FilePath, StringComparer.Ordinal).ThenBy(project => project.Name, StringComparer.Ordinal))
+        {
+            var projectPath = KeyPath(project.FilePath);
+            var projectKey = (projectPath, project.Name);
+            var projectOccurrence = projectOccurrences.GetValueOrDefault(projectKey);
+            projectOccurrences[projectKey] = projectOccurrence + 1;
+            var context = project.Name + "#" + projectOccurrence;
+            var documents = new Dictionary<(string Path, string Logical), int>();
+            foreach (var document in project.Documents.Where(document => document.FilePath != null)
+                .OrderBy(document => document.FilePath, StringComparer.Ordinal).ThenBy(document => document.Name, StringComparer.Ordinal))
+            {
+                var path = KeyPath(document.FilePath);
+                var logical = string.Join("/", document.Folders.Append(document.Name));
+                var documentKey = (path, logical);
+                var occurrence = documents.GetValueOrDefault(documentKey);
+                documents[documentKey] = occurrence + 1;
+                result.Add((new BaselineDocumentKey(projectPath, context, path, logical, occurrence), document.Id));
+            }
+        }
+        return result.ToImmutable();
+    }
+
     private static void CancelCapture(CancellationTokenSource? cancellation, bool running, ILogger logger)
     {
         try
@@ -355,33 +382,6 @@ internal sealed class BaselineSession
 
     private static bool UntrustedTimestamp(string path, DateTime publishedAtUtc) =>
         !File.Exists(path) || File.GetLastWriteTimeUtc(path) > publishedAtUtc;
-
-    private static ImmutableArray<(BaselineDocumentKey Key, DocumentId Id)> Inventory(Solution solution)
-    {
-        var result = ImmutableArray.CreateBuilder<(BaselineDocumentKey Key, DocumentId Id)>();
-        var projectOccurrences = new Dictionary<(string Path, string Name), int>();
-        foreach (var project in solution.Projects.Where(project => project.Language == LanguageNames.CSharp)
-            .OrderBy(project => project.FilePath, StringComparer.Ordinal).ThenBy(project => project.Name, StringComparer.Ordinal))
-        {
-            var projectPath = KeyPath(project.FilePath);
-            var projectKey = (projectPath, project.Name);
-            var projectOccurrence = projectOccurrences.GetValueOrDefault(projectKey);
-            projectOccurrences[projectKey] = projectOccurrence + 1;
-            var context = project.Name + "#" + projectOccurrence;
-            var documents = new Dictionary<(string Path, string Logical), int>();
-            foreach (var document in project.Documents.Where(document => document.FilePath != null)
-                .OrderBy(document => document.FilePath, StringComparer.Ordinal).ThenBy(document => document.Name, StringComparer.Ordinal))
-            {
-                var path = KeyPath(document.FilePath);
-                var logical = string.Join("/", document.Folders.Append(document.Name));
-                var documentKey = (path, logical);
-                var occurrence = documents.GetValueOrDefault(documentKey);
-                documents[documentKey] = occurrence + 1;
-                result.Add((new BaselineDocumentKey(projectPath, context, path, logical, occurrence), document.Id));
-            }
-        }
-        return result.ToImmutable();
-    }
 
     private static string KeyPath(string? path)
     {

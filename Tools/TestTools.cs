@@ -53,6 +53,50 @@ public sealed class TestTools
         _cliRunner = cliRunner;
     }
 
+    [McpServerTool(Name = "estimate_affected_tests", Title = "Estimate affected tests", ReadOnly = true)]
+    [Description(
+        "Rapid test impact analysis (approximate). Estimates tests affected by changes since load: changed/new tests by name, "
+        + "other changes by dependent test project. A hint, not a guarantee: reflection, data files, process launches and source generators "
+        + "can hide tests; extra tests may be included. Never replaces the full test suite or CI before accepting or committing. Requires load_workspace.")]
+    public async Task<string> EstimateAffectedTests(
+        [Description("Include the complete changed-member and selected-test lists. Default false returns a summary and run plans.")]
+        bool includeDetails = false,
+        CancellationToken cancellationToken = default)
+    {
+        const string toolName = nameof(EstimateAffectedTests);
+        try
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var solution = await _solutionManager.GetPublishedSolutionAfterDiskSyncAsync(cancellationToken).ConfigureAwait(false);
+            if (solution is null)
+            {
+                return Finish(_solutionManager.FormatNoPublishedSolutionMessage("No workspace loaded."));
+            }
+            var inputMap = _solutionManager.DiskWatcherSession?.InputMap;
+            if (inputMap is null)
+            {
+                return Finish("Not covered: no loaded input map is available; reload required.");
+            }
+            var estimate = await TestImpactEstimator.EstimateAsync(
+                solution, inputMap, _solutionManager.Baseline.GetSnapshot(), _solutionManager.GetLoadedWorkspacePath(),
+                _solutionManager.ProjectGraphStale, _solutionManager.ProjectGraphStaleFromGraphFile, cancellationToken).ConfigureAwait(false);
+            return Finish(TestImpactFormatter.Format(solution, estimate, includeDetails));
+        }
+        catch (OperationCanceledException)
+        {
+            return Finish("`estimate_affected_tests` was cancelled.");
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "EstimateAffectedTests failed");
+            return Finish("Failed to estimate affected tests: " + exception.Message);
+        }
+
+        string Finish(string body) => ToolTelemetry.TraceAndReturn(toolName,
+            TestImpactFormatter.Warning + Environment.NewLine + _solutionManager.WithDiskSyncNotes(body)
+            + Environment.NewLine + "State: project-level result only.");
+    }
+
     [McpServerTool(Name = "run_dotnet_test", Title = "Run dotnet test")]
     [Description(
         "Runs dotnet test on a project, solution, or test directory. Executes a process. "

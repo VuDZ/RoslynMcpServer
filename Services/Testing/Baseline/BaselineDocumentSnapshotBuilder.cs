@@ -55,6 +55,24 @@ internal static class BaselineDocumentSnapshotBuilder
         };
     }
 
+    internal static BaselineMemberKey Key(MemberDeclarationSyntax declaration, string name)
+    {
+        var path = declaration.Ancestors().Reverse().Select(ancestor => ancestor switch
+        {
+            BaseNamespaceDeclarationSyntax space => string.Concat(space.Name.DescendantTokens().Select(token => token.Text)),
+            BaseTypeDeclarationSyntax type => type.Identifier.ValueText + "`"
+                + (type is TypeDeclarationSyntax generic ? generic.TypeParameterList?.Parameters.Count ?? 0 : 0),
+            _ => null,
+        }).Where(part => part != null);
+        return new BaselineMemberKey(
+            declaration.Kind(),
+            string.Join(".", path),
+            name,
+            declaration.ChildNodes().OfType<TypeParameterListSyntax>().FirstOrDefault()?.Parameters.Count ?? 0,
+            Canonical(declaration.ChildNodes().OfType<BaseParameterListSyntax>().FirstOrDefault()),
+            Canonical(declaration.ChildNodes().OfType<ExplicitInterfaceSpecifierSyntax>().FirstOrDefault()));
+    }
+
     private static Dictionary<string, TestTypeFacts> TestTypeFactsByPath(
         IEnumerable<MemberDeclarationSyntax> declarations, ImmutableHashSet<string> baseTypeNames)
     {
@@ -221,24 +239,6 @@ internal static class BaselineDocumentSnapshotBuilder
         nextOrderByType.TryGetValue(typePath, out var order);
         nextOrderByType[typePath] = order + 1;
         return order.ToString(System.Globalization.CultureInfo.InvariantCulture);
-    }
-
-    private static BaselineMemberKey Key(MemberDeclarationSyntax declaration, string name)
-    {
-        var path = declaration.Ancestors().Reverse().Select(ancestor => ancestor switch
-        {
-            BaseNamespaceDeclarationSyntax space => string.Concat(space.Name.DescendantTokens().Select(token => token.Text)),
-            BaseTypeDeclarationSyntax type => type.Identifier.ValueText + "`"
-                + (type is TypeDeclarationSyntax generic ? generic.TypeParameterList?.Parameters.Count ?? 0 : 0),
-            _ => null,
-        }).Where(part => part != null);
-        return new BaselineMemberKey(
-            declaration.Kind(),
-            string.Join(".", path),
-            name,
-            declaration.ChildNodes().OfType<TypeParameterListSyntax>().FirstOrDefault()?.Parameters.Count ?? 0,
-            Canonical(declaration.ChildNodes().OfType<BaseParameterListSyntax>().FirstOrDefault()),
-            Canonical(declaration.ChildNodes().OfType<ExplicitInterfaceSpecifierSyntax>().FirstOrDefault()));
     }
 
     private static IEnumerable<string> Names(MemberDeclarationSyntax declaration) => declaration switch

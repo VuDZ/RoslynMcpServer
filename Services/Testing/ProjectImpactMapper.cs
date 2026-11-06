@@ -102,6 +102,35 @@ internal static class ProjectImpactMapper
         return solution.ProjectIds.Where(expanded.Contains).ToArray();
     }
 
+    internal static async Task<HashSet<ProjectId>> FindTestProjectsAsync(Solution solution, CancellationToken cancellationToken)
+    {
+        var projects = new HashSet<ProjectId>();
+        foreach (var project in solution.Projects)
+        {
+            foreach (var document in project.Documents)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (!WorkspaceDiskPathFilter.IsCSharpSource(document.FilePath))
+                {
+                    continue;
+                }
+                var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
+                var model = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
+                if (root is not null && model is not null
+                    && root.DescendantNodes().OfType<MethodDeclarationSyntax>().Any(method =>
+                        TestDiscoveryHelper.HasTestAttribute(method, model)
+                        && model.GetDeclaredSymbol(method, cancellationToken) is not null))
+                {
+                    projects.Add(project.Id);
+                    break;
+                }
+            }
+        }
+        projects.UnionWith((await VstestTestInventory.BuildAsync(solution, cancellationToken).ConfigureAwait(false))
+            .Select(testClass => testClass.ProjectId));
+        return projects;
+    }
+
     private static IReadOnlyList<ProjectId> ProjectsForPath(
         Solution solution,
         WorkspaceInputMap inputMap,
@@ -134,33 +163,6 @@ internal static class ProjectImpactMapper
         var nearestLength = candidates.Length == 0 ? 0 : candidates.Max(static project => project.Directory.Length);
         return candidates.Where(project => project.Directory.Length == nearestLength)
             .Select(static project => project.Id).ToArray();
-    }
-
-    private static async Task<HashSet<ProjectId>> FindTestProjectsAsync(Solution solution, CancellationToken cancellationToken)
-    {
-        var projects = new HashSet<ProjectId>();
-        foreach (var project in solution.Projects)
-        {
-            foreach (var document in project.Documents)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                if (!WorkspaceDiskPathFilter.IsCSharpSource(document.FilePath))
-                {
-                    continue;
-                }
-                var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
-                var model = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
-                if (root is not null && model is not null
-                    && root.DescendantNodes().OfType<MethodDeclarationSyntax>().Any(method =>
-                        TestDiscoveryHelper.HasTestAttribute(method, model)
-                        && model.GetDeclaredSymbol(method, cancellationToken) is not null))
-                {
-                    projects.Add(project.Id);
-                    break;
-                }
-            }
-        }
-        return projects;
     }
 
     private static bool IsRestoreInput(string path)
