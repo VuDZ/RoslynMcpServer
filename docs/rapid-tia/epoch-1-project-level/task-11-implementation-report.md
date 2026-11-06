@@ -3,7 +3,7 @@
 - Дата подготовки: **2026-11-06** (Europe/Moscow).
 - Исполнитель: **Codex**, `/root/task11_implementer`; точный runtime model ID средой не предоставлен.
 - База: `0e4d3fa`; последний production-коммит task-09 — `8e103a6`.
-- Статус: **reopened, 2026-11-06** — [второй рецензент — MUST-FIX R1-001](evidence/task-11-review-round-1-claude.md), раунд 2 по решению владельца; приёмка VSTest-scope эпохи 1 приостановлена. Прежняя приёмка: **1 раунд / 0 исправлений**, [независимый ACCEPT](evidence/task-11-review-round-1.md), [финальная validation](evidence/task-11-final-validation.md): Release build PASS, focused145/145, SourceStructure123/123, main2004/2004, AnalyzerLifecycle13/13. Task-10 deferred, эпохи2–4 не активированы; production-механизм T09-C1 не исправлялся.
+- Статус: **accepted повторно, 2026-11-06**, версия **1.7.0**, **2 раунда / 1 исправление**. R1-001 закрыто тем же исполнителем; [раунд 2 — ACCEPT](evidence/task-11-review-round-2.md), [docs-only validation](evidence/task-11-final-validation-round-2.md). Приёмка VSTest-scope эпохи1 восстановлена; task-10 deferred, эпохи2–4 не активированы. Прежние runtime-проверки той же версии кода не выдаются за новые; T09-C1 не исправлялось.
 - Scope: существующие сквозные сценарии task-03/08/09, документация уровня 0 и ограничения T09-C1, workflow агента, CHANGELOG и версия **1.7.0**. Task-10 остаётся deferred, эпохи 2–4 не активируются.
 - Изменений production C#, тестов, схемы/description инструмента и зависимостей нет. Новых тестов приёмки после реализации нет: обязательные сценарии уже есть в задачах-источниках. Искусственная RED-фаза task-11 по R-16 не создавалась.
 
@@ -93,3 +93,11 @@ FullyQualifiedName~RoslynMcpServer.Tests.Testing.BaselineSessionIntegrationTests
 - Автоматическое protocol notification при одном лишь локальном client cancellation token не подтверждено. Настоящий тест отправляет notification явно.
 - SourceStructure inventory не редактировался. Публичные tools/counts/schema и ограничения runtime names не расширялись. MTP остаётся на существующем пути, task-10 deferred.
 - Commit/push/release исполнитель не выполняет; посторонняя untracked `.agents/skills/prepare-github-release/` не изменялась. Финальная приёмка и согласованные статусы принадлежат координатору.
+
+## Исправление R1-001 перед раундом 2
+
+[Второй рецензент раунда 1](evidence/task-11-review-round-1-claude.md#r1-001--фильтр-через-run_test_by_filter-по-инструкции-идёт-на-старых-бинарниках) обнаружил неверную инструкцию после сохранённых правок: ручной `run_test_by_filter(project, filter)` по умолчанию пропускает сборку и может пройти на старой DLL. Владелец переоткрыл task-11; исправление на базе `45ea344` выполнил тот же Codex `/root/task11_implementer` (точный runtime model ID средой не предоставлен).
+
+Исправлены ровно три workflow-места: существующие EN/RU записи `estimate_affected_tests` в README и `AGENTS.md.sample` → During edits. Теперь ручной запуск возвращённого фильтра требует явный `noBuild: false` для сборки текущих исходников; сказано, что omit пропускает сборку, а такая ручная сборка может вызвать T09-C1, как `run`. ARCHITECTURE, JIT help и tool description проверены: аналогичной неверной ручной инструкции в них нет, C# строки не менялись. Источник умолчания, существующая stale-DLL регрессия и результаты doc checks — [evidence исправления](evidence/task-11-review-round-2-fix.md).
+
+Изменены только README/sample и Markdown-отчёты. Повторных build/tests, искусственного RED, bump версии или нового runtime-замера нет; прежняя validation не объявляется новым запуском. Свежий [раунд 2 — ACCEPT](evidence/task-11-review-round-2.md) закрыл R1-001; координатор [повторно оформил приёмку](evidence/task-11-final-validation-round-2.md) task-11 и VSTest-scope эпохи1. Счётчики — **2 раунда / 1 исправление**, код/settings и версия1.7.0 сохранены.

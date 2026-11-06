@@ -1,0 +1,35 @@
+# Task-11 / закрытие эпохи 1 — независимое ревью, раунд 2
+
+- Дата: **2026-11-06**, Europe/Moscow.
+- Рецензент: **Codex**, свежая независимая сессия `/root/task11_review_round2`; точный runtime model ID средой не предоставлен.
+- База: `45ea344` (`45ea3449c04443f2079918702399b80d83e7cbe2`). Проверены текущий diff README/sample и добавление в implementation report, новое [evidence исправления](task-11-review-round-2-fix.md), [поручение раунда 2](../task-11-integration-and-docs-med.md#раунд-2-r1-001-решение-владельца) и [MUST-FIX второго рецензента](task-11-review-round-1-claude.md#r1-001--фильтр-через-run_test_by_filter-по-инструкции-идёт-на-старых-бинарниках).
+- Scope: **только docs-only исправление R1-001 task-11** и его достаточность для повторной приёмки task-11 / VSTest-scope эпохи 1. Посторонняя untracked `.agents/skills/prepare-github-release/` исключена.
+- Правило возврата: **R-18** — конкретная неверная инструкция/ответ или молчаливая потеря тестов. Принятые решения task-03/08/09, цена и огрубление T09-C1 заново не проектировались.
+- Вердикт: **ACCEPT**. R1-001 task-11 закрыто исправлением инструкции; MUST-FIX замечаний нет. Независимый review gate повторной приёмки task-11 и VSTest-scope эпохи 1 пройден. Финальные статусы и учёт обновляет координатор.
+
+## Закрытие R1-001
+
+1. **Три действующих workflow исправлены одинаково.** [README EN/RU](../../../../README.md), строки **575** и **1492**, и [AGENTS.md.sample](../../../../AGENTS.md.sample), строка **58**, после сохранённых правок требуют `run_test_by_filter` с явным `noBuild: false`. Они прямо предупреждают, что omit пропускает сборку и может выполнить старые бинарники. Во всех трёх местах ручная сборка связана с тем же T09-C1, что и `run`; whole-project путь остаётся `run_dotnet_test`.
+
+2. **Инструкция соответствует исполнению.** В [TestTools.cs](../../../../Tools/TestTools.cs), строки **23–42**, умолчание filter-tool — true, остальных двух test tools — false; `RunTestByFilter` передаёт filter-константу в общий исполнитель (**332–341**). [TestBuildRoute.Resolve](../../../../Services/Build/TestBuildRoute.cs) выбирает для non-DLL пути `noBuild ?? omittedNoBuildSkipsRebuild` (**43**), поэтому явное false действительно отменяет историческое skip-умолчание. Общий путь передаёт `route.NoBuild` в `BuildPlan` (**TestTools.cs:654–661**); [DotNetTestArguments](../../../../Services/Build/DotNetTestArguments.cs), **109–120**, при false создаёт pre-test build, затем test с `--no-build --no-restore`. [DotNetTestExecutor](../../../../Services/Build/DotNetTestExecutor.cs), **29–56**, выполняет эту сборку до тестов и при её ошибке не запускает старую DLL. Собственный `run` также явно использует `noBuild: false` (**TestTools.cs:502–504**).
+
+3. **Исходный риск подтверждён существующей регрессией, а не новым заявленным запуском.** [EstimateAffectedTestsRunTests](../../../../RoslynMcpServer.Tests/Testing/EstimateAffectedTestsRunTests.cs), **53–74**, сохраняет failing source, вызывает filter-tool без `noBuild`, видит прежний PASS без нового маркера, затем `run: true` исполняет новый body, получает `Failed: 2` и продолжает второй проект. Исправление документации устраняет именно этот неверный шаг потребителя. Намеренный `noBuild: true` в соседнем replay (**37**) и исторические отчёты остаются доказательствами сравнения наборов, а не рекомендуемым workflow после новых правок; [evidence исправления](task-11-review-round-2-fix.md) и новый раздел [implementation report](../task-11-implementation-report.md#исправление-r1-001-перед-раундом-2) это различают.
+
+## Аудит остальных инструкций
+
+- [ARCHITECTURE](../../../ARCHITECTURE.md#rapid-tia-level-0), **126–133**, описывает estimate-only, внутренний build/test путь `run` и принятое T09-C1. Вызвать возвращённый фильтр вручную с omit `noBuild` она не предлагает.
+- [JIT help](../../../../Hosting/McpToolHelpCatalog.cs), **66–71**, описывает план и `run=true`; `run_test_by_filter` находится только в `RelatedTools`. Собственная справка filter-tool (**144–147**) уже явно сообщает `Default noBuild=true` и сборку при false. [Description инструмента](../../../../Tools/TestTools.cs), **56–68**, также описывает `run=true` без неверного ручного шага. Исправлять C# строки для закрытия R1-001 не требуется.
+- Остальные текущие упоминания в README/sample — каталог, параметры, выбор raw VSTest filter или повтор после сборки. [Adapter replay](../../../../spikes/AdapterTestNames/README.md#повторение), **19–30**, сначала требует build. Упоминания в [программе](../../README.md) описывают форму результата, выбор инструмента и приёмочные сценарии; программа отдельно фиксирует skip-умолчание filter-tool (**520–521**), а не обещает свежую сборку при omit. Эквивалентной ошибочной пошаговой инструкции после сохранения правки не найдено.
+- Исторические evidence/RED и нереализованный план test-runner-selection не переписывались. Новых tool/schema/runner требований, активации MTP или эпох 2–4 исправление не вводит.
+
+## Оценка validation и границы
+
+- Текущий tracked diff: ровно три workflow-параграфа и раздел implementation report; новое evidence — Markdown. C#, тесты, project/build settings, зависимости, tool schema/description и version fields не менялись. Версия остаётся **1.7.0 / 1.7.0.0 / 1.7.0.0**.
+- Самостоятельно выполнены только read-only проверки: `git -c core.whitespace=cr-at-eol diff --check` — PASS; **52** локальных пути ссылок в evidence исправления и implementation report разрешаются, отсутствующих нет. Якоря всех этих ссылок отдельно не проверялись. Diff с `13ded97` по `*.cs`, `*.csproj`, `*.props`, `*.targets`, `*.sln`, `*.slnx` пуст.
+- По явному решению владельца в поручении раунда 2 это docs-only исправление закрывается **без** новых build, main, SourceStructure, AnalyzerLifecycle, искусственного RED и bump версии. Рецензент ничего из этого не запускал; прежние результаты не объявляются свежей validation.
+- [Windows validation](task-11-final-validation.md): Release build, focused **145/145**, SourceStructure **123/123**, main **2004/2004**, opted-in Lifecycle **13/13**; [внешний Linux main](task-11-review-round-1-claude.md#что-подтверждено) на `13ded97` — **1996/1996**. Это исторические проверки того же кода; Linux-результат принадлежит второму рецензенту раунда 1. Новых OS/adapter/owner измерений в раунде 2 нет.
+- T09-C1 остаётся принятым ограничением точности и стоимости. Исправление предотвращает рекомендованный запуск старой DLL, но не меняет механизм расширения после сборки и не делает приблизительную выборку заменой полного suite/CI.
+
+Учёт: этот отчёт — **раунд 2 task-11**, одно исправление **R1-001 task-11**. Одноимённое исправление task-09 к нему не прибавляется. Координатор восстанавливает согласованные дату, accepted VSTest scope и evidence links в task/index/report после этого ACCEPT; task-10 остаётся deferred, эпохи 2–4 не активированы.
+
+Не запускались build/tests и новые runtime-измерения; стиль C# не оценивался, другие файлы рецензент не изменял. Риск T09-C1 и прежние границы сквозной приёмки сохраняются.

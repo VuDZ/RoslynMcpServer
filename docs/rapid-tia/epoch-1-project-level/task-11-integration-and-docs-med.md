@@ -5,13 +5,13 @@
 - Примерная сложность: 3/5; класс `med`.
 - Риск ошибки: средний — документация, которая обещает больше, чем делает инструмент, размывает предупреждение о приблизительности.
 - Необходимые способности: `согласованность_компонентов`, `проектирование_проверок`, `независимая_проверка`.
-- Статус: **reopened, 2026-11-06** — решение владельца: второй раунд по [R1-001](evidence/task-11-review-round-1-claude.md#r1-001--фильтр-через-run_test_by_filter-по-инструкции-идёт-на-старых-бинарниках) (рабочий цикл предлагает выполнить фильтр через `run_test_by_filter`, который по умолчанию не собирает, и тест проходит на старой DLL). Прежняя приёмка 2026-11-06 (совместная сквозная приёмка VSTest-уровня 0, документация/ограничения, owner-проба T09-C1, версия **1.7.0**; [финальная validation](evidence/task-11-final-validation.md)) и вместе с ней приёмка VSTest-scope эпохи 1 приостановлены до закрытия R1-001.
+- Статус: **accepted повторно, 2026-11-06**, версия **1.7.0**. R1-001 закрыто: ручной returned filter после правок требует `run_test_by_filter` с `noBuild: false`; связь с T09-C1 описана. [Раунд 2 — ACCEPT](evidence/task-11-review-round-2.md), [повторная docs-only validation](evidence/task-11-final-validation-round-2.md). Приёмка VSTest-scope эпохи 1 восстановлена; task-10 deferred, эпохи2–4 не активированы.
 - Depends on: [task-03](task-03-baseline-lifecycle-hi.md), [task-08](task-08-estimate-tool-hi.md), [task-09](task-09-run-vstest-hi.md).
 - Модель, реализовавшая задачу: Codex (точный runtime model ID средой не предоставлен), `/root/task11_implementer`; финальная validation/bookkeeping — координатор.
-- Модели, проводившие ревью: Codex (точный runtime model ID средой не предоставлен), независимый `/root/task11_review_round1`; Claude Opus 5.5, второй рецензент раунда 1.
-- Количество раундов ревью: **1**; [ACCEPT Codex](evidence/task-11-review-round-1.md), [второй рецензент — MUST-FIX R1-001](evidence/task-11-review-round-1-claude.md); раунд 2 назначен владельцем. Ревью task-11 по-прежнему служит и ревью закрытия VSTest-scope эпохи 1.
-- Количество исправлений после ревью: **0**, R1-001 открыто; T09-C1 остаётся принятым ограничением, механизм не изменён.
-- Отчёт о реализации, ревью и validation: [карта приёмки](task-11-implementation-report.md), [owner measurement](evidence/task-11-owner-measurement.md), [review — ACCEPT](evidence/task-11-review-round-1.md), [второй рецензент](evidence/task-11-review-round-1-claude.md), [финальная validation](evidence/task-11-final-validation.md).
+- Модели, проводившие ревью: Codex (точный runtime model ID средой не предоставлен), независимые `/root/task11_review_round1` и `/root/task11_review_round2`; Claude Opus 5.5, второй рецензент раунда 1.
+- Количество раундов ревью: **2**; [раунд 1 Codex](evidence/task-11-review-round-1.md), [раунд 1 Claude — MUST-FIX R1-001](evidence/task-11-review-round-1-claude.md), [раунд 2 — ACCEPT](evidence/task-11-review-round-2.md). Те же reviews закрывают VSTest-scope эпохи 1, без дополнительных раундов.
+- Количество исправлений после ревью: **1**, R1-001 закрыто тем же исполнителем; T09-C1 остаётся принятым ограничением, механизм не изменён.
+- Отчёт о реализации, ревью и validation: [карта приёмки](task-11-implementation-report.md), [owner measurement](evidence/task-11-owner-measurement.md), [MUST-FIX](evidence/task-11-review-round-1-claude.md), [исправление](evidence/task-11-review-round-2-fix.md), [раунд 2 — ACCEPT](evidence/task-11-review-round-2.md), [повторная validation](evidence/task-11-final-validation-round-2.md), [прежняя runtime validation](evidence/task-11-final-validation.md).
 
 ## Цель
 
