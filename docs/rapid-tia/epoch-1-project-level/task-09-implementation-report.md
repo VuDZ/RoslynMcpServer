@@ -54,6 +54,8 @@ Production: `Tools/TestTools.cs`; `Services/Build/DotNetTestExecutor.cs`; `Servi
 
 После исправления R1-001 координатор повторил все проверки на окончательном коде: Release solution build PASS (3 прежних предупреждения), focused220/220, SourceStructure123/123, main2004/2004, opted-in AnalyzerLifecycle13/13. [Независимый раунд 2 — ACCEPT](evidence/task-09-review-round-2.md); [финальный отчёт](evidence/task-09-final-validation.md). Linux/macOS не запускались; автоматическая отмена клиента без фактического protocol notification не подтверждена. До исправления [зелёная validation](evidence/task-09-validation-before-round-2.md) сохранена как история. Accepted scope/date отражены также в task file, README эпохи, программы и индексе docs.
 
+[Второй рецензент раунда 2 — ACCEPT](evidence/task-09-review-round-2-claude.md): Linux main **1996/1996**, все 24 новых теста task-09, включая timeout и MCP-отмену, прошли на Linux. Ограничение T09-C1: после собственной сборки `run` выходная сборка проекта числится изменённым входом, и проект с зависимыми тестовыми проектами идёт целиком до загрузки другого solution; откат и reload этого не снимают. Тесты не теряются. По решению владельца передано в task-11 и замер R-18, без нового раунда.
+
 ## Исправление после раунда 1 — R1-001
 
 [Независимый раунд1 — MUST-FIX](evidence/task-09-review-round-1.md) обнаружил реальную неверную инструкцию: build failure направлял к `reportCursor` этого же инструмента, а длинный failed StdOut предлагал `includeFullOutput`/`maxOutputChars`; ни одного из этих параметров в минимальной schema нет.
