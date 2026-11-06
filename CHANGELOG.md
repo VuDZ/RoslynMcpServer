@@ -2,6 +2,11 @@
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.6.1
+
+- `estimate_affected_tests` no longer selects every test project permanently after an ordinary reload of the same solution. C# changes still compare against the original baseline, restored edits can return an empty plan, and the response keeps the non-C# reload uncertainty in `Not covered`. Actual watcher or snapshot failures still select all test projects conservatively across reloads.
+- Deleted additional inputs and unmapped changed paths remain visible after reload, including `.cs` files that were not compilation sources at the original load.
+
 ### v1.5.18
 
 - `reset_workspace` frees the previous solution, and a fresh `load_workspace` no longer keeps it while it builds the new one. The cached search snapshot (the published solution without unresolved analyzer references) was keyed by the solution it came from and outlived the workspace, so the whole old graph stayed in memory until the next search.

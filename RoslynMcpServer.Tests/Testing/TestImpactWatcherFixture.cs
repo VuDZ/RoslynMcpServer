@@ -22,7 +22,7 @@ internal sealed class TestImpactWatcherFixture : IAsyncDisposable
         Files.Dispose();
     }
 
-    internal async Task LoadAsync()
+    internal async Task LoadAsync(bool suppressGeneratedFiles = false)
     {
         MsBuildBootstrapper.Register();
         Files.ReplaceSource(Files.Library, DeletedSourcePath, "class Old { void Run() {} }");
@@ -33,6 +33,12 @@ internal sealed class TestImpactWatcherFixture : IAsyncDisposable
             var text = await File.ReadAllTextAsync(project.FilePath!);
             text = text.Replace("<EnableDefaultCompileItems>false</EnableDefaultCompileItems>",
                 "<EnableDefaultCompileItems>true</EnableDefaultCompileItems>", StringComparison.Ordinal);
+            if (suppressGeneratedFiles)
+            {
+                text = text.Replace("</PropertyGroup>",
+                    "<GenerateAssemblyInfo>false</GenerateAssemblyInfo><GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute></PropertyGroup>",
+                    StringComparison.Ordinal);
+            }
             foreach (var document in project.Documents.Where(document =>
                 WorkspaceDiskPathFilter.IsPathUnderDirectory(document.FilePath!, Path.GetDirectoryName(project.FilePath!)!, InputPathCanon.Comparison)))
             {

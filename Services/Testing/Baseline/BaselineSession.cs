@@ -31,7 +31,12 @@ internal sealed class BaselineSession
                 touched = touched.Union(_rescanPaths);
             }
             return new BaselineSessionSnapshot(_workspacePath, _generation, _publishedAtUtc,
-                _documents.Values.ToImmutableArray(), touched, _requiresFullScan);
+                _documents.Values.ToImmutableArray(), touched, _requiresFullScan)
+            {
+                HasObservationGap = _hasObservationGap,
+                LoadedSourcePaths = _rescanPaths.ToImmutableHashSet(InputPathCanon.Comparer),
+                OriginalNonSourcePaths = _originalNonSourcePaths,
+            };
         }
     }
 
@@ -90,7 +95,7 @@ internal sealed class BaselineSession
                 return;
             }
 
-            InitializeBaselineUnderLock(canonical, publishedAtUtc, inventory);
+            InitializeBaselineUnderLock(canonical, publishedAtUtc, inventory, solution);
             foreach (var path in _pendingWrites)
             {
                 RecordWriteUnderLock(path);
@@ -140,6 +145,7 @@ internal sealed class BaselineSession
                 || InputPathCanon.Comparer.Equals(_workspacePath, _pendingWorkspacePath)))
             {
                 _requiresFullScan = true;
+                _hasObservationGap = true;
                 FreezePendingUnderLock();
             }
         }
@@ -199,7 +205,10 @@ internal sealed class BaselineSession
     }
 
     private void InitializeBaselineUnderLock(
-        string workspacePath, DateTime publishedAtUtc, ImmutableArray<(BaselineDocumentKey Key, DocumentId Id)> inventory)
+        string workspacePath,
+        DateTime publishedAtUtc,
+        ImmutableArray<(BaselineDocumentKey Key, DocumentId Id)> inventory,
+        Solution solution)
     {
         _workspacePath = workspacePath;
         _publishedAtUtc = publishedAtUtc;
@@ -208,9 +217,18 @@ internal sealed class BaselineSession
         _versions.Clear();
         _touched.Clear();
         _rescanPaths.Clear();
+        _originalNonSourcePaths = solution.Projects.SelectMany(project =>
+                project.AdditionalDocuments.Concat(project.AnalyzerConfigDocuments).Select(document => document.FilePath)
+                    .Concat(project.MetadataReferences.Select(reference =>
+                        (reference as PortableExecutableReference)?.FilePath ?? reference.Display))
+                    .Concat(project.AnalyzerReferences.Select(reference => reference.FullPath))
+                    .Concat([project.FilePath, project.OutputFilePath, project.OutputRefFilePath]))
+            .Append(solution.FilePath)
+            .Select(KeyPath).Where(path => path.Length > 0).ToImmutableHashSet(InputPathCanon.Comparer);
         // A startup gap requires rescanning, but must not discard the first baseline before any capture can run.
         // Journaled writes still invalidate individual paths. See docs/rapid-tia/epoch-1-project-level/evidence/task-03-review-round-5.md (R5-004).
         _requiresFullScan = _pendingObservationGap;
+        _hasObservationGap = _pendingObservationGap;
         foreach (var entry in inventory)
         {
             _documents.Add(entry.Key, new BaselineDocumentState(entry.Key, BaselineDocumentStatus.Pending, null));
@@ -248,6 +266,7 @@ internal sealed class BaselineSession
                 {
                     FreezePendingUnderLock();
                     _requiresFullScan = true;
+                    _hasObservationGap = true;
                 }
             }
         }
@@ -421,6 +440,7 @@ internal sealed class BaselineSession
     private readonly Dictionary<string, long> _versions = new(InputPathCanon.Comparer);
     private readonly HashSet<string> _touched = new(InputPathCanon.Comparer);
     private readonly HashSet<string> _rescanPaths = new(InputPathCanon.Comparer);
+    private ImmutableHashSet<string> _originalNonSourcePaths = ImmutableHashSet<string>.Empty;
     private readonly HashSet<string> _pendingWrites = new(InputPathCanon.Comparer);
     private string? _workspacePath;
     private string? _pendingWorkspacePath;
@@ -428,6 +448,7 @@ internal sealed class BaselineSession
     private long _generation;
     private DateTime _publishedAtUtc;
     private bool _requiresFullScan;
+    private bool _hasObservationGap;
     private CancellationTokenSource? _captureCancellation;
     private Task _captureTask = Task.CompletedTask;
 }

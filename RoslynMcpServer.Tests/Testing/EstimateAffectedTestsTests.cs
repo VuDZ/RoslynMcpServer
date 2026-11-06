@@ -181,7 +181,9 @@ public sealed class EstimateAffectedTestsTests
         {
             if (reload)
             {
-                await fixture.Manager.LoadAsync(fixture.ProjectPath);
+                await fixture.Manager.LoadAsync(fixture.ProjectPath, CancellationToken.None, configuration: "Release");
+                Assert.True(fixture.Manager.LastLoadReopenedGraph);
+                Assert.False(fixture.Manager.LastLoadWasCacheHit);
             }
             var result = await Tools(fixture.Manager).EstimateAffectedTests();
             AssertResponse(result);

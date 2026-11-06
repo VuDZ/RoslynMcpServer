@@ -21,7 +21,7 @@ internal static class TestImpactEstimator
     {
         var changedPaths = baseline.TouchedPaths.ToHashSet(InputPathCanon.Comparer);
         var notCovered = new List<string>();
-        var documents = await DocumentsAsync(solution, baseline, changedPaths, notCovered, cancellationToken).ConfigureAwait(false);
+        var documents = await DocumentsAsync(solution, inputMap, baseline, changedPaths, notCovered, cancellationToken).ConfigureAwait(false);
         var mapped = await ProjectImpactMapper.MapAsync(solution, inputMap, changedPaths, workspacePath,
             projectGraphStale, projectGraphStaleFromGraphFile, cancellationToken).ConfigureAwait(false);
         await AddUnloadedDocumentsAsync(solution, mapped, documents, notCovered, cancellationToken).ConfigureAwait(false);
@@ -31,7 +31,7 @@ internal static class TestImpactEstimator
             .ToHashSet(StringComparer.Ordinal);
         var impact = TestImpactComposer.Compose(solution, mapped, documents, [], baseNames, cancellationToken);
         var classes = await VstestTestInventory.BuildAsync(solution, cancellationToken).ConfigureAwait(false);
-        if (baseline.RequiresFullScan)
+        if (baseline.HasObservationGap)
         {
             var expanded = impact.ExpandedTestProjects.ToDictionary(pair => pair.Key, pair => pair.Value);
             var testProjects = await ProjectImpactMapper.FindTestProjectsAsync(solution, cancellationToken).ConfigureAwait(false);
@@ -43,6 +43,13 @@ internal static class TestImpactEstimator
             impact = impact with { ExpandedTestProjects = expanded };
             notCovered.Add("Observation gap: non-C# input history is incomplete and the project graph may be stale. "
                 + "This limitation persists for this baseline, including after reload.");
+        }
+        else if (baseline.RequiresFullScan)
+        {
+            // Ordinary reload requires C# rescanning without permanent unrelated-project expansion.
+            // See docs/rapid-tia/epoch-1-project-level/evidence/task-08-review-round-2-claude.md (R2-001).
+            notCovered.Add("Reload/reopen observation window: non-C# changes may have been missed. "
+                + "C# sources are rescanned; this non-C# limitation persists for this baseline.");
         }
         notCovered.AddRange(mapped.NotCoveredPaths.Select(path => "Path outside the loaded input map: " + path));
         if (impact.ProjectGraphStale)
@@ -56,6 +63,7 @@ internal static class TestImpactEstimator
 
     private static async Task<List<DocumentImpact>> DocumentsAsync(
         Solution solution,
+        WorkspaceInputMap inputMap,
         BaselineSessionSnapshot baseline,
         HashSet<string> changedPaths,
         List<string> notCovered,
@@ -63,14 +71,22 @@ internal static class TestImpactEstimator
     {
         var documents = new List<DocumentImpact>();
         var before = baseline.Documents.ToDictionary(state => state.Key);
+        var originalPaths = baseline.Documents.Select(state => state.Key.DocumentPath).ToHashSet(InputPathCanon.Comparer);
         var inventory = BaselineSession.Inventory(solution);
-        var comparedPaths = baseline.Documents.Select(state => state.Key.DocumentPath)
+        var comparedPaths = originalPaths
             .Concat(inventory.Select(entry => entry.Key.DocumentPath)).ToHashSet(InputPathCanon.Comparer);
         changedPaths.ExceptWith(comparedPaths);
+        // A refreshed map can lose an original AdditionalFile; only proven new-source tombstones are removable.
+        // See docs/rapid-tia/epoch-1-project-level/evidence/task-08-review-round-3.md (R3-001).
+        changedPaths.RemoveWhere(path => WorkspaceDiskPathFilter.IsCSharpSource(path)
+            && baseline.LoadedSourcePaths.Contains(path) && !originalPaths.Contains(path)
+            && !baseline.OriginalNonSourcePaths.Contains(path) && !File.Exists(path) && inputMap.Find(path) is null);
         foreach (var entry in inventory)
         {
             cancellationToken.ThrowIfCancellationRequested();
             var document = solution.GetDocument(entry.Id)!;
+            var isNewSourcePath = !originalPaths.Contains(document.FilePath!)
+                && !baseline.OriginalNonSourcePaths.Contains(document.FilePath!);
             before.Remove(entry.Key, out var previous);
             if (previous is not null && previous.Status != BaselineDocumentStatus.Known)
             {
@@ -79,6 +95,11 @@ internal static class TestImpactEstimator
             // Disk sync retains cached text for a missing file; deletion must not compare that text as unchanged.
             if (!File.Exists(document.FilePath))
             {
+                if (isNewSourcePath
+                    && inputMap.Find(document.FilePath!)?.Occurrences.All(occurrence => occurrence.Role == InputRole.UserInput) != false)
+                {
+                    continue;
+                }
                 changedPaths.Add(document.FilePath!);
                 var removed = previous?.Snapshot?.Members.Select(member => new BaselineDocumentChange(
                     BaselineChangeKind.MemberRemoved, BaselineChangeReason.MemberSyntax, member.Key)).ToArray();
@@ -96,6 +117,18 @@ internal static class TestImpactEstimator
             var current = BaselineDocumentSnapshotBuilder.Build(tree);
             IReadOnlyList<BaselineDocumentChange>? changes = previous is { Status: BaselineDocumentStatus.Known, Snapshot: { } snapshot }
                 ? BaselineDocumentChangeDetector.Compare(snapshot, current) : null;
+            if (previous is null && isNewSourcePath)
+            {
+                // Original path absence proves addition; ordinary imports/namespaces affect only this new file.
+                // Global usings, assembly attributes, directives and binding-sensitive members still widen normally.
+                var empty = BaselineDocumentSnapshotBuilder.Build(CSharpSyntaxTree.ParseText(""))
+                    with { ImportsAndNamespacesHash = current.ImportsAndNamespacesHash };
+                changes = BaselineDocumentChangeDetector.Compare(empty, current);
+            }
+            else if (previous is null)
+            {
+                notCovered.Add("Baseline unknown for this document context: " + document.FilePath);
+            }
             documents.Add(new DocumentImpact(entry.Id.ProjectId, document.FilePath!, current, changes));
             if (changes is null || changes.Count > 0)
             {
