@@ -3,7 +3,7 @@
 - Дата подготовки: **2026-11-06** (Europe/Moscow).
 - Исполнитель: **Codex**, `/root/task11_implementer`; точный runtime model ID средой не предоставлен.
 - База: `0e4d3fa`; последний production-коммит task-09 — `8e103a6`.
-- Статус: **accepted, 2026-11-06**, VSTest-scope task-11 и закрытия эпохи1; **1 раунд / 0 исправлений**. [Независимый ACCEPT](evidence/task-11-review-round-1.md), [финальная validation](evidence/task-11-final-validation.md): Release build PASS, focused145/145, SourceStructure123/123, main2004/2004, AnalyzerLifecycle13/13. Task-10 deferred, эпохи2–4 не активированы; production-механизм T09-C1 не исправлялся.
+- Статус: **reopened, 2026-11-06** — [второй рецензент — MUST-FIX R1-001](evidence/task-11-review-round-1-claude.md), раунд 2 по решению владельца; приёмка VSTest-scope эпохи 1 приостановлена. Прежняя приёмка: **1 раунд / 0 исправлений**, [независимый ACCEPT](evidence/task-11-review-round-1.md), [финальная validation](evidence/task-11-final-validation.md): Release build PASS, focused145/145, SourceStructure123/123, main2004/2004, AnalyzerLifecycle13/13. Task-10 deferred, эпохи2–4 не активированы; production-механизм T09-C1 не исправлялся.
 - Scope: существующие сквозные сценарии task-03/08/09, документация уровня 0 и ограничения T09-C1, workflow агента, CHANGELOG и версия **1.7.0**. Task-10 остаётся deferred, эпохи 2–4 не активируются.
 - Изменений production C#, тестов, схемы/description инструмента и зависимостей нет. Новых тестов приёмки после реализации нет: обязательные сценарии уже есть в задачах-источниках. Искусственная RED-фаза task-11 по R-16 не создавалась.
 
