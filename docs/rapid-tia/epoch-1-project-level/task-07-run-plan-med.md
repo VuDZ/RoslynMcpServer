@@ -8,10 +8,10 @@
 - Статус: **accepted, 2026-11-06**; scope — чистый VSTest-планировщик по проектам, экранирование/свёртка, бюджет 16000 символов и закрытие T06-C1; [validation](evidence/task-07-final-validation.md).
 - Depends on: [task-05](task-05-response-composition-med.md), [task-06](task-06-adapter-test-names-probe-low.md).
 - Модель, реализовавшая задачу: Codex (точный runtime model ID средой не предоставлен).
-- Модели, проводившие ревью: Codex, независимая сессия (точный runtime model ID средой не предоставлен).
+- Модели, проводившие ревью: Codex, независимая сессия (точный runtime model ID средой не предоставлен); Claude Opus 5.5, второй рецензент того же раунда.
 - Количество раундов ревью: **1**, [ACCEPT по R-18](evidence/task-07-review-round-1.md).
-- Количество исправлений после ревью: **0**; обязательная передача T06-C1 закрыта первоначальной реализацией, [подтверждение](evidence/task-07-review-round-1.md#t06-c1--закрыто).
-- Отчёт о реализации, ревью и validation: [отчёт](task-07-implementation-report.md), [ревью](evidence/task-07-review-round-1.md), [финальная validation](evidence/task-07-final-validation.md).
+- Количество исправлений после ревью: **0**; обязательная передача T06-C1 закрыта первоначальной реализацией, [подтверждение](evidence/task-07-review-round-1.md#t06-c1--закрыто); T07-C1 ([второй рецензент](evidence/task-07-review-round-1-claude.md)) передано в task-08.
+- Отчёт о реализации, ревью и validation: [отчёт](task-07-implementation-report.md), [ревью](evidence/task-07-review-round-1.md), [второй рецензент](evidence/task-07-review-round-1-claude.md), [финальная validation](evidence/task-07-final-validation.md).
 
 ## Цель
 

@@ -62,3 +62,4 @@ AnalyzerLifecycle дополнительно не требуется: analyzer/s
 - [Validation координатора](evidence/task-07-final-validation.md): Release build PASS, focused **47/47**, SourceStructure **123/123**, main **1912/1912**. Начальный тестовый файл совпадает с RED по SHA-256; поздних тестов нет.
 - Следующий caller task-08 должен соблюдать документированные входные контракты полного/авторитетного runtime-инвентаря и fixture metadata. Эта приёмка не объявляет такую интеграцию реализованной.
 - Версия сохранена; Linux/WSL, MTP и новый живой adapter discovery не запускались.
+- [Второй рецензент раунда 1 — ACCEPT](evidence/task-07-review-round-1-claude.md): Linux main **1904/1904**; на реальных адаптерах `TestName`/`DisplayName` и generic-методы фильтр метода не ломают. Перевод имён по норме task-06 нигде не реализован; условие T07-C1 передано в task-08.
