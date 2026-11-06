@@ -1,0 +1,105 @@
+{
+  "date": "2026-11-06",
+  "scope": "One bounded owner-repository sequence on Windows; no unfiltered whole-project test run.",
+  "server_version": "1.7.0.0",
+  "protocol_version": "2025-11-25",
+  "configuration": "Release",
+  "source_edit": {
+    "path": "RoslynMcpServer.Tests/Testing/VstestRunPlannerTests.cs",
+    "before": "Assert.Equal(probe == \"parameters\" ? 2 : 1, actualIds.Length);",
+    "during_probe": "Assert.Equal(probe == \"parameters\" ? (1 + 1) : 1, actualIds.Length);"
+  },
+  "phases": [
+    {
+      "phase": "server-info",
+      "seconds": 0.025,
+      "text": "## Roslyn MCP server info\r\n\r\n- **Assembly:** `RoslynMcpServer` v1.7.0.0\r\n- **Process path:** `C:\\Program Files\\dotnet\\dotnet.exe`\r\n- **Binary modified (local):** 2026-10-04T22:15:32.0000000+03:00\r\n- **Base directory:** `E:\\Devel\\RoslynMcpServer-rapid-tia\\bin\\Release\\net10.0\\`\r\n- **Process working directory:** `E:\\Devel\\RoslynMcpServer-rapid-tia`\r\n- **Tool profile:** `full`\r\n- **Startup tool groups:** (none)\r\n- **Dynamic tool groups:** (none)\r\n- **Registered MCP tools:** 55\r\n- **Latest log file:** `E:\\Devel\\RoslynMcpServer-rapid-tia\\bin\\Release\\net10.0\\logs\\mcp-20261106.log`\r\n- **Plugins:** (none)\r\n- **Workspace loaded:** no\r\n- **Workspace load source:** not loaded\r\n- **RoslynMcp.jsonc (exe):** `E:\\Devel\\RoslynMcpServer-rapid-tia\\bin\\Release\\net10.0\\RoslynMcp.jsonc` (absent)\r\n- **RoslynMcp.jsonc (cwd):** `E:\\Devel\\RoslynMcpServer-rapid-tia\\RoslynMcp.jsonc` (absent)\r\n- **Merged workspace-path:** (none)\r\n- **Merged configuration:** (none)\r\n- **Merged platform:** (none)\r\n- **Merged target-framework:** (none)\r\n- **Merged max-results:** (none)\r\n- **Merged preview:** (none)\r\n- **Merged search-prewarm:** (none) (ROSLYN_MCP_SEARCH_PREWARM wins; default on)\r\n- **Search prewarm in effect:** on (default)\r\n- **Merged buildhost-optimizations:** (none) (ROSLYN_MCP_BUILDHOST_OPTIMIZATIONS wins; default on)\r\n- **Merged buildhost-evaluate-ahead-workers:** (none) (ROSLYN_MCP_BUILDHOST_EVALUATE_AHEAD_WORKERS wins; default 4; 0 turns evaluation ahead off)\r\n- **BuildHost optimizations in effect:** references first on, evaluation ahead 4 worker(s), shared SDK resolution cache on\r\n- **Merged ripgrep-path:** (none) (stored; unused until search opts in)\r\n\r\nAfter code changes run `dotnet publish -c Release -r win-x64`, then Reload MCP in Cursor."
+    },
+    {
+      "phase": "initial-load",
+      "seconds": 1.645,
+      "text": "### Workspace health\r\n- **Solution/project:** `E:\\Devel\\RoslynMcpServer-rapid-tia\\RoslynMcpServer.sln`\r\n- **DotNet working directory:** `E:\\Devel\\RoslynMcpServer-rapid-tia`\r\n- **Projects loaded:** 5\r\n- **MSBuild Configuration:** `Release`\r\n- **MSBuild Platform:** (SDK/workspace default)\r\n- **MSBuild TargetFramework:** (SDK/workspace default)\r\n- **BuildArgs:** (none)\r\n- **global.json:** (not found)\r\n- **Pinned SDK (global.json):** (none)\r\n- **Resolved SDK directory:** (not resolved)\r\n- **Restore assets:** ok (5/5 projects have project.assets.json)\r\n- **Tool profile:** `full`\r\n- **Startup tool groups:** (none)\r\n- **Dynamic tool groups:** (none)\r\n- **Registered MCP tools:** 55 (use `get_mcp_server_info` for binary path)\r\n\r\n> **Workflow:** Call `load_workspace` first. Build/test/run via `run_dotnet_build`, `run_dotnet_test`, `run_dotnet_run` — not raw shell `dotnet`. Find usages: `find_usages` / `find_symbol_references` (alias: find_references).\r\n\r\nSuccessfully loaded workspace. Found 5 projects:\r\n- DeadlockWitnessHost [Library]\r\n- RoslynMcpPlugin [Worker]\r\n- RoslynMcpServer [Worker]\r\n- RoslynMcpServer.LifecycleTestHost [Worker]\r\n- RoslynMcpServer.Tests [Test]\r\n"
+    },
+    {
+      "phase": "initial",
+      "seconds": 2.215,
+      "text": "Approximate result (rapid TIA): not a substitute for the full test suite or CI.\r\nChanged since load: 0 members in 0 files. Directly selected: 0 tests. Run plan: 0 projects.\r\nNot covered: none.\r\nState: project-level result only."
+    },
+    {
+      "phase": "edited",
+      "seconds": 1.934,
+      "text": "Approximate result (rapid TIA): not a substitute for the full test suite or CI.\r\nChanged since load: 1 members in 1 files. Directly selected: 1 tests. Run plan: 1 projects.\r\nRun: `E:\\Devel\\RoslynMcpServer-rapid-tia\\RoslynMcpServer.Tests\\RoslynMcpServer.Tests.csproj` with filter `FullyQualifiedName~RoslynMcpServer.Tests.Testing.VstestRunPlannerTests.Saved_adapter_names_select_every_measured_case`\r\nReasons: Changed test: E:\\Devel\\RoslynMcpServer-rapid-tia\\RoslynMcpServer.Tests\\Testing\\VstestRunPlannerTests.cs; VSTest contains filters select a superset; names containing a selected name also run.\r\nNot covered: none.\r\nState: project-level result only."
+    },
+    {
+      "phase": "first-run",
+      "seconds": 5.164,
+      "text": "Approximate result (rapid TIA): not a substitute for the full test suite or CI.\r\nChanged since load: 1 members in 1 files. Directly selected: 1 tests. Run plan: 1 projects.\r\nRun: `E:\\Devel\\RoslynMcpServer-rapid-tia\\RoslynMcpServer.Tests\\RoslynMcpServer.Tests.csproj` with filter `FullyQualifiedName~RoslynMcpServer.Tests.Testing.VstestRunPlannerTests.Saved_adapter_names_select_every_measured_case`\r\nReasons: Changed test: E:\\Devel\\RoslynMcpServer-rapid-tia\\RoslynMcpServer.Tests\\Testing\\VstestRunPlannerTests.cs; VSTest contains filters select a superset; names containing a selected name also run.\r\nOutcome: passed\r\nTotal: 16; Passed: 16; Failed: 0; Skipped: 0.\r\nState: project-level result only.\r\nNot covered: none."
+    },
+    {
+      "phase": "after-run",
+      "seconds": 0.747,
+      "text": "Approximate result (rapid TIA): not a substitute for the full test suite or CI.\r\nChanged since load: 1 members in 2 files. Directly selected: 1 tests. Run plan: 1 projects.\r\nRun: `E:\\Devel\\RoslynMcpServer-rapid-tia\\RoslynMcpServer.Tests\\RoslynMcpServer.Tests.csproj` whole project (project-level).\r\nReasons: Changed test: E:\\Devel\\RoslynMcpServer-rapid-tia\\RoslynMcpServer.Tests\\Testing\\VstestRunPlannerTests.cs; Project expansion without a call graph: E:\\Devel\\RoslynMcpServer-rapid-tia\\RoslynMcpServer.Tests\\bin\\Release\\net10.0\\RoslynMcpServer.Tests.dll; Project-level expansion selects the whole project.\r\nNot covered: none.\r\nState: project-level result only."
+    },
+    {
+      "phase": "reset",
+      "seconds": 0.006,
+      "text": "Workspace cleared. Call load_workspace again with your .sln, .slnx, or .csproj path."
+    },
+    {
+      "phase": "same-solution-reload",
+      "seconds": 1.104,
+      "text": "### Workspace health\r\n- **Solution/project:** `E:\\Devel\\RoslynMcpServer-rapid-tia\\RoslynMcpServer.sln`\r\n- **DotNet working directory:** `E:\\Devel\\RoslynMcpServer-rapid-tia`\r\n- **Projects loaded:** 5\r\n- **MSBuild Configuration:** `Release`\r\n- **MSBuild Platform:** (SDK/workspace default)\r\n- **MSBuild TargetFramework:** (SDK/workspace default)\r\n- **BuildArgs:** (none)\r\n- **global.json:** (not found)\r\n- **Pinned SDK (global.json):** (none)\r\n- **Resolved SDK directory:** (not resolved)\r\n- **Restore assets:** ok (5/5 projects have project.assets.json)\r\n- **Tool profile:** `full`\r\n- **Startup tool groups:** (none)\r\n- **Dynamic tool groups:** (none)\r\n- **Registered MCP tools:** 55 (use `get_mcp_server_info` for binary path)\r\n\r\n> **Workflow:** Call `load_workspace` first. Build/test/run via `run_dotnet_build`, `run_dotnet_test`, `run_dotnet_run` — not raw shell `dotnet`. Find usages: `find_usages` / `find_symbol_references` (alias: find_references).\r\n\r\nSuccessfully loaded workspace. Found 5 projects:\r\n- DeadlockWitnessHost [Library]\r\n- RoslynMcpPlugin [Worker]\r\n- RoslynMcpServer [Worker]\r\n- RoslynMcpServer.LifecycleTestHost [Worker]\r\n- RoslynMcpServer.Tests [Test]\r\n"
+    },
+    {
+      "phase": "after-reset-reload",
+      "seconds": 1.355,
+      "text": "Approximate result (rapid TIA): not a substitute for the full test suite or CI.\r\nChanged since load: 1 members in 2 files. Directly selected: 1 tests. Run plan: 1 projects.\r\nRun: `E:\\Devel\\RoslynMcpServer-rapid-tia\\RoslynMcpServer.Tests\\RoslynMcpServer.Tests.csproj` whole project (project-level).\r\nReasons: Changed test: E:\\Devel\\RoslynMcpServer-rapid-tia\\RoslynMcpServer.Tests\\Testing\\VstestRunPlannerTests.cs; Project expansion without a call graph: E:\\Devel\\RoslynMcpServer-rapid-tia\\RoslynMcpServer.Tests\\bin\\Release\\net10.0\\RoslynMcpServer.Tests.dll; Project-level expansion selects the whole project.\r\nNot covered:\r\n- Reload/reopen observation window: non-C# changes may have been missed. C# sources are rescanned; this non-C# limitation persists for this baseline.\r\nState: project-level result only."
+    },
+    {
+      "phase": "after-source-restore",
+      "seconds": 0.533,
+      "text": "Approximate result (rapid TIA): not a substitute for the full test suite or CI.\r\nChanged since load: 0 members in 1 files. Directly selected: 0 tests. Run plan: 1 projects.\r\nRun: `E:\\Devel\\RoslynMcpServer-rapid-tia\\RoslynMcpServer.Tests\\RoslynMcpServer.Tests.csproj` whole project (project-level).\r\nReasons: Project expansion without a call graph: E:\\Devel\\RoslynMcpServer-rapid-tia\\RoslynMcpServer.Tests\\bin\\Release\\net10.0\\RoslynMcpServer.Tests.dll; Project-level expansion selects the whole project.\r\nNot covered:\r\n- Reload/reopen observation window: non-C# changes may have been missed. C# sources are rescanned; this non-C# limitation persists for this baseline.\r\nState: project-level result only."
+    }
+  ],
+  "restoration": {
+    "passed": true,
+    "target": "E:\\Devel\\RoslynMcpServer-rapid-tia\\RoslynMcpServer.Tests\\Testing\\VstestRunPlannerTests.cs",
+    "sha256_before": "25ab0649527040144545c5843921cf209d87efe6b02cd333b1856090010a7677",
+    "sha256_after": "25ab0649527040144545c5843921cf209d87efe6b02cd333b1856090010a7677",
+    "mtime_ns_before": 1793961299408103400,
+    "mtime_ns_after": 1793961299408103400,
+    "sample_sequences": 1,
+    "whole_after_run": 1,
+    "server_exit_code": 0,
+    "server_shutdown_confirmed": true
+  },
+  "sandbox_attempt": {
+    "result": "BuildHost pipe connection failed before mutation; not a product/test pass.",
+    "load_output": "## Workspace Load Failed\n\n\n\n- **Path:** `E:\\Devel\\RoslynMcpServer-rapid-tia\\RoslynMcpServer.sln`\n\n\n\n### Errors\n\n- The build host was started but we were unable to connect to it's pipe. The process exited with -1. Process output:\n\ninfo: BuildHost Runtime Version: .NET 10.0.13\n\n\n\n\n\n### MSBuild environment (Locator)\n\n\n\n- **MCP process:** `64-bit`\n\n- **Registration:** `RegisterInstance: .NET Core SDK (10.0.402) at C:\\Program Files\\dotnet\\sdk\\10.0.402`\n\n\n\n**Queried instances (at startup):**\n\n- .NET Core SDK (10.0.402) at C:\\Program Files\\dotnet\\sdk\\10.0.402, VisualStudioRootPath=C:\\Program Files\\dotnet\\sdk\\10.0.402\n\n- .NET Core SDK (10.0.401) at C:\\Program Files\\dotnet\\sdk\\10.0.401, VisualStudioRootPath=C:\\Program Files\\dotnet\\sdk\\10.0.401\n\n- .NET Core SDK (10.0.301) at C:\\Program Files\\dotnet\\sdk\\10.0.301, VisualStudioRootPath=C:\\Program Files\\dotnet\\sdk\\10.0.301\n\n- .NET Core SDK (10.0.300) at C:\\Program Files\\dotnet\\sdk\\10.0.300, VisualStudioRootPath=C:\\Program Files\\dotnet\\sdk\\10.0.300\n\n- .NET Core SDK (10.0.201) at C:\\Program Files\\dotnet\\sdk\\10.0.201, VisualStudioRootPath=C:\\Program Files\\dotnet\\sdk\\10.0.201\n\n- .NET Core SDK (9.0.314) at C:\\Program Files\\dotnet\\sdk\\9.0.314, VisualStudioRootPath=C:\\Program Files\\dotnet\\sdk\\9.0.314\n\n\n\n**Registered instance (Locator API):**\n\n- (not reported by this MSBuild.Locator version — see stderr `[DEBUG]` lines at startup)\n\n",
+    "restoration": {
+      "passed": false,
+      "target": "E:\\Devel\\RoslynMcpServer-rapid-tia\\RoslynMcpServer.Tests\\Testing\\VstestRunPlannerTests.cs",
+      "sha256_before": "25ab0649527040144545c5843921cf209d87efe6b02cd333b1856090010a7677",
+      "sha256_after": "25ab0649527040144545c5843921cf209d87efe6b02cd333b1856090010a7677",
+      "mtime_ns_before": 1793961299408103400,
+      "mtime_ns_after": 1793961299408103400,
+      "sample_sequences": 0,
+      "whole_after_run": 0,
+      "server_exit_code": 0,
+      "server_shutdown_confirmed": true
+    }
+  },
+  "main_ci_cost": {
+    "version": "1.7.0",
+    "configuration": "Release",
+    "filter": "Category!=AnalyzerLifecycle&Category!=RequiresPinnedSdk",
+    "noBuild": true,
+    "noRestore": true,
+    "total": 2004,
+    "passed": 2004,
+    "failed": 0,
+    "mcp_call_wall_seconds": 202.731,
+    "timing": "Wallclock around the complete Roslyn MCP call, including tool overhead; not the unfiltered whole-project TIA cost.",
+    "validation_report": "task-11-final-validation.md"
+  }
+}

@@ -27,6 +27,7 @@ Plugin development and setup: [authoring guide](samples/RoslynMcpPlugin/README.m
 - Roslyn diagnostics, code actions, AST edits, and semantic rename.
 - ILSpy inspection of referenced or explicitly addressed assemblies.
 - Build, test, run, format, and NuGet workflows with SDK alignment, timeouts, parsed diagnostics, and context-safe output.
+- Approximate test selection since solution load, with project-level expansion and an optional build-and-run step.
 - `full` and context-saving `lite` tool catalogs, plus in-session tool-group discovery.
 
 ## Saved edits and the semantic snapshot
@@ -230,6 +231,8 @@ MCP `tools/list` stays JSON + JSON Schema. Markdown is for JIT help and diagnost
 ## Agent tools by version
 
 Version history of agent-visible tools and behavior: [CHANGELOG.md](CHANGELOG.md). Current server version: see `RoslynMcpServer.csproj`.
+
+In 1.7.0, `estimate_affected_tests` can build and run its VSTest plan in one call. It uses the session baseline and level 0 (project dependencies), without a TIA call graph; see the tool reference and [architecture](docs/ARCHITECTURE.md#rapid-tia-level-0).
 
 In 1.5.9, name-based declaration search uses source-only lookup, preserving the exclusion of metadata-only results. Provenance replay reads newer compatible BuildHost binlogs and reports each file's format; any recoverable read error still rejects that file's provenance.
 
@@ -567,7 +570,13 @@ Parses C# syntax, inserts with DocumentEditor, formats the file. Prefer over `ap
 
 Requires `load_workspace`. `includeDetails: bool = false` adds the complete changed-member and current planned-test lists. Saved disk and MCP edits are synchronized before comparison. The response begins with a warning, gives a VSTest filter or whole-project plan with reasons for each test project, lists concrete `Not covered` limitations and compilation errors, and states `project-level result only`.
 
-The baseline survives reload/reset of the same solution. Unknown baselines, observation gaps and unknown runtime names expand conservatively; the observation-gap limitation persists after reload. `run: true` builds and runs the selected projects sequentially using the configuration/platform from `load_workspace`. `timeoutSeconds` (default 300; 0 disables it) applies to each build or test process. Failures and timeouts do not stop later projects; MCP cancellation kills the current process tree and skips later projects. Without `run`, execute a filter with `run_test_by_filter` or a whole project with `run_dotnet_test`. It never replaces the full test suite or CI.
+**Level 0:** changed/new tests and eligible changes to their own class setup are selected directly; ordinary code, helpers, fixtures and known non-C# inputs select whole dependent test projects. There is no TIA call graph or persisted TIA graph. Changes before the initial load are outside this baseline. Known C# changes restored to baseline and trivia-only edits can disappear from the plan. The baseline survives reload/reset of the same solution; a different solution or server restart starts a new baseline. Unknown baselines, real observation gaps and unknown runtime names expand conservatively; real gaps persist after reload. An ordinary reload rescans C# and retains a non-C# observation-window limitation without automatically selecting unrelated projects.
+
+Use `estimate_affected_tests` after saved edits, inspect the reasons and `Not covered`, then pass `run: true` to build and run the current plan in one call. Without `run` (default `false`), execute each returned filter with `run_test_by_filter` or a whole project with `run_dotnet_test`. `run` builds and tests projects sequentially using configuration, platform and build arguments from `load_workspace`; it always builds current sources. `timeoutSeconds` (default 300; 0 disables it) applies separately to each build or test process. Outcomes distinguish `passed`, `failed`, `build failed`, `timed out`, `cancelled` and `not run`; a zero-test run is not a pass. Failures and timeouts do not stop later projects. MCP cancellation attempts to terminate the current process tree, skips later projects and logs the outcomes; delivery of the cancelled response is not guaranteed.
+
+**Build-output limitation:** any build that overwrites a project's output assembly, including an incremental build after an edit and builds inside `run` or `run_*`, makes that project and its dependent test projects whole-project selections until another solution is loaded or the server restarts. Reverting the source edit, reload and `reset_workspace` do not clear this state. An up-to-date build that does not overwrite the assembly need not trigger it. The response can count that output assembly among changed files. This widening loses no tests; its frequency and cost need measurement on each working solution.
+
+Filters use name containment, so selecting `Check` may also run `CheckExtra` and all parameter rows. Nested/inherited/generic runtime names use the measured VSTest forms; unknown forms and NUnit fixture constructor/source arguments select the whole project. MTP projects are not recognized separately and follow the existing VSTest path; a dedicated MTP plan is deferred. Reflection, conventions, external data/processes, source generators and tests reading source files can escape this approximation; input watching and syntactic test-role recognition have limits. Run project-mandated checks (such as `SourceStructure`) independently. The full test suite and CI remain required before accepting or committing a change.
 </details>
 
 <details>
@@ -966,6 +975,7 @@ RoslynMcpServer предоставляет AI-агенту compiler-aware инс
 - Диагностика, CodeAction, AST-правки и семантический rename.
 - Анализ подключённых или явно заданных сборок через ILSpy.
 - Build, test, run, format и NuGet с выравниванием SDK, таймаутами и структурированным выводом.
+- Приблизительная оценка затронутых тестов с момента загрузки solution, проектное расширение и сборка/запуск по флагу.
 - Полный каталог `full` и экономный `lite` с группами tools.
 
 ## Сохранённые правки и семантический снимок
@@ -1158,6 +1168,8 @@ cd D:\Devel\YourApp
 ## История agent-tools по версиям
 
 [CHANGELOG.md](CHANGELOG.md). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+
+В 1.7.0 `estimate_affected_tests` собирает и запускает VSTest-план одним вызовом. Используется baseline сессии и уровень 0 (зависимости проектов), без графа вызовов TIA; см. справку инструмента и [архитектуру](docs/ARCHITECTURE.md#rapid-tia-level-0).
 
 ## Cursor: как заставить агента реально вызывать tools
 
@@ -1475,7 +1487,13 @@ cd D:\Devel\YourApp
 
 Нужен `load_workspace`. `includeDetails: bool = false` добавляет полный список изменённых членов и текущих тестов плана. Перед сравнением подтягиваются сохранённые правки на диске и через MCP. Ответ начинается с предупреждения, даёт VSTest-фильтр или проект целиком с причинами, конкретные ограничения `Not covered`, ошибки компиляции и состояние `project-level result only`.
 
-Baseline сохраняется при reload/reset того же solution. Неизвестный baseline, разрыв наблюдения и неизвестные runtime-имена дают консервативное расширение; оговорка о разрыве остаётся после reload. `run: true` собирает и последовательно запускает выбранные проекты с конфигурацией/платформой из `load_workspace`. `timeoutSeconds` (по умолчанию 300; 0 отключает) относится к каждому процессу сборки или тестов. Ошибки и таймауты не останавливают следующие проекты; отмена MCP убивает текущее дерево процессов и пропускает остальные проекты. Без `run` фильтр запускается через `run_test_by_filter`, проект целиком — через `run_dotnet_test`. Полный suite и CI остаются обязательными.
+**Уровень 0:** изменённые/новые тесты и допустимые правки собственного setup класса выбираются напрямую; обычный код, helpers, фикстуры и известные не-C# входы выбирают зависимые тестовые проекты целиком. Графа вызовов TIA и сохранённого графа TIA нет. Правки до первой загрузки в этот baseline не входят. Известные C# правки после возврата к baseline и изменения только trivia могут исчезнуть из плана. Baseline сохраняется при reload/reset того же solution; другой solution или перезапуск сервера начинает новый baseline. Неизвестный baseline, настоящие разрывы наблюдения и неизвестные runtime-имена дают консервативное расширение; настоящий разрыв остаётся после reload. Обычный reload заново сравнивает C# и сохраняет оговорку об окне наблюдения не-C#, без автоматического выбора независимых проектов.
+
+После сохранения правок вызовите `estimate_affected_tests`, проверьте причины и `Not covered`, затем передайте `run: true` для сборки и запуска текущего плана одним вызовом. Без `run` (по умолчанию `false`) каждый возвращённый фильтр запускается через `run_test_by_filter`, проект целиком — через `run_dotnet_test`. `run` последовательно собирает и тестирует проекты с конфигурацией, платформой и build arguments из `load_workspace`; текущие исходники всегда собираются. `timeoutSeconds` (по умолчанию 300; 0 отключает) применяется отдельно к каждому процессу сборки или тестов. Различаются исходы `passed`, `failed`, `build failed`, `timed out`, `cancelled` и `not run`; нулевой прогон не считается успешной проверкой. Ошибки и таймауты не останавливают следующие проекты. Отмена MCP пытается завершить текущее дерево процессов, пропускает следующие проекты и записывает исходы в лог; доставка отменённого ответа не гарантирована.
+
+**Ограничение вывода сборки:** любая сборка, перезаписавшая выходную сборку проекта, в том числе инкрементальная после правки и сборка внутри `run` или `run_*`, переводит этот проект и зависимые тестовые проекты в «целиком» до загрузки другого solution или перезапуска сервера. Откат исходников, reload и `reset_workspace` этого не снимают. Up-to-date сборка без перезаписи DLL может этого не вызвать. Ответ может считать выходную сборку изменённым файлом. Тесты не теряются; частоту и цену такого расширения нужно измерять на рабочем solution.
+
+Фильтры проверяют вхождение имени: выбор `Check` может запустить и `CheckExtra`, и все строки параметризованного теста. Runtime-имена вложенных/унаследованных/generic тестов берутся из измеренных VSTest-форм; неизвестные формы и NUnit-фикстуры с constructor/source arguments дают проект целиком. MTP-проекты отдельно не распознаются и идут существующим VSTest-путём; отдельный MTP-план отложен. Reflection, соглашения, внешние данные/процессы, source generators и тесты, читающие исходники, могут остаться вне приближения; наблюдение входов и синтаксическое распознавание тестовых ролей имеют ограничения. Обязательные проверки проекта (например `SourceStructure`) запускаются отдельно. Полный suite и CI обязательны перед приёмкой или коммитом.
 </details>
 
 <details>

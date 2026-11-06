@@ -2,6 +2,12 @@
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.7.0
+
+- `estimate_affected_tests` accepts optional `run` and `timeoutSeconds`: it builds current sources and runs the selected VSTest projects sequentially in one call, with separate build/test process timeouts, explicit outcomes and MCP cancellation. The default remains estimate-only; level 0 uses project dependencies without a TIA call graph and never replaces the full suite or CI.
+- Documents the build-output limitation: a build that overwrites a project's output assembly, including an incremental build or `run`/`run_*`, keeps that project and dependent test projects selected whole until another solution is loaded or the server restarts. Reverting source, reload and reset do not clear it. MTP-specific planning remains deferred.
+- Adds the agent workflow, runtime boundaries and an acceptance map linking the existing real-MSBuild baseline, estimation, execution and cancellation scenarios to their original RED evidence.
+
 ### v1.6.1
 
 - `estimate_affected_tests` no longer selects every test project permanently after an ordinary reload of the same solution. C# changes still compare against the original baseline, restored edits can return an empty plan, and the response keeps the non-C# reload uncertainty in `Not covered`. Actual watcher or snapshot failures still select all test projects conservatively across reloads.
