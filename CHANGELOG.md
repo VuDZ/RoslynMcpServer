@@ -2,6 +2,10 @@
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.7.1
+
+- `estimate_affected_tests` no longer treats a rebuilt project output as a change. Any build that rewrote a solution project's output assembly, including the build inside `run`, `run_*` or the IDE, used to select that project and its dependent test projects whole until another solution was loaded or the server restarted. Changes are now detected in authored inputs; reverting an edit after a build can return an empty plan. A project that references another solution project's output only as a file, outside the project graph, is still selected when that output changes.
+
 ### v1.7.0
 
 - `estimate_affected_tests` accepts optional `run` and `timeoutSeconds`: it builds current sources and runs the selected VSTest projects sequentially in one call, with separate build/test process timeouts, explicit outcomes and MCP cancellation. The default remains estimate-only; level 0 uses project dependencies without a TIA call graph and never replaces the full suite or CI.
@@ -12,6 +16,11 @@ Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into a
 
 - `estimate_affected_tests` no longer selects every test project permanently after an ordinary reload of the same solution. C# changes still compare against the original baseline, restored edits can return an empty plan, and the response keeps the non-C# reload uncertainty in `Not covered`. Actual watcher or snapshot failures still select all test projects conservatively across reloads.
 - Deleted additional inputs and unmapped changed paths remain visible after reload, including `.cs` files that were not compilation sources at the original load.
+
+### v1.6.0
+
+- New `estimate_affected_tests` (core group; 55 tools on `full`, 16 on `lite`): an approximate test selection since the solution was loaded. Saved disk and MCP edits are synchronized and compared with the session baseline; level 0 maps changed paths to projects and their transitively dependent test projects, without a TIA call graph. The response begins with a warning, gives a VSTest filter or a whole-project plan with reasons for each test project, lists concrete `Not covered` limitations and compilation errors, and states `project-level result only`. `includeDetails` adds the changed members and planned tests.
+- The tool only estimates: run the filter with `run_test_by_filter` or a whole project with `run_dotnet_test`. Unknown baselines, observation gaps and unknown runtime names expand conservatively. It never replaces the full test suite or CI.
 
 ### v1.5.18
 

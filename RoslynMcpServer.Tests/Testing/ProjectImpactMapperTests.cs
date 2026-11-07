@@ -159,6 +159,54 @@ public sealed class ProjectImpactMapperTests
     }
 
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Solution_project_output_selects_neither_its_producer_nor_dependent_tests(bool referenceAssembly)
+    {
+        using var fixture = new ProjectImpactFixture();
+        var output = fixture.SetOutput(fixture.Library, referenceAssembly);
+
+        var result = await fixture.MapAsync(output);
+
+        Assert.Empty(result.ProjectIds);
+        Assert.Empty(result.TestProjectIds);
+        Assert.Empty(result.Paths);
+        Assert.Empty(result.NotCoveredPaths);
+        Assert.False(result.RequiresReload);
+    }
+
+    [Fact]
+    public async Task File_reference_consumer_outside_the_project_graph_is_selected_without_the_producers_tests()
+    {
+        using var fixture = new ProjectImpactFixture();
+        var output = fixture.SetOutput(fixture.App, referenceAssembly: false);
+        fixture.AddFileReference(fixture.Isolated, output);
+        fixture.AddFileReference(fixture.Specs, output);
+
+        var result = await fixture.MapAsync(output);
+
+        AssertIds([fixture.Isolated], result.ProjectIds);
+        AssertIds([fixture.Isolated], result.TestProjectIds);
+        Assert.Single(result.Paths);
+        Assert.Empty(result.NotCoveredPaths);
+    }
+
+    [Fact]
+    public async Task Assembly_without_a_solution_producer_still_selects_its_consumer()
+    {
+        using var fixture = new ProjectImpactFixture();
+        var vendor = Path.Combine(fixture.Root, "lib", "Vendor.dll");
+        ProjectImpactFixture.WriteAssembly(vendor);
+        fixture.AddFileReference(fixture.Library, vendor);
+
+        var result = await fixture.MapAsync(vendor);
+
+        AssertIds([fixture.Library], result.ProjectIds);
+        AssertIds([fixture.Specs], result.TestProjectIds);
+        Assert.Empty(result.NotCoveredPaths);
+    }
+
+    [Theory]
     [InlineData("project.assets.json")]
     [InlineData("packages.lock.json")]
     [InlineData("nuget.config")]

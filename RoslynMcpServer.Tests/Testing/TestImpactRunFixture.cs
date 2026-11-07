@@ -76,6 +76,12 @@ internal sealed class TestImpactRunFixture : IAsyncDisposable
         Assert.Contains("Successfully wrote", result, StringComparison.Ordinal);
     }
 
+    internal async Task RestoreAsync(string name)
+    {
+        var result = await new EditingTools(NullLogger<EditingTools>.Instance, Manager).WriteFile(SourcePath(name), Source(name));
+        Assert.Contains("Successfully wrote", result, StringComparison.Ordinal);
+    }
+
     internal async Task ExpandProjectAsync(string name)
     {
         var source = Source(name).Replace("Value() => 1", "Value() => 2", StringComparison.Ordinal);

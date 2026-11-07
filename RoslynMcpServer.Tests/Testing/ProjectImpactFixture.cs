@@ -71,6 +71,31 @@ internal sealed class ProjectImpactFixture : IDisposable
             DocumentId.CreateNewId(project), Path.GetFileName(path), "{}", filePath: path);
     }
 
+    /// <summary>Gives a project an existing output assembly, as MSBuildWorkspace does after a build.</summary>
+    internal string SetOutput(ProjectId project, bool referenceAssembly)
+    {
+        var loaded = Solution.GetProject(project)!;
+        var directory = Path.GetDirectoryName(loaded.FilePath)!;
+        var path = referenceAssembly
+            ? Path.Combine(directory, "obj", "Release", "net10.0", "ref", loaded.Name + ".dll")
+            : Path.Combine(directory, "bin", "Release", "net10.0", loaded.Name + ".dll");
+        WriteAssembly(path);
+        Solution = referenceAssembly
+            ? Solution.WithProjectOutputRefFilePath(project, path)
+            : Solution.WithProjectOutputFilePath(project, path);
+        return path;
+    }
+
+    /// <summary>Adds a metadata reference to an assembly file, as a HintPath reference does.</summary>
+    internal void AddFileReference(ProjectId project, string path) =>
+        Solution = Solution.AddMetadataReference(project, MetadataReference.CreateFromFile(path));
+
+    internal static void WriteAssembly(string path)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        File.Copy(typeof(object).Assembly.Location, path, overwrite: true);
+    }
+
     internal void ReplaceSpecs(string source)
     {
         var document = Solution.GetProject(Specs)!.Documents.Single();

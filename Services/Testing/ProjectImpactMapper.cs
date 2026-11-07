@@ -52,7 +52,14 @@ internal static class ProjectImpactMapper
             {
                 continue;
             }
-            var owners = ProjectsForPath(solution, inputMap, entry, path);
+            var buildProduct = entry is not null && IsSolutionBuildProduct(solution, entry);
+            var owners = buildProduct
+                ? ConsumersOutsideProducerGraph(solution, entry!)
+                : ProjectsForPath(solution, inputMap, entry, path);
+            if (buildProduct && owners.Count == 0)
+            {
+                continue;
+            }
             paths[path] = new ProjectPathImpact(path, owners);
             projects.UnionWith(owners);
             if (owners.Count == 0
@@ -163,6 +170,43 @@ internal static class ProjectImpactMapper
         var nearestLength = candidates.Length == 0 ? 0 : candidates.Max(static project => project.Directory.Length);
         return candidates.Where(project => project.Directory.Length == nearestLength)
             .Select(static project => project.Id).ToArray();
+    }
+
+    /// <summary>
+    /// True when the path is only the output assembly of loaded projects and references to it.
+    /// Any other role on the same path keeps ordinary input mapping.
+    /// </summary>
+    private static bool IsSolutionBuildProduct(Solution solution, InputPathEntry entry) =>
+        entry.Occurrences.All(occurrence =>
+            occurrence.Role is InputRole.Output or InputRole.MetadataDependency
+            && occurrence.ProducerProjectId is { } producer
+            && solution.GetProject(producer) is not null);
+
+    /// <summary>
+    /// Projects that reference a solution output as a file without a project-graph path to its producer.
+    /// </summary>
+    /// <remarks>
+    /// A rewritten output used to select its producer and dependent test projects whole for the rest of the
+    /// baseline: every build, including the one inside <c>run</c>, rewrites it, and non-C# inputs are not
+    /// compared by content. The producer's sources, project files and evaluation inputs are tracked themselves,
+    /// so the output adds no signal for the producer or for projects that reach it through the project graph.
+    /// Only a consumer the graph cannot see still needs the output change.
+    /// See docs/rapid-tia/epoch-1-project-level/task-12-build-output-signal-med.md (T09-C1).
+    /// </remarks>
+    private static IReadOnlyList<ProjectId> ConsumersOutsideProducerGraph(Solution solution, InputPathEntry entry)
+    {
+        var graph = solution.GetProjectDependencyGraph();
+        var reachable = new HashSet<ProjectId>(entry.Producers);
+        foreach (var producer in entry.Producers)
+        {
+            reachable.UnionWith(graph.GetProjectsThatTransitivelyDependOnThisProject(producer));
+        }
+        return entry.Occurrences
+            .Where(occurrence => occurrence.Role == InputRole.MetadataDependency && !reachable.Contains(occurrence.ProjectId))
+            .Select(static occurrence => occurrence.ProjectId)
+            .Where(id => solution.GetProject(id) is not null)
+            .Distinct()
+            .ToArray();
     }
 
     private static bool IsRestoreInput(string path)

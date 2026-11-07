@@ -50,6 +50,29 @@ public sealed class EstimateAffectedTestsRunTests(ITestOutputHelper output)
     }
 
     [Fact]
+    public async Task Estimate_after_run_keeps_the_filter_and_a_restored_edit_leaves_an_empty_plan()
+    {
+        await using var fixture = new TestImpactRunFixture();
+        await fixture.LoadAsync();
+        await fixture.ChangeAsync("First", "GC.KeepAlive(value); Assert.True(true);");
+        var before = await fixture.Tools.EstimateAffectedTests();
+        AssertRun(await fixture.Tools.EstimateAffectedTests(run: true), "passed");
+
+        var after = await fixture.Tools.EstimateAffectedTests();
+        await fixture.RestoreAsync("First");
+        var restored = await fixture.Tools.EstimateAffectedTests();
+
+        output.WriteLine(after);
+        output.WriteLine(restored);
+        Assert.Equal(RunLines(before), RunLines(after));
+        Assert.Contains("Changed since load: 1 members in 1 files", after, StringComparison.Ordinal);
+        Assert.DoesNotContain("whole project", after, StringComparison.Ordinal);
+        Assert.DoesNotContain("First.dll", after, StringComparison.Ordinal);
+        Assert.Contains("Changed since load: 0 members in 0 files", restored, StringComparison.Ordinal);
+        Assert.Empty(RunLines(restored));
+    }
+
+    [Fact]
     public async Task Run_builds_changed_sources_instead_of_passing_on_stale_binaries_and_continues_after_test_failure()
     {
         await using var fixture = new TestImpactRunFixture();
@@ -174,4 +197,7 @@ public sealed class EstimateAffectedTestsRunTests(ITestOutputHelper output)
         Assert.True(response.LastIndexOf("Not covered", StringComparison.Ordinal) > response.LastIndexOf(outcome, StringComparison.Ordinal),
             "Run outcomes must precede Not covered: " + response);
     }
+
+    private static string[] RunLines(string response) =>
+        response.Split(Environment.NewLine).Where(line => line.StartsWith("Run: ", StringComparison.Ordinal)).ToArray();
 }
