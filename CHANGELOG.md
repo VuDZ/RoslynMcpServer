@@ -4,7 +4,7 @@ Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into a
 
 ### v1.7.1
 
-- `estimate_affected_tests` no longer treats a rebuilt project output as a change. Any build that rewrote a solution project's output assembly, including the build inside `run`, `run_*` or the IDE, used to select that project and its dependent test projects whole until another solution was loaded or the server restarted. Changes are now detected in authored inputs; reverting an edit after a build can return an empty plan. A project that references another solution project's output only as a file, outside the project graph, is still selected when that output changes.
+- `estimate_affected_tests` no longer treats a rebuilt project output as a change. Any build that rewrote a solution project's output assembly, including the build inside `run`, `run_*` or the IDE, used to select that project and its dependent test projects whole until another solution was loaded or the server restarted. Changes are now detected in authored inputs; reverting an edit after a build can return an empty plan. A project that references another solution project's output as an assembly file (a metadata reference), outside the project graph, is still selected when that output changes; analyzer references are not tracked this way.
 
 ### v1.7.0
 
