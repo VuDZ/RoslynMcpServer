@@ -41,6 +41,7 @@ production код прототипа не переносится как есть
   **Codex ACCEPT** в scope E2-01…E2-05 ([раунд 3](review/round-3-recheck.md)) и **Grok ACCEPT** в scope
   F-001…F-009 ([раунд 3](review-grok/round-3-recheck.md)). Открытых замечаний ревью плана нет.
   Прототип записан 2026-11-09 в `spikes/AffectedTestsProbe/`; precheck зелёный. Замеры и отчёт не делались.
+  [Ревью реализации, раунд 1](review-impl/round-1.md): **changes required**, 2 Blocker и 2 High — эталон пока не работает.
   Офисный solution отложен: там нет git. Статус исполнения task-01 остаётся **planned**.
   Остальные задачи эпохи — по итогам спайка.
 

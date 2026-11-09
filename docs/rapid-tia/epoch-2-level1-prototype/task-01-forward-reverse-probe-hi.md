@@ -26,6 +26,8 @@
   [Codex — раунд 2](review/round-2-recheck.md), [Codex — раунд 3](review/round-3-recheck.md), [ревью Grok](review-grok/result.md),
   [Grok — перепроверка](review-grok/round-1-recheck.md), [Grok — раунд 3](review-grok/round-3-recheck.md).
   Реализация прототипа начата 2026-11-09: код в `spikes/AffectedTestsProbe/`, precheck и тесты прототипа зелёные.
+  [Ревью реализации, раунд 1](review-impl/round-1.md), 2026-11-09: **changes required** — 2 Blocker (мутация не
+  компилируется, discovery не читается из прогона), 2 High (multi-TFM), 3 Low; эталон пока не работает.
   Замеры на публичном solution и отчёт не делались. Офисный корпус отложен: это не git. Статус исполнения остаётся **planned**.
 
 ## Зачем
