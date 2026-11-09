@@ -38,12 +38,14 @@ from the forward graph. The printed hash is the frozen list.
 are `subsequent`, and the repeats are `warmed`. That first member is not part of the first-query series.
 A search that hits a limit reports level 0 for that member.
 
-`oracle --member <documentation-id> --test-project <name> --clone-ack` inserts the `tia-probe` throw, runs the
-level-0 test projects that sit in the selected scope, and restores the file. The JSON carries `fCha`, `fRta`,
-`rCha`, `l0`, and `oracle` (units that failed after the mutation and passed in the control run). An invalid pair
-names the reason (`timeout`, `build failed`, `missing results`, `zero executed`, `skipped mismatch`) and is not
-a completeness point. Pass `--clone-ack` only on a clone or worktree. A backup named `*.tia-backup` is left next
-to the file if the restore does not match the original bytes. Do not commit the mutation.
+`oracle --member <documentation-id> --test-project <name> --clone-ack` inserts the `tia-probe` throw, runs each
+level-0 target framework in the selected scope as its own `dotnet test -f`, and restores the file. Fully qualified
+names come from `TestExecution.StatsChange` and the last batch on `TestExecution.Completed` in that run's `--diag`
+log. The JSON carries `fCha`, `fRta`, `rCha`, `l0`, and `oracle` (units that failed after the mutation and passed
+in the control run). An invalid pair names the reason (`timeout`, `build failed`, `crash`, `missing results`,
+`zero executed`, `skipped mismatch`) and does not report a judgment. The mutation timeout is three times that
+target's control run, and at least five minutes. Pass `--clone-ack` only on a clone or worktree. A backup named
+`*.tia-backup` is left next to the file if the restore does not match the original bytes. Do not commit the mutation.
 
 Initial reverse limits are depth 30, 20 000 members, and 60 seconds. Change them only by editing
 `ProbeLimits` and recording the change in the measurement report.

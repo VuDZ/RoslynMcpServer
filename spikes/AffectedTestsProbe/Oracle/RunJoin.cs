@@ -13,7 +13,7 @@ internal static class RunJoin
         IReadOnlyList<TrxRow> rows,
         IReadOnlyList<TestUnit> units)
     {
-        var names = new Dictionary<string, string>(StringComparer.Ordinal);
+        var names = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         foreach (var group in discovered.GroupBy(item => item.Id))
         {
             var items = group.Take(2).ToArray();

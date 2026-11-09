@@ -36,6 +36,8 @@ internal sealed class ProbeSession : IDisposable
 
     public void Dispose() => _workspace.Dispose();
 
+    internal static ImmutableArray<MetadataReference> MetadataReferences() => References();
+
     private static ImmutableArray<MetadataReference> References()
     {
         var references = ImmutableArray.CreateBuilder<MetadataReference>();

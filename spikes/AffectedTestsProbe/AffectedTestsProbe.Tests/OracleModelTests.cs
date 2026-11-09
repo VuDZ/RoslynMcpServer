@@ -89,6 +89,47 @@ public sealed class OracleModelTests
     }
 
     [Fact]
+    public void TwoFrameworks_StayUnmappedUntilOneFrameworkIsSelected()
+    {
+        var path = Path.GetFullPath("probe.csproj");
+        var net10 = new TestUnit(
+            new ProjectKey(path, "Debug", "AnyCPU", "net10.0"),
+            "Tests.CalcTests",
+            "Adds",
+            new MemberNode(new ProjectKey(path, "Debug", "AnyCPU", "net10.0"), "M:Tests.CalcTests.Adds"));
+        var standard = net10 with
+        {
+            Project = net10.Project with { TargetFramework = "netstandard2.0" },
+        };
+
+        Assert.Null(FqnMapper.Map("Tests.CalcTests.Adds", [net10, standard]));
+        var groups = TestTarget.Group([net10, standard]);
+        Assert.Equal(2, groups.Count);
+        Assert.Same(net10, FqnMapper.Map("Tests.CalcTests.Adds", groups[0].Units));
+    }
+
+    [Fact]
+    public void BuildFailure_IsNotAValidJudgment()
+    {
+        var control = new RunSignals(false, true, false, false, 0, false);
+        var judgment = new PairJudgment(PairStatus.Valid, []);
+
+        Assert.Equal("build failed", PairOutcome.Invalid(control, null));
+        Assert.Null(PairOutcome.JudgmentText("build failed", judgment));
+    }
+
+    [Fact]
+    public void MutationCrashAndZeroExecuted_AreSeparateFromMissingResults()
+    {
+        var control = new RunSignals(false, false, false, false, 4, false);
+        var crash = new RunSignals(false, false, true, false, 0, false);
+        var zero = new RunSignals(false, false, false, false, 0, true);
+
+        Assert.Equal("crash", PairOutcome.Invalid(control, crash));
+        Assert.Equal("zero executed", PairOutcome.Invalid(control, zero));
+    }
+
+    [Fact]
     public async Task Write_PreservesBomAndRestoreBytes()
     {
         var path = Path.Combine(Path.GetTempPath(), "tia-bom-" + Guid.NewGuid().ToString("N") + ".cs");

@@ -86,61 +86,60 @@ internal static class ReverseCommand
 
     private static async Task<ReverseReport> SearchAsync(Session session, string documentationId, CancellationToken cancellationToken)
     {
-        var node = await FindAsync(session, documentationId, cancellationToken).ConfigureAwait(false);
-        if (node is not { } start)
+        var locations = await MemberLocations.FindAsync(
+            session.Solution, session.Map, documentationId, session.ProjectPath, cancellationToken).ConfigureAwait(false);
+        if (locations.Count == 0)
         {
             return ReverseReport.Missing(documentationId);
         }
 
-        var outcome = await ReverseSearch.SearchAsync(session.Solution, session.Map, session.Roots, start, ProbeLimits.Default, cancellationToken)
-            .ConfigureAwait(false);
-        if (outcome.Limit is null)
+        var units = new HashSet<string>(StringComparer.Ordinal);
+        long elapsed = 0;
+        var visited = 0;
+        var depth = 0;
+        string? limit = null;
+        foreach (var location in locations)
         {
-            var units = outcome.Units.Select(unit => unit.Key).OrderBy(key => key, StringComparer.Ordinal).ToArray();
-            return ReverseReport.Finished(documentationId, "reverse", outcome, units);
-        }
-
-        var symbol = await ResolveAsync(session, start, cancellationToken).ConfigureAwait(false);
-        var level0 = symbol is null
-            ? []
-            : LevelZero.Split(session.Solution, session.Map, session.Roots, symbol).InScope.Select(unit => unit.Key).ToArray();
-        return ReverseReport.Finished(documentationId, "level0", outcome, level0);
-    }
-
-    private static async Task<MemberNode?> FindAsync(Session session, string documentationId, CancellationToken cancellationToken)
-    {
-        foreach (var project in session.Solution.Projects)
-        {
-            if (session.ProjectPath is not null
-                && !string.Equals(project.FilePath, Path.GetFullPath(session.ProjectPath), StringComparison.OrdinalIgnoreCase))
+            var outcome = await ReverseSearch.SearchAsync(
+                session.Solution, session.Map, session.Roots, location.Node, ProbeLimits.Default, cancellationToken).ConfigureAwait(false);
+            elapsed += outcome.ElapsedMilliseconds;
+            visited += outcome.Visited;
+            depth = Math.Max(depth, outcome.Depth);
+            if (outcome.Limit is not null)
             {
-                continue;
+                limit = outcome.Limit;
+                break;
             }
 
-            var compilation = await project.GetCompilationAsync(cancellationToken).ConfigureAwait(false);
-            var symbol = compilation is null
-                ? null
-                : DocumentationCommentId.GetFirstSymbolForDeclarationId(documentationId, compilation);
-            if (symbol is not null && SymbolIds.TryNode(symbol, session.Solution, session.Map.Keys) is { } node)
+            foreach (var unit in outcome.Units)
             {
-                return node;
+                units.Add(unit.Key);
             }
         }
 
-        return null;
-    }
-
-    private static async Task<ISymbol?> ResolveAsync(Session session, MemberNode node, CancellationToken cancellationToken)
-    {
-        if (!session.Map.Projects.TryGetValue(node.Project, out var project))
+        if (limit is null)
         {
-            return null;
+            var ordered = units.OrderBy(key => key, StringComparer.Ordinal).ToArray();
+            return ReverseReport.Aggregate(documentationId, "reverse", elapsed, visited, depth, null, ordered);
         }
 
-        var compilation = await project.GetCompilationAsync(cancellationToken).ConfigureAwait(false);
-        return compilation is null
-            ? null
-            : DocumentationCommentId.GetFirstSymbolForDeclarationId(node.DocumentationId, compilation);
+        var level0 = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var location in locations)
+        {
+            foreach (var unit in LevelZero.Split(session.Solution, session.Map, session.Roots, location.Symbol).InScope)
+            {
+                level0.Add(unit.Key);
+            }
+        }
+
+        return ReverseReport.Aggregate(
+            documentationId,
+            "level0",
+            elapsed,
+            visited,
+            depth,
+            limit,
+            level0.OrderBy(key => key, StringComparer.Ordinal).ToArray());
     }
 
     private sealed class Session : IAsyncDisposable
@@ -185,7 +184,14 @@ internal static class ReverseCommand
         public static ReverseReport Missing(string documentationId) =>
             new(false, documentationId, "missing", 0, 0, 0, null, []);
 
-        public static ReverseReport Finished(string documentationId, string answer, ReverseOutcome outcome, IReadOnlyList<string> units) =>
-            new(true, documentationId, answer, outcome.ElapsedMilliseconds, outcome.Visited, outcome.Depth, outcome.Limit, units);
+        public static ReverseReport Aggregate(
+            string documentationId,
+            string answer,
+            long elapsedMs,
+            int visited,
+            int depth,
+            string? limit,
+            IReadOnlyList<string> units) =>
+            new(true, documentationId, answer, elapsedMs, visited, depth, limit, units);
     }
 }

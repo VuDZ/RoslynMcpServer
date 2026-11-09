@@ -24,7 +24,7 @@ public sealed class MemberMutatorTests
         var conditional = Assert.Single(mutation.Root!.DescendantNodes().OfType<ConditionalExpressionSyntax>());
         Assert.Equal(SyntaxKind.TrueLiteralExpression, conditional.Condition.Kind());
         Assert.IsType<ThrowExpressionSyntax>(conditional.WhenTrue);
-        AssertNoErrors(mutation.Root);
+        AssertWrittenTextCompiles(mutation.Root);
     }
 
     [Fact]
@@ -43,7 +43,7 @@ public sealed class MemberMutatorTests
         var method = Assert.Single(mutation.Root!.DescendantNodes().OfType<MethodDeclarationSyntax>());
         Assert.Null(method.ExpressionBody);
         Assert.IsType<ThrowStatementSyntax>(method.Body!.Statements[0]);
-        AssertNoErrors(mutation.Root);
+        AssertWrittenTextCompiles(mutation.Root);
     }
 
     [Fact]
@@ -63,6 +63,49 @@ public sealed class MemberMutatorTests
         Assert.Equal("not an expression initializer", mutation.Reason);
     }
 
+    [Fact]
+    public async Task WrittenText_CompilesForEachExecutableForm()
+    {
+        const string source =
+            """
+            class Base
+            {
+                public Base(int value) { }
+            }
+
+            class Holder : Base
+            {
+                public Holder(int value) : base(value)
+                {
+                    return;
+                }
+
+                public int Body() => 1;
+
+                public int Arrow => 2;
+
+                public int Auto { get; set; } = 3;
+
+                public int Value = 1 + 2;
+
+                public int Stored
+                {
+                    get { return 1; }
+                    set { _ = value; }
+                }
+            }
+            """;
+
+        foreach (var name in new[] { "Holder", "Body", "Arrow", "Auto", "Value", "StoredGet" })
+        {
+            var mutation = MemberMutator.Apply(await FindAsync(source, name));
+            Assert.True(mutation.Applied, name + " " + mutation.Reason);
+            var text = mutation.Root!.ToFullString();
+            Assert.Contains("throw new ", text, StringComparison.Ordinal);
+            AssertWrittenTextCompiles(mutation.Root);
+        }
+    }
+
     private static async Task<ISymbol> FindAsync(string source, string name)
     {
         using var session = ProbeSession.Open(source);
@@ -80,17 +123,41 @@ public sealed class MemberMutatorTests
             {
                 return model!.GetDeclaredSymbol(method)!;
             }
+
+            if (node is ConstructorDeclarationSyntax constructor && constructor.Identifier.ValueText == name)
+            {
+                return model!.GetDeclaredSymbol(constructor)!;
+            }
+
+            if (node is PropertyDeclarationSyntax property && property.Identifier.ValueText == name)
+            {
+                return model!.GetDeclaredSymbol(property)!;
+            }
+
+            if (node is AccessorDeclarationSyntax accessor
+                && name == "StoredGet"
+                && accessor.Parent?.Parent is PropertyDeclarationSyntax stored
+                && stored.Identifier.ValueText == "Stored"
+                && accessor.Kind() == SyntaxKind.GetAccessorDeclaration)
+            {
+                return model!.GetDeclaredSymbol(accessor)!;
+            }
         }
 
         throw new InvalidOperationException(name);
     }
 
-    private static void AssertNoErrors(SyntaxNode root)
+    private static void AssertWrittenTextCompiles(SyntaxNode root)
     {
+        var parsed = CSharpSyntaxTree.ParseText(root.ToFullString());
+        var runtime = System.Runtime.InteropServices.RuntimeEnvironment.GetRuntimeDirectory();
         var compilation = CSharpCompilation.Create(
             "Mutation",
-            [root.SyntaxTree],
-            [MetadataReference.CreateFromFile(typeof(object).Assembly.Location)],
+            [parsed],
+            [
+                MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
+                MetadataReference.CreateFromFile(Path.Combine(runtime, "System.Runtime.dll")),
+            ],
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
         var errors = compilation.GetDiagnostics().Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).ToArray();
         Assert.Empty(errors.Select(diagnostic => diagnostic.ToString()));

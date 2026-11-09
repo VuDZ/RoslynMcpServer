@@ -123,20 +123,18 @@ internal static class MemberMutator
             .WithAccessorList(SyntaxFactory.AccessorList(SyntaxFactory.SingletonList(getter)));
     }
 
-    private static ThrowStatementSyntax ThrowStatement() =>
-        SyntaxFactory.ThrowStatement(ExceptionCreation())
-            .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken));
+    // Factory tokens carry elastic trivia, and ToFullString drops it, so the file becomes
+    // `thrownewSystem...` and the mutated project does not compile. The parsed text keeps real
+    // spaces. Normalize only this node: normalizing the whole file would rewrite untouched code.
+    private static StatementSyntax ThrowStatement() =>
+        SyntaxFactory.ParseStatement("throw new System.InvalidOperationException(\"tia-probe\");")
+            .NormalizeWhitespace();
 
-    private static ExpressionSyntax ConditionalThrow(ExpressionSyntax expression) =>
-        SyntaxFactory.ConditionalExpression(
-            SyntaxFactory.LiteralExpression(SyntaxKind.TrueLiteralExpression),
-            SyntaxFactory.ThrowExpression(ExceptionCreation()),
-            SyntaxFactory.ParenthesizedExpression(expression));
-
-    private static ObjectCreationExpressionSyntax ExceptionCreation() =>
-        SyntaxFactory.ObjectCreationExpression(SyntaxFactory.ParseTypeName("System.InvalidOperationException"))
-            .WithArgumentList(SyntaxFactory.ArgumentList(SyntaxFactory.SingletonSeparatedList(
-                SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(
-                    SyntaxKind.StringLiteralExpression,
-                    SyntaxFactory.Literal("tia-probe"))))));
+    private static ExpressionSyntax ConditionalThrow(ExpressionSyntax expression)
+    {
+        var text = "true ? throw new System.InvalidOperationException(\"tia-probe\") : ("
+            + expression.ToFullString()
+            + ")";
+        return SyntaxFactory.ParseExpression(text).NormalizeWhitespace();
+    }
 }
