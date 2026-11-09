@@ -25,7 +25,8 @@
 - Отчёт о реализации, ревью и validation: [индекс Codex](review/README.md),
   [Codex — раунд 2](review/round-2-recheck.md), [Codex — раунд 3](review/round-3-recheck.md), [ревью Grok](review-grok/result.md),
   [Grok — перепроверка](review-grok/round-1-recheck.md), [Grok — раунд 3](review-grok/round-3-recheck.md).
-  Реализация и её validation не проводились; статус исполнения остаётся **planned**.
+  Реализация прототипа начата 2026-11-09: код в `spikes/AffectedTestsProbe/`, precheck и тесты прототипа зелёные.
+  Замеры на публичном solution и отчёт не делались. Офисный корпус отложен: это не git. Статус исполнения остаётся **planned**.
 
 ## Зачем
 
