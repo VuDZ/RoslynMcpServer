@@ -1,4 +1,5 @@
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace AffectedTestsProbe;
@@ -32,42 +33,84 @@ internal sealed class RootIndexBuilder
 
     private async Task CollectAsync(CancellationToken cancellationToken)
     {
-        var collections = await CollectionDefinitionsAsync(cancellationToken).ConfigureAwait(false);
-        var seen = new HashSet<ISymbol>(SymbolEqualityComparer.Default);
-        foreach (var project in _solution.Projects)
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        var collections = new Dictionary<string, (ProjectId ProjectId, string DocumentationId)>(StringComparer.Ordinal);
+        var binding = new ProjectCompilations(_solution);
+        await binding.VisitAsync(
+            bindBodies: null,
+            async (project, compilation, token) =>
+            {
+                foreach (var tree in compilation.SyntaxTrees)
+                {
+                    var root = await tree.GetRootAsync(token).ConfigureAwait(false);
+                    var model = compilation.GetSemanticModel(tree);
+                    foreach (var declaration in root.DescendantNodes().OfType<TypeDeclarationSyntax>())
+                    {
+                        if (model.GetDeclaredSymbol(declaration, token) is INamedTypeSymbol type)
+                        {
+                            RememberCollection(collections, project, type);
+                        }
+                    }
+                }
+
+                if (!NameMatches(project, _testProjects))
+                {
+                    return;
+                }
+
+                foreach (var tree in compilation.SyntaxTrees)
+                {
+                    var root = await tree.GetRootAsync(token).ConfigureAwait(false);
+                    var model = compilation.GetSemanticModel(tree);
+                    foreach (var declaration in root.DescendantNodes().OfType<TypeDeclarationSyntax>())
+                    {
+                        if (model.GetDeclaredSymbol(declaration, token) is not INamedTypeSymbol type)
+                        {
+                            continue;
+                        }
+
+                        var id = type.OriginalDefinition.GetDocumentationCommentId();
+                        if (type.TypeKind != TypeKind.Class || type.IsAbstract || id is null
+                            || !seen.Add(project.Id + "|" + id))
+                        {
+                            continue;
+                        }
+
+                        AddClass(type, _map.Key(project.Id), project, compilation, binding, collections);
+                    }
+                }
+            },
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    private static void RememberCollection(
+        Dictionary<string, (ProjectId ProjectId, string DocumentationId)> collections,
+        Project project,
+        INamedTypeSymbol type)
+    {
+        foreach (var attribute in type.GetAttributes())
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (project.Language != LanguageNames.CSharp || !NameMatches(project, _testProjects))
+            if (attribute.AttributeClass?.Name != "CollectionDefinitionAttribute")
             {
                 continue;
             }
 
-            foreach (var document in project.Documents)
+            var name = attribute.ConstructorArguments.FirstOrDefault().Value as string;
+            var id = type.GetDocumentationCommentId();
+            if (name is not null && id is not null && !collections.ContainsKey(name))
             {
-                var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
-                var model = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
-                if (root is null || model is null)
-                {
-                    continue;
-                }
-
-                foreach (var declaration in root.DescendantNodes().OfType<TypeDeclarationSyntax>())
-                {
-                    if (model.GetDeclaredSymbol(declaration, cancellationToken) is not INamedTypeSymbol type
-                        || type.TypeKind != TypeKind.Class
-                        || type.IsAbstract
-                        || !seen.Add(type.OriginalDefinition))
-                    {
-                        continue;
-                    }
-
-                    AddClass(type, _map.Key(project.Id), collections);
-                }
+                collections.Add(name, (project.Id, id));
             }
         }
     }
 
-    private void AddClass(INamedTypeSymbol type, ProjectKey project, IReadOnlyDictionary<string, INamedTypeSymbol> collections)
+    private void AddClass(
+        INamedTypeSymbol type,
+        ProjectKey project,
+        Project source,
+        Compilation compilation,
+        ProjectCompilations binding,
+        Dictionary<string, (ProjectId ProjectId, string DocumentationId)> collections)
     {
         var tests = TestsOf(type);
         if (tests.Count == 0)
@@ -95,7 +138,7 @@ internal sealed class RootIndexBuilder
             AddLifecycle(current, model.ClassWideRoots);
         }
 
-        AddFixtures(type, model.ClassWideRoots, collections);
+        AddFixtures(type, model.ClassWideRoots, source, compilation, binding, collections);
         _classes.Add(model);
     }
 
@@ -154,7 +197,10 @@ internal sealed class RootIndexBuilder
     private void AddFixtures(
         INamedTypeSymbol testClass,
         List<MemberNode> roots,
-        IReadOnlyDictionary<string, INamedTypeSymbol> collections)
+        Project source,
+        Compilation compilation,
+        ProjectCompilations binding,
+        Dictionary<string, (ProjectId ProjectId, string DocumentationId)> collections)
     {
         foreach (var iface in testClass.AllInterfaces)
         {
@@ -179,7 +225,14 @@ internal sealed class RootIndexBuilder
                 continue;
             }
 
-            if (!collections.TryGetValue(name, out var definition))
+            if (!collections.TryGetValue(name, out var defined))
+            {
+                _limitations.Add("Collection fixture definition was not found: " + name);
+                continue;
+            }
+
+            var definition = CollectionType(defined, source, compilation, binding);
+            if (definition is null)
             {
                 _limitations.Add("Collection fixture definition was not found: " + name);
                 continue;
@@ -195,6 +248,18 @@ internal sealed class RootIndexBuilder
                 }
             }
         }
+    }
+
+    private static INamedTypeSymbol? CollectionType(
+        (ProjectId ProjectId, string DocumentationId) defined,
+        Project source,
+        Compilation compilation,
+        ProjectCompilations binding)
+    {
+        var target = defined.ProjectId == source.Id ? compilation : binding.Kept(defined.ProjectId);
+        return target is null
+            ? null
+            : DocumentationCommentId.GetFirstSymbolForDeclarationId(defined.DocumentationId, target) as INamedTypeSymbol;
     }
 
     private void AddFixture(INamedTypeSymbol fixture, List<MemberNode> roots)
@@ -329,52 +394,6 @@ internal sealed class RootIndexBuilder
         {
             nodes.Add(node);
         }
-    }
-
-    private async Task<Dictionary<string, INamedTypeSymbol>> CollectionDefinitionsAsync(CancellationToken cancellationToken)
-    {
-        var result = new Dictionary<string, INamedTypeSymbol>(StringComparer.Ordinal);
-        foreach (var project in _solution.Projects)
-        {
-            if (project.Language != LanguageNames.CSharp)
-            {
-                continue;
-            }
-
-            foreach (var document in project.Documents)
-            {
-                var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
-                var model = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
-                if (root is null || model is null)
-                {
-                    continue;
-                }
-
-                foreach (var declaration in root.DescendantNodes().OfType<TypeDeclarationSyntax>())
-                {
-                    if (model.GetDeclaredSymbol(declaration, cancellationToken) is not INamedTypeSymbol type)
-                    {
-                        continue;
-                    }
-
-                    foreach (var attribute in type.GetAttributes())
-                    {
-                        if (attribute.AttributeClass?.Name != "CollectionDefinitionAttribute")
-                        {
-                            continue;
-                        }
-
-                        var name = attribute.ConstructorArguments.FirstOrDefault().Value as string;
-                        if (name is not null && !result.ContainsKey(name))
-                        {
-                            result.Add(name, type);
-                        }
-                    }
-                }
-            }
-        }
-
-        return result;
     }
 
     private RootIndex Freeze()

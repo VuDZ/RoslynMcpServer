@@ -11,53 +11,50 @@ internal static class MemberLocator
         string name,
         CancellationToken cancellationToken)
     {
-        foreach (var project in solution.Projects)
-        {
-            foreach (var document in project.Documents)
+        MemberNode? found = null;
+        await new ProjectCompilations(solution).VisitTreesAsync(
+            bindBodies: null,
+            (project, model, root, token) =>
             {
-                cancellationToken.ThrowIfCancellationRequested();
-                var model = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
-                var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
-                if (model is null || root is null)
+                if (found is not null || project.Language != LanguageNames.CSharp)
                 {
-                    continue;
+                    return Task.CompletedTask;
                 }
 
                 foreach (var node in root.DescendantNodes())
                 {
                     ISymbol? symbol = node switch
                     {
-                        MethodDeclarationSyntax method when method.Identifier.ValueText == name => model.GetDeclaredSymbol(method, cancellationToken),
-                        VariableDeclaratorSyntax variable when variable.Identifier.ValueText == name => model.GetDeclaredSymbol(variable, cancellationToken),
+                        MethodDeclarationSyntax method when method.Identifier.ValueText == name => model.GetDeclaredSymbol(method, token),
+                        VariableDeclaratorSyntax variable when variable.Identifier.ValueText == name => model.GetDeclaredSymbol(variable, token),
                         _ => null,
                     };
                     if (symbol is not null && SymbolIds.TryNode(symbol, solution, map.Keys) is { } member)
                     {
-                        return member;
+                        found = member;
+                        break;
                     }
                 }
-            }
-        }
 
-        return null;
+                return Task.CompletedTask;
+            },
+            cancellationToken).ConfigureAwait(false);
+        return found;
     }
 
     public static async Task<IReadOnlyList<string>> ErrorsAsync(Solution solution, CancellationToken cancellationToken)
     {
         var errors = new List<string>();
-        foreach (var project in solution.Projects)
-        {
-            var compilation = await project.GetCompilationAsync(cancellationToken).ConfigureAwait(false);
-            if (compilation is null)
+        await new ProjectCompilations(solution).VisitAsync(
+            bindBodies: null,
+            (project, compilation, token) =>
             {
-                continue;
-            }
-
-            errors.AddRange(compilation.GetDiagnostics(cancellationToken)
-                .Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
-                .Select(diagnostic => diagnostic.ToString()));
-        }
-
+                errors.AddRange(compilation.GetDiagnostics(token)
+                    .Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
+                    .Select(diagnostic => diagnostic.ToString()));
+                return Task.CompletedTask;
+            },
+            cancellationToken).ConfigureAwait(false);
         return errors;
     }
 }

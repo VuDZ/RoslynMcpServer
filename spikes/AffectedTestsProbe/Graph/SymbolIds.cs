@@ -7,7 +7,7 @@ internal static class SymbolIds
     public static string? DocumentationId(ISymbol symbol) =>
         symbol.OriginalDefinition.GetDocumentationCommentId();
 
-    public static string TypeKey(ITypeSymbol type)
+    public static string TypeKey(ITypeSymbol type, Solution solution)
     {
         if (type is not INamedTypeSymbol named)
         {
@@ -21,7 +21,10 @@ internal static class SymbolIds
         }
 
         var assembly = named.ContainingAssembly?.Identity.Name ?? "";
-        return assembly + ":" + id;
+        var tree = named.OriginalDefinition.DeclaringSyntaxReferences.FirstOrDefault()?.SyntaxTree;
+        var document = tree is null ? null : solution.GetDocument(tree);
+        var project = document?.Project.Id.ToString() ?? "";
+        return project + "|" + assembly + "|" + id;
     }
 
     /// <summary>

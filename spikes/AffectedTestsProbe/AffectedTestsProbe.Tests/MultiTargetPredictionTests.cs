@@ -81,4 +81,43 @@ public sealed class MultiTargetPredictionTests
         var reverse = await ReverseSearch.SearchAsync(solution, map, roots, second.Node, ProbeLimits.Default, CancellationToken.None);
         Assert.Contains(reverse.Units, unit => unit.MethodName == "Adds");
     }
+
+    [Fact]
+    public async Task SameDocumentationId_IsIndexedForEveryTestProject()
+    {
+        const string tests =
+            """
+            using Xunit;
+            public class SampleTests
+            {
+                [Fact]
+                public void Adds() { }
+            }
+            """;
+
+        using var workspace = new AdhocWorkspace();
+        var firstId = ProjectId.CreateNewId();
+        var secondId = ProjectId.CreateNewId();
+        var references = ProbeSession.MetadataReferences();
+        var options = new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary);
+        var parse = new CSharpParseOptions(LanguageVersion.Latest);
+        var path = Path.Combine(Path.GetTempPath(), "tia-both-" + Guid.NewGuid().ToString("N") + ".cs");
+        var solution = workspace.CurrentSolution
+            .AddProject(firstId, "SampleTests(net9.0)", "SampleTests", LanguageNames.CSharp)
+            .WithProjectCompilationOptions(firstId, options)
+            .WithProjectParseOptions(firstId, parse)
+            .AddMetadataReferences(firstId, references)
+            .AddProject(secondId, "SampleTests(net10.0)", "SampleTests", LanguageNames.CSharp)
+            .WithProjectCompilationOptions(secondId, options)
+            .WithProjectParseOptions(secondId, parse)
+            .AddMetadataReferences(secondId, references)
+            .AddDocument(DocumentId.CreateNewId(firstId), "Tests.cs", SourceText.From(tests), filePath: path)
+            .AddDocument(DocumentId.CreateNewId(secondId), "Tests.cs", SourceText.From(tests), filePath: path);
+        Assert.True(workspace.TryApplyChanges(solution));
+
+        var map = new ProjectMap(workspace.CurrentSolution, "Debug", "AnyCPU");
+        var roots = await RootIndexBuilder.BuildAsync(workspace.CurrentSolution, map, ["SampleTests"], CancellationToken.None);
+        Assert.Equal(2, roots.Units.Count);
+        Assert.Equal(["net10.0", "net9.0"], roots.Units.Select(unit => unit.Project.TargetFramework).OrderBy(framework => framework, StringComparer.Ordinal).ToArray());
+    }
 }

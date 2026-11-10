@@ -26,8 +26,8 @@ internal static class SamplePlanner
     {
         var roots = await RootIndexBuilder.BuildAsync(solution, map, testProjects, cancellationToken).ConfigureAwait(false);
         var connected = Connected(solution, map, roots);
-        var testTypes = new HashSet<ISymbol>(SymbolEqualityComparer.Default);
-        var fixtures = new HashSet<ISymbol>(SymbolEqualityComparer.Default);
+        var testTypes = new HashSet<string>(StringComparer.Ordinal);
+        var fixtures = new HashSet<string>(StringComparer.Ordinal);
         var directNew = new HashSet<string>(StringComparer.Ordinal);
         var fixtureNew = new HashSet<string>(StringComparer.Ordinal);
         var genericRegistration = new HashSet<string>(StringComparer.Ordinal);
@@ -51,22 +51,14 @@ internal static class SamplePlanner
         var virtualMembers = new List<SampleMember>();
         var di = new List<SampleMember>();
         var stat = new List<SampleMember>();
-        foreach (var project in solution.Projects.Where(project => connected.Contains(project.Id)))
-        {
-            foreach (var document in project.Documents)
+        await new ProjectCompilations(solution).VisitTreesAsync(
+            connected,
+            (_, model, root, token) =>
             {
-                cancellationToken.ThrowIfCancellationRequested();
-                var model = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
-                var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
-                if (model is null || root is null)
-                {
-                    continue;
-                }
-
                 foreach (var node in root.DescendantNodes())
                 {
                     var symbol = Declared(model, node);
-                    if (symbol is null || !HasBody(node) || symbol.Name.Contains('<') || IsTestOwned(symbol, testTypes))
+                    if (symbol is null || !HasBody(node) || symbol.Name.Contains('<') || IsTestOwned(symbol, testTypes, solution))
                     {
                         continue;
                     }
@@ -77,12 +69,13 @@ internal static class SamplePlanner
                     }
 
                     var display = symbol.ToDisplayString();
-                    if (IsDi(symbol, directNew, interfaceCalls, out var mark))
+                    if (IsDi(symbol, directNew, interfaceCalls, solution, out var mark))
                     {
                         var reason = mark is null ? "interface or abstract call, no direct new in tests" : "di mark: " + mark;
-                        if (fixtureNew.Contains(SymbolIds.TypeKey(symbol.ContainingType)) || genericRegistration.Contains(SymbolIds.TypeKey(symbol.ContainingType)))
+                        if (fixtureNew.Contains(SymbolIds.TypeKey(symbol.ContainingType, solution))
+                            || genericRegistration.Contains(SymbolIds.TypeKey(symbol.ContainingType, solution)))
                         {
-                            reason = genericRegistration.Contains(SymbolIds.TypeKey(symbol.ContainingType))
+                            reason = genericRegistration.Contains(SymbolIds.TypeKey(symbol.ContainingType, solution))
                                 ? "di mark: generic-registration"
                                 : "di mark: fixture";
                         }
@@ -102,8 +95,10 @@ internal static class SamplePlanner
                         ordinary.Add(new SampleMember("ordinary", member.Project, member.DocumentationId, display, "instance method or accessor"));
                     }
                 }
-            }
-        }
+
+                return Task.CompletedTask;
+            },
+            cancellationToken).ConfigureAwait(false);
 
         var random = new Random(seed);
         var selected = new List<SampleMember>();
@@ -130,8 +125,8 @@ internal static class SamplePlanner
         ProjectMap map,
         RootIndex roots,
         HashSet<ProjectId> connected,
-        HashSet<ISymbol> testTypes,
-        HashSet<ISymbol> fixtures,
+        HashSet<string> testTypes,
+        HashSet<string> fixtures,
         HashSet<string> directNew,
         HashSet<string> fixtureNew,
         HashSet<string> genericRegistration,
@@ -139,49 +134,38 @@ internal static class SamplePlanner
         Dictionary<string, int> implementationCount,
         CancellationToken cancellationToken)
     {
-        foreach (var project in solution.Projects.Where(project => connected.Contains(project.Id)))
-        {
-            foreach (var document in project.Documents)
+        await new ProjectCompilations(solution).VisitTreesAsync(
+            connected,
+            (_, model, root, token) =>
             {
-                var model = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
-                var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
-                if (model is not null && root is not null)
-                {
-                    RememberTypes(model, root, testTypes, fixtures, implementationCount, cancellationToken);
-                }
-            }
-        }
+                RememberTypes(solution, model, root, testTypes, fixtures, implementationCount, token);
+                return Task.CompletedTask;
+            },
+            cancellationToken).ConfigureAwait(false);
 
-        foreach (var project in solution.Projects.Where(project => connected.Contains(project.Id)))
-        {
-            foreach (var document in project.Documents)
+        await new ProjectCompilations(solution).VisitTreesAsync(
+            connected,
+            (_, model, root, token) =>
             {
-                var model = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
-                var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
-                if (model is null || root is null)
-                {
-                    continue;
-                }
-
                 foreach (var creation in root.DescendantNodes().OfType<ObjectCreationExpressionSyntax>())
                 {
-                    if (model.GetTypeInfo(creation, cancellationToken).Type is not INamedTypeSymbol created)
+                    if (model.GetTypeInfo(creation, token).Type is not INamedTypeSymbol created)
                     {
                         continue;
                     }
 
-                    var key = SymbolIds.TypeKey(created);
+                    var key = SymbolIds.TypeKey(created, solution);
                     if (key.Length == 0)
                     {
                         continue;
                     }
 
-                    var owner = Owner(model, creation, cancellationToken);
-                    if (owner is not null && (testTypes.Contains(owner.OriginalDefinition) || ContainingTest(owner, testTypes)))
+                    var owner = Owner(model, creation, token);
+                    if (owner is not null && (testTypes.Contains(SymbolIds.TypeKey(owner, solution)) || ContainingTest(owner, testTypes, solution)))
                     {
                         directNew.Add(key);
                     }
-                    else if (owner is not null && fixtures.Contains(owner.OriginalDefinition))
+                    else if (owner is not null && fixtures.Contains(SymbolIds.TypeKey(owner, solution)))
                     {
                         fixtureNew.Add(key);
                     }
@@ -189,7 +173,7 @@ internal static class SamplePlanner
 
                 foreach (var invocation in root.DescendantNodes().OfType<InvocationExpressionSyntax>())
                 {
-                    if (model.GetSymbolInfo(invocation, cancellationToken).Symbol is not IMethodSymbol method)
+                    if (model.GetSymbolInfo(invocation, token).Symbol is not IMethodSymbol method)
                     {
                         continue;
                     }
@@ -206,16 +190,18 @@ internal static class SamplePlanner
                     {
                         if (argument is INamedTypeSymbol named && named.TypeKind == TypeKind.Class)
                         {
-                            var key = SymbolIds.TypeKey(named);
-                            if (key.Length > 0)
+                            var registration = SymbolIds.TypeKey(named, solution);
+                            if (registration.Length > 0)
                             {
-                                genericRegistration.Add(key);
+                                genericRegistration.Add(registration);
                             }
                         }
                     }
                 }
-            }
-        }
+
+                return Task.CompletedTask;
+            },
+            cancellationToken).ConfigureAwait(false);
 
         // Fixtures discovered while scanning tests are enough for the mark. roots is the scope witness.
         _ = map;
@@ -223,10 +209,11 @@ internal static class SamplePlanner
     }
 
     private static void RememberTypes(
+        Solution solution,
         SemanticModel model,
         SyntaxNode root,
-        HashSet<ISymbol> testTypes,
-        HashSet<ISymbol> fixtures,
+        HashSet<string> testTypes,
+        HashSet<string> fixtures,
         Dictionary<string, int> implementationCount,
         CancellationToken cancellationToken)
     {
@@ -241,7 +228,11 @@ internal static class SamplePlanner
             {
                 for (var current = type; current is not null; current = current.ContainingType)
                 {
-                    testTypes.Add(current.OriginalDefinition);
+                    var key = SymbolIds.TypeKey(current, solution);
+                    if (key.Length > 0)
+                    {
+                        testTypes.Add(key);
+                    }
                 }
             }
 
@@ -268,13 +259,22 @@ internal static class SamplePlanner
                 if (iface.Name is "IClassFixture" or "ICollectionFixture"
                     && iface.TypeArguments.FirstOrDefault() is INamedTypeSymbol fixture)
                 {
-                    fixtures.Add(fixture.OriginalDefinition);
+                    var key = SymbolIds.TypeKey(fixture, solution);
+                    if (key.Length > 0)
+                    {
+                        fixtures.Add(key);
+                    }
                 }
             }
         }
     }
 
-    private static bool IsDi(ISymbol symbol, HashSet<string> directNew, HashSet<string> interfaceCalls, out string? mark)
+    private static bool IsDi(
+        ISymbol symbol,
+        HashSet<string> directNew,
+        HashSet<string> interfaceCalls,
+        Solution solution,
+        out string? mark)
     {
         mark = null;
         if (symbol is not IMethodSymbol method || method.ContainingType is not { } type || !IsConcreteImplementation(type))
@@ -282,7 +282,7 @@ internal static class SamplePlanner
             return false;
         }
 
-        var typeKey = SymbolIds.TypeKey(type);
+        var typeKey = SymbolIds.TypeKey(type, solution);
         if (typeKey.Length == 0 || directNew.Contains(typeKey) || !CalledThroughSupertype(method, interfaceCalls))
         {
             return false;
@@ -360,7 +360,7 @@ internal static class SamplePlanner
         return method.IsVirtual && id is not null && implementationCount.TryGetValue(id, out var count) && count >= 2;
     }
 
-    private static bool IsTestOwned(ISymbol symbol, HashSet<ISymbol> testTypes)
+    private static bool IsTestOwned(ISymbol symbol, HashSet<string> testTypes, Solution solution)
     {
         if (symbol is IMethodSymbol method && TestMarkers.IsTestMethod(method))
         {
@@ -369,7 +369,7 @@ internal static class SamplePlanner
 
         for (var type = symbol.ContainingType; type is not null; type = type.ContainingType)
         {
-            if (testTypes.Contains(type.OriginalDefinition))
+            if (testTypes.Contains(SymbolIds.TypeKey(type, solution)))
             {
                 return true;
             }
@@ -378,11 +378,11 @@ internal static class SamplePlanner
         return false;
     }
 
-    private static bool ContainingTest(INamedTypeSymbol type, HashSet<ISymbol> testTypes)
+    private static bool ContainingTest(INamedTypeSymbol type, HashSet<string> testTypes, Solution solution)
     {
         for (var current = type; current is not null; current = current.ContainingType)
         {
-            if (testTypes.Contains(current.OriginalDefinition))
+            if (testTypes.Contains(SymbolIds.TypeKey(current, solution)))
             {
                 return true;
             }

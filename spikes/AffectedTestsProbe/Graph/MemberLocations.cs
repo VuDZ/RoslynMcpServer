@@ -1,4 +1,5 @@
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 
 namespace AffectedTestsProbe;
 
@@ -18,30 +19,30 @@ internal static class MemberLocations
     {
         var found = new List<MemberLocation>();
         var seen = new HashSet<MemberNode>();
-        foreach (var project in solution.Projects)
-        {
-            if (projectPath is not null
-                && !string.Equals(project.FilePath, Path.GetFullPath(projectPath), StringComparison.OrdinalIgnoreCase))
+        await new ProjectCompilations(solution).VisitAsync(
+            bindBodies: null,
+            (project, compilation, _) =>
             {
-                continue;
-            }
+                if (projectPath is not null
+                    && !string.Equals(project.FilePath, Path.GetFullPath(projectPath), StringComparison.OrdinalIgnoreCase))
+                {
+                    return Task.CompletedTask;
+                }
 
-            var compilation = await project.GetCompilationAsync(cancellationToken).ConfigureAwait(false);
-            var symbol = compilation is null
-                ? null
-                : DocumentationCommentId.GetFirstSymbolForDeclarationId(documentationId, compilation);
-            if (symbol is null || !DeclaredHere(project, symbol))
-            {
-                continue;
-            }
+                var symbol = DocumentationCommentId.GetFirstSymbolForDeclarationId(documentationId, compilation);
+                if (symbol is null || !DeclaredHere(project, symbol))
+                {
+                    return Task.CompletedTask;
+                }
 
-            if (SymbolIds.TryNode(symbol, solution, map.Keys) is not { } node || !seen.Add(node))
-            {
-                continue;
-            }
+                if (SymbolIds.TryNode(symbol, solution, map.Keys) is { } node && seen.Add(node))
+                {
+                    found.Add(new MemberLocation(symbol, node));
+                }
 
-            found.Add(new MemberLocation(symbol, node));
-        }
+                return Task.CompletedTask;
+            },
+            cancellationToken).ConfigureAwait(false);
 
         return found;
     }

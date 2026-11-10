@@ -12,22 +12,16 @@ internal sealed class OperationFacts : OperationWalker
     private readonly FactGraph _graph;
     private readonly Solution _solution;
     private readonly IReadOnlyDictionary<ProjectId, ProjectKey> _keys;
-    private readonly IReadOnlyDictionary<SyntaxTree, Compilation> _compilations;
-    private readonly HashSet<ISymbol> _indexedTypes = new(SymbolEqualityComparer.Default);
-    private readonly HashSet<ISymbol> _walkedDefaults = new(SymbolEqualityComparer.Default);
+    private readonly HashSet<string> _indexedTypes = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _walkedDefaults = new(StringComparer.Ordinal);
     private SemanticModel? _model;
     private MemberFact? _fact;
 
-    public OperationFacts(
-        FactGraph graph,
-        Solution solution,
-        IReadOnlyDictionary<ProjectId, ProjectKey> keys,
-        IReadOnlyDictionary<SyntaxTree, Compilation> compilations)
+    public OperationFacts(FactGraph graph, Solution solution, IReadOnlyDictionary<ProjectId, ProjectKey> keys)
     {
         _graph = graph;
         _solution = solution;
         _keys = keys;
-        _compilations = compilations;
     }
 
     public void Walk(SyntaxNode root, SemanticModel model)
@@ -237,11 +231,13 @@ internal sealed class OperationFacts : OperationWalker
     public override void VisitArgument(IArgumentOperation operation)
     {
         // A default value is inlined at the caller. The parameter declaration is not the predecessor.
-        if (operation.IsImplicit
-            && operation.Parameter is { HasExplicitDefaultValue: true } parameter
-            && _walkedDefaults.Add(parameter.OriginalDefinition))
+        if (operation.IsImplicit && operation.Parameter is { HasExplicitDefaultValue: true } parameter)
         {
-            WalkDefault(parameter);
+            var id = parameter.OriginalDefinition.GetDocumentationCommentId();
+            if (id is null || _walkedDefaults.Add(id))
+            {
+                WalkDefault(parameter);
+            }
         }
 
         base.VisitArgument(operation);
@@ -313,7 +309,8 @@ internal sealed class OperationFacts : OperationWalker
     private void IndexContainingType(ISymbol symbol)
     {
         var type = symbol.ContainingType?.OriginalDefinition;
-        if (type is null || !_indexedTypes.Add(type))
+        var key = type is null ? "" : SymbolIds.TypeKey(type, _solution);
+        if (type is null || key.Length == 0 || !_indexedTypes.Add(key))
         {
             return;
         }
@@ -360,7 +357,7 @@ internal sealed class OperationFacts : OperationWalker
             }
         }
 
-        var typeKey = SymbolIds.TypeKey(type);
+        var typeKey = SymbolIds.TypeKey(type, _solution);
         foreach (var method in type.GetMembers().OfType<IMethodSymbol>())
         {
             AddOverrideChain(method, typeKey);
@@ -448,7 +445,7 @@ internal sealed class OperationFacts : OperationWalker
             virtualId = documentationId;
             if (symbol.ContainingType is { } containing)
             {
-                declaredType = SymbolIds.TypeKey(containing);
+                declaredType = SymbolIds.TypeKey(containing, _solution);
             }
         }
 
@@ -482,7 +479,7 @@ internal sealed class OperationFacts : OperationWalker
             return;
         }
 
-        var key = SymbolIds.TypeKey(named);
+        var key = SymbolIds.TypeKey(named, _solution);
         if (key.Length > 0)
         {
             _fact.CreatedTypeKeys.Add(key);
@@ -501,7 +498,7 @@ internal sealed class OperationFacts : OperationWalker
             return;
         }
 
-        var key = SymbolIds.TypeKey(named);
+        var key = SymbolIds.TypeKey(named, _solution);
         if (key.Length == 0)
         {
             return;
@@ -536,17 +533,14 @@ internal sealed class OperationFacts : OperationWalker
 
     private void WalkDefault(IParameterSymbol parameter)
     {
-        if (parameter.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax() is not ParameterSyntax { Default.Value: { } value })
+        if (_model is null
+            || parameter.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax() is not ParameterSyntax { Default.Value: { } value }
+            || !_model.Compilation.ContainsSyntaxTree(value.SyntaxTree))
         {
             return;
         }
 
-        if (!_compilations.TryGetValue(value.SyntaxTree, out var compilation))
-        {
-            return;
-        }
-
-        var operation = compilation.GetSemanticModel(value.SyntaxTree).GetOperation(value);
+        var operation = _model.Compilation.GetSemanticModel(value.SyntaxTree).GetOperation(value);
         if (operation is not null)
         {
             Visit(operation);

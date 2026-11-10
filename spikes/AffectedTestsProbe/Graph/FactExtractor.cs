@@ -7,43 +7,15 @@ internal static class FactExtractor
     public static async Task<FactGraph> ExtractAsync(Solution solution, ProjectMap map, CancellationToken cancellationToken)
     {
         var graph = new FactGraph();
-        var compilations = new Dictionary<SyntaxTree, Compilation>();
-        var documents = new List<Document>();
-        foreach (var project in solution.Projects)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (project.Language != LanguageNames.CSharp)
+        var walker = new OperationFacts(graph, solution, map.Keys);
+        await new ProjectCompilations(solution).VisitTreesAsync(
+            bindBodies: null,
+            (_, model, root, _) =>
             {
-                continue;
-            }
-
-            var compilation = await project.GetCompilationAsync(cancellationToken).ConfigureAwait(false);
-            if (compilation is null)
-            {
-                continue;
-            }
-
-            foreach (var tree in compilation.SyntaxTrees)
-            {
-                compilations[tree] = compilation;
-            }
-
-            documents.AddRange(project.Documents);
-        }
-
-        var walker = new OperationFacts(graph, solution, map.Keys, compilations);
-        foreach (var document in documents)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
-            var model = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
-            if (root is null || model is null)
-            {
-                continue;
-            }
-
-            walker.Walk(root, model);
-        }
+                walker.Walk(root, model);
+                return Task.CompletedTask;
+            },
+            cancellationToken).ConfigureAwait(false);
 
         Link(graph, map.Visible);
         return graph;

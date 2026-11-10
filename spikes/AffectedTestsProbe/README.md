@@ -8,6 +8,21 @@ and record the commit the commands print. Roslyn (`Roslyn.slnx`) is the intended
 graph with `--test-project` (the name may be repeated), for example two to four
 `Microsoft.CodeAnalysis.CSharp` test projects, and write that scope down with the commit.
 
+## Memory
+
+The forward walk, the sample, the test-root index, and fact extraction keep a bound tree only while that
+project is being read. Those passes do not call `Project.GetCompilationAsync` or `Document.GetSemanticModelAsync`:
+the workspace would retain every semantic model until the process exits. On the compiler solution that was
+tens of gigabytes after the facts had already been copied out. Each C# project is compiled from its own
+syntax trees, the bodies are read, and that compilation is dropped. A second compilation of the same trees
+never receives a semantic model and is held only so the next project can see its source. Document syntax
+trees remain in the workspace. A Visual Basic project is held as that kind of reference; its bodies are not
+bound. A source type's key includes the project, so two target frameworks of one assembly stay distinct.
+
+`SymbolFinder`, used by reverse search, needs symbols that belong to the workspace, so that path still
+calls `GetCompilationAsync` and `GetSemanticModelAsync`. Those models stay for the process. A single
+`reverse` process drops them on exit. `reverse-batch` keeps every compilation that search opened.
+
 ## Precheck
 
 The shared edge rules are checked on a small in-memory solution, not on this repository:
