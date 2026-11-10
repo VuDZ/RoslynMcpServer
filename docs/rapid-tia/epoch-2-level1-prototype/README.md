@@ -41,8 +41,8 @@ production код прототипа не переносится как есть
   **Codex ACCEPT** в scope E2-01…E2-05 ([раунд 3](review/round-3-recheck.md)) и **Grok ACCEPT** в scope
   F-001…F-009 ([раунд 3](review-grok/round-3-recheck.md)). Открытых замечаний ревью плана нет.
   Прототип записан 2026-11-09 в `spikes/AffectedTestsProbe/` (Grok 4.7). Замеры и отчёт не делались.
-  Ревью реализации: [раунд 1](review-impl/round-1.md), [раунд 2](review-impl/round-2.md) — **changes required**,
-  открыт I-08 (Blocker, multi-TFM проекты выпадают из scope).
+  Ревью реализации: [раунд 1](review-impl/round-1.md), [раунд 2](review-impl/round-2.md) — **changes required**.
+  I-08 (суффикс `Name(tfm)` без пробела) исправлен в коде 2026-11-10; перепроверка не делалась.
   Офисный solution отложен: там нет git. Статус исполнения task-01 остаётся **planned**.
   Остальные задачи эпохи — по итогам спайка.
 
@@ -63,7 +63,8 @@ production код прототипа не переносится как есть
   и для **9 из 9 у Grok**.
 - Итог: **Codex ACCEPT** в scope E2-01…E2-05 и **Grok ACCEPT** в scope F-001…F-009, 2026-11-09. Открытых замечаний
   ревью плана нет. Прототип task-01 лежит в `spikes/AffectedTestsProbe/` (Grok 4.7, 2026-11-09). Замечания
-  [ревью реализации, раунд 1](review-impl/round-1.md) исправлены; [раунд 2](review-impl/round-2.md) открыл I-08. Замеры,
+  [ревью реализации, раунд 1](review-impl/round-1.md) исправлены; [раунд 2](review-impl/round-2.md) открыл I-08,
+  и это исправление записано в код 2026-11-10 без перепроверки. Замеры,
   отчёт и приёмка эпохи не делались. Офисный корпус отложен, потому что это не git. Статус исполнения остаётся **planned**.
 - Отчёты: [раунд 1 — scope и результат](review/README.md), [карточки task-01](review/task-01-forward-reverse-probe-hi.md),
   [ответы автора](review/round-1-responses.md); [Grok — результат](review-grok/result.md), [охват](review-grok/coverage.md),

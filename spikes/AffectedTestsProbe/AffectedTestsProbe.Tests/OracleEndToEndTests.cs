@@ -31,7 +31,8 @@ public sealed class OracleEndToEndTests
             """
             <Project Sdk="Microsoft.NET.Sdk">
               <PropertyGroup>
-                <TargetFramework>net10.0</TargetFramework>
+                <TargetFrameworks>netstandard2.0;net10.0</TargetFrameworks>
+                <LangVersion>latest</LangVersion>
                 <ImplicitUsings>enable</ImplicitUsings>
                 <Nullable>enable</Nullable>
               </PropertyGroup>
@@ -72,7 +73,7 @@ public sealed class OracleEndToEndTests
             """
             <Project Sdk="Microsoft.NET.Sdk">
               <PropertyGroup>
-                <TargetFramework>net10.0</TargetFramework>
+                <TargetFrameworks>net10.0;net9.0</TargetFrameworks>
                 <ImplicitUsings>enable</ImplicitUsings>
                 <Nullable>enable</Nullable>
                 <IsPackable>false</IsPackable>
@@ -98,6 +99,13 @@ public sealed class OracleEndToEndTests
                 ["sln", solution, "add", Path.Combine(root, "Prod", "Prod.csproj"), Path.Combine(root, "Tests", "Tests.csproj")],
                 root);
             Assert.Equal(0, added.ExitCode);
+            // net9.0 and netstandard2.0 design-time compilations have no reference assemblies until restore.
+            var restored = await RunAsync(
+                "dotnet",
+                ["restore", solution, "--nologo", "-nodeReuse:false"],
+                root,
+                disableNodeReuse: true);
+            Assert.True(restored.ExitCode == 0, restored.Error + restored.Output);
 
             var probe = ProbeDll();
             var oracle = await RunAsync(
@@ -122,11 +130,21 @@ public sealed class OracleEndToEndTests
             Assert.Equal(JsonValueKind.Null, report.GetProperty("invalid").ValueKind);
             Assert.Equal("Valid", report.GetProperty("judgment").GetString());
             Assert.Equal(0, report.GetProperty("unmappedExecuted").GetInt32());
+            Assert.Equal(8, report.GetProperty("controlExecuted").GetInt32());
             Assert.True(report.GetProperty("publishCompleteness").GetBoolean());
             var names = report.GetProperty("oracle").EnumerateArray().Select(item => item.GetString()!).ToArray();
-            Assert.Contains(names, name => name.Contains(".Adds", StringComparison.Ordinal));
-            Assert.Contains(names, name => name.Contains(".Rows", StringComparison.Ordinal));
+            Assert.Equal(2, names.Count(name => name.Contains(".Adds", StringComparison.Ordinal)));
+            Assert.Equal(2, names.Count(name => name.Contains(".Rows", StringComparison.Ordinal)));
             Assert.DoesNotContain(names, name => name.Contains(".Unrelated", StringComparison.Ordinal));
+            var frameworks = report.GetProperty("targets").EnumerateArray()
+                .Select(item => item.GetProperty("TargetFramework").GetString() ?? "")
+                .OrderBy(framework => framework, StringComparer.Ordinal)
+                .ToArray();
+            Assert.Equal(["net10.0", "net9.0"], frameworks);
+            AssertRealFrameworks(report, "fCha");
+            AssertRealFrameworks(report, "rCha");
+            AssertRealFrameworks(report, "l0");
+            AssertRealFrameworks(report, "oracle");
             Assert.Equal(original.Replace("\r\n", "\n"), (await File.ReadAllTextAsync(source)).Replace("\r\n", "\n"));
         }
         finally
@@ -136,6 +154,16 @@ public sealed class OracleEndToEndTests
                 Directory.Delete(root, recursive: true);
             }
         }
+    }
+
+    private static void AssertRealFrameworks(JsonElement report, string property)
+    {
+        var values = report.GetProperty(property).EnumerateArray().Select(item => item.GetString()!).ToArray();
+        Assert.True(
+            values.Any(value => value.Contains("|net10.0|", StringComparison.Ordinal))
+            && values.Any(value => value.Contains("|net9.0|", StringComparison.Ordinal))
+            && !values.Any(value => value.Contains("unspecified", StringComparison.Ordinal)),
+            property + Environment.NewLine + string.Join(Environment.NewLine, values));
     }
 
     private static string ProbeDll()
@@ -160,7 +188,8 @@ public sealed class OracleEndToEndTests
     private static async Task<(int ExitCode, string Output, string Error)> RunAsync(
         string file,
         string[] arguments,
-        string directory)
+        string directory,
+        bool disableNodeReuse = false)
     {
         var start = new ProcessStartInfo(file)
         {
@@ -169,6 +198,11 @@ public sealed class OracleEndToEndTests
             RedirectStandardError = true,
             UseShellExecute = false,
         };
+        if (disableNodeReuse)
+        {
+            start.Environment["MSBUILDDISABLENODEREUSE"] = "1";
+        }
+
         foreach (var argument in arguments)
         {
             start.ArgumentList.Add(argument);

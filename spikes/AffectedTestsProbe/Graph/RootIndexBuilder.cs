@@ -413,16 +413,9 @@ internal sealed class RootIndexBuilder
             return true;
         }
 
-        var name = project.Name;
-        var stripped = name;
-        var paren = name.LastIndexOf(" (", StringComparison.Ordinal);
-        if (paren > 0)
-        {
-            stripped = name[..paren];
-        }
-
+        var (stripped, _) = ProjectNameSuffix.Split(project.Name);
         return filters.Any(filter =>
-            string.Equals(filter, name, StringComparison.OrdinalIgnoreCase)
+            string.Equals(filter, project.Name, StringComparison.OrdinalIgnoreCase)
             || string.Equals(filter, stripped, StringComparison.OrdinalIgnoreCase));
     }
 

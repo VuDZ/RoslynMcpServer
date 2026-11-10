@@ -15,16 +15,7 @@ internal sealed record ProjectKey(string ProjectPath, string Configuration, stri
     }
 
     /// <summary>
-    /// MSBuildWorkspace names a multi-targeted project <c>Name (tfm)</c>. A single target framework has no suffix.
+    /// The framework suffix of a workspace project name. A single target framework has no suffix.
     /// </summary>
-    public static string TargetFrameworkOf(string projectName)
-    {
-        var open = projectName.LastIndexOf(" (", StringComparison.Ordinal);
-        if (open > 0 && projectName.EndsWith(')'))
-        {
-            return projectName[(open + 2)..^1];
-        }
-
-        return "unspecified";
-    }
+    public static string TargetFrameworkOf(string projectName) => ProjectNameSuffix.Split(projectName).TargetFramework;
 }

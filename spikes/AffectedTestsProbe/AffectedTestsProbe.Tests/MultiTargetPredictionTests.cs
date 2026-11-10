@@ -40,15 +40,15 @@ public sealed class MultiTargetPredictionTests
         var options = new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary);
         var parse = new CSharpParseOptions(LanguageVersion.Latest);
         var solution = workspace.CurrentSolution
-            .AddProject(standardId, "Lib (netstandard2.0)", "Lib", LanguageNames.CSharp)
+            .AddProject(standardId, "Lib(netstandard2.0)", "Lib", LanguageNames.CSharp)
             .WithProjectCompilationOptions(standardId, options)
             .WithProjectParseOptions(standardId, parse)
             .AddMetadataReferences(standardId, references)
-            .AddProject(modernId, "Lib (net10.0)", "Lib", LanguageNames.CSharp)
+            .AddProject(modernId, "Lib(net10.0)", "Lib", LanguageNames.CSharp)
             .WithProjectCompilationOptions(modernId, options)
             .WithProjectParseOptions(modernId, parse)
             .AddMetadataReferences(modernId, references)
-            .AddProject(testId, "SampleTests (net10.0)", "SampleTests", LanguageNames.CSharp)
+            .AddProject(testId, "SampleTests(net10.0)", "SampleTests", LanguageNames.CSharp)
             .WithProjectCompilationOptions(testId, options)
             .WithProjectParseOptions(testId, parse)
             .AddMetadataReferences(testId, references)
