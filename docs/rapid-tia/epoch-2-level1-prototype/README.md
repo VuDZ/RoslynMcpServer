@@ -42,8 +42,8 @@ production код прототипа не переносится как есть
   F-001…F-009 ([раунд 3](review-grok/round-3-recheck.md)). Открытых замечаний ревью плана нет.
   Прототип записан 2026-11-09 в `spikes/AffectedTestsProbe/` (Grok 4.7). Замеры и отчёт не делались.
   Ревью реализации: [раунд 1](review-impl/round-1.md), [раунд 2](review-impl/round-2.md),
-  [раунд 3](review-impl/round-3.md) — **ACCEPT** 2026-11-10 по `cc44982` в scope I-01…I-08. Открыт I-09 (Low): сквозной
-  тест требует runtime net9.0.
+  [раунд 3](review-impl/round-3.md) — **ACCEPT** 2026-11-10 по `cc44982` в scope I-01…I-08. Открытых замечаний нет:
+  I-09 (сквозной тест требует runtime net9.0) владелец закрыл как требование к окружению.
   Офисный solution отложен: там нет git. Статус исполнения task-01 остаётся **planned**.
   Остальные задачи эпохи — по итогам спайка.
 
@@ -65,7 +65,7 @@ production код прототипа не переносится как есть
 - Итог: **Codex ACCEPT** в scope E2-01…E2-05 и **Grok ACCEPT** в scope F-001…F-009, 2026-11-09. Открытых замечаний
   ревью плана нет. Прототип task-01 лежит в `spikes/AffectedTestsProbe/` (Grok 4.7, 2026-11-09). Замечания
   [ревью реализации, раунд 1](review-impl/round-1.md) исправлены; [раунд 2](review-impl/round-2.md) открыл I-08;
-  [раунд 3](review-impl/round-3.md) — **ACCEPT** в scope I-01…I-08, открыт только I-09 (Low, окружение теста). Замеры,
+  [раунд 3](review-impl/round-3.md) — **ACCEPT** в scope I-01…I-08, открытых замечаний нет (I-09 закрыт владельцем). Замеры,
   отчёт и приёмка эпохи не делались. Офисный корпус отложен, потому что это не git. Статус исполнения остаётся **planned**.
 - Отчёты: [раунд 1 — scope и результат](review/README.md), [карточки task-01](review/task-01-forward-reverse-probe-hi.md),
   [ответы автора](review/round-1-responses.md); [Grok — результат](review-grok/result.md), [охват](review-grok/coverage.md),
