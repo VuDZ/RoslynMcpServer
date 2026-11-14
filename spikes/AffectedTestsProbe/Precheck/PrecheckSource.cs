@@ -38,6 +38,7 @@ internal static class PrecheckSource
                 public static void FromLeft() { }
                 public static void FromRight() { }
                 public static int FromFieldInit() => 1;
+                public static int FromLocal() => 2;
                 public static int Read() => Defaults.N;
                 public static int Value(int value = Defaults.N) => value;
             }
@@ -109,6 +110,12 @@ internal static class PrecheckSource
             {
                 [Fact]
                 public void Other() { ProbeTarget.FromOther(); }
+
+                [Fact]
+                public void LocalResult()
+                {
+                    var result = ProbeTarget.FromLocal();
+                }
             }
 
             public sealed class SetupTests

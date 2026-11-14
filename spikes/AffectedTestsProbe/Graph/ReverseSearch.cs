@@ -21,7 +21,20 @@ internal static class ReverseSearch
         MemberNode start,
         ProbeLimits limits,
         CancellationToken cancellationToken) =>
-        new Search(solution, map, roots, limits, cancellationToken).RunAsync(start);
+        new Search(solution, map, roots, limits, cancellationToken).RunAsync([start]);
+
+    /// <summary>
+    /// One walk from several changed members, as an edit of a whole file would start it.
+    /// The members share one visited set and one set of limits.
+    /// </summary>
+    public static Task<ReverseOutcome> SearchAsync(
+        Solution solution,
+        ProjectMap map,
+        RootIndex roots,
+        IReadOnlyCollection<MemberNode> starts,
+        ProbeLimits limits,
+        CancellationToken cancellationToken) =>
+        new Search(solution, map, roots, limits, cancellationToken).RunAsync(starts);
 
     private sealed class Search
     {
@@ -44,11 +57,15 @@ internal static class ReverseSearch
             _cancellation = cancellation;
         }
 
-        public async Task<ReverseOutcome> RunAsync(MemberNode start)
+        public async Task<ReverseOutcome> RunAsync(IEnumerable<MemberNode> starts)
         {
             var watch = Stopwatch.StartNew();
             _outcome = new ReverseOutcome();
-            _queue.Enqueue((start, 0));
+            foreach (var start in starts)
+            {
+                _queue.Enqueue((start, 0));
+            }
+
             while (_queue.Count > 0 && _outcome.Limit is null)
             {
                 _cancellation.ThrowIfCancellationRequested();
@@ -309,7 +326,10 @@ internal static class ReverseSearch
                     continue;
                 }
 
-                if (current is BaseMethodDeclarationSyntax or AccessorDeclarationSyntax or VariableDeclaratorSyntax
+                // Only a field's declarator is a member. A local's declarator (`var result = M();`) is inside a body:
+                // stopping there gave a local symbol without a documentation id and dropped the reference silently.
+                if (current is BaseMethodDeclarationSyntax or AccessorDeclarationSyntax
+                    or VariableDeclaratorSyntax { Parent.Parent: BaseFieldDeclarationSyntax }
                     or PropertyDeclarationSyntax or IndexerDeclarationSyntax)
                 {
                     var symbol = model.GetDeclaredSymbol(current, _cancellation);

@@ -33,6 +33,7 @@ internal static class Precheck
         await ExpectBothAsync(probe, failures, "FromData", cancellationToken, "Probe.SampleTests.FromRows").ConfigureAwait(false);
         await ExpectBothAsync(probe, failures, "FromTestBody", cancellationToken, "Probe.SampleTests.Direct").ConfigureAwait(false);
         await ExpectBothAsync(probe, failures, "FromOther", cancellationToken, "Probe.OtherTests.Other").ConfigureAwait(false);
+        await ExpectBothAsync(probe, failures, "FromLocal", cancellationToken, "Probe.OtherTests.LocalResult").ConfigureAwait(false);
         await ExpectBothAsync(probe, failures, "FromSetup", cancellationToken, "Probe.SetupTests.One", "Probe.SetupTests.Two").ConfigureAwait(false);
         await ExpectBothAsync(probe, failures, "N", cancellationToken, "Probe.SampleTests.Direct").ConfigureAwait(false);
         await ExpectBothAsync(probe, failures, "FromLeft", cancellationToken, "Probe.VirtualTests.Virtual", "Probe.MockTests.Mocked").ConfigureAwait(false);

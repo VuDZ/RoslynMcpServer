@@ -42,6 +42,7 @@ internal static class Program
         "reverse-batch" => ReverseCommand.BatchAsync(args),
         "sample" => SampleCommand.RunAsync(args),
         "oracle" => OracleCommand.RunAsync(args),
+        "impact" => ImpactCommand.RunAsync(args),
         _ => Task.FromResult(Unknown(args[0])),
     };
 
@@ -64,9 +65,11 @@ internal static class Program
             reverse --solution <path> --member <documentation-id> [--test-project <name>]... [--project <path>]
             reverse-batch --solution <path> --members <file> [--repeat 3] [--test-project <name>]...
             oracle --solution <path> --member <documentation-id> --test-project <name> --clone-ack [--configuration Debug]
+            impact --solution <path> [--files <file>] [--members <file>] [--sample 20] [--seed 1] [--test-project <name>]... [--out <dir>] [--no-quality]
 
-            The office corpus is not a git checkout and is deferred. Point --solution at a public git solution
-            such as Roslyn.slnx, and record the commit the command prints. Mutations require a clone or worktree.
+            oracle, summary, and sample need a public git solution that builds, such as Roslyn.slnx; record the
+            commit the command prints. Mutations require a clone or worktree. impact needs only a solution that
+            loads: no build, no git, no file changes.
             """);
     }
 }

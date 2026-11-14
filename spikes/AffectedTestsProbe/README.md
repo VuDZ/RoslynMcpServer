@@ -3,10 +3,42 @@
 Standalone level-1 prototype. It is not part of the main solution and it does not change the server.
 The host already excludes `spikes/**` from its compile.
 
-The office solution is deferred: it is not a git repository. Run this against a public git solution
-and record the commit the commands print. Roslyn (`Roslyn.slnx`) is the intended corpus. Limit the
+The `oracle`, `summary`, and `sample` commands need a public git solution that builds; record the commit the
+commands print. For a solution that is not in git or does not build, use `impact` (below). Roslyn (`Roslyn.slnx`) is the intended corpus. Limit the
 graph with `--test-project` (the name may be repeated), for example two to four
 `Microsoft.CodeAnalysis.CSharp` test projects, and write that scope down with the commit.
+
+## Office run without a build (`impact`)
+
+`impact` answers "which tests does this edit affect" by reverse search only. It needs a solution that loads in
+Roslyn (restored packages), not one that builds, and it needs neither git nor a clone: it changes no files.
+It reports what each answer costs and how much smaller it is than level 0. It does not measure completeness;
+that needs the mutation oracle, and the oracle needs a build.
+
+```powershell
+dotnet run --project spikes/AffectedTestsProbe/AffectedTestsProbe.csproj -c Release -- impact --solution <path.sln> --files files.txt --sample 20 --out impact-run
+```
+
+- `--files` lists source files you edited (one path per line, relative to the solution directory or absolute).
+  Each file is one query over every member with a body in it, as an edit of that file would start it.
+- `--members` lists documentation ids (`M:Ns.Type.Method(System.Int32)`), one query per member.
+- `--sample N --seed S` adds N random members with a body from production projects that a test project depends on.
+  A project whose name contains `Test` is not sampled. Without `--files` and `--members` the sample is 20.
+- `--test-project <name>` limits the test projects; by default every test project is used.
+- `--no-quality` skips the final load-quality pass (declaration errors and projects without framework references).
+
+The run writes two files into `--out`:
+
+- `raw.json` — solution path, files, member ids, and the test names of each answer. Keep it private.
+- `summary.json` — counts, member kinds, times, and memory only. It has no names or paths and may be shared.
+
+For each query the summary has the answer (`reverse`; `level0` when a limit was hit; `missing`), search time,
+visited members, the size of the answer and of level 0 in test methods, classes, and projects, their ratio, and the
+memory still held after a full collection. Phases (`load`, `prewarm`, `test-roots`, `sample`, `load-quality`) have
+their time and memory too. The first query pays for the compilations it opens; later queries reuse them.
+
+Read `quality` before trusting the numbers: projects with `noFramework` were not restored, and many declaration
+errors such as `CS0246` mean missing references. Reverse search over such projects misses references.
 
 ## Memory
 
