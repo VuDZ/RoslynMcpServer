@@ -1,7 +1,8 @@
 # Разбор первого macOS CI, 2026-11-15
 
 Статус: **local-validation-complete; native-ci-pending**.
-Объём: только тестовая изоляция кеша Roslyn; код сервера и версия 1.5.25 не меняются.
+Объём: тестовая инфраструктура macOS — кеш Roslyn, временные пути, файловая блокировка
+и процессная фикстура; код сервера и версия 1.5.25 не меняются.
 
 ## Причина
 
@@ -32,13 +33,34 @@ macOS получает этот путь через Foundation, поэтому R
   `LocalApplicationData`; прежний тест проверяет запись и повторное чтение реальной SQLite-базы.
 - Фильтры CI, запрет пустого прогона и запрет пропусков не ослаблялись.
 
+## Ошибки, открывшиеся после восстановления загрузки сборки
+
+[Повторный CI для 5c9e12a](https://github.com/VuDZ/RoslynMcpServer/actions/runs/43742084620)
+подтвердил исправление кеша: macOS main выполнил 1517 тестов, 1511 passed / 6 failed;
+lifecycle — 13 тестов, 5 passed / 8 failed. Windows и Ubuntu прошли обе ветки.
+
+- macOS `TMPDIR` содержит `/var/folders/…`, а native cwd и часть MSBuild-путей —
+  `/private/var/folders/…`. Из-за этого четыре сравнения путей падали, а lifecycle
+  терял соответствие analyzer project/output и иногда дважды восстанавливал один
+  проект под разными именами с конфликтом `*.nuget.g.props` / `project.nuget.cache`.
+  До создания фикстур тестовый процесс теперь переводит `TMPDIR` в physical path
+  через `realpath`; отдельный тест сравнивает его с native `/bin/pwd -P`.
+- Тест занятого lease ожидал Linux `EAGAIN=11`; на macOS это `35`.
+  Исправлено только распознавание ожидаемой ошибки в тестах.
+- macOS shell мог заменить себя последним `sleep`, поэтому тест отмены не находил
+  помеченного родителя и ребёнка. Фикстура теперь запускает `sleep` в фоне и ждёт его
+  через `wait`, сохраняя дерево процессов для проверки реальной отмены.
+
+Правила идентичности путей production, запреты публикации real analyzer output,
+проверки fail-closed и assertions lifecycle не изменялись.
+
 ## Валидация
 
-- Focused `RoslynIndexStorageTests`, Windows Release: 3/3 passed.
+- Focused index storage, JSONL writer и Git helper, Windows Release: **15/15 passed**.
 - Release solution build: passed.
-- Полный основной набор, Windows Release: **1524/1524 passed**, включая весь SourceStructure.
+- Полный основной набор, Windows Release: **1525/1525 passed**, включая весь SourceStructure.
 - `AnalyzerLifecycle`, `ROSLYN_MCP_ANALYZER_LIFECYCLE=1`: **13/13 passed**, 0 skipped.
-- Повторный native macOS CI: ожидается после отправки исправления.
+- После второго исправления native macOS CI ожидается; первый повторный прогон описан выше.
 
 Исходные TRX и логи сохранены локально в `artifacts/macos-ci-fix-20261115/`.
 Нативный smoke релизных архивов в этот CI не входит и остаётся отдельной проверкой.

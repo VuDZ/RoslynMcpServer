@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Reflection;
 using System.Text;
 using Microsoft.CodeAnalysis;
@@ -15,6 +16,27 @@ namespace RoslynMcpServer.Tests.Workspace;
 /// </summary>
 public sealed class RoslynIndexStorageTests
 {
+    [Fact]
+    public void MacOS_temp_directory_matches_the_native_working_directory()
+    {
+        if (!OperatingSystem.IsMacOS())
+        {
+            return;
+        }
+
+        var temp = Path.GetTempPath();
+        using var process = Process.Start(new ProcessStartInfo("/bin/pwd", "-P")
+        {
+            WorkingDirectory = temp,
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+        })!;
+        var physicalPath = process.StandardOutput.ReadToEnd().Trim();
+        Assert.True(process.WaitForExit(5000), "Native working directory probe did not exit.");
+        Assert.Equal(0, process.ExitCode);
+        Assert.Equal(Path.TrimEndingDirectorySeparator(temp), physicalPath);
+    }
+
     [Fact]
     public void Unix_cache_is_private_and_the_user_data_folder_is_restored()
     {

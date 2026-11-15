@@ -2,8 +2,8 @@
 
 - Дата: 2026-11-15.
 - Статус на 2026-11-15: **implemented, local-validation-complete; native-validation-pending** —
-  первый macOS CI выявил сбой изоляции тестового кеша; исправление подготовлено,
-  Windows Release main 1524/1524 и lifecycle 13/13 прошли. Повторный macOS CI ожидается;
+  первые macOS-прогоны выявили ошибки тестового кеша, путей и фикстур; они исправлены,
+  Windows Release main 1525/1525 и lifecycle 13/13 прошли. Повторный macOS CI ожидается;
   нативный smoke обоих релизных архивов ещё не выполнен.
 - Разбор macOS CI и проверка исправления: [validation](validation-macos-ci-fix-2026-11-15.md).
 - Основание: прямое поручение пользователя; self-contained и framework-dependent сохраняются.

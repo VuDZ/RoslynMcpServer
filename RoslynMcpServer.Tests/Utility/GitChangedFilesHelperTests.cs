@@ -209,7 +209,8 @@ public sealed class GitChangedFilesHelperTests
                 $"/c powershell.exe -NoProfile -Command \"Start-Sleep -Seconds 120 # {marker}\"");
         }
 
-        return new ProcessStartInfo("/bin/sh", $"-c \"sleep 120 # {marker}\"");
+        // A final external command can replace the shell on macOS; wait keeps the parent alive.
+        return new ProcessStartInfo("/bin/sh", $"-c \"sleep 120 & wait # {marker}\"");
     }
 
     private static ProcessStartInfo StartInfoForPipeHolder(string pidFile, string marker)

@@ -106,5 +106,6 @@ public sealed class UsageJsonlWriterTests
 
     private static bool IsSharingViolation(IOException exception) =>
         (exception.HResult & 0xffff) is 32 or 33
-        || (!OperatingSystem.IsWindows() && exception.HResult == 11);
+        // EAGAIN is 35 on macOS and 11 on Linux.
+        || (!OperatingSystem.IsWindows() && exception.HResult == (OperatingSystem.IsMacOS() ? 35 : 11));
 }

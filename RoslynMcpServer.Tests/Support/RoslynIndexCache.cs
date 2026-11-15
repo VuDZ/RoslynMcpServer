@@ -111,6 +111,7 @@ internal static class RoslynIndexCache
     // fields follows Roslyn's naming instead of re-implementing its path checksum.
     private static string ResolveProcessFolder()
     {
+        TestTempDirectory.UsePhysicalMacOsPath();
         var type = typeof(Microsoft.CodeAnalysis.Workspace).Assembly.GetType("Microsoft.CodeAnalysis.Host.DefaultPersistentStorageConfiguration", throwOnError: true)!;
         if (!OperatingSystem.IsWindows())
         {
