@@ -1,6 +1,6 @@
 # Разбор первого macOS CI, 2026-11-15
 
-Статус: **local-validation-complete; native-ci-pending**.
+Статус: **test-fix-accepted; native-ci-complete; release-smoke-pending**.
 Объём: тестовая инфраструктура macOS — кеш Roslyn, временные пути, файловая блокировка
 и процессная фикстура; код сервера и версия 1.5.25 не меняются.
 
@@ -60,7 +60,21 @@ lifecycle — 13 тестов, 5 passed / 8 failed. Windows и Ubuntu прошл
 - Release solution build: passed.
 - Полный основной набор, Windows Release: **1525/1525 passed**, включая весь SourceStructure.
 - `AnalyzerLifecycle`, `ROSLYN_MCP_ANALYZER_LIFECYCLE=1`: **13/13 passed**, 0 skipped.
-- После второго исправления native macOS CI ожидается; первый повторный прогон описан выше.
+- [Итоговый CI для `0f5a413`](https://github.com/VuDZ/RoslynMcpServer/actions/runs/43743170150): **success**, все шесть jobs.
+- macOS ARM64: **1518/1518 main**, **13/13 lifecycle**.
+- Ubuntu: **1518/1518 main**, **13/13 lifecycle**.
+- Windows: **1525/1525 main**, **13/13 lifecycle**.
+- SourceStructure в основном наборе каждой платформы: **123/123 passed**.
+- Все TRX проверены `Assert-NoSkippedTests.ps1`: **4612 executed / 4612 passed**,
+  0 failed, 0 skipped; суммарный счётчик включает дочерние тестовые процессы.
+- На macOS прошли native PPID/argv, фактическая очистка BuildHost с сохранением
+  другого дочернего процесса, обе новые проверки кеша/physical temp path,
+  тест удержанного lease и отмена дерева процессов.
 
-Исходные TRX и логи сохранены локально в `artifacts/macos-ci-fix-20261115/`.
+2026-11-15: приняты исправления тестовой инфраструктуры и нативный CI для исходников
+коммита `0f5a413c963d7cb317b0aad16753b0bbee3306c1`; фильтры и защитные проверки сохранены.
+Версия сервера не повышалась, поскольку production не менялся.
+
+Исходные TRX и логи сохранены локально в `artifacts/macos-ci-fix-20261115/`,
+итоговые артефакты — в подкаталоге `final-ci/`.
 Нативный smoke релизных архивов в этот CI не входит и остаётся отдельной проверкой.

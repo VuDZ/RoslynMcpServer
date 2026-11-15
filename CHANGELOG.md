@@ -4,7 +4,7 @@ Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into a
 
 ### v1.5.25
 
-- Add native macOS ARM64 main/lifecycle CI jobs and self-contained/framework-dependent `osx-arm64` release archives. Native macOS validation is pending; see [task status](docs/github-releases/task-01-macos-arm64-med.md).
+- Add native macOS ARM64 main/lifecycle CI jobs and self-contained/framework-dependent `osx-arm64` release archives. Native CI passed; release archive smoke is pending; see [task status](docs/github-releases/task-01-macos-arm64-med.md).
 - Release smoke resolves the `Smoke` source declaration and builds the fixture through MCP after loading its workspace.
 - Cancelled workspace loads can clean up unregistered child BuildHosts on macOS. Identification uses the parent id and argv, excluding environment variables; in-use and foreign hosts are left alone.
 - Test host resolution honors an explicit `DOTNET_ROOT`; raw import evidence accepts compatible newer binlogs while still rejecting unreadable records.

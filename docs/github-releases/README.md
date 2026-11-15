@@ -4,16 +4,16 @@
 O-01 закрыт (`workflow_dispatch` + тег со стороны Actions). O-02 / O-03 и
 унификация версий (O-04) по-прежнему открыты. Согласованный объём — раздел 3.
 
-Обновление 2026-11-15: [macOS ARM64, task-01](task-01-macos-arm64-med.md) — **implemented, local-validation-complete; native-validation-pending**;
+Обновление 2026-11-15: [macOS ARM64, task-01](task-01-macos-arm64-med.md) — **implemented; native-ci-complete; release-smoke-pending**;
 оба варианта поставки сохранены, добавлены нативные шарды CI и релизная строка `osx-arm64`,
 smoke расширен семантическим запросом и сборкой, очистка BuildHost расширена на macOS.
-Windows smoke обоих архивов и кросс-публикации macOS прошли. Шесть исходных сбоев закрыты:
-после интеграции в актуальную main для 1.5.25: main suite 1523/1523, SourceStructure 123/123,
-lifecycle 13/13, без пропусков ([проверка коммита](validation-integration-2026-11-15.md)).
-Workflows вручную не запускались; обычный push в main запускает CI автоматически.
-Первый macOS CI выявил сбой тестовой изоляции кеша Roslyn; исправление локально проверено
-(main 1525/1525, lifecycle 13/13), повторный CI ожидается
-([разбор](validation-macos-ci-fix-2026-11-15.md)). Нативный smoke релизных архивов ещё не выполнен.
+Windows smoke обоих архивов и кросс-публикации macOS прошли. Исходные локальные сбои закрыты
+([проверка интеграции](validation-integration-2026-11-15.md)); затем исправлены найденные macOS CI
+ошибки тестового кеша, временных путей, lease и shell-фикстуры.
+Итоговый CI исходников 1.5.25 прошёл: macOS ARM64 / Ubuntu main 1518/1518, Windows main 1525/1525,
+SourceStructure 123/123 и lifecycle 13/13 на каждой платформе, без пропусков
+([разбор и validation](validation-macos-ci-fix-2026-11-15.md)).
+Нативный smoke обоих релизных архивов ещё не выполнен.
 
 ## 1. Задача
 
@@ -247,7 +247,7 @@ Worktree дополняет ветку отдельной папкой и не �
 через BuildHost, `find_symbol_definition` класса `Smoke` с проверкой исходного файла
 и `run_dotnet_build` этого проекта в Release. SDK релиза закреплён на `10.0.402`,
 CI ставит последний `10.0.x` нужной архитектуры. Одной кросс-сборки недостаточно:
-smoke выполняется на ОС и архитектуре назначения. Нативный прогон macOS пока не выполнен
+smoke выполняется на ОС и архитектуре назначения. Нативный smoke архивов macOS пока не выполнен
 ([task-01](task-01-macos-arm64-med.md)).
 
 Ручная проверка self-contained `linux-x64` сделана на WSL, где пакет runtime
