@@ -23,24 +23,41 @@ jobs:
         include:
           - os: windows-latest
             runner: windows
+            architecture: x64
             shard: unit
             timeout: 20
             # RequiresPinnedSdk: fixtures of the deferred workspace-load-cache experiment (SDK 10.0.300 exactly).
             filter: 'Category!=AnalyzerLifecycle&Category!=RequiresPinnedSdk'
           - os: windows-latest
             runner: windows
+            architecture: x64
             shard: lifecycle
             timeout: 20
             filter: Category=AnalyzerLifecycle
             lifecycleOptIn: '1'
           - os: ubuntu-latest
             runner: ubuntu
+            architecture: x64
             shard: unit
             timeout: 20
             # RequiresWindows is the task-01 inventory. A filter exclusion is not a TRX skip.
             filter: 'Category!=AnalyzerLifecycle&Category!=RequiresWindows&Category!=RequiresPinnedSdk'
           - os: ubuntu-latest
             runner: ubuntu
+            architecture: x64
+            shard: lifecycle
+            timeout: 20
+            filter: Category=AnalyzerLifecycle
+            lifecycleOptIn: '1'
+          - os: macos-15
+            runner: macos-arm64
+            architecture: arm64
+            shard: unit
+            timeout: 20
+            filter: 'Category!=AnalyzerLifecycle&Category!=RequiresWindows&Category!=RequiresPinnedSdk'
+          - os: macos-15
+            runner: macos-arm64
+            architecture: arm64
             shard: lifecycle
             timeout: 20
             filter: Category=AnalyzerLifecycle
@@ -58,6 +75,7 @@ jobs:
           # latest 10.0.x alone once failed them: https://github.com/VuDZ/RoslynMcpServer/actions/runs/37148534996
           # Tests do not need a reproducible SDK; the release pins its own (release.yml, AR-13).
           dotnet-version: 10.0.x
+          architecture: ${{ matrix.architecture }}
           cache: true
           cache-dependency-path: |
             **/*.csproj

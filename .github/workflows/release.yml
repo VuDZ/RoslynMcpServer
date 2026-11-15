@@ -98,13 +98,21 @@ jobs:
           # A later RID is another include row plus one entry in Get-ReleaseArchives.
           - rid: win-x64
             os: windows-latest
+            architecture: x64
             format: zip
             runtime: coreclr.dll
             host: RoslynMcpServer.exe
           - rid: linux-x64
             os: ubuntu-latest
+            architecture: x64
             format: tar.gz
             runtime: libcoreclr.so
+            host: RoslynMcpServer
+          - rid: osx-arm64
+            os: macos-15
+            architecture: arm64
+            format: tar.gz
+            runtime: libcoreclr.dylib
             host: RoslynMcpServer
     steps:
       - name: Checkout
@@ -124,6 +132,7 @@ jobs:
         uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
+          architecture: ${{ matrix.architecture }}
           cache: true
           cache-dependency-path: |
             **/*.csproj

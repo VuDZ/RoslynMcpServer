@@ -9,7 +9,7 @@
          starts it with `dotnet exec <dll>`, so no apphost and no self-contained publish are needed. -->
     <SelfContained>false</SelfContained>
     <UseAppHost>false</UseAppHost>
-    <PlatformTarget>x64</PlatformTarget>
+    <PlatformTarget Condition="'$(OS)' == 'Windows_NT'">x64</PlatformTarget>
     <RootNamespace>RoslynMcpServer.Tests.SourceStructure.DeadlockWitnessHost</RootNamespace>
   </PropertyGroup>
   <ItemGroup>

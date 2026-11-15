@@ -98,6 +98,7 @@ function Get-ReleaseArchives {
     $platforms = @(
         @{ Rid = 'win-x64'; Extension = 'zip' }
         @{ Rid = 'linux-x64'; Extension = 'tar.gz' }
+        @{ Rid = 'osx-arm64'; Extension = 'tar.gz' }
     )
     $kinds = @('self-contained', 'framework-dependent')
     $list = @()

@@ -20,8 +20,7 @@ namespace RoslynMcpServer.Services.Workspace;
 /// tool, such as <c>dotnet run</c> or <c>dotnet test</c>, and that program may still be using it.
 /// A host of another process is left alone too: another IDE on the machine can load a solution at the
 /// same time. A host whose id is in the in-use set is left alone, and a child whose command line cannot
-/// be read is not treated as a BuildHost. On macOS the parent and the command line are not read, so
-/// nothing is killed.
+/// be read is not treated as a BuildHost.
 /// </remarks>
 internal static class UnregisteredBuildHostReaper
 {
@@ -288,6 +287,10 @@ internal static class UnregisteredBuildHostReaper
         {
             parentId = LinuxParentProcess.TryGetParentProcessId(process.Id);
         }
+        else if (OperatingSystem.IsMacOS())
+        {
+            parentId = MacOsParentProcess.TryGetParentProcessId(process.Id);
+        }
 
         return parentId > 0 ? parentId : null;
     }
@@ -302,6 +305,11 @@ internal static class UnregisteredBuildHostReaper
         if (OperatingSystem.IsLinux())
         {
             return LinuxParentProcess.TryReadCommandLine(processId);
+        }
+
+        if (OperatingSystem.IsMacOS())
+        {
+            return MacOsParentProcess.TryReadCommandLine(processId);
         }
 
         return null;

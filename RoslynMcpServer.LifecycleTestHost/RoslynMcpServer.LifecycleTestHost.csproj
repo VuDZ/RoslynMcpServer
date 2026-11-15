@@ -5,11 +5,12 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <IsPackable>false</IsPackable>
-    <!-- Framework-dependent x64: a self-contained win-x86 apphost made the suite pick
-         Program Files (x86)\dotnet and hang inside `dotnet build` until an 8-minute RPC timeout. -->
+    <!-- Framework-dependent without an apphost: a win-x86 apphost made the suite pick
+         Program Files (x86)\dotnet and hang inside `dotnet build` until an 8-minute RPC timeout.
+         Keep Windows x64; elsewhere AnyCPU follows the native SDK, including macOS ARM64. -->
     <SelfContained>false</SelfContained>
     <UseAppHost>false</UseAppHost>
-    <PlatformTarget>x64</PlatformTarget>
+    <PlatformTarget Condition="'$(OS)' == 'Windows_NT'">x64</PlatformTarget>
     <RootNamespace>RoslynMcpServer.LifecycleTestHost</RootNamespace>
   </PropertyGroup>
   <ItemGroup>

@@ -174,18 +174,6 @@ public sealed class UnregisteredBuildHostReaperTests
             Assert.False(bystander.HasExited);
             Assert.Empty(spared.ProcessIds);
 
-            if (!OperatingSystem.IsWindows() && !OperatingSystem.IsLinux())
-            {
-                var left = UnregisteredBuildHostReaper.Reap(
-                    NullLogger.Instance,
-                    inUseProcessIds: null,
-                    onlyThese);
-                host.Refresh();
-                Assert.False(host.HasExited);
-                Assert.Empty(left.ProcessIds);
-                return;
-            }
-
             var killed = UnregisteredBuildHostReaper.Reap(
                 NullLogger.Instance,
                 inUseProcessIds: null,

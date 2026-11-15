@@ -4,6 +4,15 @@
 O-01 закрыт (`workflow_dispatch` + тег со стороны Actions). O-02 / O-03 и
 унификация версий (O-04) по-прежнему открыты. Согласованный объём — раздел 3.
 
+Обновление 2026-11-15: [macOS ARM64, task-01](task-01-macos-arm64-med.md) — **implemented, local-validation-complete; native-validation-pending**;
+оба варианта поставки сохранены, добавлены нативные шарды CI и релизная строка `osx-arm64`,
+smoke расширен семантическим запросом и сборкой, очистка BuildHost расширена на macOS.
+Windows smoke обоих архивов и кросс-публикации macOS прошли. Шесть исходных сбоев закрыты:
+после интеграции в актуальную main для 1.5.25: main suite 1523/1523, SourceStructure 123/123,
+lifecycle 13/13, без пропусков ([проверка коммита](validation-integration-2026-11-15.md)).
+Workflows вручную не запускались; обычный push в main запускает CI автоматически.
+Нативная приёмка macOS ещё не объявлена ([первый отчёт](validation-macos-arm64-2026-11-15.md)).
+
 ## 1. Задача
 
 Собирать RoslynMcpServer в GitHub Actions и автоматически выкладывать готовые
@@ -27,7 +36,7 @@ O-01 закрыт (`workflow_dispatch` + тег со стороны Actions). O-
 - Есть [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) (сборка и
   тесты на `push`/`pull_request`, без публикации) и
   [`.github/workflows/release.yml`](../../.github/workflows/release.yml)
-  (`workflow_dispatch`; `win-x64` и `linux-x64`, каждый self-contained и
+  (`workflow_dispatch`; `win-x64`, `linux-x64` и `osx-arm64`, каждый self-contained и
   framework-dependent). Первый выпуск четырёх архивов —
   [v1.5.6](https://github.com/VuDZ/RoslynMcpServer/releases/tag/v1.5.6)
   ([Release 39680548658](https://github.com/VuDZ/RoslynMcpServer/actions/runs/39680548658)).
@@ -61,9 +70,10 @@ O-01 закрыт (`workflow_dispatch` + тег со стороны Actions). O-
 ### R-02. Платформы
 
 Поддерживаемые платформы по [P-03](../architecture-review/proposals.md#p-03):
-**Windows x64 (`win-x64`)** и **Linux x64 (`linux-x64`)**. Обе собираются
-в матрице [release.yml](../../.github/workflows/release.yml) на своей ОС
-(`windows-latest` и `ubuntu-latest`). Остальные RID из csproj не входят в
+**Windows x64 (`win-x64`)** и **Linux x64 (`linux-x64`)**. Решением пользователя от
+2026-11-15 добавлен **macOS ARM64 (`osx-arm64`)**, с приёмкой после первого нативного прогона.
+Платформы собираются в матрице [release.yml](../../.github/workflows/release.yml) на своей ОС
+(`windows-latest`, `ubuntu-latest`, `macos-15` ARM64). Остальные RID из csproj не входят в
 релиз. Новая платформа — строка матрицы `pack` и строка в
 `Get-ReleaseArchives`; отдельная схема выпуска не заводится.
 
@@ -227,19 +237,22 @@ Worktree дополняет ветку отдельной папкой и не �
 
 ### O-03. Совместимость и расширение платформ
 
-2026-10-21, по [P-03](../architecture-review/proposals.md#p-03): проверяемые
-платформы — `win-x64` и `linux-x64`. Для каждой job `pack` гоняет оба
-варианта распакованного архива: процесс, MCP `initialize`, `tools/list` и
+2026-11-15: матрица расширена с `win-x64` и `linux-x64` до `osx-arm64`.
+Для каждой платформы CI запускает основной набор и `AnalyzerLifecycle`;
+новый macOS ARM64 runner — `macos-15`. Для каждой job `pack` гоняет оба
+варианта распакованного архива: процесс, MCP `initialize`, `tools/list`,
 `load_workspace` проекта [`.github/smoke/SmokeApp`](../../.github/smoke/SmokeApp/SmokeApp.csproj)
-через BuildHost. SDK релиза тот же, что у CI (`10.0.300` и последний
-`10.0.x`). Одной кросс-сборки недостаточно: `linux-x64` собирается на
-`ubuntu-latest`.
+через BuildHost, `find_symbol_definition` класса `Smoke` с проверкой исходного файла
+и `run_dotnet_build` этого проекта в Release. SDK релиза закреплён на `10.0.402`,
+CI ставит последний `10.0.x` нужной архитектуры. Одной кросс-сборки недостаточно:
+smoke выполняется на ОС и архитектуре назначения. Нативный прогон macOS пока не выполнен
+([task-01](task-01-macos-arm64-med.md)).
 
 Ручная проверка self-contained `linux-x64` сделана на WSL, где пакет runtime
 установлен: хост 1.5.6 поднял свой `libcoreclr.so` без `dotnet` в `PATH`,
 а `load_workspace` прошёл с `DOTNET_ROOT=/usr/lib/dotnet`.
 Следующий RID — новая строка матрицы, не отдельный workflow. `linux-arm64`,
-`linux-musl-x64` и macOS в этот выпуск не входят.
+`linux-musl-x64`, `win-arm64` и Intel macOS в этот объём не входят.
 
 ### O-04. Интеграция с версиями и обслуживание
 

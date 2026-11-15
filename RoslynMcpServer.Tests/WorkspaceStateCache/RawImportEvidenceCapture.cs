@@ -51,7 +51,10 @@ internal static class RawImportEvidenceCapture
     {
         var events = new List<object>();
         var counts = new SortedDictionary<string, int>();
-        var replay = new BinaryLogReplayEventSource();
+        // A newer SDK can emit compatible records; unreadable records must still fail the evidence capture.
+        var replay = new BinaryLogReplayEventSource { AllowForwardCompatibility = true };
+        replay.RecoverableReadError += error => throw new InvalidDataException(
+            $"Raw import evidence could not be read: {error.ErrorType}:{error.RecordKind}.");
         replay.AnyEventRaised += (_, args) =>
         {
             cancellationToken.ThrowIfCancellationRequested();

@@ -72,9 +72,13 @@ The process is local stdio: no backend and no HTTP client of its own. File logs 
 |---|---|---|
 | `win-x64` | `.zip`, self-contained and framework-dependent | Supported |
 | `linux-x64` | `.tar.gz`, self-contained and framework-dependent | Supported |
-| `win-arm64`, `osx-arm64`, `linux-arm64`, `linux-musl-x64` | Present in the project RID list and can be built | Not supported |
+| `osx-arm64` | `.tar.gz`, self-contained and framework-dependent | First native CI/release validation pending |
+| `win-arm64`, `linux-arm64`, `linux-musl-x64` | Present in the project RID list and can be built | Not supported |
 
-Details and the CI contract: [linux-x64 support](docs/archive/linux-x64-support/README.md).
+Details and validation status: [release platforms](docs/github-releases/README.md), [macOS ARM64](docs/github-releases/task-01-macos-arm64-med.md).
+
+macOS ARM64 releases use the same `RoslynMCP/` archive root and `RoslynMcpServer` executable as Linux.
+Framework-dependent needs the ARM64 .NET 10 runtime; both variants need an ARM64 SDK compatible with your project.
 
 ### Install a Linux release
 
@@ -1019,9 +1023,13 @@ RoslynMcpServer не собирает телеметрию и не переда�
 |---|---|---|
 | `win-x64` | `.zip`, self-contained и framework-dependent | Поддерживается |
 | `linux-x64` | `.tar.gz`, self-contained и framework-dependent | Поддерживается |
-| `win-arm64`, `osx-arm64`, `linux-arm64`, `linux-musl-x64` | Есть в списке RID проекта и собираются | Не поддерживаются |
+| `osx-arm64` | `.tar.gz`, self-contained и framework-dependent | Ожидает первого нативного прогона CI/релиза |
+| `win-arm64`, `linux-arm64`, `linux-musl-x64` | Есть в списке RID проекта и собираются | Не поддерживаются |
 
-Подробности и контракт CI: [поддержка linux-x64](docs/archive/linux-x64-support/README.md).
+Платформы и статус проверок: [релизы](docs/github-releases/README.md), [macOS ARM64](docs/github-releases/task-01-macos-arm64-med.md).
+
+У macOS ARM64 тот же корень архива `RoslynMCP/` и executable `RoslynMcpServer`, что у Linux.
+Framework-dependent требует ARM64 runtime .NET 10; обоим вариантам нужен ARM64 SDK, совместимый с вашим проектом.
 
 ### Установка релиза Linux
 
