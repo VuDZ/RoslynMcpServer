@@ -1,5 +1,7 @@
+using System.ComponentModel;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace RoslynMcpServer.Tests.Support;
 
@@ -14,7 +16,8 @@ namespace RoslynMcpServer.Tests.Support;
 /// of <c>dotnet</c> is shared by every framework-dependent server and tool on the machine, so deleting it
 /// wiped the warm cache of a running server and of a parallel test run. There the cache base is moved to a
 /// folder of this process: Roslyn reads LocalApplicationData once, in its static constructor, which runs here
-/// while <c>XDG_DATA_HOME</c> and <c>HOME</c> point to that folder; both are restored at once, before any test.
+/// while <c>XDG_DATA_HOME</c> (Linux) or native <c>CFFIXED_USER_HOME</c> (macOS) points to that folder;
+/// the environment is restored at once, before any test.
 /// </remarks>
 internal static class RoslynIndexCache
 {
@@ -111,21 +114,7 @@ internal static class RoslynIndexCache
         var type = typeof(Microsoft.CodeAnalysis.Workspace).Assembly.GetType("Microsoft.CodeAnalysis.Host.DefaultPersistentStorageConfiguration", throwOnError: true)!;
         if (!OperatingSystem.IsWindows())
         {
-            // Linux takes LocalApplicationData from XDG_DATA_HOME, macOS from HOME (~/Library/Application Support).
-            _processBase = Path.Combine(Path.GetTempPath(), ProcessBasePrefix + Environment.ProcessId + "-" + Guid.NewGuid().ToString("N"));
-            var dataHome = Environment.GetEnvironmentVariable("XDG_DATA_HOME");
-            var home = Environment.GetEnvironmentVariable("HOME");
-            Environment.SetEnvironmentVariable("XDG_DATA_HOME", _processBase);
-            Environment.SetEnvironmentVariable("HOME", _processBase);
-            try
-            {
-                RuntimeHelpers.RunClassConstructor(type.TypeHandle);
-            }
-            finally
-            {
-                Environment.SetEnvironmentVariable("XDG_DATA_HOME", dataHome);
-                Environment.SetEnvironmentVariable("HOME", home);
-            }
+            InitializeUnixStorage(type);
         }
 
         var folder = Path.Combine(ReadStaticString(type, "s_cacheDirectory"), ReadStaticString(type, "s_moduleFileName"));
@@ -138,8 +127,59 @@ internal static class RoslynIndexCache
         return folder;
     }
 
+    private static void InitializeUnixStorage(Type type)
+    {
+        _processBase = Path.Combine(Path.GetTempPath(), ProcessBasePrefix + Environment.ProcessId + "-" + Guid.NewGuid().ToString("N"));
+        if (OperatingSystem.IsMacOS())
+        {
+            // macOS uses Foundation, not HOME; .NET's managed environment changes do not reach native getenv.
+            // https://github.com/apple-oss-distributions/CF/blob/main/CFPlatform.c
+            var fixedHome = Marshal.PtrToStringUTF8(GetEnv("CFFIXED_USER_HOME"));
+            SetFixedUserHome(_processBase);
+            try
+            {
+                RuntimeHelpers.RunClassConstructor(type.TypeHandle);
+            }
+            finally
+            {
+                SetFixedUserHome(fixedHome);
+            }
+
+            return;
+        }
+
+        var dataHome = Environment.GetEnvironmentVariable("XDG_DATA_HOME");
+        Environment.SetEnvironmentVariable("XDG_DATA_HOME", _processBase);
+        try
+        {
+            RuntimeHelpers.RunClassConstructor(type.TypeHandle);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("XDG_DATA_HOME", dataHome);
+        }
+    }
+
+    private static void SetFixedUserHome(string? value)
+    {
+        var result = value is null ? UnsetEnv("CFFIXED_USER_HOME") : SetEnv("CFFIXED_USER_HOME", value, 1);
+        if (result != 0)
+        {
+            throw new Win32Exception(Marshal.GetLastPInvokeError(), "Could not set the native test cache home.");
+        }
+    }
+
     private static string ReadStaticString(Type type, string name) =>
         (string)type.GetField(name, BindingFlags.Static | BindingFlags.NonPublic)!.GetValue(null)!;
+
+    [DllImport("libc", EntryPoint = "getenv")]
+    private static extern IntPtr GetEnv(string name);
+
+    [DllImport("libc", EntryPoint = "setenv", SetLastError = true)]
+    private static extern int SetEnv(string name, string value, int overwrite);
+
+    [DllImport("libc", EntryPoint = "unsetenv", SetLastError = true)]
+    private static extern int UnsetEnv(string name);
 
     private const string ProcessBasePrefix = "RoslynMcpIndexCache-";
 

@@ -16,6 +16,25 @@ namespace RoslynMcpServer.Tests.Workspace;
 public sealed class RoslynIndexStorageTests
 {
     [Fact]
+    public void Unix_cache_is_private_and_the_user_data_folder_is_restored()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        var relativeCache = Path.GetRelativePath(Path.GetTempPath(), RoslynIndexCache.ProcessFolder);
+        Assert.StartsWith($"RoslynMcpIndexCache-{Environment.ProcessId}-", relativeCache);
+
+        var processBase = Path.Combine(Path.GetTempPath(), relativeCache.Split(Path.DirectorySeparatorChar)[0]);
+        var userData = Environment.GetFolderPath(
+            Environment.SpecialFolder.LocalApplicationData,
+            Environment.SpecialFolderOption.DoNotVerify);
+        Assert.False(string.IsNullOrEmpty(userData));
+        Assert.False(userData.StartsWith(processBase, StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Shipped_sqlite_is_the_build_Roslyn_references()
     {
         var reference = typeof(Microsoft.CodeAnalysis.Workspace).Assembly.GetReferencedAssemblies()

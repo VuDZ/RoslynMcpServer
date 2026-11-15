@@ -2,9 +2,10 @@
 
 - Дата: 2026-11-15.
 - Статус на 2026-11-15: **implemented, local-validation-complete; native-validation-pending** —
-  после интеграции с актуальной main подготовлена версия 1.5.25: main suite 1523/1523,
-  SourceStructure 123/123, lifecycle 13/13, без пропусков. Локальный объём закрыт;
-  полная нативная приёмка macOS ещё не объявлена.
+  первый macOS CI выявил сбой изоляции тестового кеша; исправление подготовлено,
+  Windows Release main 1524/1524 и lifecycle 13/13 прошли. Повторный macOS CI ожидается;
+  нативный smoke обоих релизных архивов ещё не выполнен.
+- Разбор macOS CI и проверка исправления: [validation](validation-macos-ci-fix-2026-11-15.md).
 - Основание: прямое поручение пользователя; self-contained и framework-dependent сохраняются.
 - Итог интеграции и проверки коммита: [validation](validation-integration-2026-11-15.md).
   Первоначальная локальная проверка: [validation](validation-local-tests-2026-11-15.md).
