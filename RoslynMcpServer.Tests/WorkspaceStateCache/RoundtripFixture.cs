@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text;
+using RoslynMcpServer.Tests.SourceStructure;
 using Xunit;
 
 namespace RoslynMcpServer.Tests.WorkspaceStateCache;
@@ -16,6 +17,7 @@ internal sealed class RoundtripFixture : IDisposable
     {
         DirectoryPath = Path.Combine(Path.GetTempPath(), "task06-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(DirectoryPath);
+        File.Copy(Path.Combine(RepositoryRoot.Find(), "global.json"), Path.Combine(DirectoryPath, "global.json"));
         File.WriteAllText(Path.Combine(DirectoryPath, "NuGet.Config"),
             "<configuration><packageSources><clear /></packageSources></configuration>");
     }
@@ -52,20 +54,32 @@ internal sealed class RoundtripFixture : IDisposable
             UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true,
             CreateNoWindow = true, WorkingDirectory = DirectoryPath,
         };
-        // A reused MSBuild node inherits this redirected stdout. ReadToEndAsync then waits until
-        // that node exits, which is how the multitarget build hung for the whole test budget.
-        // DotNetCliRunner sets the same variable on every production invocation.
+        // Reused build servers can inherit redirected output and keep it open after dotnet exits.
+        // https://github.com/VuDZ/RoslynMcpServer/actions/runs/43707408649
         start.Environment["MSBUILDDISABLENODEREUSE"] = "1";
-        foreach (var argument in new[] { "build", ProjectPath, "-c", "Debug", "--nologo" })
+        foreach (var argument in new[] { "build", ProjectPath, "-c", "Debug", "--nologo", "--disable-build-servers" })
         {
             start.ArgumentList.Add(argument);
         }
         using var process = Process.Start(start)!;
-        var output = process.StandardOutput.ReadToEndAsync(cancellationToken);
-        var error = process.StandardError.ReadToEndAsync(cancellationToken);
+        using var outputCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        var output = new StringBuilder();
+        var error = new StringBuilder();
+        var readTasks = Task.WhenAll(
+            ReadOutputAsync(process.StandardOutput, output, outputCancellation.Token),
+            ReadOutputAsync(process.StandardError, error, outputCancellation.Token));
+        var outputTimedOut = false;
         try
         {
             await process.WaitForExitAsync(cancellationToken);
+            try
+            {
+                await readTasks.WaitAsync(TimeSpan.FromSeconds(5), cancellationToken);
+            }
+            catch (TimeoutException)
+            {
+                outputTimedOut = true;
+            }
         }
         catch
         {
@@ -76,7 +90,23 @@ internal sealed class RoundtripFixture : IDisposable
             await process.WaitForExitAsync(CancellationToken.None);
             throw;
         }
-        Assert.True(process.ExitCode == 0, await output + "\n" + await error);
+        finally
+        {
+            await outputCancellation.CancelAsync();
+            try
+            {
+                await readTasks;
+            }
+            catch (OperationCanceledException) when (outputCancellation.IsCancellationRequested)
+            {
+            }
+        }
+        if (outputTimedOut)
+        {
+            throw new TimeoutException(
+                $"The build exited with code {process.ExitCode}, but its output streams did not close within five seconds.\n{output}\n{error}");
+        }
+        Assert.True(process.ExitCode == 0, output + "\n" + error);
     }
 
     public void WriteShared(string text, Encoding encoding) =>
@@ -91,4 +121,15 @@ internal sealed class RoundtripFixture : IDisposable
         "utf16-bom" => new UnicodeEncoding(false, true),
         _ => throw new ArgumentException("Unknown encoding control.", nameof(name)),
     };
+
+    internal static async Task ReadOutputAsync(
+        StreamReader reader,
+        StringBuilder output,
+        CancellationToken cancellationToken)
+    {
+        while (await reader.ReadLineAsync(cancellationToken) is { } line)
+        {
+            output.AppendLine(line);
+        }
+    }
 }

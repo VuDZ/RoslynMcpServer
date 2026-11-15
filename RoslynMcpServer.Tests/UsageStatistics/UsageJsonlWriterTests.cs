@@ -12,13 +12,27 @@ public sealed class UsageJsonlWriterTests
     {
         using var files = new UsageTestFiles();
         var now = DateTimeOffset.UtcNow;
-        await Task.WhenAll(Enumerable.Range(0, 4).Select(worker => Task.Run(() =>
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        await Task.WhenAll(Enumerable.Range(0, 4).Select(worker => Task.Run(async () =>
         {
             var writer = new UsageJsonlWriter(files.UsageDirectory, maximumFileBytes: 300);
             for (var index = 0; index < 30; index++)
             {
                 var bytes = Encoding.UTF8.GetBytes($"{{\"worker\":{worker},\"index\":{index}}}\n");
-                writer.Append(bytes, now);
+                // The writer deliberately gives up after 50 ms; this test checks successful appends under contention.
+                while (true)
+                {
+                    timeout.Token.ThrowIfCancellationRequested();
+                    try
+                    {
+                        writer.Append(bytes, now);
+                        break;
+                    }
+                    catch (IOException ex) when (IsSharingViolation(ex))
+                    {
+                        await Task.Delay(10, timeout.Token);
+                    }
+                }
             }
         })));
 
@@ -30,6 +44,33 @@ public sealed class UsageJsonlWriterTests
         Assert.Equal(120, records.Select(record => (
             record.GetProperty("worker").GetInt32(),
             record.GetProperty("index").GetInt32())).Distinct().Count());
+    }
+
+    [Fact]
+    public async Task A_held_lease_rejects_append_without_a_record_and_allows_retry_after_release()
+    {
+        using var files = new UsageTestFiles();
+        Directory.CreateDirectory(files.UsageDirectory);
+        var writer = new UsageJsonlWriter(files.UsageDirectory);
+        var now = DateTimeOffset.UtcNow;
+        var record = Encoding.UTF8.GetBytes("{}\n");
+        using (var lease = new FileStream(
+            Path.Combine(files.UsageDirectory, ".writer.lock"),
+            FileMode.OpenOrCreate,
+            FileAccess.ReadWrite,
+            FileShare.None))
+        {
+            var failure = await Task.Run(() => Assert.Throws<IOException>(() => writer.Append(record, now)))
+                .WaitAsync(TimeSpan.FromSeconds(5));
+
+            Assert.True(IsSharingViolation(failure), $"Unexpected I/O error: {failure}");
+            Assert.Empty(Directory.GetFiles(files.UsageDirectory, "usage-*.jsonl"));
+        }
+
+        writer.Append(record, now);
+
+        var path = Assert.Single(Directory.GetFiles(files.UsageDirectory, "usage-*.jsonl"));
+        Assert.Equal(record, await File.ReadAllBytesAsync(path));
     }
 
     [Fact]
@@ -62,4 +103,8 @@ public sealed class UsageJsonlWriterTests
         Assert.Throws<InvalidDataException>(() => writer.Append(new byte[4097], DateTimeOffset.UtcNow));
         Assert.False(Directory.Exists(files.UsageDirectory));
     }
+
+    private static bool IsSharingViolation(IOException exception) =>
+        (exception.HResult & 0xffff) is 32 or 33
+        || (!OperatingSystem.IsWindows() && exception.HResult == 11);
 }

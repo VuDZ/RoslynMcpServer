@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text.Json;
+using RoslynMcpServer.Tests.SourceStructure;
 using Xunit;
 
 namespace RoslynMcpServer.Tests.WorkspaceStateCache;
@@ -20,6 +21,9 @@ internal sealed class RawImportEvidenceFixture : IDisposable
     {
         DirectoryPath = Path.Combine(Path.GetTempPath(), "raw-import-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(DirectoryPath);
+        // Temporary projects must use the reader's SDK family, even when a newer SDK is installed.
+        // https://github.com/VuDZ/RoslynMcpServer/actions/runs/43707408649
+        Copy(Path.Combine(RepositoryRoot.Find(), "global.json"), Path.Combine(DirectoryPath, "global.json"));
         var real = Path.Combine(DirectoryPath, "real");
         foreach (var directory in new[] { "Config", "Diagnostics", "Hosting", "Plugins", "Properties", "Services", "Tools", "samples/RoslynMcpPlugin" })
         {
