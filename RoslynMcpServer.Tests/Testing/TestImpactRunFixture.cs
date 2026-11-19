@@ -98,14 +98,14 @@ internal sealed class TestImpactRunFixture : IAsyncDisposable
         Assert.Contains("Successfully wrote", result, StringComparison.Ordinal);
     }
 
-    internal string HangingBody(string? project = null) => $$"""
+    internal string HangingBody(string? project = null, int lifetimeSeconds = 300) => $$"""
         using var child = Process.Start(new ProcessStartInfo {
             FileName = OperatingSystem.IsWindows() ? "ping" : "sleep",
-            Arguments = OperatingSystem.IsWindows() ? "-n 300 127.0.0.1" : "300",
+            Arguments = OperatingSystem.IsWindows() ? "-n {{lifetimeSeconds}} 127.0.0.1" : "{{lifetimeSeconds}}",
             UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true
         })!;
         File.WriteAllText({{JsonSerializer.Serialize(ProcessPath(project))}}, Environment.ProcessId + "," + child.Id);
-        Thread.Sleep(300000);
+        Thread.Sleep(TimeSpan.FromSeconds({{lifetimeSeconds}}));
         """;
 
     internal async Task<int[]> WaitForProcessesAsync(Task? operation = null, string? project = null)

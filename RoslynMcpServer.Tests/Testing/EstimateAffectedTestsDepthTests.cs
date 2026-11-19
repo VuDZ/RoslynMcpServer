@@ -120,11 +120,12 @@ public sealed class EstimateAffectedTestsDepthTests(ITestOutputHelper output)
         fixture.AssertCommands(string.Empty);
     }
 
-    [Theory]
+    [Theory(Timeout = 120000)]
     [InlineData(false)]
     [InlineData(true)]
     public async Task Narrowing_failure_after_the_build_runs_the_whole_project_and_names_the_error(bool directTestEdit)
     {
+        Console.WriteLine("Narrowing fallback: preparing the workspace.");
         await using var fixture = new Fixture();
         await fixture.LoadAsync();
         if (directTestEdit)
@@ -138,10 +139,16 @@ public sealed class EstimateAffectedTestsDepthTests(ITestOutputHelper output)
             await fixture.ChangeValueAsync("A");
         }
 
-        fixture.AfterBuild = () => fixture.Manager.Baseline.Assemblies.BeforePairForTests =
-            _ => throw new InvalidOperationException("Injected narrowing failure.");
+        fixture.AfterBuild = () =>
+        {
+            Console.WriteLine("Narrowing fallback: build finished; injecting snapshot failure.");
+            fixture.Manager.Baseline.Assemblies.BeforePairForTests =
+                _ => throw new InvalidOperationException("Injected narrowing failure.");
+        };
 
+        Console.WriteLine("Narrowing fallback: starting the affected test run.");
         var response = await fixture.Tools.EstimateAffectedTests(includeDetails: true, run: true);
+        Console.WriteLine("Narrowing fallback: affected test run completed.");
 
         output.WriteLine(response);
         Assert.Contains("Outcome: passed", response, StringComparison.Ordinal);

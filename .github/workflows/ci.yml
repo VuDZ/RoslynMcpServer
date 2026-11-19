@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -11,3 +12,5 @@ permissions:
 jobs:
   tests:
     uses: ./.github/workflows/test-suite.yml
+    with:
+      macos-tia-only: ${{ github.event_name == 'workflow_dispatch' }}

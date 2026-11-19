@@ -215,19 +215,24 @@ public sealed class EstimateAffectedTestsRunTests(ITestOutputHelper output)
         Assert.False(File.Exists(fixture.MarkerPath("Second")));
     }
 
-    [Fact]
+    [Fact(Timeout = 120000)]
     public async Task Timed_out_project_is_not_a_failed_test_and_the_next_project_runs()
     {
+        Console.WriteLine("Project timeout: preparing the workspace.");
         await using var fixture = new TestImpactRunFixture();
         await fixture.LoadAsync();
-        await fixture.ChangeAsync("First", fixture.HangingBody());
+        // The child outlives the 20-second tool timeout and can still exit promptly if termination fails.
+        await fixture.ChangeAsync("First", fixture.HangingBody(lifetimeSeconds: 45));
         await fixture.ChangeAsync("Second", "GC.KeepAlive(value); Assert.True(true);");
         int[] ids = [];
         try
         {
+            Console.WriteLine("Project timeout: starting the affected test run.");
             var operation = fixture.Tools.EstimateAffectedTests(run: true, timeoutSeconds: 20);
             ids = await fixture.WaitForProcessesAsync(operation);
+            Console.WriteLine($"Project timeout: recorded process IDs {string.Join(", ", ids)}.");
             var response = await operation;
+            Console.WriteLine("Project timeout: affected test run completed.");
 
             output.WriteLine(response);
             AssertRun(response, "timed out");
