@@ -27,7 +27,13 @@ jobs:
             shard: unit
             timeout: 20
             # RequiresPinnedSdk: fixtures of the deferred workspace-load-cache experiment (SDK 10.0.300 exactly).
-            filter: 'Category!=AnalyzerLifecycle&Category!=RequiresPinnedSdk'
+            filter: 'Category!=AnalyzerLifecycle&Category!=RequiresPinnedSdk&Category!=TiaIntegration'
+          - os: windows-latest
+            runner: windows
+            architecture: x64
+            shard: tia-integration
+            timeout: 20
+            filter: 'Category!=AnalyzerLifecycle&Category!=RequiresPinnedSdk&Category=TiaIntegration'
           - os: windows-latest
             runner: windows
             architecture: x64
@@ -41,7 +47,13 @@ jobs:
             shard: unit
             timeout: 20
             # RequiresWindows is the task-01 inventory. A filter exclusion is not a TRX skip.
-            filter: 'Category!=AnalyzerLifecycle&Category!=RequiresWindows&Category!=RequiresPinnedSdk'
+            filter: 'Category!=AnalyzerLifecycle&Category!=RequiresWindows&Category!=RequiresPinnedSdk&Category!=TiaIntegration'
+          - os: ubuntu-latest
+            runner: ubuntu
+            architecture: x64
+            shard: tia-integration
+            timeout: 20
+            filter: 'Category!=AnalyzerLifecycle&Category!=RequiresWindows&Category!=RequiresPinnedSdk&Category=TiaIntegration'
           - os: ubuntu-latest
             runner: ubuntu
             architecture: x64
@@ -54,7 +66,15 @@ jobs:
             architecture: arm64
             shard: unit
             timeout: 20
-            filter: 'Category!=AnalyzerLifecycle&Category!=RequiresWindows&Category!=RequiresPinnedSdk'
+            testTimeout: 16
+            filter: 'Category!=AnalyzerLifecycle&Category!=RequiresWindows&Category!=RequiresPinnedSdk&Category!=TiaIntegration'
+          - os: macos-15
+            runner: macos-arm64
+            architecture: arm64
+            shard: tia-integration
+            timeout: 20
+            testTimeout: 16
+            filter: 'Category!=AnalyzerLifecycle&Category!=RequiresWindows&Category!=RequiresPinnedSdk&Category=TiaIntegration'
           - os: macos-15
             runner: macos-arm64
             architecture: arm64
@@ -84,28 +104,43 @@ jobs:
       - name: Restore
         run: dotnet restore RoslynMcpServer.sln
 
-      # ROSLYN_MCP_ANALYZER_LIFECYCLE is the suite's own opt-in gate: it is unset for `unit` and set
-      # for `lifecycle` only. The host tests skip without it, and the skip then fails this job.
+      - name: Build
+        run: dotnet build RoslynMcpServer.sln -c Release --no-restore
+
+      # The shorter macOS step timeout leaves time to upload diagnostics before the job times out.
+      # ROSLYN_MCP_ANALYZER_LIFECYCLE is the host tests' opt-in gate and is set only for `lifecycle`.
       - name: Test
         shell: pwsh
+        timeout-minutes: ${{ matrix.testTimeout || matrix.timeout }}
         env:
           SHARD: ${{ matrix.shard }}-${{ matrix.runner }}
           FILTER: ${{ matrix.filter }}
+          RESULTS_DIRECTORY: ${{ github.workspace }}/TestResults
+          DIAGNOSE_HANGS: ${{ matrix.runner == 'macos-arm64' && matrix.shard != 'lifecycle' }}
           ROSLYN_MCP_ANALYZER_LIFECYCLE: ${{ matrix.lifecycleOptIn }}
         run: |
+          $diagnosticArgs = @()
+          if ($env:DIAGNOSE_HANGS -eq 'true') {
+            New-Item -ItemType Directory -Force -Path $env:RESULTS_DIRECTORY | Out-Null
+            $diagnosticArgs = @(
+              '--diag', (Join-Path $env:RESULTS_DIRECTORY "$env:SHARD.vstest.log"),
+              '--blame-hang-timeout', '5m', '--blame-hang-dump-type', 'none'
+            )
+          }
           dotnet test RoslynMcpServer.sln `
             -c Release `
-            --no-restore `
+            --no-build `
             --verbosity normal `
             --logger "trx;LogFileName=$env:SHARD.trx" `
-            --results-directory "${{ github.workspace }}/TestResults" `
-            --filter "$env:FILTER"
+            --results-directory "$env:RESULTS_DIRECTORY" `
+            --filter "$env:FILTER" `
+            @diagnosticArgs
 
       - name: Fail if any test skipped
         shell: pwsh
         run: ./.github/scripts/Assert-NoSkippedTests.ps1 -ResultsDirectory "${{ github.workspace }}/TestResults"
 
-      - name: Upload TRX
+      - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v7
         with:

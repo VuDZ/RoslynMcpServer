@@ -9,6 +9,7 @@ using Xunit.Abstractions;
 
 namespace RoslynMcpServer.Tests.Testing;
 
+[Trait("Category", TestCategories.TiaIntegration)]
 [Collection("BaselineObservationGap")]
 public sealed class BaselineDeletedPathCostTests
 {

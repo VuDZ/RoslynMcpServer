@@ -10,15 +10,11 @@ using Xunit.Abstractions;
 
 namespace RoslynMcpServer.Tests.Testing;
 
-[Collection("BaselineObservationGap")]
+[Trait("Category", TestCategories.TiaIntegration)]
 public sealed class EstimateAffectedTestsDepthTests(ITestOutputHelper output)
 {
-    [Theory]
-    [InlineData("changed")]
-    [InlineData("direct")]
-    [InlineData("di")]
-    [InlineData("all")]
-    public async Task Estimate_displays_all_stage_sizes_and_only_the_requested_filter(string depth)
+    [Fact]
+    public async Task Estimate_displays_all_stage_sizes_and_only_the_requested_filter()
     {
         await using var fixture = new Fixture();
         await fixture.LoadAsync();
@@ -26,26 +22,29 @@ public sealed class EstimateAffectedTestsDepthTests(ITestOutputHelper output)
         await fixture.EditTestsAsync();
         await fixture.BuildAsync();
 
-        var response = await fixture.Tools.EstimateAffectedTests(depth: depth, includeDetails: true);
+        foreach (var depth in new[] { "changed", "direct", "di", "all" })
+        {
+            var response = await fixture.Tools.EstimateAffectedTests(depth: depth, includeDetails: true);
 
-        output.WriteLine(response);
-        Assert.Contains($"State: selected depth {depth}.", response, StringComparison.Ordinal);
-        Assert.Contains("2 changed types", response, StringComparison.Ordinal);
-        Assert.Contains("Stages (classes): changed=1, direct=2, di=3, all=4.", response, StringComparison.Ordinal);
-        var filter = Assert.Single(response.Split(Environment.NewLine), line => line.StartsWith("Run: ", StringComparison.Ordinal));
-        Assert.Contains("FullyQualifiedName~Cases.Edited.", filter, StringComparison.Ordinal);
-        Assert.Equal(depth != "changed", filter.Contains("FullyQualifiedName~Cases.ReferencesA.", StringComparison.Ordinal));
-        Assert.Equal(depth is "di" or "all", filter.Contains("FullyQualifiedName~Cases.ScansWorkers.", StringComparison.Ordinal));
-        Assert.Equal(depth == "all", filter.Contains("FullyQualifiedName~Cases.LoadsByName.", StringComparison.Ordinal));
-        Assert.DoesNotContain("Cases.Unrelated", response, StringComparison.Ordinal);
-        Assert.Contains("Changed types:", response, StringComparison.Ordinal);
-        Assert.Contains("Lib.A, Lib", response, StringComparison.Ordinal);
-        Assert.Contains("Cases.Edited, Tests", response, StringComparison.Ordinal);
-        Assert.Contains("changed (1): Cases.Edited", response, StringComparison.Ordinal);
-        Assert.Contains("Cases.ReferencesA", response, StringComparison.Ordinal);
-        Assert.Contains("Cases.ScansWorkers", response, StringComparison.Ordinal);
-        Assert.Contains("Cases.LoadsByName", response, StringComparison.Ordinal);
-        Assert.Empty(fixture.Commands);
+            output.WriteLine(response);
+            Assert.Contains($"State: selected depth {depth}.", response, StringComparison.Ordinal);
+            Assert.Contains("2 changed types", response, StringComparison.Ordinal);
+            Assert.Contains("Stages (classes): changed=1, direct=2, di=3, all=4.", response, StringComparison.Ordinal);
+            var filter = Assert.Single(response.Split(Environment.NewLine), line => line.StartsWith("Run: ", StringComparison.Ordinal));
+            Assert.Contains("FullyQualifiedName~Cases.Edited.", filter, StringComparison.Ordinal);
+            Assert.Equal(depth != "changed", filter.Contains("FullyQualifiedName~Cases.ReferencesA.", StringComparison.Ordinal));
+            Assert.Equal(depth is "di" or "all", filter.Contains("FullyQualifiedName~Cases.ScansWorkers.", StringComparison.Ordinal));
+            Assert.Equal(depth == "all", filter.Contains("FullyQualifiedName~Cases.LoadsByName.", StringComparison.Ordinal));
+            Assert.DoesNotContain("Cases.Unrelated", response, StringComparison.Ordinal);
+            Assert.Contains("Changed types:", response, StringComparison.Ordinal);
+            Assert.Contains("Lib.A, Lib", response, StringComparison.Ordinal);
+            Assert.Contains("Cases.Edited, Tests", response, StringComparison.Ordinal);
+            Assert.Contains("changed (1): Cases.Edited", response, StringComparison.Ordinal);
+            Assert.Contains("Cases.ReferencesA", response, StringComparison.Ordinal);
+            Assert.Contains("Cases.ScansWorkers", response, StringComparison.Ordinal);
+            Assert.Contains("Cases.LoadsByName", response, StringComparison.Ordinal);
+            Assert.Empty(fixture.Commands);
+        }
     }
 
     [Fact]

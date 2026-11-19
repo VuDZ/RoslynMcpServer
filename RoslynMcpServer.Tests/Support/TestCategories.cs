@@ -15,4 +15,7 @@ internal static class TestCategories
     /// the exact list is pinned by <c>PinnedSdkTestInventoryTests</c>.
     /// </summary>
     internal const string RequiresPinnedSdk = "RequiresPinnedSdk";
+
+    /// <summary>Rapid TIA integration tests run on a separate CI runner.</summary>
+    internal const string TiaIntegration = "TiaIntegration";
 }

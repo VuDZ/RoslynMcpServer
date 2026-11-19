@@ -12,6 +12,7 @@ namespace RoslynMcpServer.Tests.Testing.Narrowing;
 /// Narrowing through a real load, real builds and the snapshot of the session: edit, build, narrow; edit
 /// again without a build; build again.
 /// </summary>
+[Trait("Category", TestCategories.TiaIntegration)]
 [Collection("BaselineObservationGap")]
 public sealed class TestNarrowingBuildTests : IAsyncDisposable
 {

@@ -6,7 +6,7 @@ using Xunit.Abstractions;
 
 namespace RoslynMcpServer.Tests.Testing;
 
-[Collection("BaselineObservationGap")]
+[Trait("Category", TestCategories.TiaIntegration)]
 public sealed class EstimateAffectedTestsRunTests(ITestOutputHelper output)
 {
     [Theory]
