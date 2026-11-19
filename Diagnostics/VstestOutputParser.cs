@@ -1281,8 +1281,11 @@ public static class VstestOutputParser
             }
             else
             {
+                var hint = outputOptions.SuppressOutputOptionHints
+                    ? string.Empty
+                    : " Pass `includeFullOutput=true` or raise `maxOutputChars`.";
                 sb.AppendLine(
-                    $"   _{label} truncated to {budget} chars (head+tail). Pass `includeFullOutput=true` or raise `maxOutputChars`._");
+                    $"   _{label} truncated to {budget} chars (head+tail).{hint}_");
             }
         }
         else if (outputOptions.IncludeFullOutput && raw.Contains(TruncatedProcessLog.MiddleMarker, StringComparison.Ordinal))

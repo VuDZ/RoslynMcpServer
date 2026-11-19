@@ -152,6 +152,35 @@ public sealed class WorkspaceNonCSharpDiskSyncTests
         Assert.Equal(project.ProjectBytes, await File.ReadAllBytesAsync(project.PathFor("App.csproj")));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Writing_a_compile_item_that_is_also_an_additional_file_publishes_both_roles(bool rejectApply)
+    {
+        await using var project = await SpikeProject.CreateAsync(classAsAdditionalFile: true);
+        project.Manager.SilenceDiskWatchersForTests();
+        var path = project.PathFor("Class1.cs");
+        const string ExternalEdit = "namespace App; public static class Class1 { public static int N() => 1; }";
+        const string OwnEdit = "namespace App; public static class Class1 { public static int N() => 2; }";
+        await File.WriteAllTextAsync(path, ExternalEdit, BomFree);
+        Notify(project, "Class1.cs");
+        var externallySynced = (await project.Manager.GetPublishedSolutionAfterDiskSyncAsync())!;
+        Assert.Equal(new[] { ExternalEdit }, await TextsAsync(externallySynced, path));
+
+        project.Manager.FailNextTryApplyChanges = rejectApply;
+        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        var write = await project.Manager.UpdateDocumentInMemoryAsync(path, OwnEdit, deadline.Token);
+
+        Assert.Equal(OwnEdit, await File.ReadAllTextAsync(path));
+        Assert.Equal(rejectApply ? WorkspaceWriteStatus.ReconciliationSucceeded : WorkspaceWriteStatus.FullSuccess, write.Status);
+        Assert.Equal(path, Assert.Single(write.SavedPaths));
+        var published = (await project.Manager.GetPublishedSolutionAsync())!;
+        var source = Assert.Single(published.Projects.Single().Documents, document => document.FilePath == path);
+        Assert.Equal(OwnEdit, (await source.GetTextAsync()).ToString());
+        Assert.Equal(new[] { OwnEdit }, await TextsAsync(published, path));
+        Assert.Equal(project.ProjectBytes, await File.ReadAllBytesAsync(project.PathFor("App.csproj")));
+    }
+
     [Fact]
     public async Task Revision_moved_during_the_content_read_publishes_on_the_same_flush()
     {
@@ -360,15 +389,16 @@ public sealed class WorkspaceNonCSharpDiskSyncTests
 
         public byte[] ProjectBytes { get; }
 
-        public static async Task<SpikeProject> CreateAsync()
+        public static async Task<SpikeProject> CreateAsync(bool classAsAdditionalFile = false)
         {
             MsBuildBootstrapper.Register();
             var root = Path.Combine(Path.GetTempPath(), "RoslynMcpNonCSharpSync-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(root);
             var projectPath = Path.Combine(root, "App.csproj");
+            var additionalClass = classAsAdditionalFile ? """<AdditionalFiles Include="Class1.cs" />""" : "";
             await File.WriteAllTextAsync(
                 projectPath,
-                """
+                $"""
                 <Project Sdk="Microsoft.NET.Sdk">
                   <PropertyGroup>
                     <TargetFramework>net10.0</TargetFramework>
@@ -378,6 +408,7 @@ public sealed class WorkspaceNonCSharpDiskSyncTests
                   <ItemGroup>
                     <AdditionalFiles Include="payload.txt" />
                     <AdditionalFiles Include="MainWindow.xaml" />
+                    {additionalClass}
                   </ItemGroup>
                 </Project>
                 """,

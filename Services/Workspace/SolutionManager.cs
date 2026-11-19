@@ -16,6 +16,8 @@ using RoslynMcpServer.Diagnostics.UsageStatistics;
 using RoslynMcpServer.Diagnostics.UsageStatistics.Models;
 using RoslynMcpServer.Services.Models;
 using RoslynMcpServer.Services.Navigation;
+using RoslynMcpServer.Services.Testing.Baseline;
+using RoslynMcpServer.Services.Testing.Models;
 using RoslynMcpServer.Services.Workspace.Models;
 using Serilog;
 
@@ -66,6 +68,8 @@ public sealed class SolutionManager
     /// or membership revision is adopted in place; the instance is not replaced.
     /// </summary>
     internal SessionBuildState SessionBuildState { get; } = new();
+
+    internal BaselineSession Baseline { get; } = new();
 
     // Same-assembly tools and the lifecycle test host read these members.
     // InternalsVisibleTo is only RoslynMcpServer.Tests and RoslynMcpServer.LifecycleTestHost.
@@ -142,6 +146,8 @@ public sealed class SolutionManager
     /// <see cref="_workspaceLock"/> is still held.
     /// </summary>
     internal Func<CancellationToken, Task>? AfterPhysicalLoadBeforePrepareAsync { get; set; }
+    internal Action? BeforeDiskWatcherStartForTests { get; set; }
+    internal Action? AfterDiskWatcherStartForTests { get; set; }
 
     /// <summary>Test seam: next workspace apply returns false without calling Roslyn.</summary>
     internal bool FailNextTryApplyChanges { get; set; }
@@ -295,7 +301,7 @@ public sealed class SolutionManager
         await _workspaceLock.WaitAsync(cancellationToken);
         try
         {
-            return await UpdateDocumentInMemoryUnderLockAsync(fullPath, newText ?? string.Empty, persistToDisk: true, cancellationToken)
+            return await UpdateDocumentInMemoryUnderLockAsync(fullPath, newText ?? string.Empty, cancellationToken)
                 .ConfigureAwait(false);
         }
         finally
@@ -576,6 +582,7 @@ public sealed class SolutionManager
             return;
         }
 
+        Baseline.RecordWrite(fullPath);
         _diskWatcherSession?.BeginOwnWrite(fullPath);
     }
 
@@ -633,31 +640,14 @@ public sealed class SolutionManager
         CancellationToken cancellationToken)
     {
         var canonical = InputPathCanon.TryCanonicalize(fullPath) ?? fullPath;
-        if (IsInjectedWriteFailure(canonical))
-        {
-            var begun = _diskWatcherSession?.BeginOwnWrite(canonical) == true;
-            if (begun)
-            {
-                _diskWatcherSession!.AbandonOwnWrite(canonical);
-            }
-
-            throw new IOException("injected-file-write-failure:" + canonical);
-        }
-
-        await WorkspaceFilePersistence.WriteTextAsync(
-                _diskWatcherSession,
-                canonical,
-                text,
-                encoding,
-                cancellationToken)
-            .ConfigureAwait(false);
-        NoteGraphFileWrite(canonical);
+        await WriteTrackedTextToDiskAsync(canonical, text, encoding, cancellationToken).ConfigureAwait(false);
         await PublishOwnNonCSharpTextAsync(canonical, text, encoding, cancellationToken).ConfigureAwait(false);
     }
 
     internal void WriteTrackedText(string fullPath, string text, Encoding encoding)
     {
         var canonical = InputPathCanon.TryCanonicalize(fullPath) ?? fullPath;
+        Baseline.RecordWrite(canonical);
         WorkspaceFilePersistence.WriteText(_diskWatcherSession, canonical, text, encoding);
         NoteGraphFileWrite(canonical);
     }
@@ -768,8 +758,6 @@ public sealed class SolutionManager
                     newSolution,
                     oldSolution,
                     ResolveOperationContext(oldSolution),
-                    persistDocuments: true,
-                    alreadyOnDisk: null,
                     cancellationToken)
                 .ConfigureAwait(false);
         }
@@ -810,6 +798,7 @@ public sealed class SolutionManager
                 usageAttempt.OldKey = GetUsageWorkspaceKey();
             }
 
+            Baseline.Interrupt(_logger);
             await StopSearchPrewarmAsync().ConfigureAwait(false);
             StopDiskWatcherUnderLock();
             _dirtySourcePaths.Clear();
@@ -905,6 +894,37 @@ public sealed class SolutionManager
     internal IReadOnlyList<string> GetPendingDirtySourcePaths() => _dirtySourcePaths.Keys.ToArray();
 
     internal Solution? GetWorkspaceCurrentSolution() => _workspace?.CurrentSolution;
+
+    /// <summary>Captures the graph and its build settings together so a reload cannot mix configurations.</summary>
+    internal async Task<TestImpactWorkspaceContext?> GetTestImpactContextAfterDiskSyncAsync(CancellationToken cancellationToken)
+    {
+        await EnsureWorkspaceFromConfigAsync(cancellationToken).ConfigureAwait(false);
+        await _workspaceLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await FlushDirtyDocumentsUnderLockAsync(cancellationToken).ConfigureAwait(false);
+            if (_solution is not { } solution)
+            {
+                return null;
+            }
+
+            return new TestImpactWorkspaceContext(
+                solution,
+                DiskWatcherSession?.InputMap,
+                Baseline.GetSnapshot(),
+                _loadedPath,
+                ProjectGraphStale,
+                ProjectGraphStaleFromGraphFile,
+                LoadedConfiguration,
+                LoadedPlatform,
+                LoadedPlatformRaw,
+                LoadedBuildArgs);
+        }
+        finally
+        {
+            _workspaceLock.Release();
+        }
+    }
 
     internal async Task<WorkspaceLoadPreparationResult> LoadAndPrepareAsync(
         string solutionOrProjectPath,
@@ -1062,6 +1082,10 @@ public sealed class SolutionManager
 
             if (!shadowCopyInSolutionAnalyzers)
             {
+                if (_solution != null)
+                {
+                    Baseline.Publish(fullPath, _solution, DateTime.UtcNow, _logger);
+                }
                 return new WorkspaceLoadPreparationResult(solution, LastShadowCopyResults);
             }
 
@@ -1662,7 +1686,12 @@ public sealed class SolutionManager
 
     private void SetPublishedSnapshot(Solution overlay)
     {
+        var publishedAtUtc = DateTime.UtcNow;
         _solution = overlay;
+        if (_workspaceLoadInProgress && _loadedPath != null)
+        {
+            Baseline.Publish(_loadedPath, overlay, publishedAtUtc, _logger);
+        }
         var context = CreateVerifiedWriteContext(overlay, _workspace?.CurrentSolution);
         _lastPublishedWriteContext = context;
         try
@@ -1817,7 +1846,6 @@ public sealed class SolutionManager
     private async Task<WorkspaceWriteResult> UpdateDocumentInMemoryUnderLockAsync(
         string filePath,
         string newText,
-        bool persistToDisk,
         CancellationToken cancellationToken)
     {
         var workspace = _workspace;
@@ -1858,25 +1886,14 @@ public sealed class SolutionManager
             candidate = candidate.WithDocumentText(documentId, shared);
         }
         var context = CreateVerifiedWriteContext(_solution, baseSolution);
-        IReadOnlyList<(string Path, string Text)>? alreadyOnDisk = persistToDisk
-            ? null
-            : [(fullPath, newText)];
-        return await ApplyWorkspaceWriteUnderLockAsync(
-                candidate,
-                baseSolution,
-                context,
-                persistDocuments: persistToDisk,
-                alreadyOnDisk,
-                cancellationToken)
+        return await ApplyWorkspaceWriteUnderLockAsync(candidate, baseSolution, context, cancellationToken)
             .ConfigureAwait(false);
     }
 
     private async Task<WorkspaceWriteResult> ApplyWorkspaceWriteUnderLockAsync(
         Solution candidate,
-        Solution? baseForDocuments,
+        Solution baseForDocuments,
         WorkspaceWriteOperationContext operationContext,
-        bool persistDocuments,
-        IReadOnlyList<(string Path, string Text)>? alreadyOnDisk,
         CancellationToken cancellationToken)
     {
         var workspace = _workspace;
@@ -1902,38 +1919,21 @@ public sealed class SolutionManager
 
         var cleaned = preflight.CleanedCandidate;
         var saved = new List<string>();
-        var savedTexts = new List<(string Path, string Text)>();
-        if (alreadyOnDisk is not null)
-        {
-            foreach (var item in alreadyOnDisk)
-            {
-                saved.Add(item.Path);
-                savedTexts.Add(item);
-            }
-        }
-
+        var savedTexts = new List<(string Path, string Text, Encoding WriteEncoding)>();
         var cancelled = false;
         Exception? persistError = null;
-        if (persistDocuments && baseForDocuments is not null)
+        try
         {
-            try
-            {
-                await PersistDocumentChangesAsync(
-                        baseForDocuments,
-                        candidate,
-                        saved,
-                        savedTexts,
-                        cancellationToken)
-                    .ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
-            {
-                cancelled = true;
-            }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-            {
-                persistError = ex;
-            }
+            await PersistDocumentChangesAsync(baseForDocuments, candidate, saved, savedTexts, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            cancelled = true;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            persistError = ex;
         }
 
         if (cancelled || persistError is not null)
@@ -1953,7 +1953,7 @@ public sealed class SolutionManager
         if (TryApplyWorkspaceChanges(workspace, cleaned))
         {
             CommitRepeatWrites(saved);
-            SetPublishedSolution(workspace.CurrentSolution);
+            PublishSavedDocumentTexts(workspace.CurrentSolution, savedTexts);
             LogProcessWorkingSet("document_update");
             return RememberWrite(new WorkspaceWriteResult
             {
@@ -1979,11 +1979,39 @@ public sealed class SolutionManager
             .ConfigureAwait(false);
     }
 
+    private async Task WriteTrackedTextToDiskAsync(
+        string canonical,
+        string text,
+        Encoding encoding,
+        CancellationToken cancellationToken)
+    {
+        if (IsInjectedWriteFailure(canonical))
+        {
+            var begun = _diskWatcherSession?.BeginOwnWrite(canonical) == true;
+            if (begun)
+            {
+                _diskWatcherSession!.AbandonOwnWrite(canonical);
+            }
+
+            throw new IOException("injected-file-write-failure:" + canonical);
+        }
+
+        Baseline.RecordWrite(canonical);
+        await WorkspaceFilePersistence.WriteTextAsync(
+                _diskWatcherSession,
+                canonical,
+                text,
+                encoding,
+                cancellationToken)
+            .ConfigureAwait(false);
+        NoteGraphFileWrite(canonical);
+    }
+
     private async Task PersistDocumentChangesAsync(
         Solution oldSolution,
         Solution newSolution,
         List<string> saved,
-        List<(string Path, string Text)> savedTexts,
+        List<(string Path, string Text, Encoding WriteEncoding)> savedTexts,
         CancellationToken cancellationToken)
     {
         foreach (var project in newSolution.Projects)
@@ -2038,9 +2066,9 @@ public sealed class SolutionManager
                 // same encoding, or a BOM added by one is reverted by the other. The second write is armed
                 // around TryApplyChanges so its echo is compared to these bytes.
                 var writeEncoding = SourceTextEncoding.ResolveForWrite(oldSourceText, newSourceText, fullPath);
-                await WriteTrackedTextAsync(fullPath, text, writeEncoding, cancellationToken).ConfigureAwait(false);
+                await WriteTrackedTextToDiskAsync(fullPath, text, writeEncoding, cancellationToken).ConfigureAwait(false);
                 saved.Add(fullPath);
-                savedTexts.Add((fullPath, text));
+                savedTexts.Add((fullPath, text, writeEncoding));
                 if (CancelAfterDocumentWrites > 0 && saved.Count >= CancelAfterDocumentWrites)
                 {
                     CancelAfterDocumentWrites = 0;
@@ -2053,7 +2081,7 @@ public sealed class SolutionManager
     private async Task<WorkspaceWriteResult> FinishAfterSideEffectsAsync(
         Microsoft.CodeAnalysis.Workspace workspace,
         List<string> saved,
-        List<(string Path, string Text)> savedTexts,
+        List<(string Path, string Text, Encoding WriteEncoding)> savedTexts,
         bool unappliedProject,
         WorkspaceWriteStatus persistenceStatus,
         string reason,
@@ -2074,7 +2102,7 @@ public sealed class SolutionManager
             .ConfigureAwait(false);
         if (reconciled)
         {
-            SetPublishedSolution(workspace.CurrentSolution);
+            PublishSavedDocumentTexts(workspace.CurrentSolution, savedTexts);
             return RememberWrite(new WorkspaceWriteResult
             {
                 Status = WorkspaceWriteStatus.ReconciliationSucceeded,
@@ -2096,9 +2124,28 @@ public sealed class SolutionManager
         });
     }
 
+    private void PublishSavedDocumentTexts(
+        Solution workspaceSolution,
+        IReadOnlyList<(string Path, string Text, Encoding WriteEncoding)> savedTexts)
+    {
+        // A Compile item can also be an AdditionalFile. Publish its additional text only after the
+        // compile text was applied, under the lock already held by the write. External edits are
+        // handled by the disk flush, which can defer an unconfirmed additional text revision.
+        foreach (var (path, text, writeEncoding) in savedTexts)
+        {
+            if (WorkspaceDiskEventClassifier.SyncsNonCSharpDocumentText(_diskWatcherSession?.InputMap, path)
+                && WorkspaceNonCSharpDiskSync.HasDocument(workspaceSolution, path, _pathComparison))
+            {
+                RememberNonCSharpText(path, SourceText.From(text, writeEncoding));
+            }
+        }
+
+        SetPublishedSolution(workspaceSolution);
+    }
+
     private async Task<bool> ReconcileSavedTextsUnderLockAsync(
         Microsoft.CodeAnalysis.Workspace workspace,
-        IReadOnlyList<(string Path, string Text)> savedTexts,
+        IReadOnlyList<(string Path, string Text, Encoding WriteEncoding)> savedTexts,
         CancellationToken cancellationToken)
     {
         if (FailNextReconciliation)
@@ -2109,7 +2156,7 @@ public sealed class SolutionManager
 
         var current = workspace.CurrentSolution;
         var changed = false;
-        foreach (var (path, text) in savedTexts)
+        foreach (var (path, text, _) in savedTexts)
         {
             cancellationToken.ThrowIfCancellationRequested();
             var fullPath = Path.GetFullPath(path);
@@ -2139,7 +2186,7 @@ public sealed class SolutionManager
         }
 
         var paths = new List<string>(savedTexts.Count);
-        foreach (var (path, _) in savedTexts)
+        foreach (var (path, _, _) in savedTexts)
         {
             paths.Add(Path.GetFullPath(path));
         }
@@ -2209,6 +2256,7 @@ public sealed class SolutionManager
 
         await StopSearchPrewarmAsync().ConfigureAwait(false);
         StopDiskWatcherUnderLock();
+        Baseline.BeginLoad(fullPath, _logger);
         _workspace?.Dispose();
         _workspace = null;
         _usage?.ClearResidentWorkspace();
@@ -2313,11 +2361,6 @@ public sealed class SolutionManager
             provenanceSnapshot,
             LoadSessionId,
             AnalyzerAssemblyLoader);
-        if (publishLoadedSolution)
-        {
-            _publicationState = SemanticPublicationState.NoOverlay;
-            SetPublishedSolution(workspace.CurrentSolution);
-        }
         LoadedConfiguration = effectiveConfiguration;
         LoadedPlatform = effectivePlatform;
         LoadedPlatformRaw = effectivePlatformRaw;
@@ -2333,6 +2376,13 @@ public sealed class SolutionManager
 
         LastDiagnostics = CollectDiagnostics(workspace, capturedDiagnostics);
         StartDiskWatcherUnderLock(fullPath, workspace.CurrentSolution);
+        // Baseline capture must not outrun observation: startup events/gaps are journaled before publication.
+        // See docs/rapid-tia/epoch-1-project-level/evidence/task-03-review-round-2.md (R2-002).
+        if (publishLoadedSolution)
+        {
+            _publicationState = SemanticPublicationState.NoOverlay;
+            SetPublishedSolution(workspace.CurrentSolution);
+        }
         _logger.LogInformation(
             "Loaded Roslyn workspace from {Path} (Configuration={Configuration}, Platform={Platform}, PlatformRaw={PlatformRaw}, TargetFramework={TargetFramework}, BuildArgs={BuildArgs})",
             fullPath,
@@ -2589,61 +2639,19 @@ public sealed class SolutionManager
             return;
         }
 
-        var alreadyOnDisk = new List<(string Path, string Text)>();
-        foreach (var path in dirty)
-        {
-            if (!File.Exists(path))
-            {
-                continue;
-            }
-
-            if (FindUserDocumentIdsForPath(inputSolution, path).Count == 0)
-            {
-                continue;
-            }
-
-            var encoding = SourceTextEncoding.ForDiskPath(path);
-            alreadyOnDisk.Add((path, await File.ReadAllTextAsync(path, encoding, cancellationToken).ConfigureAwait(false)));
-        }
-
-        var rawBase = workspace.CurrentSolution;
-        var context = CreateVerifiedWriteContext(_solution, rawBase);
-        var write = await ApplyWorkspaceWriteUnderLockAsync(
-                result.Solution,
-                rawBase,
-                context,
-                persistDocuments: false,
-                alreadyOnDisk,
-                cancellationToken)
-            .ConfigureAwait(false);
-        if (!write.IsFullSuccess && write.Status != WorkspaceWriteStatus.ReconciliationSucceeded)
-        {
-            _logger.LogWarning(
-                "workspace_disk_sync write {Status} reason={Reason} updated={Updated} added={Added} removed={Removed} unrepresentable={Unrepresentable}.",
-                write.Status,
-                write.Reason,
-                result.Updated,
-                result.Added,
-                result.Removed,
-                result.Unrepresentable.Count);
-            if (nonCSharpChanged)
-            {
-                SetPublishedSolution(workspace.CurrentSolution);
-            }
-
-            return;
-        }
+        var synced = WorkspaceDocumentDiskSync.Publish(workspace, result.Solution);
+        NoteRawWorkspaceRevision();
+        SetPublishedSolution(synced);
 
         _logger.LogInformation(
-            "workspace_disk_sync updated={Updated} added={Added} removed={Removed} unchanged={Unchanged} unrepresentable={Unrepresentable} refreshAll={RefreshAll} elapsedMs={ElapsedMs} write={WriteStatus}",
+            "workspace_disk_sync updated={Updated} added={Added} removed={Removed} unchanged={Unchanged} unrepresentable={Unrepresentable} refreshAll={RefreshAll} elapsedMs={ElapsedMs} write=\"None\"",
             result.Updated,
             result.Added,
             result.Removed,
             result.Unchanged,
             result.Unrepresentable.Count,
             refreshAll,
-            started.ElapsedMilliseconds,
-            write.Status);
+            started.ElapsedMilliseconds);
         LogProcessWorkingSet("document_update");
     }
 
@@ -2715,10 +2723,9 @@ public sealed class SolutionManager
             return;
         }
 
-        // Persist of a C# document calls the writer while the workspace lock is already held, and that
-        // path is not an additional file or analyzer config. Taking the lock here is only for a direct
-        // file write. TryApplyChanges is intentionally not used: it rewrites the additional file and
-        // throws when the text is an analyzer config, and neither result updates the published snapshot.
+        // Direct writes acquire the lock here. A workspace write already owns it and instead publishes
+        // both roles after applying the compile text. TryApplyChanges would write the additional file
+        // again and rejects analyzer-config text changes.
         await _workspaceLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
@@ -2827,9 +2834,12 @@ public sealed class SolutionManager
         // Capture once before enabling events. Deleted and renamed loaded projects still belong
         // to this graph even when their backing files no longer exist. See docs/wpf-temporary-project-watching/README.md.
         var projectFilePaths = loadedSolution.Projects.Select(static project => project.FilePath);
-        var session = new WorkspaceInputSession(projectFilePaths);
+        var session = new WorkspaceInputSession(
+            projectFilePaths,
+            Baseline.NoteObservationGap,
+            workspaceDirectory: Path.GetDirectoryName(workspaceFilePath));
         var immutableRoots = ImmutableInputRoots.Discover(
-            loadedSolution.Projects.Select(static project => project.FilePath),
+            projectFilePaths,
             MsBuildEnvironmentInfo.SelectedMsBuildPath);
         var inputMap = WorkspaceInputMapBuilder.Build(
             loadedSolution,
@@ -2839,6 +2849,7 @@ public sealed class SolutionManager
             immutableRoots);
         session.TryPublishInputMap(inputMap);
         _diskWatcherSession = session;
+        BeforeDiskWatcherStartForTests?.Invoke();
         var started = WorkspaceDiskWatcherStarter.Start(
             inputMap.Watchers,
             session,
@@ -2852,6 +2863,7 @@ public sealed class SolutionManager
             started.Watchers.Count,
             started.Subscriptions.Count(static subscription => subscription.IncludeSubdirectories),
             started.Failures);
+        AfterDiskWatcherStartForTests?.Invoke();
     }
 
     private void LogDiskWatcherStartup(LogLevel level, Exception? exception, string message)
@@ -2913,20 +2925,58 @@ public sealed class SolutionManager
         var accepted = session.TryRun(() =>
         {
             var map = session.InputMap;
-            if (WorkspaceDiskEventClassifier.IsDirectoryRename(e.OldFullPath, e.FullPath, map))
+            // Ancestor directory names do not hide workspace inputs; map authority also preserves a temporary-save endpoint.
+            // Consult.Unknown is insufficient here because it can come from an ancestor named artifacts/bin.
+            // See docs/rapid-tia/epoch-1-project-level/evidence/task-03-review-round-9.md (R9-001).
+            var mappedRename = WorkspaceDiskEventClassifier.HasMappedRenamePath(e.OldFullPath, e.FullPath, map);
+            var oldBaselinePath = mappedRename || !WorkspaceDiskPathFilter.IsIgnoredPath(e.OldFullPath, session.WorkspaceDirectory)
+                ? e.OldFullPath : null;
+            var newBaselinePath = mappedRename || !WorkspaceDiskPathFilter.IsIgnoredPath(e.FullPath, session.WorkspaceDirectory)
+                ? e.FullPath : null;
+            var confirmedDirectory = WorkspaceDiskEventClassifier.HasDirectoryRenameEvidence(oldBaselinePath, newBaselinePath, map);
+            var directoryRename = WorkspaceDiskEventClassifier.IsDirectoryRename(e.OldFullPath, e.FullPath, map);
+            if (mappedRename || directoryRename)
+            {
+                if (oldBaselinePath != null)
+                {
+                    Baseline.RecordWrite(oldBaselinePath);
+                }
+                if (newBaselinePath != null)
+                {
+                    Baseline.RecordWrite(newBaselinePath);
+                }
+            }
+            if (directoryRename)
             {
                 _refreshAllDocuments = true;
                 directoryRenamed = true;
+                // The refresh heuristic also accepts extensionless files; that cannot justify an irreversible baseline gap.
+                // Ignore metadata renames such as .git/index.lock -> index. See docs/rapid-tia/epoch-1-project-level/evidence/task-03-review-round-5.md (R5-003).
                 session.NoteDirectoryRename(
                     e.OldFullPath,
                     e.FullPath,
                     WorkspaceDiskEventClassifier.AffectsMembershipRegion(e.OldFullPath, map)
-                        || WorkspaceDiskEventClassifier.AffectsMembershipRegion(e.FullPath, map));
+                        || WorkspaceDiskEventClassifier.AffectsMembershipRegion(e.FullPath, map),
+                    confirmedDirectory: confirmedDirectory);
                 return;
             }
 
-            oldGraphPath = QueueDiskPath(session, e.OldFullPath, WatcherChangeTypes.Renamed);
-            newGraphPath = QueueDiskPath(session, e.FullPath, WatcherChangeTypes.Renamed);
+            // A vanished dotted directory can still have mapped descendants even when the legacy refresh heuristic declines it.
+            if (confirmedDirectory)
+            {
+                Baseline.NoteObservationGap();
+            }
+
+            oldGraphPath = QueueDiskPath(
+                session,
+                e.OldFullPath,
+                WatcherChangeTypes.Renamed,
+                recordBaselineWrite: !mappedRename && oldBaselinePath != null);
+            newGraphPath = QueueDiskPath(
+                session,
+                e.FullPath,
+                WatcherChangeTypes.Renamed,
+                recordBaselineWrite: !mappedRename && newBaselinePath != null);
         });
         if (accepted && directoryRenamed)
         {
@@ -2990,7 +3040,12 @@ public sealed class SolutionManager
         }
     }
 
-    private string? QueueDiskPath(WorkspaceInputSession session, string? rawPath, WatcherChangeTypes changeType)
+    private string? QueueDiskPath(
+        WorkspaceInputSession session,
+        string? rawPath,
+        WatcherChangeTypes changeType,
+        bool recordBaselineWrite = true,
+        bool expandDeletedDescendants = true)
     {
         if (string.IsNullOrWhiteSpace(rawPath))
         {
@@ -3007,9 +3062,50 @@ public sealed class SolutionManager
             return null;
         }
 
+        var map = session.InputMap;
+        if (map is not null
+            && expandDeletedDescendants
+            && changeType == WatcherChangeTypes.Deleted
+            && map.Find(fullPath) is not { Present: true })
+        {
+            // A directory move can arrive only as Deleted, without child events or Renamed.
+            // Expand mapped descendants without a gap: recursive deletion already delivers those same paths.
+            // Only a file present at load rules out descendants; an optional candidate can name a directory.
+            // See docs/rapid-tia/epoch-1-project-level/evidence/task-03-review-round-18.md (R14-001).
+            var mappedDescendants = map.HasMappedDescendants(fullPath);
+            if (mappedDescendants)
+            {
+                var directoryPath = Path.TrimEndingDirectorySeparator(fullPath);
+                foreach (var entry in map.Paths)
+                {
+                    if (!InputPathCanon.Comparer.Equals(entry.CanonicalPath, directoryPath)
+                        && WorkspaceDiskPathFilter.IsPathUnderDirectory(entry.CanonicalPath, directoryPath, InputPathCanon.Comparison))
+                    {
+                        // This pass already includes nested candidates; expanding each one again duplicates subtree work.
+                        QueueDiskPath(
+                            session,
+                            entry.CanonicalPath,
+                            changeType,
+                            recordBaselineWrite,
+                            expandDeletedDescendants: false);
+                    }
+                }
+            }
+            // Keep classification and revisions unchanged; only the baseline journal excludes ignored unmapped paths.
+            recordBaselineWrite &= mappedDescendants || !WorkspaceDiskPathFilter.IsIgnoredPath(fullPath, session.WorkspaceDirectory);
+        }
+
         if (WorkspaceDiskPathFilter.IsWpfTemporaryProject(fullPath)
             && !session.LoadedProjectPaths.Contains(fullPath))
         {
+            // A mapped Compile document can have this filename too. Admit only its Deleted baseline fact;
+            // keep WPF semantic suppression, including mapless and actual temporary-project behavior.
+            // See docs/rapid-tia/epoch-1-project-level/evidence/task-03-review-round-19.md (R14-001).
+            if (recordBaselineWrite && changeType == WatcherChangeTypes.Deleted
+                && map?.Find(fullPath)?.Occurrences.Any(static occurrence => occurrence.DocumentId is not null) == true)
+            {
+                Baseline.RecordWrite(fullPath);
+            }
             return null;
         }
 
@@ -3024,7 +3120,6 @@ public sealed class SolutionManager
             return null;
         }
 
-        var map = session.InputMap;
         if (map is null)
         {
             if (changeType is not (WatcherChangeTypes.Deleted or WatcherChangeTypes.Renamed)
@@ -3034,7 +3129,7 @@ public sealed class SolutionManager
                 return null;
             }
 
-            return QueueDiskPathWithoutMap(session, fullPath);
+            return QueueDiskPathWithoutMap(session, fullPath, recordBaselineWrite);
         }
 
         if (WorkspaceDiskPathFilter.IsIgnoredPath(fullPath)
@@ -3050,6 +3145,10 @@ public sealed class SolutionManager
         }
 
         var canonical = decision.CanonicalPath ?? fullPath;
+        if (recordBaselineWrite)
+        {
+            Baseline.RecordWrite(canonical);
+        }
         var structural = changeType is WatcherChangeTypes.Deleted or WatcherChangeTypes.Renamed
             || decision.CompositionStale;
         if (!structural && session.OwnWriteDefersContent(canonical))
@@ -3085,7 +3184,7 @@ public sealed class SolutionManager
         return null;
     }
 
-    private string? QueueDiskPathWithoutMap(WorkspaceInputSession session, string fullPath)
+    private string? QueueDiskPathWithoutMap(WorkspaceInputSession session, string fullPath, bool recordBaselineWrite)
     {
         if (WorkspaceDiskPathFilter.IsIgnoredPath(fullPath))
         {
@@ -3094,6 +3193,10 @@ public sealed class SolutionManager
 
         if (WorkspaceDiskPathFilter.IsProjectGraphFile(fullPath))
         {
+            if (recordBaselineWrite)
+            {
+                Baseline.RecordWrite(fullPath);
+            }
             session.NotePendingContent(fullPath);
             MarkProjectGraphStaleFromGraphFile();
             return fullPath;
@@ -3104,6 +3207,10 @@ public sealed class SolutionManager
             return null;
         }
 
+        if (recordBaselineWrite)
+        {
+            Baseline.RecordWrite(fullPath);
+        }
         session.NotePendingContent(fullPath);
         _dirtySourcePaths.TryAdd(fullPath, 0);
         return null;

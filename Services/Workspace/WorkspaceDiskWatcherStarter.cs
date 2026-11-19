@@ -8,6 +8,7 @@ namespace RoslynMcpServer.Services.Workspace;
 /// cover. Recursion is taken from the descriptor. A non-recursive descriptor is never widened to an ancestor,
 /// and it is not promoted to recursive when it shares a directory with a membership watcher. The file-name filter
 /// stays <c>*.*</c> so a neighboring file in a point-watched directory is still delivered and classified by role.
+/// Root lifetime subscriptions watch only directory names in the parent, never its descendant tree.
 /// </summary>
 /// <remarks>
 /// On Linux every watcher is a separate inotify instance, and <c>fs.inotify.max_user_instances</c> (128 by
@@ -39,7 +40,7 @@ internal static class WorkspaceDiskWatcherStarter
         var watchers = new List<FileSystemWatcher>();
         var subscriptions = new List<(string Directory, bool IncludeSubdirectories)>();
         var failures = new List<(string Directory, string Reason)>();
-        var startedRecursive = new List<string>();
+        var startedDescriptors = new List<InputWatcherDescriptor>();
 
         // An ancestor is shorter than its descendants, so it starts first and covers them.
         var recursive = descriptors
@@ -48,12 +49,12 @@ internal static class WorkspaceDiskWatcherStarter
         var pointDescriptors = descriptors.Where(static descriptor => !descriptor.IncludeSubdirectories);
         foreach (var descriptor in recursive.Concat(pointDescriptors))
         {
-            if (IsCovered(descriptor.Directory, startedRecursive))
+            if (startedDescriptors.Any(started => started.IncludeSubdirectories && IsCoveredBy(descriptor.Directory, started.Directory)))
             {
                 continue;
             }
 
-            var watcher = TryStart(descriptor, session, onChanged, onRenamed, onError, log, failures);
+            var watcher = TryStart(descriptor.Directory, descriptor.IncludeSubdirectories, null, session, onChanged, onRenamed, onError, log, failures);
             if (watcher is null)
             {
                 continue;
@@ -61,17 +62,21 @@ internal static class WorkspaceDiskWatcherStarter
 
             watchers.Add(watcher);
             subscriptions.Add((descriptor.Directory, descriptor.IncludeSubdirectories));
-            if (descriptor.IncludeSubdirectories)
+            startedDescriptors.Add(descriptor);
+        }
+
+        foreach (var (parent, childName) in RootLifetimeSubscriptions(startedDescriptors))
+        {
+            var watcher = TryStart(parent, false, childName, session, onChanged, onRenamed, onError, log, failures);
+            if (watcher is not null)
             {
-                startedRecursive.Add(descriptor.Directory);
+                watchers.Add(watcher);
+                subscriptions.Add((parent, false));
             }
         }
 
         return new WorkspaceDiskWatcherStartResult(watchers, subscriptions, failures);
     }
-
-    private static bool IsCovered(string directory, IReadOnlyList<string> startedRecursive) =>
-        startedRecursive.Any(root => IsCoveredBy(directory, root));
 
     private static bool IsCoveredBy(string directory, string root)
     {
@@ -107,7 +112,9 @@ internal static class WorkspaceDiskWatcherStarter
     }
 
     private static FileSystemWatcher? TryStart(
-        InputWatcherDescriptor descriptor,
+        string directory,
+        bool includeSubdirectories,
+        string? rootFilter,
         WorkspaceInputSession session,
         Action<FileSystemEventArgs> onChanged,
         Action<RenamedEventArgs> onRenamed,
@@ -115,29 +122,28 @@ internal static class WorkspaceDiskWatcherStarter
         Action<LogLevel, Exception?, string> log,
         List<(string Directory, string Reason)> failures)
     {
-        if (string.IsNullOrWhiteSpace(descriptor.Directory) || !Directory.Exists(descriptor.Directory))
+        if (string.IsNullOrWhiteSpace(directory) || !Directory.Exists(directory))
         {
             session.NoteCoverageUnknown(
                 InputCoverageReason.WatcherDirectoryMissing,
-                CoverageScopeFor(descriptor.Directory));
+                CoverageScopeFor(directory));
             log(
                 LogLevel.Debug,
                 null,
-                "Disk watcher not started: workspace directory missing (" + descriptor.Directory + ").");
+                "Disk watcher not started: workspace directory missing (" + directory + ").");
             return null;
         }
 
         FileSystemWatcher? watcher = null;
         try
         {
-            watcher = new FileSystemWatcher(descriptor.Directory)
+            watcher = new FileSystemWatcher(directory)
             {
-                IncludeSubdirectories = descriptor.IncludeSubdirectories,
-                NotifyFilter = NotifyFilters.FileName
-                    | NotifyFilters.LastWrite
-                    | NotifyFilters.Size
-                    | NotifyFilters.DirectoryName,
-                Filter = "*.*",
+                IncludeSubdirectories = includeSubdirectories,
+                NotifyFilter = rootFilter is not null
+                    ? NotifyFilters.DirectoryName
+                    : NotifyFilters.FileName | NotifyFilters.LastWrite | NotifyFilters.Size | NotifyFilters.DirectoryName,
+                Filter = rootFilter ?? "*.*",
             };
 
             if (OperatingSystem.IsWindows())
@@ -151,32 +157,122 @@ internal static class WorkspaceDiskWatcherStarter
                 throw new IOException("injected-watcher-start-failure");
             }
 
-            watcher.Changed += (_, args) => onChanged(args);
-            watcher.Created += (_, args) => onChanged(args);
-            watcher.Deleted += (_, args) => onChanged(args);
-            watcher.Renamed += (_, args) => onRenamed(args);
-            watcher.Error += (_, args) => onError(args);
+            if (rootFilter is null)
+            {
+                watcher.Changed += (_, args) => onChanged(args);
+                watcher.Created += (_, args) => onChanged(args);
+            }
+            var guardedPath = rootFilter is null ? null : Path.Combine(directory, rootFilter);
+            watcher.Deleted += (_, args) =>
+            {
+                if (guardedPath is null || InputPathCanon.Comparer.Equals(args.FullPath, guardedPath))
+                {
+                    onChanged(args);
+                }
+            };
+            watcher.Renamed += (_, args) =>
+            {
+                if (guardedPath is null
+                    || InputPathCanon.Comparer.Equals(args.OldFullPath, guardedPath)
+                    || InputPathCanon.Comparer.Equals(args.FullPath, guardedPath))
+                {
+                    onRenamed(args);
+                }
+            };
+            watcher.Error += (_, args) =>
+            {
+                var exception = args.GetException();
+                var directoryExists = Directory.Exists(directory);
+                var parent = Path.GetDirectoryName(directory);
+                // Windows reports AccessDenied when a watched root is deleted, after its child Deleted events.
+                // Journal mapped descendants through the same Deleted path without inventing an irreversible gap.
+                // Overflow still means unidentified loss even if the root vanished; existing-root errors remain gaps.
+                // See docs/rapid-tia/epoch-1-project-level/evidence/task-03-review-round-14-red.md (native root Error).
+                if (exception is not InternalBufferOverflowException && !directoryExists && !string.IsNullOrEmpty(parent))
+                {
+                    onChanged(new FileSystemEventArgs(WatcherChangeTypes.Deleted, parent, Path.GetFileName(directory)));
+                }
+                else
+                {
+                    onError(args);
+                }
+                try
+                {
+                    log(
+                        LogLevel.Debug,
+                        exception,
+                        $"Disk watcher error origin: {directory}; directoryExists={directoryExists}.");
+                }
+                catch (Exception)
+                {
+                    // Diagnostics must not let a logging provider escape a native callback after the event was admitted.
+                }
+            };
             watcher.EnableRaisingEvents = true;
-            var started = watcher;
-            watcher = null;
-            log(LogLevel.Information, null, "Disk watcher started on " + descriptor.Directory);
-            return started;
+            log(LogLevel.Information, null, "Disk watcher started on " + directory);
+            return watcher;
         }
         catch (Exception ex)
         {
             watcher?.Dispose();
-            failures.Add((descriptor.Directory, ex.Message));
+            failures.Add((directory, ex.Message));
             session.NoteCoverageUnknown(
                 InputCoverageReason.WatcherStartFailed,
-                CoverageScopeFor(descriptor.Directory));
+                CoverageScopeFor(directory));
             log(
                 LogLevel.Warning,
                 ex,
-                "Disk watcher failed to start for " + descriptor.Directory
+                "Disk watcher failed to start for " + directory
                     + ". Symbol search stays on the load snapshot until reset_workspace.");
             return null;
         }
     }
+
+    private static IEnumerable<(string Parent, string ChildName)> RootLifetimeSubscriptions(
+        IReadOnlyList<InputWatcherDescriptor> descriptors)
+    {
+        // Watching a directory's contents does not reliably report movement of the directory itself.
+        // Guard its lifetime from the parent; continue until an existing subscription observes that parent too.
+        // These exact-name, non-recursive guards do not widen membership or search roots.
+        // See docs/rapid-tia/epoch-1-project-level/evidence/task-03-review-round-14.md (R14-001).
+        var guardedDirectories = new HashSet<string>(InputPathCanon.Comparer);
+        foreach (var descriptor in descriptors)
+        {
+            // shortcut: Non-C# inputs do not independently seed lifetime guards; their content subscriptions remain.
+            // Extend lifetime coverage when those inputs gain baseline coverage; SDK ancestor chains multiply OS watchers.
+            // See docs/rapid-tia/epoch-1-project-level/evidence/task-03-review-round-14-red.md (resource correction).
+            if (!NeedsRootLifetimeGuard(descriptor))
+            {
+                continue;
+            }
+            var directory = descriptor.Directory;
+            if (!Directory.Exists(directory))
+            {
+                continue;
+            }
+            while (Directory.GetParent(directory) is { } parent && guardedDirectories.Add(directory))
+            {
+                var covering = descriptors.Where(candidate =>
+                    InputPathCanon.Comparer.Equals(candidate.Directory, parent.FullName)
+                    || candidate.IncludeSubdirectories && IsCoveredBy(parent.FullName, candidate.Directory)).ToArray();
+                // A primary content subscription is not proof that its own root lifetime is protected.
+                // Continue through excluded non-C# parents for the eligible descendant, without duplicate watches.
+                if (covering.Any(NeedsRootLifetimeGuard))
+                {
+                    break;
+                }
+                if (covering.Length == 0)
+                {
+                    yield return (parent.FullName, Path.GetFileName(directory));
+                }
+                directory = parent.FullName;
+            }
+        }
+    }
+
+    private static bool NeedsRootLifetimeGuard(InputWatcherDescriptor descriptor) =>
+        descriptor.IncludeSubdirectories || descriptor.Roles.Count == 0
+        || descriptor.Roles.Any(static role => role is InputRole.UserInput or InputRole.Generated or InputRole.Unknown or InputRole.PotentialMembership);
 
     private static InputCoverageScope CoverageScopeFor(string? directory)
     {

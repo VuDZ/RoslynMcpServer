@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
 
@@ -130,6 +131,14 @@ public static class WorkspaceDocumentDiskSync
             Removed: 0,
             unchanged,
             unrepresentable);
+    }
+
+    internal static Solution Publish(Microsoft.CodeAnalysis.Workspace workspace, Solution updated)
+    {
+        var previous = workspace.CurrentSolution;
+        var published = SetCurrentSolution(workspace, updated);
+        _ = RaiseWorkspaceChanged(workspace, WorkspaceChangeKind.SolutionChanged, previous, published, null, null);
+        return published;
     }
 
     internal static DocumentId? FindDocumentIdForPath(
@@ -278,4 +287,19 @@ public static class WorkspaceDocumentDiskSync
 
         return relative.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
     }
+
+    // MSBuildWorkspace has no accessible constructor to subclass. Its TryApplyChanges would rewrite
+    // the source and advance its timestamp after an external build. Publish the exact document set
+    // prepared by ApplyAsync, without Roslyn's case-insensitive linked-document expansion.
+    [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "SetCurrentSolution")]
+    private static extern Solution SetCurrentSolution(Microsoft.CodeAnalysis.Workspace workspace, Solution solution);
+
+    [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "RaiseWorkspaceChangedEventAsync")]
+    private static extern Task RaiseWorkspaceChanged(
+        Microsoft.CodeAnalysis.Workspace workspace,
+        WorkspaceChangeKind kind,
+        Solution previous,
+        Solution updated,
+        ProjectId? projectId,
+        DocumentId? documentId);
 }

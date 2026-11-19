@@ -6,6 +6,9 @@ using ModelContextProtocol;
 using ModelContextProtocol.Server;
 using RoslynMcpServer.Diagnostics;
 using RoslynMcpServer.Services;
+using RoslynMcpServer.Services.Testing.Models;
+using RoslynMcpServer.Services.Testing.Narrowing;
+using RoslynMcpServer.Services.Testing.Narrowing.Models;
 
 namespace RoslynMcpServer.Tools;
 
@@ -51,6 +54,96 @@ public sealed class TestTools
         _solutionManager = solutionManager;
         _logger = logger;
         _cliRunner = cliRunner;
+        _impactRunner = new(solutionManager.Baseline.Assemblies, new DotNetTestExecutor(CliRunner(progress: null)), logger);
+    }
+
+    [McpServerTool(Name = "estimate_affected_tests", Title = "Estimate affected tests", ReadOnly = false)]
+    [Description(
+        "Rapid test impact analysis (approximate). Estimates tests affected by changes since load: changed/new tests by name, "
+        + "whole-project selections narrowed by compiled type changes when the assemblies are current. "
+        + "A hint, not a guarantee: string/configuration lookups and process launches can hide tests; extra tests may be included. "
+        + "run=true builds projects in order, then tests in parallel without rebuilding. maxParallelProjects=1 keeps per-project build and test order. "
+        + "Never replaces the full test suite or CI before accepting or committing. Requires load_workspace.")]
+    public async Task<string> EstimateAffectedTests(
+        [Description("List changed members and compiled types, test classes by depth, and selected tests for project-level plans. Default false.")]
+        bool includeDetails = false,
+        [Description("Build each selected test project, narrow from the fresh outputs, and run selected tests. Default false estimates only.")]
+        bool run = false,
+        [Description("Timeout in seconds for each build or test process. 0 disables timeout.")]
+        int timeoutSeconds = DotNetCliRunner.DefaultTimeoutSeconds,
+        [Description("Cumulative depth: changed (changed test classes), direct (code references), di (framework/DI discovery), or all (also assembly loads by name, default).")]
+        string depth = "all",
+        [Description("With run=true, maximum concurrent test projects. 0 selects half the logical processors (at least one). Use 1 when projects share a port, file, or database.")]
+        int maxParallelProjects = 0,
+        CancellationToken cancellationToken = default)
+    {
+        const string toolName = nameof(EstimateAffectedTests);
+        var selectedDepth = TestImpactDepth.Parse(depth);
+        try
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (selectedDepth is not { } stage)
+            {
+                return Finish("Invalid depth. Expected one of: " + TestImpactDepth.Allowed + ".");
+            }
+            if (run && maxParallelProjects < 0)
+            {
+                return Finish("Invalid maxParallelProjects. Expected a non-negative integer.");
+            }
+
+            var context = await _solutionManager.GetTestImpactContextAfterDiskSyncAsync(cancellationToken).ConfigureAwait(false);
+            if (context is null)
+            {
+                return Finish(_solutionManager.FormatNoPublishedSolutionMessage("No workspace loaded."));
+            }
+            if (context.InputMap is not { } inputMap)
+            {
+                return Finish("Not covered: no loaded input map is available; reload required.");
+            }
+            var solution = context.Solution;
+            var estimate = await TestImpactEstimator.EstimateAsync(
+                solution, inputMap, context.Baseline, context.WorkspacePath,
+                context.ProjectGraphStale, context.ProjectGraphStaleFromGraphFile,
+                includeTriviaChanges: run, cancellationToken).ConfigureAwait(false);
+            var execution = run
+                ? await _impactRunner.RunAsync(context, estimate, stage, timeoutSeconds, maxParallelProjects, cancellationToken)
+                    .ConfigureAwait(false)
+                : (Projects: null, Degree: 0);
+            var runs = execution.Projects;
+            var narrowing = runs is null
+                ? await TestClassNarrower.NarrowAsync(solution, estimate, _solutionManager.Baseline.Assemblies, cancellationToken)
+                    .ConfigureAwait(false)
+                : TestNarrowingResult.Empty;
+            var state = TestImpactDepth.State(stage);
+            if (runs is not null)
+            {
+                var mode = execution.Degree switch
+                {
+                    0 => "no test projects to run.",
+                    1 => "sequential (limit 1 project).",
+                    _ => $"parallel (limit {execution.Degree} projects).",
+                };
+                state = _solutionManager.WithDiskSyncNotes(state) + Environment.NewLine + $"Test execution: {mode}";
+            }
+            var body = TestImpactFormatter.Format(solution, estimate, narrowing, stage, includeDetails, runs,
+                state);
+            return ToolTelemetry.TraceAndReturn(toolName, TestImpactFormatter.Warning + Environment.NewLine
+                + (run ? body : _solutionManager.WithDiskSyncNotes(body)));
+        }
+        catch (OperationCanceledException)
+        {
+            return Finish("`estimate_affected_tests` was cancelled.");
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "EstimateAffectedTests failed");
+            return Finish("Failed to estimate affected tests: " + exception.Message);
+        }
+
+        string Finish(string body) => ToolTelemetry.TraceAndReturn(toolName,
+            TestImpactFormatter.Warning + Environment.NewLine + _solutionManager.WithDiskSyncNotes(body)
+            + (selectedDepth is { } stage ? Environment.NewLine + TestImpactDepth.State(stage) : string.Empty)
+            + (run ? Environment.NewLine + "Not covered: no execution report is available for this request." : string.Empty));
     }
 
     [McpServerTool(Name = "run_dotnet_test", Title = "Run dotnet test")]
@@ -577,23 +670,17 @@ public sealed class TestTools
             extraMeta += Environment.NewLine + outputOptions.FormatMetadata();
 
             TimeSpan? timeout = timeoutSeconds > 0 ? TimeSpan.FromSeconds(timeoutSeconds) : null;
-            var sw = System.Diagnostics.Stopwatch.StartNew();
             var cliProgress = McpToolProgressReporter.TryCreate(progress);
-            int? previousExit = null;
-
-            var buildOutput = string.Empty;
-            var preTestBuildArguments = plan.PreTestBuildArguments;
-            if (preTestBuildArguments is not null)
+            var execution = await new DotNetTestExecutor(CliRunner(cliProgress)).ExecuteAsync(
+                plan, workDir, timeout, timeoutPerProcess: false, cancellationToken).ConfigureAwait(false);
+            if (execution.Outcome == TestProcessOutcome.Cancelled
+                || execution.Outcome == TestProcessOutcome.NotRun && cancellationToken.IsCancellationRequested)
             {
-                var buildRun = await RunCliAsync(
-                    preTestBuildArguments,
-                    workDir,
-                    timeout,
-                    previousExit: null,
-                    CliProgressStep.BuildStage,
-                    cliProgress,
-                    cancellationToken).ConfigureAwait(false);
-
+                throw new OperationCanceledException(cancellationToken);
+            }
+            var buildOutput = string.Empty;
+            if (execution.BuildRun is { } buildRun)
+            {
                 buildOutput = buildRun.CombinedOutput;
                 if (buildRun.TimedOut || buildRun.ExitCode != 0)
                 {
@@ -610,8 +697,7 @@ public sealed class TestTools
                         + Environment.NewLine + Environment.NewLine + buildReport);
                 }
 
-                timeout = DotNetTestArguments.RemainingTimeout(timeout, sw.Elapsed);
-                if (timeout == TimeSpan.Zero)
+                if (execution.TestRun is null)
                 {
                     var exhausted = new StringBuilder();
                     exhausted.AppendLine("## Test run timed out");
@@ -630,17 +716,9 @@ public sealed class TestTools
                         includeBuildWarnings ? AppendBuildWarnings(exhaustedText, buildOutput) : exhaustedText);
                 }
 
-                previousExit = buildRun.ExitCode;
             }
 
-            var run = await RunCliAsync(
-                plan.TestArguments,
-                workDir,
-                timeout,
-                previousExit,
-                CliProgressStep.TestStage,
-                cliProgress,
-                cancellationToken).ConfigureAwait(false);
+            var run = execution.TestRun!;
 
             if (run.TimedOut)
             {
@@ -662,7 +740,7 @@ public sealed class TestTools
                 return ToolTelemetry.TraceAndReturn(toolName, timedOutText);
             }
 
-            var parse = VstestOutputParser.Parse(run.CombinedOutput, run.ExitCode);
+            var parse = execution.Parsed!;
             var markdown = VstestOutputParser.BuildMarkdownReport(
                 parse,
                 run.ExitCode,
@@ -1116,4 +1194,5 @@ public sealed class TestTools
     private readonly SolutionManager _solutionManager;
     private readonly ILogger<TestTools> _logger;
     private readonly TestDllEnsure.Runner? _cliRunner;
+    private readonly TestImpactRunner _impactRunner;
 }

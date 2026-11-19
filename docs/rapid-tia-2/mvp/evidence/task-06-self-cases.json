@@ -1,0 +1,22 @@
+[
+  {"file":"Services/Build/DotNetBuildArguments.cs","signature":"Normalize(string? value)"},
+  {"file":"Services/Testing/Il/IlNeighborMapBuilder.cs","signature":"Build(IReadOnlyList<IlAssemblyInput> assemblies)"},
+  {"file":"Services/Testing/TestFilterHelper.cs","signature":"FormatVstestFullyQualifiedName(ISymbol symbol)"},
+  {"file":"Services/Testing/TestImpactDepth.cs","signature":"Parse(string depth)"},
+  {"file":"Services/Testing/Snapshots/AssemblySnapshotReader.cs","signature":"Stamp(string path)"},
+  {"file":"Services/Workspace/WorkspaceDiskPathFilter.cs","signature":"IsCSharpSource(string? fullPath)"},
+  {"file":"Services/GitChangedFilesHelper.cs","signature":"ParsePorcelainStatus(string output)"},
+  {"file":"Services/NuGetSearchResultParser.cs","signature":"ParseSearchJson(string json"},
+  {"file":"Services/Build/DotNetBuildArguments.cs","signature":"Append(string arguments, string? buildArgs)"},
+  {"file":"Services/Testing/TestFilterHelper.cs","signature":"EscapeFilterValue(string value)"},
+  {"file":"Services/Testing/Il/IlNeighborMapBuilder.cs","signature":"SolutionAssembliesIn(string directory"},
+  {"file":"Services/Workspace/WorkspaceDiskPathFilter.cs","signature":"IsProjectGraphFile(string? fullPath)"},
+  {"file":"Services/GitChangedFilesHelper.cs","signature":"FindRepositoryRoot(string startPath)"},
+  {"file":"Services/NuGetSearchResultParser.cs","signature":"LooksLikePrerelease(string version)"},
+  {"file":"RoslynMcpServer.Tests/Testing/EstimateAffectedTestsDepthTests.cs","signature":"Depth_names_ignore_case()"},
+  {"file":"RoslynMcpServer.Tests/Testing/Snapshots/AssemblySnapshotSessionTests.cs","signature":"First_read_covers_every_output_assembly()"},
+  {"file":"RoslynMcpServer.Tests/Testing/Snapshots/AssemblySnapshotSessionTests.cs","signature":"File_images_are_not_kept_after_parsing()"},
+  {"file":"RoslynMcpServer.LifecycleTestHost/HostSession.cs","signature":"CreateSolutionManager()"},
+  {"file":"RoslynMcpServer.Tests/SourceStructure/DeadlockWitnessHost/Program.cs","signature":"Main(string[] args)"},
+  {"file":"samples/RoslynMcpPlugin/SampleTools.cs","signature":"LoadedWorkspace()"}
+]

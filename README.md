@@ -27,6 +27,7 @@ Plugin development and setup: [authoring guide](samples/RoslynMcpPlugin/README.m
 - Roslyn diagnostics, code actions, AST edits, and semantic rename.
 - ILSpy inspection of referenced or explicitly addressed assemblies.
 - Build, test, run, format, and NuGet workflows with SDK alignment, timeouts, parsed diagnostics, and context-safe output.
+- Approximate test selection since solution load, with project-level expansion and an optional build-and-run step.
 - `full` and context-saving `lite` tool catalogs, plus in-session tool-group discovery.
 
 ## Saved edits and the semantic snapshot
@@ -73,7 +74,7 @@ The process is local stdio: no backend and no HTTP client of its own. File logs 
 | `win-x64` | `.zip`, self-contained and framework-dependent | Supported |
 | `linux-x64` | `.tar.gz`, self-contained and framework-dependent | Supported |
 | `osx-arm64` | `.tar.gz`, self-contained and framework-dependent | Native CI passed; release smoke pending |
-| `win-arm64`, `linux-arm64`, `linux-musl-x64` | Present in the project RID list and can be built | Not supported |
+| `TEST_HOST`, `linux-arm64`, `linux-musl-x64` | Present in the project RID list and can be built | Not supported |
 
 Details and validation status: [release platforms](docs/github-releases/README.md), [macOS ARM64](docs/github-releases/task-01-macos-arm64-med.md).
 
@@ -134,9 +135,9 @@ In Cursor, use **Cursor Settings → Tools & MCP**, or create a project-level `.
 {
   "mcpServers": {
     "roslyn-mcp-server": {
-      "command": "C:/absolute/path/to/RoslynMcpServer.exe",
+      "command": "REPO_ROOT",
       "env": {
-        "ROSLYN_MCP_WORKSPACE": "C:/absolute/path/to/YourApp"
+        "ROSLYN_MCP_WORKSPACE": "LOCAL_ROOT/YourApp"
       }
     }
   }
@@ -168,8 +169,8 @@ After `dotnet publish`, the publish folder contains [`install2opencode.ps1`](ins
 From the root of the **project you want to configure** (your application repo):
 
 ```powershell
-cd D:\Devel\YourApp
-& "D:\Devel\RoslynMcpServer\bin\Release\net10.0\win-x64\publish\install2opencode.ps1"
+cd LOCAL_ROOT/YourApp
+& "REPO_ROOT/bin/Release/net10.0/win-x64/publish/install2opencode.ps1"
 ```
 
 The script:
@@ -184,7 +185,7 @@ Example server block:
 ```json
 "roslyn-mcp-server": {
   "type": "local",
-  "command": ["C:/path/to/RoslynMcpServer.exe"],
+  "command": ["REPO_ROOT"],
   "timeout": 600000,
   "enabled": true
 }
@@ -199,7 +200,7 @@ Restart OpenCode or reload MCP servers after running the script.
 
 ## Tool profiles
 
-Default is **`full`** (every public tool). A **`lite`** session starts with the 15-tool core so local models spend less context on `tools/list`. Extra groups can be added at process start or, on clients that honor `notifications/tools/list_changed`, during the session.
+Default is **`full`** (every public tool). A **`lite`** session starts with the 16-tool core so local models spend less context on `tools/list`. Extra groups can be added at process start or, on clients that honor `notifications/tools/list_changed`, during the session.
 
 | Variable | Values | Effect |
 | --- | --- | --- |
@@ -212,7 +213,7 @@ Portable OpenCode examples: [`opencode.json.sample`](opencode.json.sample) (`ros
 
 | Group | Intent | Tools |
 | --- | --- | ---: |
-| `core` | Workspace, symbol lookup, build, test, help | 15 (lite default) |
+| `core` | Workspace, symbol lookup, build, test, help | 16 (lite default) |
 | `files` | Disk read, search, patch, `get_code_skeleton` | 8 |
 | `navigation` | Type hierarchy, references from a known declaration, call graph | 3 |
 | `editing` | AST edits, code fixes, format, rename | 8 |
@@ -230,11 +231,13 @@ Portable OpenCode examples: [`opencode.json.sample`](opencode.json.sample) (`ros
 
 MCP `tools/list` stays JSON + JSON Schema. Markdown is for JIT help and diagnostics.
 
-**Client compatibility:** do not assume the host refreshes tools after `tools/list_changed`. If a newly enabled tool is missing from the client's catalog, restart with `ROSLYN_MCP_TOOL_GROUPS=<group>` (and `ROSLYN_MCP_TOOL_PROFILE=lite`). A `2025-11-25` initialize session receives `tools/list_changed` when the set grows. A `2026-07-28` session receives it only after `subscriptions/listen` with `toolsListChanged`; the server accepts that revision through the MCP C# SDK. Measured minified `tools/list` (UTF-8): full **54 / 45,848**; lite **15 / 19,411**.
+**Client compatibility:** do not assume the host refreshes tools after `tools/list_changed`. If a newly enabled tool is missing from the client's catalog, restart with `ROSLYN_MCP_TOOL_GROUPS=<group>` (and `ROSLYN_MCP_TOOL_PROFILE=lite`). A `2025-11-25` initialize session receives `tools/list_changed` when the set grows. A `2026-07-28` session receives it only after `subscriptions/listen` with `toolsListChanged`; the server accepts that revision through the MCP C# SDK. The minified UTF-8 `tools/list` measures **47,557 bytes for 55 full tools** and **21,120 bytes for 16 lite tools**.
 
 ## Agent tools by version
 
 Version history of agent-visible tools and behavior: [CHANGELOG.md](CHANGELOG.md). Current server version: see `RoslynMcpServer.csproj`.
+
+The Rapid TIA branch builds as **1.6.0**. `estimate_affected_tests` uses saved edits and compiled type dependencies to select VSTest projects and classes. With `run: true`, it builds the selected projects in order before running their tests in parallel. Use `maxParallelProjects: 1` to build and test each project in turn when projects share resources. See the tool reference and [architecture](docs/ARCHITECTURE.md#rapid-tia).
 
 In 1.5.9, name-based declaration search uses source-only lookup, preserving the exclusion of metadata-only results. Provenance replay reads newer compatible BuildHost binlogs and reports each file's format; any recoverable read error still rejects that file's provenance.
 
@@ -306,7 +309,7 @@ Run `pwsh ./scripts/Measure-McpUsage.ps1 -InputDirectory <usage-directory> -Mach
 
 When a tool accepts `filePath`, relative values are resolved against the loaded workspace root after `load_workspace`; if no workspace is loaded, fallback is `Environment.CurrentDirectory`.
 
-There are **54** registered tools in the default `full` profile (see list below). A `lite` profile starts with **15** core tools; extra groups use `ROSLYN_MCP_TOOL_GROUPS` or `enable_tool_group`. Nine attributed methods stay out of `tools/list` until v2 and are not callable: `remove_using`, `organize_usings`, `add_property_to_class`, `add_field_to_class`, `add_type_to_class_bases`, `remove_member`, `implement_interface`, `extract_interface`, `move_type_to_new_file`.
+There are **55** registered tools in the default `full` profile (see list below). A `lite` profile starts with **16** core tools; extra groups use `ROSLYN_MCP_TOOL_GROUPS` or `enable_tool_group`. Nine attributed methods stay out of `tools/list` until v2 and are not callable: `remove_using`, `organize_usings`, `add_property_to_class`, `add_field_to_class`, `add_type_to_class_bases`, `remove_member`, `implement_interface`, `extract_interface`, `move_type_to_new_file`.
 
 ### Workspace / Roslyn
 
@@ -582,6 +585,28 @@ Parses C# syntax, inserts with DocumentEditor, formats the file. Prefer over `ap
 </details>
 
 ### Build / Test / CLI
+
+<details>
+<summary><code>estimate_affected_tests</code> — Approximate test selection since the solution was loaded.</summary>
+
+Requires `load_workspace`. The tool synchronizes saved disk and MCP edits and reports changes since the session baseline. `depth` (case-insensitive) chooses a cumulative stage: `changed` (changed or new test classes), `direct` (also type references), `di` (also container and framework discovery), or `all` (also assembly loads by name, the default). For a narrowed project the answer shows class counts for all four stages and the VSTest filter at the selected depth. `includeDetails: true` lists the classes by stage and the changed compiled types. The answer also reports compiler errors in changed source documents and specific `Not covered` limitations. Use the build output for compilation-wide errors such as entry point conflicts.
+
+Use `run_specific_test` when you know the class or method. When the impact of a saved edit is broad or unclear, call `estimate_affected_tests` with `run: true` to build and test the selection in one call. Use `run: false` to inspect the plan or reuse a fresh build. With fresh outputs, run the returned filters via `run_test_by_filter` and whole projects via `run_dotnet_test` with `noBuild: true`. On full Jellyfin, the automatic parallel run saved 13.85–18.10 seconds over `maxParallelProjects: 1` in two paired edits with identical tests and outcomes. [Full-cycle benchmark](docs/rapid-tia-2/mvp/evidence/parallel-run-2026-11-19.md).
+
+The initial selection uses saved inputs and project dependencies. Narrowing uses compiled type fingerprints and dependency graphs from before and after the edits. The baseline survives reload or reset of the same solution. A different solution or server restart takes a new baseline. When every stage is empty, the answer distinguishes unchanged compiled code from changed types that no test class reaches.
+
+When the initial plan selects the whole project, the answer keeps that scope and explains why if the pre-edit snapshot is missing, an assembly was overwritten before its first read could finish, an assembly cannot be read, an output is no newer than the latest edit, or the test output is stale after a dependency changed shape. It also keeps the whole project for non-C# or project inputs, a stale project graph, observation gaps, unmappable VSTest class names, or a filter over the length limit. In estimate-only mode, stale outputs prompt a build and another estimate.
+
+The graph can miss types named in strings or configuration and dependencies reached in another process started by a test. Narrowing only visits test projects already selected by the initial project-level plan. It reads the outputs for the target frameworks in the loaded workspace, so an edit that only affects another framework can appear as unchanged compiled code.
+
+`run` defaults to `false`. With `run: true`, the tool builds the selected projects sequentially using configuration, platform and build arguments from `load_workspace`. It narrows against the fresh outputs and then starts VSTest without rebuilding. `maxParallelProjects: 0` (default) allows half the logical processors rounded down, with a minimum of one and a cap at the number of projects with tests to run. A value greater than one sets the project limit. Use `1` to build, narrow and test each project in turn if projects share a port, file or database. Each test process uses a separate temporary results directory that is removed after processing. The response lists projects in path order and reports the test concurrency.
+
+An empty selection skips the test process and reports `not run`. If narrowing fails after a successful build, the project runs whole and the answer names the error. A comment-only edit is checked only with `run: true`: the estimate keeps the syntax comparison, while the run compares the compiled code. The changed-type count of a run covers the projects built in that run. `timeoutSeconds` (default 300, 0 disables it) applies separately to each build or test process. A failure or timeout leaves other projects eligible to run. MCP cancellation terminates active process trees, skips queued projects and logs the outcomes.
+
+**Build outputs:** changes are detected in authored inputs (sources, project files, evaluation inputs, data files and assemblies kept in the repository), not in build products. Rebuilding a project, including the build inside `run`, `run_*` or the IDE, does not widen the next estimate, and reverting an edit can return an empty plan. A project that references another solution project's output as an assembly file (a metadata reference), outside the project graph, is still selected when that output changes; a project that loads it only as an analyzer is not.
+
+Filters use name containment, so selecting `Check` may also run `CheckExtra` and all parameter rows. Nested/inherited/generic runtime names use the measured VSTest forms; unknown forms and NUnit fixture constructor/source arguments select the whole project. MTP projects are not recognized separately and follow the existing VSTest path; a dedicated MTP plan is deferred. Reflection, conventions, external data/processes, source generators and tests reading source files can escape this approximation; input watching and syntactic test-role recognition have limits. Run project-mandated checks (such as `SourceStructure`) independently. The full test suite and CI remain required before accepting or committing a change.
+</details>
 
 <details>
 <summary><code>run_dotnet_build</code> — Runs dotnet build and returns a compact diagnostic summary.</summary>
@@ -907,7 +932,7 @@ Runs `git` with a 180s deadline and up to 3s to stop the process. Use host `git 
 
 **Parameters:** *(none)*
 
-Use after `dotnet publish` to verify the MCP host picked up the new binary. Expect the `Version` from `RoslynMcpServer.csproj`, **54** tools on `full`, or **15** on `lite`.
+Use after `dotnet publish` to verify the MCP host picked up the new binary. Expect the `Version` from `RoslynMcpServer.csproj`, **55** tools on `full`, or **16** on `lite`.
 
 </details>
 
@@ -979,6 +1004,7 @@ RoslynMcpServer предоставляет AI-агенту compiler-aware инс
 - Диагностика, CodeAction, AST-правки и семантический rename.
 - Анализ подключённых или явно заданных сборок через ILSpy.
 - Build, test, run, format и NuGet с выравниванием SDK, таймаутами и структурированным выводом.
+- Приблизительная оценка затронутых тестов с момента загрузки solution, проектное расширение и сборка/запуск по флагу.
 - Полный каталог `full` и экономный `lite` с группами tools.
 
 ## Сохранённые правки и семантический снимок
@@ -1024,7 +1050,7 @@ RoslynMcpServer не собирает телеметрию и не переда�
 | `win-x64` | `.zip`, self-contained и framework-dependent | Поддерживается |
 | `linux-x64` | `.tar.gz`, self-contained и framework-dependent | Поддерживается |
 | `osx-arm64` | `.tar.gz`, self-contained и framework-dependent | Нативный CI пройден; smoke релиза ожидается |
-| `win-arm64`, `linux-arm64`, `linux-musl-x64` | Есть в списке RID проекта и собираются | Не поддерживаются |
+| `TEST_HOST`, `linux-arm64`, `linux-musl-x64` | Есть в списке RID проекта и собираются | Не поддерживаются |
 
 Платформы и статус проверок: [релизы](docs/github-releases/README.md), [macOS ARM64](docs/github-releases/task-01-macos-arm64-med.md).
 
@@ -1083,9 +1109,9 @@ dotnet publish RoslynMcpServer.csproj -c Release -r win-x64
 {
   "mcpServers": {
     "roslyn-mcp-server": {
-      "command": "C:/absolute/path/to/RoslynMcpServer.exe",
+      "command": "REPO_ROOT",
       "env": {
-        "ROSLYN_MCP_WORKSPACE": "C:/absolute/path/to/YourApp"
+        "ROSLYN_MCP_WORKSPACE": "LOCAL_ROOT/YourApp"
       }
     }
   }
@@ -1117,8 +1143,8 @@ dotnet publish RoslynMcpServer.csproj -c Release -r win-x64
 Из корня **целевого проекта** (вашего приложения, не этого репозитория):
 
 ```powershell
-cd D:\Devel\YourApp
-& "D:\Devel\RoslynMcpServer\bin\Release\net10.0\win-x64\publish\install2opencode.ps1"
+cd LOCAL_ROOT/YourApp
+& "REPO_ROOT/bin/Release/net10.0/win-x64/publish/install2opencode.ps1"
 ```
 
 Скрипт:
@@ -1133,7 +1159,7 @@ cd D:\Devel\YourApp
 ```json
 "roslyn-mcp-server": {
   "type": "local",
-  "command": ["C:/path/to/RoslynMcpServer.exe"],
+  "command": ["REPO_ROOT"],
   "timeout": 600000,
   "enabled": true
 }
@@ -1148,7 +1174,7 @@ cd D:\Devel\YourApp
 
 ## Профили инструментов
 
-По умолчанию **`full`** (все публичные тулы). **`lite`** стартует с 15 core-тулов. Дополнительные группы — при старте процесса или, если клиент обрабатывает `notifications/tools/list_changed`, во время сессии.
+По умолчанию **`full`** (все публичные тулы). **`lite`** стартует с 16 core-тулов. Дополнительные группы — при старте процесса или, если клиент обрабатывает `notifications/tools/list_changed`, во время сессии.
 
 | Переменная | Значения | Эффект |
 | --- | --- | --- |
@@ -1161,7 +1187,7 @@ cd D:\Devel\YourApp
 
 | Группа | Назначение | Тулов |
 | --- | --- | ---: |
-| `core` | workspace, поиск символов, build, test, help | 15 (lite по умолчанию) |
+| `core` | workspace, поиск символов, build, test, help | 16 (lite по умолчанию) |
 | `files` | чтение/поиск/патч с диска, `get_code_skeleton` | 8 |
 | `navigation` | иерархия типов, ссылки по известному объявлению, граф вызовов | 3 |
 | `editing` | AST, code fixes, format, rename | 8 |
@@ -1171,11 +1197,13 @@ cd D:\Devel\YourApp
 | `runtime` | `run`, список тестов, сырой `dotnet` | 3 |
 | `operations` | логи, scratchpad, stop | 4 |
 
-`list_tool_groups` / `get_tool_help` / `enable_tool_group` — Markdown-справка и runtime-включение. `tools/list` остаётся JSON Schema. Если клиент не обновляет список после `tools/list_changed`, перезапустите с `ROSLYN_MCP_TOOL_GROUPS=<group>`. Замеры minified UTF-8: full **54 / 45 780**; lite **15 / 19 312**.
+`list_tool_groups` / `get_tool_help` / `enable_tool_group` — Markdown-справка и runtime-включение. `tools/list` остаётся JSON Schema. Если клиент не обновляет список после `tools/list_changed`, перезапустите с `ROSLYN_MCP_TOOL_GROUPS=<group>`. Компактный `tools/list` в UTF-8 занимает **47 557 байт для 55 инструментов full** и **21 120 байт для 16 инструментов lite**.
 
 ## История agent-tools по версиям
 
 [CHANGELOG.md](CHANGELOG.md). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
+
+Ветка Rapid TIA собирается с версией **1.6.0**. `estimate_affected_tests` по сохранённым правкам и зависимостям скомпилированных типов выбирает проекты и классы VSTest. При `run: true` инструмент по очереди собирает выбранные проекты, затем запускает тесты параллельно. Если проекты делят ресурсы, передайте `maxParallelProjects: 1`, чтобы собирать и тестировать каждый проект по очереди. См. справку инструмента и [архитектуру](docs/ARCHITECTURE.md#rapid-tia).
 
 ## Cursor: как заставить агента реально вызывать tools
 
@@ -1234,7 +1262,7 @@ cd D:\Devel\YourApp
 - `fixIndex` — индекс (0-based) из `get_code_fixes` для `apply_code_fix`.
 - `path` — файл `.cs` или каталог для `get_code_skeleton` (абсолютный путь; с диска, workspace не обязателен).
 
-Зарегистрировано **54** инструмента в профиле `full` (список ниже). Профиль `lite` стартует с **15** core-тулов; остальные группы — `ROSLYN_MCP_TOOL_GROUPS` или `enable_tool_group`. Девять методов с атрибутом не входят в `tools/list` до v2 и не вызываются: `remove_using`, `organize_usings`, `add_property_to_class`, `add_field_to_class`, `add_type_to_class_bases`, `remove_member`, `implement_interface`, `extract_interface`, `move_type_to_new_file`.
+Зарегистрировано **55** инструментов в профиле `full` (список ниже). Профиль `lite` стартует с **16** core-тулов; остальные группы — `ROSLYN_MCP_TOOL_GROUPS` или `enable_tool_group`. Девять методов с атрибутом не входят в `tools/list` до v2 и не вызываются: `remove_using`, `organize_usings`, `add_property_to_class`, `add_field_to_class`, `add_type_to_class_bases`, `remove_member`, `implement_interface`, `extract_interface`, `move_type_to_new_file`.
 
 ### Workspace / Roslyn
 
@@ -1503,6 +1531,28 @@ cd D:\Devel\YourApp
 </details>
 
 ### Build / Test / CLI
+
+<details>
+<summary><code>estimate_affected_tests</code> — Приблизительная оценка затронутых тестов с момента загрузки solution.</summary>
+
+Нужен `load_workspace`. Инструмент синхронизирует сохранённые правки на диске и через MCP и показывает изменения с момента загрузки. `depth` (без учёта регистра) выбирает накопительную ступень: `changed` (изменённые и новые тестовые классы), `direct` (также ссылки между типами), `di` (также обнаружение типов контейнером и фреймворком), `all` (также загрузка сборок по имени, по умолчанию). Для суженного проекта ответ показывает число классов на каждой из четырёх ступеней и фильтр VSTest выбранной ступени. `includeDetails: true` перечисляет классы по ступеням и изменившиеся типы из сборок. В ответ также входят ошибки в изменённых исходниках и ограничения `Not covered`. Ошибки компиляции уровня проекта, например конфликт точек входа, смотрите в выводе сборки.
+
+Если класс или метод известен, используйте `run_specific_test`. Для сохранённой правки с широким или неочевидным охватом вызовите `estimate_affected_tests` с `run: true`, чтобы собрать и запустить выбранные тесты одним вызовом. Передайте `run: false`, чтобы посмотреть план или использовать свежую сборку. На свежих выходах запускайте возвращённые фильтры через `run_test_by_filter`, целые проекты через `run_dotnet_test` с `noBuild: true`. На двух правках полного Jellyfin автоматический режим сократил цикл на 13,85–18,10 с относительно `maxParallelProjects: 1` при одинаковых тестах и исходах. [Замер всего цикла](docs/rapid-tia-2/mvp/evidence/parallel-run-2026-11-19.md).
+
+Начальный выбор строится по сохранённым входам и зависимостям проектов. Для сужения используются отпечатки скомпилированных типов и графы зависимостей до и после правки. Baseline сохраняется при reload или reset того же solution. Другой solution или перезапуск сервера начинает новый baseline. Когда все ступени пусты, ответ различает неизменившийся код в сборках и изменившиеся типы, до которых не дошёл ни один тестовый класс.
+
+Если исходный план выбрал целый проект, ответ сохраняет этот объём и называет причину, когда нет снимка до правки, сборку перезаписали до окончания её первого чтения, сборку нельзя прочитать, выход не новее последней правки или тестовая сборка устарела после изменения формы зависимости. Проект также остаётся целым при изменении не-C# входа или файла проекта, устаревшем графе проектов, разрыве наблюдения, неизвестном имени тестового класса для VSTest или превышении бюджета фильтра. В режиме только оценки при устаревших сборках инструмент предлагает собрать и повторить запрос.
+
+Граф может пропустить типы, названные строкой или в конфигурации, и зависимости, которые проходят через другой процесс, запущенный тестом. Сужение рассматривает только тестовые проекты из исходного выбора на уровне проектов. Читаются сборки для целевых платформ загруженного workspace. Правка, которая влияет только на другую платформу, может выглядеть как неизменившийся код в сборках.
+
+По умолчанию `run: false`. С `run: true` инструмент последовательно собирает выбранные проекты с конфигурацией, платформой и аргументами из `load_workspace`, сужает выбор по свежим сборкам, затем запускает VSTest без повторной сборки. `maxParallelProjects: 0` (по умолчанию) берёт половину логических процессоров с округлением вниз, минимум один и максимум по числу проектов с тестами к запуску. Значение больше одного задаёт предел. Если проекты делят порт, файл или базу, передайте `1` для чередования сборки, сужения и тестов по каждому проекту. У каждого тестового процесса свой временный каталог результатов, который удаляется после обработки. В ответе проекты идут в порядке пути, а строка режима показывает степень параллелизма тестов.
+
+При пустом выборе тестовый процесс пропускается с исходом `not run`. Если сужение после успешной сборки упало, проект запускается целиком, а ответ называет ошибку. Правка только комментария проверяется лишь при `run: true`: оценка сохраняет сравнение синтаксиса, а запуск сравнивает скомпилированный код. Число изменившихся типов при запуске относится к проектам, собранным в этом запуске. `timeoutSeconds` (по умолчанию 300, 0 отключает) применяется отдельно к каждому процессу сборки или тестов. При ошибке или таймауте остальные проекты продолжают работу. Отмена MCP завершает активные деревья процессов, пропускает проекты в очереди и записывает исходы в лог.
+
+**Выход сборки:** изменения определяются по написанным входам (исходники, файлы проектов, входы evaluation, данные и сборки, которые лежат в репозитории), а не по продуктам сборки. Пересборка проекта, в том числе внутри `run`, `run_*` или IDE, не расширяет следующую оценку, а откат правки может вернуть пустой план. Проект, который ссылается на выход другого проекта solution как на файл сборки (metadata reference), вне графа проектов, по-прежнему выбирается при изменении этого выхода; проект, который подключает его только как анализатор, — нет.
+
+Фильтры проверяют вхождение имени: выбор `Check` может запустить и `CheckExtra`, и все строки параметризованного теста. Runtime-имена вложенных/унаследованных/generic тестов берутся из измеренных VSTest-форм; неизвестные формы и NUnit-фикстуры с constructor/source arguments дают проект целиком. MTP-проекты отдельно не распознаются и идут существующим VSTest-путём; отдельный MTP-план отложен. Reflection, соглашения, внешние данные/процессы, source generators и тесты, читающие исходники, могут остаться вне приближения; наблюдение входов и синтаксическое распознавание тестовых ролей имеют ограничения. Обязательные проверки проекта (например `SourceStructure`) запускаются отдельно. Полный suite и CI обязательны перед приёмкой или коммитом.
+</details>
 
 <details>
 <summary><code>run_dotnet_build</code> — Запускает dotnet build и возвращает компактную сводку.</summary>
@@ -1826,7 +1876,7 @@ cd D:\Devel\YourApp
 
 **Параметры:** *(нет)*
 
-После `dotnet publish` — проверка, что MCP подхватил новый бинарник. Ожидайте `Version` из `RoslynMcpServer.csproj`, **54** tools в `full` или **15** в `lite`.
+После `dotnet publish` — проверка, что MCP подхватил новый бинарник. Ожидайте `Version` из `RoslynMcpServer.csproj`, **55** tools в `full` или **16** в `lite`.
 
 </details>
 

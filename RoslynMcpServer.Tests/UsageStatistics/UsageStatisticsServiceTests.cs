@@ -22,7 +22,7 @@ public sealed class UsageStatisticsServiceTests
         usage.SetExitReason("exception");
         await usage.StopAsync(CancellationToken.None);
 
-        var events = files.ReadEvents();
+        var events = await files.ReadEventsAsync(usage);
         var busy = events.Last(item => item.GetProperty("ev").GetString() == "mem");
         Assert.Equal(1, busy.GetProperty("active_calls").GetInt32());
         Assert.Equal(0, busy.GetProperty("idle_seconds").GetDouble());
@@ -45,7 +45,7 @@ public sealed class UsageStatisticsServiceTests
         usage.EndTool(valid, success: true);
         await usage.StopAsync(CancellationToken.None);
 
-        var events = files.ReadEvents();
+        var events = await files.ReadEventsAsync(usage);
         Assert.Contains(events, item =>
             item.GetProperty("ev").GetString() == "tool" && item.GetProperty("name").GetString() == "get_tool_help");
         var sequences = events.Select(item => item.GetProperty("seq").GetInt64()).ToArray();

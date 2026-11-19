@@ -1027,6 +1027,12 @@ public sealed class SourceSetAnalysisTests
         // is not modeled, so the walk does not follow DuringContentReadForTests through that parameter.
         // beforeProject is the search prewarm's per-project seam: a fresh load starts the prewarm, which
         // invokes the parameter; SolutionManager passes BeforeSearchPrewarmProjectForTests, which only tests set.
+        // beforeRead/beforeCommit are baseline capture-work constructor parameters. Delegate argument flow is not
+        // modeled; these test-only barriers therefore remain explicit limits while publication lambdas are inspected.
+        // A new baseline also starts the first read of the output assemblies. Its four test seams are limits of
+        // the same kind: beforeFirstRead is the read-work constructor parameter for BeforeFirstReadForTests;
+        // ImageLoadedForTests and WhileFileIsOpenForTests are reader properties that only tests assign; and
+        // whileFileIsOpenForTests is the image loader's parameter, which the reader passes on.
         // Keep an exact inventory rather than accepting any number of limits; an unexpected blind spot
         // must still fail, and these known limits must not turn into a decided absence of the sync entry.
         var production = ProductionAnalysis.Instance;
@@ -1046,6 +1052,10 @@ public sealed class SourceSetAnalysisTests
         string[] expectedMembers =
         [
             "AfterPhysicalLoadBeforePrepareAsync",
+            // Deterministic watcher-start boundaries and the admitted gap callback are supplied outside this scope.
+            "BeforeDiskWatcherStartForTests",
+            "AfterDiskWatcherStartForTests",
+            "onObservationGap",
             "BeforeDiskWatcherCallbackForTests",
             "AfterDiskWatcherChangeForTests",
             "DuringDiskFlushForTests",
@@ -1056,6 +1066,12 @@ public sealed class SourceSetAnalysisTests
             "onRenamed",
             "onError",
             "beforeProject",
+            "beforeRead",
+            "beforeCommit",
+            "beforeFirstRead",
+            "ImageLoadedForTests",
+            "WhileFileIsOpenForTests",
+            "whileFileIsOpenForTests",
         ];
         Assert.Equal(expectedMembers.Length, reachability.Limits.Count);
         foreach (var member in expectedMembers)
@@ -1065,9 +1081,14 @@ public sealed class SourceSetAnalysisTests
             Assert.Equal(ReachabilityLimitKind.TargetOutsideTheScope, limit.Kind);
             var sourcePath = member switch
             {
-                "update" => Path.Combine("Services", "Models", "WorkspaceInputSession.cs"),
+                "update" or "onObservationGap" => Path.Combine("Services", "Models", "WorkspaceInputSession.cs"),
                 "duringRead" => Path.Combine("Services", "Workspace", "WorkspaceInputReconciler.cs"),
                 "beforeProject" => Path.Combine("Services", "Navigation", "SearchIndexPrewarm.cs"),
+                "beforeRead" or "beforeCommit" => Path.Combine("Services", "Testing", "Baseline", "BaselineSession.cs"),
+                "beforeFirstRead" => Path.Combine("Services", "Testing", "Snapshots", "AssemblySnapshotSession.cs"),
+                "ImageLoadedForTests" or "WhileFileIsOpenForTests" =>
+                    Path.Combine("Services", "Testing", "Snapshots", "AssemblySnapshotReader.cs"),
+                "whileFileIsOpenForTests" => Path.Combine("Services", "Testing", "Il", "IlAssemblyImageLoader.cs"),
                 "log" or "onChanged" or "onRenamed" or "onError" =>
                     Path.Combine("Services", "Workspace", "WorkspaceDiskWatcherStarter.cs"),
                 _ => Path.Combine("Services", "Workspace", "SolutionManager.cs"),

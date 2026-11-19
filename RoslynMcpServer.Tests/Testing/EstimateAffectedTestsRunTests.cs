@@ -1,0 +1,268 @@
+using Microsoft.Extensions.Logging.Abstractions;
+using RoslynMcpServer.Diagnostics;
+using RoslynMcpServer.Tools;
+using Xunit;
+using Xunit.Abstractions;
+
+namespace RoslynMcpServer.Tests.Testing;
+
+[Collection("BaselineObservationGap")]
+public sealed class EstimateAffectedTestsRunTests(ITestOutputHelper output)
+{
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Early_run_responses_keep_the_warning_state_and_final_limitations(bool cancelled)
+    {
+        using var cancellation = new CancellationTokenSource();
+        if (cancelled)
+        {
+            cancellation.Cancel();
+        }
+
+        var response = await EstimateAffectedTestsTests.Tools(SolutionManagerTestFactory.Create())
+            .EstimateAffectedTests(run: true, cancellationToken: cancellation.Token);
+
+        AssertRun(response, cancelled ? "cancelled" : "No workspace loaded");
+        Assert.EndsWith("Not covered: no execution report is available for this request.", response, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Real_filter_and_run_execute_the_same_expected_tests_with_only_name_substring_extras()
+    {
+        await using var fixture = new TestImpactRunFixture();
+        await fixture.LoadAsync();
+        await fixture.ChangeAsync("First", "GC.KeepAlive(value); Assert.True(true);");
+        var estimate = await fixture.Tools.EstimateAffectedTests();
+        var line = Assert.Single(estimate.Split(Environment.NewLine), line => line.StartsWith("Run: ", StringComparison.Ordinal));
+        var filter = line.Split(" with filter `", StringSplitOptions.None)[1].TrimEnd('`');
+        Assert.Contains("FullyQualifiedName~Ns.Cases.First", filter, StringComparison.Ordinal);
+        var manual = await fixture.Tools.RunTestByFilter(fixture.ProjectPath("First"), filter, noBuild: true);
+        Assert.Contains("3", manual, StringComparison.Ordinal);
+        var expected = new[] { "First1", "First2", "FirstExtra" };
+        Assert.Equal(expected, File.ReadAllLines(fixture.MarkerPath("First")).Order(StringComparer.Ordinal));
+        File.Delete(fixture.MarkerPath("First"));
+
+        var response = await fixture.Tools.EstimateAffectedTests(run: true);
+
+        output.WriteLine(response);
+        AssertRun(response, "passed");
+        Assert.Contains("Total: 3", response, StringComparison.Ordinal);
+        Assert.Equal(expected, File.ReadAllLines(fixture.MarkerPath("First")).Order(StringComparer.Ordinal));
+        Assert.False(File.Exists(fixture.MarkerPath("Second")));
+    }
+
+    [Fact]
+    public async Task Fresh_direct_test_edit_reports_the_compiled_type_without_widening_the_method_filter()
+    {
+        await using var fixture = new TestImpactRunFixture();
+        await fixture.LoadAsync();
+        await fixture.Manager.Baseline.Assemblies.FirstReadTask.WaitAsync(TimeSpan.FromSeconds(30));
+        await fixture.ChangeAsync("First", "GC.KeepAlive(value); Assert.True(true);");
+        var before = await fixture.Tools.EstimateAffectedTests();
+        var run = await fixture.Tools.EstimateAffectedTests(run: true, includeDetails: true);
+        AssertRun(run, "passed");
+
+        var after = await fixture.Tools.EstimateAffectedTests(includeDetails: true, depth: "changed");
+        await fixture.ChangeAsync("First", "GC.KeepAlive(value + 1); Assert.True(true);");
+        var stale = await fixture.Tools.EstimateAffectedTests();
+        await fixture.RestoreAsync("First");
+        var restored = await fixture.Tools.EstimateAffectedTests();
+
+        output.WriteLine(run);
+        output.WriteLine(after);
+        output.WriteLine(stale);
+        output.WriteLine(restored);
+        Assert.Equal(RunLines(before), RunLines(after));
+        Assert.Equal(RunLines(before), RunLines(run));
+        Assert.Equal(RunLines(before), RunLines(stale));
+        Assert.Contains("with filter `FullyQualifiedName~Ns.Cases.First`", Assert.Single(RunLines(after)), StringComparison.Ordinal);
+        Assert.Contains("1 changed type identified in assemblies compared after the builds of this run", run, StringComparison.Ordinal);
+        Assert.Contains("1 changed type identified in compared assemblies", after, StringComparison.Ordinal);
+        Assert.Contains("- Ns.Cases, First", after, StringComparison.Ordinal);
+        Assert.Contains("0 changed types identified in compared assemblies", before, StringComparison.Ordinal);
+        Assert.Contains("0 changed types identified in compared assemblies", stale, StringComparison.Ordinal);
+        Assert.DoesNotContain("Compiled code did not change", stale, StringComparison.Ordinal);
+        Assert.Equal(new[] { "First1", "First2", "FirstExtra" },
+            File.ReadAllLines(fixture.MarkerPath("First")).Order(StringComparer.Ordinal));
+        Assert.Contains("Changed since load: 1 members in 1 files", after, StringComparison.Ordinal);
+        Assert.DoesNotContain("whole project", after, StringComparison.Ordinal);
+        Assert.DoesNotContain("First.dll", after, StringComparison.Ordinal);
+        Assert.Contains("Changed since load: 0 members in 0 files", restored, StringComparison.Ordinal);
+        Assert.Empty(RunLines(restored));
+    }
+
+    [Fact]
+    public async Task Run_builds_changed_sources_instead_of_passing_on_stale_binaries_and_continues_after_test_failure()
+    {
+        await using var fixture = new TestImpactRunFixture();
+        await fixture.LoadAsync();
+        await fixture.ChangeAsync("First", "Seen(\"NewSource\"); Assert.Fail(\"New source was executed\");");
+        await fixture.ChangeAsync("Second", "GC.KeepAlive(value); Assert.True(true);");
+        var stale = await fixture.Tools.RunTestByFilter(fixture.ProjectPath("First"), "FullyQualifiedName~Ns.Cases.First");
+        Assert.Contains("## Filtered tests passed", stale, StringComparison.Ordinal);
+        Assert.DoesNotContain("New source was executed", stale, StringComparison.Ordinal);
+        Assert.Equal(new[] { "First1", "First2", "FirstExtra" },
+            File.ReadAllLines(fixture.MarkerPath("First")).Order(StringComparer.Ordinal));
+        File.Delete(fixture.MarkerPath("First"));
+
+        var response = await fixture.Tools.EstimateAffectedTests(run: true);
+
+        output.WriteLine(response);
+        AssertRun(response, "failed");
+        Assert.Contains("Failed: 2", response, StringComparison.Ordinal);
+        Assert.Equal(2, File.ReadAllLines(fixture.MarkerPath("First")).Count(line => line == "NewSource"));
+        Assert.Contains("Second.csproj", response, StringComparison.Ordinal);
+        Assert.Contains("passed", response, StringComparison.Ordinal);
+        Assert.Equal(3, File.ReadAllLines(fixture.MarkerPath("Second")).Length);
+    }
+
+    [Fact]
+    public async Task Build_failure_does_not_start_old_tests_and_the_next_project_runs()
+    {
+        await using var fixture = new TestImpactRunFixture();
+        await fixture.LoadAsync();
+        await fixture.ChangeAsync("First", "MissingType.Run();");
+        await fixture.ChangeAsync("Second", "GC.KeepAlive(value); Assert.True(true);");
+
+        var response = await fixture.Tools.EstimateAffectedTests(run: true);
+
+        AssertRun(response, "build failed");
+        Assert.Contains("CS0103", response, StringComparison.Ordinal);
+        Assert.DoesNotContain("reportCursor", response, StringComparison.Ordinal);
+        Assert.False(File.Exists(fixture.MarkerPath("First")));
+        Assert.Equal(3, File.ReadAllLines(fixture.MarkerPath("Second")).Length);
+        Assert.Contains("passed", response, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Reload_between_projects_keeps_build_and_test_on_the_configuration_used_for_the_estimate()
+    {
+        await using var fixture = new TestImpactRunFixture();
+        await fixture.LoadAsync();
+        await fixture.ChangeAsync("First", "GC.KeepAlive(value); Assert.True(true);");
+        await fixture.ChangeAsync("Second", "GC.KeepAlive(value); Assert.True(true);");
+        var baselinePublishedAt = fixture.Manager.Baseline.GetSnapshot().PublishedAtUtc;
+        var commands = new List<string>();
+        var tools = new TestTools(fixture.Manager, NullLogger<TestTools>.Instance, RunAndReloadAsync);
+
+        var response = await tools.EstimateAffectedTests(run: true, maxParallelProjects: 1);
+
+        output.WriteLine(response);
+        Assert.Equal("Debug", fixture.Manager.LoadedConfiguration);
+        Assert.Equal(baselinePublishedAt, fixture.Manager.Baseline.GetSnapshot().PublishedAtUtc);
+        Assert.Equal(4, commands.Count);
+        Assert.Contains("-p:Configuration=\"Release\"", commands[0], StringComparison.Ordinal);
+        Assert.Contains("-c \"Release\"", commands[1], StringComparison.Ordinal);
+        Assert.Contains("-p:Configuration=\"Release\"", commands[2], StringComparison.Ordinal);
+        Assert.Contains("-c \"Release\"", commands[3], StringComparison.Ordinal);
+        Assert.DoesNotContain("-p:NuGetAudit=false", commands[2], StringComparison.Ordinal);
+        AssertRun(response, "passed");
+        Assert.Equal(3, File.ReadAllLines(fixture.MarkerPath("First")).Length);
+        Assert.Equal(3, File.ReadAllLines(fixture.MarkerPath("Second")).Length);
+
+        async Task<DotNetCliRunner.RunResult> RunAndReloadAsync(
+            string arguments,
+            string? workingDirectory,
+            TimeSpan? timeout,
+            int? previousExit,
+            CancellationToken cancellationToken)
+        {
+            commands.Add(arguments);
+            var result = await DotNetCliRunner.RunWithMetadataAsync(arguments, workingDirectory, cancellationToken, timeout);
+            if (commands.Count == 1)
+            {
+                Assert.Equal(0, result.ExitCode);
+                await fixture.Manager.LoadAsync(fixture.SolutionPath, cancellationToken, configuration: "Debug",
+                    buildArgs: "-p:NuGetAudit=false");
+            }
+            return result;
+        }
+    }
+
+    [Fact]
+    public async Task Truncated_failure_output_keeps_its_budget_without_suggesting_unsupported_parameters()
+    {
+        await using var fixture = new TestImpactRunFixture();
+        await fixture.LoadAsync();
+        await fixture.ChangeAsync("First",
+            "_output.WriteLine(\"BEGIN-OUTPUT\" + new string('x', 6000) + \"END-OUTPUT\"); Assert.Fail(\"Output failure\");");
+
+        var response = await fixture.Tools.EstimateAffectedTests(run: true);
+
+        AssertRun(response, "failed");
+        Assert.Contains("truncated to 2500 chars", response, StringComparison.Ordinal);
+        Assert.Contains("BEGIN-OUTPUT", response, StringComparison.Ordinal);
+        Assert.Contains("END-OUTPUT", response, StringComparison.Ordinal);
+        Assert.DoesNotContain("includeFullOutput", response, StringComparison.Ordinal);
+        Assert.DoesNotContain("maxOutputChars", response, StringComparison.Ordinal);
+        Assert.DoesNotContain(new string('x', 3000), response, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Whole_project_plan_runs_without_a_filter()
+    {
+        await using var fixture = new TestImpactRunFixture();
+        await fixture.LoadAsync();
+        await fixture.ChangeNonSourceInputAsync("First");
+
+        var response = await fixture.Tools.EstimateAffectedTests(run: true);
+
+        AssertRun(response, "passed");
+        Assert.Contains("whole project", response, StringComparison.Ordinal);
+        Assert.Contains("Total: 4", response, StringComparison.Ordinal);
+        Assert.Equal(4, File.ReadAllLines(fixture.MarkerPath("First")).Length);
+        Assert.False(File.Exists(fixture.MarkerPath("Second")));
+    }
+
+    [Fact]
+    public async Task Timed_out_project_is_not_a_failed_test_and_the_next_project_runs()
+    {
+        await using var fixture = new TestImpactRunFixture();
+        await fixture.LoadAsync();
+        await fixture.ChangeAsync("First", fixture.HangingBody());
+        await fixture.ChangeAsync("Second", "GC.KeepAlive(value); Assert.True(true);");
+        int[] ids = [];
+        try
+        {
+            var operation = fixture.Tools.EstimateAffectedTests(run: true, timeoutSeconds: 20);
+            ids = await fixture.WaitForProcessesAsync(operation);
+            var response = await operation;
+
+            output.WriteLine(response);
+            AssertRun(response, "timed out");
+            Assert.DoesNotContain("Outcome: failed", response, StringComparison.Ordinal);
+            Assert.Equal(3, File.ReadAllLines(fixture.MarkerPath("Second")).Length);
+            await TestImpactRunFixture.AssertStoppedAsync(ids);
+        }
+        finally
+        {
+            TestImpactRunFixture.Kill(ids);
+        }
+    }
+
+    [Fact]
+    public async Task Empty_run_has_no_process_reports_and_keeps_the_warning_and_limitations()
+    {
+        await using var fixture = new TestImpactRunFixture();
+        await fixture.LoadAsync();
+
+        var response = await fixture.Tools.EstimateAffectedTests(run: true);
+
+        AssertRun(response, "No test processes selected");
+        Assert.False(File.Exists(fixture.MarkerPath("First")));
+        Assert.False(File.Exists(fixture.MarkerPath("Second")));
+    }
+
+    internal static void AssertRun(string response, string outcome)
+    {
+        Assert.StartsWith(EstimateAffectedTestsTests.Warning + Environment.NewLine, response, StringComparison.Ordinal);
+        Assert.Contains(outcome, response, StringComparison.Ordinal);
+        Assert.Contains("State: selected depth all.", response, StringComparison.Ordinal);
+        Assert.True(response.LastIndexOf("Not covered", StringComparison.Ordinal) > response.LastIndexOf(outcome, StringComparison.Ordinal),
+            "Run outcomes must precede Not covered: " + response);
+    }
+
+    private static string[] RunLines(string response) =>
+        response.Split(Environment.NewLine).Where(line => line.StartsWith("Run: ", StringComparison.Ordinal)).ToArray();
+}

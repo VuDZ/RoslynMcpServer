@@ -14,6 +14,9 @@ internal sealed class WorkspaceInputSession
 
     public FrozenSet<string> LoadedProjectPaths { get; }
 
+    /// <summary>Directory of the loaded solution/project file, fixed for this callback generation.</summary>
+    public string? WorkspaceDirectory { get; }
+
     /// <summary>Evaluated input map for <see cref="Generation"/>. Null until the loaded graph is published.</summary>
     public WorkspaceInputMap? InputMap { get; private set; }
 
@@ -74,8 +77,13 @@ internal sealed class WorkspaceInputSession
         }
     }
 
-    public WorkspaceInputSession(IEnumerable<string?> projectFilePaths)
+    public WorkspaceInputSession(
+        IEnumerable<string?> projectFilePaths,
+        Action? onObservationGap = null,
+        string? workspaceDirectory = null)
     {
+        _onObservationGap = onObservationGap;
+        WorkspaceDirectory = InputPathCanon.TryCanonicalize(workspaceDirectory);
         var paths = new HashSet<string>(OperatingSystem.IsWindows()
             ? StringComparer.OrdinalIgnoreCase
             : StringComparer.Ordinal);
@@ -136,11 +144,7 @@ internal sealed class WorkspaceInputSession
         {
             InputMap = map;
             MembershipRevision++;
-            _gaps.RemoveAll(gap =>
-                gap.Origin == GapOrigin.Runtime
-                && (string.Equals(gap.Reason, InputCoverageReason.DirectoryRenameInsideMembership, StringComparison.Ordinal)
-                    || IsExistingDirectoryMissing(gap)));
-            ReplaceMapGaps(map);
+            ReplaceMapGaps(map, clearResolvedMembership: true);
             Touch();
         });
     }
@@ -224,6 +228,7 @@ internal sealed class WorkspaceInputSession
             }
 
             RememberGap(reason, scope, GapOrigin.Runtime);
+            _onObservationGap?.Invoke();
             Touch();
         }
     }
@@ -254,7 +259,7 @@ internal sealed class WorkspaceInputSession
         }
     }
 
-    public void NoteDirectoryRename(string? oldPath, string? newPath, bool affectsMembership)
+    public void NoteDirectoryRename(string? oldPath, string? newPath, bool affectsMembership, bool confirmedDirectory = true)
     {
         lock (_gate)
         {
@@ -265,6 +270,12 @@ internal sealed class WorkspaceInputSession
 
             RememberPath(_directoryRenamePaths, oldPath);
             RememberPath(_directoryRenamePaths, newPath);
+            // Admission and gap propagation share closure: a retired watcher cannot invalidate the next baseline.
+            // Direct rename_project calls use this path too. See docs/rapid-tia/epoch-1-project-level/evidence/task-03-review-round-2.md.
+            if (confirmedDirectory)
+            {
+                _onObservationGap?.Invoke();
+            }
             if (affectsMembership)
             {
                 var scope = DirectoryRenameScope(oldPath, newPath);
@@ -590,9 +601,20 @@ internal sealed class WorkspaceInputSession
         }
     }
 
-    private void ReplaceMapGaps(WorkspaceInputMap map)
+    private void ReplaceMapGaps(WorkspaceInputMap map, bool clearResolvedMembership = false)
     {
-        _gaps.RemoveAll(static gap => gap.Origin == GapOrigin.Map);
+        _gaps.RemoveAll(gap =>
+        {
+            var remove = gap.Origin == GapOrigin.Map || clearResolvedMembership
+                && (string.Equals(gap.Reason, InputCoverageReason.DirectoryRenameInsideMembership, StringComparison.Ordinal)
+                    || IsExistingDirectoryMissing(gap));
+            if (remove)
+            {
+                _gapIndex.Remove(gap);
+            }
+
+            return remove;
+        });
         // The evaluated map does not name a smaller scope for these reasons.
         foreach (var reason in map.UnknownReasons)
         {
@@ -616,15 +638,11 @@ internal sealed class WorkspaceInputSession
     private void RememberGap(string reason, InputCoverageScope scope, GapOrigin origin)
     {
         ObservationCoverage = InputCoverage.Unknown;
-        if (_gaps.Exists(existing =>
-                existing.Origin == origin
-                && string.Equals(existing.Reason, reason, StringComparison.Ordinal)
-                && SameScope(existing.Scope, scope)))
+        var gap = new TrackedGap(reason, scope, origin);
+        if (_gapIndex.Add(gap))
         {
-            return;
+            _gaps.Add(gap);
         }
-
-        _gaps.Add(new TrackedGap(reason, scope, origin));
     }
 
     private void RememberNotices(IReadOnlyList<InputPathNotice> notices)
@@ -633,20 +651,19 @@ internal sealed class WorkspaceInputSession
         var outputPaths = new HashSet<string>(InputPathCanon.Comparer);
         foreach (var notice in notices)
         {
-            var index = _notices.FindIndex(existing =>
-                InputPathCanon.Comparer.Equals(existing.CanonicalPath, notice.CanonicalPath)
-                && existing.Role == notice.Role
-                && existing.ProjectId == notice.ProjectId);
-            if (index >= 0)
+            var state = PathStateFor(notice.CanonicalPath);
+            var indices = state.NoticeIndices ??= new();
+            var key = (notice.Role, notice.ProjectId);
+            if (indices.TryGetValue(key, out var index))
             {
                 _notices[index] = notice;
             }
             else
             {
+                indices.Add(key, _notices.Count);
                 _notices.Add(notice);
             }
 
-            var state = PathStateFor(notice.CanonicalPath);
             if (notice.CountsAsInputRevision)
             {
                 if (notice.ProjectId is not null)
@@ -780,15 +797,11 @@ internal sealed class WorkspaceInputSession
                 }
             }
         }
-        else
+        else if (state?.NoticeIndices is { } indices)
         {
-            foreach (var notice in _notices)
+            foreach (var index in indices.Values)
             {
-                if (!InputPathCanon.Comparer.Equals(notice.CanonicalPath, canonical))
-                {
-                    continue;
-                }
-
+                var notice = _notices[index];
                 if (notice.ProjectId is not null && !owners.Contains(notice.ProjectId))
                 {
                     owners.Add(notice.ProjectId);
@@ -923,6 +936,32 @@ internal sealed class WorkspaceInputSession
         }
     }
 
+    private sealed class TrackedGapComparer : IEqualityComparer<TrackedGap>
+    {
+        public bool Equals(TrackedGap? left, TrackedGap? right) =>
+            ReferenceEquals(left, right) || left is not null && right is not null
+            && left.Origin == right.Origin
+            && string.Equals(left.Reason, right.Reason, StringComparison.Ordinal)
+            && SameScope(left.Scope, right.Scope);
+
+        public int GetHashCode(TrackedGap gap)
+        {
+            var hash = new HashCode();
+            hash.Add(gap.Origin);
+            hash.Add(gap.Reason, StringComparer.Ordinal);
+            hash.Add(gap.Scope.CoversWholeGraph);
+            if (!gap.Scope.CoversWholeGraph)
+            {
+                foreach (var path in gap.Scope.Paths)
+                {
+                    hash.Add(path, InputPathCanon.Comparer);
+                }
+            }
+
+            return hash.ToHashCode();
+        }
+    }
+
     private sealed class PathState
     {
         public int InputRevision { get; set; }
@@ -946,11 +985,15 @@ internal sealed class WorkspaceInputSession
         public bool NotifiedForCurrentPayload { get; set; }
 
         public byte[]? CommittedPayload { get; set; }
+
+        public OrderedDictionary<(InputRole Role, ProjectId? ProjectId), int>? NoticeIndices { get; set; }
     }
 
     private readonly object _gate = new();
+    private readonly Action? _onObservationGap;
     private bool _closed;
     private readonly List<TrackedGap> _gaps = new();
+    private readonly HashSet<TrackedGap> _gapIndex = new(new TrackedGapComparer());
     private readonly List<InputPathNotice> _notices = new();
     private readonly List<string> _compositionPaths = new();
     private readonly List<string> _directoryRenamePaths = new();

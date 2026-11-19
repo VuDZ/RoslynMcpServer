@@ -1,0 +1,188 @@
+using System.Collections.Immutable;
+using System.Diagnostics;
+using System.Reflection;
+using System.Runtime.CompilerServices;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
+using RoslynMcpServer.Diagnostics;
+using RoslynMcpServer.Services.Analyzers;
+using RoslynMcpServer.Services.Testing;
+using RoslynMcpServer.Services.Testing.Il;
+using RoslynMcpServer.Services.Testing.Il.Models;
+using RoslynMcpServer.Services.Testing.Snapshots;
+using RoslynMcpServer.Services.Testing.Snapshots.Models;
+using RoslynMcpServer.Services.Workspace;
+
+internal static class SnapshotMeasurement
+{
+    private static void Main(string[] args)
+    {
+        if (args is ["inventory", var solution, var configuration, var platform, .. var frameworks]
+            && frameworks.Length <= 1)
+        {
+            PrintInventoryAsync(solution, configuration, platform, frameworks.SingleOrDefault()).GetAwaiter().GetResult();
+            return;
+        }
+
+        if (args is ["memory", .. var paths] && paths.Length > 0)
+        {
+            PrintMeasurements(paths);
+            return;
+        }
+
+        throw new ArgumentException(
+            "Usage: inventory <solution> <configuration> <platform> [framework] | memory <assembly paths...>");
+    }
+
+    private static async Task PrintInventoryAsync(string solutionPath, string configuration, string platform, string? framework)
+    {
+        MsBuildBootstrapper.Register();
+        var provenance = new AnalyzerProvenanceCaptureService(
+            NullLogger<AnalyzerProvenanceCaptureService>.Instance,
+            Options.Create(new AnalyzerProvenanceCaptureOptions()),
+            TimeProvider.System);
+        var manager = new SolutionManager(NullLogger<SolutionManager>.Instance, provenance)
+        {
+            SearchPrewarmEnabled = false,
+        };
+        var solution = await manager.LoadAsync(
+            solutionPath,
+            CancellationToken.None,
+            configuration,
+            platform,
+            framework).ConfigureAwait(false);
+        try
+        {
+            var classes = await VstestTestInventory.BuildAsync(solution, CancellationToken.None).ConfigureAwait(false);
+            foreach (var project in solution.Projects)
+            {
+                var projectClasses = classes.Where(testClass => testClass.ProjectId == project.Id).ToArray();
+                var unresolved = projectClasses.Count(testClass => testClass.RuntimeName is null);
+                Console.WriteLine($"{project.Name}\t{projectClasses.Length}\t{unresolved}\t{project.OutputFilePath}");
+            }
+        }
+        finally
+        {
+            await manager.ClearWorkspaceAsync().ConfigureAwait(false);
+        }
+    }
+
+    private static void PrintMeasurements(string[] sources)
+    {
+        var scratch = Directory.CreateTempSubdirectory("roslyn-mcp-task06-snapshots-");
+        try
+        {
+            var paths = sources.Select(Path.GetFullPath).Distinct(IlPaths.Comparer).ToArray();
+            var names = paths.Select(path => AssemblyName.GetAssemblyName(path).Name!).ToImmutableHashSet(StringComparer.OrdinalIgnoreCase);
+            var copies = paths.Select((path, index) => CopyOutput(scratch.FullName, path, index)).ToImmutableArray();
+            var inventory = new AssemblySnapshotInventory(copies, names);
+            IlAssemblyInput[] inputs = [.. copies.Select(path => new IlAssemblyInput(path, IsTestProject: false))];
+            var workspacePath = Path.Combine(scratch.FullName, "Measure.sln");
+            _ = Measure(workspacePath, inventory, inputs, reportFailures: true);
+            for (var sample = 1; sample <= 3; sample++)
+            {
+                var result = Measure(workspacePath, inventory, inputs, reportFailures: false);
+                Console.WriteLine(
+                    $"sample={sample} assemblies={inputs.Length} unreadable={result.Unreadable} types={result.Types} "
+                    + $"first_read_ms={result.FirstReadMilliseconds} "
+                    + $"one_snapshot_bytes={result.OneSnapshotBytes} two_snapshots_bytes={result.TwoSnapshotsBytes}");
+            }
+        }
+        finally
+        {
+            scratch.Delete(recursive: true);
+        }
+    }
+
+    private static string CopyOutput(string root, string source, int index)
+    {
+        var directory = Directory.CreateDirectory(Path.Combine(root, $"output-{index}"));
+        var path = Path.Combine(directory.FullName, Path.GetFileName(source));
+        File.Copy(source, path);
+        File.SetAttributes(path, FileAttributes.Normal);
+        return path;
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static (int Types, int Unreadable, long FirstReadMilliseconds, long OneSnapshotBytes, long TwoSnapshotsBytes) Measure(
+        string workspacePath,
+        AssemblySnapshotInventory inventory,
+        IlAssemblyInput[] inputs,
+        bool reportFailures)
+    {
+        var oldTime = DateTime.UtcNow.Date.AddDays(-2);
+        foreach (var path in inventory.OutputPaths)
+        {
+            File.SetLastWriteTimeUtc(path, oldTime);
+        }
+
+        var emptyHeap = GC.GetTotalMemory(forceFullCollection: true);
+        var session = new AssemblySnapshotSession();
+        var elapsed = Stopwatch.StartNew();
+        session.Start(workspacePath, DateTime.UtcNow, inventory, NullLogger.Instance);
+        session.FirstReadTask.GetAwaiter().GetResult();
+        var firstReadMilliseconds = elapsed.ElapsedMilliseconds;
+        var (types, unreadable) = CountEntries(session, inputs.Length, reportFailures);
+        var oneSnapshot = GC.GetTotalMemory(forceFullCollection: true) - emptyHeap;
+
+        foreach (var path in inventory.OutputPaths)
+        {
+            File.SetLastWriteTimeUtc(path, oldTime.AddDays(1));
+        }
+
+        RefreshAll(session, inputs);
+        var twoSnapshots = GC.GetTotalMemory(forceFullCollection: true) - emptyHeap;
+        GC.KeepAlive(session);
+        if (oneSnapshot <= 0 || twoSnapshots <= oneSnapshot)
+        {
+            throw new InvalidOperationException("The retained heap did not grow for both snapshots.");
+        }
+
+        return (types, unreadable, firstReadMilliseconds, oneSnapshot, twoSnapshots);
+    }
+
+    private static (int Types, int Unreadable) CountEntries(
+        AssemblySnapshotSession session,
+        int expectedCount,
+        bool reportFailures)
+    {
+        var before = session.PeekBefore() ?? throw new InvalidOperationException("No baseline was read.");
+        if (before.Entries.Length != expectedCount
+            || before.Entries.Any(entry => entry.State is not (AssemblySnapshotState.Read or AssemblySnapshotState.Unreadable)))
+        {
+            throw new InvalidOperationException("The baseline did not attempt to read every assembly.");
+        }
+
+        if (reportFailures)
+        {
+            foreach (var entry in before.Entries.Where(entry => entry.State == AssemblySnapshotState.Unreadable))
+            {
+                Console.Error.WriteLine($"Unreadable assembly {Path.GetFileName(entry.Path)}: {entry.Reason}");
+            }
+        }
+
+        return (
+            before.Entries.Sum(entry => entry.Fingerprints?.Types.Count ?? 0),
+            before.Entries.Count(entry => entry.State == AssemblySnapshotState.Unreadable));
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void RefreshAll(AssemblySnapshotSession session, IlAssemblyInput[] inputs)
+    {
+        var pair = session.GetPairAsync(inputs, CancellationToken.None).GetAwaiter().GetResult()
+            ?? throw new InvalidOperationException("No snapshot pair was read.");
+        if (pair.Current.Entries.Length != inputs.Length)
+        {
+            throw new InvalidOperationException("The current snapshot did not reread every assembly.");
+        }
+
+        foreach (var entry in pair.Current.Entries)
+        {
+            var before = pair.Before.Find(entry.Path);
+            if (before is null || entry.State != before.State || ReferenceEquals(entry, before))
+            {
+                throw new InvalidOperationException("The current snapshot did not reproduce all assembly outcomes.");
+            }
+        }
+    }
+}

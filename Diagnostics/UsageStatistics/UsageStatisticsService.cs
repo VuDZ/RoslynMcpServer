@@ -16,6 +16,8 @@ namespace RoslynMcpServer.Diagnostics.UsageStatistics;
 /// <summary>Best-effort local usage events; producers never perform file or process I/O.</summary>
 public sealed class UsageStatisticsService : IHostedService, IDisposable
 {
+    internal Task WritesCompleted => _writerTask;
+
     internal string? WorkspaceKey
     {
         get

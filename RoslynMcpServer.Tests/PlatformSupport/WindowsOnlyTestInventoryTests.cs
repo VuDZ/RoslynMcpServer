@@ -36,6 +36,8 @@ public sealed class WindowsOnlyTestInventoryTests
         "HarnessSessionIdTests.Windows_reads_this_process_image_and_command_line",
         // The 64-bit host under Program Files exists only on Windows.
         "DotNetHostResolverTests.ResolveDotNetExecutable_on_64bit_windows_prefers_program_files_dotnet",
+        // Drive letters, UNC roots, and case-insensitive path semantics are specific to Windows.
+        "WorkspaceDiskPathFilterTests.Workspace_filter_respects_windows_roots_without_filesystem_access",
         // The regression creates a real NTFS junction with the Windows mklink command.
         "WorkspaceDiskWatcherStarterTests.Descriptor_across_a_junction_keeps_its_watcher_and_delivers_changes",
         // A real WPF build needs the Windows Desktop SDK.

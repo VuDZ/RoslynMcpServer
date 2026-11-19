@@ -1,0 +1,143 @@
+"""Repeat the nine Jellyfin edits with matched build-and-test workflows."""
+
+import argparse
+import json
+from pathlib import Path
+import re
+import runpy
+import subprocess
+import time
+import xml.etree.ElementTree as ET
+
+
+def read_plan(response, solution):
+    pattern = r'^(Run|No tests): `([^`]+)`(?: with filter `(.+)`| whole project\.|\. .+)$'
+    projects = {}
+    for line in response.splitlines():
+        match = re.fullmatch(pattern, line)
+        if not match:
+            continue
+        project = solution_file(solution, match[2])
+        if project.suffix.lower() != '.csproj' or project in projects:
+            raise ValueError(f'Invalid or duplicate test project: {project}')
+        projects[project] = (match[1] == 'Run', match[3])
+    header = re.search(r'Changed since load: \d+ members in 1 files\..* Run plan: (\d+) projects\.', response)
+    if not header or not projects or int(header[1]) != len(projects):
+        raise ValueError('Invalid or incomplete test plan')
+    return projects
+
+
+def run_tests(solution, results, projects):
+    totals = dict(processes=0, executed=0, passed=0, failed=0, skipped=0, errors=0)
+    for index, (project, (run, test_filter)) in enumerate(projects.items(), 1):
+        if not run:
+            continue
+        totals['processes'] += 1
+        trx = results / f'test-{index:02d}.trx'
+        args = ['dotnet', 'test', str(project), '-c', 'Release', '--no-build', '--no-restore',
+                '--results-directory', str(results), '--logger', f'trx;LogFileName={trx.name}']
+        if test_filter:
+            args += ['--filter', test_filter]
+        started = time.perf_counter()
+        with trx.with_suffix('.log').open('wb') as log:
+            try:
+                code = subprocess.run(args, cwd=solution.parent, stdout=log,
+                                      stderr=subprocess.STDOUT, timeout=300).returncode
+            except subprocess.TimeoutExpired:
+                code = -1
+        if trx.is_file():
+            counters = ET.parse(trx).find('.//{*}Counters').attrib
+            executed, passed, failed = (int(counters[key]) for key in ('executed', 'passed', 'failed'))
+            totals['executed'] += executed
+            totals['passed'] += passed
+            totals['failed'] += failed
+            # This adapter can emit NotExecuted results while its notExecuted counter is zero.
+            totals['skipped'] += int(counters['total']) - executed
+            totals['errors'] += int(executed == 0 or (code != 0 and failed == 0))
+        else:
+            totals['errors'] += 1
+        print(f'{results.parent.name}/{results.name} test {index}/{len(projects)} '
+              f'{time.perf_counter() - started:.1f}s exit={code}', flush=True)
+    if not totals['processes']:
+        raise RuntimeError('The measured plan did not launch any test process')
+    return totals
+
+
+def measure(dll, solution, results, case, external, expected, build, mode):
+    results.mkdir(parents=True)
+    source = solution_file(solution, case['file'])
+    original = source.read_bytes()
+    changed = edit_body(original, case['signature'])
+    cli(solution, results, 'build-baseline', build)
+    with server(dll, solution, results) as (call, log_dir):
+        loaded, _ = call('load_workspace', workspacePath=str(solution), configuration='Release', briefOutput=True)
+        if classify_load(loaded, False) != 'success':
+            raise RuntimeError(f'Workspace did not load. See {results}')
+        baseline = wait_for_baseline(log_dir)
+        if baseline['snapshotAssemblies'] != 41:
+            raise RuntimeError('This measurement requires the full Jellyfin solution')
+        try:
+            start = time.perf_counter()
+            if external:
+                source.write_bytes(changed)
+            else:
+                answer, _ = call('update_file_content', filePath=str(source), content=changed.decode('utf-8-sig'))
+                if 'Successfully wrote' not in answer:
+                    raise RuntimeError(f'MCP save failed. See {results}')
+            if source.read_bytes() != changed:
+                raise RuntimeError(f'Saved source differs from the edit. See {results}')
+            saved = time.perf_counter()
+            mtime = source.stat().st_mtime_ns
+            cli(solution, results, 'build-edit', build)
+            built = time.perf_counter()
+            if mode == 'tia':
+                response, _ = call('estimate_affected_tests', run=False, depth='all')
+                projects = read_plan(response, solution)
+                if projects.keys() != expected.keys() or 'State: selected depth all.' not in response:
+                    raise RuntimeError(f'Live plan differs from the recorded level 0. See {results}')
+                if source.stat().st_mtime_ns != mtime:
+                    raise RuntimeError(f'Estimation changed the source timestamp. See {results}')
+            else:
+                projects = {project: (True, None) for project in expected}
+            estimated = time.perf_counter()
+            totals = run_tests(solution, results, projects)
+            end = time.perf_counter()
+            ms = lambda interval: round(interval * 1000, 1)
+            return dict(mode=mode, projects=len(projects), saveMs=ms(saved-start), buildMs=ms(built-saved),
+                        estimateMs=ms(estimated-built) if mode == 'tia' else 0,
+                        testsMs=ms(end-estimated), cycleMs=ms(end-start), **totals)
+        finally:
+            source.write_bytes(original)
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    for name in ('server', 'solution', 'external_cases', 'mcp_cases', 'previous_results', 'results'):
+        parser.add_argument(name, type=Path)
+    args = parser.parse_args()
+    dll, solution, previous, results = (path.resolve() for path in (
+        args.server, args.solution, args.previous_results, args.results))
+    build = ['build', str(solution), '-c', 'Release', '--no-restore', '-m:1']
+    index = 0
+    for group, manifest in [('external', args.external_cases), ('mcp', args.mcp_cases)]:
+        cases = json.loads(manifest.read_text(encoding='utf-8-sig'))
+        for number, case in enumerate(cases, 1):
+            index += 1
+            prior = previous / group / f'{number:02d}' / 'estimate_affected_tests.txt'
+            expected = read_plan(prior.read_text(encoding='utf-8'), solution)
+            order = ('level0', 'tia') if index % 2 else ('tia', 'level0')
+            for mode in order:
+                output = results / f'{index:02d}' / mode
+                row = measure(dll, solution, output, case, group == 'external', expected, build, mode)
+                with (results / 'cycles.jsonl').open('a', encoding='utf-8') as log:
+                    log.write(json.dumps(dict(case=index, save=group, **row)) + '\n')
+                print(f'{index:02d}/{mode} {row["cycleMs"] / 1000:.1f}s '
+                      f'passed={row["passed"]} failed={row["failed"]} errors={row["errors"]}', flush=True)
+    cli(solution, results, 'build-restored', build)
+
+
+if __name__ == '__main__':
+    helpers = runpy.run_path(Path(__file__).with_name('measure-task06.py'))
+    server, wait_for_baseline, classify_load, cli, edit_body, solution_file = (
+        helpers[name] for name in ('server', 'wait_for_baseline', 'classify_load', 'cli', 'edit_body', 'solution_file'))
+    main()

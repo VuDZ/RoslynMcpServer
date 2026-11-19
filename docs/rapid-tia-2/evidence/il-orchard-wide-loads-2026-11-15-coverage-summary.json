@@ -1,0 +1,203 @@
+{
+  "kind": "il-coverage-summary",
+  "probeCommit": "525551856d3d5d3d0bbb0fba6af130a42ce8c781",
+  "input": {
+    "filesSeen": 6462,
+    "distinctFiles": 748,
+    "managedAssemblies": 734,
+    "assemblyFilesWithSources": 223,
+    "assemblyNames": 223,
+    "maxFlavors": 1,
+    "unreadablePdbAssemblies": 0
+  },
+  "graph": {
+    "testAssemblies": 4,
+    "testClasses": 177,
+    "productionFiles": 6282
+  },
+  "coverage": {
+    "reports": 1,
+    "productionFilesInReports": 4887,
+    "otherFilesInReports": 1186
+  },
+  "filesWithLevelZero": {
+    "coverage": {
+      "files": 4525,
+      "covered": 1384,
+      "notCovered": 2154,
+      "notInReport": 987
+    },
+    "layers": {
+      "references": {
+        "emptyAnswer": {
+          "files": 3204,
+          "covered": 612,
+          "notCovered": 2008,
+          "notInReport": 584
+        },
+        "nonEmptyAnswer": {
+          "files": 1321,
+          "covered": 772,
+          "notCovered": 146,
+          "notInReport": 403
+        },
+        "missedShareOfCovered": 0.4422,
+        "coveredShareOfEmpty": 0.2336
+      },
+      "discovery": {
+        "emptyAnswer": {
+          "files": 3175,
+          "covered": 597,
+          "notCovered": 1995,
+          "notInReport": 583
+        },
+        "nonEmptyAnswer": {
+          "files": 1350,
+          "covered": 787,
+          "notCovered": 159,
+          "notInReport": 404
+        },
+        "missedShareOfCovered": 0.4314,
+        "coveredShareOfEmpty": 0.2303
+      },
+      "wholeAssembly": {
+        "emptyAnswer": {
+          "files": 3112,
+          "covered": 575,
+          "notCovered": 1964,
+          "notInReport": 573
+        },
+        "nonEmptyAnswer": {
+          "files": 1413,
+          "covered": 809,
+          "notCovered": 190,
+          "notInReport": 414
+        },
+        "missedShareOfCovered": 0.4155,
+        "coveredShareOfEmpty": 0.2265
+      },
+      "referencesWithLoads": {
+        "emptyAnswer": {
+          "files": 0,
+          "covered": 0,
+          "notCovered": 0,
+          "notInReport": 0
+        },
+        "nonEmptyAnswer": {
+          "files": 4525,
+          "covered": 1384,
+          "notCovered": 2154,
+          "notInReport": 987
+        },
+        "missedShareOfCovered": 0,
+        "coveredShareOfEmpty": 0
+      },
+      "discoveryWithLoads": {
+        "emptyAnswer": {
+          "files": 0,
+          "covered": 0,
+          "notCovered": 0,
+          "notInReport": 0
+        },
+        "nonEmptyAnswer": {
+          "files": 4525,
+          "covered": 1384,
+          "notCovered": 2154,
+          "notInReport": 987
+        },
+        "missedShareOfCovered": 0,
+        "coveredShareOfEmpty": 0
+      }
+    }
+  },
+  "filesInAssembliesWithoutTests": {
+    "coverage": {
+      "files": 1757,
+      "covered": 188,
+      "notCovered": 1161,
+      "notInReport": 408
+    },
+    "layers": {
+      "references": {
+        "emptyAnswer": {
+          "files": 1757,
+          "covered": 188,
+          "notCovered": 1161,
+          "notInReport": 408
+        },
+        "nonEmptyAnswer": {
+          "files": 0,
+          "covered": 0,
+          "notCovered": 0,
+          "notInReport": 0
+        },
+        "missedShareOfCovered": 1,
+        "coveredShareOfEmpty": 0.1394
+      },
+      "discovery": {
+        "emptyAnswer": {
+          "files": 1757,
+          "covered": 188,
+          "notCovered": 1161,
+          "notInReport": 408
+        },
+        "nonEmptyAnswer": {
+          "files": 0,
+          "covered": 0,
+          "notCovered": 0,
+          "notInReport": 0
+        },
+        "missedShareOfCovered": 1,
+        "coveredShareOfEmpty": 0.1394
+      },
+      "wholeAssembly": {
+        "emptyAnswer": {
+          "files": 1757,
+          "covered": 188,
+          "notCovered": 1161,
+          "notInReport": 408
+        },
+        "nonEmptyAnswer": {
+          "files": 0,
+          "covered": 0,
+          "notCovered": 0,
+          "notInReport": 0
+        },
+        "missedShareOfCovered": 1,
+        "coveredShareOfEmpty": 0.1394
+      },
+      "referencesWithLoads": {
+        "emptyAnswer": {
+          "files": 115,
+          "covered": 0,
+          "notCovered": 0,
+          "notInReport": 115
+        },
+        "nonEmptyAnswer": {
+          "files": 1642,
+          "covered": 188,
+          "notCovered": 1161,
+          "notInReport": 293
+        },
+        "missedShareOfCovered": 0,
+        "coveredShareOfEmpty": 0
+      },
+      "discoveryWithLoads": {
+        "emptyAnswer": {
+          "files": 115,
+          "covered": 0,
+          "notCovered": 0,
+          "notInReport": 115
+        },
+        "nonEmptyAnswer": {
+          "files": 1642,
+          "covered": 188,
+          "notCovered": 1161,
+          "notInReport": 293
+        },
+        "missedShareOfCovered": 0,
+        "coveredShareOfEmpty": 0
+      }
+    }
+  }
+}

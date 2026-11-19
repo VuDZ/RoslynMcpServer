@@ -1,0 +1,1342 @@
+{
+  "kind": "impact-summary",
+  "probeCommit": "9ab3ee182916d4f5bc1a5559d1118dd2927a5513",
+  "machine": {
+    "os": "Ubuntu 26.04.1 LTS",
+    "runtime": ".NET 10.0.14",
+    "processors": 2,
+    "memoryMb": 3843
+  },
+  "limits": {
+    "depth": 30,
+    "members": 20000,
+    "perMemberSeconds": 60
+  },
+  "seed": 7,
+  "testProjectFilters": 0,
+  "solution": {
+    "projects": 5,
+    "csharpProjects": 5,
+    "testProjects": 1,
+    "testClasses": 167,
+    "testUnits": 1420,
+    "unmappedTypes": 0,
+    "rootLimitations": 3,
+    "loadFailures": 0,
+    "loadWarnings": 0
+  },
+  "phases": [
+    {
+      "name": "load",
+      "ms": 7032,
+      "memory": {
+        "managedMb": 6,
+        "workingSetMb": 181,
+        "peakWorkingSetMb": 181
+      }
+    },
+    {
+      "name": "prewarm",
+      "ms": 2109,
+      "memory": {
+        "managedMb": 58,
+        "workingSetMb": 241,
+        "peakWorkingSetMb": 241
+      }
+    },
+    {
+      "name": "test-roots",
+      "ms": 3989,
+      "memory": {
+        "managedMb": 64,
+        "workingSetMb": 278,
+        "peakWorkingSetMb": 284
+      }
+    },
+    {
+      "name": "sample",
+      "ms": 1929,
+      "memory": {
+        "managedMb": 69,
+        "workingSetMb": 296,
+        "peakWorkingSetMb": 296
+      }
+    },
+    {
+      "name": "load-quality",
+      "ms": 397,
+      "memory": {
+        "managedMb": 158,
+        "workingSetMb": 438,
+        "peakWorkingSetMb": 438
+      }
+    }
+  ],
+  "quality": {
+    "projects": 5,
+    "noFramework": 0,
+    "withDeclarationErrors": 0,
+    "declarationErrors": 0,
+    "topCodes": []
+  },
+  "totals": {
+    "targets": 40,
+    "reverse": 40,
+    "level0": 0,
+    "missing": 0,
+    "emptyReverse": 7,
+    "firstSearchMs": 3450,
+    "searchMs": {
+      "median": 119,
+      "p90": 1627,
+      "max": 9457
+    },
+    "shareOfLevelZero": {
+      "median": 0.026,
+      "p90": 0.151
+    },
+    "peakWorkingSetMb": 438
+  },
+  "targets": [
+    {
+      "index": 1,
+      "source": "sample",
+      "members": 1,
+      "kinds": {
+        "static": 1
+      },
+      "keys": 1,
+      "answer": "reverse",
+      "limit": null,
+      "locateMs": 0,
+      "searchMs": 3450,
+      "visited": 6,
+      "depth": 2,
+      "predicted": {
+        "units": 0,
+        "classes": 0,
+        "projects": 0
+      },
+      "level0": {
+        "units": 1420,
+        "classes": 167,
+        "projects": 1
+      },
+      "share": 0,
+      "memoryAfter": {
+        "managedMb": 77,
+        "workingSetMb": 318,
+        "peakWorkingSetMb": 320
+      }
+    },
+    {
+      "index": 2,
+      "source": "sample",
+      "members": 1,
+      "kinds": {
+        "static": 1
+      },
+      "keys": 1,
+      "answer": "reverse",
+      "limit": null,
+      "locateMs": 0,
+      "searchMs": 491,
+      "visited": 9,
+      "depth": 5,
+      "predicted": {
+        "units": 4,
+        "classes": 1,
+        "projects": 1
+      },
+      "level0": {
+        "units": 1420,
+        "classes": 167,
+        "projects": 1
+      },
+      "share": 0.003,
+      "memoryAfter": {
+        "managedMb": 80,
+        "workingSetMb": 320,
+        "peakWorkingSetMb": 323
+      }
+    },
+    {
+      "index": 3,
+      "source": "sample",
+      "members": 1,
+      "kinds": {
+        "ordinary": 1
+      },
+      "keys": 1,
+      "answer": "reverse",
+      "limit": null,
+      "locateMs": 0,
+      "searchMs": 609,
+      "visited": 39,
+      "depth": 5,
+      "predicted": {
+        "units": 32,
+        "classes": 9,
+        "projects": 1
+      },
+      "level0": {
+        "units": 1420,
+        "classes": 167,
+        "projects": 1
+      },
+      "share": 0.023,
+      "memoryAfter": {
+        "managedMb": 86,
+        "workingSetMb": 328,
+        "peakWorkingSetMb": 328
+      }
+    },
+    {
+      "index": 4,
+      "source": "sample",
+      "members": 1,
+      "kinds": {
+        "interface": 1
+      },
+      "keys": 1,
+      "answer": "reverse",
+      "limit": null,
+      "locateMs": 0,
+      "searchMs": 75,
+      "visited": 5,
+      "depth": 2,
+      "predicted": {
+        "units": 3,
+        "classes": 1,
+        "projects": 1
+      },
+      "level0": {
+        "units": 1420,
+        "classes": 167,
+        "projects": 1
+      },
+      "share": 0.002,
+      "memoryAfter": {
+        "managedMb": 86,
+        "workingSetMb": 328,
+        "peakWorkingSetMb": 328
+      }
+    },
+    {
+      "index": 5,
+      "source": "sample",
+      "members": 1,
+      "kinds": {
+        "static": 1
+      },
+      "keys": 1,
+      "answer": "reverse",
+      "limit": null,
+      "locateMs": 0,
+      "searchMs": 9457,
+      "visited": 359,
+      "depth": 11,
+      "predicted": {
+        "units": 215,
+        "classes": 41,
+        "projects": 1
+      },
+      "level0": {
+        "units": 1420,
+        "classes": 167,
+        "projects": 1
+      },
+      "share": 0.151,
+      "memoryAfter": {
+        "managedMb": 117,
+        "workingSetMb": 380,
+        "peakWorkingSetMb": 381
+      }
+    },
+    {
+      "index": 6,
+      "source": "sample",
+      "members": 1,
+      "kinds": {
+        "ordinary": 1
+      },
+      "keys": 1,
+      "answer": "reverse",
+      "limit": null,
+      "locateMs": 0,
+      "searchMs": 3,
+      "visited": 3,
+      "depth": 2,
+      "predicted": {
+        "units": 0,
+        "classes": 0,
+        "projects": 0
+      },
+      "level0": {
+        "units": 1420,
+        "classes": 167,
+        "projects": 1
+      },
+      "share": 0,
+      "memoryAfter": {
+        "managedMb": 117,
+        "workingSetMb": 380,
+        "peakWorkingSetMb": 381
+      }
+    },
+    {
+      "index": 7,
+      "source": "sample",
+      "members": 1,
+      "kinds": {
+        "ordinary": 1
+      },
+      "keys": 1,
+      "answer": "reverse",
+      "limit": null,
+      "locateMs": 0,
+      "searchMs": 2467,
+      "visited": 420,
+      "depth": 13,
+      "predicted": {
+        "units": 238,
+        "classes": 43,
+        "projects": 1
+      },
+      "level0": {
+        "units": 1420,
+        "classes": 167,
+        "projects": 1
+      },
+      "share": 0.168,
+      "memoryAfter": {
+        "managedMb": 122,
+        "workingSetMb": 390,
+        "peakWorkingSetMb": 390
+      }
+    },
+    {
+      "index": 8,
+      "source": "sample",
+      "members": 1,
+      "kinds": {
+        "static": 1
+      },
+      "keys": 1,
+      "answer": "reverse",
+      "limit": null,
+      "locateMs": 0,
+      "searchMs": 127,
+      "visited": 20,
+      "depth": 2,
+      "predicted": {
+        "units": 17,
+        "classes": 1,
+        "projects": 1
+      },
+      "level0": {
+        "units": 1420,
+        "classes": 167,
+        "projects": 1
+      },
+      "share": 0.012,
+      "memoryAfter": {
+        "managedMb": 123,
+        "workingSetMb": 391,
+        "peakWorkingSetMb": 391
+      }
+    },
+    {
+      "index": 9,
+      "source": "sample",
+      "members": 1,
+      "kinds": {
+        "static": 1
+      },
+      "keys": 1,
+      "answer": "reverse",
+      "limit": null,
+      "locateMs": 0,
+      "searchMs": 3,
+      "visited": 2,
+      "depth": 1,
+      "predicted": {
+        "units": 0,
+        "classes": 0,
+        "projects": 0
+      },
+      "level0": {
+        "units": 1420,
+        "classes": 167,
+        "projects": 1
+      },
+      "share": 0,
+      "memoryAfter": {
+        "managedMb": 123,
+        "workingSetMb": 387,
+        "peakWorkingSetMb": 390
+      }
+    },
+    {
+      "index": 10,
+      "source": "sample",
+      "members": 1,
+      "kinds": {
+        "ordinary": 1
+      },
+      "keys": 1,
+      "answer": "reverse",
+      "limit": null,
+      "locateMs": 0,
+      "searchMs": 7,
+      "visited": 9,
+      "depth": 2,
+      "predicted": {
+        "units": 6,
+        "classes": 4,
+        "projects": 1
+      },
+      "level0": {
+        "units": 1420,
+        "classes": 167,
+        "projects": 1
+      },
+      "share": 0.004,
+      "memoryAfter": {
+        "managedMb": 123,
+        "workingSetMb": 387,
+        "peakWorkingSetMb": 390
+      }
+    },
+    {
+      "index": 11,
+      "source": "sample",
+      "members": 1,
+      "kinds": {
+        "static": 1
+      },
+      "keys": 1,
+      "answer": "reverse",
+      "limit": null,
+      "locateMs": 0,
+      "searchMs": 119,
+      "visited": 14,
+      "depth": 3,
+      "predicted": {
+        "units": 8,
+        "classes": 1,
+        "projects": 1
+      },
+      "level0": {
+        "units": 1420,
+        "classes": 167,
+        "projects": 1
+      },
+      "share": 0.006,
+      "memoryAfter": {
+        "managedMb": 125,
+        "workingSetMb": 387,
+        "peakWorkingSetMb": 390
+      }
+    },
+    {
+      "index": 12,
+      "source": "sample",
+      "members": 1,
+      "kinds": {
+        "static": 1
+      },
+      "keys": 1,
+      "answer": "reverse",
+      "limit": null,
+      "locateMs": 0,
+      "searchMs": 1563,
+      "visited": 363,
+      "depth": 11,
+      "predicted": {
+        "units": 203,
+        "classes": 42,
+        "projects": 1
+      },
+      "level0": {
+        "units": 1420,
+        "classes": 167,
+        "projects": 1
+      },
+      "share": 0.143,
+      "memoryAfter": {
+        "managedMb": 124,
+        "workingSetMb": 397,
+        "peakWorkingSetMb": 397
+      }
+    },
+    {
+      "index": 13,
+      "source": "sample",
+      "members": 1,
+      "kinds": {
+        "static": 1
+      },
+      "keys": 1,
+      "answer": "reverse",
+      "limit": null,
+      "locateMs": 0,
+      "searchMs": 2066,
+      "visited": 404,
+      "depth": 12,
+      "predicted": {
+        "units": 259,
+        "classes": 47,
+        "projects": 1
+      },
+      "level0": {
+        "units": 1420,
+        "classes": 167,
+        "projects": 1
+      },
+      "share": 0.182,
+      "memoryAfter": {
+        "managedMb": 133,
+        "workingSetMb": 407,
+        "peakWorkingSetMb": 408
+      }
+    },
+    {
+      "index": 14,
+      "source": "sample",
+      "members": 1,
+      "kinds": {
+        "constructor": 1
+      },
+      "keys": 1,
+      "answer": "reverse",
+      "limit": null,
+      "locateMs": 0,
+      "searchMs": 31,
+      "visited": 57,
+      "depth": 3,
+      "predicted": {
+        "units": 50,
+        "classes": 9,
+        "projects": 1
+      },
+      "level0": {
+        "units": 1420,
+        "classes": 167,
+        "projects": 1
+      },
+      "share": 0.035,
+      "memoryAfter": {
+        "managedMb": 133,
+        "workingSetMb": 408,
+        "peakWorkingSetMb": 408
+      }
+    },
+    {
+      "index": 15,
+      "source": "sample",
+      "members": 1,
+      "kinds": {
+        "interface": 1
+      },
+      "keys": 1,
+      "answer": "reverse",
+      "limit": null,
+      "locateMs": 0,
+      "searchMs": 124,
+      "visited": 2,
+      "depth": 1,
+      "predicted": {
+        "units": 0,
+        "classes": 0,
+        "projects": 0
+      },
+      "level0": {
+        "units": 1420,
+        "classes": 167,
+        "projects": 1
+      },
+      "share": 0,
+      "memoryAfter": {
+        "managedMb": 134,
+        "workingSetMb": 408,
+        "peakWorkingSetMb": 408
+      }
+    },
+    {
+      "index": 16,
+      "source": "sample",
+      "members": 1,
+      "kinds": {
+        "accessor": 1
+      },
+      "keys": 1,
+      "answer": "reverse",
+      "limit": null,
+      "locateMs": 0,
+      "searchMs": 1619,
+      "visited": 339,
+      "depth": 11,
+      "predicted": {
+        "units": 194,
+        "classes": 42,
+        "projects": 1
+      },
+      "level0": {
+        "units": 1420,
+        "classes": 167,
+        "projects": 1
+      },
+      "share": 0.137,
+      "memoryAfter": {
+        "managedMb": 134,
+        "workingSetMb": 410,
+        "peakWorkingSetMb": 413
+      }
+    },
+    {
+      "index": 17,
+      "source": "sample",
+      "members": 1,
+      "kinds": {
+        "static": 1
+      },
+      "keys": 1,
+      "answer": "reverse",
+      "limit": null,
+      "locateMs": 0,
+      "searchMs": 25,
+      "visited": 18,
+      "depth": 3,
+      "predicted": {
+        "units": 0,
+        "classes": 0,
+        "projects": 0
+      },
+      "level0": {
+        "units": 1420,
+        "classes": 167,
+        "projects": 1
+      },
+      "share": 0,
+      "memoryAfter": {
+        "managedMb": 135,
+        "workingSetMb": 410,
+        "peakWorkingSetMb": 413
+      }
+    },
+    {
+      "index": 18,
+      "source": "sample",
+      "members": 1,
+      "kinds": {
+        "ordinary": 1
+      },
+      "keys": 1,
+      "answer": "reverse",
+      "limit": null,
+      "locateMs": 0,
+      "searchMs": 148,
+      "visited": 91,
+      "depth": 9,
+      "predicted": {
+        "units": 75,
+        "classes": 9,
+        "projects": 1
+      },
+      "level0": {
+        "units": 1420,
+        "classes": 167,
+        "projects": 1
+      },
+      "share": 0.053,
+      "memoryAfter": {
+        "managedMb": 138,
+        "workingSetMb": 410,
+        "peakWorkingSetMb": 413
+      }
+    },
+    {
+      "index": 19,
+      "source": "sample",
+      "members": 1,
+      "kinds": {
+        "accessor": 1
+      },
+      "keys": 1,
+      "answer": "reverse",
+      "limit": null,
+      "locateMs": 0,
+      "searchMs": 1,
+      "visited": 1,
+      "depth": 0,
+      "predicted": {
+        "units": 0,
+        "classes": 0,
+        "projects": 0
+      },
+      "level0": {
+        "units": 1420,
+        "classes": 167,
+        "projects": 1
+      },
+      "share": 0,
+      "memoryAfter": {
+        "managedMb": 138,
+        "workingSetMb": 410,
+        "peakWorkingSetMb": 413
+      }
+    },
+    {
+      "index": 20,
+      "source": "sample",
+      "members": 1,
+      "kinds": {
+        "constructor": 1
+      },
+      "keys": 1,
+      "answer": "reverse",
+      "limit": null,
+      "locateMs": 0,
+      "searchMs": 421,
+      "visited": 60,
+      "depth": 7,
+      "predicted": {
+        "units": 32,
+        "classes": 3,
+        "projects": 1
+      },
+      "level0": {
+        "units": 1420,
+        "classes": 167,
+        "projects": 1
+      },
+      "share": 0.023,
+      "memoryAfter": {
+        "managedMb": 141,
+        "workingSetMb": 417,
+        "peakWorkingSetMb": 417
+      }
+    },
+    {
+      "index": 21,
+      "source": "sample",
+      "members": 1,
+      "kinds": {
+        "static": 1
+      },
+      "keys": 1,
+      "answer": "reverse",
+      "limit": null,
+      "locateMs": 0,
+      "searchMs": 20,
+      "visited": 11,
+      "depth": 2,
+      "predicted": {
+        "units": 8,
+        "classes": 2,
+        "projects": 1
+      },
+      "level0": {
+        "units": 1420,
+        "classes": 167,
+        "projects": 1
+      },
+      "share": 0.006,
+      "memoryAfter": {
+        "managedMb": 142,
+        "workingSetMb": 418,
+        "peakWorkingSetMb": 418
+      }
+    },
+    {
+      "index": 22,
+      "source": "sample",
+      "members": 1,
+      "kinds": {
+        "ordinary": 1
+      },
+      "keys": 1,
+      "answer": "reverse",
+      "limit": null,
+      "locateMs": 0,
+      "searchMs": 1450,
+      "visited": 329,
+      "depth": 9,
+      "predicted": {
+        "units": 189,
+        "classes": 39,
+        "projects": 1
+      },
+      "level0": {
+        "units": 1420,
+        "classes": 167,
+        "projects": 1
+      },
+      "share": 0.133,
+      "memoryAfter": {
+        "managedMb": 142,
+        "workingSetMb": 416,
+        "peakWorkingSetMb": 420
+      }
+    },
+    {
+      "index": 23,
+      "source": "sample",
+      "members": 1,
+      "kinds": {
+        "static": 1
+      },
+      "keys": 1,
+      "answer": "reverse",
+      "limit": null,
+      "locateMs": 0,
+      "searchMs": 25,
+      "visited": 64,
+      "depth": 6,
+      "predicted": {
+        "units": 54,
+        "classes": 10,
+        "projects": 1
+      },
+      "level0": {
+        "units": 1420,
+        "classes": 167,
+        "projects": 1
+      },
+      "share": 0.038,
+      "memoryAfter": {
+        "managedMb": 143,
+        "workingSetMb": 417,
+        "peakWorkingSetMb": 420
+      }
+    },
+    {
+      "index": 24,
+      "source": "sample",
+      "members": 1,
+      "kinds": {
+        "static": 1
+      },
+      "keys": 1,
+      "answer": "reverse",
+      "limit": null,
+      "locateMs": 0,
+      "searchMs": 9,
+      "visited": 3,
+      "depth": 2,
+      "predicted": {
+        "units": 0,
+        "classes": 0,
+        "projects": 0
+      },
+      "level0": {
+        "units": 1420,
+        "classes": 167,
+        "projects": 1
+      },
+      "share": 0,
+      "memoryAfter": {
+        "managedMb": 143,
+        "workingSetMb": 417,
+        "peakWorkingSetMb": 420
+      }
+    },
+    {
+      "index": 25,
+      "source": "sample",
+      "members": 1,
+      "kinds": {
+        "static": 1
+      },
+      "keys": 1,
+      "answer": "reverse",
+      "limit": null,
+      "locateMs": 0,
+      "searchMs": 154,
+      "visited": 55,
+      "depth": 7,
+      "predicted": {
+        "units": 39,
+        "classes": 4,
+        "projects": 1
+      },
+      "level0": {
+        "units": 1420,
+        "classes": 167,
+        "projects": 1
+      },
+      "share": 0.027,
+      "memoryAfter": {
+        "managedMb": 146,
+        "workingSetMb": 421,
+        "peakWorkingSetMb": 424
+      }
+    },
+    {
+      "index": 26,
+      "source": "sample",
+      "members": 1,
+      "kinds": {
+        "static": 1
+      },
+      "keys": 1,
+      "answer": "reverse",
+      "limit": null,
+      "locateMs": 0,
+      "searchMs": 35,
+      "visited": 40,
+      "depth": 3,
+      "predicted": {
+        "units": 37,
+        "classes": 5,
+        "projects": 1
+      },
+      "level0": {
+        "units": 1420,
+        "classes": 167,
+        "projects": 1
+      },
+      "share": 0.026,
+      "memoryAfter": {
+        "managedMb": 147,
+        "workingSetMb": 421,
+        "peakWorkingSetMb": 424
+      }
+    },
+    {
+      "index": 27,
+      "source": "sample",
+      "members": 1,
+      "kinds": {
+        "static": 1
+      },
+      "keys": 1,
+      "answer": "reverse",
+      "limit": null,
+      "locateMs": 0,
+      "searchMs": 1505,
+      "visited": 357,
+      "depth": 9,
+      "predicted": {
+        "units": 214,
+        "classes": 40,
+        "projects": 1
+      },
+      "level0": {
+        "units": 1420,
+        "classes": 167,
+        "projects": 1
+      },
+      "share": 0.151,
+      "memoryAfter": {
+        "managedMb": 147,
+        "workingSetMb": 424,
+        "peakWorkingSetMb": 426
+      }
+    },
+    {
+      "index": 28,
+      "source": "sample",
+      "members": 1,
+      "kinds": {
+        "static": 1
+      },
+      "keys": 1,
+      "answer": "reverse",
+      "limit": null,
+      "locateMs": 0,
+      "searchMs": 12,
+      "visited": 54,
+      "depth": 6,
+      "predicted": {
+        "units": 39,
+        "classes": 4,
+        "projects": 1
+      },
+      "level0": {
+        "units": 1420,
+        "classes": 167,
+        "projects": 1
+      },
+      "share": 0.027,
+      "memoryAfter": {
+        "managedMb": 147,
+        "workingSetMb": 424,
+        "peakWorkingSetMb": 426
+      }
+    },
+    {
+      "index": 29,
+      "source": "sample",
+      "members": 1,
+      "kinds": {
+        "ordinary": 1
+      },
+      "keys": 1,
+      "answer": "reverse",
+      "limit": null,
+      "locateMs": 0,
+      "searchMs": 1527,
+      "visited": 334,
+      "depth": 9,
+      "predicted": {
+        "units": 192,
+        "classes": 40,
+        "projects": 1
+      },
+      "level0": {
+        "units": 1420,
+        "classes": 167,
+        "projects": 1
+      },
+      "share": 0.135,
+      "memoryAfter": {
+        "managedMb": 147,
+        "workingSetMb": 428,
+        "peakWorkingSetMb": 428
+      }
+    },
+    {
+      "index": 30,
+      "source": "sample",
+      "members": 1,
+      "kinds": {
+        "ordinary": 1
+      },
+      "keys": 1,
+      "answer": "reverse",
+      "limit": null,
+      "locateMs": 0,
+      "searchMs": 2,
+      "visited": 8,
+      "depth": 1,
+      "predicted": {
+        "units": 7,
+        "classes": 1,
+        "projects": 1
+      },
+      "level0": {
+        "units": 1420,
+        "classes": 167,
+        "projects": 1
+      },
+      "share": 0.005,
+      "memoryAfter": {
+        "managedMb": 147,
+        "workingSetMb": 428,
+        "peakWorkingSetMb": 428
+      }
+    },
+    {
+      "index": 31,
+      "source": "sample",
+      "members": 1,
+      "kinds": {
+        "static": 1
+      },
+      "keys": 1,
+      "answer": "reverse",
+      "limit": null,
+      "locateMs": 0,
+      "searchMs": 28,
+      "visited": 54,
+      "depth": 4,
+      "predicted": {
+        "units": 47,
+        "classes": 7,
+        "projects": 1
+      },
+      "level0": {
+        "units": 1420,
+        "classes": 167,
+        "projects": 1
+      },
+      "share": 0.033,
+      "memoryAfter": {
+        "managedMb": 148,
+        "workingSetMb": 429,
+        "peakWorkingSetMb": 429
+      }
+    },
+    {
+      "index": 32,
+      "source": "sample",
+      "members": 1,
+      "kinds": {
+        "static": 1
+      },
+      "keys": 1,
+      "answer": "reverse",
+      "limit": null,
+      "locateMs": 0,
+      "searchMs": 23,
+      "visited": 65,
+      "depth": 7,
+      "predicted": {
+        "units": 54,
+        "classes": 10,
+        "projects": 1
+      },
+      "level0": {
+        "units": 1420,
+        "classes": 167,
+        "projects": 1
+      },
+      "share": 0.038,
+      "memoryAfter": {
+        "managedMb": 148,
+        "workingSetMb": 429,
+        "peakWorkingSetMb": 429
+      }
+    },
+    {
+      "index": 33,
+      "source": "sample",
+      "members": 1,
+      "kinds": {
+        "static": 1
+      },
+      "keys": 1,
+      "answer": "reverse",
+      "limit": null,
+      "locateMs": 0,
+      "searchMs": 1515,
+      "visited": 333,
+      "depth": 10,
+      "predicted": {
+        "units": 191,
+        "classes": 40,
+        "projects": 1
+      },
+      "level0": {
+        "units": 1420,
+        "classes": 167,
+        "projects": 1
+      },
+      "share": 0.135,
+      "memoryAfter": {
+        "managedMb": 148,
+        "workingSetMb": 431,
+        "peakWorkingSetMb": 431
+      }
+    },
+    {
+      "index": 34,
+      "source": "sample",
+      "members": 1,
+      "kinds": {
+        "constructor": 1
+      },
+      "keys": 1,
+      "answer": "reverse",
+      "limit": null,
+      "locateMs": 0,
+      "searchMs": 21,
+      "visited": 26,
+      "depth": 6,
+      "predicted": {
+        "units": 16,
+        "classes": 3,
+        "projects": 1
+      },
+      "level0": {
+        "units": 1420,
+        "classes": 167,
+        "projects": 1
+      },
+      "share": 0.011,
+      "memoryAfter": {
+        "managedMb": 148,
+        "workingSetMb": 431,
+        "peakWorkingSetMb": 431
+      }
+    },
+    {
+      "index": 35,
+      "source": "sample",
+      "members": 1,
+      "kinds": {
+        "static": 1
+      },
+      "keys": 1,
+      "answer": "reverse",
+      "limit": null,
+      "locateMs": 0,
+      "searchMs": 1627,
+      "visited": 337,
+      "depth": 12,
+      "predicted": {
+        "units": 193,
+        "classes": 40,
+        "projects": 1
+      },
+      "level0": {
+        "units": 1420,
+        "classes": 167,
+        "projects": 1
+      },
+      "share": 0.136,
+      "memoryAfter": {
+        "managedMb": 150,
+        "workingSetMb": 433,
+        "peakWorkingSetMb": 433
+      }
+    },
+    {
+      "index": 36,
+      "source": "sample",
+      "members": 1,
+      "kinds": {
+        "static": 1
+      },
+      "keys": 1,
+      "answer": "reverse",
+      "limit": null,
+      "locateMs": 0,
+      "searchMs": 1468,
+      "visited": 335,
+      "depth": 10,
+      "predicted": {
+        "units": 192,
+        "classes": 39,
+        "projects": 1
+      },
+      "level0": {
+        "units": 1420,
+        "classes": 167,
+        "projects": 1
+      },
+      "share": 0.135,
+      "memoryAfter": {
+        "managedMb": 150,
+        "workingSetMb": 435,
+        "peakWorkingSetMb": 438
+      }
+    },
+    {
+      "index": 37,
+      "source": "sample",
+      "members": 1,
+      "kinds": {
+        "static": 1
+      },
+      "keys": 1,
+      "answer": "reverse",
+      "limit": null,
+      "locateMs": 0,
+      "searchMs": 1453,
+      "visited": 409,
+      "depth": 13,
+      "predicted": {
+        "units": 262,
+        "classes": 49,
+        "projects": 1
+      },
+      "level0": {
+        "units": 1420,
+        "classes": 167,
+        "projects": 1
+      },
+      "share": 0.185,
+      "memoryAfter": {
+        "managedMb": 151,
+        "workingSetMb": 433,
+        "peakWorkingSetMb": 438
+      }
+    },
+    {
+      "index": 38,
+      "source": "sample",
+      "members": 1,
+      "kinds": {
+        "static": 1
+      },
+      "keys": 1,
+      "answer": "reverse",
+      "limit": null,
+      "locateMs": 0,
+      "searchMs": 29,
+      "visited": 62,
+      "depth": 5,
+      "predicted": {
+        "units": 39,
+        "classes": 4,
+        "projects": 1
+      },
+      "level0": {
+        "units": 1420,
+        "classes": 167,
+        "projects": 1
+      },
+      "share": 0.027,
+      "memoryAfter": {
+        "managedMb": 151,
+        "workingSetMb": 433,
+        "peakWorkingSetMb": 438
+      }
+    },
+    {
+      "index": 39,
+      "source": "sample",
+      "members": 1,
+      "kinds": {
+        "static": 1
+      },
+      "keys": 1,
+      "answer": "reverse",
+      "limit": null,
+      "locateMs": 0,
+      "searchMs": 27,
+      "visited": 13,
+      "depth": 3,
+      "predicted": {
+        "units": 9,
+        "classes": 2,
+        "projects": 1
+      },
+      "level0": {
+        "units": 1420,
+        "classes": 167,
+        "projects": 1
+      },
+      "share": 0.006,
+      "memoryAfter": {
+        "managedMb": 152,
+        "workingSetMb": 434,
+        "peakWorkingSetMb": 438
+      }
+    },
+    {
+      "index": 40,
+      "source": "sample",
+      "members": 1,
+      "kinds": {
+        "static": 1
+      },
+      "keys": 1,
+      "answer": "reverse",
+      "limit": null,
+      "locateMs": 0,
+      "searchMs": 34,
+      "visited": 9,
+      "depth": 2,
+      "predicted": {
+        "units": 4,
+        "classes": 2,
+        "projects": 1
+      },
+      "level0": {
+        "units": 1420,
+        "classes": 167,
+        "projects": 1
+      },
+      "share": 0.003,
+      "memoryAfter": {
+        "managedMb": 153,
+        "workingSetMb": 435,
+        "peakWorkingSetMb": 438
+      }
+    }
+  ]
+}

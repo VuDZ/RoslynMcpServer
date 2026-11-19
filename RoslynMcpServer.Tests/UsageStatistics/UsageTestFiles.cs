@@ -1,5 +1,6 @@
 using System.Text.Json;
 using RoslynMcpServer.Diagnostics;
+using RoslynMcpServer.Diagnostics.UsageStatistics;
 
 namespace RoslynMcpServer.Tests.UsageStatistics;
 
@@ -37,14 +38,16 @@ internal sealed class UsageTestFiles : IDisposable
         File.WriteAllText(Path.Combine(Path.GetDirectoryName(ProjectPath)!, "Widget.cs"), "namespace App; public sealed class Widget { }");
     }
 
-    internal JsonElement[] ReadEvents() =>
-        Directory.Exists(UsageDirectory)
+    internal async Task<JsonElement[]> ReadEventsAsync(UsageStatisticsService usage)
+    {
+        // Host shutdown is bounded; the test needs the complete journal.
+        await usage.WritesCompleted.WaitAsync(TimeSpan.FromSeconds(30));
+        return Directory.Exists(UsageDirectory)
             ? Directory.GetFiles(UsageDirectory, "usage-*.jsonl")
                 .SelectMany(File.ReadAllLines)
                 .Select(line => JsonSerializer.Deserialize<JsonElement>(line))
                 .OrderBy(item => item.GetProperty("seq").GetInt64())
                 .ToArray()
             : [];
-
-
+    }
 }

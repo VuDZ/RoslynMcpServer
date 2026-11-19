@@ -96,7 +96,7 @@ public sealed class UsageStatisticsFiltersTests
             await usage.StopAsync(CancellationToken.None);
         }
 
-        var events = files.ReadEvents();
+        var events = await files.ReadEventsAsync(usage);
         var clientEvent = Assert.Single(events.Where(item => item.GetProperty("ev").GetString() == "client"
             && item.GetProperty("name").GetString() == "usage-integration"));
         Assert.Equal(protocolVersion, clientEvent.GetProperty("protocol").GetString());

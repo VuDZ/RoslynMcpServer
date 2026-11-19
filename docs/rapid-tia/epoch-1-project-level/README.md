@@ -1,0 +1,107 @@
+# Эпоха 1 — уровень 0 и инструмент `estimate_affected_tests`
+
+- Статус плана: **задачи заведены 2026-10-30; ревью плана 2026-10-31 принято** ([Grok, раунд 1](review-grok.md), [Grok, раунд 2](review-grok-round-2.md), [перепроверка Grok](review-grok-round-2-recheck.md), [перепроверка Codex](review-codex.md#перепроверка-исправлений), ответы автора: раунд 1, раунд 2). VSTest-scope реализации эпохи повторно принят **2026-11-06** после R1-001 task-11; task-10 deferred.
+- Статус исполнения: **accepted повторно, 2026-11-06**, VSTest-scope; task-01 (снимок, раунд6) и task-02 (сравнение, раунд5) приняты2026-11-03; task-03 повторно принята2026-11-05 после R21-001, раунд22 — ACCEPT, [validation](evidence/task-03-final-validation-round-22.md), приёмка второго рецензента, [scope/отчёт](task-03-implementation-report.md#повторная-приёмка-после-раунда-21). task-04 принята2026-11-05: внутренний mapper уровня 0 «путь → проекты → тестовые проекты», транзитивное расширение, stale/reload и фильтрация вывода сборки, [отчёт](task-04-implementation-report.md), раунд1 — ACCEPT, [validation](evidence/task-04-final-validation.md). task-05 принята2026-11-05: внутренний composer трёх частей ответа с причинами, R-17 и исправления T04-C1/T04-C2 в mapper, [отчёт](task-05-implementation-report.md), раунд1 — ACCEPT, [validation](evidence/task-05-final-validation.md). task-06 принята2026-11-05: проба фактических имён четырёх VSTest-адаптеров, 28 фильтров, replay-каталог и нормативная передача в task-07, [отчёт](task-06-implementation-report.md), раунд1 — ACCEPT, [validation](evidence/task-06-final-validation.md). task-07 принята2026-11-06: чистый VSTest-планировщик по проектам, экранирование/свёртка, бюджет 16000 символов и закрытие T06-C1, [отчёт](task-07-implementation-report.md), раунд1 — ACCEPT, [validation](evidence/task-07-final-validation.md). task-08 повторно принята **2026-11-06**, версия **1.6.1**: estimate-only `core/lite`, runtime inventory T07-C1, формат ответа; R2-001/R3-001 закрыты. [Отчёт](task-08-implementation-report.md), раунд 4 — ACCEPT, [финальная validation](evidence/task-08-final-validation-round-4.md) — main 1980/1980 и AnalyzerLifecycle 13/13. Четвёртый раунд отдельно разрешён владельцем. task-09 принята **2026-11-06**: VSTest `run`, общий структурированный исполнитель, свежая сборка, отдельные исходы/таймауты, MCP-отмена и остановка дерева; **2 раунда / 1 исправление**, R1-001 закрыто. [Отчёт](task-09-implementation-report.md), раунд 2 — ACCEPT, второй рецензент (Linux main 1996/1996, T09-C1 передано в task-11), [финальная validation](evidence/task-09-final-validation.md): focused 220/220, SourceStructure 123/123, main 2004/2004, AnalyzerLifecycle 13/13. task-11 повторно принята **2026-11-06**, версия **1.7.0**, **2 раунда / 1 исправление**; R1-001 закрыто явным `noBuild: false` в ручном workflow. [Карта](task-11-implementation-report.md), раунд 2 — ACCEPT, [docs-only validation](evidence/task-11-final-validation-round-2.md). Код и настройки сборки совпадают с `13ded97`; прежние Windows focused145/145, SourceStructure123/123, main2004/2004 и Lifecycle13/13 не выдаются за новый прогон; Linux main1996/1996 на1.7.0 подтвердил второй рецензент. **Приёмка эпохи1 в VSTest-scope восстановлена**: task-01–09 и task-11; task-10 deferred, эпохи2–4 не активированы. С task-04 ревью идёт по правилу [R-18](../README.md#решения-владельца-2026-10-29): возврат только при молчаливой потере тестов или неверном ответе в реальном сценарии, не больше 3 раундов на задачу.
+- Зависимость эпохи: нет.
+- Результат: подсказка о затронутых тестах на уровне проектов с момента загрузки,
+  baseline-снимок с фиксацией текстов, состав ответа с новыми и изменёнными тестами,
+  инструмент в `core` с флагом `run` для VSTest-проектов. Граф вызовов (уровень 1) в
+  эту эпоху не входит.
+- MTP (2026-10-30): в проектах владельца не используется, поэтому эпоха 1 не ждёт
+  раннер `mtp` программы [test-runner-selection](../../test-runner-selection/README.md),
+  код которой не начат. План и исполнение MTP-проекта — отложенная
+  [task-10](task-10-run-mtp-plan-med.md), вне приёмки эпохи.
+- Канон: [программа rapid TIA](../README.md) — решения R-01…R-18, разделы «Дизайн»,
+  «Поверхность инструментов», «Ответ инструмента», «Проверка». Задачи не меняют
+  требований программы; новый существенный вопрос возвращается в программу точечной
+  правкой.
+
+## Задачи
+
+Принцип нарезки: одна задача — одно проверяемое поведение со своими тестами.
+Промежуточные задачи делают внутренние сервисы; инструмент появляется в `core` одной
+задачей, когда уже даёт ответ.
+
+- [task-01 — Модель baseline-снимка](task-01-baseline-snapshot-model-med.md) — `med`, **accepted, 2026-11-03**, раунд 6; scope — модель и чистый builder одного документа; [отчёт/validation](task-01-implementation-report.md#повторная-приёмка-после-раунда-5); Depends on: —
+- [task-02 — Сравнение с baseline-снимком](task-02-change-detection-med.md) — `med`, **accepted, 2026-11-03**, раунд 5; R2-001…R2-004 и R4-001/R4-002 закрыты; scope — сравнение снимков и консервативные факты по R-17; [отчёт/validation](task-02-implementation-report.md#повторная-приёмка-после-раунда-4); Depends on: [task-01](task-01-baseline-snapshot-model-med.md)
+- [task-03 — Жизненный цикл baseline в сессии](task-03-baseline-lifecycle-hi.md) — `hi`, **accepted, 2026-11-05**, R21-001 и R14-001 закрыты; раунд22 — ACCEPT, [validation](evidence/task-03-final-validation-round-22.md), приёмка второго рецензента; scope — baseline сессии и дешёвый пустой Deleted; [отчёт](task-03-implementation-report.md#повторная-приёмка-после-раунда-21); Depends on: [task-01](task-01-baseline-snapshot-model-med.md)
+- [task-04 — Уровень 0: путь → проекты](task-04-level0-path-mapping-med.md) — `med`, **accepted, 2026-11-05**, scope — внутренний mapper уровня 0 «путь → проекты → тестовые проекты», транзитивное расширение, stale/reload и фильтрация вывода сборки; [отчёт](task-04-implementation-report.md), ревью, [validation](evidence/task-04-final-validation.md); Depends on: —
+- [task-05 — Состав ответа](task-05-response-composition-med.md) — `med`, **accepted, 2026-11-05**, scope — внутренний composer трёх частей ответа с причинами, R-17 и исправления T04-C1/T04-C2 в mapper; [отчёт](task-05-implementation-report.md), ревью, [validation](evidence/task-05-final-validation.md); Depends on: [task-02](task-02-change-detection-med.md), [task-04](task-04-level0-path-mapping-med.md)
+- [task-06 — Проба имён тестов в адаптерах VSTest](task-06-adapter-test-names-probe-low.md) — `low`, **accepted, 2026-11-05**, scope — проба фактических имён четырёх VSTest-адаптеров, 28 фильтров, replay-каталог и нормативная передача в task-07; [отчёт](task-06-implementation-report.md), [имена](evidence/task-06-adapter-names.md), ревью, второй рецензент, [validation](evidence/task-06-final-validation.md); T06-C1 закрыто в task-07 (подтверждение); Depends on: —
+- [task-07 — План запуска по тестовому проекту](task-07-run-plan-med.md) — `med`, **accepted, 2026-11-06**, scope — чистый VSTest-планировщик по проектам, экранирование/свёртка, бюджет 16000 символов и закрытие T06-C1; [отчёт](task-07-implementation-report.md), ревью, второй рецензент, [validation](evidence/task-07-final-validation.md); T07-C1 закрыто task-08 ([живые проверки](evidence/task-08-live-validation.md)); Depends on: [task-05](task-05-response-composition-med.md), [task-06](task-06-adapter-test-names-probe-low.md)
+- [task-08 — Инструмент `estimate_affected_tests`](task-08-estimate-tool-hi.md) — `hi`, **accepted повторно, 2026-11-06**, версия 1.6.1; scope — estimate-only `core/lite`, runtime inventory/формат ответа, исправления R2-001/R3-001; [отчёт](task-08-implementation-report.md), раунд 4 — ACCEPT, [validation](evidence/task-08-final-validation-round-4.md). Четвёртый раунд разрешён владельцем; Depends on: [task-03](task-03-baseline-lifecycle-hi.md), [task-05](task-05-response-composition-med.md), [task-07](task-07-run-plan-med.md)
+- [task-09 — Флаг `run`: сборка, VSTest и исходы](task-09-run-vstest-hi.md) — `hi`, **accepted, 2026-11-06**; scope — VSTest `run`, свежая сборка, структурированные исходы и MCP-отмена; 2 раунда / 1 исправление, R1-001 закрыто; [отчёт](task-09-implementation-report.md), ACCEPT, второй рецензент, [validation](evidence/task-09-final-validation.md); ограничение T09-C1 передано в task-11 и замер R-18; Depends on: [task-08](task-08-estimate-tool-hi.md)
+- [task-10 — Флаг `run`: план MTP и замер `S`](task-10-run-mtp-plan-med.md) — `med`, **deferred, вне приёмки эпохи**; Depends on: [task-09](task-09-run-vstest-hi.md), эпоха 1 [test-runner-selection](../../test-runner-selection/README.md)
+- [task-11 — Сквозные проверки и документация](task-11-integration-and-docs-med.md) — `med`, **accepted повторно, 2026-11-06**, версия1.7.0; R1-001 закрыто в docs-only round2, **2 раунда / 1 исправление**; [отчёт](task-11-implementation-report.md), ACCEPT, [validation](evidence/task-11-final-validation-round-2.md). Приёмка VSTest-scope эпохи1 восстановлена; Depends on: [task-03](task-03-baseline-lifecycle-hi.md), [task-08](task-08-estimate-tool-hi.md), [task-09](task-09-run-vstest-hi.md)
+- [task-12 — Выход сборки не сигнал изменения (T09-C1)](task-12-build-output-signal-med.md) — `med`, **accepted, 2026-11-08**, версия 1.7.1; исправление после приёмки эпохи по [R-19](../README.md#решения-владельца-2026-10-29), приёмку VSTest-scope не переоткрывает; 1 раунд / 0 исправлений; [отчёт](task-12-implementation-report.md#приёмка), Codex — ACCEPT, Grok — ACCEPT; Depends on: [task-04](task-04-level0-path-mapping-med.md), [task-09](task-09-run-vstest-hi.md), [task-11](task-11-integration-and-docs-med.md)
+
+**Порядок работы — TDD (R-16 программы).** В каждой задаче, кроме пробы task-06 и
+завершающей task-11, тесты из раздела «Проверки» пишутся первыми и падают по ожидаемой
+причине, затем реализация до зелёного прогона и рефакторинг. Красный прогон фиксируется
+в отчёте задачи, в коммит идёт только зелёное состояние. Ревью задачи проверяет и этот
+порядок. Сквозные сценарии пишутся в red-фазах задач, которые реализуют поведение (03,
+08, 09); task-11 собирает их в доказательства приёмки без своей red-фазы.
+
+ID не задаёт порядок запуска: его задаёт Depends on. Задачи 01, 04 и 06 независимы и
+могут идти параллельно; 03, 08 и 09 — цепочка. Приёмка эпохи — задачи 01–09 и 11.
+До task-10 MTP-проекты отдельно не распознаются и запускаются тем же путём, что сейчас
+у `run_*`; это существующее ограничение раннеров, а не новое.
+`SolutionManager` и `TestTools` одновременно правит один исполнитель.
+
+## Ревью плана эпохи
+
+- Модели, проводившие ревью: Grok 4.7, Codex (точный runtime model ID средой не предоставлен).
+- Даты ревью: 2026-10-31.
+- Количество раундов ревью: 2 у каждого рецензента; у Codex раунд 2 — целевая
+  перепроверка исправлений по версии `7c1485e`, без полного повторного ревью задач.
+  Перепроверка Grok исправлений раунда 2 по версии `e3a53bc` — без нового раунда.
+- Количество исправлений после ревью: **11** по учёту рецензентов — 7 подтверждённых
+  Grok (F-001…F-005 раунда 1 и F-001, F-002 раунда 2) и 4 подтверждённых Codex
+  (E1-C-001…E1-C-004). Каждый подтвердил только свои пункты; совпадений, требующих
+  объединения, нет.
+- Итог: принято на уровне плана. Открытых замечаний Grok и Codex нет. Приёмка
+  реализации не объявлена.
+- Отчёты: раунд 1 — [Grok](review-grok.md), [Codex](review-codex.md);
+  раунд 2 — [Grok](review-grok-round-2.md),
+  [перепроверка Grok](review-grok-round-2-recheck.md),
+  [перепроверка Codex](review-codex.md#перепроверка-исправлений);
+  ответы автора — раунд 1, раунд 2.
+
+Codex, 2026-10-31: раунд 1 — оценка из чата по версии `976bfd8`, охват — README и
+задачи 01–11 (task-10 остаётся deferred); первоначальное сохранение оценки не добавляло
+раунд. Раунд 2 по версии `7c1485e` — проверка ответов и исправлений E1-C-001…E1-C-004,
+все четыре закрыты на уровне плана. Полного повторного ревью задач не проводилось;
+`review-grok*` не читались, замечания другого рецензента не закрывались,
+межрецензентное сопоставление независимо не проверялось.
+
+Ревью включает этот README, задачи и их зависимости вместе с программой. Отдельные
+задачи на ревью не заводятся. Счётчики — по
+[общему стандарту](../../README.md#учёт-задач-ревью-и-статистики).
+
+## Статистика ревью задач
+
+- Охват: task-01–09, task-11 и task-12, 2026-11-08 (task-01/02 приняты2026-11-03). Task-01: Codex, четыре независимые сессии (1,2,4,6), Claude Opus5.5 (3,5); task-02: Codex, три (1,3,5), Claude Opus5.5 (2,4); task-03: Codex, шестнадцать (1,3,4,6,7,8,10,12,13,15,16,17,18,19,20,22), Claude Opus5.5 (2,5,9,11,14,21,22). task-04: Codex, одна независимая сессия (1), Claude Opus5.5 (1). task-05: Codex, одна независимая сессия (1). task-06: Codex, одна независимая сессия (1), Claude Opus5.5 (1). task-07: Codex, одна независимая сессия (1), Claude Opus5.5 (1). task-08: Codex, четыре независимые сессии (1,2,3,4), Claude Opus5.5 (2). task-09: Codex, две независимые сессии (1,2), Claude Opus5.5 (2). task-11: Codex, две независимые сессии (1,2), Claude Opus5.5 (1), также reviews закрытия VSTest-scope эпохи. task-12: Codex, одна независимая сессия (1), Grok 4.7 (1). Точные runtime model ID Codex недоступны; task-10 deferred.
+- Сумма раундов ревью задач: **46**, частично — task-01:6, task-02:5, task-03:22, task-04:1, task-05:1, task-06:1, task-07:1, task-08:4, task-09:2, task-11:2, task-12:1; task-10 deferred.
+- Исправленные замечания задач: **30**, частично — task-01:5, task-02:6, task-03:12 (R2-001/R2-002/R3-001, R5-001…R5-004, R7-001, R9-001, R11-001, R14-001, R21-001), task-04:0, task-05:0, task-06:0, task-07:0, task-08:5 (R1-001/R1-002/R1-003/R2-001/R3-001), task-09:1 (R1-001), task-11:1 (R1-001), task-12:0; открытых замечаний task-03–09, task-11 и task-12 нет; дополнительный раунд 4 task-08 разрешён владельцем. Доработки прежних ID не пересчитываются. R2-005/R2-006 task-02 отложены в эпоху3. Передача R3-003/R5-002 не входит в счётчик task-01; реализована в task-02.
+- Отчёты: [реализация и приёмка task-01](task-01-implementation-report.md), раунд 1, раунд 2, раунд 3, раунд 4, раунд 5, раунд 6 — ACCEPT, [финальная validation](evidence/task-01-final-validation-round-6.md). Task-02: [отчёт](task-02-implementation-report.md), раунд 1 — ACCEPT, раунд 2 — MUST-FIX, [validation до раунда 2](evidence/task-02-final-validation.md), раунд 3 — ACCEPT, [validation до раунда 4](evidence/task-02-final-validation-round-5.md), [раунд 4 — MUST-FIX](evidence/task-02-review-round-4.md). Раунд 5 — ACCEPT, [финальная validation](evidence/task-02-final-validation-round-5.md). Task-03: [отчёт](task-03-implementation-report.md), раунд 1 — ACCEPT, [validation до раунда 2](evidence/task-03-final-validation.md), раунд 2 — MUST-FIX. Раунд 3 — MUST-FIX, раунд 4 — ACCEPT, [validation до раунда 5](evidence/task-03-final-validation-round-22.md), раунд 5 — MUST-FIX. Task-03 продолжение: раунд6, [validation до раунда7](evidence/task-03-final-validation-round-22.md), раунд7, раунд8 — ACCEPT, [validation до раунда 9](evidence/task-03-final-validation-round-22.md), раунд 9 — MUST-FIX. Task-03 R9-001: RED, GREEN, раунд10 — ACCEPT, [validation до раунда 11](evidence/task-03-final-validation-round-22.md), раунд 11 — MUST-FIX. Task-03 R11-001: RED, GREEN, раунд12, inventory failure, раунд13 — ACCEPT, [validation до раунда 14](evidence/task-03-final-validation-round-22.md), раунд 14 — MUST-FIX. Task-03 R14-001: RED, GREEN, раунд15, раунд16, раунд17, [validation до18](evidence/task-03-final-validation-round-22.md), раунд18 — MUST-FIX, зелёные main до19, раунд19 — MUST-FIX, зелёные main до20, раунд20 — ACCEPT, [validation до раунда 21](evidence/task-03-final-validation-round-22.md), раунд 21 — MUST-FIX, раунд22 — ACCEPT, [финальная validation](evidence/task-03-final-validation-round-22.md).
+- Task-04: [реализация и приёмка](task-04-implementation-report.md), RED, GREEN, раунд1 — ACCEPT, [финальная validation](evidence/task-04-final-validation.md), второй рецензент.
+- Task-05: [реализация и приёмка](task-05-implementation-report.md), RED, GREEN, раунд1 — ACCEPT, [финальная validation](evidence/task-05-final-validation.md). T04-C1/T04-C2 закрыты как обязательная передача; новых post-review fixes task-05 нет, повторно в счётчик task-04 они не входят.
+- Task-06: [реализация и приёмка](task-06-implementation-report.md), [фактические имена и фильтры](evidence/task-06-adapter-names.md), раунд1 — ACCEPT, второй рецензент, [финальная validation](evidence/task-06-final-validation.md). Исключение R-16 для пробы сохранено; T06-C1 закрыто в task-07 (ревью).
+- Task-07: [реализация и приёмка](task-07-implementation-report.md), RED, GREEN, раунд1 — ACCEPT, второй рецензент, [финальная validation](evidence/task-07-final-validation.md). Переданное условие T06-C1 закрыто первоначальной реализацией; новых review fixes нет.
+- Task-08: [реализация и повторная приёмка](task-08-implementation-report.md), первоначальные RED/late guards, раунд 1, раунд 2/второй рецензент, раунд 3 — MUST-FIX, R3 RED/GREEN, R4 RED/GREEN, раунд 4 — ACCEPT, [окончательная validation](evidence/task-08-final-validation-round-4.md). Пять post-review fixes закрыты, T07-C1 выполнено; четвёртый раунд разрешён владельцем; task-09 принята отдельно, см. ниже.
+
+- Task-09: [реализация и приёмка](task-09-implementation-report.md), RED, раунд 1 — MUST-FIX, R1 RED/GREEN, раунд 2 — ACCEPT, второй рецензент, [финальная validation](evidence/task-09-final-validation.md). R1-001 закрыто тем же исполнителем; 2 раунда / 1 исправление. Ограничение T09-C1 (ответ «целиком» после собственной сборки `run`) документировано и проверено ограниченной owner-пробой task-11/R-18; механизм исправлен позже в task-12 (1.7.1).
+
+- Task-11: [карта приёмки](task-11-implementation-report.md), [owner measurement](evidence/task-11-owner-measurement.md), раунд 1 Codex, раунд 1 Claude — MUST-FIX, R1-001 fix, раунд 2 — ACCEPT, [docs-only validation](evidence/task-11-final-validation-round-2.md). **2 раунда / 1 исправление**; VSTest-приёмка эпохи1 восстановлена без нового runtime-прогона и bump версии.
+
+- Task-12: [реализация и приёмка](task-12-implementation-report.md#приёмка), RED, GREEN, раунд 1 Codex — ACCEPT, раунд 1 Grok — ACCEPT. **1 раунд / 0 исправлений**; исправление T09-C1 после приёмки эпохи, версия 1.7.1.
+
+## Приёмка реализации эпохи
+
+- Модели, проводившие ревью: Codex, независимые `LOCAL_ROOT/task11_review_round1` и `LOCAL_ROOT/task11_review_round2` (точный runtime model ID средой не предоставлен); Claude Opus 5.5, второй рецензент раунда 1.
+- Даты ревью: **2026-11-06**.
+- Количество раундов ревью: **2**, те же reviews task-11; не дополнительные раунды к статистике задач.
+- Количество исправлений после ревью: **1** на закрытии эпохи, R1-001 task-11; исторические исправления задач учтены выше.
+- Итог: **ACCEPT повторно**, раунд 2; R1-001 закрыто, приёмка восстановлена.
+- Принятый scope и дата: **2026-11-06**, task-01–09 и task-11, VSTest-уровень0 с известными ограничениями; task-10 deferred, граф и эпохи2–4 не активированы. T09-C1 документировано и измерено ограниченной [owner-пробой](evidence/task-11-owner-measurement.md); механизм исправлен после приёмки в [task-12](task-12-build-output-signal-med.md) (1.7.1, accepted 2026-11-08).
+- Финальная validation: [docs-only round2](evidence/task-11-final-validation-round-2.md), workflow3/3, ссылки/инвентарь изменений проверены. Код/settings те же, что `13ded97`: [прежние](evidence/task-11-final-validation.md) Release build PASS, focused145/145, SourceStructure123/123 (16 limits), main2004/2004, Lifecycle13/13; Linux main1996/1996 на1.7.0 — второй рецензент. Повторных suites и version bump нет по docs-only поручению.

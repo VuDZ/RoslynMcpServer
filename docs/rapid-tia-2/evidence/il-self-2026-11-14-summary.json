@@ -1,0 +1,1573 @@
+{
+  "kind": "il-impact-summary",
+  "probeCommit": "88b8dd1f262dca8572a7ecb157be8c3c767f762d",
+  "machine": {
+    "os": "Ubuntu 26.04.1 LTS",
+    "runtime": ".NET 10.0.14",
+    "processors": 2,
+    "memoryMb": 3843
+  },
+  "seed": 7,
+  "input": {
+    "filesSeen": 103,
+    "distinctFiles": 103,
+    "managedAssemblies": 100,
+    "assemblyFilesWithSources": 6,
+    "assemblyNames": 6,
+    "maxFlavors": 1,
+    "unreadablePdbAssemblies": 0
+  },
+  "graph": {
+    "types": 782,
+    "edges": 2978,
+    "testAssemblies": 1,
+    "testClasses": 167,
+    "testMethods": 1420,
+    "productionAssemblies": 5,
+    "productionAssembliesWithoutTests": 3,
+    "productionTypes": 401,
+    "productionFiles": 344,
+    "typesHandingAssembliesToReflection": 12,
+    "frameworkFacingTypes": 58,
+    "opaqueAssemblyLoads": 27,
+    "unreadableBodies": 0
+  },
+  "phases": [
+    {
+      "name": "find-files",
+      "ms": 19,
+      "memory": {
+        "managedMb": 0,
+        "workingSetMb": 33,
+        "peakWorkingSetMb": 33
+      }
+    },
+    {
+      "name": "identify",
+      "ms": 55,
+      "memory": {
+        "managedMb": 0,
+        "workingSetMb": 42,
+        "peakWorkingSetMb": 43
+      }
+    },
+    {
+      "name": "read",
+      "ms": 550,
+      "memory": {
+        "managedMb": 2,
+        "workingSetMb": 65,
+        "peakWorkingSetMb": 72
+      }
+    },
+    {
+      "name": "graph",
+      "ms": 99,
+      "memory": {
+        "managedMb": 0,
+        "workingSetMb": 63,
+        "peakWorkingSetMb": 72
+      }
+    },
+    {
+      "name": "closures",
+      "ms": 25,
+      "memory": {
+        "managedMb": 0,
+        "workingSetMb": 64,
+        "peakWorkingSetMb": 72
+      }
+    },
+    {
+      "name": "statistics",
+      "ms": 78,
+      "memory": {
+        "managedMb": 0,
+        "workingSetMb": 65,
+        "peakWorkingSetMb": 72
+      }
+    }
+  ],
+  "closures": {
+    "references": {
+      "shareOfGraphTypes": {
+        "count": 167,
+        "p10": 0.0051,
+        "p25": 0.0102,
+        "median": 0.0358,
+        "p75": 0.2136,
+        "p90": 0.2788,
+        "p99": 0.3939,
+        "mean": 0.1115,
+        "zero": 0,
+        "atLeast80Percent": 0
+      },
+      "testClassesReachingReflectionOverAssembly": 22
+    },
+    "discovery": {
+      "shareOfGraphTypes": {
+        "count": 167,
+        "p10": 0.0051,
+        "p25": 0.0102,
+        "median": 0.0371,
+        "p75": 0.2225,
+        "p90": 0.2801,
+        "p99": 0.4373,
+        "mean": 0.1202,
+        "zero": 0,
+        "atLeast80Percent": 0
+      },
+      "testClassesReachingReflectionOverAssembly": 22
+    },
+    "wholeAssembly": {
+      "shareOfGraphTypes": {
+        "count": 167,
+        "p10": 0.0051,
+        "p25": 0.0102,
+        "median": 0.0371,
+        "p75": 0.2225,
+        "p90": 0.4399,
+        "p99": 0.679,
+        "mean": 0.1393,
+        "zero": 0,
+        "atLeast80Percent": 0
+      },
+      "testClassesReachingReflectionOverAssembly": 22
+    }
+  },
+  "byType": {
+    "types": 330,
+    "typesInAssembliesWithoutTests": 71,
+    "levelZeroOfAllTests": {
+      "count": 330,
+      "p10": 1,
+      "p25": 1,
+      "median": 1,
+      "p75": 1,
+      "p90": 1,
+      "p99": 1,
+      "mean": 1,
+      "zero": 0,
+      "atLeast80Percent": 330
+    },
+    "layers": {
+      "references": {
+        "ofLevelZero": {
+          "count": 330,
+          "p10": 0.0415,
+          "p25": 0.0746,
+          "median": 0.1493,
+          "p75": 0.3718,
+          "p90": 0.4063,
+          "p99": 0.4542,
+          "mean": 0.2118,
+          "zero": 9,
+          "atLeast80Percent": 0
+        },
+        "ofAllTests": {
+          "count": 330,
+          "p10": 0.0415,
+          "p25": 0.0746,
+          "median": 0.1493,
+          "p75": 0.3718,
+          "p90": 0.4063,
+          "p99": 0.4542,
+          "mean": 0.2118,
+          "zero": 9,
+          "atLeast80Percent": 0
+        }
+      },
+      "discovery": {
+        "ofLevelZero": {
+          "count": 330,
+          "p10": 0.0746,
+          "p25": 0.0866,
+          "median": 0.1493,
+          "p75": 0.3789,
+          "p90": 0.4134,
+          "p99": 0.4542,
+          "mean": 0.2223,
+          "zero": 9,
+          "atLeast80Percent": 0
+        },
+        "ofAllTests": {
+          "count": 330,
+          "p10": 0.0746,
+          "p25": 0.0866,
+          "median": 0.1493,
+          "p75": 0.3789,
+          "p90": 0.4134,
+          "p99": 0.4542,
+          "mean": 0.2223,
+          "zero": 9,
+          "atLeast80Percent": 0
+        }
+      },
+      "wholeAssembly": {
+        "ofLevelZero": {
+          "count": 330,
+          "p10": 0.1324,
+          "p25": 0.1324,
+          "median": 0.207,
+          "p75": 0.3789,
+          "p90": 0.4134,
+          "p99": 0.4542,
+          "mean": 0.2524,
+          "zero": 4,
+          "atLeast80Percent": 0
+        },
+        "ofAllTests": {
+          "count": 330,
+          "p10": 0.1324,
+          "p25": 0.1324,
+          "median": 0.207,
+          "p75": 0.3789,
+          "p90": 0.4134,
+          "p99": 0.4542,
+          "mean": 0.2524,
+          "zero": 4,
+          "atLeast80Percent": 0
+        }
+      }
+    }
+  },
+  "byFile": {
+    "files": 272,
+    "filesInAssembliesWithoutTests": 72,
+    "levelZeroOfAllTests": {
+      "count": 272,
+      "p10": 1,
+      "p25": 1,
+      "median": 1,
+      "p75": 1,
+      "p90": 1,
+      "p99": 1,
+      "mean": 1,
+      "zero": 0,
+      "atLeast80Percent": 272
+    },
+    "layers": {
+      "references": {
+        "ofLevelZero": {
+          "count": 272,
+          "p10": 0.0415,
+          "p25": 0.0746,
+          "median": 0.1366,
+          "p75": 0.3549,
+          "p90": 0.4021,
+          "p99": 0.4542,
+          "mean": 0.1997,
+          "zero": 6,
+          "atLeast80Percent": 0
+        },
+        "ofAllTests": {
+          "count": 272,
+          "p10": 0.0415,
+          "p25": 0.0746,
+          "median": 0.1366,
+          "p75": 0.3549,
+          "p90": 0.4021,
+          "p99": 0.4542,
+          "mean": 0.1997,
+          "zero": 6,
+          "atLeast80Percent": 0
+        }
+      },
+      "discovery": {
+        "ofLevelZero": {
+          "count": 272,
+          "p10": 0.0746,
+          "p25": 0.0887,
+          "median": 0.1366,
+          "p75": 0.362,
+          "p90": 0.4049,
+          "p99": 0.4542,
+          "mean": 0.2107,
+          "zero": 6,
+          "atLeast80Percent": 0
+        },
+        "ofAllTests": {
+          "count": 272,
+          "p10": 0.0746,
+          "p25": 0.0887,
+          "median": 0.1366,
+          "p75": 0.362,
+          "p90": 0.4049,
+          "p99": 0.4542,
+          "mean": 0.2107,
+          "zero": 6,
+          "atLeast80Percent": 0
+        }
+      },
+      "wholeAssembly": {
+        "ofLevelZero": {
+          "count": 272,
+          "p10": 0.1324,
+          "p25": 0.1324,
+          "median": 0.1944,
+          "p75": 0.362,
+          "p90": 0.4049,
+          "p99": 0.4542,
+          "mean": 0.2435,
+          "zero": 3,
+          "atLeast80Percent": 0
+        },
+        "ofAllTests": {
+          "count": 272,
+          "p10": 0.1324,
+          "p25": 0.1324,
+          "median": 0.1944,
+          "p75": 0.362,
+          "p90": 0.4049,
+          "p99": 0.4542,
+          "mean": 0.2435,
+          "zero": 3,
+          "atLeast80Percent": 0
+        }
+      }
+    }
+  },
+  "missingFiles": 0,
+  "targets": [
+    {
+      "index": 1,
+      "source": "sample",
+      "types": 2,
+      "assemblies": 1,
+      "levelZero": {
+        "methods": 1420,
+        "classes": 167,
+        "assemblies": 1
+      },
+      "layers": {
+        "references": {
+          "methods": 0,
+          "classes": 0,
+          "assemblies": 0,
+          "shareOfLevelZero": 0
+        },
+        "discovery": {
+          "methods": 0,
+          "classes": 0,
+          "assemblies": 0,
+          "shareOfLevelZero": 0
+        },
+        "wholeAssembly": {
+          "methods": 0,
+          "classes": 0,
+          "assemblies": 0,
+          "shareOfLevelZero": 0
+        }
+      }
+    },
+    {
+      "index": 2,
+      "source": "sample",
+      "types": 1,
+      "assemblies": 1,
+      "levelZero": {
+        "methods": 1420,
+        "classes": 167,
+        "assemblies": 1
+      },
+      "layers": {
+        "references": {
+          "methods": 59,
+          "classes": 6,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.0415
+        },
+        "discovery": {
+          "methods": 165,
+          "classes": 19,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.1162
+        },
+        "wholeAssembly": {
+          "methods": 188,
+          "classes": 22,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.1324
+        }
+      }
+    },
+    {
+      "index": 3,
+      "source": "sample",
+      "types": 2,
+      "assemblies": 1,
+      "levelZero": {
+        "methods": 1420,
+        "classes": 167,
+        "assemblies": 1
+      },
+      "layers": {
+        "references": {
+          "methods": 115,
+          "classes": 16,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.081
+        },
+        "discovery": {
+          "methods": 167,
+          "classes": 21,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.1176
+        },
+        "wholeAssembly": {
+          "methods": 197,
+          "classes": 25,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.1387
+        }
+      }
+    },
+    {
+      "index": 4,
+      "source": "sample",
+      "types": 1,
+      "assemblies": 1,
+      "levelZero": {
+        "methods": 1420,
+        "classes": 167,
+        "assemblies": 1
+      },
+      "layers": {
+        "references": {
+          "methods": 157,
+          "classes": 22,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.1106
+        },
+        "discovery": {
+          "methods": 157,
+          "classes": 22,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.1106
+        },
+        "wholeAssembly": {
+          "methods": 239,
+          "classes": 31,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.1683
+        }
+      }
+    },
+    {
+      "index": 5,
+      "source": "sample",
+      "types": 1,
+      "assemblies": 1,
+      "levelZero": {
+        "methods": 1420,
+        "classes": 167,
+        "assemblies": 1
+      },
+      "layers": {
+        "references": {
+          "methods": 106,
+          "classes": 13,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.0746
+        },
+        "discovery": {
+          "methods": 106,
+          "classes": 13,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.0746
+        },
+        "wholeAssembly": {
+          "methods": 188,
+          "classes": 22,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.1324
+        }
+      }
+    },
+    {
+      "index": 6,
+      "source": "sample",
+      "types": 1,
+      "assemblies": 1,
+      "levelZero": {
+        "methods": 1420,
+        "classes": 167,
+        "assemblies": 1
+      },
+      "layers": {
+        "references": {
+          "methods": 239,
+          "classes": 27,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.1683
+        },
+        "discovery": {
+          "methods": 239,
+          "classes": 27,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.1683
+        },
+        "wholeAssembly": {
+          "methods": 321,
+          "classes": 36,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.2261
+        }
+      }
+    },
+    {
+      "index": 7,
+      "source": "sample",
+      "types": 1,
+      "assemblies": 1,
+      "levelZero": {
+        "methods": 1420,
+        "classes": 167,
+        "assemblies": 1
+      },
+      "layers": {
+        "references": {
+          "methods": 108,
+          "classes": 14,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.0761
+        },
+        "discovery": {
+          "methods": 108,
+          "classes": 14,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.0761
+        },
+        "wholeAssembly": {
+          "methods": 190,
+          "classes": 23,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.1338
+        }
+      }
+    },
+    {
+      "index": 8,
+      "source": "sample",
+      "types": 1,
+      "assemblies": 1,
+      "levelZero": {
+        "methods": 1420,
+        "classes": 167,
+        "assemblies": 1
+      },
+      "layers": {
+        "references": {
+          "methods": 106,
+          "classes": 13,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.0746
+        },
+        "discovery": {
+          "methods": 106,
+          "classes": 13,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.0746
+        },
+        "wholeAssembly": {
+          "methods": 188,
+          "classes": 22,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.1324
+        }
+      }
+    },
+    {
+      "index": 9,
+      "source": "sample",
+      "types": 1,
+      "assemblies": 1,
+      "levelZero": {
+        "methods": 1420,
+        "classes": 167,
+        "assemblies": 1
+      },
+      "layers": {
+        "references": {
+          "methods": 59,
+          "classes": 6,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.0415
+        },
+        "discovery": {
+          "methods": 165,
+          "classes": 19,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.1162
+        },
+        "wholeAssembly": {
+          "methods": 188,
+          "classes": 22,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.1324
+        }
+      }
+    },
+    {
+      "index": 10,
+      "source": "sample",
+      "types": 1,
+      "assemblies": 1,
+      "levelZero": {
+        "methods": 1420,
+        "classes": 167,
+        "assemblies": 1
+      },
+      "layers": {
+        "references": {
+          "methods": 59,
+          "classes": 6,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.0415
+        },
+        "discovery": {
+          "methods": 165,
+          "classes": 19,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.1162
+        },
+        "wholeAssembly": {
+          "methods": 188,
+          "classes": 22,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.1324
+        }
+      }
+    },
+    {
+      "index": 11,
+      "source": "sample",
+      "types": 1,
+      "assemblies": 1,
+      "levelZero": {
+        "methods": 1420,
+        "classes": 167,
+        "assemblies": 1
+      },
+      "layers": {
+        "references": {
+          "methods": 530,
+          "classes": 67,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.3732
+        },
+        "discovery": {
+          "methods": 540,
+          "classes": 70,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.3803
+        },
+        "wholeAssembly": {
+          "methods": 540,
+          "classes": 70,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.3803
+        }
+      }
+    },
+    {
+      "index": 12,
+      "source": "sample",
+      "types": 1,
+      "assemblies": 1,
+      "levelZero": {
+        "methods": 1420,
+        "classes": 167,
+        "assemblies": 1
+      },
+      "layers": {
+        "references": {
+          "methods": 484,
+          "classes": 63,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.3408
+        },
+        "discovery": {
+          "methods": 494,
+          "classes": 66,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.3479
+        },
+        "wholeAssembly": {
+          "methods": 494,
+          "classes": 66,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.3479
+        }
+      }
+    },
+    {
+      "index": 13,
+      "source": "sample",
+      "types": 1,
+      "assemblies": 1,
+      "levelZero": {
+        "methods": 1420,
+        "classes": 167,
+        "assemblies": 1
+      },
+      "layers": {
+        "references": {
+          "methods": 492,
+          "classes": 64,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.3465
+        },
+        "discovery": {
+          "methods": 502,
+          "classes": 67,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.3535
+        },
+        "wholeAssembly": {
+          "methods": 502,
+          "classes": 67,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.3535
+        }
+      }
+    },
+    {
+      "index": 14,
+      "source": "sample",
+      "types": 1,
+      "assemblies": 1,
+      "levelZero": {
+        "methods": 1420,
+        "classes": 167,
+        "assemblies": 1
+      },
+      "layers": {
+        "references": {
+          "methods": 52,
+          "classes": 5,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.0366
+        },
+        "discovery": {
+          "methods": 52,
+          "classes": 5,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.0366
+        },
+        "wholeAssembly": {
+          "methods": 188,
+          "classes": 22,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.1324
+        }
+      }
+    },
+    {
+      "index": 15,
+      "source": "sample",
+      "types": 1,
+      "assemblies": 1,
+      "levelZero": {
+        "methods": 1420,
+        "classes": 167,
+        "assemblies": 1
+      },
+      "layers": {
+        "references": {
+          "methods": 516,
+          "classes": 65,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.3634
+        },
+        "discovery": {
+          "methods": 526,
+          "classes": 68,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.3704
+        },
+        "wholeAssembly": {
+          "methods": 526,
+          "classes": 68,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.3704
+        }
+      }
+    },
+    {
+      "index": 16,
+      "source": "sample",
+      "types": 1,
+      "assemblies": 1,
+      "levelZero": {
+        "methods": 1420,
+        "classes": 167,
+        "assemblies": 1
+      },
+      "layers": {
+        "references": {
+          "methods": 110,
+          "classes": 14,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.0775
+        },
+        "discovery": {
+          "methods": 110,
+          "classes": 14,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.0775
+        },
+        "wholeAssembly": {
+          "methods": 192,
+          "classes": 23,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.1352
+        }
+      }
+    },
+    {
+      "index": 17,
+      "source": "sample",
+      "types": 1,
+      "assemblies": 1,
+      "levelZero": {
+        "methods": 1420,
+        "classes": 167,
+        "assemblies": 1
+      },
+      "layers": {
+        "references": {
+          "methods": 106,
+          "classes": 13,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.0746
+        },
+        "discovery": {
+          "methods": 106,
+          "classes": 13,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.0746
+        },
+        "wholeAssembly": {
+          "methods": 188,
+          "classes": 22,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.1324
+        }
+      }
+    },
+    {
+      "index": 18,
+      "source": "sample",
+      "types": 1,
+      "assemblies": 1,
+      "levelZero": {
+        "methods": 1420,
+        "classes": 167,
+        "assemblies": 1
+      },
+      "layers": {
+        "references": {
+          "methods": 59,
+          "classes": 6,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.0415
+        },
+        "discovery": {
+          "methods": 165,
+          "classes": 19,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.1162
+        },
+        "wholeAssembly": {
+          "methods": 188,
+          "classes": 22,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.1324
+        }
+      }
+    },
+    {
+      "index": 19,
+      "source": "sample",
+      "types": 1,
+      "assemblies": 1,
+      "levelZero": {
+        "methods": 1420,
+        "classes": 167,
+        "assemblies": 1
+      },
+      "layers": {
+        "references": {
+          "methods": 96,
+          "classes": 11,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.0676
+        },
+        "discovery": {
+          "methods": 96,
+          "classes": 11,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.0676
+        },
+        "wholeAssembly": {
+          "methods": 188,
+          "classes": 22,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.1324
+        }
+      }
+    },
+    {
+      "index": 20,
+      "source": "sample",
+      "types": 1,
+      "assemblies": 1,
+      "levelZero": {
+        "methods": 1420,
+        "classes": 167,
+        "assemblies": 1
+      },
+      "layers": {
+        "references": {
+          "methods": 213,
+          "classes": 27,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.15
+        },
+        "discovery": {
+          "methods": 213,
+          "classes": 27,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.15
+        },
+        "wholeAssembly": {
+          "methods": 295,
+          "classes": 36,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.2077
+        }
+      }
+    },
+    {
+      "index": 21,
+      "source": "sample",
+      "types": 1,
+      "assemblies": 1,
+      "levelZero": {
+        "methods": 1420,
+        "classes": 167,
+        "assemblies": 1
+      },
+      "layers": {
+        "references": {
+          "methods": 557,
+          "classes": 68,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.3923
+        },
+        "discovery": {
+          "methods": 567,
+          "classes": 71,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.3993
+        },
+        "wholeAssembly": {
+          "methods": 567,
+          "classes": 71,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.3993
+        }
+      }
+    },
+    {
+      "index": 22,
+      "source": "sample",
+      "types": 1,
+      "assemblies": 1,
+      "levelZero": {
+        "methods": 1420,
+        "classes": 167,
+        "assemblies": 1
+      },
+      "layers": {
+        "references": {
+          "methods": 530,
+          "classes": 67,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.3732
+        },
+        "discovery": {
+          "methods": 540,
+          "classes": 70,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.3803
+        },
+        "wholeAssembly": {
+          "methods": 540,
+          "classes": 70,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.3803
+        }
+      }
+    },
+    {
+      "index": 23,
+      "source": "sample",
+      "types": 7,
+      "assemblies": 1,
+      "levelZero": {
+        "methods": 1420,
+        "classes": 167,
+        "assemblies": 1
+      },
+      "layers": {
+        "references": {
+          "methods": 13,
+          "classes": 1,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.0092
+        },
+        "discovery": {
+          "methods": 56,
+          "classes": 7,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.0394
+        },
+        "wholeAssembly": {
+          "methods": 56,
+          "classes": 7,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.0394
+        }
+      }
+    },
+    {
+      "index": 24,
+      "source": "sample",
+      "types": 1,
+      "assemblies": 1,
+      "levelZero": {
+        "methods": 1420,
+        "classes": 167,
+        "assemblies": 1
+      },
+      "layers": {
+        "references": {
+          "methods": 575,
+          "classes": 76,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.4049
+        },
+        "discovery": {
+          "methods": 575,
+          "classes": 76,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.4049
+        },
+        "wholeAssembly": {
+          "methods": 575,
+          "classes": 76,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.4049
+        }
+      }
+    },
+    {
+      "index": 25,
+      "source": "sample",
+      "types": 1,
+      "assemblies": 1,
+      "levelZero": {
+        "methods": 1420,
+        "classes": 167,
+        "assemblies": 1
+      },
+      "layers": {
+        "references": {
+          "methods": 110,
+          "classes": 14,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.0775
+        },
+        "discovery": {
+          "methods": 162,
+          "classes": 19,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.1141
+        },
+        "wholeAssembly": {
+          "methods": 192,
+          "classes": 23,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.1352
+        }
+      }
+    },
+    {
+      "index": 26,
+      "source": "sample",
+      "types": 1,
+      "assemblies": 1,
+      "levelZero": {
+        "methods": 1420,
+        "classes": 167,
+        "assemblies": 1
+      },
+      "layers": {
+        "references": {
+          "methods": 6,
+          "classes": 1,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.0042
+        },
+        "discovery": {
+          "methods": 6,
+          "classes": 1,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.0042
+        },
+        "wholeAssembly": {
+          "methods": 194,
+          "classes": 23,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.1366
+        }
+      }
+    },
+    {
+      "index": 27,
+      "source": "sample",
+      "types": 1,
+      "assemblies": 1,
+      "levelZero": {
+        "methods": 1420,
+        "classes": 167,
+        "assemblies": 1
+      },
+      "layers": {
+        "references": {
+          "methods": 530,
+          "classes": 67,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.3732
+        },
+        "discovery": {
+          "methods": 540,
+          "classes": 70,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.3803
+        },
+        "wholeAssembly": {
+          "methods": 540,
+          "classes": 70,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.3803
+        }
+      }
+    },
+    {
+      "index": 28,
+      "source": "sample",
+      "types": 1,
+      "assemblies": 1,
+      "levelZero": {
+        "methods": 1420,
+        "classes": 167,
+        "assemblies": 1
+      },
+      "layers": {
+        "references": {
+          "methods": 188,
+          "classes": 25,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.1324
+        },
+        "discovery": {
+          "methods": 188,
+          "classes": 25,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.1324
+        },
+        "wholeAssembly": {
+          "methods": 270,
+          "classes": 34,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.1901
+        }
+      }
+    },
+    {
+      "index": 29,
+      "source": "sample",
+      "types": 1,
+      "assemblies": 1,
+      "levelZero": {
+        "methods": 1420,
+        "classes": 167,
+        "assemblies": 1
+      },
+      "layers": {
+        "references": {
+          "methods": 484,
+          "classes": 63,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.3408
+        },
+        "discovery": {
+          "methods": 494,
+          "classes": 66,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.3479
+        },
+        "wholeAssembly": {
+          "methods": 494,
+          "classes": 66,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.3479
+        }
+      }
+    },
+    {
+      "index": 30,
+      "source": "sample",
+      "types": 1,
+      "assemblies": 1,
+      "levelZero": {
+        "methods": 1420,
+        "classes": 167,
+        "assemblies": 1
+      },
+      "layers": {
+        "references": {
+          "methods": 106,
+          "classes": 13,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.0746
+        },
+        "discovery": {
+          "methods": 106,
+          "classes": 13,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.0746
+        },
+        "wholeAssembly": {
+          "methods": 188,
+          "classes": 22,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.1324
+        }
+      }
+    },
+    {
+      "index": 31,
+      "source": "sample",
+      "types": 1,
+      "assemblies": 1,
+      "levelZero": {
+        "methods": 1420,
+        "classes": 167,
+        "assemblies": 1
+      },
+      "layers": {
+        "references": {
+          "methods": 528,
+          "classes": 65,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.3718
+        },
+        "discovery": {
+          "methods": 538,
+          "classes": 68,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.3789
+        },
+        "wholeAssembly": {
+          "methods": 538,
+          "classes": 68,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.3789
+        }
+      }
+    },
+    {
+      "index": 32,
+      "source": "sample",
+      "types": 1,
+      "assemblies": 1,
+      "levelZero": {
+        "methods": 1420,
+        "classes": 167,
+        "assemblies": 1
+      },
+      "layers": {
+        "references": {
+          "methods": 19,
+          "classes": 3,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.0134
+        },
+        "discovery": {
+          "methods": 158,
+          "classes": 18,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.1113
+        },
+        "wholeAssembly": {
+          "methods": 188,
+          "classes": 22,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.1324
+        }
+      }
+    },
+    {
+      "index": 33,
+      "source": "sample",
+      "types": 2,
+      "assemblies": 1,
+      "levelZero": {
+        "methods": 1420,
+        "classes": 167,
+        "assemblies": 1
+      },
+      "layers": {
+        "references": {
+          "methods": 32,
+          "classes": 1,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.0225
+        },
+        "discovery": {
+          "methods": 32,
+          "classes": 1,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.0225
+        },
+        "wholeAssembly": {
+          "methods": 188,
+          "classes": 22,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.1324
+        }
+      }
+    },
+    {
+      "index": 34,
+      "source": "sample",
+      "types": 1,
+      "assemblies": 1,
+      "levelZero": {
+        "methods": 1420,
+        "classes": 167,
+        "assemblies": 1
+      },
+      "layers": {
+        "references": {
+          "methods": 484,
+          "classes": 63,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.3408
+        },
+        "discovery": {
+          "methods": 494,
+          "classes": 66,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.3479
+        },
+        "wholeAssembly": {
+          "methods": 494,
+          "classes": 66,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.3479
+        }
+      }
+    },
+    {
+      "index": 35,
+      "source": "sample",
+      "types": 1,
+      "assemblies": 1,
+      "levelZero": {
+        "methods": 1420,
+        "classes": 167,
+        "assemblies": 1
+      },
+      "layers": {
+        "references": {
+          "methods": 52,
+          "classes": 5,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.0366
+        },
+        "discovery": {
+          "methods": 52,
+          "classes": 5,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.0366
+        },
+        "wholeAssembly": {
+          "methods": 188,
+          "classes": 22,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.1324
+        }
+      }
+    },
+    {
+      "index": 36,
+      "source": "sample",
+      "types": 1,
+      "assemblies": 1,
+      "levelZero": {
+        "methods": 1420,
+        "classes": 167,
+        "assemblies": 1
+      },
+      "layers": {
+        "references": {
+          "methods": 118,
+          "classes": 17,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.0831
+        },
+        "discovery": {
+          "methods": 170,
+          "classes": 22,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.1197
+        },
+        "wholeAssembly": {
+          "methods": 200,
+          "classes": 26,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.1408
+        }
+      }
+    },
+    {
+      "index": 37,
+      "source": "sample",
+      "types": 1,
+      "assemblies": 1,
+      "levelZero": {
+        "methods": 1420,
+        "classes": 167,
+        "assemblies": 1
+      },
+      "layers": {
+        "references": {
+          "methods": 580,
+          "classes": 75,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.4085
+        },
+        "discovery": {
+          "methods": 590,
+          "classes": 78,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.4155
+        },
+        "wholeAssembly": {
+          "methods": 590,
+          "classes": 78,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.4155
+        }
+      }
+    },
+    {
+      "index": 38,
+      "source": "sample",
+      "types": 1,
+      "assemblies": 1,
+      "levelZero": {
+        "methods": 1420,
+        "classes": 167,
+        "assemblies": 1
+      },
+      "layers": {
+        "references": {
+          "methods": 557,
+          "classes": 68,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.3923
+        },
+        "discovery": {
+          "methods": 567,
+          "classes": 71,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.3993
+        },
+        "wholeAssembly": {
+          "methods": 567,
+          "classes": 71,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.3993
+        }
+      }
+    },
+    {
+      "index": 39,
+      "source": "sample",
+      "types": 1,
+      "assemblies": 1,
+      "levelZero": {
+        "methods": 1420,
+        "classes": 167,
+        "assemblies": 1
+      },
+      "layers": {
+        "references": {
+          "methods": 156,
+          "classes": 22,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.1099
+        },
+        "discovery": {
+          "methods": 156,
+          "classes": 22,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.1099
+        },
+        "wholeAssembly": {
+          "methods": 238,
+          "classes": 31,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.1676
+        }
+      }
+    },
+    {
+      "index": 40,
+      "source": "sample",
+      "types": 1,
+      "assemblies": 1,
+      "levelZero": {
+        "methods": 1420,
+        "classes": 167,
+        "assemblies": 1
+      },
+      "layers": {
+        "references": {
+          "methods": 166,
+          "classes": 23,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.1169
+        },
+        "discovery": {
+          "methods": 166,
+          "classes": 23,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.1169
+        },
+        "wholeAssembly": {
+          "methods": 248,
+          "classes": 32,
+          "assemblies": 1,
+          "shareOfLevelZero": 0.1746
+        }
+      }
+    }
+  ]
+}

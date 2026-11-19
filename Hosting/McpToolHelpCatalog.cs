@@ -63,6 +63,13 @@ public static class McpToolHelpCatalog
                 Pitfalls = "Saved .cs edits sync without reset. Do not use this to restart a rebuilt MCP binary — use stop_mcp_server.",
                 RelatedTools = ["load_workspace", "stop_mcp_server"],
             },
+            ["estimate_affected_tests"] = new()
+            {
+                Prerequisites = "Requires load_workspace. Approximate selection never replaces the full suite or CI.",
+                Workflow = "Synchronizes saved disk and MCP edits, then estimates changes since the first load of this solution. depth=changed|direct|di|all (default all) selects a cumulative stage. includeDetails lists changed members, compiled types and classes. run=true builds projects sequentially in the loaded configuration/platform, narrows against the fresh outputs, then tests in parallel without rebuilding. maxParallelProjects=0 uses half the logical processors, with a minimum of one. Use 1 to build and test each project in turn when projects share ports, files or databases. timeoutSeconds applies to each build or test process.",
+                Pitfalls = "Unknown snapshots, stale assemblies, observation gaps and unmeasured runtime identities can require the whole project. Empty stages skip the test process. Names in strings or configuration may hide dependencies. Reload of the same solution preserves the baseline and any observation-gap limitation. Failed builds, tests and timeouts leave other projects eligible to run. MCP cancellation kills all active process trees and skips work that has not started.",
+                RelatedTools = ["run_test_by_filter", "run_dotnet_test", "load_workspace"],
+            },
             ["get_code_skeleton"] = new()
             {
                 Workflow = "Pass a .cs file or a directory (recursive, skips bin/obj/Test/Tests, at most 20 files). No workspace required.",

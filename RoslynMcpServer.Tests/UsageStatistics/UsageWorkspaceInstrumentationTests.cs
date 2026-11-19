@@ -66,7 +66,7 @@ public sealed class UsageWorkspaceInstrumentationTests
             await usage.StopAsync(CancellationToken.None);
         }
 
-        var events = files.ReadEvents();
+        var events = await files.ReadEventsAsync(usage);
         var loads = events.Where(item => item.GetProperty("ev").GetString() == "load").ToArray();
         Assert.Equal(3, loads.Length);
         Assert.True(loads[0].GetProperty("success").GetBoolean());
@@ -125,7 +125,7 @@ public sealed class UsageWorkspaceInstrumentationTests
             await usage.StopAsync(CancellationToken.None);
         }
 
-        var events = files.ReadEvents();
+        var events = await files.ReadEventsAsync(usage);
         var load = Assert.Single(events.Where(item => item.GetProperty("ev").GetString() == "load"));
         Assert.Equal("lazy", load.GetProperty("source").GetString());
         Assert.True(load.GetProperty("success").GetBoolean());
@@ -179,7 +179,7 @@ public sealed class UsageWorkspaceInstrumentationTests
             await usage.StopAsync(CancellationToken.None);
         }
 
-        var events = files.ReadEvents();
+        var events = await files.ReadEventsAsync(usage);
         var load = Assert.Single(events, item => item.GetProperty("ev").GetString() == "load");
         Assert.Equal("explicit", load.GetProperty("source").GetString());
         var calls = events.Where(item => item.GetProperty("ev").GetString() == "tool").ToArray();
