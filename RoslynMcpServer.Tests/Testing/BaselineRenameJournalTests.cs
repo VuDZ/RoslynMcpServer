@@ -210,7 +210,11 @@ public sealed class BaselineRenameJournalTests
         var after = Path.Combine(parent, "index");
         await File.WriteAllTextAsync(before, "metadata");
         File.Move(before, after);
-        fixture.Manager.NotifyDiskWatcherRename(fixture.Manager.DiskWatcherSession!,
+        var session = fixture.Manager.DiskWatcherSession!;
+        // macOS can deliver change notifications along with a rename, after the old path is already gone.
+        fixture.Manager.NotifyDiskWatcherChange(session, new FileSystemEventArgs(WatcherChangeTypes.Changed, parent, "temp.lock"));
+        fixture.Manager.NotifyDiskWatcherChange(session, new FileSystemEventArgs(WatcherChangeTypes.Created, parent, "index"));
+        fixture.Manager.NotifyDiskWatcherRename(session,
             new RenamedEventArgs(WatcherChangeTypes.Renamed, parent, "index", "temp.lock"));
         var view = fixture.Manager.Baseline.GetSnapshot();
         Assert.False(view.RequiresFullScan);

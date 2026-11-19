@@ -3132,10 +3132,21 @@ public sealed class SolutionManager
             return QueueDiskPathWithoutMap(session, fullPath, recordBaselineWrite);
         }
 
-        if (WorkspaceDiskPathFilter.IsIgnoredPath(fullPath)
-            && !WorkspaceDiskEventClassifier.ShouldClassifyIgnoredPath(map, fullPath))
+        if (WorkspaceDiskPathFilter.IsIgnoredPath(fullPath))
         {
-            return null;
+            if (!WorkspaceDiskEventClassifier.ShouldClassifyIgnoredPath(map, fullPath))
+            {
+                return null;
+            }
+
+            // macOS can report Changed or Created for the same path before a rename or deletion.
+            // Keep its event notice while applying the baseline's ignore rule to unmapped paths.
+            // https://github.com/dotnet/runtime/blob/v10.0.15/src/libraries/System.IO.FileSystem.Watcher/src/System/IO/FileSystemWatcher.OSX.cs#L470-L484
+            if (recordBaselineWrite && changeType is (WatcherChangeTypes.Changed or WatcherChangeTypes.Created)
+                && map.Find(fullPath) is null)
+            {
+                recordBaselineWrite = !WorkspaceDiskPathFilter.IsIgnoredPath(fullPath, session.WorkspaceDirectory);
+            }
         }
 
         var decision = WorkspaceDiskEventClassifier.Classify(fullPath, map);
