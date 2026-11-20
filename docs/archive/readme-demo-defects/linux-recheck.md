@@ -1,8 +1,9 @@
 # Повторная проверка исправлений на нативном Linux
 
 **Дата** — 2026-11-20. **Ревизия** — `958c3d0` (`fix: resolve README demo defects for 1.6.1`), сервер 1.6.1.0.
-**Статус** — CI-сюиты пройдены, сквозная проверка на Jellyfin выполнена частично, найден дефект N-01,
-появившийся до ветки. Оставшиеся шаги описаны в разделе [«Что осталось проверить»](#что-осталось-проверить).
+**Статус** — 2026-11-21 проверка завершена на `ad7ebb3`. CI-сюиты пройдены, на Jellyfin подтверждены D-01…D-06,
+D-08 и исправление N-01. [Итоги на `ad7ebb3`](#проверка-на-ad7ebb3). Ниже сохранены промежуточные результаты
+на `958c3d0`, где был найден N-01, появившийся ещё до ветки.
 
 Цель — независимо повторить приёмку из [отчёта реализации](implementation.md) на машине, отличной от Windows и WSL2.
 
@@ -30,8 +31,8 @@
 
 | ID | Сценарий | Результат |
 |---|---|---|
-| D-01 | [b](recheck/b-d01-pending-baseline.json): правка через `sed -i` сразу после загрузки, `run: true` | **Подтверждено частично.** Ответ за 0,8 с: `Source baseline capture is in progress (2391 pending document(s))`, 294 байта, процессы не запускались. Повтор без `run` вернул тот же статус. Шаги после окончания захвата не выполнены |
-| D-02 | [c](recheck/c-d02-atomic-save.json), контроль [d](recheck/d-d02-plain-write-control.json) | **Не выполнено**: прогон остановлен, проверку перенесли на более мощную машину |
+| D-01 | [b](recheck/b-d01-pending-baseline.json): правка через `sed -i` сразу после загрузки, `run: true` | **Подтверждено частично.** Ответ за 0,8 с: `Source baseline capture is in progress (2391 pending document(s))`, 294 байта, процессы не запускались. Повтор без `run` вернул тот же статус. Шаги после окончания захвата завершены на `ad7ebb3`, см. [итоги](#проверка-на-ad7ebb3) |
+| D-02 | [c](recheck/c-d02-atomic-save.json), контроль [d](recheck/d-d02-plain-write-control.json) | Прогон на `958c3d0` остановлен. **Подтверждено** на `ad7ebb3`, см. [итоги](#проверка-на-ad7ebb3) |
 | D-03 | [a](recheck/a-build-navigation.json): `find_implementations IRemoteMetadataProvider` | **Подтверждено.** Два заголовка: `…IRemoteMetadataProvider` и `…IRemoteMetadataProvider<TItemType, TLookupInfoType>`, итог `12 unique related type(s)`, 24 строки связей. Запрос `MediaBrowser.Controller.Providers.IRemoteMetadataProvider` вернул только необобщённый тип, 12 типов |
 | D-04 | a: скелеты `RestRequest` и `TMDbClient` | **Подтверждено.** `public RestRequest(TMDbLib.Rest.RestClient client, string endpoint);`, `Task<TMDbLib.Rest.RestResponse> Get(...)`. Токенов метаданных и `!` нет, `?` на месте. `TMDbClient` занимает 39 469 байт вместо прежних 53 654 символов |
 | D-05 | a: `run_specific_test SeasonPathParserTests` | **Подтверждено.** 79 из 79, превью: два отдельно размеченных имени методов |
@@ -105,7 +106,45 @@ loaded workspace snapshot». Ответ 1.6.1 занял 14 107 байт, 1.6.0 
 - Пересмотреть `noIncremental=true` по умолчанию у `run_dotnet_build` или описать в `AGENTS.md.sample`, что
   полная пересборка сбивает оценку TIA.
 
-## Что осталось проверить
+## Проверка на `ad7ebb3`
+
+2026-11-21, та же машина и те же SDK. Ревизия `ad7ebb3` (`fix: preserve TIA precision after rebuilds`)
+содержит исправление [N-01](n01-investigation.md).
+
+| Проверка | Результат |
+|---|---|
+| `dotnet build RoslynMcpServer.sln -c Release` | 0 ошибок |
+| `SourceStructure` | 128 из 128 |
+| Основная сюита, Linux-фильтр | 2688 из 2688, 14 мин 2 с, пропусков нет |
+| `AnalyzerLifecycle` с `ROSLYN_MCP_ANALYZER_LIFECYCLE=1` | 13 из 13 |
+
+Сквозные сценарии на Jellyfin шли в порядке f, e, b, c, d, перед каждым рабочее дерево было чистым.
+
+- **N-01**, сценарий [f](recheck/f-n01-fix-full-rebuild.json). Полная пересборка решения через `run_dotnet_build`
+  по умолчанию (`--no-incremental`, `timeoutSeconds: 1800`) прошла за 240 с. Оценка до и после — `0 members in
+  0 files`, `Run plan: 0 projects`, `Not covered: none`. `run_specific_test StubTests` прошёл 2 из 2 без заметки
+  о `.cs`. После правки `StubResolver.TryResolveFile` и второй полной пересборки: `1 members in 1 files`, 1 изменённый
+  тип, план из 14 проектов, из них 4 с фильтрами и 10 без тестов, `Not covered: none`.
+- **N-01**, сценарий [e](recheck/e-n01-rebuild-and-reload.json). После пересборки `Jellyfin.Naming.Tests` с
+  `--no-incremental`, после повторной загрузки и после инкрементальной сборки везде `0 members in 0 files`,
+  `0 projects`, `Not covered: none`.
+- **D-01**, сценарий [b](recheck/b-d01-pending-baseline.json). Сразу после загрузки с `run: true`:
+  `Source baseline capture is in progress (2392 pending document(s))`, 294 байта, процессы не запускались. После
+  захвата: `0 members in 0 files`, отдельная строка `Baseline unknown in 1 file(s): .../StubResolver.cs`, 14 проектов
+  целиком, потому что `Emby.Naming.dll is not newer than the last edit`. Ответ 7 456 байт против 457 067 в исходном
+  наблюдении. Повторные вызовы через 90 и 180 секунд дали тот же ответ.
+- **D-02**, сценарии [c](recheck/c-d02-atomic-save.json) и [d](recheck/d-d02-plain-write-control.json). Оценки без
+  `run` после `sed -i` и после обычной записи совпали побайтно: `1 members in 1 files`, `Not covered: none`, ответ
+  32 686 байт, то есть подробности обрезаны лимитом D-01. Прогоны с `run: true` совпали по плану, фильтрам и итогам:
+  1 изменённый тип, 14 проектов, 4 прошли (346, 514, 29 и 166 тестов, из них 3 пропустил сам Jellyfin),
+  10 не выбрали тестов. Нет `Path outside the loaded input map`, stale-графа и заметки о `.cs` в `run_specific_test`.
+
+Первый прогон `d` начался с DLL `Emby.Naming`, собранной в сценарии `c` из изменённого исходника. Его `run: true`
+поэтому не нашёл изменённого типа и не запустил тестов. Это ошибка порядка проверки, а не продукта. После
+инкрементальной сборки чистого Jellyfin повтор `d` дал результат выше. Перед сравнением на одной копии нужно
+собирать решение из чистого дерева.
+
+## Как повторить
 
 Сценарии запускаются так (Jellyfin заранее собран, рабочее дерево чистое):
 
@@ -117,11 +156,14 @@ python3 -I docs/readme-examples/mcp_calls.py <bin/Release/net10.0/RoslynMcpServe
 Сценарии `b`, `c` и `d` правят `Emby.Naming/Video/StubResolver.cs` (`IsNullOrEmpty` → `IsNullOrWhiteSpace`) и в
 конце выполняют `git checkout .`. Перед каждым сценарием рабочее дерево Jellyfin должно быть чистым.
 
-1. **D-01**, сценарий `b`: после окончания захвата `estimate_affected_tests` показывает один изменённый файл,
-   правку до захвата — отдельной строкой `Baseline unknown in N file(s)`, ответ не больше 32 КиБ.
+Ожидаемые результаты:
+
+1. **D-01**, сценарий `b`: до окончания захвата — статус ожидания без запуска процессов; после — правка до захвата
+   отдельной строкой `Baseline unknown in N file(s)` при 0 подтверждённых изменениях, ответ не больше 32 КиБ.
 2. **D-02**, сценарии `c` и `d`: после `sed -i` и после обычной записи одинаковы число файлов, план проектов и
    выбор тестов, нет `Path outside the loaded input map` и `Project graph stale`. Прогоны с `run: true` дают
    одинаковые итоги, а `run_specific_test` в сценарии `c` не добавляет заметку о `.cs`.
+3. **N-01**, сценарии `e` и `f`: пересборка без правок оставляет план пустым, правка перед пересборкой видна.
 
 **N-01, 2026-11-21.** Повторная проверка в WSL2 подтвердила сохранение baseline после
 `reset_workspace` → `load_workspace` и роль `UserInput` для обоих файлов xUnit v3 на Jellyfin.

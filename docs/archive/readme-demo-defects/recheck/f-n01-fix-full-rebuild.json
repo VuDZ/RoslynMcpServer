@@ -1,0 +1,76 @@
+[
+ {
+  "name": "load_workspace",
+  "arguments": {
+   "workspacePath": "{root}/Jellyfin.slnx",
+   "briefOutput": true
+  },
+  "label": "load"
+ },
+ {
+  "name": "!shell",
+  "arguments": {
+   "cmd": "sleep 90"
+  },
+  "label": "wait"
+ },
+ {
+  "name": "estimate_affected_tests",
+  "arguments": {
+   "run": false
+  },
+  "label": "est-ready"
+ },
+ {
+  "name": "run_dotnet_build",
+  "arguments": {
+   "workspacePath": "{root}/Jellyfin.slnx",
+   "timeoutSeconds": 1800
+  },
+  "label": "rebuild-clean"
+ },
+ {
+  "name": "estimate_affected_tests",
+  "arguments": {
+   "run": false
+  },
+  "label": "est-after-rebuild"
+ },
+ {
+  "name": "run_specific_test",
+  "arguments": {
+   "workspacePath": "{root}/tests/Jellyfin.Naming.Tests/Jellyfin.Naming.Tests.csproj",
+   "className": "StubTests"
+  },
+  "label": "specific-stub"
+ },
+ {
+  "name": "!shell",
+  "arguments": {
+   "cmd": "sed -i 's/if (string.IsNullOrEmpty(path))/if (string.IsNullOrWhiteSpace(path))/' Emby.Naming/Video/StubResolver.cs && git diff --stat"
+  },
+  "label": "edit"
+ },
+ {
+  "name": "run_dotnet_build",
+  "arguments": {
+   "workspacePath": "{root}/Jellyfin.slnx",
+   "timeoutSeconds": 1800
+  },
+  "label": "rebuild-edited"
+ },
+ {
+  "name": "estimate_affected_tests",
+  "arguments": {
+   "run": false
+  },
+  "label": "est-after-edit-rebuild"
+ },
+ {
+  "name": "!shell",
+  "arguments": {
+   "cmd": "git checkout -q . && git status --porcelain | wc -l"
+  },
+  "label": "restore"
+ }
+]
