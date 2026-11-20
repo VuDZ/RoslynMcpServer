@@ -2,9 +2,9 @@
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
-### Unreleased
+### v1.6.0
 
-- Rapid TIA adds `estimate_affected_tests` to both tool profiles. It maps saved edits to affected VSTest projects and narrows to classes using compiled type changes and dependencies. The case-insensitive `depth` selects `changed`, `direct`, `di` or `all` (default). The estimate reports filters, whole-project reasons and `Not covered` limitations. Full test and CI requirements still apply.
+- Rapid TIA adds `estimate_affected_tests` to both tool profiles. It maps saved edits to affected VSTest projects and uses compiled type changes and dependencies to narrow whole projects to test classes. Direct edits to tests can also produce method-name filters. The case-insensitive `depth` selects `changed`, `direct`, `di` or `all` (default). The estimate reports filters, whole-project reasons and `Not covered` limitations. Full test and CI requirements still apply.
 - With `run: true`, the tool builds selected projects sequentially, narrows the plan against the fresh outputs and runs the selected tests in parallel. `maxParallelProjects: 0` selects the limit automatically. Use `1` to build and test each project in turn when projects share resources. Timeouts apply per process. Each test process uses a separate temporary results directory that is removed after processing. MCP cancellation stops active processes and skips queued projects.
 - Estimate-only calls ask for a build when outputs are stale. During `run: true`, narrowing failures after a successful build run the project whole and report the reason. Projects with an empty selection report `not run`.
 - Reloading the same solution preserves the baseline and input observation limitations. Changes are tracked in authored inputs, so recompiling a project's outputs leaves later estimates focused on the saved edits. [Rapid TIA implementation and validation](docs/rapid-tia-2/README.md).

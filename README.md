@@ -237,7 +237,7 @@ MCP `tools/list` stays JSON + JSON Schema. Markdown is for JIT help and diagnost
 
 Version history of agent-visible tools and behavior: [CHANGELOG.md](CHANGELOG.md). Current server version: see `RoslynMcpServer.csproj`.
 
-The Rapid TIA branch builds as **1.6.0**. `estimate_affected_tests` uses saved edits and compiled type dependencies to select VSTest projects and classes. With `run: true`, it builds the selected projects in order before running their tests in parallel. Use `maxParallelProjects: 1` to build and test each project in turn when projects share resources. See the tool reference and [architecture](docs/ARCHITECTURE.md#rapid-tia).
+Rapid TIA was introduced in **1.6.0**. `estimate_affected_tests` uses saved edits and compiled type dependencies to select VSTest projects and classes. With `run: true`, it builds the selected projects in order before running their tests in parallel. Use `maxParallelProjects: 1` to build and test each project in turn when projects share resources. See the tool reference and [architecture](docs/ARCHITECTURE.md#rapid-tia).
 
 In 1.5.9, name-based declaration search uses source-only lookup, preserving the exclusion of metadata-only results. Provenance replay reads newer compatible BuildHost binlogs and reports each file's format; any recoverable read error still rejects that file's provenance.
 
@@ -1203,7 +1203,7 @@ cd LOCAL_ROOT/YourApp
 
 [CHANGELOG.md](CHANGELOG.md). Правила агента — [`AGENTS.md.sample`](AGENTS.md.sample).
 
-Ветка Rapid TIA собирается с версией **1.6.0**. `estimate_affected_tests` по сохранённым правкам и зависимостям скомпилированных типов выбирает проекты и классы VSTest. При `run: true` инструмент по очереди собирает выбранные проекты, затем запускает тесты параллельно. Если проекты делят ресурсы, передайте `maxParallelProjects: 1`, чтобы собирать и тестировать каждый проект по очереди. См. справку инструмента и [архитектуру](docs/ARCHITECTURE.md#rapid-tia).
+Rapid TIA появилась в версии **1.6.0**. `estimate_affected_tests` по сохранённым правкам и зависимостям скомпилированных типов выбирает проекты и классы VSTest. При `run: true` инструмент по очереди собирает выбранные проекты, затем запускает тесты параллельно. Если проекты делят ресурсы, передайте `maxParallelProjects: 1`, чтобы собирать и тестировать каждый проект по очереди. См. справку инструмента и [архитектуру](docs/ARCHITECTURE.md#rapid-tia).
 
 ## Cursor: как заставить агента реально вызывать tools
 
