@@ -41,6 +41,25 @@ internal sealed class BaselineLifecycleFixture : IAsyncDisposable
 
     internal Task<Solution> LoadAsync() => Manager.LoadAsync(ProjectPath);
 
+    internal static void ClearReadOnlyGitObjects(string repositoryDirectory)
+    {
+        // Windows needs writable Git objects for recursive deletion. On Unix, scanning here can race
+        // Git removing its maintenance lock. See https://github.com/VuDZ/RoslynMcpServer/actions/runs/44702178815/job/136172946260.
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        var objects = new DirectoryInfo(Path.Combine(repositoryDirectory, ".git", "objects"));
+        foreach (var file in objects.EnumerateFiles("*", SearchOption.AllDirectories))
+        {
+            if (file.IsReadOnly)
+            {
+                file.IsReadOnly = false;
+            }
+        }
+    }
+
     internal async Task WriteThroughMcpAsync(string path, string source)
     {
         var tools = new EditingTools(NullLogger<EditingTools>.Instance, Manager);

@@ -35,11 +35,7 @@ public sealed class BaselineRenameJournalTests
             await Git(directory,
                 "-c user.name=BaselineTests -c user.email=baseline@example.invalid -c commit.gpgsign=false commit -m baseline");
         }
-        // Git objects are read-only on Windows; leave the temporary fixture removable after failed assertions too.
-        foreach (var file in Directory.EnumerateFiles(Path.Combine(directory, ".git", "objects"), "*", SearchOption.AllDirectories))
-        {
-            File.SetAttributes(file, FileAttributes.Normal);
-        }
+        BaselineLifecycleFixture.ClearReadOnlyGitObjects(directory);
         // Exercise the admitted rename deterministically as well as performing the real Git operation.
         var gitDirectory = Path.Combine(directory, ".git");
         fixture.Manager.NotifyDiskWatcherRename(fixture.Manager.DiskWatcherSession!,

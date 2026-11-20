@@ -231,11 +231,7 @@ public sealed class BaselineNestedSolutionRenameTests
     {
         var result = await GitChangedFilesHelper.RunGitAsync(directory, arguments, CancellationToken.None);
         Assert.True(result.Success, result.Error ?? result.Output);
-        // Git objects are read-only on Windows; keep temporary fixture cleanup possible after assertions fail.
-        foreach (var file in Directory.EnumerateFiles(Path.Combine(directory, ".git", "objects"), "*", SearchOption.AllDirectories))
-        {
-            File.SetAttributes(file, FileAttributes.Normal);
-        }
+        BaselineLifecycleFixture.ClearReadOnlyGitObjects(directory);
     }
 
     private static readonly TimeSpan _timeout = TimeSpan.FromSeconds(30);
