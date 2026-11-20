@@ -5,6 +5,15 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+    inputs:
+      macos-shard:
+        description: 'macOS ARM64 shard to run'
+        type: choice
+        default: tia-integration
+        options:
+          - unit
+          - tia-integration
+          - lifecycle
 
 permissions:
   contents: read
@@ -13,4 +22,4 @@ jobs:
   tests:
     uses: ./.github/workflows/test-suite.yml
     with:
-      macos-tia-only: ${{ github.event_name == 'workflow_dispatch' }}
+      macos-shard: ${{ inputs.macos-shard || '' }}

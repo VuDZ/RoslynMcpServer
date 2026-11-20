@@ -31,9 +31,11 @@ internal static class RoundtripProcess
         using var process = Process.Start(start)!;
         var output = process.StandardOutput.ReadToEndAsync(cancellationToken);
         var error = process.StandardError.ReadToEndAsync(cancellationToken);
+        var exitTask = process.WaitForExitAsync();
+        var cleanupTimeout = TimeSpan.FromSeconds(5);
         try
         {
-            await process.WaitForExitAsync(cancellationToken);
+            await exitTask.WaitAsync(cancellationToken);
         }
         catch
         {
@@ -41,11 +43,13 @@ internal static class RoundtripProcess
             {
                 process.Kill(entireProcessTree: true);
             }
-            await process.WaitForExitAsync(CancellationToken.None);
+            await exitTask.WaitAsync(cleanupTimeout);
             throw;
         }
-        var stdout = await output;
-        var stderr = await error;
+        // An inherited pipe can stay open after the VSTest process has exited.
+        var streams = await Task.WhenAll(output, error).WaitAsync(cleanupTimeout, cancellationToken);
+        var stdout = streams[0];
+        var stderr = streams[1];
         await File.WriteAllTextAsync(Path.Combine(directory, "child.stdout.txt"), stdout, cancellationToken);
         await File.WriteAllTextAsync(Path.Combine(directory, "child.stderr.txt"), stderr, cancellationToken);
         Assert.True(process.ExitCode == 0, stdout + "\n" + stderr);
