@@ -2,6 +2,8 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.MSBuild;
+using RoslynMcpServer.Diagnostics;
 using RoslynMcpServer.Services.Workspace.StateCache;
 using RoslynMcpServer.Services.Workspace.StateCache.Models;
 using Xunit;
@@ -93,4 +95,38 @@ internal static class RoundtripObservation
             }
         }
     }
+
+    internal static async Task CaptureAsync(string path, string directory, CancellationToken cancellationToken)
+    {
+        MsBuildBootstrapper.Register();
+        using var workspace = new AdhocWorkspace();
+        var descriptors = await new MSBuildProjectLoader(workspace).LoadProjectInfoAsync(
+            path, cancellationToken: cancellationToken);
+        workspace.AddProjects(descriptors);
+        var capture = await OrdinaryWorkspaceCapture.CaptureAsync(workspace.CurrentSolution, descriptors,
+            path, Properties(), originalAnalyzerPathsProven: true, cancellationToken);
+        Assert.Null(capture.UnsupportedReason);
+        var snapshot = Assert.IsType<WorkspaceSnapshot>(capture.Snapshot);
+        Assert.Equal(Properties(), snapshot.Properties);
+        Assert.All(snapshot.Projects, project =>
+        {
+            Assert.Equal("Debug", project.EvaluatedProperties.Values.Configuration);
+            Assert.Equal("net10.0", project.EvaluatedProperties.Values.TargetFramework);
+            Assert.Empty(project.EvaluatedProperties.UnknownProperties);
+        });
+        await File.WriteAllBytesAsync(Path.Combine(directory, "snapshot.bin"),
+            WorkspaceSnapshotCodec.Encode(snapshot), cancellationToken);
+        await File.WriteAllTextAsync(Path.Combine(directory, "ordinary.json"),
+            await ReadAsync(workspace.CurrentSolution, cancellationToken), cancellationToken);
+        await File.WriteAllTextAsync(Path.Combine(directory, "ordinary.ids"),
+            string.Join("\n", workspace.CurrentSolution.ProjectIds.Select(id => id.Id)
+                .Concat(workspace.CurrentSolution.Projects.SelectMany(AllDocuments).Select(document => document.Id.Id))),
+            cancellationToken);
+        await File.WriteAllTextAsync(Path.Combine(directory, "parent.pid"), Environment.ProcessId.ToString(), cancellationToken);
+    }
+
+    internal static SnapshotLoadProperties Properties() => new(new(null, null, null), new(null, null, null));
+
+    internal static IEnumerable<TextDocument> AllDocuments(Project project) =>
+        project.Documents.Cast<TextDocument>().Concat(project.AdditionalDocuments).Concat(project.AnalyzerConfigDocuments);
 }

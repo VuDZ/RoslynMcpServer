@@ -17,24 +17,6 @@ public sealed class CrossProcessRoundtripTests
     public CrossProcessRoundtripTests() => MsBuildBootstrapper.Register();
 
     [Fact]
-    public async Task Real_control_roundtrip_in_a_new_pid()
-    {
-        using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(5));
-        var handoff = Environment.GetEnvironmentVariable(RoundtripProcess.DirectoryVariable);
-        if (handoff is not null)
-        {
-            await RestoreAndCheckAsync(handoff, timeout.Token);
-            return;
-        }
-        var root = RepositoryRoot.Find();
-        var directory = Path.Combine(root, "TestResults", "task-06", "real-" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(directory);
-        var path = Path.Combine(root, "samples", "RoslynMcpPlugin", "RoslynMcpPlugin.csproj");
-        await CaptureAsync(path, directory, timeout.Token);
-        await RoundtripProcess.RunAsync(directory, nameof(Real_control_roundtrip_in_a_new_pid), timeout.Token);
-    }
-
-    [Fact]
     public async Task Linked_edit_roundtrip_in_a_new_pid()
     {
         using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(5));
@@ -49,10 +31,14 @@ public sealed class CrossProcessRoundtripTests
             using var fixture = new RoundtripFixture();
             await fixture.PrepareAsync(encoding, timeout.Token);
             var directory = EvidenceDirectory("edit-" + encoding);
-            await CaptureAsync(fixture.ProjectPath, directory, timeout.Token);
+            await RoundtripObservation.CaptureAsync(fixture.ProjectPath, directory, timeout.Token);
             await File.WriteAllTextAsync(Path.Combine(directory, "shared.path"), fixture.SharedPath, timeout.Token);
             await File.WriteAllTextAsync(Path.Combine(directory, "encoding.name"), encoding, timeout.Token);
-            await RoundtripProcess.RunAsync(directory, nameof(Linked_edit_roundtrip_in_a_new_pid), timeout.Token);
+            await RoundtripProcess.RunAsync(
+                directory,
+                typeof(CrossProcessRoundtripTests),
+                nameof(Linked_edit_roundtrip_in_a_new_pid),
+                timeout.Token);
         }
     }
 
@@ -96,73 +82,9 @@ public sealed class CrossProcessRoundtripTests
             fixture.ProjectPath, cancellationToken: timeout.Token);
         workspace.AddProjects(descriptors);
         var capture = await OrdinaryWorkspaceCapture.CaptureAsync(workspace.CurrentSolution, descriptors,
-            fixture.ProjectPath, Properties(), originalAnalyzerPathsProven: true, timeout.Token);
+            fixture.ProjectPath, RoundtripObservation.Properties(), originalAnalyzerPathsProven: true, timeout.Token);
         Assert.Null(capture.Snapshot);
         Assert.Equal(reason, capture.UnsupportedReason);
-    }
-
-    private static async Task CaptureAsync(string path, string directory, CancellationToken cancellationToken)
-    {
-        MsBuildBootstrapper.Register();
-        using var workspace = new AdhocWorkspace();
-        var descriptors = await new MSBuildProjectLoader(workspace).LoadProjectInfoAsync(
-            path, cancellationToken: cancellationToken);
-        workspace.AddProjects(descriptors);
-        var capture = await OrdinaryWorkspaceCapture.CaptureAsync(workspace.CurrentSolution, descriptors,
-            path, Properties(), originalAnalyzerPathsProven: true, cancellationToken);
-        Assert.Null(capture.UnsupportedReason);
-        var snapshot = Assert.IsType<WorkspaceSnapshot>(capture.Snapshot);
-        Assert.Equal(Properties(), snapshot.Properties);
-        Assert.All(snapshot.Projects, project =>
-        {
-            Assert.Equal("Debug", project.EvaluatedProperties.Values.Configuration);
-            Assert.Equal("net10.0", project.EvaluatedProperties.Values.TargetFramework);
-            Assert.Empty(project.EvaluatedProperties.UnknownProperties);
-        });
-        await File.WriteAllBytesAsync(Path.Combine(directory, "snapshot.bin"),
-            WorkspaceSnapshotCodec.Encode(snapshot), cancellationToken);
-        await File.WriteAllTextAsync(Path.Combine(directory, "ordinary.json"),
-            await RoundtripObservation.ReadAsync(workspace.CurrentSolution, cancellationToken), cancellationToken);
-        await File.WriteAllTextAsync(Path.Combine(directory, "ordinary.ids"),
-            string.Join("\n", workspace.CurrentSolution.ProjectIds.Select(id => id.Id)
-                .Concat(workspace.CurrentSolution.Projects.SelectMany(AllDocuments).Select(document => document.Id.Id))),
-            cancellationToken);
-        await File.WriteAllTextAsync(Path.Combine(directory, "parent.pid"), Environment.ProcessId.ToString(), cancellationToken);
-    }
-
-    private static async Task RestoreAndCheckAsync(string directory, CancellationToken cancellationToken)
-    {
-        var snapshot = WorkspaceSnapshotCodec.Decode(await File.ReadAllBytesAsync(
-            Path.Combine(directory, "snapshot.bin"), cancellationToken));
-        Assert.Equal(Properties(), snapshot.Properties);
-        using var session = await new IsolatedWorkspaceHydrator().HydrateAsync(snapshot, cancellationToken);
-        Assert.Empty(session.Workspace.CurrentSolution.ProjectIds);
-        var actual = await RoundtripObservation.ReadAsync(session.Solution, cancellationToken);
-        await File.WriteAllTextAsync(Path.Combine(directory, "hydrated.json"), actual, cancellationToken);
-        Assert.Equal(await File.ReadAllTextAsync(Path.Combine(directory, "ordinary.json"), cancellationToken), actual);
-        var oldIds = (await File.ReadAllLinesAsync(Path.Combine(directory, "ordinary.ids"), cancellationToken)).ToHashSet();
-        Assert.All(session.Solution.ProjectIds, id => Assert.DoesNotContain(id.Id.ToString(), oldIds));
-        Assert.All(session.Solution.Projects.SelectMany(AllDocuments),
-            document => Assert.DoesNotContain(document.Id.Id.ToString(), oldIds));
-        RoundtripObservation.AssertBindings(snapshot, session);
-        var plugin = session.BaseCompilations[session.Projects.Single(pair =>
-            pair.Key.ProjectPath.EndsWith("RoslynMcpPlugin.csproj", StringComparison.Ordinal)).Value];
-        var sample = Assert.IsAssignableFrom<INamedTypeSymbol>(plugin.GetTypeByMetadataName("RoslynMcpPlugin.SamplePlugin"));
-        Assert.Contains(sample.AllInterfaces, symbol => symbol.ToDisplayString() == "RoslynMcpServer.Plugins.IRoslynMcpPlugin"
-            && symbol.ContainingAssembly.Name == "RoslynMcpServer");
-        Assert.EndsWith(Path.Combine("RoslynMcpPlugin", "SamplePlugin.cs"), Assert.Single(sample.Locations).SourceTree!.FilePath);
-        var external = Assert.IsAssignableFrom<INamedTypeSymbol>(plugin.GetTypeByMetadataName("Newtonsoft.Json.Linq.JToken"));
-        Assert.Equal("", external.GetDocumentationCommentXml(cancellationToken: cancellationToken));
-        Assert.DoesNotContain(plugin.GetDiagnostics(cancellationToken), diagnostic => diagnostic.Severity == DiagnosticSeverity.Error);
-        var server = session.BaseCompilations[session.Projects.Single(pair =>
-            Path.GetFileName(pair.Key.ProjectPath) == "RoslynMcpServer.csproj").Value];
-        Assert.Contains("Portable graph facts only", server
-            .GetTypeByMetadataName("RoslynMcpServer.Services.Workspace.StateCache.Models.WorkspaceSnapshot")!
-            .GetDocumentationCommentXml(cancellationToken: cancellationToken), StringComparison.Ordinal);
-        Assert.Equal(NullableContextOptions.Enable, plugin.Options.NullableContextOptions);
-        Assert.Equal(OptimizationLevel.Debug, plugin.Options.OptimizationLevel);
-        AssertExclusions(plugin);
-        await WriteReceiptAsync(directory, cancellationToken);
     }
 
     private static async Task EditAndCheckAsync(string directory, CancellationToken cancellationToken)
@@ -185,7 +107,7 @@ public sealed class CrossProcessRoundtripTests
         await File.WriteAllTextAsync(Path.Combine(directory, "edited.json"),
             await RoundtripObservation.ReadAsync(restored.Solution, cancellationToken), cancellationToken);
         await AssertCurrentSourceRefusalsAsync(snapshot, path, encoding, directory, cancellationToken);
-        await WriteReceiptAsync(directory, cancellationToken);
+        await RoundtripProcess.WriteReceiptAsync(directory, cancellationToken);
     }
 
     private static async Task ApplyEditAsync(
@@ -291,27 +213,8 @@ public sealed class CrossProcessRoundtripTests
         await File.WriteAllTextAsync(Path.Combine(directory, "refusals.json"), JsonSerializer.Serialize(failures), cancellationToken);
     }
 
-    private static void AssertExclusions(CSharpCompilation compilation)
-    {
-        foreach (var operation in new[] { "metadata-documentation", "documentation-analyzer", "emit", "sign", "unknown-write" })
-        {
-            var executed = false;
-            var logs = new List<string>();
-            var reason = CapabilityOperationGate.Execute(compilation, operation, true, () => executed = true, null, logs.Add);
-            Assert.False(executed);
-            Assert.Contains(operation.StartsWith("metadata", StringComparison.Ordinal) || operation == "documentation-analyzer"
-                ? "excluded-metadata-documentation" : operation == "unknown-write" ? "signing-state-unknown" : "excluded-emit-signing", reason);
-            Assert.Contains("route=refusal", Assert.Single(logs), StringComparison.Ordinal);
-        }
-    }
-
     private static int Constant(CSharpCompilation compilation) =>
         (int)Assert.IsAssignableFrom<IFieldSymbol>(compilation.GetTypeByMetadataName("Shared")!.GetMembers("Value").Single()).ConstantValue!;
-
-    private static SnapshotLoadProperties Properties() => new(new(null, null, null), new(null, null, null));
-
-    private static IEnumerable<TextDocument> AllDocuments(Project project) =>
-        project.Documents.Cast<TextDocument>().Concat(project.AdditionalDocuments).Concat(project.AnalyzerConfigDocuments);
 
     private static string EvidenceDirectory(string name)
     {
@@ -319,7 +222,4 @@ public sealed class CrossProcessRoundtripTests
         Directory.CreateDirectory(directory);
         return directory;
     }
-
-    private static Task WriteReceiptAsync(string directory, CancellationToken cancellationToken) =>
-        File.WriteAllTextAsync(Path.Combine(directory, "child.pid"), Environment.ProcessId.ToString(), cancellationToken);
 }

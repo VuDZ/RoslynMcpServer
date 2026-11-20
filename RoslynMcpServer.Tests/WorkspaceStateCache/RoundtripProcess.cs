@@ -8,7 +8,7 @@ internal static class RoundtripProcess
 {
     public const string DirectoryVariable = "ROSLYN_TASK06_DIRECTORY";
 
-    public static async Task RunAsync(string directory, string method, CancellationToken cancellationToken)
+    public static async Task RunAsync(string directory, Type testClass, string method, CancellationToken cancellationToken)
     {
         var start = new ProcessStartInfo("dotnet")
         {
@@ -19,8 +19,8 @@ internal static class RoundtripProcess
         };
         foreach (var argument in new[]
         {
-            "vstest", typeof(CrossProcessRoundtripTests).Assembly.Location,
-            "--TestCaseFilter:FullyQualifiedName=RoslynMcpServer.Tests.WorkspaceStateCache.CrossProcessRoundtripTests." + method,
+            "vstest", testClass.Assembly.Location,
+            $"--TestCaseFilter:FullyQualifiedName={testClass.FullName}.{method}",
             "--logger:trx;LogFileName=child.trx", "--ResultsDirectory:" + directory,
         })
         {
@@ -61,4 +61,7 @@ internal static class RoundtripProcess
         var receipt = await File.ReadAllTextAsync(Path.Combine(directory, "child.pid"), cancellationToken);
         Assert.NotEqual(Environment.ProcessId, int.Parse(receipt));
     }
+
+    internal static Task WriteReceiptAsync(string directory, CancellationToken cancellationToken) =>
+        File.WriteAllTextAsync(Path.Combine(directory, "child.pid"), Environment.ProcessId.ToString(), cancellationToken);
 }

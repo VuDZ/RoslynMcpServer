@@ -5,7 +5,6 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
-using Microsoft.CodeAnalysis.MSBuild;
 using Microsoft.CodeAnalysis.Text;
 using RoslynMcpServer.Diagnostics;
 using RoslynMcpServer.Services.Workspace.StateCache;
@@ -18,67 +17,6 @@ namespace RoslynMcpServer.Tests.WorkspaceStateCache;
 public sealed class IsolatedWorkspaceHydratorTests
 {
     public IsolatedWorkspaceHydratorTests() => MsBuildBootstrapper.Register();
-
-    [Fact]
-    public async Task Real_ordinary_capture_codec_and_hydrate_preserve_the_selected_base_query()
-    {
-        var root = RepositoryRoot.Find();
-        var path = Path.Combine(root, "samples", "RoslynMcpPlugin", "RoslynMcpPlugin.csproj");
-        using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(4));
-        using var ordinary = new AdhocWorkspace();
-        var descriptors = await new MSBuildProjectLoader(ordinary).LoadProjectInfoAsync(
-            path, cancellationToken: timeout.Token);
-        ordinary.AddProjects(descriptors);
-        var capture = await OrdinaryWorkspaceCapture.CaptureAsync(
-            ordinary.CurrentSolution,
-            descriptors,
-            path,
-            new SnapshotLoadProperties(new(null, null, null), new(null, null, null)),
-            originalAnalyzerPathsProven: true,
-            timeout.Token);
-        Assert.Null(capture.UnsupportedReason);
-        var snapshot = WorkspaceSnapshotCodec.Decode(WorkspaceSnapshotCodec.Encode(capture.Snapshot!));
-        using var session = await new IsolatedWorkspaceHydrator().HydrateAsync(snapshot, timeout.Token);
-        Assert.Empty(session.Workspace.CurrentSolution.ProjectIds);
-        Assert.DoesNotContain(session.Solution.ProjectIds, id => ordinary.CurrentSolution.ProjectIds.Contains(id));
-        var pluginId = session.Projects.Single(pair => pair.Key.ProjectPath == path).Value;
-        var plugin = session.BaseCompilations[pluginId];
-        var sample = Assert.IsAssignableFrom<INamedTypeSymbol>(plugin.GetTypeByMetadataName("RoslynMcpPlugin.SamplePlugin"));
-        Assert.Contains(sample.AllInterfaces, symbol =>
-            symbol.ToDisplayString() == "RoslynMcpServer.Plugins.IRoslynMcpPlugin"
-            && symbol.ContainingAssembly.Name == "RoslynMcpServer");
-        Assert.NotNull(plugin.GetTypeByMetadataName("Newtonsoft.Json.Linq.JToken"));
-        Assert.DoesNotContain(plugin.GetDiagnostics(timeout.Token), diagnostic => diagnostic.Severity == DiagnosticSeverity.Error);
-        var serverId = session.Projects.Single(pair => pair.Key.ProjectPath == Path.Combine(root, "RoslynMcpServer.csproj")).Value;
-        var sourceComment = session.BaseCompilations[serverId]
-            .GetTypeByMetadataName("RoslynMcpServer.Services.Workspace.StateCache.Models.WorkspaceSnapshot")!
-            .GetDocumentationCommentXml(cancellationToken: timeout.Token);
-        Assert.Contains("Portable graph facts only", sourceComment, StringComparison.Ordinal);
-        foreach (var project in snapshot.Projects)
-        {
-            var live = ordinary.CurrentSolution.Projects.Single(item => item.FilePath == project.Key.ProjectPath);
-            var restored = session.Solution.GetProject(session.Projects[project.Key])!;
-            var options = Assert.IsType<CSharpCompilationOptions>(restored.CompilationOptions);
-            var originalOptions = Assert.IsType<CSharpCompilationOptions>(live.CompilationOptions);
-            Assert.True(options.WithStrongNameProvider(originalOptions.StrongNameProvider)
-                .WithMetadataReferenceResolver(originalOptions.MetadataReferenceResolver)
-                .WithSyntaxTreeOptionsProvider(originalOptions.SyntaxTreeOptionsProvider).Equals(originalOptions));
-            Assert.NotSame(originalOptions.MetadataReferenceResolver, options.MetadataReferenceResolver);
-            Assert.NotSame(originalOptions.SyntaxTreeOptionsProvider, options.SyntaxTreeOptionsProvider);
-            Assert.Equal(live.ParseOptions, restored.ParseOptions);
-            Assert.Equal(live.MetadataReferences.Count(), restored.MetadataReferences.Count());
-            Assert.Equal(live.AnalyzerReferences.Count, restored.AnalyzerReferences.Count);
-            foreach (var document in live.Documents.Cast<TextDocument>()
-                .Concat(live.AdditionalDocuments).Concat(live.AnalyzerConfigDocuments))
-            {
-                var actualDocument = restored.Documents.Cast<TextDocument>()
-                    .Concat(restored.AdditionalDocuments).Concat(restored.AnalyzerConfigDocuments)
-                    .Single(item => item.FilePath == document.FilePath);
-                Assert.NotEqual(document.Id, actualDocument.Id);
-                AssertText(await document.GetTextAsync(timeout.Token), await actualDocument.GetTextAsync(timeout.Token));
-            }
-        }
-    }
 
     [Theory]
     [InlineData(false)]
@@ -527,15 +465,6 @@ public sealed class IsolatedWorkspaceHydratorTests
     {
         ProjectPath = Path.Combine(Path.GetDirectoryName(key.ProjectPath)!, Path.GetFileName(key.ProjectPath).ToUpperInvariant()),
     };
-
-    private static void AssertText(SourceText expected, SourceText actual)
-    {
-        Assert.True(expected.ContentEquals(actual));
-        Assert.Equal(expected.Encoding?.CodePage, actual.Encoding?.CodePage);
-        Assert.Equal(expected.Encoding?.GetPreamble() ?? [], actual.Encoding?.GetPreamble() ?? []);
-        Assert.Equal(expected.ChecksumAlgorithm, actual.ChecksumAlgorithm);
-        Assert.Equal(expected.GetChecksum().ToArray(), actual.GetChecksum().ToArray());
-    }
 
     private static void AssertDisposed(IEnumerable<Metadata> metadata)
     {

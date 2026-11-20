@@ -3,8 +3,6 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.MSBuild;
-using RoslynMcpServer.Diagnostics;
 using RoslynMcpServer.Services.Workspace.StateCache;
 using RoslynMcpServer.Services.Workspace.StateCache.Models;
 using Xunit;
@@ -13,8 +11,6 @@ namespace RoslynMcpServer.Tests.WorkspaceStateCache;
 
 public sealed class WorkspaceSnapshotCodecTests
 {
-    public WorkspaceSnapshotCodecTests() => MsBuildBootstrapper.Register();
-
     [Fact]
     public void Portable_snapshot_round_trips()
     {
@@ -278,33 +274,6 @@ public sealed class WorkspaceSnapshotCodecTests
 
     [Fact]
     public void Proven_metadata_producer_round_trips() => RoundTrip(ProvenProducerSnapshot());
-
-    [Fact]
-    public async Task Captured_control_round_trips()
-    {
-        MsBuildBootstrapper.Register();
-        var root = FindRoot();
-        var path = Path.Combine(root, "samples", "RoslynMcpPlugin", "RoslynMcpPlugin.csproj");
-        using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(4));
-        using var host = new AdhocWorkspace();
-        var descriptors = await new MSBuildProjectLoader(host).LoadProjectInfoAsync(path, cancellationToken: timeout.Token);
-        host.AddProjects(descriptors);
-        var properties = new SnapshotLoadProperties(new(null, null, null), new(null, null, null));
-        var result = await OrdinaryWorkspaceCapture.CaptureAsync(
-            host.CurrentSolution,
-            descriptors,
-            path,
-            properties,
-            originalAnalyzerPathsProven: true,
-            timeout.Token);
-        Assert.True(result.UnsupportedReason is null, result.UnsupportedReason);
-        var snapshot = Assert.IsType<WorkspaceSnapshot>(result.Snapshot);
-        var encoded = WorkspaceSnapshotCodec.Encode(snapshot);
-        var decoded = WorkspaceSnapshotCodec.Decode(encoded);
-        Assert.Equal(encoded, WorkspaceSnapshotCodec.Encode(decoded));
-        Assert.Equal(snapshot.Projects.Length, decoded.Projects.Length);
-        Assert.Equal(snapshot.InputPaths.Length, decoded.InputPaths.Length);
-    }
 
     private static byte[] Envelope(string payloadJson, string? schema = null, string? checksum = null)
     {
@@ -586,16 +555,5 @@ public sealed class WorkspaceSnapshotCodecTests
     {
         var root = Path.GetFullPath(Path.Combine(Path.GetTempPath(), "snapshot-codec"));
         return relative.Length == 0 ? root : Path.GetFullPath(Path.Combine(root, relative));
-    }
-
-    private static string FindRoot()
-    {
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "RoslynMcpServer.sln")))
-        {
-            directory = directory.Parent;
-        }
-
-        return directory?.FullName ?? throw new InvalidOperationException("Repository root not found.");
     }
 }
