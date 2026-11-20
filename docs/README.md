@@ -4,7 +4,7 @@
 
 | Роль | Что это |
 |---|---|
-| **Reference** | Как система ведёт себя сейчас: [ARCHITECTURE.md](ARCHITECTURE.md), корневой README, tool `[Description]` |
+| **Reference** | Как система ведёт себя сейчас: [ARCHITECTURE.md](ARCHITECTURE.md), [setup.md](setup.md) и [tools.md](tools.md) (русские версии рядом), tool `[Description]`; корневой README — знакомство и быстрый старт |
 | **Active** | План, который ещё может менять код |
 | **Backlog** | Отложенная программа; исторические результаты сохранены, исполнение не продолжается автоматически |
 | **Contract** | Спека shipped-фичи, пока факты не полностью влиты в ARCHITECTURE |
@@ -29,7 +29,7 @@
 
 ## Contract
 
-Нет. Факты shipped-фич — в [ARCHITECTURE.md](ARCHITECTURE.md) и корневом README.
+Нет. Факты shipped-фич — в [ARCHITECTURE.md](ARCHITECTURE.md), [setup.md](setup.md) и [tools.md](tools.md).
 Руководство по плагинам — [samples/RoslynMcpPlugin/README.md](../samples/RoslynMcpPlugin/README.md).
 
 ## Backlog

@@ -1,0 +1,232 @@
+# explore_assembly {"assemblyName": "TMDbLib"}
+
+Assembly: `TMDbLib.dll`
+Path: `~/.nuget/packages/tmdblib/3.0.0/lib/net10.0/TMDbLib.dll`
+Namespaces: 26, Types: 175
+
+## TMDbLib.Client
+- class TMDbClient
+
+## TMDbLib.Objects.Account
+- class AccountDetails
+- class Avatar
+- class Gravatar
+
+## TMDbLib.Objects.Authentication
+- class GuestSession
+- class GuestSessionRequiredException
+- class Token
+- class UserSession
+- class UserSessionRequiredException
+
+## TMDbLib.Objects.Certifications
+- class CertificationItem
+- class CertificationsContainer
+
+## TMDbLib.Objects.Changes
+- class Change
+- class ChangeItemAdded
+- class ChangeItemBase
+- class ChangeItemCreated
+- class ChangeItemDeleted
+- class ChangeItemDestroyed
+- class ChangeItemUpdated
+- class ChangesContainer
+- class ChangesListItem
+
+## TMDbLib.Objects.Collections
+- class Collection
+
+## TMDbLib.Objects.Companies
+- class Company
+
+## TMDbLib.Objects.Configuration
+- class APIConfiguration
+- class APIConfigurationImages
+
+## TMDbLib.Objects.Countries
+- class Country
+
+## TMDbLib.Objects.Credit
+- class Credit
+- class CreditEpisode
+- class CreditMedia
+- class CreditPerson
+- class CreditSeason
+
+## TMDbLib.Objects.Discover
+- class DiscoverBase
+- class DiscoverMovie
+- class DiscoverTv
+
+## TMDbLib.Objects.Exceptions
+- class APIException
+- class GeneralHttpException
+- class NotFoundException
+- class RequestLimitExceededException
+- class TMDbException
+- class TMDbStatusMessage
+
+## TMDbLib.Objects.Find
+- class FindContainer
+- class FindPerson
+- class FindTvSeason
+
+## TMDbLib.Objects.General
+- class AccountState
+- class AlternativeName
+- class AlternativeNames
+- class AlternativeTitle
+- class ConfigImageTypes
+- class Crew
+- class CrewAggregate
+- class CrewBase
+- class CrewJob
+- class DateRange
+- class ExternalIds
+- class ExternalIdsMovie
+- class ExternalIdsPerson
+- class ExternalIdsTvEpisode
+- class ExternalIdsTvSeason
+- class ExternalIdsTvShow
+- class Genre
+- class ImageData
+- class Images
+- class ImagesWithId
+- class Job
+- class Keyword
+- class PosterImages
+- class ProductionCompany
+- class ProductionCountry
+- class ResultContainer
+- class SearchContainer
+- class SearchContainerWithDates
+- class SearchContainerWithId
+- class SingleResultContainer
+- class StillImages
+- class TMDbConfig
+- class Translation
+- class TranslationData
+- class TranslationsContainer
+- class TranslationsContainerTv
+- class Video
+- class WatchProvider
+- class WatchProviderItem
+- class WatchProviderRegion
+- class WatchProviders
+
+## TMDbLib.Objects.Genres
+- class GenreContainer
+
+## TMDbLib.Objects.Languages
+- class Language
+
+## TMDbLib.Objects.Lists
+- class AccountList
+- class GenericList
+- class ListStatus
+- class TMDbList
+
+## TMDbLib.Objects.Movies
+- class AlternativeTitles
+- class Cast
+- class Country
+- class Credits
+- class KeywordsContainer
+- class ListResult
+- class Movie
+- class ReleaseDateItem
+- class ReleaseDatesContainer
+- class Releases
+- class SpokenLanguage
+
+## TMDbLib.Objects.People
+- class CombinedCredits
+- class CombinedCreditsCastBase
+- class CombinedCreditsCastMovie
+- class CombinedCreditsCastTv
+- class CombinedCreditsCrewBase
+- class CombinedCreditsCrewMovie
+- class CombinedCreditsCrewTv
+- class MovieCredits
+- class MovieJob
+- class MovieRole
+- class Person
+- class ProfileImages
+- class TaggedImage
+- class TvCredits
+- class TvJob
+- class TvRole
+
+## TMDbLib.Objects.Reviews
+- class AuthorDetails
+- class Review
+- class ReviewBase
+
+## TMDbLib.Objects.Search
+- class AccountSearchTv
+- class AccountSearchTvEpisode
+- class KnownForBase
+- class KnownForMovie
+- class KnownForTv
+- class SearchBase
+- class SearchCollection
+- class SearchCompany
+- class SearchKeyword
+- class SearchMovie
+- class SearchMovieTvBase
+- class SearchMovieWithRating
+- class SearchPerson
+- class SearchTv
+- class SearchTvEpisode
+- class SearchTvSeason
+- class SearchTvShowWithRating
+- class TvSeasonEpisode
+
+## TMDbLib.Objects.Timezones
+- class Timezones
+
+## TMDbLib.Objects.TvShows
+- class Cast
+- class CastAggregate
+- class CastBase
+- class CastRole
+- class ContentRating
+- class CreatedBy
+- class Credits
+- class CreditsAggregate
+- class CreditsWithGuestStars
+- class Network
+- class NetworkBase
+- class NetworkLogos
+- class NetworkWithLogo
+- class TvAccountState
+- class TvEpisode
+- class TvEpisodeAccountState
+- class TvEpisodeAccountStateWithNumber
+- class TvEpisodeBase
+- class TvEpisodeInfo
+- class TvEpisodeWithRating
+- class TvGroup
+- class TvGroupCollection
+- class TvGroupEpisode
+- class TvSeason
+- class TvShow
+
+## TMDbLib.Utilities
+- class EnumExtensions
+- class EnumValueAttribute
+- class SimpleNamedValueCollection
+- class TMDbAPIProxy
+
+## TMDbLib.Utilities.Converters
+- class CustomDatetimeFormatConverter
+- class TmdbNullIntAsZero
+- class TmdbPartialDateConverter
+- class TmdbUtcTimeConverter
+- class TolerantEnumConverter
+
+## TMDbLib.Utilities.Serializer
+- interface ITMDbSerializer
+- class SerializerExtensions
+- class TMDbJsonSerializer

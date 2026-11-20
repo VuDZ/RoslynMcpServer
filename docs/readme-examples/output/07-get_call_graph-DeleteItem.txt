@@ -1,0 +1,32 @@
+# get_call_graph {"filePath": "Emby.Server.Implementations/Library/LibraryManager.cs", "className": "LibraryManager", "methodName": "DeleteItem", "line": 421, "column": 21}
+
+## Call graph
+
+**Target:** `void LibraryManager.DeleteItem(BaseItem item, DeleteOptions options, BaseItem parent, bool notifyParentItem)`
+
+### Callers (who invokes this method)
+- `void LibraryManager.DeleteItem(BaseItem item, DeleteOptions options, bool notifyParentItem)` — `<jellyfin>/Emby.Server.Implementations/Library/LibraryManager.cs:358`
+- `Task<QueryResult<BaseItem>> ChannelManager.GetChannelItemsInternal(InternalItemsQuery query, IProgress<double> progress, CancellationToken cancellationToken)` — `<jellyfin>/src/Jellyfin.LiveTv/Channels/ChannelManager.cs:765`
+- `Task Folder.ValidateChildrenInternal2(IProgress<double> progress, bool recursive, bool refreshChildMetadata, bool allowRemoveRoot, MetadataRefreshOptions refreshOptions, IDirectoryService directoryService, CancellationToken cancellationToken)` — `<jellyfin>/MediaBrowser.Controller/Entities/Folder.cs:527`
+- `Task PlaylistManager.RemovePlaylistsAsync(Guid userId)` — `<jellyfin>/Emby.Server.Implementations/Playlists/PlaylistManager.cs:591`
+
+### Callees (what this method calls)
+- `BaseItem? LibraryManager.GetItemById(Guid id)` — `<jellyfin>/Emby.Server.Implementations/Library/LibraryManager.cs:1689`
+- `bool Guid.IsEmpty()` — `<jellyfin>/src/Jellyfin.Extensions/GuidExtensions.cs:16`
+- `bool IFileSystem.FileExists(string path)` — `<jellyfin>/MediaBrowser.Model/IO/IFileSystem.cs:242`
+- `bool LibraryManager.IsInternalItem(BaseItem item)` — `<jellyfin>/Emby.Server.Implementations/Library/LibraryManager.cs:684`
+- `IEnumerable<FileSystemMetadata> BaseItem.GetDeletePaths()` — `<jellyfin>/MediaBrowser.Controller/Entities/BaseItem.cs:2653`
+- `IEnumerable<Guid> LibraryManager.GetLocalAlternateVersionIds(Video video)` — `<jellyfin>/Emby.Server.Implementations/Library/LibraryManager.cs:2297`
+- `IEnumerable<Video> LibraryManager.GetLinkedAlternateVersions(Video video)` — `<jellyfin>/Emby.Server.Implementations/Library/LibraryManager.cs:2311`
+- `IReadOnlyList<BaseItem> Folder.GetRecursiveChildren(bool includeLinkedChildren)` — `<jellyfin>/MediaBrowser.Controller/Entities/Folder.cs:1637`
+- `List<string> LibraryManager.GetMetadataPaths(BaseItem item, IEnumerable<BaseItem> children)` — `<jellyfin>/Emby.Server.Implementations/Library/LibraryManager.cs:714`
+- `Task IChannelManager.DeleteItem(BaseItem item)` — `<jellyfin>/MediaBrowser.Controller/Channels/IChannelManager.cs:35`
+- `Task LibraryManager.RerouteLinkedChildReferencesAsync(Guid fromChildId, Guid toChildId)` — `<jellyfin>/Emby.Server.Implementations/Library/LibraryManager.cs:4168`
+- `Task Video.UpdateToRepositoryAsync(ItemUpdateType updateReason, CancellationToken cancellationToken)` — `<jellyfin>/MediaBrowser.Controller/Entities/Video.cs:704`
+- `void BaseItem.SetParent(Folder parent)` — `<jellyfin>/MediaBrowser.Controller/Entities/BaseItem.cs:1651`
+- `void IExternalDataManager.DeleteExternalItemFiles(BaseItem item)` — `<jellyfin>/MediaBrowser.Controller/IO/IExternalDataManager.cs:25`
+- `void IItemPersistenceService.DeleteItem(params IReadOnlyList<Guid> ids)` — `<jellyfin>/MediaBrowser.Controller/Persistence/IItemPersistenceService.cs:18`
+- `void LibraryManager.DeleteItem(BaseItem item, DeleteOptions options, bool notifyParentItem)` — `<jellyfin>/Emby.Server.Implementations/Library/LibraryManager.cs:352`
+- `void LibraryManager.DeleteItemPath(BaseItem item, bool isRequiredForDelete, FileSystemMetadata fileSystemInfo)` — `<jellyfin>/Emby.Server.Implementations/Library/LibraryManager.cs:627`
+- `void LibraryManager.ReportItemRemoved(BaseItem item, BaseItem parent)` — `<jellyfin>/Emby.Server.Implementations/Library/LibraryManager.cs:2810`
+- `void Video.SetPrimaryVersionId(Guid? id)` — `<jellyfin>/MediaBrowser.Controller/Entities/Video.cs:332`

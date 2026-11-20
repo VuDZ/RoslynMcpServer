@@ -1,0 +1,33 @@
+# find_usages {"symbolName": "GetItemById", "maxResults": 20}
+
+## References for `GetItemById`
+
+Found **4** declaration group(s), **514** location(s).
+
+- `Emby.Server.Implementations.Library.LibraryManager.GetItemById` (method, 4 overloads, 246 location(s))
+- `Jellyfin.LiveTv.Channels.ChannelManager.GetItemById` (method, 12 location(s))
+- `MediaBrowser.Controller.Library.ILibraryManager.GetItemById` (method, 4 overloads, 246 location(s))
+- `MediaBrowser.Controller.Library.LibraryManagerExtensions.GetItemById` (method, 10 location(s))
+
+- `Emby.Server.Implementations.Library.LibraryManager.GetItemById` <jellyfin>/Emby.Server.Implementations/Collections/CollectionManager.cs:144:53
+- `Emby.Server.Implementations.Library.LibraryManager.GetItemById` <jellyfin>/Emby.Server.Implementations/Collections/CollectionManager.cs:232:33
+- `Emby.Server.Implementations.Library.LibraryManager.GetItemById` <jellyfin>/Emby.Server.Implementations/Collections/CollectionManager.cs:244:44
+- `Emby.Server.Implementations.Library.LibraryManager.GetItemById` <jellyfin>/Emby.Server.Implementations/Collections/CollectionManager.cs:288:33
+- `Emby.Server.Implementations.Library.LibraryManager.GetItemById` <jellyfin>/Emby.Server.Implementations/Collections/CollectionManager.cs:298:49
+- `Emby.Server.Implementations.Library.LibraryManager.GetItemById` <jellyfin>/Emby.Server.Implementations/Data/CleanDatabaseScheduledTask.cs:65:40
+- `Emby.Server.Implementations.Library.LibraryManager.GetItemById` <jellyfin>/Emby.Server.Implementations/Dto/DtoService.cs:774:36
+- `Emby.Server.Implementations.Library.LibraryManager.GetItemById` <jellyfin>/Emby.Server.Implementations/Dto/DtoService.cs:1677:47
+- `Emby.Server.Implementations.Library.LibraryManager.GetItemById` <jellyfin>/Emby.Server.Implementations/Dto/DtoService.cs:1725:53
+- `Emby.Server.Implementations.Library.LibraryManager.GetItemById` <jellyfin>/Emby.Server.Implementations/Library/LibraryManager.cs:469:35
+- `Emby.Server.Implementations.Library.LibraryManager.GetItemById` <jellyfin>/Emby.Server.Implementations/Library/LibraryManager.cs:545:21
+- `Emby.Server.Implementations.Library.LibraryManager.GetItemById` <jellyfin>/Emby.Server.Implementations/Library/LibraryManager.cs:874:56
+- `Emby.Server.Implementations.Library.LibraryManager.GetItemById` <jellyfin>/Emby.Server.Implementations/Library/LibraryManager.cs:1105:30
+- `Emby.Server.Implementations.Library.LibraryManager.GetItemById` <jellyfin>/Emby.Server.Implementations/Library/LibraryManager.cs:1132:26
+- `Emby.Server.Implementations.Library.LibraryManager.GetItemById` <jellyfin>/Emby.Server.Implementations/Library/LibraryManager.cs:1170:39
+- `Emby.Server.Implementations.Library.LibraryManager.GetItemById` <jellyfin>/Emby.Server.Implementations/Library/LibraryManager.cs:1231:17
+- `Emby.Server.Implementations.Library.LibraryManager.GetItemById` <jellyfin>/Emby.Server.Implementations/Library/LibraryManager.cs:1371:24
+- `Emby.Server.Implementations.Library.LibraryManager.GetItemById` <jellyfin>/Emby.Server.Implementations/Library/LibraryManager.cs:1715:24
+- `Emby.Server.Implementations.Library.LibraryManager.GetItemById` <jellyfin>/Emby.Server.Implementations/Library/LibraryManager.cs:1729:20
+- `Emby.Server.Implementations.Library.LibraryManager.GetItemById` <jellyfin>/Emby.Server.Implementations/Library/LibraryManager.cs:1736:24
+
+[!] Showing 20 of 514 location(s) (maxResults=20). 494 more stored in-memory — list is **not complete** until overflow is fetched. Pass `overflowCursor`=`794a7ff942394134bb78142fac5f6397` to the same tool for the next chunk (16000 chars; TTL 30 min).

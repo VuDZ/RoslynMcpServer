@@ -3,7 +3,7 @@
   Copy into application repos as AGENTS.md — no machine-specific paths.
   Tool params/caps live in MCP tool [Description]; do not duplicate them here.
   Maintainers: when tools or agent-visible behavior change, update this file AND
-  README.md («Agent tools by version» + Reference: MCP Tools) together.
+  CHANGELOG.md and docs/tools.md (tool reference) together.
 -->
 
 # INITIALIZATION SEQUENCE: AI Agent Behavioral Rules
@@ -101,6 +101,6 @@ Portable `AGENTS.md` is not enough. Each app should document:
 | README (Agent section) | Executable `.csproj` for `run_dotnet_run`, sample args, `global.json` pin |
 | `.cursor/rules` (optional) | Integration notes, secret **names** (not values) |
 
-Tool history: RoslynMcpServer README «Agent tools by version».
+Tool history: RoslynMcpServer CHANGELOG.md.
 
 Server 1.5.9 uses source-only declaration lookup for name-based navigation; metadata-only symbols remain excluded. Newer compatible BuildHost binlogs can be replayed, but skipped or unreadable records still leave provenance incomplete and cannot authorize analyzer overlay publication.

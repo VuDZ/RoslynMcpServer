@@ -1,0 +1,11 @@
+[
+  {"name": "load_workspace", "arguments": {"workspacePath": "{root}/Jellyfin.slnx", "briefOutput": true}, "label": "load_workspace"},
+  {"name": "find_usages", "arguments": {"symbolName": "GetItemById", "maxResults": 20}, "label": "find_usages-GetItemById"},
+  {"name": "find_symbol_definition", "arguments": {"symbolName": "GetItemById"}, "label": "find_symbol_definition-GetItemById"},
+  {"name": "rename_symbol", "arguments": {"filePath": "MediaBrowser.Controller/Library/ILibraryManager.cs", "symbolName": "GetItemById", "newName": "FindItemById", "line": 201, "column": 19, "scope": "solution", "previewOnly": true}, "label": "rename_symbol-preview"},
+  {"name": "explore_assembly", "arguments": {"assemblyName": "TMDbLib"}, "label": "explore_assembly-TMDbLib"},
+  {"name": "get_decompiled_method_body", "arguments": {"assemblyName": "TMDbLib", "fullTypeName": "TMDbLib.Rest.RestRequest", "methodName": "SendInternal"}, "label": "get_decompiled_method_body-SendInternal"},
+  {"name": "find_implementations", "arguments": {"symbolName": "IScheduledTask"}, "label": "find_implementations-IScheduledTask"},
+  {"name": "get_call_graph", "arguments": {"filePath": "Emby.Server.Implementations/Library/LibraryManager.cs", "className": "LibraryManager", "methodName": "DeleteItem", "line": 421, "column": 21}, "label": "get_call_graph-DeleteItem"},
+  {"name": "rename_symbol", "arguments": {"filePath": "MediaBrowser.Controller/Library/ILibraryManager.cs", "symbolName": "GetItemById", "newName": "FindItemById", "line": 201, "column": 19, "scope": "solution", "previewOnly": false}, "label": "rename_symbol-apply"}
+]

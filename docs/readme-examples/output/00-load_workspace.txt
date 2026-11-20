@@ -1,0 +1,66 @@
+# load_workspace {"workspacePath": "<jellyfin>/Jellyfin.slnx", "briefOutput": true}
+
+### Workspace health
+- **Solution/project:** `<jellyfin>/Jellyfin.slnx`
+- **DotNet working directory:** `<jellyfin>`
+- **Projects loaded:** 41
+- **MSBuild Configuration:** (SDK/workspace default)
+- **MSBuild Platform:** (SDK/workspace default)
+- **MSBuild TargetFramework:** (SDK/workspace default)
+- **BuildArgs:** (none)
+- **global.json:** `<jellyfin>/global.json`
+- **Pinned SDK (global.json):** 10.0.0
+- **Resolved SDK directory:** (not resolved)
+- **Restore assets:** ok (41/41 projects have project.assets.json)
+- **Tool profile:** `full`
+- **Startup tool groups:** (none)
+- **Dynamic tool groups:** (none)
+- **Registered MCP tools:** 55 (use `get_mcp_server_info` for binary path)
+
+> **Workflow:** Call `load_workspace` first. Build/test/run via `run_dotnet_build`, `run_dotnet_test`, `run_dotnet_run` — not raw shell `dotnet`. Find usages: `find_usages` / `find_symbol_references` (alias: find_references).
+
+Successfully loaded workspace. Found 41 projects:
+- Emby.Naming [Web API]
+- Emby.Photos [Web API]
+- Emby.Server.Implementations [Web API]
+- Jellyfin.Api [Web API]
+- Jellyfin.Api.Tests [Test]
+- Jellyfin.CodeAnalysis [Library]
+- Jellyfin.Common.Tests [Test]
+- Jellyfin.Controller.Tests [Test]
+- Jellyfin.Data [Library]
+- Jellyfin.Database.Implementations [Library]
+- Jellyfin.Database.Providers.Sqlite [Web API]
+- Jellyfin.Drawing [Web API]
+- Jellyfin.Drawing.Skia [Web API]
+- Jellyfin.Drawing.Skia.Tests [Test]
+- Jellyfin.Extensions [Library]
+- Jellyfin.Extensions.Tests [Test]
+- Jellyfin.LiveTv [Web API]
+- Jellyfin.LiveTv.Tests [Test]
+- Jellyfin.MediaEncoding.Hls [Web API]
+- Jellyfin.MediaEncoding.Hls.Tests [Test]
+- Jellyfin.MediaEncoding.Keyframes [Library]
+- Jellyfin.MediaEncoding.Keyframes.Tests [Test]
+- Jellyfin.MediaEncoding.Tests [Test]
+- Jellyfin.Model.Tests [Test]
+- Jellyfin.Naming.Tests [Test]
+- Jellyfin.Networking [Web API]
+- Jellyfin.Networking.Tests [Test]
+- Jellyfin.Providers.Tests [Test]
+- Jellyfin.Server [Web API]
+- Jellyfin.Server.Implementations [Web API]
+- Jellyfin.Server.Implementations.Tests [Test]
+- Jellyfin.Server.Integration.Tests [Test]
+- Jellyfin.Server.Tests [Test]
+- Jellyfin.XbmcMetadata.Tests [Test]
+- MediaBrowser.Common [Web API]
+- MediaBrowser.Controller [Web API]
+- MediaBrowser.LocalMetadata [Web API]
+- MediaBrowser.MediaEncoding [Web API]
+- MediaBrowser.Model [Web API]
+- MediaBrowser.Providers [Web API]
+- MediaBrowser.XbmcMetadata [Web API]
+
+Workspace diagnostics (brief): 1 warning. Categories: MSBuild design-time 1. Pass briefOutput=false for full messages.
+

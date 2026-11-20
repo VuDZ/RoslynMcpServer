@@ -1,0 +1,29 @@
+# find_implementations {"symbolName": "IScheduledTask"}
+
+## implementations (transitive) for `IScheduledTask`
+
+**Base symbol:** `IScheduledTask` (interface)
+`global::MediaBrowser.Model.Tasks.IScheduledTask`
+
+Found **20** type(s):
+
+1. `AudioNormalizationTask` — <jellyfin>/Emby.Server.Implementations/ScheduledTasks/Tasks/AudioNormalizationTask.cs:28:22
+2. `ChapterImagesTask` — <jellyfin>/Emby.Server.Implementations/ScheduledTasks/Tasks/ChapterImagesTask.cs:25:14
+3. `CleanActivityLogTask` — <jellyfin>/Emby.Server.Implementations/ScheduledTasks/Tasks/CleanActivityLogTask.cs:15:14
+4. `CleanupUserDataTask` — <jellyfin>/Emby.Server.Implementations/ScheduledTasks/Tasks/CleanupUserDataTask.cs:20:14
+5. `DeleteCacheFileTask` — <jellyfin>/Emby.Server.Implementations/ScheduledTasks/Tasks/DeleteCacheFileTask.cs:19:14
+6. `DeleteLogFileTask` — <jellyfin>/Emby.Server.Implementations/ScheduledTasks/Tasks/DeleteLogFileTask.cs:17:14
+7. `DeleteTranscodeFileTask` — <jellyfin>/Emby.Server.Implementations/ScheduledTasks/Tasks/DeleteTranscodeFileTask.cs:18:14
+8. `MediaSegmentExtractionTask` — <jellyfin>/Emby.Server.Implementations/ScheduledTasks/Tasks/MediaSegmentExtractionTask.cs:19:14
+9. `OptimizeDatabaseTask` — <jellyfin>/Emby.Server.Implementations/ScheduledTasks/Tasks/OptimizeDatabaseTask.cs:16:14
+10. `PeopleValidationTask` — <jellyfin>/Emby.Server.Implementations/ScheduledTasks/Tasks/PeopleValidationTask.cs:26:14
+11. `PluginUpdateTask` — <jellyfin>/Emby.Server.Implementations/ScheduledTasks/Tasks/PluginUpdateTask.cs:18:14
+12. `RefreshMediaLibraryTask` — <jellyfin>/Emby.Server.Implementations/ScheduledTasks/Tasks/RefreshMediaLibraryTask.cs:15:14
+13. `RefreshChannelsScheduledTask` — <jellyfin>/src/Jellyfin.LiveTv/Channels/RefreshChannelsScheduledTask.cs:16:18
+14. `RefreshGuideScheduledTask` — <jellyfin>/src/Jellyfin.LiveTv/Guide/RefreshGuideScheduledTask.cs:15:14
+15. `KeyframeExtractionScheduledTask` — <jellyfin>/src/Jellyfin.MediaEncoding.Hls/ScheduledTasks/KeyframeExtractionScheduledTask.cs:18:14
+16. `LyricScheduledTask` — <jellyfin>/MediaBrowser.Providers/Lyric/LyricScheduledTask.cs:23:14
+17. `SubtitleScheduledTask` — <jellyfin>/MediaBrowser.Providers/MediaInfo/SubtitleScheduledTask.cs:23:18
+18. `TmdbUpcomingEpisodesTask` — <jellyfin>/MediaBrowser.Providers/Plugins/Tmdb/TV/TmdbUpcomingEpisodesTask.cs:24:18
+19. `TrickplayImagesTask` — <jellyfin>/MediaBrowser.Providers/Trickplay/TrickplayImagesTask.cs:19:14
+20. `TrickplayMoveImagesTask` — <jellyfin>/MediaBrowser.Providers/Trickplay/TrickplayMoveImagesTask.cs:19:14

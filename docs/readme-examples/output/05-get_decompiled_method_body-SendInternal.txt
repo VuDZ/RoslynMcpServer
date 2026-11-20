@@ -1,0 +1,62 @@
+# get_decompiled_method_body {"assemblyName": "TMDbLib", "fullTypeName": "TMDbLib.Rest.RestRequest", "methodName": "SendInternal"}
+
+using System;
+using System.Net;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Threading;
+using System.Threading.Tasks;
+using Newtonsoft.Json;
+using TMDbLib.Objects.Exceptions;
+
+private async Task<HttpResponseMessage?> SendInternal(HttpMethod method, CancellationToken cancellationToken)
+{
+	int timesToTry = _client.MaxRetryCount + 1;
+	RetryConditionHeaderValue retryHeader = null;
+	TMDbStatusMessage statusMessage = null;
+	do
+	{
+		using HttpRequestMessage req = PrepRequest(method);
+		HttpResponseMessage resp = await _client.HttpClient.SendAsync(req, cancellationToken).ConfigureAwait(continueOnCapturedContext: false);
+		bool valueOrDefault = resp.Content.Headers.ContentType?.MediaType?.Equals("application/json", StringComparison.OrdinalIgnoreCase) == true;
+		if (resp.IsSuccessStatusCode && valueOrDefault)
+		{
+			return resp;
+		}
+		statusMessage = ((!valueOrDefault) ? null : JsonConvert.DeserializeObject<TMDbStatusMessage>(await resp.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(continueOnCapturedContext: false)));
+		switch (resp.StatusCode)
+		{
+		case HttpStatusCode.TooManyRequests:
+		{
+			retryHeader = resp.Headers.RetryAfter;
+			TimeSpan? timeSpan = retryHeader?.Delta;
+			if (!timeSpan.HasValue || !(timeSpan.Value.TotalSeconds > 0.0))
+			{
+				await Task.Delay(TimeSpan.FromSeconds(1L), cancellationToken).ConfigureAwait(continueOnCapturedContext: false);
+			}
+			else
+			{
+				await Task.Delay(timeSpan.Value, cancellationToken).ConfigureAwait(continueOnCapturedContext: false);
+			}
+			resp.Dispose();
+			break;
+		}
+		case HttpStatusCode.Unauthorized:
+			resp.Dispose();
+			throw new UnauthorizedAccessException("Call to TMDb returned unauthorized. Most likely the provided API key is invalid.");
+		case HttpStatusCode.NotFound:
+			if (_client.ThrowApiExceptions)
+			{
+				resp.Dispose();
+				throw new NotFoundException(statusMessage);
+			}
+			resp.Dispose();
+			return null;
+		default:
+			resp.Dispose();
+			throw new GeneralHttpException(resp.StatusCode);
+		}
+	}
+	while (timesToTry-- > 0);
+	throw new RequestLimitExceededException(statusMessage, retryHeader?.Date, retryHeader?.Delta);
+}

@@ -1,0 +1,63 @@
+# find_symbol_definition {"symbolName": "GetItemById"}
+
+Found 10 declaration symbol(s) matching `GetItemById`:
+
+Symbol: BaseItem? LibraryManager.GetItemById(Guid id)
+  Full name: Emby.Server.Implementations.Library.LibraryManager.GetItemById
+  File: <jellyfin>/Emby.Server.Implementations/Library/LibraryManager.cs
+  Line: 1689
+  Column: 26
+
+Symbol: T? LibraryManager.GetItemById<T>(Guid id)
+  Full name: Emby.Server.Implementations.Library.LibraryManager.GetItemById
+  File: <jellyfin>/Emby.Server.Implementations/Library/LibraryManager.cs
+  Line: 1712
+  Column: 19
+
+Symbol: T? LibraryManager.GetItemById<T>(Guid id, Guid userId)
+  Full name: Emby.Server.Implementations.Library.LibraryManager.GetItemById
+  File: <jellyfin>/Emby.Server.Implementations/Library/LibraryManager.cs
+  Line: 1725
+  Column: 19
+
+Symbol: T? LibraryManager.GetItemById<T>(Guid id, User? user)
+  Full name: Emby.Server.Implementations.Library.LibraryManager.GetItemById
+  File: <jellyfin>/Emby.Server.Implementations/Library/LibraryManager.cs
+  Line: 1733
+  Column: 19
+
+Symbol: BaseItem? ILibraryManager.GetItemById(Guid id)
+  Full name: MediaBrowser.Controller.Library.ILibraryManager.GetItemById
+  File: <jellyfin>/MediaBrowser.Controller/Library/ILibraryManager.cs
+  Line: 201
+  Column: 19
+
+Symbol: T? ILibraryManager.GetItemById<T>(Guid id)
+  Full name: MediaBrowser.Controller.Library.ILibraryManager.GetItemById
+  File: <jellyfin>/MediaBrowser.Controller/Library/ILibraryManager.cs
+  Line: 209
+  Column: 12
+
+Symbol: T? ILibraryManager.GetItemById<T>(Guid id, Guid userId)
+  Full name: MediaBrowser.Controller.Library.ILibraryManager.GetItemById
+  File: <jellyfin>/MediaBrowser.Controller/Library/ILibraryManager.cs
+  Line: 219
+  Column: 19
+
+Symbol: T? ILibraryManager.GetItemById<T>(Guid id, User? user)
+  Full name: MediaBrowser.Controller.Library.ILibraryManager.GetItemById
+  File: <jellyfin>/MediaBrowser.Controller/Library/ILibraryManager.cs
+  Line: 229
+  Column: 19
+
+Symbol: BaseItem? LibraryManagerExtensions.GetItemById(ILibraryManager manager, string id)
+  Full name: MediaBrowser.Controller.Library.LibraryManagerExtensions.GetItemById
+  File: <jellyfin>/MediaBrowser.Controller/Library/LibraryManagerExtensions.cs
+  Line: 10
+  Column: 33
+
+Symbol: T ChannelManager.GetItemById<T>(string idString, string channelName, out bool isNew)
+  Full name: Jellyfin.LiveTv.Channels.ChannelManager.GetItemById
+  File: <jellyfin>/src/Jellyfin.LiveTv/Channels/ChannelManager.cs
+  Line: 948
+  Column: 19

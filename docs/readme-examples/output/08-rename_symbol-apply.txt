@@ -1,0 +1,3 @@
+# rename_symbol {"filePath": "MediaBrowser.Controller/Library/ILibraryManager.cs", "symbolName": "GetItemById", "newName": "FindItemById", "line": 201, "column": 19, "scope": "solution", "previewOnly": false}
+
+Rename applied: `GetItemById` -> `FindItemById`. Updated files: 50.

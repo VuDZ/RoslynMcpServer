@@ -15,7 +15,7 @@ MCP server (stdio) for C# analysis: Roslyn workspaces + ILSpy decompile. TFM `ne
 - `Services/` — `Workspace` (`SolutionManager`), `Analyzers`, `Build`, `Editing`, `Navigation`, `Resolve`, `Testing`; helpers that do not belong to one of those stay at the root
 - `Diagnostics/` — parsers (build, VSTest, NuGet audit), SDK mismatch, MSBuild locator
 - `RoslynMcpServer.Tests/` — xUnit; `InternalsVisibleTo`
-- Docs: `README.md` (EN+RU), `AGENTS.md.sample` (copy to app repos as `AGENTS.md`)
+- Docs: `README.md` + `README.ru.md` (intro, quick start), `docs/setup.md` and `docs/tools.md` (+ `.ru.md`), `AGENTS.md.sample` (copy to app repos as `AGENTS.md`)
 
 ## DI / tools
 

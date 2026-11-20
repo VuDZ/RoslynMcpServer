@@ -100,4 +100,4 @@ flowchart LR
 | Incoming критика (полная) | [roslyn_mcp_tool_review.md](_archive/roslyn_mcp_tool_review.md) |
 | Mapping секций → вердикт | [review-mapping.md](review-mapping.md) |
 | Изменения v1 → v2 | [CHANGELOG-v2.md](CHANGELOG-v2.md) |
-| Product catalog | корневой README, `McpToolCatalog` |
+| Product catalog | [tools.md](../tools.md), `McpToolCatalog` |

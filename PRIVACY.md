@@ -2,8 +2,9 @@
 
 RoslynMcpServer does not transmit usage statistics or user data automatically.
 
-Network access occurs only when explicitly requested by the user or MCP client
-through functionality that requires access to an external service.
+Network access occurs only through operations the user or MCP client requests:
+NuGet commands, and the builds, tests, and applications that tools start, which
+can reach the network themselves. See [When network is used](#when-network-is-used).
 
 ## Scope
 
@@ -15,7 +16,7 @@ a remote product-telemetry channel.
 `load_workspace`, symbol search, diagnostics, AST edits, ILSpy decompile, and
 `get_changed_files` (`git status --porcelain`) stay on the machine. Incoming
 MCP parameters are logged locally by default; see the Logs section in
-[README.md](README.md#logs).
+[docs/setup.md](docs/setup.md#logs).
 
 ## Local usage records
 
@@ -60,21 +61,31 @@ solution has no cache.
 
 ## When network is used
 
-The process talks to the network only as a side effect of an explicit MCP tool
-call that runs `dotnet` against a configured feed or service:
+The server process has no network client of its own and sends nothing to a
+RoslynMcpServer service. Network access is a side effect of an MCP tool call
+that starts MSBuild or another process, and it is whatever that process does:
 
-- `search_nuget_registry` — `dotnet package search` (nuget.org or configured feeds)
-- `list_outdated_packages`, `run_nuget_audit`, and `list_nuget_packages` with
-  `--outdated` / `--vulnerable`
-- `run_dotnet_build` / `run_dotnet_test` / `run_specific_test` /
-  `run_test_by_filter` / `run_dotnet_run` — restore or build may contact
-  configured NuGet feeds
-- `execute_dotnet_command` — only if the supplied arguments need the network
-  (for example `add package` or `restore`)
+- NuGet commands contact nuget.org or the configured feeds:
+  `search_nuget_registry` (`dotnet package search`), `list_outdated_packages`,
+  `run_nuget_audit`, and `list_nuget_packages` with `--outdated` / `--vulnerable`.
+- Builds and restores: `run_dotnet_build`, `run_dotnet_test`,
+  `run_specific_test`, `run_test_by_filter`, `run_dotnet_run`, and
+  `estimate_affected_tests` with `run: true`. Restore may contact configured
+  NuGet feeds, and custom MSBuild targets and tasks in your projects run as
+  written.
+- `load_workspace` evaluates your projects through MSBuild. Project SDKs that
+  are distributed as NuGet packages may be resolved from feeds, and
+  design-time targets in your projects run as written.
+- Your own code: the tests started by the test tools and the application
+  started by `run_dotnet_run` run with your permissions and can reach any
+  network service they are written to use, such as databases, HTTP APIs, or
+  cloud services. The server neither restricts nor observes that traffic.
+- `execute_dotnet_command` does whatever the supplied arguments do, for example
+  `add package` or `restore`.
 
-Those calls send package ids, versions, and restore metadata required by the
-NuGet / `dotnet` CLI. They do not upload source code, prompts, or workspace
-contents to a RoslynMcpServer service.
+NuGet operations send the package ids, versions, and restore metadata that the
+NuGet / `dotnet` CLI requires. The server does not upload source code, prompts,
+or workspace contents.
 
 `add_package_reference` only edits the `.csproj` on disk. It does not query
 nuget.org until a later restore/build.
