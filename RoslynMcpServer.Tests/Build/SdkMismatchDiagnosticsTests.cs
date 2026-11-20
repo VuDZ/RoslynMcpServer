@@ -5,10 +5,14 @@ namespace RoslynMcpServer.Tests.Build;
 
 public sealed class SdkMismatchDiagnosticsTests
 {
-    [Fact]
-    public void CreateErrors_reports_mismatch_when_log_msbuild_differs_from_pin()
+    [Theory]
+    [InlineData("", false)]
+    [InlineData("\"", false)]
+    [InlineData("", true)]
+    [InlineData("\"", true)]
+    public void Quoted_msbuild_path_uses_the_same_sdk_comparison_as_unquoted(string quotes, bool differentSdk)
     {
-        var root = Path.Combine(Path.GetTempPath(), "roslyn-mcp-mismatch-" + Guid.NewGuid().ToString("N"));
+        var root = Path.Combine(Path.GetTempPath(), "roslyn mcp mismatch " + Guid.NewGuid().ToString("N"));
         var sdkDir = Path.Combine(root, "sdk", "10.0.999");
         Directory.CreateDirectory(Path.Combine(sdkDir, "Sdks"));
         File.WriteAllText(Path.Combine(sdkDir, "MSBuild.dll"), string.Empty);
@@ -25,13 +29,27 @@ public sealed class SdkMismatchDiagnosticsTests
             Environment.SetEnvironmentVariable("DOTNET_ROOT", root);
             try
             {
-                const string log = """
-                    MSBuild executable path = C:\Program Files\dotnet\sdk\9.0.314\MSBuild.dll
+                var logPath = Path.Combine(root, "sdk", differentSdk ? "9.0.314" : "10.0.999", "MSBuild.dll");
+                var log = $"""
+                    MSBuild executable path = {quotes}{logPath}{quotes}
                     Build FAILED.
                     """;
-                var errors = SdkMismatchDiagnostics.CreateErrors(root, log, "10.0.999");
-                Assert.Contains(errors, e => e.Code == SdkMismatchDiagnostics.MismatchCode);
-                Assert.Contains(errors, e => e.Message.Contains("9.0.314", StringComparison.Ordinal));
+                Assert.Equal(differentSdk, DotNetBuildProbe.ShouldRunPinnedMsBuildRestore(log, root));
+
+                var compilerLog = log + "\nCSC : error CS9057: Analyzer assembly references a newer compiler version.";
+                var errors = SdkMismatchDiagnostics.CreateErrors(root, compilerLog, "10.0.999");
+                var metadata = DotNetCliRunner.BuildRunMetadata("dotnet", root, compilerLog, "10.0.999");
+                var report = BuildOutputReport.Format(
+                    compilerLog,
+                    1,
+                    metadata,
+                    includeBuildWarnings: false,
+                    additionalErrors: errors,
+                    attachFullReport: false);
+                Assert.Contains("CS9057", report, StringComparison.Ordinal);
+                Assert.Contains("- **dotnet --version:** `10.0.999`", report, StringComparison.Ordinal);
+                Assert.Contains($"- **MSBuild from log:** `{logPath}`", report, StringComparison.Ordinal);
+                Assert.Equal(differentSdk, report.Contains(SdkMismatchDiagnostics.MismatchCode, StringComparison.Ordinal));
             }
             finally
             {

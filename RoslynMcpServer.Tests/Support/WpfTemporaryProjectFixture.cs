@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.IO.Pipes;
+using System.Security;
 using System.Text;
 
 namespace RoslynMcpServer.Tests.Support;
@@ -16,7 +17,9 @@ internal sealed class WpfTemporaryProjectFixture : IDisposable
     {
         Directory.CreateDirectory(Path.GetDirectoryName(ProjectPath)!);
         File.WriteAllText(SolutionPath, "<Solution><Project Path=\"App/WpfProbe.csproj\" /></Solution>");
-        File.WriteAllText(ProjectPath, """
+        // MSBuild runs the gate through cmd, which may have no PowerShell on PATH.
+        var powerShell = Path.Combine(Environment.SystemDirectory, "WindowsPowerShell", "v1.0", "powershell.exe");
+        File.WriteAllText(ProjectPath, $"""
             <Project Sdk="Microsoft.NET.Sdk">
               <PropertyGroup>
                 <TargetFramework>net10.0-windows</TargetFramework>
@@ -27,7 +30,7 @@ internal sealed class WpfTemporaryProjectFixture : IDisposable
               </Target>
               <Target Name="PauseTemporaryAssemblyCompilation" BeforeTargets="CoreCompile"
                       Condition="'$(WpfProbeGatePipe)' != '' and $([System.String]::Copy('$(MSBuildProjectName)').EndsWith('_wpftmp'))">
-                <Exec Command="powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;$(WpfProbeGateScript)&quot; -PipeName &quot;$(WpfProbeGatePipe)&quot; -ProjectPath &quot;$(MSBuildProjectFullPath)&quot;" />
+                <Exec Command="&quot;{SecurityElement.Escape(powerShell)}&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;$(WpfProbeGateScript)&quot; -PipeName &quot;$(WpfProbeGatePipe)&quot; -ProjectPath &quot;$(MSBuildProjectFullPath)&quot;" />
               </Target>
             </Project>
             """);

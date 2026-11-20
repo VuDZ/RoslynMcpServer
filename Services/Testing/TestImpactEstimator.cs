@@ -33,11 +33,15 @@ internal static class TestImpactEstimator
     {
         var changedPaths = baseline.TouchedPaths.ToHashSet(InputPathCanon.Comparer);
         var notCovered = new List<string>();
-        var documents = await DocumentsAsync(solution, inputMap, baseline, changedPaths, notCovered, includeTriviaChanges,
-            cancellationToken).ConfigureAwait(false);
+        var unknownBaselinePaths = new HashSet<string>(InputPathCanon.Comparer);
+        var documents = await DocumentsAsync(
+            solution, inputMap, baseline, changedPaths, unknownBaselinePaths, notCovered, includeTriviaChanges, cancellationToken)
+            .ConfigureAwait(false);
         var mapped = await ProjectImpactMapper.MapAsync(solution, inputMap, changedPaths, workspacePath,
             projectGraphStale, projectGraphStaleFromGraphFile, cancellationToken).ConfigureAwait(false);
         await AddUnloadedDocumentsAsync(solution, mapped, documents, notCovered, cancellationToken).ConfigureAwait(false);
+        unknownBaselinePaths.UnionWith(documents.Where(document => document.Changes is null && document.Current is not null)
+            .Select(document => document.Path));
         var baseNames = baseline.Documents.Where(state => state.Snapshot is not null)
             .SelectMany(state => state.Snapshot!.BaseTypeNames)
             .Concat(documents.Where(document => document.Current is not null).SelectMany(document => document.Current!.BaseTypeNames))
@@ -75,6 +79,7 @@ internal static class TestImpactEstimator
         {
             BaselineWorkspacePath = baseline.WorkspacePath,
             BaselinePublishedAtUtc = baseline.PublishedAtUtc,
+            UnknownBaselinePaths = unknownBaselinePaths,
         };
     }
 
@@ -109,6 +114,7 @@ internal static class TestImpactEstimator
         WorkspaceInputMap inputMap,
         BaselineSessionSnapshot baseline,
         HashSet<string> changedPaths,
+        HashSet<string> unknownBaselinePaths,
         List<string> notCovered,
         bool includeTriviaChanges,
         CancellationToken cancellationToken)
@@ -132,9 +138,9 @@ internal static class TestImpactEstimator
             var isNewSourcePath = !originalPaths.Contains(document.FilePath!)
                 && !baseline.OriginalNonSourcePaths.Contains(document.FilePath!);
             before.Remove(entry.Key, out var previous);
-            if (previous is not null && previous.Status != BaselineDocumentStatus.Known)
+            if (previous is { Status: not BaselineDocumentStatus.Known } || (previous is null && !isNewSourcePath))
             {
-                notCovered.Add("Baseline unknown: " + document.FilePath);
+                unknownBaselinePaths.Add(document.FilePath!);
             }
             // Disk sync retains cached text for a missing file; deletion must not compare that text as unchanged.
             if (!File.Exists(document.FilePath))
@@ -169,10 +175,6 @@ internal static class TestImpactEstimator
                     with { ImportsAndNamespacesHash = current.ImportsAndNamespacesHash };
                 changes = BaselineDocumentChangeDetector.Compare(empty, current);
             }
-            else if (previous is null)
-            {
-                notCovered.Add("Baseline unknown for this document context: " + document.FilePath);
-            }
             // A run checks even syntax-equivalent edits after compiling: source generators can read trivia.
             if (includeTriviaChanges && changes is { Count: 0 }
                 && previous?.Snapshot is { } original && original.TextChecksum != current.TextChecksum)
@@ -190,7 +192,7 @@ internal static class TestImpactEstimator
             changedPaths.Add(previous.Key.DocumentPath);
             if (previous.Status != BaselineDocumentStatus.Known)
             {
-                notCovered.Add("Baseline unknown: " + previous.Key.DocumentPath);
+                unknownBaselinePaths.Add(previous.Key.DocumentPath);
             }
             foreach (var project in solution.Projects.Where(project =>
                 InputPathCanon.Comparer.Equals(project.FilePath, previous.Key.ProjectPath)))

@@ -50,7 +50,9 @@ public static class MsBuildLogHighlighter
             var match = MsBuildExecutablePath.Match(raw.Trim());
             if (match.Success)
             {
-                return match.Groups["path"].Value.Trim();
+                var path = match.Groups["path"].Value.Trim();
+                // Log quotes can create a false SDK mismatch (docs/archive/readme-demo-defects/validation.md, D-07).
+                return path.Length >= 2 && path[0] == '"' && path[^1] == '"' ? path[1..^1] : path;
             }
         }
 

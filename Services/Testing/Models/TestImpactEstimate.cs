@@ -17,4 +17,6 @@ internal sealed record TestImpactEstimate(
     internal string? BaselineWorkspacePath { get; init; }
 
     internal DateTime BaselinePublishedAtUtc { get; init; }
+
+    internal IReadOnlyCollection<string> UnknownBaselinePaths { get; init; } = [];
 }

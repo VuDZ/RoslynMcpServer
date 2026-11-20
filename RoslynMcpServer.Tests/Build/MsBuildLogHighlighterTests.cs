@@ -32,11 +32,14 @@ public sealed class MsBuildLogHighlighterTests
         Assert.Contains(highlights, h => h.Contains("App.csproj", StringComparison.OrdinalIgnoreCase));
     }
 
-    [Fact]
-    public void TryGetMsBuildExecutablePath_parses_detailed_restore_line()
+    [Theory]
+    [InlineData("")]
+    [InlineData("\"")]
+    public void TryGetMsBuildExecutablePath_parses_detailed_restore_line(string quotes)
     {
-        const string log = "       MSBuild executable path = C:\\Program Files\\dotnet\\sdk\\9.0.314\\MSBuild.dll";
+        const string expectedPath = @"C:\Program Files\dotnet\sdk\9.0.314\MSBuild.dll";
+        var log = $"       MSBuild executable path = {quotes}{expectedPath}{quotes}";
         var path = MsBuildLogHighlighter.TryGetMsBuildExecutablePath(log);
-        Assert.Contains("9.0.314", path, StringComparison.Ordinal);
+        Assert.Equal(expectedPath, path);
     }
 }

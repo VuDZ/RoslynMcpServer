@@ -77,6 +77,28 @@ internal sealed class WorkspaceInputSession
         }
     }
 
+    public bool HasDeferredCompositionChanges
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _deferredCompositionChanges.Count > 0;
+            }
+        }
+    }
+
+    public bool HasUnsettledComposition
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _deferredCompositionChanges.Count > 0 || _recoverableSourceAbsences.Count > 0;
+            }
+        }
+    }
+
     public WorkspaceInputSession(
         IEnumerable<string?> projectFilePaths,
         Action? onObservationGap = null,
@@ -200,6 +222,21 @@ internal sealed class WorkspaceInputSession
         }
     }
 
+    public int? SettledEventRevision(string canonicalPath)
+    {
+        lock (_gate)
+        {
+            if (_closed)
+            {
+                return null;
+            }
+
+            return _paths.TryGetValue(canonicalPath, out var state)
+                ? state.PendingContent || state.UncommittedWrite ? null : state.EventRevision
+                : 0;
+        }
+    }
+
     public bool IsPendingContent(string path)
     {
         lock (_gate)
@@ -233,7 +270,7 @@ internal sealed class WorkspaceInputSession
         }
     }
 
-    public void RecordDiskEvent(DiskEventDecision decision)
+    public void RecordDiskEvent(DiskEventDecision decision, bool recoverableSourceAbsence = false)
     {
         ArgumentNullException.ThrowIfNull(decision);
         lock (_gate)
@@ -245,6 +282,17 @@ internal sealed class WorkspaceInputSession
 
             if (decision.CompositionStale && decision.CanonicalPath is not null)
             {
+                if (recoverableSourceAbsence)
+                {
+                    if (!_compositionPaths.Contains(decision.CanonicalPath, InputPathCanon.Comparer))
+                    {
+                        _recoverableSourceAbsences.Add(decision.CanonicalPath, MembershipRevision);
+                    }
+                }
+                else
+                {
+                    _recoverableSourceAbsences.Remove(decision.CanonicalPath);
+                }
                 RememberPath(_compositionPaths, decision.CanonicalPath);
             }
 
@@ -282,6 +330,63 @@ internal sealed class WorkspaceInputSession
                 RememberGap(InputCoverageReason.DirectoryRenameInsideMembership, scope, GapOrigin.Runtime);
                 Touch();
             }
+        }
+    }
+
+    /// <summary>Records unindexed activity until reconciliation can distinguish a replacement from membership.</summary>
+    public void DeferCompositionChange(string canonicalPath, string? replacementPath = null)
+    {
+        lock (_gate)
+        {
+            if (_closed)
+            {
+                return;
+            }
+
+            if (replacementPath is not null || !_deferredCompositionChanges.ContainsKey(canonicalPath))
+            {
+                _deferredCompositionChanges[canonicalPath] = replacementPath;
+            }
+            PathStateFor(canonicalPath, provisional: true).EventRevision++;
+            Touch();
+        }
+    }
+
+    public KeyValuePair<string, string?>[] DrainDeferredCompositionChanges()
+    {
+        lock (_gate)
+        {
+            if (_deferredCompositionChanges.Count == 0)
+            {
+                return [];
+            }
+
+            var changes = _deferredCompositionChanges.ToArray();
+            _deferredCompositionChanges.Clear();
+            Touch();
+            return changes;
+        }
+    }
+
+    /// <summary>Discards a confirmed scratch path unless independent history already made it an input candidate.</summary>
+    public void ConfirmAtomicSaveSourceAbsent(string canonicalPath)
+    {
+        lock (_gate)
+        {
+            if (_closed || !_paths.TryGetValue(canonicalPath, out var state))
+            {
+                return;
+            }
+
+            if (state.ProvisionalOnly)
+            {
+                _paths.Remove(canonicalPath);
+            }
+            else
+            {
+                state.Present = false;
+            }
+            Touch();
         }
     }
 
@@ -518,7 +623,21 @@ internal sealed class WorkspaceInputSession
                 return ContentReconcileOutcome.LeftPending;
             }
 
-            var echo = state.CommittedPayload is not null
+            // Rebuild can remove a loaded Compile item and recreate it at the same path.
+            // Only settle that absence once this map and event revision still describe a file.
+            // See docs/archive/readme-demo-defects/n01-investigation.md.
+            var restoredSource = read.Bytes is not null
+                && _recoverableSourceAbsences.TryGetValue(canonical, out var membershipRevision)
+                && membershipRevision == MembershipRevision;
+            if (restoredSource)
+            {
+                _recoverableSourceAbsences.Remove(canonical);
+                _compositionPaths.RemoveAll(path => InputPathCanon.Comparer.Equals(path, canonical));
+                state.Present = true;
+            }
+
+            // A recreated source still needs publication even when it matches an earlier own write.
+            var echo = !restoredSource && state.CommittedPayload is not null
                 && !state.ForceNotEcho
                 && read.Bytes is not null
                 && state.CommittedPayload.AsSpan().SequenceEqual(read.Bytes);
@@ -768,7 +887,7 @@ internal sealed class WorkspaceInputSession
             ObservationCoverage,
             gaps,
             map is null ? null : WorkspaceInputMap.EvidenceSource,
-            _paths.Values.Any(static state => state.PendingContent));
+            _deferredCompositionChanges.Count > 0 || _paths.Values.Any(static state => state.PendingContent));
     }
 
     private InputPathSnapshot PathSnapshot(string canonical, InputPathEntry? entry)
@@ -819,18 +938,22 @@ internal sealed class WorkspaceInputSession
             state?.InputRevision ?? 0,
             state?.OutputRevision ?? 0,
             state?.Present ?? entry?.Present ?? true,
-            state?.PendingContent ?? false,
+            state?.PendingContent == true || _deferredCompositionChanges.ContainsKey(canonical),
             owners,
             roles,
             producers);
     }
 
-    private PathState PathStateFor(string canonical)
+    private PathState PathStateFor(string canonical, bool provisional = false)
     {
         if (!_paths.TryGetValue(canonical, out var state))
         {
-            state = new PathState();
+            state = new PathState { ProvisionalOnly = provisional };
             _paths.Add(canonical, state);
+        }
+        else if (!provisional)
+        {
+            state.ProvisionalOnly = false;
         }
 
         return state;
@@ -976,6 +1099,8 @@ internal sealed class WorkspaceInputSession
 
         public bool PendingContent { get; set; }
 
+        public bool ProvisionalOnly { get; set; }
+
         public bool Present { get; set; } = true;
 
         public bool UncommittedWrite { get; set; }
@@ -997,6 +1122,8 @@ internal sealed class WorkspaceInputSession
     private readonly List<InputPathNotice> _notices = new();
     private readonly List<string> _compositionPaths = new();
     private readonly List<string> _directoryRenamePaths = new();
+    private readonly Dictionary<string, string?> _deferredCompositionChanges = new(InputPathCanon.Comparer);
+    private readonly Dictionary<string, int> _recoverableSourceAbsences = new(InputPathCanon.Comparer);
     private readonly Dictionary<ProjectId, int> _inputRevisions = new();
     private readonly Dictionary<string, PathState> _paths = new(InputPathCanon.Comparer);
 }

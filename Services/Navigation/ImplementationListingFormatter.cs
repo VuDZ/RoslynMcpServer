@@ -87,7 +87,7 @@ internal static class ImplementationListingFormatter
 
         sb.AppendLine($"## implementations for `{trimmedName}`");
         sb.AppendLine();
-        sb.AppendLine($"Found **{baseCount}** matching base type(s), **{relatedCount}** type(s).");
+        sb.AppendLine($"Found **{baseCount}** matching base type(s), **{relatedCount}** unique related type(s).");
         sb.AppendLine();
     }
 

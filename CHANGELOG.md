@@ -2,6 +2,13 @@
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.6.1
+
+- `estimate_affected_tests` asks the caller to retry while source baseline capture is in progress. It reports unknown baselines separately and caps its text at 32 KiB. Atomic replacement of a loaded `.cs` file keeps the project graph current when the watcher can confirm the replacement.
+- `run_dotnet_build` accepts `timeoutSeconds` as a shared build and restore budget. Omitting it keeps the 180-second step and 300-second total limits. A value of `0` disables the server timeout. SDK comparison accepts quoted MSBuild paths from the build log.
+- `find_implementations` distinguishes generic bases in headings and qualified queries and counts shared implementations once in the summary. Decompiled skeletons render C# type and parameter signatures.
+- VSTest reports show distinct test methods in the preview, count each theory case, and retain failure details for fast tests. The tool reference clarifies that `get_diagnostics_for_file` returns compiler diagnostics.
+
 ### v1.6.0
 
 - Rapid TIA adds `estimate_affected_tests` to both tool profiles. It maps saved edits to affected VSTest projects and uses compiled type changes and dependencies to narrow whole projects to test classes. Direct edits to tests can also produce method-name filters. The case-insensitive `depth` selects `changed`, `direct`, `di` or `all` (default). The estimate reports filters, whole-project reasons and `Not covered` limitations. Full test and CI requirements still apply.

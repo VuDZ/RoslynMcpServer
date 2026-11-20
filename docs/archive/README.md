@@ -19,5 +19,6 @@
 | [test-build-freshness/](test-build-freshness/README.md) | Перед DLL-тестами solution-target сборка, один повтор и очередь внутри процесса. Пропуск сборки не включён. Закрыто v1.5.3. Runtime — [ARCHITECTURE](../ARCHITECTURE.md), README v1.5.3 |
 | [non-csharp-input-tracking/](non-csharp-input-tracking/README.md) | Текст уже известного additional file и analyzer config в семантическом снимке. Чтение доверяет watcher между подтверждениями. Вариант D не выбран. Закрыто v1.5.4. Runtime — [ARCHITECTURE](../ARCHITECTURE.md), README |
 | [linux-x64-support/](linux-x64-support/README.md) | `win-x64` и `linux-x64` в CI и релизе. Закрыто v1.5.6; поиск SDK в `/usr/lib/dotnet` — v1.5.7, ещё без выпуска. Runtime — [ARCHITECTURE](../ARCHITECTURE.md), корневой README |
+| [readme-demo-defects/](readme-demo-defects/README.md) | Архивировано 2026-11-21. Приняты [D-01…D-06, D-08 и исправление сообщения о SDK из D-07](readme-demo-defects/implementation.md), а также [N-01](readme-demo-defects/n01-investigation.md#проверка-исправления). Сравнение `sed -i` с обычной записью прошло в WSL2. [Оставшиеся сценарии на нативном Linux](readme-demo-defects/linux-recheck.md#что-осталось-проверить) |
 
 Process-пакеты (review / арбитраж) лежат в `_archive/` соответствующей темы, не на живой полке.

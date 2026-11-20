@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Text;
 using ICSharpCode.Decompiler;
 using ICSharpCode.Decompiler.CSharp;
+using ICSharpCode.Decompiler.CSharp.Syntax;
 using ICSharpCode.Decompiler.TypeSystem;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -390,12 +391,15 @@ public sealed class CodeAnalysisTools
             sb.Append(typeKind).Append(' ').Append(typeName).AppendLine();
             sb.AppendLine("{");
 
+            // IType.ToString() includes metadata tokens and uses reflection notation for generics.
+            // See docs/archive/readme-demo-defects/validation.md (D-04).
+            var typeBuilder = new TypeSystemAstBuilder { ShowConstantValues = false };
             foreach (var field in fields)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 sb.Append("    ")
                     .Append(FormatModifiers(field.Accessibility, field.IsStatic))
-                    .Append(FormatTypeName(field.Type))
+                    .Append(FormatSkeletonMemberType(typeBuilder, field.Type, field.ReturnTypeIsRefReadOnly))
                     .Append(' ')
                     .Append(field.Name)
                     .AppendLine(";");
@@ -408,7 +412,7 @@ public sealed class CodeAnalysisTools
                 var setter = property.Setter is null ? string.Empty : "set; ";
                 sb.Append("    ")
                     .Append(FormatModifiers(property.Accessibility, property.IsStatic))
-                    .Append(FormatTypeName(property.ReturnType))
+                    .Append(FormatSkeletonMemberType(typeBuilder, property.ReturnType, property.ReturnTypeIsRefReadOnly))
                     .Append(' ')
                     .Append(property.Name)
                     .Append(" { ")
@@ -424,11 +428,10 @@ public sealed class CodeAnalysisTools
                 var typeParameters = method.TypeParameters.Count == 0
                     ? string.Empty
                     : $"<{string.Join(", ", method.TypeParameters.Select(tp => tp.Name))}>";
-                var returnType = method.IsConstructor ? string.Empty : $"{FormatTypeName(method.ReturnType)} ";
-                var parameters = string.Join(
-                    ", ",
-                    method.Parameters.Select(
-                        static p => $"{FormatTypeName(p.Type)} {(string.IsNullOrWhiteSpace(p.Name) ? "arg" : p.Name)}"));
+                var returnType = method.IsConstructor
+                    ? string.Empty
+                    : $"{FormatSkeletonMemberType(typeBuilder, method.ReturnType, method.ReturnTypeIsRefReadOnly)} ";
+                var parameters = string.Join(", ", method.Parameters.Select(parameter => FormatSkeletonParameter(parameter, typeBuilder)));
 
                 sb.Append("    ")
                     .Append(FormatModifiers(method.Accessibility, method.IsStatic))
@@ -613,10 +616,26 @@ public sealed class CodeAnalysisTools
         return $"{cleanedName}<{string.Join(", ", parameters)}>";
     }
 
-    private static string FormatTypeName(IType type)
+    private static string FormatSkeletonMemberType(TypeSystemAstBuilder typeBuilder, IType type, bool isRefReadOnly)
     {
-        var value = type.ToString() ?? string.Empty;
-        return value.Replace("/", ".", StringComparison.Ordinal);
+        var declaration = typeBuilder.ConvertType(type);
+        if (isRefReadOnly && declaration is ComposedType { HasRefSpecifier: true } byRefType)
+        {
+            byRefType.HasReadOnlySpecifier = true;
+        }
+
+        return declaration.ToString();
+    }
+
+    private static string FormatSkeletonParameter(IParameter parameter, TypeSystemAstBuilder typeBuilder)
+    {
+        var declaration = typeBuilder.ConvertParameter(parameter);
+        if (string.IsNullOrWhiteSpace(declaration.Name))
+        {
+            declaration.Name = "arg";
+        }
+
+        return declaration.ToString();
     }
 
     private static string FormatModifiers(DecompilerAccessibility accessibility, bool isStatic)

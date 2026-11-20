@@ -1,0 +1,80 @@
+[
+ {
+  "name": "load_workspace",
+  "arguments": {
+   "workspacePath": "{root}/Jellyfin.slnx",
+   "briefOutput": true
+  },
+  "label": "load"
+ },
+ {
+  "name": "!shell",
+  "arguments": {
+   "cmd": "sed -i 's/if (string.IsNullOrEmpty(path))/if (string.IsNullOrWhiteSpace(path))/' Emby.Naming/Video/StubResolver.cs && git diff --stat"
+  },
+  "label": "edit-atomic"
+ },
+ {
+  "name": "estimate_affected_tests",
+  "arguments": {
+   "run": true
+  },
+  "label": "est-run-now"
+ },
+ {
+  "name": "estimate_affected_tests",
+  "arguments": {
+   "run": false
+  },
+  "label": "est"
+ },
+ {
+  "name": "!shell",
+  "arguments": {
+   "cmd": "sleep 90"
+  },
+  "label": "wait"
+ },
+ {
+  "name": "estimate_affected_tests",
+  "arguments": {
+   "run": false
+  },
+  "label": "est"
+ },
+ {
+  "name": "!shell",
+  "arguments": {
+   "cmd": "sleep 90"
+  },
+  "label": "wait"
+ },
+ {
+  "name": "estimate_affected_tests",
+  "arguments": {
+   "run": false
+  },
+  "label": "est"
+ },
+ {
+  "name": "!shell",
+  "arguments": {
+   "cmd": "sleep 90"
+  },
+  "label": "wait"
+ },
+ {
+  "name": "estimate_affected_tests",
+  "arguments": {
+   "run": false
+  },
+  "label": "est"
+ },
+ {
+  "name": "!shell",
+  "arguments": {
+   "cmd": "git checkout -q . && git status --porcelain | wc -l"
+  },
+  "label": "restore"
+ }
+]

@@ -179,7 +179,7 @@ public sealed class GitChangedFilesHelperTests
                 [Console]::Out.Flush()
                 """);
             return new ProcessStartInfo(
-                "powershell.exe",
+                _windowsPowerShell,
                 $"-NoProfile -ExecutionPolicy Bypass -File \"{scriptPath}\" {marker}");
         }
 
@@ -193,7 +193,7 @@ public sealed class GitChangedFilesHelperTests
         if (OperatingSystem.IsWindows())
         {
             return new ProcessStartInfo(
-                "powershell.exe",
+                _windowsPowerShell,
                 $"-NoProfile -Command \"Start-Sleep -Seconds 120 # {marker}\"");
         }
 
@@ -206,7 +206,7 @@ public sealed class GitChangedFilesHelperTests
         {
             return new ProcessStartInfo(
                 "cmd.exe",
-                $"/c powershell.exe -NoProfile -Command \"Start-Sleep -Seconds 120 # {marker}\"");
+                $"/d /s /c \"\"{_windowsPowerShell}\" -NoProfile -Command \"Start-Sleep -Seconds 120 # {marker}\"\"");
         }
 
         // A final external command can replace the shell on macOS; wait keeps the parent alive.
@@ -219,7 +219,7 @@ public sealed class GitChangedFilesHelperTests
         {
             return new ProcessStartInfo(
                 "cmd.exe",
-                "/c start /b \"\" powershell.exe -NoProfile -Command \""
+                $"/d /c start /b \"\" \"{_windowsPowerShell}\" -NoProfile -Command \""
                 + $"Set-Content -LiteralPath '{pidFile}' -Value $PID; Start-Sleep -Seconds 120 # {marker}\"");
         }
 
@@ -295,7 +295,7 @@ public sealed class GitChangedFilesHelperTests
             const string script =
                 "Get-CimInstance Win32_Process -Filter \"Name = 'cmd.exe' OR Name = 'powershell.exe' OR Name = 'pwsh.exe'\" | ForEach-Object { $_.ProcessId.ToString() + [char]9 + $_.ParentProcessId.ToString() + [char]9 + ([string]$_.CommandLine) }";
             var encoded = Convert.ToBase64String(System.Text.Encoding.Unicode.GetBytes(script));
-            psi = new ProcessStartInfo("powershell.exe", "-NoProfile -EncodedCommand " + encoded);
+            psi = new ProcessStartInfo(_windowsPowerShell, "-NoProfile -EncodedCommand " + encoded);
         }
         else
         {
@@ -482,4 +482,8 @@ public sealed class GitChangedFilesHelperTests
     }
 
     private readonly record struct ProcessRow(int Pid, int ParentPid, string Command);
+
+    // The process fixtures must still launch a real child when cmd lacks PowerShell on PATH.
+    private static readonly string _windowsPowerShell =
+        Path.Combine(Environment.SystemDirectory, "WindowsPowerShell", "v1.0", "powershell.exe");
 }

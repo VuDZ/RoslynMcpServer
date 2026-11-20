@@ -7,11 +7,12 @@ namespace RoslynMcpServer.Tests.Build;
 public sealed class DotNetCliRunnerHangTests
 {
     [Fact]
-    public void FormatHangHints_mentions_timeout_and_zombie_dotnet()
+    public void FormatHangHints_mentions_timeout_and_the_platform_process_command()
     {
         var text = DotNetCliRunner.FormatHangHints(timedOut: true, cancelled: false);
         Assert.Contains("MCP_DOTNET_TIMEOUT", text, StringComparison.Ordinal);
-        Assert.Contains("Get-Process dotnet", text, StringComparison.Ordinal);
+        Assert.Contains(OperatingSystem.IsWindows() ? "`Get-Process dotnet`" : "`ps -ef`", text, StringComparison.Ordinal);
+        Assert.DoesNotContain(OperatingSystem.IsWindows() ? "`ps -ef`" : "`Get-Process dotnet`", text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -21,32 +22,7 @@ public sealed class DotNetCliRunnerHangTests
         Directory.CreateDirectory(root);
         try
         {
-            var csproj = Path.Combine(root, "Hang.csproj");
-            File.WriteAllText(csproj, OperatingSystem.IsWindows()
-                ? """
-                  <Project Sdk="Microsoft.NET.Sdk">
-                    <PropertyGroup>
-                      <TargetFramework>net10.0</TargetFramework>
-                    </PropertyGroup>
-                    <Target Name="Build" />
-                    <Target Name="CoreCompile" />
-                    <Target Name="Hang" BeforeTargets="Build">
-                      <Exec Command="ping -n 60 127.0.0.1" IgnoreExitCode="true" />
-                    </Target>
-                  </Project>
-                  """
-                : """
-                  <Project Sdk="Microsoft.NET.Sdk">
-                    <PropertyGroup>
-                      <TargetFramework>net10.0</TargetFramework>
-                    </PropertyGroup>
-                    <Target Name="Build" />
-                    <Target Name="CoreCompile" />
-                    <Target Name="Hang" BeforeTargets="Build">
-                      <Exec Command="sleep 60" IgnoreExitCode="true" />
-                    </Target>
-                  </Project>
-                  """);
+            var csproj = MsBuildDelayFixture.WriteHangProject(root);
 
             var elapsed = Stopwatch.StartNew();
             var run = await DotNetCliRunner.RunWithMetadataAsync(
@@ -56,7 +32,7 @@ public sealed class DotNetCliRunnerHangTests
                 TimeSpan.FromSeconds(4));
             elapsed.Stop();
 
-            Assert.True(run.TimedOut);
+            Assert.True(run.TimedOut, run.CombinedOutput);
             Assert.True(run.ProcessKilled);
             Assert.True(
                 elapsed.Elapsed < TimeSpan.FromSeconds(20),

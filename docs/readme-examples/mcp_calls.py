@@ -5,11 +5,13 @@ Usage:
 
 calls.json is a list of {"name": "<tool>", "arguments": {...}, "label": "<file label>"}.
 "{root}" inside a string argument is replaced with <repository-root>.
-Each response is written to <output-dir>/<NN>-<label>.txt.
+A step named "!shell" runs arguments.cmd in <repository-root> between tool calls (edits, pauses).
+Each response is written to <output-dir>/<NN>-<label>.txt with its elapsed time and UTF-8 size.
 """
 import json
 import os
 import subprocess
+import time
 import sys
 
 exe, root, calls_path, outdir = sys.argv[1:5]
@@ -65,16 +67,25 @@ with open(calls_path, encoding="utf-8") as f:
 
 for index, call in enumerate(calls):
     arguments = substitute(call.get("arguments", {}))
+    label = call.get("label", call["name"].lstrip("!"))
+    path = os.path.join(outdir, f"{index:02d}-{label}.txt")
+    if call["name"] == "!shell":
+        result = subprocess.run(arguments["cmd"], shell=True, cwd=root, capture_output=True, text=True)
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(f"$ {arguments['cmd']}\nexit {result.returncode}\n{result.stdout}{result.stderr}")
+        print(f"{index:02d} {label} shell exit {result.returncode}", flush=True)
+        continue
+    started = time.monotonic()
     response = request("tools/call", {"name": call["name"], "arguments": arguments})
+    elapsed = time.monotonic() - started
     if "error" in response:
         text = "ERROR " + json.dumps(response["error"])
     else:
         text = "\n".join(c.get("text", "") for c in response["result"].get("content", []))
-    label = call.get("label", call["name"])
-    path = os.path.join(outdir, f"{index:02d}-{label}.txt")
+    size = len(text.encode("utf-8"))
     with open(path, "w", encoding="utf-8") as f:
-        f.write(f"# {call['name']} {json.dumps(arguments)}\n\n{text}\n")
-    print(f"{index:02d} {label} -> {path}")
+        f.write(f"# {call['name']} {json.dumps(arguments)}\n# elapsed {elapsed:.1f}s, {size} bytes\n\n{text}\n")
+    print(f"{index:02d} {label} {elapsed:.1f}s {size}B -> {path}", flush=True)
 
 proc.stdin.close()
 try:

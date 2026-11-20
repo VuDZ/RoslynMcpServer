@@ -14,7 +14,7 @@ Run times are left out on purpose: the machine had two cores and its timings say
 - .NET SDK 10.0.404 on Linux x64. Building Jellyfin at this commit needs a compiler at least as new as Roslyn 5.9,
   which its analyzer project references; SDK 10.0.114 is too old for that.
 - Client: [`mcp_calls.py`](mcp_calls.py), a minimal stdio MCP client (Python 3, no packages) that sends `initialize` and then each call
-  in order to one server process.
+  in order to one server process. A `!shell` step runs a command in the repository between calls, for edits and pauses.
 
 ```bash
 git clone https://github.com/jellyfin/jellyfin.git && git -C jellyfin checkout 821b849e61f6bd0fa760c76de2dc1f39400abd44

@@ -323,8 +323,9 @@ public static class DotNetCliRunner
             sb.AppendLine("**MCP_DOTNET_CANCELLED:** tool cancel requested; process tree was killed.");
         }
 
+        var listProcesses = OperatingSystem.IsWindows() ? "Get-Process dotnet" : "ps -ef";
         sb.AppendLine(
-            "If the next `dotnet` call is slow: check zombie processes (`Get-Process dotnet`), delete locked `obj`/`bin` if needed, " +
+            $"If the next `dotnet` call is slow, check for lingering `dotnet` processes (`{listProcesses}`), delete locked `obj`/`bin` if needed, " +
             "avoid parallel MCP `run_dotnet_test`/`run_dotnet_build`, and compare with shell `dotnet` from the same WorkingDirectory.");
         return sb.ToString().TrimEnd();
     }

@@ -44,6 +44,97 @@ public sealed class WorkspaceDiskEventClassificationTests
         Assert.Equal(File.ReadAllText(fixture.ProjectFile), fixture.ProjectText);
     }
 
+    [Theory]
+    [InlineData(null)]
+    [InlineData("OtherChange.cs")]
+    [InlineData("New.csproj")]
+    public void Atomic_save_discards_only_the_unmapped_temporary_path(string? unrelatedChange)
+    {
+        using var fixture = MapFixture.Create();
+        var session = fixture.Publish();
+        var temporary = Path.Combine(fixture.ProjectDirectory, "saveScratch");
+        File.WriteAllText(temporary, "class Program { int Updated; }");
+        fixture.Manager.NotifyDiskWatcherChange(session, Change(temporary, WatcherChangeTypes.Created));
+        fixture.Manager.NotifyDiskWatcherChange(session, Change(temporary, WatcherChangeTypes.Changed));
+        if (unrelatedChange is not null)
+        {
+            var otherPath = Path.Combine(fixture.ProjectDirectory, unrelatedChange);
+            File.WriteAllText(otherPath, string.Empty);
+            fixture.Manager.NotifyDiskWatcherChange(session, Change(otherPath, WatcherChangeTypes.Created));
+        }
+
+        File.Move(temporary, fixture.ProgramPath, overwrite: true);
+        fixture.Manager.NotifyDiskWatcherRename(session,
+            new RenamedEventArgs(WatcherChangeTypes.Renamed, fixture.ProjectDirectory, "Program.cs", "saveScratch"));
+        fixture.Manager.ReconcileInputEvents();
+
+        Assert.Equal(unrelatedChange is not null, fixture.Manager.ProjectGraphStale);
+        Assert.Equal(unrelatedChange == "New.csproj", fixture.Manager.ProjectGraphStaleFromGraphFile);
+        Assert.Equal(unrelatedChange == "OtherChange.cs", fixture.Manager.ProjectGraphStaleFromComposition);
+        Assert.Empty(session.DirectoryRenamePaths);
+        Assert.DoesNotContain(session.CompositionPaths, path => Same(path, temporary));
+        Assert.DoesNotContain(session.Notices, notice => Same(notice.CanonicalPath, temporary));
+        Assert.DoesNotContain(session.Pull().Paths, path => Same(path.CanonicalPath, temporary));
+        Assert.Contains(fixture.Manager.GetPendingDirtySourcePaths(), path => Same(path, fixture.ProgramPath));
+    }
+
+    [Fact]
+    public void Confirmed_replacement_preserves_prior_membership_evidence_for_the_same_path()
+    {
+        using var fixture = MapFixture.Create();
+        var session = fixture.Publish();
+        var temporary = Path.Combine(fixture.ProjectDirectory, "saveScratch");
+        File.WriteAllText(temporary, "class Program {}");
+        fixture.Manager.NotifyDiskWatcherChange(session, Change(temporary, WatcherChangeTypes.Created));
+        fixture.Manager.ReconcileInputEvents();
+        Assert.Contains(session.CompositionPaths, path => Same(path, temporary));
+
+        File.Move(temporary, fixture.ProgramPath, overwrite: true);
+        fixture.Manager.NotifyDiskWatcherRename(session,
+            new RenamedEventArgs(WatcherChangeTypes.Renamed, fixture.ProjectDirectory, "Program.cs", "saveScratch"));
+        fixture.Manager.ReconcileInputEvents();
+
+        var entry = Assert.Single(session.Pull().Paths, path => Same(path.CanonicalPath, temporary));
+        Assert.False(entry.Present);
+        Assert.Contains(InputRole.PotentialMembership, entry.Roles);
+        Assert.True(fixture.Manager.ProjectGraphStaleFromComposition);
+    }
+
+    [Fact]
+    public void Recreated_scratch_file_is_kept_as_possible_membership()
+    {
+        using var fixture = MapFixture.Create();
+        var session = fixture.Publish();
+        var temporary = Path.Combine(fixture.ProjectDirectory, "saveScratch");
+        File.WriteAllText(temporary, "class Program { int Updated; }");
+        fixture.Manager.NotifyDiskWatcherChange(session, Change(temporary, WatcherChangeTypes.Created));
+        File.Move(temporary, fixture.ProgramPath, overwrite: true);
+        fixture.Manager.NotifyDiskWatcherRename(session,
+            new RenamedEventArgs(WatcherChangeTypes.Renamed, fixture.ProjectDirectory, "Program.cs", "saveScratch"));
+
+        File.WriteAllText(temporary, "Another possible input");
+        fixture.Manager.ReconcileInputEvents();
+
+        Assert.True(fixture.Manager.ProjectGraphStaleFromComposition);
+        Assert.Contains(session.CompositionPaths, path => Same(path, temporary));
+    }
+
+    [Fact]
+    public void Replacing_source_with_a_known_additional_file_keeps_both_input_events()
+    {
+        using var fixture = MapFixture.Create();
+        var session = fixture.Publish();
+        File.Move(fixture.XamlPath, fixture.ProgramPath, overwrite: true);
+        fixture.Manager.NotifyDiskWatcherRename(session,
+            new RenamedEventArgs(WatcherChangeTypes.Renamed, fixture.ProjectDirectory, "Program.cs", "MainWindow.xaml"));
+        fixture.Manager.ReconcileInputEvents();
+
+        Assert.Contains(session.Notices, notice => Same(notice.CanonicalPath, fixture.XamlPath)
+            && notice.Role == InputRole.AdditionalFile);
+        Assert.Contains(session.Notices, notice => Same(notice.CanonicalPath, fixture.ProgramPath)
+            && notice.Role == InputRole.UserInput);
+    }
+
     [Fact]
     public void Unrelated_file_does_not_invalidate_when_irrelevance_is_proven()
     {

@@ -34,7 +34,7 @@ public sealed class CliProgressTests
         var root = CreateTempRoot();
         try
         {
-            var csproj = WriteHangProject(root);
+            var csproj = MsBuildDelayFixture.WriteHangProject(root);
 
             var elapsed = Stopwatch.StartNew();
             var run = await DotNetCliRunner.RunWithMetadataAsync(
@@ -62,7 +62,7 @@ public sealed class CliProgressTests
         var root = CreateTempRoot();
         try
         {
-            var csproj = WriteHangProject(root);
+            var csproj = MsBuildDelayFixture.WriteHangProject(root);
             var reporter = new RecordingProgressReporter();
             var watch = new CliProgressWatch(reporter, "dotnet build -v:minimal")
             {
@@ -96,7 +96,7 @@ public sealed class CliProgressTests
         var root = CreateTempRoot();
         try
         {
-            var csproj = WriteHangProject(root);
+            var csproj = MsBuildDelayFixture.WriteHangProject(root);
 
             var run = await DotNetCliRunner.RunSeparatedAsync(
                 $"msbuild \"{csproj}\" /t:Hang /nologo /v:q",
@@ -118,7 +118,7 @@ public sealed class CliProgressTests
         var root = CreateTempRoot();
         try
         {
-            var csproj = WriteHangProject(root);
+            var csproj = MsBuildDelayFixture.WriteHangProject(root);
             var reporter = new RecordingProgressReporter();
             var watch = new CliProgressWatch(reporter, CliProgressStep.RunStage)
             {
@@ -217,37 +217,6 @@ public sealed class CliProgressTests
         var root = Path.Combine(Path.GetTempPath(), "RoslynMcpProgress-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
         return root;
-    }
-
-    private static string WriteHangProject(string root)
-    {
-        var csproj = Path.Combine(root, "Hang.csproj");
-        File.WriteAllText(csproj, OperatingSystem.IsWindows()
-            ? """
-              <Project Sdk="Microsoft.NET.Sdk">
-                <PropertyGroup>
-                  <TargetFramework>net10.0</TargetFramework>
-                </PropertyGroup>
-                <Target Name="Build" />
-                <Target Name="CoreCompile" />
-                <Target Name="Hang" BeforeTargets="Build">
-                  <Exec Command="ping -n 60 127.0.0.1" IgnoreExitCode="true" />
-                </Target>
-              </Project>
-              """
-            : """
-              <Project Sdk="Microsoft.NET.Sdk">
-                <PropertyGroup>
-                  <TargetFramework>net10.0</TargetFramework>
-                </PropertyGroup>
-                <Target Name="Build" />
-                <Target Name="CoreCompile" />
-                <Target Name="Hang" BeforeTargets="Build">
-                  <Exec Command="sleep 60" IgnoreExitCode="true" />
-                </Target>
-              </Project>
-              """);
-        return csproj;
     }
 
     private static void DeleteQuietly(string root)

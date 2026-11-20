@@ -292,17 +292,17 @@ public sealed class UnregisteredBuildHostReaperTests
         ProcessStartInfo start;
         if (OperatingSystem.IsWindows())
         {
+            // The bystander needs a delay even when cmd cannot find ping or ICMP is disabled.
             start = new ProcessStartInfo
             {
-                FileName = "cmd.exe",
+                FileName = Path.Combine(Environment.SystemDirectory, "WindowsPowerShell", "v1.0", "powershell.exe"),
                 UseShellExecute = false,
                 CreateNoWindow = true,
             };
-            start.ArgumentList.Add("/c");
-            start.ArgumentList.Add("ping");
-            start.ArgumentList.Add("-n");
-            start.ArgumentList.Add("30");
-            start.ArgumentList.Add("127.0.0.1");
+            start.ArgumentList.Add("-NoProfile");
+            start.ArgumentList.Add("-NonInteractive");
+            start.ArgumentList.Add("-Command");
+            start.ArgumentList.Add("Start-Sleep -Seconds 30");
         }
         else
         {

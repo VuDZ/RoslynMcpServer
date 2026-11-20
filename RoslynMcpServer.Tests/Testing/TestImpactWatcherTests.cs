@@ -8,6 +8,36 @@ namespace RoslynMcpServer.Tests.Testing;
 public sealed class TestImpactWatcherTests
 {
     [Fact]
+    public async Task Native_atomic_save_and_direct_write_produce_the_same_test_impact()
+    {
+        await using var fixture = new TestImpactWatcherFixture();
+        await fixture.LoadAsync();
+        var path = fixture.DeletedSourcePath;
+        const string updated = "class Old { void Run() { System.Console.WriteLine(1); } }";
+        var tools = EstimateAffectedTestsTests.Tools(fixture.Manager);
+        var session = fixture.Manager.DiskWatcherSession!;
+        var temporary = Path.Combine(Path.GetDirectoryName(path)!, "sedScratch");
+        await File.WriteAllTextAsync(temporary, updated);
+        await fixture.WaitForEventAsync(temporary);
+        var revision = session.EventRevision(path);
+        File.Move(temporary, path, overwrite: true);
+        await fixture.WaitForEventAsync(path, revision, expectGraphStale: false);
+        var replaced = await tools.EstimateAffectedTests();
+
+        Assert.Contains("Run: ", replaced, StringComparison.Ordinal);
+        Assert.Contains("Specs.csproj", replaced, StringComparison.Ordinal);
+        Assert.False(fixture.Manager.ProjectGraphStale);
+        Assert.Null(fixture.Manager.GetProjectGraphStaleHint());
+        Assert.DoesNotContain(temporary, fixture.Manager.Baseline.GetSnapshot().TouchedPaths, InputPathCanon.Comparer);
+        Assert.Empty(session.DirectoryRenamePaths);
+
+        revision = session.EventRevision(path);
+        await File.WriteAllTextAsync(path, updated);
+        await fixture.WaitForEventAsync(path, revision, expectGraphStale: false);
+        Assert.Equal(replaced, await tools.EstimateAffectedTests());
+    }
+
+    [Fact]
     public async Task Native_new_test_file_is_directly_included_before_and_after_reload_without_unrelated_projects()
     {
         await using var fixture = new TestImpactWatcherFixture();
@@ -48,6 +78,20 @@ public sealed class TestImpactWatcherTests
         Assert.Empty(result.TestProjectIds);
         Assert.Equal([path], result.NotCoveredPaths);
         Assert.True(result.RequiresReload);
+    }
+
+    [Fact]
+    public async Task Reset_preserves_unpaired_unindexed_event_in_baseline_journal()
+    {
+        await using var fixture = new TestImpactWatcherFixture();
+        await fixture.LoadAsync();
+        var path = Path.Combine(fixture.Files.Root, "Specs", "notes.txt");
+        await File.WriteAllTextAsync(path, "Notes.");
+        await fixture.WaitForEventAsync(path);
+
+        await fixture.Manager.ClearWorkspaceAsync();
+
+        Assert.Contains(path, fixture.Manager.Baseline.GetSnapshot().TouchedPaths, InputPathCanon.Comparer);
     }
 
     [Theory]

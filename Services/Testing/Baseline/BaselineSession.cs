@@ -1,6 +1,8 @@
 using System.Collections.Immutable;
+using System.Security.Cryptography;
 using Microsoft.CodeAnalysis;
 using Microsoft.Extensions.Logging;
+using RoslynMcpServer.Services.Models;
 using RoslynMcpServer.Services.Testing.Baseline.Models;
 using RoslynMcpServer.Services.Testing.Snapshots;
 using RoslynMcpServer.Services.Workspace;
@@ -44,6 +46,68 @@ internal sealed class BaselineSession
         }
     }
 
+    internal BaselineSessionSnapshot GetSnapshot(
+        Solution solution,
+        WorkspaceInputSession? session,
+        CancellationToken cancellationToken)
+    {
+        if (session?.InputMap is not { } map)
+        {
+            return GetSnapshot();
+        }
+
+        long generation;
+        (string Path, string Fingerprint, long WriteVersion)[] candidates;
+        lock (_gate)
+        {
+            generation = _generation;
+            candidates = _hasObservationGap
+                ? []
+                : _originalAnalyzerConfigFingerprints
+                    .Where(pair => _touched.Contains(pair.Key))
+                    .Select(pair => (pair.Key, pair.Value, _versions.GetValueOrDefault(pair.Key)))
+                    .ToArray();
+        }
+
+        var matching = new List<(string Path, int EventRevision, long WriteVersion)>();
+        foreach (var (path, original, writeVersion) in candidates)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (map.Find(path) is { } entry && IsLoadedAnalyzerConfig(entry)
+                && session.SettledEventRevision(path) is { } eventRevision
+                && StableFileBytes.Read(path).Bytes is { } bytes
+                && Fingerprint(bytes) == original
+                && MatchesPublishedAnalyzerConfig(solution, entry, bytes))
+            {
+                matching.Add((path, eventRevision, writeVersion));
+            }
+        }
+
+        if (matching.Count == 0)
+        {
+            return GetSnapshot();
+        }
+
+        BaselineSessionSnapshot? snapshot = null;
+        session.TryRun(() =>
+        {
+            // Watcher callbacks acquire these gates in the same order. No disk reads hold either gate.
+            lock (_gate)
+            {
+                snapshot = GetSnapshot();
+                if (generation == _generation && !_hasObservationGap && ReferenceEquals(session.InputMap, map))
+                {
+                    var unchanged = matching.Where(match =>
+                            match.WriteVersion == _versions.GetValueOrDefault(match.Path)
+                            && match.EventRevision == session.SettledEventRevision(match.Path))
+                        .Select(match => match.Path);
+                    snapshot = snapshot with { TouchedPaths = snapshot.TouchedPaths.Except(unchanged) };
+                }
+            }
+        });
+        return snapshot ?? GetSnapshot();
+    }
+
     internal void BeginLoad(string workspacePath, ILogger logger)
     {
         (CancellationTokenSource? Cancellation, bool Running, AssemblySnapshotRetirement Assemblies) retired;
@@ -71,6 +135,32 @@ internal sealed class BaselineSession
         }
         CancelCapture(retired.Cancellation, retired.Running, logger);
         retired.Assemblies.Cancel();
+    }
+
+    /// <summary>Captures candidates before watcher delivery starts, then leaves publication to check its journal.</summary>
+    internal void CapturePendingAnalyzerConfigFingerprints(WorkspaceInputMap inputMap)
+    {
+        long generation;
+        lock (_gate)
+        {
+            if (_pendingWorkspacePath is null || InputPathCanon.Comparer.Equals(_workspacePath, _pendingWorkspacePath))
+            {
+                return;
+            }
+            generation = _generation;
+        }
+
+        // A callback can be delayed past publication, even for files changed after watcher startup.
+        // Capture an earlier reference so those changed bytes can never become the original content.
+        // See docs/archive/readme-demo-defects/n01-investigation.md.
+        var fingerprints = CaptureAnalyzerConfigFingerprints(inputMap, DateTime.UtcNow);
+        lock (_gate)
+        {
+            if (generation == _generation && _pendingWorkspacePath is not null)
+            {
+                _pendingAnalyzerConfigFingerprints = fingerprints;
+            }
+        }
     }
 
     internal void Publish(string workspacePath, Solution solution, DateTime publishedAtUtc, ILogger logger)
@@ -104,6 +194,10 @@ internal sealed class BaselineSession
             }
 
             InitializeBaselineUnderLock(canonical, publishedAtUtc, inventory, solution);
+            _originalAnalyzerConfigFingerprints = InputPathCanon.Comparer.Equals(_pendingWorkspacePath, canonical)
+                ? _pendingAnalyzerConfigFingerprints.RemoveRange(_pendingWrites)
+                : ImmutableDictionary<string, string>.Empty;
+            _pendingAnalyzerConfigFingerprints = ImmutableDictionary<string, string>.Empty;
             retiredAssemblies = Assemblies.Start(canonical, publishedAtUtc, assemblies, logger);
             foreach (var path in _pendingWrites)
             {
@@ -206,9 +300,61 @@ internal sealed class BaselineSession
         }
     }
 
+    private static ImmutableDictionary<string, string> CaptureAnalyzerConfigFingerprints(
+        WorkspaceInputMap map,
+        DateTime captureStartedAtUtc)
+    {
+        var fingerprints = ImmutableDictionary.CreateBuilder<string, string>(InputPathCanon.Comparer);
+        foreach (var entry in map.Paths.Where(IsLoadedAnalyzerConfig))
+        {
+            var path = entry.CanonicalPath;
+            if (StableFileBytes.Read(path).Bytes is { } bytes && PredatesPublication(path, captureStartedAtUtc))
+            {
+                fingerprints.Add(path, Fingerprint(bytes));
+            }
+        }
+        return fingerprints.ToImmutable();
+    }
+
+    // A path shared with an AdditionalFile or another role still needs its own invalidation.
+    // See docs/archive/readme-demo-defects/n01-investigation.md.
+    private static bool IsLoadedAnalyzerConfig(InputPathEntry? entry) =>
+        entry is { Present: true }
+        && entry.Occurrences.All(static occurrence => occurrence.Role == InputRole.AnalyzerConfig);
+
+    private static string Fingerprint(byte[] bytes) => Convert.ToHexString(SHA256.HashData(bytes));
+
+    private static bool MatchesPublishedAnalyzerConfig(Solution solution, InputPathEntry entry, byte[] bytes)
+    {
+        // A revert observed on disk can precede its watcher event. Only the published graph participates in TIA.
+        // TryGetText avoids a lazy load from that same file masquerading as an already published config.
+        using var stream = new MemoryStream(bytes, writable: false);
+        using var reader = new StreamReader(stream, SourceTextEncoding.BomFreeUtf8);
+        var diskText = reader.ReadToEnd();
+        return entry.Occurrences.All(occurrence =>
+            occurrence.DocumentId is { } documentId
+            && solution.GetAnalyzerConfigDocument(documentId) is { } document
+            && document.TryGetText(out var text)
+            && string.Equals(text.ToString(), diskText, StringComparison.Ordinal));
+    }
+
+    private static bool PredatesPublication(string path, DateTime publishedAtUtc)
+    {
+        try
+        {
+            var file = new FileInfo(path);
+            return file.Exists && file.LastWriteTimeUtc <= publishedAtUtc;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            return false;
+        }
+    }
+
     private (CancellationTokenSource? Cancellation, bool Running, AssemblySnapshotRetirement Assemblies) CloseGenerationUnderLock()
     {
         _generation++;
+        _pendingAnalyzerConfigFingerprints = ImmutableDictionary<string, string>.Empty;
         FreezePendingUnderLock();
         var assemblies = Assemblies.Interrupt();
         _requiresFullScan |= _workspacePath != null;
@@ -454,6 +600,8 @@ internal sealed class BaselineSession
     private readonly HashSet<string> _touched = new(InputPathCanon.Comparer);
     private readonly HashSet<string> _rescanPaths = new(InputPathCanon.Comparer);
     private ImmutableHashSet<string> _originalNonSourcePaths = ImmutableHashSet<string>.Empty;
+    private ImmutableDictionary<string, string> _originalAnalyzerConfigFingerprints = ImmutableDictionary<string, string>.Empty;
+    private ImmutableDictionary<string, string> _pendingAnalyzerConfigFingerprints = ImmutableDictionary<string, string>.Empty;
     private readonly HashSet<string> _pendingWrites = new(InputPathCanon.Comparer);
     private string? _workspacePath;
     private string? _pendingWorkspacePath;

@@ -143,6 +143,66 @@ public sealed class VstestOutputParserTests
     }
 
     [Fact]
+    public void BuildMarkdownReport_lists_methods_separately_and_counts_each_theory_case()
+    {
+        const string output = """
+            Test Run Successful.
+            Total tests: 3
+                 Passed: 3
+              Passed Demo.Samples0.InRange(value: 0) [1 ms]
+              Passed Demo.Samples0.InRange(value: 1) [< 1 ms]
+              Passed Demo.Samples0.Creates`Provider [< 1 ms]
+            """;
+        var result = VstestOutputParser.Parse(output, exitCode: 0);
+        Assert.Equal(
+            ["Demo.Samples0.InRange", "Demo.Samples0.InRange", "Demo.Samples0.Creates`Provider"],
+            result.PassedTestNames);
+
+        var report = VstestOutputParser.BuildMarkdownReport(
+            result,
+            exitCode: 0,
+            output,
+            "FullyQualifiedName~Demo.Samples0",
+            filterDescription: null,
+            requireFilterMatch: true);
+
+        Assert.Contains("Total: **3** · Passed: **3** · Failed: **0**", report, StringComparison.Ordinal);
+        Assert.Contains(
+            "Matched test methods (preview): `Demo.Samples0.InRange`, `Demo.Samples0.Creates'Provider`",
+            report,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void BuildMarkdownReport_takes_the_first_five_distinct_method_names()
+    {
+        const string output = """
+            Passed!  - Failed: 0, Passed: 7, Skipped: 0, Total: 7
+              Passed Test.Matrix.First(value: 1) [1 ms]
+              Passed Test.Matrix.First(value: 2) [1 ms]
+              Passed Test.Matrix.Second [1 ms]
+              Passed Test.Matrix.Third [1 ms]
+              Passed Test.Matrix.Fourth [1 ms]
+              Passed Test.Matrix.Fifth [1 ms]
+              Passed Test.Matrix.Sixth [1 ms]
+            """;
+        var result = VstestOutputParser.Parse(output, exitCode: 0);
+        var report = VstestOutputParser.BuildMarkdownReport(
+            result,
+            exitCode: 0,
+            output,
+            "FullyQualifiedName~Test.Matrix",
+            filterDescription: null,
+            requireFilterMatch: true);
+
+        Assert.Contains(
+            "Matched test methods (preview): `Test.Matrix.First`, `Test.Matrix.Second`, `Test.Matrix.Third`, `Test.Matrix.Fourth`, `Test.Matrix.Fifth`",
+            report,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("Test.Matrix.Sixth", report, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void FilterMatchedAnyTest_does_not_match_other_method_with_shared_suffix()
     {
         const string output = """
@@ -181,17 +241,63 @@ public sealed class VstestOutputParserTests
         Assert.Equal("Ns.OtherTests.Real", result.PassedTestNames[0]);
     }
 
-    [Fact]
-    public void Parse_recognizes_vstest_failed_line_with_minute_second_duration()
+    [Theory]
+    [InlineData("[1 m 28 s]")]
+    [InlineData("[< 1 ms]")]
+    public void Parse_recognizes_vstest_failed_line_with_duration(string duration)
     {
-        const string output = """
+        var output = $"""
             Total tests: 1
                  Failed: 1
-              Failed Ns.SlowTests.FailsAfterMinute [1 m 28 s]
+              Failed Ns.ExampleTests.Fails {duration}
             """;
         var result = VstestOutputParser.Parse(output, exitCode: 1);
         Assert.Single(result.Failures);
-        Assert.Equal("Ns.SlowTests.FailsAfterMinute", result.Failures[0].Name);
+        Assert.Equal("Ns.ExampleTests.Fails", result.Failures[0].Name);
+    }
+
+    [Theory]
+    [InlineData(5)]
+    [InlineData(6)]
+    public void BuildMarkdownReport_caps_failures_after_pairing_adapter_notices_with_theory_rows(int failureCount)
+    {
+        var cases = Enumerable.Range(1, failureCount);
+        var notices = cases.Select(value => $"[xUnit.net 00:00:01.00]     Demo.Tests.Check(value: {value}) [FAIL]");
+        var detailRows = cases.Select(value => $"""
+              Failed Demo.Tests.Check(value: {value}) [< 1 ms]
+              Error Message:
+               Failure detail {value}
+            """);
+        var failureLines = string.Join('\n', notices.Concat(detailRows));
+        var output = $"Total tests: {failureCount}\n     Failed: {failureCount}\n{failureLines}";
+
+        var result = VstestOutputParser.Parse(output, exitCode: 1);
+        var report = VstestOutputParser.BuildMarkdownReport(result, 1, output, null, null, requireFilterMatch: false);
+
+        Assert.Equal(failureCount, result.Summary?.Failed);
+        Assert.Equal(Enumerable.Range(1, 5).Select(value => $"Failure detail {value}"), result.Failures.Select(f => f.Error));
+        Assert.Equal(failureCount > 5, report.Contains("Showing first 5 failures only", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Parse_keeps_adapter_notice_for_a_different_case_of_the_same_theory()
+    {
+        const string output = """
+            Total tests: 2
+                 Failed: 2
+            [xUnit.net 00:00:01.00]     Demo.Tests.Check(value: 1) [FAIL]
+              Error Message:
+               Adapter-only detail
+            [xUnit.net 00:00:01.00]     Demo.Tests.Check(value: 2) [FAIL]
+              Failed Demo.Tests.Check(value: 2) [< 1 ms]
+              Error Message:
+               Console detail
+            """;
+
+        var result = VstestOutputParser.Parse(output, exitCode: 1);
+
+        Assert.Equal(2, result.Summary?.Failed);
+        Assert.Equal(["Adapter-only detail", "Console detail"], result.Failures.Select(f => f.Error));
     }
 
     [Fact]

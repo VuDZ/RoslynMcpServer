@@ -1,4 +1,6 @@
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.FindSymbols;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -83,10 +85,56 @@ internal static class SymbolDeclarationResolver
 
         if (matches.Count == 0)
         {
-            return ([], FormatFqnMissError(normalized, distinct));
+            return ([], FormatFqnMissError(normalized, simpleName, distinct.Select(GetSymbolFqn)));
         }
 
         return (matches, null);
+    }
+
+    /// <summary>Resolves the qualified declaration names shown by <c>find_implementations</c>.</summary>
+    public static async Task<(IReadOnlyList<ISymbol> Symbols, string? Error)> ResolveImplementationBasesAsync(
+        Solution solution,
+        string symbolName,
+        ILogger logger,
+        TimeProvider timeProvider,
+        CancellationToken cancellationToken)
+    {
+        var normalized = NormalizeFqn(symbolName);
+        var parsed = normalized.Contains('<') ? SyntaxFactory.ParseName(normalized) : null;
+        var simpleName = parsed switch
+        {
+            null => GetSimpleName(normalized),
+            QualifiedNameSyntax { ContainsDiagnostics: false } qualified => qualified.Right.Identifier.ValueText,
+            SimpleNameSyntax { ContainsDiagnostics: false } simple => simple.Identifier.ValueText,
+            _ => string.Empty,
+        };
+        if (simpleName.Length == 0)
+        {
+            return ([], $"Error: invalid symbol name `{symbolName.Trim()}`.");
+        }
+
+        if (simpleName.StartsWith('@'))
+        {
+            simpleName = simpleName[1..];
+        }
+
+        var (symbols, error) = await ResolveDeclarationsAsync(
+            solution, simpleName, SymbolFilter.Type, logger, timeProvider, cancellationToken)
+            .ConfigureAwait(false);
+        if (error is not null || (parsed is null && !normalized.Contains('.')
+            && !symbolName.TrimStart().StartsWith("global::", StringComparison.Ordinal)))
+        {
+            return (symbols, error);
+        }
+
+        return MatchImplementationBaseFqn(parsed?.NormalizeWhitespace().ToFullString() ?? normalized, simpleName, symbols);
+    }
+
+    public static string GetImplementationBaseFqn(INamedTypeSymbol type)
+    {
+        var display = type.OriginalDefinition.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+        // A global-namespace declaration needs a qualifier to distinguish it from a short-name search.
+        return type.ContainingNamespace is { IsGlobalNamespace: true } ? display : NormalizeFqn(display);
     }
 
     /// <summary>
@@ -174,18 +222,60 @@ internal static class SymbolDeclarationResolver
         return NormalizeFqn(ns.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)) + "." + typePath;
     }
 
-    private static string FormatFqnMissError(string normalizedFqn, IReadOnlyList<ISymbol> simpleNameCandidates)
+    private static (IReadOnlyList<ISymbol> Symbols, string? Error) MatchImplementationBaseFqn(
+        string qualifiedName,
+        string simpleName,
+        IReadOnlyList<ISymbol> symbols)
     {
-        if (simpleNameCandidates.Count == 0)
+        var candidates = symbols.OfType<INamedTypeSymbol>().ToArray();
+        var matches = candidates
+            .Where(type => string.Equals(NormalizeFqn(GetImplementationBaseFqn(type)), qualifiedName, StringComparison.Ordinal))
+            .ToArray();
+        if (matches.Length > 0)
         {
-            return $"No declaration matches FQN `{normalizedFqn}` (and no symbols share the simple name `{GetSimpleName(normalizedFqn)}`).";
+            return (matches, null);
         }
 
-        var candidateFqns = simpleNameCandidates
-            .Select(GetSymbolFqn)
+        // Old FQNs omitted type parameters and used raw type names, including escaped keywords.
+        if (!qualifiedName.Contains('<'))
+        {
+            var legacyMatches = candidates
+                .Where(type => string.Equals(GetSymbolFqn(type), qualifiedName, StringComparison.Ordinal))
+                .ToArray();
+            if (legacyMatches.Length == 1)
+            {
+                return (legacyMatches, null);
+            }
+
+            // A nested declaration can have its own arity of zero in a generic container.
+            // Apply that preference only when the containing type is unambiguous.
+            if (legacyMatches.Length > 1 && legacyMatches.All(type =>
+                    SymbolEqualityComparer.Default.Equals(type.ContainingType, legacyMatches[0].ContainingType)))
+            {
+                var nonGeneric = legacyMatches.Where(type => type.Arity == 0).ToArray();
+                if (nonGeneric.Length > 0)
+                {
+                    return (nonGeneric, null);
+                }
+            }
+        }
+
+        return ([], FormatFqnMissError(qualifiedName, simpleName, candidates.Select(GetImplementationBaseFqn)));
+    }
+
+    private static string FormatFqnMissError(
+        string normalizedFqn,
+        string simpleName,
+        IEnumerable<string> candidates)
+    {
+        var candidateFqns = candidates
             .Distinct(StringComparer.Ordinal)
             .OrderBy(s => s, StringComparer.Ordinal)
             .ToList();
+        if (candidateFqns.Count == 0)
+        {
+            return $"No declaration matches FQN `{normalizedFqn}` (and no symbols share the simple name `{simpleName}`).";
+        }
 
         var sb = new System.Text.StringBuilder();
         sb.AppendLine($"No declaration matches FQN `{normalizedFqn}`.");

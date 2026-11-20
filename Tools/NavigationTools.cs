@@ -570,10 +570,10 @@ public sealed class NavigationTools
     [McpServerTool(Name = "find_implementations", Title = "Find interface implementations or derived types")]
     [Description(
         "Finds interface implementations or derived types. Requires load_workspace. "
-        + "Same short name: section per base; exact FQN: one type; FQN miss: resolver text. "
+        + "Short name: section per base. Use a section's qualified name to select its base. "
         + "Optional maxResults/preview/overflowCursor. Not find_usages or text search.")]
     public async Task<string> FindImplementations(
-        [Description("Simple name (section per match) or exact FQN (one type; no global::).")]
+        [Description("Simple name or exact qualified declaration name, e.g. Demo.IProvider<T>.")]
         string symbolName,
         [Description("When true (default), include indirect implementations and derived types.")]
         bool transitive = true,
@@ -618,10 +618,11 @@ public sealed class NavigationTools
             }
 
             var trimmedName = symbolName.Trim();
-            var (declarations, resolveError) = await ResolveDeclarationsOnSanitizedAsync(
+            var ((declarations, resolveError), _) = await WorkspaceAnalyzerSanitizer.WithSanitizedRetryAsync(
+                sol => SymbolDeclarationResolver.ResolveImplementationBasesAsync(
+                    sol, trimmedName, _logger, _timeProvider, cancellationToken),
+                () => _solutionManager.GetSanitizedPublishedSolution(),
                 solution,
-                trimmedName,
-                SymbolFilter.Type,
                 cancellationToken).ConfigureAwait(false);
 
             if (resolveError is not null)
@@ -635,7 +636,7 @@ public sealed class NavigationTools
                 .OfType<INamedTypeSymbol>()
                 .Distinct(SymbolEqualityComparer.Default)
                 .Cast<INamedTypeSymbol>()
-                .OrderBy(t => SymbolDeclarationResolver.GetSymbolFqn(t), StringComparer.Ordinal)
+                .OrderBy(SymbolDeclarationResolver.GetImplementationBaseFqn, StringComparer.Ordinal)
                 .ToList();
 
             if (typeSymbols.Count == 0)
@@ -662,16 +663,13 @@ public sealed class NavigationTools
 
             // Declaring locations on the resolve snapshot; remap before SymbolFinder on any retry snapshot.
             var baseDeclLocations = supported
-                .Select(t => (
-                    Fqn: SymbolDeclarationResolver.GetSymbolFqn(t),
-                    DeclaringLocation: GetRequiredDeclaringLocation(t, solution, trimmedName)))
+                .Select(type => GetRequiredDeclaringLocation(type, solution, trimmedName))
                 .ToList();
 
             var (sectionResults, _) = await WorkspaceAnalyzerSanitizer.WithSanitizedRetryAsync(
                     async sol =>
                     {
                         var results = new List<(
-                            string Fqn,
                             INamedTypeSymbol MappedType,
                             string SearchMode,
                             List<INamedTypeSymbol> Related)>();
@@ -680,8 +678,8 @@ public sealed class NavigationTools
                         {
                             var mappedType = await RemapDeclaredSymbolAtSpanAsync<INamedTypeSymbol>(
                                 sol,
-                                baseDecl.DeclaringLocation.DocumentId,
-                                baseDecl.DeclaringLocation.Span,
+                                baseDecl.DocumentId,
+                                baseDecl.Span,
                                 trimmedName,
                                 cancellationToken).ConfigureAwait(false);
 
@@ -719,7 +717,7 @@ public sealed class NavigationTools
                                     StringComparer.Ordinal)
                                 .ToList();
 
-                            results.Add((baseDecl.Fqn, mappedType, searchMode, ordered));
+                            results.Add((mappedType, searchMode, ordered));
                         }
 
                         return results;
@@ -731,7 +729,7 @@ public sealed class NavigationTools
 
             var textByDocument = resolvedPreview ? new Dictionary<DocumentId, SourceText>() : null;
             var sections = new List<ImplementationListingFormatter.BaseSection>(sectionResults.Count);
-            foreach (var (fqn, mappedType, searchMode, related) in sectionResults)
+            foreach (var (mappedType, searchMode, related) in sectionResults)
             {
                 var relatedLines = new List<ImplementationListingFormatter.RelatedTypeLine>(related.Count);
                 foreach (var type in related)
@@ -761,7 +759,7 @@ public sealed class NavigationTools
 
                 sections.Add(
                     new ImplementationListingFormatter.BaseSection(
-                        fqn,
+                        SymbolDeclarationResolver.GetImplementationBaseFqn(mappedType),
                         ImplementationListingFormatter.GetTypeKindLabel(mappedType),
                         searchMode,
                         mappedType.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat),
@@ -788,10 +786,13 @@ public sealed class NavigationTools
                 return ToolTelemetry.TraceAndReturn(toolName, sb.ToString().TrimEnd());
             }
 
-            var totalRelated = sections.Sum(s => s.RelatedTypes.Count);
+            var totalRelated = sectionResults
+                .SelectMany(section => section.Related)
+                .Distinct(SymbolEqualityComparer.Default)
+                .Count();
             ImplementationListingFormatter.AppendMultiTypeHeader(sb, trimmedName, sections.Count, totalRelated);
             var multiLines = ImplementationListingFormatter.BuildMultiSectionLines(sections);
-            NavigationListingHelper.AppendCappedLines(sb, multiLines, resolvedMax, "type(s)");
+            NavigationListingHelper.AppendCappedLines(sb, multiLines, resolvedMax, "line(s)");
             return ToolTelemetry.TraceAndReturn(toolName, sb.ToString().TrimEnd());
         }
         catch (OperationCanceledException)

@@ -11,7 +11,7 @@ Every tool also describes itself: `get_tool_help` returns the live parameters of
 - `caseSensitive` — optional for `search_code` (default `false`; use `true` for leftover branding checks).
 - `workspacePath` — `.sln` / `.slnx` / `.csproj`, and for some tools a directory. File only: `load_workspace`, `run_dotnet_build` (not a directory), `run_dotnet_run` (executable `.csproj`). Directory allowed: `run_dotnet_test`, `run_specific_test`, `run_test_by_filter`, `run_format`, `list_nuget_packages`, `list_outdated_packages`, `run_nuget_audit`, `get_changed_files`. Optional reload: `list_projects` / `get_project_graph`. Prefer `.sln`/`.slnx` for multi-config solutions.
 - `symbolName` — C# identifier for `find_symbol_definition`, `find_symbol_references`, `find_usages`, and `find_implementations` (exact name; solution-wide definition/usages/implementations and `find_symbol_references` without `filePath` are case-insensitive; `filePath` without `line` on definition and references is ordinal case-sensitive).
-- `diagnosticId` — compiler/analyzer id from `get_diagnostics_for_file` (e.g. `CS0246`) for `get_code_fixes` / `apply_code_fix`.
+- `diagnosticId` — compiler diagnostic ID from `get_diagnostics_for_file` (e.g. `CS0246`) for `get_code_fixes` / `apply_code_fix`.
 - `fixIndex` — 0-based index from `get_code_fixes` for `apply_code_fix`.
 - `path` — `.cs` file or directory for `get_code_skeleton` (absolute path; disk-based, no workspace required).
 
@@ -88,11 +88,11 @@ There are **55** registered tools in the default `full` profile (see list below)
 **Parameters:**
 - `filePath: string`
 
-**Output:** each line includes severity, **line**, **column**, diagnostic id (e.g. `CS0246`, `IDE0001`), and message. Use these values with `get_code_fixes`.
+Each compiler diagnostic includes severity, **line**, **column**, an ID such as `CS0246`, and a message. Use the ID and position with `get_code_fixes`.
 </details>
 
 <details>
-<summary><code>get_code_fixes</code> — Lists Roslyn CodeAction fixes available for a diagnostic at a specific location.</summary>
+<summary><code>get_code_fixes</code> — Lists Roslyn CodeAction fixes available for a compiler diagnostic at a specific location.</summary>
 
 **Parameters:**
 - `filePath: string`
@@ -116,7 +116,7 @@ There are **55** registered tools in the default `full` profile (see list below)
 - `column: int = 1`
 - `previewOnly: bool = false` — when `true`, returns a diff preview without writing files
 
-**Behavior:** writes changed files through the workspace write boundary and updates the in-memory workspace. An unsupported or stale analyzer-reference diff is rejected before any server write. If only some files are saved, the reply is not full success: it includes Status, Reason, and the known saved paths. Re-run `get_diagnostics_for_file` to verify remaining issues.
+**Behavior:** writes changed files through the workspace write boundary and updates the in-memory workspace. An unsupported or stale analyzer-reference diff is rejected before any server write. If only some files are saved, the reply is not full success: it includes Status, Reason, and the known saved paths. Re-run `get_diagnostics_for_file` to check for remaining compiler warnings and errors.
 
 **Note:** `fixIndex` is valid only for the same `filePath` / `diagnosticId` / `line` / `column` pair in the same session (file must not change between `get_code_fixes` and `apply_code_fix`).
 </details>
@@ -206,13 +206,13 @@ Optional `preview: bool?` appends each definition's source line (up to 400 chara
 <summary><code>find_implementations</code> — Find classes implementing an interface or derived from a base type.</summary>
 
 **Parameters:**
-- `symbolName: string` — interface or base class name (e.g. `IRepository`, `BaseController`). Simple name returns a section per matching base; exact FQN selects one type
+- `symbolName: string` — interface or base class name. A short name returns a section per matching base. Copy the qualified name from a section to select that base, for example `Demo.IProvider<T>` or `global::IProvider`
 - `transitive: bool = true` — when `true`, includes indirect implementations / derived types in the hierarchy
 - `maxResults: int?` — listing cap 1–500. Omit → 50, else `ROSLYN_MCP_MAX_RESULTS`, else `RoslynMcp.jsonc` `max-results`; an explicit argument wins
 - `preview: bool? = null` — when true, append the source line (truncated at 400 chars). Omit → `RoslynMcp.jsonc` `preview`, else `path:line:col` only
 - `overflowCursor: string?` — next in-memory overflow chunk; does not start a new search
 
-**Behavior:** Requires `load_workspace`. Applies saved `.cs` from disk first. For **interfaces**, uses Roslyn `FindImplementationsAsync`; for **classes/structs**, uses `FindDerivedClassesAsync`. Several same-named bases each get a section (empty sections are kept). Exact FQN still selects one type; FQN miss returns the resolver candidate text (no simple-name fallback). Returns each matching type with `path:line:col`. Excess types use the same overflow store. Do not use text search or `find_usages` for “who implements X?” / “what inherits from Y?”.
+**Behavior:** Requires `load_workspace`. Applies saved `.cs` from disk first. For **interfaces**, uses Roslyn `FindImplementationsAsync`; for **classes/structs**, uses `FindDerivedClassesAsync`. A qualified name without type parameters selects the non-generic declaration when both forms exist. It also matches a single generic declaration by its older name without type parameters. A qualified-name miss lists candidates. Empty sections are kept. Each section lists its own related types with `path:line:col`, and the summary counts distinct types across all sections. Excess lines use the same overflow store. Do not use text search or `find_usages` for “who implements X?” / “what inherits from Y?”.
 
 **Model guidance:** after `load_workspace`, use this instead of grep or analyzing usages when you need the OOP hierarchy.
 </details>
@@ -297,6 +297,8 @@ Parses C# syntax, inserts with DocumentEditor, formats the file. Prefer over `ap
 <details>
 <summary><code>estimate_affected_tests</code> — Approximate test selection since the solution was loaded.</summary>
 
+If the source baseline is still being captured, the tool reports pending documents. Retry the call after capture completes. With `run: true`, the pending response starts no builds or tests. Documents with an unknown baseline remain eligible for conservative selection and appear separately under `Not covered`. The response is limited to 32 KiB of UTF-8 text.
+
 Requires `load_workspace`. The tool synchronizes saved disk and MCP edits and reports changes since the session baseline. `depth` (case-insensitive) chooses a cumulative stage: `changed` (changed or new test classes), `direct` (also type references), `di` (also container and framework discovery), or `all` (also assembly loads by name, the default). For a narrowed project the answer shows class counts for all four stages and the VSTest filter at the selected depth. `includeDetails: true` lists the classes by stage and the changed compiled types. The answer also reports compiler errors in changed source documents and specific `Not covered` limitations. Use the build output for compilation-wide errors such as entry point conflicts.
 
 Use `run_specific_test` when you know the class or method. When the impact of a saved edit is broad or unclear, call `estimate_affected_tests` with `run: true` to build and test the selection in one call. Use `run: false` to inspect the plan or reuse a fresh build. With fresh outputs, run the returned filters via `run_test_by_filter` and whole projects via `run_dotnet_test` with `noBuild: true`. On full Jellyfin, the automatic parallel run saved 13.85–18.10 seconds over `maxParallelProjects: 1` in two paired edits with identical tests and outcomes. [Full-cycle benchmark](rapid-tia-2/mvp/evidence/parallel-run-2026-11-19.md).
@@ -325,6 +327,7 @@ Filters use name containment, so selecting `Check` may also run `CheckExtra` and
 - `noIncremental: bool = true` — pass `--no-incremental` on every build step (default). Set `false` only if you explicitly accept MSBuild up-to-date caching.
 - `platform: string? = null` — optional `-p:Platform=` (e.g. `x64`). Omit to inherit `load_workspace` platform.
 - `projectName: string? = null` — optional. When set, `workspacePath` must be a `.sln`/`.slnx`. Builds that project via its solution-folder MSBuild target (`-t:"Folder\Project"`). Match display name, file name, or virtual path.
+- `timeoutSeconds: int? = null` — omit for 180 seconds per step and 300 seconds total. An explicit value from 1 to 4,294,967 sets one budget for all build and restore steps. `0` disables the tool timeout. Client cancellation and the client's `tools/call` timeout still apply.
 - `reportCursor: string? = null` — next chunk of a retained full report. Does not start a new build.
 - `includeBuildWarnings: bool = false` — include build warnings; default hides them. Errors are always shown.
 

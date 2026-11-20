@@ -58,7 +58,7 @@ public sealed class BuildProgressIntegrationTests
             var progress = new CollectingProgress();
             var result = await client.CallToolAsync(
                 "run_dotnet_build",
-                new Dictionary<string, object?> { ["workspacePath"] = csproj },
+                new Dictionary<string, object?> { ["workspacePath"] = csproj, ["timeoutSeconds"] = 30 },
                 progress,
                 cancellationToken: cts.Token);
 
@@ -134,7 +134,7 @@ public sealed class BuildProgressIntegrationTests
             // reporter, and the live build must still produce the ordinary build report.
             var result = await client.CallToolAsync(
                 "run_dotnet_build",
-                new Dictionary<string, object?> { ["workspacePath"] = csproj },
+                new Dictionary<string, object?> { ["workspacePath"] = csproj, ["timeoutSeconds"] = 0 },
                 cancellationToken: cts.Token);
 
             var text = ReadText(result);
@@ -204,27 +204,31 @@ public sealed class BuildProgressIntegrationTests
         Assert.Equal([1f, 5f, 10f, 11f], values.Select(v => v.Progress).ToArray());
     }
 
-    private static string SlowProject() => OperatingSystem.IsWindows()
-        ? """
-          <Project Sdk="Microsoft.NET.Sdk">
-            <PropertyGroup>
-              <TargetFramework>net10.0</TargetFramework>
-            </PropertyGroup>
-            <Target Name="Slow" BeforeTargets="Build">
-              <Exec Command="ping -n 3 127.0.0.1" IgnoreExitCode="true" />
-            </Target>
-          </Project>
-          """
-        : """
-          <Project Sdk="Microsoft.NET.Sdk">
-            <PropertyGroup>
-              <TargetFramework>net10.0</TargetFramework>
-            </PropertyGroup>
-            <Target Name="Slow" BeforeTargets="Build">
-              <Exec Command="sleep 2" IgnoreExitCode="true" />
-            </Target>
-          </Project>
-          """;
+    [Fact]
+    public void Run_dotnet_build_schema_exposes_an_optional_integer_timeout()
+    {
+        using var host = BuildLiteHost();
+        var schema = host.Services.GetServices<McpServerTool>()
+            .Single(tool => tool.ProtocolTool.Name == "run_dotnet_build")
+            .ProtocolTool.InputSchema;
+        var timeout = schema.GetProperty("properties").GetProperty("timeoutSeconds");
+        var types = timeout.GetProperty("type");
+
+        Assert.Contains(types.EnumerateArray(), type => type.GetString() == "integer");
+        Assert.Equal(System.Text.Json.JsonValueKind.Null, timeout.GetProperty("default").ValueKind);
+        Assert.DoesNotContain(schema.GetProperty("required").EnumerateArray(), property => property.GetString() == "timeoutSeconds");
+    }
+
+    private static string SlowProject() => $"""
+        <Project Sdk="Microsoft.NET.Sdk">
+          <PropertyGroup>
+            <TargetFramework>net10.0</TargetFramework>
+          </PropertyGroup>
+          <Target Name="Slow" BeforeTargets="Build">
+            {MsBuildDelayFixture.Exec(2)}
+          </Target>
+        </Project>
+        """;
 
     private static IHost BuildLiteHost()
     {

@@ -76,11 +76,12 @@ public sealed class SolutionManager
     // A plugin assembly does not see them; the public members above are its workspace API.
 
     /// <summary>True when the next <c>load_workspace</c> must skip the in-process graph cache.</summary>
-    internal bool ProjectGraphStale => _projectGraphStale;
+    internal bool ProjectGraphStale => _diskWatcherSession?.HasUnsettledComposition == true || _projectGraphStale;
 
     internal bool ProjectGraphStaleFromGraphFile => _projectGraphStaleFromGraphFile;
 
-    internal bool ProjectGraphStaleFromComposition => _projectGraphStaleFromComposition;
+    internal bool ProjectGraphStaleFromComposition =>
+        _diskWatcherSession?.HasUnsettledComposition == true || _projectGraphStaleFromComposition;
 
     /// <summary>True when the last <see cref="LoadAsync"/> reused the existing workspace graph (cached load).</summary>
     internal bool LastLoadWasCacheHit { get; private set; }
@@ -658,13 +659,13 @@ public sealed class SolutionManager
     /// </summary>
     public string? GetProjectGraphStaleHint()
     {
-        if (!_projectGraphStale)
+        var composition = ProjectGraphStaleFromComposition;
+        var graphFile = ProjectGraphStaleFromGraphFile;
+        if (!composition && !graphFile)
         {
             return null;
         }
 
-        var graphFile = _projectGraphStaleFromGraphFile;
-        var composition = _projectGraphStaleFromComposition;
         if (graphFile && composition)
         {
             return ProjectGraphFileStaleHint
@@ -911,7 +912,7 @@ public sealed class SolutionManager
             return new TestImpactWorkspaceContext(
                 solution,
                 DiskWatcherSession?.InputMap,
-                Baseline.GetSnapshot(),
+                Baseline.GetSnapshot(solution, DiskWatcherSession, cancellationToken),
                 _loadedPath,
                 ProjectGraphStale,
                 ProjectGraphStaleFromGraphFile,
@@ -1004,7 +1005,7 @@ public sealed class SolutionManager
         if (usageAttempt is not null)
         {
             usageAttempt.WaitMilliseconds = Stopwatch.GetElapsedTime(usageAttempt.WaitStarted!.Value).TotalMilliseconds;
-            usageAttempt.GraphStale = _projectGraphStale;
+            usageAttempt.GraphStale = ProjectGraphStale;
         }
 
         _workspaceLoadInProgress = true;
@@ -2221,6 +2222,7 @@ public sealed class SolutionManager
         bool publishLoadedSolution,
         CancellationToken cancellationToken)
     {
+        ReconcileDeferredCompositionChanges();
         if (_workspace is not null
             && MsBuildWorkspaceProperties.MatchesPassedLoadArguments(
                 _loadedPath,
@@ -2232,7 +2234,7 @@ public sealed class SolutionManager
                 passedPlatform,
                 passedTargetFramework,
                 _pathComparison)
-            && !_projectGraphStale)
+            && !ProjectGraphStale)
         {
             if (applyBuildArgs)
             {
@@ -2568,21 +2570,41 @@ public sealed class SolutionManager
         }
 
         _refreshAllDocuments = false;
-        DuringDiskFlushForTests?.Invoke();
-
-        var nonCSharpChanged = await AbsorbNonCSharpTextsAsync(
+        WorkspaceDocumentDiskSyncResult result;
+        bool nonCSharpChanged;
+        try
+        {
+            DuringDiskFlushForTests?.Invoke();
+            result = await WorkspaceDocumentDiskSync.ApplyAsync(
                 workspace.CurrentSolution,
-                dirtyNonCSharp,
-                cancellationToken)
-            .ConfigureAwait(false);
-
-        var result = await WorkspaceDocumentDiskSync.ApplyAsync(
-            workspace.CurrentSolution,
-            dirty,
-            refreshAll,
-            _pathComparison,
-            _diskWatcherSession?.InputMap,
-            cancellationToken).ConfigureAwait(false);
+                dirty,
+                refreshAll,
+                _pathComparison,
+                _diskWatcherSession?.InputMap,
+                cancellationToken).ConfigureAwait(false);
+            nonCSharpChanged = await AbsorbNonCSharpTextsAsync(
+                    _solution ?? workspace.CurrentSolution,
+                    dirtyNonCSharp,
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch
+        {
+            // Reconciliation can already have settled a recreation. A failed flush must leave its text queued.
+            foreach (var path in dirty)
+            {
+                _dirtySourcePaths.TryAdd(path, 0);
+            }
+            foreach (var path in dirtyNonCSharp)
+            {
+                _dirtyNonCSharpPaths.TryAdd(path, 0);
+            }
+            if (refreshAll)
+            {
+                _refreshAllDocuments = true;
+            }
+            throw;
+        }
 
         if (result.Unrepresentable.Count > 0 || refreshAll)
         {
@@ -2671,21 +2693,17 @@ public sealed class SolutionManager
                 _pathComparison,
                 cancellationToken)
             .ConfigureAwait(false);
-        var changed = false;
         foreach (var update in updates)
         {
-            if (RememberNonCSharpText(update.Key, update.Value))
-            {
-                changed = true;
-            }
+            RememberNonCSharpText(update.Key, update.Value);
         }
 
-        if (changed)
+        if (updates.Count > 0)
         {
             _logger.LogInformation("workspace_non_csharp_sync updated={Updated}", updates.Count);
         }
 
-        return changed;
+        return updates.Count > 0;
     }
 
     private void QueueKnownNonCSharpDocuments(Solution solution)
@@ -2849,6 +2867,7 @@ public sealed class SolutionManager
             immutableRoots);
         session.TryPublishInputMap(inputMap);
         _diskWatcherSession = session;
+        Baseline.CapturePendingAnalyzerConfigFingerprints(inputMap);
         BeforeDiskWatcherStartForTests?.Invoke();
         var started = WorkspaceDiskWatcherStarter.Start(
             inputMap.Watchers,
@@ -2882,7 +2901,16 @@ public sealed class SolutionManager
     {
         // Closure waits for admitted mutations before reset clears flags or installs another session.
         // A token check alone would let a callback write new-session state after passing the check.
-        _diskWatcherSession?.Close();
+        if (_diskWatcherSession is { } session)
+        {
+            session.TryRun(() =>
+            {
+                // The baseline survives a reopen of the same solution, including unpaired events.
+                ReconcileDeferredCompositionChanges(session);
+                session.Close();
+            });
+        }
+
         _diskWatcherSession = null;
         _diskWatcherSubscriptions.Clear();
         _diskWatcherStatus = WorkspaceDiskWatcherStatus.None;
@@ -2925,6 +2953,14 @@ public sealed class SolutionManager
         var accepted = session.TryRun(() =>
         {
             var map = session.InputMap;
+            if (map is not null && WorkspaceDiskEventClassifier.IsAtomicSaveToLoadedSource(e.OldFullPath, e.FullPath, map))
+            {
+                // The destination write still invalidates an unfinished baseline. Only the scratch path is provisional.
+                session.DeferCompositionChange(e.OldFullPath, e.FullPath);
+                newGraphPath = QueueDiskPath(session, e.FullPath, WatcherChangeTypes.Renamed);
+                return;
+            }
+
             // Ancestor directory names do not hide workspace inputs; map authority also preserves a temporary-save endpoint.
             // Consult.Unknown is insufficient here because it can come from an ancestor named artifacts/bin.
             // See docs/rapid-tia/epoch-1-project-level/evidence/task-03-review-round-9.md (R9-001).
@@ -3045,7 +3081,8 @@ public sealed class SolutionManager
         string? rawPath,
         WatcherChangeTypes changeType,
         bool recordBaselineWrite = true,
-        bool expandDeletedDescendants = true)
+        bool expandDeletedDescendants = true,
+        bool allowAtomicSaveDeferral = true)
     {
         if (string.IsNullOrWhiteSpace(rawPath))
         {
@@ -3156,6 +3193,17 @@ public sealed class SolutionManager
         }
 
         var canonical = decision.CanonicalPath ?? fullPath;
+        if (allowAtomicSaveDeferral
+            && changeType is (WatcherChangeTypes.Created or WatcherChangeTypes.Changed)
+            && decision.CompositionStale
+            && WorkspaceDiskEventClassifier.CanBeAtomicSaveSource(canonical, map))
+        {
+            // Atomic saves can raise Create/Change before Renamed. Delay the permanent facts until the batch is read.
+            // See docs/archive/readme-demo-defects/validation.md (D-02).
+            session.DeferCompositionChange(canonical);
+            return null;
+        }
+
         if (recordBaselineWrite)
         {
             Baseline.RecordWrite(canonical);
@@ -3169,14 +3217,18 @@ public sealed class SolutionManager
         }
 
         session.NotePendingContent(canonical);
-        session.RecordDiskEvent(decision);
+        var recoverableSourceAbsence = decision.CompositionStale && decision.DirtyUserSource
+            && expandDeletedDescendants && changeType != WatcherChangeTypes.Renamed
+            && map.Find(canonical) is { Present: true } loadedSource
+            && loadedSource.Occurrences.All(static occurrence => occurrence.Role == InputRole.UserInput);
+        session.RecordDiskEvent(decision, recoverableSourceAbsence);
         if (decision.GraphFile)
         {
             MarkProjectGraphStaleFromGraphFile();
             return canonical;
         }
 
-        if (decision.CompositionStale)
+        if (decision.CompositionStale && !recoverableSourceAbsence)
         {
             MarkProjectGraphStaleFromComposition();
         }
@@ -3227,9 +3279,35 @@ public sealed class SolutionManager
         return null;
     }
 
+    private void ReconcileDeferredCompositionChanges()
+    {
+        if (_diskWatcherSession is { HasDeferredCompositionChanges: true } session)
+        {
+            session.TryRun(() => ReconcileDeferredCompositionChanges(session));
+        }
+    }
+
+    /// <summary>Reconciles this generation's provisional events while its session gate is held.</summary>
+    private void ReconcileDeferredCompositionChanges(WorkspaceInputSession session)
+    {
+        foreach (var (path, replacement) in session.DrainDeferredCompositionChanges())
+        {
+            if (replacement is not null && session.InputMap is { } map
+                && WorkspaceDiskEventClassifier.IsConfirmedAtomicSave(path, replacement, map))
+            {
+                session.ConfirmAtomicSaveSourceAbsent(path);
+            }
+            else
+            {
+                QueueDiskPath(session, path, WatcherChangeTypes.Created, allowAtomicSaveDeferral: false);
+            }
+        }
+    }
+
     /// <returns><see langword="true"/> when a path must be read again because its event revision moved.</returns>
     private bool ReconcileInputEventsCore()
     {
+        ReconcileDeferredCompositionChanges();
         var session = _diskWatcherSession;
         if (session is null)
         {
@@ -3241,8 +3319,18 @@ public sealed class SolutionManager
         {
             if (result.Outcome == ContentReconcileOutcome.Echo)
             {
-                _dirtySourcePaths.TryRemove(result.CanonicalPath, out _);
-                _dirtyNonCSharpPaths.TryRemove(result.CanonicalPath, out _);
+                var path = result.CanonicalPath;
+                _dirtySourcePaths.TryRemove(path, out _);
+                if (WorkspaceDiskEventClassifier.SyncsNonCSharpDocumentText(session.InputMap, path)
+                    && session.InputMap?.Find(path)?.Occurrences.Any(occurrence => occurrence.Role == InputRole.AnalyzerConfig) == true)
+                {
+                    // Historical own-write bytes can match the disk while the published analyzer config differs.
+                    _dirtyNonCSharpPaths.TryAdd(path, 0);
+                }
+                else
+                {
+                    _dirtyNonCSharpPaths.TryRemove(path, out _);
+                }
             }
             else if (result.Outcome == ContentReconcileOutcome.LeftPending
                 || result.Outcome == ContentReconcileOutcome.RevisionMoved)

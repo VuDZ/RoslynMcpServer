@@ -95,6 +95,50 @@ internal static class WorkspaceDiskEventClassifier
         return map?.Find(fullPath)?.Occurrences.Any(static occurrence => occurrence.Role == InputRole.UserInput) == true;
     }
 
+    public static bool CanBeAtomicSaveSource(string path, WorkspaceInputMap map)
+    {
+        var extension = Path.GetExtension(path);
+        return !WorkspaceDiskPathFilter.IsCSharpSource(path)
+            && !WorkspaceDiskPathFilter.IsProjectGraphFile(path)
+            && !extension.Equals(".props", StringComparison.OrdinalIgnoreCase)
+            && !extension.Equals(".targets", StringComparison.OrdinalIgnoreCase)
+            && !map.HasMappedRenameEndpoint(path)
+            && !Directory.Exists(path)
+            && map.Consult(path) is { UnindexedRole: InputRole.PotentialMembership, ExternalAppearanceUnknown: false };
+    }
+
+    public static bool IsAtomicSaveToLoadedSource(string oldPath, string newPath, WorkspaceInputMap map)
+    {
+        return WorkspaceDiskPathFilter.IsCSharpSource(newPath)
+            && map.Find(newPath) is { Present: true } entry
+            && entry.Occurrences.All(static occurrence => occurrence.Role == InputRole.UserInput)
+            && InputPathCanon.Comparer.Equals(Path.GetDirectoryName(oldPath), Path.GetDirectoryName(newPath))
+            && CanBeAtomicSaveSource(oldPath, map)
+            && File.Exists(newPath);
+    }
+
+    public static bool IsConfirmedAtomicSave(string oldPath, string newPath, WorkspaceInputMap map)
+    {
+        if (!IsAtomicSaveToLoadedSource(oldPath, newPath, map))
+        {
+            return false;
+        }
+
+        try
+        {
+            _ = File.GetAttributes(oldPath);
+            return false;
+        }
+        catch (FileNotFoundException)
+        {
+            return true;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            return false;
+        }
+    }
+
     /// <summary>
     /// Directory rename evidence. <see cref="Directory.Exists"/> on the old path is not required:
     /// a moved or deleted directory inside a membership region may already be gone and may have

@@ -434,6 +434,22 @@ public sealed class EstimateAffectedTestsDepthTests(ITestOutputHelper output)
         {
             MsBuildBootstrapper.Register();
             await BuildAsync();
+            // A clock rollback during load can make a prebuilt DLL look newer than publication.
+            // See R5-002 in docs/rapid-tia/epoch-1-project-level/task-03-implementation-report.md.
+            // Keep the intermediate reference DLLs on the same timeline for dependency freshness checks.
+            var baselineAssemblyTime = File.GetLastWriteTimeUtc(LibrarySource("A")).AddHours(1);
+            foreach (var project in new[] { "Lib", "Tests" })
+            {
+                var assemblyName = project + ".dll";
+                var outputPath = Path.Combine(Root, project, "bin", "Release", "net10.0", assemblyName);
+                var intermediateDirectory = Path.Combine(Root, project, "obj", "Release", "net10.0");
+                var intermediateAssemblies = Directory.EnumerateFiles(intermediateDirectory, assemblyName, SearchOption.AllDirectories);
+                foreach (var assemblyPath in intermediateAssemblies.Prepend(outputPath))
+                {
+                    File.SetLastWriteTimeUtc(assemblyPath, baselineAssemblyTime);
+                }
+            }
+
             await Manager.LoadAsync(SolutionPath, CancellationToken.None, configuration: "Release", platform: "Any CPU");
             await Manager.Baseline.CaptureTask.WaitAsync(TimeSpan.FromSeconds(30));
             Assert.All(Manager.Baseline.GetSnapshot().Documents,

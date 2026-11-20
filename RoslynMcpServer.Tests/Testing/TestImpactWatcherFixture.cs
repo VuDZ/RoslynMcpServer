@@ -66,7 +66,7 @@ internal sealed class TestImpactWatcherFixture : IAsyncDisposable
         ProjectImpactMapper.MapAsync(Solution, Manager.DiskWatcherSession!.InputMap!, paths,
             Files.SolutionPath, Manager.ProjectGraphStale, Manager.ProjectGraphStaleFromGraphFile, CancellationToken.None);
 
-    internal async Task WaitForEventAsync(string path, int previousRevision = 0)
+    internal async Task WaitForEventAsync(string path, int previousRevision = 0, bool expectGraphStale = true)
     {
         var stopwatch = Stopwatch.StartNew();
         while (Manager.DiskWatcherSession!.EventRevision(path) <= previousRevision && stopwatch.Elapsed < TimeSpan.FromSeconds(15))
@@ -74,6 +74,11 @@ internal sealed class TestImpactWatcherFixture : IAsyncDisposable
             await Task.Delay(20);
         }
         Assert.True(Manager.DiskWatcherSession!.EventRevision(path) > previousRevision, "The native watcher did not observe " + path);
+        if (!expectGraphStale)
+        {
+            return;
+        }
+
         // Event state is recorded immediately before the stale flag is raised in the same callback.
         while (!Manager.ProjectGraphStale && stopwatch.Elapsed < TimeSpan.FromSeconds(15))
         {

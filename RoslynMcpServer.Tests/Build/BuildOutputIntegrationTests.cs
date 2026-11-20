@@ -26,6 +26,63 @@ public sealed class BuildOutputIntegrationTests
     }
 
     [Theory]
+    [InlineData(-1)]
+    [InlineData(int.MaxValue)]
+    public async Task Build_rejects_timeout_outside_supported_range_before_launch(int timeoutSeconds)
+    {
+        using var project = new TempProject();
+        var buildTools = new BuildTools(SolutionManagerTestFactory.Create(), NullLogger<BuildTools>.Instance);
+
+        var report = await buildTools.RunDotNetBuild(project.Path, timeoutSeconds: timeoutSeconds);
+
+        Assert.Contains("Error: `timeoutSeconds` must be between 0 and", report, StringComparison.Ordinal);
+        Assert.False(Directory.Exists(System.IO.Path.Combine(project.Root, "obj")));
+    }
+
+    [Fact]
+    public async Task Build_times_out_with_a_short_explicit_budget()
+    {
+        using var project = new TempProject(buildDelaySeconds: 60);
+        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+        var buildTools = new BuildTools(SolutionManagerTestFactory.Create(), NullLogger<BuildTools>.Instance);
+
+        var report = await buildTools.RunDotNetBuild(
+            project.Path,
+            timeoutSeconds: 2,
+            cancellationToken: deadline.Token);
+
+        Assert.StartsWith("## Build timed out", report, StringComparison.Ordinal);
+        Assert.Contains("MCP_DOTNET_TIMEOUT", report, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Build_with_timeout_disabled_remains_cancellable_during_an_active_delay()
+    {
+        using var project = new TempProject(buildDelaySeconds: 60);
+        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+        var buildTools = new BuildTools(SolutionManagerTestFactory.Create(), NullLogger<BuildTools>.Instance);
+        var build = buildTools.RunDotNetBuild(project.Path, timeoutSeconds: 0, cancellationToken: deadline.Token);
+        var marker = System.IO.Path.Combine(project.Root, "started");
+        try
+        {
+            while (!File.Exists(marker) && !build.IsCompleted)
+            {
+                await Task.Delay(20, deadline.Token);
+            }
+
+            Assert.True(File.Exists(marker) && !build.IsCompleted, "Expected the delayed build target to be active.");
+        }
+        finally
+        {
+            deadline.Cancel();
+        }
+
+        var report = await build.WaitAsync(TimeSpan.FromSeconds(20));
+        Assert.Contains("Build was cancelled.", report, StringComparison.Ordinal);
+        Assert.Contains("MCP_DOTNET_CANCELLED", report, StringComparison.Ordinal);
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public async Task Run_preserves_diagnostic_looking_application_output(bool includeWarnings)
@@ -64,10 +121,18 @@ public sealed class BuildOutputIntegrationTests
 
         public string Path => System.IO.Path.Combine(Root, "App.csproj");
 
-        public TempProject()
+        public TempProject(int? buildDelaySeconds = null)
         {
             Directory.CreateDirectory(Root);
-            File.WriteAllText(Path, """
+            var delayTarget = buildDelaySeconds is { } seconds
+                ? $"""
+                   <Target Name="DelayBuild" BeforeTargets="CoreCompile">
+                     <WriteLinesToFile File="$(MSBuildProjectDirectory)/started" Lines="started" Overwrite="true" />
+                     {MsBuildDelayFixture.Exec(seconds)}
+                   </Target>
+                   """
+                : string.Empty;
+            File.WriteAllText(Path, $"""
                 <Project Sdk="Microsoft.NET.Sdk">
                   <PropertyGroup>
                     <TargetFramework>net10.0</TargetFramework>
@@ -76,6 +141,7 @@ public sealed class BuildOutputIntegrationTests
                   <Target Name="ReportWarning" BeforeTargets="Build">
                     <Warning Code="MSB9001" Text="build-only-warning" />
                   </Target>
+                  {delayTarget}
                 </Project>
                 """);
             File.WriteAllText(System.IO.Path.Combine(Root, "Program.cs"), """

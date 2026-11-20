@@ -6,6 +6,45 @@ namespace RoslynMcpServer.Tests.Build;
 
 public sealed class DotNetBuildProbeTests
 {
+    [Fact]
+    public void RemainingStepTimeout_uses_the_smaller_default_limit_as_the_budget_runs_down()
+    {
+        Assert.Equal(TimeSpan.FromSeconds(300), DotNetBuildProbe.DefaultOverallBudget);
+        Assert.Equal(TimeSpan.FromSeconds(180), DotNetBuildProbe.DefaultStepTimeout);
+        Assert.Equal(
+            TimeSpan.FromSeconds(180),
+            DotNetBuildProbe.RemainingStepTimeout(
+                DotNetBuildProbe.DefaultOverallBudget,
+                DotNetBuildProbe.DefaultStepTimeout,
+                TimeSpan.Zero));
+        Assert.Equal(
+            TimeSpan.FromSeconds(100),
+            DotNetBuildProbe.RemainingStepTimeout(
+                DotNetBuildProbe.DefaultOverallBudget,
+                DotNetBuildProbe.DefaultStepTimeout,
+                TimeSpan.FromSeconds(200)));
+    }
+
+    [Fact]
+    public void RemainingStepTimeout_consumes_one_explicit_budget_across_steps()
+    {
+        var budget = TimeSpan.FromSeconds(500);
+
+        Assert.Equal(TimeSpan.FromSeconds(500), DotNetBuildProbe.RemainingStepTimeout(budget, budget, TimeSpan.Zero));
+        Assert.Equal(TimeSpan.FromSeconds(200), DotNetBuildProbe.RemainingStepTimeout(budget, budget, TimeSpan.FromSeconds(300)));
+        Assert.Equal(TimeSpan.Zero, DotNetBuildProbe.RemainingStepTimeout(budget, budget, budget));
+        Assert.True(DotNetBuildProbe.RemainingStepTimeout(budget, budget, budget + TimeSpan.FromSeconds(1)) < TimeSpan.Zero);
+    }
+
+    [Fact]
+    public void RemainingStepTimeout_is_unlimited_when_both_limits_are_disabled()
+    {
+        Assert.Null(DotNetBuildProbe.RemainingStepTimeout(
+            Timeout.InfiniteTimeSpan,
+            Timeout.InfiniteTimeSpan,
+            TimeSpan.FromHours(1)));
+    }
+
     /// <summary>
     /// A failing build with no parseable <c>error CODE:</c> line makes the probe escalate
     /// (<c>restore</c> → <c>build -v:normal</c> → <c>build -v:detailed</c>), which is the only way

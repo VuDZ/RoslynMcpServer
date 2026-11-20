@@ -1,0 +1,67 @@
+[
+ {
+  "name": "load_workspace",
+  "arguments": {
+   "workspacePath": "{root}/Jellyfin.slnx",
+   "briefOutput": true
+  },
+  "label": "load"
+ },
+ {
+  "name": "!shell",
+  "arguments": {
+   "cmd": "sleep 90"
+  },
+  "label": "wait"
+ },
+ {
+  "name": "estimate_affected_tests",
+  "arguments": {
+   "run": false
+  },
+  "label": "est"
+ },
+ {
+  "name": "!shell",
+  "arguments": {
+   "cmd": "sleep 90"
+  },
+  "label": "wait"
+ },
+ {
+  "name": "estimate_affected_tests",
+  "arguments": {
+   "run": false
+  },
+  "label": "est"
+ },
+ {
+  "name": "!shell",
+  "arguments": {
+   "cmd": "python3 -I -c \"p='Emby.Naming/Video/StubResolver.cs'; s=open(p,newline='').read(); f=open(p,'r+',newline=''); f.write(s.replace('if (string.IsNullOrEmpty(path))','if (string.IsNullOrWhiteSpace(path))')); f.truncate(); f.close()\" && git diff --stat"
+  },
+  "label": "edit-plain"
+ },
+ {
+  "name": "estimate_affected_tests",
+  "arguments": {
+   "run": false,
+   "includeDetails": true
+  },
+  "label": "est-plain"
+ },
+ {
+  "name": "estimate_affected_tests",
+  "arguments": {
+   "run": true
+  },
+  "label": "est-plain-run"
+ },
+ {
+  "name": "!shell",
+  "arguments": {
+   "cmd": "git checkout -q . && git status --porcelain | wc -l"
+  },
+  "label": "restore"
+ }
+]

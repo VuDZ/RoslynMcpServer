@@ -11,9 +11,9 @@ public static class VstestOutputParser
     private const int MaxStackTraceLinesPerFailure = 15;
     private const int PartialSuccessTailChars = 2048;
 
-    /// <summary>VSTest console duration: <c>[12 ms]</c>, <c>[1 s]</c>, <c>[1 m 28 s]</c>, <c>[1 h 2 m]</c>.</summary>
+    /// <summary>VSTest console duration: <c>[&lt; 1 ms]</c>, <c>[12 ms]</c>, <c>[1 s]</c>, <c>[1 m 28 s]</c>, <c>[1 h 2 m]</c>.</summary>
     private const string VstestDurationBracket =
-        @"\[\d+(?:\.\d+)?\s*(?:ms|s|m|h)(?:\s+\d+(?:\.\d+)?\s*(?:ms|s|m|h))*\]";
+        @"\[(?:< 1 ms|\d+(?:\.\d+)?\s*(?:ms|s|m|h)(?:\s+\d+(?:\.\d+)?\s*(?:ms|s|m|h))*)\]";
 
     private static readonly Regex RxXunitFailLine = new(
         @"^\[xUnit\.net[^\]]*\]\s+(?<name>.+?)\s+\[FAIL\]\s*$",
@@ -28,11 +28,11 @@ public static class VstestOutputParser
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     private static readonly Regex RxVstestFailedLineWithDuration = new(
-        $@"^\s*Failed\s+(?<name>.+?)(?:\s*\(.*\))?\s+{VstestDurationBracket}\s*$",
+        $@"^\s*Failed\s+(?<name>.+?)\s+{VstestDurationBracket}\s*$",
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     private static readonly Regex RxVstestFailedLineDotted = new(
-        @"^\s*Failed\s+(?<name>[A-Za-z_][\w]*(?:\.[A-Za-z_][\w]+)+)(?:\s*\(.*\))?\s*$",
+        @"^\s*Failed\s+(?<name>[A-Za-z_][\w]*(?:\.[A-Za-z_][\w]+)+(?:\s*\(.*\))?)\s*$",
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     private static readonly string[] ErrorBodyTerminators =
@@ -100,7 +100,10 @@ public static class VstestOutputParser
         bool HasRecognizedSummary,
         bool IsPartialSuccess,
         IReadOnlyList<FailedTestDetail> Failures,
-        IReadOnlyList<string> PassedTestNames);
+        IReadOnlyList<string> PassedTestNames)
+    {
+        internal bool FailureDetailsTruncated { get; init; }
+    }
 
     public static string DeduplicateNuGetAuditLines(string combinedOutput)
     {
@@ -135,10 +138,13 @@ public static class VstestOutputParser
         var summary = TryParseTestSummary(combinedOutput);
         var hasSummary = summary is not null || HasSummaryMarkers(combinedOutput);
         var passedNames = CollectPassedTestNames(combinedOutput);
-        var failures = ParseFailedTestBlocks(combinedOutput, MaxFailedTestDetails);
+        var failures = ParseFailedTestBlocks(combinedOutput, out var failureDetailsTruncated);
         var isPartial = exitCode == 0 && !hasSummary;
 
-        return new ParseResult(summary, hasSummary, isPartial, failures, passedNames);
+        return new ParseResult(summary, hasSummary, isPartial, failures, passedNames)
+        {
+            FailureDetailsTruncated = failureDetailsTruncated,
+        };
     }
 
     public static bool FilterMatchedAnyTest(string? filter, string combinedOutput, IReadOnlyList<string> passedNames)
@@ -270,7 +276,7 @@ public static class VstestOutputParser
             if (parse.Failures.Count > 0)
             {
                 sb.AppendLine();
-                AppendFailureDetails(sb, parse.Failures, CountFailureAnchors(combinedOutput) > MaxFailedTestDetails, outputOptions);
+                AppendFailureDetails(sb, parse.Failures, parse.FailureDetailsTruncated, outputOptions);
             }
 
             if (exitCode != 0)
@@ -310,8 +316,11 @@ public static class VstestOutputParser
                 (skipped > 0 ? $" · Skipped: **{skipped}**" : string.Empty));
             if (parse.PassedTestNames.Count > 0 && !string.IsNullOrWhiteSpace(filter))
             {
+                // Theory rows count as separate test cases but repeat the same method name in the preview.
+                var preview = parse.PassedTestNames.Distinct(StringComparer.Ordinal).Take(5)
+                    .Select(name => $"`{EscapeMdBackticks(name)}`");
                 sb.AppendLine();
-                sb.AppendLine($"Matched tests: `{EscapeMdBackticks(string.Join("`, `", parse.PassedTestNames.Take(5)))}`");
+                sb.AppendLine("Matched test methods (preview): " + string.Join(", ", preview));
             }
 
             if (exitCode != 0)
@@ -330,7 +339,7 @@ public static class VstestOutputParser
             $"Total: **{total}** · Passed: **{passed}** · Failed: **{failed}**" +
             (skipped > 0 ? $" · Skipped: **{skipped}**" : string.Empty));
         sb.AppendLine();
-        AppendFailureDetails(sb, parse.Failures, CountFailureAnchors(combinedOutput) > MaxFailedTestDetails, outputOptions);
+        AppendFailureDetails(sb, parse.Failures, parse.FailureDetailsTruncated, outputOptions);
         if (parse.Failures.Count == 0)
         {
             sb.AppendLine(
@@ -785,28 +794,46 @@ public static class VstestOutputParser
         return names;
     }
 
-    private static IReadOnlyList<FailedTestDetail> ParseFailedTestBlocks(string text, int maxCount)
+    private static IReadOnlyList<FailedTestDetail> ParseFailedTestBlocks(string text, out bool truncated)
     {
         var lines = text.Split(['\r', '\n'], StringSplitOptions.None);
-        var blocks = new List<(int StartLine, string Name)>();
+        var blocks = new List<(int StartLine, string DisplayName, bool IsAdapterNotice)>();
+        var detailCounts = new Dictionary<string, int>(StringComparer.Ordinal);
 
         for (var i = 0; i < lines.Length; i++)
         {
-            if (TryGetFailedTestName(lines[i].TrimEnd(), out var name))
+            if (TryGetFailedTestDisplayName(lines[i].TrimEnd(), out var displayName, out var isAdapterNotice))
             {
-                blocks.Add((i, name));
+                blocks.Add((i, displayName, isAdapterNotice));
+                if (!isAdapterNotice)
+                {
+                    detailCounts[displayName] = detailCounts.GetValueOrDefault(displayName) + 1;
+                }
             }
         }
 
         var result = new List<FailedTestDetail>();
-        for (var b = 0; b < blocks.Count && result.Count < maxCount; b++)
+        truncated = false;
+        for (var b = 0; b < blocks.Count; b++)
         {
-            var start = blocks[b].StartLine;
-            var name = blocks[b].Name;
+            var (start, displayName, isAdapterNotice) = blocks[b];
+            // The xUnit adapter can announce the same case before the console logger prints its details.
+            if (isAdapterNotice && detailCounts.TryGetValue(displayName, out var remaining) && remaining > 0)
+            {
+                detailCounts[displayName] = remaining - 1;
+                continue;
+            }
+
+            if (result.Count == MaxFailedTestDetails)
+            {
+                truncated = true;
+                break;
+            }
+
             var end = b + 1 < blocks.Count ? blocks[b + 1].StartLine : lines.Length;
             var blockText = string.Join(Environment.NewLine, lines[start..end]);
             ExtractFailureFields(blockText, out var error, out var stack, out var stdOut, out var stdErr);
-            result.Add(new FailedTestDetail(name, error, stack, stdOut, stdErr));
+            result.Add(new FailedTestDetail(StripTrailingTheoryArguments(displayName), error, stack, stdOut, stdErr));
         }
 
         return result;
@@ -827,20 +854,28 @@ public static class VstestOutputParser
 
     private static bool TryGetFailedTestName(string trimmed, out string name)
     {
-        name = string.Empty;
+        var matched = TryGetFailedTestDisplayName(trimmed, out var displayName, out _);
+        name = StripTrailingTheoryArguments(displayName);
+        return matched;
+    }
 
-        var xm = RxXunitFailLine.Match(trimmed);
-        if (xm.Success)
+    private static bool TryGetFailedTestDisplayName(string trimmed, out string displayName, out bool isAdapterNotice)
+    {
+        displayName = string.Empty;
+
+        var adapterNotice = RxXunitFailLine.Match(trimmed);
+        isAdapterNotice = adapterNotice.Success;
+        if (isAdapterNotice)
         {
-            name = StripTrailingTheoryArguments(xm.Groups["name"].Value.Trim());
-            return IsPlausibleTestName(name);
+            displayName = adapterNotice.Groups["name"].Value.Trim();
+            return IsPlausibleTestName(StripTrailingTheoryArguments(displayName));
         }
 
-        var nm = RxNunitFailedLine.Match(trimmed);
-        if (nm.Success)
+        var nunit = RxNunitFailedLine.Match(trimmed);
+        if (nunit.Success)
         {
-            name = StripTrailingTheoryArguments(nm.Groups["name"].Value.Trim());
-            return IsPlausibleTestName(name);
+            displayName = nunit.Groups["name"].Value.Trim();
+            return IsPlausibleTestName(displayName);
         }
 
         var withDuration = RxVstestFailedLineWithDuration.Match(trimmed);
@@ -851,7 +886,8 @@ public static class VstestOutputParser
                 return false;
             }
 
-            name = StripTrailingTheoryArguments(withDuration.Groups["name"].Value.Trim());
+            displayName = withDuration.Groups["name"].Value.Trim();
+            var name = StripTrailingTheoryArguments(displayName);
             return !string.IsNullOrWhiteSpace(name)
                    && !name.StartsWith("to ", StringComparison.OrdinalIgnoreCase);
         }
@@ -859,8 +895,8 @@ public static class VstestOutputParser
         var dotted = RxVstestFailedLineDotted.Match(trimmed);
         if (dotted.Success)
         {
-            name = StripTrailingTheoryArguments(dotted.Groups["name"].Value.Trim());
-            return IsPlausibleTestName(name);
+            displayName = dotted.Groups["name"].Value.Trim();
+            return IsPlausibleTestName(StripTrailingTheoryArguments(displayName));
         }
 
         return false;
@@ -1174,20 +1210,6 @@ public static class VstestOutputParser
 
         var joined = string.Join(Environment.NewLine, stackLines);
         return joined.Length > 1200 ? joined[..1197] + "..." : joined;
-    }
-
-    private static int CountFailureAnchors(string text)
-    {
-        var n = 0;
-        foreach (var line in text.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries))
-        {
-            if (TryGetFailedTestName(line.TrimEnd(), out _))
-            {
-                n++;
-            }
-        }
-
-        return n;
     }
 
     private static void AppendFailureDetails(

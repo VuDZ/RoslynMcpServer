@@ -65,7 +65,7 @@ public static class McpToolHelpCatalog
             },
             ["estimate_affected_tests"] = new()
             {
-                Prerequisites = "Requires load_workspace. Approximate selection never replaces the full suite or CI.",
+                Prerequisites = "Requires load_workspace. Retry after source baseline capture completes if the tool reports pending documents. Approximate selection never replaces the full suite or CI.",
                 Workflow = "Synchronizes saved disk and MCP edits, then estimates changes since the first load of this solution. depth=changed|direct|di|all (default all) selects a cumulative stage. includeDetails lists changed members, compiled types and classes. run=true builds projects sequentially in the loaded configuration/platform, narrows against the fresh outputs, then tests in parallel without rebuilding. maxParallelProjects=0 uses half the logical processors, with a minimum of one. Use 1 to build and test each project in turn when projects share ports, files or databases. timeoutSeconds applies to each build or test process.",
                 Pitfalls = "Unknown snapshots, stale assemblies, observation gaps and unmeasured runtime identities can require the whole project. Empty stages skip the test process. Names in strings or configuration may hide dependencies. Reload of the same solution preserves the baseline and any observation-gap limitation. Failed builds, tests and timeouts leave other projects eligible to run. MCP cancellation kills all active process trees and skips work that has not started.",
                 RelatedTools = ["run_test_by_filter", "run_dotnet_test", "load_workspace"],
@@ -111,8 +111,8 @@ public static class McpToolHelpCatalog
             ["find_implementations"] = new()
             {
                 Prerequisites = "Requires load_workspace.",
-                Workflow = "Use for which types implement an interface or derive from a base. Same short name → one section per base FQN (exact FQN still one type). Transitive by default. Optional maxResults/preview/overflowCursor.",
-                Pitfalls = "Do not use find_usages or text search. FQN miss is the resolver text (candidates, no simple-name fallback). Over maxResults stores remainder behind overflowCursor.",
+                Workflow = "Find types that implement an interface or derive from a base. Short names list a section per base and the summary counts distinct related types. Copy the qualified name from the section, including type parameters, to select that base. Transitive by default. Optional maxResults/preview/overflowCursor.",
+                Pitfalls = "Do not use find_usages or text search. A qualified name without type parameters prefers the non-generic declaration or matches an unambiguous generic declaration. A qualified-name miss lists candidates. Over maxResults stores the remainder behind overflowCursor.",
                 RelatedTools = ["find_usages", "find_symbol_definition"],
             },
             ["get_call_graph"] = new()
@@ -126,7 +126,7 @@ public static class McpToolHelpCatalog
             {
                 Prerequisites = "workspacePath must be a .csproj, .sln, or .slnx file, not a directory.",
                 Workflow = "Build warnings are hidden by default; pass includeBuildWarnings=true to include them. Execution context is shown only on failure, timeout, or an unverified test result. Use after edits to verify compile. Omit configuration/platform to inherit load_workspace. Extra `dotnet build` args inherit from load_workspace `buildArgs`. Default noIncremental=true so up-to-date cache cannot hide errors. Pass projectName with a .sln/.slnx workspacePath to build one project via its solution-folder MSBuild target (`-t`). Configuration on build steps is `-p:Configuration`. Truncated or unparsed failures may include reportCursor — pass it back to fetch the next in-memory full-log chunk (no new process).",
-                Pitfalls = "Do not use execute_dotnet_command for ordinary builds. Restore success cannot mask a failed build. projectName requires a .sln/.slnx, not a .csproj. Ambiguous names need the virtual path (Folder\\Project).",
+                Pitfalls = "Do not use execute_dotnet_command for ordinary builds. Restore success cannot mask a failed build. timeoutSeconds sets a shared budget for build and restore. Omit for 180 seconds per step and 300 seconds total. 0 disables the server limit. The client's tools/call timeout still applies. projectName requires a .sln/.slnx, not a .csproj. Ambiguous names need the virtual path (Folder\\Project).",
                 RelatedTools = ["run_dotnet_test", "execute_dotnet_command", "load_workspace"],
             },
             ["run_dotnet_test"] = new()

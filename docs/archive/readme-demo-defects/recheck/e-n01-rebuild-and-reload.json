@@ -1,0 +1,75 @@
+[
+ {
+  "name": "load_workspace",
+  "arguments": {
+   "workspacePath": "{root}/Jellyfin.slnx",
+   "briefOutput": true
+  },
+  "label": "load"
+ },
+ {
+  "name": "!shell",
+  "arguments": {
+   "cmd": "sleep 90"
+  },
+  "label": "wait"
+ },
+ {
+  "name": "estimate_affected_tests",
+  "arguments": {
+   "run": false
+  },
+  "label": "est"
+ },
+ {
+  "name": "!shell",
+  "arguments": {
+   "cmd": "dotnet build tests/Jellyfin.Naming.Tests/Jellyfin.Naming.Tests.csproj --no-incremental --no-dependencies -nologo -v q -nodeReuse:false 2>&1 | tail -3; sleep 5"
+  },
+  "label": "rebuild-naming-tests"
+ },
+ {
+  "name": "estimate_affected_tests",
+  "arguments": {
+   "run": false,
+   "includeDetails": true
+  },
+  "label": "est-after-rebuild"
+ },
+ {
+  "name": "load_workspace",
+  "arguments": {
+   "workspacePath": "{root}/Jellyfin.slnx",
+   "briefOutput": true
+  },
+  "label": "load"
+ },
+ {
+  "name": "!shell",
+  "arguments": {
+   "cmd": "sleep 90"
+  },
+  "label": "wait"
+ },
+ {
+  "name": "estimate_affected_tests",
+  "arguments": {
+   "run": false
+  },
+  "label": "est-after-reload"
+ },
+ {
+  "name": "!shell",
+  "arguments": {
+   "cmd": "dotnet build tests/Jellyfin.Naming.Tests/Jellyfin.Naming.Tests.csproj -nologo -v q -nodeReuse:false 2>&1 | tail -2"
+  },
+  "label": "incr-build"
+ },
+ {
+  "name": "estimate_affected_tests",
+  "arguments": {
+   "run": false
+  },
+  "label": "est-after-incr"
+ }
+]

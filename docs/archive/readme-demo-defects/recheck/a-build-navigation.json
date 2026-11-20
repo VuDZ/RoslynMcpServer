@@ -1,0 +1,77 @@
+[
+ {
+  "name": "load_workspace",
+  "arguments": {
+   "workspacePath": "{root}/Jellyfin.slnx",
+   "briefOutput": true
+  },
+  "label": "load"
+ },
+ {
+  "name": "run_dotnet_build",
+  "arguments": {
+   "workspacePath": "{root}/Jellyfin.slnx"
+  },
+  "label": "build-default"
+ },
+ {
+  "name": "run_dotnet_build",
+  "arguments": {
+   "workspacePath": "{root}/Jellyfin.slnx",
+   "timeoutSeconds": -1
+  },
+  "label": "build-negative"
+ },
+ {
+  "name": "run_dotnet_build",
+  "arguments": {
+   "workspacePath": "{root}/Jellyfin.slnx",
+   "noIncremental": false,
+   "timeoutSeconds": 1800
+  },
+  "label": "build-budget"
+ },
+ {
+  "name": "find_implementations",
+  "arguments": {
+   "symbolName": "IRemoteMetadataProvider"
+  },
+  "label": "impl-short"
+ },
+ {
+  "name": "find_implementations",
+  "arguments": {
+   "symbolName": "MediaBrowser.Controller.Providers.IRemoteMetadataProvider"
+  },
+  "label": "impl-fqn-plain"
+ },
+ {
+  "name": "get_decompiled_class_skeleton",
+  "arguments": {
+   "assemblyName": "TMDbLib",
+   "fullTypeName": "TMDbLib.Rest.RestRequest"
+  },
+  "label": "skel-restrequest"
+ },
+ {
+  "name": "get_decompiled_class_skeleton",
+  "arguments": {
+   "assemblyName": "TMDbLib",
+   "fullTypeName": "TMDbLib.Client.TMDbClient"
+  },
+  "label": "skel-tmdbclient"
+ },
+ {
+  "name": "run_specific_test",
+  "arguments": {
+   "workspacePath": "{root}/tests/Jellyfin.Naming.Tests/Jellyfin.Naming.Tests.csproj",
+   "className": "SeasonPathParserTests"
+  },
+  "label": "specific"
+ },
+ {
+  "name": "get_mcp_server_info",
+  "arguments": {},
+  "label": "info"
+ }
+]

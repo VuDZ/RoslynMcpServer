@@ -11,7 +11,7 @@
 - `caseSensitive` — опционально для `search_code` (по умолчанию `false`; для leftover branding — `true`).
 - `workspacePath` — `.sln` / `.slnx` / `.csproj`, а у части тулов ещё и каталог. Только файл: `load_workspace`, `run_dotnet_build` (не каталог), `run_dotnet_run` (исполняемый `.csproj`). Каталог допустим: `run_dotnet_test`, `run_specific_test`, `run_test_by_filter`, `run_format`, `list_nuget_packages`, `list_outdated_packages`, `run_nuget_audit`, `get_changed_files`. Опциональная перезагрузка: `list_projects` / `get_project_graph`. Для multi-config solution предпочитайте `.sln`/`.slnx`.
 - `symbolName` — идентификатор C# для `find_symbol_definition`, `find_symbol_references`, `find_usages` и `find_implementations` (точное имя; поиск по solution для definition/usages/implementations и `find_symbol_references` без `filePath` без учёта регистра; `filePath` без `line` у definition и references — порядковое сравнение с учётом регистра).
-- `diagnosticId` — id компилятора/анализатора из `get_diagnostics_for_file` (например `CS0246`) для `get_code_fixes` / `apply_code_fix`.
+- `diagnosticId` — код диагностики компилятора из `get_diagnostics_for_file` (например `CS0246`) для `get_code_fixes` / `apply_code_fix`.
 - `fixIndex` — индекс (0-based) из `get_code_fixes` для `apply_code_fix`.
 - `path` — файл `.cs` или каталог для `get_code_skeleton` (абсолютный путь; с диска, workspace не обязателен).
 
@@ -81,16 +81,16 @@
 </details>
 
 <details>
-<summary><code>get_diagnostics_for_file</code> — Возвращает Roslyn-диагностику для одного C# файла (только Warning и Error; сначала saved <code>.cs</code>).</summary>
+<summary><code>get_diagnostics_for_file</code> — Возвращает предупреждения и ошибки компилятора Roslyn для одного файла C#. Сначала подхватывает сохранённую версию <code>.cs</code>.</summary>
 
 **Параметры:**
 - `filePath: string`
 
-**Вывод:** для каждой диагностики — severity, **строка**, **колонка**, id (например `CS0246`, `IDE0001`) и сообщение. Эти значения нужны для `get_code_fixes`.
+Для каждой диагностики компилятора выводятся уровень, **строка**, **колонка**, код (например `CS0246`) и сообщение. Передайте код и позицию в `get_code_fixes`.
 </details>
 
 <details>
-<summary><code>get_code_fixes</code> — Список доступных Roslyn CodeAction для диагностики в указанной позиции.</summary>
+<summary><code>get_code_fixes</code> — Список доступных Roslyn CodeAction для диагностики компилятора в указанной позиции.</summary>
 
 **Параметры:**
 - `filePath: string`
@@ -114,7 +114,7 @@
 - `column: int = 1`
 - `previewOnly: bool = false` — при `true` только diff-превью без записи на диск
 
-**Поведение:** пишет файлы через write boundary и обновляет in-memory workspace. Неподдержанный или stale analyzer-reference diff отклоняется до любой серверной записи. Частичное сохранение — не полный успех: в ответе Status, Reason и известные сохранённые пути. После применения вызовите `get_diagnostics_for_file` для проверки.
+**Поведение:** пишет файлы через write boundary и обновляет in-memory workspace. Неподдержанный или stale analyzer-reference diff отклоняется до любой серверной записи. Частичное сохранение — не полный успех: в ответе Status, Reason и известные сохранённые пути. После применения вызовите `get_diagnostics_for_file`, чтобы проверить оставшиеся предупреждения и ошибки компилятора.
 
 **Заметка:** `fixIndex` действителен только для той же пары `filePath` / `diagnosticId` / `line` / `column` в рамках сессии (файл не должен меняться между `get_code_fixes` и `apply_code_fix`).
 </details>
@@ -204,13 +204,13 @@
 <summary><code>find_implementations</code> — Классы, реализующие интерфейс, или наследники базового типа.</summary>
 
 **Параметры:**
-- `symbolName: string` — имя интерфейса или базового класса (например `IRepository`, `BaseController`). Короткое имя — секция на каждую совпавшую базу; точное FQN — один тип
+- `symbolName: string` — имя интерфейса или базового класса. Короткое имя возвращает секцию для каждой совпавшей базы. Для выбора одной базы скопируйте её полное имя из секции, например `Demo.IProvider<T>` или `global::IProvider`
 - `transitive: bool = true` — при `true` включает косвенные реализации / наследников по иерархии
 - `maxResults: int?` — лимит списка (1–500). Пропуск → 50, иначе `ROSLYN_MCP_MAX_RESULTS`, иначе `max-results` из `RoslynMcp.jsonc`; явный аргумент важнее
 - `preview: bool? = null` — true: добавить текст строки исходника (до 400 символов). Пропуск → `preview` из `RoslynMcp.jsonc`, иначе только `path:line:col`
 - `overflowCursor: string?` — следующий chunk in-memory overflow
 
-**Поведение:** нужен `load_workspace`. Сначала saved `.cs` с диска. Для **интерфейсов** — Roslyn `FindImplementationsAsync`; для **классов/struct** — `FindDerivedClassesAsync`. Несколько одноимённых баз — секция на каждую (пустые секции сохраняются). Точное FQN по-прежнему один тип; промах FQN — текст резолвера с кандидатами (без отката на короткое имя). Каждый тип с `path:line:col`. Избыток — overflow store. Не используйте текстовый поиск или `find_usages` для «кто реализует X?» / «кто наследует Y?».
+**Поведение:** нужен `load_workspace`. Сначала подхватываются сохранённые `.cs`. Для **интерфейсов** вызывается Roslyn `FindImplementationsAsync`, для **классов и структур** — `FindDerivedClassesAsync`. Полное имя без параметров типа выбирает необобщённое объявление, если есть обе формы. Если найдено одно обобщённое объявление, его прежнее имя без параметров тоже работает. При промахе по полному имени инструмент перечисляет кандидатов. Пустые секции сохраняются. Каждая секция выводит свои типы с `path:line:col`, итог считает уникальные типы по всем секциям. Оставшиеся строки доступны через `overflowCursor`. Не используйте текстовый поиск или `find_usages` для «кто реализует X?» / «кто наследует Y?».
 
 **Для модели:** после `load_workspace` — вместо grep или анализа usages, когда нужна OOP-иерархия.
 </details>
@@ -288,6 +288,8 @@
 <details>
 <summary><code>estimate_affected_tests</code> — Приблизительная оценка затронутых тестов с момента загрузки solution.</summary>
 
+Во время захвата baseline исходников инструмент сообщает, сколько документов ожидают захвата. Повторите вызов после завершения захвата. При `run: true` ответ о незавершённом захвате возвращается до запуска сборки и тестов. Документы с неизвестным baseline по-прежнему участвуют в консервативном выборе и учитываются отдельно в `Not covered`. Объём ответа ограничен 32 КиБ текста UTF-8.
+
 Нужен `load_workspace`. Инструмент синхронизирует сохранённые правки на диске и через MCP и показывает изменения с момента загрузки. `depth` (без учёта регистра) выбирает накопительную ступень: `changed` (изменённые и новые тестовые классы), `direct` (также ссылки между типами), `di` (также обнаружение типов контейнером и фреймворком), `all` (также загрузка сборок по имени, по умолчанию). Для суженного проекта ответ показывает число классов на каждой из четырёх ступеней и фильтр VSTest выбранной ступени. `includeDetails: true` перечисляет классы по ступеням и изменившиеся типы из сборок. В ответ также входят ошибки в изменённых исходниках и ограничения `Not covered`. Ошибки компиляции уровня проекта, например конфликт точек входа, смотрите в выводе сборки.
 
 Если класс или метод известен, используйте `run_specific_test`. Для сохранённой правки с широким или неочевидным охватом вызовите `estimate_affected_tests` с `run: true`, чтобы собрать и запустить выбранные тесты одним вызовом. Передайте `run: false`, чтобы посмотреть план или использовать свежую сборку. На свежих выходах запускайте возвращённые фильтры через `run_test_by_filter`, целые проекты через `run_dotnet_test` с `noBuild: true`. На двух правках полного Jellyfin автоматический режим сократил цикл на 13,85–18,10 с относительно `maxParallelProjects: 1` при одинаковых тестах и исходах. [Замер всего цикла](rapid-tia-2/mvp/evidence/parallel-run-2026-11-19.md).
@@ -316,6 +318,7 @@
 - `noIncremental: bool = true` — `--no-incremental` на каждом build-шаге (по умолчанию). `false` только если явно принимаете up-to-date кэш MSBuild.
 - `platform: string? = null` — опционально `-p:Platform=`. Если не задан — с `load_workspace`.
 - `projectName: string? = null` — опционально. Если задан, `workspacePath` должен быть `.sln`/`.slnx`. Собирает этот проект через MSBuild-таргет виртуального пути в solution (`-t:"Folder\Project"`). Совпадение по display name, имени файла или виртуальному пути.
+- `timeoutSeconds: int? = null` — по умолчанию 180 секунд на шаг и 300 секунд на всю операцию. Значение от 1 до 4 294 967 задаёт общий бюджет для шагов сборки и восстановления пакетов. `0` отключает таймаут инструмента. Отмена клиентом и клиентский таймаут `tools/call` продолжают действовать.
 - `reportCursor: string? = null` — следующий фрагмент сохранённого полного отчёта. Новую сборку не запускает.
 - `includeBuildWarnings: bool = false` — показывать предупреждения сборки; по умолчанию скрыты. Ошибки выводятся всегда.
 

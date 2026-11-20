@@ -153,7 +153,7 @@ public sealed class EstimateAffectedTestsTests
     }
 
     [Fact]
-    public async Task Pending_baseline_is_unknown_and_project_expanded_even_before_capture_finishes()
+    public async Task Pending_baseline_defers_estimation_and_execution_until_capture_finishes()
     {
         await using var fixture = new BaselineLifecycleFixture();
         WriteBaseline(fixture.FirstPath, TestsSource);
@@ -163,12 +163,59 @@ public sealed class EstimateAffectedTestsTests
         await fixture.LoadAsync();
         await gate.Entered.WaitAsync(TimeSpan.FromSeconds(30));
         await fixture.WriteThroughMcpAsync(fixture.FirstPath, TestsSource + " class Added {}");
-        var result = await Tools(fixture.Manager).EstimateAffectedTests();
+        var processCalls = 0;
+        var tools = new TestTools(fixture.Manager, NullLogger<TestTools>.Instance, (_, _, _, _, _) =>
+        {
+            Interlocked.Increment(ref processCalls);
+            throw new InvalidOperationException("A process was started while baseline capture was pending.");
+        });
+        foreach (var run in new[] { false, true })
+        {
+            var pending = await tools.EstimateAffectedTests(run: run);
+            AssertResponse(pending);
+            Assert.Contains("1 pending document(s)", pending, StringComparison.Ordinal);
+            Assert.Contains("Retry", pending, StringComparison.Ordinal);
+            Assert.DoesNotContain("Run plan:", pending, StringComparison.Ordinal);
+        }
+        Assert.Equal(0, processCalls);
+
         gate.Release();
+        await fixture.Manager.Baseline.CaptureTask.WaitAsync(TimeSpan.FromSeconds(30));
+        var result = await tools.EstimateAffectedTests();
 
         AssertResponse(result);
-        Assert.Contains("baseline unknown", result, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Changed since load: 0 members in 0 files", result, StringComparison.Ordinal);
+        Assert.Contains("Baseline unknown in 1 file(s)", result, StringComparison.Ordinal);
         Assert.Contains(fixture.FirstPath, result, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain(fixture.SecondPath, result, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("whole project", result, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Frozen_unknown_baseline_reports_a_conservative_plan_after_reopen(bool reset)
+    {
+        await using var fixture = new BaselineLifecycleFixture();
+        WriteBaseline(fixture.FirstPath, "class Other {}");
+        WriteBaseline(fixture.SecondPath, TestsSource);
+        using var gate = new BaselineCaptureGate(fixture.SecondPath);
+        fixture.Manager.Baseline.BeforeCommitForTests = gate.WaitAsync;
+        await fixture.LoadAsync();
+        await gate.Entered.WaitAsync(TimeSpan.FromSeconds(30));
+        if (reset)
+        {
+            await fixture.Manager.ClearWorkspaceAsync();
+        }
+        await fixture.Manager.LoadAsync(fixture.ProjectPath, CancellationToken.None, configuration: "Release");
+
+        var result = await Tools(fixture.Manager).EstimateAffectedTests();
+
+        AssertResponse(result);
+        Assert.DoesNotContain("capture is in progress", result, StringComparison.Ordinal);
+        Assert.Contains("Changed since load: 0 members in 0 files", result, StringComparison.Ordinal);
+        Assert.Contains("Baseline unknown in 1 file(s)", result, StringComparison.Ordinal);
+        Assert.Contains(fixture.SecondPath, result, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("whole project", result, StringComparison.OrdinalIgnoreCase);
     }
 

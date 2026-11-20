@@ -7,7 +7,7 @@ namespace RoslynMcpServer.Services.Build;
 
 /// <summary>
 /// Runs <c>dotnet build</c> with SDK pinning and escalates verbosity when diagnostics are missing.
-/// Overall wall-clock budget prevents multi-step NuGet hangs (~15 min).
+/// The default overall budget is five minutes with at most three minutes per step.
 /// </summary>
 public static class DotNetBuildProbe
 {
@@ -23,6 +23,8 @@ public static class DotNetBuildProbe
         bool BudgetExhausted = false,
         bool NoIncremental = true);
 
+    /// <param name="overallBudget">Total time for the probe. <see cref="Timeout.InfiniteTimeSpan"/> disables this limit.</param>
+    /// <param name="stepTimeout">Time for one step. <see cref="Timeout.InfiniteTimeSpan"/> disables this limit.</param>
     public static async Task<ProbeResult> RunAsync(
         string projectOrSolutionPath,
         string workingDirectory,
@@ -53,19 +55,12 @@ public static class DotNetBuildProbe
 
         async Task<DotNetCliRunner.RunResult?> RunStepAsync(string label, string arguments, bool isBuildStep)
         {
-            if (sw.Elapsed >= budget)
-            {
-                budgetExhausted = true;
-                steps.Add($"{label} (skipped: overall budget {budget.TotalSeconds:0}s exhausted)");
-                return null;
-            }
-
-            var remaining = budget - sw.Elapsed;
-            var timeout = remaining < perStep ? remaining : perStep;
+            cancellationToken.ThrowIfCancellationRequested();
+            var timeout = RemainingStepTimeout(budget, perStep, sw.Elapsed);
             if (timeout <= TimeSpan.Zero)
             {
                 budgetExhausted = true;
-                steps.Add($"{label} (skipped: no remaining budget)");
+                steps.Add($"{label} (skipped: overall budget {budget.TotalSeconds:0}s exhausted)");
                 return null;
             }
 
@@ -85,10 +80,10 @@ public static class DotNetBuildProbe
                 buildExitCodes.Add(run.ExitCode);
             }
 
-            if (run.TimedOut)
+            if (run.TimedOut && timeout is { } limit)
             {
                 timedOut = true;
-                steps[^1] = $"{label} (TIMED OUT after {timeout.TotalSeconds:0}s)";
+                steps[^1] = $"{label} (TIMED OUT after {limit.TotalSeconds:0}s)";
             }
 
             AppendSection(log, steps[^1], run);
@@ -158,6 +153,14 @@ public static class DotNetBuildProbe
             timedOut,
             budgetExhausted,
             noIncremental);
+    }
+
+    /// <summary>Returns null for an unlimited step and a nonpositive value when the budget is exhausted.</summary>
+    internal static TimeSpan? RemainingStepTimeout(TimeSpan budget, TimeSpan stepTimeout, TimeSpan elapsed)
+    {
+        var remaining = budget == Timeout.InfiniteTimeSpan ? (TimeSpan?)null : budget - elapsed;
+        var stepLimit = stepTimeout == Timeout.InfiniteTimeSpan ? (TimeSpan?)null : stepTimeout;
+        return stepLimit is null || remaining < stepLimit ? remaining : stepLimit;
     }
 
     /// <summary>

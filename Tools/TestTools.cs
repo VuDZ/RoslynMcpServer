@@ -6,6 +6,7 @@ using ModelContextProtocol;
 using ModelContextProtocol.Server;
 using RoslynMcpServer.Diagnostics;
 using RoslynMcpServer.Services;
+using RoslynMcpServer.Services.Testing.Baseline.Models;
 using RoslynMcpServer.Services.Testing.Models;
 using RoslynMcpServer.Services.Testing.Narrowing;
 using RoslynMcpServer.Services.Testing.Narrowing.Models;
@@ -61,6 +62,7 @@ public sealed class TestTools
     [Description(
         "Rapid test impact analysis (approximate). Estimates tests affected by changes since load: changed/new tests by name, "
         + "whole-project selections narrowed by compiled type changes when the assemblies are current. "
+        + "If source baseline capture is still in progress, retry the request after it completes. "
         + "A hint, not a guarantee: string/configuration lookups and process launches can hide tests; extra tests may be included. "
         + "run=true builds projects in order, then tests in parallel without rebuilding. maxParallelProjects=1 keeps per-project build and test order. "
         + "Never replaces the full test suite or CI before accepting or committing. Requires load_workspace.")]
@@ -100,6 +102,16 @@ public sealed class TestTools
             {
                 return Finish("Not covered: no loaded input map is available; reload required.");
             }
+
+            // An unfinished baseline would widen the plan using unrelated documents as unknown edits.
+            // See docs/archive/readme-demo-defects/validation.md#d-01-незавершённый-baseline-попадает-в-счётчик-изменений.
+            var pending = context.Baseline.Documents.Count(document => document.Status == BaselineDocumentStatus.Pending);
+            if (pending > 0)
+            {
+                return Finish($"Source baseline capture is in progress ({pending} pending document(s)). "
+                    + "Retry `estimate_affected_tests` after capture completes.");
+            }
+
             var solution = context.Solution;
             var estimate = await TestImpactEstimator.EstimateAsync(
                 solution, inputMap, context.Baseline, context.WorkspacePath,
@@ -114,7 +126,7 @@ public sealed class TestTools
                 ? await TestClassNarrower.NarrowAsync(solution, estimate, _solutionManager.Baseline.Assemblies, cancellationToken)
                     .ConfigureAwait(false)
                 : TestNarrowingResult.Empty;
-            var state = TestImpactDepth.State(stage);
+            var state = _solutionManager.WithDiskSyncNotes(TestImpactDepth.State(stage));
             if (runs is not null)
             {
                 var mode = execution.Degree switch
@@ -123,12 +135,11 @@ public sealed class TestTools
                     1 => "sequential (limit 1 project).",
                     _ => $"parallel (limit {execution.Degree} projects).",
                 };
-                state = _solutionManager.WithDiskSyncNotes(state) + Environment.NewLine + $"Test execution: {mode}";
+                state += Environment.NewLine + $"Test execution: {mode}";
             }
             var body = TestImpactFormatter.Format(solution, estimate, narrowing, stage, includeDetails, runs,
                 state);
-            return ToolTelemetry.TraceAndReturn(toolName, TestImpactFormatter.Warning + Environment.NewLine
-                + (run ? body : _solutionManager.WithDiskSyncNotes(body)));
+            return ToolTelemetry.TraceAndReturn(toolName, body);
         }
         catch (OperationCanceledException)
         {
@@ -140,10 +151,10 @@ public sealed class TestTools
             return Finish("Failed to estimate affected tests: " + exception.Message);
         }
 
-        string Finish(string body) => ToolTelemetry.TraceAndReturn(toolName,
-            TestImpactFormatter.Warning + Environment.NewLine + _solutionManager.WithDiskSyncNotes(body)
-            + (selectedDepth is { } stage ? Environment.NewLine + TestImpactDepth.State(stage) : string.Empty)
-            + (run ? Environment.NewLine + "Not covered: no execution report is available for this request." : string.Empty));
+        string Finish(string body) => ToolTelemetry.TraceAndReturn(toolName, TestImpactFormatter.FormatEarlyResponse(
+            _solutionManager.WithDiskSyncNotes(body),
+            selectedDepth is { } stage ? TestImpactDepth.State(stage) : null,
+            run));
     }
 
     [McpServerTool(Name = "run_dotnet_test", Title = "Run dotnet test")]

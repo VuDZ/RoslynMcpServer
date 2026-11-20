@@ -47,6 +47,26 @@ public sealed class DecompilerUnresolvedReferenceTests : IDisposable
     }
 
     [Fact]
+    public async Task Skeleton_prints_csharp_signatures_and_names_the_missing_dependency()
+    {
+        var result = await _tools.GetDecompiledClassSkeleton(assemblyPath: _targetPath, fullTypeName: "DecompileTarget.Consumer");
+
+        Assert.Contains("protected int?[]? Counts;", result, StringComparison.Ordinal);
+        Assert.Contains(
+            "public System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<DecompileTarget.Consumer?[]>>? Items { get; }",
+            result,
+            StringComparison.Ordinal);
+        Assert.Contains("public ref readonly int Current { get; }", result, StringComparison.Ordinal);
+        Assert.Contains("public System.Threading.Tasks.Task<DecompileTarget.Consumer?> Fetch(", result, StringComparison.Ordinal);
+        Assert.Contains("ref int count, out string? message, in int? index);", result, StringComparison.Ordinal);
+        Assert.Contains("public int Measure(", result, StringComparison.Ordinal);
+        Assert.DoesNotContain("_current", result, StringComparison.Ordinal);
+        Assert.DoesNotMatch(@"\b02[0-9A-F]{6}\b", result);
+        Assert.DoesNotContain("[[", result, StringComparison.Ordinal);
+        Assert.EndsWith(ExpectedNote, result, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Note_is_empty_when_every_reference_was_resolved()
     {
         Assert.Equal(string.Empty, DecompilerHost.FormatUnresolvedReferencesNote([]));
@@ -95,10 +115,28 @@ public sealed class DecompilerUnresolvedReferenceTests : IDisposable
         var target = Compile(
             "DecompileTarget",
             """
+            #nullable enable
+
+            using System.Collections.Generic;
+            using System.Threading.Tasks;
+
             namespace DecompileTarget;
+
             public class Consumer
             {
+                public Dictionary<string, List<Consumer?[]>>? Items { get; }
+                public ref readonly int Current => ref _current;
+
+                public Task<Consumer?> Fetch(ref int count, out string? message, in int? index)
+                {
+                    message = null;
+                    return Task.FromResult<Consumer?>(this);
+                }
+
                 public int Measure(MissingDependency.Widget widget) => widget.Size + 1;
+
+                protected int?[]? Counts;
+                private int _current;
             }
             """,
             [dependency.ToMetadataReference()]);

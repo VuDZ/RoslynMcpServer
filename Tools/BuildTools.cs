@@ -10,6 +10,9 @@ namespace RoslynMcpServer.Tools;
 
 public sealed class BuildTools
 {
+    // Task.Delay accepts at most uint.MaxValue - 1 milliseconds.
+    private const int MaxTimeoutSeconds = (int)((uint.MaxValue - 1) / 1000);
+
     public BuildTools(SolutionManager solutionManager, ILogger<BuildTools> logger)
     {
         _solutionManager = solutionManager;
@@ -18,9 +21,7 @@ public sealed class BuildTools
 
     [McpServerTool(Name = "run_dotnet_build", Title = "Run dotnet build")]
     [Description(
-        "Runs dotnet build with parsed diagnostics. Executes a process. workspacePath must be a .csproj/.sln/.slnx file, not a directory. "
-        + "Default noIncremental=true. Omit configuration/platform to inherit load_workspace. Extra `dotnet build` args inherit from load_workspace `buildArgs`. "
-        + "Optional projectName builds that project via its .sln/.slnx MSBuild target (solution-folder path).")]
+        "Runs dotnet build with parsed diagnostics. Inherits configuration, platform, and buildArgs from load_workspace.")]
     public async Task<string> RunDotNetBuild(
         [Description("Path to a .csproj, .sln, or .slnx file, not a directory.")]
         string workspacePath,
@@ -37,6 +38,8 @@ public sealed class BuildTools
         string? reportCursor = null,
         [Description(BuildOutputReport.WarningsParameterDescription)]
         bool includeBuildWarnings = false,
+        [Description("Build/restore budget in seconds. Default: 180 per step, 300 total. 0 disables the limit.")]
+        int? timeoutSeconds = null,
         IProgress<ProgressNotificationValue>? progress = null,
         CancellationToken cancellationToken = default)
     {
@@ -53,6 +56,13 @@ public sealed class BuildTools
             if (string.IsNullOrWhiteSpace(workspacePath))
             {
                 return ToolTelemetry.TraceAndReturn(nameof(RunDotNetBuild), "Error: `workspacePath` is empty.");
+            }
+
+            if (timeoutSeconds is < 0 or > MaxTimeoutSeconds)
+            {
+                return ToolTelemetry.TraceAndReturn(
+                    nameof(RunDotNetBuild),
+                    $"Error: `timeoutSeconds` must be between 0 and {MaxTimeoutSeconds}.");
             }
 
             var fullPath = Path.GetFullPath(workspacePath);
@@ -113,10 +123,18 @@ public sealed class BuildTools
                 resolvedProjectName = resolved.DisplayName;
             }
 
+            TimeSpan? budget = timeoutSeconds switch
+            {
+                null => null,
+                0 => Timeout.InfiniteTimeSpan,
+                int seconds => TimeSpan.FromSeconds(seconds),
+            };
             var probe = await DotNetBuildProbe.RunAsync(
                     fullPath,
                     workDir,
                     cancellationToken,
+                    overallBudget: budget,
+                    stepTimeout: budget,
                     configuration: effectiveConfiguration,
                     noIncremental: noIncremental,
                     platform: effectivePlatform,
