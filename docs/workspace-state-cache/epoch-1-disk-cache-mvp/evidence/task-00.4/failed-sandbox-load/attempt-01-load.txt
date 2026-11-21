@@ -1,0 +1,21 @@
+## Workspace Load Failed
+
+- **Path:** `E:\Devel\RoslynMcpServer\samples\RoslynMcpPlugin\RoslynMcpPlugin.csproj`
+
+### Errors
+- The build host was started but we were unable to connect to it's pipe. The process exited with -1. Process output:
+info: BuildHost Runtime Version: .NET 10.0.8
+
+
+### MSBuild environment (Locator)
+
+- **MCP process:** `64-bit`
+- **Registration:** `RegisterInstance: .NET Core SDK (10.0.300) at C:\Program Files\dotnet\sdk\10.0.300`
+
+**Queried instances (at startup):**
+- .NET Core SDK (10.0.300) at C:\Program Files\dotnet\sdk\10.0.300, VisualStudioRootPath=C:\Program Files\dotnet\sdk\10.0.300
+- .NET Core SDK (10.0.201) at C:\Program Files\dotnet\sdk\10.0.201, VisualStudioRootPath=C:\Program Files\dotnet\sdk\10.0.201
+- .NET Core SDK (9.0.314) at C:\Program Files\dotnet\sdk\9.0.314, VisualStudioRootPath=C:\Program Files\dotnet\sdk\9.0.314
+
+**Registered instance (Locator API):**
+- (not reported by this MSBuild.Locator version — see stderr `[DEBUG]` lines at startup)

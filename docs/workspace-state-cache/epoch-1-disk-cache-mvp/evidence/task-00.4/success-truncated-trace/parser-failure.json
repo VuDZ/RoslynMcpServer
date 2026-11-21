@@ -1,0 +1,1 @@
+{"command":"dotnet-trace report ordinary.nettrace topN --number 25 --inclusive --verbose","exitCode":1,"outcome":"parser-failed","error":"System.FormatException: Read past end of stream","usefulTrace":false}

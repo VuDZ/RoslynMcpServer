@@ -1,0 +1,77 @@
+# Read-only diagnostic orchestration; existing ordinary_baseline.py is imported unchanged.
+import sys, json, threading, subprocess, time
+from pathlib import Path
+repo=Path.cwd()
+sys.path.insert(0,str(repo/'scripts/workspace-state-cache'))
+import ordinary_baseline as b
+out=repo/'docs/workspace-state-cache/epoch-1-disk-cache-mvp/evidence/task-00.4'
+exe=repo/'bin/Release/net10.0/win-x64/publish/RoslynMcpServer.exe'
+workspace=repo/'samples/RoslynMcpPlugin/RoslynMcpPlugin.csproj'
+files,scope=b.content_manifest(workspace,repo,out)
+host=b.build_host_key(repo,exe,b.read_csproj_versions(repo))
+host['serverCommit']=b.file_version(exe).split('+')[-1].rstrip(')')
+facts=b.loader_facts(repo,exe)
+evaluated=b.evaluated_instance(workspace,repo,{k:b.ABSENT for k in ["configuration","platform","targetFramework","buildArgs","shadowCopyInSolutionAnalyzers"]})
+raw_send=b.send_message
+raw_kill=b.kill_tree
+raw_wait=b.wait_response
+phase_timestamps={}
+attach_wait_ms=None
+observed_stderr=[]
+def preserve_stderr(pipe,bucket):
+    for line in iter(pipe.readline,b""):
+        text=line.decode("utf-8",errors="replace").rstrip()
+        bucket.append(text)
+        observed_stderr.append(text)
+b.drain_stderr=preserve_stderr
+def phase_wait(messages,expect_id,timeout_s):
+    result=raw_wait(messages,expect_id,timeout_s)
+    phase_timestamps["response_"+str(expect_id)]=time.perf_counter()
+    return result
+b.wait_response=phase_wait
+def finish_trace_before_kill(pid):
+    if trace is not None:
+        try: trace.wait(timeout=20)
+        except subprocess.TimeoutExpired: trace.kill(); trace.wait()
+    raw_kill(pid)
+b.kill_tree=finish_trace_before_kill
+trace=None
+trace_lines=[]
+trace_ready=threading.Event()
+trace_command=None
+def attach_before_load(proc,message):
+    global trace,trace_command,attach_wait_ms
+    if message.get('id')==2:
+        attach_started=time.perf_counter()
+        trace_command=['dotnet-trace','collect','--process-id',str(proc.pid),'--profile','dotnet-sampled-thread-time','--format','Speedscope','--duration','00:00:00:08','--output',str(out/'ordinary.nettrace')]
+        trace=subprocess.Popen(trace_command,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,stdin=subprocess.DEVNULL,text=True,cwd=repo)
+        def drain():
+            for line in trace.stdout:
+                trace_lines.append(line)
+                if 'Trace Duration' in line: trace_ready.set()
+        threading.Thread(target=drain,daemon=True).start()
+        if not trace_ready.wait(12):
+            trace.kill()
+            raise OSError('Trace did not become ready before the request')
+        attach_wait_ms=round((time.perf_counter()-attach_started)*1000,1)
+    phase_timestamps["send_"+str(message.get("id"))]=time.perf_counter()
+    raw_send(proc,message)
+b.send_message=attach_before_load
+attempt=b.run_attempt(exe=exe,repo=repo,workspace=workspace,query='SamplePlugin',expect_full_name='RoslynMcpPlugin.SamplePlugin',expect_file=repo/'samples/RoslynMcpPlugin/SamplePlugin.cs',env=b.child_env(repo),role='diagnostic',index=1,response_dir=out,log_path=out/'run.txt',baseline_files=files,host_key=host,loader_facts_value=facts,evaluated=evaluated)
+if trace is not None:
+    try: trace.wait(timeout=20)
+    except subprocess.TimeoutExpired: trace.kill(); trace.wait()
+attempt['phasePerfCounterSeconds']=phase_timestamps
+attempt['profilerAttachWaitMsIncludedInRawLoad']=attach_wait_ms
+if attempt.get('loadMs') is not None and attach_wait_ms is not None:
+    attempt['requestOnlyLoadMs']=round(attempt['loadMs']-attach_wait_ms,1)
+if attempt.get('usefulMs') is not None and attach_wait_ms is not None:
+    attempt['requestOnlyUsefulMs']=round(attempt['usefulMs']-attach_wait_ms,1)
+(out/'server-stderr.txt').write_text('\n'.join(observed_stderr),encoding='utf-8')
+attempt['profiling']={'command':trace_command,'traceExitCode':trace.returncode if trace else None,'readyBeforeLoad':trace_ready.is_set(),'instrumented':True,'newPerformanceMedian':False,'scope':'server process only; BuildHost children not traced; initialization completed before attach'}
+after,_=b.content_manifest(workspace,repo,out)
+attempt['inputDifferencesAfter']=b.diff_manifests(files,after)
+(out/'attempt-01.json').write_text(json.dumps(attempt,indent=2),encoding='utf-8')
+(out/'content-identity.json').write_text(json.dumps(files,indent=2),encoding='utf-8')
+(out/'trace-output.txt').write_text(''.join(trace_lines),encoding='utf-8')
+print(json.dumps({k:attempt.get(k) for k in ['pid','outcome','loadMs','semanticMs','usefulMs','startupMs','error','profiling','inputDifferencesAfter']}))

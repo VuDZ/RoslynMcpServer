@@ -100,6 +100,10 @@ S-001 выделен в E0/task-08, S-002 — в E1/task-11, чтобы отде
 не новое исследовательское направление. При negative evidence dependent tasks
 blocked с причиной, без снятия real-positive требований.
 
+Принятые 2026-10-09 результаты исследований task-00.1, task-00.3 и task-00.4
+и их отчёты перечислены в [индексе E1](epoch-1-disk-cache-mvp/README.md#задачи).
+Task-00 остаётся blocked.
+
 E0 task outputs фиксируют ownership/location/version actual DTO/codec/hydrate;
 E1 использует этот executable artifact либо фиксирует перенос/замену и выполняет
 полную нужную suite против поставляемого кода. Location остаётся implementation

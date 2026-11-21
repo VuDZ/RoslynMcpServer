@@ -10,6 +10,9 @@
 ## Задачи
 
 - [task-00 — Manifest значимых входов](task-00-input-manifest-hi.md) — `hi`, **blocked, 2026-10-09 / S-002 insufficient all-instance import/restore evidence; DTO/adapter не реализован**; Depends on: [E0/task-07](../epoch-0-snapshot-roundtrip/task-07-roundtrip-benchmark-med.md), [E1/task-11 — S-002](task-11-raw-import-restore-evidence-hi.md). [Dependency evidence/validation](evidence/task-11-recheck-validation.md).
+- [task-00.1 — Дополнительный collector](task-00.1-supplemental-manifest-source-hi.md) — **accepted, round 2, 2026-10-09** для test-only collector и контрпримеров retention/ABA. [Review/validation](evidence/task-00.1-validation.md).
+- [task-00.3 — Граница freshness и restore inputs](task-00.3-manifest-contract-scope-hi.md) — **accepted, round 1, 2026-10-09** как отрицательный аудит черновика контракта. [Review/validation](evidence/task-00.3-validation.md).
+- [task-00.4 — Альтернатива в ordinary load](task-00.4-ordinary-load-alternative-med.md) — **accepted, round 2, 2026-10-09** для ограниченного профилирования с выводом no-go. [Review/validation](evidence/task-00.4-validation.md).
 - [task-01 — Проверка текстовых входов и каталогов](task-01-text-and-directory-probe-med.md) — `med`, **planned**; Depends on: [E1/task-00](task-00-input-manifest-hi.md)
 - [task-02 — Облегчённая проверка бинарей](task-02-binary-fast-probe-med.md) — `med`, **planned**; Depends on: [E1/task-00](task-00-input-manifest-hi.md)
 - [task-03 — Минимальный атомарный store](task-03-atomic-envelope-store-med.md) — `med`, **planned**; Depends on: [E1/task-00](task-00-input-manifest-hi.md)
@@ -42,12 +45,12 @@ ID не задаёт порядок запуска: его задаёт Depends 
 
 ## Статистика ревью задач
 
-- Охват: task-11 accepted для bounded partial experiment; task-00 blocked, остальные task-01–task-10 planned.
+- Охват: приняты ограниченные исследования task-11, task-00.1, task-00.3 и task-00.4. Task-00 blocked, task-01–task-10 planned.
 - Фактические исполнители: Codex implementer subagents; точный runtime model ID/reasoning не подтверждены инструментами.
 - Фактические рецензенты: Codex independent reviewer subagents; точный runtime model ID/reasoning не подтверждены инструментами.
-- Сумма раундов ревью задач: 3 (task-11).
-- Исправленные замечания задач: 2 (T11-R1-001, T11-R2-001), открытых must-fix task-11: 0.
-- Отчёты: [source](evidence/task-11-raw-evidence.md), [round 2](evidence/task-11-review-round-2.md), [round 3](evidence/task-11-review-round-3.md), [final validation](evidence/task-11-recheck-validation.md).
+- Сумма раундов ревью задач: 8 (3 + 2 + 1 + 2).
+- Исправленные замечания задач: 4 (T11-R1-001, T11-R2-001, T001-R1-001, T001-R1-002), открытых must-fix в принятых исследованиях: 0.
+- Отчёты: [task-11](evidence/task-11-recheck-validation.md), [task-00.1](evidence/task-00.1-validation.md), [task-00.3](evidence/task-00.3-validation.md), [task-00.4](evidence/task-00.4-validation.md).
 
 ## Приёмка реализации эпохи
 
@@ -55,7 +58,7 @@ ID не задаёт порядок запуска: его задаёт Depends 
 - Даты ревью: —.
 - Количество раундов ревью: —.
 - Количество исправлений после ревью: —.
-- Итог: эпоха не принята; выполнен только isolated task-11 partial experiment, production реализация не начата; task-00 blocked.
+- Итог: приняты исследовательские результаты выше. Task-00 blocked, production реализация не начата, эпоха не принята.
 - Принятый scope и дата: —.
 - Финальная validation и benchmark: —.
 - Ограничения и deferred scope: —.

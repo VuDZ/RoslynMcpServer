@@ -1,0 +1,13 @@
+
+Provider Name                           Keywords            Level               Enabled By
+Microsoft-DotNETCore-SampleProfiler     0x0000F00000000000  Informational(4)    --profile
+
+Process        : E:\Devel\RoslynMcpServer\bin\Release\net10.0\win-x64\publish\RoslynMcpServer.exe
+Output File    : E:\Devel\RoslynMcpServer\docs\workspace-state-cache\epoch-1-disk-cache-mvp\evidence\task-00.4\ordinary.nettrace
+Trace Duration : 00:00:00:08
+
+
+Trace completed.
+Processing trace data file 'E:\Devel\RoslynMcpServer\docs\workspace-state-cache\epoch-1-disk-cache-mvp\evidence\task-00.4\ordinary.nettrace' to create a new Speedscope file 'E:\Devel\RoslynMcpServer\docs\workspace-state-cache\epoch-1-disk-cache-mvp\evidence\task-00.4\ordinary.speedscope.json'.
+Detected a potentially broken trace. Continuing with best-efforts to convert the trace, but resulting speedscope file may contain broken stacks as a result.
+Conversion complete

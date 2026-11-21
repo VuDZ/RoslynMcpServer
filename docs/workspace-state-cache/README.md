@@ -12,6 +12,7 @@ ordinary consumer, **round 1, 2026-10-08** ([review](epoch-0-snapshot-roundtrip/
 ([review](epoch-0-snapshot-roundtrip/evidence/task-04-review-round-3.md),
 [final validation](epoch-0-snapshot-roundtrip/evidence/task-04-validation.md)); E0/task-05 accepted для isolated schema-v1 Debug base-query hydrate adapter/session owner, H-001/H-002, **round 2, 2026-10-08**, подтверждён внешним round 3 ([review](epoch-0-snapshot-roundtrip/evidence/task-05-review-round-3.md), [final validation](epoch-0-snapshot-roundtrip/evidence/task-05-validation.md)); внешняя приёмка task-04/task-05 подтверждена владельцем ([общий отчёт](epoch-0-snapshot-roundtrip/evidence/task-04-05-external-acceptance.md)); task-06 реализован и validated для real new-PID roundtrip и scoped linked .cs edit, **accepted, round 1, 2026-10-08** ([evidence](epoch-0-snapshot-roundtrip/evidence/task-06-roundtrip.md), [review](epoch-0-snapshot-roundtrip/evidence/task-06-review-round-1.md)); scope task-06 принят; task-07 accepted, round 2, 2026-10-09 — isolated restore benchmark ([evidence](epoch-0-snapshot-roundtrip/evidence/task-07-benchmark.md)); независимое ревью task-07 round 2, 2026-10-09 — ACCEPT, T07-R1-001/002/003 закрыты; принят bounded SamplePlugin benchmark scope ([review/validation](epoch-0-snapshot-roundtrip/evidence/task-07-review-round-2.md)); приёмка эпохи не объявлена.
 E1/task-11 accepted как bounded test-only S-002 partial experiment, **round 3, 2026-10-09**; task-00 manifest readiness blocked ([review/validation](epoch-1-disk-cache-mvp/evidence/task-11-recheck-validation.md)).
+**2026-10-09** приняты ограниченные результаты E1/task-00.1 (test-only collector и retention/ABA), E1/task-00.3 (отрицательный аудит контракта) и E1/task-00.4 (ordinary profiling, no-go для выбора оптимизации). [Статусы и отчёты](epoch-1-disk-cache-mvp/README.md#задачи).
 Runtime, версия и defaults этим пакетом не меняются.
 
 Владелец выбрал постепенное сохранение/восстановление workspace state с индексом
@@ -44,6 +45,7 @@ refresh и отдельно selective project reopen. Положительный
 - [E1 — disk cache MVP](epoch-1-disk-cache-mvp/README.md): 12 задач;
   input/binary probe, store, host/preparation/load/watch/write integration,
   restart/failure tests и hit/miss benchmark. Это первый полезный production scope.
+  Три дополнительных исследования описаны в [отчёте о вариантах](epoch-1-disk-cache-mvp/evidence/task-00-alternatives-preparation.md).
 - [E2 — content refresh](epoch-2-content-refresh/README.md): 7 задач;
   offline dirty owners, source/additional/config/metadata refresh, новый capture
   и edit/build → restart benchmark. Graph/membership change сохраняет fallback.
@@ -51,7 +53,7 @@ refresh и отдельно selective project reopen. Положительный
   narrow reopen spike, mapping/adapter/membership/publication, tests и benchmark.
   No-go spike оставляет E1/E2 пригодными и downstream selective scope deferred.
 
-Всего **35 небольших задач**: исходные 33 и два отдельно выделенных bounded spikes S-001/S-002. Суффиксы `low/med/hi/xhi` обозначают классы
+Всего **38 небольших задач**: исходные 35 и три исследования E1/task-00.1, task-00.3 и task-00.4. [E1b](epoch-1b-optimistic-restore/README.md) остаётся черновиком без задач. Суффиксы `low/med/hi/xhi` обозначают классы
 сложности, модели и reasoning указаны в шапках. Несколько рекомендованных моделей
 допустимы; их равная пригодность не считается установленной. Новые внешние
 альтернативы проверяются на фактическом scope, а история фиксирует точную модель.

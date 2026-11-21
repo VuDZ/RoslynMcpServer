@@ -1,0 +1,28 @@
+{
+  "date": "2026-10-09",
+  "scope": "docs-only task-00.3 contract audit; draft not applied",
+  "head": "fc72dc80d330874ae5160950e972a8c8b4d67874",
+  "tasks": 38,
+  "dependency_edges": 59,
+  "dependencies_unchanged": true,
+  "reviewed_report_sha256": "75C65929DB673543FD39DE6C6223C78497B030CD09F3CA8E3A6187048C7D2575",
+  "local_links_checked": 265,
+  "local_anchors_checked": 7,
+  "documents_checked": 9,
+  "protected_baseline_checks": 42,
+  "git_diff_check_exit": 0,
+  "new_owned_paths": [
+    "docs/workspace-state-cache/epoch-1-disk-cache-mvp/evidence/task-00.3-contract-scope.md",
+    "docs/workspace-state-cache/epoch-1-disk-cache-mvp/evidence/task-00.3-review-round-1.md",
+    "docs/workspace-state-cache/epoch-1-disk-cache-mvp/evidence/task-00.3-validation.md",
+    "docs/workspace-state-cache/epoch-1-disk-cache-mvp/evidence/task-00.3/baseline.json",
+    "docs/workspace-state-cache/epoch-1-disk-cache-mvp/evidence/task-00.3/checks.json",
+    "docs/workspace-state-cache/epoch-1-disk-cache-mvp/evidence/task-00.3/dependencies-before.json",
+    "docs/workspace-state-cache/epoch-1-disk-cache-mvp/evidence/task-00.3/validate.py"
+  ],
+  "unexpected_new_paths": [],
+  "production_test_config_changes_by_task": 0,
+  "build_main_source_structure_lifecycle": "not-run / not required for docs-only scope",
+  "errors": [],
+  "status": "passed"
+}

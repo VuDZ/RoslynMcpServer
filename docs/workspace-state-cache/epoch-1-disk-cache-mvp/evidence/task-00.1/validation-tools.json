@@ -1,0 +1,29 @@
+{
+  "Build": {
+    "content": [
+      {
+        "type": "text",
+        "text": "## Build succeeded\r\n\r\n- **warning** `CS8603` `E:\\Devel\\RoslynMcpServer\\Services\\Resolve\\NuGetFallbackAssemblyResolver.cs(35,20)` — Possible null reference return. [E:\\Devel\\RoslynMcpServer\\RoslynMcpServer.csproj]\r\n- **warning** `CS8603` `E:\\Devel\\RoslynMcpServer\\Services\\Resolve\\NuGetFallbackAssemblyResolver.cs(53,9)` — Possible null reference return. [E:\\Devel\\RoslynMcpServer\\RoslynMcpServer.csproj]\r\n- **warning** `CS8601` `E:\\Devel\\RoslynMcpServer\\RoslynMcpServer.LifecycleTestHost\\HostSession.cs(1177,34)` — Possible null reference assignment. [E:\\Devel\\RoslynMcpServer\\RoslynMcpServer.LifecycleTestHost\\RoslynMcpServer.LifecycleTestHost.csproj]\r\n- **warning** `xUnit1031` `E:\\Devel\\RoslynMcpServer\\RoslynMcpServer.Tests\\Workspace\\WpfTemporaryProjectCallbackTests.cs(195,32)` — Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031) [E:\\Devel\\RoslynMcpServer\\RoslynMcpServer.Tests\\RoslynMcpServer.Tests.csproj]"
+      }
+    ]
+  },
+  "Focused": {
+    "content": [
+      {
+        "type": "text",
+        "text": "## Filtered test run\r\n\r\n**Filter:** `FullyQualifiedName~SupplementalManifestTests`\r\n**Match:** Class name contains `SupplementalManifestTests`\r\n\r\n## Filtered tests passed\r\n\r\nTotal: **1** · Passed: **1** · Failed: **0**\r\n\r\nMatched tests: `RoslynMcpServer.Tests.WorkspaceStateCache.SupplementalManifestTests.Public_evaluation_improves_source_inventory_but_does_not_prove_consumed_generation`"
+      }
+    ]
+  },
+  "Main": {
+    "content": [
+      {
+        "type": "text",
+        "text": "## Filtered test run\r\n\r\n**Filter:** `Category!=AnalyzerLifecycle`\r\n**Match:** Caller-supplied VSTest filter\r\n\r\n## Filtered tests passed\r\n\r\nTotal: **1363** · Passed: **1363** · Failed: **0**\r\n\r\nMatched tests: `RoslynMcpServer.Tests.Workspace.SolutionProjectTargetResolverTests.TryResolve_rejects_csproj_extension', 'RoslynMcpServer.Tests.Workspace.SolutionManagerWatchRootsTests.ComputeWatchRoots_null_project_list_keeps_loaded_directory', 'RoslynMcpServer.Tests.Workspace.SolutionManagerWatchRootsTests.ComputeWatchRoots_does_not_treat_prefix_sibling_as_nested', 'RoslynMcpServer.Tests.Plugins.PluginDiscoveryTests.Reference_version_comes_from_the_asset_file_not_from_the_library_key_name', 'RoslynMcpServer.Tests.Workspace.SolutionManagerWatchRootsTests.ComputeWatchRoots_unix_style_absolute_paths_stay_rooted`"
+      }
+    ]
+  },
+  "MainFilter": "Category!=AnalyzerLifecycle",
+  "Configuration": "Release",
+  "MainAgainstSameFinalSource": true
+}
