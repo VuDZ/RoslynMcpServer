@@ -1,8 +1,8 @@
 # Архитектурное ревью 2026-10
 
-Статус: **open**. Сверка 2026-11-21 на `6d88c97` (1.6.1). В таблице открытых 18
-находок из 21 (P1 — 2, P2 — 8, P3 — 8). AR-02, AR-18 и AR-09 приняты в worktree.
-P-01 реализован в этом же worktree. P-02 и P-04 ждут решения. [Итоги проверки](priority-fixes.md#проверка)
+Статус: **open**. После сверки 2026-11-21 открыто 15 находок из 21
+(P1 — 1, P2 — 6, P3 — 8). AR-02, AR-18 и AR-09 закрыты коммитом `abb4f9d`.
+P-01 реализован. P-02 и P-04 ждут решения. [Итоги проверки](priority-fixes.md#проверка)
 
 Канон темы — этот README. Статус находки ведётся **только** в таблицах ниже.
 В [findings.md](findings.md) лежат доказательства и предложения, в
@@ -51,14 +51,11 @@ P-01 реализован в этом же worktree. P-02 и P-04 ждут ре�
 
 | ID | P | Область | Суть | Статус |
 |---|---|---|---|---|
-| [AR-02](findings.md#ar-02) | P1 | безопасность | `RoslynMcp.jsonc` из рабочего каталога управляет запуском плагинов | принято в worktree 2026-11-21 по [P-01](proposals.md#p-01). [Проверка](priority-fixes.md#проверка) |
 | [AR-04](findings.md#ar-04) | P1 | docs/учёт | Статусы workspace-state-cache расходятся между индексом, темой, backlog и validation | документация обновлена. [Сверка](priority-fixes.md#сверка-документации) |
 | [AR-05](findings.md#ar-05) | P2 | StateCache | Экспериментальный код в production-сборке без вызовов и без статуса в ARCHITECTURE | open — нужно решение ([P-02](proposals.md#p-02)) |
 | [AR-06](findings.md#ar-06) | P2 | конкурентность | Загрузка держит единственный лок; публичный sync-метод ждёт его через `Wait()` | open |
 | [AR-07](findings.md#ar-07) | P2 | память | Кэш workspace — одна запись; формулировка в ARCHITECTURE вводит в заблуждение; агент не видит рост памяти | open |
 | [AR-08](findings.md#ar-08) | P2 | диск | Shadow-копии плагинов создаются в новой папке при каждом старте и не удаляются | open |
-| [AR-09](findings.md#ar-09) | P2 | корректность | `list_projects` читает TFM и OutputType строковым разбором csproj | принято в worktree 2026-11-21. [Проверка](priority-fixes.md#проверка) |
-| [AR-18](findings.md#ar-18) | P2 | сборка | Сервер выбирает SDK по `global.json` без учёта `rollForward` и выдаёт ложный `MCP_MSBUILD_SDK_MISMATCH` | принято в worktree 2026-11-21. [Проверка](priority-fixes.md#проверка) |
 | [AR-19](findings.md#ar-19) | P2 | docs | ARCHITECTURE не описывает форк BuildHost; поведение загрузки записано в разделе о развёртывании | open (раунд 2) |
 | [AR-20](findings.md#ar-20) | P2 | зависимости | Семь мест привязаны к внутренностям Roslyn 5.9.0, общего списка для обновления пакета нет | open (раунд 2) |
 | [AR-03](findings.md#ar-03) | P3 | docs | Обоснование политики watcher оставалось в backlog | документация обновлена. [Сверка](priority-fixes.md#сверка-документации) |
@@ -76,7 +73,10 @@ P-01 реализован в этом же worktree. P-02 и P-04 ждут ре�
 |---|---|---|---|
 | [AR-01](findings.md#ar-01) | P1 | README описывал 9 скрытых tools как доступные и не описывал 2 реальных | fixed, 2026-10-22, коммит `22b9924`; проверено в раунде 2 |
 | [AR-12](findings.md#ar-12) | P3 | CI и релиз только для Windows при 6 объявленных RID | fixed, 2026-10-22, коммиты `0cf6b05`, `b270eba`, `408e02f`; решение [P-03](proposals.md#p-03), серия [linux-x64-support](../archive/linux-x64-support/README.md) |
-| [AR-13](findings.md#ar-13) | P3 | Корневой `global.json` отсутствовал | fixed, проверено 2026-11-21. Коммит `59f6936` добавил [global.json](../../global.json). Точный SDK релиза задаёт workflow. Поведение сервера отслеживается в AR-18 |
+| [AR-13](findings.md#ar-13) | P3 | Корневой `global.json` отсутствовал | fixed, проверено 2026-11-21. Коммит `59f6936` добавил [global.json](../../global.json). Точный SDK релиза задаёт workflow. Поведение сервера исправлено в AR-18 |
+| [AR-02](findings.md#ar-02) | P1 | `RoslynMcp.jsonc` из рабочего каталога управляет запуском плагинов | fixed, 2026-11-21, коммит `abb4f9d`, решение [P-01](proposals.md#p-01). [Проверка](priority-fixes.md#проверка) |
+| [AR-09](findings.md#ar-09) | P2 | `list_projects` читает TFM и `OutputType` строковым разбором csproj | fixed, 2026-11-21, коммит `abb4f9d`. [Проверка](priority-fixes.md#проверка) |
+| [AR-18](findings.md#ar-18) | P2 | Выбор SDK без учёта `rollForward` приводит к ложному `MCP_MSBUILD_SDK_MISMATCH` | fixed, 2026-11-21, коммит `abb4f9d`. [Проверка](priority-fixes.md#проверка) |
 
 ## Что изменилось в раунде 2
 
