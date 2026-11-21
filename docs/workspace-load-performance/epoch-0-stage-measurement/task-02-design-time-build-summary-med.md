@@ -27,7 +27,7 @@ Binlog уже снимается при каждой загрузке для ana
 ## Входы и границы
 
 [Тема](../README.md), [карта эпохи](README.md), [task-01](task-01-load-stage-timings-med.md).
-Факты о binlog — [S-002](../../workspace-state-cache/epoch-1-disk-cache-mvp/evidence/task-11-raw-evidence.md):
+Факты о binlog — [S-002](https://github.com/VuDZ/RoslynMcpServer/blob/archive/research-workspace-state-cache/docs/workspace-state-cache/epoch-1-disk-cache-mvp/evidence/task-11-raw-evidence.md):
 root evaluation в BuildHost не логируется (ProjectCollection без логгеров),
 логируются evaluations внутри build и сам design-time build.
 

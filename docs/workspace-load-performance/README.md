@@ -13,7 +13,7 @@ E0/task-07: **implemented, 2026-10-10 — шаг 0 и 40 прогонов зав
 E0/task-07.1: **implemented, 2026-10-10 — шаг 0 и 52 matrix attempts завершены, no-go; PowerToys equivalent, лучший N=4 depth2 25,228 с против 41,825 с (1,658×), Files cluster N=2/4 невыполнимы при ε=0,15. Независимое ревью round 2 ACCEPT для standalone реализации/evidence; code/tests acceptance pending main CI: 1362 passed / 1 прежний SDK-specific failed / 0 skipped; commit не создан, production и E1 не активированы** ([результат](epoch-0-stage-measurement/evidence/task-07.1-core-first-equivalence-and-partition.md), [review/validation](epoch-0-stage-measurement/evidence/task-07.1-core-first-equivalence-and-partition/validation.md)).
 E0/task-07.2: **implemented, 2026-10-10 — 36 matrix runs и 6 дополнительных load processes, no-go; PowerToys cluster N4 23,306 с против 41,536 с (56,11%), pre-load отказы Files/RoslynN8 ≤105%. Roslyn parallel correctness и универсальный детерминизм deadline-limited N8 не достигнуты. Независимое ревью round 2 ACCEPT для standalone реализации/evidence отрицательного эксперимента; code/tests acceptance pending main CI 1362 passed / 1 прежний SDK-specific failed / 0 skipped; commit не создан, production/E1 не активированы** ([результат](epoch-0-stage-measurement/evidence/task-07.2-refusal-fast-planner-roslyn.md), [validation](epoch-0-stage-measurement/evidence/task-07.2-refusal-fast-planner-roslyn/validation.md)).
 
-Происхождение: решение владельца [H-003](../workspace-state-cache/human-decisions.md#h-003--отсрочка-маршрута-disk-manifest), вариант D.
+Происхождение: решение владельца H-003, вариант D; текст решения в репозитории не записан ([workspace state cache](../workspace-state-cache/README.md)).
 
 ## Текущее продолжение, 2026-10-22
 
@@ -46,11 +46,11 @@ correctness check и только при его успехе — измерен�
 У коллег целевое решение загружается в `load_workspace` несколько минут. Где
 уходит это время, неизвестно. Серия workspace-state-cache мерила только
 SamplePlugin (два проекта, load около 1.4 с) и BTCPay (load 3.6 с), а
-профилирование [E1/task-00.4](../workspace-state-cache/epoch-1-disk-cache-mvp/evidence/task-00.4-ordinary-alternative.md)
+профилирование [E1/task-00.4](https://github.com/VuDZ/RoslynMcpServer/blob/archive/research-workspace-state-cache/docs/workspace-state-cache/epoch-1-disk-cache-mvp/evidence/task-00.4-ordinary-alternative.md)
 трассировало только процесс сервера, без BuildHost. Без разбивки по стадиям
 нельзя ни выбрать оптимизацию, ни оценить выгоду вариантов
 [C](../workspace-host-process/README.md) и
-[B](../workspace-state-cache/epoch-1b-optimistic-restore/README.md).
+[B](https://github.com/VuDZ/RoslynMcpServer/blob/archive/research-workspace-state-cache/docs/workspace-state-cache/epoch-1b-optimistic-restore/README.md).
 
 ## Цель
 

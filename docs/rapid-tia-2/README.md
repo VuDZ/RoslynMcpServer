@@ -122,7 +122,7 @@ Rapid TIA вошла в `main` в составе **1.6.0**. Номера вер�
 | D-09 | 2026-11-18: для отпечатков task-02 владелец принял перенумерацию compiler-generated членов как источник допустимых лишних изменений, аналогично анонимным типам. Перестановка методов с лямбдами может дать такой эффект; нормализация сгенерированных имён и cache-полей в task-02 не требуется. Точные имена и порядок полей сохраняются; уточнение и регрессия — [M-09 плана](mvp/README.md#решения-владельца-по-плану), [task-02](mvp/task-02-type-fingerprints-hi.md). |
 
 Корпус с DI владелец ещё не выбрал. Кандидаты из уже склонированных для
-[бенчмарка загрузки](../backlog/workspace-load-cache/baseline-benchmark.md): `orchard-wide` (OrchardCore) и
+[бенчмарка загрузки](https://github.com/VuDZ/RoslynMcpServer/blob/archive/research-workspace-state-cache/docs/backlog/workspace-load-cache/baseline-benchmark.md): `orchard-wide` (OrchardCore) и
 `btcpay-web` (BTCPayServer). `roslyn-deep` использует MEF, а не `Microsoft.Extensions.DependencyInjection`.
 
 ## Гипотеза

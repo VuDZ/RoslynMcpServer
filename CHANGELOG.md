@@ -2,6 +2,13 @@
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.6.2
+
+- Plugin lists come only from trusted configuration: `RoslynMcp.jsonc` next to the exe, the user configuration and `ROSLYN_MCP_PLUGINS`. A `plugins` value in the working-directory config is ignored with a warning in stderr and the log; its other settings still apply.
+- CLI commands, builds and SDK diagnostics follow the SDK that `dotnet` resolves for the directory, including `global.json` roll-forward. Allowed roll-forward no longer reports a false `MCP_MSBUILD_SDK_MISMATCH`; diagnostics show the requested and selected versions, and workspace health shows the registered MSBuild path.
+- `list_projects` reports TFM and `OutputType` from the evaluated project of the requested load, including values set in imports such as `Directory.Build.props`. Missing data stays `(unknown)`.
+- Remove the unused experimental workspace state cache from the server assembly (`Services/Workspace/StateCache`) together with its tests and the `RequiresPinnedSdk` test category. Tool behavior does not change; the frozen research is summarized in [docs/workspace-state-cache](docs/workspace-state-cache/README.md).
+
 ### v1.6.1
 
 - `estimate_affected_tests` asks the caller to retry while source baseline capture is in progress. It reports unknown baselines separately and caps its text at 32 KiB. Atomic replacement of a loaded `.cs` file keeps the project graph current when the watcher can confirm the replacement.

@@ -1,4 +1,0 @@
-[
-  {"attempt":"setup-01","command":"py -3 -","outcome":"not-run","serverStarted":false,"exitCode":1,"error":"No installed Python found!"},
-  {"attempt":"setup-02","command":"python -","outcome":"not-run","serverStarted":false,"exitCode":1,"error":"KeyError: configuration in evaluated_instance; corrected raw absent dictionary"}
-]

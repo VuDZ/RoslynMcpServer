@@ -4,14 +4,9 @@
 активным маршрутом реализации; возвращение к программе требует отдельного
 решения владельца. Backlog отличается от архива завершённых работ.
 
-- [Workspace load cache v2](workspace-load-cache/README.md) — **deferred,
-  2026-10-07**. Accepted scope переноса: весь прежний каталог, включая текущие
-  правки, новые packets/evidence и историю приёмок; относительные ссылки и
-  baseline runner адаптированы к расположению. Причина: постепенный MVP
-  сохраняет/восстанавливает state и использует текущие watcher’ы, глубокие
-  исследования остаются на будущее. [Проверка](workspace-load-cache/relocation-report.md).
-  Новый маршрут — [workspace state cache MVP](../workspace-state-cache/README.md),
-  с принятыми изолированными экспериментами. Готовность манифеста E1 заблокирована.
+- [Workspace load cache v2](workspace-load-cache/README.md) — **заморожено 2026-11-21**
+  вместе с [workspace state cache](../workspace-state-cache/README.md); документы и тесты
+  удалены из `main`, история — в теге `archive/research-workspace-state-cache`.
 - [Инструменты отладчика через MCP](debugger-tools.md) — **deferred,
   2026-10-22**. Решение владельца: не строить, пока не накопятся 2–3 случая,
   где отладчик дал бы больше `dotnet-trace`/`dotnet-stack`/`dotnet-dump` и логов.

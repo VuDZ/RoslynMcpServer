@@ -9,13 +9,6 @@ internal static class TestCategories
     /// </summary>
     internal const string RequiresWindows = "RequiresWindows";
 
-    /// <summary>
-    /// The test builds a fixture with the exact SDK of the deferred workspace-load-cache experiment
-    /// (<c>WorkspaceLoadCache.PinnedSdk</c>). The main suite and CI exclude it until the experiment resumes;
-    /// the exact list is pinned by <c>PinnedSdkTestInventoryTests</c>.
-    /// </summary>
-    internal const string RequiresPinnedSdk = "RequiresPinnedSdk";
-
     /// <summary>Rapid TIA integration tests run on a separate CI runner.</summary>
     internal const string TiaIntegration = "TiaIntegration";
 }

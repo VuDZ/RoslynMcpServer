@@ -1,6 +1,0 @@
-[DEBUG] Found MSBuild: .NET Core SDK (10.0.300) at C:\Program Files\dotnet\sdk\10.0.300, VisualStudioRootPath=C:\Program Files\dotnet\sdk\10.0.300
-[DEBUG] Found MSBuild: .NET Core SDK (10.0.201) at C:\Program Files\dotnet\sdk\10.0.201, VisualStudioRootPath=C:\Program Files\dotnet\sdk\10.0.201
-[DEBUG] Found MSBuild: .NET Core SDK (9.0.314) at C:\Program Files\dotnet\sdk\9.0.314, VisualStudioRootPath=C:\Program Files\dotnet\sdk\9.0.314
-[DEBUG] Using MSBuild from: C:\Program Files\dotnet\sdk\10.0.300
-[RoslynMcp] ROSLYN_MCP_WORKSPACE: cwd = E:\Devel\RoslynMcpServer
-[RoslynMcp] session=[cli-gm65]; tool profile=full; startup groups=(none); dynamic groups=(none); registered tools=54

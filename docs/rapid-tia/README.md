@@ -333,7 +333,7 @@ baseline хранит ребро к прежней цели вызова, поэ
   linked files, а одинаковое полное имя бывает в разных сборках. Проект задаётся
   стабильным между процессами ключом экземпляра — путь проекта, конфигурация, платформа,
   target framework, как
-  [SnapshotProjectKey](../../Services/Workspace/StateCache/Models/SnapshotProjectKey.cs),
+  [SnapshotProjectKey](https://github.com/VuDZ/RoslynMcpServer/blob/archive/research-workspace-state-cache/Services/Workspace/StateCache/Models/SnapshotProjectKey.cs),
   а не `ProjectId`. Факты документа хранятся отдельно для каждого проекта, в который он
   входит. Ребро к символу другого проекта разрешается по сборке, из которой символ пришёл.
   Ребро к символу из метаданных (NuGet, BCL) хранит ключ листа — идентификатор

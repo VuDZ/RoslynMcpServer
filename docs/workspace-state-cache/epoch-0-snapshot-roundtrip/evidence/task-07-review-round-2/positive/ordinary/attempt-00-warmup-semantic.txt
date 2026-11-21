@@ -1,7 +1,0 @@
-Found 1 declaration symbol(s) matching `SamplePlugin`:
-
-Symbol: SamplePlugin
-  Full name: RoslynMcpPlugin.SamplePlugin
-  File: E:\Devel\RoslynMcpServer\samples\RoslynMcpPlugin\SamplePlugin.cs
-  Line: 5
-  Column: 21

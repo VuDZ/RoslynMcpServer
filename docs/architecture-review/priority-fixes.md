@@ -48,7 +48,7 @@ MSBuild вернул `TargetFramework=net10.0` и `OutputType=Library`. `list_pr
   Спецификация датирована 2026-10-07. Замер E0/task-07 и ограниченный эксперимент S-002
   приняты 2026-10-09, E1/task-00 заблокирован. Проверка от 2026-10-08 и её скрипт
   обозначены как исторические. [Актуальный статус](../workspace-state-cache/README.md)
-  [Замер](../workspace-state-cache/benchmark.md) [Проверка](../workspace-state-cache/validation.md)
+  [Замер](https://github.com/VuDZ/RoslynMcpServer/blob/archive/research-workspace-state-cache/docs/workspace-state-cache/benchmark.md) [Проверка](https://github.com/VuDZ/RoslynMcpServer/blob/archive/research-workspace-state-cache/docs/workspace-state-cache/validation.md)
 - **AR-13.** Корневой [global.json](../../global.json) появился в `59f6936`.
   Выбор разрешённого SDK в сервере отслеживается в AR-18.
 

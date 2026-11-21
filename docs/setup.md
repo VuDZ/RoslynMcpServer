@@ -261,7 +261,7 @@ After `load_workspace`, semantic tools trust the file watcher until the next con
 - Watcher overflow, a watcher error, or a directory rename asks the next semantic call to re-read known documents and can mark the graph stale.
 - An edit the watcher never reported — a file outside the watch set, or a dropped notification with no error — stays invisible until the next `load_workspace`. Standing coverage gaps (imports, restore inputs, custom tasks) do not by themselves block a read.
 
-The other freshness policies that were considered and not chosen are recorded in [epoch 3](backlog/workspace-load-cache/epoch-3-live-consistency/spec.md).
+The other freshness policies that were considered and not chosen are recorded in [epoch 3](https://github.com/VuDZ/RoslynMcpServer/blob/archive/research-workspace-state-cache/docs/backlog/workspace-load-cache/epoch-3-live-consistency/spec.md).
 
 ## Security boundary
 

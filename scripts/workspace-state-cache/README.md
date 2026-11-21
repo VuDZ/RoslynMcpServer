@@ -4,7 +4,7 @@
 Архивный `docs/backlog/workspace-load-cache/baseline_bench.py` этот раннер не импортирует и не меняет.
 Его пины (`SPEC_TOKEN`, SHA, таймауты, состав median, `CORPORA`) остаются как есть.
 
-Протокол чисел — [benchmark.md](../../docs/workspace-state-cache/benchmark.md).
+Протокол чисел — [benchmark.md](https://github.com/VuDZ/RoslynMcpServer/blob/archive/research-workspace-state-cache/docs/workspace-state-cache/benchmark.md).
 Идентификатор этого клиента: `e0-ordinary-baseline-1`. Это не `baseline-benchmark-4`.
 
 ## Аргументы
@@ -77,36 +77,6 @@ py -3 scripts/workspace-state-cache/ordinary_baseline.py `
 
 Таймауты этого клиента: initialize 120 с, load 600 с, semantic 600 с. Это не пины архивного baseline.
 
-## Isolated restore на том же compare key
+## Isolated restore
 
-`roundtrip_benchmark.py` повторяет ordinary-попытки и добавляет isolated restore.
-Оба сценария получают один compare key: тот же сервер, commit, content identity, query и уровни configuration/platform/TFM.
-Поле сценария внутри ключа — метка пары, не отдельный ключ на каждую ногу.
-Production cache этот раннер не включает.
-
-На каждую restore-попытку — два новых процесса тестовой сборки:
-
-- `capture`: ordinary MSBuild load (`ordinaryLoadMs`), `CaptureAsync` (`captureMs`), encode и запись envelope (`writeMs`). Сумма — `captureOverheadMs`.
-- `restore`: другой PID читает envelope (`readMs`), декодирует (`decodeMs`), вызывает hydrator (`hydrateMs`) и проверяет заранее названное объявление (`queryMs`). `usefulMs` — сумма этих четырёх. Capture в неё не входит и скрытой не считается: overhead пишется рядом.
-
-Hydrator внутри `hydrateMs` ещё раз кодирует и декодирует snapshot. Это его принятый путь, не отдельная стадия read/decode.
-
-Принимается только заранее названный контроль: query `SamplePlugin`, полное имя `RoslynMcpPlugin.SamplePlugin`, файл `samples/RoslynMcpPlugin/SamplePlugin.cs`. Другой query отклоняется до warmup и до restore. Restore-процесс получает то же ожидаемое объявление и не сообщает success для другого символа. Перед медианой `declaration` сверяется с этим ожиданием; расхождение — miss.
-
-Каждый child получает новый run id. Перед запуском удаляются прежние `{role}-stages.json`, `{role}.pid` и `{role}.trx` этого каталога. Success требует exit code 0, TRX `total=1`, `passed=1`, `failed=0`, `notExecuted=0` и receipt с тем же run id, ролью и PID. Журнал пишется в `run.txt`.
-
-Большой корпус передаётся `--large-workspace`. Его отказ, отсутствие на диске или неожиданный успех пишутся отдельно и в медиану контроля не входят. По умолчанию это кандидат BTCPay из прежнего backlog; отсутствие файла — `not-present`, не поддержка.
-
-```powershell
-py -3 scripts/workspace-state-cache/roundtrip_benchmark.py `
-  --workspace <path-to.csproj> `
-  --query <symbolName> `
-  --server <path-to-RoslynMcpServer.exe> `
-  --expect-full-name <Namespace.Type> `
-  --expect-file <declaration-file> `
-  --repo <repository-root> `
-  --test-assembly <RoslynMcpServer.Tests.dll> `
-  --out <raw-attempt-directory>
-```
-
-Warmup пары в медиану не входит. Дальше минимум пять успешных ordinary и пять успешных restore с тем же ключом. Неуспех любой ноги оставляет raw и помечает итог `partial`. p95 не считается.
+Раннер isolated restore `roundtrip_benchmark.py` удалён из `main` 2026-11-21 вместе с кодом state cache, на который он опирался. Он и его описание сохранены в теге `archive/research-workspace-state-cache`; итоги — в [docs/workspace-state-cache](../../docs/workspace-state-cache/README.md). `ordinary_baseline.py` остаётся: его импортирует замер Rapid TIA 2.

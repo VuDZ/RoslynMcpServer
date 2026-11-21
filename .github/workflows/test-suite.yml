@@ -35,8 +35,6 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
         with:
-          # The fixtures that pin SDK 10.0.300 exactly are in RequiresPinnedSdk and not run here; the
-          # latest 10.0.x alone once failed them: https://github.com/VuDZ/RoslynMcpServer/actions/runs/37148534996
           # Tests do not need a reproducible SDK; the release pins its own (release.yml, AR-13).
           dotnet-version: 10.0.x
           architecture: ${{ matrix.runner == 'macos-arm64' && 'arm64' || 'x64' }}
@@ -65,8 +63,7 @@ jobs:
         run: |
           $filter = 'Category=AnalyzerLifecycle'
           if ($env:TEST_SHARD -ne 'lifecycle') {
-            # Some deferred workspace-load-cache fixtures require SDK 10.0.300 exactly.
-            $filter = 'Category!=AnalyzerLifecycle&Category!=RequiresPinnedSdk'
+            $filter = 'Category!=AnalyzerLifecycle'
             if ($env:TEST_RUNNER -ne 'windows') {
               $filter += '&Category!=RequiresWindows'
             }
