@@ -1,4 +1,5 @@
 using RoslynMcpServer.Diagnostics;
+using RoslynMcpServer.Services.Build;
 using Xunit;
 
 namespace RoslynMcpServer.Tests.Build;
@@ -17,52 +18,43 @@ public sealed class SdkMismatchDiagnosticsTests
         Directory.CreateDirectory(Path.Combine(sdkDir, "Sdks"));
         File.WriteAllText(Path.Combine(sdkDir, "MSBuild.dll"), string.Empty);
         File.WriteAllText(Path.Combine(sdkDir, "Microsoft.Build.dll"), string.Empty);
-        File.WriteAllText(
-            Path.Combine(root, "global.json"),
-            """
-            { "sdk": { "version": "10.0.999" } }
-            """);
-
-        lock (TestEnvironmentLocks.DotNetRoot)
+        try
         {
-            var previousRoot = Environment.GetEnvironmentVariable("DOTNET_ROOT");
-            Environment.SetEnvironmentVariable("DOTNET_ROOT", root);
-            try
-            {
-                var logPath = Path.Combine(root, "sdk", differentSdk ? "9.0.314" : "10.0.999", "MSBuild.dll");
-                var log = $"""
+            var sdk = DotNetSdkResolver.FromHostResult(
+                Path.Combine(root, "global.json"), "10.0.301", "10.0.999", $"SDK path resolved to [{sdkDir}]");
+            var logPath = Path.Combine(root, "sdk", differentSdk ? "9.0.314" : "10.0.999", "MSBuild.dll");
+            var log = $"""
                     MSBuild executable path = {quotes}{logPath}{quotes}
                     Build FAILED.
                     """;
-                Assert.Equal(differentSdk, DotNetBuildProbe.ShouldRunPinnedMsBuildRestore(log, root));
+            Assert.Equal(differentSdk, DotNetBuildProbe.ShouldRunPinnedMsBuildRestore(log, sdk));
 
-                var compilerLog = log + "\nCSC : error CS9057: Analyzer assembly references a newer compiler version.";
-                var errors = SdkMismatchDiagnostics.CreateErrors(root, compilerLog, "10.0.999");
-                var metadata = DotNetCliRunner.BuildRunMetadata("dotnet", root, compilerLog, "10.0.999");
-                var report = BuildOutputReport.Format(
-                    compilerLog,
-                    1,
-                    metadata,
-                    includeBuildWarnings: false,
-                    additionalErrors: errors,
-                    attachFullReport: false);
-                Assert.Contains("CS9057", report, StringComparison.Ordinal);
-                Assert.Contains("- **dotnet --version:** `10.0.999`", report, StringComparison.Ordinal);
-                Assert.Contains($"- **MSBuild from log:** `{logPath}`", report, StringComparison.Ordinal);
-                Assert.Equal(differentSdk, report.Contains(SdkMismatchDiagnostics.MismatchCode, StringComparison.Ordinal));
-            }
-            finally
-            {
-                Environment.SetEnvironmentVariable("DOTNET_ROOT", previousRoot);
-                Directory.Delete(root, recursive: true);
-            }
+            var compilerLog = log + "\nCSC : error CS9057: Analyzer assembly references a newer compiler version.";
+            var errors = SdkMismatchDiagnostics.CreateErrors(sdk, compilerLog);
+            var metadata = DotNetCliRunner.BuildRunMetadata("dotnet", root, compilerLog, sdk);
+            var report = BuildOutputReport.Format(
+                compilerLog,
+                1,
+                metadata,
+                includeBuildWarnings: false,
+                additionalErrors: errors,
+                attachFullReport: false);
+            Assert.Contains("CS9057", report, StringComparison.Ordinal);
+            Assert.Contains("- **dotnet --version:** `10.0.999`", report, StringComparison.Ordinal);
+            Assert.Contains("- **Requested SDK:** `10.0.301`", report, StringComparison.Ordinal);
+            Assert.Contains($"- **MSBuild from log:** `{logPath}`", report, StringComparison.Ordinal);
+            Assert.Equal(differentSdk, report.Contains(SdkMismatchDiagnostics.MismatchCode, StringComparison.Ordinal));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
         }
     }
 
     [Fact]
-    public void TryParseDotNetVersionFromMetadata_reads_version_line()
+    public void Unresolved_sdk_does_not_inject_a_mismatch()
     {
-        const string metadata = "- **dotnet --version:** `10.0.204` (from working directory)";
-        Assert.Equal("10.0.204", SdkMismatchDiagnostics.TryParseDotNetVersionFromMetadata(metadata));
+        var sdk = DotNetSdkResolver.FromHostResult("global.json", "10.0.999", null, null);
+        Assert.Empty(SdkMismatchDiagnostics.CreateErrors(sdk, "MSBuild executable path = /sdk/10.0.402/MSBuild.dll"));
     }
 }

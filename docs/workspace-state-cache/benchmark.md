@@ -1,6 +1,7 @@
 # Бенчмарки workspace state cache
 
-Статус: **spec-v2 / revised-for-review, 2026-10-07**. Числа ускорения ещё не получены.
+Методика v2 от 2026-10-07. Результат ограниченного замера E0/task-07 принят
+2026-10-09. [Проверка замера](epoch-0-snapshot-roundtrip/evidence/task-07-review-round-2.md)
 
 ## Контролы и сравнимость
 

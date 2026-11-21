@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -812,6 +813,7 @@ public sealed class SolutionManager
             _workspace = null;
             _usage?.ClearResidentWorkspace();
             _solution = null;
+            _loadedProjectMetadata = ImmutableDictionary<ProjectId, ProjectLoadMetadata>.Empty;
             ForgetSanitizedPublishedSolution();
             _lastPublishedWriteContext = null;
             LastWriteResult = null;
@@ -895,6 +897,20 @@ public sealed class SolutionManager
     internal IReadOnlyList<string> GetPendingDirtySourcePaths() => _dirtySourcePaths.Keys.ToArray();
 
     internal Solution? GetWorkspaceCurrentSolution() => _workspace?.CurrentSolution;
+
+    /// <summary>Reads the published solution and its MSBuild evaluation from the same load.</summary>
+    internal async Task<ProjectListSnapshot> GetProjectListSnapshotAsync(CancellationToken cancellationToken)
+    {
+        await _workspaceLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            return CaptureProjectListUnderLock();
+        }
+        finally
+        {
+            _workspaceLock.Release();
+        }
+    }
 
     /// <summary>Captures the graph and its build settings together so a reload cannot mix configurations.</summary>
     internal async Task<TestImpactWorkspaceContext?> GetTestImpactContextAfterDiskSyncAsync(CancellationToken cancellationToken)
@@ -1087,14 +1103,14 @@ public sealed class SolutionManager
                 {
                     Baseline.Publish(fullPath, _solution, DateTime.UtcNow, _logger);
                 }
-                return new WorkspaceLoadPreparationResult(solution, LastShadowCopyResults);
+                return new WorkspaceLoadPreparationResult(solution, LastShadowCopyResults, CaptureProjectListUnderLock());
             }
 
             if (HasBlockingLoadFailure(solution))
             {
                 EnterBannedPublication(_workspace!.CurrentSolution, "blocking-load-failure");
                 _solution = null;
-                return new WorkspaceLoadPreparationResult(solution, Array.Empty<AnalyzerReferenceShadowCopier.RewriteResult>());
+                return new WorkspaceLoadPreparationResult(solution, [], CaptureProjectListUnderLock());
             }
 
             ApplyCaptureTestSeams();
@@ -1106,7 +1122,8 @@ public sealed class SolutionManager
                 EnterUnavailablePublication(unsuitableCapture);
                 return new WorkspaceLoadPreparationResult(
                     _workspace!.CurrentSolution,
-                    Array.Empty<AnalyzerReferenceShadowCopier.RewriteResult>());
+                    [],
+                    CaptureProjectListUnderLock());
             }
 
             if (LastLoadWasCacheHit)
@@ -1132,7 +1149,10 @@ public sealed class SolutionManager
                         LastExecutionObservation.Reason ?? "opt-in-prepare-not-enabled");
                 }
 
-                return new WorkspaceLoadPreparationResult(_workspace!.CurrentSolution, results);
+                return new WorkspaceLoadPreparationResult(
+                    _workspace!.CurrentSolution,
+                    results,
+                    CaptureProjectListUnderLock());
             }
             catch
             {
@@ -1169,6 +1189,11 @@ public sealed class SolutionManager
 
     private string? GetUsageWorkspaceKey() =>
         _workspace is null ? null : UsageWorkspaceKey.Create(_loadedPath, LoadedConfiguration, LoadedPlatform, LoadedTargetFramework);
+
+    private ProjectListSnapshot CaptureProjectListUnderLock() => new(
+        _solution,
+        _loadedProjectMetadata,
+        _solution is null ? FormatNoPublishedSolutionMessage("Error: No workspace loaded.") : null);
 
     /// <summary>
     /// Waits until <paramref name="filePath"/> appears in the watcher dirty set, or <paramref name="timeout"/> elapses.
@@ -2263,6 +2288,7 @@ public sealed class SolutionManager
         _workspace = null;
         _usage?.ClearResidentWorkspace();
         _solution = null;
+        _loadedProjectMetadata = ImmutableDictionary<ProjectId, ProjectLoadMetadata>.Empty;
         ForgetSanitizedPublishedSolution();
         _loadedPath = null;
         LoadedConfiguration = null;
@@ -2313,10 +2339,11 @@ public sealed class SolutionManager
         });
 
         AnalyzerProvenanceSnapshot provenanceSnapshot;
+        ImmutableDictionary<ProjectId, ProjectLoadMetadata> projectMetadata;
         try
         {
             AnalyzerProvenanceCaptureCount++;
-            provenanceSnapshot = await _analyzerProvenanceCaptureService.OpenAndCaptureAsync(
+            (provenanceSnapshot, projectMetadata) = await _analyzerProvenanceCaptureService.OpenAndCaptureAsync(
                     workspace,
                     fullPath,
                     LoadSessionId,
@@ -2357,6 +2384,7 @@ public sealed class SolutionManager
         _workspace = workspace;
         NoteRawWorkspaceRevision();
         _loadedPath = fullPath;
+        _loadedProjectMetadata = projectMetadata;
         AnalyzerProvenanceSnapshot = provenanceSnapshot;
         LastExecutionObservation = AnalyzerExecutionGate.EvaluateInSolutionAnalyzers(
             workspace.CurrentSolution,
@@ -3568,6 +3596,8 @@ public sealed class SolutionManager
     private volatile bool _projectGraphStaleFromComposition;
     private MSBuildWorkspace? _workspace;
     private Solution? _solution;
+    private ImmutableDictionary<ProjectId, ProjectLoadMetadata> _loadedProjectMetadata =
+        ImmutableDictionary<ProjectId, ProjectLoadMetadata>.Empty;
     private Solution? _sanitizedPublishedSolution;
     private Solution? _sanitizedPublishedSolutionSource;
 

@@ -203,7 +203,7 @@ Even if the MCP is active, AI clients don't always load the tools into the curre
 Policy summary (full text in the sample):
 
 - Verify the server with `get_mcp_server_info`; inspect missing `lite` tools with `list_tool_groups` / `enable_tool_group`
-- Optional `RoslynMcp.jsonc` (exe directory, per-user configuration directory, then cwd; cwd wins). Set `ROSLYN_MCP_WORKSPACE` to the repo root at startup so cwd is not the user profile. See `RoslynMcp.jsonc.sample` and `AGENTS.md.sample`
+- Optional `RoslynMcp.jsonc` (exe directory, per-user configuration directory, then cwd). Cwd overrides ordinary settings. Configure `plugins` beside the executable or in the per-user configuration directory. Set `ROSLYN_MCP_WORKSPACE` to the repo root at startup so cwd is not the user profile. See `RoslynMcp.jsonc.sample` and `AGENTS.md.sample`.
 - `load_workspace` before symbol / build / decompile work (or rely on config `workspace-path`); prefer `.sln` / `.slnx`; compares only arguments you passed
 - Missing `Compile` target on load → retry with `targetFramework` (inner TFM); not SDK mismatch
 - VS 2026 BuildHost / `XMakeElements` → not SDK mismatch; need MCP 1.0.35+ or a single SDK-style `.csproj`
@@ -222,7 +222,7 @@ In 1.5.9, name-based declaration search uses source-only lookup, preserving the 
 
 ## Per-user data
 
-Configuration and drop-in plugins survive an npx package update. Configuration is merged in order: executable directory, per-user configuration directory, then process cwd. Plugin discovery checks executable drop-ins, user drop-ins, configured paths, then `ROSLYN_MCP_PLUGINS`; the first validated plugin ID wins.
+Configuration and drop-in plugins survive an npx package update. Ordinary settings are merged from the executable directory, per-user configuration directory, and process cwd in that order. The server ignores `plugins` in a separate working-directory config and logs a startup warning. Plugin discovery checks executable drop-ins, user drop-ins, paths from the executable or user config, then `ROSLYN_MCP_PLUGINS`. The first validated plugin ID wins.
 
 - Windows: `%LOCALAPPDATA%\RoslynMcpServer\`.
 - Linux: `$XDG_CONFIG_HOME/roslyn-mcp/` (default `~/.config/roslyn-mcp/`) for configuration/plugins; `$XDG_STATE_HOME/roslyn-mcp/` (default `~/.local/state/roslyn-mcp/`) for logs/usage.

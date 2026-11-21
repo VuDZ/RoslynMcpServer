@@ -102,29 +102,40 @@ public sealed class MsBuildInstanceSelectorTests
             roots);
     }
 
-    [Fact]
-    public void FindLatestSdkDirectory_skips_roots_without_msbuild_and_picks_the_highest_folder_name()
+    [Theory]
+    [InlineData(8, null)]
+    [InlineData(10, "10.0.300")]
+    [InlineData(11, "11.0.100")]
+    public void FindLatestSdkDirectory_uses_the_first_root_with_an_sdk_compatible_with_the_runtime(
+        int runtimeMajor,
+        string? expectedSdk)
     {
-        var root = Path.Combine(Path.GetTempPath(), "roslyn-mcp-sdk-" + Guid.NewGuid().ToString("N"));
-        var empty = Path.Combine(root, "empty", "sdk");
-        var hit = Path.Combine(root, "hit", "sdk");
-        var older = Path.Combine(hit, "10.0.100");
-        var newer = Path.Combine(hit, "10.0.300");
-        Directory.CreateDirectory(empty);
-        Directory.CreateDirectory(older);
-        Directory.CreateDirectory(newer);
-        File.WriteAllText(Path.Combine(older, "Microsoft.Build.dll"), string.Empty);
-        File.WriteAllText(Path.Combine(newer, "Microsoft.Build.dll"), string.Empty);
+        var root = Directory.CreateTempSubdirectory("roslyn-mcp-sdk-");
         try
         {
-            var found = MsBuildInstanceSelector.FindLatestSdkDirectory(
-                [Path.Combine(root, "missing", "sdk"), empty, hit]);
+            var first = Path.Combine(root.FullName, "first");
+            var second = Path.Combine(root.FullName, "second");
+            CreateSdk(first, "11.0.100");
+            CreateSdk(second, "9.0.400");
+            CreateSdk(second, "10.0.100");
+            CreateSdk(second, "10.0.300");
+            Directory.CreateDirectory(Path.Combine(second, "10.0.400"));
 
-            Assert.Equal(newer, found);
+            var found = MsBuildInstanceSelector.FindLatestSdkDirectory(
+                [Path.Combine(root.FullName, "missing"), first, second],
+                new Version(runtimeMajor, 0));
+
+            Assert.Equal(expectedSdk, Path.GetFileName(found));
         }
         finally
         {
-            Directory.Delete(root, recursive: true);
+            root.Delete(recursive: true);
         }
+    }
+
+    private static void CreateSdk(string root, string version)
+    {
+        var directory = Directory.CreateDirectory(Path.Combine(root, version));
+        File.WriteAllText(Path.Combine(directory.FullName, "Microsoft.Build.dll"), string.Empty);
     }
 }

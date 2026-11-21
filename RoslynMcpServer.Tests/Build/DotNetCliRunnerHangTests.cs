@@ -16,6 +16,25 @@ public sealed class DotNetCliRunnerHangTests
     }
 
     [Fact]
+    public async Task Exhausting_the_budget_during_sdk_resolution_skips_the_cli_command()
+    {
+        var timeout = TimeSpan.FromTicks(1);
+        var workDir = Environment.CurrentDirectory;
+
+        var combined = await DotNetCliRunner.RunWithMetadataAsync(
+            "--version", workDir, CancellationToken.None, timeout);
+        var separated = await DotNetCliRunner.RunSeparatedAsync("--version", workDir, timeout);
+
+        Assert.True(combined.TimedOut);
+        Assert.False(combined.ProcessKilled);
+        Assert.Equal(-1, combined.ExitCode);
+        Assert.Contains("Command start:** skipped", combined.RunMetadata, StringComparison.Ordinal);
+        Assert.True(separated.TimedOut);
+        Assert.Equal(-1, separated.ExitCode);
+        Assert.Contains("Command start:** skipped", separated.RunMetadata, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task RunWithMetadataAsync_times_out_and_kills_long_running_process()
     {
         var root = Path.Combine(Path.GetTempPath(), "RoslynMcpHang-" + Guid.NewGuid().ToString("N"));

@@ -1,6 +1,9 @@
 # Validation specification v2
 
-Обновлено: **2026-10-08**. Scope: artifact consistency после isolated S-001.
+**Историческая проверка от 2026-10-08.** Охват — согласованность артефактов после
+isolated S-001. Актуальный статус ведётся в [README темы](README.md). S-002 принят
+2026-10-09 как ограниченный тестовый эксперимент, готовность манифеста E1 остаётся
+заблокированной. [Проверка S-002](epoch-1-disk-cache-mvp/evidence/task-11-recheck-validation.md)
 Runtime build/tests — отдельно в [task-08 validation](epoch-0-snapshot-roundtrip/evidence/task-08-validation.json).
 Итог и exact counts сохраняются в [validation.json](validation.json).
 [Проверяющий script](validate-artifacts.py) запускается из repo root:

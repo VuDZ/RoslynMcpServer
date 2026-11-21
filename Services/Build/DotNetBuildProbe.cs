@@ -21,7 +21,10 @@ public static class DotNetBuildProbe
         IReadOnlyList<string> StepsExecuted,
         bool TimedOut = false,
         bool BudgetExhausted = false,
-        bool NoIncremental = true);
+        bool NoIncremental = true)
+    {
+        internal DotNetSdkEnvironment.SdkPinInfo? SdkSelection { get; init; }
+    }
 
     /// <param name="overallBudget">Total time for the probe. <see cref="Timeout.InfiniteTimeSpan"/> disables this limit.</param>
     /// <param name="stepTimeout">Time for one step. <see cref="Timeout.InfiniteTimeSpan"/> disables this limit.</param>
@@ -50,8 +53,12 @@ public static class DotNetBuildProbe
         int? completedStepExit = null;
         var timedOut = false;
         var budgetExhausted = false;
-        var pin = DotNetSdkEnvironment.TryGetPin(workingDirectory);
         var sw = Stopwatch.StartNew();
+        var dotnet = DotNetHostResolver.ResolveDotNetExecutable();
+        var sdkProbeTimeout = RemainingStepTimeout(budget, DotNetSdkResolver.DefaultTimeout, sw.Elapsed)
+            ?? DotNetSdkResolver.DefaultTimeout;
+        var pin = await DotNetSdkResolver.ResolveAsync(dotnet, workingDirectory, sdkProbeTimeout, cancellationToken)
+            .ConfigureAwait(false);
 
         async Task<DotNetCliRunner.RunResult?> RunStepAsync(string label, string arguments, bool isBuildStep)
         {
@@ -71,7 +78,8 @@ public static class DotNetBuildProbe
             var watch = progress is null
                 ? null
                 : new CliProgressWatch(progress, label) { LastExitCode = completedStepExit };
-            var run = await DotNetCliRunner.RunWithMetadataAsync(arguments, workingDirectory, cancellationToken, timeout, watch)
+            var run = await DotNetCliRunner.RunWithSdkAsync(
+                    dotnet, arguments, workingDirectory, pin, timeout, watch, cancellationToken)
                 .ConfigureAwait(false);
             completedStepExit = run.ExitCode;
             lastExitCode = run.ExitCode;
@@ -98,7 +106,7 @@ public static class DotNetBuildProbe
 
         if (!timedOut
             && TryBuildPinnedMsBuildRestoreArguments(pin, projectOrSolutionPath) is { } pinnedRestore
-            && ShouldRunPinnedMsBuildRestore(log.ToString(), workingDirectory))
+            && ShouldRunPinnedMsBuildRestore(log.ToString(), pin))
         {
             await RunStepAsync("dotnet exec MSBuild /restore (pinned SDK)", pinnedRestore, isBuildStep: false)
                 .ConfigureAwait(false);
@@ -141,8 +149,7 @@ public static class DotNetBuildProbe
         }
 
         var combinedLog = log.ToString().TrimEnd();
-        var metadata = await DotNetCliRunner.CreateRunMetadataAsync(workingDirectory, combinedLog, CancellationToken.None)
-            .ConfigureAwait(false);
+        var metadata = DotNetCliRunner.BuildRunMetadata(dotnet, workingDirectory, combinedLog, pin);
         var effectiveExit = ComputeEffectiveBuildExitCode(buildExitCodes, lastExitCode, combinedLog);
 
         return new ProbeResult(
@@ -152,7 +159,10 @@ public static class DotNetBuildProbe
             steps,
             timedOut,
             budgetExhausted,
-            noIncremental);
+            noIncremental)
+        {
+            SdkSelection = pin
+        };
     }
 
     /// <summary>Returns null for an unlimited step and a nonpositive value when the budget is exhausted.</summary>
@@ -217,7 +227,9 @@ public static class DotNetBuildProbe
         DotNetSdkEnvironment.SdkPinInfo? pin,
         string projectOrSolutionPath)
     {
-        if (pin?.MsBuildDllPath is null || !File.Exists(pin.MsBuildDllPath))
+        if (!DotNetSdkEnvironment.HasConfiguredSdk(pin)
+            || pin?.MsBuildDllPath is null
+            || !File.Exists(pin.MsBuildDllPath))
         {
             return null;
         }
@@ -229,14 +241,15 @@ public static class DotNetBuildProbe
         @"\(exit\s+(?<code>[1-9]\d*)",
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
-    internal static bool ShouldRunPinnedMsBuildRestore(string combinedSoFar, string workingDirectory)
+    internal static bool ShouldRunPinnedMsBuildRestore(
+        string combinedSoFar,
+        DotNetSdkEnvironment.SdkPinInfo? pin)
     {
         if (!ShouldRunMoreDiagnostics(combinedSoFar))
         {
             return false;
         }
 
-        var pin = DotNetSdkEnvironment.TryGetPin(workingDirectory);
         if (pin?.MsBuildDllPath is null)
         {
             return false;

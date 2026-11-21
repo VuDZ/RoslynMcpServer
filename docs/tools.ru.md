@@ -322,7 +322,9 @@
 - `reportCursor: string? = null` — следующий фрагмент сохранённого полного отчёта. Новую сборку не запускает.
 - `includeBuildWarnings: bool = false` — показывать предупреждения сборки; по умолчанию скрыты. Ошибки выводятся всегда.
 
-**Поведение:** наследование env + pinning (`MSBUILD_EXE_PATH`, `DOTNET_MSBUILD_SDK_RESOLVER_SDKS_*`). Mismatch → **error `MCP_MSBUILD_SDK_MISMATCH`** + pinned `dotnet exec …/MSBuild.dll /restore`. Цепочка minimal → pinned restore → restore/build detailed. **Итоговый exit** = последний `dotnet build` (не restore). В metadata — `Configuration` / `Platform` / `ProjectName` / `SolutionTarget` / `BuildArgs` / `NoIncremental`. Session `buildArgs` с `load_workspace` добавляются только к build-шагам (не к restore). Внутреннего кэша результатов MCP нет. Пока шаг выполняется, идут MCP progress-heartbeat'ы (метка шага, elapsed, предыдущий exit; без stdout) — это UX, а не обход хост-таймаута `tools/call`.
+**Поведение:** использует SDK, который `dotnet` выбирает для рабочего каталога с учётом `rollForward` из `global.json`. Унаследованные переопределения MSBuild сбрасываются. Сервер применяет путь SDK, когда его удалось подтвердить. Если фактический путь MSBuild расходится с разрешённым, возможны `MCP_MSBUILD_SDK_MISMATCH` и повторный restore через выбранный `MSBuild.dll`. Диагностика показывает запрошенный и выбранный SDK.
+
+Цепочка шагов — минимальная сборка, restore через выбранный SDK, подробный restore или build при необходимости. Итоговый код выхода берётся с последнего шага сборки. В контексте указаны `Configuration`, `Platform`, `ProjectName`, `SolutionTarget`, `BuildArgs` и `NoIncremental`. Session `buildArgs` из `load_workspace` применяются на шагах сборки. Сервер запускает сборку на каждый запрос. Уведомления MCP о прогрессе показывают шаг, время и предыдущий код выхода. Таймаут клиента продолжает действовать.
 
 **Вывод:** успешная сборка возвращает только `Build succeeded` и предупреждения по запросу. Результаты тестов и stdout/stderr упавших тестов сохраняются. `Execution context` появляется при ошибке, таймауте или неподтверждённом результате тестов. Полный лог сбоя сборки доступен через `reportCursor`, включая скрытые предупреждения.
 
@@ -613,6 +615,8 @@
 
 <details>
 <summary><code>list_projects</code> — Показывает проекты текущего workspace.</summary>
+
+**Поведение:** Показывает целевой фреймворк и тип выходной сборки каждого загруженного экземпляра проекта с учётом импортов и условий. При явном `workspacePath` возвращает проекты из этой загрузки. Если оценённое значение недоступно, инструмент показывает `(unknown)`. Это относится и к типу выходной сборки при загрузке через старый BuildHost, который его не сообщает.
 
 **Параметры:**
 - `workspacePath: string? = null`

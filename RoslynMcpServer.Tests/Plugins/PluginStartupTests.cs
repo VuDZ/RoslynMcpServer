@@ -345,6 +345,36 @@ public sealed class PluginStartupTests : IDisposable
         Assert.Contains(ResolveRuntimeTools(host.Services), tool => tool.ProtocolTool.Name == SampleToolName);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Working_directory_plugins_are_ignored_and_the_environment_can_still_enable_them(bool useEnvironment)
+    {
+        var baseDirectory = CreateHostDirectory("cwd-plugins-host");
+        var workingDirectory = CreateHostDirectory("cwd-plugins-project");
+        var pluginDirectory = CreateSampleCopy("cwd-plugins-sample");
+        File.WriteAllText(
+            Path.Combine(workingDirectory, RoslynMcpFileSettings.FileName),
+            JsonSerializer.Serialize(new { plugins = new[] { pluginDirectory } }));
+        var settings = RoslynMcpFileSettings.LoadFromDirectories(baseDirectory, workingDirectory);
+
+        using var host = StartHost(
+            McpToolProfileOptions.FullProfile,
+            baseDirectory,
+            environmentPaths: useEnvironment ? pluginDirectory : null,
+            settings: settings);
+
+        var skip = Assert.Single(host.Report.Skipped);
+        Assert.Equal("working-directory RoslynMcp.jsonc", skip.Plugin);
+        Assert.Contains("'plugins' key is ignored", host.Stderr, StringComparison.Ordinal);
+        Assert.DoesNotContain(pluginDirectory, host.Stderr, StringComparison.Ordinal);
+
+        var log = ReadLogFile(NewestLogFile(baseDirectory));
+        Assert.Contains(host.Stderr.TrimEnd(), log, StringComparison.Ordinal);
+        Assert.DoesNotContain(pluginDirectory, log, StringComparison.Ordinal);
+        Assert.Equal(useEnvironment, host.Report.TryFindTool(SampleToolName, out _));
+    }
+
     /// <summary>
     /// The host entry point as a real process: the sample plugin reaches it through <c>ROSLYN_MCP_PLUGINS</c>
     /// only, its tool is listed by the first <c>tools/list</c> and answers <c>tools/call</c>, and stdout holds
@@ -402,7 +432,8 @@ public sealed class PluginStartupTests : IDisposable
         string profile,
         string baseDirectory,
         string? environmentPaths,
-        Action<IServiceCollection>? configureServices = null)
+        Action<IServiceCollection>? configureServices = null,
+        RoslynMcpFileSettings? settings = null)
     {
         var builder = Host.CreateApplicationBuilder();
         builder.Logging.ClearProviders();
@@ -421,7 +452,12 @@ public sealed class PluginStartupTests : IDisposable
         configureServices?.Invoke(builder.Services);
 
         var stderr = new StringWriter();
-        var report = PluginStartup.Run(builder.Services, RoslynMcpFileSettings.Empty, baseDirectory, environmentPaths, stderr);
+        var report = PluginStartup.Run(
+            builder.Services,
+            settings ?? RoslynMcpFileSettings.Empty,
+            baseDirectory,
+            environmentPaths,
+            stderr);
 
         var host = builder.Build();
         PluginStartup.WriteSkipsToLog(report, host.Services.GetRequiredService<ILoggerFactory>());

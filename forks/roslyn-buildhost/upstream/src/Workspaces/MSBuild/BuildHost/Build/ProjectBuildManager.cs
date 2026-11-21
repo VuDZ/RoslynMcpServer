@@ -59,15 +59,22 @@ internal sealed partial class ProjectBuildManager : IDisposable
     public string[] KnownCommandLineParserLanguages { get; }
 
     private readonly MSB.Evaluation.ProjectCollection _projectCollection;
+    private readonly ProjectOutputTypeLog? _projectOutputTypeLog;
     private readonly MSBuildDiagnosticLogger _buildLogger = new()
     {
         Verbosity = MSB.Framework.LoggerVerbosity.Normal
     };
     private bool _disposed;
 
-    public ProjectBuildManager(string[] knownCommandLineParserLanguages, Dictionary<string, string> globalProperties, ILogger? msbuildLogger = null, int? maxNodeCount = null)
+    public ProjectBuildManager(
+        string[] knownCommandLineParserLanguages,
+        Dictionary<string, string> globalProperties,
+        ILogger? msbuildLogger = null,
+        int? maxNodeCount = null,
+        ProjectOutputTypeLog? projectOutputTypeLog = null)
     {
         KnownCommandLineParserLanguages = knownCommandLineParserLanguages;
+        _projectOutputTypeLog = projectOutputTypeLog;
 
         var allProperties = new Dictionary<string, string>(s_defaultGlobalProperties);
         foreach (var kvp in globalProperties)
@@ -219,11 +226,17 @@ internal sealed partial class ProjectBuildManager : IDisposable
 
         StopEvaluateAhead();
         MSB.Execution.BuildManager.DefaultBuildManager.EndBuild();
+        _projectOutputTypeLog?.Save();
 
         // unload project so collection will release global strings
         _projectCollection.UnloadAllProjects();
         _projectCollection.Dispose();
         _disposed = true;
+    }
+
+    public void RecordProjectOutputType(MSB.Execution.ProjectInstance instance, string? targetFramework)
+    {
+        _projectOutputTypeLog?.Add(instance.FullPath, targetFramework, instance.GetPropertyValue(PropertyNames.OutputType));
     }
 
     public async Task<MSB.Execution.ProjectInstance[]> BuildProjectInstancesAsync(

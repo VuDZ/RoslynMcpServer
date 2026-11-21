@@ -5,6 +5,7 @@ using Xunit;
 
 namespace RoslynMcpServer.Tests.Build;
 
+[Collection("DotNetSdkEnvironment")]
 public sealed class DotNetSdkEnvironmentTests
 {
     [Fact]
@@ -52,40 +53,30 @@ public sealed class DotNetSdkEnvironmentTests
     }
 
     [Fact]
-    public void ApplyPinnedSdk_sets_official_resolver_variables_when_sdk_resolved()
+    public void ApplySdkSelection_pins_to_the_sdk_selected_by_the_host()
     {
         var root = Path.Combine(Path.GetTempPath(), "roslyn-mcp-sdk-" + Guid.NewGuid().ToString("N"));
-        var sdkDir = Path.Combine(root, "sdk", "10.0.999");
+        var sdkDir = Path.Combine(root, "sdk", "10.0.402");
         var sdksDir = Path.Combine(sdkDir, "Sdks");
         Directory.CreateDirectory(sdksDir);
         File.WriteAllText(Path.Combine(sdkDir, "MSBuild.dll"), string.Empty);
         File.WriteAllText(Path.Combine(sdkDir, "Microsoft.Build.dll"), string.Empty);
-        File.WriteAllText(
-            Path.Combine(root, "global.json"),
-            """
-            { "sdk": { "version": "10.0.999" } }
-            """);
-
-        lock (TestEnvironmentLocks.DotNetRoot)
+        try
         {
-            var previousRoot = Environment.GetEnvironmentVariable("DOTNET_ROOT");
-            Environment.SetEnvironmentVariable("DOTNET_ROOT", root);
-            try
-            {
-                var psi = new ProcessStartInfo { FileName = "dotnet", Arguments = "--version" };
-                var result = DotNetSdkEnvironment.ApplyPinnedSdk(psi, root);
+            var sdk = DotNetSdkResolver.FromHostResult(
+                Path.Combine(root, "global.json"), "10.0.301", "10.0.402", $"SDK path resolved to [{sdkDir}]");
+            var psi = new ProcessStartInfo { FileName = "dotnet", Arguments = "--version" };
+            var result = DotNetSdkEnvironment.ApplySdkSelection(psi, sdk);
 
-                Assert.Equal(DotNetSdkEnvironment.SdkEnvAction.PinnedFromGlobalJson, result.Action);
-                Assert.True(psi.Environment.ContainsKey("PATH"));
-                Assert.Equal(Path.Combine(sdkDir, "MSBuild.dll"), psi.Environment[DotNetSdkEnvironment.MsBuildExePathVariable]);
-                Assert.Equal(sdksDir, psi.Environment[DotNetSdkEnvironment.SdkResolverSdksDirVariable]);
-                Assert.Equal("10.0.999", psi.Environment[DotNetSdkEnvironment.SdkResolverSdksVerVariable]);
-            }
-            finally
-            {
-                Environment.SetEnvironmentVariable("DOTNET_ROOT", previousRoot);
-                Directory.Delete(root, recursive: true);
-            }
+            Assert.Equal(DotNetSdkEnvironment.SdkEnvAction.PinnedFromGlobalJson, result.Action);
+            Assert.True(psi.Environment.ContainsKey("PATH"));
+            Assert.Equal(Path.Combine(sdkDir, "MSBuild.dll"), psi.Environment[DotNetSdkEnvironment.MsBuildExePathVariable]);
+            Assert.Equal(sdksDir, psi.Environment[DotNetSdkEnvironment.SdkResolverSdksDirVariable]);
+            Assert.Equal("10.0.402", psi.Environment[DotNetSdkEnvironment.SdkResolverSdksVerVariable]);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
         }
     }
 

@@ -70,6 +70,17 @@ public static class PluginStartup
         var loaded = new List<LoadedPlugin>();
         var skipped = new List<SkippedPlugin>();
 
+        if (settings.WorkingDirectoryPluginsIgnored)
+        {
+            RecordSkip(
+                pluginId: null,
+                "working-directory RoslynMcp.jsonc",
+                "The 'plugins' key is ignored here. Use the executable or user settings file, "
+                + $"or {PluginDiscovery.EnvironmentVariableName}.",
+                stderr,
+                skipped);
+        }
+
         var discovery = PluginDiscovery.Discover(
             baseDirectory,
             settings.Plugins,

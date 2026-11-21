@@ -7,8 +7,8 @@ using RoslynMcpServer.Diagnostics;
 namespace RoslynMcpServer.Services.Build;
 
 /// <summary>
-/// Applies <c>global.json</c> SDK pin to child <c>dotnet</c> processes, or clears inherited MSBuild SDK
-/// overrides so Locator/IDE pollution does not force an older SDK.
+/// Applies the host's resolved SDK to a child process with <c>global.json</c>. Without a verified
+/// selection, clears inherited MSBuild SDK overrides so the child host resolves the SDK itself.
 /// </summary>
 public static class DotNetSdkEnvironment
 {
@@ -42,19 +42,17 @@ public static class DotNetSdkEnvironment
 
     public static SdkPinInfo? TryGetPin(string workingDirectory)
     {
-        var pinnedVersion = GlobalJsonSdkReader.TryGetPinnedSdkVersion(workingDirectory);
-        var sdkDir = GlobalJsonSdkReader.TryResolveSdkDirectory(workingDirectory, Environment.Is64BitProcess);
-        if (sdkDir is null)
+        if (GlobalJsonSdkReader.FindGlobalJsonPath(workingDirectory) is null)
         {
-            return pinnedVersion is null
-                ? null
-                : new SdkPinInfo(pinnedVersion, null, null, null, null);
+            return null;
         }
 
-        var msbuildDll = Path.Combine(sdkDir, "MSBuild.dll");
-        var sdksDir = Path.Combine(sdkDir, "Sdks");
-        var dotnetRoot = Directory.GetParent(Path.GetDirectoryName(sdkDir)!)?.FullName;
-        return new SdkPinInfo(pinnedVersion, sdkDir, msbuildDll, sdksDir, dotnetRoot);
+        return DotNetSdkResolver.ResolveAsync(
+                DotNetHostResolver.ResolveDotNetExecutable(),
+                workingDirectory,
+                DotNetSdkResolver.DefaultTimeout,
+                CancellationToken.None)
+            .GetAwaiter().GetResult();
     }
 
     /// <summary>Reads MSBuild SDK override vars from the current MCP process (before child env is built).</summary>
@@ -67,23 +65,24 @@ public static class DotNetSdkEnvironment
             NullIfEmpty(Environment.GetEnvironmentVariable(SdkResolverSdksVerVariable)),
             NullIfEmpty(Environment.GetEnvironmentVariable(SdkResolverCliDirVariable)));
 
-    public static SdkApplyResult ApplyPinnedSdk(ProcessStartInfo psi, string workingDirectory)
+    public static SdkApplyResult ApplyPinnedSdk(ProcessStartInfo psi, string workingDirectory) =>
+        ApplySdkSelection(psi, TryGetPin(workingDirectory));
+
+    internal static SdkApplyResult ApplySdkSelection(ProcessStartInfo psi, SdkPinInfo? pin)
     {
         var inherited = CaptureInheritedOverrides();
         CopyInheritedEnvironment(psi);
+        ClearMsBuildSdkOverrideVariables(psi);
 
-        var pin = TryGetPin(workingDirectory);
-        if (pin?.SdkDirectory is null)
+        if (!HasConfiguredSdk(pin))
         {
-            // No global.json pin: let the host resolve SDK normally (do not keep Locator/IDE overrides).
-            ClearMsBuildSdkOverrideVariables(psi);
             var action = inherited.HasAny
                 ? SdkEnvAction.StrippedInheritedOverrides
                 : SdkEnvAction.HostDefault;
             return new SdkApplyResult(action, inherited, pin);
         }
 
-        psi.Environment[MsBuildExePathVariable] = pin.MsBuildDllPath!;
+        psi.Environment[MsBuildExePathVariable] = pin!.MsBuildDllPath!;
         psi.Environment[MsBuildExtensionsPathVariable] = pin.SdkDirectory;
         if (!string.IsNullOrEmpty(pin.SdksDirectory) && Directory.Exists(pin.SdksDirectory))
         {
@@ -91,12 +90,13 @@ public static class DotNetSdkEnvironment
             psi.Environment[SdkResolverSdksDirVariable] = pin.SdksDirectory;
         }
 
-        if (!string.IsNullOrEmpty(pin.PinnedVersion))
+        if (!string.IsNullOrEmpty(pin.ResolvedVersion))
         {
-            psi.Environment[SdkResolverSdksVerVariable] = pin.PinnedVersion;
+            psi.Environment[SdkResolverSdksVerVariable] = pin.ResolvedVersion;
         }
 
-        if (!string.IsNullOrEmpty(pin.DotNetRoot) && Directory.Exists(pin.DotNetRoot))
+        var hostFile = OperatingSystem.IsWindows() ? "dotnet.exe" : "dotnet";
+        if (pin.DotNetRoot is not null && File.Exists(Path.Combine(pin.DotNetRoot, hostFile)))
         {
             psi.Environment[DotNetRootVariable] = pin.DotNetRoot;
             psi.Environment[SdkResolverCliDirVariable] = pin.DotNetRoot;
@@ -108,13 +108,15 @@ public static class DotNetSdkEnvironment
 
     /// <summary>
     /// Appends agent-facing SDK env diagnostics (inherited overrides, strip/pin action, SDK inferred from log).
-    /// Safe to call without a prior <see cref="ApplyPinnedSdk"/> — recomputes from process env + <c>global.json</c>.
+    /// Uses the same SDK resolution snapshot as the command when one is available.
     /// </summary>
-    public static void AppendSdkEnvMetadata(StringBuilder metadata, string workingDirectory, string combinedOutput)
+    public static void AppendSdkEnvMetadata(StringBuilder metadata, string workingDirectory, string combinedOutput) =>
+        AppendSdkEnvMetadata(metadata, TryGetPin(workingDirectory), combinedOutput);
+
+    internal static void AppendSdkEnvMetadata(StringBuilder metadata, SdkPinInfo? pin, string combinedOutput)
     {
         var inherited = CaptureInheritedOverrides();
-        var pin = TryGetPin(workingDirectory);
-        var action = pin?.SdkDirectory is not null
+        var action = HasConfiguredSdk(pin)
             ? SdkEnvAction.PinnedFromGlobalJson
             : inherited.HasAny
                 ? SdkEnvAction.StrippedInheritedOverrides
@@ -148,6 +150,9 @@ public static class DotNetSdkEnvironment
             metadata.AppendLine($"- **SDK from MSBuild log paths:** `{effective}`");
         }
     }
+
+    internal static bool HasConfiguredSdk(SdkPinInfo? pin) =>
+        pin is { GlobalJsonPath: not null, SdkDirectory: not null };
 
     /// <summary>Best-effort SDK version from MSBuild executable path or any <c>\sdk\X.Y.Z\</c> in the log.</summary>
     public static string? TryInferSdkVersionFromLog(string combinedOutput)
@@ -211,17 +216,20 @@ public static class DotNetSdkEnvironment
         action switch
         {
             SdkEnvAction.PinnedFromGlobalJson =>
-                $"pinned from global.json → {pin?.SdkDirectory ?? pin?.PinnedVersion ?? "(unknown)"}",
+                $"resolved by dotnet using global.json → {pin?.SdkDirectory ?? "(unknown)"}",
             SdkEnvAction.StrippedInheritedOverrides =>
                 "stripped inherited MSBuildSDKsPath / MSBUILD_EXE_PATH / DOTNET_MSBUILD_SDK_RESOLVER_* (host resolves SDK)",
-            _ => "host default (no inherited overrides, no global.json pin)"
+            _ => "host resolves SDK (no inherited overrides)"
         };
 
     private static string? NullIfEmpty(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
     public static bool PathsEqual(string a, string b) =>
-        string.Equals(Path.GetFullPath(a.Trim()), Path.GetFullPath(b.Trim()), StringComparison.OrdinalIgnoreCase);
+        string.Equals(
+            Path.GetFullPath(a.Trim()),
+            Path.GetFullPath(b.Trim()),
+            OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
 
     public enum SdkEnvAction
     {
@@ -257,5 +265,9 @@ public static class DotNetSdkEnvironment
         string? SdkDirectory,
         string? MsBuildDllPath,
         string? SdksDirectory,
-        string? DotNetRoot);
+        string? DotNetRoot)
+    {
+        internal string? GlobalJsonPath { get; init; }
+        internal string? ResolvedVersion { get; init; }
+    }
 }
