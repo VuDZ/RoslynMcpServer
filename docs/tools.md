@@ -648,6 +648,7 @@ Runs `git` with a 180s deadline and up to 3s to stop the process. Use host `git 
 **Parameters:** *(none)*
 
 Use after `dotnet publish` to verify the MCP host picked up the new binary. Expect the `Version` from `RoslynMcpServer.csproj`, **55** tools on `full`, or **16** on `lite`.
+The report includes the server process working set and the number of successful physical workspace loads since startup. The count persists across cache hits and `reset_workspace`.
 
 </details>
 

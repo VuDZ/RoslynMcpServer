@@ -191,6 +191,79 @@ public sealed class UsageWorkspaceInstrumentationTests
         });
     }
 
+    [Fact]
+    public async Task Tool_events_measure_semantic_lock_contention_and_a_cancelled_acquisition()
+    {
+        using var files = new UsageTestFiles();
+        files.CreateProject();
+        using var usage = new UsageStatisticsService(files.UsageDirectory);
+        using var deadline = new CancellationTokenSource(TimeSpan.FromMinutes(2));
+        var manager = CreateManager(usage);
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        manager.AfterPhysicalLoadBeforePrepareAsync = token =>
+        {
+            entered.TrySetResult();
+            return release.Task.WaitAsync(token);
+        };
+        await usage.StartAsync(deadline.Token);
+        try
+        {
+            Assert.Null(usage.MeasureWorkspaceReadLockWait());
+            var idle = usage.BeginTool("idle", requiresWorkspace: false);
+            Assert.Null(manager.GetCurrentSolution());
+            usage.EndTool(idle, success: true);
+
+            var load = manager.LoadAndPrepareAsync(
+                files.ProjectPath,
+                shadowCopyInSolutionAnalyzers: true,
+                deadline.Token);
+            try
+            {
+                Assert.Same(entered.Task, await Task.WhenAny(entered.Task, load).WaitAsync(deadline.Token));
+                var readCall = usage.BeginTool("waiting_reader", requiresWorkspace: true);
+                var reader = manager.GetPublishedSolutionAsync(deadline.Token);
+                Assert.False(reader.IsCompleted);
+
+                using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(deadline.Token);
+                var cancelledCall = usage.BeginTool("cancelled_reader", requiresWorkspace: true);
+                var document = Path.Combine(Path.GetDirectoryName(files.ProjectPath)!, "Widget.cs");
+                var cancelledReader = manager.FindDocumentAsync(document, cancellation.Token);
+                Assert.False(cancelledReader.IsCompleted);
+
+                await Task.Delay(TimeSpan.FromMilliseconds(60), deadline.Token);
+                cancellation.Cancel();
+                await Assert.ThrowsAnyAsync<OperationCanceledException>(() => cancelledReader);
+                usage.EndTool(cancelledCall, success: false);
+                Assert.False(reader.IsCompleted);
+
+                release.TrySetResult();
+                var published = await reader;
+                Assert.NotNull(published);
+                Assert.Same(published, manager.GetCurrentSolution());
+                usage.EndTool(readCall, success: true);
+            }
+            finally
+            {
+                release.TrySetResult();
+                await load;
+            }
+        }
+        finally
+        {
+            await manager.ClearWorkspaceAsync();
+            await usage.StopAsync(CancellationToken.None);
+        }
+
+        var events = await files.ReadEventsAsync(usage);
+        var calls = events.Where(item => item.GetProperty("ev").GetString() == "tool")
+            .ToDictionary(item => item.GetProperty("name").GetString()!);
+        Assert.False(calls["idle"].TryGetProperty("workspace_read_lock_wait_ms", out _));
+        Assert.True(calls["waiting_reader"].GetProperty("workspace_read_lock_wait_ms").GetDouble() >= 20);
+        Assert.True(calls["cancelled_reader"].GetProperty("workspace_read_lock_wait_ms").GetDouble() >= 20);
+        Assert.False(calls["cancelled_reader"].GetProperty("success").GetBoolean());
+    }
+
     private static SolutionManager CreateManager(UsageStatisticsService usage, RoslynMcpFileSettings? settings = null) =>
         new(
             NullLogger<SolutionManager>.Instance,

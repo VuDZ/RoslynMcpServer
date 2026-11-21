@@ -102,7 +102,8 @@ try
         AppContext.BaseDirectory,
         Environment.GetEnvironmentVariable(PluginDiscovery.EnvironmentVariableName),
         Console.Error,
-        userPluginDirectory: userDirectories.PluginDirectory);
+        userPluginDirectory: userDirectories.PluginDirectory,
+        stateDirectory: userDirectories.StateDirectory);
 }
 catch (Exception ex)
 {

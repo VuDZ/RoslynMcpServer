@@ -15,8 +15,7 @@ namespace RoslynMcpServer.Plugins;
 /// </para>
 /// <para>
 /// The files the host already provides are left out of the copy, because the plugin has to bind to the host
-/// copies of those types. Everything else in the tree travels with the plugin. Nothing here opens an
-/// assembly, resolves a native library, or removes an old copy.
+/// copies of those types. Everything else in the tree travels with the plugin.
 /// </para>
 /// </remarks>
 public static class PluginShadowCopy
@@ -41,8 +40,8 @@ public static class PluginShadowCopy
     /// <param name="plans">Plans of one pass, in order.</param>
     /// <param name="copyRootDirectory">
     /// Root of the per-run copies. <see langword="null"/> or whitespace selects
-    /// <c>{Path.GetTempPath()}/{TempRootDirectoryName}/{TempPluginsDirectoryName}</c>, the layout the host
-    /// uses; a caller that passes a root, such as a test that watches the copies, gets that root instead.
+    /// <c>{Path.GetTempPath()}/{TempRootDirectoryName}/{TempPluginsDirectoryName}</c>. A caller that passes
+    /// a root, such as a test that watches the copies, gets that root instead.
     /// </param>
     /// <returns>
     /// The plans in input order, each with its entry path inside its own copy when it needed one, and one
@@ -86,11 +85,32 @@ public static class PluginShadowCopy
         };
     }
 
+    internal static PluginShadowCopyResult CopyForStartup(
+        IReadOnlyList<PluginLoadPlan> plans,
+        string? temporaryDirectory = null,
+        string? stateDirectory = null)
+    {
+        ArgumentNullException.ThrowIfNull(plans);
+
+        temporaryDirectory ??= Path.GetTempPath();
+        var needsCopies = plans.Any(plan => plan.UsesShadowCopy);
+        var managedCopyRoot = PluginShadowCopyStore.Prepare(temporaryDirectory, needsCopies);
+        if (managedCopyRoot is null && OperatingSystem.IsWindows() && stateDirectory is not null)
+        {
+            managedCopyRoot = PluginShadowCopyStore.Prepare(stateDirectory, needsCopies, createBaseDirectory: true);
+        }
+
+        return Copy(plans, managedCopyRoot ?? DefaultCopyRoot(temporaryDirectory));
+    }
+
     /// <summary>Root of the per-run copies: the root of the caller, or the default under the temporary path.</summary>
     private static string ResolveCopyRoot(string? copyRootDirectory) =>
         string.IsNullOrWhiteSpace(copyRootDirectory)
-            ? Path.Combine(Path.GetTempPath(), TempRootDirectoryName, TempPluginsDirectoryName)
+            ? DefaultCopyRoot(Path.GetTempPath())
             : copyRootDirectory;
+
+    private static string DefaultCopyRoot(string temporaryDirectory) =>
+        Path.Combine(temporaryDirectory, TempRootDirectoryName, TempPluginsDirectoryName);
 
     /// <summary>
     /// Copies the plugin directory of one plan into a fresh directory under <paramref name="copyRoot"/> and

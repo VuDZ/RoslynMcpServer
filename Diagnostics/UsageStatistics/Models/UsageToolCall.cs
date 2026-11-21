@@ -10,4 +10,10 @@ internal sealed class UsageToolCall
     internal bool RequiresWorkspace { get; init; }
     internal bool LazyLoad { get; set; }
     internal UsageToolCall? Parent { get; init; }
+    internal long WorkspaceReadLockWaitTicks => Interlocked.Read(ref _workspaceReadLockWaitTicks);
+
+    internal void AddWorkspaceReadLockWait(long ticks) =>
+        Interlocked.Add(ref _workspaceReadLockWaitTicks, ticks);
+
+    private long _workspaceReadLockWaitTicks;
 }

@@ -50,7 +50,8 @@ public sealed class ServerLifecycleTools
             _solutionManager.WorkspaceLoadInProgress,
             _solutionManager.LastLazyLoadFailureReport,
             pluginStartup,
-            _solutionManager.DiskWatcherStatus);
+            _solutionManager.DiskWatcherStatus,
+            _solutionManager.SuccessfulPhysicalWorkspaceLoads);
         return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(GetMcpServerInfo), info));
     }
 

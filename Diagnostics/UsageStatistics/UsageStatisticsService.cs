@@ -174,6 +174,12 @@ public sealed class UsageStatisticsService : IHostedService, IDisposable
             _lastActivity = _time.GetTimestamp();
             var fields = ToolFields(call);
             fields["duration_ms"] = _time.GetElapsedTime(call.Timestamp).TotalMilliseconds;
+            var readLockWaitTicks = call.WorkspaceReadLockWaitTicks;
+            if (readLockWaitTicks > 0)
+            {
+                fields["workspace_read_lock_wait_ms"] = Stopwatch.GetElapsedTime(0, readLockWaitTicks).TotalMilliseconds;
+            }
+
             fields["success"] = success;
             fields["lazy_load"] = call.LazyLoad;
             fields["requires_workspace"] = call.RequiresWorkspace || call.LazyLoad;
@@ -181,6 +187,11 @@ public sealed class UsageStatisticsService : IHostedService, IDisposable
             _currentCall.Value = call.Parent;
         }
     }
+
+    internal UsageWorkspaceReadLockWait? MeasureWorkspaceReadLockWait() =>
+        _enabled && _currentCall.Value is { } call
+            ? new UsageWorkspaceReadLockWait(call)
+            : null;
 
     internal void ClearResidentWorkspace()
     {

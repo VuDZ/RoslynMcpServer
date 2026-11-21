@@ -311,6 +311,10 @@ file changes and returns a solution snapshot without
 `UnresolvedAnalyzerReference` placeholders, leaving the published snapshot
 unchanged. The result may be `null` when no solution is loaded.
 
+The synchronous `GetSanitizedPublishedSolution()` can block the calling thread
+while a workspace is loading or its analyzers are being prepared. The asynchronous
+reader supports cancellation while waiting.
+
 Two other methods serve different purposes:
 
 - `GetPublishedSolutionAsync` returns the published snapshot without applying
@@ -416,11 +420,23 @@ The server does not search for plugins by scanning arbitrary locations
 in the working directory or user profile.
 
 For paths from settings or the environment variable, the server creates
-a shadow copy under `{Temp}/RoslynMcpServer/plugins/<unique directory>/`
-and loads the DLL from there. It copies PDBs, the manifest, `deps.json`,
+a shadow copy and loads the DLL from that copy.
+It copies PDBs, the manifest, `deps.json`,
 private dependencies, and other files; host contract assemblies and their
 PDBs are excluded. Symbolic links and other reparse points cause the plugin
-to be rejected. Automatic cleanup of old copies is not implemented.
+to be rejected.
+
+On Windows and Linux, the server uses a private `RoslynMcpServer-plugin-copies-v1-*`
+directory under the temporary directory when it can verify the location and process
+scope. If Windows cannot use the temporary directory for managed copies, it tries
+the per-user state directory with the same checks. At startup, the server removes
+managed copies whose recorded owner process has exited. It keeps copies with active,
+reused or unknown owner PIDs, including copies from other Linux boots or PID namespaces.
+Legacy copies under `{Temp}/RoslynMcpServer/plugins/` are kept. The legacy layout also
+applies on other platforms or when no managed location is available.
+On Linux, the location is not accepted when the temporary directory or one of its parents
+can be written by the group or other users and has no sticky bit. A `TMPDIR` created under
+umask `002` is an example; such a server keeps the legacy layout and removes no copies.
 
 ## Updating and debugging
 
@@ -812,6 +828,10 @@ public sealed class SampleTools
 заглушек `UnresolvedAnalyzerReference`, не заменяя опубликованный снимок.
 Учитывайте, что при отсутствии загруженного решения результат может быть `null`.
 
+Синхронный `GetSanitizedPublishedSolution()` может блокировать вызывающий поток
+на время загрузки workspace или подготовки анализаторов. Асинхронный метод
+поддерживает отмену ожидания.
+
 Два других метода имеют иное назначение:
 
 - `GetPublishedSolutionAsync` возвращает опубликованный снимок без применения
@@ -917,11 +937,23 @@ public sealed class SampleTools
 пользователя.
 
 Для путей из настроек и переменной окружения сервер создаёт теневую копию
-каталога под `{Temp}/RoslynMcpServer/plugins/<уникальный каталог>/` и загружает
-DLL оттуда. Копируются PDB, манифест, `deps.json`, частные зависимости и
+каталога и загружает DLL из этой копии. Копируются PDB, манифест,
+`deps.json`, частные зависимости и
 остальные файлы; сборки контракта сервера и их PDB исключаются.
 Символические ссылки и другие точки повторной обработки (reparse points)
-отклоняются вместе с плагином. Автоматическая очистка старых копий не реализована.
+отклоняются вместе с плагином.
+
+На Windows и Linux сервер использует приватный каталог `RoslynMcpServer-plugin-copies-v1-*`
+во временной папке, когда может проверить расположение и область видимости процессов.
+Если временная папка на Windows не подходит, сервер проверяет пользовательский каталог
+состояния по тем же правилам. При запуске сервер удаляет копии, если указанный для них
+процесс-владелец завершился. Копии с действующим, повторно назначенным или неизвестным PID
+сохраняются, включая копии из других загрузок Linux и пространств имён PID. Старые копии в
+`{Temp}/RoslynMcpServer/plugins/` сохраняются. Прежняя схема действует на других платформах
+и в случаях, когда сервер не может использовать защищённый каталог.
+На Linux каталог не подходит, если временная папка или один из её родителей доступен на запись
+группе или остальным пользователям и не имеет sticky-бита. Пример — `TMPDIR`, созданный при
+umask `002`: такой сервер использует прежнюю схему и копии не удаляет.
 
 ## Обновление и отладка
 

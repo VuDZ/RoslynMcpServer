@@ -16,6 +16,7 @@
 - `client`: `name`, `version`, `protocol`; legacy initialize либо request metadata ревизии 2026-07-28. Повтор одной идентичности не дублируется.
 - `tool_start`: `call`, `name`, `start_ts`, `workspace_key`, `requires_workspace`.
 - `tool`: те же поля идентичности вызова, `duration_ms`, `success`, `lazy_load`.
+  При измеренном ожидании блокировки чтения workspace добавляется `workspace_read_lock_wait_ms`.
 - `load`: `call`, `start_ts`, `requested_key`, `workspace_key` после попытки, `success`, `cache_hit`,
   `source`, `graph_stale`, `duration_ms`, `lock_wait_ms`, `projects`; с 1.5.23 — `watchers` и
   `watcher_failures`: число запущенных disk watcher и отказов их старта у удерживаемого
@@ -33,6 +34,10 @@
 перед kill; `call` связывает начало и конец внутри процесса. Ключ в событии инструмента
 относится к началу вызова. Lazy load и его ключ дополнительно видны в `load`.
 У `tool` поле `ts` фиксирует завершение, а `duration_ms` измеряется монотонными часами.
+`workspace_read_lock_wait_ms` суммирует время захвата семафора при чтении документов и
+опубликованных снимков в рамках вызова, включая синхронный повтор и ожидания, прерванные
+отменой. Отсчёт заканчивается до синхронизации файлов и семантической работы. Захваты при
+загрузке и подготовке workspace по-прежнему учитываются отдельно в `load.lock_wait_ms`.
 Событие `load` записывается после попытки: `start_ts` — её начало, `ts` — время записи
 результата; `duration_ms` исключает `lock_wait_ms`. `call` связывает загрузку с вызовом
 инструмента и равен null для попытки вне такого вызова. Отдельного `load_start` нет;

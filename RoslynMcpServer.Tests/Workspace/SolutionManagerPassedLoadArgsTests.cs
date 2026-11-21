@@ -1,6 +1,10 @@
-﻿using RoslynMcpServer.Config;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using RoslynMcpServer.Config;
 using RoslynMcpServer.Diagnostics;
+using RoslynMcpServer.Hosting;
 using RoslynMcpServer.Services;
+using RoslynMcpServer.Tools;
 using Xunit;
 
 namespace RoslynMcpServer.Tests.Workspace;
@@ -45,6 +49,51 @@ public sealed class SolutionManagerPassedLoadArgsTests : IDisposable
         {
             // best-effort
         }
+    }
+
+    [Fact]
+    public async Task Server_info_reports_working_set_and_counts_successful_physical_loads_across_reset()
+    {
+        var builder = Host.CreateApplicationBuilder();
+        builder.Services.AddRoslynMcpServerTools(new McpToolProfileOptions { Profile = "lite" });
+        using var host = builder.Build();
+        var manager = host.Services.GetRequiredService<SolutionManager>();
+        manager.SearchPrewarmEnabled = false;
+        var tools = host.Services.GetRequiredService<ServerLifecycleTools>();
+
+        try
+        {
+            var initial = await tools.GetMcpServerInfo();
+            AssertLoadCount(initial, 0);
+            Assert.Matches(@"(?m)^- \*\*Process working set:\*\* [0-9]+\.[0-9] MiB\r?$", initial);
+            Assert.Null(manager.GetCurrentSolution());
+
+            await manager.LoadAsync(_csprojPath);
+            AssertLoadCount(await tools.GetMcpServerInfo(), 1);
+
+            await manager.LoadAsync(_csprojPath);
+            Assert.True(manager.LastLoadWasCacheHit);
+            AssertLoadCount(await tools.GetMcpServerInfo(), 1);
+
+            await Assert.ThrowsAsync<FileNotFoundException>(() => manager.LoadAsync(Path.Combine(_root, "Missing.csproj")));
+            AssertLoadCount(await tools.GetMcpServerInfo(), 1);
+
+            await manager.ClearWorkspaceAsync();
+            AssertLoadCount(await tools.GetMcpServerInfo(), 1);
+            Assert.Null(manager.GetCurrentSolution());
+
+            await manager.LoadAsync(_csprojPath);
+            AssertLoadCount(await tools.GetMcpServerInfo(), 2);
+        }
+        finally
+        {
+            await manager.ClearWorkspaceAsync();
+        }
+
+        static void AssertLoadCount(string info, int count) => Assert.Contains(
+            $"- **Successful physical workspace loads (since server start):** {count}{Environment.NewLine}",
+            info,
+            StringComparison.Ordinal);
     }
 
     [Fact]

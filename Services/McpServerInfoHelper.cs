@@ -1,3 +1,5 @@
+using System.ComponentModel;
+using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -63,6 +65,27 @@ public static class McpServerInfoHelper
         string? lazyLoadFailure,
         PluginStartup.Report? pluginStartup,
         WorkspaceDiskWatcherStatus? diskWatchers)
+        => BuildInfoMarkdown(
+            loadedSolution,
+            activation,
+            fileSettings,
+            loadSource,
+            loadInProgress,
+            lazyLoadFailure,
+            pluginStartup,
+            diskWatchers,
+            successfulPhysicalWorkspaceLoads: null);
+
+    internal static string BuildInfoMarkdown(
+        Solution? loadedSolution,
+        McpToolActivationService activation,
+        RoslynMcpFileSettings? fileSettings,
+        WorkspaceLoadSource loadSource,
+        bool loadInProgress,
+        string? lazyLoadFailure,
+        PluginStartup.Report? pluginStartup,
+        WorkspaceDiskWatcherStatus? diskWatchers,
+        long? successfulPhysicalWorkspaceLoads)
     {
         ArgumentNullException.ThrowIfNull(activation);
         var assembly = Assembly.GetExecutingAssembly();
@@ -109,6 +132,12 @@ public static class McpServerInfoHelper
         }
 
         sb.AppendLine($"- **Workspace load source:** {FormatLoadSource(loadSource, loadedSolution is not null, loadInProgress)}");
+        if (successfulPhysicalWorkspaceLoads is { } loadCount)
+        {
+            sb.AppendLine($"- **Process working set:** {FormatProcessWorkingSet()}");
+            sb.AppendLine($"- **Successful physical workspace loads (since server start):** {loadCount}");
+        }
+
         AppendDiskWatchersSection(sb, diskWatchers);
 
         AppendFileSettingsSection(sb, fileSettings, lazyLoadFailure);
@@ -188,6 +217,19 @@ public static class McpServerInfoHelper
     }
 
     private const int MaxListedWatcherFailures = 5;
+
+    private static string FormatProcessWorkingSet()
+    {
+        try
+        {
+            using var process = Process.GetCurrentProcess();
+            return FormattableString.Invariant($"{process.WorkingSet64 / (1024.0 * 1024.0):F1} MiB");
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or Win32Exception or NotSupportedException)
+        {
+            return "(unavailable)";
+        }
+    }
 
     private static string FormatLoadSource(WorkspaceLoadSource source, bool hasSolution, bool loadInProgress)
     {

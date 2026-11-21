@@ -90,6 +90,9 @@ public sealed class SolutionManager
     /// <summary>True when the last <see cref="LoadAsync"/> disposed and reopened the MSBuild graph.</summary>
     internal bool LastLoadReopenedGraph { get; private set; }
 
+    /// <summary>Physical loads that finished with a usable published workspace, including before a reset.</summary>
+    internal long SuccessfulPhysicalWorkspaceLoads => Interlocked.Read(ref _successfulPhysicalWorkspaceLoads);
+
     /// <summary>True when the last overlay prepare/refresh attempted analyzer file I/O.</summary>
     internal bool LastPrepareAttempted { get; private set; }
 
@@ -321,7 +324,11 @@ public sealed class SolutionManager
 
         var fullFilePath = ResolvePathAgainstWorkspace(filePath);
         await EnsureWorkspaceFromConfigAsync(cancellationToken).ConfigureAwait(false);
-        await _workspaceLock.WaitAsync(cancellationToken);
+        using (_usage?.MeasureWorkspaceReadLockWait())
+        {
+            await _workspaceLock.WaitAsync(cancellationToken);
+        }
+
         try
         {
             if (_workspace is null)
@@ -428,7 +435,11 @@ public sealed class SolutionManager
     public async Task<Solution?> GetPublishedSolutionAsync(CancellationToken cancellationToken = default)
     {
         await EnsureWorkspaceFromConfigAsync(cancellationToken).ConfigureAwait(false);
-        await _workspaceLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        using (_usage?.MeasureWorkspaceReadLockWait())
+        {
+            await _workspaceLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        }
+
         try
         {
             return _solution;
@@ -446,7 +457,11 @@ public sealed class SolutionManager
     public async Task<Solution?> GetPublishedSolutionAfterDiskSyncAsync(CancellationToken cancellationToken = default)
     {
         await EnsureWorkspaceFromConfigAsync(cancellationToken).ConfigureAwait(false);
-        await _workspaceLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        using (_usage?.MeasureWorkspaceReadLockWait())
+        {
+            await _workspaceLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        }
+
         try
         {
             await FlushDirtyDocumentsUnderLockAsync(cancellationToken).ConfigureAwait(false);
@@ -466,7 +481,11 @@ public sealed class SolutionManager
     public async Task<Solution?> GetSanitizedPublishedSolutionAsync(CancellationToken cancellationToken = default)
     {
         await EnsureWorkspaceFromConfigAsync(cancellationToken).ConfigureAwait(false);
-        await _workspaceLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        using (_usage?.MeasureWorkspaceReadLockWait())
+        {
+            await _workspaceLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        }
+
         try
         {
             await FlushDirtyDocumentsUnderLockAsync(cancellationToken).ConfigureAwait(false);
@@ -536,7 +555,11 @@ public sealed class SolutionManager
     /// </summary>
     public Solution? GetSanitizedPublishedSolution()
     {
-        _workspaceLock.Wait();
+        using (_usage?.MeasureWorkspaceReadLockWait())
+        {
+            _workspaceLock.Wait();
+        }
+
         try
         {
             return GetOrCreateSanitizedPublishedSolution();
@@ -901,7 +924,11 @@ public sealed class SolutionManager
     /// <summary>Reads the published solution and its MSBuild evaluation from the same load.</summary>
     internal async Task<ProjectListSnapshot> GetProjectListSnapshotAsync(CancellationToken cancellationToken)
     {
-        await _workspaceLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        using (_usage?.MeasureWorkspaceReadLockWait())
+        {
+            await _workspaceLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        }
+
         try
         {
             return CaptureProjectListUnderLock();
@@ -916,7 +943,11 @@ public sealed class SolutionManager
     internal async Task<TestImpactWorkspaceContext?> GetTestImpactContextAfterDiskSyncAsync(CancellationToken cancellationToken)
     {
         await EnsureWorkspaceFromConfigAsync(cancellationToken).ConfigureAwait(false);
-        await _workspaceLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        using (_usage?.MeasureWorkspaceReadLockWait())
+        {
+            await _workspaceLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        }
+
         try
         {
             await FlushDirtyDocumentsUnderLockAsync(cancellationToken).ConfigureAwait(false);
@@ -1103,14 +1134,14 @@ public sealed class SolutionManager
                 {
                     Baseline.Publish(fullPath, _solution, DateTime.UtcNow, _logger);
                 }
-                return new WorkspaceLoadPreparationResult(solution, LastShadowCopyResults, CaptureProjectListUnderLock());
+                return CompleteWorkspaceLoadUnderLock(solution, LastShadowCopyResults);
             }
 
             if (HasBlockingLoadFailure(solution))
             {
                 EnterBannedPublication(_workspace!.CurrentSolution, "blocking-load-failure");
                 _solution = null;
-                return new WorkspaceLoadPreparationResult(solution, [], CaptureProjectListUnderLock());
+                return CompleteWorkspaceLoadUnderLock(solution, []);
             }
 
             ApplyCaptureTestSeams();
@@ -1120,10 +1151,7 @@ public sealed class SolutionManager
             if (unsuitableCapture is not null)
             {
                 EnterUnavailablePublication(unsuitableCapture);
-                return new WorkspaceLoadPreparationResult(
-                    _workspace!.CurrentSolution,
-                    [],
-                    CaptureProjectListUnderLock());
+                return CompleteWorkspaceLoadUnderLock(_workspace!.CurrentSolution, []);
             }
 
             if (LastLoadWasCacheHit)
@@ -1149,10 +1177,7 @@ public sealed class SolutionManager
                         LastExecutionObservation.Reason ?? "opt-in-prepare-not-enabled");
                 }
 
-                return new WorkspaceLoadPreparationResult(
-                    _workspace!.CurrentSolution,
-                    results,
-                    CaptureProjectListUnderLock());
+                return CompleteWorkspaceLoadUnderLock(_workspace!.CurrentSolution, results);
             }
             catch
             {
@@ -1189,6 +1214,19 @@ public sealed class SolutionManager
 
     private string? GetUsageWorkspaceKey() =>
         _workspace is null ? null : UsageWorkspaceKey.Create(_loadedPath, LoadedConfiguration, LoadedPlatform, LoadedTargetFramework);
+
+    private WorkspaceLoadPreparationResult CompleteWorkspaceLoadUnderLock(
+        Solution solution,
+        IReadOnlyList<AnalyzerReferenceShadowCopier.RewriteResult> shadowCopyResults)
+    {
+        var projectList = CaptureProjectListUnderLock();
+        if (!LastLoadWasCacheHit && projectList.Solution is { } published && !HasBlockingLoadFailure(published))
+        {
+            Interlocked.Increment(ref _successfulPhysicalWorkspaceLoads);
+        }
+
+        return new WorkspaceLoadPreparationResult(solution, shadowCopyResults, projectList);
+    }
 
     private ProjectListSnapshot CaptureProjectListUnderLock() => new(
         _solution,
@@ -3605,6 +3643,7 @@ public sealed class SolutionManager
     private readonly ConditionalWeakTable<Solution, WorkspaceWriteOperationContext> _operationContexts = new();
     private WorkspaceWriteOperationContext? _lastPublishedWriteContext;
     private long _rawWorkspaceRevision;
+    private long _successfulPhysicalWorkspaceLoads;
     private string? _loadedPath;
     private volatile bool _workspaceLoadInProgress;
     private CancellationTokenSource? _searchPrewarmCancellation;

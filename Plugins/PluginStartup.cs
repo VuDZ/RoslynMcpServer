@@ -60,7 +60,17 @@ public static class PluginStartup
         string baseDirectory,
         string? environmentPaths,
         TextWriter stderr,
-        string? userPluginDirectory)
+        string? userPluginDirectory) =>
+        Run(services, settings, baseDirectory, environmentPaths, stderr, userPluginDirectory, stateDirectory: null);
+
+    internal static Report Run(
+        IServiceCollection services,
+        RoslynMcpFileSettings settings,
+        string baseDirectory,
+        string? environmentPaths,
+        TextWriter stderr,
+        string? userPluginDirectory,
+        string? stateDirectory)
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(settings);
@@ -89,7 +99,7 @@ public static class PluginStartup
             userPluginDirectory);
         RecordSkips(discovery.Skipped, stderr, skipped);
 
-        var copies = PluginShadowCopy.Copy(discovery.Plans);
+        var copies = PluginShadowCopy.CopyForStartup(discovery.Plans, stateDirectory: stateDirectory);
         RecordSkips(copies.Skipped, stderr, skipped);
 
         foreach (var outcome in PluginAssemblyLoad.Load(copies.Plans, services))
