@@ -9,35 +9,6 @@
 
 ## Открытые
 
-<a id="ar-05"></a>
-### AR-05 · P2 · Экспериментальный StateCache в production-сборке
-
-**Проверено 2026-11-15:** подтверждено по исходникам; живой `find_usages` не повторялся.
-
-**Контекст (со слов владельца).** Код появился в ходе экспериментов с кэшированием
-MSBuild/solution; эксперименты упёрлись в тупик, но продолжаются.
-
-**Доказательство.**
-- `Services/Workspace/StateCache/` — 2918 строк, компилируется в `RoslynMcpServer.dll`.
-- Текстовый поиск `StateCache`, `WorkspaceSnapshotCodec`, `IsolatedWorkspaceHydrator` и
-  `OrdinaryWorkspaceCapture` вне этой папки в `Program.cs`, `Hosting/`, `Tools/`, `Services/`,
-  `Plugins/`, `Config/`, `Diagnostics/` ничего не находит. Ссылки есть только в
-  `RoslynMcpServer.Tests/WorkspaceStateCache/`.
-- `docs/ARCHITECTURE.md:67` верно говорит «no on-disk evaluation cache yet», но о
-  существовании экспериментального кода не сообщает.
-- В `RoslynMcpServer.Tests/SourceStructure/` нет правила про `StateCache`.
-
-**Требование.** `docs/README.md:7` (ARCHITECTURE описывает систему как она есть),
-`AGENTS.md` (приёмка изолированного эксперимента не означает production readiness).
-
-**Последствие.** Читатель кода не отличает эксперимент от рабочего пути. Ничто не мешает
-случайно вызвать StateCache из production: тесты проверяют изоляцию гидратора
-(`IsolatedWorkspaceHydratorTests.cs`), но не отсутствие production-вызовов.
-
-**Предложение.** Решение владельца о размещении — [P-02](proposals.md#p-02). Независимо
-от него: одна строка в ARCHITECTURE и запись тупика в самой теме
-`docs/workspace-state-cache/` (что пробовали, где упёрлись, что продолжается).
-
 <a id="ar-06"></a>
 ### AR-06 · P2 · Загрузка блокирует все семантические запросы
 
@@ -549,3 +520,34 @@ global.json pins 10.0.300»). Воспроизведено на Windows во в�
 
 **Предложение.** Синхронизировать перечисленные места. Структурная причина — AR-16.
 Цена: низкая.
+
+<a id="ar-05"></a>
+### AR-05 · P2 · Экспериментальный StateCache в production-сборке
+
+**Закрыто 2026-11-21.** Коммит `38e5481`: код удалён по варианту 3 [P-02](proposals.md#p-02), тема заморожена, итоги — в [workspace-state-cache](../workspace-state-cache/README.md).
+
+**Проверено 2026-11-15:** подтверждено по исходникам; живой `find_usages` не повторялся.
+
+**Контекст (со слов владельца).** Код появился в ходе экспериментов с кэшированием
+MSBuild/solution; эксперименты упёрлись в тупик, но продолжаются.
+
+**Доказательство.**
+- `Services/Workspace/StateCache/` — 2918 строк, компилируется в `RoslynMcpServer.dll`.
+- Текстовый поиск `StateCache`, `WorkspaceSnapshotCodec`, `IsolatedWorkspaceHydrator` и
+  `OrdinaryWorkspaceCapture` вне этой папки в `Program.cs`, `Hosting/`, `Tools/`, `Services/`,
+  `Plugins/`, `Config/`, `Diagnostics/` ничего не находит. Ссылки есть только в
+  `RoslynMcpServer.Tests/WorkspaceStateCache/`.
+- `docs/ARCHITECTURE.md:67` верно говорит «no on-disk evaluation cache yet», но о
+  существовании экспериментального кода не сообщает.
+- В `RoslynMcpServer.Tests/SourceStructure/` нет правила про `StateCache`.
+
+**Требование.** `docs/README.md:7` (ARCHITECTURE описывает систему как она есть),
+`AGENTS.md` (приёмка изолированного эксперимента не означает production readiness).
+
+**Последствие.** Читатель кода не отличает эксперимент от рабочего пути. Ничто не мешает
+случайно вызвать StateCache из production: тесты проверяют изоляцию гидратора
+(`IsolatedWorkspaceHydratorTests.cs`), но не отсутствие production-вызовов.
+
+**Предложение.** Решение владельца о размещении — [P-02](proposals.md#p-02). Независимо
+от него: одна строка в ARCHITECTURE и запись тупика в самой теме
+`docs/workspace-state-cache/` (что пробовали, где упёрлись, что продолжается).
