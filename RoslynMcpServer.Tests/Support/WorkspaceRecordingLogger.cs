@@ -10,6 +10,8 @@ internal sealed class WorkspaceRecordingLogger : ILogger<SolutionManager>
 
     public IReadOnlyList<Exception> Exceptions => _exceptions.ToArray();
 
+    public event Action<string>? MessageLogged;
+
     public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
 
     public bool IsEnabled(LogLevel logLevel) => true;
@@ -17,11 +19,13 @@ internal sealed class WorkspaceRecordingLogger : ILogger<SolutionManager>
     public void Log<TState>(LogLevel logLevel, EventId eventId, TState state,
         Exception? exception, Func<TState, Exception?, string> formatter)
     {
-        _messages.Enqueue(formatter(state, exception));
+        var message = formatter(state, exception);
+        _messages.Enqueue(message);
         if (exception is not null)
         {
             _exceptions.Enqueue(exception);
         }
+        MessageLogged?.Invoke(message);
     }
 
     private readonly ConcurrentQueue<string> _messages = new();

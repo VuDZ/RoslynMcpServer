@@ -4,7 +4,8 @@ using Microsoft.Extensions.Logging;
 namespace RoslynMcpServer.Config;
 
 /// <summary>
-/// Optional <c>RoslynMcp.jsonc</c> settings (exe, per-user directory, then process cwd; cwd wins).
+/// Optional <c>RoslynMcp.jsonc</c> settings. The process cwd can override ordinary settings,
+/// and only the executable and per-user directories supply plugin paths.
 /// Not a fork <c>WorkspaceConfig</c> and does not publish a raw MSBuild solution.
 /// </summary>
 public sealed class RoslynMcpFileSettings
@@ -44,6 +45,7 @@ public sealed class RoslynMcpFileSettings
         buildHostEvaluateAheadWorkers: null,
         ripgrepPath: null,
         plugins: Array.Empty<string>(),
+        workingDirectoryPluginsIgnored: false,
         unknownKeys: Array.Empty<string>(),
         parseFailures: Array.Empty<RoslynMcpConfigParseFailure>());
 
@@ -65,6 +67,7 @@ public sealed class RoslynMcpFileSettings
         int? buildHostEvaluateAheadWorkers,
         string? ripgrepPath,
         IReadOnlyList<string> plugins,
+        bool workingDirectoryPluginsIgnored,
         IReadOnlyList<string> unknownKeys,
         IReadOnlyList<RoslynMcpConfigParseFailure> parseFailures)
     {
@@ -85,6 +88,7 @@ public sealed class RoslynMcpFileSettings
         BuildHostEvaluateAheadWorkers = buildHostEvaluateAheadWorkers;
         RipgrepPath = ripgrepPath;
         Plugins = plugins;
+        WorkingDirectoryPluginsIgnored = workingDirectoryPluginsIgnored;
         UnknownKeys = unknownKeys;
         ParseFailures = parseFailures;
     }
@@ -127,8 +131,8 @@ public sealed class RoslynMcpFileSettings
     public string? RipgrepPath { get; }
 
     /// <summary>
-    /// Raw values of the <c>plugins</c> key: directories holding a <c>plugin.json</c> or entry DLL paths.
-    /// Empty when the key is absent, so an empty array of the cwd file really means zero explicit paths.
+    /// Raw <c>plugins</c> values from the executable or user settings: directories holding a
+    /// <c>plugin.json</c> or entry DLL paths. A user array replaces the executable array, even when empty.
     /// </summary>
     public IReadOnlyList<string> Plugins { get; }
 
@@ -136,6 +140,8 @@ public sealed class RoslynMcpFileSettings
     public IReadOnlyList<RoslynMcpConfigParseFailure> ParseFailures { get; }
 
     public bool HasAnyFile => ExecutableFilePresent || UserFilePresent || WorkingDirectoryFilePresent;
+
+    internal bool WorkingDirectoryPluginsIgnored { get; }
 
     /// <summary>
     /// Absolute path for lazy load when <see cref="WorkspacePath"/> is set.
@@ -177,14 +183,16 @@ public sealed class RoslynMcpFileSettings
         var exePath = GetSettingsPath(executableDirectory);
         var userPath = GetSettingsPath(userDirectory);
         var cwdPath = GetSettingsPath(workingDirectory);
+        var cwdIsSeparate = !PathsEqual(cwdPath, exePath) && !PathsEqual(cwdPath, userPath);
         var failures = new List<RoslynMcpConfigParseFailure>();
         var cache = new Dictionary<string, PartialSettings?>(
             OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
 
         var exe = Read(exePath, out var exePresent);
         var user = Read(userPath, out var userPresent);
-        var cwd = Read(cwdPath, out var cwdPresent);
-        var merged = Merge(Merge(exe, user), cwd);
+        var cwd = Read(cwdPath, out var cwdPresent, readPlugins: !cwdIsSeparate);
+        var trusted = Merge(exe, user);
+        var merged = Merge(trusted, cwd);
         foreach (var key in merged.UnknownKeys)
         {
             logger?.LogWarning("RoslynMcp.jsonc unknown key ignored: {Key}", key);
@@ -196,7 +204,7 @@ public sealed class RoslynMcpFileSettings
             userFilePath: userPath,
             userFilePresent: userPresent && !PathsEqual(userPath, exePath),
             executableFilePresent: exePresent,
-            workingDirectoryFilePresent: cwdPresent && !PathsEqual(cwdPath, exePath) && !PathsEqual(cwdPath, userPath),
+            workingDirectoryFilePresent: cwdPresent && cwdIsSeparate,
             workspacePath: merged.WorkspacePath,
             configuration: merged.Configuration,
             platform: merged.Platform,
@@ -207,11 +215,12 @@ public sealed class RoslynMcpFileSettings
             buildHostOptimizations: merged.BuildHostOptimizations,
             buildHostEvaluateAheadWorkers: merged.BuildHostEvaluateAheadWorkers,
             ripgrepPath: merged.RipgrepPath,
-            plugins: merged.Plugins ?? Array.Empty<string>(),
+            plugins: trusted.Plugins ?? Array.Empty<string>(),
+            workingDirectoryPluginsIgnored: cwd?.PluginsIgnored == true,
             unknownKeys: merged.UnknownKeys,
             parseFailures: failures);
 
-        PartialSettings? Read(string? path, out bool present)
+        PartialSettings? Read(string? path, out bool present, bool readPlugins = true)
         {
             present = path is not null && File.Exists(path);
             if (!present)
@@ -225,7 +234,7 @@ public sealed class RoslynMcpFileSettings
             }
 
             PartialSettings? settings = null;
-            if (TryReadFile(path!, out var partial, out var error))
+            if (TryReadFile(path!, readPlugins, out var partial, out var error))
             {
                 settings = partial;
             }
@@ -270,8 +279,6 @@ public sealed class RoslynMcpFileSettings
             maxResults: workingDirectory.MaxResults ?? executable.MaxResults,
             preview: workingDirectory.Preview ?? executable.Preview,
             ripgrepPath: workingDirectory.RipgrepPath ?? executable.RipgrepPath,
-            // Wholesale, not key by key: the cwd array replaces the exe array, and an empty cwd array
-            // therefore means zero explicit paths instead of falling back to the exe entries.
             plugins: workingDirectory.Plugins ?? executable.Plugins,
             unknownKeys: unknown,
             searchPrewarm: workingDirectory.SearchPrewarm ?? executable.SearchPrewarm,
@@ -296,7 +303,7 @@ public sealed class RoslynMcpFileSettings
         }
     }
 
-    private static bool TryReadFile(string path, out PartialSettings settings, out string? error)
+    private static bool TryReadFile(string path, bool readPlugins, out PartialSettings settings, out string? error)
     {
         settings = PartialSettings.Empty;
         error = null;
@@ -320,7 +327,7 @@ public sealed class RoslynMcpFileSettings
         {
             try
             {
-                settings = ParseDocument(document);
+                settings = ParseDocument(document, readPlugins);
                 return true;
             }
             catch (JsonException ex)
@@ -334,7 +341,7 @@ public sealed class RoslynMcpFileSettings
         }
     }
 
-    private static PartialSettings ParseDocument(JsonDocument document)
+    private static PartialSettings ParseDocument(JsonDocument document, bool readPlugins)
     {
         if (document.RootElement.ValueKind != JsonValueKind.Object)
         {
@@ -396,7 +403,10 @@ public sealed class RoslynMcpFileSettings
                     ripgrepPath = ReadString(property.Value);
                     break;
                 case "plugins":
-                    plugins = ReadStringArray(property.Value);
+                    if (readPlugins)
+                    {
+                        plugins = ReadStringArray(property.Value);
+                    }
                     break;
             }
         }
@@ -413,7 +423,10 @@ public sealed class RoslynMcpFileSettings
             unknown,
             searchPrewarm,
             buildHostOptimizations,
-            buildHostEvaluateAheadWorkers);
+            buildHostEvaluateAheadWorkers)
+        {
+            PluginsIgnored = !readPlugins && document.RootElement.TryGetProperty("plugins", out _),
+        };
     }
 
     private static string? ReadString(JsonElement element)
@@ -584,6 +597,7 @@ public sealed class RoslynMcpFileSettings
 
         /// <summary><see langword="null"/> when the file has no <c>plugins</c> key.</summary>
         public IReadOnlyList<string>? Plugins { get; }
+        public bool PluginsIgnored { get; init; }
 
         public IReadOnlyList<string> UnknownKeys { get; }
     }

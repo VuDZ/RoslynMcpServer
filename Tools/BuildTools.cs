@@ -146,9 +146,7 @@ public sealed class BuildTools
             AppendRunMetadata(context, probe.RunMetadata, probe.StepsExecuted, effectiveConfiguration,
                 effectivePlatform, probe.NoIncremental, _solutionManager.LoadedBuildArgs,
                 resolvedProjectName, solutionTarget);
-            var additionalErrors = SdkMismatchDiagnostics.CreateErrors(
-                workDir, probe.CombinedOutput,
-                SdkMismatchDiagnostics.TryParseDotNetVersionFromMetadata(probe.RunMetadata));
+            var additionalErrors = SdkMismatchDiagnostics.CreateErrors(probe.SdkSelection, probe.CombinedOutput);
             return ToolTelemetry.TraceAndReturn(
                 nameof(RunDotNetBuild),
                 BuildOutputReport.Format(

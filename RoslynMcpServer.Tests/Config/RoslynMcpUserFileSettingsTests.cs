@@ -35,7 +35,8 @@ public sealed class RoslynMcpUserFileSettingsTests : IDisposable
         Assert.Equal("x64", result.Platform);
         Assert.True(result.Preview);
         Assert.Equal(123, result.MaxResults);
-        Assert.Empty(result.Plugins);
+        Assert.Equal(["user"], result.Plugins);
+        Assert.True(result.WorkingDirectoryPluginsIgnored);
         Assert.True(result.ExecutableFilePresent);
         Assert.True(result.UserFilePresent);
         Assert.True(result.WorkingDirectoryFilePresent);
@@ -68,16 +69,33 @@ public sealed class RoslynMcpUserFileSettingsTests : IDisposable
         Assert.Equal(Path.Combine(user, RoslynMcpFileSettings.FileName), Assert.Single(result.ParseFailures).Path);
     }
 
-    [Fact]
-    public void Reusing_a_file_at_the_highest_priority_reuses_its_parse_but_retains_that_priority()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Cwd_alias_retains_ordinary_settings_priority_and_uses_trusted_plugin_precedence(bool aliasesUser)
     {
-        var exeAndCwd = Write("exe", """{"configuration":"ExeAndCwd"}""");
-        var user = Write("user", """{"configuration":"User"}""");
+        var exe = Write("exe", """{"configuration":"Exe","plugins":["exe"]}""");
+        var user = Write("user", """{"configuration":"User","plugins":["user"]}""");
+        var cwd = Path.Combine(aliasesUser ? user : exe, ".");
 
-        var result = RoslynMcpFileSettings.LoadFromDirectories(exeAndCwd, exeAndCwd, user, logger: null);
+        var result = RoslynMcpFileSettings.LoadFromDirectories(exe, cwd, user, logger: null);
 
-        Assert.Equal("ExeAndCwd", result.Configuration);
+        Assert.Equal(aliasesUser ? "User" : "Exe", result.Configuration);
+        Assert.Equal(["user"], result.Plugins);
+        Assert.False(result.WorkingDirectoryPluginsIgnored);
         Assert.Empty(result.ParseFailures);
+    }
+
+    [Fact]
+    public void An_empty_user_plugins_list_replaces_the_executable_list()
+    {
+        var exe = Write("exe", """{"plugins":["exe"]}""");
+        var user = Write("user", """{"plugins":[]}""");
+
+        var result = RoslynMcpFileSettings.LoadFromDirectories(exe, null, user, logger: null);
+
+        Assert.Empty(result.Plugins);
+        Assert.False(result.WorkingDirectoryPluginsIgnored);
     }
 
     [Fact]

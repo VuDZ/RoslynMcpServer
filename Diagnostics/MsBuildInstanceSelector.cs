@@ -1,7 +1,7 @@
 namespace RoslynMcpServer.Diagnostics;
 
 /// <summary>
-/// Picks an MSBuild installation compatible with the current process bitness.
+/// Picks an MSBuild installation compatible with the current process.
 /// Avoids 32-bit SDK paths under <c>Program Files (x86)</c> when the MCP host is 64-bit.
 /// </summary>
 public static class MsBuildInstanceSelector
@@ -45,26 +45,29 @@ public static class MsBuildInstanceSelector
             .First();
     }
 
-    /// <summary>Latest .NET SDK folder containing <c>Microsoft.Build.dll</c> (64-bit Program Files on Windows).</summary>
+    /// <summary>Latest runtime-compatible SDK with <c>Microsoft.Build.dll</c> (64-bit Program Files on Windows).</summary>
     public static string? FindLatestCompatibleDotNetSdkDirectory(bool is64BitProcess)
     {
+        var runtimeVersion = Environment.Version;
         if (OperatingSystem.IsWindows())
         {
             var programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
             var sdkRoot = Path.Combine(programFiles, "dotnet", "sdk");
-            var from64 = FindLatestSdkWithMsBuild(sdkRoot);
+            var from64 = FindLatestSdkWithMsBuild(sdkRoot, runtimeVersion);
             if (from64 is not null || is64BitProcess)
             {
                 return from64;
             }
 
             var programFilesX86 = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
-            return FindLatestSdkWithMsBuild(Path.Combine(programFilesX86, "dotnet", "sdk"));
+            return FindLatestSdkWithMsBuild(Path.Combine(programFilesX86, "dotnet", "sdk"), runtimeVersion);
         }
 
-        return FindLatestSdkDirectory(NonWindowsSdkRoots(
-            Environment.GetEnvironmentVariable("DOTNET_ROOT"),
-            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)));
+        return FindLatestSdkDirectory(
+            NonWindowsSdkRoots(
+                Environment.GetEnvironmentVariable("DOTNET_ROOT"),
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)),
+            runtimeVersion);
     }
 
     /// <summary>
@@ -92,11 +95,11 @@ public static class MsBuildInstanceSelector
         return roots;
     }
 
-    internal static string? FindLatestSdkDirectory(IEnumerable<string> sdkRoots)
+    internal static string? FindLatestSdkDirectory(IEnumerable<string> sdkRoots, Version runtimeVersion)
     {
         foreach (var root in sdkRoots)
         {
-            var found = FindLatestSdkWithMsBuild(root);
+            var found = FindLatestSdkWithMsBuild(root, runtimeVersion);
             if (found is not null)
             {
                 return found;
@@ -174,21 +177,38 @@ public static class MsBuildInstanceSelector
         (candidate.VisualStudioRootPath?.Contains("Microsoft Visual Studio", StringComparison.OrdinalIgnoreCase) ?? false)
         || candidate.MSBuildPath.Contains(@"MSBuild\Current\Bin", StringComparison.OrdinalIgnoreCase);
 
-    private static string? FindLatestSdkWithMsBuild(string sdkRoot)
+    private static string? FindLatestSdkWithMsBuild(string sdkRoot, Version runtimeVersion)
     {
-        if (!Directory.Exists(sdkRoot))
+        if (!Path.IsPathFullyQualified(sdkRoot) || !Directory.Exists(sdkRoot))
         {
             return null;
         }
 
-        foreach (var dir in Directory.GetDirectories(sdkRoot).OrderByDescending(Path.GetFileName, StringComparer.OrdinalIgnoreCase))
+        // Match Locator's runtime compatibility check for SDKs loaded in this process.
+        var runtime = (runtimeVersion.Major, runtimeVersion.Minor);
+        var candidates = Directory.EnumerateDirectories(sdkRoot)
+            .Select(path => (Path: path, Name: Path.GetFileName(path)))
+            .Select(candidate => (candidate.Path, candidate.Name, Version: ReadSdkVersion(candidate.Name)))
+            .Where(candidate => candidate.Version is { } version
+                && (version.Major, version.Minor).CompareTo(runtime) <= 0)
+            .OrderByDescending(candidate => candidate.Version)
+            .ThenBy(candidate => candidate.Name.Contains('-'))
+            .ThenByDescending(candidate => candidate.Name, StringComparer.OrdinalIgnoreCase);
+        foreach (var candidate in candidates)
         {
-            if (File.Exists(Path.Combine(dir, "Microsoft.Build.dll")))
+            if (File.Exists(Path.Combine(candidate.Path, "Microsoft.Build.dll")))
             {
-                return dir;
+                return candidate.Path;
             }
         }
 
         return null;
+    }
+
+    private static Version? ReadSdkVersion(string name)
+    {
+        var separator = name.IndexOf('-');
+        var stablePart = separator < 0 ? name.AsSpan() : name.AsSpan(0, separator);
+        return Version.TryParse(stablePart, out var version) && version.Build >= 0 ? version : null;
     }
 }

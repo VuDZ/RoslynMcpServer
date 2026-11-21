@@ -1,14 +1,15 @@
 using System.Text.Json;
-using RoslynMcpServer.Diagnostics;
 
 namespace RoslynMcpServer.Services.Build;
 
-/// <summary>Reads <c>global.json</c> SDK pin and maps it to an on-disk SDK folder.</summary>
+/// <summary>Reads the requested SDK version from <c>global.json</c>.</summary>
 public static class GlobalJsonSdkReader
 {
-    public static string? TryGetPinnedSdkVersion(string startDirectory)
+    public static string? TryGetPinnedSdkVersion(string startDirectory) =>
+        TryReadRequestedVersion(FindGlobalJsonPath(startDirectory));
+
+    internal static string? TryReadRequestedVersion(string? globalJsonPath)
     {
-        var globalJsonPath = FindGlobalJsonPath(startDirectory);
         if (globalJsonPath is null)
         {
             return null;
@@ -17,8 +18,14 @@ public static class GlobalJsonSdkReader
         try
         {
             using var stream = File.OpenRead(globalJsonPath);
-            using var doc = JsonDocument.Parse(stream);
-            if (!doc.RootElement.TryGetProperty("sdk", out var sdk))
+            using var doc = JsonDocument.Parse(stream, new JsonDocumentOptions
+            {
+                CommentHandling = JsonCommentHandling.Skip,
+                AllowTrailingCommas = true
+            });
+            if (doc.RootElement.ValueKind != JsonValueKind.Object
+                || !doc.RootElement.TryGetProperty("sdk", out var sdk)
+                || sdk.ValueKind != JsonValueKind.Object)
             {
                 return null;
             }
@@ -46,52 +53,9 @@ public static class GlobalJsonSdkReader
         {
             return null;
         }
-        catch (IOException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             return null;
-        }
-
-        return null;
-    }
-
-    public static string? TryResolveSdkDirectory(string startDirectory, bool prefer64Bit)
-    {
-        var pinned = TryGetPinnedSdkVersion(startDirectory);
-        if (pinned is null)
-        {
-            return null;
-        }
-
-        foreach (var sdkRoot in GetSdkRootCandidates(prefer64Bit))
-        {
-            if (!Directory.Exists(sdkRoot))
-            {
-                continue;
-            }
-
-            var exact = Path.Combine(sdkRoot, pinned);
-            if (File.Exists(Path.Combine(exact, "Microsoft.Build.dll")))
-            {
-                return exact;
-            }
-
-            var rollForwardPrefix = GetRollForwardPrefix(pinned);
-            var best = Directory.GetDirectories(sdkRoot)
-                .Where(d =>
-                {
-                    var name = Path.GetFileName(d);
-                    return string.Equals(name, pinned, StringComparison.OrdinalIgnoreCase)
-                           || (rollForwardPrefix is not null
-                               && name.StartsWith(rollForwardPrefix, StringComparison.OrdinalIgnoreCase));
-                })
-                .Where(d => File.Exists(Path.Combine(d, "Microsoft.Build.dll")))
-                .OrderByDescending(d => TryParseSdkFolderVersion(Path.GetFileName(d)))
-                .FirstOrDefault();
-
-            if (best is not null)
-            {
-                return best;
-            }
         }
 
         return null;
@@ -103,53 +67,4 @@ public static class GlobalJsonSdkReader
         return dir is null ? null : Path.Combine(dir, "global.json");
     }
 
-    private static IEnumerable<string> GetSdkRootCandidates(bool prefer64Bit)
-    {
-        var dotnetRoot = Environment.GetEnvironmentVariable("DOTNET_ROOT");
-        if (!string.IsNullOrWhiteSpace(dotnetRoot))
-        {
-            yield return Path.Combine(dotnetRoot.Trim(), "sdk");
-        }
-
-        if (OperatingSystem.IsWindows())
-        {
-            var programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
-            yield return Path.Combine(programFiles, "dotnet", "sdk");
-
-            if (!prefer64Bit)
-            {
-                var programFilesX86 = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
-                yield return Path.Combine(programFilesX86, "dotnet", "sdk");
-            }
-        }
-        else
-        {
-            var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-            foreach (var root in MsBuildInstanceSelector.NonWindowsSdkRoots(dotnetRoot: null, userProfile))
-            {
-                yield return root;
-            }
-        }
-    }
-
-    private static Version TryParseSdkFolderVersion(string folderName)
-    {
-        return Version.TryParse(folderName, out var v) ? v : new Version(0, 0);
-    }
-
-    private static string? GetRollForwardPrefix(string pinned)
-    {
-        var parts = pinned.Split('.', StringSplitOptions.RemoveEmptyEntries);
-        if (parts.Length >= 3)
-        {
-            return $"{parts[0]}.{parts[1]}.{parts[2]}.";
-        }
-
-        if (parts.Length == 2)
-        {
-            return $"{parts[0]}.{parts[1]}.";
-        }
-
-        return null;
-    }
 }

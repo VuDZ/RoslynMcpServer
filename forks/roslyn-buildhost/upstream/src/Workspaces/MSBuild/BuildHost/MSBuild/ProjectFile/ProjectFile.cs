@@ -50,6 +50,7 @@ internal sealed class ProjectFile(
         {
             using var span = BuildHostTrace.Start("extract", project.FullPath);
             var info = new ProjectInstanceReader(language, _commandLineProvider, instance, project).CreateProjectFileInfo();
+            buildManager.RecordProjectOutputType(instance, info.TargetFramework);
             if (span is not null)
             {
                 span.Set("targetFramework", info.TargetFramework);

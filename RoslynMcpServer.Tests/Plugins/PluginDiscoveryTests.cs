@@ -559,7 +559,7 @@ public sealed class PluginDiscoveryTests : IDisposable
             { "plugins": [{{JsonSerializer.Serialize(pluginDirectory)}}] }
             """);
 
-        var settings = RoslynMcpFileSettings.LoadFromDirectories(executableDirectory: null, workingDirectory: _root);
+        var settings = RoslynMcpFileSettings.LoadFromDirectories(executableDirectory: _root, workingDirectory: _root);
         var result = Discover(configuredPaths: settings.Plugins);
 
         Assert.Empty(settings.ParseFailures);

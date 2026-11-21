@@ -193,7 +193,7 @@ cd LOCAL_ROOT/YourApp
 Кратко для модели:
 
 - проверить сервер через `get_mcp_server_info`; отсутствующие `lite`-tools — через `list_tool_groups` / `enable_tool_group`
-- опциональный `RoslynMcp.jsonc` (каталог exe, пользовательский каталог конфигурации, затем cwd; cwd перекрывает). `ROSLYN_MCP_WORKSPACE` в начале процесса ставит cwd на корень репо — без него cwd часто домашний каталог, и файл проекта читается не оттуда. Ключи: `workspace-path`, `configuration`, `platform`, `target-framework`, `max-results`, `preview`, `ripgrep-path`. Нет файла — вызывайте `load_workspace` сами. Первый семантический tool при `workspace-path` грузит решение и ждёт; чужую загрузку не отменяет. `load_workspace` сравнивает только переданные аргументы (опущенные не сбрасывают уже загруженные). Sample: `RoslynMcp.jsonc.sample`
+- Опциональный `RoslynMcp.jsonc` читается рядом с exe, в пользовательском каталоге и в cwd. Cwd перекрывает обычные настройки. Для настройки `plugins` используется конфиг рядом с exe или в пользовательском каталоге. `ROSLYN_MCP_WORKSPACE` в начале процесса ставит cwd на корень репозитория. Ключи: `workspace-path`, `configuration`, `platform`, `target-framework`, `max-results`, `preview`, `ripgrep-path`. Нет файла — вызывайте `load_workspace` сами. Первый семантический tool при `workspace-path` грузит решение и ждёт; чужую загрузку не отменяет. `load_workspace` сравнивает только переданные аргументы (опущенные не сбрасывают уже загруженные). Пример — `RoslynMcp.jsonc.sample`.
 - после `load_workspace` (или lazy из jsonc) объявления C# — MCP `find_symbol_definition` / `find_usages`, не текстовый поиск и не выдуманный `search`
 - нет target `Compile` при load — повторить с `targetFramework` (inner TFM); это не SDK mismatch
 - VS 2026 BuildHost / `XMakeElements` — это не SDK mismatch; нужен MCP 1.0.35+ или один SDK-style `.csproj`
@@ -210,7 +210,7 @@ Rapid TIA появилась в версии **1.6.0**. `estimate_affected_tests
 
 ## Каталог пользователя
 
-Конфиг и drop-in plugins хранятся вне заменяемого каталога пакета npx. Источники конфига: каталог exe → пользовательский каталог → cwd. Порядок plugins: `exe/plugins` → пользовательские `plugins/` → конфиг → `ROSLYN_MCP_PLUGINS`; первый прошедший проверку ID имеет приоритет.
+Конфиг и drop-in plugins хранятся вне заменяемого каталога пакета npx. Обычные настройки сливаются в порядке «каталог exe → пользовательский каталог → cwd». Сервер игнорирует `plugins` в отдельном конфиге cwd и пишет предупреждение при запуске. Порядок поиска плагинов — `exe/plugins`, пользовательские `plugins/`, пути из конфига exe или пользователя, `ROSLYN_MCP_PLUGINS`. Первый прошедший проверку ID имеет приоритет.
 
 - Windows: `%LOCALAPPDATA%\RoslynMcpServer\`.
 - Linux: `$XDG_CONFIG_HOME/roslyn-mcp/` (по умолчанию `~/.config/roslyn-mcp/`) для конфига/plugins; `$XDG_STATE_HOME/roslyn-mcp/` (по умолчанию `~/.local/state/roslyn-mcp/`) для логов/статистики.

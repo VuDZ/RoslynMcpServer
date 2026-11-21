@@ -1,5 +1,4 @@
 using Microsoft.Build.Locator;
-using RoslynMcpServer.Services;
 
 namespace RoslynMcpServer.Diagnostics;
 
@@ -35,7 +34,9 @@ public static class MsBuildBootstrapper
 
     private static void RegisterCore(bool is64Bit)
     {
-        var instances = MSBuildLocator.QueryVisualStudioInstances().ToList();
+        var startupSearchDir = ResolveStartupSearchDirectory();
+        var requestedSdk = GlobalJsonSdkReader.TryGetPinnedSdkVersion(startupSearchDir);
+        var instances = QueryStartupInstances(startupSearchDir);
         var queriedLines = new List<string>();
         foreach (var i in instances)
         {
@@ -47,16 +48,19 @@ public static class MsBuildBootstrapper
 
         MsBuildEnvironmentInfo.QueriedInstanceLines = queriedLines;
 
-        var startupSearchDir = ResolveStartupSearchDirectory();
-        var fromGlobalJson = GlobalJsonSdkReader.TryResolveSdkDirectory(startupSearchDir, is64Bit);
-        if (fromGlobalJson is not null)
+        // Locator ranks the SDK resolved by hostfxr first when it is a compatible installed SDK.
+        var preferredSdk = requestedSdk is null
+            ? null
+            : instances.FirstOrDefault(i =>
+                i.DiscoveryType == DiscoveryType.DotNetSdk
+                && MsBuildInstanceSelector.IsCompatibleWithProcess(i.MSBuildPath, i.VisualStudioRootPath, is64Bit));
+        if (preferredSdk is not null)
         {
-            MSBuildLocator.RegisterMSBuildPath(fromGlobalJson);
-            MsBuildEnvironmentInfo.SelectedMsBuildPath = fromGlobalJson;
-            var pinned = GlobalJsonSdkReader.TryGetPinnedSdkVersion(startupSearchDir) ?? "(unknown)";
+            MSBuildLocator.RegisterInstance(preferredSdk);
+            MsBuildEnvironmentInfo.SelectedMsBuildPath = preferredSdk.MSBuildPath;
             MsBuildEnvironmentInfo.RegistrationSummary =
-                $"RegisterMSBuildPath (global.json SDK {pinned}): {fromGlobalJson}";
-            Console.Error.WriteLine($"[DEBUG] Using MSBuild from global.json SDK: {fromGlobalJson}");
+                $"RegisterInstance (startup SDK discovery): {preferredSdk.Version} at {preferredSdk.MSBuildPath}";
+            Console.Error.WriteLine($"[DEBUG] Using MSBuild from: {preferredSdk.MSBuildPath}");
             MsBuildEnvironmentInfo.RefreshRegisteredInstance();
             return;
         }
@@ -111,10 +115,42 @@ public static class MsBuildBootstrapper
             return;
         }
 
-        Console.Error.WriteLine("[WARN] No compatible MSBuild from QueryVisualStudioInstances; falling back to RegisterDefaults.");
-        MsBuildEnvironmentInfo.SelectedMsBuildPath = MSBuildLocator.RegisterDefaults().MSBuildPath;
-        MsBuildEnvironmentInfo.RegistrationSummary = "RegisterDefaults (fallback)";
-        MsBuildEnvironmentInfo.RefreshRegisteredInstance();
+        Console.Error.WriteLine("[ERR] No compatible MSBuild installation found.");
+        MsBuildEnvironmentInfo.RegistrationSummary = "Failed: no compatible MSBuild installation found.";
+    }
+
+    internal static IReadOnlyList<VisualStudioInstance> QueryStartupInstances(string workingDirectory)
+    {
+        // hostfxr reads global.json without running the SDK. Locator returns only SDKs
+        // enumerated under installed dotnet hosts, even when global.json has custom SDK paths.
+        try
+        {
+            return QueryInstances(workingDirectory);
+        }
+        catch (InvalidOperationException ex)
+        {
+            Console.Error.WriteLine(
+                "[WARN] MSBuild discovery could not resolve an SDK in the startup directory. Trying installed toolsets.");
+            Console.Error.WriteLine($"[DEBUG] MSBuild discovery details: {ex.Message}");
+        }
+
+        var volumeRoot = Path.GetPathRoot(AppContext.BaseDirectory)!;
+        try
+        {
+            return QueryInstances(volumeRoot);
+        }
+        catch (InvalidOperationException ex)
+        {
+            Console.Error.WriteLine($"[DEBUG] MSBuild discovery at the filesystem root failed: {ex.Message}");
+            return [];
+        }
+    }
+
+    private static List<VisualStudioInstance> QueryInstances(string workingDirectory)
+    {
+        var options = VisualStudioInstanceQueryOptions.Default;
+        options.WorkingDirectory = workingDirectory;
+        return MSBuildLocator.QueryVisualStudioInstances(options).ToList();
     }
 
     private static string ResolveStartupSearchDirectory()

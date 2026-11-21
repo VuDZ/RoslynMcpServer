@@ -9,6 +9,7 @@ using Microsoft.CodeAnalysis.MSBuild;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using RoslynMcpServer.Diagnostics;
+using RoslynMcpServer.Services.Workspace.Models;
 
 namespace RoslynMcpServer.Services.Analyzers;
 
@@ -178,7 +179,8 @@ public sealed class AnalyzerProvenanceCaptureService
         set => Interlocked.Exchange(ref _nextFailureMode, (int)value);
     }
 
-    internal async Task<AnalyzerProvenanceSnapshot> OpenAndCaptureAsync(
+    internal async Task<(AnalyzerProvenanceSnapshot Provenance, ImmutableDictionary<ProjectId, ProjectLoadMetadata> ProjectMetadata)>
+        OpenAndCaptureAsync(
         MSBuildWorkspace workspace,
         string fullPath,
         Guid loadSessionId,
@@ -191,7 +193,9 @@ public sealed class AnalyzerProvenanceCaptureService
 
         Interlocked.Increment(ref _captureAttemptCount);
         var tempDirectory = CreatePrivateTempDirectory();
-        var requestedBinlogPath = Path.Combine(tempDirectory, "capture.binlog");
+        // The fork recognizes this basename and places its optional project metadata beside the binlog.
+        var requestedBinlogPath = Path.Combine(tempDirectory, ProjectLoadMetadataCapture.BinlogName);
+        var projectLoadProgress = new ProjectLoadMetadataCapture();
         var binaryLogger = new BinaryLogger
         {
             Parameters = $"{requestedBinlogPath};{BinaryLoggerParameters}",
@@ -201,7 +205,8 @@ public sealed class AnalyzerProvenanceCaptureService
         try
         {
             var openStarted = _timeProvider.GetTimestamp();
-            await OpenWorkspaceAsync(workspace, fullPath, binaryLogger, cancellationToken).ConfigureAwait(false);
+            await OpenWorkspaceAsync(workspace, fullPath, binaryLogger, projectLoadProgress, cancellationToken)
+                .ConfigureAwait(false);
             var openDuration = _timeProvider.GetElapsedTime(openStarted);
 
             var binlogPaths = Directory
@@ -253,7 +258,7 @@ public sealed class AnalyzerProvenanceCaptureService
             _logger.LogInformation(
                 "workspace_load_designtime {Json:l}",
                 replay.Timings.ToJson(openDuration.TotalMilliseconds, replay.FailureCodes));
-            return snapshot;
+            return (snapshot, projectLoadProgress.Bind(workspace.CurrentSolution, tempDirectory, cancellationToken));
         }
         finally
         {
@@ -322,6 +327,7 @@ public sealed class AnalyzerProvenanceCaptureService
         MSBuildWorkspace workspace,
         string fullPath,
         BinaryLogger binaryLogger,
+        IProgress<ProjectLoadProgress> projectLoadProgress,
         CancellationToken cancellationToken)
     {
         var extension = Path.GetExtension(fullPath);
@@ -329,7 +335,7 @@ public sealed class AnalyzerProvenanceCaptureService
             || string.Equals(extension, ".slnx", PathComparison))
         {
             _ = await workspace
-                .OpenSolutionAsync(fullPath, msbuildLogger: binaryLogger, cancellationToken: cancellationToken)
+                .OpenSolutionAsync(fullPath, binaryLogger, projectLoadProgress, cancellationToken)
                 .ConfigureAwait(false);
             return;
         }
@@ -337,7 +343,7 @@ public sealed class AnalyzerProvenanceCaptureService
         if (string.Equals(extension, ".csproj", PathComparison))
         {
             var project = await workspace
-                .OpenProjectAsync(fullPath, msbuildLogger: binaryLogger, cancellationToken: cancellationToken)
+                .OpenProjectAsync(fullPath, binaryLogger, projectLoadProgress, cancellationToken)
                 .ConfigureAwait(false);
             _ = workspace.CurrentSolution.GetProject(project.Id)
                 ?? throw new InvalidOperationException($"Unable to load project '{fullPath}'.");
@@ -370,17 +376,11 @@ public sealed class AnalyzerProvenanceCaptureService
                     ImmutableDictionary<string, string>.Empty))
             .ToImmutableArray();
         var msbuildAssembly = Assembly.Load(new AssemblyName("Microsoft.Build"));
-        var workspaceDirectory = Path.GetDirectoryName(fullPath)!;
-        var dotNetSdkPath = GlobalJsonSdkReader.TryResolveSdkDirectory(
-            workspaceDirectory,
-            Environment.Is64BitProcess);
         var runtimeMsBuildDirectory = Path.GetDirectoryName(msbuildAssembly.Location);
-        if (dotNetSdkPath is null
-            && runtimeMsBuildDirectory is not null
-            && File.Exists(Path.Combine(runtimeMsBuildDirectory, "dotnet.dll")))
-        {
-            dotNetSdkPath = runtimeMsBuildDirectory;
-        }
+        var dotNetSdkPath = runtimeMsBuildDirectory is not null
+            && File.Exists(Path.Combine(runtimeMsBuildDirectory, "dotnet.dll"))
+                ? runtimeMsBuildDirectory
+                : null;
 
         var metrics = new AnalyzerProvenanceCaptureMetrics(
             fileCount,
@@ -400,8 +400,7 @@ public sealed class AnalyzerProvenanceCaptureService
                 msbuildAssembly.Location,
                 msbuildAssembly.GetName().Version?.ToString(),
                 dotNetSdkPath,
-                GlobalJsonSdkReader.TryGetPinnedSdkVersion(workspaceDirectory)
-                    ?? (dotNetSdkPath is null ? null : Path.GetFileName(dotNetSdkPath))),
+                dotNetSdkPath is null ? null : Path.GetFileName(dotNetSdkPath)),
             replay.Status,
             replay.Contexts,
             replay.Items,
@@ -694,9 +693,7 @@ public sealed class AnalyzerProvenanceCaptureService
             foreach (var context in contexts)
             {
                 var targetPath = ResolveProjectValue(context.ProjectFile, Get(context.Properties, "TargetPath"));
-                var intermediateAssembly = ResolveProjectValue(
-                    context.ProjectFile,
-                    Get(context.Properties, "IntermediateAssembly"));
+                var intermediateAssembly = ResolveProjectValue(context.ProjectFile, Get(context.Properties, "IntermediateAssembly"));
                 if (PathEquals(targetPath, project.OutputFilePath)
                     || PathEquals(intermediateAssembly, project.CompilationOutputInfo.AssemblyPath))
                 {
@@ -742,9 +739,7 @@ public sealed class AnalyzerProvenanceCaptureService
             .Where(context =>
             {
                 var targetPath = ResolveProjectValue(context.ProjectFile, Get(context.Properties, "TargetPath"));
-                var intermediateAssembly = ResolveProjectValue(
-                    context.ProjectFile,
-                    Get(context.Properties, "IntermediateAssembly"));
+                var intermediateAssembly = ResolveProjectValue(context.ProjectFile, Get(context.Properties, "IntermediateAssembly"));
                 return PathEquals(targetPath, selectedProject.OutputFilePath)
                     || PathEquals(intermediateAssembly, selectedProject.CompilationOutputInfo.AssemblyPath);
             })

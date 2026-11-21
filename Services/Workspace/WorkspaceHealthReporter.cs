@@ -1,5 +1,6 @@
 using System.Text;
 using Microsoft.CodeAnalysis;
+using RoslynMcpServer.Diagnostics;
 using RoslynMcpServer.Hosting;
 
 namespace RoslynMcpServer.Services.Workspace;
@@ -20,8 +21,8 @@ public static class WorkspaceHealthReporter
         var fullPath = Path.GetFullPath(workspacePath);
         var workDir = WorkspaceRootResolver.ResolveDotNetWorkingDirectory(fullPath);
         var globalJson = GlobalJsonSdkReader.FindGlobalJsonPath(workDir);
-        var pinnedSdk = GlobalJsonSdkReader.TryGetPinnedSdkVersion(workDir);
-        var sdkDir = GlobalJsonSdkReader.TryResolveSdkDirectory(workDir, prefer64Bit: Environment.Is64BitProcess);
+        var requestedSdk = GlobalJsonSdkReader.TryGetPinnedSdkVersion(workDir);
+        var registeredMsBuild = MsBuildEnvironmentInfo.SelectedMsBuildPath ?? MsBuildEnvironmentInfo.RegisteredMsBuildPath;
 
         var sb = new StringBuilder();
         sb.AppendLine("### Workspace health");
@@ -36,8 +37,8 @@ public static class WorkspaceHealthReporter
             $"- **MSBuild TargetFramework:** {(string.IsNullOrWhiteSpace(targetFramework) ? "(SDK/workspace default)" : $"`{targetFramework}`")}");
         sb.AppendLine($"- **BuildArgs:** {DotNetBuildArguments.FormatMetadata(buildArgs)}");
         sb.AppendLine($"- **global.json:** {(globalJson is null ? "(not found)" : $"`{globalJson}`")}");
-        sb.AppendLine($"- **Pinned SDK (global.json):** {(pinnedSdk ?? "(none)")}");
-        sb.AppendLine($"- **Resolved SDK directory:** {(sdkDir ?? "(not resolved)")}");
+        sb.AppendLine($"- **Requested SDK (global.json):** {(requestedSdk ?? "(none)")}");
+        sb.AppendLine($"- **Process-wide MSBuild directory:** {(registeredMsBuild ?? "(not registered)")}");
         sb.AppendLine($"- **Restore assets:** {DescribeRestoreAssets(solution)}");
         sb.AppendLine($"- **Tool profile:** `{activation.Profile}`");
         sb.AppendLine($"- **Startup tool groups:** {activation.FormatStartupGroupsMarkdown()}");

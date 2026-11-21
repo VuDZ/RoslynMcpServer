@@ -21,7 +21,7 @@ public sealed class DotNetCliRunnerLocaleTests
             "dotnet",
             Path.GetTempPath(),
             combinedOutput: string.Empty,
-            sdkVersion: null);
+            sdk: DotNetSdkResolver.FromHostResult(null, null, null, null));
 
         Assert.Contains("DOTNET_CLI_UI_LANGUAGE", metadata, StringComparison.Ordinal);
         Assert.Contains("en-US", metadata, StringComparison.Ordinal);
@@ -66,7 +66,9 @@ public sealed class DotNetCliRunnerLocaleTests
             File.WriteAllText(
                 Path.Combine(directory, "global.json"),
                 """{"sdk":{"version":"99.0.999"}}""");
-            var metadata = DotNetCliRunner.BuildRunMetadata("dotnet", directory, string.Empty, sdkVersion: null);
+            var sdk = DotNetSdkResolver.FromHostResult(
+                Path.Combine(directory, "global.json"), "99.0.999", null, null);
+            var metadata = DotNetCliRunner.BuildRunMetadata("dotnet", directory, string.Empty, sdk);
             var expected = DotNetCliRunner.PinnedSdkNotFoundWarning("99.0.999");
 
             Assert.Contains(expected, metadata, StringComparison.Ordinal);

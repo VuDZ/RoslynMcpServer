@@ -389,7 +389,7 @@ During development, it is more convenient to connect the build output directly:
 
 - Use `ROSLYN_MCP_PLUGINS` with one or more paths separated by `;` on Windows
   or `:` on Linux/macOS.
-- Alternatively, use the `plugins` array in `RoslynMcp.jsonc`:
+- Alternatively, use the `plugins` array in `RoslynMcp.jsonc` beside the executable or in the per-user configuration directory:
 
 ```json
 {
@@ -399,8 +399,9 @@ During development, it is more convenient to connect the build output directly:
 }
 ```
 
-Settings are read beside the server, from the per-user configuration directory,
-then from the process working directory; later sources override the same key.
+Ordinary settings are read beside the server, from the per-user configuration directory,
+then from the process working directory. Later sources override the same key.
+The server ignores `plugins` in a separate working-directory config and warns at startup.
 See [RoslynMcp.jsonc.sample](../../RoslynMcp.jsonc.sample).
 You can specify a directory containing the manifest or the entry DLL path.
 For a DLL path, the file name must match `entry` in the adjacent manifest.
@@ -889,7 +890,7 @@ public sealed class SampleTools
 
 - через `ROSLYN_MCP_PLUGINS` — один или несколько путей, разделённых `;`
   в Windows или `:` в Linux/macOS;
-- через массив `plugins` в `RoslynMcp.jsonc`:
+- через массив `plugins` в `RoslynMcp.jsonc` рядом с exe или в пользовательском каталоге конфигурации:
 
 ```json
 {
@@ -899,8 +900,9 @@ public sealed class SampleTools
 }
 ```
 
-Файл настроек читается рядом с сервером, из пользовательского каталога конфигурации,
-затем из рабочего каталога процесса; следующий источник перекрывает тот же ключ. Пример конфигурации —
+Обычные настройки читаются рядом с сервером, из пользовательского каталога,
+затем из рабочего каталога процесса. Следующий источник перекрывает тот же ключ.
+Сервер игнорирует `plugins` в отдельном конфиге рабочего каталога и предупреждает при запуске. Пример —
 [RoslynMcp.jsonc.sample](../../RoslynMcp.jsonc.sample).
 Можно указывать каталог с манифестом или путь к основной DLL. Во втором случае
 имя файла должно совпадать с `entry` соседнего манифеста.

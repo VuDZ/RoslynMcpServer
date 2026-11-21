@@ -162,20 +162,15 @@ public sealed class DotNetBuildProbeTests
         Directory.CreateDirectory(Path.Combine(sdkDir, "Sdks"));
         File.WriteAllText(Path.Combine(sdkDir, "MSBuild.dll"), string.Empty);
         File.WriteAllText(Path.Combine(sdkDir, "Microsoft.Build.dll"), string.Empty);
-        File.WriteAllText(Path.Combine(root, "global.json"), """{ "sdk": { "version": "10.0.888" } }""");
-        lock (TestEnvironmentLocks.DotNetRoot)
+        try
         {
-            var previousRoot = Environment.GetEnvironmentVariable("DOTNET_ROOT");
-            Environment.SetEnvironmentVariable("DOTNET_ROOT", root);
-            try
-            {
-                Assert.True(DotNetBuildProbe.ShouldRunPinnedMsBuildRestore(log, root));
-            }
-            finally
-            {
-                Environment.SetEnvironmentVariable("DOTNET_ROOT", previousRoot);
-                Directory.Delete(root, recursive: true);
-            }
+            var sdk = DotNetSdkResolver.FromHostResult(
+                Path.Combine(root, "global.json"), "10.0.888", "10.0.888", $"SDK path resolved to [{sdkDir}]");
+            Assert.True(DotNetBuildProbe.ShouldRunPinnedMsBuildRestore(log, sdk));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
         }
     }
 

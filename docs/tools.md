@@ -331,7 +331,9 @@ Filters use name containment, so selecting `Check` may also run `CheckExtra` and
 - `reportCursor: string? = null` — next chunk of a retained full report. Does not start a new build.
 - `includeBuildWarnings: bool = false` — include build warnings; default hides them. Errors are always shown.
 
-**Behavior:** Inherits full process env, then pins SDK via `MSBUILD_EXE_PATH`, `MSBuildSDKsPath`, `DOTNET_MSBUILD_SDK_RESOLVER_SDKS_DIR` / `SDKS_VER` / `CLI_DIR`, `DOTNET_ROOT`. On MSBuild path mismatch → **`error MCP_MSBUILD_SDK_MISMATCH`** and `dotnet exec …/10.x/MSBuild.dll /restore`. Escalation: minimal build → pinned restore → restore (detailed if empty) → build normal → build detailed. **Effective exit** = last `dotnet build` step (not restore). On failure, `Execution context` reports `Configuration` / `Platform` / `ProjectName` / `SolutionTarget` / `BuildArgs` / `NoIncremental`. Session `buildArgs` from `load_workspace` are appended to build steps only (not restore). **Key lines** include task `-- FAILED` with project context. No in-process result cache — “cached” greens were MSBuild incremental or exit overwrite. While a step runs, MCP progress heartbeats report the step label, elapsed seconds, and previous exit (no stdout); this is UX only and cannot extend the host `tools/call` timeout.
+**Behavior:** Uses the SDK selected by `dotnet` for the working directory, including `global.json` roll-forward. Clears inherited MSBuild SDK overrides and applies the verified SDK path when available. An observed MSBuild path that differs from the resolved SDK can produce `MCP_MSBUILD_SDK_MISMATCH` and a restore retry with the resolved `MSBuild.dll`. The diagnostic context shows both requested and resolved SDK versions.
+
+Escalation: minimal build → resolved SDK restore → restore (detailed if empty) → build normal → build detailed. The effective exit code comes from the final build step. On failure, `Execution context` reports `Configuration`, `Platform`, `ProjectName`, `SolutionTarget`, `BuildArgs`, and `NoIncremental`. Session `buildArgs` from `load_workspace` apply to build steps. **Key lines** include task `-- FAILED` with project context. The server runs the build for each request. MCP progress heartbeats report the active step, elapsed time, and previous exit code. The client timeout still applies.
 
 **Output:** Successful builds return only `Build succeeded` plus opted-in warnings. Test results and failed-test stdout/stderr are preserved. `Execution context` appears only on failure, timeout, or an unverified test result. Full build failure logs are available through `reportCursor`, including hidden warnings.
 
@@ -624,6 +626,8 @@ Runs `git` with a 180s deadline and up to 3s to stop the process. Use host `git 
 
 <details>
 <summary><code>list_projects</code> — Shows projects in the workspace (Name, TFM, Output, Refs).</summary>
+
+**Behavior:** Reports the evaluated target framework and output type of each loaded project instance, including imported and conditional settings. An explicit `workspacePath` returns the projects from that load. A property whose evaluated value is unavailable is shown as `(unknown)`, including output type when the workspace uses a legacy BuildHost that does not report it.
 
 **Parameters:**
 - `workspacePath: string? = null`

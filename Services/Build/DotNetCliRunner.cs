@@ -8,6 +8,7 @@ namespace RoslynMcpServer.Services.Build;
 public static class DotNetCliRunner
 {
     public const int DefaultTimeoutSeconds = 300;
+    private const string SdkCheckTimeoutMetadata = "- **Command start:** skipped because the timeout elapsed during SDK resolution.";
 
     public sealed record RunResult(
         int ExitCode,
@@ -80,7 +81,17 @@ public static class DotNetCliRunner
         CancellationToken cancellationToken)
     {
         var dotnet = DotNetHostResolver.ResolveDotNetExecutable();
-        var psi = CreateProcessStartInfo(dotnet, arguments, workDir);
+        var (sdk, remaining) = await ResolveSdkWithCommandBudgetAsync(dotnet, workDir, timeout, cancellationToken)
+            .ConfigureAwait(false);
+        if (remaining == TimeSpan.Zero)
+        {
+            var metadata = BuildRunMetadata(dotnet, workDir, string.Empty, sdk);
+            return new SeparatedRunResult(
+                -1, string.Empty, string.Empty, metadata + Environment.NewLine + SdkCheckTimeoutMetadata,
+                TimedOut: true, ExceptionType: null);
+        }
+
+        var psi = CreateProcessStartInfo(dotnet, arguments, workDir, sdk);
 
         using var process = new Process { StartInfo = psi };
         if (!process.Start())
@@ -92,12 +103,11 @@ public static class DotNetCliRunner
         var stderrTask = process.StandardError.ReadToEndAsync(CancellationToken.None);
         try
         {
-            if (!await WaitForExitOrTimeoutAsync(process, timeout, cancellationToken).ConfigureAwait(false))
+            if (!await WaitForExitOrTimeoutAsync(process, remaining, cancellationToken).ConfigureAwait(false))
             {
                 var stdout = (await stdoutTask.ConfigureAwait(false)).TrimEnd();
                 var stderr = (await stderrTask.ConfigureAwait(false)).TrimEnd();
-                var metadata = await CreateRunMetadataAsync(workDir, string.Join('\n', stdout, stderr), CancellationToken.None)
-                    .ConfigureAwait(false);
+                var metadata = BuildRunMetadata(dotnet, workDir, string.Join('\n', stdout, stderr), sdk);
 
                 return new SeparatedRunResult(process.ExitCode, stdout, stderr, metadata, false, null);
             }
@@ -105,8 +115,7 @@ public static class DotNetCliRunner
             TryKillProcessTree(process);
             var (partialStdout, partialStderr) = await AwaitOutputAsync(stdoutTask, stderrTask, OutputDrainTimeout)
                 .ConfigureAwait(false);
-            var meta = await CreateRunMetadataAsync(workDir, string.Join('\n', partialStdout, partialStderr), CancellationToken.None)
-                .ConfigureAwait(false);
+            var meta = BuildRunMetadata(dotnet, workDir, string.Join('\n', partialStdout, partialStderr), sdk);
 
             return new SeparatedRunResult(
                 process.HasExited ? process.ExitCode : -1,
@@ -126,8 +135,7 @@ public static class DotNetCliRunner
             TryKillProcessTree(process);
             var (partialStdout, partialStderr) = await AwaitOutputAsync(stdoutTask, stderrTask, OutputDrainTimeout)
                 .ConfigureAwait(false);
-            var meta = await CreateRunMetadataAsync(workDir, string.Join('\n', partialStdout, partialStderr), CancellationToken.None)
-                .ConfigureAwait(false);
+            var meta = BuildRunMetadata(dotnet, workDir, string.Join('\n', partialStdout, partialStderr), sdk);
             return new SeparatedRunResult(
                 process.HasExited ? process.ExitCode : -1,
                 partialStdout,
@@ -150,15 +158,60 @@ public static class DotNetCliRunner
         TimeSpan? timeout = null,
         CliProgressWatch? progress = null)
     {
+        var workDir = string.IsNullOrWhiteSpace(workingDirectory)
+            ? Environment.CurrentDirectory
+            : Path.GetFullPath(workingDirectory);
+        var dotnet = DotNetHostResolver.ResolveDotNetExecutable();
+        var (sdk, remaining) = await ResolveSdkWithCommandBudgetAsync(dotnet, workDir, timeout, cancellationToken)
+            .ConfigureAwait(false);
+        if (remaining == TimeSpan.Zero)
+        {
+            var metadata = BuildRunMetadata(dotnet, workDir, string.Empty, sdk);
+            return new RunResult(
+                -1, string.Empty, metadata + Environment.NewLine + SdkCheckTimeoutMetadata, 0, 0, TimedOut: true);
+        }
+
+        return await RunWithSdkAsync(dotnet, arguments, workDir, sdk, remaining, progress, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    private static async Task<(DotNetSdkEnvironment.SdkPinInfo Sdk, TimeSpan? Remaining)> ResolveSdkWithCommandBudgetAsync(
+        string dotnet,
+        string workDir,
+        TimeSpan? timeout,
+        CancellationToken cancellationToken)
+    {
+        var started = Stopwatch.GetTimestamp();
+        var limit = timeout > TimeSpan.Zero ? timeout : null;
+        var probeLimit = limit is { } finite && finite < DotNetSdkResolver.DefaultTimeout
+            ? finite
+            : DotNetSdkResolver.DefaultTimeout;
+        var sdk = await DotNetSdkResolver.ResolveAsync(dotnet, workDir, probeLimit, cancellationToken)
+            .ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
+        return (sdk, DotNetTestArguments.RemainingTimeout(limit, Stopwatch.GetElapsedTime(started)));
+    }
+
+    internal static async Task<RunResult> RunWithSdkAsync(
+        string dotnet,
+        string arguments,
+        string workingDirectory,
+        DotNetSdkEnvironment.SdkPinInfo sdk,
+        TimeSpan? timeout,
+        CliProgressWatch? progress,
+        CancellationToken cancellationToken)
+    {
         if (progress is null)
         {
-            return await RunCoreAsync(arguments, workingDirectory, cancellationToken, timeout).ConfigureAwait(false);
+            return await RunCoreAsync(dotnet, arguments, workingDirectory, sdk, timeout, cancellationToken)
+                .ConfigureAwait(false);
         }
 
         var heartbeat = StartHeartbeat(progress, cancellationToken);
         try
         {
-            return await RunCoreAsync(arguments, workingDirectory, cancellationToken, timeout).ConfigureAwait(false);
+            return await RunCoreAsync(dotnet, arguments, workingDirectory, sdk, timeout, cancellationToken)
+                .ConfigureAwait(false);
         }
         finally
         {
@@ -167,17 +220,14 @@ public static class DotNetCliRunner
     }
 
     private static async Task<RunResult> RunCoreAsync(
+        string dotnet,
         string arguments,
-        string? workingDirectory,
-        CancellationToken cancellationToken,
-        TimeSpan? timeout)
+        string workDir,
+        DotNetSdkEnvironment.SdkPinInfo sdk,
+        TimeSpan? timeout,
+        CancellationToken cancellationToken)
     {
-        var workDir = string.IsNullOrWhiteSpace(workingDirectory)
-            ? Environment.CurrentDirectory
-            : Path.GetFullPath(workingDirectory);
-
-        var dotnet = DotNetHostResolver.ResolveDotNetExecutable();
-        var psi = CreateProcessStartInfo(dotnet, arguments, workDir);
+        var psi = CreateProcessStartInfo(dotnet, arguments, workDir, sdk);
 
         using var process = new Process { StartInfo = psi };
         var started = Stopwatch.GetTimestamp();
@@ -199,8 +249,7 @@ public static class DotNetCliRunner
                 var stderr = (await stderrTask.ConfigureAwait(false)).TrimEnd();
                 var elapsed = Stopwatch.GetElapsedTime(started);
                 var combinedText = CombineStreams(stdout, stderr);
-                var metadata = await CreateRunMetadataAsync(workDir, combinedText, CancellationToken.None)
-                    .ConfigureAwait(false);
+                var metadata = BuildRunMetadata(dotnet, workDir, combinedText, sdk);
 
                 return new RunResult(
                     process.ExitCode,
@@ -214,8 +263,7 @@ public static class DotNetCliRunner
             var (partialStdout, partialStderr) = await AwaitOutputAsync(stdoutTask, stderrTask, OutputDrainTimeout)
                 .ConfigureAwait(false);
             var combinedTimedOut = CombineStreams(partialStdout, partialStderr);
-            var timedOutMetadata = await CreateRunMetadataAsync(workDir, combinedTimedOut, CancellationToken.None)
-                .ConfigureAwait(false);
+            var timedOutMetadata = BuildRunMetadata(dotnet, workDir, combinedTimedOut, sdk);
             return new RunResult(
                 process.HasExited ? process.ExitCode : -1,
                 combinedTimedOut,
@@ -305,9 +353,13 @@ public static class DotNetCliRunner
         CancellationToken cancellationToken)
     {
         var dotnet = DotNetHostResolver.ResolveDotNetExecutable();
-        var sdkVersion = await TryGetDotNetSdkVersionAsync(dotnet, workingDirectory, cancellationToken)
+        var sdk = await DotNetSdkResolver.ResolveAsync(
+                dotnet,
+                workingDirectory,
+                DotNetSdkResolver.DefaultTimeout,
+                cancellationToken)
             .ConfigureAwait(false);
-        return BuildRunMetadata(dotnet, workingDirectory, combinedOutput, sdkVersion);
+        return BuildRunMetadata(dotnet, workingDirectory, combinedOutput, sdk);
     }
 
     public static string FormatHangHints(bool timedOut, bool cancelled)
@@ -315,7 +367,7 @@ public static class DotNetCliRunner
         var sb = new StringBuilder();
         if (timedOut)
         {
-            sb.AppendLine("**MCP_DOTNET_TIMEOUT:** process exceeded the tool timeout and was killed (`Kill(entireProcessTree)`).");
+            sb.AppendLine("**MCP_DOTNET_TIMEOUT:** operation reached the tool timeout.");
         }
 
         if (cancelled)
@@ -330,7 +382,11 @@ public static class DotNetCliRunner
         return sb.ToString().TrimEnd();
     }
 
-    internal static ProcessStartInfo CreateProcessStartInfo(string dotnet, string arguments, string workDir)
+    internal static ProcessStartInfo CreateProcessStartInfo(
+        string dotnet,
+        string arguments,
+        string workDir,
+        DotNetSdkEnvironment.SdkPinInfo? sdk = null)
     {
         var psi = new ProcessStartInfo
         {
@@ -345,7 +401,7 @@ public static class DotNetCliRunner
             StandardErrorEncoding = Encoding.UTF8
         };
 
-        DotNetSdkEnvironment.ApplyPinnedSdk(psi, workDir);
+        DotNetSdkEnvironment.ApplySdkSelection(psi, sdk);
         EnsureWindowsProcessorArchitecture(psi, RuntimeInformation.ProcessArchitecture);
         psi.Environment["MSBUILDDISABLENODEREUSE"] = "1";
         // Parsers are English-only; a ru-RU machine otherwise prints "Пройдено!" instead of "Passed!".
@@ -408,7 +464,7 @@ public static class DotNetCliRunner
         return true;
     }
 
-    private static void TryKillProcessTree(Process process)
+    internal static void TryKillProcessTree(Process process)
     {
         List<Process> descendants = [];
         try
@@ -571,43 +627,41 @@ public static class DotNetCliRunner
         string dotnetPath,
         string workDir,
         string combinedOutput,
-        string? sdkVersion)
+        DotNetSdkEnvironment.SdkPinInfo sdk)
     {
-        var globalJson = GlobalJsonSdkReader.FindGlobalJsonPath(workDir);
-        var pin = DotNetSdkEnvironment.TryGetPin(workDir);
         var metadata = new StringBuilder();
         metadata.AppendLine($"- **dotnet host:** `{dotnetPath}` ({(Environment.Is64BitProcess ? "64-bit" : "32-bit")} MCP process)");
-        if (!string.IsNullOrEmpty(sdkVersion))
+        if (sdk.ResolvedVersion is not null)
         {
-            metadata.AppendLine($"- **dotnet --version:** `{sdkVersion}` (from working directory)");
+            metadata.AppendLine($"- **dotnet --version:** `{sdk.ResolvedVersion}` (from working directory)");
         }
 
-        if (globalJson is not null)
+        if (sdk.GlobalJsonPath is not null)
         {
-            metadata.AppendLine($"- **global.json:** `{globalJson}`");
+            metadata.AppendLine($"- **global.json:** `{sdk.GlobalJsonPath}`");
+
+            if (sdk.PinnedVersion is not null)
+            {
+                metadata.AppendLine($"- **Requested SDK:** `{sdk.PinnedVersion}`");
+            }
         }
 
-        if (!string.IsNullOrEmpty(pin?.PinnedVersion))
+        if (sdk.SdkDirectory is not null)
         {
-            metadata.AppendLine($"- **Pinned SDK:** `{pin.PinnedVersion}`");
+            metadata.AppendLine($"- **Resolved SDK directory:** `{sdk.SdkDirectory}`");
+            metadata.AppendLine($"- **Expected MSBuild:** `{sdk.MsBuildDllPath}`");
+        }
+        else if (sdk.GlobalJsonPath is not null && sdk.PinnedVersion is not null && sdk.ResolvedVersion is null)
+        {
+            metadata.AppendLine(PinnedSdkNotFoundWarning(sdk.PinnedVersion));
         }
 
-        if (!string.IsNullOrEmpty(pin?.SdkDirectory))
+        if (DotNetSdkEnvironment.HasConfiguredSdk(sdk) && sdk.SdksDirectory is not null)
         {
-            metadata.AppendLine($"- **Resolved SDK directory:** `{pin.SdkDirectory}`");
-            metadata.AppendLine($"- **Expected MSBuild:** `{pin.MsBuildDllPath}`");
-        }
-        else if (!string.IsNullOrEmpty(pin?.PinnedVersion))
-        {
-            metadata.AppendLine(PinnedSdkNotFoundWarning(pin.PinnedVersion));
+            metadata.AppendLine($"- **MSBuildSDKsPath / SDKS_DIR:** `{sdk.SdksDirectory}`");
         }
 
-        if (!string.IsNullOrEmpty(pin?.SdksDirectory))
-        {
-            metadata.AppendLine($"- **MSBuildSDKsPath / SDKS_DIR:** `{pin.SdksDirectory}`");
-        }
-
-        DotNetSdkEnvironment.AppendSdkEnvMetadata(metadata, workDir, combinedOutput);
+        DotNetSdkEnvironment.AppendSdkEnvMetadata(metadata, sdk, combinedOutput);
 
         var logMsbuild = Diagnostics.MsBuildLogHighlighter.TryGetMsBuildExecutablePath(combinedOutput);
         if (!string.IsNullOrEmpty(logMsbuild))
@@ -637,59 +691,15 @@ public static class DotNetCliRunner
     {
         if (windowsInstall)
         {
-            return $"- **WARNING:** Pinned SDK `{pinnedVersion}` was not found under Program Files\\dotnet\\sdk. Install it or fix rollForward.";
+            return $"- **WARNING:** dotnet could not confirm an SDK for global.json request `{pinnedVersion}`. "
+                + "Check rollForward and installed SDKs under Program Files\\dotnet\\sdk.";
         }
 
-        return $"- **WARNING:** Pinned SDK `{pinnedVersion}` was not found under DOTNET_ROOT or on PATH. Install it or fix rollForward.";
+        return $"- **WARNING:** dotnet could not confirm an SDK for global.json request `{pinnedVersion}`. "
+            + "Check rollForward and installed SDKs under DOTNET_ROOT or on PATH.";
     }
 
     internal static string PinnedSdkNotFoundWarning(string pinnedVersion) =>
         PinnedSdkNotFoundWarning(pinnedVersion, OperatingSystem.IsWindows());
 
-    private static async Task<string?> TryGetDotNetSdkVersionAsync(
-        string dotnetPath,
-        string workingDirectory,
-        CancellationToken cancellationToken)
-    {
-        try
-        {
-            var psi = new ProcessStartInfo
-            {
-                FileName = dotnetPath,
-                Arguments = "--version",
-                WorkingDirectory = workingDirectory,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                StandardOutputEncoding = Encoding.UTF8
-            };
-
-            DotNetSdkEnvironment.ApplyPinnedSdk(psi, workingDirectory);
-
-            using var process = Process.Start(psi);
-            if (process is null)
-            {
-                return null;
-            }
-
-            using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            cts.CancelAfter(TimeSpan.FromSeconds(15));
-            try
-            {
-                var output = (await process.StandardOutput.ReadToEndAsync(cts.Token).ConfigureAwait(false)).Trim();
-                await process.WaitForExitAsync(cts.Token).ConfigureAwait(false);
-                return string.IsNullOrEmpty(output) ? null : output;
-            }
-            catch (OperationCanceledException)
-            {
-                TryKillProcessTree(process);
-                return null;
-            }
-        }
-        catch (Exception)
-        {
-            return null;
-        }
-    }
 }

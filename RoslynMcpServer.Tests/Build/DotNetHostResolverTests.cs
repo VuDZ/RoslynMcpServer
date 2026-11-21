@@ -16,9 +16,10 @@ public sealed class DotNetHostResolverTests
         {
             var path = DotNetHostResolver.ResolveDotNetExecutable();
             Assert.False(MsBuildInstanceSelector.Is32BitWindowsPath(path));
-            var dotnetRoot = Environment.GetEnvironmentVariable("DOTNET_ROOT");
-            var configuredHost = string.IsNullOrWhiteSpace(dotnetRoot) ? null : Path.Combine(dotnetRoot.Trim(), "dotnet.exe");
-            if (configuredHost is not null && File.Exists(configuredHost))
+            var configuredHost = DotNetHostResolver.ResolveConfiguredHost(
+                Environment.GetEnvironmentVariable("DOTNET_ROOT"),
+                Environment.GetEnvironmentVariable("DOTNET_HOST_PATH"));
+            if (configuredHost is not null)
             {
                 Assert.Equal(configuredHost, path);
             }
@@ -28,5 +29,43 @@ public sealed class DotNetHostResolverTests
                 Assert.DoesNotContain("(x86)", path, StringComparison.OrdinalIgnoreCase);
             }
         }
+    }
+
+    [Fact]
+    public void ResolveConfiguredHost_skips_a_runtime_only_host_unless_dotnet_root_requests_it()
+    {
+        var temp = Directory.CreateTempSubdirectory("roslyn-mcp-host-");
+        try
+        {
+            var runtimeHost = CreateHostMarker(temp.FullName, "runtime");
+            var sdkHost = CreateHostMarker(temp.FullName, "sdk");
+            var version = Directory.CreateDirectory(Path.Combine(temp.FullName, "sdk", "sdk", "10.0.100"));
+            File.WriteAllText(Path.Combine(version.FullName, "dotnet.dll"), string.Empty);
+
+            Assert.Equal(runtimeHost, DotNetHostResolver.ResolveConfiguredHost(Path.GetDirectoryName(runtimeHost), sdkHost));
+            Assert.Equal(sdkHost, DotNetHostResolver.ResolveConfiguredHost(null, sdkHost));
+            Assert.Null(DotNetHostResolver.ResolveConfiguredHost(null, runtimeHost));
+
+            if (!OperatingSystem.IsWindows())
+            {
+                var bin = Directory.CreateDirectory(Path.Combine(temp.FullName, "bin"));
+                var symlink = Path.Combine(bin.FullName, "dotnet");
+                File.CreateSymbolicLink(symlink, sdkHost);
+
+                Assert.Equal(sdkHost, DotNetHostResolver.ResolveConfiguredHost(null, symlink));
+            }
+        }
+        finally
+        {
+            temp.Delete(recursive: true);
+        }
+    }
+
+    private static string CreateHostMarker(string temp, string subdirectory)
+    {
+        var directory = Directory.CreateDirectory(Path.Combine(temp, subdirectory));
+        var path = Path.Combine(directory.FullName, OperatingSystem.IsWindows() ? "dotnet.exe" : "dotnet");
+        File.WriteAllText(path, string.Empty);
+        return path;
     }
 }

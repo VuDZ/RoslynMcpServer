@@ -1416,41 +1416,25 @@ public sealed class UtilityTools
     {
         try
         {
-            if (!string.IsNullOrWhiteSpace(workspacePath))
-            {
-                await _solutionManager.LoadAsync(workspacePath, cancellationToken);
-            }
-
-            var solution = _solutionManager.GetCurrentSolution();
-            if (solution is null)
+            var snapshot = string.IsNullOrWhiteSpace(workspacePath)
+                ? await _solutionManager.GetProjectListSnapshotAsync(cancellationToken).ConfigureAwait(false)
+                : (await _solutionManager.LoadAndPrepareAsync(
+                    workspacePath,
+                    shadowCopyInSolutionAnalyzers: false,
+                    cancellationToken).ConfigureAwait(false)).PublishedProjectList;
+            if (snapshot.Solution is not { } solution)
             {
                 return ToolTelemetry.TraceAndReturn(
                     nameof(ListProjects),
-                    _solutionManager.FormatNoPublishedSolutionMessage("Error: No workspace loaded."));
+                    snapshot.UnavailableMessage!);
             }
 
             var sb = new StringBuilder();
             foreach (var project in solution.Projects.OrderBy(p => p.Name, StringComparer.OrdinalIgnoreCase))
             {
-                var tfm = "(unknown)";
-                var outputType = "(unknown)";
+                cancellationToken.ThrowIfCancellationRequested();
+                var (tfm, outputType) = snapshot.Metadata.GetValueOrDefault(project.Id);
                 var projectPath = project.FilePath ?? "(unknown path)";
-
-                if (project.FilePath is not null && File.Exists(project.FilePath))
-                {
-                    try
-                    {
-                        var xml = await File.ReadAllTextAsync(project.FilePath, cancellationToken);
-                        tfm = ExtractSimpleCsprojValue(xml, "TargetFramework")
-                            ?? ExtractSimpleCsprojValue(xml, "TargetFrameworks")
-                            ?? tfm;
-                        outputType = ExtractSimpleCsprojValue(xml, "OutputType") ?? outputType;
-                    }
-                    catch
-                    {
-                        // keep unknown metadata if csproj parsing fails
-                    }
-                }
 
                 var refs = project.ProjectReferences
                     .Select(r => solution.GetProject(r.ProjectId)?.Name)
@@ -1459,8 +1443,8 @@ public sealed class UtilityTools
 
                 sb.AppendLine($"- {project.Name}");
                 sb.AppendLine($"  Path: {projectPath}");
-                sb.AppendLine($"  TFM: {tfm}");
-                sb.AppendLine($"  OutputType: {outputType}");
+                sb.AppendLine($"  TFM: {tfm ?? "(unknown)"}");
+                sb.AppendLine($"  OutputType: {outputType ?? "(unknown)"}");
                 sb.AppendLine($"  References: {(refs.Count == 0 ? "(none)" : string.Join(", ", refs))}");
             }
 
@@ -1711,26 +1695,6 @@ public sealed class UtilityTools
         }
 
         return selection.Symbol;
-    }
-
-    private static string? ExtractSimpleCsprojValue(string xml, string elementName)
-    {
-        var openTag = $"<{elementName}>";
-        var closeTag = $"</{elementName}>";
-        var start = xml.IndexOf(openTag, StringComparison.OrdinalIgnoreCase);
-        if (start < 0)
-        {
-            return null;
-        }
-
-        start += openTag.Length;
-        var end = xml.IndexOf(closeTag, start, StringComparison.OrdinalIgnoreCase);
-        if (end < 0 || end <= start)
-        {
-            return null;
-        }
-
-        return xml[start..end].Trim();
     }
 
     private static void AppendDirectoryTree(StringBuilder sb, DirectoryInfo directory, int currentDepth, int maxDepth)

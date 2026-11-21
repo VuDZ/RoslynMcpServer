@@ -99,7 +99,14 @@ internal abstract class AbstractBuildHost :
             }
 
             using (BuildHostTrace.Start("create-build-manager"))
-                _buildManager = new ProjectBuildManager(_knownCommandLineParserLanguages, _globalMSBuildProperties, logger, _maxNodeCount);
+            {
+                _buildManager = new ProjectBuildManager(
+                    _knownCommandLineParserLanguages,
+                    _globalMSBuildProperties,
+                    logger,
+                    _maxNodeCount,
+                    ProjectOutputTypeLog.TryCreate(_binaryLogPath));
+            }
         }
     }
 
