@@ -9,63 +9,6 @@
 
 ## Открытые
 
-<a id="ar-03"></a>
-### AR-03 · P3 · Отгруженное поведение обосновано отложенным черновиком
-
-**Проверено 2026-11-21.** В ARCHITECTURE перенесено обоснование действующей политики. Приоритет снижен до P3. [Сверка](priority-fixes.md).
-
-**Проверено 2026-11-15:** подтверждено без изменений.
-
-**Доказательство.**
-- `docs/ARCHITECTURE.md:45`: `docs/backlog/workspace-load-cache/` — «forward-looking …
-  not shipped behavior».
-- `docs/ARCHITECTURE.md:79`: текущая политика «live semantic reads trust the watcher …»
-  и отвергнутые альтернативы даны ссылкой на
-  `backlog/workspace-load-cache/epoch-3-live-consistency/spec.md`. У spec статус «proposed»,
-  задачи эпохи — planned, сама программа отложена (`docs/README.md:35-39`).
-
-**Требование.** `docs/README.md:54`: после ship факты копируются в ARCHITECTURE или README.
-
-**Последствие.** Решение, по которому работает production watcher, существует только в
-документе, который индекс велит не считать нормой. При архивировании backlog обоснование
-потеряется. После 1.5.23 политика watcher'а менялась ещё раз
-([disk-watcher-inotify](../disk-watcher-inotify/README.md)), и её текущее описание уже собрано из
-двух тем.
-
-**Предложение.** Перенести в ARCHITECTURE (или короткий contract-файл) выбранную
-политику и список отвергнутых альтернатив; ссылку на backlog оставить как историю.
-Цена: низкая.
-
-<a id="ar-04"></a>
-### AR-04 · P1 · Расхождение статусов workspace-state-cache
-
-**Проверено 2026-11-21.** Статусы индекса и backlog уточнены. S-002 принят как ограниченный тестовый эксперимент, E1/task-00 заблокирован. [Сверка](priority-fixes.md).
-
-**Проверено 2026-11-15:** подтверждено, все перечисленные места не менялись.
-
-**Доказательство.**
-- `docs/README.md:19`: «S-002 not-run». В README темы, README эпох E0/E1 и в
-  `task-11-…-hi.md` — accepted (bounded test-only partial experiment, 2026-10-09).
-  Коммит `fc72dc8` обновил всё, кроме индекса.
-- `docs/backlog/workspace-load-cache/README.md:9`, `docs/backlog/README.md:14`:
-  state-cache — «ready-for-review; реализация не начата».
-- `docs/workspace-state-cache/validation.md:3,10-12`: «Обновлено 2026-10-08 … task-00
-  accepted, task-08 accepted, остальные planned … S-002 not-run».
-- `docs/workspace-state-cache/benchmark.md:3`: «Числа ускорения ещё не получены» —
-  после принятого task-07 benchmark.
-- Дата статуса спеки: 2026-10-09 в индексе, 2026-10-07 в README темы (`:3`).
-- В индексе не отражено, что E1/task-00 blocked
-  (`docs/workspace-state-cache/epoch-1-disk-cache-mvp/README.md:4,12`).
-
-**Требование.** `AGENTS.md`, раздел «Task status bookkeeping»: task, index, report и packet
-должны быть согласованы.
-
-**Последствие.** Агент, читающий индекс (как велит `docs/README.md:3`), получает неверную
-картину; при возобновлении экспериментов легко перезапустить уже принятую работу.
-
-**Предложение.** Синхронизировать перечисленные места. Структурная причина — AR-16.
-Цена: низкая.
-
 <a id="ar-05"></a>
 ### AR-05 · P2 · Экспериментальный StateCache в production-сборке
 
@@ -545,3 +488,64 @@ global.json pins 10.0.300»). Воспроизведено на Windows во в�
 изменения. Либо реализовать правила `rollForward` по документации, что дороже и расходится с
 хостом на краях. Цена: средняя; нужны тесты на политики `disable`, `patch`, `latestPatch`,
 `latestFeature` и отсутствующую версию.
+
+<a id="ar-03"></a>
+### AR-03 · P3 · Отгруженное поведение обосновано отложенным черновиком
+
+**Закрыто 2026-11-21.** Коммит `abb4f9d`. [Сверка документации](priority-fixes.md#сверка-документации)
+
+**Проверено 2026-11-21.** В ARCHITECTURE перенесено обоснование действующей политики. Приоритет снижен до P3. [Сверка](priority-fixes.md).
+
+**Проверено 2026-11-15:** подтверждено без изменений.
+
+**Доказательство.**
+- `docs/ARCHITECTURE.md:45`: `docs/backlog/workspace-load-cache/` — «forward-looking …
+  not shipped behavior».
+- `docs/ARCHITECTURE.md:79`: текущая политика «live semantic reads trust the watcher …»
+  и отвергнутые альтернативы даны ссылкой на
+  `backlog/workspace-load-cache/epoch-3-live-consistency/spec.md`. У spec статус «proposed»,
+  задачи эпохи — planned, сама программа отложена (`docs/README.md:35-39`).
+
+**Требование.** `docs/README.md:54`: после ship факты копируются в ARCHITECTURE или README.
+
+**Последствие.** Решение, по которому работает production watcher, существует только в
+документе, который индекс велит не считать нормой. При архивировании backlog обоснование
+потеряется. После 1.5.23 политика watcher'а менялась ещё раз
+([disk-watcher-inotify](../disk-watcher-inotify/README.md)), и её текущее описание уже собрано из
+двух тем.
+
+**Предложение.** Перенести в ARCHITECTURE (или короткий contract-файл) выбранную
+политику и список отвергнутых альтернатив; ссылку на backlog оставить как историю.
+Цена: низкая.
+
+<a id="ar-04"></a>
+### AR-04 · P1 · Расхождение статусов workspace-state-cache
+
+**Закрыто 2026-11-21.** Коммит `abb4f9d`. [Сверка документации](priority-fixes.md#сверка-документации)
+
+**Проверено 2026-11-21.** Статусы индекса и backlog уточнены. S-002 принят как ограниченный тестовый эксперимент, E1/task-00 заблокирован. [Сверка](priority-fixes.md).
+
+**Проверено 2026-11-15:** подтверждено, все перечисленные места не менялись.
+
+**Доказательство.**
+- `docs/README.md:19`: «S-002 not-run». В README темы, README эпох E0/E1 и в
+  `task-11-…-hi.md` — accepted (bounded test-only partial experiment, 2026-10-09).
+  Коммит `fc72dc8` обновил всё, кроме индекса.
+- `docs/backlog/workspace-load-cache/README.md:9`, `docs/backlog/README.md:14`:
+  state-cache — «ready-for-review; реализация не начата».
+- `docs/workspace-state-cache/validation.md:3,10-12`: «Обновлено 2026-10-08 … task-00
+  accepted, task-08 accepted, остальные planned … S-002 not-run».
+- `docs/workspace-state-cache/benchmark.md:3`: «Числа ускорения ещё не получены» —
+  после принятого task-07 benchmark.
+- Дата статуса спеки: 2026-10-09 в индексе, 2026-10-07 в README темы (`:3`).
+- В индексе не отражено, что E1/task-00 blocked
+  (`docs/workspace-state-cache/epoch-1-disk-cache-mvp/README.md:4,12`).
+
+**Требование.** `AGENTS.md`, раздел «Task status bookkeeping»: task, index, report и packet
+должны быть согласованы.
+
+**Последствие.** Агент, читающий индекс (как велит `docs/README.md:3`), получает неверную
+картину; при возобновлении экспериментов легко перезапустить уже принятую работу.
+
+**Предложение.** Синхронизировать перечисленные места. Структурная причина — AR-16.
+Цена: низкая.
