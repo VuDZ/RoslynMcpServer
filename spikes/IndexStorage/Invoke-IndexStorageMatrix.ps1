@@ -5,8 +5,8 @@
 
 .DESCRIPTION
     'none' runs the ParallelSearch spike, which has no SQLite library, so Roslyn rebuilds every index.
-    'cold' and 'warm' run the IndexStorage spike: the same code plus SQLite3MC.PCLRaw.bundle 2.3.5, the
-    build Roslyn 5.9.0 references. Before a cold run the script deletes this solution's cache, written
+    'cold' and 'warm' run the IndexStorage spike: the same code plus the SQLitePCLRaw bundle and native
+    pins from IndexStorage.csproj. Before a cold run the script deletes this solution's cache, written
     by dotnet-hosted processes, under %LOCALAPPDATA%\Microsoft\VisualStudio\Roslyn\Cache (on Linux,
     ~/.local/share/...); the warm run that follows reuses what the cold run wrote. Visual Studio caches
     live under other process names and are not touched.
@@ -238,7 +238,7 @@ if (-not $OutDirectory) {
     $OutDirectory = Join-Path (Join-Path $PSScriptRoot 'results') ('storage-' + (Get-Date -Format 'yyyyMMdd-HHmmss'))
 }
 New-Item -ItemType Directory -Force -Path $OutDirectory | Out-Null
-$environment = Get-Environment $Solution $repo ([ordered]@{ matchName = $MatchName; missingName = $MissingName; runs = $Runs; sqlite = 'SQLite3MC.PCLRaw.bundle 2.3.5' })
+$environment = Get-Environment $Solution $repo ([ordered]@{ matchName = $MatchName; missingName = $MissingName; runs = $Runs; sqlite = 'SQLitePCLRaw.bundle_e_sqlite3 2.1.11 / SQLitePCLRaw.lib.e_sqlite3 3.53.3' })
 [IO.File]::WriteAllText((Join-Path $OutDirectory 'environment.json'), ($environment | ConvertTo-Json), $utf8NoBom)
 
 Invoke-Matrix $Solution $OutDirectory

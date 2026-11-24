@@ -88,6 +88,8 @@ The tools are built for an agent's context window. Long result lists are capped 
 
 **1. Download** the archive for your platform from [Releases](https://github.com/VuDZ/RoslynMcpServer/releases) and extract it. The `self-contained` variant needs no .NET runtime for the server itself. It doesn't include an SDK, though. To load your solution, the machine needs the .NET SDK your solution builds with (see its `global.json`), and the solution should be restored, as after `dotnet restore` or a first build.
 
+For .NET 11 builds starting with `1.6.3`, framework-dependent archives require a .NET 11 runtime. Check [supported operating systems](https://github.com/dotnet/core/blob/main/release-notes/11.0/supported-os.json) and [minimum hardware requirements](https://learn.microsoft.com/dotnet/core/compatibility/jit/11/minimum-hardware-requirements) for these builds.
+
 On Linux (on macOS, use `osx-arm64` instead of `linux-x64`):
 
 ```bash
@@ -199,7 +201,7 @@ More setup detail is in [Installation and configuration](docs/setup.md): all pla
 - **Edits are picked up.** Saved changes to `.cs` files already in the solution sync into the semantic model automatically. After adding or deleting files, or changing project files, the agent calls `load_workspace` again. Unsaved editor buffers aren't visible.
 - **It runs with your permissions.** The server reads and writes files and starts `dotnet` and Git as your user. It is not a sandbox. Use version control and review what the agent changes.
 - **It stays local.** No remote telemetry or hosted backend: the server sends nothing on its own. Network access happens only through operations you or the agent request: NuGet commands, and the builds, tests and applications the tools start, which can reach the network themselves. Logs, including incoming tool arguments, stay in your user profile, and so do local usage statistics, which are on by default and turned off with `ROSLYN_MCP_USAGE=0`. See [PRIVACY.md](PRIVACY.md) and [Logs](docs/setup.md#logs).
-- **Platforms.** Windows x64 and Linux x64. macOS ARM64 archives pass native CI, but the packaged archive itself hasn't been smoke-tested on a Mac yet.
+- **Platforms.** Windows x64, Linux x64 and macOS ARM64. Native archive smoke passed on all three for the .NET 11 candidate. [Platform validation](docs/github-releases/README.md)
 
 ## Documentation
 
@@ -212,11 +214,11 @@ More setup detail is in [Installation and configuration](docs/setup.md): all pla
 
 ## Building from source
 
-Requires the .NET 10 SDK. Run the published executable, not `dotnet run`:
+Requires the .NET 11 SDK pinned in [`global.json`](global.json). Run the published executable:
 
 ```bash
 dotnet publish RoslynMcpServer.csproj -c Release -r linux-x64   # or win-x64, osx-arm64
-# → bin/Release/net10.0/linux-x64/publish/RoslynMcpServer
+# → bin/Release/net11.0/linux-x64/publish/RoslynMcpServer
 ```
 
 ## License

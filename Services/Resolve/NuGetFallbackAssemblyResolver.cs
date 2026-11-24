@@ -171,7 +171,7 @@ internal sealed class NuGetFallbackAssemblyResolver : IAssemblyResolver
 
         string[] preferred =
         [
-            "net10.0", "net9.0", "net8.0", "netstandard2.1", "netstandard2.0", "net472", "net462"
+            "net11.0", "net10.0", "net9.0", "net8.0", "netstandard2.1", "netstandard2.0", "net472", "net462"
         ];
 
         for (var i = 0; i < preferred.Length; i++)

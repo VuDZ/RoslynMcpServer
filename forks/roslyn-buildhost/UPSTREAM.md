@@ -1,20 +1,32 @@
 # Upstream of the BuildHost fork
 
 - Repository: https://github.com/dotnet/roslyn
-- Revision: `35d9211b841e7613c1d2f8f5af6d628ace696c4c` (branch `release/insiders`, 2026-07-07), the
+- Revision: `1324e1d34a0490454837a22370e75bbaeecffb87` (branch `release/insiders`), the
   commit recorded in `microsoft.codeanalysis.workspaces.msbuild.nuspec` of package
-  `Microsoft.CodeAnalysis.Workspaces.MSBuild` 5.9.0, which the server references.
+  `Microsoft.CodeAnalysis.Workspaces.MSBuild` 5.12.0, which the server references.
+- Source archive SHA-256: `deb1ef87f3f5f932af1c25cc4e7580ba5b25a26671c1e93a380fa9903958d72c`
+  ([GitHub archive](https://codeload.github.com/dotnet/roslyn/tar.gz/1324e1d34a0490454837a22370e75bbaeecffb87)).
 - License: MIT, `upstream/License.txt`; third-party notices: `upstream/THIRD-PARTY-NOTICES.txt`.
-- Copied verbatim into `upstream/`, keeping the repository-relative paths, so the upstream projects'
-  relative links still resolve and a diff against upstream is a plain path-for-path diff:
+- Vendored under `upstream/` with repository-relative paths, so the upstream projects'
+  links still resolve and a diff against upstream is a plain path-for-path diff:
   - `src/Workspaces/MSBuild/BuildHost/**` and `src/Workspaces/MSBuild/Contracts/**`;
   - `src/Dependencies/Contracts/**` (shared project imported by Contracts);
-  - the 16 compiler files that `Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.csproj` links;
+  - the 17 compiler files and `src/Workspaces/Core/Portable/Utilities/StandardHandleInheritance.cs`
+    linked by `Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.csproj`;
   - `.editorconfig` of the repository root, so formatting follows Roslyn.
 - Not copied: Roslyn's Arcade build (`eng/`, `Directory.Build.*`), `net472` and Mono build hosts' build
   setup, localized `xlf` processing. `build/` holds plain SDK projects for the netcore BuildHost instead.
 
-Changes to files under `upstream/` after the first commit are fork changes and appear in Git history.
+The SHA-256 inventory below describes the pristine upstream files. Deliberate fork changes from that
+revision are limited to:
+
+- Tracing in `BuildHost/Tracing/BuildHostTrace.cs`, `Program.cs`, `Rpc/RpcServer.cs`,
+  `AbstractBuildHost.cs`, `Build/ProjectBuildManager.cs`, `MSBuild/ProjectFile/ProjectFile.cs` and
+  `MSBuild/ProjectFile/ProjectInstanceReader.cs`.
+- References first, evaluation ahead and the shared SDK cache in `Build/ProjectBuildManager_*.cs`,
+  with integration points in `AbstractBuildHost.cs`, `Build/ProjectBuildManager.cs`
+  and `MSBuild/ProjectFile/ProjectFile.cs`.
+  See [README.md](README.md) for each patch's contract.
 
 ## SHA-256 of the copied files at the upstream revision
 
@@ -22,17 +34,18 @@ Changes to files under `upstream/` after the first commit are fork changes and a
 c735463b5ddcab03b2ebc66aa6c460fb441bab0baccc359676118d1fe4f8fffe  .editorconfig
 ae48df11a335dc1a615f4f938b69cba73bcf4485c4f97af49b38efb0f216353b  License.txt
 9879407362c623ca2af5d0460a556d25a2fa1afbaa6530707963fc7166102d4d  THIRD-PARTY-NOTICES.txt
-d85d103718ccde44ef185511a2e489eee2378429377a17d5944910ccf3a98974  src/Compilers/Core/Portable/FileSystem/FileUtilities.cs
+17d854c9575ae6a0278b7ffa8668e158228f54c01ef5301d85dd443aaf045183  src/Compilers/Core/Portable/FileSystem/FileUtilities.cs
 63a8943a85bb20ad863ba385ed9162ca8003dd3af3d11429f2f160a50b5dd299  src/Compilers/Core/Portable/FileSystem/PathKind.cs
 633caed926fea1ae904c02a884242833beaed590fcf90d45d38b726c6055eeb7  src/Compilers/Core/Portable/FileSystem/PathUtilities.cs
-8c964db58dea4ecf1955263b8065f1795dd8613bdaf09580da6603b346bf9aa4  src/Compilers/Core/Portable/InternalUtilities/CompilerOptionParseUtilities.cs
+7a1cd4a91ad36b2517cc61f59b9f2b24fd36144297d5af7d132fdc9fd2090c03  src/Compilers/Core/Portable/InternalUtilities/CompilerOptionParseUtilities.cs
 c23307ed3ca72f404a7060dc2ea0f17cc9d4123d4c7653efed99381d84573165  src/Compilers/Core/Portable/InternalUtilities/ConcurrentSet.cs
-c8161625f933e42df6ce9ab36b69c47fac396cf02357e24dd6f8300dac5d9128  src/Compilers/Core/Portable/InternalUtilities/Debug.cs
+8013edf33b19f7adc30a065a3f6558d17da3ce41fb3e7cab739bb60e94f747b2  src/Compilers/Core/Portable/InternalUtilities/Debug.cs
 ff99c32db177c1f0a8fd083307e40772ef220b074afcde2266b48bcaf3e07b7c  src/Compilers/Core/Portable/InternalUtilities/FileNameUtilities.cs
 92bb1ba47d619303730a413931ee2147be9e35d677c68df05aa493ba80818864  src/Compilers/Core/Portable/InternalUtilities/Hash.cs
 12893f6989f76f4dbf092d6913daf51c4fa6fa8203fd0c877676f1cd5979bda0  src/Compilers/Core/Portable/InternalUtilities/NoMessagePumpSyncContext.cs
 31a356356bf2456e3f7e640d3e28507c29f6381bfa6fd482ef4560e9c7d916c0  src/Compilers/Core/Portable/InternalUtilities/PerformanceSensitiveAttribute.cs
 6a42d803873d9b08d2b1c77fc449bdd79383b27ac31d49da28fe9d95bfceba79  src/Compilers/Core/Portable/InternalUtilities/PlatformInformation.cs
+8cd61d731a3bd458a21b8c877aba4a80efabee31d52f35bd7c85635af09ad301  src/Compilers/Core/Portable/InternalUtilities/ReaderWriterLockSlimExtensions.cs
 8a13c5d06b66698e16b4a442d1c98b2beb49b4a200b7131277d0191de8a5f144  src/Compilers/Core/Portable/InternalUtilities/RoslynString.cs
 1431945347307356e3fd78a666c85f90459593019f5f4f78525a7460ab39b8a1  src/Compilers/Core/Portable/InternalUtilities/SemaphoreSlimExtensions.cs
 73f907eb42c8748413d5bd67e8110813e084d1b0be7ef13d0b064ee16a12cfce  src/Compilers/Core/Portable/InternalUtilities/SpecializedSyncContext.cs
@@ -44,8 +57,8 @@ eec0aed4787b6d9016c32616e1f9183685a6be5b040f35415c4dbfc7bdebbb48  src/Dependenci
 513d7aff29426f64fbd2d9ab57a46657a88ad61595dc593c141206bb514b5193  src/Dependencies/Contracts/Contract.cs
 098bbe0f4e43810da8e8a7d9c164c50bc445c303402a871f27e655b0247e88f1  src/Dependencies/Contracts/EnumExtensions.cs
 0394cd8cf25bd425efd104f2c46afe7622b6a6f5635935de3245105afca0cce3  src/Dependencies/Contracts/EqualityComparerExtensions.cs
-973fa4c1b0d11be28ffb423d8a2c5c1651e3384381ba776c7aac212890a3730f  src/Dependencies/Contracts/ErrorReporting/FailFast.cs
-2f74ea2ca94dbda00d9fbc69e9b380ab8e357ec09b377cbf7ece47465f92f3ae  src/Dependencies/Contracts/ErrorReporting/FatalError.cs
+91637537086578ba1b267e1db14216567be286327264fc2b2c0077d5c9b51b04  src/Dependencies/Contracts/ErrorReporting/FailFast.cs
+8bce7e7b63ffa1250cb3055a420450d87a8b0178549bc15d1b4adbf73a84e055  src/Dependencies/Contracts/ErrorReporting/FatalError.cs
 8cd2d7b6073e5a654659fdd373da560a18ed26833cfa5884f26a498254db1339  src/Dependencies/Contracts/ExceptionUtilities.cs
 7af69eeb2c31bff71a5a9666533f8806c22eee2c9d21e45215465fe976743604  src/Dependencies/Contracts/ExperimentalAttribute.cs
 efecefa61516967265169ac0b2c2b9c61e9804888b882db7ede21fa06e922f0d  src/Dependencies/Contracts/IReadOnlySet.cs
@@ -65,13 +78,14 @@ b04371ffc32dd6145a75f0d283fae1fbf00d277df41b7e52dcb894e577227833  src/Dependenci
 2ec10fa2903114b26e96193e096285a536d16c3087aaf2d362d2c2c8caa4e5ce  src/Dependencies/Contracts/RequiredMemberAttribute.cs
 ec3211c42802a4790a1a176875f7ec5f936c1f25e3689694dd5668af6120ec8e  src/Dependencies/Contracts/SetsRequiredMembersAttribute.cs
 c18c4df718542a94f4827eba632a9e41191996ab9fa177fc0903880ffffebdde  src/Dependencies/Contracts/ValueTaskExtensions.cs
-cfbdce7c512ac80b84e67de3320cf31254df0a42bc2bf43e27ff4920049e0271  src/Workspaces/MSBuild/BuildHost/AbstractBuildHost.cs
-186d386475313a4c927a52ad108fb189330e76207e8ccdbcf3dbaecd00600e9a  src/Workspaces/MSBuild/BuildHost/Build/ProjectBuildManager.cs
+a2014c3ecfb4c96649ceb73978b02efe535276f8864c16e936fc3ac1f38dafbd  src/Workspaces/Core/Portable/Utilities/StandardHandleInheritance.cs
+44fd091bbb96071ca0814463b1733e076c227febf046587a195339552892fe6f  src/Workspaces/MSBuild/BuildHost/AbstractBuildHost.cs
+e95d13edb364f42f0470b07cc19877b9b8bf103b9ae12a858a3354429c882f17  src/Workspaces/MSBuild/BuildHost/Build/ProjectBuildManager.cs
 f2614e4f71b3c697bfe0d36e2ab8425b1835388b85578bc30b98222b07bd4bea  src/Workspaces/MSBuild/BuildHost/BuildHostLogger.cs
 136d56d23f688e25b244597b1f70255cf099d1c9e3503ff9e301311257e93b21  src/Workspaces/MSBuild/BuildHost/MSBuild/CSharp/CSharpCommandLineArgumentReader.cs
 6ddf188a8a1b7db167b0f2a0b3d9cff4cc538cb95773510e528545c4ebec3ce2  src/Workspaces/MSBuild/BuildHost/MSBuild/CSharp/CSharpProjectCommandLineReader.cs
 d0bcf1b889bafd59fb5a84d1dc351b1fd9655e2bc25a96cd765b0561827fb9cd  src/Workspaces/MSBuild/BuildHost/MSBuild/Constants/ItemNames.cs
-678c5895074db905b2bbf473fb63725ba73c45aae33e23a42db964c9e7e39689  src/Workspaces/MSBuild/BuildHost/MSBuild/Constants/MetadataNames.cs
+c9efe23c9c700dabe9e84c343a58ce38c9e3396f42c9c46c6832dde56de3ece7  src/Workspaces/MSBuild/BuildHost/MSBuild/Constants/MetadataNames.cs
 2307d07706de7a934762c8bb4d455035a03c349891154e587b87715e5a909ec0  src/Workspaces/MSBuild/BuildHost/MSBuild/Constants/PropertyNames.cs
 db2f872d6e4eb1af540bb53104a578939061430192ef5ffc7be5491bb4003acd  src/Workspaces/MSBuild/BuildHost/MSBuild/Constants/PropertyValues.cs
 f85d36a0c4ba67683c41c8ab9b5ecefc47777df43b3975cd6f30e260f0855803  src/Workspaces/MSBuild/BuildHost/MSBuild/Constants/TargetNames.cs
@@ -80,22 +94,23 @@ f01828389c647310c1e4305ba8bda1ae2971733a88bbbd3b9444ce00cc411388  src/Workspaces
 543fb13b95d0ded29e0b2e778f9a2f7f63f2ea0d34882886c62debe2754c767d  src/Workspaces/MSBuild/BuildHost/MSBuild/Logging/MSBuildDiagnosticLogger.cs
 9ca2ea1ffecfd099f0bbde9caf89a8d4586ed23fbac779d64f0c98072863e98a  src/Workspaces/MSBuild/BuildHost/MSBuild/ProjectFile/CommandLineArgumentReader.cs
 21961142d04998f7270eebe34bb2e9eaa4d38437ae08627b5c12a6674f468c9f  src/Workspaces/MSBuild/BuildHost/MSBuild/ProjectFile/Conversions.cs
-d8906fac688f8978a4825e83aca857cb9b88c70a668ccd591390ae7c75af2dfb  src/Workspaces/MSBuild/BuildHost/MSBuild/ProjectFile/Extensions.cs
+16a7a02680df0721f0abf8123d8f5fddcc5e19d9e7d63e9b93bed4f359cbbb9b  src/Workspaces/MSBuild/BuildHost/MSBuild/ProjectFile/Extensions.cs
 fd961b15f7946533750047a73e5551c865534230d0efcd872fc8fddf1c4ff807  src/Workspaces/MSBuild/BuildHost/MSBuild/ProjectFile/ProjectCommandLineReader.cs
-f8e5ec3bf2afbc96a7512d9f604369b8ac799b13ae0d462f43f7d151944672ee  src/Workspaces/MSBuild/BuildHost/MSBuild/ProjectFile/ProjectFile.cs
-ba7365439727c68ee6368101e06a2e54b64455d7ff26fecb1e7197095981d66e  src/Workspaces/MSBuild/BuildHost/MSBuild/ProjectFile/ProjectInstanceReader.cs
+956b407e3ad1d245f3635e089a041631c712e2030d1e6ddef3dbd33e405d7495  src/Workspaces/MSBuild/BuildHost/MSBuild/ProjectFile/ProjectFile.cs
+d18e986105dcb9e7a8ff28fcd947be4dbcf0377622edaf27fceddca5e36fc321  src/Workspaces/MSBuild/BuildHost/MSBuild/ProjectFile/ProjectInstance.cs
+593c3b86da842ccb62ab8b7e9ef0a9b1240d0b29b1a40693ac1f8ffc13b69a53  src/Workspaces/MSBuild/BuildHost/MSBuild/ProjectFile/ProjectInstanceReader.cs
 d4c66131d13d02b64c8ad628b24cfd212957d1a3f3a3d86d12fc36020cf3638e  src/Workspaces/MSBuild/BuildHost/MSBuild/VisualBasic/VisualBasicCommandLineArgumentReader.cs
 6b1fabfb6998d3d533f1215b3a2edaff00bfe2485c9616cbb140ba30c7ea0850  src/Workspaces/MSBuild/BuildHost/MSBuild/VisualBasic/VisualBasicProjectCommandLineReader.cs
-3f8dc6b1e226649f6239c8c62ddbead4016b34168c76294c3b06d24e680ddd67  src/Workspaces/MSBuild/BuildHost/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.csproj
+9ace8c4d557ab4f68b75b8e7bc80ab13c6d5fea2a964aa86679957302eb3d4e8  src/Workspaces/MSBuild/BuildHost/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.csproj
 189130c699cf71b50db4e97082b80bdb5a20f0be341b13fd9f8cd3e3163e3561  src/Workspaces/MSBuild/BuildHost/MonoBuildHost.cs
 6ca18c71b9be4db557cce1078860983ecb59a65e32b69f01579001603265435c  src/Workspaces/MSBuild/BuildHost/NetCoreBuildHost.cs
 0bcb99e0fd21786f881155ccf799bbc9ae5bf2b0f9f8eee23cc3393f1f090f71  src/Workspaces/MSBuild/BuildHost/NetFrameworkBuildHost.cs
-62ffcd200741fa2a4e85de2c9f8d097ec20322c10a023efe098b3c681dbc757d  src/Workspaces/MSBuild/BuildHost/Program.cs
+c394e85b91b1605d0503bb527041e08d46dc406562fd21fa9503b803962e8287  src/Workspaces/MSBuild/BuildHost/Program.cs
 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  src/Workspaces/MSBuild/BuildHost/PublicAPI.Shipped.txt
 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  src/Workspaces/MSBuild/BuildHost/PublicAPI.Unshipped.txt
 911c9092e4b633a061be50b43d6d856d3205c494dbed072246586e57a5a88b5a  src/Workspaces/MSBuild/BuildHost/Rpc/Readme.md
 f1a1a1d6351246e0ef75186107a886928bdc38cec7e21a1c2af76bdeeda6d599  src/Workspaces/MSBuild/BuildHost/Rpc/RpcMethodInvoker.cs
-985e640a05b170a7d6253754d43d374ee6614d48c5048008074b02419a647d95  src/Workspaces/MSBuild/BuildHost/Rpc/RpcServer.cs
+b8082c67d17509a6634eee0c4aa3e382ea9f8d3cf19e7ec46043be8786b8f84d  src/Workspaces/MSBuild/BuildHost/Rpc/RpcServer.cs
 4de7dca86ef3c9fbe46f6d1450d664a89754cc9c784ce2b97c872c473737e589  src/Workspaces/MSBuild/BuildHost/WorkspaceMSBuildBuildHostResources.resx
 93ae58aef0aacff41ffd49062b2091e6d63c54aedb69015e9cb92c86d1beb141  src/Workspaces/MSBuild/BuildHost/xlf/WorkspaceMSBuildBuildHostResources.cs.xlf
 9a820db0aee3f13d93618a05f6ccc8d52ee4a76f276eb7c1b1c42f8c0e02abe1  src/Workspaces/MSBuild/BuildHost/xlf/WorkspaceMSBuildBuildHostResources.de.xlf
@@ -113,12 +128,13 @@ c2802218bffd2d1d169af1f4945b393485e91e22cad93b385b3e7918e891e813  src/Workspaces
 b65bc18cca198dc8e9564a73f8c92999511e5833c2bb1ad1d2c96efa79b68dc0  src/Workspaces/MSBuild/Contracts/DiagnosticLogItem.cs
 44b2a8d7da404aa5bc9b0bdf7f8770877fb936b03afc2e598cc01e6da43edce7  src/Workspaces/MSBuild/Contracts/DocumentFileInfo.cs
 6ea17e0dbd3e5a60b8a30e8e310d4281243e203eae54fbe541bf1a56d8fea4ad  src/Workspaces/MSBuild/Contracts/FileGlobs.cs
-ad764494086d2c8b7e74ce28d805f3f16f39d40c6db4c388ad606a84207f7fc8  src/Workspaces/MSBuild/Contracts/IBuildHost.cs
-979e9b781784b9b41ad71d6ec6a1c9be28ade7755189f37dcfd85173e8acd5ad  src/Workspaces/MSBuild/Contracts/IProjectFile.cs
+a7d9284d3c097d8c45e6777a16f26bdf3402f0fa29cc0937c61c281b08dd9a00  src/Workspaces/MSBuild/Contracts/IBuildHost.cs
+2833375d819e23a368d061634ab9fde44369dd7ca181b5966d75854eeb4452f1  src/Workspaces/MSBuild/Contracts/IProjectFile.cs
+9febb5393ec576dc3cc0fc732ed5bff1c83f6d535f167e7e2a2822d7088f4317  src/Workspaces/MSBuild/Contracts/IProjectInstance.cs
 033fb1031e0ea3209e52e70516812cbafead7bd431f773b32ac9bd3c0a842123  src/Workspaces/MSBuild/Contracts/JsonSettings.cs
 b0b5473d3586a7b2ef115b3cb07ec5545f926dfea8b479749b481a6e88de044b  src/Workspaces/MSBuild/Contracts/MSBuildLocation.cs
 7db5e5bf3c39bdbf79b89cf74cfb76163c6e41da62f5f118a78ca5cd07ff3555  src/Workspaces/MSBuild/Contracts/MetadataReferenceItem.cs
-2e150bb9038b112fd4623816a7f44210f50b6807147d1ff1ea469cd93cbd23e0  src/Workspaces/MSBuild/Contracts/Microsoft.CodeAnalysis.Workspaces.MSBuild.Contracts.csproj
+3321d200db457330de379bb67c670d14cdae89a1b6dec3a4e0634198432fb596  src/Workspaces/MSBuild/Contracts/Microsoft.CodeAnalysis.Workspaces.MSBuild.Contracts.csproj
 2a1d7c7b3ac67052597859ca1b1f1bee497703f21fa361e3bceedb40d84c950f  src/Workspaces/MSBuild/Contracts/MonoMSBuildDiscovery.cs
 6dd2249a656d5e4f5034726dd8d0446af4d8ef7bd126a1683911878147af14a3  src/Workspaces/MSBuild/Contracts/PackageReferenceItem.cs
 9ceebd92af21daa3a5b9d97eb4bf927a6190c0e6b560c238a2182263b702e0a0  src/Workspaces/MSBuild/Contracts/ProjectFileInfo.cs

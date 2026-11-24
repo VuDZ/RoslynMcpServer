@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    BuildHost/task-00: failure scenarios of the unchanged fork next to the original BuildHost of Roslyn 5.9.0.
+    BuildHost/task-00: failure scenarios of the fork next to the package BuildHost.
 
 .DESCRIPTION
     All into one result folder, scenarios.md is the summary:
@@ -25,11 +25,9 @@
     6. early cancel - both sides cancel as soon as the BuildHost appears, while the client still sets it up.
     Every run also records the BuildHost processes still running 10 s after the load (then kills them).
 
-    The script fails (exit code 1) when a run does not do what its scenario needs (the load ended before the
-    cancel or the kill, an unexpected outcome, a BuildHost from another folder, a cancel at -DelayMs that left
-    a BuildHost, which means it landed in the client's setup of the host) or when the fork differs from the
-    original: outcome (except after a kill), diagnostics, projects, BuildHost processes left. Processes left the
-    same way on both sides by the early cancel are upstream behavior: reported, not a failure of the fork.
+    The script fails (exit code 1) on an unexpected outcome, an undisturbed cancel/kill run, an unexpected host,
+    or a BuildHost left running after any scenario. The fork must also match the original's outcome (except
+    after a kill), diagnostics and projects where those results are comparable.
 
 .PARAMETER Solution
     Solution for load, cancel and kill; it must load for at least a few seconds. Default: RoslynMcpServer.sln of
@@ -164,12 +162,13 @@ function New-Fixture([string]$Directory) {
 function Invoke-Scenario([string]$Label, [string]$Side, [string]$Dll, [string]$Mode, [string]$Target, [int]$Delay, [string]$Expect, [string]$File) {
     Write-Host $Label
     $output = Join-Path $OutDirectory "$File.json"
+    if (Test-Path -LiteralPath $output -PathType Leaf) { Remove-Item -LiteralPath $output }
     $exitCode = Invoke-Spike $Dll @($Mode, $Target, $output, "$Delay") (Join-Path $OutDirectory "$File.out.txt") ($Side -ne 'original')
     $result = $null
     if (Test-Path -LiteralPath $output) { $result = Get-Content -LiteralPath $output -Raw | ConvertFrom-Json }
     return [pscustomobject]@{
         Label = $Label; Side = $Side; Mode = $Mode; Delay = $Delay; Expect = $Expect; External = ($Target -eq $Solution -and $external)
-        ExitCode = $exitCode; Result = $result; Problems = (New-Object Collections.Generic.List[string]); Note = ''
+        ExitCode = $exitCode; Result = $result; Problems = (New-Object Collections.Generic.List[string])
     }
 }
 
@@ -179,10 +178,10 @@ function Invoke-Scenario([string]$Label, [string]$Side, [string]$Dll, [string]$M
 $connectionLost = '^failed: (System\.Exception: The server disconnected unexpectedly\.|System\.IO\.IOException: (Connection reset by peer|Broken pipe|Pipe is broken\.|The pipe has been ended\.)|System\.AggregateException: Failed to deserialize response from build host:)'
 
 # What a single run must show for its scenario; $Undisturbed is the undisturbed load of the same side, the measure
-# of a load completed after a kill. Processes left after the load are judged per pair, not here.
+# of a load completed after a kill. Each run must release its own BuildHost processes.
 function Test-Run($Run, $Undisturbed) {
     $r = $Run.Result
-    if ($null -eq $r) { $Run.Problems.Add("no report (exit code $($Run.ExitCode))"); return }
+    if ($Run.ExitCode -ne 0 -or $null -eq $r) { $Run.Problems.Add("no successful report (exit code $($Run.ExitCode))"); return }
     $outcomeOk = switch ($Run.Expect) {
         'completed' { $r.Outcome -eq 'completed' }
         'canceled' { $r.Outcome -eq 'canceled' }
@@ -202,6 +201,7 @@ function Test-Run($Run, $Undisturbed) {
     foreach ($hostFolder in $netcore) {
         if ($hostFolder -ne $r.ExpectedHost) { $Run.Problems.Add("BuildHost from another folder: $hostFolder") }
     }
+    if ($r.RemainingBuildHosts -ne 0) { $Run.Problems.Add("$($r.RemainingBuildHosts) BuildHost process(es) left running after the load") }
     if ($r.BuildHostProcesses.unidentified -gt 0) { $Run.Problems.Add("$($r.BuildHostProcesses.unidentified) child dotnet process(es) not identified") }
 }
 
@@ -223,9 +223,7 @@ function Test-CompletedAfterKill($Run, $Undisturbed) {
 
 # The fork must do what the original does. After a kill the outcome depends on timing in upstream, so one run per
 # side cannot be compared; each completed one is compared with the undisturbed load of its side instead, and those
-# two are compared with each other. A BuildHost left on both sides by the early cancel is upstream behavior,
-# reported only; left by a cancel at -DelayMs, it means the cancel landed in the same setup window, which makes
-# that scenario a second early cancel instead of a cancel during the load.
+# two are compared with each other.
 function Test-Pair($Original, $Fork, [bool]$CompareOutcome, [bool]$CompareDiagnostics) {
     $o = $Original.Result
     $f = $Fork.Result
@@ -233,17 +231,6 @@ function Test-Pair($Original, $Fork, [bool]$CompareOutcome, [bool]$CompareDiagno
     if ($CompareOutcome -and $o.Outcome -ne $f.Outcome) { $Fork.Problems.Add('outcome differs from the original') }
     if ($CompareOutcome -and ($o.Projects -ne $f.Projects -or $o.Documents -ne $f.Documents)) { $Fork.Problems.Add('projects or documents differ from the original') }
     if ($CompareDiagnostics -and (($o.Diagnostics -join "`n") -ne ($f.Diagnostics -join "`n"))) { $Fork.Problems.Add('diagnostics differ from the original') }
-    if ($o.RemainingBuildHosts -ne $f.RemainingBuildHosts) {
-        $Fork.Problems.Add("BuildHost processes left: fork $($f.RemainingBuildHosts), original $($o.RemainingBuildHosts)")
-    }
-    elseif ($o.RemainingBuildHosts -gt 0 -and $Original.Mode -eq 'cancel' -and $Original.Delay -gt 0) {
-        $Fork.Problems.Add('the cancel left a BuildHost on both sides: it landed while the client set the host up, inconclusive; use a larger -DelayMs')
-    }
-    elseif ($o.RemainingBuildHosts -gt 0) {
-        $note = "$($o.RemainingBuildHosts) BuildHost left on both sides (upstream)"
-        $Original.Note = $note
-        $Fork.Note = $note
-    }
 }
 
 Write-Host 'Fixture'
@@ -255,8 +242,7 @@ Invoke-ObserveRounds $sides $fixtureSolution 'Class1' 3 $fixtureResults
 & dotnet $sides['original'] compare $fixtureResults | Out-Host
 $fixtureEquivalent = $LASTEXITCODE -eq 0
 
-Write-Host "Restoring $Solution"
-Invoke-Native 'dotnet' @('restore', $Solution, '-nologo', '-v', 'q') 'Solution restore failed'
+Restore-SpikeSolution $Solution
 $broken = Join-Path $brokenBin 'BuildHostFork.dll'
 $fixtureLoads = @(
     (Invoke-Scenario 'fixture load, original' 'original' $sides['original'] 'load' $fixtureSolution 0 'completed' 'fixture-load-original'),
@@ -317,7 +303,7 @@ if ($external) { $solutionName = '(outside this repository, name not shown)' }
 $md = New-Object Text.StringBuilder
 [void]$md.AppendLine('# BuildHost fork failure scenarios (BuildHost/task-00)')
 [void]$md.AppendLine('')
-[void]$md.AppendLine("- fork: $($copies.version); references first (BuildHost/task-02 A): $([bool]$ReferencesFirst); evaluate ahead (B): $(if ($EvaluateAhead -gt 0) { "$EvaluateAhead workers, solution entries: $EvaluateAheadSolution" } else { 'off' }); solution for load, cancel and kill: $solutionName")
+[void]$md.AppendLine("- client: $($copies.client); fork: $($copies.version); references first (BuildHost/task-02 A): $([bool]$ReferencesFirst); evaluate ahead (B): $(if ($EvaluateAhead -gt 0) { "$EvaluateAhead workers, solution entries: $EvaluateAheadSolution" } else { 'off' }); solution for load, cancel and kill: $solutionName")
 [void]$md.AppendLine("- experimental server GC with ConserveMemory=9 in netcore host only: $([bool]$ServerGc)")
 [void]$md.AppendLine("- shared SDK resolution cache per project (BuildHost/task-04 C): $([bool]$SharedSdkCache)")
 [void]$md.AppendLine("- delay after the first BuildHost: $DelayMs ms ($delaySource); early cancel: 0 ms")
@@ -331,7 +317,6 @@ if ($problems.Count -gt 0 -or -not $fixtureEquivalent) { $resultText = "FAILED: 
 foreach ($run in $runs) {
     $check = 'ok'
     if ($run.Problems.Count -gt 0) { $check = 'FAIL: ' + ($run.Problems -join '; ') }
-    elseif ($run.Note) { $check = $run.Note }
     $r = $run.Result
     if ($null -eq $r) {
         [void]$md.AppendLine("| $($run.Label) | no report | | | | | | | | $(Format-Redacted $check) |")

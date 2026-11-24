@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    BuildHost/task-00: loads a solution with the original BuildHost of Roslyn 5.9.0 and with the unchanged
+    BuildHost/task-00: loads a solution with the package BuildHost and with the unchanged
     fork from forks/roslyn-buildhost, in alternating fresh processes, and compares the workspaces.
 
 .DESCRIPTION
@@ -100,17 +100,14 @@ $copies = Initialize-ForkCopy $repo $PSScriptRoot
 $version = $copies.version
 Set-ForkOptimizations $ReferencesFirst $EvaluateAhead $EvaluateAheadSolution $SharedSdkCache
 
-if (-not $SkipRestore) {
-    Write-Host "Restoring $Solution"
-    Invoke-Native 'dotnet' @('restore', $Solution, '-nologo', '-v', 'q') 'Solution restore failed'
-}
+if (-not $SkipRestore) { Restore-SpikeSolution $Solution }
 
 if (-not $OutDirectory) {
     $OutDirectory = Join-Path (Join-Path $PSScriptRoot 'results') ('baseline-' + (Get-Date -Format 'yyyyMMdd-HHmmss'))
 }
 $OutDirectory = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($OutDirectory)
 New-Item -ItemType Directory -Force -Path $OutDirectory | Out-Null
-$environment = Get-Environment $Solution $repo ([ordered]@{ name = $Name; runs = $Runs; fork = $version; trace = [bool]$Trace; referencesFirst = [bool]$ReferencesFirst
+$environment = Get-Environment $Solution $repo ([ordered]@{ name = $Name; runs = $Runs; client = $copies.client; fork = $version; trace = [bool]$Trace; referencesFirst = [bool]$ReferencesFirst
         evaluateAhead = $EvaluateAhead; evaluateAheadSolution = $(if ($EvaluateAhead -gt 0) { $EvaluateAheadSolution } else { '' }); sharedSdkCache = [bool]$SharedSdkCache
     })
 [IO.File]::WriteAllText((Join-Path $OutDirectory 'environment.json'), ($environment | ConvertTo-Json), (New-Object Text.UTF8Encoding($false)))

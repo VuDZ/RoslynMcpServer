@@ -31,7 +31,7 @@
     .sln, .slnx or .csproj to load.
 
 .PARAMETER ServerExe
-    Published RoslynMcpServer.exe. Default: bin\Release\net10.0\win-x64\publish next to this repo.
+    Published RoslynMcpServer.exe. Default: bin\Release\net11.0\win-x64\publish next to this repo.
 
 .PARAMETER SymbolName
     Type name from the solution for the first find_symbol_definition. Omit to skip the query.
@@ -110,7 +110,7 @@ if (-not (Test-Path -LiteralPath $Workspace -PathType Leaf)) {
     throw "Workspace file not found: $Workspace"
 }
 if (-not $ServerExe) {
-    $ServerExe = Join-Path $PSScriptRoot '..\bin\Release\net10.0\win-x64\publish\RoslynMcpServer.exe'
+    $ServerExe = Join-Path $PSScriptRoot '..\bin\Release\net11.0\win-x64\publish\RoslynMcpServer.exe'
 }
 $ServerExe = [IO.Path]::GetFullPath($ServerExe)
 if (-not (Test-Path -LiteralPath $ServerExe -PathType Leaf)) {

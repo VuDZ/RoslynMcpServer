@@ -12,7 +12,7 @@
       The package version whose client speaks the protocol of the forked sources (UPSTREAM.md). A server that moves to
       another package version needs the fork rebased first, so the build stops instead of mixing the two.
     -->
-    <BuildHostForkPackageVersion>5.9.0</BuildHostForkPackageVersion>
+    <BuildHostForkPackageVersion>5.12.0</BuildHostForkPackageVersion>
     <!--
       NETSDK1150 forbids a self-contained executable to reference a framework-dependent one, because the referenced
       executable would run on the referencing one's runtime. The BuildHost is a separate process that the client

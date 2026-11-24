@@ -24,29 +24,62 @@ function Set-ForkOptimizations([bool]$ReferencesFirst, [int]$EvaluateAhead = 0, 
 # by the fork. Returns the paths of both spike copies and the fork version.
 function Initialize-ForkCopy([string]$Repo, [string]$SpikeDirectory) {
     $forkProject = Join-Path $Repo (Join-Path 'forks' (Join-Path 'roslyn-buildhost' (Join-Path 'build' (Join-Path 'BuildHost' 'Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.csproj'))))
-    $forkOutput = Join-Path (Split-Path $forkProject) (Join-Path 'bin' (Join-Path 'Release' 'net8.0'))
     $spikeProject = Join-Path $SpikeDirectory 'BuildHostFork.csproj'
-    $originalBin = Join-Path $SpikeDirectory (Join-Path 'bin' (Join-Path 'Release' 'net10.0'))
-    $forkBin = Join-Path $SpikeDirectory 'bin-fork'
+    $forkBin = [IO.Path]::GetFullPath((Join-Path $SpikeDirectory 'bin-fork'))
+    if ((Split-Path $forkBin -Parent) -ne [IO.Path]::GetFullPath($SpikeDirectory)) { throw "Unexpected fork copy path: $forkBin" }
 
-    Write-Host 'Building the BuildHost fork (Release)'
-    Invoke-Native 'dotnet' @('build', $forkProject, '-c', 'Release', '-nologo', '-v', 'q') 'Fork build failed'
-    Write-Host 'Building the spike (Release)'
-    Invoke-Native 'dotnet' @('build', $spikeProject, '-c', 'Release', '-nologo', '-v', 'q') 'Spike build failed'
+    Push-Location -LiteralPath $Repo
+    try {
+        Write-Host 'Building the BuildHost fork (Release)'
+        Invoke-Native 'dotnet' @('build', $forkProject, '-c', 'Release', '-nologo', '-v', 'q') 'Fork build failed'
+        Write-Host 'Building the spike (Release)'
+        Invoke-Native 'dotnet' @('build', $spikeProject, '-c', 'Release', '-nologo', '-v', 'q') 'Spike build failed'
+        $forkDll = Get-ReleaseTargetPath $forkProject
+        $spikeDll = Get-ReleaseTargetPath $spikeProject
+    }
+    finally { Pop-Location }
+    $forkOutput = Split-Path $forkDll -Parent
+    $originalBin = Split-Path $spikeDll -Parent
+    $client = (Get-Item -LiteralPath (Join-Path $originalBin 'Microsoft.CodeAnalysis.Workspaces.MSBuild.dll')).VersionInfo.ProductVersion
+    $stock = (Get-Item -LiteralPath (Join-Path $originalBin 'BuildHost-netcore/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.dll')).VersionInfo.ProductVersion
+    $stockFramework = (Get-Item -LiteralPath (Join-Path $originalBin 'BuildHost-net472/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.exe')).VersionInfo.ProductVersion
+    $version = (Get-Item -LiteralPath $forkDll).VersionInfo.ProductVersion
+    if ($client -cne $stock -or $client -cne $stockFramework -or $client -notmatch '^(?<package>[\d.]+)-[^+]+\+(?<revision>[0-9a-f]{40})$') {
+        throw "Inconsistent Roslyn package output: client $client; netcore host $stock; net472 host $stockFramework"
+    }
+    if ($version -cne "$($Matches.package)-fork+$($Matches.revision)") {
+        throw "BuildHost fork $version does not match the Roslyn client $client"
+    }
     Write-Host 'Comparer self-checks'
-    Invoke-Native 'dotnet' @((Join-Path $originalBin 'BuildHostFork.dll'), 'check') 'Comparer self-checks failed'
-    Invoke-Native 'dotnet' @((Join-Path $originalBin 'BuildHostFork.dll'), 'rpc-check') 'RPC comparer self-checks failed'
+    Invoke-Native 'dotnet' @($spikeDll, 'check') 'Comparer self-checks failed'
+    Invoke-Native 'dotnet' @($spikeDll, 'rpc-check') 'RPC comparer self-checks failed'
 
     if (Test-Path -LiteralPath $forkBin) { Remove-Item -LiteralPath $forkBin -Recurse -Force }
     Copy-Item -LiteralPath $originalBin -Destination $forkBin -Recurse
-    $forkHostFolder = Join-Path $forkBin 'BuildHost-netcore'
+    $forkHostFolder = [IO.Path]::GetFullPath((Join-Path $forkBin 'BuildHost-netcore'))
+    if ((Split-Path $forkHostFolder -Parent) -ne $forkBin) { throw "Unexpected fork host path: $forkHostFolder" }
     Remove-Item -LiteralPath $forkHostFolder -Recurse -Force
     New-Item -ItemType Directory -Path $forkHostFolder | Out-Null
     Get-ChildItem -LiteralPath $forkOutput -File | Copy-Item -Destination $forkHostFolder
-    $version = (Get-Item -LiteralPath (Join-Path $forkHostFolder 'Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.dll')).VersionInfo.ProductVersion
-    if ($version -notlike '*fork*') { throw "The fork copy does not hold the fork BuildHost: $version" }
+    Write-Host "Package client and stock hosts: $client"
     Write-Host "Fork BuildHost: $version"
-    return [ordered]@{ originalBin = $originalBin; forkBin = $forkBin; version = $version }
+    return [ordered]@{ originalBin = $originalBin; forkBin = $forkBin; version = $version; client = $client }
+}
+
+function Get-ReleaseTargetPath([string]$ProjectPath) {
+    $output = @(& dotnet msbuild $ProjectPath '-nologo' '-p:Configuration=Release' '-getProperty:TargetPath')
+    if ($LASTEXITCODE -ne 0 -or $output.Count -ne 1 -or -not (Test-Path -LiteralPath $output[0] -PathType Leaf)) {
+        throw "Could not resolve the built Release target of ${ProjectPath}: $output"
+    }
+    return $output[0]
+}
+
+# dotnet resolves the consumer global.json from its working directory.
+function Restore-SpikeSolution([string]$Solution) {
+    Write-Host "Restoring $Solution"
+    Push-Location -LiteralPath (Split-Path $Solution -Parent)
+    try { Invoke-Native 'dotnet' @('restore', $Solution, '-nologo', '-v', 'q') 'Solution restore failed' }
+    finally { Pop-Location }
 }
 
 # Experimental task-04 runtime settings, confined to a separate netcore BuildHost copy. The client keeps its GC.
@@ -98,13 +131,18 @@ function Invoke-ObserveRounds([Collections.IDictionary]$Sides, [string]$Solution
 function Invoke-Spike([string]$Dll, [string[]]$Arguments, [string]$OutputFile, [bool]$Fork) {
     $previous = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
-    if ($Fork) { foreach ($name in $script:ForkVariables.Keys) { Set-Item -LiteralPath "Env:$name" -Value $script:ForkVariables[$name] } }
+    $previousVariables = @{}
+    foreach ($name in 'ROSLYN_BUILDHOST_REFERENCES_FIRST', 'ROSLYN_BUILDHOST_EVALUATE_AHEAD', 'ROSLYN_BUILDHOST_EVALUATE_AHEAD_SOLUTION', 'ROSLYN_BUILDHOST_SHARED_SDK_CACHE') {
+        $previousVariables[$name] = [Environment]::GetEnvironmentVariable($name)
+        $value = if ($Fork) { $script:ForkVariables[$name] }
+        [Environment]::SetEnvironmentVariable($name, $value)
+    }
     try {
         & dotnet $Dll @Arguments 2>&1 | ForEach-Object { "$_" } | Out-File -LiteralPath $OutputFile -Encoding utf8
         return $LASTEXITCODE
     }
     finally {
         $ErrorActionPreference = $previous
-        if ($Fork) { foreach ($name in $script:ForkVariables.Keys) { Remove-Item -LiteralPath "Env:$name" -ErrorAction SilentlyContinue } }
+        foreach ($name in $previousVariables.Keys) { [Environment]::SetEnvironmentVariable($name, $previousVariables[$name]) }
     }
 }

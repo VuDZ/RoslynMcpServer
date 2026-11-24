@@ -1,0 +1,1906 @@
+[
+  {
+    "name": "final-roslyn-cold",
+    "medians": {
+      "loadMs": 36446.775,
+      "firstDefinitionMs": 12229.773,
+      "totalMs": 48676.548,
+      "serverCpuMs": 126219.0,
+      "observedHostCpuMs": 57390.625,
+      "observedTotalCpuMs": 182842.75,
+      "serverPeakMiB": 6750.234,
+      "hostPeakMiB": 1683.07,
+      "treePeakMiB": 6750.234
+    },
+    "warmupAndRuns": [
+      {
+        "run": 1,
+        "kind": "warmup",
+        "serverPid": 61140,
+        "BuildHostPids": [
+          54400
+        ],
+        "loadMs": 56969.576,
+        "firstDefinitionMs": 11133.882,
+        "totalMs": 68103.459,
+        "serverCpuMs": 122703.0,
+        "observedHostCpuMs": 69000.0,
+        "observedTotalCpuMs": 191703.0,
+        "allDescendantCpuMs": 69000.0,
+        "serverPeakMiB": 7204.602,
+        "hostPeakMiB": 1969.297,
+        "treePeakMiB": 7204.602,
+        "hostKernelPeakMiB": 1969.332,
+        "projects": 434,
+        "diagnosticLines": 0,
+        "msbuildFailures": 44,
+        "msbuildWarnings": 43,
+        "msbuildDiagnosticsSHA256": "EDC9F2EA44F1597CE32839E05D68E2718E95CF137A574B7B73F85A09BF91A27B",
+        "serverCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\10.0.15\\coreclr.dll"
+        ],
+        "hostCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\11.0.0\\coreclr.dll"
+        ],
+        "msbuildServerPids": [],
+        "cacheAppKey": "RoslynMcpServer-B0-2-Wdw2hRV7lp94palGZs3ngg==",
+        "cacheProjectKey": "Roslyn.slnx-yoaSjKjgWJYXPUtyE5PmQ==",
+        "beganUtc": "2026-11-18T20:15:11.7414411Z",
+        "sqliteCreatedUtc": "2026-11-18T20:16:08.7292102Z",
+        "sqliteExistedBeforeLoad": false,
+        "sqliteFileBytesAfterSeries": 30670848
+      },
+      {
+        "run": 2,
+        "kind": "measured",
+        "serverPid": 54904,
+        "BuildHostPids": [
+          60004
+        ],
+        "loadMs": 39424.3,
+        "firstDefinitionMs": 12039.821,
+        "totalMs": 51464.121,
+        "serverCpuMs": 119922.0,
+        "observedHostCpuMs": 61625.0,
+        "observedTotalCpuMs": 181547.0,
+        "allDescendantCpuMs": 61625.0,
+        "serverPeakMiB": 6750.234,
+        "hostPeakMiB": 1694.457,
+        "treePeakMiB": 6750.234,
+        "hostKernelPeakMiB": 1694.457,
+        "projects": 434,
+        "diagnosticLines": 0,
+        "msbuildFailures": 44,
+        "msbuildWarnings": 43,
+        "msbuildDiagnosticsSHA256": "EDC9F2EA44F1597CE32839E05D68E2718E95CF137A574B7B73F85A09BF91A27B",
+        "serverCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\10.0.15\\coreclr.dll"
+        ],
+        "hostCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\11.0.0\\coreclr.dll"
+        ],
+        "msbuildServerPids": [],
+        "cacheAppKey": "RoslynMcpServer-B0-2-leyxR3K86PO6FNRSixe31A==",
+        "cacheProjectKey": "Roslyn.slnx-yoaSjKjgWJYXPUtyE5PmQ==",
+        "beganUtc": "2026-11-18T20:16:25.6535726Z",
+        "sqliteCreatedUtc": "2026-11-18T20:17:04.944118Z",
+        "sqliteExistedBeforeLoad": false,
+        "sqliteFileBytesAfterSeries": 31141888
+      },
+      {
+        "run": 3,
+        "kind": "measured",
+        "serverPid": 27608,
+        "BuildHostPids": [
+          59932
+        ],
+        "loadMs": 36446.775,
+        "firstDefinitionMs": 12229.773,
+        "totalMs": 48676.548,
+        "serverCpuMs": 126219.0,
+        "observedHostCpuMs": 57843.75,
+        "observedTotalCpuMs": 184062.75,
+        "allDescendantCpuMs": 57859.0,
+        "serverPeakMiB": 6970.898,
+        "hostPeakMiB": 1692.316,
+        "treePeakMiB": 6970.57,
+        "hostKernelPeakMiB": 1695.656,
+        "projects": 434,
+        "diagnosticLines": 0,
+        "msbuildFailures": 44,
+        "msbuildWarnings": 43,
+        "msbuildDiagnosticsSHA256": "EDC9F2EA44F1597CE32839E05D68E2718E95CF137A574B7B73F85A09BF91A27B",
+        "serverCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\10.0.15\\coreclr.dll"
+        ],
+        "hostCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\11.0.0\\coreclr.dll"
+        ],
+        "msbuildServerPids": [],
+        "cacheAppKey": "RoslynMcpServer-B0-2-AwXVmVj3ecwaGNL4ABM9Aw==",
+        "cacheProjectKey": "Roslyn.slnx-yoaSjKjgWJYXPUtyE5PmQ==",
+        "beganUtc": "2026-11-18T20:17:22.9511703Z",
+        "sqliteCreatedUtc": "2026-11-18T20:17:59.2677685Z",
+        "sqliteExistedBeforeLoad": false,
+        "sqliteFileBytesAfterSeries": 29642752
+      },
+      {
+        "run": 4,
+        "kind": "measured",
+        "serverPid": 14888,
+        "BuildHostPids": [
+          63260
+        ],
+        "loadMs": 35657.402,
+        "firstDefinitionMs": 12728.029,
+        "totalMs": 48385.431,
+        "serverCpuMs": 127374.0,
+        "observedHostCpuMs": 55468.75,
+        "observedTotalCpuMs": 182842.75,
+        "allDescendantCpuMs": 55469.0,
+        "serverPeakMiB": 7067.598,
+        "hostPeakMiB": 1674.418,
+        "treePeakMiB": 7067.598,
+        "hostKernelPeakMiB": 1674.418,
+        "projects": 434,
+        "diagnosticLines": 0,
+        "msbuildFailures": 44,
+        "msbuildWarnings": 43,
+        "msbuildDiagnosticsSHA256": "EDC9F2EA44F1597CE32839E05D68E2718E95CF137A574B7B73F85A09BF91A27B",
+        "serverCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\10.0.15\\coreclr.dll"
+        ],
+        "hostCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\11.0.0\\coreclr.dll"
+        ],
+        "msbuildServerPids": [],
+        "cacheAppKey": "RoslynMcpServer-B0-2-AgdsJcQzIbKrhOIGxHgoQ==",
+        "cacheProjectKey": "Roslyn.slnx-yoaSjKjgWJYXPUtyE5PmQ==",
+        "beganUtc": "2026-11-18T20:18:17.6480141Z",
+        "sqliteCreatedUtc": "2026-11-18T20:18:53.2214344Z",
+        "sqliteExistedBeforeLoad": false,
+        "sqliteFileBytesAfterSeries": 30162944
+      },
+      {
+        "run": 5,
+        "kind": "measured",
+        "serverPid": 60264,
+        "BuildHostPids": [
+          30832
+        ],
+        "loadMs": 35668.772,
+        "firstDefinitionMs": 12919.069,
+        "totalMs": 48587.841,
+        "serverCpuMs": 133969.0,
+        "observedHostCpuMs": 57390.625,
+        "observedTotalCpuMs": 191359.625,
+        "allDescendantCpuMs": 57391.0,
+        "serverPeakMiB": 6641.238,
+        "hostPeakMiB": 1683.07,
+        "treePeakMiB": 6639.945,
+        "hostKernelPeakMiB": 1683.07,
+        "projects": 434,
+        "diagnosticLines": 0,
+        "msbuildFailures": 44,
+        "msbuildWarnings": 43,
+        "msbuildDiagnosticsSHA256": "EDC9F2EA44F1597CE32839E05D68E2718E95CF137A574B7B73F85A09BF91A27B",
+        "serverCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\10.0.15\\coreclr.dll"
+        ],
+        "hostCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\11.0.0\\coreclr.dll"
+        ],
+        "msbuildServerPids": [],
+        "cacheAppKey": "RoslynMcpServer-B0-2-LOx+iOJX4QfTyLd5N5TScA==",
+        "cacheProjectKey": "Roslyn.slnx-yoaSjKjgWJYXPUtyE5PmQ==",
+        "beganUtc": "2026-11-18T20:19:11.9099092Z",
+        "sqliteCreatedUtc": "2026-11-18T20:19:47.4595112Z",
+        "sqliteExistedBeforeLoad": false,
+        "sqliteFileBytesAfterSeries": 29507584
+      },
+      {
+        "run": 6,
+        "kind": "measured",
+        "serverPid": 71020,
+        "BuildHostPids": [
+          65232
+        ],
+        "loadMs": 36743.564,
+        "firstDefinitionMs": 12058.772,
+        "totalMs": 48802.335,
+        "serverCpuMs": 121953.0,
+        "observedHostCpuMs": 56640.625,
+        "observedTotalCpuMs": 178593.625,
+        "allDescendantCpuMs": 56641.0,
+        "serverPeakMiB": 6306.84,
+        "hostPeakMiB": 1677.59,
+        "treePeakMiB": 6306.84,
+        "hostKernelPeakMiB": 1677.59,
+        "projects": 434,
+        "diagnosticLines": 0,
+        "msbuildFailures": 44,
+        "msbuildWarnings": 43,
+        "msbuildDiagnosticsSHA256": "EDC9F2EA44F1597CE32839E05D68E2718E95CF137A574B7B73F85A09BF91A27B",
+        "serverCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\10.0.15\\coreclr.dll"
+        ],
+        "hostCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\11.0.0\\coreclr.dll"
+        ],
+        "msbuildServerPids": [],
+        "cacheAppKey": "RoslynMcpServer-B0-2-43ERVtpvHLt162ilZa78lA==",
+        "cacheProjectKey": "Roslyn.slnx-yoaSjKjgWJYXPUtyE5PmQ==",
+        "beganUtc": "2026-11-18T20:20:06.2627397Z",
+        "sqliteCreatedUtc": "2026-11-18T20:20:43.0248512Z",
+        "sqliteExistedBeforeLoad": false,
+        "sqliteFileBytesAfterSeries": 30998528
+      }
+    ]
+  },
+  {
+    "name": "final-roslyn-warm",
+    "medians": {
+      "loadMs": 37158.892,
+      "firstDefinitionMs": 8073.63,
+      "totalMs": 45232.522,
+      "serverCpuMs": 50625.0,
+      "observedHostCpuMs": 60500.0,
+      "observedTotalCpuMs": 109234.375,
+      "serverPeakMiB": 2168.957,
+      "hostPeakMiB": 1674.793,
+      "treePeakMiB": 2426.879
+    },
+    "warmupAndRuns": [
+      {
+        "run": 1,
+        "kind": "warmup",
+        "serverPid": 53328,
+        "BuildHostPids": [
+          63696
+        ],
+        "loadMs": 36272.677,
+        "firstDefinitionMs": 12262.196,
+        "totalMs": 48534.873,
+        "serverCpuMs": 129609.0,
+        "observedHostCpuMs": 57203.125,
+        "observedTotalCpuMs": 186812.125,
+        "allDescendantCpuMs": 57219.0,
+        "serverPeakMiB": 6528.18,
+        "hostPeakMiB": 1689.348,
+        "treePeakMiB": 6528.18,
+        "hostKernelPeakMiB": 1689.348,
+        "projects": 434,
+        "diagnosticLines": 0,
+        "msbuildFailures": 44,
+        "msbuildWarnings": 43,
+        "msbuildDiagnosticsSHA256": "EDC9F2EA44F1597CE32839E05D68E2718E95CF137A574B7B73F85A09BF91A27B",
+        "serverCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\10.0.15\\coreclr.dll"
+        ],
+        "hostCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\11.0.0\\coreclr.dll"
+        ],
+        "msbuildServerPids": [],
+        "cacheAppKey": "RoslynMcpServer-B0-2-5eKfpLn8uXYTmOi1mYmr+A==",
+        "cacheProjectKey": "Roslyn.slnx-yoaSjKjgWJYXPUtyE5PmQ==",
+        "beganUtc": "2026-11-18T20:20:59.5724706Z",
+        "sqliteCreatedUtc": "2026-11-18T20:21:35.7794441Z",
+        "sqliteExistedBeforeLoad": false,
+        "sqliteFileBytesAfterSeries": 30076928
+      },
+      {
+        "run": 2,
+        "kind": "measured",
+        "serverPid": 63720,
+        "BuildHostPids": [
+          61076
+        ],
+        "loadMs": 36026.259,
+        "firstDefinitionMs": 7883.776,
+        "totalMs": 43910.035,
+        "serverCpuMs": 50625.0,
+        "observedHostCpuMs": 58609.375,
+        "observedTotalCpuMs": 109234.375,
+        "allDescendantCpuMs": 59562.0,
+        "serverPeakMiB": 2275.156,
+        "hostPeakMiB": 1674.793,
+        "treePeakMiB": 2425.117,
+        "hostKernelPeakMiB": 1674.793,
+        "projects": 434,
+        "diagnosticLines": 0,
+        "msbuildFailures": 44,
+        "msbuildWarnings": 43,
+        "msbuildDiagnosticsSHA256": "EDC9F2EA44F1597CE32839E05D68E2718E95CF137A574B7B73F85A09BF91A27B",
+        "serverCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\10.0.15\\coreclr.dll"
+        ],
+        "hostCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\11.0.0\\coreclr.dll"
+        ],
+        "msbuildServerPids": [],
+        "cacheAppKey": "RoslynMcpServer-B0-2-5eKfpLn8uXYTmOi1mYmr+A==",
+        "cacheProjectKey": "Roslyn.slnx-yoaSjKjgWJYXPUtyE5PmQ==",
+        "beganUtc": "2026-11-18T20:21:54.0585378Z",
+        "sqliteCreatedUtc": "2026-11-18T20:21:35.7794441Z",
+        "sqliteExistedBeforeLoad": true,
+        "sqliteFileBytesAfterSeries": 30076928
+      },
+      {
+        "run": 3,
+        "kind": "measured",
+        "serverPid": 69500,
+        "BuildHostPids": [
+          58904
+        ],
+        "loadMs": 38992.379,
+        "firstDefinitionMs": 8694.881,
+        "totalMs": 47687.26,
+        "serverCpuMs": 51172.0,
+        "observedHostCpuMs": 61671.875,
+        "observedTotalCpuMs": 112843.875,
+        "allDescendantCpuMs": 62734.0,
+        "serverPeakMiB": 2125.852,
+        "hostPeakMiB": 1671.695,
+        "treePeakMiB": 2423.156,
+        "hostKernelPeakMiB": 1675.98,
+        "projects": 434,
+        "diagnosticLines": 0,
+        "msbuildFailures": 44,
+        "msbuildWarnings": 43,
+        "msbuildDiagnosticsSHA256": "EDC9F2EA44F1597CE32839E05D68E2718E95CF137A574B7B73F85A09BF91A27B",
+        "serverCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\10.0.15\\coreclr.dll"
+        ],
+        "hostCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\11.0.0\\coreclr.dll"
+        ],
+        "msbuildServerPids": [],
+        "cacheAppKey": "RoslynMcpServer-B0-2-5eKfpLn8uXYTmOi1mYmr+A==",
+        "cacheProjectKey": "Roslyn.slnx-yoaSjKjgWJYXPUtyE5PmQ==",
+        "beganUtc": "2026-11-18T20:22:43.4251116Z",
+        "sqliteCreatedUtc": "2026-11-18T20:21:35.7794441Z",
+        "sqliteExistedBeforeLoad": true,
+        "sqliteFileBytesAfterSeries": 30076928
+      },
+      {
+        "run": 4,
+        "kind": "measured",
+        "serverPid": 60360,
+        "BuildHostPids": [
+          68800
+        ],
+        "loadMs": 41932.977,
+        "firstDefinitionMs": 8110.473,
+        "totalMs": 50043.45,
+        "serverCpuMs": 51110.0,
+        "observedHostCpuMs": 65671.875,
+        "observedTotalCpuMs": 116781.875,
+        "allDescendantCpuMs": 65672.0,
+        "serverPeakMiB": 2118.938,
+        "hostPeakMiB": 1664.422,
+        "treePeakMiB": 2426.879,
+        "hostKernelPeakMiB": 1664.43,
+        "projects": 434,
+        "diagnosticLines": 0,
+        "msbuildFailures": 44,
+        "msbuildWarnings": 43,
+        "msbuildDiagnosticsSHA256": "EDC9F2EA44F1597CE32839E05D68E2718E95CF137A574B7B73F85A09BF91A27B",
+        "serverCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\10.0.15\\coreclr.dll"
+        ],
+        "hostCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\11.0.0\\coreclr.dll"
+        ],
+        "msbuildServerPids": [],
+        "cacheAppKey": "RoslynMcpServer-B0-2-5eKfpLn8uXYTmOi1mYmr+A==",
+        "cacheProjectKey": "Roslyn.slnx-yoaSjKjgWJYXPUtyE5PmQ==",
+        "beganUtc": "2026-11-18T20:23:36.6960422Z",
+        "sqliteCreatedUtc": "2026-11-18T20:21:35.7794441Z",
+        "sqliteExistedBeforeLoad": true,
+        "sqliteFileBytesAfterSeries": 30076928
+      },
+      {
+        "run": 5,
+        "kind": "measured",
+        "serverPid": 29756,
+        "BuildHostPids": [
+          2668
+        ],
+        "loadMs": 37158.892,
+        "firstDefinitionMs": 8073.63,
+        "totalMs": 45232.522,
+        "serverCpuMs": 47172.0,
+        "observedHostCpuMs": 60500.0,
+        "observedTotalCpuMs": 107672.0,
+        "allDescendantCpuMs": 60516.0,
+        "serverPeakMiB": 2168.957,
+        "hostPeakMiB": 1700.824,
+        "treePeakMiB": 2454.812,
+        "hostKernelPeakMiB": 1700.824,
+        "projects": 434,
+        "diagnosticLines": 0,
+        "msbuildFailures": 44,
+        "msbuildWarnings": 43,
+        "msbuildDiagnosticsSHA256": "EDC9F2EA44F1597CE32839E05D68E2718E95CF137A574B7B73F85A09BF91A27B",
+        "serverCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\10.0.15\\coreclr.dll"
+        ],
+        "hostCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\11.0.0\\coreclr.dll"
+        ],
+        "msbuildServerPids": [],
+        "cacheAppKey": "RoslynMcpServer-B0-2-5eKfpLn8uXYTmOi1mYmr+A==",
+        "cacheProjectKey": "Roslyn.slnx-yoaSjKjgWJYXPUtyE5PmQ==",
+        "beganUtc": "2026-11-18T20:24:32.3099205Z",
+        "sqliteCreatedUtc": "2026-11-18T20:21:35.7794441Z",
+        "sqliteExistedBeforeLoad": true,
+        "sqliteFileBytesAfterSeries": 30076928
+      },
+      {
+        "run": 6,
+        "kind": "measured",
+        "serverPid": 39960,
+        "BuildHostPids": [
+          65204
+        ],
+        "loadMs": 35574.282,
+        "firstDefinitionMs": 7796.16,
+        "totalMs": 43370.442,
+        "serverCpuMs": 45781.0,
+        "observedHostCpuMs": 54078.125,
+        "observedTotalCpuMs": 99859.125,
+        "allDescendantCpuMs": 54078.0,
+        "serverPeakMiB": 2225.07,
+        "hostPeakMiB": 1696.609,
+        "treePeakMiB": 2445.957,
+        "hostKernelPeakMiB": 1696.609,
+        "projects": 434,
+        "diagnosticLines": 0,
+        "msbuildFailures": 44,
+        "msbuildWarnings": 43,
+        "msbuildDiagnosticsSHA256": "EDC9F2EA44F1597CE32839E05D68E2718E95CF137A574B7B73F85A09BF91A27B",
+        "serverCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\10.0.15\\coreclr.dll"
+        ],
+        "hostCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\11.0.0\\coreclr.dll"
+        ],
+        "msbuildServerPids": [],
+        "cacheAppKey": "RoslynMcpServer-B0-2-5eKfpLn8uXYTmOi1mYmr+A==",
+        "cacheProjectKey": "Roslyn.slnx-yoaSjKjgWJYXPUtyE5PmQ==",
+        "beganUtc": "2026-11-18T20:25:22.970987Z",
+        "sqliteCreatedUtc": "2026-11-18T20:21:35.7794441Z",
+        "sqliteExistedBeforeLoad": true,
+        "sqliteFileBytesAfterSeries": 30076928
+      }
+    ]
+  },
+  {
+    "name": "final-server-cold",
+    "medians": {
+      "loadMs": 1983.18,
+      "firstDefinitionMs": 1158.986,
+      "totalMs": 3163.939,
+      "serverCpuMs": 3188.0,
+      "observedHostCpuMs": 1109.375,
+      "observedTotalCpuMs": 4203.625,
+      "serverPeakMiB": 311.766,
+      "hostPeakMiB": 122.566,
+      "treePeakMiB": 311.766
+    },
+    "warmupAndRuns": [
+      {
+        "run": 1,
+        "kind": "warmup",
+        "serverPid": 65268,
+        "BuildHostPids": [
+          65636
+        ],
+        "loadMs": 2080.35,
+        "firstDefinitionMs": 1205.571,
+        "totalMs": 3285.921,
+        "serverCpuMs": 3641.0,
+        "observedHostCpuMs": 1546.875,
+        "observedTotalCpuMs": 5187.875,
+        "allDescendantCpuMs": 1547.0,
+        "serverPeakMiB": 301.117,
+        "hostPeakMiB": 153.688,
+        "treePeakMiB": 312.781,
+        "hostKernelPeakMiB": 153.688,
+        "projects": 5,
+        "diagnosticLines": 0,
+        "msbuildFailures": 0,
+        "msbuildWarnings": 0,
+        "msbuildDiagnosticsSHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+        "serverCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\10.0.15\\coreclr.dll"
+        ],
+        "hostCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\11.0.0\\coreclr.dll"
+        ],
+        "msbuildServerPids": [],
+        "cacheAppKey": "RoslynMcpServer-B0-2-ptamXCVhqsvlwDHzsYGa0Q==",
+        "cacheProjectKey": "RoslynMcpServer.sln-hB3zvW7Y06+zZWIyesbdiQ==",
+        "beganUtc": "2026-11-18T20:13:42.7173183Z",
+        "sqliteCreatedUtc": "2026-11-18T20:13:44.9069685Z",
+        "sqliteExistedBeforeLoad": false,
+        "sqliteFileBytesAfterSeries": 61440
+      },
+      {
+        "run": 2,
+        "kind": "measured",
+        "serverPid": 48476,
+        "BuildHostPids": [
+          72188
+        ],
+        "loadMs": 1988.067,
+        "firstDefinitionMs": 1175.872,
+        "totalMs": 3163.939,
+        "serverCpuMs": 3078.0,
+        "observedHostCpuMs": 1109.375,
+        "observedTotalCpuMs": 4187.375,
+        "allDescendantCpuMs": 1109.0,
+        "serverPeakMiB": 297.98,
+        "hostPeakMiB": 122.656,
+        "treePeakMiB": 297.965,
+        "hostKernelPeakMiB": 122.656,
+        "projects": 5,
+        "diagnosticLines": 0,
+        "msbuildFailures": 0,
+        "msbuildWarnings": 0,
+        "msbuildDiagnosticsSHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+        "serverCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\10.0.15\\coreclr.dll"
+        ],
+        "hostCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\11.0.0\\coreclr.dll"
+        ],
+        "msbuildServerPids": [],
+        "cacheAppKey": "RoslynMcpServer-B0-2-Blvo3CN4lQfElZlhoM3EaQ==",
+        "cacheProjectKey": "RoslynMcpServer.sln-hB3zvW7Y06+zZWIyesbdiQ==",
+        "beganUtc": "2026-11-18T20:13:50.5188646Z",
+        "sqliteCreatedUtc": "2026-11-18T20:13:52.5808566Z",
+        "sqliteExistedBeforeLoad": false,
+        "sqliteFileBytesAfterSeries": 61440
+      },
+      {
+        "run": 3,
+        "kind": "measured",
+        "serverPid": 64376,
+        "BuildHostPids": [
+          42816
+        ],
+        "loadMs": 2013.831,
+        "firstDefinitionMs": 1155.572,
+        "totalMs": 3169.403,
+        "serverCpuMs": 2937.0,
+        "observedHostCpuMs": 859.375,
+        "observedTotalCpuMs": 3796.375,
+        "allDescendantCpuMs": 1547.0,
+        "serverPeakMiB": 311.766,
+        "hostPeakMiB": 121.707,
+        "treePeakMiB": 311.766,
+        "hostKernelPeakMiB": 121.707,
+        "projects": 5,
+        "diagnosticLines": 0,
+        "msbuildFailures": 0,
+        "msbuildWarnings": 0,
+        "msbuildDiagnosticsSHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+        "serverCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\10.0.15\\coreclr.dll"
+        ],
+        "hostCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\11.0.0\\coreclr.dll"
+        ],
+        "msbuildServerPids": [],
+        "cacheAppKey": "RoslynMcpServer-B0-2-AjhPdvAuq6e5gDlhiqaivw==",
+        "cacheProjectKey": "RoslynMcpServer.sln-hB3zvW7Y06+zZWIyesbdiQ==",
+        "beganUtc": "2026-11-18T20:13:58.2193327Z",
+        "sqliteCreatedUtc": "2026-11-18T20:14:00.3067587Z",
+        "sqliteExistedBeforeLoad": false,
+        "sqliteFileBytesAfterSeries": 61440
+      },
+      {
+        "run": 4,
+        "kind": "measured",
+        "serverPid": 63900,
+        "BuildHostPids": [
+          60116
+        ],
+        "loadMs": 1983.18,
+        "firstDefinitionMs": 1152.009,
+        "totalMs": 3135.189,
+        "serverCpuMs": 3188.0,
+        "observedHostCpuMs": 1015.625,
+        "observedTotalCpuMs": 4203.625,
+        "allDescendantCpuMs": 1016.0,
+        "serverPeakMiB": 317.906,
+        "hostPeakMiB": 122.066,
+        "treePeakMiB": 317.906,
+        "hostKernelPeakMiB": 122.066,
+        "projects": 5,
+        "diagnosticLines": 0,
+        "msbuildFailures": 0,
+        "msbuildWarnings": 0,
+        "msbuildDiagnosticsSHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+        "serverCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\10.0.15\\coreclr.dll"
+        ],
+        "hostCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\11.0.0\\coreclr.dll"
+        ],
+        "msbuildServerPids": [],
+        "cacheAppKey": "RoslynMcpServer-B0-2-ctKfrsp7zcATR04al13PQ==",
+        "cacheProjectKey": "RoslynMcpServer.sln-hB3zvW7Y06+zZWIyesbdiQ==",
+        "beganUtc": "2026-11-18T20:14:05.9400099Z",
+        "sqliteCreatedUtc": "2026-11-18T20:14:07.9953358Z",
+        "sqliteExistedBeforeLoad": false,
+        "sqliteFileBytesAfterSeries": 61440
+      },
+      {
+        "run": 5,
+        "kind": "measured",
+        "serverPid": 58660,
+        "BuildHostPids": [
+          66616
+        ],
+        "loadMs": 1973.83,
+        "firstDefinitionMs": 1158.986,
+        "totalMs": 3132.816,
+        "serverCpuMs": 3500.0,
+        "observedHostCpuMs": 1125.0,
+        "observedTotalCpuMs": 4625.0,
+        "allDescendantCpuMs": 1125.0,
+        "serverPeakMiB": 318.277,
+        "hostPeakMiB": 122.766,
+        "treePeakMiB": 318.266,
+        "hostKernelPeakMiB": 122.766,
+        "projects": 5,
+        "diagnosticLines": 0,
+        "msbuildFailures": 0,
+        "msbuildWarnings": 0,
+        "msbuildDiagnosticsSHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+        "serverCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\10.0.15\\coreclr.dll"
+        ],
+        "hostCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\11.0.0\\coreclr.dll"
+        ],
+        "msbuildServerPids": [],
+        "cacheAppKey": "RoslynMcpServer-B0-2-CCu761qPo2f5aG1lW2tmhQ==",
+        "cacheProjectKey": "RoslynMcpServer.sln-hB3zvW7Y06+zZWIyesbdiQ==",
+        "beganUtc": "2026-11-18T20:14:13.5861767Z",
+        "sqliteCreatedUtc": "2026-11-18T20:14:15.6313803Z",
+        "sqliteExistedBeforeLoad": false,
+        "sqliteFileBytesAfterSeries": 61440
+      },
+      {
+        "run": 6,
+        "kind": "measured",
+        "serverPid": 63484,
+        "BuildHostPids": [
+          66260
+        ],
+        "loadMs": 1971.065,
+        "firstDefinitionMs": 1202.055,
+        "totalMs": 3173.121,
+        "serverCpuMs": 3406.0,
+        "observedHostCpuMs": 1125.0,
+        "observedTotalCpuMs": 4531.0,
+        "allDescendantCpuMs": 1125.0,
+        "serverPeakMiB": 292.445,
+        "hostPeakMiB": 122.566,
+        "treePeakMiB": 292.445,
+        "hostKernelPeakMiB": 122.566,
+        "projects": 5,
+        "diagnosticLines": 0,
+        "msbuildFailures": 0,
+        "msbuildWarnings": 0,
+        "msbuildDiagnosticsSHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+        "serverCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\10.0.15\\coreclr.dll"
+        ],
+        "hostCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\11.0.0\\coreclr.dll"
+        ],
+        "msbuildServerPids": [],
+        "cacheAppKey": "RoslynMcpServer-B0-2-q8EVrM06buFtMJTlK4rw==",
+        "cacheProjectKey": "RoslynMcpServer.sln-hB3zvW7Y06+zZWIyesbdiQ==",
+        "beganUtc": "2026-11-18T20:14:21.2165864Z",
+        "sqliteCreatedUtc": "2026-11-18T20:14:23.2582873Z",
+        "sqliteExistedBeforeLoad": false,
+        "sqliteFileBytesAfterSeries": 61440
+      }
+    ]
+  },
+  {
+    "name": "final-server-warm",
+    "medians": {
+      "loadMs": 1982.728,
+      "firstDefinitionMs": 1237.909,
+      "totalMs": 3227.38,
+      "serverCpuMs": 2735.0,
+      "observedHostCpuMs": 1031.25,
+      "observedTotalCpuMs": 3703.75,
+      "serverPeakMiB": 268.613,
+      "hostPeakMiB": 122.453,
+      "treePeakMiB": 268.613
+    },
+    "warmupAndRuns": [
+      {
+        "run": 1,
+        "kind": "warmup",
+        "serverPid": 68112,
+        "BuildHostPids": [
+          55392
+        ],
+        "loadMs": 2034.813,
+        "firstDefinitionMs": 1188.742,
+        "totalMs": 3223.554,
+        "serverCpuMs": 2938.0,
+        "observedHostCpuMs": 1171.875,
+        "observedTotalCpuMs": 4109.875,
+        "allDescendantCpuMs": 1906.0,
+        "serverPeakMiB": 294.176,
+        "hostPeakMiB": 123.105,
+        "treePeakMiB": 294.176,
+        "hostKernelPeakMiB": 123.105,
+        "projects": 5,
+        "diagnosticLines": 0,
+        "msbuildFailures": 0,
+        "msbuildWarnings": 0,
+        "msbuildDiagnosticsSHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+        "serverCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\10.0.15\\coreclr.dll"
+        ],
+        "hostCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\11.0.0\\coreclr.dll"
+        ],
+        "msbuildServerPids": [],
+        "cacheAppKey": "RoslynMcpServer-B0-2-DGyv0ubwiEPp+yKIr1OtA==",
+        "cacheProjectKey": "RoslynMcpServer.sln-hB3zvW7Y06+zZWIyesbdiQ==",
+        "beganUtc": "2026-11-18T20:14:27.1896044Z",
+        "sqliteCreatedUtc": "2026-11-18T20:14:29.2950685Z",
+        "sqliteExistedBeforeLoad": false,
+        "sqliteFileBytesAfterSeries": 61440
+      },
+      {
+        "run": 2,
+        "kind": "measured",
+        "serverPid": 63020,
+        "BuildHostPids": [
+          67024
+        ],
+        "loadMs": 1978.468,
+        "firstDefinitionMs": 1237.766,
+        "totalMs": 3216.234,
+        "serverCpuMs": 2735.0,
+        "observedHostCpuMs": 968.75,
+        "observedTotalCpuMs": 3703.75,
+        "allDescendantCpuMs": 969.0,
+        "serverPeakMiB": 263.02,
+        "hostPeakMiB": 122.129,
+        "treePeakMiB": 263.02,
+        "hostKernelPeakMiB": 122.129,
+        "projects": 5,
+        "diagnosticLines": 0,
+        "msbuildFailures": 0,
+        "msbuildWarnings": 0,
+        "msbuildDiagnosticsSHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+        "serverCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\10.0.15\\coreclr.dll"
+        ],
+        "hostCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\11.0.0\\coreclr.dll"
+        ],
+        "msbuildServerPids": [],
+        "cacheAppKey": "RoslynMcpServer-B0-2-DGyv0ubwiEPp+yKIr1OtA==",
+        "cacheProjectKey": "RoslynMcpServer.sln-hB3zvW7Y06+zZWIyesbdiQ==",
+        "beganUtc": "2026-11-18T20:14:34.9209094Z",
+        "sqliteCreatedUtc": "2026-11-18T20:14:29.2950685Z",
+        "sqliteExistedBeforeLoad": true,
+        "sqliteFileBytesAfterSeries": 61440
+      },
+      {
+        "run": 3,
+        "kind": "measured",
+        "serverPid": 66608,
+        "BuildHostPids": [
+          69240
+        ],
+        "loadMs": 2048.698,
+        "firstDefinitionMs": 1250.66,
+        "totalMs": 3299.359,
+        "serverCpuMs": 2656.0,
+        "observedHostCpuMs": 1250.0,
+        "observedTotalCpuMs": 3906.0,
+        "allDescendantCpuMs": 1812.0,
+        "serverPeakMiB": 263.973,
+        "hostPeakMiB": 121.504,
+        "treePeakMiB": 263.969,
+        "hostKernelPeakMiB": 121.504,
+        "projects": 5,
+        "diagnosticLines": 0,
+        "msbuildFailures": 0,
+        "msbuildWarnings": 0,
+        "msbuildDiagnosticsSHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+        "serverCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\10.0.15\\coreclr.dll"
+        ],
+        "hostCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\11.0.0\\coreclr.dll"
+        ],
+        "msbuildServerPids": [],
+        "cacheAppKey": "RoslynMcpServer-B0-2-DGyv0ubwiEPp+yKIr1OtA==",
+        "cacheProjectKey": "RoslynMcpServer.sln-hB3zvW7Y06+zZWIyesbdiQ==",
+        "beganUtc": "2026-11-18T20:14:42.5883528Z",
+        "sqliteCreatedUtc": "2026-11-18T20:14:29.2950685Z",
+        "sqliteExistedBeforeLoad": true,
+        "sqliteFileBytesAfterSeries": 61440
+      },
+      {
+        "run": 4,
+        "kind": "measured",
+        "serverPid": 61740,
+        "BuildHostPids": [
+          65972
+        ],
+        "loadMs": 1982.728,
+        "firstDefinitionMs": 1236.143,
+        "totalMs": 3218.871,
+        "serverCpuMs": 2281.0,
+        "observedHostCpuMs": 1031.25,
+        "observedTotalCpuMs": 3312.25,
+        "allDescendantCpuMs": 1031.0,
+        "serverPeakMiB": 269.074,
+        "hostPeakMiB": 122.648,
+        "treePeakMiB": 269.074,
+        "hostKernelPeakMiB": 122.648,
+        "projects": 5,
+        "diagnosticLines": 0,
+        "msbuildFailures": 0,
+        "msbuildWarnings": 0,
+        "msbuildDiagnosticsSHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+        "serverCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\10.0.15\\coreclr.dll"
+        ],
+        "hostCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\11.0.0\\coreclr.dll"
+        ],
+        "msbuildServerPids": [],
+        "cacheAppKey": "RoslynMcpServer-B0-2-DGyv0ubwiEPp+yKIr1OtA==",
+        "cacheProjectKey": "RoslynMcpServer.sln-hB3zvW7Y06+zZWIyesbdiQ==",
+        "beganUtc": "2026-11-18T20:14:50.3634854Z",
+        "sqliteCreatedUtc": "2026-11-18T20:14:29.2950685Z",
+        "sqliteExistedBeforeLoad": true,
+        "sqliteFileBytesAfterSeries": 61440
+      },
+      {
+        "run": 5,
+        "kind": "measured",
+        "serverPid": 27848,
+        "BuildHostPids": [
+          65668
+        ],
+        "loadMs": 1979.31,
+        "firstDefinitionMs": 1248.07,
+        "totalMs": 3227.38,
+        "serverCpuMs": 2797.0,
+        "observedHostCpuMs": 1062.5,
+        "observedTotalCpuMs": 3859.5,
+        "allDescendantCpuMs": 1062.0,
+        "serverPeakMiB": 270.945,
+        "hostPeakMiB": 122.512,
+        "treePeakMiB": 270.945,
+        "hostKernelPeakMiB": 122.512,
+        "projects": 5,
+        "diagnosticLines": 0,
+        "msbuildFailures": 0,
+        "msbuildWarnings": 0,
+        "msbuildDiagnosticsSHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+        "serverCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\10.0.15\\coreclr.dll"
+        ],
+        "hostCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\11.0.0\\coreclr.dll"
+        ],
+        "msbuildServerPids": [],
+        "cacheAppKey": "RoslynMcpServer-B0-2-DGyv0ubwiEPp+yKIr1OtA==",
+        "cacheProjectKey": "RoslynMcpServer.sln-hB3zvW7Y06+zZWIyesbdiQ==",
+        "beganUtc": "2026-11-18T20:14:58.0382945Z",
+        "sqliteCreatedUtc": "2026-11-18T20:14:29.2950685Z",
+        "sqliteExistedBeforeLoad": true,
+        "sqliteFileBytesAfterSeries": 61440
+      },
+      {
+        "run": 6,
+        "kind": "measured",
+        "serverPid": 4132,
+        "BuildHostPids": [
+          48516
+        ],
+        "loadMs": 1989.642,
+        "firstDefinitionMs": 1237.909,
+        "totalMs": 3227.552,
+        "serverCpuMs": 2750.0,
+        "observedHostCpuMs": 921.875,
+        "observedTotalCpuMs": 3671.875,
+        "allDescendantCpuMs": 938.0,
+        "serverPeakMiB": 268.613,
+        "hostPeakMiB": 122.453,
+        "treePeakMiB": 268.613,
+        "hostKernelPeakMiB": 122.453,
+        "projects": 5,
+        "diagnosticLines": 0,
+        "msbuildFailures": 0,
+        "msbuildWarnings": 0,
+        "msbuildDiagnosticsSHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+        "serverCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\10.0.15\\coreclr.dll"
+        ],
+        "hostCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\11.0.0\\coreclr.dll"
+        ],
+        "msbuildServerPids": [],
+        "cacheAppKey": "RoslynMcpServer-B0-2-DGyv0ubwiEPp+yKIr1OtA==",
+        "cacheProjectKey": "RoslynMcpServer.sln-hB3zvW7Y06+zZWIyesbdiQ==",
+        "beganUtc": "2026-11-18T20:15:05.7203991Z",
+        "sqliteCreatedUtc": "2026-11-18T20:14:29.2950685Z",
+        "sqliteExistedBeforeLoad": true,
+        "sqliteFileBytesAfterSeries": 61440
+      }
+    ]
+  },
+  {
+    "name": "final-smoke-cold",
+    "medians": {
+      "loadMs": 1406.57,
+      "firstDefinitionMs": 623.146,
+      "totalMs": 2027.336,
+      "serverCpuMs": 1297.0,
+      "observedHostCpuMs": 734.375,
+      "observedTotalCpuMs": 2031.625,
+      "serverPeakMiB": 163.984,
+      "hostPeakMiB": 100.469,
+      "treePeakMiB": 206.633
+    },
+    "warmupAndRuns": [
+      {
+        "run": 1,
+        "kind": "warmup",
+        "serverPid": 54496,
+        "BuildHostPids": [
+          51656
+        ],
+        "loadMs": 1424.574,
+        "firstDefinitionMs": 645.948,
+        "totalMs": 2070.522,
+        "serverCpuMs": 1515.0,
+        "observedHostCpuMs": 734.375,
+        "observedTotalCpuMs": 2249.375,
+        "allDescendantCpuMs": 734.0,
+        "serverPeakMiB": 164.414,
+        "hostPeakMiB": 100.703,
+        "treePeakMiB": 213.191,
+        "hostKernelPeakMiB": 100.703,
+        "projects": 1,
+        "diagnosticLines": 0,
+        "msbuildFailures": 0,
+        "msbuildWarnings": 0,
+        "msbuildDiagnosticsSHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+        "serverCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\10.0.15\\coreclr.dll"
+        ],
+        "hostCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\11.0.0\\coreclr.dll"
+        ],
+        "msbuildServerPids": [],
+        "cacheAppKey": "RoslynMcpServer-B0-2-KXLmlDivo7pa55TS5vS1Zg==",
+        "cacheProjectKey": "SmokeApp.csproj-72mOHRLhbswffccEG09H2A==",
+        "beganUtc": "2026-11-18T20:12:27.0685604Z",
+        "sqliteCreatedUtc": null,
+        "sqliteExistedBeforeLoad": false,
+        "sqliteFileBytesAfterSeries": 0
+      },
+      {
+        "run": 2,
+        "kind": "measured",
+        "serverPid": 70224,
+        "BuildHostPids": [
+          39016
+        ],
+        "loadMs": 1402.27,
+        "firstDefinitionMs": 623.684,
+        "totalMs": 2025.954,
+        "serverCpuMs": 1266.0,
+        "observedHostCpuMs": 765.625,
+        "observedTotalCpuMs": 2031.625,
+        "allDescendantCpuMs": 781.0,
+        "serverPeakMiB": 164.035,
+        "hostPeakMiB": 100.43,
+        "treePeakMiB": 206.148,
+        "hostKernelPeakMiB": 100.43,
+        "projects": 1,
+        "diagnosticLines": 0,
+        "msbuildFailures": 0,
+        "msbuildWarnings": 0,
+        "msbuildDiagnosticsSHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+        "serverCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\10.0.15\\coreclr.dll"
+        ],
+        "hostCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\11.0.0\\coreclr.dll"
+        ],
+        "msbuildServerPids": [],
+        "cacheAppKey": "RoslynMcpServer-B0-2-BePmTckYe2Hbb7qsGulzjg==",
+        "cacheProjectKey": "SmokeApp.csproj-72mOHRLhbswffccEG09H2A==",
+        "beganUtc": "2026-11-18T20:12:33.8882766Z",
+        "sqliteCreatedUtc": null,
+        "sqliteExistedBeforeLoad": false,
+        "sqliteFileBytesAfterSeries": 0
+      },
+      {
+        "run": 3,
+        "kind": "measured",
+        "serverPid": 67520,
+        "BuildHostPids": [
+          69480
+        ],
+        "loadMs": 1399.102,
+        "firstDefinitionMs": 623.146,
+        "totalMs": 2022.248,
+        "serverCpuMs": 1360.0,
+        "observedHostCpuMs": 734.375,
+        "observedTotalCpuMs": 2094.375,
+        "allDescendantCpuMs": 750.0,
+        "serverPeakMiB": 163.984,
+        "hostPeakMiB": 100.469,
+        "treePeakMiB": 206.867,
+        "hostKernelPeakMiB": 100.469,
+        "projects": 1,
+        "diagnosticLines": 0,
+        "msbuildFailures": 0,
+        "msbuildWarnings": 0,
+        "msbuildDiagnosticsSHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+        "serverCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\10.0.15\\coreclr.dll"
+        ],
+        "hostCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\11.0.0\\coreclr.dll"
+        ],
+        "msbuildServerPids": [],
+        "cacheAppKey": "RoslynMcpServer-B0-2-yCmWQM9TpbsVKDI0fuIjqw==",
+        "cacheProjectKey": "SmokeApp.csproj-72mOHRLhbswffccEG09H2A==",
+        "beganUtc": "2026-11-18T20:12:40.37937Z",
+        "sqliteCreatedUtc": null,
+        "sqliteExistedBeforeLoad": false,
+        "sqliteFileBytesAfterSeries": 0
+      },
+      {
+        "run": 4,
+        "kind": "measured",
+        "serverPid": 63944,
+        "BuildHostPids": [
+          71836
+        ],
+        "loadMs": 1406.57,
+        "firstDefinitionMs": 621.452,
+        "totalMs": 2028.022,
+        "serverCpuMs": 1266.0,
+        "observedHostCpuMs": 718.75,
+        "observedTotalCpuMs": 1984.75,
+        "allDescendantCpuMs": 719.0,
+        "serverPeakMiB": 162.203,
+        "hostPeakMiB": 100.602,
+        "treePeakMiB": 206.633,
+        "hostKernelPeakMiB": 100.602,
+        "projects": 1,
+        "diagnosticLines": 0,
+        "msbuildFailures": 0,
+        "msbuildWarnings": 0,
+        "msbuildDiagnosticsSHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+        "serverCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\10.0.15\\coreclr.dll"
+        ],
+        "hostCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\11.0.0\\coreclr.dll"
+        ],
+        "msbuildServerPids": [],
+        "cacheAppKey": "RoslynMcpServer-B0-2-0dVfSzzQd8YDXPDhQc6EA==",
+        "cacheProjectKey": "SmokeApp.csproj-72mOHRLhbswffccEG09H2A==",
+        "beganUtc": "2026-11-18T20:12:46.9078454Z",
+        "sqliteCreatedUtc": null,
+        "sqliteExistedBeforeLoad": false,
+        "sqliteFileBytesAfterSeries": 0
+      },
+      {
+        "run": 5,
+        "kind": "measured",
+        "serverPid": 71584,
+        "BuildHostPids": [
+          66872
+        ],
+        "loadMs": 1443.912,
+        "firstDefinitionMs": 644.524,
+        "totalMs": 2088.436,
+        "serverCpuMs": 1344.0,
+        "observedHostCpuMs": 812.5,
+        "observedTotalCpuMs": 2156.5,
+        "allDescendantCpuMs": 828.0,
+        "serverPeakMiB": 165.129,
+        "hostPeakMiB": 100.492,
+        "treePeakMiB": 205.855,
+        "hostKernelPeakMiB": 100.492,
+        "projects": 1,
+        "diagnosticLines": 0,
+        "msbuildFailures": 0,
+        "msbuildWarnings": 0,
+        "msbuildDiagnosticsSHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+        "serverCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\10.0.15\\coreclr.dll"
+        ],
+        "hostCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\11.0.0\\coreclr.dll"
+        ],
+        "msbuildServerPids": [],
+        "cacheAppKey": "RoslynMcpServer-B0-2-06QB5eDtbnw7pCqjByGwQg==",
+        "cacheProjectKey": "SmokeApp.csproj-72mOHRLhbswffccEG09H2A==",
+        "beganUtc": "2026-11-18T20:12:53.4067017Z",
+        "sqliteCreatedUtc": null,
+        "sqliteExistedBeforeLoad": false,
+        "sqliteFileBytesAfterSeries": 0
+      },
+      {
+        "run": 6,
+        "kind": "measured",
+        "serverPid": 43212,
+        "BuildHostPids": [
+          69396
+        ],
+        "loadMs": 1409.993,
+        "firstDefinitionMs": 617.344,
+        "totalMs": 2027.336,
+        "serverCpuMs": 1297.0,
+        "observedHostCpuMs": 718.75,
+        "observedTotalCpuMs": 2015.75,
+        "allDescendantCpuMs": 719.0,
+        "serverPeakMiB": 161.742,
+        "hostPeakMiB": 100.352,
+        "treePeakMiB": 208.504,
+        "hostKernelPeakMiB": 100.352,
+        "projects": 1,
+        "diagnosticLines": 0,
+        "msbuildFailures": 0,
+        "msbuildWarnings": 0,
+        "msbuildDiagnosticsSHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+        "serverCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\10.0.15\\coreclr.dll"
+        ],
+        "hostCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\11.0.0\\coreclr.dll"
+        ],
+        "msbuildServerPids": [],
+        "cacheAppKey": "RoslynMcpServer-B0-2-OKqJ6vKSe9a92nMadhg==",
+        "cacheProjectKey": "SmokeApp.csproj-72mOHRLhbswffccEG09H2A==",
+        "beganUtc": "2026-11-18T20:13:00.0860764Z",
+        "sqliteCreatedUtc": null,
+        "sqliteExistedBeforeLoad": false,
+        "sqliteFileBytesAfterSeries": 0
+      }
+    ]
+  },
+  {
+    "name": "final-smoke-solution-cold",
+    "medians": {
+      "loadMs": 1478.052,
+      "firstDefinitionMs": 629.316,
+      "totalMs": 2125.074,
+      "serverCpuMs": 1328.0,
+      "observedHostCpuMs": 703.125,
+      "observedTotalCpuMs": 2031.125,
+      "serverPeakMiB": 167.16,
+      "hostPeakMiB": 95.316,
+      "treePeakMiB": 201.465
+    },
+    "warmupAndRuns": [
+      {
+        "run": 1,
+        "kind": "warmup",
+        "serverPid": 62588,
+        "BuildHostPids": [
+          56360
+        ],
+        "loadMs": 1465.862,
+        "firstDefinitionMs": 628.843,
+        "totalMs": 2094.705,
+        "serverCpuMs": 1594.0,
+        "observedHostCpuMs": 671.875,
+        "observedTotalCpuMs": 2265.875,
+        "allDescendantCpuMs": 688.0,
+        "serverPeakMiB": 166.789,
+        "hostPeakMiB": 98.961,
+        "treePeakMiB": 208.309,
+        "hostKernelPeakMiB": 98.961,
+        "projects": 1,
+        "diagnosticLines": 0,
+        "msbuildFailures": 0,
+        "msbuildWarnings": 0,
+        "msbuildDiagnosticsSHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+        "serverCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\10.0.15\\coreclr.dll"
+        ],
+        "hostCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\11.0.0\\coreclr.dll"
+        ],
+        "msbuildServerPids": [],
+        "cacheAppKey": "RoslynMcpServer-B0-2-GzSDcmWoueSApcZyUT0tHA==",
+        "cacheProjectKey": "SmokeApp.slnx-r4Rcu3Rd1HPcHcst8cssCA==",
+        "beganUtc": "2026-11-18T20:26:13.0793485Z",
+        "sqliteCreatedUtc": "2026-11-18T20:26:14.6489344Z",
+        "sqliteExistedBeforeLoad": false,
+        "sqliteFileBytesAfterSeries": 4096
+      },
+      {
+        "run": 2,
+        "kind": "measured",
+        "serverPid": 62476,
+        "BuildHostPids": [
+          52288
+        ],
+        "loadMs": 1501.525,
+        "firstDefinitionMs": 623.55,
+        "totalMs": 2125.074,
+        "serverCpuMs": 1328.0,
+        "observedHostCpuMs": 703.125,
+        "observedTotalCpuMs": 2031.125,
+        "allDescendantCpuMs": 703.0,
+        "serverPeakMiB": 165.129,
+        "hostPeakMiB": 95.316,
+        "treePeakMiB": 201.465,
+        "hostKernelPeakMiB": 95.316,
+        "projects": 1,
+        "diagnosticLines": 0,
+        "msbuildFailures": 0,
+        "msbuildWarnings": 0,
+        "msbuildDiagnosticsSHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+        "serverCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\10.0.15\\coreclr.dll"
+        ],
+        "hostCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\11.0.0\\coreclr.dll"
+        ],
+        "msbuildServerPids": [],
+        "cacheAppKey": "RoslynMcpServer-B0-2-P8jtVQhKNfFktmIkkjU8SA==",
+        "cacheProjectKey": "SmokeApp.slnx-r4Rcu3Rd1HPcHcst8cssCA==",
+        "beganUtc": "2026-11-18T20:26:19.8851647Z",
+        "sqliteCreatedUtc": "2026-11-18T20:26:21.4527538Z",
+        "sqliteExistedBeforeLoad": false,
+        "sqliteFileBytesAfterSeries": 4096
+      },
+      {
+        "run": 3,
+        "kind": "measured",
+        "serverPid": 52780,
+        "BuildHostPids": [
+          65252
+        ],
+        "loadMs": 1478.052,
+        "firstDefinitionMs": 630.815,
+        "totalMs": 2108.868,
+        "serverCpuMs": 1312.0,
+        "observedHostCpuMs": 656.25,
+        "observedTotalCpuMs": 1968.25,
+        "allDescendantCpuMs": 656.0,
+        "serverPeakMiB": 167.16,
+        "hostPeakMiB": 94.352,
+        "treePeakMiB": 200.684,
+        "hostKernelPeakMiB": 94.352,
+        "projects": 1,
+        "diagnosticLines": 0,
+        "msbuildFailures": 0,
+        "msbuildWarnings": 0,
+        "msbuildDiagnosticsSHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+        "serverCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\10.0.15\\coreclr.dll"
+        ],
+        "hostCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\11.0.0\\coreclr.dll"
+        ],
+        "msbuildServerPids": [],
+        "cacheAppKey": "RoslynMcpServer-B0-2-p1QJcxBa6FjhVtfgUbMhvg==",
+        "cacheProjectKey": "SmokeApp.slnx-r4Rcu3Rd1HPcHcst8cssCA==",
+        "beganUtc": "2026-11-18T20:26:26.5496486Z",
+        "sqliteCreatedUtc": "2026-11-18T20:26:28.0867246Z",
+        "sqliteExistedBeforeLoad": false,
+        "sqliteFileBytesAfterSeries": 4096
+      },
+      {
+        "run": 4,
+        "kind": "measured",
+        "serverPid": 47744,
+        "BuildHostPids": [
+          62980
+        ],
+        "loadMs": 1451.581,
+        "firstDefinitionMs": 626.836,
+        "totalMs": 2078.417,
+        "serverCpuMs": 1235.0,
+        "observedHostCpuMs": 734.375,
+        "observedTotalCpuMs": 1969.375,
+        "allDescendantCpuMs": 734.0,
+        "serverPeakMiB": 168.0,
+        "hostPeakMiB": 98.172,
+        "treePeakMiB": 204.867,
+        "hostKernelPeakMiB": 98.18,
+        "projects": 1,
+        "diagnosticLines": 0,
+        "msbuildFailures": 0,
+        "msbuildWarnings": 0,
+        "msbuildDiagnosticsSHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+        "serverCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\10.0.15\\coreclr.dll"
+        ],
+        "hostCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\11.0.0\\coreclr.dll"
+        ],
+        "msbuildServerPids": [],
+        "cacheAppKey": "RoslynMcpServer-B0-2-W7m+yUOvsIyAU0d2nlOgvQ==",
+        "cacheProjectKey": "SmokeApp.slnx-r4Rcu3Rd1HPcHcst8cssCA==",
+        "beganUtc": "2026-11-18T20:26:33.1351016Z",
+        "sqliteCreatedUtc": "2026-11-18T20:26:34.6420862Z",
+        "sqliteExistedBeforeLoad": false,
+        "sqliteFileBytesAfterSeries": 4096
+      },
+      {
+        "run": 5,
+        "kind": "measured",
+        "serverPid": 26824,
+        "BuildHostPids": [
+          68564
+        ],
+        "loadMs": 1548.052,
+        "firstDefinitionMs": 629.316,
+        "totalMs": 2177.368,
+        "serverCpuMs": 1719.0,
+        "observedHostCpuMs": 671.875,
+        "observedTotalCpuMs": 2390.875,
+        "allDescendantCpuMs": 672.0,
+        "serverPeakMiB": 169.152,
+        "hostPeakMiB": 90.516,
+        "treePeakMiB": 199.875,
+        "hostKernelPeakMiB": 90.516,
+        "projects": 1,
+        "diagnosticLines": 0,
+        "msbuildFailures": 0,
+        "msbuildWarnings": 0,
+        "msbuildDiagnosticsSHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+        "serverCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\10.0.15\\coreclr.dll"
+        ],
+        "hostCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\11.0.0\\coreclr.dll"
+        ],
+        "msbuildServerPids": [],
+        "cacheAppKey": "RoslynMcpServer-B0-2-jUd3yArMXAGdrSt3rUdqCw==",
+        "cacheProjectKey": "SmokeApp.slnx-r4Rcu3Rd1HPcHcst8cssCA==",
+        "beganUtc": "2026-11-18T20:26:39.8318269Z",
+        "sqliteCreatedUtc": "2026-11-18T20:26:41.4384604Z",
+        "sqliteExistedBeforeLoad": false,
+        "sqliteFileBytesAfterSeries": 4096
+      },
+      {
+        "run": 6,
+        "kind": "measured",
+        "serverPid": 71516,
+        "BuildHostPids": [
+          67852
+        ],
+        "loadMs": 1474.062,
+        "firstDefinitionMs": 653.54,
+        "totalMs": 2127.603,
+        "serverCpuMs": 1469.0,
+        "observedHostCpuMs": 750.0,
+        "observedTotalCpuMs": 2219.0,
+        "allDescendantCpuMs": 797.0,
+        "serverPeakMiB": 166.359,
+        "hostPeakMiB": 100.191,
+        "treePeakMiB": 206.629,
+        "hostKernelPeakMiB": 100.191,
+        "projects": 1,
+        "diagnosticLines": 0,
+        "msbuildFailures": 0,
+        "msbuildWarnings": 0,
+        "msbuildDiagnosticsSHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+        "serverCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\10.0.15\\coreclr.dll"
+        ],
+        "hostCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\11.0.0\\coreclr.dll"
+        ],
+        "msbuildServerPids": [],
+        "cacheAppKey": "RoslynMcpServer-B0-2-IwUMteYSjiYZehYkRldATg==",
+        "cacheProjectKey": "SmokeApp.slnx-r4Rcu3Rd1HPcHcst8cssCA==",
+        "beganUtc": "2026-11-18T20:26:46.536579Z",
+        "sqliteCreatedUtc": "2026-11-18T20:26:48.0691455Z",
+        "sqliteExistedBeforeLoad": false,
+        "sqliteFileBytesAfterSeries": 4096
+      }
+    ]
+  },
+  {
+    "name": "final-smoke-solution-warm",
+    "medians": {
+      "loadMs": 1471.847,
+      "firstDefinitionMs": 642.01,
+      "totalMs": 2111.086,
+      "serverCpuMs": 1469.0,
+      "observedHostCpuMs": 750.0,
+      "observedTotalCpuMs": 2234.625,
+      "serverPeakMiB": 166.711,
+      "hostPeakMiB": 97.887,
+      "treePeakMiB": 203.695
+    },
+    "warmupAndRuns": [
+      {
+        "run": 1,
+        "kind": "warmup",
+        "serverPid": 56224,
+        "BuildHostPids": [
+          71004
+        ],
+        "loadMs": 1532.984,
+        "firstDefinitionMs": 640.949,
+        "totalMs": 2173.933,
+        "serverCpuMs": 1406.0,
+        "observedHostCpuMs": 734.375,
+        "observedTotalCpuMs": 2140.375,
+        "allDescendantCpuMs": 766.0,
+        "serverPeakMiB": 166.02,
+        "hostPeakMiB": 95.422,
+        "treePeakMiB": 202.004,
+        "hostKernelPeakMiB": 95.422,
+        "projects": 1,
+        "diagnosticLines": 0,
+        "msbuildFailures": 0,
+        "msbuildWarnings": 0,
+        "msbuildDiagnosticsSHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+        "serverCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\10.0.15\\coreclr.dll"
+        ],
+        "hostCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\11.0.0\\coreclr.dll"
+        ],
+        "msbuildServerPids": [],
+        "cacheAppKey": "RoslynMcpServer-B0-2-doQR6HwPnWv72HsMYREpVw==",
+        "cacheProjectKey": "SmokeApp.slnx-r4Rcu3Rd1HPcHcst8cssCA==",
+        "beganUtc": "2026-11-18T20:26:51.6819029Z",
+        "sqliteCreatedUtc": "2026-11-18T20:26:53.2767583Z",
+        "sqliteExistedBeforeLoad": false,
+        "sqliteFileBytesAfterSeries": 4096
+      },
+      {
+        "run": 2,
+        "kind": "measured",
+        "serverPid": 68048,
+        "BuildHostPids": [
+          25232
+        ],
+        "loadMs": 1469.076,
+        "firstDefinitionMs": 642.01,
+        "totalMs": 2111.086,
+        "serverCpuMs": 1500.0,
+        "observedHostCpuMs": 765.625,
+        "observedTotalCpuMs": 2265.625,
+        "allDescendantCpuMs": 766.0,
+        "serverPeakMiB": 168.234,
+        "hostPeakMiB": 99.891,
+        "treePeakMiB": 205.914,
+        "hostKernelPeakMiB": 99.891,
+        "projects": 1,
+        "diagnosticLines": 0,
+        "msbuildFailures": 0,
+        "msbuildWarnings": 0,
+        "msbuildDiagnosticsSHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+        "serverCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\10.0.15\\coreclr.dll"
+        ],
+        "hostCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\11.0.0\\coreclr.dll"
+        ],
+        "msbuildServerPids": [],
+        "cacheAppKey": "RoslynMcpServer-B0-2-doQR6HwPnWv72HsMYREpVw==",
+        "cacheProjectKey": "SmokeApp.slnx-r4Rcu3Rd1HPcHcst8cssCA==",
+        "beganUtc": "2026-11-18T20:26:58.3747587Z",
+        "sqliteCreatedUtc": "2026-11-18T20:26:53.2767583Z",
+        "sqliteExistedBeforeLoad": true,
+        "sqliteFileBytesAfterSeries": 4096
+      },
+      {
+        "run": 3,
+        "kind": "measured",
+        "serverPid": 64964,
+        "BuildHostPids": [
+          72124
+        ],
+        "loadMs": 1480.82,
+        "firstDefinitionMs": 635.561,
+        "totalMs": 2116.381,
+        "serverCpuMs": 1500.0,
+        "observedHostCpuMs": 750.0,
+        "observedTotalCpuMs": 2250.0,
+        "allDescendantCpuMs": 750.0,
+        "serverPeakMiB": 166.711,
+        "hostPeakMiB": 97.02,
+        "treePeakMiB": 202.582,
+        "hostKernelPeakMiB": 97.02,
+        "projects": 1,
+        "diagnosticLines": 0,
+        "msbuildFailures": 0,
+        "msbuildWarnings": 0,
+        "msbuildDiagnosticsSHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+        "serverCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\10.0.15\\coreclr.dll"
+        ],
+        "hostCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\11.0.0\\coreclr.dll"
+        ],
+        "msbuildServerPids": [],
+        "cacheAppKey": "RoslynMcpServer-B0-2-doQR6HwPnWv72HsMYREpVw==",
+        "cacheProjectKey": "SmokeApp.slnx-r4Rcu3Rd1HPcHcst8cssCA==",
+        "beganUtc": "2026-11-18T20:27:05.0284613Z",
+        "sqliteCreatedUtc": "2026-11-18T20:26:53.2767583Z",
+        "sqliteExistedBeforeLoad": true,
+        "sqliteFileBytesAfterSeries": 4096
+      },
+      {
+        "run": 4,
+        "kind": "measured",
+        "serverPid": 69236,
+        "BuildHostPids": [
+          68324
+        ],
+        "loadMs": 1457.603,
+        "firstDefinitionMs": 644.555,
+        "totalMs": 2102.157,
+        "serverCpuMs": 1453.0,
+        "observedHostCpuMs": 750.0,
+        "observedTotalCpuMs": 2203.0,
+        "allDescendantCpuMs": 750.0,
+        "serverPeakMiB": 168.469,
+        "hostPeakMiB": 98.051,
+        "treePeakMiB": 204.195,
+        "hostKernelPeakMiB": 98.051,
+        "projects": 1,
+        "diagnosticLines": 0,
+        "msbuildFailures": 0,
+        "msbuildWarnings": 0,
+        "msbuildDiagnosticsSHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+        "serverCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\10.0.15\\coreclr.dll"
+        ],
+        "hostCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\11.0.0\\coreclr.dll"
+        ],
+        "msbuildServerPids": [],
+        "cacheAppKey": "RoslynMcpServer-B0-2-doQR6HwPnWv72HsMYREpVw==",
+        "cacheProjectKey": "SmokeApp.slnx-r4Rcu3Rd1HPcHcst8cssCA==",
+        "beganUtc": "2026-11-18T20:27:11.6460114Z",
+        "sqliteCreatedUtc": "2026-11-18T20:26:53.2767583Z",
+        "sqliteExistedBeforeLoad": true,
+        "sqliteFileBytesAfterSeries": 4096
+      },
+      {
+        "run": 5,
+        "kind": "measured",
+        "serverPid": 60560,
+        "BuildHostPids": [
+          60596
+        ],
+        "loadMs": 1522.538,
+        "firstDefinitionMs": 652.53,
+        "totalMs": 2175.068,
+        "serverCpuMs": 1469.0,
+        "observedHostCpuMs": 765.625,
+        "observedTotalCpuMs": 2234.625,
+        "allDescendantCpuMs": 781.0,
+        "serverPeakMiB": 165.492,
+        "hostPeakMiB": 94.609,
+        "treePeakMiB": 200.164,
+        "hostKernelPeakMiB": 94.609,
+        "projects": 1,
+        "diagnosticLines": 0,
+        "msbuildFailures": 0,
+        "msbuildWarnings": 0,
+        "msbuildDiagnosticsSHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+        "serverCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\10.0.15\\coreclr.dll"
+        ],
+        "hostCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\11.0.0\\coreclr.dll"
+        ],
+        "msbuildServerPids": [],
+        "cacheAppKey": "RoslynMcpServer-B0-2-doQR6HwPnWv72HsMYREpVw==",
+        "cacheProjectKey": "SmokeApp.slnx-r4Rcu3Rd1HPcHcst8cssCA==",
+        "beganUtc": "2026-11-18T20:27:18.2547212Z",
+        "sqliteCreatedUtc": "2026-11-18T20:26:53.2767583Z",
+        "sqliteExistedBeforeLoad": true,
+        "sqliteFileBytesAfterSeries": 4096
+      },
+      {
+        "run": 6,
+        "kind": "measured",
+        "serverPid": 63396,
+        "BuildHostPids": [
+          49844
+        ],
+        "loadMs": 1471.847,
+        "firstDefinitionMs": 628.943,
+        "totalMs": 2100.79,
+        "serverCpuMs": 1406.0,
+        "observedHostCpuMs": 734.375,
+        "observedTotalCpuMs": 2140.375,
+        "allDescendantCpuMs": 734.0,
+        "serverPeakMiB": 166.195,
+        "hostPeakMiB": 97.887,
+        "treePeakMiB": 203.695,
+        "hostKernelPeakMiB": 97.887,
+        "projects": 1,
+        "diagnosticLines": 0,
+        "msbuildFailures": 0,
+        "msbuildWarnings": 0,
+        "msbuildDiagnosticsSHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+        "serverCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\10.0.15\\coreclr.dll"
+        ],
+        "hostCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\11.0.0\\coreclr.dll"
+        ],
+        "msbuildServerPids": [],
+        "cacheAppKey": "RoslynMcpServer-B0-2-doQR6HwPnWv72HsMYREpVw==",
+        "cacheProjectKey": "SmokeApp.slnx-r4Rcu3Rd1HPcHcst8cssCA==",
+        "beganUtc": "2026-11-18T20:27:24.908306Z",
+        "sqliteCreatedUtc": "2026-11-18T20:26:53.2767583Z",
+        "sqliteExistedBeforeLoad": true,
+        "sqliteFileBytesAfterSeries": 4096
+      }
+    ]
+  },
+  {
+    "name": "final-smoke-warm",
+    "medians": {
+      "loadMs": 1435.363,
+      "firstDefinitionMs": 629.361,
+      "totalMs": 2069.896,
+      "serverCpuMs": 1359.0,
+      "observedHostCpuMs": 750.0,
+      "observedTotalCpuMs": 2125.0,
+      "serverPeakMiB": 163.953,
+      "hostPeakMiB": 100.324,
+      "treePeakMiB": 205.312
+    },
+    "warmupAndRuns": [
+      {
+        "run": 1,
+        "kind": "warmup",
+        "serverPid": 38100,
+        "BuildHostPids": [
+          66048
+        ],
+        "loadMs": 1418.716,
+        "firstDefinitionMs": 631.278,
+        "totalMs": 2049.993,
+        "serverCpuMs": 1343.0,
+        "observedHostCpuMs": 734.375,
+        "observedTotalCpuMs": 2077.375,
+        "allDescendantCpuMs": 734.0,
+        "serverPeakMiB": 166.07,
+        "hostPeakMiB": 99.555,
+        "treePeakMiB": 204.969,
+        "hostKernelPeakMiB": 99.555,
+        "projects": 1,
+        "diagnosticLines": 0,
+        "msbuildFailures": 0,
+        "msbuildWarnings": 0,
+        "msbuildDiagnosticsSHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+        "serverCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\10.0.15\\coreclr.dll"
+        ],
+        "hostCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\11.0.0\\coreclr.dll"
+        ],
+        "msbuildServerPids": [],
+        "cacheAppKey": "RoslynMcpServer-B0-2-2FwCyXPyefKF0OjWTOXVFQ==",
+        "cacheProjectKey": "SmokeApp.csproj-72mOHRLhbswffccEG09H2A==",
+        "beganUtc": "2026-11-18T20:13:04.9720013Z",
+        "sqliteCreatedUtc": null,
+        "sqliteExistedBeforeLoad": false,
+        "sqliteFileBytesAfterSeries": 0
+      },
+      {
+        "run": 2,
+        "kind": "measured",
+        "serverPid": 66952,
+        "BuildHostPids": [
+          50188
+        ],
+        "loadMs": 1426.451,
+        "firstDefinitionMs": 643.446,
+        "totalMs": 2069.896,
+        "serverCpuMs": 1375.0,
+        "observedHostCpuMs": 750.0,
+        "observedTotalCpuMs": 2125.0,
+        "allDescendantCpuMs": 750.0,
+        "serverPeakMiB": 165.121,
+        "hostPeakMiB": 100.676,
+        "treePeakMiB": 207.961,
+        "hostKernelPeakMiB": 100.676,
+        "projects": 1,
+        "diagnosticLines": 0,
+        "msbuildFailures": 0,
+        "msbuildWarnings": 0,
+        "msbuildDiagnosticsSHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+        "serverCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\10.0.15\\coreclr.dll"
+        ],
+        "hostCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\11.0.0\\coreclr.dll"
+        ],
+        "msbuildServerPids": [],
+        "cacheAppKey": "RoslynMcpServer-B0-2-2FwCyXPyefKF0OjWTOXVFQ==",
+        "cacheProjectKey": "SmokeApp.csproj-72mOHRLhbswffccEG09H2A==",
+        "beganUtc": "2026-11-18T20:13:11.4987061Z",
+        "sqliteCreatedUtc": null,
+        "sqliteExistedBeforeLoad": false,
+        "sqliteFileBytesAfterSeries": 0
+      },
+      {
+        "run": 3,
+        "kind": "measured",
+        "serverPid": 64652,
+        "BuildHostPids": [
+          65504
+        ],
+        "loadMs": 1508.231,
+        "firstDefinitionMs": 634.356,
+        "totalMs": 2142.588,
+        "serverCpuMs": 1344.0,
+        "observedHostCpuMs": 781.25,
+        "observedTotalCpuMs": 2125.25,
+        "allDescendantCpuMs": 797.0,
+        "serverPeakMiB": 161.887,
+        "hostPeakMiB": 96.191,
+        "treePeakMiB": 200.293,
+        "hostKernelPeakMiB": 96.191,
+        "projects": 1,
+        "diagnosticLines": 0,
+        "msbuildFailures": 0,
+        "msbuildWarnings": 0,
+        "msbuildDiagnosticsSHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+        "serverCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\10.0.15\\coreclr.dll"
+        ],
+        "hostCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\11.0.0\\coreclr.dll"
+        ],
+        "msbuildServerPids": [],
+        "cacheAppKey": "RoslynMcpServer-B0-2-2FwCyXPyefKF0OjWTOXVFQ==",
+        "cacheProjectKey": "SmokeApp.csproj-72mOHRLhbswffccEG09H2A==",
+        "beganUtc": "2026-11-18T20:13:18.0880307Z",
+        "sqliteCreatedUtc": null,
+        "sqliteExistedBeforeLoad": false,
+        "sqliteFileBytesAfterSeries": 0
+      },
+      {
+        "run": 4,
+        "kind": "measured",
+        "serverPid": 60112,
+        "BuildHostPids": [
+          71252
+        ],
+        "loadMs": 1464.269,
+        "firstDefinitionMs": 623.048,
+        "totalMs": 2087.317,
+        "serverCpuMs": 1531.0,
+        "observedHostCpuMs": 718.75,
+        "observedTotalCpuMs": 2249.75,
+        "allDescendantCpuMs": 734.0,
+        "serverPeakMiB": 166.348,
+        "hostPeakMiB": 98.566,
+        "treePeakMiB": 205.855,
+        "hostKernelPeakMiB": 98.566,
+        "projects": 1,
+        "diagnosticLines": 0,
+        "msbuildFailures": 0,
+        "msbuildWarnings": 0,
+        "msbuildDiagnosticsSHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+        "serverCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\10.0.15\\coreclr.dll"
+        ],
+        "hostCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\11.0.0\\coreclr.dll"
+        ],
+        "msbuildServerPids": [],
+        "cacheAppKey": "RoslynMcpServer-B0-2-2FwCyXPyefKF0OjWTOXVFQ==",
+        "cacheProjectKey": "SmokeApp.csproj-72mOHRLhbswffccEG09H2A==",
+        "beganUtc": "2026-11-18T20:13:24.7943976Z",
+        "sqliteCreatedUtc": null,
+        "sqliteExistedBeforeLoad": false,
+        "sqliteFileBytesAfterSeries": 0
+      },
+      {
+        "run": 5,
+        "kind": "measured",
+        "serverPid": 70220,
+        "BuildHostPids": [
+          37820
+        ],
+        "loadMs": 1394.53,
+        "firstDefinitionMs": 626.019,
+        "totalMs": 2020.549,
+        "serverCpuMs": 1359.0,
+        "observedHostCpuMs": 734.375,
+        "observedTotalCpuMs": 2093.375,
+        "allDescendantCpuMs": 734.0,
+        "serverPeakMiB": 162.59,
+        "hostPeakMiB": 100.324,
+        "treePeakMiB": 205.312,
+        "hostKernelPeakMiB": 100.324,
+        "projects": 1,
+        "diagnosticLines": 0,
+        "msbuildFailures": 0,
+        "msbuildWarnings": 0,
+        "msbuildDiagnosticsSHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+        "serverCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\10.0.15\\coreclr.dll"
+        ],
+        "hostCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\11.0.0\\coreclr.dll"
+        ],
+        "msbuildServerPids": [],
+        "cacheAppKey": "RoslynMcpServer-B0-2-2FwCyXPyefKF0OjWTOXVFQ==",
+        "cacheProjectKey": "SmokeApp.csproj-72mOHRLhbswffccEG09H2A==",
+        "beganUtc": "2026-11-18T20:13:31.3661248Z",
+        "sqliteCreatedUtc": null,
+        "sqliteExistedBeforeLoad": false,
+        "sqliteFileBytesAfterSeries": 0
+      },
+      {
+        "run": 6,
+        "kind": "measured",
+        "serverPid": 70640,
+        "BuildHostPids": [
+          68876
+        ],
+        "loadMs": 1435.363,
+        "firstDefinitionMs": 629.361,
+        "totalMs": 2064.724,
+        "serverCpuMs": 1328.0,
+        "observedHostCpuMs": 750.0,
+        "observedTotalCpuMs": 2078.0,
+        "allDescendantCpuMs": 766.0,
+        "serverPeakMiB": 163.953,
+        "hostPeakMiB": 100.434,
+        "treePeakMiB": 204.996,
+        "hostKernelPeakMiB": 100.434,
+        "projects": 1,
+        "diagnosticLines": 0,
+        "msbuildFailures": 0,
+        "msbuildWarnings": 0,
+        "msbuildDiagnosticsSHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+        "serverCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\10.0.15\\coreclr.dll"
+        ],
+        "hostCoreClr": [
+          "C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\11.0.0\\coreclr.dll"
+        ],
+        "msbuildServerPids": [],
+        "cacheAppKey": "RoslynMcpServer-B0-2-2FwCyXPyefKF0OjWTOXVFQ==",
+        "cacheProjectKey": "SmokeApp.csproj-72mOHRLhbswffccEG09H2A==",
+        "beganUtc": "2026-11-18T20:13:37.8468605Z",
+        "sqliteCreatedUtc": null,
+        "sqliteExistedBeforeLoad": false,
+        "sqliteFileBytesAfterSeries": 0
+      }
+    ]
+  }
+]

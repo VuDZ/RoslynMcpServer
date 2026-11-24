@@ -209,7 +209,7 @@ public static class DecompilerHost
             yield break;
         }
 
-        foreach (var tfm in new[] { targetFramework, "netstandard2.0", "netstandard2.1", "net10.0" })
+        foreach (var tfm in new[] { targetFramework, "netstandard2.0", "netstandard2.1", "net11.0", "net10.0" })
         {
             var refDir = Path.Combine(refVersion, "ref", tfm);
             if (Directory.Exists(refDir))
@@ -235,7 +235,7 @@ public static class DecompilerHost
         var path = dllPath.Replace('\\', '/');
         string[] candidates =
         [
-            "net10.0", "net9.0", "net8.0", "net7.0", "net6.0", "net5.0",
+            "net11.0", "net10.0", "net9.0", "net8.0", "net7.0", "net6.0", "net5.0",
             "netstandard2.1", "netstandard2.0", "net472", "net462", "net461"
         ];
 

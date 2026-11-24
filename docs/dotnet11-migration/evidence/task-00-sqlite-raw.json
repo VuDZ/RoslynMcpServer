@@ -1,0 +1,1095 @@
+{
+  "recorded": "2026-11-18",
+  "packageSource": "https://api.nuget.org/v3/index.json",
+  "models": {
+    "SQLiteIdentity": {
+      "restoreExitCode": 0,
+      "directPins": [
+        {
+          "id": "SQLitePCLRaw.bundle_e_sqlite3",
+          "version": "2.1.11"
+        }
+      ],
+      "selectedSQLitePackages": {
+        "SQLitePCLRaw.bundle_e_sqlite3/2.1.11": {
+          "dependencies": {
+            "SQLitePCLRaw.lib.e_sqlite3": "2.1.11",
+            "SQLitePCLRaw.provider.e_sqlite3": "2.1.11"
+          },
+          "managedPayload": [
+            {
+              "path": "lib/netstandard2.0/SQLitePCLRaw.batteries_v2.dll",
+              "identity": "SQLitePCLRaw.batteries_v2, Version=2.1.11.2622, Culture=neutral, PublicKeyToken=8226ea5df37bcae9",
+              "sha256": "94AC800C6B93AE50A025F247547781DEBE18391110667C5E242F51D8AC188FFB"
+            }
+          ],
+          "nativePayload": []
+        },
+        "SQLitePCLRaw.core/2.1.11": {
+          "dependencies": null,
+          "managedPayload": [
+            {
+              "path": "lib/netstandard2.0/SQLitePCLRaw.core.dll",
+              "identity": "SQLitePCLRaw.core, Version=2.1.11.2622, Culture=neutral, PublicKeyToken=1488e028ca7ab535",
+              "sha256": "3D2ED8E186F124F988EBDB45D0354185B424357BE2433BBA0033AB9EC31BD25B"
+            }
+          ],
+          "nativePayload": []
+        },
+        "SQLitePCLRaw.lib.e_sqlite3/2.1.11": {
+          "dependencies": null,
+          "managedPayload": [],
+          "nativePayload": [
+            {
+              "path": "runtimes/linux-x64/native/libe_sqlite3.so",
+              "sha256": "965400C23FDE16A19D000C1C6062AF577F048410F85253A793F569D5520DAAAD"
+            },
+            {
+              "path": "runtimes/osx-arm64/native/libe_sqlite3.dylib",
+              "sha256": "BEA557311C6EF51EB6A69834DBD7A4E1EBD9D3654790CF311D942BF6A6ADE0A2"
+            },
+            {
+              "path": "runtimes/win-x64/native/e_sqlite3.dll",
+              "sha256": "4DCBB2AD197D893355EFA004257E048F2C850FEB1078158F4BAAB0F7B53AC45F"
+            }
+          ]
+        },
+        "SQLitePCLRaw.provider.e_sqlite3/2.1.11": {
+          "dependencies": {
+            "SQLitePCLRaw.core": "2.1.11"
+          },
+          "managedPayload": [
+            {
+              "path": "lib/net6.0/SQLitePCLRaw.provider.e_sqlite3.dll",
+              "identity": "SQLitePCLRaw.provider.e_sqlite3, Version=2.1.11.2622, Culture=neutral, PublicKeyToken=9c301db686d0bd12",
+              "sha256": "232990C8372AFF30574EEF9CC280B486EE6F39F8A66F83EA495DD0DBAE98740C"
+            }
+          ],
+          "nativePayload": []
+        }
+      },
+      "audit": {
+        "framework": "net10.0",
+        "topLevelPackages": [],
+        "transitivePackages": [
+          {
+            "id": "SQLitePCLRaw.lib.e_sqlite3",
+            "resolvedVersion": "2.1.11",
+            "vulnerabilities": [
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-2m69-gcr7-jv3q"
+              }
+            ]
+          },
+          {
+            "id": "System.Security.Cryptography.Xml",
+            "resolvedVersion": "10.0.4",
+            "vulnerabilities": [
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-37gx-xxp4-5rgx"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-w3x6-4m5h-cxqf"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-g8r8-53c2-pm3f"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-8q5v-6pqq-x66h"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-23rf-6693-g89p"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-cvvh-rhrc-wg4q"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-6588-8gv4-xfgh"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-mmjf-rqrv-855v"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-7hqp-7c5m-4vq6"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-r955-8q5j-3h83"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-c399-9853-6jmj"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "SQLiteExactPlusNative": {
+      "restoreExitCode": 0,
+      "directPins": [
+        {
+          "id": "SQLitePCLRaw.bundle_e_sqlite3",
+          "version": "[2.1.11]"
+        },
+        {
+          "id": "SQLitePCLRaw.lib.e_sqlite3",
+          "version": "[3.53.3]"
+        }
+      ],
+      "selectedSQLitePackages": {
+        "SQLitePCLRaw.bundle_e_sqlite3/2.1.11": {
+          "dependencies": {
+            "SQLitePCLRaw.lib.e_sqlite3": "2.1.11",
+            "SQLitePCLRaw.provider.e_sqlite3": "2.1.11"
+          },
+          "managedPayload": [
+            {
+              "path": "lib/netstandard2.0/SQLitePCLRaw.batteries_v2.dll",
+              "identity": "SQLitePCLRaw.batteries_v2, Version=2.1.11.2622, Culture=neutral, PublicKeyToken=8226ea5df37bcae9",
+              "sha256": "94AC800C6B93AE50A025F247547781DEBE18391110667C5E242F51D8AC188FFB"
+            }
+          ],
+          "nativePayload": []
+        },
+        "SQLitePCLRaw.core/2.1.11": {
+          "dependencies": null,
+          "managedPayload": [
+            {
+              "path": "lib/netstandard2.0/SQLitePCLRaw.core.dll",
+              "identity": "SQLitePCLRaw.core, Version=2.1.11.2622, Culture=neutral, PublicKeyToken=1488e028ca7ab535",
+              "sha256": "3D2ED8E186F124F988EBDB45D0354185B424357BE2433BBA0033AB9EC31BD25B"
+            }
+          ],
+          "nativePayload": []
+        },
+        "SQLitePCLRaw.lib.e_sqlite3/3.53.3": {
+          "dependencies": null,
+          "managedPayload": [],
+          "nativePayload": [
+            {
+              "path": "runtimes/linux-x64/native/libe_sqlite3.a",
+              "sha256": "75A5E562FB311C8850D0206239FA0007C7A25579AEAF15A708ACC0AD553A60DB"
+            },
+            {
+              "path": "runtimes/linux-x64/native/libe_sqlite3.so",
+              "sha256": "B0F5C48026FEDCF9F05CF31C6FADF9E1E001CA59CD85AA68B8B6814E52C18A07"
+            },
+            {
+              "path": "runtimes/osx-arm64/native/libe_sqlite3.dylib",
+              "sha256": "09FE20A6C050912A7944B2F2F2981DEBE31679F7919F523C87251AE8CF0F2DAA"
+            },
+            {
+              "path": "runtimes/win-x64/native/e_sqlite3.dll",
+              "sha256": "B7385D722C83FB52142A00477A726723745916D22A555711EE89834C1111FB2E"
+            }
+          ]
+        },
+        "SQLitePCLRaw.provider.e_sqlite3/2.1.11": {
+          "dependencies": {
+            "SQLitePCLRaw.core": "2.1.11"
+          },
+          "managedPayload": [
+            {
+              "path": "lib/net6.0/SQLitePCLRaw.provider.e_sqlite3.dll",
+              "identity": "SQLitePCLRaw.provider.e_sqlite3, Version=2.1.11.2622, Culture=neutral, PublicKeyToken=9c301db686d0bd12",
+              "sha256": "232990C8372AFF30574EEF9CC280B486EE6F39F8A66F83EA495DD0DBAE98740C"
+            }
+          ],
+          "nativePayload": []
+        }
+      },
+      "audit": {
+        "framework": "net10.0",
+        "topLevelPackages": [],
+        "transitivePackages": [
+          {
+            "id": "System.Security.Cryptography.Xml",
+            "resolvedVersion": "10.0.4",
+            "vulnerabilities": [
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-37gx-xxp4-5rgx"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-w3x6-4m5h-cxqf"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-g8r8-53c2-pm3f"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-8q5v-6pqq-x66h"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-23rf-6693-g89p"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-cvvh-rhrc-wg4q"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-6588-8gv4-xfgh"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-mmjf-rqrv-855v"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-7hqp-7c5m-4vq6"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-r955-8q5j-3h83"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-c399-9853-6jmj"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "SQLiteNewBundle": {
+      "restoreExitCode": 0,
+      "directPins": [
+        {
+          "id": "SQLitePCLRaw.bundle_e_sqlite3",
+          "version": "[2.1.12]"
+        }
+      ],
+      "selectedSQLitePackages": {
+        "SQLitePCLRaw.bundle_e_sqlite3/2.1.12": {
+          "dependencies": {
+            "SQLitePCLRaw.lib.e_sqlite3": "2.1.12",
+            "SQLitePCLRaw.provider.e_sqlite3": "2.1.12"
+          },
+          "managedPayload": [
+            {
+              "path": "lib/netstandard2.0/SQLitePCLRaw.batteries_v2.dll",
+              "identity": "SQLitePCLRaw.batteries_v2, Version=2.1.12.3116, Culture=neutral, PublicKeyToken=8226ea5df37bcae9",
+              "sha256": "815CE410C9EAB531DD219318E3BA16C5E38E83D361CFBBDBB4BBCA222C497B0B"
+            }
+          ],
+          "nativePayload": []
+        },
+        "SQLitePCLRaw.core/2.1.12": {
+          "dependencies": null,
+          "managedPayload": [
+            {
+              "path": "lib/netstandard2.0/SQLitePCLRaw.core.dll",
+              "identity": "SQLitePCLRaw.core, Version=2.1.12.3116, Culture=neutral, PublicKeyToken=1488e028ca7ab535",
+              "sha256": "AF340AC9EB9195795660D7FC1114F486B6AB63998F33176E2F24C8E0ACB9AA84"
+            }
+          ],
+          "nativePayload": []
+        },
+        "SQLitePCLRaw.lib.e_sqlite3/2.1.12": {
+          "dependencies": null,
+          "managedPayload": [],
+          "nativePayload": [
+            {
+              "path": "runtimes/linux-x64/native/libe_sqlite3.so",
+              "sha256": "B0F5C48026FEDCF9F05CF31C6FADF9E1E001CA59CD85AA68B8B6814E52C18A07"
+            },
+            {
+              "path": "runtimes/osx-arm64/native/libe_sqlite3.dylib",
+              "sha256": "09FE20A6C050912A7944B2F2F2981DEBE31679F7919F523C87251AE8CF0F2DAA"
+            },
+            {
+              "path": "runtimes/win-x64/native/e_sqlite3.dll",
+              "sha256": "B7385D722C83FB52142A00477A726723745916D22A555711EE89834C1111FB2E"
+            }
+          ]
+        },
+        "SQLitePCLRaw.provider.e_sqlite3/2.1.12": {
+          "dependencies": {
+            "SQLitePCLRaw.core": "2.1.12"
+          },
+          "managedPayload": [
+            {
+              "path": "lib/net6.0/SQLitePCLRaw.provider.e_sqlite3.dll",
+              "identity": "SQLitePCLRaw.provider.e_sqlite3, Version=2.1.12.3116, Culture=neutral, PublicKeyToken=9c301db686d0bd12",
+              "sha256": "DF996BCAE63C2CABCFE8D4B9C5110EB39A2A4706178B07D875665391C6EB3995"
+            }
+          ],
+          "nativePayload": []
+        }
+      },
+      "audit": {
+        "framework": "net10.0",
+        "topLevelPackages": [],
+        "transitivePackages": [
+          {
+            "id": "System.Security.Cryptography.Xml",
+            "resolvedVersion": "10.0.4",
+            "vulnerabilities": [
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-37gx-xxp4-5rgx"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-w3x6-4m5h-cxqf"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-g8r8-53c2-pm3f"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-8q5v-6pqq-x66h"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-23rf-6693-g89p"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-cvvh-rhrc-wg4q"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-6588-8gv4-xfgh"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-mmjf-rqrv-855v"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-7hqp-7c5m-4vq6"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-r955-8q5j-3h83"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-c399-9853-6jmj"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "SQLiteAlternative_bundle_e_sqlcipher": {
+      "restoreExitCode": 0,
+      "directPins": [
+        {
+          "id": "SQLitePCLRaw.bundle_e_sqlcipher",
+          "version": "[2.1.11]"
+        }
+      ],
+      "selectedSQLitePackages": {
+        "SQLitePCLRaw.bundle_e_sqlcipher/2.1.11": {
+          "dependencies": {
+            "SQLitePCLRaw.lib.e_sqlcipher": "2.1.11",
+            "SQLitePCLRaw.provider.e_sqlcipher": "2.1.11"
+          },
+          "managedPayload": [
+            {
+              "path": "lib/netstandard2.0/SQLitePCLRaw.batteries_v2.dll",
+              "identity": "SQLitePCLRaw.batteries_v2, Version=2.1.11.2622, Culture=neutral, PublicKeyToken=8226ea5df37bcae9",
+              "sha256": "52EB289A9D099C6DB3589B6F8041DCB5E5A139A85F9375682AE7C71250B95354"
+            }
+          ],
+          "nativePayload": []
+        },
+        "SQLitePCLRaw.core/2.1.11": {
+          "dependencies": null,
+          "managedPayload": [
+            {
+              "path": "lib/netstandard2.0/SQLitePCLRaw.core.dll",
+              "identity": "SQLitePCLRaw.core, Version=2.1.11.2622, Culture=neutral, PublicKeyToken=1488e028ca7ab535",
+              "sha256": "3D2ED8E186F124F988EBDB45D0354185B424357BE2433BBA0033AB9EC31BD25B"
+            }
+          ],
+          "nativePayload": []
+        },
+        "SQLitePCLRaw.lib.e_sqlcipher/2.1.11": {
+          "dependencies": null,
+          "managedPayload": [],
+          "nativePayload": [
+            {
+              "path": "runtimes/linux-x64/native/libe_sqlcipher.so",
+              "sha256": "0E948F782BCB68CEAAB4F89F16D57B603AC7377ED24AF71CF047314809F22DC7"
+            },
+            {
+              "path": "runtimes/osx-arm64/native/libe_sqlcipher.dylib",
+              "sha256": "8B9B73BA4F717366F9D5E655859A28C6A185ED24F16F1B77981B60D06F43F51B"
+            },
+            {
+              "path": "runtimes/win-x64/native/e_sqlcipher.dll",
+              "sha256": "895C0F5203352446F159D7780021B69B280DEC6347C434C7A643AD6B7D0D883B"
+            }
+          ]
+        },
+        "SQLitePCLRaw.provider.e_sqlcipher/2.1.11": {
+          "dependencies": {
+            "SQLitePCLRaw.core": "2.1.11"
+          },
+          "managedPayload": [
+            {
+              "path": "lib/net6.0/SQLitePCLRaw.provider.e_sqlcipher.dll",
+              "identity": "SQLitePCLRaw.provider.e_sqlcipher, Version=2.1.11.2622, Culture=neutral, PublicKeyToken=c242ffa62330c89b",
+              "sha256": "986563AE18E395E2CEFE2C816D29F7EB2973359F973739EE83F712C451AAD3CD"
+            }
+          ],
+          "nativePayload": []
+        }
+      },
+      "audit": {
+        "framework": "net10.0",
+        "topLevelPackages": [],
+        "transitivePackages": [
+          {
+            "id": "System.Security.Cryptography.Xml",
+            "resolvedVersion": "10.0.4",
+            "vulnerabilities": [
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-37gx-xxp4-5rgx"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-w3x6-4m5h-cxqf"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-g8r8-53c2-pm3f"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-8q5v-6pqq-x66h"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-23rf-6693-g89p"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-cvvh-rhrc-wg4q"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-6588-8gv4-xfgh"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-mmjf-rqrv-855v"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-7hqp-7c5m-4vq6"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-r955-8q5j-3h83"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-c399-9853-6jmj"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "SQLiteAlternative_bundle_e_sqlite3": {
+      "restoreExitCode": 0,
+      "directPins": [
+        {
+          "id": "SQLitePCLRaw.bundle_e_sqlite3",
+          "version": "[2.1.11]"
+        },
+        {
+          "id": "SourceGear.sqlite3",
+          "version": "[3.50.4.5]"
+        }
+      ],
+      "selectedSQLitePackages": {
+        "SourceGear.sqlite3/3.50.4.5": {
+          "dependencies": null,
+          "managedPayload": [],
+          "nativePayload": [
+            {
+              "path": "runtimes/linux-x64/native/libe_sqlite3.so",
+              "sha256": "A5E8AED525023E6C209D37D3E762E2E76ED3A830464569A419ABFC3CF12D7A6C"
+            },
+            {
+              "path": "runtimes/osx-arm64/native/libe_sqlite3.dylib",
+              "sha256": "7B319CD32435AB28C97041FAD74B892BE218E6F0F74790802105309C1EC515A9"
+            },
+            {
+              "path": "runtimes/win-x64/native/e_sqlite3.dll",
+              "sha256": "AABF85D7A8B416FB15203CB754FCFC9858C8F1DD3BBC7EAB82335F6C362BA0D6"
+            }
+          ]
+        },
+        "SQLitePCLRaw.bundle_e_sqlite3/2.1.11": {
+          "dependencies": {
+            "SQLitePCLRaw.lib.e_sqlite3": "2.1.11",
+            "SQLitePCLRaw.provider.e_sqlite3": "2.1.11"
+          },
+          "managedPayload": [
+            {
+              "path": "lib/netstandard2.0/SQLitePCLRaw.batteries_v2.dll",
+              "identity": "SQLitePCLRaw.batteries_v2, Version=2.1.11.2622, Culture=neutral, PublicKeyToken=8226ea5df37bcae9",
+              "sha256": "94AC800C6B93AE50A025F247547781DEBE18391110667C5E242F51D8AC188FFB"
+            }
+          ],
+          "nativePayload": []
+        },
+        "SQLitePCLRaw.core/2.1.11": {
+          "dependencies": null,
+          "managedPayload": [
+            {
+              "path": "lib/netstandard2.0/SQLitePCLRaw.core.dll",
+              "identity": "SQLitePCLRaw.core, Version=2.1.11.2622, Culture=neutral, PublicKeyToken=1488e028ca7ab535",
+              "sha256": "3D2ED8E186F124F988EBDB45D0354185B424357BE2433BBA0033AB9EC31BD25B"
+            }
+          ],
+          "nativePayload": []
+        },
+        "SQLitePCLRaw.lib.e_sqlite3/2.1.11": {
+          "dependencies": null,
+          "managedPayload": [],
+          "nativePayload": [
+            {
+              "path": "runtimes/linux-x64/native/libe_sqlite3.so",
+              "sha256": "965400C23FDE16A19D000C1C6062AF577F048410F85253A793F569D5520DAAAD"
+            },
+            {
+              "path": "runtimes/osx-arm64/native/libe_sqlite3.dylib",
+              "sha256": "BEA557311C6EF51EB6A69834DBD7A4E1EBD9D3654790CF311D942BF6A6ADE0A2"
+            },
+            {
+              "path": "runtimes/win-x64/native/e_sqlite3.dll",
+              "sha256": "4DCBB2AD197D893355EFA004257E048F2C850FEB1078158F4BAAB0F7B53AC45F"
+            }
+          ]
+        },
+        "SQLitePCLRaw.provider.e_sqlite3/2.1.11": {
+          "dependencies": {
+            "SQLitePCLRaw.core": "2.1.11"
+          },
+          "managedPayload": [
+            {
+              "path": "lib/net6.0/SQLitePCLRaw.provider.e_sqlite3.dll",
+              "identity": "SQLitePCLRaw.provider.e_sqlite3, Version=2.1.11.2622, Culture=neutral, PublicKeyToken=9c301db686d0bd12",
+              "sha256": "232990C8372AFF30574EEF9CC280B486EE6F39F8A66F83EA495DD0DBAE98740C"
+            }
+          ],
+          "nativePayload": []
+        }
+      },
+      "audit": {
+        "framework": "net10.0",
+        "topLevelPackages": [],
+        "transitivePackages": [
+          {
+            "id": "SQLitePCLRaw.lib.e_sqlite3",
+            "resolvedVersion": "2.1.11",
+            "vulnerabilities": [
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-2m69-gcr7-jv3q"
+              }
+            ]
+          },
+          {
+            "id": "System.Security.Cryptography.Xml",
+            "resolvedVersion": "10.0.4",
+            "vulnerabilities": [
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-37gx-xxp4-5rgx"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-w3x6-4m5h-cxqf"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-g8r8-53c2-pm3f"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-8q5v-6pqq-x66h"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-23rf-6693-g89p"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-cvvh-rhrc-wg4q"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-6588-8gv4-xfgh"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-mmjf-rqrv-855v"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-7hqp-7c5m-4vq6"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-r955-8q5j-3h83"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-c399-9853-6jmj"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "SQLiteAlternative_bundle_green": {
+      "restoreExitCode": 0,
+      "directPins": [
+        {
+          "id": "SQLitePCLRaw.bundle_green",
+          "version": "[2.1.11]"
+        }
+      ],
+      "selectedSQLitePackages": {
+        "SQLitePCLRaw.bundle_green/2.1.11": {
+          "dependencies": {
+            "SQLitePCLRaw.lib.e_sqlite3": "2.1.11",
+            "SQLitePCLRaw.provider.e_sqlite3": "2.1.11"
+          },
+          "managedPayload": [
+            {
+              "path": "lib/netstandard2.0/SQLitePCLRaw.batteries_v2.dll",
+              "identity": "SQLitePCLRaw.batteries_v2, Version=2.1.11.2622, Culture=neutral, PublicKeyToken=8226ea5df37bcae9",
+              "sha256": "82CCE80C15CEE03C28AF549CA7F5AB9D6AB7B3A10CCA7724FAC557A2600E96B2"
+            }
+          ],
+          "nativePayload": []
+        },
+        "SQLitePCLRaw.core/2.1.11": {
+          "dependencies": null,
+          "managedPayload": [
+            {
+              "path": "lib/netstandard2.0/SQLitePCLRaw.core.dll",
+              "identity": "SQLitePCLRaw.core, Version=2.1.11.2622, Culture=neutral, PublicKeyToken=1488e028ca7ab535",
+              "sha256": "3D2ED8E186F124F988EBDB45D0354185B424357BE2433BBA0033AB9EC31BD25B"
+            }
+          ],
+          "nativePayload": []
+        },
+        "SQLitePCLRaw.lib.e_sqlite3/2.1.11": {
+          "dependencies": null,
+          "managedPayload": [],
+          "nativePayload": [
+            {
+              "path": "runtimes/linux-x64/native/libe_sqlite3.so",
+              "sha256": "965400C23FDE16A19D000C1C6062AF577F048410F85253A793F569D5520DAAAD"
+            },
+            {
+              "path": "runtimes/osx-arm64/native/libe_sqlite3.dylib",
+              "sha256": "BEA557311C6EF51EB6A69834DBD7A4E1EBD9D3654790CF311D942BF6A6ADE0A2"
+            },
+            {
+              "path": "runtimes/win-x64/native/e_sqlite3.dll",
+              "sha256": "4DCBB2AD197D893355EFA004257E048F2C850FEB1078158F4BAAB0F7B53AC45F"
+            }
+          ]
+        },
+        "SQLitePCLRaw.provider.e_sqlite3/2.1.11": {
+          "dependencies": {
+            "SQLitePCLRaw.core": "2.1.11"
+          },
+          "managedPayload": [
+            {
+              "path": "lib/net6.0/SQLitePCLRaw.provider.e_sqlite3.dll",
+              "identity": "SQLitePCLRaw.provider.e_sqlite3, Version=2.1.11.2622, Culture=neutral, PublicKeyToken=9c301db686d0bd12",
+              "sha256": "232990C8372AFF30574EEF9CC280B486EE6F39F8A66F83EA495DD0DBAE98740C"
+            }
+          ],
+          "nativePayload": []
+        }
+      },
+      "audit": {
+        "framework": "net10.0",
+        "topLevelPackages": [],
+        "transitivePackages": [
+          {
+            "id": "SQLitePCLRaw.lib.e_sqlite3",
+            "resolvedVersion": "2.1.11",
+            "vulnerabilities": [
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-2m69-gcr7-jv3q"
+              }
+            ]
+          },
+          {
+            "id": "System.Security.Cryptography.Xml",
+            "resolvedVersion": "10.0.4",
+            "vulnerabilities": [
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-37gx-xxp4-5rgx"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-w3x6-4m5h-cxqf"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-g8r8-53c2-pm3f"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-8q5v-6pqq-x66h"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-23rf-6693-g89p"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-cvvh-rhrc-wg4q"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-6588-8gv4-xfgh"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-mmjf-rqrv-855v"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-7hqp-7c5m-4vq6"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-r955-8q5j-3h83"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-c399-9853-6jmj"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "SQLiteAlternative_bundle_sqlite3": {
+      "restoreExitCode": 0,
+      "directPins": [
+        {
+          "id": "SQLitePCLRaw.bundle_sqlite3",
+          "version": "[2.1.11]"
+        }
+      ],
+      "selectedSQLitePackages": {
+        "SQLitePCLRaw.bundle_sqlite3/2.1.11": {
+          "dependencies": {
+            "SQLitePCLRaw.provider.sqlite3": "2.1.11"
+          },
+          "managedPayload": [
+            {
+              "path": "lib/netstandard2.0/SQLitePCLRaw.batteries_v2.dll",
+              "identity": "SQLitePCLRaw.batteries_v2, Version=2.1.11.2622, Culture=neutral, PublicKeyToken=8226ea5df37bcae9",
+              "sha256": "65C729539D36F2ED9B6E5BD823B93F0BF5ED85A51EBC03624D4062642C801088"
+            }
+          ],
+          "nativePayload": []
+        },
+        "SQLitePCLRaw.core/2.1.11": {
+          "dependencies": null,
+          "managedPayload": [
+            {
+              "path": "lib/netstandard2.0/SQLitePCLRaw.core.dll",
+              "identity": "SQLitePCLRaw.core, Version=2.1.11.2622, Culture=neutral, PublicKeyToken=1488e028ca7ab535",
+              "sha256": "3D2ED8E186F124F988EBDB45D0354185B424357BE2433BBA0033AB9EC31BD25B"
+            }
+          ],
+          "nativePayload": []
+        },
+        "SQLitePCLRaw.provider.sqlite3/2.1.11": {
+          "dependencies": {
+            "SQLitePCLRaw.core": "2.1.11"
+          },
+          "managedPayload": [
+            {
+              "path": "lib/net6.0/SQLitePCLRaw.provider.sqlite3.dll",
+              "identity": "SQLitePCLRaw.provider.sqlite3, Version=2.1.11.2622, Culture=neutral, PublicKeyToken=62684c7b4f184e3f",
+              "sha256": "E11EE836A32F121A2088E0B57C8C350E6C7BEDCE656E79A8CA33A5B4286EF183"
+            }
+          ],
+          "nativePayload": []
+        }
+      },
+      "audit": {
+        "framework": "net10.0",
+        "topLevelPackages": [],
+        "transitivePackages": [
+          {
+            "id": "System.Security.Cryptography.Xml",
+            "resolvedVersion": "10.0.4",
+            "vulnerabilities": [
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-37gx-xxp4-5rgx"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-w3x6-4m5h-cxqf"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-g8r8-53c2-pm3f"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-8q5v-6pqq-x66h"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-23rf-6693-g89p"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-cvvh-rhrc-wg4q"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-6588-8gv4-xfgh"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-mmjf-rqrv-855v"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-7hqp-7c5m-4vq6"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-r955-8q5j-3h83"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-c399-9853-6jmj"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "SQLiteAlternative_bundle_winsqlite3": {
+      "restoreExitCode": 0,
+      "directPins": [
+        {
+          "id": "SQLitePCLRaw.bundle_winsqlite3",
+          "version": "[2.1.11]"
+        }
+      ],
+      "selectedSQLitePackages": {
+        "SQLitePCLRaw.bundle_winsqlite3/2.1.11": {
+          "dependencies": {
+            "SQLitePCLRaw.provider.winsqlite3": "2.1.11"
+          },
+          "managedPayload": [
+            {
+              "path": "lib/netstandard2.0/SQLitePCLRaw.batteries_v2.dll",
+              "identity": "SQLitePCLRaw.batteries_v2, Version=2.1.11.2622, Culture=neutral, PublicKeyToken=8226ea5df37bcae9",
+              "sha256": "CED60D61A1AB43FCFD8BCF4A16F8E37A190D333219DCC982EEAD7EE33632D8F5"
+            }
+          ],
+          "nativePayload": []
+        },
+        "SQLitePCLRaw.core/2.1.11": {
+          "dependencies": null,
+          "managedPayload": [
+            {
+              "path": "lib/netstandard2.0/SQLitePCLRaw.core.dll",
+              "identity": "SQLitePCLRaw.core, Version=2.1.11.2622, Culture=neutral, PublicKeyToken=1488e028ca7ab535",
+              "sha256": "3D2ED8E186F124F988EBDB45D0354185B424357BE2433BBA0033AB9EC31BD25B"
+            }
+          ],
+          "nativePayload": []
+        },
+        "SQLitePCLRaw.provider.winsqlite3/2.1.11": {
+          "dependencies": {
+            "SQLitePCLRaw.core": "2.1.11"
+          },
+          "managedPayload": [
+            {
+              "path": "lib/netstandard2.0/SQLitePCLRaw.provider.winsqlite3.dll",
+              "identity": "SQLitePCLRaw.provider.winsqlite3, Version=2.1.11.2622, Culture=neutral, PublicKeyToken=1bf85e8361e9e0b4",
+              "sha256": "9EB05D6065CFFB66A5A5489316DFD9E2F595098069FB33D04A02B50052DC2209"
+            }
+          ],
+          "nativePayload": []
+        }
+      },
+      "audit": {
+        "framework": "net10.0",
+        "topLevelPackages": [],
+        "transitivePackages": [
+          {
+            "id": "System.Security.Cryptography.Xml",
+            "resolvedVersion": "10.0.4",
+            "vulnerabilities": [
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-37gx-xxp4-5rgx"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-w3x6-4m5h-cxqf"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-g8r8-53c2-pm3f"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-8q5v-6pqq-x66h"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-23rf-6693-g89p"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-cvvh-rhrc-wg4q"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-6588-8gv4-xfgh"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-mmjf-rqrv-855v"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-7hqp-7c5m-4vq6"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-r955-8q5j-3h83"
+              },
+              {
+                "severity": "High",
+                "advisoryurl": "https://github.com/advisories/GHSA-c399-9853-6jmj"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "candidatePackageArchives": {
+    "SQLitePCLRaw.bundle_e_sqlite3/2.1.11": {
+      "url": "https://api.nuget.org/v3-flatcontainer/sqlitepclraw.bundle_e_sqlite3/2.1.11/sqlitepclraw.bundle_e_sqlite3.2.1.11.nupkg",
+      "sha256": "91645AA4C4D511F71CD03C6723D022D7E470000711DBE1D4BBE585F8E78B242B",
+      "nuspecRepository": "<repository type=\"git\" url=\"https://github.com/ericsink/SQLitePCL.raw\" xmlns=\"http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd\" />",
+      "nugetSha512": "DC4nA7yWnf4UZdgJDF+9Mus4/cb0Y3Sfgi3gDnAoKNAIBwzkskNAbNbyu+u4atT0ruVlZNJfwZmwiEwE5oz9LQ=="
+    },
+    "SQLitePCLRaw.core/2.1.11": {
+      "url": "https://api.nuget.org/v3-flatcontainer/sqlitepclraw.core/2.1.11/sqlitepclraw.core.2.1.11.nupkg",
+      "sha256": "B3F7F112862535FF5CD82E0766E78CCCF081BE98958835654A983B7A90741976",
+      "nuspecRepository": "<repository type=\"git\" url=\"https://github.com/ericsink/SQLitePCL.raw\" xmlns=\"http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd\" />",
+      "nugetSha512": "PK0GLFkfhZzLQeR3PJf71FmhtHox+U3vcY6ZtswoMjrefkB9k6ErNJEnwXqc5KgXDSjige2XXrezqS39gkpQKA=="
+    },
+    "SQLitePCLRaw.lib.e_sqlite3/3.53.3": {
+      "url": "https://api.nuget.org/v3-flatcontainer/sqlitepclraw.lib.e_sqlite3/3.53.3/sqlitepclraw.lib.e_sqlite3.3.53.3.nupkg",
+      "sha256": "72CB724779218E024833A21E2903C795A9E90C0BFA01520F27990C36413F32D4",
+      "nuspecRepository": "<repository type=\"git\" url=\"https://github.com/sourcegear/sqlite-builds\" branch=\"refs/heads/public_package_alternate_name_js\" commit=\"e7d537a1576bac9d7452411c4468640fa730de3e\" xmlns=\"http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd\" />",
+      "nugetSha512": "ZXiSbBkrlw2Of/dBqny/qtQol7dlThrUD8zH/jkQicCFm2yn2BbhKsQW0+YHAzhANWz4ZJCz7gvo88BwluVhkA=="
+    },
+    "SQLitePCLRaw.provider.e_sqlite3/2.1.11": {
+      "url": "https://api.nuget.org/v3-flatcontainer/sqlitepclraw.provider.e_sqlite3/2.1.11/sqlitepclraw.provider.e_sqlite3.2.1.11.nupkg",
+      "sha256": "2DD7D5DF6E409988013B09B03FB30D67130966434EE9BC2B1EF07A0B94B222D0",
+      "nuspecRepository": "<repository type=\"git\" url=\"https://github.com/ericsink/SQLitePCL.raw\" xmlns=\"http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd\" />",
+      "nugetSha512": "Y/0ZkR+r0Cg3DQFuCl1RBnv/tmxpIZRU3HUvelPw6MVaKHwYYR8YNvgs0vuNuXCMvlyJ+Fh88U1D4tah1tt6qw=="
+    }
+  },
+  "windowsManagedSmoke": {
+    "restoreExitCode": 0,
+    "buildExitCode": 0,
+    "runtimeExitCode": 0,
+    "log": [
+      "SQLite 3.53.3, value after reopen: 73"
+    ],
+    "nativeExportsProbe": {
+      "platform": "Microsoft Windows 10.0.26200",
+      "architecture": "X64",
+      "managedAssemblies": [
+        {
+          "sha256": "3D2ED8E186F124F988EBDB45D0354185B424357BE2433BBA0033AB9EC31BD25B",
+          "name": "SQLitePCLRaw.core, Version=2.1.11.2622, Culture=neutral, PublicKeyToken=1488e028ca7ab535"
+        },
+        {
+          "sha256": "232990C8372AFF30574EEF9CC280B486EE6F39F8A66F83EA495DD0DBAE98740C",
+          "name": "SQLitePCLRaw.provider.e_sqlite3, Version=2.1.11.2622, Culture=neutral, PublicKeyToken=9c301db686d0bd12"
+        },
+        {
+          "sha256": "94AC800C6B93AE50A025F247547781DEBE18391110667C5E242F51D8AC188FFB",
+          "name": "SQLitePCLRaw.batteries_v2, Version=2.1.11.2622, Culture=neutral, PublicKeyToken=8226ea5df37bcae9"
+        }
+      ],
+      "checkedExports": {
+        "sqlite3_libversion": true,
+        "sqlite3_libversion_number": true,
+        "sqlite3_open": true,
+        "sqlite3_open_v2": true,
+        "sqlite3_close": true,
+        "sqlite3_exec": true,
+        "sqlite3_prepare_v2": true,
+        "sqlite3_step": true,
+        "sqlite3_column_int": true,
+        "sqlite3_finalize": true
+      },
+      "sqliteVersionNumber": 3053003,
+      "nativeSha256": "B7385D722C83FB52142A00477A726723745916D22A555711EE89834C1111FB2E",
+      "valueAfterReopen": 73
+    }
+  },
+  "linuxWslManagedSmoke": {
+    "runtimeExitCode": 0,
+    "log": [
+      "Linux x86_64",
+      "Microsoft.AspNetCore.App 10.0.15 [/usr/lib/dotnet/shared/Microsoft.AspNetCore.App]",
+      "Microsoft.NETCore.App 10.0.15 [/usr/lib/dotnet/shared/Microsoft.NETCore.App]",
+      "b0f5c48026fedcf9f05cf31c6fadf9e1e001ca59cd85aa68b8b6814e52c18a07  /tmp/dotnet11-sqlite-managed-6Fc3CS/runtimes/linux-x64/native/libe_sqlite3.so",
+      "SQLite 3.53.3, value after reopen: 73"
+    ]
+  },
+  "portableSmokeAssemblySha256": "8D1A620FECE36B788C561E4D015F1A4020F2E5DB467EDA069E698FBAD1D8E4E7",
+  "windowsAlternativeNativeVersions": {
+    "SQLitePCLRaw.lib.e_sqlcipher/2.1.11": "3.39.2",
+    "SQLitePCLRaw.lib.e_sqlite3/2.1.11": "3.49.1",
+    "SourceGear.sqlite3/3.50.4.5": "3.50.4"
+  }
+}

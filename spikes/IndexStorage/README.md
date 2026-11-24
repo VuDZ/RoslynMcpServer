@@ -2,11 +2,11 @@
 
 Контракт: [task-14](../../docs/workspace-load-performance/epoch-0-stage-measurement/task-14-roslyn-index-storage-spike-hi.md).
 
-Проект компилирует исходники `spikes/ParallelSearch` без изменений и добавляет только
-`SQLite3MC.PCLRaw.bundle` 2.3.5. Именно эту сборку `SQLitePCLRaw.batteries_v2`
-(версия 2.3.5.0, ключ `df579d6b11135638`) ждёт Roslyn 5.9.0. Пакеты `SQLitePCLRaw.*`
-2.x и 3.x не подходят: у них другая линия версий и другой ключ подписи. С этой
-библиотекой Roslyn открывает `SQLitePersistentStorage` и сохраняет индексы между
+Проект компилирует исходники `spikes/ParallelSearch` без изменений и добавляет
+`SQLitePCLRaw.bundle_e_sqlite3` 2.1.11 и `SQLitePCLRaw.lib.e_sqlite3` 3.53.3.
+Сборка `SQLitePCLRaw.batteries_v2` версии 2.1.11.2622 с ключом `8226ea5df37bcae9`
+соответствует ссылке Roslyn 5.12.0. С этой библиотекой Roslyn открывает
+`SQLitePersistentStorage` и сохраняет индексы между
 процессами в `%LOCALAPPDATA%\Microsoft\VisualStudio\Roslyn\Cache\dotnet-*\<решение>-*`.
 
 ## Матрица на Windows

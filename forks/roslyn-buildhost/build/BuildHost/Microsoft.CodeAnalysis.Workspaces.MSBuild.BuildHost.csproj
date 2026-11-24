@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <!--
     Builds upstream src/Workspaces/MSBuild/BuildHost (netcore only) without Arcade. The output replaces the
-    BuildHost-netcore folder of Microsoft.CodeAnalysis.Workspaces.MSBuild 5.9.0: same assembly names, target
+    BuildHost-netcore folder of Microsoft.CodeAnalysis.Workspaces.MSBuild 5.12.0: same assembly names, target
     framework and roll-forward, so the unchanged MSBuildWorkspace client starts it the same way.
   -->
   <PropertyGroup>
@@ -38,8 +38,10 @@
     <Compile Include="$(CompilersSource)Core\Portable\InternalUtilities\NoMessagePumpSyncContext.cs" />
     <Compile Include="$(CompilersSource)Core\Portable\InternalUtilities\SpecializedSyncContext.cs" />
     <Compile Include="$(CompilersSource)Core\Portable\InternalUtilities\SemaphoreSlimExtensions.cs" />
+    <Compile Include="$(CompilersSource)Core\Portable\InternalUtilities\ReaderWriterLockSlimExtensions.cs" />
     <Compile Include="$(CompilersSource)Core\Portable\Symbols\LanguageNames.cs" />
     <Compile Include="$(CompilersSource)Shared\NamedPipeUtil.cs" />
+    <Compile Include="$(UpstreamRoot)src\Workspaces\Core\Portable\Utilities\StandardHandleInheritance.cs" />
   </ItemGroup>
   <ItemGroup>
     <!-- Upstream uses Arcade's GenerateSource; the SDK's strongly typed resources give the same class. -->

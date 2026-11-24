@@ -1,6 +1,6 @@
 param(
     [string]$ProjectPath = (Join-Path $PSScriptRoot "RoslynMcpServer.csproj"),
-    [string]$PublishDir = (Join-Path $PSScriptRoot "bin\Release\net10.0\win-x64\publish"),
+    [string]$PublishDir = (Join-Path $PSScriptRoot "bin\Release\net11.0\win-x64\publish"),
     [int]$ExpectedMinTools = 54,
     # Cursor may keep MCP stdio processes alive after "disconnect"; they lock publish DLLs.
     [switch]$SkipKill
@@ -27,7 +27,7 @@ function Resolve-DotNetX64 {
         return $fromPath.Source
     }
 
-    throw "64-bit dotnet.exe not found under Program Files\dotnet. Install the .NET 10 x64 SDK."
+    throw "64-bit dotnet.exe not found under Program Files\dotnet. Install the .NET 11 x64 SDK pinned in global.json."
 }
 
 function Get-RoslynMcpLogDirectory {

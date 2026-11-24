@@ -7,7 +7,7 @@ namespace BuildHostFork.Trace;
 /// Records the loader's operations with their end on the Stopwatch clock.
 /// </summary>
 /// <remarks>
-/// The 5.9.0 loader stops its own Stopwatch and calls <see cref="Report"/> synchronously right after the operation, so
+/// The loader stops its own Stopwatch and calls <see cref="Report"/> synchronously right after the operation, so
 /// the moment of the call is its end and the start is that moment minus the reported duration. <c>Progress&lt;T&gt;</c>
 /// would post the call to a synchronization context and lose that moment.
 /// </remarks>

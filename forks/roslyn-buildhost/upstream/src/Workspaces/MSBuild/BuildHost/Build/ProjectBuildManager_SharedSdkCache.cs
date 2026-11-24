@@ -53,16 +53,18 @@ internal sealed partial class ProjectBuildManager
             _shareSdkCache = value == "1";
     }
 
-    private MSB.Evaluation.Project CreateProject(MSB.Construction.ProjectRootElement xml, MSB.Evaluation.ProjectLoadSettings projectLoadSettings)
+    private MSB.Evaluation.Project CreateProject(
+        MSB.Construction.ProjectRootElement xml, IDictionary<string, string>? globalProperties, MSB.Evaluation.ProjectLoadSettings projectLoadSettings)
     {
         if (!_shareSdkCache)
-            return new MSB.Evaluation.Project(xml, globalProperties: null, toolsVersion: null, _projectCollection, projectLoadSettings);
+            return new MSB.Evaluation.Project(xml, globalProperties, toolsVersion: null, _projectCollection, projectLoadSettings);
 
         // The first evaluation in a new context resolves every SDK as an evaluation in a context of its own does.
         var context = MSB.Evaluation.Context.EvaluationContext.Create(MSB.Evaluation.Context.EvaluationContext.SharingPolicy.SharedSDKCache);
         var project = MSB.Evaluation.Project.FromProjectRootElement(xml, new MSB.Definition.ProjectOptions
         {
             ProjectCollection = _projectCollection,
+            GlobalProperties = globalProperties,
             LoadSettings = projectLoadSettings,
             EvaluationContext = context,
         });

@@ -1,0 +1,2274 @@
+{
+  "ProbeBuild": "  BuildHostFork -> E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHostFork.dll\r\n\r\nBuild succeeded.\r\n    0 Warning(s)\r\n    0 Error(s)\r\n\r\nTime Elapsed 00:00:02.34\r\n",
+  "ProbeRestore": "  Determining projects to restore...\r\n  Restored E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\BuildHostFork.csproj (in 589 ms).\r\n",
+  "SdkArchives": "10.0.100 SHA512 24B033418A3969EFFD49B4651EF7EBBFFEB284773B99545D78DCE61A82E57F38DB7FACDB013C609BA15573C072F0E093363AE470824A6847F3C6111078C1FB64 https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.100/dotnet-sdk-10.0.100-win-x64.zip\r\n10.0.300 SHA512 32446EDDFFC5A485F58F9D79CDAB3A1A9ADAB4ADC2EF0E4C787CFBB2465020D50BEAADC54D40F0850E2E0089EDD09864D12D6C19C526319819D57A4C00D38518 https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.300/dotnet-sdk-10.0.300-win-x64.zip\r\n",
+  "HostPackageEntry": "contentFiles/any/any/BuildHost-netcore/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.dll",
+  "HostPackageSha256": "E37884C7258FF597C32E3234E912D59E475C5327C7FA4CA15896FB2409E0D67D",
+  "HostUsedSha256": "E37884C7258FF597C32E3234E912D59E475C5327C7FA4CA15896FB2409E0D67D",
+  "HostRuntimeConfig": {
+    "runtimeOptions": {
+      "tfm": "net8.0",
+      "framework": {
+        "name": "Microsoft.NETCore.App",
+        "version": "8.0.0"
+      },
+      "rollForward": "Major",
+      "configProperties": {
+        "System.Reflection.Metadata.MetadataUpdater.IsSupported": false,
+        "System.Runtime.Serialization.EnableUnsafeBinaryFormatterSerialization": false
+      }
+    }
+  },
+  "Matrix": {
+    "only10-100": {
+      "Run": {
+        "cwd": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\only10-100",
+        "dotnet": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\10.0.100\\dotnet.exe",
+        "globalJson": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\only10-100\\global.json",
+        "configuredSdk": "10.0.100",
+        "rollForward": "disable",
+        "client": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHostFork.dll",
+        "host": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore\\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.dll",
+        "versionExit": 0,
+        "infoExit": 0,
+        "sdksExit": 0,
+        "runtimesExit": 0,
+        "msbuildExit": 0,
+        "restoreExit": 0,
+        "candidateExit": 0,
+        "rpcExit": 0
+      },
+      "GlobalJson": {
+        "sdk": {
+          "version": "10.0.100",
+          "allowPrerelease": false,
+          "rollForward": "disable"
+        }
+      },
+      "DotnetVersion": "10.0.100\r\nexit=0\r\n",
+      "InstalledSdks": "10.0.100 [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\10.0.100\\sdk]\r\nexit=0\r\n",
+      "InstalledRuntimes": "Microsoft.AspNetCore.App 10.0.0 [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\10.0.100\\shared\\Microsoft.AspNetCore.App]\r\nMicrosoft.NETCore.App 10.0.0 [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\10.0.100\\shared\\Microsoft.NETCore.App]\r\nMicrosoft.WindowsDesktop.App 10.0.0 [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\10.0.100\\shared\\Microsoft.WindowsDesktop.App]\r\nexit=0\r\n",
+      "CliMsBuild": "18.0.2.52411\r\nexit=0\r\n",
+      "FixtureRestore": "  Determining projects to restore...\r\n  All projects are up-to-date for restore.\r\nexit=0\r\n",
+      "SemanticOutput": "ClientLocatorPath=E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\10.0.100\\sdk\\10.0.100\r\nexit=0\r\n",
+      "Semantic": {
+        "Cwd": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\only10-100",
+        "Executable": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\10.0.100\\dotnet.exe",
+        "Runtime": ".NET 10.0.0",
+        "Architecture": "X64",
+        "Client": "5.12.0-1.26502.2+1324e1d34a0490454837a22370e75bbaeecffb87",
+        "ExpectedHost": "netcore: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore",
+        "FirstHostPid": 7648,
+        "BuildHostProcesses": {
+          "count": 1,
+          "cpuMs": 1781.25,
+          "peakWorkingSetMb": 97.58203125,
+          "hosts": [
+            "netcore: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore"
+          ],
+          "unidentified": 0
+        },
+        "RemainingBuildHosts": [],
+        "Diagnostics": [],
+        "Projects": [
+          {
+            "Name": "Smoke",
+            "Language": "14.0",
+            "Symbol": "Smoke.Value",
+            "Definition": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\only10-100\\Smoke.cs: (2,21)-(2,26)",
+            "References": [
+              "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\only10-100\\Smoke.cs: (4,32)-(4,37)"
+            ],
+            "PreRenameErrors": 0,
+            "PostRenameErrors": 0
+          }
+        ]
+      },
+      "DesignTimeMsBuild": [
+        "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\10.0.100\\sdk\\10.0.100|18.0.2|Core|net10.0"
+      ],
+      "Hostfxr": [
+        "--- Invoked dotnet [version: 10.0.0 @Commit: b0f34d51fccc69fd334253924abd8d6853fad7aa] main = {",
+        "--roll-forward",
+        "LatestMajor",
+        "Parsed known arg --roll-forward = LatestMajor",
+        "App runtimeconfig.json from [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore\\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.dll]",
+        "Chose FX version [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\10.0.100\\shared\\Microsoft.NETCore.App\\10.0.0]"
+      ],
+      "RpcOutput": "Captured full ProjectFileInfo responses of 1 projects; host exited.\r\nexit=0\r\n",
+      "RpcMsBuild": {
+        "path": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\10.0.100\\sdk\\10.0.100",
+        "version": "10.0.100"
+      },
+      "RpcProjectCount": 1,
+      "NegativeHostfxr": [],
+      "NegativeRpc": null
+    },
+    "only10-300": {
+      "Run": {
+        "cwd": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\only10-300",
+        "dotnet": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\10.0.300\\dotnet.exe",
+        "globalJson": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\only10-300\\global.json",
+        "configuredSdk": "10.0.300",
+        "rollForward": "disable",
+        "client": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHostFork.dll",
+        "host": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore\\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.dll",
+        "versionExit": 0,
+        "infoExit": 0,
+        "sdksExit": 0,
+        "runtimesExit": 0,
+        "msbuildExit": 0,
+        "restoreExit": 0,
+        "candidateExit": 0,
+        "rpcExit": 0
+      },
+      "GlobalJson": {
+        "sdk": {
+          "version": "10.0.300",
+          "allowPrerelease": false,
+          "rollForward": "disable"
+        }
+      },
+      "DotnetVersion": "10.0.300\r\nexit=0\r\n",
+      "InstalledSdks": "10.0.300 [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\10.0.300\\sdk]\r\nexit=0\r\n",
+      "InstalledRuntimes": "Microsoft.AspNetCore.App 10.0.8 [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\10.0.300\\shared\\Microsoft.AspNetCore.App]\r\nMicrosoft.NETCore.App 10.0.8 [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\10.0.300\\shared\\Microsoft.NETCore.App]\r\nMicrosoft.WindowsDesktop.App 10.0.8 [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\10.0.300\\shared\\Microsoft.WindowsDesktop.App]\r\nexit=0\r\n",
+      "CliMsBuild": "18.6.3.23102\r\nexit=0\r\n",
+      "FixtureRestore": "  Determining projects to restore...\r\n  All projects are up-to-date for restore.\r\nexit=0\r\n",
+      "SemanticOutput": "ClientLocatorPath=E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\10.0.300\\sdk\\10.0.300\r\nexit=0\r\n",
+      "Semantic": {
+        "Cwd": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\only10-300",
+        "Executable": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\10.0.300\\dotnet.exe",
+        "Runtime": ".NET 10.0.8",
+        "Architecture": "X64",
+        "Client": "5.12.0-1.26502.2+1324e1d34a0490454837a22370e75bbaeecffb87",
+        "ExpectedHost": "netcore: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore",
+        "FirstHostPid": 62040,
+        "BuildHostProcesses": {
+          "count": 1,
+          "cpuMs": 1531.25,
+          "peakWorkingSetMb": 96.3515625,
+          "hosts": [
+            "netcore: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore"
+          ],
+          "unidentified": 0
+        },
+        "RemainingBuildHosts": [],
+        "Diagnostics": [],
+        "Projects": [
+          {
+            "Name": "Smoke",
+            "Language": "14.0",
+            "Symbol": "Smoke.Value",
+            "Definition": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\only10-300\\Smoke.cs: (2,21)-(2,26)",
+            "References": [
+              "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\only10-300\\Smoke.cs: (4,32)-(4,37)"
+            ],
+            "PreRenameErrors": 0,
+            "PostRenameErrors": 0
+          }
+        ]
+      },
+      "DesignTimeMsBuild": [
+        "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\10.0.300\\sdk\\10.0.300|18.6.3|Core|net10.0"
+      ],
+      "Hostfxr": [
+        "--- Invoked dotnet [version: 10.0.8 @Commit: 94ea82652cdd4e0f8046b5bd5becbd11461482ca] main = {",
+        "--roll-forward",
+        "LatestMajor",
+        "Parsed known arg --roll-forward = LatestMajor",
+        "App runtimeconfig.json from [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore\\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.dll]",
+        "Chose FX version [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\10.0.300\\shared\\Microsoft.NETCore.App\\10.0.8]"
+      ],
+      "RpcOutput": "Captured full ProjectFileInfo responses of 1 projects; host exited.\r\nexit=0\r\n",
+      "RpcMsBuild": {
+        "path": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\10.0.300\\sdk\\10.0.300",
+        "version": "10.0.300"
+      },
+      "RpcProjectCount": 1,
+      "NegativeHostfxr": [],
+      "NegativeRpc": null
+    },
+    "only10-402": {
+      "Run": {
+        "cwd": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\only10-402",
+        "dotnet": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\10.0.402\\dotnet.exe",
+        "globalJson": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\only10-402\\global.json",
+        "configuredSdk": "10.0.402",
+        "rollForward": "disable",
+        "client": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHostFork.dll",
+        "host": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore\\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.dll",
+        "versionExit": 0,
+        "infoExit": 0,
+        "sdksExit": 0,
+        "runtimesExit": 0,
+        "msbuildExit": 0,
+        "restoreExit": 0,
+        "candidateExit": 0,
+        "rpcExit": 0,
+        "cancel0-1": 0,
+        "cancel0-2": 0,
+        "cancel0-3": 0,
+        "cancel500": 0,
+        "kill500": 0
+      },
+      "GlobalJson": {
+        "sdk": {
+          "rollForward": "disable",
+          "allowPrerelease": false,
+          "version": "10.0.402"
+        }
+      },
+      "DotnetVersion": "10.0.402\r\nexit=0\r\n",
+      "InstalledSdks": "10.0.402 [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\10.0.402\\sdk]\r\nexit=0\r\n",
+      "InstalledRuntimes": "Microsoft.AspNetCore.App 10.0.15 [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\10.0.402\\shared\\Microsoft.AspNetCore.App]\r\nMicrosoft.NETCore.App 10.0.15 [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\10.0.402\\shared\\Microsoft.NETCore.App]\r\nexit=0\r\n",
+      "CliMsBuild": "18.9.15.50611\r\nexit=0\r\n",
+      "FixtureRestore": "  Determining projects to restore...\r\n  Restored E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\only10-402\\Smoke.csproj (in 65 ms).\r\nexit=0\r\n",
+      "SemanticOutput": "ClientLocatorPath=E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\10.0.402\\sdk\\10.0.402\r\nexit=0\r\n",
+      "Semantic": {
+        "Cwd": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\only10-402",
+        "Executable": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\10.0.402\\dotnet.exe",
+        "Runtime": ".NET 10.0.15",
+        "Architecture": "X64",
+        "Client": "5.12.0-1.26502.2+1324e1d34a0490454837a22370e75bbaeecffb87",
+        "ExpectedHost": "netcore: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore",
+        "FirstHostPid": 62496,
+        "BuildHostProcesses": {
+          "count": 1,
+          "cpuMs": 1593.75,
+          "peakWorkingSetMb": 93.5,
+          "hosts": [
+            "netcore: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore"
+          ],
+          "unidentified": 0
+        },
+        "RemainingBuildHosts": [],
+        "Diagnostics": [],
+        "Projects": [
+          {
+            "Name": "Smoke",
+            "Language": "14.0",
+            "Symbol": "Smoke.Value",
+            "Definition": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\only10-402\\Smoke.cs: (2,21)-(2,26)",
+            "References": [
+              "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\only10-402\\Smoke.cs: (4,32)-(4,37)"
+            ],
+            "PreRenameErrors": 0,
+            "PostRenameErrors": 0
+          }
+        ]
+      },
+      "DesignTimeMsBuild": [
+        "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\10.0.402\\sdk\\10.0.402|18.9.15|Core|net10.0"
+      ],
+      "Hostfxr": [
+        "--- Invoked dotnet [version: 11.0.0 @Commit: 297acf930fb0f5c07fd4e51d78e521b4ad2e5d1f] main = {",
+        "--roll-forward",
+        "LatestMajor",
+        "Parsed known arg --roll-forward = LatestMajor",
+        "App runtimeconfig.json from [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore\\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.dll]",
+        "Chose FX version [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\10.0.402\\shared\\Microsoft.NETCore.App\\10.0.15]"
+      ],
+      "RpcOutput": "Captured full ProjectFileInfo responses of 1 projects; host exited.\r\nexit=0\r\n",
+      "RpcMsBuild": {
+        "path": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\10.0.402\\sdk\\10.0.402",
+        "version": "10.0.402"
+      },
+      "RpcProjectCount": 1,
+      "NegativeHostfxr": [],
+      "NegativeRpc": null
+    },
+    "only11-100": {
+      "Run": {
+        "cwd": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\only11-100",
+        "dotnet": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\11.0.100\\dotnet.exe",
+        "globalJson": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\only11-100\\global.json",
+        "configuredSdk": "11.0.100",
+        "rollForward": "disable",
+        "client": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHostFork.dll",
+        "host": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore\\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.dll",
+        "versionExit": 0,
+        "infoExit": 0,
+        "sdksExit": 0,
+        "runtimesExit": 0,
+        "msbuildExit": 0,
+        "restoreExit": 0,
+        "candidateExit": 0,
+        "rpcExit": 0
+      },
+      "GlobalJson": {
+        "sdk": {
+          "version": "11.0.100",
+          "allowPrerelease": false,
+          "rollForward": "disable"
+        }
+      },
+      "DotnetVersion": "11.0.100\r\nexit=0\r\n",
+      "InstalledSdks": "11.0.100 [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\11.0.100\\sdk]\r\nexit=0\r\n",
+      "InstalledRuntimes": "Microsoft.AspNetCore.App 11.0.0 [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\11.0.100\\shared\\Microsoft.AspNetCore.App]\r\nMicrosoft.NETCore.App 10.0.15 [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\11.0.100\\shared\\Microsoft.NETCore.App]\r\nMicrosoft.NETCore.App 11.0.0 [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\11.0.100\\shared\\Microsoft.NETCore.App]\r\nexit=0\r\n",
+      "CliMsBuild": "18.12.2.53018\r\nexit=0\r\n",
+      "FixtureRestore": "  Determining projects to restore...\r\n  Restored E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\only11-100\\Smoke.csproj (in 70 ms).\r\nexit=0\r\n",
+      "SemanticOutput": "ClientLocatorPath=E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\11.0.100\\sdk\\11.0.100\r\nexit=0\r\n",
+      "Semantic": {
+        "Cwd": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\only11-100",
+        "Executable": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\11.0.100\\dotnet.exe",
+        "Runtime": ".NET 10.0.15",
+        "Architecture": "X64",
+        "Client": "5.12.0-1.26502.2+1324e1d34a0490454837a22370e75bbaeecffb87",
+        "ExpectedHost": "netcore: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore",
+        "FirstHostPid": 59952,
+        "BuildHostProcesses": {
+          "count": 1,
+          "cpuMs": 1562.5,
+          "peakWorkingSetMb": 98.3203125,
+          "hosts": [
+            "netcore: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore"
+          ],
+          "unidentified": 0
+        },
+        "RemainingBuildHosts": [],
+        "Diagnostics": [],
+        "Projects": [
+          {
+            "Name": "Smoke",
+            "Language": "15.0",
+            "Symbol": "Smoke.Value",
+            "Definition": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\only11-100\\Smoke.cs: (2,21)-(2,26)",
+            "References": [
+              "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\only11-100\\Smoke.cs: (4,32)-(4,37)"
+            ],
+            "PreRenameErrors": 0,
+            "PostRenameErrors": 0
+          }
+        ]
+      },
+      "DesignTimeMsBuild": [
+        "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\11.0.100\\sdk\\11.0.100|18.12.2|Core|net11.0"
+      ],
+      "Hostfxr": [
+        "--- Invoked dotnet [version: 11.0.0 @Commit: 297acf930fb0f5c07fd4e51d78e521b4ad2e5d1f] main = {",
+        "--roll-forward",
+        "LatestMajor",
+        "Parsed known arg --roll-forward = LatestMajor",
+        "App runtimeconfig.json from [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore\\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.dll]",
+        "Chose FX version [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\11.0.100\\shared\\Microsoft.NETCore.App\\11.0.0]"
+      ],
+      "RpcOutput": "Captured full ProjectFileInfo responses of 1 projects; host exited.\r\nexit=0\r\n",
+      "RpcMsBuild": {
+        "path": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\11.0.100\\sdk\\11.0.100",
+        "version": "11.0.100"
+      },
+      "RpcProjectCount": 1,
+      "NegativeHostfxr": [],
+      "NegativeRpc": null
+    },
+    "both-100": {
+      "Run": {
+        "cwd": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\both-100",
+        "dotnet": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\both\\dotnet.exe",
+        "globalJson": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\both-100\\global.json",
+        "configuredSdk": "10.0.100",
+        "rollForward": "disable",
+        "client": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHostFork.dll",
+        "host": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore\\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.dll",
+        "versionExit": 0,
+        "infoExit": 0,
+        "sdksExit": 0,
+        "runtimesExit": 0,
+        "msbuildExit": 0,
+        "restoreExit": 0,
+        "candidateExit": 0,
+        "rpcExit": 0
+      },
+      "GlobalJson": {
+        "sdk": {
+          "version": "10.0.100",
+          "allowPrerelease": false,
+          "rollForward": "disable"
+        }
+      },
+      "DotnetVersion": "10.0.100\r\nexit=0\r\n",
+      "InstalledSdks": "10.0.100 [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\both\\sdk]\r\n10.0.300 [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\both\\sdk]\r\n10.0.402 [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\both\\sdk]\r\n11.0.100 [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\both\\sdk]\r\nexit=0\r\n",
+      "InstalledRuntimes": "Microsoft.AspNetCore.App 11.0.0 [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\both\\shared\\Microsoft.AspNetCore.App]\r\nMicrosoft.NETCore.App 10.0.15 [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\both\\shared\\Microsoft.NETCore.App]\r\nMicrosoft.NETCore.App 11.0.0 [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\both\\shared\\Microsoft.NETCore.App]\r\nexit=0\r\n",
+      "CliMsBuild": "\r\nWelcome to .NET 10.0!\r\n---------------------\r\nSDK Version: 10.0.100\r\n\r\n----------------\r\nInstalled an ASP.NET Core HTTPS development certificate.\r\nTo trust the certificate, run 'dotnet dev-certs https --trust'\r\nLearn about HTTPS: https://aka.ms/dotnet-https\r\n\r\n----------------\r\nWrite your first app: https://aka.ms/dotnet-hello-world\r\nFind out what's new: https://aka.ms/dotnet-whats-new\r\nExplore documentation: https://aka.ms/dotnet-docs\r\nReport issues and find source on GitHub: https://github.com/dotnet/core\r\nUse 'dotnet --help' to see available commands or visit: https://aka.ms/dotnet-cli\r\n--------------------------------------------------------------------------------------\r\n18.0.2.52411\r\nexit=0\r\n",
+      "FixtureRestore": "  Determining projects to restore...\r\n  Restored E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\both-100\\Smoke.csproj (in 52 ms).\r\nexit=0\r\n",
+      "SemanticOutput": "ClientLocatorPath=E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\both\\sdk\\10.0.100\r\nexit=0\r\n",
+      "Semantic": {
+        "Cwd": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\both-100",
+        "Executable": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\both\\dotnet.exe",
+        "Runtime": ".NET 10.0.15",
+        "Architecture": "X64",
+        "Client": "5.12.0-1.26502.2+1324e1d34a0490454837a22370e75bbaeecffb87",
+        "ExpectedHost": "netcore: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore",
+        "FirstHostPid": 17180,
+        "BuildHostProcesses": {
+          "count": 1,
+          "cpuMs": 1859.375,
+          "peakWorkingSetMb": 104.15234375,
+          "hosts": [
+            "netcore: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore"
+          ],
+          "unidentified": 0
+        },
+        "RemainingBuildHosts": [],
+        "Diagnostics": [],
+        "Projects": [
+          {
+            "Name": "Smoke",
+            "Language": "14.0",
+            "Symbol": "Smoke.Value",
+            "Definition": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\both-100\\Smoke.cs: (2,21)-(2,26)",
+            "References": [
+              "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\both-100\\Smoke.cs: (4,32)-(4,37)"
+            ],
+            "PreRenameErrors": 0,
+            "PostRenameErrors": 0
+          }
+        ]
+      },
+      "DesignTimeMsBuild": [
+        "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\both\\sdk\\10.0.100|18.0.2|Core|net10.0"
+      ],
+      "Hostfxr": [
+        "--- Invoked dotnet [version: 11.0.0 @Commit: 297acf930fb0f5c07fd4e51d78e521b4ad2e5d1f] main = {",
+        "--roll-forward",
+        "LatestMajor",
+        "Parsed known arg --roll-forward = LatestMajor",
+        "App runtimeconfig.json from [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore\\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.dll]",
+        "Chose FX version [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\both\\shared\\Microsoft.NETCore.App\\11.0.0]"
+      ],
+      "RpcOutput": "Captured full ProjectFileInfo responses of 1 projects; host exited.\r\nexit=0\r\n",
+      "RpcMsBuild": {
+        "path": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\both\\sdk\\10.0.100",
+        "version": "10.0.100"
+      },
+      "RpcProjectCount": 1,
+      "NegativeHostfxr": [],
+      "NegativeRpc": null
+    },
+    "both-300": {
+      "Run": {
+        "cwd": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\both-300",
+        "dotnet": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\both\\dotnet.exe",
+        "globalJson": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\both-300\\global.json",
+        "configuredSdk": "10.0.300",
+        "rollForward": "disable",
+        "client": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHostFork.dll",
+        "host": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore\\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.dll",
+        "versionExit": 0,
+        "infoExit": 0,
+        "sdksExit": 0,
+        "runtimesExit": 0,
+        "msbuildExit": 0,
+        "restoreExit": 0,
+        "candidateExit": 0,
+        "rpcExit": 0
+      },
+      "GlobalJson": {
+        "sdk": {
+          "version": "10.0.300",
+          "allowPrerelease": false,
+          "rollForward": "disable"
+        }
+      },
+      "DotnetVersion": "10.0.300\r\nexit=0\r\n",
+      "InstalledSdks": "10.0.100 [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\both\\sdk]\r\n10.0.300 [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\both\\sdk]\r\n10.0.402 [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\both\\sdk]\r\n11.0.100 [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\both\\sdk]\r\nexit=0\r\n",
+      "InstalledRuntimes": "Microsoft.AspNetCore.App 11.0.0 [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\both\\shared\\Microsoft.AspNetCore.App]\r\nMicrosoft.NETCore.App 10.0.15 [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\both\\shared\\Microsoft.NETCore.App]\r\nMicrosoft.NETCore.App 11.0.0 [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\both\\shared\\Microsoft.NETCore.App]\r\nexit=0\r\n",
+      "CliMsBuild": "\r\nWelcome to .NET 10.0!\r\n---------------------\r\nSDK Version: 10.0.300\r\n\r\n----------------\r\nInstalled an ASP.NET Core HTTPS development certificate.\r\nTo trust the certificate, run 'dotnet dev-certs https --trust'\r\nLearn about HTTPS: https://aka.ms/dotnet-https\r\n\r\n----------------\r\nWrite your first app: https://aka.ms/dotnet-hello-world\r\nFind out what's new: https://aka.ms/dotnet-whats-new\r\nExplore documentation: https://aka.ms/dotnet-docs\r\nReport issues and find source on GitHub: https://github.com/dotnet/core\r\nUse 'dotnet --help' to see available commands or visit: https://aka.ms/dotnet-cli\r\n--------------------------------------------------------------------------------------\r\n18.6.3.23102\r\nexit=0\r\n",
+      "FixtureRestore": "  Determining projects to restore...\r\n  Restored E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\both-300\\Smoke.csproj (in 41 ms).\r\nexit=0\r\n",
+      "SemanticOutput": "ClientLocatorPath=E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\both\\sdk\\10.0.300\r\nexit=0\r\n",
+      "Semantic": {
+        "Cwd": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\both-300",
+        "Executable": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\both\\dotnet.exe",
+        "Runtime": ".NET 10.0.15",
+        "Architecture": "X64",
+        "Client": "5.12.0-1.26502.2+1324e1d34a0490454837a22370e75bbaeecffb87",
+        "ExpectedHost": "netcore: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore",
+        "FirstHostPid": 63720,
+        "BuildHostProcesses": {
+          "count": 1,
+          "cpuMs": 1890.625,
+          "peakWorkingSetMb": 103.5625,
+          "hosts": [
+            "netcore: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore"
+          ],
+          "unidentified": 0
+        },
+        "RemainingBuildHosts": [],
+        "Diagnostics": [],
+        "Projects": [
+          {
+            "Name": "Smoke",
+            "Language": "14.0",
+            "Symbol": "Smoke.Value",
+            "Definition": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\both-300\\Smoke.cs: (2,21)-(2,26)",
+            "References": [
+              "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\both-300\\Smoke.cs: (4,32)-(4,37)"
+            ],
+            "PreRenameErrors": 0,
+            "PostRenameErrors": 0
+          }
+        ]
+      },
+      "DesignTimeMsBuild": [
+        "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\both\\sdk\\10.0.300|18.6.3|Core|net10.0"
+      ],
+      "Hostfxr": [
+        "--- Invoked dotnet [version: 11.0.0 @Commit: 297acf930fb0f5c07fd4e51d78e521b4ad2e5d1f] main = {",
+        "--roll-forward",
+        "LatestMajor",
+        "Parsed known arg --roll-forward = LatestMajor",
+        "App runtimeconfig.json from [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore\\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.dll]",
+        "Chose FX version [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\both\\shared\\Microsoft.NETCore.App\\11.0.0]"
+      ],
+      "RpcOutput": "Captured full ProjectFileInfo responses of 1 projects; host exited.\r\nexit=0\r\n",
+      "RpcMsBuild": {
+        "path": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\both\\sdk\\10.0.300",
+        "version": "10.0.300"
+      },
+      "RpcProjectCount": 1,
+      "NegativeHostfxr": [],
+      "NegativeRpc": null
+    },
+    "both-402": {
+      "Run": {
+        "cwd": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\both-402",
+        "dotnet": "C:\\Program Files\\dotnet\\dotnet.exe",
+        "globalJson": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\both-402\\global.json",
+        "configuredSdk": "10.0.402",
+        "rollForward": "disable",
+        "client": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHostFork.dll",
+        "host": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore\\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.dll",
+        "versionExit": 0,
+        "infoExit": 0,
+        "sdksExit": 0,
+        "runtimesExit": 0,
+        "msbuildExit": 0,
+        "restoreExit": 0,
+        "candidateExit": 0,
+        "rpcExit": 0
+      },
+      "GlobalJson": {
+        "sdk": {
+          "version": "10.0.402",
+          "allowPrerelease": false,
+          "rollForward": "disable"
+        }
+      },
+      "DotnetVersion": "10.0.402\r\nexit=0\r\n",
+      "InstalledSdks": "9.0.314 [C:\\Program Files\\dotnet\\sdk]\r\n10.0.201 [C:\\Program Files\\dotnet\\sdk]\r\n10.0.301 [C:\\Program Files\\dotnet\\sdk]\r\n10.0.402 [C:\\Program Files\\dotnet\\sdk]\r\n11.0.100 [C:\\Program Files\\dotnet\\sdk]\r\nexit=0\r\n",
+      "InstalledRuntimes": "Microsoft.AspNetCore.App 8.0.34 [C:\\Program Files\\dotnet\\shared\\Microsoft.AspNetCore.App]\r\nMicrosoft.AspNetCore.App 9.0.16 [C:\\Program Files\\dotnet\\shared\\Microsoft.AspNetCore.App]\r\nMicrosoft.AspNetCore.App 10.0.5 [C:\\Program Files\\dotnet\\shared\\Microsoft.AspNetCore.App]\r\nMicrosoft.AspNetCore.App 10.0.13 [C:\\Program Files\\dotnet\\shared\\Microsoft.AspNetCore.App]\r\nMicrosoft.AspNetCore.App 10.0.15 [C:\\Program Files\\dotnet\\shared\\Microsoft.AspNetCore.App]\r\nMicrosoft.AspNetCore.App 11.0.0 [C:\\Program Files\\dotnet\\shared\\Microsoft.AspNetCore.App]\r\nMicrosoft.NETCore.App 8.0.21 [C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App]\r\nMicrosoft.NETCore.App 8.0.26 [C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App]\r\nMicrosoft.NETCore.App 8.0.34 [C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App]\r\nMicrosoft.NETCore.App 9.0.16 [C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App]\r\nMicrosoft.NETCore.App 10.0.5 [C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App]\r\nMicrosoft.NETCore.App 10.0.13 [C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App]\r\nMicrosoft.NETCore.App 10.0.15 [C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App]\r\nMicrosoft.NETCore.App 11.0.0 [C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App]\r\nMicrosoft.WindowsDesktop.App 8.0.26 [C:\\Program Files\\dotnet\\shared\\Microsoft.WindowsDesktop.App]\r\nMicrosoft.WindowsDesktop.App 8.0.34 [C:\\Program Files\\dotnet\\shared\\Microsoft.WindowsDesktop.App]\r\nMicrosoft.WindowsDesktop.App 9.0.16 [C:\\Program Files\\dotnet\\shared\\Microsoft.WindowsDesktop.App]\r\nMicrosoft.WindowsDesktop.App 10.0.5 [C:\\Program Files\\dotnet\\shared\\Microsoft.WindowsDesktop.App]\r\nMicrosoft.WindowsDesktop.App 10.0.13 [C:\\Program Files\\dotnet\\shared\\Microsoft.WindowsDesktop.App]\r\nMicrosoft.WindowsDesktop.App 10.0.15 [C:\\Program Files\\dotnet\\shared\\Microsoft.WindowsDesktop.App]\r\nMicrosoft.WindowsDesktop.App 11.0.0 [C:\\Program Files\\dotnet\\shared\\Microsoft.WindowsDesktop.App]\r\nexit=0\r\n",
+      "CliMsBuild": "18.9.15.50611\r\nexit=0\r\n",
+      "FixtureRestore": "  Determining projects to restore...\r\n  All projects are up-to-date for restore.\r\nexit=0\r\n",
+      "SemanticOutput": "ClientLocatorPath=C:/Program Files/dotnet\\sdk\\10.0.402\r\nexit=0\r\n",
+      "Semantic": {
+        "Cwd": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\both-402",
+        "Executable": "C:\\Program Files\\dotnet\\dotnet.exe",
+        "Runtime": ".NET 10.0.15",
+        "Architecture": "X64",
+        "Client": "5.12.0-1.26502.2+1324e1d34a0490454837a22370e75bbaeecffb87",
+        "ExpectedHost": "netcore: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore",
+        "FirstHostPid": 24928,
+        "BuildHostProcesses": {
+          "count": 1,
+          "cpuMs": 1406.25,
+          "peakWorkingSetMb": 96.3515625,
+          "hosts": [
+            "netcore: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore"
+          ],
+          "unidentified": 0
+        },
+        "RemainingBuildHosts": [],
+        "Diagnostics": [],
+        "Projects": [
+          {
+            "Name": "Smoke",
+            "Language": "14.0",
+            "Symbol": "Smoke.Value",
+            "Definition": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\both-402\\Smoke.cs: (2,21)-(2,26)",
+            "References": [
+              "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\both-402\\Smoke.cs: (4,32)-(4,37)"
+            ],
+            "PreRenameErrors": 0,
+            "PostRenameErrors": 0
+          }
+        ]
+      },
+      "DesignTimeMsBuild": [
+        "C:\\Program Files\\dotnet\\sdk\\11.0.100|18.12.2|Core|net10.0"
+      ],
+      "Hostfxr": [
+        "--- Invoked dotnet [version: 11.0.0 @Commit: 297acf930fb0f5c07fd4e51d78e521b4ad2e5d1f] main = {",
+        "--roll-forward",
+        "LatestMajor",
+        "Parsed known arg --roll-forward = LatestMajor",
+        "App runtimeconfig.json from [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore\\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.dll]",
+        "Chose FX version [C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\11.0.0]"
+      ],
+      "RpcOutput": "Captured full ProjectFileInfo responses of 1 projects; host exited.\r\nexit=0\r\n",
+      "RpcMsBuild": {
+        "path": "C:\\Program Files\\dotnet\\sdk\\10.0.402",
+        "version": "10.0.402"
+      },
+      "RpcProjectCount": 1,
+      "NegativeHostfxr": [],
+      "NegativeRpc": null
+    },
+    "both-system-mixed-402": {
+      "Run": {
+        "cwd": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\both-system-mixed-402",
+        "dotnet": "C:\\Program Files\\dotnet\\dotnet.exe",
+        "globalJson": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\both-system-mixed-402\\global.json",
+        "configuredSdk": "10.0.402",
+        "rollForward": "disable",
+        "client": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHostFork.dll",
+        "host": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore\\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.dll",
+        "versionExit": 0,
+        "infoExit": 0,
+        "sdksExit": 0,
+        "runtimesExit": 0,
+        "msbuildExit": 0,
+        "restoreExit": 0,
+        "candidateExit": 0,
+        "rpcExit": 0
+      },
+      "GlobalJson": {
+        "sdk": {
+          "version": "10.0.402",
+          "allowPrerelease": false,
+          "rollForward": "disable"
+        }
+      },
+      "DotnetVersion": "10.0.402\r\nexit=0\r\n",
+      "InstalledSdks": "9.0.314 [C:\\Program Files\\dotnet\\sdk]\r\n10.0.201 [C:\\Program Files\\dotnet\\sdk]\r\n10.0.301 [C:\\Program Files\\dotnet\\sdk]\r\n10.0.402 [C:\\Program Files\\dotnet\\sdk]\r\n11.0.100 [C:\\Program Files\\dotnet\\sdk]\r\nexit=0\r\n",
+      "InstalledRuntimes": "Microsoft.AspNetCore.App 8.0.34 [C:\\Program Files\\dotnet\\shared\\Microsoft.AspNetCore.App]\r\nMicrosoft.AspNetCore.App 9.0.16 [C:\\Program Files\\dotnet\\shared\\Microsoft.AspNetCore.App]\r\nMicrosoft.AspNetCore.App 10.0.5 [C:\\Program Files\\dotnet\\shared\\Microsoft.AspNetCore.App]\r\nMicrosoft.AspNetCore.App 10.0.13 [C:\\Program Files\\dotnet\\shared\\Microsoft.AspNetCore.App]\r\nMicrosoft.AspNetCore.App 10.0.15 [C:\\Program Files\\dotnet\\shared\\Microsoft.AspNetCore.App]\r\nMicrosoft.AspNetCore.App 11.0.0 [C:\\Program Files\\dotnet\\shared\\Microsoft.AspNetCore.App]\r\nMicrosoft.NETCore.App 8.0.21 [C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App]\r\nMicrosoft.NETCore.App 8.0.26 [C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App]\r\nMicrosoft.NETCore.App 8.0.34 [C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App]\r\nMicrosoft.NETCore.App 9.0.16 [C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App]\r\nMicrosoft.NETCore.App 10.0.5 [C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App]\r\nMicrosoft.NETCore.App 10.0.13 [C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App]\r\nMicrosoft.NETCore.App 10.0.15 [C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App]\r\nMicrosoft.NETCore.App 11.0.0 [C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App]\r\nMicrosoft.WindowsDesktop.App 8.0.26 [C:\\Program Files\\dotnet\\shared\\Microsoft.WindowsDesktop.App]\r\nMicrosoft.WindowsDesktop.App 8.0.34 [C:\\Program Files\\dotnet\\shared\\Microsoft.WindowsDesktop.App]\r\nMicrosoft.WindowsDesktop.App 9.0.16 [C:\\Program Files\\dotnet\\shared\\Microsoft.WindowsDesktop.App]\r\nMicrosoft.WindowsDesktop.App 10.0.5 [C:\\Program Files\\dotnet\\shared\\Microsoft.WindowsDesktop.App]\r\nMicrosoft.WindowsDesktop.App 10.0.13 [C:\\Program Files\\dotnet\\shared\\Microsoft.WindowsDesktop.App]\r\nMicrosoft.WindowsDesktop.App 10.0.15 [C:\\Program Files\\dotnet\\shared\\Microsoft.WindowsDesktop.App]\r\nMicrosoft.WindowsDesktop.App 11.0.0 [C:\\Program Files\\dotnet\\shared\\Microsoft.WindowsDesktop.App]\r\nexit=0\r\n",
+      "CliMsBuild": "\r\nWelcome to .NET 10.0!\r\n---------------------\r\nSDK Version: 10.0.402\r\n\r\n----------------\r\nInstalled an ASP.NET Core HTTPS development certificate.\r\nTo trust the certificate, run 'dotnet dev-certs https --trust'\r\nLearn about HTTPS: https://aka.ms/dotnet-https\r\n\r\n----------------\r\nWrite your first app: https://aka.ms/dotnet-hello-world\r\nFind out what's new: https://aka.ms/dotnet-whats-new\r\nExplore documentation: https://aka.ms/dotnet-docs\r\nReport issues and find source on GitHub: https://github.com/dotnet/core\r\nUse 'dotnet --help' to see available commands or visit: https://aka.ms/dotnet-cli\r\n--------------------------------------------------------------------------------------\r\n18.9.15.50611\r\nexit=0\r\n",
+      "FixtureRestore": "  Determining projects to restore...\r\n  Restored E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\both-system-mixed-402\\Smoke.csproj (in 46 ms).\r\nexit=0\r\n",
+      "SemanticOutput": "ClientLocatorPath=C:/Program Files/dotnet\\sdk\\10.0.402\r\nexit=0\r\n",
+      "Semantic": {
+        "Cwd": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\both-system-mixed-402",
+        "Executable": "C:\\Program Files\\dotnet\\dotnet.exe",
+        "Runtime": ".NET 10.0.15",
+        "Architecture": "X64",
+        "Client": "5.12.0-1.26502.2+1324e1d34a0490454837a22370e75bbaeecffb87",
+        "ExpectedHost": "netcore: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore",
+        "FirstHostPid": 72276,
+        "BuildHostProcesses": {
+          "count": 1,
+          "cpuMs": 1421.875,
+          "peakWorkingSetMb": 96.13671875,
+          "hosts": [
+            "netcore: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore"
+          ],
+          "unidentified": 0
+        },
+        "RemainingBuildHosts": [],
+        "Diagnostics": [],
+        "Projects": [
+          {
+            "Name": "Smoke",
+            "Language": "14.0",
+            "Symbol": "Smoke.Value",
+            "Definition": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\both-system-mixed-402\\Smoke.cs: (2,21)-(2,26)",
+            "References": [
+              "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\both-system-mixed-402\\Smoke.cs: (4,32)-(4,37)"
+            ],
+            "PreRenameErrors": 0,
+            "PostRenameErrors": 0
+          }
+        ]
+      },
+      "DesignTimeMsBuild": [
+        "C:\\Program Files\\dotnet\\sdk\\11.0.100|18.12.2|Core|net10.0"
+      ],
+      "Hostfxr": [
+        "--- Invoked dotnet [version: 11.0.0 @Commit: 297acf930fb0f5c07fd4e51d78e521b4ad2e5d1f] main = {",
+        "--roll-forward",
+        "LatestMajor",
+        "Parsed known arg --roll-forward = LatestMajor",
+        "App runtimeconfig.json from [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore\\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.dll]",
+        "Chose FX version [C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\11.0.0]"
+      ],
+      "RpcOutput": "Captured full ProjectFileInfo responses of 1 projects; host exited.\r\nexit=0\r\n",
+      "RpcMsBuild": {
+        "path": "C:\\Program Files\\dotnet\\sdk\\10.0.402",
+        "version": "10.0.402"
+      },
+      "RpcProjectCount": 1,
+      "NegativeHostfxr": [],
+      "NegativeRpc": null
+    },
+    "both-system-normalized-402": {
+      "Run": {
+        "cwd": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\both-system-normalized-402",
+        "dotnet": "C:\\Program Files\\dotnet\\dotnet.exe",
+        "globalJson": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\both-system-normalized-402\\global.json",
+        "configuredSdk": "10.0.402",
+        "rollForward": "disable",
+        "client": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHostFork.dll",
+        "host": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore\\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.dll",
+        "versionExit": 0,
+        "infoExit": 0,
+        "sdksExit": 0,
+        "runtimesExit": 0,
+        "msbuildExit": 0,
+        "restoreExit": 0,
+        "candidateExit": 0,
+        "rpcExit": 0
+      },
+      "GlobalJson": {
+        "sdk": {
+          "version": "10.0.402",
+          "allowPrerelease": false,
+          "rollForward": "disable"
+        }
+      },
+      "DotnetVersion": "10.0.402\r\nexit=0\r\n",
+      "InstalledSdks": "9.0.314 [C:\\Program Files\\dotnet\\sdk]\r\n10.0.201 [C:\\Program Files\\dotnet\\sdk]\r\n10.0.301 [C:\\Program Files\\dotnet\\sdk]\r\n10.0.402 [C:\\Program Files\\dotnet\\sdk]\r\n11.0.100 [C:\\Program Files\\dotnet\\sdk]\r\nexit=0\r\n",
+      "InstalledRuntimes": "Microsoft.AspNetCore.App 8.0.34 [C:\\Program Files\\dotnet\\shared\\Microsoft.AspNetCore.App]\r\nMicrosoft.AspNetCore.App 9.0.16 [C:\\Program Files\\dotnet\\shared\\Microsoft.AspNetCore.App]\r\nMicrosoft.AspNetCore.App 10.0.5 [C:\\Program Files\\dotnet\\shared\\Microsoft.AspNetCore.App]\r\nMicrosoft.AspNetCore.App 10.0.13 [C:\\Program Files\\dotnet\\shared\\Microsoft.AspNetCore.App]\r\nMicrosoft.AspNetCore.App 10.0.15 [C:\\Program Files\\dotnet\\shared\\Microsoft.AspNetCore.App]\r\nMicrosoft.AspNetCore.App 11.0.0 [C:\\Program Files\\dotnet\\shared\\Microsoft.AspNetCore.App]\r\nMicrosoft.NETCore.App 8.0.21 [C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App]\r\nMicrosoft.NETCore.App 8.0.26 [C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App]\r\nMicrosoft.NETCore.App 8.0.34 [C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App]\r\nMicrosoft.NETCore.App 9.0.16 [C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App]\r\nMicrosoft.NETCore.App 10.0.5 [C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App]\r\nMicrosoft.NETCore.App 10.0.13 [C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App]\r\nMicrosoft.NETCore.App 10.0.15 [C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App]\r\nMicrosoft.NETCore.App 11.0.0 [C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App]\r\nMicrosoft.WindowsDesktop.App 8.0.26 [C:\\Program Files\\dotnet\\shared\\Microsoft.WindowsDesktop.App]\r\nMicrosoft.WindowsDesktop.App 8.0.34 [C:\\Program Files\\dotnet\\shared\\Microsoft.WindowsDesktop.App]\r\nMicrosoft.WindowsDesktop.App 9.0.16 [C:\\Program Files\\dotnet\\shared\\Microsoft.WindowsDesktop.App]\r\nMicrosoft.WindowsDesktop.App 10.0.5 [C:\\Program Files\\dotnet\\shared\\Microsoft.WindowsDesktop.App]\r\nMicrosoft.WindowsDesktop.App 10.0.13 [C:\\Program Files\\dotnet\\shared\\Microsoft.WindowsDesktop.App]\r\nMicrosoft.WindowsDesktop.App 10.0.15 [C:\\Program Files\\dotnet\\shared\\Microsoft.WindowsDesktop.App]\r\nMicrosoft.WindowsDesktop.App 11.0.0 [C:\\Program Files\\dotnet\\shared\\Microsoft.WindowsDesktop.App]\r\nexit=0\r\n",
+      "CliMsBuild": "\r\nWelcome to .NET 10.0!\r\n---------------------\r\nSDK Version: 10.0.402\r\n\r\n----------------\r\nInstalled an ASP.NET Core HTTPS development certificate.\r\nTo trust the certificate, run 'dotnet dev-certs https --trust'\r\nLearn about HTTPS: https://aka.ms/dotnet-https\r\n\r\n----------------\r\nWrite your first app: https://aka.ms/dotnet-hello-world\r\nFind out what's new: https://aka.ms/dotnet-whats-new\r\nExplore documentation: https://aka.ms/dotnet-docs\r\nReport issues and find source on GitHub: https://github.com/dotnet/core\r\nUse 'dotnet --help' to see available commands or visit: https://aka.ms/dotnet-cli\r\n--------------------------------------------------------------------------------------\r\n18.9.15.50611\r\nexit=0\r\n",
+      "FixtureRestore": "  Determining projects to restore...\r\n  Restored E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\both-system-normalized-402\\Smoke.csproj (in 38 ms).\r\nexit=0\r\n",
+      "SemanticOutput": "ClientLocatorPath=C:\\Program Files\\dotnet\\sdk\\10.0.402\r\nexit=0\r\n",
+      "Semantic": {
+        "Cwd": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\both-system-normalized-402",
+        "Executable": "C:\\Program Files\\dotnet\\dotnet.exe",
+        "Runtime": ".NET 10.0.15",
+        "Architecture": "X64",
+        "Client": "5.12.0-1.26502.2+1324e1d34a0490454837a22370e75bbaeecffb87",
+        "ExpectedHost": "netcore: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore",
+        "FirstHostPid": 67708,
+        "BuildHostProcesses": {
+          "count": 1,
+          "cpuMs": 1718.75,
+          "peakWorkingSetMb": 99.83984375,
+          "hosts": [
+            "netcore: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore"
+          ],
+          "unidentified": 0
+        },
+        "RemainingBuildHosts": [],
+        "Diagnostics": [],
+        "Projects": [
+          {
+            "Name": "Smoke",
+            "Language": "14.0",
+            "Symbol": "Smoke.Value",
+            "Definition": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\both-system-normalized-402\\Smoke.cs: (2,21)-(2,26)",
+            "References": [
+              "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\both-system-normalized-402\\Smoke.cs: (4,32)-(4,37)"
+            ],
+            "PreRenameErrors": 0,
+            "PostRenameErrors": 0
+          }
+        ]
+      },
+      "DesignTimeMsBuild": [
+        "C:\\Program Files\\dotnet\\sdk\\10.0.402|18.9.15|Core|net10.0"
+      ],
+      "Hostfxr": [
+        "--- Invoked dotnet [version: 11.0.0 @Commit: 297acf930fb0f5c07fd4e51d78e521b4ad2e5d1f] main = {",
+        "--roll-forward",
+        "LatestMajor",
+        "Parsed known arg --roll-forward = LatestMajor",
+        "App runtimeconfig.json from [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore\\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.dll]",
+        "Chose FX version [C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\11.0.0]"
+      ],
+      "RpcOutput": "Captured full ProjectFileInfo responses of 1 projects; host exited.\r\nexit=0\r\n",
+      "RpcMsBuild": {
+        "path": "C:\\Program Files\\dotnet\\sdk\\10.0.402",
+        "version": "10.0.402"
+      },
+      "RpcProjectCount": 1,
+      "NegativeHostfxr": [],
+      "NegativeRpc": null
+    },
+    "both-isolated-402": {
+      "Run": {
+        "cwd": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\both-isolated-402",
+        "dotnet": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\both\\dotnet.exe",
+        "globalJson": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\both-isolated-402\\global.json",
+        "configuredSdk": "10.0.402",
+        "rollForward": "disable",
+        "client": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHostFork.dll",
+        "host": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore\\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.dll",
+        "versionExit": 0,
+        "infoExit": 0,
+        "sdksExit": 0,
+        "runtimesExit": 0,
+        "msbuildExit": 0,
+        "restoreExit": 0,
+        "candidateExit": 0,
+        "rpcExit": 0
+      },
+      "GlobalJson": {
+        "sdk": {
+          "version": "10.0.402",
+          "allowPrerelease": false,
+          "rollForward": "disable"
+        }
+      },
+      "DotnetVersion": "10.0.402\r\nexit=0\r\n",
+      "InstalledSdks": "10.0.100 [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\both\\sdk]\r\n10.0.300 [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\both\\sdk]\r\n10.0.402 [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\both\\sdk]\r\n11.0.100 [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\both\\sdk]\r\nexit=0\r\n",
+      "InstalledRuntimes": "Microsoft.AspNetCore.App 11.0.0 [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\both\\shared\\Microsoft.AspNetCore.App]\r\nMicrosoft.NETCore.App 10.0.15 [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\both\\shared\\Microsoft.NETCore.App]\r\nMicrosoft.NETCore.App 11.0.0 [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\both\\shared\\Microsoft.NETCore.App]\r\nexit=0\r\n",
+      "CliMsBuild": "\r\nWelcome to .NET 10.0!\r\n---------------------\r\nSDK Version: 10.0.402\r\n\r\n----------------\r\nInstalled an ASP.NET Core HTTPS development certificate.\r\nTo trust the certificate, run 'dotnet dev-certs https --trust'\r\nLearn about HTTPS: https://aka.ms/dotnet-https\r\n\r\n----------------\r\nWrite your first app: https://aka.ms/dotnet-hello-world\r\nFind out what's new: https://aka.ms/dotnet-whats-new\r\nExplore documentation: https://aka.ms/dotnet-docs\r\nReport issues and find source on GitHub: https://github.com/dotnet/core\r\nUse 'dotnet --help' to see available commands or visit: https://aka.ms/dotnet-cli\r\n--------------------------------------------------------------------------------------\r\n18.9.15.50611\r\nexit=0\r\n",
+      "FixtureRestore": "  Determining projects to restore...\r\n  Restored E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\both-isolated-402\\Smoke.csproj (in 39 ms).\r\nexit=0\r\n",
+      "SemanticOutput": "ClientLocatorPath=E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\both\\sdk\\10.0.402\r\nexit=0\r\n",
+      "Semantic": {
+        "Cwd": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\both-isolated-402",
+        "Executable": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\both\\dotnet.exe",
+        "Runtime": ".NET 10.0.15",
+        "Architecture": "X64",
+        "Client": "5.12.0-1.26502.2+1324e1d34a0490454837a22370e75bbaeecffb87",
+        "ExpectedHost": "netcore: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore",
+        "FirstHostPid": 59372,
+        "BuildHostProcesses": {
+          "count": 1,
+          "cpuMs": 1875,
+          "peakWorkingSetMb": 101.8046875,
+          "hosts": [
+            "netcore: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore"
+          ],
+          "unidentified": 0
+        },
+        "RemainingBuildHosts": [],
+        "Diagnostics": [],
+        "Projects": [
+          {
+            "Name": "Smoke",
+            "Language": "14.0",
+            "Symbol": "Smoke.Value",
+            "Definition": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\both-isolated-402\\Smoke.cs: (2,21)-(2,26)",
+            "References": [
+              "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\both-isolated-402\\Smoke.cs: (4,32)-(4,37)"
+            ],
+            "PreRenameErrors": 0,
+            "PostRenameErrors": 0
+          }
+        ]
+      },
+      "DesignTimeMsBuild": [
+        "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\both\\sdk\\10.0.402|18.9.15|Core|net10.0"
+      ],
+      "Hostfxr": [
+        "--- Invoked dotnet [version: 11.0.0 @Commit: 297acf930fb0f5c07fd4e51d78e521b4ad2e5d1f] main = {",
+        "--roll-forward",
+        "LatestMajor",
+        "Parsed known arg --roll-forward = LatestMajor",
+        "App runtimeconfig.json from [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore\\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.dll]",
+        "Chose FX version [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\both\\shared\\Microsoft.NETCore.App\\11.0.0]"
+      ],
+      "RpcOutput": "Captured full ProjectFileInfo responses of 1 projects; host exited.\r\nexit=0\r\n",
+      "RpcMsBuild": {
+        "path": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\both\\sdk\\10.0.402",
+        "version": "10.0.402"
+      },
+      "RpcProjectCount": 1,
+      "NegativeHostfxr": [],
+      "NegativeRpc": null
+    },
+    "both-11": {
+      "Run": {
+        "cwd": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\both-11",
+        "dotnet": "C:\\Program Files\\dotnet\\dotnet.exe",
+        "globalJson": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\both-11\\global.json",
+        "configuredSdk": "11.0.100",
+        "rollForward": "disable",
+        "client": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHostFork.dll",
+        "host": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore\\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.dll",
+        "versionExit": 0,
+        "infoExit": 0,
+        "sdksExit": 0,
+        "runtimesExit": 0,
+        "msbuildExit": 0,
+        "restoreExit": 0,
+        "candidateExit": 0,
+        "rpcExit": 0
+      },
+      "GlobalJson": {
+        "sdk": {
+          "version": "11.0.100",
+          "allowPrerelease": false,
+          "rollForward": "disable"
+        }
+      },
+      "DotnetVersion": "11.0.100\r\nexit=0\r\n",
+      "InstalledSdks": "9.0.314 [C:\\Program Files\\dotnet\\sdk]\r\n10.0.201 [C:\\Program Files\\dotnet\\sdk]\r\n10.0.301 [C:\\Program Files\\dotnet\\sdk]\r\n10.0.402 [C:\\Program Files\\dotnet\\sdk]\r\n11.0.100 [C:\\Program Files\\dotnet\\sdk]\r\nexit=0\r\n",
+      "InstalledRuntimes": "Microsoft.AspNetCore.App 8.0.34 [C:\\Program Files\\dotnet\\shared\\Microsoft.AspNetCore.App]\r\nMicrosoft.AspNetCore.App 9.0.16 [C:\\Program Files\\dotnet\\shared\\Microsoft.AspNetCore.App]\r\nMicrosoft.AspNetCore.App 10.0.5 [C:\\Program Files\\dotnet\\shared\\Microsoft.AspNetCore.App]\r\nMicrosoft.AspNetCore.App 10.0.13 [C:\\Program Files\\dotnet\\shared\\Microsoft.AspNetCore.App]\r\nMicrosoft.AspNetCore.App 10.0.15 [C:\\Program Files\\dotnet\\shared\\Microsoft.AspNetCore.App]\r\nMicrosoft.AspNetCore.App 11.0.0 [C:\\Program Files\\dotnet\\shared\\Microsoft.AspNetCore.App]\r\nMicrosoft.NETCore.App 8.0.21 [C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App]\r\nMicrosoft.NETCore.App 8.0.26 [C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App]\r\nMicrosoft.NETCore.App 8.0.34 [C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App]\r\nMicrosoft.NETCore.App 9.0.16 [C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App]\r\nMicrosoft.NETCore.App 10.0.5 [C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App]\r\nMicrosoft.NETCore.App 10.0.13 [C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App]\r\nMicrosoft.NETCore.App 10.0.15 [C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App]\r\nMicrosoft.NETCore.App 11.0.0 [C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App]\r\nMicrosoft.WindowsDesktop.App 8.0.26 [C:\\Program Files\\dotnet\\shared\\Microsoft.WindowsDesktop.App]\r\nMicrosoft.WindowsDesktop.App 8.0.34 [C:\\Program Files\\dotnet\\shared\\Microsoft.WindowsDesktop.App]\r\nMicrosoft.WindowsDesktop.App 9.0.16 [C:\\Program Files\\dotnet\\shared\\Microsoft.WindowsDesktop.App]\r\nMicrosoft.WindowsDesktop.App 10.0.5 [C:\\Program Files\\dotnet\\shared\\Microsoft.WindowsDesktop.App]\r\nMicrosoft.WindowsDesktop.App 10.0.13 [C:\\Program Files\\dotnet\\shared\\Microsoft.WindowsDesktop.App]\r\nMicrosoft.WindowsDesktop.App 10.0.15 [C:\\Program Files\\dotnet\\shared\\Microsoft.WindowsDesktop.App]\r\nMicrosoft.WindowsDesktop.App 11.0.0 [C:\\Program Files\\dotnet\\shared\\Microsoft.WindowsDesktop.App]\r\nexit=0\r\n",
+      "CliMsBuild": "18.12.2.53018\r\nexit=0\r\n",
+      "FixtureRestore": "  Determining projects to restore...\r\n  All projects are up-to-date for restore.\r\nexit=0\r\n",
+      "SemanticOutput": "ClientLocatorPath=C:/Program Files/dotnet\\sdk\\11.0.100\r\nexit=0\r\n",
+      "Semantic": {
+        "Cwd": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\both-11",
+        "Executable": "C:\\Program Files\\dotnet\\dotnet.exe",
+        "Runtime": ".NET 10.0.15",
+        "Architecture": "X64",
+        "Client": "5.12.0-1.26502.2+1324e1d34a0490454837a22370e75bbaeecffb87",
+        "ExpectedHost": "netcore: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore",
+        "FirstHostPid": 69792,
+        "BuildHostProcesses": {
+          "count": 1,
+          "cpuMs": 1406.25,
+          "peakWorkingSetMb": 94.7578125,
+          "hosts": [
+            "netcore: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore"
+          ],
+          "unidentified": 0
+        },
+        "RemainingBuildHosts": [],
+        "Diagnostics": [],
+        "Projects": [
+          {
+            "Name": "Smoke",
+            "Language": "15.0",
+            "Symbol": "Smoke.Value",
+            "Definition": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\both-11\\Smoke.cs: (2,21)-(2,26)",
+            "References": [
+              "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\both-11\\Smoke.cs: (4,32)-(4,37)"
+            ],
+            "PreRenameErrors": 0,
+            "PostRenameErrors": 0
+          }
+        ]
+      },
+      "DesignTimeMsBuild": [
+        "C:\\Program Files\\dotnet\\sdk\\11.0.100|18.12.2|Core|net11.0"
+      ],
+      "Hostfxr": [
+        "--- Invoked dotnet [version: 11.0.0 @Commit: 297acf930fb0f5c07fd4e51d78e521b4ad2e5d1f] main = {",
+        "--roll-forward",
+        "LatestMajor",
+        "Parsed known arg --roll-forward = LatestMajor",
+        "App runtimeconfig.json from [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore\\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.dll]",
+        "Chose FX version [C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\11.0.0]"
+      ],
+      "RpcOutput": "Captured full ProjectFileInfo responses of 1 projects; host exited.\r\nexit=0\r\n",
+      "RpcMsBuild": {
+        "path": "C:\\Program Files\\dotnet\\sdk\\11.0.100",
+        "version": "11.0.100"
+      },
+      "RpcProjectCount": 1,
+      "NegativeHostfxr": [],
+      "NegativeRpc": null
+    },
+    "both-latestFeature": {
+      "Run": {
+        "cwd": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\both-latestFeature",
+        "dotnet": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\both\\dotnet.exe",
+        "globalJson": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\both-latestFeature\\global.json",
+        "configuredSdk": "10.0.100",
+        "rollForward": "latestFeature",
+        "client": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHostFork.dll",
+        "host": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore\\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.dll",
+        "versionExit": 0,
+        "infoExit": 0,
+        "sdksExit": 0,
+        "runtimesExit": 0,
+        "msbuildExit": 0,
+        "restoreExit": 0,
+        "candidateExit": 0,
+        "rpcExit": 0
+      },
+      "GlobalJson": {
+        "sdk": {
+          "version": "10.0.100",
+          "allowPrerelease": false,
+          "rollForward": "latestFeature"
+        }
+      },
+      "DotnetVersion": "10.0.402\r\nexit=0\r\n",
+      "InstalledSdks": "10.0.100 [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\both\\sdk]\r\n10.0.300 [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\both\\sdk]\r\n10.0.402 [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\both\\sdk]\r\n11.0.100 [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\both\\sdk]\r\nexit=0\r\n",
+      "InstalledRuntimes": "Microsoft.AspNetCore.App 11.0.0 [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\both\\shared\\Microsoft.AspNetCore.App]\r\nMicrosoft.NETCore.App 10.0.15 [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\both\\shared\\Microsoft.NETCore.App]\r\nMicrosoft.NETCore.App 11.0.0 [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\both\\shared\\Microsoft.NETCore.App]\r\nexit=0\r\n",
+      "CliMsBuild": "\r\nWelcome to .NET 10.0!\r\n---------------------\r\nSDK Version: 10.0.402\r\n\r\n----------------\r\nInstalled an ASP.NET Core HTTPS development certificate.\r\nTo trust the certificate, run 'dotnet dev-certs https --trust'\r\nLearn about HTTPS: https://aka.ms/dotnet-https\r\n\r\n----------------\r\nWrite your first app: https://aka.ms/dotnet-hello-world\r\nFind out what's new: https://aka.ms/dotnet-whats-new\r\nExplore documentation: https://aka.ms/dotnet-docs\r\nReport issues and find source on GitHub: https://github.com/dotnet/core\r\nUse 'dotnet --help' to see available commands or visit: https://aka.ms/dotnet-cli\r\n--------------------------------------------------------------------------------------\r\n18.9.15.50611\r\nexit=0\r\n",
+      "FixtureRestore": "  Determining projects to restore...\r\n  Restored E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\both-latestFeature\\Smoke.csproj (in 39 ms).\r\nexit=0\r\n",
+      "SemanticOutput": "ClientLocatorPath=E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\both\\sdk\\10.0.100\r\nexit=0\r\n",
+      "Semantic": {
+        "Cwd": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\both-latestFeature",
+        "Executable": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\both\\dotnet.exe",
+        "Runtime": ".NET 10.0.15",
+        "Architecture": "X64",
+        "Client": "5.12.0-1.26502.2+1324e1d34a0490454837a22370e75bbaeecffb87",
+        "ExpectedHost": "netcore: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore",
+        "FirstHostPid": 66812,
+        "BuildHostProcesses": {
+          "count": 1,
+          "cpuMs": 1906.25,
+          "peakWorkingSetMb": 103.11328125,
+          "hosts": [
+            "netcore: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore"
+          ],
+          "unidentified": 0
+        },
+        "RemainingBuildHosts": [],
+        "Diagnostics": [],
+        "Projects": [
+          {
+            "Name": "Smoke",
+            "Language": "14.0",
+            "Symbol": "Smoke.Value",
+            "Definition": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\both-latestFeature\\Smoke.cs: (2,21)-(2,26)",
+            "References": [
+              "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\both-latestFeature\\Smoke.cs: (4,32)-(4,37)"
+            ],
+            "PreRenameErrors": 0,
+            "PostRenameErrors": 0
+          }
+        ]
+      },
+      "DesignTimeMsBuild": [
+        "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\both\\sdk\\10.0.402|18.9.15|Core|net10.0"
+      ],
+      "Hostfxr": [
+        "--- Invoked dotnet [version: 11.0.0 @Commit: 297acf930fb0f5c07fd4e51d78e521b4ad2e5d1f] main = {",
+        "--roll-forward",
+        "LatestMajor",
+        "Parsed known arg --roll-forward = LatestMajor",
+        "App runtimeconfig.json from [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore\\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.dll]",
+        "Chose FX version [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\both\\shared\\Microsoft.NETCore.App\\11.0.0]"
+      ],
+      "RpcOutput": "Captured full ProjectFileInfo responses of 1 projects; host exited.\r\nexit=0\r\n",
+      "RpcMsBuild": {
+        "path": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\both\\sdk\\10.0.402",
+        "version": "10.0.402"
+      },
+      "RpcProjectCount": 1,
+      "NegativeHostfxr": [],
+      "NegativeRpc": null
+    },
+    "missing-exact": {
+      "Run": {
+        "cwd": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\missing-exact",
+        "dotnet": "C:\\Program Files\\dotnet\\dotnet.exe",
+        "globalJson": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\missing-exact\\global.json",
+        "configuredSdk": "10.0.300",
+        "rollForward": "disable",
+        "client": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHostFork.dll",
+        "host": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore\\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.dll",
+        "versionExit": -2147450725,
+        "infoExit": 0,
+        "sdksExit": 0,
+        "runtimesExit": 0,
+        "msbuildExit": -2147450725,
+        "restoreExit": -2147450725,
+        "candidateExit": -532462766
+      },
+      "GlobalJson": {
+        "sdk": {
+          "version": "10.0.300",
+          "allowPrerelease": false,
+          "rollForward": "disable"
+        }
+      },
+      "DotnetVersion": "The command could not be loaded, possibly because:\r\n  * You intended to execute a .NET application:\r\n      The application '--version' does not exist or is not a managed .dll or .exe.\r\n  * You intended to execute a .NET SDK command:\r\n      A compatible .NET SDK was not found.\r\n\r\nRequested SDK version: 10.0.300\r\nglobal.json file: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\missing-exact\\global.json\r\n\r\nInstalled SDKs:\r\n\r\nInstall the [10.0.300] .NET SDK or update [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\missing-exact\\global.json] to match an installed SDK.\r\n\r\nLearn about SDK resolution:\r\nhttps://aka.ms/dotnet/sdk-not-found\r\n9.0.314 [C:\\Program Files\\dotnet\\sdk]\r\n10.0.201 [C:\\Program Files\\dotnet\\sdk]\r\n10.0.301 [C:\\Program Files\\dotnet\\sdk]\r\n10.0.402 [C:\\Program Files\\dotnet\\sdk]\r\n11.0.100 [C:\\Program Files\\dotnet\\sdk]\r\nexit=-2147450725\r\n",
+      "InstalledSdks": "9.0.314 [C:\\Program Files\\dotnet\\sdk]\r\n10.0.201 [C:\\Program Files\\dotnet\\sdk]\r\n10.0.301 [C:\\Program Files\\dotnet\\sdk]\r\n10.0.402 [C:\\Program Files\\dotnet\\sdk]\r\n11.0.100 [C:\\Program Files\\dotnet\\sdk]\r\nexit=0\r\n",
+      "InstalledRuntimes": "Microsoft.AspNetCore.App 8.0.34 [C:\\Program Files\\dotnet\\shared\\Microsoft.AspNetCore.App]\r\nMicrosoft.AspNetCore.App 9.0.16 [C:\\Program Files\\dotnet\\shared\\Microsoft.AspNetCore.App]\r\nMicrosoft.AspNetCore.App 10.0.5 [C:\\Program Files\\dotnet\\shared\\Microsoft.AspNetCore.App]\r\nMicrosoft.AspNetCore.App 10.0.13 [C:\\Program Files\\dotnet\\shared\\Microsoft.AspNetCore.App]\r\nMicrosoft.AspNetCore.App 10.0.15 [C:\\Program Files\\dotnet\\shared\\Microsoft.AspNetCore.App]\r\nMicrosoft.AspNetCore.App 11.0.0 [C:\\Program Files\\dotnet\\shared\\Microsoft.AspNetCore.App]\r\nMicrosoft.NETCore.App 8.0.21 [C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App]\r\nMicrosoft.NETCore.App 8.0.26 [C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App]\r\nMicrosoft.NETCore.App 8.0.34 [C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App]\r\nMicrosoft.NETCore.App 9.0.16 [C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App]\r\nMicrosoft.NETCore.App 10.0.5 [C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App]\r\nMicrosoft.NETCore.App 10.0.13 [C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App]\r\nMicrosoft.NETCore.App 10.0.15 [C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App]\r\nMicrosoft.NETCore.App 11.0.0 [C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App]\r\nMicrosoft.WindowsDesktop.App 8.0.26 [C:\\Program Files\\dotnet\\shared\\Microsoft.WindowsDesktop.App]\r\nMicrosoft.WindowsDesktop.App 8.0.34 [C:\\Program Files\\dotnet\\shared\\Microsoft.WindowsDesktop.App]\r\nMicrosoft.WindowsDesktop.App 9.0.16 [C:\\Program Files\\dotnet\\shared\\Microsoft.WindowsDesktop.App]\r\nMicrosoft.WindowsDesktop.App 10.0.5 [C:\\Program Files\\dotnet\\shared\\Microsoft.WindowsDesktop.App]\r\nMicrosoft.WindowsDesktop.App 10.0.13 [C:\\Program Files\\dotnet\\shared\\Microsoft.WindowsDesktop.App]\r\nMicrosoft.WindowsDesktop.App 10.0.15 [C:\\Program Files\\dotnet\\shared\\Microsoft.WindowsDesktop.App]\r\nMicrosoft.WindowsDesktop.App 11.0.0 [C:\\Program Files\\dotnet\\shared\\Microsoft.WindowsDesktop.App]\r\nexit=0\r\n",
+      "CliMsBuild": "The command could not be loaded, possibly because:\r\n  * You intended to execute a .NET application:\r\n      The application 'msbuild' does not exist or is not a managed .dll or .exe.\r\n  * You intended to execute a .NET SDK command:\r\n      A compatible .NET SDK was not found.\r\n\r\nRequested SDK version: 10.0.300\r\nglobal.json file: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\missing-exact\\global.json\r\n\r\nInstalled SDKs:\r\n\r\nInstall the [10.0.300] .NET SDK or update [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\missing-exact\\global.json] to match an installed SDK.\r\n\r\nLearn about SDK resolution:\r\nhttps://aka.ms/dotnet/sdk-not-found\r\n9.0.314 [C:\\Program Files\\dotnet\\sdk]\r\n10.0.201 [C:\\Program Files\\dotnet\\sdk]\r\n10.0.301 [C:\\Program Files\\dotnet\\sdk]\r\n10.0.402 [C:\\Program Files\\dotnet\\sdk]\r\n11.0.100 [C:\\Program Files\\dotnet\\sdk]\r\nexit=-2147450725\r\n",
+      "FixtureRestore": "The command could not be loaded, possibly because:\r\n  * You intended to execute a .NET application:\r\n      The application 'restore' does not exist or is not a managed .dll or .exe.\r\n  * You intended to execute a .NET SDK command:\r\n      A compatible .NET SDK was not found.\r\n\r\nRequested SDK version: 10.0.300\r\nglobal.json file: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\missing-exact\\global.json\r\n\r\nInstalled SDKs:\r\n\r\nInstall the [10.0.300] .NET SDK or update [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\missing-exact\\global.json] to match an installed SDK.\r\n\r\nLearn about SDK resolution:\r\nhttps://aka.ms/dotnet/sdk-not-found\r\n9.0.314 [C:\\Program Files\\dotnet\\sdk]\r\n10.0.201 [C:\\Program Files\\dotnet\\sdk]\r\n10.0.301 [C:\\Program Files\\dotnet\\sdk]\r\n10.0.402 [C:\\Program Files\\dotnet\\sdk]\r\n11.0.100 [C:\\Program Files\\dotnet\\sdk]\r\nexit=-2147450725\r\n",
+      "SemanticOutput": "Unhandled exception. System.InvalidOperationException: Error while calling hostfxr function hostfxr_resolve_sdk2. Error code: -2147450725 Detailed error: A compatible .NET SDK was not found.\r\n\r\nRequested SDK version: 10.0.300\r\nglobal.json file: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\missing-exact\\global.json\r\n\r\nInstalled SDKs:\r\n\r\nInstall the [10.0.300] .NET SDK or update [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\missing-exact\\global.json] to match an installed SDK.\r\n\r\nLearn about SDK resolution:\r\nhttps://aka.ms/dotnet/sdk-not-found\r\n\r\n   at Microsoft.Build.Locator.DotNetSdkLocationHelper.<GetInstances>g__GetSdkFromGlobalSettings|5_2(String workingDirectory)\r\n   at Microsoft.Build.Locator.DotNetSdkLocationHelper.GetInstances(String workingDirectory, Boolean allowQueryAllRuntimes, Boolean allowAllDotnetLocations)+MoveNext()\r\n   at Microsoft.Build.Locator.MSBuildLocator.GetInstances(VisualStudioInstanceQueryOptions options)+MoveNext()\r\n   at System.Linq.Enumerable.TryGetFirstNonIterator[TSource](IEnumerable`1 source, Boolean& found)\r\n   at System.Linq.Enumerable.FirstOrDefault[TSource](IEnumerable`1 source)\r\n   at Microsoft.Build.Locator.MSBuildLocator.RegisterDefaults()\r\n   at ParallelSearch.MsBuildRegistration.Register(String solutionDirectory) in E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\ParallelSearch\\MsBuildRegistration.cs:line 27\r\n   at BuildHostFork.Program.Main(String[] args) in E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\Program.cs:line 32\r\n   at BuildHostFork.Program.<Main>(String[] args)\r\nexit=-532462766\r\n",
+      "Semantic": null,
+      "DesignTimeMsBuild": [],
+      "Hostfxr": [
+        null
+      ],
+      "RpcOutput": null,
+      "RpcMsBuild": null,
+      "RpcProjectCount": null,
+      "NegativeHostfxr": [
+        "--- Invoked dotnet [version: 11.0.0 @Commit: 297acf930fb0f5c07fd4e51d78e521b4ad2e5d1f] main = {",
+        "--roll-forward",
+        "LatestMajor",
+        "Parsed known arg --roll-forward = LatestMajor",
+        "App runtimeconfig.json from [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore\\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.dll]",
+        "Chose FX version [C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\11.0.0]"
+      ],
+      "NegativeRpc": "Unhandled exception. System.InvalidOperationException: BuildHost FindBestMSBuild: An exception of type System.InvalidOperationException was thrown: Error while calling hostfxr function hostfxr_resolve_sdk2. Error code: -2147450725 Detailed error: A compatible .NET SDK was not found.\r\n\r\nRequested SDK version: 10.0.300\r\nglobal.json file: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\missing-exact\\global.json\r\n\r\nInstalled SDKs:\r\n\r\nInstall the [10.0.300] .NET SDK or update [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\missing-exact\\global.json] to match an installed SDK.\r\n\r\nLearn about SDK resolution:\r\nhttps://aka.ms/dotnet/sdk-not-found\r\n\r\n   at BuildHostFork.Rpc.BuildHostClient.CallAsync(Int32 targetObject, String method, Object[] parameters) in E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\Rpc\\BuildHostClient.cs:line 88\r\n   at BuildHostFork.CandidateScenario.ProbeSdkAsync(String hostPath, String solutionPath) in E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\CandidateScenario.cs:line 21\r\n   at BuildHostFork.CandidateScenario.ProbeSdkAsync(String hostPath, String solutionPath) in E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\CandidateScenario.cs:line 23\r\n   at BuildHostFork.Program.Main(String[] args) in E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\Program.cs:line 32\r\n   at BuildHostFork.Program.<Main>(String[] args)\r\nexit=-532462766\r\n"
+    },
+    "no-sdk": {
+      "Run": {
+        "cwd": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\no-sdk",
+        "dotnet": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\none\\dotnet.exe",
+        "globalJson": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\no-sdk\\global.json",
+        "configuredSdk": "10.0.100",
+        "rollForward": "disable",
+        "client": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHostFork.dll",
+        "host": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore\\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.dll",
+        "versionExit": -2147450725,
+        "infoExit": 0,
+        "sdksExit": 0,
+        "runtimesExit": 0,
+        "msbuildExit": -2147450725,
+        "restoreExit": -2147450725,
+        "candidateExit": -532462766
+      },
+      "GlobalJson": {
+        "sdk": {
+          "version": "10.0.100",
+          "allowPrerelease": false,
+          "rollForward": "disable"
+        }
+      },
+      "DotnetVersion": "The command could not be loaded, possibly because:\r\n  * You intended to execute a .NET application:\r\n      The application '--version' does not exist or is not a managed .dll or .exe.\r\n  * You intended to execute a .NET SDK command:\r\n      A compatible .NET SDK was not found.\r\n\r\nRequested SDK version: 10.0.100\r\nglobal.json file: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\no-sdk\\global.json\r\n\r\nInstalled SDKs:\r\nNo .NET SDKs were found.\r\n\r\nInstall the [10.0.100] .NET SDK or update [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\no-sdk\\global.json] to match an installed SDK.\r\n\r\nDownload a .NET SDK:\r\nhttps://aka.ms/dotnet/download\r\n\r\nLearn about SDK resolution:\r\nhttps://aka.ms/dotnet/sdk-not-found\r\nexit=-2147450725\r\n",
+      "InstalledSdks": "exit=0\r\n",
+      "InstalledRuntimes": "Microsoft.NETCore.App 10.0.15 [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\none\\shared\\Microsoft.NETCore.App]\r\nexit=0\r\n",
+      "CliMsBuild": "The command could not be loaded, possibly because:\r\n  * You intended to execute a .NET application:\r\n      The application 'msbuild' does not exist or is not a managed .dll or .exe.\r\n  * You intended to execute a .NET SDK command:\r\n      A compatible .NET SDK was not found.\r\n\r\nRequested SDK version: 10.0.100\r\nglobal.json file: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\no-sdk\\global.json\r\n\r\nInstalled SDKs:\r\nNo .NET SDKs were found.\r\n\r\nInstall the [10.0.100] .NET SDK or update [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\no-sdk\\global.json] to match an installed SDK.\r\n\r\nDownload a .NET SDK:\r\nhttps://aka.ms/dotnet/download\r\n\r\nLearn about SDK resolution:\r\nhttps://aka.ms/dotnet/sdk-not-found\r\nexit=-2147450725\r\n",
+      "FixtureRestore": "The command could not be loaded, possibly because:\r\n  * You intended to execute a .NET application:\r\n      The application 'restore' does not exist or is not a managed .dll or .exe.\r\n  * You intended to execute a .NET SDK command:\r\n      A compatible .NET SDK was not found.\r\n\r\nRequested SDK version: 10.0.100\r\nglobal.json file: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\no-sdk\\global.json\r\n\r\nInstalled SDKs:\r\nNo .NET SDKs were found.\r\n\r\nInstall the [10.0.100] .NET SDK or update [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\no-sdk\\global.json] to match an installed SDK.\r\n\r\nDownload a .NET SDK:\r\nhttps://aka.ms/dotnet/download\r\n\r\nLearn about SDK resolution:\r\nhttps://aka.ms/dotnet/sdk-not-found\r\nexit=-2147450725\r\n",
+      "SemanticOutput": "Unhandled exception. System.InvalidOperationException: Error while calling hostfxr function hostfxr_resolve_sdk2. Error code: -2147450725 Detailed error: A compatible .NET SDK was not found.\r\n\r\nRequested SDK version: 10.0.100\r\nglobal.json file: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\no-sdk\\global.json\r\n\r\nInstalled SDKs:\r\nNo .NET SDKs were found.\r\n\r\nInstall the [10.0.100] .NET SDK or update [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\no-sdk\\global.json] to match an installed SDK.\r\n\r\nDownload a .NET SDK:\r\nhttps://aka.ms/dotnet/download\r\n\r\nLearn about SDK resolution:\r\nhttps://aka.ms/dotnet/sdk-not-found\r\n\r\n   at Microsoft.Build.Locator.DotNetSdkLocationHelper.<GetInstances>g__GetSdkFromGlobalSettings|5_2(String workingDirectory)\r\n   at Microsoft.Build.Locator.DotNetSdkLocationHelper.GetInstances(String workingDirectory, Boolean allowQueryAllRuntimes, Boolean allowAllDotnetLocations)+MoveNext()\r\n   at Microsoft.Build.Locator.MSBuildLocator.GetInstances(VisualStudioInstanceQueryOptions options)+MoveNext()\r\n   at System.Linq.Enumerable.TryGetFirstNonIterator[TSource](IEnumerable`1 source, Boolean& found)\r\n   at System.Linq.Enumerable.FirstOrDefault[TSource](IEnumerable`1 source)\r\n   at Microsoft.Build.Locator.MSBuildLocator.RegisterDefaults()\r\n   at ParallelSearch.MsBuildRegistration.Register(String solutionDirectory) in E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\ParallelSearch\\MsBuildRegistration.cs:line 27\r\n   at BuildHostFork.Program.Main(String[] args) in E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\Program.cs:line 32\r\n   at BuildHostFork.Program.<Main>(String[] args)\r\nexit=-532462766\r\n",
+      "Semantic": null,
+      "DesignTimeMsBuild": [],
+      "Hostfxr": [
+        null
+      ],
+      "RpcOutput": null,
+      "RpcMsBuild": null,
+      "RpcProjectCount": null,
+      "NegativeHostfxr": [
+        "--- Invoked dotnet [version: 11.0.0 @Commit: 297acf930fb0f5c07fd4e51d78e521b4ad2e5d1f] main = {",
+        "--roll-forward",
+        "LatestMajor",
+        "Parsed known arg --roll-forward = LatestMajor",
+        "App runtimeconfig.json from [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore\\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.dll]",
+        "Chose FX version [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\none\\shared\\Microsoft.NETCore.App\\10.0.15]"
+      ],
+      "NegativeRpc": "Unhandled exception. System.InvalidOperationException: BuildHost FindBestMSBuild: An exception of type System.InvalidOperationException was thrown: Error while calling hostfxr function hostfxr_resolve_sdk2. Error code: -2147450725 Detailed error: A compatible .NET SDK was not found.\r\n\r\nRequested SDK version: 10.0.100\r\nglobal.json file: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\no-sdk\\global.json\r\n\r\nInstalled SDKs:\r\nNo .NET SDKs were found.\r\n\r\nInstall the [10.0.100] .NET SDK or update [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\no-sdk\\global.json] to match an installed SDK.\r\n\r\nDownload a .NET SDK:\r\nhttps://aka.ms/dotnet/download\r\n\r\nLearn about SDK resolution:\r\nhttps://aka.ms/dotnet/sdk-not-found\r\n\r\n   at BuildHostFork.Rpc.BuildHostClient.CallAsync(Int32 targetObject, String method, Object[] parameters) in E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\Rpc\\BuildHostClient.cs:line 88\r\n   at BuildHostFork.CandidateScenario.ProbeSdkAsync(String hostPath, String solutionPath) in E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\CandidateScenario.cs:line 21\r\n   at BuildHostFork.CandidateScenario.ProbeSdkAsync(String hostPath, String solutionPath) in E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\CandidateScenario.cs:line 23\r\n   at BuildHostFork.Program.Main(String[] args) in E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\Program.cs:line 32\r\n   at BuildHostFork.Program.<Main>(String[] args)\r\nexit=-532462766\r\n"
+    }
+  },
+  "WindowsProcesses": [
+    {
+      "Mode": "cancel",
+      "DelayMs": 0,
+      "Outcome": "canceled",
+      "Error": null,
+      "CancellationStack": "System.Threading.Tasks.TaskCanceledException: A task was canceled.\r\n   at Roslyn.Utilities.SemaphoreSlimExtensions.DisposableWaitAsync(SemaphoreSlim semaphore, CancellationToken cancellationToken)\r\n   at Microsoft.CodeAnalysis.MSBuild.RpcClient.InvokeCoreAsync(Int32 targetObject, String methodName, List`1 parameters, Type expectedReturnType, CancellationToken cancellationToken)\r\n   at Microsoft.CodeAnalysis.MSBuild.BuildHostProcessManager.<GetBuildHostAsync>g__NoLock_GetBuildHostAsync|17_0(BuildHostProcessKind buildHostKind, String projectOrSolutionFilePath, String dotnetPath, CancellationToken cancellationToken)\r\n   at Microsoft.CodeAnalysis.MSBuild.BuildHostProcessManager.<GetBuildHostAsync>g__NoLock_GetBuildHostAsync|17_0(BuildHostProcessKind buildHostKind, String projectOrSolutionFilePath, String dotnetPath, CancellationToken cancellationToken)\r\n   at Microsoft.CodeAnalysis.MSBuild.BuildHostProcessManager.GetBuildHostAsync(BuildHostProcessKind buildHostKind, String projectOrSolutionFilePath, String dotnetPath, CancellationToken cancellationToken)\r\n   at Microsoft.CodeAnalysis.MSBuild.BuildHostProcessManager.GetBuildHostWithFallbackAsync(BuildHostProcessKind buildHostKind, String projectOrSolutionFilePath, CancellationToken cancellationToken)\r\n   at Microsoft.CodeAnalysis.MSBuild.BuildHostProjectFileInfoProvider.LoadProjectFileInfosAsync(String projectPath, DiagnosticReportingOptions reportingOptions, CancellationToken cancellationToken)\r\n   at Microsoft.CodeAnalysis.MSBuild.MSBuildProjectLoader.Worker.LoadProjectInfosFromPathAsync(String projectPath, DiagnosticReportingOptions reportingOptions, CancellationToken cancellationToken)\r\n   at Microsoft.CodeAnalysis.MSBuild.MSBuildProjectLoader.Worker.LoadAsync(CancellationToken cancellationToken)\r\n   at Microsoft.CodeAnalysis.MSBuild.MSBuildProjectLoader.LoadInfoAsync(ImmutableArray`1 projectPaths, ProjectMap projectMap, IProgress`1 progress, ILogger msbuildLogger, DiagnosticReportingOptions requestedProjectOptions, DiagnosticReportingOptions discoveredProjectOptions, Boolean preferMetadataForReferencesOfDiscoveredProjects, CancellationToken cancellationToken)\r\n   at Microsoft.CodeAnalysis.MSBuild.MSBuildProjectLoader.LoadInfoAsync(ImmutableArray`1 projectPaths, ProjectMap projectMap, IProgress`1 progress, ILogger msbuildLogger, DiagnosticReportingOptions requestedProjectOptions, DiagnosticReportingOptions discoveredProjectOptions, Boolean preferMetadataForReferencesOfDiscoveredProjects, CancellationToken cancellationToken)\r\n   at Microsoft.CodeAnalysis.MSBuild.MSBuildProjectLoader.LoadSolutionInfoAsync(String solutionFilePath, IProgress`1 progress, ILogger msbuildLogger, CancellationToken cancellationToken)\r\n   at Microsoft.CodeAnalysis.MSBuild.MSBuildWorkspace.OpenSolutionAsync(String solutionFilePath, ILogger msbuildLogger, IProgress`1 progress, CancellationToken cancellationToken)\r\n   at ParallelSearch.SolutionLoader.LoadAsync(String solutionPath, ILogger msbuildLogger, ICollection`1 diagnostics, IProgress`1 progress, LoadWindow window, IDictionary`2 properties, CancellationToken cancellationToken) in E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\ParallelSearch\\SolutionLoader.cs:line 62\r\n   at BuildHostFork.FailureScenario.GetCancellationAsync(Task load) in E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\FailureScenario.cs:line 58",
+      "FirstHostPid": 68720,
+      "FirstHostAtMs": 427.89,
+      "DisturbedAtMs": 427.8903,
+      "LoadMs": 527.5541,
+      "Projects": null,
+      "Documents": null,
+      "ExpectedHost": "netcore: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore",
+      "BuildHostProcesses": {
+        "count": 1,
+        "cpuMs": 93.75,
+        "peakWorkingSetMb": 27.421875,
+        "hosts": [
+          "netcore: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore"
+        ],
+        "unidentified": 0
+      },
+      "RemainingBuildHosts": 0,
+      "RemainingBuildHostPids": [],
+      "Diagnostics": [
+        "Failure: [Microsoft.CodeAnalysis.MSBuild.BuildHostProcessManager] Failed to initialize BuildHost process.\r\nSystem.Threading.Tasks.TaskCanceledException: A task was canceled.\r\n   at Roslyn.Utilities.SemaphoreSlimExtensions.DisposableWaitAsync(SemaphoreSlim semaphore, CancellationToken cancellationToken)\r\n   at Microsoft.CodeAnalysis.MSBuild.RpcClient.InvokeCoreAsync(Int32 targetObject, String methodName, List`1 parameters, Type expectedReturnType, CancellationToken cancellationToken)\r\n   at Microsoft.CodeAnalysis.MSBuild.BuildHostProcessManager.<GetBuildHostAsync>g__NoLock_GetBuildHostAsync|17_0(BuildHostProcessKind buildHostKind, String projectOrSolutionFilePath, String dotnetPath, CancellationToken cancellationToken)"
+      ]
+    },
+    {
+      "Mode": "cancel",
+      "DelayMs": 0,
+      "Outcome": "canceled",
+      "Error": null,
+      "CancellationStack": "   at Microsoft.CodeAnalysis.MSBuild.BuildHostProcessManager.<GetBuildHostAsync>g__NoLock_GetBuildHostAsync|17_0(BuildHostProcessKind buildHostKind, String projectOrSolutionFilePath, String dotnetPath, CancellationToken cancellationToken)",
+      "FirstHostPid": 64212,
+      "FirstHostAtMs": 520.8468,
+      "DisturbedAtMs": 520.8475,
+      "LoadMs": 571.5611,
+      "Projects": null,
+      "Documents": null,
+      "ExpectedHost": "netcore: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore",
+      "BuildHostProcesses": {
+        "count": 1,
+        "cpuMs": 46.875,
+        "peakWorkingSetMb": 23.15625,
+        "hosts": [
+          "netcore: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore"
+        ],
+        "unidentified": 0
+      },
+      "RemainingBuildHosts": 0,
+      "RemainingBuildHostPids": [],
+      "Diagnostics": [
+        "Failure: [Microsoft.CodeAnalysis.MSBuild.BuildHostProcessManager] Failed to initialize BuildHost process."
+      ]
+    },
+    {
+      "Mode": "cancel",
+      "DelayMs": 0,
+      "Outcome": "canceled",
+      "Error": null,
+      "CancellationStack": "   at Microsoft.CodeAnalysis.MSBuild.BuildHostProcessManager.<GetBuildHostAsync>g__NoLock_GetBuildHostAsync|17_0(BuildHostProcessKind buildHostKind, String projectOrSolutionFilePath, String dotnetPath, CancellationToken cancellationToken)",
+      "FirstHostPid": 65032,
+      "FirstHostAtMs": 425.2725,
+      "DisturbedAtMs": 425.4767,
+      "LoadMs": 529.2521,
+      "Projects": null,
+      "Documents": null,
+      "ExpectedHost": "netcore: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore",
+      "BuildHostProcesses": {
+        "count": 1,
+        "cpuMs": 78.125,
+        "peakWorkingSetMb": 26.88671875,
+        "hosts": [
+          "netcore: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore"
+        ],
+        "unidentified": 0
+      },
+      "RemainingBuildHosts": 0,
+      "RemainingBuildHostPids": [],
+      "Diagnostics": [
+        "Failure: [Microsoft.CodeAnalysis.MSBuild.BuildHostProcessManager] Failed to initialize BuildHost process."
+      ]
+    },
+    {
+      "Mode": "cancel",
+      "DelayMs": 500,
+      "Outcome": "canceled",
+      "Error": null,
+      "CancellationStack": "System.OperationCanceledException: The operation was canceled.\r\n   at System.Threading.CancellationToken.ThrowOperationCanceledException()\r\n   at System.Threading.CancellationToken.ThrowIfCancellationRequested()\r\n   at Microsoft.CodeAnalysis.MSBuild.MSBuildProjectLoader.Worker.LoadAsync(CancellationToken cancellationToken)\r\n   at Microsoft.CodeAnalysis.MSBuild.MSBuildProjectLoader.LoadInfoAsync(ImmutableArray`1 projectPaths, ProjectMap projectMap, IProgress`1 progress, ILogger msbuildLogger, DiagnosticReportingOptions requestedProjectOptions, DiagnosticReportingOptions discoveredProjectOptions, Boolean preferMetadataForReferencesOfDiscoveredProjects, CancellationToken cancellationToken)\r\n   at Microsoft.CodeAnalysis.MSBuild.MSBuildProjectLoader.LoadInfoAsync(ImmutableArray`1 projectPaths, ProjectMap projectMap, IProgress`1 progress, ILogger msbuildLogger, DiagnosticReportingOptions requestedProjectOptions, DiagnosticReportingOptions discoveredProjectOptions, Boolean preferMetadataForReferencesOfDiscoveredProjects, CancellationToken cancellationToken)\r\n   at Microsoft.CodeAnalysis.MSBuild.MSBuildProjectLoader.LoadSolutionInfoAsync(String solutionFilePath, IProgress`1 progress, ILogger msbuildLogger, CancellationToken cancellationToken)\r\n   at Microsoft.CodeAnalysis.MSBuild.MSBuildWorkspace.OpenSolutionAsync(String solutionFilePath, ILogger msbuildLogger, IProgress`1 progress, CancellationToken cancellationToken)\r\n   at ParallelSearch.SolutionLoader.LoadAsync(String solutionPath, ILogger msbuildLogger, ICollection`1 diagnostics, IProgress`1 progress, LoadWindow window, IDictionary`2 properties, CancellationToken cancellationToken) in E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\ParallelSearch\\SolutionLoader.cs:line 62\r\n   at BuildHostFork.FailureScenario.GetCancellationAsync(Task load) in E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\FailureScenario.cs:line 58",
+      "FirstHostPid": 59992,
+      "FirstHostAtMs": 428.4039,
+      "DisturbedAtMs": 942.3735,
+      "LoadMs": 970.4413,
+      "Projects": null,
+      "Documents": null,
+      "ExpectedHost": "netcore: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore",
+      "BuildHostProcesses": {
+        "count": 1,
+        "cpuMs": 453.125,
+        "peakWorkingSetMb": 90.1640625,
+        "hosts": [
+          "netcore: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore"
+        ],
+        "unidentified": 0
+      },
+      "RemainingBuildHosts": 0,
+      "RemainingBuildHostPids": [],
+      "Diagnostics": []
+    },
+    {
+      "Mode": "kill-host",
+      "DelayMs": 500,
+      "Outcome": "completed",
+      "Error": null,
+      "CancellationStack": null,
+      "FirstHostPid": 63528,
+      "FirstHostAtMs": 422.0847,
+      "DisturbedAtMs": 959.9179,
+      "LoadMs": 1045.2079,
+      "Projects": 1,
+      "Documents": 3,
+      "ExpectedHost": "netcore: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore",
+      "BuildHostProcesses": {
+        "count": 1,
+        "cpuMs": 453.125,
+        "peakWorkingSetMb": 87.66015625,
+        "hosts": [
+          "netcore: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore"
+        ],
+        "unidentified": 0
+      },
+      "RemainingBuildHosts": 0,
+      "RemainingBuildHostPids": [],
+      "Diagnostics": [
+        "Failure: [BuildHost PID 63528] The BuildHost process exited with -1. Process output:\r\ninfo: BuildHost Runtime Version: .NET 10.0.15\r\ninfo: Registered MSBuild 10.0.402 instance at E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\sdk\\10.0.402\\sdk\\10.0.402\r\ninfo: Loading E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\only10-402\\Smoke.csproj\r\n"
+      ]
+    }
+  ],
+  "WindowsLanguages": {
+    "csharp15-net11": {
+      "Project": "<Project Sdk='Microsoft.NET.Sdk'><PropertyGroup><TargetFramework>net11.0</TargetFramework></PropertyGroup></Project>\r\n",
+      "GlobalJson": {
+        "sdk": {
+          "version": "11.0.100",
+          "allowPrerelease": false,
+          "rollForward": "disable"
+        }
+      },
+      "DesignTimeMsBuild": "C:\\Program Files\\dotnet\\sdk\\11.0.100|18.12.2|Core|net11.0\r\n",
+      "Build": "  Determining projects to restore...\r\n  Restored E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\csharp15-net11\\Smoke.csproj (in 31 ms).\r\nE:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\csharp15-net11\\Smoke.cs(15,37): warning CS0162: Unreachable code detected [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\csharp15-net11\\Smoke.csproj]\r\n  Smoke -> E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\csharp15-net11\\bin\\Release\\net11.0\\Smoke.dll\r\n\r\nBuild succeeded.\r\n\r\nE:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\csharp15-net11\\Smoke.cs(15,37): warning CS0162: Unreachable code detected [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\csharp15-net11\\Smoke.csproj]\r\n    1 Warning(s)\r\n    0 Error(s)\r\n\r\nTime Elapsed 00:00:00.76\r\nexit=0\r\n",
+      "SemanticOutput": "ClientLocatorPath=C:\\Program Files\\dotnet\\sdk\\11.0.100\r\nexit=0\r\n",
+      "Semantic": {
+        "Cwd": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\csharp15-net11",
+        "Executable": "C:\\Program Files\\dotnet\\dotnet.exe",
+        "Runtime": ".NET 10.0.15",
+        "Architecture": "X64",
+        "Client": "5.12.0-1.26502.2+1324e1d34a0490454837a22370e75bbaeecffb87",
+        "ExpectedHost": "netcore: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore",
+        "FirstHostPid": 69640,
+        "BuildHostProcesses": {
+          "count": 1,
+          "cpuMs": 468.75,
+          "peakWorkingSetMb": 96.5078125,
+          "hosts": [
+            "netcore: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore"
+          ],
+          "unidentified": 0
+        },
+        "RemainingBuildHosts": [],
+        "Diagnostics": [],
+        "Projects": [
+          {
+            "Name": "Smoke",
+            "Language": "15.0",
+            "Symbol": "Smoke.Value",
+            "Definition": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\csharp15-net11\\Smoke.cs: (4,21)-(4,26)",
+            "References": [
+              "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\csharp15-net11\\Smoke.cs: (8,47)-(8,52)"
+            ],
+            "PreRenameErrors": 0,
+            "PostRenameErrors": 0
+          }
+        ]
+      }
+    },
+    "csharp15-netstandard": {
+      "Project": "<Project Sdk='Microsoft.NET.Sdk'><PropertyGroup><TargetFramework>netstandard2.0</TargetFramework><LangVersion>15.0</LangVersion></PropertyGroup></Project>\r\n",
+      "GlobalJson": {
+        "sdk": {
+          "version": "11.0.100",
+          "allowPrerelease": false,
+          "rollForward": "disable"
+        }
+      },
+      "DesignTimeMsBuild": "C:\\Program Files\\dotnet\\sdk\\11.0.100|18.12.2|Core|netstandard2.0\r\n",
+      "Build": "  Determining projects to restore...\r\n  Restored E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\csharp15-netstandard\\Smoke.csproj (in 684 ms).\r\n  Smoke -> E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\csharp15-netstandard\\bin\\Release\\netstandard2.0\\Smoke.dll\r\n\r\nBuild succeeded.\r\n    0 Warning(s)\r\n    0 Error(s)\r\n\r\nTime Elapsed 00:00:01.18\r\nexit=0\r\n",
+      "SemanticOutput": "ClientLocatorPath=C:\\Program Files\\dotnet\\sdk\\11.0.100\r\nexit=0\r\n",
+      "Semantic": {
+        "Cwd": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\csharp15-netstandard",
+        "Executable": "C:\\Program Files\\dotnet\\dotnet.exe",
+        "Runtime": ".NET 10.0.15",
+        "Architecture": "X64",
+        "Client": "5.12.0-1.26502.2+1324e1d34a0490454837a22370e75bbaeecffb87",
+        "ExpectedHost": "netcore: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore",
+        "FirstHostPid": 67872,
+        "BuildHostProcesses": {
+          "count": 1,
+          "cpuMs": 484.375,
+          "peakWorkingSetMb": 95.0703125,
+          "hosts": [
+            "netcore: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore"
+          ],
+          "unidentified": 0
+        },
+        "RemainingBuildHosts": [],
+        "Diagnostics": [],
+        "Projects": [
+          {
+            "Name": "Smoke",
+            "Language": "15.0",
+            "Symbol": "Smoke.Value()",
+            "Definition": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\csharp15-netstandard\\Smoke.cs: (2,22)-(2,27)",
+            "References": [
+              "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\csharp15-netstandard\\SmokeUse.cs: (2,38)-(2,43)"
+            ],
+            "PreRenameErrors": 0,
+            "PostRenameErrors": 0
+          }
+        ]
+      }
+    },
+    "csharp14-netstandard": {
+      "Project": "<Project Sdk='Microsoft.NET.Sdk'><PropertyGroup><TargetFramework>netstandard2.0</TargetFramework><LangVersion>14.0</LangVersion></PropertyGroup></Project>\r\n",
+      "GlobalJson": {
+        "sdk": {
+          "version": "11.0.100",
+          "allowPrerelease": false,
+          "rollForward": "disable"
+        }
+      },
+      "DesignTimeMsBuild": "C:\\Program Files\\dotnet\\sdk\\11.0.100|18.12.2|Core|netstandard2.0\r\n",
+      "Build": "  Determining projects to restore...\r\n  Restored E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\csharp14-netstandard\\Smoke.csproj (in 3 ms).\r\nE:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\csharp14-netstandard\\Smoke.cs(3,23): error CS9327: Feature 'static members in interfaces' is not available in C# 14.0. Please use language version 15.0 or greater. [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\csharp14-netstandard\\Smoke.csproj]\r\n\r\nBuild FAILED.\r\n\r\nE:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\csharp14-netstandard\\Smoke.cs(3,23): error CS9327: Feature 'static members in interfaces' is not available in C# 14.0. Please use language version 15.0 or greater. [E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\csharp14-netstandard\\Smoke.csproj]\r\n    0 Warning(s)\r\n    1 Error(s)\r\n\r\nTime Elapsed 00:00:00.12\r\nexit=1\r\n",
+      "SemanticOutput": "ClientLocatorPath=C:\\Program Files\\dotnet\\sdk\\11.0.100\r\nUnhandled exception. System.InvalidOperationException: Semantic check failed: references=1; errors=E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\csharp14-netstandard\\Smoke.cs(3,23): error CS9327: Feature 'static members in interfaces' is not available in C# 14.0. Please use language version 15.0 or greater.; rename errors=E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\csharp14-netstandard\\Smoke.cs(3,23): error CS9327: Feature 'static members in interfaces' is not available in C# 14.0. Please use language version 15.0 or greater.\r\n   at BuildHostFork.CandidateScenario.CheckProjectAsync(Project project, CancellationToken cancellationToken) in E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\CandidateScenario.cs:line 77\r\n   at BuildHostFork.CandidateScenario.RunAsync(String solutionPath, String outputPath) in E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\CandidateScenario.cs:line 38\r\n   at BuildHostFork.Program.Main(String[] args) in E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\Program.cs:line 40\r\n   at BuildHostFork.Program.<Main>(String[] args)\r\nexit=-532462766\r\n",
+      "Semantic": null
+    }
+  },
+  "WindowsProjectVariants": {
+    "formats": {
+      "csproj.json": {
+        "Cwd": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\formats",
+        "Executable": "C:\\Program Files\\dotnet\\dotnet.exe",
+        "Runtime": ".NET 10.0.15",
+        "Architecture": "X64",
+        "Client": "5.12.0-1.26502.2+1324e1d34a0490454837a22370e75bbaeecffb87",
+        "ExpectedHost": "netcore: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore",
+        "FirstHostPid": 65580,
+        "BuildHostProcesses": {
+          "count": 1,
+          "cpuMs": 812.5,
+          "peakWorkingSetMb": 100.94921875,
+          "hosts": [
+            "netcore: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore"
+          ],
+          "unidentified": 0
+        },
+        "RemainingBuildHosts": [],
+        "Diagnostics": [],
+        "Projects": [
+          {
+            "Name": "Smoke",
+            "Language": "14.0",
+            "Symbol": "Smoke.Value",
+            "Definition": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\formats\\Smoke.cs: (2,21)-(2,26)",
+            "References": [
+              "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\formats\\Smoke.cs: (4,32)-(4,37)"
+            ],
+            "PreRenameErrors": 0,
+            "PostRenameErrors": 0
+          }
+        ]
+      },
+      "csproj.txt": "ClientLocatorPath=C:\\Program Files\\dotnet\\sdk\\10.0.402\r\nexit=0\r\n",
+      "design-time-msbuild.txt": "C:\\Program Files\\dotnet\\sdk\\10.0.402|18.9.15|Core|net10.0\r\nC:\\Program Files\\dotnet\\sdk\\10.0.402|18.9.15|Core|net10.0\r\nC:\\Program Files\\dotnet\\sdk\\10.0.402|18.9.15|Core|net10.0\r\nC:\\Program Files\\dotnet\\sdk\\10.0.402|18.9.15|Core|net10.0\r\n",
+      "fixture.txt": "The template \"Solution File\" was created successfully.\r\n\r\nProject `Smoke.csproj` added to the solution.\r\n",
+      "pre-cancel.json": {
+        "Mode": "pre-cancel",
+        "DelayMs": 0,
+        "Outcome": "canceled",
+        "Error": null,
+        "CancellationStack": "System.OperationCanceledException: The operation was canceled.\r\n   at System.Threading.CancellationToken.ThrowOperationCanceledException()\r\n   at System.Threading.CancellationToken.ThrowIfCancellationRequested()\r\n   at Roslyn.Utilities.NonReentrantLock.Wait(CancellationToken cancellationToken)\r\n   at Roslyn.Utilities.NonReentrantLock.DisposableWait(CancellationToken cancellationToken)\r\n   at Microsoft.CodeAnalysis.MSBuild.MSBuildProjectLoader.LoadSolutionInfoAsync(String solutionFilePath, IProgress`1 progress, ILogger msbuildLogger, CancellationToken cancellationToken)\r\n   at Microsoft.CodeAnalysis.MSBuild.MSBuildWorkspace.OpenSolutionAsync(String solutionFilePath, ILogger msbuildLogger, IProgress`1 progress, CancellationToken cancellationToken)\r\n   at ParallelSearch.SolutionLoader.LoadAsync(String solutionPath, ILogger msbuildLogger, ICollection`1 diagnostics, IProgress`1 progress, LoadWindow window, IDictionary`2 properties, CancellationToken cancellationToken) in E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\ParallelSearch\\SolutionLoader.cs:line 62\r\n   at BuildHostFork.FailureScenario.GetCancellationAsync(Task load) in E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\FailureScenario.cs:line 63",
+        "FirstHostPid": null,
+        "FirstHostAtMs": null,
+        "DisturbedAtMs": null,
+        "LoadMs": 365.0965,
+        "Projects": null,
+        "Documents": null,
+        "ExpectedHost": "netcore: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore",
+        "BuildHostProcesses": {
+          "count": 0,
+          "cpuMs": 0,
+          "peakWorkingSetMb": 0,
+          "hosts": [],
+          "unidentified": 0
+        },
+        "RemainingBuildHosts": 0,
+        "RemainingBuildHostPids": [],
+        "Diagnostics": []
+      },
+      "pre-cancel.txt": "exit=0\r\n",
+      "sln.json": {
+        "Cwd": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\formats",
+        "Executable": "C:\\Program Files\\dotnet\\dotnet.exe",
+        "Runtime": ".NET 10.0.15",
+        "Architecture": "X64",
+        "Client": "5.12.0-1.26502.2+1324e1d34a0490454837a22370e75bbaeecffb87",
+        "ExpectedHost": "netcore: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore",
+        "FirstHostPid": 27416,
+        "BuildHostProcesses": {
+          "count": 1,
+          "cpuMs": 734.375,
+          "peakWorkingSetMb": 97.3671875,
+          "hosts": [
+            "netcore: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore"
+          ],
+          "unidentified": 0
+        },
+        "RemainingBuildHosts": [],
+        "Diagnostics": [],
+        "Projects": [
+          {
+            "Name": "Smoke",
+            "Language": "14.0",
+            "Symbol": "Smoke.Value",
+            "Definition": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\formats\\Smoke.cs: (2,21)-(2,26)",
+            "References": [
+              "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\formats\\Smoke.cs: (4,32)-(4,37)"
+            ],
+            "PreRenameErrors": 0,
+            "PostRenameErrors": 0
+          }
+        ]
+      },
+      "sln.txt": "ClientLocatorPath=C:\\Program Files\\dotnet\\sdk\\10.0.402\r\nexit=0\r\n",
+      "slnf.json": {
+        "Cwd": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\formats",
+        "Executable": "C:\\Program Files\\dotnet\\dotnet.exe",
+        "Runtime": ".NET 10.0.15",
+        "Architecture": "X64",
+        "Client": "5.12.0-1.26502.2+1324e1d34a0490454837a22370e75bbaeecffb87",
+        "ExpectedHost": "netcore: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore",
+        "FirstHostPid": 16000,
+        "BuildHostProcesses": {
+          "count": 1,
+          "cpuMs": 765.625,
+          "peakWorkingSetMb": 98.5703125,
+          "hosts": [
+            "netcore: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore"
+          ],
+          "unidentified": 0
+        },
+        "RemainingBuildHosts": [],
+        "Diagnostics": [],
+        "Projects": [
+          {
+            "Name": "Smoke",
+            "Language": "14.0",
+            "Symbol": "Smoke.Value",
+            "Definition": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\formats\\Smoke.cs: (2,21)-(2,26)",
+            "References": [
+              "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\formats\\Smoke.cs: (4,32)-(4,37)"
+            ],
+            "PreRenameErrors": 0,
+            "PostRenameErrors": 0
+          }
+        ]
+      },
+      "slnf.txt": "ClientLocatorPath=C:\\Program Files\\dotnet\\sdk\\10.0.402\r\nexit=0\r\n",
+      "slnx.json": {
+        "Cwd": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\formats",
+        "Executable": "C:\\Program Files\\dotnet\\dotnet.exe",
+        "Runtime": ".NET 10.0.15",
+        "Architecture": "X64",
+        "Client": "5.12.0-1.26502.2+1324e1d34a0490454837a22370e75bbaeecffb87",
+        "ExpectedHost": "netcore: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore",
+        "FirstHostPid": 63676,
+        "BuildHostProcesses": {
+          "count": 1,
+          "cpuMs": 828.125,
+          "peakWorkingSetMb": 98.67578125,
+          "hosts": [
+            "netcore: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore"
+          ],
+          "unidentified": 0
+        },
+        "RemainingBuildHosts": [],
+        "Diagnostics": [],
+        "Projects": [
+          {
+            "Name": "Smoke",
+            "Language": "14.0",
+            "Symbol": "Smoke.Value",
+            "Definition": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\formats\\Smoke.cs: (2,21)-(2,26)",
+            "References": [
+              "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\formats\\Smoke.cs: (4,32)-(4,37)"
+            ],
+            "PreRenameErrors": 0,
+            "PostRenameErrors": 0
+          }
+        ]
+      },
+      "slnx.txt": "ClientLocatorPath=C:\\Program Files\\dotnet\\sdk\\10.0.402\r\nexit=0\r\n"
+    },
+    "wpf": {
+      "build.txt": "  Determining projects to restore...\r\n  Restored E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\wpf\\Smoke.csproj (in 45 ms).\r\n  WPF_TEMPORARY_PROJECT=E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\wpf\\Smoke_uostqjuw_wpftmp.csproj\r\n  Smoke -> E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\wpf\\bin\\Release\\net10.0-windows\\Smoke.dll\r\n\r\nBuild succeeded.\r\n    0 Warning(s)\r\n    0 Error(s)\r\n\r\nTime Elapsed 00:00:00.84\r\nexit=0\r\n",
+      "design-time-msbuild.txt": "C:\\Program Files\\dotnet\\sdk\\10.0.402|18.9.15|Core|net10.0-windows\r\n",
+      "semantic.json": {
+        "Cwd": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\wpf",
+        "Executable": "C:\\Program Files\\dotnet\\dotnet.exe",
+        "Runtime": ".NET 10.0.15",
+        "Architecture": "X64",
+        "Client": "5.12.0-1.26502.2+1324e1d34a0490454837a22370e75bbaeecffb87",
+        "ExpectedHost": "netcore: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore",
+        "FirstHostPid": 61072,
+        "BuildHostProcesses": {
+          "count": 1,
+          "cpuMs": 921.875,
+          "peakWorkingSetMb": 116.0625,
+          "hosts": [
+            "netcore: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore"
+          ],
+          "unidentified": 0
+        },
+        "RemainingBuildHosts": [],
+        "Diagnostics": [],
+        "Projects": [
+          {
+            "Name": "Smoke",
+            "Language": "14.0",
+            "Symbol": "Smoke.Value",
+            "Definition": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\wpf\\Smoke.cs: (2,21)-(2,26)",
+            "References": [
+              "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\wpf\\Smoke.cs: (4,32)-(4,37)"
+            ],
+            "PreRenameErrors": 0,
+            "PostRenameErrors": 0
+          }
+        ]
+      },
+      "semantic.txt": "ClientLocatorPath=C:\\Program Files\\dotnet\\sdk\\10.0.402\r\nexit=0\r\n"
+    },
+    "net472": {
+      "build.txt": "\r\n  Smoke -> E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\net472\\bin\\Smoke.dll\r\nexit=0\r\n",
+      "design-time-msbuild.txt": "C:\\Program Files\\Microsoft Visual Studio\\18\\Enterprise\\MSBuild\\Current\\Bin\\amd64|18.12.2|Full|\r\nC:\\Program Files\\Microsoft Visual Studio\\18\\Enterprise\\MSBuild\\Current\\Bin\\amd64|18.12.2|Full|\r\n",
+      "framework-rpc-findbest-notimpl.txt": "Unhandled exception. System.InvalidOperationException: BuildHost FindBestMSBuild: An exception of type System.NotImplementedException was thrown: The method or operation is not implemented.\r\n   at BuildHostFork.Rpc.BuildHostClient.CallAsync(Int32 targetObject, String method, Object[] parameters) in E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\Rpc\\BuildHostClient.cs:line 92\r\n   at BuildHostFork.CandidateScenario.ProbeSdkAsync(String hostPath, String solutionPath) in E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\CandidateScenario.cs:line 21\r\n   at BuildHostFork.CandidateScenario.ProbeSdkAsync(String hostPath, String solutionPath) in E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\CandidateScenario.cs:line 23\r\n   at BuildHostFork.Program.Main(String[] args) in E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\Program.cs:line 32\r\n   at BuildHostFork.Program.<Main>(String[] args)\r\nexit=-532462766\r\n",
+      "framework-rpc.txt": "HasUsableMSBuild=True\r\nexit=0\r\n",
+      "semantic.json": {
+        "Cwd": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\net472",
+        "Executable": "C:\\Program Files\\dotnet\\dotnet.exe",
+        "Runtime": ".NET 10.0.15",
+        "Architecture": "X64",
+        "Client": "5.12.0-1.26502.2+1324e1d34a0490454837a22370e75bbaeecffb87",
+        "ExpectedHost": "netcore: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore",
+        "FirstHostPid": 56800,
+        "BuildHostProcesses": {
+          "count": 1,
+          "cpuMs": 1671.875,
+          "peakWorkingSetMb": 78.48046875,
+          "hosts": [
+            "net472: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-net472"
+          ],
+          "unidentified": 0
+        },
+        "RemainingBuildHosts": [],
+        "Diagnostics": [],
+        "Projects": [
+          {
+            "Name": "Smoke",
+            "Language": "7.3",
+            "Symbol": "Smoke.Value",
+            "Definition": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\net472\\Smoke.cs: (2,21)-(2,26)",
+            "References": [
+              "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\net472\\Smoke.cs: (4,32)-(4,37)"
+            ],
+            "PreRenameErrors": 0,
+            "PostRenameErrors": 0
+          }
+        ]
+      },
+      "semantic.txt": "ClientLocatorPath=C:\\Program Files\\dotnet\\sdk\\10.0.402\r\nexit=0\r\n",
+      "vs-msbuild-version.txt": "18.12.2.51402\r\n"
+    },
+    "graph": {
+      "GlobalJson": {
+        "sdk": {
+          "version": "10.0.402",
+          "rollForward": "disable",
+          "allowPrerelease": false
+        }
+      },
+      "Build": "\r\nWelcome to .NET 10.0!\r\n---------------------\r\nSDK Version: 10.0.402\r\n\r\n----------------\r\nInstalled an ASP.NET Core HTTPS development certificate.\r\nTo trust the certificate, run 'dotnet dev-certs https --trust'\r\nLearn about HTTPS: https://aka.ms/dotnet-https\r\n\r\n----------------\r\nWrite your first app: https://aka.ms/dotnet-hello-world\r\nFind out what's new: https://aka.ms/dotnet-whats-new\r\nExplore documentation: https://aka.ms/dotnet-docs\r\nReport issues and find source on GitHub: https://github.com/dotnet/core\r\nUse 'dotnet --help' to see available commands or visit: https://aka.ms/dotnet-cli\r\n--------------------------------------------------------------------------------------\r\n  Determining projects to restore...\r\n  Restored E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\graph\\Library\\FixtureLibrary.csproj (in 48 ms).\r\n  Restored E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\graph\\App\\GraphApp.csproj (in 91 ms).\r\n  FixtureLibrary -> E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\graph\\Library\\bin\\Release\\net10.0\\FixtureLibrary.dll\r\n  GraphApp -> E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\graph\\App\\bin\\Release\\net10.0\\GraphApp.dll\r\n  GraphApp -> E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\graph\\App\\bin\\Release\\netstandard2.0\\GraphApp.dll\r\n\r\nBuild succeeded.\r\n    0 Warning(s)\r\n    0 Error(s)\r\n\r\nTime Elapsed 00:00:01.36\r\nexit=0\r\n",
+      "DesignTimeMsBuild": "C:\\Program Files\\dotnet\\sdk\\10.0.402|18.9.15|Core|net10.0\r\nC:\\Program Files\\dotnet\\sdk\\10.0.402|18.9.15|Core|netstandard2.0\r\nC:\\Program Files\\dotnet\\sdk\\10.0.402|18.9.15|Core|net10.0\r\nC:\\Program Files\\dotnet\\sdk\\10.0.402|18.9.15|Core|net10.0\r\nC:\\Program Files\\dotnet\\sdk\\10.0.402|18.9.15|Core|net10.0\r\n",
+      "Assertions": "graph check passed\r\n",
+      "PositiveOutput": "ClientLocatorPath=C:\\Program Files\\dotnet\\sdk\\10.0.402\r\nexit=0\r\n",
+      "Positive": {
+        "Cwd": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\graph",
+        "Dotnet": "C:\\Program Files\\dotnet\\dotnet.exe",
+        "Runtime": ".NET 10.0.15",
+        "Diagnostics": [],
+        "Projects": [
+          {
+            "Name": "GraphApp(net10.0)",
+            "FilePath": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\graph\\App\\GraphApp.csproj",
+            "Language": "14.0",
+            "Defines": [
+              "CANDIDATE_DIRECTORY_PROPS",
+              "TRACE",
+              "DEBUG",
+              "NET",
+              "NET10_0",
+              "NETCOREAPP",
+              "NET5_0_OR_GREATER",
+              "NET6_0_OR_GREATER",
+              "NET7_0_OR_GREATER",
+              "NET8_0_OR_GREATER",
+              "NET9_0_OR_GREATER",
+              "NET10_0_OR_GREATER",
+              "NETCOREAPP1_0_OR_GREATER",
+              "NETCOREAPP1_1_OR_GREATER",
+              "NETCOREAPP2_0_OR_GREATER",
+              "NETCOREAPP2_1_OR_GREATER",
+              "NETCOREAPP2_2_OR_GREATER",
+              "NETCOREAPP3_0_OR_GREATER",
+              "NETCOREAPP3_1_OR_GREATER"
+            ],
+            "References": [
+              "FixtureLibrary"
+            ],
+            "Documents": [
+              {
+                "FilePath": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\graph\\App\\Smoke.cs",
+                "Folders": []
+              },
+              {
+                "FilePath": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\graph\\Shared\\SharedMarker.cs",
+                "Folders": [
+                  "Shared"
+                ]
+              },
+              {
+                "FilePath": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\graph\\App\\obj\\Debug\\net10.0\\.NETCoreApp,Version=v10.0.AssemblyAttributes.cs",
+                "Folders": [
+                  "obj",
+                  "Debug",
+                  "net10.0"
+                ]
+              },
+              {
+                "FilePath": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\graph\\App\\obj\\Debug\\net10.0\\GraphApp.AssemblyInfo.cs",
+                "Folders": [
+                  "obj",
+                  "Debug",
+                  "net10.0"
+                ]
+              }
+            ],
+            "Editorconfig": [
+              "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\graph\\.editorconfig",
+              "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\graph\\App\\obj\\Debug\\net10.0\\GraphApp.GeneratedMSBuildEditorConfig.editorconfig",
+              "C:\\Program Files\\dotnet\\sdk\\10.0.402\\Sdks\\Microsoft.NET.Sdk\\analyzers\\build\\config\\analysislevel_10_default.globalconfig"
+            ],
+            "AdditionalFiles": [
+              "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\graph\\fixture-input.txt"
+            ],
+            "Errors": []
+          },
+          {
+            "Name": "GraphApp(netstandard2.0)",
+            "FilePath": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\graph\\App\\GraphApp.csproj",
+            "Language": "7.3",
+            "Defines": [
+              "CANDIDATE_DIRECTORY_PROPS",
+              "TRACE",
+              "DEBUG",
+              "NETSTANDARD",
+              "NETSTANDARD2_0",
+              "NETSTANDARD1_0_OR_GREATER",
+              "NETSTANDARD1_1_OR_GREATER",
+              "NETSTANDARD1_2_OR_GREATER",
+              "NETSTANDARD1_3_OR_GREATER",
+              "NETSTANDARD1_4_OR_GREATER",
+              "NETSTANDARD1_5_OR_GREATER",
+              "NETSTANDARD1_6_OR_GREATER",
+              "NETSTANDARD2_0_OR_GREATER"
+            ],
+            "References": [],
+            "Documents": [
+              {
+                "FilePath": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\graph\\App\\Smoke.cs",
+                "Folders": []
+              },
+              {
+                "FilePath": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\graph\\Shared\\SharedMarker.cs",
+                "Folders": [
+                  "Shared"
+                ]
+              },
+              {
+                "FilePath": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\graph\\App\\obj\\Debug\\netstandard2.0\\.NETStandard,Version=v2.0.AssemblyAttributes.cs",
+                "Folders": [
+                  "obj",
+                  "Debug",
+                  "netstandard2.0"
+                ]
+              },
+              {
+                "FilePath": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\graph\\App\\obj\\Debug\\netstandard2.0\\GraphApp.AssemblyInfo.cs",
+                "Folders": [
+                  "obj",
+                  "Debug",
+                  "netstandard2.0"
+                ]
+              }
+            ],
+            "Editorconfig": [
+              "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\graph\\.editorconfig",
+              "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\graph\\App\\obj\\Debug\\netstandard2.0\\GraphApp.GeneratedMSBuildEditorConfig.editorconfig"
+            ],
+            "AdditionalFiles": [
+              "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\graph\\fixture-input.txt"
+            ],
+            "Errors": []
+          },
+          {
+            "Name": "FixtureLibrary",
+            "FilePath": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\graph\\Library\\FixtureLibrary.csproj",
+            "Language": "14.0",
+            "Defines": [
+              "CANDIDATE_DIRECTORY_PROPS",
+              "TRACE",
+              "DEBUG",
+              "NET",
+              "NET10_0",
+              "NETCOREAPP",
+              "NET5_0_OR_GREATER",
+              "NET6_0_OR_GREATER",
+              "NET7_0_OR_GREATER",
+              "NET8_0_OR_GREATER",
+              "NET9_0_OR_GREATER",
+              "NET10_0_OR_GREATER",
+              "NETCOREAPP1_0_OR_GREATER",
+              "NETCOREAPP1_1_OR_GREATER",
+              "NETCOREAPP2_0_OR_GREATER",
+              "NETCOREAPP2_1_OR_GREATER",
+              "NETCOREAPP2_2_OR_GREATER",
+              "NETCOREAPP3_0_OR_GREATER",
+              "NETCOREAPP3_1_OR_GREATER"
+            ],
+            "References": [],
+            "Documents": [
+              {
+                "FilePath": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\graph\\Library\\FixtureLibrary.cs",
+                "Folders": []
+              },
+              {
+                "FilePath": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\graph\\Library\\obj\\Debug\\net10.0\\.NETCoreApp,Version=v10.0.AssemblyAttributes.cs",
+                "Folders": [
+                  "obj",
+                  "Debug",
+                  "net10.0"
+                ]
+              },
+              {
+                "FilePath": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\graph\\Library\\obj\\Debug\\net10.0\\FixtureLibrary.AssemblyInfo.cs",
+                "Folders": [
+                  "obj",
+                  "Debug",
+                  "net10.0"
+                ]
+              }
+            ],
+            "Editorconfig": [
+              "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\graph\\.editorconfig",
+              "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\graph\\Library\\obj\\Debug\\net10.0\\FixtureLibrary.GeneratedMSBuildEditorConfig.editorconfig",
+              "C:\\Program Files\\dotnet\\sdk\\10.0.402\\Sdks\\Microsoft.NET.Sdk\\analyzers\\build\\config\\analysislevel_10_default.globalconfig"
+            ],
+            "AdditionalFiles": [
+              "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\graph\\fixture-input.txt"
+            ],
+            "Errors": []
+          }
+        ],
+        "Host": {
+          "count": 1,
+          "cpuMs": 1093.75,
+          "peakWorkingSetMb": 126.78515625,
+          "hosts": [
+            "netcore: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore"
+          ],
+          "unidentified": 0
+        },
+        "RemainingHostPids": []
+      },
+      "NegativeOutput": "ClientLocatorPath=C:\\Program Files\\dotnet\\sdk\\10.0.402\r\nexit=0\r\n",
+      "Negative": {
+        "Cwd": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\graph",
+        "Dotnet": "C:\\Program Files\\dotnet\\dotnet.exe",
+        "Runtime": ".NET 10.0.15",
+        "Diagnostics": [
+          "Failure: Project file not found: 'E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\graph\\Absent.csproj'",
+          "Failure: Msbuild failed when processing the file 'E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\graph\\Malformed.csproj' with message: The project file could not be loaded. Unexpected end of file has occurred. The following elements are not closed: PropertyGroup, Project. Line 2, position 1."
+        ],
+        "Projects": [
+          {
+            "Name": "Foreign",
+            "FilePath": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\graph\\Foreign.fsproj",
+            "Language": null,
+            "Defines": null,
+            "References": [],
+            "Documents": [
+              {
+                "FilePath": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\graph\\obj\\Debug\\net10.0\\Foreign.AssemblyInfo.fs",
+                "Folders": [
+                  "obj",
+                  "Debug",
+                  "net10.0"
+                ]
+              },
+              {
+                "FilePath": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\graph\\obj\\Debug\\net10.0\\.NETCoreApp,Version=v10.0.AssemblyAttributes.fs",
+                "Folders": [
+                  "obj",
+                  "Debug",
+                  "net10.0"
+                ]
+              }
+            ],
+            "Editorconfig": [],
+            "AdditionalFiles": [
+              "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\graph\\fixture-input.txt"
+            ],
+            "Errors": null
+          },
+          {
+            "Name": "FixtureLibrary",
+            "FilePath": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\graph\\Library\\FixtureLibrary.csproj",
+            "Language": "14.0",
+            "Defines": [
+              "CANDIDATE_DIRECTORY_PROPS",
+              "TRACE",
+              "DEBUG",
+              "NET",
+              "NET10_0",
+              "NETCOREAPP",
+              "NET5_0_OR_GREATER",
+              "NET6_0_OR_GREATER",
+              "NET7_0_OR_GREATER",
+              "NET8_0_OR_GREATER",
+              "NET9_0_OR_GREATER",
+              "NET10_0_OR_GREATER",
+              "NETCOREAPP1_0_OR_GREATER",
+              "NETCOREAPP1_1_OR_GREATER",
+              "NETCOREAPP2_0_OR_GREATER",
+              "NETCOREAPP2_1_OR_GREATER",
+              "NETCOREAPP2_2_OR_GREATER",
+              "NETCOREAPP3_0_OR_GREATER",
+              "NETCOREAPP3_1_OR_GREATER"
+            ],
+            "References": [],
+            "Documents": [
+              {
+                "FilePath": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\graph\\Library\\FixtureLibrary.cs",
+                "Folders": []
+              },
+              {
+                "FilePath": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\graph\\Library\\obj\\Debug\\net10.0\\.NETCoreApp,Version=v10.0.AssemblyAttributes.cs",
+                "Folders": [
+                  "obj",
+                  "Debug",
+                  "net10.0"
+                ]
+              },
+              {
+                "FilePath": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\graph\\Library\\obj\\Debug\\net10.0\\FixtureLibrary.AssemblyInfo.cs",
+                "Folders": [
+                  "obj",
+                  "Debug",
+                  "net10.0"
+                ]
+              }
+            ],
+            "Editorconfig": [
+              "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\graph\\.editorconfig",
+              "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\graph\\Library\\obj\\Debug\\net10.0\\FixtureLibrary.GeneratedMSBuildEditorConfig.editorconfig",
+              "C:\\Program Files\\dotnet\\sdk\\10.0.402\\Sdks\\Microsoft.NET.Sdk\\analyzers\\build\\config\\analysislevel_10_default.globalconfig"
+            ],
+            "AdditionalFiles": [
+              "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\graph\\fixture-input.txt"
+            ],
+            "Errors": []
+          },
+          {
+            "Name": "Malformed",
+            "FilePath": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\graph\\Malformed.csproj",
+            "Language": "15.0",
+            "Defines": [],
+            "References": [],
+            "Documents": [],
+            "Editorconfig": [],
+            "AdditionalFiles": [],
+            "Errors": [
+              "error CS5001: Program does not contain a static 'Main' method suitable for an entry point"
+            ]
+          }
+        ],
+        "Host": {
+          "count": 1,
+          "cpuMs": 843.75,
+          "peakWorkingSetMb": 115.15234375,
+          "hosts": [
+            "netcore: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore"
+          ],
+          "unidentified": 0
+        },
+        "RemainingHostPids": []
+      }
+    },
+    "retry": {
+      "GlobalJson": {
+        "sdk": {
+          "rollForward": "disable",
+          "allowPrerelease": false,
+          "version": "10.0.402"
+        }
+      },
+      "Cancel": {
+        "Mode": "cancel",
+        "DelayMs": 0,
+        "Outcome": "canceled",
+        "Error": null,
+        "CancellationStack": "System.Threading.Tasks.TaskCanceledException: A task was canceled.\r\n   at Roslyn.Utilities.SemaphoreSlimExtensions.DisposableWaitAsync(SemaphoreSlim semaphore, CancellationToken cancellationToken)\r\n   at Microsoft.CodeAnalysis.MSBuild.RpcClient.InvokeCoreAsync(Int32 targetObject, String methodName, List`1 parameters, Type expectedReturnType, CancellationToken cancellationToken)\r\n   at Microsoft.CodeAnalysis.MSBuild.BuildHostProcessManager.<GetBuildHostAsync>g__NoLock_GetBuildHostAsync|17_0(BuildHostProcessKind buildHostKind, String projectOrSolutionFilePath, String dotnetPath, CancellationToken cancellationToken)\r\n   at Microsoft.CodeAnalysis.MSBuild.BuildHostProcessManager.<GetBuildHostAsync>g__NoLock_GetBuildHostAsync|17_0(BuildHostProcessKind buildHostKind, String projectOrSolutionFilePath, String dotnetPath, CancellationToken cancellationToken)\r\n   at Microsoft.CodeAnalysis.MSBuild.BuildHostProcessManager.GetBuildHostAsync(BuildHostProcessKind buildHostKind, String projectOrSolutionFilePath, String dotnetPath, CancellationToken cancellationToken)\r\n   at Microsoft.CodeAnalysis.MSBuild.BuildHostProcessManager.GetBuildHostWithFallbackAsync(BuildHostProcessKind buildHostKind, String projectOrSolutionFilePath, CancellationToken cancellationToken)\r\n   at Microsoft.CodeAnalysis.MSBuild.BuildHostProjectFileInfoProvider.LoadProjectFileInfosAsync(String projectPath, DiagnosticReportingOptions reportingOptions, CancellationToken cancellationToken)\r\n   at Microsoft.CodeAnalysis.MSBuild.MSBuildProjectLoader.Worker.LoadProjectInfosFromPathAsync(String projectPath, DiagnosticReportingOptions reportingOptions, CancellationToken cancellationToken)\r\n   at Microsoft.CodeAnalysis.MSBuild.MSBuildProjectLoader.Worker.LoadAsync(CancellationToken cancellationToken)\r\n   at Microsoft.CodeAnalysis.MSBuild.MSBuildProjectLoader.LoadInfoAsync(ImmutableArray`1 projectPaths, ProjectMap projectMap, IProgress`1 progress, ILogger msbuildLogger, DiagnosticReportingOptions requestedProjectOptions, DiagnosticReportingOptions discoveredProjectOptions, Boolean preferMetadataForReferencesOfDiscoveredProjects, CancellationToken cancellationToken)\r\n   at Microsoft.CodeAnalysis.MSBuild.MSBuildProjectLoader.LoadInfoAsync(ImmutableArray`1 projectPaths, ProjectMap projectMap, IProgress`1 progress, ILogger msbuildLogger, DiagnosticReportingOptions requestedProjectOptions, DiagnosticReportingOptions discoveredProjectOptions, Boolean preferMetadataForReferencesOfDiscoveredProjects, CancellationToken cancellationToken)\r\n   at Microsoft.CodeAnalysis.MSBuild.MSBuildProjectLoader.LoadSolutionInfoAsync(String solutionFilePath, IProgress`1 progress, ILogger msbuildLogger, CancellationToken cancellationToken)\r\n   at Microsoft.CodeAnalysis.MSBuild.MSBuildWorkspace.OpenSolutionAsync(String solutionFilePath, ILogger msbuildLogger, IProgress`1 progress, CancellationToken cancellationToken)\r\n   at ParallelSearch.SolutionLoader.LoadAsync(String solutionPath, ILogger msbuildLogger, ICollection`1 diagnostics, IProgress`1 progress, LoadWindow window, IDictionary`2 properties, CancellationToken cancellationToken) in E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\ParallelSearch\\SolutionLoader.cs:line 62\r\n   at BuildHostFork.FailureScenario.GetCancellationAsync(Task load) in E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\FailureScenario.cs:line 92",
+        "FirstHostPid": 56424,
+        "FirstHostAtMs": 512.3848,
+        "DisturbedAtMs": 512.3706,
+        "LoadMs": 586.5662,
+        "Projects": null,
+        "Documents": null,
+        "ExpectedHost": "netcore: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore",
+        "BuildHostProcesses": {
+          "count": 1,
+          "cpuMs": 62.5,
+          "peakWorkingSetMb": 20.2265625,
+          "hosts": [
+            "netcore: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore"
+          ],
+          "unidentified": 0
+        },
+        "RemainingBuildHosts": 0,
+        "RemainingBuildHostPids": [],
+        "Diagnostics": [
+          "Failure: [Microsoft.CodeAnalysis.MSBuild.BuildHostProcessManager] Failed to initialize BuildHost process.\r\nSystem.Threading.Tasks.TaskCanceledException: A task was canceled.\r\n   at Roslyn.Utilities.SemaphoreSlimExtensions.DisposableWaitAsync(SemaphoreSlim semaphore, CancellationToken cancellationToken)\r\n   at Microsoft.CodeAnalysis.MSBuild.RpcClient.InvokeCoreAsync(Int32 targetObject, String methodName, List`1 parameters, Type expectedReturnType, CancellationToken cancellationToken)\r\n   at Microsoft.CodeAnalysis.MSBuild.BuildHostProcessManager.<GetBuildHostAsync>g__NoLock_GetBuildHostAsync|17_0(BuildHostProcessKind buildHostKind, String projectOrSolutionFilePath, String dotnetPath, CancellationToken cancellationToken)"
+        ],
+        "Retry": {
+          "ClientPid": 52676,
+          "FirstHostPid": 63696,
+          "BuildHostProcesses": {
+            "count": 1,
+            "cpuMs": 437.5,
+            "peakWorkingSetMb": 90.2109375,
+            "hosts": [
+              "netcore: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore"
+            ],
+            "unidentified": 0
+          },
+          "RemainingHostPids": [],
+          "Diagnostics": [],
+          "Project": {
+            "Name": "Smoke",
+            "Language": "14.0",
+            "Symbol": "Smoke.Value",
+            "Definition": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\retry\\Smoke.cs: (2,21)-(2,26)",
+            "References": [
+              "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\retry\\Smoke.cs: (4,32)-(4,37)"
+            ],
+            "PreRenameErrors": 0,
+            "PostRenameErrors": 0
+          }
+        }
+      },
+      "Kill": {
+        "Mode": "kill-host",
+        "DelayMs": 100,
+        "Outcome": "failed: System.Exception: The server disconnected unexpectedly.",
+        "Error": "System.AggregateException: One or more errors occurred. (The server disconnected unexpectedly.)\r\n ---> System.Exception: The server disconnected unexpectedly.\r\n   at Microsoft.CodeAnalysis.MSBuild.RpcClient.InvokeCoreAsync(Int32 targetObject, String methodName, List`1 parameters, Type expectedReturnType, CancellationToken cancellationToken)\r\n   at Microsoft.CodeAnalysis.MSBuild.RpcClient.InvokeAsync[T](Int32 targetObject, String methodName, List`1 parameters, CancellationToken cancellationToken)\r\n   at Microsoft.CodeAnalysis.MSBuild.RemoteBuildHost.LoadProjectFileAsync(String projectFilePath, String languageName, CancellationToken cancellationToken)\r\n   at Microsoft.CodeAnalysis.MSBuild.ProjectLoadProgressExtensions.DoOperationAndReportProgressAsync[TResult](IProgress`1 progress, ProjectLoadOperation operation, String projectPath, String targetFramework, Func`1 doFunc)\r\n   at Microsoft.CodeAnalysis.MSBuild.BuildHostProjectFileInfoProvider.LoadProjectFileInfosAsync(String projectPath, DiagnosticReportingOptions reportingOptions, CancellationToken cancellationToken)\r\n   at Microsoft.CodeAnalysis.MSBuild.MSBuildProjectLoader.Worker.LoadProjectInfosFromPathAsync(String projectPath, DiagnosticReportingOptions reportingOptions, CancellationToken cancellationToken)\r\n   at Microsoft.CodeAnalysis.MSBuild.MSBuildProjectLoader.Worker.LoadAsync(CancellationToken cancellationToken)\r\n   at Microsoft.CodeAnalysis.MSBuild.MSBuildProjectLoader.LoadInfoAsync(ImmutableArray`1 projectPaths, ProjectMap projectMap, IProgress`1 progress, ILogger msbuildLogger, DiagnosticReportingOptions requestedProjectOptions, DiagnosticReportingOptions discoveredProjectOptions, Boolean preferMetadataForReferencesOfDiscoveredProjects, CancellationToken cancellationToken)\r\n   at Microsoft.CodeAnalysis.MSBuild.MSBuildProjectLoader.LoadInfoAsync(ImmutableArray`1 projectPaths, ProjectMap projectMap, IProgress`1 progress, ILogger msbuildLogger, DiagnosticReportingOptions requestedProjectOptions, DiagnosticReportingOptions discoveredProjectOptions, Boolean preferMetadataForReferencesOfDiscoveredProjects, CancellationToken cancellationToken)\r\n   at Microsoft.CodeAnalysis.MSBuild.MSBuildProjectLoader.LoadSolutionInfoAsync(String solutionFilePath, IProgress`1 progress, ILogger msbuildLogger, CancellationToken cancellationToken)\r\n   at Microsoft.CodeAnalysis.MSBuild.MSBuildWorkspace.OpenSolutionAsync(String solutionFilePath, ILogger msbuildLogger, IProgress`1 progress, CancellationToken cancellationToken)\r\n   at ParallelSearch.SolutionLoader.LoadAsync(String solutionPath, ILogger msbuildLogger, ICollection`1 diagnostics, IProgress`1 progress, LoadWindow window, IDictionary`2 properties, CancellationToken cancellationToken) in E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\ParallelSearch\\SolutionLoader.cs:line 62\r\n   --- End of inner exception stack trace ---",
+        "CancellationStack": null,
+        "FirstHostPid": 72604,
+        "FirstHostAtMs": 412.5124,
+        "DisturbedAtMs": 542.4732,
+        "LoadMs": 538.7623,
+        "Projects": null,
+        "Documents": null,
+        "ExpectedHost": "netcore: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore",
+        "BuildHostProcesses": {
+          "count": 1,
+          "cpuMs": 62.5,
+          "peakWorkingSetMb": 29.390625,
+          "hosts": [
+            "netcore: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore"
+          ],
+          "unidentified": 0
+        },
+        "RemainingBuildHosts": 0,
+        "RemainingBuildHostPids": [],
+        "Diagnostics": [
+          "Failure: [BuildHost PID 72604] The BuildHost process exited with -1. Process output:\r\ninfo: BuildHost Runtime Version: .NET 10.0.15\r\n"
+        ],
+        "Retry": {
+          "ClientPid": 64680,
+          "FirstHostPid": 60232,
+          "BuildHostProcesses": {
+            "count": 1,
+            "cpuMs": 406.25,
+            "peakWorkingSetMb": 89.92578125,
+            "hosts": [
+              "netcore: E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\bin\\Release\\net10.0\\BuildHost-netcore"
+            ],
+            "unidentified": 0
+          },
+          "RemainingHostPids": [],
+          "Diagnostics": [],
+          "Project": {
+            "Name": "Smoke",
+            "Language": "14.0",
+            "Symbol": "Smoke.Value",
+            "Definition": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\retry\\Smoke.cs: (2,21)-(2,26)",
+            "References": [
+              "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\win-results\\retry\\Smoke.cs: (4,32)-(4,37)"
+            ],
+            "PreRenameErrors": 0,
+            "PostRenameErrors": 0
+          }
+        }
+      },
+      "OtherSession": "Other session BuildHost PID 60304 responded on its original pipe after both disturbances.\r\n",
+      "OtherSessionExit": "foreignExit=0 otherClientPid=58576 otherHostPid=60304\r\n"
+    }
+  },
+  "Linux": {
+    "Environment": "Linux VuDZ-PC 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64 x86_64 x86_64 GNU/Linux\n/tmp/roslyn512-task00-zjCNit/fixture\n/usr/lib/dotnet/dotnet\n10.0.115 [/usr/lib/dotnet/sdk]\nMicrosoft.AspNetCore.App 10.0.15 [/usr/lib/dotnet/shared/Microsoft.AspNetCore.App]\nMicrosoft.NETCore.App 10.0.15 [/usr/lib/dotnet/shared/Microsoft.NETCore.App]\n10.0.115\n\nWelcome to .NET 10.0!\n---------------------\nSDK Version: 10.0.115\n\n----------------\nInstalled an ASP.NET Core HTTPS development certificate.\nTo trust the certificate, run 'dotnet dev-certs https --trust'\nLearn about HTTPS: https://aka.ms/dotnet-https\n\n----------------\nWrite your first app: https://aka.ms/dotnet-hello-world\nFind out what's new: https://aka.ms/dotnet-whats-new\nExplore documentation: https://aka.ms/dotnet-docs\nReport issues and find source on GitHub: https://github.com/dotnet/core\nUse 'dotnet --help' to see available commands or visit: https://aka.ms/dotnet-cli\n--------------------------------------------------------------------------------------\n18.0.37.53008\n",
+    "GlobalJson": {
+      "sdk": {
+        "version": "10.0.115",
+        "rollForward": "disable",
+        "allowPrerelease": false
+      }
+    },
+    "SemanticOutput": "ClientLocatorPath=/usr/lib/dotnet/sdk/10.0.115\nexit=0\n",
+    "Semantic": {
+      "Cwd": "/tmp/roslyn512-task00-zjCNit/fixture",
+      "Executable": "/usr/lib/dotnet/dotnet",
+      "Runtime": ".NET 10.0.15",
+      "Architecture": "X64",
+      "Client": "5.12.0-1.26502.2+1324e1d34a0490454837a22370e75bbaeecffb87",
+      "ExpectedHost": "netcore: /tmp/roslyn512-task00-zjCNit/probe/BuildHost-netcore",
+      "FirstHostPid": 5982,
+      "BuildHostProcesses": {
+        "count": 1,
+        "cpuMs": 569.9999,
+        "peakWorkingSetMb": 127.1015625,
+        "hosts": [
+          "netcore: /tmp/roslyn512-task00-zjCNit/probe/BuildHost-netcore"
+        ],
+        "unidentified": 0
+      },
+      "RemainingBuildHosts": [],
+      "Diagnostics": [],
+      "Projects": [
+        {
+          "Name": "Smoke",
+          "Language": "14.0",
+          "Symbol": "Smoke.Value",
+          "Definition": "/tmp/roslyn512-task00-zjCNit/fixture/Smoke.cs: (2,21)-(2,26)",
+          "References": [
+            "/tmp/roslyn512-task00-zjCNit/fixture/Smoke.cs: (4,32)-(4,37)"
+          ],
+          "PreRenameErrors": 0,
+          "PostRenameErrors": 0
+        }
+      ]
+    },
+    "DesignTimeMsBuild": "/usr/lib/dotnet/sdk/10.0.115|18.0.37|Core|net10.0\n",
+    "Hostfxr": [
+      "--- Invoked dotnet [version: 10.0.15 @Commit: 8e0f8ed2312954727f8919d7d1c2f78b483b4ee7] main = {",
+      "--roll-forward",
+      "LatestMajor",
+      "Parsed known arg --roll-forward = LatestMajor",
+      "App runtimeconfig.json from [/tmp/roslyn512-task00-zjCNit/probe/BuildHost-netcore/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.dll]",
+      "Chose FX version [/usr/lib/dotnet/shared/Microsoft.NETCore.App/10.0.15]"
+    ],
+    "Processes": [
+      {
+        "Mode": "cancel",
+        "DelayMs": 0,
+        "Outcome": "canceled",
+        "Error": null,
+        "CancellationStack": "System.Threading.Tasks.TaskCanceledException: A task was canceled.\n   at Roslyn.Utilities.SemaphoreSlimExtensions.DisposableWaitAsync(SemaphoreSlim semaphore, CancellationToken cancellationToken)\n   at Microsoft.CodeAnalysis.MSBuild.RpcClient.InvokeCoreAsync(Int32 targetObject, String methodName, List`1 parameters, Type expectedReturnType, CancellationToken cancellationToken)\n   at Microsoft.CodeAnalysis.MSBuild.RpcClient.InvokeNullableAsync[T](Int32 targetObject, String methodName, List`1 parameters, CancellationToken cancellationToken)\n   at Microsoft.CodeAnalysis.MSBuild.BuildHostProcessManager.<GetBuildHostAsync>g__NoLock_GetBuildHostAsync|17_0(BuildHostProcessKind buildHostKind, String projectOrSolutionFilePath, String dotnetPath, CancellationToken cancellationToken)\n   at Microsoft.CodeAnalysis.MSBuild.BuildHostProcessManager.<GetBuildHostAsync>g__NoLock_GetBuildHostAsync|17_0(BuildHostProcessKind buildHostKind, String projectOrSolutionFilePath, String dotnetPath, CancellationToken cancellationToken)\n   at Microsoft.CodeAnalysis.MSBuild.BuildHostProcessManager.GetBuildHostAsync(BuildHostProcessKind buildHostKind, String projectOrSolutionFilePath, String dotnetPath, CancellationToken cancellationToken)\n   at Microsoft.CodeAnalysis.MSBuild.BuildHostProcessManager.GetBuildHostWithFallbackAsync(BuildHostProcessKind buildHostKind, String projectOrSolutionFilePath, CancellationToken cancellationToken)\n   at Microsoft.CodeAnalysis.MSBuild.BuildHostProjectFileInfoProvider.LoadProjectFileInfosAsync(String projectPath, DiagnosticReportingOptions reportingOptions, CancellationToken cancellationToken)\n   at Microsoft.CodeAnalysis.MSBuild.MSBuildProjectLoader.Worker.LoadProjectInfosFromPathAsync(String projectPath, DiagnosticReportingOptions reportingOptions, CancellationToken cancellationToken)\n   at Microsoft.CodeAnalysis.MSBuild.MSBuildProjectLoader.Worker.LoadAsync(CancellationToken cancellationToken)\n   at Microsoft.CodeAnalysis.MSBuild.MSBuildProjectLoader.LoadInfoAsync(ImmutableArray`1 projectPaths, ProjectMap projectMap, IProgress`1 progress, ILogger msbuildLogger, DiagnosticReportingOptions requestedProjectOptions, DiagnosticReportingOptions discoveredProjectOptions, Boolean preferMetadataForReferencesOfDiscoveredProjects, CancellationToken cancellationToken)\n   at Microsoft.CodeAnalysis.MSBuild.MSBuildProjectLoader.LoadInfoAsync(ImmutableArray`1 projectPaths, ProjectMap projectMap, IProgress`1 progress, ILogger msbuildLogger, DiagnosticReportingOptions requestedProjectOptions, DiagnosticReportingOptions discoveredProjectOptions, Boolean preferMetadataForReferencesOfDiscoveredProjects, CancellationToken cancellationToken)\n   at Microsoft.CodeAnalysis.MSBuild.MSBuildProjectLoader.LoadSolutionInfoAsync(String solutionFilePath, IProgress`1 progress, ILogger msbuildLogger, CancellationToken cancellationToken)\n   at Microsoft.CodeAnalysis.MSBuild.MSBuildWorkspace.OpenSolutionAsync(String solutionFilePath, ILogger msbuildLogger, IProgress`1 progress, CancellationToken cancellationToken)\n   at ParallelSearch.SolutionLoader.LoadAsync(String solutionPath, ILogger msbuildLogger, ICollection`1 diagnostics, IProgress`1 progress, LoadWindow window, IDictionary`2 properties, CancellationToken cancellationToken) in E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\ParallelSearch\\SolutionLoader.cs:line 62\n   at BuildHostFork.FailureScenario.GetCancellationAsync(Task load) in E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\FailureScenario.cs:line 58",
+        "FirstHostPid": 6162,
+        "FirstHostAtMs": 507.3868,
+        "DisturbedAtMs": 507.3967,
+        "LoadMs": 559.5132,
+        "Projects": null,
+        "Documents": null,
+        "ExpectedHost": "netcore: /tmp/roslyn512-task00-zjCNit/probe/BuildHost-netcore",
+        "BuildHostProcesses": {
+          "count": 1,
+          "cpuMs": 40,
+          "peakWorkingSetMb": 38.25,
+          "hosts": [
+            "netcore: /tmp/roslyn512-task00-zjCNit/probe/BuildHost-netcore"
+          ],
+          "unidentified": 0
+        },
+        "RemainingBuildHosts": 0,
+        "RemainingBuildHostPids": [],
+        "Diagnostics": [
+          "Failure: [Microsoft.CodeAnalysis.MSBuild.BuildHostProcessManager] Failed to initialize BuildHost process.\nSystem.Threading.Tasks.TaskCanceledException: A task was canceled.\n   at Roslyn.Utilities.SemaphoreSlimExtensions.DisposableWaitAsync(SemaphoreSlim semaphore, CancellationToken cancellationToken)\n   at Microsoft.CodeAnalysis.MSBuild.RpcClient.InvokeCoreAsync(Int32 targetObject, String methodName, List`1 parameters, Type expectedReturnType, CancellationToken cancellationToken)\n   at Microsoft.CodeAnalysis.MSBuild.RpcClient.InvokeNullableAsync[T](Int32 targetObject, String methodName, List`1 parameters, CancellationToken cancellationToken)\n   at Microsoft.CodeAnalysis.MSBuild.BuildHostProcessManager.<GetBuildHostAsync>g__NoLock_GetBuildHostAsync|17_0(BuildHostProcessKind buildHostKind, String projectOrSolutionFilePath, String dotnetPath, CancellationToken cancellationToken)"
+        ]
+      },
+      {
+        "Mode": "cancel",
+        "DelayMs": 0,
+        "Outcome": "canceled",
+        "Error": null,
+        "CancellationStack": "   at Microsoft.CodeAnalysis.MSBuild.BuildHostProcessManager.<GetBuildHostAsync>g__NoLock_GetBuildHostAsync|17_0(BuildHostProcessKind buildHostKind, String projectOrSolutionFilePath, String dotnetPath, CancellationToken cancellationToken)",
+        "FirstHostPid": 6195,
+        "FirstHostAtMs": 507.3289,
+        "DisturbedAtMs": 507.3221,
+        "LoadMs": 538.9076,
+        "Projects": null,
+        "Documents": null,
+        "ExpectedHost": "netcore: /tmp/roslyn512-task00-zjCNit/probe/BuildHost-netcore",
+        "BuildHostProcesses": {
+          "count": 1,
+          "cpuMs": 40,
+          "peakWorkingSetMb": 40.625,
+          "hosts": [
+            "netcore: /tmp/roslyn512-task00-zjCNit/probe/BuildHost-netcore"
+          ],
+          "unidentified": 0
+        },
+        "RemainingBuildHosts": 0,
+        "RemainingBuildHostPids": [],
+        "Diagnostics": [
+          "Failure: [Microsoft.CodeAnalysis.MSBuild.BuildHostProcessManager] Failed to initialize BuildHost process."
+        ]
+      },
+      {
+        "Mode": "cancel",
+        "DelayMs": 0,
+        "Outcome": "canceled",
+        "Error": null,
+        "CancellationStack": "   at Microsoft.CodeAnalysis.MSBuild.BuildHostProcessManager.<GetBuildHostAsync>g__NoLock_GetBuildHostAsync|17_0(BuildHostProcessKind buildHostKind, String projectOrSolutionFilePath, String dotnetPath, CancellationToken cancellationToken)",
+        "FirstHostPid": 6257,
+        "FirstHostAtMs": 502.6067,
+        "DisturbedAtMs": 502.611,
+        "LoadMs": 540.1184,
+        "Projects": null,
+        "Documents": null,
+        "ExpectedHost": "netcore: /tmp/roslyn512-task00-zjCNit/probe/BuildHost-netcore",
+        "BuildHostProcesses": {
+          "count": 1,
+          "cpuMs": 40,
+          "peakWorkingSetMb": 39.875,
+          "hosts": [
+            "netcore: /tmp/roslyn512-task00-zjCNit/probe/BuildHost-netcore"
+          ],
+          "unidentified": 0
+        },
+        "RemainingBuildHosts": 0,
+        "RemainingBuildHostPids": [],
+        "Diagnostics": [
+          "Failure: [Microsoft.CodeAnalysis.MSBuild.BuildHostProcessManager] Failed to initialize BuildHost process."
+        ]
+      },
+      {
+        "Mode": "cancel",
+        "DelayMs": 500,
+        "Outcome": "canceled",
+        "Error": null,
+        "CancellationStack": "System.OperationCanceledException: The operation was canceled.\n   at System.Threading.CancellationToken.ThrowOperationCanceledException()\n   at System.Threading.CancellationToken.ThrowIfCancellationRequested()\n   at Microsoft.CodeAnalysis.MSBuild.MSBuildProjectLoader.Worker.LoadAsync(CancellationToken cancellationToken)\n   at Microsoft.CodeAnalysis.MSBuild.MSBuildProjectLoader.LoadInfoAsync(ImmutableArray`1 projectPaths, ProjectMap projectMap, IProgress`1 progress, ILogger msbuildLogger, DiagnosticReportingOptions requestedProjectOptions, DiagnosticReportingOptions discoveredProjectOptions, Boolean preferMetadataForReferencesOfDiscoveredProjects, CancellationToken cancellationToken)\n   at Microsoft.CodeAnalysis.MSBuild.MSBuildProjectLoader.LoadInfoAsync(ImmutableArray`1 projectPaths, ProjectMap projectMap, IProgress`1 progress, ILogger msbuildLogger, DiagnosticReportingOptions requestedProjectOptions, DiagnosticReportingOptions discoveredProjectOptions, Boolean preferMetadataForReferencesOfDiscoveredProjects, CancellationToken cancellationToken)\n   at Microsoft.CodeAnalysis.MSBuild.MSBuildProjectLoader.LoadSolutionInfoAsync(String solutionFilePath, IProgress`1 progress, ILogger msbuildLogger, CancellationToken cancellationToken)\n   at Microsoft.CodeAnalysis.MSBuild.MSBuildWorkspace.OpenSolutionAsync(String solutionFilePath, ILogger msbuildLogger, IProgress`1 progress, CancellationToken cancellationToken)\n   at ParallelSearch.SolutionLoader.LoadAsync(String solutionPath, ILogger msbuildLogger, ICollection`1 diagnostics, IProgress`1 progress, LoadWindow window, IDictionary`2 properties, CancellationToken cancellationToken) in E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\ParallelSearch\\SolutionLoader.cs:line 62\n   at BuildHostFork.FailureScenario.GetCancellationAsync(Task load) in E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-candidate\\spikes\\BuildHostFork\\FailureScenario.cs:line 58",
+        "FirstHostPid": 6304,
+        "FirstHostAtMs": 503.9254,
+        "DisturbedAtMs": 1008.9934,
+        "LoadMs": 1060.0185,
+        "Projects": null,
+        "Documents": null,
+        "ExpectedHost": "netcore: /tmp/roslyn512-task00-zjCNit/probe/BuildHost-netcore",
+        "BuildHostProcesses": {
+          "count": 1,
+          "cpuMs": 460,
+          "peakWorkingSetMb": 124.66015625,
+          "hosts": [
+            "netcore: /tmp/roslyn512-task00-zjCNit/probe/BuildHost-netcore"
+          ],
+          "unidentified": 0
+        },
+        "RemainingBuildHosts": 0,
+        "RemainingBuildHostPids": [],
+        "Diagnostics": []
+      },
+      {
+        "Mode": "kill-host",
+        "DelayMs": 500,
+        "Outcome": "completed",
+        "Error": null,
+        "CancellationStack": null,
+        "FirstHostPid": 6384,
+        "FirstHostAtMs": 504.8221,
+        "DisturbedAtMs": 1015.218,
+        "LoadMs": 1125.8194,
+        "Projects": 1,
+        "Documents": 3,
+        "ExpectedHost": "netcore: /tmp/roslyn512-task00-zjCNit/probe/BuildHost-netcore",
+        "BuildHostProcesses": {
+          "count": 1,
+          "cpuMs": 480,
+          "peakWorkingSetMb": 125.0390625,
+          "hosts": [
+            "netcore: /tmp/roslyn512-task00-zjCNit/probe/BuildHost-netcore"
+          ],
+          "unidentified": 0
+        },
+        "RemainingBuildHosts": 0,
+        "RemainingBuildHostPids": [],
+        "Diagnostics": [
+          "Failure: [BuildHost PID 6384] The BuildHost process exited with 137. Process output:\ninfo: BuildHost Runtime Version: .NET 10.0.15\ninfo: Registered MSBuild 10.0.115 instance at /usr/lib/dotnet/sdk/10.0.115\ninfo: Loading /tmp/roslyn512-task00-zjCNit/fixture/Smoke.csproj\n"
+        ]
+      }
+    ]
+  }
+}

@@ -6,6 +6,14 @@ namespace RoslynMcpServer.Tests.AssemblyResolve;
 public sealed class NuGetFallbackAssemblyResolverTests
 {
     [Fact]
+    public void ScoreTfMPath_prefers_the_server_framework_over_older_assets()
+    {
+        Assert.True(
+            NuGetFallbackAssemblyResolver.ScoreTfMPath("package/lib/net11.0/Library.dll") >
+            NuGetFallbackAssemblyResolver.ScoreTfMPath("package/lib/net10.0/Library.dll"));
+    }
+
+    [Fact]
     public void TryFindAssemblyDll_finds_newtonsoft_json_when_package_present()
     {
         var nugetRoot = Path.Combine(

@@ -2,6 +2,12 @@
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.6.3 (unreleased)
+
+- Target .NET 11 and C# 15 in the server. Framework-dependent archives require .NET 11, and self-contained archives include it. The separate BuildHost uses the upstream `net8.0` target with major-version roll-forward.
+- Update the Roslyn client and BuildHost fork together to 5.12.0 and match the SQLite assemblies used by its persistent index.
+- `get_code_fixes` uses the workspace's built-in Roslyn providers for compiler diagnostics and resolves the same providers for preview and apply.
+
 ### v1.6.2
 
 - Plugin lists come only from trusted configuration: `RoslynMcp.jsonc` next to the exe, the user configuration and `ROSLYN_MCP_PLUGINS`. A `plugins` value in the working-directory config is ignored with a warning in stderr and the log; its other settings still apply.

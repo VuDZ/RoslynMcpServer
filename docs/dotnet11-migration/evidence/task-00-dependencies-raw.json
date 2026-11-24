@@ -1,0 +1,1678 @@
+{
+  "recorded": "2026-11-18",
+  "checkout": "28cdca18701e58b344826aadea5d124aab2d7760",
+  "sdkForIsolatedRestore": "10.0.402",
+  "sourceArchives": {
+    "35d9211b841e7613c1d2f8f5af6d628ace696c4c": {"url": "https://codeload.github.com/dotnet/roslyn/tar.gz/35d9211b841e7613c1d2f8f5af6d628ace696c4c", "sha256": "a479b751c9809aece5cdb7eec0bcc6eb1f75b4e927af29dd86c30287c2e6201c"},
+    "1324e1d34a0490454837a22370e75bbaeecffb87": {"url": "https://codeload.github.com/dotnet/roslyn/tar.gz/1324e1d34a0490454837a22370e75bbaeecffb87", "sha256": "deb1ef87f3f5f932af1c25cc4e7580ba5b25a26671c1e93a380fa9903958d72c"}
+  },
+  "upstreamChanges": {
+    "src/Workspaces/MSBuild/BuildHost": {
+      "added": ["MSBuild/ProjectFile/ProjectInstance.cs"],
+      "removed": [],
+      "changed": [
+        "AbstractBuildHost.cs",
+        "Build/ProjectBuildManager.cs",
+        "MSBuild/Constants/MetadataNames.cs",
+        "MSBuild/ProjectFile/Extensions.cs",
+        "MSBuild/ProjectFile/ProjectFile.cs",
+        "MSBuild/ProjectFile/ProjectInstanceReader.cs",
+        "Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.csproj",
+        "Program.cs",
+        "Rpc/RpcServer.cs"
+      ]
+    },
+    "src/Workspaces/MSBuild/Contracts": {"added": ["IProjectInstance.cs"], "removed": [], "changed": ["IBuildHost.cs", "IProjectFile.cs", "Microsoft.CodeAnalysis.Workspaces.MSBuild.Contracts.csproj"]},
+    "src/Workspaces/MSBuild/Core": {
+      "added": ["MSBuild/FileBasedProgramsProjectLoader.cs", "Rpc/RemoteProjectInstance.cs"],
+      "removed": [],
+      "changed": [
+        "MSBuild/BuildHostProcessManager.cs",
+        "MSBuild/BuildHostProjectFileInfoProvider.cs",
+        "MSBuild/MSBuildProjectLoader.cs",
+        "MSBuild/MSBuildWorkspace.cs",
+        "MSBuild/ProjectFileExtensionRegistry.cs",
+        "Microsoft.CodeAnalysis.Workspaces.MSBuild.csproj",
+        "Rpc/RemoteBuildHost.cs",
+        "Rpc/RemoteProjectFile.cs",
+        "Rpc/RpcClient.cs",
+        "WorkspaceMSBuildResources.resx",
+        "xlf/WorkspaceMSBuildResources.cs.xlf",
+        "xlf/WorkspaceMSBuildResources.de.xlf",
+        "xlf/WorkspaceMSBuildResources.es.xlf",
+        "xlf/WorkspaceMSBuildResources.fr.xlf",
+        "xlf/WorkspaceMSBuildResources.it.xlf",
+        "xlf/WorkspaceMSBuildResources.ja.xlf",
+        "xlf/WorkspaceMSBuildResources.ko.xlf",
+        "xlf/WorkspaceMSBuildResources.pl.xlf",
+        "xlf/WorkspaceMSBuildResources.pt-BR.xlf",
+        "xlf/WorkspaceMSBuildResources.ru.xlf",
+        "xlf/WorkspaceMSBuildResources.tr.xlf",
+        "xlf/WorkspaceMSBuildResources.zh-Hans.xlf",
+        "xlf/WorkspaceMSBuildResources.zh-Hant.xlf"
+      ]
+    },
+    "src/Dependencies/Contracts": {"added": [], "removed": [], "changed": ["ErrorReporting/FailFast.cs", "ErrorReporting/FatalError.cs"]}
+  },
+  "addedBuildHostCompileIncludes": ["../../../Compilers/Core/Portable/InternalUtilities/ReaderWriterLockSlimExtensions.cs", "../../Core/Portable/Utilities/StandardHandleInheritance.cs"],
+  "addedClientCompileIncludes": ["../../../Compilers/Core/Portable/InternalUtilities/EnvironmentExtensions.cs"],
+  "historicalEarlyCancelCommits": {
+    "2624f5c156": {"commit": "2624f5c156a7c2edeed0e0330b6528b32e37e6a5", "sha256OfPatch": "274c6b0ec7b0fc25e43db9e5724e95ecc50b401effe9ade054465a6b5e8034c4"},
+    "3e70a65557": {"commit": "3e70a65557fb581badb5b44108b70bdbd4faf57e", "sha256OfPatch": "fe49a7d0b13c02e74b826aa4d0f2e1855e3940503884f4bfdecce0ca3887a7e9"},
+    "cc080c5038": {"commit": "cc080c503807074949729bdc9201cf0e1488d0cf", "sha256OfPatch": "fa50c7e738438b069bda77860998a7b6042e18c91b718c2ccaf59bcffe50b7d2"}
+  },
+  "earlyCancelGitHubCompare": {"status": "ahead", "ahead_by": 2301, "behind_by": 0, "total_commits": 2301},
+  "earlyCancelGitHubCompareMergeBase": "2624f5c156a7c2edeed0e0330b6528b32e37e6a5",
+  "githubReleaseTagV5120HttpStatus": 404,
+  "archives": {
+    "microsoft.build.17.11.48.nupkg": {
+      "id": "Microsoft.Build",
+      "version": "17.11.48",
+      "downloadUrl": "https://api.nuget.org/v3-flatcontainer/microsoft.build/17.11.48/microsoft.build.17.11.48.nupkg",
+      "sha256": "c7e2f3fefe1b8089aadd56dcdd74480aa2d47d769e9626b46c4e1dd18c5c5e5b",
+      "nuspecRepository": {"type": "git", "url": "https://github.com/dotnet/msbuild", "commit": "02bf66295b64ab368d12933041f7281aad186a2d"},
+      "libAndRefFolders": ["lib/net472", "lib/net8.0", "ref/net472", "ref/net8.0"],
+      "nuspecDependencyGroups": {
+        ".NETFramework4.7.2": [
+          "Microsoft.Build.Framework 17.11.48",
+          "Microsoft.NET.StringTools 17.11.48",
+          "Microsoft.IO.Redist 6.0.1",
+          "System.Collections.Immutable 8.0.0",
+          "System.Configuration.ConfigurationManager 8.0.0",
+          "System.Memory 4.5.5",
+          "System.Reflection.MetadataLoadContext 8.0.0",
+          "System.Security.Principal.Windows 5.0.0",
+          "System.Text.Json 8.0.5",
+          "System.Threading.Tasks.Dataflow 8.0.0",
+          "System.Reflection.Metadata 8.0.0",
+          "System.Runtime.CompilerServices.Unsafe 6.0.0"
+        ],
+        "net8.0": ["Microsoft.Build.Framework 17.11.48", "Microsoft.NET.StringTools 17.11.48", "System.Configuration.ConfigurationManager 8.0.0", "System.Reflection.MetadataLoadContext 8.0.0", "System.Collections.Immutable 8.0.0", "System.Reflection.Metadata 8.0.0"]
+      },
+      "nuspecUngroupedDependencies": [],
+      "fourReferencePathCheck": true
+    },
+    "microsoft.build.18.7.1.nupkg": {
+      "id": "Microsoft.Build",
+      "version": "18.7.1",
+      "downloadUrl": "https://api.nuget.org/v3-flatcontainer/microsoft.build/18.7.1/microsoft.build.18.7.1.nupkg",
+      "sha256": "4ae88c240f5949544c816092baa988faeb58b9c72639b286717afa736cef3c38",
+      "nuspecRepository": {"type": "git", "url": "https://github.com/dotnet/msbuild", "commit": "024f5b0379cf99b95bc8939cd92a57912528b55c"},
+      "libAndRefFolders": ["lib/net10.0", "lib/net472", "ref/net10.0", "ref/net472"],
+      "nuspecDependencyGroups": {
+        ".NETFramework4.7.2": [
+          "Microsoft.Build.Framework 18.7.1",
+          "Microsoft.IO.Redist 6.1.0",
+          "System.Collections.Immutable 10.0.4",
+          "System.Configuration.ConfigurationManager 10.0.4",
+          "System.Memory 4.6.3",
+          "System.Reflection.MetadataLoadContext 10.0.4",
+          "System.Security.Principal.Windows 5.0.0",
+          "System.Text.Json 10.0.4",
+          "System.Threading.Tasks.Dataflow 10.0.4",
+          "System.Reflection.Metadata 10.0.4",
+          "System.Runtime.CompilerServices.Unsafe 6.1.2",
+          "System.Threading.Tasks.Extensions 4.6.3",
+          "System.ValueTuple 4.6.1"
+        ],
+        "net10.0": ["Microsoft.Build.Framework 18.7.1", "System.Configuration.ConfigurationManager 10.0.4", "System.Reflection.MetadataLoadContext 10.0.4", "System.Diagnostics.EventLog 10.0.4", "System.Security.Cryptography.ProtectedData 10.0.4"]
+      },
+      "nuspecUngroupedDependencies": [],
+      "fourReferencePathCheck": false
+    },
+    "microsoft.build.framework.17.11.48.nupkg": {
+      "id": "Microsoft.Build.Framework",
+      "version": "17.11.48",
+      "downloadUrl": "https://api.nuget.org/v3-flatcontainer/microsoft.build.framework/17.11.48/microsoft.build.framework.17.11.48.nupkg",
+      "sha256": "686b79a414e9431c4f4fe5189689defbc8d025020454002d832d328227f015ac",
+      "nuspecRepository": {"type": "git", "url": "https://github.com/dotnet/msbuild", "commit": "02bf66295b64ab368d12933041f7281aad186a2d"},
+      "libAndRefFolders": ["lib/net472", "lib/net8.0", "ref/net472", "ref/net8.0", "ref/netstandard2.0"],
+      "nuspecDependencyGroups": {".NETFramework4.7.2": ["System.Runtime.CompilerServices.Unsafe 6.0.0"], "net8.0": [], ".NETStandard2.0": ["Microsoft.Win32.Registry 5.0.0", "System.Memory 4.5.5", "System.Runtime.CompilerServices.Unsafe 6.0.0", "System.Security.Principal.Windows 5.0.0"]},
+      "nuspecUngroupedDependencies": [],
+      "fourReferencePathCheck": true
+    },
+    "microsoft.build.framework.18.7.1.nupkg": {
+      "id": "Microsoft.Build.Framework",
+      "version": "18.7.1",
+      "downloadUrl": "https://api.nuget.org/v3-flatcontainer/microsoft.build.framework/18.7.1/microsoft.build.framework.18.7.1.nupkg",
+      "sha256": "ade8937e786462c81f30195cc86a43202cd5b6625a02dd223a38aaf6f83da308",
+      "nuspecRepository": {"type": "git", "url": "https://github.com/dotnet/msbuild", "commit": "024f5b0379cf99b95bc8939cd92a57912528b55c"},
+      "libAndRefFolders": ["lib/net10.0", "lib/net472", "ref/net10.0", "ref/net472", "ref/netstandard2.0"],
+      "nuspecDependencyGroups": {
+        ".NETFramework4.7.2": ["Microsoft.NET.StringTools 18.7.1", "System.Collections.Immutable 10.0.4", "System.Runtime.CompilerServices.Unsafe 6.1.2", "System.Text.Json 10.0.4", "System.Memory 4.6.3", "System.Threading.Tasks.Extensions 4.6.3", "System.ValueTuple 4.6.1"],
+        "net10.0": ["Microsoft.NET.StringTools 18.7.1"],
+        ".NETStandard2.0": ["Microsoft.NET.StringTools 18.7.1", "System.Memory 4.6.3", "System.Runtime.CompilerServices.Unsafe 6.1.2"]
+      },
+      "nuspecUngroupedDependencies": [],
+      "fourReferencePathCheck": false
+    },
+    "microsoft.build.locator.1.10.2.nupkg": {
+      "id": "Microsoft.Build.Locator",
+      "version": "1.10.2",
+      "downloadUrl": "https://api.nuget.org/v3-flatcontainer/microsoft.build.locator/1.10.2/microsoft.build.locator.1.10.2.nupkg",
+      "sha256": "7ff1b209c8de4a04f4703fe2713b4c0c2972c9340e243e405cd5844480433df0",
+      "nuspecRepository": {"type": "git", "url": "https://github.com/microsoft/MSBuildLocator", "commit": "694ff392b2dcf6ac58fe865afd1c982eb9449014"},
+      "libAndRefFolders": ["lib/net46", "lib/net8.0"],
+      "nuspecDependencyGroups": {".NETFramework4.6": [], "net8.0": []},
+      "nuspecUngroupedDependencies": []
+    },
+    "microsoft.build.locator.1.11.2.nupkg": {
+      "id": "Microsoft.Build.Locator",
+      "version": "1.11.2",
+      "downloadUrl": "https://api.nuget.org/v3-flatcontainer/microsoft.build.locator/1.11.2/microsoft.build.locator.1.11.2.nupkg",
+      "sha256": "d5e635849f6db518e3e67a7d0c8b771939deac3234c13a03fc2352dc0ec10502",
+      "nuspecRepository": {"type": "git", "url": "https://github.com/microsoft/MSBuildLocator", "commit": "89a9d0858a83930f5066e4fa0bf0d154e24095d7"},
+      "libAndRefFolders": ["lib/net46", "lib/net8.0"],
+      "nuspecDependencyGroups": {".NETFramework4.6": [], "net8.0": []},
+      "nuspecUngroupedDependencies": []
+    },
+    "microsoft.build.tasks.core.17.11.48.nupkg": {
+      "id": "Microsoft.Build.Tasks.Core",
+      "version": "17.11.48",
+      "downloadUrl": "https://api.nuget.org/v3-flatcontainer/microsoft.build.tasks.core/17.11.48/microsoft.build.tasks.core.17.11.48.nupkg",
+      "sha256": "80e82507581d0bdd48498d1cbd77e3fc4a8f4230bf50f8e98c0293c631eb8bd1",
+      "nuspecRepository": {"type": "git", "url": "https://github.com/dotnet/msbuild", "commit": "02bf66295b64ab368d12933041f7281aad186a2d"},
+      "libAndRefFolders": ["lib/net472", "lib/net8.0", "ref/net472", "ref/net8.0", "ref/netstandard2.0"],
+      "nuspecDependencyGroups": {
+        ".NETFramework4.7.2": [
+          "Microsoft.Build.Framework 17.11.48",
+          "Microsoft.NET.StringTools 17.11.48",
+          "Microsoft.Build.Utilities.Core 17.11.48",
+          "Microsoft.IO.Redist 6.0.1",
+          "System.Collections.Immutable 8.0.0",
+          "System.Resources.Extensions 8.0.0",
+          "System.Threading.Tasks.Dataflow 8.0.0",
+          "System.Configuration.ConfigurationManager 8.0.0",
+          "System.Memory 4.5.5",
+          "System.Runtime.CompilerServices.Unsafe 6.0.0"
+        ],
+        "net8.0": [
+          "Microsoft.Build.Framework 17.11.48",
+          "Microsoft.NET.StringTools 17.11.48",
+          "Microsoft.Build.Utilities.Core 17.11.48",
+          "System.CodeDom 8.0.0",
+          "System.Collections.Immutable 8.0.0",
+          "System.Resources.Extensions 8.0.0",
+          "System.Security.Cryptography.Pkcs 8.0.0",
+          "System.Security.Cryptography.Xml 8.0.0",
+          "System.Configuration.ConfigurationManager 8.0.0",
+          "System.Formats.Asn1 8.0.1"
+        ],
+        ".NETStandard2.0": [
+          "Microsoft.Build.Framework 17.11.48",
+          "Microsoft.NET.StringTools 17.11.48",
+          "Microsoft.Build.Utilities.Core 17.11.48",
+          "Microsoft.Win32.Registry 5.0.0",
+          "System.CodeDom 8.0.0",
+          "System.Collections.Immutable 8.0.0",
+          "System.Reflection.Metadata 8.0.0",
+          "System.Resources.Extensions 8.0.0",
+          "System.Security.Cryptography.Pkcs 8.0.0",
+          "System.Security.Cryptography.Xml 8.0.0",
+          "System.Threading.Tasks.Dataflow 8.0.0",
+          "System.Configuration.ConfigurationManager 8.0.0",
+          "System.Formats.Asn1 8.0.1",
+          "System.Memory 4.5.5",
+          "System.Runtime.CompilerServices.Unsafe 6.0.0",
+          "System.Security.Principal.Windows 5.0.0",
+          "System.Text.Encoding.CodePages 7.0.0"
+        ]
+      },
+      "nuspecUngroupedDependencies": [],
+      "fourReferencePathCheck": true
+    },
+    "microsoft.build.tasks.core.18.7.1.nupkg": {
+      "id": "Microsoft.Build.Tasks.Core",
+      "version": "18.7.1",
+      "downloadUrl": "https://api.nuget.org/v3-flatcontainer/microsoft.build.tasks.core/18.7.1/microsoft.build.tasks.core.18.7.1.nupkg",
+      "sha256": "2da7611ee1fa3d7426de8510750a7f530929e1b70efc103fce666d3e7d038bd2",
+      "nuspecRepository": {"type": "git", "url": "https://github.com/dotnet/msbuild", "commit": "024f5b0379cf99b95bc8939cd92a57912528b55c"},
+      "libAndRefFolders": ["lib/net10.0", "lib/net472", "ref/net10.0", "ref/net472", "ref/netstandard2.0"],
+      "nuspecDependencyGroups": {
+        ".NETFramework4.7.2": [
+          "Microsoft.Build.Framework 18.7.1",
+          "Microsoft.Build.Utilities.Core 18.7.1",
+          "Microsoft.IO.Redist 6.1.0",
+          "System.Collections.Immutable 10.0.4",
+          "System.Resources.Extensions 10.0.4",
+          "System.Threading.Tasks.Dataflow 10.0.4",
+          "System.Configuration.ConfigurationManager 10.0.4",
+          "System.Formats.Nrbf 10.0.4",
+          "System.Memory 4.6.3",
+          "System.Reflection.Metadata 10.0.4",
+          "System.Runtime.CompilerServices.Unsafe 6.1.2",
+          "System.Text.Json 10.0.4",
+          "System.Threading.Tasks.Extensions 4.6.3",
+          "System.ValueTuple 4.6.1"
+        ],
+        "net10.0": [
+          "Microsoft.Build.Framework 18.7.1",
+          "Microsoft.Build.Utilities.Core 18.7.1",
+          "System.CodeDom 10.0.4",
+          "System.Resources.Extensions 10.0.4",
+          "System.Security.Cryptography.Pkcs 10.0.4",
+          "System.Security.Cryptography.Xml 10.0.4",
+          "System.Configuration.ConfigurationManager 10.0.4",
+          "System.Diagnostics.EventLog 10.0.4",
+          "System.Formats.Nrbf 10.0.4",
+          "System.Security.Cryptography.ProtectedData 10.0.4"
+        ],
+        ".NETStandard2.0": ["Microsoft.Build.Framework 18.7.1", "Microsoft.Build.Utilities.Core 18.7.1", "System.Memory 4.6.3", "System.Runtime.CompilerServices.Unsafe 6.1.2"]
+      },
+      "nuspecUngroupedDependencies": [],
+      "fourReferencePathCheck": false
+    },
+    "microsoft.build.utilities.core.17.11.48.nupkg": {
+      "id": "Microsoft.Build.Utilities.Core",
+      "version": "17.11.48",
+      "downloadUrl": "https://api.nuget.org/v3-flatcontainer/microsoft.build.utilities.core/17.11.48/microsoft.build.utilities.core.17.11.48.nupkg",
+      "sha256": "5bc9ad8d9d8850f30af26d0259d72cc2f71b32636c8a032e681132975ce00bdf",
+      "nuspecRepository": {"type": "git", "url": "https://github.com/dotnet/msbuild", "commit": "02bf66295b64ab368d12933041f7281aad186a2d"},
+      "libAndRefFolders": ["lib/net472", "lib/net8.0", "ref/net472", "ref/net8.0", "ref/netstandard2.0"],
+      "nuspecDependencyGroups": {
+        ".NETFramework4.7.2": [
+          "Microsoft.Build.Framework 17.11.48",
+          "Microsoft.NET.StringTools 17.11.48",
+          "Microsoft.IO.Redist 6.0.1",
+          "System.Collections.Immutable 8.0.0",
+          "System.Configuration.ConfigurationManager 8.0.0",
+          "System.Memory 4.5.5",
+          "System.Runtime.CompilerServices.Unsafe 6.0.0"
+        ],
+        "net8.0": ["Microsoft.Build.Framework 17.11.48", "Microsoft.NET.StringTools 17.11.48", "System.Collections.Immutable 8.0.0", "System.Configuration.ConfigurationManager 8.0.0"],
+        ".NETStandard2.0": [
+          "Microsoft.Build.Framework 17.11.48",
+          "Microsoft.NET.StringTools 17.11.48",
+          "System.Collections.Immutable 8.0.0",
+          "System.Configuration.ConfigurationManager 8.0.0",
+          "System.Text.Encoding.CodePages 7.0.0",
+          "Microsoft.Win32.Registry 5.0.0",
+          "System.Memory 4.5.5",
+          "System.Runtime.CompilerServices.Unsafe 6.0.0",
+          "System.Security.Principal.Windows 5.0.0"
+        ]
+      },
+      "nuspecUngroupedDependencies": [],
+      "fourReferencePathCheck": true
+    },
+    "microsoft.build.utilities.core.18.7.1.nupkg": {
+      "id": "Microsoft.Build.Utilities.Core",
+      "version": "18.7.1",
+      "downloadUrl": "https://api.nuget.org/v3-flatcontainer/microsoft.build.utilities.core/18.7.1/microsoft.build.utilities.core.18.7.1.nupkg",
+      "sha256": "c715a263fce3ad9d33e88ad1e71d92809f7b463577ebc6543cf3de0d206bf6b5",
+      "nuspecRepository": {"type": "git", "url": "https://github.com/dotnet/msbuild", "commit": "024f5b0379cf99b95bc8939cd92a57912528b55c"},
+      "libAndRefFolders": ["lib/net10.0", "lib/net472", "ref/net10.0", "ref/net472", "ref/netstandard2.0"],
+      "nuspecDependencyGroups": {
+        ".NETFramework4.7.2": [
+          "Microsoft.Build.Framework 18.7.1",
+          "Microsoft.IO.Redist 6.1.0",
+          "System.Collections.Immutable 10.0.4",
+          "System.Configuration.ConfigurationManager 10.0.4",
+          "System.Memory 4.6.3",
+          "System.Runtime.CompilerServices.Unsafe 6.1.2",
+          "System.Text.Json 10.0.4",
+          "System.Threading.Tasks.Extensions 4.6.3",
+          "System.ValueTuple 4.6.1"
+        ],
+        "net10.0": ["Microsoft.Build.Framework 18.7.1", "System.Configuration.ConfigurationManager 10.0.4", "System.Diagnostics.EventLog 10.0.4", "System.Security.Cryptography.ProtectedData 10.0.4"],
+        ".NETStandard2.0": ["Microsoft.Build.Framework 18.7.1", "System.Memory 4.6.3", "System.Runtime.CompilerServices.Unsafe 6.1.2"]
+      },
+      "nuspecUngroupedDependencies": [],
+      "fourReferencePathCheck": false
+    },
+    "microsoft.codeanalysis.common.5.12.0.nupkg": {
+      "id": "Microsoft.CodeAnalysis.Common",
+      "version": "5.12.0",
+      "downloadUrl": "https://api.nuget.org/v3-flatcontainer/microsoft.codeanalysis.common/5.12.0/microsoft.codeanalysis.common.5.12.0.nupkg",
+      "sha256": "0fa5be1bb5c69ab384c98204098b513fe6fca8fe830c96c131842a761809a3df",
+      "nuspecRepository": {"type": "git", "url": "https://github.com/dotnet/roslyn", "branch": "release/insiders", "commit": "1324e1d34a0490454837a22370e75bbaeecffb87"},
+      "libAndRefFolders": ["lib/net10.0", "lib/netstandard2.0"],
+      "nuspecDependencyGroups": {
+        "net10.0": ["Microsoft.CodeAnalysis.Analyzers 5.9.0"],
+        ".NETStandard2.0": [
+          "Microsoft.CodeAnalysis.Analyzers 5.9.0",
+          "System.Collections.Immutable 10.0.10",
+          "System.Memory 4.6.3",
+          "System.Reflection.Metadata 10.0.10",
+          "System.Runtime.CompilerServices.Unsafe 6.1.2",
+          "System.Text.Encoding.CodePages 8.0.0",
+          "System.Threading.Tasks.Extensions 4.6.3",
+          "System.Buffers 4.6.1",
+          "System.Numerics.Vectors 4.6.1"
+        ]
+      },
+      "nuspecUngroupedDependencies": []
+    },
+    "microsoft.codeanalysis.csharp.5.12.0.nupkg": {
+      "id": "Microsoft.CodeAnalysis.CSharp",
+      "version": "5.12.0",
+      "downloadUrl": "https://api.nuget.org/v3-flatcontainer/microsoft.codeanalysis.csharp/5.12.0/microsoft.codeanalysis.csharp.5.12.0.nupkg",
+      "sha256": "1f684db4fda171da3b471be3413dbd1bb8ce2bf9525cf9826aa37a5acd171ae0",
+      "nuspecRepository": {"type": "git", "url": "https://github.com/dotnet/roslyn", "branch": "release/insiders", "commit": "1324e1d34a0490454837a22370e75bbaeecffb87"},
+      "libAndRefFolders": ["lib/net10.0", "lib/netstandard2.0"],
+      "nuspecDependencyGroups": {
+        "net10.0": ["Microsoft.CodeAnalysis.Common [5.12.0, 5.12.0]", "Microsoft.CodeAnalysis.Analyzers 5.9.0"],
+        ".NETStandard2.0": [
+          "Microsoft.CodeAnalysis.Common [5.12.0, 5.12.0]",
+          "Microsoft.CodeAnalysis.Analyzers 5.9.0",
+          "System.Buffers 4.6.1",
+          "System.Collections.Immutable 10.0.10",
+          "System.Memory 4.6.3",
+          "System.Numerics.Vectors 4.6.1",
+          "System.Reflection.Metadata 10.0.10",
+          "System.Runtime.CompilerServices.Unsafe 6.1.2",
+          "System.Text.Encoding.CodePages 8.0.0",
+          "System.Threading.Tasks.Extensions 4.6.3"
+        ]
+      },
+      "nuspecUngroupedDependencies": []
+    },
+    "microsoft.codeanalysis.csharp.features.5.12.0.nupkg": {
+      "id": "Microsoft.CodeAnalysis.CSharp.Features",
+      "version": "5.12.0",
+      "downloadUrl": "https://api.nuget.org/v3-flatcontainer/microsoft.codeanalysis.csharp.features/5.12.0/microsoft.codeanalysis.csharp.features.5.12.0.nupkg",
+      "sha256": "8d127016e8a9fbc9c0407b7efd24c42df196332eea80452aaf510c1244419ef4",
+      "nuspecRepository": {"type": "git", "url": "https://github.com/dotnet/roslyn", "branch": "release/insiders", "commit": "1324e1d34a0490454837a22370e75bbaeecffb87"},
+      "libAndRefFolders": ["lib/net10.0", "lib/netstandard2.0"],
+      "nuspecDependencyGroups": {
+        "net10.0": [
+          "Microsoft.CodeAnalysis.Common [5.12.0, 5.12.0]",
+          "Microsoft.CodeAnalysis.CSharp [5.12.0, 5.12.0]",
+          "Microsoft.CodeAnalysis.Features [5.12.0, 5.12.0]",
+          "Microsoft.CodeAnalysis.Workspaces.Common [5.12.0, 5.12.0]",
+          "Microsoft.CodeAnalysis.CSharp.Workspaces [5.12.0, 5.12.0]",
+          "Humanizer.Core 2.14.1",
+          "Microsoft.CodeAnalysis.Analyzers 5.9.0",
+          "Microsoft.CodeAnalysis.Elfie 1.0.0",
+          "Microsoft.DiaSymReader 2.2.10",
+          "System.Composition 10.0.10",
+          "System.Configuration.ConfigurationManager 10.0.10",
+          "System.Diagnostics.EventLog 10.0.10",
+          "System.Security.Cryptography.ProtectedData 10.0.10"
+        ],
+        ".NETStandard2.0": [
+          "Microsoft.CodeAnalysis.Common [5.12.0, 5.12.0]",
+          "Microsoft.CodeAnalysis.CSharp [5.12.0, 5.12.0]",
+          "Microsoft.CodeAnalysis.Features [5.12.0, 5.12.0]",
+          "Microsoft.CodeAnalysis.Workspaces.Common [5.12.0, 5.12.0]",
+          "Microsoft.CodeAnalysis.CSharp.Workspaces [5.12.0, 5.12.0]",
+          "Humanizer.Core 2.14.1",
+          "Microsoft.Bcl.AsyncInterfaces 10.0.10",
+          "Microsoft.CodeAnalysis.Analyzers 5.9.0",
+          "Microsoft.CodeAnalysis.Elfie 1.0.0",
+          "Microsoft.DiaSymReader 2.2.10",
+          "System.Buffers 4.6.1",
+          "System.Collections.Immutable 10.0.10",
+          "System.Composition 10.0.10",
+          "System.Configuration.ConfigurationManager 10.0.10",
+          "System.IO.Pipelines 10.0.10",
+          "System.Memory 4.6.3",
+          "System.Numerics.Vectors 4.6.1",
+          "System.Reflection.Metadata 10.0.10",
+          "System.Runtime.CompilerServices.Unsafe 6.1.2",
+          "System.Security.Cryptography.ProtectedData 10.0.10",
+          "System.Text.Encoding.CodePages 8.0.0",
+          "System.Text.Encodings.Web 10.0.10",
+          "System.Text.Json 10.0.10",
+          "System.Threading.Channels 10.0.10",
+          "System.Threading.Tasks.Extensions 4.6.3"
+        ]
+      },
+      "nuspecUngroupedDependencies": []
+    },
+    "microsoft.codeanalysis.csharp.workspaces.5.12.0.nupkg": {
+      "id": "Microsoft.CodeAnalysis.CSharp.Workspaces",
+      "version": "5.12.0",
+      "downloadUrl": "https://api.nuget.org/v3-flatcontainer/microsoft.codeanalysis.csharp.workspaces/5.12.0/microsoft.codeanalysis.csharp.workspaces.5.12.0.nupkg",
+      "sha256": "b089b9b1d41819e6d06fa0d2a37a48d7f502fc98f027af02970a4074b4918d9a",
+      "nuspecRepository": {"type": "git", "url": "https://github.com/dotnet/roslyn", "branch": "release/insiders", "commit": "1324e1d34a0490454837a22370e75bbaeecffb87"},
+      "libAndRefFolders": ["lib/net10.0", "lib/netstandard2.0"],
+      "nuspecDependencyGroups": {
+        "net10.0": ["Microsoft.CodeAnalysis.Common [5.12.0, 5.12.0]", "Microsoft.CodeAnalysis.CSharp [5.12.0, 5.12.0]", "Microsoft.CodeAnalysis.Workspaces.Common [5.12.0, 5.12.0]", "Humanizer.Core 2.14.1", "Microsoft.CodeAnalysis.Analyzers 5.9.0", "System.Composition 10.0.10"],
+        ".NETStandard2.0": [
+          "Microsoft.CodeAnalysis.Common [5.12.0, 5.12.0]",
+          "Microsoft.CodeAnalysis.CSharp [5.12.0, 5.12.0]",
+          "Microsoft.CodeAnalysis.Workspaces.Common [5.12.0, 5.12.0]",
+          "Humanizer.Core 2.14.1",
+          "Microsoft.Bcl.AsyncInterfaces 10.0.10",
+          "Microsoft.CodeAnalysis.Analyzers 5.9.0",
+          "System.Buffers 4.6.1",
+          "System.Collections.Immutable 10.0.10",
+          "System.Composition 10.0.10",
+          "System.IO.Pipelines 10.0.10",
+          "System.Memory 4.6.3",
+          "System.Numerics.Vectors 4.6.1",
+          "System.Reflection.Metadata 10.0.10",
+          "System.Runtime.CompilerServices.Unsafe 6.1.2",
+          "System.Text.Encoding.CodePages 8.0.0",
+          "System.Threading.Channels 10.0.10",
+          "System.Threading.Tasks.Extensions 4.6.3"
+        ]
+      },
+      "nuspecUngroupedDependencies": []
+    },
+    "microsoft.codeanalysis.features.5.12.0.nupkg": {
+      "id": "Microsoft.CodeAnalysis.Features",
+      "version": "5.12.0",
+      "downloadUrl": "https://api.nuget.org/v3-flatcontainer/microsoft.codeanalysis.features/5.12.0/microsoft.codeanalysis.features.5.12.0.nupkg",
+      "sha256": "fd7950ef268375994b0b5a54ed53565870ab9837152e91ebab52612c5321b383",
+      "nuspecRepository": {"type": "git", "url": "https://github.com/dotnet/roslyn", "branch": "release/insiders", "commit": "1324e1d34a0490454837a22370e75bbaeecffb87"},
+      "libAndRefFolders": ["lib/net10.0", "lib/netstandard2.0"],
+      "nuspecDependencyGroups": {
+        "net10.0": [
+          "Microsoft.CodeAnalysis.Common [5.12.0, 5.12.0]",
+          "Microsoft.CodeAnalysis.Scripting.Common [5.12.0, 5.12.0]",
+          "Microsoft.CodeAnalysis.Workspaces.Common [5.12.0, 5.12.0]",
+          "Microsoft.CodeAnalysis.Elfie 1.0.0",
+          "Microsoft.DiaSymReader 2.2.10",
+          "Humanizer.Core 2.14.1",
+          "Microsoft.CodeAnalysis.Analyzers 5.9.0",
+          "System.Composition 10.0.10",
+          "System.Configuration.ConfigurationManager 10.0.10",
+          "System.Diagnostics.EventLog 10.0.10",
+          "System.Security.Cryptography.ProtectedData 10.0.10"
+        ],
+        ".NETStandard2.0": [
+          "Microsoft.CodeAnalysis.Common [5.12.0, 5.12.0]",
+          "Microsoft.CodeAnalysis.Scripting.Common [5.12.0, 5.12.0]",
+          "Microsoft.CodeAnalysis.Workspaces.Common [5.12.0, 5.12.0]",
+          "Microsoft.CodeAnalysis.Elfie 1.0.0",
+          "Microsoft.DiaSymReader 2.2.10",
+          "System.Text.Json 10.0.10",
+          "System.Threading.Tasks.Extensions 4.6.3",
+          "Humanizer.Core 2.14.1",
+          "Microsoft.Bcl.AsyncInterfaces 10.0.10",
+          "Microsoft.CodeAnalysis.Analyzers 5.9.0",
+          "System.Buffers 4.6.1",
+          "System.Collections.Immutable 10.0.10",
+          "System.Composition 10.0.10",
+          "System.Configuration.ConfigurationManager 10.0.10",
+          "System.IO.Pipelines 10.0.10",
+          "System.Memory 4.6.3",
+          "System.Numerics.Vectors 4.6.1",
+          "System.Reflection.Metadata 10.0.10",
+          "System.Runtime.CompilerServices.Unsafe 6.1.2",
+          "System.Security.Cryptography.ProtectedData 10.0.10",
+          "System.Text.Encoding.CodePages 8.0.0",
+          "System.Text.Encodings.Web 10.0.10",
+          "System.Threading.Channels 10.0.10"
+        ]
+      },
+      "nuspecUngroupedDependencies": []
+    },
+    "microsoft.codeanalysis.scripting.common.5.12.0.nupkg": {
+      "id": "Microsoft.CodeAnalysis.Scripting.Common",
+      "version": "5.12.0",
+      "downloadUrl": "https://api.nuget.org/v3-flatcontainer/microsoft.codeanalysis.scripting.common/5.12.0/microsoft.codeanalysis.scripting.common.5.12.0.nupkg",
+      "sha256": "e5c2a3be0f63c494a42a54395ede014e35af169751711735209c6c39f485bf92",
+      "nuspecRepository": {"type": "git", "url": "https://github.com/dotnet/roslyn", "branch": "release/insiders", "commit": "1324e1d34a0490454837a22370e75bbaeecffb87"},
+      "libAndRefFolders": ["lib/net10.0", "lib/netstandard2.0"],
+      "nuspecDependencyGroups": {
+        "net10.0": ["Microsoft.CodeAnalysis.Common [5.12.0, 5.12.0]", "Microsoft.CodeAnalysis.Analyzers 5.9.0"],
+        ".NETStandard2.0": [
+          "Microsoft.CodeAnalysis.Common [5.12.0, 5.12.0]",
+          "Microsoft.CodeAnalysis.Analyzers 5.9.0",
+          "System.Buffers 4.6.1",
+          "System.Collections.Immutable 10.0.10",
+          "System.Memory 4.6.3",
+          "System.Numerics.Vectors 4.6.1",
+          "System.Reflection.Metadata 10.0.10",
+          "System.Runtime.CompilerServices.Unsafe 6.1.2",
+          "System.Text.Encoding.CodePages 8.0.0",
+          "System.Threading.Tasks.Extensions 4.6.3"
+        ]
+      },
+      "nuspecUngroupedDependencies": []
+    },
+    "microsoft.codeanalysis.workspaces.common.5.12.0.nupkg": {
+      "id": "Microsoft.CodeAnalysis.Workspaces.Common",
+      "version": "5.12.0",
+      "downloadUrl": "https://api.nuget.org/v3-flatcontainer/microsoft.codeanalysis.workspaces.common/5.12.0/microsoft.codeanalysis.workspaces.common.5.12.0.nupkg",
+      "sha256": "aa46ba3455d047a565dac8969da6fe70e38b4f005f33d71abdeedc09527a05b2",
+      "nuspecRepository": {"type": "git", "url": "https://github.com/dotnet/roslyn", "branch": "release/insiders", "commit": "1324e1d34a0490454837a22370e75bbaeecffb87"},
+      "libAndRefFolders": ["lib/net10.0", "lib/netstandard2.0"],
+      "nuspecDependencyGroups": {
+        "net10.0": ["Microsoft.CodeAnalysis.Common [5.12.0, 5.12.0]", "Humanizer.Core 2.14.1", "System.Composition 10.0.10", "Microsoft.CodeAnalysis.Analyzers 5.9.0"],
+        ".NETStandard2.0": [
+          "Microsoft.CodeAnalysis.Common [5.12.0, 5.12.0]",
+          "Humanizer.Core 2.14.1",
+          "Microsoft.Bcl.AsyncInterfaces 10.0.10",
+          "System.Composition 10.0.10",
+          "System.IO.Pipelines 10.0.10",
+          "System.Threading.Channels 10.0.10",
+          "Microsoft.CodeAnalysis.Analyzers 5.9.0",
+          "System.Buffers 4.6.1",
+          "System.Collections.Immutable 10.0.10",
+          "System.Memory 4.6.3",
+          "System.Numerics.Vectors 4.6.1",
+          "System.Reflection.Metadata 10.0.10",
+          "System.Runtime.CompilerServices.Unsafe 6.1.2",
+          "System.Text.Encoding.CodePages 8.0.0",
+          "System.Threading.Tasks.Extensions 4.6.3"
+        ]
+      },
+      "nuspecUngroupedDependencies": []
+    },
+    "microsoft.codeanalysis.workspaces.msbuild.5.12.0.nupkg": {
+      "id": "Microsoft.CodeAnalysis.Workspaces.MSBuild",
+      "version": "5.12.0",
+      "downloadUrl": "https://api.nuget.org/v3-flatcontainer/microsoft.codeanalysis.workspaces.msbuild/5.12.0/microsoft.codeanalysis.workspaces.msbuild.5.12.0.nupkg",
+      "sha256": "8525f9f7a17da7ca537bcfb3cb92ebfa4c617f85e0a88ba3d1a3894325c40849",
+      "nuspecRepository": {"type": "git", "url": "https://github.com/dotnet/roslyn", "branch": "release/insiders", "commit": "1324e1d34a0490454837a22370e75bbaeecffb87"},
+      "libAndRefFolders": ["lib/net10.0", "lib/net472"],
+      "nuspecDependencyGroups": {
+        "net10.0": [
+          "Microsoft.CodeAnalysis.Workspaces.Common [5.12.0, 5.12.0]",
+          "Microsoft.Build.Framework 18.7.1",
+          "Microsoft.Extensions.Logging 10.0.10",
+          "Microsoft.VisualStudio.SolutionPersistence 1.0.52",
+          "Humanizer.Core 2.14.1",
+          "Microsoft.CodeAnalysis.Analyzers 5.9.0",
+          "Microsoft.Extensions.DependencyInjection 10.0.10",
+          "Microsoft.Extensions.Logging.Abstractions 10.0.10",
+          "Microsoft.Extensions.Options 10.0.10",
+          "Microsoft.Extensions.Primitives 10.0.10",
+          "System.Composition 10.0.10"
+        ],
+        ".NETFramework4.7.2": [
+          "Microsoft.CodeAnalysis.Workspaces.Common [5.12.0, 5.12.0]",
+          "Microsoft.Build.Framework 18.7.1",
+          "Microsoft.Extensions.Logging 10.0.10",
+          "Microsoft.VisualStudio.SolutionPersistence 1.0.52",
+          "System.Text.Json 10.0.10",
+          "Humanizer.Core 2.14.1",
+          "Microsoft.Bcl.AsyncInterfaces 10.0.10",
+          "Microsoft.CodeAnalysis.Analyzers 5.9.0",
+          "Microsoft.Extensions.DependencyInjection 10.0.10",
+          "Microsoft.Extensions.Logging.Abstractions 10.0.10",
+          "Microsoft.Extensions.Options 10.0.10",
+          "Microsoft.Extensions.Primitives 10.0.10",
+          "Microsoft.IO.Redist 6.1.0",
+          "System.Buffers 4.6.1",
+          "System.Collections.Immutable 10.0.10",
+          "System.Composition 10.0.10",
+          "System.Diagnostics.DiagnosticSource 10.0.10",
+          "System.IO.Pipelines 10.0.10",
+          "System.Memory 4.6.3",
+          "System.Numerics.Vectors 4.6.1",
+          "System.Reflection.Metadata 10.0.10",
+          "System.Runtime.CompilerServices.Unsafe 6.1.2",
+          "System.Text.Encoding.CodePages 8.0.0",
+          "System.Text.Encodings.Web 10.0.10",
+          "System.Threading.Channels 10.0.10",
+          "System.Threading.Tasks.Extensions 4.6.3",
+          "System.ValueTuple 4.6.2"
+        ]
+      },
+      "nuspecUngroupedDependencies": [],
+      "hostPathsInPackage": ["contentFiles/any/any"],
+      "netcoreRuntimeconfig": {
+        "runtimeOptions": {
+          "tfm": "net8.0",
+          "framework": {"name": "Microsoft.NETCore.App", "version": "8.0.0"},
+          "rollForward": "Major",
+          "configProperties": {"System.Reflection.Metadata.MetadataUpdater.IsSupported": false, "System.Runtime.Serialization.EnableUnsafeBinaryFormatterSerialization": false}
+        }
+      },
+      "netcoreDepsTarget": {"name": ".NETCoreApp,Version=v8.0", "signature": ""},
+      "netcoreDepsEntries": {
+        "Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost/5.12.0-1.26502.2": {"dependencies": {"Microsoft.Build.Locator": "1.10.2", "Microsoft.CodeAnalysis.Workspaces.MSBuild.Contracts": "5.12.0-1.26502.2"}, "runtime": {"Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.dll": {}}},
+        "Microsoft.Build.Locator/1.10.2": {"runtime": {"lib/net8.0/Microsoft.Build.Locator.dll": {"assemblyVersion": "1.0.0.0", "fileVersion": "1.10.2.26959", "localPath": "Microsoft.Build.Locator.dll"}}},
+        "Microsoft.CodeAnalysis.Workspaces.MSBuild.Contracts/5.12.0-1.26502.2": {"runtime": {"Microsoft.CodeAnalysis.Workspaces.MSBuild.Contracts.dll": {"assemblyVersion": "5.12.0.0", "fileVersion": "5.1200.26.50202"}}}
+      },
+      "netcoreDllSha256": {
+        "Microsoft.Build.Locator.dll": "fcc85336217be226f90a5ddfa55151dc84fcb2a76fe242f5274535c6b878aa30",
+        "Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.dll": "e37884c7258ff597c32e3234e912d59e475c5327c7fa4ca15896fb2409e0d67d",
+        "Microsoft.CodeAnalysis.Workspaces.MSBuild.Contracts.dll": "6c582cd8fd4930539ff74142450fc6b3c722dd18ebc4f19bdf3e6427430bbfc0"
+      },
+      "net472Files": [
+        "Microsoft.Bcl.AsyncInterfaces.dll",
+        "Microsoft.Build.Locator.dll",
+        "Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.exe",
+        "Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.exe.config",
+        "Microsoft.CodeAnalysis.Workspaces.MSBuild.Contracts.dll",
+        "Microsoft.CodeAnalysis.Workspaces.MSBuild.Contracts.pdb",
+        "Microsoft.IO.Redist.dll",
+        "System.Buffers.dll",
+        "System.IO.Pipelines.dll",
+        "System.Memory.dll",
+        "System.Numerics.Vectors.dll",
+        "System.Runtime.CompilerServices.Unsafe.dll",
+        "System.Text.Encodings.Web.dll",
+        "System.Text.Json.dll",
+        "System.Threading.Tasks.Extensions.dll"
+      ]
+    },
+    "microsoft.net.stringtools.18.7.1.nupkg": {
+      "id": "Microsoft.NET.StringTools",
+      "version": "18.7.1",
+      "downloadUrl": "https://api.nuget.org/v3-flatcontainer/microsoft.net.stringtools/18.7.1/microsoft.net.stringtools.18.7.1.nupkg",
+      "sha256": "b13124fa77a2aff41bae7f77fd3d42dea525db927492f0ff31fea88e8060cd07",
+      "nuspecRepository": {"type": "git", "url": "https://github.com/dotnet/msbuild", "commit": "024f5b0379cf99b95bc8939cd92a57912528b55c"},
+      "libAndRefFolders": ["lib/net10.0", "lib/net472", "lib/netstandard2.0", "ref/net10.0", "ref/net472", "ref/netstandard2.0"],
+      "nuspecDependencyGroups": {".NETFramework3.5": [], ".NETFramework4.7.2": ["System.Memory 4.6.3", "System.Runtime.CompilerServices.Unsafe 6.1.2"], "net10.0": [], ".NETStandard2.0": ["System.Memory 4.6.3", "System.Runtime.CompilerServices.Unsafe 6.1.2"]},
+      "nuspecUngroupedDependencies": []
+    },
+    "sqlite3mc.pclraw.bundle.2.3.5.nupkg": {
+      "id": "SQLite3MC.PCLRaw.bundle",
+      "version": "2.3.5",
+      "downloadUrl": "https://api.nuget.org/v3-flatcontainer/sqlite3mc.pclraw.bundle/2.3.5/sqlite3mc.pclraw.bundle.2.3.5.nupkg",
+      "sha256": "687f69ea6de2afc582be79b38bac7f2a695a9b4c665664a385652e522bfac080",
+      "nuspecRepository": {"type": "git", "url": "https://github.com/utelle/SQLite3MultipleCiphers-NuGet", "commit": "94f2bbae1021e6ab3ccab4f70a0ea1196cad44e1"},
+      "libAndRefFolders": ["lib/netstandard2.0"],
+      "nuspecDependencyGroups": {".NETStandard2.0": ["SQLite3MC.PCLRaw.lib 2.3.5", "SQLite3MC.PCLRaw.provider 2.3.5"]},
+      "nuspecUngroupedDependencies": []
+    },
+    "system.security.cryptography.pkcs.10.0.13.nupkg": {
+      "id": "System.Security.Cryptography.Pkcs",
+      "version": "10.0.13",
+      "downloadUrl": "https://api.nuget.org/v3-flatcontainer/system.security.cryptography.pkcs/10.0.13/system.security.cryptography.pkcs.10.0.13.nupkg",
+      "sha256": "54ed24578ead34b5b50d259084243432f11733e2754b8b196e799d3418d304a7",
+      "nuspecRepository": {"type": "git", "url": "https://github.com/dotnet/dotnet", "commit": "4099f83977f4d29604a9aeb971fb0a7bc1d5f699"},
+      "libAndRefFolders": ["lib/net10.0", "lib/net462", "lib/net8.0", "lib/net9.0", "lib/netstandard2.0", "lib/netstandard2.1"],
+      "nuspecDependencyGroups": {
+        ".NETFramework4.6.2": ["Microsoft.Bcl.Cryptography 10.0.13"],
+        "net8.0": ["Microsoft.Bcl.Cryptography 10.0.13", "System.Formats.Asn1 10.0.13"],
+        "net9.0": ["Microsoft.Bcl.Cryptography 10.0.13", "System.Formats.Asn1 10.0.13"],
+        "net10.0": [],
+        ".NETStandard2.0": ["Microsoft.Bcl.Cryptography 10.0.13", "System.Formats.Asn1 10.0.13", "System.Buffers 4.6.1", "System.Memory 4.6.3", "System.Runtime.CompilerServices.Unsafe 6.1.2", "System.Security.Cryptography.Cng 5.0.0"],
+        ".NETStandard2.1": ["Microsoft.Bcl.Cryptography 10.0.13", "System.Formats.Asn1 10.0.13", "System.Runtime.CompilerServices.Unsafe 6.1.2", "System.Security.Cryptography.Cng 5.0.0"]
+      },
+      "nuspecUngroupedDependencies": []
+    },
+    "microsoft.codeanalysis.workspaces.msbuild.5.9.0.nupkg": {
+      "id": "Microsoft.CodeAnalysis.Workspaces.MSBuild",
+      "version": "5.9.0",
+      "downloadUrl": "https://api.nuget.org/v3-flatcontainer/microsoft.codeanalysis.workspaces.msbuild/5.9.0/microsoft.codeanalysis.workspaces.msbuild.5.9.0.nupkg",
+      "sha256": "2f8cb42826f48e33dc0e18c1aea4ccd7ef0c9a20844bfdda3665a762c449ef11",
+      "nuspecRepository": {"type": "git", "url": "https://github.com/dotnet/roslyn", "branch": "release/insiders", "commit": "35d9211b841e7613c1d2f8f5af6d628ace696c4c"},
+      "libAndRefFolders": ["lib/net10.0", "lib/net472"],
+      "nuspecDependencyGroups": {
+        ".NETFramework4.7.2": [
+          "Microsoft.CodeAnalysis.Workspaces.Common [5.9.0, 5.9.0]",
+          "Microsoft.Build.Framework 18.0.2",
+          "Microsoft.Extensions.Logging 10.0.1",
+          "Microsoft.VisualStudio.SolutionPersistence 1.0.52",
+          "System.Text.Json 10.0.1",
+          "Humanizer.Core 2.14.1",
+          "Microsoft.Bcl.AsyncInterfaces 10.0.1",
+          "Microsoft.CodeAnalysis.Analyzers 5.9.0-1.26328.17",
+          "Microsoft.Extensions.DependencyInjection 10.0.1",
+          "Microsoft.Extensions.Logging.Abstractions 10.0.1",
+          "Microsoft.Extensions.Options 10.0.1",
+          "Microsoft.Extensions.Primitives 10.0.1",
+          "Microsoft.IO.Redist 6.1.0",
+          "System.Buffers 4.6.1",
+          "System.Collections.Immutable 10.0.1",
+          "System.Composition 10.0.1",
+          "System.Diagnostics.DiagnosticSource 10.0.1",
+          "System.IO.Pipelines 10.0.1",
+          "System.Memory 4.6.3",
+          "System.Numerics.Vectors 4.6.1",
+          "System.Reflection.Metadata 10.0.1",
+          "System.Runtime.CompilerServices.Unsafe 6.1.2",
+          "System.Text.Encoding.CodePages 8.0.0",
+          "System.Text.Encodings.Web 10.0.1",
+          "System.Threading.Channels 8.0.0",
+          "System.Threading.Tasks.Extensions 4.6.3",
+          "System.ValueTuple 4.6.1"
+        ],
+        "net10.0": [
+          "Microsoft.CodeAnalysis.Workspaces.Common [5.9.0, 5.9.0]",
+          "Microsoft.Build.Framework 17.11.48",
+          "Microsoft.Extensions.Logging 10.0.1",
+          "Microsoft.VisualStudio.SolutionPersistence 1.0.52",
+          "Humanizer.Core 2.14.1",
+          "Microsoft.CodeAnalysis.Analyzers 5.9.0-1.26328.17",
+          "Microsoft.Extensions.DependencyInjection 10.0.1",
+          "Microsoft.Extensions.Logging.Abstractions 10.0.1",
+          "Microsoft.Extensions.Options 10.0.1",
+          "Microsoft.Extensions.Primitives 10.0.1",
+          "System.Composition 10.0.1"
+        ]
+      },
+      "nuspecUngroupedDependencies": [],
+      "hostPathsInPackage": ["contentFiles/any/any"],
+      "netcoreRuntimeconfig": {
+        "runtimeOptions": {
+          "tfm": "net8.0",
+          "framework": {"name": "Microsoft.NETCore.App", "version": "8.0.0"},
+          "rollForward": "Major",
+          "configProperties": {"System.Reflection.Metadata.MetadataUpdater.IsSupported": false, "System.Runtime.Serialization.EnableUnsafeBinaryFormatterSerialization": false}
+        }
+      },
+      "netcoreDepsTarget": {"name": ".NETCoreApp,Version=v8.0", "signature": ""},
+      "netcoreDepsEntries": {
+        "Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost/5.9.0-1.26357.3": {"dependencies": {"Microsoft.Build.Locator": "1.10.2", "Microsoft.CodeAnalysis.Workspaces.MSBuild.Contracts": "5.9.0-1.26357.3"}, "runtime": {"Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.dll": {}}},
+        "Microsoft.Build.Locator/1.10.2": {"runtime": {"lib/net8.0/Microsoft.Build.Locator.dll": {"assemblyVersion": "1.0.0.0", "fileVersion": "1.10.2.26959"}}},
+        "Microsoft.CodeAnalysis.Workspaces.MSBuild.Contracts/5.9.0-1.26357.3": {"runtime": {"Microsoft.CodeAnalysis.Workspaces.MSBuild.Contracts.dll": {"assemblyVersion": "5.9.0.0", "fileVersion": "5.900.26.35703"}}}
+      },
+      "netcoreDllSha256": {
+        "Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.dll": "c0b3250cda498f1533fde4d46a9e01169ce7d35e4060ad598e4488a8e84803c2",
+        "Microsoft.Build.Locator.dll": "fcc85336217be226f90a5ddfa55151dc84fcb2a76fe242f5274535c6b878aa30",
+        "Microsoft.CodeAnalysis.Workspaces.MSBuild.Contracts.dll": "aab9f64e81c15885c7d9e8872a632e246b5581aeb6874684f23fb8d1a5a26229"
+      },
+      "net472Files": [
+        "Microsoft.Bcl.AsyncInterfaces.dll",
+        "Microsoft.Build.Locator.dll",
+        "Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.exe",
+        "Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.exe.config",
+        "Microsoft.CodeAnalysis.Workspaces.MSBuild.Contracts.dll",
+        "Microsoft.CodeAnalysis.Workspaces.MSBuild.Contracts.pdb",
+        "Microsoft.IO.Redist.dll",
+        "System.Buffers.dll",
+        "System.IO.Pipelines.dll",
+        "System.Memory.dll",
+        "System.Numerics.Vectors.dll",
+        "System.Runtime.CompilerServices.Unsafe.dll",
+        "System.Text.Encodings.Web.dll",
+        "System.Text.Json.dll",
+        "System.Threading.Tasks.Extensions.dll"
+      ]
+    },
+    "sqlitepclraw.bundle_e_sqlite3.2.1.11.nupkg": {
+      "id": "SQLitePCLRaw.bundle_e_sqlite3",
+      "version": "2.1.11",
+      "downloadUrl": "https://api.nuget.org/v3-flatcontainer/sqlitepclraw.bundle_e_sqlite3/2.1.11/sqlitepclraw.bundle_e_sqlite3.2.1.11.nupkg",
+      "sha256": "91645aa4c4d511f71cd03c6723d022d7e470000711dbe1d4bbe585f8e78b242b",
+      "nuspecRepository": {"type": "git", "url": "https://github.com/ericsink/SQLitePCL.raw"},
+      "libAndRefFolders": ["lib/monoandroid90", "lib/net461", "lib/net6.0-android31.0", "lib/net6.0-ios14.0", "lib/net6.0-ios14.2", "lib/net6.0-tvos10.0", "lib/netstandard2.0", "lib/xamarinios10"],
+      "nuspecDependencyGroups": {
+        ".NETFramework4.6.1": ["SQLitePCLRaw.provider.dynamic_cdecl 2.1.11", "SQLitePCLRaw.lib.e_sqlite3 2.1.11"],
+        "MonoAndroid9.0": ["SQLitePCLRaw.lib.e_sqlite3.android 2.1.11", "SQLitePCLRaw.provider.e_sqlite3 2.1.11"],
+        "Xamarin.iOS1.0": ["SQLitePCLRaw.lib.e_sqlite3.ios 2.1.11", "SQLitePCLRaw.provider.internal 2.1.11"],
+        "net6.0-android31.0": ["SQLitePCLRaw.lib.e_sqlite3.android 2.1.11", "SQLitePCLRaw.provider.e_sqlite3 2.1.11"],
+        "net6.0-ios14.0": ["SQLitePCLRaw.provider.e_sqlite3 2.1.11", "SQLitePCLRaw.lib.e_sqlite3 2.1.11", "System.Runtime.InteropServices.NFloat.Internal 6.0.1"],
+        "net6.0-ios14.2": ["SQLitePCLRaw.lib.e_sqlite3.ios 2.1.11", "SQLitePCLRaw.provider.internal 2.1.11", "System.Runtime.InteropServices.NFloat.Internal 6.0.1"],
+        "net6.0-tvos10.0": ["SQLitePCLRaw.lib.e_sqlite3.tvos 2.1.11", "SQLitePCLRaw.provider.internal 2.1.11", "System.Runtime.InteropServices.NFloat.Internal 6.0.1"],
+        ".NETStandard2.0": ["SQLitePCLRaw.provider.e_sqlite3 2.1.11", "SQLitePCLRaw.lib.e_sqlite3 2.1.11"]
+      },
+      "nuspecUngroupedDependencies": []
+    },
+    "sqlitepclraw.core.2.1.11.nupkg": {
+      "id": "SQLitePCLRaw.core",
+      "version": "2.1.11",
+      "downloadUrl": "https://api.nuget.org/v3-flatcontainer/sqlitepclraw.core/2.1.11/sqlitepclraw.core.2.1.11.nupkg",
+      "sha256": "b3f7f112862535ff5cd82e0766e78cccf081be98958835654a983b7a90741976",
+      "nuspecRepository": {"type": "git", "url": "https://github.com/ericsink/SQLitePCL.raw"},
+      "libAndRefFolders": ["lib/netstandard2.0"],
+      "nuspecDependencyGroups": {".NETStandard2.0": ["System.Memory 4.5.3"]},
+      "nuspecUngroupedDependencies": []
+    },
+    "sqlitepclraw.lib.e_sqlite3.2.1.11.nupkg": {
+      "id": "SQLitePCLRaw.lib.e_sqlite3",
+      "version": "2.1.11",
+      "downloadUrl": "https://api.nuget.org/v3-flatcontainer/sqlitepclraw.lib.e_sqlite3/2.1.11/sqlitepclraw.lib.e_sqlite3.2.1.11.nupkg",
+      "sha256": "6667df6c73609cb51db0f6e29229440228715e5d4c79d2014355f3b7ddb6e81c",
+      "nuspecRepository": {"type": "git", "url": "https://github.com/ericsink/SQLitePCL.raw"},
+      "libAndRefFolders": ["lib/net461", "lib/netstandard2.0"],
+      "nuspecDependencyGroups": {},
+      "nuspecUngroupedDependencies": []
+    },
+    "sqlitepclraw.provider.e_sqlite3.2.1.11.nupkg": {
+      "id": "SQLitePCLRaw.provider.e_sqlite3",
+      "version": "2.1.11",
+      "downloadUrl": "https://api.nuget.org/v3-flatcontainer/sqlitepclraw.provider.e_sqlite3/2.1.11/sqlitepclraw.provider.e_sqlite3.2.1.11.nupkg",
+      "sha256": "2dd7d5df6e409988013b09b03fb30d67130966434ee9bc2b1ef07a0b94b222d0",
+      "nuspecRepository": {"type": "git", "url": "https://github.com/ericsink/SQLitePCL.raw"},
+      "libAndRefFolders": ["lib/net6.0", "lib/net6.0-windows7.0", "lib/netstandard2.0"],
+      "nuspecDependencyGroups": {"net6.0": ["SQLitePCLRaw.core 2.1.11"], "net6.0-windows7.0": ["SQLitePCLRaw.core 2.1.11"], ".NETStandard2.0": ["SQLitePCLRaw.core 2.1.11"]},
+      "nuspecUngroupedDependencies": []
+    }
+  },
+  "isolatedNet10Restores": {
+    "Baseline": {
+      "directPackageReferences": [
+        {"Include": "ICSharpCode.Decompiler", "Version": "10.0.1.8346"},
+        {"Include": "Microsoft.Build.Locator", "Version": "1.11.2"},
+        {"Include": "Microsoft.Build", "Version": "18.6.3", "PrivateAssets": "all", "ExcludeAssets": "runtime", "IncludeAssets": "compile; build; native; contentfiles; analyzers; buildtransitive"},
+        {"Include": "Microsoft.Build.Framework", "Version": "18.6.3", "PrivateAssets": "all", "ExcludeAssets": "runtime", "IncludeAssets": "compile; build; native; contentfiles; analyzers; buildtransitive"},
+        {"Include": "Microsoft.Build.Utilities.Core", "Version": "18.6.3", "PrivateAssets": "all", "ExcludeAssets": "runtime", "IncludeAssets": "compile; build; native; contentfiles; analyzers; buildtransitive"},
+        {"Include": "Microsoft.Build.Tasks.Core", "Version": "18.6.3", "PrivateAssets": "all", "ExcludeAssets": "runtime", "IncludeAssets": "compile; build; native; contentfiles; analyzers; buildtransitive"},
+        {"Include": "Microsoft.NET.StringTools", "Version": "18.6.3", "PrivateAssets": "all", "ExcludeAssets": "runtime", "IncludeAssets": "compile; build; native; contentfiles; analyzers; buildtransitive"},
+        {"Include": "Microsoft.CodeAnalysis.CSharp", "Version": "5.9.0"},
+        {"Include": "Microsoft.CodeAnalysis.CSharp.Workspaces", "Version": "5.9.0"},
+        {"Include": "Microsoft.CodeAnalysis.CSharp.Features", "Version": "5.9.0"},
+        {"Include": "Microsoft.CodeAnalysis.Features", "Version": "5.9.0"},
+        {"Include": "Microsoft.CodeAnalysis.Workspaces.MSBuild", "Version": "5.9.0"},
+        {"Include": "SQLite3MC.PCLRaw.bundle", "Version": "2.3.5"},
+        {"Include": "Microsoft.Extensions.Hosting", "Version": "10.0.8"},
+        {"Include": "ModelContextProtocol", "Version": "2.2.0"},
+        {"Include": "Serilog.Extensions.Hosting", "Version": "10.0.0"},
+        {"Include": "System.Security.Cryptography.Pkcs", "Version": "10.0.13"},
+        {"Include": "Serilog.Sinks.File", "Version": "7.0.0"}
+      ],
+      "restoreExitCode": 0,
+      "restoreOutput": ["Determining projects to restore...", "Restored candidate-closure\\Baseline\\Baseline.csproj (in 4 sec)."],
+      "selectedAssets": {
+        "Microsoft.Build/18.6.3": {"compile": ["ref/net10.0/Microsoft.Build.dll"], "runtime": ["lib/net10.0/_._"], "nativeAssetsForReleaseRids": []},
+        "Microsoft.Build.Framework/18.6.3": {"compile": ["ref/net10.0/Microsoft.Build.Framework.dll"], "runtime": ["lib/net10.0/_._"], "nativeAssetsForReleaseRids": []},
+        "Microsoft.Build.Locator/1.11.2": {"compile": ["lib/net8.0/Microsoft.Build.Locator.dll"], "runtime": ["lib/net8.0/Microsoft.Build.Locator.dll"], "nativeAssetsForReleaseRids": []},
+        "Microsoft.Build.Tasks.Core/18.6.3": {"compile": ["ref/net10.0/Microsoft.Build.Tasks.Core.dll"], "runtime": ["lib/net10.0/_._"], "nativeAssetsForReleaseRids": []},
+        "Microsoft.Build.Utilities.Core/18.6.3": {"compile": ["ref/net10.0/Microsoft.Build.Utilities.Core.dll"], "runtime": ["lib/net10.0/_._"], "nativeAssetsForReleaseRids": []},
+        "Microsoft.NET.StringTools/18.6.3": {"compile": ["ref/net10.0/Microsoft.NET.StringTools.dll"], "runtime": ["lib/net10.0/_._"], "nativeAssetsForReleaseRids": []},
+        "SQLite3MC.PCLRaw.bundle/2.3.5": {"compile": ["lib/netstandard2.0/SQLitePCLRaw.batteries_v2.dll"], "runtime": ["lib/netstandard2.0/SQLitePCLRaw.batteries_v2.dll"], "nativeAssetsForReleaseRids": []},
+        "SQLite3MC.PCLRaw.lib/2.3.5": {"compile": ["lib/netstandard2.0/_._"], "runtime": ["lib/netstandard2.0/_._"], "nativeAssetsForReleaseRids": ["runtimes/linux-x64/native/libsqlite3mc.so", "runtimes/osx-arm64/native/libsqlite3mc.dylib", "runtimes/win-x64/native/sqlite3mc.dll"]},
+        "SQLite3MC.PCLRaw.provider/2.3.5": {"compile": ["lib/netstandard2.0/SQLite3MC.PCLRaw.provider.dll"], "runtime": ["lib/netstandard2.0/SQLite3MC.PCLRaw.provider.dll"], "nativeAssetsForReleaseRids": []},
+        "SQLitePCLRaw.core/3.0.2": {"compile": ["lib/netstandard2.0/SQLitePCLRaw.core.dll"], "runtime": ["lib/netstandard2.0/SQLitePCLRaw.core.dll"], "nativeAssetsForReleaseRids": []},
+        "System.Security.Cryptography.Pkcs/10.0.13": {"compile": ["lib/net10.0/System.Security.Cryptography.Pkcs.dll"], "runtime": ["lib/net10.0/System.Security.Cryptography.Pkcs.dll"], "nativeAssetsForReleaseRids": []},
+        "System.Security.Cryptography.Xml/10.0.3": {"compile": ["lib/net10.0/System.Security.Cryptography.Xml.dll"], "runtime": ["lib/net10.0/_._"], "nativeAssetsForReleaseRids": []}
+      },
+      "audit": {
+        "sources": ["https://api.nuget.org/v3/index.json"],
+        "frameworks": [
+          {
+            "framework": "net10.0",
+            "topLevelPackages": [],
+            "transitivePackages": [
+              {
+                "id": "System.Security.Cryptography.Xml",
+                "resolvedVersion": "10.0.3",
+                "vulnerabilities": [
+                  {"severity": "High", "advisoryurl": "https://github.com/advisories/GHSA-37gx-xxp4-5rgx"},
+                  {"severity": "High", "advisoryurl": "https://github.com/advisories/GHSA-w3x6-4m5h-cxqf"},
+                  {"severity": "High", "advisoryurl": "https://github.com/advisories/GHSA-g8r8-53c2-pm3f"},
+                  {"severity": "High", "advisoryurl": "https://github.com/advisories/GHSA-8q5v-6pqq-x66h"},
+                  {"severity": "High", "advisoryurl": "https://github.com/advisories/GHSA-23rf-6693-g89p"},
+                  {"severity": "High", "advisoryurl": "https://github.com/advisories/GHSA-cvvh-rhrc-wg4q"},
+                  {"severity": "High", "advisoryurl": "https://github.com/advisories/GHSA-6588-8gv4-xfgh"},
+                  {"severity": "High", "advisoryurl": "https://github.com/advisories/GHSA-mmjf-rqrv-855v"},
+                  {"severity": "High", "advisoryurl": "https://github.com/advisories/GHSA-7hqp-7c5m-4vq6"},
+                  {"severity": "High", "advisoryurl": "https://github.com/advisories/GHSA-r955-8q5j-3h83"},
+                  {"severity": "High", "advisoryurl": "https://github.com/advisories/GHSA-c399-9853-6jmj"}
+                ]
+              }
+            ]
+          }
+        ],
+        "exitCode": 0
+      },
+      "resolvedPackages": {
+        "Humanizer.Core/2.14.1": {"sha512": "lQKvtaTDOXnoVJ20ibTuSIOf2i0uO0MPbDhd1jm238I+U/2ZnRENj0cktKZhtchBMtCUSRQ5v4xBCUbKNmyVMw==", "dependencies": {}},
+        "ICSharpCode.Decompiler/10.0.1.8346": {"sha512": "9fgDEzAaK/eFWJu2QMvBf2WzkQh5KKKOL5h+e9l1aTlkAJyODrZdhqQyZIL2rzD/rwl8nzxYZ0HUn8792R7Uvw==", "dependencies": {}},
+        "Microsoft.Build/18.6.3": {
+          "sha512": "7tQw0EnI5f0actJAOJdZJTpJXoJtJlDzDh1ecTJMOcaFXr5t2mnL29ea7Pn6VeTWf1R5pnzbZTvdorBsSZBodA==",
+          "dependencies": {"Microsoft.Build.Framework": "18.6.3", "System.Configuration.ConfigurationManager": "10.0.3", "System.Diagnostics.EventLog": "10.0.3", "System.Reflection.MetadataLoadContext": "10.0.3", "System.Security.Cryptography.ProtectedData": "10.0.3"}
+        },
+        "Microsoft.Build.Framework/18.6.3": {"sha512": "jywLHZK1Skb+kVO9Q2Drz0h3p0MnUDsMudYcXNKq1vYXPiYDXHbWJZlMxhyt2dp0T3IYiTQPb+6FMnWRwt3Kiw==", "dependencies": {"Microsoft.NET.StringTools": "18.6.3"}},
+        "Microsoft.Build.Locator/1.11.2": {"sha512": "tY+/S54G29CGsbL3slVu4vqtpciwVnb3fKOmrhgzEQmu/VziFaWmD/E1e/2KH7cDucuycGSkWsSXndBs5Uawow==", "dependencies": {}},
+        "Microsoft.Build.Tasks.Core/18.6.3": {
+          "sha512": "Ngp8CUmiSmB63MUzTIrWlVnvyyiRNrEIRv8tU5l3dSesqSuOb/l1nOP9HX1NLAMc4wh5OihGfgcnhTtL0jV08A==",
+          "dependencies": {
+            "Microsoft.Build.Framework": "18.6.3",
+            "Microsoft.Build.Utilities.Core": "18.6.3",
+            "System.CodeDom": "10.0.3",
+            "System.Configuration.ConfigurationManager": "10.0.3",
+            "System.Diagnostics.EventLog": "10.0.3",
+            "System.Formats.Nrbf": "10.0.3",
+            "System.Resources.Extensions": "10.0.3",
+            "System.Security.Cryptography.Pkcs": "10.0.3",
+            "System.Security.Cryptography.ProtectedData": "10.0.3",
+            "System.Security.Cryptography.Xml": "10.0.3"
+          }
+        },
+        "Microsoft.Build.Utilities.Core/18.6.3": {
+          "sha512": "QY8fuN42Tlssib/YMyIECX3MoMAB49v3ZS7uTpf6tNs5BbzdXmo+o9HI1joUXJLwueQn9Lbwdpv+q44tzsqFdw==",
+          "dependencies": {"Microsoft.Build.Framework": "18.6.3", "System.Configuration.ConfigurationManager": "10.0.3", "System.Diagnostics.EventLog": "10.0.3", "System.Security.Cryptography.ProtectedData": "10.0.3"}
+        },
+        "Microsoft.CodeAnalysis.Analyzers/5.9.0-1.26328.17": {"sha512": "HP9NNk8ZjOSI2hgOyXnQg+kv7/X837Vr2nAlXiGAtqtYnYKjRRa1UmQFr8KFs5ynGYKqfbb8zB9APoWjiAGdMg==", "dependencies": {}},
+        "Microsoft.CodeAnalysis.Common/5.9.0": {"sha512": "IYaIaUWdIx539AReKZOBEqTskFusZfCh/wFSPilDvCn5Say8MegLw2LONcSIcVy+v3Gzv53qYBspgvBGSErfbQ==", "dependencies": {"Microsoft.CodeAnalysis.Analyzers": "5.9.0-1.26328.17"}},
+        "Microsoft.CodeAnalysis.CSharp/5.9.0": {"sha512": "7JGDA0UT1+h7k9ZcA3rF4eFC8+QPq1xyYaXxag4p8r/zzPurEJxvdi7aM+MRL/SfP7XADXpWF/pl/eUYXOq/ww==", "dependencies": {"Microsoft.CodeAnalysis.Analyzers": "5.9.0-1.26328.17", "Microsoft.CodeAnalysis.Common": "[5.9.0]"}},
+        "Microsoft.CodeAnalysis.CSharp.Features/5.9.0": {
+          "sha512": "sOSIJWshPjBrJCpr+gIJzUJJ8I3qC7ewEo80O+3IhrUYYGIXTiaBY+NpSWJ3ZDjnzbTniqK1MF6FBGFgmR9xHw==",
+          "dependencies": {
+            "Humanizer.Core": "2.14.1",
+            "Microsoft.CodeAnalysis.Analyzers": "5.9.0-1.26328.17",
+            "Microsoft.CodeAnalysis.CSharp": "[5.9.0]",
+            "Microsoft.CodeAnalysis.CSharp.Workspaces": "[5.9.0]",
+            "Microsoft.CodeAnalysis.Common": "[5.9.0]",
+            "Microsoft.CodeAnalysis.Elfie": "1.0.0",
+            "Microsoft.CodeAnalysis.Features": "[5.9.0]",
+            "Microsoft.CodeAnalysis.Workspaces.Common": "[5.9.0]",
+            "Microsoft.DiaSymReader": "2.0.0",
+            "System.Composition": "10.0.1",
+            "System.Configuration.ConfigurationManager": "10.0.1",
+            "System.Diagnostics.EventLog": "10.0.1",
+            "System.Security.Cryptography.ProtectedData": "10.0.1"
+          }
+        },
+        "Microsoft.CodeAnalysis.CSharp.Workspaces/5.9.0": {
+          "sha512": "D2zqK/k16fto0yMz0hcXMTkzOxEwMDJyA1mu/KXF9Befwz4zub3MpHQD8FeRxJtVSSsC3dQFYBw7zu7r/pfO7g==",
+          "dependencies": {"Humanizer.Core": "2.14.1", "Microsoft.CodeAnalysis.Analyzers": "5.9.0-1.26328.17", "Microsoft.CodeAnalysis.CSharp": "[5.9.0]", "Microsoft.CodeAnalysis.Common": "[5.9.0]", "Microsoft.CodeAnalysis.Workspaces.Common": "[5.9.0]", "System.Composition": "10.0.1"}
+        },
+        "Microsoft.CodeAnalysis.Elfie/1.0.0": {"sha512": "r12elUp4MRjdnRfxEP+xqVSUUfG3yIJTBEJGwbfvF5oU4m0jb9HC0gFG28V/dAkYGMkRmHVi3qvrnBLQSw9X3Q==", "dependencies": {"System.Configuration.ConfigurationManager": "4.5.0", "System.Data.DataSetExtensions": "4.5.0"}},
+        "Microsoft.CodeAnalysis.Features/5.9.0": {
+          "sha512": "vQfJL8QCkIpVZJclBktt9X9ONECzzwXJdIF37z5TeQndWkKcEkc0oEmtZ8Wi3jY+kxZYsZW0QiBQekLpAglf9g==",
+          "dependencies": {
+            "Humanizer.Core": "2.14.1",
+            "Microsoft.CodeAnalysis.Analyzers": "5.9.0-1.26328.17",
+            "Microsoft.CodeAnalysis.Common": "[5.9.0]",
+            "Microsoft.CodeAnalysis.Elfie": "1.0.0",
+            "Microsoft.CodeAnalysis.Scripting.Common": "[5.9.0]",
+            "Microsoft.CodeAnalysis.Workspaces.Common": "[5.9.0]",
+            "Microsoft.DiaSymReader": "2.0.0",
+            "System.Composition": "10.0.1",
+            "System.Configuration.ConfigurationManager": "10.0.1",
+            "System.Diagnostics.EventLog": "10.0.1",
+            "System.Security.Cryptography.ProtectedData": "10.0.1"
+          }
+        },
+        "Microsoft.CodeAnalysis.Scripting.Common/5.9.0": {"sha512": "poPyBPb6ML7xUMeMAD6qq8fj0QjufZx9gU7WhZlTeGGKzvmcAooVuucSwMXw+gxLA0EG4jyiGocIkkCxbjITZw==", "dependencies": {"Microsoft.CodeAnalysis.Analyzers": "5.9.0-1.26328.17", "Microsoft.CodeAnalysis.Common": "[5.9.0]"}},
+        "Microsoft.CodeAnalysis.Workspaces.Common/5.9.0": {
+          "sha512": "1A6jz50NG4nOEW8tX5+h+MyHqjWL0mPGwrUdwu+OlTfyknLo0GfxSqj4zEks8uVUdHdo9v8Ir9dHxACf8iYNEA==",
+          "dependencies": {"Humanizer.Core": "2.14.1", "Microsoft.CodeAnalysis.Analyzers": "5.9.0-1.26328.17", "Microsoft.CodeAnalysis.Common": "[5.9.0]", "System.Composition": "10.0.1"}
+        },
+        "Microsoft.CodeAnalysis.Workspaces.MSBuild/5.9.0": {
+          "sha512": "BBux6hhD4wXt4lYN2oaY+jV4PnIj5plyqohijgSZtxJQqsvsldPEdii2q9lGrJbNjKEALnldDHz1rmGKG0PeeA==",
+          "dependencies": {
+            "Humanizer.Core": "2.14.1",
+            "Microsoft.Build.Framework": "17.11.48",
+            "Microsoft.CodeAnalysis.Analyzers": "5.9.0-1.26328.17",
+            "Microsoft.CodeAnalysis.Workspaces.Common": "[5.9.0]",
+            "Microsoft.Extensions.DependencyInjection": "10.0.1",
+            "Microsoft.Extensions.Logging": "10.0.1",
+            "Microsoft.Extensions.Logging.Abstractions": "10.0.1",
+            "Microsoft.Extensions.Options": "10.0.1",
+            "Microsoft.Extensions.Primitives": "10.0.1",
+            "Microsoft.VisualStudio.SolutionPersistence": "1.0.52",
+            "System.Composition": "10.0.1"
+          }
+        },
+        "Microsoft.DiaSymReader/2.0.0": {"sha512": "QcZrCETsBJqy/vQpFtJc+jSXQ0K5sucQ6NUFbTNVHD4vfZZOwjZ/3sBzczkC4DityhD3AVO/+K/+9ioLs1AgRA==", "dependencies": {}},
+        "Microsoft.Extensions.AI.Abstractions/10.8.3": {"sha512": "K0B05oApxmviWalNHPMBBcRC7erKiDATz3ENNR/jqTR9JwIwLRefgDhj2jCRwL1aca99pXUe0qyQC73/xIuZig==", "dependencies": {}},
+        "Microsoft.Extensions.Caching.Abstractions/10.0.10": {"sha512": "4ZFBNE+jzR+CrWWlhOesnmywCW7pYKT0dxyAQRdL11yJwxe4jvcAu31eorFtEkoFeCDcUTeNssgPv2yaRRptaQ==", "dependencies": {"Microsoft.Extensions.Primitives": "10.0.10"}},
+        "Microsoft.Extensions.Configuration/10.0.8": {"sha512": "ehZcoPbjzWzS4XFvuz7R3V55SmpdkyMqFURLH3yXaN9NtXd9tR6CGB7pd49HYtCkenl+G7ctXSFLhNI08xLfRg==", "dependencies": {"Microsoft.Extensions.Configuration.Abstractions": "10.0.8", "Microsoft.Extensions.Primitives": "10.0.8"}},
+        "Microsoft.Extensions.Configuration.Abstractions/10.0.10": {"sha512": "5Vnd2I75DmZCVEjSynIdJ/0EGafgnLQwgR3t2C2/fkjx/nRG+cLwxLLdInoHeCEpkD5K4Ov/g9ZCRYrl4TRsaA==", "dependencies": {"Microsoft.Extensions.Primitives": "10.0.10"}},
+        "Microsoft.Extensions.Configuration.Binder/10.0.8": {"sha512": "R3NN1X+kVu14uoxLEW6sBSQyhogDSbaOQzILnCtuXxBN4hx22AgjWPwZX6v/suERFkEDgU1lk12AglHTrUxhlw==", "dependencies": {"Microsoft.Extensions.Configuration": "10.0.8", "Microsoft.Extensions.Configuration.Abstractions": "10.0.8"}},
+        "Microsoft.Extensions.Configuration.CommandLine/10.0.8": {"sha512": "nQXq1a4MiInYh+0VF9fguxAl06q2ftmOyYQ+5e933s4rk57xjgkbTjUdFUySzjrcrvDeWsSqlZB+TE8+TbM2HA==", "dependencies": {"Microsoft.Extensions.Configuration": "10.0.8", "Microsoft.Extensions.Configuration.Abstractions": "10.0.8"}},
+        "Microsoft.Extensions.Configuration.EnvironmentVariables/10.0.8": {"sha512": "bVGqctAfPGfTxJvNp8pMshtvpsUj6r6JkeiCNVIGVYO5gBxuxdN0Lbr25kEvE/zXdctkEc44g8HssnPgDnFGVA==", "dependencies": {"Microsoft.Extensions.Configuration": "10.0.8", "Microsoft.Extensions.Configuration.Abstractions": "10.0.8"}},
+        "Microsoft.Extensions.Configuration.FileExtensions/10.0.8": {
+          "sha512": "1g9mzuu8gIHkjYb0jLxOTQVl/QDG5nn0b0JzgT/gbgNKr6gXZzxOHRAsdYRc1eDApB7LdHR8uK5vQrNjIQdRrQ==",
+          "dependencies": {
+            "Microsoft.Extensions.Configuration": "10.0.8",
+            "Microsoft.Extensions.Configuration.Abstractions": "10.0.8",
+            "Microsoft.Extensions.FileProviders.Abstractions": "10.0.8",
+            "Microsoft.Extensions.FileProviders.Physical": "10.0.8",
+            "Microsoft.Extensions.Primitives": "10.0.8"
+          }
+        },
+        "Microsoft.Extensions.Configuration.Json/10.0.8": {
+          "sha512": "KLtAZ6A38s1pIfCO2ns6aG14NNGMYNZ4PBYfFK4M+R4A+xuSc6oklhqDcpHZxvDpyBWeFtR5C8iQBw2ng8tUHQ==",
+          "dependencies": {"Microsoft.Extensions.Configuration": "10.0.8", "Microsoft.Extensions.Configuration.Abstractions": "10.0.8", "Microsoft.Extensions.Configuration.FileExtensions": "10.0.8", "Microsoft.Extensions.FileProviders.Abstractions": "10.0.8"}
+        },
+        "Microsoft.Extensions.Configuration.UserSecrets/10.0.8": {
+          "sha512": "6XTfFOnf27WY8kEeZkTZ4YNn0t+imgvdQ0YaAdR4vgURKATo9bCaVJ1KB71IOJAQtJP7Elb53VHlTNXg2CtSsA==",
+          "dependencies": {"Microsoft.Extensions.Configuration.Abstractions": "10.0.8", "Microsoft.Extensions.Configuration.Json": "10.0.8", "Microsoft.Extensions.FileProviders.Abstractions": "10.0.8", "Microsoft.Extensions.FileProviders.Physical": "10.0.8"}
+        },
+        "Microsoft.Extensions.DependencyInjection/10.0.8": {"sha512": "daf62xHIrq8pnE709hgaZZN9tSam9TGGepWe1+bE6V3GEuVwJiMs6ib+38lfMCyAJAHiX0vapxBhsuMSV7U+cg==", "dependencies": {"Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.8"}},
+        "Microsoft.Extensions.DependencyInjection.Abstractions/10.0.10": {"sha512": "z/2xXlFw2aLGjHyEm6E0tQ+In6VfzQzTrtArbQ2c0TQE16ZbyDCMGPvaUT9I0s8rgy9sRWlU2P9waW37qV04qA==", "dependencies": {}},
+        "Microsoft.Extensions.Diagnostics/10.0.8": {
+          "sha512": "uduyw9d3Fi+sbredO5drA1S44AQS2FRNFyn72UmB2vmQIO1qaXprpp1U/2lYhYi8yFdVERfY9sy/pxw/qPOU9w==",
+          "dependencies": {"Microsoft.Extensions.Configuration": "10.0.8", "Microsoft.Extensions.Diagnostics.Abstractions": "10.0.8", "Microsoft.Extensions.Options.ConfigurationExtensions": "10.0.8"}
+        },
+        "Microsoft.Extensions.Diagnostics.Abstractions/10.0.10": {"sha512": "9uWiKpeOVac355STyChWR/pliFX/5CeLqChW9kKsaxyDH4EUTZxMkT4Jwp/J/peLm0GBFmSX5c0WCse3yCnq1Q==", "dependencies": {"Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.10", "Microsoft.Extensions.Options": "10.0.10"}},
+        "Microsoft.Extensions.FileProviders.Abstractions/10.0.10": {"sha512": "c5zqFCY9DiIpMovLd7/d/CTiEtrMOuQ639dhv3PABtKQIKNQikSHwQt8+N679uii9q+B55lgK28Uv64FOwEu8w==", "dependencies": {"Microsoft.Extensions.Primitives": "10.0.10"}},
+        "Microsoft.Extensions.FileProviders.Physical/10.0.8": {
+          "sha512": "GkPvQe6IdidLu6Q3Lw6+B8NJpW8feW8czZ5mBKt5rXM/x8MvZfEp5WvAsjznzDGd23chIDrW0b2mmt+ScnEgiw==",
+          "dependencies": {"Microsoft.Extensions.FileProviders.Abstractions": "10.0.8", "Microsoft.Extensions.FileSystemGlobbing": "10.0.8", "Microsoft.Extensions.Primitives": "10.0.8"}
+        },
+        "Microsoft.Extensions.FileSystemGlobbing/10.0.8": {"sha512": "IUQet3SY51xIFcFZKtAB6a54/Zdxs7T3SQ84kJtOD6yeXfZgiOMksACWD5qtTmXGQGFH4QYGBOT0KIO8Uy/dJw==", "dependencies": {}},
+        "Microsoft.Extensions.Hosting/10.0.8": {
+          "sha512": "VfEyM2BipThcSd0GG/FS2ZPCVCTiosVq2zLKEDsfeMIg78sOVZPEmS7CgWlb+dqTlgXvLSL4OG2q6sM4xRhHNg==",
+          "dependencies": {
+            "Microsoft.Extensions.Configuration": "10.0.8",
+            "Microsoft.Extensions.Configuration.Abstractions": "10.0.8",
+            "Microsoft.Extensions.Configuration.Binder": "10.0.8",
+            "Microsoft.Extensions.Configuration.CommandLine": "10.0.8",
+            "Microsoft.Extensions.Configuration.EnvironmentVariables": "10.0.8",
+            "Microsoft.Extensions.Configuration.FileExtensions": "10.0.8",
+            "Microsoft.Extensions.Configuration.Json": "10.0.8",
+            "Microsoft.Extensions.Configuration.UserSecrets": "10.0.8",
+            "Microsoft.Extensions.DependencyInjection": "10.0.8",
+            "Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.8",
+            "Microsoft.Extensions.Diagnostics": "10.0.8",
+            "Microsoft.Extensions.FileProviders.Abstractions": "10.0.8",
+            "Microsoft.Extensions.FileProviders.Physical": "10.0.8",
+            "Microsoft.Extensions.Hosting.Abstractions": "10.0.8",
+            "Microsoft.Extensions.Logging": "10.0.8",
+            "Microsoft.Extensions.Logging.Abstractions": "10.0.8",
+            "Microsoft.Extensions.Logging.Configuration": "10.0.8",
+            "Microsoft.Extensions.Logging.Console": "10.0.8",
+            "Microsoft.Extensions.Logging.Debug": "10.0.8",
+            "Microsoft.Extensions.Logging.EventLog": "10.0.8",
+            "Microsoft.Extensions.Logging.EventSource": "10.0.8",
+            "Microsoft.Extensions.Options": "10.0.8"
+          }
+        },
+        "Microsoft.Extensions.Hosting.Abstractions/10.0.10": {
+          "sha512": "5LugpYGHk+mkn0a8IZgcyfBca8PCTAU9RQFoMrTdtOOidq88M2SI5f3px6ugnzgxC+eTkvYYJi8pzlUnG5xdAQ==",
+          "dependencies": {
+            "Microsoft.Extensions.Configuration.Abstractions": "10.0.10",
+            "Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.10",
+            "Microsoft.Extensions.Diagnostics.Abstractions": "10.0.10",
+            "Microsoft.Extensions.FileProviders.Abstractions": "10.0.10",
+            "Microsoft.Extensions.Logging.Abstractions": "10.0.10"
+          }
+        },
+        "Microsoft.Extensions.Logging/10.0.8": {
+          "sha512": "K60JhWC2hN/Gi7TP68tBxSzk5ACWOs7lkmPzsfA8Bcf/IXTajujt2ORMf9rSMk1bsng6Lv4Y3fuxp3bm1+15ug==",
+          "dependencies": {"Microsoft.Extensions.DependencyInjection": "10.0.8", "Microsoft.Extensions.Logging.Abstractions": "10.0.8", "Microsoft.Extensions.Options": "10.0.8"}
+        },
+        "Microsoft.Extensions.Logging.Abstractions/10.0.10": {"sha512": "zkFxGYUvdxAvIKTyXHrmW+Sux53D4SezD9dMyZ6hrwwzPQJNuwCRy1f5W7AvYTqacEGhWF2XderRQG1OvbV8og==", "dependencies": {"Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.10"}},
+        "Microsoft.Extensions.Logging.Configuration/10.0.8": {
+          "sha512": "rxSLTO7xTbcC3DuEJHNEijBr8g14Jj62zQ+DeFu68bsoTYoU8jLcMhc1735PV21bESXsATlL5LsfaWH71FOWAg==",
+          "dependencies": {
+            "Microsoft.Extensions.Configuration": "10.0.8",
+            "Microsoft.Extensions.Configuration.Abstractions": "10.0.8",
+            "Microsoft.Extensions.Configuration.Binder": "10.0.8",
+            "Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.8",
+            "Microsoft.Extensions.Logging": "10.0.8",
+            "Microsoft.Extensions.Logging.Abstractions": "10.0.8",
+            "Microsoft.Extensions.Options": "10.0.8",
+            "Microsoft.Extensions.Options.ConfigurationExtensions": "10.0.8"
+          }
+        },
+        "Microsoft.Extensions.Logging.Console/10.0.8": {
+          "sha512": "6cv53sHsPnFS56PJw8X4GbNcjeX1KGyFJRxJWvxOgK63cnqeSB1k1eRwjUdkse0tBhwlH6qc9EOYDlan+CYTuw==",
+          "dependencies": {
+            "Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.8",
+            "Microsoft.Extensions.Logging": "10.0.8",
+            "Microsoft.Extensions.Logging.Abstractions": "10.0.8",
+            "Microsoft.Extensions.Logging.Configuration": "10.0.8",
+            "Microsoft.Extensions.Options": "10.0.8"
+          }
+        },
+        "Microsoft.Extensions.Logging.Debug/10.0.8": {
+          "sha512": "4HW3M1lGHHDwEYcDZHRNptBQ48LCI2yW+XV4vuxdfQUqafTpVT8j9RqAsez08krZKhIiaArWu8iQq5uRKZ9Ffg==",
+          "dependencies": {"Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.8", "Microsoft.Extensions.Logging": "10.0.8", "Microsoft.Extensions.Logging.Abstractions": "10.0.8"}
+        },
+        "Microsoft.Extensions.Logging.EventLog/10.0.8": {
+          "sha512": "kK/C3SLIoGrcZvddYQw4eMm6YaROiSYBO7YgUR5Hdv5l+GIjBmbvQK5cST2FqjeubiAOPqFEimBT2N/8wVI+3A==",
+          "dependencies": {"Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.8", "Microsoft.Extensions.Logging": "10.0.8", "Microsoft.Extensions.Logging.Abstractions": "10.0.8", "Microsoft.Extensions.Options": "10.0.8", "System.Diagnostics.EventLog": "10.0.8"}
+        },
+        "Microsoft.Extensions.Logging.EventSource/10.0.8": {
+          "sha512": "HX2M0MgzwQM8jpLe3AYAEMd0YsUfOP5RgGrDuk+Ki9n7HSuMbvLm9TEV3qRI3Pg9aqxc56GfgK/KdMRBhfWwKw==",
+          "dependencies": {"Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.8", "Microsoft.Extensions.Logging": "10.0.8", "Microsoft.Extensions.Logging.Abstractions": "10.0.8", "Microsoft.Extensions.Options": "10.0.8", "Microsoft.Extensions.Primitives": "10.0.8"}
+        },
+        "Microsoft.Extensions.Options/10.0.10": {"sha512": "srnhnk7nE8krBiIXp71LvBmKBtraBONWSRzdjJgRv1Ko9Mp8IVNqv4vIS9hGeVteBig8aQkva9ZG+sC+o5sVcA==", "dependencies": {"Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.10", "Microsoft.Extensions.Primitives": "10.0.10"}},
+        "Microsoft.Extensions.Options.ConfigurationExtensions/10.0.8": {
+          "sha512": "VOapXeO3lhBH0zYoyAH7tjapuo4V5pTHlevPpiSHueEquAajqd5nF0mttm+h/uE/exwAEuM5s26SzOJtletE3w==",
+          "dependencies": {
+            "Microsoft.Extensions.Configuration.Abstractions": "10.0.8",
+            "Microsoft.Extensions.Configuration.Binder": "10.0.8",
+            "Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.8",
+            "Microsoft.Extensions.Options": "10.0.8",
+            "Microsoft.Extensions.Primitives": "10.0.8"
+          }
+        },
+        "Microsoft.Extensions.Primitives/10.0.10": {"sha512": "5wu/GrYVd8mG2DVUw3vFJzF+O336TyTGg/Kmcgw9bfwYhCoFiV5lR5QeEmKecJyrW4W54nMfD3p3589E8a7czQ==", "dependencies": {}},
+        "Microsoft.NET.StringTools/18.6.3": {"sha512": "meWX/k62HeaQ+7zxcJBcGo2EccmLZiaHYwJJ9wAO6ZX3Ujeht5XNetVZWU7nW2vKbDB+88X1lQkLafVkOUrtgQ==", "dependencies": {}},
+        "Microsoft.VisualStudio.SolutionPersistence/1.0.52": {"sha512": "oNv2JtYXhpdJrX63nibx1JT3uCESOBQ1LAk7Dtz/sr0+laW0KRM6eKp4CZ3MHDR2siIkKsY8MmUkeP5DKkQQ5w==", "dependencies": {}},
+        "ModelContextProtocol/2.2.0": {
+          "sha512": "4Pb9u02Nwsp0poueDsqNdyGRojFxOYpljB7zDBsq+aHL+Afou3OgxlBc3GWFVnsRMRJrUtWqDh3s6k2JgPzmrQ==",
+          "dependencies": {"Microsoft.Extensions.Caching.Abstractions": "10.0.10", "Microsoft.Extensions.Hosting.Abstractions": "10.0.10", "ModelContextProtocol.Core": "[2.2.0]"}
+        },
+        "ModelContextProtocol.Core/2.2.0": {"sha512": "FeBfXU6T8k+jw4afg4sfxdEX2rL/e5oKOk9ROOGztu9k47+7Bz08sdaToYt2XvMY1opNbwxYQOFMj6wH9TInhA==", "dependencies": {"Microsoft.Extensions.AI.Abstractions": "10.8.3", "Microsoft.Extensions.Logging.Abstractions": "10.0.10"}},
+        "Serilog/4.3.0": {"sha512": "+cDryFR0GRhsGOnZSKwaDzRRl4MupvJ42FhCE4zhQRVanX0Jpg6WuCBk59OVhVDPmab1bB+nRykAnykYELA9qQ==", "dependencies": {}},
+        "Serilog.Extensions.Hosting/10.0.0": {
+          "sha512": "E7juuIc+gzoGxgzFooFgAV8g9BfiSXNKsUok9NmEpyAXg2odkcPsMa/Yo4axkJRlh0se7mkYQ1GXDaBemR+b6w==",
+          "dependencies": {"Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.0", "Microsoft.Extensions.Hosting.Abstractions": "10.0.0", "Microsoft.Extensions.Logging.Abstractions": "10.0.0", "Serilog": "4.3.0", "Serilog.Extensions.Logging": "10.0.0"}
+        },
+        "Serilog.Extensions.Logging/10.0.0": {"sha512": "vx0kABKl2dWbBhhqAfTOk53/i8aV/5VaT3a6il9gn72Wqs2pM7EK2OB6No6xdqK2IaY6Zf9gdjLuK9BVa2rT+Q==", "dependencies": {"Microsoft.Extensions.Logging": "10.0.0", "Serilog": "4.2.0"}},
+        "Serilog.Sinks.File/7.0.0": {"sha512": "fKL7mXv7qaiNBUC71ssvn/dU0k9t0o45+qm2XgKAlSt19xF+ijjxyA3R6HmCgfKEKwfcfkwWjayuQtRueZFkYw==", "dependencies": {"Serilog": "4.2.0"}},
+        "SQLite3MC.PCLRaw.bundle/2.3.5": {"sha512": "ORVYE5HLxGjj+U0Xjmb8Bdex8q9ALa6Qw0fg0MagS2LWTVL/hZ0XA5IBSf+5ACMD6DYGCiLHYxIVnidIytkmTw==", "dependencies": {"SQLite3MC.PCLRaw.lib": "2.3.5", "SQLite3MC.PCLRaw.provider": "2.3.5"}},
+        "SQLite3MC.PCLRaw.lib/2.3.5": {"sha512": "+v4VbJklj13ps84l1IuZudF2GGH34p6y3WH4E5ZwsZ9Oj4tQXxrieo6iQW2IjtfeBAspDisQnKn6LmeNpvYsPQ==", "dependencies": {}},
+        "SQLite3MC.PCLRaw.provider/2.3.5": {"sha512": "H3GEYF4IAXk9hG1Qtbhy8Md3awe9HMpOUqNxAd1C7k8l5BcI+x+Vn+G1aXqQZeIou4GqNfj7qebVF4laFmC2Ug==", "dependencies": {"SQLitePCLRaw.core": "3.0.2"}},
+        "SQLitePCLRaw.core/3.0.2": {"sha512": "tnbRf0muOOSJK1RLCfyYK13jynFScgL4xMj7yC3oy8lrrGKXTKmOoWjfdV+cFfBRdppm4qST31hvp8ihgIgvMQ==", "dependencies": {}},
+        "System.CodeDom/10.0.3": {"sha512": "+G1mBhHJp8taiDcHK1gmckOZ884n9JeIrS1dzFYZhSa8oTiIF+EagIyAyCOQzdBbbES7eb9AkjGBlUZqqoCaeg==", "dependencies": {}},
+        "System.Composition/10.0.1": {
+          "sha512": "DJkqaWQfho/ReTzKcZD3zJJ6K4GcS154k+T0UCPMBNIOZ2U/lNpyiiWZ6Etw0onWyTH1K+yhICsdmwA5xy2aPQ==",
+          "dependencies": {"System.Composition.AttributedModel": "10.0.1", "System.Composition.Convention": "10.0.1", "System.Composition.Hosting": "10.0.1", "System.Composition.Runtime": "10.0.1", "System.Composition.TypedParts": "10.0.1"}
+        },
+        "System.Composition.AttributedModel/10.0.1": {"sha512": "mRxYvpCVPAeuLEk0c0kxWJVjbW1/HUoxCgYotOj9eDeQiYcTDOMdCQApsTrHYMN3pHBA8WoF00KGolG632Etaw==", "dependencies": {}},
+        "System.Composition.Convention/10.0.1": {"sha512": "dYynUByfVBzYDheNPGxS8UN8AvG/4tXf/coSs1odHOyoh4etv1kad/FrLWLMq4f8NO49NV20Xu+0/y613woTUA==", "dependencies": {"System.Composition.AttributedModel": "10.0.1"}},
+        "System.Composition.Hosting/10.0.1": {"sha512": "4UGmyBdKWEN1nkqspJlji/nV7XIVm6KGlOC2So0mtM/gKvaNgLz+tUkcbY+6Zpr7dr6ohX1S5yl0RLID5otRHw==", "dependencies": {"System.Composition.Runtime": "10.0.1"}},
+        "System.Composition.Runtime/10.0.1": {"sha512": "TVfys1gnUIhmXuYfFzyez0fOkDyELe9UwlxYeVlq6FmqmWmt1ouF0OQJ+6ozkHbkaop7uBUaXw7Qb+/o0m+nMg==", "dependencies": {}},
+        "System.Composition.TypedParts/10.0.1": {"sha512": "koSfjkdQZfgQr3SyiSIBboDn+GiR0vZ3x9Uek9FJbXK0w5AiATV8KrnMEP8B8OAlO+Y3zQf0CPCNzwH+VIYDKg==", "dependencies": {"System.Composition.AttributedModel": "10.0.1", "System.Composition.Hosting": "10.0.1", "System.Composition.Runtime": "10.0.1"}},
+        "System.Configuration.ConfigurationManager/10.0.3": {"sha512": "69ZT/MYxQSxwdiiHRtI08noXiG5drj/bXDDZISmeWkNUtbIfYgmTiof16tCVOLTdmSQY7W7gwxkMliKdreWHGQ==", "dependencies": {"System.Diagnostics.EventLog": "10.0.3", "System.Security.Cryptography.ProtectedData": "10.0.3"}},
+        "System.Data.DataSetExtensions/4.5.0": {"sha512": "221clPs1445HkTBZPL+K9sDBdJRB8UN8rgjO3ztB0CQ26z//fmJXtlsr6whGatscsKGBrhJl5bwJuKSA8mwFOw==", "dependencies": {}},
+        "System.Diagnostics.EventLog/10.0.8": {"sha512": "+Ro7WgIom+BDNH+YhTuZKL6QJ0ctfOpTyfUG/h3aU5KwXt3OaNf0wYWrTvoBUj+34Dy5V8dN9yCco1hAJQ4txw==", "dependencies": {}},
+        "System.Formats.Nrbf/10.0.3": {"sha512": "hkH2eT6PRkHjoUSFNpGrXvy7chssPcLGBVg9aKRlfvpQQEhECNiZA6bqguXP1tJgZfe3/qK7NNEpXFwiCDfSag==", "dependencies": {}},
+        "System.Reflection.MetadataLoadContext/10.0.3": {"sha512": "rlWB/1Phq2mKv3Sbr33K41pyNpP7L7OGL8zEFrGoj32gLopbPmbCOxfcV2NCh5cCVXFVtdI4w3XK0W2b2jcrOA==", "dependencies": {}},
+        "System.Resources.Extensions/10.0.3": {"sha512": "C6hp8noEwczVopIm9zI3+El6PjD+/DuKt469IrJF8s9lo4foz5jynr7JfkOXYS8tQy/DNKuK8TLAQ3/jFCPvmw==", "dependencies": {"System.Formats.Nrbf": "10.0.3"}},
+        "System.Security.Cryptography.Pkcs/10.0.13": {"sha512": "a+EovgC1fBnwdlQ6cn3j4JFBfKqiFaFvoAhjisOoSvazLAcIznaBzPQP0oYnvccmeXfqUH1KebVZOxSeH6rMaw==", "dependencies": {}},
+        "System.Security.Cryptography.ProtectedData/10.0.3": {"sha512": "JCKbH/CN5l0CSoJBILEvJmNQVp5vV+FY3q2ue4K9p4eDT4mFEv0bjTQCV+MD6Qk1b/qk9fWmZZKhG1TklbXw1Q==", "dependencies": {}},
+        "System.Security.Cryptography.Xml/10.0.3": {"sha512": "Egnmhk/Im38UtSidZtqg0IOB6xQEpn56WR0j+od4qHQ7BUfo6JvqLBQsUSCHMEZ0kc7TIVGSH7aiAOick25Sfg==", "dependencies": {"System.Security.Cryptography.Pkcs": "10.0.3"}}
+      }
+    },
+    "Candidate": {
+      "directPackageReferences": [
+        {"Include": "ICSharpCode.Decompiler", "Version": "10.0.1.8346"},
+        {"Include": "Microsoft.Build.Locator", "Version": "1.11.2"},
+        {"Include": "Microsoft.Build", "Version": "18.7.1", "PrivateAssets": "all", "ExcludeAssets": "runtime", "IncludeAssets": "compile; build; native; contentfiles; analyzers; buildtransitive"},
+        {"Include": "Microsoft.Build.Framework", "Version": "18.7.1", "PrivateAssets": "all", "ExcludeAssets": "runtime", "IncludeAssets": "compile; build; native; contentfiles; analyzers; buildtransitive"},
+        {"Include": "Microsoft.Build.Utilities.Core", "Version": "18.7.1", "PrivateAssets": "all", "ExcludeAssets": "runtime", "IncludeAssets": "compile; build; native; contentfiles; analyzers; buildtransitive"},
+        {"Include": "Microsoft.Build.Tasks.Core", "Version": "18.7.1", "PrivateAssets": "all", "ExcludeAssets": "runtime", "IncludeAssets": "compile; build; native; contentfiles; analyzers; buildtransitive"},
+        {"Include": "Microsoft.NET.StringTools", "Version": "18.7.1", "PrivateAssets": "all", "ExcludeAssets": "runtime", "IncludeAssets": "compile; build; native; contentfiles; analyzers; buildtransitive"},
+        {"Include": "Microsoft.CodeAnalysis.CSharp", "Version": "5.12.0"},
+        {"Include": "Microsoft.CodeAnalysis.CSharp.Workspaces", "Version": "5.12.0"},
+        {"Include": "Microsoft.CodeAnalysis.CSharp.Features", "Version": "5.12.0"},
+        {"Include": "Microsoft.CodeAnalysis.Features", "Version": "5.12.0"},
+        {"Include": "Microsoft.CodeAnalysis.Workspaces.MSBuild", "Version": "5.12.0"},
+        {"Include": "SQLite3MC.PCLRaw.bundle", "Version": "2.3.5"},
+        {"Include": "Microsoft.Extensions.Hosting", "Version": "10.0.8"},
+        {"Include": "ModelContextProtocol", "Version": "2.2.0"},
+        {"Include": "Serilog.Extensions.Hosting", "Version": "10.0.0"},
+        {"Include": "System.Security.Cryptography.Pkcs", "Version": "10.0.13"},
+        {"Include": "Serilog.Sinks.File", "Version": "7.0.0"}
+      ],
+      "restoreExitCode": 0,
+      "restoreOutput": ["Determining projects to restore...", "Restored candidate-closure\\Candidate\\Candidate.csproj (in 12.04 sec)."],
+      "selectedAssets": {
+        "Microsoft.Build/18.7.1": {"compile": ["ref/net10.0/Microsoft.Build.dll"], "runtime": ["lib/net10.0/_._"], "nativeAssetsForReleaseRids": []},
+        "Microsoft.Build.Framework/18.7.1": {"compile": ["ref/net10.0/Microsoft.Build.Framework.dll"], "runtime": ["lib/net10.0/_._"], "nativeAssetsForReleaseRids": []},
+        "Microsoft.Build.Locator/1.11.2": {"compile": ["lib/net8.0/Microsoft.Build.Locator.dll"], "runtime": ["lib/net8.0/Microsoft.Build.Locator.dll"], "nativeAssetsForReleaseRids": []},
+        "Microsoft.Build.Tasks.Core/18.7.1": {"compile": ["ref/net10.0/Microsoft.Build.Tasks.Core.dll"], "runtime": ["lib/net10.0/_._"], "nativeAssetsForReleaseRids": []},
+        "Microsoft.Build.Utilities.Core/18.7.1": {"compile": ["ref/net10.0/Microsoft.Build.Utilities.Core.dll"], "runtime": ["lib/net10.0/_._"], "nativeAssetsForReleaseRids": []},
+        "Microsoft.NET.StringTools/18.7.1": {"compile": ["ref/net10.0/Microsoft.NET.StringTools.dll"], "runtime": ["lib/net10.0/_._"], "nativeAssetsForReleaseRids": []},
+        "SQLite3MC.PCLRaw.bundle/2.3.5": {"compile": ["lib/netstandard2.0/SQLitePCLRaw.batteries_v2.dll"], "runtime": ["lib/netstandard2.0/SQLitePCLRaw.batteries_v2.dll"], "nativeAssetsForReleaseRids": []},
+        "SQLite3MC.PCLRaw.lib/2.3.5": {"compile": ["lib/netstandard2.0/_._"], "runtime": ["lib/netstandard2.0/_._"], "nativeAssetsForReleaseRids": ["runtimes/linux-x64/native/libsqlite3mc.so", "runtimes/osx-arm64/native/libsqlite3mc.dylib", "runtimes/win-x64/native/sqlite3mc.dll"]},
+        "SQLite3MC.PCLRaw.provider/2.3.5": {"compile": ["lib/netstandard2.0/SQLite3MC.PCLRaw.provider.dll"], "runtime": ["lib/netstandard2.0/SQLite3MC.PCLRaw.provider.dll"], "nativeAssetsForReleaseRids": []},
+        "SQLitePCLRaw.core/3.0.2": {"compile": ["lib/netstandard2.0/SQLitePCLRaw.core.dll"], "runtime": ["lib/netstandard2.0/SQLitePCLRaw.core.dll"], "nativeAssetsForReleaseRids": []},
+        "System.Security.Cryptography.Pkcs/10.0.13": {"compile": ["lib/net10.0/System.Security.Cryptography.Pkcs.dll"], "runtime": ["lib/net10.0/System.Security.Cryptography.Pkcs.dll"], "nativeAssetsForReleaseRids": []},
+        "System.Security.Cryptography.Xml/10.0.4": {"compile": ["lib/net10.0/System.Security.Cryptography.Xml.dll"], "runtime": ["lib/net10.0/_._"], "nativeAssetsForReleaseRids": []}
+      },
+      "audit": {
+        "sources": ["https://api.nuget.org/v3/index.json"],
+        "frameworks": [
+          {
+            "framework": "net10.0",
+            "topLevelPackages": [],
+            "transitivePackages": [
+              {
+                "id": "System.Security.Cryptography.Xml",
+                "resolvedVersion": "10.0.4",
+                "vulnerabilities": [
+                  {"severity": "High", "advisoryurl": "https://github.com/advisories/GHSA-37gx-xxp4-5rgx"},
+                  {"severity": "High", "advisoryurl": "https://github.com/advisories/GHSA-w3x6-4m5h-cxqf"},
+                  {"severity": "High", "advisoryurl": "https://github.com/advisories/GHSA-g8r8-53c2-pm3f"},
+                  {"severity": "High", "advisoryurl": "https://github.com/advisories/GHSA-8q5v-6pqq-x66h"},
+                  {"severity": "High", "advisoryurl": "https://github.com/advisories/GHSA-23rf-6693-g89p"},
+                  {"severity": "High", "advisoryurl": "https://github.com/advisories/GHSA-cvvh-rhrc-wg4q"},
+                  {"severity": "High", "advisoryurl": "https://github.com/advisories/GHSA-6588-8gv4-xfgh"},
+                  {"severity": "High", "advisoryurl": "https://github.com/advisories/GHSA-mmjf-rqrv-855v"},
+                  {"severity": "High", "advisoryurl": "https://github.com/advisories/GHSA-7hqp-7c5m-4vq6"},
+                  {"severity": "High", "advisoryurl": "https://github.com/advisories/GHSA-r955-8q5j-3h83"},
+                  {"severity": "High", "advisoryurl": "https://github.com/advisories/GHSA-c399-9853-6jmj"}
+                ]
+              }
+            ]
+          }
+        ],
+        "exitCode": 0
+      },
+      "resolvedPackages": {
+        "Humanizer.Core/2.14.1": {"sha512": "lQKvtaTDOXnoVJ20ibTuSIOf2i0uO0MPbDhd1jm238I+U/2ZnRENj0cktKZhtchBMtCUSRQ5v4xBCUbKNmyVMw==", "dependencies": {}},
+        "ICSharpCode.Decompiler/10.0.1.8346": {"sha512": "9fgDEzAaK/eFWJu2QMvBf2WzkQh5KKKOL5h+e9l1aTlkAJyODrZdhqQyZIL2rzD/rwl8nzxYZ0HUn8792R7Uvw==", "dependencies": {}},
+        "Microsoft.Build/18.7.1": {
+          "sha512": "BWFGVuZs9M6eSef12215dFwQUxoXAUW7VluUd2LLqa7nY09U9AzO/6Ms0RziPGmZ9Wa+MrXayOgsX6YjJkPWiw==",
+          "dependencies": {"Microsoft.Build.Framework": "18.7.1", "System.Configuration.ConfigurationManager": "10.0.4", "System.Diagnostics.EventLog": "10.0.4", "System.Reflection.MetadataLoadContext": "10.0.4", "System.Security.Cryptography.ProtectedData": "10.0.4"}
+        },
+        "Microsoft.Build.Framework/18.7.1": {"sha512": "OkLtppCHnD0hrfeTQDZNSe6oxYW2/1qKmtE/iyF8ZzsdC541Txv0pUGrDZQTNr0E/OYxzpt5oVHqR26A6mzYnw==", "dependencies": {"Microsoft.NET.StringTools": "18.7.1"}},
+        "Microsoft.Build.Locator/1.11.2": {"sha512": "tY+/S54G29CGsbL3slVu4vqtpciwVnb3fKOmrhgzEQmu/VziFaWmD/E1e/2KH7cDucuycGSkWsSXndBs5Uawow==", "dependencies": {}},
+        "Microsoft.Build.Tasks.Core/18.7.1": {
+          "sha512": "f4enIPf1pkYAmiuRSgehfF0rxZvcqffoGOtSr9qiKFJrAD6ik/wcHR1/SxIK/iz9ucsVF1qD8sAoN/iyxDqcug==",
+          "dependencies": {
+            "Microsoft.Build.Framework": "18.7.1",
+            "Microsoft.Build.Utilities.Core": "18.7.1",
+            "System.CodeDom": "10.0.4",
+            "System.Configuration.ConfigurationManager": "10.0.4",
+            "System.Diagnostics.EventLog": "10.0.4",
+            "System.Formats.Nrbf": "10.0.4",
+            "System.Resources.Extensions": "10.0.4",
+            "System.Security.Cryptography.Pkcs": "10.0.4",
+            "System.Security.Cryptography.ProtectedData": "10.0.4",
+            "System.Security.Cryptography.Xml": "10.0.4"
+          }
+        },
+        "Microsoft.Build.Utilities.Core/18.7.1": {
+          "sha512": "qxESKA3linJoBtnZMJ1w7ykrr8vzINDzEoCpAFWrqvzuXedPVUMq6t82xYueyAeAZsbOTpi/lrWk7o8FcJIBMw==",
+          "dependencies": {"Microsoft.Build.Framework": "18.7.1", "System.Configuration.ConfigurationManager": "10.0.4", "System.Diagnostics.EventLog": "10.0.4", "System.Security.Cryptography.ProtectedData": "10.0.4"}
+        },
+        "Microsoft.CodeAnalysis.Analyzers/5.9.0": {"sha512": "jMNOo+uoBGiWbZ6Wx0dqU93r5WD4P5WnIRZdoz67RP5N09OUetHgAbo4L7hihOH1NHdD2TgW5/l+SP4gQukwww==", "dependencies": {}},
+        "Microsoft.CodeAnalysis.Common/5.12.0": {"sha512": "0C7o9ys497xp0kZ64sL7C6nY/5WPQlxia28VlezdonBmjxbC6mIovAYs8mBoh/QooxBBZQCo/wMuZnV1kNk9GA==", "dependencies": {"Microsoft.CodeAnalysis.Analyzers": "5.9.0"}},
+        "Microsoft.CodeAnalysis.CSharp/5.12.0": {"sha512": "6W6vBcpQFjlxog+KUGNM2fFy+XA2StC1PtnkEkechk68vFy3a28tGjEdnoA7NrxhMdr8a+zh/AmiUtBAmdkQPg==", "dependencies": {"Microsoft.CodeAnalysis.Analyzers": "5.9.0", "Microsoft.CodeAnalysis.Common": "[5.12.0]"}},
+        "Microsoft.CodeAnalysis.CSharp.Features/5.12.0": {
+          "sha512": "cNv7yZ1nr91iuWQ2zpQwXtZPDUIx/FG/MgWPlqTxIEPdkYgXtZ7rbtkD33HV0izIx1+lS2Tg/9kbPRQ21pDEWQ==",
+          "dependencies": {
+            "Humanizer.Core": "2.14.1",
+            "Microsoft.CodeAnalysis.Analyzers": "5.9.0",
+            "Microsoft.CodeAnalysis.CSharp": "[5.12.0]",
+            "Microsoft.CodeAnalysis.CSharp.Workspaces": "[5.12.0]",
+            "Microsoft.CodeAnalysis.Common": "[5.12.0]",
+            "Microsoft.CodeAnalysis.Elfie": "1.0.0",
+            "Microsoft.CodeAnalysis.Features": "[5.12.0]",
+            "Microsoft.CodeAnalysis.Workspaces.Common": "[5.12.0]",
+            "Microsoft.DiaSymReader": "2.2.10",
+            "System.Composition": "10.0.10",
+            "System.Configuration.ConfigurationManager": "10.0.10",
+            "System.Diagnostics.EventLog": "10.0.10",
+            "System.Security.Cryptography.ProtectedData": "10.0.10"
+          }
+        },
+        "Microsoft.CodeAnalysis.CSharp.Workspaces/5.12.0": {
+          "sha512": "pYIu3+fWc+pqqAryYeiKZV4AqwG/yM/3UPwV9gtpsyBI+Jo1cL/3lNiWCA6tmtFAZXmwjKZuofSU3uu1TPhcbQ==",
+          "dependencies": {"Humanizer.Core": "2.14.1", "Microsoft.CodeAnalysis.Analyzers": "5.9.0", "Microsoft.CodeAnalysis.CSharp": "[5.12.0]", "Microsoft.CodeAnalysis.Common": "[5.12.0]", "Microsoft.CodeAnalysis.Workspaces.Common": "[5.12.0]", "System.Composition": "10.0.10"}
+        },
+        "Microsoft.CodeAnalysis.Elfie/1.0.0": {"sha512": "r12elUp4MRjdnRfxEP+xqVSUUfG3yIJTBEJGwbfvF5oU4m0jb9HC0gFG28V/dAkYGMkRmHVi3qvrnBLQSw9X3Q==", "dependencies": {"System.Configuration.ConfigurationManager": "4.5.0", "System.Data.DataSetExtensions": "4.5.0"}},
+        "Microsoft.CodeAnalysis.Features/5.12.0": {
+          "sha512": "bQjLm+ciQm/ULoEm98xwct9rW5b5cZ7f2tYA+NVt+q9ACTyheTjzaVgP457lSDkrWwVQXSNHxkTECg+1kTDIBQ==",
+          "dependencies": {
+            "Humanizer.Core": "2.14.1",
+            "Microsoft.CodeAnalysis.Analyzers": "5.9.0",
+            "Microsoft.CodeAnalysis.Common": "[5.12.0]",
+            "Microsoft.CodeAnalysis.Elfie": "1.0.0",
+            "Microsoft.CodeAnalysis.Scripting.Common": "[5.12.0]",
+            "Microsoft.CodeAnalysis.Workspaces.Common": "[5.12.0]",
+            "Microsoft.DiaSymReader": "2.2.10",
+            "System.Composition": "10.0.10",
+            "System.Configuration.ConfigurationManager": "10.0.10",
+            "System.Diagnostics.EventLog": "10.0.10",
+            "System.Security.Cryptography.ProtectedData": "10.0.10"
+          }
+        },
+        "Microsoft.CodeAnalysis.Scripting.Common/5.12.0": {"sha512": "fqAvERISYmZP7gxaFsCI8PpeGVI8LnodlsGLtrcuKtk0ldVvTeSkbryM10VfI3S6f5DbUCpC40oSMsvyZkA1Kg==", "dependencies": {"Microsoft.CodeAnalysis.Analyzers": "5.9.0", "Microsoft.CodeAnalysis.Common": "[5.12.0]"}},
+        "Microsoft.CodeAnalysis.Workspaces.Common/5.12.0": {
+          "sha512": "s2kdxHJMthfIvYqn1yHxzS2IfH/541/b4jpwRD1JhZtldYgily5K8oGfKJEvpnCscItwuQLgLsq2OvWyvA0ugw==",
+          "dependencies": {"Humanizer.Core": "2.14.1", "Microsoft.CodeAnalysis.Analyzers": "5.9.0", "Microsoft.CodeAnalysis.Common": "[5.12.0]", "System.Composition": "10.0.10"}
+        },
+        "Microsoft.CodeAnalysis.Workspaces.MSBuild/5.12.0": {
+          "sha512": "wDeCVWmNtyS9aZoReduw2frWXB8RHPt342nMFgEQmk++Gn4t+enWk4/mg4u5y94/d0tBurJX0RFD2LARd/NtRA==",
+          "dependencies": {
+            "Humanizer.Core": "2.14.1",
+            "Microsoft.Build.Framework": "18.7.1",
+            "Microsoft.CodeAnalysis.Analyzers": "5.9.0",
+            "Microsoft.CodeAnalysis.Workspaces.Common": "[5.12.0]",
+            "Microsoft.Extensions.DependencyInjection": "10.0.10",
+            "Microsoft.Extensions.Logging": "10.0.10",
+            "Microsoft.Extensions.Logging.Abstractions": "10.0.10",
+            "Microsoft.Extensions.Options": "10.0.10",
+            "Microsoft.Extensions.Primitives": "10.0.10",
+            "Microsoft.VisualStudio.SolutionPersistence": "1.0.52",
+            "System.Composition": "10.0.10"
+          }
+        },
+        "Microsoft.DiaSymReader/2.2.10": {"sha512": "zmGsm6b2y3STDa/Of7rdkkfTDV8VuGB8aCqIkLoJIQh5tL78K3zJ8OUyFKnfsaORXmGr9iOKwDkZfUjeXi+CwA==", "dependencies": {}},
+        "Microsoft.Extensions.AI.Abstractions/10.8.3": {"sha512": "K0B05oApxmviWalNHPMBBcRC7erKiDATz3ENNR/jqTR9JwIwLRefgDhj2jCRwL1aca99pXUe0qyQC73/xIuZig==", "dependencies": {}},
+        "Microsoft.Extensions.Caching.Abstractions/10.0.10": {"sha512": "4ZFBNE+jzR+CrWWlhOesnmywCW7pYKT0dxyAQRdL11yJwxe4jvcAu31eorFtEkoFeCDcUTeNssgPv2yaRRptaQ==", "dependencies": {"Microsoft.Extensions.Primitives": "10.0.10"}},
+        "Microsoft.Extensions.Configuration/10.0.8": {"sha512": "ehZcoPbjzWzS4XFvuz7R3V55SmpdkyMqFURLH3yXaN9NtXd9tR6CGB7pd49HYtCkenl+G7ctXSFLhNI08xLfRg==", "dependencies": {"Microsoft.Extensions.Configuration.Abstractions": "10.0.8", "Microsoft.Extensions.Primitives": "10.0.8"}},
+        "Microsoft.Extensions.Configuration.Abstractions/10.0.10": {"sha512": "5Vnd2I75DmZCVEjSynIdJ/0EGafgnLQwgR3t2C2/fkjx/nRG+cLwxLLdInoHeCEpkD5K4Ov/g9ZCRYrl4TRsaA==", "dependencies": {"Microsoft.Extensions.Primitives": "10.0.10"}},
+        "Microsoft.Extensions.Configuration.Binder/10.0.8": {"sha512": "R3NN1X+kVu14uoxLEW6sBSQyhogDSbaOQzILnCtuXxBN4hx22AgjWPwZX6v/suERFkEDgU1lk12AglHTrUxhlw==", "dependencies": {"Microsoft.Extensions.Configuration": "10.0.8", "Microsoft.Extensions.Configuration.Abstractions": "10.0.8"}},
+        "Microsoft.Extensions.Configuration.CommandLine/10.0.8": {"sha512": "nQXq1a4MiInYh+0VF9fguxAl06q2ftmOyYQ+5e933s4rk57xjgkbTjUdFUySzjrcrvDeWsSqlZB+TE8+TbM2HA==", "dependencies": {"Microsoft.Extensions.Configuration": "10.0.8", "Microsoft.Extensions.Configuration.Abstractions": "10.0.8"}},
+        "Microsoft.Extensions.Configuration.EnvironmentVariables/10.0.8": {"sha512": "bVGqctAfPGfTxJvNp8pMshtvpsUj6r6JkeiCNVIGVYO5gBxuxdN0Lbr25kEvE/zXdctkEc44g8HssnPgDnFGVA==", "dependencies": {"Microsoft.Extensions.Configuration": "10.0.8", "Microsoft.Extensions.Configuration.Abstractions": "10.0.8"}},
+        "Microsoft.Extensions.Configuration.FileExtensions/10.0.8": {
+          "sha512": "1g9mzuu8gIHkjYb0jLxOTQVl/QDG5nn0b0JzgT/gbgNKr6gXZzxOHRAsdYRc1eDApB7LdHR8uK5vQrNjIQdRrQ==",
+          "dependencies": {
+            "Microsoft.Extensions.Configuration": "10.0.8",
+            "Microsoft.Extensions.Configuration.Abstractions": "10.0.8",
+            "Microsoft.Extensions.FileProviders.Abstractions": "10.0.8",
+            "Microsoft.Extensions.FileProviders.Physical": "10.0.8",
+            "Microsoft.Extensions.Primitives": "10.0.8"
+          }
+        },
+        "Microsoft.Extensions.Configuration.Json/10.0.8": {
+          "sha512": "KLtAZ6A38s1pIfCO2ns6aG14NNGMYNZ4PBYfFK4M+R4A+xuSc6oklhqDcpHZxvDpyBWeFtR5C8iQBw2ng8tUHQ==",
+          "dependencies": {"Microsoft.Extensions.Configuration": "10.0.8", "Microsoft.Extensions.Configuration.Abstractions": "10.0.8", "Microsoft.Extensions.Configuration.FileExtensions": "10.0.8", "Microsoft.Extensions.FileProviders.Abstractions": "10.0.8"}
+        },
+        "Microsoft.Extensions.Configuration.UserSecrets/10.0.8": {
+          "sha512": "6XTfFOnf27WY8kEeZkTZ4YNn0t+imgvdQ0YaAdR4vgURKATo9bCaVJ1KB71IOJAQtJP7Elb53VHlTNXg2CtSsA==",
+          "dependencies": {"Microsoft.Extensions.Configuration.Abstractions": "10.0.8", "Microsoft.Extensions.Configuration.Json": "10.0.8", "Microsoft.Extensions.FileProviders.Abstractions": "10.0.8", "Microsoft.Extensions.FileProviders.Physical": "10.0.8"}
+        },
+        "Microsoft.Extensions.DependencyInjection/10.0.10": {"sha512": "ANyvsgkNBRvcJh2XLgn8veGmajf+8m0AbKK+HPWdRL1yraSNVVSmQhFntLtdz/C795jxqqup+k05cs/3jZQPOA==", "dependencies": {"Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.10"}},
+        "Microsoft.Extensions.DependencyInjection.Abstractions/10.0.10": {"sha512": "z/2xXlFw2aLGjHyEm6E0tQ+In6VfzQzTrtArbQ2c0TQE16ZbyDCMGPvaUT9I0s8rgy9sRWlU2P9waW37qV04qA==", "dependencies": {}},
+        "Microsoft.Extensions.Diagnostics/10.0.8": {
+          "sha512": "uduyw9d3Fi+sbredO5drA1S44AQS2FRNFyn72UmB2vmQIO1qaXprpp1U/2lYhYi8yFdVERfY9sy/pxw/qPOU9w==",
+          "dependencies": {"Microsoft.Extensions.Configuration": "10.0.8", "Microsoft.Extensions.Diagnostics.Abstractions": "10.0.8", "Microsoft.Extensions.Options.ConfigurationExtensions": "10.0.8"}
+        },
+        "Microsoft.Extensions.Diagnostics.Abstractions/10.0.10": {"sha512": "9uWiKpeOVac355STyChWR/pliFX/5CeLqChW9kKsaxyDH4EUTZxMkT4Jwp/J/peLm0GBFmSX5c0WCse3yCnq1Q==", "dependencies": {"Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.10", "Microsoft.Extensions.Options": "10.0.10"}},
+        "Microsoft.Extensions.FileProviders.Abstractions/10.0.10": {"sha512": "c5zqFCY9DiIpMovLd7/d/CTiEtrMOuQ639dhv3PABtKQIKNQikSHwQt8+N679uii9q+B55lgK28Uv64FOwEu8w==", "dependencies": {"Microsoft.Extensions.Primitives": "10.0.10"}},
+        "Microsoft.Extensions.FileProviders.Physical/10.0.8": {
+          "sha512": "GkPvQe6IdidLu6Q3Lw6+B8NJpW8feW8czZ5mBKt5rXM/x8MvZfEp5WvAsjznzDGd23chIDrW0b2mmt+ScnEgiw==",
+          "dependencies": {"Microsoft.Extensions.FileProviders.Abstractions": "10.0.8", "Microsoft.Extensions.FileSystemGlobbing": "10.0.8", "Microsoft.Extensions.Primitives": "10.0.8"}
+        },
+        "Microsoft.Extensions.FileSystemGlobbing/10.0.8": {"sha512": "IUQet3SY51xIFcFZKtAB6a54/Zdxs7T3SQ84kJtOD6yeXfZgiOMksACWD5qtTmXGQGFH4QYGBOT0KIO8Uy/dJw==", "dependencies": {}},
+        "Microsoft.Extensions.Hosting/10.0.8": {
+          "sha512": "VfEyM2BipThcSd0GG/FS2ZPCVCTiosVq2zLKEDsfeMIg78sOVZPEmS7CgWlb+dqTlgXvLSL4OG2q6sM4xRhHNg==",
+          "dependencies": {
+            "Microsoft.Extensions.Configuration": "10.0.8",
+            "Microsoft.Extensions.Configuration.Abstractions": "10.0.8",
+            "Microsoft.Extensions.Configuration.Binder": "10.0.8",
+            "Microsoft.Extensions.Configuration.CommandLine": "10.0.8",
+            "Microsoft.Extensions.Configuration.EnvironmentVariables": "10.0.8",
+            "Microsoft.Extensions.Configuration.FileExtensions": "10.0.8",
+            "Microsoft.Extensions.Configuration.Json": "10.0.8",
+            "Microsoft.Extensions.Configuration.UserSecrets": "10.0.8",
+            "Microsoft.Extensions.DependencyInjection": "10.0.8",
+            "Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.8",
+            "Microsoft.Extensions.Diagnostics": "10.0.8",
+            "Microsoft.Extensions.FileProviders.Abstractions": "10.0.8",
+            "Microsoft.Extensions.FileProviders.Physical": "10.0.8",
+            "Microsoft.Extensions.Hosting.Abstractions": "10.0.8",
+            "Microsoft.Extensions.Logging": "10.0.8",
+            "Microsoft.Extensions.Logging.Abstractions": "10.0.8",
+            "Microsoft.Extensions.Logging.Configuration": "10.0.8",
+            "Microsoft.Extensions.Logging.Console": "10.0.8",
+            "Microsoft.Extensions.Logging.Debug": "10.0.8",
+            "Microsoft.Extensions.Logging.EventLog": "10.0.8",
+            "Microsoft.Extensions.Logging.EventSource": "10.0.8",
+            "Microsoft.Extensions.Options": "10.0.8"
+          }
+        },
+        "Microsoft.Extensions.Hosting.Abstractions/10.0.10": {
+          "sha512": "5LugpYGHk+mkn0a8IZgcyfBca8PCTAU9RQFoMrTdtOOidq88M2SI5f3px6ugnzgxC+eTkvYYJi8pzlUnG5xdAQ==",
+          "dependencies": {
+            "Microsoft.Extensions.Configuration.Abstractions": "10.0.10",
+            "Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.10",
+            "Microsoft.Extensions.Diagnostics.Abstractions": "10.0.10",
+            "Microsoft.Extensions.FileProviders.Abstractions": "10.0.10",
+            "Microsoft.Extensions.Logging.Abstractions": "10.0.10"
+          }
+        },
+        "Microsoft.Extensions.Logging/10.0.10": {
+          "sha512": "Tf6z5HsL0VDYRTfvsoNrTGHGheCwkTsZBA2FFh5ATJUbkAwug+FFNISJK2gjpUNemlAOoWllAK52HOWCjto3EQ==",
+          "dependencies": {"Microsoft.Extensions.DependencyInjection": "10.0.10", "Microsoft.Extensions.Logging.Abstractions": "10.0.10", "Microsoft.Extensions.Options": "10.0.10"}
+        },
+        "Microsoft.Extensions.Logging.Abstractions/10.0.10": {"sha512": "zkFxGYUvdxAvIKTyXHrmW+Sux53D4SezD9dMyZ6hrwwzPQJNuwCRy1f5W7AvYTqacEGhWF2XderRQG1OvbV8og==", "dependencies": {"Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.10"}},
+        "Microsoft.Extensions.Logging.Configuration/10.0.8": {
+          "sha512": "rxSLTO7xTbcC3DuEJHNEijBr8g14Jj62zQ+DeFu68bsoTYoU8jLcMhc1735PV21bESXsATlL5LsfaWH71FOWAg==",
+          "dependencies": {
+            "Microsoft.Extensions.Configuration": "10.0.8",
+            "Microsoft.Extensions.Configuration.Abstractions": "10.0.8",
+            "Microsoft.Extensions.Configuration.Binder": "10.0.8",
+            "Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.8",
+            "Microsoft.Extensions.Logging": "10.0.8",
+            "Microsoft.Extensions.Logging.Abstractions": "10.0.8",
+            "Microsoft.Extensions.Options": "10.0.8",
+            "Microsoft.Extensions.Options.ConfigurationExtensions": "10.0.8"
+          }
+        },
+        "Microsoft.Extensions.Logging.Console/10.0.8": {
+          "sha512": "6cv53sHsPnFS56PJw8X4GbNcjeX1KGyFJRxJWvxOgK63cnqeSB1k1eRwjUdkse0tBhwlH6qc9EOYDlan+CYTuw==",
+          "dependencies": {
+            "Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.8",
+            "Microsoft.Extensions.Logging": "10.0.8",
+            "Microsoft.Extensions.Logging.Abstractions": "10.0.8",
+            "Microsoft.Extensions.Logging.Configuration": "10.0.8",
+            "Microsoft.Extensions.Options": "10.0.8"
+          }
+        },
+        "Microsoft.Extensions.Logging.Debug/10.0.8": {
+          "sha512": "4HW3M1lGHHDwEYcDZHRNptBQ48LCI2yW+XV4vuxdfQUqafTpVT8j9RqAsez08krZKhIiaArWu8iQq5uRKZ9Ffg==",
+          "dependencies": {"Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.8", "Microsoft.Extensions.Logging": "10.0.8", "Microsoft.Extensions.Logging.Abstractions": "10.0.8"}
+        },
+        "Microsoft.Extensions.Logging.EventLog/10.0.8": {
+          "sha512": "kK/C3SLIoGrcZvddYQw4eMm6YaROiSYBO7YgUR5Hdv5l+GIjBmbvQK5cST2FqjeubiAOPqFEimBT2N/8wVI+3A==",
+          "dependencies": {"Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.8", "Microsoft.Extensions.Logging": "10.0.8", "Microsoft.Extensions.Logging.Abstractions": "10.0.8", "Microsoft.Extensions.Options": "10.0.8", "System.Diagnostics.EventLog": "10.0.8"}
+        },
+        "Microsoft.Extensions.Logging.EventSource/10.0.8": {
+          "sha512": "HX2M0MgzwQM8jpLe3AYAEMd0YsUfOP5RgGrDuk+Ki9n7HSuMbvLm9TEV3qRI3Pg9aqxc56GfgK/KdMRBhfWwKw==",
+          "dependencies": {"Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.8", "Microsoft.Extensions.Logging": "10.0.8", "Microsoft.Extensions.Logging.Abstractions": "10.0.8", "Microsoft.Extensions.Options": "10.0.8", "Microsoft.Extensions.Primitives": "10.0.8"}
+        },
+        "Microsoft.Extensions.Options/10.0.10": {"sha512": "srnhnk7nE8krBiIXp71LvBmKBtraBONWSRzdjJgRv1Ko9Mp8IVNqv4vIS9hGeVteBig8aQkva9ZG+sC+o5sVcA==", "dependencies": {"Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.10", "Microsoft.Extensions.Primitives": "10.0.10"}},
+        "Microsoft.Extensions.Options.ConfigurationExtensions/10.0.8": {
+          "sha512": "VOapXeO3lhBH0zYoyAH7tjapuo4V5pTHlevPpiSHueEquAajqd5nF0mttm+h/uE/exwAEuM5s26SzOJtletE3w==",
+          "dependencies": {
+            "Microsoft.Extensions.Configuration.Abstractions": "10.0.8",
+            "Microsoft.Extensions.Configuration.Binder": "10.0.8",
+            "Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.8",
+            "Microsoft.Extensions.Options": "10.0.8",
+            "Microsoft.Extensions.Primitives": "10.0.8"
+          }
+        },
+        "Microsoft.Extensions.Primitives/10.0.10": {"sha512": "5wu/GrYVd8mG2DVUw3vFJzF+O336TyTGg/Kmcgw9bfwYhCoFiV5lR5QeEmKecJyrW4W54nMfD3p3589E8a7czQ==", "dependencies": {}},
+        "Microsoft.NET.StringTools/18.7.1": {"sha512": "OhuO9c4ZqYBaqB7INwOpDLa7wX0VkR2T3MhjUSsPebLvZi0/Z7QzeeD5uiINd9L9Wev+EwvNUiF3N2hWVtdFPQ==", "dependencies": {}},
+        "Microsoft.VisualStudio.SolutionPersistence/1.0.52": {"sha512": "oNv2JtYXhpdJrX63nibx1JT3uCESOBQ1LAk7Dtz/sr0+laW0KRM6eKp4CZ3MHDR2siIkKsY8MmUkeP5DKkQQ5w==", "dependencies": {}},
+        "ModelContextProtocol/2.2.0": {
+          "sha512": "4Pb9u02Nwsp0poueDsqNdyGRojFxOYpljB7zDBsq+aHL+Afou3OgxlBc3GWFVnsRMRJrUtWqDh3s6k2JgPzmrQ==",
+          "dependencies": {"Microsoft.Extensions.Caching.Abstractions": "10.0.10", "Microsoft.Extensions.Hosting.Abstractions": "10.0.10", "ModelContextProtocol.Core": "[2.2.0]"}
+        },
+        "ModelContextProtocol.Core/2.2.0": {"sha512": "FeBfXU6T8k+jw4afg4sfxdEX2rL/e5oKOk9ROOGztu9k47+7Bz08sdaToYt2XvMY1opNbwxYQOFMj6wH9TInhA==", "dependencies": {"Microsoft.Extensions.AI.Abstractions": "10.8.3", "Microsoft.Extensions.Logging.Abstractions": "10.0.10"}},
+        "Serilog/4.3.0": {"sha512": "+cDryFR0GRhsGOnZSKwaDzRRl4MupvJ42FhCE4zhQRVanX0Jpg6WuCBk59OVhVDPmab1bB+nRykAnykYELA9qQ==", "dependencies": {}},
+        "Serilog.Extensions.Hosting/10.0.0": {
+          "sha512": "E7juuIc+gzoGxgzFooFgAV8g9BfiSXNKsUok9NmEpyAXg2odkcPsMa/Yo4axkJRlh0se7mkYQ1GXDaBemR+b6w==",
+          "dependencies": {"Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.0", "Microsoft.Extensions.Hosting.Abstractions": "10.0.0", "Microsoft.Extensions.Logging.Abstractions": "10.0.0", "Serilog": "4.3.0", "Serilog.Extensions.Logging": "10.0.0"}
+        },
+        "Serilog.Extensions.Logging/10.0.0": {"sha512": "vx0kABKl2dWbBhhqAfTOk53/i8aV/5VaT3a6il9gn72Wqs2pM7EK2OB6No6xdqK2IaY6Zf9gdjLuK9BVa2rT+Q==", "dependencies": {"Microsoft.Extensions.Logging": "10.0.0", "Serilog": "4.2.0"}},
+        "Serilog.Sinks.File/7.0.0": {"sha512": "fKL7mXv7qaiNBUC71ssvn/dU0k9t0o45+qm2XgKAlSt19xF+ijjxyA3R6HmCgfKEKwfcfkwWjayuQtRueZFkYw==", "dependencies": {"Serilog": "4.2.0"}},
+        "SQLite3MC.PCLRaw.bundle/2.3.5": {"sha512": "ORVYE5HLxGjj+U0Xjmb8Bdex8q9ALa6Qw0fg0MagS2LWTVL/hZ0XA5IBSf+5ACMD6DYGCiLHYxIVnidIytkmTw==", "dependencies": {"SQLite3MC.PCLRaw.lib": "2.3.5", "SQLite3MC.PCLRaw.provider": "2.3.5"}},
+        "SQLite3MC.PCLRaw.lib/2.3.5": {"sha512": "+v4VbJklj13ps84l1IuZudF2GGH34p6y3WH4E5ZwsZ9Oj4tQXxrieo6iQW2IjtfeBAspDisQnKn6LmeNpvYsPQ==", "dependencies": {}},
+        "SQLite3MC.PCLRaw.provider/2.3.5": {"sha512": "H3GEYF4IAXk9hG1Qtbhy8Md3awe9HMpOUqNxAd1C7k8l5BcI+x+Vn+G1aXqQZeIou4GqNfj7qebVF4laFmC2Ug==", "dependencies": {"SQLitePCLRaw.core": "3.0.2"}},
+        "SQLitePCLRaw.core/3.0.2": {"sha512": "tnbRf0muOOSJK1RLCfyYK13jynFScgL4xMj7yC3oy8lrrGKXTKmOoWjfdV+cFfBRdppm4qST31hvp8ihgIgvMQ==", "dependencies": {}},
+        "System.CodeDom/10.0.4": {"sha512": "oAitQH3xMGAGbw5BCCkTnwYaMf4uoQNoK9HeeZvr4pUGsEexL6r7lug1Afyp9D8WvA98/hE7qBYLJDqYPxFOgQ==", "dependencies": {}},
+        "System.Composition/10.0.10": {
+          "sha512": "YdUvDCl3+purgfwn99oUwtS6/vrHJCiY2fPB3B/3SA3AhehjBZvSNXTzaDSJtOUVa0qHbO+6Zud4h1DJiuqV9g==",
+          "dependencies": {"System.Composition.AttributedModel": "10.0.10", "System.Composition.Convention": "10.0.10", "System.Composition.Hosting": "10.0.10", "System.Composition.Runtime": "10.0.10", "System.Composition.TypedParts": "10.0.10"}
+        },
+        "System.Composition.AttributedModel/10.0.10": {"sha512": "alK+Ew7XBsxHgwmSmiZzg7x4sLpNIaQ3QVJUkJ/issHZY0L+RHceqO27pDp0J0sDnSf8g6yJNpDnWSKL5sAa/g==", "dependencies": {}},
+        "System.Composition.Convention/10.0.10": {"sha512": "x+qzplPjKxvS6yM9YXXHJB2DWtgjRB2fRdXHyC26gGiKUghXXzieembAJGZSK67o7hSlKu/uwVClukpbqkj4ww==", "dependencies": {"System.Composition.AttributedModel": "10.0.10"}},
+        "System.Composition.Hosting/10.0.10": {"sha512": "gTu5YG07Ayx56z7ZQAXwjB2q1kK4dw7QplEs94iV0Ll6urfe1Wgjvjm0B0QGEDz8pi8Z698qDUjI0lsK+pF1mg==", "dependencies": {"System.Composition.Runtime": "10.0.10"}},
+        "System.Composition.Runtime/10.0.10": {"sha512": "iFjLY3cX9QSK/tg4cZEN00jU6OUSLWqsqSIryOGjSbhVR2PAiBHZn5h+AOd80JDB+BKVYxcGE7zBQrb2r3Kq0Q==", "dependencies": {}},
+        "System.Composition.TypedParts/10.0.10": {"sha512": "fbaPjPHBY8G4lwqvZNbW35nUu1zCGWxo7wJG+C4A4qrA2QpXNYlnXBwFM0seCg7BEsVOVxyegfwYmxUc14lSYA==", "dependencies": {"System.Composition.AttributedModel": "10.0.10", "System.Composition.Hosting": "10.0.10", "System.Composition.Runtime": "10.0.10"}},
+        "System.Configuration.ConfigurationManager/10.0.10": {"sha512": "64jtHt9yLYi6VHMF5AwDj6BGM/MZrygv55SXl0MOIkFsFjGwRuxV3/QgEm7NTp3TQIx+YNX4S6dNpY08fJ3+3g==", "dependencies": {"System.Diagnostics.EventLog": "10.0.10", "System.Security.Cryptography.ProtectedData": "10.0.10"}},
+        "System.Data.DataSetExtensions/4.5.0": {"sha512": "221clPs1445HkTBZPL+K9sDBdJRB8UN8rgjO3ztB0CQ26z//fmJXtlsr6whGatscsKGBrhJl5bwJuKSA8mwFOw==", "dependencies": {}},
+        "System.Diagnostics.EventLog/10.0.10": {"sha512": "OvGz3PrzuAI/Sj7LTcXcCe3FClRI1IyRMZjNONcZtFh+Ww7nAtSh4kh08r8KVe/xxkXJPjR0Y1jF7H+N42d4xQ==", "dependencies": {}},
+        "System.Formats.Nrbf/10.0.4": {"sha512": "ogytjCHstYp43RDPsEDLi/OmoB8DygrTflilVnyyfpTZ7F5CWv6krDCfG5rw5JfkXM5iop0baWCxwOyE5pkAoA==", "dependencies": {}},
+        "System.Reflection.MetadataLoadContext/10.0.4": {"sha512": "kVaDOAIi02+yd7AZFNpZ88UZcBESiDI1Ib9l592QvZCYUA/xJloAucRAbyEnuOB+ubrpITGb8cMa3g8NhwLUIA==", "dependencies": {}},
+        "System.Resources.Extensions/10.0.4": {"sha512": "4lsCtbcEae6gmLpGxHnLbIaU/7/lcB95GbDbL+Hr6sszKGAWs4IHu7aKFqJxcq2aDaHSJ321hl1xCLDlC9lf2A==", "dependencies": {"System.Formats.Nrbf": "10.0.4"}},
+        "System.Security.Cryptography.Pkcs/10.0.13": {"sha512": "a+EovgC1fBnwdlQ6cn3j4JFBfKqiFaFvoAhjisOoSvazLAcIznaBzPQP0oYnvccmeXfqUH1KebVZOxSeH6rMaw==", "dependencies": {}},
+        "System.Security.Cryptography.ProtectedData/10.0.10": {"sha512": "BKt0SQgq2lq3ESE68jkeLwv95ypANrPDtkTOIFGcnhg2aRUeUUBDrQlkVDZctrg1WenVcvn5P5XZnuYI7q6rFQ==", "dependencies": {}},
+        "System.Security.Cryptography.Xml/10.0.4": {"sha512": "itOxogsgNRAv2OO28CAAagTZZ6UlGuKFJ++Y2pWvK34VVVTKWB8vEuyESQeJ0drvRa2+nQKqBrZFv6/YIYyFyg==", "dependencies": {"System.Security.Cryptography.Pkcs": "10.0.4"}}
+      }
+    },
+    "UnpinnedPkcs": {
+      "directPackageReferences": [
+        {"Include": "ICSharpCode.Decompiler", "Version": "10.0.1.8346"},
+        {"Include": "Microsoft.Build.Locator", "Version": "1.11.2"},
+        {"Include": "Microsoft.Build", "Version": "18.7.1", "PrivateAssets": "all", "ExcludeAssets": "runtime", "IncludeAssets": "compile; build; native; contentfiles; analyzers; buildtransitive"},
+        {"Include": "Microsoft.Build.Framework", "Version": "18.7.1", "PrivateAssets": "all", "ExcludeAssets": "runtime", "IncludeAssets": "compile; build; native; contentfiles; analyzers; buildtransitive"},
+        {"Include": "Microsoft.Build.Utilities.Core", "Version": "18.7.1", "PrivateAssets": "all", "ExcludeAssets": "runtime", "IncludeAssets": "compile; build; native; contentfiles; analyzers; buildtransitive"},
+        {"Include": "Microsoft.Build.Tasks.Core", "Version": "18.7.1", "PrivateAssets": "all", "ExcludeAssets": "runtime", "IncludeAssets": "compile; build; native; contentfiles; analyzers; buildtransitive"},
+        {"Include": "Microsoft.NET.StringTools", "Version": "18.7.1", "PrivateAssets": "all", "ExcludeAssets": "runtime", "IncludeAssets": "compile; build; native; contentfiles; analyzers; buildtransitive"},
+        {"Include": "Microsoft.CodeAnalysis.CSharp", "Version": "5.12.0"},
+        {"Include": "Microsoft.CodeAnalysis.CSharp.Workspaces", "Version": "5.12.0"},
+        {"Include": "Microsoft.CodeAnalysis.CSharp.Features", "Version": "5.12.0"},
+        {"Include": "Microsoft.CodeAnalysis.Features", "Version": "5.12.0"},
+        {"Include": "Microsoft.CodeAnalysis.Workspaces.MSBuild", "Version": "5.12.0"},
+        {"Include": "SQLite3MC.PCLRaw.bundle", "Version": "2.3.5"},
+        {"Include": "Microsoft.Extensions.Hosting", "Version": "10.0.8"},
+        {"Include": "ModelContextProtocol", "Version": "2.2.0"},
+        {"Include": "Serilog.Extensions.Hosting", "Version": "10.0.0"},
+        {"Include": "Serilog.Sinks.File", "Version": "7.0.0"}
+      ],
+      "restoreExitCode": 0,
+      "restoreOutput": [
+        "Determining projects to restore...",
+        "candidate-closure\\UnpinnedPkcs\\UnpinnedPkcs.csproj : warning NU1902: Package 'System.Security.Cryptography.Pkcs' 10.0.4 has a known moderate severity vulnerability, https://github.com/advisories/GHSA-2fmv-rv2c-59x7",
+        "Restored candidate-closure\\UnpinnedPkcs\\UnpinnedPkcs.csproj (in 728 ms)."
+      ],
+      "selectedAssets": {
+        "Microsoft.Build/18.7.1": {"compile": ["ref/net10.0/Microsoft.Build.dll"], "runtime": ["lib/net10.0/_._"], "nativeAssetsForReleaseRids": []},
+        "Microsoft.Build.Framework/18.7.1": {"compile": ["ref/net10.0/Microsoft.Build.Framework.dll"], "runtime": ["lib/net10.0/_._"], "nativeAssetsForReleaseRids": []},
+        "Microsoft.Build.Locator/1.11.2": {"compile": ["lib/net8.0/Microsoft.Build.Locator.dll"], "runtime": ["lib/net8.0/Microsoft.Build.Locator.dll"], "nativeAssetsForReleaseRids": []},
+        "Microsoft.Build.Tasks.Core/18.7.1": {"compile": ["ref/net10.0/Microsoft.Build.Tasks.Core.dll"], "runtime": ["lib/net10.0/_._"], "nativeAssetsForReleaseRids": []},
+        "Microsoft.Build.Utilities.Core/18.7.1": {"compile": ["ref/net10.0/Microsoft.Build.Utilities.Core.dll"], "runtime": ["lib/net10.0/_._"], "nativeAssetsForReleaseRids": []},
+        "Microsoft.NET.StringTools/18.7.1": {"compile": ["ref/net10.0/Microsoft.NET.StringTools.dll"], "runtime": ["lib/net10.0/_._"], "nativeAssetsForReleaseRids": []},
+        "SQLite3MC.PCLRaw.bundle/2.3.5": {"compile": ["lib/netstandard2.0/SQLitePCLRaw.batteries_v2.dll"], "runtime": ["lib/netstandard2.0/SQLitePCLRaw.batteries_v2.dll"], "nativeAssetsForReleaseRids": []},
+        "SQLite3MC.PCLRaw.lib/2.3.5": {"compile": ["lib/netstandard2.0/_._"], "runtime": ["lib/netstandard2.0/_._"], "nativeAssetsForReleaseRids": ["runtimes/linux-x64/native/libsqlite3mc.so", "runtimes/osx-arm64/native/libsqlite3mc.dylib", "runtimes/win-x64/native/sqlite3mc.dll"]},
+        "SQLite3MC.PCLRaw.provider/2.3.5": {"compile": ["lib/netstandard2.0/SQLite3MC.PCLRaw.provider.dll"], "runtime": ["lib/netstandard2.0/SQLite3MC.PCLRaw.provider.dll"], "nativeAssetsForReleaseRids": []},
+        "SQLitePCLRaw.core/3.0.2": {"compile": ["lib/netstandard2.0/SQLitePCLRaw.core.dll"], "runtime": ["lib/netstandard2.0/SQLitePCLRaw.core.dll"], "nativeAssetsForReleaseRids": []},
+        "System.Security.Cryptography.Pkcs/10.0.4": {"compile": ["lib/net10.0/System.Security.Cryptography.Pkcs.dll"], "runtime": ["lib/net10.0/_._"], "nativeAssetsForReleaseRids": []},
+        "System.Security.Cryptography.Xml/10.0.4": {"compile": ["lib/net10.0/System.Security.Cryptography.Xml.dll"], "runtime": ["lib/net10.0/_._"], "nativeAssetsForReleaseRids": []}
+      },
+      "audit": {
+        "sources": ["https://api.nuget.org/v3/index.json"],
+        "frameworks": [
+          {
+            "framework": "net10.0",
+            "topLevelPackages": [],
+            "transitivePackages": [
+              {
+                "id": "System.Security.Cryptography.Pkcs",
+                "resolvedVersion": "10.0.4",
+                "vulnerabilities": [{"severity": "High", "advisoryurl": "https://github.com/advisories/GHSA-846f-f764-76mx"}, {"severity": "Moderate", "advisoryurl": "https://github.com/advisories/GHSA-2fmv-rv2c-59x7"}]
+              },
+              {
+                "id": "System.Security.Cryptography.Xml",
+                "resolvedVersion": "10.0.4",
+                "vulnerabilities": [
+                  {"severity": "High", "advisoryurl": "https://github.com/advisories/GHSA-37gx-xxp4-5rgx"},
+                  {"severity": "High", "advisoryurl": "https://github.com/advisories/GHSA-w3x6-4m5h-cxqf"},
+                  {"severity": "High", "advisoryurl": "https://github.com/advisories/GHSA-g8r8-53c2-pm3f"},
+                  {"severity": "High", "advisoryurl": "https://github.com/advisories/GHSA-8q5v-6pqq-x66h"},
+                  {"severity": "High", "advisoryurl": "https://github.com/advisories/GHSA-23rf-6693-g89p"},
+                  {"severity": "High", "advisoryurl": "https://github.com/advisories/GHSA-cvvh-rhrc-wg4q"},
+                  {"severity": "High", "advisoryurl": "https://github.com/advisories/GHSA-6588-8gv4-xfgh"},
+                  {"severity": "High", "advisoryurl": "https://github.com/advisories/GHSA-mmjf-rqrv-855v"},
+                  {"severity": "High", "advisoryurl": "https://github.com/advisories/GHSA-7hqp-7c5m-4vq6"},
+                  {"severity": "High", "advisoryurl": "https://github.com/advisories/GHSA-r955-8q5j-3h83"},
+                  {"severity": "High", "advisoryurl": "https://github.com/advisories/GHSA-c399-9853-6jmj"}
+                ]
+              }
+            ]
+          }
+        ],
+        "exitCode": 0
+      }
+    },
+    "SQLiteIdentity": {
+      "directPackageReferences": [
+        {"Include": "ICSharpCode.Decompiler", "Version": "10.0.1.8346"},
+        {"Include": "Microsoft.Build.Locator", "Version": "1.11.2"},
+        {"Include": "Microsoft.Build", "Version": "18.7.1", "PrivateAssets": "all", "ExcludeAssets": "runtime", "IncludeAssets": "compile; build; native; contentfiles; analyzers; buildtransitive"},
+        {"Include": "Microsoft.Build.Framework", "Version": "18.7.1", "PrivateAssets": "all", "ExcludeAssets": "runtime", "IncludeAssets": "compile; build; native; contentfiles; analyzers; buildtransitive"},
+        {"Include": "Microsoft.Build.Utilities.Core", "Version": "18.7.1", "PrivateAssets": "all", "ExcludeAssets": "runtime", "IncludeAssets": "compile; build; native; contentfiles; analyzers; buildtransitive"},
+        {"Include": "Microsoft.Build.Tasks.Core", "Version": "18.7.1", "PrivateAssets": "all", "ExcludeAssets": "runtime", "IncludeAssets": "compile; build; native; contentfiles; analyzers; buildtransitive"},
+        {"Include": "Microsoft.NET.StringTools", "Version": "18.7.1", "PrivateAssets": "all", "ExcludeAssets": "runtime", "IncludeAssets": "compile; build; native; contentfiles; analyzers; buildtransitive"},
+        {"Include": "Microsoft.CodeAnalysis.CSharp", "Version": "5.12.0"},
+        {"Include": "Microsoft.CodeAnalysis.CSharp.Workspaces", "Version": "5.12.0"},
+        {"Include": "Microsoft.CodeAnalysis.CSharp.Features", "Version": "5.12.0"},
+        {"Include": "Microsoft.CodeAnalysis.Features", "Version": "5.12.0"},
+        {"Include": "Microsoft.CodeAnalysis.Workspaces.MSBuild", "Version": "5.12.0"},
+        {"Include": "SQLitePCLRaw.bundle_e_sqlite3", "Version": "2.1.11"},
+        {"Include": "Microsoft.Extensions.Hosting", "Version": "10.0.8"},
+        {"Include": "ModelContextProtocol", "Version": "2.2.0"},
+        {"Include": "Serilog.Extensions.Hosting", "Version": "10.0.0"},
+        {"Include": "System.Security.Cryptography.Pkcs", "Version": "10.0.13"},
+        {"Include": "Serilog.Sinks.File", "Version": "7.0.0"}
+      ],
+      "restoreExitCode": 0,
+      "restoreOutput": ["Determining projects to restore...", "Restored candidate-closure\\SQLiteIdentity\\SQLiteIdentity.csproj (in 2.49 sec)."],
+      "selectedAssets": {
+        "Microsoft.Build/18.7.1": {"compile": ["ref/net10.0/Microsoft.Build.dll"], "runtime": ["lib/net10.0/_._"], "nativeAssetsForReleaseRids": []},
+        "Microsoft.Build.Framework/18.7.1": {"compile": ["ref/net10.0/Microsoft.Build.Framework.dll"], "runtime": ["lib/net10.0/_._"], "nativeAssetsForReleaseRids": []},
+        "Microsoft.Build.Locator/1.11.2": {"compile": ["lib/net8.0/Microsoft.Build.Locator.dll"], "runtime": ["lib/net8.0/Microsoft.Build.Locator.dll"], "nativeAssetsForReleaseRids": []},
+        "Microsoft.Build.Tasks.Core/18.7.1": {"compile": ["ref/net10.0/Microsoft.Build.Tasks.Core.dll"], "runtime": ["lib/net10.0/_._"], "nativeAssetsForReleaseRids": []},
+        "Microsoft.Build.Utilities.Core/18.7.1": {"compile": ["ref/net10.0/Microsoft.Build.Utilities.Core.dll"], "runtime": ["lib/net10.0/_._"], "nativeAssetsForReleaseRids": []},
+        "Microsoft.NET.StringTools/18.7.1": {"compile": ["ref/net10.0/Microsoft.NET.StringTools.dll"], "runtime": ["lib/net10.0/_._"], "nativeAssetsForReleaseRids": []},
+        "SQLitePCLRaw.bundle_e_sqlite3/2.1.11": {"compile": ["lib/netstandard2.0/SQLitePCLRaw.batteries_v2.dll"], "runtime": ["lib/netstandard2.0/SQLitePCLRaw.batteries_v2.dll"], "nativeAssetsForReleaseRids": []},
+        "SQLitePCLRaw.core/2.1.11": {"compile": ["lib/netstandard2.0/SQLitePCLRaw.core.dll"], "runtime": ["lib/netstandard2.0/SQLitePCLRaw.core.dll"], "nativeAssetsForReleaseRids": []},
+        "SQLitePCLRaw.lib.e_sqlite3/2.1.11": {"compile": ["lib/netstandard2.0/_._"], "runtime": ["lib/netstandard2.0/_._"], "nativeAssetsForReleaseRids": ["runtimes/linux-x64/native/libe_sqlite3.so", "runtimes/osx-arm64/native/libe_sqlite3.dylib", "runtimes/win-x64/native/e_sqlite3.dll"]},
+        "SQLitePCLRaw.provider.e_sqlite3/2.1.11": {"compile": ["lib/net6.0/SQLitePCLRaw.provider.e_sqlite3.dll"], "runtime": ["lib/net6.0/SQLitePCLRaw.provider.e_sqlite3.dll"], "nativeAssetsForReleaseRids": []},
+        "System.Security.Cryptography.Pkcs/10.0.13": {"compile": ["lib/net10.0/System.Security.Cryptography.Pkcs.dll"], "runtime": ["lib/net10.0/System.Security.Cryptography.Pkcs.dll"], "nativeAssetsForReleaseRids": []},
+        "System.Security.Cryptography.Xml/10.0.4": {"compile": ["lib/net10.0/System.Security.Cryptography.Xml.dll"], "runtime": ["lib/net10.0/_._"], "nativeAssetsForReleaseRids": []}
+      },
+      "audit": {
+        "sources": ["https://api.nuget.org/v3/index.json"],
+        "frameworks": [
+          {
+            "framework": "net10.0",
+            "topLevelPackages": [],
+            "transitivePackages": [
+              {"id": "SQLitePCLRaw.lib.e_sqlite3", "resolvedVersion": "2.1.11", "vulnerabilities": [{"severity": "High", "advisoryurl": "https://github.com/advisories/GHSA-2m69-gcr7-jv3q"}]},
+              {
+                "id": "System.Security.Cryptography.Xml",
+                "resolvedVersion": "10.0.4",
+                "vulnerabilities": [
+                  {"severity": "High", "advisoryurl": "https://github.com/advisories/GHSA-37gx-xxp4-5rgx"},
+                  {"severity": "High", "advisoryurl": "https://github.com/advisories/GHSA-w3x6-4m5h-cxqf"},
+                  {"severity": "High", "advisoryurl": "https://github.com/advisories/GHSA-g8r8-53c2-pm3f"},
+                  {"severity": "High", "advisoryurl": "https://github.com/advisories/GHSA-8q5v-6pqq-x66h"},
+                  {"severity": "High", "advisoryurl": "https://github.com/advisories/GHSA-23rf-6693-g89p"},
+                  {"severity": "High", "advisoryurl": "https://github.com/advisories/GHSA-cvvh-rhrc-wg4q"},
+                  {"severity": "High", "advisoryurl": "https://github.com/advisories/GHSA-6588-8gv4-xfgh"},
+                  {"severity": "High", "advisoryurl": "https://github.com/advisories/GHSA-mmjf-rqrv-855v"},
+                  {"severity": "High", "advisoryurl": "https://github.com/advisories/GHSA-7hqp-7c5m-4vq6"},
+                  {"severity": "High", "advisoryurl": "https://github.com/advisories/GHSA-r955-8q5j-3h83"},
+                  {"severity": "High", "advisoryurl": "https://github.com/advisories/GHSA-c399-9853-6jmj"}
+                ]
+              }
+            ]
+          }
+        ],
+        "exitCode": 0
+      }
+    },
+    "Downgrade": {
+      "directPackageReferences": [
+        {"Include": "ICSharpCode.Decompiler", "Version": "10.0.1.8346"},
+        {"Include": "Microsoft.Build.Locator", "Version": "1.11.2"},
+        {"Include": "Microsoft.Build", "Version": "18.6.3", "PrivateAssets": "all", "ExcludeAssets": "runtime", "IncludeAssets": "compile; build; native; contentfiles; analyzers; buildtransitive"},
+        {"Include": "Microsoft.Build.Framework", "Version": "18.6.3", "PrivateAssets": "all", "ExcludeAssets": "runtime", "IncludeAssets": "compile; build; native; contentfiles; analyzers; buildtransitive"},
+        {"Include": "Microsoft.Build.Utilities.Core", "Version": "18.6.3", "PrivateAssets": "all", "ExcludeAssets": "runtime", "IncludeAssets": "compile; build; native; contentfiles; analyzers; buildtransitive"},
+        {"Include": "Microsoft.Build.Tasks.Core", "Version": "18.6.3", "PrivateAssets": "all", "ExcludeAssets": "runtime", "IncludeAssets": "compile; build; native; contentfiles; analyzers; buildtransitive"},
+        {"Include": "Microsoft.NET.StringTools", "Version": "18.6.3", "PrivateAssets": "all", "ExcludeAssets": "runtime", "IncludeAssets": "compile; build; native; contentfiles; analyzers; buildtransitive"},
+        {"Include": "Microsoft.CodeAnalysis.CSharp", "Version": "5.12.0"},
+        {"Include": "Microsoft.CodeAnalysis.CSharp.Workspaces", "Version": "5.12.0"},
+        {"Include": "Microsoft.CodeAnalysis.CSharp.Features", "Version": "5.12.0"},
+        {"Include": "Microsoft.CodeAnalysis.Features", "Version": "5.12.0"},
+        {"Include": "Microsoft.CodeAnalysis.Workspaces.MSBuild", "Version": "5.12.0"},
+        {"Include": "SQLite3MC.PCLRaw.bundle", "Version": "2.3.5"},
+        {"Include": "Microsoft.Extensions.Hosting", "Version": "10.0.8"},
+        {"Include": "ModelContextProtocol", "Version": "2.2.0"},
+        {"Include": "Serilog.Extensions.Hosting", "Version": "10.0.0"},
+        {"Include": "System.Security.Cryptography.Pkcs", "Version": "10.0.13"},
+        {"Include": "Serilog.Sinks.File", "Version": "7.0.0"}
+      ],
+      "restoreExitCode": 1,
+      "restoreOutput": [
+        "Determining projects to restore...",
+        "candidate-closure\\Downgrade\\Downgrade.csproj : error NU1605: Warning As Error: Detected package downgrade: Microsoft.Build.Framework from 18.7.1 to 18.6.3. Reference the package directly from the project to select a different version.",
+        "candidate-closure\\Downgrade\\Downgrade.csproj : error NU1605:  Downgrade -> Microsoft.CodeAnalysis.Workspaces.MSBuild 5.12.0 -> Microsoft.Build.Framework (>= 18.7.1)",
+        "candidate-closure\\Downgrade\\Downgrade.csproj : error NU1605:  Downgrade -> Microsoft.Build.Framework (>= 18.6.3)",
+        "Failed to restore candidate-closure\\Downgrade\\Downgrade.csproj (in 4.55 sec)."
+      ],
+      "selectedAssets": {
+        "Microsoft.Build/18.6.3": {"compile": ["ref/net10.0/Microsoft.Build.dll"], "runtime": ["lib/net10.0/_._"], "nativeAssetsForReleaseRids": []},
+        "Microsoft.Build.Framework/18.6.3": {"compile": ["ref/net10.0/Microsoft.Build.Framework.dll"], "runtime": ["lib/net10.0/_._"], "nativeAssetsForReleaseRids": []},
+        "Microsoft.Build.Locator/1.11.2": {"compile": ["lib/net8.0/Microsoft.Build.Locator.dll"], "runtime": ["lib/net8.0/Microsoft.Build.Locator.dll"], "nativeAssetsForReleaseRids": []},
+        "Microsoft.Build.Tasks.Core/18.6.3": {"compile": ["ref/net10.0/Microsoft.Build.Tasks.Core.dll"], "runtime": ["lib/net10.0/_._"], "nativeAssetsForReleaseRids": []},
+        "Microsoft.Build.Utilities.Core/18.6.3": {"compile": ["ref/net10.0/Microsoft.Build.Utilities.Core.dll"], "runtime": ["lib/net10.0/_._"], "nativeAssetsForReleaseRids": []},
+        "Microsoft.NET.StringTools/18.6.3": {"compile": ["ref/net10.0/Microsoft.NET.StringTools.dll"], "runtime": ["lib/net10.0/_._"], "nativeAssetsForReleaseRids": []},
+        "SQLite3MC.PCLRaw.bundle/2.3.5": {"compile": ["lib/netstandard2.0/SQLitePCLRaw.batteries_v2.dll"], "runtime": ["lib/netstandard2.0/SQLitePCLRaw.batteries_v2.dll"], "nativeAssetsForReleaseRids": []},
+        "SQLite3MC.PCLRaw.lib/2.3.5": {"compile": ["lib/netstandard2.0/_._"], "runtime": ["lib/netstandard2.0/_._"], "nativeAssetsForReleaseRids": ["runtimes/linux-x64/native/libsqlite3mc.so", "runtimes/osx-arm64/native/libsqlite3mc.dylib", "runtimes/win-x64/native/sqlite3mc.dll"]},
+        "SQLite3MC.PCLRaw.provider/2.3.5": {"compile": ["lib/netstandard2.0/SQLite3MC.PCLRaw.provider.dll"], "runtime": ["lib/netstandard2.0/SQLite3MC.PCLRaw.provider.dll"], "nativeAssetsForReleaseRids": []},
+        "SQLitePCLRaw.core/3.0.2": {"compile": ["lib/netstandard2.0/SQLitePCLRaw.core.dll"], "runtime": ["lib/netstandard2.0/SQLitePCLRaw.core.dll"], "nativeAssetsForReleaseRids": []},
+        "System.Security.Cryptography.Pkcs/10.0.13": {"compile": ["lib/net10.0/System.Security.Cryptography.Pkcs.dll"], "runtime": ["lib/net10.0/System.Security.Cryptography.Pkcs.dll"], "nativeAssetsForReleaseRids": []},
+        "System.Security.Cryptography.Xml/10.0.3": {"compile": ["lib/net10.0/System.Security.Cryptography.Xml.dll"], "runtime": ["lib/net10.0/_._"], "nativeAssetsForReleaseRids": []}
+      }
+    }
+  },
+  "peReaderOutput": [
+    "Microsoft.CodeAnalysis.Workspaces, Version=5.9.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35",
+    "  ref SQLitePCLRaw.core, Version=3.0.2.2801, PublicKeyToken=1488e028ca7ab535",
+    "  ref SQLitePCLRaw.batteries_v2, Version=2.3.5.0, PublicKeyToken=df579d6b11135638",
+    "Microsoft.CodeAnalysis.Workspaces.MSBuild, Version=5.9.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35",
+    "  ref Microsoft.CodeAnalysis.Workspaces.MSBuild.Contracts, Version=5.9.0.0, PublicKeyToken=31bf3856ad364e35",
+    "  ref Microsoft.Build.Framework, Version=15.1.0.0, PublicKeyToken=b03f5f7f11d50a3a",
+    "Microsoft.CodeAnalysis.Workspaces, Version=5.12.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35",
+    "  ref SQLitePCLRaw.core, Version=2.1.11.2622, PublicKeyToken=1488e028ca7ab535",
+    "  ref SQLitePCLRaw.batteries_v2, Version=2.1.11.2622, PublicKeyToken=8226ea5df37bcae9",
+    "Microsoft.CodeAnalysis.Workspaces.MSBuild, Version=5.12.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35",
+    "  ref Microsoft.CodeAnalysis.Workspaces.MSBuild.Contracts, Version=5.12.0.0, PublicKeyToken=31bf3856ad364e35",
+    "  ref Microsoft.Build.Framework, Version=15.1.0.0, PublicKeyToken=b03f5f7f11d50a3a",
+    "sqlite3mc.pclraw.bundle/2.3.5/lib/netstandard2.0/SQLitePCLRaw.batteries_v2.dll -> SQLitePCLRaw.batteries_v2, Version=2.3.5.0, Culture=neutral, PublicKeyToken=df579d6b11135638",
+    "sqlitepclraw.bundle_e_sqlite3/2.1.11/lib/netstandard2.0/SQLitePCLRaw.batteries_v2.dll -> SQLitePCLRaw.batteries_v2, Version=2.1.11.2622, Culture=neutral, PublicKeyToken=8226ea5df37bcae9",
+    "sqlitepclraw.core/2.1.11/lib/netstandard2.0/SQLitePCLRaw.core.dll -> SQLitePCLRaw.core, Version=2.1.11.2622, Culture=neutral, PublicKeyToken=1488e028ca7ab535",
+    "sqlitepclraw.core/3.0.2/lib/netstandard2.0/SQLitePCLRaw.core.dll -> SQLitePCLRaw.core, Version=3.0.2.2801, Culture=neutral, PublicKeyToken=1488e028ca7ab535"
+  ]
+}

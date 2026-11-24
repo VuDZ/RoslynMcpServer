@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net11.0</TargetFramework>
     <RuntimeIdentifiers>win-x64;win-arm64;osx-arm64;linux-x64;linux-arm64;linux-musl-x64</RuntimeIdentifiers>
     <OutputType>Exe</OutputType>
     <Nullable>enable</Nullable>
@@ -24,9 +24,9 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageId>RoslynMcpServer</PackageId>
-    <Version>1.6.2</Version>
-    <AssemblyVersion>1.6.2.0</AssemblyVersion>
-    <FileVersion>1.6.2.0</FileVersion>
+    <Version>1.6.3</Version>
+    <AssemblyVersion>1.6.3.0</AssemblyVersion>
+    <FileVersion>1.6.3.0</FileVersion>
     <PackageTags>AI; MCP; server; stdio</PackageTags>
     <Description>An MCP server using the MCP C# SDK.</Description>
   </PropertyGroup>
@@ -77,32 +77,30 @@
   <ItemGroup>
     <PackageReference Include="ICSharpCode.Decompiler" Version="10.0.1.8346" />
     <PackageReference Include="Microsoft.Build.Locator" Version="1.11.2" />
-    <PackageReference Include="Microsoft.Build" Version="18.6.3" PrivateAssets="all" ExcludeAssets="runtime">
+    <PackageReference Include="Microsoft.Build" Version="18.7.1" PrivateAssets="all" ExcludeAssets="runtime">
       <IncludeAssets>compile; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.Build.Framework" Version="18.6.3" PrivateAssets="all" ExcludeAssets="runtime">
+    <PackageReference Include="Microsoft.Build.Framework" Version="18.7.1" PrivateAssets="all" ExcludeAssets="runtime">
       <IncludeAssets>compile; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.Build.Utilities.Core" Version="18.6.3" PrivateAssets="all" ExcludeAssets="runtime">
+    <PackageReference Include="Microsoft.Build.Utilities.Core" Version="18.7.1" PrivateAssets="all" ExcludeAssets="runtime">
       <IncludeAssets>compile; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.Build.Tasks.Core" Version="18.6.3" PrivateAssets="all" ExcludeAssets="runtime">
+    <PackageReference Include="Microsoft.Build.Tasks.Core" Version="18.7.1" PrivateAssets="all" ExcludeAssets="runtime">
       <IncludeAssets>compile; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.NET.StringTools" Version="18.6.3" PrivateAssets="all" ExcludeAssets="runtime">
+    <PackageReference Include="Microsoft.NET.StringTools" Version="18.7.1" PrivateAssets="all" ExcludeAssets="runtime">
       <IncludeAssets>compile; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.9.0" />
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="5.9.0" />
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features" Version="5.9.0" />
-    <PackageReference Include="Microsoft.CodeAnalysis.Features" Version="5.9.0" />
-    <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" Version="5.9.0" />
-    <!-- Roslyn's persistent index storage. Workspaces 5.9.0 references SQLitePCLRaw.batteries_v2 2.3.5.0
-         (key df579d6b11135638) without a NuGet dependency on it; that is the SQLite3MC build, not
-         SQLitePCLRaw 2.x/3.x. Without it every server process rebuilt all indexes; with a warm cache the
-         first search on Roslyn.slnx took 0.52 and 0.22 of the cold time and a third of the memory (task-14).
-         Keep the version equal to Roslyn's reference: RoslynIndexStorageTests fails otherwise. -->
-    <PackageReference Include="SQLite3MC.PCLRaw.bundle" Version="2.3.5" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.12.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="5.12.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features" Version="5.12.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Features" Version="5.12.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" Version="5.12.0" />
+    <!-- The persistent index requires the exact managed assembly identities used by Workspaces.
+         Pin the native library separately to avoid CVE-2025-6965 in the bundle's default native dependency. -->
+    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="[2.1.11]" />
+    <PackageReference Include="SQLitePCLRaw.lib.e_sqlite3" Version="[3.53.3]" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.8" />
     <PackageReference Include="ModelContextProtocol" Version="2.2.0" />
     <PackageReference Include="Serilog.Extensions.Hosting" Version="10.0.0" />

@@ -204,10 +204,10 @@ function ConvertTo-NotesMarkdown {
         [void]$lines.Add('')
         foreach ($item in @($Archives | Where-Object { $_.Rid -eq $archive.Rid })) {
             if ($item.Kind -eq 'self-contained') {
-                [void]$lines.Add(('- **Self-contained** (`{0}`): includes the .NET 10 runtime for {1}. Use this unless this machine already has a compatible .NET 10 Runtime.' -f $item.Name, $item.Rid))
+                [void]$lines.Add(('- **Self-contained** (`{0}`): includes the .NET 11 runtime for {1}.' -f $item.Name, $item.Rid))
             }
             else {
-                [void]$lines.Add(('- **Framework-dependent** (`{0}`): smaller; requires a .NET 10 Runtime (or SDK 10) for {1}.' -f $item.Name, $item.Rid))
+                [void]$lines.Add(('- **Framework-dependent** (`{0}`): requires a .NET 11 Runtime or SDK for {1}.' -f $item.Name, $item.Rid))
             }
         }
 

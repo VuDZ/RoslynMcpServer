@@ -76,7 +76,7 @@ public sealed class ProgramHostFailureTests : IDisposable
 
         Assert.NotNull(root);
         var configuration = new DirectoryInfo(AppContext.BaseDirectory).Parent!.Name;
-        var source = Path.Combine(root.FullName, "samples", "RoslynMcpPlugin", "bin", configuration, "net10.0");
+        var source = Path.Combine(root.FullName, "samples", "RoslynMcpPlugin", "bin", configuration, "net11.0");
         Assert.True(Directory.Exists(source), "The sample plugin must be built with the solution.");
         foreach (var file in Directory.EnumerateFiles(source, "*", SearchOption.AllDirectories))
         {

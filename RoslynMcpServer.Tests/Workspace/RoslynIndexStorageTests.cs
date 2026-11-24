@@ -56,13 +56,15 @@ public sealed class RoslynIndexStorageTests
         Assert.False(userData.StartsWith(processBase, StringComparison.Ordinal));
     }
 
-    [Fact]
-    public void Shipped_sqlite_is_the_build_Roslyn_references()
+    [Theory]
+    [InlineData("SQLitePCLRaw.batteries_v2")]
+    [InlineData("SQLitePCLRaw.core")]
+    public void Shipped_sqlite_is_the_build_Roslyn_references(string assemblyName)
     {
         var reference = typeof(Microsoft.CodeAnalysis.Workspace).Assembly.GetReferencedAssemblies()
-            .Single(name => name.Name == "SQLitePCLRaw.batteries_v2");
+            .Single(name => name.Name == assemblyName);
 
-        var shipped = AssemblyName.GetAssemblyName(Path.Combine(AppContext.BaseDirectory, "SQLitePCLRaw.batteries_v2.dll"));
+        var shipped = AssemblyName.GetAssemblyName(Path.Combine(AppContext.BaseDirectory, assemblyName + ".dll"));
 
         Assert.Equal(reference.Version, shipped.Version);
         Assert.Equal(Convert.ToHexString(reference.GetPublicKeyToken()!), Convert.ToHexString(shipped.GetPublicKeyToken()!));

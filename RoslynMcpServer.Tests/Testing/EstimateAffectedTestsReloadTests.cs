@@ -95,8 +95,10 @@ public sealed class EstimateAffectedTestsReloadTests
         await fixture.Manager.ClearWorkspaceAsync();
         if (inWindow)
         {
-            fixture.Manager.BeforeDiskWatcherStartForTests = () =>
+            fixture.Manager.AfterDiskWatcherStartForTests = () =>
             {
+                // Simulate a missed watcher event before baseline publication.
+                fixture.Manager.SilenceDiskWatchersForTests();
                 File.WriteAllText(fixture.Files.SpecsPath, ChangedTest(original, 1));
                 File.SetLastWriteTimeUtc(fixture.Files.SpecsPath, initial.PublishedAtUtc.AddDays(-1));
             };
@@ -107,7 +109,7 @@ public sealed class EstimateAffectedTestsReloadTests
         }
         finally
         {
-            fixture.Manager.BeforeDiskWatcherStartForTests = null;
+            fixture.Manager.AfterDiskWatcherStartForTests = null;
         }
         var after = fixture.Manager.Baseline.GetSnapshot();
         Assert.True(after.RequiresFullScan);

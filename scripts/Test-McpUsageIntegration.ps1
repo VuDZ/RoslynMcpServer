@@ -8,7 +8,7 @@
 #>
 [CmdletBinding()]
 param(
-    [string]$ServerPath = (Join-Path $PSScriptRoot '../bin/Release/net10.0/RoslynMcpServer.dll'),
+    [string]$ServerPath = (Join-Path $PSScriptRoot '../bin/Release/net11.0/RoslynMcpServer.dll'),
     [switch]$SkipAnalyzer
 )
 

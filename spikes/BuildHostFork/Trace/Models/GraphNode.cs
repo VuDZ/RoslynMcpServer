@@ -6,9 +6,8 @@ namespace BuildHostFork.Trace;
 /// </summary>
 /// <remarks>
 /// The key is the path and the target framework. Configuration and platform are labels from the path's first root
-/// evaluation, and other global properties are not recorded: the 5.9.0 loader gives one set of global properties to
-/// the whole load and the host varies only TargetFramework, so two contexts of one path that differ otherwise would
-/// merge into one node.
+/// evaluation. The spike loads a solution with one shared set of global properties and observes the host's
+/// TargetFramework changes. Contexts of one path that differ in other properties would merge into one node.
 /// </remarks>
 internal sealed record GraphNode(
     string Path,

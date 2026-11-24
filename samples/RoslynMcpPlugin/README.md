@@ -9,7 +9,7 @@ server process, receives the shared `SolutionManager`, and uses the Roslyn
 solution that is already loaded. It does not need a separate `MSBuildWorkspace`.
 Plugin tools are available in the first `tools/list` response after startup.
 
-This guide matches server **1.5.0** (`AssemblyVersion`: `1.5.0.0`).
+This guide follows the server and sample in this checkout.
 The working sample is in this directory: its `sample_loaded_workspace` tool
 returns the loaded workspace path or `No workspace is loaded.`.
 This is the main guide for plugin users and authors. It lives beside the sample,
@@ -17,7 +17,7 @@ independently of the archived development plans.
 
 ## Quick start
 
-You need .NET SDK 10 and the RoslynMcpServer source tree to build the sample.
+You need the .NET 11 SDK pinned in [`global.json`](../../global.json) to build the sample.
 Run this command from the repository root:
 
 ```powershell
@@ -26,12 +26,12 @@ dotnet build samples/RoslynMcpPlugin/RoslynMcpPlugin.csproj -c Debug
 
 In your MCP server launch settings, set the `ROSLYN_MCP_PLUGINS` environment
 variable to the absolute path of
-`samples/RoslynMcpPlugin/bin/Debug/net10.0`. The variable must be available
+`samples/RoslynMcpPlugin/bin/Debug/net11.0`. The variable must be available
 to the server process itself. For example, this MCP client configuration fragment:
 
 ```json
 "env": {
-  "ROSLYN_MCP_PLUGINS": "C:/src/RoslynMcpServer/samples/RoslynMcpPlugin/bin/Debug/net10.0"
+  "ROSLYN_MCP_PLUGINS": "C:/src/RoslynMcpServer/samples/RoslynMcpPlugin/bin/Debug/net11.0"
 }
 ```
 
@@ -51,11 +51,11 @@ samples/RoslynMcpPlugin/
   SampleTools.cs
 ```
 
-A plugin is a `net10.0` class library without its own runtime.
+The sample is a `net11.0` class library without its own runtime.
 The server is published self-contained, as separate files rather than
 a single-file executable.
 
-After a build, `bin/Debug/net10.0/` contains `RoslynMcpPlugin.dll`,
+After a build, `bin/Debug/net11.0/` contains `RoslynMcpPlugin.dll`,
 `RoslynMcpPlugin.pdb`, `RoslynMcpPlugin.deps.json`, the generated `plugin.json`,
 and private managed dependencies, including `Newtonsoft.Json.dll`.
 Distribute the entire build output directory. Host contract assemblies
@@ -69,7 +69,7 @@ including its original comments.
 ```xml
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net11.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <!-- A plugin is a class library the host loads from a directory of its own, so its private
@@ -398,7 +398,7 @@ During development, it is more convenient to connect the build output directly:
 ```json
 {
   "plugins": [
-    "C:/src/RoslynMcpServer/samples/RoslynMcpPlugin/bin/Debug/net10.0"
+    "C:/src/RoslynMcpServer/samples/RoslynMcpPlugin/bin/Debug/net11.0"
   ]
 }
 ```
@@ -409,7 +409,7 @@ The server ignores `plugins` in a separate working-directory config and warns at
 See [RoslynMcp.jsonc.sample](../../RoslynMcp.jsonc.sample).
 You can specify a directory containing the manifest or the entry DLL path.
 For a DLL path, the file name must match `entry` in the adjacent manifest.
-A development directory name such as `net10.0` does not have to match `id`.
+A development directory name such as `net11.0` can differ from `id`.
 Use absolute paths: relative paths are resolved against the process working
 directory, which may differ from the settings file's directory.
 
@@ -529,7 +529,7 @@ rules and application logic in their projects.
 загруженное решение Roslyn. Создавать отдельный `MSBuildWorkspace` не нужно.
 Инструменты плагина доступны при первом запросе `tools/list` после запуска.
 
-Руководство соответствует серверу **1.5.0** (`AssemblyVersion` — `1.5.0.0`).
+Руководство соответствует серверу и примеру из текущего дерева исходников.
 Готовый пример находится в этом каталоге: инструмент `sample_loaded_workspace`
 возвращает путь загруженного решения или сообщение `No workspace is loaded.`.
 Это основное руководство для пользователей и авторов плагинов; оно хранится
@@ -537,7 +537,7 @@ rules and application logic in their projects.
 
 ## Быстрый старт
 
-Для сборки нужны .NET SDK 10 и исходники RoslynMcpServer. Из корня репозитория
+Для сборки нужен .NET 11 SDK из [`global.json`](../../global.json). Из корня репозитория
 выполните:
 
 ```powershell
@@ -546,12 +546,12 @@ dotnet build samples/RoslynMcpPlugin/RoslynMcpPlugin.csproj -c Debug
 
 В настройках запуска MCP-сервера укажите переменную окружения
 `ROSLYN_MCP_PLUGINS` с абсолютным путём к
-`samples/RoslynMcpPlugin/bin/Debug/net10.0`. Переменная должна попасть именно
+`samples/RoslynMcpPlugin/bin/Debug/net11.0`. Переменная должна попасть именно
 в окружение процесса сервера. Например, фрагмент конфигурации MCP-клиента:
 
 ```json
 "env": {
-  "ROSLYN_MCP_PLUGINS": "C:/src/RoslynMcpServer/samples/RoslynMcpPlugin/bin/Debug/net10.0"
+  "ROSLYN_MCP_PLUGINS": "C:/src/RoslynMcpServer/samples/RoslynMcpPlugin/bin/Debug/net11.0"
 }
 ```
 
@@ -571,11 +571,11 @@ samples/RoslynMcpPlugin/
   SampleTools.cs
 ```
 
-Плагин — библиотека классов для `net10.0`, без собственной среды выполнения.
+Пример плагина — библиотека классов для `net11.0` без собственной среды выполнения.
 Сервер публикуется со средой выполнения (self-contained), отдельными файлами,
 а не одним исполняемым файлом (single-file).
 
-После сборки каталог `bin/Debug/net10.0/` содержит `RoslynMcpPlugin.dll`,
+После сборки каталог `bin/Debug/net11.0/` содержит `RoslynMcpPlugin.dll`,
 `RoslynMcpPlugin.pdb`, `RoslynMcpPlugin.deps.json`, сформированный `plugin.json`
 и частные управляемые зависимости, включая `Newtonsoft.Json.dll`.
 Распространяйте весь каталог сборки. Сборки контракта сервера в него не входят.
@@ -588,7 +588,7 @@ samples/RoslynMcpPlugin/
 ```xml
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net11.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <!-- A plugin is a class library the host loads from a directory of its own, so its private
@@ -915,7 +915,7 @@ public sealed class SampleTools
 ```json
 {
   "plugins": [
-    "C:/src/RoslynMcpServer/samples/RoslynMcpPlugin/bin/Debug/net10.0"
+    "C:/src/RoslynMcpServer/samples/RoslynMcpPlugin/bin/Debug/net11.0"
   ]
 }
 ```
@@ -926,7 +926,7 @@ public sealed class SampleTools
 [RoslynMcp.jsonc.sample](../../RoslynMcp.jsonc.sample).
 Можно указывать каталог с манифестом или путь к основной DLL. Во втором случае
 имя файла должно совпадать с `entry` соседнего манифеста.
-Имя каталога разработки, например `net10.0`, не обязано совпадать с `id`.
+Имя каталога разработки, например `net11.0`, может отличаться от `id`.
 Используйте абсолютные пути: относительные разрешаются от рабочего каталога
 процесса, который может отличаться от каталога настроек.
 

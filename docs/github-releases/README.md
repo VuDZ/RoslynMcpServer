@@ -13,7 +13,11 @@ Windows smoke обоих архивов и кросс-публикации macOS
 Итоговый CI исходников 1.5.25 прошёл: macOS ARM64 / Ubuntu main 1518/1518, Windows main 1525/1525,
 SourceStructure 123/123 и lifecycle 13/13 на каждой платформе, без пропусков
 ([разбор и validation](validation-macos-ci-fix-2026-11-15.md)).
-Нативный smoke обоих релизных архивов ещё не выполнен.
+Для выпуска 1.5.25 нативный smoke обоих вариантов оставался открытым.
+
+2026-11-20 штатный smoke всех шести архивов кандидата `.NET 11` (`1.6.1`, `622b0fb`) прошёл на Windows x64, Linux x64 и macOS ARM64. Проверены установка локального `dotnet tool` на каждом RID и откат на опубликованный `1.5.25` через self-contained архив. [Отчёт этапа 3](../dotnet11-migration/evidence/task-03-packaging-and-acceptance.md).
+
+2026-11-24 после обновления ветки миграции из `main` все шесть архивов кандидата `1.6.3` снова прошли нативный smoke. [Отчёт о повторной проверке](../dotnet11-migration/evidence/task-03-packaging-and-acceptance.md#проверка-после-обновления-из-main-2026-11-24).
 
 ## 1. Задача
 

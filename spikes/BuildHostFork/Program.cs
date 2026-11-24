@@ -27,11 +27,12 @@ internal static class Program
 
     private static async Task<int> Main(string[] args)
     {
-        if (args.Length == 4 && args[0] == "rpc-capture")
+        if (args.Length is 4 or 5 && args[0] == "rpc-capture" && (args.Length == 4 || args[4] == "repeat-first"))
         {
             var solutionPath = Path.GetFullPath(args[2]);
             MsBuildRegistration.Register(Path.GetDirectoryName(solutionPath)!);
-            await CaptureRpcAsync(Path.GetFullPath(args[1]), solutionPath, Path.GetFullPath(args[3])).ConfigureAwait(false);
+            await CaptureRpcAsync(Path.GetFullPath(args[1]), solutionPath, Path.GetFullPath(args[3]), repeatFirst: args.Length == 5)
+                .ConfigureAwait(false);
             return 0;
         }
 
@@ -97,7 +98,7 @@ internal static class Program
             return ComparerSelfCheck.Run();
         }
 
-        Console.Error.WriteLine("Usage: observe SOLUTION OUTPUT_JSON [NAME] | load|cancel|kill-host SOLUTION OUTPUT_JSON [DELAY_MS] | compare RESULT_DIRECTORY | matrix RESULT_DIRECTORY VARIANT... | trace-report TRACE_DIRECTORY [redact] | trace-summary RESULT_DIRECTORY [redact] | check | rpc-capture HOST_DLL SOLUTION OUTPUT_JSON | rpc-compare LEFT_JSON RIGHT_JSON [glob-sets] | rpc-check");
+        Console.Error.WriteLine("Usage: observe SOLUTION OUTPUT_JSON [NAME] | load|cancel|kill-host SOLUTION OUTPUT_JSON [DELAY_MS] | compare RESULT_DIRECTORY | matrix RESULT_DIRECTORY VARIANT... | trace-report TRACE_DIRECTORY [redact] | trace-summary RESULT_DIRECTORY [redact] | check | rpc-capture HOST_DLL SOLUTION OUTPUT_JSON [repeat-first] | rpc-compare LEFT_JSON RIGHT_JSON [glob-sets] | rpc-check");
         return 2;
     }
 
@@ -110,8 +111,8 @@ internal static class Program
         => new Dictionary<string, string> { ["RoslynMcpSolutionPath"] = Path.GetFullPath(solutionPath) };
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static Task CaptureRpcAsync(string hostPath, string solutionPath, string outputPath)
-        => ProjectFileInfoCapture.RunAsync(hostPath, solutionPath, outputPath);
+    private static Task CaptureRpcAsync(string hostPath, string solutionPath, string outputPath, bool repeatFirst)
+        => ProjectFileInfoCapture.RunAsync(hostPath, solutionPath, outputPath, repeatFirst);
 
     // MSBuild types must not be loaded before MSBuildLocator registration; this method is JIT-compiled after it.
     [MethodImpl(MethodImplOptions.NoInlining)]

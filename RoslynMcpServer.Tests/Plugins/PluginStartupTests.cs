@@ -54,7 +54,7 @@ public sealed class PluginStartupTests : IDisposable
     private const string LogDirectoryName = "logs";
     private const string LogFileSearchPattern = "mcp-*.log";
     private const int LogTailLineCount = 2000;
-    private const string TargetFrameworkDirectoryName = "net10.0";
+    private const string TargetFrameworkDirectoryName = "net11.0";
     private const string SolutionFileName = "RoslynMcpServer.sln";
     private const string SessionPropertyValue = "plugin-startup-test";
     private const string ClientName = "plugin-startup-smoke";

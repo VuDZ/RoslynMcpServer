@@ -226,6 +226,19 @@ internal sealed partial class ProjectBuildManager
             worker.Join();
     }
 
+    private void ForgetEvaluationAhead(MSB.Evaluation.Project project)
+    {
+        if (_evaluateAheadWorkers <= 0)
+            return;
+
+        lock (_aheadGate)
+        {
+            // The queued graph still needs this project's references, but the loader has released the evaluation.
+            if (_aheadEvaluations.TryGetValue(project.FullPath, out var evaluation) && evaluation.Project == project)
+                evaluation.Project = null;
+        }
+    }
+
     private void StartEvaluateAhead(string firstPath)
     {
         _aheadStarted = true;
@@ -421,7 +434,7 @@ internal sealed partial class ProjectBuildManager
                 stream.CopyTo(readStream);
                 readStream.Position = 0;
 
-                (project, _) = LoadProjectCore(path, readStream, new DiagnosticLog());
+                (project, _) = LoadProjectCore(path, readStream, globalProperties: null, new DiagnosticLog());
                 span?.Set("evaluated", project is not null);
                 if (project is not null)
                     references = GetAheadReferencePaths(project);

@@ -2,7 +2,7 @@ namespace BuildHostFork.Trace;
 
 /// <summary>
 /// Splits the client's load window by what was running at each moment: a BuildHost span's own time (minus its child
-/// spans), else the innermost loader operation with no host work under it, else other client work. The 5.9.0 loader
+/// spans), else the innermost loader operation with no host work under it, else other client work. The spike's loader
 /// sends one request at a time, so the parts add up to the wall time and form its critical path; moments with more than
 /// one host span running are counted separately instead of being split.
 /// </summary>

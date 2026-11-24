@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using System.Reflection;
+using Microsoft.CodeAnalysis.MSBuild;
 using RoslynMcpServer.Services.Workspace;
 using RoslynMcpServer.Services.Workspace.Models;
 using Xunit;
@@ -116,6 +118,20 @@ public sealed class BuildHostOptimizationsTests
         var version = FileVersionInfo.GetVersionInfo(path).ProductVersion;
 
         Assert.NotNull(version);
-        Assert.StartsWith("5.9.0-fork+", version, StringComparison.Ordinal);
+        Assert.StartsWith("5.12.0-fork+", version, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("BuildHost-netcore", ".dll")]
+    [InlineData("BuildHost-net472", ".exe")]
+    public void BuildHost_and_contracts_match_the_client_assembly_version(string folder, string hostExtension)
+    {
+        var directory = Path.Combine(AppContext.BaseDirectory, folder);
+        var host = Path.Combine(directory, "Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost" + hostExtension);
+        var contracts = Path.Combine(directory, "Microsoft.CodeAnalysis.Workspaces.MSBuild.Contracts.dll");
+        var clientVersion = typeof(MSBuildWorkspace).Assembly.GetName().Version;
+
+        Assert.Equal(clientVersion, AssemblyName.GetAssemblyName(host).Version);
+        Assert.Equal(clientVersion, AssemblyName.GetAssemblyName(contracts).Version);
     }
 }

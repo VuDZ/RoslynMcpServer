@@ -1,0 +1,380 @@
+{
+  "sdkHome": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-task00\\msbuild-server\\sdk-home",
+  "msbuildDll": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-task00\\msbuild-server\\sdk-home\\sdk\\11.0.100\\MSBuild.dll",
+  "msbuildFileVersion": "18.12.2.53018",
+  "productAssembly": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-stage0-20261118\\source\\bin\\Release\\net10.0\\RoslynMcpServer.dll",
+  "productSha256": "611256862DA54DC46D008006637741E3003448766FB30C2DF57B115237C4F51A",
+  "fixtureWorkingDirectory": "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-task00\\msbuild-server\\fixture",
+  "globalJson": {
+    "sdk": {
+      "version": "11.0.100",
+      "rollForward": "disable",
+      "allowPrerelease": false
+    }
+  },
+  "observations": [
+    {
+      "scenario": "SetupRestore",
+      "method": "direct dotnet control",
+      "arguments": "restore Probe.csproj --configfile NuGet.config -v:q",
+      "childEnvironment": {
+        "MSBUILDDISABLENODEREUSE": "",
+        "MSBUILDUSESERVER": "",
+        "DOTNET_CLI_USE_MSBUILD_SERVER": "false"
+      },
+      "before": [],
+      "observedWhileRunning": [],
+      "afterImmediately": [],
+      "after2200ms": [],
+      "classification": "not-observed",
+      "exitCode": 0,
+      "delayMarkerObserved": false,
+      "cancellationRequested": false,
+      "cancelled": false,
+      "timedOut": false,
+      "processKilled": false,
+      "elapsedSeconds": 3.134,
+      "metadata": null
+    },
+    {
+      "scenario": "CurrentBuild",
+      "method": "RoslynMcpServer.Services.Build.DotNetCliRunner.RunWithMetadataAsync",
+      "arguments": "build Probe.csproj --no-restore -t:Rebuild -v:minimal",
+      "childEnvironment": {
+        "MSBUILDDISABLENODEREUSE": "1",
+        "MSBUILDUSESERVER": "",
+        "DOTNET_CLI_USE_MSBUILD_SERVER": ""
+      },
+      "before": [],
+      "observedWhileRunning": [],
+      "afterImmediately": [],
+      "after2200ms": [],
+      "classification": "not-observed",
+      "exitCode": 0,
+      "delayMarkerObserved": false,
+      "cancellationRequested": false,
+      "cancelled": false,
+      "timedOut": false,
+      "processKilled": false,
+      "elapsedSeconds": 3.128,
+      "metadata": "- **dotnet host:** `E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-task00\\msbuild-server\\sdk-home\\dotnet.exe` (64-bit MCP process)\r\n- **dotnet --version:** `11.0.100` (from working directory)\r\n- **global.json:** `E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-task00\\msbuild-server\\fixture\\global.json`\r\n- **Pinned SDK:** `11.0.100`\r\n- **Resolved SDK directory:** `E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-task00\\msbuild-server\\sdk-home\\sdk\\11.0.100`\r\n- **Expected MSBuild:** `E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-task00\\msbuild-server\\sdk-home\\sdk\\11.0.100\\MSBuild.dll`\r\n- **MSBuildSDKsPath / SDKS_DIR:** `E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-task00\\msbuild-server\\sdk-home\\sdk\\11.0.100\\Sdks`\r\n- **Inherited MSBuild SDK overrides:** (none)\r\n- **SDK env action:** `pinned from global.json → E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-task00\\msbuild-server\\sdk-home\\sdk\\11.0.100`\r\n- **WorkingDirectory:** `E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-task00\\msbuild-server\\fixture`\r\n- **DOTNET_CLI_UI_LANGUAGE:** `en-US`"
+    },
+    {
+      "scenario": "CurrentRepeatBuild",
+      "method": "RoslynMcpServer.Services.Build.DotNetCliRunner.RunWithMetadataAsync",
+      "arguments": "build Probe.csproj --no-restore -t:Rebuild -v:minimal",
+      "childEnvironment": {
+        "MSBUILDDISABLENODEREUSE": "1",
+        "MSBUILDUSESERVER": "",
+        "DOTNET_CLI_USE_MSBUILD_SERVER": ""
+      },
+      "before": [],
+      "observedWhileRunning": [],
+      "afterImmediately": [],
+      "after2200ms": [],
+      "classification": "not-observed",
+      "exitCode": 0,
+      "delayMarkerObserved": false,
+      "cancellationRequested": false,
+      "cancelled": false,
+      "timedOut": false,
+      "processKilled": false,
+      "elapsedSeconds": 3.096,
+      "metadata": "- **dotnet host:** `E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-task00\\msbuild-server\\sdk-home\\dotnet.exe` (64-bit MCP process)\r\n- **dotnet --version:** `11.0.100` (from working directory)\r\n- **global.json:** `E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-task00\\msbuild-server\\fixture\\global.json`\r\n- **Pinned SDK:** `11.0.100`\r\n- **Resolved SDK directory:** `E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-task00\\msbuild-server\\sdk-home\\sdk\\11.0.100`\r\n- **Expected MSBuild:** `E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-task00\\msbuild-server\\sdk-home\\sdk\\11.0.100\\MSBuild.dll`\r\n- **MSBuildSDKsPath / SDKS_DIR:** `E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-task00\\msbuild-server\\sdk-home\\sdk\\11.0.100\\Sdks`\r\n- **Inherited MSBuild SDK overrides:** (none)\r\n- **SDK env action:** `pinned from global.json → E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-task00\\msbuild-server\\sdk-home\\sdk\\11.0.100`\r\n- **WorkingDirectory:** `E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-task00\\msbuild-server\\fixture`\r\n- **DOTNET_CLI_UI_LANGUAGE:** `en-US`"
+    },
+    {
+      "scenario": "CurrentTest",
+      "method": "RoslynMcpServer.Services.Build.DotNetCliRunner.RunWithMetadataAsync",
+      "arguments": "test Probe.csproj --no-restore -v:minimal",
+      "childEnvironment": {
+        "MSBUILDDISABLENODEREUSE": "1",
+        "MSBUILDUSESERVER": "",
+        "DOTNET_CLI_USE_MSBUILD_SERVER": ""
+      },
+      "before": [],
+      "observedWhileRunning": [],
+      "afterImmediately": [],
+      "after2200ms": [],
+      "classification": "not-observed",
+      "exitCode": 0,
+      "delayMarkerObserved": false,
+      "cancellationRequested": false,
+      "cancelled": false,
+      "timedOut": false,
+      "processKilled": false,
+      "elapsedSeconds": 3.535,
+      "metadata": "- **dotnet host:** `E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-task00\\msbuild-server\\sdk-home\\dotnet.exe` (64-bit MCP process)\r\n- **dotnet --version:** `11.0.100` (from working directory)\r\n- **global.json:** `E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-task00\\msbuild-server\\fixture\\global.json`\r\n- **Pinned SDK:** `11.0.100`\r\n- **Resolved SDK directory:** `E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-task00\\msbuild-server\\sdk-home\\sdk\\11.0.100`\r\n- **Expected MSBuild:** `E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-task00\\msbuild-server\\sdk-home\\sdk\\11.0.100\\MSBuild.dll`\r\n- **MSBuildSDKsPath / SDKS_DIR:** `E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-task00\\msbuild-server\\sdk-home\\sdk\\11.0.100\\Sdks`\r\n- **Inherited MSBuild SDK overrides:** (none)\r\n- **SDK env action:** `pinned from global.json → E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-task00\\msbuild-server\\sdk-home\\sdk\\11.0.100`\r\n- **WorkingDirectory:** `E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-task00\\msbuild-server\\fixture`\r\n- **DOTNET_CLI_UI_LANGUAGE:** `en-US`"
+    },
+    {
+      "scenario": "CurrentFailure",
+      "method": "RoslynMcpServer.Services.Build.DotNetCliRunner.RunWithMetadataAsync",
+      "arguments": "build Probe.csproj --no-restore -p:ProbeFail=true -v:minimal",
+      "childEnvironment": {
+        "MSBUILDDISABLENODEREUSE": "1",
+        "MSBUILDUSESERVER": "",
+        "DOTNET_CLI_USE_MSBUILD_SERVER": ""
+      },
+      "before": [],
+      "observedWhileRunning": [],
+      "afterImmediately": [],
+      "after2200ms": [],
+      "classification": "not-observed",
+      "exitCode": 1,
+      "delayMarkerObserved": false,
+      "cancellationRequested": false,
+      "cancelled": false,
+      "timedOut": false,
+      "processKilled": false,
+      "elapsedSeconds": 2.887,
+      "metadata": "- **dotnet host:** `E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-task00\\msbuild-server\\sdk-home\\dotnet.exe` (64-bit MCP process)\r\n- **dotnet --version:** `11.0.100` (from working directory)\r\n- **global.json:** `E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-task00\\msbuild-server\\fixture\\global.json`\r\n- **Pinned SDK:** `11.0.100`\r\n- **Resolved SDK directory:** `E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-task00\\msbuild-server\\sdk-home\\sdk\\11.0.100`\r\n- **Expected MSBuild:** `E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-task00\\msbuild-server\\sdk-home\\sdk\\11.0.100\\MSBuild.dll`\r\n- **MSBuildSDKsPath / SDKS_DIR:** `E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-task00\\msbuild-server\\sdk-home\\sdk\\11.0.100\\Sdks`\r\n- **Inherited MSBuild SDK overrides:** (none)\r\n- **SDK env action:** `pinned from global.json → E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-task00\\msbuild-server\\sdk-home\\sdk\\11.0.100`\r\n- **WorkingDirectory:** `E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-task00\\msbuild-server\\fixture`\r\n- **DOTNET_CLI_UI_LANGUAGE:** `en-US`"
+    },
+    {
+      "scenario": "CurrentCancellation",
+      "method": "RoslynMcpServer.Services.Build.DotNetCliRunner.RunWithMetadataAsync",
+      "arguments": "build Probe.csproj --no-restore -p:ProbeDelay=true -v:minimal",
+      "childEnvironment": {
+        "MSBUILDDISABLENODEREUSE": "1",
+        "MSBUILDUSESERVER": "",
+        "DOTNET_CLI_USE_MSBUILD_SERVER": ""
+      },
+      "before": [],
+      "observedWhileRunning": [],
+      "afterImmediately": [],
+      "after2200ms": [],
+      "classification": "not-observed",
+      "exitCode": null,
+      "delayMarkerObserved": true,
+      "cancellationRequested": true,
+      "cancelled": true,
+      "timedOut": false,
+      "processKilled": false,
+      "elapsedSeconds": 3.246,
+      "metadata": null
+    },
+    {
+      "scenario": "CurrentTimeout",
+      "method": "RoslynMcpServer.Services.Build.DotNetCliRunner.RunWithMetadataAsync",
+      "arguments": "build Probe.csproj --no-restore -p:ProbeDelay=true -v:minimal",
+      "childEnvironment": {
+        "MSBUILDDISABLENODEREUSE": "1",
+        "MSBUILDUSESERVER": "",
+        "DOTNET_CLI_USE_MSBUILD_SERVER": ""
+      },
+      "before": [],
+      "observedWhileRunning": [],
+      "afterImmediately": [],
+      "after2200ms": [],
+      "classification": "not-observed",
+      "exitCode": -1,
+      "delayMarkerObserved": true,
+      "cancellationRequested": false,
+      "cancelled": false,
+      "timedOut": true,
+      "processKilled": true,
+      "elapsedSeconds": 12.631,
+      "metadata": "- **dotnet host:** `E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-task00\\msbuild-server\\sdk-home\\dotnet.exe` (64-bit MCP process)\r\n- **dotnet --version:** `11.0.100` (from working directory)\r\n- **global.json:** `E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-task00\\msbuild-server\\fixture\\global.json`\r\n- **Pinned SDK:** `11.0.100`\r\n- **Resolved SDK directory:** `E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-task00\\msbuild-server\\sdk-home\\sdk\\11.0.100`\r\n- **Expected MSBuild:** `E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-task00\\msbuild-server\\sdk-home\\sdk\\11.0.100\\MSBuild.dll`\r\n- **MSBuildSDKsPath / SDKS_DIR:** `E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-task00\\msbuild-server\\sdk-home\\sdk\\11.0.100\\Sdks`\r\n- **Inherited MSBuild SDK overrides:** (none)\r\n- **SDK env action:** `pinned from global.json → E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-task00\\msbuild-server\\sdk-home\\sdk\\11.0.100`\r\n- **WorkingDirectory:** `E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-task00\\msbuild-server\\fixture`\r\n- **DOTNET_CLI_UI_LANGUAGE:** `en-US`"
+    },
+    {
+      "scenario": "CurrentInheritedTrue",
+      "method": "RoslynMcpServer.Services.Build.DotNetCliRunner.RunWithMetadataAsync",
+      "arguments": "build Probe.csproj --no-restore -t:Rebuild -v:minimal",
+      "childEnvironment": {
+        "MSBUILDDISABLENODEREUSE": "1",
+        "MSBUILDUSESERVER": "1",
+        "DOTNET_CLI_USE_MSBUILD_SERVER": ""
+      },
+      "before": [],
+      "observedWhileRunning": [],
+      "afterImmediately": [],
+      "after2200ms": [],
+      "classification": "not-observed",
+      "exitCode": 0,
+      "delayMarkerObserved": false,
+      "cancellationRequested": false,
+      "cancelled": false,
+      "timedOut": false,
+      "processKilled": false,
+      "elapsedSeconds": 3.131,
+      "metadata": "- **dotnet host:** `E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-task00\\msbuild-server\\sdk-home\\dotnet.exe` (64-bit MCP process)\r\n- **dotnet --version:** `11.0.100` (from working directory)\r\n- **global.json:** `E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-task00\\msbuild-server\\fixture\\global.json`\r\n- **Pinned SDK:** `11.0.100`\r\n- **Resolved SDK directory:** `E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-task00\\msbuild-server\\sdk-home\\sdk\\11.0.100`\r\n- **Expected MSBuild:** `E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-task00\\msbuild-server\\sdk-home\\sdk\\11.0.100\\MSBuild.dll`\r\n- **MSBuildSDKsPath / SDKS_DIR:** `E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-task00\\msbuild-server\\sdk-home\\sdk\\11.0.100\\Sdks`\r\n- **Inherited MSBuild SDK overrides:** (none)\r\n- **SDK env action:** `pinned from global.json → E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-task00\\msbuild-server\\sdk-home\\sdk\\11.0.100`\r\n- **WorkingDirectory:** `E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-task00\\msbuild-server\\fixture`\r\n- **DOTNET_CLI_UI_LANGUAGE:** `en-US`"
+    },
+    {
+      "scenario": "AfterCurrentRunnerCases",
+      "beforeScopedCleanup": [],
+      "afterScopedCleanup": []
+    },
+    {
+      "scenario": "ForcedRawControl",
+      "method": "direct dotnet control",
+      "arguments": "build Probe.csproj --no-restore -t:Rebuild -v:minimal",
+      "childEnvironment": {
+        "MSBUILDDISABLENODEREUSE": "",
+        "MSBUILDUSESERVER": "1",
+        "DOTNET_CLI_USE_MSBUILD_SERVER": ""
+      },
+      "before": [],
+      "observedWhileRunning": [
+        {
+          "pid": 63840,
+          "parentPid": 69416,
+          "startedUtc": "2026-11-18T20:21:04.498729Z",
+          "observedUtc": "2026-11-18T20:21:04.9653041Z",
+          "commandLine": "\"E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-task00\\msbuild-server\\sdk-home\\sdk\\11.0.100\\MSBuild.exe\" /nologo /nodemode:8"
+        }
+      ],
+      "afterImmediately": [
+        {
+          "pid": 63840,
+          "parentPid": 69416,
+          "startedUtc": "2026-11-18T20:21:04.498729Z",
+          "observedUtc": "2026-11-18T20:21:05.1669173Z",
+          "commandLine": "\"E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-task00\\msbuild-server\\sdk-home\\sdk\\11.0.100\\MSBuild.exe\" /nologo /nodemode:8"
+        }
+      ],
+      "after2200ms": [
+        {
+          "pid": 63840,
+          "parentPid": 69416,
+          "startedUtc": "2026-11-18T20:21:04.498729Z",
+          "observedUtc": "2026-11-18T20:21:07.4605513Z",
+          "commandLine": "\"E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-task00\\msbuild-server\\sdk-home\\sdk\\11.0.100\\MSBuild.exe\" /nologo /nodemode:8"
+        }
+      ],
+      "classification": "persistent-new",
+      "exitCode": 0,
+      "delayMarkerObserved": false,
+      "cancellationRequested": false,
+      "cancelled": false,
+      "timedOut": false,
+      "processKilled": false,
+      "elapsedSeconds": 3.171,
+      "metadata": null
+    },
+    {
+      "scenario": "ForcedRawRepeat",
+      "method": "direct dotnet control",
+      "arguments": "build Probe.csproj --no-restore -t:Rebuild -v:minimal",
+      "childEnvironment": {
+        "MSBUILDDISABLENODEREUSE": "",
+        "MSBUILDUSESERVER": "1",
+        "DOTNET_CLI_USE_MSBUILD_SERVER": ""
+      },
+      "before": [
+        {
+          "pid": 63840,
+          "parentPid": 69416,
+          "startedUtc": "2026-11-18T20:21:04.498729Z",
+          "observedUtc": "2026-11-18T20:21:07.5473309Z",
+          "commandLine": "\"E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-task00\\msbuild-server\\sdk-home\\sdk\\11.0.100\\MSBuild.exe\" /nologo /nodemode:8"
+        }
+      ],
+      "observedWhileRunning": [
+        {
+          "pid": 63840,
+          "parentPid": 69416,
+          "startedUtc": "2026-11-18T20:21:04.498729Z",
+          "observedUtc": "2026-11-18T20:21:07.8511941Z",
+          "commandLine": "\"E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-task00\\msbuild-server\\sdk-home\\sdk\\11.0.100\\MSBuild.exe\" /nologo /nodemode:8"
+        }
+      ],
+      "afterImmediately": [
+        {
+          "pid": 63840,
+          "parentPid": 69416,
+          "startedUtc": "2026-11-18T20:21:04.498729Z",
+          "observedUtc": "2026-11-18T20:21:07.9529842Z",
+          "commandLine": "\"E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-task00\\msbuild-server\\sdk-home\\sdk\\11.0.100\\MSBuild.exe\" /nologo /nodemode:8"
+        }
+      ],
+      "after2200ms": [
+        {
+          "pid": 63840,
+          "parentPid": 69416,
+          "startedUtc": "2026-11-18T20:21:04.498729Z",
+          "observedUtc": "2026-11-18T20:21:10.2570376Z",
+          "commandLine": "\"E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-task00\\msbuild-server\\sdk-home\\sdk\\11.0.100\\MSBuild.exe\" /nologo /nodemode:8"
+        }
+      ],
+      "classification": "persistent-existing",
+      "exitCode": 0,
+      "delayMarkerObserved": false,
+      "cancellationRequested": false,
+      "cancelled": false,
+      "timedOut": false,
+      "processKilled": false,
+      "elapsedSeconds": 2.728,
+      "metadata": null
+    }
+  ],
+  "afterProbeExit": {
+    "sampledAfterProbeExitUtc": "2026-11-18T20:21:11.6308568Z",
+    "probeExitCode": 0,
+    "ownServersAfterProbeExit": []
+  },
+  "diagnosticControl": {
+    "observations": [
+      {
+        "scenario": "rawCli",
+        "exitCode": 0,
+        "observations": [
+          {
+            "pid": 71860,
+            "parentPid": 17516,
+            "startedUtc": "2026-11-18T20:17:41.003786Z",
+            "commandLine": "\"E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-task00\\msbuild-server\\sdk-home\\sdk\\11.0.100\\Roslyn\\bincore\\VBCSCompiler.exe\" \"-pipename:s936j3LqKP5ine4MzIcij4g5jrdw507lSACJCTJjFCc\""
+          },
+          {
+            "pid": 45516,
+            "parentPid": 72384,
+            "startedUtc": "2026-11-18T20:18:12.082582Z",
+            "commandLine": "\"E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-task00\\msbuild-server\\sdk-home\\sdk\\11.0.100\\MSBuild.exe\" /nologo /nodemode:8"
+          },
+          {
+            "pid": 54896,
+            "parentPid": 61688,
+            "startedUtc": "2026-11-18T20:19:23.01697Z",
+            "commandLine": "\"E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-task00\\msbuild-server\\sdk-home\\dotnet.exe\" build Probe.csproj -p:ProbeDelay=true -p:ProbeDelaySeconds=4 -v:diagnostic"
+          }
+        ]
+      },
+      {
+        "scenario": "rawMsBuild",
+        "exitCode": 0,
+        "observations": [
+          {
+            "pid": 71860,
+            "parentPid": 17516,
+            "startedUtc": "2026-11-18T20:17:41.003786Z",
+            "commandLine": "\"E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-task00\\msbuild-server\\sdk-home\\sdk\\11.0.100\\Roslyn\\bincore\\VBCSCompiler.exe\" \"-pipename:s936j3LqKP5ine4MzIcij4g5jrdw507lSACJCTJjFCc\""
+          },
+          {
+            "pid": 45516,
+            "parentPid": 72384,
+            "startedUtc": "2026-11-18T20:18:12.082582Z",
+            "commandLine": "\"E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-task00\\msbuild-server\\sdk-home\\sdk\\11.0.100\\MSBuild.exe\" /nologo /nodemode:8"
+          },
+          {
+            "pid": 71420,
+            "parentPid": 61688,
+            "startedUtc": "2026-11-18T20:19:28.159324Z",
+            "commandLine": "\"E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-task00\\msbuild-server\\sdk-home\\dotnet.exe\" \"E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-task00\\msbuild-server\\sdk-home\\sdk\\11.0.100\\MSBuild.dll\" Probe.csproj -m -mt -p:ProbeDelay=true -p:ProbeDelaySeconds=4 -v:minimal"
+          }
+        ]
+      }
+    ],
+    "selectedBuildLog": [
+      "MSBuild executable path = \"E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-task00\\msbuild-server\\sdk-home\\sdk\\11.0.100\\MSBuild.exe\"",
+      "Reusing the running MSBuild Server node for this build (process ID 45516)."
+    ]
+  },
+  "currentTestLog": [
+    "Passed!  - Failed:     0, Passed:     1, Skipped:     0, Total:     1, Duration: 12 ms - Probe.dll (net11.0)"
+  ],
+  "currentFailureLog": [
+    "E:\\Devel\\dotnet11-migration-plan\\artifacts\\dotnet11-task00\\msbuild-server\\fixture\\Probe.csproj(12,5): error PROBE1000: Intentional MSBuild server observation failure."
+  ],
+  "probeInputs": {
+    "scriptSha256": "FA5BF591BEB3CBAC05969DA3ED683D976BBBBB4AA0E017B5759AE993EBBF2F7D",
+    "fixtureProjectSha256": "A4CDD96B6F7A4C826EDAEC00409F6F3424793CFEAA0F9B0FE4EF3B80B82AF618",
+    "fixtureTestSha256": "BB035BF2393D798187E4B1CDD7BF593F28F282691C7485B00A3289A8821D2DBE"
+  }
+}

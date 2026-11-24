@@ -67,12 +67,14 @@ $sides = [ordered]@{
     abc = @{ bin = $copies.forkBin; fork = $true; sharedSdkCache = $true }
 }
 
-function Invoke-Capture([string]$Side, [string]$Solution, [string]$Output) {
+function Invoke-Capture([string]$Side, [string]$Solution, [string]$Output, [switch]$RepeatFirst) {
     $definition = $sides[$Side]
     Set-ForkOptimizations $true 4 'all' $definition.sharedSdkCache
     $dll = Join-Path $definition.bin 'BuildHostFork.dll'
     $hostDll = Join-Path $definition.bin 'BuildHost-netcore/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.dll'
-    $exitCode = Invoke-Spike $dll @('rpc-capture', $hostDll, $Solution, $Output) ([IO.Path]::ChangeExtension($Output, '.out.txt')) $definition.fork
+    $captureArgs = @('rpc-capture', $hostDll, $Solution, $Output)
+    if ($RepeatFirst) { $captureArgs += 'repeat-first' }
+    $exitCode = Invoke-Spike $dll $captureArgs ([IO.Path]::ChangeExtension($Output, '.out.txt')) $definition.fork
     Assert-Rpc ($exitCode -eq 0) "$Side capture completed and host exited"
     return Get-Content -LiteralPath $Output -Raw | ConvertFrom-Json
 }
@@ -96,6 +98,27 @@ foreach ($side in $sides.Keys) {
     Assert-Rpc ($info.additionalDocuments.Count -eq 1 -and $info.analyzerConfigDocuments.Count -gt 0 -and $info.contentFilePaths.Count -eq 1 -and $info.projectCapabilities -contains 'RpcFixture') "$side captures additional, editorconfig, content and capability fields"
     if ($side -eq 'original') { continue }
     Assert-SameAsOriginal $side (Join-Path $directory 'original.json') $output
+}
+
+# A later project's reference must still work after the first RPC project target has been disposed and reopened.
+$reloadDirectory = Join-Path $directory 'reload'
+New-Item -ItemType Directory -Force -Path (Join-Path $reloadDirectory 'Base'), (Join-Path $reloadDirectory 'Consumer') | Out-Null
+Write-Utf8 (Join-Path $reloadDirectory 'Base/Base.csproj') '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup></Project>'
+Write-Utf8 (Join-Path $reloadDirectory 'Base/Base.cs') 'public class Base { }'
+Write-Utf8 (Join-Path $reloadDirectory 'Consumer/Consumer.csproj') '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup><ItemGroup><ProjectReference Include="../Base/Base.csproj" /></ItemGroup></Project>'
+Write-Utf8 (Join-Path $reloadDirectory 'Consumer/Consumer.cs') 'public class Consumer : Base { }'
+$reloadSolution = Join-Path $reloadDirectory 'Reload.slnx'
+Write-Utf8 $reloadSolution '<Solution><Project Path="Base/Base.csproj" /><Project Path="Consumer/Consumer.csproj" /></Solution>'
+Restore-SpikeSolution $reloadSolution
+foreach ($side in $sides.Keys) {
+    $output = Join-Path $reloadDirectory "$side.json"
+    $capture = Invoke-Capture $side $reloadSolution $output -RepeatFirst
+    $projects = @($capture.Projects | ForEach-Object { [IO.Path]::GetFileName($_.Path) })
+    Assert-Rpc (($projects -join ',') -ceq 'Base.csproj,Consumer.csproj') "$side captures Base before Consumer"
+    $references = @($capture.Projects[1].Infos[0].projectReferences | ForEach-Object { [IO.Path]::GetFileName($_.path) })
+    Assert-Rpc (($references -join ',') -ceq 'Base.csproj') "$side captures the reference to the reopened and disposed Base project"
+    if ($side -eq 'original') { continue }
+    Assert-SameAsOriginal $side (Join-Path $reloadDirectory 'original.json') $output
 }
 
 # The SDK fixture: RoslynMcp.FixtureSdk 1.0.0 and 2.0.0 in a local feed, restored into a packages folder of its own.

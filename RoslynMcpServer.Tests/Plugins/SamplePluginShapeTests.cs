@@ -34,7 +34,7 @@ public sealed class SamplePluginShapeTests
     private const string PrivateDependencyFileName = "Newtonsoft.Json.dll";
     private const string PrivateDependencyAssemblyName = "Newtonsoft.Json";
     private const string SolutionFileName = "RoslynMcpServer.sln";
-    private const string TargetFrameworkDirectoryName = "net10.0";
+    private const string TargetFrameworkDirectoryName = "net11.0";
     private const string PublishDirectoryName = "publish";
 
     /// <summary>
@@ -220,7 +220,7 @@ public sealed class SamplePluginShapeTests
     /// </summary>
     /// <remarks>
     /// The directory above the test output is not the configuration: the host project declares runtime
-    /// identifiers, so a test output can be laid out as <c>bin/Release/net10.0/win-x64</c> and the
+    /// identifiers, so a test output can be laid out as <c>bin/Release/net11.0/win-x64</c> and the
     /// directory above it is then the target framework. Reading the first name after <c>bin</c> returns
     /// the configuration for both layouts, which is what the sample output and the published host of this
     /// run are addressed with.

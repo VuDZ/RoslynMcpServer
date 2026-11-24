@@ -4,13 +4,13 @@
 [task-00](../../docs/workspace-load-performance/research-buildhost-fork/task-00-buildhost-fork-baseline-hi.md).
 Источник и хеши: [UPSTREAM.md](UPSTREAM.md).
 
-Форк процесса BuildHost, которым `MSBuildWorkspace` из Roslyn 5.9.0 загружает проекты.
+Форк процесса BuildHost, которым `MSBuildWorkspace` из Roslyn 5.12.0 загружает проекты.
 Клиент (`Microsoft.CodeAnalysis.Workspaces.MSBuild.dll` в сервере) не форкается: он запускает тот
 BuildHost, что лежит в папке `BuildHost-netcore` рядом с ним, и общается с ним JSON по каналу.
-Поэтому форк подменяется копированием своей сборки в эту папку, пока протокол не меняется.
+Форк подменяет содержимое этой папки сборкой с RPC-контрактом той же версии пакета.
 
-- `upstream/` — дословная копия исходников Roslyn на ревизии пакета; наши изменения — отдельными
-  коммитами поверх неё.
+- `upstream/` — исходники Roslyn на ревизии пакета с нашими точечными
+  правками, перечисленными в [UPSTREAM.md](UPSTREAM.md).
 - `build/` — проекты для обычного .NET SDK с именами upstream-проектов:
   `Contracts/Microsoft.CodeAnalysis.Workspaces.MSBuild.Contracts.csproj` и
   `BuildHost/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.csproj` (только netcore, net8.0,
@@ -23,7 +23,7 @@ BuildHost, что лежит в папке `BuildHost-netcore` рядом с н�
   `build/BuildHostFork.targets`, который импортирует `RoslynMcpServer.csproj`, собирает форк вместе с сервером и
   подменяет им элементы `Content` пакета, так что build, publish и pack получают одни и те же файлы, вместе с
   `License.txt` и `THIRD-PARTY-NOTICES.txt` Roslyn. Сборка падает, если версия пакета
-  `Microsoft.CodeAnalysis.Workspaces.MSBuild` не 5.9.0. A, B и C сервер включает глобальными свойствами workspace
+  `Microsoft.CodeAnalysis.Workspaces.MSBuild` не 5.12.0. A, B и C сервер включает глобальными свойствами workspace
   `RoslynMcpReferencesFirst`, `RoslynMcpEvaluateAhead` и `RoslynMcpSharedSdkCache`: host забирает их до evaluation, как `RoslynMcpSolutionPath`,
   и они побеждают переменные окружения форка. Эксперименты подключают форк явно: `spikes/BuildHostFork/Invoke-BuildHostForkBaseline.ps1`
   сравнивает оригинал и форк на одном решении, их сторона оригинала — host из пакета.
@@ -61,6 +61,9 @@ BuildHost, что лежит в папке `BuildHost-netcore` рядом с н�
   только критических событий) и дерево запросов каждой сборки к конфигурациям и вставляет предупреждения
   evaluation и содержимое первого запуска целей туда, где upstream впервые до них дошёл бы
   ([этап 1](../../docs/workspace-load-performance/research-buildhost-fork/evidence/task-02-stage-1-references-first.md)).
+  В 5.12 клиент выгружает evaluation после запроса. Пока MSBuild хранит конфигурацию сборки,
+  A пропускает повторную подготовку уже выданного проекта с диска. При штатном сбросе кеша
+  MSBuild A сбрасывает результаты подготовки и учёт диагностик для старых конфигураций.
 - [task-02](../../docs/workspace-load-performance/research-buildhost-fork/task-02-buildhost-optimization-spike-hi.md),
   часть B: evaluation наперёд. Новый файл `BuildHost/Build/ProjectBuildManager_EvaluateAhead.cs`; конструктор
   `ProjectBuildManager` вызывает `InitializeEvaluateAhead`, `LoadProjectAsync` — `WaitForEvaluationAheadAsync` и
@@ -123,7 +126,7 @@ dotnet build forks/roslyn-buildhost/build/BuildHost/Microsoft.CodeAnalysis.Works
 | Где | От чего зависит | Что проверить при обновлении |
 |---|---|---|
 | [BuildHostFork.targets](build/BuildHostFork.targets) | Формат RPC между клиентом и форком, структура выходных файлов пакета и закреплённая версия `Microsoft.CodeAnalysis.Workspaces.MSBuild`. | Сверить замену `BuildHost-netcore` при build, publish и pack, повторить сравнение task-00. Тест [BuildHostOptimizationsTests](../../RoslynMcpServer.Tests/Workspace/BuildHostOptimizationsTests.cs) проверяет, что рядом с клиентом лежит форк. Проверка версии нужна, пока сервер поставляет форк вместо пакетного host. |
-| [Пакет SQLite в проекте сервера](../../RoslynMcpServer.csproj) | Roslyn ссылается на сборку `SQLitePCLRaw.batteries_v2`, которую сервер поставляет через `SQLite3MC.PCLRaw.bundle`. | [RoslynIndexStorageTests](../../RoslynMcpServer.Tests/Workspace/RoslynIndexStorageTests.cs) сверяет версию и ключ сборки и проверяет сохранение индекса. Убрать явную зависимость, если пакет Roslyn начнёт сам поставлять совместимый комплект SQLite и проверка сохранения индекса пройдёт. |
+| [Пакет SQLite в проекте сервера](../../RoslynMcpServer.csproj) | Roslyn 5.12.0 ссылается на управляемые сборки из `SQLitePCLRaw.bundle_e_sqlite3` 2.1.11. Сервер поставляет нативную библиотеку из `SQLitePCLRaw.lib.e_sqlite3` 3.53.3. | [RoslynIndexStorageTests](../../RoslynMcpServer.Tests/Workspace/RoslynIndexStorageTests.cs) сверяет версию и ключ сборки и проверяет сохранение индекса. Убрать явную зависимость, если пакет Roslyn начнёт сам поставлять совместимый комплект SQLite и проверка сохранения индекса пройдёт. |
 | [MissingSourceFiles](../../Services/Workspace/MissingSourceFiles.cs) | Защищённые методы `Workspace.On*TextLoaderChanged(DocumentId, TextLoader)` подменяют загрузчик в workspace перед публикацией. При несовместимости подмена пропускается. | [MissingSourceFileTests](../../RoslynMcpServer.Tests/Workspace/MissingSourceFileTests.cs) проверяет успешную установку и чтение для обычного, дополнительного и analyzer-config документа. Убрать обход, если штатное чтение отсутствующих файлов даёт тот же результат без задержки. |
 | [RoslynDocumentBuildSideEffect](../../Services/Workspace/RoslynDocumentBuildSideEffect.cs) | Флаг `IsGenerated` хранится во внутреннем состоянии live-документа. При несовместимости происхождение остаётся неизвестным. | `One_path_keeps_generated_producer_and_user_consumer` в [WorkspaceInputMapTests](../../RoslynMcpServer.Tests/Workspace/WorkspaceInputMapTests.cs) проверяет классификацию сгенерированного документа и пользовательского входа с одним путём. При потере флага классификация становится `Unknown`, и тест падает. Перейти на публичное свойство live-документа, когда оно появится. |
 | [UnregisteredBuildHostReaper](../../Services/Workspace/UnregisteredBuildHostReaper.cs) | Отмена между запуском дочернего BuildHost и его регистрацией в клиенте 5.9.0. Исправление upstream отмечено коммитом `2624f5c156`. | Повторить [сценарий ранней отмены task-00b](../../docs/workspace-load-performance/research-buildhost-fork/task-00b-early-cancel-buildhost-leak-low.md) на новом клиенте. Убрать обход после подтверждения, что сам клиент завершает незарегистрированный процесс. [Тесты reaper](../../RoslynMcpServer.Tests/Workspace/UnregisteredBuildHostReaperTests.cs) проверяют выбор процессов и завершение дочернего процесса. |

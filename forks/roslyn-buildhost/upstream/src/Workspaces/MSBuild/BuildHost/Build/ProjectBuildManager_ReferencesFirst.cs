@@ -65,6 +65,11 @@ internal sealed partial class ProjectBuildManager
     private readonly HashSet<MSB.Evaluation.Project> _builtProjects = [];
 
     /// <summary>
+    /// Disk projects already delivered to the loader whose build configurations survive disposing their RPC targets.
+    /// </summary>
+    private readonly HashSet<string> _builtDiskPaths = new(PathUtilities.Comparer);
+
+    /// <summary>
     /// Builds made ahead of the loader's request that it has not asked for yet.
     /// </summary>
     private readonly Dictionary<MSB.Evaluation.Project, PreparedBuild> _preparedBuilds = [];
@@ -105,7 +110,7 @@ internal sealed partial class ProjectBuildManager
     }
 
     public async Task<MSB.Execution.ProjectInstance[]> GetProjectInstancesAsync(
-        MSB.Evaluation.Project project, DiagnosticLog log, CancellationToken cancellationToken)
+        MSB.Evaluation.Project project, DiagnosticLog log, bool isOnDisk, CancellationToken cancellationToken)
     {
         if (!_buildReferencesFirst)
             return await BuildProjectInstancesAsync(project, log, cancellationToken).ConfigureAwait(false);
@@ -120,6 +125,9 @@ internal sealed partial class ProjectBuildManager
                 AddAsUpstream(prepared.Build, log, project.FullPath);
 
                 prepared.Exception?.Throw();
+                if (isOnDisk)
+                    _builtDiskPaths.Add(project.FullPath);
+
                 return prepared.Instances!;
             }
 
@@ -129,7 +137,11 @@ internal sealed partial class ProjectBuildManager
             var build = new RecordedBuild();
             try
             {
-                return await BuildRecordedAsync(project, build, cancellationToken).ConfigureAwait(false);
+                var instances = await BuildRecordedAsync(project, build, cancellationToken).ConfigureAwait(false);
+                if (isOnDisk)
+                    _builtDiskPaths.Add(project.FullPath);
+
+                return instances;
             }
             finally
             {
@@ -142,6 +154,9 @@ internal sealed partial class ProjectBuildManager
     {
         foreach (var path in GetLoadableProjectReferencePaths(project))
         {
+            if (_builtDiskPaths.Contains(path))
+                continue;
+
             // The project collection holds the evaluation, so the loader's later load of this path gets the same
             // project. A project that fails to evaluate is left to that load, which reports the same failure.
             var (reference, _) = await LoadProjectAsync(path, cancellationToken).ConfigureAwait(false);
@@ -177,6 +192,24 @@ internal sealed partial class ProjectBuildManager
                 _preparedBuilds[reference] = new PreparedBuild(Instances: null, build, ExceptionDispatchInfo.Capture(e));
             }
         }
+    }
+
+    private void ForgetReferencesFirstBuild(MSB.Evaluation.Project project)
+    {
+        _builtProjects.Remove(project);
+        _preparedBuilds.Remove(project);
+    }
+
+    private void ResetReferencesFirstBuilds()
+    {
+        // The next submission starts with a fresh MSBuild cache. Old recordings and their configuration IDs
+        // cannot describe what the new cache would have seen in loader order.
+        _builtProjects.Clear();
+        _builtDiskPaths.Clear();
+        _preparedBuilds.Clear();
+        _reachedConfigurations.Clear();
+        _calledTargets.Clear();
+        _buildEventRecorder.ClearFirstRuns();
     }
 
     private async Task<MSB.Execution.ProjectInstance[]> BuildRecordedAsync(
@@ -451,6 +484,12 @@ internal sealed partial class ProjectBuildManager
         {
             lock (_gate)
                 return _firstRuns.TryGetValue((configurationId, targets), out firstRun!);
+        }
+
+        public void ClearFirstRuns()
+        {
+            lock (_gate)
+                _firstRuns.Clear();
         }
 
         private void OnProjectStarted(MSB.Framework.ProjectStartedEventArgs e)

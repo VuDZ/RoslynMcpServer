@@ -25,7 +25,7 @@ python spikes/ParallelLoad/summarize_core_first_continuation.py --artifacts ARTI
 [task-07.1](../../docs/workspace-load-performance/epoch-0-stage-measurement/task-07.1-core-first-equivalence-and-partition-hi.md),
 [отчёт](../../docs/workspace-load-performance/epoch-0-stage-measurement/evidence/task-07.1-core-first-equivalence-and-partition.md).
 
-Публичный MSBuildProjectLoader 5.9.0, Windows, net10.0. Проект не входит в
+Публичный MSBuildProjectLoader 5.12.0, Windows, net10.0. Проект не входит в
 solution/CI сервера и исключён из его Compile/None items.
 
 Основной протокол и результат:

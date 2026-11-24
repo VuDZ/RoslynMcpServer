@@ -177,8 +177,7 @@ public sealed class CodeFixHelper
                 break;
             }
 
-            var span = diagnostic.Location.SourceSpan;
-            var fixes = await RoslynCodeFixBridge.GetFixesAsync(document, span, cancellationToken);
+            var fixes = await RoslynCodeFixBridge.GetFixesAsync(document, diagnostic, cancellationToken);
             foreach (var (title, action) in fixes)
             {
                 if (results.Count >= MaxFixes)

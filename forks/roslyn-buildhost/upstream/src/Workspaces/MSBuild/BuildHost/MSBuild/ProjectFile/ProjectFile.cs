@@ -17,7 +17,9 @@ internal sealed class ProjectFile(
     string language,
     MSB.Evaluation.Project? project,
     ProjectBuildManager buildManager,
-    DiagnosticLog log) :
+    RpcServer server,
+    DiagnosticLog log,
+    bool isOnDisk) :
 #if NETFRAMEWORK
     MarshalByRefObject, // We need this object to pass across the AppDomain boundary when on .NET Framework
 #endif
@@ -27,6 +29,11 @@ internal sealed class ProjectFile(
 
     public string FilePath
         => project?.FullPath ?? string.Empty;
+
+    /// <summary>
+    /// The original C# file path if this corresponds to a virtual project.
+    /// </summary>
+    public string? PhysicalFilePath { get; init; }
 
     public DiagnosticLogItem[] GetDiagnosticLogItems()
         => [.. log];
@@ -43,13 +50,13 @@ internal sealed class ProjectFile(
             return [ProjectFileInfo.CreateEmpty(language, filePath: null)];
         }
 
-        var projectInstances = await buildManager.GetProjectInstancesAsync(project, log, cancellationToken).ConfigureAwait(false);
+        var projectInstances = await buildManager.GetProjectInstancesAsync(project, log, isOnDisk, cancellationToken).ConfigureAwait(false);
         buildManager.EvaluateForGlobs(project);
 
         return projectInstances.Select(instance =>
         {
             using var span = BuildHostTrace.Start("extract", project.FullPath);
-            var info = new ProjectInstanceReader(language, _commandLineProvider, instance, project).CreateProjectFileInfo();
+            var info = new ProjectInstanceReader(language, _commandLineProvider, instance, project, PhysicalFilePath).CreateProjectFileInfo();
             buildManager.RecordProjectOutputType(instance, info.TargetFramework);
             if (span is not null)
             {
@@ -271,5 +278,13 @@ internal sealed class ProjectFile(
         }
 
         project.Save();
+    }
+
+    public void Dispose()
+    {
+        server.RemoveTarget(this);
+
+        if (project is not null)
+            buildManager.UnloadProject(project);
     }
 }

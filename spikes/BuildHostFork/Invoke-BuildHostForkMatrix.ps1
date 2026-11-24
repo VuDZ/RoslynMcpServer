@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    BuildHost/task-02 stage 3: loads a solution with the original BuildHost of Roslyn 5.9.0 and with several variants
+    BuildHost/task-02 stage 3: loads a solution with the package BuildHost and with several variants
     of the fork in one run, rotating the order of the sides every round, and compares each variant with the original.
 
 .DESCRIPTION
@@ -146,10 +146,7 @@ if (@($selected | Where-Object { $definitions[$_].gc }).Count -gt 0) {
     $gcDll = Join-Path (Initialize-GcForkCopy $copies.forkBin) 'BuildHostFork.dll'
 }
 
-if (-not $SkipRestore) {
-    Write-Host "Restoring $Solution"
-    Invoke-Native 'dotnet' @('restore', $Solution, '-nologo', '-v', 'q') 'Solution restore failed'
-}
+if (-not $SkipRestore) { Restore-SpikeSolution $Solution }
 
 if (-not $OutDirectory) {
     $OutDirectory = Join-Path (Join-Path $PSScriptRoot 'results') ('matrix-' + (Get-Date -Format 'yyyyMMdd-HHmmss'))
@@ -162,7 +159,7 @@ foreach ($variant in $selected) {
     if (Test-Path -LiteralPath $variantDirectory) { Remove-Item -LiteralPath $variantDirectory -Recurse -Force }
     New-Item -ItemType Directory -Path $variantDirectory | Out-Null
 }
-$environment = Get-Environment $Solution $repo ([ordered]@{ name = $Name; runs = $Runs; fork = $copies.version; variants = ($selected -join ', ')
+$environment = Get-Environment $Solution $repo ([ordered]@{ name = $Name; runs = $Runs; client = $copies.client; fork = $copies.version; variants = ($selected -join ', ')
         evaluateAhead = $EvaluateAhead; evaluateAheadSolution = $EvaluateAheadSolution; evaluateAheadWorkers = (@($EvaluateAheadWorkers) -join ', ')
     })
 [IO.File]::WriteAllText((Join-Path $OutDirectory 'environment.json'), ($environment | ConvertTo-Json), (New-Object Text.UTF8Encoding($false)))

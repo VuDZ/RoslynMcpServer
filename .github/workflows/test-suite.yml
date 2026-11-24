@@ -35,8 +35,15 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
         with:
-          # Tests do not need a reproducible SDK; the release pins its own (release.yml, AR-13).
-          dotnet-version: 10.0.x
+          # Build the repository with its exact SDK. Install the consumer SDKs alongside it.
+          # SDK 10.0.404 supplies the 10.0.15 targeting packs required by SDK 11 for net10.0 fixtures.
+          global-json-file: global.json
+          dotnet-version: |
+            9.0.314
+            10.0.100
+            10.0.300
+            10.0.402
+            10.0.404
           architecture: ${{ matrix.runner == 'macos-arm64' && 'arm64' || 'x64' }}
           cache: true
           cache-dependency-path: |

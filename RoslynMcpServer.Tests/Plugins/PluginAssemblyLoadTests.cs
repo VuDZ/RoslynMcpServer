@@ -39,7 +39,7 @@ public sealed class PluginAssemblyLoadTests : IDisposable
     private const string OriginalSourceText = "namespace App; public sealed class Class1 { }";
     private const string ChangedSourceMarker = "ChangedByTheTest";
     private const string ChangedSourceText = "namespace App; public sealed class Class1 { public int " + ChangedSourceMarker + " { get; set; } }";
-    private const string TargetFrameworkDirectoryName = "net10.0";
+    private const string TargetFrameworkDirectoryName = "net11.0";
     private const string SolutionFileName = "RoslynMcpServer.sln";
 
     public PluginAssemblyLoadTests()
