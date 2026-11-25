@@ -4,8 +4,8 @@
 
 .DESCRIPTION
   Does not tag, push, or call the GitHub API. Safe for a local agent that cannot
-  authenticate git-over-SSH. Writes notes (commit messages since the previous
-  v* tag, newest 16) and optional GITHUB_OUTPUT keys.
+  authenticate git-over-SSH. Writes notes (newest 16 commits since the previous
+  v* tag, excluding docs subjects) and optional GITHUB_OUTPUT keys.
 #>
 [CmdletBinding()]
 param(
@@ -142,35 +142,19 @@ function Get-GitLine {
 }
 
 function Get-CommitRecords {
-    param(
-        [string]$Range,
-        [int]$Limit
-    )
-
-    $hashes = @(Invoke-Git @(
-            '-c', 'core.quotepath=false',
-            '--no-pager',
-            'log',
-            '-n', "$Limit",
-            '--format=%H',
-            $Range
-        ) | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+    param([string[]]$Entries)
 
     $records = @()
-    foreach ($hash in $hashes) {
-        $subject = (Get-GitLine @('-c', 'core.quotepath=false', '--no-pager', 'log', '-1', '--format=%s', $hash)).Trim()
+    foreach ($entry in $Entries) {
+        $hash, $subject = $entry -split "`t", 2
         $body = (Get-GitLine @('-c', 'core.quotepath=false', '--no-pager', 'log', '-1', '--format=%b', $hash)).Trim()
         if ($body.Length -gt 800) {
             $body = $body.Substring(0, 800).TrimEnd() + [char]0x2026
         }
 
-        if ([string]::IsNullOrWhiteSpace($subject)) {
-            continue
-        }
-
         $records += [pscustomobject]@{
             Sha     = $hash
-            Subject = $subject
+            Subject = $subject.Trim()
             Body    = $body
         }
     }
@@ -229,7 +213,7 @@ function ConvertTo-NotesMarkdown {
     [void]$lines.Add('')
 
     if ($TotalCount -le 0) {
-        [void]$lines.Add('_No commits listed (first release or empty range)._')
+        [void]$lines.Add('_No changes to list._')
         return ($lines -join "`n")
     }
 
@@ -292,8 +276,13 @@ else {
     $range = $sha
 }
 
-$totalCount = [int](Get-GitLine @('rev-list', '--count', $range))
-$selected = @(Get-CommitRecords -Range $range -Limit $MaxCommits)
+$entries = @(Invoke-Git @('--no-pager', 'log', '--format=%H%x09%s', $range))
+$notesEntries = @($entries | Where-Object {
+    $subject = ($_ -split "`t", 2)[1]
+    -not [string]::IsNullOrWhiteSpace($subject) -and $subject -notmatch '^\s*docs(?:\([^)]+\))?!?:'
+})
+$totalCount = $entries.Count
+$selected = @(Get-CommitRecords -Entries ($notesEntries | Select-Object -First $MaxCommits))
 
 # git log is newest-first; show chronological (oldest of the selected window first).
 [array]::Reverse($selected)
@@ -321,7 +310,7 @@ if ($slug) {
 
 $notes = ConvertTo-NotesMarkdown `
     -Commits $selected `
-    -TotalCount $totalCount `
+    -TotalCount $notesEntries.Count `
     -PreviousTag $previousTag `
     -Version $version `
     -Archives $archives `
@@ -346,7 +335,7 @@ $result = [ordered]@{
     previous_tag     = $previousTag
     commit_count     = $totalCount
     notes_commit_count = $selected.Count
-    truncated        = ($totalCount -gt $selected.Count)
+    truncated        = ($notesEntries.Count -gt $selected.Count)
     sc_zip           = $scZip
     fdd_zip          = $fddZip
     archives         = @($archives | ForEach-Object { $_.Name })
@@ -378,7 +367,7 @@ GitHub release prep (no tag, no push)
   On origin/main   : $onOriginMain  (local origin/main only; this script does not fetch)
   Docs-only        : $docsOnly
   Previous tag     : $(if ($previousTag) { $previousTag } else { '(none)' })
-  Commits in range : $totalCount (notes include $($selected.Count); cap $MaxCommits)
+  Commits in range : $totalCount (notes include $($selected.Count) of $($notesEntries.Count) eligible; cap $MaxCommits)
   Run workflow     : $(if ($runWorkflowUrl) { $runWorkflowUrl } else { '(set origin to github.com)' })
 
 Next:
