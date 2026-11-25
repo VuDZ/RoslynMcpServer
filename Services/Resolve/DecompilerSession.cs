@@ -40,7 +40,7 @@ public sealed class DecompilerSession
         // ILSpy can leave lowered runtime-async catch dispatch that throws a System.Object.
         // https://github.com/icsharpcode/ILSpy/issues/3745
         ThrowExpression expression => expression.Expression.GetResolveResult().Type.IsKnownType(KnownTypeCode.Object),
-        ThrowStatement statement => statement.Expression.GetResolveResult().Type.IsKnownType(KnownTypeCode.Object),
+        ThrowStatement { Expression: { } expression } => expression.GetResolveResult().Type.IsKnownType(KnownTypeCode.Object),
         _ => false,
     };
 

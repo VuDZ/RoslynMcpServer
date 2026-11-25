@@ -23,3 +23,20 @@ MCP помечает декомпиляцию как неполную, если 
 - AssemblyResolve — 23/23 через Roslyn MCP. Тесты проверяют реальный `WaitForExitAsync`, обычный `Process.Refresh` и предупреждение для узла ошибки ILSpy.
 - Финальная Release-сборка решения прошла. SourceStructure — 128/128.
 - Основные группы CI — 149/149 в TiaIntegration и 2499/2499 в Unit.
+
+## Проверка с ILSpy 11.2
+
+Дата — 2026-11-25. Основание — `5f669a8`. Обновление до `ICSharpCode.Decompiler` 11.2.0.10050 прошло в Windows Release без остановки запущенного Roslyn MCP. Резолвер делегирует `BeginSnapshot` штатному резолверу ILSpy, а проверка предупреждений учитывает `throw;` без операнда.
+
+Проверка вызвала продуктовый `get_decompiled_method_body` через тот же код MCP для двух установленных копий `System.Diagnostics.Process.dll`.
+
+- .NET 11.0.0. `Process.WaitForExitAsync` выводится с `async` и обоими `await`, без `Stack underflow`. ILSpy 11.2 по-прежнему выводит `ExceptionDispatchInfo.Capture((obj as Exception) ?? throw obj).Throw()` с `obj` типа `object`. MCP сообщает о неполной декомпиляции.
+- .NET 10.0.15. Для того же метода ILSpy 11.2 восстановил обычный `throw;`, без ошибки стека и предупреждения о неполной декомпиляции.
+
+Автор обновления — `gpt-6.2-sol` (`ilspy112_impl`). Рецензент — `gpt-6.2-sol` (`ilspy112_review`). Независимое ревью приняло обновление за один раунд без обязательных замечаний.
+
+- Целевой Release-прогон AssemblyResolve — 23/23, включая `WaitForExitAsync`, `Process.Refresh` и пометку для узла ошибки ILSpy.
+- Release-сборка решения прошла. SourceStructure — 128/128. AnalyzerLifecycle с `ROSLYN_MCP_ANALYZER_LIFECYCLE=1` — 13/13.
+- Основные группы CI — 149/149 в TiaIntegration и 2501/2501 в Unit.
+
+FIX-19 остаётся открытой до исправления декомпиляции `throw` в ILSpy для воспроизведённого случая .NET 11.

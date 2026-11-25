@@ -33,6 +33,8 @@ internal sealed class NuGetFallbackAssemblyResolver : IAssemblyResolver
         _nugetPackagesRoot = nugetPackagesRoot;
     }
 
+    public IDisposable? BeginSnapshot() => _inner.BeginSnapshot();
+
     public MetadataFile? Resolve(IAssemblyReference reference)
     {
         if (ShouldPreferNuGetFallback(reference))
@@ -68,7 +70,7 @@ internal sealed class NuGetFallbackAssemblyResolver : IAssemblyResolver
     public Task<MetadataFile?> ResolveAsync(IAssemblyReference reference) =>
         Task.FromResult<MetadataFile?>(Resolve(reference));
 
-    public MetadataFile ResolveModule(MetadataFile module, string fileName) =>
+    public MetadataFile? ResolveModule(MetadataFile module, string fileName) =>
         _inner.ResolveModule(module, fileName);
 
     public Task<MetadataFile?> ResolveModuleAsync(MetadataFile module, string fileName) =>
