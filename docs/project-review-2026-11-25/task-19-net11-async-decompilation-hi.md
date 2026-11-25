@@ -26,6 +26,12 @@
 - [x] Контроль на текущем `System.Diagnostics.Process.dll` воспроизводим и фиксирует версию зависимости и runtime. Целевой метод декомпилируется без `Stack underflow` после исправления.
 - [ ] Регрессия обращается к продуктовой границе декомпиляции; обычный соседний метод сохраняет корректный результат. При доказанном внешнем блокере статус остаётся открытым с точным воспроизведением и остатком работы.
 
+## Проверка обновлений ILSpy
+
+Сверять [стабильные релизы ILSpy](https://github.com/icsharpcode/ILSpy/releases/latest), [версии пакета ICSharpCode.Decompiler](https://www.nuget.org/packages/ICSharpCode.Decompiler) и связанные отчёты [ILSpy #3745](https://github.com/icsharpcode/ILSpy/issues/3745) о восстановлении исключений в runtime-async и [ILSpy #3825](https://github.com/icsharpcode/ILSpy/issues/3825) с похожим `throw obj` в другом сценарии.
+
+При появлении исправления или нового стабильного пакета проверить на нём `get_decompiled_method_body` для `System.Diagnostics.Process.WaitForExitAsync` из той же `System.Diagnostics.Process.dll` .NET 11.0.0. Зафиксировать версию пакета и сравнить вывод с [последней проверкой](evidence/task-19-implementation.md#проверка-с-ilspy-112). Целевой метод должен сохранить `async` и оба `await`, вывести корректный C# без `throw obj`, ошибок стека и предупреждения о неполной декомпиляции. `Process.Refresh` служит контрольным методом. Текущая регрессия в `RuntimeAsyncDecompilationTests` проверяет предупреждение для известного сбоя. После подтверждения исправления обновить ожидаемый результат теста и статус задачи.
+
 ## Где смотреть
 
 - [DecompilerHost.cs](../../Services/Resolve/DecompilerHost.cs)

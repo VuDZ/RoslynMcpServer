@@ -156,6 +156,8 @@ Each compiler diagnostic includes severity, **line**, **column**, an ID such as 
 - `assemblyName: string?` / `assemblyPath: string?` — same as `explore_assembly` (one required).
 - `fullTypeName: string` (e.g. `Microsoft.AspNetCore.Mvc.ControllerBase`)
 - `methodName: string`
+
+**Incomplete decompilation.** The `// Incomplete decompilation` marker indicates that ILSpy could not reconstruct valid C# for the entire method. For example, ILSpy 11.2 emits an invalid `throw obj` when decompiling `System.Diagnostics.Process.WaitForExitAsync` from .NET 11.0.0. [Reproduction and how to check for an ILSpy fix](project-review-2026-11-25/task-19-net11-async-decompilation-hi.md).
 </details>
 
 <details>

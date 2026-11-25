@@ -154,6 +154,8 @@
 - `assemblyName: string?` / `assemblyPath: string?` — как у `explore_assembly` (один обязателен).
 - `fullTypeName: string` (например `Microsoft.AspNetCore.Mvc.ControllerBase`)
 - `methodName: string`
+
+**Неполная декомпиляция.** Пометка `// Incomplete decompilation` означает, что ILSpy не смог восстановить весь метод как корректный C#. Например, при декомпиляции `System.Diagnostics.Process.WaitForExitAsync` из .NET 11.0.0 в ILSpy 11.2 остаётся некорректный `throw obj`. [Воспроизведение и проверка исправлений ILSpy](project-review-2026-11-25/task-19-net11-async-decompilation-hi.md).
 </details>
 
 <details>
