@@ -1,6 +1,7 @@
 using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using RoslynMcpServer.Diagnostics;
 using RoslynMcpServer.Services.Build;
 using RoslynMcpServer.Services.Testing.Baseline.Models;
 using RoslynMcpServer.Services.Testing.Models;
@@ -40,8 +41,8 @@ public sealed class TestImpactFormatterTests
             [second.Id] = new(new DotNetTestResult(TestProcessOutcome.TimedOut)),
             [third.Id] = new(new DotNetTestResult(
                 TestProcessOutcome.Failed,
-                TestRun: new(1, "Failed: 1, Passed: 10, Skipped: 0, Total: 11", "", 0, 0),
-                Parsed: new(new(11, 10, 1, 0), true, false, [new("Third.Test", Failure, "")], []))),
+                TestRun: new(1, "Failed: 1, Passed: 10, Skipped: 0, Total: 11", "", 0, 0) { OutputTruncated = true },
+                Parsed: new(new(11, 10, 1, 0), true, false, [new("Third.Test", Failure, "")], []) { OutputTruncated = true })),
         };
 
         var response = TestImpactFormatter.Format(third.Solution, estimate, TestNarrowingResult.Empty,
@@ -63,6 +64,8 @@ public sealed class TestImpactFormatterTests
         Assert.Contains("Total: 11; Passed: 10; Failed: 1", sections[3], StringComparison.Ordinal);
         Assert.Contains("Reasons: Third test selection.", sections[3], StringComparison.Ordinal);
         Assert.Contains(Failure, sections[3], StringComparison.Ordinal);
+        Assert.Contains(TruncatedProcessLog.CaptureMarker, sections[3], StringComparison.Ordinal);
+        Assert.DoesNotContain("Showing first 5 failures only", sections[3], StringComparison.Ordinal);
         Assert.Contains("Baseline unknown in 1 file(s)", sections[3], StringComparison.Ordinal);
         Assert.Contains("Project graph warning.", sections[3], StringComparison.Ordinal);
         Assert.DoesNotContain("Outcome: failed", sections[2], StringComparison.Ordinal);

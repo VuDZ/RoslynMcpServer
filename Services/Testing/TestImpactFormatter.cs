@@ -357,6 +357,11 @@ internal static class TestImpactFormatter
                 filterDescription: null,
                 requireFilterMatch: false,
                 outputOptions);
+            if (test.OutputTruncated && !diagnostic.Contains(TruncatedProcessLog.CaptureMarker, StringComparison.Ordinal))
+            {
+                diagnostic += Environment.NewLine + TruncatedProcessLog.CaptureMarker;
+            }
+
             body.AppendLine(diagnostic, Priority.Diagnostic, projectBlock);
         }
         if (result.Outcome is TestProcessOutcome.TimedOut or TestProcessOutcome.Cancelled)

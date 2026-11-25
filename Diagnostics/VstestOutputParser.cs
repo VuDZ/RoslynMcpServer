@@ -154,7 +154,7 @@ public static class VstestOutputParser
 
         return new ParseResult(summary, hasSummary, isPartial, failures, passedNames)
         {
-            FailureDetailsTruncated = failureDetailsTruncated || outputTruncated,
+            FailureDetailsTruncated = failureDetailsTruncated,
             SummaryTruncated = summaryTruncated,
             RetainedSummaryReportsFailure = retainedSummary is { Failed: > 0 }
                 || (summaryTruncated && failures.Count != 0),
@@ -287,7 +287,7 @@ public static class VstestOutputParser
             sb.AppendLine($"The process exited with code `{exitCode}`. The test summary exceeded the capture limit.");
             if (parse.Failures.Count > 0)
             {
-                AppendFailureDetails(sb, parse.Failures, parse.FailureDetailsTruncated, outputOptions);
+                AppendFailureDetails(sb, parse, outputOptions);
             }
 
             AppendRawTail(sb, combinedOutput);
@@ -337,7 +337,7 @@ public static class VstestOutputParser
             if (parse.Failures.Count > 0)
             {
                 sb.AppendLine();
-                AppendFailureDetails(sb, parse.Failures, parse.FailureDetailsTruncated, outputOptions);
+                AppendFailureDetails(sb, parse, outputOptions);
             }
 
             if (exitCode != 0)
@@ -401,7 +401,7 @@ public static class VstestOutputParser
             $"Total: **{total}** · Passed: **{passed}** · Failed: **{failed}**" +
             (skipped > 0 ? $" · Skipped: **{skipped}**" : string.Empty));
         sb.AppendLine();
-        AppendFailureDetails(sb, parse.Failures, parse.FailureDetailsTruncated, outputOptions);
+        AppendFailureDetails(sb, parse, outputOptions);
         if (parse.Failures.Count == 0)
         {
             sb.AppendLine(
@@ -1285,10 +1285,10 @@ public static class VstestOutputParser
 
     private static void AppendFailureDetails(
         StringBuilder sb,
-        IReadOnlyList<FailedTestDetail> failures,
-        bool truncated,
+        ParseResult parse,
         TestOutputReportOptions outputOptions)
     {
+        var failures = parse.Failures;
         if (failures.Count == 0)
         {
             return;
@@ -1310,7 +1310,8 @@ public static class VstestOutputParser
         for (var i = 0; i < failures.Count; i++)
         {
             var f = failures[i];
-            sb.AppendLine($"{i + 1}. **TestName:** `{EscapeMdBackticks(f.Name)}`");
+            var caseSuffix = FormatFailureCaseSuffix(failures, i);
+            sb.AppendLine($"{i + 1}. **TestName:** `{EscapeMdBackticks(f.Name)}`{caseSuffix}");
             if (!string.IsNullOrEmpty(f.Error))
             {
                 if (f.Error.Contains('\n', StringComparison.Ordinal))
@@ -1339,10 +1340,24 @@ public static class VstestOutputParser
             sb.AppendLine();
         }
 
-        if (truncated)
+        if (parse.FailureDetailsTruncated)
         {
-            sb.AppendLine("[!] Showing first 5 failures only.");
+            sb.AppendLine($"[!] Showing first {MaxFailedTestDetails} failures only.");
         }
+    }
+
+    private static string FormatFailureCaseSuffix(IReadOnlyList<FailedTestDetail> failures, int index)
+    {
+        // Theory display names can contain arbitrary arguments. Number equal headings without rendering those values.
+        var name = failures[index].Name;
+        bool HasSameName(FailedTestDetail failure) => string.Equals(failure.Name, name, StringComparison.Ordinal);
+        if (failures.Count(HasSameName) == 1)
+        {
+            return string.Empty;
+        }
+
+        var caseNumber = failures.Take(index).Count(HasSameName) + 1;
+        return $" (case {caseNumber})";
     }
 
     private static void AppendFailureStream(

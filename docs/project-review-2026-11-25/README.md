@@ -44,7 +44,7 @@
 
 | ID | Задача | Статус |
 |---|---|---|
-| FIX-17 | [Устранить повторные записи о падениях тестов](task-17-duplicate-test-failures-med.md) | planned |
+| FIX-17 | [Устранить повторные записи о падениях тестов](task-17-duplicate-test-failures-med.md) | accepted · 2026-11-25 · номера одноимённых случаев, уведомления о лимите и усечении · [отчёт](evidence/task-17-implementation.md) |
 | FIX-18 | [Восстановить символы дерева каталогов](task-18-directory-tree-encoding-low.md) | accepted · 2026-11-25 · ветви и вертикальные продолжения дерева · [отчёт](evidence/task-18-implementation.md) |
 | FIX-19 | [Исправить декомпиляцию async-метода .NET 11](task-19-net11-async-decompilation-hi.md) | blocked · 2026-11-25 · восстановлены `async`/`await`, остаётся некорректный `throw` ILSpy · [отчёт](evidence/task-19-implementation.md) |
 | FIX-20 | [Стабилизировать обработку нативного атомарного сохранения](task-20-native-atomic-save-watcher-hi.md) | accepted · 2026-11-25 · ожидание обработанной пары путей атомарной замены · [отчёт](evidence/task-20-implementation.md) |

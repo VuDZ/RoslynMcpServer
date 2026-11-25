@@ -6,6 +6,74 @@ namespace RoslynMcpServer.Tests.TestRunner;
 public sealed class VstestOutputParserTests
 {
     [Fact]
+    public void BuildMarkdownReport_pairs_console_details_with_adapter_notices_from_stderr()
+    {
+        const string output = """
+              Failed Demo.Tests.Check(input: "private-case-first", value: 2) [1 ms]
+              Error Message:
+               Identical test failure
+              Stack Trace:
+                 at Demo.Tests.Check(String input, Int32 value)
+              Failed Demo.Tests.Check(input: "private-case-second", value: 1) [< 1 ms]
+              Error Message:
+               Identical test failure
+              Stack Trace:
+                 at Demo.Tests.Check(String input, Int32 value)
+
+            Total tests: 2
+                 Failed: 2
+             Total time: 0.5237 Seconds
+            Build FAILED.
+            [xUnit.net 00:00:00.24]     Demo.Tests.Check(input: "private-case-first", value: 2) [FAIL]
+            [xUnit.net 00:00:00.24]     Demo.Tests.Check(input: "private-case-second", value: 1) [FAIL]
+            Test Run Failed.
+            """;
+
+        var result = VstestOutputParser.Parse(output, exitCode: 1);
+        var report = VstestOutputParser.BuildMarkdownReport(result, 1, output, null, null, requireFilterMatch: false);
+
+        Assert.Equal(new VstestOutputParser.TestSummary(2, 0, 2, 0), result.Summary);
+        Assert.Equal(["Identical test failure", "Identical test failure"], result.Failures.Select(f => f.Error));
+        Assert.All(result.Failures, failure =>
+        {
+            Assert.Contains("at Demo.Tests.Check(String input, Int32 value)", failure.Stack, StringComparison.Ordinal);
+            Assert.DoesNotContain("Failed Demo.Tests.Check", failure.Stack, StringComparison.Ordinal);
+        });
+        Assert.DoesNotContain("private-case-", report, StringComparison.Ordinal);
+        Assert.Contains("1. **TestName:** `Demo.Tests.Check` (case 1)", report, StringComparison.Ordinal);
+        Assert.Contains("2. **TestName:** `Demo.Tests.Check` (case 2)", report, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void BuildMarkdownReport_keeps_one_failure_when_a_matching_notice_survives_capture()
+    {
+        var output = $"""
+            {TruncatedProcessLog.CaptureMarker}
+            Total tests: 1
+                 Failed: 1
+              Failed Demo.Tests.Check(input: "private-case-token", value: 2) [< 1 ms]
+              Error Message:
+               Failure detail
+              Stack Trace:
+                 at Demo.Tests.Check(String input, Int32 value)
+            [xUnit.net 00:00:00.24]     Demo.Tests.Check(input: "private-case-token", value: 2) [FAIL]
+            """;
+
+        var result = VstestOutputParser.Parse(output, exitCode: 1, summaryTruncated: false, outputTruncated: true);
+        var report = VstestOutputParser.BuildMarkdownReport(result, 1, output, null, null, requireFilterMatch: false);
+
+        var failure = Assert.Single(result.Failures);
+        Assert.Equal("Demo.Tests.Check", failure.Name);
+        Assert.Equal("Failure detail", failure.Error);
+        Assert.Equal(new VstestOutputParser.TestSummary(1, 0, 1, 0), result.Summary);
+        Assert.Contains("1. **TestName:** `Demo.Tests.Check`" + Environment.NewLine, report, StringComparison.Ordinal);
+        Assert.DoesNotContain("private-case-token", report, StringComparison.Ordinal);
+        Assert.DoesNotContain("2. **TestName:**", report, StringComparison.Ordinal);
+        Assert.DoesNotContain(TruncatedProcessLog.CaptureMarker, report, StringComparison.Ordinal);
+        Assert.DoesNotContain("Showing first 5 failures only", report, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Parse_ignores_msbuild_failed_to_load_prune_line()
     {
         const string output = """
