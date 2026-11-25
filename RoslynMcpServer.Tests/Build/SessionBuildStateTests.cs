@@ -9,6 +9,79 @@ namespace RoslynMcpServer.Tests.Build;
 public sealed class SessionBuildStateTests
 {
     [Fact]
+    public async Task Completed_context_slots_are_removed_across_generations()
+    {
+        var state = new SessionBuildState();
+        for (var opening = 0; opening < 3; opening++)
+        {
+            var generation = Guid.NewGuid();
+            var projectId = ProjectId.CreateNewId();
+            var other = ProjectId.CreateNewId();
+            var dependency = ProjectId.CreateNewId();
+            state.Observe(Graph(generation, 1, 1, projectId, other, dependency, dependencyRevision: 1));
+
+            for (var contextIndex = 0; contextIndex < 4; contextIndex++)
+            {
+                var context = Context("Debug", outputName: $"App-{contextIndex}.dll");
+                var admission = await state.EnterContextAsync(projectId, context, TimeSpan.Zero, CancellationToken.None);
+                Assert.True(admission.Acquired);
+                Assert.False(admission.Waited);
+                Assert.Equal(1, state.ContextSlotCount);
+
+                state.LeaveContext(projectId, context, confirmed: true, failed: false, generation);
+                Assert.Equal(0, state.ContextSlotCount);
+            }
+        }
+    }
+
+    [Fact(Timeout = 15000)]
+    public async Task Cancelled_and_timed_out_waiters_leave_the_slot_available_for_the_queued_waiter()
+    {
+        var state = new SessionBuildState();
+        var generation = Guid.NewGuid();
+        var replacement = Guid.NewGuid();
+        var projectId = ProjectId.CreateNewId();
+        var other = ProjectId.CreateNewId();
+        var dependency = ProjectId.CreateNewId();
+        var context = Context("Debug");
+        state.Observe(Graph(generation, 1, 1, projectId, other, dependency, dependencyRevision: 1));
+
+        var owner = await state.EnterContextAsync(projectId, context, TimeSpan.Zero, CancellationToken.None);
+        Assert.True(owner.Acquired);
+        var waiting = state.EnterContextAsync(projectId, context, waitBudget: null, CancellationToken.None);
+        Assert.False(waiting.IsCompleted);
+        using var cancellation = new CancellationTokenSource();
+        var cancelled = state.EnterContextAsync(projectId, context, waitBudget: null, cancellation.Token);
+        Assert.False(cancelled.IsCompleted);
+        cancellation.Cancel();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await cancelled);
+
+        var immediate = await state.EnterContextAsync(projectId, context, TimeSpan.Zero, CancellationToken.None);
+        Assert.False(immediate.Acquired);
+        var timedOut = await state.EnterContextAsync(
+            projectId,
+            context,
+            TimeSpan.FromMilliseconds(10),
+            CancellationToken.None);
+        Assert.False(timedOut.Acquired);
+
+        state.Observe(Graph(replacement, 1, 1, projectId, other, dependency, dependencyRevision: 1));
+        Assert.False(waiting.IsCompleted);
+        Assert.Equal(1, state.ContextSlotCount);
+        state.LeaveContext(projectId, context, confirmed: true, failed: false, generation);
+
+        var waiter = await waiting;
+        Assert.True(waiter.Acquired);
+        Assert.True(waiter.Waited);
+        Assert.True(waiter.PriorConfirmed);
+        Assert.False(waiter.PriorFailed);
+        Assert.Equal(generation, waiter.PriorGeneration);
+        Assert.Equal(1, state.ContextSlotCount);
+        state.LeaveContext(projectId, context, confirmed: true, failed: false, replacement);
+        Assert.Equal(0, state.ContextSlotCount);
+    }
+
+    [Fact]
     public void Editing_dependency_dirties_consumers_and_building_one_does_not_confirm_the_other()
     {
         var generation = Guid.NewGuid();
