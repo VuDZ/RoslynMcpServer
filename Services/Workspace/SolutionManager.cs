@@ -2169,25 +2169,39 @@ public sealed class SolutionManager
         // Evaluated settings can change through an import, a condition or a glob without a project-file
         // watcher event. Compare the effective readers before relying on the loaded CodePage values.
         // See docs/project-review-2026-11-25/task-47-p1-stale-project-code-page-hi.md.
+        var designTimeReadersMatch = false;
         if (!ProjectGraphStaleFromGraphFile && projects.All(project => File.Exists(project.FilePath)))
         {
             try
             {
+                var sourcePath = matchMembership ? fullPath : null;
                 await using var evaluated = await WorkspaceProjectDocumentRegistration.OpenAsync(_workspace, projects, _logger, cancellationToken)
                     .ConfigureAwait(false);
-                if (evaluated is not null
-                    && await evaluated.SourceCodePagesMatchAsync(
-                            _loadedProjectMetadata, matchMembership ? fullPath : null, cancellationToken)
-                        .ConfigureAwait(false))
+                designTimeReadersMatch = evaluated is not null && await evaluated.SourceCodePagesMatchAsync(
+                        _loadedProjectMetadata, sourcePath, cancellationToken)
+                    .ConfigureAwait(false);
+                // The design-time check cannot attest to the properties used by an ordinary Csc.
+                // See docs/project-review-2026-11-25/task-49-p1-build-source-encoding-hi.md.
+                if (designTimeReadersMatch && _loadedPath is not null && await WorkspaceBuildSourceReaders.MatchAsync(
+                        _loadedPath, LoadedConfiguration, LoadedPlatform, LoadedPlatformRaw, LoadedBuildArgs,
+                        _workspace.CurrentSolution.Projects, projects, _loadedProjectMetadata, sourcePath, cancellationToken)
+                    .ConfigureAwait(false))
                 {
                     return;
                 }
             }
             catch (Exception ex) when (!cancellationToken.IsCancellationRequested
-                && ex is IOException or InvalidOperationException or NotSupportedException or TargetInvocationException)
+                && ex is IOException or InvalidOperationException or NotSupportedException or TargetInvocationException
+                    or Microsoft.Build.Exceptions.InvalidProjectFileException)
             {
                 _logger.LogWarning(ex, "Could not confirm the project source readers for {Path}", fullPath);
             }
+        }
+
+        if (designTimeReadersMatch)
+        {
+            throw new InvalidDataException(
+                $"Could not confirm that the ordinary build uses the loaded source encodings and membership for this BOM-free source: {fullPath}");
         }
 
         MarkProjectGraphStaleFromGraphFile();

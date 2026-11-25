@@ -643,6 +643,218 @@ public sealed class WorkspaceWriteEncodingTests : IDisposable
             : new EditingTools(NullLogger<EditingTools>.Instance, manager).WriteFile(_sourcePath, Changed);
     }
 
+    [Theory]
+    [InlineData("property", false)]
+    [InlineData("property", true)]
+    [InlineData("target", false)]
+    [InlineData("target", true)]
+    [InlineData("buildArgs", false)]
+    [InlineData("buildArgs", true)]
+    [InlineData("sameEncoding", false)]
+    [InlineData("sameEncoding", true)]
+    public async Task Bom_free_source_edits_check_ordinary_readers_without_running_build_targets(string codePageSource, bool patch)
+    {
+        const string Source = """namespace App; public class Sample { public const string Value = "Marker"; }""";
+        const string Changed = """namespace App; public class Sample { public const string Value = "Café"; }""";
+        var ordinaryBuild = codePageSource switch
+        {
+            "target" => """
+                <Target Name="SetCompilerCodePage" BeforeTargets="CoreCompile" Condition="'$(DesignTimeBuild)' != 'true'">
+                  <PropertyGroup><CodePage>28591</CodePage></PropertyGroup>
+                </Target>
+                <Target Name="RestoreCodePageAfterCompile" AfterTargets="CoreCompile" Condition="'$(DesignTimeBuild)' != 'true'">
+                  <PropertyGroup><CodePage>65001</CodePage></PropertyGroup>
+                </Target>
+                """,
+            "property" => """
+                <PropertyGroup Condition="'$(DesignTimeBuild)' == ''"><CodePage>28591</CodePage></PropertyGroup>
+                """,
+            _ => string.Empty,
+        };
+        var witnessPath = Path.Combine(_root, "OrdinaryBuildWitness.txt");
+        await File.WriteAllTextAsync(
+            _csprojPath,
+            $"""
+             <Project Sdk="Microsoft.NET.Sdk">
+               <PropertyGroup><TargetFramework>net10.0</TargetFramework><CodePage>65001</CodePage></PropertyGroup>
+               <Target Name="OrdinaryBuildWitness" BeforeTargets="CoreCompile" Condition="'$(DesignTimeBuild)' != 'true'">
+                 <WriteLinesToFile File="$(MSBuildProjectDirectory)/OrdinaryBuildWitness.txt" Lines="The build ran." Overwrite="true" />
+               </Target>
+               {ordinaryBuild}
+             </Project>
+             """);
+        await File.WriteAllTextAsync(_sourcePath, Source, BomFreeUtf8);
+        var manager = await LoadAsync();
+        if (codePageSource == "buildArgs")
+        {
+            manager.ApplySessionBuildArgs("-p:CodePage=28591");
+        }
+
+        var original = Assert.Single(manager.GetCurrentSolution()!.Projects.Single().Documents,
+            document => document.FilePath == _sourcePath);
+
+        var result = patch
+            ? await new UtilityTools(NullLogger<UtilityTools>.Instance, manager).ApplyPatch(_sourcePath, "Marker", "Café")
+            : await new EditingTools(NullLogger<EditingTools>.Instance, manager).WriteFile(_sourcePath, Changed);
+
+        var accepted = codePageSource == "sameEncoding";
+        if (accepted)
+        {
+            Assert.DoesNotContain("Error", result, StringComparison.Ordinal);
+        }
+        else
+        {
+            Assert.Contains("ordinary build uses the loaded source encodings", result, StringComparison.Ordinal);
+        }
+
+        Assert.False(File.Exists(witnessPath));
+        var expected = accepted ? Changed : Source;
+        Assert.Equal(BomFreeUtf8.GetBytes(expected), await File.ReadAllBytesAsync(_sourcePath));
+        var published = (await manager.GetPublishedSolutionAsync())!.GetDocument(original.Id)!;
+        Assert.Equal(expected, (await published.GetTextAsync()).ToString());
+    }
+
+    [Theory]
+    [InlineData("compileItem", false)]
+    [InlineData("compileItem", true)]
+    [InlineData("targetItem", false)]
+    [InlineData("targetItem", true)]
+    [InlineData("taskOutput", false)]
+    [InlineData("taskOutput", true)]
+    [InlineData("referenceProperties", false)]
+    [InlineData("referenceProperties", true)]
+    public async Task Bom_free_source_edits_reject_ordinary_only_reader_contexts(string readerContext, bool patch)
+    {
+        const string Source = """namespace App; public class Sample { public const string Value = "Marker"; }""";
+        const string Changed = """namespace App; public class Sample { public const string Value = "Café"; }""";
+        var ordinaryReader = readerContext switch
+        {
+            "compileItem" => """
+                <ItemGroup Condition="'$(DesignTimeBuild)' != 'true'">
+                  <Compile Include="../Class1.cs" />
+                </ItemGroup>
+                """,
+            "targetItem" => """
+                <Target Name="LinkSource" BeforeTargets="CoreCompile" Condition="'$(DesignTimeBuild)' != 'true'">
+                  <ItemGroup><Compile Include="../Class1.cs" /></ItemGroup>
+                </Target>
+                """,
+            "taskOutput" => """
+                <Target Name="LinkSource" BeforeTargets="CoreCompile" Condition="'$(DesignTimeBuild)' != 'true'">
+                  <CreateItem Include="../Class1.cs">
+                    <Output TaskParameter="Include" ItemName="Compile" />
+                  </CreateItem>
+                </Target>
+                """,
+            _ => """
+                <ItemGroup Condition="'$(DesignTimeBuild)' != 'true'">
+                  <ProjectReference Include="../App.csproj" AdditionalProperties="CodePage=28591" />
+                </ItemGroup>
+                """,
+        };
+        var otherDirectory = Directory.CreateDirectory(Path.Combine(_root, "Other"));
+        var solutionPath = Path.Combine(_root, "Both.slnx");
+        await File.WriteAllTextAsync(solutionPath, """<Solution><Project Path="App.csproj" /><Project Path="Other/Other.csproj" /></Solution>""");
+        await File.WriteAllTextAsync(_csprojPath, """
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup><TargetFramework>net10.0</TargetFramework><CodePage>65001</CodePage></PropertyGroup>
+            </Project>
+            """);
+        await File.WriteAllTextAsync(Path.Combine(otherDirectory.FullName, "Other.csproj"), $"""
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup><TargetFramework>net10.0</TargetFramework><CodePage>28591</CodePage></PropertyGroup>
+              {ordinaryReader}
+            </Project>
+            """);
+        await File.WriteAllTextAsync(_sourcePath, Source, BomFreeUtf8);
+        var manager = SolutionManagerTestFactory.Create();
+        await manager.LoadAndPrepareAsync(solutionPath, shadowCopyInSolutionAnalyzers: false, CancellationToken.None);
+        var loaded = manager.GetCurrentSolution()!;
+        Assert.Equal(2, loaded.ProjectIds.Count);
+        var original = Assert.Single(loaded.GetDocumentIdsWithFilePath(_sourcePath));
+
+        var result = patch
+            ? await new UtilityTools(NullLogger<UtilityTools>.Instance, manager).ApplyPatch(_sourcePath, "Marker", "Café")
+            : await new EditingTools(NullLogger<EditingTools>.Instance, manager).WriteFile(_sourcePath, Changed);
+
+        Assert.Contains("ordinary build uses the loaded source encodings", result, StringComparison.Ordinal);
+        Assert.Equal(BomFreeUtf8.GetBytes(Source), await File.ReadAllBytesAsync(_sourcePath));
+        var published = (await manager.GetPublishedSolutionAsync())!.GetDocument(original)!;
+        Assert.Equal(Source, (await published.GetTextAsync()).ToString());
+    }
+
+    [Theory]
+    [InlineData(65001, false)]
+    [InlineData(28591, false)]
+    [InlineData(28591, true)]
+    public async Task Bom_free_source_edits_check_frameworks_omitted_from_workspace(int otherCodePage, bool patch)
+    {
+        const string Source = """namespace App; public class Sample { public const string Value = "Marker"; }""";
+        const string Changed = """namespace App; public class Sample { public const string Value = "Café"; }""";
+        await File.WriteAllTextAsync(_csprojPath, $"""
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup><TargetFrameworks>net10.0;net11.0</TargetFrameworks><CodePage>65001</CodePage></PropertyGroup>
+              <PropertyGroup Condition="'$(TargetFramework)' == 'net11.0'"><CodePage>{otherCodePage}</CodePage></PropertyGroup>
+            </Project>
+            """);
+        await File.WriteAllTextAsync(_sourcePath, Source, BomFreeUtf8);
+        var manager = SolutionManagerTestFactory.Create();
+        await manager.LoadAndPrepareAsync(_csprojPath, shadowCopyInSolutionAnalyzers: false, CancellationToken.None,
+            targetFramework: "net10.0");
+        var original = Assert.Single(manager.GetCurrentSolution()!.GetDocumentIdsWithFilePath(_sourcePath));
+
+        var result = patch
+            ? await new UtilityTools(NullLogger<UtilityTools>.Instance, manager).ApplyPatch(_sourcePath, "Marker", "Café")
+            : await new EditingTools(NullLogger<EditingTools>.Instance, manager).WriteFile(_sourcePath, Changed);
+
+        var accepted = otherCodePage == 65001;
+        if (accepted)
+        {
+            Assert.Contains("Successfully wrote", result, StringComparison.Ordinal);
+        }
+        else
+        {
+            Assert.Contains("ordinary build uses the loaded source encodings", result, StringComparison.Ordinal);
+        }
+
+        var expected = accepted ? Changed : Source;
+        Assert.Equal(BomFreeUtf8.GetBytes(expected), await File.ReadAllBytesAsync(_sourcePath));
+        var published = (await manager.GetPublishedSolutionAsync())!.GetDocument(original)!;
+        Assert.Equal(expected, (await published.GetTextAsync()).ToString());
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Bom_free_source_edits_reject_target_time_framework_dispatch(bool item)
+    {
+        const string Source = """namespace App; public class Sample { public const string Value = "Marker"; }""";
+        var dispatchChange = item
+            ? """<ItemGroup><_TargetFramework Include="net11.0" /></ItemGroup>"""
+            : """<PropertyGroup><TargetFrameworks>net10.0;net11.0</TargetFrameworks></PropertyGroup>""";
+        await File.WriteAllTextAsync(_csprojPath, $"""
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup><TargetFrameworks>net10.0</TargetFrameworks><CodePage>65001</CodePage></PropertyGroup>
+              <PropertyGroup Condition="'$(TargetFramework)' == 'net11.0'"><CodePage>28591</CodePage></PropertyGroup>
+              <Target Name="AddOrdinaryFramework" BeforeTargets="_ComputeTargetFrameworkItems"
+                      Condition="'$(DesignTimeBuild)' != 'true'">
+                {dispatchChange}
+              </Target>
+            </Project>
+            """);
+        await File.WriteAllTextAsync(_sourcePath, Source, BomFreeUtf8);
+        var manager = await LoadAsync();
+        var original = Assert.Single(manager.GetCurrentSolution()!.GetDocumentIdsWithFilePath(_sourcePath));
+
+        var result = await new UtilityTools(NullLogger<UtilityTools>.Instance, manager)
+            .ApplyPatch(_sourcePath, "Marker", "Café");
+
+        Assert.Contains("ordinary build uses the loaded source encodings", result, StringComparison.Ordinal);
+        Assert.Equal(BomFreeUtf8.GetBytes(Source), await File.ReadAllBytesAsync(_sourcePath));
+        var published = (await manager.GetPublishedSolutionAsync())!.GetDocument(original)!;
+        Assert.Equal(Source, (await published.GetTextAsync()).ToString());
+    }
+
     [Fact]
     public async Task WriteFile_preserves_a_BOM_marked_source_when_project_encoding_changes()
     {
