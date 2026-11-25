@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Reflection;
 using System.Text.Json;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.MSBuild;
@@ -61,17 +62,40 @@ internal sealed class ProjectLoadMetadataCapture : IProgress<ProjectLoadProgress
             if (matches.Length == 1)
             {
                 var framework = matches[0];
-                var outputs = outputTypes[path]
+                var entries = outputTypes[path]
                     .Where(entry => StringComparer.Ordinal.Equals(framework, entry.TargetFramework))
-                    .Select(entry => entry.OutputType)
-                    .Distinct(StringComparer.Ordinal)
-                    .Take(2)
                     .ToArray();
-                metadata.Add(project.Id, new ProjectLoadMetadata(framework, outputs.Length == 1 ? outputs[0] : null));
+                var outputs = entries.Select(entry => entry.OutputType).Distinct(StringComparer.Ordinal).Take(2).ToArray();
+                var codePages = entries.Select(entry => entry.CodePage).Distinct().Take(2).ToArray();
+                metadata.Add(project.Id, new ProjectLoadMetadata(framework, outputs.Length == 1 ? outputs[0] : null)
+                {
+                    CodePage = codePages.Length switch
+                    {
+                        0 => ReadLoaderCodePage(project),
+                        1 => codePages[0],
+                        _ => null,
+                    },
+                });
             }
         }
 
         return metadata.ToImmutable();
+    }
+
+    private static int? ReadLoaderCodePage(Project project)
+    {
+        // BuildHost-net472 has no project sidecar. Roslyn creates every source loader with the
+        // same project encoding before detecting a file's BOM. See docs/project-review-2026-11-25/task-36-p1-framework-bom-free-writes-hi.md.
+        // The pinned workspace does not expose the original loader on Document's public API.
+        if (project.Documents.FirstOrDefault() is not { } document
+            || _documentState?.GetValue(document) is not { } state
+            || _textSource?.GetValue(state) is not { } source
+            || _textLoader?.GetValue(source) is not FileTextLoader loader)
+        {
+            return null;
+        }
+
+        return loader.DefaultEncoding?.CodePage ?? 0;
     }
 
     private static IEnumerable<OutputTypeEntry> ReadProjectOutputTypes(
@@ -123,7 +147,11 @@ internal sealed class ProjectLoadMetadataCapture : IProgress<ProjectLoadProgress
         }
     }
 
-    private sealed record OutputTypeEntry(string ProjectFile, string? TargetFramework, string? OutputType);
+    private sealed record OutputTypeEntry(string ProjectFile, string? TargetFramework, string? OutputType, int? CodePage);
 
     private readonly Dictionary<string, List<string?>> _frameworksByPath = new(InputPathCanon.Comparer);
+    private static readonly PropertyInfo? _documentState =
+        typeof(TextDocument).GetProperty("State", BindingFlags.Instance | BindingFlags.NonPublic);
+    private static readonly FieldInfo? _textSource = _documentState?.PropertyType.GetField("TextAndVersionSource");
+    private static readonly PropertyInfo? _textLoader = _textSource?.FieldType.GetProperty("TextLoader");
 }

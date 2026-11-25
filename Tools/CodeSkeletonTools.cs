@@ -43,7 +43,7 @@ public sealed class CodeSkeletonTools
         {
             if (string.IsNullOrWhiteSpace(path))
             {
-                return ToolTelemetry.TraceAndReturn(
+                return ToolTelemetry.TraceFailureAndReturn(
                     toolName,
                     "Error: `path` is required for `get_code_skeleton` (file or directory). "
                     + "For assembly-based inspection use `decompile_type` / `get_decompiled_class_skeleton` with `assemblyName` or `assemblyPath`.");
@@ -52,7 +52,7 @@ public sealed class CodeSkeletonTools
             var fullPath = Path.GetFullPath(path.Trim());
             if (!File.Exists(fullPath) && !Directory.Exists(fullPath))
             {
-                return ToolTelemetry.TraceAndReturn(toolName, $"Path not found: `{fullPath}`");
+                return ToolTelemetry.TraceFailureAndReturn(toolName, $"Path not found: `{fullPath}`");
             }
 
             IReadOnlyList<string> targets;
@@ -61,7 +61,7 @@ public sealed class CodeSkeletonTools
             {
                 if (!string.Equals(Path.GetExtension(fullPath), ".cs", StringComparison.OrdinalIgnoreCase))
                 {
-                    return ToolTelemetry.TraceAndReturn(toolName, $"File must have extension `.cs`: `{fullPath}`");
+                    return ToolTelemetry.TraceFailureAndReturn(toolName, $"File must have extension `.cs`: `{fullPath}`");
                 }
 
                 targets = [fullPath];
@@ -131,12 +131,12 @@ public sealed class CodeSkeletonTools
         }
         catch (OperationCanceledException)
         {
-            return ToolTelemetry.TraceAndReturn(toolName, "`get_code_skeleton` was cancelled.");
+            return ToolTelemetry.TraceFailureAndReturn(toolName, "`get_code_skeleton` was cancelled.");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "GetCodeSkeleton failed for {Path}", path);
-            return ToolTelemetry.TraceAndReturn(toolName, $"Failed: {ex.Message}");
+            return ToolTelemetry.TraceFailureAndReturn(toolName, $"Failed: {ex.Message}");
         }
     }
 

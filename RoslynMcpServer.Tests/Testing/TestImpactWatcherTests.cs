@@ -19,9 +19,12 @@ public sealed class TestImpactWatcherTests
         var temporary = Path.Combine(Path.GetDirectoryName(path)!, "sedScratch");
         await File.WriteAllTextAsync(temporary, updated);
         await fixture.WaitForEventAsync(temporary);
-        var revision = session.EventRevision(path);
+        // Windows reports Deleted for the destination before the paired rename. Waiting for any
+        // destination event can reconcile the scratch path before the rename is recorded.
+        // See docs/project-review-2026-11-25/task-20-native-atomic-save-watcher-hi.md.
+        var renamed = ObserveRename(fixture.Manager, temporary, path);
         File.Move(temporary, path, overwrite: true);
-        await fixture.WaitForEventAsync(path, revision, expectGraphStale: false);
+        await renamed.WaitAsync(TimeSpan.FromSeconds(15));
         var replaced = await tools.EstimateAffectedTests();
 
         Assert.Contains("Run: ", replaced, StringComparison.Ordinal);
@@ -31,10 +34,48 @@ public sealed class TestImpactWatcherTests
         Assert.DoesNotContain(temporary, fixture.Manager.Baseline.GetSnapshot().TouchedPaths, InputPathCanon.Comparer);
         Assert.Empty(session.DirectoryRenamePaths);
 
-        revision = session.EventRevision(path);
+        var revision = session.EventRevision(path);
         await File.WriteAllTextAsync(path, updated);
         await fixture.WaitForEventAsync(path, revision, expectGraphStale: false);
         Assert.Equal(replaced, await tools.EstimateAffectedTests());
+    }
+
+    [Fact]
+    public async Task Destination_delete_before_atomic_save_rename_does_not_mark_graph_stale()
+    {
+        await using var fixture = new TestImpactWatcherFixture();
+        await fixture.LoadAsync();
+        fixture.Manager.SilenceDiskWatchersForTests();
+        var session = fixture.Manager.DiskWatcherSession!;
+        var path = fixture.DeletedSourcePath;
+        var directory = Path.GetDirectoryName(path)!;
+        var sourceName = Path.GetFileName(path);
+        const string scratchName = "saveScratch";
+        var scratch = Path.Combine(directory, scratchName);
+        File.WriteAllText(scratch, "class Old { void Run() { System.Console.WriteLine(1); } }");
+        fixture.Manager.NotifyDiskWatcherChange(
+            session,
+            new FileSystemEventArgs(WatcherChangeTypes.Created, directory, scratchName));
+
+        var revision = session.EventRevision(path);
+        var renamed = ObserveRename(fixture.Manager, scratch, path);
+        File.Move(scratch, path, overwrite: true);
+        fixture.Manager.NotifyDiskWatcherChange(
+            session,
+            new FileSystemEventArgs(WatcherChangeTypes.Deleted, directory, sourceName));
+
+        Assert.True(session.EventRevision(path) > revision);
+        Assert.False(renamed.IsCompleted);
+
+        fixture.Manager.NotifyDiskWatcherRename(
+            session,
+            new RenamedEventArgs(WatcherChangeTypes.Renamed, directory, sourceName, scratchName));
+        Assert.True(renamed.IsCompletedSuccessfully);
+        var replaced = await EstimateAffectedTestsTests.Tools(fixture.Manager).EstimateAffectedTests();
+
+        Assert.False(fixture.Manager.ProjectGraphStale);
+        Assert.Contains("Run: ", replaced, StringComparison.Ordinal);
+        Assert.DoesNotContain(scratch, fixture.Manager.Baseline.GetSnapshot().TouchedPaths, InputPathCanon.Comparer);
     }
 
     [Fact]
@@ -182,6 +223,22 @@ public sealed class TestImpactWatcherTests
         Assert.True(result.RequiresReload);
         Assert.True(result.ProjectGraphStale);
         Assert.All(result.ExpandedTestProjects.Values, Assert.NotEmpty);
+    }
+
+    private static Task ObserveRename(SolutionManager manager, string oldPath, string newPath)
+    {
+        var renamed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        manager.AfterDiskWatcherChangeForTests = args =>
+        {
+            if (args is RenamedEventArgs rename
+                && InputPathCanon.Comparer.Equals(rename.OldFullPath, oldPath)
+                && InputPathCanon.Comparer.Equals(rename.FullPath, newPath))
+            {
+                renamed.TrySetResult();
+            }
+        };
+
+        return renamed.Task;
     }
 
     private static void AssertDirectNewTest(TestImpactWatcherFixture fixture, ProjectImpactResult mapped, string path, string source)

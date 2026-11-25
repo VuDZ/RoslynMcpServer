@@ -35,7 +35,7 @@ public sealed class ProjectTools
         {
             if (string.IsNullOrWhiteSpace(projectPath) || string.IsNullOrWhiteSpace(newProjectName))
             {
-                return Task.FromResult(ToolTelemetry.TraceAndReturn(
+                return Task.FromResult(ToolTelemetry.TraceFailureAndReturn(
                     toolName,
                     "Error: `projectPath` and `newProjectName` are required."));
             }
@@ -54,13 +54,13 @@ public sealed class ProjectTools
             var result = ProjectRenameHelper.Apply(
                 plan,
                 _solutionManager.DiskWatcherSession,
-                (path, text) => _solutionManager.WriteTrackedText(path, text, SourceTextEncoding.BomFreeUtf8));
-            return ClearWorkspaceAndReturnAsync(toolName, result);
+                _solutionManager.WriteTrackedText);
+            return ClearWorkspaceAndReturnAsync(toolName, result.Message, result.Success);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "RenameProject failed for {ProjectPath} -> {NewName}", projectPath, newProjectName);
-            return Task.FromResult(ToolTelemetry.TraceAndReturn(toolName, $"Failed: {ex.Message}"));
+            return Task.FromResult(ToolTelemetry.TraceFailureAndReturn(toolName, $"Failed: {ex.Message}"));
         }
     }
 
@@ -89,7 +89,7 @@ public sealed class ProjectTools
         catch (Exception ex)
         {
             _logger.LogError(ex, "AddPackageReference failed for {PackageId}", packageId);
-            return ToolTelemetry.TraceAndReturn(toolName, $"Failed: {ex.Message}");
+            return ToolTelemetry.TraceFailureAndReturn(toolName, $"Failed: {ex.Message}");
         }
     }
 
@@ -117,11 +117,11 @@ public sealed class ProjectTools
         catch (Exception ex)
         {
             _logger.LogError(ex, "RemovePackageReference failed for {PackageId}", packageId);
-            return ToolTelemetry.TraceAndReturn(toolName, $"Failed: {ex.Message}");
+            return ToolTelemetry.TraceFailureAndReturn(toolName, $"Failed: {ex.Message}");
         }
     }
 
-    private async Task<string> ClearWorkspaceAndReturnAsync(string toolName, string message)
+    private async Task<string> ClearWorkspaceAndReturnAsync(string toolName, string message, bool success)
     {
         try
         {
@@ -129,12 +129,14 @@ public sealed class ProjectTools
         }
         catch (Exception ex)
         {
+            success = false;
             _logger.LogWarning(ex, "ClearWorkspace after RenameProject failed");
         }
 
         return ToolTelemetry.TraceAndReturn(
             toolName,
             message + Environment.NewLine + Environment.NewLine
-            + "Workspace cache cleared. Call `load_workspace` on the solution, then `run_dotnet_build`.");
+            + "Workspace cache cleared. Call `load_workspace` on the solution, then `run_dotnet_build`.",
+            success);
     }
 }

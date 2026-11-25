@@ -10,6 +10,7 @@ public static class VstestOutputParser
     private const int MaxFailedTestDetails = 5;
     private const int MaxStackTraceLinesPerFailure = 15;
     private const int PartialSuccessTailChars = 2048;
+    private const string NoMatchPrefix = "No test matches the given testcase filter";
 
     /// <summary>VSTest console duration: <c>[&lt; 1 ms]</c>, <c>[12 ms]</c>, <c>[1 s]</c>, <c>[1 m 28 s]</c>, <c>[1 h 2 m]</c>.</summary>
     private const string VstestDurationBracket =
@@ -54,13 +55,9 @@ public static class VstestOutputParser
         @"(?<kind>Passed|Failed)!\s+-\s+Failed:\s*(?<failed>\d+),\s*Passed:\s*(?<passed>\d+)(?:,\s*Skipped:\s*(?<skipped>\d+))?(?:,\s*Total:\s*(?<total>\d+))?",
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
-    private static readonly Regex RxEndSummaryLineAlt = new(
-        @"Passed!\s+-\s+Failed:\s*(?<failed>\d+),\s*Passed:\s*(?<passed>\d+)",
-        RegexOptions.Compiled | RegexOptions.CultureInvariant);
-
     private static readonly Regex RxTotalTests = new(
-        @"Total tests:\s*(?<total>\d+)",
-        RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        @"^[ \t]*Total tests:[ \t]*(?:(?<total>\d+)|Unknown)[ \t]*\r?$",
+        RegexOptions.Compiled | RegexOptions.Multiline | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
     private static readonly Regex RxPassedCountLine = new(
         @"^\s*Passed:\s*(?<n>\d+)\s*$",
@@ -78,18 +75,14 @@ public static class VstestOutputParser
         @"Test Run Successful\.?",
         RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
+    private static readonly Regex RxTestRunFailure = new(
+        @"^[ \t]*(?:Test Run (?:Aborted|Failed)\.?|The active test run was aborted\.(?:[ \t]+Reason:[^\r\n]*)?)[ \t]*\r?$",
+        RegexOptions.Compiled | RegexOptions.Multiline | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
     /// <summary>VSTest console block: Total tests + Passed (Failed/Skipped optional). Fail-only .slnx blocks are parsed line-wise.</summary>
     private static readonly Regex RxVstestTotalsBlock = new(
         @"Total tests:\s*(?<total>\d+)(?:[\s\S]{0,2000}?)\s+Passed:\s*(?<passed>\d+)",
         RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
-
-    /// <summary>
-    /// Per-assembly VSTest discovery noise when a filter matches nothing in that assembly.
-    /// Sibling assemblies on a <c>.sln</c> run print this even when another assembly executed the test.
-    /// </summary>
-    private static readonly Regex RxNoTestMatchesLine = new(
-        @"No test matches the given testcase filter",
-        RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     public sealed record TestSummary(int Total, int Passed, int Failed, int Skipped);
 
@@ -103,6 +96,17 @@ public static class VstestOutputParser
         IReadOnlyList<string> PassedTestNames)
     {
         internal bool FailureDetailsTruncated { get; init; }
+        internal ReportedTestCounts? IncompleteCounts { get; init; }
+        internal bool SummaryTruncated { get; init; }
+        internal bool HasConfirmedFailure { get; init; }
+        internal string? BuildError { get; init; }
+        internal bool OutputTruncated { get; init; }
+
+        // Null indicates that no standalone notice survived capture.
+        internal bool? NoMatchCoversStartedSources { get; init; }
+        internal bool HasSiblingNoMatch { get; init; }
+        internal bool HasReportedTestCase { get; init; }
+        internal bool HasUnverifiedNoMatchFilter { get; init; }
     }
 
     public static string DeduplicateNuGetAuditLines(string combinedOutput)
@@ -132,18 +136,59 @@ public static class VstestOutputParser
         return sb.ToString().TrimEnd();
     }
 
-    public static ParseResult Parse(string combinedOutput, int exitCode)
+    public static ParseResult Parse(string combinedOutput, int exitCode) =>
+        Parse(combinedOutput, exitCode, summaryTruncated: false, outputTruncated: false);
+
+    internal static ParseResult Parse(
+        string combinedOutput,
+        int exitCode,
+        bool summaryTruncated,
+        bool outputTruncated,
+        string? requiredNoMatchFilter = null)
     {
         combinedOutput = DeduplicateNuGetAuditLines(combinedOutput);
-        var summary = TryParseTestSummary(combinedOutput);
-        var hasSummary = summary is not null || HasSummaryMarkers(combinedOutput);
+        var runEvidence = default(RunEvidence);
+        var summaryBlocks = summaryTruncated
+            ? default
+            : ReadSummaryBlocks(combinedOutput, outputTruncated, out runEvidence, requiredNoMatchFilter);
+        var summary = summaryBlocks.Summary;
+        ReportedTestCounts? incompleteCounts = null;
+        if (summaryTruncated)
+        {
+            incompleteCounts = ReadRetainedLowerBounds(combinedOutput);
+        }
+        else if (summary is null && summaryBlocks.BlockCount > 0)
+        {
+            incompleteCounts = summaryBlocks.Counts;
+        }
+
+        var hasSummary = !summaryTruncated && (summary is not null || HasSummaryMarkers(combinedOutput));
         var passedNames = CollectPassedTestNames(combinedOutput);
         var failures = ParseFailedTestBlocks(combinedOutput, out var failureDetailsTruncated);
+        if (incompleteCounts is { } counts && failures.Count > 0)
+        {
+            incompleteCounts = counts.AtLeast(new ReportedTestCounts(null, 1, null));
+        }
+
         var isPartial = exitCode == 0 && !hasSummary;
+        // Test logger messages may quote a build diagnostic in a display name or filter.
+        var buildError = exitCode == 0 ? null : combinedOutput.Split('\n')
+            .FirstOrDefault(line => BuildOutputReport.IsErrorDiagnostic(line)
+                && !_testLoggerLine.IsMatch(line) && !_noMatchNoticeLine.IsMatch(line))?.Trim();
 
         return new ParseResult(summary, hasSummary, isPartial, failures, passedNames)
         {
             FailureDetailsTruncated = failureDetailsTruncated,
+            IncompleteCounts = incompleteCounts,
+            SummaryTruncated = summaryTruncated,
+            HasConfirmedFailure = summaryBlocks.Counts.Failed > 0 || incompleteCounts is { Failed: > 0 }
+                || failures.Count > 0 || RxTestRunFailure.IsMatch(combinedOutput) || buildError is not null,
+            BuildError = buildError,
+            OutputTruncated = outputTruncated,
+            NoMatchCoversStartedSources = runEvidence.NoMatchCoversStartedSources,
+            HasSiblingNoMatch = runEvidence.HasSiblingNoMatch,
+            HasReportedTestCase = runEvidence.HasReportedTestCase,
+            HasUnverifiedNoMatchFilter = runEvidence.HasUnverifiedNoMatchFilter,
         };
     }
 
@@ -208,7 +253,7 @@ public static class VstestOutputParser
     public static bool IsSilentUnparsedFailure(ParseResult parse, string combinedOutput)
     {
         ArgumentNullException.ThrowIfNull(parse);
-        if (parse.Summary is not null || parse.HasRecognizedSummary || parse.Failures.Count > 0)
+        if (parse.Summary is not null || parse.HasRecognizedSummary || parse.Failures.Count > 0 || parse.BuildError is not null)
         {
             return false;
         }
@@ -234,8 +279,21 @@ public static class VstestOutputParser
         string? filter,
         string? filterDescription,
         bool requireFilterMatch,
-        TestOutputReportOptions outputOptions = default)
+        TestOutputReportOptions outputOptions = default) =>
+        BuildMarkdownReport(
+            parse, exitCode, combinedOutput, filter, filterDescription, requireFilterMatch, outputOptions, out _);
+
+    internal static string BuildMarkdownReport(
+        ParseResult parse,
+        int exitCode,
+        string combinedOutput,
+        string? filter,
+        string? filterDescription,
+        bool requireFilterMatch,
+        TestOutputReportOptions outputOptions,
+        out bool succeeded)
     {
+        succeeded = false;
         var sb = new StringBuilder();
 
         if (!string.IsNullOrWhiteSpace(filter))
@@ -251,10 +309,97 @@ public static class VstestOutputParser
             sb.AppendLine();
         }
 
-        // Must run before IsPartialSuccess: all-assembly "No test matches" with exit 0 is otherwise swallowed as partial.
-        if (ShouldReportFilteredNoMatch(requireFilterMatch, parse.Summary, filter, combinedOutput, parse.PassedTestNames))
+        var hasNoMatchNotice = requireFilterMatch && parse.NoMatchCoversStartedSources.HasValue;
+        if (hasNoMatchNotice && !string.IsNullOrWhiteSpace(filter))
+        {
+            // MSBuild can override the effective filter per project. Account for no-match sources
+            // again with the requested filter before using their notices to close a run.
+            parse = Parse(combinedOutput, exitCode, parse.SummaryTruncated, parse.OutputTruncated, filter.Trim());
+        }
+
+        // A retained failure proves the run failed even when capture dropped the matching name.
+        // With passing totals, a nonzero exit alone can come from a sibling project with no matches.
+        // See docs/project-review-2026-11-25/task-25-p2-filtered-test-failure-status-med.md.
+        var confirmedFailure = parse.HasConfirmedFailure || (exitCode != 0 && parse.Summary is null && !hasNoMatchNotice);
+        if (parse.SummaryTruncated)
+        {
+            sb.AppendLine(confirmedFailure ? "## Test run failed" : "**Status:** partial");
+            sb.AppendLine();
+            sb.AppendLine($"The process exited with code `{exitCode}`. The test summary exceeded the capture limit.");
+            if (parse.IncompleteCounts is { } retainedCounts)
+            {
+                sb.AppendLine(retainedCounts.FormatLowerBounds());
+                if (retainedCounts.Failed > 0 && parse.Failures.Count == 0)
+                {
+                    sb.AppendLine("The captured output does not identify which test failed.");
+                }
+            }
+
+            AppendFailureDetails(sb, parse, outputOptions);
+            AppendRawTail(sb, combinedOutput);
+            return sb.ToString().TrimEnd();
+        }
+
+        // Without counters, a notice for one assembly cannot close other observed starts.
+        // A retained result row (even a skip) also disproves zero selected cases.
+        if (hasNoMatchNotice && !parse.HasConfirmedFailure && !parse.HasReportedTestCase && !parse.HasUnverifiedNoMatchFilter
+            && (parse.Summary is { Total: 0 }
+                || (!parse.OutputTruncated && parse.Summary is null && parse.IncompleteCounts is null
+                    && parse.NoMatchCoversStartedSources == true)))
         {
             AppendFilteredNoMatch(sb, filter, filterDescription, combinedOutput);
+            return sb.ToString().TrimEnd();
+        }
+
+        // One target can finish successfully before another test host crashes. Its totals cannot
+        // establish the outcome of the whole command. See docs/project-review-2026-11-25/task-33-p1-test-report-false-success-hi.md.
+        var failureWithoutTotals = parse.HasConfirmedFailure && parse.Summary is not { Failed: > 0 };
+        // Minimal loggers can report positive totals without printing any names, even with complete capture.
+        // See docs/project-review-2026-11-25/task-52-p2-vstest-minimal-filter-outcome-med.md.
+        var unknownFilterMatch = requireFilterMatch && parse.Summary is not { Total: 0 }
+            && (parse.OutputTruncated || (!parse.HasSiblingNoMatch && parse.Summary is { Total: > 0 }))
+            && !FilterMatchedAnyTest(filter, combinedOutput, parse.PassedTestNames);
+        var incompleteNoMatch = hasNoMatchNotice && parse.Summary is not { Total: > 0 };
+        if (parse.IncompleteCounts is not null || failureWithoutTotals || unknownFilterMatch || incompleteNoMatch)
+        {
+            sb.AppendLine(confirmedFailure ? "## Test run failed" : "**Status:** partial");
+            sb.AppendLine();
+            sb.AppendLine($"The process exited with code `{exitCode}`.");
+            if (unknownFilterMatch)
+            {
+                sb.AppendLine("Retained test names do not verify the filter match.");
+            }
+            if (parse.HasUnverifiedNoMatchFilter)
+            {
+                sb.AppendLine("A no-match notice could not be verified against the requested filter.");
+            }
+            else if (incompleteNoMatch && !parse.HasConfirmedFailure && !unknownFilterMatch)
+            {
+                sb.AppendLine("The captured output does not establish a no-match for the complete run.");
+            }
+
+            if ((parse.Summary is { Failed: > 0 } || parse.IncompleteCounts is { Failed: > 0 }) && parse.Failures.Count == 0)
+            {
+                sb.AppendLine("The captured output does not identify which test failed.");
+            }
+
+            if (parse.IncompleteCounts is { } counts)
+            {
+                sb.AppendLine(counts.FormatLowerBounds());
+            }
+            else if (parse.Summary is { } retained)
+            {
+                sb.AppendLine($"Reported totals: {retained.Total} total, {retained.Passed} passed, "
+                    + $"{retained.Failed} failed, {retained.Skipped} skipped.");
+            }
+
+            if (failureWithoutTotals && parse.BuildError is null && parse.IncompleteCounts is null)
+            {
+                sb.AppendLine("The available totals do not cover the complete run.");
+            }
+
+            AppendFailureDetails(sb, parse, outputOptions);
+            AppendRawTail(sb, combinedOutput);
             return sb.ToString().TrimEnd();
         }
 
@@ -276,7 +421,7 @@ public static class VstestOutputParser
             if (parse.Failures.Count > 0)
             {
                 sb.AppendLine();
-                AppendFailureDetails(sb, parse.Failures, parse.FailureDetailsTruncated, outputOptions);
+                AppendFailureDetails(sb, parse, outputOptions);
             }
 
             if (exitCode != 0)
@@ -290,7 +435,7 @@ public static class VstestOutputParser
             return sb.ToString().TrimEnd();
         }
 
-        var summary = parse.Summary ?? InferSummaryFromMarkers(combinedOutput);
+        var summary = parse.Summary ?? ReadSummaryBlocks(combinedOutput, parse.OutputTruncated, out _).Summary;
         if (summary is null)
         {
             sb.AppendLine("**Status:** partial");
@@ -302,13 +447,11 @@ public static class VstestOutputParser
 
         var (total, passed, failed, skipped) = summary;
 
-        // Gated success: parsed summary, Failed==0, Total>0, not silent. exitCode is not in the predicate.
-        var gatedSuccess = failed == 0
-            && total > 0
-            && !IsSilentUnparsedFailure(parse, combinedOutput);
-
-        if (gatedSuccess)
+        // A no-match notice describes one assembly. It can coexist with a failure elsewhere
+        // even when all reported tests passed. See docs/project-review-2026-11-25/task-45-p1-test-command-failure-cause-hi.md.
+        if (exitCode == 0 && failed == 0 && total > 0)
         {
+            succeeded = true;
             sb.AppendLine(string.IsNullOrWhiteSpace(filter) ? "## All tests passed successfully!" : "## Filtered tests passed");
             sb.AppendLine();
             sb.AppendLine(
@@ -323,67 +466,37 @@ public static class VstestOutputParser
                 sb.AppendLine("Matched test methods (preview): " + string.Join(", ", preview));
             }
 
-            if (exitCode != 0)
-            {
-                sb.AppendLine();
-                sb.AppendLine(
-                    "_Exit code is non-zero but no test failed — sibling test projects reported `No test matches the given testcase filter` and are ignored. All executed tests passed._");
-            }
-
             return sb.ToString().TrimEnd();
         }
 
-        sb.AppendLine($"❌ {failed} Tests Failed.");
+        sb.AppendLine(failed == 0 ? "## Test run failed" : $"❌ {failed} Tests Failed.");
         sb.AppendLine();
         sb.AppendLine(
             $"Total: **{total}** · Passed: **{passed}** · Failed: **{failed}**" +
             (skipped > 0 ? $" · Skipped: **{skipped}**" : string.Empty));
         sb.AppendLine();
-        AppendFailureDetails(sb, parse.Failures, parse.FailureDetailsTruncated, outputOptions);
+        AppendFailureDetails(sb, parse, outputOptions);
         if (parse.Failures.Count == 0)
         {
-            sb.AppendLine(
-                "_Failure details could not be parsed from the log (format may differ). Inspect raw output below._");
+            sb.AppendLine(failed == 0 && exitCode != 0
+                ? $"The command exited with code `{exitCode}`. The captured output does not establish the cause."
+                : "_Failure details could not be parsed from the log (format may differ). Inspect raw output below._");
             AppendRawTail(sb, combinedOutput);
         }
 
         return sb.ToString().TrimEnd();
     }
 
-    /// <summary>
-    /// Filtered no-match only when no tests executed (<c>summary</c> missing or <c>Total == 0</c>)
-    /// and the log has the VSTest line <c>No test matches the given testcase filter</c>.
-    /// <c>Total &gt; 0</c> (sibling no-match noise / MSTest method-only display) must not abort;
-    /// 1.3.23 name-match still flags a genuine needle miss when that explicit line is absent.
-    /// </summary>
-    private static bool ShouldReportFilteredNoMatch(
-        bool requireFilterMatch,
-        TestSummary? summary,
-        string? filter,
-        string combinedOutput,
-        IReadOnlyList<string> passedTestNames)
-    {
-        if (!requireFilterMatch)
-        {
-            return false;
-        }
-
-        var hasExplicitNoMatchLine = ContainsNoTestMatchesFilterLine(combinedOutput);
-        if (summary is { Total: > 0 })
-        {
-            if (hasExplicitNoMatchLine)
-            {
-                return false;
-            }
-
-            return !FilterMatchedAnyTest(filter, combinedOutput, passedTestNames);
-        }
-
-        return hasExplicitNoMatchLine;
-    }
-
-    private static bool ContainsNoTestMatchesFilterLine(string combinedOutput)
-        => !string.IsNullOrEmpty(combinedOutput) && RxNoTestMatchesLine.IsMatch(combinedOutput);
+    internal static bool IsSummaryCaptureLine(ReadOnlySpan<char> line) =>
+        RxEndSummaryLine.IsMatch(line)
+        || IsTestRunStart(line)
+        || RxTotalTests.IsMatch(line)
+        || RxPassedCountLine.IsMatch(line)
+        || RxFailedCountLine.IsMatch(line)
+        || RxSkippedCountLine.IsMatch(line)
+        || RxTestRunFailure.IsMatch(line)
+        || RxTestRunSuccessful.IsMatch(line)
+        || _noMatchNoticeLine.IsMatch(line);
 
     private static void AppendFilteredNoMatch(
         StringBuilder sb,
@@ -479,27 +592,9 @@ public static class VstestOutputParser
 
     private static bool HasSummaryMarkers(string text) =>
         RxEndSummaryLine.IsMatch(text)
-        || RxEndSummaryLineAlt.IsMatch(text)
         || RxTotalTests.IsMatch(text)
         || RxTestRunSuccessful.IsMatch(text)
         || RxVstestTotalsBlock.IsMatch(text);
-
-    private static TestSummary? InferSummaryFromMarkers(string text)
-    {
-        var endSummary = TryParseEndSummaryLines(text);
-        if (endSummary is not null)
-        {
-            return endSummary;
-        }
-
-        var alt = TryParseEndSummaryLineAlt(text);
-        if (alt is not null)
-        {
-            return alt;
-        }
-
-        return TryParseTestSummary(text);
-    }
 
     private static bool IsNuGetAuditLine(string line) =>
         line.Contains("NU190", StringComparison.OrdinalIgnoreCase)
@@ -507,263 +602,399 @@ public static class VstestOutputParser
         || (line.Contains("GHSA-", StringComparison.OrdinalIgnoreCase)
             && line.Contains("warning", StringComparison.OrdinalIgnoreCase));
 
-    private static TestSummary? TryParseTestSummary(string text)
+    private static ReportedTestCounts ReadRetainedLowerBounds(string text)
     {
-        if (string.IsNullOrWhiteSpace(text))
+        var compact = new ReportedTestCounts();
+        var standalone = new ReportedTestCounts();
+        foreach (var line in text.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries))
         {
-            return null;
-        }
-
-        // Source order: end-summary → aggregated totals blocks → line-wise fallback.
-        var endSummary = TryParseEndSummaryLines(text);
-        if (endSummary is not null)
-        {
-            return endSummary;
-        }
-
-        var alt = TryParseEndSummaryLineAlt(text);
-        if (alt is not null)
-        {
-            return alt;
-        }
-
-        if (TryParseTotalTestsBlocks(text, out var blocksSummary))
-        {
-            // Attempted: success, all Total-only, or fail-closed mix. Do not fall through
-            // to last-block line-wise (that would resurrect a partial assembly).
-            return blocksSummary;
-        }
-
-        if (RxTestRunSuccessful.IsMatch(text))
-        {
-            var fromLines = TryParseVstestCountsFromLines(text);
-            if (fromLines is not null)
+            var match = RxEndSummaryLine.Match(line);
+            if (match.Success)
             {
-                return fromLines;
+                compact = compact.Add(ReadCompactCounts(match));
+            }
+            else
+            {
+                // A lost header makes standalone counters impossible to assign to distinct runs.
+                // The largest retained counter is still a lower bound even if both logger formats overlap.
+                standalone = standalone.AtLeast(ReadOutcomeLine(line));
             }
         }
 
-        var lines = text.Split(['\r', '\n'], StringSplitOptions.None);
-        for (var i = lines.Length - 1; i >= 0; i--)
-        {
-            var tm = RxTotalTests.Match(lines[i].Trim());
-            if (!tm.Success)
-            {
-                continue;
-            }
-
-            var summary = TryParseCountsNearTotalTestsLine(lines, i);
-            if (summary is not null)
-            {
-                return summary;
-            }
-        }
-
-        return null;
+        return compact.AtLeast(standalone);
     }
 
-    /// <summary>Sums every <c>Passed!</c> / <c>Failed!</c> end-summary line. Does not keep last only.</summary>
-    private static TestSummary? TryParseEndSummaryLines(string text)
+    private static SummaryBlocks ReadSummaryBlocks(
+        string text,
+        bool outputTruncated,
+        out RunEvidence runEvidence,
+        string? requiredNoMatchFilter = null)
     {
-        var matches = RxEndSummaryLine.Matches(text);
-        if (matches.Count == 0)
-        {
-            return null;
-        }
-
-        var total = 0;
-        var passed = 0;
-        var failed = 0;
-        var skipped = 0;
-        foreach (Match m in matches)
-        {
-            if (!m.Success)
-            {
-                continue;
-            }
-
-            var one = SummaryFromEndMatch(m);
-            total += one.Total;
-            passed += one.Passed;
-            failed += one.Failed;
-            skipped += one.Skipped;
-        }
-
-        return new TestSummary(total, passed, failed, skipped);
-    }
-
-    /// <summary>
-    /// <see cref="RxEndSummaryLineAlt"/> is a <c>Passed!</c>-only subset of <see cref="RxEndSummaryLine"/>.
-    /// Multiple alt lines cannot occur without primary matches, so first-match remains.
-    /// </summary>
-    private static TestSummary? TryParseEndSummaryLineAlt(string text)
-    {
-        var alt = RxEndSummaryLineAlt.Match(text);
-        if (!alt.Success)
-        {
-            return null;
-        }
-
-        var passed = int.Parse(alt.Groups["passed"].Value, CultureInfo.InvariantCulture);
-        var failed = int.Parse(alt.Groups["failed"].Value, CultureInfo.InvariantCulture);
-        return new TestSummary(passed + failed, passed, failed, 0);
-    }
-
-    /// <summary>
-    /// Aggregates every <c>Total tests:</c> block. Per-block scan stops at the next <c>Total tests:</c>.
-    /// A <c>Total &gt; 0</c> block with no count lines fail-closes the whole summary (<see langword="null"/>).
-    /// <c>Total tests: 0</c> without counts is a zero block and may be aggregated.
-    /// </summary>
-    /// <returns>
-    /// <see langword="true"/> when the log contains one or more <c>Total tests:</c> lines
-    /// (summary may still be null: all Total-only, or fail-closed mix).
-    /// </returns>
-    private static bool TryParseTotalTestsBlocks(string text, out TestSummary? summary)
-    {
-        summary = null;
-        var lines = text.Split(['\r', '\n'], StringSplitOptions.None);
-        var indices = new List<int>();
+        var lines = text.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
+        var knownSources = lines.Where(line => IsTestRunStart(line))
+            .Select(line => RunSource.Parse(line.Trim()["Test run for ".Length..]).Path)
+            .ToHashSet(StringComparer.Ordinal);
+        var compact = new List<LoggerSummary>();
+        var numeric = new List<LoggerSummary>();
+        var starts = new List<RunSource>();
+        var pendingSources = new HashSet<string>(StringComparer.Ordinal);
+        // A delayed normal logger may print every case and its summary after the next target starts.
+        // A named no-match rules that target out, even when its notice follows those records.
+        var sourcesWithoutMatches = lines.Select(line => GetNoMatchSource(line, knownSources, requiredNoMatchFilter, out _))
+            .OfType<string>()
+            .ToHashSet(StringComparer.Ordinal);
+        var noMatches = new HashSet<string>(StringComparer.Ordinal);
+        var aborted = new SummaryBlocks();
+        var hasNoMatchNotice = false;
+        var hasUnverifiedNoMatchFilter = false;
+        var hasReportedTestCase = false;
+        var sawAbort = false;
+        var isolatedRun = false;
+        var cases = new ReportedTestCounts();
         for (var i = 0; i < lines.Length; i++)
         {
-            if (RxTotalTests.IsMatch(lines[i].Trim()))
+            var line = lines[i].Trim();
+            if (line.Equals("Test Run Aborted.", StringComparison.OrdinalIgnoreCase)
+                || line.StartsWith("The active test run was aborted.", StringComparison.OrdinalIgnoreCase))
             {
-                indices.Add(i);
-            }
-        }
-
-        if (indices.Count == 0)
-        {
-            return false;
-        }
-
-        var total = 0;
-        var passed = 0;
-        var failed = 0;
-        var skipped = 0;
-        var anyAggregated = false;
-
-        foreach (var start in indices)
-        {
-            var block = TryParseCountsNearTotalTestsLine(lines, start);
-            if (block is not null)
-            {
-                total += block.Total;
-                passed += block.Passed;
-                failed += block.Failed;
-                skipped += block.Skipped;
-                anyAggregated = true;
+                sawAbort = true;
                 continue;
             }
 
-            var tm = RxTotalTests.Match(lines[start].Trim());
-            var blockTotal = int.Parse(tm.Groups["total"].Value, CultureInfo.InvariantCulture);
-            if (blockTotal == 0)
+            if (IsTestRunStart(line))
             {
-                anyAggregated = true;
+                var source = RunSource.Parse(line["Test run for ".Length..]);
+                isolatedRun = !outputTruncated && pendingSources.Count == 0 && !sourcesWithoutMatches.Contains(source.Path);
+                cases = default;
+                starts.Add(source);
+                pendingSources.Add(source.Path);
                 continue;
             }
 
-            // Fail-closed mix: do not add this total and emit Total != Passed+Failed+Skipped.
-            summary = null;
-            return true;
+            if (_noMatchNoticeLine.IsMatch(line))
+            {
+                hasNoMatchNotice = true;
+                var source = GetNoMatchSource(lines[i], knownSources, requiredNoMatchFilter, out var matchesFilter);
+                hasUnverifiedNoMatchFilter |= !matchesFilter;
+                if (source is { } path && pendingSources.Remove(path))
+                {
+                    noMatches.Add(path);
+                }
+
+                continue;
+            }
+
+            var endSummary = RxEndSummaryLine.Match(line);
+            if (endSummary.Success)
+            {
+                var counts = ReadCompactCounts(endSummary);
+                var sum = (counts.Passed ?? 0) + (counts.Failed ?? 0) + (counts.Skipped ?? 0);
+                var total = ReadCount(endSummary.Groups["total"]) ?? sum;
+                var block = new SummaryBlocks(1, total == sum ? total : null, counts);
+                var (firstStart, lastStart) = FindCompactStarts(line, starts, pendingSources);
+                // A positive summary and a notice for the same source cannot close two starts.
+                if (firstStart == lastStart && firstStart > 0 && total > 0)
+                {
+                    noMatches.Remove(starts[firstStart - 1].Path);
+                }
+
+                compact.Add(new LoggerSummary(block, firstStart, lastStart));
+                if (compact.Count >= starts.Count)
+                {
+                    pendingSources.Clear();
+                }
+
+                continue;
+            }
+
+            var header = RxTotalTests.Match(line);
+            if (header.Success)
+            {
+                var summary = TryParseCountsNearTotalTestsLine(lines, i, out var counts);
+                var block = new SummaryBlocks(1, summary?.Total, counts);
+                if (header.Groups["total"].Success)
+                {
+                    // A normal logger emits individual cases before its totals. When the previous
+                    // run had finished before this one started, matching cases identify the new run.
+                    // See docs/project-review-2026-11-25/task-46-p2-vstest-sequential-run-identity-hi.md.
+                    var identified = isolatedRun && summary is { Total: > 0 }
+                        && cases.Passed.GetValueOrDefault() == summary.Passed
+                        && cases.Failed.GetValueOrDefault() == summary.Failed
+                        && cases.Skipped.GetValueOrDefault() == summary.Skipped;
+                    numeric.Add(new LoggerSummary(block, identified ? starts.Count : 1, starts.Count));
+                    if (identified)
+                    {
+                        pendingSources.Remove(starts[^1].Path);
+                    }
+
+                    if (numeric.Count >= starts.Count)
+                    {
+                        pendingSources.Clear();
+                    }
+                }
+                else
+                {
+                    // An aborted run has no completed compact summary of its own.
+                    aborted = aborted.Add(block);
+                }
+
+                cases = default;
+            }
+            else if (_individualTestOutcome.IsMatch(line))
+            {
+                hasReportedTestCase = true;
+                if (!isolatedRun)
+                {
+                    continue;
+                }
+
+                cases = line[0] switch
+                {
+                    'P' => cases with { Passed = cases.Passed.GetValueOrDefault() + 1 },
+                    'F' => cases with { Failed = cases.Failed.GetValueOrDefault() + 1 },
+                    _ => cases with { Skipped = cases.Skipped.GetValueOrDefault() + 1 }
+                };
+            }
         }
 
-        if (!anyAggregated)
+        runEvidence = new RunEvidence(
+            hasNoMatchNotice ? noMatches.Count == starts.Count : null,
+            noMatches.Count > 0 && noMatches.Count < starts.Count,
+            hasReportedTestCase,
+            hasUnverifiedNoMatchFilter);
+
+        // No-match notices and zero totals can refer to the same source. Only the excess
+        // of distinct, named no-match sources accounts for starts without a summary.
+        var emptySummaries = Math.Max(compact.Count(item => item.Block.Total == 0), numeric.Count(item => item.Block.Total == 0));
+        var noMatchWithoutTotals = Math.Max(0, noMatches.Count - emptySummaries);
+        // Verbose case lines can arrive late. Their position identifies a run only if every start
+        // has a complete outcome; it cannot increase a lower bound for an interrupted command.
+        if (!sawAbort && aborted.BlockCount == 0 && numeric.Any(item => item.FirstStart > 1))
         {
-            return true;
+            var candidate = MergeLoggerSummaries(compact, numeric, starts.Count, useCasePositions: true);
+            if (candidate.Total.HasValue && candidate.BlockCount + noMatchWithoutTotals == starts.Count)
+            {
+                return candidate;
+            }
         }
 
-        summary = new TestSummary(total, passed, failed, skipped);
-        return true;
+        var complete = MergeLoggerSummaries(compact, numeric, starts.Count, useCasePositions: false);
+        var result = complete.Add(aborted);
+        return result.BlockCount + noMatchWithoutTotals < starts.Count ? result with { Total = null } : result;
     }
 
-    private static TestSummary? TryParseVstestCountsFromLines(string text)
+    private static string? GetNoMatchSource(
+        string line,
+        HashSet<string> knownSources,
+        string? requiredFilter,
+        out bool matchesFilter)
     {
-        var lines = text.Split(['\r', '\n'], StringSplitOptions.None);
-        for (var i = lines.Length - 1; i >= 0; i--)
+        matchesFilter = true;
+        line = line.TrimStart();
+        if (!line.StartsWith(NoMatchPrefix, StringComparison.Ordinal))
         {
-            if (!RxTotalTests.IsMatch(lines[i].Trim()))
-            {
-                continue;
-            }
-
-            return TryParseCountsNearTotalTestsLine(lines, i);
+            return null;
         }
 
-        return null;
+        var fields = line[NoMatchPrefix.Length..];
+        const string AbbreviatedSeparator = " in ";
+        if (fields.StartsWith(AbbreviatedSeparator, StringComparison.Ordinal))
+        {
+            return MatchKnownSource(fields[AbbreviatedSeparator.Length..]);
+        }
+
+        const string OpeningFilter = " `";
+        const string ClosingFilter = "` in ";
+        if (!fields.StartsWith(OpeningFilter, StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        // VSTest inserts the filter and path verbatim. Either can contain the closing delimiter,
+        // so trust only a unique full source path from a run header.
+        // See docs/project-review-2026-11-25/task-48-p2-vstest-no-match-source-path-med.md.
+        string? match = null;
+        var matchedSeparator = -1;
+        var lastSeparator = -1;
+        var multipleSeparators = false;
+        var start = OpeningFilter.Length;
+        while (start < fields.Length)
+        {
+            var separator = fields.IndexOf(ClosingFilter, start, StringComparison.Ordinal);
+            if (separator < 0)
+            {
+                break;
+            }
+
+            multipleSeparators |= lastSeparator >= 0;
+            lastSeparator = separator;
+            start = separator + ClosingFilter.Length;
+            if (MatchKnownSource(fields[start..]) is { } source)
+            {
+                if (match is not null)
+                {
+                    matchesFilter = requiredFilter is null;
+                    return null;
+                }
+
+                match = source;
+                matchedSeparator = separator;
+            }
+        }
+
+        // A sole delimiter also identifies the filter when capture retained the notice alone.
+        if (matchedSeparator < 0 && !multipleSeparators)
+        {
+            matchedSeparator = lastSeparator;
+        }
+
+        matchesFilter = requiredFilter is null || (matchedSeparator >= 0
+            && fields.AsSpan(OpeningFilter.Length, matchedSeparator - OpeningFilter.Length).Trim()
+                .Equals(requiredFilter.AsSpan(), StringComparison.Ordinal));
+        return matchesFilter ? match : null;
+
+        string? MatchKnownSource(string source)
+        {
+            if (knownSources.Contains(source))
+            {
+                return source;
+            }
+
+            // Some retained logs punctuate the notice. Prefer the actual path with its period if known.
+            return source.EndsWith('.') && knownSources.Contains(source[..^1]) ? source[..^1] : null;
+        }
     }
+
+    private static (int First, int Last) FindCompactStarts(string line, List<RunSource> starts, HashSet<string> pendingSources)
+    {
+        if (!line.EndsWith(')'))
+        {
+            return (1, starts.Count);
+        }
+
+        var suffix = line.LastIndexOf(" - ", StringComparison.Ordinal);
+        if (suffix < 0)
+        {
+            return (1, starts.Count);
+        }
+
+        var source = RunSource.Parse(line[(suffix + 3)..]);
+        var first = starts.FindIndex(start => start.Matches(source));
+        if (first < 0)
+        {
+            return (1, starts.Count);
+        }
+
+        var last = starts.FindLastIndex(start => start.Matches(source));
+        if (first == last)
+        {
+            pendingSources.Remove(starts[first].Path);
+        }
+
+        return (first + 1, last + 1);
+    }
+
+    private static SummaryBlocks MergeLoggerSummaries(
+        List<LoggerSummary> compact,
+        List<LoggerSummary> numeric,
+        int started,
+        bool useCasePositions)
+    {
+        var compactSum = compact.Aggregate(default(SummaryBlocks), (sum, item) => sum.Add(item.Block));
+        var numericSum = numeric.Aggregate(default(SummaryBlocks), (sum, item) => sum.Add(item.Block));
+        if (compact.Count == 0 || numeric.Count == 0)
+        {
+            return compactSum.Add(numericSum);
+        }
+
+        // A logger may finish printing after the next target starts. Pair identical complete
+        // summaries across the whole stream, keeping repetitions within a format as separate runs.
+        // See docs/project-review-2026-11-25/task-41-p2-mixed-vstest-summary-formats-hi.md.
+        if (started > 0 && compactSum.Total.HasValue && numericSum.Total.HasValue)
+        {
+            // Numeric records arrive in order of their last possible start. Pair the earliest-ending
+            // overlapping candidate first so later, more restricted records can still match.
+            var available = compact.GroupBy(item => item.Block.Summary!)
+                .ToDictionary(group => group.Key, group => group.OrderBy(item => item.LastStart).ToList());
+            var merged = compactSum;
+            foreach (var item in numeric)
+            {
+                if (available.TryGetValue(item.Block.Summary!, out var candidates))
+                {
+                    var match = candidates.FindIndex(candidate => candidate.FirstStart <= item.LastStart
+                        && (!useCasePositions || item.FirstStart <= candidate.LastStart));
+                    if (match >= 0)
+                    {
+                        candidates.RemoveAt(match);
+                        continue;
+                    }
+                }
+
+                merged = merged.Add(item.Block);
+            }
+
+            if (merged.BlockCount <= started)
+            {
+                return merged;
+            }
+        }
+
+        // Missing boundaries or conflicting counts leave only a lower bound for each outcome.
+        return new SummaryBlocks(Math.Max(compact.Count, numeric.Count), null, compactSum.Counts.AtLeast(numericSum.Counts));
+    }
+
+    private static bool IsTestRunStart(ReadOnlySpan<char> line) =>
+        line.TrimStart().StartsWith("Test run for ", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>Line-wise counts for one <c>Total tests:</c> block. Stops at the next <c>Total tests:</c> (no whole-log leak).</summary>
-    internal static TestSummary? TryParseCountsNearTotalTestsLine(string[] lines, int totalTestsLineIndex)
+    internal static TestSummary? TryParseCountsNearTotalTestsLine(
+        string[] lines,
+        int totalTestsLineIndex,
+        out ReportedTestCounts counts)
     {
+        counts = default;
         var tm = RxTotalTests.Match(lines[totalTestsLineIndex].Trim());
         if (!tm.Success)
         {
             return null;
         }
 
-        var total = int.Parse(tm.Groups["total"].Value, CultureInfo.InvariantCulture);
-        int? passed = null;
-        int? failed = null;
-        int? skipped = null;
+        var total = ReadCount(tm.Groups["total"]);
 
         for (var j = totalTestsLineIndex; j < lines.Length; j++)
         {
             var trimmed = lines[j].Trim();
-            if (j > totalTestsLineIndex && RxTotalTests.IsMatch(trimmed))
+            if (j > totalTestsLineIndex && (RxTotalTests.IsMatch(trimmed) || RxEndSummaryLine.IsMatch(trimmed) || IsTestRunStart(trimmed)))
             {
                 break;
             }
 
-            var line = lines[j].TrimEnd();
-            var pm = RxPassedCountLine.Match(line);
-            if (pm.Success)
-            {
-                passed = int.Parse(pm.Groups["n"].Value, CultureInfo.InvariantCulture);
-            }
-
-            var fm = RxFailedCountLine.Match(line);
-            if (fm.Success)
-            {
-                failed = int.Parse(fm.Groups["n"].Value, CultureInfo.InvariantCulture);
-            }
-
-            var sm = RxSkippedCountLine.Match(line);
-            if (sm.Success)
-            {
-                skipped = int.Parse(sm.Groups["n"].Value, CultureInfo.InvariantCulture);
-            }
+            counts = counts.AtLeast(ReadOutcomeLine(trimmed));
         }
 
         // .slnx / MSBuild VSTest target often omits Passed: when every test failed (and Failed: on all-pass).
         // Only infer Passed when Failed or Skipped was present — Total-only stays unparsed.
-        if (passed is null)
+        if (counts.Passed is null && total is { } numeric && (counts.Failed is not null || counts.Skipped is not null))
         {
-            if (failed is null && skipped is null)
-            {
-                return null;
-            }
-
-            passed = Math.Max(0, total - (failed ?? 0) - (skipped ?? 0));
+            counts = counts with { Passed = Math.Max(0, numeric - (counts.Failed ?? 0) - (counts.Skipped ?? 0)) };
         }
 
-        failed ??= 0;
-        skipped ??= 0;
-        return new TestSummary(total, passed.Value, failed.Value, skipped.Value);
+        var (passed, failed, skipped) = counts;
+        return total is { } known && known == (passed ?? 0) + (failed ?? 0) + (skipped ?? 0)
+            ? new TestSummary(known, passed ?? 0, failed ?? 0, skipped ?? 0)
+            : null;
     }
 
-    private static TestSummary SummaryFromEndMatch(Match m)
-    {
-        var passed = int.Parse(m.Groups["passed"].Value, CultureInfo.InvariantCulture);
-        var failed = int.Parse(m.Groups["failed"].Value, CultureInfo.InvariantCulture);
-        var skipped = m.Groups["skipped"].Success
-            ? int.Parse(m.Groups["skipped"].Value, CultureInfo.InvariantCulture)
-            : 0;
-        var total = m.Groups["total"].Success
-            ? int.Parse(m.Groups["total"].Value, CultureInfo.InvariantCulture)
-            : passed + failed + skipped;
-        return new TestSummary(total, passed, failed, skipped);
-    }
+    private static ReportedTestCounts ReadOutcomeLine(string line) => new(
+        ReadCount(RxPassedCountLine.Match(line).Groups["n"]),
+        ReadCount(RxFailedCountLine.Match(line).Groups["n"]),
+        ReadCount(RxSkippedCountLine.Match(line).Groups["n"]));
+
+    private static ReportedTestCounts ReadCompactCounts(Match match) => new(
+        ReadCount(match.Groups["passed"]), ReadCount(match.Groups["failed"]), ReadCount(match.Groups["skipped"]));
+
+    private static int? ReadCount(Group group) =>
+        group.Success ? int.Parse(group.Value, CultureInfo.InvariantCulture) : null;
 
     private static IReadOnlyList<string> CollectPassedTestNames(string text)
     {
@@ -1214,10 +1445,15 @@ public static class VstestOutputParser
 
     private static void AppendFailureDetails(
         StringBuilder sb,
-        IReadOnlyList<FailedTestDetail> failures,
-        bool truncated,
+        ParseResult parse,
         TestOutputReportOptions outputOptions)
     {
+        if (parse.BuildError is { } buildError)
+        {
+            sb.AppendLine($"**MSBuild error:** {EscapeMdBackticks(TruncatedProcessLog.BuildTruncatedExcerpt(buildError))}");
+        }
+
+        var failures = parse.Failures;
         if (failures.Count == 0)
         {
             return;
@@ -1239,7 +1475,8 @@ public static class VstestOutputParser
         for (var i = 0; i < failures.Count; i++)
         {
             var f = failures[i];
-            sb.AppendLine($"{i + 1}. **TestName:** `{EscapeMdBackticks(f.Name)}`");
+            var caseSuffix = FormatFailureCaseSuffix(failures, i);
+            sb.AppendLine($"{i + 1}. **TestName:** `{EscapeMdBackticks(f.Name)}`{caseSuffix}");
             if (!string.IsNullOrEmpty(f.Error))
             {
                 if (f.Error.Contains('\n', StringComparison.Ordinal))
@@ -1268,10 +1505,24 @@ public static class VstestOutputParser
             sb.AppendLine();
         }
 
-        if (truncated)
+        if (parse.FailureDetailsTruncated)
         {
-            sb.AppendLine("[!] Showing first 5 failures only.");
+            sb.AppendLine($"[!] Showing first {MaxFailedTestDetails} failures only.");
         }
+    }
+
+    private static string FormatFailureCaseSuffix(IReadOnlyList<FailedTestDetail> failures, int index)
+    {
+        // Theory display names can contain arbitrary arguments. Number equal headings without rendering those values.
+        var name = failures[index].Name;
+        bool HasSameName(FailedTestDetail failure) => string.Equals(failure.Name, name, StringComparison.Ordinal);
+        if (failures.Count(HasSameName) == 1)
+        {
+            return string.Empty;
+        }
+
+        var caseNumber = failures.Take(index).Count(HasSameName) + 1;
+        return $" (case {caseNumber})";
     }
 
     private static void AppendFailureStream(
@@ -1317,4 +1568,76 @@ public static class VstestOutputParser
     }
 
     private static string EscapeMdBackticks(string s) => s.Replace('`', '\'');
+
+    private sealed record RunSource(string Path, string? Framework)
+    {
+        internal static RunSource Parse(string text)
+        {
+            var runtime = text.LastIndexOf(" (", StringComparison.Ordinal);
+            if (runtime < 0 || !text.EndsWith(')'))
+            {
+                return new RunSource(text, null);
+            }
+
+            var framework = text[(runtime + 2)..^1];
+            const string CorePrefix = ".NETCoreApp,Version=v";
+            const string FrameworkPrefix = ".NETFramework,Version=v";
+            if (framework.StartsWith(CorePrefix, StringComparison.OrdinalIgnoreCase)
+                && Version.TryParse(framework[CorePrefix.Length..], out var version))
+            {
+                framework = (version.Major >= 5 ? "net" : "netcoreapp") + version;
+            }
+            else if (framework.StartsWith(FrameworkPrefix, StringComparison.OrdinalIgnoreCase))
+            {
+                framework = "net" + framework[FrameworkPrefix.Length..].Replace(".", "", StringComparison.Ordinal);
+            }
+
+            return new RunSource(text[..runtime], framework);
+        }
+
+        internal bool Matches(RunSource compact)
+        {
+            var name = Path[(Path.AsSpan().LastIndexOfAny('/', '\\') + 1)..];
+            return name.Equals(compact.Path, StringComparison.Ordinal)
+                && (Framework is null || compact.Framework is null || Framework.Equals(compact.Framework, StringComparison.OrdinalIgnoreCase));
+        }
+    }
+
+    private readonly record struct LoggerSummary(SummaryBlocks Block, int FirstStart, int LastStart);
+
+    private readonly record struct RunEvidence(
+        bool? NoMatchCoversStartedSources,
+        bool HasSiblingNoMatch,
+        bool HasReportedTestCase,
+        bool HasUnverifiedNoMatchFilter);
+
+    private readonly record struct SummaryBlocks(int BlockCount, int? Total, ReportedTestCounts Counts)
+    {
+        internal TestSummary? Summary =>
+            Total is { } total ? new TestSummary(total, Counts.Passed ?? 0, Counts.Failed ?? 0, Counts.Skipped ?? 0) : null;
+
+        internal SummaryBlocks Add(SummaryBlocks other)
+        {
+            if (BlockCount == 0 || other.BlockCount == 0)
+            {
+                return BlockCount == 0 ? other : this;
+            }
+
+            return new SummaryBlocks(BlockCount + other.BlockCount, Total + other.Total, Counts.Add(other.Counts));
+        }
+    }
+
+    private static readonly Regex _individualTestOutcome = new(
+        $@"^(?:Passed|Failed|Skipped)\s+.+\s+{VstestDurationBracket}$",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+    // Restrict notices to a complete logger line so output quoting the message cannot prove a no-match.
+    private static readonly Regex _noMatchNoticeLine = new(
+        $@"^[ \t]*{NoMatchPrefix}(?:(?: `[^\r\n]*`)? in [^\r\n \t][^\r\n]*)?[ \t]*\r?$",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.Multiline);
+
+    // Display names, skip reasons and filters are user text and may quote an MSBuild diagnostic.
+    private static readonly Regex _testLoggerLine = new(
+        $@"^\s*(?:\[xUnit\.net[\s\]]|(?:Passed|Failed|Skipped)\s+.+\s+{VstestDurationBracket}\s*$)",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 }

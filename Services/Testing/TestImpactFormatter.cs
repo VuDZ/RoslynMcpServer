@@ -345,7 +345,7 @@ internal static class TestImpactFormatter
                 attachFullReport: false);
             body.AppendLine(diagnostic, Priority.Diagnostic, projectBlock);
         }
-        if (result.Outcome == TestProcessOutcome.Failed && result.TestRun is { } test)
+        if ((result.Outcome is TestProcessOutcome.Failed or TestProcessOutcome.Partial) && result.TestRun is { } test)
         {
             var outputOptions = new TestOutputReportOptions(false, 0) { SuppressOutputOptionHints = true };
             // The project headline owns the filter budget, so failure diagnostics do not repeat it.
@@ -357,6 +357,11 @@ internal static class TestImpactFormatter
                 filterDescription: null,
                 requireFilterMatch: false,
                 outputOptions);
+            if (test.OutputTruncated && !diagnostic.Contains(TruncatedProcessLog.CaptureMarker, StringComparison.Ordinal))
+            {
+                diagnostic += Environment.NewLine + TruncatedProcessLog.CaptureMarker;
+            }
+
             body.AppendLine(diagnostic, Priority.Diagnostic, projectBlock);
         }
         if (result.Outcome is TestProcessOutcome.TimedOut or TestProcessOutcome.Cancelled)

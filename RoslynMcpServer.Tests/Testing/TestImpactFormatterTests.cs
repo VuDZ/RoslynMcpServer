@@ -1,6 +1,7 @@
 using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using RoslynMcpServer.Diagnostics;
 using RoslynMcpServer.Services.Build;
 using RoslynMcpServer.Services.Testing.Baseline.Models;
 using RoslynMcpServer.Services.Testing.Models;
@@ -40,8 +41,8 @@ public sealed class TestImpactFormatterTests
             [second.Id] = new(new DotNetTestResult(TestProcessOutcome.TimedOut)),
             [third.Id] = new(new DotNetTestResult(
                 TestProcessOutcome.Failed,
-                TestRun: new(1, "Failed: 1, Passed: 10, Skipped: 0, Total: 11", "", 0, 0),
-                Parsed: new(new(11, 10, 1, 0), true, false, [new("Third.Test", Failure, "")], []))),
+                TestRun: new(1, "Failed: 1, Passed: 10, Skipped: 0, Total: 11", "", 0, 0) { OutputTruncated = true },
+                Parsed: new(new(11, 10, 1, 0), true, false, [new("Third.Test", Failure, "")], []) { OutputTruncated = true })),
         };
 
         var response = TestImpactFormatter.Format(third.Solution, estimate, TestNarrowingResult.Empty,
@@ -63,9 +64,46 @@ public sealed class TestImpactFormatterTests
         Assert.Contains("Total: 11; Passed: 10; Failed: 1", sections[3], StringComparison.Ordinal);
         Assert.Contains("Reasons: Third test selection.", sections[3], StringComparison.Ordinal);
         Assert.Contains(Failure, sections[3], StringComparison.Ordinal);
+        Assert.Contains(TruncatedProcessLog.CaptureMarker, sections[3], StringComparison.Ordinal);
+        Assert.DoesNotContain("Showing first 5 failures only", sections[3], StringComparison.Ordinal);
         Assert.Contains("Baseline unknown in 1 file(s)", sections[3], StringComparison.Ordinal);
         Assert.Contains("Project graph warning.", sections[3], StringComparison.Ordinal);
         Assert.DoesNotContain("Outcome: failed", sections[2], StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(0, "Passed! - Failed: 0, Passed: 1, Skipped: 0, Total: 1", "partial")]
+    [InlineData(1, "Passed! - Failed: 0, Passed: 1, Skipped: 0, Total: 1", "failed")]
+    [InlineData(0, "Failed! - Failed: 1, Passed: 0, Skipped: 0, Total: 1", "failed")]
+    [InlineData(0, "  Failed Fixture.Bad [1 ms]", "failed")]
+    public async Task Test_summary_capture_overflow_is_partial_unless_failure_is_confirmed(
+        int exitCode,
+        string output,
+        string expected)
+    {
+        using var workspace = new AdhocWorkspace();
+        var project = workspace.AddProject("Tests", LanguageNames.CSharp);
+        var plans = new[] { new VstestProjectRunPlan(project.Id, Filter: null, []) };
+        var impact = new TestImpactResult([], new Dictionary<ProjectId, IReadOnlyList<ProjectExpansionReason>>(), [],
+            RequiresReload: false, ProjectGraphStale: false);
+        var estimate = new TestImpactEstimate([], [], impact, plans, [], [], []);
+        var runner = new DotNetTestExecutor((_, _, _, _, _) => Task.FromResult(
+            new DotNetCliRunner.RunResult(exitCode, output, "", output.Length, 0)
+            {
+                OutputTruncated = true,
+                TestSummaryTruncated = true,
+            }));
+
+        var result = await runner.TestAsync("test", ".", null, null, CancellationToken.None);
+        var runs = new Dictionary<ProjectId, TestImpactProjectRun> { [project.Id] = new(result) };
+        var response = TestImpactFormatter.Format(project.Solution, estimate, TestNarrowingResult.Empty,
+            TestClassStageLevel.Changed, includeDetails: false, runs, "Test execution: sequential.");
+
+        Assert.Equal(expected, result.OutcomeText);
+        Assert.Null(result.Parsed?.Summary);
+        Assert.Contains($"Outcome: {expected}", response, StringComparison.Ordinal);
+        Assert.Contains("test summary exceeded the capture limit", response, StringComparison.Ordinal);
+        Assert.Equal(expected == "partial", response.Contains("**Status:** partial", StringComparison.Ordinal));
     }
 
     [Theory]

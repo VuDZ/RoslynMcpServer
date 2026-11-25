@@ -155,6 +155,40 @@ public sealed class WorkspaceNonCSharpDiskSyncTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
+    public async Task Solution_edit_persists_and_publishes_additional_text_even_after_cancellation(bool cancel)
+    {
+        await using var project = await SpikeProject.CreateAsync();
+        var manager = project.Manager;
+        manager.SilenceDiskWatchersForTests();
+        var before = (await manager.GetPublishedSolutionAsync())!;
+        var payload = Document(before, "payload.txt")!;
+        var path = project.PathFor("payload.txt");
+        var after = before.WithAdditionalDocumentText(payload.Id, SourceText.From("ON"));
+        var stamp = new DateTime(2004, 3, 2, 1, 0, 0, DateTimeKind.Utc);
+        using var cancellation = new CancellationTokenSource();
+        manager.AfterDocumentCommitForTests = committed =>
+        {
+            Assert.Equal(path, committed);
+            File.SetLastWriteTimeUtc(committed, stamp);
+            if (cancel)
+            {
+                cancellation.Cancel();
+            }
+        };
+
+        var result = await manager.ApplySolutionChangesToDiskAsync(before, after, cancellation.Token);
+
+        Assert.Equal(cancel ? WorkspaceWriteStatus.ReconciliationSucceeded : WorkspaceWriteStatus.FullSuccess, result.Status);
+        Assert.Equal(path, Assert.Single(result.SavedPaths));
+        Assert.Equal(BomFree.GetBytes("ON"), await File.ReadAllBytesAsync(path));
+        Assert.Equal(stamp, File.GetLastWriteTimeUtc(path));
+        var published = (await manager.GetPublishedSolutionAsync())!;
+        Assert.Equal("ON", (await Document(published, "payload.txt")!.GetTextAsync()).ToString());
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public async Task Writing_a_compile_item_that_is_also_an_additional_file_publishes_both_roles(bool rejectApply)
     {
         await using var project = await SpikeProject.CreateAsync(classAsAdditionalFile: true);

@@ -80,7 +80,7 @@ public sealed class TestToolsDllBuildTests
         var runner = new RecordingRunner
         {
             BuildOutput = "App.cs(1,1): warning CS0168: Unused variable",
-            TestOutput = "Passed! - Failed: 0, Passed: 1, Skipped: 0, Total: 1",
+            TestOutput = SamplePassingOutput,
         };
         var tools = Tools(runner);
         var report = tool switch
@@ -144,7 +144,11 @@ public sealed class TestToolsDllBuildTests
         manager.ApplySessionBuildArgs("-p:TreatWarningsAsErrors=false");
         Assert.False(manager.SessionBuildState.TryRecordInvocation("execute_dotnet_command"));
 
-        var runner = new RecordingRunner { BuildOutput = "App.cs(1,1): warning CS0168: BUILD-ONLY-LOG", TestOutput = "Passed! - Failed: 0, Passed: 1, Skipped: 0, Total: 1" };
+        var runner = new RecordingRunner
+        {
+            BuildOutput = "App.cs(1,1): warning CS0168: BUILD-ONLY-LOG",
+            TestOutput = SamplePassingOutput,
+        };
         var tools = new TestTools(manager, NullLogger<TestTools>.Instance, runner.Run);
         var context = new BuildContext("Sit-Debug", "x64", "net10.0", "-p:TreatWarningsAsErrors=false", dll);
 
@@ -233,6 +237,11 @@ public sealed class TestToolsDllBuildTests
         Assert.Contains(".sln", filter, StringComparison.OrdinalIgnoreCase);
         Assert.Empty(runner.Arguments);
     }
+
+    private const string SamplePassingOutput = """
+          Passed Sample.Test [1 ms]
+        Passed!  - Failed: 0, Passed: 1, Skipped: 0, Total: 1
+        """;
 
     private const string SingleProjectSln = """
         Microsoft Visual Studio Solution File, Format Version 12.00

@@ -50,10 +50,12 @@ With `require-solution: true`, load a `.sln` or `.slnx`. With the default `false
 </details>
 
 <details>
-<summary><code>get_file_content</code> — Reads the entire file from disk (safe preview for large files).</summary>
+<summary><code>get_file_content</code> — Returns disk text within a 32,000-character and 500-line preview budget.</summary>
 
 **Parameters:**
 - `filePath: string`
+
+The character limit counts UTF-16 code units. LF, CRLF, and CR delimit lines. A final line ending adds no line. If the line limit is exceeded first, the preview contains the first 100 lines. A truncated response includes a marker. Use `read_file_range` for a range of lines or a local editor for part of a long line.
 </details>
 
 <details>
@@ -156,6 +158,8 @@ Each compiler diagnostic includes severity, **line**, **column**, an ID such as 
 - `assemblyName: string?` / `assemblyPath: string?` — same as `explore_assembly` (one required).
 - `fullTypeName: string` (e.g. `Microsoft.AspNetCore.Mvc.ControllerBase`)
 - `methodName: string`
+
+**Incomplete decompilation.** The `// Incomplete decompilation` marker indicates that ILSpy could not reconstruct valid C# for the entire method. For example, ILSpy 11.2 emits an invalid `throw obj` when decompiling `System.Diagnostics.Process.WaitForExitAsync` from .NET 11.0.0. [Reproduction and how to check for an ILSpy fix](project-review-2026-11-25/task-19-net11-async-decompilation-hi.md).
 </details>
 
 <details>
@@ -240,6 +244,8 @@ Optional `preview: bool?` appends each definition's source line (up to 400 chara
 <details>
 <summary><code>update_file_content</code> — Completely overwrites a file. Creates missing directories automatically. A new <code>.cs</code> is written to disk and marks the project graph composition-stale; it is not added to the semantic snapshot until `load_workspace` (a stale graph skips the load cache) or `reset_workspace` then `load_workspace`.</summary>
 
+New ordinary `.cs` files use UTF-8 with a BOM. Writes and patches preserve the existing encoding when the compiler will read the resulting bytes as the requested text. A UTF-8 BOM can disambiguate full writes to sources with unknown ownership and edits that would change automatic encoding detection. For a BOM-free source outside the loaded project graph, `apply_patch` supports portable ASCII edits and keeps the original byte representation. Load the owning project for edits that depend on its code page, including non-ASCII text and seven-bit shift sequences. A C# script starting with `#!` uses BOM-free UTF-8 so the OS can execute it directly. For a script containing characters with code-page-dependent spellings, the tool requires a known project encoding compatible with those bytes. Other new files use UTF-8 without a BOM.
+
 **Parameters:**
 - `filePath: string`
 - `content: string`
@@ -276,7 +282,7 @@ Parses C# syntax, inserts with DocumentEditor, formats the file. Prefer over `ap
 - `className: string` — class containing the method (top-level or nested)
 - `methodName: string`
 - `newBody: string` — statements only, or a full `{ ... }` block
-- `parameterTypes: string[]?` — e.g. `["string", "int"]` to disambiguate overloads; **required** when multiple overloads exist
+- `parameterTypes: string[]?` — the signature must match when supplied, e.g. `["string", "int"]`. Use `[]` for a parameterless method. Omit only when the method name is unique.
 
 **Behavior:** Finds `MethodDeclarationSyntax`, parses `newBody` into a `BlockSyntax`, replaces block or expression-bodied body, validates syntax errors before write, formats the file. Use with `get_method_body` — prefer over `apply_patch` for body-only edits.
 
@@ -332,14 +338,14 @@ With `require-solution: true`, give a `.sln` or `.slnx` as the build target. Wit
 - `platform: string? = null` — optional `-p:Platform=` (e.g. `x64`). Omit to inherit `load_workspace` platform.
 - `projectName: string? = null` — optional. When set, `workspacePath` must be a `.sln`/`.slnx`. Builds that project via its solution-folder MSBuild target (`-t:"Folder\Project"`). Match display name, file name, or virtual path.
 - `timeoutSeconds: int? = null` — omit for 180 seconds per step and 300 seconds total. An explicit value from 1 to 4,294,967 sets one budget for all build and restore steps. `0` disables the tool timeout. Client cancellation and the client's `tools/call` timeout still apply.
-- `reportCursor: string? = null` — next chunk of a retained full report. Does not start a new build.
+- `reportCursor: string? = null` — next chunk of retained process output. Does not start a new build.
 - `includeBuildWarnings: bool = false` — include build warnings; default hides them. Errors are always shown.
 
 **Behavior:** Uses the SDK selected by `dotnet` for the working directory, including `global.json` roll-forward. Clears inherited MSBuild SDK overrides and applies the verified SDK path when available. An observed MSBuild path that differs from the resolved SDK can produce `MCP_MSBUILD_SDK_MISMATCH` and a restore retry with the resolved `MSBuild.dll`. The diagnostic context shows both requested and resolved SDK versions.
 
 Escalation: minimal build → resolved SDK restore → restore (detailed if empty) → build normal → build detailed. The effective exit code comes from the final build step. On failure, `Execution context` reports `Configuration`, `Platform`, `ProjectName`, `SolutionTarget`, `BuildArgs`, and `NoIncremental`. Session `buildArgs` from `load_workspace` apply to build steps. **Key lines** include task `-- FAILED` with project context. The server runs the build for each request. MCP progress heartbeats report the active step, elapsed time, and previous exit code. The client timeout still applies.
 
-**Output:** Successful builds return only `Build succeeded` plus opted-in warnings. Test results and failed-test stdout/stderr are preserved. `Execution context` appears only on failure, timeout, or an unverified test result. Full build failure logs are available through `reportCursor`, including hidden warnings.
+**Output:** Successful builds return `Build succeeded` and warnings on request. `Execution context` appears on failure, timeout, or an unverified test result. `reportCursor` can retrieve retained output, including hidden warnings. The server drains both streams and retains at most 240,000 characters per stream. On truncation it keeps the start, selected diagnostics, and tail from complete lines. An overlong line can be omitted.
 
 </details>
 
@@ -357,12 +363,12 @@ Escalation: minimal build → resolved SDK restore → restore (detailed if empt
 - `binariesPath: string? = null` — optional bin directory containing `{AssemblyName}.dll`. Requires a loaded `.sln`/`.slnx` and a `.csproj` `workspacePath`. When `noBuild=false`, builds that project via the loaded solution `-t` first, then `dotnet test` on the DLL. When `noBuild=true`, the DLL must already exist in that directory.
 - `includeFullOutput: bool = false` — when `true`, include failed-test Standard Output/Error up to 100000 chars per stream. Default `false` uses `maxOutputChars`.
 - `maxOutputChars: int = 0` — per-failure Standard Output budget. `0` = 2500 (head 1600 + tail 700), or 100000 when `includeFullOutput` is true. Capped at 100000. StdErr scales with this.
-- `reportCursor: string? = null` — next chunk of a retained full report. Does not start a new build or test.
+- `reportCursor: string? = null` — next chunk of retained process output. Does not start a new build or test.
 - `includeBuildWarnings: bool = false` — include build warnings; default hides them. Errors are always shown.
 
 **Behavior:** When `noBuild=false` and `binariesPath` is omitted, runs incremental `dotnet build` first (same `-c` / platform / session `buildArgs` from `load_workspace`; not the `run_dotnet_build` probe), then `dotnet test --no-build --no-restore`. With `binariesPath`, the compile is `dotnet build <sln> -t` and the test target is the DLL. Parser sees only the test process. `--logger "console;verbosity=normal"`. Summary from `Passed!`, `Test Run Successful` + `Total tests`/`Passed:` (Failed defaults to 0), or `.slnx` fail-only `Total tests` + `Failed:` (Passed inferred as Total − Failed − Skipped), or per-test `  Passed FQN [ms]` / `[1 s]` / `[1 m 28 s]`. Failed-test `Error Message:` is reported multiline (head+tail); Standard Output/Error are separate `StdOut`/`StdErr` blocks (default 2500/1000 chars, head+tail; `includeFullOutput` / `maxOutputChars` raise the cap). The VSTest `Build FAILED` / `0 Error(s)` footer is ignored as a compile result. MSBuild/prune noise ignored; duplicate NU audit lines deduped. Exit 0 without any summary marker → **`Status: partial`** + last 2KB (footer stripped). `run_specific_test` checks the filter matched a test (FQN, method-only xUnit display names, Theory `FQN(args)` Passed/Failed lines). `timeoutSeconds` is the combined budget for build+test. A DLL test also needs `.runtimeconfig.json` / `.deps.json` beside the assembly. While a step runs, MCP progress heartbeats report `dotnet build` / `dotnet test` (no stdout); this is UX only and cannot extend the host `tools/call` timeout.
 
-**Output:** Successful builds return only `Build succeeded` plus opted-in warnings. Test results and failed-test stdout/stderr are preserved. `Execution context` appears only on failure, timeout, or an unverified test result. Full build failure logs are available through `reportCursor`, including hidden warnings.
+**Output:** Successful builds return `Build succeeded` and warnings on request. `Execution context` appears on failure, timeout, or an unverified test result. `reportCursor` can retrieve retained output, including hidden warnings. The server drains both streams and retains at most 240,000 characters per stream. On truncation it keeps the start, selected diagnostics, and tail from complete lines. An overlong line can be omitted.
 
 </details>
 
@@ -382,14 +388,14 @@ Escalation: minimal build → resolved SDK restore → restore (detailed if empt
 - `binariesPath: string? = null` — same as `run_dotnet_test`: bin directory with `{AssemblyName}.dll`; loaded `.sln`/`.slnx` plus `.csproj` `workspacePath`. `noBuild=false` builds via the solution `-t` first.
 - `includeFullOutput: bool = false` — same as `run_dotnet_test`.
 - `maxOutputChars: int = 0` — same as `run_dotnet_test`.
-- `reportCursor: string? = null` — next chunk of a retained full report. Does not start a new build or test.
+- `reportCursor: string? = null` — next chunk of retained process output. Does not start a new build or test.
 - `includeBuildWarnings: bool = false` — include build warnings; default hides them. Errors are always shown.
 
 At least one of `className` or `methodName` is required. The tool builds a VSTest-safe `--filter` internally (`FullyQualifiedName~…`, no method `()`, no extra leading `.` on dotted names). After `load_workspace`, Roslyn resolves the type/method FQN when possible. A pass is recognized when VSTest prints only the method name or `Method(args)` — that is not **no matching tests**.
 
 **Model guidance:** use this for TDD red/green loops — do not run the full suite. For a raw VSTest `--filter` (`TestCategory=Smoke`, `FullyQualifiedName~…`) use `run_test_by_filter`. Prefer `className` + short `methodName`. After build, prefer `noBuild=true` for faster filtered re-runs. Same pre-test build split as `run_dotnet_test` when `noBuild=false`. Projects that must be built inside their `.sln` should pass `binariesPath` and a `.csproj` `workspacePath`.
 
-**Output:** Successful builds return only `Build succeeded` plus opted-in warnings. Test results and failed-test stdout/stderr are preserved. `Execution context` appears only on failure, timeout, or an unverified test result. Full build failure logs are available through `reportCursor`, including hidden warnings.
+**Output:** Successful builds return `Build succeeded` and warnings on request. `Execution context` appears on failure, timeout, or an unverified test result. `reportCursor` can retrieve retained output, including hidden warnings. The server drains both streams and retains at most 240,000 characters per stream. On truncation it keeps the start, selected diagnostics, and tail from complete lines. An overlong line can be omitted.
 
 </details>
 
@@ -408,12 +414,12 @@ At least one of `className` or `methodName` is required. The tool builds a VSTes
 - `binariesPath: string? = null` — optional bin directory containing the test DLL. Requires a loaded `.sln`/`.slnx` and a `.csproj` `workspacePath`. Runs `{AssemblyName}.dll` from that directory. When `noBuild=false`, builds the project via the loaded solution `-t` first; when `noBuild=true`, the DLL must already exist.
 - `includeFullOutput: bool = false` — same as `run_dotnet_test`.
 - `maxOutputChars: int = 0` — same as `run_dotnet_test`.
-- `reportCursor: string? = null` — next chunk of a retained full report. Does not start a new build or test.
+- `reportCursor: string? = null` — next chunk of retained process output. Does not start a new build or test.
 - `includeBuildWarnings: bool = false` — include build warnings; default hides them. Errors are always shown.
 
 **Behavior:** Same VSTest parser and pre-test build split as `run_dotnet_test` when `binariesPath` is omitted and `noBuild=false`. Does **not** check that the filter needle appears in a test FQN (category filters would false-positive). Prefer `run_specific_test` for one class or method.
 
-**Output:** Successful builds return only `Build succeeded` plus opted-in warnings. Test results and failed-test stdout/stderr are preserved. `Execution context` appears only on failure, timeout, or an unverified test result. Full build failure logs are available through `reportCursor`, including hidden warnings.
+**Output:** Successful builds return `Build succeeded` and warnings on request. `Execution context` appears on failure, timeout, or an unverified test result. `reportCursor` can retrieve retained output, including hidden warnings. The server drains both streams and retains at most 240,000 characters per stream. On truncation it keeps the start, selected diagnostics, and tail from complete lines. An overlong line can be omitted.
 
 </details>
 
@@ -498,7 +504,7 @@ Verify id/version with `search_nuget_registry` first. Clears workspace cache —
 
 **Parameters:** `workspacePath` (.csproj), `arguments`, `workingDirectory`, `timeoutSeconds=120`, `maxStdoutChars=8000`, `maxStderrChars=2000`, `reportCursor`, `includeBuildWarnings=false`.
 
-**Behavior:** Builds first, then runs `dotnet run --no-build --project` within one timeout. Build warnings are hidden by default; opted-in warnings are deduplicated and capped. Application stdout/stderr are preserved under their existing excerpt limits. Errors, timeouts, and process failures include `Execution context`; successful runs omit it. A failed build prevents application startup. `reportCursor` reads the retained full log without restarting either process.
+**Behavior:** Builds first, then runs `dotnet run --no-build --project` within one timeout. Build warnings are hidden by default; opted-in warnings are deduplicated and capped. Application stdout/stderr are preserved under their existing excerpt limits. Errors, timeouts, and process failures include `Execution context`; successful runs omit it. A failed build prevents application startup. `reportCursor` reads the retained log without restarting either process. Oversized streams keep the start, selected diagnostics, and tail and carry an explicit truncation marker.
 
 </details>
 
@@ -520,9 +526,15 @@ Verify id/version with `search_nuget_registry` first. Clears workspace cache —
 <summary><code>get_changed_files</code> — Lists git changed and untracked paths. Does not return a diff.</summary>
 
 **Parameters:**
-- `workspacePath: string? = null` — `.sln`, `.slnx`, `.csproj`, or a repo directory. Omit to use the loaded workspace, then the process directory.
+- `workspacePath: string? = null` — a file or directory in the checkout. Omit to use the first project with a path in the loaded solution, then the process directory.
 
-Runs `git` with a 180s deadline and up to 3s to stop the process. Use host `git diff` for the patch body.
+Git resolves the checkout that contains the file or directory, including linked worktrees and submodules. It counts individual untracked files regardless of `status.showUntrackedFiles` and honors Git ignore rules. The report gives the total number of changed and untracked paths and lists the first 80 in Git status order.
+
+Paths normally appear in a Markdown table. If a displayed path contains invalid UTF-8, a backtick, a vertical bar, a control character, a line separator or a leading or trailing space, the report uses a fenced JSON array for all displayed entries. Each object has a `status` and a `path` relative to the checkout. For valid UTF-8, `path` is the literal name. An entry with `"pathEncoding":"hex"` stores the complete original path as hexadecimal byte pairs in `path`. For a rename or copy, `path` is the destination.
+
+With a loaded solution, the tool can suggest projects with `test` in their names. It matches a source filename stem against a changed path, or a changed filename stem against a source filename stem, using case-insensitive substring checks.
+
+Checkout discovery and status share a 180s deadline, with up to 3s for cleanup. Use host `git diff` for the patch body.
 
 </details>
 
@@ -625,7 +637,7 @@ Runs `git` with a 180s deadline and up to 3s to stop the process. Use host `git 
 - `dryRun: bool = true`
 - `searchRoot: string? = null` — where to find sibling projects / `.sln` / `.slnx`
 
-**Behavior:** Moves identically named project folder + renames `.csproj`; updates `AssemblyName`/`RootNamespace` only when they equal the old project name; rewrites `ProjectReference` paths; updates `.sln` and `.slnx` entries. **SDK-style only.** Unsupported layouts hard-fail (no silent partial write). Does **not** rename C# namespaces/types, Docker, launchSettings, CI, or docs. After apply: `load_workspace` → `run_dotnet_build`.
+**Behavior:** Moves the identically named SDK-style project directory and renames its `.csproj`. The preview lists final paths for `.csproj`, `.fsproj`, `.vbproj`, `.sln`, and `.slnx` edits, including files inside the moving directory. `searchRoot` controls where the tool looks for additional files. Git checkout roots, occupied destinations, and computed `ProjectReference` paths in inspected projects are rejected during planning. Writes preserve UTF-8 with or without BOM, and UTF-16 or UTF-32 with BOM. XML declarations must match the file encoding. Big-endian UTF-32 XML requires an explicit `utf-32BE` declaration. Updates `AssemblyName` and `RootNamespace` only when they equal the old project name. Does **not** rename C# namespaces/types, Docker, launchSettings, CI, or docs. After apply: `load_workspace` → `run_dotnet_build`.
 </details>
 
 <details>

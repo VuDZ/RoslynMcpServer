@@ -50,10 +50,11 @@ public sealed class BuildTools
         {
             if (!string.IsNullOrWhiteSpace(reportCursor))
             {
+                var chunk = DiagnosticReportStore.TryTakeChunk(reportCursor);
                 return ToolTelemetry.TraceAndReturn(
                     nameof(RunDotNetBuild),
-                    DiagnosticReportAttachment.FormatChunkResponse(
-                        DiagnosticReportStore.TryTakeChunk(reportCursor)));
+                    DiagnosticReportAttachment.FormatChunkResponse(chunk),
+                    success: chunk.Ok);
             }
 
             if (string.IsNullOrWhiteSpace(workspacePath))
@@ -147,14 +148,16 @@ public sealed class BuildTools
                 effectivePlatform, probe.NoIncremental, _solutionManager.LoadedBuildArgs,
                 resolvedProjectName, solutionTarget);
             var additionalErrors = SdkMismatchDiagnostics.CreateErrors(probe.SdkSelection, probe.CombinedOutput);
-            return Complete(BuildOutputReport.Format(
-                    probe.CombinedOutput,
-                    probe.ExitCode,
-                    context.ToString().TrimEnd(),
-                    includeBuildWarnings,
-                    timedOut: probe.TimedOut,
-                    budgetExhausted: probe.BudgetExhausted,
-                    additionalErrors: additionalErrors));
+            var report = BuildOutputReport.Format(
+                probe.CombinedOutput,
+                probe.ExitCode,
+                context.ToString().TrimEnd(),
+                includeBuildWarnings,
+                out var succeeded,
+                timedOut: probe.TimedOut,
+                budgetExhausted: probe.BudgetExhausted,
+                additionalErrors: additionalErrors);
+            return Complete(report, success: succeeded);
         }
         catch (OperationCanceledException)
         {
@@ -167,11 +170,12 @@ public sealed class BuildTools
             return Complete($"Failed to run `dotnet build`: {ex.GetType().Name}: {ex.Message}");
         }
 
-        string Complete(string result) => ToolTelemetry.TraceAndReturn(
+        string Complete(string result, bool success = false) => ToolTelemetry.TraceAndReturn(
             nameof(RunDotNetBuild),
             cancellationToken.IsCancellationRequested
                 ? result
-                : WorkspaceEntryPolicy.AppendWarning(result, fullPath, _solutionManager.FileSettings));
+                : WorkspaceEntryPolicy.AppendWarning(result, fullPath, _solutionManager.FileSettings),
+            success: success);
     }
 
     private static void AppendRunMetadata(

@@ -285,7 +285,7 @@ internal sealed partial class ProjectBuildManager : IDisposable
 
     public void RecordProjectOutputType(MSB.Execution.ProjectInstance instance, string? targetFramework)
     {
-        _projectOutputTypeLog?.Add(instance.FullPath, targetFramework, instance.GetPropertyValue(PropertyNames.OutputType));
+        _projectOutputTypeLog?.Add(instance.FullPath, targetFramework, instance.GetPropertyValue(PropertyNames.OutputType), instance.ReadCodePage());
     }
 
     public async Task<MSB.Execution.ProjectInstance[]> BuildProjectInstancesAsync(

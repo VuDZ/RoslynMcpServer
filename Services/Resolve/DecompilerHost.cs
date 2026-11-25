@@ -44,7 +44,7 @@ public static class DecompilerHost
         inner.AddSearchDirectory(nugetRoot);
         var resolver = new NuGetFallbackAssemblyResolver(inner, nugetRoot);
 
-        return new DecompilerSession(new CSharpDecompiler(module, resolver, settings), resolver);
+        return new DecompilerSession(new CSharpDecompiler(module, resolver, settings), resolver, settings.CSharpFormattingOptions);
     }
 
     /// <summary>

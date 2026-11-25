@@ -50,18 +50,33 @@ public sealed class McpToolGroupEnablementIntegrationTests
         var temp = Directory.CreateTempSubdirectory("mcp-epoch3-");
         try
         {
+            var branch = temp.CreateSubdirectory("branch");
+            var deep = branch.CreateSubdirectory("deep");
+            temp.CreateSubdirectory("obj");
+            await File.WriteAllTextAsync(Path.Combine(deep.FullName, "hidden.txt"), "ok", session.Token);
+            await File.WriteAllTextAsync(Path.Combine(branch.FullName, "nested.txt"), "ok", session.Token);
             await File.WriteAllTextAsync(Path.Combine(temp.FullName, "readme.txt"), "ok", session.Token);
+            await File.WriteAllTextAsync(Path.Combine(temp.FullName, "first.txt"), "ok", session.Token);
+
             var listed = await session.Client.CallToolAsync(
                 "list_directory_tree",
                 new Dictionary<string, object?>
                 {
                     ["directoryPath"] = temp.FullName,
-                    ["maxDepth"] = 1,
+                    ["maxDepth"] = 2,
                 },
                 cancellationToken: session.Token);
 
             Assert.False(listed.IsError ?? false);
-            Assert.Contains("readme.txt", ReadText(listed), StringComparison.Ordinal);
+            var expected = string.Join(
+                Environment.NewLine,
+                temp.Name,
+                "├── branch/",
+                "│   ├── deep/",
+                "│   └── nested.txt",
+                "├── first.txt",
+                "└── readme.txt");
+            Assert.Equal(expected, ReadText(listed));
         }
         finally
         {

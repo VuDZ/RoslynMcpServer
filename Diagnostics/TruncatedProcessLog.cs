@@ -22,6 +22,7 @@ internal static class TruncatedProcessLog
     public const int TailCharactersWhenTruncated = 1500;
 
     internal const string MiddleMarker = "\n\n...[MIDDLE LOG TRUNCATED]...\n\n";
+    internal const string CaptureMarker = "...[process output truncated. Selected diagnostics and tail retained]...";
 
     private static readonly Regex MsBuildCountLine = new(
         @"^\d+ (?:Warning|Error)\(s\)$",

@@ -95,10 +95,12 @@ internal sealed class DotNetTestExecutor
         {
             var run = await _runner(arguments, workingDirectory, timeout, buildRun?.ExitCode, cancellationToken)
                 .ConfigureAwait(false);
-            var parsed = VstestOutputParser.Parse(run.CombinedOutput, run.ExitCode);
+            var parsed = VstestOutputParser.Parse(
+                run.CombinedOutput, run.ExitCode, run.TestSummaryTruncated, run.OutputTruncated);
             var outcome = run.Cancelled ? TestProcessOutcome.Cancelled
                 : run.TimedOut ? TestProcessOutcome.TimedOut
-                : run.ExitCode != 0 || parsed.Summary is { Failed: > 0 } ? TestProcessOutcome.Failed
+                : run.ExitCode != 0 || parsed.HasConfirmedFailure ? TestProcessOutcome.Failed
+                : parsed.SummaryTruncated || parsed.IncompleteCounts is not null ? TestProcessOutcome.Partial
                 : parsed.Summary is { Total: > 0 } ? TestProcessOutcome.Passed
                 : TestProcessOutcome.Failed;
             return new(outcome, buildRun, run, parsed);

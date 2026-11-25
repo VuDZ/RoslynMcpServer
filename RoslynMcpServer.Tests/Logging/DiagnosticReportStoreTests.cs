@@ -82,9 +82,10 @@ public sealed class DiagnosticReportStoreTests : IDisposable
     }
 
     [Fact]
-    public void Over_cap_report_is_prefix_plus_explicit_marker()
+    public void Over_cap_report_keeps_head_tail_and_redacts_the_tail()
     {
-        var huge = new string('x', DiagnosticReportStore.MaxReportChars + 50_000);
+        var huge = "head" + new string('x', DiagnosticReportStore.MaxReportChars + 50_000)
+            + "\ntail password=private-tail";
         var stored = DiagnosticReportStore.TryStore(huge);
         Assert.Equal(DiagnosticReportStore.StoreStatus.Stored, stored.Status);
         Assert.True(stored.StoredChars <= DiagnosticReportStore.MaxReportChars);
@@ -102,8 +103,9 @@ public sealed class DiagnosticReportStoreTests : IDisposable
         var body = rebuilt.ToString();
         Assert.True(body.Length <= DiagnosticReportStore.MaxReportChars);
         Assert.Contains(DiagnosticReportStore.CapMarker.Trim(), body, StringComparison.Ordinal);
-        Assert.StartsWith(new string('x', 100), body, StringComparison.Ordinal);
-        Assert.DoesNotContain(new string('x', DiagnosticReportStore.MaxReportChars + 1), body, StringComparison.Ordinal);
+        Assert.StartsWith("head" + new string('x', 100), body, StringComparison.Ordinal);
+        Assert.EndsWith("tail password=[redacted]", body, StringComparison.Ordinal);
+        Assert.DoesNotContain("private-tail", body, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -162,7 +164,7 @@ public sealed class DiagnosticReportAttachmentTests : IDisposable
             DiagnosticReportAttachment.ClientResponseHasTruncatedExcerpt(response));
 
         Assert.Contains("reportCursor=`", attached, StringComparison.Ordinal);
-        Assert.Contains("Full report:", attached, StringComparison.Ordinal);
+        Assert.Contains("Retained report:", attached, StringComparison.Ordinal);
     }
 
     [Fact]

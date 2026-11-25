@@ -20,6 +20,21 @@ internal static class BuildOutputReport
         bool timedOut = false,
         bool budgetExhausted = false,
         IReadOnlyList<DotNetBuildDiagnosticParser.DiagnosticEntry>? additionalErrors = null,
+        bool attachFullReport = true) =>
+        Format(
+            output, exitCode, context, includeBuildWarnings, out _, subject, timedOut, budgetExhausted, additionalErrors,
+            attachFullReport);
+
+    internal static string Format(
+        string output,
+        int exitCode,
+        string context,
+        bool includeBuildWarnings,
+        out bool succeeded,
+        string subject = "Build",
+        bool timedOut = false,
+        bool budgetExhausted = false,
+        IReadOnlyList<DotNetBuildDiagnosticParser.DiagnosticEntry>? additionalErrors = null,
         bool attachFullReport = true)
     {
         var diagnostics = ParseDiagnostics(output)
@@ -27,7 +42,7 @@ internal static class BuildOutputReport
             .DistinctBy(d => (d.Severity.ToLowerInvariant(), d.Code, d.Location, d.Message))
             .ToList();
         var errors = diagnostics.Where(d => d.Severity.Equals("error", StringComparison.OrdinalIgnoreCase)).ToList();
-        var succeeded = exitCode == 0 && errors.Count == 0 && !timedOut && !budgetExhausted;
+        succeeded = exitCode == 0 && errors.Count == 0 && !timedOut && !budgetExhausted;
         var status = timedOut ? "timed out" : budgetExhausted ? "probe budget exhausted" : succeeded ? "succeeded" : "failed";
         var sb = new StringBuilder();
         sb.AppendLine($"## {subject} {status}");
@@ -123,6 +138,50 @@ internal static class BuildOutputReport
         return string.Equals(verb, "build", StringComparison.OrdinalIgnoreCase);
     }
 
+    internal static bool IsErrorDiagnostic(string line)
+    {
+        if (!line.Contains("error", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        var match = MatchDiagnostic(line.Trim());
+        if (!match.Groups["severity"].Value.Equals("error", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        // In a mixed test log, a prose label can introduce a quoted diagnostic.
+        var location = match.Groups["location"];
+        return !location.Success || HasDiagnosticOrigin(match);
+    }
+
+    internal static string? GetDiagnosticSeverityForCapture(string line)
+    {
+        if (!line.Contains("error", StringComparison.OrdinalIgnoreCase)
+            && !line.Contains("warning", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        var trimmed = line.Trim();
+        if (DotNetBuildDiagnosticParser.IsSectionHeaderLine(trimmed))
+        {
+            return null;
+        }
+
+        var match = MatchDiagnostic(trimmed);
+        if (match.Success)
+        {
+            return match.Groups["severity"].Value.ToLowerInvariant();
+        }
+
+        var entries = DotNetBuildDiagnosticParser.Parse(trimmed);
+        return entries.Any(item => item.Severity.Equals("error", StringComparison.OrdinalIgnoreCase))
+            ? "error"
+            : entries.FirstOrDefault()?.Severity.ToLowerInvariant();
+    }
+
     private static IReadOnlyList<DotNetBuildDiagnosticParser.DiagnosticEntry> ParseDiagnostics(string output)
     {
         var diagnostics = new List<DotNetBuildDiagnosticParser.DiagnosticEntry>();
@@ -134,12 +193,7 @@ internal static class BuildOutputReport
                 continue;
             }
 
-            // A bare error can quote a warning; read its severity before interpreting a location.
-            var match = _bareDiagnostic.Match(trimmed);
-            if (!match.Success)
-            {
-                match = _locatedDiagnostic.Match(trimmed);
-            }
+            var match = MatchDiagnostic(trimmed);
 
             if (!match.Success)
             {
@@ -157,6 +211,31 @@ internal static class BuildOutputReport
 
         return diagnostics;
     }
+
+    private static Match MatchDiagnostic(string trimmed)
+    {
+        // A bare error can quote a warning that otherwise looks like a location.
+        var bare = _bareDiagnostic.Match(trimmed);
+        if (IsSupported(bare))
+        {
+            return bare;
+        }
+
+        var located = _locatedDiagnostic.Match(trimmed);
+        return IsSupported(located) ? located : Match.Empty;
+
+        // A task may choose any code. Without an MSBuild origin, arbitrary prose like
+        // "Expected: error connecting to server: retrying" has the same delimiters.
+        // See docs/project-review-2026-11-25/task-45-p1-test-command-failure-cause-hi.md.
+        static bool IsSupported(Match match) =>
+            match.Success && (!match.Groups["code"].Success
+                || _conventionalCode.IsMatch(match.Groups["code"].Value)
+                || HasDiagnosticOrigin(match));
+    }
+
+    private static bool HasDiagnosticOrigin(Match match) =>
+        _diagnosticOrigin.IsMatch(match.Groups["location"].Value.TrimEnd())
+        || _projectSuffix.IsMatch(match.Groups["message"].Value);
 
     private static bool HasUnparsedErrors(string output) =>
         output.Split('\n').Any(line => _errorLine.IsMatch(line)
@@ -185,12 +264,24 @@ internal static class BuildOutputReport
     }
 
     private static readonly Regex _bareDiagnostic = new(
-        @"^(?:\d+>\s*)?(?<severity>error|warning)(?:\s+(?<code>[A-Za-z]+\d+))?\s*:\s*(?<message>.*)$",
+        @"^(?:\d+>\s*)?(?::\s*)?(?<severity>error|warning)(?:\s+(?<code>[^:\r\n]+?))?\s*:\s*(?<message>.*)$",
         RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
     private static readonly Regex _locatedDiagnostic = new(
-        @"^(?:\d+>\s*)?(?<location>.+?)\s*:\s*(?<severity>error|warning)(?:\s+(?<code>[A-Za-z]+\d+))?\s*:\s*(?<message>.*)$",
+        @"^(?:\d+>\s*)?(?<location>.+?)\s*:\s*(?<severity>error|warning)(?:\s+(?<code>[^:\r\n]+?))?\s*:\s*(?<message>.*)$",
         RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+    private static readonly Regex _diagnosticOrigin = new(
+        @"(?:\.\w+|\(\d+(?:,\s*\d+)*\))$|^(?:MSBUILD|CSC|VBC|EXEC)$",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+    private static readonly Regex _projectSuffix = new(
+        @"\s\[[^\[\]\r\n]*\.\w*proj(?:::[^\]\r\n]*)?\]$",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+    private static readonly Regex _conventionalCode = new(
+        @"^[A-Za-z]+\d+$",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     private static readonly Regex _errorLine = new(
         @"\berror\b",

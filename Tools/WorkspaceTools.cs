@@ -217,13 +217,14 @@ public sealed class WorkspaceTools
             sb.AppendLine(shadowCopySummary);
         }
 
-        return Complete(_solutionManager.WithDiskSyncNotes(sb.ToString()));
+        return Complete(_solutionManager.WithDiskSyncNotes(sb.ToString()), success: !semanticUnavailable);
 
-        string Complete(string result) => ToolTelemetry.TraceAndReturn(
+        string Complete(string result, bool success = false) => ToolTelemetry.TraceAndReturn(
             nameof(LoadWorkspace),
             cancellationToken.IsCancellationRequested
                 ? result
-                : WorkspaceEntryPolicy.AppendWarning(result, fullPath, _solutionManager.FileSettings));
+                : WorkspaceEntryPolicy.AppendWarning(result, fullPath, _solutionManager.FileSettings),
+            success: success);
     }
 
     private static string FormatShadowCopySummary(
@@ -325,12 +326,12 @@ public sealed class WorkspaceTools
         }
         catch (OperationCanceledException)
         {
-            return ToolTelemetry.TraceAndReturn(nameof(ResetWorkspace), "Reset was cancelled.");
+            return ToolTelemetry.TraceFailureAndReturn(nameof(ResetWorkspace), "Reset was cancelled.");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "ResetWorkspace failed");
-            return ToolTelemetry.TraceAndReturn(nameof(ResetWorkspace), $"Failed to reset workspace: {ex.Message}");
+            return ToolTelemetry.TraceFailureAndReturn(nameof(ResetWorkspace), $"Failed to reset workspace: {ex.Message}");
         }
     }
 

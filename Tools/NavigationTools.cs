@@ -54,16 +54,17 @@ public sealed class NavigationTools
         {
             if (!string.IsNullOrWhiteSpace(overflowCursor))
             {
+                var chunk = NavigationOverflowStore.TryTakeChunk(overflowCursor);
                 return ToolTelemetry.TraceAndReturn(
                     toolName,
-                    NavigationListingHelper.FormatOverflowChunkResponse(
-                        NavigationOverflowStore.TryTakeChunk(overflowCursor)));
+                    NavigationListingHelper.FormatOverflowChunkResponse(chunk),
+                    success: chunk.Ok);
             }
 
             if (string.IsNullOrWhiteSpace(symbolName)
                 && (string.IsNullOrWhiteSpace(filePath) || line is null || column is null))
             {
-                return ToolTelemetry.TraceAndReturn(toolName, "Error: provide `symbolName`, or `filePath` with both `line` and `column`.");
+                return ToolTelemetry.TraceFailureAndReturn(toolName, "Error: provide `symbolName`, or `filePath` with both `line` and `column`.");
             }
 
             var trimmedName = symbolName?.Trim() ?? string.Empty;
@@ -78,12 +79,12 @@ public sealed class NavigationTools
             var directOnlyGuard = VirtualReferenceClassifier.ValidateDirectOnlyRequiresFilePath(directOnly, hasFilePath);
             if (directOnlyGuard is not null)
             {
-                return ToolTelemetry.TraceAndReturn(toolName, directOnlyGuard);
+                return ToolTelemetry.TraceFailureAndReturn(toolName, directOnlyGuard);
             }
 
             if (line is not null && !hasFilePath)
             {
-                return ToolTelemetry.TraceAndReturn(
+                return ToolTelemetry.TraceFailureAndReturn(
                     toolName,
                     "Error: `line` requires `filePath`. Pass the .cs file containing that line, or omit both for name/FQN search.");
             }
@@ -103,7 +104,7 @@ public sealed class NavigationTools
             var document = await _solutionManager.FindDocumentAsync(fullPath, cancellationToken);
             if (document is null)
             {
-                return ToolTelemetry.TraceAndReturn(
+                return ToolTelemetry.TraceFailureAndReturn(
                     toolName,
                     $"Could not resolve Roslyn document for file: `{fullPath}`.");
             }
@@ -116,7 +117,7 @@ public sealed class NavigationTools
             var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken);
             if (semanticModel is null || syntaxRoot is null)
             {
-                return ToolTelemetry.TraceAndReturn(
+                return ToolTelemetry.TraceFailureAndReturn(
                     toolName,
                     $"Could not build semantic model for file: `{fullPath}`.");
             }
@@ -129,12 +130,12 @@ public sealed class NavigationTools
                     .ConfigureAwait(false);
                 if (positionError is not null)
                 {
-                    return ToolTelemetry.TraceAndReturn(toolName, positionError);
+                    return ToolTelemetry.TraceFailureAndReturn(toolName, positionError);
                 }
 
                 if (positionSymbol is null || position is null)
                 {
-                    return ToolTelemetry.TraceAndReturn(
+                    return ToolTelemetry.TraceFailureAndReturn(
                         toolName,
                         $"Unable to resolve symbol `{trimmedName}` at line {lineNumber} in `{fullPath}`.");
                 }
@@ -154,14 +155,14 @@ public sealed class NavigationTools
                     cancellationToken);
                 if (fileMatches.Count == 0)
                 {
-                    return ToolTelemetry.TraceAndReturn(
+                    return ToolTelemetry.TraceFailureAndReturn(
                         toolName,
                         FileDeclarationCollector.FormatNotFound(trimmedName, fullPath));
                 }
 
                 if (fileMatches.Count > 1)
                 {
-                    return ToolTelemetry.TraceAndReturn(
+                    return ToolTelemetry.TraceFailureAndReturn(
                         toolName,
                         FileDeclarationCollector.FormatAmbiguity(trimmedName, fullPath, fileMatches));
                 }
@@ -221,7 +222,7 @@ public sealed class NavigationTools
 
             if (requestedSymbol is null)
             {
-                return ToolTelemetry.TraceAndReturn(
+                return ToolTelemetry.TraceFailureAndReturn(
                     toolName,
                     $"Unable to resolve symbol `{trimmedName}` for reference classification.");
             }
@@ -231,7 +232,7 @@ public sealed class NavigationTools
                 .ConfigureAwait(false);
             if (filter.Error is not null)
             {
-                return ToolTelemetry.TraceAndReturn(toolName, filter.Error);
+                return ToolTelemetry.TraceFailureAndReturn(toolName, filter.Error);
             }
 
             locations = filter.Locations.ToList();
@@ -274,7 +275,7 @@ public sealed class NavigationTools
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to find references for {SymbolName} in {FilePath}", symbolName, filePath);
-            return ToolTelemetry.TraceAndReturn(
+            return ToolTelemetry.TraceFailureAndReturn(
                 toolName,
                 WorkspaceLoadGuidance.FormatCaughtException(
                     ex,
@@ -312,16 +313,17 @@ public sealed class NavigationTools
         {
             if (!string.IsNullOrWhiteSpace(overflowCursor))
             {
+                var chunk = NavigationOverflowStore.TryTakeChunk(overflowCursor);
                 return ToolTelemetry.TraceAndReturn(
                     toolName,
-                    NavigationListingHelper.FormatOverflowChunkResponse(
-                        NavigationOverflowStore.TryTakeChunk(overflowCursor)));
+                    NavigationListingHelper.FormatOverflowChunkResponse(chunk),
+                    success: chunk.Ok);
             }
 
             if (string.IsNullOrWhiteSpace(symbolName)
                 && (string.IsNullOrWhiteSpace(filePath) || line is null || column is null))
             {
-                return ToolTelemetry.TraceAndReturn(toolName, "Error: provide `symbolName`, or `filePath` with both `line` and `column`.");
+                return ToolTelemetry.TraceFailureAndReturn(toolName, "Error: provide `symbolName`, or `filePath` with both `line` and `column`.");
             }
 
             var trimmedName = symbolName?.Trim() ?? string.Empty;
@@ -333,7 +335,7 @@ public sealed class NavigationTools
 
             if (line is not null && !hasFilePath)
             {
-                return ToolTelemetry.TraceAndReturn(
+                return ToolTelemetry.TraceFailureAndReturn(
                     nameof(FindSymbolDefinition),
                     "Error: `line` requires `filePath`. Pass the .cs file containing that line.");
             }
@@ -341,7 +343,7 @@ public sealed class NavigationTools
             var solution = await _solutionManager.GetSanitizedPublishedSolutionAsync(cancellationToken).ConfigureAwait(false);
             if (solution is null)
             {
-                return ToolTelemetry.TraceAndReturn(
+                return ToolTelemetry.TraceFailureAndReturn(
                     nameof(FindSymbolDefinition),
                     _solutionManager.FormatNoPublishedSolutionMessage(
                         "Error: No active workspace."));
@@ -354,7 +356,7 @@ public sealed class NavigationTools
                 var document = await _solutionManager.FindDocumentAsync(fullPath, cancellationToken).ConfigureAwait(false);
                 if (document is null)
                 {
-                    return ToolTelemetry.TraceAndReturn(
+                    return ToolTelemetry.TraceFailureAndReturn(
                         nameof(FindSymbolDefinition),
                         $"Could not resolve Roslyn document for file: `{fullPath}`.");
                 }
@@ -369,12 +371,12 @@ public sealed class NavigationTools
                         .ConfigureAwait(false);
                     if (positionError is not null)
                     {
-                        return ToolTelemetry.TraceAndReturn(nameof(FindSymbolDefinition), positionError);
+                        return ToolTelemetry.TraceFailureAndReturn(nameof(FindSymbolDefinition), positionError);
                     }
 
                     if (positionSymbol is null || position is null)
                     {
-                        return ToolTelemetry.TraceAndReturn(
+                        return ToolTelemetry.TraceFailureAndReturn(
                             nameof(FindSymbolDefinition),
                             $"Unable to resolve symbol `{trimmedName}` at line {lineNumber} in `{fullPath}`.");
                     }
@@ -408,7 +410,7 @@ public sealed class NavigationTools
                     var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
                     if (semanticModel is null || syntaxRoot is null)
                     {
-                        return ToolTelemetry.TraceAndReturn(
+                        return ToolTelemetry.TraceFailureAndReturn(
                             nameof(FindSymbolDefinition),
                             $"Could not build semantic model for file: `{fullPath}`.");
                     }
@@ -420,14 +422,14 @@ public sealed class NavigationTools
                         cancellationToken);
                     if (fileMatches.Count == 0)
                     {
-                        return ToolTelemetry.TraceAndReturn(
+                        return ToolTelemetry.TraceFailureAndReturn(
                             nameof(FindSymbolDefinition),
                             FileDeclarationCollector.FormatNotFound(trimmedName, fullPath));
                     }
 
                     if (fileMatches.Count > 1)
                     {
-                        return ToolTelemetry.TraceAndReturn(
+                        return ToolTelemetry.TraceFailureAndReturn(
                             nameof(FindSymbolDefinition),
                             FileDeclarationCollector.FormatAmbiguity(trimmedName, fullPath, fileMatches));
                     }
@@ -445,7 +447,7 @@ public sealed class NavigationTools
 
                 if (resolveError is not null)
                 {
-                    return ToolTelemetry.TraceAndReturn(
+                    return ToolTelemetry.TraceFailureAndReturn(
                         nameof(FindSymbolDefinition),
                         _solutionManager.WithDiskSyncNotes(resolveError));
                 }
@@ -503,7 +505,7 @@ public sealed class NavigationTools
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to find definition locations for {SymbolName}", symbolName);
-            return ToolTelemetry.TraceAndReturn(
+            return ToolTelemetry.TraceFailureAndReturn(
                 toolName,
                 WorkspaceLoadGuidance.FormatCaughtException(
                     ex,
@@ -533,15 +535,16 @@ public sealed class NavigationTools
         {
             if (!string.IsNullOrWhiteSpace(overflowCursor))
             {
+                var chunk = NavigationOverflowStore.TryTakeChunk(overflowCursor);
                 return ToolTelemetry.TraceAndReturn(
                     toolName,
-                    NavigationListingHelper.FormatOverflowChunkResponse(
-                        NavigationOverflowStore.TryTakeChunk(overflowCursor)));
+                    NavigationListingHelper.FormatOverflowChunkResponse(chunk),
+                    success: chunk.Ok);
             }
 
             if (string.IsNullOrWhiteSpace(symbolName))
             {
-                return ToolTelemetry.TraceAndReturn(toolName, "Error: `symbolName` is empty.");
+                return ToolTelemetry.TraceFailureAndReturn(toolName, "Error: `symbolName` is empty.");
             }
 
             return await FindReferencesByNameAsync(
@@ -554,12 +557,12 @@ public sealed class NavigationTools
         }
         catch (OperationCanceledException)
         {
-            return ToolTelemetry.TraceAndReturn(toolName, "`find_usages` was cancelled.");
+            return ToolTelemetry.TraceFailureAndReturn(toolName, "`find_usages` was cancelled.");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "FindUsages failed for {SymbolName}", symbolName);
-            return ToolTelemetry.TraceAndReturn(
+            return ToolTelemetry.TraceFailureAndReturn(
                 toolName,
                 WorkspaceLoadGuidance.FormatCaughtException(
                     ex,
@@ -591,15 +594,16 @@ public sealed class NavigationTools
         {
             if (!string.IsNullOrWhiteSpace(overflowCursor))
             {
+                var chunk = NavigationOverflowStore.TryTakeChunk(overflowCursor);
                 return ToolTelemetry.TraceAndReturn(
                     toolName,
-                    NavigationListingHelper.FormatOverflowChunkResponse(
-                        NavigationOverflowStore.TryTakeChunk(overflowCursor)));
+                    NavigationListingHelper.FormatOverflowChunkResponse(chunk),
+                    success: chunk.Ok);
             }
 
             if (string.IsNullOrWhiteSpace(symbolName))
             {
-                return ToolTelemetry.TraceAndReturn(toolName, "Error: `symbolName` is empty.");
+                return ToolTelemetry.TraceFailureAndReturn(toolName, "Error: `symbolName` is empty.");
             }
 
             var resolvedMax = NavigationListingHelper.ResolveMaxResults(
@@ -611,7 +615,7 @@ public sealed class NavigationTools
             var solution = await _solutionManager.GetSanitizedPublishedSolutionAsync(cancellationToken).ConfigureAwait(false);
             if (solution is null)
             {
-                return ToolTelemetry.TraceAndReturn(
+                return ToolTelemetry.TraceFailureAndReturn(
                     toolName,
                     _solutionManager.FormatNoPublishedSolutionMessage(
                         "Error: No active workspace."));
@@ -627,7 +631,7 @@ public sealed class NavigationTools
 
             if (resolveError is not null)
             {
-                return ToolTelemetry.TraceAndReturn(
+                return ToolTelemetry.TraceFailureAndReturn(
                     toolName,
                     _solutionManager.WithDiskSyncNotes(resolveError));
             }
@@ -656,7 +660,7 @@ public sealed class NavigationTools
             if (supported.Count == 0)
             {
                 var first = unsupported[0];
-                return ToolTelemetry.TraceAndReturn(
+                return ToolTelemetry.TraceFailureAndReturn(
                     toolName,
                     $"Symbol `{trimmedName}` is a {first.TypeKind}; only interfaces, classes, and structs are supported.");
             }
@@ -797,12 +801,12 @@ public sealed class NavigationTools
         }
         catch (OperationCanceledException)
         {
-            return ToolTelemetry.TraceAndReturn(toolName, "`find_implementations` was cancelled.");
+            return ToolTelemetry.TraceFailureAndReturn(toolName, "`find_implementations` was cancelled.");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "FindImplementations failed for {SymbolName}", symbolName);
-            return ToolTelemetry.TraceAndReturn(
+            return ToolTelemetry.TraceFailureAndReturn(
                 toolName,
                 WorkspaceLoadGuidance.FormatCaughtException(
                     ex,
@@ -820,7 +824,7 @@ public sealed class NavigationTools
         var solution = await _solutionManager.GetSanitizedPublishedSolutionAsync(cancellationToken).ConfigureAwait(false);
         if (solution is null)
         {
-            return ToolTelemetry.TraceAndReturn(
+            return ToolTelemetry.TraceFailureAndReturn(
                 toolName,
                 _solutionManager.FormatNoPublishedSolutionMessage(
                     "Error: No active workspace."));
@@ -834,7 +838,7 @@ public sealed class NavigationTools
 
         if (resolveError is not null)
         {
-            return ToolTelemetry.TraceAndReturn(toolName, _solutionManager.WithDiskSyncNotes(resolveError));
+            return ToolTelemetry.TraceFailureAndReturn(toolName, _solutionManager.WithDiskSyncNotes(resolveError));
         }
 
         if (symbols.Count == 0)
@@ -1214,7 +1218,7 @@ public sealed class NavigationTools
             var document = await _solutionManager.FindDocumentAsync(fullPath, cancellationToken).ConfigureAwait(false);
             if (document is null)
             {
-                return ToolTelemetry.TraceAndReturn(toolName, $"Document not in workspace: `{fullPath}`. Call `load_workspace` first.");
+                return ToolTelemetry.TraceFailureAndReturn(toolName, $"Document not in workspace: `{fullPath}`. Call `load_workspace` first.");
             }
 
             var publishedDocument = document;
@@ -1244,7 +1248,7 @@ public sealed class NavigationTools
 
             if (build.Error is not null || build.Graph is null)
             {
-                return ToolTelemetry.TraceAndReturn(
+                return ToolTelemetry.TraceFailureAndReturn(
                     toolName,
                     build.Error ?? $"Failed to build call graph for `{className}.{methodName}`.");
             }
@@ -1253,12 +1257,12 @@ public sealed class NavigationTools
         }
         catch (OperationCanceledException)
         {
-            return ToolTelemetry.TraceAndReturn(toolName, "`get_call_graph` was cancelled.");
+            return ToolTelemetry.TraceFailureAndReturn(toolName, "`get_call_graph` was cancelled.");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "GetCallGraph failed for {ClassName}.{MethodName}", className, methodName);
-            return ToolTelemetry.TraceAndReturn(
+            return ToolTelemetry.TraceFailureAndReturn(
                 toolName,
                 WorkspaceLoadGuidance.FormatCaughtException(ex, $"Failed: {ex.Message}"));
         }

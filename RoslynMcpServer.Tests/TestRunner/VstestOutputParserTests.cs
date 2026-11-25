@@ -6,6 +6,74 @@ namespace RoslynMcpServer.Tests.TestRunner;
 public sealed class VstestOutputParserTests
 {
     [Fact]
+    public void BuildMarkdownReport_pairs_console_details_with_adapter_notices_from_stderr()
+    {
+        const string output = """
+              Failed Demo.Tests.Check(input: "private-case-first", value: 2) [1 ms]
+              Error Message:
+               Identical test failure
+              Stack Trace:
+                 at Demo.Tests.Check(String input, Int32 value)
+              Failed Demo.Tests.Check(input: "private-case-second", value: 1) [< 1 ms]
+              Error Message:
+               Identical test failure
+              Stack Trace:
+                 at Demo.Tests.Check(String input, Int32 value)
+
+            Total tests: 2
+                 Failed: 2
+             Total time: 0.5237 Seconds
+            Build FAILED.
+            [xUnit.net 00:00:00.24]     Demo.Tests.Check(input: "private-case-first", value: 2) [FAIL]
+            [xUnit.net 00:00:00.24]     Demo.Tests.Check(input: "private-case-second", value: 1) [FAIL]
+            Test Run Failed.
+            """;
+
+        var result = VstestOutputParser.Parse(output, exitCode: 1);
+        var report = VstestOutputParser.BuildMarkdownReport(result, 1, output, null, null, requireFilterMatch: false);
+
+        Assert.Equal(new VstestOutputParser.TestSummary(2, 0, 2, 0), result.Summary);
+        Assert.Equal(["Identical test failure", "Identical test failure"], result.Failures.Select(f => f.Error));
+        Assert.All(result.Failures, failure =>
+        {
+            Assert.Contains("at Demo.Tests.Check(String input, Int32 value)", failure.Stack, StringComparison.Ordinal);
+            Assert.DoesNotContain("Failed Demo.Tests.Check", failure.Stack, StringComparison.Ordinal);
+        });
+        Assert.DoesNotContain("private-case-", report, StringComparison.Ordinal);
+        Assert.Contains("1. **TestName:** `Demo.Tests.Check` (case 1)", report, StringComparison.Ordinal);
+        Assert.Contains("2. **TestName:** `Demo.Tests.Check` (case 2)", report, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void BuildMarkdownReport_keeps_one_failure_when_a_matching_notice_survives_capture()
+    {
+        var output = $"""
+            {TruncatedProcessLog.CaptureMarker}
+            Total tests: 1
+                 Failed: 1
+              Failed Demo.Tests.Check(input: "private-case-token", value: 2) [< 1 ms]
+              Error Message:
+               Failure detail
+              Stack Trace:
+                 at Demo.Tests.Check(String input, Int32 value)
+            [xUnit.net 00:00:00.24]     Demo.Tests.Check(input: "private-case-token", value: 2) [FAIL]
+            """;
+
+        var result = VstestOutputParser.Parse(output, exitCode: 1, summaryTruncated: false, outputTruncated: true);
+        var report = VstestOutputParser.BuildMarkdownReport(result, 1, output, null, null, requireFilterMatch: false);
+
+        var failure = Assert.Single(result.Failures);
+        Assert.Equal("Demo.Tests.Check", failure.Name);
+        Assert.Equal("Failure detail", failure.Error);
+        Assert.Equal(new VstestOutputParser.TestSummary(1, 0, 1, 0), result.Summary);
+        Assert.Contains("1. **TestName:** `Demo.Tests.Check`" + Environment.NewLine, report, StringComparison.Ordinal);
+        Assert.DoesNotContain("private-case-token", report, StringComparison.Ordinal);
+        Assert.DoesNotContain("2. **TestName:**", report, StringComparison.Ordinal);
+        Assert.DoesNotContain(TruncatedProcessLog.CaptureMarker, report, StringComparison.Ordinal);
+        Assert.DoesNotContain("Showing first 5 failures only", report, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Parse_ignores_msbuild_failed_to_load_prune_line()
     {
         const string output = """
@@ -408,7 +476,7 @@ public sealed class VstestOutputParserTests
     }
 
     [Fact]
-    public void BuildMarkdownReport_no_matching_filter_emits_agent_signal()
+    public void Passing_test_with_an_unverified_display_name_keeps_filter_uncertainty()
     {
         const string output = """
             Passed!  - Failed: 0, Passed: 1, Skipped: 0, Total: 1
@@ -423,9 +491,10 @@ public sealed class VstestOutputParserTests
             "Name suffix `.MissingTests.MissingMethod`",
             requireFilterMatch: true);
 
-        Assert.Contains("## Filtered test run — no matching tests", md, StringComparison.Ordinal);
-        Assert.Contains("**Agent signal:**", md, StringComparison.Ordinal);
-        Assert.Contains("**Match mode:** Name suffix", md, StringComparison.Ordinal);
+        Assert.Contains("**Status:** partial", md, StringComparison.Ordinal);
+        Assert.Contains("Retained test names do not verify the filter match.", md, StringComparison.Ordinal);
+        Assert.Contains("Reported totals: 1 total, 1 passed, 0 failed, 0 skipped.", md, StringComparison.Ordinal);
+        Assert.DoesNotContain("no matching tests", md, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -660,8 +729,241 @@ public sealed class VstestOutputParserTests
             "Restore target(s) failed.\nBuild FAILED.\n    0 Error(s)"));
     }
 
+    [Theory]
+    [InlineData(1)]
+    [InlineData(0)]
+    public void Filtered_report_keeps_a_confirmed_failure_when_capture_loses_the_test_name(int exitCode)
+    {
+        const string Output = "Failed! - Failed: 1, Passed: 0, Skipped: 0, Total: 1";
+        const string Filter = "FullyQualifiedName~Fixture.Match";
+        var parse = VstestOutputParser.Parse(Output, exitCode, summaryTruncated: false, outputTruncated: true);
+        var report = VstestOutputParser.BuildMarkdownReport(parse, exitCode, Output, Filter, null, requireFilterMatch: true);
+
+        Assert.Contains("## Test run failed", report, StringComparison.Ordinal);
+        Assert.DoesNotContain("**Status:** partial", report, StringComparison.Ordinal);
+        Assert.Contains("1 total, 0 passed, 1 failed, 0 skipped", report, StringComparison.Ordinal);
+        Assert.Contains("The captured output does not identify which test failed.", report, StringComparison.Ordinal);
+        var filterLine = Assert.Single(
+            report.Split(Environment.NewLine),
+            line => line.Contains("Fixture.Match", StringComparison.Ordinal));
+        Assert.Equal($"**Filter:** `{Filter}`", filterLine);
+    }
+
+    [Theory]
+    [InlineData(0, false)]
+    [InlineData(1, false)]
+    [InlineData(0, true)]
+    [InlineData(1, true)]
+    public void Filtered_report_with_passing_totals_and_unknown_match_stays_partial(int exitCode, bool outputTruncated)
+    {
+        const string Output = """
+            Test run for bin/net11.0/Fixture.dll (.NETCoreApp,Version=v11.0)
+            A total of 1 test files matched the specified pattern.
+
+            Passed!  - Failed:     0, Passed:     1, Skipped:     0, Total:     1, Duration: 8 ms - Fixture.dll (net11.0)
+            """;
+        var parse = VstestOutputParser.Parse(Output, exitCode, summaryTruncated: false, outputTruncated);
+        var report = VstestOutputParser.BuildMarkdownReport(
+            parse,
+            exitCode,
+            Output,
+            "FullyQualifiedName~Fixture.Match",
+            null,
+            requireFilterMatch: true,
+            default,
+            out var succeeded);
+
+        Assert.False(succeeded);
+        Assert.Contains("**Status:** partial", report, StringComparison.Ordinal);
+        Assert.Contains("Retained test names do not verify the filter match.", report, StringComparison.Ordinal);
+        Assert.Contains("Reported totals: 1 total, 1 passed, 0 failed, 0 skipped.", report, StringComparison.Ordinal);
+        Assert.DoesNotContain("no matching tests", report, StringComparison.Ordinal);
+        Assert.DoesNotContain("## Test run failed", report, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("Probe: No test matches the given testcase filter `FullyQualifiedName~Fixture.Match` in bin/Fixture.dll")]
+    [InlineData("No test matches the given testcase filter is a VSTest message")]
+    [InlineData("No test matches the given testcase filter in Unrelated.dll")]
+    public void Unattributed_no_match_text_does_not_verify_a_filter_with_passing_totals(string notice)
+    {
+        var output = $"""
+            Test run for bin/Fixture.dll (.NETCoreApp,Version=v11.0)
+            {notice}
+            Passed! - Failed: 0, Passed: 1, Skipped: 0, Total: 1, Duration: 1 ms - Fixture.dll (net11.0)
+            """;
+        var parse = VstestOutputParser.Parse(output, 0);
+        var report = VstestOutputParser.BuildMarkdownReport(
+            parse, 0, output, "FullyQualifiedName~Fixture.Match", null, requireFilterMatch: true, default, out var succeeded);
+
+        Assert.False(succeeded);
+        Assert.Contains("**Status:** partial", report, StringComparison.Ordinal);
+        Assert.Contains("Retained test names do not verify the filter match.", report, StringComparison.Ordinal);
+        Assert.Contains("Reported totals: 1 total, 1 passed, 0 failed, 0 skipped.", report, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("  Failed Demo.Fixture.Match [1 ms]", "The active test run was aborted. Reason: Test host process crashed")]
+    [InlineData("[xUnit.net 00:00:00.27] Demo.Fixture.Match [FAIL]", "Test Run Aborted.")]
+    [InlineData("  Failed Demo.Fixture.Match [1 ms]", "")]
+    [InlineData("", "Test Run Aborted.")]
+    [InlineData("", "Test Run Failed.")]
+    public void Earlier_passing_totals_cannot_hide_a_later_failure(string failureLine, string runFooter)
+    {
+        var output = $"Passed! - Failed: 0, Passed: 1, Skipped: 0, Total: 1\n{failureLine}\n{runFooter}";
+        var parse = VstestOutputParser.Parse(output, exitCode: 1, summaryTruncated: false, outputTruncated: true);
+        var report = VstestOutputParser.BuildMarkdownReport(
+            parse,
+            1,
+            output,
+            "FullyQualifiedName~Demo.Fixture.Match",
+            null,
+            requireFilterMatch: true,
+            default,
+            out var succeeded);
+
+        Assert.False(succeeded);
+        Assert.Contains("## Test run failed", report, StringComparison.Ordinal);
+        Assert.DoesNotContain("Filtered tests passed", report, StringComparison.Ordinal);
+        Assert.DoesNotContain("**Status:** partial", report, StringComparison.Ordinal);
+        if (failureLine.Length > 0)
+        {
+            Assert.Contains("**TestName:** `Demo.Fixture.Match`", report, StringComparison.Ordinal);
+        }
+        else
+        {
+            Assert.Contains("Retained test names do not verify the filter match", report, StringComparison.Ordinal);
+        }
+    }
+
     [Fact]
-    public void BuildMarkdownReport_xunit_multi_project_matching_test_with_nonzero_exit_passes()
+    public void Passing_totals_with_an_unexplained_nonzero_exit_do_not_confirm_success()
+    {
+        const string Output = "Passed! - Failed: 0, Passed: 1, Skipped: 0, Total: 1\n  Passed Demo.Fixture.Match [1 ms]";
+        var parse = VstestOutputParser.Parse(Output, exitCode: 1);
+        var report = VstestOutputParser.BuildMarkdownReport(
+            parse, 1, Output, "FullyQualifiedName~Demo.Fixture.Match", null, true, default, out var succeeded);
+
+        Assert.False(succeeded);
+        Assert.Contains("## Test run failed", report, StringComparison.Ordinal);
+        Assert.DoesNotContain("sibling test projects", report, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("MSB4181", false)]
+    [InlineData("MSB4181", true)]
+    [InlineData("CI-001", false)]
+    [InlineData("CI-001", true)]
+    [InlineData("quality.gate / storage", true)]
+    public async Task Sibling_no_match_does_not_hide_an_independent_msbuild_error(string code, bool truncate)
+    {
+        var error = $"1>Demo.csproj(21,5): error {code}: Test result directory could not be written.";
+        var noise = truncate ? string.Concat(Enumerable.Repeat(new string('x', 1023) + "\n", 150)) : string.Empty;
+        var output = $"""
+              Passed Demo.Fixture.Match [1 ms]
+            Total tests: 1
+                Passed: 1
+            No test matches the given testcase filter in Sibling.dll
+            {noise}
+            {error}
+            {noise}
+            """;
+        using var reader = new StringReader(output);
+        var capture = new BoundedProcessOutput(reader);
+        await capture.Completion;
+        var retained = capture.Finish();
+        Assert.Equal(truncate, retained.Truncated);
+        var parse = VstestOutputParser.Parse(retained.Text, 1, retained.SummaryTruncated, retained.Truncated);
+        var report = VstestOutputParser.BuildMarkdownReport(
+            parse, 1, retained.Text, "FullyQualifiedName~Demo.Fixture.Match", null, true, default, out var succeeded);
+
+        Assert.False(succeeded);
+        Assert.Contains("## Test run failed", report, StringComparison.Ordinal);
+        Assert.Contains("**MSBuild error:** " + error, report, StringComparison.Ordinal);
+        Assert.Contains("1 total, 1 passed, 0 failed", report, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(@"1>Build validation : error CI-001: Result directory could not be written. [E:\work\Example.proj]")]
+    [InlineData(@"error Gate-Code: Result directory could not be written. [E:\work\Example.csproj::TargetFramework=net11.0]")]
+    public void Project_context_identifies_custom_errors_without_source_coordinates(string error)
+    {
+        var output = $"""
+              Passed Demo.Fixture.Match [1 ms]
+            Total tests: 1
+                Passed: 1
+            No test matches the given testcase filter in Sibling.dll
+            Expected: error connecting to server: retrying
+            {error}
+            """;
+
+        var parse = VstestOutputParser.Parse(output, 1);
+        Assert.Equal(error, parse.BuildError);
+        Assert.True(parse.HasConfirmedFailure);
+    }
+
+    [Theory]
+    [InlineData(1, "1>Demo.csproj(21,5): warning W0001: an example of error MSB4181:")]
+    [InlineData(1, "A test printed error MSB4181: in its explanation.")]
+    [InlineData(1, "The test printed: error CI-001: example diagnostic")]
+    [InlineData(1, "Expected: error connecting to server: retrying")]
+    [InlineData(1, "  Passed Demo.Fixture.Theory(value: error MSB4181: example) [1 ms]")]
+    [InlineData(1, "  Skipped Demo.Fixture.Example: error MSB4181: expected [1 ms]")]
+    [InlineData(1, "[xUnit.net 00:00:00.15]     Demo.Fixture.Example: error MSB4181: expected [SKIP]")]
+    [InlineData(1, "No test matches the given testcase filter `DisplayName=Example: error MSB4181: expected` in Sibling.dll")]
+    [InlineData(1, "  Passed Demo.Fixture.Theory(value: error CI-001: example) [1 ms]")]
+    [InlineData(0, "error MSB4181: sample test output")]
+    public void Test_output_is_not_an_msbuild_diagnostic_or_a_reason_to_ignore_the_exit_code(int exitCode, string line)
+    {
+        var output = $"""
+              Passed Demo.Fixture.Match [1 ms]
+            Total tests: 2
+                Passed: 1
+                Skipped: 1
+            No test matches the given testcase filter in Sibling.dll
+            {line}
+            """;
+        var parse = VstestOutputParser.Parse(output, exitCode);
+        var report = VstestOutputParser.BuildMarkdownReport(
+            parse, exitCode, output, "FullyQualifiedName~Demo.Fixture.Match", null, true, default, out var succeeded);
+
+        Assert.Equal(exitCode == 0, succeeded);
+        Assert.Contains(exitCode == 0 ? "## Filtered tests passed" : "## Test run failed", report, StringComparison.Ordinal);
+        Assert.Contains("Skipped: **1**", report, StringComparison.Ordinal);
+        Assert.DoesNotContain("**MSBuild error:**", report, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("Total tests: 1", false)]
+    [InlineData("A test printed Total tests: 1", true)]
+    public void A_failed_counter_in_a_distinct_summary_block_overrides_sibling_no_match(string header, bool expectedSuccess)
+    {
+        var output = $"""
+            No test matches the given testcase filter in Sibling.dll
+              Passed Demo.Fixture.Match [1 ms]
+            Passed! - Failed: 0, Passed: 1, Skipped: 0, Total: 1
+            {header}
+                 Failed: 1
+            """;
+        var parse = VstestOutputParser.Parse(output, 0, summaryTruncated: false, outputTruncated: true);
+        var report = VstestOutputParser.BuildMarkdownReport(
+            parse, 0, output, "FullyQualifiedName~Demo.Fixture.Match", null, true, default, out var succeeded);
+
+        Assert.Equal(expectedSuccess, succeeded);
+        Assert.Contains(expectedSuccess ? "## Filtered tests passed" : "## Test run failed", report, StringComparison.Ordinal);
+        if (expectedSuccess)
+        {
+            AssertBalancedSummary(parse.Summary, total: 1, passed: 1, failed: 0, skipped: 0);
+        }
+        else
+        {
+            Assert.Null(parse.Summary);
+            Assert.Contains("Confirmed lower bounds: 1 passed, 1 failed", report, StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
+    public void Passing_tests_and_a_sibling_no_match_do_not_explain_the_command_exit_code()
     {
         const string output = """
             No test matches the given testcase filter `FullyQualifiedName~MyNamespace.MyClass.MyTest` in C:\x\B\bin\Debug\net10.0\B.dll
@@ -685,14 +987,16 @@ public sealed class VstestOutputParserTests
             output,
             "FullyQualifiedName~MyNamespace.MyClass.MyTest",
             "Name suffix",
-            requireFilterMatch: true);
+            requireFilterMatch: true,
+            default,
+            out var succeeded);
 
-        Assert.Contains("## Filtered tests passed", md, StringComparison.Ordinal);
-        Assert.DoesNotContain("Tests Failed", md, StringComparison.Ordinal);
+        Assert.False(succeeded);
+        Assert.Contains("## Test run failed", md, StringComparison.Ordinal);
+        Assert.Contains("Total: **1** · Passed: **1** · Failed: **0**", md, StringComparison.Ordinal);
+        Assert.Contains("exited with code `1`", md, StringComparison.Ordinal);
         Assert.DoesNotContain("no matching tests", md, StringComparison.Ordinal);
-        Assert.Contains("non-zero", md, StringComparison.Ordinal);
-        Assert.Contains("exit", md, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("_Exit code is non-zero", md, StringComparison.Ordinal);
+        Assert.DoesNotContain("## Filtered tests passed", md, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -728,14 +1032,21 @@ public sealed class VstestOutputParserTests
     }
 
     [Theory]
-    [InlineData(0)]
-    [InlineData(1)]
-    public void BuildMarkdownReport_all_assemblies_no_match_reports_filtered_no_match(int exitCode)
+    [InlineData(0, false)]
+    [InlineData(0, true)]
+    [InlineData(1, false)]
+    [InlineData(1, true)]
+    public void BuildMarkdownReport_all_assemblies_no_match_reports_filtered_no_match(int exitCode, bool includeRunHeaders)
     {
-        const string output = """
+        const string RunHeaders = """
+            Test run for C:\src\bin\Debug\net10.0\A.dll (.NETCoreApp,Version=v10.0)
+            Test run for C:\src\bin\Debug\net10.0\B.dll (.NETCoreApp,Version=v10.0)
+            """;
+        const string Notices = """
             No test matches the given testcase filter `FullyQualifiedName~ZZZ_NO_SUCH_TEST_ZZZ` in C:\src\bin\Debug\net10.0\A.dll
             No test matches the given testcase filter `FullyQualifiedName~ZZZ_NO_SUCH_TEST_ZZZ` in C:\src\bin\Debug\net10.0\B.dll
             """;
+        var output = includeRunHeaders ? RunHeaders + "\n" + Notices : Notices;
         var parse = VstestOutputParser.Parse(output, exitCode);
         Assert.Null(parse.Summary);
 
@@ -750,6 +1061,83 @@ public sealed class VstestOutputParserTests
         Assert.Contains("## Filtered test run — no matching tests", md, StringComparison.Ordinal);
         Assert.DoesNotContain("All tests passed", md, StringComparison.Ordinal);
         Assert.DoesNotContain("Filtered tests passed", md, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("FullyQualifiedName~Demo.Fixture.Other", false, false)]
+    [InlineData("FullyQualifiedName~Demo.Fixture.Other", true, false)]
+    [InlineData(" FullyQualifiedName~Demo.Fixture.Match ", false, true)]
+    [InlineData(" FullyQualifiedName~Demo.Fixture.Match ", true, true)]
+    public void A_full_notice_must_quote_the_requested_filter_to_confirm_no_match(string effectiveFilter, bool includeZeroTotals, bool expectedNoMatch)
+    {
+        var output = $"No test matches the given testcase filter `{effectiveFilter}` in Fixture.dll.";
+        if (includeZeroTotals)
+        {
+            output += "\nPassed! - Failed: 0, Passed: 0, Skipped: 0, Total: 0";
+        }
+
+        var parse = VstestOutputParser.Parse(output, 0);
+        var report = VstestOutputParser.BuildMarkdownReport(
+            parse, 0, output, "FullyQualifiedName~Demo.Fixture.Match", null, requireFilterMatch: true);
+
+        Assert.Equal(expectedNoMatch, report.Contains("no matching tests", StringComparison.Ordinal));
+        Assert.Equal(!expectedNoMatch, report.Contains("**Status:** partial", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    public void A_sibling_notice_does_not_cover_a_started_source_with_no_result(int exitCode)
+    {
+        const string Output = """
+            Test run for bin/Fixture.dll (.NETCoreApp,Version=v11.0)
+            Test run for bin/Sibling.dll (.NETCoreApp,Version=v11.0)
+            No test matches the given testcase filter `FullyQualifiedName~Demo.Fixture.Match` in bin/Sibling.dll.
+            """;
+        var parse = VstestOutputParser.Parse(Output, exitCode);
+        var report = VstestOutputParser.BuildMarkdownReport(
+            parse, exitCode, Output, "FullyQualifiedName~Demo.Fixture.Match", null, requireFilterMatch: true);
+
+        Assert.Null(parse.Summary);
+        Assert.Contains("**Status:** partial", report, StringComparison.Ordinal);
+        Assert.Contains("The captured output does not establish a no-match for the complete run.", report, StringComparison.Ordinal);
+        Assert.DoesNotContain("no matching tests", report, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_notice_for_the_source_of_passing_totals_does_not_close_a_different_start()
+    {
+        const string Output = """
+            Test run for bin/Fixture.dll (.NETCoreApp,Version=v11.0)
+            Test run for bin/Sibling.dll (.NETCoreApp,Version=v11.0)
+            No test matches the given testcase filter `FullyQualifiedName~Demo.Fixture.Match` in bin/Fixture.dll.
+            Passed! - Failed: 0, Passed: 1, Skipped: 0, Total: 1, Duration: 1 ms - Fixture.dll (net11.0)
+            """;
+        var parse = VstestOutputParser.Parse(Output, 0);
+        var report = VstestOutputParser.BuildMarkdownReport(
+            parse, 0, Output, "FullyQualifiedName~Demo.Fixture.Match", null, requireFilterMatch: true);
+
+        Assert.Null(parse.Summary);
+        Assert.Contains("**Status:** partial", report, StringComparison.Ordinal);
+        Assert.Contains("Confirmed lower bounds: 1 passed", report, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("Passed")]
+    [InlineData("Skipped")]
+    public void Sibling_no_match_with_a_case_outcome_and_no_summary_keeps_filter_uncertainty(string outcome)
+    {
+        var output = $"""
+            No test matches the given testcase filter in Sibling.dll
+              {outcome} Demo.Fixture.Match [1 ms]
+            """;
+        var parse = VstestOutputParser.Parse(output, 0);
+        var report = VstestOutputParser.BuildMarkdownReport(
+            parse, 0, output, "FullyQualifiedName~Demo.Fixture.Match", null, requireFilterMatch: true);
+
+        Assert.Null(parse.Summary);
+        Assert.Contains("**Status:** partial", report, StringComparison.Ordinal);
+        Assert.DoesNotContain("no matching tests", report, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -826,6 +1214,106 @@ public sealed class VstestOutputParserTests
         AssertBalancedSummary(result.Summary, total: 10, passed: 7, failed: 1, skipped: 2);
     }
 
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void Unknown_total_preserves_reported_outcomes_across_targets(bool outputTruncated, bool compactSummary)
+    {
+        const string Output = """
+            Total tests: 1
+                 Passed: 1
+              Failed Demo.Fixture.Match [1 ms]
+            Test Run Aborted.
+            Total tests: Unknown
+                 Failed: 1
+            """;
+        var log = compactSummary ? "Passed! - Failed: 0, Passed: 1, Skipped: 0, Total: 1\n" + Output : Output;
+        var parsed = VstestOutputParser.Parse(log, 1, summaryTruncated: false, outputTruncated);
+        var report = VstestOutputParser.BuildMarkdownReport(
+            parsed, 1, log, "Demo.Fixture.Match", null, requireFilterMatch: true, default, out var succeeded);
+
+        Assert.Null(parsed.Summary);
+        Assert.False(succeeded);
+        Assert.Contains("## Test run failed", report, StringComparison.Ordinal);
+        Assert.Contains("Total tests: unknown. Confirmed lower bounds: 1 passed, 1 failed", report, StringComparison.Ordinal);
+        Assert.DoesNotContain("Total: **", report, StringComparison.Ordinal);
+        Assert.True(VstestOutputParser.IsSummaryCaptureLine("Total tests: Unknown"));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Completed_targets_report_balanced_totals(bool outputTruncated)
+    {
+        const string Output = """
+            Total tests: 1
+                Passed: 1
+            Total tests: 3
+                Failed: 2
+                Skipped: 1
+            """;
+        var parsed = VstestOutputParser.Parse(Output, 1, summaryTruncated: false, outputTruncated);
+        AssertBalancedSummary(parsed.Summary, total: 4, passed: 1, failed: 2, skipped: 1);
+        var report = VstestOutputParser.BuildMarkdownReport(parsed, 1, Output, null, null, requireFilterMatch: false);
+        Assert.Contains("Total: **4** · Passed: **1** · Failed: **2** · Skipped: **1**", report, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void Retained_failed_counter_proves_failure_with_unknown_total_and_missing_test_name(bool outputTruncated, bool summaryTruncated)
+    {
+        var log = "Total tests: Unknown\n    Failed: 2\n" + new string('x', 4096);
+        var parsed = VstestOutputParser.Parse(log, 0, summaryTruncated, outputTruncated);
+        var report = VstestOutputParser.BuildMarkdownReport(
+            parsed, 0, log, "Demo.Match", null, requireFilterMatch: true, default, out var succeeded);
+
+        Assert.Null(parsed.Summary);
+        Assert.False(succeeded);
+        Assert.Contains("## Test run failed", report, StringComparison.Ordinal);
+        Assert.Contains("Total tests: unknown. Confirmed lower bounds: 2 failed.", report, StringComparison.Ordinal);
+        Assert.Contains("does not identify which test failed", report, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void Unknown_total_and_a_named_failure_keep_absent_counters_unknown(bool outputTruncated, bool summaryTruncated)
+    {
+        const string Output = """
+              Failed Demo.Fixture.Match [1 ms]
+            Test Run Aborted.
+            Total tests: Unknown
+                Passed: 0
+            """;
+        var parsed = VstestOutputParser.Parse(Output, 1, summaryTruncated, outputTruncated);
+        var report = VstestOutputParser.BuildMarkdownReport(parsed, 1, Output, null, null, requireFilterMatch: false);
+
+        Assert.Contains("## Test run failed", report, StringComparison.Ordinal);
+        Assert.Contains("Total tests: unknown. Confirmed lower bounds: 0 passed, 1 failed.", report, StringComparison.Ordinal);
+        Assert.DoesNotContain("0 failed", report, StringComparison.Ordinal);
+        Assert.DoesNotContain("0 skipped", report, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Missing_headers_in_truncated_capture_do_not_double_count_overlapping_counters()
+    {
+        const string Output = """
+            Passed! - Failed: 0, Passed: 3, Skipped: 0, Total: 3
+                Passed: 3
+                Failed: 2
+            """;
+        var parsed = VstestOutputParser.Parse(Output, 1, summaryTruncated: true, outputTruncated: true);
+        var report = VstestOutputParser.BuildMarkdownReport(parsed, 1, Output, null, null, requireFilterMatch: false);
+
+        Assert.Contains("Confirmed lower bounds: 3 passed, 2 failed, 0 skipped.", report, StringComparison.Ordinal);
+        Assert.DoesNotContain("Total: **", report, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void Parse_sums_total_tests_blocks_across_two_all_pass_assemblies()
     {
@@ -861,10 +1349,8 @@ public sealed class VstestOutputParserTests
     }
 
     [Fact]
-    public void Parse_end_summary_wins_over_fail_only_totals_block()
+    public void Mixed_formats_without_run_boundaries_report_confirmed_lower_bounds()
     {
-        // Source order: end-summary → totals blocks. Do not merge formats and do not
-        // let a later fail-only block replace or add to Passed! counts.
         const string output = """
             Passed!  - Failed: 0, Passed: 5, Skipped: 0, Total: 5
             Test Run Failed.
@@ -874,9 +1360,307 @@ public sealed class VstestOutputParserTests
         var result = VstestOutputParser.Parse(output, exitCode: 1);
         Assert.False(result.IsPartialSuccess);
         Assert.True(result.HasRecognizedSummary);
-        AssertBalancedSummary(result.Summary, total: 5, passed: 5, failed: 0, skipped: 0);
-        Assert.NotEqual(7, result.Summary?.Total);
-        Assert.NotEqual(2, result.Summary?.Failed);
+        Assert.Null(result.Summary);
+        var report = VstestOutputParser.BuildMarkdownReport(result, 1, output, null, null, requireFilterMatch: false);
+        Assert.Contains("Confirmed lower bounds: 5 passed, 2 failed", report, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task Independent_frameworks_add_their_counts_after_bounded_capture(bool compactFirst, bool aborted)
+    {
+        var firstSummary = compactFirst ? "Passed! - Failed: 0, Passed: 1, Skipped: 0, Total: 1" : "Total tests: 1\n    Passed: 1";
+        var noise = string.Concat(Enumerable.Repeat(new string('x', 1023) + "\n", 128));
+        var output = $"""
+            Test run for bin/net10.0/Demo.dll (.NETCoreApp,Version=v10.0)
+            {firstSummary}
+            {noise}
+            Test run for bin/net11.0/Demo.dll (.NETCoreApp,Version=v11.0)
+            Test Run Successful.
+            Total tests: 3
+                Passed: 3
+            {noise}
+            """;
+        if (aborted)
+        {
+            output += "\nTest Run Aborted.\nTotal tests: Unknown\n    Failed: 1";
+        }
+
+        using var reader = new StringReader(output);
+        var capture = new BoundedProcessOutput(reader);
+        await capture.Completion;
+        var retained = capture.Finish();
+        Assert.True(retained.Truncated);
+        Assert.False(retained.SummaryTruncated);
+        var result = VstestOutputParser.Parse(retained.Text, aborted ? 1 : 0, retained.SummaryTruncated, retained.Truncated);
+        if (aborted)
+        {
+            Assert.Null(result.Summary);
+            var report = VstestOutputParser.BuildMarkdownReport(result, 1, retained.Text, null, null, requireFilterMatch: false);
+            Assert.Contains("Total tests: unknown. Confirmed lower bounds: 4 passed, 1 failed", report, StringComparison.Ordinal);
+        }
+        else
+        {
+            AssertBalancedSummary(result.Summary, total: 4, passed: 4, failed: 0, skipped: 0);
+        }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Two_formats_for_one_target_count_once_in_either_order(bool compactFirst)
+    {
+        const string Compact = "Passed! - Failed: 0, Passed: 3, Skipped: 0, Total: 3";
+        const string Numeric = "Test Run Successful.\nTotal tests: 3\n    Passed: 3";
+        var summaries = compactFirst ? Compact + "\n" + Numeric : Numeric + "\n" + Compact;
+        var result = VstestOutputParser.Parse("Test run for Demo.dll (.NETCoreApp,Version=v11.0)\n" + summaries, 0);
+
+        AssertBalancedSummary(result.Summary, total: 3, passed: 3, failed: 0, skipped: 0);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void The_previous_run_can_repeat_its_summary_after_the_next_run_starts(bool compactFirst)
+    {
+        const string Compact = "Passed! - Failed: 0, Passed: 1, Skipped: 0, Total: 1";
+        const string Numeric = "Total tests: 1\n    Passed: 1";
+        var output = $"""
+            Test run for net10.0/Demo.dll (.NETCoreApp,Version=v10.0)
+            {(compactFirst ? Compact : Numeric)}
+            Test run for net11.0/Demo.dll (.NETCoreApp,Version=v11.0)
+            {(compactFirst ? Numeric : Compact)}
+            Total tests: 3
+                Passed: 3
+            """;
+
+        AssertBalancedSummary(VstestOutputParser.Parse(output, 0).Summary, total: 4, passed: 4, failed: 0, skipped: 0);
+    }
+
+    [Theory]
+    [InlineData("Demo.dll (net11.0)", 2)]
+    [InlineData("Demo.dll (net10.0)", null)]
+    public void Equal_counts_use_the_named_framework_and_the_numeric_summary_position(string compactSource, int? total)
+    {
+        var output = $"""
+            Test run for bin/net10.0/Demo.dll (.NETCoreApp,Version=v10.0)
+            Total tests: 1
+                Passed: 1
+            Test run for bin/net11.0/Demo.dll (.NETCoreApp,Version=v11.0)
+            Passed! - Failed: 0, Passed: 1, Skipped: 0, Total: 1, Duration: 1 ms - {compactSource}
+            """;
+        var result = VstestOutputParser.Parse(output, 0);
+
+        Assert.Equal(total, result.Summary?.Total);
+        if (total is null)
+        {
+            Assert.Equal(1, result.IncompleteCounts?.Passed);
+        }
+    }
+
+    [Theory]
+    [InlineData(true, 1)]
+    [InlineData(false, 1)]
+    [InlineData(true, 3)]
+    [InlineData(false, 3)]
+    public void Sequential_mixed_loggers_count_each_framework(bool compactFirst, int secondCount)
+    {
+        var output = Run("10.0", 1, compactFirst) + "\n" + Run("11.0", secondCount, !compactFirst);
+        var parsed = VstestOutputParser.Parse(output, 0);
+
+        AssertBalancedSummary(parsed.Summary, total: 1 + secondCount, passed: 1 + secondCount, failed: 0, skipped: 0);
+
+        static string Run(string version, int count, bool compact)
+        {
+            var start = $"Test run for bin/net{version}/Demo.dll (.NETCoreApp,Version=v{version})\n";
+            if (compact)
+            {
+                return start + $"Passed! - Failed: 0, Passed: {count}, Skipped: 0, Total: {count}, Duration: 1 ms - Demo.dll (net{version})";
+            }
+
+            var cases = string.Concat(Enumerable.Repeat("  Passed Demo.Fixture.Match [1 ms]\n", count));
+            return start + cases + $"Test Run Successful.\nTotal tests: {count}\n     Passed: {count}";
+        }
+    }
+
+    [Theory]
+    [InlineData(false, "", false)]
+    [InlineData(false, "  Skipped Demo.Fixture.Match [1 ms]", false)]
+    [InlineData(true, "  Passed Demo.Fixture.Match [1 ms]", false)]
+    [InlineData(false, "  Passed Demo.Fixture.Match [1 ms]", true)]
+    public void Unattributed_verbose_totals_can_still_repeat_a_compact_result(bool overlapping, string detail, bool truncated)
+    {
+        const string SecondStart = "Test run for bin/net11.0/Demo.dll (.NETCoreApp,Version=v11.0)";
+        var output = $"""
+            Test run for bin/net10.0/Demo.dll (.NETCoreApp,Version=v10.0)
+            {(overlapping ? SecondStart : "")}
+            Passed! - Failed: 0, Passed: 1, Skipped: 0, Total: 1, Duration: 1 ms - Demo.dll (net10.0)
+            {(overlapping ? "" : SecondStart)}
+            {detail}
+            Test Run Successful.
+            Total tests: 1
+                 Passed: 1
+            """;
+
+        var parsed = VstestOutputParser.Parse(output, 0, summaryTruncated: false, outputTruncated: truncated);
+
+        Assert.Null(parsed.Summary);
+        Assert.Equal(1, parsed.IncompleteCounts?.Passed);
+    }
+
+    [Theory]
+    [InlineData(false, "bin/net11.0/Demo.dll")]
+    [InlineData(true, "bin/net11.0/Demo.dll")]
+    [InlineData(false, "bin/Tests in Review/net11.0/Demo.dll")]
+    [InlineData(true, "bin/Tests in Review/net11.0/Demo.dll")]
+    public void A_named_no_match_excludes_the_source_of_a_delayed_verbose_result(bool noticeFirst, string source)
+    {
+        var noMatch = $"No test matches the given testcase filter `Demo.Fixture.Match` in {source}.";
+        var output = $"""
+            Test run for bin/net10.0/Demo.dll (.NETCoreApp,Version=v10.0)
+            Passed! - Failed: 0, Passed: 1, Skipped: 0, Total: 1, Duration: 1 ms - Demo.dll (net10.0)
+            Test run for {source} (.NETCoreApp,Version=v11.0)
+            {(noticeFirst ? noMatch : "")}
+              Passed Demo.Fixture.Match [1 ms]
+            Test Run Successful.
+            Total tests: 1
+                 Passed: 1
+            {(noticeFirst ? "" : noMatch)}
+            """;
+
+        AssertBalancedSummary(VstestOutputParser.Parse(output, 0).Summary, total: 1, passed: 1, failed: 0, skipped: 0);
+    }
+
+    [Theory]
+    [InlineData(@"C:\src\Tests in Review\bin\net11.0\Demo.dll", "FullyQualifiedName~Demo.Fixture.Match")]
+    [InlineData("/src/Tests ` in Review/bin/net11.0/Demo.dll", "DisplayName~A ` in B")]
+    public void No_match_uses_a_complete_run_source_when_filter_and_path_contain_separators(string source, string filter)
+    {
+        var output = $"""
+            Test run for bin/net10.0/Demo.dll (.NETCoreApp,Version=v10.0)
+            Passed! - Failed: 0, Passed: 1, Skipped: 0, Total: 1, Duration: 1 ms - Demo.dll (net10.0)
+            Test run for {source} (.NETCoreApp,Version=v11.0)
+            No test matches the given testcase filter `{filter}` in {source}
+            """;
+        var parsed = VstestOutputParser.Parse(output, 0);
+        var report = VstestOutputParser.BuildMarkdownReport(parsed, 0, output, filter, null, requireFilterMatch: true);
+        var mismatchedReport = VstestOutputParser.BuildMarkdownReport(
+            parsed, 0, output, filter + ".Other", null, requireFilterMatch: true);
+
+        AssertBalancedSummary(parsed.Summary, total: 1, passed: 1, failed: 0, skipped: 0);
+        Assert.Contains("Filtered tests passed", report, StringComparison.Ordinal);
+        Assert.Contains("**Status:** partial", mismatchedReport, StringComparison.Ordinal);
+        Assert.Contains("Confirmed lower bounds: 1 passed", mismatchedReport, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void No_match_with_two_possible_run_sources_keeps_totals_unknown()
+    {
+        const string FirstSource = "/src/Tests ` in /other/bin/Demo.dll";
+        const string SecondSource = "/other/bin/Demo.dll";
+        const string Output = $"""
+            Test run for {FirstSource} (.NETCoreApp,Version=v10.0)
+            Passed! - Failed: 0, Passed: 1, Skipped: 0, Total: 1, Duration: 1 ms - Demo.dll (net10.0)
+            Test run for {SecondSource} (.NETCoreApp,Version=v11.0)
+            No test matches the given testcase filter `Demo.Fixture.Match` in {FirstSource}
+            """;
+
+        var parsed = VstestOutputParser.Parse(Output, 0);
+
+        Assert.Null(parsed.Summary);
+        Assert.Equal(1, parsed.IncompleteCounts?.Passed);
+    }
+
+    [Theory]
+    [InlineData("Test Run Aborted.", 1, 0)]
+    [InlineData("Test Run Aborted.\nTotal tests: Unknown", 1, 0)]
+    [InlineData("Total tests: Unknown\n     Passed: 2\n     Failed: 1", 3, 1)]
+    [InlineData("Test run for bin/net12.0/Demo.dll (.NETCoreApp,Version=v12.0)", 1, 0)]
+    public void Incomplete_runs_do_not_count_delayed_verbose_cases_as_another_execution(string ending, int passed, int failed)
+    {
+        var output = $"""
+            Test run for bin/net10.0/Demo.dll (.NETCoreApp,Version=v10.0)
+            Passed! - Failed: 0, Passed: 1, Skipped: 0, Total: 1, Duration: 1 ms - Demo.dll (net10.0)
+            Test run for bin/net11.0/Demo.dll (.NETCoreApp,Version=v11.0)
+              Passed Demo.Fixture.Match [1 ms]
+            Test Run Successful.
+            Total tests: 1
+                 Passed: 1
+            {ending}
+            """;
+
+        var parsed = VstestOutputParser.Parse(output, 1);
+
+        Assert.Null(parsed.Summary);
+        Assert.Equal(passed, parsed.IncompleteCounts?.Passed);
+        Assert.Equal(failed, parsed.IncompleteCounts?.Failed);
+    }
+
+    [Theory]
+    [InlineData("net10.0", false)]
+    [InlineData("net11.0", false)]
+    [InlineData("net10.0", true)]
+    [InlineData("net11.0", true)]
+    public void A_no_match_notice_can_finish_either_pending_target(string framework, bool summaryFirst)
+    {
+        var noMatch = $"No test matches the given testcase filter in bin/{framework}/Demo.dll";
+        const string Summary = "Total tests: 1\n    Passed: 1";
+        var output = $"""
+            Test run for bin/net10.0/Demo.dll (.NETCoreApp,Version=v10.0)
+            Test run for bin/net11.0/Demo.dll (.NETCoreApp,Version=v11.0)
+            {(summaryFirst ? Summary : noMatch)}
+            {(summaryFirst ? noMatch : Summary)}
+            """;
+
+        AssertBalancedSummary(VstestOutputParser.Parse(output, 0).Summary, total: 1, passed: 1, failed: 0, skipped: 0);
+    }
+
+    [Theory]
+    [InlineData("", null)]
+    [InlineData("No test matches the given testcase filter in Other.dll", null)]
+    [InlineData("No test matches the given testcase filter in net10.0/Demo.dll", null)]
+    [InlineData("No test matches the given testcase filter `Demo.Fixture.Match` in outside in net11.0/Demo.dll", null)]
+    [InlineData("No test matches the given testcase filter in net11.0/Demo.dll", 1)]
+    public void A_started_target_needs_a_summary_or_its_own_no_match_notice(string completion, int? expectedTotal)
+    {
+        var output = $"""
+            Test run for net10.0/Demo.dll (.NETCoreApp,Version=v10.0)
+            Total tests: 1
+                Passed: 1
+            Test run for net11.0/Demo.dll (.NETCoreApp,Version=v11.0)
+            {completion}
+            """;
+        var result = VstestOutputParser.Parse(output, 0);
+
+        Assert.Equal(expectedTotal, result.Summary?.Total);
+        if (expectedTotal is null)
+        {
+            Assert.Equal(1, result.IncompleteCounts?.Passed);
+        }
+    }
+
+    [Theory]
+    [InlineData(1, null)]
+    [InlineData(3, 4)]
+    public void Overlapping_run_starts_require_distinguishable_summaries(int numericPassed, int? expectedTotal)
+    {
+        var output = $"""
+            Test run for net10.0/Demo.dll (.NETCoreApp,Version=v10.0)
+            Test run for net11.0/Demo.dll (.NETCoreApp,Version=v11.0)
+            Passed! - Failed: 0, Passed: 1, Skipped: 0, Total: 1
+            Total tests: {numericPassed}
+                Passed: {numericPassed}
+            """;
+        var result = VstestOutputParser.Parse(output, 0);
+
+        Assert.Equal(expectedTotal, result.Summary?.Total);
+        if (expectedTotal is null)
+        {
+            Assert.Equal(1, result.IncompleteCounts?.Passed);
+        }
     }
 
     [Fact]
@@ -980,11 +1764,11 @@ public sealed class VstestOutputParserTests
         var secondIdx = Array.FindIndex(lines, static l => l.Trim().StartsWith("Total tests: 2", StringComparison.OrdinalIgnoreCase));
         Assert.True(firstIdx >= 0 && secondIdx > firstIdx);
 
-        var first = VstestOutputParser.TryParseCountsNearTotalTestsLine(lines, firstIdx);
+        var first = VstestOutputParser.TryParseCountsNearTotalTestsLine(lines, firstIdx, out _);
         AssertBalancedSummary(first, total: 1, passed: 1, failed: 0, skipped: 0);
         Assert.NotEqual(2, first?.Skipped);
 
-        var second = VstestOutputParser.TryParseCountsNearTotalTestsLine(lines, secondIdx);
+        var second = VstestOutputParser.TryParseCountsNearTotalTestsLine(lines, secondIdx, out _);
         AssertBalancedSummary(second, total: 2, passed: 0, failed: 0, skipped: 2);
     }
 

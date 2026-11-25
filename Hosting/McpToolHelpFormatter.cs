@@ -60,8 +60,16 @@ public static class McpToolHelpFormatter
     public static string FormatToolHelp(
         string? toolName,
         McpToolActivationService activation,
-        PluginStartup.Report? pluginStartup)
+        PluginStartup.Report? pluginStartup) =>
+        FormatToolHelp(toolName, activation, pluginStartup, out _);
+
+    internal static string FormatToolHelp(
+        string? toolName,
+        McpToolActivationService activation,
+        PluginStartup.Report? pluginStartup,
+        out bool succeeded)
     {
+        succeeded = false;
         ArgumentNullException.ThrowIfNull(activation);
 
         if (string.IsNullOrWhiteSpace(toolName))
@@ -75,6 +83,7 @@ public static class McpToolHelpFormatter
         // start pass recorded; the JSON Schema the SDK builds for it is not a help source.
         if (pluginStartup is not null && pluginStartup.TryFindTool(trimmed, out var pluginTool))
         {
+            succeeded = true;
             return FormatPluginToolHelp(pluginTool);
         }
 
@@ -84,6 +93,7 @@ public static class McpToolHelpFormatter
             return FormatUnknown(trimmed, activation, pluginStartup);
         }
 
+        succeeded = true;
         McpToolHelpCatalog.TryGet(descriptor.Name, out var extra);
         extra ??= new McpToolHelpEntry();
 

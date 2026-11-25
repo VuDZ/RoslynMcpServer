@@ -7,5 +7,6 @@ internal enum TestProcessOutcome
     BuildFailed,
     TimedOut,
     Cancelled,
-    NotRun
+    NotRun,
+    Partial,
 }

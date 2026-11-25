@@ -104,7 +104,12 @@ internal sealed class TestImpactRunFixture : IAsyncDisposable
             Arguments = OperatingSystem.IsWindows() ? "-n {{lifetimeSeconds}} 127.0.0.1" : "{{lifetimeSeconds}}",
             UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true
         })!;
-        File.WriteAllText({{JsonSerializer.Serialize(ProcessPath(project))}}, Environment.ProcessId + "," + child.Id);
+        var processPath = {{JsonSerializer.Serialize(ProcessPath(project))}};
+        var stagedProcessPath = processPath + ".tmp";
+        // WaitForProcessesAsync treats path existence as readiness, so publish only after closing the writer.
+        // See docs/project-review-2026-11-25/task-54-p2-tia-cancellation-process-file-race-med.md.
+        File.WriteAllText(stagedProcessPath, Environment.ProcessId + "," + child.Id);
+        File.Move(stagedProcessPath, processPath, overwrite: true);
         Thread.Sleep(TimeSpan.FromSeconds({{lifetimeSeconds}}));
         """;
 

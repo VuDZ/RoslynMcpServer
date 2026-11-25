@@ -1,5 +1,6 @@
 using Serilog;
 using Serilog.Events;
+using RoslynMcpServer.Diagnostics.UsageStatistics.Models;
 
 namespace RoslynMcpServer.Diagnostics;
 
@@ -54,4 +55,34 @@ public static class ToolTelemetry
             Log.Write(level, "MCP tool {ToolName} | {Highlight}", toolName, line);
         }
     }
+
+    internal static UsageToolCall? SetUsageCall(UsageToolCall? call)
+    {
+        var previous = _usageCall.Value;
+        _usageCall.Value = call;
+        return previous;
+    }
+
+    internal static void MarkUnsuccessful()
+    {
+        if (_usageCall.Value is { } call)
+        {
+            call.Unsuccessful = true;
+        }
+    }
+
+    internal static string TraceFailureAndReturn(string toolName, string result) =>
+        TraceAndReturn(toolName, result, success: false);
+
+    internal static string TraceAndReturn(string toolName, string result, bool success)
+    {
+        if (!success)
+        {
+            MarkUnsuccessful();
+        }
+
+        return TraceAndReturn(toolName, result);
+    }
+
+    private static readonly AsyncLocal<UsageToolCall?> _usageCall = new();
 }

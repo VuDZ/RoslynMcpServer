@@ -77,7 +77,7 @@ internal static class WorkspaceNonCSharpDiskSync
         return Enumerate(solution, fullPath, pathComparison).Any();
     }
 
-    private static Solution ApplyPath(
+    internal static Solution ApplyPath(
         Solution solution,
         string fullPath,
         SourceText text,

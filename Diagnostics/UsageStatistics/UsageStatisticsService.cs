@@ -232,10 +232,6 @@ public sealed class UsageStatisticsService : IHostedService, IDisposable
         var origin = source == WorkspaceLoadSource.ConfigFile
             ? "lazy"
             : call?.Name is "list_projects" or "get_project_graph" ? "path" : "explicit";
-        if (call is not null && origin == "lazy")
-        {
-            call.LazyLoad = true;
-        }
 
         return new UsageLoadAttempt
         {
@@ -261,9 +257,15 @@ public sealed class UsageStatisticsService : IHostedService, IDisposable
                 _lastLoad = _time.GetTimestamp();
             }
 
+            var call = _currentCall.Value;
+            if (call is not null && attempt.Source == "lazy")
+            {
+                call.LazyLoad = true;
+            }
+
             Emit("load", new()
             {
-                ["call"] = _currentCall.Value?.Id,
+                ["call"] = call?.Id,
                 ["start_ts"] = attempt.Started,
                 ["requested_key"] = attempt.RequestedKey,
                 ["workspace_key"] = _workspaceKey,

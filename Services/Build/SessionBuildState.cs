@@ -24,6 +24,17 @@ internal sealed class SessionBuildState
         }
     }
 
+    internal int ContextSlotCount
+    {
+        get
+        {
+            lock (_contextSlotLookup)
+            {
+                return _contextSlots.Count;
+            }
+        }
+    }
+
     public BuildFreshnessState GetState(ProjectId projectId, BuildContext context)
     {
         return EvaluateReuse(projectId, context).State;
@@ -299,42 +310,49 @@ internal sealed class SessionBuildState
     {
         ArgumentNullException.ThrowIfNull(projectId);
         ArgumentNullException.ThrowIfNull(context);
-        var slot = SlotFor(new SlotKey(projectId, context));
-        if (slot.Gate.Wait(0))
+        var key = new SlotKey(projectId, context);
+        var slot = AcquireContextSlot(key);
+        var acquired = false;
+        try
         {
-            return new ContextAdmission { Acquired = true };
-        }
+            acquired = slot.Gate.Wait(0);
+            if (acquired)
+            {
+                return new ContextAdmission { Acquired = true };
+            }
 
-        if (waitBudget is { } exhausted && exhausted <= TimeSpan.Zero)
-        {
-            return new ContextAdmission();
-        }
+            if (waitBudget is { } exhausted && exhausted <= TimeSpan.Zero)
+            {
+                return default;
+            }
 
-        bool acquired;
-        if (waitBudget is null)
-        {
-            await slot.Gate.WaitAsync(cancellationToken).ConfigureAwait(false);
-            acquired = true;
-        }
-        else
-        {
-            acquired = await slot.Gate.WaitAsync(waitBudget.Value, cancellationToken).ConfigureAwait(false);
-        }
+            acquired = await slot.Gate.WaitAsync(waitBudget ?? Timeout.InfiniteTimeSpan, cancellationToken)
+                .ConfigureAwait(false);
+            if (!acquired)
+            {
+                return default;
+            }
 
-        if (!acquired)
-        {
-            return new ContextAdmission();
+            var prior = slot.Last;
+            return new ContextAdmission
+            {
+                Acquired = true,
+                Waited = true,
+                PriorFailed = prior.Failed,
+                PriorConfirmed = prior.Confirmed,
+                PriorGeneration = prior.Generation,
+            };
         }
-
-        var prior = slot.Last;
-        return new ContextAdmission
+        finally
         {
-            Acquired = true,
-            Waited = true,
-            PriorFailed = prior.Failed,
-            PriorConfirmed = prior.Confirmed,
-            PriorGeneration = prior.Generation,
-        };
+            if (!acquired)
+            {
+                lock (_contextSlotLookup)
+                {
+                    ReleaseContextSlotUnderLock(key, slot);
+                }
+            }
+        }
     }
 
     /// <summary>
@@ -350,14 +368,19 @@ internal sealed class SessionBuildState
     {
         ArgumentNullException.ThrowIfNull(projectId);
         ArgumentNullException.ThrowIfNull(context);
-        var slot = SlotFor(new SlotKey(projectId, context));
-        slot.Last = new ContextOperationReport
+        var key = new SlotKey(projectId, context);
+        lock (_contextSlotLookup)
         {
-            Failed = failed,
-            Confirmed = confirmed,
-            Generation = generation,
-        };
-        slot.Gate.Release();
+            var slot = _contextSlots[key];
+            slot.Last = new ContextOperationReport
+            {
+                Failed = failed,
+                Confirmed = confirmed,
+                Generation = generation,
+            };
+            slot.Gate.Release();
+            ReleaseContextSlotUnderLock(key, slot);
+        }
     }
 
     private void Adopt(WorkspaceInputSnapshot snapshot)
@@ -897,7 +920,7 @@ internal sealed class SessionBuildState
         return InputPathCanon.TryCanonicalize(path) ?? path;
     }
 
-    private ContextSlot SlotFor(SlotKey key)
+    private ContextSlot AcquireContextSlot(SlotKey key)
     {
         lock (_contextSlotLookup)
         {
@@ -907,7 +930,18 @@ internal sealed class SessionBuildState
                 _contextSlots.Add(key, slot);
             }
 
+            slot.ReferenceCount++;
             return slot;
+        }
+    }
+
+    private void ReleaseContextSlotUnderLock(SlotKey key, ContextSlot slot)
+    {
+        slot.ReferenceCount--;
+        if (slot.ReferenceCount == 0)
+        {
+            _contextSlots.Remove(key);
+            slot.Gate.Dispose();
         }
     }
 
@@ -935,6 +969,8 @@ internal sealed class SessionBuildState
         public SemaphoreSlim Gate { get; } = new(1, 1);
 
         public ContextOperationReport Last { get; set; }
+
+        public int ReferenceCount { get; set; }
     }
 
     private struct ContextOperationReport
@@ -961,7 +997,7 @@ internal sealed class SessionBuildState
     // and not a gate on builds started outside this process.
     private readonly object _mutation = new();
 
-    // One semaphore per build context so callers in this process do not overlap on that key.
+    // Owners and pending admissions keep the same gate alive to hand the last outcome to waiters.
     // The lookup lock is not held while a caller waits or while a CLI process runs.
     private readonly object _contextSlotLookup = new();
     private readonly Dictionary<SlotKey, ContextSlot> _contextSlots = new();

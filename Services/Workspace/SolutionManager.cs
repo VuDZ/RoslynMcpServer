@@ -166,6 +166,14 @@ public sealed class SolutionManager
     /// <summary>Test seam: cancel after this many successful document writes (0 = disabled).</summary>
     internal int CancelAfterDocumentWrites { get; set; }
 
+    internal Action<string>? AfterStagingPrefixForTests { get; set; }
+
+    internal Action<string>? AfterDocumentCommitForTests { get; set; }
+
+    internal Action? BeforeSavingProjectRegistrationForTests { get; set; }
+
+    internal Action? AfterClosingProjectBuildHostForTests { get; set; }
+
     /// <summary>Test seam: drop the captured snapshot before the opt-in publication gate.</summary>
     internal bool DiscardNextProvenanceSnapshot { get; set; }
 
@@ -195,7 +203,7 @@ public sealed class SolutionManager
     /// <summary>Test seam invoked before session admission, allowing delivery to race with session closure.</summary>
     internal Action? BeforeDiskWatcherCallbackForTests { get; set; }
 
-    /// <summary>Test observer for completed file-change callbacks, including ignored build artifacts.</summary>
+    /// <summary>Test observer for completed file-change and rename callbacks, including ignored paths.</summary>
     internal Action<FileSystemEventArgs>? AfterDiskWatcherChangeForTests { get; set; }
 
     /// <summary>
@@ -292,10 +300,17 @@ public sealed class SolutionManager
     /// Text-edit write path: preflight, persist the document, apply the cleaned candidate, publish overlay.
     /// Callers must not write the file first — persistence happens after preflight.
     /// </summary>
-    public async Task<WorkspaceWriteResult> UpdateDocumentInMemoryAsync(
+    public Task<WorkspaceWriteResult> UpdateDocumentInMemoryAsync(
         string filePath,
         string newText,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default) =>
+        UpdateDocumentInMemoryAsync(filePath, newText, writeUnregisteredPath: false, cancellationToken);
+
+    internal async Task<WorkspaceWriteResult> UpdateDocumentInMemoryAsync(
+        string filePath,
+        string newText,
+        bool writeUnregisteredPath,
+        CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(filePath))
         {
@@ -306,8 +321,30 @@ public sealed class SolutionManager
         await _workspaceLock.WaitAsync(cancellationToken);
         try
         {
-            return await UpdateDocumentInMemoryUnderLockAsync(fullPath, newText ?? string.Empty, cancellationToken)
+            var text = newText ?? string.Empty;
+            var write = await UpdateDocumentInMemoryUnderLockAsync(
+                    fullPath,
+                    text,
+                    checkedPatchSource: null,
+                    cancellationToken)
                 .ConfigureAwait(false);
+            if (!writeUnregisteredPath || !write.ShouldWriteSkippedPathToDisk)
+            {
+                return write;
+            }
+
+            // Membership and its reader settings must still describe the same workspace at the disk-only commit.
+            var encoding = await GetTextWriteEncodingUnderLockAsync(
+                    fullPath,
+                    text,
+                    SourceTextEncoding.ForDiskPath(fullPath),
+                    unregisteredPatchReplacement: null,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            Directory.CreateDirectory(Path.GetDirectoryName(fullPath)!);
+            await WriteTrackedTextUnderLockAsync(fullPath, text, encoding, cancellationToken).ConfigureAwait(false);
+            NoteUnrepresentableSourcePath(fullPath);
+            return new WorkspaceWriteResult { Status = WorkspaceWriteStatus.FullSuccess, SavedPaths = [fullPath] };
         }
         finally
         {
@@ -658,15 +695,81 @@ public sealed class SolutionManager
         }
     }
 
+    internal async Task<string> ReadPatchSourceAsync(
+        string fullPath,
+        (string Original, string Replacement) fragments,
+        CancellationToken cancellationToken)
+    {
+        await _workspaceLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            var source = await ReadPatchFileUnderLockAsync(fullPath, fragments, verifyReaders: true, cancellationToken).ConfigureAwait(false);
+            return source.Text;
+        }
+        finally
+        {
+            _workspaceLock.Release();
+        }
+    }
+
+    /// <summary>Applies a patch to the checked disk text, or returns null so the caller can rematch.</summary>
+    internal async Task<WorkspaceWriteResult?> TryApplyPatchTextAsync(
+        string fullPath,
+        string sourceText,
+        string updatedText,
+        (string Original, string Replacement) fragments,
+        CancellationToken cancellationToken)
+    {
+        await _workspaceLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            // A patch may have matched before another edit committed. Keep the comparison and both
+            // write paths in one critical section so a stale match cannot replace that edit. The
+            // loaded readers are checked again at persistence if the patch still matches.
+            var current = await ReadPatchFileUnderLockAsync(fullPath, fragments, verifyReaders: false, cancellationToken).ConfigureAwait(false);
+            if (!string.Equals(sourceText, current.Text, StringComparison.Ordinal))
+            {
+                return null;
+            }
+
+            var write = await UpdateDocumentInMemoryUnderLockAsync(
+                    fullPath,
+                    updatedText,
+                    current,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            if (!write.ShouldWriteSkippedPathToDisk)
+            {
+                return write;
+            }
+
+            var encoding = await GetTextWriteEncodingUnderLockAsync(
+                    fullPath, updatedText, current.Encoding, unregisteredPatchReplacement: fragments.Replacement, cancellationToken)
+                .ConfigureAwait(false);
+            await WriteTrackedTextUnderLockAsync(fullPath, updatedText, encoding, cancellationToken).ConfigureAwait(false);
+            return new WorkspaceWriteResult { Status = WorkspaceWriteStatus.FullSuccess, SavedPaths = [fullPath] };
+        }
+        finally
+        {
+            _workspaceLock.Release();
+        }
+    }
+
     internal async Task WriteTrackedTextAsync(
         string fullPath,
         string text,
         Encoding encoding,
         CancellationToken cancellationToken)
     {
-        var canonical = InputPathCanon.TryCanonicalize(fullPath) ?? fullPath;
-        await WriteTrackedTextToDiskAsync(canonical, text, encoding, cancellationToken).ConfigureAwait(false);
-        await PublishOwnNonCSharpTextAsync(canonical, text, encoding, cancellationToken).ConfigureAwait(false);
+        await _workspaceLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await WriteTrackedTextUnderLockAsync(fullPath, text, encoding, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            _workspaceLock.Release();
+        }
     }
 
     internal void WriteTrackedText(string fullPath, string text, Encoding encoding)
@@ -783,6 +886,8 @@ public sealed class SolutionManager
                     newSolution,
                     oldSolution,
                     ResolveOperationContext(oldSolution),
+                    singleFilePath: null,
+                    verifySourceReaders: false,
                     cancellationToken)
                 .ConfigureAwait(false);
         }
@@ -1004,12 +1109,14 @@ public sealed class SolutionManager
                     attempt)
                 .ConfigureAwait(false);
         }
-        finally
+        catch
         {
             if (attempt is { Recorded: false })
             {
                 _usage!.RecordLoad(attempt, success: false);
             }
+
+            throw;
         }
     }
 
@@ -1024,49 +1131,17 @@ public sealed class SolutionManager
         WorkspaceLoadSource loadSource,
         UsageLoadAttempt? usageAttempt)
     {
-        if (string.IsNullOrWhiteSpace(solutionOrProjectPath))
-        {
-            throw new ArgumentException("Solution or project path cannot be empty.", nameof(solutionOrProjectPath));
-        }
-
-        var fullPath = Path.GetFullPath(solutionOrProjectPath);
-        if (WorkspaceEntryPolicy.IsDirectProject(fullPath))
-        {
-            if (FileSettings.RequireSolution)
-            {
-                var rejection = WorkspaceEntryPolicy.Rejection(FileSettings);
-                if (loadSource == WorkspaceLoadSource.ConfigFile && WorkspaceEntryGuidance.Current is { } lazyGuidance)
-                {
-                    lazyGuidance.Message = rejection;
-                }
-
-                throw new ArgumentException(rejection);
-            }
-
-            if (WorkspaceEntryGuidance.Current is { } guidance)
-            {
-                guidance.Message = WorkspaceEntryPolicy.Warning(FileSettings);
-            }
-        }
-
-        if (!File.Exists(fullPath))
-        {
-            throw new FileNotFoundException("Solution or project file not found.", fullPath);
-        }
-
-        var buildArgsPassed = !string.IsNullOrWhiteSpace(buildArgs);
-
-        var normalizedConfiguration = DotNetConfigurationArguments.Normalize(configuration, nameof(configuration));
-        var platformRaw = DotNetConfigurationArguments.Normalize(platform, nameof(platform));
-        var normalizedPlatform = DotNetConfigurationArguments.NormalizePlatform(platform);
-        var normalizedTargetFramework = DotNetConfigurationArguments.Normalize(targetFramework, nameof(targetFramework));
-        var normalizedBuildArgs = DotNetBuildArguments.Normalize(buildArgs);
+        var fromConfig = loadSource == WorkspaceLoadSource.ConfigFile;
+        var explicitInputs = fromConfig
+            ? default
+            : NormalizeWorkspaceLoadInputs(solutionOrProjectPath, configuration, platform, targetFramework, buildArgs, fromConfig);
 
         if (usageAttempt is not null)
         {
             usageAttempt.WaitStarted = Stopwatch.GetTimestamp();
         }
 
+        var configReadWait = fromConfig ? _usage?.MeasureWorkspaceReadLockWait() : null;
         await _workspaceLock.WaitAsync(cancellationToken);
         if (usageAttempt is not null)
         {
@@ -1074,12 +1149,27 @@ public sealed class SolutionManager
             usageAttempt.GraphStale = ProjectGraphStale;
         }
 
-        _workspaceLoadInProgress = true;
         try
         {
             // Cancel and Release can race: SemaphoreSlim may grant the waiter after its token
             // is already cancelled. Do not run this load; the in-progress load keeps its own token.
             cancellationToken.ThrowIfCancellationRequested();
+
+            // An explicit load may have published while the configured load waited for the lock.
+            // See docs/project-review-2026-11-25/task-05-p2-lazy-workspace-selection-hi.md.
+            if (fromConfig && _solution is { } published)
+            {
+                configReadWait?.Dispose();
+                usageAttempt = null;
+                return new WorkspaceLoadPreparationResult(published, LastShadowCopyResults, CaptureProjectListUnderLock());
+            }
+
+            _workspaceLoadInProgress = true;
+            var (fullPath, normalizedConfiguration, platformRaw, normalizedPlatform,
+                normalizedTargetFramework, normalizedBuildArgs) = fromConfig
+                ? NormalizeWorkspaceLoadInputs(solutionOrProjectPath, configuration, platform, targetFramework, buildArgs, fromConfig)
+                : explicitInputs;
+            var buildArgsPassed = !string.IsNullOrWhiteSpace(buildArgs);
 
             var fileConfiguration = DotNetConfigurationArguments.Normalize(
                 FileSettings.Configuration,
@@ -1229,6 +1319,59 @@ public sealed class SolutionManager
             _workspaceLoadInProgress = false;
             _workspaceLock.Release();
         }
+    }
+
+    private (
+        string FullPath,
+        string? Configuration,
+        string? PlatformRaw,
+        string? Platform,
+        string? TargetFramework,
+        string? BuildArgs) NormalizeWorkspaceLoadInputs(
+        string solutionOrProjectPath,
+        string? configuration,
+        string? platform,
+        string? targetFramework,
+        string? buildArgs,
+        bool fromConfig)
+    {
+        if (string.IsNullOrWhiteSpace(solutionOrProjectPath))
+        {
+            throw new ArgumentException("Solution or project path cannot be empty.", nameof(solutionOrProjectPath));
+        }
+
+        var fullPath = Path.GetFullPath(solutionOrProjectPath);
+        if (WorkspaceEntryPolicy.IsDirectProject(fullPath))
+        {
+            if (FileSettings.RequireSolution)
+            {
+                var rejection = WorkspaceEntryPolicy.Rejection(FileSettings);
+                if (fromConfig && WorkspaceEntryGuidance.Current is { } lazyGuidance)
+                {
+                    lazyGuidance.Message = rejection;
+                }
+
+                throw new ArgumentException(rejection);
+            }
+
+            if (WorkspaceEntryGuidance.Current is { } guidance)
+            {
+                guidance.Message = WorkspaceEntryPolicy.Warning(FileSettings);
+            }
+        }
+
+        if (!File.Exists(fullPath))
+        {
+            throw new FileNotFoundException("Solution or project file not found.", fullPath);
+        }
+
+        return (
+            fullPath,
+            DotNetConfigurationArguments.Normalize(configuration, nameof(configuration)),
+            DotNetConfigurationArguments.Normalize(platform, nameof(platform)),
+            DotNetConfigurationArguments.NormalizePlatform(platform),
+            DotNetConfigurationArguments.Normalize(targetFramework, nameof(targetFramework)),
+            DotNetBuildArguments.Normalize(buildArgs));
     }
 
     private string? GetUsageWorkspaceKey() =>
@@ -1923,12 +2066,284 @@ public sealed class SolutionManager
         _sanitizedPublishedSolutionSource = null;
     }
 
+    private async Task<PatchFileText> ReadPatchFileUnderLockAsync(
+        string fullPath,
+        (string Original, string Replacement) fragments,
+        bool verifyReaders,
+        CancellationToken cancellationToken)
+    {
+        var bytes = await File.ReadAllBytesAsync(fullPath, cancellationToken).ConfigureAwait(false);
+        var encoding = GetFileEncodingUnderLock(fullPath, bytes);
+        if (verifyReaders && encoding.Preamble.IsEmpty && WorkspaceDiskPathFilter.IsCSharpSource(fullPath))
+        {
+            await EnsureSourceReadersAreCurrentUnderLockAsync(
+                    fullPath, GetSourceReaderProjectsUnderLock(fullPath), matchMembership: true, cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        var strict = (Encoding)encoding.Clone();
+        strict.DecoderFallback = DecoderFallback.ExceptionFallback;
+        var content = bytes.AsSpan(encoding.Preamble.Length);
+        var text = strict.GetString(content);
+        // Some legacy code pages decode multiple byte sequences to the same text. Rewriting
+        // such a sequence would change bytes outside the match even with a strict decoder.
+        if (encoding is not (UTF8Encoding or UnicodeEncoding or UTF32Encoding)
+            && !content.SequenceEqual(strict.GetBytes(text)))
+        {
+            throw new InvalidDataException($"File cannot be decoded losslessly as {encoding.WebName}: {fullPath}");
+        }
+
+        if (encoding.Preamble.IsEmpty && WorkspaceDiskPathFilter.IsCSharpSource(fullPath)
+            && !GetSourceCodePagesUnderLock(fullPath).Any()
+            && (!SourceTextEncoding.IsUnshiftedAscii(text) || !SourceTextEncoding.IsInvariantAscii(fragments.Original)))
+        {
+            // Even valid UTF-8 may represent different text under an unloaded project's CodePage.
+            // The entire search has to mean what the caller requested. Flexible matches only vary whitespace,
+            // which the unshifted source check limits to space, tab and line endings.
+            // Loading the owner cannot fix malformed replacement text. Report that error first.
+            PersistedPayload.EncodeExactly(fragments.Replacement, encoding);
+            throw new InvalidDataException($"Cannot determine how the owning project reads the BOM-free source: {fullPath}. Load its project before patching.");
+        }
+
+        return new PatchFileText(text, encoding);
+    }
+
+    private Encoding GetFileEncodingUnderLock(string fullPath, byte[] bytes)
+    {
+        if (SourceTextEncoding.DetectBomEncoding(bytes) is { } bom)
+        {
+            return bom;
+        }
+
+        Encoding? fallback = null;
+        int? detectedCodePage = null;
+        foreach (var projectCodePage in GetSourceCodePagesUnderLock(fullPath))
+        {
+            // The cached text may have used a BOM that the editor has since removed. Use the
+            // evaluated CodePage of the owning project. See docs/project-review-2026-11-25/task-29-p1-patch-fallback-code-page-hi.md.
+            if (projectCodePage is not { } codePage)
+            {
+                MarkProjectGraphStaleFromGraphFile();
+                throw new InvalidDataException(
+                    $"Cannot determine the project's source encoding for BOM-free file: {fullPath}. Run load_workspace to refresh project settings.");
+            }
+
+            if (codePage == 0)
+            {
+                // Like Roslyn's default source loader, try UTF-8 before the platform code page.
+                // A cached document may predate an external conversion of the same text.
+                // See docs/project-review-2026-11-25/task-37-p1-redetect-changed-source-encoding-hi.md.
+                detectedCodePage ??= DetectBomFreeCodePage(bytes);
+                codePage = detectedCodePage.Value;
+            }
+
+            if (fallback is not null && fallback.CodePage != codePage)
+            {
+                // The loaded readers already disagree, so no BOM-free interpretation is safe.
+                // Reopening can resolve the conflict if the project inputs have changed.
+                MarkProjectGraphStaleFromGraphFile();
+                throw new InvalidDataException(
+                    $"The loaded projects containing {fullPath} specify conflicting source encodings. Run load_workspace to refresh project settings.");
+            }
+
+            fallback ??= SourceTextEncoding.WithoutBom(codePage);
+        }
+
+        return fallback ?? SourceTextEncoding.BomFreeUtf8;
+    }
+
+    private IEnumerable<Project> GetSourceReaderProjectsUnderLock(string fullPath)
+    {
+        var solution = _workspace?.CurrentSolution;
+        if (solution is null)
+        {
+            yield break;
+        }
+
+        foreach (var id in solution.GetDocumentIdsWithFilePath(fullPath))
+        {
+            // Project CodePage applies to compiler inputs, not additional files or analyzer configs.
+            if (solution.GetDocument(id) is { } document && _pathComparer.Equals(document.FilePath, fullPath))
+            {
+                yield return document.Project;
+            }
+        }
+    }
+
+    private IEnumerable<int?> GetSourceCodePagesUnderLock(string fullPath) =>
+        GetSourceReaderProjectsUnderLock(fullPath).Select(project => _loadedProjectMetadata.GetValueOrDefault(project.Id).CodePage);
+
+    private async Task EnsureSourceReadersAreCurrentUnderLockAsync(
+        string fullPath,
+        IEnumerable<Project> readers,
+        bool matchMembership,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var projects = readers.ToArray();
+        if (_workspace is null || projects.Length == 0)
+        {
+            return;
+        }
+
+        // Evaluated settings can change through an import, a condition or a glob without a project-file
+        // watcher event. Compare the effective readers before relying on the loaded CodePage values.
+        // See docs/project-review-2026-11-25/task-47-p1-stale-project-code-page-hi.md.
+        var designTimeReadersMatch = false;
+        if (!ProjectGraphStaleFromGraphFile && projects.All(project => File.Exists(project.FilePath)))
+        {
+            try
+            {
+                var sourcePath = matchMembership ? fullPath : null;
+                await using var evaluated = await WorkspaceProjectDocumentRegistration.OpenAsync(_workspace, projects, _logger, cancellationToken)
+                    .ConfigureAwait(false);
+                designTimeReadersMatch = evaluated is not null && await evaluated.SourceCodePagesMatchAsync(
+                        _loadedProjectMetadata, sourcePath, cancellationToken)
+                    .ConfigureAwait(false);
+                // The design-time check cannot attest to the properties used by an ordinary Csc.
+                // See docs/project-review-2026-11-25/task-49-p1-build-source-encoding-hi.md.
+                if (designTimeReadersMatch && _loadedPath is not null && await WorkspaceBuildSourceReaders.MatchAsync(
+                        _loadedPath, LoadedConfiguration, LoadedPlatform, LoadedPlatformRaw, LoadedBuildArgs,
+                        _workspace.CurrentSolution.Projects, projects, _loadedProjectMetadata, sourcePath, cancellationToken)
+                    .ConfigureAwait(false))
+                {
+                    return;
+                }
+            }
+            catch (Exception ex) when (!cancellationToken.IsCancellationRequested
+                && ex is IOException or InvalidOperationException or NotSupportedException or TargetInvocationException
+                    or Microsoft.Build.Exceptions.InvalidProjectFileException)
+            {
+                _logger.LogWarning(ex, "Could not confirm the project source readers for {Path}", fullPath);
+            }
+        }
+
+        if (designTimeReadersMatch)
+        {
+            throw new InvalidDataException(
+                $"Could not confirm that the ordinary build uses the loaded source encodings and membership for this BOM-free source: {fullPath}");
+        }
+
+        MarkProjectGraphStaleFromGraphFile();
+        throw new InvalidDataException(
+            $"The loaded project source encodings could not be confirmed. Run load_workspace before editing the BOM-free source: {fullPath}");
+    }
+
+    private async Task<Encoding> GetTextWriteEncodingUnderLockAsync(
+        string fullPath,
+        string text,
+        Encoding existingEncoding,
+        string? unregisteredPatchReplacement,
+        CancellationToken cancellationToken)
+    {
+        if (!WorkspaceDiskPathFilter.IsCSharpSource(fullPath))
+        {
+            return existingEncoding;
+        }
+
+        // A BOM disambiguates project readers, but the OS requires a script's #! in the first two bytes.
+        // See docs/project-review-2026-11-25/task-44-p1-source-write-reader-encoding-hi.md.
+        var script = text.StartsWith("#!", StringComparison.Ordinal);
+        var candidate = script ? SourceTextEncoding.BomFreeUtf8 : existingEncoding;
+        if (unregisteredPatchReplacement is not null && existingEncoding.Preamble.IsEmpty)
+        {
+            // A BOM would reinterpret untouched national-variant ASCII characters in an unloaded project.
+            // Keep its bytes unmarked and edit only characters with an invariant seven-bit spelling.
+            if (!SourceTextEncoding.IsUnshiftedAscii(text) || !SourceTextEncoding.IsInvariantAscii(unregisteredPatchReplacement))
+            {
+                PersistedPayload.FromText(text, candidate);
+                throw new InvalidDataException($"Cannot determine how the owning project reads the BOM-free source: {fullPath}. Load its project before patching.");
+            }
+
+            return candidate;
+        }
+
+        if (!candidate.Preamble.IsEmpty
+            || await CanReadBomFreeTextUnderLockAsync(fullPath, text, candidate, script, cancellationToken).ConfigureAwait(false))
+        {
+            return candidate;
+        }
+
+        if (script)
+        {
+            throw new IOException($"The project's source encoding cannot preserve the text of this BOM-free UTF-8 script: {fullPath}");
+        }
+
+        return Encoding.UTF8;
+    }
+
+    private async Task<bool> CanReadBomFreeTextUnderLockAsync(
+        string fullPath,
+        string text,
+        Encoding encoding,
+        bool script,
+        CancellationToken cancellationToken)
+    {
+        var readers = GetSourceCodePagesUnderLock(fullPath).Distinct().ToArray();
+        if (readers.Length == 0)
+        {
+            // The eventual MSBuild owner can be outside the loaded solution. Ordinary files can carry
+            // an explicit BOM; a standalone script needs the portable ASCII spelling and no BOM.
+            if (!script)
+            {
+                // Keep the exact-encoding and accidental-preamble checks on the original representation.
+                PersistedPayload.FromText(text, encoding);
+                return false;
+            }
+
+            if (!SourceTextEncoding.IsUnshiftedAscii(text) || !SourceTextEncoding.IsInvariantAscii(text.AsSpan(2)))
+            {
+                return false;
+            }
+
+            var possibleReaders = _workspace?.CurrentSolution.Projects
+                .Where(project => project.Language == LanguageNames.CSharp)
+                .ToArray() ?? [];
+            await EnsureSourceReadersAreCurrentUnderLockAsync(fullPath, possibleReaders, matchMembership: false, cancellationToken)
+                .ConfigureAwait(false);
+            readers = possibleReaders
+                .Select(project => _loadedProjectMetadata.GetValueOrDefault(project.Id).CodePage)
+                .Distinct()
+                .ToArray();
+        }
+
+        byte[]? bytes = null;
+        foreach (var reader in readers)
+        {
+            if (reader == encoding.CodePage || (reader == 0 && encoding.CodePage == Encoding.UTF8.CodePage))
+            {
+                continue;
+            }
+
+            if (reader is null)
+            {
+                return false;
+            }
+
+            // Removing the last invalid UTF-8 byte can change the interpretation of untouched legacy bytes.
+            bytes ??= PersistedPayload.FromText(text, encoding);
+            var codePage = reader == 0 ? DetectBomFreeCodePage(bytes) : reader.Value;
+            if (codePage != encoding.CodePage
+                && !string.Equals(SourceTextEncoding.WithoutBom(codePage).GetString(bytes), text, StringComparison.Ordinal))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static int DetectBomFreeCodePage(byte[] bytes) => System.Text.Unicode.Utf8.IsValid(bytes)
+        ? Encoding.UTF8.CodePage
+        : (CodePagesEncodingProvider.Instance.GetEncoding(0) ?? Encoding.Default).CodePage;
+
     /// <summary>
     /// Must be called with <see cref="_workspaceLock"/> held.
     /// </summary>
     private async Task<WorkspaceWriteResult> UpdateDocumentInMemoryUnderLockAsync(
         string filePath,
         string newText,
+        PatchFileText? checkedPatchSource,
         CancellationToken cancellationToken)
     {
         var workspace = _workspace;
@@ -1955,13 +2370,13 @@ public sealed class SolutionManager
             return RememberWrite(WorkspaceWriteResult.Skipped("missing-on-disk"));
         }
 
-        var existingDocument = baseSolution.GetDocument(documentIds[0]);
-        var existingText = existingDocument is null
-            ? null
-            : await existingDocument.GetTextAsync(cancellationToken).ConfigureAwait(false);
         // One encoding and one text for every membership. MSBuildWorkspace rewrites each document
         // with SourceText.Encoding; different encodings would flip the linked file's BOM.
-        var writeEncoding = SourceTextEncoding.ResolveForWrite(existingText, candidate: null, fullPath);
+        var existingEncoding = checkedPatchSource?.Encoding
+            ?? GetFileEncodingUnderLock(fullPath, await File.ReadAllBytesAsync(fullPath, cancellationToken).ConfigureAwait(false));
+        var writeEncoding = await GetTextWriteEncodingUnderLockAsync(
+                fullPath, newText, existingEncoding, unregisteredPatchReplacement: null, cancellationToken)
+            .ConfigureAwait(false);
         var shared = SourceText.From(newText, writeEncoding);
         var candidate = baseSolution;
         foreach (var documentId in documentIds)
@@ -1969,7 +2384,13 @@ public sealed class SolutionManager
             candidate = candidate.WithDocumentText(documentId, shared);
         }
         var context = CreateVerifiedWriteContext(_solution, baseSolution);
-        return await ApplyWorkspaceWriteUnderLockAsync(candidate, baseSolution, context, cancellationToken)
+        return await ApplyWorkspaceWriteUnderLockAsync(
+                candidate,
+                baseSolution,
+                context,
+                fullPath,
+                verifySourceReaders: existingEncoding.Preamble.IsEmpty || writeEncoding.Preamble.IsEmpty,
+                cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -1977,6 +2398,8 @@ public sealed class SolutionManager
         Solution candidate,
         Solution baseForDocuments,
         WorkspaceWriteOperationContext operationContext,
+        string? singleFilePath,
+        bool verifySourceReaders,
         CancellationToken cancellationToken)
     {
         var workspace = _workspace;
@@ -2000,66 +2423,145 @@ public sealed class SolutionManager
             return RememberWrite(WorkspaceWriteResult.PreflightRejected(preflight.Reason ?? "preflight-rejected"));
         }
 
-        var cleaned = preflight.CleanedCandidate;
         var saved = new List<string>();
         var savedTexts = new List<(string Path, string Text, Encoding WriteEncoding)>();
-        var cancelled = false;
-        Exception? persistError = null;
+        var registered = new List<DocumentInfo>();
         try
         {
-            await PersistDocumentChangesAsync(baseForDocuments, candidate, saved, savedTexts, cancellationToken)
+            var (residual, added) = await WorkspaceResidualWrite.PrepareAsync(
+                    workspace.CurrentSolution,
+                    preflight.CleanedCandidate,
+                    cancellationToken)
                 .ConfigureAwait(false);
+            await using var registration = await WorkspaceProjectDocumentRegistration.OpenAsync(
+                    workspace, added.Select(static item => item.Document.Project), _logger, cancellationToken)
+                .ConfigureAwait(false);
+            await PersistDocumentChangesAsync(
+                    baseForDocuments,
+                    candidate,
+                    saved,
+                    savedTexts,
+                    singleFilePath,
+                    verifySourceReaders,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            if (registration is not null)
+            {
+                registration.BeforeSavingProjectForTests = BeforeSavingProjectRegistrationForTests;
+                registration.AfterClosingBuildHostForTests = AfterClosingProjectBuildHostForTests;
+                await PersistAddedDocumentsAsync(registration, added, registered, saved, savedTexts, cancellationToken)
+                    .ConfigureAwait(false);
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+            var applied = ApplyResidualWorkspaceChanges(workspace, residual, saved);
+            PublishRegisteredDocuments(workspace, registered);
+            if (applied)
+            {
+                if (PublishConfirmedDocumentTexts(workspace, savedTexts))
+                {
+                    PublishSavedDocumentTexts(workspace.CurrentSolution, savedTexts);
+                    LogProcessWorkingSet("document_update");
+                    return RememberWrite(new WorkspaceWriteResult
+                    {
+                        Status = WorkspaceWriteStatus.FullSuccess,
+                        SavedPaths = saved,
+                        WorkspaceApplied = true,
+                        OverlayPublished = true,
+                    });
+                }
+
+                return RememberWrite(new WorkspaceWriteResult
+                {
+                    Status = WorkspaceWriteStatus.ReconciliationFailed,
+                    Reason = "confirmed-text-unrepresentable",
+                    SavedPaths = saved,
+                    UnappliedProjectState = true,
+                });
+            }
         }
         catch (OperationCanceledException)
         {
-            cancelled = true;
+            PublishRegisteredDocuments(workspace, registered);
+            return FinishAfterSideEffects(workspace, saved, savedTexts, WorkspaceWriteStatus.Cancelled, "cancelled");
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException or AggregateException)
         {
-            persistError = ex;
-        }
-
-        if (cancelled || persistError is not null)
-        {
-            return await FinishAfterSideEffectsAsync(
-                    workspace,
-                    saved,
-                    savedTexts,
-                    unappliedProject: true,
-                    cancelled ? WorkspaceWriteStatus.Cancelled : WorkspaceWriteStatus.PartialPersistence,
-                    cancelled ? "cancelled" : persistError!.GetType().Name + ": " + persistError.Message,
-                    cancellationToken)
-                .ConfigureAwait(false);
-        }
-
-        BeginRepeatWrites(saved);
-        if (TryApplyWorkspaceChanges(workspace, cleaned))
-        {
-            CommitRepeatWrites(saved);
-            PublishSavedDocumentTexts(workspace.CurrentSolution, savedTexts);
-            LogProcessWorkingSet("document_update");
-            return RememberWrite(new WorkspaceWriteResult
-            {
-                Status = WorkspaceWriteStatus.FullSuccess,
-                SavedPaths = saved,
-                WorkspaceApplied = true,
-                OverlayPublished = true,
-            });
-        }
-
-        _logger.LogWarning(
-            "TryApplyChanges rejected after preflight. saved={SavedCount}",
-            saved.Count);
-        AbandonRepeatWrites(saved);
-        return await FinishAfterSideEffectsAsync(
+            PublishRegisteredDocuments(workspace, registered);
+            return FinishAfterSideEffects(
                 workspace,
                 saved,
                 savedTexts,
-                unappliedProject: true,
                 WorkspaceWriteStatus.PartialPersistence,
-                "try-apply-rejected",
-                cancellationToken)
-            .ConfigureAwait(false);
+                ex.GetType().Name + ": " + ex.Message);
+        }
+
+        _logger.LogWarning("TryApplyChanges rejected or incomplete after preflight. saved={SavedCount}", saved.Count);
+        return FinishAfterSideEffects(
+            workspace,
+            saved,
+            savedTexts,
+            WorkspaceWriteStatus.PartialPersistence,
+            "try-apply-rejected");
+    }
+
+    private bool ApplyResidualWorkspaceChanges(
+        Microsoft.CodeAnalysis.Workspace workspace,
+        Solution residual,
+        List<string> saved)
+    {
+        WorkspaceResidualWrite.EnsureNoRemovedWritePaths(residual.GetChanges(workspace.CurrentSolution), saved);
+        return TryApplyWorkspaceChanges(workspace, residual);
+    }
+
+    private async Task PersistAddedDocumentsAsync(
+        WorkspaceProjectDocumentRegistration registration,
+        IReadOnlyList<(Document Document, string Path, SourceText Text)> added,
+        List<DocumentInfo> registered,
+        List<string> saved,
+        List<(string Path, string Text, Encoding WriteEncoding)> savedTexts,
+        CancellationToken cancellationToken)
+    {
+        foreach (var (document, path, text) in added)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            var content = text.ToString();
+            var encoding = text.Encoding!;
+            var afterStagingPrefix = AfterStagingPrefixForTests;
+            Baseline.RecordWrite(path);
+            await WorkspaceFilePersistence.CreateTextAsync(
+                    _diskWatcherSession,
+                    path,
+                    content,
+                    encoding,
+                    afterStagingPrefix is null ? null : () => afterStagingPrefix(path),
+                    cancellationToken)
+                .ConfigureAwait(false);
+            saved.Add(path);
+            savedTexts.Add((path, content, encoding));
+            AfterDocumentCommitForTests?.Invoke(path);
+            await registration.AddDocumentAsync(document.Project.Id, path, cancellationToken).ConfigureAwait(false);
+            registered.Add(DocumentInfo.Create(
+                document.Id,
+                document.Name,
+                document.Folders,
+                document.SourceCodeKind,
+                TextLoader.From(TextAndVersion.Create(text, VersionStamp.Create(), path)),
+                path));
+        }
+    }
+
+    private void PublishRegisteredDocuments(Microsoft.CodeAnalysis.Workspace workspace, List<DocumentInfo> registered)
+    {
+        if (registered.Count == 0)
+        {
+            return;
+        }
+
+        WorkspaceDocumentDiskSync.Publish(workspace, workspace.CurrentSolution.AddDocuments([.. registered]));
+        registered.Clear();
+        NoteRawWorkspaceRevision();
     }
 
     private async Task WriteTrackedTextToDiskAsync(
@@ -2080,11 +2582,13 @@ public sealed class SolutionManager
         }
 
         Baseline.RecordWrite(canonical);
+        var afterStagingPrefix = AfterStagingPrefixForTests;
         await WorkspaceFilePersistence.WriteTextAsync(
                 _diskWatcherSession,
                 canonical,
                 text,
                 encoding,
+                afterStagingPrefix is null ? null : () => afterStagingPrefix(canonical),
                 cancellationToken)
             .ConfigureAwait(false);
         NoteGraphFileWrite(canonical);
@@ -2095,80 +2599,128 @@ public sealed class SolutionManager
         Solution newSolution,
         List<string> saved,
         List<(string Path, string Text, Encoding WriteEncoding)> savedTexts,
+        string? singleFilePath,
+        bool verifySourceReaders,
         CancellationToken cancellationToken)
     {
-        foreach (var project in newSolution.Projects)
+        var savedPaths = new HashSet<string>(saved, _pathComparer);
+        cancellationToken.ThrowIfCancellationRequested();
+        foreach (var newDoc in GetDocumentsToPersist(oldSolution, newSolution))
         {
-            foreach (var newDoc in project.Documents)
+            cancellationToken.ThrowIfCancellationRequested();
+            var oldDoc = (TextDocument?)oldSolution.GetDocument(newDoc.Id) ?? oldSolution.GetAdditionalDocument(newDoc.Id);
+            if (newDoc.FilePath is null || oldDoc is null)
             {
-                if (newDoc.FilePath is null)
+                continue;
+            }
+
+            var fullPath = Path.GetFullPath(newDoc.FilePath);
+            // Linked documents share the first successful write to their physical path.
+            if (savedPaths.Contains(fullPath))
+            {
+                continue;
+            }
+
+            if (IsMissingOnDisk(fullPath))
+            {
+                _logger.LogWarning(
+                    "Skip persist of missing-on-disk path {Path} until workspace reload.",
+                    fullPath);
+                continue;
+            }
+
+            var newSourceText = await newDoc.GetTextAsync(cancellationToken).ConfigureAwait(false);
+            var text = newSourceText.ToString();
+            var oldSourceText = await oldDoc.GetTextAsync(cancellationToken).ConfigureAwait(false);
+            var singleFileWrite = _pathComparer.Equals(fullPath, singleFilePath);
+            var writeEncoding = SourceTextEncoding.ResolveForWrite(singleFileWrite ? null : oldSourceText, newSourceText, fullPath);
+            var sameText = oldSourceText.ContentEquals(newSourceText);
+            if (!singleFileWrite && sameText)
+            {
+                continue;
+            }
+
+            if (singleFileWrite && verifySourceReaders && WorkspaceDiskPathFilter.IsCSharpSource(fullPath))
+            {
+                await EnsureSourceReadersAreCurrentUnderLockAsync(
+                        fullPath, GetSourceReaderProjectsUnderLock(fullPath), matchMembership: true, cancellationToken)
+                    .ConfigureAwait(false);
+            }
+
+            // A watcher can lag behind a text or encoding change. Confirm the explicit target on disk,
+            // then publish any stale snapshot without rewriting bytes that already match.
+            // See docs/project-review-2026-11-25/task-28-p1-full-write-stale-snapshot-hi.md.
+            if (singleFileWrite && await FileMatchesCandidateAsync(fullPath, text, writeEncoding, cancellationToken).ConfigureAwait(false))
+            {
+                if (!sameText || oldSourceText.Encoding is not { } previous
+                    || previous.CodePage != writeEncoding.CodePage || !previous.Preamble.SequenceEqual(writeEncoding.Preamble))
                 {
-                    continue;
+                    savedPaths.Add(fullPath);
+                    savedTexts.Add((fullPath, text, writeEncoding));
                 }
 
-                var oldDoc = oldSolution.GetDocument(newDoc.Id);
-                var newSourceText = await newDoc.GetTextAsync(cancellationToken).ConfigureAwait(false);
-                var text = newSourceText.ToString();
-                SourceText? oldSourceText = null;
-                if (oldDoc is not null)
-                {
-                    oldSourceText = await oldDoc.GetTextAsync(cancellationToken).ConfigureAwait(false);
-                    if (string.Equals(oldSourceText.ToString(), text, StringComparison.Ordinal))
-                    {
-                        continue;
-                    }
-                }
+                continue;
+            }
 
-                var fullPath = Path.GetFullPath(newDoc.FilePath);
-                if (saved.Any(savedPath => string.Equals(Path.GetFullPath(savedPath), fullPath, _pathComparison)))
-                {
-                    // The same physical file is linked into another project. The first write stored the
-                    // confirmed text. Writing this document again would either repeat that payload or
-                    // replace the file with a different one.
-                    continue;
-                }
+            await WriteTrackedTextToDiskAsync(fullPath, text, writeEncoding, cancellationToken).ConfigureAwait(false);
+            savedPaths.Add(fullPath);
+            saved.Add(fullPath);
+            savedTexts.Add((fullPath, text, writeEncoding));
+            AfterDocumentCommitForTests?.Invoke(fullPath);
+            if (CancelAfterDocumentWrites > 0 && saved.Count >= CancelAfterDocumentWrites)
+            {
+                CancelAfterDocumentWrites = 0;
+                throw new OperationCanceledException("CancelAfterDocumentWrites");
+            }
+        }
+    }
 
-                if (IsMissingOnDisk(fullPath))
-                {
-                    _logger.LogWarning(
-                        "Skip persist of missing-on-disk path {Path} until workspace reload.",
-                        fullPath);
-                    continue;
-                }
+    private static async Task<bool> FileMatchesCandidateAsync(
+        string path,
+        string text,
+        Encoding writeEncoding,
+        CancellationToken cancellationToken)
+    {
+        var file = new FileInfo(path);
+        if (!file.Exists || file.Length != (long)writeEncoding.Preamble.Length + writeEncoding.GetByteCount(text))
+        {
+            return false;
+        }
 
-                if (oldDoc is null)
-                {
-                    var directory = Path.GetDirectoryName(fullPath);
-                    if (!string.IsNullOrWhiteSpace(directory))
-                    {
-                        Directory.CreateDirectory(directory);
-                    }
-                }
+        var bytes = await File.ReadAllBytesAsync(path, cancellationToken).ConfigureAwait(false);
+        return bytes.AsSpan().SequenceEqual(PersistedPayload.FromText(text, writeEncoding));
+    }
 
-                // One operation writes the file twice (persist here, again on TryApplyChanges); both must use the
-                // same encoding, or a BOM added by one is reverted by the other. The second write is armed
-                // around TryApplyChanges so its echo is compared to these bytes.
-                var writeEncoding = SourceTextEncoding.ResolveForWrite(oldSourceText, newSourceText, fullPath);
-                await WriteTrackedTextToDiskAsync(fullPath, text, writeEncoding, cancellationToken).ConfigureAwait(false);
-                saved.Add(fullPath);
-                savedTexts.Add((fullPath, text, writeEncoding));
-                if (CancelAfterDocumentWrites > 0 && saved.Count >= CancelAfterDocumentWrites)
+    private static IEnumerable<TextDocument> GetDocumentsToPersist(Solution oldSolution, Solution newSolution)
+    {
+        var changes = newSolution.GetChanges(oldSolution).GetProjectChanges().ToDictionary(change => change.ProjectId);
+        // Keep project and document order when recording the first successful write to a linked path.
+        foreach (var projectId in newSolution.ProjectIds)
+        {
+            if (!changes.TryGetValue(projectId, out var change))
+            {
+                continue;
+            }
+
+            var candidates = change.GetChangedDocuments(onlyGetDocumentsWithTextChanges: true)
+                .Concat(change.GetChangedAdditionalDocuments())
+                .ToHashSet();
+            foreach (var document in change.NewProject.Documents.Cast<TextDocument>().Concat(change.NewProject.AdditionalDocuments))
+            {
+                if (candidates.Contains(document.Id))
                 {
-                    CancelAfterDocumentWrites = 0;
-                    throw new OperationCanceledException("CancelAfterDocumentWrites");
+                    yield return document;
                 }
             }
         }
     }
 
-    private async Task<WorkspaceWriteResult> FinishAfterSideEffectsAsync(
+    private WorkspaceWriteResult FinishAfterSideEffects(
         Microsoft.CodeAnalysis.Workspace workspace,
         List<string> saved,
         List<(string Path, string Text, Encoding WriteEncoding)> savedTexts,
-        bool unappliedProject,
         WorkspaceWriteStatus persistenceStatus,
-        string reason,
-        CancellationToken cancellationToken)
+        string reason)
     {
         if (savedTexts.Count == 0)
         {
@@ -2177,23 +2729,29 @@ public sealed class SolutionManager
                 Status = persistenceStatus,
                 Reason = reason,
                 SavedPaths = saved,
-                UnappliedProjectState = unappliedProject,
+                UnappliedProjectState = true,
             });
         }
 
-        var reconciled = await ReconcileSavedTextsUnderLockAsync(workspace, savedTexts, cancellationToken)
-            .ConfigureAwait(false);
-        if (reconciled)
+        // Cancellation ends the write, but cannot undo destinations already replaced on disk.
+        var precedingSolution = workspace.CurrentSolution;
+        var reconciled = !FailNextReconciliation && PublishConfirmedDocumentTexts(workspace, savedTexts);
+        FailNextReconciliation = false;
+        var published = reconciled || !ReferenceEquals(precedingSolution, workspace.CurrentSolution);
+        if (published)
         {
             PublishSavedDocumentTexts(workspace.CurrentSolution, savedTexts);
+        }
+
+        if (reconciled)
+        {
             return RememberWrite(new WorkspaceWriteResult
             {
                 Status = WorkspaceWriteStatus.ReconciliationSucceeded,
                 Reason = reason,
                 SavedPaths = saved,
-                WorkspaceApplied = false,
                 OverlayPublished = true,
-                UnappliedProjectState = unappliedProject,
+                UnappliedProjectState = true,
             });
         }
 
@@ -2202,7 +2760,7 @@ public sealed class SolutionManager
             Status = WorkspaceWriteStatus.ReconciliationFailed,
             Reason = reason + "; reconciliation-failed",
             SavedPaths = saved,
-            OverlayPublished = false,
+            OverlayPublished = published,
             UnappliedProjectState = true,
         });
     }
@@ -2226,63 +2784,42 @@ public sealed class SolutionManager
         SetPublishedSolution(workspaceSolution);
     }
 
-    private async Task<bool> ReconcileSavedTextsUnderLockAsync(
+    private bool PublishConfirmedDocumentTexts(
         Microsoft.CodeAnalysis.Workspace workspace,
-        IReadOnlyList<(string Path, string Text, Encoding WriteEncoding)> savedTexts,
-        CancellationToken cancellationToken)
+        IReadOnlyList<(string Path, string Text, Encoding WriteEncoding)> savedTexts)
     {
-        if (FailNextReconciliation)
+        var original = workspace.CurrentSolution;
+        var updated = original;
+        var complete = true;
+        foreach (var (path, text, encoding) in savedTexts)
         {
-            FailNextReconciliation = false;
-            return false;
-        }
-
-        var current = workspace.CurrentSolution;
-        var changed = false;
-        foreach (var (path, text, _) in savedTexts)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            var fullPath = Path.GetFullPath(path);
-            var documentIds = FindUserDocumentIdsForPath(current, fullPath);
-            if (documentIds.Count == 0)
+            var documentIds = FindUserDocumentIdsForPath(updated, path);
+            var hasAdditionalText = WorkspaceNonCSharpDiskSync.HasDocument(updated, path, _pathComparison);
+            if (documentIds.Count == 0 && !hasAdditionalText)
             {
-                return false;
+                complete = false;
+                continue;
             }
 
-            var existingDocument = current.GetDocument(documentIds[0]);
-            var existingText = existingDocument is null
-                ? null
-                : await existingDocument.GetTextAsync(cancellationToken).ConfigureAwait(false);
-            var writeEncoding = SourceTextEncoding.ResolveForWrite(existingText, candidate: null, fullPath);
-            var shared = SourceText.From(text, writeEncoding);
-            foreach (var documentId in documentIds)
+            var source = SourceText.From(text, encoding);
+            if (documentIds.Count > 0)
             {
-                current = current.WithDocumentText(documentId, shared);
+                updated = updated.WithDocumentText(documentIds, source);
             }
 
-            changed = true;
+            if (hasAdditionalText)
+            {
+                updated = WorkspaceNonCSharpDiskSync.ApplyPath(updated, path, source, _pathComparison);
+            }
         }
 
-        if (!changed)
+        if (!ReferenceEquals(updated, original))
         {
-            return true;
+            WorkspaceDocumentDiskSync.Publish(workspace, updated);
+            NoteRawWorkspaceRevision();
         }
 
-        var paths = new List<string>(savedTexts.Count);
-        foreach (var (path, _, _) in savedTexts)
-        {
-            paths.Add(Path.GetFullPath(path));
-        }
-
-        BeginRepeatWrites(paths);
-        if (!TryApplyWorkspaceChanges(workspace, current))
-        {
-            AbandonRepeatWrites(paths);
-            return false;
-        }
-
-        CommitRepeatWrites(paths);
-        return true;
+        return complete;
     }
 
     /// <summary>
@@ -2815,39 +3352,25 @@ public sealed class SolutionManager
         }
     }
 
-    private async Task PublishOwnNonCSharpTextAsync(
-        string canonical,
+    private async Task WriteTrackedTextUnderLockAsync(
+        string fullPath,
         string text,
         Encoding encoding,
         CancellationToken cancellationToken)
     {
-        if (!WorkspaceDiskEventClassifier.SyncsNonCSharpDocumentText(_diskWatcherSession?.InputMap, canonical))
+        var canonical = InputPathCanon.TryCanonicalize(fullPath) ?? fullPath;
+        await WriteTrackedTextToDiskAsync(canonical, text, encoding, cancellationToken).ConfigureAwait(false);
+        if (_workspace is null
+            || !WorkspaceDiskEventClassifier.SyncsNonCSharpDocumentText(_diskWatcherSession?.InputMap, canonical)
+            || !WorkspaceNonCSharpDiskSync.HasDocument(_workspace.CurrentSolution, canonical, _pathComparison))
         {
             return;
         }
 
-        // Direct writes acquire the lock here. A workspace write already owns it and instead publishes
-        // both roles after applying the compile text. TryApplyChanges would write the additional file
-        // again and rejects analyzer-config text changes.
-        await _workspaceLock.WaitAsync(cancellationToken).ConfigureAwait(false);
-        try
+        // TryApplyChanges would write the additional file again and rejects analyzer-config text changes.
+        if (RememberNonCSharpText(canonical, SourceText.From(text, encoding)))
         {
-            if (_workspace is null
-                || !WorkspaceNonCSharpDiskSync.HasDocument(_workspace.CurrentSolution, canonical, _pathComparison))
-            {
-                return;
-            }
-
-            if (!RememberNonCSharpText(canonical, SourceText.From(text, encoding)))
-            {
-                return;
-            }
-
             SetPublishedSolution(_workspace.CurrentSolution);
-        }
-        finally
-        {
-            _workspaceLock.Release();
         }
     }
 
@@ -3024,9 +3547,9 @@ public sealed class SolutionManager
     {
         BeforeDiskWatcherCallbackForTests?.Invoke();
         string? graphPath = null;
-                session.TryRun(() => graphPath = QueueDiskPath(session, e.FullPath, e.ChangeType));
+        session.TryRun(() => graphPath = QueueDiskPath(session, e.FullPath, e.ChangeType));
         LogChangedGraphPath(graphPath);
-        AfterDiskWatcherChangeForTests?.Invoke(e);
+        ReportCompletedDiskWatcherEvent(e);
     }
 
     private void OnDiskWatcherRenamed(WorkspaceInputSession session, RenamedEventArgs e)
@@ -3037,6 +3560,17 @@ public sealed class SolutionManager
         string? newGraphPath = null;
         var accepted = session.TryRun(() =>
         {
+            if (WorkspaceFilePersistence.IsStagingPath(session, e.FullPath))
+            {
+                return;
+            }
+
+            if (WorkspaceFilePersistence.IsStagingPath(session, e.OldFullPath))
+            {
+                newGraphPath = QueueDiskPath(session, e.FullPath, WatcherChangeTypes.Changed);
+                return;
+            }
+
             var map = session.InputMap;
             if (map is not null && WorkspaceDiskEventClassifier.IsAtomicSaveToLoadedSource(e.OldFullPath, e.FullPath, map))
             {
@@ -3108,7 +3642,11 @@ public sealed class SolutionManager
         }
         LogChangedGraphPath(oldGraphPath);
         LogChangedGraphPath(newGraphPath);
+        ReportCompletedDiskWatcherEvent(e);
     }
+
+    private void ReportCompletedDiskWatcherEvent(FileSystemEventArgs args)
+        => AfterDiskWatcherChangeForTests?.Invoke(args);
 
     private void OnDiskWatcherError(WorkspaceInputSession session, ErrorEventArgs e)
     {
@@ -3180,6 +3718,11 @@ public sealed class SolutionManager
             fullPath = Path.GetFullPath(rawPath);
         }
         catch (Exception)
+        {
+            return null;
+        }
+
+        if (WorkspaceFilePersistence.IsStagingPath(session, fullPath))
         {
             return null;
         }
@@ -3446,55 +3989,6 @@ public sealed class SolutionManager
         }
 
         return revisionMoved;
-    }
-
-    private void BeginRepeatWrites(IReadOnlyList<string> paths)
-    {
-        var session = _diskWatcherSession;
-        if (session is null)
-        {
-            return;
-        }
-
-        foreach (var path in paths)
-        {
-            session.BeginOwnWrite(path);
-        }
-    }
-
-    private void CommitRepeatWrites(IReadOnlyList<string> paths)
-    {
-        var session = _diskWatcherSession;
-        if (session is null)
-        {
-            return;
-        }
-
-        foreach (var path in paths)
-        {
-            try
-            {
-                session.CommitOwnWrite(path, File.ReadAllBytes(path), notifyEvenWhenUnchanged: false);
-            }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-            {
-                session.AbandonOwnWrite(path);
-            }
-        }
-    }
-
-    private void AbandonRepeatWrites(IReadOnlyList<string> paths)
-    {
-        var session = _diskWatcherSession;
-        if (session is null)
-        {
-            return;
-        }
-
-        foreach (var path in paths)
-        {
-            session.AbandonOwnWrite(path);
-        }
     }
 
     private bool IsInjectedWriteFailure(string canonicalPath)
