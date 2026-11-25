@@ -270,7 +270,7 @@ public sealed class CodeAnalysisTools
             }
 
             cancellationToken.ThrowIfCancellationRequested();
-            var code = decompiler.DecompileTypeAsString(typeDefinition.FullTypeName);
+            var code = session.FormatCode(decompiler.DecompileType(typeDefinition.FullTypeName));
             if (string.IsNullOrWhiteSpace(code))
             {
                 return Task.FromResult(
@@ -531,7 +531,7 @@ public sealed class CodeAnalysisTools
             foreach (var method in matches)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                var snippet = decompiler.DecompileAsString(method.MetadataToken);
+                var snippet = session.FormatCode(decompiler.Decompile(method.MetadataToken));
                 if (string.IsNullOrWhiteSpace(snippet))
                 {
                     continue;
