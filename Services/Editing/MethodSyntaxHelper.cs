@@ -23,12 +23,13 @@ internal static class MethodSyntaxHelper
                 $"Method `{methodName}` not found in class `{classDecl.Identifier.Text}`.");
         }
 
-        if (candidates.Count == 1)
+        // A supplied signature constrains the target even when only one candidate exists.
+        if (parameterTypes is null && candidates.Count == 1)
         {
             return candidates[0];
         }
 
-        if (parameterTypes is null || parameterTypes.Count == 0)
+        if (parameterTypes is null)
         {
             throw new InvalidOperationException(BuildOverloadError(
                 methodName,

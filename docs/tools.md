@@ -274,7 +274,7 @@ Parses C# syntax, inserts with DocumentEditor, formats the file. Prefer over `ap
 - `className: string` — class containing the method (top-level or nested)
 - `methodName: string`
 - `newBody: string` — statements only, or a full `{ ... }` block
-- `parameterTypes: string[]?` — e.g. `["string", "int"]` to disambiguate overloads; **required** when multiple overloads exist
+- `parameterTypes: string[]?` — the signature must match when supplied, e.g. `["string", "int"]`. Use `[]` for a parameterless method. Omit only when the method name is unique.
 
 **Behavior:** Finds `MethodDeclarationSyntax`, parses `newBody` into a `BlockSyntax`, replaces block or expression-bodied body, validates syntax errors before write, formats the file. Use with `get_method_body` — prefer over `apply_patch` for body-only edits.
 

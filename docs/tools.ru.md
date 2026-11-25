@@ -265,7 +265,7 @@
 - `className: string` — класс (top-level или вложенный)
 - `methodName: string`
 - `newBody: string` — только statements или блок `{ ... }`
-- `parameterTypes: string[]?` — например `["string", "int"]` для перегрузок; **обязателен** при нескольких overload
+- `parameterTypes: string[]?` — если массив передан, сигнатура должна совпадать, например `["string", "int"]`. Для метода без параметров передайте `[]`. Поле можно опустить, если имя метода однозначно.
 
 **Поведение:** находит метод, парсит тело в `BlockSyntax`, заменяет block/expression body, проверяет syntax errors до записи, форматирует. Пара с `get_method_body` — вместо `apply_patch` для правок только тела.
 

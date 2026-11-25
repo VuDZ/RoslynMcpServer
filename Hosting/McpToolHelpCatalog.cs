@@ -213,7 +213,7 @@ public static class McpToolHelpCatalog
             ["update_method_body"] = new()
             {
                 Prerequisites = "Requires load_workspace.",
-                Workflow = "Pass statements or a full block. Use parameterTypes when overloads exist.",
+                Workflow = "Pass statements or a full block. Use parameterTypes to select a signature, including [] for no parameters.",
                 RelatedTools = ["get_method_body", "add_method_to_class"],
             },
             ["add_property_to_class"] = new()
