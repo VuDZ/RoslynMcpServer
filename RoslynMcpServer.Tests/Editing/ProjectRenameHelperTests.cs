@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json;
 using System.Xml.Linq;
 using Microsoft.Extensions.Logging.Abstractions;
 using RoslynMcpServer.Services;
@@ -75,6 +76,162 @@ public sealed class ProjectRenameHelperTests
             var host = File.ReadAllText(Path.Combine(root, "Host", "Host.csproj"));
             Assert.Contains(@"..\Lib2\Lib2.csproj", host, StringComparison.OrdinalIgnoreCase);
             Assert.DoesNotContain(@"..\Lib\Lib.csproj", host, StringComparison.OrdinalIgnoreCase);
+        }
+        finally
+        {
+            DeleteRoot(root);
+        }
+    }
+
+    [Fact]
+    public async Task Rename_preserves_reference_metadata_and_excluded_items()
+    {
+        var root = CreateTempRoot();
+        try
+        {
+            var oldProject = Path.Combine(root, "Old", "Old.csproj");
+            var newProject = Path.Combine(root, "New", "New.csproj");
+            var app = Path.Combine(root, "App", "App.csproj");
+            WriteSdkProject(oldProject, withNameProps: false);
+            WriteSdkProject(Path.Combine(root, "Old", "Nested", "Excluded.csproj"), withNameProps: false);
+            WriteSdkProject(Path.Combine(root, "Old", "Nested", "Removed.csproj"), withNameProps: false);
+            Directory.CreateDirectory(Path.GetDirectoryName(app)!);
+            File.WriteAllText(app, """
+                <Project Sdk="Microsoft.NET.Sdk" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+                  <PropertyGroup>
+                    <TargetFramework>net11.0</TargetFramework>
+                  </PropertyGroup>
+                  <Choose>
+                    <When Condition="'$(Configuration)' == 'Release'">
+                      <ItemGroup>
+                        <ProjectReference Include="../Old/Old.csproj" />
+                        <projectReference Update=" ../OLD/OLD.csproj " ReferenceOutputAssembly="false" />
+                        <ProjectReference Include="../Old/Nested/Excluded.csproj" Exclude="../OLD/NESTED/EXCLUDED.csproj" />
+                        <ProjectReference Include="../Old/Nested/Removed.csproj" />
+                        <ProjectReference Remove="../OLD/NESTED/REMOVED.csproj" />
+                      </ItemGroup>
+                    </When>
+                  </Choose>
+                  <ProjectExtensions>
+                    <ItemGroup><ProjectReference Update="$(ExtensionPath)" /></ItemGroup>
+                  </ProjectExtensions>
+                </Project>
+                """);
+            await AssertEvaluatedProjectReferenceAsync(app, oldProject);
+            var before = File.ReadAllText(app);
+            var tool = new ProjectTools(SolutionManagerTestFactory.Create(), NullLogger<ProjectTools>.Instance);
+
+            var preview = await tool.RenameProject(oldProject, "New", dryRun: true, searchRoot: root);
+            Assert.Contains(app, preview, StringComparison.Ordinal);
+            Assert.Equal(before, File.ReadAllText(app));
+            Assert.True(File.Exists(oldProject));
+
+            var result = await tool.RenameProject(oldProject, "New", dryRun: false, searchRoot: root);
+            Assert.Contains("Rename applied successfully", result, StringComparison.Ordinal);
+            Assert.False(File.Exists(oldProject));
+            await AssertEvaluatedProjectReferenceAsync(app, newProject);
+
+            var project = XDocument.Load(app).Root!;
+            var ns = project.Name.Namespace;
+            var when = project.Element(ns + "Choose")!.Element(ns + "When")!;
+            Assert.Equal("'$(Configuration)' == 'Release'", (string?)when.Attribute("Condition"));
+            var paths = when.Element(ns + "ItemGroup")!.Elements()
+                .SelectMany(item => item.Attributes().Where(attribute =>
+                    attribute.Name.LocalName is "Include" or "Update" or "Remove" or "Exclude"))
+                .Select(attribute => (attribute.Name.LocalName, attribute.Value));
+            Assert.Equal(
+                [
+                    ("Include", "../New/New.csproj"),
+                    ("Update", "../New/New.csproj"),
+                    ("Include", "../New/Nested/Excluded.csproj"),
+                    ("Exclude", "../New/Nested/Excluded.csproj"),
+                    ("Include", "../New/Nested/Removed.csproj"),
+                    ("Remove", "../New/Nested/Removed.csproj"),
+                ],
+                paths);
+            var extensionItem = project.Element(ns + "ProjectExtensions")!
+                .Element(ns + "ItemGroup")!.Element(ns + "ProjectReference")!;
+            Assert.Equal("$(ExtensionPath)", (string?)extensionItem.Attribute("Update"));
+        }
+        finally
+        {
+            DeleteRoot(root);
+        }
+    }
+
+    [Fact]
+    public async Task Rename_rejects_reference_selector_that_would_match_another_include()
+    {
+        var root = CreateTempRoot();
+        try
+        {
+            var oldProject = Path.Combine(root, "Old", "Old.csproj");
+            var app = Path.Combine(root, "App", "App.csproj");
+            WriteSdkProject(oldProject, withNameProps: false);
+            Directory.CreateDirectory(Path.GetDirectoryName(app)!);
+            File.WriteAllText(app, """
+                <Project Sdk="Microsoft.NET.Sdk">
+                  <ItemGroup>
+                    <ProjectReference Include="../Old/Old.csproj" />
+                    <ProjectReference Include="../NEW/NEW.csproj" />
+                    <ProjectReference Update="../OLD/OLD.csproj" ReferenceOutputAssembly="false" />
+                  </ItemGroup>
+                </Project>
+                """);
+            var before = File.ReadAllText(app);
+            var tool = new ProjectTools(SolutionManagerTestFactory.Create(), NullLogger<ProjectTools>.Instance);
+
+            foreach (var dryRun in new[] { true, false })
+            {
+                var result = await tool.RenameProject(oldProject, "New", dryRun, searchRoot: root);
+                Assert.Contains("Ambiguous ProjectReference Update", result, StringComparison.Ordinal);
+                Assert.Equal(before, File.ReadAllText(app));
+                Assert.True(File.Exists(oldProject));
+                Assert.False(Directory.Exists(Path.Combine(root, "New")));
+            }
+        }
+        finally
+        {
+            DeleteRoot(root);
+        }
+    }
+
+    [Fact]
+    public async Task Rename_rejects_target_remove_whose_item_matching_could_change()
+    {
+        var root = CreateTempRoot();
+        try
+        {
+            var oldProject = Path.Combine(root, "Old", "Old.csproj");
+            var app = Path.Combine(root, "App", "App.csproj");
+            WriteSdkProject(oldProject, withNameProps: false);
+            Directory.CreateDirectory(Path.GetDirectoryName(app)!);
+            var remove = new XElement("ProjectReference", new XAttribute("Remove", oldProject));
+            File.WriteAllText(app, $"""
+                <Project Sdk="Microsoft.NET.Sdk">
+                  <PropertyGroup><TargetFramework>net11.0</TargetFramework></PropertyGroup>
+                  <ItemGroup>
+                    <ProjectReference Include="../Old/Old.csproj" ReferenceOutputAssembly="false" />
+                  </ItemGroup>
+                  <Target Name="FilterReferences">
+                    <ItemGroup>
+                      {remove}
+                    </ItemGroup>
+                  </Target>
+                </Project>
+                """);
+            await AssertEvaluatedProjectReferenceAsync(app, oldProject, target: "FilterReferences");
+            var before = File.ReadAllText(app);
+            var tool = new ProjectTools(SolutionManagerTestFactory.Create(), NullLogger<ProjectTools>.Instance);
+
+            foreach (var dryRun in new[] { true, false })
+            {
+                var result = await tool.RenameProject(oldProject, "New", dryRun, searchRoot: root);
+                Assert.Contains("Unsupported target-time ProjectReference Remove", result, StringComparison.Ordinal);
+                Assert.Equal(before, File.ReadAllText(app));
+                Assert.True(File.Exists(oldProject));
+                Assert.False(Directory.Exists(Path.Combine(root, "New")));
+            }
         }
         finally
         {
@@ -573,10 +730,13 @@ public sealed class ProjectRenameHelperTests
     }
 
     [Theory]
-    [InlineData(true, "$(ProjectRoot)/Core/Core.csproj")]
-    [InlineData(false, "$(ProjectRoot)/Core/Core.csproj")]
-    [InlineData(false, "$(ProjectPath)")]
-    public void Computed_reference_is_rejected_during_planning(bool ownerMoves, string referencePath)
+    [InlineData(true, "Include", "$(ProjectRoot)/Core/Core.csproj")]
+    [InlineData(false, "Include", "$(ProjectRoot)/Core/Core.csproj")]
+    [InlineData(false, "Include", "$(ProjectPath)")]
+    [InlineData(false, "Update", "Core/$(ReferencedProject).csproj")]
+    [InlineData(false, "Remove", "Core/*.csproj")]
+    [InlineData(false, "Exclude", "Core/*.csproj")]
+    public void Computed_reference_is_rejected_during_planning(bool ownerMoves, string operation, string referencePath)
     {
         var root = CreateTempRoot();
         try
@@ -584,7 +744,15 @@ public sealed class ProjectRenameHelperTests
             var project = Path.Combine(root, "Core", "Core.csproj");
             var owner = ownerMoves ? Path.Combine(root, "Core", "Nested", "Nested.csproj") : Path.Combine(root, "Outside.csproj");
             WriteSdkProject(project, withNameProps: false);
-            WriteProjectWithReferences(owner, referencePath);
+            Directory.CreateDirectory(Path.GetDirectoryName(owner)!);
+            var include = operation == "Exclude" ? """Include="Core/Core.csproj" """ : string.Empty;
+            File.WriteAllText(owner, $"""
+                <Project Sdk="Microsoft.NET.Sdk">
+                  <ItemGroup>
+                    <ProjectReference {include}{operation}="{referencePath}" />
+                  </ItemGroup>
+                </Project>
+                """);
             var originalOwner = File.ReadAllText(owner);
 
             var error = Assert.Throws<InvalidOperationException>(() => ProjectRenameHelper.CreatePlan(project, "Renamed", root));
@@ -641,6 +809,23 @@ public sealed class ProjectRenameHelperTests
         var include = reference.Attribute("Include")!.Value.Replace('\\', '/');
         Assert.Equal(expectedTarget, Path.GetFullPath(include, Path.GetDirectoryName(projectPath)!));
         Assert.True(File.Exists(expectedTarget), $"ProjectReference target does not exist: {expectedTarget}");
+    }
+
+    private static async Task AssertEvaluatedProjectReferenceAsync(
+        string projectPath,
+        string expectedTarget,
+        string? target = null)
+    {
+        var targetArgument = target is null ? string.Empty : $" -target:{target}";
+        var result = await DotNetCliRunner.RunSeparatedAsync(
+            $"msbuild \"{Path.GetFileName(projectPath)}\" -nologo -p:Configuration=Release -getItem:ProjectReference{targetArgument}",
+            Path.GetDirectoryName(projectPath)!,
+            TimeSpan.FromSeconds(30));
+        Assert.True(result.ExitCode == 0, $"{result.StdOut}{Environment.NewLine}{result.StdErr}");
+        using var evaluated = JsonDocument.Parse(result.StdOut);
+        var item = Assert.Single(evaluated.RootElement.GetProperty("Items").GetProperty("ProjectReference").EnumerateArray());
+        Assert.Equal(expectedTarget, item.GetProperty("FullPath").GetString());
+        Assert.Equal("false", item.GetProperty("ReferenceOutputAssembly").GetString());
     }
 
     private static async Task AssertSolutionOpensAsync(string solutionPath, params string[] projects)

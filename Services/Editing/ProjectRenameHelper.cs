@@ -445,6 +445,59 @@ public static class ProjectRenameHelper
             : null;
     }
 
+    private static IEnumerable<XmlAttribute> GetProjectReferencePaths(XmlDocument document)
+    {
+        if (document.DocumentElement is not { LocalName: "Project" } project)
+        {
+            yield break;
+        }
+
+        foreach (var item in project.GetElementsByTagName("*", project.NamespaceURI).OfType<XmlElement>())
+        {
+            if (!item.LocalName.Equals("ProjectReference", StringComparison.OrdinalIgnoreCase)
+                || item.ParentNode is not XmlElement { LocalName: "ItemGroup" } group
+                || !IsProjectItemGroup(group, project))
+            {
+                continue;
+            }
+
+            // MSBuild evaluates these operands against the same item identities in declaration order.
+            // See docs/project-review-2026-11-25/task-51-p1-rename-project-reference-update-hi.md.
+            foreach (XmlAttribute path in item.Attributes)
+            {
+                if (path.Name is "Include" or "Exclude" or "Update" or "Remove")
+                {
+                    yield return path;
+                }
+            }
+        }
+    }
+
+    private static bool IsProjectItemGroup(XmlElement group, XmlElement project)
+    {
+        if (group.NamespaceURI != project.NamespaceURI)
+        {
+            return false;
+        }
+
+        // ProjectExtensions and task payloads can use the same element names as real item declarations.
+        for (var owner = group.ParentNode; owner is XmlElement element; owner = element.ParentNode)
+        {
+            if (ReferenceEquals(element, project))
+            {
+                return true;
+            }
+
+            if (element.NamespaceURI != project.NamespaceURI
+                || element.LocalName is not ("Choose" or "When" or "Otherwise" or "Target"))
+            {
+                return false;
+            }
+        }
+
+        return false;
+    }
+
     private static IEnumerable<XmlAttribute?> GetSolutionProjectReferences(XmlDocument document)
     {
         if (document.DocumentElement is not { } solution || !solution.Name.Equals("Solution", StringComparison.OrdinalIgnoreCase))
@@ -484,10 +537,8 @@ public static class ProjectRenameHelper
             return null;
         }
 
-        var attributes = isProject
-            ? doc.GetElementsByTagName("ProjectReference", "*").OfType<XmlElement>()
-                .Select(element => element.GetAttributeNode("Include"))
-            : GetSolutionProjectReferences(doc);
+        var attributes = (isProject ? GetProjectReferencePaths(doc) : GetSolutionProjectReferences(doc)).ToArray();
+        var includes = isProject ? GetProjectReferenceIncludes(attributes, ownerPath, move) : [];
         var changed = false;
         foreach (var attribute in attributes)
         {
@@ -496,13 +547,17 @@ public static class ProjectRenameHelper
                 continue;
             }
 
-            if (isProject && !IsLiteralProjectReference(attribute.Value))
+            // MSBuild trims whitespace around item specifications before matching them.
+            var path = isProject ? attribute.Value.Trim() : attribute.Value;
+            if (isProject && !IsLiteralProjectReference(path))
             {
                 throw new InvalidOperationException(
                     $"Unsupported ProjectReference path in `{ownerPath}`: `{attribute.Value}`. Use a literal project path before moving the directory.");
             }
 
-            var updated = move.RewriteReference(ownerPath, attribute.Value, isProject ? '\\' : '/', out _);
+            var updated = isProject && attribute.Name != "Include"
+                ? RewriteProjectReferenceSelector(attribute, path, includes, ownerPath, move)
+                : move.RewriteReference(ownerPath, path, isProject ? '\\' : '/', out _);
             if (updated is not null)
             {
                 attribute.Value = updated;
@@ -533,6 +588,74 @@ public static class ProjectRenameHelper
         }
 
         return declaration is null ? content : text[..(text.IndexOf("?>", StringComparison.Ordinal) + 2)] + content;
+    }
+
+    private static ProjectReferenceInclude[] GetProjectReferenceIncludes(
+        IEnumerable<XmlAttribute?> attributes,
+        string ownerPath,
+        ProjectMove move)
+    {
+        return attributes.OfType<XmlAttribute>()
+            .Where(attribute => attribute.Name == "Include" && !string.IsNullOrWhiteSpace(attribute.Value)
+                && IsLiteralProjectReference(attribute.Value))
+            .Select(attribute =>
+            {
+                var oldPath = ProjectMove.ResolveReference(ownerPath, attribute.Value.Trim());
+                return new ProjectReferenceInclude(attribute.OwnerElement, oldPath, move.FinalPath(oldPath));
+            })
+            .ToArray();
+    }
+
+    private static string? RewriteProjectReferenceSelector(
+        XmlAttribute selector,
+        string spec,
+        ProjectReferenceInclude[] includes,
+        string ownerPath,
+        ProjectMove move)
+    {
+        // MSBuild's literal item filters ignore case even on a case-sensitive filesystem.
+        // See https://github.com/dotnet/msbuild/blob/main/src/Build/Utilities/FileSpecMatchTester.cs#L69-L88.
+        var comparison = StringComparer.OrdinalIgnoreCase;
+        var oldPath = ProjectMove.ResolveReference(ownerPath, spec);
+        var isExclude = selector.Name == "Exclude";
+        var candidates = isExclude
+            ? includes.Where(include => include.Item == selector.OwnerElement)
+            : includes;
+        var matchedTargets = candidates.Where(include => comparison.Equals(include.OldPath, oldPath))
+            .Select(include => include.NewPath).Distinct(comparison).Take(2).ToArray();
+        var target = matchedTargets.FirstOrDefault() ?? move.FinalPath(oldPath);
+        if (matchedTargets.Length > 1
+            || (matchedTargets.Length == 0 && !isExclude && move.IsCaseVariantOfMovingPath(oldPath))
+            || candidates.Any(include => !comparison.Equals(include.OldPath, oldPath)
+                && comparison.Equals(include.NewPath, target)))
+        {
+            throw new InvalidOperationException(
+                $"Ambiguous ProjectReference {selector.Name} in `{ownerPath}`: `{spec}` cannot preserve its item matches after the move.");
+        }
+
+        var updated = move.FormatReferenceAfterMove(ownerPath, spec, target, '\\', StringComparison.OrdinalIgnoreCase);
+        if ((updated is not null || !string.Equals(oldPath, target, PathComparison)) && IsInsideTarget(selector))
+        {
+            // Target-time matching compares evaluated item strings, where absolute and relative specs differ.
+            // See https://github.com/dotnet/msbuild/blob/main/src/Build/BackEnd/Components/RequestBuilder/IntrinsicTasks/ItemGroupIntrinsicTask.cs#L531-L589.
+            throw new InvalidOperationException(
+                $"Unsupported target-time ProjectReference {selector.Name} in `{ownerPath}`: `{spec}` can change its item matches after the move.");
+        }
+
+        return updated;
+    }
+
+    private static bool IsInsideTarget(XmlAttribute attribute)
+    {
+        for (var parent = attribute.OwnerElement?.ParentNode; parent is XmlElement element; parent = element.ParentNode)
+        {
+            if (element.LocalName == "Target")
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static void ValidateXmlEncoding(string path, string? name)
@@ -697,6 +820,8 @@ public static class ProjectRenameHelper
         }
     }
 
+    private sealed record ProjectReferenceInclude(XmlElement? Item, string OldPath, string NewPath);
+
     private sealed record ProjectMove(string OldProjectPath, string NewProjectPath)
     {
         public string OldDirectory { get; } = Path.GetDirectoryName(OldProjectPath)!;
@@ -704,6 +829,12 @@ public static class ProjectRenameHelper
 
         public bool Contains(string path) =>
             WorkspaceDiskPathFilter.IsPathUnderDirectory(path, OldDirectory, PathComparison);
+
+        public bool IsCaseVariantOfMovingPath(string path) =>
+            (string.Equals(path, OldProjectPath, StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(path, OldProjectPath, PathComparison))
+            || (!Contains(path)
+                && WorkspaceDiskPathFilter.IsPathUnderDirectory(path, OldDirectory, StringComparison.OrdinalIgnoreCase));
 
         public string FinalPath(string path)
         {
@@ -718,12 +849,20 @@ public static class ProjectRenameHelper
         public string? RewriteReference(string ownerPath, string reference, char separator, out bool renamedProject)
         {
             // Resolve in the original graph before calculating what the moved owner's path will resolve to.
-            var normalized = reference.Replace('\\', '/');
-            var oldTarget = Path.GetFullPath(normalized, Path.GetDirectoryName(ownerPath)!);
-            var newTarget = FinalPath(oldTarget);
-            var newOwnerDirectory = Path.GetDirectoryName(FinalPath(ownerPath))!;
+            var oldTarget = ResolveReference(ownerPath, reference);
             renamedProject = string.Equals(oldTarget, OldProjectPath, PathComparison);
-            if (string.Equals(Path.GetFullPath(normalized, newOwnerDirectory), newTarget, PathComparison))
+            return FormatReferenceAfterMove(ownerPath, reference, FinalPath(oldTarget), separator, PathComparison);
+        }
+
+        public string? FormatReferenceAfterMove(
+            string ownerPath,
+            string reference,
+            string targetPath,
+            char separator,
+            StringComparison comparison)
+        {
+            var newOwnerPath = FinalPath(ownerPath);
+            if (string.Equals(ResolveReference(newOwnerPath, reference), targetPath, comparison))
             {
                 return null;
             }
@@ -733,7 +872,11 @@ public static class ProjectRenameHelper
                 separator = reference.Contains('/') ? '/' : '\\';
             }
 
-            return Path.GetRelativePath(newOwnerDirectory, newTarget).Replace(Path.DirectorySeparatorChar, separator);
+            return Path.GetRelativePath(Path.GetDirectoryName(newOwnerPath)!, targetPath)
+                .Replace(Path.DirectorySeparatorChar, separator);
         }
+
+        public static string ResolveReference(string ownerPath, string reference) =>
+            Path.GetFullPath(reference.Replace('\\', '/'), Path.GetDirectoryName(ownerPath)!);
     }
 }
