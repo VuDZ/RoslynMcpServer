@@ -127,7 +127,7 @@ public static class ProjectRenameHelper
         {
             if (newCsprojContent is null)
             {
-                ValidateXmlEncoding(oldProjectPath, XDocument.Parse(csprojText).Declaration);
+                ValidateXmlEncoding(oldProjectPath, XDocument.Parse(csprojText).Declaration?.Encoding);
                 newCsprojContent = csprojText;
             }
 
@@ -445,12 +445,39 @@ public static class ProjectRenameHelper
             : null;
     }
 
+    private static IEnumerable<XmlAttribute?> GetSolutionProjectReferences(XmlDocument document)
+    {
+        if (document.DocumentElement is not { } solution || !solution.Name.Equals("Solution", StringComparison.OrdinalIgnoreCase))
+        {
+            yield break;
+        }
+
+        // SLNX compares qualified element names without case, even in a default namespace. Projects
+        // are direct children of Solution or a top-level Folder; extensions may reuse the same names.
+        // See docs/project-review-2026-11-25/task-43-p2-slnx-extension-project-metadata-med.md.
+        var containers = ChildrenNamed(solution, "Folder").Prepend(solution);
+        foreach (var project in containers.SelectMany(container => ChildrenNamed(container, "Project")))
+        {
+            yield return project.GetAttributeNode("Path");
+            foreach (var dependency in ChildrenNamed(project, "BuildDependency"))
+            {
+                yield return dependency.GetAttributeNode("Project");
+            }
+        }
+
+        static IEnumerable<XmlElement> ChildrenNamed(XmlElement parent, string name) =>
+            parent.ChildNodes.OfType<XmlElement>()
+                .Where(child => child.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+    }
+
     private static string? RewriteXmlReferences(string text, string ownerPath, ProjectMove move, bool isProject)
     {
-        XDocument doc;
+        var doc = new XmlDocument { PreserveWhitespace = true };
         try
         {
-            doc = XDocument.Parse(text, LoadOptions.PreserveWhitespace);
+            using var input = new StringReader(text);
+            using var reader = XmlReader.Create(input, new XmlReaderSettings { DtdProcessing = DtdProcessing.Parse });
+            doc.Load(reader);
         }
         catch (XmlException) when (!move.Contains(ownerPath))
         {
@@ -458,15 +485,9 @@ public static class ProjectRenameHelper
         }
 
         var attributes = isProject
-            ? doc.Descendants().Where(element => element.Name.LocalName == "ProjectReference")
-                .Select(element => element.Attribute("Include"))
-            : doc.Descendants().Select(element => element.Name.LocalName switch
-            {
-                "Project" => element.Attribute("Path") ?? element.Attribute("path"),
-                // The SDK resolves build dependencies against project paths listed in the same solution.
-                "BuildDependency" => element.Attribute("Project"),
-                _ => null,
-            });
+            ? doc.GetElementsByTagName("ProjectReference", "*").OfType<XmlElement>()
+                .Select(element => element.GetAttributeNode("Include"))
+            : GetSolutionProjectReferences(doc);
         var changed = false;
         foreach (var attribute in attributes)
         {
@@ -494,19 +515,29 @@ public static class ProjectRenameHelper
             return null;
         }
 
-        ValidateXmlEncoding(ownerPath, doc.Declaration);
-        var content = doc.ToString(SaveOptions.DisableFormatting).Replace("\r\n", "\n", StringComparison.Ordinal);
+        var declaration = doc.FirstChild as XmlDeclaration;
+        ValidateXmlEncoding(ownerPath, declaration?.Encoding);
+        // Literal attribute whitespace was normalized by the reader. Character references that
+        // decoded to tabs or newlines must stay escaped when another XML reader opens the result.
+        var buffer = new StringBuilder();
+        var settings = new XmlWriterSettings { OmitXmlDeclaration = true, NewLineHandling = NewLineHandling.Entitize };
+        using (var writer = XmlWriter.Create(buffer, settings))
+        {
+            doc.WriteTo(writer);
+        }
+
+        var content = buffer.ToString().Replace("\r\n", "\n", StringComparison.Ordinal);
         if (text.Contains("\r\n", StringComparison.Ordinal))
         {
             content = content.Replace("\n", "\r\n", StringComparison.Ordinal);
         }
 
-        return doc.Declaration is null ? content : text[..(text.IndexOf("?>", StringComparison.Ordinal) + 2)] + content;
+        return declaration is null ? content : text[..(text.IndexOf("?>", StringComparison.Ordinal) + 2)] + content;
     }
 
-    private static void ValidateXmlEncoding(string path, XDeclaration? declaration)
+    private static void ValidateXmlEncoding(string path, string? name)
     {
-        if (declaration?.Encoding is not { } name)
+        if (string.IsNullOrEmpty(name))
         {
             return;
         }

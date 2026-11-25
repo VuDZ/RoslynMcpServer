@@ -138,6 +138,10 @@ internal static class BuildOutputReport
         return string.Equals(verb, "build", StringComparison.OrdinalIgnoreCase);
     }
 
+    internal static bool IsErrorDiagnostic(string line) =>
+        line.Contains("error", StringComparison.OrdinalIgnoreCase)
+        && MatchDiagnostic(line.Trim()).Groups["severity"].Value.Equals("error", StringComparison.OrdinalIgnoreCase);
+
     internal static string? GetDiagnosticSeverityForCapture(string line)
     {
         if (!line.Contains("error", StringComparison.OrdinalIgnoreCase)

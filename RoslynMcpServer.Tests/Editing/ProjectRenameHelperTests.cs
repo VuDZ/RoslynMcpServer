@@ -166,8 +166,10 @@ public sealed class ProjectRenameHelperTests
         }
     }
 
-    [Fact]
-    public async Task Rename_preserves_slnx_build_dependency()
+    [Theory]
+    [InlineData("Project", "BuildDependency")]
+    [InlineData("pRoJeCt", "bUiLdDePeNdEnCy")]
+    public async Task Rename_preserves_slnx_build_dependency(string projectElement, string dependencyElement)
     {
         var root = CreateTempRoot();
         try
@@ -175,36 +177,125 @@ public sealed class ProjectRenameHelperTests
             var oldProject = Path.Combine(root, "Old", "Old.csproj");
             var newProject = Path.Combine(root, "New", "New.csproj");
             var consumer = Path.Combine(root, "Consumer", "Consumer.csproj");
+            var other = Path.Combine(root, "Other", "Other.csproj");
             WriteSdkProject(oldProject, withNameProps: false);
             WriteSdkProject(consumer, withNameProps: false);
+            WriteSdkProject(other, withNameProps: false);
             var solution = Path.Combine(root, "Demo.slnx");
-            const string OriginalSolution = """
+            File.WriteAllText(solution, $"""
                 <Solution>
-                  <Project Path="Old/Old.csproj" />
-                  <Project Path="Consumer/Consumer.csproj">
-                    <BuildDependency Project="Old/Old.csproj" />
-                  </Project>
+                  <{projectElement} Path="Old/Old.csproj" />
+                  <{projectElement} Path="Other/Other.csproj" />
+                  <{projectElement} Path="Consumer/Consumer.csproj">
+                    <{dependencyElement} Project="Old/Old.csproj" />
+                    <{dependencyElement} Project="Other/Other.csproj" />
+                  </{projectElement}>
                 </Solution>
-                """;
-            File.WriteAllText(solution, OriginalSolution);
-            await AssertSolutionOpensAsync(solution, oldProject, consumer);
+                """);
+            var originalBytes = File.ReadAllBytes(solution);
+            await AssertSolutionOpensAsync(solution, oldProject, consumer, other);
 
             var tool = new ProjectTools(SolutionManagerTestFactory.Create(), NullLogger<ProjectTools>.Instance);
             var preview = await tool.RenameProject(oldProject, "New", dryRun: true, searchRoot: root);
             Assert.Contains(solution, preview, StringComparison.Ordinal);
-            Assert.Equal(OriginalSolution, File.ReadAllText(solution));
+            Assert.Equal(originalBytes, File.ReadAllBytes(solution));
             Assert.True(File.Exists(oldProject));
             Assert.False(Directory.Exists(Path.Combine(root, "New")));
 
             var result = await tool.RenameProject(oldProject, "New", dryRun: false, searchRoot: root);
             Assert.Contains("Rename applied successfully", result, StringComparison.Ordinal);
             Assert.False(Directory.Exists(Path.Combine(root, "Old")));
-            var projects = XDocument.Load(solution).Root!.Elements("Project")
+            var projects = XDocument.Load(solution).Root!.Elements(projectElement)
                 .ToDictionary(project => project.Attribute("Path")!.Value);
             Assert.Contains("New/New.csproj", projects.Keys);
-            var dependency = Assert.Single(projects["Consumer/Consumer.csproj"].Elements("BuildDependency"));
-            Assert.Equal("New/New.csproj", dependency.Attribute("Project")!.Value);
-            await AssertSolutionOpensAsync(solution, newProject, consumer);
+            var dependencies = projects["Consumer/Consumer.csproj"].Elements(dependencyElement)
+                .Select(dependency => dependency.Attribute("Project")!.Value);
+            Assert.Equal(["New/New.csproj", "Other/Other.csproj"], dependencies);
+            await AssertSolutionOpensAsync(solution, newProject, consumer, other);
+        }
+        finally
+        {
+            DeleteRoot(root);
+        }
+    }
+
+    [Fact]
+    public async Task Rename_updates_only_slnx_model_projects_and_their_direct_dependencies()
+    {
+        static string SolutionXml(string projectPath) => $"""
+            <sOlution xmlns="urn:example" xmlns:ext="urn:example">
+              <fOldEr Name="/Group/Subgroup/">
+                <pRoject Path="{projectPath}" />
+                <Folder Name="/Group/Subgroup/Ignored/"><Project Path="Old/Old.csproj" /></Folder>
+                <ext:Project Path="Old/Old.csproj" />
+              </fOldEr>
+              <Project Path="App/App.csproj">
+                <buildDependency Project="{projectPath}" />
+                <ext:BuildDependency Project="Old/Old.csproj" />
+                <Telemetry><BuildDependency Project="Old/Old.csproj" /></Telemetry>
+              </Project>
+              <TelemetryExtension>
+                <project Path="Old/Old.csproj" />
+                <builddependency Project="Old/Old.csproj" />
+              </TelemetryExtension>
+            </sOlution>
+            """;
+
+        var root = CreateTempRoot();
+        try
+        {
+            var oldProject = Path.Combine(root, "Old", "Old.csproj");
+            var appProject = Path.Combine(root, "App", "App.csproj");
+            var solution = Path.Combine(root, "Demo.slnx");
+            WriteSdkProject(oldProject, withNameProps: false);
+            WriteSdkProject(appProject, withNameProps: false);
+            File.WriteAllText(solution, SolutionXml("Old/Old.csproj"));
+            var original = File.ReadAllBytes(solution);
+            await AssertSolutionOpensAsync(solution, oldProject, appProject);
+
+            var tool = new ProjectTools(SolutionManagerTestFactory.Create(), NullLogger<ProjectTools>.Instance);
+            var preview = await tool.RenameProject(oldProject, "New", dryRun: true, searchRoot: root);
+            Assert.Contains(solution, preview, StringComparison.Ordinal);
+            Assert.Equal(original, File.ReadAllBytes(solution));
+
+            var result = await tool.RenameProject(oldProject, "New", dryRun: false, searchRoot: root);
+            Assert.Contains("Rename applied successfully", result, StringComparison.Ordinal);
+            Assert.Equal(SolutionXml("New/New.csproj"), File.ReadAllText(solution));
+            await AssertSolutionOpensAsync(solution, Path.Combine(root, "New", "New.csproj"), appProject);
+        }
+        finally
+        {
+            DeleteRoot(root);
+        }
+    }
+
+    [Fact]
+    public void Rename_preserves_literal_and_escaped_whitespace_in_unrelated_xml_attributes()
+    {
+        const string Metadata = "<TelemetryExtension Data=\"tab&#9;lf&#10;cr&#13;literal\tand\nline\" />";
+        var root = CreateTempRoot();
+        try
+        {
+            var oldProject = Path.Combine(root, "Old", "Old.csproj");
+            var consumer = Path.Combine(root, "App.csproj");
+            var solution = Path.Combine(root, "Demo.slnx");
+            WriteSdkProject(oldProject, withNameProps: false);
+            File.WriteAllText(consumer, $"""
+                <Project Sdk="Microsoft.NET.Sdk">
+                  <ItemGroup><ProjectReference Include="Old/Old.csproj" /></ItemGroup>
+                  <ProjectExtensions>{Metadata}</ProjectExtensions>
+                </Project>
+                """);
+            File.WriteAllText(solution, $"""<Solution><Project Path="Old/Old.csproj" />{Metadata}</Solution>""");
+
+            ProjectRenameHelper.Apply(ProjectRenameHelper.CreatePlan(oldProject, "New", root));
+
+            AssertProjectReference(consumer, Path.Combine(root, "New", "New.csproj"));
+            foreach (var path in new[] { consumer, solution })
+            {
+                var element = Assert.Single(XDocument.Load(path).Descendants("TelemetryExtension"));
+                Assert.Equal("tab\tlf\ncr\rliteral and line", element.Attribute("Data")!.Value);
+            }
         }
         finally
         {

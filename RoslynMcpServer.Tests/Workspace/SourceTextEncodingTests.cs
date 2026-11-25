@@ -65,12 +65,14 @@ public sealed class SourceTextEncodingTests : IDisposable
         Assert.Equal(Utf8WithBom.GetPreamble(), resolved.GetPreamble());
     }
 
-    [Fact]
-    public void ForDiskPath_returns_bom_free_utf8_for_absent_file()
+    [Theory]
+    [InlineData("Missing.cs", true)]
+    [InlineData("Missing.txt", false)]
+    public void ForDiskPath_identifies_the_encoding_of_new_CSharp_source(string fileName, bool hasBom)
     {
-        var resolved = SourceTextEncoding.ForDiskPath(Path.Combine(_root, "Missing.cs"));
+        var resolved = SourceTextEncoding.ForDiskPath(Path.Combine(_root, fileName));
 
-        Assert.Equal(BomFreeUtf8.GetPreamble(), resolved.GetPreamble());
+        Assert.Equal((hasBom ? Utf8WithBom : BomFreeUtf8).GetPreamble(), resolved.GetPreamble());
     }
 
     [Fact]

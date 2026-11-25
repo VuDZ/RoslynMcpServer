@@ -1,8 +1,34 @@
 # Исправления по ревью RoslynMcpServer от 25 ноября 2026
 
-**Статус на 2026-11-25.** Проверка `9d8b00c` подтвердила исходные сценарии семи исправлений и выявила восемь открытых замечаний — P1-28–P1-33 и P2-34–P2-35. FIX-19 остаётся заблокированной. Три предложения по каталогу инструментов ожидают решения.
+**Статус на 2026-11-25.** Приняты исправления пяти P1 и трёх P2 из карточек 36–43. Подтверждены исправления 28–35. FIX-19 остаётся заблокированной. Три предложения по инструментам ожидают решения. [Итоговая проверка](evidence/tasks-36-43-validation.md).
 
 Исходное ревью проводилось на `ff7b54b`, версия исходников 1.6.1. Roslyn MCP 1.6.0.0 загрузил пять проектов. Потеря параллельной правки воспроизведена отдельным процессом 1.6.1.0. Два целевых запуска прошли 29/29 и 39/39 тестов. Эти результаты относятся к исходному ревью. База для исправлений — `5639268` (.NET 11).
+
+## Проверка исправлений 28–35 в рабочей копии поверх `380decf`
+
+Проверена локальная Release-сборка с незакоммиченными изменениями. Roslyn MCP загрузил пять проектов. Все **2 730 тестов** Windows CI прошли без пропусков (2 568 основных, 149 TIA и 13 AnalyzerLifecycle). Исходные сценарии восьми карточек проходят. Дополнительные проверки выполнены на временных проектах, в том числе через публичные инструменты собранного MCP-сервера.
+
+| Исходные карточки | Подтверждённый результат |
+|---|---|
+| P1-28–P1-30 | Полная перезапись восстанавливает файл при устаревшем снимке. При заданной Latin-1 патч сохраняет представимый текст и отклоняет непредставимый до изменения файла и снимка. |
+| P1-31, P1-32 | Селектор различает `Order` и `Order<int>`. SDK читает переименованное решение со смешанным регистром элементов, проектами в папке и несколькими зависимостями. |
+| P1-33, P2-35 | На двух целевых платформах авария testhost даёт неуспех. При `Total tests: Unknown` отчёт сохраняет подтверждённые прошедшие и упавшие случаи и помечает общий итог неизвестным. |
+| P2-34 | При реальных Git-переименованиях и копировании сохраняются целевой путь и соседняя запись. Кириллические имена и имена со специальными символами извлекаются из ответа и открываются на диске. |
+
+### Приёмка задач 36–43 после повторной проверки
+
+| ID | Задача | Связанные карточки | Статус |
+|---|---|---|---|
+| P1-36 | [Восстановить запись исходников без BOM в классических проектах .NET Framework](task-36-p1-framework-bom-free-writes-hi.md) | [P1-28](task-28-p1-full-write-stale-snapshot-hi.md), [P1-29](task-29-p1-patch-fallback-code-page-hi.md) | accepted · 2026-11-25 · запись без BOM в классическом проекте · [отчёт](evidence/tasks-36-43-validation.md#p1-36) |
+| P1-37 | [Определять кодировку текущих байтов при CodePage по умолчанию](task-37-p1-redetect-changed-source-encoding-hi.md) | [P1-29](task-29-p1-patch-fallback-code-page-hi.md), [P1-30](task-30-p1-patch-unrepresentable-text-med.md) | accepted · 2026-11-25 · кодировка текущих байтов · [отчёт](evidence/tasks-36-43-validation.md#p1-37) |
+| P1-38 | [Сохранять значение литерала при создании исходника в проекте с CodePage](task-38-p1-new-source-project-encoding-hi.md) | [P1-29](task-29-p1-patch-fallback-code-page-hi.md), [P1-30](task-30-p1-patch-unrepresentable-text-med.md) | accepted · 2026-11-25 · значение литерала нового исходника · [отчёт](evidence/tasks-36-43-validation.md#p1-38) |
+| P1-39 | [Разрешать тип селектора в контексте объявляющего класса](task-39-p1-bind-overload-type-selector-hi.md) | [P1-31](task-31-p1-method-parameter-generic-arity-med.md) | accepted · 2026-11-25 · семантический выбор перегрузки · [отчёт](evidence/tasks-36-43-validation.md#p1-39) |
+| P1-40 | [Учитывать ошибку MSBuild при несовпадении фильтра в соседнем запуске](task-40-p1-test-no-match-msbuild-error-hi.md) | [P1-33](task-33-p1-test-report-false-success-hi.md) | accepted · 2026-11-25 · ошибка MSBuild в общем результате · [отчёт](evidence/tasks-36-43-validation.md#p1-40) |
+| P2-41 | [Считать результаты разных запусков с разными форматами сводки VSTest](task-41-p2-mixed-vstest-summary-formats-hi.md) | [P2-35](task-35-p2-vstest-aborted-run-totals-med.md) | accepted · 2026-11-25 · итоги разных запусков VSTest · [отчёт](evidence/tasks-36-43-validation.md#p2-41) |
+| P2-42 | [Различать пути Git с байтами вне UTF-8](task-42-p2-git-non-utf8-paths-med.md) | [P2-34](task-34-p2-git-porcelain-literal-paths-med.md) | accepted · 2026-11-25 · обратимые байтовые пути Git · [отчёт](evidence/tasks-36-43-validation.md#p2-42) |
+| P2-43 | [Ограничить переименование проектными ссылками модели `.slnx`](task-43-p2-slnx-extension-project-metadata-med.md) | [P1-32](task-32-p1-slnx-element-case-hi.md) | accepted · 2026-11-25 · границы модели .slnx и сохранность XML · [отчёт](evidence/tasks-36-43-validation.md#p2-43) |
+
+Для каждой карточки работала отдельная пара исполнителя и ревьювера. Сценарии воспроизведения проверены на Release-сборке, в том числе через публичные инструменты на временных проектах и Git-индексе. [Результаты и группы CI](evidence/tasks-36-43-validation.md).
 
 ## Повторная проверка на `9d8b00c`
 
@@ -18,20 +44,20 @@
 | P2-26 | При настройках Git `normal` и `no` отчёт считает 81 новый файл, показывает первые 80 и исключает игнорируемый. Сохранился дефект отображения кириллицы в путях. |
 | P2-27 | Заблокированная запись внешней `.slnx` после перемещения даёт частичный отказ и событие `success=false`. Полное переименование даёт `success=true`. |
 
-### Открытые задачи для реализации
+### Исправления по повторной проверке
 
 | ID | Задача | Связь с проверенной карточкой | Статус |
 |---|---|---|---|
-| P1-28 | [Подтверждать `update_file_content` после сохранения полной версии файла](task-28-p1-full-write-stale-snapshot-hi.md) | [P1-21](task-21-p1-patch-stale-snapshot-hi.md) | planned |
-| P1-29 | [Учитывать кодировку проекта при чтении изменённого файла без BOM](task-29-p1-patch-fallback-code-page-hi.md) | [P1-21](task-21-p1-patch-stale-snapshot-hi.md) | planned |
-| P1-30 | [Отклонять патч, результат которого нельзя записать в кодировке файла](task-30-p1-patch-unrepresentable-text-med.md) | [P1-21](task-21-p1-patch-stale-snapshot-hi.md) | planned |
-| P1-31 | [Различать обобщённый и необобщённый типы при выборе метода](task-31-p1-method-parameter-generic-arity-med.md) | [P1-22](task-22-p1-method-parameter-case-med.md) | planned |
-| P1-32 | [Сохранять ссылки `.slnx` при разном регистре имён XML-элементов](task-32-p1-slnx-element-case-hi.md) | [P1-23](task-23-p1-slnx-build-dependency-hi.md) | planned |
-| P1-33 | [Исключить ложный успех `run_specific_test` после подтверждённого падения](task-33-p1-test-report-false-success-hi.md) | [P2-25](task-25-p2-filtered-test-failure-status-med.md) | planned |
-| P2-34 | [Возвращать реальные имена файлов из `get_changed_files`](task-34-p2-git-porcelain-literal-paths-med.md) | [P2-26](task-26-p2-git-untracked-file-count-med.md) | planned |
-| P2-35 | [Разделять счётчики VSTest при `Total tests: Unknown`](task-35-p2-vstest-aborted-run-totals-med.md) | [P2-25](task-25-p2-filtered-test-failure-status-med.md) | planned |
+| P1-28 | [Подтверждать `update_file_content` после сохранения полной версии файла](task-28-p1-full-write-stale-snapshot-hi.md) | [P1-21](task-21-p1-patch-stale-snapshot-hi.md) | accepted · 2026-11-25 · запись и публикация полной версии файла · [отчёт](evidence/tasks-28-35-validation.md#p1-28) |
+| P1-29 | [Учитывать кодировку проекта при чтении изменённого файла без BOM](task-29-p1-patch-fallback-code-page-hi.md) | [P1-21](task-21-p1-patch-stale-snapshot-hi.md) | accepted · 2026-11-25 · BOM и вычисленная кодировка проекта · [отчёт](evidence/tasks-28-35-validation.md#p1-29) |
+| P1-30 | [Отклонять патч, результат которого нельзя записать в кодировке файла](task-30-p1-patch-unrepresentable-text-med.md) | [P1-21](task-21-p1-patch-stale-snapshot-hi.md) | accepted · 2026-11-25 · точное кодирование до записи · [отчёт](evidence/tasks-28-35-validation.md#p1-30) |
+| P1-31 | [Различать обобщённый и необобщённый типы при выборе метода](task-31-p1-method-parameter-generic-arity-med.md) | [P1-22](task-22-p1-method-parameter-case-med.md) | accepted · 2026-11-25 · арность и аргументы типа · [отчёт](evidence/tasks-28-35-validation.md#p1-31) |
+| P1-32 | [Сохранять ссылки `.slnx` при разном регистре имён XML-элементов](task-32-p1-slnx-element-case-hi.md) | [P1-23](task-23-p1-slnx-build-dependency-hi.md) | accepted · 2026-11-25 · регистр элементов и связи `.slnx` · [отчёт](evidence/tasks-28-35-validation.md#p1-32) |
+| P1-33 | [Исключить ложный успех `run_specific_test` после подтверждённого падения](task-33-p1-test-report-false-success-hi.md) | [P2-25](task-25-p2-filtered-test-failure-status-med.md) | accepted · 2026-11-25 · отказ при подтверждённом падении · [отчёт](evidence/tasks-28-35-validation.md#p1-33) |
+| P2-34 | [Возвращать реальные имена файлов из `get_changed_files`](task-34-p2-git-porcelain-literal-paths-med.md) | [P2-26](task-26-p2-git-untracked-file-count-med.md) | accepted · 2026-11-25 · буквальные и однозначно читаемые пути Git · [отчёт](evidence/tasks-28-35-validation.md#p2-34) |
+| P2-35 | [Разделять счётчики VSTest при `Total tests: Unknown`](task-35-p2-vstest-aborted-run-totals-med.md) | [P2-25](task-25-p2-filtered-test-failure-status-med.md) | accepted · 2026-11-25 · подтверждённые счётчики прерванных прогонов · [отчёт](evidence/tasks-28-35-validation.md#p2-35) |
 
-P1-28–P1-33 блокируют слияние. При параллельной реализации согласовать изменения для P1-29/P1-30 в механизме записи и для P1-33/P2-35 в парсере VSTest. У каждой задачи свой воспроизводимый результат и свои критерии приёмки.
+Для каждой карточки работала отдельная пара исполнителя и ревьювера. Общая проверка охватила запись и кодировки файлов, результаты VSTest, выбор сигнатур, чтение решения SDK и буквальные пути Git. [Приёмка восьми исправлений](evidence/tasks-28-35-validation.md).
 
 ## Замечания к реализации на `70aafb7`
 

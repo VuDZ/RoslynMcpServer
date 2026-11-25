@@ -172,7 +172,7 @@ public sealed class ListProjectsTests : IAsyncLifetime
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task Project_metadata_keeps_the_framework_when_the_output_type_log_is_unavailable(bool corruptLog)
+    public async Task Project_metadata_keeps_the_framework_and_loader_encoding_when_the_output_type_log_is_unavailable(bool corruptLog)
     {
         WriteProperties("""
             <Project>
@@ -195,6 +195,7 @@ public sealed class ListProjectsTests : IAsyncLifetime
 
         Assert.Equal("net10.0", metadata.TargetFramework);
         Assert.Null(metadata.OutputType);
+        Assert.Equal(0, metadata.CodePage);
     }
 
     [Fact]

@@ -31,7 +31,8 @@ BuildHost, что лежит в папке `BuildHost-netcore` рядом с н�
 Изменения форка поверх upstream:
 
 - [AR-09](../../docs/architecture-review/findings.md#ar-09). При загрузке с binlog `roslyn-mcp-workspace*.binlog`
-  BuildHost сохраняет оценённый `OutputType` вместе с путём проекта и TFM в соседнем файле `*.projects.json`.
+  BuildHost сохраняет оценённые `OutputType` и `CodePage` вместе с путём проекта и TFM в соседнем файле `*.projects.json`.
+  При записи файла без BOM сервер учитывает `CodePage` соответствующего экземпляра проекта.
   Сервер читает эти данные перед удалением временного каталога загрузки. Протокол RPC сохраняется.
 - [task-01](../../docs/workspace-load-performance/research-buildhost-fork/task-01-buildhost-graph-and-timings-hi.md):
   трассировка таймингов. Новый файл `BuildHost/Tracing/BuildHostTrace.cs` и spans в `Program`, `RpcServer`,

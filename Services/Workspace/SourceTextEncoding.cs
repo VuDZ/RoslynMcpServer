@@ -11,11 +11,11 @@ namespace RoslynMcpServer.Services.Workspace;
 /// <c>TryApplyChanges</c> with <c>SourceText.Encoding</c>, and <see cref="Encoding.UTF8"/> carries a UTF-8 BOM
 /// preamble. Passing it therefore added a BOM to every file that had none. The complementary write
 /// (<c>File.WriteAllText</c> without an encoding) strips a BOM that existed. Both write paths of one operation
-/// must agree on the file's current BOM state; only new files fall back to BOM-free UTF-8.
+/// must agree on the file's current BOM state.
 /// </remarks>
 public static class SourceTextEncoding
 {
-    /// <summary>UTF-8 without a BOM; the fallback for a file that does not exist yet.</summary>
+    /// <summary>UTF-8 without a BOM.</summary>
     public static Encoding BomFreeUtf8 { get; } = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
 
     /// <summary>
@@ -38,15 +38,49 @@ public static class SourceTextEncoding
     }
 
     /// <summary>
-    /// Encoding that reproduces the BOM state of <paramref name="diskPath"/>, or BOM-free UTF-8 when the file is
-    /// absent or its first bytes are not a known BOM.
+    /// Preserves the BOM state of an existing file. For a new C# file, a UTF-8 BOM identifies the encoding
+    /// to every project that compiles it.
     /// </summary>
     public static Encoding ForDiskPath(string? diskPath)
     {
+        // MSBuild can include a new file through globs or links outside the project directory.
+        // A BOM takes precedence over every owner's CodePage, including owners discovered on reload.
+        // See docs/project-review-2026-11-25/task-38-p1-new-source-project-encoding-hi.md.
+        if (WorkspaceDiskPathFilter.IsCSharpSource(diskPath) && !File.Exists(diskPath))
+        {
+            return Encoding.UTF8;
+        }
+
         return DetectBomEncoding(diskPath) ?? BomFreeUtf8;
     }
 
-    private static Encoding? DetectBomEncoding(string? diskPath)
+    internal static Encoding? DetectBomEncoding(ReadOnlySpan<byte> head)
+    {
+        // UTF-32 little-endian starts with the UTF-16 little-endian BOM.
+        if (head.StartsWith(Encoding.UTF32.Preamble))
+        {
+            return Encoding.UTF32;
+        }
+
+        if (head.StartsWith<byte>([0x00, 0x00, 0xFE, 0xFF]))
+        {
+            return new UTF32Encoding(bigEndian: true, byteOrderMark: true);
+        }
+
+        if (head.StartsWith(Encoding.BigEndianUnicode.Preamble))
+        {
+            return Encoding.BigEndianUnicode;
+        }
+
+        if (head.StartsWith(Encoding.Unicode.Preamble))
+        {
+            return Encoding.Unicode;
+        }
+
+        return head.StartsWith(Encoding.UTF8.Preamble) ? Encoding.UTF8 : null;
+    }
+
+    internal static Encoding? DetectBomEncoding(string? diskPath)
     {
         if (string.IsNullOrWhiteSpace(diskPath) || !File.Exists(diskPath))
         {
@@ -61,31 +95,7 @@ public static class SourceTextEncoding
             // A shorter file can still carry a UTF-8 or UTF-16 BOM.
             var read = stream.ReadAtLeast(head, head.Length, false);
 
-            // UTF-32 little-endian starts with the UTF-16 little-endian BOM.
-            if (read == 4 && head.SequenceEqual(Encoding.UTF32.Preamble))
-            {
-                return Encoding.UTF32;
-            }
-
-            if (read == 4 && head.SequenceEqual<byte>([0x00, 0x00, 0xFE, 0xFF]))
-            {
-                return new UTF32Encoding(bigEndian: true, byteOrderMark: true);
-            }
-
-            if (read >= 2 && head[0] == 0xFE && head[1] == 0xFF)
-            {
-                return new UnicodeEncoding(bigEndian: true, byteOrderMark: true);
-            }
-
-            if (read >= 2 && head[0] == 0xFF && head[1] == 0xFE)
-            {
-                return new UnicodeEncoding(bigEndian: false, byteOrderMark: true);
-            }
-
-            if (read >= 3 && head[0] == 0xEF && head[1] == 0xBB && head[2] == 0xBF)
-            {
-                return new UTF8Encoding(encoderShouldEmitUTF8Identifier: true);
-            }
+            return DetectBomEncoding(head[..read]);
         }
         catch (IOException)
         {
@@ -96,4 +106,12 @@ public static class SourceTextEncoding
 
         return null;
     }
+
+    internal static Encoding WithoutBom(int codePage) => codePage switch
+    {
+        65001 => BomFreeUtf8,
+        1200 or 1201 => new UnicodeEncoding(bigEndian: codePage == 1201, byteOrderMark: false),
+        12000 or 12001 => new UTF32Encoding(bigEndian: codePage == 12001, byteOrderMark: false),
+        _ => CodePagesEncodingProvider.Instance.GetEncoding(codePage) ?? Encoding.GetEncoding(codePage),
+    };
 }

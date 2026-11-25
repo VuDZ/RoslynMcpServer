@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text.Json;
 using Microsoft.Extensions.Logging.Abstractions;
 using RoslynMcpServer.Services;
 using RoslynMcpServer.Tests.Support;
@@ -22,6 +23,23 @@ public sealed class GitChangedFilesHelperTests
         Assert.Equal("src/Foo.cs", files[0].Path);
         Assert.Equal("M", files[0].Status);
         Assert.Equal("docs/new.md", files[1].Path);
+    }
+
+    [Theory]
+    [InlineData("R ")]
+    [InlineData(" C")]
+    public void ParsePorcelainStatus_consumes_the_source_path_of_a_rename_or_copy(string status)
+    {
+        const string Destination = "  literal -> \"destination\"\n.cs ";
+        const string NextPath = "next\tfile.cs";
+        var output = $"{status} {Destination}\0?? looks like another record\0 M {NextPath}\0";
+
+        var files = GitChangedFilesHelper.ParsePorcelainStatus(output);
+
+        Assert.Collection(
+            files,
+            first => Assert.Equal(new GitChangedFilesHelper.ChangedFile(Destination, status.Trim()), first),
+            next => Assert.Equal(new GitChangedFilesHelper.ChangedFile(NextPath, "M"), next));
     }
 
     [Fact]
@@ -264,6 +282,64 @@ public sealed class GitChangedFilesHelperTests
     }
 
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task GetChangedFiles_returns_literal_names_that_open_in_the_checkout(bool includeMarkdownDelimiters)
+    {
+        using var directory = NewWorkDirectory();
+        await RunFixtureGitAsync(directory.FullName, "init", "--template=");
+        await RunFixtureGitAsync(directory.FullName, "config", "--local", "core.quotepath", "true");
+        Directory.CreateDirectory(Path.Combine(directory.FullName, "new"));
+        var paths = new List<string> { "new/тест.cs", "new/ space [1].cs" };
+        if (includeMarkdownDelimiters)
+        {
+            paths.Add("new/contains ``` fence.cs");
+            if (!OperatingSystem.IsWindows())
+            {
+                paths.Add("new/literal -> \"quote\"\t` |\n| ?? | `next ");
+            }
+        }
+
+        foreach (var path in paths)
+        {
+            await File.WriteAllTextAsync(Path.Combine(directory.FullName, path), path);
+        }
+
+        var tools = new UtilityTools(NullLogger<UtilityTools>.Instance, SolutionManagerTestFactory.Create());
+        var report = await tools.GetChangedFiles(directory.FullName);
+
+        Assert.Contains($"**Changed/untracked:** {paths.Count}", report, StringComparison.Ordinal);
+        Assert.Contains("new/тест.cs", report, StringComparison.Ordinal);
+        string[] reportedPaths;
+        if (includeMarkdownDelimiters)
+        {
+            var lines = report.Split(Environment.NewLine);
+            var fence = Array.IndexOf(lines, "```json");
+            Assert.InRange(fence, 0, lines.Length - 3);
+            Assert.Equal("```", lines[fence + 2]);
+            using var entries = JsonDocument.Parse(lines[fence + 1]);
+            reportedPaths = entries.RootElement.EnumerateArray().Select(entry =>
+            {
+                Assert.Equal("??", entry.GetProperty("status").GetString());
+                return entry.GetProperty("path").GetString()!;
+            }).ToArray();
+        }
+        else
+        {
+            reportedPaths = report.Split("| ?? | `", StringSplitOptions.None)
+                .Skip(1)
+                .Select(row => row[..row.IndexOf("` |", StringComparison.Ordinal)])
+                .ToArray();
+        }
+
+        Assert.Equal(paths.Order(StringComparer.Ordinal), reportedPaths);
+        foreach (var path in reportedPaths)
+        {
+            Assert.Equal(path, await File.ReadAllTextAsync(Path.Combine(directory.FullName, path)));
+        }
+    }
+
+    [Theory]
     [InlineData("normal")]
     [InlineData("no")]
     public async Task GetChangedFiles_reports_the_total_and_shows_only_the_first_80_paths(string untrackedMode)
@@ -289,6 +365,54 @@ public sealed class GitChangedFilesHelperTests
         Assert.Contains("**Changed/untracked:** 81", report, StringComparison.Ordinal);
         Assert.Contains("Showing first 80 of 81 paths.", report, StringComparison.Ordinal);
         Assert.DoesNotContain("ignored.txt", report, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GetChangedFiles_preserves_non_utf8_paths_from_the_git_index()
+    {
+        using var directory = NewWorkDirectory();
+        await InitializeRepositoryAsync(directory.FullName);
+        var blob = await GitChangedFilesHelper.RunGitAsync(directory.FullName, "rev-parse HEAD:nested/seed.txt", CancellationToken.None);
+        Assert.True(blob.Success, blob.Error);
+        byte[][] paths = [[0x61, 0xFE, 0x2E, 0x63, 0x73], [0x61, 0xFF, 0x2E, 0x63, 0x73]];
+        var entryHeader = System.Text.Encoding.ASCII.GetBytes($"100644 {blob.Output}\t");
+        byte[] indexRecords = [.. entryHeader, .. paths[0], 0, .. entryHeader, .. paths[1], 0];
+        var start = new ProcessStartInfo("git", "update-index -z --index-info")
+        {
+            WorkingDirectory = directory.FullName,
+            UseShellExecute = false,
+            RedirectStandardInput = true,
+            StandardInputEncoding = System.Text.Encoding.ASCII,
+            RedirectStandardError = true,
+        };
+        using var git = Process.Start(start)!;
+        var error = git.StandardError.ReadToEndAsync();
+        await git.StandardInput.BaseStream.WriteAsync(indexRecords);
+        git.StandardInput.Close();
+        await git.WaitForExitAsync();
+        Assert.True(git.ExitCode == 0, await error);
+
+        // A literal hexadecimal name could otherwise be mistaken for the escaped path.
+        var literalName = Convert.ToHexString(paths[0]);
+        await File.WriteAllTextAsync(Path.Combine(directory.FullName, literalName), "Plain text name");
+        var tools = new UtilityTools(NullLogger<UtilityTools>.Instance, SolutionManagerTestFactory.Create());
+        var report = await tools.GetChangedFiles(directory.FullName);
+
+        var lines = report.Split(Environment.NewLine);
+        var fence = Array.IndexOf(lines, "```json");
+        Assert.InRange(fence, 0, lines.Length - 3);
+        using var entries = JsonDocument.Parse(lines[fence + 1]);
+        var files = entries.RootElement.EnumerateArray().ToArray();
+        Assert.Equal(3, files.Length);
+        var encoded = files.Where(file => file.TryGetProperty("pathEncoding", out _)).ToArray();
+        Assert.Equal(paths.Length, encoded.Length);
+        for (var i = 0; i < encoded.Length; i++)
+        {
+            Assert.Equal("hex", encoded[i].GetProperty("pathEncoding").GetString());
+            Assert.Equal(paths[i], Convert.FromHexString(encoded[i].GetProperty("path").GetString()!));
+        }
+        var literal = Assert.Single(files, file => !file.TryGetProperty("pathEncoding", out _));
+        Assert.Equal(literalName, literal.GetProperty("path").GetString());
     }
 
     private static async Task InitializeRepositoryAsync(string directory)

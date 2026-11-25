@@ -127,12 +127,7 @@ internal static class MethodSyntaxHelper
         for (var i = 0; i < parameters.Count; i++)
         {
             var paramType = parameters[i].Type;
-            if (paramType is null)
-            {
-                return false;
-            }
-
-            if (!TypeNamesEquivalent(paramType.ToString(), expectedTypes[i].Trim(), paramType, model))
+            if (paramType is null || model is null || !TypeNamesEquivalent(paramType, expectedTypes[i], model))
             {
                 return false;
             }
@@ -141,32 +136,38 @@ internal static class MethodSyntaxHelper
         return true;
     }
 
-    private static bool TypeNamesEquivalent(
-        string syntaxTypeName,
-        string expected,
-        TypeSyntax paramType,
-        SemanticModel? model)
+    private static bool TypeNamesEquivalent(TypeSyntax parameterType, string expectedType, SemanticModel model)
     {
-        if (string.Equals(syntaxTypeName, expected, StringComparison.Ordinal))
-        {
-            return true;
-        }
-
-        if (model is null)
+        var selector = SyntaxFactory.ParseTypeName(expectedType);
+        if (selector.ContainsDiagnostics)
         {
             return false;
         }
 
-        var symbol = model.GetTypeInfo(paramType).Type;
-        if (symbol is null)
+        // Display names lose the namespaces of generic arguments and the owners of nested types.
+        // See docs/project-review-2026-11-25/task-39-p1-bind-overload-type-selector-hi.md.
+        var binding = model.GetSpeculativeSymbolInfo(parameterType.SpanStart, selector, SpeculativeBindingOption.BindAsTypeOrNamespace);
+        var requestedType = binding.Symbol as ITypeSymbol;
+        if (selector is IdentifierNameSyntax name && binding.Symbol is null && binding.CandidateReason == CandidateReason.None)
         {
-            return false;
+            // Preserve short CLR names such as Int32 without a using System directive.
+            var coreLibrary = model.Compilation.GetSpecialType(SpecialType.System_Object).ContainingAssembly;
+            requestedType = coreLibrary.GetTypeByMetadataName($"System.{name.Identifier.ValueText}");
         }
 
-        var minimal = symbol.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
-        var fullyQualified = symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-        return string.Equals(minimal, expected, StringComparison.Ordinal)
-            || string.Equals(fullyQualified, expected, StringComparison.Ordinal)
-            || string.Equals(symbol.Name, expected, StringComparison.Ordinal);
+        return requestedType is not null && IsResolved(requestedType)
+            && SymbolEqualityComparer.Default.Equals(requestedType, model.GetTypeInfo(parameterType).Type);
     }
+
+    private static bool IsResolved(ITypeSymbol type) => type switch
+    {
+        IErrorTypeSymbol => false,
+        INamedTypeSymbol named => (named.ContainingType is null || IsResolved(named.ContainingType))
+            && named.TypeArguments.All(IsResolved),
+        IArrayTypeSymbol array => IsResolved(array.ElementType),
+        IPointerTypeSymbol pointer => IsResolved(pointer.PointedAtType),
+        IFunctionPointerTypeSymbol pointer => IsResolved(pointer.Signature.ReturnType)
+            && pointer.Signature.Parameters.All(parameter => IsResolved(parameter.Type)),
+        _ => true
+    };
 }

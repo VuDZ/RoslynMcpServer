@@ -99,8 +99,8 @@ internal sealed class DotNetTestExecutor
                 run.CombinedOutput, run.ExitCode, run.TestSummaryTruncated, run.OutputTruncated);
             var outcome = run.Cancelled ? TestProcessOutcome.Cancelled
                 : run.TimedOut ? TestProcessOutcome.TimedOut
-                : run.ExitCode != 0 || parsed.RetainedSummaryReportsFailure ? TestProcessOutcome.Failed
-                : parsed.SummaryTruncated ? TestProcessOutcome.Partial
+                : run.ExitCode != 0 || parsed.HasConfirmedFailure ? TestProcessOutcome.Failed
+                : parsed.SummaryTruncated || parsed.IncompleteCounts is not null ? TestProcessOutcome.Partial
                 : parsed.Summary is { Total: > 0 } ? TestProcessOutcome.Passed
                 : TestProcessOutcome.Failed;
             return new(outcome, buildRun, run, parsed);

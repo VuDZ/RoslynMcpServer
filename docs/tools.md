@@ -242,6 +242,8 @@ Optional `preview: bool?` appends each definition's source line (up to 400 chara
 <details>
 <summary><code>update_file_content</code> — Completely overwrites a file. Creates missing directories automatically. A new <code>.cs</code> is written to disk and marks the project graph composition-stale; it is not added to the semantic snapshot until `load_workspace` (a stale graph skips the load cache) or `reset_workspace` then `load_workspace`.</summary>
 
+New `.cs` files use UTF-8 with a BOM so the compiler reads the requested text under any project `CodePage`, including linked files. Other new files use UTF-8 without a BOM.
+
 **Parameters:**
 - `filePath: string`
 - `content: string`
@@ -523,6 +525,8 @@ Verify id/version with `search_nuget_registry` first. Clears workspace cache —
 - `workspacePath: string? = null` — a file or directory in the checkout. Omit to use the first project with a path in the loaded solution, then the process directory.
 
 Git resolves the checkout that contains the file or directory, including linked worktrees and submodules. It counts individual untracked files regardless of `status.showUntrackedFiles` and honors Git ignore rules. The report gives the total number of changed and untracked paths and lists the first 80 in Git status order.
+
+Paths normally appear in a Markdown table. If a displayed path contains invalid UTF-8, a backtick, a vertical bar, a control character, a line separator or a leading or trailing space, the report uses a fenced JSON array for all displayed entries. Each object has a `status` and a `path` relative to the checkout. For valid UTF-8, `path` is the literal name. An entry with `"pathEncoding":"hex"` stores the complete original path as hexadecimal byte pairs in `path`. For a rename or copy, `path` is the destination.
 
 With a loaded solution, the tool can suggest projects with `test` in their names. It matches a source filename stem against a changed path, or a changed filename stem against a source filename stem, using case-insensitive substring checks.
 

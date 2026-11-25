@@ -1,7 +1,10 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Text;
+using System.Text.Encodings.Web;
+using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Text.Unicode;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -165,9 +168,9 @@ public sealed class UtilityTools
                 return ToolTelemetry.TraceFailureAndReturn(toolName, $"git status failed: {status.Error}");
             }
 
-            var changed = GitChangedFilesHelper.ParsePorcelainStatus(status.Output);
+            var changed = status.Files;
             var solution = _solutionManager.GetCurrentSolution();
-            var relativePaths = changed.Select(c => c.Path).ToList();
+            var relativePaths = changed.Where(file => file.PathEncoding is null).Select(file => file.Path).ToList();
             var testSuggestions = GitChangedFilesHelper.SuggestTestProjects(solution, relativePaths);
 
             var sb = new StringBuilder();
@@ -183,12 +186,7 @@ public sealed class UtilityTools
             }
             else
             {
-                sb.AppendLine("| Status | Path |");
-                sb.AppendLine("| --- | --- |");
-                foreach (var file in changed.Take(80))
-                {
-                    sb.AppendLine($"| {file.Status} | `{file.Path}` |");
-                }
+                AppendGitPaths(sb, changed.Take(80).ToArray());
 
                 if (changed.Count > 80)
                 {
@@ -219,6 +217,27 @@ public sealed class UtilityTools
         {
             _logger.LogError(ex, "GetChangedFiles failed");
             return ToolTelemetry.TraceFailureAndReturn(toolName, $"Error: {ex.Message}");
+        }
+    }
+
+    private static void AppendGitPaths(StringBuilder sb, IReadOnlyList<GitChangedFilesHelper.ChangedFile> files)
+    {
+        // A literal path can contain the entire Markdown row separator. JSON preserves record boundaries.
+        // See docs/project-review-2026-11-25/task-34-p2-git-porcelain-literal-paths-med.md.
+        if (files.Any(file => file.PathEncoding is not null || file.Path.StartsWith(' ') || file.Path.EndsWith(' ')
+            || file.Path.Any(ch => char.IsControl(ch) || ch is '`' or '|' or '\u2028' or '\u2029')))
+        {
+            sb.AppendLine("```json");
+            sb.AppendLine(JsonSerializer.Serialize(files, _gitPathJsonOptions));
+            sb.AppendLine("```");
+            return;
+        }
+
+        sb.AppendLine("| Status | Path |");
+        sb.AppendLine("| --- | --- |");
+        foreach (var file in files)
+        {
+            sb.AppendLine($"| {file.Status} | `{file.Path}` |");
         }
     }
 
@@ -1780,6 +1799,12 @@ public sealed class UtilityTools
             sb.AppendLine($"{indent}{branch}{file.Name}");
         }
     }
+
+    private static readonly JsonSerializerOptions _gitPathJsonOptions = new(JsonSerializerDefaults.Web)
+    {
+        Encoder = JavaScriptEncoder.Create(UnicodeRanges.All),
+        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
+    };
 
     private readonly ILogger<UtilityTools> _logger;
     private readonly SolutionManager _solutionManager;

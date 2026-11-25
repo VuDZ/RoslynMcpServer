@@ -28,11 +28,11 @@ internal sealed class ProjectOutputTypeLog(string path)
             : null;
     }
 
-    public void Add(string projectFile, string? targetFramework, string outputType)
+    public void Add(string projectFile, string? targetFramework, string outputType, int codePage)
     {
         lock (_entries)
         {
-            _entries.Add(new(projectFile, targetFramework, outputType));
+            _entries.Add(new(projectFile, targetFramework, outputType, codePage));
         }
     }
 
@@ -55,5 +55,5 @@ internal sealed class ProjectOutputTypeLog(string path)
         }
     }
 
-    private sealed record Entry(string ProjectFile, string? TargetFramework, string OutputType);
+    private sealed record Entry(string ProjectFile, string? TargetFramework, string OutputType, int CodePage);
 }

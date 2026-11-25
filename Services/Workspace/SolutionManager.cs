@@ -858,7 +858,7 @@ public sealed class SolutionManager
                     newSolution,
                     oldSolution,
                     ResolveOperationContext(oldSolution),
-                    checkedPatchSource: null,
+                    singleFilePath: null,
                     cancellationToken)
                 .ConfigureAwait(false);
         }
@@ -2019,30 +2019,73 @@ public sealed class SolutionManager
 
     private async Task<PatchFileText> ReadPatchFileUnderLockAsync(string fullPath, CancellationToken cancellationToken)
     {
-        var fallback = SourceTextEncoding.BomFreeUtf8;
-        var solution = _workspace?.CurrentSolution;
-        var id = solution?.GetDocumentIdsWithFilePath(fullPath).FirstOrDefault();
-        if (id is not null && solution?.GetDocument(id) is { } document)
+        var bytes = await File.ReadAllBytesAsync(fullPath, cancellationToken).ConfigureAwait(false);
+        var encoding = GetFileEncodingUnderLock(fullPath, bytes);
+        var strict = (Encoding)encoding.Clone();
+        strict.DecoderFallback = DecoderFallback.ExceptionFallback;
+        var content = bytes.AsSpan(encoding.Preamble.Length);
+        var text = strict.GetString(content);
+        // Some legacy code pages decode multiple byte sequences to the same text. Rewriting
+        // such a sequence would change bytes outside the match even with a strict decoder.
+        if (encoding is not (UTF8Encoding or UnicodeEncoding or UTF32Encoding)
+            && !content.SequenceEqual(strict.GetBytes(text)))
         {
-            var source = await document.GetTextAsync(cancellationToken).ConfigureAwait(false);
-            // An explicit BOM in the file overrides the cached encoding. Without a BOM, keep a
-            // known BOM-free code page, or start with UTF-8 so a removed BOM stays removed.
-            if (source.Encoding is { } encoding && encoding.GetPreamble().Length == 0)
-            {
-                fallback = encoding;
-            }
+            throw new InvalidDataException($"File cannot be decoded losslessly as {encoding.WebName}: {fullPath}");
         }
 
-        using var stream = new FileStream(
-            fullPath,
-            FileMode.Open,
-            FileAccess.Read,
-            FileShare.Read,
-            bufferSize: 4096,
-            useAsync: true);
-        using var reader = new StreamReader(stream, fallback, detectEncodingFromByteOrderMarks: true);
-        var text = await reader.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
-        return new PatchFileText(fullPath, text, reader.CurrentEncoding);
+        return new PatchFileText(text, encoding);
+    }
+
+    private Encoding GetFileEncodingUnderLock(string fullPath, byte[] bytes)
+    {
+        if (SourceTextEncoding.DetectBomEncoding(bytes) is { } bom)
+        {
+            return bom;
+        }
+
+        var solution = _workspace?.CurrentSolution;
+        Encoding? fallback = null;
+        int? detectedCodePage = null;
+        if (solution is null)
+        {
+            return SourceTextEncoding.BomFreeUtf8;
+        }
+
+        foreach (var id in solution.GetDocumentIdsWithFilePath(fullPath))
+        {
+            // A project CodePage applies to compiler inputs, not AdditionalFiles or analyzer configs.
+            if (solution.GetDocument(id) is not { } document || !_pathComparer.Equals(document.FilePath, fullPath))
+            {
+                continue;
+            }
+
+            // The cached text may have used a BOM that the editor has since removed. Use the
+            // evaluated CodePage of the owning project. See docs/project-review-2026-11-25/task-29-p1-patch-fallback-code-page-hi.md.
+            if (!_loadedProjectMetadata.TryGetValue(id.ProjectId, out var metadata) || metadata.CodePage is not { } codePage)
+            {
+                throw new InvalidDataException($"Cannot determine the project's source encoding for BOM-free file: {fullPath}");
+            }
+
+            if (codePage == 0)
+            {
+                // Like Roslyn's default source loader, try UTF-8 before the platform code page.
+                // A cached document may predate an external conversion of the same text.
+                // See docs/project-review-2026-11-25/task-37-p1-redetect-changed-source-encoding-hi.md.
+                detectedCodePage ??= System.Text.Unicode.Utf8.IsValid(bytes)
+                    ? Encoding.UTF8.CodePage
+                    : (CodePagesEncodingProvider.Instance.GetEncoding(0) ?? Encoding.Default).CodePage;
+                codePage = detectedCodePage.Value;
+            }
+
+            if (fallback is not null && fallback.CodePage != codePage)
+            {
+                throw new InvalidDataException($"The projects containing {fullPath} specify conflicting source encodings.");
+            }
+
+            fallback ??= SourceTextEncoding.WithoutBom(codePage);
+        }
+
+        return fallback ?? SourceTextEncoding.BomFreeUtf8;
     }
 
     /// <summary>
@@ -2078,13 +2121,10 @@ public sealed class SolutionManager
             return RememberWrite(WorkspaceWriteResult.Skipped("missing-on-disk"));
         }
 
-        var existingDocument = baseSolution.GetDocument(documentIds[0]);
-        var existingText = existingDocument is null
-            ? null
-            : await existingDocument.GetTextAsync(cancellationToken).ConfigureAwait(false);
         // One encoding and one text for every membership. MSBuildWorkspace rewrites each document
         // with SourceText.Encoding; different encodings would flip the linked file's BOM.
-        var writeEncoding = checkedPatchSource?.Encoding ?? SourceTextEncoding.ResolveForWrite(existingText, candidate: null, fullPath);
+        var writeEncoding = checkedPatchSource?.Encoding
+            ?? GetFileEncodingUnderLock(fullPath, await File.ReadAllBytesAsync(fullPath, cancellationToken).ConfigureAwait(false));
         var shared = SourceText.From(newText, writeEncoding);
         var candidate = baseSolution;
         foreach (var documentId in documentIds)
@@ -2092,7 +2132,7 @@ public sealed class SolutionManager
             candidate = candidate.WithDocumentText(documentId, shared);
         }
         var context = CreateVerifiedWriteContext(_solution, baseSolution);
-        return await ApplyWorkspaceWriteUnderLockAsync(candidate, baseSolution, context, checkedPatchSource, cancellationToken)
+        return await ApplyWorkspaceWriteUnderLockAsync(candidate, baseSolution, context, fullPath, cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -2100,7 +2140,7 @@ public sealed class SolutionManager
         Solution candidate,
         Solution baseForDocuments,
         WorkspaceWriteOperationContext operationContext,
-        PatchFileText? checkedPatchSource,
+        string? singleFilePath,
         CancellationToken cancellationToken)
     {
         var workspace = _workspace;
@@ -2142,7 +2182,7 @@ public sealed class SolutionManager
                     candidate,
                     saved,
                     savedTexts,
-                    checkedPatchSource,
+                    singleFilePath,
                     cancellationToken)
                 .ConfigureAwait(false);
             if (registration is not null)
@@ -2299,7 +2339,7 @@ public sealed class SolutionManager
         Solution newSolution,
         List<string> saved,
         List<(string Path, string Text, Encoding WriteEncoding)> savedTexts,
-        PatchFileText? checkedPatchSource,
+        string? singleFilePath,
         CancellationToken cancellationToken)
     {
         var savedPaths = new HashSet<string>(saved, _pathComparer);
@@ -2331,19 +2371,29 @@ public sealed class SolutionManager
             var newSourceText = await newDoc.GetTextAsync(cancellationToken).ConfigureAwait(false);
             var text = newSourceText.ToString();
             var oldSourceText = await oldDoc.GetTextAsync(cancellationToken).ConfigureAwait(false);
-            // A patch can restore the workspace text before the watcher delivers an external edit.
-            // Compare against the disk version checked under the lock for that path.
-            // See docs/project-review-2026-11-25/task-21-p1-patch-stale-snapshot-hi.md.
-            var patch = checkedPatchSource is not null && _pathComparer.Equals(fullPath, checkedPatchSource.Path)
-                ? checkedPatchSource
-                : null;
-            var previousText = patch?.Text ?? oldSourceText.ToString();
-            if (string.Equals(previousText, text, StringComparison.Ordinal))
+            var singleFileWrite = _pathComparer.Equals(fullPath, singleFilePath);
+            var writeEncoding = SourceTextEncoding.ResolveForWrite(singleFileWrite ? null : oldSourceText, newSourceText, fullPath);
+            var sameText = oldSourceText.ContentEquals(newSourceText);
+            if (!singleFileWrite && sameText)
             {
                 continue;
             }
 
-            var writeEncoding = patch?.Encoding ?? SourceTextEncoding.ResolveForWrite(oldSourceText, newSourceText, fullPath);
+            // A watcher can lag behind a text or encoding change. Confirm the explicit target on disk,
+            // then publish any stale snapshot without rewriting bytes that already match.
+            // See docs/project-review-2026-11-25/task-28-p1-full-write-stale-snapshot-hi.md.
+            if (singleFileWrite && await FileMatchesCandidateAsync(fullPath, text, writeEncoding, cancellationToken).ConfigureAwait(false))
+            {
+                if (!sameText || oldSourceText.Encoding is not { } previous
+                    || previous.CodePage != writeEncoding.CodePage || !previous.Preamble.SequenceEqual(writeEncoding.Preamble))
+                {
+                    savedPaths.Add(fullPath);
+                    savedTexts.Add((fullPath, text, writeEncoding));
+                }
+
+                continue;
+            }
+
             await WriteTrackedTextToDiskAsync(fullPath, text, writeEncoding, cancellationToken).ConfigureAwait(false);
             savedPaths.Add(fullPath);
             saved.Add(fullPath);
@@ -2355,6 +2405,22 @@ public sealed class SolutionManager
                 throw new OperationCanceledException("CancelAfterDocumentWrites");
             }
         }
+    }
+
+    private static async Task<bool> FileMatchesCandidateAsync(
+        string path,
+        string text,
+        Encoding writeEncoding,
+        CancellationToken cancellationToken)
+    {
+        var file = new FileInfo(path);
+        if (!file.Exists || file.Length != (long)writeEncoding.Preamble.Length + writeEncoding.GetByteCount(text))
+        {
+            return false;
+        }
+
+        var bytes = await File.ReadAllBytesAsync(path, cancellationToken).ConfigureAwait(false);
+        return bytes.AsSpan().SequenceEqual(PersistedPayload.FromText(text, writeEncoding));
     }
 
     private static IEnumerable<TextDocument> GetDocumentsToPersist(Solution oldSolution, Solution newSolution)
