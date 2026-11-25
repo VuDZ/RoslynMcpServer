@@ -1,8 +1,19 @@
 # Исправления по ревью RoslynMcpServer от 25 ноября 2026
 
-**Статус на 2026-11-25.** Приняты P1-47 и P2-48 по замечаниям к `11dc927`. FIX-19 остаётся заблокированной. Три предложения по инструментам ожидают решения. [Приёмка P1-47 и P2-48](evidence/tasks-47-48-validation.md).
+**Статус на 2026-11-25.** Приняты исправления P1-49–P2-54 после независимого ревью и Release-проверки. FIX-19 остаётся заблокированной. Три предложения по инструментам ожидают решения. [Первопричины и приёмка](evidence/tasks-49-54-validation.md) · [Повторное ревью `f82d4ff`](evidence/review-f82d4ff.md).
 
 Исходное ревью проводилось на `ff7b54b`, версия исходников 1.6.1. Roslyn MCP 1.6.0.0 загрузил пять проектов. Потеря параллельной правки воспроизведена отдельным процессом 1.6.1.0. Два целевых запуска прошли 29/29 и 39/39 тестов. Эти результаты относятся к исходному ревью. База для исправлений — `5639268` (.NET 11).
+
+## Открытые замечания к f82d4ff
+
+| ID | Задача | Связанные карточки | Статус |
+|---|---|---|---|
+| P1-49 | [Проверять кодировку исходника в обычной сборке](task-49-p1-build-source-encoding-hi.md) | [P1-44](task-44-p1-source-write-reader-encoding-hi.md), [P1-47](task-47-p1-stale-project-code-page-hi.md) | accepted · 2026-11-25 · [приёмка](evidence/tasks-49-54-validation.md#p1-49) |
+| P1-50 | [Сохранять переводы строк за пределами патча](task-50-p1-patch-mixed-line-endings-hi.md) | [P1-01](task-01-p1-concurrent-patch-hi.md), [P1-44](task-44-p1-source-write-reader-encoding-hi.md) | accepted · 2026-11-25 · [приёмка](evidence/tasks-49-54-validation.md#p1-50) |
+| P1-51 | [Сохранять действие ProjectReference Update при переименовании](task-51-p1-rename-project-reference-update-hi.md) | [P1-03](task-03-p1-rename-project-paths-hi.md) | accepted · 2026-11-25 · [приёмка](evidence/tasks-49-54-validation.md#p1-51) |
+| P2-52 | [Учитывать сводку VSTest без строк имён тестов](task-52-p2-vstest-minimal-filter-outcome-med.md) | [P2-25](task-25-p2-filtered-test-failure-status-med.md), [P2-48](task-48-p2-vstest-no-match-source-path-med.md) | accepted · 2026-11-25 · [приёмка](evidence/tasks-49-54-validation.md#p2-52) |
+| P2-53 | [Сохранять целостность жёстких ссылок при записи файла](task-53-p2-atomic-write-hard-links-med.md) | [P2-13](task-13-p2-atomic-file-persistence-hi.md) | accepted · 2026-11-25 · [приёмка](evidence/tasks-49-54-validation.md#p2-53) |
+| P2-54 | [Синхронизировать публикацию файла процессов в тесте отмены](task-54-p2-tia-cancellation-process-file-race-med.md) | [P1-04](task-04-p1-dotnet-pipe-deadline-hi.md), [P2-24](task-24-p2-dotnet-timeout-output-hi.md) | accepted · 2026-11-25 · [приёмка](evidence/tasks-49-54-validation.md#p2-54) |
 
 ## Приёмка исправлений по замечаниям к 11dc927
 
