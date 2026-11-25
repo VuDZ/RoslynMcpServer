@@ -658,15 +658,73 @@ public sealed class SolutionManager
         }
     }
 
+    internal async Task<string> ReadPatchSourceAsync(string fullPath, CancellationToken cancellationToken)
+    {
+        await _workspaceLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            return await File.ReadAllTextAsync(fullPath, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            _workspaceLock.Release();
+        }
+    }
+
+    /// <summary>Applies a patch to the checked disk text, or returns null so the caller can rematch.</summary>
+    internal async Task<WorkspaceWriteResult?> TryApplyPatchTextAsync(
+        string fullPath,
+        string sourceText,
+        string updatedText,
+        CancellationToken cancellationToken)
+    {
+        await _workspaceLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            // A patch may have matched before another edit committed. Keep the comparison and both
+            // write paths in one critical section so a stale match cannot replace that edit.
+            var currentText = await File.ReadAllTextAsync(fullPath, cancellationToken).ConfigureAwait(false);
+            if (!string.Equals(sourceText, currentText, StringComparison.Ordinal))
+            {
+                return null;
+            }
+
+            var write = await UpdateDocumentInMemoryUnderLockAsync(fullPath, updatedText, cancellationToken)
+                .ConfigureAwait(false);
+            if (!write.ShouldWriteSkippedPathToDisk)
+            {
+                return write;
+            }
+
+            await WriteTrackedTextUnderLockAsync(
+                    fullPath,
+                    updatedText,
+                    SourceTextEncoding.ForDiskPath(fullPath),
+                    cancellationToken)
+                .ConfigureAwait(false);
+            return new WorkspaceWriteResult { Status = WorkspaceWriteStatus.FullSuccess, SavedPaths = [fullPath] };
+        }
+        finally
+        {
+            _workspaceLock.Release();
+        }
+    }
+
     internal async Task WriteTrackedTextAsync(
         string fullPath,
         string text,
         Encoding encoding,
         CancellationToken cancellationToken)
     {
-        var canonical = InputPathCanon.TryCanonicalize(fullPath) ?? fullPath;
-        await WriteTrackedTextToDiskAsync(canonical, text, encoding, cancellationToken).ConfigureAwait(false);
-        await PublishOwnNonCSharpTextAsync(canonical, text, encoding, cancellationToken).ConfigureAwait(false);
+        await _workspaceLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await WriteTrackedTextUnderLockAsync(fullPath, text, encoding, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            _workspaceLock.Release();
+        }
     }
 
     internal void WriteTrackedText(string fullPath, string text, Encoding encoding)
@@ -2796,39 +2854,25 @@ public sealed class SolutionManager
         }
     }
 
-    private async Task PublishOwnNonCSharpTextAsync(
-        string canonical,
+    private async Task WriteTrackedTextUnderLockAsync(
+        string fullPath,
         string text,
         Encoding encoding,
         CancellationToken cancellationToken)
     {
-        if (!WorkspaceDiskEventClassifier.SyncsNonCSharpDocumentText(_diskWatcherSession?.InputMap, canonical))
+        var canonical = InputPathCanon.TryCanonicalize(fullPath) ?? fullPath;
+        await WriteTrackedTextToDiskAsync(canonical, text, encoding, cancellationToken).ConfigureAwait(false);
+        if (_workspace is null
+            || !WorkspaceDiskEventClassifier.SyncsNonCSharpDocumentText(_diskWatcherSession?.InputMap, canonical)
+            || !WorkspaceNonCSharpDiskSync.HasDocument(_workspace.CurrentSolution, canonical, _pathComparison))
         {
             return;
         }
 
-        // Direct writes acquire the lock here. A workspace write already owns it and instead publishes
-        // both roles after applying the compile text. TryApplyChanges would write the additional file
-        // again and rejects analyzer-config text changes.
-        await _workspaceLock.WaitAsync(cancellationToken).ConfigureAwait(false);
-        try
+        // TryApplyChanges would write the additional file again and rejects analyzer-config text changes.
+        if (RememberNonCSharpText(canonical, SourceText.From(text, encoding)))
         {
-            if (_workspace is null
-                || !WorkspaceNonCSharpDiskSync.HasDocument(_workspace.CurrentSolution, canonical, _pathComparison))
-            {
-                return;
-            }
-
-            if (!RememberNonCSharpText(canonical, SourceText.From(text, encoding)))
-            {
-                return;
-            }
-
             SetPublishedSolution(_workspace.CurrentSolution);
-        }
-        finally
-        {
-            _workspaceLock.Release();
         }
     }
 

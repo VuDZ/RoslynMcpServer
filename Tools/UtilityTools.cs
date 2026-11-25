@@ -1015,110 +1015,26 @@ public sealed class UtilityTools
                 return ToolTelemetry.TraceAndReturn(nameof(ApplyPatch), $"Error: File not found: `{fullPath}`");
             }
 
-            var sourceRaw = await File.ReadAllTextAsync(fullPath, cancellationToken);
-            var sourceNorm = PatchMatchHelper.NormalizeLineEndings(sourceRaw);
             var oldNorm = PatchMatchHelper.NormalizeLineEndings(oldString);
             var newNorm = PatchMatchHelper.NormalizeLineEndings(newString ?? string.Empty);
-            var newContainsOld = oldNorm.Length > 0
-                && newNorm.Contains(oldNorm, StringComparison.Ordinal);
-
-            _logger.LogInformation(
-                "ApplyPatch start file={FilePath} oldLen={OldLen} newLen={NewLen} sourceLen={SourceLen} replaceAll={ReplaceAll} newContainsOld={NewContainsOld}",
-                fullPath,
-                oldNorm.Length,
-                newNorm.Length,
-                sourceNorm.Length,
-                replaceAll,
-                newContainsOld);
-
-            string? updatedNorm;
-            var usedFlexible = false;
-            var replacementCount = 0;
-            try
+            const int MaxAttempts = 2;
+            for (var attempt = 0; attempt < MaxAttempts; attempt++)
             {
-                updatedNorm = PatchMatchHelper.ApplyPatchWithFlexibleFallback(
-                    sourceNorm,
+                var result = await TryApplyPatchAsync(
+                    fullPath,
                     oldNorm,
                     newNorm,
                     replaceAll,
-                    out usedFlexible,
-                    out var matched,
-                    out replacementCount,
+                    retrying: attempt > 0,
+                    started,
                     cancellationToken);
-                if (!matched)
+                if (result is not null)
                 {
-                    _logger.LogWarning(
-                        "ApplyPatch: could not match oldString in {FilePath} ({ElapsedMs}ms). {Diagnostic}",
-                        fullPath,
-                        started.ElapsedMilliseconds,
-                        PatchMatchHelper.BuildPatchFailureDiagnostic(oldNorm));
-                    return ToolTelemetry.TraceAndReturn(
-                        nameof(ApplyPatch),
-                        "Error: `oldString` was not found in the file (exact or whitespace-tolerant). Copy from read_file/read_file_range when possible.");
+                    return ToolTelemetry.TraceAndReturn(nameof(ApplyPatch), result);
                 }
             }
-            catch (RegexMatchTimeoutException ex)
-            {
-                _logger.LogWarning(
-                    ex,
-                    "ApplyPatch: regex match timeout for {FilePath} ({ElapsedMs}ms). {Diagnostic}",
-                    fullPath,
-                    started.ElapsedMilliseconds,
-                    PatchMatchHelper.BuildPatchFailureDiagnostic(oldNorm));
-                return ToolTelemetry.TraceAndReturn(
-                    nameof(ApplyPatch),
-                    "Error: Patch match timed out; try a shorter or more specific `oldString`.");
-            }
 
-            _logger.LogInformation(
-                "ApplyPatch matched file={FilePath} replacements={ReplacementCount} usedFlexible={UsedFlexible} matchMs={ElapsedMs}",
-                fullPath,
-                replacementCount,
-                usedFlexible,
-                started.ElapsedMilliseconds);
-
-            var updatedRaw = PatchMatchHelper.RestorePreferredLineEndings(sourceRaw, updatedNorm!);
-            if (string.Equals(sourceRaw, updatedRaw, StringComparison.Ordinal))
-            {
-                return ToolTelemetry.TraceAndReturn(nameof(ApplyPatch), "No changes were applied.");
-            }
-
-            var write = await _solutionManager.UpdateDocumentInMemoryAsync(fullPath, updatedRaw, cancellationToken);
-            if (write.Status == WorkspaceWriteStatus.Skipped)
-            {
-                if (!write.ShouldWriteSkippedPathToDisk)
-                {
-                    return ToolTelemetry.TraceAndReturn(
-                        nameof(ApplyPatch),
-                        _solutionManager.WithDiskSyncNotes(
-                            write.FormatAdapterMessage("Patch matched but workspace write was not fully applied.")));
-                }
-
-                // Keep the BOM state of an existing file; a plain write defaults to no BOM and would strip it.
-                await _solutionManager.WriteTrackedTextAsync(
-                    fullPath,
-                    updatedRaw,
-                    SourceTextEncoding.ForDiskPath(fullPath),
-                    cancellationToken);
-            }
-            else if (!write.IsFullSuccess)
-            {
-                return ToolTelemetry.TraceAndReturn(
-                    nameof(ApplyPatch),
-                    write.FormatAdapterMessage("Patch matched but workspace write was not fully applied."));
-            }
-
-            var writeMs = started.ElapsedMilliseconds;
-            _logger.LogInformation(
-                "ApplyPatch wrote file={FilePath} replacements={ReplacementCount} writeMs={WriteMs} workspaceMs={TotalMs}",
-                fullPath,
-                replacementCount,
-                writeMs,
-                started.ElapsedMilliseconds);
-            var note = usedFlexible ? " (whitespace-tolerant match)" : string.Empty;
-            return ToolTelemetry.TraceAndReturn(
-                nameof(ApplyPatch),
-                $"Patch applied successfully to `{fullPath}` ({replacementCount} replacement(s)).{note}");
+            return ToolTelemetry.TraceAndReturn(nameof(ApplyPatch), PatchConflictMessage);
         }
         catch (OperationCanceledException)
         {
@@ -1631,6 +1547,106 @@ public sealed class UtilityTools
             _logger.LogError(ex, "ManageAgentScratchpad failed for action {Action}", action);
             return ToolTelemetry.TraceAndReturn(nameof(ManageAgentScratchpad), $"Error: {ex.Message}");
         }
+    }
+
+    private const string PatchConflictMessage = "Error: Patch conflict: the file changed while it was being edited. Read it again before retrying.";
+
+    private async Task<string?> TryApplyPatchAsync(
+        string fullPath,
+        string oldNorm,
+        string newNorm,
+        bool replaceAll,
+        bool retrying,
+        Stopwatch started,
+        CancellationToken cancellationToken)
+    {
+        var sourceRaw = await _solutionManager.ReadPatchSourceAsync(fullPath, cancellationToken);
+        var sourceNorm = PatchMatchHelper.NormalizeLineEndings(sourceRaw);
+        var newContainsOld = oldNorm.Length > 0
+            && newNorm.Contains(oldNorm, StringComparison.Ordinal);
+
+        _logger.LogInformation(
+            "ApplyPatch start file={FilePath} oldLen={OldLen} newLen={NewLen} sourceLen={SourceLen} replaceAll={ReplaceAll} newContainsOld={NewContainsOld}",
+            fullPath,
+            oldNorm.Length,
+            newNorm.Length,
+            sourceNorm.Length,
+            replaceAll,
+            newContainsOld);
+
+        string? updatedNorm;
+        var usedFlexible = false;
+        var replacementCount = 0;
+        try
+        {
+            updatedNorm = PatchMatchHelper.ApplyPatchWithFlexibleFallback(
+                sourceNorm,
+                oldNorm,
+                newNorm,
+                replaceAll,
+                out usedFlexible,
+                out var matched,
+                out replacementCount,
+                cancellationToken);
+            if (!matched)
+            {
+                _logger.LogWarning(
+                    "ApplyPatch: could not match oldString in {FilePath} ({ElapsedMs}ms). {Diagnostic}",
+                    fullPath,
+                    started.ElapsedMilliseconds,
+                    PatchMatchHelper.BuildPatchFailureDiagnostic(oldNorm));
+                return retrying
+                    ? PatchConflictMessage
+                    : "Error: `oldString` was not found in the file (exact or whitespace-tolerant). Copy from read_file/read_file_range when possible.";
+            }
+        }
+        catch (RegexMatchTimeoutException ex)
+        {
+            _logger.LogWarning(
+                ex,
+                "ApplyPatch: regex match timeout for {FilePath} ({ElapsedMs}ms). {Diagnostic}",
+                fullPath,
+                started.ElapsedMilliseconds,
+                PatchMatchHelper.BuildPatchFailureDiagnostic(oldNorm));
+            return "Error: Patch match timed out; try a shorter or more specific `oldString`.";
+        }
+
+        _logger.LogInformation(
+            "ApplyPatch matched file={FilePath} replacements={ReplacementCount} usedFlexible={UsedFlexible} matchMs={ElapsedMs}",
+            fullPath,
+            replacementCount,
+            usedFlexible,
+            started.ElapsedMilliseconds);
+
+        var updatedRaw = PatchMatchHelper.RestorePreferredLineEndings(sourceRaw, updatedNorm!);
+        if (string.Equals(sourceRaw, updatedRaw, StringComparison.Ordinal))
+        {
+            return "No changes were applied.";
+        }
+
+        var write = await _solutionManager.TryApplyPatchTextAsync(fullPath, sourceRaw, updatedRaw, cancellationToken);
+        if (write is null)
+        {
+            return null;
+        }
+
+        if (!write.IsFullSuccess)
+        {
+            var message = write.FormatAdapterMessage("Patch matched but workspace write was not fully applied.");
+            return write.Status == WorkspaceWriteStatus.Skipped
+                ? _solutionManager.WithDiskSyncNotes(message)
+                : message;
+        }
+
+        var writeMs = started.ElapsedMilliseconds;
+        _logger.LogInformation(
+            "ApplyPatch wrote file={FilePath} replacements={ReplacementCount} writeMs={WriteMs} workspaceMs={TotalMs}",
+            fullPath,
+            replacementCount,
+            writeMs,
+            started.ElapsedMilliseconds);
+        var note = usedFlexible ? " (whitespace-tolerant match)" : string.Empty;
+        return $"Patch applied successfully to `{fullPath}` ({replacementCount} replacement(s)).{note}";
     }
 
     private static async Task<Solution> CopyDocumentTextChangesAsync(

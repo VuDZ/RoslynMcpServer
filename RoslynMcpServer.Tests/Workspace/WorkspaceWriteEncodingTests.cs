@@ -1,4 +1,5 @@
 using System.Text;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using RoslynMcpServer.Diagnostics;
 using RoslynMcpServer.Services;
@@ -199,6 +200,89 @@ public sealed class WorkspaceWriteEncodingTests : IDisposable
         Assert.True(StartsWithUtf8Bom(await File.ReadAllBytesAsync(path)), message);
     }
 
+    [Theory]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    public async Task Concurrent_patches_preserve_both_edits_and_bom(bool inWorkspace, bool replaceAll)
+    {
+        var (first, second, content) = await ApplyInterleavedPatchesAsync(
+            inWorkspace,
+            replaceAll,
+            competingOldString: "class Class1",
+            competingNewString: "class Renamed");
+
+        Assert.Contains("Patch applied successfully", first, StringComparison.Ordinal);
+        Assert.Contains(replaceAll ? "2 replacement(s)" : "1 replacement(s)", first, StringComparison.Ordinal);
+        Assert.Contains("Patch applied successfully", second, StringComparison.Ordinal);
+        var secondValue = replaceAll ? 42 : 1;
+        Assert.Equal($"namespace App; public sealed class Renamed {{ public int X = 42; public int Y = {secondValue}; }}", content);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Concurrent_patch_reports_conflict_when_its_fragment_is_gone(bool inWorkspace)
+    {
+        var (first, second, content) = await ApplyInterleavedPatchesAsync(
+            inWorkspace,
+            replaceAll: false,
+            competingOldString: "= 1",
+            competingNewString: "= 5");
+
+        Assert.Contains("Error: Patch conflict", first, StringComparison.Ordinal);
+        Assert.Contains("Patch applied successfully", second, StringComparison.Ordinal);
+        Assert.Equal("namespace App; public sealed class Class1 { public int X = 5; public int Y = 5; }", content);
+    }
+
+    private async Task<(string First, string Second, string Content)> ApplyInterleavedPatchesAsync(
+        bool inWorkspace,
+        bool replaceAll,
+        string competingOldString,
+        string competingNewString)
+    {
+        var path = inWorkspace ? _sourcePath : Path.Combine(_outsideRoot, "Patched.cs");
+        const string source = "namespace App; public sealed class Class1 { public int X = 1; public int Y = 1; }";
+        await File.WriteAllTextAsync(path, source, Utf8WithBom);
+        var manager = await LoadAsync();
+        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+        using var gate = new FirstPatchReadGate();
+        var firstTool = new UtilityTools(gate, manager);
+        var secondTool = new UtilityTools(NullLogger<UtilityTools>.Instance, manager);
+
+        var first = Task.Run(() => firstTool.ApplyPatch(path, "= 1", "= 42", replaceAll, deadline.Token));
+        string firstMessage;
+        string secondMessage;
+        try
+        {
+            await gate.FirstRead.WaitAsync(deadline.Token);
+            secondMessage = await secondTool.ApplyPatch(
+                path,
+                competingOldString,
+                competingNewString,
+                replaceAll: true,
+                cancellationToken: deadline.Token);
+        }
+        finally
+        {
+            gate.Resume();
+            firstMessage = await first;
+        }
+
+        var content = await File.ReadAllTextAsync(path);
+        Assert.True(StartsWithUtf8Bom(await File.ReadAllBytesAsync(path)));
+        if (inWorkspace)
+        {
+            var document = Assert.Single(
+                manager.GetCurrentSolution()!.Projects.SelectMany(project => project.Documents),
+                document => document.FilePath == path);
+            Assert.Equal(content, (await document.GetTextAsync()).ToString());
+        }
+
+        return (firstMessage, secondMessage, content);
+    }
+
     private async Task<SolutionManager> LoadAsync()
     {
         var manager = SolutionManagerTestFactory.Create();
@@ -227,5 +311,36 @@ public sealed class WorkspaceWriteEncodingTests : IDisposable
     private static bool StartsWithUtf8Bom(byte[] bytes)
     {
         return bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF;
+    }
+
+    private sealed class FirstPatchReadGate : ILogger<UtilityTools>, IDisposable
+    {
+        public Task FirstRead => _firstRead.Task;
+
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(
+            LogLevel logLevel,
+            EventId eventId,
+            TState state,
+            Exception? exception,
+            Func<TState, Exception?, string> formatter)
+        {
+            if (formatter(state, exception).StartsWith("ApplyPatch start", StringComparison.Ordinal)
+                && _firstRead.TrySetResult())
+            {
+                // The tool has read the old text, so the second request can now commit first.
+                _resume.Wait(TimeSpan.FromSeconds(30));
+            }
+        }
+
+        public void Resume() => _resume.Set();
+
+        public void Dispose() => _resume.Dispose();
+
+        private readonly TaskCompletionSource _firstRead = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly ManualResetEventSlim _resume = new();
     }
 }
