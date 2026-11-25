@@ -203,7 +203,7 @@ public sealed class SolutionManager
     /// <summary>Test seam invoked before session admission, allowing delivery to race with session closure.</summary>
     internal Action? BeforeDiskWatcherCallbackForTests { get; set; }
 
-    /// <summary>Test observer for completed file-change callbacks, including ignored build artifacts.</summary>
+    /// <summary>Test observer for completed file-change and rename callbacks, including ignored paths.</summary>
     internal Action<FileSystemEventArgs>? AfterDiskWatcherChangeForTests { get; set; }
 
     /// <summary>
@@ -3159,9 +3159,9 @@ public sealed class SolutionManager
     {
         BeforeDiskWatcherCallbackForTests?.Invoke();
         string? graphPath = null;
-                session.TryRun(() => graphPath = QueueDiskPath(session, e.FullPath, e.ChangeType));
+        session.TryRun(() => graphPath = QueueDiskPath(session, e.FullPath, e.ChangeType));
         LogChangedGraphPath(graphPath);
-        AfterDiskWatcherChangeForTests?.Invoke(e);
+        ReportCompletedDiskWatcherEvent(e);
     }
 
     private void OnDiskWatcherRenamed(WorkspaceInputSession session, RenamedEventArgs e)
@@ -3254,7 +3254,11 @@ public sealed class SolutionManager
         }
         LogChangedGraphPath(oldGraphPath);
         LogChangedGraphPath(newGraphPath);
+        ReportCompletedDiskWatcherEvent(e);
     }
+
+    private void ReportCompletedDiskWatcherEvent(FileSystemEventArgs args)
+        => AfterDiskWatcherChangeForTests?.Invoke(args);
 
     private void OnDiskWatcherError(WorkspaceInputSession session, ErrorEventArgs e)
     {
