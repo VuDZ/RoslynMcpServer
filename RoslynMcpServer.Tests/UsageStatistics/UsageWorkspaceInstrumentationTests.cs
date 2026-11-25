@@ -101,10 +101,7 @@ public sealed class UsageWorkspaceInstrumentationTests
     {
         using var files = new UsageTestFiles();
         files.CreateProject();
-        File.WriteAllText(
-            Path.Combine(files.Root, RoslynMcpFileSettings.FileName),
-            JsonSerializer.Serialize(new Dictionary<string, string> { ["workspace-path"] = files.ProjectPath }));
-        var settings = RoslynMcpFileSettings.LoadFromDirectories(null, files.Root);
+        var settings = WriteWorkspaceSettings(files);
         using var usage = new UsageStatisticsService(files.UsageDirectory);
         var manager = CreateManager(usage, settings);
         await usage.StartAsync(CancellationToken.None);
@@ -137,6 +134,123 @@ public sealed class UsageWorkspaceInstrumentationTests
             && item.GetProperty("name").GetString() == "plugin_direct"));
         Assert.False(directTool.GetProperty("requires_workspace").GetBoolean());
         Assert.False(directTool.GetProperty("lazy_load").GetBoolean());
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Config_reader_waiting_for_explicit_load_keeps_its_snapshot(bool configuredProjectExists)
+    {
+        using var configured = new UsageTestFiles();
+        if (configuredProjectExists)
+        {
+            configured.CreateProject();
+        }
+
+        using var selected = new UsageTestFiles();
+        selected.CreateProject();
+        File.WriteAllText(
+            Path.Combine(Path.GetDirectoryName(selected.ProjectPath)!, "Widget.cs"),
+            "namespace Selected; public sealed class ChosenWidget { }");
+        var settings = WriteWorkspaceSettings(configured);
+        using var usage = new UsageStatisticsService(configured.UsageDirectory);
+        using var deadline = new CancellationTokenSource(TimeSpan.FromMinutes(2));
+        var manager = CreateManager(usage, settings);
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        manager.AfterPhysicalLoadBeforePrepareAsync = token =>
+        {
+            entered.TrySetResult();
+            return release.Task.WaitAsync(token);
+        };
+
+        await usage.StartAsync(deadline.Token);
+        try
+        {
+            var load = manager.LoadAndPrepareAsync(
+                selected.ProjectPath,
+                shadowCopyInSolutionAnalyzers: true,
+                deadline.Token);
+            try
+            {
+                Assert.Same(entered.Task, await Task.WhenAny(entered.Task, load).WaitAsync(deadline.Token));
+                Assert.Null(manager.GetCurrentSolution());
+
+                var call = usage.BeginTool("waiting_semantic_reader", requiresWorkspace: true);
+                var reader = manager.GetPublishedSolutionAsync(deadline.Token);
+                Assert.False(reader.IsCompleted);
+                release.TrySetResult();
+
+                var published = await reader.WaitAsync(deadline.Token);
+                Assert.NotNull(published);
+                Assert.Equal(selected.ProjectPath, Assert.Single(published.Projects).FilePath);
+                Assert.Null(manager.LastLazyLoadFailureReport);
+                usage.EndTool(call, success: true);
+
+                var navigation = new NavigationTools(manager, NullLogger<NavigationTools>.Instance);
+                var definition = await navigation.FindSymbolDefinition(
+                    "ChosenWidget", cancellationToken: deadline.Token);
+                Assert.Contains("Selected.ChosenWidget", definition, StringComparison.Ordinal);
+            }
+            finally
+            {
+                release.TrySetResult();
+                await load.WaitAsync(deadline.Token);
+            }
+        }
+        finally
+        {
+            await manager.ClearWorkspaceAsync();
+            await usage.StopAsync(CancellationToken.None);
+        }
+
+        var events = await configured.ReadEventsAsync(usage);
+        var recordedLoad = Assert.Single(events.Where(item => item.GetProperty("ev").GetString() == "load"));
+        Assert.Equal("explicit", recordedLoad.GetProperty("source").GetString());
+        Assert.True(recordedLoad.GetProperty("success").GetBoolean());
+        var readerEvent = Assert.Single(events.Where(item => item.GetProperty("ev").GetString() == "tool"
+            && item.GetProperty("name").GetString() == "waiting_semantic_reader"));
+        Assert.False(readerEvent.GetProperty("lazy_load").GetBoolean());
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Config_load_still_runs_after_explicit_load_publishes_no_snapshot(bool cancelExplicitLoad)
+    {
+        using var configured = new UsageTestFiles();
+        configured.CreateProject();
+        using var selected = new UsageTestFiles();
+        selected.CreateProject();
+        using var usage = new UsageStatisticsService(configured.UsageDirectory);
+        var manager = CreateManager(usage, WriteWorkspaceSettings(configured));
+        await usage.StartAsync(CancellationToken.None);
+
+        try
+        {
+            if (cancelExplicitLoad)
+            {
+                var cancelled = new CancellationToken(canceled: true);
+                await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+                    manager.LoadAsync(selected.ProjectPath, cancelled));
+            }
+            else
+            {
+                await Assert.ThrowsAsync<FileNotFoundException>(() =>
+                    manager.LoadAsync(Path.ChangeExtension(selected.ProjectPath, ".missing.csproj")));
+            }
+
+            Assert.Null(manager.GetCurrentSolution());
+            var published = await manager.GetPublishedSolutionAsync();
+            Assert.NotNull(published);
+            Assert.Equal(configured.ProjectPath, Assert.Single(published.Projects).FilePath);
+            Assert.Equal(WorkspaceLoadSource.ConfigFile, manager.WorkspaceLoadSource);
+        }
+        finally
+        {
+            await manager.ClearWorkspaceAsync();
+            await usage.StopAsync(CancellationToken.None);
+        }
     }
 
     [Fact]
@@ -262,6 +376,14 @@ public sealed class UsageWorkspaceInstrumentationTests
         Assert.True(calls["waiting_reader"].GetProperty("workspace_read_lock_wait_ms").GetDouble() >= 20);
         Assert.True(calls["cancelled_reader"].GetProperty("workspace_read_lock_wait_ms").GetDouble() >= 20);
         Assert.False(calls["cancelled_reader"].GetProperty("success").GetBoolean());
+    }
+
+    private static RoslynMcpFileSettings WriteWorkspaceSettings(UsageTestFiles files)
+    {
+        File.WriteAllText(
+            Path.Combine(files.Root, RoslynMcpFileSettings.FileName),
+            JsonSerializer.Serialize(new Dictionary<string, string> { ["workspace-path"] = files.ProjectPath }));
+        return RoslynMcpFileSettings.LoadFromDirectories(null, files.Root);
     }
 
     private static SolutionManager CreateManager(UsageStatisticsService usage, RoslynMcpFileSettings? settings = null) =>

@@ -1062,12 +1062,14 @@ public sealed class SolutionManager
                     attempt)
                 .ConfigureAwait(false);
         }
-        finally
+        catch
         {
             if (attempt is { Recorded: false })
             {
                 _usage!.RecordLoad(attempt, success: false);
             }
+
+            throw;
         }
     }
 
@@ -1082,30 +1084,17 @@ public sealed class SolutionManager
         WorkspaceLoadSource loadSource,
         UsageLoadAttempt? usageAttempt)
     {
-        if (string.IsNullOrWhiteSpace(solutionOrProjectPath))
-        {
-            throw new ArgumentException("Solution or project path cannot be empty.", nameof(solutionOrProjectPath));
-        }
-
-        var fullPath = Path.GetFullPath(solutionOrProjectPath);
-        if (!File.Exists(fullPath))
-        {
-            throw new FileNotFoundException("Solution or project file not found.", fullPath);
-        }
-
-        var buildArgsPassed = !string.IsNullOrWhiteSpace(buildArgs);
-
-        var normalizedConfiguration = DotNetConfigurationArguments.Normalize(configuration, nameof(configuration));
-        var platformRaw = DotNetConfigurationArguments.Normalize(platform, nameof(platform));
-        var normalizedPlatform = DotNetConfigurationArguments.NormalizePlatform(platform);
-        var normalizedTargetFramework = DotNetConfigurationArguments.Normalize(targetFramework, nameof(targetFramework));
-        var normalizedBuildArgs = DotNetBuildArguments.Normalize(buildArgs);
+        var fromConfig = loadSource == WorkspaceLoadSource.ConfigFile;
+        var explicitInputs = fromConfig
+            ? default
+            : NormalizeWorkspaceLoadInputs(solutionOrProjectPath, configuration, platform, targetFramework, buildArgs);
 
         if (usageAttempt is not null)
         {
             usageAttempt.WaitStarted = Stopwatch.GetTimestamp();
         }
 
+        var configReadWait = fromConfig ? _usage?.MeasureWorkspaceReadLockWait() : null;
         await _workspaceLock.WaitAsync(cancellationToken);
         if (usageAttempt is not null)
         {
@@ -1113,12 +1102,27 @@ public sealed class SolutionManager
             usageAttempt.GraphStale = ProjectGraphStale;
         }
 
-        _workspaceLoadInProgress = true;
         try
         {
             // Cancel and Release can race: SemaphoreSlim may grant the waiter after its token
             // is already cancelled. Do not run this load; the in-progress load keeps its own token.
             cancellationToken.ThrowIfCancellationRequested();
+
+            // An explicit load may have published while the configured load waited for the lock.
+            // See docs/project-review-2026-11-25/task-05-p2-lazy-workspace-selection-hi.md.
+            if (fromConfig && _solution is { } published)
+            {
+                configReadWait?.Dispose();
+                usageAttempt = null;
+                return new WorkspaceLoadPreparationResult(published, LastShadowCopyResults, CaptureProjectListUnderLock());
+            }
+
+            _workspaceLoadInProgress = true;
+            var (fullPath, normalizedConfiguration, platformRaw, normalizedPlatform,
+                normalizedTargetFramework, normalizedBuildArgs) = fromConfig
+                ? NormalizeWorkspaceLoadInputs(solutionOrProjectPath, configuration, platform, targetFramework, buildArgs)
+                : explicitInputs;
+            var buildArgsPassed = !string.IsNullOrWhiteSpace(buildArgs);
 
             var fileConfiguration = DotNetConfigurationArguments.Normalize(
                 FileSettings.Configuration,
@@ -1268,6 +1272,39 @@ public sealed class SolutionManager
             _workspaceLoadInProgress = false;
             _workspaceLock.Release();
         }
+    }
+
+    private static (
+        string FullPath,
+        string? Configuration,
+        string? PlatformRaw,
+        string? Platform,
+        string? TargetFramework,
+        string? BuildArgs) NormalizeWorkspaceLoadInputs(
+        string solutionOrProjectPath,
+        string? configuration,
+        string? platform,
+        string? targetFramework,
+        string? buildArgs)
+    {
+        if (string.IsNullOrWhiteSpace(solutionOrProjectPath))
+        {
+            throw new ArgumentException("Solution or project path cannot be empty.", nameof(solutionOrProjectPath));
+        }
+
+        var fullPath = Path.GetFullPath(solutionOrProjectPath);
+        if (!File.Exists(fullPath))
+        {
+            throw new FileNotFoundException("Solution or project file not found.", fullPath);
+        }
+
+        return (
+            fullPath,
+            DotNetConfigurationArguments.Normalize(configuration, nameof(configuration)),
+            DotNetConfigurationArguments.Normalize(platform, nameof(platform)),
+            DotNetConfigurationArguments.NormalizePlatform(platform),
+            DotNetConfigurationArguments.Normalize(targetFramework, nameof(targetFramework)),
+            DotNetBuildArguments.Normalize(buildArgs));
     }
 
     private string? GetUsageWorkspaceKey() =>
