@@ -205,12 +205,26 @@ Policy summary (full text in the sample):
 - Verify the server with `get_mcp_server_info`; inspect missing `lite` tools with `list_tool_groups` / `enable_tool_group`
 - Optional `RoslynMcp.jsonc` (exe directory, per-user configuration directory, then cwd). Cwd overrides ordinary settings. Configure `plugins` beside the executable or in the per-user configuration directory. Set `ROSLYN_MCP_WORKSPACE` to the repo root at startup so cwd is not the user profile. See `RoslynMcp.jsonc.sample` and `AGENTS.md.sample`.
 - `load_workspace` before symbol / build / decompile work (or rely on config `workspace-path`); prefer `.sln` / `.slnx`; compares only arguments you passed
+- `require-solution` and `direct-project-guidance` control [direct project loads and builds](#direct-project-loads-and-builds).
 - Missing `Compile` target on load → retry with `targetFramework` (inner TFM); not SDK mismatch
 - VS 2026 BuildHost / `XMakeElements` → not SDK mismatch; need MCP 1.0.35+ or a single SDK-style `.csproj`
 - C# identifiers → MCP first; plain text → host Grep; never shell `grep` / `dotnet build|test`
 - Saved `.cs` of already loaded files (v1.1.0+) sync into symbol search automatically; new or deleted `.cs` needs reload (v1.3.30); unsaved editor buffers are ignored; `reset_workspace` after build / generated `obj`
 - IDE: host edit/write; headless: MCP `apply_patch` / AST tools
 - Secrets: never paste PAT/passwords; app README must document run target / sample args
+
+### Direct project loads and builds
+
+In `RoslynMcp.jsonc`, `require-solution` defaults to `false`. A direct `.csproj` workspace load or `run_dotnet_build` then ends with a recommendation to use the containing solution, even if the operation fails. Set the key to `true` to require a `.sln` or `.slnx` for these operations, including a workspace loaded from `workspace-path`. To build one project through a solution, pass its name as `projectName`.
+
+`direct-project-guidance` replaces the recommendation in both warnings and rejections. Omit it to use the built-in text.
+
+```jsonc
+{
+  "require-solution": false,
+  "direct-project-guidance": "Open or build YourApp.sln so the solution settings apply."
+}
+```
 
 ## Agent tools by version
 

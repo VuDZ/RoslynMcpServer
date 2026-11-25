@@ -15,6 +15,8 @@ public sealed class RoslynMcpFileSettings
     private static readonly HashSet<string> KnownKeys = new(StringComparer.Ordinal)
     {
         "workspace-path",
+        "require-solution",
+        "direct-project-guidance",
         "configuration",
         "platform",
         "target-framework",
@@ -35,6 +37,8 @@ public sealed class RoslynMcpFileSettings
         executableFilePresent: false,
         workingDirectoryFilePresent: false,
         workspacePath: null,
+        requireSolution: false,
+        directProjectGuidance: null,
         configuration: null,
         platform: null,
         targetFramework: null,
@@ -57,6 +61,8 @@ public sealed class RoslynMcpFileSettings
         bool executableFilePresent,
         bool workingDirectoryFilePresent,
         string? workspacePath,
+        bool requireSolution,
+        string? directProjectGuidance,
         string? configuration,
         string? platform,
         string? targetFramework,
@@ -78,6 +84,8 @@ public sealed class RoslynMcpFileSettings
         ExecutableFilePresent = executableFilePresent;
         WorkingDirectoryFilePresent = workingDirectoryFilePresent;
         WorkspacePath = workspacePath;
+        RequireSolution = requireSolution;
+        DirectProjectGuidance = directProjectGuidance;
         Configuration = configuration;
         Platform = platform;
         TargetFramework = targetFramework;
@@ -103,6 +111,8 @@ public sealed class RoslynMcpFileSettings
     /// <summary>Raw <c>workspace-path</c> from the merged file (may be relative).</summary>
     public string? WorkspacePath { get; }
 
+    public bool RequireSolution { get; }
+    public string? DirectProjectGuidance { get; }
     public string? Configuration { get; }
     public string? Platform { get; }
     public string? TargetFramework { get; }
@@ -206,6 +216,8 @@ public sealed class RoslynMcpFileSettings
             executableFilePresent: exePresent,
             workingDirectoryFilePresent: cwdPresent && cwdIsSeparate,
             workspacePath: merged.WorkspacePath,
+            requireSolution: merged.RequireSolution ?? false,
+            directProjectGuidance: merged.DirectProjectGuidance,
             configuration: merged.Configuration,
             platform: merged.Platform,
             targetFramework: merged.TargetFramework,
@@ -273,6 +285,8 @@ public sealed class RoslynMcpFileSettings
 
         return new PartialSettings(
             workspacePath: workingDirectory.WorkspacePath ?? executable.WorkspacePath,
+            requireSolution: workingDirectory.RequireSolution ?? executable.RequireSolution,
+            directProjectGuidance: workingDirectory.DirectProjectGuidance ?? executable.DirectProjectGuidance,
             configuration: workingDirectory.Configuration ?? executable.Configuration,
             platform: workingDirectory.Platform ?? executable.Platform,
             targetFramework: workingDirectory.TargetFramework ?? executable.TargetFramework,
@@ -349,6 +363,8 @@ public sealed class RoslynMcpFileSettings
         }
 
         string? workspacePath = null;
+        bool? requireSolution = null;
+        string? directProjectGuidance = null;
         string? configuration = null;
         string? platform = null;
         string? targetFramework = null;
@@ -374,6 +390,12 @@ public sealed class RoslynMcpFileSettings
             {
                 case "workspace-path":
                     workspacePath = ReadString(property.Value);
+                    break;
+                case "require-solution":
+                    requireSolution = ReadBool(property.Value, name);
+                    break;
+                case "direct-project-guidance":
+                    directProjectGuidance = ReadString(property.Value);
                     break;
                 case "configuration":
                     configuration = ReadString(property.Value);
@@ -423,7 +445,9 @@ public sealed class RoslynMcpFileSettings
             unknown,
             searchPrewarm,
             buildHostOptimizations,
-            buildHostEvaluateAheadWorkers)
+            buildHostEvaluateAheadWorkers,
+            requireSolution,
+            directProjectGuidance)
         {
             PluginsIgnored = !readPlugins && document.RootElement.TryGetProperty("plugins", out _),
         };
@@ -568,9 +592,13 @@ public sealed class RoslynMcpFileSettings
             IReadOnlyList<string> unknownKeys,
             bool? searchPrewarm = null,
             bool? buildHostOptimizations = null,
-            int? buildHostEvaluateAheadWorkers = null)
+            int? buildHostEvaluateAheadWorkers = null,
+            bool? requireSolution = null,
+            string? directProjectGuidance = null)
         {
             WorkspacePath = workspacePath;
+            RequireSolution = requireSolution;
+            DirectProjectGuidance = directProjectGuidance;
             Configuration = configuration;
             Platform = platform;
             TargetFramework = targetFramework;
@@ -585,6 +613,8 @@ public sealed class RoslynMcpFileSettings
         }
 
         public string? WorkspacePath { get; }
+        public bool? RequireSolution { get; }
+        public string? DirectProjectGuidance { get; }
         public string? Configuration { get; }
         public string? Platform { get; }
         public string? TargetFramework { get; }

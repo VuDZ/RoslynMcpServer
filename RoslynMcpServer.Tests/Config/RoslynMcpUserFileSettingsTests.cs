@@ -25,9 +25,9 @@ public sealed class RoslynMcpUserFileSettingsTests : IDisposable
     [Fact]
     public void User_settings_override_exe_and_cwd_overrides_user_per_key()
     {
-        var exe = Write("exe", """{"configuration":"Debug","platform":"x64","plugins":["exe"]}""");
-        var user = Write("user", """{"configuration":"User","preview":true,"plugins":["user"]}""");
-        var cwd = Write("cwd", """{"configuration":"Release","max-results":123,"plugins":[]}""");
+        var exe = Write("exe", """{"configuration":"Debug","platform":"x64","plugins":["exe"],"require-solution":true,"direct-project-guidance":"Use Exe.sln."}""");
+        var user = Write("user", """{"configuration":"User","preview":true,"plugins":["user"],"direct-project-guidance":"Use User.sln."}""");
+        var cwd = Write("cwd", """{"configuration":"Release","max-results":123,"plugins":[],"require-solution":false}""");
 
         var result = RoslynMcpFileSettings.LoadFromDirectories(exe, cwd, user, logger: null);
 
@@ -35,6 +35,8 @@ public sealed class RoslynMcpUserFileSettingsTests : IDisposable
         Assert.Equal("x64", result.Platform);
         Assert.True(result.Preview);
         Assert.Equal(123, result.MaxResults);
+        Assert.False(result.RequireSolution);
+        Assert.Equal("Use User.sln.", result.DirectProjectGuidance);
         Assert.Equal(["user"], result.Plugins);
         Assert.True(result.WorkingDirectoryPluginsIgnored);
         Assert.True(result.ExecutableFilePresent);

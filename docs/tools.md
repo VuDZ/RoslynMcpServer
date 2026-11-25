@@ -24,6 +24,8 @@ There are **55** registered tools in the default `full` profile (see list below)
 <details>
 <summary><code>load_workspace</code> — Loads .sln/.slnx/.csproj into MSBuildWorkspace.</summary>
 
+With `require-solution: true`, load a `.sln` or `.slnx`. With the default `false`, a direct `.csproj` load ends with guidance, including on failure.
+
 **Parameters:**
 - `workspacePath: string` — `.sln`, `.slnx`, or `.csproj` file (not a directory). Prefer solution files for multi-config repos.
 - `configuration: string?` — optional MSBuild `Configuration` global property (e.g. `Sit-Debug`, `kart`). Inherited by build/test when those tools omit `-c`.
@@ -320,6 +322,8 @@ Filters use name containment, so selecting `Check` may also run `CheckExtra` and
 
 <details>
 <summary><code>run_dotnet_build</code> — Runs dotnet build and returns a compact diagnostic summary.</summary>
+
+With `require-solution: true`, give a `.sln` or `.slnx` as the build target. With the default `false`, a direct `.csproj` build ends with guidance, including on failure.
 
 **Parameters:**
 - `workspacePath: string` — must be an existing **`.csproj`, `.sln`, or `.slnx` file** (not a directory).

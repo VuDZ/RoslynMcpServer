@@ -6,6 +6,7 @@ using ModelContextProtocol.Server;
 using RoslynMcpServer.Diagnostics;
 using RoslynMcpServer.Hosting;
 using RoslynMcpServer.Services;
+using RoslynMcpServer.Services.Workspace;
 
 namespace RoslynMcpServer.Tools;
 
@@ -25,6 +26,7 @@ public sealed class WorkspaceTools
     [McpServerTool(Name = "load_workspace", Title = "Load C# workspace")]
     [Description(
         "Loads a .sln, .slnx, or .csproj into the semantic workspace. Call before C# analysis unless RoslynMcp.jsonc set workspace-path (first semantic tool loads it and waits; does not cancel an in-progress load). "
+        + "A direct .csproj entry point requires require-solution=false in RoslynMcp.jsonc (the default). "
         + "Compares only arguments you passed: omitted configuration/platform/targetFramework/buildArgs do not clear already-loaded values. "
         + "A different configuration reloads and keeps platform/TFM you did not mention. Same path with no explicit differences returns the loaded workspace. "
         + "Optional configuration/platform/targetFramework are MSBuild global properties; targetFramework is required when the project uses TargetFrameworks. "
@@ -51,12 +53,18 @@ public sealed class WorkspaceTools
         bool shadowCopyInSolutionAnalyzers = false,
         CancellationToken cancellationToken = default)
     {
+        string? fullPath = null;
         Solution solution;
         IReadOnlyList<AnalyzerReferenceShadowCopier.RewriteResult> shadowCopyResults;
         try
         {
+            if (!string.IsNullOrWhiteSpace(workspacePath))
+            {
+                fullPath = Path.GetFullPath(workspacePath);
+            }
+
             var load = await _solutionManager.LoadAndPrepareAsync(
-                    workspacePath,
+                    fullPath ?? workspacePath,
                     shadowCopyInSolutionAnalyzers,
                     cancellationToken,
                     configuration,
@@ -70,33 +78,29 @@ public sealed class WorkspaceTools
         }
         catch (ArgumentException ex)
         {
-            return ToolTelemetry.TraceAndReturn(nameof(LoadWorkspace), $"Error: {ex.Message}");
+            return Complete($"Error: {ex.Message}");
         }
         catch (OperationCanceledException ex)
         {
             _logger.LogWarning(ex, "load_workspace cancelled by client for {Path}", workspacePath);
-            return ToolTelemetry.TraceAndReturn(
-                nameof(LoadWorkspace),
-                WorkspaceLoadGuidance.FormatClientCancelledWorkspaceLoadMessage(workspacePath)
+            return Complete(WorkspaceLoadGuidance.FormatClientCancelledWorkspaceLoadMessage(workspacePath)
                 + Environment.NewLine
                 + MsBuildEnvironmentInfo.FormatMarkdownSection());
         }
         catch (RoslynMsBuildBuildHostException ex)
         {
             _logger.LogError(ex, "Failed to load workspace from {Path} (VS 2026 / MSBuild 18 BuildHost)", workspacePath);
-            return ToolTelemetry.TraceAndReturn(nameof(LoadWorkspace), ex.Message);
+            return Complete(ex.Message);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to load workspace from {Path}", workspacePath);
             if (WorkspaceLoadGuidance.IsRoslynMsBuildBuildHostFailure(ex))
             {
-                return ToolTelemetry.TraceAndReturn(
-                    nameof(LoadWorkspace),
-                    WorkspaceLoadGuidance.FormatRoslynMsBuildBuildHostFailureMessage(workspacePath));
+                return Complete(WorkspaceLoadGuidance.FormatRoslynMsBuildBuildHostFailureMessage(workspacePath));
             }
 
-            return ToolTelemetry.TraceAndReturn(nameof(LoadWorkspace), BuildFailureReport(workspacePath, new[] { ex.Message }));
+            return Complete(BuildFailureReport(workspacePath, new[] { ex.Message }));
         }
 
         var projects = solution.Projects.ToList();
@@ -110,37 +114,29 @@ public sealed class WorkspaceTools
         {
             if (diagnostics.Any(WorkspaceDiagnosticFormatter.IsMissingTargetFrameworkEvaluation))
             {
-                return ToolTelemetry.TraceAndReturn(
-                    nameof(LoadWorkspace),
-                    WorkspaceLoadGuidance.FormatMissingTargetFrameworkWorkspaceLoadMessage(
-                        workspacePath,
-                        diagnostics,
-                        _solutionManager.LoadedConfiguration,
-                        _solutionManager.LoadedPlatform));
+                return Complete(WorkspaceLoadGuidance.FormatMissingTargetFrameworkWorkspaceLoadMessage(
+                    workspacePath,
+                    diagnostics,
+                    _solutionManager.LoadedConfiguration,
+                    _solutionManager.LoadedPlatform));
             }
 
             if (diagnostics.Any(WorkspaceDiagnosticFormatter.IsMissingCompileTarget))
             {
-                return ToolTelemetry.TraceAndReturn(
-                    nameof(LoadWorkspace),
-                    WorkspaceLoadGuidance.FormatMissingCompileTargetWorkspaceLoadMessage(
-                        workspacePath,
-                        diagnostics,
-                        _solutionManager.LoadedConfiguration,
-                        _solutionManager.LoadedPlatform,
-                        _solutionManager.LoadedTargetFramework));
+                return Complete(WorkspaceLoadGuidance.FormatMissingCompileTargetWorkspaceLoadMessage(
+                    workspacePath,
+                    diagnostics,
+                    _solutionManager.LoadedConfiguration,
+                    _solutionManager.LoadedPlatform,
+                    _solutionManager.LoadedTargetFramework));
             }
 
             if (diagnostics.Any(WorkspaceLoadGuidance.IsRoslynMsBuildBuildHostFailure))
             {
-                return ToolTelemetry.TraceAndReturn(
-                    nameof(LoadWorkspace),
-                    WorkspaceLoadGuidance.FormatRoslynMsBuildBuildHostFailureMessage(workspacePath));
+                return Complete(WorkspaceLoadGuidance.FormatRoslynMsBuildBuildHostFailureMessage(workspacePath));
             }
 
-            return ToolTelemetry.TraceAndReturn(
-                nameof(LoadWorkspace),
-                BuildFailureReport(
+            return Complete(BuildFailureReport(
                     workspacePath,
                     diagnostics.Count > 0 ? diagnostics : new[] { "Workspace loaded with zero projects." }));
         }
@@ -221,9 +217,13 @@ public sealed class WorkspaceTools
             sb.AppendLine(shadowCopySummary);
         }
 
-        return ToolTelemetry.TraceAndReturn(
+        return Complete(_solutionManager.WithDiskSyncNotes(sb.ToString()));
+
+        string Complete(string result) => ToolTelemetry.TraceAndReturn(
             nameof(LoadWorkspace),
-            _solutionManager.WithDiskSyncNotes(sb.ToString()));
+            cancellationToken.IsCancellationRequested
+                ? result
+                : WorkspaceEntryPolicy.AppendWarning(result, fullPath, _solutionManager.FileSettings));
     }
 
     private static string FormatShadowCopySummary(

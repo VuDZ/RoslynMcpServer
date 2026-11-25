@@ -139,7 +139,10 @@ public sealed class BuildProgressIntegrationTests
 
             var text = ReadText(result);
             Assert.False(result.IsError ?? false, text);
-            Assert.Equal("## Build succeeded", text);
+            Assert.Collection(
+                result.Content.OfType<TextContentBlock>(),
+                report => Assert.Equal("## Build succeeded", report.Text),
+                guidance => Assert.StartsWith("Warning: Use the containing .sln or .slnx", guidance.Text, StringComparison.Ordinal));
         }
         finally
         {

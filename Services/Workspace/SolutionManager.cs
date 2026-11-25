@@ -1030,6 +1030,25 @@ public sealed class SolutionManager
         }
 
         var fullPath = Path.GetFullPath(solutionOrProjectPath);
+        if (WorkspaceEntryPolicy.IsDirectProject(fullPath))
+        {
+            if (FileSettings.RequireSolution)
+            {
+                var rejection = WorkspaceEntryPolicy.Rejection(FileSettings);
+                if (loadSource == WorkspaceLoadSource.ConfigFile && WorkspaceEntryGuidance.Current is { } lazyGuidance)
+                {
+                    lazyGuidance.Message = rejection;
+                }
+
+                throw new ArgumentException(rejection);
+            }
+
+            if (WorkspaceEntryGuidance.Current is { } guidance)
+            {
+                guidance.Message = WorkspaceEntryPolicy.Warning(FileSettings);
+            }
+        }
+
         if (!File.Exists(fullPath))
         {
             throw new FileNotFoundException("Solution or project file not found.", fullPath);

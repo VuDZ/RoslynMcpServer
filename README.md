@@ -193,7 +193,7 @@ The archive includes `install2opencode.ps1`. Run it with PowerShell (`pwsh` on L
 
 The first response shows the server version, the SDK it resolved, restore health and the loaded projects. If a load fails, the error says why, for example a missing SDK or a multi-target project that needs a `targetFramework`.
 
-More setup detail is in [Installation and configuration](docs/setup.md): all platforms, building from source, tool profiles, `RoslynMcp.jsonc`, environment variables, logs.
+More setup detail is in [Installation and configuration](docs/setup.md): all platforms, building from source, tool profiles, `RoslynMcp.jsonc`, environment variables, logs. The [solution entry settings](docs/setup.md#direct-project-loads-and-builds) can require a solution and customize the guidance for direct project loads and builds.
 
 ## Good to know
 

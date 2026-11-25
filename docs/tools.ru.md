@@ -22,6 +22,8 @@
 <details>
 <summary><code>load_workspace</code> — Загружает .sln/.slnx/.csproj в MSBuildWorkspace.</summary>
 
+При `require-solution: true` загрузите `.sln` или `.slnx`. При значении по умолчанию `false` прямая загрузка `.csproj` завершается подсказкой, в том числе при ошибке.
+
 **Параметры:**
 - `workspacePath: string` — файл `.sln`, `.slnx` или `.csproj` (не каталог). Для multi-config — предпочтительно solution.
 - `configuration: string?` — опционально MSBuild `Configuration` (например `Sit-Debug`, `kart`). Наследуют build/test, если не передали `-c`.
@@ -311,6 +313,8 @@
 
 <details>
 <summary><code>run_dotnet_build</code> — Запускает dotnet build и возвращает компактную сводку.</summary>
+
+При `require-solution: true` передайте `.sln` или `.slnx` как цель сборки. При значении по умолчанию `false` прямая сборка `.csproj` завершается подсказкой, в том числе при ошибке.
 
 **Параметры:**
 - `workspacePath: string` — только существующий **файл** `.csproj`, `.sln` или `.slnx` (не каталог).

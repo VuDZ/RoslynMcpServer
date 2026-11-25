@@ -48,6 +48,7 @@ public static class RoslynMcpServiceCollectionExtensions
                 o.ToolCollection = toolCollection;
                 McpInboundProtocolLogger.Register(o);
                 UsageStatisticsFilters.Register(o);
+                WorkspaceEntryGuidanceFilter.Register(o);
             })
             .WithStdioServerTransport();
 

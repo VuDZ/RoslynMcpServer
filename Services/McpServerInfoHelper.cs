@@ -284,6 +284,8 @@ public static class McpServerInfoHelper
         }
 
         sb.AppendLine($"- **Merged workspace-path:** {(fileSettings.WorkspacePath is null ? "(none)" : $"`{fileSettings.WorkspacePath}`")}");
+        sb.AppendLine($"- **Merged require-solution:** {(fileSettings.RequireSolution ? "true" : "false")}");
+        sb.AppendLine($"- **Merged direct-project-guidance:** {(fileSettings.DirectProjectGuidance is null ? "(default)" : "(custom)")}");
         sb.AppendLine($"- **Merged configuration:** {(fileSettings.Configuration is null ? "(none)" : $"`{fileSettings.Configuration}`")}");
         sb.AppendLine($"- **Merged platform:** {(fileSettings.Platform is null ? "(none)" : $"`{fileSettings.Platform}`")}");
         sb.AppendLine($"- **Merged target-framework:** {(fileSettings.TargetFramework is null ? "(none)" : $"`{fileSettings.TargetFramework}`")}");

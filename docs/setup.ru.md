@@ -194,6 +194,7 @@ cd LOCAL_ROOT/YourApp
 
 - проверить сервер через `get_mcp_server_info`; отсутствующие `lite`-tools — через `list_tool_groups` / `enable_tool_group`
 - Опциональный `RoslynMcp.jsonc` читается рядом с exe, в пользовательском каталоге и в cwd. Cwd перекрывает обычные настройки. Для настройки `plugins` используется конфиг рядом с exe или в пользовательском каталоге. `ROSLYN_MCP_WORKSPACE` в начале процесса ставит cwd на корень репозитория. Ключи: `workspace-path`, `configuration`, `platform`, `target-framework`, `max-results`, `preview`, `ripgrep-path`. Нет файла — вызывайте `load_workspace` сами. Первый семантический tool при `workspace-path` грузит решение и ждёт; чужую загрузку не отменяет. `load_workspace` сравнивает только переданные аргументы (опущенные не сбрасывают уже загруженные). Пример — `RoslynMcp.jsonc.sample`.
+- `require-solution` и `direct-project-guidance` управляют [загрузкой и сборкой проекта напрямую](#загрузка-и-сборка-проекта-напрямую).
 - после `load_workspace` (или lazy из jsonc) объявления C# — MCP `find_symbol_definition` / `find_usages`, не текстовый поиск и не выдуманный `search`
 - нет target `Compile` при load — повторить с `targetFramework` (inner TFM); это не SDK mismatch
 - VS 2026 BuildHost / `XMakeElements` — это не SDK mismatch; нужен MCP 1.0.35+ или один SDK-style `.csproj`
@@ -201,6 +202,19 @@ cd LOCAL_ROOT/YourApp
 - сборка/тесты — только MCP `run_dotnet_build` / `run_dotnet_test`
 - запись файлов — IDE: нативные правки; headless: MCP `apply_patch` / AST
 - полный текст политики — в `AGENTS.md.sample`
+
+### Загрузка и сборка проекта напрямую
+
+В `RoslynMcp.jsonc` параметр `require-solution` по умолчанию равен `false`. При загрузке `.csproj` или его сборке через `run_dotnet_build` в конце ответа появляется рекомендация использовать решение, даже если операция завершилась ошибкой. Значение `true` требует указать `.sln` или `.slnx`, в том числе для автозагрузки через `workspace-path`. Чтобы собрать один проект через решение, укажите его имя в `projectName`.
+
+Параметр `direct-project-guidance` заменяет стандартную рекомендацию в предупреждении и отказе. Если параметр опущен, используется встроенный текст.
+
+```jsonc
+{
+  "require-solution": false,
+  "direct-project-guidance": "Откройте или соберите YourApp.sln, чтобы применились настройки решения."
+}
+```
 
 ## История agent-tools по версиям
 

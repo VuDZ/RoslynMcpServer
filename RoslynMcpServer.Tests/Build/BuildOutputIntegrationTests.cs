@@ -15,7 +15,11 @@ public sealed class BuildOutputIntegrationTests
         var buildTools = new BuildTools(manager, NullLogger<BuildTools>.Instance);
         var utilityTools = new UtilityTools(NullLogger<UtilityTools>.Instance, manager);
 
-        Assert.Equal("## Build succeeded", await buildTools.RunDotNetBuild(project.Path, noIncremental: false));
+        var silent = await buildTools.RunDotNetBuild(project.Path, noIncremental: false);
+        Assert.Collection(
+            silent.Split(Environment.NewLine + Environment.NewLine, count: 2),
+            report => Assert.Equal("## Build succeeded", report),
+            guidance => Assert.StartsWith("Warning: Use the containing .sln or .slnx", guidance, StringComparison.Ordinal));
         var detailed = await buildTools.RunDotNetBuild(project.Path, noIncremental: false, includeBuildWarnings: true);
         Assert.Contains("MSB9001", detailed);
         Assert.DoesNotContain("Execution context", detailed);

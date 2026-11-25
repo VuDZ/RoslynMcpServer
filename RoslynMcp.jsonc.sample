@@ -5,6 +5,10 @@
   // Set ROSLYN_MCP_WORKSPACE to the repo root at startup so cwd is not the user profile.
 
   // "workspace-path": "YourApp.sln",
+  // Require a .sln or .slnx for workspace loads and run_dotnet_build (default: false).
+  // "require-solution": false,
+  // Replace the guidance shown in direct .csproj warnings or rejections.
+  // "direct-project-guidance": "Open or build YourApp.sln so the solution settings apply.",
   // "configuration": "Debug",
   // "platform": "Any CPU",
   // "target-framework": "net10.0",

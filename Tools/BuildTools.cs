@@ -5,6 +5,7 @@ using ModelContextProtocol;
 using ModelContextProtocol.Server;
 using RoslynMcpServer.Diagnostics;
 using RoslynMcpServer.Services;
+using RoslynMcpServer.Services.Workspace;
 
 namespace RoslynMcpServer.Tools;
 
@@ -21,7 +22,8 @@ public sealed class BuildTools
 
     [McpServerTool(Name = "run_dotnet_build", Title = "Run dotnet build")]
     [Description(
-        "Runs dotnet build with parsed diagnostics. Inherits configuration, platform, and buildArgs from load_workspace.")]
+        "Runs dotnet build with parsed diagnostics. Inherits configuration, platform, and buildArgs from load_workspace. "
+        + "A direct .csproj target requires require-solution=false in RoslynMcp.jsonc (the default).")]
     public async Task<string> RunDotNetBuild(
         [Description("Path to a .csproj, .sln, or .slnx file, not a directory.")]
         string workspacePath,
@@ -43,6 +45,7 @@ public sealed class BuildTools
         IProgress<ProgressNotificationValue>? progress = null,
         CancellationToken cancellationToken = default)
     {
+        string? fullPath = null;
         try
         {
             if (!string.IsNullOrWhiteSpace(reportCursor))
@@ -55,20 +58,23 @@ public sealed class BuildTools
 
             if (string.IsNullOrWhiteSpace(workspacePath))
             {
-                return ToolTelemetry.TraceAndReturn(nameof(RunDotNetBuild), "Error: `workspacePath` is empty.");
+                return Complete("Error: `workspacePath` is empty.");
+            }
+
+            fullPath = Path.GetFullPath(workspacePath);
+            if (_solutionManager.FileSettings.RequireSolution && WorkspaceEntryPolicy.IsDirectProject(fullPath))
+            {
+                return Complete("Error: " + WorkspaceEntryPolicy.Rejection(_solutionManager.FileSettings));
             }
 
             if (timeoutSeconds is < 0 or > MaxTimeoutSeconds)
             {
-                return ToolTelemetry.TraceAndReturn(
-                    nameof(RunDotNetBuild),
-                    $"Error: `timeoutSeconds` must be between 0 and {MaxTimeoutSeconds}.");
+                return Complete($"Error: `timeoutSeconds` must be between 0 and {MaxTimeoutSeconds}.");
             }
 
-            var fullPath = Path.GetFullPath(workspacePath);
             if (!File.Exists(fullPath))
             {
-                return ToolTelemetry.TraceAndReturn(nameof(RunDotNetBuild), $"File not found: `{fullPath}`");
+                return Complete($"File not found: `{fullPath}`");
             }
 
             var extension = Path.GetExtension(fullPath);
@@ -76,9 +82,7 @@ public sealed class BuildTools
                 && !string.Equals(extension, ".sln", StringComparison.OrdinalIgnoreCase)
                 && !string.Equals(extension, ".slnx", StringComparison.OrdinalIgnoreCase))
             {
-                return ToolTelemetry.TraceAndReturn(
-                    nameof(RunDotNetBuild),
-                    $"Path must be a .csproj, .sln, or .slnx file: `{fullPath}`");
+                return Complete($"Path must be a .csproj, .sln, or .slnx file: `{fullPath}`");
             }
 
             var workDir = WorkspaceRootResolver.ResolveDotNetWorkingDirectory(fullPath);
@@ -96,7 +100,7 @@ public sealed class BuildTools
             }
             catch (ArgumentException ex)
             {
-                return ToolTelemetry.TraceAndReturn(nameof(RunDotNetBuild), $"Error: {ex.Message}");
+                return Complete($"Error: {ex.Message}");
             }
 
             string? solutionTarget = null;
@@ -106,17 +110,13 @@ public sealed class BuildTools
                 if (!string.Equals(extension, ".sln", StringComparison.OrdinalIgnoreCase)
                     && !string.Equals(extension, ".slnx", StringComparison.OrdinalIgnoreCase))
                 {
-                    return ToolTelemetry.TraceAndReturn(
-                        nameof(RunDotNetBuild),
-                        "Error: `projectName` requires `workspacePath` to be a `.sln` or `.slnx` so the project can be built as a solution target.");
+                    return Complete("Error: `projectName` requires `workspacePath` to be a `.sln` or `.slnx` so the project can be built as a solution target.");
                 }
 
                 var resolved = SolutionProjectTargetResolver.TryResolve(fullPath, projectName);
                 if (!resolved.Success)
                 {
-                    return ToolTelemetry.TraceAndReturn(
-                        nameof(RunDotNetBuild),
-                        resolved.ErrorMessage ?? "Error: could not resolve `projectName`.");
+                    return Complete(resolved.ErrorMessage ?? "Error: could not resolve `projectName`.");
                 }
 
                 solutionTarget = resolved.TargetName;
@@ -147,9 +147,7 @@ public sealed class BuildTools
                 effectivePlatform, probe.NoIncremental, _solutionManager.LoadedBuildArgs,
                 resolvedProjectName, solutionTarget);
             var additionalErrors = SdkMismatchDiagnostics.CreateErrors(probe.SdkSelection, probe.CombinedOutput);
-            return ToolTelemetry.TraceAndReturn(
-                nameof(RunDotNetBuild),
-                BuildOutputReport.Format(
+            return Complete(BuildOutputReport.Format(
                     probe.CombinedOutput,
                     probe.ExitCode,
                     context.ToString().TrimEnd(),
@@ -160,18 +158,20 @@ public sealed class BuildTools
         }
         catch (OperationCanceledException)
         {
-            return ToolTelemetry.TraceAndReturn(
-                nameof(RunDotNetBuild),
-                "Build was cancelled." + Environment.NewLine + Environment.NewLine
+            return Complete("Build was cancelled." + Environment.NewLine + Environment.NewLine
                 + DotNetCliRunner.FormatHangHints(timedOut: false, cancelled: true));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "RunDotNetBuild failed for {WorkspacePath}", workspacePath);
-            return ToolTelemetry.TraceAndReturn(
-                nameof(RunDotNetBuild),
-                $"Failed to run `dotnet build`: {ex.GetType().Name}: {ex.Message}");
+            return Complete($"Failed to run `dotnet build`: {ex.GetType().Name}: {ex.Message}");
         }
+
+        string Complete(string result) => ToolTelemetry.TraceAndReturn(
+            nameof(RunDotNetBuild),
+            cancellationToken.IsCancellationRequested
+                ? result
+                : WorkspaceEntryPolicy.AppendWarning(result, fullPath, _solutionManager.FileSettings));
     }
 
     private static void AppendRunMetadata(

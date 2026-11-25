@@ -509,21 +509,22 @@ public sealed class McpToolCatalogTests(ITestOutputHelper output)
         output.WriteLine($"lite+runtime={liteRuntime.Count}/{liteRuntime.Utf8Bytes}");
         output.WriteLine($"lite+operations={liteOperations.Count}/{liteOperations.Utf8Bytes}");
 
-        AssertRecorded("full", 55, 47541, full);
-        AssertRecorded("lite", 16, 21086, lite);
-        AssertRecorded("lite+files", 24, 26142, liteFiles);
-        AssertRecorded("lite+editing", 24, 26356, liteEditing);
-        AssertRecorded("lite+decompile", 20, 23848, liteDecompile);
-        AssertRecorded("lite+nuget", 22, 24465, liteNuget);
-        AssertRecorded("lite+project", 19, 22606, liteProject);
-        AssertRecorded("lite+runtime", 19, 23824, liteRuntime);
-        AssertRecorded("lite+operations", 20, 22888, liteOperations);
+        // The two core descriptions now state when a direct .csproj is accepted.
+        AssertRecorded("full", 55, 47726, full);
+        AssertRecorded("lite", 16, 21271, lite);
+        AssertRecorded("lite+files", 24, 26327, liteFiles);
+        AssertRecorded("lite+editing", 24, 26541, liteEditing);
+        AssertRecorded("lite+decompile", 20, 24033, liteDecompile);
+        AssertRecorded("lite+nuget", 22, 24650, liteNuget);
+        AssertRecorded("lite+project", 19, 22791, liteProject);
+        AssertRecorded("lite+runtime", 19, 24009, liteRuntime);
+        AssertRecorded("lite+operations", 20, 23073, liteOperations);
 
         var enabled = MeasureSurface(
             new McpToolProfileOptions { Profile = "lite" },
             activation => activation.EnableGroup("files"));
-        AssertRecorded("lite+enable:files", 24, 26142, enabled);
-        Assert.Equal(26142, MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "files" }).Utf8Bytes);
+        AssertRecorded("lite+enable:files", 24, 26327, enabled);
+        Assert.Equal(26327, MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "files" }).Utf8Bytes);
     }
 
     private static void AssertRecorded(string label, int count, int bytes, (int Count, int Utf8Bytes) actual)
