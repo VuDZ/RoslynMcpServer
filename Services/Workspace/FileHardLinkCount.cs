@@ -35,7 +35,9 @@ internal static class FileHardLinkCount
     private static extern bool GetFileInformationByHandleEx(
         SafeFileHandle handle, int infoClass, out WindowsFileInfo info, int size);
 
-    [DllImport("System.Native", EntryPoint = "SystemNative_FStat", ExactSpelling = true, SetLastError = true)]
+    // The single-file host resolves its embedded native libraries by exact import name.
+    // https://github.com/dotnet/runtime/blob/v11.0.0/src/native/corehost/hostpolicy/hostpolicy_context.cpp#L54-L68
+    [DllImport("libSystem.Native", EntryPoint = "SystemNative_FStat", ExactSpelling = true, SetLastError = true)]
     private static extern int FStat(SafeFileHandle handle, out UnixFileStatus status);
 
     // FILE_STANDARD_INFO pads its final two byte flags to the alignment of LARGE_INTEGER.
