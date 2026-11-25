@@ -48,36 +48,21 @@ internal static class UsageStatisticsFilters
             var descriptor = McpToolCatalog.All.FirstOrDefault(tool => tool.Name == name);
             // See docs/usage-statistics/README.md: snapshot access does not widen the catalog classification.
             var call = usage?.BeginTool(name, descriptor?.RequiresWorkspace ?? false);
+            var previousCall = ToolTelemetry.SetUsageCall(call);
             var success = false;
             try
             {
                 var result = await next(context, cancellationToken).ConfigureAwait(false);
-                success = result.IsError != true && result.Content.OfType<TextContentBlock>().All(block => IsSuccessfulText(block.Text));
+                // Response text may be source or process output that looks like an error.
+                success = result.IsError != true && call?.Unsuccessful != true;
                 return result;
             }
             finally
             {
-                usage?.EndTool(call, success && !cancellationToken.IsCancellationRequested);
+                ToolTelemetry.SetUsageCall(previousCall);
+                usage?.EndTool(call, success);
             }
         });
-    }
-
-    internal static bool IsSuccessfulText(string? text)
-    {
-        if (string.IsNullOrWhiteSpace(text))
-        {
-            return true;
-        }
-
-        var summary = ToolLogAnalyzer.BuildSummaryLine(text);
-        var trimmed = text.TrimStart();
-        return !summary.StartsWith("status=failed", StringComparison.Ordinal)
-            && !summary.StartsWith("status=error", StringComparison.Ordinal)
-            && !summary.StartsWith("status=partial", StringComparison.Ordinal)
-            && !trimmed.StartsWith("Failed ", StringComparison.OrdinalIgnoreCase)
-            && !trimmed.Contains("was cancelled", StringComparison.OrdinalIgnoreCase)
-            && !trimmed.Contains("cancelled by client", StringComparison.OrdinalIgnoreCase)
-            && !trimmed.Contains("Reset was cancelled", StringComparison.OrdinalIgnoreCase);
     }
 
     private static string? ReadString(JsonNode? node) =>

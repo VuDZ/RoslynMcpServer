@@ -70,12 +70,12 @@ public sealed class WorkspaceTools
         }
         catch (ArgumentException ex)
         {
-            return ToolTelemetry.TraceAndReturn(nameof(LoadWorkspace), $"Error: {ex.Message}");
+            return ToolTelemetry.TraceFailureAndReturn(nameof(LoadWorkspace), $"Error: {ex.Message}");
         }
         catch (OperationCanceledException ex)
         {
             _logger.LogWarning(ex, "load_workspace cancelled by client for {Path}", workspacePath);
-            return ToolTelemetry.TraceAndReturn(
+            return ToolTelemetry.TraceFailureAndReturn(
                 nameof(LoadWorkspace),
                 WorkspaceLoadGuidance.FormatClientCancelledWorkspaceLoadMessage(workspacePath)
                 + Environment.NewLine
@@ -84,19 +84,19 @@ public sealed class WorkspaceTools
         catch (RoslynMsBuildBuildHostException ex)
         {
             _logger.LogError(ex, "Failed to load workspace from {Path} (VS 2026 / MSBuild 18 BuildHost)", workspacePath);
-            return ToolTelemetry.TraceAndReturn(nameof(LoadWorkspace), ex.Message);
+            return ToolTelemetry.TraceFailureAndReturn(nameof(LoadWorkspace), ex.Message);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to load workspace from {Path}", workspacePath);
             if (WorkspaceLoadGuidance.IsRoslynMsBuildBuildHostFailure(ex))
             {
-                return ToolTelemetry.TraceAndReturn(
+                return ToolTelemetry.TraceFailureAndReturn(
                     nameof(LoadWorkspace),
                     WorkspaceLoadGuidance.FormatRoslynMsBuildBuildHostFailureMessage(workspacePath));
             }
 
-            return ToolTelemetry.TraceAndReturn(nameof(LoadWorkspace), BuildFailureReport(workspacePath, new[] { ex.Message }));
+            return ToolTelemetry.TraceFailureAndReturn(nameof(LoadWorkspace), BuildFailureReport(workspacePath, new[] { ex.Message }));
         }
 
         var projects = solution.Projects.ToList();
@@ -110,7 +110,7 @@ public sealed class WorkspaceTools
         {
             if (diagnostics.Any(WorkspaceDiagnosticFormatter.IsMissingTargetFrameworkEvaluation))
             {
-                return ToolTelemetry.TraceAndReturn(
+                return ToolTelemetry.TraceFailureAndReturn(
                     nameof(LoadWorkspace),
                     WorkspaceLoadGuidance.FormatMissingTargetFrameworkWorkspaceLoadMessage(
                         workspacePath,
@@ -121,7 +121,7 @@ public sealed class WorkspaceTools
 
             if (diagnostics.Any(WorkspaceDiagnosticFormatter.IsMissingCompileTarget))
             {
-                return ToolTelemetry.TraceAndReturn(
+                return ToolTelemetry.TraceFailureAndReturn(
                     nameof(LoadWorkspace),
                     WorkspaceLoadGuidance.FormatMissingCompileTargetWorkspaceLoadMessage(
                         workspacePath,
@@ -133,12 +133,12 @@ public sealed class WorkspaceTools
 
             if (diagnostics.Any(WorkspaceLoadGuidance.IsRoslynMsBuildBuildHostFailure))
             {
-                return ToolTelemetry.TraceAndReturn(
+                return ToolTelemetry.TraceFailureAndReturn(
                     nameof(LoadWorkspace),
                     WorkspaceLoadGuidance.FormatRoslynMsBuildBuildHostFailureMessage(workspacePath));
             }
 
-            return ToolTelemetry.TraceAndReturn(
+            return ToolTelemetry.TraceFailureAndReturn(
                 nameof(LoadWorkspace),
                 BuildFailureReport(
                     workspacePath,
@@ -223,7 +223,8 @@ public sealed class WorkspaceTools
 
         return ToolTelemetry.TraceAndReturn(
             nameof(LoadWorkspace),
-            _solutionManager.WithDiskSyncNotes(sb.ToString()));
+            _solutionManager.WithDiskSyncNotes(sb.ToString()),
+            success: !semanticUnavailable);
     }
 
     private static string FormatShadowCopySummary(
@@ -325,12 +326,12 @@ public sealed class WorkspaceTools
         }
         catch (OperationCanceledException)
         {
-            return ToolTelemetry.TraceAndReturn(nameof(ResetWorkspace), "Reset was cancelled.");
+            return ToolTelemetry.TraceFailureAndReturn(nameof(ResetWorkspace), "Reset was cancelled.");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "ResetWorkspace failed");
-            return ToolTelemetry.TraceAndReturn(nameof(ResetWorkspace), $"Failed to reset workspace: {ex.Message}");
+            return ToolTelemetry.TraceFailureAndReturn(nameof(ResetWorkspace), $"Failed to reset workspace: {ex.Message}");
         }
     }
 

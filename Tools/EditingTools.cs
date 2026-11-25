@@ -31,7 +31,7 @@ public sealed class EditingTools
             if (string.IsNullOrWhiteSpace(filePath))
             {
                 _logger.LogWarning("WriteFile rejected: empty file path.");
-                return ToolTelemetry.TraceAndReturn(nameof(WriteFile), "File path is empty.");
+                return ToolTelemetry.TraceFailureAndReturn(nameof(WriteFile), "File path is empty.");
             }
 
             var fullPath = _solutionManager.ResolvePathAgainstWorkspace(filePath);
@@ -46,7 +46,7 @@ public sealed class EditingTools
                     var refused = string.Equals(write.Reason, "missing-on-disk", StringComparison.Ordinal)
                         ? $"Refused to recreate `{fullPath}`: the file disappeared from disk and remains in the loaded workspace snapshot until reload. Call `reset_workspace` then `load_workspace` (or `load_workspace` alone — a stale project graph skips the load cache)."
                         : write.FormatAdapterMessage($"Failed to write `{fullPath}`.");
-                    return ToolTelemetry.TraceAndReturn(
+                    return ToolTelemetry.TraceFailureAndReturn(
                         nameof(WriteFile),
                         _solutionManager.WithDiskSyncNotes(refused));
                 }
@@ -78,7 +78,7 @@ public sealed class EditingTools
             }
             else if (!write.IsFullSuccess)
             {
-                return ToolTelemetry.TraceAndReturn(
+                return ToolTelemetry.TraceFailureAndReturn(
                     nameof(WriteFile),
                     write.FormatAdapterMessage($"Failed to write `{fullPath}`."));
             }
@@ -90,21 +90,21 @@ public sealed class EditingTools
         catch (UnauthorizedAccessException ex)
         {
             _logger.LogWarning(ex, "Access denied writing {FilePath}", filePath);
-            return ToolTelemetry.TraceAndReturn(
+            return ToolTelemetry.TraceFailureAndReturn(
                 nameof(WriteFile),
                 $"Failed to write file `{filePath}`: access denied ({ex.Message}).");
         }
         catch (IOException ex)
         {
             _logger.LogWarning(ex, "I/O error writing {FilePath}", filePath);
-            return ToolTelemetry.TraceAndReturn(
+            return ToolTelemetry.TraceFailureAndReturn(
                 nameof(WriteFile),
                 $"Failed to write file `{filePath}`: file may be locked or in use ({ex.Message}).");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected error writing {FilePath}", filePath);
-            return ToolTelemetry.TraceAndReturn(
+            return ToolTelemetry.TraceFailureAndReturn(
                 nameof(WriteFile),
                 $"Failed to write file `{filePath}`: {ex.Message}");
         }

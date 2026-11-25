@@ -139,7 +139,10 @@ public sealed class TestTools
             }
             var body = TestImpactFormatter.Format(solution, estimate, narrowing, stage, includeDetails, runs,
                 state);
-            return ToolTelemetry.TraceAndReturn(toolName, body);
+            var succeeded = !estimate.Impact.RequiresReload
+                && estimate.NotCovered.Count == 0
+                && (runs is null || runs.Values.All(project => project.Execution.Outcome == TestProcessOutcome.Passed));
+            return ToolTelemetry.TraceAndReturn(toolName, body, success: succeeded);
         }
         catch (OperationCanceledException)
         {
@@ -151,7 +154,7 @@ public sealed class TestTools
             return Finish("Failed to estimate affected tests: " + exception.Message);
         }
 
-        string Finish(string body) => ToolTelemetry.TraceAndReturn(toolName, TestImpactFormatter.FormatEarlyResponse(
+        string Finish(string body) => ToolTelemetry.TraceFailureAndReturn(toolName, TestImpactFormatter.FormatEarlyResponse(
             _solutionManager.WithDiskSyncNotes(body),
             selectedDepth is { } stage ? TestImpactDepth.State(stage) : null,
             run));
@@ -255,15 +258,16 @@ public sealed class TestTools
         {
             if (!string.IsNullOrWhiteSpace(reportCursor))
             {
+                var chunk = DiagnosticReportStore.TryTakeChunk(reportCursor);
                 return ToolTelemetry.TraceAndReturn(
                     toolName,
-                    DiagnosticReportAttachment.FormatChunkResponse(
-                        DiagnosticReportStore.TryTakeChunk(reportCursor)));
+                    DiagnosticReportAttachment.FormatChunkResponse(chunk),
+                    success: chunk.Ok);
             }
 
             if (string.IsNullOrWhiteSpace(className) && string.IsNullOrWhiteSpace(methodName))
             {
-                return ToolTelemetry.TraceAndReturn(
+                return ToolTelemetry.TraceFailureAndReturn(
                     toolName,
                     "Error: provide at least one of `className` or `methodName`.");
             }
@@ -311,7 +315,7 @@ public sealed class TestTools
         }
         catch (OperationCanceledException)
         {
-            return _solutionManager.WithDiskSyncNotes(ToolTelemetry.TraceAndReturn(
+            return _solutionManager.WithDiskSyncNotes(ToolTelemetry.TraceFailureAndReturn(
                 toolName,
                 "`run_specific_test` was cancelled." + Environment.NewLine + Environment.NewLine
                 + DotNetCliRunner.FormatHangHints(timedOut: false, cancelled: true)));
@@ -320,7 +324,7 @@ public sealed class TestTools
         {
             _logger.LogError(ex, "RunSpecificTest failed for {WorkspacePath}", workspacePath);
             return _solutionManager.WithDiskSyncNotes(
-                ToolTelemetry.TraceAndReturn(toolName, $"Failed to run specific test: {ex.Message}"));
+                ToolTelemetry.TraceFailureAndReturn(toolName, $"Failed to run specific test: {ex.Message}"));
         }
     }
 
@@ -361,17 +365,18 @@ public sealed class TestTools
     {
         if (!string.IsNullOrWhiteSpace(reportCursor))
         {
+            var chunk = DiagnosticReportStore.TryTakeChunk(reportCursor);
             return Task.FromResult(
                 ToolTelemetry.TraceAndReturn(
                     nameof(RunTestByFilter),
-                    DiagnosticReportAttachment.FormatChunkResponse(
-                        DiagnosticReportStore.TryTakeChunk(reportCursor))));
+                    DiagnosticReportAttachment.FormatChunkResponse(chunk),
+                    success: chunk.Ok));
         }
 
         if (string.IsNullOrWhiteSpace(filter))
         {
             return Task.FromResult(
-                ToolTelemetry.TraceAndReturn(
+                ToolTelemetry.TraceFailureAndReturn(
                     nameof(RunTestByFilter),
                     "Error: `filter` is empty."));
         }
@@ -416,7 +421,7 @@ public sealed class TestTools
             var solution = await _solutionManager.GetPublishedSolutionAfterDiskSyncAsync(cancellationToken).ConfigureAwait(false);
             if (solution is null)
             {
-                return Finish(_solutionManager.FormatNoPublishedSolutionMessage("No workspace loaded."));
+                return Finish(_solutionManager.FormatNoPublishedSolutionMessage("No workspace loaded."), success: false);
             }
 
             var listed = await TestDiscoveryHelper.ListTestsJsonAsync(
@@ -424,7 +429,7 @@ public sealed class TestTools
                 .ConfigureAwait(false);
             if (!listed.Success)
             {
-                return Finish(listed.Payload);
+                return Finish(listed.Payload, success: false);
             }
 
             var json = listed.Payload;
@@ -455,16 +460,16 @@ public sealed class TestTools
         }
         catch (OperationCanceledException)
         {
-            return ToolTelemetry.TraceAndReturn(toolName, "`get_test_list` was cancelled by the MCP host.");
+            return ToolTelemetry.TraceFailureAndReturn(toolName, "`get_test_list` was cancelled by the MCP host.");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "GetTestList failed");
-            return ToolTelemetry.TraceAndReturn(toolName, $"Failed: {ex.Message}");
+            return ToolTelemetry.TraceFailureAndReturn(toolName, $"Failed: {ex.Message}");
         }
 
-        string Finish(string payload) =>
-            ToolTelemetry.TraceAndReturn(toolName, _solutionManager.WithDiskSyncNotes(payload));
+        string Finish(string payload, bool success = true) =>
+            ToolTelemetry.TraceAndReturn(toolName, _solutionManager.WithDiskSyncNotes(payload), success);
     }
 
     private static bool IsEmptyTestListPayload(string json)
@@ -498,7 +503,7 @@ public sealed class TestTools
             var document = await _solutionManager.FindDocumentAsync(fullPath, cancellationToken).ConfigureAwait(false);
             if (document is null)
             {
-                return ToolTelemetry.TraceAndReturn(toolName, $"Document not in workspace: `{fullPath}`.");
+                return ToolTelemetry.TraceFailureAndReturn(toolName, $"Document not in workspace: `{fullPath}`.");
             }
 
             var baseSolution = document.Project.Solution;
@@ -508,7 +513,7 @@ public sealed class TestTools
                 baseSolution, newDocument.Project.Solution, cancellationToken).ConfigureAwait(false);
             if (!write.IsFullSuccess)
             {
-                return ToolTelemetry.TraceAndReturn(toolName, write.FormatAdapterMessage($"Added test stub `{methodName}` to `{className}`."));
+                return ToolTelemetry.TraceFailureAndReturn(toolName, write.FormatAdapterMessage($"Added test stub `{methodName}` to `{className}`."));
             }
 
             return ToolTelemetry.TraceAndReturn(
@@ -518,7 +523,7 @@ public sealed class TestTools
         catch (Exception ex)
         {
             _logger.LogError(ex, "GenerateTestMethodStub failed");
-            return ToolTelemetry.TraceAndReturn(toolName, $"Failed: {ex.Message}");
+            return ToolTelemetry.TraceFailureAndReturn(toolName, $"Failed: {ex.Message}");
         }
     }
 
@@ -547,10 +552,11 @@ public sealed class TestTools
         {
             if (!string.IsNullOrWhiteSpace(reportCursor))
             {
+                var chunk = DiagnosticReportStore.TryTakeChunk(reportCursor);
                 return ToolTelemetry.TraceAndReturn(
                     toolName,
-                    DiagnosticReportAttachment.FormatChunkResponse(
-                        DiagnosticReportStore.TryTakeChunk(reportCursor)));
+                    DiagnosticReportAttachment.FormatChunkResponse(chunk),
+                    success: chunk.Ok);
             }
 
             var route = TestBuildRoute.Resolve(
@@ -560,23 +566,23 @@ public sealed class TestTools
                 omittedNoBuildSkipsRebuild);
             if (route.Error is not null)
             {
-                return ToolTelemetry.TraceAndReturn(toolName, route.Error);
+                return ToolTelemetry.TraceFailureAndReturn(toolName, route.Error);
             }
 
             if (maxOutputChars < 0)
             {
-                return ToolTelemetry.TraceAndReturn(toolName, "Error: `maxOutputChars` must be >= 0.");
+                return ToolTelemetry.TraceFailureAndReturn(toolName, "Error: `maxOutputChars` must be >= 0.");
             }
 
             if (string.IsNullOrWhiteSpace(workspacePath))
             {
-                return ToolTelemetry.TraceAndReturn(toolName, "Error: `workspacePath` is empty.");
+                return ToolTelemetry.TraceFailureAndReturn(toolName, "Error: `workspacePath` is empty.");
             }
 
             var fullPath = _solutionManager.ResolvePathAgainstWorkspace(workspacePath);
             if (!File.Exists(fullPath) && !Directory.Exists(fullPath))
             {
-                return ToolTelemetry.TraceAndReturn(toolName, $"Path not found: `{fullPath}`");
+                return ToolTelemetry.TraceFailureAndReturn(toolName, $"Path not found: `{fullPath}`");
             }
 
             if (File.Exists(fullPath))
@@ -586,7 +592,7 @@ public sealed class TestTools
                     && !string.Equals(ext, ".sln", StringComparison.OrdinalIgnoreCase)
                     && !string.Equals(ext, ".slnx", StringComparison.OrdinalIgnoreCase))
                 {
-                    return ToolTelemetry.TraceAndReturn(
+                    return ToolTelemetry.TraceFailureAndReturn(
                         toolName,
                         $"When passing a file, it must be a `.csproj`, `.sln`, or `.slnx`: `{fullPath}`");
                 }
@@ -608,7 +614,7 @@ public sealed class TestTools
             }
             catch (ArgumentException ex)
             {
-                return ToolTelemetry.TraceAndReturn(toolName, $"Error: {ex.Message}");
+                return ToolTelemetry.TraceFailureAndReturn(toolName, $"Error: {ex.Message}");
             }
 
             if (route.DllRoute)
@@ -645,7 +651,7 @@ public sealed class TestTools
             }
             catch (ArgumentException ex)
             {
-                return ToolTelemetry.TraceAndReturn(toolName, $"Error: {ex.Message}");
+                return ToolTelemetry.TraceFailureAndReturn(toolName, $"Error: {ex.Message}");
             }
 
             DotNetTestArguments.CliPlan plan;
@@ -662,7 +668,7 @@ public sealed class TestTools
             }
             catch (ArgumentException ex)
             {
-                return ToolTelemetry.TraceAndReturn(toolName, $"Error: {ex.Message}");
+                return ToolTelemetry.TraceFailureAndReturn(toolName, $"Error: {ex.Message}");
             }
 
             var preTestBuildMeta = plan.IncludesPreTestBuild
@@ -702,7 +708,7 @@ public sealed class TestTools
                         includeBuildWarnings,
                         subject: "Pre-test build",
                         timedOut: buildRun.TimedOut);
-                    return ToolTelemetry.TraceAndReturn(
+                    return ToolTelemetry.TraceFailureAndReturn(
                         toolName,
                         "Tests were not started because the pre-test build did not succeed."
                         + Environment.NewLine + Environment.NewLine + buildReport);
@@ -722,7 +728,7 @@ public sealed class TestTools
                     exhausted.AppendLine();
                     exhausted.AppendLine(DotNetCliRunner.FormatHangHints(timedOut: true, cancelled: false));
                     var exhaustedText = exhausted.ToString().TrimEnd();
-                    return ToolTelemetry.TraceAndReturn(
+                    return ToolTelemetry.TraceFailureAndReturn(
                         toolName,
                         includeBuildWarnings ? AppendBuildWarnings(exhaustedText, buildOutput) : exhaustedText);
                 }
@@ -748,7 +754,7 @@ public sealed class TestTools
                     timedOutText,
                     run.CombinedOutput,
                     DiagnosticReportAttachment.ClientResponseHasTruncatedExcerpt(timedOutText));
-                return ToolTelemetry.TraceAndReturn(toolName, timedOutText);
+                return ToolTelemetry.TraceFailureAndReturn(toolName, timedOutText);
             }
 
             var parse = execution.Parsed!;
@@ -759,7 +765,8 @@ public sealed class TestTools
                 filter,
                 filterDescription,
                 requireFilterMatch,
-                outputOptions);
+                outputOptions,
+                out var succeeded);
 
             if (requireFilterMatch
                 && markdown.Contains("## Filtered test run — no matching tests", StringComparison.Ordinal))
@@ -810,11 +817,11 @@ public sealed class TestTools
                 finalMarkdown,
                 CombineBuildAndTestOutput(buildOutput, run.CombinedOutput),
                 shouldStore);
-            return ToolTelemetry.TraceAndReturn(toolName, finalMarkdown);
+            return ToolTelemetry.TraceAndReturn(toolName, finalMarkdown, success: succeeded);
         }
         catch (OperationCanceledException)
         {
-            return ToolTelemetry.TraceAndReturn(
+            return ToolTelemetry.TraceFailureAndReturn(
                 toolName,
                 "`dotnet test` was cancelled." + Environment.NewLine + Environment.NewLine
                 + DotNetCliRunner.FormatHangHints(timedOut: false, cancelled: true));
@@ -822,7 +829,7 @@ public sealed class TestTools
         catch (Exception ex)
         {
             _logger.LogError(ex, "{ToolName} failed for {WorkspacePath}", toolName, workspacePath);
-            return ToolTelemetry.TraceAndReturn(
+            return ToolTelemetry.TraceFailureAndReturn(
                 toolName,
                 $"Failed to run `dotnet test`: {ex.Message}");
         }
@@ -869,7 +876,7 @@ public sealed class TestTools
 
         if (matchCount > 1)
         {
-            return ToolTelemetry.TraceAndReturn(
+            return ToolTelemetry.TraceFailureAndReturn(
                 toolName,
                 "Error: `workspacePath` matches more than one project in the loaded workspace.");
         }
@@ -882,7 +889,7 @@ public sealed class TestTools
             requireExists: false);
         if (!resolved.Success || string.IsNullOrWhiteSpace(resolved.AssemblyPath) || projectId is null)
         {
-            return ToolTelemetry.TraceAndReturn(
+            return ToolTelemetry.TraceFailureAndReturn(
                 toolName,
                 resolved.ErrorMessage ?? "Error: could not resolve `binariesPath`.");
         }
@@ -898,7 +905,7 @@ public sealed class TestTools
         }
         catch (ArgumentException ex)
         {
-            return ToolTelemetry.TraceAndReturn(toolName, $"Error: {ex.Message}");
+            return ToolTelemetry.TraceFailureAndReturn(toolName, $"Error: {ex.Message}");
         }
 
         var context = new BuildContext(
@@ -930,20 +937,20 @@ public sealed class TestTools
                 },
                 cancellationToken)
             .ConfigureAwait(false);
-        return ToolTelemetry.TraceAndReturn(
-            toolName,
-            FormatDllOutcome(
-                outcome,
-                filter,
-                filterDescription,
-                requireFilterMatch,
-                targetCsprojPath,
-                configuration,
-                effectivePlatform,
-                resolvedBinariesPath,
-                includeFullOutput,
-                maxOutputChars,
-                includeBuildWarnings));
+        var report = FormatDllOutcome(
+            outcome,
+            filter,
+            filterDescription,
+            requireFilterMatch,
+            targetCsprojPath,
+            configuration,
+            effectivePlatform,
+            resolvedBinariesPath,
+            includeFullOutput,
+            maxOutputChars,
+            includeBuildWarnings,
+            out var succeeded);
+        return ToolTelemetry.TraceAndReturn(toolName, report, success: succeeded);
     }
 
     private TestDllEnsure.Runner CliRunner(ICliProgressReporter? progress)
@@ -996,8 +1003,10 @@ public sealed class TestTools
         string binariesPath,
         bool includeFullOutput,
         int maxOutputChars,
-        bool includeBuildWarnings)
+        bool includeBuildWarnings,
+        out bool succeeded)
     {
+        succeeded = false;
         var extraMeta = FormatDllMetadata(
             outcome,
             configuration,
@@ -1046,7 +1055,9 @@ public sealed class TestTools
             filter,
             filterDescription,
             requireFilterMatch,
-            outputOptions);
+            outputOptions,
+            out succeeded);
+        succeeded = succeeded && !outcome.Cancelled && !run.Cancelled;
         if (requireFilterMatch
             && markdown.Contains("## Filtered test run — no matching tests", StringComparison.Ordinal))
         {

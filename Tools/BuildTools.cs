@@ -47,20 +47,21 @@ public sealed class BuildTools
         {
             if (!string.IsNullOrWhiteSpace(reportCursor))
             {
+                var chunk = DiagnosticReportStore.TryTakeChunk(reportCursor);
                 return ToolTelemetry.TraceAndReturn(
                     nameof(RunDotNetBuild),
-                    DiagnosticReportAttachment.FormatChunkResponse(
-                        DiagnosticReportStore.TryTakeChunk(reportCursor)));
+                    DiagnosticReportAttachment.FormatChunkResponse(chunk),
+                    success: chunk.Ok);
             }
 
             if (string.IsNullOrWhiteSpace(workspacePath))
             {
-                return ToolTelemetry.TraceAndReturn(nameof(RunDotNetBuild), "Error: `workspacePath` is empty.");
+                return ToolTelemetry.TraceFailureAndReturn(nameof(RunDotNetBuild), "Error: `workspacePath` is empty.");
             }
 
             if (timeoutSeconds is < 0 or > MaxTimeoutSeconds)
             {
-                return ToolTelemetry.TraceAndReturn(
+                return ToolTelemetry.TraceFailureAndReturn(
                     nameof(RunDotNetBuild),
                     $"Error: `timeoutSeconds` must be between 0 and {MaxTimeoutSeconds}.");
             }
@@ -68,7 +69,7 @@ public sealed class BuildTools
             var fullPath = Path.GetFullPath(workspacePath);
             if (!File.Exists(fullPath))
             {
-                return ToolTelemetry.TraceAndReturn(nameof(RunDotNetBuild), $"File not found: `{fullPath}`");
+                return ToolTelemetry.TraceFailureAndReturn(nameof(RunDotNetBuild), $"File not found: `{fullPath}`");
             }
 
             var extension = Path.GetExtension(fullPath);
@@ -76,7 +77,7 @@ public sealed class BuildTools
                 && !string.Equals(extension, ".sln", StringComparison.OrdinalIgnoreCase)
                 && !string.Equals(extension, ".slnx", StringComparison.OrdinalIgnoreCase))
             {
-                return ToolTelemetry.TraceAndReturn(
+                return ToolTelemetry.TraceFailureAndReturn(
                     nameof(RunDotNetBuild),
                     $"Path must be a .csproj, .sln, or .slnx file: `{fullPath}`");
             }
@@ -96,7 +97,7 @@ public sealed class BuildTools
             }
             catch (ArgumentException ex)
             {
-                return ToolTelemetry.TraceAndReturn(nameof(RunDotNetBuild), $"Error: {ex.Message}");
+                return ToolTelemetry.TraceFailureAndReturn(nameof(RunDotNetBuild), $"Error: {ex.Message}");
             }
 
             string? solutionTarget = null;
@@ -106,7 +107,7 @@ public sealed class BuildTools
                 if (!string.Equals(extension, ".sln", StringComparison.OrdinalIgnoreCase)
                     && !string.Equals(extension, ".slnx", StringComparison.OrdinalIgnoreCase))
                 {
-                    return ToolTelemetry.TraceAndReturn(
+                    return ToolTelemetry.TraceFailureAndReturn(
                         nameof(RunDotNetBuild),
                         "Error: `projectName` requires `workspacePath` to be a `.sln` or `.slnx` so the project can be built as a solution target.");
                 }
@@ -114,7 +115,7 @@ public sealed class BuildTools
                 var resolved = SolutionProjectTargetResolver.TryResolve(fullPath, projectName);
                 if (!resolved.Success)
                 {
-                    return ToolTelemetry.TraceAndReturn(
+                    return ToolTelemetry.TraceFailureAndReturn(
                         nameof(RunDotNetBuild),
                         resolved.ErrorMessage ?? "Error: could not resolve `projectName`.");
                 }
@@ -147,20 +148,20 @@ public sealed class BuildTools
                 effectivePlatform, probe.NoIncremental, _solutionManager.LoadedBuildArgs,
                 resolvedProjectName, solutionTarget);
             var additionalErrors = SdkMismatchDiagnostics.CreateErrors(probe.SdkSelection, probe.CombinedOutput);
-            return ToolTelemetry.TraceAndReturn(
-                nameof(RunDotNetBuild),
-                BuildOutputReport.Format(
-                    probe.CombinedOutput,
-                    probe.ExitCode,
-                    context.ToString().TrimEnd(),
-                    includeBuildWarnings,
-                    timedOut: probe.TimedOut,
-                    budgetExhausted: probe.BudgetExhausted,
-                    additionalErrors: additionalErrors));
+            var report = BuildOutputReport.Format(
+                probe.CombinedOutput,
+                probe.ExitCode,
+                context.ToString().TrimEnd(),
+                includeBuildWarnings,
+                out var succeeded,
+                timedOut: probe.TimedOut,
+                budgetExhausted: probe.BudgetExhausted,
+                additionalErrors: additionalErrors);
+            return ToolTelemetry.TraceAndReturn(nameof(RunDotNetBuild), report, success: succeeded);
         }
         catch (OperationCanceledException)
         {
-            return ToolTelemetry.TraceAndReturn(
+            return ToolTelemetry.TraceFailureAndReturn(
                 nameof(RunDotNetBuild),
                 "Build was cancelled." + Environment.NewLine + Environment.NewLine
                 + DotNetCliRunner.FormatHangHints(timedOut: false, cancelled: true));
@@ -168,7 +169,7 @@ public sealed class BuildTools
         catch (Exception ex)
         {
             _logger.LogError(ex, "RunDotNetBuild failed for {WorkspacePath}", workspacePath);
-            return ToolTelemetry.TraceAndReturn(
+            return ToolTelemetry.TraceFailureAndReturn(
                 nameof(RunDotNetBuild),
                 $"Failed to run `dotnet build`: {ex.GetType().Name}: {ex.Message}");
         }

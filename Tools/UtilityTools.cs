@@ -52,14 +52,16 @@ public sealed class UtilityTools
         {
             if (!string.IsNullOrWhiteSpace(reportCursor))
             {
+                var chunk = DiagnosticReportStore.TryTakeChunk(reportCursor);
                 return ToolTelemetry.TraceAndReturn(
                     nameof(ExecuteDotNetCommand),
-                    DiagnosticReportAttachment.FormatChunkResponse(DiagnosticReportStore.TryTakeChunk(reportCursor)));
+                    DiagnosticReportAttachment.FormatChunkResponse(chunk),
+                    success: chunk.Ok);
             }
 
             if (string.IsNullOrWhiteSpace(command))
             {
-                return ToolTelemetry.TraceAndReturn(nameof(ExecuteDotNetCommand), "Command is empty.");
+                return ToolTelemetry.TraceFailureAndReturn(nameof(ExecuteDotNetCommand), "Command is empty.");
             }
 
             var fullWorkingDirectory = string.IsNullOrWhiteSpace(workingDirectory)
@@ -67,7 +69,7 @@ public sealed class UtilityTools
                 : Path.GetFullPath(workingDirectory);
             if (!Directory.Exists(fullWorkingDirectory))
             {
-                return ToolTelemetry.TraceAndReturn(
+                return ToolTelemetry.TraceFailureAndReturn(
                     nameof(ExecuteDotNetCommand),
                     $"Working directory not found: `{fullWorkingDirectory}`");
             }
@@ -79,14 +81,15 @@ public sealed class UtilityTools
 
             if (BuildOutputReport.IsBuildCommand(command))
             {
+                var report = BuildOutputReport.Format(
+                    run.StdOut + Environment.NewLine + run.StdErr,
+                    run.ExitCode,
+                    run.RunMetadata + Environment.NewLine + $"- **Command:** `dotnet {command.Trim()}`",
+                    includeBuildWarnings,
+                    out var succeeded,
+                    timedOut: run.TimedOut);
                 return ToolTelemetry.TraceAndReturn(
-                    nameof(ExecuteDotNetCommand),
-                    BuildOutputReport.Format(
-                        run.StdOut + Environment.NewLine + run.StdErr,
-                        run.ExitCode,
-                        run.RunMetadata + Environment.NewLine + $"- **Command:** `dotnet {command.Trim()}`",
-                        includeBuildWarnings,
-                        timedOut: run.TimedOut));
+                    nameof(ExecuteDotNetCommand), report, success: succeeded && run.ExceptionType is null);
             }
 
             var stdoutExcerpt = ProcessOutputExcerpt.BuildStdoutExcerpt(run.StdOut, 6000);
@@ -117,11 +120,14 @@ public sealed class UtilityTools
             sb.AppendLine("### StdErr");
             sb.AppendLine(string.IsNullOrEmpty(stderrExcerpt) ? "(empty)" : "```text\n" + stderrExcerpt + "\n```");
 
-            return ToolTelemetry.TraceAndReturn(nameof(ExecuteDotNetCommand), sb.ToString().TrimEnd());
+            return ToolTelemetry.TraceAndReturn(
+                nameof(ExecuteDotNetCommand),
+                sb.ToString().TrimEnd(),
+                success: run.ExitCode == 0 && !run.TimedOut && run.ExceptionType is null);
         }
         catch (OperationCanceledException)
         {
-            return ToolTelemetry.TraceAndReturn(
+            return ToolTelemetry.TraceFailureAndReturn(
                 nameof(ExecuteDotNetCommand),
                 "Command was cancelled." + Environment.NewLine + Environment.NewLine
                 + DotNetCliRunner.FormatHangHints(timedOut: false, cancelled: true));
@@ -129,7 +135,7 @@ public sealed class UtilityTools
         catch (Exception ex)
         {
             _logger.LogError(ex, "ExecuteDotNetCommand failed for command {Command} in {WorkingDirectory}", command, workingDirectory);
-            return ToolTelemetry.TraceAndReturn(nameof(ExecuteDotNetCommand), $"Failed to run `dotnet {command}`: {ex.Message}");
+            return ToolTelemetry.TraceFailureAndReturn(nameof(ExecuteDotNetCommand), $"Failed to run `dotnet {command}`: {ex.Message}");
         }
     }
 
@@ -148,14 +154,14 @@ public sealed class UtilityTools
             var repoRoot = GitChangedFilesHelper.FindRepositoryRoot(anchor);
             if (repoRoot is null)
             {
-                return ToolTelemetry.TraceAndReturn(toolName, $"Error: No git repository found from `{anchor}`.");
+                return ToolTelemetry.TraceFailureAndReturn(toolName, $"Error: No git repository found from `{anchor}`.");
             }
 
             var status = await GitChangedFilesHelper.RunGitAsync(repoRoot, "status --porcelain", cancellationToken)
                 .ConfigureAwait(false);
             if (!status.Success)
             {
-                return ToolTelemetry.TraceAndReturn(toolName, $"git status failed: {status.Error}");
+                return ToolTelemetry.TraceFailureAndReturn(toolName, $"git status failed: {status.Error}");
             }
 
             var changed = GitChangedFilesHelper.ParsePorcelainStatus(status.Output);
@@ -206,12 +212,12 @@ public sealed class UtilityTools
         }
         catch (OperationCanceledException)
         {
-            return ToolTelemetry.TraceAndReturn(toolName, "`get_changed_files` was cancelled.");
+            return ToolTelemetry.TraceFailureAndReturn(toolName, "`get_changed_files` was cancelled.");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "GetChangedFiles failed");
-            return ToolTelemetry.TraceAndReturn(toolName, $"Error: {ex.Message}");
+            return ToolTelemetry.TraceFailureAndReturn(toolName, $"Error: {ex.Message}");
         }
     }
 
@@ -245,13 +251,13 @@ public sealed class UtilityTools
         {
             if (string.IsNullOrWhiteSpace(directoryPath))
             {
-                return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(ListDirectoryTree), "Error: `directoryPath` is empty."));
+                return Task.FromResult(ToolTelemetry.TraceFailureAndReturn(nameof(ListDirectoryTree), "Error: `directoryPath` is empty."));
             }
 
             var rootPath = Path.GetFullPath(directoryPath);
             if (!Directory.Exists(rootPath))
             {
-                return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(ListDirectoryTree), $"Directory not found: `{rootPath}`"));
+                return Task.FromResult(ToolTelemetry.TraceFailureAndReturn(nameof(ListDirectoryTree), $"Directory not found: `{rootPath}`"));
             }
 
             var depth = Math.Max(0, maxDepth);
@@ -264,7 +270,7 @@ public sealed class UtilityTools
         catch (Exception ex)
         {
             _logger.LogError(ex, "ListDirectoryTree failed for {DirectoryPath}", directoryPath);
-            return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(ListDirectoryTree), $"Failed to list directory tree for `{directoryPath}`: {ex.Message}"));
+            return Task.FromResult(ToolTelemetry.TraceFailureAndReturn(nameof(ListDirectoryTree), $"Failed to list directory tree for `{directoryPath}`: {ex.Message}"));
         }
     }
 
@@ -280,23 +286,23 @@ public sealed class UtilityTools
         {
             if (string.IsNullOrWhiteSpace(filePath))
             {
-                return ToolTelemetry.TraceAndReturn(nameof(GetMethodBody), "Error: `filePath` is empty.");
+                return ToolTelemetry.TraceFailureAndReturn(nameof(GetMethodBody), "Error: `filePath` is empty.");
             }
 
             if (string.IsNullOrWhiteSpace(className))
             {
-                return ToolTelemetry.TraceAndReturn(nameof(GetMethodBody), "Class name is empty.");
+                return ToolTelemetry.TraceFailureAndReturn(nameof(GetMethodBody), "Class name is empty.");
             }
 
             if (string.IsNullOrWhiteSpace(methodName))
             {
-                return ToolTelemetry.TraceAndReturn(nameof(GetMethodBody), "Method name is empty.");
+                return ToolTelemetry.TraceFailureAndReturn(nameof(GetMethodBody), "Method name is empty.");
             }
 
             var fullPath = _solutionManager.ResolvePathAgainstWorkspace(filePath);
             if (!File.Exists(fullPath))
             {
-                return ToolTelemetry.TraceAndReturn(nameof(GetMethodBody), $"File not found: `{fullPath}`");
+                return ToolTelemetry.TraceFailureAndReturn(nameof(GetMethodBody), $"File not found: `{fullPath}`");
             }
 
             var source = await File.ReadAllTextAsync(fullPath, cancellationToken);
@@ -309,7 +315,7 @@ public sealed class UtilityTools
 
             if (classNode is null)
             {
-                return ToolTelemetry.TraceAndReturn(nameof(GetMethodBody), $"Class `{className}` not found in `{fullPath}`.");
+                return ToolTelemetry.TraceFailureAndReturn(nameof(GetMethodBody), $"Class `{className}` not found in `{fullPath}`.");
             }
 
             var method = classNode.Members
@@ -318,7 +324,7 @@ public sealed class UtilityTools
 
             if (method is null)
             {
-                return ToolTelemetry.TraceAndReturn(
+                return ToolTelemetry.TraceFailureAndReturn(
                     nameof(GetMethodBody),
                     $"Method `{methodName}` was not found in class `{className}` (`{fullPath}`).");
             }
@@ -328,7 +334,7 @@ public sealed class UtilityTools
         catch (Exception ex)
         {
             _logger.LogError(ex, "GetMethodBody failed for {FilePath} {ClassName}.{MethodName}", filePath, className, methodName);
-            return ToolTelemetry.TraceAndReturn(
+            return ToolTelemetry.TraceFailureAndReturn(
                 nameof(GetMethodBody),
                 $"Failed to extract `{className}.{methodName}` from `{filePath}`: {ex.Message}");
         }
@@ -351,13 +357,13 @@ public sealed class UtilityTools
 
             if (lastNLines <= 0)
             {
-                return ToolTelemetry.TraceAndReturn(nameof(ReadLogTail), "`lastNLines` must be greater than 0.");
+                return ToolTelemetry.TraceFailureAndReturn(nameof(ReadLogTail), "`lastNLines` must be greater than 0.");
             }
 
             var fullPath = _solutionManager.ResolvePathAgainstWorkspace(filePath);
             if (!File.Exists(fullPath))
             {
-                return ToolTelemetry.TraceAndReturn(nameof(ReadLogTail), $"File not found: `{fullPath}`");
+                return ToolTelemetry.TraceFailureAndReturn(nameof(ReadLogTail), $"File not found: `{fullPath}`");
             }
 
             var result = LogTailReader.ReadTail(fullPath, lastNLines, filterKeyword, cancellationToken);
@@ -372,12 +378,12 @@ public sealed class UtilityTools
         }
         catch (OperationCanceledException)
         {
-            return ToolTelemetry.TraceAndReturn(nameof(ReadLogTail), "Log tail read was cancelled.");
+            return ToolTelemetry.TraceFailureAndReturn(nameof(ReadLogTail), "Log tail read was cancelled.");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "ReadLogTail failed for {FilePath}", filePath);
-            return ToolTelemetry.TraceAndReturn(
+            return ToolTelemetry.TraceFailureAndReturn(
                 nameof(ReadLogTail),
                 $"Error ({ex.GetType().Name}): {ex.Message}");
         }
@@ -395,23 +401,23 @@ public sealed class UtilityTools
         {
             if (string.IsNullOrWhiteSpace(filePath))
             {
-                return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(ReadFileRange), "Error: `filePath` is empty."));
+                return Task.FromResult(ToolTelemetry.TraceFailureAndReturn(nameof(ReadFileRange), "Error: `filePath` is empty."));
             }
 
             if (startLine <= 0)
             {
-                return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(ReadFileRange), "Error: `startLine` must be >= 1."));
+                return Task.FromResult(ToolTelemetry.TraceFailureAndReturn(nameof(ReadFileRange), "Error: `startLine` must be >= 1."));
             }
 
             if (lineCount <= 0)
             {
-                return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(ReadFileRange), "Error: `lineCount` must be > 0."));
+                return Task.FromResult(ToolTelemetry.TraceFailureAndReturn(nameof(ReadFileRange), "Error: `lineCount` must be > 0."));
             }
 
             var fullPath = _solutionManager.ResolvePathAgainstWorkspace(filePath);
             if (!File.Exists(fullPath))
             {
-                return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(ReadFileRange), $"Error: File not found: `{fullPath}`"));
+                return Task.FromResult(ToolTelemetry.TraceFailureAndReturn(nameof(ReadFileRange), $"Error: File not found: `{fullPath}`"));
             }
 
             var result = new List<string>(lineCount);
@@ -438,7 +444,7 @@ public sealed class UtilityTools
 
             if (result.Count == 0)
             {
-                return Task.FromResult(ToolTelemetry.TraceAndReturn(
+                return Task.FromResult(ToolTelemetry.TraceFailureAndReturn(
                     nameof(ReadFileRange),
                     $"Start line `{startLine}` is out of bounds for `{fullPath}` (file has {currentLineNumber} lines)."));
             }
@@ -452,16 +458,16 @@ public sealed class UtilityTools
         }
         catch (OperationCanceledException)
         {
-            return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(ReadFileRange), "ReadFileRange was cancelled."));
+            return Task.FromResult(ToolTelemetry.TraceFailureAndReturn(nameof(ReadFileRange), "ReadFileRange was cancelled."));
         }
         catch (OverflowException)
         {
-            return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(ReadFileRange), "Error: `startLine + lineCount` is too large."));
+            return Task.FromResult(ToolTelemetry.TraceFailureAndReturn(nameof(ReadFileRange), "Error: `startLine + lineCount` is too large."));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "ReadFileRange failed for {FilePath} from {StartLine} count {LineCount}", filePath, startLine, lineCount);
-            return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(ReadFileRange), $"Error: {ex.Message}"));
+            return Task.FromResult(ToolTelemetry.TraceFailureAndReturn(nameof(ReadFileRange), $"Error: {ex.Message}"));
         }
     }
 
@@ -488,7 +494,7 @@ public sealed class UtilityTools
         {
             if (string.IsNullOrWhiteSpace(pattern))
             {
-                return ToolTelemetry.TraceAndReturn(nameof(SearchCode), "Error: `pattern` is empty.");
+                return ToolTelemetry.TraceFailureAndReturn(nameof(SearchCode), "Error: `pattern` is empty.");
             }
 
             var resolvedMaxResults = NavigationListingHelper.ResolveMaxResults(
@@ -497,7 +503,7 @@ public sealed class UtilityTools
 
             if (resolvedMaxResults <= 0)
             {
-                return ToolTelemetry.TraceAndReturn(nameof(SearchCode), "Error: `maxResults` must be greater than 0.");
+                return ToolTelemetry.TraceFailureAndReturn(nameof(SearchCode), "Error: `maxResults` must be greater than 0.");
             }
 
             var unusedRipgrepPathNote = !useRipgrep && !string.IsNullOrWhiteSpace(ripgrepPath)
@@ -521,7 +527,7 @@ public sealed class UtilityTools
             if (existingRoots.Count == 0)
             {
                 var missingDisplay = FormatRootsForDisplay(candidateRoots);
-                return ToolTelemetry.TraceAndReturn(
+                return ToolTelemetry.TraceFailureAndReturn(
                     nameof(SearchCode),
                     $"Error: Directory not found: {missingDisplay}");
             }
@@ -558,12 +564,12 @@ public sealed class UtilityTools
         }
         catch (OperationCanceledException)
         {
-            return ToolTelemetry.TraceAndReturn(nameof(SearchCode), "SearchCode was cancelled.");
+            return ToolTelemetry.TraceFailureAndReturn(nameof(SearchCode), "SearchCode was cancelled.");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "SearchCode failed for pattern {Pattern} in {DirectoryPath}", pattern, directoryPath);
-            return ToolTelemetry.TraceAndReturn(nameof(SearchCode), $"Error: {ex.Message}");
+            return ToolTelemetry.TraceFailureAndReturn(nameof(SearchCode), $"Error: {ex.Message}");
         }
     }
 
@@ -582,7 +588,7 @@ public sealed class UtilityTools
         var binary = RipgrepRunner.ResolveBinary(ripgrepPath, _solutionManager.FileSettings.RipgrepPath);
         if (string.IsNullOrWhiteSpace(binary))
         {
-            return ToolTelemetry.TraceAndReturn(
+            return ToolTelemetry.TraceFailureAndReturn(
                 nameof(SearchCode),
                 "Error: useRipgrep is enabled but rg was not found. Omit useRipgrep (or set it to false) to use the ordinary managed file walk.");
         }
@@ -613,14 +619,14 @@ public sealed class UtilityTools
 
         if (run.Cancelled)
         {
-            return ToolTelemetry.TraceAndReturn(nameof(SearchCode), "SearchCode was cancelled.");
+            return ToolTelemetry.TraceFailureAndReturn(nameof(SearchCode), "SearchCode was cancelled.");
         }
 
         // rg exit 2 is an error; 0 = matches, 1 = no matches.
         if (run.ExitCode >= 2 && run.Matches.Count == 0 && !run.TimedOut)
         {
             var detail = string.IsNullOrWhiteSpace(run.StdErr) ? $"exit code {run.ExitCode}" : run.StdErr.Trim();
-            return ToolTelemetry.TraceAndReturn(
+            return ToolTelemetry.TraceFailureAndReturn(
                 nameof(SearchCode),
                 $"Error: ripgrep failed ({detail}). Omit useRipgrep to use the ordinary managed file walk.");
         }
@@ -629,7 +635,7 @@ public sealed class UtilityTools
         {
             if (run.TimedOut)
             {
-                return ToolTelemetry.TraceAndReturn(
+                return ToolTelemetry.TraceFailureAndReturn(
                     nameof(SearchCode),
                     AppendRipgrepHeader(
                         $"No matches found for `{pattern}` in {rootsDisplay} before timeout ({maxScanSeconds}s)."));
@@ -667,7 +673,10 @@ public sealed class UtilityTools
             run.TimedOut,
             run.ExitCode);
 
-        return ToolTelemetry.TraceAndReturn(nameof(SearchCode), result.ToString().TrimEnd());
+        return ToolTelemetry.TraceAndReturn(
+            nameof(SearchCode),
+            result.ToString().TrimEnd(),
+            success: !run.TimedOut && (run.MaxResultsReached || run.ExitCode < 2));
     }
 
     private static string AppendRipgrepHeader(string body)
@@ -703,7 +712,7 @@ public sealed class UtilityTools
             }
             catch (ArgumentException ex)
             {
-                return ToolTelemetry.TraceAndReturn(nameof(SearchCode), $"Error: Invalid regex pattern: {ex.Message}");
+                return ToolTelemetry.TraceFailureAndReturn(nameof(SearchCode), $"Error: Invalid regex pattern: {ex.Message}");
             }
         }
 
@@ -860,7 +869,7 @@ public sealed class UtilityTools
                     filesScanned,
                     stopwatch.ElapsedMilliseconds,
                     rootsDisplay);
-                return ToolTelemetry.TraceAndReturn(
+                return ToolTelemetry.TraceFailureAndReturn(
                     nameof(SearchCode),
                     PrefixNotes(
                         $"No matches found for `{pattern}` in {rootsDisplay} before timeout ({maxScanSeconds}s). Scanned files: {filesScanned}."));
@@ -904,7 +913,7 @@ public sealed class UtilityTools
             timedOut,
             stopwatch.ElapsedMilliseconds);
 
-        return ToolTelemetry.TraceAndReturn(nameof(SearchCode), result.ToString().TrimEnd());
+        return ToolTelemetry.TraceAndReturn(nameof(SearchCode), result.ToString().TrimEnd(), success: !timedOut);
     }
 
     /// <summary>
@@ -1001,18 +1010,18 @@ public sealed class UtilityTools
         {
             if (string.IsNullOrWhiteSpace(filePath))
             {
-                return ToolTelemetry.TraceAndReturn(nameof(ApplyPatch), "Error: `filePath` is empty.");
+                return ToolTelemetry.TraceFailureAndReturn(nameof(ApplyPatch), "Error: `filePath` is empty.");
             }
 
             if (string.IsNullOrEmpty(oldString))
             {
-                return ToolTelemetry.TraceAndReturn(nameof(ApplyPatch), "Error: `oldString` is empty.");
+                return ToolTelemetry.TraceFailureAndReturn(nameof(ApplyPatch), "Error: `oldString` is empty.");
             }
 
             fullPath = _solutionManager.ResolvePathAgainstWorkspace(filePath);
             if (!File.Exists(fullPath))
             {
-                return ToolTelemetry.TraceAndReturn(nameof(ApplyPatch), $"Error: File not found: `{fullPath}`");
+                return ToolTelemetry.TraceFailureAndReturn(nameof(ApplyPatch), $"Error: File not found: `{fullPath}`");
             }
 
             var oldNorm = PatchMatchHelper.NormalizeLineEndings(oldString);
@@ -1034,7 +1043,7 @@ public sealed class UtilityTools
                 }
             }
 
-            return ToolTelemetry.TraceAndReturn(nameof(ApplyPatch), PatchConflictMessage);
+            return ToolTelemetry.TraceFailureAndReturn(nameof(ApplyPatch), PatchConflictMessage);
         }
         catch (OperationCanceledException)
         {
@@ -1042,12 +1051,12 @@ public sealed class UtilityTools
                 "ApplyPatch cancelled file={FilePath} after {ElapsedMs}ms",
                 fullPath,
                 started.ElapsedMilliseconds);
-            return ToolTelemetry.TraceAndReturn(nameof(ApplyPatch), "ApplyPatch was cancelled.");
+            return ToolTelemetry.TraceFailureAndReturn(nameof(ApplyPatch), "ApplyPatch was cancelled.");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "ApplyPatch failed for {FilePath} after {ElapsedMs}ms", fullPath, started.ElapsedMilliseconds);
-            return ToolTelemetry.TraceAndReturn(nameof(ApplyPatch), $"Error: {ex.Message}");
+            return ToolTelemetry.TraceFailureAndReturn(nameof(ApplyPatch), $"Error: {ex.Message}");
         }
     }
 
@@ -1062,7 +1071,7 @@ public sealed class UtilityTools
         {
             if (string.IsNullOrWhiteSpace(workspacePath))
             {
-                return ToolTelemetry.TraceAndReturn(nameof(RunFormat), "Error: `workspacePath` is empty.");
+                return ToolTelemetry.TraceFailureAndReturn(nameof(RunFormat), "Error: `workspacePath` is empty.");
             }
 
             var fullPath = Path.GetFullPath(workspacePath);
@@ -1073,7 +1082,7 @@ public sealed class UtilityTools
 
             if (!Directory.Exists(workingDirectory))
             {
-                return ToolTelemetry.TraceAndReturn(nameof(RunFormat), $"Error: Working directory not found: `{workingDirectory}`");
+                return ToolTelemetry.TraceFailureAndReturn(nameof(RunFormat), $"Error: Working directory not found: `{workingDirectory}`");
             }
 
             var args = new StringBuilder("format ");
@@ -1100,16 +1109,19 @@ public sealed class UtilityTools
                 result.AppendLine().AppendLine("Output:").AppendLine(stdout);
             }
 
-            return ToolTelemetry.TraceAndReturn(nameof(RunFormat), result.ToString().TrimEnd());
+            return ToolTelemetry.TraceAndReturn(
+                nameof(RunFormat),
+                result.ToString().TrimEnd(),
+                success: processExitCode == 0 && !run.TimedOut && !run.Cancelled);
         }
         catch (OperationCanceledException)
         {
-            return ToolTelemetry.TraceAndReturn(nameof(RunFormat), "RunFormat was cancelled.");
+            return ToolTelemetry.TraceFailureAndReturn(nameof(RunFormat), "RunFormat was cancelled.");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "RunFormat failed for {WorkspacePath}", workspacePath);
-            return ToolTelemetry.TraceAndReturn(nameof(RunFormat), $"Error: {ex.Message}");
+            return ToolTelemetry.TraceFailureAndReturn(nameof(RunFormat), $"Error: {ex.Message}");
         }
     }
 
@@ -1135,7 +1147,7 @@ public sealed class UtilityTools
                     string.IsNullOrWhiteSpace(filePath),
                     string.IsNullOrWhiteSpace(symbolName),
                     string.IsNullOrWhiteSpace(newName));
-                return ToolTelemetry.TraceAndReturn(nameof(RenameSymbol), "Error: `filePath`, `symbolName`, and `newName` are required.");
+                return ToolTelemetry.TraceFailureAndReturn(nameof(RenameSymbol), "Error: `filePath`, `symbolName`, and `newName` are required.");
             }
 
             var normalizedScope = scope.Trim().ToLowerInvariant();
@@ -1147,7 +1159,7 @@ public sealed class UtilityTools
                     symbolName,
                     newName,
                     filePath);
-                return ToolTelemetry.TraceAndReturn(nameof(RenameSymbol), "Error: `scope` must be either `project` or `solution`.");
+                return ToolTelemetry.TraceFailureAndReturn(nameof(RenameSymbol), "Error: `scope` must be either `project` or `solution`.");
             }
 
             var fullPath = _solutionManager.ResolvePathAgainstWorkspace(filePath);
@@ -1159,7 +1171,7 @@ public sealed class UtilityTools
                     symbolName,
                     newName,
                     filePath);
-                return ToolTelemetry.TraceAndReturn(nameof(RenameSymbol), $"Error: Document not found in workspace: `{fullPath}`");
+                return ToolTelemetry.TraceFailureAndReturn(nameof(RenameSymbol), $"Error: Document not found in workspace: `{fullPath}`");
             }
 
             var publishedDocument = document;
@@ -1179,12 +1191,12 @@ public sealed class UtilityTools
                     newName,
                     filePath,
                     selectError);
-                return ToolTelemetry.TraceAndReturn(nameof(RenameSymbol), selectError);
+                return ToolTelemetry.TraceFailureAndReturn(nameof(RenameSymbol), selectError);
             }
 
             if (selection is null)
             {
-                return ToolTelemetry.TraceAndReturn(nameof(RenameSymbol), $"Error: Symbol `{symbolName}` not found.");
+                return ToolTelemetry.TraceFailureAndReturn(nameof(RenameSymbol), $"Error: Symbol `{symbolName}` not found.");
             }
 
             var absolutePosition = selection.AbsolutePosition;
@@ -1304,7 +1316,7 @@ public sealed class UtilityTools
                 cancellationToken);
             if (!write.IsFullSuccess)
             {
-                return ToolTelemetry.TraceAndReturn(
+                return ToolTelemetry.TraceFailureAndReturn(
                     nameof(RenameSymbol),
                     write.FormatAdapterMessage($"Rename `{symbolName}` -> `{newName}` was not fully applied."));
             }
@@ -1315,12 +1327,12 @@ public sealed class UtilityTools
         }
         catch (OperationCanceledException)
         {
-            return ToolTelemetry.TraceAndReturn(nameof(RenameSymbol), "RenameSymbol was cancelled.");
+            return ToolTelemetry.TraceFailureAndReturn(nameof(RenameSymbol), "RenameSymbol was cancelled.");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "RenameSymbol failed for {SymbolName} in {FilePath}", symbolName, filePath);
-            return ToolTelemetry.TraceAndReturn(nameof(RenameSymbol), $"Error: {ex.Message}");
+            return ToolTelemetry.TraceFailureAndReturn(nameof(RenameSymbol), $"Error: {ex.Message}");
         }
     }
 
@@ -1340,7 +1352,7 @@ public sealed class UtilityTools
                     cancellationToken).ConfigureAwait(false)).PublishedProjectList;
             if (snapshot.Solution is not { } solution)
             {
-                return ToolTelemetry.TraceAndReturn(
+                return ToolTelemetry.TraceFailureAndReturn(
                     nameof(ListProjects),
                     snapshot.UnavailableMessage!);
             }
@@ -1369,7 +1381,7 @@ public sealed class UtilityTools
         catch (Exception ex)
         {
             _logger.LogError(ex, "ListProjects failed for {WorkspacePath}", workspacePath);
-            return ToolTelemetry.TraceAndReturn(nameof(ListProjects), $"Error: {ex.Message}");
+            return ToolTelemetry.TraceFailureAndReturn(nameof(ListProjects), $"Error: {ex.Message}");
         }
     }
 
@@ -1389,7 +1401,7 @@ public sealed class UtilityTools
             var solution = _solutionManager.GetCurrentSolution();
             if (solution is null)
             {
-                return ToolTelemetry.TraceAndReturn(
+                return ToolTelemetry.TraceFailureAndReturn(
                     nameof(GetProjectGraph),
                     _solutionManager.FormatNoPublishedSolutionMessage("Error: No workspace loaded."));
             }
@@ -1410,7 +1422,7 @@ public sealed class UtilityTools
         catch (Exception ex)
         {
             _logger.LogError(ex, "GetProjectGraph failed for {WorkspacePath}", workspacePath);
-            return ToolTelemetry.TraceAndReturn(nameof(GetProjectGraph), $"Error: {ex.Message}");
+            return ToolTelemetry.TraceFailureAndReturn(nameof(GetProjectGraph), $"Error: {ex.Message}");
         }
     }
 
@@ -1426,7 +1438,7 @@ public sealed class UtilityTools
             var logsDirectory = ServerUserDirectories.FromEnvironment().LogDirectory;
             if (!Directory.Exists(logsDirectory))
             {
-                return ToolTelemetry.TraceAndReturn(nameof(TailToolLog), $"Error: Logs directory not found: `{logsDirectory}`");
+                return ToolTelemetry.TraceFailureAndReturn(nameof(TailToolLog), $"Error: Logs directory not found: `{logsDirectory}`");
             }
 
             var latestLog = Directory.EnumerateFiles(logsDirectory, "mcp-*.log", SearchOption.TopDirectoryOnly)
@@ -1445,7 +1457,7 @@ public sealed class UtilityTools
         catch (Exception ex)
         {
             _logger.LogError(ex, "TailToolLog failed");
-            return ToolTelemetry.TraceAndReturn(nameof(TailToolLog), $"Error ({ex.GetType().Name}): {ex.Message}");
+            return ToolTelemetry.TraceFailureAndReturn(nameof(TailToolLog), $"Error ({ex.GetType().Name}): {ex.Message}");
         }
     }
 
@@ -1460,13 +1472,13 @@ public sealed class UtilityTools
         {
             if (string.IsNullOrWhiteSpace(action))
             {
-                return ToolTelemetry.TraceAndReturn(nameof(ManageAgentScratchpad), "Error: `action` is empty.");
+                return ToolTelemetry.TraceFailureAndReturn(nameof(ManageAgentScratchpad), "Error: `action` is empty.");
             }
 
             var normalizedAction = action.Trim().ToLowerInvariant();
             if (normalizedAction is not ("read" or "write" or "append" or "clear"))
             {
-                return ToolTelemetry.TraceAndReturn(
+                return ToolTelemetry.TraceFailureAndReturn(
                     nameof(ManageAgentScratchpad),
                     "Error: Invalid `action`. Allowed values are `read`, `write`, `append`, `clear`.");
             }
@@ -1536,16 +1548,16 @@ public sealed class UtilityTools
                 }
             }
 
-            return ToolTelemetry.TraceAndReturn(nameof(ManageAgentScratchpad), "Error: Unsupported action.");
+            return ToolTelemetry.TraceFailureAndReturn(nameof(ManageAgentScratchpad), "Error: Unsupported action.");
         }
         catch (OperationCanceledException)
         {
-            return ToolTelemetry.TraceAndReturn(nameof(ManageAgentScratchpad), "Scratchpad operation was cancelled.");
+            return ToolTelemetry.TraceFailureAndReturn(nameof(ManageAgentScratchpad), "Scratchpad operation was cancelled.");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "ManageAgentScratchpad failed for action {Action}", action);
-            return ToolTelemetry.TraceAndReturn(nameof(ManageAgentScratchpad), $"Error: {ex.Message}");
+            return ToolTelemetry.TraceFailureAndReturn(nameof(ManageAgentScratchpad), $"Error: {ex.Message}");
         }
     }
 
@@ -1595,6 +1607,7 @@ public sealed class UtilityTools
                     fullPath,
                     started.ElapsedMilliseconds,
                     PatchMatchHelper.BuildPatchFailureDiagnostic(oldNorm));
+                ToolTelemetry.MarkUnsuccessful();
                 return retrying
                     ? PatchConflictMessage
                     : "Error: `oldString` was not found in the file (exact or whitespace-tolerant). Copy from read_file/read_file_range when possible.";
@@ -1608,6 +1621,7 @@ public sealed class UtilityTools
                 fullPath,
                 started.ElapsedMilliseconds,
                 PatchMatchHelper.BuildPatchFailureDiagnostic(oldNorm));
+            ToolTelemetry.MarkUnsuccessful();
             return "Error: Patch match timed out; try a shorter or more specific `oldString`.";
         }
 
@@ -1632,6 +1646,7 @@ public sealed class UtilityTools
 
         if (!write.IsFullSuccess)
         {
+            ToolTelemetry.MarkUnsuccessful();
             var message = write.FormatAdapterMessage("Patch matched but workspace write was not fully applied.");
             return write.Status == WorkspaceWriteStatus.Skipped
                 ? _solutionManager.WithDiskSyncNotes(message)

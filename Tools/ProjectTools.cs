@@ -35,7 +35,7 @@ public sealed class ProjectTools
         {
             if (string.IsNullOrWhiteSpace(projectPath) || string.IsNullOrWhiteSpace(newProjectName))
             {
-                return Task.FromResult(ToolTelemetry.TraceAndReturn(
+                return Task.FromResult(ToolTelemetry.TraceFailureAndReturn(
                     toolName,
                     "Error: `projectPath` and `newProjectName` are required."));
             }
@@ -60,7 +60,7 @@ public sealed class ProjectTools
         catch (Exception ex)
         {
             _logger.LogError(ex, "RenameProject failed for {ProjectPath} -> {NewName}", projectPath, newProjectName);
-            return Task.FromResult(ToolTelemetry.TraceAndReturn(toolName, $"Failed: {ex.Message}"));
+            return Task.FromResult(ToolTelemetry.TraceFailureAndReturn(toolName, $"Failed: {ex.Message}"));
         }
     }
 
@@ -89,7 +89,7 @@ public sealed class ProjectTools
         catch (Exception ex)
         {
             _logger.LogError(ex, "AddPackageReference failed for {PackageId}", packageId);
-            return ToolTelemetry.TraceAndReturn(toolName, $"Failed: {ex.Message}");
+            return ToolTelemetry.TraceFailureAndReturn(toolName, $"Failed: {ex.Message}");
         }
     }
 
@@ -117,7 +117,7 @@ public sealed class ProjectTools
         catch (Exception ex)
         {
             _logger.LogError(ex, "RemovePackageReference failed for {PackageId}", packageId);
-            return ToolTelemetry.TraceAndReturn(toolName, $"Failed: {ex.Message}");
+            return ToolTelemetry.TraceFailureAndReturn(toolName, $"Failed: {ex.Message}");
         }
     }
 
@@ -129,6 +129,7 @@ public sealed class ProjectTools
         }
         catch (Exception ex)
         {
+            ToolTelemetry.MarkUnsuccessful();
             _logger.LogWarning(ex, "ClearWorkspace after RenameProject failed");
         }
 

@@ -42,13 +42,13 @@ public sealed class CodeAnalysisTools
         {
             if (_solutionManager.PublicationAdmission == SemanticPublicationAdmission.Unavailable)
             {
-                return ToolTelemetry.TraceAndReturn(
+                return ToolTelemetry.TraceFailureAndReturn(
                     nameof(GetClassSkeleton),
                     _solutionManager.FormatNoPublishedSolutionMessage(
                         $"The file was not found in the published semantic workspace: `{fullPath}`."));
             }
 
-            return ToolTelemetry.TraceAndReturn(
+            return ToolTelemetry.TraceFailureAndReturn(
                 nameof(GetClassSkeleton),
                 $"The file was not found in the workspace: `{fullPath}`. Load the solution or load_workspace first, or verify the path.");
         }
@@ -57,7 +57,7 @@ public sealed class CodeAnalysisTools
         var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken);
         if (semanticModel is null || syntaxRoot is null)
         {
-            return ToolTelemetry.TraceAndReturn(
+            return ToolTelemetry.TraceFailureAndReturn(
                 nameof(GetClassSkeleton),
                 $"Could not obtain semantic model or syntax tree for file: `{fullPath}`.");
         }
@@ -86,13 +86,13 @@ public sealed class CodeAnalysisTools
         {
             if (string.IsNullOrWhiteSpace(filePath))
             {
-                return ToolTelemetry.TraceAndReturn(nameof(GetDiagnosticsForFile), "Error: `filePath` is empty.");
+                return ToolTelemetry.TraceFailureAndReturn(nameof(GetDiagnosticsForFile), "Error: `filePath` is empty.");
             }
 
             var fullPath = _solutionManager.ResolvePathAgainstWorkspace(filePath);
             if (!string.Equals(Path.GetExtension(fullPath), ".cs", StringComparison.OrdinalIgnoreCase))
             {
-                return ToolTelemetry.TraceAndReturn(nameof(GetDiagnosticsForFile), $"Path must point to a .cs file: `{fullPath}`.");
+                return ToolTelemetry.TraceFailureAndReturn(nameof(GetDiagnosticsForFile), $"Path must point to a .cs file: `{fullPath}`.");
             }
 
             var document = await _solutionManager.FindDocumentAsync(fullPath, cancellationToken);
@@ -100,13 +100,13 @@ public sealed class CodeAnalysisTools
             {
                 if (_solutionManager.PublicationAdmission == SemanticPublicationAdmission.Unavailable)
                 {
-                    return ToolTelemetry.TraceAndReturn(
+                    return ToolTelemetry.TraceFailureAndReturn(
                         nameof(GetDiagnosticsForFile),
                         _solutionManager.FormatNoPublishedSolutionMessage(
                             $"Document was not found in the published semantic workspace: `{fullPath}`."));
                 }
 
-                return ToolTelemetry.TraceAndReturn(
+                return ToolTelemetry.TraceFailureAndReturn(
                     nameof(GetDiagnosticsForFile),
                     $"Document was not found in the active workspace: `{fullPath}`.");
             }
@@ -114,7 +114,7 @@ public sealed class CodeAnalysisTools
             var semanticModel = await document.GetSemanticModelAsync(cancellationToken);
             if (semanticModel is null)
             {
-                return ToolTelemetry.TraceAndReturn(
+                return ToolTelemetry.TraceFailureAndReturn(
                     nameof(GetDiagnosticsForFile),
                     $"Could not obtain semantic model for `{fullPath}`.");
             }
@@ -146,7 +146,7 @@ public sealed class CodeAnalysisTools
         catch (Exception ex)
         {
             _logger.LogError(ex, "GetDiagnosticsForFile failed for {FilePath}", filePath);
-            return ToolTelemetry.TraceAndReturn(nameof(GetDiagnosticsForFile), $"Failed to get diagnostics: {ex.Message}");
+            return ToolTelemetry.TraceFailureAndReturn(nameof(GetDiagnosticsForFile), $"Failed to get diagnostics: {ex.Message}");
         }
     }
 
@@ -164,7 +164,7 @@ public sealed class CodeAnalysisTools
             var resolved = AssemblyReferenceResolver.Resolve(solution, assemblyName, assemblyPath);
             if (!resolved.Success)
             {
-                return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(ExploreAssembly), resolved.ErrorMessage!));
+                return Task.FromResult(ToolTelemetry.TraceFailureAndReturn(nameof(ExploreAssembly), resolved.ErrorMessage!));
             }
 
             var dllPath = resolved.DllPath!;
@@ -217,13 +217,13 @@ public sealed class CodeAnalysisTools
         }
         catch (OperationCanceledException)
         {
-            return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(ExploreAssembly), "ExploreAssembly was cancelled."));
+            return Task.FromResult(ToolTelemetry.TraceFailureAndReturn(nameof(ExploreAssembly), "ExploreAssembly was cancelled."));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "ExploreAssembly failed for {AssemblyName} {AssemblyPath}", assemblyName, assemblyPath);
             return Task.FromResult(
-                ToolTelemetry.TraceAndReturn(
+                ToolTelemetry.TraceFailureAndReturn(
                     nameof(ExploreAssembly),
                     FormatDecompilerToolError(assemblyName, assemblyPath, "Failed to explore assembly", ex)));
         }
@@ -245,14 +245,14 @@ public sealed class CodeAnalysisTools
 
             if (string.IsNullOrWhiteSpace(fullTypeName))
             {
-                return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(DecompileType), "Error: `fullTypeName` is empty."));
+                return Task.FromResult(ToolTelemetry.TraceFailureAndReturn(nameof(DecompileType), "Error: `fullTypeName` is empty."));
             }
 
             var solution = _solutionManager.GetCurrentSolution();
             var resolved = AssemblyReferenceResolver.Resolve(solution, assemblyName, assemblyPath);
             if (!resolved.Success)
             {
-                return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(DecompileType), resolved.ErrorMessage!));
+                return Task.FromResult(ToolTelemetry.TraceFailureAndReturn(nameof(DecompileType), resolved.ErrorMessage!));
             }
 
             var dllPath = resolved.DllPath!;
@@ -264,7 +264,7 @@ public sealed class CodeAnalysisTools
             if (typeDefinition is null)
             {
                 return Task.FromResult(
-                    ToolTelemetry.TraceAndReturn(
+                    ToolTelemetry.TraceFailureAndReturn(
                         nameof(DecompileType),
                         $"Type `{fullTypeName}` was not found in assembly `{Path.GetFileName(dllPath)}`."));
             }
@@ -274,7 +274,7 @@ public sealed class CodeAnalysisTools
             if (string.IsNullOrWhiteSpace(code))
             {
                 return Task.FromResult(
-                    ToolTelemetry.TraceAndReturn(
+                    ToolTelemetry.TraceFailureAndReturn(
                         nameof(DecompileType),
                         $"Type `{fullTypeName}` was resolved but decompilation returned empty output."));
             }
@@ -291,7 +291,7 @@ public sealed class CodeAnalysisTools
             if (lineCount > maxAllowedLines)
             {
                 return Task.FromResult(
-                    ToolTelemetry.TraceAndReturn(
+                    ToolTelemetry.TraceFailureAndReturn(
                         nameof(DecompileType),
                         $"Error: The requested type is too large ({lineCount} lines) to be fully decompiled into the context window. Please use `GetDecompiledClassSkeleton` to view its structure, and `GetDecompiledMethodBody` to inspect specific methods."));
             }
@@ -303,13 +303,13 @@ public sealed class CodeAnalysisTools
         }
         catch (OperationCanceledException)
         {
-            return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(DecompileType), "DecompileType was cancelled."));
+            return Task.FromResult(ToolTelemetry.TraceFailureAndReturn(nameof(DecompileType), "DecompileType was cancelled."));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "DecompileType failed for {AssemblyName}::{FullTypeName}", assemblyName, fullTypeName);
             return Task.FromResult(
-                ToolTelemetry.TraceAndReturn(
+                ToolTelemetry.TraceFailureAndReturn(
                     nameof(DecompileType),
                     FormatDecompilerToolError(assemblyName, assemblyPath, $"Failed to decompile type `{fullTypeName}`", ex)));
         }
@@ -329,14 +329,14 @@ public sealed class CodeAnalysisTools
         {
             if (string.IsNullOrWhiteSpace(fullTypeName))
             {
-                return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(GetDecompiledClassSkeleton), "Error: `fullTypeName` is empty."));
+                return Task.FromResult(ToolTelemetry.TraceFailureAndReturn(nameof(GetDecompiledClassSkeleton), "Error: `fullTypeName` is empty."));
             }
 
             var solution = _solutionManager.GetCurrentSolution();
             var resolved = AssemblyReferenceResolver.Resolve(solution, assemblyName, assemblyPath);
             if (!resolved.Success)
             {
-                return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(GetDecompiledClassSkeleton), resolved.ErrorMessage!));
+                return Task.FromResult(ToolTelemetry.TraceFailureAndReturn(nameof(GetDecompiledClassSkeleton), resolved.ErrorMessage!));
             }
 
             var dllPath = resolved.DllPath!;
@@ -348,7 +348,7 @@ public sealed class CodeAnalysisTools
             if (typeDefinition is null)
             {
                 return Task.FromResult(
-                    ToolTelemetry.TraceAndReturn(
+                    ToolTelemetry.TraceFailureAndReturn(
                         nameof(GetDecompiledClassSkeleton),
                         $"Type `{fullTypeName}` was not found in assembly `{Path.GetFileName(dllPath)}`."));
             }
@@ -456,13 +456,13 @@ public sealed class CodeAnalysisTools
         }
         catch (OperationCanceledException)
         {
-            return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(GetDecompiledClassSkeleton), "GetDecompiledClassSkeleton was cancelled."));
+            return Task.FromResult(ToolTelemetry.TraceFailureAndReturn(nameof(GetDecompiledClassSkeleton), "GetDecompiledClassSkeleton was cancelled."));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "GetDecompiledClassSkeleton failed for {AssemblyName}::{FullTypeName}", assemblyName, fullTypeName);
             return Task.FromResult(
-                ToolTelemetry.TraceAndReturn(
+                ToolTelemetry.TraceFailureAndReturn(
                     nameof(GetDecompiledClassSkeleton),
                     FormatDecompilerToolError(assemblyName, assemblyPath, $"Failed to build skeleton for `{fullTypeName}`", ex)));
         }
@@ -482,19 +482,19 @@ public sealed class CodeAnalysisTools
         {
             if (string.IsNullOrWhiteSpace(fullTypeName))
             {
-                return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(GetDecompiledMethodBody), "Error: `fullTypeName` is empty."));
+                return Task.FromResult(ToolTelemetry.TraceFailureAndReturn(nameof(GetDecompiledMethodBody), "Error: `fullTypeName` is empty."));
             }
 
             if (string.IsNullOrWhiteSpace(methodName))
             {
-                return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(GetDecompiledMethodBody), "Error: `methodName` is empty."));
+                return Task.FromResult(ToolTelemetry.TraceFailureAndReturn(nameof(GetDecompiledMethodBody), "Error: `methodName` is empty."));
             }
 
             var solution = _solutionManager.GetCurrentSolution();
             var resolved = AssemblyReferenceResolver.Resolve(solution, assemblyName, assemblyPath);
             if (!resolved.Success)
             {
-                return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(GetDecompiledMethodBody), resolved.ErrorMessage!));
+                return Task.FromResult(ToolTelemetry.TraceFailureAndReturn(nameof(GetDecompiledMethodBody), resolved.ErrorMessage!));
             }
 
             var dllPath = resolved.DllPath!;
@@ -506,7 +506,7 @@ public sealed class CodeAnalysisTools
             if (typeDefinition is null)
             {
                 return Task.FromResult(
-                    ToolTelemetry.TraceAndReturn(
+                    ToolTelemetry.TraceFailureAndReturn(
                         nameof(GetDecompiledMethodBody),
                         $"Type `{fullTypeName}` was not found in assembly `{Path.GetFileName(dllPath)}`."));
             }
@@ -522,7 +522,7 @@ public sealed class CodeAnalysisTools
             if (matches.Count == 0)
             {
                 return Task.FromResult(
-                    ToolTelemetry.TraceAndReturn(
+                    ToolTelemetry.TraceFailureAndReturn(
                         nameof(GetDecompiledMethodBody),
                         $"Method `{targetMethodName}` was not found in type `{fullTypeName}`."));
             }
@@ -543,7 +543,7 @@ public sealed class CodeAnalysisTools
             if (chunks.Count == 0)
             {
                 return Task.FromResult(
-                    ToolTelemetry.TraceAndReturn(
+                    ToolTelemetry.TraceFailureAndReturn(
                         nameof(GetDecompiledMethodBody),
                         $"Method `{targetMethodName}` was found ({matches.Count} overload(s)), but decompilation returned empty output."));
             }
@@ -556,13 +556,13 @@ public sealed class CodeAnalysisTools
         }
         catch (OperationCanceledException)
         {
-            return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(GetDecompiledMethodBody), "GetDecompiledMethodBody was cancelled."));
+            return Task.FromResult(ToolTelemetry.TraceFailureAndReturn(nameof(GetDecompiledMethodBody), "GetDecompiledMethodBody was cancelled."));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "GetDecompiledMethodBody failed for {AssemblyName}::{FullTypeName}.{MethodName}", assemblyName, fullTypeName, methodName);
             return Task.FromResult(
-                ToolTelemetry.TraceAndReturn(
+                ToolTelemetry.TraceFailureAndReturn(
                     nameof(GetDecompiledMethodBody),
                     FormatDecompilerToolError(
                         assemblyName,

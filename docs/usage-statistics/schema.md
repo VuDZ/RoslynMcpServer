@@ -17,6 +17,10 @@
 - `tool_start`: `call`, `name`, `start_ts`, `workspace_key`, `requires_workspace`.
 - `tool`: те же поля идентичности вызова, `duration_ms`, `success`, `lazy_load`.
   При измеренном ожидании блокировки чтения workspace добавляется `workspace_read_lock_wait_ms`.
+  `success=false` при ошибке протокола, исключении, отменённой операции или явном отказе
+  либо частичном результате обработчика. Обычный результат запроса, включая пустую выдачу
+  и предусмотренные ограничения отображения, имеет `success=true`. Содержимое ответа
+  не участвует в классификации.
 - `load`: `call`, `start_ts`, `requested_key`, `workspace_key` после попытки, `success`, `cache_hit`,
   `source`, `graph_stale`, `duration_ms`, `lock_wait_ms`, `projects`; с 1.5.23 — `watchers` и
   `watcher_failures`: число запущенных disk watcher и отказов их старта у удерживаемого

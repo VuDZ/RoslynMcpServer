@@ -249,8 +249,21 @@ public static class VstestOutputParser
         string? filter,
         string? filterDescription,
         bool requireFilterMatch,
-        TestOutputReportOptions outputOptions = default)
+        TestOutputReportOptions outputOptions = default) =>
+        BuildMarkdownReport(
+            parse, exitCode, combinedOutput, filter, filterDescription, requireFilterMatch, outputOptions, out _);
+
+    internal static string BuildMarkdownReport(
+        ParseResult parse,
+        int exitCode,
+        string combinedOutput,
+        string? filter,
+        string? filterDescription,
+        bool requireFilterMatch,
+        TestOutputReportOptions outputOptions,
+        out bool succeeded)
     {
+        succeeded = false;
         var sb = new StringBuilder();
 
         if (!string.IsNullOrWhiteSpace(filter))
@@ -357,6 +370,7 @@ public static class VstestOutputParser
 
         if (gatedSuccess)
         {
+            succeeded = true;
             sb.AppendLine(string.IsNullOrWhiteSpace(filter) ? "## All tests passed successfully!" : "## Filtered tests passed");
             sb.AppendLine();
             sb.AppendLine(

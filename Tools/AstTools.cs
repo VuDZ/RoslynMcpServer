@@ -188,7 +188,7 @@ public sealed class AstTools
                 baseSolution, newDocument.Project.Solution, cancellationToken).ConfigureAwait(false);
             if (!write.IsFullSuccess)
             {
-                return ToolTelemetry.TraceAndReturn(toolName, write.FormatAdapterMessage(successMessage));
+                return ToolTelemetry.TraceFailureAndReturn(toolName, write.FormatAdapterMessage(successMessage));
             }
 
             return ToolTelemetry.TraceAndReturn(
@@ -197,12 +197,12 @@ public sealed class AstTools
         }
         catch (OperationCanceledException)
         {
-            return ToolTelemetry.TraceAndReturn(toolName, $"`{toolName}` was cancelled.");
+            return ToolTelemetry.TraceFailureAndReturn(toolName, $"`{toolName}` was cancelled.");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "{ToolName} failed for {FilePath}", toolName, filePath);
-            return ToolTelemetry.TraceAndReturn(toolName, $"Failed: {ex.Message}");
+            return ToolTelemetry.TraceFailureAndReturn(toolName, $"Failed: {ex.Message}");
         }
     }
 

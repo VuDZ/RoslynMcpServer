@@ -1,5 +1,4 @@
 using RoslynMcpServer.Diagnostics.UsageStatistics;
-using RoslynMcpServer.Hosting;
 using Xunit;
 
 namespace RoslynMcpServer.Tests.UsageStatistics;
@@ -78,16 +77,6 @@ public sealed class UsageStatisticsServiceTests
         await usage.StopAsync(CancellationToken.None);
         Assert.False(Directory.Exists(files.UsageDirectory));
     }
-
-    [Theory]
-    [InlineData("Error: invalid input", false)]
-    [InlineData("Failed to reset workspace: denied", false)]
-    [InlineData("Reset was cancelled.", false)]
-    [InlineData("## Workspace Load Failed", false)]
-    [InlineData("## Build succeeded", true)]
-    [InlineData("Workspace cleared.", true)]
-    public void Outcome_covers_legacy_text_failures(string text, bool expected) =>
-        Assert.Equal(expected, UsageStatisticsFilters.IsSuccessfulText(text));
 
     private sealed class TestTimeProvider : TimeProvider
     {

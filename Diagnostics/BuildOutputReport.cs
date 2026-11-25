@@ -20,6 +20,21 @@ internal static class BuildOutputReport
         bool timedOut = false,
         bool budgetExhausted = false,
         IReadOnlyList<DotNetBuildDiagnosticParser.DiagnosticEntry>? additionalErrors = null,
+        bool attachFullReport = true) =>
+        Format(
+            output, exitCode, context, includeBuildWarnings, out _, subject, timedOut, budgetExhausted, additionalErrors,
+            attachFullReport);
+
+    internal static string Format(
+        string output,
+        int exitCode,
+        string context,
+        bool includeBuildWarnings,
+        out bool succeeded,
+        string subject = "Build",
+        bool timedOut = false,
+        bool budgetExhausted = false,
+        IReadOnlyList<DotNetBuildDiagnosticParser.DiagnosticEntry>? additionalErrors = null,
         bool attachFullReport = true)
     {
         var diagnostics = ParseDiagnostics(output)
@@ -27,7 +42,7 @@ internal static class BuildOutputReport
             .DistinctBy(d => (d.Severity.ToLowerInvariant(), d.Code, d.Location, d.Message))
             .ToList();
         var errors = diagnostics.Where(d => d.Severity.Equals("error", StringComparison.OrdinalIgnoreCase)).ToList();
-        var succeeded = exitCode == 0 && errors.Count == 0 && !timedOut && !budgetExhausted;
+        succeeded = exitCode == 0 && errors.Count == 0 && !timedOut && !budgetExhausted;
         var status = timedOut ? "timed out" : budgetExhausted ? "probe budget exhausted" : succeeded ? "succeeded" : "failed";
         var sb = new StringBuilder();
         sb.AppendLine($"## {subject} {status}");

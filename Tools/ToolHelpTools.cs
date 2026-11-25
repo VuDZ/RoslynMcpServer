@@ -40,9 +40,8 @@ public sealed class ToolHelpTools
         // A plugin tool has no article of its own: its text comes from the accepted method of the start
         // report, which the start pass registered in this container.
         var pluginStartup = _services.GetService<PluginStartup.Report>() ?? PluginStartup.Report.Empty;
-        return Task.FromResult(ToolTelemetry.TraceAndReturn(
-            nameof(GetToolHelp),
-            McpToolHelpFormatter.FormatToolHelp(toolName, _activation, pluginStartup)));
+        var help = McpToolHelpFormatter.FormatToolHelp(toolName, _activation, pluginStartup, out var succeeded);
+        return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(GetToolHelp), help, success: succeeded));
     }
 
     [McpServerTool(Name = "enable_tool_group", Title = "Enable tool group")]
@@ -53,8 +52,10 @@ public sealed class ToolHelpTools
         CancellationToken cancellationToken = default)
     {
         _ = cancellationToken;
+        var result = _activation.EnableGroup(group);
         return Task.FromResult(ToolTelemetry.TraceAndReturn(
             nameof(EnableToolGroup),
-            _activation.EnableGroup(group).Markdown));
+            result.Markdown,
+            success: McpToolCatalog.TryNormalizeGroup(group, out _)));
     }
 }

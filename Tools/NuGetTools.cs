@@ -40,13 +40,13 @@ public sealed class NuGetTools
         {
             if (string.IsNullOrWhiteSpace(workspacePath))
             {
-                return ToolTelemetry.TraceAndReturn(toolName, "Error: `workspacePath` is empty.");
+                return ToolTelemetry.TraceFailureAndReturn(toolName, "Error: `workspacePath` is empty.");
             }
 
             var fullPath = Path.GetFullPath(workspacePath);
             if (!File.Exists(fullPath) && !Directory.Exists(fullPath))
             {
-                return ToolTelemetry.TraceAndReturn(toolName, $"Error: Path not found: `{fullPath}`");
+                return ToolTelemetry.TraceFailureAndReturn(toolName, $"Error: Path not found: `{fullPath}`");
             }
 
             var args = new StringBuilder("list ");
@@ -78,14 +78,14 @@ public sealed class NuGetTools
 
             if (exitCode != 0)
             {
-                return ToolTelemetry.TraceAndReturn(
+                return ToolTelemetry.TraceFailureAndReturn(
                     toolName,
                     $"`dotnet list package` failed (exit code {exitCode}).\n\n{output}");
             }
 
             if (!TryPrettyPrintJson(output, out var prettyJson))
             {
-                return ToolTelemetry.TraceAndReturn(
+                return ToolTelemetry.TraceFailureAndReturn(
                     toolName,
                     $"Unexpected output from `dotnet list package` (not valid JSON).\n\n{output}");
             }
@@ -108,12 +108,12 @@ public sealed class NuGetTools
         }
         catch (OperationCanceledException)
         {
-            return ToolTelemetry.TraceAndReturn(toolName, "`list_nuget_packages` was cancelled.");
+            return ToolTelemetry.TraceFailureAndReturn(toolName, "`list_nuget_packages` was cancelled.");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "ListNuGetPackages failed for {WorkspacePath}", workspacePath);
-            return ToolTelemetry.TraceAndReturn(toolName, $"Failed to list NuGet packages: {ex.Message}");
+            return ToolTelemetry.TraceFailureAndReturn(toolName, $"Failed to list NuGet packages: {ex.Message}");
         }
     }
 
@@ -132,13 +132,13 @@ public sealed class NuGetTools
         {
             if (string.IsNullOrWhiteSpace(workspacePath))
             {
-                return ToolTelemetry.TraceAndReturn(toolName, "Error: `workspacePath` is empty.");
+                return ToolTelemetry.TraceFailureAndReturn(toolName, "Error: `workspacePath` is empty.");
             }
 
             var fullPath = Path.GetFullPath(workspacePath);
             if (!File.Exists(fullPath) && !Directory.Exists(fullPath))
             {
-                return ToolTelemetry.TraceAndReturn(toolName, $"Error: Path not found: `{fullPath}`");
+                return ToolTelemetry.TraceFailureAndReturn(toolName, $"Error: Path not found: `{fullPath}`");
             }
 
             var args = new StringBuilder("list \"");
@@ -156,14 +156,14 @@ public sealed class NuGetTools
 
             if (exitCode != 0)
             {
-                return ToolTelemetry.TraceAndReturn(
+                return ToolTelemetry.TraceFailureAndReturn(
                     toolName,
                     $"`dotnet list package --vulnerable` failed (exit code {exitCode}).\n\n{output}");
             }
 
             if (!TryPrettyPrintJson(output, out _))
             {
-                return ToolTelemetry.TraceAndReturn(
+                return ToolTelemetry.TraceFailureAndReturn(
                     toolName,
                     $"Unexpected output (not JSON).\n\n{output}");
             }
@@ -174,12 +174,12 @@ public sealed class NuGetTools
         }
         catch (OperationCanceledException)
         {
-            return ToolTelemetry.TraceAndReturn(toolName, "`run_nuget_audit` was cancelled.");
+            return ToolTelemetry.TraceFailureAndReturn(toolName, "`run_nuget_audit` was cancelled.");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "RunNuGetAudit failed for {WorkspacePath}", workspacePath);
-            return ToolTelemetry.TraceAndReturn(toolName, $"Failed NuGet audit: {ex.Message}");
+            return ToolTelemetry.TraceFailureAndReturn(toolName, $"Failed NuGet audit: {ex.Message}");
         }
     }
 
@@ -209,7 +209,7 @@ public sealed class NuGetTools
         {
             if (string.IsNullOrWhiteSpace(query))
             {
-                return ToolTelemetry.TraceAndReturn(toolName, "Error: `query` is empty.");
+                return ToolTelemetry.TraceFailureAndReturn(toolName, "Error: `query` is empty.");
             }
 
             var trimmedQuery = query.Trim();
@@ -228,7 +228,7 @@ public sealed class NuGetTools
 
                 if (broadExit != 0)
                 {
-                    return ToolTelemetry.TraceAndReturn(
+                    return ToolTelemetry.TraceFailureAndReturn(
                         toolName,
                         $"`dotnet package search` failed (exit code {broadExit}).\n\n{broadOutput}");
                 }
@@ -248,7 +248,7 @@ public sealed class NuGetTools
 
                     if (exactExit != 0)
                     {
-                        return ToolTelemetry.TraceAndReturn(
+                        return ToolTelemetry.TraceFailureAndReturn(
                             toolName,
                             $"`dotnet package search --exact-match` failed (exit code {exactExit}).\n\n{exactOutput}");
                     }
@@ -277,7 +277,7 @@ public sealed class NuGetTools
 
                 if (exitCode != 0)
                 {
-                    return ToolTelemetry.TraceAndReturn(
+                    return ToolTelemetry.TraceFailureAndReturn(
                         toolName,
                         $"`dotnet package search` failed (exit code {exitCode}).\n\n{output}");
                 }
@@ -322,12 +322,12 @@ public sealed class NuGetTools
         }
         catch (OperationCanceledException)
         {
-            return ToolTelemetry.TraceAndReturn(toolName, "`search_nuget_registry` was cancelled.");
+            return ToolTelemetry.TraceFailureAndReturn(toolName, "`search_nuget_registry` was cancelled.");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "SearchNuGetRegistry failed for query {Query}", query);
-            return ToolTelemetry.TraceAndReturn(toolName, $"Failed to search NuGet registry: {ex.Message}");
+            return ToolTelemetry.TraceFailureAndReturn(toolName, $"Failed to search NuGet registry: {ex.Message}");
         }
     }
 

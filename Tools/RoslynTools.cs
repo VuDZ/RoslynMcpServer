@@ -30,13 +30,13 @@ public sealed class RoslynTools
         {
             if (string.IsNullOrWhiteSpace(filePath))
             {
-                return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(GetFileContent), "Error: `filePath` is empty."));
+                return Task.FromResult(ToolTelemetry.TraceFailureAndReturn(nameof(GetFileContent), "Error: `filePath` is empty."));
             }
 
             var fullPath = _solutionManager.ResolvePathAgainstWorkspace(filePath);
             if (!File.Exists(fullPath))
             {
-                return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(GetFileContent), $"File not found: `{filePath}`"));
+                return Task.FromResult(ToolTelemetry.TraceFailureAndReturn(nameof(GetFileContent), $"File not found: `{filePath}`"));
             }
 
             var content = File.ReadAllText(fullPath);
@@ -57,7 +57,7 @@ public sealed class RoslynTools
         {
             _logger.LogError(ex, "Failed to read file content for {FilePath}", filePath);
             return Task.FromResult(
-                ToolTelemetry.TraceAndReturn(nameof(GetFileContent), $"Failed to read file `{filePath}`: {ex.Message}"));
+                ToolTelemetry.TraceFailureAndReturn(nameof(GetFileContent), $"Failed to read file `{filePath}`: {ex.Message}"));
         }
     }
 }

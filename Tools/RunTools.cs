@@ -44,26 +44,27 @@ public sealed class RunTools
         {
             if (!string.IsNullOrWhiteSpace(reportCursor))
             {
+                var chunk = DiagnosticReportStore.TryTakeChunk(reportCursor);
                 return ToolTelemetry.TraceAndReturn(
                     toolName,
-                    DiagnosticReportAttachment.FormatChunkResponse(
-                        DiagnosticReportStore.TryTakeChunk(reportCursor)));
+                    DiagnosticReportAttachment.FormatChunkResponse(chunk),
+                    success: chunk.Ok);
             }
 
             if (string.IsNullOrWhiteSpace(workspacePath))
             {
-                return ToolTelemetry.TraceAndReturn(toolName, "Error: `workspacePath` is empty.");
+                return ToolTelemetry.TraceFailureAndReturn(toolName, "Error: `workspacePath` is empty.");
             }
 
             var fullPath = Path.GetFullPath(workspacePath);
             if (!File.Exists(fullPath))
             {
-                return ToolTelemetry.TraceAndReturn(toolName, $"Error: Project file not found: `{fullPath}`");
+                return ToolTelemetry.TraceFailureAndReturn(toolName, $"Error: Project file not found: `{fullPath}`");
             }
 
             if (!string.Equals(Path.GetExtension(fullPath), ".csproj", StringComparison.OrdinalIgnoreCase))
             {
-                return ToolTelemetry.TraceAndReturn(toolName, "Error: `workspacePath` must be a .csproj file.");
+                return ToolTelemetry.TraceFailureAndReturn(toolName, "Error: `workspacePath` must be a .csproj file.");
             }
 
             var workDir = string.IsNullOrWhiteSpace(workingDirectory)
@@ -89,7 +90,7 @@ public sealed class RunTools
                 .ConfigureAwait(false);
             if (build.TimedOut || build.ExitCode != 0)
             {
-                return ToolTelemetry.TraceAndReturn(
+                return ToolTelemetry.TraceFailureAndReturn(
                     toolName,
                     "Application was not started because the build did not succeed."
                     + Environment.NewLine + Environment.NewLine
@@ -104,7 +105,7 @@ public sealed class RunTools
             timeout = DotNetTestArguments.RemainingTimeout(timeout, watch.Elapsed);
             if (timeout == TimeSpan.Zero)
             {
-                return ToolTelemetry.TraceAndReturn(
+                return ToolTelemetry.TraceFailureAndReturn(
                     toolName,
                     "## dotnet run timed out" + Environment.NewLine
                     + "Build succeeded, but no time remained to start the application."
@@ -197,16 +198,19 @@ public sealed class RunTools
                               || run.StdErr.Length > maxStderrChars;
             text = DiagnosticReportAttachment.AttachToResponse(
                 text, build.CombinedOutput + Environment.NewLine + combined, shouldStore);
-            return ToolTelemetry.TraceAndReturn(toolName, text);
+            return ToolTelemetry.TraceAndReturn(
+                toolName,
+                text,
+                success: run.ExitCode == 0 && !run.TimedOut && run.ExceptionType is null);
         }
         catch (OperationCanceledException)
         {
-            return ToolTelemetry.TraceAndReturn(toolName, "`run_dotnet_run` was cancelled.");
+            return ToolTelemetry.TraceFailureAndReturn(toolName, "`run_dotnet_run` was cancelled.");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "RunDotNetRun failed for {WorkspacePath}", workspacePath);
-            return ToolTelemetry.TraceAndReturn(toolName, $"Failed to run project: {ex.GetType().Name}: {ex.Message}");
+            return ToolTelemetry.TraceFailureAndReturn(toolName, $"Failed to run project: {ex.GetType().Name}: {ex.Message}");
         }
     }
 

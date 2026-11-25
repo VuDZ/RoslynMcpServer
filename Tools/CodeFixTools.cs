@@ -34,7 +34,7 @@ public sealed class CodeFixTools
             var document = await ResolveDocumentAsync(filePath, cancellationToken);
             if (document is null)
             {
-                return ToolTelemetry.TraceAndReturn(nameof(GetCodeFixes), $"Document was not found in the active workspace: `{resolvedPath}`.");
+                return ToolTelemetry.TraceFailureAndReturn(nameof(GetCodeFixes), $"Document was not found in the active workspace: `{resolvedPath}`.");
             }
 
             var fixes = await CodeFixHelper.GetFixesAsync(document, line, column, diagnosticId, cancellationToken);
@@ -67,12 +67,12 @@ public sealed class CodeFixTools
         }
         catch (OperationCanceledException)
         {
-            return ToolTelemetry.TraceAndReturn(nameof(GetCodeFixes), "GetCodeFixes was cancelled.");
+            return ToolTelemetry.TraceFailureAndReturn(nameof(GetCodeFixes), "GetCodeFixes was cancelled.");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "GetCodeFixes failed for {FilePath} diagnostic {DiagnosticId}", filePath, diagnosticId);
-            return ToolTelemetry.TraceAndReturn(nameof(GetCodeFixes), $"Failed to get code fixes: {ex.Message}");
+            return ToolTelemetry.TraceFailureAndReturn(nameof(GetCodeFixes), $"Failed to get code fixes: {ex.Message}");
         }
     }
 
@@ -94,7 +94,7 @@ public sealed class CodeFixTools
             var document = await ResolveDocumentAsync(filePath, cancellationToken);
             if (document is null)
             {
-                return ToolTelemetry.TraceAndReturn(nameof(ApplyCodeFix), $"Document was not found in the active workspace: `{resolvedPath}`.");
+                return ToolTelemetry.TraceFailureAndReturn(nameof(ApplyCodeFix), $"Document was not found in the active workspace: `{resolvedPath}`.");
             }
 
             if (previewOnly)
@@ -114,7 +114,7 @@ public sealed class CodeFixTools
                 baseSolution, newSolution, cancellationToken);
             if (!write.IsFullSuccess)
             {
-                return ToolTelemetry.TraceAndReturn(
+                return ToolTelemetry.TraceFailureAndReturn(
                     nameof(ApplyCodeFix),
                     write.FormatAdapterMessage($"Applied fix [{fixIndex}] for `{diagnosticId}` at line {line}, column {column}."));
             }
@@ -140,12 +140,12 @@ public sealed class CodeFixTools
         }
         catch (OperationCanceledException)
         {
-            return ToolTelemetry.TraceAndReturn(nameof(ApplyCodeFix), "ApplyCodeFix was cancelled.");
+            return ToolTelemetry.TraceFailureAndReturn(nameof(ApplyCodeFix), "ApplyCodeFix was cancelled.");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "ApplyCodeFix failed for {FilePath} diagnostic {DiagnosticId} fix {FixIndex}", filePath, diagnosticId, fixIndex);
-            return ToolTelemetry.TraceAndReturn(nameof(ApplyCodeFix), $"Failed to apply code fix: {ex.Message}");
+            return ToolTelemetry.TraceFailureAndReturn(nameof(ApplyCodeFix), $"Failed to apply code fix: {ex.Message}");
         }
     }
 
