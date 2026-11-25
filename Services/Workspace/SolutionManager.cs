@@ -2173,65 +2173,94 @@ public sealed class SolutionManager
         List<(string Path, string Text, Encoding WriteEncoding)> savedTexts,
         CancellationToken cancellationToken)
     {
-        foreach (var project in newSolution.Projects)
+        var savedPaths = new HashSet<string>(saved, _pathComparer);
+        cancellationToken.ThrowIfCancellationRequested();
+        foreach (var newDoc in GetDocumentsToPersist(oldSolution, newSolution))
         {
-            foreach (var newDoc in project.Documents)
+            cancellationToken.ThrowIfCancellationRequested();
+            if (newDoc.FilePath is null)
             {
-                if (newDoc.FilePath is null)
+                continue;
+            }
+
+            var fullPath = Path.GetFullPath(newDoc.FilePath);
+            // Linked documents share the first successful write to their physical path.
+            if (savedPaths.Contains(fullPath))
+            {
+                continue;
+            }
+
+            if (IsMissingOnDisk(fullPath))
+            {
+                _logger.LogWarning(
+                    "Skip persist of missing-on-disk path {Path} until workspace reload.",
+                    fullPath);
+                continue;
+            }
+
+            var oldDoc = oldSolution.GetDocument(newDoc.Id);
+            var newSourceText = await newDoc.GetTextAsync(cancellationToken).ConfigureAwait(false);
+            var text = newSourceText.ToString();
+            SourceText? oldSourceText = null;
+            if (oldDoc is not null)
+            {
+                oldSourceText = await oldDoc.GetTextAsync(cancellationToken).ConfigureAwait(false);
+                if (string.Equals(oldSourceText.ToString(), text, StringComparison.Ordinal))
                 {
                     continue;
                 }
-
-                var oldDoc = oldSolution.GetDocument(newDoc.Id);
-                var newSourceText = await newDoc.GetTextAsync(cancellationToken).ConfigureAwait(false);
-                var text = newSourceText.ToString();
-                SourceText? oldSourceText = null;
-                if (oldDoc is not null)
+            }
+            else
+            {
+                var directory = Path.GetDirectoryName(fullPath);
+                if (!string.IsNullOrWhiteSpace(directory))
                 {
-                    oldSourceText = await oldDoc.GetTextAsync(cancellationToken).ConfigureAwait(false);
-                    if (string.Equals(oldSourceText.ToString(), text, StringComparison.Ordinal))
+                    Directory.CreateDirectory(directory);
+                }
+            }
+
+            // One operation writes the file twice (persist here, again on TryApplyChanges); both must use the
+            // same encoding, or a BOM added by one is reverted by the other. The second write is armed
+            // around TryApplyChanges so its echo is compared to these bytes.
+            var writeEncoding = SourceTextEncoding.ResolveForWrite(oldSourceText, newSourceText, fullPath);
+            await WriteTrackedTextToDiskAsync(fullPath, text, writeEncoding, cancellationToken).ConfigureAwait(false);
+            savedPaths.Add(fullPath);
+            saved.Add(fullPath);
+            savedTexts.Add((fullPath, text, writeEncoding));
+            if (CancelAfterDocumentWrites > 0 && saved.Count >= CancelAfterDocumentWrites)
+            {
+                CancelAfterDocumentWrites = 0;
+                throw new OperationCanceledException("CancelAfterDocumentWrites");
+            }
+        }
+    }
+
+    private static IEnumerable<Document> GetDocumentsToPersist(Solution oldSolution, Solution newSolution)
+    {
+        var changes = newSolution.GetChanges(oldSolution);
+        var updatedProjects = changes.GetProjectChanges().ToDictionary(change => change.ProjectId);
+        var addedProjects = changes.GetAddedProjects().ToDictionary(project => project.Id);
+        // Keep the previous write order, including which linked document wins and what is saved on failure.
+        foreach (var projectId in newSolution.ProjectIds)
+        {
+            if (addedProjects.TryGetValue(projectId, out var addedProject))
+            {
+                foreach (var document in addedProject.Documents)
+                {
+                    yield return document;
+                }
+            }
+            else if (updatedProjects.TryGetValue(projectId, out var change))
+            {
+                var candidates = change.GetChangedDocuments(onlyGetDocumentsWithTextChanges: true)
+                    .Concat(change.GetAddedDocuments())
+                    .ToHashSet();
+                foreach (var documentId in change.NewProject.DocumentIds)
+                {
+                    if (candidates.Contains(documentId))
                     {
-                        continue;
+                        yield return change.NewProject.GetDocument(documentId)!;
                     }
-                }
-
-                var fullPath = Path.GetFullPath(newDoc.FilePath);
-                if (saved.Any(savedPath => string.Equals(Path.GetFullPath(savedPath), fullPath, _pathComparison)))
-                {
-                    // The same physical file is linked into another project. The first write stored the
-                    // confirmed text. Writing this document again would either repeat that payload or
-                    // replace the file with a different one.
-                    continue;
-                }
-
-                if (IsMissingOnDisk(fullPath))
-                {
-                    _logger.LogWarning(
-                        "Skip persist of missing-on-disk path {Path} until workspace reload.",
-                        fullPath);
-                    continue;
-                }
-
-                if (oldDoc is null)
-                {
-                    var directory = Path.GetDirectoryName(fullPath);
-                    if (!string.IsNullOrWhiteSpace(directory))
-                    {
-                        Directory.CreateDirectory(directory);
-                    }
-                }
-
-                // One operation writes the file twice (persist here, again on TryApplyChanges); both must use the
-                // same encoding, or a BOM added by one is reverted by the other. The second write is armed
-                // around TryApplyChanges so its echo is compared to these bytes.
-                var writeEncoding = SourceTextEncoding.ResolveForWrite(oldSourceText, newSourceText, fullPath);
-                await WriteTrackedTextToDiskAsync(fullPath, text, writeEncoding, cancellationToken).ConfigureAwait(false);
-                saved.Add(fullPath);
-                savedTexts.Add((fullPath, text, writeEncoding));
-                if (CancelAfterDocumentWrites > 0 && saved.Count >= CancelAfterDocumentWrites)
-                {
-                    CancelAfterDocumentWrites = 0;
-                    throw new OperationCanceledException("CancelAfterDocumentWrites");
                 }
             }
         }
