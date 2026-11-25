@@ -242,7 +242,7 @@ Optional `preview: bool?` appends each definition's source line (up to 400 chara
 <details>
 <summary><code>update_file_content</code> — Completely overwrites a file. Creates missing directories automatically. A new <code>.cs</code> is written to disk and marks the project graph composition-stale; it is not added to the semantic snapshot until `load_workspace` (a stale graph skips the load cache) or `reset_workspace` then `load_workspace`.</summary>
 
-New `.cs` files use UTF-8 with a BOM so the compiler reads the requested text under any project `CodePage`, including linked files. Other new files use UTF-8 without a BOM.
+New ordinary `.cs` files use UTF-8 with a BOM. Writes and patches preserve the existing encoding when the compiler will read the resulting bytes as the requested text. A UTF-8 BOM can disambiguate full writes to sources with unknown ownership and edits that would change automatic encoding detection. For a BOM-free source outside the loaded project graph, `apply_patch` supports portable ASCII edits and keeps the original byte representation. Load the owning project for edits that depend on its code page, including non-ASCII text and seven-bit shift sequences. A C# script starting with `#!` uses BOM-free UTF-8 so the OS can execute it directly. For a script containing characters with code-page-dependent spellings, the tool requires a known project encoding compatible with those bytes. Other new files use UTF-8 without a BOM.
 
 **Parameters:**
 - `filePath: string`

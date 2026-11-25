@@ -16,6 +16,15 @@ public sealed class BuildOutputReportTests
     }
 
     [Fact]
+    public void A_message_containing_error_and_colons_preserves_a_successful_build()
+    {
+        const string Output = "Expected: error connecting to server: retrying\nBuild succeeded.\n    0 Error(s)";
+        var report = BuildOutputReport.Format(Output, 0, "sdk-context", includeBuildWarnings: false);
+
+        Assert.Equal("## Build succeeded", report);
+    }
+
+    [Fact]
     public void Opted_in_warnings_are_deduplicated_without_execution_context()
     {
         var report = BuildOutputReport.Format(Warning + "\n" + Warning, 0, "sdk-context", includeBuildWarnings: true);

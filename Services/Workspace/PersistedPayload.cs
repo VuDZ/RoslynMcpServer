@@ -25,7 +25,7 @@ internal static class PersistedPayload
         return payload;
     }
 
-    private static byte[] EncodeExactly(string text, Encoding encoding)
+    internal static byte[] EncodeExactly(string text, Encoding encoding)
     {
         // Replacement or best-fit bytes would leave the published Roslyn text different from the file.
         // See docs/project-review-2026-11-25/task-30-p1-patch-unrepresentable-text-med.md.

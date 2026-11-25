@@ -35,46 +35,14 @@ public sealed class EditingTools
             }
 
             var fullPath = _solutionManager.ResolvePathAgainstWorkspace(filePath);
-            var directory = Path.GetDirectoryName(fullPath);
-
             var text = content ?? string.Empty;
-            var write = await _solutionManager.UpdateDocumentInMemoryAsync(fullPath, text, cancellationToken);
+            var write = await _solutionManager.UpdateDocumentInMemoryAsync(fullPath, text, writeUnregisteredPath: true, cancellationToken);
             if (write.Status == WorkspaceWriteStatus.Skipped)
             {
-                if (!write.ShouldWriteSkippedPathToDisk)
-                {
-                    var refused = string.Equals(write.Reason, "missing-on-disk", StringComparison.Ordinal)
-                        ? $"Refused to recreate `{fullPath}`: the file disappeared from disk and remains in the loaded workspace snapshot until reload. Call `reset_workspace` then `load_workspace` (or `load_workspace` alone — a stale project graph skips the load cache)."
-                        : write.FormatAdapterMessage($"Failed to write `{fullPath}`.");
-                    return ToolTelemetry.TraceFailureAndReturn(
-                        nameof(WriteFile),
-                        _solutionManager.WithDiskSyncNotes(refused));
-                }
-
-                if (WorkspaceDiskPathFilter.IsCSharpSource(fullPath))
-                {
-                    _solutionManager.NoteUnrepresentableSourcePath(fullPath);
-                }
-
-                if (!string.IsNullOrEmpty(directory))
-                {
-                    Directory.CreateDirectory(directory);
-                }
-
-                // Keep the BOM state of an existing file; a plain write defaults to no BOM and would strip it.
-                await _solutionManager.WriteTrackedTextAsync(
-                    fullPath,
-                    text,
-                    SourceTextEncoding.ForDiskPath(fullPath),
-                    cancellationToken);
-
-                var skippedBody = $"Successfully wrote `{fullPath}` ({text.Length} characters).";
-                if (WorkspaceDiskPathFilter.IsCSharpSource(fullPath))
-                {
-                    skippedBody = _solutionManager.WithDiskSyncNotes(skippedBody);
-                }
-
-                return ToolTelemetry.TraceAndReturn(nameof(WriteFile), skippedBody);
+                var refused = string.Equals(write.Reason, "missing-on-disk", StringComparison.Ordinal)
+                    ? $"Refused to recreate `{fullPath}`: the file disappeared from disk and remains in the loaded workspace snapshot until reload. Call `reset_workspace` then `load_workspace` (or `load_workspace` alone — a stale project graph skips the load cache)."
+                    : write.FormatAdapterMessage($"Failed to write `{fullPath}`.");
+                return ToolTelemetry.TraceFailureAndReturn(nameof(WriteFile), _solutionManager.WithDiskSyncNotes(refused));
             }
             else if (!write.IsFullSuccess)
             {
@@ -83,9 +51,10 @@ public sealed class EditingTools
                     write.FormatAdapterMessage($"Failed to write `{fullPath}`."));
             }
 
-            return ToolTelemetry.TraceAndReturn(
-                nameof(WriteFile),
-                $"Successfully wrote `{fullPath}` ({text.Length} characters).");
+            var success = $"Successfully wrote `{fullPath}` ({text.Length} characters).";
+            return ToolTelemetry.TraceAndReturn(nameof(WriteFile), !write.WorkspaceApplied && WorkspaceDiskPathFilter.IsCSharpSource(fullPath)
+                ? _solutionManager.WithDiskSyncNotes(success)
+                : success);
         }
         catch (UnauthorizedAccessException ex)
         {

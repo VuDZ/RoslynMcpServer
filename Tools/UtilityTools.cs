@@ -1604,7 +1604,8 @@ public sealed class UtilityTools
         Stopwatch started,
         CancellationToken cancellationToken)
     {
-        var sourceRaw = await _solutionManager.ReadPatchSourceAsync(fullPath, cancellationToken);
+        var fragments = (oldNorm, newNorm);
+        var sourceRaw = await _solutionManager.ReadPatchSourceAsync(fullPath, fragments, cancellationToken);
         var sourceNorm = PatchMatchHelper.NormalizeLineEndings(sourceRaw);
         var newContainsOld = oldNorm.Length > 0
             && newNorm.Contains(oldNorm, StringComparison.Ordinal);
@@ -1670,7 +1671,7 @@ public sealed class UtilityTools
             return "No changes were applied.";
         }
 
-        var write = await _solutionManager.TryApplyPatchTextAsync(fullPath, sourceRaw, updatedRaw, cancellationToken);
+        var write = await _solutionManager.TryApplyPatchTextAsync(fullPath, sourceRaw, updatedRaw, fragments, cancellationToken);
         if (write is null)
         {
             return null;
