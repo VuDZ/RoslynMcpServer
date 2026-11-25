@@ -277,7 +277,7 @@ public sealed class UtilityTools
             var rootInfo = new DirectoryInfo(rootPath);
             var sb = new StringBuilder();
             sb.AppendLine(rootInfo.Name);
-            AppendDirectoryTree(sb, rootInfo, 0, depth);
+            AppendDirectoryTree(sb, rootInfo, string.Empty, 0, depth);
             return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(ListDirectoryTree), sb.ToString().TrimEnd()));
         }
         catch (Exception ex)
@@ -1741,7 +1741,12 @@ public sealed class UtilityTools
         return selection.Symbol;
     }
 
-    private static void AppendDirectoryTree(StringBuilder sb, DirectoryInfo directory, int currentDepth, int maxDepth)
+    private static void AppendDirectoryTree(
+        StringBuilder sb,
+        DirectoryInfo directory,
+        string indent,
+        int currentDepth,
+        int maxDepth)
     {
         if (currentDepth >= maxDepth)
         {
@@ -1763,16 +1768,16 @@ public sealed class UtilityTools
         foreach (var dir in childDirectories)
         {
             var isLast = ++index == entriesCount;
-            var prefix = isLast ? "в””в”Ђв”Ђ " : "в”њв”Ђв”Ђ ";
-            sb.AppendLine($"{new string(' ', currentDepth * 4)}{prefix}{dir.Name}/");
-            AppendDirectoryTree(sb, dir, currentDepth + 1, maxDepth);
+            var branch = isLast ? "└── " : "├── ";
+            sb.AppendLine($"{indent}{branch}{dir.Name}/");
+            AppendDirectoryTree(sb, dir, indent + (isLast ? "    " : "│   "), currentDepth + 1, maxDepth);
         }
 
         foreach (var file in files)
         {
             var isLast = ++index == entriesCount;
-            var prefix = isLast ? "в””в”Ђв”Ђ " : "в”њв”Ђв”Ђ ";
-            sb.AppendLine($"{new string(' ', currentDepth * 4)}{prefix}{file.Name}");
+            var branch = isLast ? "└── " : "├── ";
+            sb.AppendLine($"{indent}{branch}{file.Name}");
         }
     }
 
