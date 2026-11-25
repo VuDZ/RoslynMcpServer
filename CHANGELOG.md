@@ -2,7 +2,7 @@
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
-### v1.6.5 (unreleased)
+### v1.6.5
 
 - Source edits preserve encoding and line endings outside the changed text, check ordinary build readers for BOM-free C# sources, and reject atomic replacement of files with multiple hard links.
 - `rename_project` preserves literal `ProjectReference` operations, including `Update` and `Remove`, and rejects ambiguous plans before moving files.
@@ -10,11 +10,11 @@ Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into a
 - Git tools resolve the active worktree, workspace loading preserves an explicit selection over a waiting configured load, and telemetry records explicit tool outcomes.
 - Update ILSpy to 11.2 and report incomplete results for affected .NET 11 runtime async methods. See the [November review fixes](docs/project-review-2026-11-25/README.md) for acceptance details.
 
-### v1.6.4 (unreleased)
+### v1.6.4
 
 - `require-solution` in `RoslynMcp.jsonc` can restrict workspace loading and `run_dotnet_build` to solution entry points. Direct `.csproj` calls remain allowed by default and append a recommendation to use a solution on success or failure. `direct-project-guidance` replaces the recommendation in warnings and rejections.
 
-### v1.6.3 (unreleased)
+### v1.6.3
 
 - Target .NET 11 and C# 15 in the server. Framework-dependent archives require .NET 11, and self-contained archives include it. The separate BuildHost uses the upstream `net8.0` target with major-version roll-forward.
 - Update the Roslyn client and BuildHost fork together to 5.12.0 and match the SQLite assemblies used by its persistent index.
