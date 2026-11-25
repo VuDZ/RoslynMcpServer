@@ -54,7 +54,7 @@ public sealed class ProjectTools
             var result = ProjectRenameHelper.Apply(
                 plan,
                 _solutionManager.DiskWatcherSession,
-                (path, text) => _solutionManager.WriteTrackedText(path, text, SourceTextEncoding.BomFreeUtf8));
+                _solutionManager.WriteTrackedText);
             return ClearWorkspaceAndReturnAsync(toolName, result);
         }
         catch (Exception ex)

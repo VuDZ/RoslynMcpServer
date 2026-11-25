@@ -106,4 +106,19 @@ public sealed class SourceTextEncodingTests : IDisposable
 
         Assert.Equal(utf16.GetPreamble(), resolved.GetPreamble());
     }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ForDiskPath_preserves_utf32_bom(bool bigEndian)
+    {
+        var path = Path.Combine(_root, "Utf32.cs");
+        var utf32 = new UTF32Encoding(bigEndian, byteOrderMark: true);
+        File.WriteAllText(path, "class A { }", utf32);
+
+        var resolved = SourceTextEncoding.ForDiskPath(path);
+
+        Assert.Equal(utf32.CodePage, resolved.CodePage);
+        Assert.Equal(utf32.GetPreamble(), resolved.GetPreamble());
+    }
 }

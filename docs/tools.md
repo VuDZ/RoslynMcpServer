@@ -621,7 +621,7 @@ Runs `git` with a 180s deadline and up to 3s to stop the process. Use host `git 
 - `dryRun: bool = true`
 - `searchRoot: string? = null` — where to find sibling projects / `.sln` / `.slnx`
 
-**Behavior:** Moves identically named project folder + renames `.csproj`; updates `AssemblyName`/`RootNamespace` only when they equal the old project name; rewrites `ProjectReference` paths; updates `.sln` and `.slnx` entries. **SDK-style only.** Unsupported layouts hard-fail (no silent partial write). Does **not** rename C# namespaces/types, Docker, launchSettings, CI, or docs. After apply: `load_workspace` → `run_dotnet_build`.
+**Behavior:** Moves the identically named SDK-style project directory and renames its `.csproj`. The preview lists final paths for `.csproj`, `.fsproj`, `.vbproj`, `.sln`, and `.slnx` edits, including files inside the moving directory. `searchRoot` controls where the tool looks for additional files. Git checkout roots, occupied destinations, and computed `ProjectReference` paths in inspected projects are rejected during planning. Writes preserve UTF-8 with or without BOM, and UTF-16 or UTF-32 with BOM. XML declarations must match the file encoding. Big-endian UTF-32 XML requires an explicit `utf-32BE` declaration. Updates `AssemblyName` and `RootNamespace` only when they equal the old project name. Does **not** rename C# namespaces/types, Docker, launchSettings, CI, or docs. After apply: `load_workspace` → `run_dotnet_build`.
 </details>
 
 <details>

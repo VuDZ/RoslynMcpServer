@@ -1,4 +1,10 @@
+using System.Text;
+using System.Xml.Linq;
+using Microsoft.Extensions.Logging.Abstractions;
 using RoslynMcpServer.Services;
+using RoslynMcpServer.Services.Build;
+using RoslynMcpServer.Tests.Support;
+using RoslynMcpServer.Tools;
 using Xunit;
 
 namespace RoslynMcpServer.Tests.Editing;
@@ -208,6 +214,314 @@ public sealed class ProjectRenameHelperTests
         {
             DeleteRoot(root);
         }
+    }
+
+    [Theory]
+    [InlineData(".sln", "Nested.csproj", "Outside.csproj")]
+    [InlineData(".slnx", "Nested.fsproj", "Outside.vbproj")]
+    public async Task Preview_and_apply_use_the_final_graph_paths(
+        string extension,
+        string nestedProjectFileName,
+        string outsideProjectFileName)
+    {
+        var root = CreateTempRoot();
+        try
+        {
+            var oldDirectory = Path.Combine(root, "Core");
+            var oldProject = Path.Combine(oldDirectory, "Core.csproj");
+            var outsideDirectory = Path.Combine(root, "Outside");
+            var outsideProject = Path.Combine(outsideDirectory, outsideProjectFileName);
+            WriteSdkProject(oldProject, withNameProps: true);
+            WriteProjectWithReferences(
+                Path.Combine(oldDirectory, "Nested", nestedProjectFileName),
+                "../../Core/Core.csproj");
+            WriteProjectWithReferences(outsideProject, $@"..\Core\Nested\{nestedProjectFileName}");
+            var nestedSolutionPath = $"../Core/Nested/{nestedProjectFileName}";
+            WriteGraphSolution(Path.Combine(oldDirectory, "Inside" + extension), "Core.csproj", nestedSolutionPath);
+            var outsideSolution = Path.Combine(outsideDirectory, "Outside" + extension);
+            WriteGraphSolution(outsideSolution, nestedSolutionPath, outsideProjectFileName);
+
+            var plan = ProjectRenameHelper.CreatePlan(oldProject, "Renamed", outsideDirectory);
+            var preview = ProjectRenameHelper.FormatPlan(plan, dryRun: true);
+            var nestedProject = Path.Combine(plan.NewDirectory, "Nested", nestedProjectFileName);
+            var insideSolution = Path.Combine(plan.NewDirectory, "Inside" + extension);
+            Assert.Equal(4, plan.TextEdits.Count);
+            Assert.All(plan.TextEdits, edit => Assert.Contains(edit.Path, preview, StringComparison.Ordinal));
+            Assert.Contains(insideSolution, preview, StringComparison.Ordinal);
+            Assert.Contains(nestedProject, preview, StringComparison.Ordinal);
+            Assert.True(File.Exists(oldProject));
+            Assert.False(Directory.Exists(plan.NewDirectory));
+
+            Assert.Contains("Rename applied successfully", ProjectRenameHelper.Apply(plan), StringComparison.Ordinal);
+            Assert.False(Directory.Exists(oldDirectory));
+            Assert.All(plan.TextEdits, edit => Assert.Equal(edit.NewContent, File.ReadAllText(edit.Path)));
+            AssertProjectReference(nestedProject, plan.NewProjectPath);
+            AssertProjectReference(outsideProject, nestedProject);
+            await AssertSolutionOpensAsync(insideSolution, plan.NewProjectPath, nestedProject);
+            await AssertSolutionOpensAsync(outsideSolution, nestedProject, outsideProject);
+        }
+        finally
+        {
+            DeleteRoot(root);
+        }
+    }
+
+    [Theory]
+    [InlineData(false, 1200, "utf-16")]
+    [InlineData(true, 1200, "utf-16")]
+    [InlineData(false, 12000, "utf-32")]
+    [InlineData(true, 12000, "utf-32")]
+    [InlineData(false, 12001, "utf-32BE")]
+    [InlineData(true, 12001, "utf-32BE")]
+    public async Task Rename_preserves_bom_in_moved_project_and_solution(
+        bool trackedWrite,
+        int codePage,
+        string declaredEncoding)
+    {
+        var root = CreateTempRoot();
+        try
+        {
+            var directory = Directory.CreateDirectory(Path.Combine(root, "Core")).FullName;
+            var project = Path.Combine(directory, "Core.csproj");
+            var encoding = Encoding.GetEncoding(codePage);
+            File.WriteAllText(
+                project,
+                $"""
+                <?xml version="1.0" encoding="{declaredEncoding}"?>
+                <Project Sdk="Microsoft.NET.Sdk">
+                  <PropertyGroup>
+                    <AssemblyName>Core</AssemblyName>
+                  </PropertyGroup>
+                </Project>
+                """,
+                encoding);
+            File.WriteAllText(
+                Path.Combine(directory, "App.slnx"),
+                $"""
+                <?xml version="1.0" encoding="{declaredEncoding}"?>
+                <Solution>
+                  <Project Path="Core.csproj" />
+                </Solution>
+                """,
+                encoding);
+
+            Assert.NotNull(XDocument.Load(project).Root);
+            Assert.NotNull(XDocument.Load(Path.Combine(directory, "App.slnx")).Root);
+
+            string result;
+            if (trackedWrite)
+            {
+                var tool = new ProjectTools(SolutionManagerTestFactory.Create(), NullLogger<ProjectTools>.Instance);
+                result = await tool.RenameProject(project, "Renamed", dryRun: false, searchRoot: root);
+            }
+            else
+            {
+                result = ProjectRenameHelper.Apply(ProjectRenameHelper.CreatePlan(project, "Renamed", root));
+            }
+
+            Assert.Contains("Rename applied successfully", result, StringComparison.Ordinal);
+            var newDirectory = Path.Combine(root, "Renamed");
+            var newProject = Path.Combine(newDirectory, "Renamed.csproj");
+            var newSolution = Path.Combine(newDirectory, "App.slnx");
+            Assert.True(File.ReadAllBytes(newProject).AsSpan().StartsWith(encoding.Preamble));
+            Assert.True(File.ReadAllBytes(newSolution).AsSpan().StartsWith(encoding.Preamble));
+            Assert.Equal("Renamed", Assert.Single(XDocument.Load(newProject).Descendants("AssemblyName")).Value);
+            var solutionProject = Assert.Single(XDocument.Load(newSolution).Descendants("Project"));
+            Assert.Equal("Renamed.csproj", solutionProject.Attribute("Path")!.Value);
+        }
+        finally
+        {
+            DeleteRoot(root);
+        }
+    }
+
+    [Theory]
+    [InlineData(true, 28591, "iso-8859-1")]
+    [InlineData(false, 28591, "iso-8859-1")]
+    [InlineData(false, 12001, "utf-32")]
+    public void Unsupported_xml_encoding_is_rejected_before_move(
+        bool projectFile,
+        int codePage,
+        string declaredEncoding)
+    {
+        var root = CreateTempRoot();
+        try
+        {
+            var directory = Directory.CreateDirectory(Path.Combine(root, "Core")).FullName;
+            var project = Path.Combine(directory, "Core.csproj");
+            var solution = Path.Combine(directory, "App.slnx");
+            var unsupportedPath = projectFile ? project : solution;
+            var encoding = Encoding.GetEncoding(codePage);
+            if (projectFile)
+            {
+                File.WriteAllText(
+                    project,
+                    $"""
+                    <?xml version="1.0" encoding="{declaredEncoding}"?>
+                    <Project Sdk="Microsoft.NET.Sdk">
+                      <PropertyGroup>
+                        <AssemblyName>Core</AssemblyName>
+                      </PropertyGroup>
+                    </Project>
+                    """,
+                    encoding);
+            }
+            else
+            {
+                WriteSdkProject(project, withNameProps: false);
+                File.WriteAllText(
+                    solution,
+                    $"""
+                    <?xml version="1.0" encoding="{declaredEncoding}"?>
+                    <Solution>
+                      <Project Path="Core.csproj" />
+                    </Solution>
+                    """,
+                    encoding);
+            }
+
+            var original = File.ReadAllBytes(unsupportedPath);
+            var error = Assert.Throws<InvalidOperationException>(() => ProjectRenameHelper.CreatePlan(project, "Renamed", root));
+            Assert.Contains("Unsupported XML encoding", error.Message, StringComparison.Ordinal);
+            Assert.Contains(unsupportedPath, error.Message, StringComparison.Ordinal);
+            Assert.Equal(original, File.ReadAllBytes(unsupportedPath));
+            Assert.False(Directory.Exists(Path.Combine(root, "Renamed")));
+        }
+        finally
+        {
+            DeleteRoot(root);
+        }
+    }
+
+    [Theory]
+    [InlineData(".git", false, "Git checkout root")]
+    [InlineData("Renamed.csproj", false, "Destination project path already exists")]
+    [InlineData("Renamed.csproj", true, "Destination project path already exists")]
+    public void Unsupported_moves_leave_the_original_directory_untouched(
+        string conflictingName,
+        bool conflictAfterPlanning,
+        string reason)
+    {
+        var root = CreateTempRoot();
+        try
+        {
+            var oldDirectory = Path.Combine(root, "Core");
+            var oldProject = Path.Combine(oldDirectory, "Core.csproj");
+            WriteSdkProject(oldProject, withNameProps: false);
+            var original = File.ReadAllText(oldProject);
+            var plan = conflictAfterPlanning ? ProjectRenameHelper.CreatePlan(oldProject, "Renamed", root) : null;
+            var conflict = Path.Combine(oldDirectory, conflictingName);
+            File.WriteAllText(conflict, "Existing content.");
+
+            var error = Assert.Throws<InvalidOperationException>(() =>
+            {
+                if (plan is null)
+                {
+                    ProjectRenameHelper.CreatePlan(oldProject, "Renamed", root);
+                }
+                else
+                {
+                    ProjectRenameHelper.Apply(plan);
+                }
+            });
+            Assert.Contains(reason, error.Message, StringComparison.Ordinal);
+            Assert.Equal(original, File.ReadAllText(oldProject));
+            Assert.Equal("Existing content.", File.ReadAllText(conflict));
+            Assert.False(Directory.Exists(Path.Combine(root, "Renamed")));
+        }
+        finally
+        {
+            DeleteRoot(root);
+        }
+    }
+
+    [Theory]
+    [InlineData(true, "$(ProjectRoot)/Core/Core.csproj")]
+    [InlineData(false, "$(ProjectRoot)/Core/Core.csproj")]
+    [InlineData(false, "$(ProjectPath)")]
+    public void Computed_reference_is_rejected_during_planning(bool ownerMoves, string referencePath)
+    {
+        var root = CreateTempRoot();
+        try
+        {
+            var project = Path.Combine(root, "Core", "Core.csproj");
+            var owner = ownerMoves ? Path.Combine(root, "Core", "Nested", "Nested.csproj") : Path.Combine(root, "Outside.csproj");
+            WriteSdkProject(project, withNameProps: false);
+            WriteProjectWithReferences(owner, referencePath);
+            var originalOwner = File.ReadAllText(owner);
+
+            var error = Assert.Throws<InvalidOperationException>(() => ProjectRenameHelper.CreatePlan(project, "Renamed", root));
+            Assert.Contains("Unsupported ProjectReference path", error.Message, StringComparison.Ordinal);
+            Assert.Contains(owner, error.Message, StringComparison.Ordinal);
+            Assert.Equal(originalOwner, File.ReadAllText(owner));
+            Assert.True(File.Exists(project));
+            Assert.False(Directory.Exists(Path.Combine(root, "Renamed")));
+        }
+        finally
+        {
+            DeleteRoot(root);
+        }
+    }
+
+    private static void WriteProjectWithReferences(string path, string referencePath)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        File.WriteAllText(
+            path,
+            $"""
+            <Project Sdk="Microsoft.NET.Sdk">
+              <ItemGroup>
+                <ProjectReference Include="{referencePath}" />
+              </ItemGroup>
+            </Project>
+            """);
+    }
+
+    private static void WriteGraphSolution(string path, params string[] projects)
+    {
+        if (Path.GetExtension(path) == ".slnx")
+        {
+            var entries = projects.Select(project => new XElement("Project", new XAttribute("Path", project)));
+            new XElement("Solution", entries).Save(path);
+            return;
+        }
+
+        var lines = new List<string> { "Microsoft Visual Studio Solution File, Format Version 12.00" };
+        foreach (var project in projects)
+        {
+            var name = Path.GetFileNameWithoutExtension(project);
+            var solutionPath = project.Replace('/', '\\');
+            lines.Add($"Project(\"{{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}}\") = \"{name}\", \"{solutionPath}\", \"{Guid.NewGuid():B}\"");
+            lines.Add("EndProject");
+        }
+
+        File.WriteAllLines(path, lines);
+    }
+
+    private static void AssertProjectReference(string projectPath, string expectedTarget)
+    {
+        var reference = Assert.Single(XDocument.Load(projectPath).Descendants("ProjectReference"));
+        var include = reference.Attribute("Include")!.Value.Replace('\\', '/');
+        Assert.Equal(expectedTarget, Path.GetFullPath(include, Path.GetDirectoryName(projectPath)!));
+        Assert.True(File.Exists(expectedTarget), $"ProjectReference target does not exist: {expectedTarget}");
+    }
+
+    private static async Task AssertSolutionOpensAsync(string solutionPath, params string[] projects)
+    {
+        var directory = Path.GetDirectoryName(solutionPath)!;
+        var (exitCode, output) = await DotNetCliRunner.RunAsync(
+            $"sln \"{Path.GetFileName(solutionPath)}\" list",
+            directory,
+            CancellationToken.None,
+            TimeSpan.FromSeconds(30));
+        Assert.True(exitCode == 0, output);
+        var projectList = output.Replace('\\', '/');
+        Assert.All(projects, project =>
+        {
+            Assert.True(File.Exists(project), $"Solution project does not exist: {project}");
+            var relativePath = Path.GetRelativePath(directory, project).Replace('\\', '/');
+            Assert.Contains(relativePath, projectList, StringComparison.Ordinal);
+        });
     }
 
     private static string CreateFixtureRoot()

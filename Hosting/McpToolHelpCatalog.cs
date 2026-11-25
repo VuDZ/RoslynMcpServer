@@ -345,7 +345,8 @@ public static class McpToolHelpCatalog
             },
             ["rename_project"] = new()
             {
-                Pitfalls = "Default dryRun=true. Does not rename C# namespaces/types — use rename_symbol after reload.",
+                Workflow = "Rewrites UTF-8 files and files with a UTF-16 or UTF-32 BOM. XML declarations must match the file encoding. Big-endian UTF-32 XML requires an explicit utf-32BE declaration.",
+                Pitfalls = "Default dryRun=true. The preview shows final paths for .csproj, .fsproj, .vbproj, .sln, and .slnx edits. Git checkout roots, occupied destinations, and computed ProjectReference paths in inspected projects are rejected during planning. Use rename_symbol after reload to rename C# symbols.",
                 RelatedTools = ["rename_symbol"],
             },
             ["run_dotnet_run"] = new()

@@ -610,7 +610,7 @@
 - `dryRun: bool = true`
 - `searchRoot: string? = null` — корень поиска соседних проектов / `.sln` / `.slnx`
 
-**Поведение:** переносит одноимённую папку проекта и `.csproj`; обновляет `AssemblyName`/`RootNamespace` только если они совпадали со старым именем; чинит `ProjectReference`; обновляет `.sln` и `.slnx`. Только **SDK-style**. Нестандартный layout — hard fail. Не трогает C# namespace/типы, Docker, launchSettings, CI, docs. После apply: `load_workspace` → `run_dotnet_build`.
+**Поведение:** переносит одноимённый каталог SDK-style проекта и переименовывает его `.csproj`. Предпросмотр показывает конечные пути правок `.csproj`, `.fsproj`, `.vbproj`, `.sln` и `.slnx`, включая файлы внутри переносимого каталога. `searchRoot` задаёт область поиска дополнительных файлов. Если каталог проекта является корнем Git checkout, целевой путь занят или в проверяемом проекте есть вычисляемый `ProjectReference`, планирование возвращает отказ. При записи сохраняется кодировка UTF-8 с BOM или без него, а также UTF-16 и UTF-32 с BOM. Кодировка в объявлении XML должна соответствовать кодировке файла. Для UTF-32 с порядком байтов big-endian в объявлении требуется `utf-32BE`. Обновляет `AssemblyName` и `RootNamespace`, только если они совпадают со старым именем проекта. Не трогает C# namespace/типы, Docker, launchSettings, CI, docs. После apply: `load_workspace` → `run_dotnet_build`.
 </details>
 
 <details>

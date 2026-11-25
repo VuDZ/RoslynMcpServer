@@ -57,8 +57,21 @@ public static class SourceTextEncoding
         {
             // Share read/write: a concurrent writer must not turn encoding detection into a failure.
             using var stream = new FileStream(diskPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-            Span<byte> head = stackalloc byte[3];
-            var read = stream.Read(head);
+            Span<byte> head = stackalloc byte[4];
+            // A shorter file can still carry a UTF-8 or UTF-16 BOM.
+            var read = stream.ReadAtLeast(head, head.Length, false);
+
+            // UTF-32 little-endian starts with the UTF-16 little-endian BOM.
+            if (read == 4 && head.SequenceEqual(Encoding.UTF32.Preamble))
+            {
+                return Encoding.UTF32;
+            }
+
+            if (read == 4 && head.SequenceEqual<byte>([0x00, 0x00, 0xFE, 0xFF]))
+            {
+                return new UTF32Encoding(bigEndian: true, byteOrderMark: true);
+            }
+
             if (read >= 2 && head[0] == 0xFE && head[1] == 0xFF)
             {
                 return new UnicodeEncoding(bigEndian: true, byteOrderMark: true);
@@ -69,7 +82,7 @@ public static class SourceTextEncoding
                 return new UnicodeEncoding(bigEndian: false, byteOrderMark: true);
             }
 
-            if (read == 3 && head[0] == 0xEF && head[1] == 0xBB && head[2] == 0xBF)
+            if (read >= 3 && head[0] == 0xEF && head[1] == 0xBB && head[2] == 0xBF)
             {
                 return new UTF8Encoding(encoderShouldEmitUTF8Identifier: true);
             }
