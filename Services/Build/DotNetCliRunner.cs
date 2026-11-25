@@ -246,11 +246,14 @@ public static class DotNetCliRunner
 
         using var stdout = process.StandardOutput;
         using var stderr = process.StandardError;
-        var stdoutTask = BoundedProcessOutput.ReadAsync(stdout);
-        var stderrTask = BoundedProcessOutput.ReadAsync(stderr);
+        var stdoutCapture = new BoundedProcessOutput(stdout);
+        var stderrCapture = new BoundedProcessOutput(stderr);
         // A descendant can keep a redirected pipe open after dotnet exits.
         // See docs/project-review-2026-11-25/task-04-p1-dotnet-pipe-deadline-hi.md.
-        var completion = Task.WhenAll(process.WaitForExitAsync(CancellationToken.None), stdoutTask, stderrTask);
+        var completion = Task.WhenAll(
+            process.WaitForExitAsync(CancellationToken.None),
+            stdoutCapture.Completion,
+            stderrCapture.Completion);
 
         bool completed;
         try
@@ -267,8 +270,8 @@ public static class DotNetCliRunner
 
             return new CommandRunResult(
                 process.HasExited ? process.ExitCode : -1,
-                ReadCompletedOutput(stdoutTask),
-                ReadCompletedOutput(stderrTask),
+                stdoutCapture.Finish(),
+                stderrCapture.Finish(),
                 Failure: ExceptionDispatchInfo.Capture(ex));
         }
 
@@ -276,16 +279,16 @@ public static class DotNetCliRunner
         {
             return new CommandRunResult(
                 process.ExitCode,
-                ReadCompletedOutput(stdoutTask),
-                ReadCompletedOutput(stderrTask),
+                stdoutCapture.Finish(),
+                stderrCapture.Finish(),
                 Stopwatch.GetElapsedTime(started));
         }
 
         var killed = await CleanupAsync(process, completion).ConfigureAwait(false);
         return new CommandRunResult(
             process.HasExited && process.ExitCode != 0 ? process.ExitCode : -1,
-            ReadCompletedOutput(stdoutTask),
-            ReadCompletedOutput(stderrTask),
+            stdoutCapture.Finish(),
+            stderrCapture.Finish(),
             TimedOut: true,
             ProcessKilled: killed);
     }
@@ -593,9 +596,6 @@ public static class DotNetCliRunner
         await Task.WhenAny(observed, Task.Delay(_outputDrainTimeout)).ConfigureAwait(false);
         return killed;
     }
-
-    private static BoundedProcessOutput.Capture ReadCompletedOutput(Task<BoundedProcessOutput.Capture> output) =>
-        output.IsCompletedSuccessfully ? output.Result : new BoundedProcessOutput.Capture(string.Empty, 0);
 
     private static string CombineStreams(string stdout, string stderr)
     {

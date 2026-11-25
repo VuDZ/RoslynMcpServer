@@ -78,19 +78,14 @@ public sealed class DotNetCliRunnerHangTests
         await using var fixture = new DotNetPipeFixture();
         using var cancellation = new CancellationTokenSource();
         var timeout = TimeSpan.FromSeconds(6);
-        var run = RunPipeHolderAsync(fixture, separated, timeout, cancellation.Token)
+        var run = CheckPipeTimeoutAsync(fixture, separated, timeout, cancellation.Token)
             .WaitAsync(timeout + TimeSpan.FromSeconds(5));
 
         try
         {
             await fixture.WaitForExitedParentAsync();
-            var result = await run;
-            Assert.True(result.TimedOut);
-            Assert.Equal(-1, result.ExitCode);
-            if (!separated)
-            {
-                Assert.False(result.ProcessKilled);
-            }
+            await run;
+            await fixture.WaitForExitedParentAsync();
         }
         finally
         {
@@ -105,7 +100,12 @@ public sealed class DotNetCliRunnerHangTests
     {
         await using var fixture = new DotNetPipeFixture();
         using var cancellation = new CancellationTokenSource();
-        var run = RunPipeHolderAsync(fixture, separated, timeout: null, cancellation.Token);
+        Task run = separated
+            ? DotNetCliRunner.RunSeparatedAsync(
+                fixture.HoldPipesCommand,
+                fixture.WorkingDirectory,
+                cancellationToken: cancellation.Token)
+            : DotNetCliRunner.RunWithMetadataAsync(fixture.HoldPipesCommand, fixture.WorkingDirectory, cancellation.Token);
 
         try
         {
@@ -152,10 +152,10 @@ public sealed class DotNetCliRunnerHangTests
         Assert.Equal("parent-stderr".Length, combined.StdErrLength);
     }
 
-    private static async Task<(int ExitCode, bool TimedOut, bool? ProcessKilled)> RunPipeHolderAsync(
+    private static async Task CheckPipeTimeoutAsync(
         DotNetPipeFixture fixture,
         bool separated,
-        TimeSpan? timeout,
+        TimeSpan timeout,
         CancellationToken cancellationToken)
     {
         if (separated)
@@ -166,7 +166,13 @@ public sealed class DotNetCliRunnerHangTests
                 timeout,
                 cancellationToken);
             Assert.Null(split.ExceptionType);
-            return (split.ExitCode, split.TimedOut, null);
+            Assert.True(split.TimedOut);
+            Assert.Equal(-1, split.ExitCode);
+            Assert.True(split.OutputTruncated);
+            Assert.InRange(split.StdOut.Length, 1, BoundedProcessOutput.MaxStreamChars);
+            Assert.EndsWith("timeout-stdout", split.StdOut, StringComparison.Ordinal);
+            Assert.Equal("timeout-stderr", split.StdErr);
+            return;
         }
 
         var combined = await DotNetCliRunner.RunWithMetadataAsync(
@@ -174,6 +180,15 @@ public sealed class DotNetCliRunnerHangTests
             fixture.WorkingDirectory,
             cancellationToken,
             timeout);
-        return (combined.ExitCode, combined.TimedOut, combined.ProcessKilled);
+        Assert.True(combined.TimedOut);
+        Assert.False(combined.ProcessKilled);
+        Assert.Equal(-1, combined.ExitCode);
+        Assert.True(combined.OutputTruncated);
+        Assert.Equal(250_000 + Environment.NewLine.Length + "timeout-stdout".Length, combined.StdOutLength);
+        Assert.Equal("timeout-stderr".Length, combined.StdErrLength);
+        Assert.EndsWith(
+            "timeout-stdout" + Environment.NewLine + "timeout-stderr",
+            combined.CombinedOutput,
+            StringComparison.Ordinal);
     }
 }

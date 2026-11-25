@@ -72,12 +72,13 @@ public sealed class TestImpactFormatterTests
     }
 
     [Theory]
-    [InlineData(0, false, "partial")]
-    [InlineData(1, false, "failed")]
-    [InlineData(0, true, "failed")]
+    [InlineData(0, "Passed! - Failed: 0, Passed: 1, Skipped: 0, Total: 1", "partial")]
+    [InlineData(1, "Passed! - Failed: 0, Passed: 1, Skipped: 0, Total: 1", "failed")]
+    [InlineData(0, "Failed! - Failed: 1, Passed: 0, Skipped: 0, Total: 1", "failed")]
+    [InlineData(0, "  Failed Fixture.Bad [1 ms]", "failed")]
     public async Task Test_summary_capture_overflow_is_partial_unless_failure_is_confirmed(
         int exitCode,
-        bool retainedFailure,
+        string output,
         string expected)
     {
         using var workspace = new AdhocWorkspace();
@@ -86,9 +87,6 @@ public sealed class TestImpactFormatterTests
         var impact = new TestImpactResult([], new Dictionary<ProjectId, IReadOnlyList<ProjectExpansionReason>>(), [],
             RequiresReload: false, ProjectGraphStale: false);
         var estimate = new TestImpactEstimate([], [], impact, plans, [], [], []);
-        var output = retainedFailure
-            ? "Failed! - Failed: 1, Passed: 0, Skipped: 0, Total: 1"
-            : "Passed! - Failed: 0, Passed: 1, Skipped: 0, Total: 1";
         var runner = new DotNetTestExecutor((_, _, _, _, _) => Task.FromResult(
             new DotNetCliRunner.RunResult(exitCode, output, "", output.Length, 0)
             {

@@ -314,7 +314,11 @@ public sealed class SolutionManager
         await _workspaceLock.WaitAsync(cancellationToken);
         try
         {
-            return await UpdateDocumentInMemoryUnderLockAsync(fullPath, newText ?? string.Empty, cancellationToken)
+            return await UpdateDocumentInMemoryUnderLockAsync(
+                    fullPath,
+                    newText ?? string.Empty,
+                    checkedPatchSource: null,
+                    cancellationToken)
                 .ConfigureAwait(false);
         }
         finally
@@ -671,7 +675,8 @@ public sealed class SolutionManager
         await _workspaceLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            return await File.ReadAllTextAsync(fullPath, cancellationToken).ConfigureAwait(false);
+            var source = await ReadPatchFileUnderLockAsync(fullPath, cancellationToken).ConfigureAwait(false);
+            return source.Text;
         }
         finally
         {
@@ -691,13 +696,17 @@ public sealed class SolutionManager
         {
             // A patch may have matched before another edit committed. Keep the comparison and both
             // write paths in one critical section so a stale match cannot replace that edit.
-            var currentText = await File.ReadAllTextAsync(fullPath, cancellationToken).ConfigureAwait(false);
-            if (!string.Equals(sourceText, currentText, StringComparison.Ordinal))
+            var current = await ReadPatchFileUnderLockAsync(fullPath, cancellationToken).ConfigureAwait(false);
+            if (!string.Equals(sourceText, current.Text, StringComparison.Ordinal))
             {
                 return null;
             }
 
-            var write = await UpdateDocumentInMemoryUnderLockAsync(fullPath, updatedText, cancellationToken)
+            var write = await UpdateDocumentInMemoryUnderLockAsync(
+                    fullPath,
+                    updatedText,
+                    current,
+                    cancellationToken)
                 .ConfigureAwait(false);
             if (!write.ShouldWriteSkippedPathToDisk)
             {
@@ -707,7 +716,7 @@ public sealed class SolutionManager
             await WriteTrackedTextUnderLockAsync(
                     fullPath,
                     updatedText,
-                    SourceTextEncoding.ForDiskPath(fullPath),
+                    current.Encoding,
                     cancellationToken)
                 .ConfigureAwait(false);
             return new WorkspaceWriteResult { Status = WorkspaceWriteStatus.FullSuccess, SavedPaths = [fullPath] };
@@ -849,6 +858,7 @@ public sealed class SolutionManager
                     newSolution,
                     oldSolution,
                     ResolveOperationContext(oldSolution),
+                    checkedPatchSource: null,
                     cancellationToken)
                 .ConfigureAwait(false);
         }
@@ -2007,12 +2017,41 @@ public sealed class SolutionManager
         _sanitizedPublishedSolutionSource = null;
     }
 
+    private async Task<PatchFileText> ReadPatchFileUnderLockAsync(string fullPath, CancellationToken cancellationToken)
+    {
+        var fallback = SourceTextEncoding.BomFreeUtf8;
+        var solution = _workspace?.CurrentSolution;
+        var id = solution?.GetDocumentIdsWithFilePath(fullPath).FirstOrDefault();
+        if (id is not null && solution?.GetDocument(id) is { } document)
+        {
+            var source = await document.GetTextAsync(cancellationToken).ConfigureAwait(false);
+            // An explicit BOM in the file overrides the cached encoding. Without a BOM, keep a
+            // known BOM-free code page, or start with UTF-8 so a removed BOM stays removed.
+            if (source.Encoding is { } encoding && encoding.GetPreamble().Length == 0)
+            {
+                fallback = encoding;
+            }
+        }
+
+        using var stream = new FileStream(
+            fullPath,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.Read,
+            bufferSize: 4096,
+            useAsync: true);
+        using var reader = new StreamReader(stream, fallback, detectEncodingFromByteOrderMarks: true);
+        var text = await reader.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
+        return new PatchFileText(fullPath, text, reader.CurrentEncoding);
+    }
+
     /// <summary>
     /// Must be called with <see cref="_workspaceLock"/> held.
     /// </summary>
     private async Task<WorkspaceWriteResult> UpdateDocumentInMemoryUnderLockAsync(
         string filePath,
         string newText,
+        PatchFileText? checkedPatchSource,
         CancellationToken cancellationToken)
     {
         var workspace = _workspace;
@@ -2045,7 +2084,7 @@ public sealed class SolutionManager
             : await existingDocument.GetTextAsync(cancellationToken).ConfigureAwait(false);
         // One encoding and one text for every membership. MSBuildWorkspace rewrites each document
         // with SourceText.Encoding; different encodings would flip the linked file's BOM.
-        var writeEncoding = SourceTextEncoding.ResolveForWrite(existingText, candidate: null, fullPath);
+        var writeEncoding = checkedPatchSource?.Encoding ?? SourceTextEncoding.ResolveForWrite(existingText, candidate: null, fullPath);
         var shared = SourceText.From(newText, writeEncoding);
         var candidate = baseSolution;
         foreach (var documentId in documentIds)
@@ -2053,7 +2092,7 @@ public sealed class SolutionManager
             candidate = candidate.WithDocumentText(documentId, shared);
         }
         var context = CreateVerifiedWriteContext(_solution, baseSolution);
-        return await ApplyWorkspaceWriteUnderLockAsync(candidate, baseSolution, context, cancellationToken)
+        return await ApplyWorkspaceWriteUnderLockAsync(candidate, baseSolution, context, checkedPatchSource, cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -2061,6 +2100,7 @@ public sealed class SolutionManager
         Solution candidate,
         Solution baseForDocuments,
         WorkspaceWriteOperationContext operationContext,
+        PatchFileText? checkedPatchSource,
         CancellationToken cancellationToken)
     {
         var workspace = _workspace;
@@ -2097,7 +2137,13 @@ public sealed class SolutionManager
             await using var registration = await WorkspaceProjectDocumentRegistration.OpenAsync(
                     workspace, added.Select(static item => item.Document.Project), _logger, cancellationToken)
                 .ConfigureAwait(false);
-            await PersistDocumentChangesAsync(baseForDocuments, candidate, saved, savedTexts, cancellationToken)
+            await PersistDocumentChangesAsync(
+                    baseForDocuments,
+                    candidate,
+                    saved,
+                    savedTexts,
+                    checkedPatchSource,
+                    cancellationToken)
                 .ConfigureAwait(false);
             if (registration is not null)
             {
@@ -2253,6 +2299,7 @@ public sealed class SolutionManager
         Solution newSolution,
         List<string> saved,
         List<(string Path, string Text, Encoding WriteEncoding)> savedTexts,
+        PatchFileText? checkedPatchSource,
         CancellationToken cancellationToken)
     {
         var savedPaths = new HashSet<string>(saved, _pathComparer);
@@ -2284,12 +2331,19 @@ public sealed class SolutionManager
             var newSourceText = await newDoc.GetTextAsync(cancellationToken).ConfigureAwait(false);
             var text = newSourceText.ToString();
             var oldSourceText = await oldDoc.GetTextAsync(cancellationToken).ConfigureAwait(false);
-            if (string.Equals(oldSourceText.ToString(), text, StringComparison.Ordinal))
+            // A patch can restore the workspace text before the watcher delivers an external edit.
+            // Compare against the disk version checked under the lock for that path.
+            // See docs/project-review-2026-11-25/task-21-p1-patch-stale-snapshot-hi.md.
+            var patch = checkedPatchSource is not null && _pathComparer.Equals(fullPath, checkedPatchSource.Path)
+                ? checkedPatchSource
+                : null;
+            var previousText = patch?.Text ?? oldSourceText.ToString();
+            if (string.Equals(previousText, text, StringComparison.Ordinal))
             {
                 continue;
             }
 
-            var writeEncoding = SourceTextEncoding.ResolveForWrite(oldSourceText, newSourceText, fullPath);
+            var writeEncoding = patch?.Encoding ?? SourceTextEncoding.ResolveForWrite(oldSourceText, newSourceText, fullPath);
             await WriteTrackedTextToDiskAsync(fullPath, text, writeEncoding, cancellationToken).ConfigureAwait(false);
             savedPaths.Add(fullPath);
             saved.Add(fullPath);

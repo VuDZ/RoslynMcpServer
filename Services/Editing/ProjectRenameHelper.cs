@@ -225,10 +225,10 @@ public static class ProjectRenameHelper
 
     public static string Apply(RenamePlan plan)
     {
-        return Apply(plan, inputSession: null, writeText: null);
+        return Apply(plan, inputSession: null, writeText: null).Message;
     }
 
-    internal static string Apply(
+    internal static (string Message, bool Success) Apply(
         RenamePlan plan,
         WorkspaceInputSession? inputSession,
         Action<string, string, Encoding>? writeText)
@@ -299,7 +299,7 @@ public static class ProjectRenameHelper
                 sb.AppendLine("Rename applied successfully.");
             }
 
-            return sb.ToString().TrimEnd();
+            return (sb.ToString().TrimEnd(), failed.Count == 0);
         }
         catch (Exception ex) when (ex is not InvalidOperationException)
         {
@@ -460,8 +460,13 @@ public static class ProjectRenameHelper
         var attributes = isProject
             ? doc.Descendants().Where(element => element.Name.LocalName == "ProjectReference")
                 .Select(element => element.Attribute("Include"))
-            : doc.Descendants().Where(element => element.Name.LocalName == "Project")
-                .Select(element => element.Attribute("Path") ?? element.Attribute("path"));
+            : doc.Descendants().Select(element => element.Name.LocalName switch
+            {
+                "Project" => element.Attribute("Path") ?? element.Attribute("path"),
+                // The SDK resolves build dependencies against project paths listed in the same solution.
+                "BuildDependency" => element.Attribute("Project"),
+                _ => null,
+            });
         var changed = false;
         foreach (var attribute in attributes)
         {

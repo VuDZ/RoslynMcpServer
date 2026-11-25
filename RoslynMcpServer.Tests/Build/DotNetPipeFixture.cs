@@ -107,6 +107,12 @@ internal sealed class DotNetPipeFixture : IAsyncDisposable
             return 0;
         }
 
+        Console.WriteLine(new string('x', 250_000));
+        Console.Write("timeout-stdout");
+        Console.Error.Write("timeout-stderr");
+        Console.Out.Flush();
+        Console.Error.Flush();
+
         var startInfo = new ProcessStartInfo(Environment.ProcessPath!)
         {
             UseShellExecute = false,

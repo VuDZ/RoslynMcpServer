@@ -728,6 +728,45 @@ public sealed class VstestOutputParserTests
             "Restore target(s) failed.\nBuild FAILED.\n    0 Error(s)"));
     }
 
+    [Theory]
+    [InlineData(1)]
+    [InlineData(0)]
+    public void Filtered_report_keeps_a_confirmed_failure_when_capture_loses_the_test_name(int exitCode)
+    {
+        const string Output = "Failed! - Failed: 1, Passed: 0, Skipped: 0, Total: 1";
+        const string Filter = "FullyQualifiedName~Fixture.Match";
+        var parse = VstestOutputParser.Parse(Output, exitCode, summaryTruncated: false, outputTruncated: true);
+        var report = VstestOutputParser.BuildMarkdownReport(parse, exitCode, Output, Filter, null, requireFilterMatch: true);
+
+        Assert.Contains("## Test run failed", report, StringComparison.Ordinal);
+        Assert.DoesNotContain("**Status:** partial", report, StringComparison.Ordinal);
+        Assert.Contains("1 total, 0 passed, 1 failed, 0 skipped", report, StringComparison.Ordinal);
+        Assert.Contains("The captured output does not identify which test failed.", report, StringComparison.Ordinal);
+        var filterLine = Assert.Single(
+            report.Split(Environment.NewLine),
+            line => line.Contains("Fixture.Match", StringComparison.Ordinal));
+        Assert.Equal($"**Filter:** `{Filter}`", filterLine);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    public void Filtered_report_with_passing_totals_and_unknown_match_stays_partial(int exitCode)
+    {
+        const string Output = "Passed! - Failed: 0, Passed: 1, Skipped: 0, Total: 1";
+        var parse = VstestOutputParser.Parse(Output, exitCode, summaryTruncated: false, outputTruncated: true);
+        var report = VstestOutputParser.BuildMarkdownReport(
+            parse,
+            exitCode,
+            Output,
+            "FullyQualifiedName~Fixture.Match",
+            null,
+            requireFilterMatch: true);
+
+        Assert.Contains("**Status:** partial", report, StringComparison.Ordinal);
+        Assert.DoesNotContain("## Test run failed", report, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void BuildMarkdownReport_xunit_multi_project_matching_test_with_nonzero_exit_passes()
     {

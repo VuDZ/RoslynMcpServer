@@ -279,9 +279,13 @@ public static class VstestOutputParser
             sb.AppendLine();
         }
 
+        // A retained failure proves the run failed even when capture dropped the matching name.
+        // With passing totals, a nonzero exit alone can come from a sibling project with no matches.
+        // See docs/project-review-2026-11-25/task-25-p2-filtered-test-failure-status-med.md.
+        var confirmedFailure = parse.RetainedSummaryReportsFailure || parse.Failures.Count > 0
+            || (exitCode != 0 && parse.Summary is null);
         if (parse.SummaryTruncated)
         {
-            var confirmedFailure = exitCode != 0 || parse.RetainedSummaryReportsFailure;
             sb.AppendLine(confirmedFailure ? "## Test run failed" : "**Status:** partial");
             sb.AppendLine();
             sb.AppendLine($"The process exited with code `{exitCode}`. The test summary exceeded the capture limit.");
@@ -297,9 +301,14 @@ public static class VstestOutputParser
         if (parse.OutputTruncated && requireFilterMatch && parse.Summary is not { Total: 0 }
             && !FilterMatchedAnyTest(filter, combinedOutput, parse.PassedTestNames))
         {
-            sb.AppendLine("**Status:** partial");
+            sb.AppendLine(confirmedFailure ? "## Test run failed" : "**Status:** partial");
             sb.AppendLine();
             sb.AppendLine($"The process exited with code `{exitCode}`. Retained test names do not verify the filter match.");
+            if (parse.RetainedSummaryReportsFailure && parse.Failures.Count == 0)
+            {
+                sb.AppendLine("The captured output does not identify which test failed.");
+            }
+
             if (parse.Summary is { } retained)
             {
                 sb.AppendLine($"Reported totals: {retained.Total} total, {retained.Passed} passed, "

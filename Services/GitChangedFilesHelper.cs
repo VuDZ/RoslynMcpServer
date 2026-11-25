@@ -146,7 +146,9 @@ public static class GitChangedFilesHelper
         }
 
         var repositoryRoot = Path.GetFullPath(checkoutPath);
-        var status = await RunBeforeDeadlineAsync(repositoryRoot, "status --porcelain").ConfigureAwait(false);
+        // Without an explicit mode Git can collapse untracked directories or hide them entirely.
+        // See docs/project-review-2026-11-25/task-26-p2-git-untracked-file-count-med.md.
+        var status = await RunBeforeDeadlineAsync(repositoryRoot, "status --porcelain --untracked-files=all").ConfigureAwait(false);
         return (repositoryRoot, status.Output.TrimEnd(), status.Error);
 
         Task<(bool Success, string Output, string? Error)> RunBeforeDeadlineAsync(string workingDirectory, string arguments)

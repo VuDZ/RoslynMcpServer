@@ -522,7 +522,7 @@ Verify id/version with `search_nuget_registry` first. Clears workspace cache —
 **Parameters:**
 - `workspacePath: string? = null` — a file or directory in the checkout. Omit to use the first project with a path in the loaded solution, then the process directory.
 
-Git resolves the checkout that contains the file or directory, including linked worktrees and submodules. The report always gives the total number of changed and untracked paths and lists the first 80 in Git status order.
+Git resolves the checkout that contains the file or directory, including linked worktrees and submodules. It counts individual untracked files regardless of `status.showUntrackedFiles` and honors Git ignore rules. The report gives the total number of changed and untracked paths and lists the first 80 in Git status order.
 
 With a loaded solution, the tool can suggest projects with `test` in their names. It matches a source filename stem against a changed path, or a changed filename stem against a source filename stem, using case-insensitive substring checks.
 

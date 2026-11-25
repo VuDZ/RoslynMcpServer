@@ -167,6 +167,52 @@ public sealed class ProjectRenameHelperTests
     }
 
     [Fact]
+    public async Task Rename_preserves_slnx_build_dependency()
+    {
+        var root = CreateTempRoot();
+        try
+        {
+            var oldProject = Path.Combine(root, "Old", "Old.csproj");
+            var newProject = Path.Combine(root, "New", "New.csproj");
+            var consumer = Path.Combine(root, "Consumer", "Consumer.csproj");
+            WriteSdkProject(oldProject, withNameProps: false);
+            WriteSdkProject(consumer, withNameProps: false);
+            var solution = Path.Combine(root, "Demo.slnx");
+            const string OriginalSolution = """
+                <Solution>
+                  <Project Path="Old/Old.csproj" />
+                  <Project Path="Consumer/Consumer.csproj">
+                    <BuildDependency Project="Old/Old.csproj" />
+                  </Project>
+                </Solution>
+                """;
+            File.WriteAllText(solution, OriginalSolution);
+            await AssertSolutionOpensAsync(solution, oldProject, consumer);
+
+            var tool = new ProjectTools(SolutionManagerTestFactory.Create(), NullLogger<ProjectTools>.Instance);
+            var preview = await tool.RenameProject(oldProject, "New", dryRun: true, searchRoot: root);
+            Assert.Contains(solution, preview, StringComparison.Ordinal);
+            Assert.Equal(OriginalSolution, File.ReadAllText(solution));
+            Assert.True(File.Exists(oldProject));
+            Assert.False(Directory.Exists(Path.Combine(root, "New")));
+
+            var result = await tool.RenameProject(oldProject, "New", dryRun: false, searchRoot: root);
+            Assert.Contains("Rename applied successfully", result, StringComparison.Ordinal);
+            Assert.False(Directory.Exists(Path.Combine(root, "Old")));
+            var projects = XDocument.Load(solution).Root!.Elements("Project")
+                .ToDictionary(project => project.Attribute("Path")!.Value);
+            Assert.Contains("New/New.csproj", projects.Keys);
+            var dependency = Assert.Single(projects["Consumer/Consumer.csproj"].Elements("BuildDependency"));
+            Assert.Equal("New/New.csproj", dependency.Attribute("Project")!.Value);
+            await AssertSolutionOpensAsync(solution, newProject, consumer);
+        }
+        finally
+        {
+            DeleteRoot(root);
+        }
+    }
+
+    [Fact]
     public void Unsupported_layout_hard_fails_without_writes()
     {
         var root = CreateTempRoot();

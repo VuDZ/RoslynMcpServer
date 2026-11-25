@@ -147,7 +147,7 @@ internal static class MethodSyntaxHelper
         TypeSyntax paramType,
         SemanticModel? model)
     {
-        if (string.Equals(syntaxTypeName, expected, StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(syntaxTypeName, expected, StringComparison.Ordinal))
         {
             return true;
         }
@@ -165,8 +165,8 @@ internal static class MethodSyntaxHelper
 
         var minimal = symbol.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
         var fullyQualified = symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-        return string.Equals(minimal, expected, StringComparison.OrdinalIgnoreCase)
-            || string.Equals(fullyQualified, expected, StringComparison.OrdinalIgnoreCase)
-            || string.Equals(symbol.Name, expected, StringComparison.OrdinalIgnoreCase);
+        return string.Equals(minimal, expected, StringComparison.Ordinal)
+            || string.Equals(fullyQualified, expected, StringComparison.Ordinal)
+            || string.Equals(symbol.Name, expected, StringComparison.Ordinal);
     }
 }

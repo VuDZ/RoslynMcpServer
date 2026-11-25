@@ -156,6 +156,8 @@ public sealed class UsageStatisticsFiltersTests
                 cancellationToken: cancellation.Token);
 
             await VerifyWorkspaceOutcomesAsync(client, host.Services.GetRequiredService<SolutionManager>(), cancellation.Token);
+            await VerifyRenameOutcomeAsync(client, failSolutionWrite: true, cancellation.Token);
+            await VerifyRenameOutcomeAsync(client, failSolutionWrite: false, cancellation.Token);
         }
         finally
         {
@@ -176,7 +178,7 @@ public sealed class UsageStatisticsFiltersTests
             && item.GetProperty("name").GetString() == "usage-integration"));
         Assert.Equal(protocolVersion, clientEvent.GetProperty("protocol").GetString());
         var calls = events.Where(item => item.GetProperty("ev").GetString() == "tool").ToArray();
-        Assert.Equal(13, calls.Length);
+        Assert.Equal(15, calls.Length);
         Assert.True(Succeeded("get_tool_help"));
         Assert.True(Succeeded("get_file_content"));
         Assert.False(Succeeded("get_diagnostics_for_file"));
@@ -195,6 +197,11 @@ public sealed class UsageStatisticsFiltersTests
         });
         var starts = events.Where(item => item.GetProperty("ev").GetString() == "tool_start").ToArray();
         Assert.Equal(calls.Length, starts.Length);
+        var renameOutcomes = starts.Where(start => start.GetProperty("name").GetString() == "rename_project")
+            .Select(start => Assert.Single(calls, call => call.GetProperty("name").GetString() == "rename_project"
+                && call.GetProperty("call").GetInt64() == start.GetProperty("call").GetInt64()))
+            .Select(call => call.GetProperty("success").GetBoolean());
+        Assert.Equal(new[] { false, true }, renameOutcomes);
         Assert.All(calls, call => Assert.Contains(starts,
             start => start.GetProperty("call").GetInt64() == call.GetProperty("call").GetInt64()));
         Assert.All(starts, item => Assert.Equal(item.GetProperty("name").GetString() is "get_diagnostics_for_file" or "find_symbol_definition" or "load_workspace",
@@ -278,6 +285,53 @@ public sealed class UsageStatisticsFiltersTests
         finally
         {
             await manager.ClearWorkspaceAsync(CancellationToken.None);
+        }
+    }
+
+    private static async Task VerifyRenameOutcomeAsync(McpClient client, bool failSolutionWrite, CancellationToken cancellationToken)
+    {
+        using var files = new UsageTestFiles();
+        var directory = Directory.CreateDirectory(Path.Combine(files.Root, "Old"));
+        var project = Path.Combine(directory.FullName, "Old.csproj");
+        File.WriteAllText(project, """<Project Sdk="Microsoft.NET.Sdk" />""");
+        var solution = Path.Combine(files.Root, "Demo.slnx");
+        const string OriginalSolution = """<Solution><Project Path="Old/Old.csproj" /></Solution>""";
+        if (failSolutionWrite && !OperatingSystem.IsWindows())
+        {
+            // Moving the project leaves the external solution link readable during planning and dangling at write time.
+            var target = Path.Combine(directory.FullName, "solution.xml");
+            File.WriteAllText(target, OriginalSolution);
+            File.CreateSymbolicLink(solution, target);
+        }
+        else
+        {
+            File.WriteAllText(solution, OriginalSolution);
+        }
+
+        using var readLock = failSolutionWrite && OperatingSystem.IsWindows() ? File.OpenRead(solution) : null;
+        var response = await client.CallToolAsync(
+            "rename_project",
+            new Dictionary<string, object?>
+            {
+                ["projectPath"] = project,
+                ["newProjectName"] = "New",
+                ["dryRun"] = false,
+                ["searchRoot"] = files.Root,
+            },
+            cancellationToken: cancellationToken);
+        var message = Assert.Single(response.Content.OfType<TextContentBlock>()).Text;
+        Assert.False(response.IsError ?? false);
+        Assert.True(File.Exists(Path.Combine(files.Root, "New", "New.csproj")), message);
+        if (failSolutionWrite)
+        {
+            Assert.Contains("Moved directory", message, StringComparison.Ordinal);
+            Assert.Contains("### Partial failure", message, StringComparison.Ordinal);
+            Assert.Contains($"- `{solution}`:", message, StringComparison.Ordinal);
+        }
+        else
+        {
+            Assert.Contains("Rename applied successfully.", message, StringComparison.Ordinal);
+            Assert.Contains("New/New.csproj", File.ReadAllText(solution), StringComparison.Ordinal);
         }
     }
 

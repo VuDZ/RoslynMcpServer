@@ -64,7 +64,7 @@ public sealed class BoundedProcessOutputTests
     {
         const string result = "Passed!  - Failed: 0, Passed: 1, Skipped: 0, Total: 1\n";
         using var reader = new StringReader(string.Concat(Enumerable.Repeat(result, 10_000)));
-        var captured = await BoundedProcessOutput.ReadAsync(reader);
+        var captured = await ReadOutputAsync(reader);
 
         Assert.True(captured.SummaryTruncated);
         Assert.Equal(result.Length * 10_000 - 1, captured.Length);
@@ -95,7 +95,7 @@ public sealed class BoundedProcessOutputTests
         const string test = "  Passed Fixture.Tests.Match [1 ms]\n";
         const string summary = "Passed! - Failed: 0, Passed: 1, Skipped: 0, Total: 1\n";
         using var reader = new StringReader(noise + test + noise + summary);
-        var captured = await BoundedProcessOutput.ReadAsync(reader);
+        var captured = await ReadOutputAsync(reader);
         var parsed = VstestOutputParser.Parse(captured.Text, 0, captured.SummaryTruncated, captured.Truncated);
 
         Assert.True(captured.Truncated);
@@ -135,7 +135,7 @@ public sealed class BoundedProcessOutputTests
         var noise = string.Concat(Enumerable.Repeat(new string('x', 1023) + "\n", 300));
         var tailPadding = new string('t', 48_000 - value.Length - tail.Length - 1) + "\n";
         using var reader = new StringReader("head\n" + noise + prefix + value + tailPadding + tail);
-        var captured = await BoundedProcessOutput.ReadAsync(reader);
+        var captured = await ReadOutputAsync(reader);
 
         Assert.True(captured.Truncated);
         var stored = DiagnosticReportStore.TryStore(captured.Text);
@@ -177,6 +177,13 @@ public sealed class BoundedProcessOutputTests
             Assert.Contains("unrelated-diagnostic", body, StringComparison.Ordinal);
             Assert.DoesNotContain("private-", body, StringComparison.Ordinal);
         }
+    }
+
+    private static async Task<BoundedProcessOutput.Capture> ReadOutputAsync(TextReader reader)
+    {
+        var output = new BoundedProcessOutput(reader);
+        await output.Completion;
+        return output.Finish();
     }
 
     private static string Combine(DotNetCliRunner.SeparatedRunResult run) =>

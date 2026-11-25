@@ -66,6 +66,57 @@ public sealed class UpdateMethodBodyTests
         });
     }
 
+    [Fact]
+    public Task Wrong_parameter_type_case_rejects_the_only_method()
+    {
+        const string source = """
+            namespace N;
+            class Order { }
+            class ORDER { }
+            class Target
+            {
+                int M(Order value) => 1;
+            }
+            """;
+
+        return WithLoadedProjectAsync(source, async (tools, manager, path) =>
+        {
+            var rejected = await tools.UpdateMethodBody(path, "Target", "M", "return 2;", ["ORDER"]);
+            Assert.Contains("No overload matches parameterTypes", rejected, StringComparison.Ordinal);
+            Assert.Equal(source, await File.ReadAllTextAsync(path));
+            Assert.Equal(source, await ReadSnapshotAsync(manager));
+        });
+    }
+
+    [Theory]
+    [InlineData("Order", "int M(ORDER value) => 2;")]
+    [InlineData("ORDER", "int M(Order value) => 1;")]
+    [InlineData("global::N.Order", "int M(ORDER value) => 2;")]
+    [InlineData("global::N.ORDER", "int M(Order value) => 1;")]
+    public Task Parameter_type_case_selects_the_requested_overload(string requestedType, string untouchedMethod)
+    {
+        const string source = """
+            namespace N;
+            class Order { }
+            class ORDER { }
+            class Target
+            {
+                int M(Order value) => 1;
+                int M(ORDER value) => 2;
+            }
+            """;
+
+        return WithLoadedProjectAsync(source, async (tools, manager, path) =>
+        {
+            var updated = await tools.UpdateMethodBody(path, "Target", "M", "return 3;", [requestedType]);
+            Assert.StartsWith("Updated body", updated, StringComparison.Ordinal);
+            var saved = await File.ReadAllTextAsync(path);
+            Assert.Contains("return 3;", saved, StringComparison.Ordinal);
+            Assert.Contains(untouchedMethod, saved, StringComparison.Ordinal);
+            Assert.Equal(saved, await ReadSnapshotAsync(manager));
+        });
+    }
+
     private static async Task WithLoadedProjectAsync(
         string source,
         Func<AstTools, SolutionManager, string, Task> runTest)

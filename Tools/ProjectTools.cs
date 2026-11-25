@@ -55,7 +55,7 @@ public sealed class ProjectTools
                 plan,
                 _solutionManager.DiskWatcherSession,
                 _solutionManager.WriteTrackedText);
-            return ClearWorkspaceAndReturnAsync(toolName, result);
+            return ClearWorkspaceAndReturnAsync(toolName, result.Message, result.Success);
         }
         catch (Exception ex)
         {
@@ -121,7 +121,7 @@ public sealed class ProjectTools
         }
     }
 
-    private async Task<string> ClearWorkspaceAndReturnAsync(string toolName, string message)
+    private async Task<string> ClearWorkspaceAndReturnAsync(string toolName, string message, bool success)
     {
         try
         {
@@ -129,13 +129,14 @@ public sealed class ProjectTools
         }
         catch (Exception ex)
         {
-            ToolTelemetry.MarkUnsuccessful();
+            success = false;
             _logger.LogWarning(ex, "ClearWorkspace after RenameProject failed");
         }
 
         return ToolTelemetry.TraceAndReturn(
             toolName,
             message + Environment.NewLine + Environment.NewLine
-            + "Workspace cache cleared. Call `load_workspace` on the solution, then `run_dotnet_build`.");
+            + "Workspace cache cleared. Call `load_workspace` on the solution, then `run_dotnet_build`.",
+            success);
     }
 }

@@ -15,46 +15,31 @@ internal sealed class BoundedProcessOutput
     private const int WarningChars = 24_000;
     private const int ContextChars = 16_000;
 
-    internal static async Task<Capture> ReadAsync(TextReader reader)
+    internal Task Completion { get; }
+
+    internal BoundedProcessOutput(TextReader reader)
     {
-        StringBuilder? whole = new();
-        BoundedProcessOutput? bounded = null;
-        var buffer = new char[8192];
-        long charsRead = 0;
-        long trimmedLength = 0;
-        int count;
-        while ((count = await reader.ReadAsync(buffer.AsMemory()).ConfigureAwait(false)) > 0)
+        Completion = DrainAsync(reader);
+    }
+
+    internal Capture Finish()
+    {
+        // A descendant can keep the pipe open after the cleanup deadline. Freeze the capture
+        // before sharing it with cross-pipe redaction, which also reads the retained records.
+        // See docs/project-review-2026-11-25/task-24-p2-dotnet-timeout-output-hi.md.
+        lock (_captureLock)
         {
-            var chunk = buffer.AsSpan(0, count);
-            var nonWhitespaceLength = chunk.TrimEnd().Length;
-            if (nonWhitespaceLength > 0)
+            if (!_finished && _whole is null)
             {
-                trimmedLength = charsRead + nonWhitespaceLength;
+                CompleteLine();
             }
 
-            charsRead += count;
-            if (whole is not null && charsRead <= MaxStreamChars)
-            {
-                whole.Append(chunk);
-                continue;
-            }
-
-            if (whole is not null)
-            {
-                // ReadLineAsync can allocate an unbounded string even if the caller discards that line.
-                // See docs/project-review-2026-11-25/task-07-p2-bounded-cli-output-hi.md.
-                bounded = new BoundedProcessOutput();
-                bounded.Append(whole.ToString().AsSpan());
-                whole = null;
-            }
-
-            bounded!.Append(chunk);
+            _finished = true;
+            var length = (int)Math.Min(_trimmedLength, int.MaxValue);
+            return _whole is null
+                ? Render(length, omitThroughLine: -1)
+                : new Capture(_whole.ToString().TrimEnd(), length);
         }
-
-        var length = (int)Math.Min(trimmedLength, int.MaxValue);
-        return bounded is null
-            ? new Capture(whole!.ToString().TrimEnd(), length)
-            : bounded.Finish(length);
     }
 
     internal static (Capture StdOut, Capture StdErr) ProtectCrossPipeSecrets(Capture stdout, Capture stderr)
@@ -109,6 +94,24 @@ internal sealed class BoundedProcessOutput
         });
     }
 
+    private async Task DrainAsync(TextReader reader)
+    {
+        var buffer = new char[8192];
+        int count;
+        while ((count = await reader.ReadAsync(buffer.AsMemory()).ConfigureAwait(false)) > 0)
+        {
+            lock (_captureLock)
+            {
+                if (_finished)
+                {
+                    return;
+                }
+
+                AppendChunk(buffer.AsSpan(0, count));
+            }
+        }
+    }
+
     private static MultilineProcessSecret.Continuation FindPendingSecret(string text)
     {
         var secret = new MultilineProcessSecret();
@@ -148,6 +151,32 @@ internal sealed class BoundedProcessOutput
         }
 
         return remaining.ToString();
+    }
+
+    private void AppendChunk(ReadOnlySpan<char> chunk)
+    {
+        var nonWhitespaceLength = chunk.TrimEnd().Length;
+        if (nonWhitespaceLength > 0)
+        {
+            _trimmedLength = _charsRead + nonWhitespaceLength;
+        }
+
+        _charsRead += chunk.Length;
+        if (_whole is not null)
+        {
+            if (_charsRead <= MaxStreamChars)
+            {
+                _whole.Append(chunk);
+                return;
+            }
+
+            // ReadLineAsync can allocate an unbounded string even if the caller discards that line.
+            // See docs/project-review-2026-11-25/task-07-p2-bounded-cli-output-hi.md.
+            Append(_whole.ToString().AsSpan());
+            _whole = null;
+        }
+
+        Append(chunk);
     }
 
     private void Append(ReadOnlySpan<char> text)
@@ -271,12 +300,6 @@ internal sealed class BoundedProcessOutput
         return true;
     }
 
-    private Capture Finish(int length)
-    {
-        CompleteLine();
-        return Render(length, omitThroughLine: -1);
-    }
-
     private Capture Render(int length, long omitThroughLine)
     {
         var summaryTruncated = _summaryTruncated;
@@ -339,6 +362,11 @@ internal sealed class BoundedProcessOutput
     private readonly StringBuilder _head = new();
     private readonly Queue<Line> _tail = new();
     private readonly List<Line> _priority = [];
+    private readonly object _captureLock = new();
+    private StringBuilder? _whole = new();
+    private long _charsRead;
+    private long _trimmedLength;
+    private bool _finished;
     private long _lineNumber;
     private long _nextHeadLine;
     private bool _lineTooLong;

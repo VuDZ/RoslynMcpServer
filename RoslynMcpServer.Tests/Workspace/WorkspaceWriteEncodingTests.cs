@@ -129,6 +129,45 @@ public sealed class WorkspaceWriteEncodingTests : IDisposable
         Assert.False(StartsWithUtf8Bom(await File.ReadAllBytesAsync(_sourcePath)), message);
     }
 
+    [Theory]
+    [InlineData(65001, 65001)]
+    [InlineData(65001, 1200)]
+    [InlineData(1200, 65001)]
+    [InlineData(28591, 28591)]
+    public async Task ApplyPatch_writes_disk_when_restoring_the_cached_document_text(int originalCodePage, int diskCodePage)
+    {
+        const string Original = "class Café { int X => 1; }";
+        var originalEncoding = originalCodePage == 65001 ? BomFreeUtf8 : Encoding.GetEncoding(originalCodePage);
+        var diskEncoding = diskCodePage == 65001 ? BomFreeUtf8 : Encoding.GetEncoding(diskCodePage);
+        if (originalCodePage == Encoding.Latin1.CodePage)
+        {
+            // A BOM-free legacy source gets its encoding from MSBuild's explicit CodePage.
+            await File.WriteAllTextAsync(
+                Path.Combine(_root, "Directory.Build.props"),
+                "<Project><PropertyGroup><CodePage>28591</CodePage></PropertyGroup></Project>");
+        }
+
+        await File.WriteAllTextAsync(_sourcePath, Original, originalEncoding);
+        var manager = await LoadAsync();
+        manager.SilenceDiskWatchersForTests();
+        var before = (await manager.GetPublishedSolutionAsync())!;
+        var id = Assert.Single(before.GetDocumentIdsWithFilePath(_sourcePath));
+        Assert.Equal(Original, (await before.GetDocument(id)!.GetTextAsync()).ToString());
+        await File.WriteAllTextAsync(_sourcePath, "class Café { int X => 2; }", diskEncoding);
+
+        var tool = new UtilityTools(NullLogger<UtilityTools>.Instance, manager);
+        var message = await tool.ApplyPatch(_sourcePath, "X => 2", "X => 1", replaceAll: false, CancellationToken.None);
+
+        Assert.Contains("Patch applied successfully", message, StringComparison.Ordinal);
+        var expectedBytes = diskEncoding.GetPreamble().Concat(diskEncoding.GetBytes(Original)).ToArray();
+        Assert.Equal(expectedBytes, await File.ReadAllBytesAsync(_sourcePath));
+        var published = (await manager.GetPublishedSolutionAsync())!;
+        var publishedText = await published.GetDocument(id)!.GetTextAsync();
+        Assert.Equal(Original, publishedText.ToString());
+        Assert.Equal(diskCodePage, publishedText.Encoding!.CodePage);
+        Assert.Equal(diskEncoding.GetPreamble(), publishedText.Encoding.GetPreamble());
+    }
+
     [Fact]
     public async Task WriteFile_does_not_add_bom_to_workspace_sources()
     {

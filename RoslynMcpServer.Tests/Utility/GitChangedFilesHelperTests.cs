@@ -263,25 +263,32 @@ public sealed class GitChangedFilesHelperTests
         Assert.DoesNotContain("## Git changed files", report, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public async Task GetChangedFiles_reports_the_total_and_shows_only_the_first_80_paths()
+    [Theory]
+    [InlineData("normal")]
+    [InlineData("no")]
+    public async Task GetChangedFiles_reports_the_total_and_shows_only_the_first_80_paths(string untrackedMode)
     {
         using var directory = NewWorkDirectory();
-        await InitializeRepositoryAsync(directory.FullName);
+        await RunFixtureGitAsync(directory.FullName, "init", "--template=");
+        await RunFixtureGitAsync(directory.FullName, "config", "--local", "status.showUntrackedFiles", untrackedMode);
+        var info = Directory.CreateDirectory(Path.Combine(directory.FullName, ".git", "info"));
+        await File.WriteAllTextAsync(Path.Combine(info.FullName, "exclude"), "ignored.txt\n");
+        var nested = Directory.CreateDirectory(Path.Combine(directory.FullName, "new"));
+        await File.WriteAllTextAsync(Path.Combine(nested.FullName, "ignored.txt"), "Ignored");
         for (var index = 0; index < 81; index++)
         {
-            await File.WriteAllTextAsync(Path.Combine(directory.FullName, $"file-{index:000}.txt"), "Change");
+            await File.WriteAllTextAsync(Path.Combine(nested.FullName, $"file-{index:000}.txt"), "Change");
         }
 
         var tools = new UtilityTools(NullLogger<UtilityTools>.Instance, SolutionManagerTestFactory.Create());
         var report = await tools.GetChangedFiles(directory.FullName);
 
-        var rows = report.Split(Environment.NewLine).Count(line => line.StartsWith("| ?? |", StringComparison.Ordinal));
-        Assert.Equal(80, rows);
+        var rows = report.Split(Environment.NewLine).Where(line => line.StartsWith("| ?? |", StringComparison.Ordinal));
+        var expectedRows = Enumerable.Range(0, 80).Select(index => $"| ?? | `new/file-{index:000}.txt` |");
+        Assert.Equal(expectedRows, rows);
         Assert.Contains("**Changed/untracked:** 81", report, StringComparison.Ordinal);
         Assert.Contains("Showing first 80 of 81 paths.", report, StringComparison.Ordinal);
-        Assert.Contains("`file-079.txt`", report, StringComparison.Ordinal);
-        Assert.DoesNotContain("`file-080.txt`", report, StringComparison.Ordinal);
+        Assert.DoesNotContain("ignored.txt", report, StringComparison.Ordinal);
     }
 
     private static async Task InitializeRepositoryAsync(string directory)
