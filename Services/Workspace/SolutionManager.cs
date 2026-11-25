@@ -166,6 +166,14 @@ public sealed class SolutionManager
     /// <summary>Test seam: cancel after this many successful document writes (0 = disabled).</summary>
     internal int CancelAfterDocumentWrites { get; set; }
 
+    internal Action<string>? AfterStagingPrefixForTests { get; set; }
+
+    internal Action<string>? AfterDocumentCommitForTests { get; set; }
+
+    internal Action? BeforeSavingProjectRegistrationForTests { get; set; }
+
+    internal Action? AfterClosingProjectBuildHostForTests { get; set; }
+
     /// <summary>Test seam: drop the captured snapshot before the opt-in publication gate.</summary>
     internal bool DiscardNextProvenanceSnapshot { get; set; }
 
@@ -2076,66 +2084,138 @@ public sealed class SolutionManager
             return RememberWrite(WorkspaceWriteResult.PreflightRejected(preflight.Reason ?? "preflight-rejected"));
         }
 
-        var cleaned = preflight.CleanedCandidate;
         var saved = new List<string>();
         var savedTexts = new List<(string Path, string Text, Encoding WriteEncoding)>();
-        var cancelled = false;
-        Exception? persistError = null;
+        var registered = new List<DocumentInfo>();
         try
         {
+            var (residual, added) = await WorkspaceResidualWrite.PrepareAsync(
+                    workspace.CurrentSolution,
+                    preflight.CleanedCandidate,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            await using var registration = await WorkspaceProjectDocumentRegistration.OpenAsync(
+                    workspace, added.Select(static item => item.Document.Project), _logger, cancellationToken)
+                .ConfigureAwait(false);
             await PersistDocumentChangesAsync(baseForDocuments, candidate, saved, savedTexts, cancellationToken)
                 .ConfigureAwait(false);
+            if (registration is not null)
+            {
+                registration.BeforeSavingProjectForTests = BeforeSavingProjectRegistrationForTests;
+                registration.AfterClosingBuildHostForTests = AfterClosingProjectBuildHostForTests;
+                await PersistAddedDocumentsAsync(registration, added, registered, saved, savedTexts, cancellationToken)
+                    .ConfigureAwait(false);
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+            var applied = ApplyResidualWorkspaceChanges(workspace, residual, saved);
+            PublishRegisteredDocuments(workspace, registered);
+            if (applied)
+            {
+                if (PublishConfirmedDocumentTexts(workspace, savedTexts))
+                {
+                    PublishSavedDocumentTexts(workspace.CurrentSolution, savedTexts);
+                    LogProcessWorkingSet("document_update");
+                    return RememberWrite(new WorkspaceWriteResult
+                    {
+                        Status = WorkspaceWriteStatus.FullSuccess,
+                        SavedPaths = saved,
+                        WorkspaceApplied = true,
+                        OverlayPublished = true,
+                    });
+                }
+
+                return RememberWrite(new WorkspaceWriteResult
+                {
+                    Status = WorkspaceWriteStatus.ReconciliationFailed,
+                    Reason = "confirmed-text-unrepresentable",
+                    SavedPaths = saved,
+                    UnappliedProjectState = true,
+                });
+            }
         }
         catch (OperationCanceledException)
         {
-            cancelled = true;
+            PublishRegisteredDocuments(workspace, registered);
+            return FinishAfterSideEffects(workspace, saved, savedTexts, WorkspaceWriteStatus.Cancelled, "cancelled");
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException or AggregateException)
         {
-            persistError = ex;
-        }
-
-        if (cancelled || persistError is not null)
-        {
-            return await FinishAfterSideEffectsAsync(
-                    workspace,
-                    saved,
-                    savedTexts,
-                    unappliedProject: true,
-                    cancelled ? WorkspaceWriteStatus.Cancelled : WorkspaceWriteStatus.PartialPersistence,
-                    cancelled ? "cancelled" : persistError!.GetType().Name + ": " + persistError.Message,
-                    cancellationToken)
-                .ConfigureAwait(false);
-        }
-
-        BeginRepeatWrites(saved);
-        if (TryApplyWorkspaceChanges(workspace, cleaned))
-        {
-            CommitRepeatWrites(saved);
-            PublishSavedDocumentTexts(workspace.CurrentSolution, savedTexts);
-            LogProcessWorkingSet("document_update");
-            return RememberWrite(new WorkspaceWriteResult
-            {
-                Status = WorkspaceWriteStatus.FullSuccess,
-                SavedPaths = saved,
-                WorkspaceApplied = true,
-                OverlayPublished = true,
-            });
-        }
-
-        _logger.LogWarning(
-            "TryApplyChanges rejected after preflight. saved={SavedCount}",
-            saved.Count);
-        AbandonRepeatWrites(saved);
-        return await FinishAfterSideEffectsAsync(
+            PublishRegisteredDocuments(workspace, registered);
+            return FinishAfterSideEffects(
                 workspace,
                 saved,
                 savedTexts,
-                unappliedProject: true,
                 WorkspaceWriteStatus.PartialPersistence,
-                "try-apply-rejected",
-                cancellationToken)
-            .ConfigureAwait(false);
+                ex.GetType().Name + ": " + ex.Message);
+        }
+
+        _logger.LogWarning("TryApplyChanges rejected or incomplete after preflight. saved={SavedCount}", saved.Count);
+        return FinishAfterSideEffects(
+            workspace,
+            saved,
+            savedTexts,
+            WorkspaceWriteStatus.PartialPersistence,
+            "try-apply-rejected");
+    }
+
+    private bool ApplyResidualWorkspaceChanges(
+        Microsoft.CodeAnalysis.Workspace workspace,
+        Solution residual,
+        List<string> saved)
+    {
+        WorkspaceResidualWrite.EnsureNoRemovedWritePaths(residual.GetChanges(workspace.CurrentSolution), saved);
+        return TryApplyWorkspaceChanges(workspace, residual);
+    }
+
+    private async Task PersistAddedDocumentsAsync(
+        WorkspaceProjectDocumentRegistration registration,
+        IReadOnlyList<(Document Document, string Path, SourceText Text)> added,
+        List<DocumentInfo> registered,
+        List<string> saved,
+        List<(string Path, string Text, Encoding WriteEncoding)> savedTexts,
+        CancellationToken cancellationToken)
+    {
+        foreach (var (document, path, text) in added)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            var content = text.ToString();
+            var encoding = text.Encoding!;
+            var afterStagingPrefix = AfterStagingPrefixForTests;
+            Baseline.RecordWrite(path);
+            await WorkspaceFilePersistence.CreateTextAsync(
+                    _diskWatcherSession,
+                    path,
+                    content,
+                    encoding,
+                    afterStagingPrefix is null ? null : () => afterStagingPrefix(path),
+                    cancellationToken)
+                .ConfigureAwait(false);
+            saved.Add(path);
+            savedTexts.Add((path, content, encoding));
+            AfterDocumentCommitForTests?.Invoke(path);
+            await registration.AddDocumentAsync(document.Project.Id, path, cancellationToken).ConfigureAwait(false);
+            registered.Add(DocumentInfo.Create(
+                document.Id,
+                document.Name,
+                document.Folders,
+                document.SourceCodeKind,
+                TextLoader.From(TextAndVersion.Create(text, VersionStamp.Create(), path)),
+                path));
+        }
+    }
+
+    private void PublishRegisteredDocuments(Microsoft.CodeAnalysis.Workspace workspace, List<DocumentInfo> registered)
+    {
+        if (registered.Count == 0)
+        {
+            return;
+        }
+
+        WorkspaceDocumentDiskSync.Publish(workspace, workspace.CurrentSolution.AddDocuments([.. registered]));
+        registered.Clear();
+        NoteRawWorkspaceRevision();
     }
 
     private async Task WriteTrackedTextToDiskAsync(
@@ -2156,11 +2236,13 @@ public sealed class SolutionManager
         }
 
         Baseline.RecordWrite(canonical);
+        var afterStagingPrefix = AfterStagingPrefixForTests;
         await WorkspaceFilePersistence.WriteTextAsync(
                 _diskWatcherSession,
                 canonical,
                 text,
                 encoding,
+                afterStagingPrefix is null ? null : () => afterStagingPrefix(canonical),
                 cancellationToken)
             .ConfigureAwait(false);
         NoteGraphFileWrite(canonical);
@@ -2178,7 +2260,8 @@ public sealed class SolutionManager
         foreach (var newDoc in GetDocumentsToPersist(oldSolution, newSolution))
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (newDoc.FilePath is null)
+            var oldDoc = (TextDocument?)oldSolution.GetDocument(newDoc.Id) ?? oldSolution.GetAdditionalDocument(newDoc.Id);
+            if (newDoc.FilePath is null || oldDoc is null)
             {
                 continue;
             }
@@ -2198,35 +2281,20 @@ public sealed class SolutionManager
                 continue;
             }
 
-            var oldDoc = oldSolution.GetDocument(newDoc.Id);
             var newSourceText = await newDoc.GetTextAsync(cancellationToken).ConfigureAwait(false);
             var text = newSourceText.ToString();
-            SourceText? oldSourceText = null;
-            if (oldDoc is not null)
+            var oldSourceText = await oldDoc.GetTextAsync(cancellationToken).ConfigureAwait(false);
+            if (string.Equals(oldSourceText.ToString(), text, StringComparison.Ordinal))
             {
-                oldSourceText = await oldDoc.GetTextAsync(cancellationToken).ConfigureAwait(false);
-                if (string.Equals(oldSourceText.ToString(), text, StringComparison.Ordinal))
-                {
-                    continue;
-                }
-            }
-            else
-            {
-                var directory = Path.GetDirectoryName(fullPath);
-                if (!string.IsNullOrWhiteSpace(directory))
-                {
-                    Directory.CreateDirectory(directory);
-                }
+                continue;
             }
 
-            // One operation writes the file twice (persist here, again on TryApplyChanges); both must use the
-            // same encoding, or a BOM added by one is reverted by the other. The second write is armed
-            // around TryApplyChanges so its echo is compared to these bytes.
             var writeEncoding = SourceTextEncoding.ResolveForWrite(oldSourceText, newSourceText, fullPath);
             await WriteTrackedTextToDiskAsync(fullPath, text, writeEncoding, cancellationToken).ConfigureAwait(false);
             savedPaths.Add(fullPath);
             saved.Add(fullPath);
             savedTexts.Add((fullPath, text, writeEncoding));
+            AfterDocumentCommitForTests?.Invoke(fullPath);
             if (CancelAfterDocumentWrites > 0 && saved.Count >= CancelAfterDocumentWrites)
             {
                 CancelAfterDocumentWrites = 0;
@@ -2235,45 +2303,36 @@ public sealed class SolutionManager
         }
     }
 
-    private static IEnumerable<Document> GetDocumentsToPersist(Solution oldSolution, Solution newSolution)
+    private static IEnumerable<TextDocument> GetDocumentsToPersist(Solution oldSolution, Solution newSolution)
     {
-        var changes = newSolution.GetChanges(oldSolution);
-        var updatedProjects = changes.GetProjectChanges().ToDictionary(change => change.ProjectId);
-        var addedProjects = changes.GetAddedProjects().ToDictionary(project => project.Id);
-        // Keep the previous write order, including which linked document wins and what is saved on failure.
+        var changes = newSolution.GetChanges(oldSolution).GetProjectChanges().ToDictionary(change => change.ProjectId);
+        // Keep project and document order when recording the first successful write to a linked path.
         foreach (var projectId in newSolution.ProjectIds)
         {
-            if (addedProjects.TryGetValue(projectId, out var addedProject))
+            if (!changes.TryGetValue(projectId, out var change))
             {
-                foreach (var document in addedProject.Documents)
+                continue;
+            }
+
+            var candidates = change.GetChangedDocuments(onlyGetDocumentsWithTextChanges: true)
+                .Concat(change.GetChangedAdditionalDocuments())
+                .ToHashSet();
+            foreach (var document in change.NewProject.Documents.Cast<TextDocument>().Concat(change.NewProject.AdditionalDocuments))
+            {
+                if (candidates.Contains(document.Id))
                 {
                     yield return document;
-                }
-            }
-            else if (updatedProjects.TryGetValue(projectId, out var change))
-            {
-                var candidates = change.GetChangedDocuments(onlyGetDocumentsWithTextChanges: true)
-                    .Concat(change.GetAddedDocuments())
-                    .ToHashSet();
-                foreach (var documentId in change.NewProject.DocumentIds)
-                {
-                    if (candidates.Contains(documentId))
-                    {
-                        yield return change.NewProject.GetDocument(documentId)!;
-                    }
                 }
             }
         }
     }
 
-    private async Task<WorkspaceWriteResult> FinishAfterSideEffectsAsync(
+    private WorkspaceWriteResult FinishAfterSideEffects(
         Microsoft.CodeAnalysis.Workspace workspace,
         List<string> saved,
         List<(string Path, string Text, Encoding WriteEncoding)> savedTexts,
-        bool unappliedProject,
         WorkspaceWriteStatus persistenceStatus,
-        string reason,
-        CancellationToken cancellationToken)
+        string reason)
     {
         if (savedTexts.Count == 0)
         {
@@ -2282,23 +2341,29 @@ public sealed class SolutionManager
                 Status = persistenceStatus,
                 Reason = reason,
                 SavedPaths = saved,
-                UnappliedProjectState = unappliedProject,
+                UnappliedProjectState = true,
             });
         }
 
-        var reconciled = await ReconcileSavedTextsUnderLockAsync(workspace, savedTexts, cancellationToken)
-            .ConfigureAwait(false);
-        if (reconciled)
+        // Cancellation ends the write, but cannot undo destinations already replaced on disk.
+        var precedingSolution = workspace.CurrentSolution;
+        var reconciled = !FailNextReconciliation && PublishConfirmedDocumentTexts(workspace, savedTexts);
+        FailNextReconciliation = false;
+        var published = reconciled || !ReferenceEquals(precedingSolution, workspace.CurrentSolution);
+        if (published)
         {
             PublishSavedDocumentTexts(workspace.CurrentSolution, savedTexts);
+        }
+
+        if (reconciled)
+        {
             return RememberWrite(new WorkspaceWriteResult
             {
                 Status = WorkspaceWriteStatus.ReconciliationSucceeded,
                 Reason = reason,
                 SavedPaths = saved,
-                WorkspaceApplied = false,
                 OverlayPublished = true,
-                UnappliedProjectState = unappliedProject,
+                UnappliedProjectState = true,
             });
         }
 
@@ -2307,7 +2372,7 @@ public sealed class SolutionManager
             Status = WorkspaceWriteStatus.ReconciliationFailed,
             Reason = reason + "; reconciliation-failed",
             SavedPaths = saved,
-            OverlayPublished = false,
+            OverlayPublished = published,
             UnappliedProjectState = true,
         });
     }
@@ -2331,63 +2396,42 @@ public sealed class SolutionManager
         SetPublishedSolution(workspaceSolution);
     }
 
-    private async Task<bool> ReconcileSavedTextsUnderLockAsync(
+    private bool PublishConfirmedDocumentTexts(
         Microsoft.CodeAnalysis.Workspace workspace,
-        IReadOnlyList<(string Path, string Text, Encoding WriteEncoding)> savedTexts,
-        CancellationToken cancellationToken)
+        IReadOnlyList<(string Path, string Text, Encoding WriteEncoding)> savedTexts)
     {
-        if (FailNextReconciliation)
+        var original = workspace.CurrentSolution;
+        var updated = original;
+        var complete = true;
+        foreach (var (path, text, encoding) in savedTexts)
         {
-            FailNextReconciliation = false;
-            return false;
-        }
-
-        var current = workspace.CurrentSolution;
-        var changed = false;
-        foreach (var (path, text, _) in savedTexts)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            var fullPath = Path.GetFullPath(path);
-            var documentIds = FindUserDocumentIdsForPath(current, fullPath);
-            if (documentIds.Count == 0)
+            var documentIds = FindUserDocumentIdsForPath(updated, path);
+            var hasAdditionalText = WorkspaceNonCSharpDiskSync.HasDocument(updated, path, _pathComparison);
+            if (documentIds.Count == 0 && !hasAdditionalText)
             {
-                return false;
+                complete = false;
+                continue;
             }
 
-            var existingDocument = current.GetDocument(documentIds[0]);
-            var existingText = existingDocument is null
-                ? null
-                : await existingDocument.GetTextAsync(cancellationToken).ConfigureAwait(false);
-            var writeEncoding = SourceTextEncoding.ResolveForWrite(existingText, candidate: null, fullPath);
-            var shared = SourceText.From(text, writeEncoding);
-            foreach (var documentId in documentIds)
+            var source = SourceText.From(text, encoding);
+            if (documentIds.Count > 0)
             {
-                current = current.WithDocumentText(documentId, shared);
+                updated = updated.WithDocumentText(documentIds, source);
             }
 
-            changed = true;
+            if (hasAdditionalText)
+            {
+                updated = WorkspaceNonCSharpDiskSync.ApplyPath(updated, path, source, _pathComparison);
+            }
         }
 
-        if (!changed)
+        if (!ReferenceEquals(updated, original))
         {
-            return true;
+            WorkspaceDocumentDiskSync.Publish(workspace, updated);
+            NoteRawWorkspaceRevision();
         }
 
-        var paths = new List<string>(savedTexts.Count);
-        foreach (var (path, _, _) in savedTexts)
-        {
-            paths.Add(Path.GetFullPath(path));
-        }
-
-        BeginRepeatWrites(paths);
-        if (!TryApplyWorkspaceChanges(workspace, current))
-        {
-            AbandonRepeatWrites(paths);
-            return false;
-        }
-
-        CommitRepeatWrites(paths);
-        return true;
+        return complete;
     }
 
     /// <summary>
@@ -3128,6 +3172,17 @@ public sealed class SolutionManager
         string? newGraphPath = null;
         var accepted = session.TryRun(() =>
         {
+            if (WorkspaceFilePersistence.IsStagingPath(session, e.FullPath))
+            {
+                return;
+            }
+
+            if (WorkspaceFilePersistence.IsStagingPath(session, e.OldFullPath))
+            {
+                newGraphPath = QueueDiskPath(session, e.FullPath, WatcherChangeTypes.Changed);
+                return;
+            }
+
             var map = session.InputMap;
             if (map is not null && WorkspaceDiskEventClassifier.IsAtomicSaveToLoadedSource(e.OldFullPath, e.FullPath, map))
             {
@@ -3271,6 +3326,11 @@ public sealed class SolutionManager
             fullPath = Path.GetFullPath(rawPath);
         }
         catch (Exception)
+        {
+            return null;
+        }
+
+        if (WorkspaceFilePersistence.IsStagingPath(session, fullPath))
         {
             return null;
         }
@@ -3537,55 +3597,6 @@ public sealed class SolutionManager
         }
 
         return revisionMoved;
-    }
-
-    private void BeginRepeatWrites(IReadOnlyList<string> paths)
-    {
-        var session = _diskWatcherSession;
-        if (session is null)
-        {
-            return;
-        }
-
-        foreach (var path in paths)
-        {
-            session.BeginOwnWrite(path);
-        }
-    }
-
-    private void CommitRepeatWrites(IReadOnlyList<string> paths)
-    {
-        var session = _diskWatcherSession;
-        if (session is null)
-        {
-            return;
-        }
-
-        foreach (var path in paths)
-        {
-            try
-            {
-                session.CommitOwnWrite(path, File.ReadAllBytes(path), notifyEvenWhenUnchanged: false);
-            }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-            {
-                session.AbandonOwnWrite(path);
-            }
-        }
-    }
-
-    private void AbandonRepeatWrites(IReadOnlyList<string> paths)
-    {
-        var session = _diskWatcherSession;
-        if (session is null)
-        {
-            return;
-        }
-
-        foreach (var path in paths)
-        {
-            session.AbandonOwnWrite(path);
-        }
     }
 
     private bool IsInjectedWriteFailure(string canonicalPath)
