@@ -554,6 +554,174 @@ public sealed class WorkspaceWriteEncodingTests : IDisposable
     }
 
     [Theory]
+    [InlineData("project", false)]
+    [InlineData("project", true)]
+    [InlineData("import", false)]
+    [InlineData("import", true)]
+    [InlineData("optional-import", false)]
+    [InlineData("optional-import", true)]
+    [InlineData("computed-import", false)]
+    [InlineData("computed-import", true)]
+    [InlineData("glob-import", false)]
+    [InlineData("glob-import", true)]
+    [InlineData("conditional-property", false)]
+    [InlineData("conditional-property", true)]
+    public async Task Bom_free_source_edits_require_current_project_encoding(string changedInput, bool patch)
+    {
+        const string Source = """namespace App; public class Sample { public const string Value = "Marker"; }""";
+        const string Changed = """namespace App; public class Sample { public const string Value = "Café"; }""";
+        var propsPath = Path.Combine(_root, "Inputs", "Encoding.settings.xml");
+        var import = changedInput switch
+        {
+            "project" => "",
+            "import" => """<Import Project="Inputs/Encoding.settings.xml" />""",
+            "computed-import" => """
+                <Import Project="$(MSBuildThisFileDirectory)Inputs/Encoding.settings.xml"
+                        Condition="Exists('$(MSBuildThisFileDirectory)Inputs/Encoding.settings.xml')" />
+                """,
+            "glob-import" => """<Import Project="Inputs/*.xml" />""",
+            "conditional-property" => """
+                <PropertyGroup Condition="Exists('use-latin1')"><CodePage>28591</CodePage></PropertyGroup>
+                """,
+            _ => """<Import Project="Inputs/Encoding.settings.xml" Condition="Exists('Inputs/Encoding.settings.xml')" />"""
+        };
+        var project = $"""
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup><TargetFramework>net10.0</TargetFramework><CodePage>65001</CodePage></PropertyGroup>
+              {import}
+            </Project>
+            """;
+        Directory.CreateDirectory(Path.GetDirectoryName(propsPath)!);
+        if (changedInput == "import")
+        {
+            await File.WriteAllTextAsync(propsPath, CodePageProperties(65001));
+        }
+
+        await File.WriteAllTextAsync(_csprojPath, project);
+        await File.WriteAllTextAsync(_sourcePath, Source, BomFreeUtf8);
+        var manager = await LoadAsync();
+        manager.SilenceDiskWatchersForTests();
+        var originalSnapshot = (await manager.GetPublishedSolutionAsync())!;
+        var originalDocument = Assert.Single(originalSnapshot.Projects.Single().Documents, document => document.FilePath == _sourcePath);
+
+        var changedPath = changedInput switch
+        {
+            "project" => _csprojPath,
+            "conditional-property" => Path.Combine(_root, "use-latin1"),
+            _ => propsPath,
+        };
+        var originalWriteTime = File.GetLastWriteTimeUtc(changedPath);
+        var content = changedInput switch
+        {
+            "project" => project.Replace("65001", "28591", StringComparison.Ordinal),
+            "conditional-property" => "",
+            _ => CodePageProperties(28591),
+        };
+        await File.WriteAllTextAsync(changedPath, content);
+        if (changedInput is "project" or "import")
+        {
+            // A checkout or editor can preserve the timestamp and size.
+            File.SetLastWriteTimeUtc(changedPath, originalWriteTime);
+        }
+
+        var message = await EditAsync();
+        Assert.Contains("Run load_workspace", message, StringComparison.Ordinal);
+        Assert.Equal(BomFreeUtf8.GetBytes(Source), await File.ReadAllBytesAsync(_sourcePath));
+        var snapshot = (await manager.GetPublishedSolutionAsync())!;
+        Assert.Equal(Source, (await snapshot.GetDocument(originalDocument.Id)!.GetTextAsync()).ToString());
+
+        await manager.LoadAndPrepareAsync(_csprojPath, shadowCopyInSolutionAnalyzers: false, CancellationToken.None);
+        var success = await EditAsync();
+        Assert.Contains(patch ? "Patch applied successfully" : "Successfully wrote", success, StringComparison.Ordinal);
+        Assert.Equal(Encoding.Latin1.GetBytes(Changed), await File.ReadAllBytesAsync(_sourcePath));
+
+        static string CodePageProperties(int page) =>
+            $"<Project><PropertyGroup><CodePage>{page}</CodePage></PropertyGroup></Project>";
+
+        Task<string> EditAsync() => patch
+            ? new UtilityTools(NullLogger<UtilityTools>.Instance, manager).ApplyPatch(_sourcePath, "Marker", "Café")
+            : new EditingTools(NullLogger<EditingTools>.Instance, manager).WriteFile(_sourcePath, Changed);
+    }
+
+    [Fact]
+    public async Task WriteFile_preserves_a_BOM_marked_source_when_project_encoding_changes()
+    {
+        await File.WriteAllTextAsync(_sourcePath, OriginalSourceText, Utf8WithBom);
+        var manager = await LoadAsync();
+        manager.SilenceDiskWatchersForTests();
+        await File.WriteAllTextAsync(
+            _csprojPath,
+            """
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup><TargetFramework>net10.0</TargetFramework><CodePage>28591</CodePage></PropertyGroup>
+            </Project>
+            """);
+        var tool = new EditingTools(NullLogger<EditingTools>.Instance, manager);
+        const string Changed = """namespace App; public class Sample { public const string Value = "Café"; }""";
+
+        var message = await tool.WriteFile(_sourcePath, Changed);
+
+        Assert.Contains("Successfully wrote", message, StringComparison.Ordinal);
+        Assert.Equal(Utf8WithBom.GetPreamble().Concat(Utf8WithBom.GetBytes(Changed)), await File.ReadAllBytesAsync(_sourcePath));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task WriteFile_rechecks_which_target_frameworks_compile_the_source(bool addedFrameworkOwnsSource)
+    {
+        var itemGroup = addedFrameworkOwnsSource
+            ? ""
+            : """<ItemGroup Condition="'$(TargetFramework)' == 'net11.0'"><Compile Remove="Class1.cs" /></ItemGroup>""";
+        await File.WriteAllTextAsync(
+            _csprojPath,
+            $"""
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup><TargetFrameworks>net10.0</TargetFrameworks><CodePage>65001</CodePage></PropertyGroup>
+              <PropertyGroup Condition="Exists('additional-target')"><TargetFrameworks>net10.0;net11.0</TargetFrameworks></PropertyGroup>
+              <PropertyGroup Condition="'$(TargetFramework)' == 'net11.0'"><CodePage>28591</CodePage></PropertyGroup>
+              {itemGroup}
+            </Project>
+            """);
+        await File.WriteAllTextAsync(_sourcePath, OriginalSourceText, BomFreeUtf8);
+        var manager = await LoadAsync();
+        manager.SilenceDiskWatchersForTests();
+        await File.WriteAllTextAsync(Path.Combine(_root, "additional-target"), "");
+        var tool = new EditingTools(NullLogger<EditingTools>.Instance, manager);
+        const string Changed = """namespace App; public class Sample { public const string Value = "Café"; }""";
+
+        var message = await tool.WriteFile(_sourcePath, Changed);
+
+        Assert.Contains(addedFrameworkOwnsSource ? "Run load_workspace" : "Successfully wrote", message, StringComparison.Ordinal);
+        Assert.Equal(BomFreeUtf8.GetBytes(addedFrameworkOwnsSource ? OriginalSourceText : Changed), await File.ReadAllBytesAsync(_sourcePath));
+    }
+
+    [Fact]
+    public async Task ApplyPatch_checks_possible_readers_when_replacing_a_BOM_with_a_shebang()
+    {
+        const string Statement = """System.Console.WriteLine("Hello");""";
+        var path = Path.Combine(_outsideRoot, "hello.cs");
+        await File.WriteAllTextAsync(path, Statement, Utf8WithBom);
+        await File.WriteAllTextAsync(
+            _csprojPath,
+            """
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup><TargetFramework>net10.0</TargetFramework><CodePage>65001</CodePage></PropertyGroup>
+              <PropertyGroup Condition="Exists('use-utf16')"><CodePage>1200</CodePage></PropertyGroup>
+            </Project>
+            """);
+        var manager = await LoadAsync();
+        manager.SilenceDiskWatchersForTests();
+        await File.WriteAllTextAsync(Path.Combine(_root, "use-utf16"), "");
+
+        var tool = new UtilityTools(NullLogger<UtilityTools>.Instance, manager);
+        var message = await tool.ApplyPatch(path, Statement, "#!/usr/bin/env dotnet\n" + Statement);
+
+        Assert.Contains("Run load_workspace", message, StringComparison.Ordinal);
+        Assert.Equal(Utf8WithBom.GetPreamble().Concat(Utf8WithBom.GetBytes(Statement)), await File.ReadAllBytesAsync(path));
+    }
+
+    [Theory]
     [InlineData(false, false)]
     [InlineData(false, true)]
     [InlineData(true, false)]

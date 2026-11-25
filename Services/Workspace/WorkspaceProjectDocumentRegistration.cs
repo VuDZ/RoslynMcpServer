@@ -1,12 +1,14 @@
+using System.Collections;
 using System.Collections.Immutable;
 using System.Reflection;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.MSBuild;
 using Microsoft.Extensions.Logging;
+using RoslynMcpServer.Services.Workspace.Models;
 
 namespace RoslynMcpServer.Services.Workspace;
 
-/// <summary>Uses the pinned MSBuild project-file RPCs without calling the source writer in ApplyDocumentAdded.</summary>
+/// <summary>Uses the pinned MSBuild project-file RPCs for direct inspection and separate document registration.</summary>
 internal sealed class WorkspaceProjectDocumentRegistration : IAsyncDisposable
 {
     internal Action? BeforeSavingProjectForTests { get; set; }
@@ -98,6 +100,52 @@ internal sealed class WorkspaceProjectDocumentRegistration : IAsyncDisposable
         }
     }
 
+    internal async Task<bool> SourceCodePagesMatchAsync(
+        IReadOnlyDictionary<ProjectId, ProjectLoadMetadata> metadata,
+        string? sourcePath,
+        CancellationToken cancellationToken)
+    {
+        foreach (var group in _projectFiles.GroupBy(
+            static pair => pair.Value,
+            (IEqualityComparer<IAsyncDisposable>)ReferenceEqualityComparer.Instance))
+        {
+            var infos = (IEnumerable)await InvokeResultAsync(_methods.GetInfos, group.Key, [cancellationToken]).ConfigureAwait(false);
+            var readers = infos.Cast<object>().Where(info =>
+                _methods.InfoIsEmpty.GetValue(info) is false
+                && (sourcePath is null || ContainsSource(info, sourcePath)))
+                .ToArray();
+            if (readers.Length != group.Count())
+            {
+                return false;
+            }
+
+            foreach (var project in group)
+            {
+                if (!metadata.TryGetValue(project.Key, out var loaded) || loaded.CodePage is not { } codePage)
+                {
+                    return false;
+                }
+
+                var matching = readers.Where(info =>
+                    string.Equals((string?)_methods.InfoFramework.GetValue(info), loaded.TargetFramework, StringComparison.Ordinal))
+                    .Take(2)
+                    .ToArray();
+                if (matching.Length != 1 || _methods.InfoCodePage.GetValue(matching[0]) is not int current || current != codePage)
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    private bool ContainsSource(object projectInfo, string sourcePath) =>
+        ((IEnumerable)_methods.InfoDocuments.GetValue(projectInfo)!).Cast<object>().Any(document =>
+            InputPathCanon.Comparer.Equals(
+                InputPathCanon.TryCanonicalize((string?)_methods.DocumentPath.GetValue(document)),
+                sourcePath));
+
     private async ValueTask CloseAsync(IAsyncDisposable resource, string name, Action? afterClosing = null)
     {
         try
@@ -140,7 +188,18 @@ internal sealed class WorkspaceProjectDocumentRegistration : IAsyncDisposable
         var loadProject = hostType.GetMethod("LoadProjectFileAsync", [typeof(string), typeof(string), typeof(CancellationToken)]);
         var addDocument = projectType.GetMethod("AddDocumentAsync", [typeof(string), typeof(string), typeof(CancellationToken)]);
         var save = projectType.GetMethod("SaveAsync", [typeof(CancellationToken)]);
+        var getInfos = projectType.GetMethod("GetProjectFileInfosAsync", [typeof(CancellationToken)]);
+        // The client returns Task<ImmutableArray<ProjectFileInfo>>, with ProjectFileInfo defined
+        // in the contracts assembly rather than in the client assembly.
+        var projectInfoType = getInfos?.ReturnType.GenericTypeArguments.SingleOrDefault()?.GenericTypeArguments.SingleOrDefault();
+        var infoIsEmpty = projectInfoType?.GetProperty("IsEmpty");
+        var infoFramework = projectInfoType?.GetProperty("TargetFramework");
+        var infoCodePage = projectInfoType?.GetProperty("CodePage");
+        var infoDocuments = projectInfoType?.GetProperty("Documents");
+        var documentPath = infoDocuments?.PropertyType.GetElementType()?.GetProperty("FilePath");
         if (createHost is null || getHost is null || loadProject is null || addDocument is null || save is null
+            || getInfos is null || infoIsEmpty is null || infoFramework is null || infoCodePage is null
+            || infoDocuments is null || documentPath is null
             || getHost.ReturnType != typeof(Task<>).MakeGenericType(hostType)
             || loadProject.ReturnType != typeof(Task<>).MakeGenericType(projectType)
             || addDocument.ReturnType != typeof(Task) || save.ReturnType != typeof(Task))
@@ -148,7 +207,8 @@ internal sealed class WorkspaceProjectDocumentRegistration : IAsyncDisposable
             return null;
         }
 
-        return new RegistrationMethods(createHost, getHost, loadProject, addDocument, save);
+        return new RegistrationMethods(
+            createHost, getHost, loadProject, addDocument, save, getInfos, infoIsEmpty, infoFramework, infoCodePage, infoDocuments, documentPath);
     }
 
     private sealed record RegistrationMethods(
@@ -156,7 +216,13 @@ internal sealed class WorkspaceProjectDocumentRegistration : IAsyncDisposable
         MethodInfo GetHost,
         MethodInfo LoadProject,
         MethodInfo AddDocument,
-        MethodInfo Save);
+        MethodInfo Save,
+        MethodInfo GetInfos,
+        PropertyInfo InfoIsEmpty,
+        PropertyInfo InfoFramework,
+        PropertyInfo InfoCodePage,
+        PropertyInfo InfoDocuments,
+        PropertyInfo DocumentPath);
 
     private readonly IAsyncDisposable _host;
     private readonly RegistrationMethods _methods;

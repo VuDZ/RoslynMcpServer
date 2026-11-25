@@ -10,6 +10,7 @@ public static class VstestOutputParser
     private const int MaxFailedTestDetails = 5;
     private const int MaxStackTraceLinesPerFailure = 15;
     private const int PartialSuccessTailChars = 2048;
+    private const string NoMatchPrefix = "No test matches the given testcase filter";
 
     /// <summary>VSTest console duration: <c>[&lt; 1 ms]</c>, <c>[12 ms]</c>, <c>[1 s]</c>, <c>[1 m 28 s]</c>, <c>[1 h 2 m]</c>.</summary>
     private const string VstestDurationBracket =
@@ -88,7 +89,7 @@ public static class VstestOutputParser
     /// Sibling assemblies on a <c>.sln</c> run print this even when another assembly executed the test.
     /// </summary>
     private static readonly Regex RxNoTestMatchesLine = new(
-        @"No test matches the given testcase filter",
+        NoMatchPrefix,
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     public sealed record TestSummary(int Total, int Passed, int Failed, int Skipped);
@@ -640,13 +641,18 @@ public static class VstestOutputParser
     private static SummaryBlocks ReadSummaryBlocks(string text, bool outputTruncated)
     {
         var lines = text.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
+        var knownSources = lines.Where(line => IsTestRunStart(line))
+            .Select(line => RunSource.Parse(line.Trim()["Test run for ".Length..]).Path)
+            .ToHashSet(StringComparer.Ordinal);
         var compact = new List<LoggerSummary>();
         var numeric = new List<LoggerSummary>();
         var starts = new List<RunSource>();
         var pendingSources = new HashSet<string>(StringComparer.Ordinal);
         // A delayed normal logger may print every case and its summary after the next target starts.
         // A named no-match rules that target out, even when its notice follows those records.
-        var sourcesWithoutMatches = lines.Select(GetNoMatchSource).OfType<string>().ToHashSet(StringComparer.Ordinal);
+        var sourcesWithoutMatches = lines.Select(line => GetNoMatchSource(line, knownSources))
+            .OfType<string>()
+            .ToHashSet(StringComparer.Ordinal);
         var noMatches = new HashSet<string>(StringComparer.Ordinal);
         var aborted = new SummaryBlocks();
         var sawAbort = false;
@@ -672,9 +678,9 @@ public static class VstestOutputParser
                 continue;
             }
 
-            if (GetNoMatchSource(line) is { } path)
+            if (line.StartsWith(NoMatchPrefix, StringComparison.Ordinal))
             {
-                if (pendingSources.Remove(path))
+                if (GetNoMatchSource(lines[i], knownSources) is { } path && pendingSources.Remove(path))
                 {
                     noMatches.Add(path);
                 }
@@ -763,16 +769,65 @@ public static class VstestOutputParser
         return result.BlockCount + noMatchWithoutTotals < starts.Count ? result with { Total = null } : result;
     }
 
-    private static string? GetNoMatchSource(string line)
+    private static string? GetNoMatchSource(string line, HashSet<string> knownSources)
     {
-        line = line.Trim();
-        if (!line.StartsWith("No test matches the given testcase filter", StringComparison.Ordinal))
+        line = line.TrimStart();
+        if (!line.StartsWith(NoMatchPrefix, StringComparison.Ordinal))
         {
             return null;
         }
 
-        var separator = line.LastIndexOf(" in ", StringComparison.OrdinalIgnoreCase);
-        return separator < 0 ? null : line[(separator + 4)..].TrimEnd('.');
+        var fields = line[NoMatchPrefix.Length..];
+        const string AbbreviatedSeparator = " in ";
+        if (fields.StartsWith(AbbreviatedSeparator, StringComparison.Ordinal))
+        {
+            return MatchKnownSource(fields[AbbreviatedSeparator.Length..]);
+        }
+
+        const string OpeningFilter = " `";
+        const string ClosingFilter = "` in ";
+        if (!fields.StartsWith(OpeningFilter, StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        // VSTest inserts the filter and path verbatim. Either can contain the closing delimiter,
+        // so trust only a unique full source path from a run header.
+        // See docs/project-review-2026-11-25/task-48-p2-vstest-no-match-source-path-med.md.
+        string? match = null;
+        var start = OpeningFilter.Length;
+        while (start < fields.Length)
+        {
+            var separator = fields.IndexOf(ClosingFilter, start, StringComparison.Ordinal);
+            if (separator < 0)
+            {
+                break;
+            }
+
+            start = separator + ClosingFilter.Length;
+            if (MatchKnownSource(fields[start..]) is { } source)
+            {
+                if (match is not null)
+                {
+                    return null;
+                }
+
+                match = source;
+            }
+        }
+
+        return match;
+
+        string? MatchKnownSource(string source)
+        {
+            if (knownSources.Contains(source))
+            {
+                return source;
+            }
+
+            // Some retained logs punctuate the notice. Prefer the actual path with its period if known.
+            return source.EndsWith('.') && knownSources.Contains(source[..^1]) ? source[..^1] : null;
+        }
     }
 
     private static (int First, int Last) FindCompactStarts(string line, List<RunSource> starts, HashSet<string> pendingSources)
@@ -1537,6 +1592,6 @@ public static class VstestOutputParser
 
     // Display names, skip reasons and filters are user text and may quote an MSBuild diagnostic.
     private static readonly Regex _testLoggerLine = new(
-        $@"^\s*(?:\[xUnit\.net[\s\]]|No test matches the given testcase filter\b|(?:Passed|Failed|Skipped)\s+.+\s+{VstestDurationBracket}\s*$)",
+        $@"^\s*(?:\[xUnit\.net[\s\]]|{NoMatchPrefix}\b|(?:Passed|Failed|Skipped)\s+.+\s+{VstestDurationBracket}\s*$)",
         RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 }

@@ -334,7 +334,13 @@ public sealed class SolutionManager
             }
 
             // Membership and its reader settings must still describe the same workspace at the disk-only commit.
-            var encoding = GetTextWriteEncodingUnderLock(fullPath, text, SourceTextEncoding.ForDiskPath(fullPath));
+            var encoding = await GetTextWriteEncodingUnderLockAsync(
+                    fullPath,
+                    text,
+                    SourceTextEncoding.ForDiskPath(fullPath),
+                    unregisteredPatchReplacement: null,
+                    cancellationToken)
+                .ConfigureAwait(false);
             Directory.CreateDirectory(Path.GetDirectoryName(fullPath)!);
             await WriteTrackedTextUnderLockAsync(fullPath, text, encoding, cancellationToken).ConfigureAwait(false);
             NoteUnrepresentableSourcePath(fullPath);
@@ -697,7 +703,7 @@ public sealed class SolutionManager
         await _workspaceLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            var source = await ReadPatchFileUnderLockAsync(fullPath, fragments, cancellationToken).ConfigureAwait(false);
+            var source = await ReadPatchFileUnderLockAsync(fullPath, fragments, verifyReaders: true, cancellationToken).ConfigureAwait(false);
             return source.Text;
         }
         finally
@@ -718,8 +724,9 @@ public sealed class SolutionManager
         try
         {
             // A patch may have matched before another edit committed. Keep the comparison and both
-            // write paths in one critical section so a stale match cannot replace that edit.
-            var current = await ReadPatchFileUnderLockAsync(fullPath, fragments, cancellationToken).ConfigureAwait(false);
+            // write paths in one critical section so a stale match cannot replace that edit. The
+            // loaded readers are checked again at persistence if the patch still matches.
+            var current = await ReadPatchFileUnderLockAsync(fullPath, fragments, verifyReaders: false, cancellationToken).ConfigureAwait(false);
             if (!string.Equals(sourceText, current.Text, StringComparison.Ordinal))
             {
                 return null;
@@ -736,12 +743,10 @@ public sealed class SolutionManager
                 return write;
             }
 
-            await WriteTrackedTextUnderLockAsync(
-                    fullPath,
-                    updatedText,
-                    GetTextWriteEncodingUnderLock(fullPath, updatedText, current.Encoding, unregisteredPatchReplacement: fragments.Replacement),
-                    cancellationToken)
+            var encoding = await GetTextWriteEncodingUnderLockAsync(
+                    fullPath, updatedText, current.Encoding, unregisteredPatchReplacement: fragments.Replacement, cancellationToken)
                 .ConfigureAwait(false);
+            await WriteTrackedTextUnderLockAsync(fullPath, updatedText, encoding, cancellationToken).ConfigureAwait(false);
             return new WorkspaceWriteResult { Status = WorkspaceWriteStatus.FullSuccess, SavedPaths = [fullPath] };
         }
         finally
@@ -882,6 +887,7 @@ public sealed class SolutionManager
                     oldSolution,
                     ResolveOperationContext(oldSolution),
                     singleFilePath: null,
+                    verifySourceReaders: false,
                     cancellationToken)
                 .ConfigureAwait(false);
         }
@@ -2043,10 +2049,18 @@ public sealed class SolutionManager
     private async Task<PatchFileText> ReadPatchFileUnderLockAsync(
         string fullPath,
         (string Original, string Replacement) fragments,
+        bool verifyReaders,
         CancellationToken cancellationToken)
     {
         var bytes = await File.ReadAllBytesAsync(fullPath, cancellationToken).ConfigureAwait(false);
         var encoding = GetFileEncodingUnderLock(fullPath, bytes);
+        if (verifyReaders && encoding.Preamble.IsEmpty && WorkspaceDiskPathFilter.IsCSharpSource(fullPath))
+        {
+            await EnsureSourceReadersAreCurrentUnderLockAsync(
+                    fullPath, GetSourceReaderProjectsUnderLock(fullPath), matchMembership: true, cancellationToken)
+                .ConfigureAwait(false);
+        }
+
         var strict = (Encoding)encoding.Clone();
         strict.DecoderFallback = DecoderFallback.ExceptionFallback;
         var content = bytes.AsSpan(encoding.Preamble.Length);
@@ -2089,7 +2103,9 @@ public sealed class SolutionManager
             // evaluated CodePage of the owning project. See docs/project-review-2026-11-25/task-29-p1-patch-fallback-code-page-hi.md.
             if (projectCodePage is not { } codePage)
             {
-                throw new InvalidDataException($"Cannot determine the project's source encoding for BOM-free file: {fullPath}");
+                MarkProjectGraphStaleFromGraphFile();
+                throw new InvalidDataException(
+                    $"Cannot determine the project's source encoding for BOM-free file: {fullPath}. Run load_workspace to refresh project settings.");
             }
 
             if (codePage == 0)
@@ -2103,7 +2119,11 @@ public sealed class SolutionManager
 
             if (fallback is not null && fallback.CodePage != codePage)
             {
-                throw new InvalidDataException($"The projects containing {fullPath} specify conflicting source encodings.");
+                // The loaded readers already disagree, so no BOM-free interpretation is safe.
+                // Reopening can resolve the conflict if the project inputs have changed.
+                MarkProjectGraphStaleFromGraphFile();
+                throw new InvalidDataException(
+                    $"The loaded projects containing {fullPath} specify conflicting source encodings. Run load_workspace to refresh project settings.");
             }
 
             fallback ??= SourceTextEncoding.WithoutBom(codePage);
@@ -2112,7 +2132,7 @@ public sealed class SolutionManager
         return fallback ?? SourceTextEncoding.BomFreeUtf8;
     }
 
-    private IEnumerable<int?> GetSourceCodePagesUnderLock(string fullPath)
+    private IEnumerable<Project> GetSourceReaderProjectsUnderLock(string fullPath)
     {
         var solution = _workspace?.CurrentSolution;
         if (solution is null)
@@ -2125,12 +2145,62 @@ public sealed class SolutionManager
             // Project CodePage applies to compiler inputs, not additional files or analyzer configs.
             if (solution.GetDocument(id) is { } document && _pathComparer.Equals(document.FilePath, fullPath))
             {
-                yield return _loadedProjectMetadata.GetValueOrDefault(id.ProjectId).CodePage;
+                yield return document.Project;
             }
         }
     }
 
-    private Encoding GetTextWriteEncodingUnderLock(string fullPath, string text, Encoding existingEncoding, string? unregisteredPatchReplacement = null)
+    private IEnumerable<int?> GetSourceCodePagesUnderLock(string fullPath) =>
+        GetSourceReaderProjectsUnderLock(fullPath).Select(project => _loadedProjectMetadata.GetValueOrDefault(project.Id).CodePage);
+
+    private async Task EnsureSourceReadersAreCurrentUnderLockAsync(
+        string fullPath,
+        IEnumerable<Project> readers,
+        bool matchMembership,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var projects = readers.ToArray();
+        if (_workspace is null || projects.Length == 0)
+        {
+            return;
+        }
+
+        // Evaluated settings can change through an import, a condition or a glob without a project-file
+        // watcher event. Compare the effective readers before relying on the loaded CodePage values.
+        // See docs/project-review-2026-11-25/task-47-p1-stale-project-code-page-hi.md.
+        if (!ProjectGraphStaleFromGraphFile && projects.All(project => File.Exists(project.FilePath)))
+        {
+            try
+            {
+                await using var evaluated = await WorkspaceProjectDocumentRegistration.OpenAsync(_workspace, projects, _logger, cancellationToken)
+                    .ConfigureAwait(false);
+                if (evaluated is not null
+                    && await evaluated.SourceCodePagesMatchAsync(
+                            _loadedProjectMetadata, matchMembership ? fullPath : null, cancellationToken)
+                        .ConfigureAwait(false))
+                {
+                    return;
+                }
+            }
+            catch (Exception ex) when (!cancellationToken.IsCancellationRequested
+                && ex is IOException or InvalidOperationException or NotSupportedException or TargetInvocationException)
+            {
+                _logger.LogWarning(ex, "Could not confirm the project source readers for {Path}", fullPath);
+            }
+        }
+
+        MarkProjectGraphStaleFromGraphFile();
+        throw new InvalidDataException(
+            $"The loaded project source encodings could not be confirmed. Run load_workspace before editing the BOM-free source: {fullPath}");
+    }
+
+    private async Task<Encoding> GetTextWriteEncodingUnderLockAsync(
+        string fullPath,
+        string text,
+        Encoding existingEncoding,
+        string? unregisteredPatchReplacement,
+        CancellationToken cancellationToken)
     {
         if (!WorkspaceDiskPathFilter.IsCSharpSource(fullPath))
         {
@@ -2154,7 +2224,8 @@ public sealed class SolutionManager
             return candidate;
         }
 
-        if (!candidate.Preamble.IsEmpty || CanReadBomFreeTextUnderLock(fullPath, text, candidate, script))
+        if (!candidate.Preamble.IsEmpty
+            || await CanReadBomFreeTextUnderLockAsync(fullPath, text, candidate, script, cancellationToken).ConfigureAwait(false))
         {
             return candidate;
         }
@@ -2167,7 +2238,12 @@ public sealed class SolutionManager
         return Encoding.UTF8;
     }
 
-    private bool CanReadBomFreeTextUnderLock(string fullPath, string text, Encoding encoding, bool script)
+    private async Task<bool> CanReadBomFreeTextUnderLockAsync(
+        string fullPath,
+        string text,
+        Encoding encoding,
+        bool script,
+        CancellationToken cancellationToken)
     {
         var readers = GetSourceCodePagesUnderLock(fullPath).Distinct().ToArray();
         if (readers.Length == 0)
@@ -2186,11 +2262,15 @@ public sealed class SolutionManager
                 return false;
             }
 
-            readers = _workspace?.CurrentSolution.Projects
+            var possibleReaders = _workspace?.CurrentSolution.Projects
                 .Where(project => project.Language == LanguageNames.CSharp)
+                .ToArray() ?? [];
+            await EnsureSourceReadersAreCurrentUnderLockAsync(fullPath, possibleReaders, matchMembership: false, cancellationToken)
+                .ConfigureAwait(false);
+            readers = possibleReaders
                 .Select(project => _loadedProjectMetadata.GetValueOrDefault(project.Id).CodePage)
                 .Distinct()
-                .ToArray() ?? [];
+                .ToArray();
         }
 
         byte[]? bytes = null;
@@ -2260,7 +2340,9 @@ public sealed class SolutionManager
         // with SourceText.Encoding; different encodings would flip the linked file's BOM.
         var existingEncoding = checkedPatchSource?.Encoding
             ?? GetFileEncodingUnderLock(fullPath, await File.ReadAllBytesAsync(fullPath, cancellationToken).ConfigureAwait(false));
-        var writeEncoding = GetTextWriteEncodingUnderLock(fullPath, newText, existingEncoding);
+        var writeEncoding = await GetTextWriteEncodingUnderLockAsync(
+                fullPath, newText, existingEncoding, unregisteredPatchReplacement: null, cancellationToken)
+            .ConfigureAwait(false);
         var shared = SourceText.From(newText, writeEncoding);
         var candidate = baseSolution;
         foreach (var documentId in documentIds)
@@ -2268,7 +2350,13 @@ public sealed class SolutionManager
             candidate = candidate.WithDocumentText(documentId, shared);
         }
         var context = CreateVerifiedWriteContext(_solution, baseSolution);
-        return await ApplyWorkspaceWriteUnderLockAsync(candidate, baseSolution, context, fullPath, cancellationToken)
+        return await ApplyWorkspaceWriteUnderLockAsync(
+                candidate,
+                baseSolution,
+                context,
+                fullPath,
+                verifySourceReaders: existingEncoding.Preamble.IsEmpty || writeEncoding.Preamble.IsEmpty,
+                cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -2277,6 +2365,7 @@ public sealed class SolutionManager
         Solution baseForDocuments,
         WorkspaceWriteOperationContext operationContext,
         string? singleFilePath,
+        bool verifySourceReaders,
         CancellationToken cancellationToken)
     {
         var workspace = _workspace;
@@ -2319,6 +2408,7 @@ public sealed class SolutionManager
                     saved,
                     savedTexts,
                     singleFilePath,
+                    verifySourceReaders,
                     cancellationToken)
                 .ConfigureAwait(false);
             if (registration is not null)
@@ -2476,6 +2566,7 @@ public sealed class SolutionManager
         List<string> saved,
         List<(string Path, string Text, Encoding WriteEncoding)> savedTexts,
         string? singleFilePath,
+        bool verifySourceReaders,
         CancellationToken cancellationToken)
     {
         var savedPaths = new HashSet<string>(saved, _pathComparer);
@@ -2513,6 +2604,13 @@ public sealed class SolutionManager
             if (!singleFileWrite && sameText)
             {
                 continue;
+            }
+
+            if (singleFileWrite && verifySourceReaders && WorkspaceDiskPathFilter.IsCSharpSource(fullPath))
+            {
+                await EnsureSourceReadersAreCurrentUnderLockAsync(
+                        fullPath, GetSourceReaderProjectsUnderLock(fullPath), matchMembership: true, cancellationToken)
+                    .ConfigureAwait(false);
             }
 
             // A watcher can lag behind a text or encoding change. Confirm the explicit target on disk,

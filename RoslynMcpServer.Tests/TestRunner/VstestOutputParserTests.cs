@@ -1393,24 +1393,62 @@ public sealed class VstestOutputParserTests
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void A_named_no_match_excludes_the_source_of_a_delayed_verbose_result(bool noticeFirst)
+    [InlineData(false, "bin/net11.0/Demo.dll")]
+    [InlineData(true, "bin/net11.0/Demo.dll")]
+    [InlineData(false, "bin/Tests in Review/net11.0/Demo.dll")]
+    [InlineData(true, "bin/Tests in Review/net11.0/Demo.dll")]
+    public void A_named_no_match_excludes_the_source_of_a_delayed_verbose_result(bool noticeFirst, string source)
     {
-        const string NoMatch = "No test matches the given testcase filter `Demo.Fixture.Match` in bin/net11.0/Demo.dll.";
+        var noMatch = $"No test matches the given testcase filter `Demo.Fixture.Match` in {source}.";
         var output = $"""
             Test run for bin/net10.0/Demo.dll (.NETCoreApp,Version=v10.0)
             Passed! - Failed: 0, Passed: 1, Skipped: 0, Total: 1, Duration: 1 ms - Demo.dll (net10.0)
-            Test run for bin/net11.0/Demo.dll (.NETCoreApp,Version=v11.0)
-            {(noticeFirst ? NoMatch : "")}
+            Test run for {source} (.NETCoreApp,Version=v11.0)
+            {(noticeFirst ? noMatch : "")}
               Passed Demo.Fixture.Match [1 ms]
             Test Run Successful.
             Total tests: 1
                  Passed: 1
-            {(noticeFirst ? "" : NoMatch)}
+            {(noticeFirst ? "" : noMatch)}
             """;
 
         AssertBalancedSummary(VstestOutputParser.Parse(output, 0).Summary, total: 1, passed: 1, failed: 0, skipped: 0);
+    }
+
+    [Theory]
+    [InlineData(@"C:\src\Tests in Review\bin\net11.0\Demo.dll", "FullyQualifiedName~Demo.Fixture.Match")]
+    [InlineData("/src/Tests ` in Review/bin/net11.0/Demo.dll", "DisplayName~A ` in B")]
+    public void No_match_uses_a_complete_run_source_when_filter_and_path_contain_separators(string source, string filter)
+    {
+        var output = $"""
+            Test run for bin/net10.0/Demo.dll (.NETCoreApp,Version=v10.0)
+            Passed! - Failed: 0, Passed: 1, Skipped: 0, Total: 1, Duration: 1 ms - Demo.dll (net10.0)
+            Test run for {source} (.NETCoreApp,Version=v11.0)
+            No test matches the given testcase filter `{filter}` in {source}
+            """;
+        var parsed = VstestOutputParser.Parse(output, 0);
+        var report = VstestOutputParser.BuildMarkdownReport(parsed, 0, output, filter, null, requireFilterMatch: true);
+
+        AssertBalancedSummary(parsed.Summary, total: 1, passed: 1, failed: 0, skipped: 0);
+        Assert.Contains("Filtered tests passed", report, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void No_match_with_two_possible_run_sources_keeps_totals_unknown()
+    {
+        const string FirstSource = "/src/Tests ` in /other/bin/Demo.dll";
+        const string SecondSource = "/other/bin/Demo.dll";
+        const string Output = $"""
+            Test run for {FirstSource} (.NETCoreApp,Version=v10.0)
+            Passed! - Failed: 0, Passed: 1, Skipped: 0, Total: 1, Duration: 1 ms - Demo.dll (net10.0)
+            Test run for {SecondSource} (.NETCoreApp,Version=v11.0)
+            No test matches the given testcase filter `Demo.Fixture.Match` in {FirstSource}
+            """;
+
+        var parsed = VstestOutputParser.Parse(Output, 0);
+
+        Assert.Null(parsed.Summary);
+        Assert.Equal(1, parsed.IncompleteCounts?.Passed);
     }
 
     [Theory]
@@ -1461,6 +1499,7 @@ public sealed class VstestOutputParserTests
     [InlineData("", null)]
     [InlineData("No test matches the given testcase filter in Other.dll", null)]
     [InlineData("No test matches the given testcase filter in net10.0/Demo.dll", null)]
+    [InlineData("No test matches the given testcase filter `Demo.Fixture.Match` in outside in net11.0/Demo.dll", null)]
     [InlineData("No test matches the given testcase filter in net11.0/Demo.dll", 1)]
     public void A_started_target_needs_a_summary_or_its_own_no_match_notice(string completion, int? expectedTotal)
     {
