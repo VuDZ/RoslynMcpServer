@@ -155,7 +155,10 @@ public static class McpToolHelpCatalog
             },
             ["get_file_content"] = new()
             {
-                Workflow = "Reads disk, not the workspace. Large files are truncated. For a window use read_file_range; for a method use get_method_body.",
+                Workflow = "Returns disk text with a preview budget of 32,000 UTF-16 code units and 500 lines. "
+                           + "LF, CRLF, and CR delimit lines. A final line ending adds no line. "
+                           + "If the line limit is exceeded first, the preview contains the first 100 lines.",
+                Pitfalls = "Use read_file_range for a range of lines or a local editor for part of a long line.",
                 RelatedTools = ["read_file_range", "get_method_body"],
             },
             ["read_file_range"] = new()

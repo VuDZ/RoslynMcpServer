@@ -19,45 +19,50 @@ public sealed class RoslynTools
 
     [McpServerTool(Name = "get_file_content", Title = "Read source file")]
     [Description("Reads a file from disk. Large files are truncated. Does not use the workspace.")]
-    public Task<string> GetFileContent(
+    public async Task<string> GetFileContent(
         [Description("Path to the file to read.")]
         string filePath,
         CancellationToken cancellationToken = default)
     {
-        _ = cancellationToken;
-
         try
         {
             if (string.IsNullOrWhiteSpace(filePath))
             {
-                return Task.FromResult(ToolTelemetry.TraceFailureAndReturn(nameof(GetFileContent), "Error: `filePath` is empty."));
+                return ToolTelemetry.TraceFailureAndReturn(nameof(GetFileContent), "Error: `filePath` is empty.");
             }
 
             var fullPath = _solutionManager.ResolvePathAgainstWorkspace(filePath);
             if (!File.Exists(fullPath))
             {
-                return Task.FromResult(ToolTelemetry.TraceFailureAndReturn(nameof(GetFileContent), $"File not found: `{filePath}`"));
+                return ToolTelemetry.TraceFailureAndReturn(nameof(GetFileContent), $"File not found: `{filePath}`");
             }
 
-            var content = File.ReadAllText(fullPath);
-            var lines = content.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n');
-            var lineCount = lines.Length;
-
-            if (lineCount <= 500)
+            using var reader = new StreamReader(new FileStream(
+                fullPath,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.Read,
+                bufferSize: 4_096,
+                options: FileOptions.Asynchronous | FileOptions.SequentialScan));
+            var (content, isTruncated) = await FileContentPreview.ReadAsync(reader, cancellationToken)
+                .ConfigureAwait(false);
+            if (isTruncated)
             {
-                return Task.FromResult(ToolTelemetry.TraceAndReturn(nameof(GetFileContent), content));
+                content += $"{Environment.NewLine}{Environment.NewLine}[!] File content truncated at the preview limit "
+                           + $"({FileContentPreview.CharacterLimit} characters or {FileContentPreview.LineLimit} lines). "
+                           + "Use `read_file_range` for a range of lines or a local editor for part of a long line.";
             }
 
-            var preview = string.Join(Environment.NewLine, lines.Take(100));
-            var warning = $"[!] File is too large ({lineCount} lines). To prevent context overflow, use `get_class_skeleton` or `get_method_body` for targeted reads.";
-            return Task.FromResult(
-                ToolTelemetry.TraceAndReturn(nameof(GetFileContent), $"{preview}{Environment.NewLine}{Environment.NewLine}{warning}"));
+            return ToolTelemetry.TraceAndReturn(nameof(GetFileContent), content);
+        }
+        catch (OperationCanceledException)
+        {
+            return ToolTelemetry.TraceFailureAndReturn(nameof(GetFileContent), "`get_file_content` was cancelled.");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to read file content for {FilePath}", filePath);
-            return Task.FromResult(
-                ToolTelemetry.TraceFailureAndReturn(nameof(GetFileContent), $"Failed to read file `{filePath}`: {ex.Message}"));
+            return ToolTelemetry.TraceFailureAndReturn(nameof(GetFileContent), $"Failed to read file `{filePath}`: {ex.Message}");
         }
     }
 }

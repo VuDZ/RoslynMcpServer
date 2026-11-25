@@ -48,10 +48,12 @@ There are **55** registered tools in the default `full` profile (see list below)
 </details>
 
 <details>
-<summary><code>get_file_content</code> — Reads the entire file from disk (safe preview for large files).</summary>
+<summary><code>get_file_content</code> — Returns disk text within a 32,000-character and 500-line preview budget.</summary>
 
 **Parameters:**
 - `filePath: string`
+
+The character limit counts UTF-16 code units. LF, CRLF, and CR delimit lines. A final line ending adds no line. If the line limit is exceeded first, the preview contains the first 100 lines. A truncated response includes a marker. Use `read_file_range` for a range of lines or a local editor for part of a long line.
 </details>
 
 <details>
