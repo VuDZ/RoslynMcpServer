@@ -518,9 +518,13 @@ Verify id/version with `search_nuget_registry` first. Clears workspace cache —
 <summary><code>get_changed_files</code> — Lists git changed and untracked paths. Does not return a diff.</summary>
 
 **Parameters:**
-- `workspacePath: string? = null` — `.sln`, `.slnx`, `.csproj`, or a repo directory. Omit to use the loaded workspace, then the process directory.
+- `workspacePath: string? = null` — a file or directory in the checkout. Omit to use the first project with a path in the loaded solution, then the process directory.
 
-Runs `git` with a 180s deadline and up to 3s to stop the process. Use host `git diff` for the patch body.
+Git resolves the checkout that contains the file or directory, including linked worktrees and submodules. The report always gives the total number of changed and untracked paths and lists the first 80 in Git status order.
+
+With a loaded solution, the tool can suggest projects with `test` in their names. It matches a source filename stem against a changed path, or a changed filename stem against a source filename stem, using case-insensitive substring checks.
+
+Checkout discovery and status share a 180s deadline, with up to 3s for cleanup. Use host `git diff` for the patch body.
 
 </details>
 

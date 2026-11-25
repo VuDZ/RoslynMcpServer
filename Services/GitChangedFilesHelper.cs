@@ -10,28 +10,6 @@ public static class GitChangedFilesHelper
 {
     public sealed record ChangedFile(string Path, string Status);
 
-    public static string? FindRepositoryRoot(string startPath)
-    {
-        var full = Path.GetFullPath(startPath);
-        if (File.Exists(full))
-        {
-            full = Path.GetDirectoryName(full) ?? full;
-        }
-
-        var current = new DirectoryInfo(full);
-        while (current is not null)
-        {
-            if (Directory.Exists(Path.Combine(current.FullName, ".git")))
-            {
-                return current.FullName;
-            }
-
-            current = current.Parent;
-        }
-
-        return null;
-    }
-
     public static Task<(bool Success, string Output, string? Error)> RunGitAsync(
         string repositoryRoot,
         string arguments,
@@ -39,7 +17,7 @@ public static class GitChangedFilesHelper
         => RunGitAsync(repositoryRoot, arguments, cancellationToken, DefaultExecutionTimeout, startInfo: null);
 
     /// <summary>
-    /// Runs a git command that does not read stdin. The only caller is <c>git status</c>.
+    /// Runs a git command that does not read stdin.
     /// Stdin is closed immediately, so this method must not be used for commands that read it
     /// (<c>git apply</c>, <c>git commit -F -</c>).
     /// </summary>
@@ -54,13 +32,17 @@ public static class GitChangedFilesHelper
     /// three OS) and one shared cleanup budget, not a second unlimited read and not a
     /// Windows-only job object.
     /// </remarks>
-    internal static Task<(bool Success, string Output, string? Error)> RunGitAsync(
+    internal static async Task<(bool Success, string Output, string? Error)> RunGitAsync(
         string repositoryRoot,
         string arguments,
         CancellationToken cancellationToken,
         TimeSpan executionTimeout,
         ProcessStartInfo? startInfo)
-        => RunCoreAsync(repositoryRoot, arguments, cancellationToken, executionTimeout, startInfo);
+    {
+        var result = await RunCoreAsync(repositoryRoot, arguments, executionTimeout, startInfo, cancellationToken)
+            .ConfigureAwait(false);
+        return (result.Success, result.Output.TrimEnd(), result.Error);
+    }
 
     public static IReadOnlyList<ChangedFile> ParsePorcelainStatus(string output)
     {
@@ -134,6 +116,65 @@ public static class GitChangedFilesHelper
         return suggestions.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
     }
 
+    /// <summary>
+    /// Discovers the checkout and reads its porcelain status within the same execution budget.
+    /// </summary>
+    internal static async Task<(string? RepositoryRoot, string Output, string? Error)> GetRepositoryStatusAsync(
+        string startPath,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var elapsed = Stopwatch.StartNew();
+        var directory = Path.GetFullPath(startPath);
+        while (!Directory.Exists(directory))
+        {
+            var parent = Path.GetDirectoryName(directory);
+            if (parent is null)
+            {
+                return (null, string.Empty, $"No existing directory found from `{startPath}`.");
+            }
+
+            directory = parent;
+        }
+
+        // Git recognizes linked worktrees and submodules, whose .git entry is a file.
+        var root = await RunBeforeDeadlineAsync(directory, "rev-parse --show-toplevel").ConfigureAwait(false);
+        var checkoutPath = TrimCheckoutLineTerminator(root.Output, windows: OperatingSystem.IsWindows());
+        if (!root.Success || checkoutPath.Length == 0)
+        {
+            return (null, string.Empty, root.Error ?? "Git did not report a checkout root.");
+        }
+
+        var repositoryRoot = Path.GetFullPath(checkoutPath);
+        var status = await RunBeforeDeadlineAsync(repositoryRoot, "status --porcelain").ConfigureAwait(false);
+        return (repositoryRoot, status.Output.TrimEnd(), status.Error);
+
+        Task<(bool Success, string Output, string? Error)> RunBeforeDeadlineAsync(string workingDirectory, string arguments)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var remaining = DefaultExecutionTimeout - elapsed.Elapsed;
+            if (remaining <= TimeSpan.Zero)
+            {
+                var message = $"MCP_GIT_TIMEOUT: exceeded {DefaultExecutionTimeout.TotalSeconds:0}s.";
+                return Task.FromResult((false, string.Empty, (string?)message));
+            }
+
+            return RunCoreAsync(workingDirectory, arguments, remaining, startInfo: null, cancellationToken);
+        }
+    }
+
+    internal static string TrimCheckoutLineTerminator(string output, bool windows)
+    {
+        if (!output.EndsWith('\n'))
+        {
+            return output;
+        }
+
+        // A POSIX checkout name can itself end with CR or LF.
+        var terminatorLength = windows && output.EndsWith("\r\n", StringComparison.Ordinal) ? 2 : 1;
+        return output[..^terminatorLength];
+    }
+
     private static string? GetRelativePathSafe(Solution solution, string filePath)
     {
         var roots = solution.Projects
@@ -157,15 +198,17 @@ public static class GitChangedFilesHelper
     private static async Task<(bool Success, string Output, string? Error)> RunCoreAsync(
         string repositoryRoot,
         string arguments,
-        CancellationToken cancellationToken,
         TimeSpan executionTimeout,
-        ProcessStartInfo? startInfo)
+        ProcessStartInfo? startInfo,
+        CancellationToken cancellationToken)
     {
         if (executionTimeout <= TimeSpan.Zero)
         {
             executionTimeout = DefaultExecutionTimeout;
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
+        var startedAt = Stopwatch.GetTimestamp();
         var psi = PrepareStartInfo(repositoryRoot, arguments, startInfo);
         using var process = new Process { StartInfo = psi };
         if (!TryStart(process, out var startError))
@@ -191,8 +234,8 @@ public static class GitChangedFilesHelper
 
         try
         {
-            var completed = await WaitForRunAsync(finished, executionTimeout, cancellationToken)
-                .ConfigureAwait(false);
+            var remaining = executionTimeout - Stopwatch.GetElapsedTime(startedAt);
+            var completed = await WaitForRunAsync(finished, remaining, cancellationToken).ConfigureAwait(false);
             if (!completed)
             {
                 var cleanup = await CleanupAsync(process, exitTask, stdoutTask, stderrTask)
@@ -219,7 +262,7 @@ public static class GitChangedFilesHelper
         }
 
         var stdout = ReadCompleted(stdoutTask);
-        var stderr = ReadCompleted(stderrTask);
+        var stderr = ReadCompleted(stderrTask).TrimEnd();
         if (process.ExitCode != 0)
         {
             return (false, stdout, string.IsNullOrWhiteSpace(stderr) ? $"git exit {process.ExitCode}" : stderr);
@@ -284,6 +327,12 @@ public static class GitChangedFilesHelper
         TimeSpan executionTimeout,
         CancellationToken cancellationToken)
     {
+        if (executionTimeout <= TimeSpan.Zero)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return finished.IsCompletedSuccessfully;
+        }
+
         using var executionCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         executionCts.CancelAfter(executionTimeout);
         try
@@ -391,7 +440,7 @@ public static class GitChangedFilesHelper
             return string.Empty;
         }
 
-        return task.Result.TrimEnd();
+        return task.Result;
     }
 
     private static Task Silence(Task task)

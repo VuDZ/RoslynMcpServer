@@ -1,5 +1,8 @@
 using System.Diagnostics;
+using Microsoft.Extensions.Logging.Abstractions;
 using RoslynMcpServer.Services;
+using RoslynMcpServer.Tests.Support;
+using RoslynMcpServer.Tools;
 using Xunit;
 
 namespace RoslynMcpServer.Tests.Utility;
@@ -164,6 +167,158 @@ public sealed class GitChangedFilesHelperTests
             static () => Task.CompletedTask);
 
         Assert.True(result.Success, result.Error);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task GetChangedFiles_reports_the_inner_checkout_for_file_and_directory_anchors(bool linkedWorktree)
+    {
+        using var directory = NewWorkDirectory();
+        var source = Path.Combine(directory.FullName, "source");
+        var outer = Path.Combine(directory.FullName, "outer");
+        const string checkoutName = "nested-checkout";
+        var checkout = Path.Combine(outer, checkoutName);
+        await InitializeRepositoryAsync(source);
+        await InitializeRepositoryAsync(outer);
+        if (linkedWorktree)
+        {
+            await RunFixtureGitAsync(source, "worktree", "add", "--detach", checkout);
+        }
+        else
+        {
+            await RunFixtureGitAsync(outer, "-c", "protocol.file.allow=always", "submodule", "add", source, checkoutName);
+        }
+
+        Assert.True(File.Exists(Path.Combine(checkout, ".git")));
+        await File.WriteAllTextAsync(Path.Combine(outer, "outer-change.txt"), "Outer repository");
+        var nested = Path.Combine(checkout, "nested");
+        var changedFile = Path.Combine(nested, "inner-change.txt");
+        await File.WriteAllTextAsync(changedFile, "Inner checkout");
+
+        var tools = new UtilityTools(NullLogger<UtilityTools>.Instance, SolutionManagerTestFactory.Create());
+        // Git can resolve the macOS temp directory through its /private path.
+        var checkoutSuffix = Path.Combine(Path.GetFileName(directory.FullName), "outer", checkoutName);
+        foreach (var anchor in new[] { checkout, nested, changedFile })
+        {
+            var report = await tools.GetChangedFiles(anchor);
+
+            Assert.Contains($"{checkoutSuffix}`", report, StringComparison.Ordinal);
+            Assert.Contains("**Changed/untracked:** 1", report, StringComparison.Ordinal);
+            Assert.Contains("| ?? | `nested/inner-change.txt` |", report, StringComparison.Ordinal);
+            Assert.DoesNotContain("outer-change.txt", report, StringComparison.Ordinal);
+        }
+    }
+
+    [Theory]
+    [InlineData("checkout\r\n", false, "checkout\r")]
+    [InlineData("checkout\n\n", false, "checkout\n")]
+    [InlineData("checkout \n", false, "checkout ")]
+    [InlineData("checkout\r\n", true, "checkout")]
+    [InlineData("checkout\n", true, "checkout")]
+    public void TrimCheckoutLineTerminator_preserves_checkout_characters(string output, bool windows, string expected)
+    {
+        Assert.Equal(expected, GitChangedFilesHelper.TrimCheckoutLineTerminator(output, windows));
+    }
+
+    [Theory]
+    [InlineData(" ")]
+    [InlineData("\n")]
+    [InlineData("\r\n")]
+    public async Task GetChangedFiles_preserves_the_native_checkout_name(string whitespace)
+    {
+        using var directory = NewWorkDirectory();
+        var outer = Path.Combine(directory.FullName, "outer");
+        var checkoutName = OperatingSystem.IsWindows() ? "checkout" : "checkout" + whitespace;
+        var checkout = Path.Combine(outer, checkoutName);
+        await InitializeRepositoryAsync(outer);
+        await InitializeRepositoryAsync(checkout);
+        await File.WriteAllTextAsync(Path.Combine(outer, "outer-change.txt"), "Outer repository");
+        var nested = Path.Combine(checkout, "nested");
+        await File.WriteAllTextAsync(Path.Combine(nested, "changed.txt"), "Inner checkout");
+        var tools = new UtilityTools(NullLogger<UtilityTools>.Instance, SolutionManagerTestFactory.Create());
+
+        // On Windows these characters are input padding rather than part of the checkout name.
+        var anchor = OperatingSystem.IsWindows() ? checkout + whitespace : checkout;
+        var report = await tools.GetChangedFiles(anchor);
+        var nestedReport = await tools.GetChangedFiles(nested);
+
+        var checkoutSuffix = Path.Combine(Path.GetFileName(directory.FullName), "outer", checkoutName);
+        Assert.Contains($"{checkoutSuffix}`", report, StringComparison.Ordinal);
+        Assert.Contains("**Changed/untracked:** 1", report, StringComparison.Ordinal);
+        Assert.Contains("| ?? | `nested/changed.txt` |", report, StringComparison.Ordinal);
+        Assert.DoesNotContain("outer-change.txt", report, StringComparison.Ordinal);
+        Assert.Equal(report, nestedReport);
+    }
+
+    [Fact]
+    public async Task GetChangedFiles_outside_a_repository_returns_the_discovery_error()
+    {
+        using var directory = NewWorkDirectory();
+        var tools = new UtilityTools(NullLogger<UtilityTools>.Instance, SolutionManagerTestFactory.Create());
+
+        var report = await tools.GetChangedFiles(directory.FullName);
+
+        Assert.StartsWith($"Error: No git repository found from `{directory.FullName}`.", report, StringComparison.Ordinal);
+        Assert.DoesNotContain("## Git changed files", report, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GetChangedFiles_reports_the_total_and_shows_only_the_first_80_paths()
+    {
+        using var directory = NewWorkDirectory();
+        await InitializeRepositoryAsync(directory.FullName);
+        for (var index = 0; index < 81; index++)
+        {
+            await File.WriteAllTextAsync(Path.Combine(directory.FullName, $"file-{index:000}.txt"), "Change");
+        }
+
+        var tools = new UtilityTools(NullLogger<UtilityTools>.Instance, SolutionManagerTestFactory.Create());
+        var report = await tools.GetChangedFiles(directory.FullName);
+
+        var rows = report.Split(Environment.NewLine).Count(line => line.StartsWith("| ?? |", StringComparison.Ordinal));
+        Assert.Equal(80, rows);
+        Assert.Contains("**Changed/untracked:** 81", report, StringComparison.Ordinal);
+        Assert.Contains("Showing first 80 of 81 paths.", report, StringComparison.Ordinal);
+        Assert.Contains("`file-079.txt`", report, StringComparison.Ordinal);
+        Assert.DoesNotContain("`file-080.txt`", report, StringComparison.Ordinal);
+    }
+
+    private static async Task InitializeRepositoryAsync(string directory)
+    {
+        Directory.CreateDirectory(directory);
+        await RunFixtureGitAsync(directory, "init", "--template=");
+        var nested = Directory.CreateDirectory(Path.Combine(directory, "nested"));
+        await File.WriteAllTextAsync(Path.Combine(nested.FullName, "seed.txt"), "Base file");
+        await RunFixtureGitAsync(directory, "add", "nested");
+        await RunFixtureGitAsync(
+            directory,
+            "-c",
+            "user.name=Fixture",
+            "-c",
+            "user.email=fixture@example.invalid",
+            "-c",
+            "commit.gpgsign=false",
+            "commit",
+            "-m",
+            "Fixture");
+    }
+
+    private static async Task RunFixtureGitAsync(string directory, params string[] arguments)
+    {
+        var startInfo = new ProcessStartInfo("git");
+        foreach (var argument in arguments)
+        {
+            startInfo.ArgumentList.Add(argument);
+        }
+
+        var result = await GitChangedFilesHelper.RunGitAsync(
+            directory,
+            arguments: "",
+            CancellationToken.None,
+            TimeSpan.FromSeconds(20),
+            startInfo);
+        Assert.True(result.Success, result.Error ?? result.Output);
     }
 
     private static ProcessStartInfo StartInfoForMegabyteStderr(string scriptPath, string marker)
@@ -454,6 +609,18 @@ public sealed class GitChangedFilesHelperTests
         {
             try
             {
+                if (OperatingSystem.IsWindows())
+                {
+                    // Git can leave read-only objects in worktree and submodule metadata.
+                    foreach (var file in new DirectoryInfo(FullName).EnumerateFiles("*", SearchOption.AllDirectories))
+                    {
+                        if (file.IsReadOnly)
+                        {
+                            file.IsReadOnly = false;
+                        }
+                    }
+                }
+
                 Directory.Delete(FullName, recursive: true);
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)

@@ -149,7 +149,12 @@ public static class McpToolHelpCatalog
             },
             ["get_changed_files"] = new()
             {
-                Workflow = "Lists git changed/untracked files. git status is limited to 180s plus up to 3s to stop the process, on every OS. Does not return diffs — use host git tools for patches.",
+                Workflow = "Finds the Git checkout containing the supplied file or directory, including linked worktrees and submodules. "
+                           + "With no path, uses the first project with a path in the loaded solution, then the process directory. "
+                           + "Reports the total and lists the first 80 paths in Git status order. "
+                           + "With a loaded solution, suggests projects with 'test' in their names when a source filename stem appears "
+                           + "in a changed path or a changed filename stem appears in a source filename stem, ignoring case. "
+                           + "Checkout discovery and status share 180s, with up to 3s for cleanup. Use host git diff for patches.",
                 Pitfalls = "A client timeout shorter than 180s cancels first. The server limit is the backstop when the client waits longer.",
                 RelatedTools = ["run_specific_test"],
             },

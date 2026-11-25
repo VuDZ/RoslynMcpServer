@@ -151,15 +151,16 @@ public sealed class UtilityTools
         try
         {
             var anchor = ResolveGitAnchorPath(workspacePath);
-            var repoRoot = GitChangedFilesHelper.FindRepositoryRoot(anchor);
-            if (repoRoot is null)
+            var status = await GitChangedFilesHelper.GetRepositoryStatusAsync(anchor, cancellationToken)
+                .ConfigureAwait(false);
+            if (status.RepositoryRoot is not { } repoRoot)
             {
-                return ToolTelemetry.TraceFailureAndReturn(toolName, $"Error: No git repository found from `{anchor}`.");
+                return ToolTelemetry.TraceFailureAndReturn(
+                    toolName,
+                    $"Error: No git repository found from `{anchor}`.{Environment.NewLine}{status.Error}");
             }
 
-            var status = await GitChangedFilesHelper.RunGitAsync(repoRoot, "status --porcelain", cancellationToken)
-                .ConfigureAwait(false);
-            if (!status.Success)
+            if (status.Error is not null)
             {
                 return ToolTelemetry.TraceFailureAndReturn(toolName, $"git status failed: {status.Error}");
             }
@@ -223,9 +224,21 @@ public sealed class UtilityTools
 
     private string ResolveGitAnchorPath(string? workspacePath)
     {
-        if (!string.IsNullOrWhiteSpace(workspacePath))
+        if (workspacePath is not null)
         {
-            return Path.GetFullPath(workspacePath.Trim());
+            var trimmed = workspacePath.Trim();
+
+            // Leading or trailing whitespace can be part of an existing path.
+            if (trimmed.Length != workspacePath.Length
+                && (Directory.Exists(workspacePath) || File.Exists(workspacePath)))
+            {
+                return Path.GetFullPath(workspacePath);
+            }
+
+            if (trimmed.Length > 0)
+            {
+                return Path.GetFullPath(trimmed);
+            }
         }
 
         var solution = _solutionManager.GetCurrentSolution();
