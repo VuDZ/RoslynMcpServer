@@ -1606,7 +1606,6 @@ public sealed class UtilityTools
     {
         var fragments = (oldNorm, newNorm);
         var sourceRaw = await _solutionManager.ReadPatchSourceAsync(fullPath, fragments, cancellationToken);
-        var sourceNorm = PatchMatchHelper.NormalizeLineEndings(sourceRaw);
         var newContainsOld = oldNorm.Length > 0
             && newNorm.Contains(oldNorm, StringComparison.Ordinal);
 
@@ -1615,17 +1614,17 @@ public sealed class UtilityTools
             fullPath,
             oldNorm.Length,
             newNorm.Length,
-            sourceNorm.Length,
+            sourceRaw.Length,
             replaceAll,
             newContainsOld);
 
-        string? updatedNorm;
+        string? updatedRaw;
         var usedFlexible = false;
         var replacementCount = 0;
         try
         {
-            updatedNorm = PatchMatchHelper.ApplyPatchWithFlexibleFallback(
-                sourceNorm,
+            updatedRaw = PatchMatchHelper.ApplyPatchWithFlexibleFallback(
+                sourceRaw,
                 oldNorm,
                 newNorm,
                 replaceAll,
@@ -1665,13 +1664,12 @@ public sealed class UtilityTools
             usedFlexible,
             started.ElapsedMilliseconds);
 
-        var updatedRaw = PatchMatchHelper.RestorePreferredLineEndings(sourceRaw, updatedNorm!);
         if (string.Equals(sourceRaw, updatedRaw, StringComparison.Ordinal))
         {
             return "No changes were applied.";
         }
 
-        var write = await _solutionManager.TryApplyPatchTextAsync(fullPath, sourceRaw, updatedRaw, fragments, cancellationToken);
+        var write = await _solutionManager.TryApplyPatchTextAsync(fullPath, sourceRaw, updatedRaw!, fragments, cancellationToken);
         if (write is null)
         {
             return null;

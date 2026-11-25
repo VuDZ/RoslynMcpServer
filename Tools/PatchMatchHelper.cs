@@ -26,142 +26,11 @@ internal static class PatchMatchHelper
     }
 
     /// <summary>
-    /// If the original text uses CRLF, rewrites LF-only <paramref name="modified"/> to CRLF for writing.
-    /// </summary>
-    public static string RestorePreferredLineEndings(string originalRaw, string modifiedLf)
-    {
-        if (string.IsNullOrEmpty(modifiedLf))
-        {
-            return modifiedLf;
-        }
-
-        return originalRaw.Contains("\r\n", StringComparison.Ordinal)
-            ? modifiedLf.Replace("\n", "\r\n", StringComparison.Ordinal)
-            : modifiedLf;
-    }
-
-    public static bool TryFindMatch(
-        string sourceNormalized,
-        string oldNormalized,
-        bool preferExact,
-        out int start,
-        out int end,
-        int searchFrom = 0)
-    {
-        start = 0;
-        end = 0;
-        if (string.IsNullOrEmpty(oldNormalized)
-            || searchFrom < 0
-            || searchFrom >= sourceNormalized.Length)
-        {
-            return false;
-        }
-
-        if (preferExact)
-        {
-            var idx = sourceNormalized.IndexOf(oldNormalized, searchFrom, StringComparison.Ordinal);
-            if (idx >= 0)
-            {
-                start = idx;
-                end = idx + oldNormalized.Length;
-                return true;
-            }
-        }
-
-        return TryWhitespaceAgnosticMatch(sourceNormalized, oldNormalized, searchFrom, out start, out end);
-    }
-
-    /// <summary>
-    /// Splits normalized text into non-whitespace tokens and finds the first span in
-    /// <paramref name="sourceNormalized"/> where tokens appear in order separated by whitespace.
-    /// </summary>
-    public static bool TryWhitespaceAgnosticMatch(
-        string sourceNormalized,
-        string oldNormalized,
-        out int start,
-        out int end)
-        => TryWhitespaceAgnosticMatch(sourceNormalized, oldNormalized, searchFrom: 0, out start, out end);
-
-    public static bool TryWhitespaceAgnosticMatch(
-        string sourceNormalized,
-        string oldNormalized,
-        int searchFrom,
-        out int start,
-        out int end)
-    {
-        start = 0;
-        end = 0;
-        if (string.IsNullOrEmpty(oldNormalized)
-            || searchFrom < 0
-            || searchFrom >= sourceNormalized.Length)
-        {
-            return false;
-        }
-
-        var tokens = Regex.Split(oldNormalized, @"\s+", RegexOptions.CultureInvariant)
-            .Where(static t => t.Length > 0)
-            .ToArray();
-
-        if (tokens.Length == 0)
-        {
-            return false;
-        }
-
-        var patternBuilder = new StringBuilder();
-        for (var i = 0; i < tokens.Length; i++)
-        {
-            if (i > 0)
-            {
-                _ = patternBuilder.Append(@"\s+");
-            }
-
-            _ = patternBuilder.Append(Regex.Escape(tokens[i]));
-        }
-
-        var pattern = patternBuilder.ToString();
-        var re = new Regex(
-            pattern,
-            RegexOptions.CultureInvariant | RegexOptions.Singleline,
-            RegexMatchTimeout);
-
-        var m = re.Match(sourceNormalized, searchFrom);
-        if (!m.Success)
-        {
-            return false;
-        }
-
-        start = m.Index;
-        end = m.Index + m.Length;
-        return true;
-    }
-
-    public static string? ApplyPatchNormalized(
-        string sourceNormalized,
-        string oldNormalized,
-        string newNormalized,
-        bool replaceAll,
-        out bool matched,
-        out int replacementCount,
-        CancellationToken cancellationToken = default)
-    {
-        var result = ApplyReplacements(
-            sourceNormalized,
-            oldNormalized,
-            newNormalized,
-            preferExact: true,
-            replaceAll,
-            cancellationToken,
-            out replacementCount);
-        matched = replacementCount > 0;
-        return matched ? result : null;
-    }
-
-    /// <summary>
-    /// Like <see cref="ApplyPatchNormalized"/> but after exact passes, retries with whitespace-agnostic
-    /// matching on the current string until no match (when <paramref name="replaceAll"/>).
+    /// Searches for exact matches before trying whitespace-tolerant matches in the remaining source.
+    /// Applies the replacements to the original source and skips inserted text on subsequent searches.
     /// </summary>
     public static string? ApplyPatchWithFlexibleFallback(
-        string sourceNormalized,
+        string sourceRaw,
         string oldNormalized,
         string newNormalized,
         bool replaceAll,
@@ -173,32 +42,56 @@ internal static class PatchMatchHelper
         matched = false;
         usedFlexible = false;
         replacementCount = 0;
-
-        var exact = ApplyPatchNormalized(
-            sourceNormalized,
-            oldNormalized,
-            newNormalized,
-            replaceAll,
-            out var exactMatched,
-            out replacementCount,
-            cancellationToken);
-        if (exactMatched)
+        if (string.IsNullOrEmpty(oldNormalized))
         {
-            matched = true;
-            return exact;
+            return null;
         }
 
-        var result = ApplyReplacements(
-            sourceNormalized,
-            oldNormalized,
-            newNormalized,
-            preferExact: false,
-            replaceAll,
-            cancellationToken,
-            out replacementCount);
-        usedFlexible = replacementCount > 0;
-        matched = replacementCount > 0;
-        return matched ? result : null;
+        var sourceNormalized = NormalizeLineEndings(sourceRaw);
+        var replacement = sourceRaw.Contains("\r\n", StringComparison.Ordinal)
+            ? newNormalized.Replace("\n", "\r\n", StringComparison.Ordinal)
+            : newNormalized;
+        StringBuilder? result = null;
+        Regex? flexiblePattern = null;
+        var searchFrom = 0;
+        var rawOffset = 0;
+
+        while (searchFrom < sourceNormalized.Length
+            && FindNextMatch(sourceNormalized, oldNormalized, searchFrom, ref flexiblePattern) is { } match)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (++replacementCount > MaxReplacements)
+            {
+                throw new InvalidOperationException($"ApplyPatch exceeded {MaxReplacements} replacements (possible matcher loop).");
+            }
+
+            // Normalized offsets locate the match. Rewriting the normalized buffer would also
+            // change untouched mixed line endings, including newlines inside string literals.
+            // See docs/project-review-2026-11-25/task-50-p1-patch-mixed-line-endings-hi.md.
+            var rawStart = AdvanceRawOffset(sourceRaw, rawOffset, match.Start - searchFrom);
+            var rawEnd = AdvanceRawOffset(sourceRaw, rawStart, match.End - match.Start);
+            result ??= new StringBuilder(sourceRaw.Length);
+            result.Append(sourceRaw, rawOffset, rawStart - rawOffset);
+            if (sourceNormalized.AsSpan(match.Start, match.End - match.Start).SequenceEqual(newNormalized))
+            {
+                result.Append(sourceRaw, rawStart, rawEnd - rawStart);
+            }
+            else
+            {
+                result.Append(replacement);
+            }
+
+            rawOffset = rawEnd;
+            searchFrom = match.End;
+            usedFlexible |= flexiblePattern is not null;
+            if (!replaceAll)
+            {
+                break;
+            }
+        }
+
+        matched = result is not null;
+        return result?.Append(sourceRaw.AsSpan(rawOffset)).ToString();
     }
 
     /// <summary>
@@ -221,47 +114,48 @@ internal static class PatchMatchHelper
         return $"oldLength={oldNormalized.Length}, tokenCount={tokens.Length}, tokens(head)=[{previewTokens}], snippet={head}";
     }
 
-    /// <summary>
-    /// Applies replacements and always continues the next search after the inserted text
-    /// (same as <see cref="string.Replace(string,string?,StringComparison)"/>). Scanning the
-    /// replacement again infinite-loops when <paramref name="newNormalized"/> contains
-    /// <paramref name="oldNormalized"/> (e.g. <c>Foo</c> → <c>Ns.Foos</c>).
-    /// </summary>
-    private static string ApplyReplacements(
+    private static (int Start, int End)? FindNextMatch(
         string sourceNormalized,
         string oldNormalized,
-        string newNormalized,
-        bool preferExact,
-        bool replaceAll,
-        CancellationToken cancellationToken,
-        out int replacementCount)
+        int searchFrom,
+        ref Regex? flexiblePattern)
     {
-        replacementCount = 0;
-        if (string.IsNullOrEmpty(oldNormalized))
+        if (flexiblePattern is null)
         {
-            return sourceNormalized;
-        }
-
-        var result = sourceNormalized;
-        var searchFrom = 0;
-        while (TryFindMatch(result, oldNormalized, preferExact, out var s, out var e, searchFrom))
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            result = result[..s] + newNormalized + result[e..];
-            searchFrom = s + newNormalized.Length;
-            replacementCount++;
-            if (replacementCount > MaxReplacements)
+            var exactStart = sourceNormalized.IndexOf(oldNormalized, searchFrom, StringComparison.Ordinal);
+            if (exactStart >= 0)
             {
-                throw new InvalidOperationException(
-                    $"ApplyPatch exceeded {MaxReplacements} replacements (possible matcher loop).");
+                return (exactStart, exactStart + oldNormalized.Length);
             }
 
-            if (!replaceAll)
+            var tokens = Regex.Split(oldNormalized, @"\s+", RegexOptions.CultureInvariant)
+                .Where(static token => token.Length > 0)
+                .Select(Regex.Escape);
+            var pattern = string.Join(@"\s+", tokens);
+            if (pattern.Length == 0)
             {
-                break;
+                return null;
             }
+
+            flexiblePattern = new Regex(pattern, RegexOptions.CultureInvariant | RegexOptions.Singleline, RegexMatchTimeout);
         }
 
-        return result;
+        var match = flexiblePattern.Match(sourceNormalized, searchFrom);
+        return match.Success ? (match.Index, match.Index + match.Length) : null;
+    }
+
+    private static int AdvanceRawOffset(string sourceRaw, int rawOffset, int normalizedLength)
+    {
+        for (var index = 0; index < normalizedLength; index++)
+        {
+            if (sourceRaw[rawOffset] == '\r' && rawOffset + 1 < sourceRaw.Length && sourceRaw[rawOffset + 1] == '\n')
+            {
+                rawOffset++;
+            }
+
+            rawOffset++;
+        }
+
+        return rawOffset;
     }
 }
