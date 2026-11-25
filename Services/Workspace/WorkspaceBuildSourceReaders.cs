@@ -137,6 +137,14 @@ internal static class WorkspaceBuildSourceReaders
         return matched.Count == readers.Count;
     }
 
+    internal static bool UsesInvocationProperties(ProjectRootElement project)
+    {
+        // Some command-line MSBuild properties are supplied by the invocation or solution traversal.
+        // RawXml uses the MSBuild save path, which rejects projects loaded in read-only mode.
+        var xml = project.OuterElement;
+        return _invocationProperties.Any(name => xml.Contains("$(" + name + ")", StringComparison.OrdinalIgnoreCase));
+    }
+
     private static bool IsCSharpProject(string path) =>
         string.Equals(Path.GetExtension(path), ".csproj", StringComparison.OrdinalIgnoreCase);
 
@@ -215,13 +223,6 @@ internal static class WorkspaceBuildSourceReaders
                     IsDynamicName(output.ItemType) || IsDispatchItem(output.ItemType)
                     || IsTestSdkRemovalItem(output.ItemType)
                     || (sourcePath is not null && IsCompileItem(output.ItemType)))));
-    }
-
-    private static bool UsesInvocationProperties(ProjectRootElement project)
-    {
-        // Some command-line MSBuild properties are supplied by the invocation or solution traversal.
-        var xml = project.RawXml;
-        return _invocationProperties.Any(name => xml.Contains("$(" + name + ")", StringComparison.OrdinalIgnoreCase));
     }
 
     private static bool IsTestSdkEntryPoint(

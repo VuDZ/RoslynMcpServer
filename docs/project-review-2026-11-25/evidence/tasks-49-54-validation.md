@@ -19,6 +19,18 @@ P1-49 и P1-50 затрагивают один контракт сохранен
 
 Выбор TFM при `load_workspace` ограничивает снимок, а обычная сборка может собрать все TFM. Регрессии проверяют лишнего читателя, смену `Compile` внутри цели, параметры `ProjectReference` и изменения свойств и элементов, из которых штатная диспетчеризация SDK строит список внутренних сборок. В публичной проверке `-t:_ComputeTargetFrameworkItems -getItem:_InnerBuildProjects` подтвердил добавление второго TFM, а MCP отказал до записи.
 
+### Windows CI и импорты MSBuild в режиме read-only
+
+На `7d942b9` прошли все шесть шардов Ubuntu и macOS. На Windows отказали 75 unit-тестов, 25 TIA и 3 AnalyzerLifecycle. Сборка тестов прошла. Три целевых теста воспроизвели отказ при записи без BOM. [Исходный CI](https://github.com/VuDZ/RoslynMcpServer/actions/runs/45704952321) · [Целевой запуск](https://github.com/VuDZ/RoslynMcpServer/actions/runs/45708836040).
+
+На Windows образ GitHub содержит .NET workloads. SDK автоматически импортирует их `AutoImport.props` даже для обычных проектов `Microsoft.NET.Sdk`. Один из таких импортов загрузил `Microsoft.iOS.Sdk.DefaultItems.props` в режиме read-only. Обращение к `ProjectRootElement.RawXml` дошло до `XmlDocumentWithLocation.Save` и выбросило `InvalidOperationException`, из-за чего проверка отклонила запись. [Стек на раннере](https://github.com/VuDZ/RoslynMcpServer/actions/runs/45710142576/job/139542133940) · [Правила загрузки MSBuild](https://github.com/dotnet/msbuild/blob/main/src/Build/ElementLocation/XmlDocumentWithLocation.cs).
+
+Проверка теперь использует `ProjectRootElement.OuterElement`, который читает XML загруженного элемента. Проверки свойств обычной сборки применяются и к импортам в режиме read-only. Новый тест загружает импорт через `ProjectCollection` с `loadProjectsReadOnly: true` и проверяет обычное значение и ссылку на `MSBuildStartupDirectory`.
+
+На локальном Windows с SDK 11.0.100 и `MSBUILDLOADALLFILESASREADONLY=1` прежний код воспроизвёл 3 падения из 9. Исправленный код прошёл все 11 тестов, включая две новые строки регрессии. Повторены полная запись и патч из контрольного проекта с общей кодировкой, а также отказы при разных параметрах обычной сборки.
+
+26 ноября 2026 года финальная Release-сборка решения прошла. По фильтрам Windows CI выполнены 2 737 unit-тестов, включая 128 SourceStructure, 149 TIA и 13 AnalyzerLifecycle с `ROSLYN_MCP_ANALYZER_LIFECYCLE=1`. Все 2 899 тестов прошли без пропусков. В одном параллельном прогоне тест IL завершился ошибкой очистки занятого `BUFFERED.DLL.tmp`. Полный повтор unit-шарда отдельно прошёл. Итоговый прогон исправления выполнен локально на Windows.
+
 ## P1-50
 
 Поиск по-прежнему сопоставляет нормализованный текст. Патч переводит границы совпадения в координаты исходного текста, копирует все промежутки из него и применяет правила перевода строк только к замене. Через публичный MCP байты соседнего литерала `41 0A 42` сохранились. Свежая сборка напечатала `0041 000A 0042` и новое значение `Y`.

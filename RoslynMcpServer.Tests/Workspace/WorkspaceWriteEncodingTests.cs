@@ -1,10 +1,12 @@
 using System.Diagnostics;
 using System.Reflection;
 using System.Text;
+using Microsoft.Build.Evaluation;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using RoslynMcpServer.Diagnostics;
 using RoslynMcpServer.Services;
+using RoslynMcpServer.Services.Workspace;
 using RoslynMcpServer.Tools;
 using Xunit;
 
@@ -712,6 +714,28 @@ public sealed class WorkspaceWriteEncodingTests : IDisposable
         Assert.Equal(BomFreeUtf8.GetBytes(expected), await File.ReadAllBytesAsync(_sourcePath));
         var published = (await manager.GetPublishedSolutionAsync())!.GetDocument(original.Id)!;
         Assert.Equal(expected, (await published.GetTextAsync()).ToString());
+    }
+
+    [Theory]
+    [InlineData("fixed", false)]
+    [InlineData("$(MSBuildStartupDirectory)", true)]
+    public async Task Ordinary_reader_check_inspects_read_only_imports(string value, bool usesInvocationProperties)
+    {
+        await File.WriteAllTextAsync(_csprojPath, """<Project><Import Project="BuildInputs.props" /></Project>""");
+        await File.WriteAllTextAsync(
+            Path.Combine(_root, "BuildInputs.props"),
+            $"<Project><PropertyGroup><BuildInput>{value}</BuildInput></PropertyGroup></Project>");
+        using var collection = new ProjectCollection(
+            globalProperties: null,
+            loggers: null,
+            remoteLoggers: null,
+            toolsetDefinitionLocations: ToolsetDefinitionLocations.Default,
+            maxNodeCount: 1,
+            onlyLogCriticalEvents: false,
+            loadProjectsReadOnly: true);
+        var importedProject = Assert.Single(collection.LoadProject(_csprojPath).Imports).ImportedProject;
+
+        Assert.Equal(usesInvocationProperties, WorkspaceBuildSourceReaders.UsesInvocationProperties(importedProject));
     }
 
     [Theory]
