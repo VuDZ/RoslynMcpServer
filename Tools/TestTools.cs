@@ -791,7 +791,8 @@ public sealed class TestTools
             else
             {
                 finalMarkdown = markdown;
-                if (!IsSuccessfulTestRun(parse, run.ExitCode))
+                if (!IsSuccessfulTestRun(parse, run.ExitCode)
+                || DiagnosticReportAttachment.IsPartialOrUnparsedTestStatus(markdown))
                 {
                     finalMarkdown += Environment.NewLine + Environment.NewLine + "### Execution context"
                         + Environment.NewLine + run.RunMetadata + Environment.NewLine + extraMeta;
@@ -1036,7 +1037,8 @@ public sealed class TestTools
         }
 
         var outputOptions = new TestOutputReportOptions(includeFullOutput, maxOutputChars);
-        var parse = VstestOutputParser.Parse(run.CombinedOutput, run.ExitCode);
+        var parse = VstestOutputParser.Parse(
+            run.CombinedOutput, run.ExitCode, run.TestSummaryTruncated, run.OutputTruncated);
         var markdown = VstestOutputParser.BuildMarkdownReport(
             parse,
             run.ExitCode,
@@ -1077,7 +1079,8 @@ public sealed class TestTools
         else
         {
             finalMarkdown = markdown;
-            if (!IsSuccessfulTestRun(parse, run.ExitCode))
+            if (!IsSuccessfulTestRun(parse, run.ExitCode)
+                || DiagnosticReportAttachment.IsPartialOrUnparsedTestStatus(markdown))
             {
                 finalMarkdown += Environment.NewLine + Environment.NewLine + "### Execution context"
                     + Environment.NewLine + run.RunMetadata + Environment.NewLine + extraMeta;

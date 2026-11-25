@@ -22,6 +22,8 @@ public static class DotNetCliRunner
         bool ProcessKilled = false)
     {
         internal TimeSpan? Elapsed { get; init; }
+        internal bool OutputTruncated { get; init; }
+        internal bool TestSummaryTruncated { get; init; }
     }
 
     public sealed record SeparatedRunResult(
@@ -30,7 +32,10 @@ public static class DotNetCliRunner
         string StdErr,
         string RunMetadata,
         bool TimedOut,
-        string? ExceptionType);
+        string? ExceptionType)
+    {
+        internal bool OutputTruncated { get; init; }
+    }
 
     public static async Task<(int ExitCode, string CombinedOutput)> RunAsync(
         string arguments,
@@ -95,10 +100,14 @@ public static class DotNetCliRunner
 
         var run = await RunCommandAsync(dotnet, arguments, workDir, sdk, deadline, cancellationToken)
             .ConfigureAwait(false);
-        var runMetadata = BuildRunMetadata(dotnet, workDir, string.Join('\n', run.StdOut, run.StdErr), sdk);
+        var (stdout, stderr) = BoundedProcessOutput.ProtectCrossPipeSecrets(run.StdOut, run.StdErr);
+        var runMetadata = BuildRunMetadata(dotnet, workDir, string.Join('\n', stdout.Text, stderr.Text), sdk);
         return new SeparatedRunResult(
-            run.ExitCode, run.StdOut, run.StdErr, runMetadata, run.TimedOut,
-            run.Failure?.SourceException.GetType().Name);
+            run.ExitCode, stdout.Text, stderr.Text, runMetadata, run.TimedOut,
+            run.Failure?.SourceException.GetType().Name)
+        {
+            OutputTruncated = stdout.Truncated || stderr.Truncated,
+        };
     }
 
     /// <summary>
@@ -194,7 +203,8 @@ public static class DotNetCliRunner
         var run = await RunCommandAsync(dotnet, arguments, workDir, sdk, deadline, cancellationToken)
             .ConfigureAwait(false);
         run.Failure?.Throw();
-        var combined = CombineStreams(run.StdOut, run.StdErr);
+        var (stdout, stderr) = BoundedProcessOutput.ProtectCrossPipeSecrets(run.StdOut, run.StdErr);
+        var combined = CombineStreams(stdout.Text, stderr.Text);
         var metadata = BuildRunMetadata(dotnet, workDir, combined, sdk);
         return new RunResult(
             run.ExitCode,
@@ -203,7 +213,12 @@ public static class DotNetCliRunner
             run.StdOut.Length,
             run.StdErr.Length,
             TimedOut: run.TimedOut,
-            ProcessKilled: run.ProcessKilled) { Elapsed = run.Elapsed };
+            ProcessKilled: run.ProcessKilled)
+        {
+            Elapsed = run.Elapsed,
+            OutputTruncated = stdout.Truncated || stderr.Truncated,
+            TestSummaryTruncated = stdout.SummaryTruncated || stderr.SummaryTruncated,
+        };
     }
 
     private static async Task<CommandRunResult> RunCommandAsync(
@@ -219,7 +234,8 @@ public static class DotNetCliRunner
         cancellationToken.ThrowIfCancellationRequested();
         if (deadline.Remaining == TimeSpan.Zero)
         {
-            return new CommandRunResult(-1, string.Empty, string.Empty, TimedOut: true);
+            var empty = new BoundedProcessOutput.Capture(string.Empty, 0);
+            return new CommandRunResult(-1, empty, empty, TimedOut: true);
         }
 
         using var process = new Process { StartInfo = psi };
@@ -230,8 +246,8 @@ public static class DotNetCliRunner
 
         using var stdout = process.StandardOutput;
         using var stderr = process.StandardError;
-        var stdoutTask = stdout.ReadToEndAsync(CancellationToken.None);
-        var stderrTask = stderr.ReadToEndAsync(CancellationToken.None);
+        var stdoutTask = BoundedProcessOutput.ReadAsync(stdout);
+        var stderrTask = BoundedProcessOutput.ReadAsync(stderr);
         // A descendant can keep a redirected pipe open after dotnet exits.
         // See docs/project-review-2026-11-25/task-04-p1-dotnet-pipe-deadline-hi.md.
         var completion = Task.WhenAll(process.WaitForExitAsync(CancellationToken.None), stdoutTask, stderrTask);
@@ -578,8 +594,8 @@ public static class DotNetCliRunner
         return killed;
     }
 
-    private static string ReadCompletedOutput(Task<string> output) =>
-        output.IsCompletedSuccessfully ? output.Result.TrimEnd() : string.Empty;
+    private static BoundedProcessOutput.Capture ReadCompletedOutput(Task<BoundedProcessOutput.Capture> output) =>
+        output.IsCompletedSuccessfully ? output.Result : new BoundedProcessOutput.Capture(string.Empty, 0);
 
     private static string CombineStreams(string stdout, string stderr)
     {
@@ -691,8 +707,8 @@ public static class DotNetCliRunner
 
     private sealed record CommandRunResult(
         int ExitCode,
-        string StdOut,
-        string StdErr,
+        BoundedProcessOutput.Capture StdOut,
+        BoundedProcessOutput.Capture StdErr,
         TimeSpan? Elapsed = null,
         bool TimedOut = false,
         bool ProcessKilled = false,

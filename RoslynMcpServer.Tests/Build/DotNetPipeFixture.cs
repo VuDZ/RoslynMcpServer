@@ -22,6 +22,80 @@ internal sealed class DotNetPipeFixture : IAsyncDisposable
             return 17;
         }
 
+        if (args[0] == "output")
+        {
+            var repetitions = int.Parse(args[1], System.Globalization.CultureInfo.InvariantCulture);
+            var noise = new string('x', 1024);
+            Console.WriteLine("stdout-head");
+            Console.Error.WriteLine("stderr-head");
+            for (var index = 0; index < repetitions; index++)
+            {
+                Console.WriteLine("Warning state from ordinary narration " + noise);
+                Console.Error.WriteLine("Error checking from ordinary narration " + noise);
+            }
+
+            Console.WriteLine("fixture.cs(3,4): warning CS0168: warning-in-middle password=private-warning");
+            Console.WriteLine("Passed!  - Failed: 0, Passed: 2, Skipped: 0, Total: 2");
+            Console.Error.WriteLine("fixture.cs(5,6): error CS1002: error-in-middle");
+            Console.Error.WriteLine("Failed!  - Failed: 1, Passed: 3, Skipped: 0, Total: 4");
+            Console.Error.Write("token='");
+            for (var index = 0; index < repetitions; index++)
+            {
+                Console.WriteLine(noise);
+                Console.Error.Write(noise);
+            }
+
+            Console.Error.WriteLine("private-oversized-secret'");
+            Console.WriteLine("stdout-tail");
+            Console.Error.WriteLine("stderr-tail Bearer private-tail");
+            return 17;
+        }
+
+        if (args[0] == "cross-pipe")
+        {
+            var capStdout = args[1] == "1";
+            var capStderr = args[2] == "1";
+            var quoted = args[3] == "1";
+            var noise = new string('x', 1024);
+
+            Console.WriteLine("stdout-anchor");
+            if (capStdout)
+            {
+                for (var index = 0; index < 300; index++)
+                {
+                    Console.WriteLine(noise);
+                }
+            }
+
+            Console.Write(quoted ? "password='private-left" : "password=");
+            Console.Error.WriteLine("private-right");
+            if (capStderr)
+            {
+                for (var index = 0; index < 170; index++)
+                {
+                    Console.Error.WriteLine(noise);
+                }
+            }
+
+            if (quoted)
+            {
+                Console.Error.WriteLine("fixture.cs(1,1): error CS9999: private-quoted-diagnostic");
+                Console.Error.WriteLine("private-middle'");
+            }
+
+            if (capStderr)
+            {
+                for (var index = 0; index < 170; index++)
+                {
+                    Console.Error.WriteLine(noise);
+                }
+            }
+
+            Console.Error.WriteLine("fixture.cs(5,6): error CS1002: unrelated-diagnostic");
+            Console.Error.WriteLine("stderr-anchor");
+            return 17;
+        }
+
         if (args[0] == "hold")
         {
             var stopBy = DateTime.UtcNow.AddSeconds(90);
@@ -44,10 +118,16 @@ internal sealed class DotNetPipeFixture : IAsyncDisposable
         startInfo.ArgumentList.Add(Assembly.GetExecutingAssembly().Location);
         startInfo.ArgumentList.Add("hold");
         startInfo.ArgumentList.Add(args[0] + ".stop");
+        using var parent = Process.GetCurrentProcess();
         using var holder = Process.Start(startInfo)!;
-        File.WriteAllLines(args[0] + ".tmp", [Environment.ProcessId.ToString(), holder.Id.ToString()]);
+        File.WriteAllLines(args[0] + ".tmp", [GetIdentity(parent), GetIdentity(holder)]);
         File.Move(args[0] + ".tmp", args[0]);
         return 0;
+
+        static string GetIdentity(Process process) =>
+            OperatingSystem.IsLinux()
+                ? File.ReadAllText(FormattableString.Invariant($"/proc/{process.Id}/stat")).TrimEnd()
+                : FormattableString.Invariant($"{process.Id} {process.StartTime.ToUniversalTime().Ticks}");
         """;
 
     public string WorkingDirectory => _directory.FullName;
@@ -65,6 +145,12 @@ internal sealed class DotNetPipeFixture : IAsyncDisposable
         File.WriteAllBytes(_assemblyPath, program);
     }
 
+    public string NoisyCommand(int repetitions) =>
+        FormattableString.Invariant($"{NormalCommand} output {repetitions}");
+
+    public string CrossPipeCommand(bool capStdout, bool capStderr, bool quoted) =>
+        $"{NormalCommand} cross-pipe {(capStdout ? 1 : 0)} {(capStderr ? 1 : 0)} {(quoted ? 1 : 0)}";
+
     public async Task WaitForExitedParentAsync()
     {
         using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(10));
@@ -73,40 +159,110 @@ internal sealed class DotNetPipeFixture : IAsyncDisposable
             await Task.Delay(25, deadline.Token);
         }
 
-        var pids = ReadProcessIds();
-        using var parent = FindProcess(pids.Parent);
-        if (parent is not null)
-        {
-            await parent.WaitForExitAsync(deadline.Token);
-        }
+        var identities = ReadProcessIdentities();
+        await WaitForTrackedExitAsync(identities.Parent, deadline.Token);
 
-        using var holder = FindProcess(pids.Holder);
+        using var holder = FindTrackedProcess(identities.Holder);
         Assert.True(holder is { HasExited: false }, "The child should still hold the pipes after the parent exits.");
     }
 
     public async ValueTask DisposeAsync()
     {
+        if (File.Exists(_pidFile))
+        {
+            await StopTrackedProcessesAsync();
+        }
+
+        await DeleteFixtureDirectoryAsync();
+    }
+
+    private async Task StopTrackedProcessesAsync()
+    {
+        var identities = ReadProcessIdentities();
         try
         {
-            if (File.Exists(_pidFile))
-            {
-                using var holder = FindProcess(ReadProcessIds().Holder);
-                if (holder is { HasExited: false })
-                {
-                    await StopHolderAsync(holder);
-                }
-            }
+            await StopHolderAsync(identities.Holder);
         }
         finally
         {
-            _directory.Delete(recursive: true);
+            using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            await WaitForTrackedExitAsync(identities.Parent, deadline.Token);
         }
     }
 
-    private async Task StopHolderAsync(Process holder)
+    private async Task StopHolderAsync(ProcessIdentity identity)
     {
-        File.WriteAllText(_pidFile + ".stop", string.Empty);
-        var exit = holder.WaitForExitAsync();
+        using var holder = OperatingSystem.IsWindows() ? FindTrackedProcess(identity) : null;
+        try
+        {
+            File.WriteAllText(_pidFile + ".stop", string.Empty);
+        }
+        finally
+        {
+            if (holder is not null)
+            {
+                await WaitForExitOrKillAsync(holder);
+            }
+            else if (!OperatingSystem.IsWindows())
+            {
+                using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+                await WaitForTrackedExitAsync(identity, deadline.Token);
+            }
+        }
+    }
+
+    private async Task DeleteFixtureDirectoryAsync()
+    {
+        // Windows can temporarily deny deletion of the loaded DLL after the processes and
+        // their handles are gone. Bound the wait and let the last deletion error fail the test.
+        const int MaxWindowsRetries = 20;
+        for (var attempt = 0; ; attempt++)
+        {
+            try
+            {
+                _directory.Delete(recursive: true);
+                return;
+            }
+            catch (Exception exception) when (OperatingSystem.IsWindows()
+                && attempt < MaxWindowsRetries
+                && (exception is IOException or UnauthorizedAccessException))
+            {
+                await Task.Delay(100);
+            }
+        }
+    }
+
+    private static async Task WaitForTrackedExitAsync(ProcessIdentity identity, CancellationToken cancellationToken)
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            using var process = FindTrackedProcess(identity);
+            if (process is not null)
+            {
+                await process.WaitForExitAsync(cancellationToken);
+            }
+
+            return;
+        }
+
+        // Poll the creation identity on Unix so an exit followed by PID reuse cannot extend the wait.
+        while (true)
+        {
+            using (var process = FindTrackedProcess(identity))
+            {
+                if (process is null)
+                {
+                    return;
+                }
+            }
+
+            await Task.Delay(25, cancellationToken);
+        }
+    }
+
+    private static async Task WaitForExitOrKillAsync(Process process)
+    {
+        var exit = process.WaitForExitAsync();
         try
         {
             await exit.WaitAsync(TimeSpan.FromSeconds(3));
@@ -115,33 +271,85 @@ internal sealed class DotNetPipeFixture : IAsyncDisposable
         {
             try
             {
-                holder.Kill();
+                process.Kill();
             }
-            catch (InvalidOperationException) when (holder.HasExited)
+            catch (Exception exception) when ((exception is InvalidOperationException or System.ComponentModel.Win32Exception)
+                && process.HasExited)
             {
-                // The holder exited while the fallback kill was starting.
+                // The process exited while the fallback kill was starting.
             }
 
             await exit.WaitAsync(TimeSpan.FromSeconds(5));
         }
     }
 
-    private (int Parent, int Holder) ReadProcessIds()
+    private (ProcessIdentity Parent, ProcessIdentity Holder) ReadProcessIdentities()
     {
-        var pids = File.ReadAllLines(_pidFile);
-        return (int.Parse(pids[0], System.Globalization.CultureInfo.InvariantCulture),
-            int.Parse(pids[1], System.Globalization.CultureInfo.InvariantCulture));
+        var identities = File.ReadAllLines(_pidFile);
+        return (ParseIdentity(identities[0]), ParseIdentity(identities[1]));
     }
 
-    private static Process? FindProcess(int pid)
+    private static ProcessIdentity ParseIdentity(string text)
     {
+        var separator = text.IndexOf(' ');
+        var id = int.Parse(text.AsSpan(0, separator), System.Globalization.CultureInfo.InvariantCulture);
+        if (!OperatingSystem.IsLinux())
+        {
+            return new ProcessIdentity(id, long.Parse(text.AsSpan(separator + 1), System.Globalization.CultureInfo.InvariantCulture));
+        }
+
+        // Linux StartTime combines the start tick with a boot-time estimate local to each runtime.
+        // The kernel starttime field is stable across processes. After comm, field 3 starts at index 0.
+        var fields = text[(text.LastIndexOf(')') + 1)..].Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return new ProcessIdentity(id, long.Parse(fields[19], System.Globalization.CultureInfo.InvariantCulture));
+    }
+
+    private static Process? FindTrackedProcess(ProcessIdentity identity)
+    {
+        Process process;
         try
         {
-            return Process.GetProcessById(pid);
+            process = Process.GetProcessById(identity.Id);
         }
         catch (ArgumentException)
         {
             return null;
+        }
+
+        var matches = false;
+        try
+        {
+            if (OperatingSystem.IsWindows())
+            {
+                // Bind the handle before reading its creation time. Waiting or killing then
+                // uses the verified process object even if its numeric PID becomes stale.
+                _ = process.SafeHandle;
+            }
+
+            matches = !process.HasExited && (OperatingSystem.IsLinux()
+                ? ParseIdentity(File.ReadAllText(FormattableString.Invariant($"/proc/{identity.Id}/stat"))) == identity
+                : process.StartTime.ToUniversalTime().Ticks == identity.StartStamp);
+            return matches ? process : null;
+        }
+        catch (IOException exception) when (OperatingSystem.IsLinux()
+            && (exception is FileNotFoundException or DirectoryNotFoundException))
+        {
+            return null;
+        }
+        catch (InvalidOperationException) when (process.HasExited)
+        {
+            return null;
+        }
+        catch (System.ComponentModel.Win32Exception) when (process.HasExited)
+        {
+            return null;
+        }
+        finally
+        {
+            if (!matches)
+            {
+                process.Dispose();
+            }
         }
     }
 
@@ -157,6 +365,8 @@ internal sealed class DotNetPipeFixture : IAsyncDisposable
         Assert.True(result.Success, string.Join(Environment.NewLine, result.Diagnostics));
         return stream.ToArray();
     }
+
+    private readonly record struct ProcessIdentity(int Id, long StartStamp);
 
     private static readonly Lazy<byte[]> _program = new(CompileProgram);
     private static readonly string _runtimeConfig =

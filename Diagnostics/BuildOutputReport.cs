@@ -123,6 +123,32 @@ internal static class BuildOutputReport
         return string.Equals(verb, "build", StringComparison.OrdinalIgnoreCase);
     }
 
+    internal static string? GetDiagnosticSeverityForCapture(string line)
+    {
+        if (!line.Contains("error", StringComparison.OrdinalIgnoreCase)
+            && !line.Contains("warning", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        var trimmed = line.Trim();
+        if (DotNetBuildDiagnosticParser.IsSectionHeaderLine(trimmed))
+        {
+            return null;
+        }
+
+        var match = MatchDiagnostic(trimmed);
+        if (match.Success)
+        {
+            return match.Groups["severity"].Value.ToLowerInvariant();
+        }
+
+        var entries = DotNetBuildDiagnosticParser.Parse(trimmed);
+        return entries.Any(item => item.Severity.Equals("error", StringComparison.OrdinalIgnoreCase))
+            ? "error"
+            : entries.FirstOrDefault()?.Severity.ToLowerInvariant();
+    }
+
     private static IReadOnlyList<DotNetBuildDiagnosticParser.DiagnosticEntry> ParseDiagnostics(string output)
     {
         var diagnostics = new List<DotNetBuildDiagnosticParser.DiagnosticEntry>();
@@ -134,12 +160,7 @@ internal static class BuildOutputReport
                 continue;
             }
 
-            // A bare error can quote a warning; read its severity before interpreting a location.
-            var match = _bareDiagnostic.Match(trimmed);
-            if (!match.Success)
-            {
-                match = _locatedDiagnostic.Match(trimmed);
-            }
+            var match = MatchDiagnostic(trimmed);
 
             if (!match.Success)
             {
@@ -156,6 +177,13 @@ internal static class BuildOutputReport
         }
 
         return diagnostics;
+    }
+
+    private static Match MatchDiagnostic(string trimmed)
+    {
+        // A bare error can quote a warning that otherwise looks like a location.
+        var bare = _bareDiagnostic.Match(trimmed);
+        return bare.Success ? bare : _locatedDiagnostic.Match(trimmed);
     }
 
     private static bool HasUnparsedErrors(string output) =>

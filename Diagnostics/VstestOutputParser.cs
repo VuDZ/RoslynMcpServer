@@ -103,6 +103,9 @@ public static class VstestOutputParser
         IReadOnlyList<string> PassedTestNames)
     {
         internal bool FailureDetailsTruncated { get; init; }
+        internal bool SummaryTruncated { get; init; }
+        internal bool RetainedSummaryReportsFailure { get; init; }
+        internal bool OutputTruncated { get; init; }
     }
 
     public static string DeduplicateNuGetAuditLines(string combinedOutput)
@@ -132,18 +135,30 @@ public static class VstestOutputParser
         return sb.ToString().TrimEnd();
     }
 
-    public static ParseResult Parse(string combinedOutput, int exitCode)
+    public static ParseResult Parse(string combinedOutput, int exitCode) =>
+        Parse(combinedOutput, exitCode, summaryTruncated: false, outputTruncated: false);
+
+    internal static ParseResult Parse(
+        string combinedOutput,
+        int exitCode,
+        bool summaryTruncated,
+        bool outputTruncated)
     {
         combinedOutput = DeduplicateNuGetAuditLines(combinedOutput);
-        var summary = TryParseTestSummary(combinedOutput);
-        var hasSummary = summary is not null || HasSummaryMarkers(combinedOutput);
+        var retainedSummary = TryParseTestSummary(combinedOutput);
+        var summary = summaryTruncated ? null : retainedSummary;
+        var hasSummary = !summaryTruncated && (summary is not null || HasSummaryMarkers(combinedOutput));
         var passedNames = CollectPassedTestNames(combinedOutput);
         var failures = ParseFailedTestBlocks(combinedOutput, out var failureDetailsTruncated);
         var isPartial = exitCode == 0 && !hasSummary;
 
         return new ParseResult(summary, hasSummary, isPartial, failures, passedNames)
         {
-            FailureDetailsTruncated = failureDetailsTruncated,
+            FailureDetailsTruncated = failureDetailsTruncated || outputTruncated,
+            SummaryTruncated = summaryTruncated,
+            RetainedSummaryReportsFailure = retainedSummary is { Failed: > 0 }
+                || (summaryTruncated && failures.Count != 0),
+            OutputTruncated = outputTruncated,
         };
     }
 
@@ -251,8 +266,41 @@ public static class VstestOutputParser
             sb.AppendLine();
         }
 
-        // Must run before IsPartialSuccess: all-assembly "No test matches" with exit 0 is otherwise swallowed as partial.
-        if (ShouldReportFilteredNoMatch(requireFilterMatch, parse.Summary, filter, combinedOutput, parse.PassedTestNames))
+        if (parse.SummaryTruncated)
+        {
+            var confirmedFailure = exitCode != 0 || parse.RetainedSummaryReportsFailure;
+            sb.AppendLine(confirmedFailure ? "## Test run failed" : "**Status:** partial");
+            sb.AppendLine();
+            sb.AppendLine($"The process exited with code `{exitCode}`. The test summary exceeded the capture limit.");
+            if (parse.Failures.Count > 0)
+            {
+                AppendFailureDetails(sb, parse.Failures, parse.FailureDetailsTruncated, outputOptions);
+            }
+
+            AppendRawTail(sb, combinedOutput);
+            return sb.ToString().TrimEnd();
+        }
+
+        if (parse.OutputTruncated && requireFilterMatch && parse.Summary is not { Total: 0 }
+            && !FilterMatchedAnyTest(filter, combinedOutput, parse.PassedTestNames))
+        {
+            sb.AppendLine("**Status:** partial");
+            sb.AppendLine();
+            sb.AppendLine($"The process exited with code `{exitCode}`. Retained test names do not verify the filter match.");
+            if (parse.Summary is { } retained)
+            {
+                sb.AppendLine($"Reported totals: {retained.Total} total, {retained.Passed} passed, "
+                    + $"{retained.Failed} failed, {retained.Skipped} skipped.");
+            }
+
+            AppendRawTail(sb, combinedOutput);
+            return sb.ToString().TrimEnd();
+        }
+
+        // An explicit no-match line can come from a sibling project. For truncated output
+        // the captured totals must also prove zero tests ran before reporting a no-match.
+        if ((!parse.OutputTruncated || parse.Summary is { Total: 0 })
+            && ShouldReportFilteredNoMatch(requireFilterMatch, parse.Summary, filter, combinedOutput, parse.PassedTestNames))
         {
             AppendFilteredNoMatch(sb, filter, filterDescription, combinedOutput);
             return sb.ToString().TrimEnd();
@@ -349,6 +397,15 @@ public static class VstestOutputParser
 
         return sb.ToString().TrimEnd();
     }
+
+    internal static bool IsSummaryCaptureLine(ReadOnlySpan<char> line) =>
+        RxEndSummaryLine.IsMatch(line)
+        || RxTotalTests.IsMatch(line)
+        || RxPassedCountLine.IsMatch(line)
+        || RxFailedCountLine.IsMatch(line)
+        || RxSkippedCountLine.IsMatch(line)
+        || RxTestRunSuccessful.IsMatch(line)
+        || RxNoTestMatchesLine.IsMatch(line);
 
     /// <summary>
     /// Filtered no-match only when no tests executed (<c>summary</c> missing or <c>Total == 0</c>)

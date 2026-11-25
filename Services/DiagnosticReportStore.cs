@@ -6,7 +6,7 @@ using RoslynMcpServer.Diagnostics;
 namespace RoslynMcpServer.Services;
 
 /// <summary>
-/// In-memory full process logs for truncated / partial / unparsed build-test-run reports.
+/// In-memory retained process logs for truncated / partial / unparsed build-test-run reports.
 /// Not a host filesystem path — remote clients fetch chunks via <c>reportCursor</c>.
 /// </summary>
 internal static class DiagnosticReportStore
@@ -16,7 +16,7 @@ internal static class DiagnosticReportStore
     public const int ChunkChars = 16_000;
     public static readonly TimeSpan Ttl = TimeSpan.FromMinutes(15);
 
-    /// <summary>Appended when a redacted report exceeds <see cref="MaxReportChars"/>.</summary>
+    /// <summary>Separates head and tail when a redacted report exceeds <see cref="MaxReportChars"/>.</summary>
     public const string CapMarker = "\n\n...[truncated at cap]...\n";
 
     private static readonly object Gate = new();
@@ -79,13 +79,10 @@ internal static class DiagnosticReportStore
         var payload = ProcessOutputRedactor.Redact(combinedOutput);
         if (payload.Length > MaxReportChars)
         {
-            var prefixLen = MaxReportChars - CapMarker.Length;
-            if (prefixLen < 1)
-            {
-                prefixLen = 1;
-            }
-
-            payload = string.Concat(payload.AsSpan(0, prefixLen), CapMarker);
+            var available = MaxReportChars - CapMarker.Length;
+            var headLength = available / 2;
+            var tailLength = available - headLength;
+            payload = string.Concat(payload.AsSpan(0, headLength), CapMarker, payload.AsSpan(payload.Length - tailLength));
         }
 
         lock (Gate)
@@ -220,8 +217,10 @@ internal static class DiagnosticReportStore
 /// </summary>
 internal static class ProcessOutputRedactor
 {
+    private const string AssignmentSecretKeys = "password|pwd|token|secret|apikey|api_key";
+
     private static readonly Regex AssignmentSecret = new(
-        @"\b(password|pwd|token|secret|apikey|api_key)\b(\s*[:=]\s*)(""[^""]*""|'[^']*'|[^\s""']+)",
+        @"\b(" + AssignmentSecretKeys + @")\b(\s*[:=]\s*)(""[^""]*""|'[^']*'|[^\s""']+)",
         RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
 
     private static readonly Regex AuthorizationAssignment = new(
@@ -252,15 +251,21 @@ internal static class ProcessOutputRedactor
         redacted = UrlUserInfoPassword.Replace(redacted, "$1:[redacted]@");
         return redacted;
     }
+
+    internal static bool IsAssignmentSecretKey(ReadOnlySpan<char> text) => _assignmentSecretKey.IsMatch(text);
+
+    private static readonly Regex _assignmentSecretKey = new(
+        @"\A(?:" + AssignmentSecretKeys + @")\z",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
 }
 
 /// <summary>
-/// Decides when to store a full report and formats cursor / chunk responses for build-test-run tools.
+/// Decides when to store a retained report and formats cursor / chunk responses for build-test-run tools.
 /// </summary>
 internal static class DiagnosticReportAttachment
 {
     public const string ReportCursorParameterDescription =
-        "Next full-report chunk; no new process.";
+        "Read next report chunk. No new process.";
 
     public static bool ClientResponseHasTruncatedExcerpt(string response)
     {
@@ -270,6 +275,7 @@ internal static class DiagnosticReportAttachment
         }
 
         return response.Contains(TruncatedProcessLog.MiddleMarker, StringComparison.Ordinal)
+               || response.Contains(TruncatedProcessLog.CaptureMarker, StringComparison.Ordinal)
                || response.Contains("\n...[TRUNCATED]...\n", StringComparison.Ordinal)
                || response.Contains("(stderr truncated;", StringComparison.Ordinal)
                || response.Contains(" truncated to ", StringComparison.OrdinalIgnoreCase)
@@ -307,7 +313,13 @@ internal static class DiagnosticReportAttachment
     public static void AppendCursorLineIfStored(StringBuilder sb, string combinedOutput, bool shouldStore)
     {
         ArgumentNullException.ThrowIfNull(sb);
-        if (!shouldStore || string.IsNullOrEmpty(combinedOutput))
+        if (string.IsNullOrEmpty(combinedOutput))
+        {
+            return;
+        }
+
+        var captureTruncated = combinedOutput.Contains(TruncatedProcessLog.CaptureMarker, StringComparison.Ordinal);
+        if (!shouldStore && !captureTruncated)
         {
             return;
         }
@@ -319,18 +331,24 @@ internal static class DiagnosticReportAttachment
         }
 
         sb.AppendLine();
-        sb.AppendLine($"Full report: pass reportCursor=`{stored.CursorId}` to this same tool.");
+        if (captureTruncated)
+        {
+            sb.AppendLine("Process output was truncated during capture.");
+        }
+
+        sb.AppendLine($"Retained report: pass reportCursor=`{stored.CursorId}` to this same tool.");
     }
 
     public static string AttachToResponse(string response, string combinedOutput, bool shouldStore)
     {
-        if (!shouldStore || string.IsNullOrEmpty(combinedOutput))
+        if (string.IsNullOrEmpty(combinedOutput)
+            || (!shouldStore && !combinedOutput.Contains(TruncatedProcessLog.CaptureMarker, StringComparison.Ordinal)))
         {
             return response;
         }
 
         var sb = new StringBuilder(response);
-        AppendCursorLineIfStored(sb, combinedOutput, shouldStore: true);
+        AppendCursorLineIfStored(sb, combinedOutput, shouldStore);
         return sb.ToString().TrimEnd();
     }
 
@@ -350,11 +368,11 @@ internal static class DiagnosticReportAttachment
         if (take.HasMore)
         {
             sb.AppendLine(
-                $"Full report: pass reportCursor=`{take.CursorId}` to this same tool.");
+                $"Retained report: pass reportCursor=`{take.CursorId}` to this same tool.");
         }
         else
         {
-            sb.AppendLine("[*] Full report exhausted; cursor released.");
+            sb.AppendLine("[*] End of retained report. Cursor released.");
         }
 
         return sb.ToString().TrimEnd();

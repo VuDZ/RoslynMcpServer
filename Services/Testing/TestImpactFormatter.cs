@@ -345,7 +345,7 @@ internal static class TestImpactFormatter
                 attachFullReport: false);
             body.AppendLine(diagnostic, Priority.Diagnostic, projectBlock);
         }
-        if (result.Outcome == TestProcessOutcome.Failed && result.TestRun is { } test)
+        if ((result.Outcome is TestProcessOutcome.Failed or TestProcessOutcome.Partial) && result.TestRun is { } test)
         {
             var outputOptions = new TestOutputReportOptions(false, 0) { SuppressOutputOptionHints = true };
             // The project headline owns the filter budget, so failure diagnostics do not repeat it.

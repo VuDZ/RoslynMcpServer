@@ -12,6 +12,7 @@ internal sealed record DotNetTestResult(
     internal string OutcomeText => Outcome switch
     {
         TestProcessOutcome.Passed => "passed",
+        TestProcessOutcome.Partial => "partial",
         TestProcessOutcome.Failed => "failed",
         TestProcessOutcome.BuildFailed => "build failed",
         TestProcessOutcome.TimedOut => "timed out",

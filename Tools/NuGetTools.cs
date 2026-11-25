@@ -71,7 +71,7 @@ public sealed class NuGetTools
                 ? fullPath
                 : Path.GetDirectoryName(fullPath) ?? Environment.CurrentDirectory;
 
-            var (exitCode, output) = await DotNetCliRunner.RunAsync(
+            var (exitCode, output) = await RunJsonCommandAsync(
                 args.ToString(),
                 workingDirectory,
                 cancellationToken).ConfigureAwait(false);
@@ -149,7 +149,7 @@ public sealed class NuGetTools
                 ? fullPath
                 : WorkspaceRootResolver.ResolveDotNetWorkingDirectory(fullPath);
 
-            var (exitCode, output) = await DotNetCliRunner.RunAsync(
+            var (exitCode, output) = await RunJsonCommandAsync(
                 args.ToString(),
                 workingDirectory,
                 cancellationToken).ConfigureAwait(false);
@@ -221,7 +221,7 @@ public sealed class NuGetTools
                 broadArgs.Append('"').Append(trimmedQuery.Replace("\"", "\\\"", StringComparison.Ordinal)).Append('"');
                 broadArgs.Append(" --format json --take 20");
 
-                var (broadExit, broadOutput) = await DotNetCliRunner.RunAsync(
+                var (broadExit, broadOutput) = await RunJsonCommandAsync(
                     broadArgs.ToString(),
                     workingDirectory: null,
                     cancellationToken).ConfigureAwait(false);
@@ -241,7 +241,7 @@ public sealed class NuGetTools
                     exactArgs.Append('"').Append(trimmedQuery.Replace("\"", "\\\"", StringComparison.Ordinal)).Append('"');
                     exactArgs.Append(" --exact-match --format json");
 
-                    var (exactExit, exactOutput) = await DotNetCliRunner.RunAsync(
+                    var (exactExit, exactOutput) = await RunJsonCommandAsync(
                         exactArgs.ToString(),
                         workingDirectory: null,
                         cancellationToken).ConfigureAwait(false);
@@ -270,7 +270,7 @@ public sealed class NuGetTools
                 args.Append('"').Append(trimmedQuery.Replace("\"", "\\\"", StringComparison.Ordinal)).Append('"');
                 args.Append(" --format json --take ").Append(take);
 
-                var (exitCode, output) = await DotNetCliRunner.RunAsync(
+                var (exitCode, output) = await RunJsonCommandAsync(
                     args.ToString(),
                     workingDirectory: null,
                     cancellationToken).ConfigureAwait(false);
@@ -329,6 +329,21 @@ public sealed class NuGetTools
             _logger.LogError(ex, "SearchNuGetRegistry failed for query {Query}", query);
             return ToolTelemetry.TraceAndReturn(toolName, $"Failed to search NuGet registry: {ex.Message}");
         }
+    }
+
+    private static async Task<(int ExitCode, string Output)> RunJsonCommandAsync(
+        string arguments,
+        string? workingDirectory,
+        CancellationToken cancellationToken)
+    {
+        var run = await DotNetCliRunner.RunWithMetadataAsync(arguments, workingDirectory, cancellationToken)
+            .ConfigureAwait(false);
+        if (run.ExitCode == 0 && run.OutputTruncated)
+        {
+            throw new InvalidDataException("NuGet JSON output exceeded the process capture limit. Narrow the request.");
+        }
+
+        return (run.ExitCode, run.CombinedOutput);
     }
 
     private static bool TryPrettyPrintJson(string raw, out string pretty)
