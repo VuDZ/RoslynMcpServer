@@ -56,6 +56,73 @@ public sealed class WorkspaceAtomicPersistenceTests : IDisposable
         Assert.Empty(Directory.EnumerateFiles(_root, "*.tmp"));
     }
 
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task Rejected_hard_link_write_preserves_bytes_and_shared_identity(bool asyncWrite, bool linkDuringStaging)
+    {
+        Directory.CreateDirectory(_root);
+        var destination = Path.Combine(_root, "Existing.cs");
+        var alias = Path.Combine(_root, "Alias.cs");
+        await File.WriteAllTextAsync(destination, "before", Encoding.UTF8);
+        var original = await File.ReadAllBytesAsync(destination);
+
+        void CreateAlias() => File.CreateHardLink(alias, destination);
+
+        if (!linkDuringStaging)
+        {
+            CreateAlias();
+        }
+
+        Action? afterStagingPrefix = linkDuringStaging ? CreateAlias : null;
+        var error = asyncWrite
+            ? await Assert.ThrowsAsync<IOException>(() => WorkspaceFilePersistence.WriteTextAsync(
+                null, destination, "after", Encoding.UTF8, afterStagingPrefix, CancellationToken.None))
+            : Assert.Throws<IOException>(() => WorkspaceFilePersistence.WriteText(
+                null, destination, "after", Encoding.UTF8, afterStagingPrefix));
+
+        Assert.Contains("has multiple hard links", error.Message, StringComparison.Ordinal);
+        Assert.Equal(original, await File.ReadAllBytesAsync(destination));
+        Assert.Equal(original, await File.ReadAllBytesAsync(alias));
+        Assert.Empty(Directory.EnumerateFiles(_root, "*.tmp"));
+
+        await File.WriteAllTextAsync(alias, "updated in place");
+        Assert.Equal("updated in place", await File.ReadAllTextAsync(destination));
+    }
+
+    [Fact]
+    public async Task Symbolic_link_write_checks_the_resolved_targets_hard_links()
+    {
+        // Creating symbolic links on Windows may require a privilege the test runner lacks.
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        Directory.CreateDirectory(_root);
+        var destination = Path.Combine(_root, "Existing.cs");
+        var symbolicLink = Path.Combine(_root, "SymbolicLink.cs");
+        var hardLink = Path.Combine(_root, "HardLink.cs");
+        await File.WriteAllTextAsync(destination, "before");
+        File.CreateSymbolicLink(symbolicLink, destination);
+
+        await WorkspaceFilePersistence.WriteTextAsync(null, symbolicLink, "after", Encoding.UTF8, CancellationToken.None);
+
+        Assert.Equal(destination, new FileInfo(symbolicLink).LinkTarget);
+        Assert.Equal("after", await File.ReadAllTextAsync(destination));
+        File.CreateHardLink(hardLink, destination);
+
+        var error = await Assert.ThrowsAsync<IOException>(() => WorkspaceFilePersistence.WriteTextAsync(
+            null, symbolicLink, "rejected", Encoding.UTF8, CancellationToken.None));
+
+        Assert.Contains("has multiple hard links", error.Message, StringComparison.Ordinal);
+        Assert.Equal(destination, new FileInfo(symbolicLink).LinkTarget);
+        Assert.Equal("after", await File.ReadAllTextAsync(destination));
+        Assert.Equal("after", await File.ReadAllTextAsync(hardLink));
+        Assert.Empty(Directory.EnumerateFiles(_root, "*.tmp"));
+    }
+
     [Fact]
     public async Task Replacement_preserves_the_bom_and_existing_unix_mode()
     {

@@ -68,7 +68,7 @@ public sealed class EditingTools
             _logger.LogWarning(ex, "I/O error writing {FilePath}", filePath);
             return ToolTelemetry.TraceFailureAndReturn(
                 nameof(WriteFile),
-                $"Failed to write file `{filePath}`: file may be locked or in use ({ex.Message}).");
+                $"Failed to write file `{filePath}`: {ex.Message}");
         }
         catch (Exception ex)
         {

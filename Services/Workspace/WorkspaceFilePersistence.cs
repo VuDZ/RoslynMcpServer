@@ -125,9 +125,6 @@ internal static class WorkspaceFilePersistence
             cancellationToken.ThrowIfCancellationRequested();
             if (existed)
             {
-                // A writable parent directory does not authorize replacing an unwritable file.
-                File.Open(destination.FullName, FileMode.Open, FileAccess.Write, FileShare.ReadWrite | FileShare.Delete)
-                    .Dispose();
                 ReplaceStagedFile(staged, destination.FullName);
                 committed = true;
             }
@@ -195,6 +192,22 @@ internal static class WorkspaceFilePersistence
 
     private static void ReplaceStagedFile(string staged, string destination)
     {
+        // A writable parent directory does not authorize replacing an unwritable file.
+        using (var handle = File.OpenHandle(destination, FileMode.Open, FileAccess.Write, FileShare.ReadWrite | FileShare.Delete))
+        {
+            var linkCount = FileHardLinkCount.Read(handle, destination);
+            // Replacing one name would leave the other hard links pointing to the old content.
+            if (linkCount > 1)
+            {
+                throw new IOException($"Cannot atomically replace '{destination}' because it has multiple hard links.");
+            }
+
+            if (linkCount == 0)
+            {
+                throw new IOException($"Could not verify a hard link to the open destination '{destination}'.");
+            }
+        }
+
         if (!OperatingSystem.IsWindows())
         {
             File.Replace(staged, destination, destinationBackupFileName: null);
