@@ -105,7 +105,7 @@ public sealed class UtilityTools
 
             if (run.TimedOut)
             {
-                sb.AppendLine("- **Timed out:** yes (process tree killed)");
+                sb.AppendLine("- **Timed out:** yes");
                 sb.AppendLine();
                 sb.AppendLine(DotNetCliRunner.FormatHangHints(timedOut: true, cancelled: false));
             }

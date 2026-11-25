@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using RoslynMcpServer.Diagnostics;
@@ -8,7 +9,7 @@ namespace RoslynMcpServer.Services.Build;
 public static class DotNetCliRunner
 {
     public const int DefaultTimeoutSeconds = 300;
-    private const string SdkCheckTimeoutMetadata = "- **Command start:** skipped because the timeout elapsed during SDK resolution.";
+    private const string PreparationTimeoutMetadata = "- **Command start:** skipped because the timeout elapsed during command preparation.";
 
     public sealed record RunResult(
         int ExitCode,
@@ -54,19 +55,20 @@ public static class DotNetCliRunner
         CancellationToken cancellationToken = default,
         CliProgressWatch? progress = null)
     {
+        var deadline = CommandDeadline.Start(timeout);
         var workDir = string.IsNullOrWhiteSpace(workingDirectory)
             ? Environment.CurrentDirectory
             : Path.GetFullPath(workingDirectory);
 
         if (progress is null)
         {
-            return await RunSeparatedCoreAsync(arguments, workDir, timeout, cancellationToken).ConfigureAwait(false);
+            return await RunSeparatedCoreAsync(arguments, workDir, deadline, cancellationToken).ConfigureAwait(false);
         }
 
         var heartbeat = StartHeartbeat(progress, cancellationToken);
         try
         {
-            return await RunSeparatedCoreAsync(arguments, workDir, timeout, cancellationToken).ConfigureAwait(false);
+            return await RunSeparatedCoreAsync(arguments, workDir, deadline, cancellationToken).ConfigureAwait(false);
         }
         finally
         {
@@ -77,73 +79,26 @@ public static class DotNetCliRunner
     private static async Task<SeparatedRunResult> RunSeparatedCoreAsync(
         string arguments,
         string workDir,
-        TimeSpan? timeout,
+        CommandDeadline deadline,
         CancellationToken cancellationToken)
     {
         var dotnet = DotNetHostResolver.ResolveDotNetExecutable();
-        var (sdk, remaining) = await ResolveSdkWithCommandBudgetAsync(dotnet, workDir, timeout, cancellationToken)
+        var sdk = await ResolveSdkWithCommandBudgetAsync(dotnet, workDir, deadline, cancellationToken)
             .ConfigureAwait(false);
-        if (remaining == TimeSpan.Zero)
+        if (deadline.Remaining == TimeSpan.Zero)
         {
             var metadata = BuildRunMetadata(dotnet, workDir, string.Empty, sdk);
             return new SeparatedRunResult(
-                -1, string.Empty, string.Empty, metadata + Environment.NewLine + SdkCheckTimeoutMetadata,
+                -1, string.Empty, string.Empty, metadata + Environment.NewLine + PreparationTimeoutMetadata,
                 TimedOut: true, ExceptionType: null);
         }
 
-        var psi = CreateProcessStartInfo(dotnet, arguments, workDir, sdk);
-
-        using var process = new Process { StartInfo = psi };
-        if (!process.Start())
-        {
-            throw new InvalidOperationException(FailedToStartDotNetMessage(dotnet));
-        }
-
-        var stdoutTask = process.StandardOutput.ReadToEndAsync(CancellationToken.None);
-        var stderrTask = process.StandardError.ReadToEndAsync(CancellationToken.None);
-        try
-        {
-            if (!await WaitForExitOrTimeoutAsync(process, remaining, cancellationToken).ConfigureAwait(false))
-            {
-                var stdout = (await stdoutTask.ConfigureAwait(false)).TrimEnd();
-                var stderr = (await stderrTask.ConfigureAwait(false)).TrimEnd();
-                var metadata = BuildRunMetadata(dotnet, workDir, string.Join('\n', stdout, stderr), sdk);
-
-                return new SeparatedRunResult(process.ExitCode, stdout, stderr, metadata, false, null);
-            }
-
-            TryKillProcessTree(process);
-            var (partialStdout, partialStderr) = await AwaitOutputAsync(stdoutTask, stderrTask, OutputDrainTimeout)
-                .ConfigureAwait(false);
-            var meta = BuildRunMetadata(dotnet, workDir, string.Join('\n', partialStdout, partialStderr), sdk);
-
-            return new SeparatedRunResult(
-                process.HasExited ? process.ExitCode : -1,
-                partialStdout,
-                partialStderr,
-                meta,
-                TimedOut: true,
-                ExceptionType: null);
-        }
-        catch (OperationCanceledException)
-        {
-            TryKillProcessTree(process);
-            throw;
-        }
-        catch (Exception ex)
-        {
-            TryKillProcessTree(process);
-            var (partialStdout, partialStderr) = await AwaitOutputAsync(stdoutTask, stderrTask, OutputDrainTimeout)
-                .ConfigureAwait(false);
-            var meta = BuildRunMetadata(dotnet, workDir, string.Join('\n', partialStdout, partialStderr), sdk);
-            return new SeparatedRunResult(
-                process.HasExited ? process.ExitCode : -1,
-                partialStdout,
-                partialStderr,
-                meta,
-                TimedOut: false,
-                ExceptionType: ex.GetType().Name);
-        }
+        var run = await RunCommandAsync(dotnet, arguments, workDir, sdk, deadline, cancellationToken)
+            .ConfigureAwait(false);
+        var runMetadata = BuildRunMetadata(dotnet, workDir, string.Join('\n', run.StdOut, run.StdErr), sdk);
+        return new SeparatedRunResult(
+            run.ExitCode, run.StdOut, run.StdErr, runMetadata, run.TimedOut,
+            run.Failure?.SourceException.GetType().Name);
     }
 
     /// <summary>
@@ -158,41 +113,40 @@ public static class DotNetCliRunner
         TimeSpan? timeout = null,
         CliProgressWatch? progress = null)
     {
+        var deadline = CommandDeadline.Start(timeout);
         var workDir = string.IsNullOrWhiteSpace(workingDirectory)
             ? Environment.CurrentDirectory
             : Path.GetFullPath(workingDirectory);
         var dotnet = DotNetHostResolver.ResolveDotNetExecutable();
-        var (sdk, remaining) = await ResolveSdkWithCommandBudgetAsync(dotnet, workDir, timeout, cancellationToken)
+        var sdk = await ResolveSdkWithCommandBudgetAsync(dotnet, workDir, deadline, cancellationToken)
             .ConfigureAwait(false);
-        if (remaining == TimeSpan.Zero)
+        if (deadline.Remaining == TimeSpan.Zero)
         {
             var metadata = BuildRunMetadata(dotnet, workDir, string.Empty, sdk);
             return new RunResult(
-                -1, string.Empty, metadata + Environment.NewLine + SdkCheckTimeoutMetadata, 0, 0, TimedOut: true);
+                -1, string.Empty, metadata + Environment.NewLine + PreparationTimeoutMetadata, 0, 0, TimedOut: true);
         }
 
-        return await RunWithSdkAsync(dotnet, arguments, workDir, sdk, remaining, progress, cancellationToken)
+        return await RunWithSdkAsync(dotnet, arguments, workDir, sdk, deadline, progress, cancellationToken)
             .ConfigureAwait(false);
     }
 
-    private static async Task<(DotNetSdkEnvironment.SdkPinInfo Sdk, TimeSpan? Remaining)> ResolveSdkWithCommandBudgetAsync(
+    private static async Task<DotNetSdkEnvironment.SdkPinInfo> ResolveSdkWithCommandBudgetAsync(
         string dotnet,
         string workDir,
-        TimeSpan? timeout,
+        CommandDeadline deadline,
         CancellationToken cancellationToken)
     {
-        var started = Stopwatch.GetTimestamp();
-        var limit = timeout > TimeSpan.Zero ? timeout : null;
-        var probeLimit = limit is { } finite && finite < DotNetSdkResolver.DefaultTimeout
+        var probeLimit = deadline.Remaining is { } finite && finite < DotNetSdkResolver.DefaultTimeout
             ? finite
             : DotNetSdkResolver.DefaultTimeout;
         var sdk = await DotNetSdkResolver.ResolveAsync(dotnet, workDir, probeLimit, cancellationToken)
             .ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
-        return (sdk, DotNetTestArguments.RemainingTimeout(limit, Stopwatch.GetElapsedTime(started)));
+        return sdk;
     }
 
-    internal static async Task<RunResult> RunWithSdkAsync(
+    internal static Task<RunResult> RunWithSdkAsync(
         string dotnet,
         string arguments,
         string workingDirectory,
@@ -200,17 +154,27 @@ public static class DotNetCliRunner
         TimeSpan? timeout,
         CliProgressWatch? progress,
         CancellationToken cancellationToken)
+        => RunWithSdkAsync(dotnet, arguments, workingDirectory, sdk, CommandDeadline.Start(timeout), progress, cancellationToken);
+
+    private static async Task<RunResult> RunWithSdkAsync(
+        string dotnet,
+        string arguments,
+        string workingDirectory,
+        DotNetSdkEnvironment.SdkPinInfo sdk,
+        CommandDeadline deadline,
+        CliProgressWatch? progress,
+        CancellationToken cancellationToken)
     {
         if (progress is null)
         {
-            return await RunCoreAsync(dotnet, arguments, workingDirectory, sdk, timeout, cancellationToken)
+            return await RunCoreAsync(dotnet, arguments, workingDirectory, sdk, deadline, cancellationToken)
                 .ConfigureAwait(false);
         }
 
         var heartbeat = StartHeartbeat(progress, cancellationToken);
         try
         {
-            return await RunCoreAsync(dotnet, arguments, workingDirectory, sdk, timeout, cancellationToken)
+            return await RunCoreAsync(dotnet, arguments, workingDirectory, sdk, deadline, cancellationToken)
                 .ConfigureAwait(false);
         }
         finally
@@ -224,65 +188,90 @@ public static class DotNetCliRunner
         string arguments,
         string workDir,
         DotNetSdkEnvironment.SdkPinInfo sdk,
-        TimeSpan? timeout,
+        CommandDeadline deadline,
         CancellationToken cancellationToken)
     {
+        var run = await RunCommandAsync(dotnet, arguments, workDir, sdk, deadline, cancellationToken)
+            .ConfigureAwait(false);
+        run.Failure?.Throw();
+        var combined = CombineStreams(run.StdOut, run.StdErr);
+        var metadata = BuildRunMetadata(dotnet, workDir, combined, sdk);
+        return new RunResult(
+            run.ExitCode,
+            combined,
+            metadata,
+            run.StdOut.Length,
+            run.StdErr.Length,
+            TimedOut: run.TimedOut,
+            ProcessKilled: run.ProcessKilled) { Elapsed = run.Elapsed };
+    }
+
+    private static async Task<CommandRunResult> RunCommandAsync(
+        string dotnet,
+        string arguments,
+        string workDir,
+        DotNetSdkEnvironment.SdkPinInfo sdk,
+        CommandDeadline deadline,
+        CancellationToken cancellationToken)
+    {
+        var started = Stopwatch.GetTimestamp();
         var psi = CreateProcessStartInfo(dotnet, arguments, workDir, sdk);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (deadline.Remaining == TimeSpan.Zero)
+        {
+            return new CommandRunResult(-1, string.Empty, string.Empty, TimedOut: true);
+        }
 
         using var process = new Process { StartInfo = psi };
-        var started = Stopwatch.GetTimestamp();
         if (!process.Start())
         {
             throw new InvalidOperationException(FailedToStartDotNetMessage(dotnet));
         }
 
-        // Do not cancel pipe reads: redirected stdout does not observe a cancellation token.
-        // Wait with WhenAny+Delay (WaitForExitAsync(token) is not reliable for nested `dotnet build`),
-        // then Kill and drain with a bounded wait so the caller always gets a result.
-        var stdoutTask = process.StandardOutput.ReadToEndAsync(CancellationToken.None);
-        var stderrTask = process.StandardError.ReadToEndAsync(CancellationToken.None);
+        using var stdout = process.StandardOutput;
+        using var stderr = process.StandardError;
+        var stdoutTask = stdout.ReadToEndAsync(CancellationToken.None);
+        var stderrTask = stderr.ReadToEndAsync(CancellationToken.None);
+        // A descendant can keep a redirected pipe open after dotnet exits.
+        // See docs/project-review-2026-11-25/task-04-p1-dotnet-pipe-deadline-hi.md.
+        var completion = Task.WhenAll(process.WaitForExitAsync(CancellationToken.None), stdoutTask, stderrTask);
+
+        bool completed;
         try
         {
-            if (!await WaitForExitOrTimeoutAsync(process, timeout, cancellationToken).ConfigureAwait(false))
+            completed = await WaitForCompletionAsync(completion, deadline, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            await CleanupAsync(process, completion).ConfigureAwait(false);
+            if (ex is OperationCanceledException)
             {
-                var stdout = (await stdoutTask.ConfigureAwait(false)).TrimEnd();
-                var stderr = (await stderrTask.ConfigureAwait(false)).TrimEnd();
-                var elapsed = Stopwatch.GetElapsedTime(started);
-                var combinedText = CombineStreams(stdout, stderr);
-                var metadata = BuildRunMetadata(dotnet, workDir, combinedText, sdk);
-
-                return new RunResult(
-                    process.ExitCode,
-                    combinedText,
-                    metadata,
-                    stdout.Length,
-                    stderr.Length) { Elapsed = elapsed };
+                throw;
             }
 
-            TryKillProcessTree(process);
-            var (partialStdout, partialStderr) = await AwaitOutputAsync(stdoutTask, stderrTask, OutputDrainTimeout)
-                .ConfigureAwait(false);
-            var combinedTimedOut = CombineStreams(partialStdout, partialStderr);
-            var timedOutMetadata = BuildRunMetadata(dotnet, workDir, combinedTimedOut, sdk);
-            return new RunResult(
+            return new CommandRunResult(
                 process.HasExited ? process.ExitCode : -1,
-                combinedTimedOut,
-                timedOutMetadata,
-                partialStdout.Length,
-                partialStderr.Length,
-                TimedOut: true,
-                ProcessKilled: true);
+                ReadCompletedOutput(stdoutTask),
+                ReadCompletedOutput(stderrTask),
+                Failure: ExceptionDispatchInfo.Capture(ex));
         }
-        catch (OperationCanceledException)
+
+        if (completed)
         {
-            TryKillProcessTree(process);
-            throw;
+            return new CommandRunResult(
+                process.ExitCode,
+                ReadCompletedOutput(stdoutTask),
+                ReadCompletedOutput(stderrTask),
+                Stopwatch.GetElapsedTime(started));
         }
-        catch
-        {
-            TryKillProcessTree(process);
-            throw;
-        }
+
+        var killed = await CleanupAsync(process, completion).ConfigureAwait(false);
+        return new CommandRunResult(
+            process.HasExited && process.ExitCode != 0 ? process.ExitCode : -1,
+            ReadCompletedOutput(stdoutTask),
+            ReadCompletedOutput(stderrTask),
+            TimedOut: true,
+            ProcessKilled: killed);
     }
 
     private static (CancellationTokenSource Cts, Task Task)? StartHeartbeat(
@@ -372,7 +361,7 @@ public static class DotNetCliRunner
 
         if (cancelled)
         {
-            sb.AppendLine("**MCP_DOTNET_CANCELLED:** tool cancel requested; process tree was killed.");
+            sb.AppendLine("**MCP_DOTNET_CANCELLED:** tool cancel requested.");
         }
 
         var listProcesses = OperatingSystem.IsWindows() ? "Get-Process dotnet" : "ps -ef";
@@ -432,41 +421,44 @@ public static class DotNetCliRunner
         };
     }
 
-    /// <summary>
-    /// Returns <c>true</c> when the timeout elapsed before the process exited.
-    /// Uses <see cref="Task.WhenAny"/> + <see cref="Task.Delay"/> because
-    /// <see cref="Process.WaitForExitAsync(CancellationToken)"/> often ignores cancellation
-    /// for nested <c>dotnet build</c> / MSBuild.
-    /// </summary>
-    private static async Task<bool> WaitForExitOrTimeoutAsync(
-        Process process,
-        TimeSpan? timeout,
+    /// <summary>Returns whether the process exited and both pipes closed within the remaining budget.</summary>
+    private static async Task<bool> WaitForCompletionAsync(
+        Task completion,
+        CommandDeadline deadline,
         CancellationToken cancellationToken)
     {
-        var exitTask = process.WaitForExitAsync(CancellationToken.None);
-        if (timeout is not { } limit || limit <= TimeSpan.Zero)
+        cancellationToken.ThrowIfCancellationRequested();
+        var remaining = deadline.Remaining;
+        if (remaining is null)
         {
-            await exitTask.WaitAsync(cancellationToken).ConfigureAwait(false);
+            await completion.WaitAsync(cancellationToken).ConfigureAwait(false);
+            return true;
+        }
+
+        if (remaining == TimeSpan.Zero)
+        {
             return false;
         }
 
+        // Bound the combined task externally because neither process exit nor a pipe read is
+        // guaranteed to observe a cancellation token promptly.
         using var delayCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        var delayTask = Task.Delay(limit, delayCts.Token);
-        var completed = await Task.WhenAny(exitTask, delayTask).ConfigureAwait(false);
-        if (completed == exitTask)
+        var delayTask = Task.Delay(remaining.Value, delayCts.Token);
+        if (await Task.WhenAny(completion, delayTask).ConfigureAwait(false) == completion)
         {
             await delayCts.CancelAsync().ConfigureAwait(false);
-            await exitTask.ConfigureAwait(false);
-            return false;
+            await completion.ConfigureAwait(false);
+            return true;
         }
 
         cancellationToken.ThrowIfCancellationRequested();
-        return true;
+        return false;
     }
 
-    internal static void TryKillProcessTree(Process process)
+    internal static bool TryKillProcessTree(Process process)
     {
         List<Process> descendants = [];
+        var killed = false;
         try
         {
             if (!process.HasExited)
@@ -485,6 +477,7 @@ public static class DotNetCliRunner
                     try
                     {
                         descendants[index].Kill(entireProcessTree: true);
+                        killed = true;
                     }
                     catch (Exception exception) when (exception is InvalidOperationException or System.ComponentModel.Win32Exception)
                     {
@@ -492,6 +485,7 @@ public static class DotNetCliRunner
                     }
                 }
                 process.Kill(entireProcessTree: true);
+                killed = true;
             }
         }
         catch
@@ -505,6 +499,8 @@ public static class DotNetCliRunner
                 descendant.Dispose();
             }
         }
+
+        return killed;
     }
 
     private static List<Process> CaptureDescendants(Process root)
@@ -569,38 +565,21 @@ public static class DotNetCliRunner
         }
     }
 
-    private static readonly TimeSpan OutputDrainTimeout = TimeSpan.FromSeconds(3);
-
-    private static async Task<(string StdOut, string StdErr)> AwaitOutputAsync(
-        Task<string> stdoutTask,
-        Task<string> stderrTask,
-        TimeSpan? drainTimeout = null)
+    private static async Task<bool> CleanupAsync(Process process, Task completion)
     {
-        return (
-            await AwaitOneAsync(stdoutTask, drainTimeout).ConfigureAwait(false),
-            await AwaitOneAsync(stderrTask, drainTimeout).ConfigureAwait(false));
+        var killed = TryKillProcessTree(process);
+        // Observe a late fault without extending the shared cleanup budget for exit and both pipes.
+        var observed = completion.ContinueWith(
+            static task => { _ = task.Exception; },
+            CancellationToken.None,
+            TaskContinuationOptions.ExecuteSynchronously,
+            TaskScheduler.Default);
+        await Task.WhenAny(observed, Task.Delay(_outputDrainTimeout)).ConfigureAwait(false);
+        return killed;
     }
 
-    private static async Task<string> AwaitOneAsync(Task<string> readTask, TimeSpan? drainTimeout)
-    {
-        try
-        {
-            if (drainTimeout is { } limit && limit > TimeSpan.Zero)
-            {
-                var finished = await Task.WhenAny(readTask, Task.Delay(limit)).ConfigureAwait(false);
-                if (finished != readTask)
-                {
-                    return string.Empty;
-                }
-            }
-
-            return (await readTask.ConfigureAwait(false)).TrimEnd();
-        }
-        catch
-        {
-            return string.Empty;
-        }
-    }
+    private static string ReadCompletedOutput(Task<string> output) =>
+        output.IsCompletedSuccessfully ? output.Result.TrimEnd() : string.Empty;
 
     private static string CombineStreams(string stdout, string stderr)
     {
@@ -702,4 +681,22 @@ public static class DotNetCliRunner
     internal static string PinnedSdkNotFoundWarning(string pinnedVersion) =>
         PinnedSdkNotFoundWarning(pinnedVersion, OperatingSystem.IsWindows());
 
+    private readonly record struct CommandDeadline(long Started, TimeSpan? Limit)
+    {
+        public TimeSpan? Remaining => DotNetTestArguments.RemainingTimeout(Limit, Stopwatch.GetElapsedTime(Started));
+
+        public static CommandDeadline Start(TimeSpan? timeout) =>
+            new(Stopwatch.GetTimestamp(), timeout > TimeSpan.Zero ? timeout : null);
+    }
+
+    private sealed record CommandRunResult(
+        int ExitCode,
+        string StdOut,
+        string StdErr,
+        TimeSpan? Elapsed = null,
+        bool TimedOut = false,
+        bool ProcessKilled = false,
+        ExceptionDispatchInfo? Failure = null);
+
+    private static readonly TimeSpan _outputDrainTimeout = TimeSpan.FromSeconds(3);
 }
