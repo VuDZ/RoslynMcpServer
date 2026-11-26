@@ -5,7 +5,7 @@
 - Примерная сложность: 4/5.
 - Риск ошибки: высокий — меняется контракт записи исходника, тесты 13 принятых карточек нужно пересмотреть, а не просто удалить.
 - Необходимые способности: кодировки и BOM, чтение исходников компилятором C#, запись файлов в `SolutionManager`, TDD.
-- Статус: accepted · 2026-11-26 · вариант O-01/B для `update_file_content` и `apply_patch`, явный отказ при рискованной перекодировке и удаление повторной оценки читателей исходника.
+- Статус: accepted · 2026-11-26 · вариант O-01/B для `update_file_content` и `apply_patch`, явный отказ при рискованной перекодировке и удаление повторной оценки читателей исходника. 2026-11-26 после [независимой проверки](evidence/task-01-review-2026-11-26.md) O-01 пересмотрено в пользу варианта D. Правило записи без BOM меняет [task-04](task-04-source-write-editor-semantics-hi.md).
 - Depends on: решение владельца O-01 и исходный замер выполнены.
 - Модель, реализовавшая задачу: Codex (GPT-6), сабагенты реализации и тестов.
 - Модели, проводившие ревью: Codex (GPT-6), независимый сабагент.
@@ -64,6 +64,8 @@ BOM — единственное представление, которое Csc 
 
 **O-01, 2026-11-26.** Выбран вариант B. При отказе `apply_patch` объясняет риск интерпретации нетронутого не-ASCII в файле без BOM и сообщает, что файл остался без изменений. Агент может уточнить исходную кодировку и согласовать конвертацию с пользователем. После согласия он может передать проверенный полный текст в `update_file_content`. Если нужно сохранить старую кодировку, сообщение предлагает явно выбрать её в редакторе.
 
+**Пересмотр O-01, 2026-11-26.** Выбран вариант D. [Независимая проверка](evidence/task-01-review-2026-11-26.md#f-01) показала, что B отклоняет патчи и в обычных UTF-8 файлах без BOM. В этом репозитории так ведут себя 54 production-файла. Причина отказа — добавление BOM. Без BOM байты вне замены сохраняют смысл для любого читателя. Вариант D сохраняет кодировку файла без BOM, если в нём уже есть не-ASCII, как это делает редактор. UTF-8 с BOM остаётся для первого не-ASCII в файле без других признаков кодировки. Правило, ограничения и критерии — в [task-04](task-04-source-write-editor-semantics-hi.md).
+
 Ограничение вариантов A и B: `CodePage`, несовместимая с ASCII (UTF-16, EBCDIC), считается неподдерживаемой, запись без BOM для неё отклоняется. Изменение `CodePage` после загрузки до значения, несовместимого с ASCII, не отслеживается.
 
 ## План
@@ -89,7 +91,7 @@ BOM — единственное представление, которое Csc 
 
 ## Где смотреть
 
-- [SolutionManager.cs](../../Services/Workspace/SolutionManager.cs): `ReadPatchFileUnderLockAsync`, `GetFileEncodingUnderLock`, `GetTextWriteEncodingUnderLock`.
+- [SolutionManager.cs](../../Services/Workspace/SolutionManager.cs): `ReadPatchFileUnderLockAsync`, `DecodePatchFileUnderLock`, `GetTextWriteEncodingUnderLock`.
 - [WorkspaceProjectDocumentRegistration.cs](../../Services/Workspace/WorkspaceProjectDocumentRegistration.cs) сохраняет регистрацию новых документов.
 - [SourceTextEncoding.cs](../../Services/Workspace/SourceTextEncoding.cs), [PersistedPayload.cs](../../Services/Workspace/PersistedPayload.cs).
 - [EditingTools.cs](../../Tools/EditingTools.cs): создание нового файла.
