@@ -188,13 +188,13 @@ public static class McpToolHelpCatalog
             },
             ["update_file_content"] = new()
             {
-                Pitfalls = "Overwrites the entire file. Creates missing parent directories. Prefer AST tools for structured C# edits. A C# file with non-ASCII text gets a UTF-8 BOM if it has no BOM. A C# shebang script requires ASCII.",
+                Pitfalls = "Overwrites the entire file and creates missing parent directories. For C# source, charset in .editorconfig takes priority over sourceEncoding in RoslynMcp.jsonc. Existing BOMs are preserved in ordinary source files. Shebang scripts use no BOM and can declare a CodePage.",
                 RelatedTools = ["apply_patch", "add_method_to_class"],
             },
             ["apply_patch"] = new()
             {
                 Workflow = "The only search-and-replace tool. Default replaceAll=false. Tries exact match, then whitespace-tolerant matching.",
-                Pitfalls = "A C# patch that would convert a BOM-free file with untouched non-ASCII text is refused. Confirm the original encoding and get user approval before rewriting the complete text with update_file_content. String literals with internal spaces may not match the flexible fallback. Prefer AST tools for usings and member inserts.",
+                Pitfalls = "C# patches honor charset in .editorconfig and sourceEncoding in RoslynMcp.jsonc. Without a declaration, a patch preserves the encoding of untouched non-ASCII text. The patch is refused if the replacement cannot be encoded exactly, changes UTF-8 detection for untouched text, or disagrees with a loaded compiler reader. String literals with internal spaces may not match the flexible fallback.",
                 RelatedTools = ["update_file_content", "add_using", "update_method_body"],
             },
             ["add_using"] = new()

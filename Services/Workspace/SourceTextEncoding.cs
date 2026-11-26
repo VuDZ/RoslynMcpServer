@@ -1,4 +1,6 @@
 using System.Text;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 
 namespace RoslynMcpServer.Services.Workspace;
@@ -115,6 +117,56 @@ public static class SourceTextEncoding
         _ => CodePagesEncodingProvider.Instance.GetEncoding(codePage) ?? Encoding.GetEncoding(codePage),
     };
 
+    internal static Encoding? GetShebangDirectiveEncoding(string text, string fullPath)
+    {
+        if (!text.StartsWith("#!", StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        // A directive in a comment or literal cannot change the script encoding.
+        var trivia = CSharpSyntaxTree.ParseText(text, _fileBasedParseOptions).GetRoot().GetLeadingTrivia();
+        Encoding? encoding = null;
+        foreach (var item in trivia)
+        {
+            if (item.GetStructure() is not IgnoredDirectiveTriviaSyntax { IsActive: true } directive)
+            {
+                continue;
+            }
+
+            var line = directive.ToString().AsSpan(2).Trim();
+            const string Property = "property";
+            if (!line.StartsWith(Property, StringComparison.Ordinal)
+                || line.Length == Property.Length
+                || !char.IsWhiteSpace(line[Property.Length]))
+            {
+                continue;
+            }
+
+            var assignment = line[Property.Length..].Trim();
+            var equals = assignment.IndexOf('=');
+            if (equals >= 0 && assignment[..equals].Trim().Equals("CodePage", StringComparison.OrdinalIgnoreCase))
+            {
+                var value = assignment[(equals + 1)..].Trim().Trim('"').ToString();
+                encoding = SourceEncodingSettings.ParseCodePage(value, fullPath, "#:property CodePage");
+            }
+        }
+
+        return encoding;
+    }
+
+    internal static bool IsAsciiCompatible(Encoding encoding)
+    {
+        try
+        {
+            return PersistedPayload.EncodeExactly(_asciiText, encoding).AsSpan().SequenceEqual(_asciiBytes);
+        }
+        catch (IOException)
+        {
+            return false;
+        }
+    }
+
     internal static bool IsUnshiftedAscii(string text)
     {
         // ESC/SO/SI can shift ISO-2022 into a different alphabet. HZ and UTF-7 can do so using
@@ -168,4 +220,8 @@ public static class SourceTextEncoding
     }
 
     private static readonly Encoding? _utf7 = GetSupportedUtf7();
+    private static readonly CSharpParseOptions _fileBasedParseOptions = CSharpParseOptions.Default
+        .WithFeatures([new("FileBasedProgram", "true")]);
+    private static readonly byte[] _asciiBytes = [9, 10, 13, .. Enumerable.Range(32, 95).Select(static value => (byte)value)];
+    private static readonly string _asciiText = Encoding.ASCII.GetString(_asciiBytes);
 }

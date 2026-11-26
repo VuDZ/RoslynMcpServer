@@ -43,6 +43,12 @@ public sealed class WorkspaceWriteResult
 
     public bool UnappliedProjectState { get; init; }
 
+    internal bool AddedUtf8Bom { get; init; }
+
+    internal string EncodingNotice => AddedUtf8Bom
+        ? " Added a UTF-8 BOM. Set `charset = utf-8` in `.editorconfig` or `sourceEncoding` to `utf-8` in `RoslynMcp.jsonc` for future BOM-free files."
+        : string.Empty;
+
     public bool IsFullSuccess => Status == WorkspaceWriteStatus.FullSuccess;
 
     /// <summary>

@@ -27,8 +27,7 @@ internal static class WorkspaceFilePersistence
         WriteCoreAsync(
             session,
             fullPath,
-            text,
-            encoding,
+            PersistedPayload.FromText(text, encoding),
             useAsync: false,
             requireAbsent: false,
             afterStagingPrefix,
@@ -43,9 +42,17 @@ internal static class WorkspaceFilePersistence
         Action? afterStagingPrefix,
         CancellationToken cancellationToken)
     {
-        return WriteCoreAsync(
-            session, fullPath, text, encoding, useAsync: true, requireAbsent: false, afterStagingPrefix, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        return WriteBytesAsync(session, fullPath, PersistedPayload.FromText(text, encoding), afterStagingPrefix, cancellationToken);
     }
+
+    internal static Task WriteBytesAsync(
+        WorkspaceInputSession? session,
+        string fullPath,
+        byte[] payload,
+        Action? afterStagingPrefix,
+        CancellationToken cancellationToken) =>
+        WriteCoreAsync(session, fullPath, payload, useAsync: true, requireAbsent: false, afterStagingPrefix, cancellationToken);
 
     internal static Task CreateTextAsync(
         WorkspaceInputSession? session,
@@ -55,8 +62,10 @@ internal static class WorkspaceFilePersistence
         Action? afterStagingPrefix,
         CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         return WriteCoreAsync(
-            session, fullPath, text, encoding, useAsync: true, requireAbsent: true, afterStagingPrefix, cancellationToken);
+            session, fullPath, PersistedPayload.FromText(text, encoding), useAsync: true, requireAbsent: true,
+            afterStagingPrefix, cancellationToken);
     }
 
     internal static bool IsStagingPath(WorkspaceInputSession session, string path)
@@ -69,8 +78,7 @@ internal static class WorkspaceFilePersistence
     private static async Task WriteCoreAsync(
         WorkspaceInputSession? session,
         string fullPath,
-        string text,
-        Encoding encoding,
+        byte[] payload,
         bool useAsync,
         bool requireAbsent,
         Action? afterStagingPrefix,
@@ -85,7 +93,6 @@ internal static class WorkspaceFilePersistence
         var staged = Path.Combine(
             Path.GetDirectoryName(destination.FullName)!,
             $"{StagingPrefix(session)}{Guid.NewGuid():N}.tmp");
-        var payload = PersistedPayload.FromText(text, encoding);
         var begun = session?.BeginOwnWrite(canonical) == true;
         var ownsStagedFile = false;
         var committed = false;

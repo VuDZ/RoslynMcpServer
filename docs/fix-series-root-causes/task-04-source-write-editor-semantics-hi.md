@@ -5,13 +5,13 @@
 - Примерная сложность: 4/5.
 - Риск ошибки: высокий — меняется принятый контракт записи task-01, часть его регрессий меняет ожидания, добавляется настройка кодировки.
 - Необходимые способности: кодировки и BOM, чтение исходников компилятором C#, `.editorconfig` в Roslyn, `RoslynMcp.jsonc`, `SolutionManager`, `PatchMatchHelper`, TDD.
-- Статус: planned · 2026-11-26 владелец выбрал вариант D (пересмотр O-01) и объявленную кодировку исходников вместо «контракта UTF-8» из ревью.
+- Статус: accepted · 2026-11-26 · вариант D для `apply_patch` и `update_file_content`, объявленная кодировка, проверки готовых байтов и shebang с числовой `CodePage`.
 - Depends on: [task-01](task-01-source-write-representation-hi.md) (accepted, `3be841d`).
-- Модель, реализовавшая задачу: —.
+- Модель, реализовавшая задачу: Codex (GPT-6).
 - Модели, проводившие ревью: Codex (GPT-6) — ревью плана.
 - Количество раундов ревью: 1 (план).
-- Количество исправлений после ревью: 0. Три замечания приняты в план, повторная проверка не проводилась.
-- Отчёт о реализации, ревью и validation: [ревью плана от 2026-11-26 и ответ](evidence/task-04-review-2026-11-26.md).
+- Количество исправлений после ревью: три замечания к правилу проверены регрессиями R-1, R-2 и R-4. Решение по R-3 закреплено объявленной кодировкой и ограничением для обычной сборки.
+- Отчёт о реализации, ревью и validation: [приёмка](evidence/task-04-source-encoding-validation.md), [spike](evidence/task-04-source-encoding-spike.md), [ревью плана и ответ](evidence/task-04-review-2026-11-26.md).
 
 ## Основание
 
@@ -67,7 +67,7 @@
 
 Используется первый найденный источник, без смешивания:
 
-1. **`.editorconfig`, ключ `charset`** для данного файла: `utf-8`, `utf-8-bom`, `latin1`, `utf-16le`, `utf-16be`. Это стандартный способ объявить кодировку сохранения. Его соблюдают VS, Rider и VS Code, а действие по каталогам поддерживает смешанные репозитории. Значение берётся из параметров `.editorconfig`, которые Roslyn уже вычисляет для документа. Для файла вне снимка нужен отдельный разбор цепочки `.editorconfig`.
+1. **`.editorconfig`, ключ `charset`** для данного файла: `utf-8`, `utf-8-bom`, `latin1`, `utf-16le`, `utf-16be`. Это стандартный способ объявить кодировку сохранения. Его соблюдают VS, Rider и VS Code, а действие по каталогам поддерживает смешанные репозитории. [Spike](evidence/task-04-source-encoding-spike.md) подтвердил доступность `charset` в снимке. При записи Roslyn сопоставляет секции актуальной цепочки `.editorconfig` на диске одинаково для загруженных и новых файлов.
 2. **`RoslynMcp.jsonc`, ключ `sourceEncoding`** по существующему порядку источников: exe → каталог пользователя → cwd ([user-data-directory](../user-data-directory/README.md#решения-владельца)). Значения: `utf-8`, `utf-8-bom` или имя либо номер кодовой страницы, например `windows-1251` или `1251`. Ключ нужен для кодировок, которых нет в `charset`, для глобального значения по умолчанию и для репозиториев, где менять `.editorconfig` нежелательно.
 
 Объявление читается при каждой записи с кэшем по времени изменения файла. Перезагрузка решения нужна только при изменении `CodePage` в проекте. Неизвестное значение отклоняется с указанием файла и ключа.
@@ -114,40 +114,40 @@ Shebang требует `#!` с нулевого байта, поэтому BOM �
 
 Без объявления:
 
-- [ ] Фикстура с текстом, подобным `SolutionManager.cs`: SDK-проект по умолчанию, UTF-8 без BOM, `—` в комментарии. `apply_patch` с ASCII-заменой и с не-ASCII заменой проходит. Байты вне замены совпадают побайтно, BOM не появился, опубликованный снимок совпадает с диском.
-- [ ] Латинская фикстура (`CodePage=28591`, `é` вне замены): патч сохраняет Latin-1 без BOM. Непредставимая замена (`Ж`) отклоняется до записи, байты и снимок сохраняются. Значение из DLL свежей сборки совпадает с запрошенным.
-- [ ] `update_file_content` для того же UTF-8 файла без BOM с не-ASCII сохраняет UTF-8 без BOM. Для Latin-1 файла с непредставимым текстом файл переводится в UTF-8 с BOM.
-- [ ] ASCII-файл без BOM, правка вносит первый не-ASCII: UTF-8 с BOM, ответ сообщает, как объявить кодировку.
-- [ ] Сценарий P1-49 для файла без нетронутого не-ASCII по-прежнему даёт BOM и верное значение в свежей сборке.
-- [ ] Тест `ApplyPatch_requires_explicit_conversion_when_non_ASCII_stays_outside_the_matches` заменён тестом правила D. Сообщение отказа B больше не возвращается в случаях, где правило D разрешает запись.
+- [x] Фикстура с текстом, подобным `SolutionManager.cs`: SDK-проект по умолчанию, UTF-8 без BOM, `—` в комментарии. `apply_patch` с ASCII-заменой и с не-ASCII заменой проходит. Байты вне замены совпадают побайтно, BOM не появился, опубликованный снимок совпадает с диском.
+- [x] Латинская фикстура (`CodePage=28591`, `é` вне замены): патч сохраняет Latin-1 без BOM. Непредставимая замена (`Ж`) отклоняется до записи, байты и снимок сохраняются. Значение из DLL свежей сборки совпадает с запрошенным.
+- [x] `update_file_content` для того же UTF-8 файла без BOM с не-ASCII сохраняет UTF-8 без BOM. Для Latin-1 файла с непредставимым текстом файл переводится в UTF-8 с BOM.
+- [x] ASCII-файл без BOM, правка вносит первый не-ASCII: UTF-8 с BOM, ответ сообщает, как объявить кодировку.
+- [x] Сценарий P1-49 для файла без нетронутого не-ASCII по-прежнему даёт BOM и верное значение в свежей сборке.
+- [x] Тест `ApplyPatch_requires_explicit_conversion_when_non_ASCII_stays_outside_the_matches` заменён тестом правила D. Сообщение отказа B больше не возвращается в случаях, где правило D разрешает запись.
 
 Проверки готовых байтов:
 
-- [ ] R-1. Сценарий 2 из P1-44 при загруженной `CodePage=0` и при явной 1251: отказ до записи, байты и снимок сохранены. Обратный переход (валидный UTF-8 становится невалидным при нетронутом не-ASCII) тоже отклоняется.
-- [ ] R-2. Связанный исходник в проектах с 1251 и 1252, нетронутый `§`, замена вносит `Ж`: отказ до записи. Та же проверка для `update_file_content`.
+- [x] R-1. Сценарий 2 из P1-44 при загруженной `CodePage=0` и при явной 1251: отказ до записи, байты и снимок сохранены. Обратный переход (валидный UTF-8 становится невалидным при нетронутом не-ASCII) тоже отклоняется.
+- [x] R-2. Связанный исходник в проектах с 1251 и 1252, нетронутый `§`, замена вносит `Ж`: отказ до записи. Та же проверка для `update_file_content`.
 
 Объявленная кодировка:
 
-- [ ] `charset = utf-8` в `.editorconfig`: первый не-ASCII в ASCII-файле записывается в UTF-8 без BOM. Подкаталог с `charset = latin1` получает Latin-1 без BOM.
-- [ ] `sourceEncoding: "windows-1251"` в `RoslynMcp.jsonc` без `charset`: запись в 1251 без BOM. Значение `.editorconfig` имеет приоритет над `RoslynMcp.jsonc`.
-- [ ] Объявлен `utf-8`, файл без BOM содержит невалидный UTF-8: отказ с указанием объявления. Объявлен `utf-8`, у проекта явная `CodePage=28591`: отказ с указанием `CodePage` и `load_workspace`.
-- [ ] Файл с BOM при объявленном `utf-8` сохраняет BOM.
-- [ ] Изменение объявления действует со следующей записи без `load_workspace`.
+- [x] `charset = utf-8` в `.editorconfig`: первый не-ASCII в ASCII-файле записывается в UTF-8 без BOM. Подкаталог с `charset = latin1` получает Latin-1 без BOM.
+- [x] `sourceEncoding: "windows-1251"` в `RoslynMcp.jsonc` без `charset`: запись в 1251 без BOM. Значение `.editorconfig` имеет приоритет над `RoslynMcp.jsonc`.
+- [x] Объявлен `utf-8`, файл без BOM содержит невалидный UTF-8: отказ с указанием объявления. Объявлен `utf-8`, у проекта явная `CodePage=28591`: отказ с указанием `CodePage` и `load_workspace`.
+- [x] Файл с BOM при объявленном `utf-8` сохраняет BOM.
+- [x] Изменение объявления действует со следующей записи без `load_workspace`.
 
 Скрипты:
 
-- [ ] Скрипт с `#!` и не-ASCII без директивы: UTF-8 без BOM, прямой запуск на Linux печатает ожидаемые кодовые единицы строки.
-- [ ] Скрипт с `#:property CodePage=28591`: запись в Latin-1 без BOM, `dotnet run --file` печатает ожидаемые кодовые единицы.
+- [x] Скрипт с `#!` и не-ASCII без директивы: UTF-8 без BOM, прямой запуск на Linux печатает ожидаемые кодовые единицы строки.
+- [x] Скрипт с `#:property CodePage=28591`: запись в Latin-1 без BOM, `dotnet run --file` печатает ожидаемые кодовые единицы.
 
 Общее:
 
-- [ ] Обновлены [ARCHITECTURE.md](../ARCHITECTURE.md), [setup.md](../setup.md) и [setup.ru.md](../setup.ru.md) (ключ `sourceEncoding`), подсказки `get_tool_help` и описания `apply_patch` и `update_file_content`.
-- [ ] Release-сборка, SourceStructure и полный основной набор по [AGENTS.md](../../AGENTS.md).
+- [x] Обновлены [ARCHITECTURE.md](../ARCHITECTURE.md), [setup.md](../setup.md) и [setup.ru.md](../setup.ru.md) (ключ `sourceEncoding`), подсказки `get_tool_help` и описания `apply_patch` и `update_file_content`.
+- [x] Release-сборка, SourceStructure и полный основной набор по [AGENTS.md](../../AGENTS.md).
 
 ## Где смотреть
 
-- [SolutionManager.cs](../../Services/Workspace/SolutionManager.cs): `TryApplyPatchTextAsync` (отказ B), `DecodePatchFileUnderLock`, `GetTextWriteEncodingUnderLock`, `GetAsciiSourceWriteEncodingUnderLock`, `ReadsLiteralAscii`.
+- [SolutionManager.cs](../../Services/Workspace/SolutionManager.cs): `TryApplyPatchTextAsync`, `DecodePatchFileUnderLock`, `PrepareExplicitWriteUnderLock`, `ValidateBomFreeWrite`.
 - [PatchMatchHelper.cs](../../Tools/PatchMatchHelper.cs): `hasUntouchedNonAscii`.
-- [RoslynMcpFileSettings.cs](../../Config/RoslynMcpFileSettings.cs), [RoslynMcpJsoncParser.cs](../../Config/RoslynMcpJsoncParser.cs): новый ключ `sourceEncoding`.
+- [SourceEncodingSettings.cs](../../Services/Workspace/SourceEncodingSettings.cs): `charset`, `sourceEncoding` и кэш объявлений.
 - [McpToolHelpCatalog.cs](../../Hosting/McpToolHelpCatalog.cs), [UtilityTools.cs](../../Tools/UtilityTools.cs), [EditingTools.cs](../../Tools/EditingTools.cs).
 - [WorkspaceWriteEncodingTests.cs](../../RoslynMcpServer.Tests/Workspace/WorkspaceWriteEncodingTests.cs).
