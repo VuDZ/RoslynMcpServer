@@ -4,30 +4,55 @@ namespace RoslynMcpServer.Services.Workspace;
 
 internal static class SolutionFilterPath
 {
-    public static string? TryReadBackingSolution(string filterPath)
+    public static string? TryReadBackingSolution(string filterPath) =>
+        TryRead(filterPath, includeProjects: false).BackingSolution;
+
+    internal static (string? BackingSolution, HashSet<string>? Projects) TryReadWithProjects(string filterPath) =>
+        TryRead(filterPath, includeProjects: true);
+
+    private static (string? BackingSolution, HashSet<string>? Projects) TryRead(string filterPath, bool includeProjects)
     {
         try
         {
-            using var document = JsonDocument.Parse(File.ReadAllText(filterPath), new JsonDocumentOptions
+            using var document = JsonDocument.Parse(File.ReadAllText(filterPath), includeProjects ? default : new JsonDocumentOptions
             {
                 AllowTrailingCommas = true,
                 CommentHandling = JsonCommentHandling.Skip,
             });
-            var path = document.RootElement.GetProperty("solution").GetProperty("path").GetString();
+            var solution = document.RootElement.GetProperty("solution");
+            var path = solution.GetProperty("path").GetString();
             if (!WorkspaceInputPath.IsSolution(WorkspaceInputPath.Classify(path)))
             {
-                return null;
+                return default;
             }
 
             // Filters written on Windows use backslashes even when read on another OS.
-            return Path.GetFullPath(
+            var backingSolution = Path.GetFullPath(
                 path!.Replace('\\', Path.DirectorySeparatorChar),
                 Path.GetDirectoryName(Path.GetFullPath(filterPath))!);
+            if (!includeProjects)
+            {
+                return (backingSolution, null);
+            }
+
+            var projects = new HashSet<string>(InputPathCanon.Comparer);
+            foreach (var item in solution.GetProperty("projects").EnumerateArray())
+            {
+                var project = item.GetString();
+                if (string.IsNullOrWhiteSpace(project))
+                {
+                    return default;
+                }
+
+                projects.Add(project.Replace('\\', '/'));
+            }
+
+            return (backingSolution, projects);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException
             or KeyNotFoundException or InvalidOperationException or ArgumentException or NotSupportedException)
         {
-            return null;
+            return default;
         }
     }
 }
