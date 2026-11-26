@@ -7,6 +7,7 @@ using RoslynMcpServer.Config;
 using RoslynMcpServer.Diagnostics;
 using RoslynMcpServer.Services;
 using RoslynMcpServer.Services.Workspace;
+using RoslynMcpServer.Tests.Support;
 using RoslynMcpServer.Tools;
 using Xunit;
 
@@ -1578,6 +1579,454 @@ public sealed class WorkspaceWriteEncodingTests : IDisposable
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
+    public async Task ApplyPatch_uses_the_default_project_reader_before_and_after_workspace_load(bool loadWorkspace)
+    {
+        var directory = Directory.CreateDirectory(Path.Combine(_root, "Nested")).FullName;
+        await File.WriteAllTextAsync(Path.Combine(directory, "global.json"), "{}");
+        var path = Path.Combine(directory, "Class1.cs");
+        await File.WriteAllTextAsync(path, OriginalSourceText, BomFreeUtf8);
+        var manager = loadWorkspace ? await LoadAsync() : SolutionManagerTestFactory.Create();
+        var patcher = new UtilityTools(NullLogger<UtilityTools>.Instance, manager);
+
+        var result = await patcher.ApplyPatch(path, OriginalFragment, EditedFragment);
+
+        Assert.Contains("Patch applied successfully", result, StringComparison.Ordinal);
+        Assert.Equal(BomFreeUtf8.GetBytes(EditedSourceText), await File.ReadAllBytesAsync(path));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ApplyPatch_uses_the_evaluated_CodePage_of_a_linked_source(bool loadWorkspace)
+    {
+        var nested = Directory.CreateDirectory(Path.Combine(_root, "Reader")).FullName;
+        var linkedDirectory = Directory.CreateDirectory(Path.Combine(_root, "Shared")).FullName;
+        var linkedFile = Path.Combine(linkedDirectory, "Linked.cs");
+        const string Source = "// Café\n" + OriginalSourceText;
+        await File.WriteAllBytesAsync(linkedFile, Encoding.Latin1.GetBytes(Source));
+        await File.WriteAllTextAsync(_csprojPath, """
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup>
+              <ItemGroup><Compile Remove="Shared/**/*.cs" /></ItemGroup>
+            </Project>
+            """);
+        var reader = Path.Combine(nested, "Reader.csproj");
+        await File.WriteAllTextAsync(reader, """
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup><TargetFramework>net10.0</TargetFramework><CodePage>28591</CodePage></PropertyGroup>
+              <ItemGroup><Compile Include="../Shared/Linked.cs" Link="Linked.cs" /></ItemGroup>
+            </Project>
+            """);
+        var manager = SolutionManagerTestFactory.Create();
+        if (loadWorkspace)
+        {
+            await manager.LoadAndPrepareAsync(reader, shadowCopyInSolutionAnalyzers: false, CancellationToken.None);
+        }
+
+        var result = await new UtilityTools(NullLogger<UtilityTools>.Instance, manager)
+            .ApplyPatch(linkedFile, OriginalFragment, EditedFragment);
+
+        Assert.Contains("Patch applied successfully", result, StringComparison.Ordinal);
+        Assert.Equal(Encoding.Latin1.GetBytes("// Café\n" + EditedSourceText), await File.ReadAllBytesAsync(linkedFile));
+    }
+
+    [Theory]
+    [InlineData("""<Compile Remove="Class1.cs" />""")]
+    [InlineData("""<Compile Include="**/*.cs" Exclude="Class1.cs" />""")]
+    [InlineData("""<Compile Include="Class1.cs" Condition="'$(NeverSet)' == 'true'" />""")]
+    public async Task ApplyPatch_does_not_infer_a_reader_from_an_excluded_or_inactive_Compile_item(string item)
+    {
+        var defaults = item.Contains("Remove", StringComparison.Ordinal) ? "true" : "false";
+        await File.WriteAllTextAsync(_csprojPath, $$"""
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <TargetFramework>net10.0</TargetFramework>
+                <EnableDefaultCompileItems>{{defaults}}</EnableDefaultCompileItems>
+              </PropertyGroup>
+              <ItemGroup>{{item}}</ItemGroup>
+            </Project>
+            """);
+        await File.WriteAllTextAsync(_sourcePath, OriginalSourceText, BomFreeUtf8);
+
+        var result = await new UtilityTools(NullLogger<UtilityTools>.Instance, SolutionManagerTestFactory.Create())
+            .ApplyPatch(_sourcePath, OriginalFragment, EditedFragment);
+
+        Assert.Contains("Cannot determine how the owning project reads", result, StringComparison.Ordinal);
+        Assert.Equal(BomFreeUtf8.GetBytes(OriginalSourceText), await File.ReadAllBytesAsync(_sourcePath));
+    }
+
+    [Theory]
+    [InlineData("<Configurations>Debug;Release</Configurations><TargetFramework>net10.0</TargetFramework>", "Configuration", "Release")]
+    [InlineData("<TargetFrameworks>net10.0;net11.0</TargetFrameworks>", "TargetFramework", "net11.0")]
+    public async Task ApplyPatch_rejects_conflicting_CodePages_across_MSBuild_contexts(
+        string projectProperties,
+        string conditionedProperty,
+        string value)
+    {
+        await File.WriteAllTextAsync(_csprojPath, $$"""
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>{{projectProperties}}</PropertyGroup>
+              <PropertyGroup Condition="'$({{conditionedProperty}})' == '{{value}}'"><CodePage>28591</CodePage></PropertyGroup>
+            </Project>
+            """);
+        const string Source = "// Café\n" + OriginalSourceText;
+        await File.WriteAllTextAsync(_sourcePath, Source, BomFreeUtf8);
+
+        var result = await new UtilityTools(NullLogger<UtilityTools>.Instance, SolutionManagerTestFactory.Create())
+            .ApplyPatch(_sourcePath, OriginalFragment, EditedFragment);
+
+        Assert.Contains("conflicting source encodings", result, StringComparison.Ordinal);
+        Assert.Equal(BomFreeUtf8.GetBytes(Source), await File.ReadAllBytesAsync(_sourcePath));
+    }
+
+    [Fact]
+    public async Task ApplyPatch_uses_inner_framework_readers_when_the_outer_project_has_no_CodePage()
+    {
+        await File.WriteAllTextAsync(_csprojPath, """
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup><TargetFrameworks>net10.0;net11.0</TargetFrameworks></PropertyGroup>
+              <PropertyGroup Condition="'$(TargetFramework)' != ''"><CodePage>28591</CodePage></PropertyGroup>
+            </Project>
+            """);
+        const string Source = "// Café\n" + OriginalSourceText;
+        await File.WriteAllBytesAsync(_sourcePath, Encoding.Latin1.GetBytes(Source));
+
+        var result = await new UtilityTools(NullLogger<UtilityTools>.Instance, SolutionManagerTestFactory.Create())
+            .ApplyPatch(_sourcePath, OriginalFragment, EditedFragment);
+
+        Assert.Contains("Patch applied successfully", result, StringComparison.Ordinal);
+        Assert.Equal(Encoding.Latin1.GetBytes("// Café\n" + EditedSourceText), await File.ReadAllBytesAsync(_sourcePath));
+    }
+
+    [Fact]
+    public async Task ApplyPatch_refreshes_imported_CodePage_before_committing_an_unloaded_patch()
+    {
+        const string Source = "// Café\n" + OriginalSourceText;
+        await File.WriteAllTextAsync(_sourcePath, Source, BomFreeUtf8);
+        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+        using var gate = new FirstPatchReadGate();
+        var tool = new UtilityTools(gate, SolutionManagerTestFactory.Create());
+        var patch = Task.Run(() => tool.ApplyPatch(_sourcePath, "Café", "Coffee", cancellationToken: deadline.Token));
+
+        try
+        {
+            await gate.FirstRead.WaitAsync(deadline.Token);
+            await File.WriteAllTextAsync(Path.Combine(_root, "Directory.Build.props"), """
+                <Project><PropertyGroup><CodePage>28591</CodePage></PropertyGroup></Project>
+                """, deadline.Token);
+        }
+        finally
+        {
+            gate.Resume();
+        }
+
+        Assert.Contains("Patch conflict", await patch, StringComparison.Ordinal);
+        Assert.Equal(BomFreeUtf8.GetBytes(Source), await File.ReadAllBytesAsync(_sourcePath));
+    }
+
+    [Fact]
+    public async Task ApplyPatch_checks_linked_readers_across_a_nested_solution_boundary()
+    {
+        Directory.CreateDirectory(Path.Combine(_root, ".git"));
+        var nested = Directory.CreateDirectory(Path.Combine(_root, "Nested")).FullName;
+        await File.WriteAllTextAsync(Path.Combine(nested, "Nested.slnx"), "<Solution />");
+        var path = Path.Combine(nested, "Class1.cs");
+        const string Source = "// Café\n" + OriginalSourceText;
+        await File.WriteAllTextAsync(path, Source, BomFreeUtf8);
+        var sibling = Directory.CreateDirectory(Path.Combine(_root, "Reader")).FullName;
+        await File.WriteAllTextAsync(Path.Combine(sibling, "Reader.csproj"), """
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup><TargetFramework>net10.0</TargetFramework><CodePage>28591</CodePage></PropertyGroup>
+              <ItemGroup><Compile Include="../Nested/Class1.cs" /></ItemGroup>
+            </Project>
+            """);
+
+        var result = await new UtilityTools(NullLogger<UtilityTools>.Instance, SolutionManagerTestFactory.Create())
+            .ApplyPatch(path, OriginalFragment, EditedFragment);
+
+        Assert.Contains("conflicting source encodings", result, StringComparison.Ordinal);
+        Assert.Equal(BomFreeUtf8.GetBytes(Source), await File.ReadAllBytesAsync(path));
+    }
+
+    [Theory]
+    [InlineData("project")]
+    [InlineData("solution")]
+    [InlineData("reference properties")]
+    public async Task ApplyPatch_checks_external_readers_from_the_evaluated_project_and_solution_graph(string referenceKind)
+    {
+        var appDirectory = Path.GetFileName(_root);
+        var readerDirectory = Path.GetFileName(_outsideRoot);
+        var reader = Path.Combine(_outsideRoot, "Reader.csproj");
+        var readerCodePage = referenceKind == "reference properties" ? "" : "<CodePage>28591</CodePage>";
+        await File.WriteAllTextAsync(reader, $$"""
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup><TargetFramework>net10.0</TargetFramework>{{readerCodePage}}</PropertyGroup>
+              <ItemGroup><Compile Include="../{{appDirectory}}/Class1.cs" /></ItemGroup>
+            </Project>
+            """);
+        if (referenceKind == "solution")
+        {
+            var nested = Directory.CreateDirectory(Path.Combine(_root, "Nested")).FullName;
+            await File.WriteAllTextAsync(Path.Combine(nested, "Nested.slnx"), $$"""
+                <Solution><Project Path="../../{{readerDirectory}}/Reader.csproj" /></Solution>
+                """);
+        }
+        else
+        {
+            var metadata = referenceKind == "reference properties" ? """ AdditionalProperties="CodePage=28591" """ : "";
+            await File.WriteAllTextAsync(_csprojPath, $$"""
+                <Project Sdk="Microsoft.NET.Sdk">
+                  <PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup>
+                  <ItemGroup><ProjectReference Include="../{{readerDirectory}}/Reader.csproj"{{metadata}} /></ItemGroup>
+                </Project>
+                """);
+        }
+
+        const string Source = "// Café\n" + OriginalSourceText;
+        await File.WriteAllTextAsync(_sourcePath, Source, BomFreeUtf8);
+
+        var result = await new UtilityTools(NullLogger<UtilityTools>.Instance, SolutionManagerTestFactory.Create())
+            .ApplyPatch(_sourcePath, OriginalFragment, EditedFragment);
+
+        var expected = referenceKind == "reference properties"
+            ? "Cannot determine how the owning project reads"
+            : "conflicting source encodings";
+        Assert.Contains(expected, result, StringComparison.Ordinal);
+        Assert.Equal(BomFreeUtf8.GetBytes(Source), await File.ReadAllBytesAsync(_sourcePath));
+    }
+
+    [Theory]
+    [InlineData("CoreCompile")]
+    [InlineData("CompileWithAnotherCodePage")]
+    public async Task ApplyPatch_refuses_a_custom_compiler_CodePage(string targetName)
+    {
+        await File.WriteAllTextAsync(_csprojPath, $$"""
+            <Project>
+              <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
+              <PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup>
+              <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
+              <Target Name="{{targetName}}" BeforeTargets="Compile">
+                <Csc Sources="@(Compile)" CodePage="28591" />
+              </Target>
+            </Project>
+            """);
+        const string Source = "// Café\n" + OriginalSourceText;
+        await File.WriteAllTextAsync(_sourcePath, Source, BomFreeUtf8);
+
+        var result = await new UtilityTools(NullLogger<UtilityTools>.Instance, SolutionManagerTestFactory.Create())
+            .ApplyPatch(_sourcePath, OriginalFragment, EditedFragment);
+
+        Assert.Contains("Cannot determine how the owning project reads", result, StringComparison.Ordinal);
+        Assert.Equal(BomFreeUtf8.GetBytes(Source), await File.ReadAllBytesAsync(_sourcePath));
+    }
+
+    [Theory]
+    [InlineData("global.json", "{}")]
+    [InlineData("Nested.slnx", "<Solution />")]
+    public async Task ApplyPatch_checks_enclosing_solutions_in_an_exported_checkout(string markerName, string marker)
+    {
+        var appDirectory = Directory.CreateDirectory(Path.Combine(_root, "Src", "App")).FullName;
+        File.Move(_csprojPath, Path.Combine(appDirectory, "App.csproj"));
+        await File.WriteAllTextAsync(Path.Combine(appDirectory, markerName), marker);
+        var readerDirectory = Directory.CreateDirectory(Path.Combine(_root, "Readers")).FullName;
+        await File.WriteAllTextAsync(Path.Combine(readerDirectory, "Reader.csproj"), """
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup><TargetFramework>net10.0</TargetFramework><CodePage>28591</CodePage></PropertyGroup>
+              <ItemGroup><Compile Include="../Src/App/Class1.cs" /></ItemGroup>
+            </Project>
+            """);
+        await File.WriteAllTextAsync(Path.Combine(_root, "Root.slnx"), """
+            <Solution>
+              <Project Path="Src/App/App.csproj" />
+              <Project Path="Readers/Reader.csproj" />
+            </Solution>
+            """);
+        const string Source = "// Café\n" + OriginalSourceText;
+        var path = Path.Combine(appDirectory, "Class1.cs");
+        await File.WriteAllTextAsync(path, Source, BomFreeUtf8);
+
+        var result = await new UtilityTools(NullLogger<UtilityTools>.Instance, SolutionManagerTestFactory.Create())
+            .ApplyPatch(path, OriginalFragment, EditedFragment);
+
+        Assert.Contains("conflicting source encodings", result, StringComparison.Ordinal);
+        Assert.Equal(BomFreeUtf8.GetBytes(Source), await File.ReadAllBytesAsync(path));
+    }
+
+    [Fact]
+    public async Task ApplyPatch_uses_the_project_configuration_mapped_by_the_solution()
+    {
+        await File.WriteAllTextAsync(_csprojPath, """
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup>
+              <Import Project="Build/$(Configuration).props" Condition="Exists('Build/$(Configuration).props')" />
+            </Project>
+            """);
+        var buildDirectory = Directory.CreateDirectory(Path.Combine(_root, "Build")).FullName;
+        await File.WriteAllTextAsync(Path.Combine(buildDirectory, "Shipping.props"), """
+            <Project>
+              <PropertyGroup Condition="'$(Platform)' == 'AnyCPU'"><CodePage>28591</CodePage></PropertyGroup>
+            </Project>
+            """);
+        await File.WriteAllTextAsync(Path.Combine(_root, "App.sln"), """
+            Microsoft Visual Studio Solution File, Format Version 12.00
+            # Visual Studio Version 17
+            Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "App", "App.csproj", "{4C43D3A1-45AE-437E-955B-53699FDA39A3}"
+            EndProject
+            Global
+                GlobalSection(SolutionConfigurationPlatforms) = preSolution
+                    Retail|Any CPU = Retail|Any CPU
+                EndGlobalSection
+                GlobalSection(ProjectConfigurationPlatforms) = postSolution
+                    {4C43D3A1-45AE-437E-955B-53699FDA39A3}.Retail|Any CPU.ActiveCfg = Shipping|Any CPU
+                    {4C43D3A1-45AE-437E-955B-53699FDA39A3}.Retail|Any CPU.Build.0 = Shipping|Any CPU
+                EndGlobalSection
+            EndGlobal
+            """);
+        const string Source = "// Café\n" + OriginalSourceText;
+        await File.WriteAllTextAsync(_sourcePath, Source, BomFreeUtf8);
+
+        var result = await new UtilityTools(NullLogger<UtilityTools>.Instance, SolutionManagerTestFactory.Create())
+            .ApplyPatch(_sourcePath, OriginalFragment, EditedFragment);
+
+        Assert.Contains("conflicting source encodings", result, StringComparison.Ordinal);
+        Assert.Equal(BomFreeUtf8.GetBytes(Source), await File.ReadAllBytesAsync(_sourcePath));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ApplyPatch_checks_the_referenced_project_in_its_own_solution_context(bool readsSolutionContents)
+    {
+        var readerDirectory = Directory.CreateDirectory(Path.Combine(_root, "Reader")).FullName;
+        await File.WriteAllTextAsync(_csprojPath, """
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup>
+              <ItemGroup><ProjectReference Include="Reader/Reader.csproj" /></ItemGroup>
+            </Project>
+            """);
+        var condition = readsSolutionContents
+            ? "'$(CurrentSolutionConfigurationContents)' != ''"
+            : "'$(BuildingSolutionFile)' == 'true' and '$(Configuration)' == 'Shipping'";
+        await File.WriteAllTextAsync(Path.Combine(readerDirectory, "Reader.csproj"), $$"""
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup>
+              <PropertyGroup Condition="{{condition}}"><CodePage>28591</CodePage></PropertyGroup>
+              <ItemGroup><Compile Include="../Class1.cs" /></ItemGroup>
+            </Project>
+            """);
+        await File.WriteAllTextAsync(Path.Combine(_root, "App.sln"), """
+            Microsoft Visual Studio Solution File, Format Version 12.00
+            # Visual Studio Version 17
+            Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "App", "App.csproj", "{4C43D3A1-45AE-437E-955B-53699FDA39A3}"
+            EndProject
+            Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Reader", "Reader\Reader.csproj", "{F56E63EE-6FF2-4B74-B2FD-10DC90A9CCB3}"
+            EndProject
+            Global
+                GlobalSection(SolutionConfigurationPlatforms) = preSolution
+                    Retail|Any CPU = Retail|Any CPU
+                EndGlobalSection
+                GlobalSection(ProjectConfigurationPlatforms) = postSolution
+                    {4C43D3A1-45AE-437E-955B-53699FDA39A3}.Retail|Any CPU.ActiveCfg = Shipping|Any CPU
+                    {4C43D3A1-45AE-437E-955B-53699FDA39A3}.Retail|Any CPU.Build.0 = Shipping|Any CPU
+                    {F56E63EE-6FF2-4B74-B2FD-10DC90A9CCB3}.Retail|Any CPU.ActiveCfg = Release|Any CPU
+                    {F56E63EE-6FF2-4B74-B2FD-10DC90A9CCB3}.Retail|Any CPU.Build.0 = Release|Any CPU
+                EndGlobalSection
+            EndGlobal
+            """);
+        const string Source = "// Café\n" + OriginalSourceText;
+        await File.WriteAllTextAsync(_sourcePath, Source, BomFreeUtf8);
+
+        var result = await new UtilityTools(NullLogger<UtilityTools>.Instance, SolutionManagerTestFactory.Create())
+            .ApplyPatch(_sourcePath, OriginalFragment, EditedFragment);
+
+        var expectation = readsSolutionContents ? "Cannot determine how the owning project reads" : "Patch applied successfully";
+        var expectedText = readsSolutionContents ? Source : "// Café\n" + EditedSourceText;
+        Assert.Contains(expectation, result, StringComparison.Ordinal);
+        Assert.Equal(BomFreeUtf8.GetBytes(expectedText), await File.ReadAllBytesAsync(_sourcePath));
+    }
+
+    [Fact]
+    [Trait("Category", TestCategories.RequiresWindows)]
+    public async Task ApplyPatch_refuses_a_Compile_reader_using_the_Windows_device_namespace()
+    {
+        var devicePath = @"\\.\" + _sourcePath;
+        var readerDirectory = Directory.CreateDirectory(Path.Combine(_root, "Reader")).FullName;
+        var reader = Path.Combine(readerDirectory, "Reader.csproj");
+        await File.WriteAllTextAsync(reader, $$"""
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup><TargetFramework>net10.0</TargetFramework><CodePage>28591</CodePage></PropertyGroup>
+              <ItemGroup><Compile Include="{{devicePath}}" /></ItemGroup>
+            </Project>
+            """);
+        const string Source = "// Café\n" + OriginalSourceText;
+        var bytes = BomFreeUtf8.GetBytes(Source);
+        await File.WriteAllBytesAsync(_sourcePath, bytes);
+        Assert.Equal(bytes, await File.ReadAllBytesAsync(devicePath));
+        using var projects = new Microsoft.Build.Evaluation.ProjectCollection();
+        var compile = Assert.Single(projects.LoadProject(reader).GetItems("Compile"));
+        Assert.Equal(devicePath, compile.GetMetadataValue("FullPath"), ignoreCase: true);
+
+        var result = await new UtilityTools(NullLogger<UtilityTools>.Instance, SolutionManagerTestFactory.Create())
+            .ApplyPatch(_sourcePath, OriginalFragment, EditedFragment);
+
+        Assert.Contains("Cannot determine how the owning project reads", result, StringComparison.Ordinal);
+        Assert.Equal(bytes, await File.ReadAllBytesAsync(_sourcePath));
+    }
+
+    [Fact]
+    public async Task ApplyPatch_refuses_source_and_Compile_paths_through_an_alias_outside_the_search_tree()
+    {
+        var alias = Path.Combine(_outsideRoot, "Alias");
+        await CreateDirectoryAliasAsync(alias, _root);
+        var aliasedSource = Path.Combine(alias, "Class1.cs");
+        var readerDirectory = Directory.CreateDirectory(Path.Combine(_root, "Reader")).FullName;
+        var include = Path.GetRelativePath(readerDirectory, aliasedSource).Replace(Path.DirectorySeparatorChar, '/');
+        await File.WriteAllTextAsync(Path.Combine(readerDirectory, "Reader.csproj"), $$"""
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup><TargetFramework>net10.0</TargetFramework><CodePage>28591</CodePage></PropertyGroup>
+              <ItemGroup><Compile Include="{{include}}" /></ItemGroup>
+            </Project>
+            """);
+        const string Source = "// Café\n" + OriginalSourceText;
+        var bytes = BomFreeUtf8.GetBytes(Source);
+        await File.WriteAllBytesAsync(_sourcePath, bytes);
+        var patch = new UtilityTools(NullLogger<UtilityTools>.Instance, SolutionManagerTestFactory.Create());
+
+        var readerAlias = await patch.ApplyPatch(_sourcePath, OriginalFragment, EditedFragment);
+        var destinationAlias = await patch.ApplyPatch(aliasedSource, OriginalFragment, EditedFragment);
+
+        Assert.Contains("Cannot determine how the owning project reads", readerAlias, StringComparison.Ordinal);
+        Assert.Contains("Cannot determine how the owning project reads", destinationAlias, StringComparison.Ordinal);
+        Assert.Equal(bytes, await File.ReadAllBytesAsync(_sourcePath));
+        Assert.Equal(bytes, await File.ReadAllBytesAsync(aliasedSource));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ApplyPatch_keeps_the_original_bytes_when_reader_discovery_is_incomplete(bool invalidProject)
+    {
+        var path = invalidProject ? _sourcePath : Path.Combine(_outsideRoot, "NoProject.cs");
+        if (invalidProject)
+        {
+            await File.WriteAllTextAsync(Path.Combine(_root, "Incomplete.csproj"), """
+                <Project><Import Project="Missing.props" /></Project>
+                """);
+        }
+
+        await File.WriteAllTextAsync(path, OriginalSourceText, BomFreeUtf8);
+        var result = await new UtilityTools(NullLogger<UtilityTools>.Instance, SolutionManagerTestFactory.Create())
+            .ApplyPatch(path, OriginalFragment, EditedFragment);
+
+        Assert.Contains("Cannot determine how the owning project reads", result, StringComparison.Ordinal);
+        Assert.Contains("Load its project", result, StringComparison.Ordinal);
+        Assert.Contains("charset or sourceEncoding", result, StringComparison.Ordinal);
+        Assert.Equal(BomFreeUtf8.GetBytes(OriginalSourceText), await File.ReadAllBytesAsync(path));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public async Task Unloaded_project_source_writes_preserve_the_requested_literals(bool unrelatedWorkspaceLoaded)
     {
         var manager = unrelatedWorkspaceLoaded ? await LoadAsync() : SolutionManagerTestFactory.Create();
@@ -1599,14 +2048,21 @@ public sealed class WorkspaceWriteEncodingTests : IDisposable
         {
             var path = Path.Combine(_outsideRoot, name + ".cs");
             await File.WriteAllTextAsync(path, original, BomFreeUtf8);
-            var literal = name == "Patched" ? "Cafe" : "Café";
+            var literal = name == "Patched" && unrelatedWorkspaceLoaded ? "Cafe" : "Café";
             var expected = $"class {name} {{ public const string Value = \"{literal}\"; }}";
             if (name == "Patched")
             {
-                Assert.Contains("Load its project before patching", await patcher.ApplyPatch(path, "Marker", "Café"), StringComparison.Ordinal);
-                Assert.Equal(BomFreeUtf8.GetBytes(original), await File.ReadAllBytesAsync(path));
+                if (unrelatedWorkspaceLoaded)
+                {
+                    Assert.Contains("Load its project before patching", await patcher.ApplyPatch(path, "Marker", "Café"), StringComparison.Ordinal);
+                    Assert.Equal(BomFreeUtf8.GetBytes(original), await File.ReadAllBytesAsync(path));
+                }
+
                 Assert.Contains("Patch applied successfully", await patcher.ApplyPatch(path, "Marker", literal), StringComparison.Ordinal);
-                Assert.Equal(BomFreeUtf8.GetBytes(expected), await File.ReadAllBytesAsync(path));
+                var expectedBytes = unrelatedWorkspaceLoaded
+                    ? BomFreeUtf8.GetBytes(expected)
+                    : Utf8WithBom.GetPreamble().Concat(Utf8WithBom.GetBytes(expected)).ToArray();
+                Assert.Equal(expectedBytes, await File.ReadAllBytesAsync(path));
             }
             else
             {
@@ -1618,8 +2074,8 @@ public sealed class WorkspaceWriteEncodingTests : IDisposable
         var ambiguousPath = Path.Combine(_outsideRoot, "Ambiguous.cs");
         var originalBytes = "class Ambiguous { const string Keep = \"Café\"; const string Edit = \"Marker\"; }"u8.ToArray();
         await File.WriteAllBytesAsync(ambiguousPath, originalBytes);
-        var refusal = await patcher.ApplyPatch(ambiguousPath, "Marker", "Café");
-        Assert.Contains("Load its project before patching", refusal, StringComparison.Ordinal);
+        var refusal = await patcher.ApplyPatch(ambiguousPath, "Café", "Coffee");
+        Assert.Contains(unrelatedWorkspaceLoaded ? "Load its project before patching" : "was not found", refusal, StringComparison.Ordinal);
         Assert.Equal(originalBytes, await File.ReadAllBytesAsync(ambiguousPath));
 
         var build = await DotNetCliRunner.RunAsync("build UnknownOwner.csproj -c Release -p:NuGetAudit=false", _outsideRoot, CancellationToken.None);
@@ -1628,7 +2084,8 @@ public sealed class WorkspaceWriteEncodingTests : IDisposable
         var assembly = Assembly.Load(await File.ReadAllBytesAsync(dll));
         foreach (var name in new[] { "Empty", "Existing", "Patched" })
         {
-            Assert.Equal(name == "Patched" ? "Cafe" : "Café", assembly.GetType(name)!.GetField("Value")!.GetRawConstantValue());
+            var expected = name == "Patched" && unrelatedWorkspaceLoaded ? "Cafe" : "Café";
+            Assert.Equal(expected, assembly.GetType(name)!.GetField("Value")!.GetRawConstantValue());
         }
     }
 
@@ -1651,7 +2108,7 @@ public sealed class WorkspaceWriteEncodingTests : IDisposable
         var patcher = new UtilityTools(NullLogger<UtilityTools>.Instance, SolutionManagerTestFactory.Create());
         var result = await patcher.ApplyPatch(_sourcePath, "Marker", "X");
 
-        Assert.Contains(patchAllowed ? "Patch applied successfully" : "Load its project before patching", result, StringComparison.Ordinal);
+        Assert.Contains(patchAllowed ? "Patch applied successfully" : "incompatible with ASCII", result, StringComparison.Ordinal);
         var expected = patchAllowed ? source.Replace("Marker", "X", StringComparison.Ordinal) : source;
         Assert.Equal(Encoding.ASCII.GetBytes(expected), await File.ReadAllBytesAsync(_sourcePath));
         var build = await DotNetCliRunner.RunAsync("build App.csproj -c Release -p:NuGetAudit=false", _root, CancellationToken.None);
@@ -1672,12 +2129,13 @@ public sealed class WorkspaceWriteEncodingTests : IDisposable
     {
         const string Source = "// $Marker, Marker$, $   Marker\r\n// $  Marker\r\n";
         var bytes = Encoding.ASCII.GetBytes(Source);
-        await File.WriteAllBytesAsync(_sourcePath, bytes);
+        var path = Path.Combine(_outsideRoot, "Unowned.cs");
+        await File.WriteAllBytesAsync(path, bytes);
         var tool = new UtilityTools(NullLogger<UtilityTools>.Instance, SolutionManagerTestFactory.Create());
-        var result = await tool.ApplyPatch(_sourcePath, oldText, newText, replaceAll);
+        var result = await tool.ApplyPatch(path, oldText, newText, replaceAll);
 
         Assert.Contains("Load its project before patching", result, StringComparison.Ordinal);
-        Assert.Equal(bytes, await File.ReadAllBytesAsync(_sourcePath));
+        Assert.Equal(bytes, await File.ReadAllBytesAsync(path));
     }
 
     [Fact]
@@ -1876,6 +2334,34 @@ public sealed class WorkspaceWriteEncodingTests : IDisposable
         Assert.True(build.ExitCode == 0, build.CombinedOutput);
         var assemblyPath = Path.Combine(_root, "bin", "Release", "net10.0", "App.dll");
         return Assembly.Load(await File.ReadAllBytesAsync(assemblyPath));
+    }
+
+    private static async Task CreateDirectoryAliasAsync(string path, string target)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            Directory.CreateSymbolicLink(path, target);
+            return;
+        }
+
+        // A junction exercises an aliased parent without requiring Windows file symlink privileges.
+        var start = new ProcessStartInfo("cmd.exe")
+        {
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+        };
+        foreach (var argument in new[] { "/d", "/c", "mklink", "/J", path, target })
+        {
+            start.ArgumentList.Add(argument);
+        }
+
+        using var process = Process.Start(start)!;
+        var output = process.StandardOutput.ReadToEndAsync();
+        var errors = process.StandardError.ReadToEndAsync();
+        await process.WaitForExitAsync();
+        Assert.True(process.ExitCode == 0, await output + await errors);
     }
 
     private static void DeleteBestEffort(string directory)

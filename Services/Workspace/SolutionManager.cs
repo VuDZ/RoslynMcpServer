@@ -679,7 +679,7 @@ public sealed class SolutionManager
         }
     }
 
-    internal async Task<string> ReadPatchSourceAsync(
+    internal async Task<PatchFileText> ReadPatchSourceAsync(
         string fullPath,
         (string Original, string Replacement) fragments,
         CancellationToken cancellationToken)
@@ -687,8 +687,8 @@ public sealed class SolutionManager
         await _workspaceLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            var source = await ReadPatchFileUnderLockAsync(fullPath, fragments, cancellationToken).ConfigureAwait(false);
-            return source.Text;
+            return await ReadPatchFileUnderLockAsync(fullPath, fragments, recheckDiskReaders: false, cancellationToken)
+                .ConfigureAwait(false);
         }
         finally
         {
@@ -699,7 +699,7 @@ public sealed class SolutionManager
     /// <summary>Applies a patch to the checked disk text, or returns null so the caller can rematch.</summary>
     internal async Task<WorkspaceWriteResult?> TryApplyPatchTextAsync(
         string fullPath,
-        string sourceText,
+        PatchFileText source,
         string updatedText,
         bool hasUntouchedNonAscii,
         (string Original, string Replacement) fragments,
@@ -710,8 +710,10 @@ public sealed class SolutionManager
         {
             // A patch may have matched before another edit committed. Keep the comparison and both
             // write paths in one critical section so a stale match cannot replace that edit.
-            var current = await ReadPatchFileUnderLockAsync(fullPath, fragments, cancellationToken).ConfigureAwait(false);
-            if (!string.Equals(sourceText, current.Text, StringComparison.Ordinal))
+            var current = await ReadPatchFileUnderLockAsync(
+                    fullPath, fragments, recheckDiskReaders: source.EvaluatedCodePages is not null, cancellationToken)
+                .ConfigureAwait(false);
+            if (!string.Equals(source.Text, current.Text, StringComparison.Ordinal))
             {
                 return null;
             }
@@ -2043,32 +2045,68 @@ public sealed class SolutionManager
     private async Task<PatchFileText> ReadPatchFileUnderLockAsync(
         string fullPath,
         (string Original, string Replacement) fragments,
+        bool recheckDiskReaders,
         CancellationToken cancellationToken)
     {
         var bytes = await File.ReadAllBytesAsync(fullPath, cancellationToken).ConfigureAwait(false);
-        var declaration = WorkspaceDiskPathFilter.IsCSharpSource(fullPath) && SourceTextEncoding.DetectBomEncoding(bytes) is null
-            ? GetSourceEncodingForRead(fullPath, bytes)
-            : null;
-        var source = DecodePatchFileUnderLock(fullPath, bytes, declaration);
-        if (source.Encoding.Preamble.IsEmpty && WorkspaceDiskPathFilter.IsCSharpSource(fullPath)
-            && !source.HasDeclaredEncoding
-            && !GetSourceCodePagesUnderLock(fullPath).Any()
+        var isCSharp = WorkspaceDiskPathFilter.IsCSharpSource(fullPath);
+        if (SourceTextEncoding.DetectBomEncoding(bytes) is { } bom)
+        {
+            return DecodePatchFile(fullPath, bytes, bom);
+        }
+
+        var declaration = isCSharp ? GetSourceEncodingForRead(fullPath, bytes) : null;
+        int?[]? evaluatedCodePages = null;
+        if (isCSharp && _workspace is null && !bytes.AsSpan().StartsWith("#!"u8)
+            && (recheckDiskReaders || declaration is null && NeedsUnloadedSourceReaders(bytes, fragments)))
+        {
+            // The match runs outside the workspace lock. Re-evaluate on commit so an import,
+            // glob, or property change cannot reuse the readers from the initial read.
+            evaluatedCodePages = UnloadedSourceReaders.GetCodePages(fullPath, cancellationToken);
+            if (declaration is null && (evaluatedCodePages.Contains(null)
+                    || (evaluatedCodePages.Length == 0 && !System.Text.Unicode.Utf8.IsValid(bytes))))
+            {
+                PersistedPayload.EncodeExactly(fragments.Replacement, SourceTextEncoding.BomFreeUtf8);
+                throw UnknownBomFreeSource(fullPath);
+            }
+        }
+
+        var readers = evaluatedCodePages ?? GetSourceCodePagesUnderLock(fullPath).Distinct().ToArray();
+        var source = DecodePatchFileUnderLock(fullPath, bytes, declaration, readers) with
+        {
+            EvaluatedCodePages = evaluatedCodePages,
+        };
+        if (isCSharp && !source.HasDeclaredEncoding && readers.Length == 0
             && !(source.Text.StartsWith("#!", StringComparison.Ordinal)
                 && (!Ascii.IsValid(source.Text) || !Ascii.IsValid(fragments.Replacement)))
             && (!SourceTextEncoding.IsUnshiftedAscii(source.Text) || !SourceTextEncoding.IsInvariantAscii(fragments.Original)))
         {
-            // Even valid UTF-8 may represent different text under an unloaded project's CodePage.
-            // The entire search has to mean what the caller requested. Flexible matches only vary whitespace,
-            // which the unshifted source check limits to space, tab and line endings.
-            // Loading the owner cannot fix malformed replacement text. Report that error first.
+            // Even valid UTF-8 may represent different text under an unknown project's CodePage.
+            // Flexible matching only varies whitespace; the source check limits which forms are safe.
             PersistedPayload.EncodeExactly(fragments.Replacement, source.Encoding);
-            throw new InvalidDataException($"Cannot determine how the owning project reads the BOM-free source: {fullPath}. Load its project before patching.");
+            throw UnknownBomFreeSource(fullPath);
         }
 
         return source;
     }
 
-    private PatchFileText DecodePatchFileUnderLock(string fullPath, byte[] bytes, DeclaredSourceEncoding? declaration = null)
+    private static bool NeedsUnloadedSourceReaders(
+        byte[] bytes,
+        (string Original, string Replacement) fragments) =>
+        !SourceTextEncoding.IsInvariantAscii(fragments.Original)
+        || !SourceTextEncoding.IsInvariantAscii(fragments.Replacement)
+        || !Ascii.IsValid(bytes)
+        || !SourceTextEncoding.IsUnshiftedAscii(Encoding.ASCII.GetString(bytes));
+
+    private static InvalidDataException UnknownBomFreeSource(string fullPath) =>
+        new($"Cannot determine how the owning project reads the BOM-free source: {fullPath}. "
+            + "Load its project before patching, or declare the encoding with charset or sourceEncoding.");
+
+    private PatchFileText DecodePatchFileUnderLock(
+        string fullPath,
+        byte[] bytes,
+        DeclaredSourceEncoding? declaration,
+        int?[] readers)
     {
         if (SourceTextEncoding.DetectBomEncoding(bytes) is { } bom)
         {
@@ -2077,7 +2115,7 @@ public sealed class SolutionManager
 
         var source = declaration is null ? null : DecodeDeclaredSource(fullPath, bytes, declaration);
         int? detectedCodePage = null;
-        foreach (var projectCodePage in GetSourceCodePagesUnderLock(fullPath).Distinct())
+        foreach (var projectCodePage in readers)
         {
             // The cached text may have used a BOM that the editor has since removed. Use the
             // evaluated CodePage of the owning project. See docs/project-review-2026-11-25/task-29-p1-patch-fallback-code-page-hi.md.
@@ -2113,7 +2151,7 @@ public sealed class SolutionManager
                 // Different code pages may agree on ASCII bytes, but a patch needs one exact source text.
                 MarkProjectGraphStaleFromGraphFile();
                 throw new InvalidDataException(
-                    $"The loaded projects containing {fullPath} specify conflicting source encodings. Run load_workspace to refresh project settings.");
+                    $"The projects containing {fullPath} specify conflicting source encodings. Run load_workspace to inspect project settings.");
             }
 
             source ??= decoded;
@@ -2208,7 +2246,7 @@ public sealed class SolutionManager
             return new ExplicitFileWrite(fullPath, existingEncoding, PersistedPayload.FromText(text, existingEncoding), false);
         }
 
-        var readers = GetSourceCodePagesUnderLock(fullPath).Distinct().ToArray();
+        var readers = patch?.Source.EvaluatedCodePages ?? GetSourceCodePagesUnderLock(fullPath).Distinct().ToArray();
         var scriptEncoding = script ? SourceTextEncoding.GetShebangDirectiveEncoding(text, fullPath) : null;
         var declaration = scriptEncoding is null ? _sourceEncodingSettings.Resolve(fullPath) : null;
         var declaredEncoding = script && declaration?.Encoding.Preamble.IsEmpty == false ? null : declaration?.Encoding;
@@ -2217,7 +2255,7 @@ public sealed class SolutionManager
             ValidateDeclarationUnderLock(fullPath, declaration!, readers);
         }
 
-        var source = patch?.Source ?? ReadFullWriteSourceUnderLock(fullPath, originalBytes, bom, declaration);
+        var source = patch?.Source ?? ReadFullWriteSourceUnderLock(fullPath, originalBytes, bom, declaration, readers);
         var hasUntouchedNonAscii = patch?.HasUntouchedNonAscii
             ?? (source is not null && !Ascii.IsValid(source.Text));
         var encoding = scriptEncoding ?? declaredEncoding ?? SelectUndeclaredWriteEncoding(
@@ -2279,7 +2317,8 @@ public sealed class SolutionManager
         string fullPath,
         byte[]? bytes,
         Encoding? bom,
-        DeclaredSourceEncoding? declaration)
+        DeclaredSourceEncoding? declaration,
+        int?[] readers)
     {
         if (bytes is null)
         {
@@ -2301,7 +2340,7 @@ public sealed class SolutionManager
 
         try
         {
-            return DecodePatchFileUnderLock(fullPath, bytes);
+            return DecodePatchFileUnderLock(fullPath, bytes, declaration: null, readers);
         }
         catch (Exception ex) when (ex is IOException or InvalidDataException or ArgumentException or NotSupportedException)
         {
@@ -2351,7 +2390,7 @@ public sealed class SolutionManager
         if (!SourceTextEncoding.IsUnshiftedAscii(text) || !SourceTextEncoding.IsInvariantAscii(replacement))
         {
             PersistedPayload.FromText(text, SourceTextEncoding.BomFreeUtf8);
-            throw new InvalidDataException($"Cannot determine how the owning project reads the BOM-free source: {fullPath}. Load its project before patching.");
+            throw UnknownBomFreeSource(fullPath);
         }
     }
 
@@ -2360,7 +2399,7 @@ public sealed class SolutionManager
         if (readers.Any(page => page is > 0 && page != declaration.Encoding.CodePage))
         {
             throw new InvalidDataException(
-                $"The loaded project CodePage conflicts with '{declaration.Key}' in {declaration.Path} for {fullPath}. "
+                $"A project CodePage conflicts with '{declaration.Key}' in {declaration.Path} for {fullPath}. "
                 + "Align the encoding declaration and project CodePage, then call load_workspace.");
         }
     }
@@ -2396,9 +2435,9 @@ public sealed class SolutionManager
             // Without a CodePage the compiler picks the encoding from the bytes. Name that choice
             // rather than a project setting the user never wrote.
             throw new InvalidDataException(page == 0
-                ? $"The loaded project has no CodePage, so the compiler would auto-detect this BOM-free source as code page {known} and read different text: {fullPath}. "
+                ? $"A project has no CodePage, so the compiler would auto-detect this BOM-free source as code page {known} and read different text: {fullPath}. "
                     + "Set a project CodePage that matches the intended encoding and call load_workspace, or use a BOM-marked source."
-                : $"The loaded project's CodePage {known} cannot preserve the text of this BOM-free source: {fullPath}. "
+                : $"A project's CodePage {known} cannot preserve the text of this BOM-free source: {fullPath}. "
                     + "Align the project CodePage values and call load_workspace, or use a BOM-marked source.");
         }
     }
