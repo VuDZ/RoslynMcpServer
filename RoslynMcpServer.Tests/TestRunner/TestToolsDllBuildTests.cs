@@ -314,6 +314,10 @@ public sealed class TestToolsDllBuildTests
                     0));
             }
 
+            if (TestOutput == SamplePassingOutput)
+            {
+                VstestTrxTestFiles.WritePassingRun(arguments);
+            }
             return Task.FromResult(new DotNetCliRunner.RunResult(0, TestOutput, "test-meta", 0, 0));
         }
     }

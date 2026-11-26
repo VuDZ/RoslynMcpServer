@@ -10,6 +10,10 @@ public static class DotNetTestArguments
     public sealed record CliPlan(string? PreTestBuildArguments, string TestArguments)
     {
         public bool IncludesPreTestBuild => PreTestBuildArguments is not null;
+
+        internal string? TestAssemblyPath { get; init; }
+
+        internal string? Filter { get; init; }
     }
 
     public static string Build(
@@ -103,7 +107,7 @@ public static class DotNetTestArguments
                     noRestore,
                     configuration,
                     platform,
-                    testAssemblyPath));
+                    testAssemblyPath)) { TestAssemblyPath = testAssemblyPath, Filter = filter };
         }
 
         if (noBuild)
@@ -111,13 +115,13 @@ public static class DotNetTestArguments
             return new CliPlan(
                 PreTestBuildArguments: null,
                 TestArguments: Build(
-                    targetPath, filter, noBuild: true, noRestore, configuration, platform));
+                    targetPath, filter, noBuild: true, noRestore, configuration, platform)) { Filter = filter };
         }
 
         return new CliPlan(
             PreTestBuildArguments: BuildPreTestBuild(targetPath, noRestore, configuration, platform, buildArgs),
             TestArguments: Build(
-                targetPath, filter, noBuild: true, noRestore: true, configuration, platform));
+                targetPath, filter, noBuild: true, noRestore: true, configuration, platform)) { Filter = filter };
     }
 
     /// <summary>

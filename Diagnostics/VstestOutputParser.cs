@@ -7,7 +7,7 @@ namespace RoslynMcpServer.Diagnostics;
 /// <summary>Parses <c>dotnet test</c> console output (xUnit / VSTest / NUnit) and ignores MSBuild noise.</summary>
 public static class VstestOutputParser
 {
-    private const int MaxFailedTestDetails = 5;
+    private const int MaxFailedTestDetails = VstestTrxReader.MaxFailedTestDetails;
     private const int MaxStackTraceLinesPerFailure = 15;
     private const int PartialSuccessTailChars = 2048;
     private const string NoMatchPrefix = "No test matches the given testcase filter";
@@ -258,6 +258,11 @@ public static class VstestOutputParser
             return false;
         }
 
+        return IsSilentUnparsedFailure(combinedOutput);
+    }
+
+    internal static bool IsSilentUnparsedFailure(string combinedOutput)
+    {
         if (HasTestExecutionMarkers(combinedOutput))
         {
             return false;
@@ -270,6 +275,70 @@ public static class VstestOutputParser
 
         return combinedOutput.Contains("Restore target(s)", StringComparison.OrdinalIgnoreCase)
                || combinedOutput.Contains("Build FAILED", StringComparison.OrdinalIgnoreCase);
+    }
+
+    internal static string BuildTrxMarkdownReport(
+        VstestTrxResult result, int exitCode, string combinedOutput, string? filter, string? filterDescription,
+        TestOutputReportOptions outputOptions)
+    {
+        var sb = new StringBuilder();
+        if (result.NoFilterMatches)
+        {
+            AppendFilteredNoMatch(sb, filter, filterDescription, combinedOutput, confirmedByTrx: true);
+            return sb.ToString().TrimEnd();
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter))
+        {
+            sb.AppendLine("## Filtered test run");
+            sb.AppendLine();
+            sb.AppendLine($"**Filter:** `{EscapeMdBackticks(filter)}`");
+            if (!string.IsNullOrWhiteSpace(filterDescription))
+            {
+                sb.AppendLine($"**Match:** {filterDescription}");
+            }
+            sb.AppendLine();
+        }
+
+        var passed = result.Outcome == TestProcessOutcome.Passed;
+        sb.AppendLine(result.Outcome switch
+        {
+            TestProcessOutcome.Passed => filter is null ? "## All tests passed successfully!" : "## Filtered tests passed",
+            TestProcessOutcome.Failed when result.Summary is { Failed: > 0 } summary => $"❌ {summary.Failed} Tests Failed.",
+            TestProcessOutcome.Failed => "## Test run failed",
+            _ => "**Status:** partial",
+        });
+        sb.AppendLine();
+        if (!passed)
+        {
+            sb.AppendLine($"The process exited with code `{exitCode}`.");
+        }
+        if (result.Summary is { } totals)
+        {
+            var label = passed ? "Total" : "TRX reported total";
+            sb.AppendLine($"{label}: **{totals.Total}** · Passed: **{totals.Passed}** · Failed: **{totals.Failed}**"
+                + (totals.Skipped > 0 ? $" · Skipped: **{totals.Skipped}**" : string.Empty));
+        }
+        if (passed && filter is not null && result.PassedTestNames.Count > 0)
+        {
+            sb.AppendLine();
+            var preview = result.PassedTestNames.Select(name => $"`{EscapeMdBackticks(name)}`");
+            sb.AppendLine("Matched test methods (preview): " + string.Join(", ", preview));
+        }
+        if (!passed)
+        {
+            sb.AppendLine();
+            if (result.Issue is { } issue)
+            {
+                sb.AppendLine(TruncatedProcessLog.BuildTruncatedExcerpt(issue));
+            }
+            AppendFailureDetails(sb, result.Failures, result.FailureDetailsTruncated, result.BuildError, outputOptions);
+            if (result.Failures.Count == 0)
+            {
+                AppendRawTail(sb, combinedOutput);
+            }
+        }
+        return sb.ToString().TrimEnd();
     }
 
     public static string BuildMarkdownReport(
@@ -502,12 +571,14 @@ public static class VstestOutputParser
         StringBuilder sb,
         string? filter,
         string? filterDescription,
-        string combinedOutput)
+        string combinedOutput,
+        bool confirmedByTrx = false)
     {
         sb.AppendLine("## Filtered test run — no matching tests");
         sb.AppendLine();
-        sb.AppendLine(
-            $"No passed/failed test line matched the filter needle `{EscapeMdBackticks(ExtractFilterNeedle(filter) ?? filter!)}`.");
+        sb.AppendLine(confirmedByTrx
+            ? $"VSTest confirmed zero matches for `{EscapeMdBackticks(filter!)}` in every expected run."
+            : $"No passed/failed test line matched the filter needle `{EscapeMdBackticks(ExtractFilterNeedle(filter) ?? filter!)}`.");
         sb.AppendLine();
         sb.AppendLine(
             "**Agent signal:** zero tests matched the filter (build may still show `0 Error(s)`). "
@@ -1446,14 +1517,21 @@ public static class VstestOutputParser
     private static void AppendFailureDetails(
         StringBuilder sb,
         ParseResult parse,
+        TestOutputReportOptions outputOptions) =>
+        AppendFailureDetails(sb, parse.Failures, parse.FailureDetailsTruncated, parse.BuildError, outputOptions);
+
+    private static void AppendFailureDetails(
+        StringBuilder sb,
+        IReadOnlyList<FailedTestDetail> failures,
+        bool failuresTruncated,
+        string? buildError,
         TestOutputReportOptions outputOptions)
     {
-        if (parse.BuildError is { } buildError)
+        if (buildError is not null)
         {
             sb.AppendLine($"**MSBuild error:** {EscapeMdBackticks(TruncatedProcessLog.BuildTruncatedExcerpt(buildError))}");
         }
 
-        var failures = parse.Failures;
         if (failures.Count == 0)
         {
             return;
@@ -1505,7 +1583,7 @@ public static class VstestOutputParser
             sb.AppendLine();
         }
 
-        if (parse.FailureDetailsTruncated)
+        if (failuresTruncated)
         {
             sb.AppendLine($"[!] Showing first {MaxFailedTestDetails} failures only.");
         }
