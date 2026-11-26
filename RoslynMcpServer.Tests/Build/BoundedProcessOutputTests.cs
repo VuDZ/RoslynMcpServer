@@ -38,9 +38,9 @@ public sealed class BoundedProcessOutputTests
         Assert.EndsWith("stderr-tail Bearer private-tail", separated.StdErr, StringComparison.Ordinal);
         Assert.DoesNotContain("private-oversized-secret", separated.StdErr, StringComparison.Ordinal);
 
-        var parsed = VstestOutputParser.Parse(
-            combined.CombinedOutput, combined.ExitCode, combined.TestSummaryTruncated, combined.OutputTruncated);
-        Assert.Equal(new VstestOutputParser.TestSummary(6, 5, 1, 0), parsed.Summary);
+        // Summary lines stay in the clipped capture: without a TRX report they are the only VSTest record.
+        Assert.Contains("Passed!  - Failed: 0, Passed: 2, Skipped: 0, Total: 2", combined.CombinedOutput, StringComparison.Ordinal);
+        Assert.Contains("Failed!  - Failed: 1, Passed: 3, Skipped: 0, Total: 4", combined.CombinedOutput, StringComparison.Ordinal);
 
         var report = BuildOutputReport.Format(
             combined.CombinedOutput, combined.ExitCode, "fixture", includeBuildWarnings: true);
@@ -60,20 +60,15 @@ public sealed class BoundedProcessOutputTests
     }
 
     [Fact]
-    public async Task Exhausted_test_summary_budget_produces_a_partial_result()
+    public async Task Repeated_test_summaries_stay_within_the_capture_limit()
     {
         const string result = "Passed!  - Failed: 0, Passed: 1, Skipped: 0, Total: 1\n";
         using var reader = new StringReader(string.Concat(Enumerable.Repeat(result, 10_000)));
         var captured = await ReadOutputAsync(reader);
 
-        Assert.True(captured.SummaryTruncated);
+        Assert.True(captured.Truncated);
         Assert.Equal(result.Length * 10_000 - 1, captured.Length);
         Assert.InRange(captured.Text.Length, 1, BoundedProcessOutput.MaxStreamChars);
-        var parsed = VstestOutputParser.Parse(captured.Text, exitCode: 0, captured.SummaryTruncated, captured.Truncated);
-        var report = VstestOutputParser.BuildMarkdownReport(parsed, 0, captured.Text, "Some", null, true);
-        Assert.Null(parsed.Summary);
-        Assert.Contains("**Status:** partial", report, StringComparison.Ordinal);
-        Assert.Contains("test summary exceeded the capture limit", report, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -86,41 +81,6 @@ public sealed class BoundedProcessOutputTests
         Assert.Contains("Process output was truncated during capture.", report, StringComparison.Ordinal);
         var cursor = report.Split("reportCursor=`", StringSplitOptions.None)[1].Split('`')[0];
         Assert.Equal(processLog, ReadCursor(cursor));
-    }
-
-    [Fact]
-    public async Task Filtered_report_is_partial_when_capture_drops_the_matching_test_line()
-    {
-        var noise = string.Concat(Enumerable.Repeat(new string('x', 1023) + "\n", 150));
-        const string test = "  Passed Fixture.Tests.Match [1 ms]\n";
-        const string summary = "Passed! - Failed: 0, Passed: 1, Skipped: 0, Total: 1\n";
-        using var reader = new StringReader(noise + test + noise + summary);
-        var captured = await ReadOutputAsync(reader);
-        var parsed = VstestOutputParser.Parse(captured.Text, 0, captured.SummaryTruncated, captured.Truncated);
-
-        Assert.True(captured.Truncated);
-        Assert.Equal(1, parsed.Summary?.Total);
-        Assert.DoesNotContain("Fixture.Tests.Match", captured.Text, StringComparison.Ordinal);
-        var report = VstestOutputParser.BuildMarkdownReport(
-            parsed, 0, captured.Text, "FullyQualifiedName~Fixture.Tests.Match", null, requireFilterMatch: true);
-        Assert.Contains("**Status:** partial", report, StringComparison.Ordinal);
-        Assert.Contains("Retained test names do not verify the filter match", report, StringComparison.Ordinal);
-        Assert.DoesNotContain("no matching tests", report, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void Filtered_report_preserves_a_confirmed_zero_match_after_capture()
-    {
-        var log = TruncatedProcessLog.CaptureMarker + "\n"
-            + "No test matches the given testcase filter\n"
-            + "Passed! - Failed: 0, Passed: 0, Skipped: 0, Total: 0";
-        var parsed = VstestOutputParser.Parse(log, 0, summaryTruncated: false, outputTruncated: true);
-
-        var report = VstestOutputParser.BuildMarkdownReport(
-            parsed, 0, log, "FullyQualifiedName~Fixture.Tests.Missing", null, requireFilterMatch: true);
-
-        Assert.Contains("no matching tests", report, StringComparison.Ordinal);
-        Assert.DoesNotContain("**Status:** partial", report, StringComparison.Ordinal);
     }
 
     [Theory]

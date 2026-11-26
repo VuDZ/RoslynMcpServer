@@ -144,7 +144,6 @@ public sealed class VstestTrxReaderTests : IDisposable
         var run = new DotNetCliRunner.RunResult(exitCode, RetainedOutput, "", 900_000, 0)
         {
             OutputTruncated = true,
-            TestSummaryTruncated = true,
         };
         return VstestTrxReader.Read(_directory.FullName, assembly, filter, run, CancellationToken.None);
     }

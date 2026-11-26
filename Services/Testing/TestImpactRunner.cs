@@ -162,7 +162,8 @@ internal sealed class TestImpactRunner(
             return;
         }
 
-        project.TestArguments = DotNetTestArguments.Build(project.Path, narrowing is null ? project.Plan.Filter : stage?.Filter,
+        project.TestFilter = narrowing is null ? project.Plan.Filter : stage?.Filter;
+        project.TestArguments = DotNetTestArguments.Build(project.Path, project.TestFilter,
             noBuild: true, noRestore: true, configuration: request.Context.Configuration, platform: project.Platform);
     }
 
@@ -173,38 +174,24 @@ internal sealed class TestImpactRunner(
             return;
         }
 
-        DirectoryInfo? resultsDirectory = null;
         try
         {
-            resultsDirectory = Directory.CreateTempSubdirectory("RoslynMcpTestImpact-");
-            var resultsPath = resultsDirectory.FullName.Replace("\"", "\\\"", StringComparison.Ordinal);
-            var arguments = $"{project.TestArguments} --results-directory \"{resultsPath}\" --logger trx";
-            project.Execution = await executor.TestAsync(arguments, project.WorkingDirectory, timeout,
-                project.Execution.BuildRun, cancellationToken).ConfigureAwait(false);
+            // The same TRX reader as the public test tools decides the outcome and owns the results directory.
+            project.Execution = await executor.TestWithTrxAsync(project.TestArguments!, project.WorkingDirectory, timeout,
+                project.Execution.BuildRun, assemblyPath: null, project.TestFilter, cancellationToken).ConfigureAwait(false);
             if (project.Execution.TestRun is { Elapsed: { } elapsed, Cancelled: false, TimedOut: false })
             {
                 _lastTestTimes[project.Path] = elapsed;
             }
         }
+        catch (OperationCanceledException)
+        {
+            // The TRX executor lets cancellation propagate; the run summary reports it as an outcome, not a failure.
+            project.Execution = new(TestProcessOutcome.Cancelled, project.Execution.BuildRun);
+        }
         catch (Exception exception)
         {
             NoteFailure(project, exception);
-        }
-        finally
-        {
-            try
-            {
-                resultsDirectory?.Delete(recursive: true);
-            }
-            catch (DirectoryNotFoundException)
-            {
-                // A test can remove its own results directory.
-            }
-            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-            {
-                logger.LogWarning(exception, "Could not remove temporary Rapid TIA results at {ResultsDirectory}",
-                    resultsDirectory?.FullName);
-            }
         }
     }
 
@@ -230,6 +217,7 @@ internal sealed class TestImpactRunner(
         public DotNetTestResult Execution { get; set; } = new(TestProcessOutcome.NotRun);
         public TestNarrowingResult? Analysis { get; set; }
         public string? TestArguments { get; set; }
+        public string? TestFilter { get; set; }
     }
 
     private readonly ConcurrentDictionary<string, TimeSpan> _lastTestTimes = new(InputPathCanon.Comparer);

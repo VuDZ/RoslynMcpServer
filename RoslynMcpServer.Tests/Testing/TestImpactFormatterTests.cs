@@ -6,6 +6,7 @@ using RoslynMcpServer.Services.Build;
 using RoslynMcpServer.Services.Testing.Baseline.Models;
 using RoslynMcpServer.Services.Testing.Models;
 using RoslynMcpServer.Services.Testing.Narrowing.Models;
+using RoslynMcpServer.Tests.TestRunner;
 using Xunit;
 
 namespace RoslynMcpServer.Tests.Testing;
@@ -37,12 +38,12 @@ public sealed class TestImpactFormatterTests
         const string Failure = "Third project assertion failed.";
         var runs = new Dictionary<ProjectId, TestImpactProjectRun>
         {
-            [first.Id] = new(new DotNetTestResult(TestProcessOutcome.Passed, Parsed: new(new(3, 3, 0, 0), true, false, [], []))),
+            [first.Id] = new(new DotNetTestResult(TestProcessOutcome.Passed, Trx: Trx(TestProcessOutcome.Passed, new(3, 3, 0, 0)))),
             [second.Id] = new(new DotNetTestResult(TestProcessOutcome.TimedOut)),
             [third.Id] = new(new DotNetTestResult(
                 TestProcessOutcome.Failed,
                 TestRun: new(1, "Failed: 1, Passed: 10, Skipped: 0, Total: 11", "", 0, 0) { OutputTruncated = true },
-                Parsed: new(new(11, 10, 1, 0), true, false, [new("Third.Test", Failure, "")], []) { OutputTruncated = true })),
+                Trx: Trx(TestProcessOutcome.Failed, new(11, 10, 1, 0), new VstestOutputParser.FailedTestDetail("Third.Test", Failure, "")))),
         };
 
         var response = TestImpactFormatter.Format(third.Solution, estimate, TestNarrowingResult.Empty,
@@ -72,38 +73,46 @@ public sealed class TestImpactFormatterTests
     }
 
     [Theory]
-    [InlineData(0, "Passed! - Failed: 0, Passed: 1, Skipped: 0, Total: 1", "partial")]
-    [InlineData(1, "Passed! - Failed: 0, Passed: 1, Skipped: 0, Total: 1", "failed")]
-    [InlineData(0, "Failed! - Failed: 1, Passed: 0, Skipped: 0, Total: 1", "failed")]
-    [InlineData(0, "  Failed Fixture.Bad [1 ms]", "failed")]
-    public async Task Test_summary_capture_overflow_is_partial_unless_failure_is_confirmed(
-        int exitCode,
-        string output,
-        string expected)
+    [InlineData(1, 0, null, "passed", "Total: 1; Passed: 1; Failed: 0")]
+    [InlineData(0, 1, null, "failed", "Total: 1; Passed: 0; Failed: 1")]
+    [InlineData(0, 0, "FullyQualifiedName~Missing", "failed", "no matching tests")]
+    public async Task Rapid_TIA_reads_the_outcome_from_TRX_when_console_output_is_clipped(
+        int passed,
+        int failed,
+        string? filter,
+        string expected,
+        string reported)
     {
         using var workspace = new AdhocWorkspace();
         var project = workspace.AddProject("Tests", LanguageNames.CSharp);
-        var plans = new[] { new VstestProjectRunPlan(project.Id, Filter: null, []) };
+        var plans = new[] { new VstestProjectRunPlan(project.Id, Filter: filter, []) };
         var impact = new TestImpactResult([], new Dictionary<ProjectId, IReadOnlyList<ProjectExpansionReason>>(), [],
             RequiresReload: false, ProjectGraphStale: false);
         var estimate = new TestImpactEstimate([], [], impact, plans, [], [], []);
-        var runner = new DotNetTestExecutor((_, _, _, _, _) => Task.FromResult(
-            new DotNetCliRunner.RunResult(exitCode, output, "", output.Length, 0)
+        var projectPath = Path.Combine(Path.GetTempPath(), "RoslynMcpTiaTrx", "Tests.csproj");
+        var source = Path.ChangeExtension(projectPath, ".dll");
+        var runner = new DotNetTestExecutor((command, _, _, _, _) =>
+        {
+            var directory = VstestTrxTestFiles.ResultsDirectory(command);
+            VstestTrxTestFiles.WriteInventory(directory, [source], filter);
+            VstestTrxTestFiles.WriteReport(directory, source, passed, failed, noMatchFilter: filter);
+            // Clipped console text no longer decides the outcome.
+            return Task.FromResult(new DotNetCliRunner.RunResult(failed > 0 ? 1 : 0, "clipped", "", 900_000, 0)
             {
                 OutputTruncated = true,
-                TestSummaryTruncated = true,
-            }));
+            });
+        });
 
-        var result = await runner.TestAsync("test", ".", null, null, CancellationToken.None);
+        var result = await runner.TestWithTrxAsync(
+            $"test \"{projectPath}\" --no-build" + (filter is null ? string.Empty : $" --filter \"{filter}\""),
+            ".", null, null, assemblyPath: null, filter, CancellationToken.None);
         var runs = new Dictionary<ProjectId, TestImpactProjectRun> { [project.Id] = new(result) };
         var response = TestImpactFormatter.Format(project.Solution, estimate, TestNarrowingResult.Empty,
             TestClassStageLevel.Changed, includeDetails: false, runs, "Test execution: sequential.");
 
         Assert.Equal(expected, result.OutcomeText);
-        Assert.Null(result.Parsed?.Summary);
         Assert.Contains($"Outcome: {expected}", response, StringComparison.Ordinal);
-        Assert.Contains("test summary exceeded the capture limit", response, StringComparison.Ordinal);
-        Assert.Equal(expected == "partial", response.Contains("**Status:** partial", StringComparison.Ordinal));
+        Assert.Contains(reported, response, StringComparison.Ordinal);
     }
 
     [Theory]
@@ -202,4 +211,10 @@ public sealed class TestImpactFormatterTests
             Assert.DoesNotContain(whole.Message, response, StringComparison.Ordinal);
         }
     }
+
+    private static VstestTrxResult Trx(
+        TestProcessOutcome outcome,
+        VstestOutputParser.TestSummary summary,
+        params VstestOutputParser.FailedTestDetail[] failures) =>
+        new(outcome, summary, failures, [], false, false, null, null);
 }

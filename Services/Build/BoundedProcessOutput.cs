@@ -84,13 +84,11 @@ internal sealed class BoundedProcessOutput
             return (stdout, retained.Render(stderr.Length, throughLine));
         }
 
-        var summaryTruncated = stderr.SummaryTruncated;
-        var remainder = OmitLeadingLines(stderr.Text, throughLine, ref summaryTruncated);
+        var remainder = OmitLeadingLines(stderr.Text, throughLine);
         return (stdout, stderr with
         {
             Text = string.Concat(TruncatedProcessLog.CaptureMarker, "\n", remainder).TrimEnd(),
             Truncated = true,
-            SummaryTruncated = summaryTruncated,
         });
     }
 
@@ -138,14 +136,13 @@ internal sealed class BoundedProcessOutput
         return leading;
     }
 
-    private static string OmitLeadingLines(string text, long throughLine, ref bool summaryTruncated)
+    private static string OmitLeadingLines(string text, long throughLine)
     {
         var remaining = text.AsSpan();
         while (throughLine >= 0 && !remaining.IsEmpty)
         {
             var newline = remaining.IndexOf('\n');
             var count = newline < 0 ? remaining.Length : newline + 1;
-            summaryTruncated |= VstestOutputParser.IsSummaryCaptureLine(remaining[..count].Trim());
             remaining = remaining[count..];
             throughLine--;
         }
@@ -212,12 +209,8 @@ internal sealed class BoundedProcessOutput
     {
         var offset = _lineNumber++;
         var sensitiveContinuation = _secretContext.CompleteLine();
-        if (_lineTooLong || sensitiveContinuation)
-        {
-            // Truncated records and multiline secrets may be recognizable only in the omitted context.
-            _summaryTruncated |= VstestOutputParser.IsSummaryCaptureLine(_line.ToString().AsSpan());
-        }
-        else if (_line.Length > 0)
+        // Truncated records and multiline secrets may be recognizable only in the omitted context.
+        if (!_lineTooLong && !sensitiveContinuation && _line.Length > 0)
         {
             Retain(new Line(offset, _line.ToString()));
         }
@@ -258,7 +251,8 @@ internal sealed class BoundedProcessOutput
         var text = line.Text.AsSpan().Trim();
         if (VstestOutputParser.IsSummaryCaptureLine(text))
         {
-            _summaryTruncated |= !TryRetainPriorityLine(line, SummaryChars, ref _summaryLength);
+            // Without a TRX report these lines are the only record of the VSTest summary or abort.
+            TryRetainPriorityLine(line, SummaryChars, ref _summaryLength);
         }
         else
         {
@@ -302,11 +296,10 @@ internal sealed class BoundedProcessOutput
 
     private Capture Render(int length, long omitThroughLine)
     {
-        var summaryTruncated = _summaryTruncated;
         var head = _head.ToString();
         if (omitThroughLine >= 0)
         {
-            head = OmitLeadingLines(head, omitThroughLine, ref summaryTruncated);
+            head = OmitLeadingLines(head, omitThroughLine);
         }
 
         var output = new StringBuilder(head);
@@ -327,7 +320,7 @@ internal sealed class BoundedProcessOutput
             AppendRetainedLine(line);
         }
 
-        return new Capture(output.ToString().TrimEnd(), length, Truncated: true, SummaryTruncated: summaryTruncated)
+        return new Capture(output.ToString().TrimEnd(), length, Truncated: true)
         {
             Retained = this,
         };
@@ -338,18 +331,13 @@ internal sealed class BoundedProcessOutput
             {
                 output.Append(line.Text);
             }
-            else
-            {
-                summaryTruncated |= VstestOutputParser.IsSummaryCaptureLine(line.Text.AsSpan().Trim());
-            }
         }
     }
 
     internal readonly record struct Capture(
         string Text,
         int Length,
-        bool Truncated = false,
-        bool SummaryTruncated = false)
+        bool Truncated = false)
     {
         internal BoundedProcessOutput? Retained { get; init; }
     }
@@ -370,7 +358,6 @@ internal sealed class BoundedProcessOutput
     private long _lineNumber;
     private long _nextHeadLine;
     private bool _lineTooLong;
-    private bool _summaryTruncated;
     private int _tailLength;
     private int _summaryLength;
     private int _errorLength;

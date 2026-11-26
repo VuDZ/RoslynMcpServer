@@ -13,7 +13,9 @@ internal static class VstestTrxTestFiles
 {
     internal static string ResultsDirectory(string command) => ReadArgument(command, "--results-directory ")!;
 
-    internal static void WritePassingRun(string command)
+    internal static void WritePassingRun(string command) => WriteRun(command, passed: 1, failed: 0);
+
+    internal static void WriteRun(string command, int passed, int failed)
     {
         var directory = ResultsDirectory(command);
         var target = ReadArgument(command, "test ")!;
@@ -22,7 +24,7 @@ internal static class VstestTrxTestFiles
         {
             WriteInventory(directory, [source], ReadArgument(command, "--filter "));
         }
-        WriteReport(directory, source, passed: 1);
+        WriteReport(directory, source, passed, failed);
     }
 
     internal static void WriteInventory(string directory, string[] sources, string? filter, string? buildError = null)
