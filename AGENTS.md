@@ -12,6 +12,12 @@ C# style for this repository is in [docs/code-style.md](docs/code-style.md), rel
 - Text that lives in code is English: comments, XML docs, log and diagnostic messages, exception messages, test failure text, and asserted fragments. Localized external output kept as test data stays verbatim; project documentation keeps its current language.
 - Exception: code under `forks/` is a copy of an upstream project. It follows that project's style and its `.editorconfig` (for `forks/roslyn-buildhost`, Roslyn's), not `docs/code-style.md`, so a change can go upstream as a pull request with a minimal diff. Keep upstream files verbatim except for deliberate changes, and match the surrounding upstream code in naming, layout and comments.
 
+# Roslyn MCP and field validation
+
+- Use Roslyn MCP first whenever it supports the work, including workspace inspection, code navigation, file edits, builds, and tests.
+- Exercise public MCP tools on representative repository inputs as part of validation. When validating a change to the server, confirm the running server version or commit and call the affected tools through MCP on a build that contains the change.
+- If an applicable MCP tool is unavailable, fails, returns incomplete results, or cannot run with a required option or environment, tell the user which tool was affected and include the error or limitation before falling back to the shell or another runner. Include both the MCP outcome and the fallback result in the final report, even when the fallback succeeds.
+
 # Test selection and final validation
 
 - Use focused tests during implementation for quick feedback. Tests named by a plan or epoch are a minimum, not the complete validation scope.
@@ -19,7 +25,7 @@ C# style for this repository is in [docs/code-style.md](docs/code-style.md), rel
 - Before final acceptance or committing code or test changes, build the solution and run the complete main CI suite (`Category!=AnalyzerLifecycle`; on Linux also `&Category!=RequiresWindows`, as in the workflow) in the `RoslynMcpServer.Tests` project against the final code, in Release configuration as specified in `.github/workflows/test-suite.yml`. After a fix, rerun affected tests during development and the complete main suite before acceptance or commit.
 - Comments are not production code. A change that only edits comments (`//` and XML doc comments in C#, comments in project and build files) needs neither the SourceStructure run nor the main suite, and it does not raise the version or need a release. Any change to code, attributes, or project and build settings, even in the same commit, brings back the full rules.
 - Run `AnalyzerLifecycle` additionally when changes can affect analyzer/shadow-copy lifecycle, the workspace load/prepare/publication paths used by that lifecycle, the lifecycle host, or its test/build configuration. Enable `ROSLYN_MCP_ANALYZER_LIFECYCLE=1` for that run. Unrelated changes do not require this specialized suite.
-- With Roslyn MCP available, prefer `run_dotnet_build`, `run_specific_test`, and `run_dotnet_test`. If a specialized tool cannot express the required integration environment, use an available runner that can. With another harness, use its supported build/test runner for the same checks. A zero-test run is not a pass; report failures, skips, timeouts, and unavailable integration environments instead of claiming full validation.
+- For build and test checks, use the applicable MCP tool among `run_dotnet_build`, `run_specific_test`, `run_test_by_filter`, and `run_dotnet_test`. A zero-test run is not a pass. Report failures, skips, timeouts, and unavailable integration environments.
 - In subagent workflows, the coordinator owns final build/test validation. Independent review and specification acceptance do not replace running the tests.
 - Preserve exact inventories of known structural-analysis limits. When production changes legitimately add a limit, explain it and update the expected identity and kind; do not merely loosen the count or ignore unexpected limits.
 
