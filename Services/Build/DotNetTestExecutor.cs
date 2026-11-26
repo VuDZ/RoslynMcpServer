@@ -46,7 +46,8 @@ internal sealed class DotNetTestExecutor
             }
 
             cancellationToken.ThrowIfCancellationRequested();
-            return await TestAsync(plan.TestArguments, workingDirectory, timeout, buildRun, cancellationToken)
+            return await TestWithTrxAsync(plan.TestArguments, workingDirectory, timeout, buildRun,
+                plan.TestAssemblyPath, plan.Filter, cancellationToken)
                 .ConfigureAwait(false);
         }
         catch (OperationCanceledException)
@@ -79,6 +80,65 @@ internal sealed class DotNetTestExecutor
         }
     }
 
+    internal async Task<DotNetTestResult> TestWithTrxAsync(
+        string arguments,
+        string? workingDirectory,
+        TimeSpan? timeout,
+        DotNetCliRunner.RunResult? buildRun,
+        string? assemblyPath,
+        string? filter,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var directory = Directory.CreateTempSubdirectory("RoslynMcpVstest-");
+        try
+        {
+            arguments += $" --logger trx --results-directory \"{QuoteContents(directory.FullName)}\"";
+            if (assemblyPath is null)
+            {
+                var binlogPath = Path.Combine(directory.FullName, VstestTrxReader.BinlogName);
+                arguments += $" -bl:\"{QuoteContents(binlogPath)};ProjectImports=None\"";
+            }
+
+            var run = await _runner(arguments, workingDirectory, timeout, buildRun?.ExitCode, cancellationToken)
+                .ConfigureAwait(false);
+            if (run.Cancelled || run.TimedOut)
+            {
+                return new(run.Cancelled ? TestProcessOutcome.Cancelled : TestProcessOutcome.TimedOut, buildRun, run);
+            }
+
+            VstestTrxResult results;
+            try
+            {
+                results = VstestTrxReader.Read(directory.FullName, assemblyPath,
+                    string.IsNullOrWhiteSpace(filter) ? null : filter, run, cancellationToken);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or OverflowException)
+            {
+                var outcome = run.ExitCode == 0 ? TestProcessOutcome.Partial : TestProcessOutcome.Failed;
+                results = new(outcome, null, [], [], false, false, "The VSTest results could not be read.", null);
+            }
+
+            return new(results.Outcome, buildRun, run, Trx: results);
+        }
+        finally
+        {
+            try
+            {
+                directory.Delete(recursive: true);
+            }
+            catch (DirectoryNotFoundException)
+            {
+                // The test process may have removed its results directory.
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                Trace.TraceWarning("Could not remove VSTest results directory '{0}': {1}", directory.FullName, ex.Message);
+            }
+        }
+    }
+
+    // Rapid TIA still uses the console report. Its TRX migration is independent of the public test tools.
     internal async Task<DotNetTestResult> TestAsync(
         string arguments,
         string workingDirectory,
@@ -110,6 +170,8 @@ internal sealed class DotNetTestExecutor
             return new(TestProcessOutcome.Cancelled, buildRun);
         }
     }
+
+    private static string QuoteContents(string path) => path.Replace("\"", "\\\"", StringComparison.Ordinal);
 
     private readonly TestDllEnsure.Runner _runner;
 }

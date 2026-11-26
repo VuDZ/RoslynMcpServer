@@ -6,6 +6,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
 using RoslynMcpServer.Services;
 using RoslynMcpServer.Services.Workspace;
+using RoslynMcpServer.Services.Workspace.Models;
 using RoslynMcpServer.Tests.Support;
 using RoslynMcpServer.Tests.Testing;
 using Xunit;
@@ -49,7 +50,7 @@ public sealed class WorkspaceDocumentPersistenceTests(ITestOutputHelper output) 
             var after = before.WithDocumentText(editedId, SourceText.From("class Edited {}"));
             var saved = new List<string>();
             var timestamp = Stopwatch.GetTimestamp();
-            await persist(before, after, saved, [], singleFilePath: null, verifySourceReaders: false, CancellationToken.None);
+            await persist(before, after, saved, [], explicitWrite: null, CancellationToken.None);
             var elapsed = Stopwatch.GetElapsedTime(timestamp);
             Assert.Equal(editedPath, Assert.Single(saved));
             Assert.Equal(0, reads.Loads);
@@ -541,8 +542,7 @@ public sealed class WorkspaceDocumentPersistenceTests(ITestOutputHelper output) 
         Solution after,
         List<string> saved,
         List<(string Path, string Text, Encoding WriteEncoding)> savedTexts,
-        string? singleFilePath,
-        bool verifySourceReaders,
+        ExplicitFileWrite? explicitWrite,
         CancellationToken cancellationToken);
 
     private sealed class CountingTextLoader(string path, ReadCounter reads) : TextLoader

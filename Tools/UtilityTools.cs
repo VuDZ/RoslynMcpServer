@@ -1028,7 +1028,7 @@ public sealed class UtilityTools
     }
 
     [McpServerTool(Name = "apply_patch", Title = "ApplyPatch")]
-    [Description("Replaces oldString with newString in a file. Writes the file. Default replaceAll=false.")]
+    [Description("Replaces oldString with newString. Default replaceAll=false. Honors C# source encoding settings.")]
     public async Task<string> ApplyPatch(
         [Description("Path to the file to patch.")] string filePath,
         [Description("Source fragment to find.")] string oldString,
@@ -1621,6 +1621,7 @@ public sealed class UtilityTools
         string? updatedRaw;
         var usedFlexible = false;
         var replacementCount = 0;
+        bool hasUntouchedNonAscii;
         try
         {
             updatedRaw = PatchMatchHelper.ApplyPatchWithFlexibleFallback(
@@ -1631,6 +1632,7 @@ public sealed class UtilityTools
                 out usedFlexible,
                 out var matched,
                 out replacementCount,
+                out hasUntouchedNonAscii,
                 cancellationToken);
             if (!matched)
             {
@@ -1669,7 +1671,13 @@ public sealed class UtilityTools
             return "No changes were applied.";
         }
 
-        var write = await _solutionManager.TryApplyPatchTextAsync(fullPath, sourceRaw, updatedRaw!, fragments, cancellationToken);
+        var write = await _solutionManager.TryApplyPatchTextAsync(
+            fullPath,
+            sourceRaw,
+            updatedRaw!,
+            hasUntouchedNonAscii,
+            fragments,
+            cancellationToken);
         if (write is null)
         {
             return null;
@@ -1692,7 +1700,7 @@ public sealed class UtilityTools
             writeMs,
             started.ElapsedMilliseconds);
         var note = usedFlexible ? " (whitespace-tolerant match)" : string.Empty;
-        return $"Patch applied successfully to `{fullPath}` ({replacementCount} replacement(s)).{note}";
+        return $"Patch applied successfully to `{fullPath}` ({replacementCount} replacement(s)).{note}{write.EncodingNotice}";
     }
 
     private static async Task<Solution> CopyDocumentTextChangesAsync(

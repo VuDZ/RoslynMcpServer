@@ -162,7 +162,7 @@ public sealed class TestTools
 
     [McpServerTool(Name = "run_dotnet_test", Title = "Run dotnet test")]
     [Description(
-        "Runs dotnet test on a project, solution, or test directory. Executes a process. "
+        "Runs dotnet test on a project, solution, or test directory. Reports TRX totals. "
         + "Prefer run_specific_test for one class or method. Omit configuration/platform to inherit load_workspace. Pre-test `dotnet build` also inherits load_workspace `buildArgs`."
         + DllRouteSentence)]
     public Task<string> RunDotNetTest(
@@ -217,7 +217,7 @@ public sealed class TestTools
 
     [McpServerTool(Name = "run_specific_test", Title = "Run a filtered dotnet test")]
     [Description(
-        "Runs dotnet test filtered to one class and/or method. Executes a process. "
+        "Runs dotnet test filtered to one class and/or method. Reports TRX totals. "
         + "Builds a VSTest-safe filter internally; do not use execute_dotnet_command."
         + DllRouteSentence)]
     public async Task<string> RunSpecificTest(
@@ -330,7 +330,7 @@ public sealed class TestTools
 
     [McpServerTool(Name = "run_test_by_filter", Title = "Run tests by VSTest filter")]
     [Description(
-        "Runs dotnet test with a raw VSTest --filter. Executes a process. "
+        "Runs dotnet test with a raw VSTest --filter. Reports TRX totals. "
         + "Prefer run_specific_test for one class or method. Omit configuration/platform to inherit load_workspace."
         + DllRouteSentence)]
     public Task<string> RunTestByFilter(
@@ -757,19 +757,17 @@ public sealed class TestTools
                 return ToolTelemetry.TraceFailureAndReturn(toolName, timedOutText);
             }
 
-            var parse = execution.Parsed!;
-            var markdown = VstestOutputParser.BuildMarkdownReport(
-                parse,
+            var results = execution.Trx!;
+            var succeeded = results.Outcome == TestProcessOutcome.Passed;
+            var markdown = VstestOutputParser.BuildTrxMarkdownReport(
+                results,
                 run.ExitCode,
                 run.CombinedOutput,
                 filter,
                 filterDescription,
-                requireFilterMatch,
-                outputOptions,
-                out var succeeded);
+                outputOptions);
 
-            if (requireFilterMatch
-                && markdown.Contains("## Filtered test run — no matching tests", StringComparison.Ordinal))
+            if (requireFilterMatch && results.NoFilterMatches)
             {
                 var agentHint = WorkspaceLoadGuidance.FormatNoMatchingTestsAgentHint(
                     _solutionManager.GetLoadedWorkspacePath(),
@@ -779,7 +777,8 @@ public sealed class TestTools
             }
 
             string finalMarkdown;
-            if (run.ExitCode != 0 && VstestOutputParser.IsSilentUnparsedFailure(parse, run.CombinedOutput))
+            if (run.ExitCode != 0 && results.Summary is null && results.BuildError is null
+                && VstestOutputParser.IsSilentUnparsedFailure(run.CombinedOutput))
             {
                 var sb = new StringBuilder();
                 sb.AppendLine(markdown);
@@ -798,8 +797,7 @@ public sealed class TestTools
             else
             {
                 finalMarkdown = markdown;
-                if (!IsSuccessfulTestRun(parse, run.ExitCode)
-                || DiagnosticReportAttachment.IsPartialOrUnparsedTestStatus(markdown))
+                if (!succeeded)
                 {
                     finalMarkdown += Environment.NewLine + Environment.NewLine + "### Execution context"
                         + Environment.NewLine + run.RunMetadata + Environment.NewLine + extraMeta;
@@ -1021,7 +1019,7 @@ public sealed class TestTools
         }
 
         var run = outcome.TestRun;
-        if (run is null)
+        if (run is null || outcome.Cancelled)
         {
             return FormatDllStopped(outcome, extraMeta, includeBuildWarnings);
         }
@@ -1046,20 +1044,16 @@ public sealed class TestTools
         }
 
         var outputOptions = new TestOutputReportOptions(includeFullOutput, maxOutputChars);
-        var parse = VstestOutputParser.Parse(
-            run.CombinedOutput, run.ExitCode, run.TestSummaryTruncated, run.OutputTruncated);
-        var markdown = VstestOutputParser.BuildMarkdownReport(
-            parse,
+        var results = outcome.Trx!;
+        succeeded = results.Outcome == TestProcessOutcome.Passed;
+        var markdown = VstestOutputParser.BuildTrxMarkdownReport(
+            results,
             run.ExitCode,
             run.CombinedOutput,
             filter,
             filterDescription,
-            requireFilterMatch,
-            outputOptions,
-            out succeeded);
-        succeeded = succeeded && !outcome.Cancelled && !run.Cancelled;
-        if (requireFilterMatch
-            && markdown.Contains("## Filtered test run — no matching tests", StringComparison.Ordinal))
+            outputOptions);
+        if (requireFilterMatch && results.NoFilterMatches)
         {
             markdown = markdown
                 + Environment.NewLine
@@ -1071,7 +1065,8 @@ public sealed class TestTools
         }
 
         string finalMarkdown;
-        if (run.ExitCode != 0 && VstestOutputParser.IsSilentUnparsedFailure(parse, run.CombinedOutput))
+        if (run.ExitCode != 0 && results.Summary is null && results.BuildError is null
+            && VstestOutputParser.IsSilentUnparsedFailure(run.CombinedOutput))
         {
             var silent = new StringBuilder();
             silent.AppendLine(markdown);
@@ -1090,8 +1085,7 @@ public sealed class TestTools
         else
         {
             finalMarkdown = markdown;
-            if (!IsSuccessfulTestRun(parse, run.ExitCode)
-                || DiagnosticReportAttachment.IsPartialOrUnparsedTestStatus(markdown))
+            if (!succeeded)
             {
                 finalMarkdown += Environment.NewLine + Environment.NewLine + "### Execution context"
                     + Environment.NewLine + run.RunMetadata + Environment.NewLine + extraMeta;
@@ -1183,9 +1177,6 @@ public sealed class TestTools
         text += Environment.NewLine + new TestOutputReportOptions(includeFullOutput, maxOutputChars).FormatMetadata();
         return text;
     }
-
-    private static bool IsSuccessfulTestRun(VstestOutputParser.ParseResult parsed, int exitCode) =>
-        exitCode == 0 && parsed.Summary is { Total: > 0, Failed: 0 };
 
     private static string AppendBuildWarnings(string report, string buildOutput)
     {

@@ -213,6 +213,14 @@ Policy summary (full text in the sample):
 - IDE: host edit/write; headless: MCP `apply_patch` / AST tools
 - Secrets: never paste PAT/passwords; app README must document run target / sample args
 
+### C# source encoding
+
+For `apply_patch` and `update_file_content`, set `charset` in `.editorconfig` to declare the encoding per file or directory. The supported values are `utf-8`, `utf-8-bom`, `latin1`, `utf-16le`, and `utf-16be`. An existing BOM in ordinary C# source is preserved.
+
+If `.editorconfig` supplies no `charset`, `RoslynMcp.jsonc` can set `sourceEncoding` to `"utf-8"`, `"utf-8-bom"`, an encoding name such as `"windows-1251"`, or a code page number such as `1251`. Code pages are written without BOM, except for the explicit `utf-8-bom` setting. Cwd settings override the per-user directory and executable settings. Changes take effect on the next write. To update the `CodePage` read from a project, call `load_workspace`.
+
+Set the declaration to the encoding used by both your editor and ordinary builds. The server verifies known loaded readers against the outgoing BOM-free bytes. C# scripts with `#!` use no BOM and can override the declaration with a literal `#:property CodePage=N`.
+
 ### Direct project loads and builds
 
 In `RoslynMcp.jsonc`, `require-solution` defaults to `false`. A direct `.csproj` workspace load or `run_dotnet_build` then ends with a recommendation to use the containing solution, even if the operation fails. Set the key to `true` to require a `.sln` or `.slnx` for these operations, including a workspace loaded from `workspace-path`. To build one project through a solution, pass its name as `projectName`.

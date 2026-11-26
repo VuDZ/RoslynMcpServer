@@ -7,7 +7,8 @@ internal sealed record DotNetTestResult(
     DotNetCliRunner.RunResult? BuildRun = null,
     DotNetCliRunner.RunResult? TestRun = null,
     VstestOutputParser.ParseResult? Parsed = null,
-    string? Error = null)
+    string? Error = null,
+    VstestTrxResult? Trx = null)
 {
     internal string OutcomeText => Outcome switch
     {

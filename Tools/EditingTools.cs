@@ -18,7 +18,7 @@ public sealed class EditingTools
     }
 
     [McpServerTool(Name = "update_file_content", Title = "Write / overwrite file")]
-    [Description("Creates or overwrites a file, creating missing parent directories. Writes files.")]
+    [Description("Writes a complete file, creating directories. Honors C# source encoding settings.")]
     public async Task<string> WriteFile(
         [Description("Target file path, new or existing.")]
         string filePath,
@@ -51,7 +51,7 @@ public sealed class EditingTools
                     write.FormatAdapterMessage($"Failed to write `{fullPath}`."));
             }
 
-            var success = $"Successfully wrote `{fullPath}` ({text.Length} characters).";
+            var success = $"Successfully wrote `{fullPath}` ({text.Length} characters).{write.EncodingNotice}";
             return ToolTelemetry.TraceAndReturn(nameof(WriteFile), !write.WorkspaceApplied && WorkspaceDiskPathFilter.IsCSharpSource(fullPath)
                 ? _solutionManager.WithDiskSyncNotes(success)
                 : success);

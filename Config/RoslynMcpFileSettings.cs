@@ -11,6 +11,7 @@ namespace RoslynMcpServer.Config;
 public sealed class RoslynMcpFileSettings
 {
     public const string FileName = "RoslynMcp.jsonc";
+    internal const string SourceEncodingKey = "sourceEncoding";
 
     private static readonly HashSet<string> KnownKeys = new(StringComparer.Ordinal)
     {
@@ -26,6 +27,7 @@ public sealed class RoslynMcpFileSettings
         "buildhost-optimizations",
         "buildhost-evaluate-ahead-workers",
         "ripgrep-path",
+        SourceEncodingKey,
         "plugins",
     };
 

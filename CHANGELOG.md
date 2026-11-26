@@ -2,6 +2,14 @@
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### v1.7.0
+
+- `update_file_content` and `apply_patch` no longer evaluate MSBuild on every write. Version 1.6.5 rejected every write to a C# source without a BOM; such writes now finish in milliseconds.
+- A C# source without a BOM keeps its encoding when it already contains non-ASCII text, as an editor does. The first non-ASCII text in an ASCII-only file adds a UTF-8 BOM unless the encoding is declared. Writes are rejected before any change when the final bytes would switch UTF-8 auto-detection or when the projects that compile the file would read them differently.
+- Declare the source encoding with `charset` in `.editorconfig` or the new `sourceEncoding` key in `RoslynMcp.jsonc`. A changed declaration applies on the next write without `load_workspace`. File-based C# scripts honor `#:property CodePage`.
+- `run_dotnet_test`, `run_specific_test` and `run_test_by_filter` read totals and failures from VSTest TRX reports and match them with the test launches recorded in a temporary MSBuild binary log. Console output is used only for diagnostics. A filter that matches tests in only some projects of a solution now reports the matched results. Solution runs take slightly longer: about 5% in a measured solution with 8 test projects.
+- See [root causes of the review fix series](docs/fix-series-root-causes/README.md) for decisions and acceptance details.
+
 ### v1.6.5
 
 - Source edits preserve encoding and line endings outside the changed text, check ordinary build readers for BOM-free C# sources, and reject atomic replacement of files with multiple hard links.

@@ -1,3 +1,5 @@
+using RoslynMcpServer.Diagnostics;
+
 namespace RoslynMcpServer.Services.Build;
 
 /// <summary>
@@ -23,6 +25,8 @@ internal sealed class TestDllEnsureResult
     public DotNetCliRunner.RunResult? BuildRun { get; init; }
 
     public DotNetCliRunner.RunResult? TestRun { get; init; }
+
+    internal VstestTrxResult? Trx { get; init; }
 
     public bool Cancelled { get; init; }
 

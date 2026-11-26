@@ -153,7 +153,7 @@ internal sealed class TestDllEnsure
         // content hash, so EvaluateReuse does not report current and this branch does not run.
         if (reason == ReasonConfirmedReuse && request.Policy != TestBuildPolicy.Always)
         {
-            return await RunTestsAsync(request, solutionTarget, reason, started, previousExit: null, cancellationToken)
+            return await RunTestsAsync(request, solutionTarget, reason, started, cancellationToken)
                 .ConfigureAwait(false);
         }
 
@@ -192,7 +192,6 @@ internal sealed class TestDllEnsure
                     solutionTarget,
                     reason,
                     started,
-                    first.BuildRun?.ExitCode,
                     cancellationToken,
                     first.BuildArguments,
                     first.BuildRun)
@@ -227,7 +226,6 @@ internal sealed class TestDllEnsure
                 solutionTarget,
                 reason,
                 started,
-                second.BuildRun?.ExitCode,
                 cancellationToken,
                 second.BuildArguments,
                 second.BuildRun)
@@ -459,7 +457,6 @@ internal sealed class TestDllEnsure
         string solutionTarget,
         string reason,
         Stopwatch started,
-        int? previousExit,
         CancellationToken cancellationToken,
         string? buildArguments = null,
         DotNetCliRunner.RunResult? buildRun = null)
@@ -491,13 +488,11 @@ internal sealed class TestDllEnsure
 
         try
         {
-            var testRun = await _run(
-                    testArguments,
-                    request.TestWorkingDirectory,
-                    testTimeout,
-                    previousExit,
-                    cancellationToken)
+            var execution = await new DotNetTestExecutor(_run).TestWithTrxAsync(
+                    testArguments, request.TestWorkingDirectory, testTimeout, buildRun,
+                    request.AssemblyPath, request.Filter, cancellationToken)
                 .ConfigureAwait(false);
+            var testRun = execution.TestRun!;
             return new TestDllEnsureResult
             {
                 TestsStarted = true,
@@ -508,6 +503,7 @@ internal sealed class TestDllEnsure
                 TestArguments = testArguments,
                 BuildRun = buildRun,
                 TestRun = testRun,
+                Trx = execution.Trx,
                 TimedOut = testRun.TimedOut,
                 Cancelled = testRun.Cancelled,
                 FailedOperation = testRun.TimedOut || testRun.Cancelled,

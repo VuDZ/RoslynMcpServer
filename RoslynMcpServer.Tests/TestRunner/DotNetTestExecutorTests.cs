@@ -16,10 +16,29 @@ public sealed class DotNetTestExecutorTests
     public async Task Execution_returns_an_unambiguous_outcome(string scenario, object expected, int calls)
     {
         var arguments = new List<string>();
+        var source = Path.Combine(Path.GetTempPath(), "Sample.dll");
+        const string Filter = "FullyQualifiedName~Sample";
+        string? resultsDirectory = null;
         var executor = new DotNetTestExecutor((command, _, _, _, _) =>
         {
             arguments.Add(command);
             var build = command == "build";
+            if (!build)
+            {
+                resultsDirectory = VstestTrxTestFiles.ResultsDirectory(command);
+                switch (scenario)
+                {
+                    case "passed":
+                        VstestTrxTestFiles.WriteReport(resultsDirectory, source, passed: 3);
+                        break;
+                    case "failed":
+                        VstestTrxTestFiles.WriteReport(resultsDirectory, source, passed: 2, failed: 1);
+                        break;
+                    case "no matches":
+                        VstestTrxTestFiles.WriteReport(resultsDirectory, source, noMatchFilter: Filter);
+                        break;
+                }
+            }
             if (scenario == (build ? "build cancel" : "test cancel"))
             {
                 throw new OperationCanceledException();
@@ -37,14 +56,19 @@ public sealed class DotNetTestExecutorTests
                 failed || timeout ? 1 : 0, output, "metadata", output.Length, 0, TimedOut: timeout, ProcessKilled: timeout));
         });
 
-        var result = await executor.ExecuteAsync(new("build", "test"), ".", TimeSpan.FromSeconds(5),
+        var plan = new DotNetTestArguments.CliPlan("build", "test") { TestAssemblyPath = source, Filter = Filter };
+        var result = await executor.ExecuteAsync(plan, ".", TimeSpan.FromSeconds(5),
             timeoutPerProcess: true, CancellationToken.None);
 
         Assert.Equal(expected, result.Outcome);
         Assert.Equal(calls, arguments.Count);
-        if (scenario is "failed" or "passed" or "test timeout")
+        if (scenario is "failed" or "passed")
         {
-            Assert.Equal(3, result.Parsed!.Summary!.Total);
+            Assert.Equal(3, result.Trx!.Summary!.Total);
+        }
+        if (resultsDirectory is not null)
+        {
+            Assert.False(Directory.Exists(resultsDirectory));
         }
         if (scenario == "build failed")
         {
