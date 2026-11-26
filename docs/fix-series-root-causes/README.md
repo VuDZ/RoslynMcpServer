@@ -38,7 +38,7 @@ task-01 и task-02 независимы, их можно вести паралл
 
 ## Открытые замечания MCP
 
-M-3 принята 2026-11-26. [Проверки M-3](evidence/mcp-followups-validation.md#m-3). F-4 принята 2026-11-26. [Проверки F-4](evidence/mcp-followups-validation.md#f-4). M-2 принята 2026-11-26. [Проверки M-2](evidence/mcp-followups-validation.md#m-2). M-4 принята 2026-11-26. [Проверки M-4](evidence/mcp-followups-validation.md#m-4). M-1 принята 2026-11-26 с измеренной задержкой проверки тестовой DLL. [Проверки M-1](evidence/mcp-followups-validation.md#m-1). [План работ и полевых проверок](mcp-followups-plan.md).
+M-3 принята 2026-11-26. [Проверки M-3](evidence/mcp-followups-validation.md#m-3). F-4 принята 2026-11-26 и открыта повторно в тот же день после [независимой проверки на Linux](evidence/mcp-followups-review-claude-2026-11-26.md): тестовый проект в репозитории и лимит в 24 проекта оставляют исходный отказ. [Проверки F-4](evidence/mcp-followups-validation.md#f-4). M-2 принята 2026-11-26. [Проверки M-2](evidence/mcp-followups-validation.md#m-2). M-4 принята 2026-11-26. [Проверки M-4](evidence/mcp-followups-validation.md#m-4). M-1 принята 2026-11-26 с измеренной задержкой проверки тестовой DLL. [Проверки M-1](evidence/mcp-followups-validation.md#m-1). [План работ и полевых проверок](mcp-followups-plan.md).
 
 ## Ревью плана
 
@@ -57,4 +57,5 @@ M-3 принята 2026-11-26. [Проверки M-3](evidence/mcp-followups-val
 - Количество исправлений после ревью: 2 для task-01, 2 для task-04 (F-1, F-2).
 - Итог: task-01 и task-04 приняты 2026-11-26 после Release-проверок Windows и прямого запуска shebang в Ubuntu под WSL. Независимая проверка task-04 на Linux исправила ложный отказ полной записи и сообщение об автоопределении. Замер записи не показал заметной потери производительности. task-02 принята в тот же день после полной серии Windows Release и проверок через MCP на реальных проектах VSTest.
 - task-03 принята 2026-11-26 после полного набора Windows Release и независимых проверок SDK на переименованных решениях.
+- Замечания MCP: `claude-opus-5-5` в отдельной сессии проверил `02b5531` на Linux. Release-серия прошла 2 863 из 2 863. M-1–M-4 подтверждены, F-4 открыта повторно (R-1, R-2), остальное записано как мелкие замечания и риски. [Проверка](evidence/mcp-followups-review-claude-2026-11-26.md)
 - Отчёты: [приёмка task-03](evidence/task-03-project-rename-validation.md), [независимая проверка task-03](evidence/task-03-review-claude-2026-11-26.md), [приёмка task-02](evidence/task-02-vstest-trx-validation.md), [приёмка task-04](evidence/task-04-source-encoding-validation.md), [независимая проверка task-04](evidence/task-04-review-claude-2026-11-26.md), [приёмка task-01](evidence/task-01-source-write-validation.md), [независимая проверка task-01](evidence/task-01-review-2026-11-26.md).
