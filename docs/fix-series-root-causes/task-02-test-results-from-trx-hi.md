@@ -11,7 +11,7 @@
 - Модели, проводившие ревью: —.
 - Количество раундов ревью: —.
 - Количество исправлений после ревью: —.
-- Отчёт о реализации и проверках: [task-02-vstest-trx-validation.md](evidence/task-02-vstest-trx-validation.md).
+- Отчёт о реализации и проверках: [task-02-vstest-trx-validation.md](evidence/task-02-vstest-trx-validation.md), [независимая проверка](evidence/task-02-review-claude-2026-11-26.md): G-1 исправлено, G-2 (критерий об эвристиках `VstestOutputParser` изменён после реализации) и G-3 (стоимость `-bl`) открыты.
 
 ## Серия
 

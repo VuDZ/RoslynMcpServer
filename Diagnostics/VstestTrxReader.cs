@@ -96,7 +96,8 @@ internal static class VstestTrxReader
         var outcome = failed || noMatches ? TestProcessOutcome.Failed
             : complete && totals.Total > 0 ? TestProcessOutcome.Passed
             : TestProcessOutcome.Partial;
-        issue = diagnostic ?? issue ?? (run.ExitCode != 0 ? "The command did not complete successfully." : null);
+        // Failed tests already explain a non-zero exit code.
+        issue = diagnostic ?? issue ?? (run.ExitCode != 0 && !hasTestFailure ? "The command did not complete successfully." : null);
         return new(outcome, runIds.Count == 0 ? null : totals, failures, passedNames.ToArray(),
             failuresTruncated, noMatches, issue, buildError);
     }
@@ -139,7 +140,11 @@ internal static class VstestTrxReader
         var failed = IsFailure(outcome) || result.Failed > 0 || failedRows.Length > 0;
         var consistent = rows.Length == result.Total && passedRows.Length == result.Passed
             && failedRows.Length == result.Failed && skipped == result.Skipped;
-        var issue = outcome is not ("Completed" or "Passed") || !consistent
+        // VSTest marks a run with an ordinary failed test as Failed. Consistent rows and counters still make the
+        // report complete; calling it incomplete made agents distrust correct totals. An abort is reported
+        // through the run notices below.
+        var completeOutcome = outcome is "Completed" or "Passed" || (outcome == "Failed" && failedRows.Length > 0);
+        var issue = !completeOutcome || !consistent
             ? "A TRX report did not establish complete test results."
             : null;
         var diagnostic = notices.Where(notice => IsFailure((string?)notice.Attribute("outcome")))
