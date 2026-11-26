@@ -16,6 +16,9 @@ internal sealed class VstestRunInventory
 
     internal string? BuildError { get; private set; }
 
+    /// <summary>MSBuild reported a failed VSTest task or build after every launch was identified.</summary>
+    internal bool LaunchFailed { get; private set; }
+
     internal static VstestRunInventory Read(
         string binlogPath, string? assemblyPath, string? requestedFilter, CancellationToken cancellationToken)
     {
@@ -102,7 +105,8 @@ internal sealed class VstestRunInventory
         }
         else if (buildSucceeded != true || tasks.Values.Any(task => task.Succeeded != true))
         {
-            Issue ??= "MSBuild did not confirm successful completion of every VSTest launch.";
+            // VSTestTask also fails for an ordinary failed test. The TRX reader decides whether failed rows explain it.
+            LaunchFailed = true;
         }
 
         Sources.AddRange(tasks.Values.Select(task => task.Source).OfType<string>());

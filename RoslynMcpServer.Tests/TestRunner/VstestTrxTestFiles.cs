@@ -27,10 +27,11 @@ internal static class VstestTrxTestFiles
         WriteReport(directory, source, passed, failed);
     }
 
-    internal static void WriteInventory(string directory, string[] sources, string? filter, string? buildError = null)
+    internal static void WriteInventory(
+        string directory, string[] sources, string? filter, string? buildError = null, bool tasksSucceeded = true)
     {
         MsBuildBootstrapper.Register();
-        WriteBinlog(directory, sources, filter, buildError);
+        WriteBinlog(directory, sources, filter, buildError, tasksSucceeded);
     }
 
     internal static string WriteReport(
@@ -70,7 +71,7 @@ internal static class VstestTrxTestFiles
         return match.Success ? match.Groups["value"].Value : null;
     }
 
-    private static void WriteBinlog(string directory, string[] sources, string? filter, string? buildError)
+    private static void WriteBinlog(string directory, string[] sources, string? filter, string? buildError, bool tasksSucceeded)
     {
         var path = Path.Combine(directory, VstestTrxReader.BinlogName);
         var events = new SyntheticEventSource();
@@ -88,7 +89,7 @@ internal static class VstestTrxTestFiles
             {
                 WriteInput("VSTestTestCaseFilter", filter);
             }
-            events.Raise(new TaskFinishedEventArgs("Finished VSTestTask", "", project, "VSTest.targets", "VSTestTask", true)
+            events.Raise(new TaskFinishedEventArgs("Finished VSTestTask", "", project, "VSTest.targets", "VSTestTask", tasksSucceeded)
                 { BuildEventContext = context });
 
             void WriteInput(string name, string value) => events.Raise(new TaskParameterEventArgs(
@@ -99,7 +100,7 @@ internal static class VstestTrxTestFiles
         {
             events.Raise(new BuildErrorEventArgs("", "CI-001", "Test.csproj", 1, 1, 1, 1, buildError, "", "MSBuild"));
         }
-        events.Raise(new BuildFinishedEventArgs("Build finished", "", buildError is null));
+        events.Raise(new BuildFinishedEventArgs("Build finished", "", buildError is null && tasksSucceeded));
         logger.Shutdown();
     }
 

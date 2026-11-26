@@ -55,7 +55,8 @@ internal sealed class ProjectRenameTextEdits
             return null;
         }
 
-        if (!Path.GetExtension(_file.Path).Equals(".sln", StringComparison.OrdinalIgnoreCase))
+        // Classic solutions and JSON solution filters have no XML declaration to reconcile.
+        if (Path.GetExtension(_file.Path).ToLowerInvariant() is not (".sln" or ".slnf"))
         {
             _file.ValidateXmlEncoding();
         }

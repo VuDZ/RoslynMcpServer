@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json;
 using System.Xml;
 using Microsoft.Build.Locator;
 using RoslynMcpServer.Diagnostics;
@@ -133,19 +134,19 @@ public static class ProjectRenameHelper
             EnumerateFiles(oldDirectory, pattern).Concat(move.Contains(root) ? [] : EnumerateFiles(root, pattern, oldDirectory));
 
         string[] projectPatterns = ["*.csproj", "*.fsproj", "*.vbproj"];
-        foreach (var host in projectPatterns.SelectMany(FindOwners))
+        var hosts = projectPatterns.SelectMany(FindOwners)
+            .Where(host => !string.Equals(host, oldProjectPath, PathComparison))
+            .ToList();
+        foreach (var host in hosts)
         {
-            if (string.Equals(host, oldProjectPath, PathComparison))
-            {
-                continue;
-            }
-
             var edit = CreateProjectReferenceEdit(host, move);
             if (edit is not null)
             {
                 textEdits.Add(edit);
             }
         }
+
+        ProjectRenameImports.RejectImportedReferences(hosts, move, warnings);
 
         var solutionFiles = FindOwners("*.sln").Concat(FindOwners("*.slnx")).ToList();
 
@@ -157,6 +158,15 @@ public static class ProjectRenameHelper
         foreach (var solution in solutionFiles)
         {
             var edit = CreateSolutionEdit(solution, move);
+            if (edit is not null)
+            {
+                textEdits.Add(edit);
+            }
+        }
+
+        foreach (var filter in FindOwners("*.slnf"))
+        {
+            var edit = CreateSolutionFilterEdit(filter, move, warnings);
             if (edit is not null)
             {
                 textEdits.Add(edit);
@@ -382,6 +392,27 @@ public static class ProjectRenameHelper
 
         var (updated, _, _) = ProjectRenameProject.Rewrite(file, move, renameProperties: false);
         return updated is null ? null : new TextEdit(move.FinalPath(projectPath), updated, "Update ProjectReference")
+        {
+            Source = file,
+        };
+    }
+
+    private static TextEdit? CreateSolutionFilterEdit(string filterPath, ProjectMove move, List<string> warnings)
+    {
+        var file = ProjectRenameFile.Read(filterPath);
+        string? updated;
+        try
+        {
+            updated = ProjectRenameSolutionFilter.Rewrite(file, move);
+        }
+        catch (JsonException ex)
+        {
+            // MSBuild cannot open such a filter either; the rename itself does not depend on it.
+            warnings.Add($"Skipped unreadable solution filter `{filterPath}`: {ex.Message}");
+            return null;
+        }
+
+        return updated is null ? null : new TextEdit(move.FinalPath(filterPath), updated, "Update .slnf project entries")
         {
             Source = file,
         };

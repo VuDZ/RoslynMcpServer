@@ -24,6 +24,23 @@ public sealed class TruncatedProcessLogTests
         Assert.DoesNotContain("Time Elapsed", stripped, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData(1_200, 1_266)]
+    [InlineData(1_200, 5_000)]
+    [InlineData(20, 21)]
+    public void BuildTruncatedExcerpt_keeps_head_and_tail_within_a_small_limit(int limit, int length)
+    {
+        // A TRX stack trace uses a 1 200 character limit, below the default 1 000 + 1 500 head and tail.
+        var text = "head-" + new string('x', length - 10) + "-tail";
+
+        var excerpt = TruncatedProcessLog.BuildTruncatedExcerpt(text, limit);
+
+        Assert.StartsWith("head-", excerpt, StringComparison.Ordinal);
+        Assert.EndsWith("-tail", excerpt, StringComparison.Ordinal);
+        Assert.Contains(TruncatedProcessLog.MiddleMarker, excerpt, StringComparison.Ordinal);
+        Assert.True(excerpt.Length <= limit + TruncatedProcessLog.MiddleMarker.Length, $"Excerpt length {excerpt.Length} exceeds {limit}.");
+    }
+
     [Fact]
     public void StripTrailingMsBuildOutcome_keeps_payload_that_is_only_the_footer()
     {

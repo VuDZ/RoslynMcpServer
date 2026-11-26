@@ -11,7 +11,7 @@
 - Модели, проводившие ревью: —.
 - Количество раундов ревью: —.
 - Количество исправлений после ревью: —.
-- Отчёт о реализации и проверках: [task-02-vstest-trx-validation.md](evidence/task-02-vstest-trx-validation.md), [независимая проверка](evidence/task-02-review-claude-2026-11-26.md): G-1 исправлено. [G-2 исправлено, G-3 не подтвердилось](evidence/task-02-followups-g2-g3.md).
+- Отчёт о реализации и проверках: [task-02-vstest-trx-validation.md](evidence/task-02-vstest-trx-validation.md), [независимая проверка](evidence/task-02-review-claude-2026-11-26.md): G-1 исправлено. [G-2 исправлено, G-3 не подтвердилось](evidence/task-02-followups-g2-g3.md). [G-4 и G-5 найдены при проверке task-03 и исправлены](evidence/task-03-review-claude-2026-11-26.md#найдено-в-инструментах-тестов-task-02).
 
 ## Серия
 

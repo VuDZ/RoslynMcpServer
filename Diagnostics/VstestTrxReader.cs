@@ -84,6 +84,10 @@ internal static class VstestTrxReader
             issue ??= "One or more expected VSTest launches did not produce a matching complete TRX report.";
         }
         issue ??= inventory.Issue;
+        if (inventory.LaunchFailed && !hasTestFailure)
+        {
+            issue ??= "MSBuild did not confirm successful completion of every VSTest launch.";
+        }
         var buildError = inventory.BuildError;
         if (run.ExitCode != 0 && buildError is null && runIds.Count == 0)
         {

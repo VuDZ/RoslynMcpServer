@@ -13,6 +13,7 @@
 - Количество исправлений после ревью: —.
 - Отчёт spike: [сравнение A, B и C и рекомендация по O-03](evidence/task-03-project-rename-sdk-spike.md).
 - Отчёт о реализации и проверках: [task-03-project-rename-validation.md](evidence/task-03-project-rename-validation.md).
+- Независимая проверка через MCP: [task-03-review-claude-2026-11-26.md](evidence/task-03-review-claude-2026-11-26.md). Исправлены пропуск ссылок из импортированных файлов MSBuild (R-1) и устаревшие фильтры решений `.slnf` (R-2).
 
 ## Серия
 

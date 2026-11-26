@@ -5,6 +5,8 @@ Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into a
 ### Unreleased
 
 - `estimate_affected_tests` with `run=true` reads each project's outcome, totals and failures from VSTest TRX reports, like the other test tools. Console output is used only for diagnostics, and a cancelled project run is reported as cancelled.
+- Test reports keep failure details when a stack trace or message is longer than its excerpt limit; previously such a report was treated as unreadable. A failed test no longer adds a notice about an unconfirmed VSTest launch.
+- `rename_project` edits only the changed values in `.sln`, `.slnx` and project files, using the SDK solution model and MSBuild construction model to confirm each edit. It updates project entries in solution filters (`.slnf`) and refuses, before moving anything, when an imported MSBuild file such as `Directory.Build.targets` declares a `ProjectReference` to the renamed project.
 
 ### v1.7.0
 

@@ -1011,6 +1011,90 @@ public sealed class ProjectRenameHelperTests
         }
     }
 
+    [Theory]
+    [InlineData("Include", "$(MSBuildThisFileDirectory)Core/Core.csproj")]
+    [InlineData("Update", "$(MSBuildThisFileDirectory)Core/Core.csproj")]
+    [InlineData("Remove", "../Core/Core.csproj")]
+    public void Reference_declared_in_an_imported_file_is_rejected_before_moving(string operation, string referencePath)
+    {
+        var root = CreateTempRoot();
+        try
+        {
+            var project = Path.Combine(root, "Core", "Core.csproj");
+            WriteSdkProject(project, withNameProps: false);
+            WriteSdkProject(Path.Combine(root, "Outside", "Outside.csproj"), withNameProps: false);
+            var imported = Path.Combine(root, "Directory.Build.targets");
+            File.WriteAllText(imported, $"""
+                <Project>
+                  <ItemGroup Condition="'$(MSBuildProjectName)' == 'Outside'">
+                    <ProjectReference {operation}="{referencePath}" />
+                  </ItemGroup>
+                </Project>
+                """);
+            var originalImport = File.ReadAllBytes(imported);
+
+            var error = Assert.Throws<InvalidOperationException>(() => ProjectRenameHelper.CreatePlan(project, "Renamed", root));
+
+            Assert.Contains(imported, error.Message, StringComparison.Ordinal);
+            Assert.Contains("Outside.csproj", error.Message, StringComparison.Ordinal);
+            Assert.Equal(originalImport, File.ReadAllBytes(imported));
+            Assert.True(File.Exists(project));
+            Assert.False(Directory.Exists(Path.Combine(root, "Renamed")));
+        }
+        finally
+        {
+            DeleteRoot(root);
+        }
+    }
+
+    [Fact]
+    public void Solution_filters_follow_the_renamed_project()
+    {
+        var root = CreateTempRoot();
+        try
+        {
+            var project = Path.Combine(root, "Core", "Core.csproj");
+            var other = Path.Combine(root, "Other", "Other.csproj");
+            WriteSdkProject(project, withNameProps: false);
+            WriteSdkProject(other, withNameProps: false);
+            WriteGraphSolution(Path.Combine(root, "App.slnx"), "Core/Core.csproj", "Other/Other.csproj");
+            const string NestedFilter = """
+                {
+                  "solution": {
+                    "path": "..\\App.slnx",
+                    "projects": [
+                      "Core\\Core.csproj",
+                      "Other/Other.csproj"
+                    ]
+                  }
+                }
+                """;
+            const string RootFilter = """{"solution":{"path":"App.slnx","projects":["Core/Core.csproj"]}}""";
+            var nested = Path.Combine(root, "filters", "Core.slnf");
+            var rootFilter = Path.Combine(root, "All.slnf");
+            var broken = Path.Combine(root, "Broken.slnf");
+            Directory.CreateDirectory(Path.GetDirectoryName(nested)!);
+            File.WriteAllText(nested, NestedFilter);
+            File.WriteAllText(rootFilter, RootFilter);
+            File.WriteAllText(broken, "{");
+
+            var plan = ProjectRenameHelper.CreatePlan(project, "Renamed", root);
+            ProjectRenameHelper.Apply(plan);
+
+            Assert.Equal(NestedFilter.Replace(@"Core\\Core.csproj", @"Renamed\\Renamed.csproj", StringComparison.Ordinal), File.ReadAllText(nested));
+            Assert.Equal(RootFilter.Replace("Core/Core.csproj", "Renamed/Renamed.csproj", StringComparison.Ordinal), File.ReadAllText(rootFilter));
+            Assert.Equal("{", File.ReadAllText(broken));
+            Assert.Contains(plan.Warnings, warning => warning.Contains(broken, StringComparison.Ordinal));
+            // MSBuild rejects a filter that lists a project missing from its solution.
+            Microsoft.Build.Construction.SolutionFile.Parse(nested);
+            Microsoft.Build.Construction.SolutionFile.Parse(rootFilter);
+        }
+        finally
+        {
+            DeleteRoot(root);
+        }
+    }
+
     private static void WriteProjectWithReferences(string path, string referencePath)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
