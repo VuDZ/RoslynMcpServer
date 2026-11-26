@@ -659,7 +659,7 @@ Checkout discovery and status share a 180s deadline, with up to 3s for cleanup. 
 ### Server lifecycle
 
 <details>
-<summary><code>get_mcp_server_info</code> — Binary path, tool count, logs, workspace state.</summary>
+<summary><code>get_mcp_server_info</code> — Process path, server assembly identity, tool count, logs, workspace state.</summary>
 
 **Parameters:** *(none)*
 

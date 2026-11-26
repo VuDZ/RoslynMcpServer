@@ -1,7 +1,7 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Reflection;
-using System.Runtime.InteropServices;
+using System.Runtime.Loader;
 using System.Text;
 using Microsoft.CodeAnalysis;
 using RoslynMcpServer.Config;
@@ -88,22 +88,13 @@ public static class McpServerInfoHelper
         long? successfulPhysicalWorkspaceLoads)
     {
         ArgumentNullException.ThrowIfNull(activation);
-        var assembly = Assembly.GetExecutingAssembly();
-        var exePath = Environment.ProcessPath ?? assembly.Location;
-        var exeTime = File.Exists(exePath) ? File.GetLastWriteTime(exePath) : (DateTime?)null;
         var directories = ServerUserDirectories.FromEnvironment();
         var latestLog = FindLatestLog(directories.LogDirectory);
 
         var sb = new StringBuilder();
         sb.AppendLine("## Roslyn MCP server info");
         sb.AppendLine();
-        sb.AppendLine($"- **Assembly:** `{assembly.GetName().Name}` v{assembly.GetName().Version}");
-        sb.AppendLine($"- **Process path:** `{exePath}`");
-        if (exeTime is not null)
-        {
-            sb.AppendLine($"- **Binary modified (local):** {exeTime:O}");
-        }
-
+        AppendServerIdentity(sb);
         sb.AppendLine($"- **Base directory:** `{AppContext.BaseDirectory}`");
         sb.AppendLine($"- **Process working directory:** `{Environment.CurrentDirectory}`");
         sb.AppendLine($"- **User configuration directory:** `{directories.ConfigurationDirectory}`");
@@ -143,9 +134,51 @@ public static class McpServerInfoHelper
         AppendFileSettingsSection(sb, fileSettings, lazyLoadFailure);
 
         sb.AppendLine();
-        sb.AppendLine(
-            $"After code changes run `dotnet publish -c Release -r {RuntimeInformation.RuntimeIdentifier}`, then Reload MCP in Cursor.");
+        sb.AppendLine("After code changes, publish the server and reconnect your MCP client.");
         return sb.ToString().TrimEnd();
+    }
+
+    private static void AppendServerIdentity(StringBuilder sb)
+    {
+        var assembly = typeof(McpServerInfoHelper).Assembly;
+        var assemblyName = assembly.GetName();
+        var informationalVersion = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+        var processPath = Environment.ProcessPath;
+        var assemblyPath = assembly.Location;
+
+        sb.AppendLine($"- **Assembly:** `{assemblyName.Name}` v{assemblyName.Version}");
+        sb.AppendLine($"- **Informational version:** {FormatIdentityValue(informationalVersion)}");
+        sb.AppendLine($"- **Module version ID:** `{assembly.ManifestModule.ModuleVersionId}`");
+        sb.AppendLine($"- **Process path:** {FormatIdentityValue(processPath)}");
+
+        // A locationless assembly can also be loaded from memory. Only the server's own entry assembly
+        // in the default load context can use the single-file host as its backing file.
+        // https://learn.microsoft.com/dotnet/core/deploying/single-file/overview
+        if (assemblyPath.Length == 0
+            && assembly == Assembly.GetEntryAssembly()
+            && AssemblyLoadContext.GetLoadContext(assembly) == AssemblyLoadContext.Default)
+        {
+            sb.AppendLine("- **Server assembly path:** (embedded in single-file bundle)");
+            sb.AppendLine($"- **Single-file bundle modified (UTC):** {FormatLastWriteTimeUtc(processPath)}");
+            return;
+        }
+
+        sb.AppendLine($"- **Server assembly path:** {FormatIdentityValue(assemblyPath)}");
+        sb.AppendLine($"- **Server assembly modified (UTC):** {FormatLastWriteTimeUtc(assemblyPath)}");
+    }
+
+    private static string FormatIdentityValue(string? value) =>
+        string.IsNullOrEmpty(value) ? "(unavailable)" : $"`{value}`";
+
+    private static string FormatLastWriteTimeUtc(string? path)
+    {
+        if (string.IsNullOrEmpty(path))
+        {
+            return "(unavailable)";
+        }
+
+        var file = new FileInfo(path);
+        return file.Exists ? file.LastWriteTimeUtc.ToString("O") : "(unavailable)";
     }
 
     /// <summary>

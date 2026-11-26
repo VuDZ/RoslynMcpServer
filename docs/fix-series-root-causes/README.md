@@ -38,7 +38,7 @@ task-01 и task-02 независимы, их можно вести паралл
 
 ## Открытые замечания MCP
 
-M-3 принята 2026-11-26. [Проверки M-3](evidence/mcp-followups-validation.md#m-3). F-4 принята 2026-11-26. [Проверки F-4](evidence/mcp-followups-validation.md#f-4). M-1, M-4 и M-2 запланированы. [План работ и полевых проверок](mcp-followups-plan.md).
+M-3 принята 2026-11-26. [Проверки M-3](evidence/mcp-followups-validation.md#m-3). F-4 принята 2026-11-26. [Проверки F-4](evidence/mcp-followups-validation.md#f-4). M-2 принята 2026-11-26. [Проверки M-2](evidence/mcp-followups-validation.md#m-2). M-1 и M-4 запланированы. [План работ и полевых проверок](mcp-followups-plan.md).
 
 ## Ревью плана
 

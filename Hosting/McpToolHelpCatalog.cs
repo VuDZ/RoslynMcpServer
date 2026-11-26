@@ -48,7 +48,7 @@ public static class McpToolHelpCatalog
             },
             ["get_mcp_server_info"] = new()
             {
-                Workflow = "Use after publish/reload to confirm the binary path, profile, startup groups, dynamic groups, and current tool count. Also shows RoslynMcp.jsonc paths read (exe then cwd), merged keys, unknown-key warnings, parse failures, and whether the solution came from the file or load_workspace. Does not start a lazy load.",
+                Workflow = "After publishing and reconnecting your MCP client, use this to confirm the process path, server assembly identity, profile, startup groups, dynamic groups, and current tool count. Also shows RoslynMcp.jsonc paths read (exe then cwd), merged keys, unknown-key warnings, parse failures, and whether the solution came from the file or load_workspace. Does not start a lazy load.",
             },
             ["load_workspace"] = new()
             {
