@@ -188,13 +188,13 @@ public static class McpToolHelpCatalog
             },
             ["update_file_content"] = new()
             {
-                Pitfalls = "Overwrites the entire file. Creates missing parent directories. Prefer AST tools for structured C# edits.",
+                Pitfalls = "Overwrites the entire file. Creates missing parent directories. Prefer AST tools for structured C# edits. A C# file with non-ASCII text gets a UTF-8 BOM if it has no BOM. A C# shebang script requires ASCII.",
                 RelatedTools = ["apply_patch", "add_method_to_class"],
             },
             ["apply_patch"] = new()
             {
                 Workflow = "The only search-and-replace tool. Default replaceAll=false. Tries exact match, then whitespace-tolerant matching.",
-                Pitfalls = "String literals with internal spaces may not match the flexible fallback. Prefer AST tools for usings and member inserts.",
+                Pitfalls = "A C# patch that would convert a BOM-free file with untouched non-ASCII text is refused. Confirm the original encoding and get user approval before rewriting the complete text with update_file_content. String literals with internal spaces may not match the flexible fallback. Prefer AST tools for usings and member inserts.",
                 RelatedTools = ["update_file_content", "add_using", "update_method_body"],
             },
             ["add_using"] = new()

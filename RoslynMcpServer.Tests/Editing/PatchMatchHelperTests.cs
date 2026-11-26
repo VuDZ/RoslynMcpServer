@@ -44,7 +44,8 @@ public sealed class PatchMatchHelperTests
             replaceAll: true,
             out var usedFlexible,
             out var matched,
-            out var replacementCount);
+            out var replacementCount,
+            out _);
 
         Assert.True(matched);
         Assert.True(usedFlexible);
@@ -63,7 +64,8 @@ public sealed class PatchMatchHelperTests
             replaceAll: true,
             out var usedFlexible,
             out var matched,
-            out var replacementCount);
+            out var replacementCount,
+            out _);
 
         Assert.True(matched);
         Assert.False(usedFlexible);
@@ -79,6 +81,7 @@ public sealed class PatchMatchHelperTests
             "\nB",
             string.Empty,
             replaceAll: false,
+            out _,
             out _,
             out _,
             out _);
@@ -97,6 +100,7 @@ public sealed class PatchMatchHelperTests
             replaceAll: false,
             out _,
             out var matched,
+            out _,
             out _);
 
         Assert.True(matched);
@@ -120,7 +124,8 @@ public sealed class PatchMatchHelperTests
             replaceAll: true,
             out var usedFlexible,
             out var matched,
-            out var replacementCount);
+            out var replacementCount,
+            out _);
         sw.Stop();
 
         Assert.True(matched);
@@ -144,7 +149,8 @@ public sealed class PatchMatchHelperTests
             replaceAll: true,
             out _,
             out var matched,
-            out var replacementCount);
+            out var replacementCount,
+            out _);
 
         Assert.True(matched);
         Assert.Equal(2, replacementCount);
@@ -161,7 +167,8 @@ public sealed class PatchMatchHelperTests
             replaceAll: false,
             out _,
             out var matched,
-            out var replacementCount);
+            out var replacementCount,
+            out _);
 
         Assert.True(matched);
         Assert.Equal(1, replacementCount);
@@ -178,7 +185,8 @@ public sealed class PatchMatchHelperTests
             replaceAll: true,
             out _,
             out var matched,
-            out var replacementCount);
+            out var replacementCount,
+            out _);
 
         Assert.True(matched);
         Assert.Equal(2, replacementCount);
@@ -196,7 +204,8 @@ public sealed class PatchMatchHelperTests
             replaceAll: true,
             out _,
             out var matched,
-            out var replacementCount);
+            out var replacementCount,
+            out _);
         sw.Stop();
 
         Assert.True(matched);
@@ -220,6 +229,7 @@ public sealed class PatchMatchHelperTests
                 out _,
                 out _,
                 out _,
+                out _,
                 cts.Token));
     }
 
@@ -233,7 +243,8 @@ public sealed class PatchMatchHelperTests
             replaceAll: true,
             out var usedFlexible,
             out var matched,
-            out var replacementCount);
+            out var replacementCount,
+            out _);
 
         Assert.False(matched);
         Assert.False(usedFlexible);

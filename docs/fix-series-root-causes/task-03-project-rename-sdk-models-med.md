@@ -55,4 +55,4 @@ P1-03, P1-23, P2-27, P1-32, P2-43, P1-51 из [ревью 25 ноября](../pr
 ## Где смотреть
 
 - [ProjectRenameHelper.cs](../../Services/Editing/ProjectRenameHelper.cs): `GetSolutionProjectReferences`, `RewriteXmlReferences`, `SlnProjectLine`.
-- [WorkspaceBuildSourceReaders.cs](../../Services/Workspace/WorkspaceBuildSourceReaders.cs): уже использует `SolutionFile.Parse` для `.sln` и `.slnx`.
+- В исходном `d8eb8da` файл `Services/Workspace/WorkspaceBuildSourceReaders.cs` использовал `SolutionFile.Parse` для `.sln` и `.slnx`. Этот код удалён в [task-01](task-01-source-write-representation-hi.md).

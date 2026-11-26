@@ -5,13 +5,13 @@
 - Примерная сложность: 4/5.
 - Риск ошибки: высокий — меняется контракт записи исходника, тесты 13 принятых карточек нужно пересмотреть, а не просто удалить.
 - Необходимые способности: кодировки и BOM, чтение исходников компилятором C#, запись файлов в `SolutionManager`, TDD.
-- Статус: planned · ожидает решения O-01.
-- Depends on: решение владельца O-01; замер из шага 1.
-- Модель, реализовавшая задачу: —.
-- Модели, проводившие ревью: —.
-- Количество раундов ревью: —.
-- Количество исправлений после ревью: —.
-- Отчёт о реализации, ревью и validation: —.
+- Статус: accepted · 2026-11-26 · вариант O-01/B для `update_file_content` и `apply_patch`, явный отказ при рискованной перекодировке и удаление повторной оценки читателей исходника.
+- Depends on: решение владельца O-01 и исходный замер выполнены.
+- Модель, реализовавшая задачу: Codex (GPT-6), сабагенты реализации и тестов.
+- Модели, проводившие ревью: Codex (GPT-6), независимый сабагент.
+- Количество раундов ревью: 2.
+- Количество исправлений после ревью: 2.
+- Отчёт о реализации, ревью и validation: [замеры и проверка варианта B](evidence/task-01-source-write-validation.md).
 
 ## Серия
 
@@ -24,7 +24,7 @@ P1-44 задала верный контракт: записанные байт�
 Код пытается **доказать**, что файл без BOM каждый читатель прочтёт одинаково. Для этого он:
 
 - сверяет метаданные загрузки с повторной design-time оценкой ([SolutionManager.cs](../../Services/Workspace/SolutionManager.cs), `EnsureSourceReadersAreCurrentUnderLockAsync`);
-- статически разбирает обычную сборку MSBuild по белым и чёрным спискам: свойства, цели, `.rsp`, точки входа Test SDK, элементы диспетчеризации TFM ([WorkspaceBuildSourceReaders.cs](../../Services/Workspace/WorkspaceBuildSourceReaders.cs));
+- статически разбирает обычную сборку MSBuild по белым и чёрным спискам: свойства, цели, `.rsp`, точки входа Test SDK, элементы диспетчеризации TFM (`WorkspaceBuildSourceReaders.cs` в исходном `d8eb8da`);
 - отдельно учитывает национальные варианты 7-битного ASCII по ISO-646 (`SourceTextEncoding.IsInvariantAscii`).
 
 Пространство способов, которыми MSBuild может задать `CodePage` для Csc, не ограничено. Каждый раунд находил новый способ: смена `CodePage` после загрузки (P1-47), условие на `DesignTimeBuild` (P1-49). Исправление P1-49 затем сломало Windows CI: импорты workloads загружаются в режиме read-only, упали 75 unit-тестов, 25 TIA и 3 AnalyzerLifecycle ([отчёт](../project-review-2026-11-25/evidence/tasks-49-54-validation.md#windows-ci-и-импорты-msbuild-в-режиме-read-only)).
@@ -62,6 +62,8 @@ BOM — единственное представление, которое Csc 
 
 **Рекомендация:** A или B. Выбор — решение владельца O-01: допустима ли полная конвертация устаревшего файла.
 
+**O-01, 2026-11-26.** Выбран вариант B. При отказе `apply_patch` объясняет риск интерпретации нетронутого не-ASCII в файле без BOM и сообщает, что файл остался без изменений. Агент может уточнить исходную кодировку и согласовать конвертацию с пользователем. После согласия он может передать проверенный полный текст в `update_file_content`. Если нужно сохранить старую кодировку, сообщение предлагает явно выбрать её в редакторе.
+
 Ограничение вариантов A и B: `CodePage`, несовместимая с ASCII (UTF-16, EBCDIC), считается неподдерживаемой, запись без BOM для неё отклоняется. Изменение `CodePage` после загрузки до значения, несовместимого с ASCII, не отслеживается.
 
 ## План
@@ -78,16 +80,16 @@ BOM — единственное представление, которое Csc 
 
 ## Критерии приёмки
 
-- [ ] ASCII-правка файла без BOM не запускает `dotnet` и не вычисляет MSBuild. Проверяется тестом, а не только замером.
-- [ ] Сценарии воспроизведения P1-38, P1-44 (все три), P1-47 и P1-49 дают в свежей сборке запрошенное значение либо явный отказ до записи. Исходные байты при отказе сохраняются.
-- [ ] Контракты P2-13, P1-28 и P2-53 не изменились: атомарность, устаревший снимок, жёсткие ссылки.
-- [ ] Поведение для устаревшего файла без BOM соответствует решению O-01.
-- [ ] Инвентаризация тестов из шага 2 приложена. Каждое изменённое ожидание объяснено.
-- [ ] Обновлены [ARCHITECTURE.md](../ARCHITECTURE.md) и описания инструментов, если меняется видимое поведение записи.
+- [x] ASCII-правка файла без BOM не запускает `dotnet` и не вычисляет MSBuild. Проверяется тестом, а не только замером.
+- [x] Сценарии воспроизведения P1-38, P1-44 (все три), P1-47 и P1-49 дают в свежей сборке запрошенное значение либо явный отказ до записи. Исходные байты при отказе сохраняются.
+- [x] Контракты P2-13, P1-28 и P2-53 не изменились: атомарность, устаревший снимок, жёсткие ссылки.
+- [x] Поведение для устаревшего файла без BOM соответствует решению O-01.
+- [x] [Инвентаризация тестов](evidence/task-01-test-inventory.md) приложена. Каждое изменённое ожидание объяснено.
+- [x] Обновлены [ARCHITECTURE.md](../ARCHITECTURE.md) и описания инструментов, если меняется видимое поведение записи.
 
 ## Где смотреть
 
-- [SolutionManager.cs](../../Services/Workspace/SolutionManager.cs): `ReadPatchFileUnderLockAsync`, `GetFileEncodingUnderLock`, `EnsureSourceReadersAreCurrentUnderLockAsync`, `GetTextWriteEncodingUnderLockAsync`, `CanReadBomFreeTextUnderLockAsync`.
-- [WorkspaceBuildSourceReaders.cs](../../Services/Workspace/WorkspaceBuildSourceReaders.cs), [WorkspaceProjectDocumentRegistration.cs](../../Services/Workspace/WorkspaceProjectDocumentRegistration.cs).
+- [SolutionManager.cs](../../Services/Workspace/SolutionManager.cs): `ReadPatchFileUnderLockAsync`, `GetFileEncodingUnderLock`, `GetTextWriteEncodingUnderLock`.
+- [WorkspaceProjectDocumentRegistration.cs](../../Services/Workspace/WorkspaceProjectDocumentRegistration.cs) сохраняет регистрацию новых документов.
 - [SourceTextEncoding.cs](../../Services/Workspace/SourceTextEncoding.cs), [PersistedPayload.cs](../../Services/Workspace/PersistedPayload.cs).
 - [EditingTools.cs](../../Tools/EditingTools.cs): создание нового файла.

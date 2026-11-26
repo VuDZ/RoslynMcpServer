@@ -37,11 +37,13 @@ internal static class PatchMatchHelper
         out bool usedFlexible,
         out bool matched,
         out int replacementCount,
+        out bool hasUntouchedNonAscii,
         CancellationToken cancellationToken = default)
     {
         matched = false;
         usedFlexible = false;
         replacementCount = 0;
+        hasUntouchedNonAscii = false;
         if (string.IsNullOrEmpty(oldNormalized))
         {
             return null;
@@ -71,10 +73,14 @@ internal static class PatchMatchHelper
             var rawStart = AdvanceRawOffset(sourceRaw, rawOffset, match.Start - searchFrom);
             var rawEnd = AdvanceRawOffset(sourceRaw, rawStart, match.End - match.Start);
             result ??= new StringBuilder(sourceRaw.Length);
-            result.Append(sourceRaw, rawOffset, rawStart - rawOffset);
+            var unchanged = sourceRaw.AsSpan(rawOffset, rawStart - rawOffset);
+            result.Append(unchanged);
+            hasUntouchedNonAscii = hasUntouchedNonAscii || !Ascii.IsValid(unchanged);
             if (sourceNormalized.AsSpan(match.Start, match.End - match.Start).SequenceEqual(newNormalized))
             {
-                result.Append(sourceRaw, rawStart, rawEnd - rawStart);
+                var unchangedMatch = sourceRaw.AsSpan(rawStart, rawEnd - rawStart);
+                result.Append(unchangedMatch);
+                hasUntouchedNonAscii = hasUntouchedNonAscii || !Ascii.IsValid(unchangedMatch);
             }
             else
             {
@@ -90,8 +96,15 @@ internal static class PatchMatchHelper
             }
         }
 
-        matched = result is not null;
-        return result?.Append(sourceRaw.AsSpan(rawOffset)).ToString();
+        if (result is null)
+        {
+            return null;
+        }
+
+        matched = true;
+        var tail = sourceRaw.AsSpan(rawOffset);
+        hasUntouchedNonAscii = hasUntouchedNonAscii || !Ascii.IsValid(tail);
+        return result.Append(tail).ToString();
     }
 
     /// <summary>

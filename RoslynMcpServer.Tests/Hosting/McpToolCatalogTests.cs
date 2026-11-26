@@ -509,10 +509,10 @@ public sealed class McpToolCatalogTests(ITestOutputHelper output)
         output.WriteLine($"lite+runtime={liteRuntime.Count}/{liteRuntime.Utf8Bytes}");
         output.WriteLine($"lite+operations={liteOperations.Count}/{liteOperations.Utf8Bytes}");
 
-        // The two core descriptions now state when a direct .csproj is accepted.
-        AssertRecorded("full", 55, 47726, full);
+        // The file-writing tool descriptions include C# encoding behavior.
+        AssertRecorded("full", 55, 47740, full);
         AssertRecorded("lite", 16, 21271, lite);
-        AssertRecorded("lite+files", 24, 26327, liteFiles);
+        AssertRecorded("lite+files", 24, 26341, liteFiles);
         AssertRecorded("lite+editing", 24, 26541, liteEditing);
         AssertRecorded("lite+decompile", 20, 24033, liteDecompile);
         AssertRecorded("lite+nuget", 22, 24650, liteNuget);
@@ -523,8 +523,8 @@ public sealed class McpToolCatalogTests(ITestOutputHelper output)
         var enabled = MeasureSurface(
             new McpToolProfileOptions { Profile = "lite" },
             activation => activation.EnableGroup("files"));
-        AssertRecorded("lite+enable:files", 24, 26327, enabled);
-        Assert.Equal(26327, MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "files" }).Utf8Bytes);
+        AssertRecorded("lite+enable:files", 24, 26341, enabled);
+        Assert.Equal(26341, MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "files" }).Utf8Bytes);
     }
 
     private static void AssertRecorded(string label, int count, int bytes, (int Count, int Utf8Bytes) actual)

@@ -18,7 +18,7 @@ public sealed class EditingTools
     }
 
     [McpServerTool(Name = "update_file_content", Title = "Write / overwrite file")]
-    [Description("Creates or overwrites a file, creating missing parent directories. Writes files.")]
+    [Description("Writes a complete file, creating directories. Non-ASCII C# text may gain a UTF-8 BOM.")]
     public async Task<string> WriteFile(
         [Description("Target file path, new or existing.")]
         string filePath,
