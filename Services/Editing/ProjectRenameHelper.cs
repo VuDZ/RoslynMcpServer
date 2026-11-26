@@ -1,7 +1,7 @@
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Xml;
-using System.Xml.Linq;
+using Microsoft.Build.Locator;
+using RoslynMcpServer.Diagnostics;
 using RoslynMcpServer.Services.Models;
 using RoslynMcpServer.Services.Workspace;
 
@@ -24,14 +24,13 @@ public static class ProjectRenameHelper
         "packages",
     };
 
-    private static readonly Regex SlnProjectLine = new(
-        @"^Project\(""(?<type>\{[^""]+\})""\)\s*=\s*""(?<name>[^""]+)""\s*,\s*""(?<path>[^""]+)""\s*,\s*""(?<guid>\{[^""]+\})""",
-        RegexOptions.Compiled | RegexOptions.CultureInvariant);
-
     private static readonly StringComparison PathComparison =
         OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
 
-    public sealed record TextEdit(string Path, string NewContent, string Description);
+    public sealed record TextEdit(string Path, string NewContent, string Description)
+    {
+        internal ProjectRenameFile? Source { get; init; }
+    }
 
     public sealed record RenamePlan(
         string OldProjectPath,
@@ -44,7 +43,10 @@ public static class ProjectRenameHelper
         bool UpdateRootNamespace,
         string? NewCsprojContent,
         IReadOnlyList<TextEdit> TextEdits,
-        IReadOnlyList<string> Warnings);
+        IReadOnlyList<string> Warnings)
+    {
+        internal ProjectRenameFile? SourceProject { get; init; }
+    }
 
     public static RenamePlan CreatePlan(string projectPath, string newProjectName, string? searchRoot = null)
     {
@@ -63,7 +65,7 @@ public static class ProjectRenameHelper
             || trimmedNewName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0
             || trimmedNewName.Contains('/')
             || trimmedNewName.Contains('\\')
-            || trimmedNewName.Contains('"')
+            || trimmedNewName.IndexOfAny(['"', '\r', '\n']) >= 0
             || !IsLiteralProjectReference(trimmedNewName))
         {
             throw new InvalidOperationException(
@@ -81,8 +83,8 @@ public static class ProjectRenameHelper
             throw new InvalidOperationException("Only `.csproj` projects are supported.");
         }
 
-        var csprojText = File.ReadAllText(oldProjectPath);
-        if (!IsSdkStyle(csprojText))
+        var project = ProjectRenameFile.Read(oldProjectPath);
+        if (!IsSdkStyle(project))
         {
             throw new InvalidOperationException(
                 "Only SDK-style projects (`<Project Sdk=\"...\">`) are supported. Old-style csproj is unsupported.");
@@ -115,32 +117,13 @@ public static class ProjectRenameHelper
         var move = new ProjectMove(oldProjectPath, newProjectPath);
         ValidateMove(move);
 
-        var (hasAssemblyName, assemblyNameValue) = TryReadProperty(csprojText, "AssemblyName");
-        var (hasRootNamespace, rootNamespaceValue) = TryReadProperty(csprojText, "RootNamespace");
-        var updateAssemblyName = hasAssemblyName
-            && string.Equals(assemblyNameValue, oldNameWithoutExt, StringComparison.Ordinal);
-        var updateRootNamespace = hasRootNamespace
-            && string.Equals(rootNamespaceValue, oldNameWithoutExt, StringComparison.Ordinal);
-
-        var newCsprojContent = RewriteXmlReferences(csprojText, oldProjectPath, move, isProject: true);
-        if (updateAssemblyName || updateRootNamespace)
+        if (!MSBuildLocator.IsRegistered)
         {
-            if (newCsprojContent is null)
-            {
-                ValidateXmlEncoding(oldProjectPath, XDocument.Parse(csprojText).Declaration?.Encoding);
-                newCsprojContent = csprojText;
-            }
-
-            if (updateAssemblyName)
-            {
-                newCsprojContent = ReplaceXmlPropertyValue(newCsprojContent, "AssemblyName", oldNameWithoutExt, trimmedNewName);
-            }
-
-            if (updateRootNamespace)
-            {
-                newCsprojContent = ReplaceXmlPropertyValue(newCsprojContent, "RootNamespace", oldNameWithoutExt, trimmedNewName);
-            }
+            MsBuildBootstrapper.Register();
         }
+
+        var (newCsprojContent, updateAssemblyName, updateRootNamespace) = ProjectRenameProject.Rewrite(
+            project, move, renameProperties: true);
 
         var root = ResolveSearchRoot(searchRoot, parent);
         var warnings = new List<string>();
@@ -191,7 +174,10 @@ public static class ProjectRenameHelper
             updateRootNamespace,
             newCsprojContent,
             textEdits,
-            warnings);
+            warnings)
+        {
+            SourceProject = project,
+        };
     }
 
     public static string FormatPlan(RenamePlan plan, bool dryRun)
@@ -234,6 +220,14 @@ public static class ProjectRenameHelper
         Action<string, string, Encoding>? writeText)
     {
         ValidateMove(new ProjectMove(plan.OldProjectPath, plan.NewProjectPath));
+        plan.SourceProject?.VerifyCurrent(plan.OldProjectPath);
+        foreach (var edit in plan.TextEdits)
+        {
+            if (edit.Source is { } source)
+            {
+                source.VerifyCurrent(source.Path);
+            }
+        }
 
         var completed = new List<string>();
         try
@@ -257,7 +251,7 @@ public static class ProjectRenameHelper
 
             if (plan.NewCsprojContent is not null)
             {
-                WriteText(plan.NewProjectPath, plan.NewCsprojContent, writeText);
+                WriteText(plan.NewProjectPath, plan.NewCsprojContent, plan.SourceProject, writeText);
                 completed.Add("Wrote renamed csproj updates");
             }
 
@@ -266,7 +260,7 @@ public static class ProjectRenameHelper
             {
                 try
                 {
-                    WriteText(edit.Path, edit.NewContent, writeText);
+                    WriteText(edit.Path, edit.NewContent, edit.Source, writeText);
                     completed.Add($"{edit.Description}: `{edit.Path}`");
                 }
                 catch (Exception ex)
@@ -301,7 +295,7 @@ public static class ProjectRenameHelper
 
             return (sb.ToString().TrimEnd(), failed.Count == 0);
         }
-        catch (Exception ex) when (ex is not InvalidOperationException)
+        catch (Exception ex)
         {
             var sb = new StringBuilder();
             sb.AppendLine("### Partial failure — rename aborted mid-apply");
@@ -324,9 +318,15 @@ public static class ProjectRenameHelper
         }
     }
 
-    private static void WriteText(string path, string text, Action<string, string, Encoding>? writeText)
+    internal static bool IsLiteralProjectReference(string path) =>
+        path.IndexOfAny(['*', '?', ';', '%']) < 0
+        && !path.Contains("$(", StringComparison.Ordinal)
+        && !path.Contains("@(", StringComparison.Ordinal);
+
+    private static void WriteText(string path, string text, ProjectRenameFile? source, Action<string, string, Encoding>? writeText)
     {
-        var encoding = SourceTextEncoding.ForDiskPath(path);
+        source?.VerifyCurrent(path);
+        var encoding = source?.Encoding ?? SourceTextEncoding.ForDiskPath(path);
         if (writeText is not null)
         {
             writeText(path, text, encoding);
@@ -336,23 +336,11 @@ public static class ProjectRenameHelper
         File.WriteAllText(path, text, encoding);
     }
 
-    internal static bool IsSdkStyle(string csprojText)
+    private static bool IsSdkStyle(ProjectRenameFile file)
     {
-        using var reader = new StringReader(csprojText);
-        string? line;
-        while ((line = reader.ReadLine()) is not null)
-        {
-            var trimmed = line.Trim();
-            if (trimmed.Length == 0 || trimmed.StartsWith("<?", StringComparison.Ordinal))
-            {
-                continue;
-            }
-
-            return trimmed.StartsWith("<Project", StringComparison.OrdinalIgnoreCase)
-                && trimmed.Contains("Sdk=", StringComparison.OrdinalIgnoreCase);
-        }
-
-        return false;
+        using var reader = file.CreateXmlReader();
+        return reader.MoveToContent() == XmlNodeType.Element && reader.Name == "Project"
+            && !string.IsNullOrWhiteSpace(reader.GetAttribute("Sdk"));
     }
 
     private static void ValidateMove(ProjectMove move)
@@ -382,358 +370,32 @@ public static class ProjectRenameHelper
 
     private static TextEdit? CreateProjectReferenceEdit(string projectPath, ProjectMove move)
     {
-        string text;
+        ProjectRenameFile file;
         try
         {
-            text = File.ReadAllText(projectPath);
+            file = ProjectRenameFile.Read(projectPath);
         }
         catch (Exception ex) when (!move.Contains(projectPath) && ex is IOException or UnauthorizedAccessException)
         {
             return null;
         }
 
-        var updated = RewriteXmlReferences(text, projectPath, move, isProject: true);
-        return updated is null ? null : new TextEdit(move.FinalPath(projectPath), updated, "Update ProjectReference");
+        var (updated, _, _) = ProjectRenameProject.Rewrite(file, move, renameProperties: false);
+        return updated is null ? null : new TextEdit(move.FinalPath(projectPath), updated, "Update ProjectReference")
+        {
+            Source = file,
+        };
     }
 
     private static TextEdit? CreateSolutionEdit(string solutionPath, ProjectMove move)
     {
-        if (Path.GetExtension(solutionPath).Equals(".slnx", StringComparison.OrdinalIgnoreCase))
+        var file = ProjectRenameFile.Read(solutionPath);
+        var updated = ProjectRenameSolution.Rewrite(file, move);
+        return updated is null ? null : new TextEdit(
+            move.FinalPath(solutionPath), updated, $"Update {Path.GetExtension(solutionPath)} project entries")
         {
-            var text = File.ReadAllText(solutionPath);
-            var updated = RewriteXmlReferences(text, solutionPath, move, isProject: false);
-            return updated is null ? null : new TextEdit(move.FinalPath(solutionPath), updated, "Update .slnx project entries");
-        }
-
-        return CreateClassicSolutionEdit(solutionPath, move);
-    }
-
-    private static TextEdit? CreateClassicSolutionEdit(string solutionPath, ProjectMove move)
-    {
-        const string SolutionFolderType = "{2150E333-8FDC-42A3-9474-1A3956D46DE8}";
-        var lines = File.ReadAllLines(solutionPath);
-        var changed = false;
-
-        for (var i = 0; i < lines.Length; i++)
-        {
-            var match = SlnProjectLine.Match(lines[i]);
-            if (!match.Success || match.Groups["type"].Value.Equals(SolutionFolderType, StringComparison.OrdinalIgnoreCase))
-            {
-                continue;
-            }
-
-            var path = match.Groups["path"];
-            var updated = move.RewriteReference(solutionPath, path.Value, '\\', out var renamedProject);
-            if (updated is null)
-            {
-                continue;
-            }
-
-            var name = match.Groups["name"];
-            var line = lines[i].Remove(path.Index, path.Length).Insert(path.Index, updated);
-            if (renamedProject && string.Equals(name.Value, Path.GetFileNameWithoutExtension(move.OldProjectPath), PathComparison))
-            {
-                line = line.Remove(name.Index, name.Length).Insert(name.Index, Path.GetFileNameWithoutExtension(move.NewProjectPath));
-            }
-
-            lines[i] = line;
-            changed = true;
-        }
-
-        return changed
-            ? new TextEdit(move.FinalPath(solutionPath), string.Join(Environment.NewLine, lines) + Environment.NewLine, "Update .sln project entries")
-            : null;
-    }
-
-    private static IEnumerable<XmlAttribute> GetProjectReferencePaths(XmlDocument document)
-    {
-        if (document.DocumentElement is not { LocalName: "Project" } project)
-        {
-            yield break;
-        }
-
-        foreach (var item in project.GetElementsByTagName("*", project.NamespaceURI).OfType<XmlElement>())
-        {
-            if (!item.LocalName.Equals("ProjectReference", StringComparison.OrdinalIgnoreCase)
-                || item.ParentNode is not XmlElement { LocalName: "ItemGroup" } group
-                || !IsProjectItemGroup(group, project))
-            {
-                continue;
-            }
-
-            // MSBuild evaluates these operands against the same item identities in declaration order.
-            // See docs/project-review-2026-11-25/task-51-p1-rename-project-reference-update-hi.md.
-            foreach (XmlAttribute path in item.Attributes)
-            {
-                if (path.Name is "Include" or "Exclude" or "Update" or "Remove")
-                {
-                    yield return path;
-                }
-            }
-        }
-    }
-
-    private static bool IsProjectItemGroup(XmlElement group, XmlElement project)
-    {
-        if (group.NamespaceURI != project.NamespaceURI)
-        {
-            return false;
-        }
-
-        // ProjectExtensions and task payloads can use the same element names as real item declarations.
-        for (var owner = group.ParentNode; owner is XmlElement element; owner = element.ParentNode)
-        {
-            if (ReferenceEquals(element, project))
-            {
-                return true;
-            }
-
-            if (element.NamespaceURI != project.NamespaceURI
-                || element.LocalName is not ("Choose" or "When" or "Otherwise" or "Target"))
-            {
-                return false;
-            }
-        }
-
-        return false;
-    }
-
-    private static IEnumerable<XmlAttribute?> GetSolutionProjectReferences(XmlDocument document)
-    {
-        if (document.DocumentElement is not { } solution || !solution.Name.Equals("Solution", StringComparison.OrdinalIgnoreCase))
-        {
-            yield break;
-        }
-
-        // SLNX compares qualified element names without case, even in a default namespace. Projects
-        // are direct children of Solution or a top-level Folder; extensions may reuse the same names.
-        // See docs/project-review-2026-11-25/task-43-p2-slnx-extension-project-metadata-med.md.
-        var containers = ChildrenNamed(solution, "Folder").Prepend(solution);
-        foreach (var project in containers.SelectMany(container => ChildrenNamed(container, "Project")))
-        {
-            yield return project.GetAttributeNode("Path");
-            foreach (var dependency in ChildrenNamed(project, "BuildDependency"))
-            {
-                yield return dependency.GetAttributeNode("Project");
-            }
-        }
-
-        static IEnumerable<XmlElement> ChildrenNamed(XmlElement parent, string name) =>
-            parent.ChildNodes.OfType<XmlElement>()
-                .Where(child => child.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
-    }
-
-    private static string? RewriteXmlReferences(string text, string ownerPath, ProjectMove move, bool isProject)
-    {
-        var doc = new XmlDocument { PreserveWhitespace = true };
-        try
-        {
-            using var input = new StringReader(text);
-            using var reader = XmlReader.Create(input, new XmlReaderSettings { DtdProcessing = DtdProcessing.Parse });
-            doc.Load(reader);
-        }
-        catch (XmlException) when (!move.Contains(ownerPath))
-        {
-            return null;
-        }
-
-        var attributes = (isProject ? GetProjectReferencePaths(doc) : GetSolutionProjectReferences(doc)).ToArray();
-        var includes = isProject ? GetProjectReferenceIncludes(attributes, ownerPath, move) : [];
-        var changed = false;
-        foreach (var attribute in attributes)
-        {
-            if (attribute is null || string.IsNullOrWhiteSpace(attribute.Value))
-            {
-                continue;
-            }
-
-            // MSBuild trims whitespace around item specifications before matching them.
-            var path = isProject ? attribute.Value.Trim() : attribute.Value;
-            if (isProject && !IsLiteralProjectReference(path))
-            {
-                throw new InvalidOperationException(
-                    $"Unsupported ProjectReference path in `{ownerPath}`: `{attribute.Value}`. Use a literal project path before moving the directory.");
-            }
-
-            var updated = isProject && attribute.Name != "Include"
-                ? RewriteProjectReferenceSelector(attribute, path, includes, ownerPath, move)
-                : move.RewriteReference(ownerPath, path, isProject ? '\\' : '/', out _);
-            if (updated is not null)
-            {
-                attribute.Value = updated;
-                changed = true;
-            }
-        }
-
-        if (!changed)
-        {
-            return null;
-        }
-
-        var declaration = doc.FirstChild as XmlDeclaration;
-        ValidateXmlEncoding(ownerPath, declaration?.Encoding);
-        // Literal attribute whitespace was normalized by the reader. Character references that
-        // decoded to tabs or newlines must stay escaped when another XML reader opens the result.
-        var buffer = new StringBuilder();
-        var settings = new XmlWriterSettings { OmitXmlDeclaration = true, NewLineHandling = NewLineHandling.Entitize };
-        using (var writer = XmlWriter.Create(buffer, settings))
-        {
-            doc.WriteTo(writer);
-        }
-
-        var content = buffer.ToString().Replace("\r\n", "\n", StringComparison.Ordinal);
-        if (text.Contains("\r\n", StringComparison.Ordinal))
-        {
-            content = content.Replace("\n", "\r\n", StringComparison.Ordinal);
-        }
-
-        return declaration is null ? content : text[..(text.IndexOf("?>", StringComparison.Ordinal) + 2)] + content;
-    }
-
-    private static ProjectReferenceInclude[] GetProjectReferenceIncludes(
-        IEnumerable<XmlAttribute?> attributes,
-        string ownerPath,
-        ProjectMove move)
-    {
-        return attributes.OfType<XmlAttribute>()
-            .Where(attribute => attribute.Name == "Include" && !string.IsNullOrWhiteSpace(attribute.Value)
-                && IsLiteralProjectReference(attribute.Value))
-            .Select(attribute =>
-            {
-                var oldPath = ProjectMove.ResolveReference(ownerPath, attribute.Value.Trim());
-                return new ProjectReferenceInclude(attribute.OwnerElement, oldPath, move.FinalPath(oldPath));
-            })
-            .ToArray();
-    }
-
-    private static string? RewriteProjectReferenceSelector(
-        XmlAttribute selector,
-        string spec,
-        ProjectReferenceInclude[] includes,
-        string ownerPath,
-        ProjectMove move)
-    {
-        // MSBuild's literal item filters ignore case even on a case-sensitive filesystem.
-        // See https://github.com/dotnet/msbuild/blob/main/src/Build/Utilities/FileSpecMatchTester.cs#L69-L88.
-        var comparison = StringComparer.OrdinalIgnoreCase;
-        var oldPath = ProjectMove.ResolveReference(ownerPath, spec);
-        var isExclude = selector.Name == "Exclude";
-        var candidates = isExclude
-            ? includes.Where(include => include.Item == selector.OwnerElement)
-            : includes;
-        var matchedTargets = candidates.Where(include => comparison.Equals(include.OldPath, oldPath))
-            .Select(include => include.NewPath).Distinct(comparison).Take(2).ToArray();
-        var target = matchedTargets.FirstOrDefault() ?? move.FinalPath(oldPath);
-        if (matchedTargets.Length > 1
-            || (matchedTargets.Length == 0 && !isExclude && move.IsCaseVariantOfMovingPath(oldPath))
-            || candidates.Any(include => !comparison.Equals(include.OldPath, oldPath)
-                && comparison.Equals(include.NewPath, target)))
-        {
-            throw new InvalidOperationException(
-                $"Ambiguous ProjectReference {selector.Name} in `{ownerPath}`: `{spec}` cannot preserve its item matches after the move.");
-        }
-
-        var updated = move.FormatReferenceAfterMove(ownerPath, spec, target, '\\', StringComparison.OrdinalIgnoreCase);
-        if ((updated is not null || !string.Equals(oldPath, target, PathComparison)) && IsInsideTarget(selector))
-        {
-            // Target-time matching compares evaluated item strings, where absolute and relative specs differ.
-            // See https://github.com/dotnet/msbuild/blob/main/src/Build/BackEnd/Components/RequestBuilder/IntrinsicTasks/ItemGroupIntrinsicTask.cs#L531-L589.
-            throw new InvalidOperationException(
-                $"Unsupported target-time ProjectReference {selector.Name} in `{ownerPath}`: `{spec}` can change its item matches after the move.");
-        }
-
-        return updated;
-    }
-
-    private static bool IsInsideTarget(XmlAttribute attribute)
-    {
-        for (var parent = attribute.OwnerElement?.ParentNode; parent is XmlElement element; parent = element.ParentNode)
-        {
-            if (element.LocalName == "Target")
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private static void ValidateXmlEncoding(string path, string? name)
-    {
-        if (string.IsNullOrEmpty(name))
-        {
-            return;
-        }
-
-        var encoding = SourceTextEncoding.ForDiskPath(path);
-        var matches = name.ToLowerInvariant() switch
-        {
-            "utf-8" => encoding.CodePage == Encoding.UTF8.CodePage,
-            "utf-16" => encoding is UnicodeEncoding,
-            "utf-16le" => encoding.CodePage == Encoding.Unicode.CodePage,
-            "utf-16be" => encoding.CodePage == Encoding.BigEndianUnicode.CodePage,
-            // XmlReader interprets a generic UTF-32 declaration as little-endian.
-            "utf-32" or "utf-32le" => encoding.CodePage == Encoding.UTF32.CodePage,
-            "utf-32be" => encoding is UTF32Encoding && encoding.CodePage != Encoding.UTF32.CodePage,
-            _ => false,
+            Source = file,
         };
-        if (!matches)
-        {
-            throw new InvalidOperationException(
-                $"Unsupported XML encoding `{name}` in `{path}`. A rewrite requires UTF-8 or a matching UTF-16 or UTF-32 BOM.");
-        }
-    }
-
-    private static bool IsLiteralProjectReference(string path) =>
-        path.IndexOfAny(['*', '?', ';', '%']) < 0
-        && !path.Contains("$(", StringComparison.Ordinal)
-        && !path.Contains("@(", StringComparison.Ordinal);
-
-    private static (bool Present, string? Value) TryReadProperty(string csprojText, string propertyName)
-    {
-        try
-        {
-            var doc = XDocument.Parse(csprojText);
-            var el = doc.Descendants().FirstOrDefault(e =>
-                e.Name.LocalName.Equals(propertyName, StringComparison.OrdinalIgnoreCase));
-            if (el is null)
-            {
-                return (false, null);
-            }
-
-            return (true, el.Value.Trim());
-        }
-        catch
-        {
-            return (false, null);
-        }
-    }
-
-    private static string ReplaceXmlPropertyValue(string csprojText, string propertyName, string oldValue, string newValue)
-    {
-        // Surgical replace preserves formatting for the common single-line property case.
-        var pattern = $@"<{propertyName}>\s*{Regex.Escape(oldValue)}\s*</{propertyName}>";
-        var replacement = new XElement(propertyName, newValue).ToString(SaveOptions.DisableFormatting);
-        var replaced = Regex.Replace(
-            csprojText,
-            pattern,
-            _ => replacement,
-            RegexOptions.CultureInvariant);
-        if (!string.Equals(replaced, csprojText, StringComparison.Ordinal))
-        {
-            return replaced;
-        }
-
-        var doc = XDocument.Parse(csprojText, LoadOptions.PreserveWhitespace);
-        var el = doc.Descendants().FirstOrDefault(e =>
-            e.Name.LocalName.Equals(propertyName, StringComparison.OrdinalIgnoreCase)
-            && string.Equals(e.Value.Trim(), oldValue, StringComparison.Ordinal));
-        if (el is not null)
-        {
-            el.Value = newValue;
-        }
-
-        return doc.ToString();
     }
 
     private static string ResolveSearchRoot(string? searchRoot, string projectParent)
@@ -818,65 +480,5 @@ public static class ProjectRenameHelper
                 stack.Push(sub);
             }
         }
-    }
-
-    private sealed record ProjectReferenceInclude(XmlElement? Item, string OldPath, string NewPath);
-
-    private sealed record ProjectMove(string OldProjectPath, string NewProjectPath)
-    {
-        public string OldDirectory { get; } = Path.GetDirectoryName(OldProjectPath)!;
-        public string NewDirectory { get; } = Path.GetDirectoryName(NewProjectPath)!;
-
-        public bool Contains(string path) =>
-            WorkspaceDiskPathFilter.IsPathUnderDirectory(path, OldDirectory, PathComparison);
-
-        public bool IsCaseVariantOfMovingPath(string path) =>
-            (string.Equals(path, OldProjectPath, StringComparison.OrdinalIgnoreCase)
-                && !string.Equals(path, OldProjectPath, PathComparison))
-            || (!Contains(path)
-                && WorkspaceDiskPathFilter.IsPathUnderDirectory(path, OldDirectory, StringComparison.OrdinalIgnoreCase));
-
-        public string FinalPath(string path)
-        {
-            if (string.Equals(path, OldProjectPath, PathComparison))
-            {
-                return NewProjectPath;
-            }
-
-            return Contains(path) ? Path.Combine(NewDirectory, Path.GetRelativePath(OldDirectory, path)) : path;
-        }
-
-        public string? RewriteReference(string ownerPath, string reference, char separator, out bool renamedProject)
-        {
-            // Resolve in the original graph before calculating what the moved owner's path will resolve to.
-            var oldTarget = ResolveReference(ownerPath, reference);
-            renamedProject = string.Equals(oldTarget, OldProjectPath, PathComparison);
-            return FormatReferenceAfterMove(ownerPath, reference, FinalPath(oldTarget), separator, PathComparison);
-        }
-
-        public string? FormatReferenceAfterMove(
-            string ownerPath,
-            string reference,
-            string targetPath,
-            char separator,
-            StringComparison comparison)
-        {
-            var newOwnerPath = FinalPath(ownerPath);
-            if (string.Equals(ResolveReference(newOwnerPath, reference), targetPath, comparison))
-            {
-                return null;
-            }
-
-            if (reference.Contains('/') != reference.Contains('\\'))
-            {
-                separator = reference.Contains('/') ? '/' : '\\';
-            }
-
-            return Path.GetRelativePath(Path.GetDirectoryName(newOwnerPath)!, targetPath)
-                .Replace(Path.DirectorySeparatorChar, separator);
-        }
-
-        public static string ResolveReference(string ownerPath, string reference) =>
-            Path.GetFullPath(reference.Replace('\\', '/'), Path.GetDirectoryName(ownerPath)!);
     }
 }

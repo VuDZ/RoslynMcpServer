@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.Json;
 using System.Xml.Linq;
 using Microsoft.Extensions.Logging.Abstractions;
+using RoslynMcpServer.Diagnostics;
 using RoslynMcpServer.Services;
 using RoslynMcpServer.Services.Build;
 using RoslynMcpServer.Tests.Support;
@@ -12,6 +13,8 @@ namespace RoslynMcpServer.Tests.Editing;
 
 public sealed class ProjectRenameHelperTests
 {
+    static ProjectRenameHelperTests() => MsBuildBootstrapper.Register();
+
     [Fact]
     public void Happy_path_renames_dir_csproj_refs_sln_and_slnx()
     {
@@ -379,15 +382,19 @@ public sealed class ProjectRenameHelperTests
     [Fact]
     public async Task Rename_updates_only_slnx_model_projects_and_their_direct_dependencies()
     {
-        static string SolutionXml(string projectPath) => $"""
-            <sOlution xmlns="urn:example" xmlns:ext="urn:example">
+        static string SolutionXml(string projectPath, string dependencyPath) => $"""
+            <sOlution xmlns="urn:example" xmlns:ext="urn:example" >
               <fOldEr Name="/Group/Subgroup/">
-                <pRoject Path="{projectPath}" />
+                <!-- Preserve the project note. -->
+                <pRoject ext:Label='Keep é 🌱'   Path = '{projectPath}' >
+                  <ext:Project  Path = 'Old/Old.csproj' />
+                  <Metadata Data='&#x4F;ld/Old.csproj'/>
+                </pRoject>
                 <Folder Name="/Group/Subgroup/Ignored/"><Project Path="Old/Old.csproj" /></Folder>
                 <ext:Project Path="Old/Old.csproj" />
               </fOldEr>
               <Project Path="App/App.csproj">
-                <buildDependency Project="{projectPath}" />
+                <buildDependency Project="{dependencyPath}" />
                 <ext:BuildDependency Project="Old/Old.csproj" />
                 <Telemetry><BuildDependency Project="Old/Old.csproj" /></Telemetry>
               </Project>
@@ -404,9 +411,10 @@ public sealed class ProjectRenameHelperTests
             var oldProject = Path.Combine(root, "Old", "Old.csproj");
             var appProject = Path.Combine(root, "App", "App.csproj");
             var solution = Path.Combine(root, "Demo.slnx");
+            var encoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: true);
             WriteSdkProject(oldProject, withNameProps: false);
             WriteSdkProject(appProject, withNameProps: false);
-            File.WriteAllText(solution, SolutionXml("Old/Old.csproj"));
+            File.WriteAllText(solution, SolutionXml("Old&#x2F;Old.csproj", @"oLD\Old.csproj"), encoding);
             var original = File.ReadAllBytes(solution);
             await AssertSolutionOpensAsync(solution, oldProject, appProject);
 
@@ -417,8 +425,152 @@ public sealed class ProjectRenameHelperTests
 
             var result = await tool.RenameProject(oldProject, "New", dryRun: false, searchRoot: root);
             Assert.Contains("Rename applied successfully", result, StringComparison.Ordinal);
-            Assert.Equal(SolutionXml("New/New.csproj"), File.ReadAllText(solution));
+            Assert.Equal(EncodeWithPreamble(encoding, SolutionXml("New/New.csproj", @"New\New.csproj")), File.ReadAllBytes(solution));
             await AssertSolutionOpensAsync(solution, Path.Combine(root, "New", "New.csproj"), appProject);
+        }
+        finally
+        {
+            DeleteRoot(root);
+        }
+    }
+
+    [Fact]
+    public async Task Rename_preserves_classic_solution_bytes_outside_the_project_header()
+    {
+        static string Solution(string name) => """
+            Microsoft Visual Studio Solution File, Format Version 12.00
+            # Visual Studio Version 17
+            # Keep this note about Old\Old.csproj.
+            Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}")   =   "NAME", "NAME\NAME.csproj", "{AA1C6F6E-E71E-4A85-BEB4-FB7F59603BAB}"
+                ProjectSection(CustomProjectPayload) = preProject
+                    Marker = Old\Old.csproj
+                EndProjectSection
+            EndProject
+            Global
+                GlobalSection(CustomPayload) = postSolution
+                    OldPath = Old\Old.csproj
+                EndGlobalSection
+            EndGlobal
+            """.ReplaceLineEndings("\n")
+            .Replace("NAME", name, StringComparison.Ordinal);
+
+        var root = CreateTempRoot();
+        try
+        {
+            var oldProject = Path.Combine(root, "Old", "Old.csproj");
+            var solution = Path.Combine(root, "Demo.sln");
+            WriteSdkProject(oldProject, withNameProps: false);
+            File.WriteAllText(solution, Solution("Old"));
+            await AssertSolutionOpensAsync(solution, oldProject);
+
+            var plan = ProjectRenameHelper.CreatePlan(oldProject, "New", root);
+            Assert.Contains("Rename applied successfully", ProjectRenameHelper.Apply(plan), StringComparison.Ordinal);
+
+            Assert.Equal(Encoding.UTF8.GetBytes(Solution("New")), File.ReadAllBytes(solution));
+            await AssertSolutionOpensAsync(solution, plan.NewProjectPath);
+        }
+        finally
+        {
+            DeleteRoot(root);
+        }
+    }
+
+    [Fact]
+    public async Task Rename_preserves_project_bytes_outside_references_and_name_properties()
+    {
+        static string RenamedProject(string name) => $"""
+            <Project Sdk="Microsoft.NET.Sdk" >
+              <PropertyGroup>
+                <TargetFramework>net11.0</TargetFramework>
+                <!-- Keep this text: <AssemblyName>Old</AssemblyName> -->
+                <AssemblyName >{name}</AssemblyName>
+                <RootNamespace>{name}</RootNamespace>
+              </PropertyGroup>
+              <ProjectExtensions><AssemblyName>Old</AssemblyName></ProjectExtensions>
+            </Project>
+            """.ReplaceLineEndings("\r\n");
+
+        static string ConsumerProject(string reference) => $"""
+            <Project Sdk='Microsoft.NET.Sdk' >
+              <PropertyGroup><TargetFramework>net11.0</TargetFramework></PropertyGroup>
+              <ItemGroup>
+                <ProjectReference
+                    Include  = '{reference}'  />
+                <ProjectReference ReferenceOutputAssembly='false'   Update = "{reference}"/>
+              </ItemGroup>
+              <ProjectExtensions><ItemGroup><ProjectReference Include='../Old/Old.csproj'/></ItemGroup></ProjectExtensions>
+            </Project>
+            """.ReplaceLineEndings("\r\n");
+
+        var root = CreateTempRoot();
+        try
+        {
+            var oldProject = Path.Combine(root, "Old", "Old.csproj");
+            var appProject = Path.Combine(root, "App", "App.csproj");
+            Directory.CreateDirectory(Path.GetDirectoryName(oldProject)!);
+            Directory.CreateDirectory(Path.GetDirectoryName(appProject)!);
+            File.WriteAllText(oldProject, RenamedProject("&#x4F;ld"), Encoding.Unicode);
+            File.WriteAllText(appProject, ConsumerProject("../Old&#x2F;Old.csproj"), Encoding.Unicode);
+            await AssertEvaluatedProjectReferenceAsync(appProject, oldProject);
+
+            var plan = ProjectRenameHelper.CreatePlan(oldProject, "New & More", root);
+            Assert.Contains("Rename applied successfully", ProjectRenameHelper.Apply(plan), StringComparison.Ordinal);
+
+            Assert.Equal(EncodeWithPreamble(Encoding.Unicode, RenamedProject("New &amp; More")), File.ReadAllBytes(plan.NewProjectPath));
+            Assert.Equal(EncodeWithPreamble(Encoding.Unicode, ConsumerProject("../New &amp; More/New &amp; More.csproj")),
+                File.ReadAllBytes(appProject));
+            await AssertEvaluatedProjectReferenceAsync(appProject, plan.NewProjectPath);
+        }
+        finally
+        {
+            DeleteRoot(root);
+        }
+    }
+
+    [Theory]
+    [InlineData("Old <!-- assembly comment -->Project", "New Project", true)]
+    [InlineData("Old<!-- first --> <!-- second -->Project", "OldProject", false)]
+    public async Task Rename_uses_msbuild_whitespace_rules_in_split_assembly_names(
+        string originalValue,
+        string expectedName,
+        bool updateAssemblyName)
+    {
+        var root = CreateTempRoot();
+        try
+        {
+            var oldProject = Path.Combine(root, "Old Project", "Old Project.csproj");
+            Directory.CreateDirectory(Path.GetDirectoryName(oldProject)!);
+            File.WriteAllText(oldProject, $$"""
+                <Project Sdk="Microsoft.NET.Sdk">
+                  <PropertyGroup>
+                    <TargetFramework>net11.0</TargetFramework>
+                    <AssemblyName>{{originalValue}}</AssemblyName>
+                  </PropertyGroup>
+                </Project>
+                """);
+            var original = File.ReadAllBytes(oldProject);
+            var plan = ProjectRenameHelper.CreatePlan(oldProject, "New Project", root);
+            Assert.Equal(updateAssemblyName, plan.UpdateAssemblyName);
+
+            Assert.Contains("Rename applied successfully", ProjectRenameHelper.Apply(plan), StringComparison.Ordinal);
+
+            if (updateAssemblyName)
+            {
+                var project = XDocument.Load(plan.NewProjectPath);
+                var assemblyName = Assert.Single(project.Descendants("AssemblyName"));
+                Assert.Equal(" assembly comment ", Assert.Single(assemblyName.Nodes().OfType<XComment>()).Value);
+            }
+            else
+            {
+                Assert.Equal(original, File.ReadAllBytes(plan.NewProjectPath));
+            }
+
+            var result = await DotNetCliRunner.RunSeparatedAsync(
+                $"msbuild \"{plan.NewProjectFileName}\" -nologo -getProperty:AssemblyName",
+                plan.NewDirectory,
+                TimeSpan.FromSeconds(30));
+            Assert.True(result.ExitCode == 0, $"{result.StdOut}{Environment.NewLine}{result.StdErr}");
+            Assert.Equal(expectedName, result.StdOut.TrimEnd('\r', '\n'));
         }
         finally
         {
@@ -730,6 +882,97 @@ public sealed class ProjectRenameHelperTests
     }
 
     [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Apply_rejects_modified_input_before_moving_the_project(bool modifyProject)
+    {
+        var root = CreateFixtureRoot();
+        try
+        {
+            var oldProject = Path.Combine(root, "DupsFinder.Core", "DupsFinder.Core.csproj");
+            var solution = Path.Combine(root, "App.sln");
+            var input = modifyProject ? oldProject : solution;
+            var plan = ProjectRenameHelper.CreatePlan(oldProject, "DupFinder.Core", root);
+            File.AppendAllText(input, "\nNew text on disk.\n");
+            var changed = File.ReadAllBytes(input);
+
+            Assert.Throws<InvalidOperationException>(() => ProjectRenameHelper.Apply(plan));
+
+            Assert.Equal(changed, File.ReadAllBytes(input));
+            Assert.True(File.Exists(oldProject));
+            Assert.False(Directory.Exists(plan.NewDirectory));
+        }
+        finally
+        {
+            DeleteRoot(root);
+        }
+    }
+
+    [Fact]
+    public void Rename_rejects_a_reference_generated_by_an_xml_entity_before_moving_the_project()
+    {
+        var root = CreateTempRoot();
+        try
+        {
+            var oldProject = Path.Combine(root, "Old", "Old.csproj");
+            var consumer = Path.Combine(root, "App.csproj");
+            WriteSdkProject(oldProject, withNameProps: false);
+            File.WriteAllText(consumer, """
+                <!DOCTYPE Project [
+                  <!ENTITY reference "<ProjectReference Include='Old/Old.csproj' />">
+                ]>
+                <Project Sdk="Microsoft.NET.Sdk">
+                  <ItemGroup>&reference;</ItemGroup>
+                </Project>
+                """);
+            var original = File.ReadAllBytes(consumer);
+
+            var rejection = Assert.Throws<InvalidOperationException>(() => ProjectRenameHelper.CreatePlan(oldProject, "New", root));
+
+            Assert.Contains(consumer, rejection.Message, StringComparison.Ordinal);
+            Assert.Equal(original, File.ReadAllBytes(consumer));
+            Assert.True(File.Exists(oldProject));
+            Assert.False(Directory.Exists(Path.Combine(root, "New")));
+        }
+        finally
+        {
+            DeleteRoot(root);
+        }
+    }
+
+    [Theory]
+    [InlineData(".sln")]
+    [InlineData(".slnx")]
+    public void Rename_rejects_a_duplicate_solution_project_name_before_moving_the_project(string extension)
+    {
+        var root = CreateTempRoot();
+        try
+        {
+            var oldProject = Path.Combine(root, "Old", "Old.csproj");
+            var otherProject = Path.Combine(root, "Shared", "New.csproj");
+            var solution = Path.Combine(root, "Demo" + extension);
+            WriteSdkProject(oldProject, withNameProps: false);
+            WriteSdkProject(otherProject, withNameProps: false);
+            WriteGraphSolution(solution, "Old/Old.csproj", "Shared/New.csproj");
+            var originalProject = File.ReadAllBytes(oldProject);
+            var originalOther = File.ReadAllBytes(otherProject);
+            var originalSolution = File.ReadAllBytes(solution);
+
+            var rejection = Assert.Throws<InvalidOperationException>(() => ProjectRenameHelper.CreatePlan(oldProject, "New", root));
+
+            Assert.Contains(solution, rejection.Message, StringComparison.Ordinal);
+            Assert.Equal(originalProject, File.ReadAllBytes(oldProject));
+            Assert.Equal(originalOther, File.ReadAllBytes(otherProject));
+            Assert.Equal(originalSolution, File.ReadAllBytes(solution));
+            Assert.False(Directory.Exists(Path.Combine(root, "New")));
+        }
+        finally
+        {
+            DeleteRoot(root);
+        }
+    }
+
+    [Theory]
     [InlineData(true, "Include", "$(ProjectRoot)/Core/Core.csproj")]
     [InlineData(false, "Include", "$(ProjectRoot)/Core/Core.csproj")]
     [InlineData(false, "Include", "$(ProjectPath)")]
@@ -875,6 +1118,9 @@ public sealed class ProjectRenameHelperTests
             """);
         return root;
     }
+
+    private static byte[] EncodeWithPreamble(Encoding encoding, string text) =>
+        [.. encoding.GetPreamble(), .. encoding.GetBytes(text)];
 
     private static void WriteSdkProject(string path, bool withNameProps, string? assemblyAndRoot = null)
     {
