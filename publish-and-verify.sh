@@ -64,16 +64,32 @@ detect_rid() {
     echo "linux-$libc$arch"
 }
 
+# SDK version pinned by global.json (rollForward is disabled), empty if there is none.
+pinned_sdk() {
+    local global_json="$repo_root/global.json"
+    [ -f "$global_json" ] || return 0
+    sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$global_json" | head -n 1
+}
+
+# Does the dotnet host in this directory have the SDK pinned by global.json?
+has_pinned_sdk() {
+    [ -x "$1/dotnet" ] || return 1
+    [ -z "$sdk_version" ] || [ -d "$1/sdk/$sdk_version" ]
+}
+
+# First dotnet host that can build this repository: PATH, $DOTNET_ROOT, ~/.dotnet, ~/.dotnet11.
 resolve_dotnet() {
-    if command -v dotnet >/dev/null 2>&1; then
-        command -v dotnet
-    elif [ -n "${DOTNET_ROOT:-}" ] && [ -x "$DOTNET_ROOT/dotnet" ]; then
-        echo "$DOTNET_ROOT/dotnet"
-    elif [ -x "$HOME/.dotnet/dotnet" ]; then
-        echo "$HOME/.dotnet/dotnet"
-    else
-        die "dotnet not found on PATH, in \$DOTNET_ROOT or in ~/.dotnet. Install the .NET 10 SDK."
-    fi
+    local candidate dir
+    for candidate in "$(command -v dotnet 2>/dev/null || true)" "${DOTNET_ROOT:-}/dotnet" \
+                     "$HOME/.dotnet/dotnet" "$HOME/.dotnet11/dotnet"; do
+        [ -n "$candidate" ] && [ -x "$candidate" ] || continue
+        dir=$(dirname "$(readlink -f "$candidate")")
+        if has_pinned_sdk "$dir"; then
+            echo "$dir/dotnet"
+            return
+        fi
+    done
+    die "no dotnet host with SDK ${sdk_version:-from global.json} on PATH, in \$DOTNET_ROOT, ~/.dotnet or ~/.dotnet11. Install the SDK pinned in global.json."
 }
 
 # Version of a build output folder, taken from its deps.json ("RoslynMcpServer/1.6.2").
@@ -83,11 +99,11 @@ output_version() {
     grep -o '"RoslynMcpServer/[0-9][^"]*"' "$deps" | head -n 1 | tr -d '"' | cut -d/ -f2 || echo "unknown"
 }
 
-# Same rule as launch.sh: the folder whose RoslynMcpServer.dll has the newest mtime.
+# Same rule as launch.sh: the folder whose RoslynMcpServer.dll has the newest mtime, in any TFM.
 launcher_source() {
     local repo="$1" dll mtime newest=0 src=""
-    for dll in "$repo"/bin/{Release,Debug}/net10.0/RoslynMcpServer.dll \
-               "$repo"/bin/{Release,Debug}/net10.0/*/publish/RoslynMcpServer.dll; do
+    for dll in "$repo"/bin/{Release,Debug}/net*/RoslynMcpServer.dll \
+               "$repo"/bin/{Release,Debug}/net*/*/publish/RoslynMcpServer.dll; do
         [ -f "$dll" ] || continue
         mtime=$(stat -c %Y "$dll")
         if [ "$mtime" -gt "$newest" ]; then
@@ -129,8 +145,11 @@ running_servers() {
 }
 
 [ -n "$rid" ] || rid=$(detect_rid)
+sdk_version=$(pinned_sdk)
 dotnet=$(resolve_dotnet)
-publish_dir="$repo_root/bin/Release/net10.0/$rid/publish"
+tfm=$(grep -o '<TargetFramework>[^<]*</TargetFramework>' "$project" | head -n 1 | sed 's/<[^>]*>//g')
+[ -n "$tfm" ] || die "no single TargetFramework in $project"
+publish_dir="$repo_root/bin/Release/$tfm/$rid/publish"
 
 # Build tools follow TMPDIR; /tmp on this kind of machine is often a small tmpfs.
 if [ -z "${TMPDIR:-}" ]; then
@@ -140,6 +159,8 @@ mkdir -p "$TMPDIR"
 
 echo "dotnet host  : $dotnet"
 "$dotnet" --info | grep -E '^\s*(RID|Architecture|Base Path)\s*:' | sed 's/^\s*//' || true
+echo "SDK          : ${sdk_version:-not pinned}"
+echo "TFM          : $tfm"
 echo "RID          : $rid"
 
 echo "Publishing RoslynMcpServer..."
@@ -212,6 +233,16 @@ else
     fi
 fi
 echo "MCP repo     : $mcp_repo"
+
+# The server loads workspaces with the MCP environment's dotnet. Without the pinned SDK it cannot
+# open this repository (global.json disables roll-forward), and a framework-dependent build cannot start.
+mcp_dotnet_root=$(mcp_env DOTNET_ROOT)
+[ -n "$mcp_dotnet_root" ] || mcp_dotnet_root="${DOTNET_ROOT:-}"
+if [ -n "$mcp_dotnet_root" ]; then
+    echo "MCP dotnet   : $mcp_dotnet_root"
+    has_pinned_sdk "$mcp_dotnet_root" \
+        || warn "MCP DOTNET_ROOT $mcp_dotnet_root has no SDK $sdk_version; install it there or point DOTNET_ROOT and PATH of '$mcp_name' at $(dirname "$dotnet")"
+fi
 
 [ -f "$launcher" ] || warn "launcher not found: $launcher"
 
