@@ -525,21 +525,21 @@ public sealed class McpToolCatalogTests(ITestOutputHelper output)
         output.WriteLine($"lite+operations={liteOperations.Count}/{liteOperations.Utf8Bytes}");
 
         // The server info description includes the process path and server assembly identity.
-        AssertRecorded("full", 55, 47763, full);
-        AssertRecorded("lite", 16, 21298, lite);
-        AssertRecorded("lite+files", 24, 26364, liteFiles);
-        AssertRecorded("lite+editing", 24, 26568, liteEditing);
-        AssertRecorded("lite+decompile", 20, 24060, liteDecompile);
-        AssertRecorded("lite+nuget", 22, 24677, liteNuget);
-        AssertRecorded("lite+project", 19, 22818, liteProject);
-        AssertRecorded("lite+runtime", 19, 24036, liteRuntime);
-        AssertRecorded("lite+operations", 20, 23100, liteOperations);
+        AssertRecorded("full", 55, 47772, full);
+        AssertRecorded("lite", 16, 21307, lite);
+        AssertRecorded("lite+files", 24, 26373, liteFiles);
+        AssertRecorded("lite+editing", 24, 26577, liteEditing);
+        AssertRecorded("lite+decompile", 20, 24069, liteDecompile);
+        AssertRecorded("lite+nuget", 22, 24686, liteNuget);
+        AssertRecorded("lite+project", 19, 22827, liteProject);
+        AssertRecorded("lite+runtime", 19, 24045, liteRuntime);
+        AssertRecorded("lite+operations", 20, 23109, liteOperations);
 
         var enabled = MeasureSurface(
             new McpToolProfileOptions { Profile = "lite" },
             activation => activation.EnableGroup("files"));
-        AssertRecorded("lite+enable:files", 24, 26364, enabled);
-        Assert.Equal(26364, MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "files" }).Utf8Bytes);
+        AssertRecorded("lite+enable:files", 24, 26373, enabled);
+        Assert.Equal(26373, MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "files" }).Utf8Bytes);
     }
 
     private static void AssertRecorded(string label, int count, int bytes, (int Count, int Utf8Bytes) actual)

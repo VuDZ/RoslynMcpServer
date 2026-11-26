@@ -288,6 +288,19 @@ public sealed class WorkspaceLoadGuidanceTests
     }
 
     [Fact]
+    public void FormatNoMatchingTestsAgentHint_for_filter_without_workspace_names_backing_solution()
+    {
+        var message = WorkspaceLoadGuidance.FormatNoMatchingTestsAgentHint(
+            loadedRoslynWorkspacePath: null,
+            filterDescription: "Name suffix `.FooTests.Bar`",
+            testTargetPath: "Tests.slnf");
+
+        Assert.Contains("load_workspace` on the filter's backing `.sln` or `.slnx`", message, StringComparison.Ordinal);
+        Assert.Contains("filter's selected projects and their dependencies", message, StringComparison.Ordinal);
+        Assert.Contains("After confirming the project is in scope, use `get_test_list`", message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void DiscoverSolutionCandidates_respects_maxCandidates()
     {
         var root = CreateTempRoot();

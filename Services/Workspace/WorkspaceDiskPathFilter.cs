@@ -85,18 +85,15 @@ public static class WorkspaceDiskPathFilter
             return true;
         }
 
-        var ext = Path.GetExtension(fullPath);
-        return ext.Equals(".csproj", StringComparison.OrdinalIgnoreCase)
-            || ext.Equals(".sln", StringComparison.OrdinalIgnoreCase)
-            || ext.Equals(".slnx", StringComparison.OrdinalIgnoreCase);
+        var kind = WorkspaceInputPath.Classify(fullPath);
+        return kind == WorkspaceInputKind.CSharpProject || WorkspaceInputPath.IsSolution(kind);
     }
 
     /// <summary>Identifies a WPF temporary-project name; loaded-project membership is checked separately.</summary>
     public static bool IsWpfTemporaryProject(string? fullPath)
     {
-        return !string.IsNullOrWhiteSpace(fullPath)
-            && string.Equals(Path.GetExtension(fullPath), ".csproj", StringComparison.OrdinalIgnoreCase)
-            && Path.GetFileNameWithoutExtension(fullPath).EndsWith("_wpftmp", StringComparison.OrdinalIgnoreCase);
+        return WorkspaceInputPath.Classify(fullPath) == WorkspaceInputKind.CSharpProject
+            && Path.GetFileNameWithoutExtension(fullPath)!.EndsWith("_wpftmp", StringComparison.OrdinalIgnoreCase);
     }
 
     public static bool IsPathUnderDirectory(string fullFilePath, string directoryPath, StringComparison comparison)

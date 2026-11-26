@@ -9,7 +9,7 @@ Every tool also describes itself: `get_tool_help` returns the live parameters of
 - `directoryPath` — root folder (`list_directory_tree`, optional root for `search_code`).
 - `includeExtensions` — optional extension filter for `search_code` (`.cs` by default; `*` = all files).
 - `caseSensitive` — optional for `search_code` (default `false`; use `true` for leftover branding checks).
-- `workspacePath` — `.sln` / `.slnx` / `.csproj`, and for some tools a directory. File only: `load_workspace`, `run_dotnet_build` (not a directory), `run_dotnet_run` (executable `.csproj`). Directory allowed: `run_dotnet_test`, `run_specific_test`, `run_test_by_filter`, `run_format`, `list_nuget_packages`, `list_outdated_packages`, `run_nuget_audit`, `get_changed_files`. Optional reload: `list_projects` / `get_project_graph`. Prefer `.sln`/`.slnx` for multi-config solutions.
+- `workspacePath` — `.sln` / `.slnx` / `.csproj`, and for some tools a directory. File only: `load_workspace`, `run_dotnet_build` (not a directory), `run_dotnet_run` (executable `.csproj`). Directory allowed: `run_dotnet_test`, `run_specific_test`, `run_test_by_filter`, `run_format`, `list_nuget_packages`, `list_outdated_packages`, `run_nuget_audit`, `get_changed_files`. Optional reload: `list_projects` / `get_project_graph`. Prefer `.sln`/`.slnx` for multi-config solutions. `run_dotnet_build`, `run_dotnet_test`, `run_specific_test`, and `run_test_by_filter` also accept an explicit `.slnf` CLI target. For semantic analysis, load the backing `.sln` or `.slnx` named by the filter.
 - `symbolName` — C# identifier for `find_symbol_definition`, `find_symbol_references`, `find_usages`, and `find_implementations` (exact name; solution-wide definition/usages/implementations and `find_symbol_references` without `filePath` are case-insensitive; `filePath` without `line` on definition and references is ordinal case-sensitive).
 - `diagnosticId` — compiler diagnostic ID from `get_diagnostics_for_file` (e.g. `CS0246`) for `get_code_fixes` / `apply_code_fix`.
 - `fixIndex` — 0-based index from `get_code_fixes` for `apply_code_fix`.
@@ -27,7 +27,7 @@ There are **55** registered tools in the default `full` profile (see list below)
 With `require-solution: true`, load a `.sln` or `.slnx`. With the default `false`, a direct `.csproj` load ends with guidance, including on failure.
 
 **Parameters:**
-- `workspacePath: string` — `.sln`, `.slnx`, or `.csproj` file (not a directory). Prefer solution files for multi-config repos.
+- `workspacePath: string` — `.sln`, `.slnx`, or `.csproj` file (not a directory). For a solution filter, load the backing solution in `solution.path`. Prefer solution files for multi-config repos.
 - `configuration: string?` — optional MSBuild `Configuration` global property (e.g. `Sit-Debug`, `kart`). Inherited by build/test when those tools omit `-c`.
 - `platform: string?` — optional MSBuild `Platform` (`Any CPU` → `AnyCPU`). Inherited by build/test as `-p:Platform=`.
 - `targetFramework: string?` — optional MSBuild `TargetFramework` (e.g. `net10.0`). Pass when the solution uses `TargetFrameworks` so design-time evaluation is an inner TFM with a `Compile` target. Not inherited by build/test.
@@ -329,14 +329,14 @@ Filters use name containment, so selecting `Check` may also run `CheckExtra` and
 <details>
 <summary><code>run_dotnet_build</code> — Runs dotnet build and returns a compact diagnostic summary.</summary>
 
-With `require-solution: true`, give a `.sln` or `.slnx` as the build target. With the default `false`, a direct `.csproj` build ends with guidance, including on failure.
+With `require-solution: true`, give a `.sln`, `.slnx`, or `.slnf` as the build target. With the default `false`, a direct `.csproj` build ends with guidance, including on failure.
 
 **Parameters:**
-- `workspacePath: string` — must be an existing **`.csproj`, `.sln`, or `.slnx` file** (not a directory).
+- `workspacePath: string` — must be an existing **`.csproj`, `.sln`, `.slnx`, or `.slnf` file** (not a directory). MSBuild receives the filter itself and builds its selected projects and their dependencies.
 - `configuration: string? = null` — optional `-p:Configuration=` (e.g. `Sit-Debug`, `Dit-Debug`). Omit to inherit `load_workspace` configuration.
 - `noIncremental: bool = true` — pass `--no-incremental` on every build step (default). Set `false` only if you explicitly accept MSBuild up-to-date caching.
 - `platform: string? = null` — optional `-p:Platform=` (e.g. `x64`). Omit to inherit `load_workspace` platform.
-- `projectName: string? = null` — optional. When set, `workspacePath` must be a `.sln`/`.slnx`. Builds that project via its solution-folder MSBuild target (`-t:"Folder\Project"`). Match display name, file name, or virtual path.
+- `projectName: string? = null` — optional. When set, `workspacePath` must be a full `.sln`/`.slnx`. Builds that project via its solution-folder MSBuild target (`-t:"Folder\Project"`). Match display name, file name, or virtual path.
 - `timeoutSeconds: int? = null` — omit for 180 seconds per step and 300 seconds total. An explicit value from 1 to 4,294,967 sets one budget for all build and restore steps. `0` disables the tool timeout. Client cancellation and the client's `tools/call` timeout still apply.
 - `reportCursor: string? = null` — next chunk of retained process output. Does not start a new build.
 - `includeBuildWarnings: bool = false` — include build warnings; default hides them. Errors are always shown.
@@ -353,7 +353,7 @@ Escalation: minimal build → resolved SDK restore → restore (detailed if empt
 <summary><code>run_dotnet_test</code> — Runs dotnet test with condensed failure details.</summary>
 
 **Parameters:**
-- `workspacePath: string`
+- `workspacePath: string` — `.csproj`, `.sln`, `.slnx`, `.slnf`, or test project directory. The pre-test build and test use the filter itself. Omit `binariesPath` for this route.
 - `timeoutSeconds: int = 300` — process timeout; `0` disables (not recommended). Raise for long integration tests (e.g. 900/1800).
 - `noBuild: bool? = null` — omit means false on the non-DLL route (`--no-build` only when true). With `binariesPath`, `false` means `always` and `true` means `never`; do not pass this together with `buildPolicy`.
 - `buildPolicy: string? = null` — `auto`, `always`, or `never`. Requires `binariesPath`. Omit both this and `noBuild` for `auto`.
@@ -376,7 +376,7 @@ Escalation: minimal build → resolved SDK restore → restore (detailed if empt
 <summary><code>run_specific_test</code> — Run dotnet test filtered to one class and/or method.</summary>
 
 **Parameters:**
-- `workspacePath: string`
+- `workspacePath: string` — same inputs as `run_dotnet_test`, including `.slnf` when `binariesPath` is omitted. Load the backing solution for Roslyn-assisted test name resolution.
 - `className: string?` — e.g. `UserServiceTests` (simple or fully qualified)
 - `methodName: string?` — e.g. `CreateUser_WhenValid_ReturnsOk`
 - `timeoutSeconds: int = 300` — same as `run_dotnet_test`.
@@ -403,7 +403,7 @@ At least one of `className` or `methodName` is required. The tool builds a VSTes
 <summary><code>run_test_by_filter</code> — Run dotnet test with a raw VSTest <code>--filter</code>.</summary>
 
 **Parameters:**
-- `workspacePath: string` — `.csproj`, `.sln`, `.slnx`, or test project directory (same as `run_dotnet_test`).
+- `workspacePath: string` — same inputs as `run_dotnet_test`, including `.slnf` when `binariesPath` is omitted.
 - `filter: string` — passed through as `--filter` (e.g. `FullyQualifiedName~MyClass`, `FullyQualifiedName~CreateUser`, `TestCategory=Smoke`). Empty is an error. Do not put method `()`.
 - `timeoutSeconds: int = 300` — same as `run_dotnet_test`.
 - `noBuild: bool? = null` — omit means true on the non-DLL route (default **true**, unlike the other test tools). With `binariesPath`, `false` means `always` and `true` means `never`; do not pass this together with `buildPolicy`.

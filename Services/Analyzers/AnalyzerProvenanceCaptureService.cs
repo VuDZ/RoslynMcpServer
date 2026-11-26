@@ -330,9 +330,8 @@ public sealed class AnalyzerProvenanceCaptureService
         IProgress<ProjectLoadProgress> projectLoadProgress,
         CancellationToken cancellationToken)
     {
-        var extension = Path.GetExtension(fullPath);
-        if (string.Equals(extension, ".sln", PathComparison)
-            || string.Equals(extension, ".slnx", PathComparison))
+        var kind = WorkspaceInputPath.Classify(fullPath);
+        if (WorkspaceInputPath.IsSolution(kind))
         {
             _ = await workspace
                 .OpenSolutionAsync(fullPath, binaryLogger, projectLoadProgress, cancellationToken)
@@ -340,7 +339,7 @@ public sealed class AnalyzerProvenanceCaptureService
             return;
         }
 
-        if (string.Equals(extension, ".csproj", PathComparison))
+        if (kind == WorkspaceInputKind.CSharpProject)
         {
             var project = await workspace
                 .OpenProjectAsync(fullPath, binaryLogger, projectLoadProgress, cancellationToken)

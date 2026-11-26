@@ -3,7 +3,7 @@ using System.Xml.Linq;
 
 namespace RoslynMcpServer.Services.Workspace;
 
-/// <summary>Reads solution configuration|platform pairs from <c>.sln</c> / <c>.slnx</c> for agent guidance.</summary>
+/// <summary>Reads configuration|platform pairs from a solution or a filter’s backing solution for agent guidance.</summary>
 public static class SolutionConfigurationCatalog
 {
     public const int DefaultMaxEntries = 10;
@@ -21,25 +21,32 @@ public static class SolutionConfigurationCatalog
             return Array.Empty<string>();
         }
 
-        var ext = Path.GetExtension(solutionPath);
         try
         {
-            if (ext.Equals(".sln", StringComparison.OrdinalIgnoreCase))
+            var kind = WorkspaceInputPath.Classify(solutionPath);
+            if (kind == WorkspaceInputKind.SolutionFilter)
             {
-                return ListFromSln(File.ReadAllText(solutionPath), maxEntries);
+                var backingPath = SolutionFilterPath.TryReadBackingSolution(solutionPath);
+                if (backingPath is null)
+                {
+                    return Array.Empty<string>();
+                }
+
+                solutionPath = backingPath;
+                kind = WorkspaceInputPath.Classify(solutionPath);
             }
 
-            if (ext.Equals(".slnx", StringComparison.OrdinalIgnoreCase))
+            return kind switch
             {
-                return ListFromSlnx(File.ReadAllText(solutionPath), maxEntries);
-            }
+                WorkspaceInputKind.Sln => ListFromSln(File.ReadAllText(solutionPath), maxEntries),
+                WorkspaceInputKind.Slnx => ListFromSlnx(File.ReadAllText(solutionPath!), maxEntries),
+                _ => Array.Empty<string>(),
+            };
         }
         catch
         {
             return Array.Empty<string>();
         }
-
-        return Array.Empty<string>();
     }
 
     internal static IReadOnlyList<string> ListFromSln(string slnText, int maxEntries = DefaultMaxEntries)

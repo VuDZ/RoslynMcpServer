@@ -66,24 +66,24 @@ public static class SolutionProjectTargetResolver
             return ResolveResult.Fail($"Error: solution file not found: `{solutionPath}`.");
         }
 
-        var ext = Path.GetExtension(solutionPath);
+        var kind = WorkspaceInputPath.Classify(solutionPath);
+        if (kind == WorkspaceInputKind.SolutionFilter)
+        {
+            return ResolveResult.Fail(
+                "Error: `projectName` cannot select a target from a solution filter. Pass the backing `.sln` or `.slnx`, or omit `projectName` to build the filter.");
+        }
+
+        if (!WorkspaceInputPath.IsSolution(kind))
+        {
+            return ResolveResult.Fail(
+                "Error: `projectName` requires `workspacePath` to be a `.sln` or `.slnx` so the project can be built as a solution target.");
+        }
+
         IReadOnlyList<ProjectEntry> projects;
         try
         {
             var text = File.ReadAllText(solutionPath);
-            if (ext.Equals(".sln", StringComparison.OrdinalIgnoreCase))
-            {
-                projects = ListFromSln(text);
-            }
-            else if (ext.Equals(".slnx", StringComparison.OrdinalIgnoreCase))
-            {
-                projects = ListFromSlnx(text);
-            }
-            else
-            {
-                return ResolveResult.Fail(
-                    "Error: `projectName` requires `workspacePath` to be a `.sln` or `.slnx` so the project can be built as a solution target.");
-            }
+            projects = kind == WorkspaceInputKind.Sln ? ListFromSln(text) : ListFromSlnx(text);
         }
         catch (Exception ex)
         {

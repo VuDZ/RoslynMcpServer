@@ -58,6 +58,20 @@ public sealed class McpToolHelpTests
     }
 
     [Fact]
+    public async Task Solution_filter_help_distinguishes_build_from_semantic_load()
+    {
+        using var host = BuildHost(new McpToolProfileOptions { Profile = "full" });
+        var tools = host.Services.GetRequiredService<ToolHelpTools>();
+
+        var loadHelp = await tools.GetToolHelp("load_workspace");
+        var buildHelp = await tools.GetToolHelp("run_dotnet_build");
+
+        Assert.Contains("workspacePath must be a .sln, .slnx, or .csproj file.", loadHelp, StringComparison.Ordinal);
+        Assert.Contains("load the backing .sln or .slnx named in solution.path.", loadHelp, StringComparison.Ordinal);
+        Assert.Contains("workspacePath must be a .sln, .slnx, .slnf, or .csproj file.", buildHelp, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Unknown_tool_suggests_close_names()
     {
         using var host = BuildHost(new McpToolProfileOptions { Profile = "lite" });

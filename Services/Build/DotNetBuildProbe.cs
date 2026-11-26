@@ -322,7 +322,7 @@ public static class DotNetBuildProbe
 
     /// <summary>
     /// Target, configuration, platform, incremental, and session <c>buildArgs</c> for <c>dotnet build</c> steps only.
-    /// <paramref name="cliTargetPath"/> is the <c>.sln</c>/<c>.slnx</c>/<c>.csproj</c> being built (platform naming).
+    /// <paramref name="cliTargetPath"/> is the solution, filter, or project being built (platform naming).
     /// </summary>
     internal static string FormatBuildStepSuffix(
         string? configuration,

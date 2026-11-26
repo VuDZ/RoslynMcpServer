@@ -9,7 +9,7 @@ internal static class WorkspaceEntryPolicy
         + "so settings such as SolutionDir and intermediate output paths can differ. If errors occurred, retry through the solution.";
 
     internal static bool IsDirectProject(string? path) =>
-        string.Equals(Path.GetExtension(path), ".csproj", StringComparison.OrdinalIgnoreCase);
+        WorkspaceInputPath.Classify(path) == WorkspaceInputKind.CSharpProject;
 
     internal static string Rejection(RoslynMcpFileSettings settings) =>
         "Direct .csproj entry points are disabled by require-solution. " + Guidance(settings);

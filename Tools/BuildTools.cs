@@ -25,7 +25,7 @@ public sealed class BuildTools
         "Runs dotnet build with parsed diagnostics. Inherits configuration, platform, and buildArgs from load_workspace. "
         + "A direct .csproj target requires require-solution=false in RoslynMcp.jsonc (the default).")]
     public async Task<string> RunDotNetBuild(
-        [Description("Path to a .csproj, .sln, or .slnx file, not a directory.")]
+        [Description("Build file (.csproj, .sln, .slnx, or .slnf).")]
         string workspacePath,
         [Description("MSBuild Configuration. Omit to inherit load_workspace.")]
         string? configuration = null,
@@ -63,7 +63,8 @@ public sealed class BuildTools
             }
 
             fullPath = Path.GetFullPath(workspacePath);
-            if (_solutionManager.FileSettings.RequireSolution && WorkspaceEntryPolicy.IsDirectProject(fullPath))
+            var inputKind = WorkspaceInputPath.Classify(fullPath);
+            if (_solutionManager.FileSettings.RequireSolution && inputKind == WorkspaceInputKind.CSharpProject)
             {
                 return Complete("Error: " + WorkspaceEntryPolicy.Rejection(_solutionManager.FileSettings));
             }
@@ -78,12 +79,9 @@ public sealed class BuildTools
                 return Complete($"File not found: `{fullPath}`");
             }
 
-            var extension = Path.GetExtension(fullPath);
-            if (!string.Equals(extension, ".csproj", StringComparison.OrdinalIgnoreCase)
-                && !string.Equals(extension, ".sln", StringComparison.OrdinalIgnoreCase)
-                && !string.Equals(extension, ".slnx", StringComparison.OrdinalIgnoreCase))
+            if (inputKind == WorkspaceInputKind.Unknown)
             {
-                return Complete($"Path must be a .csproj, .sln, or .slnx file: `{fullPath}`");
+                return Complete($"Path must be a .csproj, .sln, .slnx, or .slnf file: `{fullPath}`");
             }
 
             var workDir = WorkspaceRootResolver.ResolveDotNetWorkingDirectory(fullPath);
@@ -108,12 +106,6 @@ public sealed class BuildTools
             string? resolvedProjectName = null;
             if (!string.IsNullOrWhiteSpace(projectName))
             {
-                if (!string.Equals(extension, ".sln", StringComparison.OrdinalIgnoreCase)
-                    && !string.Equals(extension, ".slnx", StringComparison.OrdinalIgnoreCase))
-                {
-                    return Complete("Error: `projectName` requires `workspacePath` to be a `.sln` or `.slnx` so the project can be built as a solution target.");
-                }
-
                 var resolved = SolutionProjectTargetResolver.TryResolve(fullPath, projectName);
                 if (!resolved.Success)
                 {

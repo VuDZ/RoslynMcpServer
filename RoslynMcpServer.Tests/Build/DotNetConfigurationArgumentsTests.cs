@@ -51,15 +51,13 @@ public sealed class DotNetConfigurationArgumentsTests
         Assert.Equal(string.Empty, DotNetConfigurationArguments.FormatPlatformProperty(null));
     }
 
-    [Fact]
-    public void FormatPlatformProperty_solution_keeps_any_cpu_verbatim()
+    [Theory]
+    [InlineData("App.sln")]
+    [InlineData("App.slnx")]
+    [InlineData("App.SLNF")]
+    public void FormatPlatformProperty_solution_keeps_any_cpu_verbatim(string target)
     {
-        Assert.Equal(
-            " -p:Platform=\"Any CPU\"",
-            DotNetConfigurationArguments.FormatPlatformProperty("Any CPU", @"E:\repo\App.sln"));
-        Assert.Equal(
-            " -p:Platform=\"Any CPU\"",
-            DotNetConfigurationArguments.FormatPlatformProperty("  Any CPU  ", @"E:\repo\App.slnx"));
+        Assert.Equal(" -p:Platform=\"Any CPU\"", DotNetConfigurationArguments.FormatPlatformProperty("  Any CPU  ", target));
     }
 
     [Fact]

@@ -166,7 +166,7 @@ public sealed class TestTools
         + "Prefer run_specific_test for one class or method. Omit configuration/platform to inherit load_workspace. Pre-test `dotnet build` also inherits load_workspace `buildArgs`."
         + DllRouteSentence)]
     public Task<string> RunDotNetTest(
-        [Description("Path to a .csproj, .sln, .slnx, or test project directory. Directories are allowed unlike run_dotnet_build.")]
+        [Description("Path to a .csproj, .sln, .slnx, .slnf, or test project directory. Directories are allowed unlike run_dotnet_build.")]
         string workspacePath,
         [Description("Process timeout in seconds. 0 disables timeout.")]
         int timeoutSeconds = DotNetCliRunner.DefaultTimeoutSeconds,
@@ -221,7 +221,7 @@ public sealed class TestTools
         + "Builds a VSTest-safe filter internally; do not use execute_dotnet_command."
         + DllRouteSentence)]
     public async Task<string> RunSpecificTest(
-        [Description("Path to a .csproj, .sln, .slnx, or test project directory.")]
+        [Description("Path to a .csproj, .sln, .slnx, .slnf, or test project directory.")]
         string workspacePath,
         [Description("Test class name, simple or fully qualified.")]
         string? className = null,
@@ -334,7 +334,7 @@ public sealed class TestTools
         + "Prefer run_specific_test for one class or method. Omit configuration/platform to inherit load_workspace."
         + DllRouteSentence)]
     public Task<string> RunTestByFilter(
-        [Description("Path to a .csproj, .sln, .slnx, or test project directory.")]
+        [Description("Path to a .csproj, .sln, .slnx, .slnf, or test project directory.")]
         string workspacePath,
         [Description("VSTest --filter string, passed through (e.g. FullyQualifiedName~MyClass).")]
         string filter,
@@ -585,17 +585,11 @@ public sealed class TestTools
                 return ToolTelemetry.TraceFailureAndReturn(toolName, $"Path not found: `{fullPath}`");
             }
 
-            if (File.Exists(fullPath))
+            if (File.Exists(fullPath) && WorkspaceInputPath.Classify(fullPath) == WorkspaceInputKind.Unknown)
             {
-                var ext = Path.GetExtension(fullPath);
-                if (!string.Equals(ext, ".csproj", StringComparison.OrdinalIgnoreCase)
-                    && !string.Equals(ext, ".sln", StringComparison.OrdinalIgnoreCase)
-                    && !string.Equals(ext, ".slnx", StringComparison.OrdinalIgnoreCase))
-                {
-                    return ToolTelemetry.TraceFailureAndReturn(
-                        toolName,
-                        $"When passing a file, it must be a `.csproj`, `.sln`, or `.slnx`: `{fullPath}`");
-                }
+                return ToolTelemetry.TraceFailureAndReturn(
+                    toolName,
+                    $"When passing a file, it must be a `.csproj`, `.sln`, `.slnx`, or `.slnf`: `{fullPath}`");
             }
 
             var workDir = File.Exists(fullPath)
@@ -852,6 +846,11 @@ public sealed class TestTools
         IProgress<ProgressNotificationValue>? progress,
         CancellationToken cancellationToken)
     {
+        if (WorkspaceInputPath.Classify(targetCsprojPath) == WorkspaceInputKind.SolutionFilter)
+        {
+            return ToolTelemetry.TraceFailureAndReturn(toolName, TestAssemblyPathResolver.FilterTargetError);
+        }
+
         var resolvedBinariesPath = _solutionManager.ResolvePathAgainstWorkspace(binariesPath);
         var loadedWorkspacePath = _solutionManager.GetLoadedWorkspacePath();
         var solution = await _solutionManager.GetPublishedSolutionAfterDiskSyncAsync(cancellationToken)

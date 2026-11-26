@@ -1317,7 +1317,14 @@ public sealed class SolutionManager
         }
 
         var fullPath = Path.GetFullPath(solutionOrProjectPath);
-        if (WorkspaceEntryPolicy.IsDirectProject(fullPath))
+        var kind = WorkspaceInputPath.Classify(fullPath);
+        if (kind == WorkspaceInputKind.SolutionFilter)
+        {
+            throw new ArgumentException(
+                $"Cannot load solution filter `{fullPath}` into the semantic workspace. Load the backing `.sln` or `.slnx` named in `solution.path`.");
+        }
+
+        if (kind == WorkspaceInputKind.CSharpProject)
         {
             if (FileSettings.RequireSolution)
             {
