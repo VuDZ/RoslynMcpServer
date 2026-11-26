@@ -118,6 +118,50 @@ public sealed class WorkspaceWriteEncodingTests : IDisposable
     }
 
     [Fact]
+    public async Task Full_ASCII_rewrite_of_a_legacy_source_is_not_rejected_as_an_auto_detection_change()
+    {
+        const string Source = "namespace App; public class Sample { public const string Value = \"Café\"; }";
+        const string Rewritten = "namespace App; public class Sample { public const string Value = \"Cafe\"; }";
+        await File.WriteAllTextAsync(Path.Combine(_root, "Directory.Build.props"),
+            "<Project><PropertyGroup><CodePage>28591</CodePage></PropertyGroup></Project>");
+        await File.WriteAllBytesAsync(_sourcePath, Encoding.Latin1.GetBytes(Source));
+        var manager = await LoadAsync();
+        manager.SilenceDiskWatchersForTests();
+
+        var message = await new EditingTools(NullLogger<EditingTools>.Instance, manager).WriteFile(_sourcePath, Rewritten);
+
+        Assert.Contains("Successfully wrote", message, StringComparison.Ordinal);
+        Assert.Equal(Encoding.ASCII.GetBytes(Rewritten), await File.ReadAllBytesAsync(_sourcePath));
+        var snapshot = (await manager.GetPublishedSolutionAsync())!;
+        var published = snapshot.GetDocument(Assert.Single(snapshot.GetDocumentIdsWithFilePath(_sourcePath)))!;
+        Assert.Equal(Rewritten, (await published.GetTextAsync()).ToString());
+        await AssertSampleBuildAsync("Cafe");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Default_CodePage_rejection_names_auto_detection_instead_of_a_project_CodePage(bool fullWrite)
+    {
+        // Latin-1 bytes C3 A9 form valid UTF-8, so the default reader detects UTF-8 on every platform.
+        const string Initial = "// Marker";
+        const string Requested = "// Ã©";
+        await File.WriteAllTextAsync(Path.Combine(_root, ".editorconfig"), "root = true\n[*.cs]\ncharset = latin1\n");
+        await File.WriteAllTextAsync(_sourcePath, Initial, BomFreeUtf8);
+        var manager = await LoadAsync();
+        manager.SilenceDiskWatchersForTests();
+
+        var message = fullWrite
+            ? await new EditingTools(NullLogger<EditingTools>.Instance, manager).WriteFile(_sourcePath, Requested)
+            : await new UtilityTools(NullLogger<UtilityTools>.Instance, manager).ApplyPatch(_sourcePath, "Marker", "Ã©");
+
+        Assert.Contains("auto-detect", message, StringComparison.Ordinal);
+        Assert.Contains("code page 65001", message, StringComparison.Ordinal);
+        Assert.DoesNotContain("CodePage 65001", message, StringComparison.Ordinal);
+        Assert.Equal(BomFreeUtf8.GetBytes(Initial), await File.ReadAllBytesAsync(_sourcePath));
+    }
+
+    [Fact]
     public async Task EditorConfig_charset_applies_to_loaded_and_new_sources_and_refreshes_on_the_next_write()
     {
         const string Text = "// Café";

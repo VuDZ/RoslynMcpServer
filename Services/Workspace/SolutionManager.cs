@@ -2373,7 +2373,11 @@ public sealed class SolutionManager
         bool hasUntouchedNonAscii,
         int?[] readers)
     {
-        if (hasUntouchedNonAscii && before is not null && System.Text.Unicode.Utf8.IsValid(before) != System.Text.Unicode.Utf8.IsValid(after))
+        // A full rewrite counts the old non-ASCII text as untouched. ASCII output reads the same under every
+        // ASCII-compatible reader, so a change in UTF-8 validity cannot alter it. Rejecting it blocked a complete
+        // ASCII rewrite of a Latin-1 source.
+        if (hasUntouchedNonAscii && before is not null && !Ascii.IsValid(after)
+            && System.Text.Unicode.Utf8.IsValid(before) != System.Text.Unicode.Utf8.IsValid(after))
         {
             throw new InvalidDataException(
                 $"Writing {fullPath} without a BOM would change UTF-8 auto-detection and could change untouched text. "
@@ -2389,9 +2393,13 @@ public sealed class SolutionManager
                 continue;
             }
 
-            throw new InvalidDataException(
-                $"The loaded project's CodePage {known} cannot preserve the text of this BOM-free source: {fullPath}. "
-                + "Align the project CodePage values and call load_workspace, or use a BOM-marked source.");
+            // Without a CodePage the compiler picks the encoding from the bytes. Name that choice
+            // rather than a project setting the user never wrote.
+            throw new InvalidDataException(page == 0
+                ? $"The loaded project has no CodePage, so the compiler would auto-detect this BOM-free source as code page {known} and read different text: {fullPath}. "
+                    + "Set a project CodePage that matches the intended encoding and call load_workspace, or use a BOM-marked source."
+                : $"The loaded project's CodePage {known} cannot preserve the text of this BOM-free source: {fullPath}. "
+                    + "Align the project CodePage values and call load_workspace, or use a BOM-marked source.");
         }
     }
 
