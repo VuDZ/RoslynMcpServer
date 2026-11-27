@@ -43,7 +43,7 @@ public sealed class TestToolsDllBuildTests
     }
 
     [Fact]
-    public async Task Omitted_no_build_on_the_non_dll_route_is_false_false_and_true()
+    public async Task Three_tools_build_when_no_build_and_configuration_are_omitted()
     {
         using var tree = new TempTree();
         var csproj = tree.Write("AppTests.csproj", "<Project />");
@@ -59,11 +59,39 @@ public sealed class TestToolsDllBuildTests
         runner.Clear();
 
         await tools.RunTestByFilter(csproj, "FullyQualifiedName~Sample", timeoutSeconds: 12);
-        var only = Assert.Single(runner.Arguments);
-        Assert.StartsWith("test ", only, StringComparison.Ordinal);
-        Assert.Contains("--no-build", only, StringComparison.Ordinal);
-        Assert.Contains(csproj, only, StringComparison.Ordinal);
-        Assert.DoesNotContain("-t:", only, StringComparison.Ordinal);
+        AssertBuildThenTest(runner, csproj);
+    }
+
+    [Theory]
+    [InlineData(null, null, true, true)]
+    [InlineData("Release", null, null, true)]
+    [InlineData(null, "Release", null, true)]
+    [InlineData("Release", null, false, false)]
+    public async Task Filter_tool_honors_configured_omission_and_explicit_no_build(
+        string? configuration, string? inherited, bool? noBuild, bool skipBuild)
+    {
+        using var tree = new TempTree();
+        var csproj = tree.Write("AppTests.csproj", "<Project />");
+        var manager = SolutionManagerTestFactory.Create();
+        if (inherited is not null)
+        {
+            manager.GetType().GetProperty(nameof(SolutionManager.LoadedConfiguration))!.SetValue(manager, inherited);
+        }
+        var runner = new RecordingRunner();
+        var tools = new TestTools(manager, NullLogger<TestTools>.Instance, runner.Run);
+
+        await tools.RunTestByFilter(csproj, "FullyQualifiedName~Sample", noBuild: noBuild, configuration: configuration);
+
+        Assert.Equal(skipBuild ? 1 : 2, runner.Arguments.Count);
+        Assert.Equal(!skipBuild, runner.Arguments[0].StartsWith("build ", StringComparison.Ordinal));
+        var testArguments = runner.Arguments[^1];
+        Assert.StartsWith("test ", testArguments, StringComparison.Ordinal);
+        Assert.Contains("--no-build", testArguments, StringComparison.Ordinal);
+        Assert.Contains(csproj, testArguments, StringComparison.Ordinal);
+        if (configuration is not null || inherited is not null)
+        {
+            Assert.Contains(" -c \"Release\"", testArguments, StringComparison.Ordinal);
+        }
     }
 
     [Theory]

@@ -127,9 +127,14 @@ internal static class TruncatedProcessLog
             return source;
         }
 
-        var head = source[..HeadCharactersWhenTruncated];
-        var tail = source[^TailCharactersWhenTruncated..];
-        return string.Concat(head, MiddleMarker, tail);
+        // A caller may allow less than the default head and tail, for example a 1 200 character TRX stack trace.
+        // Fixed lengths then cut outside the text and broke the whole TRX report. Split the caller's budget in the
+        // default proportion; limits of at least the default sum keep the default lengths.
+        var headLength = Math.Min(
+            HeadCharactersWhenTruncated,
+            maxCombinedCharacters * HeadCharactersWhenTruncated / (HeadCharactersWhenTruncated + TailCharactersWhenTruncated));
+        var tailLength = Math.Min(TailCharactersWhenTruncated, maxCombinedCharacters - headLength);
+        return string.Concat(source[..headLength], MiddleMarker, source[^tailLength..]);
     }
 
     /// <summary>

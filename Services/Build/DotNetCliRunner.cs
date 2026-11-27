@@ -23,7 +23,6 @@ public static class DotNetCliRunner
     {
         internal TimeSpan? Elapsed { get; init; }
         internal bool OutputTruncated { get; init; }
-        internal bool TestSummaryTruncated { get; init; }
     }
 
     public sealed record SeparatedRunResult(
@@ -217,7 +216,6 @@ public static class DotNetCliRunner
         {
             Elapsed = run.Elapsed,
             OutputTruncated = stdout.Truncated || stderr.Truncated,
-            TestSummaryTruncated = stdout.SummaryTruncated || stderr.SummaryTruncated,
         };
     }
 

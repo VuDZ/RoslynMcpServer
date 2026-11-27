@@ -1605,7 +1605,8 @@ public sealed class UtilityTools
         CancellationToken cancellationToken)
     {
         var fragments = (oldNorm, newNorm);
-        var sourceRaw = await _solutionManager.ReadPatchSourceAsync(fullPath, fragments, cancellationToken);
+        var source = await _solutionManager.ReadPatchSourceAsync(fullPath, fragments, cancellationToken);
+        var sourceRaw = source.Text;
         var newContainsOld = oldNorm.Length > 0
             && newNorm.Contains(oldNorm, StringComparison.Ordinal);
 
@@ -1673,7 +1674,7 @@ public sealed class UtilityTools
 
         var write = await _solutionManager.TryApplyPatchTextAsync(
             fullPath,
-            sourceRaw,
+            source,
             updatedRaw!,
             hasUntouchedNonAscii,
             fragments,

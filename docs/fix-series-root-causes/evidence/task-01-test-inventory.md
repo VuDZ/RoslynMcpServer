@@ -60,3 +60,24 @@
 - `Full_write_applies_a_declared_BOM_even_when_the_source_text_already_matches` проверяет запись объявленного представления при прежнем тексте. `ApplyPatch_preserves_the_encoding_of_a_compiler_input_with_a_different_extension` защищает прежнее поведение для компилируемого `.txt`. `ApplyPatch_preserves_untouched_national_variant_bytes_in_an_unregistered_shebang` сохраняет старую границу переносимого патча для скрипта без загруженного владельца.
 - Сигнатура тестового делегата `Persisting_one_edit_avoids_reading_untouched_documents` теперь принимает подготовленную запись одного файла. Измеряемое поведение многофайловой операции сохранено. Для изменённых MCP-описаний обновлены точные размеры в `Surface_sizes_match_recorded_release_numbers`.
 - После [независимой проверки](task-04-review-claude-2026-11-26.md) добавлены `Full_ASCII_rewrite_of_a_legacy_source_is_not_rejected_as_an_auto_detection_change` (F-1: полная запись ASCII в файл Latin-1 больше не отклоняется проверкой автоопределения) и `Default_CodePage_rejection_names_auto_detection_instead_of_a_project_CodePage` (F-2: отказ для проекта без `CodePage` называет автоопределение).
+
+## Решение F-4 от 2026-11-27
+
+- Наборы `UnloadedSourceReaderBudgetTests` и `UnloadedTestSdkSourceReaderTests` удалены вместе с поиском читателей. Полевые сценарии теперь проверяют быстрый отказ в репозитории с обычным Test SDK и на дереве из 133 проектов.
+- `ApplyPatch_uses_the_default_project_reader_before_and_after_workspace_load` заменён на `ApplyPatch_requires_the_owning_workspace_or_declared_encoding_for_ambiguous_source`. Новый тест проверяет отказ до загрузки и успех после загрузки владельца или объявления `charset`.
+- `ApplyPatch_uses_the_evaluated_CodePage_of_a_linked_source` заменён на `ApplyPatch_uses_the_CodePage_of_a_loaded_linked_source`. Проверяется известная кодовая страница загруженного связанного файла.
+- `Unloaded_project_source_writes_preserve_the_requested_literals` проверяет отказ обоих инструментов с неизвестным владельцем, создание с BOM и переносимый ASCII-патч. `Full_write_without_a_reader_requires_literal_invariant_ASCII` проверяет прежний и новый текст. В `ApplyPatch_preserves_the_requested_prefix_or_rejects_ambiguous_encoding` для неоднозначной правки с неизвестным читателем ожидается указание загрузить решение и проверяется побайтовая сохранность.
+- Удалены следующие проверки отдельных путей поиска и оценки MSBuild.
+  - `ApplyPatch_does_not_infer_a_reader_from_an_excluded_or_inactive_Compile_item`
+  - `ApplyPatch_rejects_conflicting_CodePages_across_MSBuild_contexts`
+  - `ApplyPatch_uses_inner_framework_readers_when_the_outer_project_has_no_CodePage`
+  - `ApplyPatch_refreshes_imported_CodePage_before_committing_an_unloaded_patch`
+  - `ApplyPatch_checks_linked_readers_across_a_nested_solution_boundary`
+  - `ApplyPatch_checks_external_readers_from_the_evaluated_project_and_solution_graph`
+  - `ApplyPatch_refuses_a_custom_compiler_CodePage`
+  - `ApplyPatch_checks_enclosing_solutions_in_an_exported_checkout`
+  - `ApplyPatch_uses_the_project_configuration_mapped_by_the_solution`
+  - `ApplyPatch_checks_the_referenced_project_in_its_own_solution_context`
+  - `ApplyPatch_refuses_a_Compile_reader_using_the_Windows_device_namespace`
+  - `ApplyPatch_refuses_source_and_Compile_paths_through_an_alias_outside_the_search_tree`
+  - `ApplyPatch_keeps_the_original_bytes_when_reader_discovery_is_incomplete`

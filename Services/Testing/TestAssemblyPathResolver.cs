@@ -5,6 +5,9 @@
 /// </summary>
 public static class TestAssemblyPathResolver
 {
+    internal const string FilterTargetError =
+        "Error: `binariesPath` requires a `.csproj` target and a full `.sln` or `.slnx` workspace. To test a solution filter, omit `binariesPath`.";
+
     public sealed record ProjectHint(string? FilePath, string? AssemblyName);
 
     public sealed record ResolveResult(bool Success, string? AssemblyPath, string? ErrorMessage)
@@ -25,14 +28,20 @@ public static class TestAssemblyPathResolver
         ArgumentNullException.ThrowIfNull(projects);
         fileExists ??= File.Exists;
 
+        var workspaceKind = WorkspaceInputPath.Classify(loadedWorkspacePath);
+        var targetKind = WorkspaceInputPath.Classify(targetCsprojPath);
+        if (workspaceKind == WorkspaceInputKind.SolutionFilter || targetKind == WorkspaceInputKind.SolutionFilter)
+        {
+            return ResolveResult.Fail(FilterTargetError);
+        }
+
         if (string.IsNullOrWhiteSpace(loadedWorkspacePath))
         {
             return ResolveResult.Fail(
                 "Error: `binariesPath` requires a `.sln` or `.slnx` workspace loaded. Call `load_workspace` first.");
         }
 
-        var loadedExt = Path.GetExtension(loadedWorkspacePath);
-        if (!IsSolutionExtension(loadedExt))
+        if (!WorkspaceInputPath.IsSolution(workspaceKind))
         {
             return ResolveResult.Fail(
                 "Error: `binariesPath` only works with a loaded `.sln`/`.slnx` workspace.");
@@ -40,7 +49,7 @@ public static class TestAssemblyPathResolver
 
         if (string.IsNullOrWhiteSpace(targetCsprojPath)
             || !fileExists(targetCsprojPath)
-            || !string.Equals(Path.GetExtension(targetCsprojPath), ".csproj", StringComparison.OrdinalIgnoreCase))
+            || targetKind != WorkspaceInputKind.CSharpProject)
         {
             return ResolveResult.Fail(
                 "Error: `binariesPath` requires `workspacePath` to point to a `.csproj`.");
@@ -121,10 +130,6 @@ public static class TestAssemblyPathResolver
 
         return message;
     }
-
-    private static bool IsSolutionExtension(string? extension) =>
-        string.Equals(extension, ".sln", StringComparison.OrdinalIgnoreCase)
-        || string.Equals(extension, ".slnx", StringComparison.OrdinalIgnoreCase);
 
     private static bool PathsEqual(string left, string right)
     {

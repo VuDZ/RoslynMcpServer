@@ -105,6 +105,34 @@ public sealed class VstestTrxReaderTests : IDisposable
     }
 
     [Fact]
+    public void Failed_tests_explain_a_failed_VSTest_task_without_an_incomplete_launch_notice()
+    {
+        // VSTestTask returns false whenever a test fails; that alone does not make the launch incomplete.
+        var source = Source("net11.0");
+        VstestTrxTestFiles.WriteInventory(_directory.FullName, [source], null, tasksSucceeded: false);
+        VstestTrxTestFiles.WriteReport(_directory.FullName, source, passed: 1, failed: 1);
+
+        var result = Read(exitCode: 1);
+
+        Assert.Equal(TestProcessOutcome.Failed, result.Outcome);
+        Assert.Single(result.Failures);
+        Assert.Null(result.Issue);
+    }
+
+    [Fact]
+    public void A_failed_VSTest_task_without_failed_tests_is_reported()
+    {
+        var source = Source("net11.0");
+        VstestTrxTestFiles.WriteInventory(_directory.FullName, [source], null, tasksSucceeded: false);
+        VstestTrxTestFiles.WriteReport(_directory.FullName, source, passed: 1);
+
+        var result = Read(exitCode: 1);
+
+        Assert.NotEqual(TestProcessOutcome.Passed, result.Outcome);
+        Assert.Contains("did not confirm successful completion", result.Issue, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Passing_trx_and_nonzero_exit_is_partial()
     {
         var source = Source("net11.0");
@@ -144,7 +172,6 @@ public sealed class VstestTrxReaderTests : IDisposable
         var run = new DotNetCliRunner.RunResult(exitCode, RetainedOutput, "", 900_000, 0)
         {
             OutputTruncated = true,
-            TestSummaryTruncated = true,
         };
         return VstestTrxReader.Read(_directory.FullName, assembly, filter, run, CancellationToken.None);
     }

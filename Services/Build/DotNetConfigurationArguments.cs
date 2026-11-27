@@ -53,23 +53,13 @@ public static class DotNetConfigurationArguments
     }
 
     /// <summary>
-    /// <see langword="true"/> when <paramref name="targetPath"/> is a <c>.sln</c> / <c>.slnx</c>
-    /// (solution configuration names are verbatim, e.g. <c>Any CPU</c>).
+    /// Solution and filter builds use the platform name from the solution, including the space in <c>Any CPU</c>.
     /// </summary>
-    public static bool UsesSolutionPlatformNaming(string? targetPath)
-    {
-        if (string.IsNullOrWhiteSpace(targetPath))
-        {
-            return false;
-        }
-
-        var extension = Path.GetExtension(targetPath);
-        return extension.Equals(".sln", StringComparison.OrdinalIgnoreCase)
-            || extension.Equals(".slnx", StringComparison.OrdinalIgnoreCase);
-    }
+    public static bool UsesSolutionPlatformNaming(string? targetPath) =>
+        WorkspaceInputPath.IsSolutionOrFilter(WorkspaceInputPath.Classify(targetPath));
 
     /// <summary>
-    /// CLI platform for <paramref name="targetPath"/>: trim+validate for <c>.sln</c>/<c>.slnx</c>;
+    /// CLI platform for <paramref name="targetPath"/>: trim+validate for solutions and solution filters;
     /// <see cref="NormalizePlatform"/> for <c>.csproj</c> and unknown targets.
     /// </summary>
     public static string? NormalizePlatformForTarget(string? platform, string? targetPath) =>
@@ -89,7 +79,7 @@ public static class DotNetConfigurationArguments
 
     /// <summary>
     /// Inherits platform for a concrete CLI target: explicit value is normalized for that target;
-    /// when omitted, uses <paramref name="cachedRaw"/> for <c>.sln</c>/<c>.slnx</c> and
+    /// when omitted, uses <paramref name="cachedRaw"/> for solutions and solution filters and
     /// <paramref name="cachedCanonical"/> for <c>.csproj</c>.
     /// </summary>
     public static string? CoalescePlatformForTarget(
@@ -128,7 +118,7 @@ public static class DotNetConfigurationArguments
 
     /// <summary>
     /// Returns a leading-space fragment <c> -p:Platform="Name"</c>, or empty when omitted.
-    /// When <paramref name="targetPath"/> is a <c>.sln</c>/<c>.slnx</c>, keeps <c>Any CPU</c> verbatim;
+    /// For solution and filter targets, keeps <c>Any CPU</c> verbatim;
     /// otherwise aliases to <c>AnyCPU</c> (SDK <c>.csproj</c> / unknown).
     /// </summary>
     public static string FormatPlatformProperty(string? platform, string? targetPath = null)

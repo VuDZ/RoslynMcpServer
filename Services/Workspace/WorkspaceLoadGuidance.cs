@@ -408,8 +408,7 @@ public static class WorkspaceLoadGuidance
         if (!string.IsNullOrWhiteSpace(loadedWorkspacePath))
         {
             sb.AppendLine($"- **Loaded workspace:** `{loadedWorkspacePath}`");
-            var ext = Path.GetExtension(loadedWorkspacePath);
-            if (string.Equals(ext, ".csproj", StringComparison.OrdinalIgnoreCase))
+            if (WorkspaceInputPath.Classify(loadedWorkspacePath) == WorkspaceInputKind.CSharpProject)
             {
                 sb.AppendLine(
                     "- **Likely issue:** a single `.csproj` is loaded (often auto-loaded from a file under a helper/common project). "
@@ -497,23 +496,35 @@ public static class WorkspaceLoadGuidance
             sb.AppendLine($"- **`dotnet test` target:** `{testTargetPath}`");
         }
 
+        const string LoadBackingSolution = "Call `load_workspace` on the filter's backing `.sln` or `.slnx`.";
+        var isFilter = WorkspaceInputPath.Classify(testTargetPath) == WorkspaceInputKind.SolutionFilter;
         if (!string.IsNullOrWhiteSpace(loadedRoslynWorkspacePath))
         {
             sb.AppendLine($"- **Roslyn workspace loaded:** `{loadedRoslynWorkspacePath}`");
-            if (!string.IsNullOrWhiteSpace(testTargetPath)
-                && !PathsEqual(loadedRoslynWorkspacePath, testTargetPath))
+            var expectedWorkspacePath = isFilter
+                ? SolutionFilterPath.TryReadBackingSolution(testTargetPath!)
+                : testTargetPath;
+            if (isFilter && expectedWorkspacePath is null)
             {
-                sb.AppendLine(
-                    "- **Mismatch:** Roslyn workspace path ≠ `workspacePath` passed to the test tool. "
-                    + "FQN resolve uses the Roslyn workspace; `dotnet test` uses `workspacePath`. "
-                    + "Call `load_workspace` on the same `.sln`/`.slnx` you pass to `run_specific_test`.");
+                sb.AppendLine("- Could not read the filter's backing solution path. " + LoadBackingSolution);
+            }
+            else if (!string.IsNullOrWhiteSpace(expectedWorkspacePath)
+                && !PathsEqual(loadedRoslynWorkspacePath, expectedWorkspacePath))
+            {
+                sb.AppendLine(isFilter
+                    ? "- **Mismatch:** Roslyn is using a different workspace than the filter's backing solution. "
+                        + LoadBackingSolution
+                    : "- **Mismatch:** Roslyn workspace path ≠ `workspacePath` passed to the test tool. "
+                        + "FQN resolve uses the Roslyn workspace; `dotnet test` uses `workspacePath`. "
+                        + "Call `load_workspace` on the same `.sln`/`.slnx` you pass to `run_specific_test`.");
             }
         }
         else
         {
-            sb.AppendLine(
-                "- **Roslyn workspace loaded:** none — filter fell back to a name suffix (weaker). "
-                + "Call `load_workspace` on the test `.sln` first so Roslyn can resolve the exact FQN.");
+            var loadHint = isFilter
+                ? LoadBackingSolution
+                : "Call `load_workspace` on the test `.sln` first so Roslyn can resolve the exact FQN.";
+            sb.AppendLine("- **Roslyn workspace loaded:** none — filter fell back to a name suffix (weaker). " + loadHint);
         }
 
         if (!string.IsNullOrWhiteSpace(filterDescription)
@@ -530,8 +541,19 @@ public static class WorkspaceLoadGuidance
                 "- **Filter mode:** Roslyn-resolved FQN — names looked valid in the workspace; check nested types (`+`), wrong project in the solution, or Theory display names.");
         }
 
-        sb.AppendLine(
-            "- **Next:** `load_workspace` on the test solution → `get_test_list` → retry `run_specific_test` with the listed `className`/`methodName`.");
+        if (isFilter)
+        {
+            sb.AppendLine(
+                "- **Next:** Check the filter's selected projects and their dependencies to confirm the test project is in scope. "
+                + "`get_test_list` reads the full Roslyn workspace and can list tests outside the filter. "
+                + "After confirming the project is in scope, use `get_test_list` and retry `run_specific_test` with the listed `className`/`methodName`.");
+        }
+        else
+        {
+            sb.AppendLine(
+                "- **Next:** `load_workspace` on the test solution → `get_test_list` → retry `run_specific_test` with the listed `className`/`methodName`.");
+        }
+
         return sb.ToString().TrimEnd();
     }
 
@@ -625,9 +647,7 @@ public static class WorkspaceLoadGuidance
             {
                 foreach (var file in Directory.EnumerateFiles(current))
                 {
-                    var ext = Path.GetExtension(file);
-                    if (!ext.Equals(".sln", StringComparison.OrdinalIgnoreCase)
-                        && !ext.Equals(".slnx", StringComparison.OrdinalIgnoreCase))
+                    if (!WorkspaceInputPath.IsSolution(WorkspaceInputPath.Classify(file)))
                     {
                         continue;
                     }

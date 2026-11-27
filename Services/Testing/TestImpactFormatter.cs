@@ -324,7 +324,7 @@ internal static class TestImpactFormatter
             return string.Empty;
         }
         var outcome = Environment.NewLine + "Outcome: " + result.OutcomeText;
-        if (result.Parsed?.Summary is { } summary)
+        if (result.Trx?.Summary is { } summary)
         {
             outcome += Environment.NewLine
                 + $"Total: {summary.Total}; Passed: {summary.Passed}; Failed: {summary.Failed}; Skipped: {summary.Skipped}.";
@@ -345,17 +345,17 @@ internal static class TestImpactFormatter
                 attachFullReport: false);
             body.AppendLine(diagnostic, Priority.Diagnostic, projectBlock);
         }
-        if ((result.Outcome is TestProcessOutcome.Failed or TestProcessOutcome.Partial) && result.TestRun is { } test)
+        if ((result.Outcome is TestProcessOutcome.Failed or TestProcessOutcome.Partial)
+            && result.TestRun is { } test && result.Trx is { } trx)
         {
             var outputOptions = new TestOutputReportOptions(false, 0) { SuppressOutputOptionHints = true };
             // The project headline owns the filter budget, so failure diagnostics do not repeat it.
-            var diagnostic = VstestOutputParser.BuildMarkdownReport(
-                result.Parsed!,
+            var diagnostic = VstestOutputParser.BuildTrxMarkdownReport(
+                trx,
                 test.ExitCode,
                 test.CombinedOutput,
                 filter: null,
                 filterDescription: null,
-                requireFilterMatch: false,
                 outputOptions);
             if (test.OutputTruncated && !diagnostic.Contains(TruncatedProcessLog.CaptureMarker, StringComparison.Ordinal))
             {

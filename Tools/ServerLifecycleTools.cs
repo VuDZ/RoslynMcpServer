@@ -34,7 +34,7 @@ public sealed class ServerLifecycleTools
 
     [McpServerTool(Name = "get_mcp_server_info", Title = "Get MCP server info")]
     [Description(
-        "Returns binary path, tool count, logs, workspace state, RoslynMcp.jsonc paths/merged keys/unknown keys/parse failures, and load source (file vs load_workspace). Does not start a lazy load.")]
+        "Returns process path, server assembly identity, tool count, logs, workspace state, RoslynMcp.jsonc paths/merged keys/unknown keys/parse failures, and load source (file vs load_workspace). Does not start a lazy load.")]
     public Task<string> GetMcpServerInfo(CancellationToken cancellationToken = default)
     {
         _ = cancellationToken;

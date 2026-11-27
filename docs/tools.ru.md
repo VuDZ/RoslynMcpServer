@@ -238,6 +238,8 @@
 **Параметры:**
 - `filePath: string`
 - `content: string`
+
+Для существующего непустого C# без BOM и объявления кодировки полная запись без загруженного читателя допустима, если весь старый и новый текст состоит из инвариантного ASCII без активных переключающих последовательностей. Полная запись пустого файла следует правилу создания. Для неоднозначной правки сначала вызовите `load_workspace` для решения с этим файлом или объявите кодировку.
 </details>
 
 <details>
@@ -355,7 +357,7 @@
 - `reportCursor: string? = null` — следующий фрагмент сохранённого вывода процесса. Новую сборку или тест не запускает.
 - `includeBuildWarnings: bool = false` — показывать предупреждения сборки; по умолчанию скрыты. Ошибки выводятся всегда.
 
-**Поведение:** при `noBuild=false` и без `binariesPath` сначала отдельный incremental `dotnet build` (те же `-c` / platform / session `buildArgs` с `load_workspace`), затем `dotnet test --no-build --no-restore` (парсер видит только тест). С `binariesPath` сборка идёт через solution `-t`, цель теста — DLL. Сводка из `Passed!`, `Test Run Successful` + `Total tests`/`Passed:` (Failed=0 если нет строки), или `.slnx` fail-only `Total tests` + `Failed:` (Passed = Total − Failed − Skipped), FQN-строки тестов (`[ms]` / `[1 s]` / `[1 m 28 s]`); `Error Message:` многострочный (head+tail); StdOut/StdErr отдельными блоками (по умолчанию 2500/1000, head+tail; `includeFullOutput` / `maxOutputChars` поднимают лимит); футер VSTest `Build FAILED` / `0 Error(s)` не считается ошибкой компиляции; дедуп NU audit. Без маркеров сводки при exit 0 → **partial** + 2KB лога (футер срезан). `timeoutSeconds` — общий бюджет на build+test. Рядом с DLL нужны `.runtimeconfig.json` / `.deps.json`. Пока шаг выполняется, идут MCP progress-heartbeat'ы (`dotnet build` / `dotnet test`, без stdout) — UX, не обход хост-таймаута `tools/call`.
+**Поведение:** при `noBuild=false` и без `binariesPath` сначала отдельный incremental `dotnet build` (те же `-c` / platform / session `buildArgs` с `load_workspace`), затем `dotnet test --no-build --no-restore` (парсер видит только тест). С `binariesPath` сборка идёт через solution `-t`, цель теста — DLL. Сводка из `Passed!`, `Test Run Successful` + `Total tests`/`Passed:` (Failed=0 если нет строки), или `.slnx` fail-only `Total tests` + `Failed:` (Passed = Total − Failed − Skipped), FQN-строки тестов (`[ms]` / `[1 s]` / `[1 m 28 s]`); `Error Message:` многострочный (head+tail); StdOut/StdErr отдельными блоками (по умолчанию 2500/1000, head+tail; `includeFullOutput` / `maxOutputChars` поднимают лимит); футер VSTest `Build FAILED` / `0 Error(s)` не считается ошибкой компиляции; дедуп NU audit. Без маркеров сводки при exit 0 → **partial** + 2KB лога (футер срезан). `timeoutSeconds` — общий бюджет на build+test. Если инструмент пропускает сборку без `binariesPath`, он проверяет вычисленные выходы выбранных тестовых проектов и целевых платформ .NET (TFM). Подтверждённое отсутствие сборки останавливает запуск до VSTest. В сообщении указаны путь и конфигурация. Передайте `noBuild=false` или выберите конфигурацию с готовой сборкой. Рядом с DLL нужны `.runtimeconfig.json` / `.deps.json`. Пока шаг выполняется, идут MCP progress-heartbeat'ы (`dotnet build` / `dotnet test`, без stdout) — UX, не обход хост-таймаута `tools/call`.
 
 **Вывод:** успешная сборка возвращает `Build succeeded` и предупреждения по запросу. `Execution context` появляется при ошибке, таймауте или неподтверждённом результате тестов. Через `reportCursor` доступен сохранённый вывод, включая скрытые предупреждения. Сервер дочитывает оба потока и хранит не более 240 000 символов на поток. При усечении сохраняются целые строки из начала и хвоста, а также отдельные диагностические строки. Слишком длинная строка может быть пропущена.
 
@@ -395,7 +397,7 @@
 - `workspacePath: string` — `.csproj`, `.sln`, `.slnx` или каталог тестового проекта (как у `run_dotnet_test`).
 - `filter: string` — передаётся в `--filter` (например `FullyQualifiedName~MyClass`, `FullyQualifiedName~CreateUser`, `TestCategory=Smoke`). Пустой — ошибка. Не ставьте `()` у метода.
 - `timeoutSeconds: int = 300` — как у `run_dotnet_test`.
-- `noBuild: bool? = null` — без `binariesPath` пропуск значит true (по умолчанию **true**, в отличие от остальных test tools). С `binariesPath` `false` — это `always`, `true` — `never`; вместе с `buildPolicy` не передавать.
+- `noBuild: bool? = null` — без `binariesPath` инструмент пропускает сборку при опущенном параметре, если конфигурация задана явно или унаследована от `load_workspace`. Без конфигурации инструмент сначала собирает проект или решение. С `binariesPath` значение `false` означает `always`, а `true` означает `never`. Передавайте один из параметров `noBuild` или `buildPolicy`.
 - `buildPolicy: string? = null` — та же политика DLL-маршрута, что у `run_dotnet_test`. Нужен `binariesPath`.
 - `noRestore: bool = false` — `--no-restore`.
 - `configuration: string? = null` — опционально `dotnet test -c`. Если не задан — с `load_workspace`.

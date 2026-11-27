@@ -1,4 +1,4 @@
-using System.Runtime.InteropServices;
+using System.Reflection;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -418,13 +418,28 @@ public sealed class McpToolCatalogTests(ITestOutputHelper output)
         Assert.Contains("- **Startup tool groups:** `files`", info, StringComparison.Ordinal);
         Assert.Contains("- **Dynamic tool groups:** (none)", info, StringComparison.Ordinal);
         Assert.Contains($"- **Registered MCP tools:** {activation.CurrentToolCount}", info, StringComparison.Ordinal);
-        Assert.Contains(
-            $"-r {RuntimeInformation.RuntimeIdentifier}",
-            info,
-            StringComparison.Ordinal);
+        Assert.EndsWith("After code changes, publish the server and reconnect your MCP client.", info, StringComparison.Ordinal);
         Assert.DoesNotContain($"- **Registered MCP tools:** {McpToolCatalog.All.Count}", info, StringComparison.Ordinal);
         Assert.Equal(surface.RegisteredToolCount, activation.CurrentToolCount);
         Assert.Equal(surface.RegisteredToolCount, host.Services.GetServices<McpServerTool>().Count());
+    }
+
+    [Fact]
+    public void Server_info_reports_the_loaded_assembly_separately_from_the_process()
+    {
+        using var host = BuildHost(new McpToolProfileOptions { Profile = "full" });
+        var activation = host.Services.GetRequiredService<McpToolActivationService>();
+        var assembly = typeof(ServerLifecycleTools).Assembly;
+        var informationalVersion = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()!.InformationalVersion;
+        var assemblyModified = File.GetLastWriteTimeUtc(assembly.Location);
+
+        var info = McpServerInfoHelper.BuildInfoMarkdown(loadedSolution: null, activation);
+
+        Assert.Contains($"- **Process path:** `{Environment.ProcessPath}`", info, StringComparison.Ordinal);
+        Assert.Contains($"- **Server assembly path:** `{assembly.Location}`", info, StringComparison.Ordinal);
+        Assert.Contains($"- **Server assembly modified (UTC):** {assemblyModified:O}", info, StringComparison.Ordinal);
+        Assert.Contains($"- **Informational version:** `{informationalVersion}`", info, StringComparison.Ordinal);
+        Assert.Contains($"- **Module version ID:** `{assembly.ManifestModule.ModuleVersionId}`", info, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -509,22 +524,22 @@ public sealed class McpToolCatalogTests(ITestOutputHelper output)
         output.WriteLine($"lite+runtime={liteRuntime.Count}/{liteRuntime.Utf8Bytes}");
         output.WriteLine($"lite+operations={liteOperations.Count}/{liteOperations.Utf8Bytes}");
 
-        // The file-writing tool descriptions include C# encoding behavior.
-        AssertRecorded("full", 55, 47736, full);
-        AssertRecorded("lite", 16, 21271, lite);
-        AssertRecorded("lite+files", 24, 26337, liteFiles);
-        AssertRecorded("lite+editing", 24, 26541, liteEditing);
-        AssertRecorded("lite+decompile", 20, 24033, liteDecompile);
-        AssertRecorded("lite+nuget", 22, 24650, liteNuget);
-        AssertRecorded("lite+project", 19, 22791, liteProject);
-        AssertRecorded("lite+runtime", 19, 24009, liteRuntime);
-        AssertRecorded("lite+operations", 20, 23073, liteOperations);
+        // The server info description includes the process path and server assembly identity.
+        AssertRecorded("full", 55, 47725, full);
+        AssertRecorded("lite", 16, 21260, lite);
+        AssertRecorded("lite+files", 24, 26326, liteFiles);
+        AssertRecorded("lite+editing", 24, 26530, liteEditing);
+        AssertRecorded("lite+decompile", 20, 24022, liteDecompile);
+        AssertRecorded("lite+nuget", 22, 24639, liteNuget);
+        AssertRecorded("lite+project", 19, 22780, liteProject);
+        AssertRecorded("lite+runtime", 19, 23998, liteRuntime);
+        AssertRecorded("lite+operations", 20, 23062, liteOperations);
 
         var enabled = MeasureSurface(
             new McpToolProfileOptions { Profile = "lite" },
             activation => activation.EnableGroup("files"));
-        AssertRecorded("lite+enable:files", 24, 26337, enabled);
-        Assert.Equal(26337, MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "files" }).Utf8Bytes);
+        AssertRecorded("lite+enable:files", 24, 26326, enabled);
+        Assert.Equal(26326, MeasureSurface(new McpToolProfileOptions { Profile = "lite", Groups = "files" }).Utf8Bytes);
     }
 
     private static void AssertRecorded(string label, int count, int bytes, (int Count, int Utf8Bytes) actual)

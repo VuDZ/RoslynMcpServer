@@ -91,10 +91,7 @@ internal static class BuildHostOptimizations
             [EvaluateAheadProperty] = settings.EvaluateAheadWorkers.ToString(CultureInfo.InvariantCulture),
             [SharedSdkCacheProperty] = settings.SharedSdkCache ? "1" : "0",
         };
-        var extension = Path.GetExtension(fullPath);
-        if (extension.Equals(".sln", StringComparison.OrdinalIgnoreCase)
-            || extension.Equals(".slnx", StringComparison.OrdinalIgnoreCase)
-            || extension.Equals(".slnf", StringComparison.OrdinalIgnoreCase))
+        if (WorkspaceInputPath.IsSolutionOrFilter(WorkspaceInputPath.Classify(fullPath)))
         {
             result[SolutionPathProperty] = Path.GetFullPath(fullPath);
         }

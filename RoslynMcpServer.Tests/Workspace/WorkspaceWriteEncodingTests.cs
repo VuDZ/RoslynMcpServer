@@ -7,6 +7,7 @@ using RoslynMcpServer.Config;
 using RoslynMcpServer.Diagnostics;
 using RoslynMcpServer.Services;
 using RoslynMcpServer.Services.Workspace;
+using RoslynMcpServer.Tests.Support;
 using RoslynMcpServer.Tools;
 using Xunit;
 
@@ -208,11 +209,22 @@ public sealed class WorkspaceWriteEncodingTests : IDisposable
         Assert.Contains("Successfully wrote", await writer.WriteFile(utf8Source, Text), StringComparison.Ordinal);
         Assert.Equal(BomFreeUtf8.GetBytes(Text), await File.ReadAllBytesAsync(utf8Source));
 
-        await File.WriteAllTextAsync(editorConfig, "root = true\n[*.cs]\ncharset = unset\n");
-        await File.WriteAllTextAsync(configPath, """{"sourceEncoding":"utf-8-bom"}""");
+        await RewriteWithSameStampAsync(editorConfig, "root = true\n[*.cs]\ncharset = unset\n");
+        await RewriteWithSameStampAsync(configPath, """{"sourceEncoding":"utf-8-bom"   }""");
         var markedSource = Path.Combine(_outsideRoot, "Third.cs");
         Assert.Contains("Successfully wrote", await writer.WriteFile(markedSource, Text), StringComparison.Ordinal);
         Assert.Equal(Utf8WithBom.GetPreamble().Concat(Utf8WithBom.GetBytes(Text)), await File.ReadAllBytesAsync(markedSource));
+
+        static async Task RewriteWithSameStampAsync(string path, string content)
+        {
+            var previous = new FileInfo(path);
+            var length = previous.Length;
+            var timestamp = previous.LastWriteTimeUtc;
+            await File.WriteAllTextAsync(path, content);
+            File.SetLastWriteTimeUtc(path, timestamp);
+            Assert.Equal(length, new FileInfo(path).Length);
+            Assert.Equal(timestamp, File.GetLastWriteTimeUtc(path));
+        }
     }
 
     [Theory]
@@ -869,7 +881,7 @@ public sealed class WorkspaceWriteEncodingTests : IDisposable
         }
         else
         {
-            Assert.Contains("would change the byte-order mark", message, StringComparison.Ordinal);
+            Assert.Contains(inWorkspace ? "would change the byte-order mark" : "load_workspace", message, StringComparison.Ordinal);
             Assert.Equal(originalBytes, await File.ReadAllBytesAsync(target));
             Assert.Equal(Original, text);
         }
@@ -1578,6 +1590,69 @@ public sealed class WorkspaceWriteEncodingTests : IDisposable
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
+    public async Task ApplyPatch_requires_the_owning_workspace_or_declared_encoding_for_ambiguous_source(bool declareEncoding)
+    {
+        var bytes = BomFreeUtf8.GetBytes(OriginalSourceText);
+        await File.WriteAllBytesAsync(_sourcePath, bytes);
+        var manager = SolutionManagerTestFactory.Create();
+        var patcher = new UtilityTools(NullLogger<UtilityTools>.Instance, manager);
+
+        var refusal = await patcher.ApplyPatch(_sourcePath, OriginalFragment, EditedFragment);
+        Assert.Contains("load_workspace", refusal, StringComparison.Ordinal);
+        Assert.Contains("[*.cs]", refusal, StringComparison.Ordinal);
+        Assert.Contains("sourceEncoding", refusal, StringComparison.Ordinal);
+        Assert.DoesNotContain("loaded workspace", refusal, StringComparison.Ordinal);
+        Assert.Equal(bytes, await File.ReadAllBytesAsync(_sourcePath));
+
+        if (declareEncoding)
+        {
+            await File.WriteAllTextAsync(Path.Combine(_root, ".editorconfig"), "root = true\n[*.cs]\ncharset = utf-8\n");
+        }
+        else
+        {
+            await manager.LoadAndPrepareAsync(_csprojPath, shadowCopyInSolutionAnalyzers: false, CancellationToken.None);
+        }
+
+        var result = await patcher.ApplyPatch(_sourcePath, OriginalFragment, EditedFragment);
+
+        Assert.Contains("Patch applied successfully", result, StringComparison.Ordinal);
+        Assert.Equal(BomFreeUtf8.GetBytes(EditedSourceText), await File.ReadAllBytesAsync(_sourcePath));
+    }
+
+    [Fact]
+    public async Task ApplyPatch_uses_the_CodePage_of_a_loaded_linked_source()
+    {
+        var nested = Directory.CreateDirectory(Path.Combine(_root, "Reader")).FullName;
+        var linkedDirectory = Directory.CreateDirectory(Path.Combine(_root, "Shared")).FullName;
+        var linkedFile = Path.Combine(linkedDirectory, "Linked.cs");
+        const string Source = "// Café\n" + OriginalSourceText;
+        await File.WriteAllBytesAsync(linkedFile, Encoding.Latin1.GetBytes(Source));
+        await File.WriteAllTextAsync(_csprojPath, """
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup>
+              <ItemGroup><Compile Remove="Shared/**/*.cs" /></ItemGroup>
+            </Project>
+            """);
+        var reader = Path.Combine(nested, "Reader.csproj");
+        await File.WriteAllTextAsync(reader, """
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup><TargetFramework>net10.0</TargetFramework><CodePage>28591</CodePage></PropertyGroup>
+              <ItemGroup><Compile Include="../Shared/Linked.cs" Link="Linked.cs" /></ItemGroup>
+            </Project>
+            """);
+        var manager = SolutionManagerTestFactory.Create();
+        await manager.LoadAndPrepareAsync(reader, shadowCopyInSolutionAnalyzers: false, CancellationToken.None);
+
+        var result = await new UtilityTools(NullLogger<UtilityTools>.Instance, manager)
+            .ApplyPatch(linkedFile, OriginalFragment, EditedFragment);
+
+        Assert.Contains("Patch applied successfully", result, StringComparison.Ordinal);
+        Assert.Equal(Encoding.Latin1.GetBytes("// Café\n" + EditedSourceText), await File.ReadAllBytesAsync(linkedFile));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public async Task Unloaded_project_source_writes_preserve_the_requested_literals(bool unrelatedWorkspaceLoaded)
     {
         var manager = unrelatedWorkspaceLoaded ? await LoadAsync() : SolutionManagerTestFactory.Create();
@@ -1589,47 +1664,127 @@ public sealed class WorkspaceWriteEncodingTests : IDisposable
             </Project>
             """);
 
-        (string Name, string Original)[] sources =
-        [
-            ("Empty", ""),
-            ("Existing", "class Placeholder {}"),
-            ("Patched", "class Patched { public const string Value = \"Marker\"; }"),
-        ];
-        foreach (var (name, original) in sources)
+        var created = Path.Combine(_outsideRoot, "Created.cs");
+        const string Contents = "class Created { public const string Value = \"Café\"; }";
+        Assert.Contains("Successfully wrote", await editor.WriteFile(created, Contents), StringComparison.Ordinal);
+        Assert.Equal(Utf8WithBom.GetPreamble().Concat(Utf8WithBom.GetBytes(Contents)), await File.ReadAllBytesAsync(created));
+
+        var existing = Path.Combine(_outsideRoot, "Existing.cs");
+        var existingBytes = "class Placeholder {}"u8.ToArray();
+        await File.WriteAllBytesAsync(existing, existingBytes);
+        var fullWriteRefusal = await editor.WriteFile(existing, Contents);
+        Assert.Contains("load_workspace", fullWriteRefusal, StringComparison.Ordinal);
+        Assert.Equal(existingBytes, await File.ReadAllBytesAsync(existing));
+
+        var patched = Path.Combine(_outsideRoot, "Patched.cs");
+        const string Original = "class Patched { public const string Value = \"Marker\"; }";
+        var originalBytes = BomFreeUtf8.GetBytes(Original);
+        await File.WriteAllBytesAsync(patched, originalBytes);
+        var refusal = await patcher.ApplyPatch(patched, "Marker", "Café");
+
+        Assert.Contains("load_workspace", refusal, StringComparison.Ordinal);
+        if (unrelatedWorkspaceLoaded)
         {
-            var path = Path.Combine(_outsideRoot, name + ".cs");
-            await File.WriteAllTextAsync(path, original, BomFreeUtf8);
-            var literal = name == "Patched" ? "Cafe" : "Café";
-            var expected = $"class {name} {{ public const string Value = \"{literal}\"; }}";
-            if (name == "Patched")
-            {
-                Assert.Contains("Load its project before patching", await patcher.ApplyPatch(path, "Marker", "Café"), StringComparison.Ordinal);
-                Assert.Equal(BomFreeUtf8.GetBytes(original), await File.ReadAllBytesAsync(path));
-                Assert.Contains("Patch applied successfully", await patcher.ApplyPatch(path, "Marker", literal), StringComparison.Ordinal);
-                Assert.Equal(BomFreeUtf8.GetBytes(expected), await File.ReadAllBytesAsync(path));
-            }
-            else
-            {
-                Assert.Contains("Successfully wrote", await editor.WriteFile(path, expected), StringComparison.Ordinal);
-                Assert.Equal(Utf8WithBom.GetPreamble().Concat(Utf8WithBom.GetBytes(expected)), await File.ReadAllBytesAsync(path));
-            }
+            Assert.Contains("not part of the loaded workspace", refusal, StringComparison.Ordinal);
+            Assert.Contains(_csprojPath, refusal, StringComparison.Ordinal);
+            Assert.Contains(_csprojPath, fullWriteRefusal, StringComparison.Ordinal);
         }
 
-        var ambiguousPath = Path.Combine(_outsideRoot, "Ambiguous.cs");
-        var originalBytes = "class Ambiguous { const string Keep = \"Café\"; const string Edit = \"Marker\"; }"u8.ToArray();
-        await File.WriteAllBytesAsync(ambiguousPath, originalBytes);
-        var refusal = await patcher.ApplyPatch(ambiguousPath, "Marker", "Café");
-        Assert.Contains("Load its project before patching", refusal, StringComparison.Ordinal);
-        Assert.Equal(originalBytes, await File.ReadAllBytesAsync(ambiguousPath));
+        Assert.Equal(originalBytes, await File.ReadAllBytesAsync(patched));
+        var portable = await patcher.ApplyPatch(patched, "Marker", "Cafe");
+        Assert.Contains("Patch applied successfully", portable, StringComparison.Ordinal);
+        Assert.Equal(BomFreeUtf8.GetBytes(Original.Replace("Marker", "Cafe", StringComparison.Ordinal)),
+            await File.ReadAllBytesAsync(patched));
+
+        var ambiguous = Path.Combine(_outsideRoot, "Ambiguous.cs");
+        var ambiguousBytes = "class Ambiguous { const string Keep = \"Café\"; const string Edit = \"Marker\"; }"u8.ToArray();
+        await File.WriteAllBytesAsync(ambiguous, ambiguousBytes);
+        Assert.Contains("load_workspace", await patcher.ApplyPatch(ambiguous, "Marker", "Coffee"), StringComparison.Ordinal);
+        Assert.Equal(ambiguousBytes, await File.ReadAllBytesAsync(ambiguous));
 
         var build = await DotNetCliRunner.RunAsync("build UnknownOwner.csproj -c Release -p:NuGetAudit=false", _outsideRoot, CancellationToken.None);
         Assert.True(build.ExitCode == 0, build.CombinedOutput);
         var dll = Path.Combine(_outsideRoot, "bin", "Release", "net10.0", "UnknownOwner.dll");
         var assembly = Assembly.Load(await File.ReadAllBytesAsync(dll));
-        foreach (var name in new[] { "Empty", "Existing", "Patched" })
+        Assert.Equal("Café", assembly.GetType("Created")!.GetField("Value")!.GetRawConstantValue());
+        Assert.Equal("Cafe", assembly.GetType("Patched")!.GetField("Value")!.GetRawConstantValue());
+    }
+
+    [Fact]
+    public async Task Ambiguous_source_excluded_from_the_loaded_project_suggests_declaring_encoding()
+    {
+        await File.WriteAllTextAsync(_csprojPath, """
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup>
+              <ItemGroup><Compile Remove="Class1.cs" /></ItemGroup>
+            </Project>
+            """);
+        var bytes = BomFreeUtf8.GetBytes(OriginalSourceText);
+        await File.WriteAllBytesAsync(_sourcePath, bytes);
+        var manager = await LoadAsync();
+        var patcher = new UtilityTools(NullLogger<UtilityTools>.Instance, manager);
+        var editor = new EditingTools(NullLogger<EditingTools>.Instance, manager);
+
+        var patch = await patcher.ApplyPatch(_sourcePath, OriginalFragment, EditedFragment);
+        var write = await editor.WriteFile(_sourcePath, EditedSourceText);
+
+        foreach (var result in new[] { patch, write })
         {
-            Assert.Equal(name == "Patched" ? "Cafe" : "Café", assembly.GetType(name)!.GetField("Value")!.GetRawConstantValue());
+            Assert.Contains("No project in the loaded workspace", result, StringComparison.Ordinal);
+            Assert.Contains(_csprojPath, result, StringComparison.Ordinal);
+            Assert.Contains("charset", result, StringComparison.Ordinal);
+            Assert.Contains("sourceEncoding", result, StringComparison.Ordinal);
+            Assert.DoesNotContain("load_workspace", result, StringComparison.Ordinal);
         }
+
+        Assert.Equal(bytes, await File.ReadAllBytesAsync(_sourcePath));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task WriteFile_reports_composition_changes_only_with_a_workspace(bool resetWorkspace)
+    {
+        var manager = resetWorkspace ? await LoadAsync() : SolutionManagerTestFactory.Create();
+        var editor = new EditingTools(NullLogger<EditingTools>.Instance, manager);
+        const string Source = "public sealed class Saved { }";
+        if (resetWorkspace)
+        {
+            var loaded = await editor.WriteFile(Path.Combine(_outsideRoot, "WithWorkspace.cs"), Source);
+            Assert.Contains(SolutionManager.ProjectGraphCompositionStaleHint, loaded, StringComparison.Ordinal);
+            await manager.ClearWorkspaceAsync();
+        }
+
+        await File.WriteAllBytesAsync(Path.Combine(_outsideRoot, "Empty.cs"), []);
+        foreach (var name in new[] { "New.cs", "Empty.cs" })
+        {
+            var path = Path.Combine(_outsideRoot, name);
+            var result = await editor.WriteFile(path, Source);
+
+            Assert.Contains("Successfully wrote", result, StringComparison.Ordinal);
+            Assert.DoesNotContain("load_workspace", result, StringComparison.Ordinal);
+            Assert.False(manager.ProjectGraphStaleFromComposition);
+            Assert.Equal(Source, await File.ReadAllTextAsync(path));
+        }
+    }
+
+    [Theory]
+    [InlineData("// Café", "// Changed", false)]
+    [InlineData("// Marker", "// Changed", true)]
+    [InlineData("// $Marker", "// Changed", false)]
+    [InlineData("// ~{VP~}", "// Changed", false)]
+    [InlineData("// Marker", "// ~{VP~}", false)]
+    public async Task Full_write_without_a_reader_requires_literal_invariant_ASCII(
+        string original, string replacement, bool allowed)
+    {
+        var bytes = BomFreeUtf8.GetBytes(original);
+        await File.WriteAllBytesAsync(_sourcePath, bytes);
+        var tool = new EditingTools(NullLogger<EditingTools>.Instance, SolutionManagerTestFactory.Create());
+
+        var result = await tool.WriteFile(_sourcePath, replacement);
+
+        Assert.Contains(allowed ? "Successfully wrote" : "load_workspace", result, StringComparison.Ordinal);
+        Assert.Equal(allowed ? BomFreeUtf8.GetBytes(replacement) : bytes, await File.ReadAllBytesAsync(_sourcePath));
     }
 
     [Theory]
@@ -1651,7 +1806,7 @@ public sealed class WorkspaceWriteEncodingTests : IDisposable
         var patcher = new UtilityTools(NullLogger<UtilityTools>.Instance, SolutionManagerTestFactory.Create());
         var result = await patcher.ApplyPatch(_sourcePath, "Marker", "X");
 
-        Assert.Contains(patchAllowed ? "Patch applied successfully" : "Load its project before patching", result, StringComparison.Ordinal);
+        Assert.Contains(patchAllowed ? "Patch applied successfully" : "load_workspace", result, StringComparison.Ordinal);
         var expected = patchAllowed ? source.Replace("Marker", "X", StringComparison.Ordinal) : source;
         Assert.Equal(Encoding.ASCII.GetBytes(expected), await File.ReadAllBytesAsync(_sourcePath));
         var build = await DotNetCliRunner.RunAsync("build App.csproj -c Release -p:NuGetAudit=false", _root, CancellationToken.None);
@@ -1672,12 +1827,13 @@ public sealed class WorkspaceWriteEncodingTests : IDisposable
     {
         const string Source = "// $Marker, Marker$, $   Marker\r\n// $  Marker\r\n";
         var bytes = Encoding.ASCII.GetBytes(Source);
-        await File.WriteAllBytesAsync(_sourcePath, bytes);
+        var path = Path.Combine(_outsideRoot, "Unowned.cs");
+        await File.WriteAllBytesAsync(path, bytes);
         var tool = new UtilityTools(NullLogger<UtilityTools>.Instance, SolutionManagerTestFactory.Create());
-        var result = await tool.ApplyPatch(_sourcePath, oldText, newText, replaceAll);
+        var result = await tool.ApplyPatch(path, oldText, newText, replaceAll);
 
-        Assert.Contains("Load its project before patching", result, StringComparison.Ordinal);
-        Assert.Equal(bytes, await File.ReadAllBytesAsync(_sourcePath));
+        Assert.Contains("load_workspace", result, StringComparison.Ordinal);
+        Assert.Equal(bytes, await File.ReadAllBytesAsync(path));
     }
 
     [Fact]
@@ -1717,8 +1873,33 @@ public sealed class WorkspaceWriteEncodingTests : IDisposable
         var tool = new EditingTools(NullLogger<EditingTools>.Instance, SolutionManagerTestFactory.Create());
         var result = await tool.WriteFile(path, $"#!/usr/bin/env dotnet\nSystem.Console.WriteLine(\"{literal}\");\n");
 
-        Assert.Contains("ambiguous without a loaded owning project", result, StringComparison.Ordinal);
+        Assert.Contains("BOM-free C# script", result, StringComparison.Ordinal);
+        Assert.Contains("#:property CodePage", result, StringComparison.Ordinal);
+        Assert.Contains("charset", result, StringComparison.Ordinal);
+        Assert.Contains("sourceEncoding", result, StringComparison.Ordinal);
+        Assert.DoesNotContain("load_workspace", result, StringComparison.Ordinal);
         Assert.False(File.Exists(path));
+    }
+
+    [Theory]
+    [InlineData("$Marker", "$Changed")]
+    [InlineData("Marker", "$Changed")]
+    public async Task ApplyPatch_suggests_declaring_encoding_for_an_ambiguous_shebang(string original, string replacement)
+    {
+        const string Source = "#!/usr/bin/env dotnet\nSystem.Console.WriteLine(\"$Marker\");\n";
+        var path = Path.Combine(_outsideRoot, "hello.cs");
+        var bytes = BomFreeUtf8.GetBytes(Source);
+        await File.WriteAllBytesAsync(path, bytes);
+        var patcher = new UtilityTools(NullLogger<UtilityTools>.Instance, SolutionManagerTestFactory.Create());
+
+        var result = await patcher.ApplyPatch(path, original, replacement);
+
+        Assert.Contains("BOM-free C# script", result, StringComparison.Ordinal);
+        Assert.Contains("#:property CodePage", result, StringComparison.Ordinal);
+        Assert.Contains("charset", result, StringComparison.Ordinal);
+        Assert.Contains("sourceEncoding", result, StringComparison.Ordinal);
+        Assert.DoesNotContain("load_workspace", result, StringComparison.Ordinal);
+        Assert.Equal(bytes, await File.ReadAllBytesAsync(path));
     }
 
     [Fact]

@@ -2,12 +2,26 @@
 
 Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into app repos as `AGENTS.md`). Current server version: see `RoslynMcpServer.csproj`.
 
+### Unreleased
+
+- `estimate_affected_tests` with `run=true` reads each project's outcome, totals and failures from VSTest TRX reports, like the other test tools. Console output is used only for diagnostics, and a cancelled project run is reported as cancelled.
+- Test reports keep failure details when a stack trace or message is longer than its excerpt limit; previously such a report was treated as unreadable. A failed test no longer adds a notice about an unconfirmed VSTest launch.
+- `rename_project` edits only the changed values in `.sln`, `.slnx` and project files, using the SDK solution model and MSBuild construction model to confirm each edit. It updates project entries in solution filters (`.slnf`) and refuses, before moving anything, when an imported MSBuild file such as `Directory.Build.targets` declares a `ProjectReference` to the renamed project.
+
+### v1.7.1
+
+- `apply_patch` and `update_file_content` immediately refuse ambiguous edits to existing BOM-free C# files with no encoding declaration or loaded project reader. Full writes to empty files follow the creation rule. The message asks callers to load the containing solution and identifies any loaded workspace that excludes the file.
+- Source encoding declarations are refreshed when the contents change, even if a new `.editorconfig` or `RoslynMcp.jsonc` has the same file size and modification time.
+- The test tools report a confirmed missing assembly before VSTest when `noBuild=true`. `run_test_by_filter` builds when `noBuild` and the explicit or inherited configuration are both omitted.
+- Build and test tools accept `.slnf` solution filters and report a missing backing solution directly.
+- `get_mcp_server_info` reports the server assembly path, modification time, informational version, and module ID separately from the process path.
+
 ### v1.7.0
 
 - `update_file_content` and `apply_patch` no longer evaluate MSBuild on every write. Version 1.6.5 rejected every write to a C# source without a BOM; such writes now finish in milliseconds.
 - A C# source without a BOM keeps its encoding when it already contains non-ASCII text, as an editor does. The first non-ASCII text in an ASCII-only file adds a UTF-8 BOM unless the encoding is declared. Writes are rejected before any change when the final bytes would switch UTF-8 auto-detection or when the projects that compile the file would read them differently.
 - Declare the source encoding with `charset` in `.editorconfig` or the new `sourceEncoding` key in `RoslynMcp.jsonc`. A changed declaration applies on the next write without `load_workspace`. File-based C# scripts honor `#:property CodePage`.
-- `run_dotnet_test`, `run_specific_test` and `run_test_by_filter` read totals and failures from VSTest TRX reports and match them with the test launches recorded in a temporary MSBuild binary log. Console output is used only for diagnostics. A filter that matches tests in only some projects of a solution now reports the matched results. Solution runs take slightly longer: about 5% in a measured solution with 8 test projects.
+- `run_dotnet_test`, `run_specific_test` and `run_test_by_filter` read totals and failures from VSTest TRX reports and match them with the test launches recorded in a temporary MSBuild binary log. Console output is used only for diagnostics. A filter that matches tests in only some projects of a solution now reports the matched results. The binary log adds no measurable time to `dotnet test`.
 - See [root causes of the review fix series](docs/fix-series-root-causes/README.md) for decisions and acceptance details.
 
 ### v1.6.5

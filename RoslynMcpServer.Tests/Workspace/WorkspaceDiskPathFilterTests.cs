@@ -94,6 +94,7 @@ public sealed class WorkspaceDiskPathFilterTests
         Assert.True(WorkspaceDiskPathFilter.IsProjectGraphFile("Directory.Build.targets"));
         Assert.True(WorkspaceDiskPathFilter.IsProjectGraphFile("Directory.Packages.props"));
         Assert.True(WorkspaceDiskPathFilter.IsProjectGraphFile("global.json"));
+        Assert.False(WorkspaceDiskPathFilter.IsProjectGraphFile("App.slnf"));
         Assert.False(WorkspaceDiskPathFilter.IsProjectGraphFile("Foo.cs"));
         Assert.False(WorkspaceDiskPathFilter.IsProjectGraphFile("nuget.config"));
     }

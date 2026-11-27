@@ -43,7 +43,7 @@ public static class WorkspaceHealthReporter
         sb.AppendLine($"- **Tool profile:** `{activation.Profile}`");
         sb.AppendLine($"- **Startup tool groups:** {activation.FormatStartupGroupsMarkdown()}");
         sb.AppendLine($"- **Dynamic tool groups:** {activation.FormatDynamicGroupsMarkdown()}");
-        sb.AppendLine($"- **Registered MCP tools:** {activation.CurrentToolCount} (use `get_mcp_server_info` for binary path)");
+        sb.AppendLine($"- **Registered MCP tools:** {activation.CurrentToolCount} (use `get_mcp_server_info` for server assembly identity)");
         sb.AppendLine();
         sb.AppendLine(
             "> **Workflow:** Call `load_workspace` first. Build/test/run via `run_dotnet_build`, `run_dotnet_test`, `run_dotnet_run` — not raw shell `dotnet`. "

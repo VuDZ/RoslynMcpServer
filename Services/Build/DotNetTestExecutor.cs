@@ -138,39 +138,6 @@ internal sealed class DotNetTestExecutor
         }
     }
 
-    // Rapid TIA still uses the console report. Its TRX migration is independent of the public test tools.
-    internal async Task<DotNetTestResult> TestAsync(
-        string arguments,
-        string workingDirectory,
-        TimeSpan? timeout,
-        DotNetCliRunner.RunResult? buildRun,
-        CancellationToken cancellationToken)
-    {
-        if (cancellationToken.IsCancellationRequested)
-        {
-            return new(TestProcessOutcome.NotRun, buildRun);
-        }
-
-        try
-        {
-            var run = await _runner(arguments, workingDirectory, timeout, buildRun?.ExitCode, cancellationToken)
-                .ConfigureAwait(false);
-            var parsed = VstestOutputParser.Parse(
-                run.CombinedOutput, run.ExitCode, run.TestSummaryTruncated, run.OutputTruncated);
-            var outcome = run.Cancelled ? TestProcessOutcome.Cancelled
-                : run.TimedOut ? TestProcessOutcome.TimedOut
-                : run.ExitCode != 0 || parsed.HasConfirmedFailure ? TestProcessOutcome.Failed
-                : parsed.SummaryTruncated || parsed.IncompleteCounts is not null ? TestProcessOutcome.Partial
-                : parsed.Summary is { Total: > 0 } ? TestProcessOutcome.Passed
-                : TestProcessOutcome.Failed;
-            return new(outcome, buildRun, run, parsed);
-        }
-        catch (OperationCanceledException)
-        {
-            return new(TestProcessOutcome.Cancelled, buildRun);
-        }
-    }
-
     private static string QuoteContents(string path) => path.Replace("\"", "\\\"", StringComparison.Ordinal);
 
     private readonly TestDllEnsure.Runner _runner;

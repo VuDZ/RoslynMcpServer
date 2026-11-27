@@ -13,7 +13,9 @@ internal static class VstestTrxTestFiles
 {
     internal static string ResultsDirectory(string command) => ReadArgument(command, "--results-directory ")!;
 
-    internal static void WritePassingRun(string command)
+    internal static void WritePassingRun(string command) => WriteRun(command, passed: 1, failed: 0);
+
+    internal static void WriteRun(string command, int passed, int failed)
     {
         var directory = ResultsDirectory(command);
         var target = ReadArgument(command, "test ")!;
@@ -22,13 +24,14 @@ internal static class VstestTrxTestFiles
         {
             WriteInventory(directory, [source], ReadArgument(command, "--filter "));
         }
-        WriteReport(directory, source, passed: 1);
+        WriteReport(directory, source, passed, failed);
     }
 
-    internal static void WriteInventory(string directory, string[] sources, string? filter, string? buildError = null)
+    internal static void WriteInventory(
+        string directory, string[] sources, string? filter, string? buildError = null, bool tasksSucceeded = true)
     {
         MsBuildBootstrapper.Register();
-        WriteBinlog(directory, sources, filter, buildError);
+        WriteBinlog(directory, sources, filter, buildError, tasksSucceeded);
     }
 
     internal static string WriteReport(
@@ -68,7 +71,7 @@ internal static class VstestTrxTestFiles
         return match.Success ? match.Groups["value"].Value : null;
     }
 
-    private static void WriteBinlog(string directory, string[] sources, string? filter, string? buildError)
+    private static void WriteBinlog(string directory, string[] sources, string? filter, string? buildError, bool tasksSucceeded)
     {
         var path = Path.Combine(directory, VstestTrxReader.BinlogName);
         var events = new SyntheticEventSource();
@@ -86,7 +89,7 @@ internal static class VstestTrxTestFiles
             {
                 WriteInput("VSTestTestCaseFilter", filter);
             }
-            events.Raise(new TaskFinishedEventArgs("Finished VSTestTask", "", project, "VSTest.targets", "VSTestTask", true)
+            events.Raise(new TaskFinishedEventArgs("Finished VSTestTask", "", project, "VSTest.targets", "VSTestTask", tasksSucceeded)
                 { BuildEventContext = context });
 
             void WriteInput(string name, string value) => events.Raise(new TaskParameterEventArgs(
@@ -97,7 +100,7 @@ internal static class VstestTrxTestFiles
         {
             events.Raise(new BuildErrorEventArgs("", "CI-001", "Test.csproj", 1, 1, 1, 1, buildError, "", "MSBuild"));
         }
-        events.Raise(new BuildFinishedEventArgs("Build finished", "", buildError is null));
+        events.Raise(new BuildFinishedEventArgs("Build finished", "", buildError is null && tasksSucceeded));
         logger.Shutdown();
     }
 

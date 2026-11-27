@@ -304,7 +304,7 @@ internal static class WorkspaceInputMapBuilder
         Dictionary<string, List<InputOccurrence>> occurrences)
     {
         var canonical = InputPathCanon.TryCanonicalize(loadedWorkspacePath);
-        if (canonical is null || !IsSolutionFile(canonical))
+        if (canonical is null || !WorkspaceInputPath.IsSolution(WorkspaceInputPath.Classify(canonical)))
         {
             return;
         }
@@ -663,13 +663,6 @@ internal static class WorkspaceInputMapBuilder
             || extension.Equals(".resources", StringComparison.OrdinalIgnoreCase)
             || extension.Equals(".png", StringComparison.OrdinalIgnoreCase)
             || extension.Equals(".jpg", StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static bool IsSolutionFile(string canonicalPath)
-    {
-        var extension = Path.GetExtension(canonicalPath);
-        return extension.Equals(".sln", StringComparison.OrdinalIgnoreCase)
-            || extension.Equals(".slnx", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool IsSharedFrameworkOrPackage(string canonicalPath)

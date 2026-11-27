@@ -99,7 +99,7 @@ public sealed class EstimateAffectedTestsRunTests(ITestOutputHelper output)
         await fixture.LoadAsync();
         await fixture.ChangeAsync("First", "Seen(\"NewSource\"); Assert.Fail(\"New source was executed\");");
         await fixture.ChangeAsync("Second", "GC.KeepAlive(value); Assert.True(true);");
-        var stale = await fixture.Tools.RunTestByFilter(fixture.ProjectPath("First"), "FullyQualifiedName~Ns.Cases.First");
+        var stale = await fixture.Tools.RunTestByFilter(fixture.ProjectPath("First"), "FullyQualifiedName~Ns.Cases.First", noBuild: true);
         Assert.Contains("## Filtered tests passed", stale, StringComparison.Ordinal);
         Assert.DoesNotContain("New source was executed", stale, StringComparison.Ordinal);
         Assert.Equal(new[] { "First1", "First2", "FirstExtra" },

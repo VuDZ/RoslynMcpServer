@@ -5,6 +5,36 @@ namespace RoslynMcpServer.Tests.Workspace;
 
 public sealed class SolutionConfigurationCatalogTests
 {
+    [Theory]
+    [InlineData(".sln", "Microsoft Visual Studio Solution File, Format Version 12.00\nGlobal\nGlobalSection(SolutionConfigurationPlatforms) = preSolution\nReview|Any CPU = Review|Any CPU\nEndGlobalSection\nEndGlobal")]
+    [InlineData(".slnx", """<Solution><Configurations><BuildType Name="Review" /><Platform Name="Any CPU" /></Configurations></Solution>""")]
+    public void Filter_configuration_guidance_uses_backing_solution(string extension, string solution)
+    {
+        var root = Directory.CreateTempSubdirectory("mcp-filter-config-");
+        try
+        {
+            var solutionPath = Path.Combine(root.FullName, "App" + extension);
+            var filterPath = Path.Combine(root.CreateSubdirectory("filters").FullName, "App.SLNF");
+            File.WriteAllText(solutionPath, solution);
+            File.WriteAllText(filterPath, $$"""
+                {"solution":{"path":"..\\App{{extension}}","projects":[]} }
+                """);
+
+            Assert.Equal(["Review|Any CPU"], SolutionConfigurationCatalog.ListConfigurationPlatforms(filterPath));
+            var guidance = WorkspaceLoadGuidance.FormatNoMatchingTestsAgentHint(solutionPath, null, filterPath);
+            Assert.DoesNotContain("**Mismatch:**", guidance, StringComparison.Ordinal);
+
+            File.WriteAllText(filterPath, "{");
+            Assert.Empty(SolutionConfigurationCatalog.ListConfigurationPlatforms(filterPath));
+            var invalidGuidance = WorkspaceLoadGuidance.FormatNoMatchingTestsAgentHint(solutionPath, null, filterPath);
+            Assert.Contains("filter's backing `.sln` or `.slnx`", invalidGuidance, StringComparison.Ordinal);
+        }
+        finally
+        {
+            root.Delete(recursive: true);
+        }
+    }
+
     [Fact]
     public void ListFromSln_reads_configuration_platforms()
     {

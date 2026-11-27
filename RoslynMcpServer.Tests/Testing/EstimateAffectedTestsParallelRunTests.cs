@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using Microsoft.Extensions.Logging.Abstractions;
+using RoslynMcpServer.Tests.TestRunner;
 using RoslynMcpServer.Tools;
 using Xunit;
 
@@ -258,7 +259,21 @@ public sealed class EstimateAffectedTestsParallelRunTests
         tools.EstimateAffectedTests(run: true, maxParallelProjects: degree, cancellationToken: token);
 
     private static TestTools Tools(TestImpactRunFixture fixture, TestDllEnsure.Runner runner) =>
-        new(fixture.Manager, NullLogger<TestTools>.Instance, runner);
+        new(fixture.Manager, NullLogger<TestTools>.Instance, WithTrx(runner));
+
+    // Rapid TIA reads outcomes from TRX. Simulated test processes write the report their exit code describes;
+    // real dotnet test runs already wrote one.
+    private static TestDllEnsure.Runner WithTrx(TestDllEnsure.Runner runner) => async (command, workDir, timeout, exit, token) =>
+    {
+        var result = await runner(command, workDir, timeout, exit, token);
+        if (!IsBuild(command) && !result.TimedOut && !result.Cancelled
+            && !Directory.EnumerateFiles(ResultsDirectory(command), "*.trx").Any())
+        {
+            VstestTrxTestFiles.WriteRun(command, passed: result.ExitCode == 0 ? 1 : 0, failed: result.ExitCode == 0 ? 0 : 1);
+        }
+
+        return result;
+    };
 
     private static DotNetCliRunner.RunResult Success() =>
         new(0, "Passed! - Failed: 0, Passed: 1, Skipped: 0, Total: 1", "", 0, 0);

@@ -6,7 +6,6 @@ internal sealed record DotNetTestResult(
     TestProcessOutcome Outcome,
     DotNetCliRunner.RunResult? BuildRun = null,
     DotNetCliRunner.RunResult? TestRun = null,
-    VstestOutputParser.ParseResult? Parsed = null,
     string? Error = null,
     VstestTrxResult? Trx = null)
 {
