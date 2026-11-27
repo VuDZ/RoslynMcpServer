@@ -10,7 +10,7 @@ Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into a
 
 ### v1.7.1
 
-- `apply_patch` evaluates compiler inputs for BOM-free C# patches that need encoding disambiguation before a workspace is loaded. Repositories with ordinary Microsoft.NET.Test.Sdk projects and larger project trees can use this fallback. Incomplete reader discovery still refuses the patch.
+- `apply_patch` and `update_file_content` immediately refuse ambiguous edits to existing BOM-free C# files with no encoding declaration or loaded project reader. Full writes to empty files follow the creation rule. The message asks callers to load the containing solution and identifies any loaded workspace that excludes the file.
 - Source encoding declarations are refreshed when the contents change, even if a new `.editorconfig` or `RoslynMcp.jsonc` has the same file size and modification time.
 - The test tools report a confirmed missing assembly before VSTest when `noBuild=true`. `run_test_by_filter` builds when `noBuild` and the explicit or inherited configuration are both omitted.
 - Build and test tools accept `.slnf` solution filters and report a missing backing solution directly.

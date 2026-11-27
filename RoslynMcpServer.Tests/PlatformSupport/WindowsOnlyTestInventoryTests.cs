@@ -40,8 +40,6 @@ public sealed class WindowsOnlyTestInventoryTests
         "WorkspaceDiskPathFilterTests.Workspace_filter_respects_windows_roots_without_filesystem_access",
         // The regression creates a real NTFS junction with the Windows mklink command.
         "WorkspaceDiskWatcherStarterTests.Descriptor_across_a_junction_keeps_its_watcher_and_delivers_changes",
-        // Windows device namespace paths can alias an ordinary source file.
-        "WorkspaceWriteEncodingTests.ApplyPatch_refuses_a_Compile_reader_using_the_Windows_device_namespace",
         // A real WPF build needs the Windows Desktop SDK.
         "WpfTemporaryProjectWatchingTests.Real_WPF_build_preserves_the_cached_graph_after_flush_and_repeated_loads",
         "WpfTemporaryProjectWatchingTests.Real_project_edit_delivered_during_WPF_build_still_invalidates_the_graph",
