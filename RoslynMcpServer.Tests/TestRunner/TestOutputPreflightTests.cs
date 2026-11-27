@@ -12,6 +12,8 @@ namespace RoslynMcpServer.Tests.TestRunner;
 [Collection("DotNetSdkEnvironment")]
 public sealed class TestOutputPreflightTests
 {
+    public TestOutputPreflightTests() => MsBuildBootstrapper.Register();
+
     [Fact]
     public async Task Ordinary_no_build_tools_name_the_evaluated_assembly_before_starting_vstest()
     {
@@ -245,6 +247,36 @@ public sealed class TestOutputPreflightTests
     }
 
     [Theory]
+    [InlineData("<OutputPath>payload/</OutputPath>", false)]
+    [InlineData("""<OutputPath Condition="'$(VSTestLogger)' != ''">payload/</OutputPath>""", true)]
+    public void Read_only_imports_preserve_preflight_input_detection(string propertyXml, bool usesUnmodeledInput)
+    {
+        using var files = new TestFiles();
+        files.Write("Output.props", $"""
+            <Project>
+              <PropertyGroup>{propertyXml}</PropertyGroup>
+            </Project>
+            """);
+        var path = files.Write("Sample.csproj", """
+            <Project>
+              <Import Project="Output.props" />
+            </Project>
+            """);
+        using var collection = new ProjectCollection(
+            globalProperties: null,
+            loggers: null,
+            remoteLoggers: null,
+            toolsetDefinitionLocations: ToolsetDefinitionLocations.Default,
+            maxNodeCount: 1,
+            onlyLogCriticalEvents: false,
+            loadProjectsReadOnly: true);
+        var project = collection.LoadProject(path);
+        var import = Assert.Single(project.Imports);
+
+        Assert.Equal(usesUnmodeledInput, TestOutputPreflight.UsesUnmodeledTestInputs(project, import.ImportedProject));
+    }
+
+    [Theory]
     [InlineData("VSTestTestCaseFilter")]
     [InlineData("VSTestLogger")]
     [InlineData("VSTestResultsDirectory")]
@@ -372,7 +404,6 @@ public sealed class TestOutputPreflightTests
 
         public TestFiles()
         {
-            MsBuildBootstrapper.Register();
             var directory = GetSdkDirectory();
             var version = Path.GetFileName(directory);
             var dotnetRoot = Directory.GetParent(directory)!.Parent!.FullName;

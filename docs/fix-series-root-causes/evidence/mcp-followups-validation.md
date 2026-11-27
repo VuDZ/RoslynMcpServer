@@ -116,3 +116,11 @@
 - **N-2.** Без загруженного workspace и после `reset_workspace` запись нового и существующего пустого `.cs` прошла без сообщения об устаревшем составе. При загруженном workspace запись вне снимка по-прежнему дала это сообщение.
 
 Отдельный MCP-сеанс подтвердил путь к свежей Release-сборке в рабочем дереве, версию 1.7.1 и MVID `afe6a8b2-aab3-4b0c-9fa8-8237baa60e76`. Подключённый сервер 1.7.0 использовался для сборки и тестов. В файловой песочнице `update_file_content` вернул `Access denied` на временной фикстуре. Повтор тех же полевых вызовов в отдельном MCP-сеансе вне песочницы прошёл.
+
+## M-1. Импорты MSBuild в режиме read-only
+
+Дата 2026-11-27. Два прогона GitHub Actions на Windows дали одинаковые 22 падения в `TestOutputPreflightTests`. Сборка прошла. [Временный прогон](https://github.com/VuDZ/RoslynMcpServer/actions/runs/46020302599/job/140577908906) · [Прогон PR](https://github.com/VuDZ/RoslynMcpServer/actions/runs/46020651047/job/140579121524)
+
+Регрессии с read-only импортом воспроизвели `InvalidOperationException` в `ProjectRootElement.RawXml`. MSBuild сериализует XML через `Save`, которое отклоняет такой документ. `FindMissing` перехватывает исключение и передаёт проверку штатному запуску. `OuterElement` читает тот же загруженный элемент без вызова `Save`. Два сценария регрессии проверяют обычный импорт и импорт, где CLI-свойство может менять `OutputPath`. [Исходник MSBuild](https://github.com/dotnet/msbuild/blob/main/src/Build/Construction/ProjectRootElement.cs#L497-L524)
+
+Через подключённый MCP 1.7.0 прошли Release-сборка, 155 целевых тестов, включая весь `SourceStructure`, и 2 866 из 2 866 тестов основной серии `Category!=AnalyzerLifecycle`. В отдельном сеансе на свежей сборке 1.7.1 с MVID `1df31b0e-2aee-402f-84e5-9c733b16d2eb` принудительно включена read-only загрузка MSBuild. Все три публичных инструмента (`run_dotnet_test`, `run_specific_test`, `run_test_by_filter`) вернули путь ожидаемой DLL до запуска VSTest. [Повторный CI на GitHub](https://github.com/VuDZ/RoslynMcpServer/pull/1/checks)

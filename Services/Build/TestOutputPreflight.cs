@@ -73,6 +73,23 @@ internal static class TestOutputPreflight
         return null;
     }
 
+    internal static bool UsesUnmodeledTestInputs(Project project, ProjectRootElement source)
+    {
+        if (!string.IsNullOrWhiteSpace(source.InitialTargets) && !MicrosoftTestSdkProgramTarget.IsStandard(project, source))
+        {
+            return true;
+        }
+
+        // CLI properties can select a different output or import. RawXml calls Save and throws for read-only SDK imports.
+        // https://github.com/dotnet/msbuild/blob/main/src/Build/Construction/ProjectRootElement.cs#L505
+        var xml = source.OuterElement;
+        return xml.Contains("$(VSTestTestCaseFilter)", StringComparison.OrdinalIgnoreCase)
+            || xml.Contains("$(VSTestLogger)", StringComparison.OrdinalIgnoreCase)
+            || xml.Contains("$(VSTestResultsDirectory)", StringComparison.OrdinalIgnoreCase)
+            || xml.Contains("$(VSTestVerbosity)", StringComparison.OrdinalIgnoreCase)
+            || xml.Contains("$(MSBuildStartupDirectory)", StringComparison.OrdinalIgnoreCase);
+    }
+
     private static bool HasAutoResponseArguments(string targetPath, string workingDirectory, string sdkDirectory)
     {
         // Project evaluation does not receive command-line defaults such as /p:OutDir from auto-response files.
@@ -393,22 +410,6 @@ internal static class TestOutputPreflight
             !WorkspaceDiskPathFilter.IsPathUnderDirectory(
                 import.ImportedProject.FullPath, sdkDirectory, InputPathCanon.Comparison)
             && UsesUnmodeledTestInputs(project, import.ImportedProject));
-
-    private static bool UsesUnmodeledTestInputs(Project project, ProjectRootElement source)
-    {
-        if (!string.IsNullOrWhiteSpace(source.InitialTargets) && !MicrosoftTestSdkProgramTarget.IsStandard(project, source))
-        {
-            return true;
-        }
-
-        // CLI-supplied values and its startup directory can select a different output or import.
-        var xml = source.RawXml;
-        return xml.Contains("$(VSTestTestCaseFilter)", StringComparison.OrdinalIgnoreCase)
-            || xml.Contains("$(VSTestLogger)", StringComparison.OrdinalIgnoreCase)
-            || xml.Contains("$(VSTestResultsDirectory)", StringComparison.OrdinalIgnoreCase)
-            || xml.Contains("$(VSTestVerbosity)", StringComparison.OrdinalIgnoreCase)
-            || xml.Contains("$(MSBuildStartupDirectory)", StringComparison.OrdinalIgnoreCase);
-    }
 
     private static bool IsTrue(Project project, string property) =>
         string.Equals(project.GetPropertyValue(property), "true", StringComparison.OrdinalIgnoreCase);
