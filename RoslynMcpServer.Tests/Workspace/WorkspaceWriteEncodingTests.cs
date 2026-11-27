@@ -1710,6 +1710,64 @@ public sealed class WorkspaceWriteEncodingTests : IDisposable
         Assert.Equal("Cafe", assembly.GetType("Patched")!.GetField("Value")!.GetRawConstantValue());
     }
 
+    [Fact]
+    public async Task Ambiguous_source_excluded_from_the_loaded_project_suggests_declaring_encoding()
+    {
+        await File.WriteAllTextAsync(_csprojPath, """
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup>
+              <ItemGroup><Compile Remove="Class1.cs" /></ItemGroup>
+            </Project>
+            """);
+        var bytes = BomFreeUtf8.GetBytes(OriginalSourceText);
+        await File.WriteAllBytesAsync(_sourcePath, bytes);
+        var manager = await LoadAsync();
+        var patcher = new UtilityTools(NullLogger<UtilityTools>.Instance, manager);
+        var editor = new EditingTools(NullLogger<EditingTools>.Instance, manager);
+
+        var patch = await patcher.ApplyPatch(_sourcePath, OriginalFragment, EditedFragment);
+        var write = await editor.WriteFile(_sourcePath, EditedSourceText);
+
+        foreach (var result in new[] { patch, write })
+        {
+            Assert.Contains("No project in the loaded workspace", result, StringComparison.Ordinal);
+            Assert.Contains(_csprojPath, result, StringComparison.Ordinal);
+            Assert.Contains("charset", result, StringComparison.Ordinal);
+            Assert.Contains("sourceEncoding", result, StringComparison.Ordinal);
+            Assert.DoesNotContain("load_workspace", result, StringComparison.Ordinal);
+        }
+
+        Assert.Equal(bytes, await File.ReadAllBytesAsync(_sourcePath));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task WriteFile_reports_composition_changes_only_with_a_workspace(bool resetWorkspace)
+    {
+        var manager = resetWorkspace ? await LoadAsync() : SolutionManagerTestFactory.Create();
+        var editor = new EditingTools(NullLogger<EditingTools>.Instance, manager);
+        const string Source = "public sealed class Saved { }";
+        if (resetWorkspace)
+        {
+            var loaded = await editor.WriteFile(Path.Combine(_outsideRoot, "WithWorkspace.cs"), Source);
+            Assert.Contains(SolutionManager.ProjectGraphCompositionStaleHint, loaded, StringComparison.Ordinal);
+            await manager.ClearWorkspaceAsync();
+        }
+
+        await File.WriteAllBytesAsync(Path.Combine(_outsideRoot, "Empty.cs"), []);
+        foreach (var name in new[] { "New.cs", "Empty.cs" })
+        {
+            var path = Path.Combine(_outsideRoot, name);
+            var result = await editor.WriteFile(path, Source);
+
+            Assert.Contains("Successfully wrote", result, StringComparison.Ordinal);
+            Assert.DoesNotContain("load_workspace", result, StringComparison.Ordinal);
+            Assert.False(manager.ProjectGraphStaleFromComposition);
+            Assert.Equal(Source, await File.ReadAllTextAsync(path));
+        }
+    }
+
     [Theory]
     [InlineData("// Café", "// Changed", false)]
     [InlineData("// Marker", "// Changed", true)]
@@ -1815,8 +1873,33 @@ public sealed class WorkspaceWriteEncodingTests : IDisposable
         var tool = new EditingTools(NullLogger<EditingTools>.Instance, SolutionManagerTestFactory.Create());
         var result = await tool.WriteFile(path, $"#!/usr/bin/env dotnet\nSystem.Console.WriteLine(\"{literal}\");\n");
 
-        Assert.Contains("ambiguous without a loaded owning project", result, StringComparison.Ordinal);
+        Assert.Contains("BOM-free C# script", result, StringComparison.Ordinal);
+        Assert.Contains("#:property CodePage", result, StringComparison.Ordinal);
+        Assert.Contains("charset", result, StringComparison.Ordinal);
+        Assert.Contains("sourceEncoding", result, StringComparison.Ordinal);
+        Assert.DoesNotContain("load_workspace", result, StringComparison.Ordinal);
         Assert.False(File.Exists(path));
+    }
+
+    [Theory]
+    [InlineData("$Marker", "$Changed")]
+    [InlineData("Marker", "$Changed")]
+    public async Task ApplyPatch_suggests_declaring_encoding_for_an_ambiguous_shebang(string original, string replacement)
+    {
+        const string Source = "#!/usr/bin/env dotnet\nSystem.Console.WriteLine(\"$Marker\");\n";
+        var path = Path.Combine(_outsideRoot, "hello.cs");
+        var bytes = BomFreeUtf8.GetBytes(Source);
+        await File.WriteAllBytesAsync(path, bytes);
+        var patcher = new UtilityTools(NullLogger<UtilityTools>.Instance, SolutionManagerTestFactory.Create());
+
+        var result = await patcher.ApplyPatch(path, original, replacement);
+
+        Assert.Contains("BOM-free C# script", result, StringComparison.Ordinal);
+        Assert.Contains("#:property CodePage", result, StringComparison.Ordinal);
+        Assert.Contains("charset", result, StringComparison.Ordinal);
+        Assert.Contains("sourceEncoding", result, StringComparison.Ordinal);
+        Assert.DoesNotContain("load_workspace", result, StringComparison.Ordinal);
+        Assert.Equal(bytes, await File.ReadAllBytesAsync(path));
     }
 
     [Fact]

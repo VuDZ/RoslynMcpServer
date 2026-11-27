@@ -786,12 +786,12 @@ public sealed class SolutionManager
     }
 
     /// <summary>
-    /// Marks a <c>.cs</c> path as unrepresentable (new file outside the loaded snapshot).
+    /// Marks a <c>.cs</c> path as unrepresentable when a loaded snapshot may omit it.
     /// Thread-safe; may be called without <see cref="_workspaceLock"/>.
     /// </summary>
     public void NoteUnrepresentableSourcePath(string filePath)
     {
-        if (string.IsNullOrWhiteSpace(filePath) || !WorkspaceDiskPathFilter.IsCSharpSource(filePath))
+        if (_workspace is null || string.IsNullOrWhiteSpace(filePath) || !WorkspaceDiskPathFilter.IsCSharpSource(filePath))
         {
             return;
         }
@@ -2081,20 +2081,40 @@ public sealed class SolutionManager
                 || (script && !SourceTextEncoding.IsInvariantAscii(fragments.Original))))
         {
             PersistedPayload.EncodeExactly(fragments.Replacement, source.Encoding);
-            throw UnknownBomFreeSource(fullPath);
+            throw UnknownBomFreeSource(fullPath, script);
         }
 
         return source;
     }
 
-    private InvalidDataException UnknownBomFreeSource(string fullPath)
+    private InvalidDataException UnknownBomFreeSource(string fullPath, bool script = false)
     {
-        var loadedWorkspace = _loadedPath is { } path ? $" The file is not part of the loaded workspace `{path}`." : string.Empty;
-        return new InvalidDataException($"Cannot determine how the owning project reads the BOM-free source: {fullPath}."
-            + loadedWorkspace
+        if (script)
+        {
+            return new InvalidDataException($"Cannot determine the encoding of this BOM-free C# script: {fullPath}. "
+                + "Set `#:property CodePage` in the script or declare a BOM-free encoding for the file "
+                + "using `charset` in `.editorconfig` or `sourceEncoding` in `RoslynMcp.jsonc`.");
+        }
+
+        const string DeclareEncoding = "If you own the repository, set `charset` under `[*.cs]` in the root `.editorconfig` "
+            + "or set `sourceEncoding` in `RoslynMcp.jsonc`.";
+        var message = $"Cannot determine how the owning project reads the BOM-free source: {fullPath}.";
+        if (_loadedPath is { } path)
+        {
+            if ((Path.GetDirectoryName(path) is { } directory
+                && WorkspaceDiskPathFilter.IsPathUnderDirectory(fullPath, directory, _pathComparison))
+                || (_workspace?.CurrentSolution is { } solution
+                    && WorkspaceDocumentDiskSync.FindContainingProject(solution, fullPath, _pathComparison) is not null))
+            {
+                return new InvalidDataException($"{message} No project in the loaded workspace `{path}` reads this file. {DeclareEncoding}");
+            }
+
+            message += $" The file is not part of the loaded workspace `{path}`.";
+        }
+
+        return new InvalidDataException(message
             + " Call `load_workspace` on the solution that contains this file before editing. "
-            + "If you own the repository, set `charset` under `[*.cs]` in the root `.editorconfig` "
-            + "or set `sourceEncoding` in `RoslynMcp.jsonc`.");
+            + DeclareEncoding);
     }
 
     private PatchFileText DecodePatchFileUnderLock(
@@ -2278,7 +2298,7 @@ public sealed class SolutionManager
             {
                 if (!SourceTextEncoding.IsUnshiftedAscii(text) || !SourceTextEncoding.IsInvariantAscii(text.AsSpan(2)))
                 {
-                    throw new InvalidDataException($"The text of this BOM-free C# script is ambiguous without a loaded owning project: {fullPath}");
+                    throw UnknownBomFreeSource(fullPath, script: true);
                 }
 
                 readers = _workspace?.CurrentSolution.Projects
@@ -2398,7 +2418,7 @@ public sealed class SolutionManager
         if (!SourceTextEncoding.IsUnshiftedAscii(text) || !SourceTextEncoding.IsInvariantAscii(replacement))
         {
             PersistedPayload.FromText(text, SourceTextEncoding.BomFreeUtf8);
-            throw UnknownBomFreeSource(fullPath);
+            throw UnknownBomFreeSource(fullPath, script: text.StartsWith("#!", StringComparison.Ordinal));
         }
     }
 
