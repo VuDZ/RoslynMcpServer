@@ -1,11 +1,8 @@
 using System.Collections;
 using System.Xml.Linq;
 using Microsoft.Build.Construction;
-using Microsoft.Build.Definition;
 using Microsoft.Build.Evaluation;
-using Microsoft.Build.Evaluation.Context;
 using Microsoft.Build.Exceptions;
-using Microsoft.Build.Execution;
 using RoslynMcpServer.Services.Workspace;
 
 namespace RoslynMcpServer.Services.Build;
@@ -29,12 +26,8 @@ internal static class TestOutputPreflight
                 return null;
             }
 
+            // Different projects can request different versions of the same MSBuild SDK.
             using var collection = new ProjectCollection();
-            var evaluation = new ProjectOptions
-            {
-                ProjectCollection = collection,
-                EvaluationContext = EvaluationContext.Create(EvaluationContext.SharingPolicy.Shared),
-            };
             foreach (var (projectPath, properties, solutionConfiguration) in GetProjects(targetPath, configuration, platform))
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -46,9 +39,8 @@ internal static class TestOutputPreflight
                 }
 
                 properties["VSTestNoBuild"] = "true";
-                evaluation.GlobalProperties = properties;
-                var outer = Project.FromFile(projectPath, evaluation);
-                foreach (var project in GetInnerProjects(outer, properties, evaluation, cancellationToken))
+                var outer = collection.LoadProject(projectPath, properties, toolsVersion: null);
+                foreach (var project in GetInnerProjects(outer, properties, collection, cancellationToken))
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     if (GetMissingAssembly(project) is not { } assemblyPath)
@@ -228,7 +220,7 @@ internal static class TestOutputPreflight
                 && project.ProjectConfigurations.TryGetValue(solutionConfiguration, out var mapping)
                 && mapping.IncludeInBuild)
             {
-                projects.Add((project.AbsolutePath, SolutionProperties(mapping, solutionPath, contents), effectiveConfiguration));
+                projects.Add((project.AbsolutePath, SolutionProperties(mapping, solutionPath, contents), solutionConfiguration));
             }
         }
 
@@ -300,7 +292,7 @@ internal static class TestOutputPreflight
     private static IReadOnlyList<Project> GetInnerProjects(
         Project outer,
         Dictionary<string, string> properties,
-        ProjectOptions evaluation,
+        ProjectCollection collection,
         CancellationToken cancellationToken)
     {
         if (!IsTrue(outer, "IsCrossTargetingBuild"))
@@ -324,8 +316,7 @@ internal static class TestOutputPreflight
             {
                 ["TargetFramework"] = framework,
             };
-            evaluation.GlobalProperties = innerProperties;
-            projects.Add(Project.FromFile(outer.FullPath, evaluation));
+            projects.Add(collection.LoadProject(outer.FullPath, innerProperties, toolsVersion: null));
         }
 
         return projects;
@@ -354,8 +345,6 @@ internal static class TestOutputPreflight
             return false;
         }
     }
-
-    private const string TestSdkProgramTarget = "GenerateProgramFile";
 
     private static bool UsesStandardVstestTargets(
         Project project,
@@ -388,14 +377,14 @@ internal static class TestOutputPreflight
         }
 
         // A project hook can change the framework set or supply the assembly at execution time.
-        var hasProgramTarget = project.Targets.ContainsKey(TestSdkProgramTarget);
+        var hasProgramTarget = project.Targets.ContainsKey(MicrosoftTestSdkProgramTarget.Name);
         return !project.Targets.Values.Any(target => HasHook(target.BeforeTargets) || HasHook(target.AfterTargets));
 
         bool HasHook(string names) => names.Length != 0
             && project.ExpandString(names).Split(';', StringSplitOptions.TrimEntries)
                 .Any(name => targets.Contains(name)
                     || (crossTargeting && name.Equals(computeFrameworks, StringComparison.OrdinalIgnoreCase))
-                    || (hasProgramTarget && name.Equals(TestSdkProgramTarget, StringComparison.OrdinalIgnoreCase)));
+                    || (hasProgramTarget && name.Equals(MicrosoftTestSdkProgramTarget.Name, StringComparison.OrdinalIgnoreCase)));
     }
 
     private static bool HasCustomProjectInputs(Project project, string sdkDirectory) =>
@@ -407,7 +396,7 @@ internal static class TestOutputPreflight
 
     private static bool UsesUnmodeledTestInputs(Project project, ProjectRootElement source)
     {
-        if (!string.IsNullOrWhiteSpace(source.InitialTargets) && !IsStandardProgramGeneration(project, source))
+        if (!string.IsNullOrWhiteSpace(source.InitialTargets) && !MicrosoftTestSdkProgramTarget.IsStandard(project, source))
         {
             return true;
         }
@@ -419,40 +408,6 @@ internal static class TestOutputPreflight
             || xml.Contains("$(VSTestResultsDirectory)", StringComparison.OrdinalIgnoreCase)
             || xml.Contains("$(VSTestVerbosity)", StringComparison.OrdinalIgnoreCase)
             || xml.Contains("$(MSBuildStartupDirectory)", StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static bool IsStandardProgramGeneration(Project project, ProjectRootElement source)
-    {
-        // Microsoft.NET.Test.Sdk adds an initial target to insert a compiler entry point. Check the
-        // evaluated definition so a project can still override or hook the target at run time.
-        if (!source.InitialTargets.Trim().Equals(TestSdkProgramTarget, StringComparison.OrdinalIgnoreCase)
-            || !Path.GetFileName(source.FullPath).Equals("Microsoft.NET.Test.Sdk.targets", StringComparison.OrdinalIgnoreCase)
-            || !project.Targets.TryGetValue(TestSdkProgramTarget, out var target)
-            || !PathsMatch(target.FullPath, source.FullPath)
-            || target.DependsOnTargets.Length != 0)
-        {
-            return false;
-        }
-
-        var build = new FileInfo(source.FullPath).Directory?.Parent;
-        var package = build?.Parent?.Parent;
-        if (build?.Name.Equals("build", StringComparison.OrdinalIgnoreCase) != true
-            || package?.Name.Equals("microsoft.net.test.sdk", StringComparison.OrdinalIgnoreCase) != true)
-        {
-            return false;
-        }
-
-        var packageFolders = project.GetPropertyValue("NuGetPackageFolders")
-            .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Append(project.GetPropertyValue("NuGetPackageRoot"));
-        return packageFolders.Any(folder => PathsMatch(package.Parent?.FullName, folder))
-            && target.Children.All(child => child switch
-            {
-                ProjectItemGroupTaskInstance group => group.Items.All(item =>
-                    item.ItemType is "Compile" or "CompileAfter" or "ProgramCompiles" or "RemoveExistingMicrosoftNETTestSdkProgram"),
-                ProjectTaskInstance task => task.Name == "Warning" && task.Outputs.Count == 0,
-                _ => false,
-            });
     }
 
     private static bool IsTrue(Project project, string property) =>

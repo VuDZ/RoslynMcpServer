@@ -116,6 +116,11 @@ public sealed class BuildTools
                 resolvedProjectName = resolved.DisplayName;
             }
 
+            if (SolutionFilterPath.FindMissingBackingSolutionError(fullPath) is { } filterError)
+            {
+                return Complete(filterError);
+            }
+
             TimeSpan? budget = timeoutSeconds switch
             {
                 null => null,

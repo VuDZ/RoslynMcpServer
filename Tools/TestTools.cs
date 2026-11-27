@@ -650,6 +650,11 @@ public sealed class TestTools
                 return ToolTelemetry.TraceFailureAndReturn(toolName, $"Error: {ex.Message}");
             }
 
+            if (SolutionFilterPath.FindMissingBackingSolutionError(targetPath) is { } filterError)
+            {
+                return ToolTelemetry.TraceFailureAndReturn(toolName, filterError);
+            }
+
             DotNetTestArguments.CliPlan plan;
             try
             {

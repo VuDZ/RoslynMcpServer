@@ -93,7 +93,7 @@ public sealed class TestOutputPreflightTests
         Assert.NotNull(missing);
         Assert.Equal("Release", missing.Value.Configuration);
         Assert.Equal("AnyCPU", missing.Value.Platform);
-        Assert.Equal("Retail", missing.Value.SolutionConfiguration);
+        Assert.Equal("Retail|x64", missing.Value.SolutionConfiguration);
         Assert.Equal(Path.Combine(files.Root, "selected", "Release", "AnyCPU", "RenamedTests.dll"), missing.Value.AssemblyPath);
 
         files.Write("selected/Release/AnyCPU/RenamedTests.dll", "");

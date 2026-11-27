@@ -38,7 +38,7 @@ task-01 и task-02 независимы, их можно вести паралл
 
 ## Открытые замечания MCP
 
-M-3 принята 2026-11-26. [Проверки M-3](evidence/mcp-followups-validation.md#m-3). F-4 принята 2026-11-26 и открыта повторно в тот же день после [независимой проверки на Linux](evidence/mcp-followups-review-claude-2026-11-26.md): тестовый проект в репозитории и лимит в 24 проекта оставляют исходный отказ. [Проверки F-4](evidence/mcp-followups-validation.md#f-4). M-2 принята 2026-11-26. [Проверки M-2](evidence/mcp-followups-validation.md#m-2). M-4 принята 2026-11-26. [Проверки M-4](evidence/mcp-followups-validation.md#m-4). M-1 принята 2026-11-26 с измеренной задержкой проверки тестовой DLL. [Проверки M-1](evidence/mcp-followups-validation.md#m-1). [План работ и полевых проверок](mcp-followups-plan.md).
+M-3 принята 2026-11-26. [Проверки M-3](evidence/mcp-followups-validation.md#m-3). F-4 повторно принята 2026-11-27 после исправлений для Test SDK и дерева из 61 проекта. Проверка деклараций также учитывает правки при неизменных размере и mtime. [Повторная проверка F-4 и замечаний M-1/M-4](evidence/mcp-followups-validation.md#повторная-проверка-2026-11-27). M-2 принята 2026-11-26. [Проверки M-2](evidence/mcp-followups-validation.md#m-2). M-4 принята 2026-11-26. [Проверки M-4](evidence/mcp-followups-validation.md#m-4). M-1 принята 2026-11-26 с измеренной задержкой проверки тестовой DLL. [Проверки M-1](evidence/mcp-followups-validation.md#m-1). [План работ и полевых проверок](mcp-followups-plan.md).
 
 ## Ревью плана
 

@@ -73,7 +73,7 @@ public sealed class SolutionFilterToolTests
     [Theory]
     [InlineData(null)]
     [InlineData("{")]
-    [InlineData("""{"solution":{"path":"missing.slnx","projects":[]}}""")]
+    [InlineData("""{"solution":{"path":"missing.slnx","projects":false}}""")]
     public async Task Missing_or_invalid_filter_reports_the_input_and_error(string? content)
     {
         var root = Directory.CreateTempSubdirectory("mcp-invalid-filter-");
@@ -95,6 +95,32 @@ public sealed class SolutionFilterToolTests
             Assert.Contains(path, testReport, StringComparison.OrdinalIgnoreCase);
             Assert.Contains(expectedError, buildReport, StringComparison.OrdinalIgnoreCase);
             Assert.Contains(expectedError, testReport, StringComparison.OrdinalIgnoreCase);
+        }
+        finally
+        {
+            root.Delete(recursive: true);
+        }
+    }
+
+    [Theory]
+    [InlineData(".sln")]
+    [InlineData(".slnx")]
+    public async Task Filter_with_missing_backing_solution_reports_both_paths(string extension)
+    {
+        var root = Directory.CreateTempSubdirectory("mcp-missing-filter-backing-");
+        try
+        {
+            var filter = WriteFilter(root, extension);
+            var backingSolution = Path.Combine(root.FullName, "App" + extension);
+            var expected = $"Error: solution filter `{filter}` references a backing solution that was not found: `{backingSolution}`.";
+            var manager = SolutionManagerTestFactory.Create();
+            var build = new BuildTools(manager, NullLogger<BuildTools>.Instance);
+            var tests = new TestTools(manager, NullLogger<TestTools>.Instance);
+
+            Assert.Equal(expected, await build.RunDotNetBuild(filter));
+            Assert.Equal(expected, await tests.RunDotNetTest(filter, noBuild: false));
+            Assert.Equal(expected, await tests.RunSpecificTest(filter, className: "IncludedCases", noBuild: true));
+            Assert.Equal(expected, await tests.RunTestByFilter(filter, "FullyQualifiedName~IncludedCases"));
         }
         finally
         {

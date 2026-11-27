@@ -209,11 +209,22 @@ public sealed class WorkspaceWriteEncodingTests : IDisposable
         Assert.Contains("Successfully wrote", await writer.WriteFile(utf8Source, Text), StringComparison.Ordinal);
         Assert.Equal(BomFreeUtf8.GetBytes(Text), await File.ReadAllBytesAsync(utf8Source));
 
-        await File.WriteAllTextAsync(editorConfig, "root = true\n[*.cs]\ncharset = unset\n");
-        await File.WriteAllTextAsync(configPath, """{"sourceEncoding":"utf-8-bom"}""");
+        await RewriteWithSameStampAsync(editorConfig, "root = true\n[*.cs]\ncharset = unset\n");
+        await RewriteWithSameStampAsync(configPath, """{"sourceEncoding":"utf-8-bom"   }""");
         var markedSource = Path.Combine(_outsideRoot, "Third.cs");
         Assert.Contains("Successfully wrote", await writer.WriteFile(markedSource, Text), StringComparison.Ordinal);
         Assert.Equal(Utf8WithBom.GetPreamble().Concat(Utf8WithBom.GetBytes(Text)), await File.ReadAllBytesAsync(markedSource));
+
+        static async Task RewriteWithSameStampAsync(string path, string content)
+        {
+            var previous = new FileInfo(path);
+            var length = previous.Length;
+            var timestamp = previous.LastWriteTimeUtc;
+            await File.WriteAllTextAsync(path, content);
+            File.SetLastWriteTimeUtc(path, timestamp);
+            Assert.Equal(length, new FileInfo(path).Length);
+            Assert.Equal(timestamp, File.GetLastWriteTimeUtc(path));
+        }
     }
 
     [Theory]

@@ -10,11 +10,11 @@ namespace RoslynMcpServer.Services.Workspace;
 /// <summary>Finds evaluated compiler inputs for a BOM-free patch without opening a workspace.</summary>
 internal static class UnloadedSourceReaders
 {
-    private const int MaxDirectories = 256;
-    private const int MaxProjects = 24;
-    private const int MaxSolutions = 24;
-    private const int MaxEvaluations = 96;
-    private const int MaxPathChecks = 8192;
+    private const int MaxDirectories = 4096;
+    private const int MaxProjects = 128;
+    private const int MaxSolutions = 128;
+    private const int MaxEvaluations = 1024;
+    private const int MaxPathChecks = 65_536;
 
     /// <returns>An empty array when no project was found, or a null entry when discovery was incomplete.</returns>
     internal static int?[] GetCodePages(string sourcePath, CancellationToken cancellationToken)
@@ -62,7 +62,7 @@ internal static class UnloadedSourceReaders
                 return [];
             }
 
-            // A fresh collection sees changed imports, globs, and condition inputs on each patch.
+            // Use a fresh collection on each pass and keep SDK resolution scoped to each evaluation.
             using var collection = new ProjectCollection();
             var evaluations = 0;
             while (pending.TryDequeue(out var candidate))
@@ -357,7 +357,7 @@ internal static class UnloadedSourceReaders
 
     private static void AddReader(Project project, string sourcePath, HashSet<int?> pages, Func<string, bool> isAliased)
     {
-        if (HasUnresolvedCompilerInputs(project))
+        if (HasUnresolvedCompilerInputs(project, sourcePath, isAliased))
         {
             pages.Add(null);
         }
@@ -406,7 +406,7 @@ internal static class UnloadedSourceReaders
             root.OuterElement.Contains("$(CurrentSolutionConfigurationContents)", StringComparison.OrdinalIgnoreCase);
     }
 
-    private static bool HasUnresolvedCompilerInputs(Project project)
+    private static bool HasUnresolvedCompilerInputs(Project project, string sourcePath, Func<string, bool> isAliased)
     {
         // An overridden compiler can supply a different CodePage directly on Csc, without
         // changing the evaluated property or any Compile items.
@@ -423,17 +423,51 @@ internal static class UnloadedSourceReaders
 
         // SDK targets add generated compile inputs. A custom target can replace the evaluated
         // inputs, project readers, or CodePage, which cannot be established without a build.
+        var hasProgramTarget = project.Targets.ContainsKey(MicrosoftTestSdkProgramTarget.Name);
         return project.Targets.Values.Any(target =>
             !IsInToolset(target.FullPath)
             && (target.Tasks.Any(task => IsCompilerTask(task.Name))
                 || target.Children.OfType<ProjectItemGroupTaskInstance>().Any(group =>
                     group.Items.Any(item => IsSourceReaderItem(item.ItemType)))
                 || target.Children.OfType<ProjectPropertyGroupTaskInstance>().Any(group =>
-                    group.Properties.Any(property => property.Name.Equals("CodePage", StringComparison.OrdinalIgnoreCase)))
+                    group.Properties.Any(property => IsCompilerInputProperty(property.Name)))
                 || target.Tasks.SelectMany(task => task.Outputs).Any(output => output is ProjectTaskOutputItemInstance item
                         && IsSourceReaderItem(item.ItemType)
                     || output is ProjectTaskOutputPropertyInstance property
-                        && property.PropertyName.Equals("CodePage", StringComparison.OrdinalIgnoreCase))));
+                        && IsCompilerInputProperty(property.PropertyName)))
+            && !UsesOnlyDefaultTestSdkProgram(project, target, sourcePath, isAliased));
+
+        bool IsCompilerInputProperty(string name) =>
+            name.Equals("CodePage", StringComparison.OrdinalIgnoreCase)
+            || (hasProgramTarget && name.Equals("GeneratedProgramFile", StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static bool UsesOnlyDefaultTestSdkProgram(
+        Project project,
+        ProjectTargetInstance target,
+        string sourcePath,
+        Func<string, bool> isAliased)
+    {
+        if (!target.Name.Equals(MicrosoftTestSdkProgramTarget.Name, StringComparison.OrdinalIgnoreCase)
+            || !project.Imports.Any(import => MicrosoftTestSdkProgramTarget.IsStandard(project, import.ImportedProject)))
+        {
+            return false;
+        }
+
+        // The target can replace an evaluated input with the same file name or use a custom entry point.
+        const string DefaultProgramName = "Microsoft.NET.Test.Sdk.Program";
+        var defaultProgram = Path.Combine(Path.GetDirectoryName(target.FullPath)!, DefaultProgramName + ".cs");
+        return InputPathCanon.Comparer.Equals(project.GetPropertyValue("GeneratedProgramFile"), defaultProgram)
+            && !string.Equals(Path.GetFileNameWithoutExtension(sourcePath), DefaultProgramName, StringComparison.OrdinalIgnoreCase)
+            && !isAliased(defaultProgram)
+            && target.Children.OfType<ProjectItemGroupTaskInstance>().SelectMany(group => group.Items)
+                .Where(item => item.ItemType is "Compile" or "CompileAfter")
+                .All(item => item.Include is "" or "$(GeneratedProgramFile)")
+            && !project.Targets.Values.Any(candidate => HooksProgram(candidate.BeforeTargets) || HooksProgram(candidate.AfterTargets));
+
+        bool HooksProgram(string targets) => targets.Length != 0
+            && project.ExpandString(targets).Split(';', StringSplitOptions.TrimEntries)
+                .Contains(MicrosoftTestSdkProgramTarget.Name, StringComparer.OrdinalIgnoreCase);
     }
 
     private static bool IsInToolset(string path) =>
@@ -487,7 +521,7 @@ internal static class UnloadedSourceReaders
         "SetTargetFramework", "Targets", "UndefineProperties",
     ];
 
-    private static readonly TimeSpan _budget = TimeSpan.FromSeconds(3);
+    private static readonly TimeSpan _budget = TimeSpan.FromSeconds(10);
     private static readonly EnumerationOptions _topDirectory = new()
     {
         AttributesToSkip = 0,

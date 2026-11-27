@@ -8,6 +8,14 @@ Tracks MCP tools relevant to [`AGENTS.md.sample`](AGENTS.md.sample) (copy into a
 - Test reports keep failure details when a stack trace or message is longer than its excerpt limit; previously such a report was treated as unreadable. A failed test no longer adds a notice about an unconfirmed VSTest launch.
 - `rename_project` edits only the changed values in `.sln`, `.slnx` and project files, using the SDK solution model and MSBuild construction model to confirm each edit. It updates project entries in solution filters (`.slnf`) and refuses, before moving anything, when an imported MSBuild file such as `Directory.Build.targets` declares a `ProjectReference` to the renamed project.
 
+### v1.7.1
+
+- `apply_patch` evaluates compiler inputs for BOM-free C# patches that need encoding disambiguation before a workspace is loaded. Repositories with ordinary Microsoft.NET.Test.Sdk projects and larger project trees can use this fallback. Incomplete reader discovery still refuses the patch.
+- Source encoding declarations are refreshed when the contents change, even if a new `.editorconfig` or `RoslynMcp.jsonc` has the same file size and modification time.
+- The test tools report a confirmed missing assembly before VSTest when `noBuild=true`. `run_test_by_filter` builds when `noBuild` and the explicit or inherited configuration are both omitted.
+- Build and test tools accept `.slnf` solution filters and report a missing backing solution directly.
+- `get_mcp_server_info` reports the server assembly path, modification time, informational version, and module ID separately from the process path.
+
 ### v1.7.0
 
 - `update_file_content` and `apply_patch` no longer evaluate MSBuild on every write. Version 1.6.5 rejected every write to a C# source without a BOM; such writes now finish in milliseconds.

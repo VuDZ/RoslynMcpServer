@@ -90,21 +90,21 @@ internal sealed class SourceEncodingSettings(RoslynMcpFileSettings settings)
             return null;
         }
 
-        var stamp = (file.LastWriteTimeUtc, file.Length);
-        if (_cache.TryGetValue(path, out var cached) && cached.Stamp == stamp)
+        // An editor can change the declaration without changing the file length or timestamp.
+        var text = File.ReadAllText(path);
+        if (_cache.TryGetValue(path, out var cached) && string.Equals(cached.Text, text, StringComparison.Ordinal))
         {
             return cached;
         }
 
-        var text = File.ReadAllText(path);
         if (editorConfig)
         {
             var config = AnalyzerConfig.Parse(text, path);
-            cached = new CachedConfig(stamp, AnalyzerConfigSet.Create<AnalyzerConfig[]>([config]), IsRootConfig(text), null);
+            cached = new CachedConfig(text, AnalyzerConfigSet.Create<AnalyzerConfig[]>([config]), IsRootConfig(text), null);
         }
         else
         {
-            cached = new CachedConfig(stamp, null, false, ReadJsonSetting(text, path));
+            cached = new CachedConfig(text, null, false, ReadJsonSetting(text, path));
         }
 
         _cache[path] = cached;
@@ -176,7 +176,7 @@ internal sealed class SourceEncodingSettings(RoslynMcpFileSettings settings)
         new($"Unknown source encoding '{value}' for '{key}' in {path}.", inner);
 
     private sealed record CachedConfig(
-        (DateTime Modified, long Length) Stamp,
+        string Text,
         AnalyzerConfigSet? EditorConfig,
         bool IsRoot,
         string? SourceEncoding);

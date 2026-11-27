@@ -10,6 +10,29 @@ internal static class SolutionFilterPath
     internal static (string? BackingSolution, HashSet<string>? Projects) TryReadWithProjects(string filterPath) =>
         TryRead(filterPath, includeProjects: true);
 
+    internal static string? FindMissingBackingSolutionError(string targetPath)
+    {
+        if (WorkspaceInputPath.Classify(targetPath) != WorkspaceInputKind.SolutionFilter
+            || TryReadWithProjects(targetPath).BackingSolution is not { } backingSolution)
+        {
+            return null;
+        }
+
+        try
+        {
+            _ = File.GetAttributes(backingSolution);
+            return null;
+        }
+        catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
+        {
+            return $"Error: solution filter `{targetPath}` references a backing solution that was not found: `{backingSolution}`.";
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
+    }
+
     private static (string? BackingSolution, HashSet<string>? Projects) TryRead(string filterPath, bool includeProjects)
     {
         try
