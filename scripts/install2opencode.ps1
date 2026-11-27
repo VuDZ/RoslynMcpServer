@@ -62,7 +62,10 @@ function Convert-ToForwardSlashPath {
 function Get-AgentsSampleContent {
     $samplePath = Join-Path $PSScriptRoot $SampleFileName
     if (-not (Test-Path -LiteralPath $samplePath)) {
-        throw "Missing $SampleFileName next to install2opencode.ps1. Rebuild/publish RoslynMcpServer first."
+        $samplePath = Join-Path (Split-Path -Parent $PSScriptRoot) "samples/$SampleFileName"
+    }
+    if (-not (Test-Path -LiteralPath $samplePath)) {
+        throw "Missing $SampleFileName. Rebuild/publish RoslynMcpServer first."
     }
 
     $content = Get-Content -LiteralPath $samplePath -Raw -Encoding UTF8

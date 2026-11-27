@@ -160,7 +160,7 @@ public sealed class WorkspaceAnalyzerSanitizerTests
     /// </summary>
     private static SourceTarget SolutionManagerTarget()
     {
-        var sourcePath = Path.Combine(RepositoryRoot.Find(), "Services", "Workspace", "SolutionManager.cs");
+        var sourcePath = Path.Combine(RepositoryRoot.FindProductionProjectDirectory(), "Services", "Workspace", "SolutionManager.cs");
         var file = ProductionAnalysis.Instance.Scope.Files
             .FirstOrDefault(candidate => string.Equals(Path.GetFullPath(candidate.Path), sourcePath, StringComparison.OrdinalIgnoreCase));
 

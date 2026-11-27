@@ -37,9 +37,9 @@
 
 | Компонент | Правило |
 |---|---|
-| Путь | Как в [InputPathCanon](../../Services/Workspace/InputPathCanon.cs): `Path.GetFullPath`, разделители нормализованы, конечный separator убран, корень сохранён. На Windows — одно invariant-case представление. Symlink и junction не раскрываются и не склеиваются. |
+| Путь | Как в [InputPathCanon](../../src/RoslynMcpServer/Services/Workspace/InputPathCanon.cs): `Path.GetFullPath`, разделители нормализованы, конечный separator убран, корень сохранён. На Windows — одно invariant-case представление. Symlink и junction не раскрываются и не склеиваются. |
 | Свойства | **Фактически удерживаемые** после наследования пропущенных аргументов от прежней загрузки и конфига, а не аргументы вызова. |
-| Platform | Канонический вид: `Any CPU` → `AnyCPU` ([DotNetConfigurationArguments](../../Services/Build/DotNetConfigurationArguments.cs)). |
+| Platform | Канонический вид: `Any CPU` → `AnyCPU` ([DotNetConfigurationArguments](../../src/RoslynMcpServer/Services/Build/DotNetConfigurationArguments.cs)). |
 | Пропущенное свойство | Явный токен «не передано MSBuild», а не подставленный `Debug` или первый TFM. |
 | Не входят | `buildArgs`, среда, analyzer policy, настройки сервера. |
 
@@ -74,7 +74,7 @@
 - Итог каждого инструмента: краткая сводка, длина ответа, выделенные строки ответа
   ([ToolTelemetry](../../Diagnostics/ToolTelemetry.cs)).
 - Working set при `workspace_load` и `workspace_load_cached`
-  ([SolutionManager](../../Services/Workspace/SolutionManager.cs#L2336)), события
+  ([SolutionManager](../../src/RoslynMcpServer/Services/Workspace/SolutionManager.cs#L2336)), события
   `workspace_search_prewarm` и `workspace_load_designtime`.
 
 Текстовый лог не заменяет структурированные события выхода процесса, начала вызова,
@@ -167,7 +167,7 @@ load. Активностью считаются приём и завершени
 | Managed heap и committed | `GC.GetGCMemoryInfo` | то же | Диагностика |
 
 BuildHost-потомки определяются тем же правилом, что у
-[UnregisteredBuildHostReaper](../../Services/Workspace/UnregisteredBuildHostReaper.cs):
+[UnregisteredBuildHostReaper](../../src/RoslynMcpServer/Services/Workspace/UnregisteredBuildHostReaper.cs):
 только прямые дети этого процесса, без чужих host и без деревьев `dotnet test` /
 `dotnet run`. Основные ряды Windows и Linux не равны друг другу, поэтому результаты
 оцениваются отдельно по машине и напрямую между ОС не сравниваются. В основном ряду нет разделяемых

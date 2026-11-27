@@ -48,13 +48,13 @@ SourceStructure 123/123 и lifecycle 13/13 на каждой платформе,
   ([Release 39680548658](https://github.com/VuDZ/RoslynMcpServer/actions/runs/39680548658)).
   Self-contained `linux-x64` распакован в WSL: процесс использовал свой
   `libcoreclr.so`; `load_workspace` прошёл с `DOTNET_ROOT=/usr/lib/dotnet`.
-- В [`RoslynMcpServer.csproj`](../../RoslynMcpServer.csproj) указаны `net10.0`,
+- В [`RoslynMcpServer.csproj`](../../src/RoslynMcpServer/RoslynMcpServer.csproj) указаны `net10.0`,
   `PublishSelfContained=true`, `PublishSingleFile=false` и
   `PublishReadyToRun=true`. Обычная сборка имеет `SelfContained=false`.
 - Там же перечислены RID: `win-x64`, `win-arm64`, `osx-arm64`, `linux-x64`,
   `linux-arm64`, `linux-musl-x64`. Наличие RID не подтверждает проверенную
   поддержку платформы.
-- [`publish-and-verify.ps1`](../../publish-and-verify.ps1) публикует `win-x64`
+- [`publish-and-verify.ps1`](../../scripts/publish-and-verify.ps1) публикует `win-x64`
   и формирует ZIP с корнем `RoslynMCP/`, README и исключением `logs/`.
   Проверку MCP после публикации скрипт предлагает выполнить вручную.
 - Версия задаётся несколькими свойствами; `PackageVersion` отличается от
@@ -158,7 +158,8 @@ BuildHost. Single-file и Native AOT не являются требования�
   дописать и опубликовать.
 - Текст GitHub Release собирается из сообщений коммитов после предыдущего
   тега `v*` (subject и body), не больше **16** самых новых; если коммитов
-  больше, в notes это указывается. Доки/rules-only деревья по умолчанию не
+  больше, в notes это указывается. Заголовки `docs:` и `[skip notes] …`
+  исключаются из заметок. Доки/rules-only деревья по умолчанию не
   выпускаются.
 - В описании скачивания рекомендовать self-contained для простой установки;
   framework-dependent предлагать как более компактный вариант при наличии
@@ -247,7 +248,7 @@ Worktree дополняет ветку отдельной папкой и не �
 Для каждой платформы CI запускает основной набор и `AnalyzerLifecycle`;
 новый macOS ARM64 runner — `macos-15`. Для каждой job `pack` гоняет оба
 варианта распакованного архива: процесс, MCP `initialize`, `tools/list`,
-`load_workspace` проекта [`.github/smoke/SmokeApp`](../../.github/smoke/SmokeApp/SmokeApp.csproj)
+`load_workspace` проекта [`tests/fixtures/SmokeApp`](../../tests/fixtures/SmokeApp/SmokeApp.csproj)
 через BuildHost, `find_symbol_definition` класса `Smoke` с проверкой исходного файла
 и `run_dotnet_build` этого проекта в Release. SDK релиза закреплён на `10.0.402`,
 CI ставит последний `10.0.x` нужной архитектуры. Одной кросс-сборки недостаточно:

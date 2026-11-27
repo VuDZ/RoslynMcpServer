@@ -185,7 +185,7 @@ The archive includes `install2opencode.ps1`. Run it with PowerShell (`pwsh` on L
 
 </details>
 
-**3. Tell the agent to use it.** This step is easy to skip, and it matters more than it looks. A connected server only makes tools *available*. Left to its habits, the agent still reaches for grep and `dotnet build` in the shell. The archive ships [`AGENTS.md.sample`](AGENTS.md.sample), a policy that tells the agent when to use which tool: load the workspace first, look up C# identifiers through Roslyn, run builds and tests through the MCP tools. Copy it into your repository as `AGENTS.md`, or merge it into an existing one. Codex, Cursor and OpenCode read `AGENTS.md`. For Claude Code, add a line with `@AGENTS.md` to `CLAUDE.md`.
+**3. Tell the agent to use it.** This step is easy to skip, and it matters more than it looks. A connected server only makes tools *available*. Left to its habits, the agent still reaches for grep and `dotnet build` in the shell. The archive ships [`AGENTS.md.sample`](samples/AGENTS.md.sample), a policy that tells the agent when to use which tool: load the workspace first, look up C# identifiers through Roslyn, run builds and tests through the MCP tools. Copy it into your repository as `AGENTS.md`, or merge it into an existing one. Codex, Cursor and OpenCode read `AGENTS.md`. For Claude Code, add a line with `@AGENTS.md` to `CLAUDE.md`.
 
 **4. Try it.** Restart the client, then ask:
 
@@ -207,7 +207,7 @@ More setup detail is in [Installation and configuration](docs/setup.md): all pla
 
 - [Installation and configuration](docs/setup.md): platforms, clients, tool profiles, configuration, logs, security
 - [Tool reference](docs/tools.md): every tool and its parameters
-- [`AGENTS.md.sample`](AGENTS.md.sample): the agent policy to copy into your repository
+- [`AGENTS.md.sample`](samples/AGENTS.md.sample): the agent policy to copy into your repository
 - [Architecture](docs/ARCHITECTURE.md): how the workspace, file watching, build and test tools fit together
 - [CHANGELOG](CHANGELOG.md): agent-visible changes by version
 - [Plugin guide](samples/RoslynMcpPlugin/README.md): adding your own tools
@@ -217,7 +217,7 @@ More setup detail is in [Installation and configuration](docs/setup.md): all pla
 Requires the .NET 11 SDK pinned in [`global.json`](global.json). Run the published executable:
 
 ```bash
-dotnet publish RoslynMcpServer.csproj -c Release -r linux-x64   # or win-x64, osx-arm64
+dotnet publish src/RoslynMcpServer/RoslynMcpServer.csproj -c Release -r linux-x64   # or win-x64, osx-arm64
 # → bin/Release/net11.0/linux-x64/publish/RoslynMcpServer
 ```
 

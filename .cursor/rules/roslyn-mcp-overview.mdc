@@ -5,17 +5,19 @@ alwaysApply: true
 
 # RoslynMcpServer overview
 
-MCP server (stdio) for C# analysis using Roslyn workspaces and ILSpy. The server targets `net11.0`. See `RoslynMcpServer.csproj` for the product version. Package id `RoslynMcpServer`. Self-contained publish for win/osx/linux RIDs.
+MCP server (stdio) for C# analysis using Roslyn workspaces and ILSpy. The server targets `net11.0`. See `src/RoslynMcpServer/RoslynMcpServer.csproj` for the product version. Package id `RoslynMcpServer`. Self-contained publish for win/osx/linux RIDs.
 
 ## Layout
+
+Server paths below are relative to `src/RoslynMcpServer/`.
 
 - `Program.cs` — MSBuild bootstrap, optional `ROSLYN_MCP_WORKSPACE` → cwd, Serilog to `logs/mcp-*.log` under `AppContext.BaseDirectory` (each line prefixed with a harness session id)
 - `Hosting/` — DI (`AddRoslynMcpServerTools`), `McpToolRegistry`
 - `Tools/` — MCP tool classes (Workspace, CodeAnalysis, Skeleton, Build, Run, Test, NuGet, Utility, …)
 - `Services/` — `Workspace` (`SolutionManager`), `Analyzers`, `Build`, `Editing`, `Navigation`, `Resolve`, `Testing`; helpers that do not belong to one of those stay at the root
 - `Diagnostics/` — parsers (build, VSTest, NuGet audit), SDK mismatch, MSBuild locator
-- `RoslynMcpServer.Tests/` — xUnit; `InternalsVisibleTo`
-- Docs: `README.md` + `README.ru.md` (intro, quick start), `docs/setup.md` and `docs/tools.md` (+ `.ru.md`), `AGENTS.md.sample` (copy to app repos as `AGENTS.md`)
+- `tests/RoslynMcpServer.Tests/` — xUnit; `InternalsVisibleTo`
+- Docs: `README.md` + `README.ru.md` (intro, quick start), `docs/setup.md` and `docs/tools.md` (+ `.ru.md`), `samples/AGENTS.md.sample` (copy to app repos as `AGENTS.md`)
 
 ## DI / tools
 

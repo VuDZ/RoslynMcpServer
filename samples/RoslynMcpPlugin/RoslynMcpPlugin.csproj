@@ -25,7 +25,7 @@
     <!-- Compile against the host and the MCP SDK, never carry either into the output: the running
          host shares its already loaded assemblies with the plugin, so SolutionManager is one type
          in both. Major.Minor of the SDK must equal the loaded host one. -->
-    <ProjectReference Include="..\..\RoslynMcpServer.csproj">
+    <ProjectReference Include="..\..\src\RoslynMcpServer\RoslynMcpServer.csproj">
       <Private>false</Private>
       <ExcludeAssets>runtime</ExcludeAssets>
     </ProjectReference>

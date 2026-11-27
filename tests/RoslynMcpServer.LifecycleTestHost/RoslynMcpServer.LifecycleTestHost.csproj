@@ -14,6 +14,6 @@
     <RootNamespace>RoslynMcpServer.LifecycleTestHost</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\RoslynMcpServer.csproj" />
+    <ProjectReference Include="..\..\src\RoslynMcpServer\RoslynMcpServer.csproj" />
   </ItemGroup>
 </Project>

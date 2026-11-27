@@ -94,7 +94,7 @@ including its original comments.
     <!-- Compile against the host and the MCP SDK, never carry either into the output: the running
          host shares its already loaded assemblies with the plugin, so SolutionManager is one type
          in both. Major.Minor of the SDK must equal the loaded host one. -->
-    <ProjectReference Include="..\..\RoslynMcpServer.csproj">
+    <ProjectReference Include="..\..\src\RoslynMcpServer\RoslynMcpServer.csproj">
       <Private>false</Private>
       <ExcludeAssets>runtime</ExcludeAssets>
     </ProjectReference>
@@ -406,7 +406,7 @@ During development, it is more convenient to connect the build output directly:
 Ordinary settings are read beside the server, from the per-user configuration directory,
 then from the process working directory. Later sources override the same key.
 The server ignores `plugins` in a separate working-directory config and warns at startup.
-See [RoslynMcp.jsonc.sample](../../RoslynMcp.jsonc.sample).
+See [RoslynMcp.jsonc.sample](../RoslynMcp.jsonc.sample).
 You can specify a directory containing the manifest or the entry DLL path.
 For a DLL path, the file name must match `entry` in the adjacent manifest.
 A development directory name such as `net11.0` can differ from `id`.
@@ -455,7 +455,7 @@ its own copy and does not block a new build in `bin`. Replacing the loaded
 DLL without restarting the server is unsupported.
 
 To debug, launch the **server**, for example with
-`dotnet run --project RoslynMcpServer.csproj`, or from its build directory
+`dotnet run --project src/RoslynMcpServer/RoslynMcpServer.csproj`, or from its build directory
 with PDBs. Point `ROSLYN_MCP_PLUGINS` at the plugin's output directory
 and attach the debugger to the process running RoslynMcpServer
 (account for how the process is launched when using `dotnet`).
@@ -613,7 +613,7 @@ samples/RoslynMcpPlugin/
     <!-- Compile against the host and the MCP SDK, never carry either into the output: the running
          host shares its already loaded assemblies with the plugin, so SolutionManager is one type
          in both. Major.Minor of the SDK must equal the loaded host one. -->
-    <ProjectReference Include="..\..\RoslynMcpServer.csproj">
+    <ProjectReference Include="..\..\src\RoslynMcpServer\RoslynMcpServer.csproj">
       <Private>false</Private>
       <ExcludeAssets>runtime</ExcludeAssets>
     </ProjectReference>
@@ -923,7 +923,7 @@ public sealed class SampleTools
 Обычные настройки читаются рядом с сервером, из пользовательского каталога,
 затем из рабочего каталога процесса. Следующий источник перекрывает тот же ключ.
 Сервер игнорирует `plugins` в отдельном конфиге рабочего каталога и предупреждает при запуске. Пример —
-[RoslynMcp.jsonc.sample](../../RoslynMcp.jsonc.sample).
+[RoslynMcp.jsonc.sample](../RoslynMcp.jsonc.sample).
 Можно указывать каталог с манифестом или путь к основной DLL. Во втором случае
 имя файла должно совпадать с `entry` соседнего манифеста.
 Имя каталога разработки, например `net11.0`, может отличаться от `id`.
@@ -972,7 +972,7 @@ umask `002`: такой сервер использует прежнюю схе�
 сервера не поддерживается.
 
 Для отладки запускайте **сервер**, например командой
-`dotnet run --project RoslynMcpServer.csproj`, либо из его каталога сборки
+`dotnet run --project src/RoslynMcpServer/RoslynMcpServer.csproj`, либо из его каталога сборки
 с PDB. Укажите `ROSLYN_MCP_PLUGINS` на выходной каталог плагина и подключите
 отладчик к процессу, выполняющему RoslynMcpServer (при запуске через `dotnet`
 учитывайте способ запуска процесса). Используйте совместимую сборку сервера,

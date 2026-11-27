@@ -120,7 +120,7 @@ function Publish-Server($Tree, [string]$Root) {
     $out = Join-Path $Root ("server-" + $Tree.Commit)
     if (Test-Path -LiteralPath $out) { Remove-Item -LiteralPath $out -Recurse -Force }
     Write-Host "Publishing the server ($rid) into $out"
-    Invoke-Native 'dotnet' @('publish', (Join-Path $repo 'RoslynMcpServer.csproj'), '-c', 'Release', '-r', $rid,
+    Invoke-Native 'dotnet' @('publish', (Join-Path $repo 'src/RoslynMcpServer/RoslynMcpServer.csproj'), '-c', 'Release', '-r', $rid,
         '--self-contained', 'false', '-o', $out, '-nologo', '-v', 'q') 'dotnet publish failed'
     $exe = Join-Path $out $serverFile
     if (-not (Test-Path -LiteralPath $exe -PathType Leaf)) { throw "Published server not found: $exe" }

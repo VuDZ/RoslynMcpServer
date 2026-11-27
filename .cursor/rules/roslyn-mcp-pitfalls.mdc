@@ -31,7 +31,7 @@ alwaysApply: true
 
 12. **Fake/cached `run_dotnet_build` success** — MCP has **no** result cache. False greens came from (a) MSBuild incremental/up-to-date skipping recompile → default `--no-incremental`; (b) probe `lastExitCode` overwritten by restore exit 0 after a failed build → effective exit = last **build** step only; (c) omitted `-c` on multi-config solutions. Always check metadata `Configuration` / `NoIncremental`.
 
-13. **Publish locked by zombie MCP** — Cursor may keep `RoslynMcpServer.exe` running after MCP disconnect; publish then fails with MSB3027 file locks. `publish-and-verify.ps1` auto-kills repo/publish holders (opt out: `-SkipKill`), then reload MCP.
+13. **Publish locked by zombie MCP** — Cursor may keep `RoslynMcpServer.exe` running after MCP disconnect; publish then fails with MSB3027 file locks. `scripts/publish-and-verify.ps1` auto-kills repo/publish holders (opt out: `-SkipKill`), then reload MCP.
 
 14. **`apply_patch` replaceAll hang** — never rescan the inserted `newString`. If `newString` contains `oldString` (`Foo` → `Ns.Foos`), `while (IndexOf)` grows the buffer forever, MCP never returns, logs stay empty. Advance `searchFrom` past each insert (same as `string.Replace`); log start/match/write with `newContainsOld` and elapsed ms.
 

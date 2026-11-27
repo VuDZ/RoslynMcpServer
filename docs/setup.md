@@ -75,12 +75,12 @@ Run the **published executable**, not `dotnet run`. The publish is self-containe
 From this repository (replace the RID for another platform):
 
 ```bash
-dotnet publish RoslynMcpServer.csproj -c Release -r win-x64
+dotnet publish src/RoslynMcpServer/RoslynMcpServer.csproj -c Release -r win-x64
 ```
 
 The Windows x64 binary is written to:
 
-- Windows x64: `bin/Release/net10.0/win-x64/publish/RoslynMcpServer.exe`
+- Windows x64: `bin/Release/net11.0/win-x64/publish/RoslynMcpServer.exe`
 
 Linux/macOS use the same relative publish layout under the selected RID.
 
@@ -107,7 +107,7 @@ Restart or reload MCP servers after changing client configuration.
 
 ### 3. Add agent policy to the target repository
 
-Copy or merge [`AGENTS.md.sample`](../AGENTS.md.sample) into the application repository as `AGENTS.md`. Keep repository-specific commands and entry points there. This is separate from MCP registration: without policy, the tools may be connected but the agent can still choose generic text search or shell commands.
+Copy or merge [`AGENTS.md.sample`](../samples/AGENTS.md.sample) into the application repository as `AGENTS.md`. Keep repository-specific commands and entry points there. This is separate from MCP registration: without policy, the tools may be connected but the agent can still choose generic text search or shell commands.
 
 ### 4. Verify the first session
 
@@ -121,13 +121,13 @@ If tools are missing, call `list_tool_groups`. If workspace loading fails, follo
 
 ### OpenCode installer
 
-After `dotnet publish`, the publish folder contains [`install2opencode.ps1`](../install2opencode.ps1) and [`AGENTS.md.sample`](../AGENTS.md.sample) next to the host executable. On Linux, run the script with `pwsh`; bash does not execute it.
+After `dotnet publish`, the publish folder contains [`install2opencode.ps1`](../scripts/install2opencode.ps1) and [`AGENTS.md.sample`](../samples/AGENTS.md.sample) next to the host executable. On Linux, run the script with `pwsh`; bash does not execute it.
 
 From the root of the **project you want to configure** (your application repo):
 
 ```powershell
 cd LOCAL_ROOT/YourApp
-& "REPO_ROOT/bin/Release/net10.0/win-x64/publish/install2opencode.ps1"
+& "REPO_ROOT/bin/Release/net11.0/win-x64/publish/install2opencode.ps1"
 ```
 
 The script:
@@ -135,7 +135,7 @@ The script:
 - Creates or updates **`opencode.json`** in the target directory, registering `RoslynMcpServer` as a local MCP server (`type: local`, `enabled: true`, **`timeout`: `600000`** ms = 10 minutes).
 - Creates or updates **`AGENTS.md`**: if Roslyn MCP behavioral rules are not already present, merges content from the bundled `AGENTS.md.sample` (creates a new file or appends to an existing one).
 
-**OpenCode MCP host timeout:** OpenCode’s default for MCP `tools/call` is about **60 seconds**. That is **not** the tool argument `timeoutSeconds` on `run_dotnet_test` / `run_dotnet_run`. Without raising the host timeout, long build/test calls fail with `McpError: MCP error -32001: Request timed out` (~60s) even if you pass `timeoutSeconds: 900`. Set `"timeout": 600000` (or higher) on the server entry — see [`opencode.json.sample`](../opencode.json.sample). `install2opencode.ps1` writes this for you. If an older OpenCode build ignores per-server `timeout`, also try `"experimental": { "mcp_timeout": 600000 }` in `opencode.json`.
+**OpenCode MCP host timeout:** OpenCode’s default for MCP `tools/call` is about **60 seconds**. That is **not** the tool argument `timeoutSeconds` on `run_dotnet_test` / `run_dotnet_run`. Without raising the host timeout, long build/test calls fail with `McpError: MCP error -32001: Request timed out` (~60s) even if you pass `timeoutSeconds: 900`. Set `"timeout": 600000` (or higher) on the server entry — see [`opencode.json.sample`](../samples/opencode.json.sample). `install2opencode.ps1` writes this for you. If an older OpenCode build ignores per-server `timeout`, also try `"experimental": { "mcp_timeout": 600000 }` in `opencode.json`.
 
 Example server block:
 
@@ -166,7 +166,7 @@ Default is **`full`** (every public tool). A **`lite`** session starts with the 
 
 Example: `ROSLYN_MCP_TOOL_GROUPS=decompile,nuget`
 
-Portable OpenCode examples: [`opencode.json.sample`](../opencode.json.sample) (`roslyn-mcp-server` = full, `roslyn-mcp-lite`, `roslyn-mcp-lite-groups`). Enable only one server.
+Portable OpenCode examples: [`opencode.json.sample`](../samples/opencode.json.sample) (`roslyn-mcp-server` = full, `roslyn-mcp-lite`, `roslyn-mcp-lite-groups`). Enable only one server.
 
 | Group | Intent | Tools |
 | --- | --- | ---: |
@@ -194,7 +194,7 @@ MCP `tools/list` stays JSON + JSON Schema. Markdown is for JIT help and diagnost
 
 Even if the MCP is active, AI clients don't always load the tools into the current chat context. Put the **session policy** in the app repo so the agent actually uses Roslyn MCP.
 
-**Canonical file:** [`AGENTS.md.sample`](../AGENTS.md.sample) — copy into the **application** repository as `AGENTS.md` (or merge into `.cursor/rules`). It is policy only (when / MCP vs host / bans); per-tool parameters live in MCP tool Descriptions and in the [tool reference](tools.md).
+**Canonical file:** [`AGENTS.md.sample`](../samples/AGENTS.md.sample) — copy into the **application** repository as `AGENTS.md` (or merge into `.cursor/rules`). It is policy only (when / MCP vs host / bans); per-tool parameters live in MCP tool Descriptions and in the [tool reference](tools.md).
 
 **OpenCode:** `install2opencode.ps1` (see [OpenCode installer](#opencode-installer)) writes or merges the sample into `AGENTS.md` automatically.
 

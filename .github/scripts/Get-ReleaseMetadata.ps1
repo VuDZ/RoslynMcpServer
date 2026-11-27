@@ -5,7 +5,7 @@
 .DESCRIPTION
   Does not tag, push, or call the GitHub API. Safe for a local agent that cannot
   authenticate git-over-SSH. Writes notes (newest 16 commits since the previous
-  v* tag, excluding docs subjects) and optional GITHUB_OUTPUT keys.
+  v* tag, excluding docs and [skip notes] subjects) and optional GITHUB_OUTPUT keys.
 #>
 [CmdletBinding()]
 param(
@@ -73,7 +73,10 @@ function Get-GitHubRepoSlug {
 }
 
 function Get-CsprojVersion {
-    $csproj = Join-Path $RepoRoot 'RoslynMcpServer.csproj'
+    $csproj = Join-Path $RepoRoot 'src/RoslynMcpServer/RoslynMcpServer.csproj'
+    if (-not (Test-Path -LiteralPath $csproj)) {
+        $csproj = Join-Path $RepoRoot 'RoslynMcpServer.csproj'
+    }
     if (-not (Test-Path -LiteralPath $csproj)) {
         throw "RoslynMcpServer.csproj not found: $csproj"
     }
@@ -246,7 +249,7 @@ function ConvertTo-NotesMarkdown {
     }
 
     [void]$lines.Add('')
-    [void]$lines.Add(('Version `{0}` from `RoslynMcpServer.csproj` at this commit.' -f $Version))
+    [void]$lines.Add(('Version `{0}` from `src/RoslynMcpServer/RoslynMcpServer.csproj` at this commit.' -f $Version))
     return ($lines -join "`n")
 }
 
@@ -279,7 +282,7 @@ else {
 $entries = @(Invoke-Git @('--no-pager', 'log', '--format=%H%x09%s', $range))
 $notesEntries = @($entries | Where-Object {
     $subject = ($_ -split "`t", 2)[1]
-    -not [string]::IsNullOrWhiteSpace($subject) -and $subject -notmatch '^\s*docs(?:\([^)]+\))?!?:'
+    -not [string]::IsNullOrWhiteSpace($subject) -and $subject -notmatch '^\s*(?:docs(?:\([^)]+\))?!?:|\[skip notes\](?:\s|$))'
 })
 $totalCount = $entries.Count
 $selected = @(Get-CommitRecords -Entries ($notesEntries | Select-Object -First $MaxCommits))

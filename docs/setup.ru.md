@@ -73,12 +73,12 @@ tar -xzf RoslynMcpServer-<version>-linux-x64-self-contained.tar.gz
 ### 1. Собрать сервер
 
 ```bash
-dotnet publish RoslynMcpServer.csproj -c Release -r win-x64
+dotnet publish src/RoslynMcpServer/RoslynMcpServer.csproj -c Release -r win-x64
 ```
 
 Для Windows x64 бинарник будет здесь:
 
-- `bin/Release/net10.0/win-x64/publish/RoslynMcpServer.exe`
+- `bin/Release/net11.0/win-x64/publish/RoslynMcpServer.exe`
 
 Для Linux/macOS используется тот же относительный layout с выбранным RID.
 
@@ -105,7 +105,7 @@ dotnet publish RoslynMcpServer.csproj -c Release -r win-x64
 
 ### 3. Добавить правила агента в целевой репозиторий
 
-Скопируйте или влейте [`AGENTS.md.sample`](../AGENTS.md.sample) в репозиторий приложения как `AGENTS.md`. Специфичные для приложения entry points и команды добавьте туда отдельно. Это не MCP-конфиг: без policy tools могут быть подключены, но агент всё равно выберет обычный текстовый поиск или shell-команды.
+Скопируйте или влейте [`AGENTS.md.sample`](../samples/AGENTS.md.sample) в репозиторий приложения как `AGENTS.md`. Специфичные для приложения entry points и команды добавьте туда отдельно. Это не MCP-конфиг: без policy tools могут быть подключены, но агент всё равно выберет обычный текстовый поиск или shell-команды.
 
 ### 4. Проверить первую сессию
 
@@ -119,13 +119,13 @@ dotnet publish RoslynMcpServer.csproj -c Release -r win-x64
 
 ### Установщик OpenCode
 
-После `dotnet publish` в каталоге publish лежат [`install2opencode.ps1`](../install2opencode.ps1) и [`AGENTS.md.sample`](../AGENTS.md.sample) рядом с исполняемым файлом хоста. На Linux скрипт запускается через `pwsh`, не через bash.
+После `dotnet publish` в каталоге publish лежат [`install2opencode.ps1`](../scripts/install2opencode.ps1) и [`AGENTS.md.sample`](../samples/AGENTS.md.sample) рядом с исполняемым файлом хоста. На Linux скрипт запускается через `pwsh`, не через bash.
 
 Из корня **целевого проекта** (вашего приложения, не этого репозитория):
 
 ```powershell
 cd LOCAL_ROOT/YourApp
-& "REPO_ROOT/bin/Release/net10.0/win-x64/publish/install2opencode.ps1"
+& "REPO_ROOT/bin/Release/net11.0/win-x64/publish/install2opencode.ps1"
 ```
 
 Скрипт:
@@ -133,7 +133,7 @@ cd LOCAL_ROOT/YourApp
 - создаёт или обновляет **`opencode.json`**, регистрируя `RoslynMcpServer` как локальный MCP-сервер (`type: local`, `enabled: true`, **`timeout`: `600000`** мс = 10 минут);
 - создаёт или дополняет **`AGENTS.md`**: если правил Roslyn MCP ещё нет, подмешивает текст из `AGENTS.md.sample` (новый файл или append к существующему).
 
-**Таймаут MCP-хоста OpenCode:** по умолчанию OpenCode обрывает MCP `tools/call` примерно через **60 секунд**. Это **не** аргумент тула `timeoutSeconds` у `run_dotnet_test` / `run_dotnet_run`. Без увеличения host timeout длинные build/test падают с `McpError: MCP error -32001: Request timed out` (~60 с), даже если передать `timeoutSeconds: 900`. Укажите `"timeout": 600000` (или больше) в записи сервера — см. [`opencode.json.sample`](../opencode.json.sample). `install2opencode.ps1` проставляет это сам. Если старая сборка OpenCode игнорирует per-server `timeout`, добавьте также `"experimental": { "mcp_timeout": 600000 }`.
+**Таймаут MCP-хоста OpenCode:** по умолчанию OpenCode обрывает MCP `tools/call` примерно через **60 секунд**. Это **не** аргумент тула `timeoutSeconds` у `run_dotnet_test` / `run_dotnet_run`. Без увеличения host timeout длинные build/test падают с `McpError: MCP error -32001: Request timed out` (~60 с), даже если передать `timeoutSeconds: 900`. Укажите `"timeout": 600000` (или больше) в записи сервера — см. [`opencode.json.sample`](../samples/opencode.json.sample). `install2opencode.ps1` проставляет это сам. Если старая сборка OpenCode игнорирует per-server `timeout`, добавьте также `"experimental": { "mcp_timeout": 600000 }`.
 
 Пример блока сервера:
 
@@ -164,7 +164,7 @@ cd LOCAL_ROOT/YourApp
 
 Пример: `ROSLYN_MCP_TOOL_GROUPS=decompile,nuget`
 
-Примеры OpenCode: [`opencode.json.sample`](../opencode.json.sample). Включайте только один сервер.
+Примеры OpenCode: [`opencode.json.sample`](../samples/opencode.json.sample). Включайте только один сервер.
 
 | Группа | Назначение | Тулов |
 | --- | --- | ---: |
@@ -184,7 +184,7 @@ cd LOCAL_ROOT/YourApp
 
 Положите **session policy** в app-репозиторий, иначе клиент часто игнорирует MCP-тулы.
 
-**Канонический файл:** [`AGENTS.md.sample`](../AGENTS.md.sample) — скопируйте в приложение как `AGENTS.md` (или влейте во фрагменты `.cursor/rules`). Текст на EN (LLM лучше следуют английским императивам). Это только политика (когда / MCP vs host / запреты); параметры тулов — в Description и в [справочнике инструментов](tools.ru.md).
+**Канонический файл:** [`AGENTS.md.sample`](../samples/AGENTS.md.sample) — скопируйте в приложение как `AGENTS.md` (или влейте во фрагменты `.cursor/rules`). Текст на EN (LLM лучше следуют английским императивам). Это только политика (когда / MCP vs host / запреты); параметры тулов — в Description и в [справочнике инструментов](tools.ru.md).
 
 **OpenCode:** `install2opencode.ps1` (см. блок **OpenCode** выше) сам создаёт или дополняет `AGENTS.md`.
 
@@ -226,7 +226,7 @@ cd LOCAL_ROOT/YourApp
 
 ## История agent-tools по версиям
 
-[CHANGELOG.md](../CHANGELOG.md). Правила агента — [`AGENTS.md.sample`](../AGENTS.md.sample).
+[CHANGELOG.md](../CHANGELOG.md). Правила агента — [`AGENTS.md.sample`](../samples/AGENTS.md.sample).
 
 Rapid TIA появилась в версии **1.6.0**. `estimate_affected_tests` по сохранённым правкам и зависимостям скомпилированных типов выбирает проекты и классы VSTest. При `run: true` инструмент по очереди собирает выбранные проекты, затем запускает тесты параллельно. Если проекты делят ресурсы, передайте `maxParallelProjects: 1`, чтобы собирать и тестировать каждый проект по очереди. См. [справочник](tools.ru.md) и [архитектуру](ARCHITECTURE.md#rapid-tia).
 

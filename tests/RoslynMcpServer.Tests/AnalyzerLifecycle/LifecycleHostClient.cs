@@ -65,7 +65,7 @@ internal sealed class LifecycleHostClient : IAsyncDisposable
                 searchRoots.Add(hostBin);
             }
 
-            if (File.Exists(Path.Combine(dir.FullName, "RoslynMcpServer.csproj")))
+            if (File.Exists(Path.Combine(dir.FullName, "RoslynMcpServer.sln")))
             {
                 break;
             }

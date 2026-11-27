@@ -1,12 +1,13 @@
 param(
-    [string]$ProjectPath = (Join-Path $PSScriptRoot "RoslynMcpServer.csproj"),
-    [string]$PublishDir = (Join-Path $PSScriptRoot "bin\Release\net11.0\win-x64\publish"),
+    [string]$ProjectPath = (Join-Path (Split-Path -Parent $PSScriptRoot) 'src/RoslynMcpServer/RoslynMcpServer.csproj'),
+    [string]$PublishDir = (Join-Path (Split-Path -Parent $PSScriptRoot) 'bin/Release/net11.0/win-x64/publish'),
     [int]$ExpectedMinTools = 54,
     # Cursor may keep MCP stdio processes alive after "disconnect"; they lock publish DLLs.
     [switch]$SkipKill
 )
 
 $ErrorActionPreference = "Stop"
+$repoRoot = Split-Path -Parent $PSScriptRoot
 
 # ReadyToRun for win-x64 requires a 64-bit SDK host. PATH often prefers
 # "Program Files (x86)\dotnet" on Windows → CrossGen fails with
@@ -233,7 +234,7 @@ Write-Host "dotnet host  : $dotnet"
 & $dotnet --info | Select-String -Pattern '^\s*(RID|Architecture|Base Path)\s*:' | ForEach-Object { Write-Host $_.Line.Trim() }
 
 if (-not $SkipKill) {
-    Stop-RoslynMcpLockHolders -PublishDir $PublishDir -RepoRoot $PSScriptRoot
+    Stop-RoslynMcpLockHolders -PublishDir $PublishDir -RepoRoot $repoRoot
 }
 else {
     Write-Host "MCP lock check: skipped (-SkipKill)."
@@ -257,7 +258,7 @@ Write-Host "LastWriteTime: $($exeInfo.LastWriteTime.ToString('o'))"
 Write-Host "Size         : $($exeInfo.Length) bytes"
 
 Write-Host "Packaging artifact zip (root RoslynMCP, no logs/, README.md included)..."
-$zipPath = New-PublishArtifactZip -PublishDir $PublishDir -RepoRoot $PSScriptRoot -Version $artifactVersion
+$zipPath = New-PublishArtifactZip -PublishDir $PublishDir -RepoRoot $repoRoot -Version $artifactVersion
 $zipInfo = Get-Item $zipPath
 Write-Host "Artifact     : $zipPath"
 Write-Host "Zip size     : $($zipInfo.Length) bytes"

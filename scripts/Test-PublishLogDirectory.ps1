@@ -2,7 +2,7 @@
 $ErrorActionPreference = 'Stop'
 $tokens = $null
 $parseErrors = $null
-$scriptPath = Join-Path $PSScriptRoot '../publish-and-verify.ps1'
+$scriptPath = Join-Path $PSScriptRoot 'publish-and-verify.ps1'
 $ast = [Management.Automation.Language.Parser]::ParseFile($scriptPath, [ref]$tokens, [ref]$parseErrors)
 if ($parseErrors.Count -gt 0) { throw ($parseErrors | Out-String) }
 $resolver = $ast.Find({ param($node)

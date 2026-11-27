@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Linux counterpart of publish-and-verify.ps1: publishes RoslynMcpServer for this machine and
+# Linux counterpart of scripts/publish-and-verify.ps1: publishes RoslynMcpServer for this machine and
 # checks that the Claude Code MCP launcher will start the new build.
 #
 # The launcher (~/.local/share/roslyn-mcp/launch.sh) copies the newest build output under
@@ -27,7 +27,7 @@ die() { echo "error: $*" >&2; exit 1; }
 warn() { echo "WARNING: $*" >&2; }
 
 repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)
-project="$repo_root/RoslynMcpServer.csproj"
+project="$repo_root/src/RoslynMcpServer/RoslynMcpServer.csproj"
 cache_dir="${ROSLYN_MCP_CACHE:-$HOME/.cache/roslyn-mcp}"
 launcher="${ROSLYN_MCP_LAUNCHER:-$HOME/.local/share/roslyn-mcp/launch.sh}"
 claude_config="$HOME/.claude.json"

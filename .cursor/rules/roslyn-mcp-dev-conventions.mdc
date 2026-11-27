@@ -13,4 +13,4 @@ alwaysApply: false
 - Log outcomes as summary + warning highlights; gate full dumps behind `ROSLYN_MCP_LOG_TOOL_OUTPUT=full`.
 - Friendly errors for bad/missing args — avoid unhandled exceptions leaking as opaque MCP failures.
 - Add/adjust unit tests under `RoslynMcpServer.Tests` for parsers, resolvers, path helpers.
-- Version: follow always-apply rule `roslyn-mcp-version-bump.mdc` — patch-bump after successful self-build when shipping code/tool changes; sync README + `AGENTS.md.sample`.
+- Version: follow always-apply rule `roslyn-mcp-version-bump.mdc` — patch-bump after successful self-build when shipping code/tool changes; sync README + `samples/AGENTS.md.sample`.

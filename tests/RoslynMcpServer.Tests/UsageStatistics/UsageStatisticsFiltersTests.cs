@@ -11,6 +11,7 @@ using RoslynMcpServer.Diagnostics;
 using RoslynMcpServer.Diagnostics.UsageStatistics;
 using RoslynMcpServer.Hosting;
 using RoslynMcpServer.Services;
+using RoslynMcpServer.Tests.SourceStructure;
 using Xunit;
 
 namespace RoslynMcpServer.Tests.UsageStatistics;
@@ -86,7 +87,7 @@ public sealed class UsageStatisticsFiltersTests
                 cancellationToken: cancellation.Token);
             Assert.False(help.IsError ?? false);
 
-            var repository = FindSourceRoot();
+            var repository = RepositoryRoot.Find();
             var rejectedDiagnostics = await client.CallToolAsync(
                 "get_diagnostics_for_file",
                 new Dictionary<string, object?> { ["filePath"] = Path.Combine(repository, "README.md") },
@@ -94,7 +95,7 @@ public sealed class UsageStatisticsFiltersTests
             Assert.False(rejectedDiagnostics.IsError ?? false);
             Assert.StartsWith("Path must point to a .cs file:", Assert.Single(rejectedDiagnostics.Content.OfType<TextContentBlock>()).Text);
 
-            var sourcePath = Path.Combine(repository, "Diagnostics", "ToolLogAnalyzer.cs");
+            var sourcePath = Path.Combine(RepositoryRoot.FindProductionProjectDirectory(), "Diagnostics", "ToolLogAnalyzer.cs");
             var source = await client.CallToolAsync(
                 "get_file_content",
                 new Dictionary<string, object?> { ["filePath"] = sourcePath },
@@ -347,18 +348,5 @@ public sealed class UsageStatisticsFiltersTests
     {
         var tool = McpServerTool.Create(handler.Method, handler.Target, new McpServerToolCreateOptions { Name = name });
         Assert.True(collection.TryAdd(tool));
-    }
-
-    private static string FindSourceRoot()
-    {
-        for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
-        {
-            if (File.Exists(Path.Combine(directory.FullName, "RoslynMcpServer.csproj")))
-            {
-                return directory.FullName;
-            }
-        }
-
-        throw new DirectoryNotFoundException("Could not find the repository source.");
     }
 }

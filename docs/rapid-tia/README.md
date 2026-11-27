@@ -81,7 +81,7 @@ solution оценивает, какие тесты стоит запустить
   Объявления `partial`-члена в разных файлах хранятся все, а не затирают друг друга:
   член изменён, если изменилось любое из них.
 - Текущее состояние сравнивается со снимком. Правки через MCP и правки на диске мимо MCP
-  (их подтягивает disk watcher, [WorkspaceDocumentDiskSync](../../Services/Workspace/WorkspaceDocumentDiskSync.cs))
+  (их подтягивает disk watcher, [WorkspaceDocumentDiskSync](../../src/RoslynMcpServer/Services/Workspace/WorkspaceDocumentDiskSync.cs))
   обрабатываются одинаково.
 - Изменённые члены определяются **синтаксически**, без semantic model: это работает и на
   некомпилируемом промежуточном коде. Синтаксический ключ сопоставляется с узлом графа
@@ -135,7 +135,7 @@ solution оценивает, какие тесты стоит запустить
   тестовые проекты** загруженного solution, а строка состояния говорит, что граф проектов
   устарел. После reload — обычное отображение по уже обновлённому графу.
 - **Прочий не-C# путь** (json, resx, данные тестов). Проекты берутся из карты входов
-  workspace ([WorkspaceInputMapBuilder](../../Services/Workspace/WorkspaceInputMapBuilder.cs)).
+  workspace ([WorkspaceInputMapBuilder](../../src/RoslynMcpServer/Services/Workspace/WorkspaceInputMapBuilder.cs)).
   Путь, который карта ни к одному проекту не относит, не расширяет ни один проект и
   попадает в «Not covered» с именем файла: неизвестный путь не доказывает, что он ни на
   что не влияет, и агент видит это явно. Исключение — вывод сборки: путь под игнорируемым
@@ -230,7 +230,7 @@ CHA по R-05; правка, вернувшая текст baseline, так не
 
 **Корни тестового класса:**
 
-- тестовые методы (распознаются [TestAttributeMatcher](../../Services/Testing/TestAttributeMatcher.cs));
+- тестовые методы (распознаются [TestAttributeMatcher](../../src/RoslynMcpServer/Services/Testing/TestAttributeMatcher.cs));
 - конструкторы класса и базовых классов, инициализаторы полей;
 - xUnit `IAsyncLifetime`, `Dispose`/`DisposeAsync` тестового класса;
 - xUnit `IClassFixture<T>` на самом тестовом классе — тип фикстуры `T`;
@@ -257,7 +257,7 @@ CHA по R-05; правка, вернувшая текст baseline, так не
   method group — ребро к методу;
 - синтезированные члены record — к объявлению record.
 
-Опыт обхода делегатов есть в [ReachabilityAnalysis](../../RoslynMcpServer.Tests/SourceStructure/ReachabilityAnalysis.cs)
+Опыт обхода делегатов есть в [ReachabilityAnalysis](../../tests/RoslynMcpServer.Tests/SourceStructure/ReachabilityAnalysis.cs)
 (тестовый код SourceStructure). Он сознательно не раскрывает виртуальные вызовы, поэтому
 обход для TIA — отдельный код; логику по делегатам можно заимствовать.
 
@@ -362,7 +362,7 @@ baseline хранит ребро к прежней цели вызова, поэ
 таймауты MCP-клиентов.
 
 **Фон после публикации загруженного solution**, по образцу
-[SearchIndexPrewarm](../../Services/Navigation/SearchIndexPrewarm.cs):
+[SearchIndexPrewarm](../../src/RoslynMcpServer/Services/Navigation/SearchIndexPrewarm.cs):
 
 - Фоновая задача захватывает опубликованный `Solution` в момент загрузки. `Solution`
   неизменяем, но тексты в нём читаются лениво, поэтому граф соответствует baseline
@@ -655,7 +655,7 @@ Not covered: 2 dispatch sites fell back to all implementations; non-C# changes i
 фильтр). Причины:
 
 - Фильтр набора — дизъюнкция `FullyQualifiedName~<имя>` по каждому тесту, с
-  экранированием [TestFilterHelper](../../Services/Testing/TestFilterHelper.cs). Оператор
+  экранированием [TestFilterHelper](../../src/RoslynMcpServer/Services/Testing/TestFilterHelper.cs). Оператор
   `~` выбран по той же причине, что в помощнике: к имени `Theory` адаптер дописывает
   параметры, а `()` в `=` VSTest читает как группировку. Следствие записывается явно:
   фильтр выбирает **надмножество** — тест, чьё имя содержит имя выбранного
@@ -841,10 +841,10 @@ MTP (2026-10-30): в проектах владельца не используе
 
 ## Затрагиваемое
 
-- [SolutionManager](../../Services/Workspace/SolutionManager.cs): снимок baseline при
+- [SolutionManager](../../src/RoslynMcpServer/Services/Workspace/SolutionManager.cs): снимок baseline при
   публикации загруженного solution, его жизнь при reload/reset.
-- [Services/Testing](../../Services/Testing/): распознавание корней и построение фильтра.
-- [TestTools](../../Tools/TestTools.cs): новый инструмент рядом с `get_test_list` и `run_test_by_filter`.
+- [Services/Testing](../../src/RoslynMcpServer/Services/Testing/): распознавание корней и построение фильтра.
+- [TestTools](../../src/RoslynMcpServer/Tools/TestTools.cs): новый инструмент рядом с `get_test_list` и `run_test_by_filter`.
 - Каталог пользователя сервера (реализован в ветке `usage-statistics`, 1.5.19): свойство
   каталога `tia/` в `ServerUserDirectories` рядом с `UsageDirectory`; строка `tia/` в
   списке содержимого [user-data-directory](../user-data-directory/README.md) — в эпохе 4,

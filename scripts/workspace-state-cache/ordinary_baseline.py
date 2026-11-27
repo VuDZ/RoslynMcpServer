@@ -490,7 +490,9 @@ def find_repo(start: Path) -> Path | None:
 
 
 def read_csproj_versions(repo: Path) -> dict[str, str]:
-    path = repo / "RoslynMcpServer.csproj"
+    path = repo / "src" / "RoslynMcpServer" / "RoslynMcpServer.csproj"
+    if not path.is_file():
+        path = repo / "RoslynMcpServer.csproj"
     found = {
         "sourceVersion": "not-observed",
         "assemblyVersion": "not-observed",

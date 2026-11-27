@@ -62,24 +62,23 @@ internal sealed class SourceSetScope
     }
 
     /// <summary>
-    /// Scope of the production sources of <paramref name="repositoryRoot"/>: the same file set MSBuild
-    /// globs for <c>RoslynMcpServer.csproj</c> (solution test and host projects excluded), compiled
+    /// Scope of the sources MSBuild globs for <c>RoslynMcpServer.csproj</c> in <paramref name="projectDirectory"/>, compiled
     /// against the runtime references plus the compile-only assets of the restore. Global usings are
     /// supplied as a synthetic file, because the compiler normally gets them from the SDK build.
     /// </summary>
-    public static SourceSetScope ProductionRepository(string repositoryRoot)
+    public static SourceSetScope ProductionProject(string projectDirectory)
     {
-        var files = ProductionSourcePaths(repositoryRoot)
+        var files = ProductionSourcePaths(projectDirectory)
             .Select(SourceFile.ReadFromDisk)
             .ToList();
         files.Add(SourceFile.Create(GlobalUsingsPath, string.Join('\n', ImplicitGlobalUsings)));
 
         return new SourceSetScope(
-            $"production sources of RoslynMcpServer.csproj under the working copy at {repositoryRoot} "
+            $"production sources of RoslynMcpServer.csproj at {projectDirectory} "
             + $"(Debug; symbols: {string.Join(", ", DemoPreprocessorSymbols)})",
             "RoslynMcpServerSources",
             files,
-            MetadataReferenceSets.Production(repositoryRoot),
+            MetadataReferenceSets.Production(projectDirectory),
             DemoPreprocessorSymbols,
             LanguageVersion.Latest,
             OutputKind.ConsoleApplication);
@@ -94,15 +93,15 @@ internal sealed class SourceSetScope
     }
 
     /// <summary>
-    /// Files of the production compilation: every <c>*.cs</c> under the project directory except build
-    /// output and the sibling projects that <c>RoslynMcpServer.csproj</c> removes from its own compile set.
+    /// Files of the production compilation: every <c>*.cs</c> under the server project directory except
+    /// build output and hidden tooling directories.
     /// Enumerating the tree, rather than listing directories, keeps a new production folder inside the scope.
     /// </summary>
-    private static IEnumerable<string> ProductionSourcePaths(string repositoryRoot)
+    private static IEnumerable<string> ProductionSourcePaths(string projectDirectory)
     {
-        foreach (var path in Directory.EnumerateFiles(repositoryRoot, "*.cs", SearchOption.AllDirectories))
+        foreach (var path in Directory.EnumerateFiles(projectDirectory, "*.cs", SearchOption.AllDirectories))
         {
-            var relative = Path.GetRelativePath(repositoryRoot, path);
+            var relative = Path.GetRelativePath(projectDirectory, path);
             var segments = relative.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
             if (segments.Take(segments.Length - 1).Any(IsExcludedSegment))
             {
@@ -113,21 +112,13 @@ internal sealed class SourceSetScope
         }
     }
 
-    /// <summary>Build output, hidden tooling folders and the sibling projects outside the production compile set.</summary>
+    /// <summary>Build output and hidden tooling folders outside the production compile set.</summary>
     private static bool IsExcludedSegment(string segment) =>
         segment.StartsWith('.')
         || string.Equals(segment, "bin", StringComparison.OrdinalIgnoreCase)
-        || string.Equals(segment, "obj", StringComparison.OrdinalIgnoreCase)
-        || string.Equals(segment, "artifacts", StringComparison.OrdinalIgnoreCase)
-        // Standalone experiments and upstream forks are explicitly removed from the host Compile items.
-        || string.Equals(segment, "spikes", StringComparison.OrdinalIgnoreCase)
-        || string.Equals(segment, "forks", StringComparison.OrdinalIgnoreCase)
-        || string.Equals(segment, ExcludedTestProjectDirectory, StringComparison.OrdinalIgnoreCase)
-        || string.Equals(segment, ExcludedHostProjectDirectory, StringComparison.OrdinalIgnoreCase);
+        || string.Equals(segment, "obj", StringComparison.OrdinalIgnoreCase);
 
     private const string GlobalUsingsPath = "obj/RoslynMcpServer.GlobalUsings.g.cs";
-    private const string ExcludedTestProjectDirectory = "RoslynMcpServer.Tests";
-    private const string ExcludedHostProjectDirectory = "RoslynMcpServer.LifecycleTestHost";
 
     /// <summary>
     /// Implicit usings the SDK generates for this project (<c>ImplicitUsings</c> is enabled). The

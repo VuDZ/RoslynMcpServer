@@ -150,7 +150,13 @@ jobs:
           }
 
           $root = '${{ github.workspace }}'
-          $project = Join-Path $root '.github/smoke/SmokeApp/SmokeApp.csproj'
+          $serverProject = Join-Path $root 'src/RoslynMcpServer/RoslynMcpServer.csproj'
+          $project = Join-Path $root 'tests/fixtures/SmokeApp/SmokeApp.csproj'
+          # A dispatch can select a commit from before the projects moved.
+          if (-not (Test-Path -LiteralPath $serverProject)) {
+            $serverProject = Join-Path $root 'RoslynMcpServer.csproj'
+            $project = Join-Path $root '.github/smoke/SmokeApp/SmokeApp.csproj'
+          }
           $zipDir = Join-Path $root 'artifacts/archives'
           New-Item -ItemType Directory -Path $zipDir -Force | Out-Null
 
@@ -158,7 +164,7 @@ jobs:
             $selfContained = $(if ($kind -eq 'self-contained') { 'true' } else { 'false' })
             $out = Join-Path $root "artifacts/publish/$rid-$kind"
             New-Item -ItemType Directory -Path $out -Force | Out-Null
-            dotnet publish RoslynMcpServer.csproj -c Release -r $rid --self-contained $selfContained -o $out --no-restore
+            dotnet publish $serverProject -c Release -r $rid --self-contained $selfContained -o $out --no-restore
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
             $dll = Join-Path $out 'RoslynMcpServer.dll'

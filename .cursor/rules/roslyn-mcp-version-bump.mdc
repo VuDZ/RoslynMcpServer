@@ -11,7 +11,7 @@ When changing **RoslynMcpServer itself** and verifying with **this same MCP** (b
 
 After a **successful** `run_dotnet_build` / `dotnet test` (and before or with `dotnet publish` + MCP reload):
 
-1. Bump **patch** in `RoslynMcpServer.csproj`: `Version`, `AssemblyVersion`, `FileVersion` together (e.g. `1.0.14` → `1.0.15`, `1.0.14.0` → `1.0.15.0`).
+1. Bump **patch** in `src/RoslynMcpServer/RoslynMcpServer.csproj`: `Version`, `AssemblyVersion`, `FileVersion` together (e.g. `1.0.14` → `1.0.15`, `1.0.14.0` → `1.0.15.0`).
 2. Do **not** leave shippable behavior changes at the old version — agents check `get_mcp_server_info` against the number in csproj/docs.
 3. Skip bump only for pure docs/typos/rules with **no** code or tool-behavior change.
 
@@ -24,11 +24,11 @@ After a **successful** `run_dotnet_build` / `dotnet test` (and before or with `d
 ## After bump
 
 1. Update `CHANGELOG.md` when user-visible tools/behavior change. README already links to it; update `docs/tools.md` when the tool catalog changes.
-2. Sync `AGENTS.md.sample` / expected version hints (`get_mcp_server_info` → new version).
-3. Publish (`publish-and-verify.ps1` or `dotnet publish … -r win-x64`), reload MCP host, confirm **`get_mcp_server_info`** shows the new version.
+2. Sync `samples/AGENTS.md.sample` / expected version hints (`get_mcp_server_info` → new version).
+3. Publish (`scripts/publish-and-verify.ps1` or `dotnet publish … -r win-x64`), reload MCP host, confirm **`get_mcp_server_info`** shows the new version.
 
 ## Dogfooding
 
 Prefer MCP `run_dotnet_build` / `run_dotnet_test` / `run_dotnet_run` on this repo’s workspace — same as app repos. Shell `dotnet` only if MCP is unavailable or for publish/reload scripts that are outside tool coverage.
 
-`publish-and-verify.ps1` stops leftover `RoslynMcpServer.exe` under this repo/publish (Cursor often keeps MCP alive after disconnect and locks publish DLLs). Pass `-SkipKill` to disable. Then reload MCP and confirm `get_mcp_server_info`.
+`scripts/publish-and-verify.ps1` stops leftover `RoslynMcpServer.exe` under this repo/publish (Cursor often keeps MCP alive after disconnect and locks publish DLLs). Pass `-SkipKill` to disable. Then reload MCP and confirm `get_mcp_server_info`.

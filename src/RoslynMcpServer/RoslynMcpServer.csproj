@@ -3,6 +3,8 @@
     <TargetFramework>net11.0</TargetFramework>
     <RuntimeIdentifiers>win-x64;win-arm64;osx-arm64;linux-x64;linux-arm64;linux-musl-x64</RuntimeIdentifiers>
     <OutputType>Exe</OutputType>
+    <!-- Local MCP launchers look for published builds under the repository bin directory. -->
+    <BaseOutputPath>..\..\bin\</BaseOutputPath>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <!-- Set up the NuGet package to be an MCP server -->
@@ -36,16 +38,16 @@
   </ItemGroup>
   <!-- Include additional files for browsing the MCP server. -->
   <ItemGroup>
-    <None Include="LICENSE" Pack="true" PackagePath="/" />
-    <None Include="PRIVACY.md" Pack="true" PackagePath="/" />
-    <None Include="README.md" Pack="true" PackagePath="/" />
+    <None Include="..\..\LICENSE" Pack="true" PackagePath="/" />
+    <None Include="..\..\PRIVACY.md" Pack="true" PackagePath="/" />
+    <None Include="..\..\README.md" Pack="true" PackagePath="/" />
   </ItemGroup>
   <!-- OpenCode installer script and agent rules template (copied next to the published binary). -->
   <ItemGroup>
-    <None Include="install2opencode.ps1" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    <None Include="opencode.json.sample" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    <None Include="AGENTS.md.sample" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    <None Include="publish-and-verify.ps1" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <None Include="..\..\scripts\install2opencode.ps1" Link="install2opencode.ps1" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <None Include="..\..\samples\opencode.json.sample" Link="opencode.json.sample" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <None Include="..\..\samples\AGENTS.md.sample" Link="AGENTS.md.sample" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <None Include="..\..\scripts\publish-and-verify.ps1" Link="publish-and-verify.ps1" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
   <!-- Keep Roslyn MEF parts when trimming self-contained builds -->
   <ItemGroup>
@@ -54,25 +56,6 @@
     <TrimmerRootAssembly Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" />
     <TrimmerRootAssembly Include="Microsoft.CodeAnalysis.Features" />
     <TrimmerRootAssembly Include="Microsoft.CodeAnalysis.CSharp.Features" />
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Remove="RoslynMcpServer.Tests\**" />
-    <None Remove="RoslynMcpServer.Tests\**" />
-    <Compile Remove="RoslynMcpServer.LifecycleTestHost\**" />
-    <None Remove="RoslynMcpServer.LifecycleTestHost\**" />
-    <!-- The sample plugin is a separate project of this repository. Its sources, including the
-         generated .cs under its obj directory, are not part of the host assembly. -->
-    <Compile Remove="samples\**" />
-    <None Remove="samples\**" />
-    <!-- Local integration fixtures and generated reports are not host sources or package content. -->
-    <Compile Remove="artifacts\**" />
-    <None Remove="artifacts\**" />
-    <Compile Remove="spikes\**" />
-    <None Remove="spikes\**" />
-    <!-- Upstream forks build with their own projects and are not part of the host assembly. -->
-    <Compile Remove="forks\**" />
-    <None Remove="forks\**" />
-    <EmbeddedResource Remove="forks\**" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="ICSharpCode.Decompiler" Version="11.2.0.10050" />
@@ -113,6 +96,6 @@
        (docs/workspace-load-performance/research-buildhost-fork/task-03-buildhost-fork-server-integration-hi.md).
        A design-time build does nothing with it, so a copy of this project without forks/ still loads into a
        workspace; a real build without it fails on the missing import. -->
-  <Import Project="forks\roslyn-buildhost\build\BuildHostFork.targets"
-          Condition="'$(DesignTimeBuild)' != 'true' or Exists('forks\roslyn-buildhost\build\BuildHostFork.targets')" />
+  <Import Project="..\..\forks\roslyn-buildhost\build\BuildHostFork.targets"
+          Condition="'$(DesignTimeBuild)' != 'true' or Exists('..\..\forks\roslyn-buildhost\build\BuildHostFork.targets')" />
 </Project>

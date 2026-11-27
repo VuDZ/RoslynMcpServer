@@ -10,7 +10,7 @@ alwaysApply: true
 | Layer | Role |
 |-------|------|
 | MCP tool `[Description]` | Per-tool API: params, caps, anti-patterns |
-| `AGENTS.md.sample` | Session policy only (when / MCP vs host / bans) — copy to app repos as `AGENTS.md` |
+| `samples/AGENTS.md.sample` | Session policy only (when / MCP vs host / bans) — copy to app repos as `AGENTS.md` |
 | `CHANGELOG.md` | Human changelog of agent-visible tools and behavior |
 | `docs/tools.md` (+ `docs/tools.ru.md`) | Tool catalog |
 | `docs/setup.md` (+ `docs/setup.ru.md`) | Install, clients, profiles, config, logs; Agent Initialization is a short pointer to the sample — **not** a full copy of AGENTS |
@@ -20,17 +20,17 @@ alwaysApply: true
 
 When adding/changing MCP tools, Descriptions, or agent-visible behavior, update **together**:
 
-1. **`AGENTS.md.sample`** — only if session policy changes (init, bans, hybrid search, edit/secrets). Do **not** paste tool params/caps into AGENTS.
+1. **`samples/AGENTS.md.sample`** — only if session policy changes (init, bans, hybrid search, edit/secrets). Do **not** paste tool params/caps into AGENTS.
 2. **`CHANGELOG.md`** — semver row when agent-visible behavior changes. **`docs/tools.md`** — tool reference (EN; `docs/tools.ru.md` as needed) when the public tool surface changes. Touch `README.md` / `README.ru.md` only if a change alters what they promise (examples, tool count, quick start).
-3. **Version** in `RoslynMcpServer.csproj` when shipping tool changes (see `roslyn-mcp-version-bump.mdc`).
+3. **Version** in `src/RoslynMcpServer/RoslynMcpServer.csproj` when shipping tool changes (see `roslyn-mcp-version-bump.mdc`).
 
-Copy `AGENTS.md.sample` → app repo `AGENTS.md` — **no machine-specific paths**.
+Copy `samples/AGENTS.md.sample` → app repo `AGENTS.md` — **no machine-specific paths**.
 
 ## Agent workflow (summary)
 
 - Quick read-only: `load_workspace` → symbol tools / Grep.
 - Edit/build/test/run: full init → MCP `dotnet_*` only (no shell `dotnet build/test`).
-- After MCP rebuild: `get_mcp_server_info` expect current version (1.3.32+; source of truth — `RoslynMcpServer.csproj`).
+- After MCP rebuild: `get_mcp_server_info` expect current version (1.3.32+; source of truth — `src/RoslynMcpServer/RoslynMcpServer.csproj`).
 - Windows PowerShell 5.x: use `;` between commands, not `&&`.
 - Secrets: never PAT/passwords in chat/commits; env / user-secrets; report configured yes/no only.
 - IDE edits: host edit/write; headless: MCP `apply_patch` / AST tools.

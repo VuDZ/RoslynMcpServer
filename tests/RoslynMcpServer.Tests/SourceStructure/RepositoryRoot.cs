@@ -6,7 +6,7 @@ namespace RoslynMcpServer.Tests.SourceStructure;
 /// </summary>
 internal static class RepositoryRoot
 {
-    private const string MarkerFile = "RoslynMcpServer.csproj";
+    private const string MarkerFile = "RoslynMcpServer.sln";
 
     public static string Find()
     {
@@ -23,6 +23,8 @@ internal static class RepositoryRoot
 
         throw new DirectoryNotFoundException($"Could not locate the repository root ({MarkerFile} was not found above {AppContext.BaseDirectory}).");
     }
+
+    public static string FindProductionProjectDirectory() => Path.Combine(Find(), "src", "RoslynMcpServer");
 
     /// <summary>Path of a repository-relative file; the separator is platform-specific, never compared as text.</summary>
     public static string Combine(string repositoryRoot, params string[] segments)

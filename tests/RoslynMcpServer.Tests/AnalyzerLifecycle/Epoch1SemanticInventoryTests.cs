@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using RoslynMcpServer.Tests.SourceStructure;
 using Xunit;
 
 namespace RoslynMcpServer.Tests.AnalyzerLifecycle;
@@ -34,13 +35,13 @@ public sealed class Epoch1SemanticInventoryTests
     [Fact]
     public void Semantic_entry_points_are_inventoried_and_getter_callers_are_not_excluded()
     {
-        var repoRoot = FindRepoRoot();
+        var projectDirectory = RepositoryRoot.FindProductionProjectDirectory();
         var hits = new List<string>();
-        foreach (var relative in Directory.GetFiles(Path.Combine(repoRoot, "Tools"), "*.cs", SearchOption.TopDirectoryOnly)
-                     .Concat(new[] { Path.Combine(repoRoot, "Services", "Workspace", "SolutionManager.cs") }))
+        foreach (var relative in Directory.GetFiles(Path.Combine(projectDirectory, "Tools"), "*.cs", SearchOption.TopDirectoryOnly)
+                     .Concat(new[] { Path.Combine(projectDirectory, "Services", "Workspace", "SolutionManager.cs") }))
         {
             var text = File.ReadAllText(relative);
-            var rel = Path.GetRelativePath(repoRoot, relative).Replace('\\', '/');
+            var rel = Path.GetRelativePath(projectDirectory, relative).Replace('\\', '/');
             if (Regex.IsMatch(text, @"GetCurrentSolution\s*\("))
             {
                 hits.Add(rel + "::GetCurrentSolution");
@@ -84,7 +85,7 @@ public sealed class Epoch1SemanticInventoryTests
         foreach (var (file, _, _) in Expected)
         {
             Assert.True(
-                File.Exists(Path.Combine(repoRoot, file.Replace('/', Path.DirectorySeparatorChar))),
+                File.Exists(Path.Combine(projectDirectory, file.Replace('/', Path.DirectorySeparatorChar))),
                 "Inventoried file missing: " + file);
         }
 
@@ -113,10 +114,10 @@ public sealed class Epoch1SemanticInventoryTests
     [Fact]
     public void Production_code_has_no_explicit_raw_workspace_semantic_reader()
     {
-        var repoRoot = FindRepoRoot();
+        var projectDirectory = RepositoryRoot.FindProductionProjectDirectory();
         var productionFiles = Directory
-            .GetFiles(Path.Combine(repoRoot, "Tools"), "*.cs", SearchOption.TopDirectoryOnly)
-            .Concat(Directory.GetFiles(Path.Combine(repoRoot, "Services"), "*.cs", SearchOption.AllDirectories))
+            .GetFiles(Path.Combine(projectDirectory, "Tools"), "*.cs", SearchOption.TopDirectoryOnly)
+            .Concat(Directory.GetFiles(Path.Combine(projectDirectory, "Services"), "*.cs", SearchOption.AllDirectories))
             .ToArray();
 
         foreach (var file in productionFiles)
@@ -130,7 +131,7 @@ public sealed class Epoch1SemanticInventoryTests
             }
         }
 
-        var manager = File.ReadAllText(Path.Combine(repoRoot, "Services", "Workspace", "SolutionManager.cs"));
+        var manager = File.ReadAllText(Path.Combine(projectDirectory, "Services", "Workspace", "SolutionManager.cs"));
         Assert.DoesNotMatch(
             new Regex(@"await\s+[^;\r\n]*Get(?:Compilation|SemanticModel)Async\s*\(", RegexOptions.CultureInvariant),
             manager);
@@ -139,10 +140,10 @@ public sealed class Epoch1SemanticInventoryTests
     [Fact]
     public void Production_semantic_calls_have_no_nearby_lock_free_solution_getter()
     {
-        var repoRoot = FindRepoRoot();
+        var projectDirectory = RepositoryRoot.FindProductionProjectDirectory();
         var productionFiles = Directory
-            .GetFiles(Path.Combine(repoRoot, "Tools"), "*.cs", SearchOption.TopDirectoryOnly)
-            .Concat(Directory.GetFiles(Path.Combine(repoRoot, "Services"), "*.cs", SearchOption.AllDirectories));
+            .GetFiles(Path.Combine(projectDirectory, "Tools"), "*.cs", SearchOption.TopDirectoryOnly)
+            .Concat(Directory.GetFiles(Path.Combine(projectDirectory, "Services"), "*.cs", SearchOption.AllDirectories));
         var semanticCall = new Regex(
             @"await\s+[^;\r\n]*Get(?:Compilation|SemanticModel)Async\s*\(",
             RegexOptions.CultureInvariant);
@@ -164,29 +165,13 @@ public sealed class Epoch1SemanticInventoryTests
     [Fact]
     public void Workspace_tool_uses_single_atomic_manager_load_workflow()
     {
-        var repoRoot = FindRepoRoot();
-        var source = File.ReadAllText(Path.Combine(repoRoot, "Tools", "WorkspaceTools.cs"));
+        var projectDirectory = RepositoryRoot.FindProductionProjectDirectory();
+        var source = File.ReadAllText(Path.Combine(projectDirectory, "Tools", "WorkspaceTools.cs"));
 
         Assert.Contains("LoadAndPrepareAsync(", source, StringComparison.Ordinal);
         Assert.DoesNotContain(
             "await _solutionManager.ShadowCopyInSolutionAnalyzerReferencesAsync(",
             source,
             StringComparison.Ordinal);
-    }
-
-    private static string FindRepoRoot()
-    {
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir is not null)
-        {
-            if (File.Exists(Path.Combine(dir.FullName, "RoslynMcpServer.csproj")))
-            {
-                return dir.FullName;
-            }
-
-            dir = dir.Parent;
-        }
-
-        throw new DirectoryNotFoundException("Could not locate repository root from " + AppContext.BaseDirectory);
     }
 }

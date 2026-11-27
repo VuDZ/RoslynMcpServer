@@ -59,7 +59,7 @@ public sealed class IlFileAccessChecksTests
     [Fact]
     public void Production_il_code_opens_files_only_in_the_image_loader_through_its_open_options()
     {
-        var directory = RepositoryRoot.Combine(RepositoryRoot.Find(), "Services", "Testing", "Il") + Path.DirectorySeparatorChar;
+        var directory = Path.Combine(RepositoryRoot.FindProductionProjectDirectory(), "Services", "Testing", "Il") + Path.DirectorySeparatorChar;
 
         var violations = IlFileAccessChecks.Verify(
             ProductionAnalysis.Instance,
