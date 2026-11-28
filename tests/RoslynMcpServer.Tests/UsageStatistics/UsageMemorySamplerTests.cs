@@ -32,8 +32,21 @@ public sealed class UsageMemorySamplerTests
         var empty = UsageMemorySampler.BuildHostTotals(new UnregisteredBuildHostReapPlan([], 0), []);
         Assert.Equal(0, empty.Bytes);
         Assert.Equal(0, empty.Count);
-        var partial = UsageMemorySampler.BuildHostTotals(new UnregisteredBuildHostReapPlan([20, 21], 0), [100L, null]);
+        var partial = UsageMemorySampler.BuildHostTotals(
+            new UnregisteredBuildHostReapPlan([20, 21], 0),
+            [(ProcessFound: true, Bytes: 100L), (ProcessFound: true, Bytes: null)]);
         Assert.Null(partial.Bytes);
         Assert.Equal(2, partial.Count);
+    }
+
+    [Fact]
+    public void DisappearedChildLeavesBuildHostMemoryAndCountUnknown()
+    {
+        var totals = UsageMemorySampler.BuildHostTotals(
+            new UnregisteredBuildHostReapPlan([20, 21], 0),
+            [(ProcessFound: true, Bytes: 100L), (ProcessFound: false, Bytes: null)]);
+
+        Assert.Null(totals.Bytes);
+        Assert.Null(totals.Count);
     }
 }

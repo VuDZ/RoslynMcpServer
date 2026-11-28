@@ -86,25 +86,17 @@ public sealed class BoundedProcessOutputTests
     [Theory]
     [InlineData("password=\n", "private-unquoted\n")]
     [InlineData("secret\n=\n", "private-split-assignment\n")]
-    [InlineData("password='private-first\n", "fixture.cs(1,1): error CS9999: private-cross-line\nprivate-last'\n")]
     [InlineData("Bearer\n", "private-bearer\n")]
     [InlineData("Authorization:\n", "private-authorization\n")]
-    public async Task Cursor_never_contains_a_secret_whose_prefix_was_omitted(string prefix, string value)
-    {
-        const string tail = "unrelated-tail\n";
-        var noise = string.Concat(Enumerable.Repeat(new string('x', 1023) + "\n", 300));
-        var tailPadding = new string('t', 48_000 - value.Length - tail.Length - 1) + "\n";
-        using var reader = new StringReader("head\n" + noise + prefix + value + tailPadding + tail);
-        var captured = await ReadOutputAsync(reader);
+    public Task Cursor_never_contains_a_secret_whose_prefix_was_omitted(string prefix, string value) =>
+        AssertCursorRedactsTruncatedSecretAsync(prefix, value);
 
-        Assert.True(captured.Truncated);
-        var stored = DiagnosticReportStore.TryStore(captured.Text);
-        var body = ReadCursor(stored.CursorId!);
-        Assert.Contains("head", body, StringComparison.Ordinal);
-        Assert.Contains(TruncatedProcessLog.CaptureMarker, body, StringComparison.Ordinal);
-        Assert.EndsWith("unrelated-tail", body, StringComparison.Ordinal);
-        Assert.DoesNotContain("private-", body, StringComparison.Ordinal);
-    }
+    // VSTest prints theory arguments, so a compiler diagnostic in them creates a GitHub Actions error annotation.
+    [Fact]
+    public Task CursorRedactsTruncatedSecretContainingCompilerDiagnostic() =>
+        AssertCursorRedactsTruncatedSecretAsync(
+            "password='private-first\n",
+            "fixture.cs(1,1): error CS9999: private-cross-line\nprivate-last'\n");
 
     [Theory]
     [InlineData(true, false, false)]
@@ -137,6 +129,23 @@ public sealed class BoundedProcessOutputTests
             Assert.Contains("unrelated-diagnostic", body, StringComparison.Ordinal);
             Assert.DoesNotContain("private-", body, StringComparison.Ordinal);
         }
+    }
+
+    private static async Task AssertCursorRedactsTruncatedSecretAsync(string prefix, string value)
+    {
+        const string tail = "unrelated-tail\n";
+        var noise = string.Concat(Enumerable.Repeat(new string('x', 1023) + "\n", 300));
+        var tailPadding = new string('t', 48_000 - value.Length - tail.Length - 1) + "\n";
+        using var reader = new StringReader("head\n" + noise + prefix + value + tailPadding + tail);
+        var captured = await ReadOutputAsync(reader);
+
+        Assert.True(captured.Truncated);
+        var stored = DiagnosticReportStore.TryStore(captured.Text);
+        var body = ReadCursor(stored.CursorId!);
+        Assert.Contains("head", body, StringComparison.Ordinal);
+        Assert.Contains(TruncatedProcessLog.CaptureMarker, body, StringComparison.Ordinal);
+        Assert.EndsWith("unrelated-tail", body, StringComparison.Ordinal);
+        Assert.DoesNotContain("private-", body, StringComparison.Ordinal);
     }
 
     private static async Task<BoundedProcessOutput.Capture> ReadOutputAsync(TextReader reader)

@@ -192,7 +192,8 @@ public sealed class WpfTemporaryProjectCallbackTests
         var close = Task.Run(session.Close);
         try
         {
-            Assert.False(close.Wait(TimeSpan.FromMilliseconds(100)), "Closure must wait for the admitted mutation.");
+            var delay = Task.Delay(TimeSpan.FromMilliseconds(100));
+            Assert.Same(delay, await Task.WhenAny(close, delay));
         }
         finally
         {

@@ -1,4 +1,4 @@
 namespace RoslynMcpServer.Services.Testing.Il.Models;
 
-/// <summary>The outcome of loading one assembly file into memory: exactly one of the two values is set.</summary>
-internal sealed record IlAssemblyImageLoad(IlAssemblyImage? Image, IlUnreadAssembly? Failure);
+/// <summary>The in-memory assembly image or the reason the file could not be read.</summary>
+internal union IlAssemblyImageLoad(IlAssemblyImage, IlUnreadAssembly);

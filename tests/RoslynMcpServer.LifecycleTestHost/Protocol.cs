@@ -111,7 +111,7 @@ public sealed class RewriteDto
 {
     public string ProjectName { get; set; } = "";
     public string? OriginalFullPath { get; set; }
-    public string MatchedProjectName { get; set; } = "";
+    public string? MatchedProjectName { get; set; } = "";
     public string? ShadowCopyPath { get; set; }
     public bool Applied { get; set; }
     public bool StaleGeneration { get; set; }

@@ -84,8 +84,8 @@ public sealed class UsageWorkspaceInstrumentationTests
             Assert.True(item.GetProperty("duration_ms").GetDouble() >= 0);
             Assert.True(item.GetProperty("lock_wait_ms").GetDouble() >= 0);
         });
-        var failedReset = Assert.Single(events.Where(item =>
-            item.GetProperty("ev").GetString() == "reset" && !item.GetProperty("success").GetBoolean()));
+        var failedReset = Assert.Single(events, item =>
+            item.GetProperty("ev").GetString() == "reset" && !item.GetProperty("success").GetBoolean());
         Assert.Equal(resident, failedReset.GetProperty("workspace_key").GetString());
         Assert.Equal(resident, failedReset.GetProperty("resident_key").GetString());
         Assert.Contains(events, item => item.GetProperty("ev").GetString() == "reset"
@@ -123,15 +123,15 @@ public sealed class UsageWorkspaceInstrumentationTests
         }
 
         var events = await files.ReadEventsAsync(usage);
-        var load = Assert.Single(events.Where(item => item.GetProperty("ev").GetString() == "load"));
+        var load = Assert.Single(events, item => item.GetProperty("ev").GetString() == "load");
         Assert.Equal("lazy", load.GetProperty("source").GetString());
         Assert.True(load.GetProperty("success").GetBoolean());
-        var tool = Assert.Single(events.Where(item => item.GetProperty("ev").GetString() == "tool"
-            && item.GetProperty("name").GetString() == toolName));
+        var tool = Assert.Single(events, item => item.GetProperty("ev").GetString() == "tool"
+            && item.GetProperty("name").GetString() == toolName);
         Assert.True(tool.GetProperty("lazy_load").GetBoolean());
         Assert.True(tool.GetProperty("requires_workspace").GetBoolean());
-        var directTool = Assert.Single(events.Where(item => item.GetProperty("ev").GetString() == "tool"
-            && item.GetProperty("name").GetString() == "plugin_direct"));
+        var directTool = Assert.Single(events, item => item.GetProperty("ev").GetString() == "tool"
+            && item.GetProperty("name").GetString() == "plugin_direct");
         Assert.False(directTool.GetProperty("requires_workspace").GetBoolean());
         Assert.False(directTool.GetProperty("lazy_load").GetBoolean());
     }
@@ -205,11 +205,11 @@ public sealed class UsageWorkspaceInstrumentationTests
         }
 
         var events = await configured.ReadEventsAsync(usage);
-        var recordedLoad = Assert.Single(events.Where(item => item.GetProperty("ev").GetString() == "load"));
+        var recordedLoad = Assert.Single(events, item => item.GetProperty("ev").GetString() == "load");
         Assert.Equal("explicit", recordedLoad.GetProperty("source").GetString());
         Assert.True(recordedLoad.GetProperty("success").GetBoolean());
-        var readerEvent = Assert.Single(events.Where(item => item.GetProperty("ev").GetString() == "tool"
-            && item.GetProperty("name").GetString() == "waiting_semantic_reader"));
+        var readerEvent = Assert.Single(events, item => item.GetProperty("ev").GetString() == "tool"
+            && item.GetProperty("name").GetString() == "waiting_semantic_reader");
         Assert.False(readerEvent.GetProperty("lazy_load").GetBoolean());
     }
 

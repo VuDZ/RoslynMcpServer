@@ -175,8 +175,8 @@ public sealed class UsageStatisticsFiltersTests
         }
 
         var events = await files.ReadEventsAsync(usage);
-        var clientEvent = Assert.Single(events.Where(item => item.GetProperty("ev").GetString() == "client"
-            && item.GetProperty("name").GetString() == "usage-integration"));
+        var clientEvent = Assert.Single(events, item => item.GetProperty("ev").GetString() == "client"
+            && item.GetProperty("name").GetString() == "usage-integration");
         Assert.Equal(protocolVersion, clientEvent.GetProperty("protocol").GetString());
         var calls = events.Where(item => item.GetProperty("ev").GetString() == "tool").ToArray();
         Assert.Equal(15, calls.Length);

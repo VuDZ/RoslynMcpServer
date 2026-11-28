@@ -45,7 +45,8 @@ public sealed class IlAssemblyFileTests : IDisposable
         if (first != opened.Task)
         {
             var ended = await reading;
-            Assert.Fail($"The read ended without stopping where the file is open: {ended.Failure?.Message ?? "it returned an image"}.");
+            var message = ended is IlUnreadAssembly failure ? failure.Message : "it returned no failure";
+            Assert.Fail($"The read ended without stopping where the file is open: {message}.");
         }
 
         // Exclusive access is refused only while somebody holds the file: this proves that the reader is
@@ -63,7 +64,7 @@ public sealed class IlAssemblyFileTests : IDisposable
 
         // What the stopped reader gets is the business of its caller, which compares the file before and
         // after the read; here it only has to end with a result.
-        Assert.True((load.Image is null) != (load.Failure is null));
+        Assert.NotNull(load.Value);
     }
 
     /// <summary>
@@ -93,7 +94,7 @@ public sealed class IlAssemblyFileTests : IDisposable
         var result = IlDependencyGraphBuilder.BuildFromFiles([new IlAssemblyInput(path, IsTestProject: false)], IlNeighborMap.Empty);
         var afterBuild = Record.Exception(() => OpenExclusively(path));
 
-        Assert.NotNull(load.Image);
+        Assert.IsType<IlAssemblyImage>(load.Value);
         Assert.NotNull(read.Facts);
         Assert.Empty(result.Unread);
         Assert.Null(afterLoad);
@@ -111,11 +112,11 @@ public sealed class IlAssemblyFileTests : IDisposable
 
         var load = IlAssemblyImageLoader.Load(path);
         File.Delete(path);
-        var read = IlAssemblyReader.Read(load.Image!);
+        var image = Assert.IsType<IlAssemblyImage>(load.Value);
+        var read = IlAssemblyReader.Read(image);
 
-        Assert.Null(load.Failure);
-        Assert.Equal(path, load.Image!.Path);
-        Assert.Equal(expected, load.Image.Content.ToArray());
+        Assert.Equal(path, image.Path);
+        Assert.Equal(expected, image.Content.ToArray());
         Assert.Null(read.Failure);
         Assert.Equal(path, read.Path);
         Assert.Equal(IlShopFixture.LibAssembly, read.Facts!.Name);
@@ -176,14 +177,15 @@ public sealed class IlAssemblyFileTests : IDisposable
         var missingLoad = IlAssemblyImageLoader.Load(missing);
         var missingRead = IlAssemblyReader.ReadFile(missing);
         var damagedLoad = IlAssemblyImageLoader.Load(damaged);
-        var damagedRead = IlAssemblyReader.Read(damagedLoad.Image!);
+        var damagedImage = Assert.IsType<IlAssemblyImage>(damagedLoad.Value);
+        var damagedRead = IlAssemblyReader.Read(damagedImage);
 
-        Assert.Null(missingLoad.Image);
-        Assert.Equal(new { Path = missing, Reason = IlAssemblyFailureKind.Missing }, new { missingLoad.Failure!.Path, missingLoad.Failure.Reason });
+        var missingFailure = Assert.IsType<IlUnreadAssembly>(missingLoad.Value);
+        Assert.Equal(missing, missingFailure.Path);
+        Assert.Equal(IlAssemblyFailureKind.Missing, missingFailure.Reason);
         Assert.Null(missingRead.Facts);
         Assert.Equal(missing, missingRead.Path);
         Assert.Equal(IlAssemblyFailureKind.Missing, missingRead.Failure!.Reason);
-        Assert.Null(damagedLoad.Failure);
         Assert.Null(damagedRead.Facts);
         Assert.Equal(new { Path = damaged, Reason = IlAssemblyFailureKind.NotAnAssembly }, new { damagedRead.Failure!.Path, damagedRead.Failure.Reason });
     }

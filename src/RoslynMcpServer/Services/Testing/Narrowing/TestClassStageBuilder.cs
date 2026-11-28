@@ -149,7 +149,12 @@ internal sealed class TestClassStageBuilder
         }
 
         var filter = VstestRunPlanner.PlanClasses([.. selections.Select(selection => selection.Class)], cancellationToken);
-        return new TestClassStage(level, selections, filter.Filter, filter.Whole);
+        return filter switch
+        {
+            VstestClassFilterExpression(var expression) => new TestClassStage(level, selections, expression, null),
+            VstestClassFilterEmpty => new TestClassStage(level, selections, null, null),
+            VstestClassFilterWholeProject(var reason) => new TestClassStage(level, selections, null, reason),
+        };
     }
 
     private void Select(VstestTestClass testClass, TestClassSelectionReasons reason) =>

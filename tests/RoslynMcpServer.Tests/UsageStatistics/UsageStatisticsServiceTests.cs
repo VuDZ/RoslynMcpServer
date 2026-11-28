@@ -26,7 +26,7 @@ public sealed class UsageStatisticsServiceTests
         Assert.Equal(1, busy.GetProperty("active_calls").GetInt32());
         Assert.Equal(0, busy.GetProperty("idle_seconds").GetDouble());
         Assert.Equal(2, events.Count(item => item.GetProperty("ev").GetString() == "tool_start"));
-        Assert.Single(events.Where(item => item.GetProperty("ev").GetString() == "tool"));
+        Assert.Single(events, item => item.GetProperty("ev").GetString() == "tool");
         Assert.DoesNotContain(events, item =>
             item.GetProperty("ev").GetString() == "tool" && item.GetProperty("call").GetInt64() == longCall!.Id);
         Assert.Equal("exception", events.Last(item => item.GetProperty("ev").GetString() == "exit").GetProperty("reason").GetString());

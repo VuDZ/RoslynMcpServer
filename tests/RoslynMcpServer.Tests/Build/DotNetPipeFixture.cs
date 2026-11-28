@@ -254,12 +254,18 @@ internal sealed class DotNetPipeFixture : IAsyncDisposable
         // Poll the creation identity on Unix so an exit followed by PID reuse cannot extend the wait.
         while (true)
         {
-            using (var process = FindTrackedProcess(identity))
+            try
             {
+                using var process = FindTrackedProcess(identity);
                 if (process is null)
                 {
                     return;
                 }
+            }
+            catch (System.ComponentModel.Win32Exception) when (OperatingSystem.IsMacOS())
+            {
+                // StartTime can become unavailable before HasExited observes termination.
+                // Retry within the caller's deadline until the PID disappears or its identity changes.
             }
 
             await Task.Delay(25, cancellationToken);

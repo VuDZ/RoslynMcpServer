@@ -72,8 +72,8 @@ internal static class IlAssemblyImageLoader
     }
 
     private static IlAssemblyImageLoad Loaded(string path, byte[] content) =>
-        new(new IlAssemblyImage(path, ImmutableCollectionsMarshal.AsImmutableArray(content)), Failure: null);
+        new IlAssemblyImage(path, ImmutableCollectionsMarshal.AsImmutableArray(content));
 
     private static IlAssemblyImageLoad Failed(string path, IlAssemblyFailureKind reason, Exception ex) =>
-        new(Image: null, new IlUnreadAssembly(path, reason, ex.Message));
+        new IlUnreadAssembly(path, reason, ex.Message);
 }

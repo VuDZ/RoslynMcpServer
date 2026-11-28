@@ -216,7 +216,12 @@ internal static class UnregisteredBuildHostReaper
     {
         try
         {
-            using var process = Process.GetProcessById(observation.Id);
+            if (!Process.TryGetProcessById(observation.Id, out var foundProcess))
+            {
+                return false;
+            }
+
+            using var process = foundProcess;
             if ((process.StartTime - observation.StartTime).Duration() > StartTimeTolerance)
             {
                 return false;

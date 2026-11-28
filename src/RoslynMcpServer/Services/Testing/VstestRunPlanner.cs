@@ -59,8 +59,8 @@ internal static class VstestRunPlanner
     }
 
     /// <summary>
-    /// A filter that runs every test of each class, or the reason it cannot be built. The rules are those of
-    /// <see cref="Plan"/>: a class without a runtime name, a fixture with arguments and a filter over
+    /// Plans a filter that runs every test of each class. An empty selection needs no filter.
+    /// As in <see cref="Plan"/>, a class without a runtime name, a fixture with arguments and a filter over
     /// <see cref="MaxFilterLength"/> require the whole project.
     /// </summary>
     /// <remarks>
@@ -91,16 +91,16 @@ internal static class VstestRunPlanner
 
         if (terms.Count == 0)
         {
-            return new VstestClassFilter(null, null);
+            return new VstestClassFilterEmpty();
         }
 
         var filter = string.Join('|', terms);
         return filter.Length > MaxFilterLength
             ? Whole(TestNarrowingWholeKind.FilterOverBudget, null, _overBudgetReason)
-            : new VstestClassFilter(filter, null);
+            : new VstestClassFilterExpression(filter);
 
-        static VstestClassFilter Whole(TestNarrowingWholeKind kind, string? subject, string message) =>
-            new(null, new TestNarrowingWholeReason(kind, subject, message));
+        static VstestClassFilterWholeProject Whole(TestNarrowingWholeKind kind, string? subject, string message) =>
+            new(new TestNarrowingWholeReason(kind, subject, message));
     }
 
     private const string UnknownIdentityReason = "Concrete adapter/runtime identity is unknown or ambiguous; run the whole project.";

@@ -69,7 +69,9 @@ internal static class UsageMemorySampler
         return anonymous + swap;
     }
 
-    internal static (long? Bytes, int? Count) BuildHostTotals(UnregisteredBuildHostReapPlan plan, IEnumerable<long?> sizes)
+    internal static (long? Bytes, int? Count) BuildHostTotals(
+        UnregisteredBuildHostReapPlan plan,
+        IEnumerable<(bool ProcessFound, long? Bytes)> samples)
     {
         if (plan.UnidentifiedChildren > 0)
         {
@@ -77,18 +79,28 @@ internal static class UsageMemorySampler
         }
 
         long? total = 0;
-        foreach (var size in sizes)
+        foreach (var (processFound, bytes) in samples)
         {
-            total += size;
+            if (!processFound)
+            {
+                return (null, null);
+            }
+
+            total += bytes;
         }
 
         return (total, plan.ProcessIds.Count);
     }
 
-    private static long? ReadProcessMemory(int processId)
+    private static (bool ProcessFound, long? Bytes) ReadProcessMemory(int processId)
     {
-        using var process = Process.GetProcessById(processId);
-        return ReadPrimaryMemory(process);
+        if (!Process.TryGetProcessById(processId, out var foundProcess))
+        {
+            return (false, null);
+        }
+
+        using var process = foundProcess;
+        return (true, ReadPrimaryMemory(process));
     }
 
     private static long? ReadPrimaryMemory(Process process) =>

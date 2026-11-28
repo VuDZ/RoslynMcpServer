@@ -55,8 +55,12 @@ internal sealed class IlAssemblyReader
     /// <summary>Loads the file into memory, parses it and drops the image.</summary>
     public static IlAssemblyReadResult ReadFile(string path)
     {
-        var load = IlAssemblyImageLoader.Load(path);
-        return load.Image is null ? IlAssemblyReadResult.Unread(load.Failure!) : Read(load.Image);
+        return IlAssemblyImageLoader.Load(path) switch
+        {
+            IlAssemblyImage image => Read(image),
+            IlUnreadAssembly failure => IlAssemblyReadResult.Unread(failure),
+            null => throw new InvalidOperationException("The assembly image loader returned no result."),
+        };
     }
 
     private static IlAssemblyReadResult Failed(string path, string message) =>

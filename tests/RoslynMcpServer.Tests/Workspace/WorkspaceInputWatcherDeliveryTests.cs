@@ -185,6 +185,7 @@ public sealed class WorkspaceInputWatcherDeliveryTests : IClassFixture<Workspace
     {
         var session = _fixture.Session;
         var before = session.InputRevisionFor(_fixture.AppId);
+        var beforeManual = session.InputRevisionForPath(_fixture.ManualPath);
         var beforeEvent = session.EventRevision(_fixture.ManualPath);
         await File.WriteAllTextAsync(_fixture.ManualPath, "public class ManualInput { public int FromDisk; }");
         Assert.True(await WaitUntil(() => session.EventRevision(_fixture.ManualPath) > beforeEvent),
@@ -197,14 +198,19 @@ public sealed class WorkspaceInputWatcherDeliveryTests : IClassFixture<Workspace
             .Single(document => Same(document.FilePath, _fixture.ManualPath));
         Assert.Contains("FromDisk", (await manual.GetTextAsync()).ToString(), StringComparison.Ordinal);
         Assert.True(session.InputRevisionFor(_fixture.AppId) > before);
+        Assert.True(session.InputRevisionForPath(_fixture.ManualPath) > beforeManual);
 
-        var afterManual = session.InputRevisionFor(_fixture.AppId);
+        // Other inputs can still receive delayed watcher events. Check only the paths written below.
+        var beforeAssemblyInfo = session.InputRevisionForPath(_fixture.AssemblyInfoPath);
+        var beforeMystery = session.InputRevisionForPath(_fixture.MysteryPath);
+        var outputPath = _fixture.OutputPath;
+        var beforeOutput = outputPath is null ? 0 : session.InputRevisionForPath(outputPath);
         await File.AppendAllTextAsync(_fixture.AssemblyInfoPath, Environment.NewLine + "// again");
         await File.AppendAllTextAsync(_fixture.AssemblyInfoPath, Environment.NewLine + "// loop");
-        if (!string.IsNullOrWhiteSpace(_fixture.OutputPath))
+        if (!string.IsNullOrWhiteSpace(outputPath))
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(_fixture.OutputPath)!);
-            await File.WriteAllTextAsync(_fixture.OutputPath, "output-bytes");
+            Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
+            await File.WriteAllTextAsync(outputPath, "output-bytes");
         }
 
         await File.WriteAllTextAsync(_fixture.MysteryPath, "class Mystery {}");
@@ -216,28 +222,30 @@ public sealed class WorkspaceInputWatcherDeliveryTests : IClassFixture<Workspace
             await WaitUntil(() => session.Notices.Any(notice =>
                 Same(notice.CanonicalPath, _fixture.MysteryPath) && notice.Role == InputRole.Unknown)),
             "Unknown provenance under obj was ignored.");
-        if (!string.IsNullOrWhiteSpace(_fixture.OutputPath))
+        if (!string.IsNullOrWhiteSpace(outputPath))
         {
             // Different watcher paths are delivered independently; another notice does not acknowledge the output event.
             // See docs/rapid-tia/epoch-1-project-level/evidence/task-03-final-validation-round-22.md.
             Assert.True(
                 await WaitUntil(() => session.Notices.Any(notice =>
-                    Same(notice.CanonicalPath, _fixture.OutputPath)
+                    Same(notice.CanonicalPath, outputPath)
                     && notice.Role == InputRole.Output
                     && !notice.CountsAsInputRevision)),
                 "The output event was not recorded as a non-input role.");
         }
-        Assert.Equal(afterManual, session.InputRevisionFor(_fixture.AppId));
+        Assert.Equal(beforeAssemblyInfo, session.InputRevisionForPath(_fixture.AssemblyInfoPath));
+        Assert.Equal(beforeMystery, session.InputRevisionForPath(_fixture.MysteryPath));
         Assert.Contains(session.Notices, notice =>
             Same(notice.CanonicalPath, _fixture.AssemblyInfoPath) && !notice.CountsAsInputRevision);
         Assert.Contains(session.Notices, notice =>
             Same(notice.CanonicalPath, _fixture.MysteryPath)
             && notice.Role == InputRole.Unknown
             && !notice.CountsAsInputRevision);
-        if (!string.IsNullOrWhiteSpace(_fixture.OutputPath))
+        if (!string.IsNullOrWhiteSpace(outputPath))
         {
+            Assert.Equal(beforeOutput, session.InputRevisionForPath(outputPath));
             Assert.Contains(session.Notices, notice =>
-                Same(notice.CanonicalPath, _fixture.OutputPath)
+                Same(notice.CanonicalPath, outputPath)
                 && notice.Role == InputRole.Output
                 && !notice.CountsAsInputRevision);
         }

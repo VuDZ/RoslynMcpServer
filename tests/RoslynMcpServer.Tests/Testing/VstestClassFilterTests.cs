@@ -18,23 +18,20 @@ public sealed class VstestClassFilterTests
             [Class("Ns.First"), Class("Ns.Outer+Inner", complete: false), Class("Ns.Name(with)&chars")],
             CancellationToken.None);
 
-        Assert.Null(filter.Whole);
+        var expression = Assert.IsType<VstestClassFilterExpression>(filter);
         Assert.Equal(
             string.Join(
                 '|',
                 "FullyQualifiedName~" + TestFilterHelper.EscapeFilterValue("Ns.First."),
                 "FullyQualifiedName~" + TestFilterHelper.EscapeFilterValue("Ns.Outer+Inner."),
                 "FullyQualifiedName~" + TestFilterHelper.EscapeFilterValue("Ns.Name(with)&chars.")),
-            filter.Filter);
+            expression.Filter);
     }
 
     [Fact]
-    public void No_classes_give_neither_a_filter_nor_a_reason()
+    public void NoClassesGiveAnEmptySelection()
     {
-        var filter = VstestRunPlanner.PlanClasses([], CancellationToken.None);
-
-        Assert.Null(filter.Filter);
-        Assert.Null(filter.Whole);
+        Assert.IsType<VstestClassFilterEmpty>(VstestRunPlanner.PlanClasses([], CancellationToken.None));
     }
 
     [Theory]
@@ -46,9 +43,11 @@ public sealed class VstestClassFilterTests
             [Class("Ns.First"), Class(null) with { UnresolvedReason = reason }],
             CancellationToken.None);
 
-        Assert.Null(filter.Filter);
-        Assert.Equal(TestNarrowingWholeKind.UnresolvedTestClass, filter.Whole?.Kind);
-        Assert.Equal(reason ?? "Concrete adapter/runtime identity is unknown or ambiguous; run the whole project.", filter.Whole?.Message);
+        var whole = Assert.IsType<VstestClassFilterWholeProject>(filter).Reason;
+        Assert.Equal(TestNarrowingWholeKind.UnresolvedTestClass, whole.Kind);
+        Assert.Equal(
+            reason ?? "Concrete adapter/runtime identity is unknown or ambiguous; run the whole project.",
+            whole.Message);
     }
 
     [Fact]
@@ -62,9 +61,9 @@ public sealed class VstestClassFilterTests
 
         var filter = VstestRunPlanner.PlanClasses([fixture], CancellationToken.None);
 
-        Assert.Null(filter.Filter);
-        Assert.Equal(TestNarrowingWholeKind.FixtureArguments, filter.Whole?.Kind);
-        Assert.Equal("Runtime fixture constructor/source arguments require the whole project.", filter.Whole?.Message);
+        var whole = Assert.IsType<VstestClassFilterWholeProject>(filter).Reason;
+        Assert.Equal(TestNarrowingWholeKind.FixtureArguments, whole.Kind);
+        Assert.Equal("Runtime fixture constructor/source arguments require the whole project.", whole.Message);
     }
 
     [Fact]
@@ -77,11 +76,11 @@ public sealed class VstestClassFilterTests
 
         var filter = VstestRunPlanner.PlanClasses(classes, CancellationToken.None);
 
-        Assert.Null(filter.Filter);
-        Assert.Equal(TestNarrowingWholeKind.FilterOverBudget, filter.Whole?.Kind);
+        var whole = Assert.IsType<VstestClassFilterWholeProject>(filter).Reason;
+        Assert.Equal(TestNarrowingWholeKind.FilterOverBudget, whole.Kind);
         Assert.Equal(
             $"Escaped VSTest filter exceeds the {VstestRunPlanner.MaxFilterLength}-character budget; run the whole project.",
-            filter.Whole?.Message);
+            whole.Message);
     }
 
     private static VstestTestClass Class(string? runtimeName, bool complete = true) => new(

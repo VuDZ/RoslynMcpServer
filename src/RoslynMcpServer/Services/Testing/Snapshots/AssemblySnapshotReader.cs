@@ -114,18 +114,18 @@ internal sealed class AssemblySnapshotReader
             return null;
         }
 
-        if (load.Image is null)
+        return load switch
         {
+            IlAssemblyImage image => Parse(image, stamp, solutionAssemblies),
             // A sharing violation can disappear without changing the file stamp.
-            return AssemblySnapshotEntry.Unreadable(path, stamp: null, load.Failure!);
-        }
-
-        ImageLoadedForTests?.Invoke(load.Image);
-        return Parse(load.Image, stamp, solutionAssemblies);
+            IlUnreadAssembly failure => AssemblySnapshotEntry.Unreadable(path, stamp: null, failure),
+            null => throw new InvalidOperationException("The assembly image loader returned no result."),
+        };
     }
 
-    private static AssemblySnapshotEntry Parse(IlAssemblyImage image, AssemblyFileStamp stamp, IReadOnlySet<string> solutionAssemblies)
+    private AssemblySnapshotEntry Parse(IlAssemblyImage image, AssemblyFileStamp stamp, IReadOnlySet<string> solutionAssemblies)
     {
+        ImageLoadedForTests?.Invoke(image);
         var read = IlAssemblyReader.Read(image);
         if (read.Failure is not null)
         {
